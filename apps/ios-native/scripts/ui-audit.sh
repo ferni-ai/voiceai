@@ -30,7 +30,7 @@ run() {
   rm -rf "$bundle"
   set +e
   xcodebuild test-without-building "${common[@]}" -resultBundlePath "$bundle" \
-    -only-testing:FerniUITests/AccessibilityAuditTests -only-testing:FerniUITests/TalkButtonTests -only-testing:FerniUITests/AvatarTouchTests \
+    -only-testing:FerniUITests/AccessibilityAuditTests -only-testing:FerniUITests/TalkButtonTests -only-testing:FerniUITests/AvatarTouchTests -only-testing:FerniUITests/ConsentSheetTests \
     2>&1 | tee "$out/ui-audit-$slug.log" | grep -E "AUDIT \[|Test Case .*(passed|failed)|Executed [0-9]+ tests"
   status=${PIPESTATUS[0]}
   set -e

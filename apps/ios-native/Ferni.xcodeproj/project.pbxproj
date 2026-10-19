@@ -11,6 +11,7 @@
 		117123ACF45A5D57E6E0056D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */; };
 		11741E1DFD5DE949343B912A /* LocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */; };
 		124CC2F5CBCF36E657BE6075 /* StoreScreenshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE06F525671F6FD0FBC7779D /* StoreScreenshotTests.swift */; };
+		13E295A0E158B401D107C1D5 /* ConsentSheetTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CC34062567D316808D0D03C /* ConsentSheetTests.swift */; };
 		1EED7714DC0D3C8377299659 /* FerniHomeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = F090A53D7F69DB1A6CD82A19 /* FerniHomeWidget.swift */; };
 		225590E855D547E5CCB89A22 /* FerniLink in Frameworks */ = {isa = PBXBuildFile; productRef = F667C1DECD86E1F2360CB8C1 /* FerniLink */; };
 		27464AAE3E6286E2D651309D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C71781BAD997D314C08864 /* HomeView.swift */; };
@@ -20,6 +21,7 @@
 		358627D9E201AD0580FC0F1C /* CallAnnouncementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EB4AF176D7F4E747ABBAA4 /* CallAnnouncementTests.swift */; };
 		35F9F60F2744005E17C2FE1C /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DA4BC7C1EABDFAE3445A318 /* CarPlaySceneDelegate.swift */; };
 		3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */; };
+		379EA73E4D83C65C9AFE0A98 /* FirstMinuteAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BBEC35DE0011C78F56EB70E /* FirstMinuteAppTests.swift */; };
 		38240C7BC3E78705B56F4A7C /* handoff-to-nayan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */; };
 		3D35744BE349C5C980D7C2A6 /* FerniKit in Frameworks */ = {isa = PBXBuildFile; productRef = ED4AC2AA3060D84427234E43 /* FerniKit */; };
 		462F30BCD7F633DBEFD782D2 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */; };
@@ -162,6 +164,7 @@
 		346AABA0EB545D4C92B2D8CD /* CallViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViews.swift; sourceTree = "<group>"; };
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
 		3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FerniWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3CC34062567D316808D0D03C /* ConsentSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentSheetTests.swift; sourceTree = "<group>"; };
 		41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkButtonTests.swift; sourceTree = "<group>"; };
 		41E550D3CF186D8D463FF66E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4838DCCE1D8223A8914D4F7D /* FerniUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FerniUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -180,6 +183,7 @@
 		6DB1FD5E9768FDDD7A8B82CB /* FerniWatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FerniWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashPolicyTests.swift; sourceTree = "<group>"; };
 		766CF4344E77F81DF8043439 /* FerniShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniShortcuts.swift; sourceTree = "<group>"; };
+		7BBEC35DE0011C78F56EB70E /* FirstMinuteAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstMinuteAppTests.swift; sourceTree = "<group>"; };
 		7D40773682D7EA8473CE46CA /* FerniLink */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniLink; path = Packages/FerniLink; sourceTree = SOURCE_ROOT; };
 		7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
 		809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamRowTests.swift; sourceTree = "<group>"; };
@@ -287,6 +291,7 @@
 				E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */,
 				52EB4AF176D7F4E747ABBAA4 /* CallAnnouncementTests.swift */,
 				6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */,
+				7BBEC35DE0011C78F56EB70E /* FirstMinuteAppTests.swift */,
 				4F6D02CA803627F1860ACBDA /* LiveActivityContentTests.swift */,
 				C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */,
 				809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */,
@@ -318,6 +323,7 @@
 			children = (
 				BB291C79E629A29D4B86C651 /* AccessibilityAuditTests.swift */,
 				B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */,
+				3CC34062567D316808D0D03C /* ConsentSheetTests.swift */,
 				B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */,
 				AE06F525671F6FD0FBC7779D /* StoreScreenshotTests.swift */,
 				41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */,
@@ -699,6 +705,7 @@
 			files = (
 				639D84959EC4165C2F4DA23F /* AccessibilityAuditTests.swift in Sources */,
 				65A85BD3CF6927E84BDB94EC /* AvatarTouchTests.swift in Sources */,
+				13E295A0E158B401D107C1D5 /* ConsentSheetTests.swift in Sources */,
 				C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */,
 				124CC2F5CBCF36E657BE6075 /* StoreScreenshotTests.swift in Sources */,
 				49961E1E4E6B791C493108B4 /* TalkButtonTests.swift in Sources */,
@@ -713,6 +720,7 @@
 				BA62672ACCAD9A10B9C98EBB /* BackgroundModeTests.swift in Sources */,
 				358627D9E201AD0580FC0F1C /* CallAnnouncementTests.swift in Sources */,
 				3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */,
+				379EA73E4D83C65C9AFE0A98 /* FirstMinuteAppTests.swift in Sources */,
 				F8BE59CFC9BCA7538FD1A854 /* LiveActivityContentTests.swift in Sources */,
 				11741E1DFD5DE949343B912A /* LocalizationTests.swift in Sources */,
 				F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */,
