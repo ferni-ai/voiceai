@@ -62,6 +62,32 @@ private struct SettingsHeader: View {
     var body: some View { Text(title).foregroundStyle(FerniColor.textSecondary) }
 }
 
+/// What the Account section shows while the account is set up (critic L6):
+/// a spinner for a moment, then "taking longer than usual" with Try again,
+/// never a spinner forever; and when setting up fails or is slow, a way to
+/// get help (ferni.ai/help).
+enum AccountStatus: Equatable {
+    case working, slow, unavailable(String), ready
+
+    static let slowAfter: Double = 15
+    static let helpURL = URL(string: "https://ferni.ai/help/")!
+
+    static func shown(_ state: AccountStore.State, waited: Double) -> AccountStatus {
+        switch state {
+        case .starting: waited >= slowAfter ? .slow : .working
+        case .unavailable(let message): .unavailable(message)
+        case .signedIn: .ready
+        }
+    }
+
+    var offersHelp: Bool {
+        switch self {
+        case .slow, .unavailable: true
+        case .working, .ready: false
+        }
+    }
+}
+
 /// Who you are to Ferni, and the upgrade from "this phone" to "you, anywhere".
 private struct AccountSection: View {
     let account: AccountStore
@@ -69,12 +95,23 @@ private struct AccountSection: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var nonce = AppleNonce()
     @State private var confirmingSignOut = false
+    @State private var startedWaiting = Date.now
+    @State private var now = Date.now
 
     var body: some View {
+        let status = AccountStatus.shown(account.state, waited: now.timeIntervalSince(startedWaiting))
         Section {
             switch account.state {
+            case .starting where status == .slow:
+                Text("Setting up your account is taking longer than usual.").foregroundStyle(FerniColor.textSecondary)
+                Button("Try again") { Task { await account.start() } }
             case .starting:
                 LabeledContent("Account") { ProgressView() }
+                    .task {
+                        startedWaiting = .now
+                        try? await Task.sleep(for: .seconds(AccountStatus.slowAfter))
+                        now = .now
+                    }
             case .unavailable(let message):
                 Text(message).foregroundStyle(FerniColor.textSecondary)
                 Button("Try again") { Task { await account.start() } }
@@ -110,6 +147,10 @@ private struct AccountSection: View {
             }
         } header: {
             SettingsHeader("Account")
+        } footer: {
+            if status.offersHelp {
+                Link("Get help with your account", destination: AccountStatus.helpURL)
+            }
         }
         .confirmationDialog("Sign out?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive) { Task { await signOut() } }
