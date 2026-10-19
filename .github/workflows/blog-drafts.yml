@@ -12,6 +12,9 @@ name: Blog Drafts
 # opens as a draft and is not armed, so a post never publishes imageless.
 # A draft the drafter rejects itself (brand gate failed twice) is not written and
 # fails the job.
+# This log is public: a rejected draft or a failed gate prints rule codes,
+# counts and source PR numbers only, never the draft or the text a finding
+# quotes (scripts/blog/log-safe.ts). No step here prints the draft file.
 #
 # The brand gate: no forbidden words, em dashes, ellipses, retired-stack names,
 # unlabelled composites, or numbers missing from the sources.
@@ -228,7 +231,7 @@ jobs:
             if [ "$PASSED" = true ]; then
               echo "It passed the brand gate and the live check, so auto-merge is armed and it publishes once CI is green. No one reviews it first. To stop it, disable auto-merge or close this PR."
             else
-              echo "**It failed the brand gate, the live check or the hero image**, so this PR is a draft and auto-merge is off. The failures are in the [run log]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID). Fix the post, mark the PR ready and merge it, or close it."
+              echo "**It failed the brand gate, the live check or the hero image**, so this PR is a draft and auto-merge is off. The [run log]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID) has the rule codes only; run \`pnpm tsx scripts/blog/check-post.ts $file --live --details\` locally for the details. Fix the post, mark the PR ready and merge it, or close it."
             fi
             echo
             echo "The brand gate: no forbidden words, em dashes, ellipses, retired-stack names, unlabelled composites or numbers missing from the sources. The live check: every source and every cited PR is merged, not behind an off-by-default flag, and touches only the web app or website or was merged at least 7 days ago."
