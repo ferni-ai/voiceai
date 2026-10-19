@@ -43,5 +43,10 @@
     "file": "src/speech/tts-gateway/director/session-state.ts",
     "contains": "and never shared between sessions",
     "reason": "Code comment about in-memory TTS state, not copy."
+  },
+  {
+    "file": "src/personas/bundles/shared/privacy-answer.md",
+    "contains": "Never say it stays between us, stays here, is just between the two of you",
+    "reason": "A prohibition, not a claim: this line (#1946) tells Ferni never to promise that a conversation stays between them."
   }
 ]
