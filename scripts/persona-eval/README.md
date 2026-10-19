@@ -53,6 +53,8 @@ default two runs and two judges cost about four times one of each. Multi-turn,
 an arm against a saved baseline takes about 2,200 counted calls (636 replies;
 per judge 480 distinctness and insight, 288 pairwise), plus about 550 director
 and deliberation calls; `verdict.md` ends with this process's count per model.
+gpt-oss on Vertex MaaS served about 11 calls a minute on johnb-2025 (2026-10-19),
+so its 768 take about an hour of wall clock whatever the pool size.
 The default model and first judge are `gemini-3.5-flash` (`CASCADE_LLM_MODEL`,
 `JUDGE_MODEL`).
 
