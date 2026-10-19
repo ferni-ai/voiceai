@@ -21,6 +21,8 @@
  * @module agents/personas/director-escalation
  */
 
+import { FERNI_CAST, self, type Cast } from './director-cast.js';
+
 export function directorEscalates(env: Record<string, string | undefined> = process.env): boolean {
   return env.DIRECTOR_ESCALATE === 'on';
 }
@@ -87,5 +89,6 @@ export function hardRuleFor(themes: NoteTheme[]): string {
 }
 
 /** Added to the director's instructions when DIRECTOR_ESCALATE=on. */
-export const DIRECTOR_ADDRESS =
-  'Write to Ferni as "you" and call the caller by name or "they"; never "him" for Ferni. A quiet caller giving short answers is never a cue for Ferni to talk about himself, explain or fill the silence: nudge him toward shorter replies that leave them room.';
+export const directorAddress = (c: Cast): string =>
+  `Write to ${c.name} as "you" and call the caller by name or "they"; never "${c.p.object}" for ${c.name}. A quiet caller giving short answers is never a cue for ${c.name} to talk about ${self(c)}, explain or fill the silence: nudge ${c.p.object} toward shorter replies that leave them room.`;
+export const DIRECTOR_ADDRESS = directorAddress(FERNI_CAST);

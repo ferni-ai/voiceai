@@ -13,17 +13,22 @@ import {
   shutdownTokenStore,
 } from '../../../services/identity/google-calendar-token-store.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import {
+  googleCalendarClientId,
+  googleCalendarClientSecret,
+  googleCalendarRedirectUri,
+} from '../../../config/google-calendar-oauth-env.js';
 
 export { getTokens, saveTokens, removeTokens };
 
 const log = createLogger({ module: 'GoogleCalendarOAuth' });
 
 // Configuration
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET;
-const GOOGLE_REDIRECT_URI =
-  process.env.GOOGLE_CALENDAR_REDIRECT_URI ||
-  `http://localhost:${process.env.PORT || 3002}/auth/google/callback`;
+const GOOGLE_CLIENT_ID = googleCalendarClientId();
+const GOOGLE_CLIENT_SECRET = googleCalendarClientSecret();
+const GOOGLE_REDIRECT_URI = googleCalendarRedirectUri(
+  `http://localhost:${process.env.PORT || 3002}/auth/google/callback`
+);
 
 /**
  * Google OAuth token response
