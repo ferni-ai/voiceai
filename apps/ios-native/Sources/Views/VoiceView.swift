@@ -1,3 +1,4 @@
+import FerniDesign
 import SwiftUI
 import FerniShared
 
