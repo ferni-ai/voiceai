@@ -166,6 +166,40 @@ describe('consent given on a call covers only texts they ask for', () => {
   });
 });
 
+describe('STRICT_SMS_OPT_IN: never-set channels are not a yes', () => {
+  const strictDeps = (outreachPreferences?: Record<string, unknown>, strict = 'on') => {
+    const made = deps();
+    made.d.env = { ...ENV, STRICT_SMS_OPT_IN: strict };
+    vi.mocked(made.d.store.userDoc).mockResolvedValue(
+      outreachPreferences ? { outreachPreferences } : undefined
+    );
+    return made;
+  };
+
+  it('on: a text Ferni starts to a member who never set channels is not sent', async () => {
+    for (const prefs of [undefined, {}, { enabled: true }]) {
+      const { d } = strictDeps(prefs);
+      expect(await sendGuardedText(followUp(), d)).toEqual({ sent: false, reason: 'no-consent' });
+      expect(d.send).not.toHaveBeenCalled();
+    }
+  });
+
+  it('on: texts turned on in settings still go, and so does a text they asked for', async () => {
+    expect(await sendGuardedText(followUp(), strictDeps({ channels: ['sms'] }).d)).toEqual({
+      sent: true,
+    });
+    const asked = followUp({ kind: 'message', requested: true });
+    expect(await sendGuardedText(asked, strictDeps(undefined).d)).toEqual({ sent: true });
+  });
+
+  it('off (the default): never-set channels still count as allowed, as before', async () => {
+    expect(await sendGuardedText(followUp(), strictDeps(undefined, 'off').d)).toEqual({
+      sent: true,
+    });
+    expect(await sendGuardedText(followUp(), deps().d)).toEqual({ sent: true });
+  });
+});
+
 describe('lastSentAt', () => {
   it('counts records from before kinds existed as check-ins', () => {
     const old = record({ sentAt: ago(2) });
