@@ -11,7 +11,8 @@ public enum AvatarPose: Equatable, Sendable {
 
 /// Everything about a call the avatar reacts to (ios-motion-spec §6.1).
 public enum CallEvent: Equatable, Sendable {
-    case connectTapped
+    /// A call to `personaID` (the teammate the person chose).
+    case connectTapped(personaID: String)
     case agentJoined
     case agentState(AgentSignals.AgentActivity)
     case expression(AvatarExpression, hold: Duration?)
@@ -103,8 +104,8 @@ public struct AvatarDirector: Equatable, Sendable {
     public mutating func send(_ event: CallEvent, now: Instant) -> [AvatarEffect] {
         var effects = tick(now: now)
         switch event {
-        case .connectTapped:
-            self = AvatarDirector(reduceMotion: reduceMotion, personaID: personaID)
+        case .connectTapped(let chosen):
+            self = AvatarDirector(reduceMotion: reduceMotion, personaID: chosen)
             connection = .arriving
         case .agentJoined:
             if connection == .arriving { connection = .none }

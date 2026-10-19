@@ -94,12 +94,16 @@ final class AppModel {
         if consent.hasAgreed { call.start(personaID: team.chosen) } else { isAskingConsent = true }
     }
 
-    /// "I agree, let's talk": recorded for the signed-in account only, so the
-    /// account is settled first.
+    /// "I agree, let's talk": the call starts at once ("Calling…"); the
+    /// account is settled inside it, and the agreement is recorded for that
+    /// account only. No account means the call ends saying so (critic H5).
     func agreeAndTalk() async {
-        await account.start()
-        consent.use(uid: account.user?.uid)
-        if consent.agree() { call.start(personaID: team.chosen) }
+        call.start(personaID: team.chosen) { [weak self] in
+            guard let self else { return false }
+            await self.account.start()
+            self.consent.use(uid: self.account.user?.uid)
+            return self.consent.agree()
+        }
     }
 
     /// Delete the account on the server, then everything this phone kept about

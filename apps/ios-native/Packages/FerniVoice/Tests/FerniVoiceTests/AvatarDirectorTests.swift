@@ -9,7 +9,7 @@ final class AvatarDirectorTests: XCTestCase {
     /// A call that has connected and heard its first turn (listening) at t = 0.
     private func live() -> AvatarDirector {
         var d = AvatarDirector()
-        _ = d.send(.connectTapped, now: .zero)
+        _ = d.send(.connectTapped(personaID: "ferni"), now: .zero)
         _ = d.send(.agentJoined, now: .zero)
         _ = d.send(.agentState(.listening), now: .zero)
         return d
@@ -17,7 +17,7 @@ final class AvatarDirectorTests: XCTestCase {
 
     func testArrivingUntilFerniJoinsThenTheFirstTurnShowsAtOnce() {
         var d = AvatarDirector()
-        _ = d.send(.connectTapped, now: .zero)
+        _ = d.send(.connectTapped(personaID: "ferni"), now: .zero)
         XCTAssertEqual(d.pose, .arriving)
         XCTAssertEqual(d.send(.agentJoined, now: ms(500)), [.haptic(.presence), .earcon(.arrival)])
         _ = d.send(.agentState(.speaking), now: ms(500))
@@ -124,13 +124,13 @@ final class AvatarDirectorTests: XCTestCase {
 
     func testCancellingBeforeFerniArrivesHasNoGoodbye() {
         var d = AvatarDirector()
-        _ = d.send(.connectTapped, now: .zero)
+        _ = d.send(.connectTapped(personaID: "ferni"), now: .zero)
         XCTAssertEqual(d.send(.ended, now: ms(800)), [])
     }
 
     func testNoEventEverPlaysTwoHaptics() {
         var d = AvatarDirector()
-        let events: [CallEvent] = [.connectTapped, .agentJoined, .agentState(.speaking), .agentJoined,
+        let events: [CallEvent] = [.connectTapped(personaID: "ferni"), .agentJoined, .agentState(.speaking), .agentJoined,
                                    .reconnecting, .reconnected, .failed, .ended]
         for (i, event) in events.enumerated() {
             let haptics = d.send(event, now: ms(i * 2000)).filter { if case .haptic = $0 { true } else { false } }
