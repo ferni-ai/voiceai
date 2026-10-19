@@ -89,5 +89,16 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
       retryCount: 0,
       timeout: '180s',
     },
+    {
+      // Revokes Google couldn't take during an account erasure; gives up after 14 days.
+      name: 'retry-pending-revocations',
+      description: 'Retry Google OAuth revokes queued by account erasure',
+      schedule: '*/15 * * * *',
+      timezone: 'Etc/UTC',
+      uri: `${uiServerUrl}/api/jobs/retry-pending-revocations`,
+      httpMethod: 'POST',
+      retryCount: 0,
+      timeout: '120s',
+    },
   ];
 }

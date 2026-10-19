@@ -299,7 +299,7 @@ function renderPanel(): void {
   if (state.loadError) {
     content.innerHTML = `
       <div class="admin-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
-        Couldn't load data. <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
+        Couldn't load data. <button type="button" style="color: var(--color-ferni-on-surface); background: none; border: none; cursor: pointer; text-decoration: underline;">Try again?</button>
       </div>
     `;
     content.querySelector('button')?.addEventListener('click', () => {
