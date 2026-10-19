@@ -13,7 +13,8 @@
  *   else the dialog itself, unless the component already focused inside it
  * - Tab and Shift+Tab cycle within the topmost open modal
  * - panels that stay mounted and open/close by class or style are tracked too
- * - on close (removed, or hidden), focus returns to where it was before
+ * - on close (removed, or hidden), focus returns to where it was before, or
+ *   to the menu button when that place has since been hidden
  */
 
 const DIALOG_SELECTOR = '[role="dialog"], [role="alertdialog"]';
@@ -92,13 +93,26 @@ function opened(dialog: HTMLElement, framesLeft = MAX_WAIT_FRAMES): void {
   });
 }
 
+/**
+ * Where focus goes when the element that opened a dialog is no longer on
+ * screen. Most panels open from a menu row, and on desktop the menu closes as
+ * the panel opens, so by Escape the row is hidden (or the browser has already
+ * moved focus to <body>, which is no place to return to); the menu button is
+ * the nearest visible stand-in.
+ */
+const RETURN_FALLBACK = '.settings-trigger';
+
 function closed(dialog: HTMLElement): void {
   const index = stack.findIndex((entry) => entry.dialog === dialog);
   if (index === -1) return;
   const [entry] = stack.splice(index, 1);
-  const wasTop = index === stack.length;
+  if (index !== stack.length) return; // a dialog underneath closed; focus stays on top
   const returnTo = entry?.returnTo;
-  if (wasTop && returnTo instanceof HTMLElement && isShown(returnTo)) returnTo.focus({ preventScroll: true });
+  const fallback = document.querySelector<HTMLElement>(RETURN_FALLBACK);
+  const target = [returnTo, fallback].find(
+    (el): el is HTMLElement => el instanceof HTMLElement && el !== document.body && isShown(el)
+  );
+  target?.focus({ preventScroll: true });
 }
 
 /** A tracked dialog's class/style changed: if it is now hidden, hand focus back. */

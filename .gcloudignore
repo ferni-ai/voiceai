@@ -45,6 +45,7 @@
 # Apps - Electron, iOS, Android builds (1.4GB+)
 # Exclude large subdirs but keep apps/cli/ for build scripts
 apps/android/
+apps/android-twa/
 apps/ios/
 apps/ios-native/
 apps/macos-menubar/
