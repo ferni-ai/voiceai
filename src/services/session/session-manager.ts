@@ -42,6 +42,7 @@ import {
 } from './cleanup.js';
 import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
 import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.js';
+import { shouldSkipProfileForSilentCall } from './silent-call.js';
 import { validateUserId } from './validation.js';
 
 // Real-time memory - persist turns as they happen, never lose data
@@ -1844,12 +1845,9 @@ export async function createSessionServices(
             if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
           } else if (turns.length > 0) {
             // Always save a basic summary, so a returning user is recognized without the LLM
-            const userTurns = turns.filter((t) => t.role === 'user');
-            if (userTurns.length > 0) {
-              const topics = userTurns
-                .slice(-3)
-                .map((t) => t.content.slice(0, 50).replace(/[.!?]+$/, ''));
-              updatedProfile.lastConversationSummary = `Discussed: ${topics.join('; ')}`;
+            const fallback = realtimeMemory.buildQuickSummary(turns, 50); // '' when only filler
+            if (fallback) {
+              updatedProfile.lastConversationSummary = fallback;
               getLogger().info(
                 {
                   userId: validatedUserId,
@@ -2068,11 +2066,8 @@ export async function createSessionServices(
             );
           }
 
-          // ================================================================
-          // NOTE: totalConversations, totalMinutesTalked, lastContact, updatedAt
-          // are all handled by updateProfileFromSession() inside saveProfile().
-          // We MUST NOT increment here or we'll double-count!
-          // ================================================================
+          // NOTE: totalConversations, totalMinutesTalked, lastContact, updatedAt are all
+          // handled by updateProfileFromSession() inside saveProfile(). Never increment here.
 
           services.userProfile = updatedProfile;
 
@@ -2080,7 +2075,9 @@ export async function createSessionServices(
           diagnosticProfileSaveAttempt(sessionId, validatedUserId || 'unknown');
 
           try {
-            await services.saveProfile();
+            // A call where the caller never spoke is not counted (silent-call.ts).
+            if (shouldSkipProfileForSilentCall(turns)) getLogger().info('Silent call: not counted');
+            else await services.saveProfile();
             diagnosticProfileSaveSuccess(sessionId, validatedUserId || 'unknown');
           } catch (saveError) {
             diagnosticProfileSaveError(sessionId, String(saveError));

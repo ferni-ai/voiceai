@@ -19,6 +19,7 @@ import {
 import { worldNowNote } from '../shared/world-now.js';
 import { TURN_CONTEXT_HEADER, withoutStaleTurnContext } from '../multi-agent/turn-intelligence.js';
 import { latestUserText } from '../../tools/retrieval/turn-tool-retrieval.js';
+import { confirmedActionNote } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
 import {
   teamStatusNote,
@@ -29,9 +30,10 @@ import {
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { teammateIdentityNote } from './teammate-identity.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
+import { chiefOfStaffNote, lastAgentWordsIn } from '../../tools/handoff/chief-of-staff-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
-import { retrievedTools } from './turn-request-tools.js';
+import { retrievedTools, withSameTurnTools } from './turn-request-tools.js';
 import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt-session.js';
@@ -49,6 +51,7 @@ import {
 } from '../../intelligence/world-model/temporal/in-call-load.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { quirkTurnNote } from './quirk-note.js';
+import { tuneTurnNote } from './named-tune-note.js';
 import { honestFriendNote } from './honest-friend.js';
 import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
@@ -57,7 +60,9 @@ import { journalAskFor } from './journal-ask.js';
 import { callerTurnsOf, goodbyeNoteOn, happyExitNote, questionPaceNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
 import { withPlayful } from './ferni-playful-turn.js';
-import { candorEnabled, supportHeld } from './turn-candor.js';
+import { goodNewsNote } from './good-news-bigger.js';
+import { supportHeld } from './turn-candor.js';
+import { withCallTrouble, withSupportHold } from './turn-holds.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
@@ -131,7 +136,7 @@ export function withTurnReminder(
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   const style = turnStyleReminderEnabled()
-    ? styleFor(chatCtx, session, options.shape !== false, state.ownStory, answering)
+    ? styleFor(chatCtx, session, options.shape !== false, state, answering)
     : undefined;
   noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
   // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
@@ -146,12 +151,16 @@ export function withTurnReminder(
     heardTeammateNote(words),
     notes,
     corrected,
+    // The caller said yes to a read-back: the call or text goes only when the tool is called now.
+    confirmedActionNote(session),
     options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
-    gameTurnNote(session),
+    gameTurnNote(session, process.env, words),
     // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
     quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
+    // NAMED_TUNE=on: they noticed the whistle (name it?), or asked him to stop (named-tune-note.ts).
+    tuneTurnNote(session, words, options.shape === false, sessionIsVerifiedOwner),
     state.note,
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     porchLightNote(chatCtx, session, { careful: options.shape === false }),
@@ -171,6 +180,8 @@ export function withTurnReminder(
     }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
+    // ALEX_CHIEF_OF_STAFF=on: todos, goals, calendar and agenda go to Alex (chief-of-staff-note.ts)
+    chiefOfStaffNote(view.currentAgentId ?? 'ferni', words, lastAgentWordsIn(chatCtx.items)),
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
     // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
@@ -184,6 +195,8 @@ export function withTurnReminder(
     attunementNote(chatCtx, session, { careful: options.shape === false }),
     // COMMITMENT_INVITE=on: one small step, once a call; after the self-share, so it wins.
     inviteFor(chatCtx, session, words, options.shape === false),
+    // GOOD_NEWS_BIGGER=on: react, name it, one question about the moment; after the pace note.
+    goodNewsNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
@@ -303,7 +316,7 @@ function styleFor(
   chatCtx: llm.ChatContext,
   session: object,
   shape: boolean,
-  ownStory?: boolean,
+  state: { ownStory?: boolean; brief?: boolean } = {},
   answering = false
 ): { text: string; turn?: TurnShape } {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
@@ -314,10 +327,11 @@ function styleFor(
   const { signals, source } = signalsFor(session, said);
   const held = withSupportHold(session, said, signals, source);
   const sig = answering ? asAnswer(held ?? regexSignals(said, callerMove(said))) : held;
-  const told = withRecent(withOwnStory(sig, said, ownStory), said, chatCtx);
+  const told = withRecent(withOwnStory(sig, said, state), said, chatCtx);
   const quiet = withQuiet(told, said, chatCtx);
   const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, shaped);
+  const troubled = withCallTrouble(session, said, shaped, source);
+  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, troubled);
   // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
   const burst = burstLine(
     session,
@@ -375,31 +389,16 @@ export function signalsFor(
     : { signals: PLAIN_SIGNALS, source: 'plain' };
 }
 
-/**
- * CANDOR=on: after hard news, support comes first for the next few turns too
- * ("Can you just tell me something funny?" after "my dad's in the hospital"
- * is no moment to set them straight). Off, the signals are passed through.
- */
-function withSupportHold(
-  session: object,
-  said: string,
-  signals: TurnSignals | undefined,
-  source: 'model' | 'plain' | 'regex'
-): TurnSignals | undefined {
-  if (!candorEnabled()) return signals;
-  const sig = signals ?? regexSignals(said, callerMove(said));
-  // Only the model's reading is sticky: plain (no reading yet) is careful by default.
-  return { ...sig, supportFirst: supportHeld(session, said, source === 'model' && sig.careful) };
-}
-
 /** FERNI_STATE=on: his state's say on a story of his own rides with the signals (ferni-state.ts). */
 function withOwnStory(
   signals: TurnSignals | undefined,
   said: string,
-  ownStory: boolean | undefined
+  { ownStory, brief }: { ownStory?: boolean; brief?: boolean }
 ): TurnSignals | undefined {
   if (ownStory === undefined) return signals;
-  return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory };
+  // SELF_SHARE_WHEN_ASKED=on: asked about him, a short answer and no story (self-share-asked.ts).
+  const selfBrief = brief === true ? { selfBrief: true } : {};
+  return { ...(signals ?? regexSignals(said, callerMove(said))), ownStory, ...selfBrief };
 }
 
 /**
@@ -443,6 +442,7 @@ export async function toolsForTurn(
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
   if (staticCoreToolsEnabled()) withPinnedTools(toolCtx, state.agent);
+  else withSameTurnTools(session, chatCtx, toolCtx); // TOOLS_SAME_TURN: this turn's topic tools
   const view = unlockViewFor(session.userData);
   const allowed = phoneOnlyIdentity(sessionIdOf(session.userData))
     ? await withoutAccountTools(toolCtx, state)

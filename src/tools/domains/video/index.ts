@@ -1,8 +1,8 @@
 /**
  * Video Domain Tools
  *
- * Tools for YouTube video discovery.
- * Uses YouTube Data API v3 (requires API key).
+ * Tools for YouTube video discovery (YouTube Data API v3, requires API key),
+ * and for movies and TV: what's on, where to watch (TMDB, entertainment/movies.ts).
  *
  * DOMAIN: video
  * TOOLS:
@@ -27,6 +27,7 @@ import {
   type YouTubeVideo,
   type VideoDuration,
 } from '../../../services/video/index.js';
+import { getMovieToolDefinitions } from '../entertainment/movies.js';
 
 const log = getLogger();
 
@@ -300,6 +301,7 @@ const videoTools: ToolDefinition[] = [
   getVideoRecommendationsTool,
   getTrendingVideosTool,
   getVideoDetailsTool,
+  ...getMovieToolDefinitions(), // movies and where to watch (TMDB)
 ];
 
 export const { getToolDefinitions, domain, definitions } = createDomainExport('video', videoTools);

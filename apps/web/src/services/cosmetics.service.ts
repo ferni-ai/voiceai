@@ -471,15 +471,8 @@ export async function buyCosmetic(cosmeticId: string): Promise<boolean> {
   return canPurchase(cosmeticId).canBuy && purchaseOnServer(cosmeticId);
 }
 
-/**
- * Equip a cosmetic
- */
+/** Equip a cosmetic: free to pick since seeds were cut (Seth, 2026-10-17), no ownership check. */
 export function equipCosmetic(cosmeticId: string): boolean {
-  if (!ownsCosmetic(cosmeticId)) {
-    log.warn({ cosmeticId }, 'Cannot equip - not owned');
-    return false;
-  }
-
   const cosmetic = COSMETICS_CATALOG.find((c) => c.id === cosmeticId);
   if (!cosmetic) return false;
 
@@ -488,6 +481,8 @@ export function equipCosmetic(cosmeticId: string): boolean {
   // Save and apply
   saveCosmetics();
   applyEquippedCosmetics();
+  // Zen Garden chosen here means light (on load it leaves light/dark to Look & Feel)
+  if (cosmetic.type === 'ui-theme' && !cosmetic.config?.systemTheme) setTheme('zen');
   notifyListeners();
 
   log.info({ cosmeticId, type: cosmetic.type }, 'Cosmetic equipped');

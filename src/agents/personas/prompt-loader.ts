@@ -25,8 +25,8 @@ import { SELF_VOICED_NOTE, adaptSpeechMarkup, sparseMarkupNote } from './speech-
 import { getModelProvider } from '../model-provider/index.js';
 import { characterSheet } from './character-spark.js';
 import { withStoryHonesty } from './ai-honesty.js';
-// Use centralized FTIS mode check - single source of truth
-import { isFtisEnabled } from '../../config/tool-config.js';
+import { isFtisEnabled } from '../../config/tool-config.js'; // centralized FTIS mode check
+import { withReflection } from './troubles-talk.js';
 
 const log = createLogger({ module: 'PromptLoader' });
 
@@ -505,7 +505,7 @@ export async function loadSystemPrompt(
 ): Promise<string> {
   if (promptMode() === 'character' && mode === 'voice_agent') {
     const character = await loadCharacterPrompt(personaId);
-    if (character) return adaptSpeechMarkup(character);
+    if (character) return adaptSpeechMarkup(withReflection(character));
   }
   return adaptSpeechMarkup(await loadSystemPromptForTTS(personaId, mode));
 }
@@ -831,12 +831,12 @@ export async function loadModelBaseInstructions(): Promise<string> {
       );
     }
 
-    // The one sincere-ask rule, on every base so no path loses it (ai-honesty.ts).
-    const honestyRule = await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8');
-    const aiHonesty = withStoryHonesty(honestyRule);
+    // The sincere-ask rule (ai-honesty.ts) and the true answer to "what happens to what I tell you", on every base.
+    const aiHonesty = withStoryHonesty(await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8'));
+    const privacyAnswer = await fs.readFile(join(sharedDir, 'privacy-answer.md'), 'utf-8');
 
     // Combine: base content + voice output rules (always appended)
-    const combined = [baseContent, voiceOutputRules, aiHonesty]
+    const combined = [baseContent, voiceOutputRules, aiHonesty, privacyAnswer]
       .filter(Boolean)
       .join('\n\n---\n\n');
 
