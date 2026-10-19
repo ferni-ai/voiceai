@@ -111,9 +111,11 @@ describe('FERNI_PLAYFUL turn reminder (turn-shape)', () => {
     expect(r).not.toContain(PLAYFUL_LINE);
   });
 
-  it('the playful line says the examples are a shape, never words to reuse', () => {
-    expect(PLAYFUL_LINE).toMatch(/never the words/);
-    expect(PLAYFUL_LINE).toMatch(/Never reuse these lines or their subjects/);
+  it('the playful line describes shapes, quotes no line and invents no life fact', () => {
+    expect(PLAYFUL_LINE).toMatch(/The shapes, in your own words/);
+    expect(PLAYFUL_LINE).toMatch(/never a new fact about yourself/);
+    expect(PLAYFUL_LINE).not.toMatch(/"/);
+    expect(PLAYFUL_LINE).not.toMatch(/Hot take|snake plant|Say it slower/i);
     expect(PLAYFUL_LINE).not.toMatch(/—|\.\.\.|…/);
   });
 });
@@ -133,7 +135,7 @@ describe('FERNI_PLAYFUL signals (withPlayful)', () => {
       withPlayful({ userData: { personaId: 'maya-santos' } }, said, sig, { FERNI_PLAYFUL: 'on' })
     ).toBe(sig);
     const filled = withPlayful({}, said, undefined, { FERNI_PLAYFUL: 'on' });
-    expect(filled).toEqual({ ...sig, playful: true });
+    expect(filled).toEqual({ ...sig, playful: true, playfulLine: true });
     expect(withPlayful({}, said, undefined, {})).toBeUndefined();
   });
 });

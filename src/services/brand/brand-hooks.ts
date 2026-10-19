@@ -204,6 +204,9 @@ export function validateEmailContent(
 /**
  * Validate SMS content specifically
  */
+/** Three 160-char segments: what outreach/delivery/sms-delivery.ts sends as one text (maxSegments 3). */
+export const SMS_SEND_MAX_CHARS = 3 * 160;
+
 export function validateSmsContent(
   message: string,
   personaId: PersonaId = 'ferni'
@@ -226,10 +229,13 @@ export function validateSmsContent(
     }
   }
 
-  // Adapt for SMS (shorten, remove links if needed)
+  // Adapt for SMS (shorten, remove links if needed). The sender joins up to
+  // SMS_SEND_MAX_CHARS into one message, so shortening to a single 160-char
+  // segment here cut a 170-char reminder to "It's Ferni." and reported it sent.
   const adapted = adaptForChannel(finalMessage, 'sms', {
     persona: personaId,
     context: 'notification',
+    maxLength: SMS_SEND_MAX_CHARS,
   });
 
   return {
