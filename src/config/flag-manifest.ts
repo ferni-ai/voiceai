@@ -101,6 +101,8 @@ export const FLAG_MANIFEST = {
   DIRECTOR_LOOK_BACK: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_NOTES: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_PERSONA_AWARE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // director + deliberator framed for the persona speaking, with a SCENE block (director-scene.ts)
+  DIRECTOR_SEES_SCENE: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_TOOL_STATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   DISABLE_BATCHED_SUMMARIZATION: { default: 'off', owner: 'platform', kind: 'config' },
   DISABLE_BUILDER_PRIORITIZATION: { default: 'off', owner: 'intelligence', kind: 'config' },
