@@ -32,6 +32,7 @@
 		505ECFBDBD6E34C6DF676016 /* FerniVoiceiOSTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057030A23913AA4508F31CA5 /* FerniVoiceiOSTests.swift */; };
 		508D1E8B4967CF2734566569 /* ProactiveNotificationsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBE5757EB868FB283604549B /* ProactiveNotificationsService.swift */; };
 		51DC6622C9FAD4A93A3FCC13 /* WatchConnectivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC10FE19043EFBE0C9F1FC86 /* WatchConnectivityService.swift */; };
+		56EA639F2BAFAFB8191DAAEF /* WaitlistStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD9DC44C69006642CF2B5700 /* WaitlistStatusTests.swift */; };
 		57DE7CF2E6546CEE347C0A4D /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = FF10BB0CC88FE9DB96A19B58 /* FerniDesign */; };
 		59B8FE83C720EE49846F1960 /* AppleAccountAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 36E69412F59E74023E2DF102 /* AppleAccountAPI.swift */; };
 		5C05BE8159C8AD8A815C7B68 /* MockDataChannel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F490940DB60D802A34EB3F48 /* MockDataChannel.swift */; };
@@ -39,6 +40,7 @@
 		61BEB49A3052CE32B516731C /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 29BB5080485676C54DDDF79C /* CalendarService.swift */; };
 		6232DB46AC207014C37B8C70 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 34F416313EA2C8E595365B97 /* LaunchScreen.storyboard */; };
 		67228DEE2B28C781DB7B04F3 /* ContactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 505851F69FD089CE7650DEFF /* ContactsService.swift */; };
+		6C9AB8310D6419BF74CEA056 /* WaitlistStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E7FD9E801C7BBFE1961E41C /* WaitlistStatus.swift */; };
 		6CAFFBA56887DE3A34082C32 /* PaidPlans.swift in Sources */ = {isa = PBXBuildFile; fileRef = C12AA4733AB7DA682BFAC8C0 /* PaidPlans.swift */; };
 		6D5395233E5005AE6DB2C840 /* FerniShared in Frameworks */ = {isa = PBXBuildFile; productRef = 3B631CB053C6EB9371773D9B /* FerniShared */; };
 		6D70535586BC24CC68BB4047 /* SiriShortcutsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75739E78205CF9DE365E596F /* SiriShortcutsService.swift */; };
@@ -47,6 +49,7 @@
 		7AB276959685C99300ADA572 /* APIConnectivityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F97C225879E0DAB40CBC71C /* APIConnectivityTests.swift */; };
 		7EA65FA5C5FD26F2CBFD361D /* YourPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90367E385C74FBB0AE6249AF /* YourPlanView.swift */; };
 		81DD38671F19B6737A0B0324 /* IOSLiveKitSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */; };
+		8AE80E78955E33E06F089E09 /* WaitingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7420E37A5C84DA97960A872D /* WaitingView.swift */; };
 		8FCC3E85EF584CA8013CDBEE /* MeetTeammateSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF5450967F7461277C8F6FF9 /* MeetTeammateSheet.swift */; };
 		8FF75B8B56A24D6680C59E67 /* FerniWatchWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 183B5FD5B7D7FF9C6C82A709 /* FerniWatchWidgets.swift */; };
 		9133B68F95123BD1F321C265 /* CarPlay.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07898F430099BCE617A604FF /* CarPlay.framework */; };
@@ -186,8 +189,10 @@
 		63CF89342B4EE940EE35095F /* FerniDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniDesign; path = Packages/FerniDesign; sourceTree = SOURCE_ROOT; };
 		6969F36CB5C3BC8A19B81D38 /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
 		73427B6F3CBC0A271A7D438C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		7420E37A5C84DA97960A872D /* WaitingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitingView.swift; sourceTree = "<group>"; };
 		75739E78205CF9DE365E596F /* SiriShortcutsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiriShortcutsService.swift; sourceTree = "<group>"; };
 		76626BFFF99251B574EA46E0 /* HealthKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitService.swift; sourceTree = "<group>"; };
+		7E7FD9E801C7BBFE1961E41C /* WaitlistStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitlistStatus.swift; sourceTree = "<group>"; };
 		829D2CA84D4E4CD78E578527 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		89DA2E05840532330359EA25 /* FerniWatchContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchContentView.swift; sourceTree = "<group>"; };
 		8D708901B1EDA0A559D6914E /* FerniWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FerniWatch.entitlements; sourceTree = "<group>"; };
@@ -222,6 +227,7 @@
 		F20933E62906112CEBE251D0 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		F490940DB60D802A34EB3F48 /* MockDataChannel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockDataChannel.swift; sourceTree = "<group>"; };
 		FA689264727BB185C9BF4637 /* IOSLiveKitSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IOSLiveKitSession.swift; sourceTree = "<group>"; };
+		FD9DC44C69006642CF2B5700 /* WaitlistStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitlistStatusTests.swift; sourceTree = "<group>"; };
 		FF709012D71F089D59346C57 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -293,6 +299,7 @@
 				1852974F4CFDFA43AC07175D /* TeammateIntroduction.swift */,
 				1F27F2C7405B88DDE71FDE58 /* TranscriptView.swift */,
 				C9BBFD561D98CE488F6AA9FC /* VoiceView.swift */,
+				7420E37A5C84DA97960A872D /* WaitingView.swift */,
 				90367E385C74FBB0AE6249AF /* YourPlanView.swift */,
 			);
 			path = Views;
@@ -429,6 +436,7 @@
 				000BCA4ABE3C1BB903F8D9DA /* MeetTheTeamTests.swift */,
 				46063EE380BBA747781125C0 /* SubscriptionAccountTokenTests.swift */,
 				42D6ECABACC74F6D9AA0866A /* TeamUnlockTests.swift */,
+				FD9DC44C69006642CF2B5700 /* WaitlistStatusTests.swift */,
 				9959BC2455D3EF9C77443775 /* TestHelpers */,
 			);
 			path = FerniVoiceiOSTests;
@@ -482,6 +490,7 @@
 				75739E78205CF9DE365E596F /* SiriShortcutsService.swift */,
 				6969F36CB5C3BC8A19B81D38 /* SubscriptionService.swift */,
 				55594305D2D8851704B9F42C /* TeamUnlockService.swift */,
+				7E7FD9E801C7BBFE1961E41C /* WaitlistStatus.swift */,
 				DC10FE19043EFBE0C9F1FC86 /* WatchConnectivityService.swift */,
 			);
 			path = Services;
@@ -734,6 +743,7 @@
 				C3B0D026C4877C0FB9EEA0CA /* MockNetworking.swift in Sources */,
 				70D725A19C0049F91ACD39C9 /* SubscriptionAccountTokenTests.swift in Sources */,
 				99FAD0FAA5EC999F400DC03A /* TeamUnlockTests.swift in Sources */,
+				56EA639F2BAFAFB8191DAAEF /* WaitlistStatusTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -794,6 +804,8 @@
 				EB020B72B1AA4A8E51984708 /* TranscriptView.swift in Sources */,
 				DABDAEFC261D7A2DF63FBD6D /* Typography.swift in Sources */,
 				FFB3F04E8F23D145E327FFE7 /* VoiceView.swift in Sources */,
+				8AE80E78955E33E06F089E09 /* WaitingView.swift in Sources */,
+				6C9AB8310D6419BF74CEA056 /* WaitlistStatus.swift in Sources */,
 				51DC6622C9FAD4A93A3FCC13 /* WatchConnectivityService.swift in Sources */,
 				7EA65FA5C5FD26F2CBFD361D /* YourPlanView.swift in Sources */,
 			);

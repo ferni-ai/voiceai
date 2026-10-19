@@ -21,6 +21,8 @@ import { BuilderCategory } from '../core/categories.js';
 import { createHighInjection, createHintInjection, registerContextBuilder } from '../index.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../core/types.js';
 import { getRedisCache } from '../../../memory/redis-cache.js';
+import type { PrimaryEmotion } from '../../detectors/emotion.js';
+import type { VoiceEmotion } from '../../../speech/audio-prosody/types.js';
 
 const log = createLogger({ module: 'context:emotional-trajectory' });
 
@@ -39,6 +41,73 @@ interface EmotionalTrajectory {
     dayOfWeek?: string; // "Monday stress", "Weekend dips"
   };
   alerts?: string[];
+}
+
+// ============================================================================
+// DISTRESS
+// ============================================================================
+
+/**
+ * The negative labels the detectors actually write to the cached emotion: the text
+ * detector's PrimaryEmotion and the voice detector's VoiceEmotion (turn-handler caches
+ * either). `satisfies` keeps these lists in step with the detectors' types.
+ */
+const TEXT_NEGATIVE = [
+  'sadness',
+  'anger',
+  'fear',
+  'disgust',
+  'anxiety',
+  'regret',
+] as const satisfies readonly PrimaryEmotion[];
+const VOICE_NEGATIVE = [
+  'sad',
+  'angry',
+  'fearful',
+  'anxious',
+  'contempt',
+  'disgusted',
+] as const satisfies readonly VoiceEmotion[];
+
+/** Emotions that read as distress. Joy, excitement, trust or surprise never do. */
+const NEGATIVE_EMOTIONS = new Set<string>([
+  ...TEXT_NEGATIVE,
+  ...VOICE_NEGATIVE,
+  // Words other emotion sources use for the same states
+  'frustrated',
+  'worried',
+  'afraid',
+  'scared',
+  'overwhelmed',
+  'guilty',
+  'ashamed',
+  'stressed',
+  'lonely',
+  'hurt',
+  'grief',
+  'grieving',
+  'depressed',
+  'hopeless',
+  'despair',
+  'panicked',
+  'distressed',
+  'upset',
+  'nervous',
+  'disappointed',
+  'heartbroken',
+]);
+
+/**
+ * How much of a cached emotion counts as distress: its intensity when the emotion is
+ * negative, 0 otherwise. Using any emotion's intensity made joy at 0.8 read as
+ * "High distress detected (80%)".
+ */
+export function distressFromEmotion(
+  primary: string | undefined,
+  intensity: number | undefined
+): number {
+  if (!primary || !NEGATIVE_EMOTIONS.has(primary.trim().toLowerCase())) return 0;
+  return Math.max(0, Math.min(1, intensity ?? 0));
 }
 
 // ============================================================================
@@ -78,8 +147,11 @@ async function loadEmotionalTrajectory(userId: string): Promise<EmotionalTraject
     // Merge with real-time cached state if available
     if (cachedState && trajectory) {
       trajectory.currentMood = cachedState.primary || trajectory.currentMood;
-      // Use intensity as a proxy for distress (high intensity often correlates with distress)
-      trajectory.distressLevel = Math.max(trajectory.distressLevel, cachedState.intensity || 0);
+      // Intensity is distress only for a negative emotion
+      trajectory.distressLevel = Math.max(
+        trajectory.distressLevel,
+        distressFromEmotion(cachedState.primary, cachedState.intensity)
+      );
     } else if (cachedState && !trajectory) {
       // Only have real-time state, no trajectory
       trajectory = {
@@ -87,7 +159,7 @@ async function loadEmotionalTrajectory(userId: string): Promise<EmotionalTraject
         trend: 'stable',
         trendDuration: 'now',
         recentEmotions: [cachedState.primary || 'neutral'],
-        distressLevel: cachedState.intensity || 0,
+        distressLevel: distressFromEmotion(cachedState.primary, cachedState.intensity),
       };
     }
 

@@ -21,6 +21,7 @@ import {
   getGrowthPatterns,
   getSharedMoments,
   getUncelebratedWins,
+  exportSmallWinsProfile,
   getPendingIntentions,
   getDueMoments,
   loadTrustProfiles,
@@ -38,9 +39,9 @@ interface TrustJourneyData {
   generatedAt: string;
 
   summary: {
-    relationshipStrength: number;
     trustSignalsDetected: number;
-    boundariesRespected: number;
+    /** Boundaries the user has set (not a count of times we kept to them). */
+    boundariesSet: number;
     growthMomentsNoticed: number;
     sharedMomentsCount: number;
     winsCelebrated: number;
@@ -116,43 +117,6 @@ function getUserIdFromAuth(auth: AuthContext, parsedUrl: URL): string | null {
   if (queryUserId && auth.isAdmin) return queryUserId;
 
   return null;
-}
-
-function calculateRelationshipStrength(metrics: {
-  trustSignals: number;
-  boundariesRespected: number;
-  growthMoments: number;
-  sharedMoments: number;
-  wins: number;
-  outreach: number;
-}): number {
-  const weights = {
-    trustSignals: 0.15,
-    boundaries: 0.25,
-    growth: 0.2,
-    sharedMoments: 0.15,
-    wins: 0.15,
-    outreach: 0.1,
-  };
-
-  const normalized = {
-    trustSignals: Math.min(metrics.trustSignals / 50, 1),
-    boundaries: Math.min(metrics.boundariesRespected / 10, 1),
-    growth: Math.min(metrics.growthMoments / 20, 1),
-    sharedMoments: Math.min(metrics.sharedMoments / 15, 1),
-    wins: Math.min(metrics.wins / 30, 1),
-    outreach: Math.min(metrics.outreach / 10, 1),
-  };
-
-  const score =
-    normalized.trustSignals * weights.trustSignals * 100 +
-    normalized.boundaries * weights.boundaries * 100 +
-    normalized.growth * weights.growth * 100 +
-    normalized.sharedMoments * weights.sharedMoments * 100 +
-    normalized.wins * weights.wins * 100 +
-    normalized.outreach * weights.outreach * 100;
-
-  return Math.round(score);
 }
 
 function truncateForPrivacy(text: string, maxLen: number): string {
@@ -303,21 +267,16 @@ async function buildTrustJourney(userId: string): Promise<TrustJourneyData> {
   const pendingIntentions = getPendingIntentions(userId);
   const dueMoments = getDueMoments(userId);
 
-  // Calculate summary metrics
+  // Only counts of real things. No "trust score": the old one was a weighted tally of
+  // these same counts, not a measure of trust, so it is no longer sent.
+  const allWins = exportSmallWinsProfile(userId)?.wins ?? [];
   const summary = {
-    relationshipStrength: calculateRelationshipStrength({
-      trustSignals: growthPatterns.length + boundaries.length,
-      boundariesRespected: boundaries.length,
-      growthMoments: growthPatterns.length,
-      sharedMoments: sharedMoments.length,
-      wins: uncelebratedWins.length,
-      outreach: dueMoments.length,
-    }),
     trustSignalsDetected: growthPatterns.length + boundaries.length,
-    boundariesRespected: boundaries.length,
+    boundariesSet: boundaries.length,
     growthMomentsNoticed: growthPatterns.length,
     sharedMomentsCount: sharedMoments.length,
-    winsCelebrated: uncelebratedWins.filter((w) => w.celebrated).length,
+    // Wins we actually celebrated (the uncelebrated list could never contain one)
+    winsCelebrated: allWins.filter((w) => w.celebrated).length,
     proactiveOutreach: dueMoments.length,
   };
 
@@ -381,7 +340,7 @@ async function buildTrustJourney(userId: string): Promise<TrustJourneyData> {
       typeCounts: boundaryTypeCounts,
       message:
         boundaries.length > 0
-          ? `We've honored ${boundaries.length} thing${boundaries.length > 1 ? 's' : ''} you'd rather not discuss.`
+          ? `You've set ${boundaries.length} boundar${boundaries.length > 1 ? 'ies' : 'y'}. I'll keep to ${boundaries.length > 1 ? 'them' : 'it'}.`
           : "No boundaries set yet. I'll always respect your space.",
     },
     sharedHistory: {

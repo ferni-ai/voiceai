@@ -798,7 +798,7 @@ Your superpower: You remember their WHOLE story.
         priority: 63,
       });
 
-      // Fire-and-forget: Detect and persist chapter moment
+      // Fire-and-forget: persist the moment, keyed by session so one chat counts once
       void import('../../services/superhuman/life-narrative.js')
         .then(m => {
           const chapter = m.detectChapterMoment(ctx.userText);
@@ -806,7 +806,7 @@ Your superpower: You remember their WHOLE story.
             void m.createOrUpdateChapter(ctx.userId, {
               type: chapter.type,
               quote: ctx.userText.slice(0, 200),
-              emotion: ctx.emotionalState.primary,
+              emotion: ctx.emotionalState.primary, conversationId: ctx.sessionId,
             });
           }
         })

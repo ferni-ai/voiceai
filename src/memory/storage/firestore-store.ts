@@ -3,8 +3,6 @@
  *
  * Production-grade persistent storage using Google Cloud Firestore.
  *
- * Requires: npm install @google-cloud/firestore
- *
  * Environment:
  * - GOOGLE_CLOUD_PROJECT: Your GCP project ID
  * - GOOGLE_APPLICATION_CREDENTIALS: Path to service account JSON
@@ -19,6 +17,7 @@ import type {
   FinancialGoal,
 } from '../../types/user-profile.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { withoutProfileTokenFields } from '../../utils/token-at-rest.js';
 import { conversationDaysFor } from './conversation-days.js';
 import { queryProfileByLinkedIdentifier } from './firestore-linked-identifier.js';
 import {
@@ -231,7 +230,8 @@ export class FirestoreStore extends MemoryStore {
 
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(profile.id);
-      const { conversationDays: _days, ...stored } = profile; // read on every load, never stored
+      // conversationDays is derived on load; token fields are written only by profile-token-field.
+      const { conversationDays: _days, ...stored } = withoutProfileTokenFields(profile);
       const serialized = this.serializeForFirestore(stored);
 
       await docRef.set(cleanForFirestore(serialized), { merge: true });
