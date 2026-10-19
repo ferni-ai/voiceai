@@ -11,6 +11,7 @@
 # and apps/web/ for UI server (frontend build)
 apps/android/
 apps/android-native/
+apps/android-twa/
 apps/ios/
 apps/ios-native/
 apps/macos-menubar/

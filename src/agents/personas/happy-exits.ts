@@ -36,6 +36,7 @@ import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
 import { callerSaysGoodbye } from '../shared/call-farewell.js';
 import { hardNews } from './turn-candor.js';
 import { callerVenting } from './turn-extras.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'HappyExits' });
 
@@ -196,7 +197,7 @@ export function happyExitNote(
   }
   log.info({ fired: exit.fired, planned: Boolean(exit.plan) }, 'HAPPY_EXIT');
   const userId = userIdOf(session);
-  if (exit.plan && userId && userId !== 'anonymous') {
+  if (exit.plan && isMemberIdentity(userId)) {
     const plans = kept.get(session) ?? new Set<string>();
     kept.set(session, plans);
     if (!plans.has(exit.plan)) {
