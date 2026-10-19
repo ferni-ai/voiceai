@@ -65,5 +65,11 @@ final class AppModelTests: XCTestCase {
         FerniAppDelegate.onTalk?()
         XCTAssertTrue(model.isAskingConsent, "the notification's Talk now reached the model")
     }
+
+    /// Critic C3: notes from Ferni stay out of the binary until the server can
+    /// deliver them; no ask, no device registration, no APNs entitlement.
+    func testNotesFromFerniWaitForTheServerRoute() {
+        XCTAssertFalse(FerniBuild.pushNotes, "the entitlement is checked on the signed build (codesign)")
+    }
 }
 
