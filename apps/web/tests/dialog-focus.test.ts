@@ -131,6 +131,51 @@ describe('dialog focus', () => {
     expect(document.activeElement?.id).toBe('opener');
   });
 
+  it('falls back to the menu trigger when the opener was a menu row that has since closed', async () => {
+    // Desktop: picking a row hides the menu, then the panel opens. On Escape the
+    // row is gone from view, so focus used to drop to <body>.
+    document.body.insertAdjacentHTML(
+      'afterbegin',
+      '<button class="settings-trigger" id="trigger">Menu</button><aside id="menu"><button id="row">Row</button></aside>'
+    );
+    document.getElementById('row')!.focus();
+    document.getElementById('menu')!.setAttribute('hidden', '');
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.innerHTML = '<button id="a">A</button>';
+    document.body.appendChild(dialog);
+    await frame();
+    expect(document.activeElement?.id).toBe('a');
+    dialog.remove();
+    await Promise.resolve();
+    expect(document.activeElement?.id).toBe('trigger');
+  });
+
+  it('treats <body> as nowhere to return to (the row lost focus as the menu hid)', async () => {
+    document.body.insertAdjacentHTML('afterbegin', '<button class="settings-trigger" id="trigger">Menu</button>');
+    (document.activeElement as HTMLElement | null)?.blur();
+    expect(document.activeElement).toBe(document.body);
+    const dialog = document.createElement('div');
+    dialog.setAttribute('role', 'dialog');
+    dialog.setAttribute('aria-modal', 'true');
+    dialog.innerHTML = '<button id="a">A</button>';
+    document.body.appendChild(dialog);
+    await frame();
+    dialog.remove();
+    await Promise.resolve();
+    expect(document.activeElement?.id).toBe('trigger');
+  });
+
+  it('still prefers the opener when it is visible', async () => {
+    document.body.insertAdjacentHTML('afterbegin', '<button class="settings-trigger" id="trigger">Menu</button>');
+    const dialog = openModal();
+    await frame();
+    dialog.remove();
+    await Promise.resolve();
+    expect(document.activeElement?.id).toBe('opener');
+  });
+
   it('stops trapping once a modal is hidden instead of removed', async () => {
     const dialog = openModal();
     await frame();

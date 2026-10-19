@@ -10,7 +10,7 @@ Native desktop and mobile applications for Ferni Voice AI - your AI life coach.
 | Windows | Electron | Ready |
 | Linux | Electron | Ready |
 | iOS | Native Swift/SwiftUI | Ready |
-| Android | Native Kotlin/Compose | Ready |
+| Android | Trusted Web Activity over app.ferni.ai (`android-twa/`) | In progress (Play setup) |
 
 ## Structure
 
@@ -18,7 +18,8 @@ Native desktop and mobile applications for Ferni Voice AI - your AI life coach.
 apps/
 ├── electron/        # Desktop app (macOS, Windows, Linux)
 ├── ios-native/      # Native iOS app (Swift/SwiftUI)
-├── android-native/  # Native Android app (Kotlin/Compose)
+├── android-twa/     # Android app: the web app in a Trusted Web Activity
+├── archive/         # Retired apps, reference only (android-native)
 ├── web/             # Web frontend (shared with Electron)
 ├── macos-menubar/   # macOS menu bar app
 └── README.md
@@ -52,24 +53,16 @@ open FerniVoice.xcodeproj
 - iOS 16+ deployment target
 - LiveKit Swift SDK (via Swift Package Manager)
 
-### Android (Native Kotlin/Compose)
+### Android (Trusted Web Activity)
 
 ```bash
-cd apps/android-native
-./gradlew assembleDebug    # Build debug APK
-./gradlew installDebug     # Install on connected device/emulator
+cd apps/android-twa
+./gradlew bundleRelease    # Play bundle (unsigned locally)
 ```
 
-Or open in Android Studio:
-1. Open `apps/android-native` folder
-2. Wait for Gradle sync
-3. Run on emulator or device
-
-**Requirements:**
-- Android Studio Hedgehog (2023.1.1)+
-- Kotlin 1.9.22
-- Min SDK 24 (Android 7.0)
-- Target SDK 34 (Android 14)
+The app wraps https://app.ferni.ai, so web changes reach Android without a new
+bundle. Signing and Play upload: `apps/android-twa/README.md`. The old native
+Kotlin app is archived in `archive/android-native/`.
 
 ## Platform-Specific Features
 
@@ -106,28 +99,9 @@ FerniVoice/
     └── HapticManager.swift     # Haptic feedback
 ```
 
-### Android (apps/android-native/)
-
-```
-app/src/main/java/com/ferni/voice/
-├── models/
-│   ├── Persona.kt              # 6 personas with colors
-│   ├── VoiceState.kt           # State machine
-│   └── TranscriptMessage.kt    # Chat message model
-├── services/
-│   ├── LiveKitSession.kt       # LiveKit integration
-│   └── VoiceCallService.kt     # Foreground service
-├── ui/
-│   ├── theme/                  # Material3 theming
-│   ├── screens/                # Main screens
-│   └── components/             # Reusable UI
-└── util/
-    └── HapticFeedback.kt       # Haptic utilities
-```
-
 ## Backend Connection
 
-Both native apps connect to the same backend:
+The iOS app connects to the same backend as the web app (Android runs the web app itself):
 
 | Endpoint | Purpose |
 |----------|---------|
