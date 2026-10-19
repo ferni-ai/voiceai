@@ -1,0 +1,44 @@
+import Foundation
+
+/// When to ask whether Ferni may check in (UX spec §12): only after a good
+/// call (at least 2 minutes, ended by the person). "Not now" waits at least
+/// three more good calls before asking once more, then never again.
+public struct CheckInAsk {
+    private let defaults: UserDefaults
+
+    public init(defaults: UserDefaults = .standard) { self.defaults = defaults }
+
+    struct Record: Codable, Equatable { var good = 0, declines = 0, declinedAt = 0 }
+
+    static func key(_ uid: String) -> String { "ferni.checkin.\(uid)" }
+
+    func record(_ uid: String) -> Record {
+        defaults.data(forKey: Self.key(uid)).flatMap { try? JSONDecoder().decode(Record.self, from: $0) } ?? Record()
+    }
+
+    private func save(_ record: Record, _ uid: String) {
+        defaults.set(try? JSONEncoder().encode(record), forKey: Self.key(uid))
+    }
+
+    public func recordGoodCall(uid: String) {
+        var record = record(uid)
+        record.good += 1
+        save(record, uid)
+    }
+
+    public func shouldAsk(uid: String) -> Bool {
+        let record = record(uid)
+        switch record.declines {
+        case 0: return record.good >= 1
+        case 1: return record.good >= record.declinedAt + 3
+        default: return false
+        }
+    }
+
+    public func declined(uid: String) {
+        var record = record(uid)
+        record.declines += 1
+        record.declinedAt = record.good
+        save(record, uid)
+    }
+}
