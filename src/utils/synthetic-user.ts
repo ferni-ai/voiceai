@@ -20,7 +20,13 @@ const SYNTHETIC_USER_ID = /^(voice-eval-|e2e-|device:(test|local-dev|debug))/;
 /** Prefixes of ids minted per session that never name an account. */
 export const NON_ACCOUNT_PREFIXES = ['anon:', 'onbehalf:'] as const;
 
-const PLACEHOLDER_IDS = new Set(['anonymous', 'shared', 'default', 'unknown']);
+/** Ids used when there is no id at all, one bucket shared by everyone (lower case). */
+export const PLACEHOLDER_IDS: ReadonlySet<string> = new Set([
+  'anonymous',
+  'shared',
+  'default',
+  'unknown',
+]);
 
 /** Whether this user id belongs to a test harness rather than a real person. */
 export function isSyntheticUserId(userId: string | undefined | null): boolean {
@@ -33,12 +39,21 @@ export function nonAccountPrefixOf(userId: string): string | undefined {
 }
 
 /**
+ * Whether this id names no account: missing or blank, a placeholder, or an
+ * anon:/onbehalf: session id. Case-insensitive and trimmed, so 'Anonymous' or
+ * ' ANON:x' can't slip past. services/identity/member-identity.ts builds on it.
+ */
+export function namesNoAccount(userId: string | undefined | null): boolean {
+  if (typeof userId !== 'string') return true;
+  const id = userId.trim().toLowerCase();
+  if (!id || PLACEHOLDER_IDS.has(id)) return true;
+  return nonAccountPrefixOf(id) !== undefined;
+}
+
+/**
  * Whether this id can be one real person's own account: not a test harness,
  * not an anon: or onbehalf: session id, not a placeholder.
  */
 export function isPersonAccountId(userId: string | undefined | null): boolean {
-  if (typeof userId !== 'string') return false;
-  const id = userId.trim();
-  if (!id || PLACEHOLDER_IDS.has(id) || isSyntheticUserId(id)) return false;
-  return nonAccountPrefixOf(id) === undefined;
+  return !namesNoAccount(userId) && !isSyntheticUserId((userId as string).trim());
 }

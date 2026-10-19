@@ -736,16 +736,17 @@ function injectStyles(): void {
     /* ===== MILESTONE STATE ===== */
     /* Gold sparkle - celebration! */
     .unified-indicator--milestone {
-      border-color: #f59e0b;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-color: var(--color-natural-warm-amber);
+      background: linear-gradient(135deg, var(--color-natural-warm-amber-light), var(--color-natural-warm-amber));
     }
     
+    /* Ink on brand amber (4.0-7.2:1); white on it was 2.2:1 in midnight. */
     .unified-indicator--milestone .unified-indicator__icon {
-      color: white;
+      color: var(--color-natural-ink);
     }
     
     .unified-indicator--milestone .unified-indicator__icon svg {
-      stroke: white;
+      stroke: var(--color-natural-ink);
       fill: none;
     }
     
@@ -833,10 +834,6 @@ function injectStyles(): void {
     
     [data-theme="midnight"] .unified-indicator--checkin {
       background: var(--persona-primary, #6b8f5e);
-    }
-    
-    [data-theme="midnight"] .unified-indicator--milestone {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
     }
     
     [data-theme="midnight"] .unified-indicator--connected {
