@@ -106,11 +106,15 @@ export async function recognizeCaller(
   const reading = await readSipCaller(participant, { waitMs: 0 });
   if (!reading.isSip) return null;
   const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
-  const owner = e164 ? await deps.ownerOf(e164).catch(() => null) : null;
-  const signed =
-    owner && e164
-      ? await deps.signedAttestation(participant, e164, updates).catch(() => null)
-      : null;
+  // Both run, in parallel, whatever the owner lookup finds: reading the token
+  // only for a number with an account would let a caller time the call's
+  // start and learn whether that number has a Ferni account.
+  const [owner, signed] = e164
+    ? await Promise.all([
+        deps.ownerOf(e164).catch(() => null),
+        deps.signedAttestation(participant, e164, updates).catch(() => null),
+      ])
+    : [null, null];
   const status = classifyCaller(owner, signed);
   const recognition: CallerRecognition = { status, attestation: signed ?? 'none' };
   if (owner && status === 'known') {

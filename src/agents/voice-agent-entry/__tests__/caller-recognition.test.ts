@@ -155,6 +155,25 @@ describe('caller recognition on an inbound call', () => {
     expect(result.userId).toBeUndefined();
   });
 
+  it('reads and awaits the attestation for a number with no account (no timing oracle)', async () => {
+    let release: (level: SipAttestation | null) => void = () => {};
+    const reads: string[] = [];
+    productionRecognitionDeps.signedAttestation = (_p, e164) => {
+      reads.push(e164);
+      return new Promise((resolve) => (release = resolve));
+    };
+    const stranger = '+15555550123';
+    let settled = false;
+    const call = inbound(sipCaller(null, stranger)).then((r) => ((settled = true), r));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(reads).toEqual([stranger]);
+    expect(settled).toBe(false);
+    release('A');
+    const { result, recognition } = await call;
+    expect(recognition?.status).toBe('stranger');
+    expect(result.userId).toBeUndefined();
+  });
+
   it('leaves a session the app named alone', async () => {
     identifyFromMetadata.mockResolvedValue({ userId: 'user-app', source: { type: 'web_auth' } });
     const { result, recognition } = await inbound(
