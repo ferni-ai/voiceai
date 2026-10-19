@@ -131,9 +131,12 @@ final class AppModel {
     /// A line of Ferni's being reported.
     var reporting: Caption?
 
+    /// The session a reported line belongs to: the room it was heard in.
+    func reportSession(for caption: Caption) -> String { caption.room ?? call.roomName ?? "unknown" }
+
     func report(_ caption: Caption, reason: ReplyReport.Reason, note: String) async throws {
         try await ReplyReport.send(
-            using: api, sessionID: call.roomName ?? "unknown", saidAt: caption.at, reason: reason,
+            using: api, sessionID: reportSession(for: caption), saidAt: caption.at, reason: reason,
             note: note, textHint: caption.text, appVersion: SettingsView.version()
         )
     }
@@ -246,8 +249,7 @@ final class AppModel {
         memoryLock.reset()
         homeLine.reset()
         team.reset()
-        call.forgetLastCall()
-        UserDefaults.standard.removeObject(forKey: "ferni.call.hasTalked")
+        call.forgetPerson()
     }
 
     /// - Parameter scenario: debug builds only; a UI-test launch (`UITestScenario`).

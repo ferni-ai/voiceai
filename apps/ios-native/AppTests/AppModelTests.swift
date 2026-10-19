@@ -1,4 +1,5 @@
 import FerniKit
+import FerniVoice
 import XCTest
 @testable import Ferni
 
@@ -23,6 +24,26 @@ final class AppModelTests: XCTestCase {
         let model = model()
         model.talk(to: "nayan")
         XCTAssertEqual(model.team.chosen, "ferni")
+    }
+
+    /// Critic L1: the next person is greeted as new without a relaunch.
+    func testTheNextPersonIsGreetedAsNew() {
+        UserDefaults.standard.set(true, forKey: "ferni.call.hasTalked")
+        let model = model()
+        XCTAssertTrue(model.call.hasTalked)
+        model.accountChanged(from: "a", to: "b")
+        XCTAssertFalse(model.call.hasTalked)
+        XCTAssertEqual(RestingWords.words(home: nil, ended: false, hour: 20, hasTalked: model.call.hasTalked).headline, "Hi, I'm Ferni.")
+    }
+
+    /// Critic L2: a report goes to the session the line was heard in.
+    func testAReportGoesToTheLinesOwnSession() {
+        let model = model()
+        var line = Caption(id: "ferni-1", speaker: .ferni, text: "Hello", isFinal: true)
+        line.room = "ios-first"
+        XCTAssertEqual(model.reportSession(for: line), "ios-first")
+        line.room = nil
+        XCTAssertEqual(model.reportSession(for: line), "unknown", "no room known and no call")
     }
 
     func testAnotherPersonSigningInClearsTheLastOne() {
