@@ -11,7 +11,9 @@
 
 import type { IncomingMessage } from 'http';
 import type { DocumentReference, DocumentSnapshot } from 'firebase-admin/firestore';
-import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { getFirestoreDb } from '../utils/firestore-utils.js';
+import { joinWaitlist } from '../services/waitlist/join.js';
+import { firestoreWaitlistStore } from '../services/waitlist/store.js';
 
 /** The shape seeds-routes.ts generates: `k3j9x2-meadow`. */
 const REFERRAL_CODE_PATTERN = /^[a-z0-9]+-[a-z]+$/;
@@ -31,24 +33,25 @@ export async function keepWaitlistReferral(
 
   const offered = new URL(req.url ?? '/', 'http://local').searchParams.get('referralCode');
   if (!offered || !REFERRAL_CODE_PATTERN.test(offered)) return undefined;
-  if (waitlistDoc.exists) await waitlistRef.set({ referralCode: offered }, { merge: true });
+  // Only before the person's first verification: a code added later never earns credit
+  if (waitlistDoc.exists && !waitlistDoc.data()?.verifiedAt) await waitlistRef.set({ referralCode: offered }, { merge: true }); // prettier-ignore
   return offered;
 }
 
-/** First sign-in with the gate on: a pending record, with the referral code if one came. */
+/** First sign-in with the gate on: in line as a verified person, with the friend's code if one came. */
 export async function addSigninToWaitlist(
-  waitlistRef: DocumentReference,
   email: string,
-  referralCode: string | undefined
+  referralCode: string | undefined,
+  uid: string
 ): Promise<void> {
-  await waitlistRef.set(
-    cleanForFirestore({
-      email,
-      status: 'pending',
-      source: 'app_signin',
-      referralCode,
-      timestamp: new Date(),
-      createdAt: new Date(),
-    })
-  );
+  // prettier-ignore
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore unavailable');
+  await joinWaitlist(firestoreWaitlistStore(db), { email, uid, verified: true, ref: referralCode, source: 'app_signin', now: new Date() }); // prettier-ignore
+}
+
+/** The friend's code offered with this request only (a stored one may have been planted). */
+export function offeredReferral(req: IncomingMessage): string | undefined {
+  const offered = new URL(req.url ?? '/', 'http://local').searchParams.get('referralCode');
+  return offered && REFERRAL_CODE_PATTERN.test(offered) ? offered : undefined;
 }

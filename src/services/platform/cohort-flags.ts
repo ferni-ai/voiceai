@@ -18,18 +18,16 @@
  * values first. After-call work that is still running when the next call
  * starts sees the next caller's flags, so it reads them with envForCaller.
  *
- * A cohort can also take a sample of every known caller (percent, 1 to 100):
- * the same callers stay in it from call to call, and a bigger percent keeps
- * everyone already in. So a feature can go to a named cohort first, then 5%,
- * then 25%, before the agent's own flag goes on for everyone.
+ * A cohort can also take a sample of every known caller (percent, 1 to 100): the same callers stay
+ * in it from call to call, and a bigger percent keeps everyone already in. So a feature can go to a
+ * named cohort first, then 5%, then 25%, before the agent's own flag goes on for everyone.
  *
  * Only flags in COHORT_FLAGS can be set this way: behaviour switches, never
  * infrastructure or secrets. Reading cohorts never holds a call up for more
  * than READ_TIMEOUT_MS. Off unless COHORT_FLAGS=on.
  *
- * Servers that act for many users in one process (the UI server's scheduled
- * jobs) must never write process.env; they ask per person instead, with
- * flagForUser and usersWithFlag below.
+ * Servers that act for many users in one process (the UI server's scheduled jobs) must never
+ * write process.env; they ask per person instead, with flagForUser and usersWithFlag below.
  *
  * @module services/platform/cohort-flags
  */
@@ -107,6 +105,10 @@ export const COHORT_FLAGS = [
   'MORNING_BRIEF',
   // Read on each caller final and each gated outbound tool call (outreach-confirm.ts), never cached.
   'OUTREACH_SERVER_CONFIRM',
+  // The UI server's deliver-reminders job reads both per person, through flagForUser
+  // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
+  'REMINDER_SMS_DEFAULT',
+  'REMINDER_IN_APP_PUSH',
   // Read per person on the web server (flagForUser): outreach pushes and the after-call ask (web-push-flag.ts).
   'WEB_PUSH_DELIVERY',
 ] as const;

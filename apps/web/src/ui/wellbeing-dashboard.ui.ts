@@ -920,7 +920,7 @@ const styles = `
     transition: all var(--duration-fast, 100ms) ease;
     border: none;
     background: var(--color-ferni);
-    color: white;
+    color: var(--color-ferni-on-primary);
   }
   
   .wellbeing-btn:hover {
@@ -1128,12 +1128,12 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-btn {
-    background: var(--color-accent-secondary);
-    color: var(--color-text-primary-dark);
+    background: var(--color-accent-primary); /* light sage, so on-accent ink text */
+    color: var(--color-text-on-accent);
   }
 
   [data-theme="midnight"] .wellbeing-btn:hover {
-    background: var(--color-accent-secondary-hover);
+    background: var(--color-accent-hover);
   }
 
   [data-theme="midnight"] .wellbeing-btn--secondary {
