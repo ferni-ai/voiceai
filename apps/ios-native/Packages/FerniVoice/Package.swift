@@ -1,6 +1,7 @@
 // swift-tools-version: 6.0
-// A call with Ferni: reading what the agent signals, and (next) the LiveKit
-// session itself. The call screen lives in the app and reads this.
+// A call with Ferni: the session (join, wait for the agent, retry, captions,
+// mute, reconnect), what the agent signals, and (next) the LiveKit room behind
+// it. The call screen lives in the app and reads CallSession.
 import PackageDescription
 
 let package = Package(
