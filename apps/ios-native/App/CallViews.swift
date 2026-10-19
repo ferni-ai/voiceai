@@ -80,7 +80,10 @@ struct CallCaptions: View {
                             Button("Report this reply", systemImage: "flag") { report(line) }
                         }
                     }
-                    .accessibilityAction(named: "Report this reply") { if isFerni { report(line) } }
+                    .accessibilityActions {
+                        // Only Ferni's lines can be reported (critic M4).
+                        if isFerni { Button("Report this reply") { report(line) } }
+                    }
             }
             if let state = Self.state(call, name: name) {
                 HStack(spacing: FerniSpace.breath) {
@@ -95,9 +98,6 @@ struct CallCaptions: View {
             }
         }
         .animation(.easeOut(duration: 0.2), value: lines)
-        .onChange(of: Self.state(call, name: name)) { _, line in
-            if let line { AccessibilityNotification.Announcement(line).post() }
-        }
     }
 
     private var name: String { PersonaRegistry.get(call.avatar.personaID).name }
@@ -117,6 +117,20 @@ struct CallCaptions: View {
             default: return String(localized: "\(name)'s listening")
             }
         default: return nil
+        }
+    }
+}
+
+/// What VoiceOver is told about the call on its own: only what needs
+/// attention (trouble, being put on hold), never each turn over Ferni's voice
+/// (ios-motion-spec §6.3, critic M4). Handoffs are announced by the avatar.
+enum CallAnnouncement {
+    static func text(phase: CallSession.Phase, onHold: Bool) -> String? {
+        switch phase {
+        case .reconnecting: String(localized: "Reconnecting…")
+        case .live where onHold: String(localized: "On hold")
+        case .failed(let problem): problem.message
+        default: nil
         }
     }
 }
