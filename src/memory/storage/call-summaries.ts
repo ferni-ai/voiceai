@@ -51,6 +51,10 @@ const LIVE_FIELDS = [
   'decisionsReached',
   'questionsRemaining',
   'followUpItems',
+  // Who raised each item (caller-assertions.ts): threads are served only when checked
+  'callerProvenance',
+  'assistantRaisedItems',
+  'disputedItems',
 ] as const;
 
 function strings(x: unknown): string[] {
