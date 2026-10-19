@@ -42,6 +42,11 @@ export interface PersistenceConfig {
   useRootCollection?: boolean;
 }
 
+export interface LoadOptions {
+  fresh?: boolean;
+  strict?: boolean;
+}
+
 export interface PersistenceStore<T> {
   /** Get data for a user */
   get: (userId: string) => Promise<T | null>;
@@ -67,8 +72,9 @@ export interface PersistenceStore<T> {
   /**
    * Load data from Firestore into memory. `fresh` skips a clean cache entry, for
    * data another process may have changed (unflushed local writes still win).
+   * `strict` throws when Firestore can't be read instead of answering null.
    */
-  load: (userId: string, options?: { fresh?: boolean }) => Promise<T | null>;
+  load: (userId: string, options?: LoadOptions) => Promise<T | null>;
 
   /** Clear memory cache for user */
   clearCache: (userId: string) => void;
@@ -299,13 +305,14 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   };
 
   // Load from Firestore
-  const load = async (userId: string, options?: { fresh?: boolean }): Promise<T | null> => {
+  const load = async (userId: string, options?: LoadOptions): Promise<T | null> => {
     // Check cache first
     if (cache.has(userId) && (!options?.fresh || dirty.has(userId))) {
       return cache.get(userId)!;
     }
 
     const firestore = await getFirestore();
+    if (!firestore && options?.strict) throw new Error(`Firestore unavailable (${collection})`);
     if (!firestore) return cache.get(userId) ?? null;
 
     try {
@@ -325,6 +332,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       return data;
     } catch (error) {
       log.error({ error, collection, userId }, 'Failed to load user data');
+      if (options?.strict) throw error;
       return null;
     }
   };
