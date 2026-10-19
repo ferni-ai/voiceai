@@ -20,6 +20,7 @@ import { noteCallerJoined } from './sip-caller.js';
 import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
 import { injectUserAwareness } from './user-awareness-injection.js';
+import { identifyWithCallStartStages } from './call-start-identify.js';
 
 // Event cleanup registry for proper memory management
 import {
@@ -329,20 +330,11 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       { getConversationManager },
     ] = await moduleImportsPromise;
 
-    // Identify, the session profile load, cache warm-up and the language and
-    // trial checks all read the caller's root doc; share one read among them.
-    const { openCallStartReadWindow } = await import('../../utils/call-start-reads.js');
-    openCallStartReadWindow();
-    const identifyStartedAt = Date.now();
-    const { userId: identifiedUserId, userName, userAccent } = await identifyUser({
-      jobMetadata: ctx.job.metadata,
-      room: ctx.room,
-      sessionId,
-    });
+    const identified = await identifyWithCallStartStages(sessionId, markCallStageSafe, () =>
+      identifyUser({ jobMetadata: ctx.job.metadata, room: ctx.room, sessionId })
+    );
+    const { userId: identifiedUserId, userName, userAccent } = identified;
     userId = identifiedUserId ?? null;
-    const identifyDoneAt = Date.now();
-    await markCallStageSafe(sessionId, 'identify_start', identifyStartedAt);
-    await markCallStageSafe(sessionId, 'identify_done', identifyDoneAt);
 
     updateSessionState(sessionId, { state: 'active' });
     registerSession(sessionId, {

@@ -43,7 +43,7 @@ describe("the persona prompt and the caller's flags", () => {
 
   it('the single-agent session gets the prompt loaded after identifyUser (STEP 4)', () => {
     const entry = src('index.ts');
-    const identified = entry.indexOf('await identifyUser(');
+    const identified = entry.indexOf('identifyUser({ jobMetadata');
     const loaded = entry.indexOf('systemPrompt: await loadCallerPrompt(sessionPersona.id)');
     expect(identified).toBeGreaterThan(0);
     expect(loaded).toBeGreaterThan(identified);

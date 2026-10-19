@@ -151,7 +151,6 @@ import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
-import { markCallStageSoon } from '../../services/analytics/call-start-stages.js';
 
 const log = getLogger();
 
@@ -2151,7 +2150,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   // Final timing summary
   mark('setup_complete');
-  if (!isHandoff) markCallStageSoon(sessionId, 'context_built', timings.setup_complete);
   const totalSetupMs = Date.now() - setupStart;
   log.info(
     { personaId: persona.id, totalSetupMs, timings },
