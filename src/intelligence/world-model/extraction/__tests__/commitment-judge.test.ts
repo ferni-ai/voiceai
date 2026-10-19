@@ -150,7 +150,8 @@ describe('after the call', () => {
     expect(unused).not.toHaveBeenCalled();
   });
 
-  it('drops what an injection got the model to return, and keeps a real plan from another turn', async () => {
+  // Every kept item is call-only since #2128, so a call with a directive turn keeps none.
+  it('stores nothing from a call with an injection, not even a real plan from another turn', async () => {
     const env = { AFTER_CALL_EXTRACTION: 'on', COMMITMENT_SINGLE_WRITER: 'on' };
     const turns = [
       { role: 'assistant', content: "What's on deck this week?" },
@@ -173,9 +174,7 @@ describe('after the call', () => {
     });
     const s = sinks();
     await extractWorldAfterCall({ ...call, turns }, { env, llm: async () => fooled, ...s.deps });
-    expect(s.judged.mock.calls.map((c) => c[1].statement)).toEqual([
-      'call my dentist Monday about the crown',
-    ]);
+    expect(s.judged.mock.calls.map((c) => c[1].statement)).toEqual([]);
   });
 
   it("reads the flag as this caller's cohort has it, not as the next caller's env does", async () => {

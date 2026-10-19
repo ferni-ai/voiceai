@@ -1,23 +1,35 @@
 /**
  * What the after-call commitment judge (#1985, COMMITMENT_SINGLE_WRITER) may
- * store, decided by an allowlist instead of a denylist.
+ * store, decided by construction rather than by lists of what to catch.
  *
- * Three rounds of review on #1985 found new bypasses each time: amounts in
- * words, inflated numbers, invented payees, other languages and number
- * formats all slipped past lists of what to catch. So this inverts it:
+ * Review on #1985 and on this guard kept finding the same thing: a list of
+ * words that mark money, numbers or "plain" text always misses a language
+ * ("mandale a Kyle quinientos", "пятьсот рублей", "a billion"). So nothing
+ * here decides that an item is safe to send. Every kept commitment is raised
+ * only on a call, and a reader may text one only after the caller said yes to
+ * a reminder for it, in the call. This guard does two things:
  *
- * - Extractive only. A commitment's statement must be the caller's own words:
- *   a whole-word span of one caller turn (after NFKC, case folding and
- *   whitespace collapsing). Its quote is that span, and a person, if any, is
- *   a span of a caller turn too. Nothing the model writes itself survives:
- *   no "five thousand" for "fifty", no payee nobody named.
- * - Plain or sensitive. An item is plain only when every digit in it has an
- *   allowlisted shape (a clock time, a day of the month next to a month or
- *   weekday, one money amount standing alone) and it names no payment rail
- *   or credential in any of the languages listed. Everything else is
- *   sensitive, which only a call may raise, never a text, brief or push.
- * - Dropped, not redacted. A field holding a run of four or more digits in
- *   no allowlisted shape, or a credential word, is not stored at all.
+ * - Extractive only. A statement must be the caller's own words: a whole-word
+ *   span of one caller turn (after NFKC, case folding and whitespace
+ *   collapsing) that cuts no word and no number ("$5" is not a span of
+ *   "$5,000", "$5 thousand" or "$5 000"). Its quote is that span, and a
+ *   person, if any, is a span of a caller turn too. Nothing the model writes
+ *   itself survives: no "five thousand" for "fifty", no payee nobody named.
+ * - Secrets dropped, not redacted. An item holding four or more digits in all,
+ *   however they are split up ("42 then 79", "the combo is 12:34"), is not
+ *   stored, unless its only number is one money amount of at most seven
+ *   digits with a currency sign or word ("$1,450"). Digits in a time or date
+ *   count too, unless it reads as one ("at 3:30", "on March 3", "5pm"), for
+ *   at most two of them, and only when nothing else in the item is a number;
+ *   a bare ordinal ("the 41st") counts. A credential word drops an item too.
+ *
+ * Known limits. The secret drop is defence in depth, not a number parser:
+ * number words count as digits only as far as the lists below go (a few
+ * languages, the common words), and digits said any other way, or in any
+ * other language, are not caught. The safeguards that do not depend on it
+ * are that a kept commitment is only ever raised on a call, and texted only
+ * after the caller says yes to a reminder for it. Accepted too: a span can
+ * leave out a negation ("not going to wire $900" gives "wire $900").
  *
  * A library: nothing calls it yet. #1985's writer and readers adopt it.
  *
@@ -34,15 +46,57 @@ const WORDY = /[\p{L}\p{N}]/u;
 /** A span as compared: canonical, without the sentence's closing punctuation. */
 const spanKey = (s: string): string => canon(s).replace(/[.!?,;:]+$/, '');
 
-/** Whether `span` is a whole-word run of `turn` ("500 to kyle" is not in "1500 to kyle"). */
+/**
+ * Number words and the digits each stands for, so "four two seven nine",
+ * "forty one eleven" and "twenty twenty four" count as the codes they are.
+ * Best effort: the languages listed, no more.
+ */
+const NUMBER_WORDS = new Map<string, number>([
+  ...'zero oh one two three four five six seven eight nine cero uno dos tres cuatro cinco seis siete ocho nueve zéro un une deux trois quatre cinq six sept huit neuf null eins zwei drei vier fünf sechs sieben acht neun um dois três sete oito nove due tre quattro cinque sei sette otto один два три четыре пять шесть семь восемь девять quatro'
+    .split(' ')
+    .map((w): [string, number] => [w, 1]),
+  ...'ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty thirty forty fourty fifty sixty seventy eighty ninety hundred dozen diez once doce trece catorce quince veinte veinticinco treinta cuarenta cincuenta sesenta setenta ochenta noventa cien ciento dix onze douze treize quatorze quinze seize vingt trente quarante cinquante soixante cent zehn elf zwölf zwanzig dreißig vierzig fünfzig sechzig siebzig achtzig neunzig hundert dez doze dezesseis vinte trinta quarenta cinquenta sessenta cem dieci undici dodici venti trenta quaranta cinquanta sessanta cento десять двадцать тридцать сорок пятьдесят сто dieciséis dieciseis diecisiete diecinueve veintiuno dieciocho dezoito oitenta neunzehn siebzehn diciannove settanta девятнадцать семнадцать'
+    .split(' ')
+    .map((w): [string, number] => [w, 2]),
+  ...'doscientos trescientos cuatrocientos quinientos seiscientos setecientos ochocientos novecientos quinhentos пятьсот'
+    .split(' ')
+    .map((w): [string, number] => [w, 3]),
+  ...'thousand grand mil mille tausend тысяча тысячи тысяч'
+    .split(' ')
+    .map((w): [string, number] => [w, 3]),
+  ...'million millions millón millones milliard миллион'
+    .split(' ')
+    .map((w): [string, number] => [w, 6]),
+  ...'billion billions'.split(' ').map((w): [string, number] => [w, 9]),
+]);
+/** Words that repeat the digit after them: "double four" is 44, "triple one" 111. */
+const MULTIPLIER = new Map<string, number>([
+  ...'double doble doppel doppio dupla'.split(' ').map((w): [string, number] => [w, 2]),
+  ...'triple triplo tripla dreifach'.split(' ').map((w): [string, number] => [w, 3]),
+]);
+/** What a number may run on into, past a space: "$5 thousand", "$5 k", "$5 000". */
+const RUNS_ON = /^[\s'\u00a0\u2009\u202f]*(?:\p{N}|(?:k|m|mm|bn)(?![\p{L}\p{N}]))/u;
+const nextWord = (rest: string): string => rest.match(/^[^\p{L}\p{N}]*([\p{L}]+)/u)?.[1] ?? '';
+
+/**
+ * Whether `span` is a whole-word run of `turn` that cuts no number: "500 to
+ * kyle" is not in "1500 to kyle", nor "$5" in "$5,000", "$1.5 million",
+ * "$5 thousand" or "$5'000".
+ */
 export function isSpanOf(span: string, turn: string): boolean {
   const s = spanKey(span);
   const t = canon(turn);
   if (!s) return false;
+  const cuts = (edge: string, beyond: string): boolean =>
+    WORDY.test(edge) || (/[,.:]/.test(edge) && /\p{N}/u.test(beyond));
   for (let i = t.indexOf(s); i !== -1; i = t.indexOf(s, i + 1)) {
-    const before = i === 0 ? '' : t[i - 1];
-    const after = t[i + s.length] ?? '';
-    if (!WORDY.test(before) && !WORDY.test(after)) return true;
+    const end = i + s.length;
+    if (cuts(t[i - 1] ?? '', t[i - 2] ?? '') || cuts(t[end] ?? '', t[end + 1] ?? '')) continue;
+    // A span ending on a number may not leave the rest of it behind.
+    const rest = t.slice(end);
+    if (/\p{N}$/u.test(s) && (RUNS_ON.test(rest) || NUMBER_WORDS.has(nextWord(rest)))) continue;
+    if (NUMBER_WORDS.has(s.split(' ').at(-1) ?? '') && NUMBER_WORDS.has(nextWord(rest))) continue;
+    return true;
   }
   return false;
 }
@@ -53,61 +107,75 @@ const WEEKDAY = '(?:mon|tue|tues|wed|wednes|thu|thur|thurs|fri|sat|satur|sun)(?:
 /** "9am", "9:30 p.m.", "14:30". */
 const CLOCK =
   /(?<!\p{N})\d{1,2}(?::[0-5]\d)?\s?(?:a\.?m\.?|p\.?m\.?)(?![\p{L}\p{N}])|(?<![\p{N}:])(?:[01]?\d|2[0-3]):[0-5]\d(?![\p{N}:])/giu;
-/** "Friday the 13th", "March 3", "3rd of June". */
+/** "Friday the 13th", "March 3", "3rd of June": a day of the month, 1 to 31, next to a month or weekday. A bare "the 15th" counts its digits. */
+const DAY = '(?:3[01]|[12]\\d|0?[1-9])';
 const DAY_OF_MONTH = new RegExp(
-  `(?<![\\p{L}])(?:${MONTH}|${WEEKDAY})\\.?\\s+(?:the\\s+)?\\d{1,2}(?:st|nd|rd|th)?(?![\\p{N}])|(?<!\\p{N})\\d{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:${MONTH})(?![\\p{L}])`,
+  `(?<![\\p{L}])(?:${MONTH}|${WEEKDAY})\\.?\\s+(?:the\\s+)?${DAY}(?:st|nd|rd|th)?(?![\\p{N}])|(?<!\\p{N})${DAY}(?:st|nd|rd|th)?\\s+(?:of\\s+)?(?:${MONTH})(?![\\p{L}])`,
   'giu'
 );
-/** One money amount or small count: "$40", "1,450", "$12.50", "3". */
-const AMOUNT = /^\$?\d{1,3}(?:,\d{3})*(?:\.\d\d)?$/;
+/** Words that make a time or date read as one: "at 3:30", "on the 15th", "by March 3". */
+const INTRO = /(?<![\p{L}])(?:at|by|on|until|till|before|after|from)\s+(?:the\s+)?$/iu;
+/** What may sit between two listed times: "at 3:30 and 5:30", "at 9, or 10". */
+const LIST = /^\s*,?\s*(?:and|or|then|&)\s+(?:at\s+)?$/iu;
+/** At most this many time or date shapes are set aside; past that their digits count. */
+const MAX_SHAPES = 2;
+/** One money amount, at most 7 digits: "$40", "1,450", "$1,000,000", "$12.50". */
+const AMOUNT = /^\$?(?:(?:0|[1-9]\d{0,2})(?:,\d{3})?|[1-9],\d{3},\d{3})(?:\.\d\d)?$/;
 /** A number as written: digits of any script, with the commas and points inside it. */
 const NUMBER = /\$?\p{N}(?:[\p{N},.]*\p{N})?/gu;
-/** Digits said as words, a run of which is a number said aloud ("four two seven nine"). */
-const DIGIT_WORDS = new Set(
-  'zero oh one two three four five six seven eight nine cero uno dos tres cuatro cinco seis siete ocho nueve zéro un deux trois quatre cinq six sept huit neuf null eins zwei drei vier fünf sechs sieben acht neun um dois três quatro cinco seis sete oito nove due tre quattro cinque sei sette otto'.split(
-    ' '
-  )
-);
+/** A currency sign or word next to a number makes it an amount rather than a code. */
+const CURRENCY =
+  /\p{Sc}|(?<![\p{L}])(?:dollars?|bucks?|usd|cents?|euros?|pesos?|pounds?|quid|yen|rupees?|reais|dólares?|francs?|lire|libras?|рублей|рубля|рубль)(?![\p{L}])/iu;
+/** A suffix that multiplies the number before it: "5k" is four digits, not one. */
+const MAGNITUDE = /\p{N}\s?(k|m|mm|bn|grand)(?![\p{L}])/giu;
 
-interface Digits {
-  /** Every digit is in an allowlisted shape. */
-  plain: boolean;
-  /** A run of four or more digits in no allowlisted shape: how account, card and PIN numbers look. */
-  secret: boolean;
-}
-
-/** The digits of a text, judged by shape. Neighbouring numbers ("555-0142", "4111 1111") are one run. */
-function digitsOf(text: string): Digits {
-  const masked = canon(text).replace(CLOCK, '§').replace(DAY_OF_MONTH, '§');
-  const numbers = [...masked.matchAll(NUMBER)];
-  let plain = true;
-  let secret = false;
-  let run = { digits: 0, shaped: true, end: -1 };
-  const close = () => {
-    if (run.digits >= 4 && !run.shaped) secret = true;
-  };
-  for (const m of numbers) {
-    const n = m[0];
-    const shaped = AMOUNT.test(n);
-    const digits = (n.match(/\p{N}/gu) ?? []).length;
-    const between = run.end < 0 ? 'x' : masked.slice(run.end, m.index);
-    if (run.end >= 0 && !/\p{L}/u.test(between)) {
-      // Next to the last number with only spaces or punctuation between: one run, never plain.
-      run = { digits: run.digits + digits, shaped: false, end: m.index + n.length };
-      plain = false;
-    } else {
-      close();
-      run = { digits, shaped, end: m.index + n.length };
-      if (!shaped) plain = false;
-    }
-  }
-  close();
+/**
+ * Four or more digits in all (number words, multipliers and magnitudes
+ * counted), unless the only number is one money amount. A time or date
+ * counts as well unless it reads as one ("at 3:30", "5pm"), only two are set
+ * aside, and none at all when anything else in the item is a number.
+ */
+/** Digits said as words or magnitudes: "four one" is 2, "double four" 2, "5k" 3. */
+function spokenDigits(masked: string): number {
+  let spoken = 0;
   const said = masked.split(/[^\p{L}]+/u);
-  for (let i = 0, k = 0; i < said.length; i++) {
-    k = DIGIT_WORDS.has(said[i]) ? k + 1 : 0;
-    if (k >= 4) secret = true;
+  for (let i = 0; i < said.length; i++) {
+    const n = NUMBER_WORDS.get(said[i]) ?? 0;
+    // "double four" is two digits and "triple four" three.
+    spoken += n * (n > 0 ? (MULTIPLIER.get(said[i - 1] ?? '') ?? 1) : 1);
   }
-  return { plain: plain && !secret, secret };
+  for (const m of masked.matchAll(MAGNITUDE)) spoken += m[1] === 'k' || m[1] === 'grand' ? 3 : 6;
+  return spoken;
+}
+function tooManyDigits(text: string): boolean {
+  let shapes = 0;
+  let shapeDigits = 0;
+  // One per pass: each pass reads its own string, so "listed" looks back only within it.
+  // A date named by its month or weekday ("May 3") always reads as one; a time needs a cue.
+  const setAside = (always = false) => {
+    let lastEnd = -1;
+    return (m: string, at: number, all: string) => {
+      // "at 3:30 and 5:30": a time listed right after one that read as a time reads as one too.
+      const listed = lastEnd >= 0 && LIST.test(all.slice(lastEnd, at));
+      const reads = always || /[ap]\.?m\.?$/i.test(m) || INTRO.test(all.slice(0, at)) || listed;
+      if (!reads || ++shapes > MAX_SHAPES) return m;
+      shapeDigits += (m.match(/\p{N}/gu) ?? []).length;
+      lastEnd = at + m.length;
+      return '§';
+    };
+  };
+  const masked = canon(text).replace(CLOCK, setAside()).replace(DAY_OF_MONTH, setAside(true));
+  const numbers = [...masked.matchAll(NUMBER)].map((m) => m[0]);
+  const spoken = spokenDigits(masked);
+  const oneAmount =
+    numbers.length === 1 &&
+    spoken === 0 &&
+    AMOUNT.test(numbers[0]) &&
+    (numbers[0].startsWith('$') || CURRENCY.test(masked));
+  const other = (masked.match(/\p{N}/gu) ?? []).length + spoken;
+  // Times and dates are set aside only when nothing else in the item is a number:
+  // "at 3:30 and 5:30" is kept, "at 12:34 and at 23:45 then 567" is not.
+  return other > 0 && !oneAmount && other + shapeDigits >= 4;
 }
 
 /** Whole-word, in any script. */
@@ -116,44 +184,27 @@ const words = (list: string): RegExp =>
 
 /**
  * Words that name a credential, in English, Spanish, French, German,
- * Portuguese and Italian. "pin" and "code" count only when they read as one
- * ("my PIN is", "code: 4417"), not "pin the poster up" or "code the site".
+ * Portuguese, Italian and Russian. "pin" and "code" count only when they read
+ * as one ("my PIN is", "code: 4417"), not "pin the poster up" or "code the site".
  */
 const CREDENTIAL = words(
   [
     'passwords?|passcodes?|passwd|passphrase|otp|cvv2?|cvc|ssn|social security( number)?|seed phrase|recovery phrase|private key|2fa',
     '(verification|security|access|login|one[- ]time|pin|sms) code',
-    'pin( number| code)?(?=\\s*(is|was|es|est|ist|é|è|:|=|\\p{N}))|(my|your|the|card|bank|debit) pin',
-    'code(?=\\s*(is|was|es|est|ist|é|è|:|=|\\p{N}))',
-    'contraseñas?|clave( secreta)?|código( de (verificación|seguridad|acceso))?',
+    "pin( number| code)?(?=('s)?\\s*(is|was|es|est|ist|é|è|:|=|\\p{N}))|(my|your|the|card|bank|debit) pin",
+    "(code|pw|pass)(?=('s)?\\s*(is|was|es|est|ist|é|è|:|=|\\p{N}))",
+    'contraseñas?|contrasenas?|clave( secreta)?|c[oó]digo( de (verificaci[oó]n|seguridad|acceso))?',
     'mot de passe|code (secret|pin|de vérification)|identifiants?',
     'passwort|kennwort|geheimzahl|pin-code',
     'senhas?|código de verificação',
     "parola d'ordine|codice( segreto| di verifica| pin)?",
+    'пароль|пин-код',
   ].join('|')
 );
 
-/** Words that name a way to move money or an account, in the same languages. */
-const PAYMENT = words(
-  [
-    'venmo|zelle|paypal|cash ?app|wire( transfer)?|bank transfer|(bank|checking|savings) account|account number|routing( number)?|iban|swift|bic|(credit|debit) card|card number|bitcoin|btc|crypto|ethereum|gift ?cards?',
-    'transferencias?|transferir|cuenta( bancaria)?|número de cuenta|tarjeta|bizum',
-    'virement|compte( bancaire)?|carte bancaire|rib|lydia',
-    'überweisung|überweisen|konto(nummer)?|kreditkarte|bankkarte',
-    'transferência|conta( bancária)?|cartão|pix',
-    'bonifico|conto( corrente)?|carta di credito',
-  ].join('|')
-);
-
-/** Whether a field must not be stored at all: a number in no allowlisted shape, or a credential. */
+/** Whether a field must not be stored at all: too many digits, or a credential. */
 export function hasSecret(text: string): boolean {
-  return digitsOf(text).secret || CREDENTIAL.test(canon(text));
-}
-
-/** Whether a text may surface on its own: allowlisted digits only, no payment rail or credential. */
-export function isPlain(text: string): boolean {
-  const t = canon(text);
-  return digitsOf(t).plain && !CREDENTIAL.test(t) && !PAYMENT.test(t);
+  return tooManyDigits(text) || CREDENTIAL.test(canon(text));
 }
 
 /** The fields of a judged commitment this reads. */
@@ -163,21 +214,43 @@ export interface SpanItem {
   person?: string;
 }
 
-export type DropReason = 'not-a-caller-span' | 'quote-not-the-span' | 'person-not-said' | 'secret';
-export type Screened = { keep: true; sensitive: boolean } | { keep: false; reason: DropReason };
+export type DropReason =
+  'malformed' | 'not-a-caller-span' | 'quote-not-the-span' | 'person-not-said' | 'secret';
+/** Kept or not. Never "safe to send": that is only ever the caller's yes, asked in the call. */
+export type Screened = { keep: true } | { keep: false; reason: DropReason };
 
 /**
- * Whether a judged commitment may be stored, and if so whether it is
- * sensitive. `callerTurns` are the caller's turns only, never Ferni's.
+ * Whether a judged commitment may be stored. `callerTurns` are the caller's
+ * turns only, never Ferni's. Never throws: anything it can't read is dropped.
  */
 export function screenCommitment(item: SpanItem, callerTurns: readonly string[]): Screened {
-  const fields = [item.statement, item.quote ?? '', item.person ?? ''];
-  if (!callerTurns.some((t) => isSpanOf(item.statement, t)))
+  try {
+    return screen(item, callerTurns);
+  } catch {
+    return { keep: false, reason: 'malformed' };
+  }
+}
+
+const optionalText = (x: unknown): boolean => x === undefined || typeof x === 'string';
+
+function screen(item: SpanItem, callerTurns: readonly string[]): Screened {
+  const { statement, quote, person } = item as {
+    statement: unknown;
+    quote: unknown;
+    person: unknown;
+  };
+  const turns = Array.isArray(callerTurns) ? callerTurns.filter((t) => typeof t === 'string') : [];
+  if (typeof statement !== 'string' || !WORDY.test(statement))
+    return { keep: false, reason: 'malformed' };
+  if (!optionalText(quote) || !optionalText(person)) return { keep: false, reason: 'malformed' };
+  const q = quote as string | undefined;
+  const who = person as string | undefined;
+  if (!turns.some((t) => isSpanOf(statement, t)))
     return { keep: false, reason: 'not-a-caller-span' };
-  if (item.quote && spanKey(item.quote) !== spanKey(item.statement))
-    return { keep: false, reason: 'quote-not-the-span' };
-  if (item.person && !callerTurns.some((t) => isSpanOf(item.person ?? '', t)))
+  // The quote must be the statement itself, so a secret can't ride in a quote that differs from it.
+  if (q && spanKey(q) !== spanKey(statement)) return { keep: false, reason: 'quote-not-the-span' };
+  if (who && !turns.some((t) => isSpanOf(who, t)))
     return { keep: false, reason: 'person-not-said' };
-  if (fields.some(hasSecret)) return { keep: false, reason: 'secret' };
-  return { keep: true, sensitive: !fields.every((f) => f === '' || isPlain(f)) };
+  if ([statement, q ?? '', who ?? ''].some(hasSecret)) return { keep: false, reason: 'secret' };
+  return { keep: true };
 }

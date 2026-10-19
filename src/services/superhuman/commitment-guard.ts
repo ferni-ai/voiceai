@@ -68,9 +68,9 @@ export interface GuardedItem {
 export type DropCounts = Partial<Record<DropReason | 'directive', number>>;
 
 /**
- * The items to store, each marked sensitive or not, given the caller's turns
- * (theirs only, never Ferni's). An item is sensitive when the span guard says
- * so or the judge does; a call with a directive turn keeps no sensitive item.
+ * The items to store, given the caller's turns (theirs only, never Ferni's).
+ * Every kept item is sensitive: the span guard never calls one safe to send
+ * (#2128), so each is raised only on a call. A call with a directive turn keeps none.
  */
 export function screenJudged<T extends GuardedItem>(
   items: readonly T[],
@@ -87,8 +87,7 @@ export function screenJudged<T extends GuardedItem>(
     if (!screened.keep) return drop(screened.reason);
     if (isDirective(`${j.statement} ${j.quote ?? ''}`)) return drop('directive');
     if (directive.some((t) => isSpanOf(j.statement, t))) return drop('directive');
-    const sensitive = screened.sensitive || j.sensitive !== false;
-    if (sensitive && directive.length > 0) return drop('directive');
-    return [{ ...j, sensitive }];
+    if (directive.length > 0) return drop('directive');
+    return [{ ...j, sensitive: true }];
   });
 }

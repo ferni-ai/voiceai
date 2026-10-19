@@ -16,9 +16,9 @@
 import { t } from '../i18n/index.js'; import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { soundUI } from './sound.ui.js';
-import { messageUI } from './message.ui.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { fetchHubData, type BackgroundResult, type HubLoad, type OpenThread, type TrackedItem } from './ferni-hub-data.js';
-import { bindHubProblem, renderHubEmpty, renderHubProblem } from './ferni-hub-states.js'; import { escapeHtml } from './trust-dashboard-data.js';
+import { bindHubProblem, renderHubEmpty, renderHubProblem } from './ferni-hub-states.js'; import { escapeHtml } from './trust-dashboard-data.js'; import { bindTrackedActions, trackedActionsHtml } from './ferni-hub-tracked.js';
 import {
   PERSONA_ICONS,
   SECTION_ICONS,
@@ -28,10 +28,7 @@ import {
 
 const log = createLogger('FerniHub');
 
-// ============================================================================
 // STATE
-// ============================================================================
-
 let container: HTMLElement | null = null;
 let isVisible = false;
 let hubData: HubLoad | null = null;
@@ -81,7 +78,7 @@ function createContainer(): HTMLElement {
         <div class="ferni-hub-greeting">
           <span class="ferni-hub-wave">${SECTION_ICONS.hand}</span>
           <div>
-            <h1>${t('ui.yourDay')}</h1>
+            <h1 id="ferni-hub-title">${t('ui.yourDay')}</h1>
             <p class="ferni-hub-subtitle">${t('ui.subtitle')}</p>
           </div>
         </div>
@@ -111,7 +108,8 @@ function createContainer(): HTMLElement {
     </div>
   `;
 
-  // Event listeners
+  // Event listeners. A modal dialog: named, Escape closes it, dialog-focus moves focus in and traps Tab
+  asModalDialog(overlay.querySelector('.ferni-hub-panel') as HTMLElement, { labelledBy: 'ferni-hub-title' }, () => overlay.classList.contains('visible'), hide);
   overlay.querySelector('.ferni-hub-backdrop')?.addEventListener('click', hide);
   overlay.querySelector('.ferni-hub-close')?.addEventListener('click', hide);
   overlay.querySelector('.ferni-hub-talk-btn')?.addEventListener('click', () => {
@@ -261,6 +259,7 @@ function renderTrackedItems(items: TrackedItem[]): string {
             <span class="ferni-hub-card-persona">${persona.name} is tracking</span>
             ${dueText ? `<span class="ferni-hub-card-due">${dueText}</span>` : ''}
           </div>
+          ${trackedActionsHtml(item.id)}
         </div>
       </div>
     `;
@@ -337,14 +336,8 @@ function attachCardListeners(): void {
     });
   });
 
-  // Result cards - show details
-  container?.querySelectorAll('.ferni-hub-result-card').forEach((card) => {
-    card.addEventListener('click', () => {
-      const resultId = card.getAttribute('data-result-id');
-      log.debug({ resultId }, 'Result card clicked');
-      // Could expand to show more details
-    });
-  });
+  // On Your Mind: Done / Dismiss (ferni-hub-tracked.ts)
+  if (container) bindTrackedActions(container);
 }
 
 // ============================================================================

@@ -21,7 +21,6 @@ import {
 } from './after-call-commitments.js';
 import { judgedRowText, JUDGED_SOURCE } from './commitment-single-writer.js';
 import { isDirective, redactSecrets } from './commitment-guard.js';
-import { isPlain } from './commitment-span-guard.js';
 export { isDirective, redactSecrets, screenJudged, type DropCounts } from './commitment-guard.js';
 import { getFirestoreDb } from './firestore-utils.js';
 
@@ -88,8 +87,6 @@ export function judgedCommitmentDocs(
     const statement = redactSecrets(j.statement);
     const quote = j.quote && redactSecrets(j.quote);
     const person = j.person && redactSecrets(j.person);
-    // The guard already decided (screenJudged); checked again so no caller can skip it.
-    const sensitive = j.sensitive === true || !isPlain(j.statement) || !isPlain(j.person ?? '');
     docs.push({
       userId: ctx.userId,
       statement,
@@ -108,7 +105,8 @@ export function judgedCommitmentDocs(
       ...(person && { person, personInvolved: person }),
       ...(due && { due }),
       ...(quote && { quote }),
-      ...(sensitive && { sensitive: true }),
+      // Raised only on a call: the span guard never calls an item safe to send (#2128).
+      sensitive: true,
       ...(targetDate !== undefined && { targetDate }),
     });
     if (docs.length >= MAX_PER_CALL) break;

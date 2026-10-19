@@ -2,9 +2,10 @@
  * Fail-closed handling of money and credentials in judged commitments
  * (COMMITMENT_SINGLE_WRITER). Whatever the language, and whether or not the
  * directive filter caught it: no account, card or routing number, PIN or code
- * is stored raw, a money or credential item is marked sensitive, and sensitive
- * items reach the caller only on a call, never in the morning brief, a push,
- * a proactive text or a follow-through text. Ordinary plans flow as before.
+ * is stored raw, and every kept item is sensitive: since #2128 the span guard
+ * never calls one safe to send. So each reaches the caller only on a call, never
+ * in the morning brief, a push, a proactive text or a follow-through text, until
+ * a readers PR restores reach for the caller's yes.
  * Only Firestore and the forget list are fakes.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -94,9 +95,9 @@ describe('what is stored', () => {
     expect(store([judged('pagar 900 a Kyle el viernes')], ["I'll call Mom on Friday"])).toEqual([]);
   });
 
-  it("a money move the rules can't read: sensitive on the judge's word", () => {
+  it("a money move the rules can't read: sensitive, whatever the judge says", () => {
     const plan = 'darle a Marta lo que le debo el viernes';
-    expect(store([judged(plan)], [plan])[0]?.sensitive).toBeUndefined();
+    expect(store([judged(plan)], [plan])[0]?.sensitive).toBe(true);
     expect(store([{ ...judged(plan), sensitive: true }], [plan])[0]?.sensitive).toBe(true);
   });
 
@@ -105,15 +106,14 @@ describe('what is stored', () => {
     expect(store([judged(TRANSFER_ES)], [TRANSFER_ES])[0]?.sensitive).toBe(true);
   });
 
-  it('the writer checks plainness again, so an item that skipped the guard is still sensitive', () => {
+  it('the writer marks it sensitive itself, so an item that skipped the guard is still sensitive', () => {
     const [doc] = judgedCommitmentDocs([judged(VENMO)], ctx);
     expect(doc?.sensitive).toBe(true);
   });
 
-  it('an ordinary plan: stored as said, not sensitive', () => {
+  it('an ordinary plan: stored as said, and sensitive too (call-only since #2128)', () => {
     const [doc] = store([judged(RENT)], ["I'll pay rent Friday"]);
-    expect(doc).toMatchObject({ statement: RENT });
-    expect(doc?.sensitive).toBeUndefined();
+    expect(doc).toMatchObject({ statement: RENT, sensitive: true });
   });
 });
 
@@ -126,34 +126,41 @@ describe('who may raise it', () => {
       ...store([judged(RENT)], ["I'll pay rent Friday"]),
     ];
     h.rows = docs.map((data, i) => ({ id: `c${i}`, data }));
-    expect(h.rows.filter((r) => r.data.sensitive === true)).toHaveLength(2);
+    // All three, the ordinary plan included: nothing is safe to send since #2128.
+    expect(h.rows.filter((r) => r.data.sensitive === true)).toHaveLength(3);
   });
 
-  it('the morning brief names only the ordinary plan', async () => {
-    expect((await readDay('u1', {}, 'America/New_York', new Date(LATER))).commitments).toEqual([RENT]); // prettier-ignore
+  // The four readers outside a call get nothing until the readers PR.
+  it('the morning brief names none of them, not even the ordinary plan', async () => {
+    expect((await readDay('u1', {}, 'America/New_York', new Date(LATER))).commitments).toEqual([]); // prettier-ignore
   });
 
-  it('the between-call push sends only the ordinary plan', async () => {
+  it('the between-call push sends none of them', async () => {
     const sent: string[] = [];
     await sendCommitmentPushes({ send: async (_u, msg) => Boolean(sent.push(msg)) }, LATER);
-    expect(sent).toHaveLength(1);
-    expect(sent[0]).toContain(RENT);
+    expect(sent).toEqual([]);
   });
 
-  it('the proactive trigger offers only the ordinary plan', async () => {
-    const texts = (await commitmentTriggers('u1', new Date(LATER))).map((t) => t.text);
-    expect(texts).toHaveLength(1);
-    expect(texts[0]).toContain(RENT);
+  it('the proactive trigger offers none of them', async () => {
+    expect(await commitmentTriggers('u1', new Date(LATER))).toEqual([]);
   });
 
-  it('the follow-through importer takes only the ordinary plan', async () => {
+  it('the follow-through importer takes none of them', async () => {
     const items = await createFollowUpSources(db as never).itemsFor('u1', new Date(LATER));
-    expect(items.filter((i) => i.kind === 'commitment').map((i) => i.text)).toEqual([RENT]);
+    expect(items.filter((i) => i.kind === 'commitment')).toEqual([]);
   });
 
-  it('the call check-in, with the caller there, may raise a sensitive one', async () => {
+  it('the call check-in, with the caller there, raises them (two a call), all sensitive', async () => {
     const store = { active: async () => h.rows, markFollowedUp: async () => undefined };
     const open = await loadCallCheckIns('u1', store, LATER, undefined, async () => []);
-    expect(open.some((c) => c.sensitive === true)).toBe(true);
+    expect(open).toHaveLength(2);
+    expect(open.every((c) => c.sensitive === true)).toBe(true);
+  });
+
+  it('the call check-in raises the ordinary plan: the call path still reaches it', async () => {
+    const rent = h.rows.filter((r) => r.data.statement === RENT);
+    const store = { active: async () => rent, markFollowedUp: async () => undefined };
+    const open = await loadCallCheckIns('u1', store, LATER, undefined, async () => []);
+    expect(open.map((c) => [c.statement, c.sensitive])).toEqual([[RENT, true]]);
   });
 });
