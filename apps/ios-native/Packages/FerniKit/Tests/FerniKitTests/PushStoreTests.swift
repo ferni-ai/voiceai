@@ -158,7 +158,7 @@ final class PushStoreTests: XCTestCase {
         XCTAssertTrue(unbound)
         XCTAssertEqual(server.calls, ["POST as a", "DELETE as a"])
         XCTAssertNil(vault.stored.owner)
-        XCTAssertNil(vault.stored.unsure)
+        XCTAssertTrue(vault.stored.maybeOwners.isEmpty)
     }
 
     /// Finding 1: the account changes while the POST is in flight. The answer
@@ -178,7 +178,7 @@ final class PushStoreTests: XCTestCase {
         XCTAssertNotEqual(vault.stored.owner, "a")
         XCTAssertEqual(Array(server.calls.suffix(2)), ["POST as b", "DELETE as b"])
         XCTAssertNil(vault.stored.owner)
-        XCTAssertNil(vault.stored.unsure)
+        XCTAssertTrue(vault.stored.maybeOwners.isEmpty)
     }
 
     /// Finding 2: nobody is signed in, so nothing can be sent; the binding
@@ -205,11 +205,11 @@ final class PushStoreTests: XCTestCase {
         await push.received(deviceToken: token, uid: "a")
         server.postAnswer = .timeout
         await push.optIn(uid: "a")
-        XCTAssertEqual(vault.stored.unsure, "a", "recorded before the POST was sent")
+        XCTAssertEqual(vault.stored.maybeOwners, ["a"], "recorded before the POST was sent")
         let unbound = await push.unbindBeforeSignOut(uid: "a")
         XCTAssertTrue(unbound)
         XCTAssertEqual(server.calls.last, "DELETE as a")
-        XCTAssertNil(vault.stored.unsure)
+        XCTAssertTrue(vault.stored.maybeOwners.isEmpty)
     }
 
     /// Finding 3: an explicit rejection means the server changed nothing.
@@ -219,7 +219,7 @@ final class PushStoreTests: XCTestCase {
         await push.received(deviceToken: token, uid: "a")
         server.postAnswer = .status(400)
         await push.optIn(uid: "a")
-        XCTAssertNil(vault.stored.unsure)
+        XCTAssertTrue(vault.stored.maybeOwners.isEmpty)
         XCTAssertNil(vault.stored.owner)
         let unbound = await push.unbindBeforeSignOut(uid: "a")
         XCTAssertTrue(unbound)
@@ -230,11 +230,11 @@ final class PushStoreTests: XCTestCase {
     /// a reason to do nothing.
     func testAnUnknownOwnerIsResolvedEvenForSomeoneWhoSaidNo() async {
         let server = Server(), vault = Vault()
-        vault.stored = PushBinding(token: "0aff", unsure: "a")
+        vault.stored = PushBinding(token: "0aff", maybeOwners: ["a"])
         server.signedIn = "b"
         await store(server, vault).reconcile(uid: "b")
         XCTAssertEqual(server.calls, ["POST as b", "DELETE as b"])
-        XCTAssertNil(vault.stored.unsure)
+        XCTAssertTrue(vault.stored.maybeOwners.isEmpty)
     }
 
     /// The server's recipient tag (after #1991) is kept for the notification
@@ -249,5 +249,77 @@ final class PushStoreTests: XCTestCase {
         let unbound = await push.unbindBeforeSignOut(uid: "a")
         XCTAssertTrue(unbound)
         XCTAssertNil(vault.stored.recipientTag)
+    }
+
+    // MARK: - Security review of 98a129d6e
+
+    /// A rejected registration for B must not erase A, whose unbind is still
+    /// pending: the set comes back exactly as it was.
+    func testARejectedRegistrationKeepsAnEarlierMaybeOwner() async {
+        let server = Server(), vault = Vault()
+        vault.stored = PushBinding(token: "0aff", maybeOwners: ["a"], optedIn: ["b"])
+        server.signedIn = "b"
+        server.postAnswer = .status(400)
+        await store(server, vault).reconcile(uid: "b")
+        XCTAssertEqual(server.calls, ["POST as b"])
+        XCTAssertEqual(vault.stored.maybeOwners, ["a"])
+    }
+
+    /// 408, 409 and 429 don't say the server changed nothing: keep the
+    /// maybe-owner, and sign-out still sends the DELETE.
+    func testAmbiguousRefusalsKeepTheMaybeOwner() async {
+        for code in [408, 409, 429] {
+            let server = Server(), vault = Vault()
+            let push = store(server, vault)
+            await push.received(deviceToken: token, uid: "a")
+            server.postAnswer = .status(code)
+            await push.optIn(uid: "a")
+            XCTAssertEqual(vault.stored.maybeOwners, ["a"], "\(code)")
+            let unbound = await push.unbindBeforeSignOut(uid: "a")
+            XCTAssertTrue(unbound)
+            XCTAssertEqual(server.calls.last, "DELETE as a", "\(code)")
+        }
+    }
+
+    /// Only definitive refusals mean nothing changed.
+    func testDefinitiveRefusalsMeanNothingChanged() async {
+        for code in [400, 403, 404, 422] {
+            let server = Server(), vault = Vault()
+            let push = store(server, vault)
+            await push.received(deviceToken: token, uid: "a")
+            server.postAnswer = .status(code)
+            await push.optIn(uid: "a")
+            XCTAssertTrue(vault.stored.maybeOwners.isEmpty, "\(code)")
+        }
+    }
+
+    /// No session to send with (the token fetch failed): nothing is sent and
+    /// the earlier state is kept, never cleared.
+    func testNoSessionKeepsThePriorState() async {
+        let server = Server(), vault = Vault()
+        vault.stored = PushBinding(token: "0aff", owner: "x", maybeOwners: ["y"])
+        let push = PushStore(
+            api: FerniAPI(baseURL: URL(string: "https://app.example.test")!, idToken: { _ in nil }) { _ in
+                server.calls.append("sent")
+                return (Data(), HTTPURLResponse())
+            },
+            vault: vault, bundleID: "com.sethdford.ferni", environment: "sandbox", appVersion: "1.0.0 (7)",
+            currentUID: { "a" }
+        )
+        await push.reconcile(uid: "a")
+        XCTAssertTrue(server.calls.isEmpty)
+        XCTAssertEqual(vault.stored.owner, "x")
+        XCTAssertTrue(vault.stored.maybeOwners.isSuperset(of: ["y"]))
+    }
+
+    /// Someone is dropped from the set only by a confirmed answer: a
+    /// registration for someone else (the token moved) or their own DELETE.
+    func testAConfirmedRegistrationClearsEveryEarlierMaybeOwner() async {
+        let server = Server(), vault = Vault()
+        vault.stored = PushBinding(token: "0aff", maybeOwners: ["a", "b"], optedIn: ["c"])
+        server.signedIn = "c"
+        await store(server, vault).reconcile(uid: "c")
+        XCTAssertEqual(vault.stored.owner, "c")
+        XCTAssertTrue(vault.stored.maybeOwners.isEmpty)
     }
 }
