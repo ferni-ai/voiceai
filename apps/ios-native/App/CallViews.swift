@@ -9,6 +9,8 @@ struct CallAvatar: View {
     let call: CallSession
     /// A sheet or cover hides Ferni, so the avatar stops drawing.
     var covered = false
+    /// Bumped when the person comes back after a long time away: Ferni wakes.
+    var wake = 0
     /// What the body asks for (a touch's haptic).
     var onCue: ((KeyedCue) -> Void)?
 
@@ -21,6 +23,7 @@ struct CallAvatar: View {
             activity: Self.activity(avatar.pose),
             name: PersonaRegistry.get(avatar.personaID).name,
             covered: covered,
+            wake: wake,
             level: { [level = call.agentLevel] in level.level },
             onCue: onCue
         )
