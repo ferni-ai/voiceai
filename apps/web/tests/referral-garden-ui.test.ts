@@ -78,7 +78,7 @@ describe('share panel', () => {
     expect(modal?.querySelector('.referral-link-url')?.textContent).toBe(
       'app.ferni.ai/grow/k3j9x2-meadow'
     );
-    expect(modal?.querySelector('.referral-garden-stats')?.textContent).toMatch(/4/);
+    expect(modal?.querySelector('.referral-joined')?.textContent).toMatch(/4/);
   });
 
   it('says so, and opens nothing, when the link cannot be loaded', async () => {
