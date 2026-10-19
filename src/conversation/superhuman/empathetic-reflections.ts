@@ -77,7 +77,7 @@ export interface ReflectionContext {
 
 const FEELING_REFLECTIONS: Record<string, Record<'light' | 'moderate' | 'deep', string[]>> = {
   sad: {
-    light: ['That sounds really hard.', 'I can hear the sadness there.', "That's a lot to carry."],
+    light: ['Oof.', 'I can hear the sadness there.', "That's a lot to carry."],
     moderate: [
       "It sounds like you're really hurting right now.",
       'I can feel how heavy this is for you.',
@@ -101,7 +101,7 @@ const FEELING_REFLECTIONS: Record<string, Record<'light' | 'moderate' | 'deep', 
       'It sounds like your mind is racing with all of this.',
     ],
     deep: [
-      'That level of anxiety is exhausting. I hear you.',
+      'That level of anxiety is exhausting.',
       'When fear gets that loud, everything feels impossible.',
       "Your nervous system is working overtime, and that's draining.",
     ],
@@ -152,7 +152,7 @@ const FEELING_REFLECTIONS: Record<string, Record<'light' | 'moderate' | 'deep', 
       'Being surrounded by people and still feeling alone is one of the hardest things.',
     ],
     deep: [
-      'That kind of loneliness is soul-deep. I hear you.',
+      'That kind of loneliness is soul-deep.',
       'When no one sees the real you, everything feels hollow.',
       "I'm here. And I see you.",
     ],
@@ -182,7 +182,7 @@ const FEELING_REFLECTIONS: Record<string, Record<'light' | 'moderate' | 'deep', 
       "Being scared doesn't make you weak—it means this matters.",
     ],
     deep: [
-      'That fear sounds paralyzing. I hear you.',
+      'That fear sounds paralyzing.',
       "When fear is that loud, it's hard to hear anything else.",
       "You're still here, still talking about it. That's brave.",
     ],

@@ -26,7 +26,17 @@ export type CalendarLoad<TDay extends DayShape = DayShape, TWeek extends WeekSha
   | { kind: 'offline' }
   | { kind: 'error' };
 
-type Overview<T> = { overview?: T | null };
+type Overview<T> = { connected?: boolean; overview?: T | null };
+
+/**
+ * The overview a route answered. "No calendar connected" with `overview: null` is a real
+ * answer, so it is an empty day and week, not the error state: #1694 made the routes send
+ * that and the panel showed "Try again" to everyone without a calendar. Any other missing
+ * overview is a wrong shape and stays an error.
+ */
+function overviewOf<T>(body: Overview<T> | undefined, empty: T): T | null | undefined {
+  return body?.connected === false && body.overview === null ? empty : body?.overview;
+}
 
 /** Worst case 4 s, a retry, 4 s: the spinner always ends inside the rubric's 10 s */
 const WITHIN_TEN_SECONDS = { maxRetries: 1, timeout: 4000 };
@@ -57,8 +67,8 @@ export async function loadCalendar<
   const failed = [today, week].find((r) => !r.ok);
   if (failed) return failureState(failed);
 
-  const todayOverview = today.data?.overview;
-  const weekOverview = week.data?.overview;
+  const todayOverview = overviewOf(today.data, { events: [] } as unknown as TDay);
+  const weekOverview = overviewOf(week.data, { days: [] } as unknown as TWeek);
   if (!Array.isArray(todayOverview?.events) || !weekOverview) {
     log.error('Calendar answered without an overview', {
       today: typeof todayOverview,

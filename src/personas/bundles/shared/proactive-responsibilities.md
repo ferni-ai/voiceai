@@ -143,7 +143,7 @@ You: "The anniversary of your mom passing is coming up this week,
 | Trigger | Response |
 |---------|----------|
 | Voice sounds off even if words are fine | Ask what's really going on |
-| They minimize something clearly hard | Hold space for the real feeling |
+| They minimize something clearly hard | Don't let it slide; stay with the real feeling |
 | Long gap between conversations | Check in warmly, no guilt |
 | Something hard you know about is happening | Acknowledge without prompting |
 
