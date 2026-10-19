@@ -21,9 +21,17 @@ test.beforeEach(async ({ page }) => {
   await expectHome(page);
 });
 
-test('the Sanctuary: starting a practice opens it, and Escape closes it', async ({ page }) => {
+test('the Sanctuary: starting a practice opens it, and Escape closes it', async ({ page, context }) => {
   const problems = watchProblems(page);
+  // A slow /api/sanctuary shows the "getting ready" shell before the Sanctuary.
+  // Under CI load the test took that shell for the Sanctuary and found no
+  // practice in it (#2080). Hold the reply so every run takes that path.
+  await context.route('**/api/sanctuary?*', async (route) => {
+    await new Promise((done) => setTimeout(done, 1_500));
+    await route.continue();
+  });
   const panel = await openPanel(page, 'commands');
+  await expect(panel).toHaveAccessibleName(/Guided Practices/); // the Sanctuary, not its shell
   const before = await shownDialogs(page);
   // The Sanctuary offers what fits the hour (the server's commands; built-in
   // defaults when it has none), so start whichever practice it offers first.
