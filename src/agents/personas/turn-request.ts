@@ -31,6 +31,7 @@ import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { teammateIdentityNote } from './teammate-identity.js';
 import { personaVoiceNote } from './persona-voice.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
+import { chiefOfStaffNote, lastAgentWordsIn } from '../../tools/handoff/chief-of-staff-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
 import { retrievedTools, withSameTurnTools } from './turn-request-tools.js';
@@ -51,6 +52,7 @@ import {
 } from '../../intelligence/world-model/temporal/in-call-load.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { quirkTurnNote } from './quirk-note.js';
+import { tuneTurnNote } from './named-tune-note.js';
 import { honestFriendNote } from './honest-friend.js';
 import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
@@ -59,6 +61,7 @@ import { journalAskFor } from './journal-ask.js';
 import { callerTurnsOf, goodbyeNoteOn, happyExitNote, questionPaceNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
 import { withPlayful } from './ferni-playful-turn.js';
+import { goodNewsNote } from './good-news-bigger.js';
 import { supportHeld } from './turn-candor.js';
 import { withCallTrouble, withSupportHold } from './turn-holds.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
@@ -154,9 +157,11 @@ export function withTurnReminder(
     options.closeLoop === false ? '' : closeLoopNote(session, words),
     thought,
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
-    gameTurnNote(session),
+    gameTurnNote(session, process.env, words),
     // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
     quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
+    // NAMED_TUNE=on: they noticed the whistle (name it?), or asked him to stop (named-tune-note.ts).
+    tuneTurnNote(session, words, options.shape === false, sessionIsVerifiedOwner),
     state.note,
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     porchLightNote(chatCtx, session, { careful: options.shape === false }),
@@ -176,6 +181,8 @@ export function withTurnReminder(
     }),
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
+    // ALEX_CHIEF_OF_STAFF=on: todos, goals, calendar and agenda go to Alex (chief-of-staff-note.ts)
+    chiefOfStaffNote(view.currentAgentId ?? 'ferni', words, lastAgentWordsIn(chatCtx.items)),
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
     // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
@@ -191,6 +198,8 @@ export function withTurnReminder(
     attunementNote(chatCtx, session, { careful: options.shape === false }),
     // COMMITMENT_INVITE=on: one small step, once a call; after the self-share, so it wins.
     inviteFor(chatCtx, session, words, options.shape === false),
+    // GOOD_NEWS_BIGGER=on: react, name it, one question about the moment; after the pace note.
+    goodNewsNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
