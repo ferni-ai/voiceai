@@ -17,6 +17,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { isThirdPartyCallUser } from '../../third-party-call.js';
 import {
   extractEntities,
   extractFacts,
@@ -205,8 +206,6 @@ export function isEntityStorePersistenceReady(): boolean {
  */
 export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResult> {
   const startTime = Date.now();
-
-  // Default result
   const result: CaptureResult = {
     entities: { created: 0, updated: 0, resolved: [] },
     facts: { count: 0, entityIds: [] },
@@ -214,7 +213,8 @@ export async function captureTurn(input: TurnCaptureInput): Promise<CaptureResul
     metrics: { totalTimeMs: 0, extractionTimeMs: 0, storageTimeMs: 0 },
   };
 
-  if (!captureEnabled) {
+  // Off, or the person on an on-behalf call (not our user): nothing is extracted.
+  if (!captureEnabled || isThirdPartyCallUser(input.userId)) {
     log.debug({ userId: input.userId }, '🧠 [MEMORY-AUDIT] Capture disabled, skipping');
     return result;
   }

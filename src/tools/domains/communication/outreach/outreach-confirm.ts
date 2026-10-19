@@ -6,7 +6,10 @@
  * - The first call sends nothing. It fixes the words, channel, contact and
  *   address (outreach-confirm-specs.ts, telephony/call-confirm.ts), stores
  *   them for this session and user for 5 minutes, and returns the read-back.
- * - The next call sends that stored action once, only if the caller's
+ * - The next call for the same action sends that stored action once (a tool
+ *   whose spec has `sameAction` may be another tool doing the same thing,
+ *   e.g. callAndConverse after callOnBehalf's read-back of the same number),
+ *   only if the caller's
  *   speech-to-text turns after the preview, read together, are a plain yes
  *   with no other tool output in between ("Yeah, go ahead." then "Go ahead and
  *   give her a call." is one answer split in two). Tool output and model text
@@ -64,6 +67,8 @@ type ConfirmEvent = SessionEvent & { seq: number };
 interface PendingAction {
   toolId: string;
   userId: string;
+  spec: ConfirmSpec;
+  readBack: string;
   args: Record<string, unknown>;
   callId: string;
   createdSeq: number;
@@ -129,6 +134,16 @@ const FILLERS = [
   ),
 ];
 const NOES = 'no nope nah not dont never wait stop cancel'.split(' ');
+// Never taken for a name the caller calls Ferni by: a word that could change what is sent
+// (who, when, how, how many), a question word or a no. "Yes, Tuesday." is not a plain yes.
+const NOT_A_NAME = new Set([
+  ...NOES,
+  ...`call ring dial phone text email message send tell ask voicemail facetime who what when where
+    why how which instead also too again both all everyone first later now noon today tonight
+    tomorrow morning afternoon evening monday tuesday wednesday thursday friday saturday sunday
+    mom mum mother dad father sister brother wife husband son daughter grandma grandpa aunt
+    uncle cousin friend boss doctor her him them me us it that this there here`.split(/\s+/),
+]);
 
 const words = (text: string): string[] =>
   text
@@ -136,11 +151,34 @@ const words = (text: string): string[] =>
     .replace(/['’]/g, '')
     .match(/[a-z]+/g) ?? [];
 
-/** A reply made only of yes phrases (and please/thanks); never with a "?" or "Sure, to Bob". */
-export function isClearYes(text: string): boolean {
-  let w = words(text);
+/**
+ * A reply made only of yes phrases (and please/thanks); never with a "?" or "Sure, to Bob".
+ * It may also address Ferni by one name, misheard or not, set off by a comma at its start or
+ * end ("Uh, go ahead, Fred.", "Okay Sam, go ahead"); never a word in NOT_A_NAME or in `target`
+ * (the person the action reaches: "Yes, Dad." may mean someone else).
+ */
+export function isClearYes(text: string, target: readonly string[] = []): boolean {
   // A question word is never a yes phrase, so "which one, yes" already fails below.
-  if (text.includes('?') || w.length === 0) return false;
+  if (text.includes('?')) return false;
+  if (onlyYes(words(text))) return true;
+  const parts = text.split(',');
+  if (parts.length < 2) return false;
+  const head = parts[0].trim().split(/\s+/);
+  const tail = parts[parts.length - 1].trim().replace(/[.!…]+$/, '');
+  const options: Array<[string, string]> = [
+    [head[head.length - 1], [...head.slice(0, -1), ...parts.slice(1)].join(' ')],
+  ];
+  if (!/\s/.test(tail)) options.push([tail, parts.slice(0, -1).join(' ')]);
+  const isName = (w: string): boolean =>
+    /^[A-Z][a-z]+$/.test(w) &&
+    !NOT_A_NAME.has(w.toLowerCase()) &&
+    !target.includes(w.toLowerCase());
+  return options.some(([name, rest]) => isName(name) && onlyYes(words(rest)));
+}
+
+function onlyYes(said: string[]): boolean {
+  let w = said;
+  if (w.length === 0) return false;
   let sawYes = false;
   while (w.length > 0) {
     const rest = w;
@@ -190,7 +228,36 @@ export function confirmationState(
   }
   if (answer.length === 0) return 'waiting';
   // Every part must be a yes phrase or a filler: "Yes." then "Call Bob instead." is not a yes.
-  return isClearYes(answer.join(' ')) ? 'confirmed' : 'void';
+  const target = ['contactQuery', 'contactName', 'friendName', 'recipientName'].flatMap((k) =>
+    typeof pending.args[k] === 'string' ? words(pending.args[k]) : []
+  );
+  return isClearYes(answer.join(' '), target) ? 'confirmed' : 'void';
+}
+
+/**
+ * The turn note after the caller's yes to a read-back: the action goes only when the model calls
+ * the tool, so it must call it now. Owner call 2026-10-18: a fourth yes got "I'm on it" and no call.
+ */
+export function confirmedActionNote(session: object): string {
+  const entry = sessions.get(session);
+  const pending = entry?.pending;
+  if (!pending || speakerIsNotOwner(session)) return '';
+  if (confirmationState(pending, entry.events, Date.now()) !== 'confirmed') return '';
+  return (
+    `The caller just said yes to ${pending.readBack}. Call ${pending.toolId} now with the same ` +
+    `details. Don't ask again, and don't say it's done before the tool says so.`
+  );
+}
+
+/** Whether this call carries on the stored action: the same tool, or `sameAction` says so. */
+function continues(
+  pending: PendingAction,
+  toolId: string,
+  spec: ConfirmSpec,
+  args: Record<string, unknown>
+): boolean {
+  if (!spec.sameAction) return pending.toolId === toolId;
+  return pending.spec === spec && spec.sameAction(pending.args, args);
 }
 
 /**
@@ -228,6 +295,12 @@ export interface ConfirmSpec {
     userId: string,
     plan: (args: Record<string, unknown>) => Promise<unknown>
   ) => Promise<{ args: Record<string, unknown>; readBack: string } | string>;
+  /**
+   * Whether a call (to any tool with this spec) is the action read back, `stored` being the
+   * prepared args. Omitted: only the same tool is. The stored args are what run, so tools sharing
+   * a spec with `sameAction` must take the same args (callOnBehalf, callAndConverse).
+   */
+  sameAction?: (stored: Record<string, unknown>, next: Record<string, unknown>) => boolean;
 }
 
 /** Wrap an outbound tool so it acts only on a caller's yes (see the module comment). */
@@ -260,12 +333,16 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         }
         const { pending } = entry;
         if (
-          pending?.toolId === def.id &&
+          pending &&
+          continues(pending, def.id, spec, args) &&
           pending.userId === ctx.userId &&
           confirmationState(pending, entry.events, Date.now()) === 'confirmed'
         ) {
           entry.pending = undefined; // taken before sending, so a second call can't repeat it
-          log.info({ toolId: def.id }, 'OUTREACH_CONFIRM: caller said yes, sending');
+          log.info(
+            { toolId: def.id, previewedBy: pending.toolId },
+            'OUTREACH_CONFIRM: caller said yes, sending'
+          );
           return sentConfirmThread(pending, execute(pending.args, opts));
         }
         if (entry.pending) dropConfirmThread(entry.pending); // replaced or discarded, never sent
@@ -277,6 +354,8 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
         entry.pending = {
           toolId: def.id,
           userId: ctx.userId,
+          spec,
+          readBack: prepared.readBack,
           args: prepared.args,
           callId,
           createdSeq: entry.seq,

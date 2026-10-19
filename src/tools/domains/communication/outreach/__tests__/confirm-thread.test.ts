@@ -113,6 +113,7 @@ describe('THREADS_PENDING_CONFIRM: no promise without a thread', () => {
   });
   afterEach(() => {
     setConfirmThreadPort(undefined);
+    vi.useRealTimers();
     vi.unstubAllEnvs();
     vi.clearAllMocks();
     saved.clear();
@@ -120,6 +121,9 @@ describe('THREADS_PENDING_CONFIRM: no promise without a thread', () => {
   });
 
   it('a read-back is kept for the owner as waiting on you, with the contact id and no number', async () => {
+    // A fixed clock, so no timestamp (like 14:28:30.555Z) can contain '555'.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-18T14:00:00.000Z'));
     const call = liveCall();
     expect(await call.call('c1')).toContain('NOT SENT YET');
     await vi.waitFor(() => expect(threads()).toHaveLength(1));
