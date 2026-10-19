@@ -201,7 +201,6 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // POST /api/outreach/resume
     if (route === '/resume' && method === 'POST') {
       // Use authenticated userId
       const userId = authenticatedUserId;
@@ -219,7 +218,6 @@ export async function handleOutreachRoutes(
     // TRIGGERS
     // ========================================================================
 
-    // POST /api/outreach/trigger
     if (route === '/trigger' && method === 'POST') {
       const body = await parseRequestBody(req);
       const {
@@ -274,7 +272,6 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // POST /api/outreach/thinking-of-you
     if (route === '/thinking-of-you' && method === 'POST') {
       const body = await parseRequestBody(req);
       const { trigger, reason } = body as {
@@ -297,7 +294,6 @@ export async function handleOutreachRoutes(
     // PENDING & HISTORY
     // ========================================================================
 
-    // GET /api/outreach/pending
     if (route === '/pending' && method === 'GET') {
       // Use authenticated userId
       const userId = authenticatedUserId;
@@ -392,7 +388,6 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // DELETE /api/outreach/pending/:triggerId
     if (route.startsWith('/pending/') && method === 'DELETE') {
       const triggerId = route.replace('/pending/', '');
 
@@ -405,7 +400,6 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // POST /api/outreach/reschedule
     if (route === '/reschedule' && method === 'POST') {
       const body = await parseRequestBody(req);
       const { triggerId, newTime } = body as { triggerId: string; newTime: string };
