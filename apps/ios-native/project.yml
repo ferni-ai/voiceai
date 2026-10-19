@@ -54,7 +54,10 @@ targets:
       - package: FerniKit
       - package: FerniVoice
       - package: FerniDesign
+      # The dynamic product: the same SDK and module, but its xcframework ships
+      # dSYMs, so the archive carries them (the static one ships none).
       - package: Sentry
+        product: Sentry-Dynamic
       - package: FerniLink
       - target: FerniWatch
       - target: FerniLive

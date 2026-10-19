@@ -48,7 +48,7 @@
 		80B3324091516CE8022F9CFD /* TalkOnPhoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA352150CE2DBF9E6254A20 /* TalkOnPhoneIntent.swift */; };
 		848DC4E9F3BACD5DBACFB471 /* goodbye.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = BE53A65C5F71E02C0E7B4239 /* goodbye.mp3 */; };
 		89C6C497D887627D3AFD147D /* handoff-to-alex.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */; };
-		8D43BE71BA55A181C28E990A /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 33A1DEA5AF10BC35BE304AFA /* Sentry */; };
+		8D43BE71BA55A181C28E990A /* Sentry-Dynamic in Frameworks */ = {isa = PBXBuildFile; productRef = B0FFE05E246C1F74D336D1D5 /* Sentry-Dynamic */; };
 		8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */; };
 		9B5B3E0DC766449E9764FA0D /* handoff-to-jordan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 649C35992ED39D62D2F8714A /* handoff-to-jordan.mp3 */; };
 		9D3C3C27AA79ECED1768D30E /* EndCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */; };
@@ -257,7 +257,7 @@
 				3D35744BE349C5C980D7C2A6 /* FerniKit in Frameworks */,
 				04679B6431BF53D7077D2AB0 /* FerniVoice in Frameworks */,
 				F8659A8DCBD2D3621DA596A3 /* FerniDesign in Frameworks */,
-				8D43BE71BA55A181C28E990A /* Sentry in Frameworks */,
+				8D43BE71BA55A181C28E990A /* Sentry-Dynamic in Frameworks */,
 				225590E855D547E5CCB89A22 /* FerniLink in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -545,7 +545,7 @@
 				ED4AC2AA3060D84427234E43 /* FerniKit */,
 				76CF00479EBF92F01F2F2463 /* FerniVoice */,
 				3A2B0DD01002A1C6F9C20247 /* FerniDesign */,
-				33A1DEA5AF10BC35BE304AFA /* Sentry */,
+				B0FFE05E246C1F74D336D1D5 /* Sentry-Dynamic */,
 				F667C1DECD86E1F2360CB8C1 /* FerniLink */,
 			);
 			productName = Ferni;
@@ -1255,11 +1255,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = FerniDesign;
 		};
-		33A1DEA5AF10BC35BE304AFA /* Sentry */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = F43E7EC1FF1B319573A0C910 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
-			productName = Sentry;
-		};
 		3A2B0DD01002A1C6F9C20247 /* FerniDesign */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FerniDesign;
@@ -1271,6 +1266,11 @@
 		9532464E6AF9B9AA9D7F09DD /* FerniLink */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FerniLink;
+		};
+		B0FFE05E246C1F74D336D1D5 /* Sentry-Dynamic */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F43E7EC1FF1B319573A0C910 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
+			productName = "Sentry-Dynamic";
 		};
 		ED4AC2AA3060D84427234E43 /* FerniKit */ = {
 			isa = XCSwiftPackageProductDependency;

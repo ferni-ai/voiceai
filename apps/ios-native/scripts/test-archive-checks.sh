@@ -35,8 +35,13 @@ app "$work/mixed.app" 2026101914.7 2026101913.2
 expect "a widget with another build fails" 1 ./check-archive.sh "$work/mixed.app"
 mkdir -p "$work/static.xcarchive/Products/Applications"; app "$work/static.xcarchive/Products/Applications/Ferni.app" 6
 expect "an archive with the static build fails" 1 ./check-archive.sh "$work/static.xcarchive"
-mkdir -p "$work/stamped.xcarchive/Products/Applications"; app "$work/stamped.xcarchive/Products/Applications/Ferni.app" 2026101914.7
+mkdir -p "$work/stamped.xcarchive/Products/Applications" "$work/stamped.xcarchive/dSYMs/Sentry.framework.dSYM"
+app "$work/stamped.xcarchive/Products/Applications/Ferni.app" 2026101914.7
 expect "a stamped archive passes" 0 ./check-archive.sh "$work/stamped.xcarchive"
+bundle "$work/stamped.xcarchive/Products/Applications/Ferni.app/Frameworks/LiveKitWebRTC.framework" 137 137
+expect "LiveKitWebRTC without a dSYM passes (it ships none)" 0 ./check-archive.sh "$work/stamped.xcarchive"
+rm -rf "$work/stamped.xcarchive/dSYMs/Sentry.framework.dSYM"
+expect "a framework without its dSYM fails" 1 ./check-archive.sh "$work/stamped.xcarchive"
 app "$work/german.app" 2026101914.7; mkdir -p "$work/german.app/Watch/FerniWatch.app/de.lproj"
 expect "a stray language fails" 1 ./check-archive.sh "$work/german.app"
 exit $fail
