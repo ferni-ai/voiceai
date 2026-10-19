@@ -70,6 +70,17 @@ async function releasePush(): Promise<void> {
   }
 }
 
+/**
+ * Ask for permission and subscribe this browser for the signed-in account.
+ * True when the server has the subscription. Says nothing on failure: the
+ * caller decides what to tell the person.
+ */
+export async function subscribePush(): Promise<boolean> {
+  const subscription = await getPushNotificationsService().subscribe();
+  if (subscription) writeOwner(getFirebaseUid());
+  return subscription !== null;
+}
+
 export async function applyPushPreference(enabled: boolean): Promise<void> {
   const service = getPushNotificationsService();
   if (!enabled) {
@@ -78,11 +89,7 @@ export async function applyPushPreference(enabled: boolean): Promise<void> {
     return;
   }
 
-  const subscription = await service.subscribe();
-  if (subscription) {
-    writeOwner(getFirebaseUid());
-    return;
-  }
+  if (await subscribePush()) return;
 
   if (service.getPermissionStatus() !== 'granted') {
     toast.error(t('notifications.blockedError'));

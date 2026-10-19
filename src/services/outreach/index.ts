@@ -633,7 +633,7 @@ async function handleOutreachDelivery(decision: OutreachDecision): Promise<void>
         break;
 
       case 'push':
-        if (pushNotifications.isAvailable() && pushNotifications.hasPushEnabled(userId)) {
+        if (pushNotifications.isAvailable()) {
           const results = await sendPushNotification({
             userId,
             outreachId,

@@ -107,8 +107,15 @@ fi
 if [[ $env != phone && -z ${EVAL_DRY_RUN:-} && -z ${EVAL_DISPATCH_SECRET:-} ]]; then
   dsecret=eval-dispatch-secret
   export EVAL_DISPATCH_SECRET=$(gcloud secrets versions access latest --secret=$dsecret --project=johnb-2025 2>/dev/null || true)
-  [[ -n $EVAL_DISPATCH_SECRET ]] ||
+  if [[ -z $EVAL_DISPATCH_SECRET ]]; then
+    # A returning caller unsigned is a stranger: the run would pass or fail on
+    # nothing (#1597, every eval ran as anon: for days). Refuse those.
+    if [[ -n $seed || -n ${4:-${EVAL_UID:-}} ]]; then
+      print -u2 "run.sh: can't read $dsecret, and a returning-caller run (EVAL_SEED or a user id) needs it"
+      exit 2
+    fi
     print -u2 "run.sh: can't read $dsecret, so the call goes unsigned and the agent takes $uid as a stranger"
+  fi
 fi
 json=$out/$scenario-$label.json
 stamp=$(date +%H%M%S)

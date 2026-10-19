@@ -1,14 +1,43 @@
 name: Blog Drafts
 
-# Drafts blog posts with scripts/blog/draft-post.ts and opens one PR per draft.
-# Nothing publishes without a person reviewing and merging that PR.
+# Drafts blog posts with scripts/blog/draft-post.ts and publishes them with no
+# person reviewing them. Each draft becomes a PR:
+# - It passes the brand gate and the live check (check-post.ts --live): the PR
+#   opens ready for review, labelled blog-auto, with auto-merge armed. The merge
+#   queue lands it once CI is green, and the merge to main deploys the site.
+# - It fails either: the PR opens as a draft labelled blog-draft, auto-merge is
+#   not armed, and the job fails. It publishes only if a person fixes and merges it.
+# A draft the drafter rejects itself (brand gate failed twice) is not written and
+# fails the job.
+# This log is public: a rejected draft or a failed gate prints rule codes,
+# counts and source PR numbers only, never the draft or the text a finding
+# quotes (scripts/blog/log-safe.ts). No step here prints the draft file.
+#
+# The brand gate: no forbidden words, em dashes, ellipses, retired-stack names,
+# unlabelled composites, or numbers missing from the sources.
+# The live check (live-check.ts) applies to the PRs the drafter may use as
+# sources and again to every PR the post cites:
+# - Deployed: a PR touching only apps/web, apps/website/ferni-website or
+#   apps/website/developers-portal is live once merged (merges deploy them). Anything else, the voice
+#   agent included, ships by a manual `lk agent deploy` this workflow can't see,
+#   so it counts only once merged for 7 days.
+# - Not behind a flag: a PR is left out if its title or body says it's behind a
+#   flag, off by default or not wired, names a flag the flag manifest has off by
+#   default, or its diff adds an off-by-default flag.
+# whats-new posts go to apps/website/developers-portal, which
+# deploy-developers.yml deploys to developers.ferni.ai on merge.
 #
 # Weekly: one developer post (whats-new) and one consumer post, rotating by ISO
 # week number through building-in-public, mission-essay, how-ferni-works and
 # team-letter. Manual: pick one type, or "weekly" for the same pair.
 #
-# PRs opened with GITHUB_TOKEN don't trigger other workflows, so CI doesn't run
-# on a draft PR by itself: push a commit to it (any edit) or close and reopen it.
+# Token: the PR steps need the BLOG_PR_TOKEN secret, a fine-grained token for
+# ferni-ai/voiceai with Contents and Pull requests read and write (a machine
+# user's PAT, or a GitHub App installation token). GITHUB_TOKEN can't do it:
+# the org doesn't let GitHub Actions create pull requests (403), and a PR it
+# opened wouldn't trigger CI, so the required checks would never report and the
+# merge queue would never take it. Without the secret the job pushes the branch,
+# prints the compare link and fails.
 
 on:
   schedule:
@@ -28,9 +57,11 @@ on:
           - how-ferni-works
           - team-letter
 
+# GITHUB_TOKEN reads merged PRs for the drafter and the live check, and pushes
+# the branch when BLOG_PR_TOKEN is missing. The PR steps use BLOG_PR_TOKEN.
 permissions:
   contents: write
-  pull-requests: write
+  pull-requests: read
 
 concurrency:
   group: blog-drafts
@@ -100,19 +131,26 @@ jobs:
           echo "status=$(jq -r .status "$META")" >> "$GITHUB_OUTPUT"
           echo "path=$(jq -r '.path // empty' "$META")" >> "$GITHUB_OUTPUT"
 
-      - name: Brand gate
+      # Records the verdict instead of failing here: a failed draft still gets a
+      # (draft) PR so a person can fix it, and the PR step fails the job.
+      - name: Brand gate and live check
+        id: gate
         if: steps.draft.outputs.status == 'written'
+        continue-on-error: true
         env:
           DRAFT: ${{ steps.draft.outputs.path }}
-        run: pnpm tsx scripts/blog/check-post.ts "$DRAFT" --meta "$RUNNER_TEMP/draft-meta.json"
+        run: pnpm tsx scripts/blog/check-post.ts "$DRAFT" --meta "$RUNNER_TEMP/draft-meta.json" --live
 
-      # REST only (no GraphQL): create the branch from main, commit the one
-      # file through the contents API, open the PR and label it.
-      - name: Open a draft PR
+      # REST for the branch, the file and the PR; `gh pr merge --auto` (GraphQL)
+      # arms auto-merge. The repo uses a merge queue, so no merge method flag.
+      - name: Open the PR
         if: steps.draft.outputs.status == 'written'
         env:
           DRAFT: ${{ steps.draft.outputs.path }}
           REPO: ${{ github.repository }}
+          PASSED: ${{ steps.gate.outcome == 'success' }}
+          HAS_PR_TOKEN: ${{ secrets.BLOG_PR_TOKEN != '' }}
+          GH_TOKEN: ${{ secrets.BLOG_PR_TOKEN || github.token }}
         run: |
           set -euo pipefail
           META="$RUNNER_TEMP/draft-meta.json"
@@ -123,13 +161,11 @@ jobs:
           if gh api "repos/$REPO/git/ref/heads/$branch" > /dev/null 2>&1; then
             branch="$branch-$GITHUB_RUN_ID"
           fi
-
-          # The draft jobs run in parallel, so another job may create the label
-          # between the check and the create; only fail if it still doesn't exist.
-          gh api "repos/$REPO/labels/blog-draft" > /dev/null 2>&1 ||
-            gh api -X POST "repos/$REPO/labels" -f name=blog-draft -f color=4a6741 \
-              -f description='A drafted blog post waiting for review' > /dev/null 2>&1 ||
-            gh api "repos/$REPO/labels/blog-draft" > /dev/null
+          if [ "$PASSED" = true ]; then
+            label=blog-auto color=2e7d32 about='A drafted blog post that passed the gates and merges itself'
+          else
+            label=blog-draft color=4a6741 about='A drafted blog post that failed a gate; a person must fix it'
+          fi
 
           base=$(gh api "repos/$REPO/git/ref/heads/main" -q .object.sha)
           gh api -X POST "repos/$REPO/git/refs" -f ref="refs/heads/$branch" -f sha="$base" > /dev/null
@@ -138,14 +174,23 @@ jobs:
             -f message="docs(blog): draft $TYPE post for $day" \
             -F content=@"$RUNNER_TEMP/content.b64" > /dev/null
 
+          compare="$GITHUB_SERVER_URL/$REPO/compare/main...$branch?expand=1"
+          if [ "$HAS_PR_TOKEN" != true ]; then
+            echo "::error::Drafted $branch but there is no BLOG_PR_TOKEN secret to open its PR (see the workflow header). Open it by hand: $compare"
+            echo "Drafted \`$file\` on \`$branch\`; open the PR by hand: $compare" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+
           {
             echo "A drafted **$TYPE** post: **$title** (\`$file\`)."
             echo
-            echo "Closes nothing; review and edit before merging."
+            if [ "$PASSED" = true ]; then
+              echo "It passed the brand gate and the live check, so auto-merge is armed and it publishes once CI is green. No one reviews it first. To stop it, disable auto-merge or close this PR."
+            else
+              echo "**It failed the brand gate or the live check**, so this PR is a draft and auto-merge is off. The [run log]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID) has the rule codes only; run \`pnpm tsx scripts/blog/check-post.ts $file --live --details\` locally for the details. Fix the post, mark the PR ready and merge it, or close it."
+            fi
             echo
-            echo "Check every claim against the sources below (they're also in the post's front matter as \`sources\`). The drafter was told to use only these, and the brand gate passed: no forbidden words, em dashes, ellipses, retired-stack names, unlabelled composites or numbers missing from the sources. It can't judge tone or whether a merged change is live, so read it as a person would. Consumer posts have no hero image yet."
-            echo
-            echo "This PR was opened with GITHUB_TOKEN, so CI doesn't run on it by itself. Push an edit (or close and reopen it) to run the checks."
+            echo "The brand gate: no forbidden words, em dashes, ellipses, retired-stack names, unlabelled composites or numbers missing from the sources. The live check: every source and every cited PR is merged, not behind an off-by-default flag, and touches only the web app or website or was merged at least 7 days ago. Consumer posts have no hero image yet."
             echo
             echo "### Sources"
             jq -r '.sources[] | "- " + .' "$META"
@@ -153,18 +198,25 @@ jobs:
             echo "_Drafted by [Blog Drafts]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID)._"
           } > "$RUNNER_TEMP/body.md"
 
-          # Needs "Allow GitHub Actions to create and approve pull requests"
-          # (Settings > Actions > General). Without it the branch is pushed but
-          # the PR can't be opened, so say where the draft is.
-          if ! pr=$(gh api -X POST "repos/$REPO/pulls" -f base=main -f head="$branch" \
-            -f title="docs(blog): draft $TYPE post for $day" -F body=@"$RUNNER_TEMP/body.md" -q .number); then
-            compare="$GITHUB_SERVER_URL/$REPO/compare/main...$branch?expand=1"
-            echo "::error::Drafted $branch but couldn't open the PR. Allow GitHub Actions to create pull requests in the repo settings, or open it by hand: $compare"
-            echo "Drafted \`$file\` on \`$branch\`; open the PR by hand: $compare" >> "$GITHUB_STEP_SUMMARY"
+          # The draft jobs run in parallel, so another job may create the label
+          # between the check and the create; only fail if it still doesn't exist.
+          gh api "repos/$REPO/labels/$label" > /dev/null 2>&1 ||
+            gh api -X POST "repos/$REPO/labels" -f name="$label" -f color="$color" \
+              -f description="$about" > /dev/null 2>&1 ||
+            gh api "repos/$REPO/labels/$label" > /dev/null
+
+          draft=$([ "$PASSED" = true ] && echo false || echo true)
+          pr=$(gh api -X POST "repos/$REPO/pulls" -f base=main -f head="$branch" -F draft="$draft" \
+            -f title="docs(blog): $TYPE post for $day" -F body=@"$RUNNER_TEMP/body.md" -q .number)
+          gh api -X POST "repos/$REPO/issues/$pr/labels" -f "labels[]=$label" > /dev/null
+
+          if [ "$PASSED" != true ]; then
+            echo "::error::The $TYPE draft failed the brand gate or the live check. Opened #$pr as a draft, not armed."
+            echo "Opened #$pr from $branch as a draft: it failed a gate, so it won't publish" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-          gh api -X POST "repos/$REPO/issues/$pr/labels" -f 'labels[]=blog-draft' > /dev/null
-          echo "Opened #$pr from $branch" | tee -a "$GITHUB_STEP_SUMMARY"
+          gh pr merge "$pr" --auto --repo "$REPO"
+          echo "Opened #$pr from $branch with auto-merge armed" | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Nothing to draft
         if: steps.draft.outputs.status == 'nothing-to-draft'
