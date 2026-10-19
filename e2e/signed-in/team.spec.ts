@@ -47,6 +47,7 @@ test('Meet Your Team: no progress before any conversation, and the real requirem
 test('the marketplace shows no progress toward Maya before any conversation', async ({ page }, info) => {
   // Phones hide the team bar and its marketplace button; they reach the marketplace from
   // settings once the whole team is unlocked, and before that it only says "meet your team"
+  test.skip(true, 'Meet More Friends (the marketplace) is hidden: apps/web/src/config/menu-visibility.ts');
   test.skip(info.project.name === 'mobile', 'no marketplace button on phones');
   const before = await shownDialogs(page);
   await page.locator('#marketplaceBtn').click();

@@ -29,6 +29,9 @@ await import('./utils/log-redaction-install.js');
 // Refuse to touch production data from a non-production process (no emulator, no opt-in).
 await import('./config/refuse-production-data.js'); // loads dotenv, then the guard
 
+// BUILD_SHA from the image's .build-sha when the env has none, so Sentry and the boot line carry the commit.
+(await import('./config/build-sha.js')).loadBuildSha();
+
 // Error reporting (Sentry), before the worker loads; a no-op without SENTRY_DSN.
 await import('./instrument.js');
 

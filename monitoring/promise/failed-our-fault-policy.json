@@ -1,0 +1,28 @@
+{
+  "displayName": "Ferni promise failed (our fault)",
+  "documentation": {
+    "mimeType": "text/markdown",
+    "content": "A promise Ferni made failed for a reason that is ours to fix, not the person's: provider-error, store-error, job-not-run, flag-off, not-configured, send-failed. Source: `PROMISE_OUTCOME` lines from src/services/follow-through/promise-outcomes.ts (deferred calls, scheduled outreach, reminders, follow-through texts, on-behalf call results), on the API (Cloud Run JSON logs) and the voice agent (text logs). Open the log entry: `kind` says which executor, `reason` why, and the ids (userId, id, callId, reminderId, followUpId) find the record. Promise-ledger design, alert policy 1."
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "A PROMISE_OUTCOME line is failed with an our-fault reason",
+      "conditionMatchedLog": {
+        "filter": "(resource.type=\"cloud_run_revision\" AND jsonPayload.event=\"PROMISE_OUTCOME\" AND jsonPayload.outcome=\"failed\" AND jsonPayload.reason=(\"provider-error\" OR \"store-error\" OR \"job-not-run\" OR \"flag-off\" OR \"not-configured\" OR \"send-failed\")) OR (logName=\"projects/johnb-2025/logs/cloud-agents\" AND textPayload:\"\\\"event\\\":\\\"PROMISE_OUTCOME\\\"\" AND textPayload:\"\\\"outcome\\\":\\\"failed\\\"\" AND (textPayload:\"\\\"reason\\\":\\\"provider-error\\\"\" OR textPayload:\"\\\"reason\\\":\\\"store-error\\\"\" OR textPayload:\"\\\"reason\\\":\\\"job-not-run\\\"\" OR textPayload:\"\\\"reason\\\":\\\"flag-off\\\"\" OR textPayload:\"\\\"reason\\\":\\\"not-configured\\\"\" OR textPayload:\"\\\"reason\\\":\\\"send-failed\\\"\"))",
+        "labelExtractors": {
+          "kind": "EXTRACT(jsonPayload.kind)",
+          "reason": "EXTRACT(jsonPayload.reason)"
+        }
+      }
+    }
+  ],
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "1800s"
+    },
+    "autoClose": "1800s"
+  },
+  "notificationChannels": ["projects/johnb-2025/notificationChannels/497418305396229287"],
+  "enabled": true
+}
