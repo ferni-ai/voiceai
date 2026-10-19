@@ -27,8 +27,8 @@ import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js'
 import { webPushDeliveryOn } from '../services/outreach/web-push-flag.js';
 import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
 import { sendOutreachHistory } from './outreach-history-route.js';
+import { panelConsentPatch, savePanelPrefs } from './messaging-prefs-route.js';
 import {
-  consentPatchFrom,
   readOutreachConsent,
   settingsFromChannels,
   writeOutreachConsent,
@@ -160,7 +160,7 @@ export async function handleOutreachRoutes(
       const { preferences } = body as {
         preferences: Parameters<typeof updateOutreachPreferences>[1];
       };
-      const patch = consentPatchFrom(preferences);
+      const patch = await panelConsentPatch(authenticatedUserId, preferences);
       // Texts and calls only to a number the user proved is theirs (a texted code).
       const refusal = await phoneChannelRefusal(auth, patch.channels);
       if (refusal) {
@@ -168,7 +168,7 @@ export async function handleOutreachRoutes(
         return true;
       }
       // Use authenticated userId (ignore body.userId to prevent tampering)
-      await writeOutreachConsent(authenticatedUserId, patch);
+      await savePanelPrefs(authenticatedUserId, patch, preferences);
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;
