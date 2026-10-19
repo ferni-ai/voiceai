@@ -162,6 +162,7 @@ struct CallControls: View {
                             circle("mic.fill", muted: call.isMuted, label: call.isMuted ? "Unmute" : "Mute") {
                                 Task { await call.toggleMute() }
                             }
+                            .keyboardShortcut("m", modifiers: .command)
                         }
                     }
                     .disabled(call.phase != .live)
@@ -179,6 +180,7 @@ struct CallControls: View {
                     .glassEffect(.regular.tint(FerniColor.error).interactive(), in: .circle)
                     .glassEffectID("talk", in: glass)
                     .accessibilityLabel(call.phase == .live || call.phase == .reconnecting ? "End call" : "Cancel")
+                    .keyboardShortcut(".", modifiers: .command)
 
                     circle("ellipsis", muted: false, label: "More", action: more)
                         .glassEffectID("right", in: glass)
@@ -192,6 +194,7 @@ struct CallControls: View {
                     .buttonStyle(.plain)
                     .glassEffect(.regular.tint(FerniColor.accent).interactive(), in: .capsule)
                     .glassEffectID("talk", in: glass)
+                    .keyboardShortcut(.return, modifiers: .command)
                 }
             }
         }
