@@ -28,6 +28,8 @@ public struct AvatarView: View {
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     @State private var hot = ProcessInfo.processInfo.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue
     @State private var slot = CGSize.zero
+    @State private var arrivingSince: Date?
+    @State private var arrivedThisCall = false
 
     /// Canvas size and Ferni's place in it, in slot widths.
     static let canvas = CGSize(width: 1.7, height: 1.5)
@@ -108,6 +110,14 @@ public struct AvatarView: View {
                 if activity == .idle { rig.show(next) } else { rig.handOff(to: next) }
             }
             .onChange(of: activity) { previous, next in
+                if next == .arriving, previous == .idle { arrivingSince = .now }
+                let waited = arrivingSince.map { Date.now.timeIntervalSince($0) } ?? 0
+                switch Self.joinPlan(from: previous, to: next, waited: waited, reduceMotion: reduceMotion, arrived: arrivedThisCall) {
+                case .hop: rig.play(.join); arrivedThisCall = true
+                case .settle: [KeyedCue.arrivalChime, .land].forEach { onCue?($0) }; arrivedThisCall = true
+                case .none: if next != .arriving, previous == .arriving { arrivedThisCall = true }
+                }
+                if next == .idle { arrivedThisCall = false; arrivingSince = nil }
                 if next == .idle, previous != .idle, previous != .arriving {
                     if !reduceMotion { rig.play(.goodbye) }
                     rig.dismissGuest()
@@ -154,6 +164,17 @@ public struct AvatarView: View {
     /// What plays when Ferni first appears: he wakes where he is (gap 3).
     /// Under Reduce Motion he's simply there.
     static func launchMoment(reduceMotion: Bool) -> KeyedMoment? { reduceMotion ? nil : .wake }
+
+    /// What Ferni's body does when he joins a call (gap 4): the keyed join
+    /// (`hop`); for a join under ~300 ms only its note and tap (`settle`), so
+    /// a fast join never feels slowed down; nothing under Reduce Motion (the
+    /// director plays the note and tap) or after he already arrived this call.
+    enum JoinPlan: Equatable { case hop, settle, none }
+
+    static func joinPlan(from: AvatarActivity, to: AvatarActivity, waited: Double, reduceMotion: Bool, arrived: Bool) -> JoinPlan {
+        guard from == .arriving, to == .listening || to == .speaking, !arrived, !reduceMotion else { return .none }
+        return waited < 0.3 ? .settle : .hop
+    }
 
     /// Frame interval (nil = the display's rate) and whether the clock is paused.
     static func schedule(speaking: Bool, throttled: Bool, covered: Bool, active: Bool) -> (interval: Double?, paused: Bool) {
