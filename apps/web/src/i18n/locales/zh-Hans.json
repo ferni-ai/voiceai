@@ -777,7 +777,7 @@
     "phoneLabel": "给我发短信或打电话",
     "emailLabel": "给我发送更新",
     "nameLabel": "我该怎么称呼你？",
-    "privacyNote": "我只会将此用于记录。绝无垃圾信息，绝不共享。",
+    "privacyNote": "我只会将此用于记录。绝无垃圾信息，绝不出售。",
     "quietHours": "免打扰时间",
     "dontCall": "不要来电",
     "until": "直到",
@@ -2408,7 +2408,7 @@
     "intro": "连接你的穿戴设备，让 Ferni 更好地了解你的健康状况与精力水平。",
     "loading": "加载中...",
     "privacy": {
-      "note": "你的健康数据将保持私密。我们仅会将汇总的感悟分享到你的教练对话中。"
+      "note": "Ferni 会保存你的健康数据，以便和你一起发现规律。我们绝不出售这些数据，删除账户即会将其清除。"
     },
     "providers": {
       "appleHealth": {
@@ -2951,7 +2951,7 @@
     "orUseEmail": "或使用电子邮件",
     "emailLabel": "电子邮件",
     "passwordLabel": "密码",
-    "privacyNote": "你的数据将始终保持私密。",
+    "privacyNote": "我们绝不出售你的数据。删除账户即会将其清除。",
     "loading": "请稍等片刻...",
     "welcomeBack": "欢迎回来！我都记得呢。",
     "somethingWentWrong": "出了点小问题",
@@ -3432,7 +3432,7 @@
     "weeklyDigest": "每周摘要",
     "weeklyDigestDesc": "周日晚间预览你即将到来的一周",
     "viewSyncConflicts": "查看同步冲突",
-    "integrationsPrivacy": "集成功能会将你现有的日程同步到 Ferni。你的数据将保持私密。",
+    "integrationsPrivacy": "集成功能会将你现有的日程同步到 Ferni。我们绝不出售你的数据。",
     "tryAgain": "重试",
     "syncing": "正在同步……",
     "connectAppleCalendar": "连接 Apple Calendar",
@@ -9892,7 +9892,7 @@
       "title": "个性化体验",
       "message": "你的位置能让我们的对话感觉更亲近、更贴切——就像我真的陪在你身边一样。"
     },
-    "note": "这只是我们之间的小秘密——我只会用它来让我们的对话更贴心。",
+    "note": "我只会用它来让我们的对话更贴心，绝不出售。",
     "notNow": "暂不开启",
     "allow": "允许获取位置"
   },

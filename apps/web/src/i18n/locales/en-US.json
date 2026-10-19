@@ -1349,7 +1349,7 @@
       "activity": "Activity tracking"
     },
     "privacy": {
-      "note": "Your health data stays private. We only share aggregated insights with your coaching sessions."
+      "note": "Ferni saves your health data to spot patterns with you. We never sell it, and deleting your account erases it."
     },
     "providers": {
       "appleHealth": {
@@ -1387,7 +1387,7 @@
     "phoneLabel": "Text or call me",
     "emailLabel": "Send me updates",
     "nameLabel": "What should I call you?",
-    "privacyNote": "I'll only use this for check-ins. Never spam, never shared.",
+    "privacyNote": "I'll only use this for check-ins. Never spam, never sold.",
     "quietHours": "Quiet Hours",
     "dontCall": "Don't call",
     "until": "until",
@@ -3032,7 +3032,7 @@
     "orUseEmail": "or use email",
     "emailLabel": "Email",
     "passwordLabel": "Password",
-    "privacyNote": "Your data stays private. Always.",
+    "privacyNote": "We never sell your data. Deleting your account erases it.",
     "loading": "Just a moment...",
     "welcomeBack": "Welcome back! I remember everything.",
     "somethingWentWrong": "Something went wrong",
@@ -3489,7 +3489,7 @@
     "weeklyDigest": "Weekly digest",
     "weeklyDigestDesc": "Sunday evening preview of your week ahead",
     "viewSyncConflicts": "View Sync Conflicts",
-    "integrationsPrivacy": "Integrations sync your existing events into Ferni. Your data stays private.",
+    "integrationsPrivacy": "Integrations sync your existing events into Ferni. We never sell your data.",
     "tryAgain": "Try Again",
     "syncing": "Syncing...",
     "connectAppleCalendar": "Connect Apple Calendar",
@@ -9951,7 +9951,7 @@
       "title": "Personalization",
       "message": "Your location helps me make our conversations feel more personal and relevant—like I'm actually there with you."
     },
-    "note": "This stays just between us—I only use it to make our conversations more personal.",
+    "note": "I only use this to make our conversations more personal, and I never sell it.",
     "notNow": "Not now",
     "allow": "Allow location"
   },
