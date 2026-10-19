@@ -11,6 +11,7 @@
  *
  * @module services/outreach/in-app-push
  */
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { PushNotificationPayload } from '../push-notifications.js';
 
@@ -79,4 +80,14 @@ export async function pushIfSavedInApp(
 ): Promise<boolean> {
   if (!delivered.success || delivered.channel !== 'in_app') return false;
   return pushInAppNote(userId, { ...note, messageId: delivered.messageId }, send);
+}
+
+/** The daily run's call: pushIfSavedInApp while OUTREACH_IN_APP_PUSH is on, else nothing. */
+export async function pushInAppIfOn(
+  userId: string,
+  delivered: { success: boolean; channel: string; messageId?: string },
+  note: Omit<InAppNote, 'messageId'>,
+  send: SendPush = sendPush
+): Promise<boolean> {
+  return flagOn('OUTREACH_IN_APP_PUSH') ? pushIfSavedInApp(userId, delivered, note, send) : false;
 }

@@ -32,6 +32,7 @@ import { loadLocalContacts, saveLocalContacts } from './contacts-local-file.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { onContactChange } from '../../data-layer/hooks/contacts-hooks.js';
 import { createExpiringMarks } from '../../../utils/expiring-marks.js';
+import { phoneKey, phoneKeysOf } from './contact-phone-keys.js';
 
 // ============================================================================
 // TYPES
@@ -212,8 +213,8 @@ async function persistContact(contact: Contact): Promise<void> {
   const firestore = await getFirestore();
   if (firestore) {
     try {
-      // Strip undefined values before saving - Firestore doesn't accept undefined
-      const cleanContact = stripUndefined(contact);
+      // phoneKeys: what inbound-SMS matching looks up (contact-phone-keys.ts)
+      const cleanContact = stripUndefined({ ...contact, phoneKeys: phoneKeysOf(contact.phones) });
       await firestore
         .collection(CONTACTS_COLLECTION)
         .doc(contact.id)
@@ -1032,23 +1033,9 @@ function parseCSVLine(line: string): string[] {
 // UTILITIES
 // ============================================================================
 
-/**
- * Normalize phone number to consistent format
- */
+/** A phone number as E.164 (US numbers get +1): how contacts store and look up numbers. */
 export function normalizePhone(phone: string): string {
-  // Remove all non-digits except +
-  let normalized = phone.replace(/[^\d+]/g, '');
-
-  // Add +1 for US numbers if not present
-  if (normalized.length === 10) {
-    normalized = `+1${normalized}`;
-  } else if (normalized.length === 11 && normalized.startsWith('1')) {
-    normalized = `+${normalized}`;
-  } else if (!normalized.startsWith('+')) {
-    normalized = `+${normalized}`;
-  }
-
-  return normalized;
+  return phoneKey(phone);
 }
 
 /**

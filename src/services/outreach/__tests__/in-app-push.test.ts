@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { pushIfSavedInApp, pushInAppNote, type SendPush } from '../in-app-push.js';
+import { pushIfSavedInApp, pushInAppIfOn, pushInAppNote, type SendPush } from '../in-app-push.js';
 
 const note = { text: 'How has the week been?', kind: 'momentum_check' };
 
@@ -43,5 +43,23 @@ describe('pushIfSavedInApp', () => {
     );
     expect(send).toHaveBeenCalledTimes(1);
     expect(send.mock.calls[0][1].data).toEqual({ kind: 'momentum_check', messageId: 'm1' });
+  });
+});
+
+describe('pushInAppIfOn (the daily run)', () => {
+  const saved = { success: true, channel: 'in_app', messageId: 'm1' };
+  it('sends nothing with OUTREACH_IN_APP_PUSH off', async () => {
+    vi.stubEnv('OUTREACH_IN_APP_PUSH', 'off');
+    const send = vi.fn<SendPush>(async () => true);
+    expect(await pushInAppIfOn('uid-1', saved, note, send)).toBe(false);
+    expect(send).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+  it('pushes a saved note with OUTREACH_IN_APP_PUSH on', async () => {
+    vi.stubEnv('OUTREACH_IN_APP_PUSH', 'on');
+    const send = vi.fn<SendPush>(async () => true);
+    expect(await pushInAppIfOn('uid-1', saved, note, send)).toBe(true);
+    expect(send).toHaveBeenCalledTimes(1);
+    vi.unstubAllEnvs();
   });
 });

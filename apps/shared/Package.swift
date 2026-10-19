@@ -11,10 +11,20 @@ let package = Package(
         .library(
             name: "FerniShared",
             targets: ["FerniShared"]
+        ),
+        .library(
+            name: "FerniAuth",
+            targets: ["FerniAuth"]
         )
     ],
     dependencies: [],
     targets: [
+        // Firebase sign-in, Keychain storage and the authed /token request (no UI)
+        .target(
+            name: "FerniAuth",
+            dependencies: [],
+            path: "Sources/FerniAuth"
+        ),
         .target(
             name: "FerniShared",
             dependencies: [],
