@@ -435,9 +435,8 @@ export const onHabitDNAChange = createDomainHook<HabitDNAEntity>({
       h.timesStarted !== undefined || h.timesBroke !== undefined
         ? `Started ${h.timesStarted ?? 0} times, broke ${h.timesBroke ?? 0} times.`
         : '',
-      h.currentStreak !== undefined || h.longestStreak !== undefined
-        ? `Current streak: ${h.currentStreak ?? 0}, longest: ${h.longestStreak ?? 0}.`
-        : '',
+      h.currentStreak !== undefined ? `Current streak: ${h.currentStreak}.` : '',
+      h.longestStreak !== undefined ? `Longest streak: ${h.longestStreak}.` : '',
       h.commonTriggers?.length ? `Triggers: ${h.commonTriggers.join(', ')}.` : '',
       h.commonBarriers?.length ? `Barriers: ${h.commonBarriers.join(', ')}.` : '',
       h.optimalConditions?.bestTime ? `Best time: ${h.optimalConditions.bestTime}.` : '',

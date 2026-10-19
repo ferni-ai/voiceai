@@ -17,15 +17,15 @@ name: Blog Drafts
 # unlabelled composites, or numbers missing from the sources.
 # The live check (live-check.ts) applies to the PRs the drafter may use as
 # sources and again to every PR the post cites:
-# - Deployed: a PR touching only apps/web or apps/website/ferni-website is live
-#   once merged (every merge to main deploys them). Anything else, the voice
+# - Deployed: a PR touching only apps/web, apps/website/ferni-website or
+#   apps/website/developers-portal is live once merged (merges deploy them). Anything else, the voice
 #   agent included, ships by a manual `lk agent deploy` this workflow can't see,
 #   so it counts only once merged for 7 days.
 # - Not behind a flag: a PR is left out if its title or body says it's behind a
 #   flag, off by default or not wired, names a flag the flag manifest has off by
 #   default, or its diff adds an off-by-default flag.
-# whats-new posts go to apps/website/developers-portal, which merging to main
-# does NOT deploy: they publish at the next `pnpm deploy:developers`.
+# whats-new posts go to apps/website/developers-portal, which
+# deploy-developers.yml deploys to developers.ferni.ai on merge.
 #
 # Weekly: one developer post (whats-new) and one consumer post, rotating by ISO
 # week number through building-in-public, mission-essay, how-ferni-works and
