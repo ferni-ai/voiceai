@@ -16,6 +16,8 @@ final class CallSessionTests: XCTestCase {
         private let continuation: AsyncStream<RoomEvent>.Continuation
         var agentOnConnect: [String: String]?
         var connectError: Error?
+        /// A slow connect that isn't cancelled by the call task (like a real one).
+        var connectDelay: Duration?
         private(set) var connectedTo: (url: String, token: String)?
         private(set) var micStates: [Bool] = []
         private(set) var disconnects = 0
@@ -25,6 +27,7 @@ final class CallSessionTests: XCTestCase {
             self.agentOnConnect = agentOnConnect
         }
         func connect(url: String, token: String) async throws {
+            if let connectDelay { await Task.detached { try? await Task.sleep(for: connectDelay) }.value }
             if let connectError { throw connectError }
             connectedTo = (url, token)
             if let agentOnConnect { continuation.yield(.agentJoined(attributes: agentOnConnect)) }
