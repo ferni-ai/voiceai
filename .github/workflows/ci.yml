@@ -814,7 +814,7 @@ jobs:
           path: ./
           base: ${{ steps.scan-range.outputs.base }}
           head: ${{ steps.scan-range.outputs.head }}
-          extra_args: --only-verified
+          extra_args: --no-verification
 
   # ============================================================================
   # CODE QUALITY METRICS (using unified audit CLI)
