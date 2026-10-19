@@ -330,7 +330,7 @@ describe('number abuse: several accounts at one number ceiling', () => {
       windowMs: 3_600_000,
     });
     expect(contention()).toHaveLength(1);
-    expect(JSON.stringify(logged.all)).not.toContain('5555550100');
+    expect(JSON.stringify(logged.all)).not.toContain('2125550100');
   });
 
   it('two accounts raise none, and one account repeating counts once', async () => {
