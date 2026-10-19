@@ -15,10 +15,10 @@ struct RootView: View {
 
         var title: String {
             switch self {
-            case .talk: "Talk"
-            case .team: "Team"
-            case .remembers: "What Ferni remembers"
-            case .settings: "Settings"
+            case .talk: String(localized: "Talk")
+            case .team: String(localized: "Team")
+            case .remembers: String(localized: "What Ferni remembers")
+            case .settings: String(localized: "Settings")
             }
         }
 
