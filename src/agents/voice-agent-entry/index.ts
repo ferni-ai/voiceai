@@ -329,7 +329,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       { getConversationManager },
     ] = await moduleImportsPromise;
 
-    const { userId: identifiedUserId, userName, userAccent } = await identifyUser({
+    const { userId: identifiedUserId, userName, userAccent, verified } = await identifyUser({
       jobMetadata: ctx.job.metadata,
       room: ctx.room,
       sessionId,
@@ -388,8 +388,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       cleanupHandlers.push(stopPeriodicSync);
     }
 
-    // CRITICAL FIX: Set personaId on userData for TTS wrapper
-    userData.personaId = sessionPersona.id;
+    userData.personaId = sessionPersona.id; // the TTS wrapper reads it
+    userData.verifiedCaller = verified; // tools gate per-person allowances on it (verified-caller.ts)
 
     // Minimal sync work required before greeting (handoff + FinOps).
     const customData = services.userProfile?.customData as Record<string, unknown> | undefined;
