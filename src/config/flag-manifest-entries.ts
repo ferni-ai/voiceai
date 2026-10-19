@@ -121,6 +121,7 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   PERSONA_BEATS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // character-spark.md after the character sheet, one "!" on bright turns (agents/personas/prompt-loader.ts, turn-shape.ts)
   PERSONA_SPARK: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PERSONA_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PERSONA_MOOD_NOT_CALLERS: { default: 'on', owner: 'memory', kind: 'kill-switch' },
   PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
