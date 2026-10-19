@@ -45,7 +45,7 @@ struct HomeView: View {
                         } else {
                             RestingLine(call: call)
                             if call.phase == .ended {
-                                RememberCard(call: call, memory: model.memory)
+                                RememberCard(call: call, remembered: model.callRemembered)
                                 #if FERNI_PUSH
                                 if call.hasTalked { NotificationAsk(push: model.push, uid: model.account.user?.uid) }
                                 #endif
