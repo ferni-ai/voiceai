@@ -89,6 +89,10 @@ public final class ConversationLifecycle: NSObject, CallLifecycle, ConversationM
     public func conversationManager(_ manager: ConversationManager, timedOutPerforming action: ConversationAction) {
         log.error("Conversation action timed out: \(String(describing: type(of: action)), privacy: .public)")
     }
-    public func conversationManager(_ manager: ConversationManager, didActivate audioSession: AVAudioSession) {}
-    public func conversationManager(_ manager: ConversationManager, didDeactivate audioSession: AVAudioSession) {}
+    public func conversationManager(_ manager: ConversationManager, didActivate audioSession: AVAudioSession) {
+        continuation.yield(.audio(active: true))
+    }
+    public func conversationManager(_ manager: ConversationManager, didDeactivate audioSession: AVAudioSession) {
+        continuation.yield(.audio(active: false))
+    }
 }

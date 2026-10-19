@@ -15,4 +15,6 @@ public protocol CallLifecycle: Sendable {
 public enum LifecycleRequest: Sendable, Equatable {
     case end
     case mute(Bool)
+    /// The system activated (or took back) the call's audio session.
+    case audio(active: Bool)
 }

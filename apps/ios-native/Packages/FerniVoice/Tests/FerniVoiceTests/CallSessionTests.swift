@@ -54,15 +54,20 @@ final class CallSessionTests: XCTestCase {
         var order: Order?
         /// The next activation throws (the system still has the audio).
         var failNextActivation = false
-        func activate() throws {
+        /// For each activation: did the system own the session?
+        private(set) var ownership: [Bool] = []
+        private(set) var systemStates: [Bool] = []
+        func systemAudio(active: Bool) { systemStates.append(active) }
+        func activate(systemOwned: Bool) throws {
             activations += 1
+            ownership.append(systemOwned)
             if failNextActivation {
                 failNextActivation = false
                 throw NSError(domain: "AVAudioSession", code: 561_015_905) // '!pri': can't activate
             }
             order?.steps.append("activate")
         }
-        func deactivate() { deactivations += 1 }
+        func deactivate(systemOwned: Bool) { deactivations += 1 }
     }
 
     final class Order: @unchecked Sendable { var steps: [String] = [] }
