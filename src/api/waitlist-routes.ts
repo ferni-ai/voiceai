@@ -34,6 +34,7 @@ import {
   verifyApprovalToken,
 } from './waitlist-approval-token.js';
 import { addSigninToWaitlist, keepWaitlistReferral, offeredReferral } from './waitlist-record.js';
+import { handleWaitlistQueueRoutes, QUEUE_ROUTE_PATHS } from './waitlist-queue-routes.js';
 import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/waitlist/queue.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
@@ -162,6 +163,7 @@ export async function handleWaitlistRoutes(
   }
 
   try {
+    if (QUEUE_ROUTE_PATHS.has(pathname) && (await handleWaitlistQueueRoutes(req, res, pathname))) return true; // /me, /join
     // POST /api/waitlist - Add email to waitlist
     if (pathname === '/api/waitlist' && req.method === 'POST') {
       return await handleSignup(req, res);
