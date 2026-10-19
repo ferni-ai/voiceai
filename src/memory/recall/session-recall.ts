@@ -23,6 +23,14 @@ import { MIN_WEIGHTED_OVERLAP, rareWordsEnabled, weighWords } from './rare-words
 export { rareWordsEnabled } from './rare-words.js';
 
 import { flagOn } from '../../config/env-flag.js';
+import {
+  formatReportedFacts,
+  isReportedCallFact,
+  type ReportedSpeechFrame,
+} from './reported-call.js';
+import { undisputed } from './undisputed.js';
+export { undisputed } from './undisputed.js';
+export { isPlainFactRow } from './expired.js';
 
 export interface RecallFact {
   entity: string;
@@ -36,6 +44,8 @@ export interface RecallFact {
   temporalContext?: string;
   /** When a newer fact replaced it (fact-supersession.ts): how things were, not how they are. */
   supersededAt?: string;
+  /** The row's `source`: on_behalf_call is someone else's words from a call (reported-call.ts). */
+  source?: string;
 }
 
 export interface RecallSnapshot {
@@ -289,6 +299,8 @@ export interface RecallExtras {
   env?: Record<string, string | undefined>;
   /** RECALL_BRIDGE: say how to bring an open thread up. */
   bridge?: boolean;
+  /** Frames call rows as reported speech (reported-call.ts); without it they are left out. */
+  reported?: ReportedSpeechFrame;
 }
 
 /** How to raise an open thread (RECALL_BRIDGE). */
@@ -347,17 +359,20 @@ export const RECALL_RULE =
 
 /** A context note for the LLM, or null when there is nothing to recall. */
 export function formatRecall(
-  facts: RecallFact[],
+  all: RecallFact[],
   followUps: string[],
   userName?: string,
   now: number = Date.now(),
   extras: RecallExtras = {}
 ): string | null {
   const jokes = insideJokesEnabled(extras.env) ? (extras.insideJokes ?? []) : [];
+  // Call rows only inside the frame (reported-call.ts): without one they are left out.
+  const facts = extras.reported ? all : all.filter((f) => !isReportedCallFact(f));
   if (facts.length === 0 && followUps.length === 0 && jokes.length === 0) return null;
   const who = userName || 'them';
   const lines: string[] = [`[WHAT YOU REMEMBER ABOUT ${who.toUpperCase()}]`];
   for (const f of facts) {
+    if (isReportedCallFact(f)) continue;
     const subject = SELF_ENTITY.test(f.entity) ? who : f.entity;
     // "baker at Rise and Grind" read as his job after he'd moved to Northwind (benchmark, 2026-10-11).
     const was = f.supersededAt ? ' [no longer true: how things were before]' : '';
@@ -365,6 +380,7 @@ export function formatRecall(
       `- ${subject}: ${f.key.replace(/_/g, ' ')} = ${f.value}${age(f.extractedAt, now)}${was}`
     );
   }
+  lines.push(...formatReportedFacts(facts, extras.reported, (f) => age(f.extractedAt, now)));
   if (followUps.length > 0) {
     lines.push(extras.bridge ? 'Open threads from earlier calls:' : 'Open threads from last time:');
     for (const item of followUps) lines.push(`- ${item}`);
@@ -404,23 +420,6 @@ const MAX_INSIDE_JOKES = 3;
 
 /** Set on a summary whose items were checked against the caller's lines (caller-assertions.ts). */
 export const CALLER_PROVENANCE = 1;
-const LABELLED = ['disputedItems', 'assistantRaisedItems'];
-
-/**
- * A summary without the items the caller disputed (dispute.ts: disputedItems) or that
- * only the assistant said (assistantRaisedItems), and without those lists, so no reader
- * serves or matches them.
- */
-export function undisputed(s: Record<string, unknown>): Record<string, unknown> {
-  const gone = new Set(LABELLED.flatMap((k) => (Array.isArray(s[k]) ? s[k].map(String) : [])));
-  if (!LABELLED.some((k) => k in s)) return s;
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(s)) {
-    if (LABELLED.includes(k)) continue;
-    out[k] = Array.isArray(v) ? v.filter((x) => typeof x !== 'string' || !gone.has(x)) : v;
-  }
-  return out;
-}
 
 /** Load a user's recall snapshot. Never throws; an unreachable store yields an empty snapshot. */
 export async function loadRecallSnapshot(
@@ -455,6 +454,7 @@ export async function loadRecallSnapshot(
         ...(typeof d.factType === 'string' ? { factType: d.factType } : {}),
         ...(typeof d.temporalContext === 'string' ? { temporalContext: d.temporalContext } : {}),
         ...(typeof d.supersededAt === 'string' ? { supersededAt: d.supersededAt } : {}),
+        ...(typeof d.source === 'string' ? { source: d.source } : {}),
       }))
       .filter((f) => f.confidence >= MIN_RECALL_CONFIDENCE)
       .filter((f) => !isForgotten(`${f.entity} ${f.key} ${f.value}`, forgotten))

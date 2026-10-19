@@ -39,7 +39,8 @@ import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { isRiskyCallerText, screenedCallerText } from './caller-text.js';
-import { isSensitiveCallText, soundsUnder18 } from './call-memory-filter.js';
+import { addressesAssistant, isSensitiveCallText, soundsUnder18 } from './call-memory-filter.js';
+import { REPORTED_CALL_SOURCE } from '../../memory/recall/expired.js';
 import type { OnBehalfDispatch } from './on-behalf-dispatch.js';
 import type { SuperhumanCallResult } from './call-transcript-intelligence.js';
 import type { CallOutcome } from '../../tools/domains/telephony/types.js';
@@ -49,7 +50,7 @@ const log = createLogger({ module: 'call-memory' });
 /** How long a remembered call is kept. */
 export const CALL_MEMORY_TTL_MS = 180 * 24 * 60 * 60 * 1000;
 /** What marks these rows in dynamic_facts (and lets a reader find them). */
-export const CALL_MEMORY_SOURCE = 'on_behalf_call';
+export const CALL_MEMORY_SOURCE = REPORTED_CALL_SOURCE;
 const MAX_SAID = 3;
 const MAX_LINE = 200;
 const CONFIDENCE = 0.8;
@@ -110,9 +111,10 @@ function words(text: string): Set<string> {
 
 /** A line fit to keep, screened, or undefined (risky or sensitive: dropped, never rewritten). */
 function keep(text: string | undefined, name: string): string | undefined {
-  if (!text?.trim() || isRiskyCallerText(text)) return undefined;
+  if (!text?.trim() || isRiskyCallerText(text) || addressesAssistant(text)) return undefined;
   const clean = screenedCallerText(text, name, MAX_LINE);
   if (!clean || isRiskyCallerText(clean) || isSensitiveCallText(clean)) return undefined;
+  if (addressesAssistant(clean)) return undefined;
   return clean;
 }
 
@@ -170,10 +172,17 @@ export function callMemoryEntry(input: CallMemoryInput): CallMemoryEntry | null 
   const business =
     call.callType === 'business' || BUSINESS.test(`${name} ${call.contact.relationship ?? ''}`);
   const date = callDate(input.now ?? new Date(), call.requester.timezone);
-  const summary = keep(analysis.insights.summary, Name);
+  // The analysis's summary is a model's read of their words: kept only when it
+  // shares a word with what they said, and as their side, never Ferni's voice.
+  const [summary] = theirPoints(input, name, [analysis.insights.summary]);
   const lines: CallMemoryEntry['lines'] = [
     ...(summary
-      ? [{ key: 'call summary', value: `I called ${Name} for them on ${date}: ${summary}` }]
+      ? [
+          {
+            key: 'call summary',
+            value: `${Name}'s side of the call on ${date}, their words: ${summary}`,
+          },
+        ]
       : []),
     ...theirPoints(input, name, analysis.insights.keyPoints).map((p) => ({
       key: 'said on a call',

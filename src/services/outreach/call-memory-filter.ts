@@ -62,3 +62,25 @@ export function soundsUnder18(heard: readonly string[]): boolean {
     return CHILD_TALK.some((pattern) => pattern.test(text));
   });
 }
+
+/** Words aimed at the assistant or its instructions, not at the owner. */
+const AT_ASSISTANT =
+  /\b(?:ferni|assistant|a\.?i\.?|chat ?bot|bot|system|prompts?|instructions?|developer|model)\b/i;
+/** Orders or rules: an imperative opener, "you should", "remember to", "ignore". */
+const ORDERS = [
+  /^\s*(?:please\s+|and\s+|so\s+)?(?:tell|ask|let|make|have|get|share|send|give|forward|show|book|buy|order|pay|call|text|email|remember|ignore|disregard|forget|override|always|never|don'?t|do not|stop|start|keep|be sure|make sure)\b/i,
+  /\byou (?:should|must|need to|have to|ought to|will|are going to|are to)\b/i,
+  /\b(?:remember to|make sure (?:to|you)|be sure to|from now on|going forward)\b/i,
+  /\b(?:ignore|disregard|override)\b/i,
+];
+
+/**
+ * True for a line that speaks to the assistant or gives it orders ("tell
+ * Ferni to...", "you should...", "ignore..."): stored and read back later as
+ * a memory, it would be an instruction planted by whoever answered the phone.
+ * Dropped, never rewritten. Defence in depth: recall also frames every call
+ * row as reported speech (session-recall.ts formatRecall).
+ */
+export function addressesAssistant(text: string): boolean {
+  return AT_ASSISTANT.test(text) || ORDERS.some((pattern) => pattern.test(text));
+}

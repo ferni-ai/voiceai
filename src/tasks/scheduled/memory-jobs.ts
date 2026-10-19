@@ -18,6 +18,7 @@ import {
   getMemoryConsolidator,
   getMemoryDecayManager,
   getMemoryDeduplicator,
+  isPlainFactRow,
   type DecayingMemory,
   type MemoryItem,
   type MemoryMetrics,
@@ -77,15 +78,13 @@ async function getActiveUserIds(limit = 500): Promise<string[]> {
 }
 
 /**
- * Get memories for a user from Firestore
- *
- * Reads from ALL dynamic memory collections (not just preferences):
+ * Get memories for a user from Firestore. Reads ALL dynamic memory collections:
  * - dynamic_entities: LLM-extracted entities from conversations
- * - dynamic_facts: LLM-extracted facts about entities
+ * - dynamic_facts: LLM-extracted facts about entities (not expired or call rows: isPlainFactRow)
  * - promoted_entities: Frequently mentioned entities from STM promotion
  * - preferences: User preferences from profile
  */
-async function getUserMemories(userId: string): Promise<MemoryItem[]> {
+export async function getUserMemories(userId: string): Promise<MemoryItem[]> {
   try {
     const { getFirestore } = await import('firebase-admin/firestore');
     const db = getFirestore();
@@ -126,7 +125,7 @@ async function getUserMemories(userId: string): Promise<MemoryItem[]> {
       .limit(300)
       .get();
 
-    for (const doc of factsSnap.docs) {
+    for (const doc of factsSnap.docs.filter((d) => isPlainFactRow(d.data()))) {
       const data = doc.data();
       const extractedAt = data.extractedAt ? new Date(data.extractedAt) : new Date();
       memories.push({

@@ -36,6 +36,8 @@ import {
   type RecallStore,
 } from '../../memory/recall/session-recall.js';
 import { jokesForTurn } from '../../memory/recall/inside-jokes-recall.js';
+import { isReportedCallFact } from '../../memory/recall/reported-call.js';
+import { REPORTED_CALL_FRAME } from '../../services/outreach/caller-text.js';
 import {
   createSemanticIndex,
   estimateTokens,
@@ -410,7 +412,11 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
             worldNote,
             dateNow,
             weekNow,
-            formatRecall(shown, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
+            formatRecall(shown, followUps, deps.userName, Date.now(), {
+              insideJokes,
+              bridge,
+              reported: REPORTED_CALL_FRAME,
+            }),
             opener,
             summary,
             people,
@@ -427,7 +433,14 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         );
       const note = noteWith(facts);
       if (!note) return null;
-      lastPick = { facts, userName: deps.userName, rest: noteWith([]) };
+      // Someone else's words from a call (call-memory.ts) stay in the guarded
+      // chat note; the context packet labels its facts as the caller's own.
+      const reported = facts.filter(isReportedCallFact);
+      lastPick = {
+        facts: facts.filter((f) => !isReportedCallFact(f)),
+        userName: deps.userName,
+        rest: noteWith(reported),
+      };
       followUpsOffered = true;
       if (insideJokes.length > 0) jokeOffered = true;
       if (told) toldOffered = true;
