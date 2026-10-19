@@ -17,7 +17,7 @@ import type { PersonaConfig } from '../../personas/types.js';
 import { recordSessionEnd as recordUserSessionEnd } from '../../services/analytics/user-analytics.js';
 import { emitConversationEnd } from '../../services/async-events/index.js';
 import { onCognitiveSessionEnd } from '../../services/cognitive-session-hooks.js';
-import { endConversation as endConversationState } from '../../services/conversation-state.js';
+import { endConversationState } from '../../services/social/conversation-carryover.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { SessionServices } from '../../services/index.js';
 import { onSessionEnd as saveTrustProfiles } from '../../services/trust-systems/index.js';

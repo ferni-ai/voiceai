@@ -22,7 +22,7 @@ import { resetAllConversationState } from '../../conversation/index.js';
 import { onDeepUnderstandingSessionStart as loadDeepUnderstandingProfiles } from '../../intelligence/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { AgentId } from '../../services/agent-bus.js';
-import { getConversationState } from '../../services/conversation-state.js';
+import { openConversation } from '../../services/social/conversation-carryover.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { TrialCheckResult } from '../../services/first-taste-trial.js';
 import { createSessionServices, type SessionServices } from '../../services/index.js';
@@ -978,7 +978,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   // ================================================================
   // INITIALIZE CONVERSATION STATE
   // ================================================================
-  const conversationState = getConversationState(sessionId, userId || 'default', sessionPersona.id);
+  const conversationState = openConversation(sessionId, userId || 'default', sessionPersona.id);
 
   if (userName || services.userProfile?.name) {
     conversationState.setUserName(userName || services.userProfile?.name || '');

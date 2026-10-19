@@ -20,6 +20,7 @@ import type { SessionServices } from '../../services/index.js';
 import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
 import type { ConversationStateManager } from '../../services/conversation-state.js';
+import { noteCarryoverMood } from '../../services/social/conversation-carryover.js';
 import type { MoodState } from '../../intelligence/context-builders/personas/persona-mood.js';
 
 // ============================================================================
@@ -641,15 +642,14 @@ export class SessionStateManager {
   // EMOTIONAL STATE
   // ============================================================================
 
-  /**
-   * Update emotion analysis
-   */
+  /** Update emotion analysis (and, CONVERSATION_CARRYOVER=on, the conversation state's mood). */
   setEmotionAnalysis(analysis: {
     primary: string;
     intensity: number;
     distressLevel?: number;
   }): void {
     this.state = updateEmotional(this.state, { lastEmotionAnalysis: analysis });
+    if (this.conversationState) noteCarryoverMood(this.conversationState, analysis);
   }
 
   /**

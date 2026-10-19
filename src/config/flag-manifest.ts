@@ -76,6 +76,7 @@ export const FLAG_MANIFEST = {
   // on: once a call, invite one small caller-owned next step (agents/personas/commitment-invite.ts)
   COMMITMENT_INVITE: { default: 'off', owner: 'voice', kind: 'experiment' },
   CONDITIONAL_BUILDERS: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  CONVERSATION_CARRYOVER: { default: 'off', owner: 'voice', kind: 'experiment' },
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },

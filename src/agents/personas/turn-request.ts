@@ -37,6 +37,7 @@ import type { Caption } from './caption-filter.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
+import { lastCallNote } from './last-call-note.js';
 import { nameCorrectionNote } from './name-correction.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { getDeliberator } from './deliberation.js';
@@ -115,6 +116,8 @@ export function withTurnReminder(
     state.note,
     // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
     firstCallNote(chatCtx, session, words),
+    // CONVERSATION_CARRYOVER=on: how their last call went, on the first few replies
+    lastCallNote(chatCtx, session, options.shape === false),
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's
     nameCorrectionNote(chatCtx, session, words, process.env, {
       verifiedOwner: sessionIsVerifiedOwner,
