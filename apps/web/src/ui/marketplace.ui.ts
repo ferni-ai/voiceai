@@ -17,6 +17,7 @@
 
 import { DURATION } from '../config/animation-constants.js';
 import { isLegacySharingOn } from '../config/legacy-sharing-flag.js';
+import { isCustomAgentsUiOn } from '../config/custom-agents-ui-flag.js';
 import { getPersona, isKnownPersonaId } from '../config/personas.js';
 import { formatDate, formatNumber, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
@@ -178,13 +179,12 @@ function ensureModalExists(): HTMLElement {
           <button class="marketplace-tab" data-tab="installed">
             ${t('marketplace.tabs.yourTeam')}
           </button>
-          <button class="marketplace-tab" data-tab="creations">
+          ${isCustomAgentsUiOn() ? `<button class="marketplace-tab" data-tab="creations">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px;">
-              <line x1="12" y1="5" x2="12" y2="19"></line>
-              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line>
             </svg>
             ${t('marketplace.tabs.myCreations')}
-          </button>
+          </button>` : ''}
         </div>
 
         <div class="marketplace-search" data-tab-content="browse">

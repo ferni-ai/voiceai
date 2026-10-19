@@ -730,7 +730,7 @@ Your superpower: You remember their WHOLE story.
         priority: 63,
       });
 
-      // Fire-and-forget: Detect and persist chapter moment
+      // Fire-and-forget: persist the moment, keyed by session so one chat counts once
       void persistChapter(ctx);
     }
 

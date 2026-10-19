@@ -97,6 +97,7 @@ export async function persistChapter(ctx: TurnWrite): Promise<void> {
       type: chapter.type,
       quote: ctx.userText.slice(0, 200),
       emotion: ctx.emotionalState.primary,
+      conversationId: ctx.sessionId,
     });
   } catch (e) {
     log.debug({ error: String(e) }, 'Life narrative recording skipped');
