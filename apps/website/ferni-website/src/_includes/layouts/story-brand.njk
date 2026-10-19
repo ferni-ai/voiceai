@@ -22,7 +22,7 @@
   {# ====== STYLES (with cache-busting) ====== #}
   {# CRITICAL: tokens.css MUST come first - defines all CSS variables #}
   <link rel="stylesheet" href="/css/tokens.css?v=20261005">
-  <link rel="stylesheet" href="/css/story-brand.css?v=20261011">
+  <link rel="stylesheet" href="/css/story-brand.css?v=20261018">
   <link rel="stylesheet" href="/css/components.css?v=20251224">
   <link rel="stylesheet" href="/css/sections/footer.css?v=20251231">
   {# Non-critical sheets load without blocking first paint: they style
@@ -129,6 +129,14 @@
         "@type": "FAQPage",
         "@id": "https://ferni.ai/#faq",
         "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "Is Ferni a real person?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Ferni is software, built with artificial intelligence, that listens, remembers what matters to you, and talks with you. Real people built it and stand behind it."
+            }
+          },
           {
             "@type": "Question",
             "name": "Is Ferni a replacement for therapy?",
