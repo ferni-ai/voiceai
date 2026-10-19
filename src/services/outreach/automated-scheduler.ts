@@ -32,6 +32,7 @@ import { isValidTimezone } from './call-hours-guard.js';
 import { hoursWindow, isQuietAt, isQuietHoursUnified, isUserQuiet } from './quiet-hours.js';
 import {
   cadenceHold,
+  conversationCountOf,
   engagementLevel as engagementLevelOf,
   lastTalkedAt,
   unansweredCount,
@@ -67,6 +68,7 @@ interface UserOutreachCandidate {
   phone?: string;
   name?: string;
   daysSinceSignup: number;
+  conversationCount?: number;
   lastConversationDate?: Date;
   lastOutreachDate?: Date;
   onboardingDay?: number;
@@ -205,12 +207,11 @@ async function processCandidate(
     return { sent: false, reason: 'No phone number' };
   }
 
-  // Build user context for personalization
   const userContext: UserContext = {
     userId,
     name,
     daysSinceSignup,
-    conversationCount: 0, // TODO: Get actual count
+    conversationCount: candidate.conversationCount, // unknown: the writer is told no number
     engagementLevel,
     preferredPersona: 'ferni',
   };
@@ -298,7 +299,6 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         // Quieter users wait longer between messages; unanswered ones stop.
         if (cadenceHold(data, engagementLevel, now.getTime())) continue;
 
-        // Build candidate
         const createdAt = data.createdAt?.toDate?.() || data.createdAt || now;
         const daysSinceSignup = Math.floor(
           (now.getTime() - new Date(createdAt).getTime()) / (24 * 60 * 60 * 1000)
@@ -310,6 +310,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
           phone: verifiedPhoneOf(userId, data), // never the model-written profile phone
           name: data.displayName || data.name,
           daysSinceSignup,
+          conversationCount: conversationCountOf(data),
           lastConversationDate: talkedAt === undefined ? undefined : new Date(talkedAt),
           lastOutreachDate: lastOutreach,
           onboardingDay: data.onboardingDay,
