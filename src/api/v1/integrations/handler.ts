@@ -91,8 +91,8 @@ const getCalendarServices = async () => {
 };
 
 // Google Calendar tokens: the one store, shared with the /auth/google/* flow
-const getCalendarOAuthServices = async () => {
-  return import('../../../services/identity/google-calendar-oauth.js');
+const getCalendarDisconnect = async () => {
+  return import('../../../services/identity/google-calendar-disconnect.js');
 };
 
 // Social Graph - lazy imports
@@ -800,8 +800,8 @@ export async function handleIntegrationsRoutes(
       const userId = getTargetUserId(auth!, parsedUrl);
 
       const cal = await getCalendarServices();
-      const calOAuth = await getCalendarOAuthServices();
-      await calOAuth.deleteUserTokens(userId);
+      const { disconnectGoogleCalendar } = await getCalendarDisconnect();
+      await disconnectGoogleCalendar(userId);
       cal.disconnectCalendar(userId);
 
       log.info({ userId }, 'Calendar disconnected');
