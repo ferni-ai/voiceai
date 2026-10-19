@@ -46,12 +46,13 @@ function runScript(deps: UsersAdminDeps, script: string, args: readonly string[]
 async function runDestructive(
   deps: UsersAdminDeps,
   script: string,
-  args: readonly string[]
+  args: readonly string[],
+  scriptArgs: readonly string[] = []
 ): Promise<boolean> {
   const projectId = deps.projectId ?? 'johnb-2025';
   if (!args.includes('--execute')) {
     console.log(`Dry run. Re-run with --execute to delete (asks you to type the project id).\n`);
-    runScript(deps, script, ['--dry-run']);
+    runScript(deps, script, [...scriptArgs, '--dry-run']);
     return true;
   }
   const typed = (await deps.ask(`This DELETES data in ${projectId}. Type the project id: `)).trim();
@@ -59,7 +60,7 @@ async function runDestructive(
     console.log('\nProject id did not match. Nothing was deleted.');
     return false;
   }
-  runScript(deps, script, ['--execute', `--confirm-project=${typed}`]);
+  runScript(deps, script, [...scriptArgs, '--execute', `--confirm-project=${typed}`]);
   return true;
 }
 
@@ -96,6 +97,11 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
     case 'delete-stale':
       await runDestructive(deps, 'delete-stale-profiles.ts', args);
       return;
+    case 'undo-dnc':
+      if (requireArg(target, 'ferni users undo-dnc <userId> [--execute]')) {
+        await runDestructive(deps, 'undo-own-dnc.ts', args, [`--user=${target}`]);
+      }
+      return;
     default:
       console.log(`User Management Commands:
 
@@ -105,7 +111,8 @@ export async function handleUsers(args: string[], deps: UsersAdminDeps): Promise
   ferni users grant <email>          Grant access to a user
   ferni users find-rich              Find users with rich data
   ferni users cleanup [--execute]    Delete anonymous Auth users (dry run by default)
-  ferni users delete-stale [--execute]  Delete empty anonymous profiles (dry run by default)`);
+  ferni users delete-stale [--execute]  Delete empty anonymous profiles (dry run by default)
+  ferni users undo-dnc <userId> [--execute]  Let Ferni call the user's own verified number again (dry run by default)`);
   }
 }
 

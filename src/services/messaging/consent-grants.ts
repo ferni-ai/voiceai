@@ -9,23 +9,34 @@
  * because a STOP must block everyone; a global opt-out beats every grant, and
  * a global START grants nobody. A grant comes only from:
  *
- * 1. Their own YES to a consent ask from that owner: source 'contact-yes'
- *    (the consent ask and the YES land in the next stacked PR).
+ * 1. Their own YES (YES, Y, OK or SURE as the whole message) answering a
+ *    consent ask from the last 30 days: source 'contact-yes', for the owner
+ *    who asked (ask.by) and the channels asked about.
  * 2. The owner's attestation at the ActionGate confirm, only when the owner
  *    is in the friends-and-family cohort: source 'owner-attested', with the
  *    time. Anyone else's contacts need (1).
  *
- * A recorded opt-out always wins: an attestation never undoes a STOP (only
- * the contact's START does). The owner's own number is unaffected.
+ * The only first message to a contact with no consent is the consent ask:
+ * owner-confirmed, at most one per contact per 30 days (claimConsentAsk). A
+ * recorded opt-out always wins: neither a YES nor an attestation undoes a
+ * STOP (only the contact's START does). The owner's own number is unaffected.
  *
  * @module services/messaging/consent-grants
  */
 import { createLogger } from '../../utils/safe-logger.js';
-import { last4, phoneHash, phoneHashKeyVersion, toE164 } from '../outreach/checkin-replies.js';
+import {
+  firestoreReplyStore,
+  last4,
+  phoneHash,
+  phoneHashKeyVersion,
+  toE164,
+  type StoredCheckin,
+} from '../outreach/checkin-replies.js';
 import { isCohortMember } from '../platform/cohort-membership.js';
 import {
   consentBlocks,
   defaultConsentDeps,
+  normalizeReply,
   readConsent,
   type ConsentBlock,
   type ConsentChannel,
@@ -35,6 +46,45 @@ import {
 const log = createLogger({ module: 'messaging-consent-grants' });
 
 export const FRIENDS_AND_FAMILY = 'friends-and-family';
+export const CONSENT_ASK_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+const YES_WORDS: ReadonlySet<string> = new Set(['yes', 'y', 'ok', 'sure']);
+
+/** YES, Y, OK or SURE as the whole message (any case, punctuation stripped), never inside one. */
+export const isConsentYes = (body: string): boolean => YES_WORDS.has(normalizeReply(body));
+
+interface ConsentAsk {
+  at: string;
+  by: string;
+  channels: ConsentChannel[];
+  /** The ask text's refId in feature_checkins, to tell it from any later text. */
+  ref?: string;
+}
+
+/** A YES counts only while the ask is the last text to that number, and this recent. */
+export const YES_WINDOW_MS = 48 * 60 * 60 * 1000;
+const MESSAGE_SID = /^[A-Za-z0-9]{10,64}$/;
+/** The texts sent to a phone (feature_checkins), newest not guaranteed first. */
+export type TextsToPhone = (hash: string) => Promise<StoredCheckin[]>;
+
+/** The newest text actually sent to this phone, from anyone. */
+function latestSent(texts: readonly StoredCheckin[]): StoredCheckin | undefined {
+  return texts
+    .filter((t) => t.status === 'sent' && !Number.isNaN(Date.parse(t.sentAt)))
+    .sort((a, b) => Date.parse(b.sentAt) - Date.parse(a.sentAt))[0];
+}
+
+function askOf(doc: Record<string, unknown> | undefined): ConsentAsk | null {
+  const a = (doc?.ask ?? null) as Partial<ConsentAsk> | null;
+  return a && typeof a.at === 'string' && Array.isArray(a.channels) ? (a as ConsentAsk) : null;
+}
+
+const within = (iso: string, now: Date): boolean =>
+  now.getTime() - Date.parse(iso) < CONSENT_ASK_WINDOW_MS;
+
+/** The consent-ask text: names the owner and offers YES or STOP. */
+export const consentAskText = (owner: string): string =>
+  `Ferni here, ${owner}'s AI friend. Reply YES if it's OK for Ferni to text you for ${owner}, or STOP.`;
+
 /** The first real text after an owner's attestation opens with who is writing and for whom. */
 export const attestedIntro = (owner: string, body: string): string =>
   `Ferni here, ${owner}'s AI friend. ${owner.charAt(0).toUpperCase()}${owner.slice(1)} asked me to send this: ${body}`;
@@ -80,6 +130,106 @@ export async function hasGrant(
   deps: ConsentDeps = defaultConsentDeps()
 ): Promise<boolean> {
   return grantOf(await deps.store.read(hash), ownerUid)[channel] !== undefined;
+}
+
+/**
+ * Takes this phone's one consent ask for the next 30 days, atomically, for
+ * `ownerUid`. Returns the claim (its time) when it may be sent now, null when
+ * one was asked within the window; releaseConsentAsk gives it back.
+ */
+export async function claimConsentAsk(
+  hash: string,
+  ownerUid: string,
+  deps: ConsentDeps = defaultConsentDeps(),
+  ref?: string
+): Promise<string | null> {
+  const now = deps.now();
+  const at = now.toISOString();
+  let claimed = false;
+  await deps.store.apply(hash, (doc) => {
+    const prev = askOf(doc);
+    claimed = !prev || !within(prev.at, now);
+    if (!claimed) return doc ?? {};
+    const ask = { at, by: ownerUid, channels: ['sms'], ...(ref !== undefined && { ref }) };
+    return { ...doc, ask, updatedAt: at };
+  });
+  return claimed ? at : null;
+}
+
+/** Gives the ask back when it never went out (quiet hours, a failed send), so it can be retried. */
+export async function releaseConsentAsk(
+  hash: string,
+  at: string,
+  deps: ConsentDeps = defaultConsentDeps()
+): Promise<void> {
+  await deps.store.apply(hash, (doc) => {
+    if (askOf(doc)?.at !== at) return doc ?? {};
+    const { ask: _ask, ...rest } = doc ?? {};
+    return rest;
+  });
+}
+
+/** True when `claim` is still this phone's open consent ask, and `ownerUid` made it. */
+export async function holdsConsentAsk(
+  hash: string,
+  claim: string,
+  ownerUid: string,
+  deps: ConsentDeps = defaultConsentDeps()
+): Promise<boolean> {
+  const ask = askOf(await deps.store.read(hash));
+  return ask?.at === claim && ask.by === ownerUid;
+}
+
+/**
+ * Inbound hook: a contact's YES grants the owner who asked (ask.by) the asked
+ * channels (source contact-yes) and closes the ask, but only when that ask is
+ * still the LAST text sent to the number, within 48 hours: an "ok" after any
+ * later text (another owner's, a reminder) may answer that one instead. Each
+ * inbound MessageSid counts once, so a replayed webhook grants nothing. A YES
+ * from a number that opted out changes nothing. Never throws.
+ */
+export async function recordContactYes(
+  from: unknown,
+  body: unknown,
+  messageSid: unknown,
+  deps: ConsentDeps = defaultConsentDeps(),
+  textsTo: TextsToPhone = async (h) => firestoreReplyStore.forPhoneHash(h)
+): Promise<ConsentChannel[] | null> {
+  if (typeof from !== 'string' || typeof body !== 'string' || !isConsentYes(body)) return null;
+  const e164 = toE164(from);
+  const hash = e164 ? phoneHash(e164, deps.env) : null;
+  const sid = typeof messageSid === 'string' && MESSAGE_SID.test(messageSid) ? messageSid : null;
+  if (!e164 || !hash || !sid) return null;
+  try {
+    const ask = askOf(await deps.store.read(hash));
+    const last = latestSent(await textsTo(hash));
+    const now = deps.now().getTime();
+    const answersAsk =
+      ask?.ref !== undefined &&
+      last?.refId === ask.ref &&
+      now - Date.parse(last.sentAt) < YES_WINDOW_MS;
+    if (!ask || !answersAsk || !(await firstSighting(hash, sid, deps))) return null;
+    const consent = await readConsent(hash, deps);
+    const channels = ask.channels.filter((c) => consent[c].state !== 'opted-out');
+    if (channels.length > 0) await writeGrant(hash, ask.by, channels, 'contact-yes', deps);
+    await releaseConsentAsk(hash, ask.at, deps);
+    log.info({ phoneLast4: last4(e164), channels }, 'Contact said yes to texts for one owner');
+    return channels;
+  } catch (error) {
+    log.error({ error: String(error), phoneLast4: last4(e164) }, 'Contact yes not saved');
+    return null;
+  }
+}
+
+/** Records an inbound MessageSid atomically; false when it was seen before (a replay). */
+async function firstSighting(hash: string, sid: string, deps: ConsentDeps): Promise<boolean> {
+  let fresh = false;
+  await deps.store.apply(hash, (doc) => {
+    const seen = Array.isArray(doc?.seenSids) ? (doc.seenSids as string[]) : [];
+    fresh = !seen.includes(sid);
+    return fresh ? { ...doc, seenSids: [...seen, sid].slice(-20) } : (doc ?? {});
+  });
+  return fresh;
 }
 
 /**
@@ -176,4 +326,15 @@ export async function thirdPartyRefusal(
   if (block !== 'needs-consent') return block;
   const hash = phoneHash(phone, deps.env);
   return hash !== null && (await anyGlobalOptOut(hash, deps)) ? 'opted-out' : block;
+}
+
+/** The sender's own text grant, or their live consent-ask claim (the one ask may go). */
+export async function grantedOrAsked(
+  hash: string,
+  senderUid: string,
+  claim: string | undefined,
+  deps: ConsentDeps = defaultConsentDeps()
+): Promise<boolean> {
+  if (claim !== undefined && (await holdsConsentAsk(hash, claim, senderUid, deps))) return true;
+  return hasGrant(hash, senderUid, 'sms', deps);
 }

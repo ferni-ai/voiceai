@@ -49,7 +49,7 @@ import {
 import { timezoneFromPhone } from './area-code-timezones.js';
 import {
   attestedIntro,
-  hasGrant,
+  grantedOrAsked,
   isOwnerAttested,
   ownerFirstName,
 } from '../messaging/consent-grants.js';
@@ -316,6 +316,8 @@ export interface OnBehalfText {
   readonly personaId?: string;
   /** The owner's name for a first-contact intro; else their account's. */
   readonly ownerName?: string;
+  /** Only sendConsentAsk sets this: its claim, which lets the one consent ask reach unknown consent. */
+  readonly consentAskClaim?: string;
 }
 
 export type OnBehalfSkip =
@@ -425,9 +427,9 @@ async function onBehalfConsent(
 ): Promise<'opted-out' | 'needs-consent' | 'send-failed' | null> {
   const hash = phoneHash(t.toPhone, deps.env);
   const c = consentOf(deps);
-  // The sender's own grant or their own number; never someone else's grant.
+  // The sender's own grant (or their consent ask) or their own number; never someone else's grant.
   const allow = async (): Promise<boolean> =>
-    (hash !== null && (await hasGrant(hash, t.senderUserId, 'sms', c))) ||
+    (hash !== null && (await grantedOrAsked(hash, t.senderUserId, t.consentAskClaim, c))) ||
     isOwnVerifiedPhone(t.senderUserId, t.toPhone, deps);
   const block: ConsentBlock | null = await consentBlocks(t.toPhone, 'sms', allow, c);
   return block === 'unverifiable' ? 'send-failed' : block;
