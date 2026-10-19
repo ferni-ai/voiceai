@@ -29,6 +29,7 @@ struct FerniApp: App {
         WindowGroup {
             RootView()
                 .environment(model)
+                .onOpenURL { model.open($0) }
                 #if DEBUG
                 .uiTestEnvironment()
                 #endif
@@ -149,6 +150,17 @@ final class AppModel {
         guard HomeLineStore.validNoteID(note.id), !call.isActive else { return }
         origin.value = "note:\(note.id)"
         talk()
+    }
+
+    /// A one-off note for the person (shown as an alert), e.g. after a link.
+    var notice: String?
+
+    /// A `ferniapp://` link opened the app (DeepLink).
+    func open(_ url: URL) {
+        switch DeepLink.parse(url) {
+        case .healthNotYet: notice = String(localized: "Health sharing isn't in the iPhone app yet.")
+        case nil: break
+        }
     }
 
     /// The consent sheet's Not now: no call, and nothing carried to the next one.
