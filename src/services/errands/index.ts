@@ -14,3 +14,4 @@ export {
   type RetryPolicy,
   type RetryableError,
 } from './retry-policy.js';
+export type { EffectStatus, ErrandStore, NewErrand, OutboxEffect } from './ports.js';
