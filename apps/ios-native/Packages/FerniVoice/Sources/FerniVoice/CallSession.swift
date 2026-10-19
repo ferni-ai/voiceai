@@ -98,16 +98,28 @@ public final class CallSession {
     }
 
     /// Start a call (also Retry after a failure). Ignored while one is running.
-    public func start(personaID: String = "ferni") {
+    /// - Parameter prepare: runs first, while the screen already says
+    ///   "Calling…" (the account and consent settle here). False ends the call
+    ///   as "couldn't confirm it's you" rather than silently doing nothing.
+    public func start(personaID: String = "ferni", prepare: (@MainActor () async -> Bool)? = nil) {
         guard !isActive else { return }
         self.personaID = personaID
-        avatar.send(.connectTapped)
+        isMuted = false // a new call starts unmuted (critic M1)
+        avatar.send(.connectTapped(personaID: personaID))
         let id = UUID()
         callID = id
         callBegan = .now
         startedAt = .now
         systemOwnsCall = false
+        phase = .connecting
         callTask = Task {
+            if let prepare {
+                guard await prepare() else {
+                    if !Task.isCancelled { fail(.notSignedIn) }
+                    return
+                }
+                if Task.isCancelled { return }
+            }
             // The system's call UI; the call still works if it refuses.
             if let lifecycle {
                 do {
@@ -208,7 +220,8 @@ public final class CallSession {
 
     // MARK: - Joining
 
-    private enum Attempt { case joined, ferniMissing, failed(CallProblem) }
+    /// `cancelled`: the person hung up meanwhile; nothing may change on screen.
+    private enum Attempt { case joined, ferniMissing, failed(CallProblem), cancelled }
 
     private func run(rejoining: Bool) async {
         phase = .connecting
@@ -236,6 +249,8 @@ public final class CallSession {
             case .failed(let problem):
                 await leaveRoom()
                 return fail(problem)
+            case .cancelled:
+                return
             }
         }
         if !Task.isCancelled { fail(rejoining ? .connectionLost : .ferniDidNotJoin) }
@@ -246,8 +261,10 @@ public final class CallSession {
         do {
             token = try await fetchToken(personaID)
         } catch {
-            return .failed(CallProblem(error))
+            // A hang-up surfaces as a network error from URLSession: not a failure (critic H1).
+            return Task.isCancelled ? .cancelled : .failed(CallProblem(error))
         }
+        if Task.isCancelled { return .cancelled }
         let room = makeRoom()
         self.room = room
         roomName = token.room
@@ -258,11 +275,14 @@ public final class CallSession {
         do {
             try audio.activate(systemOwned: systemOwnsCall)
             try await room.connect(url: token.url, token: token.token)
+            // Hung up while connecting: the room was already left; touch nothing.
+            if Task.isCancelled || self.room !== room { return .cancelled }
             try await room.setMicrophone(enabled: !isMuted)
         } catch {
             log.error("Joining the room failed: \(error.localizedDescription, privacy: .public)")
-            return Task.isCancelled ? .ferniMissing : .failed(.offline)
+            return Task.isCancelled || self.room !== room ? .cancelled : .failed(.offline)
         }
+        if Task.isCancelled || self.room !== room { return .cancelled }
         if !agentHere { phase = .waitingForFerni }
         // The server already knows dispatch failed: no point waiting it out.
         let wait = token.agentDispatched == false ? Duration.zero : agentTimeout

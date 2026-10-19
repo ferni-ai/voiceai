@@ -35,4 +35,20 @@ final class AppModelTests: XCTestCase {
         XCTAssertNil(model.call.startedAt)
         XCTAssertEqual(model.consent.uid, "b")
     }
+
+    /// Critic H5: "I agree, let's talk" answers at once ("Calling…"), and if
+    /// the account can't be set up the call says so instead of doing nothing.
+    /// Consent is never recorded without an account.
+    func testAgreeingWithoutAnAccountSaysSoInsteadOfDoingNothing() async {
+        let model = model()
+        await model.agreeAndTalk()
+        XCTAssertTrue(model.call.isActive, "the tap shows the call starting")
+        let deadline = ContinuousClock.now + .seconds(10)
+        while model.call.phase != .failed(.notSignedIn), ContinuousClock.now < deadline {
+            try? await Task.sleep(for: .milliseconds(20))
+        }
+        XCTAssertEqual(model.call.phase, .failed(.notSignedIn))
+        XCTAssertFalse(model.consent.hasAgreed)
+    }
 }
+
