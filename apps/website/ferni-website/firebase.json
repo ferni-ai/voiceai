@@ -173,10 +173,6 @@
         {
           "source": "/.well-known/ucp/agent-profile.json",
           "destination": "/ucp/agent-profile.json"
-        },
-        {
-          "source": "!/api/**",
-          "destination": "/404.html"
         }
       ]
     }

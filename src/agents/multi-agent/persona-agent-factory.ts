@@ -36,7 +36,7 @@ import { isPhoneParticipant } from '../integrations/pre-stt-frame-processor.js';
 import { roomInputOptions } from './room-input-options.js';
 import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting-overlap.js';
 import { attachCallWrapUp } from '../shared/call-wrap-up.js';
-import { outboundPartiesFor } from '../shared/outbound-opener.js';
+import { isOnBehalfCall } from '../shared/outbound-opener.js';
 import { roomOutputOptions } from './room-output-options.js';
 import { registerSessionEndedSignal } from './session-ended-signal.js';
 import { sessionRecording } from '../shared/session-recording.js';
@@ -171,7 +171,9 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       room: context.room,
       session: agentSetup.session,
       participant: context.userParticipant,
-      onBehalf: outboundPartiesFor(sessionId) !== undefined,
+      // Keyed on outboundPartiesFor, a family check-in (which has an outbound context
+      // too) got no endCall at all and stayed on the line after goodbye.
+      onBehalf: isOnBehalfCall(sessionId),
     }).catch((error: unknown) =>
       log.warn({ error: String(error), sessionId }, 'endCall not added')
     );
