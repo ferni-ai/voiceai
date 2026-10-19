@@ -37,12 +37,12 @@ import { parseRequestBody, sendJsonResponse } from './helpers.js';
 
 const log = getLogger().child({ module: 'verify-phone' });
 
-const CODE_ERRORS: Record<string, string> = {
-  expired: 'Code expired. Please request a new one.',
-  invalid: 'Invalid code. Please check and try again.',
-  max_attempts: 'Too many attempts. Please request a new code.',
-  not_found: 'No verification pending for this number.',
-};
+/**
+ * Every failed confirm gets this one answer and status: wrong, expired, used up,
+ * no code pending, or over the try limit look the same, so a confirm can't tell
+ * anyone whether a number opted out or hit a limit.
+ */
+const CONFIRM_FAILED = { success: false, error: "That code didn't work. Ask for a new one?" };
 
 const tail = (phone: string): string => phone.replace(/\D/g, '').slice(-4);
 
@@ -111,16 +111,14 @@ export async function handleVerifyPhone(
     // Tries are capped per (user, number): the number their pending code went to.
     const pendingFor = (await getVerificationStatus(userId))?.phone;
     if (pendingFor && (await reserveConfirmTry(userId, pendingFor)) !== 'ok') {
-      sendJsonResponse(res, 429, {
-        success: false,
-        error: 'Too many tries for that number. Ask for a new code in an hour.',
-      });
+      log.warn({ phone: tail(pendingFor), reason: 'confirm-limit' }, 'Confirm refused');
+      sendJsonResponse(res, 400, CONFIRM_FAILED);
       return;
     }
     const result = await verifyCode(userId, body.code ?? '');
     if (!result.valid) {
-      const error = CODE_ERRORS[result.reason] ?? 'Verification failed';
-      sendJsonResponse(res, 400, { success: false, error });
+      log.info({ phone: tail(phone), reason: result.reason }, 'Confirm refused');
+      sendJsonResponse(res, 400, CONFIRM_FAILED);
       return;
     }
     log.info({ phone: tail(phone) }, 'Phone verified');
@@ -140,7 +138,7 @@ export async function handleVerifyPhone(
       phoneLinked: linked?.ok === true,
     });
   } catch (error) {
-    log.error({ error, phone: tail(phone) }, 'Verification error');
-    sendJsonResponse(res, 500, { success: false, error: 'Verification failed' });
+    log.error({ error: redactNumbers(String(error)), phone: tail(phone) }, 'Verification error');
+    sendJsonResponse(res, 400, CONFIRM_FAILED);
   }
 }

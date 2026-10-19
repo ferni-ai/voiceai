@@ -140,11 +140,11 @@ const post = (path: string, body: unknown, token: string) =>
     body: JSON.stringify(body),
   });
 
-const MINE = '+15555550100';
+const MINE = '+12125550100';
 
 describe('asking for a phone code', () => {
   it('texts the code to the number given (never a user lookup), and says sent only when it went', async () => {
-    const res = await post('/verify-phone', { phone: '(555) 555-0100' }, 'tok-A');
+    const res = await post('/verify-phone', { phone: '(212) 555-0100' }, 'tok-A');
     expect(res.status).toBe(200);
     expect(sms.send).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -180,16 +180,16 @@ describe('asking for a phone code', () => {
   });
 
   it('confirm tries are limited per (user, number): the sixth try in the hour is refused, even a right one', async () => {
-    await post('/verify-phone', { phone: '+15555550177' }, 'tok-A');
+    await post('/verify-phone', { phone: '+12125550177' }, 'tok-A');
     for (let i = 0; i < 5; i++) {
-      await post('/verify-phone/confirm', { phone: '+15555550177', code: '000000' }, 'tok-A');
+      await post('/verify-phone/confirm', { phone: '+12125550177', code: '000000' }, 'tok-A');
     }
     const res = await post(
       '/verify-phone/confirm',
-      { phone: '+15555550177', code: '123456' },
+      { phone: '+12125550177', code: '123456' },
       'tok-A'
     );
-    expect(res.status).toBe(429);
+    expect(res.status).toBe(400); // the same answer as any failed confirm
     expect(fake.phones.get('uid-A')).toBeUndefined();
   });
 
@@ -217,7 +217,7 @@ describe('asking for a phone code', () => {
 
 describe('confirming a phone code', () => {
   it("puts the number on the signed-in user's Firebase account", async () => {
-    expect((await post('/verify-phone', { phone: '(555) 555-0100' }, 'tok-A')).status).toBe(200);
+    expect((await post('/verify-phone', { phone: '(212) 555-0100' }, 'tok-A')).status).toBe(200);
     expect(fake.phones.get('uid-A')).toBeUndefined();
     const res = await post('/verify-phone/confirm', { phone: MINE, code: '123456' }, 'tok-A');
     expect(res.status).toBe(200);
@@ -275,7 +275,7 @@ describe('confirming a phone code', () => {
     await post('/verify-phone', { phone: MINE }, 'tok-A');
     const res = await post(
       '/verify-phone/confirm',
-      { phone: '+15555550999', code: '123456' },
+      { phone: '+12125550999', code: '123456' },
       'tok-A'
     );
     expect(res.status).toBe(200);
