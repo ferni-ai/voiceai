@@ -8,6 +8,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
 
@@ -25,9 +26,12 @@ export async function handleDeliverReminders(
     const { installReminderTexts } = await import('../../services/outreach/reminder-texts.js');
     installReminderTexts();
     const result = await deliverDueReminders({ dryRun });
-    // Texts a guard held (quiet hours) go out once due, on the same every-minute run.
-    const { releaseHeldTexts } = await import('../../services/outreach/held-texts.js');
-    const heldTexts = dryRun ? undefined : await releaseHeldTexts();
+    // SMS_OPT_IN_CONFIRM: texts a guard held (quiet hours) go out once due, on this every-minute run.
+    let heldTexts;
+    if (!dryRun && flagOn('SMS_OPT_IN_CONFIRM')) {
+      const { releaseHeldTexts } = await import('../../services/outreach/held-texts.js');
+      heldTexts = await releaseHeldTexts();
+    }
     sendJson(res, 200, { success: true, job: 'deliver-reminders', ...result, heldTexts });
   } catch (error) {
     log.error({ error: String(error) }, 'Reminder delivery job failed');

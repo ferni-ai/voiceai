@@ -335,6 +335,8 @@ export const FLAG_MANIFEST = {
   // anything but 'false' skips the full generateReply prewarm, the quick path (generate-reply-gateway.ts)
   SKIP_PREWARM_GENERATEREPLY: { default: 'true', owner: 'platform', kind: 'config' },
   SKIP_TWILIO_VALIDATION: { default: 'off', owner: 'platform', kind: 'config' },
+  // on: a text confirming opt-in when texts go on in settings, and the reminder job releases held texts (opt-in-text.ts)
+  SMS_OPT_IN_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
   SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
