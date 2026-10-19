@@ -25,6 +25,7 @@ import {
   policesDelivery,
   scriptedNote,
   sheetForDirector,
+  transcriptNote,
 } from '../director-directs.js';
 import { Director, getDirector, parseNotes, type Line } from '../director-notes.js';
 import { capturePrompts, type Captured } from './director-directs-golden.js';
@@ -123,7 +124,8 @@ describe('the director directs the persona on the call', () => {
     });
     expect(s).toContain('never about the delivery');
     expect(s).toContain('to let it land');
-    expect(s).toContain("doesn't owe every reply a question");
+    expect(s).toContain("doesn't end every reply on a question");
+    expect(s).toContain("when he wouldn't ask anything here");
     expect(s).toContain('Never write lines or quote words for him to say.');
     expect(s).not.toMatch(/habit of Nayan's to drop/);
   });
@@ -156,6 +158,14 @@ describe('the guard: no style policing, no scripted lines', () => {
     expect(
       scriptedNote('She said "I keep hearing it": the call is about her mom.', 'I keep hearing it.')
     ).toBe(false);
+  });
+
+  it('drops a note written as a line of the call, not a note with a colon', () => {
+    const names = ['Riley', 'Maya'];
+    expect(transcriptNote('Riley: yes! They called me like twenty minutes ago.', names)).toBe(true);
+    expect(transcriptNote('maya: so proud of you', names)).toBe(true);
+    expect(transcriptNote('To celebrate: Riley worked a year for this.', names)).toBe(false);
+    expect(transcriptNote('Riley kept the portfolio review quiet.', names)).toBe(false);
   });
 
   it('drops them only with the flag on', () => {

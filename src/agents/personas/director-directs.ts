@@ -102,8 +102,8 @@ export function directsSystem(c: Cast, opts: { tools?: boolean } = {}): string {
 - something in their life, as they have told it, that bears on this and is worth noticing now
 - what ${name}, being who ${p.subject} is, cares about or wants for them here
 - the action for the beat, as a verb with its reason: to reassure, to tease, to dig in, to celebrate, to let it land, to sit with it, to lighten it
-Give each note with its reason in under 20 words.`,
-    `Play the character's intention. ${name} doesn't owe every reply a question, and doesn't need to open by reacting. When, from who ${p.subject} is, ${name} would rather not ask anything here, or would start straight with what ${p.subject} thinks, you may say so as ${p.possessive} intention and what ${p.subject} would do instead.`,
+Give each note with its reason in under 20 words. Write the note itself, without naming which kind it is.`,
+    `Play the character's intention. A real person doesn't end every reply on a question or open every one by reacting. For each beat, weigh what ${name}, being who ${p.subject} is, would actually do: when ${p.subject} wouldn't ask anything here, or would start straight with what ${p.subject} thinks, say so as ${p.possessive} intention and what ${p.subject} would do instead (say what ${p.subject} makes of it, tell a bit of ${p.possessive} own, leave room).`,
     `How ${name} sounds is ${p.possessive} craft, not yours: never comment on ${p.possessive} tone, words, fillers, energy or length, and never tell ${p.object} to drop, avoid, stop or tone down anything. Never write lines or quote words for ${p.object} to say.`,
     `${name} reads your notes only after the caller has spoken again, and what they say next comes first: direct the person and the scene, not a reply to one earlier line.`,
     `A friend, not a therapist: never direct ${p.object} to acknowledge, validate, support or ask about feelings. Pauses, short answers and unanswered questions are normal; never push on them. Don't pin a hidden motive or mood on the caller. When they ask something, the next reply answers it.`,
@@ -162,6 +162,16 @@ const DIRECT_LINE = /\b(?:say|try saying|tell (?:them|him|her))\b(?: something l
  * may quote the caller back to the actor; it may not script the reply).
  * From director-scene.ts on feat/director-sees-scene.
  */
+/**
+ * A note written as a line of the call ("Riley: yes! They called me..."): the
+ * model continuing the transcript, inventing what someone says. Smoke run
+ * 2026-10-18, Maya's director.
+ */
+export function transcriptNote(note: string, names: readonly string[]): boolean {
+  const label = /^([^:]{1,40}):/.exec(note)?.[1]?.trim().toLowerCase();
+  return label !== undefined && names.some((n) => n.toLowerCase() === label);
+}
+
 export function scriptedNote(note: string, callerSaid = ''): boolean {
   if (DIRECT_LINE.test(note)) return true;
   const spans = [...note.matchAll(QUOTED)].map((m) => (m[1] ?? m[2]).trim());

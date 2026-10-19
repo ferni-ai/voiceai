@@ -40,6 +40,7 @@ import {
   directsSystem,
   policesDelivery,
   scriptedNote,
+  transcriptNote,
 } from './director-directs.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
@@ -197,8 +198,11 @@ export function parseNotes(
   reply: string | undefined,
   call?: Line[],
   speaking?: string,
-  /** DIRECTOR_DIRECTS=on: also drop notes that correct the delivery or script a line (director-directs.ts). */
-  opts: { directs?: boolean } = {}
+  /**
+   * DIRECTOR_DIRECTS=on: also drop notes that correct the delivery, script a
+   * line or read as a line of the call by one of `names` (director-directs.ts).
+   */
+  opts: { directs?: boolean; names?: readonly string[] } = {}
 ): string[] {
   if (!reply) return [];
   const callerSaid = (call ?? [])
@@ -216,7 +220,13 @@ export function parseNotes(
     .filter((l) => directorLooksBack() || !backToEarlier(l))
     .filter((l) => !directorSeesTools() || !CAPABILITY_DENIAL.test(l))
     .filter((l) => speaking === undefined || !claimsIdentity(l))
-    .filter((l) => !opts.directs || (!policesDelivery(l) && !scriptedNote(l, callerSaid)))
+    .filter(
+      (l) =>
+        !opts.directs ||
+        (!policesDelivery(l) &&
+          !scriptedNote(l, callerSaid) &&
+          !transcriptNote(l, opts.names ?? []))
+    )
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
   return notes.slice(0, 2);
@@ -305,7 +315,8 @@ export class Director {
           );
           return;
         }
-        this.notes = parseNotes(reply, lines.slice(-12), asked.speaking, { directs });
+        const names = [this.opts.userName || 'Them', asked.speaking ?? 'Ferni'];
+        this.notes = parseNotes(reply, lines.slice(-12), asked.speaking, { directs, names });
         // DIRECTOR_DIRECTS: how many notes the guard dropped as style policing or a scripted line.
         this.critiqued = directs
           ? parseNotes(reply, lines.slice(-12), asked.speaking).length - this.notes.length
