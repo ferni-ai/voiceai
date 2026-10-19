@@ -211,6 +211,7 @@ private struct TeamRow: View {
                                 }
                             }
                             .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(.circle)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("\(persona.name), \(persona.role.lowercased())")

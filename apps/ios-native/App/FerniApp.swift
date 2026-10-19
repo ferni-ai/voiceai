@@ -13,6 +13,13 @@ struct FerniApp: App {
         FerniFonts.register()
         // Compile Ferni's shader off the main thread, ahead of the first frame.
         Task.detached(priority: .userInitiated) { AliveRenderer.warmUp() }
+        #if DEBUG
+        if let scenario = UITestScenario.current {
+            UITestScenario.resetDefaults()
+            _model = State(initialValue: AppModel(config: UITestScenario.config, firebaseReady: false, scenario: scenario.rawValue))
+            return
+        }
+        #endif
         _model = State(initialValue: AppModel(firebaseReady: FerniFirebase.configure()))
     }
 
@@ -22,6 +29,9 @@ struct FerniApp: App {
         WindowGroup {
             RootView()
                 .environment(model)
+                #if DEBUG
+                .uiTestEnvironment()
+                #endif
                 // Silent, anonymous on a first launch: talking never waits on a sign-in screen.
                 .task {
                     await model.account.start()
@@ -169,7 +179,8 @@ final class AppModel {
         UserDefaults.standard.removeObject(forKey: "ferni.call.hasTalked")
     }
 
-    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool) {
+    /// - Parameter scenario: debug builds only; a UI-test launch (`UITestScenario`).
+    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool, scenario: String? = nil) {
         self.config = config
         account = AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
         api = account.api(baseURL: config.apiBaseURL)
@@ -191,17 +202,34 @@ final class AppModel {
         let feedback = CallFeedback()
         self.feedback = feedback
         let level = AudioLevelMeter()
-        call = CallSession(
+        let avatar = AvatarModel(play: { [feedback] in feedback.play($0) })
+        #if DEBUG
+        let testCall = scenario.map { _ in UITestScenario.callSession(avatar: avatar, level: level) }
+        #else
+        let testCall: CallSession? = nil
+        #endif
+        call = testCall ?? CallSession(
             fetchToken: CallTokens.fetcher(api: api),
             makeRoom: { LiveKitVoiceRoom(agentLevel: level) },
             audio: SystemCallAudio(systemManagesCalls: ConversationLifecycle.isAvailable),
-            avatar: AvatarModel(play: { [feedback] in feedback.play($0) }),
+            avatar: avatar,
             lifecycle: ConversationLifecycle.isAvailable ? ConversationLifecycle() : nil,
             agentLevel: level
         )
         feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
         installSystemHandlers()
         Self.shared = self
+        #if DEBUG
+        if let scenario = scenario.flatMap(UITestScenario.init(rawValue:)) {
+            switch scenario {
+            case .home: break
+            case .consent: isAskingConsent = true
+            case .settings: isShowingSettings = true
+            case .call: call.start(personaID: PersonaRegistry.ferni.id)
+            }
+            return // no watch session in a UI test
+        }
+        #endif
         watchRemote = WatchRemote(model: self)
         watchRemote?.start()
     }
