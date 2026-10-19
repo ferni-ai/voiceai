@@ -76,6 +76,12 @@ function webDataOf(out: string): { note: string; result: string; sources: string
 
 let principal = 0;
 const nextCaller = () => `user:test-${++principal}-${Date.now()}`;
+let isolation = 0;
+/**
+ * A rate-limit key no other test uses. Not Date.now(): two tests in the same
+ * millisecond got the same key, so one inherited the other's spent bucket.
+ */
+const isolatedKey = (key: string) => `${key}:isolated-${++isolation}-${Date.now()}`;
 
 beforeEach(() => {
   circuitBreaker.resetAll();
@@ -249,7 +255,7 @@ describe('spend caps', () => {
     vi.stubEnv('SEARCH_MAX_PER_DAY', '3');
     const dayCosts: number[] = [];
     const original = rateLimiter.checkShared.bind(rateLimiter);
-    const isolatedDay = `${DAY_KEY}:isolated-${Date.now()}`;
+    const isolatedDay = isolatedKey(DAY_KEY);
     vi.spyOn(rateLimiter, 'checkShared').mockImplementation(async (key, max, windowMs, cost) => {
       if (key === DAY_KEY) dayCosts.push(cost ?? 1);
       return original(key === DAY_KEY ? isolatedDay : key, max, windowMs, cost);
@@ -305,7 +311,7 @@ describe('spend caps', () => {
     vi.stubEnv('SEARCH_MAX_PER_PERSON_HOUR', '5');
     const original = rateLimiter.checkShared.bind(rateLimiter);
     const anonKey = `${PERSON_KEY}:${ANONYMOUS}`;
-    const isolated = `${anonKey}:isolated-${Date.now()}`;
+    const isolated = isolatedKey(anonKey);
     vi.spyOn(rateLimiter, 'checkShared').mockImplementation(async (key, max, windowMs, cost) =>
       original(key === anonKey ? isolated : key, max, windowMs, cost)
     );
@@ -326,7 +332,7 @@ describe('spend caps', () => {
     // The shared anonymous bucket lives on its own key here so reruns start empty.
     const original = rateLimiter.checkShared.bind(rateLimiter);
     const anonKey = `${PERSON_KEY}:${ANONYMOUS}`;
-    const isolated = `${anonKey}:isolated-${Date.now()}`;
+    const isolated = isolatedKey(anonKey);
     const anonLimits: number[] = [];
     vi.spyOn(rateLimiter, 'checkShared').mockImplementation(async (key, max, windowMs, cost) => {
       if (key === anonKey) anonLimits.push(max);
