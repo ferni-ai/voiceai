@@ -399,10 +399,9 @@ async function getRecentFamilyEvents(sponsorUserId: string, identityId: string):
 // ============================================================================
 
 /**
- * The first words of a check-in call. Every call, first or repeat, says Ferni
- * is the sponsor's AI friend: the one, light AI disclosure (the same rule as
- * on-behalf calls, agents/shared/outbound-opener.ts). No exclamation marks:
- * the Twilio fallback reads this line aloud as written.
+ * The first words of a check-in call. Ferni says its name and who asked it to
+ * call, not "<sponsor>'s AI friend": the person agreed to these calls and knows
+ * Ferni (Seth, 2026-10-18). No exclamation marks: Twilio reads it as written.
  */
 function generateOpeningLine(
   schedule: Pick<FamilyCheckinSchedule, 'timezone'>,
@@ -414,7 +413,7 @@ function generateOpeningLine(
   const name = identity.preferredName || identity.displayName;
   const sponsor = sponsorInfo.nickname || sponsorInfo.name;
   const known = sponsor && sponsor !== UNKNOWN_SPONSOR;
-  const ferni = known ? `it's Ferni, ${sponsor}'s AI friend` : "it's Ferni, an AI friend";
+  const ferni = "it's Ferni"; // they agreed to Ferni's calls and know who Ferni is
   const hello = `${localGreeting(schedule.timezone, now)} ${name}, ${ferni}`;
 
   const lastCall = recentCalls[0];
