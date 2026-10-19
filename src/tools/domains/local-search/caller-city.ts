@@ -9,10 +9,12 @@
  *   3. the city their phone shows (userData.userLocation, from dispatch metadata).
  * Nothing known: undefined, and the tool asks where they are.
  *
- * City level only. Nothing here stores a street, a postcode, GPS or
- * coordinates. A value with a digit, a street or unit word, or two number
- * words is refused, not trimmed. This is a list of words, not a check against
- * real places, so it is a backstop for the caller's own words, not a guarantee.
+ * City level only. Nothing here stores a postcode, GPS or coordinates. A name
+ * with a digit or a character no place name uses is refused before any lookup.
+ * Saving a city asks Google Places to confirm it, and keeps only the Places place
+ * ID and the caller's own words. A street name is refused only when Places gives
+ * it no locality, so that refusal depends on Places' answer. Google's name,
+ * address and coordinates are never stored.
  *
  * @module tools/domains/local-search/caller-city
  */
@@ -28,6 +30,7 @@ import {
 } from '../../shared/caller-location.js';
 import { getUserPreferences, updateUserPreferences } from '../information/preferences/storage.js';
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
+import { findCityByName } from './places-locality.js';
 
 const log = getLogger();
 
@@ -35,70 +38,12 @@ const MAX_CHARS = 40;
 const MAX_WORDS = 4;
 /** Letters and the punctuation place names use. No digits: those mean a street, a postcode or coordinates. */
 const CITY_CHARS = /^[\p{L}\p{M} .'’-]+$/u;
-/** Street and place words: no city name needs them, anywhere in the name. */
-const NOT_A_CITY_WORDS = new Set([
-  'street',
-  'avenue',
-  'road',
-  'boulevard',
-  'drive',
-  'lane',
-  'court',
-  'square',
-  'parkway',
-  'highway',
-  'terrace',
-  'route',
-  'alley',
-  'rue',
-  'strasse',
-  'straße',
-  'calle',
-  'via',
-  'rua',
-  'avenida',
-  'apt',
-  'apartment',
-  'suite',
-  'unit',
-  'flat',
-  'floor',
-  'building',
-  'house',
-  'home',
-  'my',
-  'near',
-  'and',
-]);
-/** Short street words that only mean a street at the end ("Main St"); "St. George" stays. */
-const STREET_ENDINGS = new Set(['st', 'ave', 'rd', 'blvd', 'dr', 'ln', 'ct', 'pl', 'way', 'place']);
-const NUMBER_WORDS = new Set([
-  'zero',
-  'one',
-  'two',
-  'three',
-  'four',
-  'five',
-  'six',
-  'seven',
-  'eight',
-  'nine',
-  'ten',
-  'eleven',
-  'twelve',
-  'twenty',
-  'thirty',
-  'forty',
-  'fifty',
-  'sixty',
-  'seventy',
-  'eighty',
-  'ninety',
-  'hundred',
-  'thousand',
-]);
-
-export type SaveCityResult = 'saved' | 'not-a-city' | 'failed';
+/** `name` is what was saved, in the caller's own words ("Philly, PA"), so the caller can hear and correct it. */
+export type SaveCityResult =
+  | { status: 'saved'; name: string }
+  | { status: 'not-a-city' }
+  | { status: 'lookup-failed' }
+  | { status: 'failed' };
 
 export function placesLocationOn(env = process.env): boolean {
   return flagOn('PLACES_LOCATION', env);
@@ -120,13 +65,6 @@ export function cityOnly(value: string | undefined): string | undefined {
   }
   if (!CITY_CHARS.test(cleaned) || !/\p{L}/u.test(cleaned)) return undefined;
 
-  const words = cleaned
-    .toLowerCase()
-    .split(/[\s.'’-]+/)
-    .filter(Boolean);
-  if (words.some((w) => NOT_A_CITY_WORDS.has(w))) return undefined;
-  if (STREET_ENDINGS.has(words[words.length - 1])) return undefined;
-  if (words.filter((w) => NUMBER_WORDS.has(w)).length >= 2) return undefined;
   return cleaned;
 }
 
@@ -168,24 +106,44 @@ export async function resolveSearchLocation(
   return remembered ?? callerLocation(opts, ctx);
 }
 
-/** Remember a city for the caller. Called only after they said yes. */
+/**
+ * Remember a city for the caller. Called only after they said yes. The name is
+ * confirmed with Places, and what is stored is the place ID and the caller's own words.
+ */
 export async function saveCallerCity(
   userId: string,
   city: string,
   region?: string
 ): Promise<SaveCityResult> {
   const cityName = cityOnly(city);
-  const regionCode = region === undefined ? undefined : cityOnly(region);
-  if (!cityName || (region !== undefined && !regionCode)) return 'not-a-city';
+  const regionName = region === undefined ? undefined : cityOnly(region);
+  if (!cityName || (region !== undefined && !regionName)) return { status: 'not-a-city' };
 
+  let match;
+  try {
+    match = await findCityByName(regionName ? `${cityName}, ${regionName}` : cityName);
+  } catch (error) {
+    log.warn({ userId, error: String(error) }, '📍 Could not check the city with Places');
+    return { status: 'lookup-failed' };
+  }
+  if (!match) return { status: 'not-a-city' };
+
+  // Stored: the Places place ID and the caller's own words. Not Google's name, address or coordinates.
   const previous = (await getUserPreferences(userId)).callerCity;
   const result = await updateUserPreferences(userId, {
-    callerCity: { city: cityName, regionCode, savedAt: new Date().toISOString() },
+    callerCity: {
+      placeId: match.placeId,
+      city: cityName,
+      regionCode: regionName,
+      savedAt: new Date().toISOString(),
+    },
   });
-  if (result.success) return 'saved';
+  if (result.success) {
+    return { status: 'saved', name: regionName ? `${cityName}, ${regionName}` : cityName };
+  }
   // The preferences cache takes the new city before the Firestore write fails: put the old one back.
   await updateUserPreferences(userId, { callerCity: previous });
-  return 'failed';
+  return { status: 'failed' };
 }
 
 /** Forget the saved city. The phone's city, if it has one, is still used. */
