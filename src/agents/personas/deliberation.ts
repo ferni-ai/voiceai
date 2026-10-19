@@ -25,6 +25,7 @@ import {
   type DeliberationMode,
 } from './deliberation-anticipate.js';
 import type { Line } from './director-notes.js';
+import { castFor, directorDirects, directsDeliberationSystem } from './director-directs.js';
 import { hardNews } from './turn-candor.js';
 import { callerVenting } from './turn-extras.js';
 import { callerMove } from './turn-shape.js';
@@ -142,15 +143,18 @@ export function buildDeliberationPrompt(
   lines: Line[],
   memory: string,
   userName?: string,
-  mind = ''
+  mind = '',
+  /** DIRECTOR_DIRECTS=on: the persona on the call, whose lines and memory these are. */
+  speaking?: string
 ): string {
   const who = userName || 'Them';
+  const assistant = (l: Line): string => (speaking ? (l.by ?? speaking) : 'Ferni');
   const call = lines
     .slice(-16)
-    .map((l) => `${l.speaker === 'ferni' ? 'Ferni' : who}: ${l.text}`)
+    .map((l) => `${l.speaker === 'ferni' ? assistant(l) : who}: ${l.text}`)
     .join('\n');
   const known = memory.trim()
-    ? `What Ferni remembers that may bear on it:\n${memory.trim().slice(0, 1200)}\n\n`
+    ? `What ${speaking ?? 'Ferni'} remembers that may bear on it:\n${memory.trim().slice(0, 1200)}\n\n`
     : '';
   const how = mind.trim()
     ? `How they tend to be, from earlier calls:\n${mind.trim().slice(0, 600)}\n\n`
@@ -201,7 +205,9 @@ export class Deliberator {
     lines: Line[],
     understanding: Understanding | null,
     memory = '',
-    mind = ''
+    mind = '',
+    /** The persona on the call; read only with DIRECTOR_DIRECTS on (director-directs.ts). */
+    personaId?: string
   ): Promise<void> {
     this.turn++;
     if (this.offered) {
@@ -222,13 +228,26 @@ export class Deliberator {
     const ready = this.turn - this.lastOfferedTurn >= SPACING_TURNS - 1;
     if (this.running || this.thought || !ready || this.turn <= this.heldUntil) return;
     if (this.stats.runs >= MAX_RUNS || !carriesWeight(lastCallerTurn(lines), understanding)) return;
-    return this.deliberate(this.promptFor(lines, memory, mind));
+    return this.deliberate(async () => {
+      // DIRECTOR_DIRECTS=on: the thought is the persona's own, framed from its sheet.
+      // The anticipate arm keeps its own instructions.
+      if (!directorDirects() || this.opts.mode === 'anticipate')
+        return {
+          system: this.opts.mode === 'anticipate' ? ANTICIPATE_SYSTEM : DELIBERATION_SYSTEM,
+          prompt: this.promptFor(lines, memory, mind),
+        };
+      const cast = await castFor(personaId);
+      return {
+        system: directsDeliberationSystem(cast),
+        prompt: this.promptFor(lines, memory, mind, cast.name),
+      };
+    });
   }
 
   /** How they tend to be (theory of mind) only informs the anticipate arm. */
-  private promptFor(lines: Line[], memory: string, mind: string): string {
+  private promptFor(lines: Line[], memory: string, mind: string, speaking?: string): string {
     const how = this.opts.mode === 'anticipate' ? mind : '';
-    return buildDeliberationPrompt(lines, memory, this.opts.userName, how);
+    return buildDeliberationPrompt(lines, memory, this.opts.userName, how, speaking);
   }
 
   /** The thought in a reply and, in the anticipate arm, what the simulation weighed (labels only). */
@@ -240,7 +259,9 @@ export class Deliberator {
     return { t: keptAfterSimulation(t, a), labels: { mode: 'anticipate', ...anticipationLog(a) } };
   }
 
-  private async deliberate(prompt: string): Promise<void> {
+  private async deliberate(
+    request: () => Promise<{ system: string; prompt: string }>
+  ): Promise<void> {
     this.running = true;
     this.stats.runs++;
     const startedTurn = this.turn;
@@ -252,7 +273,7 @@ export class Deliberator {
         controller.signal.addEventListener('abort', () => reject(new Error('timeout')));
       });
       aborted.catch(() => undefined);
-      const system = this.opts.mode === 'anticipate' ? ANTICIPATE_SYSTEM : DELIBERATION_SYSTEM;
+      const { system, prompt } = await request();
       const { text, usage } = await Promise.race([
         this.opts.think(system, prompt, controller.signal),
         aborted,

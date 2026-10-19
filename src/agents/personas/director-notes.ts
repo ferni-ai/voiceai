@@ -34,6 +34,13 @@ import {
 import { directorSeesTools, ToolLog } from './director-tool-state.js';
 import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
 import { claimsIdentity, speakerNote, teamNote } from './director-persona.js';
+import {
+  castFor,
+  directorDirects,
+  directsSystem,
+  policesDelivery,
+  scriptedNote,
+} from './director-directs.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -186,8 +193,18 @@ function contentWords(text: string): Set<string> {
  * unusable. With the call's lines given, a note must mention something said
  * in it: the director once reported a "weather bit" nobody had mentioned.
  */
-export function parseNotes(reply: string | undefined, call?: Line[], speaking?: string): string[] {
+export function parseNotes(
+  reply: string | undefined,
+  call?: Line[],
+  speaking?: string,
+  /** DIRECTOR_DIRECTS=on: also drop notes that correct the delivery or script a line (director-directs.ts). */
+  opts: { directs?: boolean } = {}
+): string[] {
   if (!reply) return [];
+  const callerSaid = (call ?? [])
+    .filter((l) => l.speaker === 'user')
+    .map((l) => l.text)
+    .join(' ');
   const said = call ? contentWords(call.map((l) => l.text).join(' ')) : null;
   const notes = reply
     .split('\n')
@@ -199,6 +216,7 @@ export function parseNotes(reply: string | undefined, call?: Line[], speaking?: 
     .filter((l) => directorLooksBack() || !backToEarlier(l))
     .filter((l) => !directorSeesTools() || !CAPABILITY_DENIAL.test(l))
     .filter((l) => speaking === undefined || !claimsIdentity(l))
+    .filter((l) => !opts.directs || (!policesDelivery(l) && !scriptedNote(l, callerSaid)))
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
   return notes.slice(0, 2);
@@ -225,6 +243,7 @@ export class Director {
   /** DIRECTOR_ESCALATE=on: what the notes have raised, and the rule a repeat earned. */
   private readonly history = new NoteHistory();
   private rule = '';
+  private critiqued = 0;
 
   constructor(
     private readonly opts: {
@@ -236,6 +255,8 @@ export class Director {
       writeNotes?: boolean;
       /** The persona on the call now (DIRECTOR_PERSONA_AWARE); unset, the director directs Ferni. */
       speaking?: () => string;
+      /** The persona id on the call now; read only with DIRECTOR_DIRECTS on (director-directs.ts). */
+      personaId?: () => string | undefined;
     }
   ) {}
 
@@ -244,6 +265,7 @@ export class Director {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
     this.rule = '';
+    this.critiqued = 0;
     const speaking = this.opts.speaking?.();
     this.toldRecord = toldThisCallEnabled()
       ? toldThisCall(lines, this.opts.userName, speaking)
@@ -253,19 +275,25 @@ export class Director {
     const seesTools = directorSeesTools();
     const started = Date.now();
     const system = directorSystem();
+    const directs = directorDirects();
     const work = (async () => {
       try {
-        const reply = await withTimeout(
-          writer(
-            (speaking ? `${system}\n${speakerNote(speaking)}\n${teamNote(speaking)}` : system) +
-              (seesTools ? `\n${TOOL_RULE}` : ''),
-            buildDirectorPrompt(
-              lines,
-              this.opts.userName,
+        const asked = directs
+          ? await this.directing(lines, seesTools)
+          : {
+              system:
+                (speaking ? `${system}\n${speakerNote(speaking)}\n${teamNote(speaking)}` : system) +
+                (seesTools ? `\n${TOOL_RULE}` : ''),
+              prompt: buildDirectorPrompt(
+                lines,
+                this.opts.userName,
+                speaking,
+                seesTools ? this.tools.lines() : []
+              ),
               speaking,
-              seesTools ? this.tools.lines() : []
-            )
-          ),
+            };
+        const reply = await withTimeout(
+          writer(asked.system, asked.prompt),
           this.opts.budgetMs ?? 4000
         );
         if (gen !== this.generation) return; // a newer turn superseded this one
@@ -277,7 +305,11 @@ export class Director {
           );
           return;
         }
-        this.notes = parseNotes(reply, lines.slice(-12), speaking);
+        this.notes = parseNotes(reply, lines.slice(-12), asked.speaking, { directs });
+        // DIRECTOR_DIRECTS: how many notes the guard dropped as style policing or a scripted line.
+        this.critiqued = directs
+          ? parseNotes(reply, lines.slice(-12), asked.speaking).length - this.notes.length
+          : 0;
         const escalated = this.escalate();
         log.info(
           {
@@ -285,6 +317,7 @@ export class Director {
             ms: Date.now() - started,
             notes: this.notes,
             escalated,
+            ...(directs ? { critiqued: this.critiqued } : {}),
           },
           'DIRECTOR_NOTES'
         );
@@ -294,6 +327,29 @@ export class Director {
       }
     })();
     return work;
+  }
+
+  /**
+   * DIRECTOR_DIRECTS=on: the request recast as direction for the persona on
+   * the call, who the director knows from its own sheet (director-directs.ts).
+   * DIRECTOR_ESCALATE's Ferni-only address is not added.
+   */
+  private async directing(
+    lines: Line[],
+    seesTools: boolean
+  ): Promise<{ system: string; prompt: string; speaking: string }> {
+    const cast = await castFor(this.opts.personaId?.());
+    const tools = seesTools ? this.tools.lines() : [];
+    return {
+      system: directsSystem(cast, { tools: seesTools }),
+      prompt: buildDirectorPrompt(lines, this.opts.userName, cast.name, tools),
+      speaking: cast.name,
+    };
+  }
+
+  /** DIRECTOR_DIRECTS=on: notes the last run wrote that the guard dropped (policing or scripting). */
+  droppedAsCritique(): number {
+    return this.critiqued;
   }
 
   /** DIRECTOR_ESCALATE=on: record this reply's notes; a theme raised twice becomes the rule. */
