@@ -52,6 +52,7 @@ import { isFtisEnabled } from '../../config/tool-config.js';
 import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
 import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
 import { recordQuirk } from '../../services/session/quirk-log.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -731,12 +732,10 @@ export async function wrappedTtsNode(
           // V3.2: Track Ferni's commitments in his response
           // This catches when Ferni says things like "I'll check in about that" or "Let me know how it goes"
           // Fire-and-forget to not block TTS stream
-          if (userId && userId !== 'anonymous' && rawLLMBuffer.length > 10 && !isGarbageResponse) {
+          if (isMemberIdentity(userId) && rawLLMBuffer.length > 10 && !isGarbageResponse) {
             import('../../services/superhuman/semantic-intelligence/integration.js')
               .then(({ trackFerniCommitments }) => {
-                trackFerniCommitments(userId, rawLLMBuffer, {
-                  // Context is minimal in TTS wrapper, but commitments will still be detected
-                });
+                void trackFerniCommitments(userId, rawLLMBuffer, {});
               })
               .catch((err) => {
                 // Non-critical - don't block TTS

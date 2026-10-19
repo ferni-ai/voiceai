@@ -551,7 +551,6 @@
     "target": "Target",
     "tasks": "Tasks",
     "teachings": "Teachings",
-    "teamMembersUnlocked": "Team members unlocked",
     "teamUnlock": "Team Unlock",
     "testCall": "Test Call",
     "testEmail": "Test Email",
@@ -2926,6 +2925,9 @@
     "openConversations": "Open Conversations",
     "onYourMind": "On Your Mind",
     "thingsTracking": "Things your team is keeping track of for you",
+    "trackedDone": "Done",
+    "trackedDismiss": "Dismiss",
+    "trackedUpdateFailed": "Couldn't update that. Try again?",
     "quickConnections": "Quick Connections",
     "startWithAnyone": "Start a conversation with anyone on your team",
     "allCaughtUp": "All caught up!",
@@ -3329,7 +3331,8 @@
     "loadingStory": "Loading your story...",
     "motivation": "Every moment matters",
     "ourStoryStart": "Our story is just beginning",
-    "youAreHere": "You are here"
+    "youAreHere": "You are here",
+    "boundariesYouSet": "Boundaries you've set"
   },
   "agentWizard": {
     "namePlaceholder": "What should we call them?",
@@ -3461,7 +3464,6 @@
   "familyIdentities": {
     "closeModal": "Close",
     "familyTitle": "Your Ferni Family",
-    "familySubtitle": "People who can call Ferni by phone",
     "fieldName": "Name",
     "fieldPhoneNumber": "Phone Number",
     "fieldPhoneNumberDisabledHint": "Phone number cannot be changed",
@@ -3509,7 +3511,6 @@
     "accessLevelSupervisedDesc": "You get notified of calls",
     "eyebrow": "Family",
     "addMember": "Add Family Member",
-    "emptyText": "Add family members who call Ferni by phone. They'll be recognised automatically and can have their own conversations with Ferni.",
     "lastCall": "Last: {date}",
     "noCalls": "No calls yet",
     "nameAndPhoneRequired": "Name and phone are required",
@@ -3524,7 +3525,9 @@
     "calls": {
       "one": "{count} call",
       "other": "{count} calls"
-    }
+    },
+    "emptyIntro": "Add the people who matter to you. Ferni doesn't recognise callers by their number yet, so a call from them starts fresh.",
+    "peopleSubtitle": "The people who matter to you"
   },
   "panels": {
     "goBack": "Go back",
@@ -9313,16 +9316,11 @@
     "subtitleNoMinutes": "{conversations}. Countless moments of growth.",
     "statConversations": "Conversations",
     "statTotal": "Total",
-    "statCurrentStreak": "Current Streak",
-    "statBestStreak": "Best: {count}",
-    "statTeamMembers": "Team Members",
-    "statUnlocked": "Unlocked",
     "statDreamsTracked": "Dreams Tracked",
     "statGrowing": "Growing",
     "conversationActivity": "Conversation Activity",
     "emotionalMilestones": "Emotional Milestones",
     "dreamsGuarding": "Dreams We're Guarding",
-    "unlockedOn": "Unlocked {date}",
     "conversationCount": {
       "one": "{count} conversation",
       "other": "{count} conversations"
@@ -9339,10 +9337,7 @@
       "one": "{count} minute",
       "other": "{count} minutes"
     },
-    "streakDays": {
-      "one": "{count} day",
-      "other": "{count} days"
-    }
+    "teamUnavailable": "Couldn't load your team just now."
   },
   "geolocation": {
     "prompts": {
@@ -9403,7 +9398,8 @@
       "household": "your household",
       "lifeContext": "your life context",
       "ritualBuilder": "the ritual builder",
-      "notificationSettings": "notification settings"
+      "notificationSettings": "notification settings",
+      "yourYear": "This Year Together"
     },
     "updated": "Ferni just got an update. Refresh the page to open {screen}.",
     "ritualCreated": "\"{name}\" created! You've got this."
@@ -11072,5 +11068,8 @@
     "helper": "Scan with your phone's camera, or tap Open Venmo. You can change the amount.",
     "maybeLater": "Maybe later",
     "close": "Close"
+  },
+  "panelShell": {
+    "gettingReady": "One moment, I'm getting this ready for you"
   }
 }
