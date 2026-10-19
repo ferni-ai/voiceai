@@ -14,26 +14,26 @@ import Foundation
 ///   @livekit/agents sets on the agent participant (`initializing`, `idle`,
 ///   `listening`, `thinking`, `speaking`). The web reads the same attribute
 ///   (apps/web/src/ui/speaker-cues-signals.ts).
-enum AgentSignals {
+public enum AgentSignals {
 
     /// The caller's speech, from `speech_state` messages.
-    enum UserSpeech: Equatable {
+    public enum UserSpeech: Equatable, Sendable {
         case started
         case paused(durationMs: Double)
         case ended
     }
 
     /// Ferni's turn state, from the `lk.agent.state` attribute.
-    enum AgentActivity: String, Equatable {
+    public enum AgentActivity: String, Equatable, Sendable {
         case initializing, idle, listening, thinking, speaking
     }
 
     /// Participant attribute the agent framework uses for its turn state.
-    static let agentStateAttribute = "lk.agent.state"
+    public static let agentStateAttribute = "lk.agent.state"
 
     /// Reads a `speech_state` message. Also accepts the phase as the message
     /// `type` itself, as the web receiver does for older senders.
-    static func userSpeech(from json: [String: Any]) -> UserSpeech? {
+    public static func userSpeech(from json: [String: Any]) -> UserSpeech? {
         guard let type = json["type"] as? String else { return nil }
         let phase = type == "speech_state" ? json["innerType"] as? String : type
         switch phase {
@@ -51,14 +51,14 @@ enum AgentSignals {
 
     /// Reads Ferni's turn state from a participant's attributes (or an
     /// attribute diff). Nil when the attribute is absent or unknown.
-    static func agentActivity(from attributes: [String: String]) -> AgentActivity? {
+    public static func agentActivity(from attributes: [String: String]) -> AgentActivity? {
         attributes[agentStateAttribute].flatMap(AgentActivity.init(rawValue:))
     }
 
     /// The avatar for a turn state. Emotional expressions set by other
     /// messages stay; only the turn-taking faces (neutral, listening,
     /// speaking, thinking) are replaced.
-    static func avatar(
+    public static func avatar(
         for activity: AgentActivity,
         current: AvatarExpression
     ) -> (isSpeaking: Bool, expression: AvatarExpression) {

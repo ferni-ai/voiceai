@@ -2,8 +2,8 @@
 #
 # Builds the mobile apps (iOS, Android). The Electron desktop app was removed.
 # Triggered on version tags (v*) or manual dispatch. Pull requests and the merge
-# queue run only the iOS build and unit tests, and only when the iPhone app,
-# the shared Swift package or this workflow changed.
+# queue run only the iOS build and unit tests, and only when the iPhone app
+# or this workflow changed.
 
 name: Build Native Apps
 
@@ -40,7 +40,7 @@ jobs:
   # iOS (Native SwiftUI): build and unit tests on a simulator, archive on tags
   # ============================================================================
   # Pull requests and merge-queue groups run the iOS job only when they touch the
-  # iPhone app, the shared Swift package or this workflow (a skipped job still
+  # iPhone app or this workflow (a skipped job still
   # reports its check, so this can be made a required check later). ci.yml's
   # Node jobs keep excluding apps/ios-native: they cannot see a Swift change.
   ios-changes:
@@ -58,7 +58,7 @@ jobs:
       - id: ios
         uses: ./.github/actions/pr-changes
         with:
-          include: '^(apps/ios-native/|apps/shared/|\.github/workflows/build-apps\.yml$)'
+          include: '^(apps/ios-native/|\.github/workflows/build-apps\.yml$)'
           merge-group: 'true'
 
   build-ios:
@@ -85,20 +85,14 @@ jobs:
         with:
           xcode-version: latest-stable
 
-      # FerniShared compiles a .metal shader; recent Xcode ships the Metal
-      # compiler as a separate download.
-      - name: Metal toolchain
-        run: |
-          xcodebuild -version
-          if ! xcrun -sdk iphonesimulator metal --version >/dev/null 2>&1; then
-            xcodebuild -downloadComponent MetalToolchain
-          fi
+      - name: Xcode version
+        run: xcodebuild -version
 
       - name: Cache Swift packages
         uses: actions/cache@v6
         with:
           path: ${{ env.SPM_DIR }}
-          key: ${{ runner.os }}-spm-${{ hashFiles('apps/ios-native/FerniVoice.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          key: ${{ runner.os }}-spm-${{ hashFiles('apps/ios-native/Ferni.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
           restore-keys: |
             ${{ runner.os }}-spm-
 
@@ -106,8 +100,8 @@ jobs:
         working-directory: apps/ios-native
         run: |
           xcodebuild -resolvePackageDependencies \
-            -project FerniVoice.xcodeproj \
-            -scheme FerniVoice \
+            -project Ferni.xcodeproj \
+            -scheme Ferni \
             -clonedSourcePackagesDirPath "$SPM_DIR"
 
       - name: Pick an iPhone simulator
@@ -128,11 +122,11 @@ jobs:
         run: |
           set -o pipefail
           xcodebuild test \
-            -project FerniVoice.xcodeproj \
-            -scheme FerniVoice \
+            -project Ferni.xcodeproj \
+            -scheme Ferni \
             -destination "id=${{ steps.sim.outputs.udid }}" \
             -clonedSourcePackagesDirPath "$SPM_DIR" \
-            -resultBundlePath "$RUNNER_TEMP/FerniVoiceTests.xcresult" \
+            -resultBundlePath "$RUNNER_TEMP/FerniTests.xcresult" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO
@@ -142,7 +136,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ios-test-results
-          path: ${{ runner.temp }}/FerniVoiceTests.xcresult
+          path: ${{ runner.temp }}/FerniTests.xcresult
           retention-days: 14
 
       # Tags and manual runs also check that a Release archive builds. It is
@@ -151,11 +145,11 @@ jobs:
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         working-directory: apps/ios-native
         run: |
-          xcodebuild -project FerniVoice.xcodeproj \
-            -scheme FerniVoice \
+          xcodebuild -project Ferni.xcodeproj \
+            -scheme Ferni \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/FerniVoice.xcarchive" \
+            -archivePath "$RUNNER_TEMP/Ferni.xcarchive" \
             -clonedSourcePackagesDirPath "$SPM_DIR" \
             -skipPackagePluginValidation \
             -skipMacroValidation \
@@ -169,7 +163,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: ios-archive-unsigned
-          path: ${{ runner.temp }}/FerniVoice.xcarchive
+          path: ${{ runner.temp }}/Ferni.xcarchive
           retention-days: 30
 
   # ============================================================================
