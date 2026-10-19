@@ -49,6 +49,8 @@ export interface ConfirmGate {
   ) => 'confirmed' | 'waiting' | 'void';
   ownerKnown: (session: object) => boolean;
   isClearNo: (text: string) => boolean;
+  /** The owner's first names from the call's user data, so a yes may address them (PendingAction.owner). */
+  ownerFirstNames: (opts: unknown) => string[];
   windowMs: number;
   planOnly: symbol;
   planned: symbol;
@@ -193,6 +195,7 @@ export async function gateInFamily(c: FamilyCall): Promise<unknown> {
     createdSeq: entry.seq,
     expiresAt: Date.now() + gate.windowMs,
     server: { toolId: c.toolId, family, target, readBack, send },
+    owner: gate.ownerFirstNames(c.opts),
   };
   openConfirmThread(entry.pending, {
     userId: c.userId,
