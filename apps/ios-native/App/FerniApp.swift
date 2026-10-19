@@ -11,6 +11,8 @@ struct FerniApp: App {
     init() {
         CrashReporting.start()
         FerniFonts.register()
+        // Compile Ferni's shader off the main thread, ahead of the first frame.
+        Task.detached(priority: .userInitiated) { AliveRenderer.warmUp() }
         _model = State(initialValue: AppModel(firebaseReady: FerniFirebase.configure()))
     }
 

@@ -183,7 +183,12 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
       shade = 1.0 - (1.0 - shade) * (1.0 - exp(-dot(w2, w2) * 1.7) / (1.0 + gh * 2.2) * mix(0.28, 0.6, dark));
     }
   }
-  float4 under = float4(gamma(light) * 0.9, 0.0) + float4(0.0, 0.0, 0.0, shade);
+  // Added light is what it adds on screen over the room (not gamma(light) alone, which lifts
+  // the faintest glow into a visible box), and fades out before the canvas edge.
+  float2 edge = abs(frag / res * 2.0 - 1.0);
+  float fade = smoothstep(1.0, 0.8, max(edge.x, edge.y));
+  float3 roomC = mix(u.bg1.xyz, u.bg0.xyz, frag.y / res.y);
+  float4 under = float4((gamma(roomC + light) - gamma(roomC)) * fade, 0.0) + float4(0.0, 0.0, 0.0, shade * fade);
 
   float3 bc = u.pos.xyz; float R = 1.75 * uScale;
   if (u.guest.w > 0.5) { float3 gp = float3(u.guest.xy, 0.0); bc = (u.pos.xyz + gp) * 0.5; R = 0.5 * length(gp - u.pos.xyz) + 1.75 * max(uScale, u.guest.z); }
