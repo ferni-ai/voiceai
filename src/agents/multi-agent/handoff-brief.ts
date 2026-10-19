@@ -13,14 +13,19 @@
 
 import type { Env } from '../../config/env-flag.js';
 import { getGenerativeModel } from '../../config/generative-model.js';
-import { contentWords } from '../../memory/recall/session-recall.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { getArrivingBanter, getHandoffBanter } from '../../services/team-engagement/banter.js';
 import { characterOf } from '../../speech/direction/cue-say.js';
 import { directLine, type Actor } from '../../speech/direction/director.js';
 import { handoffAskFirstEnabled } from '../../tools/handoff/handoff-consent.js';
-import { teammateHeardAs } from '../../tools/handoff/teammate-names.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  ARRIVAL_DIRECTION_GROUNDED,
+  addedWords,
+  arrivalGrounded,
+  callerSaidSomething,
+} from './arrival-grounding.js';
+import { groundedIn, topicWords } from './caller-words.js';
 import {
   ARRIVAL_DIRECTION,
   ARRIVAL_DIRECTION_PLAIN,
@@ -165,39 +170,6 @@ export function readConversation(
 
 /** The brief's reason when the caller gave none: they asked for the teammate, that's all. */
 export const NO_TOPIC = 'They asked for you by name and have not said what about yet.';
-
-/** Words that ask for a teammate, or are filler, rather than say what the call is about. */
-const ASKING = new Set(
-  "talk talking speak speaking chat chatting switch transfer hand bring put connect over hey please want wanted need wanna gonna let let's help hello thank thanks sure yes yep okay right now quick minute someone somebody doing well good great hope question thing stuff side whether more glad calling called asked ask getting get into what's you're you've i've it's that's we're said told heard hear mentioned filled voice day today tonight evening morning afternoon week weekend time moment ready dig figure start sounds sorted fun cool nice awesome perfect exciting together mind world energy happening".split(
-    ' '
-  )
-);
-
-/** What a line is about once the teammates' names and the asking are taken out. */
-export function topicWords(text: string): string[] {
-  return [...contentWords(text)].filter((w) => !ASKING.has(w) && teammateHeardAs(w) === null);
-}
-
-/** The same word give or take an ending: "plan"/"planning", "move"/"moving". */
-function sameWord(a: string, b: string): boolean {
-  if (a === b) return true;
-  const base = (w: string): string => w.replace(/(?:ing|ed|er|es|s)$/, '').replace(/e$/, '');
-  const [x, y] = [base(a), base(b)];
-  return (
-    x.length >= 3 && (x === y || x === y.replace(/(.)\1$/, '$1') || y === x.replace(/(.)\1$/, '$1'))
-  );
-}
-
-/**
- * True when `text` is the caller's own words or a close paraphrase: every word it is
- * about is one they said (give or take an ending). One added detail ("Paris", "the
- * divorce") is enough to refuse it.
- */
-export function groundedIn(text: string, callerLines: string[]): boolean {
-  const said = topicWords(callerLines.join(' '));
-  const words = topicWords(text);
-  return words.length > 0 && words.every((w) => said.some((s) => sameWord(w, s)));
-}
 
 const callerLinesOf = (input: BriefInput): string[] =>
   input.turns.filter((t) => t.speaker === 'caller').map((t) => t.text);
@@ -420,12 +392,14 @@ export async function prepareBriefing(
       return null;
     });
   const character = characterOf(input.toPersonaId);
-  const direction = context ? ARRIVAL_DIRECTION : ARRIVAL_DIRECTION_PLAIN;
+  const grounded = arrivalGrounded(opts.env); // arrival-grounding.ts
+  const direction = `${context ? ARRIVAL_DIRECTION : ARRIVAL_DIRECTION_PLAIN}${grounded ? ARRIVAL_DIRECTION_GROUNDED : ''}`;
+  const facts = arrivalFacts(input, plain, context, opts.now ?? new Date());
   const line = directLine(
     {
       moment: 'handoff_arrival',
       direction: direction.replaceAll('{from}', input.fromName),
-      facts: arrivalFacts(input, plain, context, opts.now ?? new Date()),
+      facts,
       fallback: fallbackLine,
       urgency: 'soon',
       maxChars: 200,
@@ -437,10 +411,18 @@ export async function prepareBriefing(
       recentTurns: callerLines.slice(-4).map((text) => ({ speaker: 'user' as const, text })),
       userName: input.userName,
     },
-    { actor: opts.actor, budgetMs }
+    // Grounded, with nothing of theirs to restate: no line is written, the plain hello is said
+    {
+      actor: opts.actor,
+      budgetMs,
+      mode: grounded && !callerSaidSomething(callerLines) ? 'off' : undefined,
+    }
   );
   const [brief, spoken] = await Promise.all([Promise.race([written, late]), line]);
-  const invented = spoken.source === 'actor' && ungroundedClaim(spoken.text, callerLines);
+  const grounds = [...callerLines, ...Object.values(facts), input.userName ?? ''];
+  const added = grounded && spoken.source === 'actor' ? addedWords(spoken.text, grounds) : [];
+  const invented =
+    spoken.source === 'actor' && (ungroundedClaim(spoken.text, callerLines) || added.length > 0);
   const said = spoken.source === 'actor' && !invented ? spoken.text : undefined;
   const firstLine = said !== undefined && context ? withoutStockOpener(said) : said;
   log.info(
@@ -449,6 +431,7 @@ export async function prepareBriefing(
       written: Boolean(brief),
       line: spoken.source,
       invented,
+      added,
       stockCut: firstLine !== said,
       ms: Date.now() - started,
     },

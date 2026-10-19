@@ -319,43 +319,18 @@
   // ============================================================================
 
   function initExitTracking() {
-    // Track time on page and scroll depth when leaving
+    // Scroll depth and time on page, recorded as the visitor leaves. They go
+    // through FerniExperiments like every other goal: only after cookie consent,
+    // under the visitor's anonymous id, as conversions of the experiments they
+    // are in. This used to be a beacon straight to app.ferni.ai with no id and
+    // an event type the API doesn't take, sent before consent; the API answered
+    // every one with 400 "userId is required".
     window.addEventListener('beforeunload', function () {
+      if (typeof window.FerniExperiments === 'undefined') return;
       var timeOnPage = Math.round((Date.now() - pageLoadTime) / 1000);
-
-      // Final scroll depth. The API records events only for a visitor id, and
-      // experiments.js mints one only after cookie consent, so without consent
-      // nothing is sent (the id-less beacon was refused with a 400).
-      var experiments = window.FerniExperiments;
-      if (
-        typeof experiments !== 'undefined' &&
-        typeof experiments.hasConsent === 'function' &&
-        experiments.hasConsent()
-      ) {
-        var userId = experiments.getUserId();
-        // Use sendBeacon for reliability
-        var events = [
-          {
-            experimentId: 'all',
-            userId: userId,
-            eventType: 'engagement',
-            goalId: 'final_scroll_depth',
-            value: maxScrollDepth,
-          },
-          {
-            experimentId: 'all',
-            userId: userId,
-            eventType: 'engagement',
-            goalId: 'time_on_page',
-            value: timeOnPage,
-          },
-        ];
-
-        navigator.sendBeacon(
-          'https://app.ferni.ai/api/v1/public/experiments/track/batch',
-          JSON.stringify({ events: events })
-        );
-      }
+      window.FerniExperiments.trackConversionForAll('final_scroll_depth', maxScrollDepth);
+      window.FerniExperiments.trackConversionForAll('time_on_page', timeOnPage);
+      window.FerniExperiments.flushEvents();
     });
 
     // Track bounce (leaving within 10 seconds without interaction)
@@ -379,6 +354,7 @@
     initFormTracking();
     initVisibilityTracking();
     initExitTracking();
+
   }
 
   // Initialize on DOM ready

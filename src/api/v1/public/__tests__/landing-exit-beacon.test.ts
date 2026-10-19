@@ -1,19 +1,17 @@
 /**
- * The landing page's exit beacon is recorded.
+ * Engagement events on the public batch route are recorded, and an event type
+ * the route does not record is reported, not counted as tracked.
  *
- * conversion-tracking.js sent `engagement` events (final scroll depth, time on
- * page) with no userId, so the public batch route refused every one with a 400
- * (254 in three days of prod logs), and even with an id the route silently
- * dropped any type other than exposure or conversion. These tests run the real
- * site script in a sandbox, capture the beacon it sends, and post that exact
- * body to the real handler. Only the Firebase verifier and the experiments
- * store are mocked.
+ * The route silently dropped any type other than exposure or conversion, and
+ * counted it tracked. The landing page's own exit events (scroll depth, time on
+ * page) now go through FerniExperiments as conversions (#1940,
+ * src/tests/website/experiments-exit-events.test.ts covers that client); this
+ * file covers the route: an `engagement` event with a visitor id is stored
+ * through trackEvent, belonging to no experiment arm. Only the Firebase
+ * verifier and the experiments store are mocked.
  */
-import { readFileSync } from 'node:fs';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { resolve } from 'node:path';
-import { runInNewContext } from 'node:vm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('../../../../services/identity/firebase-auth.js', () => ({
@@ -29,57 +27,6 @@ vi.mock('../../../../services/experiments/web-experiments.js', () => web);
 
 const { bindVerifiedIdentity } = await import('../../../../servers/api/request-identity.js');
 const { handlePublicExperimentsRoutes } = await import('../experiments.js');
-
-const SCRIPT = readFileSync(
-  resolve(__dirname, '../../../../../apps/website/ferni-website/src/js/conversion-tracking.js'),
-  'utf8'
-);
-
-/** Run conversion-tracking.js, fire beforeunload, and return what it beaconed. */
-function exitBeacon(consented: boolean, userId: string): Array<{ url: string; body: string }> {
-  const beacons: Array<{ url: string; body: string }> = [];
-  const listeners: Record<string, Array<() => void>> = {};
-  const on = (type: string, fn: () => void): void => {
-    (listeners[type] ??= []).push(fn);
-  };
-  const window: Record<string, unknown> = {
-    addEventListener: on,
-    innerHeight: 800,
-    scrollY: 0,
-    FerniExperiments: {
-      hasConsent: () => consented,
-      getUserId: () => userId,
-      trackConversionForAll: () => undefined,
-    },
-  };
-  runInNewContext(SCRIPT, {
-    window,
-    document: {
-      readyState: 'complete',
-      addEventListener: on,
-      querySelector: () => null,
-      querySelectorAll: () => [],
-      documentElement: { scrollHeight: 1600, clientHeight: 800 },
-    },
-    navigator: {
-      sendBeacon: (url: string, body: string) => {
-        beacons.push({ url, body });
-        return true;
-      },
-    },
-    IntersectionObserver: class {
-      observe(): void {}
-      unobserve(): void {}
-    },
-    setTimeout: () => 0,
-    setInterval: () => 0,
-    console,
-    Date,
-    Math,
-  });
-  for (const fn of listeners.beforeunload ?? []) fn();
-  return beacons;
-}
 
 let server: Server;
 let base = '';
@@ -112,27 +59,26 @@ async function postBatch(body: string): Promise<{ status: number; json: Record<s
   return { status: res.status, json: (await res.json()) as Record<string, unknown> };
 }
 
-describe('landing exit beacon', () => {
-  it('sends the visitor id on both exit events once the visitor has consented', () => {
-    const anon = 'anon_1760000000000_abc123def';
-    const [beacon, ...rest] = exitBeacon(true, anon);
-    expect(rest).toEqual([]);
-    expect(beacon.url).toBe('https://app.ferni.ai/api/v1/public/experiments/track/batch');
-    const { events } = JSON.parse(beacon.body) as { events: Array<Record<string, unknown>> };
-    expect(events.map((e) => [e.goalId, e.userId, e.eventType])).toEqual([
-      ['final_scroll_depth', anon, 'engagement'],
-      ['time_on_page', anon, 'engagement'],
-    ]);
-  });
-
-  it('sends nothing before consent, since there is no visitor id to send', () => {
-    expect(exitBeacon(false, 'anon_unused')).toEqual([]);
-  });
-
-  it('records the beacon the site sends instead of refusing it', async () => {
+describe('public batch route: engagement events', () => {
+  it('records engagement events with a visitor id instead of dropping them', async () => {
     const anon = `anon_${Date.now()}_exit`;
-    const [beacon] = exitBeacon(true, anon);
-    const { status, json } = await postBatch(beacon.body);
+    const events = [
+      {
+        experimentId: 'all',
+        userId: anon,
+        eventType: 'engagement',
+        goalId: 'final_scroll_depth',
+        value: 60,
+      },
+      {
+        experimentId: 'all',
+        userId: anon,
+        eventType: 'engagement',
+        goalId: 'time_on_page',
+        value: 42,
+      },
+    ];
+    const { status, json } = await postBatch(JSON.stringify({ events }));
     expect(status).toBe(200);
     expect(json).toMatchObject({ tracked: 2, failed: 0 });
     expect(
@@ -142,11 +88,13 @@ describe('landing exit beacon', () => {
         e.userId,
         e.eventType,
         e.goalId,
+        e.value,
       ])
     ).toEqual([
-      ['all', 'none', anon, 'engagement', 'final_scroll_depth'],
-      ['all', 'none', anon, 'engagement', 'time_on_page'],
+      ['all', 'none', anon, 'engagement', 'final_scroll_depth', 60],
+      ['all', 'none', anon, 'engagement', 'time_on_page', 42],
     ]);
+    expect(web.trackConversion).not.toHaveBeenCalled();
   });
 
   it('reports an event type it does not record rather than counting it tracked', async () => {
