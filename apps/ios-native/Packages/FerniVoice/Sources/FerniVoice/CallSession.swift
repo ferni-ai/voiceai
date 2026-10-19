@@ -330,16 +330,30 @@ public final class CallSession {
     }
 
     private func handle(_ interruption: AudioInterruption) async {
-        guard let room else { return }
+        guard room != nil else { return }
         switch interruption {
         case .began:
             // The system has the mic (a phone call, Siri): Ferni waits.
             isOnHold = true
-        case .ended(let shouldResume):
+        case .ended:
+            // "Should resume" is advice for media players. The person is still
+            // in this call, so it always comes back (iOS often leaves the flag
+            // off after Siri, an alarm or a declined call).
+            await resume()
+        }
+    }
+
+    /// Brings the call back after an interruption. If the system still has
+    /// the audio, the call stays "On hold" (never "listening" over a dead mic)
+    /// and the person can try again.
+    public func resume() async {
+        guard let room, isOnHold else { return }
+        do {
+            try audio.activate()
+            try await room.setMicrophone(enabled: !isMuted)
             isOnHold = false
-            guard shouldResume else { return }
-            try? audio.activate()
-            try? await room.setMicrophone(enabled: !isMuted)
+        } catch {
+            log.error("Couldn't resume after an interruption: \(error.localizedDescription, privacy: .public)")
         }
     }
 }

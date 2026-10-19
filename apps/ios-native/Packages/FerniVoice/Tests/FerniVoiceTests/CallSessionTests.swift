@@ -52,8 +52,14 @@ final class CallSessionTests: XCTestCase {
         init() { (interruptions, interrupt) = AsyncStream.makeStream(of: AudioInterruption.self) }
         func requestMicrophone() async -> Bool { micAllowed }
         var order: Order?
+        /// The next activation throws (the system still has the audio).
+        var failNextActivation = false
         func activate() throws {
             activations += 1
+            if failNextActivation {
+                failNextActivation = false
+                throw NSError(domain: "AVAudioSession", code: 561_015_905) // '!pri': can't activate
+            }
             order?.steps.append("activate")
         }
         func deactivate() { deactivations += 1 }
@@ -423,6 +429,43 @@ final class CallSessionTests: XCTestCase {
 
         await until(rooms.made[0].micStates == [true, true])
         XCTAssertEqual(audio.activations, 2)
+    }
+
+    /// Critic C2: iOS often ends an interruption without "should resume" (Siri,
+    /// an alarm, a declined call). A call the person is still in comes back anyway.
+    func testAnInterruptionThatEndsWithoutShouldResumeStillBringsTheMicBack() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        audio.interrupt.yield(.began)
+        await until(session.isOnHold)
+        audio.interrupt.yield(.ended(shouldResume: false))
+
+        await until(rooms.made[0].micStates == [true, true])
+        XCTAssertEqual(audio.activations, 2)
+        XCTAssertFalse(session.isOnHold)
+    }
+
+    /// If the audio can't come back, the screen says "On hold" (never
+    /// "listening" over a dead mic) until the person taps Resume.
+    func testIfTheAudioCantComeBackTheCallStaysOnHoldUntilResumed() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        audio.failNextActivation = true
+        audio.interrupt.yield(.began)
+        audio.interrupt.yield(.ended(shouldResume: true))
+        await until(audio.activations == 2)
+        try? await Task.sleep(for: .milliseconds(50))
+        XCTAssertTrue(session.isOnHold)
+        XCTAssertEqual(rooms.made[0].micStates, [true], "the mic isn't claimed while the audio is gone")
+
+        await session.resume()
+        XCTAssertEqual(audio.activations, 3)
+        XCTAssertFalse(session.isOnHold)
+        XCTAssertEqual(rooms.made[0].micStates, [true, true])
     }
 }
 
