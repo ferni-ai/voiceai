@@ -60,7 +60,7 @@ describe('Your World connections', () => {
     { n: 1, list: [person('Sam', 1)], total: null },
     {
       n: 3,
-      list: [person('Sam', 1), person('Mom', 6), person('Lee', 1, { confirmed: true })],
+      list: [person('Sam', 1), person('Mom', 6), person('Lee', 1, { type: 'partner' })],
       total: 2,
     },
   ])('n=$n people: $total connections', async ({ list, total }) => {
@@ -74,7 +74,9 @@ describe('Your World connections', () => {
   it.each([
     [{ mentionCount: 1 }, false],
     [{ mentionCount: 2 }, true],
-    [{ mentionCount: 1, confirmed: true }, true],
+    [{ mentionCount: 1, type: 'partner' }, true],
+    [{ mentionCount: 1, type: 'family' }, true],
+    [{ mentionCount: 1, type: 'friend' }, false],
     [{}, false],
   ])('isConnection(%o) = %s', (p, expected) => {
     expect(isConnection(p)).toBe(expected);
