@@ -113,6 +113,8 @@ export interface TurnSignals {
   quiet?: boolean;
   /** FERNI_PLAYFUL=on and Ferni speaking (ferni-playful.ts). */
   playful?: boolean;
+  /** FERNI_PLAYFUL: false when this call had its playful line too recently (ferni-playful-turn.ts). */
+  playfulLine?: boolean;
   /** TROUBLES_TALK=on: a trouble on this turn or just before it (troubles-talk.ts); unset when off. */
   trouble?: boolean;
 }
