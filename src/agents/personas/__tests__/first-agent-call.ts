@@ -49,7 +49,13 @@ export async function startCall(userId: string) {
   const session = { userData: {}, on: vi.fn(), off: vi.fn() };
   wireCallToolLoader(session as never, agent as never, loader, log as never);
   await preloadTopicDomains(); // wireCallToolLoader started it; wait for it here
-  return { agent, session, loader, initialCount: Object.keys(initial).length };
+  return {
+    agent,
+    session,
+    loader,
+    initialNames: Object.keys(initial),
+    initialCount: Object.keys(initial).length,
+  };
 }
 
 export type Call = Awaited<ReturnType<typeof startCall>>;

@@ -975,7 +975,7 @@ function getEditorStyles(): string {
     
     .editor-status.status--active {
       background: var(--persona-tint, rgba(74, 103, 65, 0.2));
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
     }
     
     .editor-status.status--paused {
@@ -1412,7 +1412,7 @@ function getEditorStyles(): string {
       text-transform: uppercase;
     }
     
-    .memory-type-badge--stories { background: var(--persona-tint, rgba(74, 103, 65, 0.2)); color: var(--color-ferni, #4a6741); }
+    .memory-type-badge--stories { background: var(--persona-tint, rgba(74, 103, 65, 0.2)); color: var(--color-ferni-on-surface); }
     .memory-type-badge--wisdom { background: var(--color-nayan-tint, rgba(138, 122, 106, 0.2)); color: var(--color-nayan, #8a7a6a); }
     .memory-type-badge--sharedMoments { background: var(--color-maya-tint, rgba(166, 122, 106, 0.2)); color: var(--color-maya, #a67a6a); }
     .memory-type-badge--journalEntries { background: var(--color-alex-tint, rgba(90, 107, 138, 0.2)); color: var(--color-alex, #5a6b8a); }

@@ -99,7 +99,7 @@ describe('sign-in gate with try-first off', () => {
   it('shows only the sign-in buttons, as before', async () => {
     const gate = await openGate();
     expect(talkButton(gate)).toBeNull();
-    expect(providers(gate)).toEqual(['google', 'apple']);
+    expect(providers(gate)).toEqual(['google']); // Apple stays hidden on the web until its flag is on
     expect(gate.querySelector('.try-first')).toBeNull();
     expect(gate.dataset.tryFirst).toBeUndefined();
     expect(gate.querySelector('.sign-in-gate-subtitle')?.textContent).toMatch(
@@ -116,7 +116,7 @@ describe('sign-in gate with try-first on', () => {
   it('offers "Talk to Ferni now" alongside the sign-in buttons', async () => {
     const gate = await openGate();
     expect(talkButton(gate)?.textContent).toBe('Talk to Ferni now');
-    expect(providers(gate)).toEqual(['google', 'apple', 'try-first', 'try-first-hear']);
+    expect(providers(gate)).toEqual(['google', 'try-first', 'try-first-hear']);
     expect(gate.querySelector('.sign-in-gate-subtitle')?.textContent).toBe(
       'Say hello first. Sign in whenever you want to keep the conversation.'
     );
