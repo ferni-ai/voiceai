@@ -68,6 +68,7 @@ describe('runMorningBriefs', () => {
       kind: 'morning-brief',
       refId: 'morning-brief:2026-10-18',
       minGapMs: 20 * 60 * 60 * 1000,
+      onHold: 'return', // over the daily cap the push carries it, never a late text
     });
     expect(text.body).toBe(
       "Morning Seth, it's Alex. Today: 10am Standup. Due: Call the plumber. Call me if you want to move anything."
@@ -130,6 +131,14 @@ describe('runMorningBriefs', () => {
       })
     );
     expect(noPhone).toHaveBeenCalledTimes(1);
+  });
+
+  it('over the daily text cap, the push carries it', async () => {
+    const capped = vi.fn(async (): Promise<TextOutcome> => ({ sent: false, reason: 'held' }));
+    const { deps, sendPush } = fakeDeps({ sendText: capped });
+    const { report } = await runMorningBriefs(deps, EIGHT_AM);
+    expect(report).toMatchObject({ pushedInstead: { held: 1 } });
+    expect(sendPush).toHaveBeenCalledTimes(1);
   });
 
   it('does not push after a text already went this morning', async () => {

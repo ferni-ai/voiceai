@@ -58,6 +58,8 @@ export interface FollowUpTextDeps {
     kind: 'follow-up';
     refId: string;
     minGapMs: number;
+    /** 'return': over the daily cap, the claim goes back and a later run retries. */
+    onHold: 'return';
   }) => Promise<{ sent: boolean; reason?: string }>;
   /** Topics they asked Ferni to forget (forget.ts forgottenTopicsOrNull); null when unreadable. */
   forgotten: (userId: string) => Promise<string[] | null>;
@@ -132,6 +134,7 @@ async function textOne(
     kind: 'follow-up',
     refId: pick.id,
     minGapMs: FOLLOW_UP_GAP_MS,
+    onHold: 'return',
   });
   if (outcome.sent) {
     report.sent++;

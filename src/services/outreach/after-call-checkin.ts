@@ -48,6 +48,7 @@ export type SkipReason =
   | 'no-verified-phone'
   | 'sms-off'
   | 'no-consent'
+  | 'held'
   | 'opted-out';
 export type CheckinDecision = { send: true; phone: string } | { send: false; reason: SkipReason };
 

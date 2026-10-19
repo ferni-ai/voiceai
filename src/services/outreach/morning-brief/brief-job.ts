@@ -147,6 +147,7 @@ export async function runMorningBriefs(
         kind: 'morning-brief',
         refId: `morning-brief:${dateKey}`,
         minGapMs: MORNING_BRIEF_GAP_MS,
+        onHold: 'return', // over the daily cap: the push below carries it, never a late text
       });
       if (text.sent) {
         report.sent++;

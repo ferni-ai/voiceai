@@ -27,6 +27,7 @@ const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'opted-out': 'you replied STOP to my texts',
   'sms-off': 'texts are turned off in your settings',
   'no-consent': "you've only okayed texts you ask me for",
+  held: "I've already texted you a few times today, so it'll go out a little later",
   'recently-sent': 'I just texted you',
   'no-verified-phone': "there's no verified phone number on your account",
   'no-hash-secret': "texting isn't set up here",
@@ -74,7 +75,8 @@ export const callUserAdapter: CallUserPort = {
       requested,
     };
     const outcome = await sendGuardedText(t);
-    return outcome.sent ? { sent: true } : { sent: false, reason: HELD[outcome.reason] };
+    if (outcome.sent) return { sent: true };
+    return { sent: false, reason: HELD[outcome.reason], held: outcome.reason === 'held' };
   },
   call: ({ userId, phoneNumber, message, personaId }) =>
     scheduleProactiveCall({

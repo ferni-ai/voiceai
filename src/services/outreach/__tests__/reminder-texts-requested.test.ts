@@ -3,6 +3,12 @@
  * text they asked for; engagement, persona, agent and family reminders are not.
  */
 import { describe, expect, it, vi } from 'vitest';
+
+const extend = vi.hoisted(() => vi.fn(async () => undefined));
+vi.mock('../../superhuman/semantic-intelligence/promise-keeper.js', () => ({
+  extendReminderPromise: extend,
+}));
+vi.mock('../../superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 import type { TextDeps } from '../guarded-text.js';
 import { guardReminderText, type ReminderTextDeps } from '../reminder-texts.js';
 import { reminderFromDoc } from '../../scheduling/reminder-scheduler.js';
@@ -54,5 +60,14 @@ describe('guardReminderText', () => {
       reminderFromDoc('r1', { ...doc, requestedByUser: 'yes' }).requestedByUser
     ).toBeUndefined();
     expect(reminderFromDoc('r1', doc).requestedByUser).toBeUndefined();
+  });
+
+  it('over the daily text cap the reminder waits for the freed slot, and is not queued twice', async () => {
+    const d = deps();
+    const until = new Date('2026-10-16T12:00:00.000Z');
+    d.sendOwn.mockResolvedValueOnce({ sent: false, reason: 'held', until });
+    expect(await guardReminderText(reminder(), d)).toEqual({ holdUntil: until });
+    expect(d.sendOwn).toHaveBeenCalledWith(expect.objectContaining({ onHold: 'return' }), d.text);
+    expect(extend).toHaveBeenCalledWith('u1', 'r1', until);
   });
 });

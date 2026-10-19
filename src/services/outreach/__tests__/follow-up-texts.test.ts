@@ -54,6 +54,7 @@ describe('sendDueFollowUpTexts', () => {
       kind: 'follow-up',
       refId: 'f1',
       minGapMs: FOLLOW_UP_GAP_MS,
+      onHold: 'return', // over the daily cap the claim goes back; no queued copy
     });
     expect(report.sent).toBe(1);
     expect(saved[0]).toMatchObject({ status: 'surfaced', surfaced: [{ via: 'text' }] });
