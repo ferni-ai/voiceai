@@ -13,6 +13,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { safeEmitEvent } from './async-events-config.js';
 import { recordFastCapture } from './metrics.js';
+import { isThirdPartyCallUser, noCapture } from '../third-party-call.js';
 
 const log = createLogger({ module: 'FastCapture' });
 
@@ -278,8 +279,7 @@ const LINKING_PATTERNS: Array<{
 export async function fastCapture(input: FastCaptureInput): Promise<FastCaptureResult> {
   const startTime = Date.now();
   const { transcript, userId, sessionId, turnNumber, voiceEmotion, personaId } = input;
-
-  // 🧠 MEMORY AUDIT: Log every capture attempt for debugging
+  if (isThirdPartyCallUser(userId)) return noCapture(); // the person on an on-behalf call
   log.info(
     { userId, sessionId, turnNumber, transcriptLen: transcript.length, personaId },
     '🧠 [MEMORY-AUDIT] fastCapture START'
