@@ -14,6 +14,7 @@
 
 import { createLogger } from '../../../utils/safe-logger.js';
 import { recordAgentAdvice, type AgentAdviceContext } from './integration.js';
+import { isMemberIdentity } from '../../identity/member-identity.js';
 
 const log = createLogger({ module: 'advice-detector' });
 
@@ -199,7 +200,7 @@ export async function trackAdviceInResponse(
 ): Promise<void> {
   const { userId, sessionId, personaId, topic, userSituation, userEmotion } = context;
 
-  if (!userId || userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return; // Skip for anonymous users
   }
 

@@ -1531,7 +1531,7 @@
         "title": "話しかけるだけ"
       },
       "welcome": {
-        "description": "あなた専属のAIライフコーチのチームです。それぞれのコーチが独自の知恵で、あなたの道のりをサポートします。",
+        "description": "あなた専属のガイドのチームです。それぞれが独自の視点を持っています。",
         "title": "Ferniへようこそ"
       }
     },
@@ -3576,7 +3576,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "あなただけのAIパートナー",
+        "role": "あなただけのパートナー",
         "description": "毎日のチェックインから深いお話まで、あなたが必要なときはいつでもここにいます。",
         "unlockHint": "いつでもあなたのそばに",
         "unlockedMessage": "私たち、たくさんのことを一緒に乗り越えてきましたね。",
@@ -3647,11 +3647,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — あなたのAIライフパートナー",
+      "title": "Ferniに会ってみて",
       "message": "Ferniを使い始めてから、毎日の過ごし方が本当に変わったよ。一緒に始めてみない？ {url}",
       "shortMessage": "Ferniで一緒に始めよう！ {url}",
-      "emailSubject": "Ferniを使ってみて",
-      "emailBody": "やあ！Ferniっていうアプリを使っているんだけど、本当に人間みたいに温かいAIパートナーなんだ。君もきっと気に入ると思うよ。 {url}"
+      "emailSubject": "Ferniを使ってみて"
     },
     "modal": {
       "title": "成長をシェアしよう",
@@ -4563,7 +4562,7 @@
     "title": "エージェントページの作成",
     "nameLabel": "エージェント名",
     "namePlaceholder": "例：Nate Holloway",
-    "nameHint": "AIエージェントのフルネーム",
+    "nameHint": "エージェントのフルネーム",
     "initialsLabel": "イニシャル",
     "initialsPlaceholder": "例：JD",
     "initialsHint": "アバターに表示されます（2〜3文字）",
@@ -7284,8 +7283,7 @@
       "description": "あなたと一緒に成長する、あなただけの音声ジャーナル",
       "feature1": "日々の音声ジャーナルを記録",
       "feature2": "過去の自分とお話する",
-      "feature3": "これまでの成長を振り返る",
-      "feature4": "AIによる気づきの生成"
+      "feature3": "これまでの成長を振り返る"
     },
     "fictional": {
       "name": "フィクション",
@@ -9495,7 +9493,14 @@
     "close": "閉じる",
     "seeCost": "この通話の費用",
     "feedbackQuestion": "今回の会話はどうでしたか？",
-    "feedbackThanks": "ありがとう、参考になります。"
+    "feedbackThanks": "ありがとう、参考になります。",
+    "pushAskQuestion": "このことについて、Ferniから様子を聞いてもいい？",
+    "pushAskYes": "うん、お願い",
+    "pushAskNotNow": "今はいい",
+    "pushAskDone": "設定しました。Ferniからのメッセージがこの端末に届きます。",
+    "pushAskLater": "大丈夫です。あとで設定から変更できます。",
+    "pushAskHomeScreen": "ここでFerniからのメッセージを受け取るには、ホーム画面にFerniを追加してください：共有をタップし、「ホーム画面に追加」を選びます。",
+    "pushAskGotIt": "わかった"
   },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",
@@ -9787,7 +9792,7 @@
     },
     "marketplace": {
       "headline": "あなたにぴったりの相手を見つけましょう。",
-      "description": "Ferniのコアチームだけでなく、専門的なAIコーチたちが集まるお庭があなたを待っています。ADHDサポート、禁酒のパートナー、睡眠スペシャリスト、子育てガイドなど、あなたの特別な道のりを理解してくれる専門家たちです。",
+      "description": "Ferniのコアチームだけでなく、専門的なコーチたちが集まるお庭があなたを待っています。ADHDサポート、禁酒のパートナー、睡眠スペシャリスト、子育てガイドなど、あなたの特別な道のりを理解してくれる専門家たちです。",
       "superhuman1": "専門的なペルソナ — 人生の特定の課題に特化したコーチ",
       "superhuman2": "コミュニティの評価 — 実際の体験、リアルなレビュー",
       "superhuman3": "無料とプレミアム — あらゆる予算に合わせたサポート",
@@ -9795,7 +9800,7 @@
     },
     "developerPortal": {
       "headline": "大切なものを形にしましょう。",
-      "description": "Ferniのテクノロジーがオープンになります。あなた自身のAIコーチを構築し、専門的なペルソナを作成して、あなたが提供するものをまさに必要としている人々に届けましょう。Ferniを支えるプラットフォームが、あなたのものになります。",
+      "description": "Ferniのテクノロジーがオープンになります。あなた自身のコーチを構築し、専門的なペルソナを作成して、あなたが提供するものをまさに必要としている人々に届けましょう。Ferniを支えるプラットフォームが、あなたのものになります。",
       "superhuman1": "完全なAPIドキュメント — 開発に必要なすべてがここに",
       "superhuman2": "SDKとライブラリ — TypeScriptファーストの開発",
       "superhuman3": "ペルソナビルダー — コーチを作成するためのビジュアルツール",
@@ -10491,7 +10496,7 @@
   },
   "ferniAwakens": {
     "greeting": "こんにちは。",
-    "subtext": "私はFerni、あなたのAIライフコーチです。"
+    "subtext": "私はFerni、あなた専属のガイドです。"
   },
   "serviceHealth": {
     "names": {
@@ -10501,7 +10506,7 @@
       "historicalFacts": "歴史的事実",
       "smartHome": "スマートホーム",
       "lighting": "照明",
-      "aiContext": "AIコンテキスト",
+      "aiContext": "記憶とコンテキスト",
       "sleepHealth": "睡眠と健康のデータ",
       "other": "連携しているサービス"
     },
@@ -10657,9 +10662,6 @@
     "founderShort": "ファウンダー",
     "patronShort": "パトロン",
     "founderAria": "{tier}。私たちを信じてくれてありがとうございます！クリックして管理できます。"
-  },
-  "splash": {
-    "tagline": "あなたのAIチームの準備が整いました"
   },
   "lifeCoachingHub": {
     "tabs": {

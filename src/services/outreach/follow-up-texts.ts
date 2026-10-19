@@ -22,10 +22,14 @@
  */
 import {
   apply,
+  followUpTextOutcome,
+  logPromiseJobRun,
+  logPromiseOutcome,
   rightMoment,
   type FollowUp,
   type FollowUpEvent,
   type FollowUpStore,
+  type PromiseJobCounts,
 } from '../follow-through/index.js';
 import { isForgotten } from '../../memory/recall/session-recall.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -83,6 +87,16 @@ export interface FollowUpTextReport {
   errors: number;
 }
 
+/** The run in PROMISE_JOB_RUN terms: a skip the sender will retry is held, the rest failed. */
+export function followUpJobCounts(r: FollowUpTextReport): PromiseJobCounts {
+  const counts = { due: r.scanned, done: r.sent, failed: 0, held: 0, missed: r.expired };
+  for (const [reason, n] of Object.entries(r.held)) {
+    if (followUpTextOutcome(reason).outcome === 'held') counts.held += n;
+    else counts.failed += n;
+  }
+  return counts;
+}
+
 async function record(
   store: FollowUpTextDeps['store'],
   f: FollowUp,
@@ -133,11 +147,12 @@ async function textOne(
     refId: pick.id,
     minGapMs: FOLLOW_UP_GAP_MS,
   });
+  const reason = outcome.sent ? 'sent' : (outcome.reason ?? 'unknown');
+  logPromiseOutcome('follow-through-text', followUpTextOutcome(reason), { followUpId: pick.id });
   if (outcome.sent) {
     report.sent++;
     return;
   }
-  const reason = outcome.reason ?? 'unknown';
   report.held[reason] = (report.held[reason] ?? 0) + 1;
   if (!(await deps.store.save(pick, claimed.data.updatedAt))) report.lostSaves++;
 }
@@ -164,10 +179,14 @@ async function dropForgotten(
       keep.push(f);
       continue;
     }
-    // TODO(#1884): log a PROMISE_OUTCOME line (dropped, forgotten) once promise-outcomes lands.
     const event: FollowUpEvent = { type: 'release', reason: 'forgotten' };
-    if (opts.dryRun || (await record(deps.store, f, event, opts.now))) report.forgotten++;
-    else report.lostSaves++;
+    if (opts.dryRun) report.forgotten++;
+    else if (await record(deps.store, f, event, opts.now)) {
+      report.forgotten++;
+      logPromiseOutcome('follow-through-text', followUpTextOutcome('forgotten'), {
+        followUpId: f.id,
+      });
+    } else report.lostSaves++;
   }
   return keep;
 }
@@ -194,8 +213,13 @@ async function forPerson(
   const due = await dropForgotten(deps, allDue, topics, opts, report);
   const moments = due.map((f) => ({ f, moment: rightMoment(f, now) }));
   for (const { f } of moments.filter((m) => m.moment === 'expire')) {
-    if (dryRun || (await record(deps.store, f, { type: 'expire' }, now))) report.expired++;
-    else report.lostSaves++;
+    if (dryRun) report.expired++;
+    else if (await record(deps.store, f, { type: 'expire' }, now)) {
+      report.expired++;
+      logPromiseOutcome('follow-through-text', followUpTextOutcome('expired'), {
+        followUpId: f.id,
+      });
+    } else report.lostSaves++;
   }
   const pick = moments.find((m) => m.moment === 'text-now')?.f;
   if (!pick) return;
@@ -236,5 +260,6 @@ export async function sendDueFollowUpTexts(
     }
   }
   log.info({ ...report, dryRun: run.dryRun }, 'Follow-up texts run');
+  if (!run.dryRun) logPromiseJobRun('follow-through', followUpJobCounts(report));
   return report;
 }

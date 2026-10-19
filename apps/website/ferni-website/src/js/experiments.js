@@ -247,6 +247,8 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ events: events }),
+      // Lets a flush started as the page unloads (conversion-tracking.js) finish.
+      keepalive: true,
     })
       .then(function (response) {
         if (!response.ok) {

@@ -1540,7 +1540,7 @@
         "title": "Solo habla"
       },
       "welcome": {
-        "description": "Tu equipo personal de coaches de vida con IA. Cada quien aporta una sabiduría única para acompañar tu camino.",
+        "description": "Tu equipo personal de guías. Cada uno aporta su propia forma de ver las cosas.",
         "title": "Te damos la bienvenida a Ferni"
       }
     },
@@ -3599,7 +3599,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "Tu acompañante personal de IA",
+        "role": "Tu acompañante personal",
         "description": "Estoy aquí para lo que necesites, desde registros diarios hasta conversaciones profundas.",
         "unlockHint": "Siempre a tu lado",
         "unlockedMessage": "Hemos pasado por mucho en nuestro camino.",
@@ -3670,11 +3670,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — Tu compañero de vida con IA",
+      "title": "Conoce a Ferni",
       "message": "He estado usando Ferni y realmente ha cambiado mi forma de enfocar el día. ¡Únete! {url}",
       "shortMessage": "¡Únete a mí en Ferni! {url}",
-      "emailSubject": "Deberías probar Ferni",
-      "emailBody": "¡Hola! He estado usando Ferni — es un compañero de IA que realmente se siente humano. Pensé que te encantaría. {url}"
+      "emailSubject": "Deberías probar Ferni"
     },
     "modal": {
       "title": "Comparte el crecimiento",
@@ -4594,7 +4593,7 @@
     "title": "Crear página del agente",
     "nameLabel": "Nombre del agente",
     "namePlaceholder": "ej. Nate Holloway",
-    "nameHint": "El nombre completo de tu agente de IA",
+    "nameHint": "El nombre completo de tu agente",
     "initialsLabel": "Iniciales",
     "initialsPlaceholder": "ej. JD",
     "initialsHint": "Se muestran en el avatar (2 o 3 caracteres)",
@@ -7331,8 +7330,7 @@
       "description": "Tu diario de voz personal que crece contigo",
       "feature1": "Registra diarios de voz cotidianos",
       "feature2": "Habla con tu yo del pasado",
-      "feature3": "Sigue de cerca tu crecimiento a lo largo del tiempo",
-      "feature4": "Reflexiones generadas por IA"
+      "feature3": "Sigue de cerca tu crecimiento a lo largo del tiempo"
     },
     "fictional": {
       "name": "Ficticio",
@@ -9576,7 +9574,14 @@
     "close": "Cerrar",
     "seeCost": "Lo que costó esta llamada",
     "feedbackQuestion": "¿Qué tal te sentó?",
-    "feedbackThanks": "Gracias, eso me ayuda."
+    "feedbackThanks": "Gracias, eso me ayuda.",
+    "pushAskQuestion": "¿Quieres que Ferni te pregunte por esto más adelante?",
+    "pushAskYes": "Sí, por favor",
+    "pushAskNotNow": "Ahora no",
+    "pushAskDone": "Listo. Las notas de Ferni llegarán a este dispositivo.",
+    "pushAskLater": "Sin problema. Puedes cambiarlo en Ajustes más tarde.",
+    "pushAskHomeScreen": "Para recibir notas de Ferni aquí, añade Ferni a tu pantalla de inicio: toca Compartir y luego Añadir a pantalla de inicio.",
+    "pushAskGotIt": "Entendido"
   },
   "moments": {
     "teamUnlockTitle": "Conoce a {name}",
@@ -9870,7 +9875,7 @@
     },
     "marketplace": {
       "headline": "Encuentra a tu gente.",
-      "description": "Más allá del equipo principal de Ferni, te espera un jardín de coaches de IA especializados. Apoyo para el TDAH, acompañamiento para la sobriedad, especialistas en sueño, guías de crianza... especialistas que entienden tu camino específico.",
+      "description": "Más allá del equipo principal de Ferni, te espera un jardín de coaches especializados. Apoyo para el TDAH, acompañamiento para la sobriedad, especialistas en sueño, guías de crianza... especialistas que entienden tu camino específico.",
       "superhuman1": "Personalidades especializadas: coaches para desafíos de vida específicos",
       "superhuman2": "Calificaciones de la comunidad: experiencias reales, reseñas reales",
       "superhuman3": "Gratuito y premium: apoyo para todos los presupuestos",
@@ -9878,7 +9883,7 @@
     },
     "developerPortal": {
       "headline": "Construye lo que importa.",
-      "description": "La tecnología de Ferni se está abriendo al mundo. Construye tus propios coaches de IA, crea personalidades especializadas y llega a las personas que necesitan exactamente lo que ofreces. La plataforma que impulsa a Ferni, ahora en tus manos.",
+      "description": "La tecnología de Ferni se está abriendo al mundo. Construye tus propios coaches, crea personalidades especializadas y llega a las personas que necesitan exactamente lo que ofreces. La plataforma que impulsa a Ferni, ahora en tus manos.",
       "superhuman1": "Documentación completa de la API: todo lo que necesitas para construir",
       "superhuman2": "SDK y librerías: desarrollo enfocado en TypeScript",
       "superhuman3": "Creador de personalidades: herramientas visuales para crear coaches",
@@ -10597,7 +10602,7 @@
   },
   "ferniAwakens": {
     "greeting": "Hola.",
-    "subtext": "Soy Ferni, tu coach de vida con IA."
+    "subtext": "Soy Ferni, tu guía personal."
   },
   "serviceHealth": {
     "names": {
@@ -10607,7 +10612,7 @@
       "historicalFacts": "Datos históricos",
       "smartHome": "Hogar inteligente",
       "lighting": "Iluminación",
-      "aiContext": "Contexto de IA",
+      "aiContext": "Memoria y contexto",
       "sleepHealth": "Datos de sueño y salud",
       "other": "Un servicio conectado"
     },
@@ -10772,9 +10777,6 @@
     "founderShort": "Fundador",
     "patronShort": "Mecenas",
     "founderAria": "{tier}. ¡Gracias por creer en nosotros! Haz clic para administrar."
-  },
-  "splash": {
-    "tagline": "Tu equipo de IA está listo"
   },
   "lifeCoachingHub": {
     "tabs": {
