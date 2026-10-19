@@ -14,7 +14,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 Section {
-                    NavigationLink("What Ferni remembers") { MemoryScreen(memory: model.memory) }
+                    NavigationLink("What Ferni remembers") { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
                     SoundsToggle()
                 }
                 AccountSection(account: model.account, signOut: model.signOut)
@@ -23,7 +23,7 @@ struct SettingsView: View {
                     NavigationLink("Delete account") { DeleteAccountView(delete: model.deleteAccount) }
                         .foregroundStyle(FerniColor.error)
                 }
-                PrivacySection(consent: model.consent)
+                PrivacySection(consent: model.consent, lock: model.memoryLock)
                 Section("About") {
                     LabeledContent("Version", value: Self.version)
                     Link("Privacy Policy", destination: URL(string: "https://ferni.ai/privacy")!)
@@ -111,10 +111,18 @@ private struct AccountSection: View {
 /// What you agreed to, and taking it back.
 private struct PrivacySection: View {
     let consent: ConsentStore
+    let lock: MemoryLock
     @State private var confirmingWithdraw = false
 
     var body: some View {
         Section("Privacy") {
+            if let method = lock.method {
+                // Optional, off by default; the phone's owner confirms turning it on or off.
+                Toggle("Lock what Ferni remembers with \(method)", isOn: Binding(
+                    get: { lock.isEnabled },
+                    set: { on in Task { await lock.setEnabled(on) } }
+                ))
+            }
             if let agreement = consent.agreement, consent.hasAgreed {
                 LabeledContent("You agreed on", value: agreement.agreedAt.formatted(date: .abbreviated, time: .omitted))
                 Button("Withdraw", role: .destructive) { confirmingWithdraw = true }
