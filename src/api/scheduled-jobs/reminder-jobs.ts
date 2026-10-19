@@ -24,7 +24,9 @@ export async function handleDeliverReminders(
     // With REMINDER_SMS_DEFAULT on, reminder texts go only through the guarded sender.
     const { installReminderTexts } = await import('../../services/outreach/reminder-texts.js');
     installReminderTexts();
-    const result = await deliverDueReminders({ dryRun });
+    // Texts and in-app pushes are decided per person: this server delivers for everyone.
+    const { reminderReach } = await import('../../services/outreach/reminder-reach.js');
+    const result = await deliverDueReminders({ dryRun, reach: reminderReach() });
     sendJson(res, 200, { success: true, job: 'deliver-reminders', ...result });
   } catch (error) {
     log.error({ error: String(error) }, 'Reminder delivery job failed');

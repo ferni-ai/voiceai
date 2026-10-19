@@ -5,6 +5,8 @@
  * @module intelligence/person-model/util
  */
 import { isForgotten } from '../../memory/index.js';
+import type { FollowUpKind } from '../../services/follow-through/index.js';
+import { wallTimeIn } from '../../utils/time-zone.js';
 import type { Provenance } from './types.js';
 
 export type Doc = Record<string, unknown>;
@@ -52,8 +54,34 @@ export const dirty = (method: Provenance['method'] = 'code'): Provenance => ({
   inputDocs: 0,
 });
 
+/** Wall time in their zone (UTC without one); dow 0 = Sunday. */
+export function local(t: number, tz: string | null): { day: string; hour: number; dow: number } {
+  const w = wallTimeIn(new Date(t), tz ?? 'UTC');
+  const day = `${w.year}-${String(w.month).padStart(2, '0')}-${String(w.day).padStart(2, '0')}`;
+  return { day, hour: w.hour, dow: new Date(Date.UTC(w.year, w.month - 1, w.day)).getUTCDay() };
+}
+
 /** A text fit to keep: one short line, not about a forgotten topic, no contact data. */
 export function keep(text: unknown, forgotten: readonly string[], max = 120): string | null {
   const s = str(text).replace(/\s+/g, ' ').slice(0, max);
   return s && !hasContactData(s) && !isForgotten(s, forgotten) ? s : null;
+}
+
+const KINDS: readonly FollowUpKind[] = [
+  'reminder',
+  'commitment',
+  'promise',
+  'thread',
+  'date',
+  'dose',
+];
+export const followUpKind = (v: unknown): FollowUpKind | undefined => KINDS.find((k) => k === v);
+
+/** Ferni's own promise still open, read as ferni-commitments.ts getPendingCommitments does. */
+export function ferniOpen(c: Doc, now: number): boolean {
+  if (c.fulfilled === true || (str(c.outcome) && c.outcome !== 'open') || str(c.releasedAt))
+    return false;
+  if (c.type === 'remember' || c.type === 'avoid') return false;
+  const due = ms(c.dueBy);
+  return due === null || due >= now;
 }

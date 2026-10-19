@@ -59,7 +59,7 @@ All platforms should use the same values from `design-system/tokens/animation.js
 |----------|------|--------|
 | **Web** | `apps/web/src/ui/speaking-system.ui.ts` | ✅ Complete |
 | **iOS** | `apps/ios-native/Ferni/UI/SpeakingSystem/FerniSpeakingAvatar.swift` | ✅ Complete |
-| **Android** | `apps/android-native/app/.../ui/speaking/FerniSpeakingAvatar.kt` | ✅ Complete |
+| **Android** | `apps/archive/android-native/app/.../ui/speaking/FerniSpeakingAvatar.kt` | ✅ Complete |
 | **Brand Docs** | `design-system/docs/brand/SPEAKING-SYSTEM.md` | ✅ Complete |
 
 ---
