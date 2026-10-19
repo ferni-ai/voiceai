@@ -99,7 +99,8 @@ struct HomeView: View {
             .sheet(item: $model.reporting) { caption in
                 ReportSheet(caption: caption) { reason, note in try await model.report(caption, reason: reason, note: note) }
             }
-            .fullScreenCover(isPresented: $model.isAskingConsent) {
+            // A sheet over the room rather than a cover: Home stays behind it.
+            .sheet(isPresented: $model.isAskingConsent) {
                 ConsentView(
                     onAgree: {
                         model.isAskingConsent = false
@@ -107,6 +108,7 @@ struct HomeView: View {
                     },
                     onNotNow: { model.isAskingConsent = false }
                 )
+                .presentationDetents([.large])
             }
         }
     }

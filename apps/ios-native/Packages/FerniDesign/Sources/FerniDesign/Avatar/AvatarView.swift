@@ -18,6 +18,7 @@ public struct AvatarView: View {
     let name: String
     let covered: Bool
     let onCue: ((KeyedCue) -> Void)?
+    let reading: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -43,7 +44,7 @@ public struct AvatarView: View {
     public init(
         persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
         name: String = "Ferni", covered: Bool = false, level: @escaping @Sendable () -> Float = { 0 },
-        onCue: ((KeyedCue) -> Void)? = nil
+        reading: Bool = false, onCue: ((KeyedCue) -> Void)? = nil
     ) {
         self.persona = persona
         self.expression = expression
@@ -52,6 +53,7 @@ public struct AvatarView: View {
         self.covered = covered
         self.level = level
         self.onCue = onCue
+        self.reading = reading
     }
 
     public var body: some View {
@@ -99,7 +101,7 @@ public struct AvatarView: View {
             .accessibilityValue(Self.words(for: activity, name: name))
             .onAppear {
                 rig.show(persona, animated: false)
-                if !reduceMotion { rig.play(.arrival) }
+                if let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
             }
             .onChange(of: persona) { _, next in
                 // In a call a new teammate arrives at the family table; at home the light just changes.
@@ -136,6 +138,7 @@ public struct AvatarView: View {
         rig.expression = expression.rawValue
         rig.voiceLevel = level()
         rig.reduceMotion = reduceMotion
+        rig.reading = reading
         let dark = colorScheme == .dark
         rig.dark = dark
         var u = rig.frame(at: date.timeIntervalSince(woke))
@@ -147,6 +150,10 @@ public struct AvatarView: View {
         u.light(dark: dark, roomTop: linear(hex: dark ? "#1e1a16" : "#faf8f5"), roomBottom: linear(hex: dark ? "#14110e" : "#efe9e0"))
         return u
     }
+
+    /// What plays when Ferni first appears: he wakes where he is (gap 3).
+    /// Under Reduce Motion he's simply there.
+    static func launchMoment(reduceMotion: Bool) -> KeyedMoment? { reduceMotion ? nil : .wake }
 
     /// Frame interval (nil = the display's rate) and whether the clock is paused.
     static func schedule(speaking: Bool, throttled: Bool, covered: Bool, active: Bool) -> (interval: Double?, paused: Bool) {

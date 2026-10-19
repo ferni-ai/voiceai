@@ -80,8 +80,9 @@ targets:
         CADisableMinimumFrameDurationOnPhone: true
         LSRequiresIPhoneOS: true
         UILaunchScreen:
+          # The room's colour only: Ferni is drawn live, and a logo here would
+          # flash before him (HIG, Launching; delight gap 3).
           UIColorName: LaunchBackground
-          UIImageName: LaunchLogo
         # One window: a call is one session, and a second iPad window would share it.
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false

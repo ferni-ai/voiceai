@@ -20,6 +20,8 @@ public final class AliveRig {
     /// Hold every pose exactly at its target (still images, tests).
     public var still = false
     public var dark = false
+    /// Reading along (the consent sheet): eyes down, slow blinks.
+    public var reading = false
 
     // MARK: State
 
@@ -341,6 +343,7 @@ public final class AliveRig {
             if simd_distance(gazeTarget, prev) > 0.25, rng.unit() < 0.35 { scheduleBlink(at: time + 0.01) }
             nextSaccade = time + rng.range(1.1, 3.4)
         }
+        if reading, focus == nil { gazeTarget.y = min(gazeTarget.y, f.gy - 0.4) }
         let drift = still ? .zero : SIMD2(sin(time * .pi * 2 / 8) * 0.04, sin(time * .pi * 2 / 8 * 1.3 + 1) * 0.03)
         self[.gx].t = clamp(gazeTarget.x + drift.x, -0.85, 0.85) * max(m, 0.5)
         self[.gy].t = clamp(gazeTarget.y + drift.y, -0.7, 0.7) * max(m, 0.5)
@@ -431,7 +434,7 @@ public final class AliveRig {
             blink = blinkFrom + (seg.to - blinkFrom) * eased
             if u >= 1 { blinkSeg = nil }
         } else if !still, time >= nextBlink {
-            scheduleBlink(at: time, slow: expression == "sleepy" || expression == "drowsy")
+            scheduleBlink(at: time, slow: reading || expression == "sleepy" || expression == "drowsy")
         }
     }
 
