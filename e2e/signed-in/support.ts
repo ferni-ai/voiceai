@@ -143,7 +143,9 @@ export async function shownDialogs(page: Page): Promise<string[]> {
         for (let n: HTMLElement | null = el; n; n = n.parentElement) opacity *= Number(getComputedStyle(n).opacity || 1);
         return (
           rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.pointerEvents !== 'none' &&
-          opacity > 0.05 && rect.right > 0 && rect.left < innerWidth && !el.closest('.settings-menu')
+          opacity > 0.05 && rect.right > 0 && rect.left < innerWidth && !el.closest('.settings-menu') &&
+          // A loading shell (aria-busy) stands in until the real panel draws; it is not the panel
+          el.getAttribute('aria-busy') !== 'true'
         );
       })
       .map((el) => {
