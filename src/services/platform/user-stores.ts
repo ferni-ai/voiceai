@@ -127,6 +127,8 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
   ...byField('odId', 'analytics_sessions'),
   ...byField('firebaseUid', 'user_profiles'), // access grants; the email-keyed ones too (erase-other-keys)
   ...byField('injection.userId', 'context_injection_outcomes'),
+  { collection: 'reply_reports', field: 'uid' }, // replies they reported, with their own words
+  { collection: 'reply_report_quota', doc: 'uid' },
 ];
 
 /**

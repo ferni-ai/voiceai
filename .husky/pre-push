@@ -10,7 +10,9 @@
 #   Blocks: a branch stacked on another unmerged branch (STACKED_OK="<reason>"
 #           to override), more than SIZE_FAIL reviewable lines
 #           (PUSH_SIZE_OK="<reason>"), new architecture or quality-ratchet
-#           regressions (fix them; no override).
+#           regressions (fix them; no override), and pushing the checked-out
+#           branch with uncommitted changes, which hides it from those checks
+#           (PUSH_UNCHECKED_OK="<reason>").
 #   Warns:  more than SIZE_WARN reviewable lines; behind origin/main.
 # =============================================================================
 
@@ -84,14 +86,25 @@ while read -r _local_ref local_sha remote_ref _remote_sha; do
   (( behind > 0 )) && warn "$behind commits behind origin/main; CI will test stale code. Rebase or merge main."
 
   # --- Architecture and quality ratchet (≈8 s) ---------------------------------
-  # They read the working tree, so only when it's what's being pushed.
+  # They read the working tree, so they run only when it is exactly what's being
+  # pushed. Uncommitted changes on the pushed branch used to just skip them with a
+  # warning; a regression then failed in the merge queue and took the entries
+  # behind it down too (2026-10-18, d23b845dd). Now that blocks: commit or remove
+  # the changes first. PUSH_UNCHECKED_OK="<reason>" pushes anyway (CI still checks).
   if [[ "$local_sha" == "$(git rev-parse HEAD)" ]] && git diff --quiet HEAD; then
     npx tsx apps/cli/src/commands/quality/architecture-gate.ts >/tmp/pre-push-arch.log 2>&1 ||
       fail "new architecture violations (quality:arch): see /tmp/pre-push-arch.log"
     npx tsx apps/cli/src/commands/quality/ratchet.ts >/tmp/pre-push-ratchet.log 2>&1 ||
       fail "quality ratchet regressed: see /tmp/pre-push-ratchet.log"
+  elif [[ "$local_sha" == "$(git rev-parse HEAD)" ]]; then
+    if [[ -n "${PUSH_UNCHECKED_OK:-}" ]]; then
+      warn "uncommitted changes, so architecture and ratchet checks skipped (PUSH_UNCHECKED_OK: $PUSH_UNCHECKED_OK)."
+    else
+      fail "uncommitted changes, so the architecture and ratchet checks can't see what you're pushing."
+      echo "       Commit or remove them, then push. To push anyway: PUSH_UNCHECKED_OK=\"<reason>\" git push ..."
+    fi
   else
-    warn "not checked out or uncommitted changes, so architecture and ratchet checks skipped (CI runs them)."
+    warn "pushing a branch that isn't checked out, so architecture and ratchet checks skipped (CI runs them)."
   fi
 done
 

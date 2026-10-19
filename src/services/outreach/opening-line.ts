@@ -23,6 +23,11 @@ export interface OutboundParties {
   personal: boolean;
   /** The dispatcher's own opening line, used when it says Ferni is an AI. */
   openingLine?: string;
+  /**
+   * A family check-in. The person agreed to Ferni's calls and knows who Ferni
+   * is, so Ferni says its name without "<sponsor>'s AI friend" (Seth, 2026-10-18).
+   */
+  checkin?: boolean;
 }
 
 /** Defaults the metadata and dispatch parsers fill in when a name is missing. */
@@ -75,6 +80,7 @@ export function partiesOf(call: {
   userName?: string;
   callType?: string;
   openingLine?: string;
+  kind?: string;
 }): OutboundParties {
   const { name, relation } = nameAndRelation(call.recipientName);
   return {
@@ -83,11 +89,13 @@ export function partiesOf(call: {
     sponsorName: realName(call.userName),
     personal: call.callType === 'personal',
     openingLine: call.openingLine,
+    ...(call.kind === 'family_checkin' && { checkin: true }),
   };
 }
 
 /** How Ferni names itself on the call: "it's Ferni, Seth's AI friend". */
-export function ferniIntro({ sponsorName, personal }: OutboundParties): string {
+export function ferniIntro({ sponsorName, personal, checkin }: OutboundParties): string {
+  if (checkin) return "it's Ferni";
   if (personal) {
     return sponsorName ? `it's Ferni, ${sponsorName}'s AI friend` : "it's Ferni, an AI friend";
   }
@@ -101,7 +109,8 @@ export function ferniIntro({ sponsorName, personal }: OutboundParties): string {
  */
 export function outboundOpener(parties: OutboundParties): string {
   const { recipientName, relation, sponsorName, personal, openingLine } = parties;
-  if (openingLine && /\bAI\b/.test(openingLine)) return openingLine;
+  // A check-in's opener is the server's own (signed dispatch) and names no AI on purpose
+  if (openingLine && (parties.checkin || /\bAI\b/.test(openingLine))) return openingLine;
   const intro = ferniIntro(parties);
   if (!personal) return `Hi, ${intro}. Do you have a quick minute?`;
   // Saved only as "mom": ask who answered, never greet them as "mom".
