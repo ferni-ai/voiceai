@@ -17,6 +17,10 @@ enum UITestScenario: String {
     case settings
     /// A live call: Ferni speaking, with a line of captions each.
     case call
+    /// Store screenshots: Ferni brings Maya in mid-call (the family table).
+    case handoff
+    /// Store screenshots: a call that just ended, with the "I'll remember" card.
+    case remember
 
     static let current: UITestScenario? = value(after: "-FerniUITest").flatMap(UITestScenario.init(rawValue:))
 
@@ -24,6 +28,13 @@ enum UITestScenario: String {
     /// the system settings, so these set the environment values the views read.
     static let reduceMotion = flag("-FerniReduceMotion")
     static let reduceTransparency = flag("-FerniReduceTransparency")
+    /// Store screenshots: a person who has talked before, with a team and notes
+    /// (canned answers from a fake API, fake first names only).
+    static let storeData = flag("-FerniStoreData")
+    /// Store screenshots: dark mode, whatever the simulator is set to.
+    static let dark = flag("-FerniDark")
+    /// Store screenshots: the hour Home's greeting is written for.
+    static let hour: Int? = value(after: "-FerniHour").flatMap(Int.init)
 
     static let config = FerniConfig(apiBaseURL: URL(string: "http://127.0.0.1:9")!)
 
@@ -31,12 +42,34 @@ enum UITestScenario: String {
     @MainActor static func resetDefaults() {
         if let id = Bundle.main.bundleIdentifier { UserDefaults.standard.removePersistentDomain(forName: id) }
         UserDefaults.standard.set(false, forKey: CallFeedback.soundsKey)
+        if storeData { UserDefaults.standard.set(true, forKey: "ferni.call.hasTalked") }
+    }
+
+    /// The fake API behind `-FerniStoreData`: a team, the call's three
+    /// remembered things, and notes. Anything else is a 404.
+    static func api(baseURL: URL) -> FerniAPI {
+        FerniAPI(baseURL: baseURL, idToken: { _ in "uitest" }, send: { request in
+            let path = request.url?.path ?? ""
+            let body: String?
+            if path.hasSuffix("/api/relationship/team-unlocks") {
+                body = #"{"unlockedMembers":["ferni","maya-santos","peter-john","alex-chen","jordan-taylor"],"members":[{"id":"nayan-patel","unlocked":false}]}"#
+            } else if path.hasSuffix("/api/memories/from-call") {
+                body = #"{"items":[{"id":"f1","subject":"you","detail":"Finished the garden. Tomatoes went in first"},{"id":"f2","subject":"Ana","detail":"her birthday is Friday"},{"id":"f3","subject":"you","detail":"Want to walk before work, three mornings a week"}]}"#
+            } else if path.hasSuffix("/api/cognitive/memories") {
+                body = #"{"memories":[{"id":"m1","content":"Walk before work, three mornings a week","type":"goal","sourceType":"persona_memory"},{"id":"m2","content":"Read more fiction this winter","type":"goal","sourceType":"persona_memory"},{"id":"m3","content":"Strong coffee, no sugar","type":"preference","sourceType":"persona_memory"},{"id":"m4","content":"Long walks with Biscuit","type":"preference","sourceType":"persona_memory"},{"id":"m5","content":"Has a dog called Biscuit","type":"fact","sourceType":"persona_memory"},{"id":"m6","content":"Sister Ana's birthday is Friday","type":"fact","sourceType":"persona_memory"},{"id":"m7","content":"Finished the garden this month","type":"fact","sourceType":"persona_memory"},{"id":"m8","content":"Sunday evenings feel heavy before the week","type":"pattern","sourceType":"persona_memory"}]}"#
+            } else {
+                body = nil
+            }
+            let data = Data((body ?? "{}").utf8)
+            let response = HTTPURLResponse(url: request.url!, statusCode: body == nil ? 404 : 200, httpVersion: nil, headerFields: nil)!
+            return (data, response)
+        })
     }
 
     @MainActor static func callSession(avatar: AvatarModel, level: AudioLevelMeter) -> CallSession {
         CallSession(
             fetchToken: { _ in CallToken(token: "t", url: "wss://127.0.0.1:9", room: "ios-uitest", agentDispatched: true) },
-            makeRoom: { ScriptedRoom() },
+            makeRoom: { ScriptedRoom(script: current == .handoff ? .handoff : .garden) },
             audio: SilentAudio(),
             avatar: avatar,
             agentLevel: level
@@ -83,17 +116,39 @@ private final class UITestAuthBackend: AuthBackend, @unchecked Sendable {
 
 /// Ferni arrives speaking and the call stays up until it's ended.
 private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
+    enum Script { case garden, handoff }
     let events: AsyncStream<RoomEvent>
     private let continuation: AsyncStream<RoomEvent>.Continuation
+    private let script: Script
 
-    init() { (events, continuation) = AsyncStream.makeStream(of: RoomEvent.self) }
+    init(script: Script = .garden) {
+        self.script = script
+        (events, continuation) = AsyncStream.makeStream(of: RoomEvent.self)
+    }
 
     func connect(url: String, token: String) async throws {
         continuation.yield(.agentJoined(attributes: ["lk.agent.state": "speaking"]))
-        let lines: [(CaptionChunk.Speaker, String)] = [
-            (.you, "Long week. I finally finished the garden."),
-            (.ferni, "That's huge! What did you plant first?"),
-        ]
+        switch script {
+        case .garden:
+            say([(.you, "Long week. I finally finished the garden."),
+                 (.ferni, "That's huge! What did you plant first?")])
+        case .handoff:
+            say([(.you, "I keep saying I'll walk before work."),
+                 (.ferni, "Maya's brilliant at this. Let me bring her in.")])
+            let continuation = continuation
+            Task {
+                try? await Task.sleep(for: .seconds(3))
+                continuation.yield(.data(Data(#"{"type":"handoff_started","newAgent":"maya-santos"}"#.utf8)))
+                try? await Task.sleep(for: .seconds(2.5))
+                continuation.yield(.data(Data(#"{"type":"handoff_complete","target":"maya-santos"}"#.utf8)))
+                try? await Task.sleep(for: .seconds(1))
+                continuation.yield(.caption(CaptionChunk(streamID: "s9", segmentID: "g9", speaker: .ferni,
+                    text: "Hi! Three mornings a week, starting small. Which days?", isFinal: true)))
+            }
+        }
+    }
+
+    private func say(_ lines: [(CaptionChunk.Speaker, String)]) {
         for (i, line) in lines.enumerated() {
             continuation.yield(.caption(CaptionChunk(streamID: "s\(i)", segmentID: "g\(i)", speaker: line.0, text: line.1, isFinal: true)))
         }
@@ -152,6 +207,7 @@ extension View {
                 .overlay(alignment: .topLeading) { UITestEnvironmentProbe() }
                 .environment(\._accessibilityReduceMotion, UITestScenario.reduceMotion)
                 .environment(\._accessibilityReduceTransparency, UITestScenario.reduceTransparency)
+                .preferredColorScheme(UITestScenario.dark ? .dark : nil)
         } else {
             self
         }
