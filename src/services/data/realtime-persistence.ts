@@ -19,6 +19,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { runBackground } from '../../utils/background-task.js';
 import { MAX_RETRIES, RETRY_DELAY_MS } from '../../config/resilience-config.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 
 const log = createLogger({ module: 'RealtimePersistence' });
 
@@ -85,7 +86,7 @@ export async function persistExtractedDetails(
   userId: string,
   details: Array<{ type: string; value: string }>
 ): Promise<void> {
-  if (!userId || userId === 'anonymous' || details.length === 0) {
+  if (!isMemberIdentity(userId) || details.length === 0) {
     return;
   }
 
@@ -168,7 +169,7 @@ export async function persistExtractedDetails(
  * Persist social graph (people mentioned) to Firestore
  */
 export async function persistSocialGraph(userId: string): Promise<void> {
-  if (!userId || userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return;
   }
 
@@ -212,7 +213,7 @@ export async function saveRealtimeData(
   userId: string,
   extractedDetails?: Array<{ type: string; value: string }>
 ): Promise<void> {
-  if (!userId || userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return;
   }
 

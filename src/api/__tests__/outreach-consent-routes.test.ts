@@ -23,6 +23,12 @@ vi.mock('../auth-middleware.js', async (importOriginal) => ({
   requireAuth,
 }));
 
+// The panel's channel switches are also saved to messagingPrefs (messaging-prefs-route.test.ts).
+const writePrefs = vi.fn(async () => undefined);
+vi.mock('../../services/messaging/prefs.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/messaging/prefs.js')>()),
+  writePrefs,
+}));
 vi.mock('../../services/identity/firebase-auth.js', () => ({ getFirebaseUser: async () => fb }));
 vi.mock('../../services/superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
@@ -104,6 +110,11 @@ describe('outreach consent routes', () => {
       'u1',
       expect.objectContaining({ channels: ['sms'] }),
       how
+    );
+    expect(writePrefs).toHaveBeenCalledWith(
+      'u1',
+      { channels: { sms: true, email: false } },
+      'panel'
     );
   });
 
