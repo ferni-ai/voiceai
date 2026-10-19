@@ -20,6 +20,9 @@ packages:
     path: Packages/FerniVoice
   FerniDesign:
     path: Packages/FerniDesign
+  Sentry:
+    url: https://github.com/getsentry/sentry-cocoa
+    exactVersion: 9.30.0
 
 settings:
   base:
@@ -47,6 +50,7 @@ targets:
       - package: FerniKit
       - package: FerniVoice
       - package: FerniDesign
+      - package: Sentry
       - target: FerniLive
         embed: true
     info:
