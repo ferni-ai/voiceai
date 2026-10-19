@@ -7,6 +7,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../utils/safe-logger.js';
+import { requireAdmin } from './auth-middleware.js';
 import { handleCorsPreflightIfNeeded, parseRequestBody, sendJsonResponse } from './helpers.js';
 import {
   getConversationalCallService,
@@ -48,6 +49,13 @@ export async function handleOutboundCallRoutes(
         conversationalCallsEnabled: configured,
         timestamp: new Date().toISOString(),
       });
+      return true;
+    }
+
+    // Everything past health dials real phones or lists who is being called,
+    // so it is admin-only. It was open to anonymous callers on prod: any body
+    // with a phone and a name rang that number with a message of their choosing.
+    if (!(await requireAdmin(req, res))) {
       return true;
     }
 
