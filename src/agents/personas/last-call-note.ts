@@ -19,6 +19,7 @@ import {
   restoredCarryover,
   type RestoredCarryover,
 } from '../../services/social/conversation-carryover.js';
+import { firstCallNote } from './first-call-rapport.js';
 
 /** Ferni's replies (the greeting counts) during which the last call is mentioned. */
 export const LAST_CALL_REPLIES = 3;
@@ -76,4 +77,14 @@ export function lastCallNote(
   if (!carry) return '';
   const replies = chatCtx.items.filter((i) => i.type === 'message' && i.role === 'assistant');
   return replies.length < LAST_CALL_REPLIES ? lastCallText(carry) : '';
+}
+
+/** The call-opening notes: a new caller's first call (FIRST_CALL_RAPPORT=on), a returning one's last. */
+export function callStartNotes(
+  chatCtx: llm.ChatContext,
+  session: object,
+  callerWords: string,
+  careful: boolean
+): string[] {
+  return [firstCallNote(chatCtx, session, callerWords), lastCallNote(chatCtx, session, careful)];
 }

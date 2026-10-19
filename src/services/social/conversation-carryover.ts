@@ -24,7 +24,6 @@
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getDb } from '../../utils/safe-firestore.js';
 import {
   endConversation,
   getConversationState,
@@ -70,6 +69,13 @@ export interface RestoredCarryover {
   mood?: { sentiment: Sentiment; emotions: Emotion[] };
   topics: string[];
   circleBack: string[];
+}
+
+/** Firestore, handed in by the agent layer (setCarryoverDb); none means nothing is saved or read. */
+let carryoverDb: () => FirebaseFirestore.Firestore | null = () => null;
+
+export function setCarryoverDb(get: () => FirebaseFirestore.Firestore | null): void {
+  carryoverDb = get;
 }
 
 export function conversationCarryoverEnabled(env: Env = process.env): boolean {
@@ -184,7 +190,7 @@ function carryoverRef(db: FirebaseFirestore.Firestore, userId: string) {
 export async function saveCarryover(
   userId: string,
   snap: CarryoverSnapshot,
-  db: FirebaseFirestore.Firestore | null = getDb()
+  db: FirebaseFirestore.Firestore | null = carryoverDb()
 ): Promise<boolean> {
   if (!db || !carriesFor(userId)) return false;
   try {
@@ -199,7 +205,7 @@ export async function saveCarryover(
 
 export async function loadCarryover(
   userId: string,
-  db: FirebaseFirestore.Firestore | null = getDb()
+  db: FirebaseFirestore.Firestore | null = carryoverDb()
 ): Promise<CarryoverSnapshot | null> {
   if (!db || !carriesFor(userId)) return null;
   try {

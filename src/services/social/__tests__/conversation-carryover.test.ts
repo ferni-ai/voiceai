@@ -35,8 +35,11 @@ const {
   noteCarryoverMood,
   openConversation,
   restoredCarryover,
+  setCarryoverDb,
   snapshotOf,
 } = await import('../conversation-carryover.js');
+// As session-init-handler.ts hands it in.
+setCarryoverDb(() => getDb() as unknown as FirebaseFirestore.Firestore);
 const { getConversationState } = await import('../conversation-state.js');
 
 const ON = { CONVERSATION_CARRYOVER: 'on' };

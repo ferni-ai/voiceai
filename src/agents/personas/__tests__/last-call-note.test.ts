@@ -20,8 +20,9 @@ const fakeDb = {
 vi.mock('../../../utils/safe-firestore.js', () => ({ getDb: () => fakeDb }));
 
 const { LAST_CALL_REPLIES, lastCallNote, lastCallText } = await import('../last-call-note.js');
-const { endConversationState, openConversation } =
+const { endConversationState, openConversation, setCarryoverDb } =
   await import('../../../services/social/conversation-carryover.js');
+setCarryoverDb(() => fakeDb as unknown as FirebaseFirestore.Firestore);
 const { withTurnReminder } = await import('../turn-request.js');
 
 const ON = { CONVERSATION_CARRYOVER: 'on' };

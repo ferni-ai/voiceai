@@ -40,8 +40,8 @@ import { noteReminder } from '../shared/turn-receipt-session.js';
 import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes, listeningReply } from './listen-first-turn.js';
-import { firstCallNote, isFirstCall } from './first-call-rapport.js';
-import { lastCallNote } from './last-call-note.js';
+import { isFirstCall } from './first-call-rapport.js';
+import { callStartNotes } from './last-call-note.js';
 import { nameCorrectionNote } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { porchLightNote } from './porch-light.js';
@@ -171,10 +171,8 @@ export function withTurnReminder(
       priorCalls: priorCallsOf((session as { userData?: unknown }).userData),
       careful: options.shape === false,
     }),
-    // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
-    firstCallNote(chatCtx, session, words),
-    // CONVERSATION_CARRYOVER=on: how their last call went, on the first few replies
-    lastCallNote(chatCtx, session, options.shape === false),
+    // FIRST_CALL_RAPPORT=on: a new caller's first call; CONVERSATION_CARRYOVER=on: their last one
+    ...callStartNotes(chatCtx, session, words, options.shape === false),
     // ROOM_GUESTS=on: someone else is in the room on the same mic (room-guests.ts)
     roomGuestsNote(session, words),
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's

@@ -27,6 +27,10 @@ beforeAll(async () => {
   process.env.CONVERSATION_CARRYOVER = 'on';
   const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
   db = getAdminFirestore();
+  // As session-init-handler.ts hands it in.
+  const { getDb } = await import('../../../utils/safe-firestore.js');
+  const { setCarryoverDb } = await import('../../../services/social/conversation-carryover.js');
+  setCarryoverDb(getDb);
 });
 
 afterAll(() => {

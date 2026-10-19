@@ -22,7 +22,7 @@ import { resetAllConversationState } from '../../conversation/index.js';
 import { onDeepUnderstandingSessionStart as loadDeepUnderstandingProfiles } from '../../intelligence/index.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { AgentId } from '../../services/agent-bus.js';
-import { openConversation } from '../../services/social/conversation-carryover.js';
+import { openConversation } from './conversation-open.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { TrialCheckResult } from '../../services/first-taste-trial.js';
 import { createSessionServices, type SessionServices } from '../../services/index.js';
