@@ -2993,7 +2993,7 @@
     "waitlistMessage": "Nous déployons Ferni progressivement pour offrir la meilleure expérience possible. Nous t'enverrons un e-mail dès qu'une place se libérera.",
     "waitlistEmail": "Nous t'avertirons à l'adresse {email}",
     "tryDifferentAccount": "Essayer un autre compte",
-    "checkingAccess": "Vérification de tes accès...",
+    "checkingAccess": "On prépare tout…",
     "checkingLabel": "Un petit instant...",
     "signInError": "La connexion a été annulée ou a échoué. Réessaie.",
     "verifyEmailTitle": "Vérifie ton adresse e-mail",
@@ -10923,7 +10923,7 @@
   },
   "entrance": {
     "helper": "Ton guide personnel",
-    "connectToTalk": "Discuter",
+    "connectToTalk": "Parler à Ferni",
     "endTalk": "Raccrocher",
     "connectingCancel": "Connexion en cours. Touchez pour annuler",
     "connectingNow": "Connexion…",

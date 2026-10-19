@@ -2974,7 +2974,7 @@
     "waitlistMessage": "すべての方に最高の体験をお届けするため、Ferniは段階的に公開しています。ご案内が可能になり次第、メールでお知らせいたします。",
     "waitlistEmail": "{email}宛てにお知らせします",
     "tryDifferentAccount": "別のアカウントを試す",
-    "checkingAccess": "アクセス権を確認中...",
+    "checkingAccess": "準備しています…",
     "checkingLabel": "少々お待ちください...",
     "signInError": "サインインがキャンセルされたか、失敗しました。もう一度お試しください。",
     "verifyEmailTitle": "メールアドレスを確認しましょう",
@@ -10803,7 +10803,7 @@
   },
   "entrance": {
     "helper": "あなた専属のガイド",
-    "connectToTalk": "お話する",
+    "connectToTalk": "Ferniと話す",
     "endTalk": "終了",
     "connectingCancel": "接続中です。タップしてキャンセル",
     "connectingNow": "接続中…",

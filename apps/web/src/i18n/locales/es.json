@@ -2993,7 +2993,7 @@
     "waitlistMessage": "Estamos lanzando Ferni poco a poco para asegurarnos de que todo el mundo tenga la mejor experiencia. Te enviaremos un correo en cuanto haya un lugar para ti.",
     "waitlistEmail": "Te avisaremos en {email}",
     "tryDifferentAccount": "Prueba con otra cuenta",
-    "checkingAccess": "Comprobando tu acceso...",
+    "checkingAccess": "Preparando todo…",
     "checkingLabel": "Un momento...",
     "signInError": "El inicio de sesión se canceló o falló. Por favor, inténtalo de nuevo.",
     "verifyEmailTitle": "Verifica tu correo electrónico",
@@ -10923,7 +10923,7 @@
   },
   "entrance": {
     "helper": "Tu guía personal",
-    "connectToTalk": "Hablar",
+    "connectToTalk": "Habla con Ferni",
     "endTalk": "Desconectar",
     "connectingCancel": "Conectando. Toca para cancelar",
     "connectingNow": "Conectando…",

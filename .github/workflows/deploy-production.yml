@@ -371,6 +371,7 @@ jobs:
             --build-arg VITE_CAPTIONS_BREATH="${{ vars.VITE_CAPTIONS_BREATH }}" \
             --build-arg VITE_CAPTIONS_HEARD="${{ vars.VITE_CAPTIONS_HEARD }}" \
             --build-arg VITE_MEMORY_VIEW="${{ vars.VITE_MEMORY_VIEW }}" \
+            --build-arg VITE_APPLE_WEB_SIGNIN="${{ vars.VITE_APPLE_WEB_SIGNIN }}" \
             .
 
           # Push all tags

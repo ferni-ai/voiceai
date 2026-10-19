@@ -2974,7 +2974,7 @@
     "waitlistMessage": "我們正在逐步開放 Ferni，以確保每個人都能獲得最佳體驗。一旦有空缺，我們就會發送電子郵件給你。",
     "waitlistEmail": "我們將會發送通知至 {email}",
     "tryDifferentAccount": "嘗試其他帳號",
-    "checkingAccess": "正在檢查你的存取權限...",
+    "checkingAccess": "正在準備…",
     "checkingLabel": "請稍等一下...",
     "signInError": "登入已取消或失敗。請再試一次。",
     "verifyEmailTitle": "驗證你的電子郵件",
@@ -10803,7 +10803,7 @@
   },
   "entrance": {
     "helper": "你的貼心嚮導",
-    "connectToTalk": "聊聊",
+    "connectToTalk": "和 Ferni 聊聊",
     "endTalk": "掛斷",
     "connectingCancel": "正在連線。輕點即可取消",
     "connectingNow": "正在連線…",
