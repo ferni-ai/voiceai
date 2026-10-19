@@ -1,16 +1,10 @@
 /**
  * APNs: alert pushes straight to Apple for the iPhone app, no Firebase.
- *
- * Token-based auth: an ES256 provider JWT signed with the team's APNs key
- * (.p8), sent over HTTP/2 to api.push.apple.com (production builds) or
- * api.sandbox.push.apple.com (development builds), per device. Node's http2;
- * no new dependency.
- *
- * Reads APNS_KEY_P8, APNS_KEY_ID, APNS_TEAM_ID and APNS_TOPIC (the app's
- * bundle id). With any unset, nothing is sent and that is logged once.
- * Apple asks that a provider token be reused for 20 to 60 minutes, so one is
- * kept for 50 and replaced early only when Apple says it expired.
- *
+ * Token auth (an ES256 JWT signed with the team's .p8 key) over node:http2, to
+ * the production or sandbox host per device. Reads APNS_KEY_P8, APNS_KEY_ID,
+ * APNS_TEAM_ID and APNS_TOPIC (the bundle id); with any unset nothing is sent
+ * (logged once). Apple wants a provider token reused for 20 to 60 minutes: one
+ * is kept for 50, replaced early only when Apple says it expired.
  * Never log a device token or the provider JWT.
  *
  * @module services/apns-sender
@@ -210,9 +204,4 @@ export function getApnsSender(): ApnsSender | null {
     log.info('APNs not configured (APNS_KEY_P8/KEY_ID/TEAM_ID/TOPIC); iOS pushes are off');
   shared = config ? new ApnsSender(config) : null;
   return shared;
-}
-
-/** Tests: forget the shared sender. */
-export function resetApnsSender(): void {
-  shared = undefined;
 }
