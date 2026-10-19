@@ -125,6 +125,16 @@ async function loadTokens(userId: string): Promise<StoredGoogleCalendarTokens | 
   return null;
 }
 
+/**
+ * Tokens straight from Firestore, past the cache and the remembered miss: a
+ * disconnect must see a token another instance saved within the last minute.
+ * Throws when Firestore can't be read; null when nothing (decryptable) is stored.
+ */
+export async function readTokensFresh(userId: string): Promise<StoredGoogleCalendarTokens | null> {
+  const data = await tokenStore.load(userId, { fresh: true, strict: true });
+  return data?.encrypted ? decryptData<StoredGoogleCalendarTokens>(data.encrypted) : null;
+}
+
 /** Save (encrypted) tokens for a user. */
 export async function saveTokens(
   userId: string,

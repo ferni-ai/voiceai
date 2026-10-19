@@ -66,6 +66,16 @@ beforeEach(() => {
 });
 
 describe('Relationship Insights', () => {
+  it('shows a dash, not "null%" or 0%, while no contact has a strength score', async () => {
+    const body = { ...serverBody, stats: { ...serverBody.stats, averageStrength: null } };
+    apiFetch.mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
+
+    await openAndSettle();
+
+    const stats = [...document.querySelectorAll('.ri-stat-value')].map((el) => el.textContent);
+    expect(stats).toEqual(['2', '1', '1', '–']);
+  });
+
   it("renders the server's real people and numbers", async () => {
     apiFetch.mockResolvedValue(new Response(JSON.stringify(serverBody), { status: 200 }));
 
