@@ -176,9 +176,9 @@ async function getActiveCommitments(
     const allCommitments = await loadUserCommitments(userId);
 
     // Filter to non-completed/abandoned commitments
-    // Status types: 'abandoned' | 'completed' | 'unclear' | 'deferred'
+    // Status types: 'abandoned' | 'dismissed' | 'completed' | 'unclear' | 'deferred'
     const commitments = allCommitments.filter(
-      (c) => c.status !== 'completed' && c.status !== 'abandoned'
+      (c) => !['completed', 'abandoned', 'dismissed'].includes(c.status)
     );
 
     const now = Date.now();
@@ -245,7 +245,7 @@ async function getPersonCommitments(
 
     // Filter to non-completed/abandoned commitments
     const activeCommitments = allCommitments.filter(
-      (c) => c.status !== 'completed' && c.status !== 'abandoned'
+      (c) => !['completed', 'abandoned', 'dismissed'].includes(c.status)
     );
 
     for (const entity of mentionedEntities) {
@@ -301,7 +301,7 @@ async function getStalledCommitments(userId: string): Promise<CommitmentReminder
 
     // Filter to non-completed/abandoned commitments
     const commitments = allCommitments.filter(
-      (c) => c.status !== 'completed' && c.status !== 'abandoned'
+      (c) => !['completed', 'abandoned', 'dismissed'].includes(c.status)
     );
 
     const now = Date.now();
