@@ -54,6 +54,8 @@ public final class CallSession {
     private let lifecycle: (any CallLifecycle)?
     private var callID: UUID?
     private var callBegan = ContinuousClock.now
+    /// LiveCommunicationKit took this call: the system activates its audio.
+    private var systemOwnsCall = false
     private var agentHere = false
     private var callTask: Task<Void, Never>?
     private var eventsTask: Task<Void, Never>?
@@ -104,9 +106,17 @@ public final class CallSession {
         callID = id
         callBegan = .now
         startedAt = .now
+        systemOwnsCall = false
         callTask = Task {
             // The system's call UI; the call still works if it refuses.
-            try? await lifecycle?.begin(id: id, name: PersonaRegistry.get(personaID).name)
+            if let lifecycle {
+                do {
+                    try await lifecycle.begin(id: id, name: PersonaRegistry.get(personaID).name)
+                    systemOwnsCall = true
+                } catch {
+                    log.error("The system refused the call; running its audio ourselves")
+                }
+            }
             await run(rejoining: false)
         }
     }
@@ -176,10 +186,23 @@ public final class CallSession {
             if refusal {
                 log.error("The system ended the call before it connected; continuing without it")
                 callID = nil
+                if systemOwnsCall {
+                    // Nobody will activate the session now: the app does.
+                    systemOwnsCall = false
+                    if room != nil { try? audio.activate(systemOwned: false) }
+                }
             } else if isActive {
                 await end()
             }
         case .mute(let muted): _ = await setMuted(muted)
+        case .audio(let active):
+            audio.systemAudio(active: active)
+            guard systemOwnsCall, isActive else { return }
+            if active {
+                await resume()
+            } else if phase == .live {
+                isOnHold = true // the system took the audio (another call)
+            }
         }
     }
 
@@ -233,7 +256,7 @@ public final class CallSession {
             for await event in room.events { self?.handle(event, from: room) }
         }
         do {
-            try audio.activate()
+            try audio.activate(systemOwned: systemOwnsCall)
             try await room.connect(url: token.url, token: token.token)
             try await room.setMicrophone(enabled: !isMuted)
         } catch {
@@ -261,7 +284,7 @@ public final class CallSession {
         room = nil
         agentHere = false
         await leaving?.disconnect()
-        audio.deactivate()
+        audio.deactivate(systemOwned: systemOwnsCall)
         agentActivity = nil
         isUserSpeaking = false
         agentLevel.reset()
@@ -349,7 +372,7 @@ public final class CallSession {
     public func resume() async {
         guard let room, isOnHold else { return }
         do {
-            try audio.activate()
+            try audio.activate(systemOwned: systemOwnsCall)
             try await room.setMicrophone(enabled: !isMuted)
             isOnHold = false
         } catch {
