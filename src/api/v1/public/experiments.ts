@@ -6,7 +6,7 @@
  *
  * Routes:
  *   GET  /api/v1/public/experiments/:id/variant  - Get variant for user
- *   POST /api/v1/public/experiments/track        - Track exposure/conversion
+ *   POST /api/v1/public/experiments/track        - Track exposure/conversion/engagement
  *   POST /api/v1/public/experiments/track/batch  - Batch track events (handleTrackBatch)
  *
  * @module PublicExperimentsAPI
@@ -17,6 +17,7 @@ import type { URL } from 'url';
 import {
   assignVariant,
   trackConversion,
+  trackEvent,
   trackExposure,
 } from '../../../services/experiments/web-experiments.js';
 import { createLogger } from '../../../utils/safe-logger.js';
@@ -41,6 +42,59 @@ function sendJson(res: ServerResponse, status: number, data: unknown): void {
     'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   });
   res.end(JSON.stringify(data));
+}
+
+/** Event types the public API records. */
+const TRACKED_EVENT_TYPES = ['exposure', 'conversion', 'engagement'] as const;
+
+interface TrackedEvent {
+  experimentId: string;
+  variantId?: string;
+  userId: string;
+  eventType: string;
+  goalId?: string;
+  value?: number;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Record one event for `userId`. Returns why it was not recorded, or null.
+ * Engagement signals (the landing page's exit beacon) belong to no experiment
+ * arm, so they may omit variantId.
+ */
+async function recordEvent(event: TrackedEvent, userId: string): Promise<string | null> {
+  if (event.eventType === 'exposure') {
+    if (!event.variantId) return 'variantId is required for exposure events';
+    await trackExposure(event.experimentId, event.variantId, userId, event.metadata);
+    return null;
+  }
+  if (event.eventType !== 'conversion' && event.eventType !== 'engagement') {
+    return 'Invalid eventType';
+  }
+  if (!event.goalId) return `goalId is required for ${event.eventType} events`;
+  if (event.eventType === 'engagement') {
+    await trackEvent({
+      experimentId: event.experimentId,
+      variantId: event.variantId || 'none',
+      userId,
+      eventType: 'engagement',
+      goalId: event.goalId,
+      value: event.value,
+      metadata: event.metadata,
+      timestamp: new Date(),
+    });
+    return null;
+  }
+  if (!event.variantId) return 'variantId is required for conversion events';
+  await trackConversion(
+    event.experimentId,
+    event.variantId,
+    userId,
+    event.goalId,
+    event.value,
+    event.metadata
+  );
+  return null;
 }
 
 /**
@@ -105,17 +159,15 @@ export async function handlePublicExperimentsRoutes(
 
     // POST /api/v1/public/experiments/track
     if (pathname === `${BASE_PATH}/track` && method === 'POST') {
-      const body = (await parseBody(req)) as {
-        experimentId: string;
-        variantId: string;
-        userId: string;
-        eventType: 'exposure' | 'conversion';
-        goalId?: string;
-        value?: number;
-        metadata?: Record<string, unknown>;
-      };
+      const body = (await parseBody(req)) as TrackedEvent;
 
-      if (!body.experimentId || !body.variantId || !body.userId || !body.eventType) {
+      const needsVariant = body.eventType !== 'engagement';
+      if (
+        !body.experimentId ||
+        (needsVariant && !body.variantId) ||
+        !body.userId ||
+        !body.eventType
+      ) {
         sendJson(res, 400, {
           error: 'Missing required fields',
           required: ['experimentId', 'variantId', 'userId', 'eventType'],
@@ -125,26 +177,9 @@ export async function handlePublicExperimentsRoutes(
       const userId = await experimentSubject(req, res, body.userId);
       if (userId === null) return true;
 
-      if (body.eventType === 'exposure') {
-        await trackExposure(body.experimentId, body.variantId, userId, body.metadata);
-      } else if (body.eventType === 'conversion') {
-        if (!body.goalId) {
-          sendJson(res, 400, { error: 'goalId is required for conversion events' });
-          return true;
-        }
-        await trackConversion(
-          body.experimentId,
-          body.variantId,
-          userId,
-          body.goalId,
-          body.value,
-          body.metadata
-        );
-      } else {
-        sendJson(res, 400, {
-          error: 'Invalid eventType',
-          allowed: ['exposure', 'conversion'],
-        });
+      const refused = await recordEvent(body, userId);
+      if (refused) {
+        sendJson(res, 400, { error: refused, allowed: TRACKED_EVENT_TYPES });
         return true;
       }
 
@@ -174,35 +209,16 @@ export async function handlePublicExperimentsRoutes(
   }
 }
 
-/** Event types a batch records. Anything else is reported back, never counted as tracked. */
-const BATCH_EVENT_TYPES: ReadonlySet<string> = new Set(['exposure', 'conversion']);
-
-interface BatchEvent {
-  experimentId: string;
-  variantId: string;
-  userId: string;
-  eventType: string;
-  goalId?: string;
-  value?: number;
-}
-
-/** Why an event of a batch is not recorded, or null. */
-function batchRefusal(event: BatchEvent): string | null {
-  if (!BATCH_EVENT_TYPES.has(event.eventType)) return 'Invalid eventType';
-  if (event.eventType === 'conversion' && !event.goalId) return 'goalId is required for conversion events'; // prettier-ignore
-  return null;
-}
-
 /**
  * One browser's batch of experiment events, recorded under one subject
  * (experiment-subject.ts: an anonymous visitor id, or the verified caller, each
  * rate-limited). At most MAX_BATCH_EVENTS; unknown types and conversions with no
- * goal come back in `skipped`. Only ids, the goal and its value are stored:
+ * goal come back in `skipped` (recordEvent's rules, engagement included). Only ids, the goal and its value are stored:
  * client `metadata` is not passed on. Serves app.ferni.ai's route and ferni.ai's
  * /api/landing/experiments/track/batch (landing-intelligence.routes.ts).
  */
 export async function handleTrackBatch(req: IncomingMessage, res: ServerResponse): Promise<void> {
-  const body = (await parseBody(req)) as { events?: BatchEvent[] } | undefined;
+  const body = (await parseBody(req)) as { events?: TrackedEvent[] } | undefined;
   const events = body?.events;
   if (!Array.isArray(events) || events.length === 0) {
     sendJson(res, 400, { error: 'events array is required' });
@@ -218,20 +234,16 @@ export async function handleTrackBatch(req: IncomingMessage, res: ServerResponse
   if (userId === null) return;
 
   const skipped: string[] = [];
-  const recordable = events.filter((event) => {
-    const refused = batchRefusal(event);
-    if (refused) skipped.push(`${event.eventType}: ${refused}`);
-    return refused === null;
-  });
   const results = await Promise.allSettled(
-    recordable.map(async (event) => {
-      const { experimentId, variantId, goalId = '', value } = event;
-      if (event.eventType === 'exposure') await trackExposure(experimentId, variantId, userId);
-      else await trackConversion(experimentId, variantId, userId, goalId, value);
+    events.map(async (event) => {
+      // Client metadata is never stored from a batch
+      const refused = await recordEvent({ ...event, metadata: undefined }, userId);
+      if (refused) skipped.push(`${event.eventType}: ${refused}`);
+      return refused === null;
     })
   );
-  const tracked = results.filter((r) => r.status === 'fulfilled').length;
-  const failed = results.length - tracked;
+  const tracked = results.filter((r) => r.status === 'fulfilled' && r.value).length;
+  const failed = results.filter((r) => r.status === 'rejected').length;
   sendJson(res, 200, { success: true, tracked, failed, ...(skipped.length > 0 && { skipped }) });
 }
 

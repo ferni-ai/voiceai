@@ -24,7 +24,7 @@
  */
 
 import { findProjectRoot } from '../../utils/project-root.js';
-import { execSync, spawnSync } from 'child_process';
+import { execSync } from 'child_process';
 import { existsSync, mkdirSync, writeFileSync, readFileSync, copyFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -576,7 +576,7 @@ For Cloud Run deployment, add:
  * Code Signing Setup
  * Interactive guide for setting up code signing on all platforms
  */
-async function setupSigning(options: SetupOptions): Promise<boolean> {
+async function setupSigning(_options: SetupOptions): Promise<boolean> {
   log.step('CODE SIGNING SETUP');
 
   console.log(`
@@ -594,58 +594,12 @@ ${colors.bold}Documentation:${colors.reset}
 ${colors.bold}Quick Setup for Android:${colors.reset}
 `);
 
-  if (options.skipPrompts) {
-    log.info('Skipping interactive prompts');
-    return true;
-  }
-
-  const setupAndroid = await confirm('Generate Android keystore?');
-  
-  if (setupAndroid) {
-    const keystoreDir = join(PROJECT_ROOT, 'apps/android-native');
-    const keystoreFile = join(keystoreDir, 'ferni-release.keystore');
-
-    if (existsSync(keystoreFile)) {
-      log.warn('Keystore already exists');
-      const overwrite = await confirm('Overwrite existing keystore?');
-      if (!overwrite) return true;
-    }
-
-    mkdirSync(keystoreDir, { recursive: true });
-
-    log.info('Generating Android keystore...');
-    console.log('\nYou will be prompted for keystore details:\n');
-
-    try {
-      spawnSync('keytool', [
-        '-genkey', '-v',
-        '-keystore', keystoreFile,
-        '-alias', 'voiceai',
-        '-keyalg', 'RSA',
-        '-keysize', '2048',
-        '-validity', '10000',
-      ], { stdio: 'inherit' });
-
-      log.success(`Keystore created: ${keystoreFile}`);
-
-      console.log(`
-${colors.red}⚠️  IMPORTANT: Back up your keystore file!${colors.reset}
-If you lose it, you cannot update your app on Play Store.
-
-Recommended backup locations:
-  • Password manager (1Password, Bitwarden)
-  • Encrypted cloud storage
-  • Secure offline backup
-
-To build signed APK:
-  cd apps/android-native
-  ./gradlew assembleRelease
+  // The Android app is a Trusted Web Activity (apps/android-twa). Its upload key
+  // lives only in GitHub Actions secrets; the script never writes it to disk.
+  console.log(`Run ${colors.bold}scripts/android/make-upload-key.sh${colors.reset}. It creates the Play
+upload key, stores it as the ANDROID_UPLOAD_* GitHub Actions secrets, and
+prints the SHA-256 fingerprint for Play Console and app links.
 `);
-    } catch (error) {
-      log.error('Failed to generate keystore');
-      return false;
-    }
-  }
 
   return true;
 }

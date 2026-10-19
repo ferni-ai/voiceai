@@ -129,8 +129,8 @@ export interface ExperimentEvent {
   variantId: string;
   userId: string;
   sessionId?: string;
-  eventType: 'exposure' | 'conversion';
-  goalId?: string; // For conversions
+  eventType: 'exposure' | 'conversion' | 'engagement';
+  goalId?: string; // For conversions and engagement
   value?: number; // Optional value (e.g., revenue)
   metadata?: Record<string, unknown>;
   timestamp: Date;
@@ -517,10 +517,8 @@ export async function trackConversion(
   });
 }
 
-/**
- * Track an event (internal)
- */
-async function trackEvent(event: ExperimentEvent): Promise<void> {
+/** Track an event. Engagement (landing exit beacon) calls this directly; it moves no counter. */
+export async function trackEvent(event: ExperimentEvent): Promise<void> {
   try {
     const db = getDb();
 

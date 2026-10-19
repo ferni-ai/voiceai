@@ -425,8 +425,8 @@ Key features:
 - Voice-first (just talk naturally)
 - Infinite memory (remembers everything)
 - 24/7 availability
-- End-to-end encrypted
-- Never sells data
+- Saves conversations so Ferni remembers you; deleting the account erases them
+- Never sells data; outside providers (like the models that write replies) process it to make Ferni work
 
 How to use:
 - Call the phone number
@@ -520,7 +520,7 @@ function getFallbackFAQ(question: string): SmartFAQResponse {
     return {
       question,
       answer:
-        "Yes! Your conversations are end-to-end encrypted and never sold or shared. You can export or delete your data anytime. We're building trust systems, not advertising systems.",
+        'Ferni saves your conversations so it can remember you next time. We never sell your data, and outside providers process it to make Ferni work. You can download it anytime, and deleting your account erases it.',
       relatedQuestions: ['Where is my data stored?', 'Can I delete my account?'],
       confidence: 0.95,
     };
