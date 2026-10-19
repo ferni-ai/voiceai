@@ -26,6 +26,7 @@ import {
   publishMilestoneCelebration,
 } from './maya-habit-outreach.js';
 import { evaluateTrustBasedOutreach, handleConcernDetection } from './trust-outreach-bridge.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 
 const log = getLogger().child({ module: 'outreach-session-integration' });
 
@@ -282,7 +283,7 @@ export async function analyzeSessionForOutreach(data: SessionEndData): Promise<{
 }> {
   const { userId, personaId, turns, summary, durationMinutes, satisfaction } = data;
 
-  if (!userId || userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return { commitmentsFound: 0, triggersCreated: 0, contextUpdated: false };
   }
 
@@ -505,8 +506,7 @@ export function analyzeMessageForContext(
   message: string,
   role: 'user' | 'assistant'
 ): void {
-  if (role !== 'user' || !userId || userId === 'anonymous') return;
-
+  if (role !== 'user' || !isMemberIdentity(userId)) return;
   // Quick emotional state detection for immediate context
   const emotionalState = detectEmotionalState(message);
   if (emotionalState) {
