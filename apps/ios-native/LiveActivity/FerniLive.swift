@@ -24,14 +24,21 @@ struct CallLiveActivity: Widget {
                     duration(context.attributes)
                 }
                 Spacer()
-                endButton
+                if context.state.state.hasControls {
+                    muteButton(context.state.muted)
+                    endButton
+                }
             }
             .padding()
             .activityBackgroundTint(FerniColor.background)
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) { portrait(context.state).frame(width: 40, height: 40) }
-                DynamicIslandExpandedRegion(.trailing) { endButton }
+                DynamicIslandExpandedRegion(.trailing) {
+                    if context.state.state.hasControls {
+                        HStack(spacing: 8) { muteButton(context.state.muted); endButton }
+                    }
+                }
                 DynamicIslandExpandedRegion(.center) {
                     Text(context.state.state.words(context.state.personaName)).font(.headline)
                 }
@@ -39,8 +46,8 @@ struct CallLiveActivity: Widget {
             } compactLeading: {
                 portrait(context.state).frame(width: 22, height: 22)
             } compactTrailing: {
-                Image(systemName: "waveform")
-                    .symbolEffect(.variableColor.iterative, isActive: context.state.state == .speaking)
+                Image(systemName: context.state.muted ? "mic.slash.fill" : "waveform")
+                    .symbolEffect(.variableColor.iterative, isActive: context.state.state == .speaking && !context.state.muted)
                     .contentTransition(.symbolEffect(.replace))
             } minimal: {
                 portrait(context.state).frame(width: 22, height: 22)
@@ -60,6 +67,16 @@ struct CallLiveActivity: Widget {
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .contentTransition(.numericText())
+    }
+
+    private func muteButton(_ muted: Bool) -> some View {
+        Button(intent: MuteCallIntent()) {
+            Image(systemName: muted ? "mic.slash.fill" : "mic.fill")
+                .frame(width: 44, height: 44)
+                .background(.thinMaterial, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(muted ? "Unmute" : "Mute")
     }
 
     private var endButton: some View {
