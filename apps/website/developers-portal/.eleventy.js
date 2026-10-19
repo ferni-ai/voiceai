@@ -10,6 +10,9 @@ module.exports = function (eleventyConfig) {
   eleventyConfig.addPassthroughCopy({ 'src/images': 'images' });
   // The API explorer loads and offers this spec for download at /api/openapi.yaml
   eleventyConfig.addPassthroughCopy({ 'src/api/openapi.yaml': 'api/openapi.yaml' });
+  eleventyConfig.addPassthroughCopy({ 'src/robots.txt': 'robots.txt' });
+  // IndexNow key (public by design): blog-publish-check.yml submits new posts with it
+  eleventyConfig.addPassthroughCopy({ 'src/indexnow-key.txt': 'indexnow-key.txt' });
 
   // Watch for changes
   eleventyConfig.addWatchTarget('src/css/');

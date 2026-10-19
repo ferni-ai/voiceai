@@ -215,9 +215,9 @@ npm run ferni health
 
 ## 📚 Additional Resources
 
-- [Deployment Guide](./docs/DEPLOYMENT.md)
-- [Development Setup](./docs/DEVELOPMENT.md)
-- [Architecture Overview](./docs/ARCHITECTURE.md)
+- [Deploy runbook](./docs/runbooks/deploy.md)
+- [Development Setup](./ONBOARDING.md)
+- [Docs index](./docs/README.md)
 
 ---
 
