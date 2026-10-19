@@ -515,6 +515,15 @@
         { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
     },
+    {
+      "collectionGroup": "waitlist",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "inQueue", "order": "ASCENDING" },
+        { "fieldPath": "laneRank", "order": "ASCENDING" },
+        { "fieldPath": "priorityKey", "order": "ASCENDING" }
+      ]
+    },
 
     {
       "collectionGroup": "unified_memories",
