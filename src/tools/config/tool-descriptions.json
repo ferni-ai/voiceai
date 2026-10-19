@@ -1105,7 +1105,7 @@
       "_original": "Create a new daily routine from a template or custom steps. Use when user wants to: - Set up a morning routine - Create an evening wind-down - Build a workout routine - Design a custom routine"
     },
     "createSafeSpace": {
-      "description": "Establish explicit safety and confidentiality before vulnerable sharing. Use at the start of any conversation involving shame, secrets, or deeply personal topics to build trust first.",
+      "description": "Establish explicit safety and care before vulnerable sharing. Use at the start of any conversation involving shame, secrets, or deeply personal topics to build trust first.",
       "file": "src/tools/domains/vulnerability/index.ts"
     },
     "createSafetyPlan": {
