@@ -609,7 +609,7 @@ export async function deliverReminder(reminder: ScheduledReminder): Promise<bool
           reminder.deliveryAddress,
           messageToDeliver,
           personaId,
-          { fallbackToTwilioVoice: true }
+          { fallbackToTwilioVoice: true, ownerUid: reminder.userId }
         );
         if (!callResult.success) {
           throw new Error(callResult.message);

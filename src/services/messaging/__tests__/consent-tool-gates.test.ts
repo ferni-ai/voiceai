@@ -148,9 +148,22 @@ it('plaid linkBankAccount will not text the link to an opted-out number', async 
     { execute: (args: Record<string, unknown>, ctx: unknown) => Promise<unknown> }
   >;
   const reply = await tools.linkBankAccount.execute(
+    { userId: 'someone-else', deliveryMethod: 'sms', contact: PHONE },
+    { ctx: { userData: { userId: 'u1' } } }
+  );
+  expect(String(reply)).toContain('asked not to get texts');
+  expect(twilioCalls()).toHaveLength(0);
+});
+
+it("plaid linkBankAccount acts only for the session's caller, never a model-supplied id", async () => {
+  const tools = createPlaidTools() as unknown as Record<
+    string,
+    { execute: (args: Record<string, unknown>, ctx: unknown) => Promise<unknown> }
+  >;
+  const reply = await tools.linkBankAccount.execute(
     { userId: 'u1', deliveryMethod: 'sms', contact: PHONE },
     {}
   );
-  expect(String(reply)).toContain('asked not to get texts');
+  expect(String(reply)).toContain("only send the link to the person I'm talking with");
   expect(twilioCalls()).toHaveLength(0);
 });

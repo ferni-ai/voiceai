@@ -24,7 +24,8 @@
  */
 
 import { llm } from '@livekit/agents';
-import { consentBlocks } from '../../../services/messaging/consent.js';
+import { callerUserId } from '../local-search/caller-city.js';
+import { notCalling, ownerRefusal } from '../../../services/messaging/consent-grants.js';
 import { z } from 'zod';
 import {
   guardedThirdPartySend,
@@ -190,17 +191,21 @@ async function sendTextReal(to: string, message: string, userId: string): Promis
 /**
  * Initiate an outbound phone call via Twilio
  */
-async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Promise<string> {
+async function makePhoneCall(
+  to: string,
+  purpose: string,
+  ownerUid: string | undefined,
+  twimlUrl?: string
+): Promise<string> {
   const validation = validatePhone(to);
   if (!validation.valid) {
     return `I need a valid phone number to make a call. Can you double-check "${to}"?`;
   }
 
   const validPhone = validation.sanitized as string;
-  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
-  if (await consentBlocks(validPhone, 'call', true)) {
-    return `I can't call that number: it asked not to be called.`;
-  }
+  // MESSAGING_PIPELINE: the owner's own number, or someone who gave this owner a call grant.
+  const refused = await ownerRefusal(ownerUid, validPhone, 'call');
+  if (refused) return notCalling(refused);
 
   if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_PHONE_NUMBER) {
     getLogger().warn('Twilio not configured for calls');
@@ -295,7 +300,6 @@ async function sendVoiceMessageRealWithUserId(
     );
   } catch (error) {
     getLogger().error({ error }, 'Voice message error');
-    // Fallback to text
     return sendTextReal(to, `🎤 (Voice message) ${message}`, userId);
   }
 }
@@ -424,7 +428,6 @@ export function parseScheduleTime(naturalTime: string): Date | null {
   const now = new Date();
   const lower = naturalTime.toLowerCase();
 
-  // Handle relative times
   if (lower.includes('tomorrow')) {
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -446,7 +449,6 @@ export function parseScheduleTime(naturalTime: string): Date | null {
     return nextMonth;
   }
 
-  // Handle day names
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   for (let i = 0; i < days.length; i++) {
     if (lower.includes(days[i])) {
@@ -459,7 +461,6 @@ export function parseScheduleTime(naturalTime: string): Date | null {
     }
   }
 
-  // Try to parse as date
   const parsed = new Date(naturalTime);
   if (!isNaN(parsed.getTime())) {
     return parsed;
@@ -528,8 +529,8 @@ export function createCommunicationTools() {
         phoneNumber: z.string().describe('Phone number to call'),
         message: z.string().describe('Message to deliver in the call'),
       }),
-      execute: async ({ phoneNumber, message }) => {
-        return makePhoneCall(phoneNumber, message);
+      execute: async ({ phoneNumber, message }, opts) => {
+        return makePhoneCall(phoneNumber, message, callerUserId(opts)); // the session's identity
       },
     }),
 

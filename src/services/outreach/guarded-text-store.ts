@@ -15,6 +15,7 @@ import {
 } from './checkin-replies.js';
 import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
 import type { TextStore } from './guarded-text.js';
+import { sponsoredPhoneOf } from './user-reach.js';
 
 const log = createLogger({ module: 'guarded-text' });
 /** Send locks (lockedSend), kept apart from the records so no query reads them. */
@@ -59,8 +60,7 @@ export const firestoreTextStore: TextStore = {
   },
   async sponsoredPhone(userId) {
     const doc = await checkinDb().collection('sponsored_identities').doc(userId).get();
-    const phone: unknown = doc.exists ? doc.data()?.phoneNumber : undefined;
-    return typeof phone === 'string' ? phone : undefined;
+    return sponsoredPhoneOf(doc.exists ? doc.data() : undefined);
   },
 };
 

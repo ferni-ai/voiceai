@@ -30,12 +30,14 @@ import {
   phoneHash,
   phoneHashKeyVersion,
   toE164,
+  type Env,
   type StoredCheckin,
 } from '../outreach/checkin-replies.js';
 import { isCohortMember } from '../platform/cohort-membership.js';
 import {
   consentBlocks,
   defaultConsentDeps,
+  messagingPipelineOn,
   normalizeReply,
   readConsent,
   type ConsentBlock,
@@ -337,4 +339,40 @@ export async function grantedOrAsked(
 ): Promise<boolean> {
   if (claim !== undefined && (await holdsConsentAsk(hash, claim, senderUid, deps))) return true;
   return hasGrant(hash, senderUid, 'sms', deps);
+}
+
+/**
+ * For a shared sender that is told who it acts for: refuse unless `phone` is
+ * that owner's own verified number or the owner holds their own grant, and
+ * always on an opt-out. No owner given: refused unless the contact opted in
+ * to nobody in particular, i.e. always for a third party (fails closed).
+ */
+export async function ownerRefusal(
+  ownerUid: string | undefined,
+  phone: string,
+  channel: ConsentChannel
+): Promise<ConsentBlock | null> {
+  return ownerUid
+    ? thirdPartyRefusal(ownerUid, phone, channel)
+    : consentBlocks(phone, channel, false);
+}
+
+/** What a tool tells the model when a call was refused, so Ferni says so honestly. */
+export const notCalling = (why: ConsentBlock): string =>
+  why === 'opted-out'
+    ? "I can't call that number: it asked not to be called."
+    : why === 'needs-consent'
+      ? "I can't call that number yet: they haven't said yes to calls from me for you."
+      : "I can't place that call right now.";
+
+/**
+ * The executor-path raw senders (communication- and legacy-fallback-executor)
+ * text through Twilio directly, with none of the guards. With MESSAGING_PIPELINE
+ * on they refuse outright instead of relying on OUTBOUND_CONFIRM alone; the
+ * gated tools (reachOut, sendTextMessage) are the way to text someone.
+ */
+export function rawSendRetired(env: Env = process.env): string | null {
+  return messagingPipelineOn(env)
+    ? 'Nothing was sent: I text people only through the guarded path. Ask me to reach out to them instead.'
+    : null;
 }
