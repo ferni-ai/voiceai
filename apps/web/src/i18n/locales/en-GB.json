@@ -3569,8 +3569,6 @@
   "teamIntro": {
     "eyebrow": "YOUR JOURNEY",
     "title": "Meet Your Team",
-    "subtitle": "Each member of your team brings unique expertise. As you grow, they'll join your journey.",
-    "progressCount": "{count} on your team",
     "addedButton": "Added!",
     "alwaysHere": "Always here for you",
     "inRoster": "In your roster",
@@ -3580,72 +3578,41 @@
         "displayName": "Ferni",
         "role": "Your life coach",
         "description": "I'm here for whatever you need — from daily check-ins to deep conversations.",
-        "unlockHint": "Always by your side",
-        "unlockedMessage": "We've been through a lot together.",
         "name": "Ferni"
       },
       "maya": {
         "displayName": "Maya",
         "role": "Habit & Wellness Coach",
         "description": "I help you build habits that stick and find balance in your daily life.",
-        "unlockHint": "Complete your first weekly check-in",
-        "unlockedMessage": "Ready to build something amazing together.",
         "name": "Maya Santos"
       },
       "peter": {
         "displayName": "Peter",
         "role": "Research & Knowledge Guide",
         "description": "I dive deep into topics that matter to you, bringing clarity to complex questions.",
-        "unlockHint": "Ask Ferni a deep question",
-        "unlockedMessage": "I've been researching some things you'll love.",
         "name": "Peter John"
       },
       "jordan": {
         "displayName": "Jordan",
         "role": "Life Planning & Milestones",
         "description": "I help you celebrate wins, plan ahead, and keep your goals on track.",
-        "unlockHint": "Set your first goal with Ferni",
-        "unlockedMessage": "Let's map out your next chapter.",
         "name": "Jordan Taylor"
       },
       "alex": {
         "displayName": "Alex",
         "role": "Communication & Relationships",
         "description": "I help you navigate conversations, strengthen relationships, and express yourself better.",
-        "unlockHint": "Share a relationship story with Ferni",
-        "unlockedMessage": "I noticed some patterns worth exploring.",
         "name": "Alex Chen"
       },
       "nayan": {
         "displayName": "Nayan",
         "role": "Wisdom & Reflection",
         "description": "I offer perspective from life experience, helping you see the bigger picture.",
-        "unlockHint": "Have 10 conversations with your team",
-        "unlockedMessage": "There's wisdom in your journey. Let me share what I see.",
         "name": "Nayan"
       }
     },
-    "progress": {
-      "start": "Your journey begins...",
-      "growing": "Your team is growing!",
-      "strong": "A strong team by your side",
-      "almost": "Almost everyone is here",
-      "complete": "Your full team awaits",
-      "beginning": "We're just getting started",
-      "building": "Building something special",
-      "deep": "Deep partnership"
-    },
-    "footer": {
-      "free": "Start with Ferni, unlock the team as you grow",
-      "basic": "Your team is growing with you",
-      "premium": "Your full team is here for you",
-      "default": "Everyone grows at their own pace",
-      "early": "Keep talking to Ferni. Your team grows as your relationship deepens.",
-      "onTheWay": "You're on your way! More team members unlock as we continue our journey.",
-      "growing": "Your team is growing. Just a few more milestones to unlock everyone.",
-      "complete": "You've unlocked the full team! Everyone's here to support you."
-    },
-    "added": "Added!"
+    "added": "Added!",
+    "wholeTeam": "Everyone's here from your first call. Ferni brings in whoever fits what you're working on."
   },
   "referral": {
     "share": {
