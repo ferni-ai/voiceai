@@ -129,6 +129,19 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.apptests
         GENERATE_INFOPLIST_FILE: YES
 
+  # The accessibility audit and App Store screenshots, against UITestScenario.
+  FerniUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: Ferni
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.sethdford.ferni.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Ferni
+
   # The call on the Lock Screen and in the Dynamic Island.
   FerniLive:
     type: app-extension
@@ -222,3 +235,14 @@ schemes:
       config: Debug
     archive:
       config: Release
+
+  # UI tests against UITestScenario (no network, account, mic or sound).
+  FerniUITests:
+    build:
+      targets:
+        Ferni: all
+        FerniUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - FerniUITests

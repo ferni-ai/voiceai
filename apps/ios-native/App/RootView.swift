@@ -91,6 +91,7 @@ struct TeamScreen: View {
                     }
                 }
                 .frame(minHeight: 64)
+                .contentShape(.rect)
             }
             .buttonStyle(.plain)
             .disabled(!here)

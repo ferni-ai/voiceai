@@ -22,6 +22,7 @@
 		38240C7BC3E78705B56F4A7C /* handoff-to-nayan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */; };
 		3D35744BE349C5C980D7C2A6 /* FerniKit in Frameworks */ = {isa = PBXBuildFile; productRef = ED4AC2AA3060D84427234E43 /* FerniKit */; };
 		462F30BCD7F633DBEFD782D2 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */; };
+		49961E1E4E6B791C493108B4 /* TalkButtonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */; };
 		4A50AB47CB1B846447DE63F9 /* handoff-to-maya.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */; };
 		4E1D8F2D04D189C0702BF65C /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F50B2CC9B38F03C94B7E3D /* RootView.swift */; };
 		58CE92EB04A747ACB439AC52 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */; };
@@ -49,6 +50,8 @@
 		B20DE0108244A0A6616255E5 /* FerniWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6DB1FD5E9768FDDD7A8B82CB /* FerniWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E550D3CF186D8D463FF66E /* SettingsView.swift */; };
 		BA62672ACCAD9A10B9C98EBB /* BackgroundModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */; };
+		BC287679EE1EF47277B6C045 /* UITestScenario.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58F17318F25CDB7266DAE932 /* UITestScenario.swift */; };
+		C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */; };
 		C2499BBA5ED850991089AF31 /* FerniWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA1FBC06E2F396B11D85385 /* FerniWatchApp.swift */; };
 		CAAC14DD23372C8B957B3BAB /* MemoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E67B08698448132C9E2AE39 /* MemoryViews.swift */; };
 		CB8FD7D5F9B4F62D90207F20 /* CrashReporting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175D63C93899C628033FCCA8 /* CrashReporting.swift */; };
@@ -90,6 +93,13 @@
 			remoteInfo = FerniWatchWidgets;
 		};
 		AA3416AEECF383C559704658 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C9F53AFBC64A6F886252B128 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 8EAD711030B44B12A5B3B4A6;
+			remoteInfo = Ferni;
+		};
+		E57C12D52461CFC0DF738D2A /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = C9F53AFBC64A6F886252B128 /* Project object */;
 			proxyType = 1;
@@ -149,13 +159,16 @@
 		346AABA0EB545D4C92B2D8CD /* CallViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViews.swift; sourceTree = "<group>"; };
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
 		3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FerniWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkButtonTests.swift; sourceTree = "<group>"; };
 		41E550D3CF186D8D463FF66E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		4838DCCE1D8223A8914D4F7D /* FerniUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FerniUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		49306E5B24BD5C520DBE56ED /* CallFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallFeedback.swift; sourceTree = "<group>"; };
 		4E67B08698448132C9E2AE39 /* MemoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryViews.swift; sourceTree = "<group>"; };
 		4EA1FBC06E2F396B11D85385 /* FerniWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchApp.swift; sourceTree = "<group>"; };
 		4F6D02CA803627F1860ACBDA /* LiveActivityContentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityContentTests.swift; sourceTree = "<group>"; };
 		52EB4AF176D7F4E747ABBAA4 /* CallAnnouncementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallAnnouncementTests.swift; sourceTree = "<group>"; };
 		58E0556D7156242BE3423D87 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
+		58F17318F25CDB7266DAE932 /* UITestScenario.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UITestScenario.swift; sourceTree = "<group>"; };
 		5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-nayan.mp3"; sourceTree = "<group>"; };
 		649C35992ED39D62D2F8714A /* handoff-to-jordan.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-jordan.mp3"; sourceTree = "<group>"; };
@@ -174,6 +187,7 @@
 		ADAF04ADD5C0DB140C9F7769 /* Ferni.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ferni.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AE2FE78E70E6B38E7C790922 /* WatchRemote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRemote.swift; sourceTree = "<group>"; };
 		AEF97D68E6384026BE0D8738 /* FerniWatchWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchWidgets.swift; sourceTree = "<group>"; };
+		B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniUITestSupport.swift; sourceTree = "<group>"; };
 		B8C71781BAD997D314C08864 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkIntent.swift; sourceTree = "<group>"; };
 		BE26440C63996901B649797F /* FerniAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FerniAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -235,6 +249,7 @@
 				6A32A9AAC20492F70D570A83 /* LiveActivity */,
 				D3CCABA022D534AFFC80F128 /* Packages */,
 				5BF76EE8FB744EC863817746 /* Shared */,
+				97F52AB02C7F54F5AE97D189 /* UITests */,
 				D00FDC4A4C56C2675A0E25DE /* Watch */,
 				29AC43E0259DA7DBB933DA23 /* WatchShared */,
 				1F4BF1BE0ED156D412B4B043 /* WatchWidgets */,
@@ -292,6 +307,15 @@
 			path = LiveActivity;
 			sourceTree = "<group>";
 		};
+		97F52AB02C7F54F5AE97D189 /* UITests */ = {
+			isa = PBXGroup;
+			children = (
+				B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */,
+				41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */,
+			);
+			path = UITests;
+			sourceTree = "<group>";
+		};
 		A744F1ADE1586BD6791C2E97 /* App */ = {
 			isa = PBXGroup;
 			children = (
@@ -316,6 +340,7 @@
 				A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */,
 				94F50B2CC9B38F03C94B7E3D /* RootView.swift */,
 				41E550D3CF186D8D463FF66E /* SettingsView.swift */,
+				58F17318F25CDB7266DAE932 /* UITestScenario.swift */,
 				AE2FE78E70E6B38E7C790922 /* WatchRemote.swift */,
 				D4C06A9CF9494E3A7EC15BDE /* Sounds */,
 			);
@@ -371,6 +396,7 @@
 				ADAF04ADD5C0DB140C9F7769 /* Ferni.app */,
 				BE26440C63996901B649797F /* FerniAppTests.xctest */,
 				FE8F191561C68141BA565BFB /* FerniLive.appex */,
+				4838DCCE1D8223A8914D4F7D /* FerniUITests.xctest */,
 				3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */,
 				6DB1FD5E9768FDDD7A8B82CB /* FerniWatchWidgets.appex */,
 			);
@@ -484,6 +510,24 @@
 			productReference = FE8F191561C68141BA565BFB /* FerniLive.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		B8A9B82D1B7E4E7372D76A2C /* FerniUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 90F8B4591DF4AA274BDFD35A /* Build configuration list for PBXNativeTarget "FerniUITests" */;
+			buildPhases = (
+				A256B7AC2EF8815CA55158A8 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C2A4502F0AE4F0FA09C9D8C5 /* PBXTargetDependency */,
+			);
+			name = FerniUITests;
+			packageProductDependencies = (
+			);
+			productName = FerniUITests;
+			productReference = 4838DCCE1D8223A8914D4F7D /* FerniUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -512,6 +556,11 @@
 					AB5A0BA3E60C89B72A6FF745 = {
 						DevelopmentTeam = XT8W26YE9U;
 						ProvisioningStyle = Automatic;
+					};
+					B8A9B82D1B7E4E7372D76A2C = {
+						DevelopmentTeam = XT8W26YE9U;
+						ProvisioningStyle = Automatic;
+						TestTargetID = 8EAD711030B44B12A5B3B4A6;
 					};
 				};
 			};
@@ -548,6 +597,7 @@
 			targets = (
 				8EAD711030B44B12A5B3B4A6 /* Ferni */,
 				434D91902D51D8F0BAB70042 /* FerniAppTests */,
+				B8A9B82D1B7E4E7372D76A2C /* FerniUITests */,
 				AB5A0BA3E60C89B72A6FF745 /* FerniLive */,
 				336BC7746AB79ECDD8092E9C /* FerniWatch */,
 				33445E50E330A89D3CD886B2 /* FerniWatchWidgets */,
@@ -617,6 +667,7 @@
 				4E1D8F2D04D189C0702BF65C /* RootView.swift in Sources */,
 				B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */,
 				E88BB02A6FEC21AF520A766B /* TalkIntent.swift in Sources */,
+				BC287679EE1EF47277B6C045 /* UITestScenario.swift in Sources */,
 				9F244EF18E695FB66A1F961B /* WatchRemote.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -630,6 +681,15 @@
 				6C5C041CBBDFB39263B52443 /* FerniLive.swift in Sources */,
 				B0638D9FFF8A35EDC5CD683B /* TalkControl.swift in Sources */,
 				775B0EC80FED93D54BCEEF37 /* TalkIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A256B7AC2EF8815CA55158A8 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */,
+				49961E1E4E6B791C493108B4 /* TalkButtonTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -668,6 +728,11 @@
 			isa = PBXTargetDependency;
 			target = 8EAD711030B44B12A5B3B4A6 /* Ferni */;
 			targetProxy = AA3416AEECF383C559704658 /* PBXContainerItemProxy */;
+		};
+		C2A4502F0AE4F0FA09C9D8C5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 8EAD711030B44B12A5B3B4A6 /* Ferni */;
+			targetProxy = E57C12D52461CFC0DF738D2A /* PBXContainerItemProxy */;
 		};
 		DC43E4E63CF8DE7115DA98AB /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -941,6 +1006,40 @@
 			};
 			name = Debug;
 		};
+		C3AF155767C45F90BE1D229A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sethdford.ferni.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Ferni;
+			};
+			name = Release;
+		};
+		DD6FE672785747BF1ACC7B7D /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.sethdford.ferni.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Ferni;
+			};
+			name = Debug;
+		};
 		E9A39DBBEAFBBA87B53B3D7A /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = F11E986D6A235319241904D1 /* Ferni.xcconfig */;
@@ -989,6 +1088,15 @@
 			buildConfigurations = (
 				8A842AE1F9518D4260055E5A /* Debug */,
 				532CB2B928167EA5BC7EE5D4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		90F8B4591DF4AA274BDFD35A /* Build configuration list for PBXNativeTarget "FerniUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				DD6FE672785747BF1ACC7B7D /* Debug */,
+				C3AF155767C45F90BE1D229A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
