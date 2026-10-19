@@ -241,6 +241,7 @@ export const FLAG_MANIFEST = {
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // Keep off: needs #1855, the privacy-page wording, and a legal read of the Maps terms for storing the place ID. #1760 merged with an unverified head.
   PLACES_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read in patches/@livekit__agents@1.9.3.patch
@@ -379,6 +380,8 @@ export const FLAG_MANIFEST = {
   // cartesia by default; sonata only when its native addon is built (speech/tts-gateway/providers/index.ts)
   TTS_PROVIDER: { default: 'cartesia', owner: 'voice', kind: 'config' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // ping the shared Cartesia TTS socket and reopen it when it drops (tts-gateway/providers/cartesia-socket.ts)
+  TTS_SOCKET_WARM: { default: 'off', owner: 'voice', kind: 'experiment' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
   // troubles talk: no shift to his own life during a trouble, replies no longer than what they told (troubles-talk.ts)
   TROUBLES_TALK: { default: 'off', owner: 'voice', kind: 'experiment' },
