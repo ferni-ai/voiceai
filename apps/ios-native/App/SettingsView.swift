@@ -23,7 +23,7 @@ struct SettingsView: View {
                     NavigationLink("Delete account") { DeleteAccountView(delete: model.deleteAccount) }
                         .foregroundStyle(FerniColor.error)
                 }
-                PrivacySection(consent: model.consent, lock: model.memoryLock)
+                PrivacySection(consent: model.consent, lock: model.memoryLock) { await model.withdrawConsent() }
                 Section("About") {
                     LabeledContent("Version", value: Self.version)
                     Link("Privacy Policy", destination: URL(string: "https://ferni.ai/privacy")!)
@@ -112,6 +112,7 @@ private struct AccountSection: View {
 private struct PrivacySection: View {
     let consent: ConsentStore
     let lock: MemoryLock
+    let withdraw: () async -> Void
     @State private var confirmingWithdraw = false
 
     var body: some View {
@@ -133,7 +134,7 @@ private struct PrivacySection: View {
             Link("How Ferni handles your data", destination: URL(string: "https://ferni.ai/privacy")!)
         }
         .confirmationDialog("Withdraw your agreement?", isPresented: $confirmingWithdraw, titleVisibility: .visible) {
-            Button("Withdraw", role: .destructive) { consent.withdraw() }
+            Button("Withdraw", role: .destructive) { Task { await withdraw() } }
         } message: {
             Text("Ferni won't take calls until you agree again.")
         }

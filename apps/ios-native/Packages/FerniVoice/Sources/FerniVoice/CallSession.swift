@@ -113,6 +113,8 @@ public final class CallSession {
         systemOwnsCall = false
         phase = .connecting
         callTask = Task {
+            // Hung up before this task ever ran: nothing to start (or show).
+            if Task.isCancelled { return }
             if let prepare {
                 guard await prepare() else {
                     if !Task.isCancelled { fail(.notSignedIn) }
@@ -224,6 +226,7 @@ public final class CallSession {
     private enum Attempt { case joined, ferniMissing, failed(CallProblem), cancelled }
 
     private func run(rejoining: Bool) async {
+        guard !Task.isCancelled else { return }
         phase = .connecting
         if !rejoining { captions.clear() }
         guard await audio.requestMicrophone() else { return fail(.microphoneDenied) }
