@@ -127,19 +127,49 @@ function pastCalls(input: RevivedInput): Array<{ doc: SummaryDoc; days: number }
   return out;
 }
 
+/**
+ * What Ferni hears about an earlier call fails closed. Its emotional arc is
+ * never passed on as written, only as a fixed tone line. Its details (open
+ * questions, key points) are passed on only when the whole call plainly went
+ * lightly: an arc that reads light and isn't negated, and nothing in it, its
+ * key points or its questions that reads hard. A call with no arc, or one
+ * this can't tell, gives the tone line at most, so Ferni never has a painful
+ * moment to open with.
+ */
+const HARD =
+  /\b(cri(ed|es|ing)|tears|sobb|upset|angry|furious|hung up|panic|crisis|griev|grief|died|death|dying|passing|passed away|lost (his|her|their|my)|funeral|suicid|self-harm|scared|terrified|devastat|heartbr|fight|argument|heavy|miscarri|cancer|biopsy|diagnos|sick|illness|hospital|surgery|divorce|breakup|broke up|laid off|fired|broke down|lonely|depress|evict|stroke|relaps|rehab|overdos|abuse|anxious|worried|frustrat|sad|hard time|struggl)/i;
+const LIGHT =
+  /\b(lighthearted|light|fun|funny|laugh|joked|joking|playful|easy|easygoing|upbeat|cheerful|relaxed|happy|excited|friendly|casual|chatty)\b/i;
+const NEGATED = /\b(not|n't|no|never|without|hardly|barely)\b/i;
+
+/** The whole call plainly went lightly; anything less keeps its details out. */
+export function wentLightly(doc: SummaryDoc): boolean {
+  const arc = text(doc.emotionalArc);
+  const all = [arc, ...strings(doc.keyPoints), ...strings(doc.questionsRemaining)].join('\n');
+  return arc !== '' && LIGHT.test(arc) && !NEGATED.test(arc) && !HARD.test(all);
+}
+
+/** "Whether the hearing went okay" reads mid-sentence as "whether the hearing went okay". */
+const midSentence = (q: string): string => q.charAt(0).toLowerCase() + q.slice(1);
+
 export function lastCallLines(input: RevivedInput): RevivedLine[] {
+  // The newest summary left after forget and dispute filtering: "a recent
+  // call", since an earlier one may have been left out.
   const last = pastCalls(input).at(0);
   if (last === undefined) return [];
-  const lines: RevivedLine[] = [];
-  const arc = text(last.doc.emotionalArc);
-  if (arc) {
-    lines.push({
+  const when = ago(last.days);
+  const light = wentLightly(last.doc);
+  const lines: RevivedLine[] = [
+    {
       builder: 'last-call',
-      text: `How your last call (${ago(last.days)}) felt: ${clip(inFerniVoice(arc, input.userName), 240)}`,
+      text: light
+        ? `A recent call (${when}) went easily; keep that light, warm tone.`
+        : `Let them lead on anything from a recent call (${when}); be gentle and don't bring it up yourself.`,
       priority: 76,
       untilTurn: 10,
-    });
-  }
+    },
+  ];
+  if (!light) return lines;
   // Follow-ups reach the call through memory recall (memory-recall-hook.ts);
   // only questions it doesn't already cover are new here.
   const followUps = input.summaries.flatMap((s) => strings(s.followUpItems));
@@ -147,11 +177,11 @@ export function lastCallLines(input: RevivedInput): RevivedLine[] {
   const open = strings(last.doc.questionsRemaining)
     .filter((q) => !alreadyCovered(q, seen))
     .slice(0, 2)
-    .map((q) => clip(inFerniVoice(q, input.userName), 120));
+    .map((q) => midSentence(clip(inFerniVoice(q, input.userName), 120)));
   if (open.length > 0) {
     lines.push({
       builder: 'last-call',
-      text: `Still unknown from last time: ${open.join('; ')}`,
+      text: `Only if they bring it up: last time you didn't find out ${open.join('; or ')}.`,
       priority: 75,
       untilTurn: 10,
     });
@@ -164,6 +194,7 @@ export function recentCallsLines(input: RevivedInput): RevivedLine[] {
   const said = [input.lastConversationSummary ?? ''];
   const lines: string[] = [];
   for (const { doc, days } of earlier) {
+    if (!wentLightly(doc)) continue; // the same gate as the last call's details
     const points = strings(doc.keyPoints)
       .filter((p) => !alreadyCovered(p, said))
       .slice(0, 2)
@@ -191,7 +222,7 @@ export function sessionGapLines(input: RevivedInput): RevivedLine[] {
   return [
     {
       builder: 'session-gap',
-      text: `It's been ${ago(days).replace(' ago', '')} since you last talked. Pick up like a friend who's glad to hear from them; don't ask where they've been or make them explain the gap.`,
+      text: `It's been ${ago(days).replace(' ago', '')} since you last talked; they don't owe you an explanation for the gap.`,
       priority: 74,
       untilTurn: 3,
     },

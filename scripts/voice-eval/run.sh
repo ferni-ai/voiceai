@@ -33,6 +33,9 @@
 # EVAL_DRY_RUN=1 prints the plan as JSON (user id, rooms, scenarios) and exits:
 #   no audio, no token, no call.
 # EVAL_TZ sets the caller's timezone (default America/New_York).
+# EVAL_LOCAL_TIME=HH:MM: Ferni's own clock for his state (FERNI_STATE), e.g. 01:47
+#   (job metadata eval_local_time). Only a worker started with VOICE_EVAL_CLOCK=on
+#   honours it, for voice-eval- users only (eval-local-time.ts). Dev and prod ignore it.
 # EVAL_CITY / EVAL_REGION: the caller's location, as the token server's geo
 #   lookup would send it (weather and local tools use it).
 # local: a worker started from a checkout on the dev project, e.g.
@@ -95,6 +98,25 @@ caller=${CALLER_VOICE:-say}
 if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} && -z ${EVAL_DRY_RUN:-} ]]; then
   export CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret=cartesia-api-key --project=johnb-2025 2>/dev/null)
 fi
+# The agent takes user_id only from a signed dispatch (#1212), and on LiveKit
+# Cloud our own keys verify (#1706). Evals sign with eval-dispatch-secret, which
+# the agent accepts only for voice-eval- users, never for a real account or an
+# outbound call (eval-dispatch.ts).
+# Unsigned, every call is a new anonymous caller and EVAL_SEED proves nothing.
+# EVAL_DISPATCH_SECRET skips the lookup. The secret is never printed.
+if [[ $env != phone && -z ${EVAL_DRY_RUN:-} && -z ${EVAL_DISPATCH_SECRET:-} ]]; then
+  dsecret=eval-dispatch-secret
+  export EVAL_DISPATCH_SECRET=$(gcloud secrets versions access latest --secret=$dsecret --project=johnb-2025 2>/dev/null || true)
+  if [[ -z $EVAL_DISPATCH_SECRET ]]; then
+    # A returning caller unsigned is a stranger: the run would pass or fail on
+    # nothing (#1597, every eval ran as anon: for days). Refuse those.
+    if [[ -n $seed || -n ${4:-${EVAL_UID:-}} ]]; then
+      print -u2 "run.sh: can't read $dsecret, and a returning-caller run (EVAL_SEED or a user id) needs it"
+      exit 2
+    fi
+    print -u2 "run.sh: can't read $dsecret, so the call goes unsigned and the agent takes $uid as a stranger"
+  fi
+fi
 json=$out/$scenario-$label.json
 stamp=$(date +%H%M%S)
 
@@ -102,13 +124,20 @@ stamp=$(date +%H%M%S)
 # --persona) which persona answers, as persona_id. Built with JSON.stringify: a
 # quote or backslash in a value must not break it.
 job_meta() {
-  node -e '
+  local m
+  m=$(node -e '
     const [uid, tz, city, region, persona] = process.argv.slice(1);
     const m = { user_id: uid, user_name: "Sam", timezone: tz };
+    if (process.env.EVAL_LOCAL_TIME) m.eval_local_time = process.env.EVAL_LOCAL_TIME;
     if (city) Object.assign(m, { city, regionCode: region });
     if (persona) m.persona_id = persona;
     process.stdout.write(JSON.stringify(m));
-  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona"
+  ' "$uid" "${EVAL_TZ:-America/New_York}" "${EVAL_CITY:-}" "${EVAL_REGION:-}" "$persona")
+  if [[ -n ${EVAL_DISPATCH_SECRET:-} ]]; then
+    (cd $ROOT && npx tsx $HERE/sign-meta.ts "$m")
+  else
+    print -r -- "$m"
+  fi
 }
 
 if [[ -n ${EVAL_DRY_RUN:-} ]]; then
@@ -130,6 +159,12 @@ prepare_turns() {
       mode=${${line%% *}#@}; rest=${line#* }; at=${rest%% *}; line=${rest#* }
     fi
     pcm=$adir/t$i.pcm
+    # "@pause 9000 -": once the agent is quiet, wait that long (a handoff's swap and
+    # arrival line), then until it is quiet again. No speech.
+    if [[ $mode == pause ]]; then
+      print -r -- "-::pause::$at"
+      continue
+    fi
     # "@data 0 {json}": publish that JSON to the room as the app would, no speech.
     if [[ $mode == data ]]; then
       print -r -- "$line" > $adir/t$i.json

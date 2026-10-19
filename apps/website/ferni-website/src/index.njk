@@ -1,6 +1,6 @@
 ---
 layout: layouts/story-brand.njk
-title: Ferni - Your AI Life Coach
+title: Ferni - Your Life Coach
 description: Six AI specialists who actually listen, remember everything, and help you grow.
 ---
 
@@ -36,7 +36,7 @@ description: Six AI specialists who actually listen, remember everything, and he
 </nav>
 
 {# ========== MOBILE MENU ========== #}
-<div class="mobile-menu" id="mobileMenu">
+<nav class="mobile-menu" id="mobileMenu" aria-label="Mobile menu">
   <div class="mobile-menu__header">
     <span class="nav__logo-text">Ferni</span>
     <button class="mobile-menu__close" aria-label="Close menu">
@@ -45,21 +45,21 @@ description: Six AI specialists who actually listen, remember everything, and he
       </svg>
     </button>
   </div>
-  <nav class="mobile-menu__nav">
+  <div class="mobile-menu__nav">
     <a href="/capabilities/">Capabilities</a>
     <a href="/team/">Meet the Team</a>
     <a href="/blog/">Blog</a>
     <a href="/about/">About</a>
     <a href="/contact/">Contact</a>
     <a href="tel:{{ site.phoneRaw }}">Call {{ site.phone }}</a>
-  </nav>
+  </div>
   <div class="mobile-menu__cta">
     <a href="{{ site.appUrl }}" class="btn btn--primary btn--lg">
       Get Started Free
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
   </div>
-</div>
+</nav>
 
 {# ========== HERO ========== #}
 <main id="main-content">
@@ -143,14 +143,16 @@ description: Six AI specialists who actually listen, remember everything, and he
           Call Now
         </a>
       </div>
-      
+
+      <p class="hero__note">Ferni is software, not a person. <a href="/what-ferni-is/">What Ferni is</a></p>
+
       {# Trust Badges #}
       <div class="hero__badges">
         <div class="hero__badge">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
           </svg>
-          <span>End-to-End Encrypted</span>
+          <span>Encrypted in Transit and at Rest</span>
         </div>
         <div class="hero__badge">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="20" height="20">
@@ -268,7 +270,7 @@ description: Six AI specialists who actually listen, remember everything, and he
         </li>
         <li class="showcase__feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          I never forget a single detail
+          I remember what matters to you
         </li>
         <li class="showcase__feature">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
@@ -323,13 +325,13 @@ description: Six AI specialists who actually listen, remember everything, and he
   </div>
 </section>
 
-{# MEMORY DEMONSTRATION - Show the "infinite memory" superpower #}
+{# MEMORY DEMONSTRATION - Show what remembering feels like #}
 <section class="section memory-demo" id="memory">
   <div class="container">
     <div class="section__header">
-      <p class="section__eyebrow">Infinite Memory</p>
-      <h2 class="section__title">I never forget a single detail</h2>
-      <p class="section__subtitle">While others start from scratch every time, I remember your whole story.</p>
+      <p class="section__eyebrow">Memory</p>
+      <h2 class="section__title">I remember what matters to you</h2>
+      <p class="section__subtitle">While others start from scratch every time, I pick up where we left off. You can see what I remember, correct it, or ask me to forget it.</p>
     </div>
     
     <div class="memory-demo__timeline">
@@ -388,7 +390,7 @@ description: Six AI specialists who actually listen, remember everything, and he
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
             </svg>
-            This is what perfect memory feels like
+            This is what being remembered feels like
           </div>
         </div>
       </div>
@@ -419,7 +421,7 @@ description: Six AI specialists who actually listen, remember everything, and he
         <p class="story__card-highlight">I'm here.</p>
       </div>
 
-      {# Chapter 2: Perfect Memory #}
+      {# Chapter 2: Memory #}
       <div class="story__card">
         <div class="story__card-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -430,9 +432,9 @@ description: Six AI specialists who actually listen, remember everything, and he
             <circle cx="12" cy="6" r="1" fill="currentColor"/>
           </svg>
         </div>
-        <h3 class="story__card-title">Perfect Memory</h3>
+        <h3 class="story__card-title">I Remember</h3>
         <p class="story__card-text">
-          I remember everything you've shared with me. Not just the facts—the feelings behind them. The patterns you don't see. The growth you forget to notice.
+          I remember what you've shared with me. Not just the facts, but the feelings behind them. The patterns you don't see. The growth you forget to notice.
         </p>
         <p class="story__card-text" style="margin-top: var(--space-3);">
           I never get tired. I never judge. I'm fully present at 2am with the same warmth as noon.
@@ -463,9 +465,9 @@ description: Six AI specialists who actually listen, remember everything, and he
             <path d="M2 12l10 5 10-5"/>
           </svg>
         </div>
-        <h3 class="story__card-title">Built by Experts</h3>
+        <h3 class="story__card-title">Built with Care</h3>
         <p class="story__card-text">
-          I was created by mental health professionals and technologists working together. Decades of clinical experience combined with cutting-edge AI research. The goal: make real support accessible to everyone, not just those who can afford it.
+          I was built by a small team who care about what real support feels like. The goal: make real support accessible to everyone, not just those who can afford it.
         </p>
         <p class="story__card-text" style="margin-top: var(--space-3);">
           Claude helped architect and build me—and yes, an AI helping create another AI has a certain poetry to it. But the human expertise behind every interaction? That's irreplaceable.
@@ -804,8 +806,8 @@ description: Six AI specialists who actually listen, remember everything, and he
         <div class="feature__icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </div>
-        <h3 class="feature__title">Perfect Memory</h3>
-        <p class="feature__description">That thing you mentioned six months ago? I remember. Every detail, every context, every win and struggle. Your whole story, always present.</p>
+        <h3 class="feature__title">Remembers What Matters</h3>
+        <p class="feature__description">That thing you mentioned six months ago? I remember. Your wins, your struggles, the people who matter. And you can see, correct or ask me to forget any of it.</p>
       </div>
       
       <div class="feature">
@@ -901,7 +903,7 @@ description: Six AI specialists who actually listen, remember everything, and he
             </svg>
           </div>
           <div class="capability__content">
-            <h3 class="capability__title">Your Time, Protected</h3>
+            <h3 class="capability__title">Your Time, Protected <small>Coming soon</small></h3>
             <p class="capability__description">I know your calendar, your energy patterns, and when you're overbooked. I'll advocate for your boundaries.</p>
           </div>
         </div>
@@ -939,7 +941,7 @@ description: Six AI specialists who actually listen, remember everything, and he
             </svg>
           </div>
           <div class="capability__content">
-            <h3 class="capability__title">Voice Messages That Land</h3>
+            <h3 class="capability__title">Voice Messages That Land <small>Coming soon</small></h3>
             <p class="capability__description">"Send mom a voice message." I'll craft and send a warm, personal message—in your words, your voice, your meaning.</p>
           </div>
         </div>
@@ -951,7 +953,7 @@ description: Six AI specialists who actually listen, remember everything, and he
             </svg>
           </div>
           <div class="capability__content">
-            <h3 class="capability__title">Your Space, Your Way</h3>
+            <h3 class="capability__title">Your Space, Your Way <small>Coming soon</small></h3>
             <p class="capability__description">Lights, thermostat, ambiance—I control your environment to match your energy. Wind-down mode? Already done.</p>
           </div>
         </div>
@@ -1014,7 +1016,7 @@ description: Six AI specialists who actually listen, remember everything, and he
           <span class="proof-table__neutral">Free (but limited)</span>
         </div>
         <div class="proof-table__col proof-table__col--ferni">
-          <span class="proof-table__good">Free forever</span>
+          <span class="proof-table__good">Free in early access</span>
         </div>
       </div>
       
@@ -1107,8 +1109,8 @@ description: Six AI specialists who actually listen, remember everything, and he
             <path d="M9 12l2 2 4-4"/>
           </svg>
         </div>
-        <h3 class="security-card__title">End-to-End Encrypted</h3>
-        <p class="security-card__description">Your conversations are encrypted in transit and at rest. Only you can access your data.</p>
+        <h3 class="security-card__title">Encrypted in Transit and at Rest</h3>
+        <p class="security-card__description">Your conversations travel over encrypted connections and are encrypted where they're stored.</p>
       </div>
       
       <div class="security-card">
@@ -1159,6 +1161,13 @@ description: Six AI specialists who actually listen, remember everything, and he
     
     <div class="faq-list content-grid">
       <details class="faq-item">
+        <summary class="faq-item__question">Is Ferni a real person?</summary>
+        <div class="faq-item__answer">
+          <p>No. I'm software, built with artificial intelligence. I listen, I remember what matters to you, and I talk with you. Real people built me, and they stand behind me. <a href="/what-ferni-is/">More about what I am</a></p>
+        </div>
+      </details>
+
+      <details class="faq-item">
         <summary class="faq-item__question">Is Ferni a replacement for professional help?</summary>
         <div class="faq-item__answer">
           <p>Ferni is a life coaching companion—great for day-to-day support, goal-setting, habit building, and talking through decisions. For clinical mental health needs, please work with a licensed professional. Ferni complements professional help but isn't a substitute for it.</p>
@@ -1173,9 +1182,9 @@ description: Six AI specialists who actually listen, remember everything, and he
       </details>
       
       <details class="faq-item">
-        <summary class="faq-item__question">What does "infinite memory" mean?</summary>
+        <summary class="faq-item__question">What do you remember about me?</summary>
         <div class="faq-item__answer">
-          <p>Your best friend forgets what you told them last week. I remember every conversation you've ever had. Mention something months ago? I recall it. This creates continuity—like talking to someone who actually knows your whole story.</p>
+          <p>I remember what you share with me, like the people in your life, your goals and what's been on your mind. Mention something months ago and I can bring it back. I can get things wrong, so you can see what I remember, correct it, or ask me to forget any of it.</p>
         </div>
       </details>
       
@@ -1196,7 +1205,7 @@ description: Six AI specialists who actually listen, remember everything, and he
       <details class="faq-item">
         <summary class="faq-item__question">Do I have to pay?</summary>
         <div class="faq-item__answer">
-          <p>No. Ferni is free right now, with no plans, no contracts and nothing to cancel. If he's helped, you can chip in a dollar on Venmo. We want you to stay because Ferni helps, not because you're locked in.</p>
+          <p>No. Ferni is free right now, with no plans, no contracts and nothing to cancel. If he's helped, you can <a href="/give/">chip in</a>. We want you to stay because Ferni helps, not because you're locked in.</p>
         </div>
       </details>
       
@@ -1207,13 +1216,6 @@ description: Six AI specialists who actually listen, remember everything, and he
         </div>
       </details>
     </div>
-  </div>
-</section>
-
-{# CHIP IN - Ferni is free right now; a dollar on Venmo keeps him going #}
-<section class="section ferni-fund" id="founders">
-  <div class="container">
-    {% include "partials/chip-in.njk" %}
   </div>
 </section>
 
@@ -1282,11 +1284,11 @@ description: Six AI specialists who actually listen, remember everything, and he
           </div>
           <span class="nav__logo-text">Ferni</span>
         </a>
-        <p class="footer__tagline">The AI that actually listens. Six specialists, one conversation, infinite memory.</p>
+        <p class="footer__tagline">Someone who actually listens. Six specialists, one conversation, and a memory for what matters.</p>
       </div>
       
       <div>
-        <h4 class="footer__column-title">Product</h4>
+        <h3 class="footer__column-title">Product</h3>
         <ul class="footer__links">
           <li><a href="/team/">Meet the Team</a></li>
           <li><a href="/capabilities/">Capabilities</a></li>
@@ -1295,16 +1297,17 @@ description: Six AI specialists who actually listen, remember everything, and he
       </div>
       
       <div>
-        <h4 class="footer__column-title">Company</h4>
+        <h3 class="footer__column-title">Company</h3>
         <ul class="footer__links">
           <li><a href="/about/">About</a></li>
+          <li><a href="/what-ferni-is/">What Ferni is</a></li>
           <li><a href="/blog/">Blog</a></li>
           <li><a href="/contact/">Contact</a></li>
         </ul>
       </div>
       
       <div>
-        <h4 class="footer__column-title">Connect</h4>
+        <h3 class="footer__column-title">Connect</h3>
         <ul class="footer__links">
           <li><a href="{{ site.appUrl }}" target="_blank" rel="noopener">Web App</a></li>
           <li><a href="tel:{{ site.phoneRaw }}">Call Ferni</a></li>
@@ -1314,7 +1317,7 @@ description: Six AI specialists who actually listen, remember everything, and he
     </div>
     
     <div class="footer__bottom">
-      <p class="footer__copyright">&copy; 2025 Ferni. All rights reserved.</p>
+      <p class="footer__copyright">&copy; {{ "" | year }} Ferni. All rights reserved.</p>
       <div class="footer__legal">
         <a href="/privacy/">Privacy</a>
         <a href="/terms/">Terms</a>
@@ -1325,7 +1328,7 @@ description: Six AI specialists who actually listen, remember everything, and he
 </footer>
 
 {# Floating Mobile CTA #}
-<div class="mobile-cta" id="mobileCta">
+<aside class="mobile-cta" id="mobileCta" aria-label="Get started">
   <div class="mobile-cta__inner">
     <a href="{{ site.appUrl }}" class="btn btn--primary">
       Start Free
@@ -1336,7 +1339,7 @@ description: Six AI specialists who actually listen, remember everything, and he
       Call
     </a>
   </div>
-</div>
+</aside>
 
 <script>
 (function() {

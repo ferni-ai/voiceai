@@ -1,0 +1,309 @@
+import { describe, expect, it, vi } from 'vitest';
+import { theoryOfMindMode, updateTheoryOfMindAfterCall } from '../after-call.js';
+import { createMindNote, MAX_NOTE_CHARS, renderMindNote } from '../note.js';
+import { memoryMindStore } from '../store.js';
+import { readingPrompt } from '../extract.js';
+import { emptyMindModel } from '../types.js';
+import { CALL_1, DAY, READING_1, T0 } from './fixtures.js';
+
+const ON = { THEORY_OF_MIND: 'on' };
+const replying = (...replies: string[]) =>
+  vi.fn(async (_prompt: string) => replies.shift() ?? '{}');
+
+describe('theory of mind: after-call writer', () => {
+  it('is off unless THEORY_OF_MIND=on, and then reads and stores nothing', async () => {
+    expect(theoryOfMindMode({})).toBe(false);
+    expect(theoryOfMindMode({ THEORY_OF_MIND: 'true' })).toBe(false);
+    expect(theoryOfMindMode(ON)).toBe(true);
+    const store = memoryMindStore();
+    const llm = replying(READING_1);
+    const out = await updateTheoryOfMindAfterCall(
+      { userId: 'u1', sessionId: 's1', turns: CALL_1, summary: null },
+      { store, llm, env: {} }
+    );
+    expect(out).toBeNull();
+    expect(llm).not.toHaveBeenCalled();
+    expect(store.models.size).toBe(0);
+  });
+
+  it('stores the reading of the call, and never the transcript itself', async () => {
+    const store = memoryMindStore();
+    expect(await store.load('u1')).toBeNull();
+    const llm = replying(READING_1);
+    await updateTheoryOfMindAfterCall(
+      {
+        userId: 'u1',
+        sessionId: 's1',
+        turns: CALL_1,
+        summary: { keyPoints: ['Stripe interview'] },
+      },
+      { store, llm, env: ON, now: () => T0 }
+    );
+    expect(llm.mock.calls[0]?.[0]).toContain('Summary: Stripe interview');
+    const model = await store.load('u1');
+    expect(model?.calls).toBe(1);
+    expect(model?.patterns.find((p) => p.key === 'jokes-when-anxious')?.moments).toHaveLength(2);
+    const stored = JSON.stringify(store.models.get('u1'));
+    expect(stored).not.toContain('fake my own death');
+    expect(stored).not.toContain('sympathy thing');
+  });
+
+  it('skips a call with too little of the caller, and never throws when the model or store fails', async () => {
+    const store = memoryMindStore();
+    const llm = replying(READING_1);
+    const input = { userId: 'u1', sessionId: 's1', turns: CALL_1, summary: null };
+    expect(
+      await updateTheoryOfMindAfterCall(
+        { ...input, turns: CALL_1.slice(0, 2) },
+        { store, llm, env: ON }
+      )
+    ).toBeNull();
+    expect(llm).not.toHaveBeenCalled();
+
+    const down = { load: async () => null, save: async () => Promise.reject(new Error('down')) };
+    await expect(
+      updateTheoryOfMindAfterCall(input, { store: down, llm: replying(READING_1), env: ON })
+    ).resolves.toBeNull();
+    await expect(
+      updateTheoryOfMindAfterCall(input, { store, llm: async () => 'not json', env: ON })
+    ).resolves.toBeNull();
+    expect(store.models.size).toBe(0);
+  });
+});
+
+describe('theory of mind: forget, on the way in', () => {
+  const forgetLandlord = async () => (text: string) => /landlord/i.test(text);
+
+  it('never sends a forgotten topic to the reading model, and never saves it', async () => {
+    const store = memoryMindStore();
+    const model = emptyMindModel('u1', T0);
+    model.toldFerni.push({ topic: 'their landlord dispute', at: T0.toISOString() });
+    await store.save(model);
+    const llm = replying(READING_1); // this call's reading mentions the landlord again
+    await updateTheoryOfMindAfterCall(
+      { userId: 'u1', sessionId: 's1', turns: CALL_1, summary: null },
+      { store, llm, env: ON, now: () => T0, forgotten: forgetLandlord }
+    );
+    expect(llm.mock.calls[0]?.[0]).not.toMatch(/landlord dispute/i);
+    const saved = JSON.stringify(await store.load('u1'));
+    expect(saved).not.toMatch(/landlord/i);
+    expect(saved).toContain('Stripe interview on Monday');
+  });
+
+  it('drops a forgotten topic from the moments behind a pattern, and a pattern left with none', async () => {
+    const store = memoryMindStore();
+    const model = emptyMindModel('u1', T0);
+    const at = T0.toISOString();
+    const moment = (cue: string) => ({ sessionId: 's0', at, cue });
+    model.patterns.push(
+      {
+        key: 'jokes-when-anxious',
+        kind: 'coping',
+        statement: 'jokes when anxious, then wants practical help',
+        moments: [
+          moment('joked about the landlord selling the building'),
+          moment('joked about a box'),
+        ],
+        contradictions: 0,
+        confidence: 0.6,
+        lastSeen: at,
+      },
+      {
+        key: 'vents-then-plans',
+        kind: 'coping',
+        statement: 'vents first, then makes a plan',
+        moments: [moment('vented about the landlord, then listed options')],
+        contradictions: 0,
+        confidence: 0.5,
+        lastSeen: at,
+      }
+    );
+    await store.save(model);
+    await updateTheoryOfMindAfterCall(
+      { userId: 'u1', sessionId: 's1', turns: CALL_1, summary: null },
+      { store, llm: replying('{}'), env: ON, now: () => T0, forgotten: forgetLandlord }
+    );
+    const saved = (await store.load('u1'))!;
+    expect(JSON.stringify(saved)).not.toMatch(/landlord/i);
+    expect(saved.patterns.map((p) => p.key)).toEqual(['jokes-when-anxious']);
+    expect(saved.patterns[0]?.moments.map((m) => m.cue)).toEqual(['joked about a box']);
+  });
+
+  it('skips the update when what they asked to forget cannot be read', async () => {
+    const store = memoryMindStore();
+    const llm = replying(READING_1);
+    const out = await updateTheoryOfMindAfterCall(
+      { userId: 'u1', sessionId: 's1', turns: CALL_1, summary: null },
+      { store, llm, env: ON, now: () => T0, forgotten: async () => null }
+    );
+    expect(out).toBeNull();
+    expect(llm).not.toHaveBeenCalled();
+    expect(store.models.size).toBe(0);
+  });
+});
+
+describe('theory of mind: the reading prompt', () => {
+  it('asks only for what the caller asked to steer clear of, and shows what is already held', () => {
+    const model = emptyMindModel('u1', T0);
+    model.sensitivities.push({ topic: 'their ex', how: 'asked not to talk about it', at: '' });
+    const prompt = readingPrompt(CALL_1, null, model);
+    expect(prompt).toContain('a topic the CALLER asked, or plainly signalled, not to discuss');
+    expect(prompt).toContain('never your guess from a pause or a short answer');
+    expect(prompt).toContain(
+      'Already asked to go gently around: their ex (asked not to talk about it)'
+    );
+  });
+});
+
+describe('theory of mind: the note', () => {
+  it('says what not to re-ask and which patterns to respect, within ~100 tokens', async () => {
+    const store = memoryMindStore();
+    await updateTheoryOfMindAfterCall(
+      { userId: 'u1', sessionId: 's1', turns: CALL_1, summary: null },
+      { store, llm: replying(READING_1), env: ON, now: () => T0 }
+    );
+    const model = (await store.load('u1'))!;
+    const note = renderMindNote(model, new Date(T0.getTime() + DAY))!.note;
+    expect(note).toContain(
+      "What you've noticed about them: jokes when anxious, then wants practical help."
+    );
+    expect(note).toContain("They've already told you about: Stripe interview on Monday");
+    expect(note).toContain('Last time they seemed anxious about the Stripe interview;');
+    expect(note).toMatch(/never name them/);
+    // A one-moment hunch is not acted on.
+    expect(note).not.toContain('wants solutions, not sympathy');
+    expect(note.length).toBeLessThanOrEqual(MAX_NOTE_CHARS);
+  });
+
+  it('drops a pattern once a later call contradicts it, and a mood once it expires', async () => {
+    const store = memoryMindStore();
+    const call = (sessionId: string, reply: string, at: Date) =>
+      updateTheoryOfMindAfterCall(
+        { userId: 'u1', sessionId, turns: CALL_1, summary: null },
+        { store, llm: replying(reply), env: ON, now: () => at }
+      );
+    await call('s1', READING_1, T0);
+    const later = new Date(T0.getTime() + 8 * DAY);
+    await call('s2', JSON.stringify({ contradicted: ['jokes-when-anxious'] }), later);
+    const note = renderMindNote((await store.load('u1'))!, later)!.note;
+    expect(note).not.toContain('jokes when anxious');
+    expect(note).not.toContain('Last time they seemed');
+    expect(note).toContain("They've already told you about:");
+  });
+
+  it('leaves out a mood that expired since the last call', () => {
+    const model = emptyMindModel('u1', T0);
+    const until = new Date(T0.getTime() + 5 * DAY).toISOString();
+    model.current = { state: 'anxious about the Stripe interview', at: T0.toISOString(), until };
+    expect(renderMindNote(model, new Date(T0.getTime() + DAY))?.note).toContain(
+      'Last time they seemed'
+    );
+    expect(renderMindNote(model, new Date(T0.getTime() + 8 * DAY))).toBeNull();
+  });
+
+  it('keeps the most important lines when the budget is tight', () => {
+    const model = emptyMindModel('u1', T0);
+    model.sensitivities.push({
+      topic: 'their ex',
+      how: "doesn't want to talk about it",
+      at: T0.toISOString(),
+    });
+    for (let i = 0; i < 30; i++)
+      model.toldFerni.push({ topic: `a long story about thing number ${i}`, at: T0.toISOString() });
+    const r = renderMindNote(model, T0)!;
+    expect(r.note.length).toBeLessThanOrEqual(MAX_NOTE_CHARS);
+    expect(r.note).toContain("Go gently around their ex (doesn't want to talk about it)");
+    expect(r.told.length).toBeGreaterThan(0);
+    expect(r.told.length).toBeLessThan(30);
+    expect(renderMindNote(emptyMindModel('u1', T0), T0)).toBeNull();
+  });
+
+  it('reminds once, later in the call, about a told topic the note left out', async () => {
+    const store = memoryMindStore();
+    const model = emptyMindModel('u1', T0);
+    for (let i = 0; i < 30; i++)
+      model.toldFerni.push({ topic: `story number ${i}`, at: T0.toISOString() });
+    model.toldFerni.push({ topic: "their sister Priya's wedding in Lisbon", at: T0.toISOString() });
+    await store.save(model);
+    const mind = createMindNote({ userId: 'u1', store, now: () => T0 });
+    await mind.ready;
+    expect(mind.noteFor('hey')).toContain("They've already told you about:");
+    const reminder = mind.noteFor('so the wedding is next week');
+    expect(reminder).toContain("their sister Priya's wedding in Lisbon");
+    mind.newTurn();
+    expect(mind.noteFor('the wedding, ugh')).toBeNull(); // once per topic
+
+    const fresh = createMindNote({ userId: 'u1', store, now: () => T0 });
+    await fresh.ready;
+    fresh.noteFor('hey');
+    expect(fresh.noteFor('weddings are a lot')).toBeNull(); // whole words only
+    expect(fresh.noteFor('anyway, the wedding')).toContain('Priya');
+  });
+
+  it('leaves out what they asked Ferni to forget, everywhere in the note', () => {
+    const model = emptyMindModel('u1', T0);
+    const at = T0.toISOString();
+    model.toldFerni.push({ topic: 'the divorce papers', at }, { topic: 'new puppy Biscuit', at });
+    model.sensitivities.push({ topic: 'the divorce', how: 'still raw', at });
+    model.current = {
+      state: 'worn out by the divorce',
+      at,
+      until: new Date(T0.getTime() + 5 * DAY).toISOString(),
+    };
+    const forgotten = (text: string) => /divorce/i.test(text);
+    const note = renderMindNote(model, T0, forgotten)!.note;
+    expect(note).not.toMatch(/divorce/i);
+    expect(note).toContain('new puppy Biscuit');
+  });
+
+  it('never lists a topic they want gone around as one to pick up, nor reminds of it', async () => {
+    const model = emptyMindModel('u1', T0);
+    const at = T0.toISOString();
+    model.toldFerni.push(
+      { topic: "their ex's new partner", at },
+      { topic: 'marathon training', at }
+    );
+    model.sensitivities.push({ topic: 'their ex', how: "doesn't want to talk about it", at });
+    const r = renderMindNote(model, T0)!;
+    expect(r.told).toEqual(['marathon training']);
+    expect(r.note).not.toContain('new partner');
+
+    const store = memoryMindStore();
+    await store.save(model);
+    const mind = createMindNote({ userId: 'u1', store, now: () => T0 });
+    await mind.ready;
+    mind.noteFor('hey');
+    mind.newTurn();
+    expect(mind.noteFor("my ex's partner showed up")).toBeNull();
+  });
+
+  it('a passing day or time word is not a reason to remind', async () => {
+    const store = memoryMindStore();
+    const model = emptyMindModel('u1', T0);
+    for (let i = 0; i < 30; i++)
+      model.toldFerni.push({ topic: `story number ${i}`, at: T0.toISOString() });
+    model.toldFerni.push({ topic: 'Stripe interview on Monday', at: T0.toISOString() });
+    await store.save(model);
+    const mind = createMindNote({ userId: 'u1', store, now: () => T0 });
+    await mind.ready;
+    mind.noteFor('hey');
+    expect(mind.noteFor('anyway, monday was fine')).toBeNull();
+    expect(mind.noteFor('the interview went okay')).toContain('Stripe interview on Monday');
+  });
+
+  it('with forgotten topics unreadable, adds no note at all (fails closed)', async () => {
+    const store = memoryMindStore();
+    const model = emptyMindModel('u1', T0);
+    model.toldFerni.push({ topic: 'marathon training', at: T0.toISOString() });
+    await store.save(model);
+    const mind = createMindNote({
+      userId: 'u1',
+      store,
+      now: () => T0,
+      forgotten: async () => null,
+    });
+    await mind.ready;
+    expect(mind.noteFor('hey')).toBeNull();
+    expect(mind.noteFor('marathon training is going well')).toBeNull();
+  });
+});

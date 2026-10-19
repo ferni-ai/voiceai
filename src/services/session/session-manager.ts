@@ -42,6 +42,7 @@ import {
 } from './cleanup.js';
 import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
 import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.js';
+import { shouldSkipProfileForSilentCall } from './silent-call.js';
 import { validateUserId } from './validation.js';
 
 // Real-time memory - persist turns as they happen, never lose data
@@ -328,7 +329,7 @@ export async function createSessionServices(
       realtimeMemory
         .getLastConversationContext(validatedUserId)
         .then((lastContext) => {
-          if (lastContext && userProfile && !userProfile.lastConversationSummary) {
+          if (lastContext && userProfile && userProfile.lastConversationSummary === undefined) {
             const summary =
               lastContext.summary || realtimeMemory.buildQuickSummary(lastContext.turns);
             if (summary) userProfile.lastConversationSummary = summary;
@@ -1748,7 +1749,7 @@ export async function createSessionServices(
               );
             } else {
               await global.store.saveSummary(validatedUserId, summary);
-              runAfterCall(validatedUserId, sessionId, turns, summary, historyTracker, userProfile);
+              runAfterCall(validatedUserId, sessionId, turns, summary, historyTracker);
 
               // Index for semantic retrieval
               try {
@@ -1839,17 +1840,14 @@ export async function createSessionServices(
             }
           }
 
-          if (summary?.keyPoints && summary.keyPoints.length > 0) {
+          if (summary?.callerProvenance || summary?.keyPoints?.length) {
             updatedProfile.lastConversationSummary = summary.keyPoints.slice(0, 2).join('; ');
+            if (summary.callerProvenance) updatedProfile.lastCallerSummary = updatedProfile.lastConversationSummary;
           } else if (turns.length > 0) {
-            // FIX: Always save at least a basic summary from turns
-            // This ensures returning users are recognized even if LLM summarization fails
-            const userTurns = turns.filter((t) => t.role === 'user');
-            if (userTurns.length > 0) {
-              const topics = userTurns
-                .slice(-3)
-                .map((t) => t.content.slice(0, 50).replace(/[.!?]+$/, ''));
-              updatedProfile.lastConversationSummary = `Discussed: ${topics.join('; ')}`;
+            // Always save a basic summary, so a returning user is recognized without the LLM
+            const fallback = realtimeMemory.buildQuickSummary(turns, 50); // '' when only filler
+            if (fallback) {
+              updatedProfile.lastConversationSummary = fallback;
               getLogger().info(
                 {
                   userId: validatedUserId,
@@ -2068,11 +2066,8 @@ export async function createSessionServices(
             );
           }
 
-          // ================================================================
-          // NOTE: totalConversations, totalMinutesTalked, lastContact, updatedAt
-          // are all handled by updateProfileFromSession() inside saveProfile().
-          // We MUST NOT increment here or we'll double-count!
-          // ================================================================
+          // NOTE: totalConversations, totalMinutesTalked, lastContact, updatedAt are all
+          // handled by updateProfileFromSession() inside saveProfile(). Never increment here.
 
           services.userProfile = updatedProfile;
 
@@ -2080,7 +2075,9 @@ export async function createSessionServices(
           diagnosticProfileSaveAttempt(sessionId, validatedUserId || 'unknown');
 
           try {
-            await services.saveProfile();
+            // A call where the caller never spoke is not counted (silent-call.ts).
+            if (shouldSkipProfileForSilentCall(turns)) getLogger().info('Silent call: not counted');
+            else await services.saveProfile();
             diagnosticProfileSaveSuccess(sessionId, validatedUserId || 'unknown');
           } catch (saveError) {
             diagnosticProfileSaveError(sessionId, String(saveError));

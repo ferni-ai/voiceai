@@ -14,7 +14,13 @@
  *
  * @module memory/recall/session-recall
  */
+
+import type { InsideJokeRef } from '../../types/profile/inside-joke.js';
+import { insideJokesEnabled } from './inside-jokes-recall.js';
+import { lineKey } from '../operations/inside-jokes.js';
 import { foldedWords, legacyForgetTokens, stem } from './forget-tokens.js';
+import { MIN_WEIGHTED_OVERLAP, rareWordsEnabled, weighWords } from './rare-words.js';
+export { rareWordsEnabled } from './rare-words.js';
 
 import { flagOn } from '../../config/env-flag.js';
 
@@ -25,6 +31,9 @@ export interface RecallFact {
   confidence: number;
   /** When it was extracted (ISO), so Ferni knows how old the memory is. */
   extractedAt?: string;
+  /** The extractor's kind (relationship, event, state...) and when it holds ("next week"). */
+  factType?: string;
+  temporalContext?: string;
   /** When a newer fact replaced it (fact-supersession.ts): how things were, not how they are. */
   supersededAt?: string;
 }
@@ -33,20 +42,13 @@ export interface RecallSnapshot {
   facts: RecallFact[];
   /** Open threads from recent sessions ("ask how the vet visit went"). */
   followUps: string[];
-  /** Bits that were genuinely funny between them on recent calls (summaries' insideJokes). */
-  insideJokes?: string[];
+  /** With RECALL_RARE_WORDS=on: how much a shared word counts (rareWordWeights). */
+  wordWeights?: ReadonlyMap<string, number>;
+  /** Bits that were genuinely funny between them on recent calls, each with its line (summaries' insideJokes). */
+  insideJokes?: InsideJokeRef[];
 }
 
 export const EMPTY_SNAPSHOT: RecallSnapshot = { facts: [], followUps: [], insideJokes: [] };
-
-/**
- * INSIDE_JOKES=on lets Ferni bring back a bit the two of them really shared
- * (off by default). Only things the summarizer saw land in a past call qualify,
- * never stock jokes, so Ferni can't fake a history it doesn't have.
- */
-export function insideJokesEnabled(env: Record<string, string | undefined> = process.env): boolean {
-  return env.INSIDE_JOKES === 'on';
-}
 
 /**
  * RECALL_BRIDGE=on (off by default): open threads from earlier calls wait for
@@ -103,6 +105,11 @@ export function dedupeFacts(facts: RecallFact[]): RecallFact[] {
     }
   }
   return [...best.values()];
+}
+
+/** Rarity weights for the caller's facts (rare-words.ts, RECALL_RARE_WORDS). */
+export function rareWordWeights(facts: readonly RecallFact[]): Map<string, number> | undefined {
+  return weighWords(facts, contentWords);
 }
 
 /** Words that say nothing about what to forget: "forget what I said about that". */
@@ -234,8 +241,9 @@ export function recallForTurn(
     const named = !SELF_ENTITY.test(fact.entity) && mentions(userText, fact.entity);
     let overlap = 0;
     for (const w of contentWords(`${fact.entity} ${fact.key} ${fact.value}`)) {
-      if (words.has(w)) overlap++;
+      if (words.has(w)) overlap += snapshot.wordWeights?.get(w) ?? 1;
     }
+    if (snapshot.wordWeights && overlap < MIN_WEIGHTED_OVERLAP) overlap = 0;
     const margin = blend?.semantic.get(id) ?? 0;
     if (!named && (blend?.namedOnly || (overlap === 0 && margin === 0))) continue;
     let score = (named ? 2 : 0) + overlap * 0.5 + fact.confidence * 0.5;
@@ -277,7 +285,7 @@ function age(extractedAt: string | undefined, now: number): string {
 
 export interface RecallExtras {
   /** Shared bits from past calls; shown only with INSIDE_JOKES=on. */
-  insideJokes?: string[];
+  insideJokes?: InsideJokeRef[];
   env?: Record<string, string | undefined>;
   /** RECALL_BRIDGE: say how to bring an open thread up. */
   bridge?: boolean;
@@ -330,6 +338,13 @@ export function threadsForTurn(threads: string[], text: string, callerTurn: numb
   });
 }
 
+/** How to use what recall picked: the rule every memory note carries. CONTEXT_PACKET uses it verbatim. */
+export const RECALL_RULE =
+  'These are from past calls, not this one. Use at most one, and only if it fits naturally, the way a friend who remembers would. ' +
+  'Words like today, tomorrow or Friday inside a memory are as of when it was said. ' +
+  'Anything a few days old or that could have changed, check instead of asserting ("is she still...?"). ' +
+  'Never bring up health, pregnancy, money or relationships unless they bring it up first. Never list them or say you looked it up.';
+
 /** A context note for the LLM, or null when there is nothing to recall. */
 export function formatRecall(
   facts: RecallFact[],
@@ -359,14 +374,9 @@ export function formatRecall(
     lines.push(
       'Bits you two actually share from past calls. Bring one back only if it fits naturally, at most once this call, and never explain it:'
     );
-    for (const joke of jokes) lines.push(`- ${joke}`);
+    for (const joke of jokes) lines.push(`- ${joke.bit}`);
   }
-  lines.push(
-    'These are from past calls, not this one. Use at most one, and only if it fits naturally, the way a friend who remembers would. ' +
-      'Words like today, tomorrow or Friday inside a memory are as of when it was said. ' +
-      'Anything a few days old or that could have changed, check instead of asserting ("is she still...?"). ' +
-      'Never bring up health, pregnancy, money or relationships unless they bring it up first. Never list them or say you looked it up.'
-  );
+  lines.push(RECALL_RULE);
   return lines.join('\n');
 }
 
@@ -384,7 +394,7 @@ const WORD_CONFIDENCE: Record<string, number> = { high: 0.9, medium: 0.6, low: 0
 /** Facts the extractor itself marked low are left out of recall. */
 const MIN_RECALL_CONFIDENCE = 0.4;
 
-function confidenceOf(raw: unknown): number {
+export function confidenceOf(raw: unknown): number {
   if (typeof raw === 'number') return raw;
   if (typeof raw === 'string') return WORD_CONFIDENCE[raw.trim().toLowerCase()] ?? 0.5;
   return 0.5;
@@ -392,16 +402,21 @@ function confidenceOf(raw: unknown): number {
 export const MAX_FOLLOW_UPS = 3;
 const MAX_INSIDE_JOKES = 3;
 
+/** Set on a summary whose items were checked against the caller's lines (caller-assertions.ts). */
+export const CALLER_PROVENANCE = 1;
+const LABELLED = ['disputedItems', 'assistantRaisedItems'];
+
 /**
- * A summary without the items the caller disputed (dispute.ts: disputedItems)
- * and without that list itself, so no reader serves or matches them.
+ * A summary without the items the caller disputed (dispute.ts: disputedItems) or that
+ * only the assistant said (assistantRaisedItems), and without those lists, so no reader
+ * serves or matches them.
  */
 export function undisputed(s: Record<string, unknown>): Record<string, unknown> {
-  if (!Array.isArray(s.disputedItems)) return s;
-  const gone = new Set(s.disputedItems.map(String));
+  const gone = new Set(LABELLED.flatMap((k) => (Array.isArray(s[k]) ? s[k].map(String) : [])));
+  if (!LABELLED.some((k) => k in s)) return s;
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(s)) {
-    if (k === 'disputedItems') continue;
+    if (LABELLED.includes(k)) continue;
     out[k] = Array.isArray(v) ? v.filter((x) => typeof x !== 'string' || !gone.has(x)) : v;
   }
   return out;
@@ -437,6 +452,8 @@ export async function loadRecallSnapshot(
         value: String(d.value ?? ''),
         confidence: confidenceOf(d.confidence),
         ...(typeof d.extractedAt === 'string' ? { extractedAt: d.extractedAt } : {}),
+        ...(typeof d.factType === 'string' ? { factType: d.factType } : {}),
+        ...(typeof d.temporalContext === 'string' ? { temporalContext: d.temporalContext } : {}),
         ...(typeof d.supersededAt === 'string' ? { supersededAt: d.supersededAt } : {}),
       }))
       .filter((f) => f.confidence >= MIN_RECALL_CONFIDENCE)
@@ -444,6 +461,8 @@ export async function loadRecallSnapshot(
   );
   const followUps: string[] = [];
   for (const s of rawSummaries) {
+    // A thread is theirs only if the summary checked it against their own lines
+    if (s.callerProvenance !== CALLER_PROVENANCE) continue;
     for (const item of Array.isArray(s.followUpItems) ? s.followUpItems : []) {
       const text = String(item).trim();
       if (text && !followUps.includes(text) && !isForgotten(text, forgotten)) followUps.push(text);
@@ -451,17 +470,31 @@ export async function loadRecallSnapshot(
     }
     if (followUps.length >= maxFollowUps) break;
   }
-  // Summaries come newest first, so these are the most recent bits.
-  const insideJokes: string[] = [];
+  // Summaries come newest first, so these are the most recent bits. Only a bit
+  // with its line on file counts; bare strings from older summaries don't.
+  const insideJokes: InsideJokeRef[] = [];
   for (const s of rawSummaries) {
     for (const item of Array.isArray(s.insideJokes) ? s.insideJokes : []) {
-      if (typeof item !== 'string') continue;
-      const text = item.trim();
-      const seen = insideJokes.some((j) => j.toLowerCase() === text.toLowerCase());
-      if (text && !seen && !isForgotten(text, forgotten)) insideJokes.push(text);
+      if (!item || typeof item !== 'object') continue;
+      const { bit, quote, speaker } = item as Partial<InsideJokeRef>;
+      if (typeof bit !== 'string' || typeof quote !== 'string') continue;
+      if (speaker !== 'user' && speaker !== 'assistant') continue;
+      if (quote.trim().split(/\s+/).length < 3) continue;
+      const text = bit.trim();
+      const seen = insideJokes.some(
+        (j) => j.bit.toLowerCase() === text.toLowerCase() || lineKey(j.quote) === lineKey(quote)
+      );
+      // A forgotten topic keeps a bit out whether it's in the bit's words or its line.
+      if (text && !seen && !isForgotten(`${text} ${quote}`, forgotten))
+        insideJokes.push({ bit: text, quote: quote.trim(), speaker });
       if (insideJokes.length >= MAX_INSIDE_JOKES) break;
     }
     if (insideJokes.length >= MAX_INSIDE_JOKES) break;
   }
-  return { facts, followUps, insideJokes };
+  return {
+    facts,
+    followUps,
+    insideJokes,
+    ...(rareWordsEnabled() && { wordWeights: rareWordWeights(facts) }),
+  };
 }

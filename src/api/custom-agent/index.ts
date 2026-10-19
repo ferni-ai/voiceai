@@ -188,7 +188,7 @@ export async function handleCustomAgentRoutes(
       segments[1] === 'journal' &&
       segments[2] === 'entry'
     ) {
-      return handleCreateJournalEntry(req, res, userId, segments[0]);
+      return handleCreateJournalEntry(req, res, userId, segments[0], auth.isAnonymous === true);
     }
 
     // GET /api/custom-agents/:agentId/journal/entries - List journal entries

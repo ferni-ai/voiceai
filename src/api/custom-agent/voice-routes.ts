@@ -6,6 +6,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../../utils/safe-logger.js';
+import { flagOn } from '../../config/env-flag.js';
+import { base64JsonBodyBytes } from '../bounded-body.js';
 import { parseBody } from '../helpers.js';
 import {
   getCustomAgent,
@@ -15,16 +17,27 @@ import {
   processVoiceUpload,
   createVoiceClone as createCartesiaVoiceClone,
   generateVoicePreview,
+  MAX_FILE_SIZE_BYTES,
 } from '../../services/custom-agent/voice-clone-service.js';
-import {
-  uploadAudioToGcs,
-  isGcsConfigured,
-} from '../../services/custom-agent/gcs-storage-service.js';
 import type { CustomAgentVoice } from '../../types/custom-agent-api.js';
+import { isStockCustomAgentVoiceId } from '../../services/custom-agent/custom-agent-voice-policy.js';
 import type { VoiceUploadBody, VoiceCloneBody } from './types.js';
 import { sendJson, getQualityFeedback } from './helpers.js';
 
 const log = createLogger({ module: 'CustomAgentVoiceRoutes' });
+
+/**
+ * Voice cloning is off until there is a consent design: today anyone's voice
+ * could be cloned from any uploaded file, with no consent step. While
+ * VOICE_CLONE_CREATION is off, the upload and clone routes refuse before they
+ * read the body, look up the agent, store anything or call the provider.
+ */
+function refusedVoiceClone(res: ServerResponse, route: 'upload' | 'clone'): boolean {
+  if (flagOn('VOICE_CLONE_CREATION')) return false;
+  log.info({ route }, 'Voice clone request refused: VOICE_CLONE_CREATION is off');
+  sendJson(res, 403, { error: 'voice_clone_unavailable' });
+  return true;
+}
 
 /**
  * POST /api/custom-agents/:agentId/voice/upload - Upload voice sample
@@ -35,7 +48,11 @@ export async function handleVoiceUpload(
   userId: string,
   agentId: string
 ): Promise<boolean> {
-  const body = await parseBody<VoiceUploadBody>(req);
+  if (refusedVoiceClone(res, 'upload')) return true;
+  // base64 audio up to the voice clone service's own file cap.
+  const body = await parseBody<VoiceUploadBody>(req, {
+    maxBytes: base64JsonBodyBytes(MAX_FILE_SIZE_BYTES),
+  });
 
   if (!body.audio) {
     sendJson(res, 400, { error: 'Audio data is required' });
@@ -70,22 +87,9 @@ export async function handleVoiceUpload(
       userId
     );
 
-    // Upload to GCS if configured
-    let audioUrl: string;
-    if (isGcsConfigured()) {
-      const gcsResult = await uploadAudioToGcs(
-        audioBuffer,
-        userId,
-        agentId,
-        filename,
-        'voiceClone',
-        true
-      );
-      audioUrl = gcsResult?.publicUrl || `local://${userId}/${agentId}/${filename}`;
-    } else {
-      audioUrl = `local://${userId}/${agentId}/${filename}`;
-      log.warn('GCS not configured, using local reference URL');
-    }
+    // processVoiceUpload holds the only copy of the sample, privately. This is a
+    // reference to that upload, never a URL anyone can fetch.
+    const audioUrl = `upload://${uploadResult.uploadId}`;
 
     // Update agent with pending status and upload info
     await updateAgentVoice(userId, agentId, {
@@ -119,6 +123,7 @@ export async function handleVoiceClone(
   userId: string,
   agentId: string
 ): Promise<boolean> {
+  if (refusedVoiceClone(res, 'clone')) return true;
   const body = await parseBody<VoiceCloneBody>(req);
 
   if (!body.userName) {
@@ -190,6 +195,15 @@ export async function handleSelectPremadeVoice(
 
   if (!body.voiceId) {
     sendJson(res, 400, { error: 'Voice ID is required' });
+    return true;
+  }
+  // Only a stock library voice: never a made-up id marked ready, a retired clone or a persona's voice.
+  if (!isStockCustomAgentVoiceId(body.voiceId)) {
+    log.warn(
+      { userId, agentId, voiceId: String(body.voiceId).slice(0, 64) },
+      'Unknown pre-made voice refused'
+    );
+    sendJson(res, 400, { error: 'unknown_voice' });
     return true;
   }
 

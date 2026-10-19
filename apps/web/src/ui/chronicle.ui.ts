@@ -15,7 +15,6 @@
  * @module chronicle.ui
  */
 
-import { DURATION, EASING } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { escapeHtml } from './engagement-components.js';
@@ -55,6 +54,7 @@ interface ChronicleData {
   memories: JournalEntry[]; // Featured memories to resurface
   streak: number;
   totalEntries: number;
+  loadFailed?: boolean; // the journal couldn't be loaded: show that, not an empty Chronicle
 }
 
 type TimeContext = 'morning' | 'afternoon' | 'evening' | 'night';
@@ -815,7 +815,7 @@ const styles = `
     height: 48px;
     border: none;
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
     border-radius: var(--radius-full, 9999px);
     cursor: pointer;
     display: flex;
@@ -1195,7 +1195,7 @@ async function loadData(): Promise<ChronicleData> {
           greeting,
           timeContext,
           entries: transformedEntries,
-          insights: transformedInsights.length > 0 ? transformedInsights : getDefaultInsights(),
+          insights: transformedInsights,
           memories: transformedEntries.slice(0, 3),
           streak: result.data.stats?.currentStreak || 0,
           totalEntries: result.data.stats?.totalEntries || 0,
@@ -1203,38 +1203,21 @@ async function loadData(): Promise<ChronicleData> {
       }
     }
   } catch (error) {
-    log.warn({ error }, 'Failed to load chronicle data, using defaults');
+    log.warn({ error }, 'Failed to load chronicle data');
   }
 
-  // Return defaults if API fails
+  // Signed out: an empty Chronicle. Signed in and here: the load failed, so say so.
+  const loadFailed = Boolean(getUserId());
   return {
     greeting,
     timeContext,
     entries: [],
-    insights: getDefaultInsights(),
+    insights: [],
     memories: [],
     streak: 0,
     totalEntries: 0,
+    loadFailed,
   };
-}
-
-function getDefaultInsights(): JournalInsight[] {
-  return [
-    {
-      id: 'start-journey',
-      type: 'growth',
-      title: t('chronicle.defaultInsights.startJourney.title'),
-      description: t('chronicle.defaultInsights.startJourney.description'),
-      icon: ICONS.book,
-    },
-    {
-      id: 'voice-text',
-      type: 'pattern',
-      title: t('chronicle.defaultInsights.twoPaths.title'),
-      description: t('chronicle.defaultInsights.twoPaths.description'),
-      icon: ICONS.brain,
-    },
-  ];
 }
 
 function getJournalPrompts(): string[] {
@@ -1252,7 +1235,12 @@ function render(): void {
   const content = container.querySelector('#chronicle-content');
   if (!content) return;
 
-  const { greeting, entries, insights, memories, streak, totalEntries } = state.data;
+  const { greeting, insights, memories, totalEntries } = state.data;
+  if (state.data.loadFailed) {
+    const message = `<p class="chronicle-empty-description">${t('chronicle.loadFailed')}</p>`;
+    content.innerHTML = `<div class="chronicle-empty" role="alert" data-state="error">${message}</div>`;
+    return;
+  }
 
   // If no entries yet, show empty state
   if (totalEntries === 0) {
@@ -1264,13 +1252,6 @@ function render(): void {
   content.innerHTML = `
     <!-- Stats Row -->
     <div class="chronicle-stats">
-      <div class="chronicle-stat">
-        <div class="chronicle-stat-icon">${ICONS.flame}</div>
-        <div>
-          <div class="chronicle-stat-value">${streak}</div>
-          <div class="chronicle-stat-label">${t('chronicle.dayStreak')}</div>
-        </div>
-      </div>
       <div class="chronicle-stat">
         <div class="chronicle-stat-icon">${ICONS.book}</div>
         <div>
@@ -1305,7 +1286,7 @@ function render(): void {
           ${insights.map((insight) => renderInsightCard(insight)).join('')}
         </div>
       </section>
-    ` : ''}
+    ` : `<p class="chronicle-empty-description" data-state="empty">${t('chronicle.noPatternsYet')}</p>`}
     
     <!-- Memory Section -->
     ${memories.length > 0 && memories[0] ? `

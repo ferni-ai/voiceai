@@ -26,7 +26,7 @@ const SERVER_GARDEN = {
   totalReferrals: 4,
   totalEarnedFromReferrals: 100,
   referralCode: 'k3j9x2-meadow',
-  referralUrl: 'https://ferni.ai/grow/k3j9x2-meadow',
+  referralUrl: 'https://app.ferni.ai/grow/k3j9x2-meadow',
 };
 
 beforeEach(() => vi.clearAllMocks());
@@ -47,7 +47,7 @@ describe('garden dashboard', () => {
     const modal = document.querySelector('.garden-dashboard-modal');
     expect(apiGet).toHaveBeenCalledWith('/api/seeds/garden');
     expect(modal?.querySelector('.garden-link-url')?.textContent).toBe(
-      'ferni.ai/grow/k3j9x2-meadow'
+      'app.ferni.ai/grow/k3j9x2-meadow'
     );
     const values = Array.from(modal?.querySelectorAll('.garden-stat-value') ?? []).map(
       (e) => e.textContent
@@ -76,9 +76,9 @@ describe('share panel', () => {
 
     const modal = document.querySelector('.referral-modal');
     expect(modal?.querySelector('.referral-link-url')?.textContent).toBe(
-      'ferni.ai/grow/k3j9x2-meadow'
+      'app.ferni.ai/grow/k3j9x2-meadow'
     );
-    expect(modal?.querySelector('.referral-garden-stats')?.textContent).toMatch(/4/);
+    expect(modal?.querySelector('.referral-joined')?.textContent).toMatch(/4/);
   });
 
   it('says so, and opens nothing, when the link cannot be loaded', async () => {
@@ -99,6 +99,6 @@ describe('share panel', () => {
     (document.querySelector('[data-action="copy"]') as HTMLElement).click();
     await vi.waitFor(() => expect(writeText).toHaveBeenCalled());
 
-    expect(writeText.mock.calls[0][0]).toContain('https://ferni.ai/grow/k3j9x2-meadow');
+    expect(writeText.mock.calls[0][0]).toContain('https://app.ferni.ai/grow/k3j9x2-meadow');
   });
 });

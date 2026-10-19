@@ -253,7 +253,7 @@ async function testDirectBackgroundAgents(): Promise<{ passed: boolean; details?
     const context = await buildPendingResultsContext(TEST_USER_ID);
 
     return {
-      passed: result.id && pending.length > 0,
+      passed: Boolean(result.id) && pending.length > 0,
       details: `Result: ${result.id.slice(0, 12)}..., Pending: ${pending.length}, Context: ${context ? 'yes' : 'no'}`,
     };
   } catch (error) {
@@ -273,18 +273,7 @@ async function testTaskExecutors(): Promise<{ passed: boolean; details?: string 
   const executorResults: string[] = [];
 
   try {
-    // Research
-    const { queueResearchTask } = await import(
-      '../src/services/background-agents/executors/research-executor.js'
-    );
-    const researchId = await queueResearchTask({
-      userId: TEST_USER_ID,
-      query: 'E2E test',
-      type: 'general',
-      depth: 'quick',
-      initiatedBy: 'peter',
-    });
-    executorResults.push(`research:${researchId.slice(0, 8)}`);
+    // No research executor: background research says it is unavailable (#1814, #1821).
 
     // Habit Reminder
     const { queueHabitReminder } = await import(
@@ -386,3 +375,5 @@ main().catch((error) => {
   console.error('Fatal error:', error);
   process.exit(1);
 });
+
+export {};

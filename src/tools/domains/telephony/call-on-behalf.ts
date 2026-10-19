@@ -343,7 +343,7 @@ const callOnBehalfSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Phone number if provided by user (e.g., "8018983303", "+1-801-898-3303"). Use this if the user explicitly provides a number.'
+      'Phone number if provided by user (e.g., "8015550142", "+1-801-555-0142"). Use this if the user explicitly provides a number.'
     ),
   purpose: z
     .string()
@@ -372,7 +372,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
       'Call a third party (doctor, restaurant, family member, etc.) on behalf of the user. ' +
       'Use this when the user asks you to make a call to someone else. ' +
       'IMPORTANT: If the user provides a phone number, extract it into the phoneNumber parameter. ' +
-      'Example: "call my mom at 801-898-3303" → contactQuery: "my mom", phoneNumber: "8018983303". ' +
+      'Example: "call my mom at 801-555-0142" → contactQuery: "my mom", phoneNumber: "8015550142". ' +
       'You will handle the entire conversation autonomously and report back the outcome.',
 
     parameters: callOnBehalfSchema,
@@ -494,16 +494,15 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
           );
         }
 
-        // Step 6: Initiate the call
-        const callId = await initiateOnBehalfCall(request);
-        const { deferredCallReply } = await import('../../../services/outreach/deferred-calls.js');
-        const deferred = deferredCallReply(callId, contact.name, purpose);
-        if (deferred) return deferred;
+        // Step 6: Initiate the call, unless one to this number already waits (deferred-calls.ts)
+        const { placeOrHold } = await import('../../../services/outreach/deferred-calls.js');
+        const { callId, held, others = '' } = await placeOrHold(request, initiateOnBehalfCall);
+        if (held) return held;
         log.info({ callId, contactName: contact.name, purpose }, 'Call initiated successfully');
         const callTypeLabel = callType === 'personal' ? '' : ` (${callType})`;
         return (
           `Got it! I'm calling ${contact.name}${callTypeLabel} now to ${purpose}. ` +
-          `I'll let you know how it goes once the call is complete.`
+          `I'll let you know how it goes once the call is complete.${others}`
         );
       } catch (error) {
         log.error({ error: String(error), contactQuery, purpose }, 'Failed to initiate call');
@@ -522,3 +521,4 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 // ============================================================================
 
 export { resolveContact, inferCallType, inferObjective, initiateOnBehalfCall, callOnBehalfSchema };
+export { alreadySetReply, pendingCallTo } from '../../../services/outreach/deferred-calls.js';

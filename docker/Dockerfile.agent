@@ -305,6 +305,9 @@ COPY --from=builder /app/src/tasks/wisdom/*.json ./dist/tasks/wisdom/
 # Copy tool description JSON files (not compiled by esbuild)
 COPY --from=builder /app/src/tools/config/*.json ./dist/tools/config/
 
+# Recorded presence whistles and snores (PRESENCE_SOUND_ASSETS; Pixabay license, in-app only)
+COPY --from=builder /app/src/agents/integrations/assets/ ./dist/agents/integrations/assets/
+
 # Copy sound effects for session intro/outro (connect.mp3, disconnect.mp3, etc.)
 # These are used by the DJ system for "opening the show" moments
 COPY apps/web/public/sounds/ ./sounds/
@@ -315,6 +318,14 @@ COPY apps/web/public/sounds/ ./sounds/
 RUN ln -sf /app/dist/ferni-bundle/ferni /usr/local/bin/ferni && \
     chmod +x /app/dist/ferni-bundle/ferni /app/dist/ferni-bundle/ferni.js && \
     echo "Ferni CLI installed:" && ferni --version || echo "(version check skipped)"
+
+# The commit this image was built from, read at boot (src/config/build-sha.ts) for
+# the EFFECTIVE_SETTINGS line and the Sentry release. lk agent deploy passes no
+# build args, so the deploy-agent chain writes `git rev-parse HEAD` to .build-sha.
+# package.json gives the COPY a source when .build-sha is absent (a local or Cloud
+# Build image), where the boot line says "unknown". Last, so only this layer changes.
+COPY package.json .build-sh[a] /tmp/build-meta/
+RUN { cp /tmp/build-meta/.build-sha /app/.build-sha 2>/dev/null || true; } && rm -rf /tmp/build-meta
 
 # Set environment variables
 ENV NODE_ENV=production

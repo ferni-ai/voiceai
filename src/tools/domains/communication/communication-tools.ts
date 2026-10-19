@@ -25,7 +25,11 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
-import { sendEmail, sendSMS } from '../../../services/communication-service.js';
+import {
+  guardedThirdPartySend,
+  sendEmail,
+  sendSMS,
+} from '../../../services/communication-service.js';
 import {
   cancelReminder,
   createReminder,
@@ -171,13 +175,13 @@ async function sendApprovedEmailReal(to: string, subject: string, body: string):
 /**
  * Send a text message via Twilio
  */
-async function sendTextReal(to: string, message: string): Promise<string> {
+async function sendTextReal(to: string, message: string, userId: string): Promise<string> {
   const validation = validatePhone(to);
   if (!validation.valid) {
     return `I need a valid phone number to send a text. "${to}" doesn't look right. Can you provide a number like 555-123-4567?`;
   }
-
-  return sendSMS(validation.sanitized as string, message);
+  const phone = validation.sanitized as string;
+  return guardedThirdPartySend(phone, message, userId, () => sendSMS(phone, message));
 }
 
 // ============================================================================
@@ -273,7 +277,7 @@ async function sendVoiceMessageRealWithUserId(
   if (!CARTESIA_API_KEY) {
     getLogger().warn('Cartesia not configured for voice messages');
     // Fallback to text with voice message indicator
-    return sendTextReal(to, `🎤 Voice message from Alex: "${message}"`);
+    return sendTextReal(to, `🎤 Voice message from Alex: "${message}"`, userId);
   }
 
   try {
@@ -284,12 +288,14 @@ async function sendVoiceMessageRealWithUserId(
       voiceId: getAlexVoiceId(),
     });
 
-    // Send it
-    return sendVoiceMessage(voiceMsg.id, validation.sanitized as string);
+    const phone = validation.sanitized as string;
+    return guardedThirdPartySend(phone, message, userId, () =>
+      sendVoiceMessage(voiceMsg.id, phone)
+    );
   } catch (error) {
     getLogger().error({ error }, 'Voice message error');
     // Fallback to text
-    return sendTextReal(to, `🎤 (Voice message) ${message}`);
+    return sendTextReal(to, `🎤 (Voice message) ${message}`, userId);
   }
 }
 
@@ -508,8 +514,9 @@ export function createCommunicationTools() {
         to: z.string().describe('Phone number (e.g., "555-123-4567" or "+15551234567")'),
         message: z.string().describe('Message to send'),
       }),
-      execute: async ({ to, message }) => {
-        return sendTextReal(to, message);
+      execute: async ({ to, message }, { ctx }) => {
+        const userData = ctx?.userData as { userId?: string } | undefined;
+        return sendTextReal(to, message, userData?.userId || 'unknown');
       },
     }),
 
@@ -739,35 +746,20 @@ export function createCommunicationTools() {
         date: z.string().describe('Date to check (e.g., "tomorrow", "next Monday", "December 15")'),
         durationMinutes: z.number().default(30).describe('Duration in minutes'),
       }),
-      execute: async ({ date, durationMinutes }, { ctx }) => {
+      execute: async ({ date }, { ctx }) => {
         const targetDate = parseNaturalTime(date, runContextTimeZone(ctx));
         if (!targetDate) {
           return `I couldn't understand that date. Try "tomorrow", "next Tuesday", or a specific date?`;
         }
 
-        // Simulate checking calendar (production would use Google Calendar API)
+        // Nothing here reads a calendar, so there are no real free slots to report.
+        // Say so rather than inventing availability.
         const dateStr = targetDate.toLocaleDateString('en-US', {
           weekday: 'long',
           month: 'long',
           day: 'numeric',
         });
-
-        // Generate some realistic-looking availability
-        const slots = [
-          { time: '9:00 AM - 9:30 AM', available: Math.random() > 0.3 },
-          { time: '10:00 AM - 10:30 AM', available: Math.random() > 0.4 },
-          { time: '11:00 AM - 11:30 AM', available: Math.random() > 0.5 },
-          { time: '2:00 PM - 2:30 PM', available: Math.random() > 0.3 },
-          { time: '3:00 PM - 3:30 PM', available: Math.random() > 0.4 },
-          { time: '4:00 PM - 4:30 PM', available: Math.random() > 0.5 },
-        ].filter((s) => s.available);
-
-        if (slots.length === 0) {
-          return `Hmm, ${dateStr} looks pretty packed. Want me to check another day?`;
-        }
-
-        const slotList = slots.map((s) => `• ${s.time}`).join('\n');
-        return `📅 Available slots for ${dateStr}:\n\n${slotList}\n\nWhich works best?`;
+        return `I can't see your calendar right now, so I can't tell you what's free on ${dateStr}. Your calendar app will show the real openings. Tell me the time you have in mind and I can help you think it through.`;
       },
     }),
 

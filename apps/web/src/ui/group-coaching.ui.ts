@@ -706,7 +706,7 @@ class GroupCoachingUI {
 
       .group-coaching__create-btn {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
       }
 
       .group-coaching__create-btn:hover {
@@ -791,7 +791,7 @@ class GroupCoachingUI {
         font-size: var(--text-xs);
         font-weight: var(--font-weight-medium, 500);
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md);
         cursor: pointer;
@@ -959,7 +959,7 @@ class GroupCoachingUI {
         width: 36px;
         height: 36px;
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-md);
         cursor: pointer;
@@ -1012,7 +1012,7 @@ class GroupCoachingUI {
         font-size: var(--text-sm);
         font-weight: var(--font-weight-medium, 500);
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-on-accent);
         border: none;
         border-radius: var(--radius-lg);
         cursor: pointer;

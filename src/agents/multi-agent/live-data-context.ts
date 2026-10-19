@@ -22,7 +22,7 @@ interface LiveAgents {
 
 type StaticParts = Pick<
   DataChannelContext,
-  'room' | 'ctx' | 'services' | 'userId' | 'sessionId' | 'sessionPersona'
+  'room' | 'ctx' | 'services' | 'userId' | 'sessionId' | 'sessionPersona' | 'callerChecks'
 >;
 
 export function liveDataChannelContext(base: StaticParts, agents: LiveAgents): DataChannelContext {
@@ -32,6 +32,7 @@ export function liveDataChannelContext(base: StaticParts, agents: LiveAgents): D
     services: base.services,
     userId: base.userId,
     sessionId: base.sessionId,
+    callerChecks: base.callerChecks,
     skipHandoffs: true,
     get session() {
       return agents.getActiveAgent()?.session as DataChannelContext['session'];

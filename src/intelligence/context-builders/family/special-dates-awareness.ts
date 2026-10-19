@@ -6,6 +6,9 @@
  *
  * Human friends forget. Ferni doesn't.
  *
+ * Someone the user has lost is remembered, never celebrated: their dates go in
+ * a gentle "Remembering" section with no call, text or send offer.
+ *
  * @module intelligence/context-builders/family/special-dates-awareness
  */
 
@@ -18,6 +21,7 @@ import {
 } from '../index.js';
 import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
+import { listInMemoryPeople } from '../../../services/contacts/in-memory-people.js';
 
 const log = createLogger({ module: 'context:special-dates' });
 
@@ -33,6 +37,8 @@ export interface SpecialDate {
   year?: number; // Optional - for calculating age
   label?: string; // Custom label like "Mom's retirement"
   phone?: string;
+  /** Someone the user has lost (a memorial date, or known to have passed) */
+  remembered?: boolean;
 }
 
 interface UpcomingDate extends SpecialDate {
@@ -119,6 +125,8 @@ async function getSpecialDates(userId: string): Promise<SpecialDate[]> {
       }
     }
 
+    await markRemembered(userId, dates);
+
     // Cache results
     dateCache.set(userId, { data: dates, timestamp: Date.now() });
   } catch (error) {
@@ -129,9 +137,36 @@ async function getSpecialDates(userId: string): Promise<SpecialDate[]> {
 }
 
 /**
+ * Mark every date that belongs to someone the user has lost: anyone with a
+ * memorial date, plus anyone the trigger profile already knows has passed.
+ */
+async function markRemembered(userId: string, dates: SpecialDate[]): Promise<void> {
+  const names = new Set(
+    dates.filter((d) => d.dateType === 'memorial').map((d) => d.contactName.toLowerCase())
+  );
+
+  try {
+    const { getUserTriggerProfileService } =
+      await import('../../triggers/user-trigger-profile-service.js');
+    const profile = await getUserTriggerProfileService().loadProfile(userId);
+    for (const rel of profile.relationships.filter((r) => r.isDeceased)) {
+      for (const name of [rel.name, ...rel.aliases]) names.add(name.toLowerCase());
+    }
+  } catch (error) {
+    log.warn({ error: String(error), userId }, 'Could not read who has passed from the profile');
+  }
+  // Anyone the user has marked in memory (CONTACT_IN_MEMORY)
+  for (const person of await listInMemoryPeople(userId)) names.add(person.name.toLowerCase());
+
+  for (const date of dates) {
+    if (names.has(date.contactName.toLowerCase())) date.remembered = true;
+  }
+}
+
+/**
  * Find upcoming special dates within a window
  */
-function findUpcomingDates(dates: SpecialDate[], daysAhead: number = 14): UpcomingDate[] {
+function findUpcomingDates(dates: SpecialDate[], daysAhead = 14): UpcomingDate[] {
   const today = new Date();
   const currentYear = today.getFullYear();
   const todayMD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
@@ -223,8 +258,16 @@ export const specialDatesAwarenessBuilder: ContextBuilder = {
 // CONTEXT BUILDING
 // ============================================================================
 
-function buildSpecialDatesContext(upcoming: UpcomingDate[]): string {
-  const lines: string[] = ['', '## 🎂 SPECIAL DATES AWARENESS (Superhuman Memory)', ''];
+function buildSpecialDatesContext(dates: UpcomingDate[]): string {
+  const upcoming = dates.filter((d) => !d.remembered);
+  // No birthday cake over a day of grief
+  const title =
+    upcoming.length > 0 ? '## 🎂 SPECIAL DATES AWARENESS' : '## SPECIAL DATES AWARENESS';
+  const lines: string[] = ['', `${title} (Superhuman Memory)`, ''];
+
+  const remembered = dates.filter((d) => d.remembered);
+  pushRemembering(lines, remembered);
+  if (upcoming.length === 0) return lines.join('\n');
 
   // Today's dates (highest priority)
   const todayDates = upcoming.filter((d) => d.isToday);
@@ -276,6 +319,42 @@ function buildSpecialDatesContext(upcoming: UpcomingDate[]): string {
   lines.push('- "Don\'t forget - [name]\'s anniversary is tomorrow!"');
 
   return lines.join('\n');
+}
+
+/**
+ * Someone the user has lost: acknowledge gently, let them lead, and never
+ * offer to call, text or send that person anything.
+ */
+function pushRemembering(lines: string[], dates: UpcomingDate[]): void {
+  if (dates.length === 0) return;
+
+  lines.push('### Remembering');
+  for (const date of dates) lines.push(`- ${rememberingLine(date)}`);
+  const names = [...new Set(dates.map((d) => d.contactName))].join(' or ');
+  lines.push(
+    `On the day itself, if it fits, gently acknowledge it once and let them lead. Before then, leave it unless they bring it up. Offer to talk about ${names}, or just to be with them. Never offer to call, text or send them anything.`,
+    ''
+  );
+}
+
+function rememberingLine(date: UpcomingDate): string {
+  const who = date.relationship ? `${date.contactName} (${date.relationship})` : date.contactName;
+  const when = date.isToday
+    ? 'today'
+    : date.daysUntil === 1
+      ? 'tomorrow'
+      : `in ${date.daysUntil} days`;
+  if (date.dateType === 'memorial') {
+    return date.isToday
+      ? `Today is the anniversary of ${who}'s passing.`
+      : `The anniversary of ${who}'s passing is ${when}.`;
+  }
+  if (date.dateType === 'birthday') {
+    return date.isToday
+      ? `Today would have been ${who}'s birthday.`
+      : `${who}'s birthday is ${when}. They have passed, so it is a day to remember them.`;
+  }
+  return `${who}'s ${date.label || date.dateType} is ${when}. They have passed.`;
 }
 
 function formatRelationship(relationship: string): string {

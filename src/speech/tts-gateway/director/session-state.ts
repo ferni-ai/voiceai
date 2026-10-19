@@ -14,10 +14,13 @@
  */
 
 import { resetLaughterSession } from '../../adaptive-ssml/contextual-laughter.js';
+import { forgetCallerTurns } from '../../adaptive-ssml/heavy-moment.js';
 
 export interface CarryOver {
   emotion?: string;
   speed: number;
+  /** The previous reply's attuned loudness (attune.ts); absent when attunement is off. */
+  volume?: number;
   /** Replies since the last opening sigh / breath (nonverbal.ts cooldowns). */
   sinceSigh?: number;
   sinceBreath?: number;
@@ -63,6 +66,7 @@ export class DirectorSessions {
    */
   clear(sessionId: string): void {
     resetLaughterSession(sessionId);
+    forgetCallerTurns(sessionId);
     const prefix = keyOf(sessionId);
     for (const key of [...this.states.keys()]) {
       if (key.startsWith(prefix)) this.states.delete(key);

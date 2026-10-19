@@ -34,7 +34,7 @@
     enableHoverPreviews: false, // Requires backend API
     enableSentimentCopy: false, // Requires backend API
     enableMicroExpressions: true, // Client-side only - ENABLED
-    enableVoiceSamples: true, // Audio samples from /audio/samples/
+    enableVoiceSamples: true, // Voice samples in the personas' real voices (/api/landing/tts)
     enableMemoryDemo: true, // Client-side only - ENABLED
     debugMode: false,
   };
@@ -253,7 +253,6 @@
         <button class="ferni-chat-trigger" aria-label="Chat with Ferni">
           <div class="ferni-chat-trigger__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
           <span class="ferni-chat-trigger__text">Chat with Ferni</span>
-          <span class="ferni-chat-trigger__badge">AI</span>
         </button>
         
         <div class="ferni-chat-panel" aria-hidden="true">
@@ -530,6 +529,9 @@
   const PersonaPreviews = {
     init() {
       if (!CONFIG.enablePersonaPreviews) return;
+      // ai-copy-magic.js adds its own "ask me" input to every team card (with
+      // offline sample replies), so a second one here would double it up.
+      if (window.FerniAICopyMagic) return;
 
       this.enhanceTeamCards();
     },
@@ -956,7 +958,7 @@
       askBox.innerHTML = `
         <div class="smart-faq__header">
           <div class="smart-faq__avatar"><svg class="ferni-eyes-svg" viewBox="0 0 100 100"><ellipse cx="36" cy="50" rx="10" ry="12" fill="white"/><circle cx="33" cy="45" r="2.5" fill="white" opacity="0.9"/><ellipse cx="64" cy="50" rx="10" ry="12" fill="white"/><circle cx="61" cy="45" r="2.5" fill="white" opacity="0.9"/></svg></div>
-          <h4 class="smart-faq__title">Ask me anything</h4>
+          <h3 class="smart-faq__title">Ask me anything</h3>
         </div>
         <div class="smart-faq__input-area">
           <input 
@@ -1203,15 +1205,6 @@
         justify-content: center;
         font-size: var(--text-2xs, 10px);
         font-weight: 700;
-      }
-      
-      .ferni-chat-trigger__badge {
-        padding: var(--space-0_5, 2px) var(--space-2, 8px);
-        background: rgba(255,255,255,0.2);
-        border-radius: var(--radius-lg, 10px);
-        font-size: var(--text-2xs, 10px);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
       }
       
       #ferni-live-chat.is-open .ferni-chat-trigger {

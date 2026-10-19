@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "Wechsle zu {language}",
+    "seeYou": "Bis zum nächsten Mal!",
+    "callVoicemail": "Ich hab {name} auf die Mailbox gesprochen",
+    "callNoAnswer": "Ich hab {name} nicht erreicht. Soll ich's später noch mal versuchen?",
+    "callFailed": "Der Anruf bei {name} hat nicht geklappt",
+    "callBack": "{name} möchte, dass du zurückrufst",
+    "followUp": "{name} wartet auf deine Antwort"
+  },
   "accessibility": {
     "accountMenu": "Konto-Menü",
     "accountSettings": "Konto-Einstellungen",
@@ -1522,7 +1531,7 @@
         "title": "Sprich einfach"
       },
       "welcome": {
-        "description": "Dein persönliches Team aus KI-Life-Coaches. Jeder bringt eine ganz eigene Weisheit mit, um dich auf deiner Reise zu begleiten.",
+        "description": "Dein persönliches Team aus Begleitern. Jeder bringt eine ganz eigene Sicht auf die Dinge mit.",
         "title": "Willkommen bei Ferni"
       }
     },
@@ -2100,8 +2109,8 @@
     "couldNotDisconnect": "Verbindung konnte nicht getrennt werden. Nochmal versuchen?",
     "sonosConnected": "Sonos verbunden!",
     "transcribing": "Wird transkribiert...",
-    "transcriptionUnavailable": "Transkription nicht verfügbar. Es wird nur das Audio gespeichert.",
-    "audioSaved": "Audio gespeichert!",
+    "transcriptionUnavailable": "Diesmal konnte ich die Worte nicht verstehen, daher wurde nichts gespeichert. Noch einmal versuchen?",
+    "journalTooLong": "Die ist lang. Versuch es kürzer, unter {count} Minuten.",
     "entrySaved": "Eintrag gespeichert!",
     "couldNotSaveEntry": "Eintrag konnte nicht gespeichert werden. Versuchst du es noch mal?",
     "profileSaved": "Profil gespeichert!",
@@ -2219,7 +2228,6 @@
       "other": "{count} Kontakte importiert!"
     },
     "integrationNowConnected": "{integration} ist jetzt verbunden!",
-    "inviteSentTo": "Einladung an {email} gesendet!",
     "householdMemberRemoved": "{name} entfernt",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} zu deinem Team hinzugefügt",
@@ -3460,6 +3468,25 @@
     "fieldRelationship": "Beziehung",
     "fieldWhatShouldFerniCallThem": "Wie soll Ferni sie nennen?",
     "fieldNotesForFerni": "Notizen für Ferni",
+    "callConsentLabel": "Freut sich über Anrufe von Ferni",
+    "callConsentHint": "Hat zugestimmt, dass Ferni ab und zu anruft, um nachzufragen. Kann jederzeit sagen, dass er aufhören soll.",
+    "callConsentSaved": "Gespeichert",
+    "callConsentFailed": "Speichern fehlgeschlagen. Versuch es noch einmal.",
+    "callConsentLoadFailed": "Konnte nicht laden, ob Anrufe von Ferni willkommen sind. Öffne es erneut, um es noch einmal zu versuchen.",
+    "checkinTitle": "Wann soll Ferni sich melden?",
+    "checkinHint": "Ferni ruft zu dieser Zeit kurz an, um zu hören, wie es geht.",
+    "checkinFrequencyLabel": "Wie oft",
+    "checkinDaily": "Jeden Tag",
+    "checkinWeekly": "Einmal pro Woche",
+    "checkinDayLabel": "An welchem Tag",
+    "checkinTimeLabel": "Um wie viel Uhr",
+    "checkinTimezone": "Zeiten gelten für {zone}.",
+    "checkinSave": "Anrufzeit speichern",
+    "checkinRemove": "Regelmäßige Anrufe beenden",
+    "checkinSaved": "Gespeichert. Ferni meldet sich dann.",
+    "checkinRemoved": "Regelmäßige Anrufe sind aus.",
+    "checkinFailed": "Konnte nicht gespeichert werden. Versuch es noch einmal.",
+    "checkinLoadFailed": "Die Anrufzeit konnte nicht geladen werden. Öffne es erneut, um es noch einmal zu versuchen.",
     "cancel": "Abbrechen",
     "addToFamily": "Zur Familie hinzufügen",
     "relationshipMother": "Mutter",
@@ -3549,7 +3576,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "Deine persönliche KI-Begleitung",
+        "role": "Deine persönliche Begleitung",
         "description": "Ich bin für alles da, was du brauchst – von täglichen Check-ins bis hin zu tiefgründigen Gesprächen.",
         "unlockHint": "Immer an deiner Seite",
         "unlockedMessage": "Wir haben schon viel zusammen erlebt.",
@@ -3620,11 +3647,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — Dein KI-Lebensbegleiter",
+      "title": "Lerne Ferni kennen",
       "message": "Ich nutze Ferni und es hat meine Art, den Tag anzugehen, wirklich verändert. Sei dabei! {url}",
       "shortMessage": "Komm zu Ferni! {url}",
-      "emailSubject": "Du solltest Ferni mal ausprobieren",
-      "emailBody": "Hey! Ich nutze seit Kurzem Ferni — das ist ein KI-Begleiter, der sich tatsächlich menschlich anfühlt. Ich dachte, das gefällt dir bestimmt. {url}"
+      "emailSubject": "Du solltest Ferni mal ausprobieren"
     },
     "modal": {
       "title": "Teile das Wachstum",
@@ -3857,10 +3883,12 @@
       "create": "Agent erstellen",
       "empty": "Noch keine Agenten",
       "emptyHint": "Erstelle deinen ersten eigenen Agenten, um die Stimme eines geliebten Menschen zu bewahren, einen Mentor zu erschaffen oder deinen ganz persönlichen Begleiter zu gestalten.",
+      "emptyHintWithoutVoice": "Erstelle deinen ersten eigenen Agenten, um die Geschichten eines geliebten Menschen zu bewahren, einen Mentor zu erschaffen oder deinen ganz persönlichen Begleiter zu gestalten.",
       "createFirst": "Erstelle deinen ersten Agenten",
       "whatYouCan": "Was du erschaffen kannst",
       "legacy": "Vermächtnis",
       "legacyDesc": "Bewahre die Stimme und Weisheit eines geliebten Menschen",
+      "legacyDescWithoutVoice": "Bewahre die Geschichten und Weisheit eines geliebten Menschen",
       "mentor": "Mentor",
       "mentorDesc": "Erschaffe einen Coach, der auf einer inspirierenden Persönlichkeit basiert",
       "twin": "Digitaler Zwilling",
@@ -4535,7 +4563,7 @@
     "title": "Agenten-Seite erstellen",
     "nameLabel": "Name des Agenten",
     "namePlaceholder": "z. B. Nate Holloway",
-    "nameHint": "Der vollständige Name deines KI-Agenten",
+    "nameHint": "Der vollständige Name deines Agenten",
     "initialsLabel": "Initialen",
     "initialsPlaceholder": "z. B. JD",
     "initialsHint": "Wird auf dem Avatar angezeigt (2–3 Zeichen)",
@@ -5063,7 +5091,8 @@
     },
     "voiceStep": {
       "title": "Wie sollen sie klingen?",
-      "subtitle": "Wähle eine Stimme oder klone eine"
+      "subtitle": "Wähle eine Stimme oder klone eine",
+      "subtitleWithoutClone": "Wähle eine Stimme"
     },
     "voiceOption": {
       "cloneTitle": "Stimme klonen",
@@ -7236,6 +7265,7 @@
     "legacy": {
       "name": "Legacy",
       "description": "Bewahre die Stimme und Weisheit von jemandem, der dir am Herzen liegt",
+      "descriptionWithoutVoice": "Bewahre die Geschichten und Weisheit von jemandem, der dir am Herzen liegt",
       "feature1": "Stimmenklonung aus Aufnahmen",
       "feature2": "Geschichten und Erinnerungen festhalten",
       "feature3": "Weisheiten und Lieblingssprüche bewahren",
@@ -7254,8 +7284,7 @@
       "description": "Dein persönliches Sprachtagebuch, das mit dir wächst",
       "feature1": "Tägliche Sprachtagebücher aufnehmen",
       "feature2": "Sprich mit deinem früheren Ich",
-      "feature3": "Verfolge dein persönliches Wachstum im Laufe der Zeit",
-      "feature4": "KI-generierte Erkenntnisse"
+      "feature3": "Verfolge dein persönliches Wachstum im Laufe der Zeit"
     },
     "fictional": {
       "name": "Fiktiv",
@@ -9466,11 +9495,22 @@
     "rememberEmpty": "Diesmal gibt es nichts Neues festzuhalten. Danke für deine Gesellschaft.",
     "nextStepTitle": "Ein sanfter nächster Schritt",
     "invitation": "Komm wieder, wann immer du magst. Ich bin da.",
-    "close": "Schließen"
+    "close": "Schließen",
+    "seeCost": "Was dieser Anruf gekostet hat",
+    "feedbackQuestion": "Wie war das Gespräch?",
+    "feedbackThanks": "Danke, das hilft mir.",
+    "pushAskQuestion": "Soll Ferni sich dazu bei dir melden?",
+    "pushAskYes": "Ja, gern",
+    "pushAskNotNow": "Nicht jetzt",
+    "pushAskDone": "Erledigt. Nachrichten von Ferni kommen auf dieses Gerät.",
+    "pushAskLater": "Kein Problem. Du kannst das später in den Einstellungen ändern.",
+    "pushAskHomeScreen": "Um hier Nachrichten von Ferni zu bekommen, füge Ferni zum Home-Bildschirm hinzu: Tippe auf Teilen, dann auf Zum Home-Bildschirm.",
+    "pushAskGotIt": "Verstanden"
   },
   "moments": {
     "teamUnlockTitle": "Lerne {name} kennen",
     "niceWork": "Schön gemacht",
+    "remembered": "Merk ich mir: {summary}",
     "streakSubtitle": "Du bist da. Das zählt.",
     "streakTitle": {
       "one": "{count}-Tage-Serie",
@@ -9757,7 +9797,7 @@
     },
     "marketplace": {
       "headline": "Finde deine Leute.",
-      "description": "Über das Ferni-Kernteam hinaus erwartet dich ein Garten voller spezialisierter KI-Coaches. ADHS-Unterstützung, Begleitung auf dem Weg zur Nüchternheit, Schlaf-Spezialisten, Erziehungsratgeber – Expert*innen, die deine ganz persönliche Reise verstehen.",
+      "description": "Über das Ferni-Kernteam hinaus erwartet dich ein Garten voller spezialisierter Coaches. ADHS-Unterstützung, Begleitung auf dem Weg zur Nüchternheit, Schlaf-Spezialisten, Erziehungsratgeber – Expert*innen, die deine ganz persönliche Reise verstehen.",
       "superhuman1": "Spezialisierte Personas – Coaches für ganz bestimmte Herausforderungen im Leben",
       "superhuman2": "Community-Bewertungen – Echte Erfahrungen, echte Rezensionen",
       "superhuman3": "Kostenlos und Premium – Unterstützung für jedes Budget",
@@ -9765,7 +9805,7 @@
     },
     "developerPortal": {
       "headline": "Erschaffe, was zählt.",
-      "description": "Die Technologie von Ferni öffnet sich. Erschaffe deine eigenen KI-Coaches, kreiere spezialisierte Personas und erreiche Menschen, die genau das brauchen, was du anbietest. Die Plattform hinter Ferni – jetzt für dich.",
+      "description": "Die Technologie von Ferni öffnet sich. Erschaffe deine eigenen Coaches, kreiere spezialisierte Personas und erreiche Menschen, die genau das brauchen, was du anbietest. Die Plattform hinter Ferni – jetzt für dich.",
       "superhuman1": "Vollständige API-Dokumentation – Alles, was du zum Entwickeln brauchst",
       "superhuman2": "SDK und Bibliotheken – TypeScript-First-Entwicklung",
       "superhuman3": "Persona-Builder – Visuelle Tools zum Erstellen von Coaches",
@@ -9891,6 +9931,7 @@
     "timeout": "Das hat zu lange gedauert. Überprüfe deine Verbindung und versuche es noch einmal?",
     "network": "Ich konnte keine Verbindung zu Ferni herstellen. Überprüfe dein Internet und versuche es noch einmal?",
     "dropped": "Verbindung verloren. Neu verbinden?",
+    "agentLeft": "Ferni ist aus der Leitung gefallen. Neu verbinden?",
     "unknown": "Verbindung fehlgeschlagen. Nochmal versuchen?"
   },
   "ambientSounds": {
@@ -10460,7 +10501,7 @@
   },
   "ferniAwakens": {
     "greeting": "Hallo.",
-    "subtext": "Ich bin Ferni, dein KI-Life-Coach."
+    "subtext": "Ich bin Ferni, deine persönliche Begleitung."
   },
   "serviceHealth": {
     "names": {
@@ -10469,7 +10510,7 @@
       "weatherMaps": "Wetter & Karten",
       "historicalFacts": "Historische Fakten",
       "lighting": "Beleuchtung",
-      "aiContext": "KI-Kontext",
+      "aiContext": "Gedächtnis & Kontext",
       "smartHome": "Smart Home",
       "sleepHealth": "Schlaf- & Gesundheitsdaten",
       "other": "Ein verknüpfter Dienst"
@@ -10627,9 +10668,6 @@
     "patronShort": "Patron*in",
     "founderAria": "{tier}. Danke, dass du an uns glaubst! Klicke zum Verwalten."
   },
-  "splash": {
-    "tagline": "Dein KI-Team steht bereit"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "Alle Unterstützung",
@@ -10764,7 +10802,9 @@
     "helper": "Dein persönlicher Wegbegleiter",
     "connectToTalk": "Verbinden",
     "endTalk": "Auflegen",
-    "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen"
+    "connectingCancel": "Verbindung wird hergestellt. Zum Abbrechen tippen",
+    "connectingNow": "Verbindung wird hergestellt…",
+    "tapToCancel": "Zum Abbrechen tippen"
   },
   "analyticsDashboard": {
     "title": "Deine Reise",
@@ -11025,10 +11065,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

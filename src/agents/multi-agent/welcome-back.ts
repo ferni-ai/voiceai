@@ -24,6 +24,7 @@
  * @module agents/multi-agent/welcome-back
  */
 
+import { isSensitiveThread } from '../../memory/recall/sensitive.js';
 import { loadRecallSnapshot } from '../../memory/recall/session-recall.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { loadLedger } from '../personas/life-ledger.js';
@@ -46,16 +47,7 @@ export function isWelcomeBack(history: { daysSince?: number } | undefined): bool
   return history?.daysSince !== undefined && history.daysSince >= WELCOME_BACK_MIN_DAYS;
 }
 
-/**
- * Not an opener: grief, health, pregnancy, money and relationships, the things
- * recall already says never to raise first. Whole words only.
- */
-const SENSITIVE =
-  /\b(?:died|death|dying|passed away|funeral|grie(?:f|ve|ving)|miscarriage|pregnan\w*|cancer|tumou?r|biopsy|diagnos\w*|surgery|hospital\w*|chemo\w*|illness|sick|health|doctor|therap(?:y|ist)|depress\w*|anxiety|panic attacks?|divorce|break ?up|broke up|separat(?:ed|ion)|laid off|fired|debt|money|bankrupt\w*|evict\w*)\b/i;
-
-export function isSensitiveThread(text: string): boolean {
-  return SENSITIVE.test(text);
-}
+export { isSensitiveThread };
 
 /** The lines the system prompt gets for when they last talked (agent-setup.ts). */
 export function lastTalkedAwareness(
@@ -72,9 +64,31 @@ export function lastTalkedAwareness(
           : daysSince < 30
             ? `It's been about ${Math.round(daysSince / 7)} weeks since you last talked.`
             : `It's been a while - about ${Math.round(daysSince / 30)} month${daysSince > 45 ? 's' : ''} since you last talked.`;
-  if (!welcomeBackEnabled(env) || daysSince < WELCOME_BACK_MIN_DAYS) return [line];
-  return [line, NO_GAP_AWARENESS];
+  if (welcomeBackEnabled(env) && daysSince >= WELCOME_BACK_MIN_DAYS) {
+    return [line, NO_GAP_AWARENESS]; // the welcome back picks its one thread itself
+  }
+  if (!recentCallRestraintEnabled(env)) return [line];
+  return [line, daysSince === 0 ? `${SAME_DAY_AWARENESS} ${LET_THEM_LEAD}` : LET_THEM_LEAD];
 }
+
+/**
+ * RECENT_CALL_RESTRAINT (on unless "off"). Live call 10-17, second call that day: given
+ * "You talked earlier today." and the last call's summary, the first reply was "I was
+ * actually just thinking about how things went with Clayton and Brent after you talked
+ * with Jordan earlier." Seth: "You did jump the gun." The summary stays; it just doesn't
+ * get to open the call, and at most one light thing is asked about, never a presumed outcome.
+ */
+export function recentCallRestraintEnabled(
+  env: Record<string, string | undefined> = process.env
+): boolean {
+  return env.RECENT_CALL_RESTRAINT !== 'off';
+}
+
+const SAME_DAY_AWARENESS =
+  'You already talked today, so start like friends picking back up: a plain hello and how they are doing.';
+
+const LET_THEM_LEAD =
+  'Let them lead the start of the call; do not open with what you talked about last time. If you bring it up, ask about one light thing as a short open question ("How did that go?"). Never guess how something went, and never string several people\'s names together.';
 
 const NO_GAP_AWARENESS =
   'Never bring up how long it has been, that you missed them, or where they have been. Their life went on, and so did yours.';

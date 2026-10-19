@@ -18,6 +18,8 @@ async function opens(page: Page, control: Locator, what: string) {
   return newPanel(page, before, what);
 }
 
+test.skip(true, 'Meet More Friends (the marketplace) is hidden: apps/web/src/config/menu-visibility.ts');
+
 test.beforeEach(async ({ page }, info) => {
   test.skip(info.project.name === 'mobile', 'no marketplace button on phones');
   await signIn(page, await createUser());
@@ -51,8 +53,9 @@ test("roleplay talks with the agent itself, and the scene isn't the person's mes
   await expect(chat.locator('#twin-title')).toHaveText(NAME);
   await expect(chat).not.toContainText(/past self/i);
   await expect(chat).not.toContainText('[ROLEPLAY MODE]');
-  // Either the agent's reply or the chat's own error line: never silence, never the raw scene
-  const answer = chat.locator('.twin-message--twin:not(.twin-message--thinking)');
+  // Either the agent's reply or the chat's own error line (a notice, never in the agent's
+  // voice): never silence, never the raw scene
+  const answer = chat.locator('.twin-message--twin:not(.twin-message--thinking), .twin-message--notice');
   await expect(answer.first()).toBeVisible({ timeout: 15_000 });
   await expect(answer.first()).not.toHaveText('');
 });

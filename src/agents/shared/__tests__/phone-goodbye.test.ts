@@ -9,8 +9,21 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { ReadableStream } from 'node:stream/web';
 import { pathToFileURL } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
+
+const { phoneLog } = vi.hoisted(() => ({ phoneLog: vi.fn() }));
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('../../../utils/safe-logger.js')>();
+  return {
+    ...real,
+    createLogger: (bindings: Record<string, unknown>) => {
+      const logger = real.createLogger(bindings);
+      if (bindings.module !== 'phone-goodbye') return logger;
+      return { ...logger, info: (o: unknown, msg?: string) => phoneLog(msg, o) };
+    },
+  };
+});
 import { PersonaVoiceAgent } from '../../personas/ferni-agent.js';
 import { attachPhoneHangUp, END_CALL } from '../phone-goodbye.js';
 
@@ -60,7 +73,30 @@ async function callEndCall(
   return out.output[0]?.toolCallOutput?.output ?? '';
 }
 
+afterEach(() => phoneLog.mockReset());
+const attached = () => phoneLog.mock.calls.filter(([msg]) => msg === 'PHONE_GOODBYE_ATTACHED');
+
 describe('phone goodbye', () => {
+  it('reads the flag like every other flag: on, true and 1 attach endCall and log it once', async () => {
+    for (const value of ['on', 'true', '1', 'TRUE']) {
+      phoneLog.mockReset();
+      const a = agent();
+      const call = { sessionId: 's-1', roomName: 'r', participant: phoneCaller, onBehalf: false };
+      expect(await attachPhoneHangUp(a, { ...call, env: { PHONE_GOODBYE: value } })).toBe(true);
+      expect(names(a)).toEqual(['getWeather', END_CALL]);
+      // A second attach on the same call adds nothing and logs nothing
+      expect(await attachPhoneHangUp(a, { ...call, env: { PHONE_GOODBYE: value } })).toBe(false);
+      expect(attached()).toEqual([['PHONE_GOODBYE_ATTACHED', { sessionId: 's-1' }]]);
+    }
+    for (const value of ['off', 'false', '0', 'yes']) {
+      phoneLog.mockReset();
+      const a = agent();
+      const call = { roomName: 'r', participant: phoneCaller, onBehalf: false };
+      expect(await attachPhoneHangUp(a, { ...call, env: { PHONE_GOODBYE: value } })).toBe(false);
+      expect(attached()).toEqual([]);
+    }
+  });
+
   it('gives a phone caller endCall, which hangs up after the goodbye plays', async () => {
     const a = agent();
     const events: string[] = [];

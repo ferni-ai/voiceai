@@ -56,8 +56,9 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
     },
     {
       name: 'calendar-morning-briefing',
-      description: 'Alex morning calendar briefing (one push per user per local day)',
-      schedule: '*/15 5-11 * * *',
+      description: 'Alex morning briefing (one per user per local day)',
+      // All day: 7am (push) and 8am (text) come at different UTC hours per zone.
+      schedule: '*/15 * * * *',
       timezone: 'Etc/UTC',
       uri: `${uiServerUrl}/api/jobs/calendar-briefing`,
       httpMethod: 'POST',
@@ -75,6 +76,17 @@ export function getDeliveryJobs(uiServerUrl: string): DeliverySchedulerJob[] {
       retryCount: 1,
       minBackoff: '30s',
       maxBackoff: '120s',
+      timeout: '180s',
+    },
+    {
+      // Off until the UI server has FOLLOW_THROUGH_JOB=on; until then each run answers flag-off.
+      name: 'follow-through',
+      description: 'Text each person the follow-up due for them now (FOLLOW_THROUGH_JOB)',
+      schedule: '*/5 * * * *',
+      timezone: 'America/Los_Angeles',
+      uri: `${uiServerUrl}/api/jobs/follow-through`,
+      httpMethod: 'POST',
+      retryCount: 0,
       timeout: '180s',
     },
   ];

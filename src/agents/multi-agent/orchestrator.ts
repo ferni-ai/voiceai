@@ -21,12 +21,16 @@ import type { JobContext, voice } from '@livekit/agents';
 import type { Room, RemoteParticipant } from '@livekit/rtc-node';
 import type { EventEmitter } from 'events';
 import { getLogger } from '../../utils/safe-logger.js';
+import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { wireDeferredHandlers } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { directedGreeting } from './greeting-direction.js';
+import { isProactiveCall } from './greeting-direction.js';
+import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
+import { talkThroughFor, type TalkThrough } from './handoff-talk-through.js';
+import { holdOutOfMemory } from './arrival-grounding.js';
 import {
   arrivalLine,
   briefedHandoffs,
@@ -35,16 +39,13 @@ import {
   withBrief,
 } from './handoff-brief.js';
 export { calmGreeting } from './greeting-direction.js';
-
 // Predictive handoff - pre-briefings for specialist personas
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
 import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
 
 const log = getLogger();
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 export interface PersonaAgent {
   /** Unique ID for this agent instance */
@@ -243,9 +244,10 @@ export class AgentOrchestrator {
    */
   private async generateInitialGreeting(agent: PersonaAgent): Promise<void> {
     try {
-      // A call Ferni placed for someone opens with who it is and who it's
-      // for, once the phone is picked up: never the app's "hey <user>" hello.
-      const { outboundOpener, outboundPartiesFor } = await import('../shared/outbound-opener.js');
+      // A call Ferni placed waits for the phone to be picked up. One for someone opens
+      // with who it is and who it's for, never the app's "hey <user>" hello.
+      const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
+        await import('../shared/outbound-opener.js');
       const parties = outboundPartiesFor(this.sessionId);
       let greeting: string;
       if (parties) {
@@ -257,8 +259,16 @@ export class AgentOrchestrator {
         if (!(await personAnswered(room, phone, agent, parties, sessionId))) return;
         greeting = outboundOpener(parties);
       } else {
+        // A proactive call to Ferni's own user waits for the pickup too.
+        if (await isProactiveCall(this.sessionId)) {
+          const answered = await waitForCallAnswered(this.room, this.userParticipant);
+          if (!answered) {
+            log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
+            return;
+          }
+        }
         const userData = agent.userData as UserData | undefined;
-        greeting = await directedGreeting(this.sessionId, agent.personaId, userData);
+        greeting = await greetingOrResume(this.sessionId, agent, userData); // RESUME_AFTER_DROP
       }
 
       // Greeting awareness: the turn handler tells the LLM on turn 0 what it said.
@@ -360,15 +370,18 @@ export class AgentOrchestrator {
     diag.entry(`🎭 Handoff starting: ${previousPersonaId} → ${request.targetPersonaId}`);
 
     // BRIEFED_HANDOFF: the teammate's brief and first line, written while the goodbye plays
-    const briefing = briefedHandoffs() ? briefingFor(currentAgent, request) : null;
+    const briefing = briefedHandoffs()
+      ? briefingFor(currentAgent, request, callerTimeZoneFor(this.sessionId))
+      : null;
+    // HANDOFF_TALK_THROUGH: the caller may talk through the goodbye (handoff-talk-through.ts)
+    const talk = isSwappable(currentAgent) ? talkThroughFor(currentAgent, this.sessionId) : null;
     try {
-      // STEP 1: Let old agent say goodbye naturally
-      const step1Start = Date.now();
+      const step1Start = Date.now(); // STEP 1: Let old agent say goodbye naturally
       log.info(
         { from: previousPersonaId, to: request.targetPersonaId },
         '🎭 [HANDOFF STEP 1/5] Starting goodbye speech...'
       );
-      await this.agentSaysGoodbye(currentAgent, request.targetPersonaId);
+      await this.agentSaysGoodbye(currentAgent, request.targetPersonaId, talk);
       log.info(
         { from: previousPersonaId, durationMs: Date.now() - step1Start },
         '🎭 [HANDOFF STEP 1/5] ✅ Goodbye complete'
@@ -388,9 +401,7 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 2/5] ✅ Old agent closed'
       );
 
-      // ================================================================
       // STEP 3: Spawn new agent (with predictive pre-briefing if available)
-      // ================================================================
       const step3Start = Date.now();
       log.info(
         { targetPersonaId: request.targetPersonaId, isHandoff: true },
@@ -472,15 +483,14 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 4/5] ✅ Active agent switched'
       );
 
-      // ================================================================
-      // STEP 5: New agent greets naturally
-      // ================================================================
+      // STEP 5: New agent greets naturally, or answers what the caller said meanwhile
       const step5Start = Date.now();
       log.info(
         { personaId: request.targetPersonaId },
         '🎭 [HANDOFF STEP 5/5] New agent greeting...'
       );
-      await this.agentGreets(newAgent, previousPersonaId, request, briefed?.firstLine);
+      await (talk?.arrive(newAgent) ??
+        this.agentGreets(newAgent, previousPersonaId, request, briefed?.firstLine));
       log.info(
         { personaId: request.targetPersonaId, durationMs: Date.now() - step5Start },
         '🎭 [HANDOFF STEP 5/5] ✅ Greeting complete'
@@ -524,6 +534,7 @@ export class AgentOrchestrator {
         durationMs,
       };
     } catch (error) {
+      talk?.abandon();
       const durationMs = Date.now() - startTime;
       log.error(
         {
@@ -618,7 +629,6 @@ export class AgentOrchestrator {
         isHandoff: context.isHandoff,
         previousPersonaId: context.previousPersonaId,
         hasConversationSummary: !!context.conversationSummary,
-        recentMessageCount: context.recentMessages?.length || 0,
       },
       '🎭 [spawnAgent] Starting agent creation...'
     );
@@ -745,10 +755,13 @@ export class AgentOrchestrator {
   /**
    * Make the current agent say goodbye naturally.
    *
-   * HANDOFF FIX: Added retry and direct session fallback to ensure goodbye plays
-   * even if the coordinated speech system has issues (matching agentGreets pattern).
+   * With a direct session fallback, so the goodbye plays if coordinated speech fails.
    */
-  private async agentSaysGoodbye(agent: PersonaAgent, targetPersonaId: string): Promise<void> {
+  private async agentSaysGoodbye(
+    agent: PersonaAgent,
+    targetPersonaId: string,
+    talk: TalkThrough | null = null
+  ): Promise<void> {
     const goodbye = this.getGoodbyePhrase(agent.personaId, targetPersonaId);
     const displayName = getPersonaDisplayName(targetPersonaId);
     const textToSpeak = goodbye || `Let me get ${displayName} for you.`;
@@ -770,10 +783,9 @@ export class AgentOrchestrator {
       '🎭 [GOODBYE] Speaking...'
     );
 
-    // HANDOFF FIX: Try coordinated speech first, fall back to direct session.say
-    // This ensures the goodbye plays even if speech coordination has issues.
+    // Coordinated speech, else session.say (talk-through: interruptible, none over the caller)
     try {
-      agent.say(textToSpeak, { allowInterruptions: false });
+      if (!talk?.callerTalking()) agent.say(textToSpeak, { allowInterruptions: Boolean(talk) });
     } catch (sayError) {
       log.warn(
         { personaId: agent.personaId, error: String(sayError) },
@@ -784,7 +796,7 @@ export class AgentOrchestrator {
       try {
         const session = agent.session as { say?: (text: string, opts?: unknown) => void };
         if (session?.say) {
-          session.say(textToSpeak, { allowInterruptions: false });
+          session.say(textToSpeak, { allowInterruptions: Boolean(talk) });
           log.info({ personaId: agent.personaId }, '🎭 [GOODBYE] Direct session speak succeeded');
         }
       } catch (directError) {
@@ -796,7 +808,7 @@ export class AgentOrchestrator {
       }
     }
 
-    await this.waitForSpeechComplete(duration);
+    await (talk ? talk.listen(duration) : this.waitForSpeechComplete(duration));
     log.info({ personaId: agent.personaId }, '🎭 [GOODBYE] Wait complete');
   }
 
@@ -814,7 +826,7 @@ export class AgentOrchestrator {
   ): Promise<void> {
     const greeting =
       firstLine ?? this.getGreetingPhrase(agent.personaId, previousPersonaId, request);
-    const textToSpeak = greeting || "Hey! What's up?";
+    const textToSpeak = holdOutOfMemory(this.sessionId, greeting || "Hey! What's up?"); // ARRIVAL_LINE_GROUNDED
 
     log.info(
       {

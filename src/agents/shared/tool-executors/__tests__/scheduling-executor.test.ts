@@ -12,6 +12,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { schedulingExecutor } from '../scheduling-executor.js';
 import type { ToolExecutionContext } from '../types.js';
+import { WHERE_TO_ADD_NUMBER } from '../../../../tools/shared/where-to-add-number.js';
 
 // Mock Firestore
 vi.mock('firebase-admin/firestore', () => ({
@@ -120,6 +121,24 @@ describe('SchedulingExecutor', () => {
 
       // Response confirms message will be sent (e.g., "Got it! I'll text John on...")
       expect(result).toBeDefined();
+    });
+
+    it('names where to add a number when there is no verified phone', async () => {
+      const { scheduleText } =
+        await import('../../../../tools/domains/proactive/outreach/index.js');
+      vi.mocked(scheduleText).mockResolvedValueOnce({
+        success: false,
+        error: 'No verified phone number on this account',
+      });
+      const result = await schedulingExecutor.execute(
+        'scheduleText',
+        { message: 'Call mom' },
+        createContext()
+      );
+
+      // It used to ask "What's the best number to reach you at?": a spoken number is never texted
+      expect(result).toContain(WHERE_TO_ADD_NUMBER);
+      expect(result).not.toMatch(/what's (the best|your) number/i);
     });
 
     it('should schedule message with just message (recipient optional)', async () => {

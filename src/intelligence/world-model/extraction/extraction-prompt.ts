@@ -76,7 +76,8 @@ Return JSON only: {"observations": [ ... ]}. Each observation:
 - attribute: one of ${WORLD_ATTRIBUTES.join(', ')}
   - event: something scheduled or that happened on a day (give eventDate when you can)
   - status/health/job/location/relationship/school/role: the current state, which replaces any earlier one
-  - goal: something the caller wants; commitment: something someone promised; thread: an unfinished topic worth asking about
+  - goal: something the caller wants; thread: an unfinished topic worth asking about
+  - commitment: something someone said they WILL do. When the caller says it ("I'll call my sister Sunday", "I'm going to apply by Friday", "gonna finally book the dentist"), use subject "self", value = the action in a few words, eventDate when they named a day, and quote their exact sentence. Only what a good coach would ask about later: a step toward something, a promise to someone, a thing they have been putting off. Not passing plans ("gonna watch a movie in a bit") or maybes ("I'm thinking of..."). A thing that happened to them ("my boss moved the deadline") is an event, not a commitment
 - value: a short phrase in plain words ("knee surgery", "recovering well", "interview at Stripe")
 - eventDate: YYYY-MM-DD for events; since: YYYY-MM-DD if the caller said when a status began
 - confidence: 0..1, how sure you are the caller meant this

@@ -10,6 +10,7 @@ import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { LESTER_PRO_V3_VOICE_ID } from '../../../../config/voice-ids.js';
+import { forgetCallerTurns } from '../../../adaptive-ssml/heavy-moment.js';
 import { clearReplyAudioPlan, takeReplyAudioPlan } from '../../../reply-audio-plan.js';
 import type { ReplyStream } from '../../providers/cartesia-reply-stream.js';
 import type { ITTSProvider } from '../../types.js';
@@ -52,6 +53,7 @@ const SESSION = 'turn-context-session';
 afterEach(() => {
   delete process.env.SPEECH_DIRECTOR;
   clearReplyAudioPlan(SESSION);
+  forgetCallerTurns(SESSION); // speak() tells of a dog that died: the next test starts fresh
   pushes.length = 0;
 });
 
@@ -103,5 +105,79 @@ describe('gateway → Director turn wiring', () => {
     const replyId2 = getReplyAudioId(audio2);
     expect(takeReplyAudioPlan(SESSION, replyId2)).toBeUndefined();
     expect(pushes.at(-1)).toBeDefined();
+  });
+
+  it('hands a laugh the Director added to the onNonverbal the session layer passed in', async () => {
+    process.env.SPEECH_DIRECTOR = 'live';
+    process.env.SPEECH_DIRECTOR_LAUGHTER = 'live';
+    vi.spyOn(Math, 'random').mockReturnValue(0); // every roll passes
+    try {
+      const { createGatewayTTSNode } = await import('../../gateway-tts-node.js');
+      const added: unknown[] = [];
+      const node = createGatewayTTSNode({
+        voiceId: LESTER_PRO_V3_VOICE_ID,
+        sessionId: SESSION,
+        personaId: 'jordan-taylor', // laughs readily (director-quirks.test.ts)
+        turnContext: { turnNumber: 10, userRequest: 'haha that was a good one', comfortLevel: 1 },
+        enableCache: false,
+        onNonverbal: (n) => void added.push(n),
+      });
+      const audio = await node(
+        new ReadableStream<string>({
+          start(c) {
+            c.enqueue("I'm just teasing you, you know that. Anyway, how was the weekend?");
+            c.close();
+          },
+        })
+      );
+      for await (const _ of audio!) {
+        /* drain */
+      }
+      expect(pushes.join('')).toContain('[laughter]');
+      expect(added).toContainEqual(
+        expect.objectContaining({ kind: 'laugh', source: 'director', personaId: 'jordan-taylor' })
+      );
+    } finally {
+      delete process.env.SPEECH_DIRECTOR_LAUGHTER;
+      vi.restoreAllMocks();
+    }
+  });
+});
+
+describe('a laugh the model wrote, through the real gateway', () => {
+  /** One reply the model wrote to `userRequest`, at `turnNumber`: what reached Cartesia. */
+  async function reply(userRequest: string, turnNumber: number, text: string): Promise<string> {
+    const { createGatewayTTSNode } = await import('../../gateway-tts-node.js');
+    const node = createGatewayTTSNode({
+      voiceId: LESTER_PRO_V3_VOICE_ID,
+      sessionId: SESSION,
+      personaId: 'ferni',
+      turnContext: { turnNumber, userRequest },
+      enableCache: false,
+    });
+    const audio = await node(
+      new ReadableStream<string>({
+        start(c) {
+          c.enqueue(text);
+          c.close();
+        },
+      })
+    );
+    for await (const _ of audio!) {
+      /* drain */
+    }
+    const said = pushes.join('');
+    pushes.length = 0;
+    return said;
+  }
+
+  it('keeps it on a light turn, and takes it out on a heavy one and the turn after', async () => {
+    process.env.SPEECH_DIRECTOR = 'shadow'; // the guard runs in shadow too: it is not a plan
+    expect(await reply('hahaha you are ridiculous', 1, '[laughter] Okay, fair. ')).toContain(
+      '[laughter]'
+    );
+    expect(await reply('kms lol', 2, '[laughs] Oh no, hey. ')).not.toMatch(/laugh/i);
+    expect(await reply('my dad died last week', 3, 'I am so sorry. ')).not.toMatch(/laugh/i);
+    expect(await reply('haha anyway', 4, '[laughter] Okay, so tell me. ')).not.toMatch(/laugh/i);
   });
 });

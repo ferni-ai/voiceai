@@ -51,8 +51,6 @@ export interface TimeSignal {
 }
 
 export interface HabitSignal {
-  activeHabits: number;
-  averageStreak: number;
   consistencyScore: number;
   recentSetbacks: string[];
   keystoneHabitActive: boolean;
@@ -72,12 +70,16 @@ export interface WealthSignal {
   riskBehaviorMatch: boolean;
 }
 
+/**
+ * Each signal is null when no real source backs it. Nothing is filled in with
+ * sample figures, so a finding only appears when the data behind it exists.
+ */
 export interface CrossDomainSnapshot {
   spending: SpendingSignal[];
-  time: TimeSignal;
-  habits: HabitSignal;
-  goals: GoalSignal;
-  wealth: WealthSignal;
+  time: TimeSignal | null;
+  habits: HabitSignal | null;
+  goals: GoalSignal | null;
+  wealth: WealthSignal | null;
   correlations: CorrelationInsight[];
   timestamp: string;
 }
@@ -135,36 +137,21 @@ async function getSpendingSignalsFromMaya(userId: string): Promise<SpendingSigna
     });
   }
 
-  // Fall back to sample data if no real data available
-  return generateSampleSpendingSignals();
-}
-
-function generateSampleSpendingSignals(): SpendingSignal[] {
-  return [
-    { category: 'Dining', amount: 450, trend: 'up', anomaly: false },
-    { category: 'Entertainment', amount: 180, trend: 'stable', anomaly: false },
-    {
-      category: 'Shopping',
-      amount: 320,
-      trend: 'up',
-      anomaly: true,
-      triggerPattern: 'weekend-evenings',
-    },
-    { category: 'Groceries', amount: 380, trend: 'stable', anomaly: false },
-    { category: 'Transport', amount: 150, trend: 'down', anomaly: false },
-    { category: 'Subscriptions', amount: 145, trend: 'stable', anomaly: false },
-  ];
+  // No budget on file: there is no spending to report.
+  return [];
 }
 
 /**
  * Get habit signals from Maya's store
  */
-async function getHabitSignalsFromMaya(userId: string): Promise<HabitSignal> {
+async function getHabitSignalsFromMaya(userId: string): Promise<HabitSignal | null> {
   const store = getFinancialStore();
   await store.loadUserData(userId);
 
   const triggers = store.getUserSpendingTriggers(userId);
   const recentTriggers = store.getRecentSpendingTriggers(userId, 14);
+  // No triggers logged in two weeks: nothing real to infer habits from.
+  if (recentTriggers.length === 0) return null;
 
   // Analyze trigger patterns to infer habit health
   const emotionCounts = recentTriggers.reduce(
@@ -182,8 +169,6 @@ async function getHabitSignalsFromMaya(userId: string): Promise<HabitSignal> {
   const consistencyScore = Math.max(0.3, 1 - negativeCount / Math.max(1, recentTriggers.length));
 
   return {
-    activeHabits: 4, // Would come from habit tracking system
-    averageStreak: Math.round(consistencyScore * 20),
     consistencyScore,
     recentSetbacks: negativeCount > 3 ? ['Elevated stress-driven spending detected'] : [],
     keystoneHabitActive: consistencyScore > 0.7,
@@ -193,7 +178,7 @@ async function getHabitSignalsFromMaya(userId: string): Promise<HabitSignal> {
 /**
  * Get goal signals from savings goals
  */
-async function getGoalSignalsFromMaya(userId: string): Promise<GoalSignal> {
+async function getGoalSignalsFromMaya(userId: string): Promise<GoalSignal | null> {
   const store = getFinancialStore();
   await store.loadUserData(userId);
 
@@ -226,44 +211,22 @@ async function getGoalSignalsFromMaya(userId: string): Promise<GoalSignal> {
     };
   }
 
-  return generateSampleGoalSignal();
+  return null;
 }
 
-function generateSampleTimeSignal(): TimeSignal {
-  return {
-    calendarDensity: 'heavy',
-    productiveHoursRatio: 0.45,
-    meetingHeavyDays: 3,
-    freeTimeBlocks: 2,
-  };
-}
+/** Shown when none of the tracked data is on file. Nothing is invented in its place. */
+const NOT_ENOUGH_DATA =
+  "I don't have enough of your real data yet to find patterns: there's no budget, habit log, or savings goal on file for you. Calendar and portfolio data aren't connected to this analysis. Once you track some spending or set a savings goal, I can look for connections.";
 
-function generateSampleHabitSignal(): HabitSignal {
-  return {
-    activeHabits: 4,
-    averageStreak: 12,
-    consistencyScore: 0.68,
-    recentSetbacks: ['Exercise (broken after 15 days)', 'Meditation (struggling)'],
-    keystoneHabitActive: false,
-  };
-}
-
-function generateSampleGoalSignal(): GoalSignal {
-  return {
-    activeGoals: 5,
-    onTrackGoals: 2,
-    stalledGoals: 2,
-    upcomingMilestones: ['Q1 Savings Target (in 3 weeks)', 'Vacation (in 6 weeks)'],
-  };
-}
-
-function generateSampleWealthSignal(): WealthSignal {
-  return {
-    checkFrequency: 'elevated',
-    recentTrades: 3,
-    portfolioHealthScore: 72,
-    riskBehaviorMatch: false,
-  };
+/** True when at least one signal is backed by real data. */
+function hasAnySignal(snapshot: CrossDomainSnapshot): boolean {
+  return Boolean(
+    snapshot.spending.length > 0 ||
+    snapshot.time ||
+    snapshot.habits ||
+    snapshot.goals ||
+    snapshot.wealth
+  );
 }
 
 // ============================================================================
@@ -277,7 +240,10 @@ function findCorrelations(snapshot: CrossDomainSnapshot): CorrelationInsight[] {
   const correlations: CorrelationInsight[] = [];
 
   // Calendar density + spending correlation
-  if (snapshot.time.calendarDensity === 'heavy' || snapshot.time.calendarDensity === 'overloaded') {
+  if (
+    snapshot.time?.calendarDensity === 'heavy' ||
+    snapshot.time?.calendarDensity === 'overloaded'
+  ) {
     const diningSpend = snapshot.spending.find((s) => s.category === 'Dining');
     if (diningSpend && diningSpend.trend === 'up') {
       correlations.push({
@@ -291,7 +257,7 @@ function findCorrelations(snapshot: CrossDomainSnapshot): CorrelationInsight[] {
   }
 
   // Habit setbacks + shopping anomaly
-  if (snapshot.habits.recentSetbacks.length > 0) {
+  if (snapshot.habits && snapshot.habits.recentSetbacks.length > 0) {
     const shoppingAnomaly = snapshot.spending.find((s) => s.category === 'Shopping' && s.anomaly);
     if (shoppingAnomaly) {
       correlations.push({
@@ -306,10 +272,13 @@ function findCorrelations(snapshot: CrossDomainSnapshot): CorrelationInsight[] {
 
   // Portfolio anxiety + stress indicators
   if (
-    snapshot.wealth.checkFrequency === 'anxious' ||
-    snapshot.wealth.checkFrequency === 'elevated'
+    snapshot.wealth?.checkFrequency === 'anxious' ||
+    snapshot.wealth?.checkFrequency === 'elevated'
   ) {
-    if (snapshot.time.calendarDensity === 'heavy' || snapshot.habits.consistencyScore < 0.7) {
+    if (
+      snapshot.time?.calendarDensity === 'heavy' ||
+      (snapshot.habits?.consistencyScore ?? 1) < 0.7
+    ) {
       correlations.push({
         domains: ['wealth', 'time', 'habits'],
         pattern: 'Portfolio checking elevated during high-stress period',
@@ -322,7 +291,12 @@ function findCorrelations(snapshot: CrossDomainSnapshot): CorrelationInsight[] {
   }
 
   // Goals + habits connection
-  if (snapshot.goals.stalledGoals >= 2 && !snapshot.habits.keystoneHabitActive) {
+  if (
+    snapshot.goals &&
+    snapshot.goals.stalledGoals >= 2 &&
+    snapshot.habits &&
+    !snapshot.habits.keystoneHabitActive
+  ) {
     correlations.push({
       domains: ['goals', 'habits'],
       pattern: 'Stalled goals without supporting keystone habits',
@@ -356,7 +330,7 @@ function generateProactiveInsights(snapshot: CrossDomainSnapshot): ProactiveInsi
   }
 
   // Calendar overload warning
-  if (snapshot.time.calendarDensity === 'overloaded') {
+  if (snapshot.time?.calendarDensity === 'overloaded') {
     insights.push({
       type: 'warning',
       severity: 'urgent',
@@ -374,7 +348,7 @@ function generateProactiveInsights(snapshot: CrossDomainSnapshot): ProactiveInsi
   }
 
   // Milestone preparation insight
-  if (snapshot.goals.upcomingMilestones.length > 0) {
+  if (snapshot.goals && snapshot.goals.upcomingMilestones.length > 0) {
     const milestone = snapshot.goals.upcomingMilestones[0];
     insights.push({
       type: 'prediction',
@@ -388,25 +362,25 @@ function generateProactiveInsights(snapshot: CrossDomainSnapshot): ProactiveInsi
   }
 
   // Portfolio behavior insight
-  if (snapshot.wealth.checkFrequency !== 'healthy') {
+  if (snapshot.wealth && snapshot.wealth.checkFrequency !== 'healthy') {
     insights.push({
       type: 'warning',
       severity: snapshot.wealth.checkFrequency === 'anxious' ? 'urgent' : 'attention',
       title: 'Investment Behavior Pattern',
       insight:
         'Your portfolio checking frequency suggests anxiety. This often leads to worse investment decisions.',
-      evidence: [
-        `Check frequency: ${snapshot.wealth.checkFrequency}`,
-        `Recent trades: ${snapshot.wealth.recentTrades}`,
-        `Risk behavior match: ${snapshot.wealth.riskBehaviorMatch ? 'Yes' : 'No'}`,
-      ],
+      evidence: [`Check frequency: ${snapshot.wealth.checkFrequency}`],
       recommendation: "Reduce checking to weekly. Focus on what's actually stressing you.",
       connectedDomains: ['wealth', 'habits'],
     });
   }
 
   // Keystone habit opportunity
-  if (!snapshot.habits.keystoneHabitActive && snapshot.habits.consistencyScore < 0.75) {
+  if (
+    snapshot.habits &&
+    !snapshot.habits.keystoneHabitActive &&
+    snapshot.habits.consistencyScore < 0.75
+  ) {
     insights.push({
       type: 'opportunity',
       severity: 'attention',
@@ -415,7 +389,6 @@ function generateProactiveInsights(snapshot: CrossDomainSnapshot): ProactiveInsi
         "You don't have a keystone habit active. This is the highest-leverage change you could make.",
       evidence: [
         `Current consistency: ${Math.round(snapshot.habits.consistencyScore * 100)}%`,
-        `Active habits: ${snapshot.habits.activeHabits}`,
         `Recent setbacks: ${snapshot.habits.recentSetbacks.length}`,
       ],
       recommendation:
@@ -434,11 +407,19 @@ function synthesizeInsights(snapshot: CrossDomainSnapshot): string {
   const { correlations } = snapshot;
   const proactiveInsights = generateProactiveInsights(snapshot);
 
+  const sources = [
+    snapshot.spending.length > 0 && 'spending',
+    snapshot.time && 'calendar',
+    snapshot.habits && 'habits',
+    snapshot.goals && 'goals',
+    snapshot.wealth && 'investment behavior',
+  ].filter(Boolean);
+
   let synthesis = `🔬 **CROSS-DOMAIN INSIGHT SYNTHESIS**\n\n`;
 
   // Overview
   synthesis += `**The Big Picture:**\n`;
-  synthesis += `I looked across your spending, calendar, habits, goals, and investment behavior. Here's what I see:\n\n`;
+  synthesis += `I looked across your ${sources.join(', ')}. Here's what I see:\n\n`;
 
   // Key findings
   const urgentInsights = proactiveInsights.filter((i) => i.severity === 'urgent');
@@ -516,15 +497,17 @@ export function createInsightsAnalysisTools() {
           getGoalSignalsFromMaya(userId),
         ]);
 
+        // Calendar and portfolio data are not connected to this tool, so those stay null.
         const snapshot: CrossDomainSnapshot = {
           spending: spendingData,
-          time: generateSampleTimeSignal(), // Calendar data comes from context
+          time: null,
           habits: habitData,
           goals: goalData,
-          wealth: generateSampleWealthSignal(), // Portfolio data comes from context
+          wealth: null,
           correlations: [],
           timestamp: new Date().toISOString(),
         };
+        if (!hasAnySignal(snapshot)) return NOT_ENOUGH_DATA;
 
         // Find correlations
         snapshot.correlations = findCorrelations(snapshot);
@@ -545,44 +528,45 @@ export function createInsightsAnalysisTools() {
           .default('all')
           .describe('Domain to analyze for anomalies'),
       }),
-      execute: async ({ domain }) => {
-        getLogger().info({ domain }, '🔍 Peter spotting anomalies');
+      execute: async ({ domain }, { ctx }) => {
+        const userId = getUserId({ ctx });
+        getLogger().info({ domain, userId }, '🔍 Peter spotting anomalies');
+
+        const wantsAll = domain === 'all';
+        const [spending, habits, goals] = await Promise.all([
+          wantsAll || domain === 'spending' ? getSpendingSignalsFromMaya(userId) : [],
+          wantsAll || domain === 'habits' ? getHabitSignalsFromMaya(userId) : null,
+          wantsAll || domain === 'goals' ? getGoalSignalsFromMaya(userId) : null,
+        ]);
 
         const anomalies: string[] = [];
-
-        // Sample anomaly detection (would use real data in production)
-        if (domain === 'all' || domain === 'spending') {
+        for (const item of spending.filter((s) => s.anomaly)) {
           anomalies.push(
-            '📊 **Shopping spending:** Up 40% on weekend evenings - looks like a stress response pattern'
+            `📊 **${item.category} spending:** flagged as unusual${item.triggerPattern ? ` (${item.triggerPattern})` : ''}`
           );
         }
-        if (domain === 'all' || domain === 'habits') {
-          anomalies.push(
-            '💔 **Exercise habit:** Broke after 15 days - this often cascades to other areas'
-          );
+        if (habits && habits.recentSetbacks.length > 0) {
+          anomalies.push(`💔 **Habits:** ${habits.recentSetbacks.join('; ')}`);
         }
-        if (domain === 'all' || domain === 'time') {
+        if (goals && goals.stalledGoals > 0) {
           anomalies.push(
-            '📅 **Calendar density:** Jumped 30% this week - potential burnout incoming'
+            `🎯 **Goals:** ${goals.stalledGoals} of ${goals.activeGoals} not on track`
           );
-        }
-        if (domain === 'all' || domain === 'goals') {
-          anomalies.push(
-            '🎯 **Q1 savings goal:** Stalled for 2 weeks - usually a sign the approach needs adjusting'
-          );
-        }
-        if (domain === 'all' || domain === 'wealth') {
-          anomalies.push('📈 **Portfolio checking:** 3x normal frequency - anxiety indicator');
         }
 
         if (anomalies.length === 0) {
-          return `Everything looks pretty normal right now. No major anomalies detected. That's actually GOOD news - it means your systems are working.`;
+          if (domain === 'time' || domain === 'wealth') {
+            return `I can't check your ${domain === 'time' ? 'calendar' : 'portfolio'} yet: that data isn't connected to this tool.`;
+          }
+          const hasData = spending.length > 0 || habits !== null || goals !== null;
+          return hasData
+            ? `Nothing stands out in the data I have for ${domain === 'all' ? 'your life' : domain}.`
+            : NOT_ENOUGH_DATA;
         }
 
         let response = `🔍 **ANOMALIES DETECTED:**\n\n`;
         response += anomalies.join('\n\n');
-        response += `\n\n**My Take:** These aren't necessarily problems - they're signals. Want me to dig into any of them?`;
-
+        response += `\n\nThese are signals, not verdicts. Want me to dig into any of them?`;
         return response;
       },
     }),
@@ -600,96 +584,7 @@ export function createInsightsAnalysisTools() {
       }),
       execute: async ({ domain1, domain2 }) => {
         getLogger().info({ domain1, domain2 }, '🔗 Peter finding cross-domain correlation');
-
-        // Generate relevant insight based on domain pair
-        const correlations: Record<string, string> = {
-          'spending-time': `📊📅 **Spending × Time Correlation:**
-
-I see a STRONG connection here. Your spending increases on days with 5+ hours of meetings. Here's the pattern:
-
-• Heavy meeting days → Decision fatigue → Evening online shopping (+35%)
-• No calendar buffer → Fast food for lunch (+$12/day average)
-• Back-to-back meetings → "Treat yourself" spending
-
-**The Lever:** Your calendar is the LEADING indicator. Fix the calendar, the spending follows.
-
-**Recommendation:** Block 2 hours of "no meetings" time daily. I predict your discretionary spending drops 20% within 2 weeks.`,
-
-          'habits-goals': `💪🎯 **Habits × Goals Correlation:**
-
-This is where it gets interesting. Your goals are stalled, and your keystone habit (exercise) broke. NOT a coincidence.
-
-**Pattern:** 
-• Week 1-2: Exercise consistent → Goal progress happening
-• Week 3: Exercise breaks → Goal progress stalls
-• Week 4: Goals stall → Motivation drops → Other habits start breaking
-
-**The Chain Reaction:** Exercise wasn't just about fitness. It was your discipline engine.
-
-**Recommendation:** Restart exercise at a TINY level (5 minutes). Don't try to go back to full routine. The goals will start moving again.`,
-
-          'time-habits': `📅💪 **Time × Habits Correlation:**
-
-Your calendar is literally EATING your habits. Here's the math:
-
-• 35+ hours of meetings/week
-• Morning routine requires 45 minutes
-• Exercise requires 60 minutes
-• You have ZERO slack in the system
-
-**Result:** First thing that gets cut? Habits. Because meetings feel "mandatory" and habits feel "optional."
-
-**Reality:** Habits ARE mandatory for everything else to work.
-
-**Recommendation:** Protect habit time like you protect meeting time. Block it. Make it non-negotiable. Otherwise this cycle repeats forever.`,
-
-          'spending-habits': `💰💪 **Spending × Habits Correlation:**
-
-THIS is a beautiful pattern. Your impulse spending tracks almost perfectly with habit completion.
-
-• Days with morning routine completed: -45% impulse spending
-• Days exercise completed: -30% "treat yourself" spending  
-• Days meditation completed: -25% stress shopping
-
-**Why?** Habits create a sense of control. When you're IN control (completed habits), you don't SEEK control (impulse spending).
-
-**The Insight:** Your spending problem isn't about money discipline. It's about habit discipline. Fix the habits, the spending fixes itself.`,
-
-          'goals-wealth': `🎯📈 **Goals × Wealth Correlation:**
-
-Your investment behavior changes based on goal progress. Watch this:
-
-• Goals on track → Portfolio checks: 1-2x/week → Good decisions
-• Goals stalled → Portfolio checks: 5-6x/week → Emotional decisions
-• Goal achieved → Trading activity spikes → Often bad timing
-
-**Pattern:** You use your portfolio as an emotional barometer. When other goals feel stuck, you look for "wins" in the market. But market wins aren't controllable.
-
-**Recommendation:** Focus on goal progress for your sense of achievement. Leave the portfolio alone. The portfolio will take care of itself.`,
-        };
-
-        const key = [domain1, domain2].sort().join('-');
-
-        // Check for the correlation or generate a generic response
-        if (correlations[key]) {
-          return correlations[key];
-        }
-
-        // Generic correlation analysis
-        return `🔗 **${domain1.charAt(0).toUpperCase() + domain1.slice(1)} × ${domain2.charAt(0).toUpperCase() + domain2.slice(1)} Correlation:**
-
-Let me dig into this specific connection. Based on your data patterns:
-
-**What I See:**
-• These domains DO interact in your case
-• Changes in one tend to precede changes in the other by 2-3 days
-• The strength of correlation is moderate
-
-**My Hypothesis:**
-There's likely an underlying factor (stress, energy, life events) that affects BOTH domains. When that factor shifts, both areas shift.
-
-**What Would Help:**
-What's been happening in both areas lately? The more specific you are, the better I can find the real connection.`;
+        return `I can't measure a link between ${domain1} and ${domain2} yet. A link needs a few weeks of both kinds of data side by side, so I won't describe one from nothing. ${NOT_ENOUGH_DATA}`;
       },
     }),
 
@@ -707,41 +602,7 @@ What's been happening in both areas lately? The more specific you are, the bette
       }),
       execute: async ({ domain, timeframe }) => {
         getLogger().info({ domain, timeframe }, '📈 Peter projecting trends');
-
-        let response = `📈 **TREND PROJECTION: Next ${timeframe}**\n\n`;
-
-        if (domain === 'overall' || domain === 'spending') {
-          response += `**💰 Spending Trajectory:**\n`;
-          response += `• Current trend: Up 15% month-over-month\n`;
-          response += `• Projection: If current patterns continue, you'll exceed budget by week 3\n`;
-          response += `• Key driver: Dining + shopping categories\n`;
-          response += `• Confidence: 75%\n\n`;
-        }
-
-        if (domain === 'overall' || domain === 'habits') {
-          response += `**💪 Habit Trajectory:**\n`;
-          response += `• Current consistency: 68%\n`;
-          response += `• Risk: Exercise habit vulnerable to another break (based on calendar density)\n`;
-          response += `• Opportunity: If you stabilize this week, momentum builds\n`;
-          response += `• Key watch: Next 5 days are critical for exercise habit\n\n`;
-        }
-
-        if (domain === 'overall' || domain === 'goals') {
-          response += `**🎯 Goal Trajectory:**\n`;
-          response += `• Q1 Savings: Currently at 67% - projecting 85% completion at current rate\n`;
-          response += `• Vacation Fund: On track for completion 2 weeks early\n`;
-          response += `• Exercise Goal: At risk - need to restart habit this week\n`;
-          response += `• Overall goal completion rate: 60% (below your 80% average)\n\n`;
-        }
-
-        response += `**🔮 Overall Projection:**\n`;
-        response += `If nothing changes, you're headed for a "mediocre month" - not disaster, but not progress either. `;
-        response += `The calendar density is the root cause rippling through everything.\n\n`;
-
-        response += `**The One Thing That Changes Everything:**\n`;
-        response += `Protect 3 hours of white space this week. Just 3 hours. The cascade effect will improve spending, habits, AND goal progress.\n`;
-
-        return response;
+        return `I can't project your ${domain} for the next ${timeframe} yet. A projection needs a history of your own numbers, and a guess would sound like a forecast. ${NOT_ENOUGH_DATA}`;
       },
     }),
 
@@ -807,7 +668,7 @@ What's been happening in both areas lately? The more specific you are, the bette
         response += `**The Two-Minute Version:**\n`;
         response += `Based on patterns I've seen, here's what matters about ${topic}:\n\n`;
 
-        response += `1. **The Data Says:** This area has 3 key metrics that matter. Most people track the wrong ones.\n\n`;
+        response += `1. **The Data Says:** A few metrics matter more than the rest, and the ones people track are often not those.\n\n`;
 
         response += `2. **The Hidden Pattern:** There's usually a connection between ${topic} and another life domain that people miss.\n\n`;
 
@@ -880,8 +741,8 @@ What's been happening in both areas lately? The more specific you are, the bette
         response += `Protect the hour for ONE week. Don't use it productively - leave it empty. `;
         response += `Watch what happens to the rest of your challenges.\n\n`;
 
-        response += `I predict at least 3 of these ${currentChallenges.length} challenges will improve with NO direct intervention. `;
-        response += `Because they're symptoms of the same root cause.`;
+        response += `Some of these may ease with NO direct intervention, because they can be symptoms of the same root cause. `;
+        response += `Watch which ones do.`;
 
         return response;
       },
@@ -1121,7 +982,7 @@ What's been happening in both areas lately? The more specific you are, the bette
         response += `If you see it 3+ more times, we might have a real pattern worth investigating.\n\n`;
 
         response += `**Peter's Wisdom:**\n`;
-        response += `"95% of my journal entries go nowhere. But that 5%? That 5% contains the insights that change everything."`;
+        response += `"Most journal entries go nowhere. The few that do are worth the ink."`;
 
         return response;
       },

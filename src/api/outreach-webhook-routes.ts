@@ -7,6 +7,7 @@
  * - Push notification interactions
  */
 
+import { getClientIp } from '../utils/client-ip.js';
 import { getLogger } from '../utils/safe-logger.js';
 import {
   handleSMSStatusWebhook,
@@ -19,6 +20,7 @@ import {
 } from '../services/outreach/webhooks/index.js';
 import { handlePushInteraction } from '../services/outreach/delivery/push-notifications.js';
 import { recordCheckinReply } from '../services/outreach/checkin-replies.js';
+import { recordInboundSmsConsent } from '../services/messaging/consent.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { isSignedByTwilio } from './twilio-callback-signature.js';
 import { URL } from 'url';
@@ -178,7 +180,11 @@ export async function handleOutreachWebhookRoutes(
         fullUrl
       );
       // success is false only when the Twilio signature failed; never throws.
-      if (result.success) await recordCheckinReply(body.From, body.Body, body.MessageSid);
+      if (result.success) {
+        await recordCheckinReply(body.From, body.Body, body.MessageSid);
+        // MESSAGING_PIPELINE: STOP/START from any text lands in the one consent record.
+        await recordInboundSmsConsent(body.From, body.Body);
+      }
 
       if (result.twiml) {
         sendTwiML(res, result.twiml);
@@ -257,7 +263,7 @@ export async function handleOutreachWebhookRoutes(
 
       if (messageId) {
         const userAgent = req.headers['user-agent'];
-        const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
+        const ip = getClientIp(req);
         await handleOpenTracking(messageId, userAgent, ip);
       }
 
@@ -273,7 +279,7 @@ export async function handleOutreachWebhookRoutes(
 
       if (messageId && encodedUrl) {
         const userAgent = req.headers['user-agent'];
-        const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress;
+        const ip = getClientIp(req);
         const originalUrl = await handleClickTracking(messageId, encodedUrl, userAgent, ip);
         sendRedirect(res, originalUrl);
       } else {

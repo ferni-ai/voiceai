@@ -35,7 +35,7 @@ const OPT_OUT_ANYWHERE =
 const OPT_OUT_SHORT = /\b(stop|cancel|quit|end)\b/i;
 const SHORT_WORDS = 4;
 const MESSAGE_SID = /^[A-Za-z0-9]{10,64}$/;
-const ALREADY_EXISTS = 6; // Firestore/gRPC status for create() on an existing doc
+export const ALREADY_EXISTS = 6; // Firestore/gRPC status for create() on an existing doc
 const keyword = (body: string): string =>
   body
     .trim()
@@ -44,8 +44,9 @@ const keyword = (body: string): string =>
 
 export type Env = Record<string, string | undefined>;
 
-/** What a text was: the after-call check-in, a follow-up (reminder, commitment, thread), or one sent for a member to someone else. */
-export type TextKind = 'checkin' | 'follow-up' | 'on-behalf';
+/** What a text was: the after-call check-in, a follow-up (commitment, thread), a reminder the user set, a text the member got right away ("text me that"), or one sent for a member to someone else. */
+export type TextKind =
+  'checkin' | 'follow-up' | 'reminder' | 'message' | 'on-behalf' | 'morning-brief';
 
 export interface CheckinRecord {
   userId: string;

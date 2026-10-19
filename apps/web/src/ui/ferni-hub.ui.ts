@@ -15,10 +15,10 @@
 
 import { t } from '../i18n/index.js'; import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { apiGet } from '../utils/api.js';
 import { soundUI } from './sound.ui.js';
-import { messageUI } from './message.ui.js';
-import { getAuthState } from '../services/firebase-auth.service.js';
+import { asModalDialog } from '../utils/accessibility.js';
+import { fetchHubData, type BackgroundResult, type HubLoad, type OpenThread, type TrackedItem } from './ferni-hub-data.js';
+import { bindHubProblem, renderHubEmpty, renderHubProblem } from './ferni-hub-states.js'; import { escapeHtml } from './trust-dashboard-data.js';
 import {
   PERSONA_ICONS,
   SECTION_ICONS,
@@ -28,56 +28,10 @@ import {
 
 const log = createLogger('FerniHub');
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface BackgroundResult {
-  id: string;
-  type: string;
-  summary: string;
-  status: 'success' | 'partial_success' | 'failed' | 'requires_action';
-  priority: 'urgent' | 'high' | 'normal' | 'low';
-  contactName?: string;
-  capturedAt: string;
-  initiatedBy: string;
-  actionItems?: string[];
-  requiresCallback?: boolean;
-}
-
-interface OpenThread {
-  id: string;
-  topic: string;
-  lastMessage: string;
-  personaId: string;
-  personaName: string;
-  updatedAt: string;
-  isActive: boolean;
-}
-
-interface TrackedItem {
-  id: string;
-  type: 'commitment' | 'goal' | 'reminder' | 'follow_up';
-  description: string;
-  dueDate?: string;
-  personaId: string;
-  status: 'pending' | 'in_progress' | 'completed';
-}
-
-interface HubData {
-  backgroundResults: BackgroundResult[];
-  openThreads: OpenThread[];
-  trackedItems: TrackedItem[];
-  lastUpdated: string;
-}
-
-// ============================================================================
 // STATE
-// ============================================================================
-
 let container: HTMLElement | null = null;
 let isVisible = false;
-let hubData: HubData | null = null;
+let hubData: HubLoad | null = null;
 
 // ============================================================================
 // PERSONA METADATA
@@ -108,53 +62,6 @@ function getPersona(id: string): PersonaInfo {
 }
 
 // ============================================================================
-// DATA FETCHING
-// ============================================================================
-
-async function fetchHubData(): Promise<HubData> {
-  const authState = getAuthState();
-  const userId = authState?.uid;
-
-  if (!userId) {
-    return {
-      backgroundResults: [],
-      openThreads: [],
-      trackedItems: [],
-      lastUpdated: new Date().toISOString(),
-    };
-  }
-
-  try {
-    // Fetch background results
-    const resultsResponse = await apiGet<{ results?: unknown[] }>(`/api/background-results/pending?userId=${userId}&limit=10`);
-    const resultsData = resultsResponse.ok && resultsResponse.data ? resultsResponse.data : { results: [] };
-
-    // Fetch open threads (conversation threads API)
-    const threadsResponse = await apiGet<{ threads?: unknown[] }>(`/api/conversations/threads?userId=${userId}&status=open&limit=5`);
-    const threadsData = threadsResponse.ok && threadsResponse.data ? threadsResponse.data : { threads: [] };
-
-    // Fetch tracked items (commitments, goals)
-    const trackedResponse = await apiGet<{ items?: unknown[] }>(`/api/commitments?userId=${userId}&status=pending&limit=8`);
-    const trackedData = trackedResponse.ok && trackedResponse.data ? trackedResponse.data : { items: [] };
-
-    return {
-      backgroundResults: (resultsData.results || []) as BackgroundResult[],
-      openThreads: (threadsData.threads || []) as OpenThread[],
-      trackedItems: (trackedData.items || []) as TrackedItem[],
-      lastUpdated: new Date().toISOString(),
-    };
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Failed to fetch hub data');
-    return {
-      backgroundResults: [],
-      openThreads: [],
-      trackedItems: [],
-      lastUpdated: new Date().toISOString(),
-    };
-  }
-}
-
-// ============================================================================
 // RENDERING
 // ============================================================================
 
@@ -166,12 +73,12 @@ function createContainer(): HTMLElement {
   overlay.className = 'ferni-hub-overlay';
   overlay.innerHTML = `
     <div class="ferni-hub-backdrop"></div>
-    <div class="ferni-hub-panel">
+    <div class="ferni-hub-panel" data-state="loading">
       <header class="ferni-hub-header">
         <div class="ferni-hub-greeting">
           <span class="ferni-hub-wave">${SECTION_ICONS.hand}</span>
           <div>
-            <h1>${t('ui.yourDay')}</h1>
+            <h1 id="ferni-hub-title">${t('ui.yourDay')}</h1>
             <p class="ferni-hub-subtitle">${t('ui.subtitle')}</p>
           </div>
         </div>
@@ -183,7 +90,7 @@ function createContainer(): HTMLElement {
         </button>
       </header>
 
-      <div class="ferni-hub-content">
+      <div class="ferni-hub-content" aria-busy="true">
         <div class="ferni-hub-loading">
           <div class="ferni-hub-loading-dots">
             <span></span><span></span><span></span>
@@ -201,7 +108,8 @@ function createContainer(): HTMLElement {
     </div>
   `;
 
-  // Event listeners
+  // Event listeners. A modal dialog: named, Escape closes it, dialog-focus moves focus in and traps Tab
+  asModalDialog(overlay.querySelector('.ferni-hub-panel') as HTMLElement, { labelledBy: 'ferni-hub-title' }, () => overlay.classList.contains('visible'), hide);
   overlay.querySelector('.ferni-hub-backdrop')?.addEventListener('click', hide);
   overlay.querySelector('.ferni-hub-close')?.addEventListener('click', hide);
   overlay.querySelector('.ferni-hub-talk-btn')?.addEventListener('click', () => {
@@ -216,9 +124,17 @@ function createContainer(): HTMLElement {
   return overlay;
 }
 
-function renderContent(data: HubData): void {
+function renderContent({ state, data }: HubLoad): void {
+  const panel = container?.querySelector<HTMLElement>('.ferni-hub-panel');
   const content = container?.querySelector('.ferni-hub-content');
-  if (!content) return;
+  if (!panel || !content) return;
+  panel.dataset.state = state;
+  content.removeAttribute('aria-busy');
+  if (state === 'error' || state === 'signed-out') {
+    content.innerHTML = renderHubProblem(state);
+    bindHubProblem(content, state, () => void refresh());
+    return;
+  }
 
   const sections: string[] = [];
 
@@ -240,10 +156,7 @@ function renderContent(data: HubData): void {
   // 4. Quick Connections (always show)
   sections.push(renderQuickConnections());
 
-  // Empty state
-  if (data.backgroundResults.length === 0 && data.openThreads.length === 0 && data.trackedItems.length === 0) {
-    sections.unshift(renderEmptyState());
-  }
+  if (state === 'empty') sections.unshift(renderHubEmpty());
 
   content.innerHTML = sections.join('');
 
@@ -259,7 +172,7 @@ function renderWhileYouWereAway(results: BackgroundResult[]): string {
     const statusClass = result.status === 'success' ? 'success' : result.status === 'failed' ? 'failed' : 'pending';
 
     return `
-      <div class="ferni-hub-card ferni-hub-result-card ${statusClass}" data-result-id="${result.id}" role="button" tabindex="0">
+      <div class="ferni-hub-card ferni-hub-result-card ${statusClass}" data-result-id="${escapeHtml(result.id)}" role="button" tabindex="0">
         <div class="ferni-hub-card-icon" style="background: ${persona.color}20; color: ${persona.color}">
           ${icon}
         </div>
@@ -268,10 +181,10 @@ function renderWhileYouWereAway(results: BackgroundResult[]): string {
             <span class="ferni-hub-card-persona">${persona.name}</span>
             <span class="ferni-hub-card-time">${timeAgo}</span>
           </div>
-          <p class="ferni-hub-card-summary">${result.summary}</p>
+          <p class="ferni-hub-card-summary">${escapeHtml(result.summary)}</p>
           ${result.actionItems && result.actionItems.length > 0 ? `
             <div class="ferni-hub-card-actions">
-              ${result.actionItems.slice(0, 2).map((item) => `<span class="ferni-hub-action-chip"><span class="ferni-hub-action-icon">${SECTION_ICONS.fileText}</span> ${item}</span>`).join('')}
+              ${result.actionItems.slice(0, 2).map((item) => `<span class="ferni-hub-action-chip"><span class="ferni-hub-action-icon">${SECTION_ICONS.fileText}</span> ${escapeHtml(item)}</span>`).join('')}
             </div>
           ` : ''}
         </div>
@@ -299,7 +212,7 @@ function renderOpenThreads(threads: OpenThread[]): string {
     const timeAgo = formatTimeAgo(thread.updatedAt);
 
     return `
-      <div class="ferni-hub-card ferni-hub-thread-card" data-thread-id="${thread.id}" data-persona="${thread.personaId}" role="button" tabindex="0">
+      <div class="ferni-hub-card ferni-hub-thread-card" data-thread-id="${escapeHtml(thread.id)}" data-persona="${escapeHtml(thread.personaId)}" role="button" tabindex="0">
         <div class="ferni-hub-card-avatar" style="background: ${persona.color}">
           ${persona.icon}
         </div>
@@ -308,8 +221,8 @@ function renderOpenThreads(threads: OpenThread[]): string {
             <span class="ferni-hub-card-persona">${persona.name}</span>
             <span class="ferni-hub-card-time">${timeAgo}</span>
           </div>
-          <p class="ferni-hub-card-topic">${thread.topic}</p>
-          <p class="ferni-hub-card-preview">${truncate(thread.lastMessage, 80)}</p>
+          <p class="ferni-hub-card-topic">${escapeHtml(thread.topic)}</p>
+          <p class="ferni-hub-card-preview">${escapeHtml(truncate(thread.lastMessage, 80))}</p>
         </div>
         <span class="ferni-hub-continue-btn">Continue →</span>
       </div>
@@ -331,17 +244,17 @@ function renderOpenThreads(threads: OpenThread[]): string {
 
 function renderTrackedItems(items: TrackedItem[]): string {
   const cards = items.map((item) => {
-    const persona = getPersona(item.personaId);
+    const persona = getPersona(item.personaId ?? 'ferni');
     const icon = getTrackedIcon(item.type);
     const dueText = item.dueDate ? `Due ${formatDate(item.dueDate)}` : '';
 
     return `
-      <div class="ferni-hub-card ferni-hub-tracked-card" data-item-id="${item.id}">
+      <div class="ferni-hub-card ferni-hub-tracked-card" data-item-id="${escapeHtml(item.id)}">
         <div class="ferni-hub-card-icon" style="background: ${persona.color}20; color: ${persona.color}">
           ${icon}
         </div>
         <div class="ferni-hub-card-content">
-          <p class="ferni-hub-card-description">${item.description}</p>
+          <p class="ferni-hub-card-description">${escapeHtml(item.description)}</p>
           <div class="ferni-hub-card-meta">
             <span class="ferni-hub-card-persona">${persona.name} is tracking</span>
             ${dueText ? `<span class="ferni-hub-card-due">${dueText}</span>` : ''}
@@ -385,16 +298,6 @@ function renderQuickConnections(): string {
         ${personaCards}
       </div>
     </section>
-  `;
-}
-
-function renderEmptyState(): string {
-  return `
-    <div class="ferni-hub-empty">
-      <div class="ferni-hub-empty-icon">${SECTION_ICONS.star}</div>
-      <h3>${t('ui.allCaughtUp')}</h3>
-      <p>Your team is here whenever you need them. Start a conversation or check back later.</p>
-    </div>
   `;
 }
 
@@ -463,7 +366,7 @@ function formatTimeAgo(isoDate: string): string {
   return date.toLocaleDateString();
 }
 
-function formatDate(isoDate: string): string {
+function formatDate(isoDate: string | number): string {
   const date = new Date(isoDate);
   const today = new Date();
   const tomorrow = new Date(today);
@@ -527,6 +430,7 @@ export function toggle(): void {
 
 export async function refresh(): Promise<void> {
   if (!isVisible) return;
+  container?.querySelector<HTMLElement>('.ferni-hub-panel')?.setAttribute('data-state', 'loading');
   hubData = await fetchHubData();
   renderContent(hubData);
 }
@@ -638,7 +542,7 @@ function addStyles(): void {
       height: 40px;
       border-radius: 50%;
       border: none;
-      background: var(--color-background-subtle, #f5f0eb);
+      background: var(--color-background-subtle);
       color: var(--color-text-secondary);
       cursor: pointer;
       display: flex;
@@ -648,7 +552,7 @@ function addStyles(): void {
     }
 
     .ferni-hub-close:hover {
-      background: var(--color-background-muted, #ebe5df);
+      background: var(--color-background-hover);
       transform: scale(1.05);
     }
 

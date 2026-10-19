@@ -12,20 +12,26 @@ import { rateLimit } from '../../../api/auth-middleware.js';
 import { createToken, createRoomWithAgent, getLiveKitUrl } from '../../token/livekit.js';
 import type { RoomMetadata } from '../../shared/types.js';
 import { prewarmContent, type ContentType } from '../../../services/llm-dynamic-content.js';
+import { getClientIp } from '../../../utils/client-ip.js';
 import { createLogger } from '../../../utils/safe-logger.js';
-import { onBodyEnd } from '../request-failure.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 import { refuseUnownedRoom } from './token-room-owner.js';
+import { demoPersonaFor, personaForCaller } from './token-persona-owner.js';
+import { handleDemoClaim } from './demo-claim.js';
+import { handleDemoSessionUpdate } from './demo-session-update.js';
 
 // Import shared rate limiting from token server module (single source of truth)
 import {
   DEMO_CONFIG,
-  checkDemoAllowed,
-  recordDemoSession,
   startRateLimitCleanup as startSharedRateLimitCleanup,
   stopRateLimitCleanup as stopSharedRateLimitCleanup,
 } from '../../token/demo-rate-limit.js';
+import {
+  peekDemoAllowance,
+  releaseDemoSession,
+  reserveDemoSession,
+} from '../../token/demo-rate-limit-shared.js';
 
 // Developer Platform: marketplace registry for persona→publisher lookup
 import { getAgentAsync } from '../../../marketplace/registry.js';
@@ -87,20 +93,9 @@ async function getPublisherIdForPersona(personaId: string): Promise<string | und
 }
 
 /**
- * Get IP address from request
- */
-function getClientIp(req: IncomingMessage): string {
-  return (
-    (req.headers['x-forwarded-for'] as string)?.split(',')[0] ||
-    req.socket.remoteAddress ||
-    'unknown'
-  );
-}
-
-/**
  * Get demo status without consuming a session
  */
-function getDemoStatus(ip: string): {
+async function getDemoStatus(ip: string): Promise<{
   sessionsRemaining: number;
   sessionsTotal: number;
   sessionDurationMinutes: number;
@@ -108,9 +103,8 @@ function getDemoStatus(ip: string): {
   cooldownRemaining: number;
   cooldownMinutes: number;
   canStartSession: boolean;
-} {
-  // Use the shared checkDemoAllowed to get current status
-  const check = checkDemoAllowed(ip);
+}> {
+  const check = await peekDemoAllowance(ip);
 
   if (!check.allowed) {
     // Parse cooldown info from the message if in cooldown
@@ -165,7 +159,7 @@ export async function handleTokenRoutes(
       return true;
     }
     const ip = getClientIp(req);
-    const status = getDemoStatus(ip);
+    const status = await getDemoStatus(ip);
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(status));
     return true;
@@ -175,26 +169,15 @@ export async function handleTokenRoutes(
   if (pathname === '/demo-token') {
     const ip = getClientIp(req);
 
-    // Get persona_id from query params (defaults to 'ferni' for backwards compatibility)
-    const personaId = parsedUrl.searchParams.get('persona_id') || 'ferni';
+    // persona_id defaults to 'ferni'; no one is signed in, so a custom agent id becomes Ferni.
+    const personaId = await demoPersonaFor(parsedUrl);
 
-    // Branded persona pages bypass demo rate limits (they have their own dedicated experience)
-    const BRANDED_PERSONAS = ['joel-dickson', 'john-bogle'];
-    const isBrandedPersona = BRANDED_PERSONAS.includes(personaId);
-
-    // Check rate limits using shared module (skip for branded personas)
-    if (!isBrandedPersona) {
-      const allowed = checkDemoAllowed(ip);
-      if (!allowed.allowed) {
-        res.writeHead(429, { 'Content-Type': 'application/json' });
-        res.end(
-          JSON.stringify({
-            error: allowed.reason,
-            message: allowed.message,
-          })
-        );
-        return true;
-      }
+    // Every demo counts against the limit: persona_id is the caller's choice, so it can't exempt one
+    const allowed = await reserveDemoSession(ip);
+    if (!allowed.allowed) {
+      res.writeHead(429, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: allowed.reason, message: allowed.message }));
+      return true;
     }
 
     try {
@@ -208,11 +191,6 @@ export async function handleTokenRoutes(
         ip,
         userAgent: req.headers['user-agent'],
       });
-
-      // Record the session for rate limiting (skip for branded personas)
-      if (!isBrandedPersona) {
-        recordDemoSession(ip);
-      }
 
       // Pre-warm LLM content cache for the requested persona (fire-and-forget)
       prewarmLLMContentForPersona(personaId);
@@ -280,7 +258,10 @@ export async function handleTokenRoutes(
       });
 
       // Create room and dispatch agent (createRoomWithAgent handles both — no double-dispatch)
-      log.info({ room: roomName, persona: personaId, city: demoGeoData.city }, '🚀 Dispatching agent');
+      log.info(
+        { room: roomName, persona: personaId, city: demoGeoData.city },
+        '🚀 Dispatching agent'
+      );
       // Failures are logged at error inside createRoomWithAgent; the client learns via agent_dispatched.
       const dispatch = await createRoomWithAgent(
         roomName,
@@ -299,9 +280,7 @@ export async function handleTokenRoutes(
           demo_id: demoId,
           agent_dispatched: dispatch.agentDispatched,
           expires_in_minutes: DEMO_CONFIG.sessionDurationMinutes,
-          sessions_remaining: isBrandedPersona
-            ? 999
-            : (checkDemoAllowed(ip).sessionsRemaining ?? 1) - 1,
+          sessions_remaining: allowed.sessionsRemaining ?? 0,
           claim_token: demoSession.claimToken,
           claim_expires_at: demoSession.expiresAt,
           // 🌍 Include detected location for UI (weather, personalization)
@@ -312,129 +291,21 @@ export async function handleTokenRoutes(
       );
     } catch (error) {
       log.error({ error: String(error) }, 'Demo token error');
+      await releaseDemoSession(ip); // a server error doesn't cost the visitor a demo
       res.writeHead(500, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Failed to create demo session' }));
     }
     return true;
   }
 
-  // Demo session claim endpoint - rate limit: 10/min (one-time operation)
+  // Demo session claim endpoint: the account comes from the verified Firebase ID token
   if (pathname === '/demo-claim' && req.method === 'POST') {
-    if (rateLimit(req, res, { maxRequests: 10, windowMs: 60000 })) {
-      return true;
-    }
-    let body = '';
-    req.on('data', (chunk: Buffer) => (body += chunk.toString()));
-
-    // FIX BUG: Add error handler to prevent hanging promises on request errors
-    return new Promise((resolve) => {
-      req.on('error', (err) => {
-        log.error({ error: err.message }, 'Request error in demo claim');
-        if (!res.headersSent) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Request error' }));
-        }
-        resolve(true);
-      });
-
-      onBodyEnd(req, res, resolve, async () => {
-        try {
-          const { claim_token, firebase_uid } = JSON.parse(body) as {
-            claim_token: string;
-            firebase_uid: string;
-          };
-
-          if (!claim_token || !firebase_uid) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing claim_token or firebase_uid' }));
-            resolve(true);
-            return;
-          }
-
-          // Async - loads from Firestore if needed
-          const result = await demoSessions.claimDemoSession(claim_token, firebase_uid);
-
-          if (!result.success) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: result.error }));
-            resolve(true);
-            return;
-          }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(
-            JSON.stringify({
-              success: true,
-              already_claimed: result.alreadyClaimed,
-              conversation: result.session?.conversation,
-            })
-          );
-        } catch (err) {
-          log.error({ error: String(err) }, 'Demo claim error');
-          if (!res.headersSent) {
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Internal server error' }));
-          }
-        }
-        resolve(true);
-      });
-    });
+    return handleDemoClaim(req, res);
   }
 
-  // Demo session update endpoint (called by voice agent) - rate limit: 30/min (frequent updates)
+  // Demo session update endpoint: the caller proves the demo is theirs with its claim_token
   if (pathname === '/demo-session-update' && req.method === 'POST') {
-    if (rateLimit(req, res, { maxRequests: 30, windowMs: 60000 })) {
-      return true;
-    }
-    let body = '';
-    req.on('data', (chunk: Buffer) => (body += chunk.toString()));
-
-    // FIX BUG: Add error handler to prevent hanging promises on request errors
-    return new Promise((resolve) => {
-      req.on('error', (err) => {
-        log.error({ error: err.message }, 'Request error in demo session update');
-        if (!res.headersSent) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Request error' }));
-        }
-        resolve(true);
-      });
-
-      onBodyEnd(req, res, resolve, async () => {
-        try {
-          const data = JSON.parse(body) as { room_name: string; conversation: unknown };
-          const { room_name, conversation } = data;
-
-          if (!room_name || !conversation) {
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Missing room_name or conversation data' }));
-            resolve(true);
-            return;
-          }
-
-          // Async - persists to Firestore
-          const success = await demoSessions.updateDemoSessionConversation(
-            room_name,
-            conversation as Parameters<typeof demoSessions.updateDemoSessionConversation>[1]
-          );
-
-          if (!success) {
-            res.writeHead(404, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Demo session not found' }));
-            resolve(true);
-            return;
-          }
-
-          res.writeHead(200, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ success: true }));
-        } catch (err) {
-          log.error({ error: String(err) }, 'Demo session update error');
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ error: 'Failed to update demo session' }));
-        }
-        resolve(true);
-      });
-    });
+    return handleDemoSessionUpdate(req, res);
   }
 
   // Token generation endpoint (authenticated users)
@@ -454,7 +325,7 @@ export async function handleTokenRoutes(
     const timezone = isValidTimeZone(timezoneParam) ? timezoneParam : undefined;
     // 🐛 FIX: Read firebase_uid from query params (frontend sends this!)
     const firebase_uid_param = parsedUrl.searchParams.get('firebase_uid');
-    const user_email_param = parsedUrl.searchParams.get('user_email');
+    let verifiedEmail: string | undefined; // from the verified token, never the query string
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -462,7 +333,7 @@ export async function handleTokenRoutes(
       return true;
     }
 
-    const selectedPersona = persona_id || 'ferni';
+    const requestedPersona = persona_id || 'ferni';
 
     try {
       // SECURITY: Require verified Firebase auth before issuing LiveKit tokens.
@@ -509,6 +380,7 @@ export async function handleTokenRoutes(
           return true;
         }
         firebaseUid = verified.uid;
+        verifiedEmail = verified.emailVerified ? verified.email : undefined;
         log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
       } catch (firebaseErr) {
         log.error({ error: String(firebaseErr) }, 'Firebase auth verification failed for /token');
@@ -517,6 +389,8 @@ export async function handleTokenRoutes(
         return true;
       }
       if (await refuseUnownedRoom(room, firebaseUid, res)) return true; // never join another's room
+      // A custom agent id must be the caller's own, else the call is with Ferni.
+      const selectedPersona = await personaForCaller(requestedPersona, firebaseUid);
 
       // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
       log.info(
@@ -538,8 +412,7 @@ export async function handleTokenRoutes(
       // 3. Geo-detected accent from IP/locale
       // 4. Default to 'american'
 
-      // Try to load user's saved accent AND location from profile if authenticated
-      // "Better than Human" - We remember your accent preference AND location
+      // Load the signed-in user's saved accent and location from their profile
       let savedAccent: string | undefined;
       let savedLocation:
         | {
@@ -658,22 +531,19 @@ export async function handleTokenRoutes(
       // Pre-warm LLM content cache (fire-and-forget, before session starts)
       prewarmLLMContentForPersona(selectedPersona, firebaseUid || undefined);
 
-      // ⚡ OPTIMIZATION: Pre-fetch user data while token is being prepared
-      // This starts loading profile, trust, insights BEFORE session starts
+      // ⚡ Pre-fetch profile, trust and insights while the token is prepared, before the session
       if (firebaseUid) {
         prefetchUserData(firebaseUid, selectedPersona);
       }
 
-      // 🔗 Developer Platform: Look up publisher for marketplace personas
-      // This enables MCP server loading and webhook dispatch for custom personas
+      // 🔗 Developer Platform: the publisher enables MCP servers and webhooks for custom personas
       const publisherId = await getPublisherIdForPersona(selectedPersona);
 
       // Build room metadata (shared type — also passed to agent dispatch inside createRoomWithAgent)
       const roomMetadata: RoomMetadata = {
         user_name: username,
         firebase_uid: firebaseUid || undefined,
-        // 🐛 FIX: Include user_email for granted profile linking
-        user_email: user_email_param || undefined,
+        user_email: verifiedEmail,
         device_id: device_id || undefined,
         persona_id: selectedPersona,
         // 🔗 Developer Platform: publisher ID for custom/marketplace personas
@@ -689,10 +559,10 @@ export async function handleTokenRoutes(
         timezone,
       };
 
-      // Generate token with shared helper
       const token = await createToken({
         roomName: room,
         participantName: username,
+        identity: firebaseUid, // the verified uid; the client's username is only the display name
         metadata: { device_id, firebase_uid: firebaseUid, persona_id: selectedPersona },
       });
 

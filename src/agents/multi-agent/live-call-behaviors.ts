@@ -8,12 +8,16 @@
 import { voice } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utilities/voice-callbacks.js';
+import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
+import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
+import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createBargeInJudge,
   registerBargeInJudge,
 } from '../../speech/graceful-interrupt/barge-in-judge.js';
 import { createCallAlertSpeaker } from '../shared/call-alerts.js';
+import { installMoveLog, noteMove } from '../personas/move-log.js';
 import {
   createBargeInFastPath,
   installBackchannelHook,
@@ -26,9 +30,17 @@ import {
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
+import { followThroughOpenerEnabled, followThroughReplyListeners } from './follow-through-opener.js';
+import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
-import { endpointingDelays, turnDetectorMode } from '../shared/turn-patience.js';
+import { endpointingDelays } from '../shared/turn-patience.js';
+import {
+  holdsStandDown,
+  sessionTurnDetector,
+  SOLE_STANDS_DOWN,
+} from '../shared/turn-detector-sole.js';
+import { noteBargeIn } from '../shared/turn-receipt-session.js';
 
 const log = getLogger();
 
@@ -76,6 +88,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   if (process.env.BARGE_IN_FASTPATH !== 'off') {
     const bargeIn = createBargeInFastPath({
       interrupt: () => {
+        noteBargeIn(session, 'fastpath');
         try {
           session.interrupt();
         } catch (error) {
@@ -94,6 +107,16 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       { event: 'user_state_changed', handler: bargeIn.onUserState }
     );
   }
+
+  // MOVE_OUTCOMES=on: which moves each reply made, for the after-call record (move-log.ts).
+  installMoveLog(session, sessionId, sessionWithEvents, sessionEventHandlers);
+
+  // callUser rings the caller's verified phone through outreach (call-user-port.ts).
+  installCallUserPort();
+  // THREADS_PENDING_CONFIRM: a read-back waiting on a yes is kept as a follow-up (confirm-thread.ts).
+  installConfirmThreadPort();
+  // "Forget that" also closes open follow-ups about it (forget-follow-ups.ts).
+  installForgetFollowUpsPort();
 
   // Timers and other callbacks the caller asked for ring in this call, at a
   // pause, in Ferni's words (call-alerts.ts). Nothing registered a handler
@@ -127,6 +150,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         }
       },
       log: (fields) => log.info({ sessionId, ...fields }, 'TURN_KEEPER_RECOVERED'),
+      spokeCountsAsAnswer: process.env.TURN_KEEPER_SPOKE === 'on',
     });
     const onState = () => keeper.onStateChange();
     sessionWithEvents.on('agent_state_changed', onState);
@@ -145,9 +169,11 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
   // Say something human when a reply fails instead of going silent (never-silent.ts).
   installNeverSilent(input);
 
-  // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). With the
-  // end-of-turn model on, the model decides and a second hold would only stack delay.
-  if (turnDetectorMode() === 'off') {
+  // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). When
+  // LiveKit's end-of-turn model decides alone (TURN_DETECTOR_SOLE=on), it stands down:
+  // the model already waits through unfinished thoughts (turn-detector-sole.ts).
+  const sole = holdsStandDown(session);
+  if (!sole) {
     installUnfinishedTurnHold(session);
     // ...and answer a clearly finished sentence sooner (ENDPOINT_FAST_FINISHED=on).
     const detach = installFinishedTurnEndpointing(
@@ -157,10 +183,17 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
       (minDelayMs) => log.info({ sessionId, minDelayMs }, 'ENDPOINT_FLOOR')
     );
     if (detach) cleanupFunctions.push(detach);
-  } else
+  }
+  const detector = sessionTurnDetector(session);
+  if (detector) {
+    log.info(
+      { sessionId, model: detector.model, standsDown: sole ? SOLE_STANDS_DOWN : [] },
+      'TURN_DETECTOR_LAYERS'
+    );
     session.on(voice.AgentSessionEventTypes.EotPrediction, (ev) =>
       log.info(
         {
+          model: detector.model,
           probability: ev.probability,
           threshold: ev.threshold,
           delayMs: ev.delayMs,
@@ -169,6 +202,7 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         'EOT_PREDICTION'
       )
     );
+  }
   // One backchannel list for the patched LiveKit and the barge-in fast path.
   installBackchannelHook();
 
@@ -202,17 +236,33 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);
   }
+
+  // The caller's answer to the follow-up the opener raised closes it (follow-through-opener.ts).
+  if (userId && followThroughOpenerEnabled()) {
+    const replies = followThroughReplyListeners({
+      userId,
+      isOwner: () => speakerIsAccountOwner(sessionId),
+    });
+    const handlers = [
+      { event: 'conversation_item_added', handler: replies.onItemAdded },
+      { event: 'user_input_transcribed', handler: replies.onTranscript },
+    ];
+    for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
+    sessionEventHandlers.push(...handlers);
+  }
 }
 
 /** Whether the person on the line is the account owner, whose yes may confirm a send. */
 export function speakerIsAccountOwner(sessionId: string): boolean {
+  // ROOM_GUESTS=on: with a guest on the same mic, the yes may not be the owner's.
+  if (roomGuestsEnabled() && hasGuests(sessionId)) return false;
   return !outboundPartiesFor(sessionId) && sessionIsVerifiedOwner(sessionId);
 }
 
 /** What the barge-in model decided about each overlap (see interruption-config.ts). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function logBargeInDecisions(session: voice.AgentSession<any>, sessionId: string): void {
-  session.on(voice.AgentSessionEventTypes.OverlappingSpeech, (ev) =>
+  session.on(voice.AgentSessionEventTypes.OverlappingSpeech, (ev) => {
     log.info(
       {
         sessionId,
@@ -222,8 +272,9 @@ export function logBargeInDecisions(session: voice.AgentSession<any>, sessionId:
         overlapS: Math.round(ev.totalDurationInS * 100) / 100,
       },
       'BARGE_IN_DECISION'
-    )
-  );
+    );
+    if (ev.isInterruption) noteBargeIn(session, 'adaptive');
+  });
   session.on(voice.AgentSessionEventTypes.AgentFalseInterruption, (ev) =>
     log.info({ sessionId, resumed: ev.resumed }, 'BARGE_IN_FALSE_INTERRUPTION')
   );
@@ -281,6 +332,16 @@ export async function startTurnSounds(input: TurnSoundsInput) {
         )
       );
     }
+    // A backchannel is a move too, on the reply whose answer it is heard in.
+    const play = clips.playClip;
+    return {
+      ...clips,
+      playClip: (text: string) => {
+        const played = play(text);
+        if (played) noteMove(session, 'backchannel');
+        return played;
+      },
+    };
   }
   return clips;
 }

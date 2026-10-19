@@ -24,6 +24,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { indexCommitment, deindexCommitment } from '../data-layer/integrations/index.js';
 import { settleAwaitingAnswers, type FollowUpAnswer } from './commitment-follow-through.js';
+import { followUpAllowed } from '../coach-media/feedback.js';
+import { commitmentSentences } from '../../utils/commitment-filters.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -112,13 +114,7 @@ export interface Commitment {
 
   /** Related topic area */
   domain?:
-    | 'health'
-    | 'relationships'
-    | 'career'
-    | 'personal_growth'
-    | 'finance'
-    | 'creativity'
-    | 'other';
+    'health' | 'relationships' | 'career' | 'personal_growth' | 'finance' | 'creativity' | 'other';
 
   /** Importance they indicated (explicit or inferred) */
   importance: 'high' | 'medium' | 'low';
@@ -212,13 +208,12 @@ const SETBACK_PATTERNS = [
 // CORE FUNCTIONS
 // ============================================================================
 
-/**
- * Detect commitments in user text
- */
+/** Detect commitments in user text; questions, requests to Ferni and food orders are skipped. */
 export function detectCommitments(
-  userText: string,
+  said: string,
   _context?: { recentTopics?: string[]; emotion?: string }
 ): Array<{ type: CommitmentType; content: string; quote: string }> {
+  const userText = commitmentSentences(said);
   const detected: Array<{ type: CommitmentType; content: string; quote: string }> = [];
   const text = userText.toLowerCase();
 
@@ -504,12 +499,8 @@ export async function getActiveCommitments(userId: string): Promise<Commitment[]
 
 /** Due for its one follow-up: asked about at most once, never while awaiting an answer. */
 function isDueForFollowUp(c: Commitment, now: Date): boolean {
-  return (
-    c.shouldFollowUp === true &&
-    !c.awaitingAnswer &&
-    c.followUpDate !== null &&
-    c.followUpDate.getTime() <= now.getTime()
-  );
+  const due = c.followUpDate !== null && c.followUpDate.getTime() <= now.getTime();
+  return due && c.shouldFollowUp === true && !c.awaitingAnswer && followUpAllowed(c.id);
 }
 
 /**

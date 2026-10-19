@@ -15,7 +15,9 @@
 import { CartesiaMarkupFilter, filterCartesiaMarkup } from './cartesia-markup-filter.js';
 import { tts } from '@livekit/agents';
 import { TTS as CartesiaTTS } from '@livekit/agents-plugin-cartesia';
-import { CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
+import { CARTESIA_API_VERSION, CARTESIA_MODEL, DEFAULT_VOICE_IDS } from '../../config/voice-ids.js';
+import { forwardTtsEvents } from './forward-tts-events.js';
+import { prewarmReplyVoice } from './prewarm-voice.js';
 import type { PersonaVoiceConfig } from './types.js';
 
 // ============================================================================
@@ -33,6 +35,7 @@ export const SUPPORTED_ACCENTS: EnglishAccent[] = ['american', 'british', 'austr
 function createCartesiaTTSInstance(voiceId: string): CartesiaTTS {
   return new CartesiaTTS({
     model: CARTESIA_MODEL,
+    apiVersion: CARTESIA_API_VERSION,
     voice: voiceId,
     language: 'en',
     sampleRate: 24000,
@@ -94,6 +97,8 @@ export class PersonaAwareTTS extends tts.TTS {
   readonly label = 'persona-aware-tts';
 
   private personaTTS: CartesiaTTS;
+  /** Stops passing the current inner TTS's metrics and errors on to this one. */
+  private stopForwarding: () => void;
   private personaName: string;
   private voiceId: string;
   private accent: EnglishAccent;
@@ -104,6 +109,7 @@ export class PersonaAwareTTS extends tts.TTS {
   private pendingSwitch: { personaName: string; voiceId: string; accent?: EnglishAccent } | null =
     null;
   private activeStreamCount = 0;
+  private prewarmWarned = false; // a prewarm failure is logged once
 
   // Adaptive delivery (emotion/speed) for the next reply; survives voice switches.
 
@@ -124,6 +130,7 @@ export class PersonaAwareTTS extends tts.TTS {
     this.isLocalizedVoice = voiceConfig.isLocalizedVoice ?? this.accent !== 'american';
 
     this.personaTTS = createCartesiaTTSInstance(this.voiceId);
+    this.stopForwarding = forwardTtsEvents(this.personaTTS, this);
 
     // Initialize logger asynchronously (non-blocking)
     getLogger().then((logger) => {
@@ -144,7 +151,7 @@ export class PersonaAwareTTS extends tts.TTS {
    * Clean up resources.
    */
   cleanup(): void {
-    // No-op - no event listeners to clean up in this version
+    this.stopForwarding();
   }
 
   /**
@@ -267,7 +274,9 @@ export class PersonaAwareTTS extends tts.TTS {
     this.accent = newAccent ?? this.accent;
     this.isLocalizedVoice = this.accent !== 'american';
 
+    this.stopForwarding();
     this.personaTTS = createCartesiaTTSInstance(newVoiceId);
+    this.stopForwarding = forwardTtsEvents(this.personaTTS, this);
 
     log(
       'info',
@@ -415,6 +424,20 @@ export class PersonaAwareTTS extends tts.TTS {
     };
 
     return underlyingStream;
+  }
+
+  /** Called by @livekit/agents on each activity start and handoff (prewarm-voice.ts). Never throws. */
+  prewarm(): void {
+    prewarmReplyVoice(this.personaTTS, (error) => {
+      if (this.prewarmWarned) return;
+      this.prewarmWarned = true;
+      log('warn', { persona: this.personaName, error: String(error) }, 'TTS prewarm failed');
+    });
+  }
+
+  /** Frees the inner plugin TTS's idle sockets; the shared gateway socket is left alone. */
+  async releaseIdleConnections(): Promise<void> {
+    await this.personaTTS.releaseIdleConnections();
   }
 
   // ============================================================================

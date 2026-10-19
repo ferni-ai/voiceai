@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "{language}(으)로 바꿀게요",
+    "seeYou": "다음에 또 봐요!",
+    "callVoicemail": "{name}님께 음성 메시지를 남겼어요",
+    "callNoAnswer": "{name}님과 연결되지 않았어요. 나중에 다시 걸어 볼까요?",
+    "callFailed": "{name}님께 전화를 걸지 못했어요",
+    "callBack": "{name}님이 다시 전화해 달래요",
+    "followUp": "{name}님이 연락을 기다리고 있어요"
+  },
   "accessibility": {
     "accountMenu": "계정 메뉴",
     "accountSettings": "계정 설정",
@@ -1522,7 +1531,7 @@
         "title": "편하게 말씀하세요"
       },
       "welcome": {
-        "description": "당신만을 위한 AI 라이프 코치 팀이에요. 각 코치들이 저마다의 지혜로 당신의 여정을 도와줄 거예요.",
+        "description": "당신만을 위한 가이드 팀이에요. 저마다 자기만의 시선을 갖고 있어요.",
         "title": "Ferni에 오신 것을 환영해요"
       }
     },
@@ -2100,8 +2109,8 @@
     "couldNotDisconnect": "연결을 해제할 수 없었어요. 다시 시도해 보시겠어요?",
     "sonosConnected": "Sonos가 연결되었어요!",
     "transcribing": "텍스트로 변환하는 중이에요...",
-    "transcriptionUnavailable": "텍스트 변환을 사용할 수 없어요. 오디오만 저장할게요.",
-    "audioSaved": "오디오가 저장되었어요!",
+    "transcriptionUnavailable": "이번에는 말을 알아듣지 못해서 아무것도 저장하지 않았어요. 다시 해볼까요?",
+    "journalTooLong": "조금 길어요. {count}분 이내로 다시 해볼까요?",
     "entrySaved": "항목이 저장되었어요!",
     "couldNotSaveEntry": "항목을 저장할 수 없었어요. 다시 시도해 보시겠어요?",
     "profileSaved": "프로필이 저장되었어요!",
@@ -2219,7 +2228,6 @@
       "other": "연락처 {count}개를 가져왔어요!"
     },
     "integrationNowConnected": "{integration}이(가) 연결되었어요!",
-    "inviteSentTo": "{email}(으)로 초대장을 보냈어요!",
     "householdMemberRemoved": "{name} 님이 삭제되었어요",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} 님이 팀에 추가되었어요",
@@ -3460,6 +3468,25 @@
     "fieldRelationship": "관계",
     "fieldWhatShouldFerniCallThem": "Ferni가 이분을 뭐라고 부르면 좋을까요?",
     "fieldNotesForFerni": "Ferni를 위한 메모",
+    "callConsentLabel": "Ferni의 전화를 반겨요",
+    "callConsentHint": "Ferni가 가끔 안부 전화를 거는 데 동의했어요. 언제든 그만해 달라고 말할 수 있어요.",
+    "callConsentSaved": "저장했어요",
+    "callConsentFailed": "저장하지 못했어요. 다시 시도해 주세요.",
+    "callConsentLoadFailed": "Ferni의 전화를 반기는지 불러오지 못했어요. 다시 열어 주세요.",
+    "checkinTitle": "Ferni가 언제 안부 전화를 할까요?",
+    "checkinHint": "이 시간에 Ferni가 짧게 전화해서 잘 지내는지 물어봐요.",
+    "checkinFrequencyLabel": "얼마나 자주",
+    "checkinDaily": "매일",
+    "checkinWeekly": "일주일에 한 번",
+    "checkinDayLabel": "무슨 요일",
+    "checkinTimeLabel": "몇 시",
+    "checkinTimezone": "시간은 {zone} 기준이에요.",
+    "checkinSave": "전화 시간 저장",
+    "checkinRemove": "정기 안부 전화 그만하기",
+    "checkinSaved": "저장했어요. 그 시간에 Ferni가 전화할게요.",
+    "checkinRemoved": "정기 안부 전화가 꺼져 있어요.",
+    "checkinFailed": "저장하지 못했어요. 다시 시도해 주세요.",
+    "checkinLoadFailed": "전화 시간을 불러오지 못했어요. 다시 열어 주세요.",
     "cancel": "취소",
     "addToFamily": "가족에 추가하기",
     "relationshipMother": "어머니",
@@ -3549,7 +3576,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "나만을 위한 AI 동반자",
+        "role": "나만을 위한 동반자",
         "description": "매일의 체크인부터 깊은 대화까지, 필요한 건 무엇이든 곁에서 함께할게요.",
         "unlockHint": "언제나 곁에 있어요",
         "unlockedMessage": "우리는 참 많은 것을 함께해 왔네요.",
@@ -3620,11 +3647,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — 나만의 AI 인생 동반자",
+      "title": "Ferni를 만나 보세요",
       "message": "요즘 Ferni를 쓰고 있는데, 하루를 보내는 마음가짐이 정말 달라졌어요. 같이 시작해 봐요! {url}",
       "shortMessage": "Ferni에서 저와 함께해요! {url}",
-      "emailSubject": "Ferni를 한번 써보세요",
-      "emailBody": "안녕하세요! 요즘 Ferni라는 앱을 쓰고 있는데, 정말 사람처럼 느껴지는 AI 동반자예요. 좋아하실 것 같아 공유해 드려요. {url}"
+      "emailSubject": "Ferni를 한번 써보세요"
     },
     "modal": {
       "title": "성장을 나누어 보세요",
@@ -3857,10 +3883,12 @@
       "create": "에이전트 만들기",
       "empty": "아직 에이전트가 없어요",
       "emptyHint": "소중한 사람의 목소리를 간직하거나, 멘토를 만들거나, 나만의 동반자를 디자인하는 첫 번째 에이전트를 만들어 보세요.",
+      "emptyHintWithoutVoice": "소중한 사람의 이야기를 간직하거나, 멘토를 만들거나, 나만의 동반자를 디자인하는 첫 번째 에이전트를 만들어 보세요.",
       "createFirst": "첫 번째 에이전트 만들기",
       "whatYouCan": "이런 에이전트를 만들 수 있어요",
       "legacy": "소중한 유산",
       "legacyDesc": "소중한 사람의 목소리와 지혜를 고스란히 간직해 보세요",
+      "legacyDescWithoutVoice": "소중한 사람의 이야기와 지혜를 고스란히 간직해 보세요",
       "mentor": "멘토",
       "mentorDesc": "나에게 영감을 주는 인물을 바탕으로 코치를 만들어 보세요",
       "twin": "디지털 트윈",
@@ -4535,7 +4563,7 @@
     "title": "에이전트 페이지 만들기",
     "nameLabel": "에이전트 이름",
     "namePlaceholder": "예: Nate Holloway",
-    "nameHint": "AI 에이전트의 전체 이름",
+    "nameHint": "에이전트의 전체 이름",
     "initialsLabel": "이니셜",
     "initialsPlaceholder": "예: JD",
     "initialsHint": "아바타에 표시됩니다 (2~3자)",
@@ -5063,7 +5091,8 @@
     },
     "voiceStep": {
       "title": "어떤 목소리가 좋을까요?",
-      "subtitle": "목소리를 선택하거나 직접 클론해 보세요"
+      "subtitle": "목소리를 선택하거나 직접 클론해 보세요",
+      "subtitleWithoutClone": "목소리를 선택해 보세요"
     },
     "voiceOption": {
       "cloneTitle": "목소리 클론하기",
@@ -7236,6 +7265,7 @@
     "legacy": {
       "name": "레거시",
       "description": "소중한 사람의 목소리와 지혜를 간직해 보세요",
+      "descriptionWithoutVoice": "소중한 사람의 이야기와 지혜를 간직해 보세요",
       "feature1": "녹음 파일로 목소리 복제하기",
       "feature2": "이야기와 기억들 기록하기",
       "feature3": "지혜와 자주 하던 말 저장하기",
@@ -7254,8 +7284,7 @@
       "description": "나와 함께 성장하는 나만의 음성 일기",
       "feature1": "매일 음성 일기 기록하기",
       "feature2": "과거의 나와 대화하기",
-      "feature3": "시간에 따른 성장 추적하기",
-      "feature4": "AI가 생성하는 인사이트"
+      "feature3": "시간에 따른 성장 추적하기"
     },
     "fictional": {
       "name": "가상 캐릭터",
@@ -9466,11 +9495,22 @@
     "rememberEmpty": "이번에는 새로 기억할 것이 없어요. 함께해 줘서 고마워요.",
     "nextStepTitle": "부드러운 다음 걸음",
     "invitation": "언제든 다시 와요. 여기 있을게요.",
-    "close": "닫기"
+    "close": "닫기",
+    "seeCost": "이번 통화 비용",
+    "feedbackQuestion": "이번 대화는 어땠어요?",
+    "feedbackThanks": "고마워요, 도움이 돼요.",
+    "pushAskQuestion": "이 일에 대해 Ferni가 안부를 물어봐도 될까요?",
+    "pushAskYes": "네, 좋아요",
+    "pushAskNotNow": "나중에요",
+    "pushAskDone": "완료했어요. Ferni의 메시지가 이 기기로 와요.",
+    "pushAskLater": "괜찮아요. 나중에 설정에서 바꿀 수 있어요.",
+    "pushAskHomeScreen": "여기서 Ferni의 메시지를 받으려면 홈 화면에 Ferni를 추가하세요: 공유를 누른 다음 홈 화면에 추가를 누르세요.",
+    "pushAskGotIt": "알겠어요"
   },
   "moments": {
     "teamUnlockTitle": "{name} 님 만나기",
     "niceWork": "멋져요",
+    "remembered": "기억해 둘게요: {summary}",
     "streakSubtitle": "꾸준히 찾아오고 계시네요. 그것만으로도 큰 의미가 있어요.",
     "streakTitle": {
       "other": "{count}일 연속 기록",
@@ -9757,7 +9797,7 @@
     },
     "marketplace": {
       "headline": "나에게 딱 맞는 코치를 찾아보세요.",
-      "description": "Ferni 기본 팀을 넘어, 전문 분야를 가진 AI 코치들이 가득한 정원이 기다리고 있습니다. ADHD 지원, 금주 동반자, 수면 전문가, 육아 가이드 등 나의 특별한 여정을 깊이 이해하는 전문가들을 만나보세요.",
+      "description": "Ferni 기본 팀을 넘어, 전문 분야를 가진 코치들이 가득한 정원이 기다리고 있습니다. ADHD 지원, 금주 동반자, 수면 전문가, 육아 가이드 등 나의 특별한 여정을 깊이 이해하는 전문가들을 만나보세요.",
       "superhuman1": "특화된 페르소나 - 삶의 구체적인 고민들을 함께 해결할 코치들",
       "superhuman2": "커뮤니티 평점 - 실제 경험에서 우러나온 생생한 후기",
       "superhuman3": "무료 및 프리미엄 - 상황에 맞게 선택하는 든든한 지원",
@@ -9765,7 +9805,7 @@
     },
     "developerPortal": {
       "headline": "가치 있는 것을 직접 만들어 보세요.",
-      "description": "Ferni의 기술이 활짝 열립니다. 나만의 AI 코치를 빌드하고, 특화된 페르소나를 만들어, 내가 제공하는 가치를 꼭 필요로 하는 사람들에게 다가가 보세요. Ferni를 움직이는 바로 그 플랫폼을 이제 직접 경험해 보세요.",
+      "description": "Ferni의 기술이 활짝 열립니다. 나만의 코치를 빌드하고, 특화된 페르소나를 만들어, 내가 제공하는 가치를 꼭 필요로 하는 사람들에게 다가가 보세요. Ferni를 움직이는 바로 그 플랫폼을 이제 직접 경험해 보세요.",
       "superhuman1": "전체 API 문서 - 빌드에 필요한 모든 것",
       "superhuman2": "SDK 및 라이브러리 - TypeScript 기반 개발 지원",
       "superhuman3": "페르소나 빌더 - 코치를 시각적으로 손쉽게 만드는 도구",
@@ -9891,6 +9931,7 @@
     "timeout": "시간이 너무 오래 걸리네요. 네트워크 연결을 확인하고 다시 시도해 볼까요?",
     "network": "Ferni에게 연결할 수 없어요. 인터넷 연결을 확인하고 다시 시도해 볼까요?",
     "dropped": "연결이 끊어졌어요. 다시 연결해 볼까요?",
+    "agentLeft": "Ferni와의 통화가 끊어졌어요. 다시 연결해 볼까요?",
     "unknown": "연결할 수 없었어요. 다시 시도해 볼까요?"
   },
   "ambientSounds": {
@@ -10460,7 +10501,7 @@
   },
   "ferniAwakens": {
     "greeting": "안녕하세요.",
-    "subtext": "당신의 AI 라이프 코치, Ferni예요."
+    "subtext": "당신만의 가이드, Ferni예요."
   },
   "serviceHealth": {
     "names": {
@@ -10470,7 +10511,7 @@
       "historicalFacts": "역사적 사실",
       "smartHome": "스마트 홈",
       "lighting": "조명",
-      "aiContext": "AI 컨텍스트",
+      "aiContext": "기억 및 컨텍스트",
       "sleepHealth": "수면 및 건강 데이터",
       "other": "연결된 서비스"
     },
@@ -10627,9 +10668,6 @@
     "patronShort": "후원자",
     "founderAria": "{tier} 등급이에요. 저희를 믿어주셔서 감사해요! 관리하려면 클릭하세요."
   },
-  "splash": {
-    "tagline": "나만의 AI 팀이 준비되었어요"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "모든 지원",
@@ -10764,7 +10802,9 @@
     "helper": "나만을 위한 다정한 가이드",
     "connectToTalk": "대화해요",
     "endTalk": "대화 종료",
-    "connectingCancel": "연결 중입니다. 탭하여 취소"
+    "connectingCancel": "연결 중입니다. 탭하여 취소",
+    "connectingNow": "연결 중…",
+    "tapToCancel": "탭하여 취소"
   },
   "analyticsDashboard": {
     "title": "나의 여정",
@@ -11025,10 +11065,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

@@ -191,7 +191,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
       margin-bottom: var(--space-1, 0.25rem);
     }
 
@@ -226,7 +226,7 @@ function injectStyles(): void {
 
     .yp-action-btn:hover {
       background: var(--color-bg-tertiary, rgba(44, 37, 32, 0.06));
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
 
     .yp-action-btn:focus-visible {
@@ -352,7 +352,7 @@ function injectStyles(): void {
       font-weight: 600;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
 
     .yp-nudges-header svg {
@@ -437,8 +437,8 @@ function injectStyles(): void {
     }
 
     .yp-nudge-badge.medium {
-      background: rgba(184, 149, 106, 0.15);
-      color: var(--nayan-primary, #b8956a);
+      background: var(--color-semantic-warning-tint);
+      color: var(--color-semantic-warning-text);
     }
 
     .yp-nudge-arrow {
@@ -534,7 +534,7 @@ function injectStyles(): void {
       align-items: center;
     }
 
-    .yp-person-trend.growing { color: var(--persona-primary, #4a6741); }
+    .yp-person-trend.growing { color: var(--persona-text); }
     .yp-person-trend.fading { color: var(--color-semantic-error, #c44); }
 
     .yp-person-meta {
@@ -555,7 +555,7 @@ function injectStyles(): void {
       border-radius: var(--radius-full, 50%);
       font-size: var(--text-xxs, 0.625rem);
       font-weight: 600;
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
     }
 
     .yp-person-upcoming svg {
@@ -627,7 +627,7 @@ function injectStyles(): void {
 
     .yp-add-btn:hover {
       border-color: var(--persona-primary, #4a6741);
-      color: var(--persona-primary, #4a6741);
+      color: var(--persona-text);
       background: var(--persona-tint, rgba(74, 103, 65, 0.03));
     }
 
@@ -691,7 +691,7 @@ function injectStyles(): void {
 
     .yp-error-retry {
       background: var(--color-accent, #3D5A45);
-      color: white;
+      color: var(--color-text-on-accent);
       border: none;
       border-radius: var(--radius-md, 0.5rem);
       padding: var(--space-2, 0.5rem) var(--space-4, 1rem);
@@ -1282,13 +1282,12 @@ export function closeYourPeople(): void {
   if (!state.isOpen || !panelContainer) return;
 
   releaseEscape?.();
-  
   panelContainer.classList.remove('open');
-  
+  const closing = panelContainer;
   setTimeout(() => {
-    panelContainer?.remove();
+    closing.remove();
+    if (panelContainer !== closing) return; // reopened meanwhile: the new panel stays
     panelContainer = null;
-    
     // Restore focus to previously focused element
     if (previouslyFocusedElement && document.body.contains(previouslyFocusedElement)) {
       previouslyFocusedElement.focus();

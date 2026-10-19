@@ -94,7 +94,7 @@ export function isBackchannel(ws: string[]): boolean {
 
 /**
  * Make the patched LiveKit (BACKCHANNEL_KEEPS_PAUSE / BACKCHANNEL_NOT_A_TURN in
- * patches/@livekit__agents@1.5.1.patch) use this list: the patch had its own,
+ * patches/@livekit__agents@1.9.3.patch) use this list: the patch had its own,
  * without "aha", "alright", "got it" or "I see", so those cut Ferni off.
  */
 export function installBackchannelHook(): void {

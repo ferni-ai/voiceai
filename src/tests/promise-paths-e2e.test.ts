@@ -73,6 +73,7 @@ const { createCommunicationTools } =
 const { quickCaptureDef } = await import('../tools/domains/simple-utilities/essentials-tools.js');
 const { scheduleFollowUpDef } = await import('../tools/domains/proactive/index.js');
 const { setUserContactInfo } = await import('../tools/domains/proactive/outreach/index.js');
+const { setCallUserPort } = await import('../tools/domains/proactive/outreach/call-user-port.js');
 const { deliverDueReminders } = await import('../services/scheduling/reminder-delivery-job.js');
 const { trackFerniCommitments } =
   await import('../services/superhuman/semantic-intelligence/integration.js');
@@ -208,6 +209,12 @@ beforeEach(async () => {
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(START);
   await setUserContactInfo(UID, { phone: PHONE, email: 'sam@example.com', timezone: 'Etc/UTC' });
+  // Texts and calls to the user go to the verified phone on the account (call-user port).
+  setCallUserPort({
+    verifiedPhone: async () => PHONE,
+    verifiedEmail: async () => 'sam@example.com',
+    call: async () => ({ success: true }),
+  });
 });
 
 describe('every scheduled promise ends kept or missed', () => {

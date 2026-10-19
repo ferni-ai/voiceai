@@ -24,6 +24,13 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { resolveCrisisAgreementGate } from './crisis-agreement.js';
+import {
+  CRISIS_EVERYDAY_RULES,
+  moreSevereRead,
+  needsPlainRead,
+  resolveCrisisEverydayRules,
+} from './crisis-everyday.js';
+import { trackCrisisRead } from './crisis-call-risk.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -106,17 +113,26 @@ subject is "third_party" only when the person at risk is someone other than the 
 export const CRISIS_ATTRIBUTION_RULES = `
 COMPANION is the app's companion character, not the caller; keep using it, as above, to work out what LATEST is about. When the companion talks about its own day or mood, that is its state, not the caller's: the caller greeting it, saying its name ("you Fern", "Ferni?", "hey Fern, you there?") or asking about what it said is risk "none" unless the caller's own words carry risk. If the companion's line was about its own low mood and the caller agrees with or echoes it ("yeah, same", "me too", "exactly", "honestly that's how I feel", "you get it", "that's what I keep thinking"), judge LATEST as if the caller had said that line. Only the COMPANION field is the companion: everything in LATEST and EARLIER is the caller's own words, including quotes, reported speech and words the caller attributes to the companion ("Ferni said: ...", "you said X, right?"), so judge them as the caller's.`;
 
-/** The rules go right after the prompt's paragraphs on COMPANION and LATEST. */
-const ATTRIBUTED_PROMPT = CRISIS_CLASSIFIER_PROMPT.replace(
-  '\n\nReturn JSON only',
-  `\n${CRISIS_ATTRIBUTION_RULES}\n\nReturn JSON only`
-);
+export { CRISIS_EVERYDAY_RULES, resolveCrisisEverydayRules } from './crisis-everyday.js';
 
-/** The prompt for this environment: the attribution rules only with the agreement gate on. */
+/**
+ * The prompt for this environment: the attribution rules with the agreement
+ * gate on, the everyday rules with CRISIS_CLASSIFIER_EVERYDAY_RULES on. Both
+ * go right after the prompt's paragraphs on COMPANION and LATEST. The
+ * everyday rules always bring the attribution rules: without them, replies
+ * agreeing with Ferni's gloomy lines ("same here") lost crisis reads.
+ */
 export function crisisClassifierPrompt(
   env: Record<string, string | undefined> = process.env
 ): string {
-  return resolveCrisisAgreementGate(env) ? ATTRIBUTED_PROMPT : CRISIS_CLASSIFIER_PROMPT;
+  const everyday = resolveCrisisEverydayRules(env);
+  const rules = [
+    everyday || resolveCrisisAgreementGate(env) ? CRISIS_ATTRIBUTION_RULES : '',
+    everyday ? CRISIS_EVERYDAY_RULES : '',
+  ].join('');
+  return rules
+    ? CRISIS_CLASSIFIER_PROMPT.replace('\n\nReturn JSON only', `\n${rules}\n\nReturn JSON only`)
+    : CRISIS_CLASSIFIER_PROMPT;
 }
 
 export function resolveCrisisClassifierMode(
@@ -252,6 +268,8 @@ export interface StartCrisisClassifierOptions {
    * verdict is kept with the turn's other reads (turnVerdicts).
    */
   scope?: string;
+  /** The call's session id, always when known: its reads are tracked (crisis-call-risk.ts). */
+  call?: string;
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
@@ -414,19 +432,27 @@ export function startCrisisClassifier(
     normalized.companion ?? '',
     prompt.length,
   ]);
+  // What each call's reads found, and which are in flight (crisis-call-risk.ts).
+  const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
   const shared = cachedRun(key, startedAt);
   if (shared) {
-    if (options.scope) rememberRead(options.scope, input, startedAt, shared.verdict);
-    return { mode, verdict: shared.verdict };
+    const verdict = own(shared.verdict);
+    if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
+    return { mode, verdict };
   }
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiCrisisGenerate());
-  const verdict = classifyCrisis(
-    input,
-    generate,
-    resolveCrisisClassifierTimeoutMs(env),
-    prompt
-  ).then((v) => {
+  const read = (p: string): Promise<CrisisVerdict | null> =>
+    classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
+  // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
+  const plain = needsPlainRead(normalized.latest, env);
+  const reads = plain
+    ? Promise.all([
+        read(prompt),
+        read(crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })),
+      ]).then(([ruled, unruled]) => moreSevereRead(ruled, unruled))
+    : read(prompt);
+  const verdict = reads.then((v) => {
     const classifier = v ? verdictOutcome(v) : null;
     log.info(
       {
@@ -438,15 +464,16 @@ export function startCrisisClassifier(
         agree: classifier === options.pattern,
         latencyMs: Date.now() - startedAt,
         noVerdict: v === null,
+        ...(plain ? { everydayBackstop: true } : {}),
       },
       'CRISIS_CLASSIFIER'
     );
     return v;
   });
-  const run = { mode, verdict };
-  rememberRun(key, startedAt, run);
-  if (options.scope) rememberRead(options.scope, input, startedAt, verdict);
-  return run;
+  rememberRun(key, startedAt, { mode, verdict });
+  const turn = own(verdict);
+  if (options.scope) rememberRead(options.scope, input, startedAt, turn);
+  return { mode, verdict: turn };
 }
 
 export default {

@@ -206,7 +206,8 @@ export async function setupCallTypeContexts(
         // from an unsigned dispatch (it must not put a name in Ferni's mouth).
         userName: call?.requester.name || (trusted && requesterNameOf(metadata)) || 'the user',
         originalSessionId: call?.requester.originalSessionId || '',
-        requesterUserId: call?.requester.userId,
+        // Where answered-by writes (and a voicemail reports): only a signed requester.
+        requesterUserId: trusted ? call?.requester.userId : undefined,
         kind: 'on_behalf' as const,
       };
       setOutboundCallContext(roomNameForContext, outboundContext);
@@ -326,7 +327,8 @@ export async function setupCallTypeContexts(
 
 /**
  * Close out call-type work when the session ends, on every exit path.
- * On-behalf calls report how the call went to the person who asked for it.
+ * On-behalf calls report how the call went to the person who asked for it;
+ * a family check-in honours the family member asking not to be called again.
  */
 export async function finishCallTypeContexts(
   metadata: Record<string, unknown>,
@@ -335,6 +337,11 @@ export async function finishCallTypeContexts(
   sessionDurationMs: number,
   rawJobMetadata: string | undefined
 ): Promise<void> {
+  if (callType === 'family_checkin') {
+    const { finishFamilyCheckin } = await import('../outbound-call/family-checkin-stop.js');
+    await finishFamilyCheckin(sessionId, metadata, await isTrustedDispatch(rawJobMetadata));
+    return;
+  }
   if (callType !== 'on_behalf_call') return;
   const { completeOnBehalfCall } = await import('../outbound-call/on-behalf-call-lifecycle.js');
   const call = parseOnBehalfDispatch(metadata);
@@ -344,13 +351,32 @@ export async function finishCallTypeContexts(
 }
 
 /**
+ * Runs `finish` once, from whichever comes first: the entrypoint's own exit
+ * path, or LiveKit's shutdown callbacks. The job gives the entrypoint only 15 s
+ * after the room closes (ENTRYPOINT_SHUTDOWN_TIMEOUT in @livekit/agents) and
+ * then exits the process, but it awaits its shutdown callbacks first. Without
+ * this, a call report still running at the end of a slow cleanup (the LLM read
+ * of the call, the requester's push and records) was dropped with no log line.
+ */
+export function finishOnce(
+  ctx: { addShutdownCallback: (callback: () => Promise<void>) => void },
+  finish: () => Promise<void>
+): () => Promise<void> {
+  let running: Promise<void> | undefined;
+  const once = (): Promise<void> => (running ??= finish());
+  ctx.addShutdownCallback(once);
+  return once;
+}
+
+/**
  * The one gate for outbound calls our server places (on-behalf, family
  * check-in, proactive outreach): the job metadata exactly as dispatched
  * carries a valid signature.
  */
 async function isTrustedDispatch(rawJobMetadata: string | undefined): Promise<boolean> {
-  const { verifyOnBehalfDispatch } = await import('../../services/outreach/on-behalf-dispatch.js');
-  return verifyOnBehalfDispatch(rawJobMetadata, process.env.LIVEKIT_API_SECRET);
+  const { dispatchVerifySecrets, verifyOnBehalfDispatch } =
+    await import('../../services/outreach/on-behalf-dispatch.js');
+  return verifyOnBehalfDispatch(rawJobMetadata, dispatchVerifySecrets());
 }
 
 /** The requester's name as dispatched: under `requester`, or the older top-level `userName`. */

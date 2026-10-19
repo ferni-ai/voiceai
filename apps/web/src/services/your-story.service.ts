@@ -63,6 +63,7 @@ interface ApiStoryResponse {
       progress: number;
       nextStage: string | null;
       tagline: string;
+      milestones?: Array<{ id: string; title: string; completed: boolean; completedAt?: string }>;
     };
     /** null when the user has no energy readings */
     energy: {
@@ -152,8 +153,15 @@ function transformApiResponse(api: ApiStoryResponse['data'], userId: string): Yo
       tagline: api.relationship.tagline,
     },
 
-    // Milestones (placeholder - add real milestones API later)
-    milestones: [],
+    // The milestones the server says were reached (it dropped them all before)
+    milestones: (api.relationship.milestones ?? [])
+      .filter((m) => m.completed)
+      .map((m) => ({
+        id: m.id,
+        name: m.title,
+        celebratedAt: m.completedAt ? Date.parse(m.completedAt) : undefined,
+        category: 'relationship' as const,
+      })),
 
     // Energy ring: one real overall score; none at all without readings
     energyRings: api.energy

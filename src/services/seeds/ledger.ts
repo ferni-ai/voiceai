@@ -11,7 +11,13 @@
  *
  * @module services/seeds/ledger
  */
-import admin from 'firebase-admin';
+import {
+  FieldValue,
+  Timestamp,
+  type DocumentReference,
+  type Firestore,
+  type Transaction,
+} from 'firebase-admin/firestore';
 
 /** Seeds every account starts with (one starter entry per account). */
 export const STARTER_SEEDS = 25;
@@ -50,13 +56,13 @@ export class InsufficientSeedsError extends Error {
  * it keeps a running balance, so several changes for one account can share a transaction.
  */
 export interface LedgerState {
-  accountRef: admin.firestore.DocumentReference;
+  accountRef: DocumentReference;
   /** The account as read, or null when it doesn't exist yet. */
   account: Record<string, unknown> | null;
   /** Balance after the changes committed so far in this transaction. */
   balance: number;
   /** Prepared entries by key: whether each was already applied. */
-  entries: Map<string, { ref: admin.firestore.DocumentReference; applied: boolean }>;
+  entries: Map<string, { ref: DocumentReference; applied: boolean }>;
   created: boolean;
 }
 
@@ -71,8 +77,8 @@ function entryId(key: string): string {
  * reads first). Prepare every key the transaction may apply.
  */
 export async function prepareSeeds(
-  tx: admin.firestore.Transaction,
-  db: admin.firestore.Firestore,
+  tx: Transaction,
+  db: Firestore,
   uid: string,
   keys: string | readonly string[]
 ): Promise<LedgerState> {
@@ -92,7 +98,7 @@ export async function prepareSeeds(
 
 /** More reads for keys that depend on the account (e.g. a streak milestone). Before any write. */
 export async function prepareMoreSeeds(
-  tx: admin.firestore.Transaction,
+  tx: Transaction,
   state: LedgerState,
   keys: readonly string[]
 ): Promise<void> {
@@ -112,11 +118,7 @@ export function balanceOf(state: LedgerState): number {
  * Phase 2, writes: apply one prepared change. Throws InsufficientSeedsError (writing
  * nothing) when a spend would go below zero.
  */
-export function commitSeeds(
-  tx: admin.firestore.Transaction,
-  state: LedgerState,
-  change: SeedChange
-): SeedResult {
+export function commitSeeds(tx: Transaction, state: LedgerState, change: SeedChange): SeedResult {
   const entry = state.entries.get(change.key);
   if (!entry) throw new Error(`Seed key not prepared: ${change.key}`);
   if (entry.applied) return { applied: false, balance: state.balance };
@@ -126,9 +128,9 @@ export function commitSeeds(
   const after = before + change.delta;
   if (after < 0) throw new InsufficientSeedsError(before, -change.delta);
 
-  const now = admin.firestore.Timestamp.now();
+  const now = Timestamp.now();
   // Nested maps, not dotted keys: set(merge) takes 'a.b' as a literal field name
-  const inc = admin.firestore.FieldValue.increment;
+  const inc = FieldValue.increment;
   const totals =
     change.delta >= 0
       ? { lifetimeEarned: inc(change.delta), earnedFrom: { [change.reason]: inc(change.delta) } }
@@ -165,7 +167,7 @@ export function commitSeeds(
 
 /** Earn or spend in a transaction of its own. */
 export async function applySeeds(
-  db: admin.firestore.Firestore,
+  db: Firestore,
   uid: string,
   change: SeedChange
 ): Promise<SeedResult> {
@@ -176,7 +178,7 @@ export async function applySeeds(
 }
 
 /** The balance, without creating an account. */
-export async function getSeedBalance(db: admin.firestore.Firestore, uid: string): Promise<number> {
+export async function getSeedBalance(db: Firestore, uid: string): Promise<number> {
   const doc = await db.collection(SEEDS_COLLECTION).doc(uid).get();
   return Number(doc.data()?.balance ?? STARTER_SEEDS);
 }

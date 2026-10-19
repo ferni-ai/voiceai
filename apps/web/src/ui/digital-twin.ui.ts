@@ -24,6 +24,8 @@ import {
 } from '../services/custom-agent.service.js';
 import { openVoiceJournal } from './voice-journal/index.js';
 import { openCustomAgentWizard } from './custom-agent-wizard.ui.js';
+import { isCustomAgentsUiOn } from '../config/custom-agents-ui-flag.js';
+import { isJournalCaptureOn } from '../config/journal-capture-flag.js';
 import {
   enableJournalCapture,
   disableJournalCapture,
@@ -984,7 +986,7 @@ const STYLES = `
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .digital-twin-consent__icon svg {
@@ -1015,7 +1017,7 @@ const STYLES = `
     gap: var(--space-2, 8px);
     padding: var(--space-3, 12px) var(--space-5, 20px);
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
     font-size: 14px;
     font-weight: 600;
     border: none;
@@ -1133,10 +1135,9 @@ function renderOnboarding(): string {
         </div>
       </div>
 
-      <button class="digital-twin-create-btn" data-action="create">
-        ${ICONS.plus}
-        Create Your Digital Twin
-      </button>
+      ${isCustomAgentsUiOn() ? `<button class="digital-twin-create-btn" data-action="create">
+        ${ICONS.plus} Create Your Digital Twin
+      </button>` : ''}
     </div>
   `;
 }
@@ -1202,10 +1203,9 @@ function renderTwinsList(): string {
     <div class="digital-twin-list">
       ${twinCards}
     </div>
-    <button class="digital-twin-add-btn" data-action="create">
-      ${ICONS.plus}
-      Create Another Journal
-    </button>
+    ${isCustomAgentsUiOn() ? `<button class="digital-twin-add-btn" data-action="create">
+      ${ICONS.plus} Create Another Journal
+    </button>` : ''}
   `;
 }
 
@@ -1214,12 +1214,10 @@ function renderTwinsList(): string {
  * Shows consent prompt if never enabled, or toggle if already set up
  */
 function renderAutoCaptureCard(): string {
-  const settings = loadCaptureSettings();
-  const hasConsented = settings.consentDate != null;
-  const isEnabled = settings.enabled;
-
+  if (!isJournalCaptureOn()) return ''; // no sender yet: never promise to remember
+  const { consentDate, enabled: isEnabled } = loadCaptureSettings();
   // First-time consent flow
-  if (!hasConsented) {
+  if (consentDate == null) {
     return `
       <div class="digital-twin-consent">
         <div class="digital-twin-consent__icon">
@@ -1517,6 +1515,7 @@ export async function openDigitalTwinUI(): Promise<void> {
     const agents = await listCustomAgents();
     twins = agents.filter((a) => a.type === 'twin');
     isLoading = false;
+    if (twins.length === 0 && !isCustomAgentsUiOn()) return closeDigitalTwinUI(); // a dead end
     updateContent();
 
     log.info(`Loaded ${twins.length} Digital Twins`);

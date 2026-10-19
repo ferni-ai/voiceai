@@ -6,7 +6,7 @@
  * Displays:
  * - Conversation frequency over time (heat map)
  * - Emotional journey timeline
- * - Team members unlocked
+ * - The team (TEAM_BY_NEED: everyone from the first call, nobody "unlocked")
  * - Dreams tracked & progress
  * - Commitments kept
  * - Milestones celebrated
@@ -62,7 +62,6 @@ export interface EmotionalMoment {
 export interface TeamUnlock {
   personaId: string;
   personaName: string;
-  unlockedAt?: Date;
   primaryColor: string;
 }
 
@@ -101,11 +100,8 @@ export interface RelationshipGrowth {
 export interface YearStats {
   totalConversations: number;
   totalMinutes?: number;
-  longestStreak: number;
-  currentStreak: number;
   averageConversationsPerWeek: number;
   mostActiveMonth: string;
-  teamMembersUnlocked: number;
   dreamsTracked: number;
   commitmentsKept: number;
 }
@@ -136,8 +132,9 @@ export class YourYearWithFerni {
     this.isOpen = true;
     log.debug({ userId }, 'Opening Your Year with Ferni');
 
-    // Load data (nobody signed in: no request, the empty state shows)
-    this.data = userId ? await this.loadYearData(userId) : null;
+    // Load data (nobody signed in: no request, the empty state shows; a failed load says so)
+    const loaded = userId ? await this.loadYearData(userId) : null;
+    this.data = loaded === 'error' ? null : loaded;
 
     // Check if user has meaningful data (more than 0 conversations)
     const hasData = this.data && this.data.stats && this.data.stats.totalConversations > 0;
@@ -146,7 +143,7 @@ export class YourYearWithFerni {
     if (hasData) {
       this.createUI();
     } else {
-      this.createEmptyStateUI();
+      this.createEmptyStateUI(loaded === 'error');
     }
     await this.animateIn();
   }
@@ -154,12 +151,12 @@ export class YourYearWithFerni {
   /**
    * Create empty state UI for new users.
    */
-  private createEmptyStateUI(): void {
+  private createEmptyStateUI(failed = false): void {
     this.container = document.createElement('div');
     this.container.className = 'your-year-overlay';
     
-    const emptyState = createEmptyState('your-year');
-    
+    const emptyState = failed ? document.createElement('p') : createEmptyState('your-year');
+    if (failed) Object.assign(emptyState, { className: 'your-year-error', textContent: t('common.error') });
     this.container.innerHTML = `
       <div class="your-year-backdrop"></div>
       <div class="your-year-modal your-year-modal--empty" role="dialog" aria-modal="true" aria-labelledby="your-year-title">
@@ -235,7 +232,7 @@ export class YourYearWithFerni {
   // DATA LOADING
   // ============================================================================
 
-  private async loadYearData(userId: string): Promise<YearData | null> {
+  private async loadYearData(userId: string): Promise<YearData | null | 'error'> {
     try {
       const response = await apiGet<YearData>(`/api/year-in-review/${userId}`);
       if (response.ok && response.data) {
@@ -248,10 +245,7 @@ export class YourYearWithFerni {
             ...m,
             date: new Date(m.date),
           })) ?? [],
-          teamUnlocks: data.teamUnlocks?.map((t) => ({
-            ...t,
-            unlockedAt: t.unlockedAt ? new Date(t.unlockedAt) : undefined,
-          })) ?? [],
+          teamUnlocks: data.teamUnlocks ?? [],
           dreams: data.dreams?.map((d) => ({
             ...d,
             mentionedAt: new Date(d.mentionedAt),
@@ -266,12 +260,11 @@ export class YourYearWithFerni {
           })) ?? [],
         };
       }
-      // API returned no data - user has no year data yet
-      log.info({ userId }, 'No year data found for user - will show empty state');
-      return null;
+      log.warn({ status: response.status, userId }, 'Year data request failed');
+      return response.ok ? null : 'error'; // a failed load is not an empty year
     } catch (error) {
       log.warn({ error, userId }, 'Failed to load year data from API');
-      return null;
+      return 'error';
     }
   }
 
@@ -327,8 +320,6 @@ export class YourYearWithFerni {
           <!-- Stats Grid -->
           <section class="your-year-stats">
             ${this.renderStatCard(t('yourYearWithFerni.statConversations'), this.data.stats.totalConversations.toString(), t('yourYearWithFerni.statTotal'))}
-            ${this.renderStatCard(t('yourYearWithFerni.statCurrentStreak'), tp('yourYearWithFerni.streakDays', this.data.stats.currentStreak), t('yourYearWithFerni.statBestStreak', { count: this.data.stats.longestStreak }))}
-            ${this.renderStatCard(t('yourYearWithFerni.statTeamMembers'), this.data.stats.teamMembersUnlocked.toString(), t('yourYearWithFerni.statUnlocked'))}
             ${this.renderStatCard(t('yourYearWithFerni.statDreamsTracked'), this.data.stats.dreamsTracked.toString(), t('yourYearWithFerni.statGrowing'))}
           </section>
 
@@ -348,12 +339,14 @@ export class YourYearWithFerni {
             </div>
           </section>
 
-          <!-- Team Unlocks -->
+          <!-- The team (no streaks, no unlocks: Seth, 2026-10-11 TEAM_BY_NEED) -->
           <section class="your-year-section" aria-labelledby="team-title">
             <h3 id="team-title" class="your-year-section-title">${t('accessibility.yourTeam')}</h3>
-            <div class="your-year-team" role="list" aria-label="${t('accessibility.teamMembersUnlocked')}">
-              ${this.renderTeam()}
-            </div>
+            ${
+              this.data.teamUnlocks.length > 0
+                ? `<div class="your-year-team" role="list" aria-label="${t('accessibility.yourTeam')}">${this.renderTeam()}</div>`
+                : `<p class="your-year-team-empty">${t('yourYearWithFerni.teamUnavailable')}</p>`
+            }
           </section>
 
           <!-- Dreams -->
@@ -480,7 +473,6 @@ export class YourYearWithFerni {
 
     return this.data.teamUnlocks
       .map((member) => {
-        const unlockDate = member.unlockedAt && new Date(member.unlockedAt);
         const personaId = member.personaId.toLowerCase();
         const gradient = personaGradients[personaId] ?? {
           light: member.primaryColor,
@@ -489,7 +481,6 @@ export class YourYearWithFerni {
         };
         const displayName =
           displayNames[personaId] ?? member.personaName.split('-')[0] ?? member.personaName;
-        const initial = displayName.charAt(0).toUpperCase();
 
         // Luxo-style SVG avatar with gradient and white eyes (NO pupils per brand CLAUDE.md)
         return `
@@ -517,7 +508,6 @@ export class YourYearWithFerni {
           </svg>
         </div>
         <div class="team-name">${displayName}</div>
-        ${unlockDate ? `<div class="team-unlocked">${t('yourYearWithFerni.unlockedOn', { date: formatDate(unlockDate, { month: 'short', year: 'numeric' }) })}</div>` : ''}
       </div>
     `;
       })
@@ -708,15 +698,9 @@ export class YourYearWithFerni {
       /* Stats Grid */
       .your-year-stats {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: var(--space-4, 16px);
         margin-bottom: var(--space-6, 24px);
-      }
-
-      @media (max-width: 640px) {
-        .your-year-stats {
-          grid-template-columns: repeat(2, 1fr);
-        }
       }
 
       /* Stat Cards: Brand-compliant card style */
@@ -911,10 +895,11 @@ export class YourYearWithFerni {
         margin-bottom: var(--space-1, 4px);
       }
 
-      .team-unlocked {
+      .your-year-team-empty {
         font-family: var(--font-body, 'Inter', sans-serif);
-        font-size: 11px;
+        font-size: var(--text-sm, 0.875rem);
         color: var(--color-text-muted, #8A847C);
+        margin: 0;
       }
 
       /* Dreams */

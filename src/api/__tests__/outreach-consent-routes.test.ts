@@ -10,6 +10,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 const writeOutreachConsent = vi.fn(async () => undefined);
 const readOutreachConsent = vi.fn(async () => ({ enabled: true, channels: [] as string[] }));
 const requireAuth = vi.fn();
+const fb = { phoneNumber: '+15552017497' as string | undefined };
 
 vi.mock('../../services/outreach/outreach-consent.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../services/outreach/outreach-consent.js')>()),
@@ -21,6 +22,15 @@ vi.mock('../auth-middleware.js', async (importOriginal) => ({
   rateLimit: vi.fn(() => false),
   requireAuth,
 }));
+
+// The panel's channel switches are also saved to messagingPrefs (messaging-prefs-route.test.ts).
+const writePrefs = vi.fn(async () => undefined);
+vi.mock('../../services/messaging/prefs.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/messaging/prefs.js')>()),
+  writePrefs,
+}));
+vi.mock('../../services/identity/firebase-auth.js', () => ({ getFirebaseUser: async () => fb }));
+vi.mock('../../services/superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
 const { handleOutreachRoutes } = await import('../outreach.routes.js');
 
@@ -45,6 +55,7 @@ afterAll(
 
 beforeEach(() => {
   vi.clearAllMocks();
+  fb.phoneNumber = '+15552017497';
   requireAuth.mockResolvedValue({
     userId: 'u1',
     isAdmin: false,
@@ -61,6 +72,46 @@ const call = (method: string, path: string, body?: unknown) =>
   });
 
 describe('outreach consent routes', () => {
+  it('refuses adding texts or calls for a user without a verified phone, and saves nothing', async () => {
+    fb.phoneNumber = undefined;
+    for (const channel of ['sms', 'call']) {
+      const res = await call('POST', '/preferences', {
+        preferences: { allowedChannels: [channel] },
+      });
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { error: string }).error).toMatch(/verify your phone/i);
+    }
+    expect(writeOutreachConsent).not.toHaveBeenCalled();
+    expect(
+      (await call('POST', '/preferences', { preferences: { allowedChannels: [] } })).status
+    ).toBe(200);
+  });
+
+  it('never refuses keeping or dropping channels already on', async () => {
+    fb.phoneNumber = undefined;
+    readOutreachConsent.mockResolvedValueOnce({ enabled: true, channels: ['sms', 'voice_call'] });
+    const res = await call('POST', '/preferences', { preferences: { allowedChannels: ['sms'] } });
+    expect(res.status).toBe(200);
+    expect(writeOutreachConsent).toHaveBeenCalledWith(
+      'u1',
+      expect.objectContaining({ channels: ['sms'] })
+    );
+  });
+
+  it('accepts texts for a user with a verified phone', async () => {
+    const res = await call('POST', '/preferences', { preferences: { allowedChannels: ['sms'] } });
+    expect(res.status).toBe(200);
+    expect(writeOutreachConsent).toHaveBeenCalledWith(
+      'u1',
+      expect.objectContaining({ channels: ['sms'] })
+    );
+    expect(writePrefs).toHaveBeenCalledWith(
+      'u1',
+      { channels: { sms: true, email: false } },
+      'panel'
+    );
+  });
+
   it('saves switching outreach off for the logged-in user', async () => {
     const res = await call('POST', '/preferences', {
       userId: 'someone-else',

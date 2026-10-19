@@ -11,12 +11,9 @@
  * @module services/contacts/people-list
  */
 
-import { getUserContacts, type Contact } from '../identity/contacts/contacts-management.js';
-import {
-  getContacts,
-  RELATIONSHIP_ALIASES,
-  type ContactRelationship,
-} from './contact-relationship-service.js';
+import { loadUserContacts, type Contact } from '../identity/contacts/contacts-management.js';
+import { loadContacts, type ContactRelationship } from './contact-relationship-service.js';
+import { RELATIONSHIP_ALIASES } from './relationship-aliases.js';
 
 type RelationshipGroup = NonNullable<ContactRelationship['relationship']>;
 
@@ -48,10 +45,26 @@ export function relationshipGroup(text: string | undefined): RelationshipGroup {
   return 'other';
 }
 
+/** Panel-only fields an edit can add to a saved contact (saved-contact-edits.ts) */
+const PANEL_FIELDS = [
+  'howWeMet',
+  'interests',
+  'sensitiveTopics',
+  'preferredChannel',
+  'bestTimeToReach',
+  'photo',
+  'inMemory',
+];
+
 /** A contact the voice agent saved, in the shape the panel reads */
 export function fromSavedContact(contact: Contact): ContactRelationship {
   const createdAt = new Date(contact.createdAt);
+  const stored = contact as unknown as Record<string, unknown>;
+  const panelFields = Object.fromEntries(
+    PANEL_FIELDS.filter((key) => stored[key] != null).map((key) => [key, stored[key]])
+  );
   return {
+    ...panelFields,
     id: contact.id,
     userId: contact.userId,
     contactId: contact.id,
@@ -75,7 +88,8 @@ export function fromSavedContact(contact: Contact): ContactRelationship {
 
 const digits = (phone: string | undefined): string => (phone ?? '').replace(/\D/g, '').slice(-10);
 
-function samePerson(kept: ContactRelationship, saved: ContactRelationship): boolean {
+/** The panel's copy and a saved contact are one person: id link, then email, phone or name */
+export function samePerson(kept: ContactRelationship, saved: ContactRelationship): boolean {
   if (kept.contactId === saved.id) return true; // data capture links them by id
   if (kept.email && saved.email && kept.email.toLowerCase() === saved.email.toLowerCase()) {
     return true;
@@ -98,12 +112,25 @@ function fillGaps(kept: ContactRelationship, saved: ContactRelationship): Contac
   };
 }
 
-/** Everyone this person has told Ferni about, from both stores, each person once */
+/** A contact store couldn't be read, so the list is unknown: never answer it as empty */
+export class PeopleUnavailableError extends Error {
+  constructor(readonly reason: string) {
+    super(`Contacts could not be read: ${reason}`);
+    this.name = 'PeopleUnavailableError';
+  }
+}
+
+/**
+ * Everyone this person has told Ferni about, from both stores, each person once. Throws
+ * PeopleUnavailableError when either store couldn't be read.
+ */
 export async function listPeople(userId: string): Promise<ContactRelationship[]> {
-  const [kept, saved] = await Promise.all([getContacts(userId), getUserContacts(userId)]);
-  const people = kept.map((person) => ({ ...person }));
+  const [kept, saved] = await Promise.all([loadContacts(userId), loadUserContacts(userId)]);
+  if (!kept.ok) throw new PeopleUnavailableError(kept.error);
+  if (!saved.ok) throw new PeopleUnavailableError(saved.error);
+  const people = kept.contacts.map((person) => ({ ...person }));
   const fromCalls: ContactRelationship[] = [];
-  for (const contact of saved) {
+  for (const contact of saved.contacts) {
     const person = fromSavedContact(contact);
     const index = people.findIndex((p) => samePerson(p, person));
     if (index >= 0) people[index] = fillGaps(people[index], person);

@@ -10,7 +10,8 @@
  * forgetTopic marks the caller's facts about the topic as forgotten in both
  * fact collections and records the topic's words, and recall's snapshot
  * (session-recall.ts) leaves out marked facts and any fact or open thread
- * about a recorded topic. It never deletes: the tool is called by a model,
+ * about a recorded topic; open follow-ups about it are released
+ * (forget-follow-ups.ts). It never deletes: the tool is called by a model,
  * on a confirmation the model itself reports, so a misread request must be
  * recoverable. Erasure is account deletion's job (erase-user-record.ts),
  * which removes all of this too. A topic that would cover a large share of
@@ -24,6 +25,8 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
+import { closeForgottenFollowUps } from './forget-follow-ups.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 export { isForgotten };
 
@@ -39,6 +42,8 @@ export type ForgetResult =
   | { kind: 'forgotten'; marked: number }
   | { kind: 'too-broad'; matched: number }
   | { kind: 'nothing' }
+  /** No member on this call (anonymous, anon:, onbehalf:), so nothing about them is stored. */
+  | { kind: 'not-saved' }
   | { kind: 'failed' };
 
 export interface StoredFactRef {
@@ -92,10 +97,18 @@ export async function forgetTopic(
   if (matched.length > MAX_UNASKED && matched.length > live.length * MAX_SHARE) {
     return { kind: 'too-broad', matched: matched.length };
   }
+  // Facts about the topic forgotten one by one earlier go through again, so
+  // any index copy they still have is removed (markForgotten keeps their date).
+  const earlier = facts.filter(
+    (f) => typeof f.data.forgottenAt === 'string' && isForgotten(factText(f.data), [tokens])
+  );
   await store.addTopic(userId, tokens, topic.trim());
   noteForgotten(userId, tokens);
   bumpForgetGeneration(userId);
-  if (matched.length > 0) await store.markForgotten(userId, matched, now.toISOString());
+  // Open follow-ups about it close too (best effort; the delivery job checks again).
+  await closeForgottenFollowUps(userId, (text) => isForgotten(text, [tokens]), now);
+  const marking = [...matched, ...earlier];
+  if (marking.length > 0) await store.markForgotten(userId, marking, now.toISOString());
   bumpForgetGeneration(userId);
   log.info({ userId: userId.slice(0, 8), marked: matched.length }, 'Forgot a topic');
   return { kind: 'forgotten', marked: matched.length };
@@ -107,7 +120,7 @@ export async function forgetForCaller(
   topic: string,
   store: ForgetStore = firestoreForgetStore
 ): Promise<ForgetResult> {
-  if (!userId || userId === 'anonymous') return { kind: 'failed' };
+  if (!isMemberIdentity(userId)) return { kind: 'not-saved' };
   return forgetTopic(userId, topic, store).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Could not forget from stored memory');
     return { kind: 'failed' as const };
@@ -120,6 +133,7 @@ export function forgetProblem(result: Exclude<ForgetResult, { kind: 'forgotten' 
     return 'That covers a lot of what I know about you. Which part should I forget?';
   }
   if (result.kind === 'nothing') return 'What exactly should I forget?';
+  if (result.kind === 'not-saved') return "There's nothing saved about you here.";
   return "I couldn't remove that just now. Ask me again in a moment?";
 }
 
@@ -172,6 +186,25 @@ export function parseTopics(raw: unknown): string[] | null {
   return raw;
 }
 
+/**
+ * Take forgotten dynamic facts out of the indexes recall searches: the memory
+ * tool's (now, not at the next re-index, user-memory-indexer.ts;
+ * recallFromMemory also checks by id meanwhile) and the graph sync's copy
+ * (spanner-graph insertFact), read by per-turn memory search. Call after the
+ * facts are marked forgotten with syncedToSpanner: false.
+ */
+export async function removeIndexCopies(userId: string, factIds: string[]): Promise<void> {
+  if (factIds.length === 0) return;
+  const { removeConversationDocument } = await import('../retrieval/conversation-index.js');
+  const { removeIndexedMemory } = await import('../retrieval/semantic-memory-search.js');
+  for (const id of factIds) {
+    await removeConversationDocument(`fact_${id}`).catch((error: unknown) =>
+      log.warn({ error: String(error) }, 'Forgotten fact not removed from the index')
+    );
+    await removeIndexedMemory('fact', `fact_${userId}_${id}`);
+  }
+}
+
 /** bogle_users/{uid}/{dynamic_facts,extracted_facts}, and memory_state/forgotten. */
 export const firestoreForgetStore: ForgetStore = {
   async facts(userId) {
@@ -199,21 +232,16 @@ export const firestoreForgetStore: ForgetStore = {
         // A fact already copied to the graph store is picked up by the next
         // sync again (firestore-spanner-sync.ts), which removes the copy.
         const resync = r.collection === 'dynamic_facts' ? { syncedToSpanner: false } : {};
-        batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: at, ...resync });
+        // Already forgotten (one by one, or an earlier topic): keep when.
+        const when = typeof r.data.forgottenAt === 'string' ? r.data.forgottenAt : at;
+        batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: when, ...resync });
       }
       await batch.commit();
     }
-    // Their copies in the memory tool's index go now, not at the next re-index
-    // (user-memory-indexer.ts); recallFromMemory also checks by id meanwhile.
-    const { removeConversationDocument } = await import('../retrieval/conversation-index.js');
-    const { removeIndexedMemory } = await import('../retrieval/semantic-memory-search.js');
-    for (const r of refs.filter((x) => x.collection === 'dynamic_facts')) {
-      await removeConversationDocument(`fact_${r.id}`).catch((error: unknown) =>
-        log.warn({ error: String(error) }, 'Forgotten fact not removed from the index')
-      );
-      // The graph sync's copy (spanner-graph insertFact), read by per-turn memory search.
-      await removeIndexedMemory('fact', `fact_${userId}_${r.id}`);
-    }
+    await removeIndexCopies(
+      userId,
+      refs.filter((x) => x.collection === 'dynamic_facts').map((x) => x.id)
+    );
   },
   async addTopic(userId, topic, asked) {
     const db = getFirestoreDb();

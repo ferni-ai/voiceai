@@ -12,6 +12,11 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { MAX_RETRIES } from '../../config/resilience-config.js';
+import { flagOn } from '../../config/env-flag.js';
+
+/** Why scheduleOutreach refused: sends to other people later wait for the founder's opt-in. */
+export const SCHEDULING_PAUSED =
+  'messages to other people at a later time are paused for now, so nothing was scheduled';
 
 const log = createLogger({ module: 'ScheduledMultiOutreach' });
 
@@ -27,8 +32,8 @@ export interface ScheduledOutreachTarget {
   contact: string;
   /** Purpose of the outreach */
   purpose: string;
-  /** Channel preference */
-  channel: 'call' | 'text' | 'email' | 'conversation' | 'auto';
+  /** Channel preference. 'on_behalf_call' is the one retry of a missed call (call-followthrough). */
+  channel: 'call' | 'text' | 'email' | 'conversation' | 'auto' | 'on_behalf_call';
   /** Custom message (optional) */
   message?: string;
   /** Resolved contact ID */
@@ -39,6 +44,8 @@ export interface ScheduledOutreachTarget {
   resolvedPhone?: string;
   /** Resolved email */
   resolvedEmail?: string;
+  /** For 'on_behalf_call': the server-signed dispatch of the call to place again. */
+  onBehalfDispatch?: unknown;
 }
 
 /**
@@ -50,8 +57,13 @@ export interface ScheduledOutreach {
   personaId: string;
   target: ScheduledOutreachTarget;
   scheduledFor: Date;
-  /** 'missed' = found by the delivery job too late to send. */
-  status: 'pending' | 'executing' | 'completed' | 'failed' | 'cancelled' | 'missed';
+  /**
+   * 'missed' = found by the delivery job too late to send. 'held' = waiting for
+   * approval to reach someone other than the member (SCHEDULED_OUTREACH_THIRD_PARTY).
+   */
+  status: 'pending' | 'executing' | 'completed' | 'failed' | 'cancelled' | 'missed' | 'held';
+  heldReason?: string;
+  heldAt?: Date;
   createdAt: Date;
   updatedAt: Date;
   batchId?: string;
@@ -120,6 +132,10 @@ export async function scheduleOutreach(
   scheduledFor: Date,
   batchId?: string
 ): Promise<string> {
+  if (!flagOn('SCHEDULED_OUTREACH_THIRD_PARTY')) {
+    // The job would hold it (scheduled-outreach-executor.ts), so say so now rather than promise it.
+    throw new Error(SCHEDULING_PAUSED);
+  }
   const firestore = await getFirestore();
   if (!firestore) {
     throw new Error('Firestore not available');
@@ -278,6 +294,38 @@ export async function updateOutreachStatus(
     log.error({ error: String(error), userId, outreachId }, 'Failed to update outreach status');
   }
 }
+
+/** Set fields on an item: back to pending at a later time (quiet hours), or held. */
+export async function patchOutreach(
+  userId: string,
+  outreachId: string,
+  fields: Partial<Pick<ScheduledOutreach, 'status' | 'scheduledFor' | 'heldReason' | 'heldAt'>>
+): Promise<void> {
+  const firestore = await getFirestore();
+  if (!firestore) throw new Error('Firestore not available');
+  await outreachDoc(firestore, userId, outreachId).update(
+    forFirestore({ ...fields, updatedAt: new Date() })
+  );
+}
+
+/**
+ * pending → executing in a transaction, so this poller and the scheduled job
+ * (which claims the same way, due-items.ts) never both send one item.
+ */
+export async function claimPendingOutreach(userId: string, outreachId: string): Promise<boolean> {
+  const firestore = await getFirestore();
+  if (!firestore) return false;
+  const ref = outreachDoc(firestore, userId, outreachId);
+  return firestore.runTransaction(async (tx) => {
+    if ((await tx.get(ref)).data()?.status !== 'pending') return false;
+    // claimedAt lets a sweeper find items stuck in 'executing'.
+    tx.update(ref, { status: 'executing', claimedAt: new Date(), updatedAt: new Date() });
+    return true;
+  });
+}
+
+const outreachDoc = (db: FirebaseFirestore.Firestore, userId: string, id: string) =>
+  db.collection('bogle_users').doc(userId).collection('scheduled_outreach').doc(id);
 
 /**
  * Increment retry count and optionally mark as failed

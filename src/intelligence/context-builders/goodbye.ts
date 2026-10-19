@@ -359,8 +359,7 @@ Consider: "Is there anything else on your mind, or shall we call it for now?"]`
   // -----------------------------------------------
   const conversationHistory: string[] = [];
   const historyTracker = input.services?.historyTracker as
-    | { getSimpleTurns?: () => Array<{ role: string; content: string }> }
-    | undefined;
+    { getSimpleTurns?: () => Array<{ role: string; content: string }> } | undefined;
   if (historyTracker?.getSimpleTurns) {
     const turns = historyTracker.getSimpleTurns();
     conversationHistory.push(...turns.map((t: { content: string }) => t.content));
@@ -428,8 +427,8 @@ DO:
   1. Acknowledge what you discussed: "It was good talking about..."
   2. One key takeaway (if appropriate): "If you remember one thing..."
   3. Express warmth genuinely in YOUR style
-  4. Leave door open: "I'm here whenever you want to talk."
-  5. Use their name if you know it
+  4. Leave the door open like a friend ("talk soon"), never with an offer to listen
+  5. Say goodbye by name if you know it
   6. Reference the time of day naturally
 DO NOT:
   - Add new information

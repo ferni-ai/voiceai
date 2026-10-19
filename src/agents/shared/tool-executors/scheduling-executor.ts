@@ -13,7 +13,9 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { userTimeZone } from '../../../utils/caller-time-zone.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
+import { WHERE_TO_ADD_NUMBER } from '../../../tools/shared/where-to-add-number.js';
 
 const log = createLogger({ module: 'SchedulingExecutor' });
 
@@ -142,12 +144,11 @@ async function execute(
     }
 
     try {
-      const { scheduleText, getUserContactInfo } = await loadOutreach();
+      const { scheduleText } = await loadOutreach();
       const { parseNaturalTime } = await loadScheduler();
 
-      // Get user's timezone
-      const contact = await getUserContactInfo(userId);
-      const scheduledFor = parseNaturalTime(when || 'in 1 hour', contact?.timezone);
+      const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+      const scheduledFor = parseNaturalTime(when || 'in 1 hour', zone);
 
       if (!scheduledFor) {
         return "I couldn't understand that time. Try something like 'tomorrow at 9am' or 'in 2 hours'.";
@@ -166,11 +167,10 @@ async function execute(
 
         await recordPromise(userId, result.reminderId, scheduledFor, 'sms', message);
         await addToCalendar(userId, 'text', recipient || 'you', message, scheduledFor);
-
         return `Got it! I'll text ${recipient || 'you'} on ${timeStr}: "${message}"`;
       } else {
         if (result.error?.includes('phone')) {
-          return "I don't have a phone number on file. What's the best number to reach you at?";
+          return `I can't text you yet: there's no verified phone number on your account. ${WHERE_TO_ADD_NUMBER}`;
         }
         return `I couldn't schedule that: ${result.error}`;
       }
@@ -195,11 +195,11 @@ async function execute(
     }
 
     try {
-      const { scheduleCall, getUserContactInfo } = await loadOutreach();
+      const { scheduleCall } = await loadOutreach();
       const { parseNaturalTime } = await loadScheduler();
 
-      const contact = await getUserContactInfo(userId);
-      const scheduledFor = parseNaturalTime(when || 'in 1 hour', contact?.timezone);
+      const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+      const scheduledFor = parseNaturalTime(when || 'in 1 hour', zone);
 
       if (!scheduledFor) {
         return "I couldn't parse that time. Try 'tomorrow at 2pm' or 'in 30 minutes'.";
@@ -252,11 +252,11 @@ async function execute(
     }
 
     try {
-      const { scheduleEmail, getUserContactInfo } = await loadOutreach();
+      const { scheduleEmail } = await loadOutreach();
       const { parseNaturalTime } = await loadScheduler();
 
-      const contact = await getUserContactInfo(userId);
-      const scheduledFor = parseNaturalTime(when || 'in 1 hour', contact?.timezone);
+      const zone = userTimeZone({ sessionId: ctx.sessionId, userId }); // the call's own, never the raw profile's
+      const scheduledFor = parseNaturalTime(when || 'in 1 hour', zone);
 
       if (!scheduledFor) {
         return "I couldn't understand that time. Try 'Friday morning' or 'next week'.";
@@ -306,13 +306,13 @@ async function execute(
 
     try {
       const { textUser } = await loadOutreach();
-      const result = await textUser(userId, message, personaId);
+      const result = await textUser(userId, message, personaId, { askedNow: true });
 
       if (result.success) {
-        return `Done! I just texted ${recipient || 'you'}: "${message}"`;
+        return `Done! I just texted you: "${message}"`; // textUser reaches only the owner
       } else {
         if (result.error?.includes('phone')) {
-          return "I don't have a phone number on file. What's your number?";
+          return `I can't text you yet: there's no verified phone number on your account. ${WHERE_TO_ADD_NUMBER}`;
         }
         return `I couldn't send that: ${result.error}. Want me to schedule it instead?`;
       }

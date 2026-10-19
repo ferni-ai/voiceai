@@ -696,6 +696,7 @@ export interface ToolDefinition {
 
   /** External services required by this tool */
   requiredServices?: ExternalService[];
+  requiresEnv?: readonly string[]; // env vars it needs; never registered while one is unset (tool-availability.ts)
 
   /** Tool is experimental/beta */
   experimental?: boolean;
@@ -941,4 +942,3 @@ export default {
   EmptyServiceRegistry,
   EnvironmentServiceRegistry,
 };
-// CI trigger: 1765115360

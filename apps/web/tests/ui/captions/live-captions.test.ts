@@ -7,15 +7,25 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { CAPTIONS_V2_STORAGE_KEY, isCaptionsV2Enabled } from '@/ui/captions/captions-flag.js';
+import {
+  CAPTIONS_BREATH_STORAGE_KEY,
+  CAPTIONS_V2_STORAGE_KEY,
+  isCaptionsBreathEnabled,
+  isCaptionsV2Enabled,
+} from '@/ui/captions/captions-flag.js';
 import {
   applyTranscript,
+  breathDelay,
   captionsLayout,
   currentTurn,
   initLiveCaptions,
+  revealWords,
   renderLine,
   type CaptionEntry,
 } from '@/ui/captions/live-captions.js';
+import { captionsOn, mountCaptionsToggle } from '@/ui/captions/captions-toggle.js';
+import { continueAfterLabel, fitOneLine, renderChip } from '@/ui/captions/moment-chips.js';
+import { PREFERENCE_KEYS } from '@/config/storage-keys.js';
 import { CAPTIONS_CALL_CLASS } from '@/ui/captions/live-captions.styles.js';
 
 const say = (type: string, text: string, isFinal?: boolean): void => {
@@ -82,9 +92,9 @@ describe('currentTurn', () => {
     final: true,
   });
 
-  it("returns the newest speaker's run with notes inside it", () => {
-    const entries = [e('agent', 'a'), e('user', 'b'), e('agent', 'c'), e('note', 'n')];
-    expect(currentTurn(entries).map((x) => x.text)).toEqual(['c', 'n']);
+  it("returns the newest speaker's run", () => {
+    const entries = [e('agent', 'a'), e('user', 'b'), e('agent', 'c'), e('agent', 'd')];
+    expect(currentTurn(entries).map((x) => x.text)).toEqual(['c', 'd']);
   });
 
   it('caps a long turn at the last three utterances', () => {
@@ -129,41 +139,174 @@ describe('renderLine', () => {
   });
 });
 
+describe('revealWords', () => {
+  it('appends only the newly spoken words, so just they fade in', () => {
+    const line = document.createElement('p');
+    revealWords(line, '', 'That makes');
+    revealWords(line, 'That makes', 'That makes a lot of sense');
+    const spans = [...line.querySelectorAll('.ferni-caption-words')].map((w) => w.textContent);
+    expect(spans).toEqual(['That makes', ' a lot of sense']);
+    expect(line.textContent).toBe('That makes a lot of sense');
+  });
+
+  it('replaces the text when speech is corrected rather than extended', () => {
+    const line = document.createElement('p');
+    revealWords(line, '', 'I think I rush');
+    revealWords(line, 'I think I rush', 'I think I rushed it');
+    revealWords(line, 'I think I rushed it', 'I thought I rushed it');
+    expect([...line.querySelectorAll('.ferni-caption-words')]).toHaveLength(1);
+    expect(line.textContent).toBe('I thought I rushed it');
+  });
+});
+
+describe('captions toggle', () => {
+  afterEach(() => localStorage.removeItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION));
+
+  it('is off until someone chooses captions; the old desktop default does not count', () => {
+    expect(captionsOn()).toBe(false);
+    localStorage.setItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION, 'false');
+    expect(captionsOn()).toBe(false);
+    localStorage.setItem(PREFERENCE_KEYS.SHOW_TRANSCRIPTION, 'true');
+    expect(captionsOn()).toBe(true);
+  });
+
+  it('joins the in-call quick actions and flips captions with one tap', () => {
+    const row = document.createElement('div');
+    row.className = 'engagement-triggers';
+    document.body.append(row);
+    const onChange = vi.fn();
+    mountCaptionsToggle(onChange);
+    const button = row.querySelector<HTMLButtonElement>('.ferni-captions-toggle');
+    expect(button?.getAttribute('aria-pressed')).toBe('false');
+    button?.click();
+    expect(captionsOn()).toBe(true);
+    expect(button?.getAttribute('aria-pressed')).toBe('true');
+    expect(onChange).toHaveBeenCalledTimes(1);
+    button?.click();
+    expect(captionsOn()).toBe(false);
+  });
+});
+
+describe('moment chip text', () => {
+  it('lower-cases a sentence starter so it reads on from the label, but never a name', () => {
+    expect(continueAfterLabel('You started martial arts')).toBe('you started martial arts');
+    expect(continueAfterLabel("You've been sleeping better")).toBe("you've been sleeping better");
+    expect(continueAfterLabel('Your sister called')).toBe('your sister called');
+    expect(continueAfterLabel('My favourite part')).toBe('my favourite part');
+    expect(continueAfterLabel('Maya starts Monday')).toBe('Maya starts Monday');
+    expect(continueAfterLabel('Youngstown trip')).toBe('Youngstown trip');
+    expect(continueAfterLabel('I went running')).toBe('I went running');
+  });
+
+  const chipAt = (width: number): HTMLLIElement => {
+    const chip = renderChip({
+      key: 'k',
+      label: "I'll remember:",
+      shortLabel: 'Noted:',
+      text: 'you started martial arts on Tuesdays',
+    });
+    // Fake layout: every character is 10px wide.
+    Object.defineProperty(chip, 'scrollWidth', { get: () => (chip.textContent ?? '').length * 10 });
+    fitOneLine(chip, width);
+    return chip;
+  };
+  const parts = (chip: HTMLElement): [string | undefined, string | undefined] => [
+    chip.querySelector('.ferni-moment__label')?.textContent ?? undefined,
+    chip.querySelector('.ferni-moment__text')?.textContent ?? undefined,
+  ];
+
+  it('gives way label first: the short label keeps the whole fact', () => {
+    const chip = chipAt(430); // full 500px, "Noted:" 420px
+    expect(parts(chip)).toEqual(['Noted:', 'you started martial arts on Tuesdays']);
+    expect(chip.getAttribute('aria-label')).toBe(
+      "I'll remember: you started martial arts on Tuesdays"
+    );
+  });
+
+  it('then drops the label (dot stays) before cutting any of the fact', () => {
+    const chip = chipAt(400); // "Noted:" still 420px; no label 360px
+    expect(parts(chip)).toEqual([undefined, 'you started martial arts on Tuesdays']);
+    expect(chip.getAttribute('aria-label')).toBe(
+      "I'll remember: you started martial arts on Tuesdays"
+    );
+  });
+
+  it('keeps a chip to one line by dropping whole words, with the full text as its name', () => {
+    const chip = renderChip({
+      key: 'k',
+      label: "I'll remember:",
+      text: 'you started martial arts on Tuesdays',
+    });
+    // Fake layout: every character is 10px wide.
+    Object.defineProperty(chip, 'scrollWidth', { get: () => (chip.textContent ?? '').length * 10 });
+    fitOneLine(chip, 300);
+    const body = chip.querySelector('.ferni-moment__text')?.textContent ?? '';
+    expect(body.endsWith('…')).toBe(true);
+    expect((chip.textContent ?? '').length * 10).toBeLessThanOrEqual(300);
+    expect('you started martial arts on Tuesdays'.startsWith(body.slice(0, -1))).toBe(true);
+    expect(body).not.toMatch(/\s…$/);
+    expect(body).not.toMatch(/\b(on|at|the|and)…$/);
+    expect(chip.getAttribute('aria-label')).toBe(
+      "I'll remember: you started martial arts on Tuesdays"
+    );
+  });
+
+  it('leaves a chip alone when it already fits', () => {
+    const chip = renderChip({ key: 'k', text: 'Reminder set for 7:30' });
+    Object.defineProperty(chip, 'scrollWidth', { get: () => 100 });
+    fitOneLine(chip, 300);
+    expect(chip.textContent).toBe('Reminder set for 7:30');
+    expect(chip.hasAttribute('aria-label')).toBe(false);
+  });
+});
+
 describe('live captions region', () => {
   let enabled = true;
   const captions = initLiveCaptions(() => enabled);
+  const lines = (): string[] =>
+    [...document.querySelectorAll('.ferni-captions .ferni-caption-line')].map(
+      (l) => l.textContent ?? ''
+    );
 
   beforeEach(() => {
     enabled = true;
     captions.reset();
   });
 
-  it('renders transcript events in their own region, not the status pill', () => {
+  it('renders the current turn as plain words in their own region, no panel or labels', () => {
     say('user', 'I rushed it because he kept checking his watch', true);
     say('agent', 'That makes a lot of sense', false);
     const region = document.querySelector('.ferni-captions');
     expect(region?.classList.contains('ferni-captions--visible')).toBe(true);
     expect(region?.closest('#statusIsland')).toBeNull();
-    // Only the current turn shows, under its speaker's name; the user's turn
-    // is kept in the history rather than left under "Ferni".
-    const lines = [...document.querySelectorAll('.ferni-captions .ferni-caption-line')];
-    expect(lines.map((l) => l.textContent)).toEqual(['That makes a lot of sense']);
-    expect(document.querySelector('.ferni-captions__header')?.textContent).toContain('Ferni');
+    expect(lines()).toEqual(['That makes a lot of sense']);
+    expect(document.querySelector('.ferni-captions .ferni-caption-line__name')).toBeNull();
     expect(captions.history().map((e) => e.speaker)).toEqual(['user', 'agent']);
+  });
+
+  it('grows the live line word by word instead of redrawing it', () => {
+    say('agent', 'That makes', false);
+    const line = document.querySelector('.ferni-captions .ferni-caption-line');
+    say('agent', 'That makes a lot of sense', false);
+    expect(document.querySelector('.ferni-captions .ferni-caption-line')).toBe(line);
+    expect(line?.querySelectorAll('.ferni-caption-words')).toHaveLength(2);
   });
 
   it('keeps only the last three utterances on screen and the rest in history', () => {
     for (let i = 0; i < 5; i++) say('agent', `line ${i}`, true);
-    expect(document.querySelectorAll('.ferni-captions .ferni-caption-line')).toHaveLength(3);
+    expect(lines()).toHaveLength(3);
     expect(captions.history()).toHaveLength(5);
   });
 
-  it('hides while the transcription setting is off', () => {
-    say('agent', 'Hello', true);
+  it('hides while captions are off, and shows the turn in progress when switched on', () => {
     enabled = false;
-    say('agent', 'Still talking', true);
+    say('agent', 'Still talking', false);
     const region = document.querySelector('.ferni-captions');
     expect(region?.classList.contains('ferni-captions--visible') ?? false).toBe(false);
+    enabled = true;
+    captions.refresh();
+    expect(document.querySelector('.ferni-captions--visible')).not.toBeNull();
+    expect(lines()).toEqual(['Still talking']);
   });
 
   it('forgets the conversation when the call disconnects', () => {
@@ -172,20 +315,69 @@ describe('live captions region', () => {
       new CustomEvent('ferni:connection-state', { detail: { state: 'disconnected' } })
     );
     expect(captions.history()).toHaveLength(0);
-    expect(document.querySelectorAll('.ferni-captions .ferni-caption-line')).toHaveLength(0);
+    expect(lines()).toHaveLength(0);
   });
 
-  it('shows in-call feedback as a quiet note, without taking the speaker header', () => {
-    say('agent', 'Saving that for you', true);
+  it('shows what Ferni is holding on to as a chip, even with captions off', () => {
+    vi.useFakeTimers();
+    enabled = false;
+    window.dispatchEvent(
+      new CustomEvent('ferni:backend-trust-signal', {
+        detail: { type: 'callback', title: 'Remember when', message: 'Martial arts on Tuesdays' },
+      })
+    );
     window.dispatchEvent(
       new CustomEvent('ferni:inline-feedback', {
         detail: { message: 'Reminder set for 7:30', tone: 'success', key: 'reminder' },
       })
     );
-    const note = document.querySelector('.ferni-captions .ferni-caption-note');
-    expect(note?.textContent).toBe('Reminder set for 7:30');
-    expect(note?.querySelector('.ferni-caption-line__name')).toBeNull();
-    expect(document.querySelector('.ferni-captions__header')?.textContent).toContain('Ferni');
+    const chips = (): string[] =>
+      [...document.querySelectorAll('.ferni-captions .ferni-moment')].map(
+        (c) => c.textContent ?? ''
+      );
+    // One moment at a time: the newest.
+    expect(chips()).toEqual(['Reminder set for 7:30']);
+    const region = document.querySelector('.ferni-captions');
+    expect(region?.classList.contains('ferni-captions--visible')).toBe(true);
+    expect(region?.classList.contains('ferni-captions--words-off')).toBe(true);
+    // An update to the same moment replaces it.
+    window.dispatchEvent(
+      new CustomEvent('ferni:inline-feedback', {
+        detail: { message: 'Reminder moved to 8:00', key: 'reminder' },
+      })
+    );
+    expect(chips()).toEqual(['Reminder moved to 8:00']);
+    // Chips settle away, and the region goes with them.
+    vi.advanceTimersByTime(15_000);
+    expect(chips()).toEqual([]);
+    expect(region?.classList.contains('ferni-captions--visible')).toBe(false);
+    vi.useRealTimers();
+  });
+
+  it('speaks a memory callback in Ferni\'s voice: "I\'ll remember: you started…"', () => {
+    window.dispatchEvent(
+      new CustomEvent('ferni:backend-trust-signal', {
+        detail: {
+          type: 'callback',
+          title: 'Remember when',
+          message: 'You started martial arts on Tuesdays',
+        },
+      })
+    );
+    const chip = document.querySelector('.ferni-captions .ferni-moment');
+    expect(chip?.querySelector('.ferni-moment__label')?.textContent).toBe("I'll remember:");
+    expect(chip?.querySelector('.ferni-moment__text')?.textContent).toBe(
+      'you started martial arts on Tuesdays'
+    );
+  });
+
+  it('keeps private trust signals (reading between the lines) off screen', () => {
+    window.dispatchEvent(
+      new CustomEvent('ferni:backend-trust-signal', {
+        detail: { type: 'reading_lines', title: 'I sense', message: 'You sound tired' },
+      })
+    );
+    expect(document.querySelectorAll('.ferni-captions .ferni-moment')).toHaveLength(0);
   });
 
   it('moves the persona picker aside for the whole call while captions are on', () => {
@@ -210,26 +402,120 @@ describe('live captions region', () => {
     expect(css).toContain(`.${CAPTIONS_CALL_CLASS} #teamRoster { display: none; }`);
   });
 
+  it('moves the picker with the captions switch, before anyone speaks again', () => {
+    document.body.dataset.connected = 'true';
+    enabled = false;
+    captions.refresh();
+    expect(document.body.classList.contains(CAPTIONS_CALL_CLASS)).toBe(false);
+    enabled = true; // the captions button turned them on mid-call
+    captions.refresh();
+    expect(document.body.classList.contains(CAPTIONS_CALL_CLASS)).toBe(true);
+    enabled = false; // and off again: the picker comes back
+    captions.refresh();
+    expect(document.body.classList.contains(CAPTIONS_CALL_CLASS)).toBe(false);
+    delete document.body.dataset.connected;
+  });
+
   it('retires the status-island pill once captions v2 is on', () => {
     const css = document.getElementById('ferni-captions-styles')?.textContent ?? '';
     expect(css).toMatch(/#transcriptContainer\s*\{\s*display:\s*none/);
   });
 
-  it('opens every turn in the transcript sheet from the expand button', () => {
+  it('opens the conversation so far from the words, by tap or keyboard', () => {
     const showModal = vi.fn(function (this: HTMLDialogElement) {
       this.setAttribute('open', '');
     });
     HTMLDialogElement.prototype.showModal = showModal;
     say('user', 'First thing', true);
     say('agent', 'Second thing', true);
-    // The live region shows only Ferni's turn; the sheet keeps both.
-    expect(document.querySelectorAll('.ferni-captions .ferni-caption-line')).toHaveLength(1);
-    document.querySelector<HTMLButtonElement>('.ferni-captions__expand')?.click();
+    const words = document.querySelector<HTMLElement>('.ferni-captions__viewport');
+    expect(words?.getAttribute('role')).toBe('button');
+    words?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     expect(showModal).toHaveBeenCalledTimes(1);
     const items = [...document.querySelectorAll('.ferni-transcript-sheet li')];
     expect(items.map((li) => li.textContent)).toEqual(['YouFirst thing', 'FerniSecond thing']);
-    expect(document.querySelector('.ferni-transcript-sheet')?.getAttribute('aria-labelledby')).toBe(
-      'ferni-transcript-sheet-title'
-    );
+  });
+});
+
+describe('captions-breath flag', () => {
+  afterEach(() => {
+    localStorage.removeItem(CAPTIONS_BREATH_STORAGE_KEY);
+    localStorage.removeItem(CAPTIONS_V2_STORAGE_KEY);
+    vi.unstubAllEnvs();
+  });
+
+  it('is off by default, and needs captions v2 on as well', () => {
+    expect(isCaptionsBreathEnabled()).toBe(false);
+    vi.stubEnv('VITE_CAPTIONS_BREATH', 'true');
+    expect(isCaptionsBreathEnabled()).toBe(false);
+  });
+
+  it('turns on with captions v2 and the breath flag', () => {
+    localStorage.setItem(CAPTIONS_V2_STORAGE_KEY, 'true');
+    vi.stubEnv('VITE_CAPTIONS_BREATH', 'true');
+    expect(isCaptionsBreathEnabled()).toBe(true);
+  });
+
+  it('lets one browser switch it off again', () => {
+    localStorage.setItem(CAPTIONS_V2_STORAGE_KEY, 'true');
+    vi.stubEnv('VITE_CAPTIONS_BREATH', 'true');
+    localStorage.setItem(CAPTIONS_BREATH_STORAGE_KEY, 'false');
+    expect(isCaptionsBreathEnabled()).toBe(false);
+  });
+});
+
+describe('breath words', () => {
+  const agentLine = (): HTMLElement =>
+    renderLine({ speaker: 'agent', text: '', final: false }, false);
+  const words = (line: HTMLElement): HTMLElement[] => [
+    ...line.querySelectorAll<HTMLElement>('.ferni-caption-word'),
+  ];
+
+  it('caps the stagger so a long burst still lands quickly', () => {
+    expect(breathDelay(0)).toBe(0);
+    expect(breathDelay(3)).toBe(420);
+    expect(breathDelay(40)).toBe(breathDelay(8));
+  });
+
+  it('staggers each word and keeps the text a screen reader reads', () => {
+    const line = agentLine();
+    revealWords(line, '', 'Then let us', true);
+    expect(words(line).map((w) => w.textContent)).toEqual(['Then', 'let', 'us']);
+    expect(words(line).map((w) => w.style.getPropertyValue('--ferni-word-delay'))).toEqual([
+      '0ms',
+      '140ms',
+      '280ms',
+    ]);
+    expect(line.textContent).toBe('Then let us');
+  });
+
+  it('grows a word that is still being spoken in its own span', () => {
+    const line = agentLine();
+    revealWords(line, '', 'Then let', true);
+    revealWords(line, 'Then let', 'Then lets', true);
+    expect(words(line).map((w) => w.textContent)).toEqual(['Then', 'lets']);
+    expect(line.textContent).toBe('Then lets');
+  });
+
+  it('swaps a correction in quietly, without a second rise', () => {
+    const line = agentLine();
+    revealWords(line, '', 'Then let us', true);
+    revealWords(line, 'Then let us', 'Than let us', true);
+    expect(words(line).map((w) => w.textContent)).toEqual(['Than', 'let', 'us']);
+    expect(words(line).every((w) => w.classList.contains('ferni-caption-word--quiet'))).toBe(true);
+  });
+
+  it('leaves the caller line as plain text', () => {
+    const line = renderLine({ speaker: 'user', text: '', final: false }, false);
+    revealWords(line, '', 'I think so', true);
+    expect(words(line)).toEqual([]);
+    expect(line.textContent).toBe('I think so');
+  });
+
+  it('without breath, the words arrive as one run, as before', () => {
+    const line = agentLine();
+    revealWords(line, '', 'Then let us');
+    expect(words(line)).toEqual([]);
+    expect(line.querySelector('.ferni-caption-words')?.textContent).toBe('Then let us');
   });
 });

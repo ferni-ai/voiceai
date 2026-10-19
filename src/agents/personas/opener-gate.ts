@@ -8,34 +8,59 @@
  * OPENER_EVERY replies and otherwise drops it before the words reach TTS and
  * captions: "Ha! Oh, of course he did." becomes "Of course he did."
  *
+ * FERNI_PLAYFUL=on: a bright turn whose reminder invited a reaction word
+ * (ferni-playful.ts) keeps it, but a kept word still comes at most once in
+ * PLAYFUL_GAP replies and never twice running, so not every reply opens "Oh".
+ * Every reaction word he uses counts toward that ("wow", "dude", "oh man"),
+ * not only the stock ones: the playful turn invites more of them.
+ *
  * @module agents/personas/opener-gate
  */
 
 import type { llm } from '@livekit/agents';
 import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 
+import { flagOn } from '../../config/env-flag.js';
+import { leadingBurst, withoutBurst, withRenderedBurst } from './vocal-bursts.js';
+
 export const OPENER_EVERY = 3;
+/** FERNI_PLAYFUL: a reaction word is kept on at most one reply in this many. */
+export const PLAYFUL_GAP = 3;
 /** Characters of a reply to see before deciding (enough for "Ha! Oh, well,"). */
 const DECIDE_AFTER = 24;
 
 const TAG_PREFIX = /^(\s*(?:<[^>]+>\s*)*)/;
 // Not "well": it opens real content ("Well done!"), not only a reaction.
 const INTERJECTION = /^(?:oh+|ugh+|ha(?:ha)*|hah|yeah|yep|hmm+|mm+|ah+|aw+|wow|whoa)\b[\s,.!…-]*/i;
+/** FERNI_PLAYFUL: every reaction word Ferni opens with, so each one counts toward the limit. */
+export const PLAYFUL_INTERJECTION =
+  /^(?:o+h+|ugh+|ha(?:ha)*|hah|heh|yeah|yep|hmm+|mm+|ah+|aw+|wow+|whoa+|dude|man|huh|yikes|geez|jeez|gosh|dang|damn|boy|whew|phew)\b[\s,.!…-]*/i;
 
 /**
  * Drop leading reaction words, keeping any leading markup tag. Leaves the
  * text alone when nothing substantive follows (a reply that is only "Oh?").
  */
-export function stripStockOpener(text: string): { text: string; stripped: boolean } {
+export function stripStockOpener(
+  text: string,
+  words: RegExp = INTERJECTION
+): { text: string; stripped: boolean } {
   const tag = TAG_PREFIX.exec(text)?.[1] ?? '';
   let rest = text.slice(tag.length);
   let stripped = false;
-  for (let m = INTERJECTION.exec(rest); m && m[0].length > 0; m = INTERJECTION.exec(rest)) {
+  for (let m = words.exec(rest); m && m[0].length > 0; m = words.exec(rest)) {
     rest = rest.slice(m[0].length);
     stripped = true;
   }
   if (!stripped || !/[A-Za-z]/.test(rest.slice(0, 1))) return { text, stripped: false };
   return { text: tag + rest.charAt(0).toUpperCase() + rest.slice(1), stripped: true };
+}
+
+/** The reaction word a reply opens with, normalised ("Hahaha!" is "ha", "Ohh," is "oh"), or null. */
+export function openerWord(text: string, words: RegExp = INTERJECTION): string | null {
+  const m = words.exec(text.slice((TAG_PREFIX.exec(text)?.[1] ?? '').length));
+  if (!m) return null;
+  const word = m[0].toLowerCase().replace(/[^a-z]/g, '');
+  return /^(?:ha)+h?$/.test(word) ? 'ha' : word.replace(/(.)\1+/g, '$1');
 }
 
 /** A whole first word: letters/digits followed by something that ends it. */
@@ -50,14 +75,14 @@ const WHOLE_WORD = /^([A-Za-z0-9']+)(?=[^A-Za-z0-9'])/;
  * every reply's first words that long. The decision is the same text either
  * way; only when it is made moves.
  */
-export function openingDecidable(text: string): boolean {
+export function openingDecidable(text: string, words: RegExp = INTERJECTION): boolean {
   let rest = text.replace(TAG_PREFIX, '');
   if (rest.length >= DECIDE_AFTER) return true;
   for (;;) {
     rest = rest.replace(/^[\s,.!?…-]+/, '');
     const word = WHOLE_WORD.exec(rest);
     if (!word) return false; // the next word (or markup) isn't whole yet
-    if (!INTERJECTION.test(rest)) return true; // a real word: nothing left to strip
+    if (!words.test(rest)) return true; // a real word: nothing left to strip
     rest = rest.slice(word[1].length);
   }
 }
@@ -93,45 +118,90 @@ function contentOf(chunk: Chunk): string | undefined {
 /** Per-agent gate: keeps a reaction-word opener at most every `every` replies. */
 export class OpenerGate {
   private repliesSinceKept: number;
+  /** FERNI_PLAYFUL: replies since a reaction word was kept, and which word it was. */
+  private turnsSinceKept = PLAYFUL_GAP;
+  private lastKept: string | null = null;
+  /** The reaction words this gate counts: every one Ferni uses with FERNI_PLAYFUL on. */
+  private readonly words: RegExp;
 
   /**
    * `early`: decide as soon as the opening is decidable (openingDecidable)
    * instead of after DECIDE_AFTER characters. OPENER_GATE_EARLY=on.
+   * `playful`: FERNI_PLAYFUL=on, a bright turn may keep its word (mayKeep).
    */
   constructor(
     private readonly every: number = OPENER_EVERY,
-    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on'
+    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on',
+    private readonly playful: boolean = flagOn('FERNI_PLAYFUL')
   ) {
     this.repliesSinceKept = every; // the first reply may keep one
+    this.words = playful ? PLAYFUL_INTERJECTION : INTERJECTION;
   }
 
   /**
    * Decide for one reply's opening text. `openedBySound`: a turn-opening clip
    * already said "Mm" (turn-opening-sound.ts), so the reply's own reaction word
-   * goes, and the clip counts as this reply's kept opener.
+   * goes, and the clip counts as this reply's kept opener. `burst`
+   * (VOCAL_BURSTS=on) is whether this reply may open with a vocal burst: one it
+   * may is kept, in the spelling that renders; one it may not is dropped, as is
+   * any burst after a turn-opening clip. Undefined: as before. `bright`: the
+   * reminder invited a reaction word on a bright turn (FERNI_PLAYFUL).
    */
-  decide(opening: string, openedBySound = false): string {
-    const { text, stripped } = stripStockOpener(opening);
+  decide(opening: string, openedBySound = false, burst?: boolean, bright = false): string {
+    this.turnsSinceKept++;
+    const found = burst === undefined ? null : leadingBurst(opening);
+    if (found && burst && !openedBySound) {
+      this.kept(null);
+      return capitalizeStart(withRenderedBurst(opening, found));
+    }
+    if (found) opening = capitalizeStart(withoutBurst(opening, found));
+    const { text, stripped } = stripStockOpener(opening, this.words);
     if (openedBySound) {
-      this.repliesSinceKept = 0;
+      this.kept('mm');
       return stripped ? text : capitalizeStart(opening);
     }
     if (!stripped) return capitalizeStart(opening);
-    if (this.repliesSinceKept >= this.every) {
-      this.repliesSinceKept = 0;
+    if (this.mayKeep(opening, bright)) {
+      this.kept(openerWord(opening, this.words));
       return capitalizeStart(opening);
     }
     this.repliesSinceKept++;
     return text;
   }
 
-  /** Wrap one reply's LLM stream; `openedBySound` is asked when the opening is decided. */
+  private kept(word: string | null): void {
+    this.repliesSinceKept = 0;
+    this.turnsSinceKept = 0;
+    this.lastKept = word;
+  }
+
+  /**
+   * Off: one every `every` replies that opened on a reaction word. With
+   * FERNI_PLAYFUL also on a bright turn, but never within PLAYFUL_GAP replies
+   * of the last kept word and never the same word twice running.
+   */
+  private mayKeep(opening: string, bright: boolean): boolean {
+    const due = this.repliesSinceKept >= this.every;
+    if (!this.playful) return due;
+    const word = openerWord(opening, this.words);
+    if (this.turnsSinceKept < PLAYFUL_GAP || word === this.lastKept) return false;
+    return due || bright;
+  }
+
+  /**
+   * Wrap one reply's LLM stream; `openedBySound` is asked when the opening is
+   * decided; `burst` and `bright` as in decide.
+   */
   wrap(
     input: ReadableStream<Chunk>,
-    openedBySound: () => boolean = () => false
+    openedBySound: () => boolean = () => false,
+    burst?: boolean,
+    bright = false
   ): ReadableStream<Chunk> {
-    const decide = (opening: string): string => this.decide(opening, openedBySound());
+    const decide = (opening: string): string =>
+      this.decide(opening, openedBySound(), burst, bright);
     const early = this.early;
+    const words = this.words;
     let buffered = '';
     let template: Chunk | null = null;
     let decided = false;
@@ -162,7 +232,7 @@ export class OpenerGate {
             buffered += content;
             template = chunk;
             const ready = early
-              ? openingDecidable(buffered)
+              ? openingDecidable(buffered, words)
               : buffered.replace(TAG_PREFIX, '').length >= DECIDE_AFTER;
             if (ready) release(controller);
           }

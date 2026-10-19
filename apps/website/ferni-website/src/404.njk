@@ -1,7 +1,8 @@
 ---
 layout: layouts/story-brand.njk
-title: "{{ 'errorPage.title' | t }}"
-description: "{{ 'errorPage.subtitle' | t }}"
+eleventyComputed:
+  title: "{{ 'errorPage.title' | t }}"
+  description: "{{ 'errorPage.subtitle' | t }}"
 permalink: /404.html
 ---
 
@@ -38,7 +39,7 @@ permalink: /404.html
           <p class="error-hero__suggestions-label">{{ 'errorPage.suggestionsLabel' | t }}</p>
           <div class="error-hero__links">
             <a href="{{ '/#team' | localizeUrl }}" class="error-hero__link">{{ 'errorPage.meetTeam' | t }}</a>
-            <a href="{{ '/#founders' | localizeUrl }}" class="error-hero__link">{{ 'errorPage.supportFerni' | t }}</a>
+            <a href="{{ '/give/' | localizeUrl }}" class="error-hero__link">{{ 'errorPage.supportFerni' | t }}</a>
             <a href="{{ '/#faq' | localizeUrl }}" class="error-hero__link">{{ 'errorPage.readFaq' | t }}</a>
             <a href="{{ '/blog/' | localizeUrl }}" class="error-hero__link">{{ 'errorPage.readBlog' | t }}</a>
           </div>

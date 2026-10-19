@@ -1,0 +1,136 @@
+{
+  "calls": [
+    {
+      "name": "web afternoon (the dev call)",
+      "start": "2026-10-11T19:15:00Z",
+      "browserZone": "America/New_York",
+      "turns": [
+        {
+          "at": 0,
+          "said": "hey ferni"
+        },
+        {
+          "at": 3,
+          "said": "what time is it?"
+        },
+        {
+          "at": 5,
+          "said": "it's getting late huh"
+        },
+        {
+          "at": 8,
+          "said": "did you see the game last night?",
+          "needsTool": true
+        },
+        {
+          "at": 10,
+          "said": "what's the weather doing?",
+          "needsTool": true
+        }
+      ]
+    },
+    {
+      "name": "long web call crossing hours",
+      "start": "2026-10-12T00:40:00Z",
+      "browserZone": "America/New_York",
+      "turns": [
+        {
+          "at": 0,
+          "said": "hey, what's up"
+        },
+        {
+          "at": 10,
+          "said": "what are you up to tonight?"
+        },
+        {
+          "at": 38,
+          "said": "what time is it now?"
+        },
+        {
+          "at": 81,
+          "said": "ok it's gotta be late now, what time is it?"
+        }
+      ]
+    },
+    {
+      "name": "phone call, profile zone, saved home",
+      "start": "2026-10-11T23:30:00Z",
+      "profileZone": "America/Chicago",
+      "home": "Chicago, IL",
+      "turns": [
+        {
+          "at": 0,
+          "said": "what time is it?"
+        },
+        {
+          "at": 2,
+          "said": "what's the weather doing?",
+          "needsTool": true
+        },
+        {
+          "at": 4,
+          "said": "anything big in the news today?",
+          "needsTool": true
+        }
+      ]
+    },
+    {
+      "name": "phone call, no zone at all",
+      "start": "2026-10-11T13:05:00Z",
+      "turns": [
+        {
+          "at": 0,
+          "said": "morning ferni"
+        },
+        {
+          "at": 2,
+          "said": "what time is it?"
+        },
+        {
+          "at": 4,
+          "said": "is it late where you are?"
+        }
+      ]
+    },
+    {
+      "name": "Thanksgiving afternoon, Chicago",
+      "start": "2026-11-26T22:00:00Z",
+      "browserZone": "America/Chicago",
+      "turns": [
+        {
+          "at": 0,
+          "said": "what are you up to today?"
+        },
+        {
+          "at": 2,
+          "said": "did the cowboys win?",
+          "needsTool": true
+        },
+        {
+          "at": 4,
+          "said": "it's late, I should probably go"
+        }
+      ]
+    },
+    {
+      "name": "across midnight",
+      "start": "2026-10-12T03:50:00Z",
+      "browserZone": "America/New_York",
+      "turns": [
+        {
+          "at": 0,
+          "said": "what day is it?"
+        },
+        {
+          "at": 25,
+          "said": "what day is it now?"
+        }
+      ]
+    }
+  ],
+  "toolResults": {
+    "getWeather": "Right now in Chicago, Illinois: 52°F with light rain. Wind 12 mph.",
+    "getNews": "Top story: NASA delays its next crewed Moon launch to spring.",
+    "getSports": "Dallas Cowboys beat the New York Giants 27-20 on Thursday."
+  }
+}

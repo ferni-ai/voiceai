@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "{language}に切り替えます",
+    "seeYou": "またね！",
+    "callVoicemail": "{name}さんに留守電を残しました",
+    "callNoAnswer": "{name}さんにつながりませんでした。あとでかけ直しましょうか？",
+    "callFailed": "{name}さんへの発信がうまくいきませんでした",
+    "callBack": "{name}さんが折り返しの電話を待っています",
+    "followUp": "{name}さんが連絡を待っています"
+  },
   "accessibility": {
     "accountMenu": "アカウントメニュー",
     "accountSettings": "アカウント設定",
@@ -1522,7 +1531,7 @@
         "title": "話しかけるだけ"
       },
       "welcome": {
-        "description": "あなた専属のAIライフコーチのチームです。それぞれのコーチが独自の知恵で、あなたの道のりをサポートします。",
+        "description": "あなた専属のガイドのチームです。それぞれが独自の視点を持っています。",
         "title": "Ferniへようこそ"
       }
     },
@@ -2100,8 +2109,8 @@
     "couldNotDisconnect": "連携を解除できませんでした。もう一度試してみてくださいね。",
     "sonosConnected": "Sonosに接続しました！",
     "transcribing": "文字起こし中...",
-    "transcriptionUnavailable": "文字起こしを利用できません。音声のみを保存します。",
-    "audioSaved": "音声を保存しました！",
+    "transcriptionUnavailable": "今回は言葉を聞き取れなかったので、何も保存していません。もう一度試しますか？",
+    "journalTooLong": "少し長いみたい。{count}分以内でもう一度どうぞ。",
     "entrySaved": "エントリーを保存しました！",
     "couldNotSaveEntry": "エントリーを保存できませんでした。もう一度試してみてくださいね。",
     "profileSaved": "プロフィールを保存しました！",
@@ -2219,7 +2228,6 @@
       "other": "{count}件の連絡先をインポートしました！"
     },
     "integrationNowConnected": "{integration}と接続しました！",
-    "inviteSentTo": "{email}に招待を送信しました！",
     "householdMemberRemoved": "{name}を削除しました",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name}をあなたのチームに追加しました",
@@ -3460,6 +3468,25 @@
     "fieldRelationship": "間柄",
     "fieldWhatShouldFerniCallThem": "Ferni はその方を何とお呼びすればいいですか？",
     "fieldNotesForFerni": "Ferni へのメモ",
+    "callConsentLabel": "Ferni からの電話を歓迎しています",
+    "callConsentHint": "Ferni がときどき様子をうかがう電話をかけることに同意しています。いつでもやめるよう伝えられます。",
+    "callConsentSaved": "保存しました",
+    "callConsentFailed": "保存できませんでした。もう一度お試しください。",
+    "callConsentLoadFailed": "Ferni からの電話を歓迎しているか読み込めませんでした。開き直してもう一度お試しください。",
+    "checkinTitle": "Ferni はいつ様子をうかがいますか？",
+    "checkinHint": "この時間に Ferni が短い電話をかけて、様子をうかがいます。",
+    "checkinFrequencyLabel": "頻度",
+    "checkinDaily": "毎日",
+    "checkinWeekly": "週に1回",
+    "checkinDayLabel": "曜日",
+    "checkinTimeLabel": "時刻",
+    "checkinTimezone": "時刻は {zone} です。",
+    "checkinSave": "電話の時間を保存",
+    "checkinRemove": "定期的な電話をやめる",
+    "checkinSaved": "保存しました。この時間に Ferni が電話します。",
+    "checkinRemoved": "定期的な電話はオフです。",
+    "checkinFailed": "保存できませんでした。もう一度お試しください。",
+    "checkinLoadFailed": "電話の時間を読み込めませんでした。開き直してもう一度お試しください。",
     "cancel": "キャンセル",
     "addToFamily": "ファミリーに追加",
     "relationshipMother": "お母さん",
@@ -3549,7 +3576,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "あなただけのAIパートナー",
+        "role": "あなただけのパートナー",
         "description": "毎日のチェックインから深いお話まで、あなたが必要なときはいつでもここにいます。",
         "unlockHint": "いつでもあなたのそばに",
         "unlockedMessage": "私たち、たくさんのことを一緒に乗り越えてきましたね。",
@@ -3620,11 +3647,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — あなたのAIライフパートナー",
+      "title": "Ferniに会ってみて",
       "message": "Ferniを使い始めてから、毎日の過ごし方が本当に変わったよ。一緒に始めてみない？ {url}",
       "shortMessage": "Ferniで一緒に始めよう！ {url}",
-      "emailSubject": "Ferniを使ってみて",
-      "emailBody": "やあ！Ferniっていうアプリを使っているんだけど、本当に人間みたいに温かいAIパートナーなんだ。君もきっと気に入ると思うよ。 {url}"
+      "emailSubject": "Ferniを使ってみて"
     },
     "modal": {
       "title": "成長をシェアしよう",
@@ -3857,10 +3883,12 @@
       "create": "エージェントを作成",
       "empty": "エージェントはまだありません",
       "emptyHint": "最初のエージェントを作成して、大切な人の声を残したり、メンターを育てたり、あなただけのパートナーをデザインしてみましょう。",
+      "emptyHintWithoutVoice": "最初のエージェントを作成して、大切な人の思い出を残したり、メンターを育てたり、あなただけのパートナーをデザインしてみましょう。",
       "createFirst": "最初のエージェントを作成する",
       "whatYouCan": "作成できるもの",
       "legacy": "レガシー",
       "legacyDesc": "大切な人の声や知恵を未来に残す",
+      "legacyDescWithoutVoice": "大切な人の思い出や知恵を未来に残す",
       "mentor": "メンター",
       "mentorDesc": "憧れの人物をモデルにしたコーチを作成する",
       "twin": "デジタルツイン",
@@ -4535,7 +4563,7 @@
     "title": "エージェントページの作成",
     "nameLabel": "エージェント名",
     "namePlaceholder": "例：Nate Holloway",
-    "nameHint": "AIエージェントのフルネーム",
+    "nameHint": "エージェントのフルネーム",
     "initialsLabel": "イニシャル",
     "initialsPlaceholder": "例：JD",
     "initialsHint": "アバターに表示されます（2〜3文字）",
@@ -5063,7 +5091,8 @@
     },
     "voiceStep": {
       "title": "どんな声がいいですか？",
-      "subtitle": "声を選ぶか、クローンを作成します"
+      "subtitle": "声を選ぶか、クローンを作成します",
+      "subtitleWithoutClone": "声を選びます"
     },
     "voiceOption": {
       "cloneTitle": "声をクローンする",
@@ -7236,6 +7265,7 @@
     "legacy": {
       "name": "レガシー",
       "description": "大切な人の声と知恵を、ずっと残しておけます",
+      "descriptionWithoutVoice": "大切な人の思い出と知恵を、ずっと残しておけます",
       "feature1": "録音からの音声クローニング",
       "feature2": "お話や思い出を記録",
       "feature3": "知恵やお気に入りの言葉を保存",
@@ -7254,8 +7284,7 @@
       "description": "あなたと一緒に成長する、あなただけの音声ジャーナル",
       "feature1": "日々の音声ジャーナルを記録",
       "feature2": "過去の自分とお話する",
-      "feature3": "これまでの成長を振り返る",
-      "feature4": "AIによる気づきの生成"
+      "feature3": "これまでの成長を振り返る"
     },
     "fictional": {
       "name": "フィクション",
@@ -9466,11 +9495,22 @@
     "rememberEmpty": "今回は新しく覚えておくことはありません。一緒に過ごしてくれてありがとう。",
     "nextStepTitle": "次のやさしい一歩",
     "invitation": "いつでも戻ってきてください。ここで待っています。",
-    "close": "閉じる"
+    "close": "閉じる",
+    "seeCost": "この通話の費用",
+    "feedbackQuestion": "今回の会話はどうでしたか？",
+    "feedbackThanks": "ありがとう、参考になります。",
+    "pushAskQuestion": "このことについて、Ferniから様子を聞いてもいい？",
+    "pushAskYes": "うん、お願い",
+    "pushAskNotNow": "今はいい",
+    "pushAskDone": "設定しました。Ferniからのメッセージがこの端末に届きます。",
+    "pushAskLater": "大丈夫です。あとで設定から変更できます。",
+    "pushAskHomeScreen": "ここでFerniからのメッセージを受け取るには、ホーム画面にFerniを追加してください：共有をタップし、「ホーム画面に追加」を選びます。",
+    "pushAskGotIt": "わかった"
   },
   "moments": {
     "teamUnlockTitle": "{name}をご紹介します",
     "niceWork": "よく頑張りましたね",
+    "remembered": "覚えておきますね：{summary}",
     "streakSubtitle": "続けてお話できていますね。それが何より大切です。",
     "streakTitle": {
       "other": "{count}日連続のストリーク",
@@ -9757,7 +9797,7 @@
     },
     "marketplace": {
       "headline": "あなたにぴったりの相手を見つけましょう。",
-      "description": "Ferniのコアチームだけでなく、専門的なAIコーチたちが集まるお庭があなたを待っています。ADHDサポート、禁酒のパートナー、睡眠スペシャリスト、子育てガイドなど、あなたの特別な道のりを理解してくれる専門家たちです。",
+      "description": "Ferniのコアチームだけでなく、専門的なコーチたちが集まるお庭があなたを待っています。ADHDサポート、禁酒のパートナー、睡眠スペシャリスト、子育てガイドなど、あなたの特別な道のりを理解してくれる専門家たちです。",
       "superhuman1": "専門的なペルソナ — 人生の特定の課題に特化したコーチ",
       "superhuman2": "コミュニティの評価 — 実際の体験、リアルなレビュー",
       "superhuman3": "無料とプレミアム — あらゆる予算に合わせたサポート",
@@ -9765,7 +9805,7 @@
     },
     "developerPortal": {
       "headline": "大切なものを形にしましょう。",
-      "description": "Ferniのテクノロジーがオープンになります。あなた自身のAIコーチを構築し、専門的なペルソナを作成して、あなたが提供するものをまさに必要としている人々に届けましょう。Ferniを支えるプラットフォームが、あなたのものになります。",
+      "description": "Ferniのテクノロジーがオープンになります。あなた自身のコーチを構築し、専門的なペルソナを作成して、あなたが提供するものをまさに必要としている人々に届けましょう。Ferniを支えるプラットフォームが、あなたのものになります。",
       "superhuman1": "完全なAPIドキュメント — 開発に必要なすべてがここに",
       "superhuman2": "SDKとライブラリ — TypeScriptファーストの開発",
       "superhuman3": "ペルソナビルダー — コーチを作成するためのビジュアルツール",
@@ -9891,6 +9931,7 @@
     "timeout": "接続に時間がかかりすぎてしまいました。接続状況を確認して、もう一度試してみますか？",
     "network": "Ferniに接続できませんでした。インターネット接続を確認して、もう一度試してみますか？",
     "dropped": "接続が切れてしまいました。再接続しますか？",
+    "agentLeft": "Ferniとの通話が切れてしまいました。再接続しますか？",
     "unknown": "接続できませんでした。もう一度試してみますか？"
   },
   "ambientSounds": {
@@ -10460,7 +10501,7 @@
   },
   "ferniAwakens": {
     "greeting": "こんにちは。",
-    "subtext": "私はFerni、あなたのAIライフコーチです。"
+    "subtext": "私はFerni、あなた専属のガイドです。"
   },
   "serviceHealth": {
     "names": {
@@ -10470,7 +10511,7 @@
       "historicalFacts": "歴史的事実",
       "smartHome": "スマートホーム",
       "lighting": "照明",
-      "aiContext": "AIコンテキスト",
+      "aiContext": "記憶とコンテキスト",
       "sleepHealth": "睡眠と健康のデータ",
       "other": "連携しているサービス"
     },
@@ -10627,9 +10668,6 @@
     "patronShort": "パトロン",
     "founderAria": "{tier}。私たちを信じてくれてありがとうございます！クリックして管理できます。"
   },
-  "splash": {
-    "tagline": "あなたのAIチームの準備が整いました"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "すべてのサポート",
@@ -10764,7 +10802,9 @@
     "helper": "あなた専属のガイド",
     "connectToTalk": "お話する",
     "endTalk": "終了",
-    "connectingCancel": "接続中です。タップしてキャンセル"
+    "connectingCancel": "接続中です。タップしてキャンセル",
+    "connectingNow": "接続中…",
+    "tapToCancel": "タップしてキャンセル"
   },
   "analyticsDashboard": {
     "title": "あなたの道のり",
@@ -11025,10 +11065,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

@@ -72,6 +72,9 @@ export interface UserInfoPreferences {
   /** Other saved locations (gym, parents, etc.) */
   savedLocations: LocationPreference[];
 
+  /** The city the caller asked Ferni to remember for "near me" searches. City only; cleared by "forget". */
+  callerCity?: CallerCityPreference;
+
   /** Preferred commute mode */
   commuteMode: 'driving' | 'transit' | 'walking' | 'cycling';
 
@@ -148,6 +151,17 @@ export interface LocationPreference {
     latitude: number;
     longitude: number;
   };
+}
+
+/** A city the caller chose to be remembered in: the Places place ID and the caller's own words. No postcode or coordinates. */
+export interface CallerCityPreference {
+  /** The Google Places place ID that confirmed the city. The only Google value kept. */
+  placeId: string;
+  /** The city and state as the caller said them. Google's name and address are not stored. */
+  city: string;
+  regionCode?: string;
+  /** ISO time the caller agreed to be remembered */
+  savedAt: string;
 }
 
 // ============================================================================

@@ -62,7 +62,6 @@ describe('closed panels pause their loops', () => {
   const cases: Array<{ name: string; html: string; target: string; open: string; openClass: string; pseudo?: string }> = [
     { name: 'thinking dots', html: '<div id="coach"><div class="thinking-float"><span class="thinking-dot"></span></div></div>', target: '.thinking-dot', open: '#coach', openClass: 'is-thinking' },
     { name: 'stage celebration icon', html: '<div class="relationship-celebration"><div class="celebration-card"><div class="celebration-icon"></div></div></div>', target: '.celebration-icon', open: '.relationship-celebration', openClass: 'visible' },
-    { name: 'settings stage shimmer', html: '<aside class="settings-menu"><div class="settings-menu__stage-fill"></div></aside>', target: '.settings-menu__stage-fill', open: '.settings-menu', openClass: 'settings-menu--visible', pseudo: '::after' },
     { name: 'settings badge', html: '<aside class="settings-menu"><span class="settings-menu__badge"></span></aside>', target: '.settings-menu__badge', open: '.settings-menu', openClass: 'settings-menu--visible' },
     { name: 'insights glow', html: '<div class="insights-view"><div class="insights-empty__glow"></div></div>', target: '.insights-empty__glow', open: '.insights-view', openClass: 'insights-view--visible' },
     { name: 'insights icon ring', html: '<div class="insights-view"><div class="insights-empty__icon-ring"></div></div>', target: '.insights-empty__icon-ring', open: '.insights-view', openClass: 'insights-view--visible' },

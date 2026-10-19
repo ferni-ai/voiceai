@@ -50,7 +50,9 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/execute-scheduled-outreach',
   '/api/jobs/calendar-triggers',
   '/api/jobs/calendar-briefing',
+  '/api/jobs/follow-through',
   '/api/jobs/deep-analysis',
+  '/api/jobs/pondering',
   '/api/jobs/knowledge-graph-insights',
   '/api/jobs/knowledge-graph-consolidation',
   '/api/jobs/knowledge-graph-thread-maintenance',
@@ -94,10 +96,7 @@ import {
 } from './outreach-jobs.js';
 
 // Superhuman handlers
-import {
-  handleBetterThanHumanOutreach,
-  handleProcessInsightActions,
-} from './superhuman-jobs.js';
+import { handleBetterThanHumanOutreach, handleProcessInsightActions } from './superhuman-jobs.js';
 
 // Intelligence handlers
 import {
@@ -105,14 +104,11 @@ import {
   handleFlushMLState,
   handleSemanticRouterLearning,
   handleDeepAnalysis,
+  handlePondering,
 } from './intelligence-jobs.js';
 
 // Maintenance handlers
-import {
-  handleTTLCleanup,
-  handleTTLBackfill,
-  handleDailyAdminReport,
-} from './maintenance-jobs.js';
+import { handleTTLCleanup, handleTTLBackfill, handleDailyAdminReport } from './maintenance-jobs.js';
 
 import { handleDeliverReminders } from './reminder-jobs.js';
 import {
@@ -120,6 +116,7 @@ import {
   handleCalendarBriefing,
   handleDeliverScheduledActions,
   handleExecuteScheduledOutreach,
+  handleFollowThrough,
 } from './background-delivery-jobs.js';
 
 // Memory maintenance handlers
@@ -324,8 +321,16 @@ async function dispatchJob(
       await handleCalendarBriefing(res);
       return true;
 
+    case '/api/jobs/follow-through':
+      await handleFollowThrough(req, res);
+      return true;
+
     case '/api/jobs/deep-analysis':
       await handleDeepAnalysis(res);
+      return true;
+
+    case '/api/jobs/pondering':
+      await handlePondering(res);
       return true;
 
     case '/api/jobs/knowledge-graph-insights':

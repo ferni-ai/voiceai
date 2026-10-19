@@ -376,3 +376,77 @@ describe('one clip at a time, and the log', () => {
     );
   });
 });
+
+describe('recorded whistles under VOICED_PRESENCE (PRESENCE_SOUND_ASSETS)', () => {
+  const both = { VOICED_PRESENCE: 'on', PRESENCE_SOUNDS: 'on', PRESENCE_SOUND_ASSETS: 'on' };
+  const isRecorded = (label: string | undefined) =>
+    /^recorded-whistle:people-.+__\d\.wav$/.test(label ?? '');
+
+  it('an easy pause can draw one of the recorded whistles, on the direct track', () => {
+    const { session, warmUp } = fakeSession();
+    start(session, { env: both, now: () => new Date('2026-10-12T14:00:00Z') });
+    warmUp();
+    vi.advanceTimersByTime(8000);
+    expect(direct.labels).toHaveLength(1);
+    expect(isRecorded(direct.labels[0])).toBe(true);
+  });
+
+  it('plays one sound a call: no second whistle or hum in later pauses', () => {
+    const { session, warmUp } = fakeSession();
+    start(session, { env: both, now: () => new Date('2026-10-12T14:00:00Z') });
+    warmUp();
+    vi.advanceTimersByTime(8000);
+    warmUp();
+    vi.advanceTimersByTime(30_000);
+    expect(direct.labels).toHaveLength(1);
+  });
+
+  it('the morning yawn keeps its slot', () => {
+    const { session, warmUp } = fakeSession({ callerTimezone: 'America/New_York' });
+    start(session, { env: both, now: () => new Date('2026-10-12T10:30:00Z') }); // 06:30 EDT
+    warmUp();
+    vi.advanceTimersByTime(8000);
+    expect(YAWNS).toContain(direct.labels[0]);
+  });
+
+  it('plays nothing while the mixer track is playing a clip', () => {
+    const { session, warmUp } = fakeSession();
+    start(session, { env: both, mixerBusy: () => true });
+    warmUp();
+    vi.advanceTimersByTime(10_000);
+    expect(direct.labels).toHaveLength(0);
+  });
+
+  it('with PRESENCE_SOUND_ASSETS off, the quiet window is a hum as before', () => {
+    const { session, warmUp } = fakeSession();
+    start(session, {
+      env: { VOICED_PRESENCE: 'on', PRESENCE_SOUNDS: 'on' },
+      now: () => new Date('2026-10-12T14:00:00Z'),
+    });
+    warmUp();
+    vi.advanceTimersByTime(8000);
+    expect(IDLE).toContain(direct.labels[0]);
+  });
+
+  it('through the clip player: the whistle plays direct and nothing stacks on the mixer', async () => {
+    Object.entries({ ...both, PRESENCE_SNORE: 'on' }).forEach(([k, v]) => vi.stubEnv(k, v));
+    vi.spyOn(Math, 'random').mockReturnValue(0.1);
+    const { session, warmUp } = fakeSession();
+    await startBackchannelClips({} as never, session as never, () => 'ferni', pcm);
+    warmUp();
+    vi.advanceTimersByTime(30_000);
+    expect(mixer.plays - 1).toBe(0); // minus the keep-alive silence: no mixer whistle or snore
+    expect(direct.labels).toHaveLength(1);
+    expect(isRecorded(direct.labels[0])).toBe(true);
+  });
+
+  it('logs VOICED_PRESENCE with the file that played, so ratings map to plays', () => {
+    vi.stubEnv('VOICED_PRESENCE', 'on');
+    voicedLog.info.mockClear();
+    logVoicedTake('recorded-whistle:people-whistling-78101__1.wav', 56.4);
+    expect(voicedLog.info).toHaveBeenCalledWith(
+      { category: 'recorded-whistle', file: 'people-whistling-78101__1.wav', latencyMs: 56 },
+      'VOICED_PRESENCE'
+    );
+  });
+});

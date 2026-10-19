@@ -107,6 +107,8 @@ export function stanceFor(
   if (sig.careful || sig.supportFirst || hardNews(userText))
     return { lines: [], fired: ['candor_held'] };
   if (move === 'ack') return { lines: [], fired: [] };
+  // A quiet caller gets room, not a verdict (quiet-caller.ts).
+  if (sig.quiet) return { lines: [], fired: ['candor_quiet'] };
   if (ASKED.test(userText) && UNKNOWABLE.test(userText))
     return { lines: [CANDOR_UNKNOWABLE], fired: ['candor_unknowable'] };
   if (WANTS_A_YES.test(userText)) return { lines: [CANDOR_YES], fired: ['candor_yes'] };

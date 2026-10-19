@@ -22,21 +22,19 @@ import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
 /**
- * Minimal execution context for internal tool routing.
+ * Execution context for internal tool routing, carrying the session's real user.
  *
- * TYPE ASSERTION RATIONALE:
- * When unified tools (e.g., `manageAppointment`) dispatch to legacy tools internally,
- * they don't have a real LiveKit session context.
- *
- * - LiveKit's ToolOptions requires RunContext with session, speechHandle, etc.
- * - We can't satisfy this without an actual LiveKit session
- * - Legacy tools safely handle this via optional chaining (ctx?.userData)
- * - This is the standard pattern for internal tool routing
+ * TYPE ASSERTION RATIONALE: when unified tools (e.g., `manageAppointment`) dispatch
+ * to legacy tools, there is no LiveKit RunContext (session, speechHandle, etc.), and
+ * legacy tools read only ctx?.userData. They key contacts and appointments by
+ * ctx.userData.userId: an empty ctx put every caller in one shared bucket
+ * ('default' / 'unknown'), so one caller could list another's contacts.
  *
  * @see tools/registry/types.ts - Tool type is intentionally `any` for LiveKit compatibility
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const STUB_CONTEXT = { ctx: {}, toolCallId: 'internal-routing' } as any;
+const routedContext = (tool: ToolContext) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ({ ctx: { userData: { userId: tool.userId } }, toolCallId: 'internal-routing' }) as any;
 
 // Import tool creators for underlying tools
 import {
@@ -83,7 +81,7 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
         'Schedule, confirm, cancel, or check status of appointments. Works for doctors, dentists, salons, and other services.',
       domain: 'calendar',
       tags: ['calendar', 'appointments', 'scheduling', 'confirm', 'cancel', 'status'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: getToolDescription('manageAppointment'),
           parameters: z.object({
@@ -126,7 +124,7 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
                       dateTime: params.dateTime || '',
                       reason: params.reason,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'confirm':
@@ -137,7 +135,7 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
                       businessPhone: params.businessPhone || '',
                       dateTime: params.dateTime || '',
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'cancel':
@@ -149,14 +147,14 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
                       dateTime: params.dateTime || '',
                       reason: params.reason,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'status':
                   // Route to getAppointmentStatus tool
                   return await legacyTools.getAppointmentStatus.execute(
                     { includeCompleted: false },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 default:
@@ -178,7 +176,7 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
       description: 'Find restaurants nearby or make a reservation.',
       domain: 'calendar',
       tags: ['calendar', 'restaurants', 'reservations', 'search', 'dining'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: getToolDescription('restaurant'),
           parameters: z.object({
@@ -211,7 +209,7 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
                     date: params.dateTime || 'today',
                     partySize: params.partySize || 2,
                   },
-                  STUB_CONTEXT
+                  routedContext(ctx)
                 );
               } else {
                 // Reserve
@@ -224,7 +222,7 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
                     partySize: params.partySize || 2,
                     specialRequests: params.specialRequests,
                   },
-                  STUB_CONTEXT
+                  routedContext(ctx)
                 );
               }
             } catch (error) {
@@ -256,7 +254,7 @@ function getDeliveryToolDefinitions(): ToolDefinition[] {
         'Food delivery cart links - search restaurants, build a cart, link they check out themselves.',
       domain: 'calendar',
       tags: ['calendar', 'delivery', 'food', 'order', 'doordash', 'ubereats'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: getToolDescription('foodDelivery'),
           parameters: z.object({
@@ -297,7 +295,7 @@ function getDeliveryToolDefinitions(): ToolDefinition[] {
                       zipCode: params.zipCode || '',
                       platform: params.platform || 'both',
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'start':
@@ -307,7 +305,7 @@ function getDeliveryToolDefinitions(): ToolDefinition[] {
                       platform:
                         (params.platform === 'both' ? 'doordash' : params.platform) || 'doordash',
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'add':
@@ -322,7 +320,7 @@ function getDeliveryToolDefinitions(): ToolDefinition[] {
                       quantity: params.quantity || 1,
                       specialInstructions: params.specialInstructions,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'checkout':
@@ -331,7 +329,7 @@ function getDeliveryToolDefinitions(): ToolDefinition[] {
                   }
                   return await legacyTools.checkoutOrder.execute(
                     { orderId: params.orderId, tip: params.tip },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'status':
@@ -340,7 +338,7 @@ function getDeliveryToolDefinitions(): ToolDefinition[] {
                   }
                   return await legacyTools.getOrderStatus.execute(
                     { orderId: params.orderId },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'quick':
@@ -355,7 +353,7 @@ function getDeliveryToolDefinitions(): ToolDefinition[] {
                       platform:
                         (params.platform === 'both' ? 'doordash' : params.platform) || 'doordash',
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 default:
@@ -390,7 +388,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
         'Search for businesses by name, type, or location. Get details including phone, hours, address, and reviews.',
       domain: 'calendar',
       tags: ['calendar', 'places', 'search', 'nearby', 'details', 'phone', 'hours'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: getToolDescription('findBusiness'),
           parameters: z.object({
@@ -412,7 +410,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
                       location: params.location,
                       openNow: params.openNow || false,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'details':
@@ -421,7 +419,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
                       businessName: params.query || '',
                       location: params.location,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'phone':
@@ -430,7 +428,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
                       businessName: params.query || '',
                       location: params.location,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'call':
@@ -440,7 +438,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
                       location: params.location,
                       purpose: params.purpose,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 default:
@@ -471,7 +469,7 @@ function getContactsToolDefinitions(): ToolDefinition[] {
       description: 'Add, find, update, delete, list, or call contacts from the address book.',
       domain: 'calendar',
       tags: ['calendar', 'contacts', 'add', 'find', 'update', 'delete', 'list', 'call'],
-      create: (_ctx: ToolContext) =>
+      create: (ctx: ToolContext) =>
         llm.tool({
           description: getToolDescription('manageContact'),
           parameters: z.object({
@@ -525,13 +523,13 @@ function getContactsToolDefinitions(): ToolDefinition[] {
                       company: params.company,
                       notes: params.notes,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'find':
                   return await legacyTools.findMyContact.execute(
                     { query: params.query || params.name || '' },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'update':
@@ -547,7 +545,7 @@ function getContactsToolDefinitions(): ToolDefinition[] {
                       makeFavorite: params.makeFavorite,
                       notes: params.notes,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'delete':
@@ -559,7 +557,7 @@ function getContactsToolDefinitions(): ToolDefinition[] {
                       who: params.query || params.name || '',
                       confirm: params.confirm || false,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'list':
@@ -568,7 +566,7 @@ function getContactsToolDefinitions(): ToolDefinition[] {
                       filter: params.filter || 'all',
                       limit: 10,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 case 'call':
@@ -580,7 +578,7 @@ function getContactsToolDefinitions(): ToolDefinition[] {
                       who: params.query || params.name || '',
                       purpose: params.purpose,
                     },
-                    STUB_CONTEXT
+                    routedContext(ctx)
                   );
 
                 default:
@@ -600,7 +598,7 @@ function getContactsToolDefinitions(): ToolDefinition[] {
 // SMART CALENDAR TOOLS (Advanced Calendar Management)
 // ============================================================================
 
-import { smartCalendarTools } from './smart-calendar-tools.js';
+import { smartCalendarTools } from './calendar-connection-gate.js';
 
 // ============================================================================
 // DOMAIN TOOLS COLLECTION
