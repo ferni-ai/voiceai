@@ -300,7 +300,6 @@ async function sendVoiceMessageRealWithUserId(
     );
   } catch (error) {
     getLogger().error({ error }, 'Voice message error');
-    // Fallback to text
     return sendTextReal(to, `🎤 (Voice message) ${message}`, userId);
   }
 }
@@ -429,7 +428,6 @@ export function parseScheduleTime(naturalTime: string): Date | null {
   const now = new Date();
   const lower = naturalTime.toLowerCase();
 
-  // Handle relative times
   if (lower.includes('tomorrow')) {
     const tomorrow = new Date(now);
     tomorrow.setDate(tomorrow.getDate() + 1);
@@ -451,7 +449,6 @@ export function parseScheduleTime(naturalTime: string): Date | null {
     return nextMonth;
   }
 
-  // Handle day names
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   for (let i = 0; i < days.length; i++) {
     if (lower.includes(days[i])) {
@@ -464,7 +461,6 @@ export function parseScheduleTime(naturalTime: string): Date | null {
     }
   }
 
-  // Try to parse as date
   const parsed = new Date(naturalTime);
   if (!isNaN(parsed.getTime())) {
     return parsed;

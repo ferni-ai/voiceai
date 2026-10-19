@@ -125,7 +125,6 @@ export async function setUserContactInfo(
   const updated = { ...existing, ...info };
   userContactCache.set(userId, updated);
 
-  // Persist to user profile in Firestore
   try {
     const store = await getProfileStore();
     const profile = await store.getProfile(userId);
@@ -166,7 +165,6 @@ async function savedContactInfo(userId: string): Promise<UserContactInfo | undef
   const cached = userContactCache.get(userId);
   if (cached) return cached;
 
-  // Load from profile if not in cache
   try {
     const store = await getProfileStore();
     const profile = await store.getProfile(userId);
