@@ -16,6 +16,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { createInsight } from './insight-broker.js';
 import { onCommitmentKeeperChange } from '../../data-layer/hooks/superhuman-hooks.js';
+import { isMemberIdentity } from '../../identity/member-identity.js';
 
 const log = createLogger({ module: 'ferni-commitments' });
 
@@ -378,8 +379,7 @@ export async function trackCommitmentsInResponse(
     userMessage?: string;
   }
 ): Promise<FerniCommitment[]> {
-  if (!userId || userId === 'anonymous') return [];
-
+  if (!isMemberIdentity(userId)) return [];
   const detected = detectCommitmentsInResponse(responseText);
   const created: FerniCommitment[] = [];
 
