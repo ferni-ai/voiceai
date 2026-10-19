@@ -349,7 +349,7 @@
         "activity": "Seguimiento de actividad"
       },
       "privacy": {
-        "note": "Tus datos de salud permanecen privados. Solo compartimos información agregada con tus sesiones de coaching."
+        "note": "Ferni guarda tus datos de salud para encontrar patrones contigo. Nunca los vendemos, y al eliminar tu cuenta se borran."
       },
       "providers": {
         "apple_health": {

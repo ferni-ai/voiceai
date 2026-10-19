@@ -82,6 +82,12 @@ const NOT_A_PERSON = new Set(
   )
 );
 
+/** One word for a person, as the records name them ("mother" is "mom"), or null for a pronoun. */
+export function personWord(word: string): string | null {
+  const who = word.toLowerCase();
+  return NOT_A_PERSON.has(who) ? null : (SAME[who] ?? who);
+}
+
 /** The person a statement asks to call ("call my mom" is "mom"), or null. */
 export function personToCall(statement: string): string | null {
   const m = CALL_WHO.exec(statement);
@@ -153,6 +159,26 @@ export async function ferniCallsFor(
     log.warn({ userId, error: String(error) }, 'Call status not read');
   }
   return found;
+}
+
+/**
+ * Where the latest call Ferni was asked to make to this person stands, completed
+ * included; 'none' when there is no such call or the read failed (no result to
+ * tell either way). One read. Never throws.
+ */
+export async function requestedCallStatus(
+  userId: string,
+  person: string,
+  now = Date.now(),
+  records: CallRecords = firestoreCallRecords
+): Promise<FerniCall | 'none'> {
+  try {
+    const loaded = await records.load(userId, new Date(now - WINDOW_MS));
+    return callStatusOf(person, loaded, now) ?? 'none';
+  } catch (error) {
+    log.warn({ userId, error: String(error) }, 'Requested call status not read');
+    return 'none';
+  }
 }
 
 /** What the model is told about a call it might otherwise ask how it went. */
