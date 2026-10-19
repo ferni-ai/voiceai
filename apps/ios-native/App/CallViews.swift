@@ -152,8 +152,17 @@ struct CallControls: View {
         GlassEffectContainer(spacing: FerniSpace.rest) {
             HStack(spacing: FerniSpace.rest) {
                 if call.isActive {
-                    circle("mic.fill", muted: call.isMuted, label: call.isMuted ? "Unmute" : "Mute") {
-                        Task { await call.toggleMute() }
+                    Group {
+                        if call.isOnHold {
+                            // The audio didn't come back on its own: one tap tries again.
+                            circle("play.fill", muted: false, label: "Resume call") {
+                                Task { await call.resume() }
+                            }
+                        } else {
+                            circle("mic.fill", muted: call.isMuted, label: call.isMuted ? "Unmute" : "Mute") {
+                                Task { await call.toggleMute() }
+                            }
+                        }
                     }
                     .disabled(call.phase != .live)
                     .glassEffectID("left", in: glass)
