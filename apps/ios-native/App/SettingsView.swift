@@ -25,10 +25,12 @@ struct SettingsView: View {
                         .foregroundStyle(FerniColor.error)
                 }
                 PrivacySection(consent: model.consent, lock: model.memoryLock) { await model.withdrawConsent() }
-                Section("About") {
+                Section {
                     LabeledContent("Version", value: Self.version)
                     Link("Privacy Policy", destination: URL(string: "https://ferni.ai/privacy")!)
                     Link("Terms of Service", destination: URL(string: "https://ferni.ai/terms")!)
+                } header: {
+                    SettingsHeader("About")
                 }
             }
             .navigationTitle("Settings")
@@ -50,6 +52,14 @@ struct SettingsView: View {
     }
 
     private static var version: String { version() }
+}
+
+/// A section title in Ferni's secondary text colour, which keeps 4.5:1 contrast
+/// on the grouped background in both appearances (the system default falls just short).
+private struct SettingsHeader: View {
+    let title: LocalizedStringKey
+    init(_ title: LocalizedStringKey) { self.title = title }
+    var body: some View { Text(title).foregroundStyle(FerniColor.textSecondary) }
 }
 
 /// Who you are to Ferni, and the upgrade from "this phone" to "you, anywhere".
@@ -99,7 +109,7 @@ private struct AccountSection: View {
                 Text(notice).foregroundStyle(FerniColor.error)
             }
         } header: {
-            Text("Account")
+            SettingsHeader("Account")
         }
         .confirmationDialog("Sign out?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive) { Task { await signOut() } }
@@ -117,7 +127,7 @@ private struct PrivacySection: View {
     @State private var confirmingWithdraw = false
 
     var body: some View {
-        Section("Privacy") {
+        Section {
             if let method = lock.method {
                 // Optional, off by default; the phone's owner confirms turning it on or off.
                 Toggle("Lock what Ferni remembers with \(method)", isOn: Binding(
@@ -133,6 +143,8 @@ private struct PrivacySection: View {
                     .foregroundStyle(FerniColor.textSecondary)
             }
             Link("How Ferni handles your data", destination: URL(string: "https://ferni.ai/privacy")!)
+        } header: {
+            SettingsHeader("Privacy")
         }
         .confirmationDialog("Withdraw your agreement?", isPresented: $confirmingWithdraw, titleVisibility: .visible) {
             Button("Withdraw", role: .destructive) { Task { await withdraw() } }
@@ -153,7 +165,7 @@ struct HelpView: View {
                 Link(destination: URL(string: "tel:988")!) { Label("Call 988", systemImage: "phone") }
                 Link(destination: URL(string: "sms:988")!) { Label("Text 988", systemImage: "message") }
             } header: {
-                Text("Suicide & Crisis Lifeline (US)")
+                SettingsHeader("Suicide & Crisis Lifeline (US)")
             } footer: {
                 Text("Free and confidential, any time. If you're in danger, call 911.")
             }
