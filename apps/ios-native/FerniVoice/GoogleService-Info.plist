@@ -3,17 +3,17 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>1031920444452-li5t2hm9b0eq5g9k7qh886f3jthnfh1v.apps.googleusercontent.com</string>
+	<string>1031920444452-rgi4043g7hddgf4lqhargcl2j6cuc8tr.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.1031920444452-li5t2hm9b0eq5g9k7qh886f3jthnfh1v</string>
+	<string>com.googleusercontent.apps.1031920444452-rgi4043g7hddgf4lqhargcl2j6cuc8tr</string>
 	<key>API_KEY</key>
-	<string>AIzaSyA09CVivkSuzklcZikQjmxSEls6kFV4SIc</string>
+	<string>AIzaSyD1ryMJXkk94nSd_BsxUWdXQ3ZJvMpukes</string>
 	<key>GCM_SENDER_ID</key>
 	<string>1031920444452</string>
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.ferni.signin</string>
+	<string>com.sethdford.ferni</string>
 	<key>PROJECT_ID</key>
 	<string>johnb-2025</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1031920444452:ios:1763e99098c6e557b164b1</string>
+	<string>1:1031920444452:ios:523d8b146e8d1b27b164b1</string>
 </dict>
 </plist>

@@ -34,7 +34,7 @@
     enableHoverPreviews: false, // Requires backend API
     enableSentimentCopy: false, // Requires backend API
     enableMicroExpressions: true, // Client-side only - ENABLED
-    enableVoiceSamples: true, // Audio samples from /audio/samples/
+    enableVoiceSamples: true, // Voice samples in the personas' real voices (/api/landing/tts)
     enableMemoryDemo: true, // Client-side only - ENABLED
     debugMode: false,
   };
