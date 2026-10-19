@@ -168,12 +168,20 @@ private struct RestingLine: View {
             default:
                 let words = RestingWords.words(
                     home: home, ended: call.phase == .ended,
-                    hour: Calendar.current.component(.hour, from: now), hasTalked: call.hasTalked
+                    hour: Self.hour(at: now), hasTalked: call.hasTalked
                 )
                 greeting(words.headline, words.detail)
             }
         }
         .multilineTextAlignment(.center)
+    }
+
+    /// The hour the greeting is written for; store screenshots fix it (-FerniHour).
+    private static func hour(at date: Date) -> Int {
+        #if DEBUG
+        if let hour = UITestScenario.hour { return hour }
+        #endif
+        return Calendar.current.component(.hour, from: date)
     }
 
     @ViewBuilder private func greeting(_ headline: String, _ detail: String) -> some View {
