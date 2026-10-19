@@ -85,6 +85,8 @@ jobs:
           # 2026-10-18. To turn it off, set the repo variable VITE_TRY_FIRST=false
           # and re-run this workflow.
           VITE_TRY_FIRST: ${{ vars.VITE_TRY_FIRST || 'true' }}
+          # Apple sign-in on the web (apps/web/src/config/apple-web-signin-flag.ts); hidden unless exactly "true".
+          VITE_APPLE_WEB_SIGNIN: ${{ vars.VITE_APPLE_WEB_SIGNIN }}
 
       - name: Deploy to Firebase (ferni-prod)
         id: deploy-ferni
