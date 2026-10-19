@@ -1615,11 +1615,6 @@
       "file": "src/tools/domains/memory/tools.ts",
       "_original": "CALL immediately to delete memories. Execute without announcing. Use when user says"
     },
-    "forgetThisAboutMe": {
-      "description": "Delete/forget a specific memory. Use when user wants to remove something you remember about them. Examples:.",
-      "file": "src/tools/persona-memory-tools.ts",
-      "_original": "Delete/forget a specific memory. Use when user wants to remove something you remember about them. Examples:"
-    },
     "fortnight_fighter": {
       "description": "Complete a 14-day streak.",
       "file": "src/tools/gamification.ts"
@@ -3928,11 +3923,6 @@
       "description": "Share a piece of investment wisdom.",
       "file": "src/tasks/finance-tasks.ts"
     },
-    "showAllPeterKnowledge": {
-      "description": "Show all Peter.",
-      "file": "src/tools/persona-memory-tools.ts",
-      "_original": "Show all Peter"
-    },
     "showImportantDates": {
       "description": "Show all important dates Jordan is tracking.",
       "file": "src/tools/persona-memory-tools.ts"
@@ -4422,11 +4412,6 @@
       "description": "Change a task.",
       "file": "src/tools/tasks.ts",
       "_original": "Change a task"
-    },
-    "updateWhatYouKnow": {
-      "description": "Update an existing memory with new information. Examples:.",
-      "file": "src/tools/persona-memory-tools.ts",
-      "_original": "Update an existing memory with new information. Examples:"
     },
     "useFreePreviews": {
       "description": "To switch to free previews.",
