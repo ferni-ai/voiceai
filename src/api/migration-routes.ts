@@ -13,7 +13,6 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import {
   getMigratedUid,
-  isAlreadyMigrated,
   migrateUserData,
   validateMigrationRequest,
 } from '../services/user-migration.js';
@@ -54,7 +53,7 @@ export async function handleMigrationRoutes(
 
   // GET /api/auth/migration-status - Check migration status
   if (pathname === '/api/auth/migration-status' && req.method === 'GET') {
-    handleMigrationStatus(req, res);
+    await handleMigrationStatus(req, res);
     return true;
   }
 
@@ -166,7 +165,7 @@ async function handleMigrate(req: IncomingMessage, res: ServerResponse): Promise
  * Query params:
  * - deviceId: The device ID to check
  */
-function handleMigrationStatus(req: IncomingMessage, res: ServerResponse): void {
+async function handleMigrationStatus(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const deviceId = getQueryParam(req, 'deviceId') || getQueryParam(req, 'device_id');
 
   if (!deviceId) {
@@ -175,8 +174,8 @@ function handleMigrationStatus(req: IncomingMessage, res: ServerResponse): void 
   }
 
   const legacyUserId = deviceId.startsWith('device:') ? deviceId : `device:${deviceId}`;
-  const isMigrated = isAlreadyMigrated(legacyUserId);
-  const migratedTo = getMigratedUid(legacyUserId);
+  const migratedTo = await getMigratedUid(legacyUserId);
+  const isMigrated = migratedTo !== null;
 
   sendJson(res, {
     deviceId,

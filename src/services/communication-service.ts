@@ -43,6 +43,30 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   maxDelayMs: RETRY_MAX_DELAY_MS,
 };
 
+/** A provider answered with a non-2xx HTTP status. */
+export class ProviderHttpError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+    this.name = 'ProviderHttpError';
+  }
+}
+
+/**
+ * Whether a failed send is worth retrying, judged by HTTP status rather than
+ * message text ("not authorized" matched none of the old keywords, so a key
+ * without Mail Send was retried on every email). A 4xx is permanent, except
+ * 408 and 429; a 5xx, timeout or network error may pass.
+ */
+export function isRetryableSendError(error: unknown): boolean {
+  if (!(error instanceof ProviderHttpError)) return true;
+  const { status } = error;
+  if (status === 408 || status === 429) return true;
+  return status < 400 || status >= 500;
+}
+
 /**
  * Execute a function with exponential backoff retry logic
  */
@@ -56,11 +80,7 @@ async function withRetry<T>(fn: () => Promise<T>, options: RetryOptions = {}): P
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
-      // Don't retry on validation or authentication errors
-      const nonRetryableMessages = ['Invalid', 'Unauthorized', 'Forbidden', 'not configured'];
-      const shouldSkipRetry = nonRetryableMessages.some((msg) => lastError?.message.includes(msg));
-
-      if (shouldSkipRetry || attempt === opts.maxRetries - 1) {
+      if (!isRetryableSendError(error) || attempt === opts.maxRetries - 1) {
         throw lastError;
       }
 
@@ -145,15 +165,29 @@ export async function sendEmail(
   const sanitizedBody = isHtml ? body : sanitizePlainText(body);
   const sanitizedSubject = sanitizePlainText(subject);
 
-  // The transport retries rate limits and 5xx itself; a failure here is final.
-  const result = await sender.send({
-    to,
-    subject: sanitizedSubject,
-    ...(isHtml ? { html: sanitizedBody } : { text: sanitizedBody }),
-    from: 'hello@ferni.ai',
-    fromName: 'Ferni',
-    kind: 'transactional',
-  });
+  // Gmail backs off inside its transport. SendGrid only marks a 429/5xx or a
+  // network error retryable, so those are retried here by status.
+  const retryHere = sender.provider === 'sendgrid';
+  let result: EmailSendResult;
+  try {
+    result = await withRetry(async () => {
+      const attempt = await sender.send({
+        to,
+        subject: sanitizedSubject,
+        ...(isHtml ? { html: sanitizedBody } : { text: sanitizedBody }),
+        from: 'hello@ferni.ai',
+        fromName: 'Ferni',
+        kind: 'transactional',
+      });
+      if (retryHere && !attempt.ok && attempt.retryable) {
+        const message = attempt.error ?? 'send failed';
+        throw attempt.status ? new ProviderHttpError(message, attempt.status) : new Error(message);
+      }
+      return attempt;
+    });
+  } catch (error) {
+    throw new Error(`Email send failed (${sender.provider}): ${(error as Error).message}`);
+  }
   if (!result.ok)
     throw new Error(`Email send failed (${result.provider}): ${result.error ?? 'unknown error'}`);
 
@@ -217,7 +251,10 @@ export async function sendSMS(to: string, message: string): Promise<string> {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(`Twilio error: ${response.status} - ${JSON.stringify(errorData)}`);
+      throw new ProviderHttpError(
+        `Twilio error: ${response.status} - ${JSON.stringify(errorData)}`,
+        response.status
+      );
     }
 
     getLogger().info(
