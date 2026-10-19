@@ -1973,7 +1973,6 @@
     "target": "Target",
     "tasks": "Tasks",
     "teachings": "Teachings",
-    "teamMembersUnlocked": "Team members unlocked",
     "teamUnlock": "Team Unlock",
     "testCall": "Test Call",
     "testEmail": "Test Email",
@@ -3514,7 +3513,6 @@
   "familyIdentities": {
     "closeModal": "Close",
     "familyTitle": "Your Ferni Family",
-    "familySubtitle": "People who can call Ferni by phone",
     "fieldName": "Name",
     "fieldPhoneNumber": "Phone Number",
     "fieldPhoneNumberDisabledHint": "Phone number cannot be changed",
@@ -3562,7 +3560,6 @@
     "accessLevelSupervisedDesc": "You get notified of calls",
     "eyebrow": "Family",
     "addMember": "Add Family Member",
-    "emptyText": "Add family members who call Ferni by phone. They'll be recognized automatically and can have their own conversations with Ferni.",
     "calls": {
       "one": "{count} call",
       "other": "{count} calls"
@@ -3577,7 +3574,9 @@
       "save": "Couldn't save that. Try again?",
       "remove": "Couldn't remove them. Try again?",
       "phoneInUse": "That number is already set up for someone else."
-    }
+    },
+    "emptyIntro": "Add the people who matter to you. Ferni doesn't recognize callers by their number yet, so a call from them starts fresh.",
+    "peopleSubtitle": "The people who matter to you"
   },
   "panels": {
     "goBack": "Go back",
@@ -9405,14 +9404,6 @@
     },
     "statConversations": "Conversations",
     "statTotal": "Total",
-    "statCurrentStreak": "Current Streak",
-    "streakDays": {
-      "one": "{count} day",
-      "other": "{count} days"
-    },
-    "statBestStreak": "Best: {count}",
-    "statTeamMembers": "Team Members",
-    "statUnlocked": "Unlocked",
     "statDreamsTracked": "Dreams Tracked",
     "statGrowing": "Growing",
     "conversationActivity": "Conversation Activity",
@@ -9422,11 +9413,11 @@
       "one": "{date}: {count} conversation",
       "other": "{date}: {count} conversations"
     },
-    "unlockedOn": "Unlocked {date}",
     "dreamMeta": {
       "one": "Mentioned {count} time · {type}",
       "other": "Mentioned {count} times · {type}"
-    }
+    },
+    "teamUnavailable": "Couldn't load your team just now."
   },
   "geolocation": {
     "prompts": {
