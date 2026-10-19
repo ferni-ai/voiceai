@@ -33,7 +33,7 @@ import {
   type Env,
   type StoredCheckin,
 } from '../outreach/checkin-replies.js';
-import { isCohortMember } from '../platform/cohort-flags.js';
+import { isCohortMember } from '../platform/cohort-membership.js';
 import {
   consentBlocks,
   defaultConsentDeps,

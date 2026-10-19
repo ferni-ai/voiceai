@@ -24,10 +24,11 @@ import {
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
+import { webPushDeliveryOn } from '../services/outreach/web-push-flag.js';
 import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
 import { sendOutreachHistory } from './outreach-history-route.js';
+import { panelConsentPatch, savePanelPrefs } from './messaging-prefs-route.js';
 import {
-  consentPatchFrom,
   readOutreachConsent,
   settingsFromChannels,
   writeOutreachConsent,
@@ -143,9 +144,7 @@ export async function handleOutreachRoutes(
     }
     if (route === '/preferences' && method === 'GET') {
       const userId = authenticatedUserId;
-
-      const engine = getOutreachDecisionEngine();
-      const state = engine.getUserState(userId);
+      const state = getOutreachDecisionEngine().getUserState(userId);
       // On/off and channels come from the stored consent the scheduler obeys,
       // not the in-memory engine (which forgets on restart).
       const consent = await readOutreachConsent(userId);
@@ -155,6 +154,7 @@ export async function handleOutreachRoutes(
         preferences: state.preferences,
         allowedChannels: settingsFromChannels(consent.channels),
         outreachEnabled: consent.enabled,
+        webPushDelivery: await webPushDeliveryOn(userId), // the after-call ask (push-ask.ts)
         relationshipStage: state.relationshipStage,
         counters: state.counters,
       });
@@ -166,7 +166,7 @@ export async function handleOutreachRoutes(
       const { preferences } = body as {
         preferences: Parameters<typeof updateOutreachPreferences>[1];
       };
-      const patch = consentPatchFrom(preferences);
+      const patch = await panelConsentPatch(authenticatedUserId, preferences);
       // Texts and calls only to a number the user proved is theirs (a texted code).
       const refusal = await phoneChannelRefusal(auth, patch.channels);
       if (refusal) {
@@ -174,7 +174,7 @@ export async function handleOutreachRoutes(
         return true;
       }
       // Use authenticated userId (ignore body.userId to prevent tampering)
-      await writeOutreachConsent(authenticatedUserId, patch);
+      await savePanelPrefs(authenticatedUserId, patch, preferences);
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;
@@ -201,7 +201,6 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // POST /api/outreach/resume
     if (route === '/resume' && method === 'POST') {
       // Use authenticated userId
       const userId = authenticatedUserId;
@@ -219,7 +218,6 @@ export async function handleOutreachRoutes(
     // TRIGGERS
     // ========================================================================
 
-    // POST /api/outreach/trigger
     if (route === '/trigger' && method === 'POST') {
       const body = await parseRequestBody(req);
       const {
@@ -274,7 +272,6 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // POST /api/outreach/thinking-of-you
     if (route === '/thinking-of-you' && method === 'POST') {
       const body = await parseRequestBody(req);
       const { trigger, reason } = body as {
@@ -297,7 +294,6 @@ export async function handleOutreachRoutes(
     // PENDING & HISTORY
     // ========================================================================
 
-    // GET /api/outreach/pending
     if (route === '/pending' && method === 'GET') {
       // Use authenticated userId
       const userId = authenticatedUserId;
@@ -392,7 +388,6 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // DELETE /api/outreach/pending/:triggerId
     if (route.startsWith('/pending/') && method === 'DELETE') {
       const triggerId = route.replace('/pending/', '');
 
@@ -405,7 +400,6 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // POST /api/outreach/reschedule
     if (route === '/reschedule' && method === 'POST') {
       const body = await parseRequestBody(req);
       const { triggerId, newTime } = body as { triggerId: string; newTime: string };

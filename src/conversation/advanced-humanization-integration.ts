@@ -22,6 +22,7 @@ import {
   type AdvancedHumanizationResult,
   type SessionStartResult,
 } from './advanced-humanization.js';
+import { isMemberIdentity } from '../services/identity/member-identity.js';
 
 const logger = createLogger({ module: 'AdvancedHumanizationIntegration' });
 
@@ -491,13 +492,11 @@ export function recordAgentResponse(sessionId: string, response: string): void {
 
   // V3.2: Track Ferni's commitments in her response
   // This catches when Ferni says things like "I'll check in about that" or "Let me know how it goes"
-  if (state.config.userId && state.config.userId !== 'anonymous') {
+  if (isMemberIdentity(state.config.userId)) {
     import('../services/superhuman/semantic-intelligence/integration.js')
       .then(({ trackFerniCommitments }) => {
         // Fire-and-forget: track commitments asynchronously
-        void trackFerniCommitments(state.config.userId, response, {
-          // Context will be enhanced in the trackFerniCommitments function
-        });
+        void trackFerniCommitments(state.config.userId, response, {});
       })
       .catch((err) => {
         // Non-critical - don't block on this

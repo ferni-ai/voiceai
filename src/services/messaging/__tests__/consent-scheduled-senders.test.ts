@@ -126,7 +126,7 @@ describe('proactive-call-scheduler.scheduleProactiveCall', () => {
 describe('scheduled-outreach executor, call branch', () => {
   it('cancels a scheduled call to a number that asked not to be called', async () => {
     await callOptOut();
-    await executeScheduledOutreach(scheduledCall());
+    expect(await executeScheduledOutreach(scheduledCall())).toBe('opted-out');
     expect(callWithPersonaVoice).not.toHaveBeenCalled();
     expect(updateOutreachStatus).toHaveBeenLastCalledWith(
       'u1',
@@ -138,7 +138,7 @@ describe('scheduled-outreach executor, call branch', () => {
 
   it('holds a scheduled call to a third party who never agreed (needs-consent)', async () => {
     own.value = false;
-    await executeScheduledOutreach(scheduledCall());
+    expect(await executeScheduledOutreach(scheduledCall())).toBe('needs-consent');
     expect(callWithPersonaVoice).not.toHaveBeenCalled();
     expect(updateOutreachStatus).toHaveBeenLastCalledWith(
       'u1',

@@ -59,6 +59,8 @@ export const COHORT_FLAGS = [
   'WORLD_FACTS_IN_CALL',
   'POST_CALL_CHECKIN',
   'FOLLOW_THROUGH_TEXTS',
+  // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.
+  'FOLLOW_THROUGH_OPENER',
   'OUTREACH_PONDERED_NOTES',
   // Read once the agent is set up, on a turn or at a handoff: after applyCallerFlags
   // (docs/runbooks/cohort-rollout.md has the read sites).
@@ -68,29 +70,57 @@ export const COHORT_FLAGS = [
   'PHONE_GOODBYE',
   'HAPPY_EXITS',
   'HANDOFF_TALK_THROUGH',
+  // Read once the greeting's handlers are wired (greeting-wiring.ts), after applyCallerFlags.
+  'HANDOFF_FIRST_FIX',
   'NAME_CORRECTION',
   'ROOM_GUESTS',
   'BARGE_IN_ACK_WORDS',
   'FRIEND_FOLLOWUPS',
   'INSIDE_JOKES',
+  // Read on each turn and each quiet-window sound, never at boot (named-tune-note.ts, tune-state.ts).
+  'NAMED_TUNE',
   // Persona flags, read at agent build, a handoff, a turn or a TTS reply, never cached
   // across calls. The system prompt (FERNI_PERSONA_SLIP_GUARD) loads after
   // applyCallerFlags: loadCallerPrompt (voice-agent-entry/persona-builder.ts).
   'HANDOFF_FULL_TOOLS',
+  // Read at agent build, a tool update and each turn's request, never at boot (same-turn-tools-config.ts).
+  'TOOLS_SAME_TURN',
   'TEAM_VOICES',
+  'GOOD_NEWS_BIGGER',
   'FERNI_PERSONA_SLIP_GUARD',
   'DIRECTOR_PERSONA_AWARE',
+  // Read on each turn's request (withTurnReminder, turn-request.ts), never at boot: how
+  // each persona sounds, and reply length and roughness drawn from friends' turns.
+  'PERSONA_VOICE',
+  'TURN_LENGTH',
+  'TURN_TEXTURE',
+  // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
+  'ALEX_CHIEF_OF_STAFF',
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
   'WEEKLY_PREDICTION',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
+  // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
+  // (services/outreach/morning-brief/brief-job.ts).
+  'MORNING_BRIEF',
+  // Read per person on the web server (flagForUser): outreach pushes and the after-call ask (web-push-flag.ts).
+  'WEB_PUSH_DELIVERY',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
-/** Values a flag may take: the env flags here are all on/off switches. */
-const VALUES: ReadonlySet<string> = new Set(['on', 'off']);
+const ON_OFF: readonly string[] = ['on', 'off'];
+/** The flags that are not on/off switches, and the values they may take. */
+const MODES: Partial<Record<CohortFlag, readonly string[]>> = {
+  TURN_LENGTH: ['learned', 'off'],
+  TURN_TEXTURE: ['learned', 'off'],
+};
+
+/** Values a cohort or override may give this flag: on/off, or the flag's own modes. */
+export function cohortFlagValues(flag: string): readonly string[] {
+  return MODES[flag as CohortFlag] ?? ON_OFF;
+}
 
 /**
  * A switch that does nothing unless these are on too (the memory stack
@@ -158,11 +188,11 @@ export function inSample(cohort: Cohort, userId: string): boolean {
   return typeof p === 'number' && p > 0 && sampleBucket(cohort.id, userId) < Math.min(p, 100);
 }
 
-/** Keeps only allowed switches with on/off values; anything else is dropped (and logged). */
+/** Keeps only allowed switches with values they take; anything else is dropped (and logged). */
 function allowed(flags: Record<string, unknown>, from: string): Record<string, string> {
   const out: Record<string, string> = {};
   for (const [k, v] of Object.entries(flags)) {
-    if (ALLOWED.has(k) && typeof v === 'string' && VALUES.has(v)) out[k] = v;
+    if (ALLOWED.has(k) && typeof v === 'string' && cohortFlagValues(k).includes(v)) out[k] = v;
     else log.warn({ flag: k, from }, 'Ignored a flag cohorts may not set');
   }
   return out;
@@ -343,15 +373,6 @@ export const firestoreCohortStore: CohortStore = {
     return flags && typeof flags === 'object' ? (flags as Record<string, string>) : {};
   },
 };
-
-/** True when the user is a named member of the enabled cohort `cohortId` (samples don't count). */
-export async function isCohortMember(
-  userId: string,
-  cohortId: string,
-  store: CohortStore = firestoreCohortStore
-): Promise<boolean> {
-  return (await store.cohortsFor(userId)).some((c) => c.id === cohortId && c.enabled);
-}
 
 /** Finds who might have a flag on, without reading every user. */
 export interface FlagHolderStore {
