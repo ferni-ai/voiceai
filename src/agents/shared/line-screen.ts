@@ -57,9 +57,16 @@ export function voicemailMessage({
   recipientName,
   sponsorName,
   personal,
+  checkin,
 }: OutboundParties): string {
   const hi = recipientName ? `Hi ${recipientName}` : 'Hi';
   const later = "No need to call back, I'll try again another time.";
+  if (checkin) {
+    // They agreed to Ferni's check-ins and know who Ferni is: no "AI friend" here
+    return sponsorName
+      ? `${hi}, it's Ferni. ${sponsorName} asked me to check in, no need to call back, I'll try again another time.`
+      : `${hi}, it's Ferni, just calling to check in. ${later}`;
+  }
   if (!personal) {
     return `Hi, this is Ferni, an AI calling ${sponsorName ? `for ${sponsorName}` : "on someone's behalf"}. ${later}`;
   }
