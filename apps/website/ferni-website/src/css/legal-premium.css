@@ -465,6 +465,42 @@
   background: var(--color-bg-glass);
 }
 
+/* "Your data at a glance": on phones each row becomes a small card and each
+   cell carries its column name, so four columns stay readable at 390px. */
+@media (max-width: 640px) {
+  .legal-article .data-table--glance thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .legal-article .data-table--glance tr {
+    display: block;
+    padding: var(--space-3) 0;
+    border-bottom: 1px solid var(--color-border-subtle);
+  }
+
+  .legal-article .data-table--glance td {
+    display: block;
+    padding: var(--space-1) 0;
+    border-bottom: 0;
+  }
+
+  .legal-article .data-table--glance td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+  }
+
+  .legal-article .data-table--glance tr:hover td {
+    background: none;
+  }
+}
+
 /* ============================================================================
    CONTACT CTA
    ============================================================================ */
