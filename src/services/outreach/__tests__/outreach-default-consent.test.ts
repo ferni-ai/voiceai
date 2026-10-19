@@ -85,6 +85,7 @@ beforeEach(() => {
   setCalls.length = 0;
   dbAvailable = true;
 });
+afterEach(() => vi.unstubAllEnvs());
 
 describe('outreach consent mapping', () => {
   it('defaults to on with no opt-in channels', () => {
@@ -169,8 +170,31 @@ describe('outreach consent mapping', () => {
     expect(revoked).not.toHaveProperty('callConsent'); // unchanged, so untouched
   });
 
+  it('SMS_OPT_IN_CONFIRM off (default): consent is recorded, no confirmation is sent', async () => {
+    confirmSmsOptIn.mockClear();
+    vi.stubEnv('SMS_OPT_IN_CONFIRM', undefined);
+    const web = { disclosureVersion: consent.CURRENT_SMS_DISCLOSURE, source: 'web-settings' };
+    users = [user('u1', { outreachPreferences: { channels: [] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms'] }, web);
+    const prefs = (setCalls[0].value as { outreachPreferences: Record<string, unknown> })
+      .outreachPreferences;
+    expect(prefs.smsConsent).toEqual({
+      grantedAt: expect.stringMatching(/^\d{4}-\d\d-\d\dT/),
+      disclosureVersion: consent.CURRENT_SMS_DISCLOSURE,
+      source: 'web-settings',
+      channel: 'sms',
+      scope: 'all',
+      revokedAt: null,
+    });
+    vi.stubEnv('SMS_OPT_IN_CONFIRM', 'off');
+    users = [user('u1', { outreachPreferences: { channels: [] } })];
+    await consent.writeOutreachConsent('u1', { channels: ['sms'] }, web);
+    expect(confirmSmsOptIn).not.toHaveBeenCalled();
+  });
+
   it('texts going on in settings send one confirmation; going off, or another source, none', async () => {
     confirmSmsOptIn.mockClear();
+    vi.stubEnv('SMS_OPT_IN_CONFIRM', 'on');
     const web = { disclosureVersion: consent.CURRENT_SMS_DISCLOSURE, source: 'web-settings' };
     users = [user('u1', { outreachPreferences: { channels: [] } })];
     await consent.writeOutreachConsent('u1', { channels: ['sms'] }, web);
