@@ -12,6 +12,7 @@
 		27464AAE3E6286E2D651309D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C71781BAD997D314C08864 /* HomeView.swift */; };
 		2FD49FFFD4A0F9F9441CB534 /* FerniLive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FE8F191561C68141BA565BFB /* FerniLive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */; };
+		3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */; };
 		38240C7BC3E78705B56F4A7C /* handoff-to-nayan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */; };
 		3D35744BE349C5C980D7C2A6 /* FerniKit in Frameworks */ = {isa = PBXBuildFile; productRef = ED4AC2AA3060D84427234E43 /* FerniKit */; };
 		4A50AB47CB1B846447DE63F9 /* handoff-to-maya.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */; };
@@ -31,6 +32,7 @@
 		B0B567B29058A9FEF290836E /* CallViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 346AABA0EB545D4C92B2D8CD /* CallViews.swift */; };
 		B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E550D3CF186D8D463FF66E /* SettingsView.swift */; };
 		CAAC14DD23372C8B957B3BAB /* MemoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E67B08698448132C9E2AE39 /* MemoryViews.swift */; };
+		CB8FD7D5F9B4F62D90207F20 /* CrashReporting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175D63C93899C628033FCCA8 /* CrashReporting.swift */; };
 		CF99FB01C1F6E7CF14AF4FCA /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */; };
 		CFB4A2A20FF174CCCBC95045 /* CallFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49306E5B24BD5C520DBE56ED /* CallFeedback.swift */; };
 		D1583676262D8254FE6C3D86 /* LiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C643B5190988DED731CADF82 /* LiveActivityController.swift */; };
@@ -81,6 +83,7 @@
 		0F086DF8C257F87FC0940C6A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		12AD4DC924A1BFC0A91BA221 /* FerniKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniKit; path = Packages/FerniKit; sourceTree = SOURCE_ROOT; };
 		15418FA6D6693B28961C02AC /* handoff-to-ferni.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-ferni.mp3"; sourceTree = "<group>"; };
+		175D63C93899C628033FCCA8 /* CrashReporting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporting.swift; sourceTree = "<group>"; };
 		2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-alex.mp3"; sourceTree = "<group>"; };
 		346AABA0EB545D4C92B2D8CD /* CallViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViews.swift; sourceTree = "<group>"; };
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
@@ -93,6 +96,7 @@
 		649C35992ED39D62D2F8714A /* handoff-to-jordan.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-jordan.mp3"; sourceTree = "<group>"; };
 		65555DCB199766EA982A43A3 /* FerniLive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniLive.swift; sourceTree = "<group>"; };
 		69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndCallIntent.swift; sourceTree = "<group>"; };
+		6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashPolicyTests.swift; sourceTree = "<group>"; };
 		766CF4344E77F81DF8043439 /* FerniShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniShortcuts.swift; sourceTree = "<group>"; };
 		7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
 		90F94F51F9D61D01EEED1837 /* handoff-to-peter.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-peter.mp3"; sourceTree = "<group>"; };
@@ -107,6 +111,7 @@
 		C643B5190988DED731CADF82 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
 		E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-maya.mp3"; sourceTree = "<group>"; };
 		F0356DF8A0D911077889805D /* Ferni.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ferni.entitlements; sourceTree = "<group>"; };
+		F11E986D6A235319241904D1 /* Ferni.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Ferni.xcconfig; sourceTree = "<group>"; };
 		F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		F76007C81E8DC1B134090AD5 /* TalkControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkControl.swift; sourceTree = "<group>"; };
 		FADB5DC0AC364E861BD63F4D /* arrival.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = arrival.mp3; sourceTree = "<group>"; };
@@ -140,6 +145,7 @@
 			children = (
 				A744F1ADE1586BD6791C2E97 /* App */,
 				487C9788B8573873296BCA3B /* AppTests */,
+				C93F9C9FA6CC6EC958398A54 /* Config */,
 				6A32A9AAC20492F70D570A83 /* LiveActivity */,
 				D3CCABA022D534AFFC80F128 /* Packages */,
 				5BF76EE8FB744EC863817746 /* Shared */,
@@ -151,6 +157,7 @@
 			isa = PBXGroup;
 			children = (
 				0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */,
+				6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */,
 			);
 			path = AppTests;
 			sourceTree = "<group>";
@@ -181,6 +188,7 @@
 				49306E5B24BD5C520DBE56ED /* CallFeedback.swift */,
 				346AABA0EB545D4C92B2D8CD /* CallViews.swift */,
 				7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */,
+				175D63C93899C628033FCCA8 /* CrashReporting.swift */,
 				F0356DF8A0D911077889805D /* Ferni.entitlements */,
 				974DF185A4FA58E1F08FD688 /* FerniApp.swift */,
 				766CF4344E77F81DF8043439 /* FerniShortcuts.swift */,
@@ -195,6 +203,14 @@
 				D4C06A9CF9494E3A7EC15BDE /* Sounds */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		C93F9C9FA6CC6EC958398A54 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				F11E986D6A235319241904D1 /* Ferni.xcconfig */,
+			);
+			path = Config;
 			sourceTree = "<group>";
 		};
 		D3CCABA022D534AFFC80F128 /* Packages */ = {
@@ -375,6 +391,7 @@
 				CFB4A2A20FF174CCCBC95045 /* CallFeedback.swift in Sources */,
 				B0B567B29058A9FEF290836E /* CallViews.swift in Sources */,
 				DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */,
+				CB8FD7D5F9B4F62D90207F20 /* CrashReporting.swift in Sources */,
 				9D3C3C27AA79ECED1768D30E /* EndCallIntent.swift in Sources */,
 				7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */,
 				EA64D0860B43223CE3A8D6EB /* FerniShortcuts.swift in Sources */,
@@ -404,6 +421,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CF99FB01C1F6E7CF14AF4FCA /* AppModelTests.swift in Sources */,
+				3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -425,6 +443,7 @@
 /* Begin XCBuildConfiguration section */
 		15AB22CB82FDA360E889EAC2 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F11E986D6A235319241904D1 /* Ferni.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -625,6 +644,7 @@
 		};
 		E9A39DBBEAFBBA87B53B3D7A /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F11E986D6A235319241904D1 /* Ferni.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;

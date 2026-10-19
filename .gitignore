@@ -27,6 +27,8 @@ latest-logs.txt
 GoogleService-Info.plist
 # The iPhone app's Firebase config: bundle-restricted, not a secret, and CI builds need it.
 !apps/ios-native/App/GoogleService-Info.plist
+# The crash-reporting DSN for a build (see apps/ios-native/Config/Ferni.xcconfig).
+apps/ios-native/Config/Sentry.local.xcconfig
 google-services.json
 
 # Local development data (contacts, etc.)
