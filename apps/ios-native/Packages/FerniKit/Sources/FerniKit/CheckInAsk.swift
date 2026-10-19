@@ -41,4 +41,7 @@ public struct CheckInAsk {
         record.declinedAt = record.good
         save(record, uid)
     }
+
+    /// The account was deleted: its record goes too (critic L3).
+    public func forget(uid: String) { defaults.removeObject(forKey: Self.key(uid)) }
 }

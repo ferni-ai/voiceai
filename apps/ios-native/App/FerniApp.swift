@@ -165,9 +165,28 @@ final class AppModel {
     /// A `ferniapp://` link opened the app (DeepLink).
     func open(_ url: URL) {
         switch DeepLink.parse(url) {
-        case .healthNotYet: notice = String(localized: "Health sharing isn't in the iPhone app yet.")
+        case .healthNotYet:
+            notice = String(localized: "Health sharing isn't in the iPhone app yet.")
+            noticeDetail = String(localized: "You can keep talking with Ferni as usual.")
         case nil: break
         }
+    }
+
+    /// A line under the notice, when it needs one.
+    var noticeDetail: String?
+
+    /// The server deleted the account: everything of the person on this phone
+    /// goes too (their agreement, the check-in record, what's shown about
+    /// them), and the app says so (critic L3).
+    func afterDeletion(uid: String?) {
+        if let uid {
+            consent.forget(uid: uid)
+            CheckInAsk().forget(uid: uid)
+        }
+        AccountDeletion.localKeys.forEach(UserDefaults.standard.removeObject(forKey:))
+        forgetPerson()
+        notice = String(localized: "Your account is deleted.")
+        noticeDetail = String(localized: "Everything Ferni remembered about you is gone.")
     }
 
     /// The consent sheet's Not now: no call, and nothing carried to the next one.
@@ -211,9 +230,7 @@ final class AppModel {
         if call.isActive { await call.end() } // first, even if the server then says no
         let uid = account.user?.uid
         try await AccountDeletion.delete(using: api)
-        if let uid { consent.forget(uid: uid) }
-        AccountDeletion.localKeys.forEach(UserDefaults.standard.removeObject(forKey:))
-        forgetPerson()
+        afterDeletion(uid: uid)
         await account.signOut()
     }
 

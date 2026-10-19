@@ -46,6 +46,21 @@ final class AppModelTests: XCTestCase {
         XCTAssertEqual(model.reportSession(for: line), "unknown", "no room known and no call")
     }
 
+    /// Critic L3: once the server has deleted the account, nothing of the
+    /// person stays on this phone (the check-in record included), and the app
+    /// says it's done instead of quietly going back to Settings.
+    func testAfterDeletionNothingOfThePersonStaysAndItSaysSo() {
+        let model = model()
+        CheckInAsk().recordGoodCall(uid: "gone")
+        XCTAssertNotNil(UserDefaults.standard.object(forKey: "ferni.checkin.gone"))
+        UserDefaults.standard.set(true, forKey: "ferni.call.hasTalked")
+        model.afterDeletion(uid: "gone")
+        XCTAssertNil(UserDefaults.standard.object(forKey: "ferni.checkin.gone"))
+        XCTAssertFalse(model.call.hasTalked)
+        XCTAssertEqual(model.notice, "Your account is deleted.")
+        XCTAssertEqual(model.noticeDetail, "Everything Ferni remembered about you is gone.")
+    }
+
     func testAnotherPersonSigningInClearsTheLastOne() {
         let model = model()
         model.accountChanged(from: nil, to: "a")
