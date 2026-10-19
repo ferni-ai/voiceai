@@ -29,6 +29,9 @@ struct RememberCard: View {
                                 Button("Forget") { Task { await forget(note) } }
                                     .font(FerniType.footnote)
                                     .tint(FerniColor.accent)
+                                    // A full 44 pt target, not just the word (critic L5).
+                                    .frame(minWidth: 44, minHeight: 44)
+                                    .contentShape(Rectangle())
                                     .accessibilityLabel("Forget \(note.content)")
                             }
                         }
