@@ -213,9 +213,15 @@ struct CallControls: View {
             }
         }
         .animation(.spring(response: 0.45, dampingFraction: 0.55), value: call.isActive)
-        .sensoryFeedback(.impact(weight: .medium), trigger: call.isActive)
+        .sensoryFeedback(trigger: call.isActive) { old, new in Self.startHaptic(from: old, to: new) }
         .padding(.horizontal, FerniSpace.rest)
         .padding(.bottom, FerniSpace.pause)
+    }
+
+    /// One tap when a call starts. Ending and failing have the avatar's own
+    /// haptics, so the controls add none (one per event, critic M5).
+    static func startHaptic(from old: Bool, to new: Bool) -> SensoryFeedback? {
+        !old && new ? .impact(weight: .medium) : nil
     }
 
     private func circle(_ symbol: String, muted: Bool, label: String, action: @escaping () -> Void) -> some View {
