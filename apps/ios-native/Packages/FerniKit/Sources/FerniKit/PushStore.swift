@@ -3,18 +3,30 @@ import os
 import Security
 
 /// Who this phone's push token belongs to, kept in the Keychain so it
-/// survives relaunches: the token, the account it's registered to on the
-/// server (nil when unbound), and who has said yes to notes from Ferni.
+/// survives relaunches.
 public struct PushBinding: Codable, Equatable, Sendable {
     public var token: String?
+    /// The account the server has confirmed it's registered to; nil when unbound.
     public var owner: String?
+    /// A registration was sent as this account and its outcome is unknown
+    /// (timed out, server error, or the account changed before it finished).
+    /// Recorded before sending; cleared by a confirmed answer.
+    public var unsure: String?
+    /// Everyone on this phone who said yes to notes from Ferni.
     public var optedIn: Set<String> = []
+    /// The server's opaque tag for the owner (after #1991); the notification
+    /// extension drops pushes whose tag doesn't match.
+    public var recipientTag: String?
 
-    public init(token: String? = nil, owner: String? = nil, optedIn: Set<String> = []) {
+    public init(token: String? = nil, owner: String? = nil, unsure: String? = nil, optedIn: Set<String> = []) {
         self.token = token
         self.owner = owner
+        self.unsure = unsure
         self.optedIn = optedIn
     }
+
+    /// The server might have the token bound to someone: confirmed or unknown.
+    var mightBeBound: Bool { owner != nil || unsure != nil }
 }
 
 /// Where the binding is kept. The Keychain in the app; memory in tests.
@@ -25,13 +37,16 @@ public protocol PushVault: Sendable {
 
 /// This phone's push address, bound only to someone who said yes (#1991):
 /// POST /api/push/devices registers it to the signed-in account (moving it
-/// from anyone else), DELETE unbinds it (owner-only).
+/// from anyone else), DELETE unbinds it (owner-only; a no-op for anyone else).
 ///
-/// A signed-out person's notes must stop reaching the phone even when the
-/// sign-out DELETE fails: the binding remembers the old owner, and on the
-/// next launch, sign-in or network change `reconcile` registers the token to
-/// whoever is signed in now (which takes it from the old owner on the server)
-/// and, unless that person opted in, unbinds it again.
+/// A signed-out person's notes must stop reaching the phone even when a
+/// request fails or races a sign-out:
+/// - every operation runs one at a time, so sign-out waits for a
+///   registration still in flight;
+/// - an unconfirmed registration is recorded before it's sent (`unsure`),
+///   and only an explicit rejection clears it;
+/// - `reconcile` registers the token to whoever is signed in now (which takes
+///   it from anyone else) and, unless they opted in, unbinds it again.
 @MainActor
 @Observable
 public final class PushStore {
@@ -41,74 +56,155 @@ public final class PushStore {
     private let bundleID: String
     private let environment: String
     private let appVersion: String
+    private let currentUID: @MainActor () -> String?
+    private var tail: Task<Void, Never>?
     private let log = Logger(subsystem: "com.sethdford.ferni", category: "push")
 
-    /// - Parameter environment: "sandbox" for development builds, "production" for TestFlight and the App Store.
-    public init(api: FerniAPI, vault: any PushVault, bundleID: String, environment: String, appVersion: String) {
+    /// - Parameters:
+    ///   - environment: "sandbox" for development builds, "production" for TestFlight and the App Store.
+    ///   - currentUID: who is signed in right now (the account the API asks as).
+    public init(api: FerniAPI, vault: any PushVault, bundleID: String, environment: String, appVersion: String,
+                currentUID: @escaping @MainActor () -> String?) {
         self.api = api
         self.vault = vault
         self.bundleID = bundleID
         self.environment = environment
         self.appVersion = appVersion
+        self.currentUID = currentUID
         binding = vault.load()
     }
 
     public func hasOptedIn(_ uid: String?) -> Bool { uid.map(binding.optedIn.contains) ?? false }
 
+    /// Work is waiting for an account: the token might still be bound to
+    /// someone and nobody is signed in to finish the unbind.
+    public var needsAccount: Bool { binding.token != nil && binding.mightBeBound && currentUID() == nil }
+
     /// "Yes, check in" while signed in as `uid`.
     public func optIn(uid: String) async {
-        binding.optedIn.insert(uid)
-        save()
-        await reconcile(uid: uid)
+        await serially {
+            self.binding.optedIn.insert(uid)
+            self.save()
+            await self.settle(uid: uid)
+        }
     }
 
     /// APNs gave the app a token (it can change at any launch).
     public func received(deviceToken: Data, uid: String?) async {
         let token = deviceToken.map { String(format: "%02x", $0) }.joined()
-        if token != binding.token { binding.owner = nil } // a new token isn't registered anywhere yet
-        binding.token = token
-        save()
-        await reconcile(uid: uid)
+        await serially {
+            if token != self.binding.token { // a new token isn't registered anywhere yet
+                self.binding.owner = nil
+                self.binding.unsure = nil
+                self.binding.recipientTag = nil
+            }
+            self.binding.token = token
+            self.save()
+            await self.settle(uid: uid)
+        }
     }
 
     /// Makes the server match: bound to `uid` if they opted in, else to nobody.
     /// Safe to call any time (launch, sign-in change, network back).
     public func reconcile(uid: String?) async {
-        guard let token = binding.token, let uid else { return }
-        let wanted = hasOptedIn(uid)
-        if binding.owner == uid && wanted { return }
-        if binding.owner == nil && !wanted { return }
-        if binding.owner != uid {
-            // Someone else's binding (a failed sign-out unbind, or none yet):
-            // registering as `uid` takes the token from them on the server.
-            guard await post(token) else { return }
-            binding.owner = uid
-            save()
-        }
-        if !wanted, await delete(token) {
-            binding.owner = nil
-            save()
+        await serially { await self.settle(uid: uid) }
+    }
+
+    /// Before signing out, as the person leaving; waits for any registration
+    /// in flight first. False if the server never confirmed; the binding then
+    /// remembers them and `reconcile` finishes as the next account.
+    @discardableResult
+    public func unbindBeforeSignOut(uid: String) async -> Bool {
+        await serially {
+            defer { self.binding.optedIn.remove(uid); self.save() }
+            // Unknown owner or this person: DELETE (a no-op on the server for anyone else).
+            guard self.binding.token != nil, self.binding.owner == uid || self.binding.unsure != nil else { return true }
+            for attempt in 0..<2 {
+                if attempt > 0 { try? await Task.sleep(for: .seconds(1)) }
+                if await self.unregister(as: uid) { return true }
+            }
+            self.log.error("Sign-out unbind failed; the next account takes the token over")
+            return false
         }
     }
 
-    /// Before signing out, as the person leaving. False if the server never
-    /// confirmed; the binding then remembers them and `reconcile` finishes later.
-    @discardableResult
-    public func unbindBeforeSignOut(uid: String) async -> Bool {
-        defer { binding.optedIn.remove(uid); save() }
-        guard let token = binding.token, binding.owner == uid else { return true }
-        for attempt in 0..<2 {
-            if attempt > 0 { try? await Task.sleep(for: .seconds(1)) }
-            if await delete(token) {
-                binding.owner = nil
-                return true
+    // MARK: - One at a time
+
+    /// Runs `work` after everything queued before it.
+    private func serially<T: Sendable>(_ work: @escaping @MainActor () async -> T) async -> T {
+        let previous = tail
+        let task = Task { @MainActor in
+            await previous?.value
+            return await work()
+        }
+        tail = Task { _ = await task.value }
+        return await task.value
+    }
+
+    private func settle(uid: String?) async {
+        guard binding.token != nil else { return }
+        guard let uid else {
+            if binding.mightBeBound { log.info("Push unbind waits for an account") }
+            return
+        }
+        let wanted = hasOptedIn(uid)
+        if binding.unsure == nil {
+            if binding.owner == uid && wanted { return }
+            if binding.owner == nil && !wanted { return }
+        }
+        if binding.owner != uid || binding.unsure != nil {
+            guard await register(as: uid) else {
+                // Signed in as someone else by the time it answered: settle as them.
+                if let now = currentUID(), now != uid { await settle(uid: now) }
+                return
             }
         }
-        log.error("Sign-out unbind failed; the next sign-in takes the token over")
+        if !wanted { _ = await unregister(as: uid) }
+    }
+
+    // MARK: - Server
+
+    /// POST as `uid`. True only when the server confirmed it for `uid`.
+    private func register(as uid: String) async -> Bool {
+        guard let token = binding.token else { return false }
+        binding.unsure = uid
+        save()
+        switch await post(token) {
+        case .rejected:
+            binding.unsure = nil // the server changed nothing
+        case .unknown:
+            break
+        case .registered(let tag):
+            guard currentUID() == uid else {
+                log.error("Account changed during registration; settling as the new account")
+                break
+            }
+            binding.owner = uid
+            binding.unsure = nil
+            binding.recipientTag = tag
+            save()
+            return true
+        }
+        save()
         return false
     }
 
-    private func post(_ token: String) async -> Bool {
+    /// DELETE as `uid`. Clears what that answer settles: their confirmed
+    /// binding and their unknown one (the server only removes it if it's theirs).
+    private func unregister(as uid: String) async -> Bool {
+        guard let token = binding.token, currentUID() == uid, await delete(token) else { return false }
+        if binding.owner == uid {
+            binding.owner = nil
+            binding.recipientTag = nil
+        }
+        if binding.unsure == uid { binding.unsure = nil }
+        save()
+        return true
+    }
+
+    private enum PostOutcome { case registered(tag: String?), rejected, unknown }
+
+    private func post(_ token: String) async -> PostOutcome {
         struct Body: Encodable, Sendable {
             let platform = "ios"
             let token: String
@@ -116,14 +212,20 @@ public final class PushStore {
             let environment: String
             let appVersion: String
         }
+        struct Answer: Decodable { let recipientTag: String? }
         do {
-            _ = try await api.data("/api/push/devices", method: "POST", json: Body(
+            let data = try await api.data("/api/push/devices", method: "POST", json: Body(
                 token: token, bundleId: bundleID, environment: environment, appVersion: appVersion
             ))
-            return true
+            return .registered(tag: (try? JSONDecoder().decode(Answer.self, from: data))?.recipientTag)
+        } catch FerniAPIError.notSignedIn {
+            return .rejected // never sent
+        } catch FerniAPIError.status(let code) where (400..<500).contains(code) {
+            log.error("Device registration refused: \(code, privacy: .public)")
+            return .rejected
         } catch {
-            log.error("Device not registered: \(String(describing: error), privacy: .public)")
-            return false
+            log.error("Device registration outcome unknown: \(String(describing: error), privacy: .public)")
+            return .unknown
         }
     }
 

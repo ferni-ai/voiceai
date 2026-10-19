@@ -31,11 +31,14 @@ struct FerniApp: App {
                     FerniAppDelegate.onToken = { [model] token in
                         Task { await model.push.received(deviceToken: token, uid: model.account.user?.uid) }
                     }
-                    // Back online: finish any unbind or registration that didn't go through.
+                    FerniAppDelegate.onTalk = { [model] in model.talk(to: model.team.chosen) }
+                    // Back online: finish any unbind or registration that didn't go through,
+                    // starting an account first if one is waiting to be unbound. This loop
+                    // never ends, so it stays last in this task.
                     for await _ in NetworkWatcher.becameReachable() {
+                        if model.push.needsAccount { await model.account.start() }
                         await model.push.reconcile(uid: model.account.user?.uid)
                     }
-                    FerniAppDelegate.onTalk = { [model] in model.talk(to: model.team.chosen) }
                 }
                 .onChange(of: model.account.user?.uid, initial: true) { old, uid in
                     model.accountChanged(from: old, to: uid)
@@ -156,7 +159,8 @@ final class AppModel {
         #endif
         push = PushStore(
             api: api, vault: KeychainPushVault(), bundleID: Bundle.main.bundleIdentifier ?? "com.sethdford.ferni",
-            environment: apnsEnvironment, appVersion: SettingsView.version()
+            environment: apnsEnvironment, appVersion: SettingsView.version(),
+            currentUID: { [account] in account.user?.uid }
         )
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
         let level = AudioLevelMeter()
