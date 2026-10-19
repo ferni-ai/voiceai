@@ -36,7 +36,8 @@ export interface RelationshipInsightsView {
     familyCount: number;
     friendCount: number;
     colleagueCount: number;
-    averageStrength: number;
+    /** Mean of the contacts that have a strength score; null when none do. */
+    averageStrength: number | null;
     upcomingDates: number;
     needsAttention: number;
   };
@@ -80,7 +81,9 @@ export function buildRelationshipInsightsView(
 ): RelationshipInsightsView {
   const total = contacts.length;
   const count = (test: (c: ContactRelationship) => boolean) => contacts.filter(test).length;
-  const strengthSum = contacts.reduce((sum, c) => sum + (c.strengthScore || 0), 0);
+  const scored = contacts
+    .map((c) => c.strengthScore)
+    .filter((s): s is number => typeof s === 'number' && Number.isFinite(s));
 
   const lastReached = new Map<string, number>();
   for (const contact of contacts) {
@@ -97,7 +100,8 @@ export function buildRelationshipInsightsView(
       colleagueCount: count(
         (c) => c.relationship === 'colleague' || c.relationship === 'professional'
       ),
-      averageStrength: total > 0 ? Math.round(strengthSum / total) : 0,
+      averageStrength:
+        scored.length > 0 ? Math.round(scored.reduce((a, b) => a + b, 0) / scored.length) : null,
       upcomingDates: contacts.reduce(
         (sum, c) =>
           sum +

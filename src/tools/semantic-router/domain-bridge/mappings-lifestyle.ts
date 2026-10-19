@@ -225,10 +225,6 @@ export const LIFESTYLE_MAPPINGS: Record<string, ToolMapping> = {
     domainToolId: 'backgroundResearch',
     transformArgs: (args) => ({ topic: args.topic }),
   },
-  background_reservation: {
-    domainToolId: 'backgroundReservation',
-    transformArgs: (args) => ({ restaurant: args.restaurant, time: args.time }),
-  },
   background_followup: {
     domainToolId: 'backgroundFollowUp',
     transformArgs: (args) => ({ contact: args.contact }),
