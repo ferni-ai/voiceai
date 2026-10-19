@@ -26,6 +26,8 @@ export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
 
 export const FLAG_MANIFEST = {
   ...FLAGS_ACTION_TO_BYPASS,
+  // on: a teammate's first line restates only the caller's words, else a plain hello; kept out of memory (arrival-grounding.ts)
+  ARRIVAL_LINE_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_ASSERTED_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_RECOGNITION: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -33,6 +35,8 @@ export const FLAG_MANIFEST = {
   CALLER_TURN_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // shadow: log where a reply answers its own question for the caller, cut nothing; on: cut there (caller-voice-guard.ts)
   CALLER_VOICE_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a caller's voice create, update and delete go to their connected calendar, not only Ferni's list (#1749)
+  CALENDAR_WRITE_TO_PROVIDER: { default: 'off', owner: 'tools', kind: 'experiment' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -116,8 +120,12 @@ export const FLAG_MANIFEST = {
   ENABLE_INTELLIGENT_ROUTING: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   ENABLE_PROFILING: { default: 'off', owner: 'voice', kind: 'config' },
   ENDPOINT_FAST_FINISHED: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: extracted entities that are numbers, placeholders, the team or requests to Ferni are not stored (memory/entity-hygiene.ts)
+  ENTITY_HYGIENE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // late turn-1 words join that turn instead of opening a new one
   EOT_CONTINUED_MERGE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // errands as durable workflows: owner-confirmed calls, verified bookings (services/errands, errands-flag.ts)
+  ERRANDS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -154,6 +162,8 @@ export const FLAG_MANIFEST = {
   // on: after a call, the verified owner's reminders, commitments and threads become follow-ups (agents/follow-through-import.ts)
   FOLLOW_THROUGH_IMPORT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
+  // on: the opener asks about one follow_through row and the caller's answer closes it (follow-through-opener.ts)
+  FOLLOW_THROUGH_OPENER: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
   FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: at call start, ask once about a date the caller told us (dates/recall.ts; needs DATES_THAT_MATTER)
@@ -163,10 +173,10 @@ export const FLAG_MANIFEST = {
   FTIS_ONLY_MODE: { default: 'off', owner: 'tools', kind: 'experiment' },
   FTIS_PRIMARY: { default: 'off', owner: 'tools', kind: 'experiment' },
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
-  GEMINI_LIVE_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },
-  GEMMA3N_USE_VERTEX_AI: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
+  GOOD_NEWS_BIGGER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GREETING_WIRE_AFTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GTM_AUTO_PUBLISH: { default: 'off', owner: 'platform', kind: 'experiment' },
   GTM_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
@@ -227,17 +237,23 @@ export const FLAG_MANIFEST = {
   MEMORY_VIEW: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on (with MEMORY_VIEW): the memory view also shows what Ferni has been pondering.
   MEMORY_VIEW_PONDERING: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: one consent record per phone, consent/{phoneHash} (services/messaging/consent.ts):
+  // inbound STOP/START writes it, texts and calls read it, third parties need their own opt-in
+  MESSAGING_PIPELINE: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: mid-call system notes reach Gemini framed as private, not the caller's words
   // (patches/@livekit__agents@1.9.3.patch), and save tools refuse them (tools/utils/own-note.ts)
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
   // Alex's 8am text brief, with MORNING_BRIEF_USERS (services/outreach/morning-brief/brief-job.ts)
   MORNING_BRIEF: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: the caller can name the tune Ferni whistles, or ask him to stop (personas/named-tune-note.ts)
+  NAMED_TUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // Keep off: needs #1855, the privacy-page wording, and a legal read of the Maps terms for storing the place ID. #1760 merged with an unverified head.
   PLACES_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read in patches/@livekit__agents@1.9.3.patch
@@ -245,8 +261,6 @@ export const FLAG_MANIFEST = {
   PONDERING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // late-night calls: a softer reply line and the LATE_NIGHT layer in attune.ts (porch-light.ts)
   PORCH_LIGHT: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_ADAPTIVE_PACING: { default: 'off', owner: 'voice', kind: 'experiment' },
-  POST_TTS_ENHANCEMENT_ENABLED: { default: 'off', owner: 'voice', kind: 'experiment' },
   PREDICTIONS_USE_ASYNC: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: preemptive replies are also synthesized before the commit (multi-agent/preemptive-tts.ts)
   PREEMPTIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -257,6 +271,8 @@ export const FLAG_MANIFEST = {
   PRESENCE_SOUNDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   PRE_STT_SIP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PROACTIVE_CHANNELS: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // at most one check-in per commitment every 3 days, kept across calls (superhuman/commitment-checkin-cooldown.ts)
+  PROACTIVE_COOLDOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
   // character loads a short character sheet instead of the full prompt (prompt-loader.ts)
   PROMPT_MODE: { default: 'full', owner: 'voice', kind: 'config' },
@@ -295,6 +311,8 @@ export const FLAG_MANIFEST = {
   // on: the scheduled-outreach job may text, call or email a member's contacts (founder opt-in); off holds them
   SCHEDULED_OUTREACH_THIRD_PARTY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   SEEDS_SERVER_LEDGER: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on (with FERNI_STATE): his own day only when asked, never on his first reply (self-share-asked.ts)
+  SELF_SHARE_WHEN_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
   SEMANTIC_RECALL: { default: 'off', owner: 'memory', kind: 'experiment' },
   SEMANTIC_ROUTER_AUTO_EXECUTE_ENABLED: { default: 'on', owner: 'tools', kind: 'config' },
   SEMANTIC_ROUTER_CHAIN_PREDICTION_ENABLED: { default: 'on', owner: 'tools', kind: 'config' },
@@ -335,7 +353,6 @@ export const FLAG_MANIFEST = {
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: a persona handoff keeps the call's STT stream instead of reopening it (stt-handoff-reuse.ts)
   STT_HANDOFF_REUSE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  STT_REFRESH_AFTER_GREETING: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read in patches/@livekit__agents@1.9.3.patch: an STT attempt resets the retry count
   // only after 60 s up (1.9.x resets after timeoutMs, 10 s)
   STT_RETRY_MIN_UPTIME: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -355,7 +372,8 @@ export const FLAG_MANIFEST = {
   // topic tools go to the agent on the call now, and a handed-to agent gets the call's
   // loaded domains (voice-agent/deferred-tool-update.ts)
   TOOLS_FOLLOW_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
-  // a turn's topic tools go into that turn's own request (config/same-turn-tools-config.ts)
+  // a turn's topic tools go into that turn's own request, and a call starts from a
+  // lean always-on set and stays within 64 + 24 tools (config/same-turn-tools-config.ts)
   TOOLS_SAME_TURN: { default: 'off', owner: 'tools', kind: 'experiment' },
   // callUser places a real call to the verified phone; off keeps the honest stub
   TOOLS_REAL_CALL_USER: { default: 'off', owner: 'tools', kind: 'experiment' },
@@ -375,6 +393,8 @@ export const FLAG_MANIFEST = {
   // cartesia by default; sonata only when its native addon is built (speech/tts-gateway/providers/index.ts)
   TTS_PROVIDER: { default: 'cartesia', owner: 'voice', kind: 'config' },
   TTS_REPLY_CONTINUATIONS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // ping the shared Cartesia TTS socket and reopen it when it drops (tts-gateway/providers/cartesia-socket.ts)
+  TTS_SOCKET_WARM: { default: 'off', owner: 'voice', kind: 'experiment' },
   TTS_WHOLE_TEXT_STREAMING: { default: 'off', owner: 'voice', kind: 'experiment' },
   // troubles talk: no shift to his own life during a trouble, replies no longer than what they told (troubles-talk.ts)
   TROUBLES_TALK: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -396,8 +416,6 @@ export const FLAG_MANIFEST = {
   USE_FIRESTORE_REVIEWS: { default: 'off', owner: 'billing', kind: 'experiment' },
   USE_GENERATED_TOOL_DOCS: { default: 'off', owner: 'voice', kind: 'config' },
   USE_NATIVE_AUDIO: { default: 'on', owner: 'platform', kind: 'kill-switch' },
-  USE_NEW_TEAM_HANDLERS: { default: 'off', owner: 'tools', kind: 'experiment' },
-  USE_OPENAI_REALTIME: { default: 'off', owner: 'platform', kind: 'experiment' },
   USE_PRE_STT_PROCESSING: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // SERVICE_MODE=remote also turns it on
   USE_RUNTIME: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -432,6 +450,9 @@ export const FLAG_MANIFEST = {
   WEATHER_SAVED_HOME: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   // on: web callers' audio gets BVC noise cancellation (multi-agent/room-input-options.ts)
   WEB_NOISE_CANCEL: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on for a person (cohort flag, read per person): outreach and the after-call card reach their
+  // browser by web push (outreach/web-push-delivery.ts, web-push-flag.ts)
+  WEB_PUSH_DELIVERY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: searchWeb answers from Vertex Google Search grounding, not DuckDuckGo (information/web-search.ts);
   // caps SEARCH_MAX_PER_PERSON_HOUR (20), SEARCH_MAX_ANON_PER_HOUR (10, all unverified callers)
   // and SEARCH_MAX_PER_DAY (150 Google queries)

@@ -7,6 +7,7 @@
  * POST /api/jobs/calendar-triggers           (every 5 minutes)
  * POST /api/jobs/calendar-briefing           (every 15 minutes; MORNING_BRIEF texts)
  * POST /api/jobs/follow-through              (every 5 minutes; ?dryRun=true; FOLLOW_THROUGH_JOB)
+ * POST /api/jobs/retry-pending-revocations  (every 15 minutes; Google revokes erasure queued)
  *
  * @module api/scheduled-jobs/background-delivery-jobs
  */
@@ -160,15 +161,25 @@ export function followThroughFlags(
   };
 }
 
-/** The real follow-through deps: the Firestore store, cohort flags, the guarded sender. Null without Firestore. */
+/**
+ * The real follow-through deps: the Firestore store, cohort flags, the guarded
+ * sender and the person's forgotten topics. Null without Firestore.
+ */
 async function defaultFollowThroughDeps(): Promise<FollowUpTextDeps | null> {
-  const [{ firestoreFollowUpStore }, { sendGuardedText }] = await Promise.all([
-    import('../../services/stores/follow-through-store.js'),
-    import('../../services/outreach/guarded-text.js'),
-  ]);
+  const [{ firestoreFollowUpStore }, { sendGuardedText }, { forgottenTopicsOrNull }] =
+    await Promise.all([
+      import('../../services/stores/follow-through-store.js'),
+      import('../../services/outreach/guarded-text.js'),
+      import('../../memory/recall/forget.js'),
+    ]);
   const store = firestoreFollowUpStore();
   if (!store) return null;
-  return { store, ...followThroughFlags(), sendText: async (t) => sendGuardedText(t) };
+  return {
+    store,
+    ...followThroughFlags(),
+    sendText: async (t) => sendGuardedText(t),
+    forgotten: async (userId) => forgottenTopicsOrNull(userId),
+  };
 }
 
 /**
@@ -196,4 +207,13 @@ export async function handleFollowThrough(
   res: ServerResponse
 ): Promise<void> {
   await run(res, 'follow-through', async () => runFollowThroughJob({ dryRun: isDryRun(req) }));
+}
+
+/** Revokes Google couldn't take during an account erasure (identity/google-revocations). */
+export async function handleRetryPendingRevocations(res: ServerResponse): Promise<void> {
+  await run(res, 'retry-pending-revocations', async () => {
+    const { retryPendingRevocations } =
+      await import('../../services/identity/google-revocations.js');
+    return { ...(await retryPendingRevocations()) };
+  });
 }

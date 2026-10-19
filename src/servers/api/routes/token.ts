@@ -18,6 +18,7 @@ import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 import { refuseUnownedRoom } from './token-room-owner.js';
 import { refuseUnadmitted } from '../../../api/admission.js';
+import { demoPersonaFor, personaForCaller } from './token-persona-owner.js';
 import { handleDemoClaim } from './demo-claim.js';
 import { handleDemoSessionUpdate } from './demo-session-update.js';
 
@@ -169,8 +170,8 @@ export async function handleTokenRoutes(
   if (pathname === '/demo-token') {
     const ip = getClientIp(req);
 
-    // Get persona_id from query params (defaults to 'ferni' for backwards compatibility)
-    const personaId = parsedUrl.searchParams.get('persona_id') || 'ferni';
+    // persona_id defaults to 'ferni'; no one is signed in, so a custom agent id becomes Ferni.
+    const personaId = await demoPersonaFor(parsedUrl);
 
     // Every demo counts against the limit: persona_id is the caller's choice, so it can't exempt one
     const allowed = await reserveDemoSession(ip);
@@ -333,7 +334,7 @@ export async function handleTokenRoutes(
       return true;
     }
 
-    const selectedPersona = persona_id || 'ferni';
+    const requestedPersona = persona_id || 'ferni';
 
     try {
       // SECURITY: Require verified Firebase auth before issuing LiveKit tokens.
@@ -393,6 +394,8 @@ export async function handleTokenRoutes(
       // WAITLIST_GATE=on: only admitted people get a voice session (the demo route stays open)
       if (await refuseUnadmitted({ uid: firebaseUid, email: verifiedEmail, isAdmin }, res)) return true;
       if (await refuseUnownedRoom(room, firebaseUid, res)) return true; // never join another's room
+      // A custom agent id must be the caller's own, else the call is with Ferni.
+      const selectedPersona = await personaForCaller(requestedPersona, firebaseUid);
 
       // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
       log.info(
@@ -414,8 +417,7 @@ export async function handleTokenRoutes(
       // 3. Geo-detected accent from IP/locale
       // 4. Default to 'american'
 
-      // Try to load user's saved accent AND location from profile if authenticated
-      // "Better than Human" - We remember your accent preference AND location
+      // Load the signed-in user's saved accent and location from their profile
       let savedAccent: string | undefined;
       let savedLocation:
         | {
@@ -534,14 +536,12 @@ export async function handleTokenRoutes(
       // Pre-warm LLM content cache (fire-and-forget, before session starts)
       prewarmLLMContentForPersona(selectedPersona, firebaseUid || undefined);
 
-      // ⚡ OPTIMIZATION: Pre-fetch user data while token is being prepared
-      // This starts loading profile, trust, insights BEFORE session starts
+      // ⚡ Pre-fetch profile, trust and insights while the token is prepared, before the session
       if (firebaseUid) {
         prefetchUserData(firebaseUid, selectedPersona);
       }
 
-      // 🔗 Developer Platform: Look up publisher for marketplace personas
-      // This enables MCP server loading and webhook dispatch for custom personas
+      // 🔗 Developer Platform: the publisher enables MCP servers and webhooks for custom personas
       const publisherId = await getPublisherIdForPersona(selectedPersona);
 
       // Build room metadata (shared type — also passed to agent dispatch inside createRoomWithAgent)

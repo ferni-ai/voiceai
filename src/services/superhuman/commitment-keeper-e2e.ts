@@ -713,7 +713,7 @@ export async function getCommitmentStats(userId: string): Promise<{
     ).length;
     const completed = commitments.filter((c) => c.status === 'completed').length;
     const abandoned = commitments.filter((c) => c.status === 'abandoned').length;
-    const total = commitments.length;
+    const total = commitments.filter((c) => c.status !== 'dismissed').length; // a dismissal isn't a miss
 
     const completionRate = total > 0 ? completed / total : 0;
     const avgEmotionalWeight =

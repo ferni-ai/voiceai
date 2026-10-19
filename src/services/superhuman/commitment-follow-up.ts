@@ -33,7 +33,19 @@ export interface OpenCommitment {
   followUpAfter: number;
   followUpCount: number;
   lastFollowUp?: number;
+  /** A call Ferni was asked to make that hasn't completed ("call my mom", held till 9): what to say. */
+  callNote?: string;
 }
+
+/**
+ * The line for each statement that asks for a call Ferni hasn't completed
+ * (ferniCallNotes in services/outreach/call-status.ts, passed in by the live call).
+ */
+export type CallNotes = (
+  userId: string,
+  statements: readonly string[],
+  now: number
+) => Promise<Map<string, string>>;
 
 /** Asked about three times already: let it go, a coach doesn't nag. */
 const MAX_FOLLOW_UPS = 3;
@@ -112,7 +124,8 @@ function daysAgo(ms: number): string {
  * model reads the day from their words and today's date instead.
  */
 export function describeCommitment(c: OpenCommitment, now: number): string {
-  return `"${c.statement}" (they said this ${daysAgo(now - c.createdAt)})`;
+  const said = `"${c.statement}" (they said this ${daysAgo(now - c.createdAt)})`;
+  return c.callNote ? `${said} ${c.callNote}` : said;
 }
 
 /** The note that leads the first recall of the call, or null when nothing is open. */
@@ -166,14 +179,25 @@ export const firestoreCommitmentStore: CommitmentStore = {
 export async function loadCallCheckIns(
   userId: string,
   store: CommitmentStore = firestoreCommitmentStore,
-  now: number = Date.now()
+  now: number = Date.now(),
+  notes?: CallNotes
 ): Promise<OpenCommitment[]> {
   try {
     const docs = await store.active(userId);
     const all = docs
       .map((d) => toOpenCommitment(d.id, d.data))
       .filter((c): c is OpenCommitment => c !== null);
-    const picked = pickForCall(all, now);
+    // A call Ferni was asked to make is asked about only once it has happened (call-status.ts).
+    const said = notes
+      ? await notes(
+          userId,
+          all.map((c) => c.statement),
+          now
+        )
+      : new Map();
+    const picked = pickForCall(all, now).map((c) =>
+      said.has(c.statement) ? { ...c, callNote: said.get(c.statement) } : c
+    );
     // Recorded in the background: the greeting is waiting on this.
     for (const c of picked) {
       store.markFollowedUp(userId, c, now).catch((error: unknown) => {
@@ -256,12 +280,13 @@ const SHARED_TTL_MS = 60_000;
 export function callCheckIns(
   userId: string,
   store?: CommitmentStore,
-  now: number = Date.now()
+  now: number = Date.now(),
+  notes?: CallNotes
 ): Promise<OpenCommitment[]> {
   for (const [key, entry] of shared) if (now - entry.at > SHARED_TTL_MS) shared.delete(key);
   const hit = shared.get(userId);
   if (hit) return hit.open;
-  const open = loadCallCheckIns(userId, store, now);
+  const open = loadCallCheckIns(userId, store, now, notes);
   shared.set(userId, { at: now, open });
   return open;
 }
