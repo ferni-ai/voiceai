@@ -56,6 +56,9 @@ struct HomeView: View {
                             if call.phase == .idle, let note = model.homeLine.current?.note {
                                 NoteCard(note: note) { model.talk(aboutNote: note) }
                             }
+                            if let prompt = SignInPrompt.shown(model.account.state) {
+                                SignInPromptView(prompt: prompt) { model.isSigningIn = true }
+                            }
                             TeamRow(team: model.team)
                         }
                     }
@@ -115,9 +118,13 @@ struct HomeView: View {
                         model.isAskingConsent = false
                         Task { await model.agreeAndTalk() }
                     },
-                    onNotNow: { model.notNow() }
+                    onNotNow: { model.notNow() },
+                    account: model.account
                 )
                 .presentationDetents([.large])
+            }
+            .sheet(isPresented: $model.isSigningIn, onDismiss: { model.signInFinished() }) {
+                SignInView(account: model.account)
             }
         }
     }

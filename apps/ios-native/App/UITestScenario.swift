@@ -43,6 +43,15 @@ enum UITestScenario: String {
         )
     }
 
+    /// `-FerniAccount anonymous|needsSignIn`: an account that can sign in,
+    /// with a stand-in for Firebase (any number; the code is 123456).
+    @MainActor static func account() -> AccountStore? {
+        guard current != nil, let kind = value(after: "-FerniAccount") else { return nil }
+        let realBefore = kind == "needsSignIn"
+        let backend = UITestAuthBackend(anonymous: kind == "anonymous")
+        return AccountStore(backend: backend, memory: AccountMemory(get: { realBefore }, set: { _ in }))
+    }
+
     private static func value(after name: String) -> String? {
         let args = ProcessInfo.processInfo.arguments
         guard let i = args.firstIndex(of: name), i + 1 < args.count else { return nil }
@@ -50,6 +59,26 @@ enum UITestScenario: String {
     }
 
     private static func flag(_ name: String) -> Bool { value(after: name) == "YES" }
+}
+
+/// Firebase's stand-in for UI tests: signs in to "uitest-real" with code 123456.
+private final class UITestAuthBackend: AuthBackend, @unchecked Sendable {
+    private var user: AccountUser?
+
+    init(anonymous: Bool) {
+        user = anonymous ? AccountUser(uid: "uitest-anon", isAnonymous: true) : nil
+    }
+
+    func currentUser() async -> AccountUser? { user }
+    func signInAnonymously() async throws -> AccountUser { throw URLError(.notConnectedToInternet) }
+    func idToken(forceRefresh: Bool) async throws -> String? { user.map { "uitest-\($0.uid)" } }
+    func sendPhoneCode(to phoneNumber: String) async throws -> String { "uitest-verification" }
+    func linkOrSignIn(_ credential: SignInCredential) async throws -> SignInResult {
+        if case .phone(_, let code) = credential, code != "123456" { throw SignInError.invalidCode }
+        user = AccountUser(uid: "uitest-real", isAnonymous: false, providerIDs: ["phone"])
+        return SignInResult(user: user!, leftBehind: nil)
+    }
+    func signOut() async throws { user = nil }
 }
 
 /// Ferni arrives speaking and the call stays up until it's ended.

@@ -93,6 +93,15 @@ targets:
         CFBundleURLTypes:
           - CFBundleURLName: com.sethdford.ferni
             CFBundleURLSchemes: [ferniapp]
+          # Sign-in return trips, both from App/GoogleService-Info.plist: Google
+          # Sign-In and Firebase phone sign-in's reCAPTCHA page (REVERSED_CLIENT_ID),
+          # and the encoded app ID Firebase falls back to (GOOGLE_APP_ID).
+          - CFBundleURLName: com.sethdford.ferni.signin
+            CFBundleURLSchemes:
+              - com.googleusercontent.apps.1031920444452-rgi4043g7hddgf4lqhargcl2j6cuc8tr
+              - app-1-1031920444452-ios-523d8b146e8d1b27b164b1
+        # Google Sign-In's client: the Firebase app's CLIENT_ID.
+        GIDClientID: 1031920444452-rgi4043g7hddgf4lqhargcl2j6cuc8tr.apps.googleusercontent.com
         # Crash reporting: empty (off) unless Config/Sentry.local.xcconfig sets it.
         SentryDSN: $(SENTRY_DSN)
         ITSAppUsesNonExemptEncryption: false
