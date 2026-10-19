@@ -66,16 +66,26 @@ Or use the same curl with `"proactiveFrequency":"light"` or `"off"`.
 
 ## Turning it on (lead)
 
-1. #803, #833, #841, #848 and #854 are on main. For calls, #631 must also
-   merge (`PROACTIVE_REASON_OPENER=on` on the voice agent), so Ferni waits
-   for him to pick up and says why she called. It is not on main yet.
-2. On the UI service: `PROACTIVE_CHANNELS=on`, `PROACTIVE_CHANNELS_USERS=<Seth's
-   uid>`, optionally `COACH_FOLLOW_THROUGH=on`. `deploy-production.yml` uses
-   `--set-env-vars`, which replaces every variable on each deploy, so these
-   belong in that line, not a one-off `gcloud` change. Needs Seth's OK.
-3. Dry run first: `POST /api/jobs/deliver-scheduled-actions?dryRun=true`
+1. #803, #833, #841, #848, #854 and #631 are on main. For calls,
+   `PROACTIVE_REASON_OPENER=on` must be set on the voice agent, so Ferni waits
+   for him to pick up and says why she called, and the server and the agent
+   must share `DISPATCH_SIGNING_SECRET` (#1706): without it the agent refuses
+   the check-in context, so Ferni doesn't know why she called.
+2. On the UI service, `deploy-production.yml` (the only web deploy path since
+   #1835) sets `PROACTIVE_CHANNELS=on` and mounts `PROACTIVE_CHANNELS_USERS`
+   from the Secret Manager secret `proactive-channels-users` (project
+   johnb-2025; comma-separated Firebase uids). This repo is public, so uids
+   never go in the workflow. `--set-env-vars` replaces every variable on each
+   deploy, so flags belong in that line, not a one-off `gcloud` change. To add or remove someone, add a secret version;
+   the next deploy picks it up. Optionally `COACH_FOLLOW_THROUGH=on`.
+3. Texts: the sending number (`twilio-phone-number`) must have an approved
+   A2P 10DLC campaign, or be a verified toll-free number. Otherwise carriers
+   drop the text (Twilio error 30034) after Twilio accepted it, and the log
+   still says `sent`.
+4. Dry run first: `POST /api/jobs/deliver-scheduled-actions?dryRun=true`
    (scheduler auth). The `proactive.users` field says what would go out, on
-   which channel, and why, and nothing is sent.
+   which channel, and why, and nothing is sent. It shows nothing until the
+   deploy with `PROACTIVE_CHANNELS=on` is live.
 
 ## Watching it
 
@@ -87,5 +97,6 @@ didn't go through.
 
 ## Rollback
 
-Unset `PROACTIVE_CHANNELS` (or remove his uid). The daily run goes back to
-its old path, and nothing proactive is sent.
+Unset `PROACTIVE_CHANNELS` (or add a `proactive-channels-users` version
+without his uid and redeploy). The daily run goes back to its old path, and
+nothing proactive is sent.
