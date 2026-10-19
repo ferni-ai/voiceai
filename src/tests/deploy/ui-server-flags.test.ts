@@ -33,6 +33,9 @@ const SERVER_FLAGS = [
   'FOLLOW_THROUGH_JOB=on',
 ];
 
+/** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */
+const PROACTIVE_USERS_SECRET = 'PROACTIVE_CHANNELS_USERS=proactive-channels-users:latest';
+
 /** The `--set-env-vars` value of the workflow's john-bogle-ui deploy, split on its `::` delimiter. */
 function workflowEnv(): string[] {
   const start = workflow.search(/run deploy john-bogle-ui\b/);
@@ -40,6 +43,15 @@ function workflowEnv(): string[] {
   const m = /--set-env-vars "\^::\^([^"]*)"/.exec(workflow.slice(start));
   expect(m).not.toBeNull();
   return m![1].split('::');
+}
+
+/** The `--set-secrets` value of the workflow's john-bogle-ui deploy, split on commas. */
+function workflowSecrets(): string[] {
+  const start = workflow.search(/run deploy john-bogle-ui\b/);
+  expect(start).toBeGreaterThan(-1);
+  const m = /--set-secrets "([^"]*)"/.exec(workflow.slice(start));
+  expect(m).not.toBeNull();
+  return m![1].split(',');
 }
 
 describe('web-server flags survive a deploy', () => {
@@ -51,6 +63,14 @@ describe('web-server flags survive a deploy', () => {
     const env = workflowEnv();
     expect(env).toContain("EMAIL_PROVIDER=${{ vars.EMAIL_PROVIDER || 'gmail' }}");
     expect(env).toContain("EMAIL_FROM=${{ vars.EMAIL_FROM || 'admin@ferni.ai' }}");
+  });
+
+  it('the production workflow mounts the proactive allowlist from Secret Manager', () => {
+    expect(workflowSecrets()).toContain(PROACTIVE_USERS_SECRET);
+  });
+
+  it('never puts the proactive allowlist in plain env', () => {
+    expect(workflowEnv().filter((v) => v.startsWith('PROACTIVE_CHANNELS_USERS='))).toEqual([]);
   });
 
   it('the What Ferni Knows build flag reaches both web builds', () => {

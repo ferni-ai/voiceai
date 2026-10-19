@@ -34,6 +34,7 @@ vi.mock('../../platform/erase-user-record.js', () => ({ eraseUserRecord }));
 
 const { completeGmailSendConnect } = await import('../gmail-send-as-user.js');
 const { getDataExportService } = await import('../../data-export.js');
+const { saveTokens: saveCalendarTokens } = await import('../google-calendar-token-store.js');
 
 let calls: { url: string; body: string }[] = [];
 
@@ -76,5 +77,32 @@ describe('account erasure and the Gmail send grant', () => {
     const results = await getDataExportService().deleteAllData('user-2');
     expect(calls.filter((c) => c.url.includes('revoke'))).toHaveLength(0);
     expect(results.gmail_send_grant).toBe(true);
+  });
+});
+
+describe('account erasure and the Google Calendar grant', () => {
+  const calendarTokens = { access_token: 'cal-access', refresh_token: 'cal-refresh', expires_at: 0 };
+
+  it('revokes the calendar grant and deletes its tokens before the record is erased', async () => {
+    await saveCalendarTokens('user-3', calendarTokens);
+
+    const results = await getDataExportService().deleteAllData('user-3');
+
+    const revokes = calls.filter((c) => c.url === 'https://oauth2.googleapis.com/revoke');
+    expect(revokes.map((c) => c.body)).toEqual(['token=cal-refresh']);
+    expect(docs.get('google_calendar_tokens')?.has('user-3')).toBe(false);
+    expect(order).toEqual(['revoke', 'erase-record']);
+    expect(results.google_calendar_grant).toBe(true);
+  });
+
+  it('with Gmail send too, revokes both grants (Gmail first) before erasing', async () => {
+    await completeGmailSendConnect('user-4', 'code');
+    await saveCalendarTokens('user-4', calendarTokens);
+
+    await getDataExportService().deleteAllData('user-4');
+
+    const revokes = calls.filter((c) => c.url === 'https://oauth2.googleapis.com/revoke');
+    expect(revokes.map((c) => c.body)).toEqual(['token=users-refresh', 'token=cal-refresh']);
+    expect(order).toEqual(['revoke', 'revoke', 'erase-record']);
   });
 });

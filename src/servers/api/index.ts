@@ -116,6 +116,7 @@ import { handleTrustSystemsRoutes } from '../../api/trust-systems-routes.js';
 import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.js';
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
+import { handleReplyReportRoutes } from '../../api/reply-reports/reply-report-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
@@ -864,11 +865,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handled) return;
     }
 
-    // Feedback routes (contextual feedback system)
-    if (isFeedbackRoute(pathname)) {
-      const handled = await handleFeedbackRoutes(req, res);
-      if (handled) return;
-    }
+    // Feedback routes (contextual feedback system), then reported replies (POST /api/reports)
+    if (isFeedbackRoute(pathname) && (await handleFeedbackRoutes(req, res))) return;
+    if (await handleReplyReportRoutes(req, res, pathname)) return;
 
     // Brand routes
     if (pathname.startsWith('/api/brand')) {

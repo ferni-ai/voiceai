@@ -262,9 +262,9 @@ class GamePickerUI {
    */
   private renderGameCard(game: GameOption, index: number): string {
     const difficultyColors: Record<string, string> = {
-      easy: 'var(--color-success)',
+      easy: 'var(--color-accent-text)', // text token: --color-success was 4.1:1 on the zen card
       medium: 'var(--persona-text)',
-      hard: 'var(--color-warning)',
+      hard: 'var(--color-semantic-warning-text)',
     };
 
     const gameName = t(game.nameKey);
