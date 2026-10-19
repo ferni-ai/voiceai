@@ -17,8 +17,15 @@ whose label was framed to the glass capsule. A plain button hit-tests only
 what it draws, so only the words took a tap; the rest of the capsule wobbled
 (interactive Liquid Glass) and did nothing. End, Mute and More had hit areas
 of 4–16 pt for the same reason. Reproduced through the real button in
-XCUITest on the 6.9" simulator (`TalkButtonTests`, red then green). Not yet
-confirmed by Seth on the device.
+XCUITest on the 6.9" simulator (`TalkButtonTests`, red then green).
+**Owner-observed on the device with 43953065f: the button works.**
+
+**Owner-observed, critic C1 basic path: PASS.** Seth tapped Talk, the call
+started, Ferni answered and he could hear her: LiveCommunicationKit start,
+the system's audio session and two-way LiveKit audio worked on hardware.
+This is Seth's report, relayed by the coordinator; no trace was captured
+for that call (the console capture had ended when the phone left
+devicectl), so there are no logs or timings behind it.
 
 What the device showed (trace build, before the phone left devicectl):
 
@@ -27,25 +34,28 @@ What the device showed (trace build, before the phone left devicectl):
 | Install and launch, signed Debug | Pass |
 | Firebase configures at launch | Pass (`firebaseReady=true`) |
 | LiveCommunicationKit at launch | `conversationManagerDidReset` fires once at launch; harmless (no call active, the `.end` request is ignored) |
-| A tap reaching `talk()` | Not observed in ~30 min of capture (consistent with the bug above, or with no tap: unconfirmed) |
-| Anonymous sign-in, consent, token | Not run |
+| A tap reaching `talk()` | Not observed in ~30 min of capture on 9ad88b3bd (consistent with the bug above, or with no tap: unconfirmed) |
+| Talk starts a call on 43953065f | Pass, owner-observed |
+| Anonymous sign-in, consent, token, LiveKit connect | Pass, owner-observed (the call connected); no trace |
 
 Checklist steps:
 
 | # | Step | Result |
 |---|---|---|
-| 1 | Tap Talk, say a sentence; Lock Screen and Dynamic Island | Not run |
-| 2 | Body moves with Ferni's voice | Not run |
-| 3 | Siri mid-call, then talk | Not run |
-| 4 | Incoming phone call declined, then talk | Not run |
-| 5 | Locked phone, a minute of talk (audio mode only, critic M8) | Not run |
-| 6 | Family table handoff | Not run |
-| 7 | End from the Lock Screen | Not run |
-| 8 | Two minutes on Home, three in a call: fps and heat | Not run |
+| 1 | Tap Talk, say a sentence; Lock Screen and Dynamic Island | Talk and two-way audio: PASS, owner-observed. Lock Screen and Dynamic Island (Live Activity): NOT RUN |
+| 2 | Body moves with Ferni's voice | NOT RUN |
+| 3 | Siri mid-call, then talk | NOT RUN |
+| 4 | Incoming phone call declined, then talk | NOT RUN |
+| 5 | Locked phone, a minute of talk (audio mode only, critic M8) | NOT RUN |
+| 6 | Family table handoff | NOT RUN |
+| 7 | End from the Lock Screen | NOT RUN |
+| 8 | Two minutes on Home, three in a call: fps and heat | NOT RUN |
+| — | The Watch round trip | NOT RUN |
 
-Still unproven on hardware: critic C1 (the call's audio under
-LiveCommunicationKit: start, `didActivate`, the LiveKit engine), the Metal
-avatar's frame rate and heat, and the Watch round trip.
+Still unproven on hardware: interruptions (Siri, a phone call), the call
+with the phone locked, ending from the Lock Screen, the Live Activity and
+Dynamic Island, the Metal avatar's frame rate and heat, and the Watch round
+trip. The coordinator is scheduling these with Seth.
 
 Next run: phone unlocked and visible to the Mac (same Wi-Fi or a cable).
 Install a trace build (the iOS lane applies its trace patch locally; it is
