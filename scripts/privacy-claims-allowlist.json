@@ -1,0 +1,52 @@
+[
+  {
+    "file": "src/tools/domains/finance/plaid.ts",
+    "contains": "Your bank login is never shared with me.",
+    "reason": "True: Plaid handles the bank login and Ferni never receives it."
+  },
+  {
+    "file": "src/tools/domains/finance/plaid.ts",
+    "contains": "Your bank login credentials are never shared with me or stored.",
+    "reason": "True: Plaid handles the bank login and Ferni never receives it."
+  },
+  {
+    "file": "src/tools/domains/finance/plaid.ts",
+    "contains": "your bank password is never shared with me.",
+    "reason": "True: Plaid handles the bank login and Ferni never receives it."
+  },
+  {
+    "file": "apps/web/public/plaid-link.html",
+    "contains": "Your bank credentials are never shared with Jack.",
+    "reason": "True: Plaid handles the bank login and Ferni never receives it."
+  },
+  {
+    "file": "apps/web/src/i18n/locales/en-US.json",
+    "contains": "Your credentials are never shared with us.",
+    "reason": "True: Plaid handles the bank login and Ferni never receives it."
+  },
+  {
+    "file": "apps/web/src/i18n/locales/en-GB.json",
+    "contains": "Your credentials are never shared with us.",
+    "reason": "True: Plaid handles the bank login and Ferni never receives it."
+  },
+  {
+    "file": "src/tools/domains/vulnerability/index.ts",
+    "contains": "this thing you've never shared?",
+    "reason": "About the user's own secret, not about Ferni's data handling."
+  },
+  {
+    "file": "src/services/family/family-context-sharing.ts",
+    "contains": "Specific conversation content is NEVER shared unless explicitly requested",
+    "reason": "Code comment describing the family-sharing feature's rule, not copy."
+  },
+  {
+    "file": "src/speech/tts-gateway/director/session-state.ts",
+    "contains": "and never shared between sessions",
+    "reason": "Code comment about in-memory TTS state, not copy."
+  },
+  {
+    "file": "src/personas/bundles/shared/privacy-answer.md",
+    "contains": "Never say it stays between us, stays here, is just between the two of you",
+    "reason": "A prohibition, not a claim: this line (#1946) tells Ferni never to promise that a conversation stays between them."
+  }
+]

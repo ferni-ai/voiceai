@@ -267,7 +267,7 @@ const styles = `
   }
   
   .rb-trigger.selected .rb-trigger__icon {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
   }
   
   .rb-trigger__label {
@@ -393,7 +393,7 @@ const styles = `
   
   .rb-add-action:hover {
     border-color: var(--color-ferni, #4a6741);
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
     background: rgba(74, 103, 65, 0.02);
   }
   
@@ -465,7 +465,7 @@ const styles = `
   }
   
   .rb-action-picker__item:hover .rb-action-picker__item-icon {
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
   }
   
   .rb-action-picker__item-label {

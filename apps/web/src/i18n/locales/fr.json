@@ -777,7 +777,7 @@
     "phoneLabel": "M'envoyer un message ou m'appeler",
     "emailLabel": "M'envoyer des nouvelles",
     "nameLabel": "Comment dois-je t'appeler ?",
-    "privacyNote": "Je l'utiliserai uniquement pour les check-ins. Jamais de spam, jamais partagé.",
+    "privacyNote": "Je l'utiliserai uniquement pour les check-ins. Jamais de spam, jamais vendu.",
     "quietHours": "Heures de tranquillité",
     "dontCall": "Ne pas appeler",
     "until": "jusqu'à",
@@ -2427,7 +2427,7 @@
     "intro": "Connecte tes objets connectés pour donner à Ferni du contexte sur ta santé et ton niveau d'énergie.",
     "loading": "Chargement...",
     "privacy": {
-      "note": "Tes données de santé restent privées. Nous partageons uniquement une synthèse de tes déclics lors de tes sessions de coaching."
+      "note": "Ferni enregistre tes données de santé pour repérer des tendances avec toi. Nous ne les vendons jamais, et supprimer ton compte les efface."
     },
     "providers": {
       "appleHealth": {
@@ -2902,6 +2902,9 @@
     "openConversations": "Conversations en cours",
     "onYourMind": "Dans tes pensées",
     "thingsTracking": "Ce que ton équipe garde en mémoire pour toi",
+    "trackedDone": "Fait",
+    "trackedDismiss": "Ignorer",
+    "trackedUpdateFailed": "Impossible de mettre à jour. Réessayer ?",
     "quickConnections": "Connexions rapides",
     "startWithAnyone": "Lance une conversation avec un membre de ton équipe",
     "allCaughtUp": "Tu es à jour !",
@@ -2967,7 +2970,7 @@
     "orUseEmail": "ou utilise ton e-mail",
     "emailLabel": "E-mail",
     "passwordLabel": "Mot de passe",
-    "privacyNote": "Tes données restent privées. Toujours.",
+    "privacyNote": "Nous ne vendons jamais tes données. Supprimer ton compte les efface.",
     "loading": "Un petit instant...",
     "welcomeBack": "Bon retour ! Je me souviens de tout.",
     "somethingWentWrong": "Une petite erreur est survenue",
@@ -2990,7 +2993,7 @@
     "waitlistMessage": "Nous déployons Ferni progressivement pour offrir la meilleure expérience possible. Nous t'enverrons un e-mail dès qu'une place se libérera.",
     "waitlistEmail": "Nous t'avertirons à l'adresse {email}",
     "tryDifferentAccount": "Essayer un autre compte",
-    "checkingAccess": "Vérification de tes accès...",
+    "checkingAccess": "On prépare tout…",
     "checkingLabel": "Un petit instant...",
     "signInError": "La connexion a été annulée ou a échoué. Réessaie.",
     "verifyEmailTitle": "Vérifie ton adresse e-mail",
@@ -3451,7 +3454,7 @@
     "weeklyDigest": "Récapitulatif hebdomadaire",
     "weeklyDigestDesc": "Aperçu de ta semaine à venir le dimanche soir",
     "viewSyncConflicts": "Voir les conflits de synchronisation",
-    "integrationsPrivacy": "Les intégrations synchronisent tes événements existants dans Ferni. Tes données restent privées.",
+    "integrationsPrivacy": "Les intégrations synchronisent tes événements existants dans Ferni. Nous ne vendons jamais tes données.",
     "tryAgain": "Réessayer",
     "syncing": "Synchronisation...",
     "connectAppleCalendar": "Connecter Apple Calendar",
@@ -9976,7 +9979,7 @@
       "title": "Personnalisation",
       "message": "Ta localisation m'aide à rendre nos conversations plus personnelles et pertinentes — comme si j'étais vraiment là avec toi."
     },
-    "note": "Ça reste entre nous — je l'utilise uniquement pour rendre nos conversations plus personnelles.",
+    "note": "Je l'utilise uniquement pour rendre nos conversations plus personnelles, et je ne le vends jamais.",
     "notNow": "Pas maintenant",
     "allow": "Autoriser la localisation"
   },
@@ -10920,7 +10923,7 @@
   },
   "entrance": {
     "helper": "Ton guide personnel",
-    "connectToTalk": "Discuter",
+    "connectToTalk": "Parler à Ferni",
     "endTalk": "Raccrocher",
     "connectingCancel": "Connexion en cours. Touchez pour annuler",
     "connectingNow": "Connexion…",

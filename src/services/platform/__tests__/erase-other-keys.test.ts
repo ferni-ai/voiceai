@@ -191,6 +191,23 @@ describe('KEYED_STORES', () => {
     );
   });
 
+  it('takes the person and their linked phone profile out of every cohort, leaving other members', async () => {
+    const { db, docs } = fakeFirestore({
+      'feature_cohorts/friends-and-family': { members: ['u-1', 'u-2', 'phone:+1'], enabled: true },
+      'feature_cohorts/beta': { members: ['u-3'] },
+    });
+    const cohorts = store('feature_cohorts[members]');
+    const keys = keysFor({ linkedUserIds: ['phone:+1'] });
+    expect(await cohorts.remains(db, keys)).toBe(true);
+    await cohorts.erase(db, keys);
+    expect(docs.get('feature_cohorts/friends-and-family')).toEqual({
+      members: ['u-2'],
+      enabled: true,
+    });
+    expect(docs.get('feature_cohorts/beta')).toEqual({ members: ['u-3'] });
+    expect(await cohorts.remains(db, keys)).toBe(false);
+  });
+
   it('strips the uid from unmarked batches only, in a transaction, leaving everyone else', async () => {
     const { db, raw, docs } = fakeFirestore({
       'tool_usage_calls/batch_1700000000000': {
