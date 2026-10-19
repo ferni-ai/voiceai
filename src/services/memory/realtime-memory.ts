@@ -304,7 +304,7 @@ export async function getRecentConversations(
           ? (data.endedAt as { toDate?: () => Date })?.toDate?.() ||
             new Date(data.endedAt as string)
           : undefined,
-        turnCount: (data.turnCount as number) || 0,
+        turnCount: Number.isFinite(data.turnCount) ? (data.turnCount as number) : 0,
         summarized: (data.summarized as boolean) || false,
         summary: data.summary as string | undefined,
       };

@@ -32,9 +32,9 @@ describe('after-greeting run', () => {
     expect(armPromptCacheWarm).toHaveBeenCalledWith(session, env);
   });
 
-  it('no longer refreshes the STT socket when the greeting ends, even with the old flag on', () => {
+  it('no longer refreshes the STT socket when the greeting ends', () => {
     const { session, refreshed } = fakeSession();
-    run(session, { STT_REFRESH_AFTER_GREETING: 'on' });
+    run(session, {});
     expect(session.listenerCount('agent_state_changed')).toBe(0);
     session.emit('agent_state_changed', { oldState: 'speaking', newState: 'listening' });
     expect(refreshed).toEqual([]);
