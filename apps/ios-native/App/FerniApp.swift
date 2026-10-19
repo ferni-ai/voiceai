@@ -24,6 +24,7 @@ struct FerniApp: App {
                 .task {
                     await model.account.start()
                     await model.team.refresh()
+                    await model.minimumBuild.check()
                 }
                 // Consent belongs to whoever is signed in: switch with them.
                 .onChange(of: LiveActivityController.content(for: model.call)) { _, content in
@@ -58,6 +59,7 @@ final class AppModel {
     let consent = ConsentStore()
     let team: TeamStore
     let memory: MemoryStore
+    let minimumBuild: MinimumBuild
     let liveActivity = LiveActivityController()
     let push: PushStore
     var isShowingSettings = false
@@ -146,6 +148,7 @@ final class AppModel {
         api = account.api(baseURL: config.apiBaseURL)
         team = TeamStore(api: api)
         memory = MemoryStore(api: api)
+        minimumBuild = MinimumBuild(api: api, currentBuild: (Bundle.main.infoDictionary?["CFBundleVersion"] as? String).flatMap(Int.init))
         #if DEBUG
         let apnsEnvironment = "sandbox"
         #else

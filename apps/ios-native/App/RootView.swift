@@ -33,6 +33,14 @@ struct RootView: View {
     }
 
     var body: some View {
+        layout
+            // Only a build the server names as too old; nothing can dismiss it.
+            .fullScreenCover(isPresented: .constant(model.minimumBuild.updateRequired)) {
+                UpdateRequiredView(message: model.minimumBuild.message)
+            }
+    }
+
+    @ViewBuilder private var layout: some View {
         if width == .regular {
             NavigationSplitView {
                 List(Section.allCases, id: \.self, selection: $section) { item in
@@ -91,5 +99,32 @@ struct TeamScreen: View {
             }
             .navigationTitle("Team")
         }
+    }
+}
+
+/// This build is too old to keep using: say so plainly, and keep help close.
+struct UpdateRequiredView: View {
+    let message: String?
+
+    var body: some View {
+        VStack(spacing: FerniSpace.rest) {
+            AvatarPortrait(persona: .ferni).frame(width: 96, height: 96)
+            Text("Time for an update")
+                .font(FerniType.greeting)
+                .foregroundStyle(FerniColor.textPrimary)
+            Text(message ?? String(localized: "This version of Ferni is out of date. Update Ferni from the App Store to keep talking."))
+                .font(FerniType.bodyLarge)
+                .foregroundStyle(FerniColor.textSecondary)
+                .multilineTextAlignment(.center)
+            Link(destination: URL(string: "tel:988")!) {
+                Label("Need help now? Call 988", systemImage: "phone")
+            }
+            .tint(FerniColor.accent)
+        }
+        .padding(FerniSpace.meditation)
+        .frame(maxWidth: 560)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(FerniColor.background)
+        .interactiveDismissDisabled()
     }
 }
