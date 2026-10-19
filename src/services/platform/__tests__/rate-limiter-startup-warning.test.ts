@@ -1,15 +1,17 @@
 /**
- * The "in-memory rate limiting in production" warning fires only when no Redis is configured.
+ * The "in-memory rate limiting in production" warning is gone: with no Redis, spend caps
+ * count in Firestore (firestore-rate-limit.ts), so production says that instead.
  *
- * It ran at module load, before the Redis connection (which only marks itself available on
- * 'connect') could finish, so every production start logged the SECURITY warning six seconds
- * before "Redis connected for rate limiting".
+ * It used to run at module load, before the Redis connection (which only marks itself
+ * available on 'connect') could finish, so every production start logged the SECURITY
+ * warning six seconds before "Redis connected for rate limiting".
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const warn = vi.fn();
+const info = vi.fn();
 vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({ info: vi.fn(), debug: vi.fn(), warn, error: vi.fn() }),
+  createLogger: () => ({ info, debug: vi.fn(), warn, error: vi.fn() }),
 }));
 vi.mock('../../../utils/interval-manager.js', () => ({ registerInterval: vi.fn() }));
 vi.mock('ioredis', () => ({
@@ -26,11 +28,14 @@ const ENV = { ...process.env };
 afterEach(() => {
   process.env = { ...ENV };
   warn.mockReset();
+  info.mockReset();
   vi.resetModules();
 });
 
 const securityWarnings = () =>
-  warn.mock.calls.filter((args) => String(args.at(-1)).includes('in-memory rate limiting in production'));
+  warn.mock.calls.filter((args) =>
+    String(args.at(-1)).includes('in-memory rate limiting in production')
+  );
 
 describe('rate limiter startup warning', () => {
   it('stays quiet in production while a configured Redis is still connecting', async () => {
@@ -40,11 +45,14 @@ describe('rate limiter startup warning', () => {
     expect(securityWarnings()).toHaveLength(0);
   });
 
-  it('warns in production when no Redis is configured', async () => {
+  it('says spend caps count in Firestore, with no SECURITY warning, when no Redis is configured', async () => {
     process.env.K_SERVICE = 'john-bogle-ui';
     delete process.env.REDIS_URL;
     delete process.env.REDIS_RATE_LIMIT_URL;
     await import('../rate-limiter.js');
-    expect(securityWarnings()).toHaveLength(1);
+    expect(securityWarnings()).toHaveLength(0);
+    expect(info.mock.calls.some((args) => String(args.at(-1)).includes('count in Firestore'))).toBe(
+      true
+    );
   });
 });
