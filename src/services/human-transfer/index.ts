@@ -245,21 +245,7 @@ export function buildTransferAwarenessContext(decision: EscalationDecision): str
 // ============================================================================
 
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
-
-/**
- * Crisis event record stored in Firestore
- */
-interface CrisisEventRecord {
-  userId: string;
-  timestamp: string;
-  escalationType: EscalationType;
-  urgency: string;
-  reason: string;
-  transferSuccess?: boolean;
-  channel?: string;
-  resources?: string[];
-  sessionId?: string;
-}
+import { crisisLevelSignalsSince, type CrisisEventRecord } from './crisis-signals.js';
 
 /**
  * Log transfer event for analytics and safety audit trail
@@ -377,52 +363,6 @@ export async function logCrisisSignal(
   }
 }
 
-/** A detection with no signals set; stored signals are laid over it. */
-const NO_SIGNALS: CrisisSignals = {
-  severity: 0,
-  suicidalIdeation: false,
-  selfHarmIndicators: false,
-  traumaIndicators: false,
-  persistentDepression: false,
-  anxietyDisorder: false,
-  dangerToOthers: false,
-  domesticViolence: false,
-  childSafetyConcern: false,
-  psychoticSymptoms: false,
-  substanceCrisis: false,
-  medicalEmergency: false,
-  legalEmergency: false,
-  financialCrisis: false,
-  professionalHelpRequest: false,
-  rawSignals: [],
-};
-
-/**
- * One crisis_signals doc (logCrisisSignal) as a crisis event, or null when its
- * signals don't reach crisis level (classifyEscalation: crisis_immediate or
- * crisis_support). A low-level signal (say, anxiety at severity 3) is not a
- * crisis to follow up on.
- */
-function crisisFromSignal(userId: string, doc: Record<string, unknown>): CrisisEventRecord | null {
-  const stored = (doc.signals ?? {}) as Partial<CrisisSignals>;
-  const signals: CrisisSignals = {
-    ...NO_SIGNALS,
-    ...stored,
-    severity: Number(stored.severity) || 0,
-  };
-  const decision = classifyEscalation(signals);
-  if (decision.type !== 'crisis_immediate' && decision.type !== 'crisis_support') return null;
-  if (typeof doc.timestamp !== 'string') return null;
-  return {
-    userId,
-    timestamp: doc.timestamp,
-    escalationType: decision.type,
-    urgency: decision.urgency,
-    reason: decision.reason,
-    sessionId: typeof doc.sessionId === 'string' ? doc.sessionId : undefined,
-  };
-}
-
 /** The crisis_signals query, crisis-level events only; throws when Firestore does. */
 async function queryCrisisHistory(userId: string, limitDays: number): Promise<CrisisEventRecord[]> {
   const db = getFirestoreDb();
@@ -431,29 +371,16 @@ async function queryCrisisHistory(userId: string, limitDays: number): Promise<Cr
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - limitDays);
 
-  // Every signal above severity 0 is logged, so read past low-level ones
-  // to find the crisis-level ones in the window.
-  const snapshot = await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('crisis_signals')
-    .where('timestamp', '>=', cutoffDate.toISOString())
-    .orderBy('timestamp', 'desc')
-    .limit(50)
-    .get();
-
-  return snapshot.docs
-    .map((doc: FirebaseFirestore.QueryDocumentSnapshot) => crisisFromSignal(userId, doc.data()))
-    .filter((event: CrisisEventRecord | null): event is CrisisEventRecord => event !== null)
-    .slice(0, 10);
+  return crisisLevelSignalsSince(db, userId, cutoffDate);
 }
 
 /**
  * Get user's crisis history (for cross-session awareness)
  * SAFETY-CRITICAL: Used for proactive check-ins
  *
- * Reads bogle_users/{uid}/crisis_signals, which logCrisisSignal writes on the
- * live turn path (buildHumanTransferInjections). It used to read
+ * Reads the crisis-level signals in bogle_users/{uid}/crisis_signals
+ * (crisis-signals.ts), which logCrisisSignal writes on the live turn path
+ * (buildHumanTransferInjections). It used to read
  * crisis_history, whose only writer (logTransferEvent) nothing calls, so a
  * caller in crisis yesterday got no follow-up today.
  */
