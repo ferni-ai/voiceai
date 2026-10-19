@@ -19,6 +19,11 @@ import {
   type CallHoursDecision,
   type CallHoursInput,
 } from './call-hours-guard.js';
+import {
+  deferredCallOutcome,
+  logPromiseJobRun,
+  logPromiseOutcome,
+} from '../follow-through/index.js';
 
 const log = createLogger({ module: 'DeferredCalls' });
 
@@ -284,9 +289,12 @@ export async function executeDueDeferredCalls(
     limit: opts.limit ?? 10,
   });
   const result = { due: claim.due, placed: 0, rescheduled: 0, failed: 0, missed: claim.late };
+  for (const item of claim.lateItems) {
+    logPromiseOutcome('deferred-call', deferredCallOutcome('missed'), { userId: item.userId });
+  }
   for (const item of claim.claimed) {
     const call = item.data as unknown as DeferredCall;
-    let status = 'placed';
+    let status: 'placed' | 'rescheduled' | 'failed' = 'placed';
     let heldAs: string | undefined;
     try {
       // Owner from the document's path, not the stored request.
@@ -299,6 +307,7 @@ export async function executeDueDeferredCalls(
       result.failed++;
       log.warn({ userId: item.userId, error: String(error) }, 'Deferred call failed');
     }
+    logPromiseOutcome('deferred-call', deferredCallOutcome(status), { userId: item.userId });
     await db
       .collection('bogle_users')
       .doc(item.userId)
@@ -312,5 +321,12 @@ export async function executeDueDeferredCalls(
       });
   }
   if (result.due > 0) log.info(result, 'Deferred calls run');
+  logPromiseJobRun('deferred-calls', {
+    due: result.due,
+    done: result.placed,
+    failed: result.failed,
+    held: result.rescheduled,
+    missed: result.missed,
+  });
   return result;
 }

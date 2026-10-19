@@ -43,6 +43,7 @@ import {
   type ScheduledReminder,
 } from './reminder-scheduler.js';
 import { textOnFor, type ReminderReach } from './reminder-outcome.js';
+import { logPromiseJobRun, logPromiseOutcome, reminderOutcome } from '../follow-through/index.js';
 
 export type { ReminderReach } from './reminder-outcome.js';
 
@@ -148,6 +149,30 @@ async function sweepPromises(result: ReminderRunResult, now: Date): Promise<void
   }
 }
 
+type ReminderEnd = 'missed' | 'held' | 'delivered' | 'failed';
+
+/** Log the reminder's end as a promise outcome (follow-through/promise-outcomes.ts). */
+function logEnd(end: ReminderEnd, reminderId: string): void {
+  logPromiseOutcome('reminder', reminderOutcome(end), { reminderId });
+}
+
+/** Count the reminder's end and log it as a promise outcome. */
+function tally(result: ReminderRunResult, end: ReminderEnd, reminderId: string): void {
+  result[end]++;
+  logEnd(end, reminderId);
+}
+
+/** An inbox row no one was told about is missed (promise-keeper verdictFor), never done. */
+function logRun({ due, delivered, failed, held, missed, inboxOnly }: ReminderRunResult): void {
+  logPromiseJobRun('deliver-reminders', {
+    due,
+    done: delivered,
+    failed,
+    held,
+    missed: missed + inboxOnly,
+  });
+}
+
 export async function deliverDueReminders(
   opts: { now?: Date; limit?: number; dryRun?: boolean; reach?: ReminderReach } = {}
 ): Promise<ReminderRunResult> {
@@ -216,7 +241,7 @@ export async function deliverDueReminders(
       continue;
     }
     if (claim === 'missed') {
-      result.missed++;
+      tally(result, 'missed', reminder.id);
       await settlePromise(result, {
         owner,
         reminderId: reminder.id,
@@ -234,15 +259,15 @@ export async function deliverDueReminders(
       notifyInApp: reach.notifyInApp,
     });
     if (outcome === 'held') {
-      result.held++; // a text due in quiet hours waits until 08:00 (reminder-text-guard.ts)
+      tally(result, 'held', reminder.id); // a text due in quiet hours waits until 08:00 (reminder-text-guard.ts)
       continue;
     }
     if (outcome === 'in_app_unnotified') {
       result.inboxOnly++; // its promise stays open; the overdue check calls it missed
+      logEnd('missed', reminder.id);
       continue;
     }
-    if (outcome === 'failed') result.failed++;
-    else result.delivered++;
+    tally(result, outcome === 'failed' ? 'failed' : 'delivered', reminder.id);
     if (outcome === 'in_app') result.pushed++;
     if (outcome === 'sent' && TEXT_METHODS.includes(channel)) result.texted++;
     const kept = outcome !== 'failed';
@@ -254,7 +279,10 @@ export async function deliverDueReminders(
     await settlePromise(result, { owner, reminderId: reminder.id, kept, how, now });
   }
 
-  if (!dryRun) await sweepPromises(result, now);
+  if (!dryRun) {
+    await sweepPromises(result, now);
+    logRun(result);
+  }
 
   const { due, texted, pushed, inboxOnly, missed, held, failed, skipped } = result;
   log.info(

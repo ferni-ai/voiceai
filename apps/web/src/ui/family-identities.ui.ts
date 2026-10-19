@@ -576,7 +576,7 @@ function renderEmptyState(): string {
       <div class="family-empty__icon">${ICONS.heart}</div>
       <div class="family-empty__title">${t('familyIdentities.familyTitle')}</div>
       <div class="family-empty__text">
-        ${t('familyIdentities.emptyText')}
+        ${t('familyIdentities.emptyIntro')}
       </div>
     </div>
   `;
@@ -894,7 +894,7 @@ export async function show(options: FamilyIdentitiesCallbacks = {}): Promise<voi
       <div class="family-modal__header">
         <span class="family-modal__eyebrow">${t('familyIdentities.eyebrow')}</span>
         <h2 class="family-modal__title" id="family-modal-title">${t('familyIdentities.familyTitle')}</h2>
-        <p class="family-modal__subtitle">${t('familyIdentities.familySubtitle')}</p>
+        <p class="family-modal__subtitle">${t('familyIdentities.peopleSubtitle')}</p>
         <button class="family-modal__close" aria-label="${t('accessibility.close')}">
           ${ICONS.close}
         </button>
