@@ -13,7 +13,13 @@ import {
   stopAllUserChannels as stopAllUserWatchChannels,
 } from '../../../services/calendar/webhooks/google-webhook.js';
 import { getVerifiedUserId } from '../request-identity.js';
+import { disconnectGoogleCalendar } from '../../../services/identity/google-calendar-disconnect.js';
 import { OAUTH_START_PATH } from './oauth-start.js';
+import {
+  googleCalendarClientId,
+  googleCalendarClientSecret,
+  googleCalendarRedirectUri,
+} from '../../../config/google-calendar-oauth-env.js';
 
 const log = createLogger({ module: 'GoogleCalendarRoutes' });
 
@@ -21,10 +27,11 @@ const PROVIDER = 'google_calendar';
 const CONNECT = { method: 'POST', url: OAUTH_START_PATH, provider: PROVIDER } as const;
 
 // Configuration
-const GOOGLE_CALENDAR_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || '';
-const GOOGLE_CALENDAR_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '';
-const GOOGLE_CALENDAR_REDIRECT_URI =
-  process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'https://app.ferni.ai/auth/google/callback';
+const GOOGLE_CALENDAR_CLIENT_ID = googleCalendarClientId();
+const GOOGLE_CALENDAR_CLIENT_SECRET = googleCalendarClientSecret();
+const GOOGLE_CALENDAR_REDIRECT_URI = googleCalendarRedirectUri(
+  'https://app.ferni.ai/auth/google/callback'
+);
 const GOOGLE_CALENDAR_SCOPES = [
   'https://www.googleapis.com/auth/calendar',
   'https://www.googleapis.com/auth/calendar.events',
@@ -255,7 +262,14 @@ export async function handleGoogleCalendarRoutes(
       );
     }
 
-    await googleCalendarService.removeTokens(userId);
+    try {
+      await disconnectGoogleCalendar(userId);
+    } catch (error) {
+      log.error({ error: String(error), userId }, 'Google Calendar unlink failed');
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Could not disconnect Google Calendar' }));
+      return true;
+    }
     log.info({ userId }, 'Google Calendar unlinked');
 
     res.writeHead(200, { 'Content-Type': 'application/json' });

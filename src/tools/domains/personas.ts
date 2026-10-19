@@ -32,7 +32,6 @@ export {
   createMayaMemoryTools,
   createJordanMemoryTools,
   createAlexMemoryTools,
-  createMemoryManagementTools,
 } from './memory/persona-tools.js';
 
 // NOTE: Team handlers have been migrated to the team-handler-registry system.
