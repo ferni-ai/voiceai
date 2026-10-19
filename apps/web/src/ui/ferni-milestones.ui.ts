@@ -454,7 +454,6 @@ export function initFerniMilestones(): void {
   // Load saved state
   loadState();
 
-  // Set up event listeners for tracking
   setupEventListeners();
 
   isInitialized = true;
@@ -727,15 +726,12 @@ function checkAndCelebrate(milestoneId: MilestoneType): void {
   const milestone = milestones.find((m) => m.id === milestoneId);
   if (!milestone || milestone.celebrated) return;
 
-  // Mark as celebrated
   milestone.celebrated = true;
   milestone.celebratedAt = Date.now();
 
-  // Add to queue
   celebrationQueue.push(milestone);
   processQueue();
 
-  // Dispatch event for other systems
   window.dispatchEvent(
     new CustomEvent('ferni:milestone-celebrated', {
       detail: { milestone },
@@ -1239,7 +1235,6 @@ function saveState(): void {
 }
 
 function loadState(): void {
-  // Initialize milestones from definitions
   milestones = MILESTONES.map((m) => ({ ...m }));
 
   try {
@@ -1247,7 +1242,6 @@ function loadState(): void {
     if (saved) {
       const data = JSON.parse(saved);
 
-      // Restore milestone states
       if (data.milestones) {
         for (const savedMilestone of data.milestones) {
           const milestone = milestones.find((m) => m.id === savedMilestone.id);
@@ -1260,7 +1254,6 @@ function loadState(): void {
         }
       }
 
-      // Restore progress
       if (data.progress) {
         progress = {
           ...progress,
@@ -1271,10 +1264,18 @@ function loadState(): void {
         };
       }
     }
+    // One-time: milestones celebrated before outreach was confirmed by the server count as
+    // sent, so the retry below only ever applies to ones celebrated after this point
+    if (!localStorage.getItem(OUTREACH_MIGRATION_KEY)) {
+      for (const m of milestones) if (m.celebrated) m.outreachDone = true;
+      localStorage.setItem(OUTREACH_MIGRATION_KEY, new Date().toISOString());
+      saveState();
+    }
   } catch {
     // Storage unavailable or corrupted
   }
 }
+const OUTREACH_MIGRATION_KEY = 'milestoneOutreachMigratedAt';
 
 // ============================================================================
 // PUBLIC API
