@@ -2925,6 +2925,9 @@
     "openConversations": "Open Conversations",
     "onYourMind": "On Your Mind",
     "thingsTracking": "Things your team is keeping track of for you",
+    "trackedDone": "Done",
+    "trackedDismiss": "Dismiss",
+    "trackedUpdateFailed": "Couldn't update that. Try again?",
     "quickConnections": "Quick Connections",
     "startWithAnyone": "Start a conversation with anyone on your team",
     "allCaughtUp": "All caught up!",
@@ -8225,7 +8228,7 @@
     "chapter": {
       "default": {
         "verb": "navigating",
-        "encouragement": "Something beautiful is taking shape."
+        "encouragement": "Whatever this turns out to be, you don't have to work it out alone."
       },
       "growth": {
         "verb": "growing through",
@@ -8245,6 +8248,18 @@
       },
       "struggle": {
         "encouragement": "This is hard, and you're doing it anyway."
+      },
+      "loss": {
+        "verb": "carrying",
+        "encouragement": "Go gently. There's no right way to grieve, and you don't have to carry it alone."
+      },
+      "connection": {
+        "verb": "growing closer through",
+        "encouragement": "The people in your life matter to you. That comes through."
+      },
+      "decision": {
+        "verb": "deciding",
+        "encouragement": "Big choices take time. You can think out loud here."
       }
     }
   },
