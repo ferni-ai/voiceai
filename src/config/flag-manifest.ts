@@ -451,6 +451,9 @@ export const FLAG_MANIFEST = {
   USE_TTS_GATEWAY: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // readers disagree: on in memory and Gemini config, off in Gemini Live and Gemma
   USE_VERTEX_AI: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  // on: per-person allowances (web search's hour) follow the verified-caller signal, an allowlist,
+  // not the user id's shape (identity/verified-caller.ts)
+  VERIFIED_CALLER_ALLOWANCE: { default: 'off', owner: 'platform', kind: 'experiment' },
   VERTEX_KEEPALIVE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VITEST: { default: 'off', owner: 'tools', kind: 'experiment' },
   VOCAL_BURSTS: { default: 'off', owner: 'voice', kind: 'experiment' },
