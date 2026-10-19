@@ -38,6 +38,23 @@ on pushes to main.
 XcodeGen rewrites `App/Info.plist` and `App/Ferni.entitlements` from
 `project.yml`: put keys and entitlements in the spec, not the files.
 
+## Archive
+
+Every archive, local or CI, gets a unique build number, stamped on every
+target alike (the app, FerniLive, the Watch app and its widgets all read
+`CURRENT_PROJECT_VERSION`), and is checked before it ships:
+
+```bash
+xcodebuild archive -project Ferni.xcodeproj -scheme Ferni -configuration Release \
+  -destination 'generic/platform=iOS' -archivePath build/Ferni.xcarchive \
+  CURRENT_PROJECT_VERSION="$(scripts/build-number.sh)"
+scripts/check-archive.sh build/Ferni.xcarchive   # one version everywhere, stamped, English only
+```
+
+`scripts/testflight.sh` (the TestFlight lane) does both. The project's own
+`CURRENT_PROJECT_VERSION` is a placeholder for local runs and is refused in
+an archive.
+
 ## Rules
 
 - No "AI" in any UI string. Warm, short, human copy.
