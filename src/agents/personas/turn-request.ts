@@ -33,7 +33,7 @@ import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-n
 import { chiefOfStaffNote, lastAgentWordsIn } from '../../tools/handoff/chief-of-staff-note.js';
 import { asAnswer, isAnswerTurn } from './answer-turn.js';
 import { packetReminder } from './context-packet/turn-packet.js';
-import { retrievedTools, withSameTurnTools } from './turn-request-tools.js';
+import { retrievedTools, withPinnedTools, withSameTurnTools } from './turn-request-tools.js';
 import { correctionNotesFor } from './correction-repair.js';
 import { formatNotes, getDirector } from './director-notes.js';
 import { noteReminder } from '../shared/turn-receipt-session.js';
@@ -494,17 +494,4 @@ async function withoutAccountTools(
     log.info({}, 'Only phone-safe tools open for a phone-recognised caller');
   }
   return onlyPhoneSafeTools(toolCtx);
-}
-
-/**
- * TOOL_CORE_STATIC: tools findTools added to the agent mid-reply go into the
- * reply's own tool context, which the SDK runs the reply's next step against.
- */
-export function withPinnedTools(toolCtx: llm.ToolContext, agent: object | undefined): void {
-  const own = (agent as Partial<ToolHolder> | undefined)?.toolCtx?.functionTools;
-  if (!own) return;
-  const added = Object.entries(own)
-    .filter(([name]) => !(name in toolCtx.functionTools))
-    .map(([, tool]) => tool);
-  if (added.length > 0) toolCtx.updateTools([...toolCtx.tools, ...added]);
 }

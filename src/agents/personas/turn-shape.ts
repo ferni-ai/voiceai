@@ -22,7 +22,6 @@
 import { flagOn } from '../../config/env-flag.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { playfulLine, playfulOpen, SUBSTANCE_FIRST } from './ferni-playful.js';
-import { listeningLines, type ListeningCues } from './listen-first.js';
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
 import {
@@ -196,7 +195,7 @@ export const ONLY_WHAT_THEY_TOLD =
 export const NOT_AN_ASSISTANT =
   'You are their friend, not an assistant: never offer to set up, remind or do things for them unless they ask.';
 
-const REGISTER =
+export const REGISTER =
   SUBSTANCE_FIRST +
   'Talk like a close friend, not a therapist, coach or host: never ask how something feels or what it\'s like for them, no stock validation ("that sounds exhausting", "I hear you"), no generic cheerleading or exclamation marks. ' +
   // Read as "no excitement", that line flattened big good news: a sister's
@@ -491,21 +490,4 @@ export function rngFor(text: string): () => number {
 /** The replay harness's entry point (scripts/humanness-eval/replay.ts). */
 export function reminderForTurn(userText: string): string {
   return turnShapeFor(userText).reminder;
-}
-
-/**
- * LISTEN_FIRST=on, caller low on energy (listen-first.ts): no second story, no
- * stance, no rough self-correction to dress up a monologue; a few words, an
- * easy question every other turn at most, or just company.
- */
-export function listeningShapeFor(
-  userText: string,
-  cues: Omit<ListeningCues, 'aboutFerni'>,
-  scriptFree = false
-): TurnShape {
-  const move = callerMove(userText);
-  const lines = listeningLines({ ...cues, aboutFerni: move === 'about_ferni' });
-  // SCRIPT_FREE_REMINDER=on (script-free.ts): the lines about them, without the shared register.
-  const reminder = (scriptFree ? lines : [REGISTER, ...lines]).join(' ');
-  return { move, shape: 'one', reminder, extras: ['listen_first'] };
 }
