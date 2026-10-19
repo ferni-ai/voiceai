@@ -233,9 +233,19 @@ export function aaGap(a: Metrics, b: Metrics, humanness: Rate): Floor {
  * rates: the gap the sample sizes alone allow, whatever one A/A pair showed.
  */
 export function samplingGap(a: Rate, b: Rate): number {
-  return 1.96 * Math.sqrt(variance(a) + variance(b));
+  return 1.96 * Math.sqrt(atLeastOne(a) + atLeastOne(b));
 }
 const variance = (r: Rate): number => (r.n ? (r.p * (1 - r.p)) / r.n : 0);
+/**
+ * The variance with the rate kept at least one event from 0 or 1: two runs
+ * that both saw none of a rare tell (0/144 twice) would otherwise set a floor
+ * of 0, and a single reply with it in the arm would read as a change.
+ */
+const atLeastOne = (r: Rate): number => {
+  if (!r.n) return 0;
+  const p = Math.min(Math.max(r.p, 1 / r.n), 1 - 1 / r.n);
+  return (p * (1 - p)) / r.n;
+};
 
 /**
  * The noise floor: the larger of the observed A/A gap and the sampling gap.

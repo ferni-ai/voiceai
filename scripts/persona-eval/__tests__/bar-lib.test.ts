@@ -486,7 +486,14 @@ describe('model tells', () => {
     const floor = noiseFloor(a, b, rate(50, 100));
     // 4 points apart; n=100 at 90%/86% allows 1.96 * sqrt(.09/100 + .1204/100) = 0.0898.
     expect(floor.tells?.question).toBeCloseTo(0.0898, 3);
-    expect(floor.tells?.opener).toBe(0);
+    // Neither run saw an opener: the floor is what one event in 100 allows, not 0.
+    expect(floor.tells?.opener).toBeCloseTo(1.96 * Math.sqrt((2 * 0.01 * 0.99) / 100), 10);
+    const one = tellsOf(['Oh hi.', ...Array.from({ length: 99 }, () => 'Fine.')]);
+    expect(
+      compareArms(a, { ...metrics(20, 40, 10), tells: one }, null, floor).find(
+        (r) => r.metric === 'tells: opener'
+      )?.verdict
+    ).toBe('noise');
     const rows = compareArms(a, { ...metrics(20, 40, 10), tells: tells(30) }, null, floor);
     const q = rows.find((r) => r.metric === 'tells: question');
     expect(q?.delta).toBeCloseTo(-0.6, 10);
