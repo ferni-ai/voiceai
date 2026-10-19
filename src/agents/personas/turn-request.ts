@@ -22,6 +22,7 @@ import { latestUserText } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { confirmedActionNote } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { withoutLockedHandoffs } from '../../tools/handoff/locked-handoffs.js';
 import {
+  aliasNoteFor,
   teamStatusNote,
   unlockViewFor,
   withoutLockedTeammateNotes,
@@ -147,8 +148,8 @@ export function withTurnReminder(
     worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
-    // "Naya" in the transcript is Nayan (teammate-names.ts); no "9 may be Nayan" with crisis guidance
-    heardTeammateNote(words, options.shape !== false),
+    // "Naya" is Nayan; "9" may be (never near a crisis, or for a locked teammate): teammate-names.ts
+    heardTeammateNote(words, aliasNoteFor(view, session, chatCtx, options.shape === false)),
     notes,
     corrected,
     // The caller said yes to a read-back: the call or text goes only when the tool is called now.

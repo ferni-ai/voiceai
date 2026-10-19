@@ -4,20 +4,19 @@
  * risky turn (multi-agent/first-turn-defer.ts). A leaf module, so both sides
  * can import it without an import cycle.
  *
- * It also marks the turn on the session's userData ('pass' clears the mark;
- * no action leaves it), so the handoff tools never take a transfer-only alias
- * as consent on a turn with crisis handling (utils/transfer-aliases.ts).
+ * It also marks the turn for the handoff tools' transfer aliases
+ * (services/safety/crisis-turn-mark.ts).
  *
  * @module agents/safety/crisis-gate-signal
  */
 
-import { markCrisisGuidedTurn } from '../../utils/transfer-aliases.js';
+import { markCrisisTurn } from '../../services/safety/crisis-turn-mark.js';
 
 export const CRISIS_GATE_SIGNAL = 'crisis_gate_decision';
 
-/** Emits { action } on the session for any decision but 'pass'. */
+/** Emits { action } on the session for any decision but 'pass', and marks the turn. */
 export function signalCrisisDecision(session: unknown, action: string | undefined): void {
-  if (action) markCrisisGuidedTurn((session as { userData?: unknown }).userData, action !== 'pass');
+  if (action) markCrisisTurn((session as { userData?: unknown }).userData, action);
   if (!action || action === 'pass') return;
   const emitter = session as { emit?: (event: string, ...args: unknown[]) => unknown };
   emitter.emit?.(CRISIS_GATE_SIGNAL, { action });
