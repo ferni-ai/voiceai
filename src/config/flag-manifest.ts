@@ -210,6 +210,8 @@ export const FLAG_MANIFEST = {
   HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
   INSIDE_JOKES: { default: 'off', owner: 'memory', kind: 'experiment' },
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: the voice agent publishes intelligence events; nothing consumes intelligence_queue (intelligence-publisher.ts)
+  INTELLIGENCE_QUEUE: { default: 'off', owner: 'platform', kind: 'experiment' },
   INTERRUPT_TRACE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   IN_PROCESS_SCHEDULERS: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   // every journal surface reads and writes bogle_users/{uid}/journal (old twin arrays merged in)
