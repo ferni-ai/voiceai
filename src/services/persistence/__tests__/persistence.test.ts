@@ -369,6 +369,16 @@ describe('PersistenceLayer', () => {
       expect(loaded).toEqual({ name: 'local', value: 3 });
       expect(mockDocRef.get).not.toHaveBeenCalled();
     });
+
+    it('strict: a failed read throws instead of answering null', async () => {
+      mockDocRef.get.mockRejectedValueOnce(new Error('unavailable'));
+      await expect(store.load('strict-user', { fresh: true, strict: true })).rejects.toThrow(
+        'unavailable'
+      );
+
+      mockDocRef.get.mockRejectedValueOnce(new Error('unavailable'));
+      expect(await store.load('lenient-user', { fresh: true })).toBeNull();
+    });
   });
 
   describe('setImmediate', () => {
