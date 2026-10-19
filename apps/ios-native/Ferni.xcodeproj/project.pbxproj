@@ -61,6 +61,7 @@
 		E88BB02A6FEC21AF520A766B /* TalkIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */; };
 		EA64D0860B43223CE3A8D6EB /* FerniShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 766CF4344E77F81DF8043439 /* FerniShortcuts.swift */; };
 		F04C1D4DF69A4646E1699849 /* handoff-to-ferni.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 15418FA6D6693B28961C02AC /* handoff-to-ferni.mp3 */; };
+		F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */; };
 		F8659A8DCBD2D3621DA596A3 /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 3A2B0DD01002A1C6F9C20247 /* FerniDesign */; };
 		FF7158968372C9F770945D32 /* handoff-to-peter.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 90F94F51F9D61D01EEED1837 /* handoff-to-peter.mp3 */; };
 /* End PBXBuildFile section */
@@ -163,6 +164,7 @@
 		766CF4344E77F81DF8043439 /* FerniShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniShortcuts.swift; sourceTree = "<group>"; };
 		7D40773682D7EA8473CE46CA /* FerniLink */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniLink; path = Packages/FerniLink; sourceTree = SOURCE_ROOT; };
 		7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
+		809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamRowTests.swift; sourceTree = "<group>"; };
 		90F94F51F9D61D01EEED1837 /* handoff-to-peter.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-peter.mp3"; sourceTree = "<group>"; };
 		94F50B2CC9B38F03C94B7E3D /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		974DF185A4FA58E1F08FD688 /* FerniApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniApp.swift; sourceTree = "<group>"; };
@@ -263,6 +265,7 @@
 				52EB4AF176D7F4E747ABBAA4 /* CallAnnouncementTests.swift */,
 				6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */,
 				C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */,
+				809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */,
 			);
 			path = AppTests;
 			sourceTree = "<group>";
@@ -636,6 +639,7 @@
 				358627D9E201AD0580FC0F1C /* CallAnnouncementTests.swift in Sources */,
 				3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */,
 				11741E1DFD5DE949343B912A /* LocalizationTests.swift in Sources */,
+				F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -50,7 +50,7 @@ struct RootView: View {
             } detail: {
                 switch section ?? .talk {
                 case .talk: HomeView(showsAccountButton: false)
-                case .team: TeamScreen(team: model.team) { section = .talk }
+                case .team: NavigationStack { TeamScreen(team: model.team) { section = .talk } }
                 case .remembers: NavigationStack { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
                 case .settings: SettingsView(showsDone: false)
                 }
@@ -70,35 +70,33 @@ struct TeamScreen: View {
     let talk: () -> Void
 
     var body: some View {
-        NavigationStack {
-            List(PersonaRegistry.all) { persona in
-                let here = team.isOnTeam(persona.id)
-                Button {
-                    if here { team.choose(persona.id); talk() }
-                } label: {
-                    HStack(spacing: FerniSpace.pause) {
-                        AvatarPortrait(persona: WindowPersona(personaId: persona.id), present: here)
-                            .frame(width: 56, height: 56)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(persona.name) · \(persona.role)").font(FerniType.headline)
-                            Text(here ? persona.specialty
-                                 : team.teasers[persona.id] ?? "\(persona.name) joins as you and Ferni get to know each other.")
-                                .font(FerniType.body)
-                                .foregroundStyle(FerniColor.textSecondary)
-                        }
-                        Spacer(minLength: 0)
-                        if team.chosen == persona.id {
-                            Image(systemName: "checkmark").foregroundStyle(FerniColor.accent).accessibilityHidden(true)
-                        }
+        List(PersonaRegistry.all) { persona in
+            let here = team.isOnTeam(persona.id)
+            Button {
+                if here { team.choose(persona.id); talk() }
+            } label: {
+                HStack(spacing: FerniSpace.pause) {
+                    AvatarPortrait(persona: WindowPersona(personaId: persona.id), present: here)
+                        .frame(width: 56, height: 56)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("\(persona.name) · \(persona.role)").font(FerniType.headline)
+                        Text(here ? persona.specialty
+                             : team.teasers[persona.id] ?? "\(persona.name) joins as you and Ferni get to know each other.")
+                            .font(FerniType.body)
+                            .foregroundStyle(FerniColor.textSecondary)
                     }
-                    .frame(minHeight: 64)
+                    Spacer(minLength: 0)
+                    if team.chosen == persona.id {
+                        Image(systemName: "checkmark").foregroundStyle(FerniColor.accent).accessibilityHidden(true)
+                    }
                 }
-                .buttonStyle(.plain)
-                .disabled(!here)
-                .accessibilityValue(team.chosen == persona.id ? "Answers next" : here ? "On your team" : "Not on your team yet")
+                .frame(minHeight: 64)
             }
-            .navigationTitle("Team")
+            .buttonStyle(.plain)
+            .disabled(!here)
+            .accessibilityValue(team.chosen == persona.id ? "Answers next" : here ? "On your team" : "Not on your team yet")
         }
+        .navigationTitle("Team")
     }
 }
 
