@@ -7,7 +7,7 @@
  * Routes:
  *   GET  /api/v1/public/experiments/:id/variant  - Get variant for user
  *   POST /api/v1/public/experiments/track        - Track exposure/conversion
- *   POST /api/v1/public/experiments/track/batch  - Batch track events
+ *   POST /api/v1/public/experiments/track/batch  - Batch track events (handleTrackBatch)
  *
  * @module PublicExperimentsAPI
  */
@@ -154,56 +154,7 @@ export async function handlePublicExperimentsRoutes(
 
     // POST /api/v1/public/experiments/track/batch
     if (pathname === `${BASE_PATH}/track/batch` && method === 'POST') {
-      const body = (await parseBody(req)) as {
-        events: Array<{
-          experimentId: string;
-          variantId: string;
-          userId: string;
-          eventType: 'exposure' | 'conversion';
-          goalId?: string;
-          value?: number;
-          metadata?: Record<string, unknown>;
-        }>;
-      };
-
-      if (!Array.isArray(body.events) || body.events.length === 0) {
-        sendJson(res, 400, { error: 'events array is required' });
-        return true;
-      }
-      // One browser, one subject: every event must name the same id
-      const ids = new Set(body.events.map((e) => e.userId));
-      if (ids.size !== 1 || body.events.length > MAX_BATCH_EVENTS) {
-        sendJson(res, 400, { error: `1-${MAX_BATCH_EVENTS} events for a single userId` });
-        return true;
-      }
-      const userId = await experimentSubject(req, res, [...ids][0]);
-      if (userId === null) return true;
-
-      const results = await Promise.allSettled(
-        body.events.map(async (event) => {
-          if (event.eventType === 'exposure') {
-            await trackExposure(event.experimentId, event.variantId, userId, event.metadata);
-          } else if (event.eventType === 'conversion' && event.goalId) {
-            await trackConversion(
-              event.experimentId,
-              event.variantId,
-              userId,
-              event.goalId,
-              event.value,
-              event.metadata
-            );
-          }
-        })
-      );
-
-      const succeeded = results.filter((r) => r.status === 'fulfilled').length;
-      const failed = results.filter((r) => r.status === 'rejected').length;
-
-      sendJson(res, 200, {
-        success: true,
-        tracked: succeeded,
-        failed,
-      });
+      await handleTrackBatch(req, res);
       return true;
     }
 
@@ -221,6 +172,67 @@ export async function handlePublicExperimentsRoutes(
     sendJson(res, 500, { error: 'Internal server error' });
     return true;
   }
+}
+
+/** Event types a batch records. Anything else is reported back, never counted as tracked. */
+const BATCH_EVENT_TYPES: ReadonlySet<string> = new Set(['exposure', 'conversion']);
+
+interface BatchEvent {
+  experimentId: string;
+  variantId: string;
+  userId: string;
+  eventType: string;
+  goalId?: string;
+  value?: number;
+}
+
+/** Why an event of a batch is not recorded, or null. */
+function batchRefusal(event: BatchEvent): string | null {
+  if (!BATCH_EVENT_TYPES.has(event.eventType)) return 'Invalid eventType';
+  if (event.eventType === 'conversion' && !event.goalId) return 'goalId is required for conversion events'; // prettier-ignore
+  return null;
+}
+
+/**
+ * One browser's batch of experiment events, recorded under one subject
+ * (experiment-subject.ts: an anonymous visitor id, or the verified caller, each
+ * rate-limited). At most MAX_BATCH_EVENTS; unknown types and conversions with no
+ * goal come back in `skipped`. Only ids, the goal and its value are stored:
+ * client `metadata` is not passed on. Serves app.ferni.ai's route and ferni.ai's
+ * /api/landing/experiments/track/batch (landing-intelligence.routes.ts).
+ */
+export async function handleTrackBatch(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const body = (await parseBody(req)) as { events?: BatchEvent[] } | undefined;
+  const events = body?.events;
+  if (!Array.isArray(events) || events.length === 0) {
+    sendJson(res, 400, { error: 'events array is required' });
+    return;
+  }
+  // One browser, one subject: every event must name the same id
+  const ids = new Set(events.map((e) => e.userId));
+  if (ids.size !== 1 || events.length > MAX_BATCH_EVENTS) {
+    sendJson(res, 400, { error: `1-${MAX_BATCH_EVENTS} events for a single userId` });
+    return;
+  }
+  const userId = await experimentSubject(req, res, [...ids][0]);
+  if (userId === null) return;
+
+  const skipped: string[] = [];
+  const recordable = events.filter((event) => {
+    const refused = batchRefusal(event);
+    if (refused) skipped.push(`${event.eventType}: ${refused}`);
+    return refused === null;
+  });
+  const results = await Promise.allSettled(
+    recordable.map(async (event) => {
+      const { experimentId, variantId, goalId = '', value } = event;
+      if (event.eventType === 'exposure') await trackExposure(experimentId, variantId, userId);
+      else await trackConversion(experimentId, variantId, userId, goalId, value);
+    })
+  );
+  const tracked = results.filter((r) => r.status === 'fulfilled').length;
+  const failed = results.length - tracked;
+  sendJson(res, 200, { success: true, tracked, failed, ...(skipped.length > 0 && { skipped }) });
 }
 
 export default { handlePublicExperimentsRoutes };
