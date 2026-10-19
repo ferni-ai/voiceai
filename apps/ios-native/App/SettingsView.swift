@@ -14,6 +14,7 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 Section {
+                    NavigationLink("Your team") { TeamScreen(team: model.team) { dismiss() } }
                     NavigationLink("What Ferni remembers") { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
                     SoundsToggle()
                 }
