@@ -39,6 +39,7 @@ notes as a one-time link, never in this repository.
 
 | Feature | Where | Notes |
 |---|---|---|
+| Touch Ferni | Home, tap Ferni at rest | He dents where touched, glances at the finger and lights up, with one soft tap in the hand. After a quiet 20 s at rest a firefly may wander by, once. Not in a call (there, a tap while Ferni speaks interrupts). Reduce Motion: a glance and a blink only. |
 | Talk to Ferni (a voice call) | Home, the Talk button | The first time, the consent screen comes first. It names the processors (Google, Anthropic, Cartesia, LiveKit). |
 | Microphone permission | First call | "Ferni listens only while you're talking together, so you can talk out loud." Denied: Home explains and offers Open Settings. |
 | The call on the system | During a call | LiveCommunicationKit shows the call on the Lock Screen and in the system call UI. AirPods mute and the Lock Screen's end button work. |

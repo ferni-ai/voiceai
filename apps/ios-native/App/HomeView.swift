@@ -114,7 +114,7 @@ struct HomeView: View {
     private func avatar(call: CallSession, size: CGFloat) -> some View {
         // The Settings page sheet and the consent cover hide Ferni; the
         // smaller sheets (More, Report) leave him in view.
-        CallAvatar(call: call, covered: model.isShowingSettings || model.isAskingConsent)
+        CallAvatar(call: call, covered: model.isShowingSettings || model.isAskingConsent) { model.feedback.play($0) }
             .frame(width: size, height: size)
             .opacity(call.phase == .reconnecting ? 0.5 : 1)
     }

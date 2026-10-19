@@ -17,6 +17,7 @@ public struct AvatarView: View {
     let level: @Sendable () -> Float
     let name: String
     let covered: Bool
+    let onCue: ((KeyedCue) -> Void)?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -25,17 +26,24 @@ public struct AvatarView: View {
     @State private var woke = Date()
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     @State private var hot = ProcessInfo.processInfo.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue
+    @State private var slot = CGSize.zero
 
     /// Canvas size and Ferni's place in it, in slot widths.
     static let canvas = CGSize(width: 1.7, height: 1.5)
     static let radius = 0.30, lift = 0.1
     /// Expressions that earn the hand-keyed "big win".
     static let wins: Set<AvatarExpression> = [.cheering, .proud, .excited]
+    /// The part of the slot a finger can touch: Ferni himself (radius 0.30 of
+    /// the slot) with a little slop, never the slot's corners.
+    static let touchScale = 0.7
 
-    /// - Parameter level: Ferni's voice level from the remote audio track, read once per frame.
+    /// - Parameters:
+    ///   - level: Ferni's voice level from the remote audio track, read once per frame.
+    ///   - onCue: what the body asks the app for (a haptic on a touch, a chime on landing), after each frame.
     public init(
         persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
-        name: String = "Ferni", covered: Bool = false, level: @escaping @Sendable () -> Float = { 0 }
+        name: String = "Ferni", covered: Bool = false, level: @escaping @Sendable () -> Float = { 0 },
+        onCue: ((KeyedCue) -> Void)? = nil
     ) {
         self.persona = persona
         self.expression = expression
@@ -43,6 +51,7 @@ public struct AvatarView: View {
         self.name = name
         self.covered = covered
         self.level = level
+        self.onCue = onCue
     }
 
     public var body: some View {
@@ -58,11 +67,20 @@ public struct AvatarView: View {
                             covered: covered, active: scenePhase == .active
                         )
                         TimelineView(.animation(minimumInterval: clock.interval, paused: clock.paused)) { timeline in
-                            AliveMetalView(
-                                renderer: renderer, uniforms: frame(at: timeline.date),
-                                radius: Float(Self.radius / Self.canvas.width), below: Float(Self.lift / Self.canvas.width),
-                                scale: throttled ? 1.5 : 2
-                            )
+                            let u = frame(at: timeline.date)
+                            let w = side * Self.canvas.width, h = side * Self.canvas.height, r = side * Self.radius
+                            ZStack {
+                                AliveMetalView(
+                                    renderer: renderer, uniforms: u,
+                                    radius: Float(Self.radius / Self.canvas.width), below: Float(Self.lift / Self.canvas.width),
+                                    scale: throttled ? 1.5 : 2
+                                )
+                                AliveParticles(
+                                    particles: rig.particles,
+                                    centre: CGPoint(x: w / 2 + CGFloat(u.pos.x) * r, y: h / 2 + side * Self.lift - CGFloat(u.pos.y) * r),
+                                    radius: r
+                                )
+                            }
                         }
                         .frame(width: side * Self.canvas.width, height: side * Self.canvas.height)
                         .position(x: geo.size.width / 2, y: geo.size.height / 2 - side * Self.lift)
@@ -72,6 +90,10 @@ public struct AvatarView: View {
                 }
                 .allowsHitTesting(false)
             }
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { slot = $0 }
+            // At rest Ferni can be touched; in a call only the app's own gestures apply.
+            .contentShape(.interaction, Circle().scale(Self.touchScale))
+            .gesture(SpatialTapGesture().onEnded { touch(at: $0.location) }, including: activity == .idle ? .all : .none)
             .accessibilityElement()
             .accessibilityLabel(name)
             .accessibilityValue(Self.words(for: activity, name: name))
@@ -100,6 +122,14 @@ public struct AvatarView: View {
             }
     }
 
+    /// A tap at `location` in the slot, as a point in Ferni radii from his centre.
+    private func touch(at location: CGPoint) {
+        let side = min(slot.width, slot.height)
+        guard side > 0 else { return }
+        let r = side * Self.radius
+        rig.poke(at: SIMD2((location.x - slot.width / 2) / r, (slot.height / 2 - location.y) / r))
+    }
+
     /// One frame: this moment's inputs into the rig, out come the uniforms.
     private func frame(at date: Date) -> AliveUniforms {
         rig.activity = activity
@@ -109,6 +139,11 @@ public struct AvatarView: View {
         let dark = colorScheme == .dark
         rig.dark = dark
         var u = rig.frame(at: date.timeIntervalSince(woke))
+        // After the frame, never during it: the app's handlers may change state.
+        if let onCue, !rig.cues.isEmpty {
+            let cues = rig.cues
+            Task { @MainActor in cues.forEach(onCue) }
+        }
         u.light(dark: dark, roomTop: linear(hex: dark ? "#1e1a16" : "#faf8f5"), roomBottom: linear(hex: dark ? "#14110e" : "#efe9e0"))
         return u
     }
