@@ -70,6 +70,17 @@ describe('argument checks', () => {
     expect(() => plan('CANDOR', 'yes')).toThrow(/on or off/);
     expect(() => planWrites(parseArgs(['override', 'CANDOR', 'on']), undefined, NOW)).toThrow(/--uid/); // prettier-ignore
   });
+
+  it('TURN_LENGTH and TURN_TEXTURE take learned or off; the switches never take learned', () => {
+    const plan = (...a: string[]) =>
+      planWrites(parseArgs(['set-flag', 'seth', ...a]), undefined, NOW);
+    expect(plan('TURN_LENGTH', 'learned')[0]?.fields).toEqual({ 'flags.TURN_LENGTH': 'learned', updatedAt: NOW }); // prettier-ignore
+    expect(plan('TURN_TEXTURE', 'off')[0]?.fields).toEqual({ 'flags.TURN_TEXTURE': 'off', updatedAt: NOW }); // prettier-ignore
+    expect(() => plan('TURN_LENGTH', 'on')).toThrow(/TURN_LENGTH must be learned or off/);
+    expect(() => plan('PERSONA_VOICE', 'learned')).toThrow(/PERSONA_VOICE must be on or off/);
+    const o = planWrites(parseArgs(['override', 'TURN_TEXTURE', 'learned']), 'voice-eval-x', NOW); // prettier-ignore
+    expect(o[0]?.fields).toEqual({ flags: { TURN_TEXTURE: 'learned' }, updatedAt: NOW });
+  });
 });
 
 describe('override names the person, then the flag and its value', () => {

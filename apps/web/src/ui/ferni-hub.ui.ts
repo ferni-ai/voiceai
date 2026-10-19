@@ -16,7 +16,7 @@
 import { t } from '../i18n/index.js'; import { createLogger } from '../utils/logger.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { soundUI } from './sound.ui.js';
-import { messageUI } from './message.ui.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import { fetchHubData, type BackgroundResult, type HubLoad, type OpenThread, type TrackedItem } from './ferni-hub-data.js';
 import { bindHubProblem, renderHubEmpty, renderHubProblem } from './ferni-hub-states.js'; import { escapeHtml } from './trust-dashboard-data.js';
 import {
@@ -28,10 +28,7 @@ import {
 
 const log = createLogger('FerniHub');
 
-// ============================================================================
 // STATE
-// ============================================================================
-
 let container: HTMLElement | null = null;
 let isVisible = false;
 let hubData: HubLoad | null = null;
@@ -81,7 +78,7 @@ function createContainer(): HTMLElement {
         <div class="ferni-hub-greeting">
           <span class="ferni-hub-wave">${SECTION_ICONS.hand}</span>
           <div>
-            <h1>${t('ui.yourDay')}</h1>
+            <h1 id="ferni-hub-title">${t('ui.yourDay')}</h1>
             <p class="ferni-hub-subtitle">${t('ui.subtitle')}</p>
           </div>
         </div>
@@ -111,7 +108,8 @@ function createContainer(): HTMLElement {
     </div>
   `;
 
-  // Event listeners
+  // Event listeners. A modal dialog: named, Escape closes it, dialog-focus moves focus in and traps Tab
+  asModalDialog(overlay.querySelector('.ferni-hub-panel') as HTMLElement, { labelledBy: 'ferni-hub-title' }, () => overlay.classList.contains('visible'), hide);
   overlay.querySelector('.ferni-hub-backdrop')?.addEventListener('click', hide);
   overlay.querySelector('.ferni-hub-close')?.addEventListener('click', hide);
   overlay.querySelector('.ferni-hub-talk-btn')?.addEventListener('click', () => {
@@ -544,7 +542,7 @@ function addStyles(): void {
       height: 40px;
       border-radius: 50%;
       border: none;
-      background: var(--color-background-subtle, #f5f0eb);
+      background: var(--color-background-subtle);
       color: var(--color-text-secondary);
       cursor: pointer;
       display: flex;
@@ -554,7 +552,7 @@ function addStyles(): void {
     }
 
     .ferni-hub-close:hover {
-      background: var(--color-background-muted, #ebe5df);
+      background: var(--color-background-hover);
       transform: scale(1.05);
     }
 

@@ -9,7 +9,6 @@
 | `ferni-react/` | React component library for embedding Ferni |
 | `ferni-sdk/` | Ferni SDK for external integrations |
 | `shared-types/` | TypeScript type definitions shared across services |
-| `workers/` | Background worker implementations |
 
 ## shared-types
 
@@ -25,20 +24,6 @@ pnpm build
 ```typescript
 import { SomeType } from '@ferni/shared-types';
 ```
-
-## workers
-
-Background worker implementations for async tasks:
-
-```bash
-cd packages/workers
-pnpm install
-pnpm build
-```
-
-Contains worker code for:
-- Background processing
-- Async job handling
 
 ## Adding a New Package
 
