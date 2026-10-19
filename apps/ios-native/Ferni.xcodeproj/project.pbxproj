@@ -61,6 +61,7 @@
 		B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E550D3CF186D8D463FF66E /* SettingsView.swift */; };
 		BA62672ACCAD9A10B9C98EBB /* BackgroundModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */; };
 		BC287679EE1EF47277B6C045 /* UITestScenario.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58F17318F25CDB7266DAE932 /* UITestScenario.swift */; };
+		BCE90CE9171EFACA00BD18DE /* NextStepViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314CF4DEF139B4B6126A1C63 /* NextStepViews.swift */; };
 		C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */; };
 		C2499BBA5ED850991089AF31 /* FerniWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA1FBC06E2F396B11D85385 /* FerniWatchApp.swift */; };
 		CAAC14DD23372C8B957B3BAB /* MemoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E67B08698448132C9E2AE39 /* MemoryViews.swift */; };
@@ -69,6 +70,7 @@
 		CFB4A2A20FF174CCCBC95045 /* CallFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49306E5B24BD5C520DBE56ED /* CallFeedback.swift */; };
 		D1583676262D8254FE6C3D86 /* LiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C643B5190988DED731CADF82 /* LiveActivityController.swift */; };
 		DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */; };
+		E094C588E3F4D4ECCDC656EC /* NextStepTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3751457DBC4CF962D924D247 /* NextStepTests.swift */; };
 		E264DB68385FB7094C895AAE /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 129CF5787F87ED1DCDD384F0 /* FerniDesign */; };
 		E67FBA51E487A86BF76A408A /* ReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */; };
 		E88BB02A6FEC21AF520A766B /* TalkIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */; };
@@ -170,9 +172,11 @@
 		226B4915E8A70F4DAB1B6B4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-alex.mp3"; sourceTree = "<group>"; };
 		2DA4BC7C1EABDFAE3445A318 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
+		314CF4DEF139B4B6126A1C63 /* NextStepViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextStepViews.swift; sourceTree = "<group>"; };
 		32CB80CF1D9492393B441589 /* DeepLinkUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkUITests.swift; sourceTree = "<group>"; };
 		346AABA0EB545D4C92B2D8CD /* CallViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViews.swift; sourceTree = "<group>"; };
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
+		3751457DBC4CF962D924D247 /* NextStepTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextStepTests.swift; sourceTree = "<group>"; };
 		3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FerniWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CC0928CF00671D4E0E8D998 /* NoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTests.swift; sourceTree = "<group>"; };
 		3CC34062567D316808D0D03C /* ConsentSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentSheetTests.swift; sourceTree = "<group>"; };
@@ -313,6 +317,7 @@
 				4F6D02CA803627F1860ACBDA /* LiveActivityContentTests.swift */,
 				C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */,
 				127F69758285759483323D63 /* NextDayTests.swift */,
+				3751457DBC4CF962D924D247 /* NextStepTests.swift */,
 				3CC0928CF00671D4E0E8D998 /* NoteTests.swift */,
 				809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */,
 			);
@@ -372,6 +377,7 @@
 				B8C71781BAD997D314C08864 /* HomeView.swift */,
 				C643B5190988DED731CADF82 /* LiveActivityController.swift */,
 				4E67B08698448132C9E2AE39 /* MemoryViews.swift */,
+				314CF4DEF139B4B6126A1C63 /* NextStepViews.swift */,
 				58E0556D7156242BE3423D87 /* Notifications.swift */,
 				5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */,
 				A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */,
@@ -690,6 +696,7 @@
 				D1583676262D8254FE6C3D86 /* LiveActivityController.swift in Sources */,
 				CAAC14DD23372C8B957B3BAB /* MemoryViews.swift in Sources */,
 				73E420E1A1EF13C436B2D8A6 /* MuteCallIntent.swift in Sources */,
+				BCE90CE9171EFACA00BD18DE /* NextStepViews.swift in Sources */,
 				8008F255B971A496A174CC6F /* Notifications.swift in Sources */,
 				E67FBA51E487A86BF76A408A /* ReportSheet.swift in Sources */,
 				4E1D8F2D04D189C0702BF65C /* RootView.swift in Sources */,
@@ -742,6 +749,7 @@
 				F8BE59CFC9BCA7538FD1A854 /* LiveActivityContentTests.swift in Sources */,
 				11741E1DFD5DE949343B912A /* LocalizationTests.swift in Sources */,
 				FAF0486E16A9EE9064362BB3 /* NextDayTests.swift in Sources */,
+				E094C588E3F4D4ECCDC656EC /* NextStepTests.swift in Sources */,
 				F8C4CC6E41EE7F5F394E4D21 /* NoteTests.swift in Sources */,
 				F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */,
 			);
