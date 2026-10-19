@@ -5,7 +5,7 @@
  * Auto-generates:
  *   - apps/web/src/config/expressions.generated.ts (TypeScript types + data)
  *   - apps/web/src/config/expressions.generated.css (CSS animations + rules)
- *   - apps/ios-native/Ferni/Resources/expressions.json (iOS configuration)
+ *   - apps/ios-native/Packages/FerniDesign/Sources/FerniDesign/Resources/expressions.json (iOS avatar)
  *
  * from design-system/tokens/expressions.json
  *
@@ -32,7 +32,10 @@ const CONFIG = {
   outputs: {
     typescript: path.join(PROJECT_ROOT, 'apps/web/src/config/expressions.generated.ts'),
     css: path.join(PROJECT_ROOT, 'apps/web/src/config/expressions.generated.css'),
-    ios: path.join(PROJECT_ROOT, 'apps/ios-native/Ferni/Resources/expressions.json'),
+    ios: path.join(
+      PROJECT_ROOT,
+      'apps/ios-native/Packages/FerniDesign/Sources/FerniDesign/Resources/expressions.json'
+    ),
   },
 };
 

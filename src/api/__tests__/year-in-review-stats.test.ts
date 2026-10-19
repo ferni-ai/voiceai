@@ -49,9 +49,6 @@ vi.mock('../../services/superhuman/relationship-network.js', () => ({
 vi.mock('../../memory/store-factory.js', () => ({
   getStore: async () => ({ getProfile: async () => ({}) }),
 }));
-vi.mock('../../services/team-unlocks.js', () => ({
-  getTeamUnlockState: () => ({ unlockedMembers: ['ferni', 'maya-santos'] }),
-}));
 
 import { handleYearInReviewRoutes } from '../year-in-review-routes.js';
 import {
@@ -147,10 +144,17 @@ describe('year in review stats', () => {
     expect(stats.totalMinutes).toBeUndefined();
   });
 
-  it('gives team unlocks no invented unlock date', async () => {
+  it('lists the whole team after two conversations, with no unlock dates (TEAM_BY_NEED)', async () => {
     state.summaries = conversations(2, 1);
     const { teamUnlocks } = await getYear();
-    expect(teamUnlocks.map((u: any) => u.personaId)).toEqual(['ferni', 'maya-santos']);
+    expect(teamUnlocks.map((u: any) => u.personaId)).toEqual([
+      'ferni',
+      'maya-santos',
+      'peter-john',
+      'alex-chen',
+      'jordan-taylor',
+      'nayan-patel',
+    ]);
     for (const unlock of teamUnlocks) expect(unlock.unlockedAt).toBeUndefined();
   });
 });
