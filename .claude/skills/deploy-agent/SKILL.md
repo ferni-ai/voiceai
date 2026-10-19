@@ -27,6 +27,11 @@ Run from a clean checkout of the commit you're deploying, normally `origin/main`
 ```bash
 P=ferni-dev; C=$(git rev-parse --show-toplevel)/livekit.toml   # prod: ferni-prod + livekit.prod-cloud.toml
 LOG=$(mktemp)
+# lk tags git_commit with git's shortest unique SHA (9 chars, then 10, growing), so
+# match the Production row's git_commit as a prefix of the full HEAD.
+live() { G=$(lk agent versions --project $P --config $C 2>/dev/null | awk -F'│' '$3 ~ /✓/' \
+  | sed -n 's/.*"git_commit":"\([0-9a-f]\{7,40\}\)".*/\1/p' | head -1)
+  [ -n "$G" ] && case $(git rev-parse HEAD) in "$G"*) ;; *) false ;; esac; }
 [ -z "$(git diff --name-only --diff-filter=U)" ] \
  && [ -z "$(git status --porcelain --untracked-files=no)" ] \
  && git merge-base --is-ancestor HEAD origin/main \
@@ -35,15 +40,14 @@ LOG=$(mktemp)
  && ROOMS=$(lk room list --project $P 2>&1) \
  && echo "$ROOMS" | grep -q "Using project \[$P\]" \
  && [ "$(echo "$ROOMS" | grep -c '│ RM_')" = 0 ] \
+ && git rev-parse HEAD > .build-sha \
  && cp docker/Dockerfile.agent ./Dockerfile \
- && { lk agent deploy --project $P --config $C -y . > $LOG 2>&1; rm -f Dockerfile; } \
+ && { lk agent deploy --project $P --config $C -y . > $LOG 2>&1; rm -f Dockerfile .build-sha; } \
  && ! grep -qE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" $LOG \
  && ! grep "unable to deploy agent" $LOG | grep -qv "bufio.Scanner" \
- && for i in $(seq 1 16); do lk agent versions --project $P --config $C 2>/dev/null \
-      | awk -F'│' '$3 ~ /✓/' | grep -q "\"git_commit\":\"$(git rev-parse --short=9 HEAD)\"" && break; sleep 15; done \
- && lk agent versions --project $P --config $C 2>/dev/null | awk -F'│' '$3 ~ /✓/' \
-      | grep -q "\"git_commit\":\"$(git rev-parse --short=9 HEAD)\"" \
- && echo DEPLOYED $(git rev-parse --short=9 HEAD)
+ && for i in $(seq 1 16); do live && break; sleep 15; done \
+ && live \
+ && echo DEPLOYED $(git rev-parse HEAD)
 ```
 - `unable to deploy agent: bufio.Scanner: token too long` at the end is harmless.
 - Any other `unable to deploy agent: …` (for example `stream error … INTERNAL_ERROR`)
@@ -56,7 +60,12 @@ LOG=$(mktemp)
   a BuildKit line starting `ERROR:` or `#14 ERROR:`, esbuild `✘ [ERROR]`).
 - Then wait until the new version is live:
   `lk agent versions --project $P --config $C`. The row with ✓ in
-  Production must show your `git_commit`. Give it about 45 s more before calling.
+  Production must show your `git_commit` (a prefix of `git rev-parse HEAD`; its
+  length varies). Give it about 45 s more before calling.
+- `.build-sha` carries the commit into the image (lk passes no build args), so
+  the boot `EFFECTIVE_SETTINGS` line shows it instead of `unknown`. It is
+  gitignored, so the tree stays clean, and `.dockerignore` re-includes it because
+  `lk` applies `.gitignore` to its upload.
 - The command refuses a commit that isn't on `origin/main` (its
   `git merge-base --is-ancestor` step; no hook does this for you, so don't
   deploy any other way). Trying a branch on dev before merging is the one

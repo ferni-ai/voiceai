@@ -12,6 +12,7 @@
  */
 
 import { stripSSML } from '../../speech/tts-gateway/ssml/processor.js';
+import { heldOutOfMemory } from './arrival-grounding.js';
 
 /** What was said, without the speech markup (emotion/speed/break tags, [laughter]). */
 export function transcriptText(text: string): string {
@@ -48,6 +49,7 @@ export function assistantTranscriptHandler(
     const content = transcriptText(item.textContent ?? '');
     const { userId, sessionId, personaId, threadId } = getContext();
     if (!content || !userId) return;
+    if (heldOutOfMemory(sessionId, content)) return; // a teammate's hello (arrival-grounding.ts)
     void record({
       userId,
       sessionId,
