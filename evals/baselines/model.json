@@ -1,0 +1,18 @@
+{
+  "suite": "model: semantic recall + crisis classifier + tool retrieval (Vertex)",
+  "update": "pnpm tsx scripts/tool-retrieval/router-examples.ts && GOOGLE_CLOUD_PROJECT=<project> pnpm tsx scripts/eval-gate/model.ts --write-baseline",
+  "measuredOn": "d16e899b4",
+  "metrics": {
+    "semantic_recall.hit_rate": { "value": 0.8, "maxDrop": 0.02 },
+    "semantic_recall.precision": { "value": 0.9231, "maxDrop": 0.03 },
+    "semantic_recall.false_recall_rate": { "value": 0.0741, "maxRise": 0.03 },
+    "crisis_classifier.recall": { "value": 0.9925, "maxDrop": 0.01 },
+    "crisis_classifier.false_positive_rate": { "value": 0.0797, "maxRise": 0.03 },
+    "crisis_classifier.imminent_recall": { "value": 1, "maxDrop": 0.03 },
+    "crisis_classifier.errors": { "value": 0, "maxRise": 3 },
+    "tool_retrieval.router.coverage": { "value": 0.6803, "maxDrop": 0.01 },
+    "tool_retrieval.router.recall_at_1": { "value": 0.4224, "maxDrop": 0.03 },
+    "tool_retrieval.router.recall_at_5": { "value": 0.7119, "maxDrop": 0.03 },
+    "tool_retrieval.router.recall_at_10": { "value": 0.7874, "maxDrop": 0.03 }
+  }
+}

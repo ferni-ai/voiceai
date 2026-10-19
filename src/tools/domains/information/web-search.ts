@@ -222,11 +222,17 @@ export function formatSearchResult(answer: string, sources: string[]): string {
 }
 
 /**
- * Takes one search from the caller's hour, then one query from the day.
- * The day's remaining queries, or null when either is spent or unreachable.
+ * Takes one query from the day, then one search from the caller's hour: a day that is
+ * spent or unreachable must not use up the caller's hour. The day's remaining
+ * queries, or null when either is spent or unreachable.
  */
 async function reserveSearch(principal: string): Promise<number | null> {
   const log = getLogger();
+  const day = await rateLimiter.checkShared(DAY_KEY, maxSearchQueriesPerDay(), DAY_MS);
+  if (!day?.allowed) {
+    log.warn({ reachable: Boolean(day) }, 'web search refused: daily queries spent');
+    return null;
+  }
   const person = await rateLimiter.checkShared(
     `${PERSON_KEY}:${principal}`,
     principal === ANONYMOUS ? maxAnonSearchesPerHour() : maxSearchesPerPersonHour(),
@@ -234,11 +240,6 @@ async function reserveSearch(principal: string): Promise<number | null> {
   );
   if (!person?.allowed) {
     log.warn({ reachable: Boolean(person) }, 'web search refused: caller hour spent');
-    return null;
-  }
-  const day = await rateLimiter.checkShared(DAY_KEY, maxSearchQueriesPerDay(), DAY_MS);
-  if (!day?.allowed) {
-    log.warn({ reachable: Boolean(day) }, 'web search refused: daily queries spent');
     return null;
   }
   return day.remaining;

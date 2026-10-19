@@ -213,7 +213,7 @@ describe('loadWorldFactsForCall', () => {
     });
     expect(worldFactsNoteFor(call, opts())).toContain('Stripe');
     // No caller account: nothing was forgotten, so nothing changes on the call either.
-    expect((await forgetForCaller('anonymous', 'Stripe')).kind).toBe('failed');
+    expect((await forgetForCaller('anonymous', 'Stripe')).kind).toBe('not-saved');
     expect(worldFactsNoteFor(call, opts())).toContain('Stripe');
     // Another caller's forget never reaches this call.
     expect((await forgetForCaller('u2', 'the Stripe interview')).kind).toBe('forgotten');
