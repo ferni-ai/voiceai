@@ -74,6 +74,7 @@ import { attachMindNote, theoryOfMindMode } from './mind-note-hook.js';
 import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
+import { withChiefOfStaffRole } from '../personas/chief-of-staff-role.js';
 // Tool loading - hoisted for faster initial agent startup
 import {
   buildEssentialToolSet,
@@ -118,7 +119,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
-import { giveLoadedDomainsToNewAgents } from '../voice-agent/deferred-tool-update.js';
+import { wireCallToolLoader } from '../voice-agent/deferred-tool-update.js';
 import { createPersonaTTS } from './persona-tts.js';
 import { createCallSession } from './call-session.js';
 import { agentOnCall, personaOnCall, rememberPersona } from './persona-swap.js';
@@ -337,10 +338,10 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let stableBase = '';
   try {
     mark('load_prompts_start');
-    // Load both levels of instructions in parallel (imports now hoisted to module level)
+    // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
-      loadSystemPrompt(persona.id),
+      loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
     ]);
     mark('load_prompts_done');
 
@@ -952,8 +953,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         return await loadEssentialToolsFallback();
       }
 
-      // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
-      // This ensures handoff tools are ready BEFORE any handoff request
+      // Full tools loaded: warm the session's handoff tools now, so they're ready before any handoff
       try {
         const cacheStart = Date.now();
         const tier =
@@ -1977,7 +1977,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           agent,
         });
         // A handed-to agent gets this call's loaded domains (TOOLS_FOLLOW_AGENT)
-        cleanupFunctions.push(giveLoadedDomainsToNewAgents(session, agent, dynamicToolLoader, log));
+        cleanupFunctions.push(wireCallToolLoader(session, agent, dynamicToolLoader, log));
 
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {

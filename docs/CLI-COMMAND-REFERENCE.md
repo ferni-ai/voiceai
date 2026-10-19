@@ -356,7 +356,6 @@ DELETE /api/experiments/:id        - Delete experiment
 |---------|--------|-------------|
 | `ferni calls test` | ✅ | Test voice call |
 | `ferni calls status` | ✅ | Call status |
-| `ferni calls family` | ✅ | Test with family |
 | `ferni calls invite <phone>` | ✅ | Invite to test |
 
 ### Runtime Diagnostics

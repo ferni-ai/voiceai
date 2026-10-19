@@ -2,16 +2,8 @@
  * Workflow Template Library
  *
  * Pre-built workflow templates for common life automation scenarios.
- * Users can browse, customize, and activate these templates.
- *
- * Categories:
- * - Morning routines
- * - Work productivity
- * - Health & fitness
- * - Home automation
- * - Financial management
- * - Social & relationships
- * - Travel & commute
+ * Users can browse, customize, and activate these templates (categories:
+ * TemplateCategory). `icon` is a brand icon name, never a glyph.
  *
  * @module services/workflows/templates/template-library
  */
@@ -23,6 +15,7 @@ import type {
   WorkflowCondition,
   Workflow,
 } from '../../stores/workflow-store.js';
+import type { TemplateIconName } from './template-icons.js';
 
 const log = createLogger({ module: 'template-library' });
 
@@ -46,7 +39,7 @@ export interface WorkflowTemplate {
   name: string;
   description: string;
   category: TemplateCategory;
-  icon: string;
+  icon: TemplateIconName;
 
   // The workflow definition
   trigger: WorkflowTrigger;
@@ -88,7 +81,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     description:
       "I'll greet you each morning with weather, what's on your calendar, and a little encouragement",
     category: 'morning_routine',
-    icon: '🌅',
+    icon: 'sunrise',
     trigger: {
       type: 'time',
       schedule: '0 7 * * *', // 7:00 AM
@@ -138,7 +131,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Gentle movement nudge',
     description: 'A friendly reminder to move your body - no pressure, just support',
     category: 'morning_routine',
-    icon: '🧘',
+    icon: 'lotus',
     trigger: {
       type: 'time',
       schedule: '0 6 * * 1-5', // 6:00 AM weekdays
@@ -191,7 +184,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Heads up before meetings',
     description: "I'll give you a quick heads up before your meetings so you feel prepared",
     category: 'work_productivity',
-    icon: '💭',
+    icon: 'thought',
     trigger: {
       type: 'calendar',
       triggerOn: 'event_reminder',
@@ -234,7 +227,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Protect your focus',
     description: "When you need to concentrate, I'll help you stay undisturbed",
     category: 'work_productivity',
-    icon: '🎯',
+    icon: 'target',
     trigger: {
       type: 'calendar',
       triggerOn: 'event_start',
@@ -272,7 +265,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Water check-in',
     description: 'A gentle nudge to stay hydrated throughout the day',
     category: 'health_fitness',
-    icon: '💧',
+    icon: 'droplet',
     trigger: {
       type: 'time',
       schedule: '0 9-17/2 * * *', // Every 2 hours from 9 AM to 5 PM
@@ -315,7 +308,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Body check-in',
     description: "A moment to notice how you're holding yourself",
     category: 'health_fitness',
-    icon: '🌿',
+    icon: 'leaf',
     trigger: {
       type: 'time',
       schedule: '0 * * * *', // Every hour
@@ -349,7 +342,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Welcome home',
     description: "I'll make sure your home is ready for you when you arrive",
     category: 'home_automation',
-    icon: '🏠',
+    icon: 'home',
     trigger: {
       type: 'location',
       locationName: 'home',
@@ -406,7 +399,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Wind-down ritual',
     description: "I'll help you transition to rest with soft lights and calm",
     category: 'evening_routine',
-    icon: '🌙',
+    icon: 'moon',
     trigger: {
       type: 'time',
       schedule: '0 22 * * *', // 10:00 PM
@@ -465,7 +458,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Beat the traffic',
     description: "I'll let you know when to leave so you don't hit traffic",
     category: 'travel',
-    icon: '🚗',
+    icon: 'car',
     trigger: {
       type: 'time',
       schedule: '0 7 * * 1-5', // 7 AM weekdays
@@ -528,7 +521,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Monthly money check',
     description: "Once a month, I'll remind you to peek at your subscriptions",
     category: 'financial',
-    icon: '💰',
+    icon: 'wallet',
     trigger: {
       type: 'time',
       schedule: '0 10 1 * *', // 10 AM on the 1st of each month
@@ -569,7 +562,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Evening gratitude moment',
     description: 'A gentle pause before bed to notice what went well today',
     category: 'evening_routine',
-    icon: '✨',
+    icon: 'sparkles',
     trigger: {
       type: 'time',
       schedule: '0 21 * * *', // 9:00 PM
@@ -609,7 +602,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Sunday reflection',
     description: 'A calm Sunday moment to look back at your week and set intentions',
     category: 'evening_routine',
-    icon: '📝',
+    icon: 'notebook',
     trigger: {
       type: 'time',
       schedule: '0 19 * * 0', // 7:00 PM on Sundays
@@ -650,7 +643,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Breathing break',
     description: "A quick reminder to pause and breathe - you'll be surprised how much it helps",
     category: 'health_fitness',
-    icon: '🌬️',
+    icon: 'wind',
     trigger: {
       type: 'time',
       schedule: '0 14 * * 1-5', // 2:00 PM weekdays
@@ -691,7 +684,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Morning encouragement',
     description: 'Start each day with a personalized word of encouragement',
     category: 'morning_routine',
-    icon: '💪',
+    icon: 'heart',
     trigger: {
       type: 'time',
       schedule: '0 8 * * *', // 8:00 AM
@@ -738,7 +731,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Friendship reminder',
     description: 'A gentle nudge to reach out to someone you care about',
     category: 'social',
-    icon: '💬',
+    icon: 'message',
     trigger: {
       type: 'time',
       schedule: '0 12 * * 3', // Noon on Wednesdays
@@ -770,7 +763,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Morning intention',
     description: 'Start each day with one clear thing you want to focus on',
     category: 'morning_routine',
-    icon: '🎯',
+    icon: 'target',
     trigger: {
       type: 'time',
       schedule: '0 7 * * *', // 7:00 AM
@@ -811,7 +804,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Screen break nudge',
     description: 'A reminder to look up and away from screens - your eyes will thank you',
     category: 'work_productivity',
-    icon: '👀',
+    icon: 'eye',
     trigger: {
       type: 'time',
       schedule: '0 11,15 * * 1-5', // 11 AM and 3 PM weekdays
@@ -843,7 +836,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Small wins tracker',
     description: "At the end of each day, I'll help you notice what you accomplished",
     category: 'evening_routine',
-    icon: '🎉',
+    icon: 'trophy',
     trigger: {
       type: 'time',
       schedule: '0 18 * * *', // 6:00 PM
@@ -886,7 +879,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Celebrate your streaks',
     description: "When you hit a 7-day streak on any habit, I'll celebrate with you",
     category: 'health_fitness',
-    icon: '🔥',
+    icon: 'flame',
     trigger: {
       type: 'event',
       eventName: 'streak_achieved',
@@ -924,7 +917,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Encouragement when you log habits',
     description: 'A quick word of encouragement every time you complete a habit',
     category: 'health_fitness',
-    icon: '✅',
+    icon: 'check',
     trigger: {
       type: 'event',
       eventName: 'habit_logged',
@@ -953,7 +946,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Meeting prep reminder',
     description: "I'll remind you 15 minutes before calendar events to get ready",
     category: 'work_productivity',
-    icon: '📅',
+    icon: 'calendar',
     trigger: {
       type: 'calendar',
       triggerOn: 'event_reminder',
@@ -993,7 +986,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Home arrival wind-down',
     description: "When you arrive home, I'll check in and help you transition",
     category: 'evening_routine',
-    icon: '🏠',
+    icon: 'home',
     trigger: {
       type: 'location',
       locationName: 'home',
@@ -1034,7 +1027,7 @@ const WORKFLOW_TEMPLATES: WorkflowTemplate[] = [
     name: 'Work arrival focus mode',
     description: "When you arrive at work, I'll help you get into focus mode",
     category: 'work_productivity',
-    icon: '💼',
+    icon: 'briefcase',
     trigger: {
       type: 'location',
       locationName: 'work',

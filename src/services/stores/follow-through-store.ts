@@ -18,16 +18,19 @@
 
 import { createHash } from 'crypto';
 import type { CollectionReference, Firestore } from '@google-cloud/firestore';
-import type {
-  FollowUp,
-  FollowUpAction,
-  FollowUpKind,
-  FollowUpStatus,
-  FollowUpStore,
-  NewFollowUp,
-  Repeat,
-  SurfacedVia,
+import {
+  ask,
+  type FollowUp,
+  type FollowUpAction,
+  type FollowUpAsker,
+  type FollowUpKind,
+  type FollowUpStatus,
+  type FollowUpStore,
+  type NewFollowUp,
+  type Repeat,
+  type SurfacedVia,
 } from '../follow-through/index.js';
+import { brainFieldsOf } from './follow-through-brain-fields.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -124,6 +127,7 @@ export function toFollowUp(id: string, data: unknown): FollowUp | null {
     updatedAt: String(updatedAt),
     ...(str(data.closedAt) ? { closedAt: String(data.closedAt) } : {}),
     ...(action ? { action } : {}),
+    ...brainFieldsOf(data),
   };
 }
 
@@ -136,7 +140,7 @@ function parsed(docs: ReadonlyArray<{ id: string; data: () => unknown }>): Follo
   });
 }
 
-export function createFollowUpStore(db: Firestore): FollowUpStore {
+export function createFollowUpStore(db: Firestore): FollowUpStore & FollowUpAsker {
   const mine = (userId: string): CollectionReference =>
     db.collection('bogle_users').doc(userId).collection('follow_through');
 
@@ -194,6 +198,23 @@ export function createFollowUpStore(db: Firestore): FollowUpStore {
         if (!current || current.updatedAt !== expectedUpdatedAt) return false;
         tx.set(ref, next);
         return true;
+      });
+    },
+
+    async ask(userId, id, input, now): Promise<FollowUp | null> {
+      const ref = mine(userId).doc(id);
+      return db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const current = snap.exists ? toFollowUp(id, snap.data()) : null;
+        if (!current) return null;
+        // Judged against the stored copy: a second worker sees the first ask and is refused
+        const next = ask(current, input, now);
+        if (!next.success) {
+          log.info({ userId, followUpId: id, reason: next.error }, 'Follow-up ask refused');
+          return null;
+        }
+        tx.set(ref, next.data);
+        return next.data;
       });
     },
   };
