@@ -30,7 +30,7 @@ on:
     # No path filter on PRs: branch protection requires these checks, so a PR
     # they skip can never merge (docs, .claude/, dependabot.yml PRs all stuck).
     # PR runs are the fast checks only: Lint & Type Check, Frontend Quality, Unit
-    # Tests, Security Scan. Integration Tests, Quality Gates, Build and the other
+    # Tests, Security Scan, Quality Gates. Integration Tests, Build and the other
     # slow jobs skip on pull_request (a skipped job still reports its check), so PR
     # runs stop starving the merge queue for runners. The queue runs everything.
   # The merge queue tests each PR on top of main and whatever is queued ahead of it.
@@ -90,7 +90,7 @@ jobs:
       # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
       code: ${{ steps.code.outputs.matched }}
       # 'false' also when a PR touches only apps that aren't the Node app (website,
-      # ios-native, android-native, macos-menubar): none is in the UI image, ESLint
+      # ios-native, android-native, android-twa, macos-menubar): none is in the UI image, ESLint
       # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
       # see the change. Security and Quality Gates (brand scans the website) stay on
       # `code`. The merge queue is scoped the same way unless CI_SCOPED_QUEUE=off.
@@ -118,7 +118,7 @@ jobs:
         id: node
         uses: ./.github/actions/pr-changes
         with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|android-twa|macos-menubar)/'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - name: Did the merge queue already test this tree?
@@ -658,17 +658,17 @@ jobs:
         if: steps.nm-cache.outputs.cache-hit != 'true'
         run: pnpm install --no-frozen-lockfile
 
+      # Blocking. Both ran with continue-on-error, so the job was green whatever
+      # they did; main passes both (93 and 6 tests, 2026-10-18).
       - name: Run AGI Feature Unit Tests
         run: pnpm test:agi-features -- --reporter=verbose
         env:
           NODE_ENV: test
-        continue-on-error: true
 
       - name: Run AGI Actions API E2E Tests
         run: pnpm test:agi-actions-api -- --reporter=verbose
         env:
           NODE_ENV: test
-        continue-on-error: true
 
   # ============================================================================
   # BUILD
@@ -772,7 +772,10 @@ jobs:
 
       - name: Run pnpm audit
         if: needs.setup.outputs.code != 'false'
-        run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
+        # Fails on a new high or critical advisory. Known ones with no fix yet are
+        # listed (with why) under auditConfig.ignoreGhsas in pnpm-workspace.yaml.
+        # A registry outage passes rather than blocking every PR.
+        run: pnpm audit --audit-level=high --ignore-registry-errors
 
       # trufflehog is pinned to an immutable commit SHA, not @main: a mutable ref
       # means this job runs whatever is on that branch at run time, and this
@@ -860,7 +863,10 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: github.event_name != 'pull_request' && needs.setup.outputs.code != 'false'
+    # Runs on pull_request too. Skipped there, it first ran in the merge queue, so
+    # one PR that grew a 713-line file to 723 failed 15 of 15 merge groups and
+    # knocked out every PR queued with it (2026-10-18). Its three steps are cheap.
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
