@@ -382,6 +382,11 @@ async function reportCall(
           : undefined;
     if (refined) noteCallRefinement(call.callId, refined); // read by captureCallResult's PROMISE_OUTCOME
     await report(call.callId, outcome, request);
+    // The owner asked for this call (CONTACT_CALL_MEMORY, signed): keep what may be kept.
+    if (talked && call.ownerMemory && classifyAnsweredCall(heard, durationSeconds) === 'answered') {
+      const { rememberCall } = await import('../../services/outreach/call-memory.js');
+      await rememberCall({ call, outcome, analysis, heard, answered: true });
+    }
     log.info(
       { callId: call.callId, status: outcome.status, objectiveAchieved: outcome.objectiveAchieved },
       'On-behalf call reported to requester'

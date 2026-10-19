@@ -7,8 +7,9 @@
  * @module tools/domains/telephony/call-confirm
  */
 
-import type { ConfirmSpec } from '../communication/outreach/outreach-confirm.js';
+import { ownerKnown, type ConfirmSpec } from '../communication/outreach/outreach-confirm.js';
 import { checkDialableNumber } from '../../../utils/dialable-number.js';
+import { flagOn, type Env } from '../../../config/env-flag.js';
 
 const text = (v: unknown): string => (typeof v === 'string' ? v.trim() : '');
 /** "My Dad" and "dad" are the same person to call. */
@@ -62,3 +63,16 @@ export const callConfirm: ConfirmSpec = {
     };
   },
 };
+
+/**
+ * CONTACT_CALL_MEMORY: true when the person asking for this call is the
+ * account owner, proven on the live call (outreach-confirm.ts ownerKnown), so
+ * what the person called says may be kept in the owner's memory
+ * (services/outreach/call-memory.ts). Read in the owner's call, after their
+ * cohort flags are applied. `opts` is the tool's run options.
+ */
+export function ownerMemoryFor(opts: unknown, env: Env = process.env): true | undefined {
+  if (!flagOn('CONTACT_CALL_MEMORY', env)) return undefined;
+  const session = (opts as { ctx?: { session?: object } } | undefined)?.ctx?.session;
+  return ownerKnown(session) || undefined;
+}

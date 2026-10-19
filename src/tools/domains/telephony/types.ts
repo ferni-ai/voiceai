@@ -97,6 +97,12 @@ export interface OnBehalfCallRequest {
 
   /** Set on the one retry of a missed call: the call it retries. */
   retryOf?: string;
+
+  /**
+   * The verified owner asked for this call with CONTACT_CALL_MEMORY on: what
+   * the person says may be kept in the owner's memory (outreach/call-memory.ts).
+   */
+  ownerMemory?: boolean;
 }
 
 export interface CallOutcome {
