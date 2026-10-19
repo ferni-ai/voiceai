@@ -57,6 +57,8 @@ struct FerniApp: App {
 @MainActor
 @Observable
 final class AppModel {
+    /// The model for scenes SwiftUI doesn't own (CarPlay).
+    static weak var shared: AppModel?
     let feedback: CallFeedback
     let config: FerniConfig
     let account: AccountStore
@@ -184,6 +186,7 @@ final class AppModel {
         )
         feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
         installSystemHandlers()
+        Self.shared = self
         watchRemote = WatchRemote(model: self)
         watchRemote?.start()
     }

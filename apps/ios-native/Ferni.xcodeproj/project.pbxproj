@@ -16,6 +16,7 @@
 		2FD49FFFD4A0F9F9441CB534 /* FerniLive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FE8F191561C68141BA565BFB /* FerniLive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */; };
 		335AA4AA085EDDDDB1BC48CF /* FerniLink in Frameworks */ = {isa = PBXBuildFile; productRef = 9532464E6AF9B9AA9D7F09DD /* FerniLink */; };
+		35F9F60F2744005E17C2FE1C /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DA4BC7C1EABDFAE3445A318 /* CarPlaySceneDelegate.swift */; };
 		3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */; };
 		38240C7BC3E78705B56F4A7C /* handoff-to-nayan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */; };
 		3D35744BE349C5C980D7C2A6 /* FerniKit in Frameworks */ = {isa = PBXBuildFile; productRef = ED4AC2AA3060D84427234E43 /* FerniKit */; };
@@ -140,6 +141,7 @@
 		1AA352150CE2DBF9E6254A20 /* TalkOnPhoneIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkOnPhoneIntent.swift; sourceTree = "<group>"; };
 		226B4915E8A70F4DAB1B6B4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-alex.mp3"; sourceTree = "<group>"; };
+		2DA4BC7C1EABDFAE3445A318 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
 		346AABA0EB545D4C92B2D8CD /* CallViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViews.swift; sourceTree = "<group>"; };
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
 		3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FerniWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -286,6 +288,7 @@
 				03F678B752992C142D10FE5E /* AudioRoutePicker.swift */,
 				49306E5B24BD5C520DBE56ED /* CallFeedback.swift */,
 				346AABA0EB545D4C92B2D8CD /* CallViews.swift */,
+				2DA4BC7C1EABDFAE3445A318 /* CarPlaySceneDelegate.swift */,
 				7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */,
 				175D63C93899C628033FCCA8 /* CrashReporting.swift */,
 				F0356DF8A0D911077889805D /* Ferni.entitlements */,
@@ -588,6 +591,7 @@
 				A6EC64BC0F35C99AB84B8055 /* AudioRoutePicker.swift in Sources */,
 				CFB4A2A20FF174CCCBC95045 /* CallFeedback.swift in Sources */,
 				B0B567B29058A9FEF290836E /* CallViews.swift in Sources */,
+				35F9F60F2744005E17C2FE1C /* CarPlaySceneDelegate.swift in Sources */,
 				DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */,
 				CB8FD7D5F9B4F62D90207F20 /* CrashReporting.swift in Sources */,
 				9D3C3C27AA79ECED1768D30E /* EndCallIntent.swift in Sources */,
