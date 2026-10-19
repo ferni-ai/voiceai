@@ -472,6 +472,39 @@ describe('isClearYes', () => {
     }
   });
 
+  it('takes a yes that calls Ferni by one name, misheard or not (owner call 2026-10-18)', () => {
+    for (const yes of [
+      'Uh, go ahead, Fred.',
+      'Yes, Ferni',
+      'Okay Maya, go ahead',
+      'Okay Fernie, go ahead',
+      'Fred, go ahead.',
+      'Yes, go ahead, Freddie!',
+    ]) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+    for (const notYes of [
+      'go ahead, call Bob',
+      'Go ahead, Fred, Bob.',
+      'Fred Bob, go ahead',
+      'Yes, Fred?',
+      'No, Fred.',
+      'Go ahead Fred',
+      'Fred.',
+      'Yes, Tuesday.',
+      'Yes, Later.',
+      'Go ahead, Call.',
+      'Okay, Text.',
+      'Yes, Mom.',
+      'Yes, Both.',
+      'Okay Sam, go ahead',
+    ]) {
+      expect(isClearYes(notYes), notYes).toBe(false);
+    }
+    // Only a name that keeps the action: the person it reaches restates it, anyone else may not.
+    expect(isClearYes('Yes, Dana.', ['dana'])).toBe(true);
+  });
+
   it('a name, a filler or an echo alone is not a yes, and a yes with words to send is not plain', () => {
     for (const notYes of ['Ferni.', 'she should', 'um', 'hey buddy', 'of course?']) {
       expect(isClearYes(notYes), notYes).toBe(false);

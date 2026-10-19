@@ -1,5 +1,5 @@
 /**
- * The per-turn crisis check queries crisis_history about once a minute, not once
+ * The per-turn crisis check queries crisis_signals about once a minute, not once
  * a turn, and under CALL_START_TRIM a slow query no longer holds the turn.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -35,8 +35,12 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 import { forgetRecentCrisis, hadRecentCrisis, logCrisisSignal } from '../index.js';
 import { buildCrisisHistoryInjection } from '../../../agents/processors/injection-builders/better-than-human-builders.js';
 
+/** A crisis_signals doc as logCrisisSignal writes it, at crisis level. */
 const crisisDoc = {
-  data: () => ({ timestamp: new Date().toISOString(), escalationType: 'crisis_line' }),
+  data: () => ({
+    timestamp: new Date().toISOString(),
+    signals: { suicidalIdeation: true, severity: 8 },
+  }),
 };
 
 describe('recent crisis check', () => {

@@ -21,6 +21,8 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { messagingPipelineOn, writeOptOut } from '../messaging/consent.js';
+import { phoneHash } from './checkin-replies.js';
 import {
   onBehalfDispatchFor,
   onBehalfRequestFromDispatch,
@@ -117,9 +119,11 @@ export function localTimeAfter(
  * write of the do-not-call list, for the retry, and for the calling-hours
  * window: '+1NXXNXXXXXX'. Formatting is stripped and a leading 1 or +1 is
  * accepted. Anything that isn't a valid North American number is null; it is
- * never guessed, and callers fail closed on null.
+ * never guessed, and callers fail closed on null. A "+" with another country
+ * code is never re-read as +1 ("+234 803 1234" is Nigeria, not +1 234...).
  */
 export function toE164(phone: string | undefined | null): string | null {
+  if (/^\s*\+(?!\s*1)/.test(phone ?? '')) return null;
   const digits = (phone ?? '').replace(/\D/g, '');
   const national = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
   return /^[2-9]\d{2}[2-9]\d{6}$/.test(national) ? `+1${national}` : null;
@@ -174,6 +178,13 @@ export async function recordCallOptOut(
     .doc(key)
     .set({ phone: key, optedOutAt: new Date().toISOString(), ...context });
   log.info({ callId: context.callId }, 'Recorded a do-not-call request');
+  // MESSAGING_PIPELINE: also the one consent record every caller reads (messaging/consent.ts).
+  const hash = messagingPipelineOn() ? phoneHash(key) : null;
+  if (hash) {
+    await writeOptOut(hash, 'call', 'voice-call').catch((error: unknown) => {
+      log.warn({ error: String(error), callId: context.callId }, 'Call opt-out not in consent');
+    });
+  }
   return true;
 }
 

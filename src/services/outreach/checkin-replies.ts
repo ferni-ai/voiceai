@@ -22,7 +22,7 @@ const log = createLogger({ module: 'checkin-replies' });
 
 export const REPLY_WINDOW_MS = 72 * 60 * 60 * 1000;
 export const CHECKINS = 'feature_checkins';
-const OPTOUTS = 'feature_checkin_optouts';
+export const OPTOUTS = 'feature_checkin_optouts';
 const HASH_PURPOSE = 'after-call-checkin/phone/v1';
 /** As in user-reach.ts. */
 const E164 = /^\+[1-9]\d{7,14}$/;
@@ -45,7 +45,8 @@ const keyword = (body: string): string =>
 export type Env = Record<string, string | undefined>;
 
 /** What a text was: the after-call check-in, a follow-up (commitment, thread), a reminder the user set, a text the member got right away ("text me that"), or one sent for a member to someone else. */
-export type TextKind = 'checkin' | 'follow-up' | 'reminder' | 'message' | 'on-behalf';
+export type TextKind =
+  'checkin' | 'follow-up' | 'reminder' | 'message' | 'on-behalf' | 'morning-brief';
 
 export interface CheckinRecord {
   userId: string;

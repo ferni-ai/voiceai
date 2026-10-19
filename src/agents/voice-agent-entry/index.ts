@@ -61,7 +61,7 @@ import { getModelProvider } from '../model-provider/index.js';
 import { configureModelProvider } from '../../personas/bundles/model-provider-config.js';
 
 // Submodule imports
-import { finishCallTypeContexts, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import { finishCallTypeContexts, finishOnce, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
 import { evalLocalTime } from '../personas/eval-local-time.js';
 import { buildSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
@@ -242,8 +242,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const parsed = parseJobMetadata(ctx);
     personaId = parsed.personaId;
     const { publisherId, callType, metadata } = parsed;
-    finishCallType = () =>
-      finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime, ctx.job.metadata);
+    finishCallType = finishOnce(ctx, () => // also on shutdown: the job exits 15 s after the room closes
+      finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime, ctx.job.metadata));
 
     // Set up call type-specific contexts (inbound, on-behalf, proactive)
     await setupCallTypeContexts(

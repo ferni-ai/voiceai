@@ -551,7 +551,7 @@ function renderUserImpact(
         <div class="ferni-fund-welcome">
           <div class="ferni-fund-welcome-icon">${SEED_ICON}</div>
           <h3>${t('ferniFund.startYourGarden')}</h3>
-          <p>Ferni stays free because of gardeners like you. Plant your first seed and join a community keeping AI accessible for everyone.</p>
+          <p>Ferni stays free because of gardeners like you. Plant your first seed and join them.</p>
 
           ${
             gardenStatus
