@@ -445,6 +445,9 @@ export function injectScreenReaderStyles(): void {
   srStylesInjected = true;
 }
 
-// Initialize on import
-injectScreenReaderStyles();
+// Initialize on import, only where there is a DOM: server-side contract tests
+// import web UI modules from node, with no document or a partial stub.
+if (typeof document !== 'undefined' && typeof document.createElement === 'function') {
+  injectScreenReaderStyles();
+}
 

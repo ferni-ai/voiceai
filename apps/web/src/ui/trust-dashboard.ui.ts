@@ -19,6 +19,7 @@ import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { apiGet } from '../utils/api.js';
+import { asModalDialog } from '../utils/accessibility.js';
 import {
   escapeHtml as esc,
   parseTrustTab,
@@ -160,6 +161,13 @@ export async function showTrustDashboard(): Promise<void> {
   // Add styles
   addStyles();
 
+  // A modal dialog: named, Escape closes it, and dialog-focus moves focus in and traps Tab
+  const modal = container.querySelector<HTMLElement>('.trust-dashboard-modal');
+  const overlay = container;
+  if (modal) {
+    asModalDialog(modal, { labelledBy: 'trust-dashboard-title' }, () => container === overlay && overlay.classList.contains('visible'), hideTrustDashboard);
+  }
+
   // Add event listeners
   setupEventListeners();
 
@@ -196,7 +204,7 @@ function createDashboardHTML(): string {
       <header class="trust-dashboard-header">
         <div class="header-left">
           <span class="eyebrow">${t('trustDashboard.journey')}</span>
-          <h2>${t('trustDashboard.trustGrowth')}</h2>
+          <h2 id="trust-dashboard-title">${t('trustDashboard.trustGrowth')}</h2>
         </div>
         <button class="close-btn" aria-label="${t('common.close')}">
           ${ICONS.close}
@@ -491,16 +499,6 @@ function setupEventListeners(): void {
     insightsPeriod = btn.dataset.period === 'week' ? 'week' : 'month';
     loadTabData('insights');
   });
-
-  // Escape key
-  document.addEventListener('keydown', handleKeyDown);
-}
-
-function handleKeyDown(e: KeyboardEvent): void {
-  if (e.key === 'Escape') {
-    hideTrustDashboard();
-    document.removeEventListener('keydown', handleKeyDown);
-  }
 }
 
 // ============================================================================
