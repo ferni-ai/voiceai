@@ -133,7 +133,6 @@
   "src/services/calendar/sync-engine.ts": 2,
   "src/services/calendar/unified-calendar-store.ts": 2,
   "src/services/cameo/cameo-analytics.ts": 3,
-  "src/services/ceo/insights.ts": 1,
   "src/services/concierge/notification/result-notifier.ts": 1,
   "src/services/conversation-thread/group-outreach-triggers.ts": 5,
   "src/services/conversation-thread/outreach-processor.ts": 1,
