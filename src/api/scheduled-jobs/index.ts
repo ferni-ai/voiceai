@@ -12,6 +12,7 @@ import { handleCleanupOrphanedUploads } from '../jobs/cleanup-orphaned-uploads.j
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
 import { verifySchedulerRequest } from './scheduler-auth.js';
+import { runScheduledJob } from './job-run-guard.js';
 
 const log = createLogger({ module: 'ScheduledJobs' });
 
@@ -183,6 +184,17 @@ export async function handleScheduledJobsRoutes(
     return true;
   }
 
+  await runScheduledJob(req, res, path.slice('/api/jobs/'.length), () =>
+    dispatchJob(req, res, path)
+  );
+  return true;
+}
+
+async function dispatchJob(
+  req: IncomingMessage,
+  res: ServerResponse,
+  path: string
+): Promise<boolean> {
   switch (path) {
     case '/api/jobs/process-background-tasks':
       await handleProcessBackgroundTasks(res);
