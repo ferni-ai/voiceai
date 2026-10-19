@@ -81,8 +81,9 @@ targets:
       path: App/Ferni.entitlements
       properties:
         com.apple.developer.applesignin: [Default]
-        # Notes from Ferni (APNs). Xcode switches it to production for TestFlight and the App Store.
-        aps-environment: development
+        # Notes from Ferni (APNs) wait for the server route (#1991, critic C3).
+        # To ship them: add `aps-environment: development` here and FERNI_PUSH to
+        # SWIFT_ACTIVE_COMPILATION_CONDITIONS below, in one commit.
     settings:
       base:
         PRODUCT_NAME: Ferni
