@@ -45,7 +45,7 @@ import {
   type RetrievalEmbedder,
   type SemanticIndex,
 } from '../../memory/recall/semantic-recall.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { firestoreRecallStore } from './recall-firestore-store.js';
 import {
   formatLedger,
   loadLedger,
@@ -64,19 +64,19 @@ import {
 } from '../personas/life-updates.js';
 import { commonGroundEnabled, formatCommonGround } from '../personas/common-ground.js';
 import { firestoreGroundStore, type GroundStore } from '../personas/common-ground-after-call.js';
+import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import {
-  callCheckIns,
   coachFollowThroughMode,
   formatCheckIn,
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createWorldRecall, type WorldRecallDeps } from './world-recall.js';
-import type { CallLoopsRecall } from './open-loops-recall.js';
+import { callLoopsRecallFor, type CallLoopsRecall } from './open-loops-recall.js';
 import { predictionCheckInFor, type PredictionCheckIn } from './prediction-check-in.js';
 import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
 import { takeOpenerClaim } from '../../memory/recall/opener-claim.js';
-import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
+import { followThroughOpenerFor, type FollowThroughOpener } from './follow-through-opener.js';
 import {
   createEpisodeRecall,
   recallEpisodesEnabled,
@@ -91,34 +91,6 @@ const log = createLogger({ module: 'MemoryRecall' });
 export function memoryRecallMode(env: Record<string, string | undefined> = process.env): boolean {
   return env.MEMORY_RECALL !== 'off';
 }
-
-/** Reads the collections the live pipeline writes. Plain queries: no composite index needed. */
-export const firestoreRecallStore: RecallStore = {
-  // Null when unreadable: the snapshot then fails closed (session-recall.ts).
-  forgotten: async (userId) => forgottenTopicsOrNull(userId),
-  async facts(userId) {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    const facts = db.collection('bogle_users').doc(userId).collection('dynamic_facts');
-    // Newest first: an unordered limit loaded an arbitrary 300 of a user's
-    // facts (2,024 for one test user). Facts without a date fall back to it.
-    const newest = await facts.orderBy('extractedAt', 'desc').limit(300).get();
-    const snap = newest.docs.length > 0 ? newest : await facts.limit(300).get();
-    return snap.docs.map((d) => d.data());
-  },
-  async summaries(userId) {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    const snap = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('summaries')
-      .orderBy('timestamp', 'desc')
-      .limit(5)
-      .get();
-    return snap.docs.map((d) => d.data());
-  },
-};
 
 export interface MemoryRecallDeps {
   userId: string;
@@ -143,6 +115,8 @@ export interface MemoryRecallDeps {
   /** Peter's weekly prediction, a week on (prediction-check-in.ts, WEEKLY_PREDICTION). */
   week?: PredictionCheckIn;
   loops?: CallLoopsRecall; // open loops + Ferni's promises, once a call (OPEN_LOOPS_IN_CONTEXT)
+  /** The call's session id: with no `loops` given, its loops come from callLoopsRecallFor. */
+  sessionId?: string;
   /** FERNI_SELF_RECALL=on; read from the environment when not given. */
   selfRecall?: boolean;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
@@ -154,6 +128,8 @@ export interface MemoryRecallDeps {
   opener?: boolean;
   /** RECALL_BRIDGE=on; read from the environment when not given. */
   bridge?: boolean;
+  /** FOLLOW_THROUGH_OPENER=on: the opener's thread comes from follow_through instead. */
+  followThrough?: FollowThroughOpener;
   /** RECALL_EPISODES=on (episodes.ts, needs semantic); read from the environment when not given. */
   episodes?: boolean;
   episodeStore?: EpisodeStore;
@@ -199,6 +175,8 @@ function factText(f: RecallFact, userName?: string): string {
 }
 
 export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
+  const loops =
+    deps.loops ?? (deps.sessionId ? callLoopsRecallFor(deps.userId, deps.sessionId) : undefined);
   const started = Date.now();
   let snapshot: RecallSnapshot | undefined;
   const surfaced = new Set<string>();
@@ -260,6 +238,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     deps.ledgerStore,
     semanticOn || selfRecall ? TOLD_KEPT : RECALL_LIMIT
   );
+  const followThrough = deps.followThrough ?? followThroughOpenerFor(deps.userId);
   const loaded = Promise.all([
     loadRecallSnapshot(
       deps.store ?? firestoreRecallStore,
@@ -267,8 +246,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       semanticOn ? FOLLOW_UPS_KEPT : MAX_FOLLOW_UPS
     ),
     ledger,
+    followThrough.ready,
   ]).then(([s, told]) => {
-    snapshot = { ...s, followUps: s.followUps.slice(0, MAX_FOLLOW_UPS) };
+    const threads = followThrough.threads() ?? s.followUps;
+    snapshot = { ...s, followUps: threads.slice(0, MAX_FOLLOW_UPS) };
     threadsLeft = snapshot.followUps;
     allTold = told;
     ledgerFacts = told
@@ -311,7 +292,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     });
   // Also never holds up the snapshot; joins the first note once it is ready.
   const checkIns =
-    deps.checkIns ?? (coachFollowThroughMode() ? () => callCheckIns(deps.userId) : undefined);
+    deps.checkIns ?? (coachFollowThroughMode() ? () => checkInsWithCalls(deps.userId) : undefined);
   const checkedIn = (checkIns ? checkIns() : Promise.resolve([]))
     .then((open) => {
       checkInNote = formatCheckIn(open, Date.now());
@@ -334,7 +315,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const dates = deps.dates ?? datesRecallFor(deps.userId);
   const week = deps.week ?? predictionCheckInFor(deps.userId, personaId);
   const loading = [loaded, since, checkedIn, ground, canonLoaded, dates.ready, world.ready];
-  const ready = Promise.all([...loading, deps.loops?.ready]).then(() => undefined);
+  const ready = Promise.all([...loading, loops?.ready]).then(() => undefined);
 
   return {
     ready,
@@ -416,7 +397,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
         !weekNow &&
         !greetingAsked &&
         threadsNow.length > 0 &&
-        (deps.opener ?? openerFollowUpEnabled())
+        (followThrough.threads() !== null || (deps.opener ?? openerFollowUpEnabled()))
           ? OPENER_FOLLOW_UP_LINE
           : null;
       // Once a turn, when they ask about him and something answers it.
@@ -426,7 +407,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           : null;
       if (self) selfNoteGiven = true;
       const [summary, episode] = [summaryRecall?.take(text) ?? null, episodes?.take() ?? null];
-      const [worldNote, loopsNow] = [world.note(), deps.loops?.note() ?? null];
+      const [worldNote, loopsNow] = [world.note(), loops?.note() ?? null];
       // The same note with or without the facts: CONTEXT_PACKET labels those in the packet.
       const noteWith = (shown: RecallFact[]): string | null =>
         world.screen(
@@ -459,8 +440,9 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       if (told) toldOffered = true;
       threadsLeft = threadsLeft.filter((t) => !threadsNow.includes(t));
       if (checkIn) checkInOffered = true;
+      if (opener) followThrough.raised(threadsNow);
       if (dateNow) dates.raised();
-      if (loopsNow) deps.loops?.raised();
+      if (loopsNow) loops?.raised();
       if (checkIn || dateNow || greetingAsked || weekNow) week.raised(weekNow !== null);
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);
@@ -498,3 +480,4 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
 }
 
 export { addRecallNote, type RecallAgent } from './recall-note.js';
+export { firestoreRecallStore };

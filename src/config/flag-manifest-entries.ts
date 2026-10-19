@@ -32,6 +32,8 @@ export const FLAGS_ACTION_TO_BYPASS = {
   // set by the job runner for its child processes
   AGENT_JOB_CHILD: { default: 'off', owner: 'voice', kind: 'config' },
   AI_HONESTY_STORY: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // Alex keeps the caller's todos, goals, calendar and agenda; Ferni hands planning to him (alex-chief-of-staff-flag.ts)
+  ALEX_CHIEF_OF_STAFF: { default: 'off', owner: 'voice', kind: 'experiment' },
   ALLOW_CLIENT_DEV_MODE: { default: 'off', owner: 'voice', kind: 'kill-switch' },
   ALLOW_PRODUCTION_DATA: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   ALLOW_SOTA_SEED: { default: 'off', owner: 'voice', kind: 'config' },

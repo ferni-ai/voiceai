@@ -70,11 +70,11 @@ import {
   resolveTurnIntelligenceMode,
 } from './turn-intelligence.js';
 import { createMemoryRecall, memoryRecallMode, type RecallAgent } from './memory-recall-hook.js';
-import { callLoopsRecallFor } from './open-loops-recall.js';
 import { attachMindNote, theoryOfMindMode } from './mind-note-hook.js';
 import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
+import { withChiefOfStaffRole } from '../personas/chief-of-staff-role.js';
 // Tool loading - hoisted for faster initial agent startup
 import {
   buildEssentialToolSet,
@@ -338,10 +338,10 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let stableBase = '';
   try {
     mark('load_prompts_start');
-    // Load both levels of instructions in parallel (imports now hoisted to module level)
+    // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
-      loadSystemPrompt(persona.id),
+      loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
     ]);
     mark('load_prompts_done');
 
@@ -953,8 +953,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         return await loadEssentialToolsFallback();
       }
 
-      // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
-      // This ensures handoff tools are ready BEFORE any handoff request
+      // Full tools loaded: warm the session's handoff tools now, so they're ready before any handoff
       try {
         const cacheStart = Date.now();
         const tier =
@@ -1613,7 +1612,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
     modelProvider.getPromptModules(),
     { stableBase }
   );
-
   const agent = new FerniAgent(agentInstructions, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
@@ -1630,7 +1628,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       userId,
       userName: userData.userName,
       personaId: persona.id,
-      loops: callLoopsRecallFor(userId, sessionId), // OPEN_LOOPS_IN_CONTEXT
+      sessionId, // its open loops and Ferni's promises (OPEN_LOOPS_IN_CONTEXT)
     });
     const nameLift = startNameLift(recall, createDataMessageSender(room)); // NAME_LIFT=on
     const onRecallTranscript = (event: unknown) => {
