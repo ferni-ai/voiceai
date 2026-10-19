@@ -33,6 +33,7 @@ const pr = (
   merged_at: mergedAt,
   updated_at: mergedAt ?? '2026-10-18T00:00:00Z',
   user: { login: 'someone', type: 'User' },
+  author_association: 'MEMBER',
   head: { ref: `feat/${number}` },
   ...extra,
 });
@@ -51,8 +52,15 @@ const PRS = [
 
 /** Every PR touches only the web app unless `files` says otherwise. */
 const WEB_FILES = [{ filename: 'apps/web/src/ui/memory.ts', status: 'modified', patch: '+x' }];
-const fakeGh = (prs = PRS, files: Record<number, unknown[]> = {}): GhRunner =>
+/** Repo permission by login; anyone not listed has only read, as on a public repo. */
+const fakeGh = (
+  prs = PRS,
+  files: Record<number, unknown[]> = {},
+  roles: Record<string, string> = {}
+): GhRunner =>
   vi.fn((args: string[]) => {
+    const login = /collaborators\/([^/]+)\/permission/.exec(args[1])?.[1];
+    if (login) return JSON.stringify({ permission: roles[login] ?? 'read' });
     const n = /pulls\/(\d+)\/files/.exec(args[1])?.[1];
     return JSON.stringify(n ? (files[Number(n)] ?? WEB_FILES) : prs);
   });
@@ -87,6 +95,7 @@ describe('each post type', () => {
 
       expect(result.status, JSON.stringify(result.issues)).toBe('written');
       expect(writes).toHaveLength(1);
+      expect(result.title).toBe(`A fresh ${type.id} title`);
       expect(path.dirname(writes[0].file)).toBe(path.join(root, type.folder));
       const { data, content } = matter(writes[0].content);
       for (const field of REQUIRED_FIELDS) expect(data[field], field).toBeTruthy();
@@ -159,6 +168,61 @@ describe('grounding', () => {
     ]);
   });
 
+  it('leaves out PRs whose author is not an org member or collaborator', async () => {
+    const prs = [
+      ...PRS,
+      pr(110, 'feat(web): a change from outside', '2026-10-16T10:00:00Z', {
+        user: { login: 'outsider', type: 'User' },
+        author_association: 'CONTRIBUTOR',
+        body: 'Text from someone outside the team.',
+      }),
+      pr(111, 'feat(web): from a first-timer', '2026-10-16T09:00:00Z', {
+        user: { login: 'newcomer', type: 'User' },
+        author_association: 'FIRST_TIME_CONTRIBUTOR',
+      }),
+      // A member whose org membership is private reads as CONTRIBUTOR.
+      pr(112, 'feat(web): from a private member', '2026-10-16T08:00:00Z', {
+        user: { login: 'quiet-member', type: 'User' },
+        author_association: 'CONTRIBUTOR',
+      }),
+    ];
+    const { d } = deps(() => answer('x'), fakeGh(prs, {}, { 'quiet-member': 'write' }));
+    const result = await draftPost({ type: 'whats-new', since: '2026-10-01', dryRun: true }, d);
+
+    expect(result.sources.map((s) => s.label)).toEqual([
+      'PR #112: feat(web): from a private member',
+      'PR #101: feat(memory): let a caller see and forget facts',
+    ]);
+    expect(result.prompt).not.toContain('Text from someone outside the team');
+  });
+
+  it('strips URLs, HTML and template tags from PR text and caps each body', async () => {
+    const body = [
+      'Keep this sentence.',
+      '<script>alert("x")</script><img src=x onerror="steal()"> <a href="https://evil.example/a">a link</a>',
+      '[click here](https://evil.example/b) and https://evil.example/c and www.evil.example/d',
+      'and evil.com/e and <https://evil.example/f> and javascript:void(0) and {{ site.secret }}',
+      '[ref]: https://evil.example/g',
+      'x'.repeat(5000),
+    ].join('\n');
+    const title = 'feat(web): see <b>https://evil.example/t</b>';
+    const prs = [pr(113, title, '2026-10-16T10:00:00Z', { body })];
+    const { d } = deps(() => answer('x'), fakeGh(prs));
+    const result = await draftPost({ type: 'whats-new', since: '2026-10-01', dryRun: true }, d);
+
+    const { text, label } = result.sources[0];
+    expect(text).toContain('Keep this sentence.');
+    expect(text).toContain('click here');
+    for (const bad of ['evil', 'script', 'onerror', '<', 'javascript:', '{{', 'http'])
+      expect(text, bad).not.toContain(bad);
+    expect(label).toBe('PR #113: feat(web): see');
+    expect(result.prompt.slice(result.prompt.indexOf('FACTS'))).not.toContain('evil');
+    expect(text.length).toBeLessThanOrEqual(
+      'feat(web): see\n\n'.length + 2000 + ' [truncated]'.length
+    );
+    expect(text).toMatch(/\[truncated\]$/);
+  });
+
   it('passes the titles already published so the topic is not repeated', async () => {
     const { d } = deps(() => answer('x'));
     const result = await draftPost({ type: 'mission-essay', dryRun: true }, d);
@@ -218,6 +282,54 @@ describe('the retry', () => {
     const result = await draftPost({ type: 'whats-new' }, d);
     expect(generate).toHaveBeenCalledTimes(2);
     expect(result.status).toBe('written');
+  });
+});
+
+describe('links in a draft', () => {
+  it('rejects a draft that links off the allowlist, writes nothing and does not retry', async () => {
+    const { d, writes, generate } = deps(() =>
+      answer('Better memory', `${BODY} Read more [here](https://evil.example/post).`)
+    );
+    const result = await draftPost({ type: 'whats-new' }, d);
+
+    expect(result.status).toBe('rejected');
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(writes).toHaveLength(0);
+    expect(result.issues).toEqual([
+      { rule: 'unsafe-link', message: 'links off the allowlist: https://evil.example/post' },
+    ]);
+  });
+
+  it('rejects raw HTML in a draft and writes nothing', async () => {
+    const { d, writes } = deps(() => answer('Better memory', `${BODY} <img src=x onerror=y>`));
+    const result = await draftPost({ type: 'whats-new' }, d);
+    expect(result.status).toBe('rejected');
+    expect(result.issues.map((i) => i.rule)).toContain('unsafe-html');
+    expect(writes).toHaveLength(0);
+  });
+
+  it('publishes a draft whose links are all on the allowlist', async () => {
+    const links = [
+      '[memory](https://github.com/ferni-ai/voiceai/pull/101)',
+      '[Ferni](https://ferni.ai/)',
+      '[the app](https://app.ferni.ai/)',
+      '[docs](https://developers.ferni.ai/getting-started/)',
+      '[an earlier post](/blog/the-loneliness-gap/)',
+    ].join(', ');
+    const { d, writes } = deps(() => answer('Better memory', `${BODY} See ${links}.`));
+    const result = await draftPost({ type: 'whats-new' }, d);
+
+    expect(result.status, JSON.stringify(result.issues)).toBe('written');
+    expect(writes[0].content).toContain('https://developers.ferni.ai/getting-started/');
+  });
+
+  it('caps the length of the model answer', async () => {
+    const { d, writes, generate } = deps(() => answer('Better memory', BODY.repeat(40)));
+    const result = await draftPost({ type: 'whats-new' }, d);
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(result.status).toBe('rejected');
+    expect(result.issues[0].message).toMatch(/the cap is 20000/);
+    expect(writes).toHaveLength(0);
   });
 });
 

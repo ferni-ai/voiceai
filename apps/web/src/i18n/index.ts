@@ -46,7 +46,7 @@ export interface LocaleInfo {
   code: SupportedLocale;
   name: string;
   nativeName: string;
-  flag: string;
+  tag: string; // plain-text language tag; no flag emoji (a flag is a country, not a language)
   direction: TextDirection;
 }
 
@@ -63,13 +63,13 @@ function localeInfo(
   code: SupportedLocale,
   nameKey: string,
   nativeName: string,
-  flag: string,
+  tag: string,
   direction: TextDirection = 'ltr'
 ): LocaleInfo {
   return {
     code,
     nativeName,
-    flag,
+    tag,
     direction,
     get name() {
       return t(nameKey);
@@ -78,17 +78,17 @@ function localeInfo(
 }
 
 export const SUPPORTED_LOCALES: readonly LocaleInfo[] = [
-  localeInfo('en-US', 'languageNames.enUS', 'English', '🇺🇸'),
-  localeInfo('en-GB', 'languageNames.enGB', 'English', '🇬🇧'),
-  localeInfo('es', 'languageNames.es', 'Español', '🇪🇸'),
-  localeInfo('fr', 'languageNames.fr', 'Français', '🇫🇷'),
-  localeInfo('de', 'languageNames.de', 'Deutsch', '🇩🇪'),
-  localeInfo('ja', 'languageNames.ja', '日本語', '🇯🇵'),
-  localeInfo('ko', 'languageNames.ko', '한국어', '🇰🇷'),
-  localeInfo('zh-Hans', 'languageNames.zhHans', '简体中文', '🇨🇳'),
-  localeInfo('zh-Hant', 'languageNames.zhHant', '繁體中文', '🇹🇼'),
-  localeInfo('ar', 'languageNames.ar', 'العربية', '🇸🇦', 'rtl'),
-  localeInfo('he', 'languageNames.he', 'עברית', '🇮🇱', 'rtl'),
+  localeInfo('en-US', 'languageNames.enUS', 'English', 'EN'),
+  localeInfo('en-GB', 'languageNames.enGB', 'English', 'EN'),
+  localeInfo('es', 'languageNames.es', 'Español', 'ES'),
+  localeInfo('fr', 'languageNames.fr', 'Français', 'FR'),
+  localeInfo('de', 'languageNames.de', 'Deutsch', 'DE'),
+  localeInfo('ja', 'languageNames.ja', '日本語', 'JA'),
+  localeInfo('ko', 'languageNames.ko', '한국어', 'KO'),
+  localeInfo('zh-Hans', 'languageNames.zhHans', '简体中文', 'ZH'),
+  localeInfo('zh-Hant', 'languageNames.zhHant', '繁體中文', 'ZH'),
+  localeInfo('ar', 'languageNames.ar', 'العربية', 'AR', 'rtl'),
+  localeInfo('he', 'languageNames.he', 'עברית', 'HE', 'rtl'),
 ];
 
 // Fallback chain for missing translations

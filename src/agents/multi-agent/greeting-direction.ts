@@ -5,11 +5,9 @@
  * @module agents/multi-agent/greeting-direction
  */
 
-import {
-  callCheckIns,
-  coachFollowThroughMode,
-} from '../../services/superhuman/commitment-follow-up.js';
+import { coachFollowThroughMode } from '../../services/superhuman/commitment-follow-up.js';
 import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
+import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import { contentWords } from '../../memory/recall/session-recall.js';
 import { claimOpenerFollowUp } from '../../memory/recall/opener-claim.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
@@ -28,6 +26,7 @@ import {
   anniversaryFor,
   lineSaysAnniversary,
 } from './friendship-anniversary.js';
+import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
@@ -49,11 +48,19 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
   'warm and a little playful, glad it\'s them, one short sentence, maybe a quick easy question or a light, friendly tease. No exclamation marks, no "so good to hear your voice", no hype,'
 );
 
-/** The hello's direction for this persona. */
-export function greetingDirection(personaId: string, env: Env = process.env): string {
-  return personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env)
-    ? PLAYFUL_GREETING_DIRECTION
-    : GREETING_DIRECTION;
+/**
+ * The hello's direction for this persona. Never the playful one after a heavy
+ * last call (what they talked about reads as heavy-moment.ts does) or when
+ * welcome-back held back a tender thread: a tease is no way to pick that up.
+ */
+export function greetingDirection(
+  personaId: string,
+  env: Env = process.env,
+  last: { topic?: string; tender?: boolean } = {}
+): string {
+  const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
+  const careful = last.tender === true || isHeavyMoment([last.topic]);
+  return playful && !careful ? PLAYFUL_GREETING_DIRECTION : GREETING_DIRECTION;
 }
 
 /**
@@ -98,7 +105,8 @@ async function inTime<T>(work: Promise<T>): Promise<T | undefined> {
 /** The commitment to open on, or undefined (flag off, none open, or too slow). */
 async function checkInFor(userId: string | undefined): Promise<string | undefined> {
   if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
-  return (await inTime(callCheckIns(userId)))?.[0]?.statement;
+  // Never one about a call Ferni hasn't completed: it is held, failed or unheard.
+  return (await inTime(checkInsWithCalls(userId)))?.find((c) => !c.callNote)?.statement;
 }
 
 /** A win not yet named, or undefined (COACH_WINS off, none, or too slow). */
@@ -376,7 +384,10 @@ export async function directedGreeting(
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const direction =
-    greetingDirection(personaId) +
+    greetingDirection(personaId, process.env, {
+      topic: history?.lastTopic,
+      tender: back?.heldBack,
+    }) +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +

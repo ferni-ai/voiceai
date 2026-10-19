@@ -9,20 +9,23 @@ name: Blog Drafts
 #   not armed, and the job fails. It publishes only if a person fixes and merges it.
 # A draft the drafter rejects itself (brand gate failed twice) is not written and
 # fails the job.
+# This log is public: a rejected draft or a failed gate prints rule codes,
+# counts and source PR numbers only, never the draft or the text a finding
+# quotes (scripts/blog/log-safe.ts). No step here prints the draft file.
 #
 # The brand gate: no forbidden words, em dashes, ellipses, retired-stack names,
 # unlabelled composites, or numbers missing from the sources.
 # The live check (live-check.ts) applies to the PRs the drafter may use as
 # sources and again to every PR the post cites:
-# - Deployed: a PR touching only apps/web or apps/website/ferni-website is live
-#   once merged (every merge to main deploys them). Anything else, the voice
+# - Deployed: a PR touching only apps/web, apps/website/ferni-website or
+#   apps/website/developers-portal is live once merged (merges deploy them). Anything else, the voice
 #   agent included, ships by a manual `lk agent deploy` this workflow can't see,
 #   so it counts only once merged for 7 days.
 # - Not behind a flag: a PR is left out if its title or body says it's behind a
 #   flag, off by default or not wired, names a flag the flag manifest has off by
 #   default, or its diff adds an off-by-default flag.
-# whats-new posts go to apps/website/developers-portal, which merging to main
-# does NOT deploy: they publish at the next `pnpm deploy:developers`.
+# whats-new posts go to apps/website/developers-portal, which
+# deploy-developers.yml deploys to developers.ferni.ai on merge.
 #
 # Weekly: one developer post (whats-new) and one consumer post, rotating by ISO
 # week number through building-in-public, mission-essay, how-ferni-works and
@@ -184,7 +187,7 @@ jobs:
             if [ "$PASSED" = true ]; then
               echo "It passed the brand gate and the live check, so auto-merge is armed and it publishes once CI is green. No one reviews it first. To stop it, disable auto-merge or close this PR."
             else
-              echo "**It failed the brand gate or the live check**, so this PR is a draft and auto-merge is off. The failures are in the [run log]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID). Fix the post, mark the PR ready and merge it, or close it."
+              echo "**It failed the brand gate or the live check**, so this PR is a draft and auto-merge is off. The [run log]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID) has the rule codes only; run \`pnpm tsx scripts/blog/check-post.ts $file --live --details\` locally for the details. Fix the post, mark the PR ready and merge it, or close it."
             fi
             echo
             echo "The brand gate: no forbidden words, em dashes, ellipses, retired-stack names, unlabelled composites or numbers missing from the sources. The live check: every source and every cited PR is merged, not behind an off-by-default flag, and touches only the web app or website or was merged at least 7 days ago. Consumer posts have no hero image yet."
