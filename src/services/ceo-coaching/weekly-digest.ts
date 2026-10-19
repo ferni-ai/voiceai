@@ -44,7 +44,8 @@ export interface WeeklyDigestData {
 
   // Energy
   energy: {
-    average: number;
+    /** Null when no energy was logged this week. */
+    average: number | null;
     trend: 'up' | 'down' | 'stable';
     bestDay?: string;
     lowestDay?: string;
@@ -222,7 +223,7 @@ export async function generateWeeklyDigest(userId: string): Promise<WeeklyDigest
       categories: winCategories,
     },
     energy: {
-      average: energyTrend?.weekAverage || 0,
+      average: finiteOrNull(energyTrend?.weekAverage),
       trend: energyTrend?.trend || 'stable',
       bestDay,
       lowestDay,
@@ -298,7 +299,7 @@ export function renderDigestEmail(data: WeeklyDigestData): string {
       <div class="stat-label">Wins</div>
     </div>
     <div class="stat">
-      <div class="stat-value">${energy.average.toFixed(1)}</div>
+      <div class="stat-value">${energy.average === null ? '–' : energy.average.toFixed(1)}</div>
       <div class="stat-label">Avg Energy</div>
     </div>
     <div class="stat">
@@ -335,7 +336,7 @@ export function renderDigestEmail(data: WeeklyDigestData): string {
   <div class="section">
     <h2>⚡ Energy Patterns</h2>
     <p>
-      Average: <strong>${energy.average.toFixed(1)}/10</strong>
+      Average: <strong>${energyOutOfTen(energy.average)}</strong>
       (${energy.trend === 'up' ? '📈 trending up' : energy.trend === 'down' ? '📉 trending down' : '➡️ stable'})
     </p>
     ${energy.bestDay ? `<p>Best day: <strong>${energy.bestDay}</strong></p>` : ''}
@@ -382,6 +383,16 @@ export function renderDigestEmail(data: WeeklyDigestData): string {
   `.trim();
 }
 
+/** A real number, or null: a missing or NaN average is not logged, never 0. */
+function finiteOrNull(value: number | undefined): number | null {
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/** "6.5/10", or "not logged" for a week without an energy entry. */
+function energyOutOfTen(average: number | null): string {
+  return average === null ? 'not logged' : `${average.toFixed(1)}/10`;
+}
+
 /**
  * Render digest as plain text (for SMS/CLI).
  */
@@ -392,7 +403,7 @@ export function renderDigestText(data: WeeklyDigestData): string {
     `📋 WEEKLY DIGEST (${weekStart} - ${weekEnd})`,
     '',
     `🏆 Wins: ${wins.count}`,
-    `⚡ Energy: ${energy.average.toFixed(1)}/10 (${energy.trend})`,
+    `⚡ Energy: ${energyOutOfTen(energy.average)} (${energy.trend})`,
     `🙏 Gratitude: ${gratitude.count}`,
     '',
   ];
