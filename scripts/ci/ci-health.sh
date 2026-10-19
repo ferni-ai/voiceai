@@ -51,14 +51,20 @@ fi
 # Did the same job pass on main lately? Then it's flaky or PR-only, not broken main.
 main_run=$(gh api "repos/$REPO/actions/workflows/$WORKFLOW/runs?branch=main&event=push&status=success&per_page=1" \
   --jq '.workflow_runs[0].id // empty')
-main_passing=""
-[[ -n "$main_run" ]] && main_passing=$(gh api "repos/$REPO/actions/runs/$main_run/jobs?per_page=100" --paginate \
-  --jq '.jobs[] | select(.conclusion == "success") | .name')
+main_jobs=""
+[[ -n "$main_run" ]] && main_jobs=$(gh api "repos/$REPO/actions/runs/$main_run/jobs?per_page=100" --paginate \
+  --jq '.jobs[] | [.conclusion, .name] | @tsv')
+main_passing=$(awk -F'\t' '$1 == "success" { print $2 }' <<<"$main_jobs")
+# A job skipped there (PR-only like Related Integration Tests, or a push its path filter
+# skips) says nothing about main: #1837 called main broken after main had fixed the test.
+main_skipped=$(awk -F'\t' '$1 == "skipped" { print $2 }' <<<"$main_jobs")
 
 while IFS=$'\t' read -r job count; do
   examples=$(awk -F'\t' -v j="$job" '$1 == j && !seen[$2]++ { print "- `" $2 "`: " $3 }' <<<"$failed_jobs" | head -10)
   if grep -qxF "$job" <<<"$main_passing"; then
     verdict="It **passed on main's latest run**, so it's most likely flaky (timing, teardown, a native crash) or depends on PR-only state such as a stale baseline."
+  elif grep -qxF "$job" <<<"$main_skipped"; then
+    verdict="It was **skipped on main's latest run** (a PR-only job, or a push it doesn't cover), so that run says nothing about main. Run the failing tests on origin/main: if they pass, main already has the fix and the PRs ran on an older base."
   else
     verdict="It did not pass on main's latest run, so main itself may be broken."
   fi
@@ -73,7 +79,7 @@ $examples
 _Opened by scripts/ci/ci-health.sh._"
 
   echo "$title ($count PRs)"
-  $DRY_RUN && continue
+  $DRY_RUN && { echo "  $verdict"; continue; }
 
   existing=$(gh issue list -R "$REPO" --state open --label ci-health --search "in:title \"$job\"" \
     --json number,title --jq '.[] | [.number, .title] | @tsv' | awk -F'\t' -v t="$title" '$2 == t { print $1; exit }')

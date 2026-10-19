@@ -12,10 +12,8 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/misc-hooks.js';
-import type {
-  CallOutcome,
-  OnBehalfCallRequest,
-} from '../../tools/domains/telephony/types.js';
+import { logCallResultOutcome } from '../follow-through/index.js';
+import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 
 const log = getLogger().child({ service: 'call-result-capture' });
 
@@ -405,15 +403,12 @@ export async function captureCallResult(
   outcome: CallOutcome,
   request: OnBehalfCallRequest
 ): Promise<void> {
+  const { status, objectiveAchieved } = outcome;
   log.info(
-    {
-      callId,
-      status: outcome.status,
-      objectiveAchieved: outcome.objectiveAchieved,
-      contactName: request.resolvedContact?.name,
-    },
+    { callId, status, objectiveAchieved, contactName: request.resolvedContact?.name },
     'Capturing call result'
   );
+  logCallResultOutcome(callId, status, request.userId);
 
   try {
     // 1. Build the stored result
