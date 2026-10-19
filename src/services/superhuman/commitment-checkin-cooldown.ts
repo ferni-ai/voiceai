@@ -16,11 +16,11 @@
  * @module services/superhuman/commitment-checkin-cooldown
  */
 
-import { createHash } from 'crypto';
 import type { CollectionReference } from '@google-cloud/firestore';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { commitmentKey, normalizeCommitmentText } from '../../utils/commitment-filters.js';
 import type { Commitment, CommitmentFollowUp } from './commitment-keeper.js';
 
 const log = createLogger({ module: 'commitment-checkin-cooldown' });
@@ -35,22 +35,8 @@ export function proactiveCooldownOn(env: Env = process.env): boolean {
   return flagOn('PROACTIVE_COOLDOWN', env);
 }
 
-/** "I'm going to finish the AI project!" and "i'm going to finish the AI project" are one commitment. */
-export function normalizeCommitmentText(text: string): string {
-  return (
-    text
-      .toLowerCase()
-      .replace(/['’]/g, '')
-      .match(/[a-z0-9]+/g) ?? []
-  ).join(' ');
-}
-
-export function checkInKey(userId: string, text: string): string {
-  return createHash('sha256')
-    .update(`${userId}\n${normalizeCommitmentText(text)}`)
-    .digest('hex')
-    .slice(0, 32);
-}
+export { normalizeCommitmentText };
+export const checkInKey = commitmentKey;
 
 /** Check-ins this process recorded or read, so a later turn need not read them again. */
 const memo = new Map<string, number>();
@@ -64,7 +50,8 @@ function checkins(userId: string): CollectionReference | undefined {
   return getFirestoreDb()?.collection('bogle_users').doc(userId).collection('commitment_checkins');
 }
 
-async function lastAsked(userId: string, keys: string[]): Promise<Map<string, number>> {
+/** When each key was last asked, from any instance; never-asked keys are absent. Throws on a failed read. */
+export async function lastAsked(userId: string, keys: string[]): Promise<Map<string, number>> {
   const out = new Map<string, number>();
   const unread = keys.filter((k) => {
     const at = memo.get(`${userId}/${k}`);
@@ -83,7 +70,8 @@ async function lastAsked(userId: string, keys: string[]): Promise<Map<string, nu
   return out;
 }
 
-async function record(userId: string, keys: string[], now: number): Promise<void> {
+/** Records the keys as asked at `now`, for this and every other instance. */
+export async function recordCheckIns(userId: string, keys: string[], now: number): Promise<void> {
   if (memo.size > MEMO_MAX) memo.clear();
   for (const k of keys) memo.set(`${userId}/${k}`, now);
   const col = checkins(userId);
@@ -122,7 +110,7 @@ export async function checkInsDue<T>(
     );
     const due = keyed.filter(({ key }) => now - (asked.get(key) ?? 0) >= CHECK_IN_COOLDOWN_MS);
     if (opts.record && due.length > 0) {
-      await record(
+      await recordCheckIns(
         userId,
         due.map((d) => d.key),
         now
