@@ -1,6 +1,6 @@
 /**
- * The team, for someone who just joined: nobody is shown as partly unlocked, and what it
- * takes to unlock each teammate matches the rules that actually unlock them.
+ * The team, for someone who just joined: the whole team is there from the first call,
+ * with no locks, unlock hints or progress bars.
  *
  * Needs the signed-in local stack (scripts/e2e/start-signed-in-stack.sh).
  */
@@ -31,16 +31,16 @@ test.beforeEach(async ({ page }) => {
   await expectHome(page);
 });
 
-test('Meet Your Team: no progress before any conversation, and the real requirements', async ({ page }) => {
+test('Meet Your Team: the whole team from the first call, with no locks or progress', async ({ page }) => {
+  // TEAM_BY_NEED (#1959): everyone is here from the first call, so nothing is locked
   const problems = watchProblems(page);
   const team = await openTeam(page);
-  const maya = team.locator('.team-member-card', { hasText: 'Maya' });
-  await expect(maya.locator('.team-member-card__hint'), 'the rule is 10 conversations').toContainText('10');
-  const fills = await team
-    .locator('.team-member-card__progress-fill')
-    .evaluateAll((els) => els.map((el) => (el as HTMLElement).style.width));
-  expect(fills.length, 'locked teammates show progress').toBeGreaterThan(0);
-  expect(new Set(fills), 'a new person has made no progress toward anyone').toEqual(new Set(['0%']));
+  const cards = team.locator('.team-member-card');
+  await expect(cards).toHaveCount(6);
+  await expect(team.locator('.team-member-card__lock, .team-member-card__hint, [class*="progress"]')).toHaveCount(0);
+  await expect(team.locator('.team-member-card--ferni .team-member-card__always')).toBeVisible();
+  const maya = cards.filter({ hasText: 'Maya' });
+  await expect(maya.locator('.team-member-card__action, .team-member-card__added')).toBeVisible();
   expect(problems.take()).toEqual([]);
 });
 
