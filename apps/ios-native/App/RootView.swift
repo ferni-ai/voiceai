@@ -44,7 +44,14 @@ struct RootView: View {
         if width == .regular {
             NavigationSplitView {
                 List(Section.allCases, id: \.self, selection: $section) { item in
-                    Label(item.title, systemImage: item.symbol)
+                    Label {
+                        // The selected row's words in the accent green measured 4.54:1
+                        // on the grey selection; the primary text colour is clear of it.
+                        Text(item.title)
+                            .foregroundStyle(section == item ? FerniColor.textPrimary : Color.primary)
+                    } icon: {
+                        Image(systemName: item.symbol)
+                    }
                 }
                 .navigationTitle("Ferni")
             } detail: {
