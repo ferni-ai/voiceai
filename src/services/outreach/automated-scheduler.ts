@@ -180,12 +180,8 @@ async function processCandidate(
   const now = new Date();
   const proactive = await dailyCheckIn(userId, now);
 
-  // Check quiet hours: their messagingPrefs with MESSAGING_PREFS on, else this scheduler's rule
-  if (!proactive && config.respectQuietHours) {
-    const fromPrefs = await prefsQuietUntil(userId, now);
-    if (fromPrefs !== undefined ? fromPrefs !== null : isInQuietHours(candidate)) {
-      return { sent: false, reason: 'In quiet hours' };
-    }
+  if (!proactive && config.respectQuietHours && (await isInQuietHours(candidate, now))) {
+    return { sent: false, reason: 'In quiet hours' };
   }
 
   // Determine outreach type based on user state
@@ -441,18 +437,19 @@ async function determineBestChannel(
 // ============================================================================
 
 /**
- * Is it quiet hours for this user now? QUIET_HOURS_UNIFIED=on uses the shared
- * predicate (quiet-hours.ts): 22:00-08:00 and both US coasts when the zone is
- * unknown. Off, this scheduler keeps its own window: 21:00-08:00 Eastern unless
- * the user set one. A zone that cannot be read fails closed.
+ * Quiet now? MESSAGING_PREFS on: their own window (prefs-gate.ts). Else QUIET_HOURS_UNIFIED=on:
+ * shared predicate (quiet-hours.ts: 22:00-08:00, both US coasts if no zone). Off: 21:00-08:00
+ * Eastern unless they set one. A zone that cannot be read fails closed.
  */
-function isInQuietHours(candidate: UserOutreachCandidate): boolean {
+async function isInQuietHours(candidate: UserOutreachCandidate, now: Date): Promise<boolean> {
+  const fromPrefs = await prefsQuietUntil(candidate.userId, now);
+  if (fromPrefs !== undefined) return fromPrefs !== null;
   if (isQuietHoursUnified()) return isUserQuiet(candidate);
   const prefs = candidate.outreachPreferences;
   const zone = prefs?.timezone || 'America/New_York';
   if (!isValidTimezone(zone)) return true;
   const window = hoursWindow(prefs?.quietHoursStart ?? 21, prefs?.quietHoursEnd ?? 8);
-  return isQuietAt(new Date(), window, [zone]);
+  return isQuietAt(now, window, [zone]);
 }
 
 // ============================================================================
