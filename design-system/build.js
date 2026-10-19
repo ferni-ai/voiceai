@@ -118,6 +118,20 @@ function generatePersonaGlobalsCSS(personas) {
     }
   }
   lines.push('}');
+  // --color-<persona>-on-surface: a named persona's colour as TEXT on the page and
+  // its surfaces, theme-aware like --persona-text. The bare --color-<persona> stays
+  // the fill (white text sits on it), so it is too dark to read as text in midnight.
+  // :root is midnight by default, so it takes textOnDark and zen overrides it.
+  const dark = [':root {'];
+  const zen = ['[data-theme="zen"] {'];
+  for (const [personaId, personaColors] of Object.entries(personas)) {
+    if (personaId.startsWith('_') || typeof personaColors !== 'object') continue;
+    const name = `--color-${camelToKebab(personaId)}-on-surface`;
+    const onLight = personaColors.textOnLight || personaColors.primary;
+    dark.push(`  ${name}: ${personaColors.textOnDark || onLight};`);
+    zen.push(`  ${name}: ${onLight};`);
+  }
+  lines.push(...dark, '}', ...zen, '}');
   return lines.join('\n');
 }
 
