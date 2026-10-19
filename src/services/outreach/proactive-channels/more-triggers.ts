@@ -41,17 +41,21 @@ function quote(s: unknown, max = 90): string | undefined {
   return t && t.length <= max ? t : undefined;
 }
 
-/** Reminders to the user (not to a contact) that didn't reach them in the last 12 hours. */
+/**
+ * Reminders to the user (not to a contact) that didn't reach them in the last
+ * 12 hours: missed, failed, or saved in the app with nobody told (in_app_unnotified).
+ */
 export async function reminderTriggers(userId: string, now: Date): Promise<ProactiveTrigger[]> {
   const db = getFirestoreDb();
   if (!db) return [];
   const col = db.collection('bogle_users').doc(userId).collection('reminders');
-  const [missed, failed] = await Promise.all([
+  const [missed, failed, unnotified] = await Promise.all([
     col.where('status', '==', 'missed').get(),
     col.where('status', '==', 'failed').get(),
+    col.where('status', '==', 'in_app_unnotified').get(),
   ]);
   const out: ProactiveTrigger[] = [];
-  for (const doc of [...missed.docs, ...failed.docs]) {
+  for (const doc of [...missed.docs, ...failed.docs, ...unnotified.docs]) {
     const r = doc.data();
     const at = Date.parse(String(r.scheduledFor ?? ''));
     const what = quote(r.message);
