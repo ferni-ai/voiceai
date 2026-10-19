@@ -9,6 +9,9 @@
  * session, and the conversations that started during that session hold the
  * turns. Reads only.
  *
+ * Nothing goes out within CRISIS_QUIET_DAYS of a crisis-level signal (the
+ * shared rule in human-transfer/crisis-signals.ts), whatever the pass wrote.
+ *
  * Off unless OUTREACH_PONDERED_NOTES is on: for everyone (the server's env),
  * or for one person through their cohort flags (COHORT_FLAGS=on, read from
  * Firestore per user, never from this process's env). It is its own switch,
@@ -21,6 +24,7 @@ import { createHash } from 'node:crypto';
 import { flagOn } from '../../../config/env-flag.js';
 import { cohortFlagsEnabled, resolveCallerFlags } from '../../platform/cohort-flags.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import { CRISIS_QUIET_DAYS, hadCrisisWithin } from '../../human-transfer/crisis-signals.js';
 import { lastTalkedAt } from '../outreach-cadence.js';
 import {
   dueNow,
@@ -154,6 +158,7 @@ export async function ponderedTriggers(
   if (!timezone || !(await ponderedNotesOn(userId))) return [];
   const db = getFirestoreDb();
   if (!db) return [];
+  if (await hadCrisisWithin(db, userId, CRISIS_QUIET_DAYS, now)) return [];
   const ref = db.collection('bogle_users').doc(userId);
   const pondering = await ref.collection('predictive_intelligence').doc('pondering').get();
   const log = (await recentOutreach(userId, new Date(now.getTime() - 7 * DAY_MS))).filter(
