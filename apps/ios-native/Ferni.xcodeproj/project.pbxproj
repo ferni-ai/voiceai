@@ -76,6 +76,7 @@
 		F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */; };
 		F8659A8DCBD2D3621DA596A3 /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 3A2B0DD01002A1C6F9C20247 /* FerniDesign */; };
 		F8BE59CFC9BCA7538FD1A854 /* LiveActivityContentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F6D02CA803627F1860ACBDA /* LiveActivityContentTests.swift */; };
+		F8C4CC6E41EE7F5F394E4D21 /* NoteTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CC0928CF00671D4E0E8D998 /* NoteTests.swift */; };
 		FAF0486E16A9EE9064362BB3 /* NextDayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 127F69758285759483323D63 /* NextDayTests.swift */; };
 		FF7158968372C9F770945D32 /* handoff-to-peter.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 90F94F51F9D61D01EEED1837 /* handoff-to-peter.mp3 */; };
 /* End PBXBuildFile section */
@@ -170,6 +171,7 @@
 		346AABA0EB545D4C92B2D8CD /* CallViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViews.swift; sourceTree = "<group>"; };
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
 		3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FerniWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		3CC0928CF00671D4E0E8D998 /* NoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTests.swift; sourceTree = "<group>"; };
 		3CC34062567D316808D0D03C /* ConsentSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentSheetTests.swift; sourceTree = "<group>"; };
 		41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkButtonTests.swift; sourceTree = "<group>"; };
 		41E550D3CF186D8D463FF66E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -306,6 +308,7 @@
 				4F6D02CA803627F1860ACBDA /* LiveActivityContentTests.swift */,
 				C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */,
 				127F69758285759483323D63 /* NextDayTests.swift */,
+				3CC0928CF00671D4E0E8D998 /* NoteTests.swift */,
 				809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */,
 			);
 			path = AppTests;
@@ -741,6 +744,7 @@
 				F8BE59CFC9BCA7538FD1A854 /* LiveActivityContentTests.swift in Sources */,
 				11741E1DFD5DE949343B912A /* LocalizationTests.swift in Sources */,
 				FAF0486E16A9EE9064362BB3 /* NextDayTests.swift in Sources */,
+				F8C4CC6E41EE7F5F394E4D21 /* NoteTests.swift in Sources */,
 				F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

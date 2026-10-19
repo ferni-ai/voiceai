@@ -58,7 +58,9 @@ struct FerniApp: App {
                         CheckInAsk().recordGoodCall(uid: uid)
                     }
                     switch phase {
-                    case .ended, .failed: model.callEndedAt = .now
+                    case .ended, .failed:
+                        model.callEndedAt = .now
+                        model.callFinished()
                     default: break
                     }
                 }
@@ -134,6 +136,29 @@ final class AppModel {
     var showCaptions = UserDefaults.standard.object(forKey: "ferni.captions") as? Bool ?? true {
         didSet { UserDefaults.standard.set(showCaptions, forKey: "ferni.captions") }
     }
+
+    /// Where the next call starts from, read by the token request: Home's
+    /// note (`note:<id>`), or nothing for an ordinary Talk.
+    @MainActor final class CallOrigin { var value: String? }
+    private let origin = CallOrigin()
+    var callOrigin: String? { origin.value }
+
+    /// "Talk about this" on Ferni's note: the same door as Talk (consent
+    /// first), and the call opens on the note's topic.
+    func talk(aboutNote note: HomeLineStore.Home.Note) {
+        guard HomeLineStore.validNoteID(note.id), !call.isActive else { return }
+        origin.value = "note:\(note.id)"
+        talk()
+    }
+
+    /// The consent sheet's Not now: no call, and nothing carried to the next one.
+    func notNow() {
+        isAskingConsent = false
+        origin.value = nil
+    }
+
+    /// The call ended or failed: the next Talk is an ordinary one.
+    func callFinished() { origin.value = nil }
 
     /// From Siri, Shortcuts, Control Center or the Action button: the same door
     /// as the Talk button. Someone not on the team yet means Ferni answers.
@@ -240,7 +265,7 @@ final class AppModel {
         let testCall: CallSession? = nil
         #endif
         call = testCall ?? CallSession(
-            fetchToken: CallTokens.fetcher(api: api),
+            fetchToken: CallTokens.fetcher(api: api, origin: { [origin] in await origin.value }),
             makeRoom: { LiveKitVoiceRoom(agentLevel: level) },
             audio: SystemCallAudio(systemManagesCalls: ConversationLifecycle.isAvailable),
             avatar: avatar,
