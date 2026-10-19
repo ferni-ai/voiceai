@@ -30,6 +30,7 @@ import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
 import { bindBodyLimitResponse } from '../../api/bounded-body.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+import { runBackgroundServices } from './background-services.js';
 import { parseRawBody } from '../../api/helpers.js';
 
 // Local routes
@@ -104,7 +105,7 @@ import { handleChatRoutes } from '../../api/chat-routes.js';
 import { handleVoicePresenceRoutes } from '../../api/voice-presence-routes.js';
 import { handlePasskeyRoutes } from '../../api/passkey-routes.js';
 import { handleOutreachRoutes } from '../../api/outreach.routes.js';
-import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
+import { installUiServerPorts } from '../../services/outreach/ui-server-ports.js';
 import { handlePendingActionRoutes } from '../../api/pending-action-routes.js';
 import { handleBackgroundResultsRoutes } from '../../api/background-results-routes.js';
 import { handleAnswerCardRoutes } from '../../api/answer-card-routes.js';
@@ -116,6 +117,7 @@ import { handleTrustSystemsRoutes } from '../../api/trust-systems-routes.js';
 import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.js';
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
+import { handleReplyReportRoutes } from '../../api/reply-reports/reply-report-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
@@ -864,11 +866,9 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
       if (handled) return;
     }
 
-    // Feedback routes (contextual feedback system)
-    if (isFeedbackRoute(pathname)) {
-      const handled = await handleFeedbackRoutes(req, res);
-      if (handled) return;
-    }
+    // Feedback routes (contextual feedback system), then reported replies (POST /api/reports)
+    if (isFeedbackRoute(pathname) && (await handleFeedbackRoutes(req, res))) return;
+    if (await handleReplyReportRoutes(req, res, pathname)) return;
 
     // Brand routes
     if (pathname.startsWith('/api/brand')) {
@@ -1492,63 +1492,49 @@ server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api
 async function startBackgroundServices(): Promise<void> {
   log.info({ port: PORT, livekitUrl: LIVEKIT_URL, ddosProtection: true }, 'UI Server started');
 
-  // Texts and calls to a member (outreach routes, chat) reach only their verified phone.
-  installCallUserPort();
+  // Outreach reaches only verified phones; a forgotten topic closes its follow-ups.
+  installUiServerPorts();
   startSpotifyAutoRefresh();
 
-  // Start Calendar real-time sync services
-  try {
-    // Apple Calendar polling (CalDAV doesn't support webhooks)
-    await loadApplePollingUsers();
-    startApplePolling();
-    log.info('🍎 Apple Calendar polling service started');
-
-    // Google Calendar webhook renewal (watches expire after 7 days)
-    fireAndForget(startGoogleWebhookRenewal, 'google-webhook-renewal');
-    log.info('📅 Google Calendar webhook renewal service started');
-
-    // Outlook subscription renewal (subscriptions expire after hours)
-    fireAndForget(startOutlookSubscriptionRenewal, 'outlook-subscription-renewal');
-    log.info('📧 Outlook Calendar subscription renewal service started');
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Calendar sync services failed to start (non-blocking)');
-  }
-
-  // Start proactive outreach scheduler ("Better Than Human" - thinking of you moments)
-  try {
-    await loadPendingOutreach();
-    startProactiveScheduler();
-    log.info('💭 Proactive outreach scheduler started');
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Proactive scheduler failed to start (non-blocking)');
-  }
-
-  // Initialize Life Automation workflow execution handler
-  try {
-    initWorkflowExecutionHandler();
-    log.info('🔄 Life Automation workflow handler initialized');
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Workflow handler failed to start (non-blocking)');
-  }
-
-  // Initialize Twilio Stream Bridge for two-way conversational calls
-  // In production (Cloud Run), attach to the main HTTP server on /stream path
-  // In development, use a separate port if TWILIO_STREAM_PORT is set
-  try {
-    const twilioStreamPort = process.env.TWILIO_STREAM_PORT;
-
-    if (twilioStreamPort) {
-      // Development mode: Use separate port
-      initializeTwilioStreamBridge(parseInt(twilioStreamPort, 10));
-      log.info({ port: twilioStreamPort }, '📞 Twilio Stream Bridge initialized (standalone)');
-    } else {
-      // Production mode: Attach to main HTTP server
-      attachTwilioStreamBridgeToServer(server, '/stream');
-      log.info({ path: '/stream' }, '📞 Twilio Stream Bridge initialized (attached)');
-    }
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Twilio Stream Bridge failed to start (non-blocking)');
-  }
+  // The /stream bridge attaches before any Firestore load is awaited: a cold
+  // boot once spent ~40s in those loads with inbound calls unable to connect.
+  await runBackgroundServices({
+    attachStreamBridge: () => {
+      const twilioStreamPort = process.env.TWILIO_STREAM_PORT;
+      if (twilioStreamPort) {
+        // Development mode: Use separate port
+        initializeTwilioStreamBridge(parseInt(twilioStreamPort, 10));
+        log.info({ port: twilioStreamPort }, '📞 Twilio Stream Bridge initialized (standalone)');
+      } else {
+        // Production (Cloud Run): attach to the main HTTP server
+        attachTwilioStreamBridgeToServer(server, '/stream');
+        log.info({ path: '/stream' }, '📞 Twilio Stream Bridge initialized (attached)');
+      }
+    },
+    steps: [
+      {
+        // Apple Calendar polling (CalDAV doesn't support webhooks)
+        name: 'apple-calendar-polling',
+        load: loadApplePollingUsers,
+        start: startApplePolling,
+      },
+      {
+        // Google watches expire after 7 days; Outlook subscriptions after hours.
+        name: 'calendar-renewals',
+        start: () => {
+          fireAndForget(startGoogleWebhookRenewal, 'google-webhook-renewal');
+          fireAndForget(startOutlookSubscriptionRenewal, 'outlook-subscription-renewal');
+        },
+      },
+      {
+        // "Better Than Human" - thinking of you moments
+        name: 'proactive-scheduler',
+        load: loadPendingOutreach,
+        start: startProactiveScheduler,
+      },
+      { name: 'workflow-handler', start: initWorkflowExecutionHandler },
+    ],
+  });
 }
 
 // ============================================================================

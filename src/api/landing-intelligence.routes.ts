@@ -43,65 +43,8 @@ import { parseBody } from './helpers.js';
 import { requireAdmin } from './auth-middleware.js';
 import { generatePersonaVoice } from '../services/voice/voice-call.js';
 import { getVoiceId, getPersonaDisplayName } from '../personas/voice-registry.js';
-// SSML humanization for natural-sounding voices
-import { tagTextWithSsmlPersonaAware, sanitizeSsml } from '../ssml/index.js';
-import { makeVoiceAlive, type AliveVoiceContext } from '../speech/adaptive-ssml/alive-voice.js';
 
 const log = createLogger({ module: 'LandingIntelligenceHandler' });
-
-// ============================================================================
-// SSML HUMANIZATION FOR LANDING PAGE TTS
-// ============================================================================
-
-/**
- * Apply SSML humanization to make voice samples sound natural and human.
- * Uses Ferni's full SSML pipeline: persona-aware tagging + alive voice enhancements.
- */
-function humanizeTextForTTS(text: string, personaId: string): string {
-  if (!text || text.trim().length === 0) {
-    return text;
-  }
-
-  try {
-    // Step 1: Apply persona-aware SSML tagging
-    // This adds speed, volume, emotion, and break tags based on text analysis
-    let ssml = tagTextWithSsmlPersonaAware(text, {
-      personaId,
-      naturalFillers: true,
-      breathGroupPacing: true,
-    });
-
-    // Step 2: Apply "alive voice" enhancements
-    // This adds sentence-level emotion arcs, dynamic pauses, persona fingerprints
-    const aliveContext: AliveVoiceContext = {
-      personaId,
-      userEmotion: 'neutral',
-      topicWeight: 'medium',
-      turnCount: 1,
-      userEnergy: 'neutral',
-      enableLaughter: true,
-    };
-
-    const aliveResult = makeVoiceAlive(ssml, aliveContext);
-    ssml = aliveResult.text;
-
-    log.debug(
-      {
-        personaId,
-        originalLength: text.length,
-        ssmlLength: ssml.length,
-        appliedFeatures: aliveResult.appliedFeatures,
-      },
-      '✨ Applied SSML humanization for landing TTS'
-    );
-
-    return ssml;
-  } catch (error) {
-    // If SSML processing fails, return sanitized original text
-    log.warn({ error, personaId }, 'SSML humanization failed, using original text');
-    return sanitizeSsml(text);
-  }
-}
 
 // ============================================================================
 // HELPERS
@@ -893,16 +836,12 @@ export async function handleLandingIntelligenceRoutes(
       const personaId = body.personaId || 'ferni';
       const personaName = getPersonaDisplayName(personaId);
 
-      // Apply SSML humanization to make the voice sound natural
-      const humanizedText = humanizeTextForTTS(body.text, personaId);
-
-      log.info(
-        { personaId, personaName, textLength: body.text.length, ssmlLength: humanizedText.length },
-        '🎤 Landing TTS request (with SSML humanization)'
-      );
+      log.info({ personaId, personaName, textLength: body.text.length }, '🎤 Landing TTS request');
 
       try {
-        const audioBuffer = await generatePersonaVoice(humanizedText, personaId);
+        // The words as written, the way a call speaks a reply. The old humanizer put
+        // "Well..." and "Ah," in front of lines; its tags were stripped before Cartesia.
+        const audioBuffer = await generatePersonaVoice(body.text, personaId);
 
         if (!audioBuffer) {
           log.warn({ personaId }, 'TTS generation failed - no audio returned');
