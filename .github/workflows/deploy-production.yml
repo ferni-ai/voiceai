@@ -58,7 +58,8 @@ on:
   # run on the merged commit is the verdict. A push that CI's `paths:` filter
   # skips (docs only) deploys nothing; every input of the UI image is in that
   # list (src, apps, packages, design-system, docker, the root package and
-  # tsconfig files, patches, .npmrc, .dockerignore, this workflow).
+  # tsconfig files, patches, .npmrc, .dockerignore, this workflow) or of its
+  # deploy (deploy/ui-server/ env and secrets; ui-deploy-ci-paths.test.ts).
   # CI runs can still finish out of order, so the job's forward-only guard
   # (scripts/ci/deploy-forward-guard.sh) never deploys an older commit over a
   # newer one. A failed CI on main's tip is reported by report-not-live.
