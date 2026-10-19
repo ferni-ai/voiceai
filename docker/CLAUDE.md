@@ -6,10 +6,9 @@
 
 | File | Service | Description |
 |------|---------|-------------|
-| `Dockerfile.agent` | Voice Agent | LiveKit voice agent (all personas) - deploys to GCE |
+| `Dockerfile.agent` | Voice Agent | LiveKit voice agent (all personas) - deploys to LiveKit Cloud |
 | `Dockerfile.ui` | UI Server | Main frontend + API server - deploys to Cloud Run |
 | `Dockerfile.landing` | Landing Page | Lightweight promo page + tokens |
-| `Dockerfile.base` | Base Image | Shared base (optional) |
 | `Dockerfile.outreach` | Outreach | Proactive outreach worker |
 | `Dockerfile.context` | Context Service | Context building service |
 
@@ -61,9 +60,9 @@ GCP_PROJECT_ID=your-project
 
 **NEVER use docker commands directly for deployment!**
 
-Always use the Ferni CLI:
+Voice agent: LiveKit Cloud via `.claude/skills/deploy-agent/SKILL.md` (not the CLI).
+Everything else, use the Ferni CLI:
 ```bash
-ferni deploy gce        # Voice agent to GCE
 ferni deploy ui         # UI server to Cloud Run
 ferni deploy landing    # Landing page
 ```

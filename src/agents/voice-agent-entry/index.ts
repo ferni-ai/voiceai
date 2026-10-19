@@ -14,10 +14,11 @@
  * @module agents/voice-agent-entry
  */
 
-import { isValidTimeZone } from '../shared/time-context.js';
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
+import { callerChecks } from './caller-recognition.js';
+import { settleCallerZone } from './phone-parity.js';
 import { injectUserAwareness } from './user-awareness-injection.js';
 
 // Event cleanup registry for proper memory management
@@ -60,14 +61,14 @@ import { getModelProvider } from '../model-provider/index.js';
 import { configureModelProvider } from '../../personas/bundles/model-provider-config.js';
 
 // Submodule imports
-import { finishCallTypeContexts, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
-import { buildSessionPersona } from './persona-builder.js';
+import { finishCallTypeContexts, finishOnce, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import { evalLocalTime } from '../personas/eval-local-time.js';
+import { buildSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
 import { setupAllHandlers, type HandlerSetupResult } from './handler-setup.js';
 import { resolveSessionPath } from './session-path.js';
 import { devStage, MULTI_AGENT_MODE } from './constants.js';
 import type { FinOpsTier, SessionPhase } from './types.js';
-import { rememberCallerTimeZone } from '../../memory/operations/call-moment.js';
 
 // ============================================================================
 // MODULE-LEVEL SIDE EFFECTS (executed once at import)
@@ -241,8 +242,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const parsed = parseJobMetadata(ctx);
     personaId = parsed.personaId;
     const { publisherId, callType, metadata } = parsed;
-    finishCallType = () =>
-      finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime, ctx.job.metadata);
+    finishCallType = finishOnce(ctx, () => // also on shutdown: the job exits 15 s after the room closes
+      finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime, ctx.job.metadata));
 
     // Set up call type-specific contexts (inbound, on-behalf, proactive)
     await setupCallTypeContexts(
@@ -256,7 +257,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     // Build persona with defaults and load prompts
     const personaResult = await buildSessionPersona(personaId, e2e);
     sessionPersona = personaResult.sessionPersona;
-    const { systemPrompt } = personaResult;
     modelBaseInstructions = personaResult.modelBaseInstructions;
 
     // =========================================================================
@@ -336,7 +336,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     });
     userId = identifiedUserId ?? null;
 
-    // Update crash analytics with user context
     updateSessionState(sessionId, { state: 'active' });
     registerSession(sessionId, {
       sessionId,
@@ -347,7 +346,6 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     const servicesInitStartedAt = Date.now();
 
-    // Initialize session services
     const initResult = await initializeSession({
       sessionId,
       userId: userId ?? undefined,
@@ -367,14 +365,15 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
     services = initResult.services;
     if (callType === 'on_behalf_call') {
-      const { wrapServicesForOnBehalfCapture } =
-        await import('../integrations/on-behalf-transcript-capture.js');
-      wrapServicesForOnBehalfCapture(sessionId, services);
-    }
+      const capture = await import('../integrations/on-behalf-transcript-capture.js');
+      capture.wrapServicesForOnBehalfCapture(sessionId, services);
+    } else if (callType === 'family_checkin')
+      (await import('../outbound-call/family-checkin-stop.js')).listenForStop(sessionId, services);
     isReturningUser = initResult.isReturningUser;
     userData = initResult.userData;
-    if (userData && isValidTimeZone(metadata.timezone)) userData.callerTimezone = metadata.timezone;
-    rememberCallerTimeZone(isValidTimeZone(metadata.timezone) || callType === 'on_behalf_call' ? metadata.timezone : services?.userProfile?.contactInfo?.timezone, sessionId, services?.realtimeConversationId, userId); // no browser zone (phone): the profile's
+    // The browser's zone, else (once the profile loads) only a verified owner's (phone-parity.ts).
+    void settleCallerZone({ sessionId, userId, onBehalf: callType === 'on_behalf_call' }, metadata.timezone, services, userData);
+    if (userData) userData.evalLocalTime = evalLocalTime(userId, metadata);
     // IP-detected city (token → dispatch metadata), both paths: tools read it from userData.
     if (userData && typeof metadata.city === 'string' && metadata.city) {
       userData.userLocation = {
@@ -601,9 +600,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       process.stderr.write(
         `[voice-agent-entry] 🎭 Multi-agent early path — awaiting participant, skipping createAgentSession\n`
       );
-      const participantWaitResult = await (
-        earlyParticipantWaitPromise ?? waitForParticipantWithTimeout(ctx, participantTimeout)
-      );
+      const participantWaitResult =
+        await (earlyParticipantWaitPromise ?? waitForParticipantWithTimeout(ctx, participantTimeout));
       await markCallStageSafe(sessionId, 'participant_wait_start', participantWaitResult.startedAt);
       await markCallStageSafe(sessionId, 'participant_wait_done', participantWaitResult.endedAt);
       const participant = participantWaitResult.participant;
@@ -616,8 +614,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         void noteCallerJoined({ participant, room: ctx.room, sessionId });
         await markCallStageSafe(sessionId, 'orchestrator_start');
         const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');
-        const { unregisterSession: unregisterCrashSession } =
-          await import('../shared/crash-analytics.js');
+        const crash = await import('../shared/crash-analytics.js');
         const multiAgentModeResult = await runMultiAgentMode({
           ctx,
           room: ctx.room,
@@ -627,7 +624,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
           userData,
           sessionId,
           userId: userId ?? undefined,
-          unregisterSession: unregisterCrashSession,
+          unregisterSession: crash.unregisterSession,
+          callerChecks,
         });
         if (multiAgentModeResult.activated) {
           multiAgentActivatedEarly = true;
@@ -664,7 +662,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       const sessionResult = await createAgentSession({
         sessionId,
         sessionPersona,
-        systemPrompt,
+        // After applyCallerFlags (STEP 4), so the prompt has this caller's flags.
+        systemPrompt: await loadCallerPrompt(sessionPersona.id),
         modelBaseInstructions,
         userId,
         userAccent,

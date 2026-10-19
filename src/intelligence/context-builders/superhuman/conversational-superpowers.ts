@@ -27,11 +27,6 @@
 
 // Phase 1 imports
 import {
-  captureJoke,
-  findRelevantJoke,
-  formatJokeForPrompt,
-} from '../../../conversation/superhuman/inside-jokes.js';
-import {
   detectMicroWin,
   formatMicroWinForPrompt,
 } from '../../../conversation/superhuman/micro-celebrations.js';
@@ -100,7 +95,6 @@ interface SuperpowersSessionData {
   // Phase 1
   quoteSurfacedThisSession: boolean;
   milestoneSurfacedThisSession: boolean;
-  jokeSurfacedThisSession: boolean;
   personFollowUpThisSession: boolean;
   // Phase 2
   vulnerabilityGuidanceGiven: boolean;
@@ -129,7 +123,6 @@ function getSessionData(sessionId: string): SuperpowersSessionData {
       // Phase 1
       quoteSurfacedThisSession: false,
       milestoneSurfacedThisSession: false,
-      jokeSurfacedThisSession: false,
       personFollowUpThisSession: false,
       // Phase 2
       vulnerabilityGuidanceGiven: false,
@@ -204,18 +197,6 @@ async function buildConversationalSuperpowers(
   });
   if (quote) {
     log.debug({ userId, quoteId: quote.id }, '💬 Quote captured');
-  }
-
-  // Capture inside jokes
-  if (wasLaughing) {
-    const joke = captureJoke(userId, userText, {
-      topics: currentTopics,
-      wasLaughing: true,
-      conversationMood: currentEmotion,
-    });
-    if (joke) {
-      log.debug({ userId, jokeId: joke.id }, '😄 Joke captured');
-    }
   }
 
   // Extract user's name if mentioned
@@ -320,29 +301,6 @@ Don't force it - only bring it up if it flows naturally from what they say.`,
     }
   }
 
-  // Inside joke (mid-conversation, if mood is light)
-  if (
-    !data.jokeSurfacedThisSession &&
-    turnCount >= 4 &&
-    currentEmotion !== 'sad' &&
-    currentEmotion !== 'anxious'
-  ) {
-    const relevantJoke = findRelevantJoke(userId, {
-      currentTopics,
-      currentMood: currentEmotion,
-      turnCount,
-    });
-
-    if (relevantJoke) {
-      injections.push(
-        createHintInjection('conversational_inside_joke', formatJokeForPrompt(relevantJoke), {
-          category: 'superhuman',
-        })
-      );
-      data.jokeSurfacedThisSession = true;
-      log.info({ userId, jokeId: relevantJoke.joke.id }, '😄 Inside joke surfaced');
-    }
-  }
 
   // Person follow-up (if natural opening)
   if (!data.personFollowUpThisSession && turnCount >= 5) {

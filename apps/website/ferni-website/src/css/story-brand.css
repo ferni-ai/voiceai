@@ -283,6 +283,13 @@ button {
   background: var(--color-ferni-green);
 }
 
+/* A ring that stands apart from the green pill, in both themes */
+.nav__cta:focus-visible {
+  outline: 3px solid var(--color-text-primary);
+  outline-offset: 3px;
+  transition: background var(--duration-normal) ease;
+}
+
 .nav__cta svg {
   width: 16px;
   height: 16px;
@@ -793,6 +800,54 @@ button {
 .hero__phone a:hover {
   color: var(--color-ferni-dark);
   text-decoration: underline;
+}
+
+/* "What Ferni is": the quiet line under the hero buttons, the page itself,
+   and its links in the FAQ and sign-up modal. --color-accent is forest green
+   in light mode and light sage in dark, so links read in both. */
+.hero__note,
+.waitlist-modal__note--honest {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm, var(--text-sm));
+  color: var(--color-text-muted);
+  margin: 0 auto;
+}
+
+.hero__note a,
+.waitlist-modal__note--honest a,
+.faq-page__answer a,
+.faq-item__answer a,
+.what-ferni-is .story-page__text a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hero__note a,
+.faq-page__answer a {
+  white-space: nowrap;
+}
+
+.story-page__hero.what-ferni-is__hero {
+  min-height: auto;
+  padding-bottom: var(--space-12, 48px);
+}
+
+.what-ferni-is__hero .story-page__text {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.story-page__section.what-ferni-is__section {
+  padding-top: var(--space-10, 40px);
+  padding-bottom: var(--space-10, 40px);
+}
+
+.what-ferni-is__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px) var(--space-6, 24px);
 }
 
 /* Buttons */
@@ -2112,11 +2167,6 @@ button {
 /* ============================================
    FERNI FUND SECTION - Gift Forward Model
    ============================================ */
-.ferni-fund {
-  background: linear-gradient(180deg, var(--color-paper-sand) 0%, var(--color-paper-cream) 100%);
-  padding: clamp(80px, 12vh, 120px) var(--space-6);
-}
-
 /* Fund Explainer - How it Works */
 .fund-explainer {
   background: var(--page-card, white);
@@ -4576,6 +4626,17 @@ html {
 
 .cookie-banner.is-hidden {
   transform: translateY(100%);
+}
+
+/* Lift the floating chat pill above the banner so it never covers Accept */
+body:has(.cookie-banner.is-visible) #ferni-live-chat {
+  bottom: calc(81px + var(--space-6));
+}
+
+@media (max-width: 768px) {
+  body:has(.cookie-banner.is-visible) #ferni-live-chat {
+    bottom: calc(145px + var(--space-4));
+  }
 }
 
 .cookie-banner__content {
@@ -7589,7 +7650,7 @@ body:not(.theme--dark) .chat-demo__label,
   font-size: var(--text-sm);
   font-weight: 700;
   letter-spacing: 0.02em;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--color-text-inverse);
   min-width: 120px;
 }
 

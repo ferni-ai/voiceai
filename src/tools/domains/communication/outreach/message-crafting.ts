@@ -171,7 +171,7 @@ CRITICAL RULES:
 
 DO NOT:
 - Use "I hope this message finds you well"
-- Start with "Hey there!" (just use their name)
+- Start with "Hey there!" (greeting: just use their name)
 - Be generic or corporate
 - Over-explain
 - Use multiple exclamation points

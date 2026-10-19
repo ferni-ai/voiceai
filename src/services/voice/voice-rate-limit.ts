@@ -14,6 +14,7 @@
  */
 
 import pino from 'pino';
+import { getClientIp, type ClientIpRequest } from '../../utils/client-ip.js';
 import { registerInterval, clearNamedInterval, hasInterval } from '../../utils/interval-manager.js';
 
 const log = pino({ name: 'voice-rate-limit' });
@@ -256,14 +257,14 @@ export function createRateLimitMiddleware(
   config?: Partial<RateLimitConfig>
 ) {
   return (
-    req: { headers: Record<string, string | string[] | undefined>; userId?: string },
+    req: ClientIpRequest & { userId?: string },
     res: {
       setHeader: (name: string, value: string) => void;
       status: (code: number) => { json: (body: unknown) => void };
     }
   ): boolean => {
     const userId = req.userId || 'anonymous';
-    const ipAddress = getClientIP(req.headers);
+    const ipAddress = getClientIp(req);
 
     const result = checkRateLimit(userId, endpoint, ipAddress, config);
 
@@ -287,27 +288,6 @@ export function createRateLimitMiddleware(
 
     return true;
   };
-}
-
-/**
- * Get client IP from headers (handles proxies).
- */
-function getClientIP(headers: Record<string, string | string[] | undefined>): string {
-  // Check X-Forwarded-For first (proxy/load balancer)
-  const forwarded = headers['x-forwarded-for'];
-  if (forwarded) {
-    const ips = typeof forwarded === 'string' ? forwarded.split(',') : forwarded;
-    return ips[0].trim();
-  }
-
-  // Check X-Real-IP
-  const realIP = headers['x-real-ip'];
-  if (realIP) {
-    return typeof realIP === 'string' ? realIP : realIP[0];
-  }
-
-  // Fallback
-  return 'unknown';
 }
 
 // ============================================================================

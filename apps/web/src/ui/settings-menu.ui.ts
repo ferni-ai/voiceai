@@ -8,34 +8,21 @@
  *   - Clean, organized navigation
  *   - Quick access to all panels
  *   - Visual indicators for new features
- *   - Locked feature indicators based on relationship stage
+ *   - Everything is open from the first call: no relationship-stage locks
  */
 
 import { DURATION, EASING } from '../config/animation-constants.js';
 import { memoryControlEnabled } from './memory/remembered.js';
 import { LINKEDIN_ENABLED } from '../config/linkedin.js';
-import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-// Relationship stage service - used for feature unlocking and progress display
-import {
-  getTranslatedStageName,
-  relationshipStageService,
-  UNLOCKABLE_FEATURES,
-  type RelationshipStage,
-} from '../services/relationship-stage.service.js';
-// Team unlock service - for gating marketplace behind full team unlock
-import { isFullTeamUnlocked } from '../services/team-unlock.service.js';
 import { signOutOfThisBrowser } from './sign-out.js';
 // Roadmap service - for "What's Growing" experience
 import { roadmapService } from '../services/roadmap.service.js';
-import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
+import { isMenuActionVisible } from '../config/menu-visibility.js';
 
-// Track setTimeout calls for memory leak prevention
-const { trackedTimeout, clearAll: _clearAllTimeouts } = createTimeoutTracker();
-// Seeds display for personalization economy
-import { renderSeedsSettingsCard } from './seeds-display.ui.js';
-// Transcript UI - for toggling live transcription
 import { transcriptUI } from './transcript.ui.js';
-// Sound effects service for UI feedback sounds
+import { canOpenSupport } from './support/open-support.js';
+import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
+import { isPaywallOn } from '../services/paywall.service.js';
 import { soundUI } from './sound.ui.js';
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
@@ -141,7 +128,6 @@ const ICONS = {
   menu: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>',
   chevronRight:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>',
-  lock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
 
   // Journey & Growth (natural metaphors)
@@ -243,7 +229,8 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>',
 
   // Help & Support
-  signOut: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  signOut:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>',
   commands:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>',
@@ -290,43 +277,6 @@ const ICONS = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
   gamepad:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="6" x2="10" y1="11" y2="11"/><line x1="8" x2="8" y1="9" y2="13"/><line x1="15" x2="15.01" y1="12" y2="12"/><line x1="18" x2="18.01" y1="10" y2="10"/><path d="M17.32 5H6.68a4 4 0 0 0-3.978 3.59c-.006.052-.01.101-.017.152C2.604 9.416 2 14.456 2 16a3 3 0 0 0 3 3c1 0 1.5-.5 2-1l1.414-1.414A2 2 0 0 1 9.828 16h4.344a2 2 0 0 1 1.414.586L17 18c.5.5 1 1 2 1a3 3 0 0 0 3-3c0-1.545-.604-6.584-.685-7.258-.007-.05-.011-.1-.017-.151A4 4 0 0 0 17.32 5z"/></svg>',
-};
-
-// ============================================================================
-// FEATURE LOCK MAPPING: menu actions to features that unlock as the relationship deepens
-// ============================================================================
-
-const FEATURE_LOCK_MAP: Record<string, string> = {
-  // Getting Started stage (2+ conversations)
-  ritual: 'custom-rituals',
-  analytics: 'progress-analytics',
-
-  // Building Trust stage (7+ convos, 3+ days)
-  'conversation-memory': 'memory-browser',
-  wellbeing: 'wellbeing-dashboard',
-  predictions: 'prediction-accuracy',
-  'group-coaching': 'group-coaching',
-  'video-call-settings': 'video-sessions',
-  // Established stage (20+ convos, 14+ days). What Ferni remembers is open from the first call.
-  ...(memoryControlEnabled() ? {} : { cognitive: 'deep-insights' }),
-  history: 'conversation-history',
-};
-
-// ============================================================================
-// STAGE-BASED SECTION VISIBILITY
-// Progressive disclosure: show sections as relationship deepens
-// ============================================================================
-
-type SectionVisibility = Record<string, RelationshipStage>;
-
-const SECTION_VISIBILITY: SectionVisibility = {
-  // New warm structure
-  yourPractices: 'first-meeting', // Always visible - habit loop
-  understandingYou: 'getting-started', // After 2+ conversations - needs data
-  waysToConnect: 'first-meeting', // Always visible - engagement
-  yourPeople: 'first-meeting', // Always visible - relationships
-  connectedLife: 'first-meeting', // Always visible - integrations
-  settings: 'first-meeting', // Always visible - preferences & account
 };
 
 // ============================================================================
@@ -569,47 +519,6 @@ class SettingsMenuUI {
     return t('menu.greeting.night');
   }
 
-  /** Check if a feature is locked based on relationship stage */
-  private isFeatureLocked(action: string): boolean {
-    const featureId = FEATURE_LOCK_MAP[action];
-    if (!featureId) return false; // Not a lockable feature
-    return !relationshipStageService.isFeatureUnlocked(featureId);
-  }
-
-  /** Get the required stage for a locked feature */
-  private getRequiredStage(action: string): RelationshipStage | null {
-    const featureId = FEATURE_LOCK_MAP[action];
-    if (!featureId) return null;
-    return UNLOCKABLE_FEATURES[featureId] || null;
-  }
-
-  /** Get unlock progress hint for a feature */
-  private getUnlockHint(action: string): string {
-    const featureId = FEATURE_LOCK_MAP[action];
-    if (!featureId) return '';
-    const progress = relationshipStageService.getFeatureUnlockProgress(featureId);
-    return progress.hint || t('menu.keepChatting');
-  }
-
-  /** Check if a section should be visible based on relationship stage */
-  private isSectionVisible(sectionId: string): boolean {
-    const requiredStage = SECTION_VISIBILITY[sectionId];
-    if (!requiredStage) return true;
-
-    const stageOrder: RelationshipStage[] = [
-      'first-meeting',
-      'getting-started',
-      'building-trust',
-      'established',
-      'deep-partnership',
-    ];
-    const currentStage = relationshipStageService.getStage();
-    const currentIndex = stageOrder.indexOf(currentStage);
-    const requiredIndex = stageOrder.indexOf(requiredStage);
-
-    return currentIndex >= requiredIndex;
-  }
-
   /**
    * Toggle pinned state for an item
    */
@@ -624,44 +533,43 @@ class SettingsMenuUI {
   }
 
   /**
-   * Render a menu item with optional locked state or progress hint
+   * Render a menu item. Nothing is locked: every item is open from the first call.
    * Roadmap features are hidden from the menu - they only appear in the Roadmap Panel
    */
   private renderMenuItem(action: string, icon: string, label: string, extraClasses = ''): string {
-    // Hide roadmap items from the menu - they live in "What's Growing" panel
-    if (roadmapService.isRoadmapFeature(action)) {
+    // Hidden items (config/menu-visibility.ts) and unbuilt roadmap features render nothing
+    if (!isMenuActionVisible(action) || roadmapService.isRoadmapFeature(action)) {
       return '';
     }
 
-    // Hide marketplace until full team is unlocked - users should know the team first
-    if (action === 'discover-agents' && !isFullTeamUnlocked()) {
-      return '';
-    }
-
-    const isLocked = this.isFeatureLocked(action);
-    const isPinned = this.pinnedItems.has(action);
-    const lockedClass = isLocked ? 'settings-menu__item--locked' : '';
-    const pinnedClass = isPinned ? 'settings-menu__item--pinned' : '';
-
-    if (isLocked) {
-      const hint = this.getUnlockHint(action);
-      return `
-        <button aria-label="${label}, ${hint}" aria-disabled="true" class="settings-menu__item ${lockedClass} ${extraClasses}" data-action="${action}" data-locked="true">
-          <span class="settings-menu__icon">${icon}</span>
-          <span class="settings-menu__label-wrap">
-            <span class="settings-menu__label">${label}</span>
-            <span class="settings-menu__unlock-hint">${hint}</span>
-          </span>
-          <span class="settings-menu__lock-icon">${ICONS.lock}</span>
-        </button>
-      `;
-    }
+    const pinnedClass = this.pinnedItems.has(action) ? 'settings-menu__item--pinned' : '';
 
     return `
       <button aria-label="${label}" class="settings-menu__item ${pinnedClass} ${extraClasses}" data-action="${action}" data-pinnable="true">
         <span class="settings-menu__icon">${icon}</span>
         <span class="settings-menu__label">${label}</span>
       </button>
+    `;
+  }
+
+  /**
+   * "How I reach you": the phone Ferni texts or calls, and how he checks in.
+   * It was "Staying in Touch", last in a collapsed section, and the founder couldn't
+   * find it; it now sits at the top of the menu with a line saying what's inside.
+   */
+  private renderReachMeItem(): string {
+    const label = t('menu.items.howIReachYou');
+    const hint = t('menu.items.howIReachYouHint');
+    return `
+      <div class="settings-menu__section settings-menu__section--reach-me">
+        <button aria-label="${label}" class="settings-menu__item settings-menu__item--reach-me" data-action="contact-settings">
+          <span class="settings-menu__icon">${ICONS.phone}</span>
+          <span class="settings-menu__text">
+            <span class="settings-menu__label">${label}</span>
+            <span class="settings-menu__hint">${hint}</span>
+          </span>
+        </button>
+      </div>
     `;
   }
 
@@ -684,10 +592,8 @@ class SettingsMenuUI {
 
   private renderContent(): void {
     if (!this.panel) return;
-
-    // Get current relationship stage for progress display
-    const currentStage = relationshipStageService.getStage();
-    const progress = relationshipStageService.getProgressToNextStage();
+    // Free, with the Venmo chip-in configured: "Chip in" (Venmo card) replaces Account & Billing
+    const chipIn = isVenmoChipInEnabled() && !isPaywallOn();
 
     // Track which sections are expanded
     const expandedSections = this.expandedSections || new Set(['connect', 'personalize']);
@@ -707,32 +613,10 @@ class SettingsMenuUI {
           <button class="settings-menu__close" aria-label="${t('accessibility.closeMenu')}">${ICONS.close}</button>
         </header>
 
-        <!-- Relationship Stage Banner (compact) -->
-        <div class="settings-menu__stage-banner">
-          <div class="settings-menu__stage-info">
-            <span class="settings-menu__stage-label">${t('menu.yourStage')}</span>
-            <span class="settings-menu__stage-name">${getTranslatedStageName(currentStage)}</span>
-          </div>
-          ${
-            progress.nextStage
-              ? `
-            <div class="settings-menu__stage-progress">
-              <div class="settings-menu__stage-bar">
-                <div class="settings-menu__stage-fill" style="width: ${Math.round(progress.progress * 100)}%"></div>
-              </div>
-              <span class="settings-menu__stage-next">${t('menu.nextStage', { stage: getTranslatedStageName(progress.nextStage) })}</span>
-            </div>
-          `
-              : `
-            <span class="settings-menu__stage-max">${t('menu.maxLevel')}</span>
-          `
-          }
-        </div>
-
-        <!-- Seeds Balance Card -->
-        ${renderSeedsSettingsCard()}
-
         <nav class="settings-menu__nav">
+          <!-- How I reach you: first, where a person looks for "me" -->
+          ${this.renderReachMeItem()}
+
           <!-- PINNED ITEMS (Your Favorites) -->
           ${pinnedItemsHtml}
 
@@ -751,13 +635,11 @@ class SettingsMenuUI {
                ============================================================ -->
 
           <!-- SECTION 1: Let's Practice - Daily rituals and guided moments -->
-          ${
-            this.isSectionVisible('yourPractices')
-              ? this.renderCollapsibleSection(
-                  'yourPractices',
-                  t('menu.sections.yourPractices'),
-                  expandedSections.has('yourPractices'),
-                  `
+          ${this.renderCollapsibleSection(
+            'yourPractices',
+            t('menu.sections.yourPractices'),
+            expandedSections.has('yourPractices'),
+            `
             ${this.renderMenuItem('hub', ICONS.hub, t('ui.yourDay'))}
             ${this.renderMenuItem('commands', ICONS.commands, t('menu.items.guidedPractices'))}
             ${this.renderMenuItem('what-i-do-for-you', ICONS.care, t('ferniCare.whatIDoForYou'))}
@@ -765,88 +647,69 @@ class SettingsMenuUI {
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
             ${this.renderMenuItem('outreach-schedule', ICONS.calendar, t('menu.items.outreachSchedule'))}
-            ${this.renderMenuItem('contact-settings', ICONS.contact, t('menu.items.contactInfo'))}
           `
-                )
-              : ''
-          }
+          )}
 
           <!-- SECTION 2: Our Story - Memories, reflections, insights (consolidated) -->
-          ${
-            this.isSectionVisible('understandingYou')
-              ? this.renderCollapsibleSection(
-                  'understandingYou',
-                  t('menu.sections.ourStory'),
-                  expandedSections.has('understandingYou'),
-                  `
+          ${this.renderCollapsibleSection(
+            'understandingYou',
+            t('menu.sections.ourStory'),
+            expandedSections.has('understandingYou'),
+            `
             ${this.renderMenuItem('your-story', ICONS.heart, t('menu.items.yourStory'))}
             ${this.renderMenuItem('trust-dashboard', ICONS.ring, t('menu.items.trustDashboard'))}
             ${this.renderMenuItem('wellbeing', ICONS.wellbeing, t('menu.items.wellbeingDashboard'))}
-            ${this.renderMenuItemWithBadge('memory-lane', ICONS.book, t('menu.items.memoryLane'), t('common.new'))}
-            ${isPatternInsightsOn() ? this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights')) : ''}
+            ${this.renderMenuItem('memory-lane', ICONS.book, t('menu.items.memoryLane'))}
+            ${this.renderMenuItem('pattern-insights', ICONS.analytics, t('menu.items.patternInsights'))}
             ${this.renderMenuItem('history', ICONS.history, t('menu.items.conversationHistory'))}
-            ${this.renderMenuItemWithBadge('your-year', ICONS.sparkles, t('menu.items.yourYear'), t('common.new'))}
+            ${this.renderMenuItem('your-year', ICONS.sparkles, t('menu.items.yourYear'))}
           `
-                )
-              : ''
-          }
+          )}
 
           <!-- SECTION 3: Let's Do Something - Active engagement & play (trimmed) -->
-          ${
-            this.isSectionVisible('waysToConnect')
-              ? this.renderCollapsibleSection(
-                  'waysToConnect',
-                  t('menu.sections.waysToConnect'),
-                  expandedSections.has('waysToConnect'),
-                  `
+          ${this.renderCollapsibleSection(
+            'waysToConnect',
+            t('menu.sections.waysToConnect'),
+            expandedSections.has('waysToConnect'),
+            `
             ${this.renderMenuItem('journal', ICONS.journal, t('menu.items.journaling'))}
-            ${this.renderMenuItemWithBadge('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz'), t('common.new'))}
+            ${this.renderMenuItem('knowledge-quiz', ICONS.lightbulb, t('menu.items.knowledgeQuiz'))}
             ${this.renderMenuItem('music-dashboard', ICONS.music, t('menu.items.musicalYou'))}
             ${this.renderMenuItem('play-games', ICONS.sparkles, t('menu.items.playGames'))}
             ${this.renderMenuItem('vibe-controller', ICONS.sparkles, t('menu.items.setTheVibe'))}
             ${this.renderMenuItem('discover-agents', ICONS.compass, t('menu.items.discoverAgents'))}
           `
-                )
-              : ''
-          }
+          )}
 
           <!-- SECTION 4: Your World - People and connections (merged with integrations) -->
-          ${
-            this.isSectionVisible('yourPeople')
-              ? this.renderCollapsibleSection(
-                  'yourPeople',
-                  t('menu.sections.yourPeople'),
-                  expandedSections.has('yourPeople'),
-                  `
+          ${this.renderCollapsibleSection(
+            'yourPeople',
+            t('menu.sections.yourPeople'),
+            expandedSections.has('yourPeople'),
+            `
             ${this.renderMenuItem('contacts', ICONS.users, t('menu.items.contacts'))}
             ${this.renderMenuItem('household-members', ICONS.home, t('menu.items.householdMembers'))}
             ${this.renderMenuItem('family-callers', ICONS.phone, t('menu.items.familyCallers'))}
             ${this.renderMenuItem('all-connections', ICONS.link, t('menu.items.allConnections'))}
           `
-                )
-              : ''
-          }
+          )}
 
           <!-- SECTION 5: Settings - Preferences and account (streamlined) -->
-          ${(() => {
-            return this.isSectionVisible('settings')
-              ? this.renderCollapsibleSection(
-                  'settings',
-                  t('menu.sections.settings'),
-                  expandedSections.has('settings'),
-                  `
+          ${this.renderCollapsibleSection(
+            'settings',
+            t('menu.sections.settings'),
+            expandedSections.has('settings'),
+            `
             ${this.renderMenuItem('personal-settings', ICONS.palette, t('menu.items.personalize'))}
             ${this.renderMenuItem('theme', ICONS.theme, t('menu.items.themeLanguage'))}
             ${this.renderToggleItem('toggle-transcription', ICONS.transcript, t('menu.items.showTranscript'), transcriptUI.isEnabled())}
             ${this.renderToggleItem('toggle-sounds', ICONS.speaker, t('menu.items.soundEffects'), !soundUI.getMuted())}
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
-            ${this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
+            ${chipIn ? '' : this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${memoryControlEnabled() ? this.renderMenuItem('cognitive', ICONS.brain, t('ferniKnows.panelTitle')) : ''}
             ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
           `
-                )
-              : '';
-          })()}
+          )}
 
           <!-- SECTION: Admin (only visible for admins) -->
           ${this.renderAdminSection(expandedSections)}
@@ -855,6 +718,7 @@ class SettingsMenuUI {
           <div class="settings-menu__quick-actions" role="group" aria-label="${t('menu.sections.connect')}">
             ${this.renderMenuItem('whats-growing', ICONS.seedling, t('menu.items.whatsGrowing'))}
             ${this.renderMenuItem('share-ferni', ICONS.share, t('menu.items.shareFerni'))}
+            ${chipIn ? this.renderMenuItem('support-ferni', ICONS.heart, t('buttons.chipIn')) : ''}
             ${this.renderMenuItem('help', ICONS.help, t('menu.items.takeTour'))}
             ${this.renderMenuItem('sign-out', ICONS.signOut, t('buttons.signOut'))}
           </div>
@@ -889,15 +753,7 @@ class SettingsMenuUI {
         const htmlBtn = btn as HTMLElement;
         const action = htmlBtn.dataset.action;
         log.info('Menu item clicked', { action });
-        const isLocked = htmlBtn.dataset.locked === 'true';
         const isToggle = htmlBtn.dataset.toggle === 'true';
-
-        if (isLocked) {
-          // Show a gentle animation indicating it's locked
-          htmlBtn.classList.add('settings-menu__item--shake');
-          trackedTimeout(() => htmlBtn.classList.remove('settings-menu__item--shake'), 400);
-          return;
-        }
 
         // Toggle items don't close menu - just toggle state
         if (isToggle && action) {
@@ -1069,16 +925,18 @@ class SettingsMenuUI {
       household: { icon: ICONS.users, label: t('menu.items.householdMembers') },
       'household-members': { icon: ICONS.users, label: t('menu.items.householdMembers') },
       'family-callers': { icon: ICONS.phone, label: t('menu.items.familyCallers') },
-      'contact-settings': { icon: ICONS.contact, label: t('menu.items.contactInfo') },
+      'contact-settings': { icon: ICONS.phone, label: t('menu.items.howIReachYou') },
       export: { icon: ICONS.download, label: t('menu.items.exportData') },
       'share-ferni': { icon: ICONS.share, label: t('menu.items.shareFerni') },
       help: { icon: ICONS.help, label: t('menu.items.takeTour') },
       billing: { icon: ICONS.creditCard, label: t('menu.items.billingPortal') },
     };
     if (!LINKEDIN_ENABLED) delete menuItems['linkedin-settings']; // config/linkedin.ts
+    // Support opens the voluntary Venmo card, or Stripe only with a paywall: otherwise hide it
+    if (!canOpenSupport()) delete menuItems['support-ferni'];
 
     const pinnedItemsHtml = [...this.pinnedItems]
-      .filter((action) => menuItems[action] && !this.isFeatureLocked(action))
+      .filter((action) => menuItems[action] && isMenuActionVisible(action))
       .map((action) => {
         const item = menuItems[action];
         if (!item) return '';
@@ -1137,23 +995,7 @@ class SettingsMenuUI {
     label: string,
     badge: string
   ): string {
-    const isLocked = this.isFeatureLocked(action);
-    const requiredStage = this.getRequiredStage(action);
-    const lockedClass = isLocked ? 'settings-menu__item--locked' : '';
-    const stageName = requiredStage ? getTranslatedStageName(requiredStage) : '';
-
-    if (isLocked) {
-      return `
-        <button aria-label="${label}" class="settings-menu__item ${lockedClass}" data-action="${action}" data-locked="true">
-          <span class="settings-menu__icon">${icon}</span>
-          <span class="settings-menu__label-wrap">
-            <span class="settings-menu__label">${label}</span>
-            <span class="settings-menu__unlock-hint">${t('menu.unlockHint', { remaining: stageName })}</span>
-          </span>
-          <span class="settings-menu__lock-icon">${ICONS.lock}</span>
-        </button>
-      `;
-    }
+    if (!isMenuActionVisible(action)) return '';
 
     return `
       <button aria-label="${label}" class="settings-menu__item" data-action="${action}">
@@ -1179,7 +1021,7 @@ class SettingsMenuUI {
           <span class="settings-menu__icon">${ICONS.globe}</span>
           <span class="settings-menu__label">${t('menu.items.language')}</span>
           <span class="settings-menu__language-current">
-            <span class="settings-menu__language-flag">${currentLang?.flag || ''}</span>
+            <span class="settings-menu__language-tag" aria-hidden="true">${currentLang?.tag || ''}</span>
             <span class="settings-menu__language-name">${currentLang?.nativeName || currentLocale}</span>
           </span>
           <span class="settings-menu__chevron">${ICONS.chevronRight}</span>
@@ -1195,7 +1037,7 @@ class SettingsMenuUI {
                 data-action="set-language"
                 data-locale="${lang.code}"
               >
-                <span class="settings-menu__language-flag">${lang.flag}</span>
+                <span class="settings-menu__language-tag" aria-hidden="true">${lang.tag}</span>
                 <span class="settings-menu__language-name">${lang.nativeName}</span>
                 ${lang.code === currentLocale ? '<span class="settings-menu__language-check">✓</span>' : ''}
               </button>
@@ -1233,6 +1075,7 @@ class SettingsMenuUI {
   private handleAction(action: string | undefined): void {
     log.info('📍 handleAction called', { action });
     this.hide();
+    if (action && !isMenuActionVisible(action)) return; // hidden: config/menu-visibility.ts
 
     switch (action) {
       case 'history':
@@ -1499,7 +1342,7 @@ class SettingsMenuUI {
 
       .settings-trigger--active {
         background: var(--color-accent-primary, #2d5a3d);
-        color: white;
+        color: var(--color-text-on-accent);
         border-color: var(--color-accent-primary, #2d5a3d);
       }
 
@@ -1610,8 +1453,7 @@ class SettingsMenuUI {
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: var(--persona-primary, #4a6741);
-        opacity: 0.85;
+        color: var(--persona-text, var(--color-accent-text)); /* theme-aware; no opacity on 11px type */
       }
 
       .settings-menu__header h2 {
@@ -2126,6 +1968,25 @@ class SettingsMenuUI {
         color: var(--color-text-primary, #2c2520);
       }
 
+      .settings-menu__item--reach-me {
+        background: var(--color-background-secondary, #f5f2ed);
+      }
+
+      .settings-menu__text {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+
+      .settings-menu__hint {
+        font-family: var(--font-body, Inter, sans-serif);
+        font-size: 12px;
+        line-height: 1.35;
+        color: var(--color-text-secondary, #6b5d52);
+      }
+
       /* Active/Connected state for items like Spotify */
       .settings-menu__item--active {
         background: var(--color-background-secondary, #f5f2ed);
@@ -2203,8 +2064,11 @@ class SettingsMenuUI {
         font-size: var(--text-sm);
       }
 
-      .settings-menu__language-flag {
-        font-size: 1.1em;
+      .settings-menu__language-tag {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: var(--color-text-secondary);
       }
 
       .settings-menu__language-name {
@@ -2313,48 +2177,6 @@ class SettingsMenuUI {
       }
 
       /* ========================================================================
-         LOCKED FEATURE STATE
-         ======================================================================== */
-      .settings-menu__item--locked {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-
-      .settings-menu__item--locked:hover {
-        background: transparent;
-      }
-
-      .settings-menu__item--locked .settings-menu__icon {
-        color: var(--color-text-muted, #756a5e);
-      }
-
-      .settings-menu__label-wrap {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-      }
-
-      .settings-menu__unlock-hint {
-        font-family: var(--font-body);
-        font-size: var(--text-xs);
-        color: var(--color-text-muted);
-        font-style: italic;
-      }
-
-      .settings-menu__lock-icon {
-        width: 16px;
-        height: 16px;
-        color: var(--color-text-muted, #756a5e);
-        flex-shrink: 0;
-      }
-
-      .settings-menu__lock-icon svg {
-        width: 100%;
-        height: 100%;
-      }
-
-      /* ========================================================================
          ROADMAP FEATURE STATE (Coming Soon / What's Growing)
          ======================================================================== */
       .settings-menu__item--roadmap {
@@ -2429,146 +2251,6 @@ class SettingsMenuUI {
         background: linear-gradient(135deg, var(--persona-primary, #5a7a51), var(--persona-secondary, #4a6a41));
       }
 
-      /* Shake animation for locked items */
-      @keyframes menuItemShake {
-        0%, 100% { transform: translateX(0); }
-        20% { transform: translateX(-4px); }
-        40% { transform: translateX(4px); }
-        60% { transform: translateX(-4px); }
-        80% { transform: translateX(4px); }
-      }
-
-      .settings-menu__item--shake {
-        animation: menuItemShake 0.4s ease;
-      }
-
-      /* ========================================================================
-         RELATIONSHIP STAGE BANNER - Inspiring journey visualization
-         ======================================================================== */
-      .settings-menu__stage-banner {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: var(--space-4, 16px);
-        padding: var(--space-5, 20px) var(--space-6, 24px);
-        background: linear-gradient(135deg, 
-          var(--persona-tint, rgba(74, 103, 65, 0.1)) 0%,
-          transparent 60%
-        );
-        border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
-        position: relative;
-        overflow: hidden;
-      }
-
-      /* Subtle decorative elements */
-      .settings-menu__stage-banner::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -20%;
-        width: 180px;
-        height: 180px;
-        background: radial-gradient(circle, var(--persona-tint, rgba(74, 103, 65, 0.06)) 0%, transparent 70%);
-        pointer-events: none;
-      }
-
-      .settings-menu__stage-info {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-        z-index: 1;
-      }
-
-      .settings-menu__stage-label {
-        font-family: var(--font-body);
-        font-size: 10px;
-        font-weight: 600;
-        color: var(--color-text-muted);
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-      }
-
-      .settings-menu__stage-name {
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-lg, 1.125rem);
-        font-weight: 700;
-        color: var(--persona-primary, #4a6741);
-        letter-spacing: -0.01em;
-      }
-
-      .settings-menu__stage-progress {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 6px;
-        min-width: 120px;
-        z-index: 1;
-      }
-
-      .settings-menu__stage-bar {
-        width: 100%;
-        height: 8px;
-        background: var(--color-background-tertiary, #ebe6df);
-        border-radius: var(--radius-full, 9999px);
-        overflow: hidden;
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
-      }
-
-      .settings-menu__stage-fill {
-        height: 100%;
-        background: linear-gradient(90deg, 
-          var(--persona-secondary, #3d5a35) 0%,
-          var(--persona-primary, #4a6741) 100%
-        );
-        border-radius: var(--radius-full, 9999px);
-        transition: width ${DURATION.MODERATE}ms ${EASING.EXPO_OUT};
-        position: relative;
-      }
-
-      /* Animated shimmer on progress bar */
-      .settings-menu__stage-fill::after {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(90deg, 
-          transparent 0%,
-          rgba(255, 255, 255, 0.3) 50%,
-          transparent 100%
-        );
-        animation: progressShimmer 2s ease-in-out infinite;
-      }
-
-      @keyframes progressShimmer {
-        0% { transform: translateX(-100%); }
-        100% { transform: translateX(200%); }
-      }
-
-      .settings-menu__stage-next {
-        font-family: var(--font-body);
-        font-size: 11px;
-        font-weight: 500;
-        color: var(--color-text-secondary);
-      }
-
-      .settings-menu__stage-max {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2, 8px);
-        font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
-        font-size: var(--text-sm, 0.875rem);
-        font-weight: 600;
-        color: var(--persona-primary, #4a6741);
-      }
-
-      .settings-menu__stage-max::before {
-        content: '✦';
-        font-size: 10px;
-        opacity: 0.7;
-      }
-
       /* ========================================================================
          DARK THEME (CEDAR NIGHT) - WCAG AA Compliant Premium Styling
          ======================================================================== */
@@ -2612,10 +2294,6 @@ class SettingsMenuUI {
           var(--color-accent-secondary, #7cb36b) 50%,
           transparent 100%
         );
-      }
-
-      [data-theme="midnight"] .settings-menu__header-eyebrow {
-        color: var(--color-accent-secondary, #7cb36b);
       }
 
       [data-theme="midnight"] .settings-menu__header h2 {
@@ -2696,46 +2374,6 @@ class SettingsMenuUI {
         border-top-color: rgba(255, 255, 255, 0.06);
       }
 
-      /* Stage Banner */
-      [data-theme="midnight"] .settings-menu__stage-banner {
-        background: linear-gradient(135deg, 
-          var(--persona-tint, rgba(124, 179, 107, 0.12)) 0%,
-          transparent 60%
-        );
-        border-bottom-color: var(--color-border-subtle, rgba(255, 255, 255, 0.06));
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-banner::before {
-        background: radial-gradient(circle, var(--persona-tint, rgba(124, 179, 107, 0.08)) 0%, transparent 70%);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-label {
-        color: var(--color-text-muted, #ddd6cc);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-name {
-        color: var(--color-accent-secondary, #7cb36b);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-bar {
-        background: var(--color-background-tertiary, rgba(255, 255, 255, 0.08));
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-fill {
-        background: linear-gradient(90deg, 
-          var(--persona-secondary, #5a8a4a) 0%,
-          var(--color-accent-secondary, #7cb36b) 100%
-        );
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-next {
-        color: var(--color-text-muted, #ddd6cc);
-      }
-
-      [data-theme="midnight"] .settings-menu__stage-max {
-        color: var(--color-accent-secondary, #7cb36b);
-      }
-
       /* Badges */
       [data-theme="midnight"] .settings-menu__badge {
         background: linear-gradient(135deg, 
@@ -2787,16 +2425,6 @@ class SettingsMenuUI {
 
       [data-theme="midnight"] .settings-menu__unpin-btn {
         color: var(--color-text-muted, #e8e2da);
-      }
-
-      /* Locked items */
-      [data-theme="midnight"] .settings-menu__item--locked {
-        opacity: 0.5;
-      }
-
-      [data-theme="midnight"] .settings-menu__unlock-hint,
-      [data-theme="midnight"] .settings-menu__lock-icon {
-        color: var(--color-text-muted, #ddd6cc);
       }
 
       /* Active items */

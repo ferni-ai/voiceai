@@ -1,18 +1,9 @@
 /**
- * Unified Journal Service
- *
- * Provides a single interface for all journal-related operations across the system.
- * This abstraction layer routes to the appropriate storage based on context:
- *
- * - Digital Twin entries → Custom Agent Memory API
- * - Productivity notes → ProductivityStore
- * - Trust analytics → Trust Systems Firestore
- *
- * Benefits:
- * - Single API for all journaling operations
- * - Cross-source querying (get all entries)
- * - Consistent mood format handling
- * - Unified entry schema
+ * Unified Journal Service: one interface over the journal stores, with
+ * cross-source queries, stats and search (the Chronicle reads through it).
+ * With JOURNAL_ONE_STORE on, journal entries are read from and written to
+ * bogle_users/{uid}/journal (journal-ports.ts) instead of the twin memories
+ * subcollection and the ProductivityStore; productivity notes stay where they are.
  *
  * @module journal-service
  */
@@ -32,6 +23,8 @@ import {
   type MoodId,
 } from './mood-conversion.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
+import * as oneStore from './journal-ports.js';
+import { journalStreaks } from './streaks.js';
 
 const log = createLogger({ module: 'JournalService' });
 
@@ -39,15 +32,14 @@ const log = createLogger({ module: 'JournalService' });
 // UNIFIED ENTRY TYPES
 // ============================================================================
 
-/**
- * Source system for journal entries
- */
+/** Source system for journal entries */
 export type JournalSource =
   | 'digital_twin' // Custom Agent Memory API
   | 'productivity' // ProductivityStore
   | 'auto_capture' // Auto-captured moments
   | 'quick_note' // Quick voice notes
-  | 'trust_analytics'; // Trust system recordings
+  | 'trust_analytics' // Trust system recordings
+  | 'call'; // Saved during a voice call (CALL_JOURNAL)
 
 /**
  * Unified journal entry that works across all storage systems
@@ -184,7 +176,8 @@ class JournalService {
     ) {
       try {
         const twinEntries = await this.getDigitalTwinEntries(userId, options);
-        entries.push(...twinEntries);
+        const stored = await oneStore.readChronicleJournal(userId, options.agentId);
+        entries.push(...twinEntries, ...this.filterEntries(stored, options));
       } catch (error) {
         log.warn({ error: String(error), userId }, 'Failed to load Digital Twin entries');
       }
@@ -231,9 +224,10 @@ class JournalService {
       case 'digital_twin':
         await this.saveToDigitalTwin(userId, fullEntry);
         break;
-      default:
-        // Default to productivity store
-        await this.saveToProductivityStore(userId, fullEntry);
+      default: // auto-capture and the rest: the journal store when it's on, else productivity
+        await (oneStore.journalOneStoreOn()
+          ? this.saveToDigitalTwin(userId, fullEntry)
+          : this.saveToProductivityStore(userId, fullEntry));
     }
 
     // Invalidate cache
@@ -278,6 +272,7 @@ class JournalService {
       auto_capture: 0,
       quick_note: 0,
       trust_analytics: 0,
+      call: 0,
     };
     entries.forEach((e) => {
       entriesBySource[e.source]++;
@@ -453,6 +448,10 @@ class JournalService {
   }
 
   private async saveToDigitalTwin(userId: string, entry: UnifiedJournalEntry): Promise<void> {
+    if (oneStore.journalOneStoreOn()) {
+      await oneStore.addUnifiedEntry(userId, entry);
+      return;
+    }
     if (!entry.agentId) {
       log.warn(
         { userId, entryId: entry.id },
@@ -635,54 +634,12 @@ class JournalService {
     });
   }
 
+  /** The current streak (ending today or yesterday) and the best run, kept separate. */
   private calculateStreaks(entries: UnifiedJournalEntry[]): {
     currentStreak: number;
     longestStreak: number;
   } {
-    if (entries.length === 0) {
-      return { currentStreak: 0, longestStreak: 0 };
-    }
-
-    // Get unique dates (YYYY-MM-DD)
-    const dates = new Set(entries.map((e) => e.createdAt.toISOString().split('T')[0]));
-    const sortedDates = Array.from(dates).sort().reverse();
-
-    // Check if today or yesterday has an entry (for current streak)
-    const today = new Date().toISOString().split('T')[0];
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
-    const hasRecentEntry = sortedDates[0] === today || sortedDates[0] === yesterday;
-
-    let currentStreak = 0;
-    let longestStreak = 0;
-    let tempStreak = 0;
-    let lastDate: Date | null = null;
-
-    for (const dateStr of sortedDates) {
-      const date = new Date(dateStr);
-
-      if (!lastDate) {
-        tempStreak = 1;
-        if (hasRecentEntry) currentStreak = 1;
-      } else {
-        const dayDiff = Math.round((lastDate.getTime() - date.getTime()) / 86400000);
-        if (dayDiff === 1) {
-          tempStreak++;
-          if (hasRecentEntry && tempStreak > currentStreak) {
-            currentStreak = tempStreak;
-          }
-        } else {
-          tempStreak = 1;
-        }
-      }
-
-      if (tempStreak > longestStreak) {
-        longestStreak = tempStreak;
-      }
-
-      lastDate = date;
-    }
-
-    return { currentStreak, longestStreak };
+    return journalStreaks(entries.map((e) => e.createdAt));
   }
 
   private isCacheValid(key: string): boolean {
@@ -691,10 +648,11 @@ class JournalService {
     return Date.now() < expiry;
   }
 
-  private invalidateCache(userId: string): void {
+  /** Public so a store write made outside this service (the panel) can drop stale lists. */
+  invalidateCache(userId: string): void {
     // Remove all cache entries for this user
     for (const key of this.entryCache.keys()) {
-      if (key.startsWith(userId)) {
+      if (key.startsWith(`${userId}:`)) {
         this.entryCache.delete(key);
         this.cacheExpiry.delete(key);
       }

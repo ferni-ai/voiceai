@@ -22,6 +22,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../firestore-utils.js';
 import { MISSED_AFTER_MS } from '../../scheduling/reminder-delivery-job.js';
 import { settleLegacyPromises, type LegacyPassResult } from './legacy-promises.js';
+import { isMemberIdentity } from '../../identity/member-identity.js';
 import { isInvitation } from './promise-kinds.js';
 import {
   clearCommitmentCache,
@@ -72,8 +73,7 @@ async function settle(
   });
 }
 
-const isPerson = (userId: string): boolean =>
-  !!userId && userId !== 'anonymous' && userId !== 'unknown';
+const isPerson = (userId: string): boolean => isMemberIdentity(userId);
 
 /**
  * Ferni just promised to remind the user (or text, email or call them at a
@@ -101,6 +101,23 @@ export async function recordReminderPromise(
     );
     return null;
   }
+}
+
+/**
+ * A reminder held to a later time (a text due in quiet hours waits until 08:00):
+ * its open promise falls due with the new time, so the sweep doesn't call it missed.
+ */
+export async function extendReminderPromise(
+  owner: string,
+  reminderId: string,
+  scheduledFor: Date
+): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) return;
+  const dueBy = new Date(scheduledFor.getTime() + MISSED_AFTER_MS).toISOString();
+  const snap = await promisesOf(db, owner).where('reminderId', '==', reminderId).get();
+  const open = snap.docs.filter((d) => d.data().outcome === 'open');
+  await Promise.all(open.map((d) => d.ref.update({ dueBy })));
 }
 
 const SAY = { sms: 'text', email: 'email', call: 'call' } as const;

@@ -14,6 +14,7 @@
  * @module agents/shared/tts-wrapper
  */
 
+import { isMetaInstructionChunk } from './tts-meta-filter.js';
 import { voice } from '@livekit/agents';
 import type { AudioFrame } from '@livekit/rtc-node';
 import {
@@ -42,12 +43,16 @@ import {
   isStreamingTTSEnabled,
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
+import { logToolMarkup, toolMarkupTransform } from './tool-markup-strip.js';
+import { replyCallerTurnFields } from './reply-caller-turn.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
 import { isFtisEnabled } from '../../config/tool-config.js';
 
 // TTS Gateway integration
 import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
 import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
+import { recordQuirk } from '../../services/session/quirk-log.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -313,8 +318,9 @@ export interface TtsSessionContext {
 
   /** User's name for personalized responses */
   userName?: string;
-  /** What the user originally asked (from last transcript) */
+  /** The caller's words this reply answers (reply-caller-turn.ts) */
   userRequest?: string;
+  callerTurnFresh?: boolean; // userRequest was read from this reply's own chat context
   /** User's detected emotional state */
   userEmotion?: {
     primary?: string;
@@ -536,16 +542,7 @@ export async function wrappedTtsNode(
         // In Gemini Live, instructions are sent as MODEL ROLE turns and the
         // model treats them as its own prior output, echoing them verbatim.
         // ========================================================================
-        const metaInstructionPatterns = [
-          /^Speaking now:?\s*$/i, // Silence handler cue (the most common leak)
-          /^Speaking now/i, // Partial match at start of chunk
-          /^\s*$/, // Empty/whitespace-only chunks (no value to TTS)
-          /^\[.*\]\s*$/, // Bracketed stage directions: [Ferni plays music], [searches weather]
-          /^\*.*\*\s*$/, // Asterisk stage directions: *plays music*, *searches weather*
-        ];
-        const isMetaInstruction = metaInstructionPatterns.some((pattern) =>
-          pattern.test(chunk.trim())
-        );
+        const isMetaInstruction = isMetaInstructionChunk(chunk); // tts-meta-filter.ts
 
         if (isMetaInstruction) {
           log.warn(
@@ -602,7 +599,9 @@ export async function wrappedTtsNode(
       },
     });
 
-    filteredText = text.pipeThrough(jsonLeakFilter);
+    // Calls written as text (`<template-call:…>`, `default_api.x(…)`) go whole, even across chunks.
+    const toolMarkup = toolMarkupTransform(logToolMarkup('tts', sessionId));
+    filteredText = text.pipeThrough(toolMarkup).pipeThrough(jsonLeakFilter);
   } else {
     // Legacy path: intercept JSON function calls from LLM text output
     log.info('🔄 JSON workaround ACTIVE - intercepting JSON function calls from LLM output');
@@ -733,12 +732,10 @@ export async function wrappedTtsNode(
           // V3.2: Track Ferni's commitments in his response
           // This catches when Ferni says things like "I'll check in about that" or "Let me know how it goes"
           // Fire-and-forget to not block TTS stream
-          if (userId && userId !== 'anonymous' && rawLLMBuffer.length > 10 && !isGarbageResponse) {
+          if (isMemberIdentity(userId) && rawLLMBuffer.length > 10 && !isGarbageResponse) {
             import('../../services/superhuman/semantic-intelligence/integration.js')
               .then(({ trackFerniCommitments }) => {
-                trackFerniCommitments(userId, rawLLMBuffer, {
-                  // Context is minimal in TTS wrapper, but commitments will still be detected
-                });
+                void trackFerniCommitments(userId, rawLLMBuffer, {});
               })
               .catch((err) => {
                 // Non-critical - don't block TTS
@@ -1119,6 +1116,8 @@ export async function wrappedTtsNode(
       personaId,
       emotion,
       turnContext: sessionContext,
+      // A laugh or breath the director added never reaches the history: log it (QUIRK_AWARENESS).
+      onNonverbal: (added) => recordQuirk(sessionContext?.sessionId, added),
       sampleRate: 24000,
       frameDurationMs: 20,
       enableCache: true,
@@ -1303,8 +1302,7 @@ export function extractTtsSessionContext(
     interruptType: userData?.interruptType as 'hard' | 'soft' | undefined,
     emotion: userData?.currentEmotion as string | undefined,
     userLocation: userData?.userLocation as
-      | { city?: string; regionCode?: string; countryCode?: string }
-      | undefined,
+      { city?: string; regionCode?: string; countryCode?: string } | undefined,
     // Turn number for profiling checkpoints (P1 UTO Fix - January 2026)
     turnNumber:
       (userData?.turnCount as number | undefined) ?? (userData?.turnNumber as number | undefined),
@@ -1316,9 +1314,7 @@ export function extractTtsSessionContext(
     // User's name for personalized responses
     userName: (userData?.userName as string | undefined) || (userData?.name as string | undefined),
 
-    // What the user originally asked (from last transcript)
-    userRequest: userData?.lastUserMessage as string | undefined,
-
+    ...replyCallerTurnFields(agent, userData?.lastUserMessage),
     // User's detected emotional state (prefer voice emotion, fallback to last analysis)
     userEmotion:
       voiceEmotion || lastEmotionAnalysis

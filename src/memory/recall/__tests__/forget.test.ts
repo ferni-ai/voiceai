@@ -91,16 +91,32 @@ describe('forgetTopic', () => {
       fact('dynamic_facts', 'p1', {
         entityName: 'Pete',
         key: 'phone number',
-        value: '435-339-7687',
+        value: '435-555-0188',
       }),
       dog,
     ]);
     expect(await forgetTopic('u', 'my ex', store)).toEqual({ kind: 'forgotten', marked: 1 });
-    expect(await forgetTopic('u', '4353397687', store)).toEqual({ kind: 'forgotten', marked: 1 });
+    expect(await forgetTopic('u', '4355550188', store)).toEqual({ kind: 'forgotten', marked: 1 });
     expect(await forgetTopic('u', 'forget what I said about that', store)).toEqual({
       kind: 'nothing',
     });
     expect(forgetTokens('Forget that thing, user')).toEqual([]);
+  });
+
+  it('sends facts about the topic forgotten one by one earlier through again, so their index copies go', async () => {
+    const earlier = fact('dynamic_facts', 'd9', {
+      entityName: 'User',
+      key: 'divorce',
+      value: 'divorce lawyer is Sam',
+      forgottenAt: '2026-10-01T00:00:00Z',
+    });
+    const { store } = memoryStore([earlier, dog]);
+    const marked: string[] = [];
+    store.markForgotten = async (_u, refs) => {
+      marked.push(...refs.map((r) => r.id));
+    };
+    expect(await forgetTopic('u', 'my divorce', store)).toEqual({ kind: 'forgotten', marked: 0 });
+    expect(marked).toEqual(['d9']);
   });
 
   it('matches whole words only', () => {
@@ -111,11 +127,20 @@ describe('forgetTopic', () => {
 
 describe('forgetForCaller', () => {
   it('reports a failure as failed, never as forgotten', async () => {
-    expect(await forgetForCaller(undefined, 'my divorce')).toEqual({ kind: 'failed' });
+    expect(await forgetForCaller(undefined, 'my divorce')).toEqual({ kind: 'not-saved' });
     const failing = memoryStore([]).store;
     failing.facts = async () => Promise.reject(new Error('firestore down'));
     expect(await forgetForCaller('u', 'my divorce', failing)).toEqual({ kind: 'failed' });
     expect(forgetProblem({ kind: 'failed' })).toMatch(/couldn't remove/);
+  });
+
+  it('tells a caller with no saved memory so calmly, never "ask me again"', async () => {
+    for (const id of ['anonymous', 'anon:3f2a', 'onbehalf:call-1']) {
+      const result = await forgetForCaller(id, 'my divorce');
+      expect(result).toEqual({ kind: 'not-saved' });
+      if (result.kind === 'forgotten') throw new Error('unreachable');
+      expect(forgetProblem(result)).toBe("There's nothing saved about you here.");
+    }
   });
 });
 
@@ -140,7 +165,10 @@ describe('recall after forgetting', () => {
           { entityName: 'Biscuit', key: 'breed', value: 'golden retriever', confidence: 0.9 },
         ],
         summaries: async () => [
-          { followUpItems: ['Ask how the divorce paperwork is going', 'Ask how Biscuit is doing'] },
+          {
+            callerProvenance: 1,
+            followUpItems: ['Ask how the divorce paperwork is going', 'Ask how Biscuit is doing'],
+          },
         ],
         forgotten: async () => ['divorce'],
       },

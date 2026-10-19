@@ -85,6 +85,7 @@ let currentTab: TabId = 'highlights';
 let highlightsCache: Memory[] = [];
 let onThisDayCache: Memory[] = [];
 let timelineCache: TimelineGroup[] = [];
+let failedTab: TabId | null = null; // its last load failed: say so, not "no memories yet"
 let hasCheckedToday = false;
 
 // ============================================================================
@@ -403,38 +404,36 @@ async function switchTab(tabId: TabId): Promise<void> {
 async function loadTabData(tabId: TabId): Promise<void> {
   const authState = getAuthState();
   if (!authState.isAuthenticated) return;
-
+  failedTab = null;
   try {
     switch (tabId) {
       case 'highlights':
         if (highlightsCache.length === 0) {
           const response = await apiGet<HighlightsResponse>('/api/memories/highlights');
-          if (response.ok && response.data) {
-            highlightsCache = response.data.memories ?? [];
-          }
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          highlightsCache = response.data?.memories ?? [];
         }
         break;
 
       case 'on-this-day':
         if (onThisDayCache.length === 0) {
           const response = await apiGet<OnThisDayResponse>('/api/memories/on-this-day');
-          if (response.ok && response.data) {
-            onThisDayCache = response.data.memories ?? [];
-          }
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          onThisDayCache = response.data?.memories ?? [];
         }
         break;
 
       case 'timeline':
         if (timelineCache.length === 0) {
           const response = await apiGet<TimelineResponse>('/api/memories/timeline');
-          if (response.ok && response.data) {
-            timelineCache = response.data.groups ?? [];
-          }
+          if (!response.ok) throw new Error(`HTTP ${response.status}`);
+          timelineCache = response.data?.groups ?? [];
         }
         break;
     }
   } catch (err) {
     log.warn('Failed to load memory data', { error: String(err), tabId });
+    failedTab = tabId;
   }
 }
 
@@ -537,19 +536,19 @@ function renderTimeline(container: HTMLElement): void {
 }
 
 function renderEmptyState(container: HTMLElement, tab: TabId): void {
-  // Use shared empty state component for main states
-  // For on-this-day, use a simpler message since it's date-specific
-  if (tab === 'on-this-day') {
+  // A failed load and on-this-day (date-specific) get a simple message; the rest the shared one
+  const failed = failedTab === tab;
+  if (tab === 'on-this-day' || failed) {
     const empty = document.createElement('div');
-    empty.className = 'memory-lane-empty';
+    empty.className = failed ? 'memory-lane-empty memory-lane-error' : 'memory-lane-empty';
 
     const text = document.createElement('p');
     text.className = 'memory-lane-empty__text';
-    text.textContent = t('memoryLane.emptyOnThisDay');
+    text.textContent = failed ? t('memoryLane.loadError') : t('memoryLane.emptyOnThisDay');
 
     const subtext = document.createElement('p');
     subtext.className = 'memory-lane-empty__subtext';
-    subtext.textContent = t('memoryLane.emptyOnThisDaySubtext');
+    subtext.textContent = failed ? '' : t('memoryLane.emptyOnThisDaySubtext');
 
     empty.appendChild(text);
     empty.appendChild(subtext);

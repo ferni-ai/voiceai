@@ -236,9 +236,7 @@ export {
   type RetrievedMemory,
 } from './advanced-retrieval.js';
 
-// ============================================================================
-// NEW v2 MODULES
-// ============================================================================
+// --- NEW v2 MODULES ---
 
 // Result Type Pattern (error handling)
 export {
@@ -592,17 +590,14 @@ export { routeSignalsToSuperhuman } from './superhuman-signal-router.js';
 // ============================================================================
 // UNIFIED MEMORY STORE (Superhuman Memory Phase 1)
 // ============================================================================
-//
 // The unified memory store provides a single interface for all memory operations
 // across multiple storage backends (Firestore, Vector, Redis, In-Memory).
-//
 // Usage:
 //   import { getUnifiedStore } from './memory/unified-store';
 //   const store = getUnifiedStore();
 //   await store.initialize();
 //   const memory = await store.store({ userId, type: 'entity', content: '...' });
 //   const result = await store.recall({ userId, query: '...' });
-//
 // This is part of the Superhuman Memory implementation (Phase 1).
 // See docs/plans/SUPERHUMAN-MEMORY-IMPLEMENTATION-PLAN.md
 
@@ -1289,3 +1284,8 @@ export default {
   initializeRedisCache,
   rehydrateConversationEmbeddings,
 };
+export { forgottenInProcess, forgottenTopicsOrNull } from './recall/forget.js';
+export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
+export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
+export { peopleOf } from './recall/people.js';
+export { isSensitiveThread } from './recall/sensitive.js';

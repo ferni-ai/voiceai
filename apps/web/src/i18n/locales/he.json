@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "עוברים ל־{language}",
+    "seeYou": "נתראה בפעם הבאה!",
+    "callVoicemail": "השארתי ל־{name} הודעה קולית",
+    "callNoAnswer": "לא הצלחתי להשיג את {name}. לנסות שוב אחר כך?",
+    "callFailed": "השיחה ל־{name} לא עברה",
+    "callBack": "{name} מחכה לשיחה חוזרת מכם",
+    "followUp": "{name} מחכה לשמוע מכם"
+  },
   "accessibility": {
     "accountMenu": "תפריט חשבון",
     "accountSettings": "הגדרות חשבון",
@@ -1531,7 +1540,6 @@
         "title": "פשוט לדבר"
       },
       "welcome": {
-        "description": "צוות מאמני החיים האישי שלך מבוסס בינה מלאכותית. כל אחד מביא חוכמה ייחודית כדי לתמוך במסע שלך.",
         "title": "ברוכים הבאים ל-Ferni"
       }
     },
@@ -2113,8 +2121,8 @@
     "couldNotDisconnect": "לא ניתן היה להתנתק. לנסות שוב?",
     "sonosConnected": "Sonos מחובר!",
     "transcribing": "מתמללים...",
-    "transcriptionUnavailable": "התמלול אינו זמין. שומרים את השמע בלבד.",
-    "audioSaved": "קובץ השמע נשמר!",
+    "transcriptionUnavailable": "הפעם לא הצלחתי לקלוט את המילים, ולכן שום דבר לא נשמר. לנסות שוב?",
+    "journalTooLong": "זה קצת ארוך. נסו הקלטה קצרה יותר, עד {count} דקות.",
     "entrySaved": "הרשומה נשמרה!",
     "couldNotSaveEntry": "לא הצלחנו לשמור את הרשומה. לנסות שוב?",
     "profileSaved": "הפרופיל נשמר!",
@@ -2233,7 +2241,6 @@
       "two": "{count} אנשי קשר יובאו בהצלחה!"
     },
     "integrationNowConnected": "{integration} מחובר כעת!",
-    "inviteSentTo": "ההזמנה נשלחה אל {email}!",
     "householdMemberRemoved": "{name} הוסר",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} התווסף לצוות שלך",
@@ -3482,6 +3489,25 @@
     "fieldRelationship": "קשר משפחתי",
     "fieldWhatShouldFerniCallThem": "איך כדאי ל-Ferni לקרוא להם?",
     "fieldNotesForFerni": "הערות עבור Ferni",
+    "callConsentLabel": "שמחים לשמוע מ-Ferni",
+    "callConsentHint": "הסכימו ש-Ferni יתקשר מדי פעם לשאול מה שלומם. אפשר לבקש ממנו להפסיק בכל רגע.",
+    "callConsentSaved": "נשמר",
+    "callConsentFailed": "לא הצלחנו לשמור. נסו שוב.",
+    "callConsentLoadFailed": "לא הצלחנו לטעון אם הם שמחים לשמוע מ-Ferni. פתחו שוב כדי לנסות שוב.",
+    "checkinTitle": "מתי Ferni יתקשר לשאול מה שלומם?",
+    "checkinHint": "Ferni יתקשר לשיחה קצרה בשעה הזו כדי לשמוע מה שלומם.",
+    "checkinFrequencyLabel": "באיזו תדירות",
+    "checkinDaily": "כל יום",
+    "checkinWeekly": "פעם בשבוע",
+    "checkinDayLabel": "באיזה יום",
+    "checkinTimeLabel": "באיזו שעה",
+    "checkinTimezone": "השעות לפי {zone}.",
+    "checkinSave": "שמירת שעת השיחה",
+    "checkinRemove": "הפסקת השיחות הקבועות",
+    "checkinSaved": "נשמר. Ferni יתקשר בזמן הזה.",
+    "checkinRemoved": "השיחות הקבועות כבויות.",
+    "checkinFailed": "לא הצלחנו לשמור. נסו שוב.",
+    "checkinLoadFailed": "לא הצלחנו לטעון את שעת השיחה. פתחו שוב כדי לנסות שוב.",
     "cancel": "ביטול",
     "addToFamily": "הוספה למשפחה",
     "relationshipMother": "אמא",
@@ -3572,7 +3598,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "המלווה האישי שלך ב-AI",
+        "role": "המלווה האישי שלך",
         "description": "אני כאן לכל מה שצריך — מצ'ק-אין יומי ועד לשיחות עמוקות.",
         "unlockHint": "תמיד לצידך",
         "unlockedMessage": "עברנו הרבה ביחד.",
@@ -3643,11 +3669,9 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — מלווה ה-AI שלך לחיים",
       "message": "התחלתי להשתמש ב-Ferni וזה ממש שינה את ההתנהלות היומית שלי. כדאי להצטרף אליי! {url}",
       "shortMessage": "הצטרפו אליי ב-Ferni! {url}",
-      "emailSubject": "כדאי לנסות את Ferni",
-      "emailBody": "היי! התחלתי להשתמש ב-Ferni — מלווה AI שבאמת מרגיש אנושי. חשבתי שזה יעניין אותך. {url}"
+      "emailSubject": "כדאי לנסות את Ferni"
     },
     "modal": {
       "title": "לשתף את הצמיחה",
@@ -3880,10 +3904,12 @@
       "create": "יצירת סוכן",
       "empty": "אין עדיין סוכנים",
       "emptyHint": "אפשר ליצור את הסוכן המותאם אישית הראשון כדי לשמר קול של אדם אהוב, לבנות מנטור, או לעצב מלווה משלך.",
+      "emptyHintWithoutVoice": "אפשר ליצור את הסוכן המותאם אישית הראשון כדי לשמר סיפורים של אדם אהוב, לבנות מנטור, או לעצב מלווה משלך.",
       "createFirst": "ליצור את הסוכן הראשון שלך",
       "whatYouCan": "מה אפשר ליצור",
       "legacy": "מורשת",
       "legacyDesc": "לשמר את הקול והחוכמה של אדם יקר",
+      "legacyDescWithoutVoice": "לשמר את הסיפורים והחוכמה של אדם יקר",
       "mentor": "מנטור",
       "mentorDesc": "יצירת מאמן בהשראת דמות מעוררת השראה",
       "twin": "תאום דיגיטלי",
@@ -4565,7 +4591,7 @@
     "title": "יצירת דף סוכן",
     "nameLabel": "שם הסוכן",
     "namePlaceholder": "למשל, Nate Holloway",
-    "nameHint": "השם המלא של סוכן ה-AI שלכם",
+    "nameHint": "השם המלא של הסוכן שלכם",
     "initialsLabel": "ראשי תיבות",
     "initialsPlaceholder": "למשל, JD",
     "initialsHint": "יוצג על גבי האוואטר (2-3 תווים)",
@@ -5094,7 +5120,8 @@
     },
     "voiceStep": {
       "title": "איך הם צריכים להישמע?",
-      "subtitle": "אפשר לבחור קול או לשכפל קול קיים"
+      "subtitle": "אפשר לבחור קול או לשכפל קול קיים",
+      "subtitleWithoutClone": "אפשר לבחור קול"
     },
     "voiceOption": {
       "cloneTitle": "שכפול קול",
@@ -7282,6 +7309,7 @@
     "legacy": {
       "name": "מורשת",
       "description": "שימור הקול והחוכמה של אדם יקר ללב",
+      "descriptionWithoutVoice": "שימור הסיפורים והחוכמה של אדם יקר ללב",
       "feature1": "שיבוט קול מתוך הקלטות",
       "feature2": "תיעוד סיפורים וזיכרונות",
       "feature3": "שמירת חוכמת חיים ואמרות אהובות",
@@ -7300,8 +7328,7 @@
       "description": "יומן קולי אישי שגדל יחד איתך",
       "feature1": "הקלטת יומנים קוליים יומיים",
       "feature2": "שיחה עם העצמי של העבר",
-      "feature3": "מעקב אחר הצמיחה האישית לאורך זמן",
-      "feature4": "תובנות מבוססות בינה מלאכותית"
+      "feature3": "מעקב אחר הצמיחה האישית לאורך זמן"
     },
     "fictional": {
       "name": "בדיוני",
@@ -9546,11 +9573,22 @@
     "rememberEmpty": "אין משהו חדש לשמור הפעם. תודה על החברה.",
     "nextStepTitle": "צעד הבא עדין",
     "invitation": "חזור מתי שתרצה. אני כאן.",
-    "close": "סגור"
+    "close": "סגור",
+    "seeCost": "כמה עלתה השיחה הזו",
+    "feedbackQuestion": "איך זה הרגיש?",
+    "feedbackThanks": "תודה, זה עוזר.",
+    "pushAskQuestion": "רוצה ש-Ferni ישאל אותך על זה בהמשך?",
+    "pushAskYes": "כן, בבקשה",
+    "pushAskNotNow": "לא עכשיו",
+    "pushAskDone": "בוצע. הודעות מ-Ferni יגיעו למכשיר הזה.",
+    "pushAskLater": "אין בעיה. אפשר לשנות את זה בהגדרות בהמשך.",
+    "pushAskHomeScreen": "כדי לקבל כאן הודעות מ-Ferni, הוסף את Ferni למסך הבית: הקש על שיתוף ואז על הוספה למסך הבית.",
+    "pushAskGotIt": "הבנתי"
   },
   "moments": {
     "teamUnlockTitle": "להכיר את {name}",
     "niceWork": "עבודה יפה",
+    "remembered": "אזכור את זה: {summary}",
     "streakSubtitle": "ההתמדה שלך. זה מה שחשוב.",
     "streakTitle": {
       "one": "רצף של {count} יום",
@@ -9839,7 +9877,7 @@
     },
     "marketplace": {
       "headline": "למצוא את האנשים שלכם.",
-      "description": "מעבר לצוות הליבה של Ferni, מחכה לכם גינה של מאמני בינה מלאכותית מתמחים. תמיכה ב-ADHD, מלווי פיכחון, מומחי שינה, מדריכי הורות - מומחים שמבינים את המסע הייחודי שלכם.",
+      "description": "מעבר לצוות הליבה של Ferni, מחכה לכם גינה של מאמנים מתמחים. תמיכה ב-ADHD, מלווי פיכחון, מומחי שינה, מדריכי הורות - מומחים שמבינים את המסע הייחודי שלכם.",
       "superhuman1": "דמויות מתמחות - מאמנים לאתגרי חיים ספציפיים",
       "superhuman2": "דירוגי קהילה - חוויות אמיתיות, חוות דעת אמיתיות",
       "superhuman3": "חינמי ופרימיום - תמיכה לכל תקציב",
@@ -9847,7 +9885,7 @@
     },
     "developerPortal": {
       "headline": "לבנות את מה שחשוב.",
-      "description": "הטכנולוגיה של Ferni נפתחת. אפשר לבנות מאמני בינה מלאכותית משלכם, ליצור דמויות מתמחות ולהגיע לאנשים שזקוקים בדיוק למה שיש לכם להציע. הפלטפורמה שמניעה את Ferni - עכשיו שלכם.",
+      "description": "הטכנולוגיה של Ferni נפתחת. אפשר לבנות מאמנים משלכם, ליצור דמויות מתמחות ולהגיע לאנשים שזקוקים בדיוק למה שיש לכם להציע. הפלטפורמה שמניעה את Ferni - עכשיו שלכם.",
       "superhuman1": "תיעוד API מלא - כל מה שצריך כדי לבנות",
       "superhuman2": "SDK וספריות - פיתוח מבוסס TypeScript תחילה",
       "superhuman3": "בונה דמויות - כלים חזותיים ליצירת מאמנים",
@@ -9977,6 +10015,7 @@
     "timeout": "זה לקח יותר מדי זמן. כדאי לבדוק את החיבור ולנסות שוב?",
     "network": "לא ניתן ליצור קשר עם Ferni. כדאי לבדוק את החיבור לאינטרנט ולנסות שוב?",
     "dropped": "החיבור אבד. להתחבר מחדש?",
+    "agentLeft": "Ferni נותק מהשיחה. להתחבר מחדש?",
     "unknown": "לא ניתן להתחבר. לנסות שוב?"
   },
   "ambientSounds": {
@@ -10564,8 +10603,7 @@
     }
   },
   "ferniAwakens": {
-    "greeting": "שלום.",
-    "subtext": "אני Ferni, מאמן החיים האישי שלך בבינה מלאכותית."
+    "greeting": "שלום."
   },
   "serviceHealth": {
     "names": {
@@ -10575,7 +10613,6 @@
       "weatherMaps": "מזג אוויר ומפות",
       "historicalFacts": "עובדות היסטוריות",
       "smartHome": "בית חכם",
-      "aiContext": "הקשר AI",
       "sleepHealth": "נתוני שינה ובריאות",
       "other": "שירות מחובר"
     },
@@ -10741,9 +10778,6 @@
     "patronShort": "תומך/ת",
     "founderAria": "{tier}. תודה על האמון בנו! ללחוץ לניהול."
   },
-  "splash": {
-    "tagline": "צוות ה-AI שלך מוכן"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "כל התמיכה",
@@ -10883,7 +10917,9 @@
     "helper": "ליווי אישי צמוד",
     "connectToTalk": "להתחבר",
     "endTalk": "ניתוק",
-    "connectingCancel": "מתחבר. הקש לביטול"
+    "connectingCancel": "מתחבר. הקש לביטול",
+    "connectingNow": "מתחבר…",
+    "tapToCancel": "הקש לביטול"
   },
   "analyticsDashboard": {
     "title": "המסע האישי",
@@ -11149,10 +11185,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

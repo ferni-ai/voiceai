@@ -66,12 +66,25 @@ vi.mock('../../performance/session-optimizations.js', () => ({
     cached = null;
   },
 }));
-vi.mock('../../../../memory/recall/forget.js', () => ({
-  forgetForCaller: async () => ({ kind: 'forgotten', marked: 1 }),
+vi.mock('../../../../memory/recall/forget.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../memory/recall/forget.js')>()),
+  // The real forgetTopic, over a store with no stored facts: it records the topic in process.
+  forgetForCaller: async (userId: string, topic: string) =>
+    (await importOriginal<typeof import('../../../../memory/recall/forget.js')>()).forgetTopic(
+      userId,
+      topic,
+      {
+        facts: async () => [],
+        addTopic: async () => undefined,
+        markForgotten: async () => undefined,
+      } as never
+    ),
   forgetProblem: () => "I couldn't remove that just now.",
 }));
 
 const { memoryExecutor } = await import('../memory-executor.js');
+const { rememberForPacket, turnPacket } =
+  await import('../../../personas/context-packet/turn-packet.js');
 const ctx = { userId: 'u1', sessionId: 's1', personaId: 'ferni' } as never;
 
 beforeEach(() => {
@@ -124,5 +137,18 @@ describe('recallFromMemory and forgetting', () => {
     await memoryExecutor.execute('forgetMemory', { topic: 'Lisbon' }, ctx);
     expect(cleared).toContain('s1');
     expect(cached).toBeNull();
+  });
+
+  it('a fact remembered before the forget is absent from the next turn packet', async () => {
+    const session = { userData: { userId: 'u1', services: { sessionId: 's1' } } };
+    const turn = { words: 'what is my sister called?', notes: [], now: Date.now() };
+    rememberForPacket(session, {
+      facts: [{ entity: 'Sam', key: 'sister', value: 'Ruth', confidence: 0.9 }],
+      rest: null,
+    });
+    expect(turnPacket(session, turn).text).toContain('Sam sister: Ruth');
+
+    await memoryExecutor.execute('forgetMemory', { topic: 'my sister' }, ctx);
+    expect(turnPacket(session, turn).text).not.toContain('Ruth');
   });
 });

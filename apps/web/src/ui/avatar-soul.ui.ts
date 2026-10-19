@@ -37,6 +37,7 @@ import { soulStatsService } from '../services/soul-stats.service.js';
 import { gsap } from '../utils/gsap-setup.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
+import { onThinkingTurns } from './avatar-motion/thinking-glance.js';
 import { ferniExpressions } from './ferni-expressions.ui.js';
 
 const log = createLogger('AvatarSoul');
@@ -475,11 +476,6 @@ export function triggerWarmthBloom(intensity: number = 1, color?: string): void 
   // Remove any existing animation
   warmthBloomElement.classList.remove('active');
 
-  // Apply custom color if provided
-  if (color) {
-    warmthBloomElement.style.setProperty('--warmth-color', color);
-  }
-
   // Scale the element based on intensity
   warmthBloomElement.style.transform = `translate(-50%, -50%) scale(${0.95 * intensity})`;
 
@@ -492,7 +488,6 @@ export function triggerWarmthBloom(intensity: number = 1, color?: string): void 
   // Remove class after animation
   trackedTimeout(() => {
     warmthBloomElement?.classList.remove('active');
-    warmthBloomElement?.style.removeProperty('--warmth-color');
   }, 1500);
 
   log.debug('Warmth bloom triggered', { intensity, color });
@@ -1531,16 +1526,15 @@ function setupEventListeners(): void {
     exitProtectiveMode();
   });
 
-  // Thinking state - responds to the existing ferni:thinking event
-  document.addEventListener('ferni:thinking', ((e: CustomEvent) => {
-    const isThinking = e.detail?.isThinking;
-    if (isThinking) {
+  // Thinking: glance away on the turn driver's thinking turn, mid-call, under
+  // ferni:thinking-glance (see thinking-glance.ts; never while connecting)
+  onThinkingTurns(
+    () => {
       glanceAway();
       setPupilDilation('CONTRACTED', 'slow');
-    } else {
-      setPupilDilation('NEUTRAL', 'slow');
-    }
-  }) as EventListener);
+    },
+    () => setPupilDilation('NEUTRAL', 'slow')
+  );
 
   // Inside joke / shared history
   document.addEventListener('ferni:inside-joke', () => {

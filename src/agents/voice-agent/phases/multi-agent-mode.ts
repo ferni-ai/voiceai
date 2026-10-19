@@ -19,7 +19,10 @@ import type { SessionServices } from '../../../services/types.js';
 import type { Persona } from '../../../personas/types.js';
 import type { UserData } from '../types.js';
 import { startInCallChannels } from '../../multi-agent/live-data-context.js';
+import type { CallerChecks } from '../data-sender.js';
+import { startResumeLookup } from '../../multi-agent/resume-after-drop.js';
 import { waitForSessionEnd, type WatchedRoom } from './session-end-watch.js';
+import { demoCallCap, startDemoCallCap } from './demo-call-cap.js';
 
 // ============================================================================
 // TYPES
@@ -44,6 +47,8 @@ export interface MultiAgentModeConfig {
   userId: string | undefined;
   /** Session cleanup tracker */
   unregisterSession: (sessionId: string, reason: string) => void;
+  /** Who is on the call (caller-recognition.ts), for the in-call data channel */
+  callerChecks?: CallerChecks;
 }
 
 export interface MultiAgentModeResult {
@@ -155,6 +160,7 @@ export async function runMultiAgentMode(
     sessionId,
     userId,
     unregisterSession,
+    callerChecks,
   } = config;
 
   // Check if multi-agent mode is enabled (default: true, set MULTI_AGENT_MODE=false to disable)
@@ -176,6 +182,9 @@ export async function runMultiAgentMode(
     const { handoffEvents } = await import('../../../handoff/index.js');
     const handoffMsgs = await import('../../multi-agent/handoff-messages.js');
     const { llmHandoffHandler } = await import('../../multi-agent/llm-handoff.js');
+
+    // RESUME_AFTER_DROP: look for a call that dropped moments ago while the agent builds
+    startResumeLookup(sessionId, userId, services.realtimeConversationId);
 
     // Initialize multi-agent session
     const multiAgentResult = await initializeMultiAgentSession({
@@ -336,14 +345,27 @@ export async function runMultiAgentMode(
 
     handoffEvents.on('voiceSwitch', voiceSwitchHandler);
     // In-call controls and Ferni's teammate introductions, for the agent speaking now
-    const callParts = { room: ctx.room, ctx, services, userId, sessionId, sessionPersona };
+    const callParts = { room: ctx.room, ctx, services, userId, sessionId, sessionPersona, callerChecks };
     const stopInCallChannels = startInCallChannels(callParts, multiAgentResult.orchestrator);
     process.stderr.write(
       `[multi-agent-mode] 🎭 voiceSwitch handler registered for LLM-triggered handoffs\n`
     );
 
     // Until the room disconnects or empties, or the call goes idle (session-end-watch.ts)
-    const endReason = await waitForSessionEnd(ctx.room as unknown as WatchedRoom);
+    // DEMO_CALL_CAP=on: a demo room ends at its session_duration_minutes (demo-call-cap.ts)
+    const demoLimitMs = demoCallCap(ctx.room?.metadata || ctx.job.room?.metadata);
+    const demoCap =
+      demoLimitMs === null
+        ? null
+        : startDemoCallCap(demoLimitMs, (text) =>
+            multiAgentResult.orchestrator.getActiveAgent()?.say(text, { allowInterruptions: false })
+          );
+    let endReason: Awaited<ReturnType<typeof waitForSessionEnd>>;
+    try {
+      endReason = await waitForSessionEnd(ctx.room as unknown as WatchedRoom, demoCap?.endOptions);
+    } finally {
+      demoCap?.stop();
+    }
     process.stderr.write(`[multi-agent-mode] 🎭 Ending session wait (${endReason})\n`);
 
     // Cleanup

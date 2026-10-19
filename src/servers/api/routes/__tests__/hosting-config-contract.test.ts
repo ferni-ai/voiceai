@@ -26,6 +26,7 @@ interface HostingEntry {
   site?: string;
   target?: string;
   rewrites?: Rewrite[];
+  redirects?: Array<{ source: string; destination: string; type: number }>;
 }
 
 function hosting(path: string): HostingEntry[] {
@@ -58,13 +59,29 @@ describe('landing hosting config', () => {
     expectShareRoutedToBackend(entries[0]);
   });
 
-  it('is deployed by the CLI with --only hosting:ferni-landing', () => {
-    const deploy = readFileSync(resolve(ROOT, 'apps/cli/src/commands/deploy/deploy.ts'), 'utf8');
-    const landing = deploy.slice(deploy.indexOf('async function deployLanding'));
-    const body = landing.slice(0, landing.indexOf('\nasync function ', 1));
-    expect(deploy).toContain("const LANDING_SITE = 'ferni-landing';");
-    expect(body).toContain('--only hosting:${LANDING_SITE}');
-    expect(body).not.toMatch(/firebase deploy --only hosting --/);
+  // People guess ferni.ai/app (or /login, /signin, /start) and landed on the 404
+  // page (new-person hunt, 2026-10-18). Exact paths only: no catch-all.
+  it.each(['/app', '/login', '/signin', '/start'])('redirects %s to app.ferni.ai (301)', (path) => {
+    const matches = (entries[0].redirects ?? []).filter((r) => r.source === path);
+    expect(matches).toEqual([{ source: path, destination: 'https://app.ferni.ai/', type: 301 }]);
+  });
+
+  it('sends nothing else to the app', () => {
+    const toApp = (entries[0].redirects ?? []).filter((r) =>
+      r.destination.includes('app.ferni.ai')
+    );
+    expect(toApp.map((r) => r.source).sort()).toEqual(['/app', '/login', '/signin', '/start']);
+  });
+
+  // The ferni CLI's landing deploy was removed 2026-10-17: the workflow is the only path.
+  it('is deployed by the Firebase workflow to the ferni-landing target only', () => {
+    const workflow = readFileSync(resolve(ROOT, '.github/workflows/deploy-firebase.yml'), 'utf8');
+    const start = workflow.indexOf('- name: Deploy landing to Firebase');
+    expect(start).toBeGreaterThan(-1);
+    const step = workflow.slice(start, workflow.indexOf('\n      - name: ', start + 1));
+    expect(step).toContain('target: ferni-landing');
+    expect(step).toContain('entryPoint: ./apps/website/ferni-website');
+    expect(step).not.toContain('ferni-prod');
   });
 });
 

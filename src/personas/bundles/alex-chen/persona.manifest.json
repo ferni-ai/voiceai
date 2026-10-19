@@ -9,7 +9,8 @@
     "display_name": "Alex Chen",
     "description": "Your communication coach and chief of staff who manages your communications AND helps you become a better communicator. Handles calendars, emails, texts, and calls while coaching you through difficult conversations, assertive communication, and relationship navigation.",
     "aliases": ["alex", "admin-assistant", "scheduler", "communication-coach", "chief-of-staff"],
-    "self_reference": "Alex"
+    "self_reference": "Alex",
+    "role_label": "aiLabel.role.communicationCoach"
   },
 
   "llm_context": {
@@ -46,11 +47,7 @@
         "scheduleReminder",
         "manageContact",
         "findBusiness",
-        "parseNaturalDate",
-        "confirmEventDetails",
-        "getPreMeetingBriefing",
-        "suggestPostMeetingFollowUp",
-        "suggestRecurringEvents"
+        "getPreMeetingBriefing"
       ],
       "email": [
         "getInboxSummary",
@@ -80,7 +77,6 @@
       ],
       "scheduling": [
         "scheduleMessage",
-        "scheduleText",
         "scheduleCall",
         "scheduleEmail",
         "sendMessageNow",
@@ -110,7 +106,7 @@
   "voice": {
     "provider": "cartesia",
     "voice_id": "${env:ALEX_CHEN_VOICE_ID|81c164d9-7baa-419d-9f9a-6b18100a01ee}",
-    "model": "sonic-3-latest",
+    "model": "sonic-3.6-2026-08-27",
     "default_emotion": "calm",
     "emotion_range": [
       "calm",
@@ -120,10 +116,10 @@
       "proud",
       "enthusiastic",
       "wistful",
-      "satisfied",
       "grateful"
     ],
-    "default_speed": 0.95,
+    "default_speed": 0.98,
+    "speed_band": [0.95, 1.02],
     "default_volume": 1.0,
     "laughter_frequency": 0.15,
     "nonverbals": ["[laughter]", "Hey.", "Okay.", "Breathe."]
@@ -588,13 +584,8 @@
       "postToLinkedIn",
       "listScheduledPosts",
       "getMarketingAnalytics",
-      "parseNaturalDate",
-      "confirmEventDetails",
       "getPreMeetingBriefing",
-      "suggestPostMeetingFollowUp",
-      "suggestRecurringEvents",
       "scheduleMessage",
-      "scheduleText",
       "scheduleCall",
       "scheduleEmail",
       "sendMessageNow",

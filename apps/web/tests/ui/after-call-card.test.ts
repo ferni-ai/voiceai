@@ -79,15 +79,57 @@ describe('after-call card', () => {
     localStorage.clear();
     mockApiGet.mockReset();
     mockSupportOpen.mockClear();
+    // These cases are the paywall-on behaviour; 'paywall off' below covers Ferni being free
+    const { recordPaywallFlag } = await import('../../src/services/paywall.service.js');
+    recordPaywallFlag({ paywall: true });
     await startCall();
   });
 
   afterEach(async () => {
     vi.unstubAllEnvs();
+    const { resetPaywallFlagForTests } = await import('../../src/services/paywall.service.js');
+    resetPaywallFlagForTests();
     const { hideAfterCallCard } = await import('../../src/ui/after-call/after-call-card.ui.js');
     hideAfterCallCard(true);
     const { hide } = await import('../../src/ui/conversation-cost.ui.js');
     hide();
+  });
+
+  describe('paywall off', () => {
+    beforeEach(async () => {
+      const { resetPaywallFlagForTests } = await import('../../src/services/paywall.service.js');
+      resetPaywallFlagForTests();
+    });
+
+    it('with Venmo off: no Support Ferni link on the card', async () => {
+      vi.stubEnv('VITE_VENMO_CHIP_IN', 'false');
+      routeApi({ memories: [{ content: 'Likes tea', learnedAt: inCall(1000) }] });
+      await runPostCall();
+      expect(afterCallCard()).not.toBeNull();
+      expect(afterCallCard()!.querySelector('.after-call-support')).toBeNull();
+      expect(costCard()).toBeNull();
+    });
+
+    it('with Venmo off and the card flag off: no cost/tip card either', async () => {
+      vi.stubEnv('VITE_VENMO_CHIP_IN', 'false');
+      vi.stubEnv('VITE_AFTER_CALL_CARD', 'false');
+      routeApi({});
+      await runPostCall();
+      expect(costCard()).toBeNull();
+    });
+
+    it('with Venmo on: the voluntary Support Ferni link stays and opens the Venmo card', async () => {
+      vi.stubEnv('VITE_VENMO_CHIP_IN', 'true');
+      vi.stubEnv('VITE_VENMO_HANDLE', 'ferni-test');
+      routeApi({ memories: [{ content: 'Likes tea', learnedAt: inCall(1000) }] });
+      await runPostCall();
+      const link = afterCallCard()!.querySelector<HTMLButtonElement>('.after-call-support');
+      expect(link).not.toBeNull();
+      link!.click();
+      await vi.waitFor(() => expect(document.querySelector('dialog.venmo-chip-in')).not.toBeNull());
+      expect(mockSupportOpen).not.toHaveBeenCalled();
+      document.querySelector('dialog.venmo-chip-in')?.remove();
+    });
   });
 
   describe('flag off', () => {
@@ -114,7 +156,6 @@ describe('after-call card', () => {
   });
 
   describe('default build', () => {
-
     it('shows memories saved during this call and a commitment from it, not the cost card', async () => {
       routeApi({
         memories: [
@@ -205,8 +246,19 @@ describe('after-call card', () => {
             <p id="helperText">Your personal guide</p>
           </main>`;
         Object.defineProperty(window, 'innerHeight', { value: height, configurable: true });
-        const box = ([top, bottom]: [number, number]) => () =>
-          ({ top, bottom, height: bottom - top, left: 0, right: 390, width: 390, x: 0, y: top }) as DOMRect;
+        const box =
+          ([top, bottom]: [number, number]) =>
+          () =>
+            ({
+              top,
+              bottom,
+              height: bottom - top,
+              left: 0,
+              right: 390,
+              width: 390,
+              x: 0,
+              y: top,
+            }) as DOMRect;
         document.querySelector('.controls-row')!.getBoundingClientRect = box(row);
         document.querySelector('.engagement-triggers')!.getBoundingClientRect = box(triggers);
       }

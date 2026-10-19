@@ -20,7 +20,7 @@ import { formatCurrency, formatNumber, t } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
 import { apiGet } from '../utils/api.js';
 import { anchorAboveControls, anchoredCardCss } from './after-call/anchor-above-controls.js';
-import { openSupport } from './support/open-support.js';
+import { canOpenSupport, openSupport } from './support/open-support.js';
 
 const log = createLogger('ConversationCostUI');
 
@@ -237,7 +237,10 @@ function createCostCard(data: ConversationCostResponse): HTMLElement {
   const costDisplay =
     data.totalCost < 0.01
       ? t('conversationCost.cents', {
-          amount: formatNumber(data.totalCost * 100, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+          amount: formatNumber(data.totalCost * 100, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          }),
         })
       : formatCurrency(data.totalCost, 'USD');
 
@@ -287,7 +290,9 @@ function handleTipClick(_amount: string): void {
   hide();
 
   // Venmo chip-in when configured, otherwise the Stripe Support Ferni modal
-  openSupport().catch((error: unknown) => log.warn('Support failed to open', { error: String(error) }));
+  openSupport().catch((error: unknown) =>
+    log.warn('Support failed to open', { error: String(error) })
+  );
 }
 
 // ============================================================================
@@ -295,9 +300,11 @@ function handleTipClick(_amount: string): void {
 // ============================================================================
 
 /**
- * Fetch and show the conversation cost card
+ * Fetch and show the conversation cost card. Resolves to the card, or null when none was shown.
  */
-export async function showConversationCost(): Promise<void> {
+export async function showConversationCost(): Promise<HTMLElement | null> {
+  // A tip card: only when its Support button has something to open (Venmo chip-in, or Stripe with a paywall)
+  if (!canOpenSupport()) return null;
   injectStyles();
   cleanupExisting();
 
@@ -307,7 +314,7 @@ export async function showConversationCost(): Promise<void> {
 
     if (!response.ok || !response.data) {
       log.debug('No cost data available');
-      return;
+      return null;
     }
 
     const data = response.data;
@@ -315,7 +322,7 @@ export async function showConversationCost(): Promise<void> {
     // Don't show if cost is essentially zero or no session
     if (!data.sessionId || data.totalCost < 0.0001) {
       log.debug('Skipping cost display - no meaningful cost', { cost: data.totalCost });
-      return;
+      return null;
     }
 
     // Create and show the card
@@ -337,8 +344,10 @@ export async function showConversationCost(): Promise<void> {
     dismissTimeout = setTimeout(() => {
       hide();
     }, 30000);
+    return container;
   } catch (error) {
     log.error('Failed to fetch conversation cost', error);
+    return null;
   }
 }
 
@@ -395,4 +404,3 @@ export const conversationCostUI = {
 };
 
 export default conversationCostUI;
-

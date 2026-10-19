@@ -21,9 +21,19 @@
  * @module agents/personas/director-notes
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { splitSaidBy } from './said-by.js';
+import {
+  DIRECTOR_ADDRESS,
+  directorEscalates,
+  hardRuleFor,
+  NoteHistory,
+} from './director-escalation.js';
+import { directorSeesTools, ToolLog } from './director-tool-state.js';
 import { formatTold, toldThisCall, toldThisCallEnabled, type Told } from './told-this-call.js';
+import { claimsIdentity, speakerNote, teamNote } from './director-persona.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -36,6 +46,8 @@ export function directorNotesEnabled(
 export interface Line {
   speaker: 'user' | 'ferni';
   text: string;
+  /** Who said an assistant line, when known (DIRECTOR_PERSONA_AWARE: director-persona.ts). */
+  by?: string;
 }
 
 /** Writes notes from a prompt; injectable so tests need no model. */
@@ -50,17 +62,36 @@ const DIRECTOR_RULES = [
   'If the conversation is flowing and Ferni is doing fine, reply NONE. Reply with only the notes, one per line, no numbering, or exactly NONE.',
 ];
 
+/** The habits the director may tell Ferni to drop. */
+const HABITS = '(too many questions, fixing too early, sounding upbeat, repeating himself)';
+/**
+ * FERNI_LIGHT_TOUCH=on: "sounding upbeat" is no longer a habit to drop (23% of
+ * prod notes leaned soft and Ferni read as calm and boring); going flat when
+ * the caller is being light is, but only about something light: "lol my
+ * grandma passed" is not a cue to lighten up.
+ */
+const LIGHT_HABITS =
+  "(too many questions, fixing too early, repeating himself, staying flat or serious when they're being light about something light)";
+
 export const DIRECTOR_SYSTEM = [
   DIRECTOR_ROLE,
-  "Every note must point at something that actually happened in this call, naming the detail: what they hinted at but didn't say, a pattern across what they've said, the mood or energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
+  `Every note must point at something that actually happened in this call, naming the detail: what they hinted at but didn't say, a pattern across what they've said, the mood or energy they're bringing, or a habit of Ferni's to drop ${HABITS}. Give the nudge and its reason in under 20 words.`,
   'Ferni reads your notes only after they have spoken again, and what they say next comes first. So never send him back to an earlier line: no connecting to, coming back to or following up on something they said. Say what you notice about them instead.',
   ...DIRECTOR_RULES,
 ].join('\n');
 
+/**
+ * With DIRECTOR_TOOL_STATE on (director-tool-state.ts): the director sees
+ * Ferni's tool calls and must not contradict them. Dev call 2026-10-12: "He
+ * asked for music, but you don't have a player." while playMusic was starting.
+ */
+const TOOL_RULE =
+  "Ferni has tools (music, timers, reminders, weather, calls and more). His tool calls on this call are listed after the transcript: one that is running or done is real, so never say he can't do it or lacks it. Never claim he is missing any capability; you can't see his full set of tools.";
+
 /** The prompt before 2026-10-03, which invited notes that send Ferni back to an earlier line. */
 const LOOKING_BACK_SYSTEM = [
   DIRECTOR_ROLE,
-  "Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or a habit of Ferni's to drop (too many questions, fixing too early, sounding upbeat, repeating himself). Give the nudge and its reason in under 20 words.",
+  `Every note must point at something that actually happened in this call, naming the words or detail: what they hinted at but didn't say, a pattern across what they've said, something from earlier worth coming back to, the energy they're bringing, or a habit of Ferni's to drop ${HABITS}. Give the nudge and its reason in under 20 words.`,
   ...DIRECTOR_RULES,
 ].join('\n');
 
@@ -72,13 +103,27 @@ export function directorLooksBack(env: Record<string, string | undefined> = proc
   return env.DIRECTOR_LOOK_BACK === 'on';
 }
 
-export function buildDirectorPrompt(lines: Line[], userName?: string): string {
+/**
+ * `speaking` (DIRECTOR_PERSONA_AWARE) names the persona on the call now: each
+ * assistant line is labelled with who said it, or with them when unknown.
+ * Without it every assistant line is Ferni's.
+ */
+export function buildDirectorPrompt(
+  lines: Line[],
+  userName?: string,
+  speaking?: string,
+  tools: string[] = []
+): string {
   const who = userName || 'Them';
+  const assistant = (l: Line): string => (speaking ? (l.by ?? speaking) : 'Ferni');
   const transcript = lines
     .slice(-12)
-    .map((l) => `${l.speaker === 'ferni' ? 'Ferni' : who}: ${l.text}`)
+    .map((l) => `${l.speaker === 'ferni' ? assistant(l) : who}: ${l.text}`)
     .join('\n');
-  return `The call so far:\n${transcript}\n\nYour notes for Ferni's next reply:`;
+  const used = tools.length
+    ? `\n\n${speaking ?? 'Ferni'}'s tool calls (most recent last):\n${tools.map((t) => `- ${t}`).join('\n')}`
+    : '';
+  return `The call so far:\n${transcript}${used}\n\nYour notes for ${speaking ?? 'Ferni'}'s next reply:`;
 }
 
 const GENERIC =
@@ -117,6 +162,14 @@ const ANSWER_THAT = /\b(answer|address|respond to) that\b/i;
 const ABOUT_A_QUESTION = /\b(ask|asks|asked|asking|question|questions)\b|\?/i;
 const backToEarlier = (note: string): boolean =>
   BACK_TO_EARLIER.test(note) || (ANSWER_THAT.test(note) && !ABOUT_A_QUESTION.test(note));
+/**
+ * Telling Ferni he can't do something: the director doesn't see his tools, so
+ * it can't know. Dev call 2026-10-12, while playMusic was starting: "He asked
+ * for music, but you don't have a player. Tell him what you can actually do
+ * instead." Dropped with DIRECTOR_TOOL_STATE on.
+ */
+const CAPABILITY_DENIAL =
+  /\b(?:you|he) (?:don'?t|doesn'?t|do not|does not) have (?:a |an |the |any )?(?:way|player|tool|ability|access|means|capability|option)\b|\b(?:you|he) (?:can'?t|cannot|can not|aren'?t able to|isn'?t able to) (?:actually )?(?:play|set|check|look|search|call|text|send|book|remind|schedule|start|put on)\b|\bwhat (?:you|he) can actually do\b|\bno (?:music )?player\b/i;
 const STOP = new Set(
   'that this they them their with what have from about your just like been were when then there some would could should into only also very really'.split(
     ' '
@@ -133,7 +186,7 @@ function contentWords(text: string): Set<string> {
  * unusable. With the call's lines given, a note must mention something said
  * in it: the director once reported a "weather bit" nobody had mentioned.
  */
-export function parseNotes(reply: string | undefined, call?: Line[]): string[] {
+export function parseNotes(reply: string | undefined, call?: Line[], speaking?: string): string[] {
   if (!reply) return [];
   const said = call ? contentWords(call.map((l) => l.text).join(' ')) : null;
   const notes = reply
@@ -144,6 +197,8 @@ export function parseNotes(reply: string | undefined, call?: Line[]): string[] {
     .filter((l) => !/^["“'].*["”']$/.test(l))
     .filter((l) => !GENERIC.test(l) && !PUSHY.test(l) && !MIND_READING.test(l))
     .filter((l) => directorLooksBack() || !backToEarlier(l))
+    .filter((l) => !directorSeesTools() || !CAPABILITY_DENIAL.test(l))
+    .filter((l) => speaking === undefined || !claimsIdentity(l))
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
   return notes.slice(0, 2);
@@ -162,9 +217,14 @@ const defaultWriter: NoteWriter = async (system, prompt) => {
 };
 
 export class Director {
+  /** Ferni's tool calls on this call, for the prompt (director-tool-state.ts). */
+  readonly tools = new ToolLog();
   private notes: string[] = [];
   private toldRecord: Told | null = null;
   private generation = 0;
+  /** DIRECTOR_ESCALATE=on: what the notes have raised, and the rule a repeat earned. */
+  private readonly history = new NoteHistory();
+  private rule = '';
 
   constructor(
     private readonly opts: {
@@ -174,6 +234,8 @@ export class Director {
       budgetMs?: number;
       /** Ask the model for notes (DIRECTOR_NOTES=on); false keeps only the told-this-call record. */
       writeNotes?: boolean;
+      /** The persona on the call now (DIRECTOR_PERSONA_AWARE); unset, the director directs Ferni. */
+      speaking?: () => string;
     }
   ) {}
 
@@ -181,16 +243,28 @@ export class Director {
   observe(lines: Line[]): Promise<void> {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
-    this.toldRecord = toldThisCallEnabled() ? toldThisCall(lines, this.opts.userName) : null;
+    this.rule = '';
+    const speaking = this.opts.speaking?.();
+    this.toldRecord = toldThisCallEnabled()
+      ? toldThisCall(lines, this.opts.userName, speaking)
+      : null;
     if (this.opts.writeNotes === false) return Promise.resolve();
     const writer = this.opts.writer ?? defaultWriter;
+    const seesTools = directorSeesTools();
     const started = Date.now();
+    const system = directorSystem();
     const work = (async () => {
       try {
         const reply = await withTimeout(
           writer(
-            directorLooksBack() ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM,
-            buildDirectorPrompt(lines, this.opts.userName)
+            (speaking ? `${system}\n${speakerNote(speaking)}\n${teamNote(speaking)}` : system) +
+              (seesTools ? `\n${TOOL_RULE}` : ''),
+            buildDirectorPrompt(
+              lines,
+              this.opts.userName,
+              speaking,
+              seesTools ? this.tools.lines() : []
+            )
           ),
           this.opts.budgetMs ?? 4000
         );
@@ -203,9 +277,15 @@ export class Director {
           );
           return;
         }
-        this.notes = parseNotes(reply, lines.slice(-12));
+        this.notes = parseNotes(reply, lines.slice(-12), speaking);
+        const escalated = this.escalate();
         log.info(
-          { sessionId: this.opts.sessionId, ms: Date.now() - started, notes: this.notes },
+          {
+            sessionId: this.opts.sessionId,
+            ms: Date.now() - started,
+            notes: this.notes,
+            escalated,
+          },
           'DIRECTOR_NOTES'
         );
       } catch (error) {
@@ -214,6 +294,23 @@ export class Director {
       }
     })();
     return work;
+  }
+
+  /** DIRECTOR_ESCALATE=on: record this reply's notes; a theme raised twice becomes the rule. */
+  private escalate(): string[] | undefined {
+    if (!directorEscalates()) return undefined;
+    this.history.record(this.notes);
+    const themes = this.history.escalated();
+    this.rule = hardRuleFor(themes);
+    return themes;
+  }
+
+  /**
+   * DIRECTOR_ESCALATE=on: the hard rule for the reply being generated now, or
+   * '' (director-escalation.ts). Read like current(); the next observe() clears it.
+   */
+  hardRule(): string {
+    return this.rule;
   }
 
   /**
@@ -240,6 +337,13 @@ export class Director {
       recentLines: told.recentLines.filter(keep),
     });
   }
+}
+
+/** The director's instructions for this call's flags. */
+export function directorSystem(env: Record<string, string | undefined> = process.env): string {
+  const looking = directorLooksBack(env) ? LOOKING_BACK_SYSTEM : DIRECTOR_SYSTEM;
+  const system = flagOn('FERNI_LIGHT_TOUCH', env) ? looking.replace(HABITS, LIGHT_HABITS) : looking;
+  return directorEscalates(env) ? `${system}\n${DIRECTOR_ADDRESS}` : system;
 }
 
 function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | undefined> {
@@ -276,17 +380,24 @@ export function getDirector(session: object | undefined): Director | undefined {
  * expression" as part of the call.
  */
 export function linesFromChat(
-  items: ReadonlyArray<{ type?: string; role?: string; textContent?: string }>
+  items: ReadonlyArray<{ id?: string; type?: string; role?: string; textContent?: string }>,
+  by?: (item: { id?: string }) => string | undefined
 ): Line[] {
   const lines: Line[] = [];
   for (const item of items) {
     if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
     if (item.textContent?.startsWith(TURN_CONTEXT_HEADER)) continue;
-    const text = (item.textContent ?? '')
+    const said = (item.textContent ?? '')
       .replace(/<[^>]+>/g, '')
       .replace(/\s+/g, ' ')
       .trim();
-    if (text) lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
+    // A reply carried over at a handoff is marked "(Ferni said:) " (persona-swap.ts).
+    const marked = item.role === 'assistant' ? splitSaidBy(said) : undefined;
+    const text = marked?.text ?? said;
+    if (!text) continue;
+    const name = item.role === 'assistant' ? (by?.(item) ?? marked?.name) : undefined;
+    if (name) lines.push({ speaker: 'ferni', text, by: name });
+    else lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
   }
   return lines;
 }

@@ -40,7 +40,7 @@ test.beforeEach(async ({ page }) => {
   await expectHome(page);
 });
 
-for (const action of ['whats-growing', 'calendar-settings', 'contacts', 'all-connections', 'journal']) {
+for (const action of ['calendar-settings', 'contacts', 'all-connections', 'journal']) {
   test(`${action}: every button is announced by what it is`, async ({ page }) => {
     const panel = await openPanel(page, action);
     await page.waitForTimeout(1_200);
@@ -58,9 +58,8 @@ test('importing contacts: each source is announced by name', async ({ page }) =>
   expect(await badNames(page, `[data-e2e-dialog="${id}"]`)).toEqual([]);
 });
 
-const ALL_PANELS = ['garden', 'gift', 'invite', 'commands', 'calendar-settings', 'notifications', 'journal',
-  'knowledge-quiz', 'music-dashboard', 'play-games', 'vibe-controller', 'contacts', 'family-callers',
-  'all-connections', 'theme', 'billing', 'export', 'whats-growing', 'share-ferni', 'help'];
+const ALL_PANELS = ['commands', 'calendar-settings', 'notifications', 'journal', 'play-games', 'contacts',
+  'family-callers', 'all-connections', 'theme', 'billing', 'export', 'share-ferni', 'help'];
 
 /** role="button" elements nested in, or wrapped around, a real control: an extra Tab stop that does nothing */
 const nestedButtons = (page: Page) =>

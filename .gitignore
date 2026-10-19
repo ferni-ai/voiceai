@@ -110,6 +110,7 @@ brand/ferni-design-tokens.css
 
 # Test artifacts
 playwright-report/
+playwright-report-*/
 test-results/
 coverage/
 Receipt-*.pdf
@@ -196,3 +197,31 @@ test_higgs_output.wav
 # Xcode build data: also captured shell env (PERPLEXITY_API_KEY, GEMINI key)
 apps/ios-native/build/
 **/XCBuildData/
+
+# Private memory-benchmark cases built from real calls, and longmem.ts runs on
+# them (build-private-cases.ts writes outside the repo by default; these
+# patterns are a backstop, anywhere in the repo). memory-* is dated so the
+# personas' tracked memory-patterns.json stay visible.
+cases-*.json
+cases-*.md
+longmem-*.json
+memory-[0-9]*.json
+
+# Commit the deploy-agent chain writes for the agent image (src/config/build-sha.ts)
+.build-sha
+
+# Build and session output found committed (untracked 2026-10-18 repo retro).
+# Each is generated on demand and nothing reads it from git.
+# transformers.js model cache: src/utils/transformers-loader.ts downloads into ./.cache/transformers
+.cache/
+# Eleventy output for every portal; each portal's build script regenerates it before deploy
+**/_site/
+# Agent and plugin session state (.ferni-mcp is recreated by the CLI MCP server on start)
+.superpowers/
+.ferni-mcp/
+# Xcode per-user UI state and local build output
+xcuserdata/
+apps/shared/build/
+# Python bytecode
+__pycache__/
+*.py[cod]

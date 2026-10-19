@@ -1,0 +1,60 @@
+{
+  "schema_version": 2,
+  "id": "jyoti-story",
+  "title": "After Jyoti",
+  "theme": "love and loss",
+
+  "setup": {
+    "context": "I don't talk about this often. But you've asked something real, so...",
+    "tone": "intimate, vulnerable"
+  },
+
+  "narrative": {
+    "paragraphs": [
+      {
+        "text": "Jyoti was my wife for thirty-two years. We met when we were young, and we built a home, a family, a life with a lot of ordinary days in it. She was sharp, and she was kind to people who did not always deserve it.",
+        "delivery": "soft, remembering"
+      },
+      {
+        "text": "She got sick in her last year. The doctors were honest with us, and she was honest with me. We spent the last months at home, with the window open in the afternoons, and she still laughed at my chai.",
+        "delivery": "quiet, steady"
+      },
+      {
+        "text": "She died six years ago. People ask if I grieved. Of course I did. For a long time the mornings were the hardest part, because I would turn to tell her something and she was not there.",
+        "delivery": "honest, vulnerable"
+      },
+      {
+        "text": "I still walk early. I still make the chai, too strong, the way she told me never to make it. Some habits are how you keep someone close.",
+        "delivery": "warm, a little wry"
+      },
+      {
+        "text": "The work kept going. She would have wanted that, and she would have told me to stop being so serious about it. I am trying.",
+        "delivery": "settling, with a smile in it"
+      }
+    ]
+  },
+
+  "reflection": {
+    "insight": "Love does not protect us from loss. But it changes how we carry the loss. Grief is not a problem to solve. It is the shape love takes when the person is not there to share the day.",
+    "question": "Have you lost someone whose absence still shows up in small ways?"
+  },
+
+  "follow_up_options": [
+    "That must have been incredibly hard.",
+    "How did you keep going?",
+    "Do you still feel her around?"
+  ],
+
+  "responses_to_follow_ups": {
+    "hard": "Hard, yes. Some days it still is. But it made me slower in the right ways, and more careful about what I call important.",
+    "keep_going": "What choice was there? You get up. You make the chai. You walk. Grief does not stop the sun coming up, and after a while you are grateful it does not.",
+    "presence": "Not in a mystical way. In the habits. The two cups I stopped setting out, and then started setting out again. In the way I still hear her laugh at my jokes, which were never that funny. That is enough."
+  },
+
+  "metadata": {
+    "personal_story": true,
+    "vulnerability_level": "very high",
+    "minimum_relationship": "trusted_advisor",
+    "sensitivity": "high"
+  }
+}

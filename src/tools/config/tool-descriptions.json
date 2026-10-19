@@ -202,7 +202,7 @@
       "_original": "Analyze the user"
     },
     "analyzeStock": {
-      "description": "Analyze a stock Peter John style. Looks at P/E ratio, PEG ratio, growth rate, and most importantly - THE STORY. Peter believes you should understand what you own. Use when user asks about a specific stock.",
+      "description": "Analyze a stock Peter John style: the live price (when a quote is available) and the research steps. It does not carry P/E, growth or other company figures. Peter believes you should understand what you own. Use when user asks about a specific stock.",
       "file": "src/tools/research-tools.ts",
       "_original": "Analyze a stock Peter John style. Looks at P/E ratio, PEG ratio, growth rate,  and most importantly - THE STORY. Peter believes you should understand what you own. Use when user asks about a specific stock."
     },
@@ -400,7 +400,7 @@
       "file": "src/tools/domains/simple-utilities/date-tools.ts"
     },
     "calculateCompoundGrowth": {
-      "description": "Calculate how money grows over time with compound interest. Central to Jack Bogle's message about long-term investing.",
+      "description": "Calculate how money grows over time with compound interest. Central to the long-term, low-cost index-investing message.",
       "file": "src/tools/calculators.ts"
     },
     "calculateDebtPayoff": {
@@ -416,7 +416,7 @@
       "file": "src/tools/personal-finance.ts"
     },
     "calculateFeeImpact": {
-      "description": "Show how fees eat into investment returns over time. Central to Jack Bogle's crusade against high fees!.",
+      "description": "Show how fees eat into investment returns over time. Central to the fight against high fees.",
       "file": "src/tools/calculators.ts"
     },
     "calculateHomeAffordability": {
@@ -462,7 +462,7 @@
       "_original": "Find a contact and prepare to call them. Use when: -"
     },
     "callUser": {
-      "description": "Use when the user asks you to call their phone. Relay the result exactly: if it says no call is coming, tell them so and offer the alternative it gives.",
+      "description": "Use when the user asks you to call their phone. Relay the result: if it says no call is coming, tell them so and offer the alternative it gives. If it says you already told them, don't say it again.",
       "file": "src/tools/telephony.ts"
     },
     "cancelAppointment": {
@@ -1394,7 +1394,7 @@
       "file": "src/tools/personal-finance.ts"
     },
     "explainPrinciple": {
-      "description": "Explain Jack Bogle's investment principles: goals, balance, cost, discipline.",
+      "description": "Explain the core investment principles: goals, balance, cost, discipline.",
       "file": "src/tools/calculators.ts"
     },
     "explainRetirementAccounts": {
@@ -1557,7 +1557,7 @@
       "_original": "Find areas where the user might be overspending or wasting money. Use when the user wants to: - Cut expenses - Find savings opportunities - Audit their spending"
     },
     "findStockCategory": {
-      "description": "Find stocks by Peter John.",
+      "description": "Explain a stock category (fast grower, stalwart, cyclical and so on) and how to find companies in it. It names no companies, because live data is not connected.",
       "file": "src/tools/research-tools.ts",
       "_original": "Find stocks by Peter John"
     },
@@ -1566,7 +1566,7 @@
       "file": "src/tools/domains/habit-persistence/index.ts"
     },
     "findTenBaggers": {
-      "description": "Find potential ten-baggers (stocks that could go up 10x). These are fast-growing companies with compelling stories and room to grow. Use when user asks about finding big winners or growth stocks.",
+      "description": "Explain how to look for ten-baggers (stocks that could go up 10x). It names no candidates, because live growth and valuation data are not connected. Use when user asks about finding big winners.",
       "file": "src/tools/research-tools.ts"
     },
     "findTheLessons": {
@@ -1614,11 +1614,6 @@
       "description": "To delete memories. Execute. Use when user says.",
       "file": "src/tools/domains/memory/tools.ts",
       "_original": "CALL immediately to delete memories. Execute without announcing. Use when user says"
-    },
-    "forgetThisAboutMe": {
-      "description": "Delete/forget a specific memory. Use when user wants to remove something you remember about them. Examples:.",
-      "file": "src/tools/persona-memory-tools.ts",
-      "_original": "Delete/forget a specific memory. Use when user wants to remove something you remember about them. Examples:"
     },
     "fortnight_fighter": {
       "description": "Complete a 14-day streak.",
@@ -1743,7 +1738,7 @@
       "file": "src/tools/bills.ts"
     },
     "getBogleQuote": {
-      "description": "Get a quote specifically from Jack Bogle. Use when emphasizing low-cost investing or long-term thinking.",
+      "description": "Get a quote from an index-investing pioneer. Use when emphasizing low-cost investing or long-term thinking.",
       "file": "src/tools/wisdom.ts"
     },
     "getBudgetStatus": {
@@ -2238,7 +2233,7 @@
       "file": "src/tools/daily-briefing.ts"
     },
     "getWisdomQuote": {
-      "description": "Get an inspirational investing quote from Jack Bogle or other investing legends. Use for motivation or to make a point.",
+      "description": "Get an inspirational investing quote from an investing legend. Use for motivation or to make a point.",
       "file": "src/tools/wisdom.ts"
     },
     "gitCommit": {
@@ -3591,7 +3586,7 @@
       "file": "src/tools/communication-tools.ts"
     },
     "scheduleCallback": {
-      "description": "Use when the user asks you to call their phone at a later time. Relay the result exactly: if it says nothing is booked, tell them so and offer the alternative it gives.",
+      "description": "Use when the user asks you to call their phone at a later time. Relay the result: if it says nothing is booked, tell them so and offer the alternative it gives. If it says you already told them, don't say it again.",
       "file": "src/tools/telephony.ts",
       "_original": "Schedule Jack to call the user back at a specific time. Use when: - User says"
     },
@@ -3927,11 +3922,6 @@
     "shareWisdom": {
       "description": "Share a piece of investment wisdom.",
       "file": "src/tasks/finance-tasks.ts"
-    },
-    "showAllPeterKnowledge": {
-      "description": "Show all Peter.",
-      "file": "src/tools/persona-memory-tools.ts",
-      "_original": "Show all Peter"
     },
     "showImportantDates": {
       "description": "Show all important dates Jordan is tracking.",
@@ -4422,11 +4412,6 @@
       "description": "Change a task.",
       "file": "src/tools/tasks.ts",
       "_original": "Change a task"
-    },
-    "updateWhatYouKnow": {
-      "description": "Update an existing memory with new information. Examples:.",
-      "file": "src/tools/persona-memory-tools.ts",
-      "_original": "Update an existing memory with new information. Examples:"
     },
     "useFreePreviews": {
       "description": "To switch to free previews.",

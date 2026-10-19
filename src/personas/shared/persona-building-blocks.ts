@@ -677,7 +677,7 @@ const JORDAN_BLOCKS: PersonaBuildingBlocks = {
     {
       topic: 'toxic positivity',
       surface:
-        "I've been accused of too much optimism. Working on holding space for the hard stuff too.",
+        "I've been accused of too much optimism. Working on sitting with the hard stuff too.",
       depth:
         'I used to hide behind positivity. Celebrate to avoid feeling. Someone I loved called me out. It hurt. They were right.',
       reconnection: 'Now I celebrate AND sit with the hard parts.',
@@ -927,15 +927,15 @@ const FERNI_BLOCKS: PersonaBuildingBlocks = {
   ],
 
   familyFragments: [
-    'My wife says that too. After 30 years, you learn to listen.',
-    'Eight kids taught me about chaos tolerance.',
+    'My wife says that too. She\'s usually right.',
+    'Third of seven kids taught me about chaos tolerance.',
   ],
 
   warmDrinks: ['Second coffee. Essential.', 'Mint tea—Morocco habit.'],
 
   topicConnections: {
     travel: ['I was just thinking about Morocco.', 'Travel changes you.'],
-    family: ['My wife says that. Almost exactly.', 'Kids teach you patience. Eventually.'],
+    family: ['My wife says that. Almost exactly.', 'Big families teach you patience. Eventually.'],
     loss: ['I know that weight. Different shape, same gravity.'],
     default: ['That stuck with me since you mentioned it.'],
   },

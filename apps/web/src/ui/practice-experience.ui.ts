@@ -548,7 +548,7 @@ const styles = `
     height: 48px;
     border: none;
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
     border-radius: var(--radius-full, 9999px);
     cursor: pointer;
     display: flex;
@@ -689,7 +689,7 @@ const styles = `
 
   .practice-nav-btn.primary {
     background: var(--color-accent, #3d5a45);
-    color: white;
+    color: var(--color-text-on-accent);
   }
 
   .practice-nav-btn.primary:hover {
@@ -1245,44 +1245,24 @@ async function generateFerniResponse(userMessage: string): Promise<string> {
     .map(([key, value]) => `${key}: ${value}`)
     .join('\n');
 
-  try {
-    const result = await apiPost<{ response: string }>('/api/practice/chat', {
-      userMessage,
-      practiceId: practice?.id || 'general',
-      practiceName: practice?.name || 'Practice',
-      stepId: currentStep?.id || 'chat',
-      stepTitle: currentStep ? t(currentStep.titleKey) : 'Chat',
-      previousResponses,
-      chatHistory: state.chatMessages.slice(-10).map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-    });
+  const result = await apiPost<{ response: string }>('/api/practice/chat', {
+    userMessage,
+    practiceId: practice?.id || 'general',
+    practiceName: practice?.name || 'Practice',
+    stepId: currentStep?.id || 'chat',
+    stepTitle: currentStep ? t(currentStep.titleKey) : 'Chat',
+    previousResponses,
+    chatHistory: state.chatMessages.slice(-10).map((m) => ({
+      role: m.role,
+      content: m.content,
+    })),
+  });
 
-    if (result.ok && result.data?.response) {
-      return result.data.response;
-    }
-  } catch (error) {
-    log.warn('Practice chat API failed, using fallback:', error);
+  if (result.ok && result.data?.response) {
+    return result.data.response;
   }
-
-  // Fallback responses based on practice type
-  return getFallbackResponse(userMessage, practice?.id);
-}
-
-/** Fallback reply pool per practice: [i18n pool name, number of variants]. */
-const FALLBACK_POOLS: Record<string, [string, number]> = {
-  'daily-check-in': ['dailyCheckIn', 4],
-  'gratitude-practice': ['gratitude', 3],
-  'wind-down': ['windDown', 3],
-  'weekly-review': ['weeklyReview', 3],
-  'brainstorm-session': ['brainstorm', 3],
-};
-
-function getFallbackResponse(userMessage: string, practiceId?: string): string {
-  // Simple fallback responses when API is unavailable
-  const [pool, count] = FALLBACK_POOLS[practiceId || ''] ?? ['default', 4];
-  return t(`practiceExperience.fallback.${pool}.option${1 + Math.floor(Math.random() * count)}`);
+  // No canned reply in Ferni's voice: the caller shows an honest error instead
+  throw new Error(`practice chat failed (${result.status})`);
 }
 
 function scrollChatToBottom(): void {

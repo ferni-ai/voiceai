@@ -5,6 +5,7 @@
  * swapped in later joins this session instead of building one of its own.
  */
 import { voice } from '@livekit/agents';
+import { loadWorldFactsForCall } from '../../intelligence/world-model/temporal/in-call-load.js';
 import type { PersonaConfig } from '../../personas/types.js';
 import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import type { SessionServices } from '../../services/types.js';
@@ -21,6 +22,7 @@ import { endpointingDelays, sessionTurnDetection } from '../shared/turn-patience
 import type { UserData } from '../shared/types.js';
 import { interruptionOverrides } from './interruption-config.js';
 import { logBargeInDecisions } from './live-call-behaviors.js';
+import { preemptiveGenerationOverrides } from './preemptive-tts.js';
 import type { createPersonaTTS } from './persona-tts.js';
 
 const log = getLogger();
@@ -30,6 +32,8 @@ export async function createCallSession(parts: {
   sessionId: string;
   services: SessionServices;
   userData: UserData;
+  /** The caller's account, when known: their world facts load for the call (WORLD_FACTS_IN_CALL). */
+  userId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   llmModel: any;
   tts: Awaited<ReturnType<typeof createPersonaTTS>>;
@@ -37,6 +41,9 @@ export async function createCallSession(parts: {
   phone?: boolean;
 }): Promise<voice.AgentSession<UserData>> {
   const { persona, sessionId, services, userData, llmModel, tts, phone } = parts;
+  // WORLD_FACTS_IN_CALL=on: where their life stands now, read once per call while
+  // the session is built; each turn's request picks from it (turn-request.ts).
+  void loadWorldFactsForCall(userData, parts.userId);
   const modelProvider = getModelProvider();
 
   // =========================================================================
@@ -102,14 +109,21 @@ export async function createCallSession(parts: {
       ) as InstanceType<typeof SonataSTT> | undefined);
 
   const session = new voice.AgentSession<UserData>({
-    turnDetection: sessionTurnDetection(modelProvider.getSessionTurnDetection()),
+    turnDetection: sessionTurnDetection(
+      modelProvider.getSessionTurnDetection(),
+      process.env,
+      vad !== undefined
+    ),
     vad, // Silero VAD for turn detection (required for OpenAI to support allowInterruptions: false)
     ...(externalStt && { stt: externalStt }),
     llm: llmModel,
     tts, // Cartesia TTS for both (OpenAI text-only mode outputs text)
     userData,
     // Barge-in vs "mm-hmm": see interruption-config.ts. Overrides voiceOptions.
-    turnHandling: { interruption: interruptionOverrides() },
+    // PREEMPTIVE_TTS=on also synthesizes the preemptive reply (preemptive-tts.ts).
+    turnHandling: { interruption: interruptionOverrides(), ...preemptiveGenerationOverrides() },
+    // Not dead: the SDK still takes the endpointing delays and the interruption
+    // duration (and minWords under INTERRUPTION_MODE=vad) from here.
     voiceOptions: {
       allowInterruptions: true,
       ...endpointingDelays(), // waits through thinking pauses: see turn-patience.ts

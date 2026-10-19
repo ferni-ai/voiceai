@@ -20,6 +20,7 @@
 
 import { createLogger } from '../utils/logger.js';
 import { initSpringBody } from './avatar-motion/spring-body.js';
+import { initSpeechBeats } from './avatar-motion/speech-beats.js';
 import { claimAvatarContainer } from './avatar-motion/compositor.js';
 import {
   isLidBlendEnabled,
@@ -116,6 +117,7 @@ export function initSpeakingSystem(): void {
   isInitialized = true;
   log.info('🔊 Speaking system initialized (3-layer: body, halo, lid)');
   initSpringBody();
+  initSpeechBeats(); // off unless ferni:speech-beats
 }
 
 /**

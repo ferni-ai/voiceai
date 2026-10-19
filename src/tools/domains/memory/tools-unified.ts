@@ -10,12 +10,17 @@
  * @module tools/domains/memory/tools-unified
  */
 
+import { flagOn } from '../../../config/env-flag.js';
+import { isTeammateTalk } from '../../../utils/teammate-talk.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getUnifiedMemoryService } from '../../../services/unified-memory-service.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { getSessionId } from '../../utils/tool-helpers.js';
+import { announceRemembered } from './remember-moment.js';
+import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 
 const log = getLogger();
 
@@ -186,16 +191,16 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
 
-        if (!userId) {
-          log.warn('No userId available for memory write');
-          return '';
-        }
-
         // Store in session for awareness tools (backward compat)
         if (!userData.keyMoments) {
           userData.keyMoments = [];
         }
         userData.keyMoments.push(`[${category}] ${fact}`);
+
+        if (!userId) {
+          log.warn('No userId available for memory write');
+          return REMEMBERED_THIS_CALL;
+        }
 
         // Write to unified memory service
         const result = await memoryService.write({
@@ -208,10 +213,13 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
 
         if (result.success) {
           log.debug({ memoryId: result.memoryId }, 'Memory written successfully');
+          // "I'll remember: …" in the app (REMEMBER_MOMENT=on); only after a store that succeeded.
+          const sessionId = getSessionId({ ctx: toolCtx });
+          void announceRemembered({ userId, sessionId, fact, category });
+          return REMEMBERED;
         }
-
-        // Return empty - agent should continue naturally
-        return '';
+        // Never an empty result (tool-output-guard.ts): say whether it was kept
+        return REMEMBERED_THIS_CALL;
       },
     });
   },
@@ -253,6 +261,9 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
           log.warn('No userId available for memory write');
           return "I'll remember that.";
         }
+
+        // "Decided to talk to Jordan" is a teammate on this call, not their life (teammate-talk.ts)
+        if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(fact)) return "I'll remember that.";
 
         // Store in session
         if (!userData.keyMoments) {

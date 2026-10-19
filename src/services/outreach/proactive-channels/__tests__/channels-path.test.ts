@@ -11,6 +11,9 @@ const docs = new Map<string, Record<string, unknown>>();
 const authUsers = new Map<string, { phoneNumber?: string }>();
 const texts: Array<{ to: string; body: string }> = [];
 let twilioDown = false;
+/** What the model writes; null means it is unavailable. */
+let modelReply: string | null | Error = null;
+const prompts: string[] = [];
 
 vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -30,6 +33,14 @@ vi.mock('../../../communication-service.js', () => ({
     if (twilioDown) throw new Error('Twilio error: 503');
     texts.push({ to, body });
     return 'sent';
+  }),
+}));
+
+vi.mock('../../../llm-utils.js', () => ({
+  callLLM: vi.fn(async (prompt: string) => {
+    prompts.push(prompt);
+    if (modelReply instanceof Error) throw modelReply;
+    return modelReply;
   }),
 }));
 
@@ -91,6 +102,8 @@ beforeEach(() => {
   authUsers.clear();
   texts.length = 0;
   twilioDown = false;
+  modelReply = null;
+  prompts.length = 0;
   authUsers.set(SETH, { phoneNumber: PHONE });
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
@@ -150,25 +163,54 @@ describe('proactive check-in channel', () => {
     expect(texts).toHaveLength(1);
   });
 
-  it('same quiet-hours rules as quiet-hours.ts (#802)', async () => {
-    // 22:30 New York, 19:30 Los Angeles.
-    const late = new Date('2026-10-13T02:30:00Z');
-    const cases: Array<[Record<string, unknown>, Record<string, unknown>, boolean]> = [
-      [{ quietHours: { enabled: false } }, {}, true], // turned off: no quiet hours
-      [{ timezone: 'America/Los_Angeles' }, {}, true], // the setting's zone beats the profile's
-      [{ quietHoursStart: 23, quietHoursEnd: 7 }, {}, true], // hour fields are honoured
-      [{}, {}, false], // default 22:00-08:00
+  it('21:00-08:00 is always quiet; their own window only adds to it', async () => {
+    // 21:30 New York (18:30 Los Angeles).
+    const at = new Date('2026-10-13T01:30:00Z');
+    const cases: Array<[Record<string, unknown>, boolean]> = [
+      [{}, false], // the floor starts at 21:00
+      [{ quietHours: { enabled: false } }, false], // turning theirs off doesn't lift it
+      [{ quietHours: { enabled: true, start: '23:00', end: '07:00' } }, false], // nor does a later one
+      [{ quietHoursStart: 23, quietHoursEnd: 7 }, false],
+      [{ timezone: 'America/Los_Angeles' }, true], // the setting's zone beats the profile's
     ];
-    for (const [prefs, extra, sends] of cases) {
+    for (const [prefs, sends] of cases) {
       docs.clear();
       texts.length = 0;
-      vi.setSystemTime(late);
-      seedUser({ outreachPreferences: { ...TEXTS_AND_CALLS, ...prefs }, ...extra });
+      vi.setSystemTime(at);
+      seedUser({ outreachPreferences: { ...TEXTS_AND_CALLS, ...prefs } });
       seedPromise('p1');
       // eslint-disable-next-line no-await-in-loop
       await runHandler();
       expect([prefs, texts.length]).toEqual([prefs, sends ? 1 : 0]);
     }
+  });
+
+  it('an early-morning window of their own still leaves 22:00 quiet', async () => {
+    vi.setSystemTime(new Date('2026-10-13T02:00:00Z')); // 22:00 New York
+    seedUser({
+      outreachPreferences: {
+        ...TEXTS_AND_CALLS,
+        quietHours: { enabled: true, start: '01:00', end: '02:00' },
+      },
+    });
+    seedPromise('p1');
+    expect(await runHandler()).toMatchObject({ status: 'held', why: 'quiet hours' });
+    expect(texts).toHaveLength(0);
+  });
+
+  it('two overlapping runs send a check-in once', async () => {
+    seedUser();
+    seedPromise('p1');
+    // The run the per-minute job makes, twice at once (a call can keep one going 40 s).
+    const { runProactiveChannelsTick } = await import('../proactive-tick.js');
+    const { defaultProactiveDeps } = await import('../default-deps.js');
+    const runs = await Promise.all([
+      runProactiveChannelsTick(defaultProactiveDeps()),
+      runProactiveChannelsTick(defaultProactiveDeps()),
+    ]);
+    expect(runs.map((r) => r.users[0].status).sort()).toEqual(['idle', 'sent']);
+    expect(texts).toHaveLength(1);
+    expect(logOf('promise:p1')).toMatchObject({ channel: 'sms', outcome: 'sent' });
   });
 
   it('their own quiet hours win over the default', async () => {
@@ -264,5 +306,57 @@ describe('proactive check-in channel', () => {
     vi.setSystemTime(new Date(NOW.getTime() + 3 * HOUR));
     await runHandler();
     expect(texts).toHaveLength(1);
+  });
+});
+
+describe('proactive check-in words', () => {
+  it('Gemini writes the text from the reason, and the log says so', async () => {
+    modelReply = "Hey, it's Ferni. How's the move coming along?";
+    seedUser();
+    seedPromise('p1');
+    await runHandler();
+    expect(prompts).toHaveLength(1);
+    expect(prompts[0]).toContain("Why you're reaching out: I said I'd check in about the move.");
+    expect(texts.map((t) => t.body)).toEqual(["Hey, it's Ferni. How's the move coming along?"]);
+    expect(logOf('promise:p1')).toMatchObject({
+      text: "Hey, it's Ferni. How's the move coming along?",
+      textSource: 'llm',
+    });
+  });
+
+  it('a reply that calls Ferni an assistant is not sent; the promise line goes instead', async () => {
+    modelReply = 'Hi! As your assistant, I wanted to check in about the move.';
+    seedUser();
+    seedPromise('p1');
+    await runHandler();
+    expect(texts.map((t) => t.body)).toEqual([
+      "Hey, it's Ferni. I said I'd check in about the move. How's it going?",
+    ]);
+    expect(logOf('promise:p1')).toMatchObject({ textSource: 'template' });
+  });
+
+  it('when the model call throws, the promise line goes out', async () => {
+    modelReply = new Error('Vertex 503');
+    seedUser();
+    seedPromise('p1');
+    await runHandler();
+    expect(texts).toHaveLength(1);
+    expect(logOf('promise:p1')).toMatchObject({ textSource: 'template' });
+  });
+
+  it('never sends the same words twice in a row', async () => {
+    const last = "Hey, it's Ferni. I said I'd check in about the move. How's it going?";
+    seedUser();
+    seedLog('earlier', {
+      channel: 'in_app',
+      at: new Date(NOW.getTime() - 26 * HOUR).toISOString(),
+      text: last,
+    });
+    modelReply = last;
+    seedPromise('p1');
+    await runHandler();
+    expect(texts).toHaveLength(1);
+    expect(texts[0].body).not.toBe(last);
+    expect(logOf('promise:p1')).toMatchObject({ textSource: 'fallback' });
   });
 });

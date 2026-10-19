@@ -31,6 +31,7 @@ import {
   detectCalendarAlerts,
   type CalendarAlert,
 } from '../../../services/calendar/calendar-intelligence.js';
+import { notConnectedAwareness } from '../../../services/calendar/ferni-list.js';
 // Better Than Human calendar services
 import {
   getAmbientCalendarContext,
@@ -143,17 +144,7 @@ export async function buildCalendarAwarenessContext(
 
   // Check calendar connection
   const connected = await isConnected(userId);
-  if (!connected) {
-    // Only Alex suggests connecting
-    if (personaId === ALEX_PERSONA_ID) {
-      return {
-        isConnected: false,
-        contextInjection:
-          '[CALENDAR: Not connected. If user asks about calendar, suggest connecting.]',
-      };
-    }
-    return { isConnected: false, contextInjection: null };
-  }
+  if (!connected) return notConnectedAwareness(userId, personaId === ALEX_PERSONA_ID);
 
   try {
     // Get today's overview

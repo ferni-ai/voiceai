@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "جارٍ التبديل إلى {language}",
+    "seeYou": "إلى اللقاء في المرة القادمة!",
+    "callVoicemail": "تركتُ رسالة صوتية لـ{name}",
+    "callNoAnswer": "لم أتمكن من الوصول إلى {name}. هل أحاول لاحقاً؟",
+    "callFailed": "لم تنجح المكالمة مع {name}",
+    "callBack": "{name} بانتظار اتصالكم",
+    "followUp": "{name} بانتظار ردّكم"
+  },
   "accessibility": {
     "accountMenu": "قائمة الحساب",
     "accountSettings": "إعدادات الحساب",
@@ -1558,7 +1567,6 @@
         "title": "تحدث ببساطة"
       },
       "welcome": {
-        "description": "فريقك الشخصي من موجّهي الحياة بالذكاء الاصطناعي. يقدم كل منهم حكمة فريدة لدعم رحلتك.",
         "title": "مرحباً بك في Ferni"
       }
     },
@@ -2152,8 +2160,8 @@
     "couldNotDisconnect": "تعذر قطع الاتصال. هل تودون المحاولة مجدداً؟",
     "sonosConnected": "تم ربط Sonos!",
     "transcribing": "جاري تحويل الصوت إلى نص...",
-    "transcriptionUnavailable": "تحويل الصوت إلى نص غير متاح. سيتم حفظ الصوت فقط.",
-    "audioSaved": "تم حفظ التسجيل الصوتي!",
+    "transcriptionUnavailable": "لم أتمكن من التقاط الكلمات هذه المرة، لذلك لم يُحفظ شيء. هل نحاول مرة أخرى؟",
+    "journalTooLong": "هذا طويل قليلًا. جرّب تسجيلًا أقصر من {count} دقائق.",
     "entrySaved": "تم حفظ المدخلة!",
     "couldNotSaveEntry": "لم نتمكن من حفظ المدخلة. هل تود المحاولة مجددًا؟",
     "profileSaved": "تم حفظ الملف الشخصي!",
@@ -2275,7 +2283,6 @@
       "many": "تم استيراد {count} جهة اتصال!"
     },
     "integrationNowConnected": "تم ربط {integration}!",
-    "inviteSentTo": "تم إرسال الدعوة إلى {email}!",
     "householdMemberRemoved": "تمت إزالة {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "تمت إضافة {name} إلى فريقكم",
@@ -3548,6 +3555,25 @@
     "fieldRelationship": "صلة القرابة",
     "fieldWhatShouldFerniCallThem": "ماذا يجب أن يناديهم Ferni؟",
     "fieldNotesForFerni": "ملاحظات لـ Ferni",
+    "callConsentLabel": "يسعده أن يتصل به Ferni",
+    "callConsentHint": "وافق على أن يتصل به Ferni من حين لآخر للاطمئنان عليه. ويمكنه أن يطلب منه التوقف في أي وقت.",
+    "callConsentSaved": "تم الحفظ",
+    "callConsentFailed": "تعذّر الحفظ. حاول مرة أخرى.",
+    "callConsentLoadFailed": "تعذّر تحميل ما إذا كان يسعده أن يتصل به Ferni. أعد الفتح للمحاولة مرة أخرى.",
+    "checkinTitle": "متى يتصل Ferni للاطمئنان؟",
+    "checkinHint": "سيتصل Ferni اتصالًا قصيرًا في هذا الوقت ليطمئن على حاله.",
+    "checkinFrequencyLabel": "كم مرة",
+    "checkinDaily": "كل يوم",
+    "checkinWeekly": "مرة في الأسبوع",
+    "checkinDayLabel": "أي يوم",
+    "checkinTimeLabel": "في أي ساعة",
+    "checkinTimezone": "الأوقات بتوقيت {zone}.",
+    "checkinSave": "حفظ موعد الاتصال",
+    "checkinRemove": "إيقاف الاتصالات المنتظمة",
+    "checkinSaved": "تم الحفظ. سيتصل Ferni في هذا الموعد.",
+    "checkinRemoved": "الاتصالات المنتظمة متوقفة.",
+    "checkinFailed": "تعذّر الحفظ. حاول مرة أخرى.",
+    "checkinLoadFailed": "تعذّر تحميل موعد الاتصال. أعد الفتح للمحاولة مرة أخرى.",
     "cancel": "إلغاء",
     "addToFamily": "إضافة إلى العائلة",
     "relationshipMother": "الأم",
@@ -3641,7 +3667,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "رفيقكم الشخصي بالذكاء الاصطناعي",
+        "role": "رفيقكم الشخصي",
         "description": "أنا هنا لأي شيء تحتاجون إليه — من الاطمئنان اليومي إلى المحادثات العميقة.",
         "unlockHint": "دائماً بجانبكم",
         "unlockedMessage": "لقد مررنا بالكثير معاً.",
@@ -3712,11 +3738,9 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — رفيق حياتكم بالذكاء الاصطناعي",
       "message": "أستخدم Ferni وقد غيّر فعلياً طريقة تعاملي مع يومي. انضموا إليّ! {url}",
       "shortMessage": "انضموا إليّ على Ferni! {url}",
-      "emailSubject": "عليكم تجربة Ferni",
-      "emailBody": "مرحباً! أستخدم Ferni — إنه رفيق بالذكاء الاصطناعي يبدو إنسانياً بحق. أعتقد أنه سينال إعجابكم. {url}"
+      "emailSubject": "عليكم تجربة Ferni"
     },
     "modal": {
       "title": "مشاركة النمو",
@@ -3949,10 +3973,12 @@
       "create": "إنشاء مساعد",
       "empty": "لا يوجد مساعدون بعد",
       "emptyHint": "يمكن إنشاء أول مساعد مخصص للاحتفاظ بصوت شخص عزيز، أو بناء مرشد ملهم، أو تصميم رفيق خاص.",
+      "emptyHintWithoutVoice": "يمكن إنشاء أول مساعد مخصص للاحتفاظ بقصص شخص عزيز، أو بناء مرشد ملهم، أو تصميم رفيق خاص.",
       "createFirst": "إنشاء المساعد الأول",
       "whatYouCan": "ما يمكن ابتكاره",
       "legacy": "الإرث",
       "legacyDesc": "حفظ صوت وحكمة شخص عزيز",
+      "legacyDescWithoutVoice": "حفظ قصص وحكمة شخص عزيز",
       "mentor": "المرشد",
       "mentorDesc": "إنشاء موجّه مستوحى من شخصية ملهمة",
       "twin": "التوأم الرقمي",
@@ -4655,7 +4681,6 @@
     "title": "إنشاء صفحة الوكيل",
     "nameLabel": "اسم الوكيل",
     "namePlaceholder": "مثل Nate Holloway",
-    "nameHint": "الاسم الكامل لوكيل الذكاء الاصطناعي الخاص بك",
     "initialsLabel": "الحروف الأولى",
     "initialsPlaceholder": "مثل JD",
     "initialsHint": "تظهر على الصورة الشخصية (من حرفين إلى 3 أحرف)",
@@ -5187,7 +5212,8 @@
     },
     "voiceStep": {
       "title": "كيف تريدون أن يبدو صوتهم؟",
-      "subtitle": "اختيار صوت أو استنساخه"
+      "subtitle": "اختيار صوت أو استنساخه",
+      "subtitleWithoutClone": "اختيار صوت"
     },
     "voiceOption": {
       "cloneTitle": "استنساخ صوت",
@@ -7420,6 +7446,7 @@
     "legacy": {
       "name": "إرث",
       "description": "الحفاظ على صوت وحكمة شخص تعزّونه",
+      "descriptionWithoutVoice": "الحفاظ على قصص وحكمة شخص تعزّونه",
       "feature1": "استنساخ الصوت من التسجيلات",
       "feature2": "توثيق القصص والذكريات",
       "feature3": "حفظ الحكمة والأقوال المفضلة",
@@ -7438,8 +7465,7 @@
       "description": "مذكراتكم الصوتية الشخصية التي تنمو معكم",
       "feature1": "تسجيل مذكرات صوتية يومية",
       "feature2": "التحدث إلى ذاتكم في الماضي",
-      "feature3": "تتبع نموكم بمرور الوقت",
-      "feature4": "إضاءات من إنتاج الذكاء الاصطناعي"
+      "feature3": "تتبع نموكم بمرور الوقت"
     },
     "fictional": {
       "name": "خيالي",
@@ -9786,11 +9812,22 @@
     "rememberEmpty": "لا شيء جديد نحتفظ به هذه المرة. شكرًا على الصحبة.",
     "nextStepTitle": "خطوة تالية لطيفة",
     "invitation": "عد متى شئت. سأكون هنا.",
-    "close": "إغلاق"
+    "close": "إغلاق",
+    "seeCost": "تكلفة هذه المكالمة",
+    "feedbackQuestion": "كيف كانت المكالمة؟",
+    "feedbackThanks": "شكرًا، هذا يساعدني.",
+    "pushAskQuestion": "هل تريد أن يطمئن Ferni عليك بخصوص هذا؟",
+    "pushAskYes": "نعم، من فضلك",
+    "pushAskNotNow": "ليس الآن",
+    "pushAskDone": "تم. ستصل رسائل Ferni إلى هذا الجهاز.",
+    "pushAskLater": "لا مشكلة. يمكنك تغيير ذلك من الإعدادات لاحقًا.",
+    "pushAskHomeScreen": "لتصلك رسائل Ferni هنا، أضف Ferni إلى الشاشة الرئيسية: اضغط مشاركة، ثم إضافة إلى الشاشة الرئيسية.",
+    "pushAskGotIt": "حسنًا"
   },
   "moments": {
     "teamUnlockTitle": "تعرف على {name}",
     "niceWork": "عمل رائع",
+    "remembered": "سأتذكّر هذا: {summary}",
     "streakSubtitle": "حضورك مستمر، وهذا أمر رائع.",
     "streakTitle": {
       "zero": "سلسلة من {count} يوم",
@@ -10085,7 +10122,6 @@
     },
     "marketplace": {
       "headline": "ابحثوا عن الأشخاص المناسبين لكم.",
-      "description": "خارج نطاق فريق Ferni الأساسي، تنتظركم حديقة من الموجهين المتخصصين بالذكاء الاصطناعي. دعم تشتت الانتباه والنشاط المفرط (ADHD)، رفقاء التعافي، أخصائيو النوم، وأدلة التربية - خبراء يفهمون رحلتكم الخاصة.",
       "superhuman1": "شخصيات متخصصة - موجهون لتحديات الحياة الخاصة",
       "superhuman2": "تقييمات المجتمع - تجارب حقيقية، وآراء صادقة",
       "superhuman3": "مجاني ومميز - دعم يناسب كل ميزانية",
@@ -10093,7 +10129,6 @@
     },
     "developerPortal": {
       "headline": "ابنوا ما يهم حقاً.",
-      "description": "تكنولوجيا Ferni تفتح أبوابها لكم. ابنوا موجهي الذكاء الاصطناعي الخاصين بكم، وابتكروا شخصيات متخصصة، وتواصلوا مع أشخاص يحتاجون تماماً إلى ما تقدمونه. المنصة التي تشغل Ferni - أصبحت بين أيديكم الآن.",
       "superhuman1": "توثيق كامل لواجهة برمجة التطبيقات (API) - كل ما تحتاجونه للبناء",
       "superhuman2": "أدوات التطوير (SDK) والمكتبات - تطوير يركز أولاً على TypeScript",
       "superhuman3": "أداة بناء الشخصيات - أدوات بصرية لابتكار الموجهين",
@@ -10235,6 +10270,7 @@
     "timeout": "استغرق الأمر وقتاً طويلاً. هل يمكن التحقق من الاتصال والمحاولة مجدداً؟",
     "network": "تعذر الاتصال بـ Ferni. هل يمكن التحقق من الإنترنت والمحاولة مجدداً؟",
     "dropped": "انقطع الاتصال. هل نُعيد الاتصال؟",
+    "agentLeft": "انقطع Ferni عن المكالمة. هل نُعيد الاتصال؟",
     "unknown": "تعذر الاتصال. هل نجرّب مجدداً؟"
   },
   "ambientSounds": {
@@ -10890,7 +10926,6 @@
       "historicalFacts": "حقائق تاريخية",
       "smartHome": "المنزل الذكي",
       "lighting": "الإضاءة",
-      "aiContext": "سياق الذكاء الاصطناعي",
       "sleepHealth": "بيانات النوم والصحة",
       "other": "خدمة متصلة"
     },
@@ -11083,9 +11118,6 @@
     "patronShort": "داعم",
     "founderAria": "{tier}. شكراً لإيمانكم بنا! انقروا للإدارة."
   },
-  "splash": {
-    "tagline": "فريق الذكاء الاصطناعي الخاص بكم جاهز"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "كل الدعم",
@@ -11240,7 +11272,9 @@
     "helper": "المرشد الشخصي",
     "connectToTalk": "تواصل",
     "endTalk": "إنهاء",
-    "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء"
+    "connectingCancel": "جارٍ الاتصال. اضغط للإلغاء",
+    "connectingNow": "جارٍ الاتصال…",
+    "tapToCancel": "اضغط للإلغاء"
   },
   "analyticsDashboard": {
     "title": "رحلتك",
@@ -11521,10 +11555,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

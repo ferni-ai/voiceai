@@ -17,6 +17,14 @@
  *
  * HAPPY_EXITS=on turns it on (off by default).
  *
+ * SHORT_GOODBYE=on (off by default) gives every call the same cap: once the
+ * caller has said bye, Ferni's goodbye is one or two short sentences. On prod
+ * one goodbye ran four sentences, about 17 s, after the caller's "all right,
+ * bye". People close in a line or two once the other person has said bye.
+ * "Said bye" is call-farewell.ts's caller goodbye, a goodbye in a closing
+ * position ("okay, bye"), not "say bye to grandma for me". HAPPY_EXITS's note,
+ * when it fires, already has the cap and wins.
+ *
  * @module agents/personas/happy-exits
  */
 import type { llm } from '@livekit/agents';
@@ -25,13 +33,32 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { rememberGoodbyePlan } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
+import { callerSaysGoodbye } from '../shared/call-farewell.js';
 import { hardNews } from './turn-candor.js';
 import { callerVenting } from './turn-extras.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'HappyExits' });
 
 export function happyExitsEnabled(env: Env = process.env): boolean {
   return flagOn('HAPPY_EXITS', env);
+}
+
+export function shortGoodbyeEnabled(env: Env = process.env): boolean {
+  return flagOn('SHORT_GOODBYE', env);
+}
+
+export const SHORT_GOODBYE_NOTE =
+  "They've said goodbye. Say yours in one or two short sentences, then stop: no recap, no new topic, no question.";
+
+/** SHORT_GOODBYE's cap for this reply, or '' (flag off, or the caller hasn't said bye). */
+export function shortGoodbyeNote(said: string, env: Env = process.env): string {
+  return shortGoodbyeEnabled(env) && callerSaysGoodbye(said) ? SHORT_GOODBYE_NOTE : '';
+}
+
+/** A goodbye note may be added: HAPPY_EXITS's, or SHORT_GOODBYE's cap. */
+export function goodbyeNoteOn(env: Env = process.env): boolean {
+  return happyExitsEnabled(env) || shortGoodbyeEnabled(env);
 }
 
 /** At most this share of goodbyes name what they are off to. */
@@ -160,10 +187,14 @@ export function happyExitNote(
   remember: Remember = async (userId, plan) => rememberGoodbyePlan(userId, plan)
 ): string {
   const exit = happyExitFor(input, env);
-  if (exit.fired === 'none') return '';
+  if (exit.fired === 'none') {
+    const short = shortGoodbyeNote(input.said, env);
+    if (short) log.info('SHORT_GOODBYE');
+    return short;
+  }
   log.info({ fired: exit.fired, planned: Boolean(exit.plan) }, 'HAPPY_EXIT');
   const userId = userIdOf(session);
-  if (exit.plan && userId && userId !== 'anonymous') {
+  if (exit.plan && isMemberIdentity(userId)) {
     const plans = kept.get(session) ?? new Set<string>();
     kept.set(session, plans);
     if (!plans.has(exit.plan)) {
@@ -175,3 +206,6 @@ export function happyExitNote(
   }
   return exit.note;
 }
+
+// QUESTION_PACE (question-pace.ts): the other late "no question" note, read where the goodbye note is.
+export { questionPaceNote } from './question-pace.js';

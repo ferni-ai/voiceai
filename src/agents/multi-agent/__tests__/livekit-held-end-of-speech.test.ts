@@ -1,6 +1,7 @@
 /**
- * Pins our @livekit/agents patch (patches/@livekit__agents@1.5.1.patch): a caller
- * who finishes just as Ferni's reply starts still gets a turn.
+ * Pins our @livekit/agents patch (patches/@livekit__agents@1.9.3.patch,
+ * END_OF_SPEECH_PASSTHROUGH): a caller who finishes just as Ferni's reply starts
+ * still gets a turn.
  *
  * Dev, 2026-09-30 ("Oh, and Biscuit chewed up my phone charger... So, that was
  * fun."): ink-2's final transcript for the second half was processed a moment
@@ -8,6 +9,12 @@
  * arrived a moment after, so LiveKit held it with the overlapping speech. A held
  * END_OF_SPEECH carries no text, so flushing the held events never re-emitted
  * it, the turn was never committed, and nothing answered the caller.
+ *
+ * 1.9.x rewrote the hold (#2592): events are held only while an overlap with
+ * Ferni's speech is open, and are re-sent when it resolves. But the agent's end
+ * of speech, or a backchannel verdict, first trims held events older than that
+ * moment as overlap noise, and a held END_OF_SPEECH is older. Stock 1.9.3 still
+ * loses the turn: the first two tests fail without the hunk.
  */
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
@@ -21,6 +28,15 @@ interface Recognition {
   onSTTEvent(ev: unknown): Promise<void>;
   onStartOfAgentSpeech(at: number): Promise<unknown>;
   onEndOfAgentSpeech(ignoreUntil: number): Promise<void>;
+  /** VAD hears the caller over Ferni's speech: opens the overlap that holds STT events. */
+  onStartOfOverlapSpeech(speechDuration: number, startedAt: number): Promise<void>;
+  /** The interruption model's verdict on the overlap. */
+  applyOverlapSpeechEvent(ev: {
+    isInterruption: boolean;
+    detectedAt: number;
+    overlapStartedAt: number;
+    agentEnded: boolean;
+  }): void;
 }
 
 async function setup() {
@@ -44,6 +60,7 @@ async function setup() {
     onAgentBackchannelOpportunity: vi.fn(),
     onUserTurnExceeded: vi.fn(),
     onEotPrediction: vi.fn(),
+    onBackchannelConfirmed: vi.fn(),
     retrieveChatCtx: () => ChatContext.empty(),
   };
   const recognition = new AudioRecognition({
@@ -64,26 +81,62 @@ async function setup() {
     for (let i = 0; i < 20 && onEndOfTurn.mock.calls.length === 0; i++) {
       await new Promise((r) => setTimeout(r, 5));
     }
-    return onEndOfTurn.mock.calls.map((c) => (c as unknown as [{ newTranscript: string }])[0].newTranscript);
+    return onEndOfTurn.mock.calls.map(
+      (c) => (c as unknown as [{ newTranscript: string }])[0].newTranscript
+    );
   };
   return { recognition, final, endOfSpeech, committed };
 }
+
+const later = () =>
+  new Promise((r) => {
+    setTimeout(r, 20);
+  });
 
 describe('LiveKit held END_OF_SPEECH (patched)', () => {
   it('commits the turn when the reply starts between the final transcript and its end of speech', async () => {
     const { recognition, final, endOfSpeech, committed } = await setup();
     await recognition.onSTTEvent(final('So, that was fun.'));
-    await recognition.onStartOfAgentSpeech(Date.now()); // the stale reply starts
+    const replyAt = Date.now();
+    await recognition.onStartOfAgentSpeech(replyAt); // the stale reply starts
+    await recognition.onStartOfOverlapSpeech(0, replyAt); // while the caller is still audible
     await recognition.onSTTEvent(endOfSpeech);
+    await later();
     await recognition.onEndOfAgentSpeech(Date.now()); // and is cut off
+    expect(await committed()).toEqual(['So, that was fun.']);
+  });
+
+  it('commits it when the overlap is judged a backchannel', async () => {
+    const { recognition, final, endOfSpeech, committed } = await setup();
+    await recognition.onSTTEvent(final('So, that was fun.'));
+    const replyAt = Date.now();
+    await recognition.onStartOfAgentSpeech(replyAt);
+    await recognition.onStartOfOverlapSpeech(0, replyAt);
+    await recognition.onSTTEvent(endOfSpeech);
+    await later();
+    recognition.applyOverlapSpeechEvent({
+      isInterruption: false,
+      detectedAt: Date.now(),
+      overlapStartedAt: replyAt,
+      agentEnded: false,
+    });
     expect(await committed()).toEqual(['So, that was fun.']);
   });
 
   it('still holds speech that started while Ferni was talking', async () => {
     const { recognition, final, endOfSpeech, committed } = await setup();
-    await recognition.onStartOfAgentSpeech(Date.now());
+    const replyAt = Date.now();
+    await recognition.onStartOfAgentSpeech(replyAt);
+    await recognition.onStartOfOverlapSpeech(0, replyAt);
     await recognition.onSTTEvent(final('mm-hmm'));
     await recognition.onSTTEvent(endOfSpeech);
+    await later();
+    recognition.applyOverlapSpeechEvent({
+      isInterruption: false,
+      detectedAt: Date.now(),
+      overlapStartedAt: replyAt,
+      agentEnded: false,
+    });
     expect(await committed()).toEqual([]);
   });
 });

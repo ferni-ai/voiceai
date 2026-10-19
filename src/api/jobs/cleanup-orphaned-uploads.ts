@@ -8,8 +8,8 @@
  */
 
 import { Storage } from '@google-cloud/storage';
-import admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import type { Firestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'CleanupOrphanedUploads' });
@@ -35,17 +35,14 @@ function getStorage(): Storage {
 /**
  * Get Firestore instance
  */
-function getDb(): FirebaseFirestore.Firestore {
-  if (admin.apps.length === 0) {
-    admin.initializeApp();
-  }
-  return getFirestore();
+function getDb(): Firestore {
+  return getAdminFirestore();
 }
 
 /**
  * Check if a voice upload is associated with an active agent
  */
-async function isUploadActive(db: FirebaseFirestore.Firestore, gcsUri: string): Promise<boolean> {
+async function isUploadActive(db: Firestore, gcsUri: string): Promise<boolean> {
   try {
     // Parse userId and agentId from the GCS path
     // Expected format: gs://bucket/voice-samples/{userId}/{agentId}/{filename}

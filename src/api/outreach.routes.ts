@@ -11,7 +11,6 @@ import {
   getChannelProfile,
   getConversationalCallService,
   getOutreachDecisionEngine,
-  getOutreachHistory,
   getPendingOutreach,
   getTimingProfile,
   getUserContext,
@@ -25,9 +24,11 @@ import {
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
+import { webPushDeliveryOn } from '../services/outreach/web-push-flag.js';
 import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
+import { sendOutreachHistory } from './outreach-history-route.js';
+import { panelConsentPatch, savePanelPrefs } from './messaging-prefs-route.js';
 import {
-  channelsFromSettings,
   readOutreachConsent,
   settingsFromChannels,
   writeOutreachConsent,
@@ -50,6 +51,7 @@ const OUTREACH_PREFIX = '/api/outreach';
 type Named = { userId?: unknown };
 
 import { handleVerifyPhone } from './verify-phone-routes.js';
+import { phoneChannelRefusal } from './user-contact.js';
 
 // Helper to get persona display name
 function getPersonaName(personaId: string): string {
@@ -135,9 +137,7 @@ export async function handleOutreachRoutes(
     // GET /api/outreach/preferences
     if (route === '/preferences' && method === 'GET') {
       const userId = authenticatedUserId;
-
-      const engine = getOutreachDecisionEngine();
-      const state = engine.getUserState(userId);
+      const state = getOutreachDecisionEngine().getUserState(userId);
       // On/off and channels come from the stored consent the scheduler obeys,
       // not the in-memory engine (which forgets on restart).
       const consent = await readOutreachConsent(userId);
@@ -147,6 +147,7 @@ export async function handleOutreachRoutes(
         preferences: state.preferences,
         allowedChannels: settingsFromChannels(consent.channels),
         outreachEnabled: consent.enabled,
+        webPushDelivery: await webPushDeliveryOn(userId), // the after-call ask (push-ask.ts)
         relationshipStage: state.relationshipStage,
         counters: state.counters,
       });
@@ -157,25 +158,17 @@ export async function handleOutreachRoutes(
     if (route === '/preferences' && method === 'POST') {
       const body = await parseRequestBody(req);
       const { preferences } = body as {
-        preferences: {
-          enabled?: boolean;
-          allowedChannels?: Array<'sms' | 'email' | 'call'>;
-          preferredChannel?: 'sms' | 'email' | 'call';
-          disabledChannels?: Array<'sms' | 'email' | 'call'>;
-          quietHours?: { start: number; end: number };
-          timezone?: string;
-          maxOutreachPerDay?: number;
-          maxOutreachPerWeek?: number;
-        };
+        preferences: Parameters<typeof updateOutreachPreferences>[1];
       };
-
+      const patch = await panelConsentPatch(authenticatedUserId, preferences);
+      // Texts and calls only to a number the user proved is theirs (a texted code).
+      const refusal = await phoneChannelRefusal(auth, patch.channels);
+      if (refusal) {
+        sendJsonResponse(res, 409, { success: false, error: refusal });
+        return true;
+      }
       // Use authenticated userId (ignore body.userId to prevent tampering)
-      await writeOutreachConsent(authenticatedUserId, {
-        enabled: preferences?.enabled,
-        channels: Array.isArray(preferences?.allowedChannels)
-          ? channelsFromSettings(preferences.allowedChannels)
-          : undefined,
-      });
+      await savePanelPrefs(authenticatedUserId, patch, preferences);
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;
@@ -442,19 +435,9 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // GET /api/outreach/history
+    // GET /api/outreach/history: what was actually sent (outreach_attempts), caller only
     if (route === '/history' && method === 'GET') {
-      const url = new URL(req.url || '', 'http://localhost');
-      // Use authenticated userId
-      const userId = authenticatedUserId;
-      const limit = parseInt(url.searchParams.get('limit') || '20');
-
-      const history = getOutreachHistory(userId, limit);
-      sendJsonResponse(res, 200, {
-        success: true,
-        history,
-        count: history.length,
-      });
+      await sendOutreachHistory(res, authenticatedUserId, new URL(req.url || '', 'http://x'));
       return true;
     }
 

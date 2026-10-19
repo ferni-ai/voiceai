@@ -20,9 +20,11 @@
  */
 
 import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
+import { distinctDays } from '../../utils/conversation-day.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { withUpgradePath } from '../billing/paywall.js';
+import { withChiefOfStaff } from './chief-of-staff-unlock.js';
 
 const log = createLogger({ module: 'TeamUnlocks' });
 
@@ -43,8 +45,7 @@ const log = createLogger({ module: 'TeamUnlocks' });
  *
  * @returns Set of member IDs to bypass, or null if no bypass
  */
-// FIX: Cache bypass config since env vars don't change at runtime
-// Avoids repeated parsing on every call to isMemberBypassed(), getTeamUnlockState(), etc.
+// Cached: env vars don't change at runtime, and isMemberBypassed() etc. run on every call
 let cachedBypassConfig: { value: Set<TeamMemberId> | 'all' | null; parsed: boolean } = {
   value: null,
   parsed: false,
@@ -174,18 +175,15 @@ export function calculateStreaks(profile: UserProfile | null): {
   currentStreak: number;
   longestStreak: number;
 } {
-  if (!profile || !profile.conversationSummaries || profile.conversationSummaries.length === 0) {
-    return { currentStreak: 0, longestStreak: 0 };
-  }
+  if (!profile) return { currentStreak: 0, longestStreak: 0 };
 
-  // Get all conversation dates (normalize to date strings)
-  const conversationDates = profile.conversationSummaries
-    .map((s) => {
-      const timestamp = s.timestamp instanceof Date ? s.timestamp : new Date(s.timestamp);
-      return timestamp.toISOString().split('T')[0]; // YYYY-MM-DD
-    })
-    .filter((d) => d && d !== 'Invalid Date')
-    .sort();
+  // Calls save their summaries to a subcollection, not conversationSummaries, so the
+  // days come from there (conversationDays, read with the profile); the old field is
+  // kept for profiles that still carry it.
+  const conversationDates = [
+    ...(profile.conversationDays ?? []),
+    ...distinctDays((profile.conversationSummaries ?? []).map((s) => s.timestamp)),
+  ].sort();
 
   // Deduplicate dates (multiple conversations per day count as one day)
   const uniqueDates = [...new Set(conversationDates)];
@@ -572,15 +570,16 @@ function getUnlockHint(stage: RelationshipStage): string {
 // MAIN API
 // ============================================================================
 
-/**
- * Get complete team unlock state for a user.
- */
+/** Complete team unlock state for a user; ALEX_CHIEF_OF_STAFF=on opens Alex (chief-of-staff-unlock.ts). */
 export function getTeamUnlockState(
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): TeamUnlockState {
-  // BYPASS: Check for flexible team unlock bypass (for testing/demo)
-  // Supports: "all", "true", "1", "2", "3", "maya", "maya,peter", etc.
+  return withChiefOfStaff(unlockState(profile, tier));
+}
+
+function unlockState(profile: UserProfile | null, tier: TeamUnlockState['tier']): TeamUnlockState {
+  // BYPASS_TEAM_UNLOCKS (testing/demo): "all", "true", "1", "2", "3", "maya", "maya,peter", etc.
   const byNeed = isTeamByNeedEnabled(); // the whole team: a partial bypass can't close part of it
   const bypass = byNeed ? null : parseBypassConfig();
 
@@ -680,7 +679,6 @@ export function isTeamMemberAvailable(
   profile: UserProfile | null,
   tier: 'free' | 'friend' | 'partner' = 'free'
 ): boolean {
-  // Note: getTeamUnlockState handles BYPASS_TEAM_UNLOCKS check
   const state = getTeamUnlockState(profile, tier);
   return state.unlockedMembers.includes(memberId);
 }

@@ -12,6 +12,7 @@
 
 import fs from 'fs';
 import { writeIfChanged } from './lib/write-if-changed.js';
+import { cssDurations } from './lib/duration-scale.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -104,7 +105,7 @@ ${generateCSSVariables(flattened)}
  * --persona-* below holds whichever persona is active.
  */
 function generatePersonaGlobalsCSS(personas) {
-  const suffixes = ['', 'secondary', 'text', 'textOnDark', 'glow', 'tint', 'light', 'dark'];
+  const suffixes = ['', 'secondary', 'text', 'textOnDark', 'onPrimary', 'glow', 'tint', 'light', 'dark'];
   const lines = [':root {'];
   for (const [personaId, personaColors] of Object.entries(personas)) {
     if (personaId.startsWith('_') || typeof personaColors !== 'object') continue;
@@ -756,7 +757,7 @@ function generateAnimationCSS(animation) {
   // Durations
   lines.push('');
   lines.push('  /* Durations */');
-  for (const [key, value] of Object.entries(animation.durations)) {
+  for (const [key, value] of Object.entries(cssDurations(animation))) {
     lines.push(`  --duration-${camelToKebab(key)}: ${value};`);
   }
 
@@ -7092,7 +7093,7 @@ function generateTailwindConfig() {
           Object.entries(animation.easings).map(([key, value]) => [camelToKebab(key), value])
         ),
         transitionDuration: Object.fromEntries(
-          Object.entries(animation.durations).map(([key, value]) => [camelToKebab(key), value])
+          Object.entries(cssDurations(animation)).map(([key, value]) => [camelToKebab(key), value])
         ),
         animation: Object.fromEntries(
           Object.entries(animation.animations).map(([key, value]) => [camelToKebab(key), value])

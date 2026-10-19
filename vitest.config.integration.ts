@@ -18,6 +18,11 @@ export default defineConfig({
       '**/*.integration.test.ts',
       // Tests in src/tests that aren't e2e
       'src/tests/**/*.test.ts',
+      // Latency budgets for the optimisation stack (timing-sensitive, so queue only)
+      'tests/performance/**/*.test.ts',
+      // Not here on purpose: tests/integration/real-home drives real smart-home
+      // devices (pnpm test:real-home), and tests/integration/marketplace-agents needs
+      // agent bundles installed from another repo. Both are run by hand.
     ],
     exclude: [
       'node_modules/**',
@@ -32,6 +37,8 @@ export default defineConfig({
       // Exclude tests that need real external APIs
       'src/tests/integration/**',
       'src/tests/e2e/gemini-integration/**',
+      // Runs in the unit config, so voice-eval-only changes test it too
+      'src/tests/voice-eval/**',
       // Firestore tests need emulator
       '**/*firestore*.test.ts',
     ],

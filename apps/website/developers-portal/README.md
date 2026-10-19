@@ -26,7 +26,9 @@ npm run build
 
 ## Deployment
 
-From the root of the monorepo:
+A push to `main` that changes this folder deploys it to developers.ferni.ai
+(`.github/workflows/deploy-developers.yml`). To deploy by hand, from the root of
+the monorepo:
 
 ```bash
 npm run deploy:developers

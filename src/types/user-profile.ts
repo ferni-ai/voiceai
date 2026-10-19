@@ -120,10 +120,10 @@ export interface ConversationSummary {
   questionsRemaining?: string[];
   followUpItems?: string[];
   /** Bits that were genuinely funny between the caller and Ferni in this call. */
-  insideJokes?: string[];
-
-  // Embedding for semantic search
-  embedding?: number[];
+  insideJokes?: import('./profile/inside-joke.js').InsideJokeRef[];
+  assistantRaisedItems?: string[]; // only Ferni or a teammate said these: never theirs
+  callerProvenance?: number; // items checked against the caller's lines (caller-assertions.ts)
+  embedding?: number[]; // for semantic search
 }
 
 // ============================================================================
@@ -713,10 +713,10 @@ export interface UserProfile {
 
   /** 🎮 Game history and stats across sessions */
   gameMemory?: GameMemory;
-
-  // Conversation history
   conversationSummaries: ConversationSummary[];
+  conversationDays?: string[]; // Days with a saved summary; read on load, never stored (conversation-days.ts)
   lastConversationSummary?: string; // Quick access to most recent
+  lastCallerSummary?: string; // the same, only from a summary checked for who said what
   openQuestions: string[]; // Things they asked that weren't fully addressed
   pendingFollowUps: Array<{ topic: string; targetDate: Date; reason: string }>;
 

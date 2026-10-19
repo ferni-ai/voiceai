@@ -9,6 +9,7 @@
  *   pnpm tsx scripts/pondering/soak.ts --eval-users        # the voice-eval seed users too
  *   pnpm tsx scripts/pondering/soak.ts --write             # store results (checks prod first)
  *   pnpm tsx scripts/pondering/soak.ts --purge             # delete what the soak stored
+ *   pnpm tsx scripts/pondering/soak.ts --job               # the scheduled job's cohort, dry run
  *
  * --write refuses to run while PONDERING is set on a prod service (see
  * soak-lib.ts). Results go to stdout and to a JSON file for review.
@@ -19,13 +20,14 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { getApps, initializeApp } from 'firebase-admin/app';
 import { FieldPath, getFirestore, type Firestore } from 'firebase-admin/firestore';
-import { callLLM } from '../../src/services/llm/llm-utils.js';
+import { callLLM } from '../../src/services/llm-utils.js';
 import { ponder, type PonderLlm } from '../../src/intelligence/pondering/pondering.js';
 import {
   SUMMARIES_READ,
   ponderUser,
   toPonderSummary,
 } from '../../src/intelligence/pondering/ponder-user.js';
+import { runPonderingJob } from '../../src/intelligence/pondering/ponder-job.js';
 import { EVAL_PREFIX } from '../voice-eval/eval-users.js';
 import {
   PROD_SERVICES,
@@ -80,6 +82,14 @@ async function main(): Promise<void> {
   const args = parseSoakArgs(process.argv.slice(2));
   if (getApps().length === 0) initializeApp({ projectId: PROJECT });
   const db = getFirestore();
+  if (args.job) {
+    // The job's own cohort and filters, every eligible caller treated as due; writes nothing.
+    const env = { ...SOAK_ENV, PONDERING_USERS: process.env.PONDERING_USERS };
+    const out = await runPonderingJob(db, llm, { env, dryRun: true, ignoreDue: true });
+    console.log(JSON.stringify(out, null, 2));
+    console.log('\nDry run of the scheduled job, nothing stored.');
+    return;
+  }
   const uids = [...args.uids, ...(args.evalUsers ? await evalUserIds(db, args.evalLimit) : [])];
   assertSoakAllowed(uids); // again, after the seed-user query
 

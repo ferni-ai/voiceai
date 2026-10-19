@@ -307,7 +307,7 @@ class ConversationHistoryUI {
     const delay = index * STAGGER.NORMAL;
     const date = new Date(session.date);
     const formattedDate = this.formatDate(date);
-    const insightPreview = session.insights[0] || t('conversationHistory.noInsights');
+    const insightPreview = session.insights[0] || session.highlights?.[0] || t('conversationHistory.noInsights');
     const isFavorite = favoritePersona && session.personaName.toLowerCase() === favoritePersona.toLowerCase();
 
     return `
@@ -584,7 +584,7 @@ class ConversationHistoryUI {
         font-family: var(--font-display);
         font-size: var(--text-sm, 0.875rem);
         font-weight: var(--font-weight-semibold, 600);
-        color: white;
+        color: var(--persona-on-primary, #ffffff); /* ink on light fills (maya was 3.7:1) */
         background: var(--persona-primary, var(--color-accent-primary));
       }
 
@@ -722,7 +722,7 @@ class ConversationHistoryUI {
         align-items: center;
         justify-content: center;
         background: var(--persona-primary, var(--color-accent-primary));
-        color: white;
+        color: var(--persona-on-primary, #ffffff);
         font-size: 10px;
         border-radius: var(--radius-full);
         box-shadow: var(--shadow-sm);
@@ -840,7 +840,7 @@ class ConversationHistoryUI {
       }
 
       [data-theme="midnight"] .history__favorite-badge {
-        background: var(--color-accent-secondary, #7cb36b);
+        background: var(--color-accent-primary); color: var(--color-text-on-accent);
       }
 
       /* WCAG AA Compliant Text */

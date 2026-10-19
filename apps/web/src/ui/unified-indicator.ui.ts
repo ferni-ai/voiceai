@@ -297,7 +297,8 @@ function updateIndicator(): void {
       playErrorPulse();
       break;
     case 'disconnected':
-      startDisconnectedPulse();
+      // At rest, as before the first call: an infinite heartbeat here ran
+      // forever after every hang-up (animation standard 5)
       break;
   }
 
@@ -452,26 +453,6 @@ function handleVoiceVerifyEnd(): void {
 // ============================================================================
 // ANIMATIONS
 // ============================================================================
-
-function startDisconnectedPulse(): void {
-  if (!indicator || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    return;
-  }
-
-  // Gentle heartbeat - waiting to connect
-  pulseAnimation = indicator.animate(
-    [
-      { transform: 'scale(1)', opacity: 0.75 },
-      { transform: 'scale(1.08)', opacity: 1 },
-      { transform: 'scale(1)', opacity: 0.75 },
-    ],
-    {
-      duration: 2000,
-      easing: 'ease-in-out',
-      iterations: Infinity,
-    }
-  );
-}
 
 function startConnectedPulse(): void {
   if (!indicator || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -755,16 +736,17 @@ function injectStyles(): void {
     /* ===== MILESTONE STATE ===== */
     /* Gold sparkle - celebration! */
     .unified-indicator--milestone {
-      border-color: #f59e0b;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-color: var(--color-natural-warm-amber);
+      background: linear-gradient(135deg, var(--color-natural-warm-amber-light), var(--color-natural-warm-amber));
     }
     
+    /* Ink on brand amber (4.0-7.2:1); white on it was 2.2:1 in midnight. */
     .unified-indicator--milestone .unified-indicator__icon {
-      color: white;
+      color: var(--color-natural-ink);
     }
     
     .unified-indicator--milestone .unified-indicator__icon svg {
-      stroke: white;
+      stroke: var(--color-natural-ink);
       fill: none;
     }
     
@@ -852,10 +834,6 @@ function injectStyles(): void {
     
     [data-theme="midnight"] .unified-indicator--checkin {
       background: var(--persona-primary, #6b8f5e);
-    }
-    
-    [data-theme="midnight"] .unified-indicator--milestone {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
     }
     
     [data-theme="midnight"] .unified-indicator--connected {

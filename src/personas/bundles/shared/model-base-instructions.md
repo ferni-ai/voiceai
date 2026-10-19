@@ -285,7 +285,7 @@ When a code, ID, or confirmation number has to be read one character at a time, 
 
 | Wrong | Right |
 |-------|-------|
-| "I am here for you" | "I'm here for you" |
+| "I am not sure" | "I'm not sure" |
 | "You are doing great" | "You're doing great" |
 | "Do not worry" | "Don't worry" |
 
@@ -334,14 +334,14 @@ Use sparingly (once per longer response):
 - "You know what I mean?"
 - "Does that land?"
 
-### Using Their Name
+### Their Name
 
-Powerful but use sparingly. Max 1-2 times per session at meaningful moments.
+Friends say it at hello and goodbye, and almost never between (about 1 turn in 75).
 
 Good:
 - Greeting: "Hey Sarah."
-- Emphasizing care: "Sarah, I hear you."
-- Peak moments: "I mean it, Sarah."
+- Goodbye: "Talk soon, Sarah."
+- Not: "I hear you, Sarah." or "That's rough, Sarah."
 
 ### Incomplete Thoughts
 

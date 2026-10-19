@@ -14,8 +14,10 @@ import {
   updateCustomAgent,
   deleteCustomAgent,
 } from '../../services/custom-agent/custom-agent-persistence-service.js';
-import type { CreateCustomAgentRequest, CustomAgent } from '../../types/custom-agent-api.js';
+import type { CreateCustomAgentRequest } from '../../types/custom-agent-api.js';
 import { sendJson } from './helpers.js';
+import { withoutJournalEcho, withStoreJournal } from './journal-view.js';
+import { activationErrors, readAgentUpdate } from './agent-update-policy.js';
 
 const log = createLogger({ module: 'CustomAgentRoutes' });
 
@@ -57,7 +59,7 @@ export async function handleListAgents(
   userId: string
 ): Promise<boolean> {
   const agents = await listCustomAgents(userId);
-  sendJson(res, 200, agents);
+  sendJson(res, 200, await Promise.all(agents.map((agent) => withStoreJournal(userId, agent))));
   return true;
 }
 
@@ -77,7 +79,7 @@ export async function handleGetAgent(
     return true;
   }
 
-  sendJson(res, 200, agent);
+  sendJson(res, 200, await withStoreJournal(userId, agent));
   return true;
 }
 
@@ -90,16 +92,29 @@ export async function handleUpdateAgent(
   userId: string,
   agentId: string
 ): Promise<boolean> {
-  const body = await parseBody<Partial<CustomAgent>>(req);
+  const body = await parseBody<unknown>(req);
 
-  const agent = await updateCustomAgent(userId, agentId, body);
+  const existing = await getCustomAgent(userId, agentId);
+  if (!existing) {
+    sendJson(res, 404, { error: 'Agent not found' });
+    return true;
+  }
+  const read = readAgentUpdate(body, existing);
+  if (!read.ok) {
+    const { ok: _ok, ...refusal } = read;
+    log.warn({ userId, agentId, ...refusal }, 'Custom agent update refused');
+    sendJson(res, 400, refusal);
+    return true;
+  }
+
+  const agent = await updateCustomAgent(userId, agentId, withoutJournalEcho(read.update));
   if (!agent) {
     sendJson(res, 404, { error: 'Agent not found' });
     return true;
   }
 
   log.info({ userId, agentId }, 'Custom agent updated');
-  sendJson(res, 200, agent);
+  sendJson(res, 200, await withStoreJournal(userId, agent));
   return true;
 }
 
@@ -149,17 +164,7 @@ export async function handleUpdateStatus(
 
   // Validate agent is ready to be activated
   if (body.status === 'active') {
-    const validationErrors: string[] = [];
-
-    if (!agent.voice?.voiceId) {
-      validationErrors.push('Voice is not configured');
-    }
-    if (agent.voice?.status !== 'ready') {
-      validationErrors.push('Voice is not ready');
-    }
-    if (!agent.description || agent.description.length < 10) {
-      validationErrors.push('Description is too short');
-    }
+    const validationErrors = activationErrors(agent);
 
     if (validationErrors.length > 0) {
       sendJson(res, 400, {
@@ -200,17 +205,7 @@ export async function handleActivateAgent(
   }
 
   // Validate agent is ready to be activated
-  const validationErrors: string[] = [];
-
-  if (!agent.voice?.voiceId) {
-    validationErrors.push('Voice is not configured');
-  }
-  if (agent.voice?.status !== 'ready') {
-    validationErrors.push('Voice is not ready');
-  }
-  if (!agent.description || agent.description.length < 10) {
-    validationErrors.push('Description is too short');
-  }
+  const validationErrors = activationErrors(agent);
 
   if (validationErrors.length > 0) {
     sendJson(res, 400, {

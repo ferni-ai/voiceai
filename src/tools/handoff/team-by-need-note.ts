@@ -21,6 +21,7 @@
 
 import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { ALIAS_TO_CANONICAL } from '../../personas/persona-ids.js';
+import { chiefOfStaffWhen } from './chief-of-staff-note.js';
 
 interface Teammate {
   readonly id: string;
@@ -66,9 +67,9 @@ export const BY_NEED_TEAMMATES: readonly Teammate[] = [
 ];
 
 const LEGENDS: readonly Teammate[] = [
-  { id: 'john-bogle', name: 'John Bogle', when: 'index funds and staying the course' },
-  { id: 'peter-lynch', name: 'Peter Lynch', when: 'picking companies' },
-  { id: 'joel-dickson', name: 'Joel Dickson', when: 'money and life decisions' },
+  { id: 'john-bogle', name: 'Henry Caldwell', when: 'index funds and staying the course' },
+  { id: 'peter-lynch', name: 'Tom Brannigan', when: 'picking companies' },
+  { id: 'joel-dickson', name: 'Nate Holloway', when: 'money and life decisions' },
 ];
 
 const INVESTING =
@@ -94,7 +95,11 @@ export function teamByNeedNote(speaker: string, callerWords: string, agentWords 
   if (!isTeamByNeedEnabled()) return '';
   const self = canonical(speaker);
   const words = callerWords.toLowerCase();
-  const team = BY_NEED_TEAMMATES.filter((m) => m.id !== self);
+  // ALEX_CHIEF_OF_STAFF=on: Alex is named for planning too (chief-of-staff-note.ts)
+  const team = BY_NEED_TEAMMATES.filter((m) => m.id !== self).map((m) => ({
+    ...m,
+    when: chiefOfStaffWhen(m.id, m.when),
+  }));
   const investing = INVESTING.test(words);
   const legends = investing ? LEGENDS.filter((m) => m.id !== self) : [];
 

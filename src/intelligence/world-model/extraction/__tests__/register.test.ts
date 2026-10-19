@@ -58,13 +58,84 @@ describe('world extraction after a call', () => {
     ]);
   });
 
-  it('with either flag off: no model call, nothing stored', async () => {
-    for (const env of [{}, { AFTER_CALL_EXTRACTION: 'on' }, { WORLD_MODEL_TEMPORAL: 'on' }]) {
+  it("reads WORLD_MODEL_TEMPORAL as the ended call had it, not as the next caller's cohort set it", async () => {
+    const cohorts = (flag: string) => ({
+      cohortsFor: async () => [
+        { id: 'seth', enabled: true, flags: { WORLD_MODEL_TEMPORAL: flag } },
+      ],
+      overridesFor: async () => ({}),
+    });
+    const base = {
+      COHORT_FLAGS: 'on',
+      AFTER_CALL_EXTRACTION: 'on',
+      COACH_COMMITMENT_CAPTURE: 'off',
+    };
+    // The env holds the next caller's 'on'; this caller's cohort has it off.
+    const off = createMemoryWorldFactStore();
+    const llm = vi.fn(async (_prompt: string) => reply);
+    await extractWorldAfterCall(call, { env: { ...base, WORLD_MODEL_TEMPORAL: 'on' }, store: off, llm, cohorts: cohorts('off') }); // prettier-ignore
+    expect(llm).not.toHaveBeenCalled();
+    // This caller's cohort has it on; the env doesn't.
+    const on = createMemoryWorldFactStore();
+    await extractWorldAfterCall(call, { env: base, store: on, llm, newId: () => 'f1', cohorts: cohorts('on') }); // prettier-ignore
+    expect(on.all('u1')).toMatchObject([{ subject: 'Mindy', value: 'knee surgery' }]);
+  });
+
+  it('with extraction off, or no sink on: no model call, nothing stored', async () => {
+    const noCapture = { COACH_COMMITMENT_CAPTURE: 'off' };
+    for (const env of [
+      {},
+      { WORLD_MODEL_TEMPORAL: 'on' },
+      { AFTER_CALL_EXTRACTION: 'on', ...noCapture },
+    ]) {
       const store = createMemoryWorldFactStore();
+      const add = vi.fn(async () => undefined);
       const llm = vi.fn(async (_prompt: string) => reply);
-      await extractWorldAfterCall(call, { env, store, llm });
+      await extractWorldAfterCall(call, {
+        env,
+        store,
+        llm,
+        commitments: { sink: { openTexts: async () => [], add }, forgotten: async () => [] },
+      });
       expect(llm).not.toHaveBeenCalled();
       expect(store.all('u1')).toEqual([]);
+      expect(add).not.toHaveBeenCalled();
     }
+  });
+
+  it("with extraction on, keeps the caller's commitment under the session's user even with the world store off", async () => {
+    const promise = JSON.stringify({
+      observations: [
+        {
+          subject: 'self',
+          subjectKind: 'self',
+          attribute: 'commitment',
+          value: 'call Mindy',
+          eventDate: '2026-10-11',
+          confidence: 0.9,
+          quote: "I'll call Mindy on Sunday",
+        },
+      ],
+    });
+    const store = createMemoryWorldFactStore();
+    const add = vi.fn(async (_uid: string, _doc: Record<string, unknown>) => undefined);
+    // Just after the call (Saturday 2026-10-10).
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-10T16:00:00Z'));
+    await extractWorldAfterCall(call, {
+      env: { AFTER_CALL_EXTRACTION: 'on' },
+      store,
+      llm: async () => promise,
+      commitments: { sink: { openTexts: async () => [], add }, forgotten: async () => [] },
+    });
+    vi.useRealTimers();
+    expect(add).toHaveBeenCalledTimes(1);
+    expect(add.mock.calls[0]?.[0]).toBe('u1');
+    expect(add.mock.calls[0]?.[1]).toMatchObject({
+      statement: "I'll call Mindy on Sunday",
+      // Sunday 2026-10-11 17:00 in New York.
+      targetDate: Date.parse('2026-10-11T21:00:00Z'),
+    });
+    expect(store.all('u1')).toEqual([]);
   });
 });

@@ -1,6 +1,6 @@
 /**
  * A backchannel while Ferni's reply is paused (BACKCHANNEL_NOT_A_TURN in
- * patches/@livekit__agents@1.5.1.patch) uses the app's word list, and the
+ * patches/@livekit__agents@1.9.3.patch) uses the app's word list, and the
  * reply resumes only once the caller has stopped talking.
  *
  * Dev talk-over runs, 2026-10-04: "Uh-huh" transcribed as "Aha," was missing

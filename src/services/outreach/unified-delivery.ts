@@ -385,15 +385,20 @@ async function deliverVoiceCall(
   }
 }
 
-/**
- * Deliver via Push Notification using FCM
- */
+/** Deliver via push: browsers when WEB_PUSH_DELIVERY is on (web-push-delivery.ts), FCM, then in-app. */
 async function deliverPush(
   userId: string,
   content: GeneratedContent,
   outreachType: OutreachType,
   triggerId?: string
 ): Promise<DeliveryResult> {
+  const note = { ...content, kind: outreachType, triggerId };
+  if (await (await import('./web-push-delivery.js')).sendOutreachWebPush(userId, note)) {
+    const messageId = `webpush-${Date.now()}`;
+    await recordDelivery(userId, 'push', messageId, outreachType, triggerId);
+    return { success: true, channel: 'push', messageId };
+  }
+
   const creds = await loadCredentials();
   if (!creds.fcm) {
     // Fall back to in-app
@@ -465,11 +470,6 @@ async function deliverPush(
 }
 
 /**
- * Deliver via In-App Message (Firestore)
- *
- * This is the fallback for all channels and always works.
- */
-/**
  * Save a message for the app's proactive-messages panel
  * (GET /api/outreach/pending-messages). Kept for 7 days.
  */
@@ -482,12 +482,12 @@ export async function saveInAppMessage(
     ssml?: string;
     reason?: string;
     triggerId?: string;
+    answerCardId?: string; // Its answer card (/a/:id), e.g. a coaching pick's sources.
   }
 ): Promise<DeliveryResult> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
     const db = getFirestoreDb();
-
     if (!db) {
       return { success: false, channel: 'in_app', error: 'Firestore not available' };
     }

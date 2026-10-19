@@ -14,12 +14,9 @@ const firestore = vi.hoisted(() => {
   const collection = vi.fn(() => ({ doc: () => query, limit: () => query }));
   return { collection };
 });
-vi.mock('firebase-admin', () => ({
-  default: {
-    apps: [{}],
-    initializeApp: vi.fn(),
-    firestore: () => ({ collection: firestore.collection }),
-  },
+vi.mock('firebase-admin/firestore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('firebase-admin/firestore')>()),
+  getFirestore: () => ({ collection: firestore.collection }),
 }));
 
 const { handleGardenRoutes } = await import('../api/garden-routes.js');

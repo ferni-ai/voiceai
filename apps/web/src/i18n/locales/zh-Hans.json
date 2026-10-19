@@ -1,4 +1,13 @@
 {
+  "agentNotices": {
+    "switchingLanguage": "正在切换到{language}",
+    "seeYou": "下次见！",
+    "callVoicemail": "已给{name}留了语音信息",
+    "callNoAnswer": "没联系上{name}。要我晚点再试吗？",
+    "callFailed": "没能拨通{name}的电话",
+    "callBack": "{name}希望你回个电话",
+    "followUp": "{name}在等你的消息"
+  },
   "accessibility": {
     "accountMenu": "账户菜单",
     "accountSettings": "账户设置",
@@ -1522,7 +1531,7 @@
         "title": "开口倾诉"
       },
       "welcome": {
-        "description": "你的专属 AI 生活教练团队。每位教练都带着独特的智慧，陪伴你的旅程。",
+        "description": "你的专属向导团队。每一位都有自己看待事物的方式。",
         "title": "欢迎来到 Ferni"
       }
     },
@@ -2100,8 +2109,8 @@
     "couldNotDisconnect": "无法断开连接。要再试一次吗？",
     "sonosConnected": "Sonos 已连接！",
     "transcribing": "正在转录...",
-    "transcriptionUnavailable": "无法转录。仅保存音频。",
-    "audioSaved": "音频已保存！",
+    "transcriptionUnavailable": "这次没能听清内容，所以什么都没有保存。要再试一次吗？",
+    "journalTooLong": "这段有点长。试试短一点的，{count} 分钟以内。",
     "entrySaved": "记录已保存！",
     "couldNotSaveEntry": "无法保存记录。要再试一次吗？",
     "profileSaved": "个人资料已保存！",
@@ -2219,7 +2228,6 @@
       "other": "已导入 {count} 位联系人！"
     },
     "integrationNowConnected": "{integration} 已连接！",
-    "inviteSentTo": "邀请已发送至 {email}！",
     "householdMemberRemoved": "已移除 {name}",
     "milestoneReached": "🎉 {title}",
     "addedToTeam": "{name} 已加入你的团队",
@@ -3460,6 +3468,25 @@
     "fieldRelationship": "关系",
     "fieldWhatShouldFerniCallThem": "Ferni 应该怎么称呼他们？",
     "fieldNotesForFerni": "给 Ferni 的备注",
+    "callConsentLabel": "乐意接到 Ferni 的电话",
+    "callConsentHint": "已同意 Ferni 不时打电话问候。随时可以让他停止。",
+    "callConsentSaved": "已保存",
+    "callConsentFailed": "无法保存，请重试。",
+    "callConsentLoadFailed": "无法加载对方是否乐意接到 Ferni 的电话。请重新打开再试。",
+    "checkinTitle": "Ferni 什么时候打电话问候？",
+    "checkinHint": "Ferni 会在这个时间打个简短的电话，问问对方近况。",
+    "checkinFrequencyLabel": "多久一次",
+    "checkinDaily": "每天",
+    "checkinWeekly": "每周一次",
+    "checkinDayLabel": "星期几",
+    "checkinTimeLabel": "几点",
+    "checkinTimezone": "时间按 {zone} 计算。",
+    "checkinSave": "保存问候时间",
+    "checkinRemove": "停止定期问候",
+    "checkinSaved": "已保存。Ferni 会在那时打电话。",
+    "checkinRemoved": "定期问候已关闭。",
+    "checkinFailed": "无法保存。请再试一次。",
+    "checkinLoadFailed": "无法加载问候时间。请重新打开再试。",
     "cancel": "取消",
     "addToFamily": "添加到家庭",
     "relationshipMother": "母亲",
@@ -3549,7 +3576,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "你的专属 AI 伴侣",
+        "role": "你的专属伴侣",
         "description": "无论你需要什么，我都在这里——从日常记录到深度对话。",
         "unlockHint": "一直陪伴在你身边",
         "unlockedMessage": "我们已经共同经历了许多。",
@@ -3620,11 +3647,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni —— 你的 AI 人生伴侣",
+      "title": "认识一下 Ferni",
       "message": "我一直在用 Ferni，它真的改变了我对待每一天的方式。快来加入我吧！{url}",
       "shortMessage": "来 Ferni 加入我吧！{url}",
-      "emailSubject": "你一定要试试 Ferni",
-      "emailBody": "嗨！我一直在用 Ferni —— 它是一个感觉真的很人性化的 AI 伴侣。我想你一定会喜欢的。{url}"
+      "emailSubject": "你一定要试试 Ferni"
     },
     "modal": {
       "title": "分享成长",
@@ -3857,10 +3883,12 @@
       "create": "创建智能体",
       "empty": "暂无智能体",
       "emptyHint": "创建你的第一个自定义智能体，留存挚爱之人的声音、打造一位导师，或设计专属你自己的伴侣。",
+      "emptyHintWithoutVoice": "创建你的第一个自定义智能体，留存挚爱之人的故事、打造一位导师，或设计专属你自己的伴侣。",
       "createFirst": "创建你的第一个智能体",
       "whatYouCan": "你可以创建什么",
       "legacy": "传承",
       "legacyDesc": "留存你所珍视之人的声音与智慧",
+      "legacyDescWithoutVoice": "留存你所珍视之人的故事与智慧",
       "mentor": "导师",
       "mentorDesc": "以给你启发的人物为原型，创建一位教练",
       "twin": "数字分身",
@@ -4535,7 +4563,7 @@
     "title": "创建智能体页面",
     "nameLabel": "智能体名称",
     "namePlaceholder": "例如：Nate Holloway",
-    "nameHint": "你的 AI 智能体的全名",
+    "nameHint": "你的智能体的全名",
     "initialsLabel": "首字母",
     "initialsPlaceholder": "例如：JD",
     "initialsHint": "显示在头像上（2-3 个字符）",
@@ -5063,7 +5091,8 @@
     },
     "voiceStep": {
       "title": "它听起来应该是什么样的？",
-      "subtitle": "选择一个声音或克隆一个"
+      "subtitle": "选择一个声音或克隆一个",
+      "subtitleWithoutClone": "选择一个声音"
     },
     "voiceOption": {
       "cloneTitle": "克隆声音",
@@ -7236,6 +7265,7 @@
     "legacy": {
       "name": "传承",
       "description": "珍藏你所珍爱之人的声音与智慧",
+      "descriptionWithoutVoice": "珍藏你所珍爱之人的故事与智慧",
       "feature1": "通过录音克隆声音",
       "feature2": "记录故事与记忆",
       "feature3": "留存智慧与常用语",
@@ -7254,8 +7284,7 @@
       "description": "与你共同成长的专属声音日记",
       "feature1": "记录每日声音日记",
       "feature2": "与过去的自己对话",
-      "feature3": "追踪你一路走来的成长",
-      "feature4": "AI 生成的感悟"
+      "feature3": "追踪你一路走来的成长"
     },
     "fictional": {
       "name": "虚构角色",
@@ -9466,11 +9495,22 @@
     "rememberEmpty": "这次没有需要记住的新内容。谢谢你的陪伴。",
     "nextStepTitle": "温和的下一步",
     "invitation": "随时回来，我会在这里。",
-    "close": "关闭"
+    "close": "关闭",
+    "seeCost": "这次通话的费用",
+    "feedbackQuestion": "这次聊得怎么样？",
+    "feedbackThanks": "谢谢，这很有帮助。",
+    "pushAskQuestion": "想让 Ferni 之后问问你这件事吗？",
+    "pushAskYes": "好的",
+    "pushAskNotNow": "先不用",
+    "pushAskDone": "好了。Ferni 的消息会发到这台设备。",
+    "pushAskLater": "没关系。之后可以在设置里更改。",
+    "pushAskHomeScreen": "要在这里收到 Ferni 的消息，请先把 Ferni 添加到主屏幕：轻点“分享”，再轻点“添加到主屏幕”。",
+    "pushAskGotIt": "知道了"
   },
   "moments": {
     "teamUnlockTitle": "认识 {name}",
     "niceWork": "做得真棒",
+    "remembered": "我会记住：{summary}",
     "streakSubtitle": "你一直在坚持。这很重要。",
     "streakTitle": {
       "other": "连续 {count} 天",
@@ -9757,7 +9797,7 @@
     },
     "marketplace": {
       "headline": "找到懂你的人。",
-      "description": "在 Ferni 核心团队之外，还有一片由专业 AI 教练组成的花园在等待着你。ADHD 支持、戒瘾伴侣、睡眠专家、育儿指南——懂你特定旅程的专家们。",
+      "description": "在 Ferni 核心团队之外，还有一片由专业教练组成的花园在等待着你。ADHD 支持、戒瘾伴侣、睡眠专家、育儿指南——懂你特定旅程的专家们。",
       "superhuman1": "专业角色——应对特定生活挑战的教练",
       "superhuman2": "社区评分——真实的体验，真实的评价",
       "superhuman3": "免费与付费——适合各种预算的支持",
@@ -9765,7 +9805,7 @@
     },
     "developerPortal": {
       "headline": "创造有意义的事物。",
-      "description": "Ferni 技术正在开放。构建你自己的 AI 教练，创造专业的角色，并触及那些恰好需要你所提供帮助的人。驱动 Ferni 的平台，现在由你掌控。",
+      "description": "Ferni 技术正在开放。构建你自己的教练，创造专业的角色，并触及那些恰好需要你所提供帮助的人。驱动 Ferni 的平台，现在由你掌控。",
       "superhuman1": "完整的 API 文档——构建所需的一切",
       "superhuman2": "SDK 与库——TypeScript 优先的开发体验",
       "superhuman3": "角色构建器——用于创建教练的可视化工具",
@@ -9891,6 +9931,7 @@
     "timeout": "等得有点太久了。检查一下网络再试一次？",
     "network": "联系不上 Ferni。检查一下网络再试一次？",
     "dropped": "连接断开了。重新连接吗？",
+    "agentLeft": "Ferni 掉线了。重新连接吗？",
     "unknown": "无法连接。再试一次？"
   },
   "ambientSounds": {
@@ -10460,7 +10501,7 @@
   },
   "ferniAwakens": {
     "greeting": "你好。",
-    "subtext": "我是 Ferni，你的 AI 人生教练。"
+    "subtext": "我是 Ferni，你的专属向导。"
   },
   "serviceHealth": {
     "names": {
@@ -10470,7 +10511,7 @@
       "historicalFacts": "历史事实",
       "smartHome": "智能家居",
       "lighting": "照明",
-      "aiContext": "AI 上下文",
+      "aiContext": "记忆与上下文",
       "sleepHealth": "睡眠与健康数据",
       "other": "已连接的服务"
     },
@@ -10627,9 +10668,6 @@
     "patronShort": "赞助人",
     "founderAria": "{tier}。感谢你对我们的信任！点击进行管理。"
   },
-  "splash": {
-    "tagline": "你的 AI 团队已准备就绪"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "全部支持",
@@ -10764,7 +10802,9 @@
     "helper": "你的专属向导",
     "connectToTalk": "连线",
     "endTalk": "挂断",
-    "connectingCancel": "正在连接。点按即可取消"
+    "connectingCancel": "正在连接。点按即可取消",
+    "connectingNow": "正在连接…",
+    "tapToCancel": "点按即可取消"
   },
   "analyticsDashboard": {
     "title": "你的旅程",
@@ -11025,10 +11065,22 @@
     "notFound": "",
     "loadFailed": "",
     "retry": "",
-    "switchAccount": ""
+    "switchAccount": "",
+    "seeSources": ""
   },
   "aiLabel": {
-    "companion": ""
+    "role": {
+      "lifeCoach": "",
+      "habitsCoach": "",
+      "insightsMentor": "",
+      "lifePlanner": "",
+      "communicationCoach": "",
+      "wisdomGuide": "",
+      "investingMentor": "",
+      "stockPickingGuide": "",
+      "lifeMentor": "",
+      "friend": ""
+    }
   },
   "approvePage": {
     "kind": {

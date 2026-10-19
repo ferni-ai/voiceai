@@ -46,19 +46,22 @@ const STEP_ICONS: Record<string, string> = {
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
   personas:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
-  rituals:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
   ready:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="20 6 9 17 4 12"/></svg>',
 };
 
-const STEP_HIGHLIGHTS: Record<string, string | undefined> = {
-  voice: '.waveform',
-  personas: '.persona-switcher',
-  rituals: '.engagement-trigger',
+/**
+ * What each step points at; every selector must be in the app shell (menu-tour.test.ts).
+ * '.waveform', '.persona-switcher' and '.engagement-trigger' matched nothing, so no step
+ * highlighted anything. The daily-practice step went: its button is hidden until after
+ * the first conversation, and it promised streaks.
+ */
+export const STEP_HIGHLIGHTS: Record<string, string | undefined> = {
+  voice: '#connectBtn',
+  personas: '#teamRoster',
 };
 
-const STEP_IDS = ['welcome', 'voice', 'personas', 'rituals', 'ready'];
+export const STEP_IDS = ['welcome', 'voice', 'personas', 'ready'];
 
 function getDefaultSteps(): OnboardingStep[] {
   return STEP_IDS.map((id) => ({
@@ -354,7 +357,7 @@ class OnboardingUI {
         cursor: pointer;
         transition: all ${DURATION.FAST}ms ${EASING.STANDARD};
       }
-      .onboarding__btn--primary { background: var(--color-accent-primary, #2d5a3d); color: white; }
+      .onboarding__btn--primary { background: var(--color-accent-primary, #2d5a3d); color: var(--color-text-on-accent); }
       .onboarding__btn--primary:hover { background: var(--color-accent-hover, #3a7050); transform: translateY(-1px); }
       .onboarding__btn--secondary { background: transparent; color: var(--color-text-muted, #756a5e); }
       .onboarding__btn--secondary:hover { color: var(--color-text-primary, #2c2520); background: var(--color-background-secondary, #f5f2ed); }

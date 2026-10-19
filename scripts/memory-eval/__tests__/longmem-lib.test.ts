@@ -1,16 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
   CATEGORIES,
-  HUMAN_REFERENCE,
   REMARKS,
   answerPrompt,
+  callerZone,
+  daysBetween,
+  failureCount,
   hasEvidence,
   cohenKappa,
   formatAgreement,
+  localDay,
   parseCaseFile,
+  promptHashes,
   RunDays,
   formatPaired,
   formatReport,
+  formatStrict,
   interimOf,
   judgePrompt,
   paired,
@@ -41,6 +46,27 @@ describe('RunDays', () => {
 
   it('rejects a malformed run date', () => {
     expect(() => new RunDays('10/11/2026')).toThrow(/bad run date/);
+  });
+
+  it('rejects a date that is not on the calendar', () => {
+    expect(() => new RunDays('2026-02-31')).toThrow(/bad run date/);
+    expect(() => new RunDays('2026-13-01')).toThrow(/bad run date/);
+  });
+
+  it('counts whole calendar days between dates', () => {
+    expect(daysBetween('2026-01-05', '2026-10-11')).toBe(279);
+    expect(daysBetween('2026-10-11', '2026-10-11')).toBe(0);
+    expect(localDay(Date.parse('2026-01-06T03:00:00Z'), 'America/New_York')).toBe('2026-01-05');
+  });
+
+  it('reads the caller zone from EVAL_TZ, defaulting to New York', () => {
+    const before = process.env.EVAL_TZ;
+    delete process.env.EVAL_TZ;
+    expect(callerZone()).toBe('America/New_York');
+    process.env.EVAL_TZ = 'America/Denver';
+    expect(callerZone()).toBe('America/Denver');
+    if (before === undefined) delete process.env.EVAL_TZ;
+    else process.env.EVAL_TZ = before;
   });
 });
 
@@ -92,12 +118,33 @@ describe('scoring', () => {
     expect(wilson(1, 1)[1]).toBe(1);
   });
 
-  it('reports every category against the LoCoMo human reference', () => {
+  it('reports every category, with "–" where nothing was judged', () => {
     const report = formatReport([r('single-session', true, true), r('abstention', false, null)]);
     expect(report).toContain('| single-session | 1/1 | 100%');
-    expect(report).toContain('| knowledge-update | 0/0 | 0% [0%, 0%] | – | n/a |');
+    expect(report).toContain('| knowledge-update | – | – | – | 0 |');
     expect(report).toContain('| overall | 1/2 | 50%');
-    expect(HUMAN_REFERENCE.overall).toBe(0.879);
+  });
+
+  it('counts a missing answer as wrong and as a failure; a judge failure only as a failure', () => {
+    const blank: CaseResult = { ...r('temporal', null, null), response: '', noAnswer: true };
+    const t = tally([r('temporal', true, true), blank, r('temporal', null, null)]);
+    expect(t).toMatchObject({ n: 2, correct: 1, accuracy: 0.5, judgeFailures: 1, noAnswers: 1 });
+    expect(failureCount([blank, r('temporal', true, true)])).toBe(1);
+    expect(failureCount([r('temporal', true, true)])).toBe(0);
+    expect(formatReport([blank])).toContain('| temporal | 0/1 | 0% [0%, 79%] | – | 1 |');
+    expect(formatReport([blank])).toContain('| overall | 0/1 | 0%');
+  });
+
+  it('states the accuracy denominator under the table', () => {
+    expect(formatReport([r('temporal', true, true)])).toMatch(
+      /Accuracy is correct \/ \(judged \+ no answer\).*judge failure is left out/
+    );
+  });
+
+  it('fingerprints the prompt templates, so a changed wording shows in a report', () => {
+    const hashes = promptHashes();
+    expect(hashes.judge).toMatch(/^[0-9a-f]{12}$/);
+    expect(promptHashes()).toEqual(hashes);
   });
 });
 
@@ -214,8 +261,10 @@ describe('case files', () => {
   it('loads histories and fixed gold answers kept outside the repo', () => {
     const loaded = parseCaseFile({
       runDate: '2026-10-11',
-      histories: [{ id: 'seth-1', name: 'Seth', sessions: [{ daysAgo: 3, user: ['hi'] }] }],
-      cases: [{ history: 'seth-1', category: 'temporal', ask: 'When?', gold: 'Friday 2026-10-09' }],
+      histories: [{ id: 'priya-1', name: 'Priya', sessions: [{ daysAgo: 3, user: ['hi'] }] }],
+      cases: [
+        { history: 'priya-1', category: 'temporal', ask: 'When?', gold: 'Friday 2026-10-09' },
+      ],
     });
     expect(loaded.cases[0]!.gold(new RunDays('2030-01-01'))).toBe('Friday 2026-10-09');
     expect(() =>
@@ -254,5 +303,29 @@ describe('remarks', () => {
     expect(hasEvidence('restraint')).toBe(false);
     expect(hasEvidence('abstention')).toBe(false);
     expect(hasEvidence('false-premise')).toBe(true);
+  });
+});
+
+describe('strict judge', () => {
+  it('reports the benchmark judge beside the live one, over the same answers', () => {
+    const live: CaseResult = {
+      history: 'h',
+      category: 'temporal',
+      ask: 'q',
+      gold: 'g',
+      note: null,
+      response: 'It was Friday.',
+      correct: true,
+      retrieved: null,
+      strict: false,
+    };
+    expect(formatStrict([live, { ...live, strict: true }])).toBe(
+      'strict judge (benchmark prompt): 1/2 50%'
+    );
+    // A missing answer counts as wrong, as in the table; a judge failure alone measures nothing.
+    expect(formatStrict([{ ...live, noAnswer: true, correct: null, strict: null }])).toBe(
+      'strict judge (benchmark prompt): 0/1 0%'
+    );
+    expect(formatStrict([{ ...live, strict: null }])).toBe('strict judge (benchmark prompt): –');
   });
 });

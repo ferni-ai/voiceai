@@ -13,10 +13,22 @@ import {
   resolveCrisisAgreementGate,
 } from '../../../services/safety/crisis-agreement.js';
 import {
+  adjudicatedCheckin,
+  resolveCrisisAdjudicatorMode,
+  shadowAdjudication,
+  startCrisisAdjudicator,
+  transcriptFrom,
+} from '../../../services/safety/crisis-adjudicator.js';
+import {
   startCrisisClassifier,
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
+import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import {
+  callRiskBeforeTurn,
+  loneImminentGoodbye,
+} from '../../../services/safety/crisis-lone-imminent.js';
 import {
   applyClassifierVerdict,
   detectCrisis,
@@ -37,11 +49,18 @@ export interface TurnCrisis {
   /** The patterns with the live classifier verdict applied. Memoized. */
   resolve(): Promise<CrisisDetectionResult>;
   /**
-   * Whether this turn gets a soft check-in instead (CRISIS_AGREEMENT_GATE):
-   * its reads disagreed and no pattern matched. resolve() then returns the
-   * patterns' reading.
+   * Whether this turn gets a soft check-in instead: its reads disagreed and no
+   * pattern matched (CRISIS_AGREEMENT_GATE), or a lone imminent read of a plain
+   * goodbye on a call with no risk (crisis-lone-imminent.ts). resolve() then
+   * returns the patterns' reading.
    */
   softCheck(): Promise<boolean>;
+  /**
+   * Whether a router may answer this turn without the reply model (FTIS direct
+   * execution, the semantic short-circuit): never with a crisis signal or a
+   * soft check-in, which only the normal reply path carries.
+   */
+  bypassAllowed(): Promise<boolean>;
 }
 
 export function startTurnCrisis(
@@ -53,6 +72,8 @@ export function startTurnCrisis(
     sessionId?: string;
     env?: Record<string, string | undefined>;
     generate?: CrisisGenerateFn;
+    /** The adjudicator's model call. */
+    adjudicate?: CrisisGenerateFn;
   } = {}
 ): TurnCrisis {
   const patterns = detectCrisis(
@@ -62,27 +83,67 @@ export function startTurnCrisis(
   );
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   const pattern = shouldBlock ? 'block' : patterns.isCrisis ? 'crisis' : 'none';
+  if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
   const { env = process.env, generate } = options;
-  const scope = resolveCrisisAgreementGate(env) ? options.sessionId || undefined : undefined;
+  // Only the agreement gate and a live adjudicator hold the turn for the turn's
+  // other reads; a shadow adjudicator runs beside it and never delays it.
+  const agreementGate = resolveCrisisAgreementGate(env);
+  const adjudicatorMode = resolveCrisisAdjudicatorMode(env);
+  const scope =
+    agreementGate || adjudicatorMode !== 'off' ? options.sessionId || undefined : undefined;
+  const holdForReads = agreementGate || adjudicatorMode === 'live';
   const input = {
     latest: userText,
     earlier: userData?.recentTranscripts ?? [],
     companion: userData?.lastAgentResponse,
   };
-  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope });
+  const call = options.sessionId || undefined;
+  // Taken before this turn's own read starts (crisis-lone-imminent.ts).
+  const priorRisk = callRiskBeforeTurn(call, input);
+  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
   let settled: Promise<{ crisis: CrisisDetectionResult; soft: boolean }> | null = null;
   const settle = (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> =>
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
+            // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
+            if (loneImminentGoodbye({ detection: patterns, verdict, ...input, priorRisk })) {
+              log.info({ outcome: 'soft', source: 'lone_imminent_goodbye' }, 'CRISIS_AGREEMENT');
+              return { crisis: patterns, soft: true };
+            }
             const crisis = applyClassifierVerdict(patterns, verdict);
             if (!scope || crisis === patterns) return { crisis, soft: false };
+            if (!holdForReads) {
+              shadowAdjudication(turnVerdicts(scope, input), transcriptFrom(input), {
+                pattern,
+                env,
+                scope,
+                source: 'pipeline',
+                generate: options.adjudicate,
+              });
+              return { crisis, soft: false };
+            }
             // Fail closed: a failed lookup counts as a missing read, which escalates.
             const verdicts = await turnVerdicts(scope, input).catch(() => [null]);
-            const outcome = agreementOutcome({ pattern, verdicts, ...input });
-            if (outcome === 'escalate') return { crisis, soft: false };
-            log.info({ outcome, reads: verdicts.length }, 'CRISIS_AGREEMENT');
-            return { crisis: patterns, soft: outcome === 'soft' };
+            const outcome = agreementGate
+              ? agreementOutcome({ pattern, verdicts, ...input })
+              : 'escalate';
+            if (outcome !== 'escalate') {
+              log.info({ outcome, reads: verdicts.length }, 'CRISIS_AGREEMENT');
+              return { crisis: patterns, soft: outcome === 'soft' };
+            }
+            // A classifier-only crisis gets a fuller second read (crisis-adjudicator.ts).
+            const adjudicator = startCrisisAdjudicator(transcriptFrom(input), {
+              pattern,
+              verdicts,
+              env,
+              generate: options.adjudicate,
+              source: 'pipeline',
+              scope,
+            });
+            if (!(await adjudicatedCheckin(adjudicator))) return { crisis, soft: false };
+            log.info({ outcome: 'soft', source: 'adjudicator' }, 'CRISIS_AGREEMENT');
+            return { crisis: patterns, soft: true };
           })
         : Promise.resolve({ crisis: patterns, soft: false }));
   return {
@@ -90,6 +151,7 @@ export function startTurnCrisis(
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
+    bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
   };
 }
 
