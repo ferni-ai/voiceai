@@ -2,8 +2,8 @@
 # =============================================================================
 # SECRET SCAN RANGE
 # =============================================================================
-# Fetches just the history the secret scan needs and writes `base` and `head`
-# (and `commits`) to $GITHUB_OUTPUT, so trufflehog scans exactly the change:
+# Fetches just the history the secret scan needs and writes `base`, `head` and
+# `commits` to $GITHUB_OUTPUT, so trufflehog scans exactly the change:
 #
 #   pull_request  the PR's commits: merge base of its base and head .. head
 #   merge_group   every PR in the group: merge base of main and the group head .. head
@@ -12,14 +12,18 @@
 #
 # The checkout is one commit deep, so before 2026-10-19 no base was ever in the
 # clone: trufflehog logged "unable to resolve commit: object not found", scanned
-# 0 chunks and 0 bytes on every PR, queue group and push, and passed. This
-# deepens the head's history until the base is an ancestor (doubling, up to
-# MAX_DEPTH commits) instead of fetching all of it (about 2.6 GB), and tags both
-# ends so trufflehog's own clone of the checkout has them. If the base can't be
-# reached it fails: an unscanned change must not pass as scanned.
+# 0 chunks and 0 bytes on every PR, queue group and push, and passed.
+#
+# This deepens base and head together (doubling, up to MAX_DEPTH) instead of
+# fetching all history (about 2.6 GB), until the range is complete: base..head
+# has exactly the commits GitHub's compare counts, and none of them sits on the
+# shallow boundary (a merge's other side cut off there would otherwise drop
+# commits silently). It tags both ends, since trufflehog scans a clone of the
+# checkout and a clone copies only refs. Anything it can't prove complete
+# fails: an unscanned change must never pass as scanned.
 #
 # Env: EVENT, REPO, GH_TOKEN (gh), and per event PR_BASE/PR_HEAD,
-#      MG_BASE_REF/MG_HEAD or PUSH_BEFORE/PUSH_AFTER. Optional MAX_DEPTH (3200).
+#      MG_BASE_REF/MG_HEAD or PUSH_BEFORE/PUSH_AFTER. Optional MAX_DEPTH (4096).
 # =============================================================================
 set -euo pipefail
 
@@ -29,23 +33,26 @@ case "$EVENT" in
   push) head=$PUSH_AFTER; from=$PUSH_BEFORE ;;
   *) echo "::error::secret-scan-range: no range for a $EVENT event"; exit 1 ;;
 esac
-[ -n "$head" ] && [ -n "$from" ] || { echo "::error::secret-scan-range: missing base or head for $EVENT"; exit 1; }
+[ -n "$head" ] && [ -n "$from" ] && [[ ! "$from" =~ ^0+$ ]] \
+  || { echo "::error::secret-scan-range: no base or head for this $EVENT"; exit 1; }
 
-if [ "$EVENT" = push ]; then
-  [[ "$from" =~ ^0+$ ]] && { echo "::error::push without a previous commit; nothing to scan from"; exit 1; }
-  base=$from
-else
-  base=$(gh api "repos/$REPO/compare/$from...$head" --jq .merge_base_commit.sha)
-fi
+# GitHub's own count of the change, to prove the local range is complete.
+read -r base expected < <(gh api "repos/$REPO/compare/$from...$head" \
+  --jq '"\(.merge_base_commit.sha) \(.total_commits)"')
+[ -n "$base" ] && [ -n "$expected" ] || { echo "::error::could not compare $from...$head"; exit 1; }
 
-git fetch --no-tags --quiet --depth=1 origin "$base"
+shallow_file=$(git rev-parse --git-path shallow)
 depth=16
-until git merge-base --is-ancestor "$base" "$head" 2>/dev/null; do
-  if [ "$depth" -gt "${MAX_DEPTH:-3200}" ]; then
-    echo "::error::$base is not within ${MAX_DEPTH:-3200} commits of $head, so the change was not scanned"
+while :; do
+  git fetch --no-tags --quiet --depth="$depth" origin "$base" "$head"
+  range=$(git rev-list "$base..$head")
+  commits=$(printf '%s' "$range" | grep -c . || true)
+  cut=$( { [ -f "$shallow_file" ] && printf '%s\n' "$range" | grep -Fxf "$shallow_file"; } || true)
+  [ "$commits" = "$expected" ] && [ -z "$cut" ] && break
+  if [ "$depth" -ge "${MAX_DEPTH:-4096}" ]; then
+    echo "::error::$base..$head is not complete at depth $depth ($commits of $expected commits), so it was not scanned"
     exit 1
   fi
-  git fetch --no-tags --quiet --depth="$depth" origin "$head"
   depth=$((depth * 2))
 done
 
@@ -54,8 +61,7 @@ done
 git tag -f secret-scan-base "$base" >/dev/null
 git tag -f secret-scan-head "$head" >/dev/null
 
-commits=$(git rev-list --count "$base..$head")
-echo "Secret scan: $commits commit(s), $base..$head ($EVENT)"
+echo "Secret scan: $commits commit(s), $base..$head ($EVENT, depth $depth)"
 {
   echo "base=$base"
   echo "head=$head"
