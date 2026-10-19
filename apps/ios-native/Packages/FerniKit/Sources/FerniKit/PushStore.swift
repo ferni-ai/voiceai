@@ -8,25 +8,35 @@ public struct PushBinding: Codable, Equatable, Sendable {
     public var token: String?
     /// The account the server has confirmed it's registered to; nil when unbound.
     public var owner: String?
-    /// A registration was sent as this account and its outcome is unknown
-    /// (timed out, server error, or the account changed before it finished).
-    /// Recorded before sending; cleared by a confirmed answer.
-    public var unsure: String?
+    /// Accounts a registration was sent as whose outcome is unknown (timed
+    /// out, server error, or the account changed before it finished), so the
+    /// server might have the token bound to any of them. Each is recorded
+    /// before sending and removed only by a confirmed answer.
+    public var maybeOwners: Set<String> = []
     /// Everyone on this phone who said yes to notes from Ferni.
     public var optedIn: Set<String> = []
     /// The server's opaque tag for the owner (after #1991); the notification
     /// extension drops pushes whose tag doesn't match.
     public var recipientTag: String?
 
-    public init(token: String? = nil, owner: String? = nil, unsure: String? = nil, optedIn: Set<String> = []) {
+    public init(token: String? = nil, owner: String? = nil, maybeOwners: Set<String> = [], optedIn: Set<String> = []) {
         self.token = token
         self.owner = owner
-        self.unsure = unsure
+        self.maybeOwners = maybeOwners
         self.optedIn = optedIn
     }
 
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        token = try c.decodeIfPresent(String.self, forKey: .token)
+        owner = try c.decodeIfPresent(String.self, forKey: .owner)
+        maybeOwners = try c.decodeIfPresent(Set<String>.self, forKey: .maybeOwners) ?? []
+        optedIn = try c.decodeIfPresent(Set<String>.self, forKey: .optedIn) ?? []
+        recipientTag = try c.decodeIfPresent(String.self, forKey: .recipientTag)
+    }
+
     /// The server might have the token bound to someone: confirmed or unknown.
-    var mightBeBound: Bool { owner != nil || unsure != nil }
+    var mightBeBound: Bool { owner != nil || !maybeOwners.isEmpty }
 }
 
 /// Where the binding is kept. The Keychain in the app; memory in tests.
@@ -43,7 +53,7 @@ public protocol PushVault: Sendable {
 /// request fails or races a sign-out:
 /// - every operation runs one at a time, so sign-out waits for a
 ///   registration still in flight;
-/// - an unconfirmed registration is recorded before it's sent (`unsure`),
+/// - an unconfirmed registration is recorded before it's sent (`maybeOwners`),
 ///   and only an explicit rejection clears it;
 /// - `reconcile` registers the token to whoever is signed in now (which takes
 ///   it from anyone else) and, unless they opted in, unbinds it again.
@@ -95,7 +105,7 @@ public final class PushStore {
         await serially {
             if token != self.binding.token { // a new token isn't registered anywhere yet
                 self.binding.owner = nil
-                self.binding.unsure = nil
+                self.binding.maybeOwners = []
                 self.binding.recipientTag = nil
             }
             self.binding.token = token
@@ -117,8 +127,8 @@ public final class PushStore {
     public func unbindBeforeSignOut(uid: String) async -> Bool {
         await serially {
             defer { self.binding.optedIn.remove(uid); self.save() }
-            // Unknown owner or this person: DELETE (a no-op on the server for anyone else).
-            guard self.binding.token != nil, self.binding.owner == uid || self.binding.unsure != nil else { return true }
+            // This person might own it: DELETE (a no-op on the server for anyone else).
+            guard self.binding.token != nil, self.binding.owner == uid || self.binding.maybeOwners.contains(uid) else { return true }
             for attempt in 0..<2 {
                 if attempt > 0 { try? await Task.sleep(for: .seconds(1)) }
                 if await self.unregister(as: uid) { return true }
@@ -148,11 +158,11 @@ public final class PushStore {
             return
         }
         let wanted = hasOptedIn(uid)
-        if binding.unsure == nil {
+        if binding.maybeOwners.isEmpty {
             if binding.owner == uid && wanted { return }
             if binding.owner == nil && !wanted { return }
         }
-        if binding.owner != uid || binding.unsure != nil {
+        if binding.owner != uid || !binding.maybeOwners.isEmpty {
             guard await register(as: uid) else {
                 // Signed in as someone else by the time it answered: settle as them.
                 if let now = currentUID(), now != uid { await settle(uid: now) }
@@ -165,22 +175,30 @@ public final class PushStore {
     // MARK: - Server
 
     /// POST as `uid`. True only when the server confirmed it for `uid`.
+    /// Nobody leaves `maybeOwners` here except on a confirmed registration,
+    /// which moved the token away from all of them.
     private func register(as uid: String) async -> Bool {
         guard let token = binding.token else { return false }
-        binding.unsure = uid
+        let before = binding.maybeOwners
+        binding.maybeOwners.insert(uid)
         save()
         switch await post(token) {
         case .rejected:
-            binding.unsure = nil // the server changed nothing
+            binding.maybeOwners = before // the server changed nothing
         case .unknown:
             break
         case .registered(let tag):
-            guard currentUID() == uid else {
+            guard let now = currentUID(), now == uid else {
+                // Sent as `uid` or as whoever signed in meanwhile: the token
+                // moved away from the old owner, to one of those two.
                 log.error("Account changed during registration; settling as the new account")
+                binding.owner = nil
+                binding.recipientTag = nil
+                if let now = currentUID() { binding.maybeOwners.insert(now) }
                 break
             }
             binding.owner = uid
-            binding.unsure = nil
+            binding.maybeOwners = []
             binding.recipientTag = tag
             save()
             return true
@@ -197,7 +215,7 @@ public final class PushStore {
             binding.owner = nil
             binding.recipientTag = nil
         }
-        if binding.unsure == uid { binding.unsure = nil }
+        binding.maybeOwners.remove(uid)
         save()
         return true
     }
@@ -218,12 +236,12 @@ public final class PushStore {
                 token: token, bundleId: bundleID, environment: environment, appVersion: appVersion
             ))
             return .registered(tag: (try? JSONDecoder().decode(Answer.self, from: data))?.recipientTag)
-        } catch FerniAPIError.notSignedIn {
-            return .rejected // never sent
-        } catch FerniAPIError.status(let code) where (400..<500).contains(code) {
+        } catch FerniAPIError.status(let code) where [400, 403, 404, 422].contains(code) {
             log.error("Device registration refused: \(code, privacy: .public)")
             return .rejected
         } catch {
+            // Timeouts, 5xx, 408/409/429, and no session to send with: keep
+            // the maybe-owner (an extra DELETE later is harmless; a lost one isn't).
             log.error("Device registration outcome unknown: \(String(describing: error), privacy: .public)")
             return .unknown
         }
