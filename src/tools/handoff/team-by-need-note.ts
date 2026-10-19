@@ -21,6 +21,7 @@
 
 import { isTeamByNeedEnabled } from '../../config/team-by-need-flag.js';
 import { ALIAS_TO_CANONICAL } from '../../personas/persona-ids.js';
+import { chiefOfStaffWhen } from './chief-of-staff-note.js';
 
 interface Teammate {
   readonly id: string;
@@ -94,7 +95,11 @@ export function teamByNeedNote(speaker: string, callerWords: string, agentWords 
   if (!isTeamByNeedEnabled()) return '';
   const self = canonical(speaker);
   const words = callerWords.toLowerCase();
-  const team = BY_NEED_TEAMMATES.filter((m) => m.id !== self);
+  // ALEX_CHIEF_OF_STAFF=on: Alex is named for planning too (chief-of-staff-note.ts)
+  const team = BY_NEED_TEAMMATES.filter((m) => m.id !== self).map((m) => ({
+    ...m,
+    when: chiefOfStaffWhen(m.id, m.when),
+  }));
   const investing = INVESTING.test(words);
   const legends = investing ? LEGENDS.filter((m) => m.id !== self) : [];
 
