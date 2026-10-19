@@ -48,7 +48,7 @@ notes as a one-time link, never in this repository.
 | Live captions | During a call | What you and Ferni say. Turn them off under More, then Captions. |
 | Report a reply (1.2) | Long-press a caption, or More, then Report | Sends the reply and a reason. Needs PR #2038 on the server. |
 | Mute, End, More | Call controls | More: captions, report the last reply, Call 988. |
-| Help now | More (in a call), Settings, then Help | Call or text 988. |
+| Help now | More (in a call), Settings, then Help, or long-press the app icon: Get help now | Call or text 988; outside the US, findahelpline.com. The quick action is static, so it works even when Ferni can't connect. |
 | Teammates | Home, the team row (iPad: sidebar, then Team) | Choose who answers next. Locked teammates say why. |
 | The family table | During a call, when Ferni brings in a teammate | The teammate peeks in, they greet and swap, and the room light changes. |
 | "I'll remember" | Home, after a call | Up to three things Ferni kept, each with Forget. |
