@@ -114,13 +114,14 @@ public final class AliveRig {
         g.leaving = time + 0.7
     }
 
-    /// Persona without staging (first appearance, outside a call).
-    public func show(_ persona: WindowPersona) {
+    /// Persona without staging (first appearance, outside a call): a colour
+    /// crossfade, or at once.
+    public func show(_ persona: WindowPersona, animated: Bool = true) {
         guard persona != self.persona, handoff == nil else { return }
         self.persona = persona
         let c = Self.colours(persona)
-        (bodyFrom, glowFrom) = (currentBody, currentGlow)
-        (bodyTo, glowTo, colourT) = (c.body, c.glow, 0)
+        (bodyFrom, glowFrom) = animated ? (currentBody, currentGlow) : (c.body, c.glow)
+        (bodyTo, glowTo, colourT) = (c.body, c.glow, animated ? 0 : 1)
     }
 
     func flash(_ id: String, seconds: Double) { overlay = (id, time + seconds * tempo) }
