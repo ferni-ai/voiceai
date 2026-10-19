@@ -84,6 +84,17 @@
                ReferencedContainer = "container:Packages/FerniDesign">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FerniLinkTests"
+               BuildableName = "FerniLinkTests"
+               BlueprintName = "FerniLinkTests"
+               ReferencedContainer = "container:Packages/FerniLink">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>
