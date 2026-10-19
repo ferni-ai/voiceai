@@ -10,6 +10,26 @@
       ],
       "redirects": [
         {
+          "source": "/app",
+          "destination": "https://app.ferni.ai/",
+          "type": 301
+        },
+        {
+          "source": "/login",
+          "destination": "https://app.ferni.ai/",
+          "type": 301
+        },
+        {
+          "source": "/signin",
+          "destination": "https://app.ferni.ai/",
+          "type": 301
+        },
+        {
+          "source": "/start",
+          "destination": "https://app.ferni.ai/",
+          "type": 301
+        },
+        {
           "source": "/developers",
           "destination": "https://developers.ferni.ai",
           "type": 301

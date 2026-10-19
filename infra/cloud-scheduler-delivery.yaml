@@ -109,3 +109,19 @@ jobs:
         audience: https://app.ferni.ai/api/jobs/pondering
     retryConfig:
       retryCount: 0
+
+  - name: retry-pending-revocations
+    description: Retry Google OAuth revokes queued by account erasure
+    schedule: "*/15 * * * *"
+    timeZone: Etc/UTC
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/retry-pending-revocations
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+      oidcToken:
+        serviceAccountEmail: scheduler-invoker@johnb-2025.iam.gserviceaccount.com
+        audience: https://app.ferni.ai/api/jobs/retry-pending-revocations
+    retryConfig:
+      retryCount: 0

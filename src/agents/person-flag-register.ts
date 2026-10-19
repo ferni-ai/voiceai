@@ -8,6 +8,6 @@
  * @module agents/person-flag-register
  */
 import { usePersonFlagLookup } from '../config/person-flag.js';
-import { callerFlag } from '../services/platform/cohort-flags.js';
+import { callerFlag } from '../services/platform/caller-flag.js';
 
 usePersonFlagLookup(callerFlag);

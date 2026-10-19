@@ -4,9 +4,9 @@ vi.mock('../../../utils/safe-logger.js', () => ({
   createLogger: () => ({ info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() }),
 }));
 
+import { callerFlag } from '../caller-flag.js';
 import {
   applyCallerFlags,
-  callerFlag,
   COHORT_FLAGS,
   forgetAgentValues,
   missingPrerequisites,
@@ -38,7 +38,7 @@ describe('COHORT_FLAGS', () => {
         'FRIEND_CELEBRATIONS', 'REVIVED_INTELLIGENCE', 'CALL_JOURNAL', 'FOLLOW_THROUGH_IMPORT',
         'PONDERING', 'HANDOFF_FIRST_FIX', 'MORNING_BRIEF', 'TOOLS_SAME_TURN',
         'FOLLOW_THROUGH_OPENER', 'NAMED_TUNE', 'GOOD_NEWS_BIGGER', 'ALEX_CHIEF_OF_STAFF',
-        'WEB_PUSH_DELIVERY',
+        'WEB_PUSH_DELIVERY', 'PERSONA_VOICE', 'TURN_LENGTH', 'TURN_TEXTURE',
       ].sort() // prettier-ignore
     );
   });
@@ -64,5 +64,24 @@ describe('callerFlag (the agent’s per-person lookup)', () => {
     // Seth's call ended; mom's call has started and applied her flags.
     expect(await callerFlag('seth', 'COACH_WINS', { store: s, env })).toBe('off');
     expect(await callerFlag('mom', 'COACH_WINS', { store: s, env })).toBe('on');
+  });
+});
+
+describe('missingPrerequisites', () => {
+  it('names a memory switch turned on without what it builds on', () => {
+    expect(missingPrerequisites({ RECALL_EPISODES: 'on' })).toEqual([
+      'RECALL_EPISODES needs SEMANTIC_RECALL',
+    ]);
+    expect(missingPrerequisites({ WORLD_FACTS_IN_CALL: 'on' })).toEqual([
+      'WORLD_FACTS_IN_CALL needs WORLD_MODEL_TEMPORAL',
+    ]);
+    expect(
+      missingPrerequisites({
+        SEMANTIC_RECALL: 'on',
+        RECALL_EPISODES: 'on',
+        WORLD_MODEL_TEMPORAL: 'on',
+        WORLD_FACTS_IN_CALL: 'on',
+      })
+    ).toEqual([]);
   });
 });

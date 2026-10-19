@@ -81,6 +81,14 @@ describe('readCallSummaries', () => {
     });
   });
 
+  it('selects who raised each item, so readers can serve only the caller-checked threads', async () => {
+    const { db, queries } = fakeDb({ summaries: [live] });
+    await readCallSummaries(db, 'u1', { limit: 3 }, { LIVE_SUMMARIES: 'on' });
+    expect(queries[0]?.select).toEqual(
+      expect.arrayContaining(['callerProvenance', 'assistantRaisedItems', 'disputedItems'])
+    );
+  });
+
   it('falls back to conversation_summaries for a user with no live summaries', async () => {
     const { db, queries } = fakeDb({ conversation_summaries: [{ topics: ['old'] }] });
     const read = await readCallSummaries(
