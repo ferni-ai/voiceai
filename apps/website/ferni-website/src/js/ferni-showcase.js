@@ -60,6 +60,16 @@
     'happy',        // Squinted smile - "joy"
     'neutral'       // Reset - calm and ready
   ];
+
+  // Late at night Ferni slows down: fewer head tilts, more settling.
+  // Matches the site's "Winding down?" / "Can't sleep?" hours.
+  const nightEmotions = ['settling', 'listening', 'warm', 'settling', 'caring', 'neutral'];
+  const NIGHT_START_HOUR = 21;
+  const NIGHT_END_HOUR = 5;
+
+  // Someone coming back after a real break (not just moving between pages).
+  const LAST_SEEN_KEY = 'ferni_avatar_last_seen';
+  const RETURN_GAP_MS = 6 * 60 * 60 * 1000;
   
   // Glow color families (from expressions.html)
   const glowColors = {
@@ -93,7 +103,9 @@
     
     // Others
     surprised: 'rgba(200, 100, 100, 0.45)',
-    sleepy: 'rgba(140, 180, 160, 0.4)'
+    sleepy: 'rgba(140, 180, 160, 0.4)',
+    settling: 'rgba(130, 140, 175, 0.35)',  // Dusk blue - quiet evening
+    glad: 'rgba(255, 190, 130, 0.5)'         // Warm gold - good to see you
   };
   
   // ═══════════════════════════════════════════════════════════════════════════════
@@ -169,6 +181,9 @@
   const BASE_EYE_RX = 7;
   const BASE_EYE_RY = 10;
   
+  // Hand-copied from the app's expressions. `settling` and `glad` (and the
+  // `noticing` micro-expression) now also live in design-system/tokens/expressions.json
+  // (expressions.settling, expressions.glad, microExpressions.noticing); keep them in step.
   // Expression configs: [leftRx, leftRy, rightRx, rightRy, avatarTransform, eyesGroupTranslate, dimpleOpacity]
   const EYE_CONFIGS = {
     neutral:    { lRy: 10, lRx: 7, rRy: 10, rRx: 7, avatar: '', eyes: '', dimple: 0 },
@@ -186,7 +201,11 @@
     confident:  { lRy: 8, lRx: 7, rRy: 8, rRx: 7, avatar: 'translateY(-1px)', eyes: '', dimple: 0.4 },
     surprised:  { lRy: 13, lRx: 8, rRy: 13, rRx: 8, avatar: '', eyes: '', dimple: 0 },
     winking:    { lRy: 1, lRx: 8, rRy: 11, rRx: 7, avatar: 'rotate(4deg) translateY(-2px)', eyes: '', dimple: 0.6 },
-    sleepy:     { lRy: 4, lRx: 7, rRy: 4, rRx: 7, avatar: '', eyes: '', dimple: 0 }
+    sleepy:     { lRy: 4, lRx: 7, rRy: 4, rRx: 7, avatar: '', eyes: '', dimple: 0 },
+    // Lids lowered, gaze down, head resting to one side: content, not tired
+    settling:   { lRy: 5, lRx: 7.5, rRy: 5, rRx: 7.5, avatar: 'rotate(-5deg) translateY(2px)', eyes: 'translate(-1px, 4px)', dimple: 0.4 },
+    // Smiling eyes, head up and tilted toward the visitor: "oh, hi"
+    glad:       { lRy: 6, lRx: 8.5, rRy: 6, rRx: 8.5, avatar: 'rotate(6deg) translateY(-5px)', eyes: 'translate(1px, -2px)', dimple: 1 }
   };
   
   function setMood(mood) {
@@ -234,16 +253,43 @@
   // EMOTION CYCLING - Showcase Ferni's expressive range
   // ═══════════════════════════════════════════════════════════════════════════════
   
+  function isNight(hour = new Date().getHours()) {
+    return hour >= NIGHT_START_HOUR || hour < NIGHT_END_HOUR;
+  }
+
+  // Read and refresh the last-seen time. True when the visitor was here
+  // before, longer ago than RETURN_GAP_MS. Storage can be blocked.
+  function isReturningAfterBreak() {
+    try {
+      const lastSeen = parseInt(localStorage.getItem(LAST_SEEN_KEY) || '0', 10);
+      localStorage.setItem(LAST_SEEN_KEY, String(Date.now()));
+      return lastSeen > 0 && Date.now() - lastSeen > RETURN_GAP_MS;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Re-checked each time so a page left open into the evening settles too
+  function currentCycle() {
+    return isNight() ? nightEmotions : emotions;
+  }
+
+  function cycleMood() {
+    const cycle = currentCycle();
+    return cycle[currentMoodIndex % cycle.length];
+  }
+
   function nextEmotion() {
     if (isPaused) return;
     
-    currentMoodIndex = (currentMoodIndex + 1) % emotions.length;
-    setMood(emotions[currentMoodIndex]);
+    currentMoodIndex = (currentMoodIndex + 1) % currentCycle().length;
+    setMood(cycleMood());
   }
   
   function startEmotionCycle() {
     // Change emotion every 4 seconds - gives time to appreciate each expression
-    cycleInterval = setInterval(nextEmotion, 4000);
+    // (6 at night, so the calmer moods can breathe)
+    cycleInterval = setInterval(nextEmotion, isNight() ? 6000 : 4000);
   }
   
   function pauseCycle() {
@@ -283,7 +329,7 @@
           setMood('curious');
           setTimeout(() => {
             if (!isPaused) {
-              setMood(emotions[currentMoodIndex]);
+              setMood(cycleMood());
             }
           }, 1500);
         }
@@ -355,7 +401,7 @@
           setMood('warm');
           setTimeout(() => {
             if (!isPaused) {
-              setMood(emotions[currentMoodIndex]);
+              setMood(cycleMood());
             }
           }, 2000);
         }, 100);
@@ -397,10 +443,22 @@
     setupVisibilityReactions();
     setupIdleGazeShift();
     
-    // Start with curious - the classic Luxo look
-    setTimeout(() => {
-      setMood('curious');
-    }, 500);
+    // Start with curious - the classic Luxo look. A returning visitor gets
+    // a glad look first; late at night Ferni opens settled instead.
+    const opening = isNight() ? 'settling' : 'curious';
+    if (isReturningAfterBreak()) {
+      setTimeout(() => {
+        triggerMicroExpression('recognition', 80);
+        setMood('glad');
+      }, 500);
+      setTimeout(() => {
+        if (!isPaused) setMood(opening);
+      }, 3000);
+    } else {
+      setTimeout(() => {
+        setMood(opening);
+      }, 500);
+    }
   }
   
   // Wait for DOM

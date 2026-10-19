@@ -2,7 +2,7 @@ name: FerniVoice
 options:
   bundleIdPrefix: com.sethdford
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "18.0"
     watchOS: "9.0"
   xcodeVersion: "15.0"
   generateEmptyDirectories: true
@@ -10,9 +10,11 @@ options:
 packages:
   LiveKit:
     url: https://github.com/livekit/client-sdk-swift
-    exactVersion: 2.11.0
+    exactVersion: 2.12.1
   FerniShared:
     path: ../shared
+  FerniDesign:
+    path: Packages/FerniDesign
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     from: "11.0.0"
@@ -20,7 +22,7 @@ packages:
 settings:
   base:
     MARKETING_VERSION: "1.0.0"
-    CURRENT_PROJECT_VERSION: "4"
+    CURRENT_PROJECT_VERSION: "6"
     SWIFT_VERSION: "5.9"
     DEVELOPMENT_TEAM: "XT8W26YE9U"
     CODE_SIGN_STYLE: Automatic
@@ -29,7 +31,7 @@ targets:
   FerniVoice:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "18.0"
     sources:
       - path: Sources
         type: group
@@ -44,6 +46,7 @@ targets:
         product: LiveKit
       - package: FerniShared
         product: FerniShared
+      - package: FerniDesign
       - package: Firebase
         product: FirebaseAuth
       - package: Firebase
@@ -58,7 +61,6 @@ targets:
       - path: FerniVoice/LaunchScreen.storyboard
       - path: FerniVoice/Preview Content
       - path: FerniVoice/GoogleService-Info.plist
-      - path: Ferni/Resources
     info:
       path: FerniVoice/Info.plist
       properties:
@@ -79,7 +81,7 @@ targets:
               - UISceneConfigurationName: CarPlay Configuration
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).FerniCarPlaySceneDelegate
         # Core permissions
-        NSMicrophoneUsageDescription: Ferni needs microphone access for voice conversations with your AI team.
+        NSMicrophoneUsageDescription: Ferni needs the microphone so you can talk out loud with Ferni and your team.
         # Required by LiveKit SDK (even if not used directly)
         NSCameraUsageDescription: Ferni may use the camera for future video features.
         NSMotionUsageDescription: Ferni may use motion data to enhance your experience.
@@ -132,7 +134,7 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_PREVIEWS: YES
         SWIFT_EMIT_LOC_STRINGS: YES
-        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
 
   FerniVoiceTests:
     type: bundle.unit-test
@@ -170,7 +172,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
         GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "6"
         MARKETING_VERSION: "1.0.0"
 
   # MARK: - watchOS Targets
@@ -204,7 +206,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         WATCHOS_DEPLOYMENT_TARGET: "9.0"
         GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "6"
         MARKETING_VERSION: "1.0.0"
         SDKROOT: watchos
 
@@ -235,7 +237,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         WATCHOS_DEPLOYMENT_TARGET: "9.0"
         GENERATE_INFOPLIST_FILE: YES
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "6"
         MARKETING_VERSION: "1.0.0"
         SDKROOT: watchos
 
@@ -270,7 +272,7 @@ targets:
         SWIFT_EMIT_LOC_STRINGS: YES
         IPHONEOS_DEPLOYMENT_TARGET: "16.0"
         GENERATE_INFOPLIST_FILE: NO
-        CURRENT_PROJECT_VERSION: "4"
+        CURRENT_PROJECT_VERSION: "6"
         MARKETING_VERSION: "1.0.0"
 
 schemes:
@@ -287,6 +289,7 @@ schemes:
       config: Debug
       targets:
         - FerniVoiceTests
+        - package: FerniDesign/FerniDesignTests
       storeKitConfiguration: Ferni.storekit
     profile:
       config: Release

@@ -6,12 +6,12 @@
  * @module services/follow-through/ports
  */
 
-import type { FollowUp } from './follow-up.js';
+import type { AskInput, FollowUp } from './follow-up.js';
 
 /** A new follow-up, before the store gives it an id and timestamps. */
 export type NewFollowUp = Pick<
   FollowUp,
-  'userId' | 'kind' | 'text' | 'dueAt' | 'zone' | 'repeat' | 'source'
+  'userId' | 'kind' | 'text' | 'dueAt' | 'zone' | 'repeat' | 'source' | 'action'
 >;
 
 export interface FollowUpStore {
@@ -28,6 +28,16 @@ export interface FollowUpStore {
    * writers (a call and the delivery job) can't undo each other. False when it lost.
    */
   save: (next: FollowUp, expectedUpdatedAt: string) => Promise<boolean>;
+}
+
+export interface FollowUpAsker {
+  /**
+   * Records that Ferni asked it, judged against the stored copy in one
+   * transaction, so two workers can't both mark the same follow-up asked: the
+   * second sees the first's ask and is refused (48 h spacing). Null when it
+   * is missing or the rules refuse it (follow-up.ts ask()).
+   */
+  ask: (userId: string, id: string, input: AskInput, now: Date) => Promise<FollowUp | null>;
 }
 
 /**

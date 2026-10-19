@@ -6,7 +6,7 @@
  * @module api/routes/known-action-store
  */
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import { firestoreForgetStore } from '../../memory/recall/forget.js';
+import { forgetForCaller } from '../../memory/recall/forget.js';
 import { correctRemembered, forgetRemembered } from '../../memory/recall/memory-control.js';
 import { firestoreMemoryControlStore } from '../../memory/storage/memory-control-store.js';
 import { createFirestoreWorldFactStore } from '../../intelligence/world-model/temporal/store.js';
@@ -54,7 +54,11 @@ const worldDoc = (userId: string, id: string): FirebaseFirestore.DocumentReferen
   getFirestoreDb()?.collection('bogle_users').doc(userId).collection('world_facts').doc(id) ?? null;
 
 export const firestoreActionStore: ActionStore = {
-  forgetFact: async (userId, id) => forgetRemembered(userId, id, firestoreMemoryControlStore),
+  async forgetFact(userId, id) {
+    const d = await firestoreMemoryControlStore.fact(userId, id);
+    if (!d || !(await forgetRemembered(userId, id, firestoreMemoryControlStore))) return null;
+    return ['entityName', 'key', 'value'].map((k) => String(d[k] ?? '')).join(' ');
+  },
   async correctFact(userId, id, value) {
     const r = await correctRemembered(userId, id, value, firestoreMemoryControlStore);
     return r.kind === 'corrected' ? { kind: 'done', replacedBy: r.fact.id } : r;
@@ -73,5 +77,5 @@ export const firestoreActionStore: ActionStore = {
     changeDoc([userId, 'mind_model', 'current'], change, isMind),
   updatePondering: async (userId, change) =>
     changeDoc([userId, 'predictive_intelligence', 'pondering'], change, isPondering),
-  addForgottenTopic: async (userId, topic) => firestoreForgetStore.addTopic(userId, topic),
+  forgetTopic: async (userId, topic) => forgetForCaller(userId, topic),
 };

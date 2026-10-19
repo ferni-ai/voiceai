@@ -17,7 +17,7 @@
  */
 
 import { TURN_METRICS_EVENT, createTurnMetricsHandler } from '../shared/turn-metrics.js';
-import { attachTurnReceipts } from '../shared/turn-receipt.js';
+import { attachTurnReceipts } from '../shared/turn-receipt-session.js';
 import { voice, type JobContext, llm } from '@livekit/agents';
 import type { Room } from '@livekit/rtc-node';
 import type { PersonaConfig, PersonaId } from '../../personas/types.js';
@@ -70,9 +70,11 @@ import {
   resolveTurnIntelligenceMode,
 } from './turn-intelligence.js';
 import { createMemoryRecall, memoryRecallMode, type RecallAgent } from './memory-recall-hook.js';
+import { attachMindNote, theoryOfMindMode } from './mind-note-hook.js';
 import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
+import { withChiefOfStaffRole } from '../personas/chief-of-staff-role.js';
 // Tool loading - hoisted for faster initial agent startup
 import {
   buildEssentialToolSet,
@@ -101,7 +103,8 @@ import { composeAgentInstructions } from './agent-instructions.js';
 const USE_TOOL_GATEWAY = process.env.USE_TOOL_GATEWAY !== 'false';
 // Handler imports - hoisted for faster handler wiring
 import { createSessionToolLoader } from '../../tools/dynamic-loader/index.js';
-import { withAlwaysOnInfoTools } from './always-on-info-tools.js';
+import { withAlwaysOnTools } from './everyday-basics.js';
+import { withCallJournalTools } from './call-journal-tools.js';
 import {
   createFindToolsTool,
   FIND_TOOLS,
@@ -116,7 +119,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
-import { giveLoadedDomainsToNewAgents } from '../voice-agent/deferred-tool-update.js';
+import { wireCallToolLoader } from '../voice-agent/deferred-tool-update.js';
 import { createPersonaTTS } from './persona-tts.js';
 import { createCallSession } from './call-session.js';
 import { agentOnCall, personaOnCall, rememberPersona } from './persona-swap.js';
@@ -335,10 +338,10 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let stableBase = '';
   try {
     mark('load_prompts_start');
-    // Load both levels of instructions in parallel (imports now hoisted to module level)
+    // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
-      loadSystemPrompt(persona.id),
+      loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
     ]);
     mark('load_prompts_done');
 
@@ -950,8 +953,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         return await loadEssentialToolsFallback();
       }
 
-      // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
-      // This ensures handoff tools are ready BEFORE any handoff request
+      // Full tools loaded: warm the session's handoff tools now, so they're ready before any handoff
       try {
         const cacheStart = Date.now();
         const tier =
@@ -987,12 +989,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
   // Wait for TTS and tools (LLM is created below in parallel section)
   const [tts, loadedTools] = await Promise.all([ttsPromise, toolsPromise]);
   // Before the cap, so it keeps them: every path above (handoff, first agent, fallback)
-  const orchestratorTools = await withAlwaysOnInfoTools(loadedTools, {
-    userId: userId || 'anonymous',
-    sessionId,
-    agentId: persona.id,
-    agentDisplayName: persona.name || persona.id,
-  });
+  const toolsCtx = { userId: userId || 'anonymous', sessionId, agentId: persona.id };
+  const named = { ...toolsCtx, agentDisplayName: persona.name || persona.id };
+  const withJournal = await withCallJournalTools(loadedTools, named); // CALL_JOURNAL=on
+  const orchestratorTools = await withAlwaysOnTools(withJournal, named, isHandoff === true);
 
   // =========================================================================
   // 🔍 CRITICAL VISIBILITY: Log exactly what tools are available to LLM
@@ -1650,6 +1650,17 @@ Reference past context when relevant, but don't force it. Let the conversation f
     });
   }
 
+  // What Ferni understands about the caller from earlier calls (THEORY_OF_MIND=on):
+  // added like recall, in the transcript's tick, never waited on (mind-note-hook.ts).
+  if (userId && userId !== 'anonymous' && theoryOfMindMode() && sessionWithEvents.on) {
+    const mind = attachMindNote(
+      sessionWithEvents as Parameters<typeof attachMindNote>[0],
+      agent as unknown as RecallAgent,
+      { userId }
+    );
+    forPersona(mind.detach);
+  }
+
   // Built in the background on each final transcript and pushed between
   // turns for the next reply: never in onUserTurnCompleted, where changing the
   // chat context throws away the SDK's preemptive generation (turn-intelligence.ts).
@@ -1966,7 +1977,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           agent,
         });
         // A handed-to agent gets this call's loaded domains (TOOLS_FOLLOW_AGENT)
-        cleanupFunctions.push(giveLoadedDomainsToNewAgents(session, agent, dynamicToolLoader, log));
+        cleanupFunctions.push(wireCallToolLoader(session, agent, dynamicToolLoader, log));
 
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {

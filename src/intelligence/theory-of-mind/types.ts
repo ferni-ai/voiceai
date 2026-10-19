@@ -14,6 +14,8 @@
  * @module intelligence/theory-of-mind/types
  */
 
+import { createHash } from 'node:crypto';
+
 /** coping: how they handle stress. feeling: how they tend to feel about something. support: what helps them. care: what matters to them. */
 export type PatternKind = 'coping' | 'feeling' | 'support' | 'care';
 
@@ -69,7 +71,15 @@ export interface MindModel {
   sensitivities: Sensitivity[];
   /** Readings the caller said are wrong (memory-view/actions.ts): never noted again. */
   rejected?: Array<{ key: string; statement: string }>;
+  /** sensitivityKey of sensitivities the caller asked Ferni to forget: never re-added. */
+  rejectedSensitivities?: string[];
   updatedAt: string;
+}
+
+/** A sensitivity's topic as a stable key (hashed, so a forgotten topic isn't kept in clear). */
+export function sensitivityKey(topic: string): string {
+  const norm = topic.toLowerCase().replace(/\s+/g, ' ').trim();
+  return createHash('sha1').update(norm).digest('hex').slice(0, 16);
 }
 
 /** What one call adds, as read from its transcript and summary. */
@@ -80,6 +90,28 @@ export interface CallReading {
   contradicted: string[];
   current?: { state: string; days: number };
   sensitivities: Array<{ topic: string; how: string }>;
+}
+
+/**
+ * A topic the caller asked Ferni to forget (memory/recall/forget.ts), as the
+ * session layer reads it. Theory of mind never imports memory's internals.
+ */
+export type IsForgotten = (text: string) => boolean;
+export const nothingForgotten: IsForgotten = () => false;
+
+/** The model without anything about a forgotten topic: told, patterns and their moments, sensitivities, mood. */
+export function withoutForgotten(model: MindModel, forgotten: IsForgotten): MindModel {
+  return {
+    ...model,
+    toldFerni: model.toldFerni.filter((t) => !forgotten(t.topic)),
+    // A moment's paraphrase can name the topic too; a pattern left with none goes.
+    patterns: model.patterns
+      .filter((p) => !forgotten(p.statement))
+      .map((p) => ({ ...p, moments: p.moments.filter((m) => !forgotten(m.cue)) }))
+      .filter((p) => p.moments.length > 0),
+    sensitivities: model.sensitivities.filter((s) => !forgotten(s.topic)),
+    current: model.current && !forgotten(model.current.state) ? model.current : undefined,
+  };
 }
 
 export function emptyMindModel(userId: string, now: Date): MindModel {

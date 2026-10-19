@@ -14,7 +14,6 @@
  * @module proactive-scheduler
  */
 
-import { getProfileStore } from '../../memory/profile-store.js';
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -217,7 +216,7 @@ function getOptimalSendTime(userId: string): Date {
 // DELIVERY (placeholder - integrates with outreach/delivery/)
 // ============================================================================
 
-async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
+export async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
   try {
     const prefs = userPreferences.get(outreach.userId);
     const method = prefs?.preferredMethod ?? 'push';
@@ -250,23 +249,16 @@ async function deliverOutreach(outreach: ScheduledOutreach): Promise<boolean> {
       }
       case 'text': {
         try {
-          const { sendSMS } = await import('./delivery/sms-delivery.js');
-          const store = await getProfileStore();
-          const profile = await store.getProfile(outreach.userId);
-          const phone = profile?.contactInfo?.phone;
-
-          if (phone) {
-            await sendSMS({
-              to: phone,
-              body: outreach.message,
-              personaId: 'ferni',
-              userId: outreach.userId,
-              outreachId: outreach.id,
-            });
-          } else {
+          // Never profile.contactInfo.phone (model-written): the verified phone, through the
+          // guarded sender, so STOP, texts off and quiet hours hold it (call-user-adapter.ts).
+          const { callUserAdapter } = await import('./call-user-adapter.js');
+          const text = await callUserAdapter.textOwner?.(outreach.userId, outreach.message, {
+            askedNow: false,
+          });
+          if (!text?.sent) {
             log.debug(
-              { userId: outreach.userId },
-              'No phone number for SMS delivery, falling back to push'
+              { userId: outreach.userId, reason: text?.reason },
+              'Text not sent, falling back to push'
             );
             await push();
           }
@@ -460,10 +452,8 @@ export async function loadPendingOutreach(): Promise<void> {
     const db = getFirestoreDb();
     if (!db) return;
 
-    const snapshot = await db
-      .collectionGroup('scheduled_outreach')
-      .where('status', '==', 'pending')
-      .get();
+    const { queryPendingOutreach } = await import('./pending-outreach-query.js');
+    const { snapshot, capped } = await queryPendingOutreach(db); // bounded: runs every cold boot
 
     // Filtered here: a collection-group query on `source` would need a new index.
     const docs = snapshot.docs.filter((d) => d.data().source === PROACTIVE_OUTREACH_SOURCE);
@@ -479,7 +469,7 @@ export async function loadPendingOutreach(): Promise<void> {
     }
 
     const skipped = snapshot.size - docs.length;
-    log.info({ count: docs.length, skipped }, '📥 Loaded pending outreach from Firestore');
+    log.info({ count: docs.length, skipped, capped }, '📥 Loaded pending outreach from Firestore');
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to load pending outreach');
   }

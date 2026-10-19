@@ -58,6 +58,14 @@ vi.mock('../reminder-scheduler.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../reminder-scheduler.js')>()),
   deliverReminder,
 }));
+// The log lines only; the outcome mapping is the real one.
+const logPromiseOutcome = vi.fn();
+const logPromiseJobRun = vi.fn();
+vi.mock('../../follow-through/promise-outcomes.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../follow-through/promise-outcomes.js')>()),
+  logPromiseOutcome,
+  logPromiseJobRun,
+}));
 
 const { deliverDueReminders, deliveryChannelFor, MISSED_AFTER_MS } =
   await import('../reminder-delivery-job.js');
@@ -83,6 +91,8 @@ beforeEach(() => {
   rows = [];
   smsUp = true;
   deliverReminder.mockReset().mockResolvedValue(true);
+  logPromiseOutcome.mockClear();
+  logPromiseJobRun.mockClear();
 });
 
 describe('deliverDueReminders', () => {
@@ -161,6 +171,50 @@ describe('deliverDueReminders', () => {
     expect(result).toMatchObject({ due: 2, missed: 1, rerouted: 1, delivered: 0, dryRun: true });
     expect(deliverReminder).not.toHaveBeenCalled();
     expect(rows.map((r) => r.data.status)).toEqual(['pending', 'pending']);
+  });
+});
+
+describe('PROMISE_OUTCOME / PROMISE_JOB_RUN lines', () => {
+  it('one outcome per reminder: delivered done, failed send-failed, late missed-window', async () => {
+    deliverReminder.mockImplementation(async (r) => r.id === 'ok');
+    rows = [
+      reminder('ok', { scheduledFor: at(-60_000) }),
+      reminder('bad', { scheduledFor: at(-30_000) }),
+      reminder('stale', { scheduledFor: at(-MISSED_AFTER_MS - 60_000) }),
+    ];
+    await deliverDueReminders({ now: NOW });
+
+    expect(logPromiseOutcome.mock.calls).toEqual(
+      expect.arrayContaining([
+        ['reminder', { outcome: 'done' }, { reminderId: 'ok' }],
+        ['reminder', { outcome: 'failed', reason: 'send-failed' }, { reminderId: 'bad' }],
+        ['reminder', { outcome: 'failed', reason: 'missed-window' }, { reminderId: 'stale' }],
+      ])
+    );
+    expect(logPromiseOutcome).toHaveBeenCalledTimes(3);
+    expect(logPromiseJobRun).toHaveBeenCalledWith('deliver-reminders', {
+      due: 3,
+      done: 1,
+      failed: 1,
+      held: 0,
+      missed: 1,
+    });
+  });
+
+  it('logs a run with nothing due, and nothing on a dry run', async () => {
+    await deliverDueReminders({ now: NOW });
+    expect(logPromiseJobRun).toHaveBeenCalledWith('deliver-reminders', {
+      due: 0,
+      done: 0,
+      failed: 0,
+      held: 0,
+      missed: 0,
+    });
+    logPromiseJobRun.mockClear();
+    rows = [reminder('due', { scheduledFor: at(-60_000) })];
+    await deliverDueReminders({ now: NOW, dryRun: true });
+    expect(logPromiseJobRun).not.toHaveBeenCalled();
+    expect(logPromiseOutcome).not.toHaveBeenCalled();
   });
 });
 

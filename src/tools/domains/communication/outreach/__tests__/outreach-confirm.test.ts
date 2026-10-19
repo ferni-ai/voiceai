@@ -12,7 +12,14 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { resetMemoryTexts } from '../../../../../services/outreach/__tests__/memory-text-store.js';
 
+// The real text guards over an in-memory store (no Firestore).
+vi.mock('../../../../../services/outreach/guarded-text.js', async (orig) =>
+  (
+    await import('../../../../../services/outreach/__tests__/memory-text-store.js')
+  ).withMemoryTextStore(await orig())
+);
 vi.mock('../../../../../services/contacts/contact-relationship-service.js', () => ({
   searchContacts: vi.fn(),
 }));
@@ -97,6 +104,8 @@ const batchOf = (text: string) => ({
 function textsSent(): Array<[string, string]> {
   return vi.mocked(sendSMS).mock.calls.map(([sms]) => [sms.to, sms.body]);
 }
+
+beforeEach(() => resetMemoryTexts());
 
 describe('outreach waits for the caller', () => {
   beforeEach(() => {
@@ -218,6 +227,57 @@ describe('outreach waits for the caller', () => {
     call.caller('yes please');
     await call.call('reachOut', TO_MOM, 'c3');
     expect(textsSent()).toEqual([['+15551230001', 'Running late, love you']]);
+  });
+
+  it('a yes cut into two speech-to-text finals still sends, once', async () => {
+    const call = liveCall();
+    await call.call('reachOut', TO_MOM, 'c1');
+    call.caller('Uh, yeah, go ahead.');
+    call.caller('Go ahead and give her a call');
+
+    await call.call('reachOut', TO_MOM, 'c2');
+    await call.call('reachOut', TO_MOM, 'c3');
+
+    expect(textsSent()).toEqual([['+15551230001', 'Running late, love you']]);
+  });
+
+  it('a split answer with anything but yes in any part sends nothing', async () => {
+    for (const parts of [
+      ['Yes.', 'to Bob'],
+      ['Yes.', 'Call Bob instead'],
+      ['yeah go ahead', 'wait'],
+      ['yes', 'which one?'],
+      ['yes', 'what does it say'],
+      ['go ahead', 'and tomorrow'],
+    ]) {
+      const call = liveCall();
+      await call.call('reachOut', TO_MOM, 'c1');
+      for (const part of parts) call.caller(part);
+      await call.call('reachOut', TO_MOM, 'c2');
+    }
+
+    expect(textsSent()).toEqual([]);
+  });
+
+  it('a yes over Ferni is never part of the answer, before or after it begins', async () => {
+    // Over Ferni first: the filler after it is the whole answer, and a filler is not a yes.
+    const first = liveCall();
+    await first.call('reachOut', TO_MOM, 'c1');
+    first.session.agentState = 'speaking';
+    first.caller('yes');
+    first.session.agentState = 'listening';
+    first.caller('thank you');
+    await first.call('reachOut', TO_MOM, 'c2');
+    // Over Ferni after the answer began: it is not part of the answer, and it voids the answer.
+    const after = liveCall();
+    await after.call('reachOut', TO_MOM, 'c1');
+    after.caller('yes');
+    after.session.agentState = 'speaking';
+    after.caller('go ahead');
+    after.session.agentState = 'listening';
+    await after.call('reachOut', TO_MOM, 'c2');
+
+    expect(textsSent()).toEqual([]);
   });
 
   it("a yes in one call doesn't confirm a send from another session", async () => {
@@ -386,6 +446,63 @@ describe('isClearYes', () => {
     for (const yes of ['Oh yes, of course.', 'Yeah, that works.', 'Sure, Maya, you can.']) {
       expect(isClearYes(yes), yes).toBe(true);
     }
+  });
+
+  it('takes a yes that restates the same action (owner call 2026-10-17)', () => {
+    for (const yes of [
+      'Uh, yeah, go ahead. Go ahead and give her a call.',
+      'Yes, you, you need to call her.',
+      'Yeah, call her now.',
+      'Go ahead and call him.',
+    ]) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+    // A restatement that adds anything (someone else, a time, a different action) is not plain.
+    for (const notYes of [
+      'Yes, and call Bob.',
+      'Go ahead and give her a call tomorrow.',
+      'Yes, you need to call her mom.',
+      'Go ahead and text her.',
+      'and',
+      'you need to',
+      'give her a call',
+      'now',
+    ]) {
+      expect(isClearYes(notYes), notYes).toBe(false);
+    }
+  });
+
+  it('takes a yes that calls Ferni by one name, misheard or not (owner call 2026-10-18)', () => {
+    for (const yes of [
+      'Uh, go ahead, Fred.',
+      'Yes, Ferni',
+      'Okay Maya, go ahead',
+      'Okay Sam, go ahead',
+      'Fred, go ahead.',
+      'Yes, go ahead, Freddie!',
+    ]) {
+      expect(isClearYes(yes), yes).toBe(true);
+    }
+    for (const notYes of [
+      'go ahead, call Bob',
+      'Go ahead, Fred, Bob.',
+      'Fred Bob, go ahead',
+      'Yes, Fred?',
+      'No, Fred.',
+      'Go ahead Fred',
+      'Fred.',
+      'Yes, Tuesday.',
+      'Yes, Later.',
+      'Go ahead, Call.',
+      'Okay, Text.',
+      'Yes, Mom.',
+      'Yes, Both.',
+    ]) {
+      expect(isClearYes(notYes), notYes).toBe(false);
+    }
+    // The person the action reaches is never the name: "Yes, Dana." may mean "call Dana".
+    expect(isClearYes('Yes, Dana.', ['dana'])).toBe(false);
+    expect(isClearYes('Yes, Dana.')).toBe(true);
   });
 
   it('a name, a filler or an echo alone is not a yes, and a yes with words to send is not plain', () => {

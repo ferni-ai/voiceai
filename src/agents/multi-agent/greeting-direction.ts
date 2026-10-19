@@ -5,11 +5,9 @@
  * @module agents/multi-agent/greeting-direction
  */
 
-import {
-  callCheckIns,
-  coachFollowThroughMode,
-} from '../../services/superhuman/commitment-follow-up.js';
+import { coachFollowThroughMode } from '../../services/superhuman/commitment-follow-up.js';
 import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
+import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import { contentWords } from '../../memory/recall/session-recall.js';
 import { claimOpenerFollowUp } from '../../memory/recall/opener-claim.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
@@ -23,6 +21,12 @@ import {
   callerRecognitionFor,
   unrecognisedCallerGreeting,
 } from '../voice-agent-entry/caller-recognition.js';
+import {
+  anniversaryDirection,
+  anniversaryFor,
+  lineSaysAnniversary,
+} from './friendship-anniversary.js';
+import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
@@ -32,6 +36,32 @@ import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-ba
 // pin "that" to (dev, 2026-10-09): a callback must name the thing.
 export const GREETING_DIRECTION =
   'They just called you. Answer like you would a friend calling: relaxed and low-key, one short sentence, maybe a quick easy question. No exclamation marks, no "so good to hear your voice", no cheer, do not list what you can do or introduce yourself. If they have called before, you may pick up from last time in a few words, the way a friend would, but only if it was light: never open on something painful. Name the actual thing ("how did the interview go?"), never a vague callback ("did you figure that out?"); if you are not told what you talked about, do not refer back.';
+
+/**
+ * FERNI_PLAYFUL=on, Ferni only: warm and a little playful instead of
+ * relaxed and low-key, which read as calm and boring (Seth, 2026-10-17).
+ * Still no exclamation marks (calmGreeting turns them into full stops) and
+ * no hype: "too happy to start the call" is still the failure to avoid.
+ */
+export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
+  'relaxed and low-key, one short sentence, maybe a quick easy question. No exclamation marks, no "so good to hear your voice", no cheer,',
+  'warm and a little playful, glad it\'s them, one short sentence, maybe a quick easy question or a light, friendly tease. No exclamation marks, no "so good to hear your voice", no hype,'
+);
+
+/**
+ * The hello's direction for this persona. Never the playful one after a heavy
+ * last call (what they talked about reads as heavy-moment.ts does) or when
+ * welcome-back held back a tender thread: a tease is no way to pick that up.
+ */
+export function greetingDirection(
+  personaId: string,
+  env: Env = process.env,
+  last: { topic?: string; tender?: boolean } = {}
+): string {
+  const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
+  const careful = last.tender === true || isHeavyMoment([last.topic]);
+  return playful && !careful ? PLAYFUL_GREETING_DIRECTION : GREETING_DIRECTION;
+}
 
 /**
  * Added when they told you last time they meant to do something (COACH_FOLLOW_THROUGH).
@@ -75,7 +105,8 @@ async function inTime<T>(work: Promise<T>): Promise<T | undefined> {
 /** The commitment to open on, or undefined (flag off, none open, or too slow). */
 async function checkInFor(userId: string | undefined): Promise<string | undefined> {
   if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
-  return (await inTime(callCheckIns(userId)))?.[0]?.statement;
+  // Never one about a call Ferni hasn't completed: it is held, failed or unheard.
+  return (await inTime(checkInsWithCalls(userId)))?.find((c) => !c.callNote)?.statement;
 }
 
 /** A win not yet named, or undefined (COACH_WINS off, none, or too slow). */
@@ -158,6 +189,8 @@ export interface CallerHistory {
   calls: number;
   daysSince?: number;
   lastTopic?: string;
+  /** Their first call (ISO), for the friendship anniversary. */
+  firstContact?: string;
 }
 
 const MAX_TOPIC_CHARS = 160;
@@ -167,6 +200,8 @@ export function callerHistory(
   profile: {
     totalConversations?: number;
     lastContact?: string | number | Date;
+    /** A Firestore Timestamp when read straight from the profile. */
+    firstContact?: string | number | Date | { toDate: () => Date };
     /** Only a last-call summary checked for who said what (caller-assertions.ts). */
     lastCallerSummary?: string;
   },
@@ -179,6 +214,14 @@ export function callerHistory(
     const ms = now.getTime() - new Date(profile.lastContact).getTime();
     if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
   }
+  const fc = profile.firstContact;
+  const first =
+    fc && typeof fc === 'object' && 'toDate' in fc
+      ? typeof fc.toDate === 'function'
+        ? fc.toDate()
+        : undefined
+      : fc && new Date(fc);
+  if (first && Number.isFinite(first.getTime())) history.firstContact = first.toISOString();
   const topic = profile.lastCallerSummary?.trim();
   if (topic) history.lastTopic = topic.slice(0, MAX_TOPIC_CHARS);
   return history;
@@ -322,11 +365,12 @@ export async function directedGreeting(
   }
   const scripted = generateWarmGreeting(personaId, ctx);
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome] = await Promise.all([
+  const [openCheckIn, openWin, pondered, welcome, anniversary] = await Promise.all([
     checkInFor(userData?.userId),
     winFor(userData?.userId),
     ponderFor(userData?.userId, history),
     loadWelcomeBack(userData?.userId, personaId, history),
+    anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
   ]);
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
   const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
@@ -340,11 +384,15 @@ export async function directedGreeting(
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const direction =
-    GREETING_DIRECTION +
+    greetingDirection(personaId, process.env, {
+      topic: history?.lastTopic,
+      tender: back?.heldBack,
+    }) +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
     (back?.direction ?? '') +
+    (anniversary && !unknown ? anniversaryDirection(anniversary) : '') +
     (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
@@ -365,6 +413,13 @@ export async function directedGreeting(
     maxChars: 140,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
+  if (
+    anniversary &&
+    !unknown &&
+    directed.source === 'actor' &&
+    lineSaysAnniversary(spoken, anniversary)
+  )
+    anniversary.mark();
   // One follow-up per call opener (opener-claim.ts): having asked, the greeting
   // keeps the first recall note from asking about a thread too.
   const topic = checkIn ?? ask?.text;

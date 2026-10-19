@@ -22,7 +22,7 @@
   {# ====== STYLES (with cache-busting) ====== #}
   {# CRITICAL: tokens.css MUST come first - defines all CSS variables #}
   <link rel="stylesheet" href="/css/tokens.css?v=20261005">
-  <link rel="stylesheet" href="/css/story-brand.css?v=20261011">
+  <link rel="stylesheet" href="/css/story-brand.css?v=20261018">
   <link rel="stylesheet" href="/css/components.css?v=20251224">
   <link rel="stylesheet" href="/css/sections/footer.css?v=20251231">
   {# Non-critical sheets load without blocking first paint: they style
@@ -131,6 +131,14 @@
         "mainEntity": [
           {
             "@type": "Question",
+            "name": "Is Ferni a real person?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Ferni is software, built with artificial intelligence, that listens, remembers what matters to you, and talks with you. Real people built it and stand behind it."
+            }
+          },
+          {
+            "@type": "Question",
             "name": "Is Ferni a replacement for therapy?",
             "acceptedAnswer": {
               "@type": "Answer",
@@ -147,10 +155,10 @@
           },
           {
             "@type": "Question",
-            "name": "What does infinite memory mean?",
+            "name": "What does Ferni remember?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Unlike other AI, Ferni remembers every conversation you've had. This creates continuity—like talking to a friend who actually knows your story."
+              "text": "Ferni remembers what you share across conversations, like your goals and the people in your life. You can see what Ferni remembers, correct it, or ask Ferni to forget any of it."
             }
           },
           {

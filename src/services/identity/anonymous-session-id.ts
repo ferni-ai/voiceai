@@ -18,6 +18,7 @@
  * @module services/identity/anonymous-session-id
  */
 import { randomUUID } from 'crypto';
+import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
 
 const minted = new WeakMap<object, string>();
 
@@ -33,4 +34,17 @@ export function anonymousIdFor(metadata: object): string {
   const id = newAnonymousId();
   minted.set(metadata, id);
   return id;
+}
+
+/**
+ * The anonymous id for a caller nobody recognised. A `session_id` the dispatch
+ * carries is kept, but this is the last-resort ANONYMOUS fallback, so it can
+ * never name a real account: without a non-account prefix it gets `anon:`.
+ * With no `session_id`, the session's minted id (anonymousIdFor).
+ */
+export function anonymousSessionId(metadata: Record<string, unknown>): string {
+  const given = metadata.session_id;
+  if (typeof given !== 'string' || !given) return anonymousIdFor(metadata);
+  // An id that already names no account (anon:, onbehalf:) is kept as the dispatch gave it.
+  return nonAccountPrefixOf(given) ? given : `anon:${given}`;
 }

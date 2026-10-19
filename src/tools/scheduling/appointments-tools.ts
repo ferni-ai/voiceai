@@ -23,8 +23,8 @@ import { getAppointmentFollowUpService } from '../../services/scheduling/appoint
 import {
   createAppointmentRequest,
   updateAppointmentStatus,
-  makeAppointmentCall,
-  generateCallScript,
+  businessCallReply,
+  BUSINESS_CALL_OFFER,
   getAppointment,
   getUserAppointments,
 } from './appointment-core.js';
@@ -183,11 +183,7 @@ export function createAppointmentTools() {
           specialRequests,
         });
 
-        if (restaurantPhone) {
-          return makeAppointmentCall(apt);
-        } else {
-          return `I couldn't find ${restaurantName} for online booking. I can call them to make the reservation - do you have their phone number?`;
-        }
+        return businessCallReply(apt);
       },
     }),
 
@@ -277,18 +273,7 @@ export function createAppointmentTools() {
           forPerson,
           specialRequests: [reason, specialRequests].filter(Boolean).join('. '),
         });
-
-        const dateStr = requestedTime.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-        });
-
-        if (businessPhone) {
-          return makeAppointmentCall(apt);
-        } else {
-          return `Perfect! I'll call ${businessName} to schedule ${forPerson ? `${forPerson}'s` : 'your'} ${appointmentType} appointment for ${dateStr}. What's their phone number?`;
-        }
+        return businessCallReply(apt);
       },
     }),
 
@@ -323,17 +308,17 @@ export function createAppointmentTools() {
           minute: '2-digit',
         });
 
-        // For now, simulate the call
+        // No call is placed: say so, and offer the gated call (BUSINESS_CALL_OFFER).
         getLogger().info(
           {
             business: businessName,
             dateTime: requestedTime.toISOString(),
             service: serviceType,
           },
-          '📞 Checking availability'
+          '📞 Availability check needs a call; none placed'
         );
 
-        return `I'm calling ${businessName} to check availability for ${dateStr} around ${timeStr}. Give me just a moment... ${serviceType ? `(checking for ${serviceType})` : ''}`;
+        return `I haven't called ${businessName}, so I don't know if they're open ${dateStr} around ${timeStr}. ${BUSINESS_CALL_OFFER}`;
       },
     }),
 
@@ -372,7 +357,7 @@ export function createAppointmentTools() {
           '📞 Confirming appointment'
         );
 
-        return `Calling ${businessName} now to confirm ${personName ? `${personName}'s` : 'your'} appointment on ${dateStr}. One moment...`;
+        return `I haven't called ${businessName} to confirm ${personName ? `${personName}'s` : 'your'} appointment on ${dateStr}. ${BUSINESS_CALL_OFFER}`;
       },
     }),
 
@@ -408,7 +393,7 @@ export function createAppointmentTools() {
           '📞 Cancelling appointment'
         );
 
-        return `I'll call ${businessName} to cancel your appointment on ${dateStr}. ${reason ? `I'll mention that: ${reason}` : ''} Give me a moment...`;
+        return `I haven't called ${businessName}, so your appointment on ${dateStr} isn't cancelled yet. ${BUSINESS_CALL_OFFER}`;
       },
     }),
 
@@ -518,18 +503,7 @@ export function createAppointmentTools() {
           linkedMilestoneId: milestoneId,
           linkedEventName: eventName,
         });
-
-        const dateStr = requestedTime.toLocaleDateString('en-US', {
-          weekday: 'long',
-          month: 'long',
-          day: 'numeric',
-        });
-
-        if (businessPhone) {
-          return makeAppointmentCall(apt);
-        } else {
-          return `Perfect! I'll schedule the ${appointmentType} at ${businessName} for your ${eventName} on ${dateStr}. What's their phone number so I can call?`;
-        }
+        return businessCallReply(apt);
       },
     }),
 
@@ -557,8 +531,7 @@ export function createAppointmentTools() {
           '📞 Quick call'
         );
 
-        const who = businessName || 'that number';
-        return `Calling ${who} now to ask: "${purpose}". Give me just a moment...`;
+        return `I haven't called ${businessName || 'that number'}. ${BUSINESS_CALL_OFFER}`;
       },
     }),
 
@@ -655,11 +628,7 @@ export function createAppointmentTools() {
           return `I don't see a pending appointment for ${businessName}. Would you like me to create a new one?`;
         }
 
-        if (!apt.businessPhone) {
-          return `I still need the phone number for ${businessName}. Do you have it?`;
-        }
-
-        return makeAppointmentCall(apt);
+        return businessCallReply(apt);
       },
     }),
 

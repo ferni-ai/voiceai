@@ -33,16 +33,17 @@ import { dropLeadingSaidBy } from './said-by.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { sttWithFirstTurnFast } from './first-turn-fast.js';
 import { sttWithNameFix } from './name-mishear.js';
+import { sttReusableAcrossHandoff } from './stt-handoff-reuse.js';
 import { gatedReply } from './crisis-gate.js';
 import { OpenerGate } from './opener-gate.js';
 import { emergencyTruncate, estimateTokens } from './emergency-truncate.js';
 import { withActionClaimCheck } from './action-claim-guard.js';
-import { withCallerTurn } from './caller-turn.js';
+import { noteReplyCallerTurn, withCallerTurn } from './caller-turn.js';
 import { logToolMarkup, withToolMarkupStrip } from '../shared/tool-markup-strip.js';
 import { fillEmptyToolOutputs } from './tool-output-guard.js';
 import { isScreeningCall } from '../shared/line-screen.js';
 import { spokenCaptions, toolsForTurn, withTeammateTool } from './turn-request.js';
-import { noteRequest } from '../shared/turn-receipt.js';
+import { noteRequest } from '../shared/turn-receipt-session.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -604,23 +605,15 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     }, 'ferni-agent-greeting');
   }
 
-  /**
-   * Called when switching away from Ferni.
-   * Good for farewell messages or state cleanup.
-   */
+  /** Called when switching away from Ferni: farewell messages or state cleanup. */
   async onExit(): Promise<void> {
     log.debug('Transitioning to another agent (handoff)');
   }
 
   /**
-   * Override sttNode to tap user audio for parallel biomarker analysis.
-   *
-   * The audio stream is tee'd into two branches:
-   * - audioForStt: goes to the STT (FIRST_TURN_FAST may end turn 1 early: first-turn-fast.ts)
-   * - audioForProcessor: goes to processAudioStream (prosody, biomarkers, voice emotion)
-   *
-   * The processor fills userData.voiceEmotion and voiceBiomarkers for turn-handler.ts. The
-   * transcripts that come back have a misheard "Ferni" put right (name-mishear.ts).
+   * User audio is tee'd: one branch to the STT (FIRST_TURN_FAST may end turn 1 early:
+   * first-turn-fast.ts), one to processAudioStream (prosody, biomarkers, voice emotion for
+   * turn-handler.ts). Transcripts come back with a misheard "Ferni" put right (name-mishear.ts).
    */
   async sttNode(
     audio: NodeReadableStream<AudioFrame>,
@@ -659,6 +652,12 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     );
   }
 
+  /** STT_HANDOFF_REUSE=on: the next persona keeps this call's STT stream (stt-handoff-reuse.ts). */
+  _usesDefaultSttNode(): boolean {
+    const sdk = () => super._usesDefaultSttNode();
+    return sttReusableAcrossHandoff(this, PersonaVoiceAgent.prototype.sttNode, sdk);
+  }
+
   /** Captions are what the app shows: drop speech markup the TTS consumes. See caption-filter.ts. */
   async transcriptionNode(
     text: Parameters<voice.Agent<PersonaSessionData>['transcriptionNode']>[0],
@@ -681,7 +680,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
     toolCtx: llm.ToolContext,
     modelSettings: voice.ModelSettings
   ): ReturnType<voice.Agent<PersonaSessionData>['llmNode']> {
-    fillEmptyToolOutputs(chatCtx, this.session);
+    fillEmptyToolOutputs(noteReplyCallerTurn(this, chatCtx), this.session); // for the TTS context
     const tools = await toolsForTurn(this.session, chatCtx, toolCtx, this.turnTools);
     const sessionId = (this.session.userData?.services as { sessionId?: string } | undefined)
       ?.sessionId;
@@ -692,7 +691,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
         super.llmNode(ctx, tools, modelSettings),
         logToolMarkup('llm', sessionId)
       );
-      return withActionClaimCheck(text, ctx, tools) as never;
+      return withActionClaimCheck(text, ctx, tools, this.session.userData) as never;
     };
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
     return dropLeadingSaidBy(filterSilenceReply(this.session, reply)) as never;

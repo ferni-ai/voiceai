@@ -20,6 +20,10 @@ import { emptyRoomGraceMs } from './empty-room-grace.js';
 import '../after-call-register.js';
 // The one journal store, for the tools that write it during a call (CALL_JOURNAL).
 import '../journal-store-register.js';
+// After a call, the verified owner's reminders and commitments become follow-ups (FOLLOW_THROUGH_IMPORT).
+import '../voice-agent-entry/follow-through-import-register.js';
+// Which sessions may read their own texts with Ferni (readSMS refuses all until this loads).
+import '../voice-agent-entry/sms-owner-register.js';
 
 // ============================================================================
 // TYPES

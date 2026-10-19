@@ -5,14 +5,14 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@livekit/agents': 1.6.4
-  '@livekit/agents-plugin-cartesia': 1.6.4
-  '@livekit/agents-plugin-google': 1.6.4
-  '@livekit/agents-plugin-openai': 1.6.4
-  '@livekit/agents-plugin-silero': 1.6.4
+  '@livekit/agents': 1.9.3
+  '@livekit/agents-plugin-cartesia': 1.9.3
+  '@livekit/agents-plugin-google': 1.9.3
+  '@livekit/agents-plugin-openai': 1.9.3
+  '@livekit/agents-plugin-silero': 1.9.3
   '@livekit/agents-plugin-silero>onnxruntime-node': 1.30.0
   '@livekit/agents-plugin-silero>onnxruntime-common': 1.30.0
-  '@livekit/rtc-node': 0.13.35
+  '@livekit/rtc-node': 1.1.0
   sharp: ^0.35.5
   '@google-cloud/firestore': 8.0.0
   fast-xml-parser@>=4 <4.5.4: 4.5.7
@@ -72,15 +72,15 @@ overrides:
 packageExtensionsChecksum: sha256-QBgkTpEkqkapQyLhV6lZZW+VpnIF95kZMSWbG6i9ZBA=
 
 patchedDependencies:
-  '@livekit/agents-plugin-cartesia@1.6.4':
-    hash: 513a7ff80d2a81dc22c2fa32a0481bb64a0946e5b60cb61b8a2e00bcb968e438
-    path: patches/@livekit__agents-plugin-cartesia@1.6.4.patch
-  '@livekit/agents-plugin-google@1.6.4':
-    hash: d57a9d2d6fcdd6e9e83f321b8a087bc68803fb6541f433fcb43429c3086fa011
-    path: patches/@livekit__agents-plugin-google@1.6.4.patch
-  '@livekit/agents@1.6.4':
-    hash: 568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9
-    path: patches/@livekit__agents@1.6.4.patch
+  '@livekit/agents-plugin-cartesia@1.9.3':
+    hash: de305f26f8cb5ba92d67fe7cc45d38fea0aba249b6e831c09de5ee74114d327f
+    path: patches/@livekit__agents-plugin-cartesia@1.9.3.patch
+  '@livekit/agents-plugin-google@1.9.3':
+    hash: c1ba53b53dbab48aea4c649177151f6333043954cba3bf903b8e17700f7ef17e
+    path: patches/@livekit__agents-plugin-google@1.9.3.patch
+  '@livekit/agents@1.9.3':
+    hash: 574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597
+    path: patches/@livekit__agents@1.9.3.patch
 
 importers:
 
@@ -120,29 +120,29 @@ importers:
         specifier: 4.3.1
         version: 4.3.1(@types/node@22.20.5)
       '@livekit/agents':
-        specifier: 1.6.4
-        version: 1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
+        specifier: 1.9.3
+        version: 1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/agents-plugin-cartesia':
-        specifier: 1.6.4
-        version: 1.6.4(patch_hash=513a7ff80d2a81dc22c2fa32a0481bb64a0946e5b60cb61b8a2e00bcb968e438)(@livekit/agents@1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)
+        specifier: 1.9.3
+        version: 1.9.3(patch_hash=de305f26f8cb5ba92d67fe7cc45d38fea0aba249b6e831c09de5ee74114d327f)(@livekit/agents@1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(zod@4.6.5)
       '@livekit/agents-plugin-google':
-        specifier: 1.6.4
-        version: 1.6.4(patch_hash=d57a9d2d6fcdd6e9e83f321b8a087bc68803fb6541f433fcb43429c3086fa011)(@livekit/agents@1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)
+        specifier: 1.9.3
+        version: 1.9.3(patch_hash=c1ba53b53dbab48aea4c649177151f6333043954cba3bf903b8e17700f7ef17e)(@livekit/agents@1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)
       '@livekit/agents-plugin-openai':
-        specifier: 1.6.4
-        version: 1.6.4(@livekit/agents@1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)
+        specifier: 1.9.3
+        version: 1.9.3(@livekit/agents@1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(zod@4.6.5)
       '@livekit/agents-plugin-silero':
-        specifier: 1.6.4
-        version: 1.6.4(@livekit/agents@1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)
+        specifier: 1.9.3
+        version: 1.9.3(@livekit/agents@1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)
       '@livekit/noise-cancellation-node':
         specifier: ^0.3.0
-        version: 0.3.0(@livekit/rtc-node@0.13.35)
+        version: 0.3.0(@livekit/rtc-node@1.1.0)
       '@livekit/protocol':
         specifier: 1.52.1
         version: 1.52.1
       '@livekit/rtc-node':
-        specifier: 0.13.35
-        version: 0.13.35
+        specifier: 1.1.0
+        version: 1.1.0
       '@modelcontextprotocol/sdk':
         specifier: ^1.26.0
         version: 1.32.0(zod@4.6.5)
@@ -401,9 +401,15 @@ importers:
 
   apps/cli:
     dependencies:
+      commander:
+        specifier: ^13.1.0
+        version: 13.1.0
       dotenv:
         specifier: ^18.0.7
         version: 18.0.7
+      picocolors:
+        specifier: ^1.1.1
+        version: 1.1.1
     devDependencies:
       '@types/node':
         specifier: ^22.20.5
@@ -414,6 +420,9 @@ importers:
       typescript:
         specifier: ^5.3.0
         version: 5.9.3
+      vitest:
+        specifier: ^5.0.3
+        version: 5.0.3(@opentelemetry/api@1.9.1)(@types/node@22.20.5)(@vitest/coverage-v8@5.0.3)(@vitest/ui@5.0.3)(jsdom@30.1.2)(vite@8.3.4(@types/node@22.20.5)(esbuild@0.28.2)(jiti@2.6.1)(tsx@4.23.15)(yaml@2.9.1))
 
   apps/intelligence-worker:
     dependencies:
@@ -1599,8 +1608,8 @@ packages:
       '@modelcontextprotocol/sdk':
         optional: true
 
-  '@google/genai@2.29.0':
-    resolution: {integrity: sha512-jrgU07sEkMFX/K/gtEydDx+SH7NDbY5hdg8eLwDtfqHcJqPhsH68btd9QPrN7KqkrlURzSk49wVQYMKVJRy2Hw==}
+  '@google/genai@2.30.0':
+    resolution: {integrity: sha512-Gkv1ix8iZey/V3WF4lHaRS8C71P533jenDT/lA+fdPTCfXYfmCVHvo+0H5jTgzonqsmROQG7QpzLJkpoP/x7bg==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
       '@modelcontextprotocol/sdk': ^1.26.0
@@ -2006,37 +2015,37 @@ packages:
   '@levischuck/tiny-cbor@0.2.11':
     resolution: {integrity: sha512-llBRm4dT4Z89aRsm6u2oEZ8tfwL/2l6BwpZ7JcyieouniDECM5AqNgr/y08zalEIvW3RSK4upYyybDcmjXqAow==}
 
-  '@livekit/agents-plugin-cartesia@1.6.4':
-    resolution: {integrity: sha512-PX+QrztTOLjbD6n80+egRAk24kIS5edX3EKtVZjqgFdg9AqYEyYMjHKodEuexsS125CWF0dvm7AMhhzB+Ojjlw==}
+  '@livekit/agents-plugin-cartesia@1.9.3':
+    resolution: {integrity: sha512-d+zlCzM9alqL+DtNFObT8WHuORcuEhAGVfS4XWtrYnPNHk2pkYS/z+fuUDeUxG3uCpyhLpQz7R4kSQ8WZK/Ofg==}
     peerDependencies:
-      '@livekit/agents': 1.6.4
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/agents': 1.9.3
+      '@livekit/rtc-node': 1.1.0
       zod: ^3.25.76 || ^4.1.8
 
-  '@livekit/agents-plugin-google@1.6.4':
-    resolution: {integrity: sha512-SEx0sjzfDoqRvjpkJxB13rKDQeKB9vIR7DVQW4kt67Xpobijzphgiqroy8fb6KM/fBTsBT3TwgfJtRsuEhoPXQ==}
+  '@livekit/agents-plugin-google@1.9.3':
+    resolution: {integrity: sha512-O317n1fJGnUfsozWMS16Twg98JggIg0tLok9druUWZ+ACNlbYMwIoghPITfh1/OZ2Oxn3BgKjGGREFHzWbBGVA==}
     peerDependencies:
-      '@livekit/agents': 1.6.4
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/agents': 1.9.3
+      '@livekit/rtc-node': 1.1.0
 
-  '@livekit/agents-plugin-openai@1.6.4':
-    resolution: {integrity: sha512-dqLFo4GkXdgZXECUdUkvW/WYSPzB5q3jRwXOr2iLGPFUBWQL5aSHAmpVVJTKmJK3Vt+8nE1JgU/FOB2kYvJQvA==}
+  '@livekit/agents-plugin-openai@1.9.3':
+    resolution: {integrity: sha512-V7b4ydM5ASV58kYISqM0sn5X7+W2CO7IHLZODUJRIbrPGj9Z1q9jS5zqTCwZc6D8nuAIsAqLsR7jwUcT3k9+XA==}
     peerDependencies:
-      '@livekit/agents': 1.6.4
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/agents': 1.9.3
+      '@livekit/rtc-node': 1.1.0
       zod: ^3.25.76 || ^4.1.8
 
-  '@livekit/agents-plugin-silero@1.6.4':
-    resolution: {integrity: sha512-CVLZefgd4Ee317n/mq10clM1zdrER/kwnStTPhSVLqRU5aLCEEk2KaW6lmHz+kI1jLrLlzVmyp7Z6aUik+zWNA==}
+  '@livekit/agents-plugin-silero@1.9.3':
+    resolution: {integrity: sha512-KuQPQQBBhUJXRx/3BFx7RQkCou8nM4fcW9sr1AHF5YMQTAv2TKBROBllLQyODHbJFnSyZlpB5RSJxF/9qx8+Hw==}
     peerDependencies:
-      '@livekit/agents': 1.6.4
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/agents': 1.9.3
+      '@livekit/rtc-node': 1.1.0
 
-  '@livekit/agents@1.6.4':
-    resolution: {integrity: sha512-Q+qlXmR8wLB4aMm2K5bt1ijItuMcoyfHvAHp047ORf2+yhIwR6csKfo95ErPbszWzgnLf7nIGSvJjvNVSh9okA==}
+  '@livekit/agents@1.9.3':
+    resolution: {integrity: sha512-AWwRVjf6NUB9L4X3PP+VUL8pX5NSTS7D6HrZMaZobcbNZrOkdOO6hOmpMxQYL7z/Xx0Iq2EJV4pgnFQ/+aNlxA==}
     hasBin: true
     peerDependencies:
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/rtc-node': 1.1.0
       zod: ^3.25.76 || ^4.1.8
 
   '@livekit/av-darwin-arm64@10.1.0':
@@ -2070,33 +2079,33 @@ packages:
     resolution: {integrity: sha512-e9VEckIjUJt8vLiziGcgPQD6AiFuBxHBAC4Ujpk93Cm0wnTurR+IKHn6wZR5hf/9rtaEgOPur/JmlXI9QhqwSQ==}
     engines: {node: '>=18.0.0'}
 
-  '@livekit/local-inference-darwin-arm64@0.2.6':
-    resolution: {integrity: sha512-YdzE0eXgLpUfT0S6AcJ73BknX6fnHWqmH2AukNkO6IBmpth4dFnTvTpOrGWPunlbDJmXanCwdD+Bh9O4oQA+PQ==}
+  '@livekit/local-inference-darwin-arm64@0.2.7':
+    resolution: {integrity: sha512-di4SAKcV/i9tCozvbtwZLBtRPAJYWCcLNNVWduqAQSaV2/klT2CZsGpoN0s7t8NamvL78q1LxzL2iJVc6pc75g==}
     cpu: [arm64]
     os: [darwin]
 
-  '@livekit/local-inference-darwin-x64@0.2.6':
-    resolution: {integrity: sha512-fSicCqoYA5iOtW2jZfB91RIcNafXs19xRNPH5QSHvrRXljvCn8WMh+7do1jEg1f2U98TDsyptZ91laiDSh8xNg==}
+  '@livekit/local-inference-darwin-x64@0.2.7':
+    resolution: {integrity: sha512-5e2HnjLSOwh1QfHQKbAgy0HDxAZhpOMLpwcUSXWIPeQEGOu+iu0s1f8xsRvz/LWxPOsZJn0bxFkfadnh5dvPMg==}
     cpu: [x64]
     os: [darwin]
 
-  '@livekit/local-inference-linux-arm64-gnu@0.2.6':
-    resolution: {integrity: sha512-XvLWw8IwiIimoQjivxelRdSz9uSenR7UJiw1KDL35qJd3ZrI3QMORnyx63s7TFgNNCoyJ2CBFBqs9k9pPuqkTA==}
+  '@livekit/local-inference-linux-arm64-gnu@0.2.7':
+    resolution: {integrity: sha512-zUP9RverLt66kQ9slr+T3FY1Ad9IwJ3BPnJsEB/NxUeflq5g0dbUjIjGvjBCL6DktqLRyXixEJx1J5QUKUWUsw==}
     cpu: [arm64]
     os: [linux]
 
-  '@livekit/local-inference-linux-x64-gnu@0.2.6':
-    resolution: {integrity: sha512-L9MagQm/5tm0r82/GXecIZU8jz/2LY8DsMzRPlkz/2Et6qR4zz+8wEOUifuLC520L8MFN7HN6yf+PNbQnSfvWA==}
+  '@livekit/local-inference-linux-x64-gnu@0.2.7':
+    resolution: {integrity: sha512-QG/0k0BwqnSz/qMU+Z/k0411iXkbVEdZ8XMBPjZGOorVYTQuMlovYd9hkSZvgnD84o/xeAMJekC6NcXv45FlGg==}
     cpu: [x64]
     os: [linux]
 
-  '@livekit/local-inference-win32-x64-msvc@0.2.6':
-    resolution: {integrity: sha512-g3B10sLdIsE0du8xh8+oFAllvbKZBRcVUXf52HvtRwNVQ3OiodrRI/Ehyvy9C94rwKDI40Kk5ZWcPo7cTI68IQ==}
+  '@livekit/local-inference-win32-x64-msvc@0.2.7':
+    resolution: {integrity: sha512-8KB0xfDgYstfvOtAshRsL0zRkwGOIGzOI4NqGMq1HBr+3wMuCrVEjspjpHvuMHCYVzihprE9L/ivYqpXBAGrXw==}
     cpu: [x64]
     os: [win32]
 
-  '@livekit/local-inference@0.2.6':
-    resolution: {integrity: sha512-HtA5tC+gdDHoWAkb0QJYVCIoLL6/53VGXVoRY68zIeTUik9kAW/EOuYirEqRuGlL2UCzjWRRhRSkxLleLyucmQ==}
+  '@livekit/local-inference@0.2.7':
+    resolution: {integrity: sha512-3XniFtpZHiIlAgVibhIU1YDaHbh8uScYojwtqaI1Em440w+fzix3wPXLv+IPePAmuusJzvHLrEFaTwojaBLk4w==}
     engines: {node: '>=18.0.0'}
 
   '@livekit/mutex@1.1.1':
@@ -2125,7 +2134,7 @@ packages:
   '@livekit/noise-cancellation-node@0.3.0':
     resolution: {integrity: sha512-/n23yTh2wEMiKHEQdzjNJ7Qv7DZXrT+eD+4WyTSoUE4RnyOBj5mRswTyyOOkpyhUrHLLCz22na+pfTi0/3UDlg==}
     peerDependencies:
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/rtc-node': 1.1.0
 
   '@livekit/noise-cancellation-win32-x64@0.3.0':
     resolution: {integrity: sha512-rCrKEMLzK9At+XITF6656z4FIjKGASCr8OKfLvvXYXRdLZMk0eIL10E3trAnDeBbrMypchPCiaAOKLac9Z+Iaw==}
@@ -2174,8 +2183,8 @@ packages:
     resolution: {integrity: sha512-ZxkCQlsfTG7Eqi6KBXulEWJBUxeRVRYqCc795CsmKsGfqmBX5gE5CnTiynN8fFdzSGwApaVogeGSB6JszCf/Xw==}
     engines: {node: '>= 18'}
 
-  '@livekit/rtc-node@0.13.35':
-    resolution: {integrity: sha512-ZRkVKie0/6sfKX3J4SrEaQeRJ4pdBi4DlweQ61dAvJqvRIf5NoJCX8SVimmJKwvyLYppbqANezzFGJpU2IxalA==}
+  '@livekit/rtc-node@1.1.0':
+    resolution: {integrity: sha512-KFNvPz7qQSJBTttDukanhMJ+bCNxj6O3A3fXl6GJvOEamJJk7GqKCWgAdLW3JLjuT1pPQDyQPJJnYdR25N+MXA==}
     engines: {node: '>= 18'}
 
   '@livekit/throws-transformer@0.1.8':
@@ -2674,6 +2683,18 @@ packages:
 
   '@opentelemetry/exporter-logs-otlp-proto@0.220.0':
     resolution: {integrity: sha512-8LZAxdJ0ENDAFwr4j0oY35mHBltiSzvlhdQAPGiC7p9VnxtuSq4SW1gfBAdW6t6hiQG6OwUl8w7KHaOdJPKHWg==}
+    engines: {node: ^18.19.0 || >=20.6.0}
+    peerDependencies:
+      '@opentelemetry/api': ^1.3.0
+
+  '@opentelemetry/exporter-metrics-otlp-http@0.220.0':
+    resolution: {integrity: sha512-Yqt3RBw/bRVncaE9qIIhk4WfjbAQqXuP9FgAaU+IKPndnLEp/cUqZlSC324+bpmduRz7DoTjig8Ub0PeILWXUA==}
+    engines: {node: ^18.19.0 || >=20.6.0}
+    peerDependencies:
+      '@opentelemetry/api': ^1.3.0
+
+  '@opentelemetry/exporter-metrics-otlp-proto@0.220.0':
+    resolution: {integrity: sha512-lyO+IQBdSvqHN/ZOW/OzrSWemtfD+HgWngn+HBNLhjy0YrCQQTz0OE/kSekH2Pl340dn9DWzhqHdz5Eftr+HLA==}
     engines: {node: ^18.19.0 || >=20.6.0}
     peerDependencies:
       '@opentelemetry/api': ^1.3.0
@@ -8504,7 +8525,7 @@ snapshots:
       - supports-color
       - utf-8-validate
 
-  '@google/genai@2.29.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))':
+  '@google/genai@2.30.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))':
     dependencies:
       google-auth-library: 10.9.0
       p-retry: 4.6.2
@@ -8848,22 +8869,22 @@ snapshots:
 
   '@levischuck/tiny-cbor@0.2.11': {}
 
-  '@livekit/agents-plugin-cartesia@1.6.4(patch_hash=513a7ff80d2a81dc22c2fa32a0481bb64a0946e5b60cb61b8a2e00bcb968e438)(@livekit/agents@1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)':
+  '@livekit/agents-plugin-cartesia@1.9.3(patch_hash=de305f26f8cb5ba92d67fe7cc45d38fea0aba249b6e831c09de5ee74114d327f)(@livekit/agents@1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(zod@4.6.5)':
     dependencies:
-      '@livekit/agents': 1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/agents': 1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
+      '@livekit/rtc-node': 1.1.0
       ws: 8.22.0
       zod: 4.6.5
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-google@1.6.4(patch_hash=d57a9d2d6fcdd6e9e83f321b8a087bc68803fb6541f433fcb43429c3086fa011)(@livekit/agents@1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)':
+  '@livekit/agents-plugin-google@1.9.3(patch_hash=c1ba53b53dbab48aea4c649177151f6333043954cba3bf903b8e17700f7ef17e)(@livekit/agents@1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))(ws@8.22.0)(zod@4.6.5)':
     dependencies:
-      '@google/genai': 2.29.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))
-      '@livekit/agents': 1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
+      '@google/genai': 2.30.0(@modelcontextprotocol/sdk@1.32.0(zod@4.6.5))
+      '@livekit/agents': 1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
       '@livekit/mutex': 1.1.1
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/rtc-node': 1.1.0
       '@types/json-schema': 7.0.15
       google-auth-library: 10.9.0
       json-schema: 0.4.0
@@ -8876,11 +8897,10 @@ snapshots:
       - ws
       - zod
 
-  '@livekit/agents-plugin-openai@1.6.4(@livekit/agents@1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)(zod@4.6.5)':
+  '@livekit/agents-plugin-openai@1.9.3(@livekit/agents@1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)(zod@4.6.5)':
     dependencies:
-      '@livekit/agents': 1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
-      '@livekit/mutex': 1.1.1
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/agents': 1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
+      '@livekit/rtc-node': 1.1.0
       openai: 6.10.0(ws@8.22.0)(zod@4.6.5)
       ws: 8.22.0
       zod: 4.6.5
@@ -8888,38 +8908,40 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents-plugin-silero@1.6.4(@livekit/agents@1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@0.13.35)':
+  '@livekit/agents-plugin-silero@1.9.3(@livekit/agents@1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5))(@livekit/rtc-node@1.1.0)':
     dependencies:
-      '@livekit/agents': 1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/agents': 1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)
+      '@livekit/rtc-node': 1.1.0
       onnxruntime-node: 1.30.0
       ws: 8.22.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  '@livekit/agents@1.6.4(patch_hash=568e066cc8c62de1d8ab9182dff06d80b050fb3bb4c27ab26e5037ef054d48b9)(@livekit/rtc-node@0.13.35)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)':
+  '@livekit/agents@1.9.3(patch_hash=574cabe8bd04c38c6fca155ba163a248a06df5f0b004ca272290d6f65161f597)(@livekit/rtc-node@1.1.0)(@types/node@22.20.5)(typescript@5.9.3)(zod@4.6.5)':
     dependencies:
       '@bufbuild/protobuf': 1.10.1
       '@livekit/av': 10.1.0
-      '@livekit/local-inference': 0.2.6
+      '@livekit/local-inference': 0.2.7
       '@livekit/mutex': 1.1.1
       '@livekit/protocol': 1.52.1
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/rtc-node': 1.1.0
       '@livekit/throws-transformer': 0.1.8(typescript@5.9.3)
       '@livekit/typed-emitter': 3.0.0
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/api-logs': 0.220.0
       '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-logs-otlp-proto': 0.220.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-proto': 0.220.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/exporter-trace-otlp-proto': 0.220.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/instrumentation-pino': 0.66.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/otlp-exporter-base': 0.220.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resources': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-logs': 0.220.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-base': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace-node': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.39.0
+      '@opentelemetry/semantic-conventions': 1.43.0
       '@types/pidusage': 2.0.5
       commander: 12.1.0
       fluent-ffmpeg: 2.1.3
@@ -8967,30 +8989,30 @@ snapshots:
       '@livekit/av-linux-x64': 10.1.0
       '@livekit/av-win32-x64': 10.1.0
 
-  '@livekit/local-inference-darwin-arm64@0.2.6':
+  '@livekit/local-inference-darwin-arm64@0.2.7':
     optional: true
 
-  '@livekit/local-inference-darwin-x64@0.2.6':
+  '@livekit/local-inference-darwin-x64@0.2.7':
     optional: true
 
-  '@livekit/local-inference-linux-arm64-gnu@0.2.6':
+  '@livekit/local-inference-linux-arm64-gnu@0.2.7':
     optional: true
 
-  '@livekit/local-inference-linux-x64-gnu@0.2.6':
+  '@livekit/local-inference-linux-x64-gnu@0.2.7':
     optional: true
 
-  '@livekit/local-inference-win32-x64-msvc@0.2.6':
+  '@livekit/local-inference-win32-x64-msvc@0.2.7':
     optional: true
 
-  '@livekit/local-inference@0.2.6':
+  '@livekit/local-inference@0.2.7':
     dependencies:
       node-gyp-build: 4.8.4
     optionalDependencies:
-      '@livekit/local-inference-darwin-arm64': 0.2.6
-      '@livekit/local-inference-darwin-x64': 0.2.6
-      '@livekit/local-inference-linux-arm64-gnu': 0.2.6
-      '@livekit/local-inference-linux-x64-gnu': 0.2.6
-      '@livekit/local-inference-win32-x64-msvc': 0.2.6
+      '@livekit/local-inference-darwin-arm64': 0.2.7
+      '@livekit/local-inference-darwin-x64': 0.2.7
+      '@livekit/local-inference-linux-arm64-gnu': 0.2.7
+      '@livekit/local-inference-linux-x64-gnu': 0.2.7
+      '@livekit/local-inference-win32-x64-msvc': 0.2.7
 
   '@livekit/mutex@1.1.1': {}
 
@@ -9006,9 +9028,9 @@ snapshots:
   '@livekit/noise-cancellation-linux-x64@0.3.0':
     optional: true
 
-  '@livekit/noise-cancellation-node@0.3.0(@livekit/rtc-node@0.13.35)':
+  '@livekit/noise-cancellation-node@0.3.0(@livekit/rtc-node@1.1.0)':
     dependencies:
-      '@livekit/rtc-node': 0.13.35
+      '@livekit/rtc-node': 1.1.0
     optionalDependencies:
       '@livekit/noise-cancellation-darwin-arm64': 0.3.0
       '@livekit/noise-cancellation-darwin-x64': 0.3.0
@@ -9052,7 +9074,7 @@ snapshots:
       '@livekit/rtc-ffi-bindings-linux-x64-gnu': 0.12.73
       '@livekit/rtc-ffi-bindings-win32-x64-msvc': 0.12.73
 
-  '@livekit/rtc-node@0.13.35':
+  '@livekit/rtc-node@1.1.0':
     dependencies:
       '@datastructures-js/deque': 1.0.8
       '@livekit/mutex': 1.1.1
@@ -9499,7 +9521,7 @@ snapshots:
   '@opentelemetry/core@2.9.0(@opentelemetry/api@1.9.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
-      '@opentelemetry/semantic-conventions': 1.39.0
+      '@opentelemetry/semantic-conventions': 1.43.0
 
   '@opentelemetry/exporter-logs-otlp-proto@0.220.0(@opentelemetry/api@1.9.1)':
     dependencies:
@@ -9507,6 +9529,25 @@ snapshots:
       '@opentelemetry/otlp-exporter-base': 0.220.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/otlp-transformer': 0.220.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-logs': 0.220.0(@opentelemetry/api@1.9.1)
+
+  '@opentelemetry/exporter-metrics-otlp-http@0.220.0(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/otlp-exporter-base': 0.220.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/otlp-transformer': 0.220.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics': 2.9.0(@opentelemetry/api@1.9.1)
+
+  '@opentelemetry/exporter-metrics-otlp-proto@0.220.0(@opentelemetry/api@1.9.1)':
+    dependencies:
+      '@opentelemetry/api': 1.9.1
+      '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/exporter-metrics-otlp-http': 0.220.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/otlp-exporter-base': 0.220.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/otlp-transformer': 0.220.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.1)
+      '@opentelemetry/sdk-metrics': 2.9.0(@opentelemetry/api@1.9.1)
 
   '@opentelemetry/exporter-trace-otlp-proto@0.220.0(@opentelemetry/api@1.9.1)':
     dependencies:
@@ -9571,7 +9612,7 @@ snapshots:
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.39.0
+      '@opentelemetry/semantic-conventions': 1.43.0
 
   '@opentelemetry/sdk-logs@0.220.0(@opentelemetry/api@1.9.1)':
     dependencies:
@@ -9579,7 +9620,7 @@ snapshots:
       '@opentelemetry/api-logs': 0.220.0
       '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.39.0
+      '@opentelemetry/semantic-conventions': 1.43.0
 
   '@opentelemetry/sdk-metrics@2.12.0(@opentelemetry/api@1.9.1)':
     dependencies:
@@ -9599,7 +9640,7 @@ snapshots:
       '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resources': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/sdk-trace': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.39.0
+      '@opentelemetry/semantic-conventions': 1.43.0
 
   '@opentelemetry/sdk-trace-node@2.12.0(@opentelemetry/api@1.9.1)':
     dependencies:
@@ -9613,14 +9654,14 @@ snapshots:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.12.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resources': 2.12.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.39.0
+      '@opentelemetry/semantic-conventions': 1.43.0
 
   '@opentelemetry/sdk-trace@2.9.0(@opentelemetry/api@1.9.1)':
     dependencies:
       '@opentelemetry/api': 1.9.1
       '@opentelemetry/core': 2.9.0(@opentelemetry/api@1.9.1)
       '@opentelemetry/resources': 2.9.0(@opentelemetry/api@1.9.1)
-      '@opentelemetry/semantic-conventions': 1.39.0
+      '@opentelemetry/semantic-conventions': 1.43.0
 
   '@opentelemetry/semantic-conventions@1.38.0': {}
 

@@ -18,15 +18,19 @@
 
 import { createHash } from 'crypto';
 import type { CollectionReference, Firestore } from '@google-cloud/firestore';
-import type {
-  FollowUp,
-  FollowUpKind,
-  FollowUpStatus,
-  FollowUpStore,
-  NewFollowUp,
-  Repeat,
-  SurfacedVia,
+import {
+  ask,
+  type FollowUp,
+  type FollowUpAction,
+  type FollowUpAsker,
+  type FollowUpKind,
+  type FollowUpStatus,
+  type FollowUpStore,
+  type NewFollowUp,
+  type Repeat,
+  type SurfacedVia,
 } from '../follow-through/index.js';
+import { brainFieldsOf } from './follow-through-brain-fields.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -60,6 +64,22 @@ function repeatOf(x: unknown): Repeat | null {
     : null;
 }
 
+const OUTCOMES: ReadonlySet<string> = new Set(['sent', 'failed', 'unknown']);
+
+/** A read-back action (outreach-confirm), keeping only the fields it may have. */
+function actionOf(x: unknown): FollowUpAction | null {
+  if (!isRecord(x) || !str(x.tool)) return null;
+  const contactId = str(x.contactId);
+  return {
+    tool: String(x.tool),
+    ...(contactId ? { contactId } : {}),
+    ...(x.waitingOn === 'you' ? { waitingOn: 'you' as const } : {}),
+    ...(OUTCOMES.has(String(x.outcome))
+      ? { outcome: x.outcome as NonNullable<FollowUpAction['outcome']> }
+      : {}),
+  };
+}
+
 /** Every field a follow-up needs is present and has the right kind of value. */
 function hasFollowUpShape(data: Record<string, unknown>): boolean {
   const source = isRecord(data.source) ? data.source : null;
@@ -84,6 +104,7 @@ export function toFollowUp(id: string, data: unknown): FollowUp | null {
   if (!isRecord(data) || !hasFollowUpShape(data)) return null;
   const { userId, kind, text, zone, status, createdAt, updatedAt } = data;
   const source = data.source as Record<string, unknown>;
+  const action = actionOf(data.action);
   const surfaced = Array.isArray(data.surfaced)
     ? data.surfaced.flatMap((s) => {
         if (!isRecord(s) || !str(s.at) || !['opener', 'in-call', 'text'].includes(String(s.via)))
@@ -105,6 +126,8 @@ export function toFollowUp(id: string, data: unknown): FollowUp | null {
     createdAt: String(createdAt),
     updatedAt: String(updatedAt),
     ...(str(data.closedAt) ? { closedAt: String(data.closedAt) } : {}),
+    ...(action ? { action } : {}),
+    ...brainFieldsOf(data),
   };
 }
 
@@ -117,7 +140,7 @@ function parsed(docs: ReadonlyArray<{ id: string; data: () => unknown }>): Follo
   });
 }
 
-export function createFollowUpStore(db: Firestore): FollowUpStore {
+export function createFollowUpStore(db: Firestore): FollowUpStore & FollowUpAsker {
   const mine = (userId: string): CollectionReference =>
     db.collection('bogle_users').doc(userId).collection('follow_through');
 
@@ -175,6 +198,23 @@ export function createFollowUpStore(db: Firestore): FollowUpStore {
         if (!current || current.updatedAt !== expectedUpdatedAt) return false;
         tx.set(ref, next);
         return true;
+      });
+    },
+
+    async ask(userId, id, input, now): Promise<FollowUp | null> {
+      const ref = mine(userId).doc(id);
+      return db.runTransaction(async (tx) => {
+        const snap = await tx.get(ref);
+        const current = snap.exists ? toFollowUp(id, snap.data()) : null;
+        if (!current) return null;
+        // Judged against the stored copy: a second worker sees the first ask and is refused
+        const next = ask(current, input, now);
+        if (!next.success) {
+          log.info({ userId, followUpId: id, reason: next.error }, 'Follow-up ask refused');
+          return null;
+        }
+        tx.set(ref, next.data);
+        return next.data;
       });
     },
   };

@@ -17,7 +17,8 @@ import {
   installLiveCallBehaviors,
   logBargeInDecisions,
 } from '../../multi-agent/live-call-behaviors.js';
-import { attachTurnReceipts, type TurnReceipt, type TurnReceiptOptions } from '../turn-receipt.js';
+import type { TurnReceipt, TurnReceiptOptions } from '../turn-receipt.js';
+import { attachTurnReceipts } from '../turn-receipt-session.js';
 
 const SESSION = 'RM_decisions';
 
@@ -67,9 +68,18 @@ type UserTurnCompleted = (this: unknown, info: Record<string, unknown>) => Promi
 
 async function userTurnCompleted(): Promise<UserTurnCompleted> {
   const mod = (await import(pathToFileURL(join(agentsDist, 'voice/agent_activity.js')).href)) as {
-    AgentActivity: { prototype: { userTurnCompleted: UserTurnCompleted } };
+    AgentActivity: {
+      prototype: { userTurnCompleted: UserTurnCompleted; userTurnCompletedImpl: UserTurnCompleted };
+    };
   };
-  return mod.AgentActivity.prototype.userTurnCompleted;
+  const { prototype } = mod.AgentActivity;
+  // 1.9 moved the body into userTurnCompletedImpl; userTurnCompleted only adds the trace span's end
+  return function (this: unknown, info) {
+    const self = Object.assign(this as object, {
+      userTurnCompletedImpl: prototype.userTurnCompletedImpl,
+    });
+    return prototype.userTurnCompleted.call(self, info);
+  };
 }
 
 /** The parts of an AgentActivity that userTurnCompleted reads, with a pending preemptive reply. */
@@ -82,6 +92,8 @@ function activityWithPreemptive(agentSession: EventEmitter, sameContext: boolean
     schedulingPaused: false,
     newTurnsBlocked: false,
     _currentSpeech: undefined,
+    // 1.8: a finished user turn first drops queued replies
+    interruptQueuedSpeeches: vi.fn(),
     tools: { equals: () => true },
     toolChoice: undefined,
     agent: {
@@ -106,7 +118,7 @@ function activityWithPreemptive(agentSession: EventEmitter, sameContext: boolean
 }
 
 describe('preemptive: LiveKit kept or dropped the reply it started early', () => {
-  // The PREEMPTIVE_DECISION line is ours (patches/@livekit__agents@1.6.4.patch); the
+  // The PREEMPTIVE_DECISION line is ours (patches/@livekit__agents@1.9.3.patch); the
   // patch also emits it on the session, just before the commit's eou_metrics.
   it.each([
     [true, 'reused'],

@@ -16,6 +16,7 @@
 import { llm } from '@livekit/agents';
 import { ParticipantKind } from '@livekit/rtc-node';
 import { z } from 'zod';
+import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'phone-goodbye' });
@@ -30,10 +31,9 @@ export const END_CALL_DESCRIPTION =
 
 export type HangUp = (roomName: string) => Promise<void>;
 
-type Env = Record<string, string | undefined>;
-
+/** PHONE_GOODBYE=on, true or 1 (flagOn). */
 export function phoneGoodbyeEnabled(env: Env = process.env): boolean {
-  return env.PHONE_GOODBYE === 'on';
+  return flagOn('PHONE_GOODBYE', env);
 }
 
 /** Deletes the call's room, which drops every participant and ends the session. */
@@ -77,11 +77,13 @@ interface ToolHolder {
 
 /**
  * Give a phone call's agent the endCall tool. Not for app callers, calls
- * placed on the user's behalf, or an agent that already has one.
+ * placed on the user's behalf, or an agent that already has one. Logs
+ * PHONE_GOODBYE_ATTACHED once per call when it does, so prod can be read.
  */
 export async function attachPhoneHangUp(
   agent: object,
   call: {
+    sessionId?: string;
     roomName: string;
     participant: { kind?: ParticipantKind } | undefined;
     onBehalf: boolean;
@@ -91,7 +93,9 @@ export async function attachPhoneHangUp(
 ): Promise<boolean> {
   if (!phoneGoodbyeEnabled(call.env) || call.onBehalf) return false;
   if (call.participant?.kind !== ParticipantKind.SIP) return false;
-  return addEndCallTool(agent, () => createEndCallTool(call.roomName, call.hangUp));
+  const added = await addEndCallTool(agent, () => createEndCallTool(call.roomName, call.hangUp));
+  if (added) log.info({ sessionId: call.sessionId }, 'PHONE_GOODBYE_ATTACHED');
+  return added;
 }
 
 /** Adds an endCall tool to the agent's tools, unless it already has one. */

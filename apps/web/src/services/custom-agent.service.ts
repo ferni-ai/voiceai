@@ -484,15 +484,15 @@ export async function listMemories(
   return apiRequest<CustomAgentMemory[]>(`/${agentId}/memories${query}`);
 }
 
-/**
- * Deletes a memory from a custom agent
- */
+/** Deletes a memory from a custom agent (the server finds the type when it's left out) */
 export async function deleteMemory(
   agentId: string,
-  memoryId: string
+  memoryId: string,
+  type?: MemoryType
 ): Promise<void> {
   log.info('Deleting memory from agent:', agentId, memoryId);
-  await apiRequest<void>(`/${agentId}/memories/${memoryId}`, {
+  const query = type ? `?type=${type}` : '';
+  await apiRequest<void>(`/${agentId}/memories/${memoryId}${query}`, {
     method: 'DELETE',
   });
 }

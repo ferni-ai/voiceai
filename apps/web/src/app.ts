@@ -208,6 +208,7 @@ import {
 import { initI18n, t } from './i18n/index.js';
 import { createConversationStarter, START_CONVERSATION_EVENTS } from './app/conversation-starter.js';
 import { openPanelFromUrl } from './services/notification-navigation.js';
+import { isPanelEventVisible } from './config/menu-visibility.js';
 import { bindStaticDom } from './i18n/static-dom.js';
 import { bindLocaleRefresh } from './app/locale-refresh.js';
 import { installDialogFocus } from './utils/dialog-focus.js';
@@ -277,6 +278,7 @@ import { growthJourneyService } from './services/growth-journey.service.js';
 // Voice Auth Service
 import { getVoiceAuthService } from './services/voice-auth.service.js';
 import { announceMonthlyGiftPaid } from './services/seed-payment.js';
+import { installSoundDirector, noteCallDropped, type SpeechRoom } from './services/sound-director.js';
 // Toast for notifications (legacy - use moments.whisper() for new code)
 import { toast } from './ui/whisper.ui.js';
 import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
@@ -309,7 +311,6 @@ import { initSeedsDisplay } from './ui/seeds-display.ui.js';
 import { initSeedsToast } from './ui/seeds-toast.ui.js';
 // Subscription Badge - subtle status indicator in header
 import { initSubscriptionBadge, subscriptionBadgeUI } from './ui/subscription-badge.ui.js';
-// Roadmap Panel - What's Growing feature voting
 // Structured logger
 import { createLogger } from './utils/logger.js';
 const log = createLogger('App');
@@ -1232,6 +1233,10 @@ class VoiceAIApp {
     // Essential extras - load after 100ms (needed early but not for first paint)
     this.deferredInit('SoundUI', 100, async () => {
       initSoundUI();
+      installSoundDirector({
+        getRoom: () => connectionService.getRoom() as unknown as SpeechRoom | null,
+        onConnectionState: (callback) => appState.subscribe('connection', callback),
+      }); // gates every engine only when ferni:sound-director is on
     });
     // ⌨️ Global shortcuts (M mute, R reconnect, Enter start/end call, ? help) + ⌘K quick actions
     this.deferredInit('KeyboardShortcuts', 100, async () => {
@@ -1748,8 +1753,8 @@ class VoiceAIApp {
     // 💚 Support Ferni / Founders Fund - the founders-journey CTA opens it
     this.addTrackedListener(document, 'ferni:open-support', () => void openSupportFerni());
 
-    // 🌱 Roadmap Panel - "What's Growing" feature voting; loaded when first opened
-    this.addTrackedListener(document, 'ferni:open-roadmap', ((e: CustomEvent<{ featureId?: string }>) =>
+    // 🌱 Roadmap Panel ("What's Coming"): hidden for now, so the event opens nothing (config/menu-visibility.ts)
+    this.addTrackedListener(document, 'ferni:open-roadmap', ((e: CustomEvent<{ featureId?: string }>) => isPanelEventVisible('ferni:open-roadmap') &&
       void import('./ui/roadmap-panel.ui.js').then((m) => m.showRoadmapPanel(e.detail?.featureId))) as EventListener);
 
     // 💰 Subscription Badge - Subtle status indicator in header
@@ -2729,7 +2734,7 @@ class VoiceAIApp {
         presenceUI.bounce();
 
         // 🎵 Play dramatic entrance sound when Ferni joins
-        soundUI.play('enter');
+        soundUI.play('enter', 'arrival');
 
         // 🎬 Expression: Excited greeting expression
         ferniExpressions.heldPose('happy', 400);
@@ -2914,16 +2919,19 @@ class VoiceAIApp {
       onUnexpectedDisconnect: (reason) => {
         if (afterConversationEnd()) return void this.disconnect();
         log.warn('Call dropped unexpectedly', { reason });
+        noteCallDropped();
         void this.performStandardDisconnect().then(() =>
           showCallNotice(connectFailure('dropped'), { onRetry: () => void this.connect() })
         );
       },
       // Ferni's side ended with the caller still here (services/agent-drop-watch.ts)
-      onAgentLost: () =>
+      onAgentLost: () => {
+        noteCallDropped();
         showAgentLostPrompt({
           endCall: () => this.performStandardDisconnect(),
           connect: () => this.connect(),
-        }),
+        });
+      },
     });
 
     // Handoff service callbacks

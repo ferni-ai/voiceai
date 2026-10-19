@@ -37,3 +37,12 @@ function parse(value: string | undefined): boolean | undefined {
 export function flagOn(name: FlagName, env: Env = process.env): boolean {
   return parse(env[name]) ?? parse(FLAG_MANIFEST[name].default) ?? false;
 }
+
+/**
+ * A flag with a shadow mode: `shadow` runs the check and logs it without acting;
+ * anything else reads as flagOn does, so `on` and `off` work as usual.
+ */
+export function flagModeOf(name: FlagName, env: Env = process.env): 'off' | 'shadow' | 'on' {
+  if (env[name]?.trim().toLowerCase() === 'shadow') return 'shadow';
+  return flagOn(name, env) ? 'on' : 'off';
+}

@@ -1,0 +1,446 @@
+/**
+ * TMDB v3 responses, captured from the live API on 2026-10-17 and trimmed to
+ * a few results and the fields the tools read (plus some they don't, as TMDB
+ * sends them). The provider data is JustWatch's, via TMDB.
+ */
+export const TMDB = {
+  searchMovie: {
+    page: 1,
+    results: [
+      {
+        id: 693134,
+        title: 'Dune: Part Two',
+        original_title: 'Dune: Part Two',
+        overview:
+          'Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family. Facing a choice between the love of his life and the fate of the known universe, Paul endeavors to prevent a terrible future only he can foresee.',
+        release_date: '2024-02-27',
+        vote_average: 8.1,
+        vote_count: 8746,
+        popularity: 72.5288,
+        genre_ids: [878, 12],
+        original_language: 'en',
+        adult: false,
+        video: false,
+      },
+    ],
+    total_pages: 1,
+    total_results: 1,
+  },
+  movieDetails: {
+    id: 693134,
+    title: 'Dune: Part Two',
+    release_date: '2024-02-27',
+    runtime: 167,
+    genres: [
+      {
+        id: 878,
+        name: 'Science Fiction',
+      },
+      {
+        id: 12,
+        name: 'Adventure',
+      },
+    ],
+    status: 'Released',
+    vote_average: 8.141,
+    vote_count: 8747,
+    overview:
+      'Follow the mythic journey of Paul Atreides as he unites with Chani and the Fremen while on a path of revenge against the conspirators who destroyed his family. Facing a choice between the love of his life and the fate of the known universe, Paul endeavors to prevent a terrible future only he can foresee.',
+  },
+  nowPlaying: {
+    dates: {
+      maximum: '2026-10-21',
+      minimum: '2026-09-09',
+    },
+    page: 1,
+    results: [
+      {
+        id: 1423191,
+        title: 'Resident Evil',
+        release_date: '2026-09-18',
+        vote_average: 7.308,
+        vote_count: 968,
+        popularity: 270.3527,
+      },
+      {
+        id: 1236045,
+        title: 'Animals',
+        release_date: '2026-10-09',
+        vote_average: 7.097,
+        vote_count: 421,
+        popularity: 244.8255,
+      },
+      {
+        id: 1058424,
+        title: 'Hope',
+        release_date: '2026-09-09',
+        vote_average: 6.876,
+        vote_count: 222,
+        popularity: 240.126,
+      },
+      {
+        id: 1377237,
+        title: 'Runner',
+        release_date: '2026-09-07',
+        vote_average: 8.309,
+        vote_count: 598,
+        popularity: 228.277,
+      },
+      {
+        id: 1228834,
+        title: 'The Fix',
+        release_date: '2026-09-11',
+        vote_average: 6.715,
+        vote_count: 65,
+        popularity: 192.6092,
+      },
+      {
+        id: 1153576,
+        title: 'Street Fighter',
+        release_date: '2026-10-16',
+        vote_average: 6.22,
+        vote_count: 50,
+        popularity: 161.4845,
+      },
+      {
+        id: 1302904,
+        title: 'Practical Magic 2',
+        release_date: '2026-09-11',
+        vote_average: 6.85,
+        vote_count: 204,
+        popularity: 157.5418,
+      },
+    ],
+    total_pages: 26,
+    total_results: 520,
+  },
+  upcoming: {
+    dates: {
+      maximum: '2026-11-11',
+      minimum: '2026-10-21',
+    },
+    page: 1,
+    results: [
+      {
+        id: 1294189,
+        title: 'The Mongoose',
+        release_date: '2026-10-30',
+        vote_average: 0,
+        vote_count: 0,
+        popularity: 138.8211,
+      },
+      {
+        id: 1400940,
+        title: 'Clayface',
+        release_date: '2026-10-23',
+        vote_average: 8.2,
+        vote_count: 8,
+        popularity: 48.3262,
+      },
+      {
+        id: 1491920,
+        title: 'Kung Fu Soccer',
+        release_date: '2026-10-23',
+        vote_average: 5.84,
+        vote_count: 47,
+        popularity: 47.8524,
+      },
+      {
+        id: 466272,
+        title: 'Once Upon a Time... in Hollywood',
+        release_date: '2019-07-26',
+        vote_average: 7.417,
+        vote_count: 15410,
+        popularity: 34.5506,
+      },
+      {
+        id: 1366,
+        title: 'Rocky',
+        release_date: '1976-12-03',
+        vote_average: 7.8,
+        vote_count: 8989,
+        popularity: 29.1619,
+      },
+      {
+        id: 1422041,
+        title: 'La bola negra',
+        release_date: '2026-10-16',
+        vote_average: 8.347,
+        vote_count: 75,
+        popularity: 23.9252,
+      },
+      {
+        id: 752,
+        title: 'V for Vendetta',
+        release_date: '2006-03-17',
+        vote_average: 7.897,
+        vote_count: 16064,
+        popularity: 20.4533,
+      },
+      {
+        id: 1381071,
+        title: 'Godzilla Minus Zero',
+        release_date: '2026-11-03',
+        vote_average: 0,
+        vote_count: 0,
+        popularity: 19.8288,
+      },
+      {
+        id: 8913,
+        title: 'Pet Sematary',
+        release_date: '1989-04-21',
+        vote_average: 6.655,
+        vote_count: 2494,
+        popularity: 18.6683,
+      },
+      {
+        id: 1562642,
+        title: 'Ghost Soldier',
+        release_date: '2026-11-11',
+        vote_average: 0,
+        vote_count: 0,
+        popularity: 16.872,
+      },
+    ],
+    total_pages: 7,
+    total_results: 121,
+  },
+  searchMulti: {
+    page: 1,
+    results: [
+      {
+        id: 95396,
+        media_type: 'tv',
+        name: 'Severance',
+        original_name: 'Severance',
+        first_air_date: '2022-02-17',
+        popularity: 60.6555,
+      },
+      {
+        id: 5072,
+        media_type: 'movie',
+        title: 'Severance',
+        release_date: '2006-05-19',
+        popularity: 3.8373,
+      },
+      {
+        id: 549624,
+        media_type: 'movie',
+        title: 'Severance',
+        release_date: '1988-01-01',
+        popularity: 1.3949,
+      },
+      {
+        id: 18891,
+        media_type: 'person',
+        name: 'Joan Severance',
+        original_name: 'Joan Severance',
+        popularity: 1.8792,
+      },
+    ],
+    total_pages: 2,
+    total_results: 33,
+  },
+  searchTv: {
+    page: 1,
+    results: [
+      {
+        id: 95396,
+        name: 'Severance',
+        original_name: 'Severance',
+        first_air_date: '2022-02-17',
+        origin_country: ['US'],
+        overview:
+          'Mark leads a team of office workers whose memories have been surgically divided between their work and personal lives. When a mysterious colleague appears outside of work, it begins a journey to discover the truth about their jobs.',
+        vote_average: 8.393,
+        vote_count: 3043,
+        popularity: 60.6555,
+      },
+    ],
+    total_pages: 1,
+    total_results: 1,
+  },
+  tvProviders: {
+    id: 95396,
+    results: {
+      US: {
+        link: 'https://www.themoviedb.org/tv/95396-severance/watch?locale=US',
+        flatrate: [
+          {
+            logo_path: '/9icYBfYFcwgCbky5VdGUIKJ4C5i.png',
+            provider_id: 350,
+            provider_name: 'Apple TV',
+            display_priority: 4,
+          },
+          {
+            logo_path: '/rerVCu9auZrgxTTiZu1criqrQzg.png',
+            provider_id: 2243,
+            provider_name: 'Apple TV Amazon Channel',
+            display_priority: 214,
+          },
+        ],
+      },
+      GB: {
+        link: 'https://www.themoviedb.org/tv/95396-severance/watch?locale=GB',
+        flatrate: [
+          {
+            logo_path: '/9icYBfYFcwgCbky5VdGUIKJ4C5i.png',
+            provider_id: 350,
+            provider_name: 'Apple TV',
+            display_priority: 2,
+          },
+          {
+            logo_path: '/rerVCu9auZrgxTTiZu1criqrQzg.png',
+            provider_id: 2243,
+            provider_name: 'Apple TV Amazon Channel',
+            display_priority: 115,
+          },
+        ],
+      },
+      CA: {
+        link: 'https://www.themoviedb.org/tv/95396-severance/watch?locale=CA',
+        flatrate: [
+          {
+            logo_path: '/9icYBfYFcwgCbky5VdGUIKJ4C5i.png',
+            provider_id: 350,
+            provider_name: 'Apple TV',
+            display_priority: 0,
+          },
+          {
+            logo_path: '/rerVCu9auZrgxTTiZu1criqrQzg.png',
+            provider_id: 2243,
+            provider_name: 'Apple TV Amazon Channel',
+            display_priority: 118,
+          },
+        ],
+      },
+    },
+  },
+  movieProviders: {
+    id: 693134,
+    results: {
+      US: {
+        link: 'https://www.themoviedb.org/movie/693134-dune-part-two/watch?locale=US',
+        buy: [
+          {
+            logo_path: '/jn6TLbtaTZntTRX9UYucHJvpQx1.png',
+            provider_id: 10,
+            provider_name: 'Amazon Video',
+            display_priority: 8,
+          },
+          {
+            logo_path: '/qdEGArH3lKfFnAtYXMkSYk5wxuG.png',
+            provider_id: 2,
+            provider_name: 'Apple TV Store',
+            display_priority: 9,
+          },
+          {
+            logo_path: '/aZRENwYILujqs0RVOZutTh0BVGV.png',
+            provider_id: 3,
+            provider_name: 'Google Play Movies',
+            display_priority: 20,
+          },
+          {
+            logo_path: '/5Maob4o5w8oZnNeYpCDyVFD3M7X.png',
+            provider_id: 192,
+            provider_name: 'YouTube',
+            display_priority: 21,
+          },
+          {
+            logo_path: '/wpOt6x0dRxTrIzuBosto4LGd7E9.png',
+            provider_id: 7,
+            provider_name: 'Fandango At Home',
+            display_priority: 37,
+          },
+        ],
+        rent: [
+          {
+            logo_path: '/jn6TLbtaTZntTRX9UYucHJvpQx1.png',
+            provider_id: 10,
+            provider_name: 'Amazon Video',
+            display_priority: 8,
+          },
+          {
+            logo_path: '/qdEGArH3lKfFnAtYXMkSYk5wxuG.png',
+            provider_id: 2,
+            provider_name: 'Apple TV Store',
+            display_priority: 9,
+          },
+          {
+            logo_path: '/aZRENwYILujqs0RVOZutTh0BVGV.png',
+            provider_id: 3,
+            provider_name: 'Google Play Movies',
+            display_priority: 20,
+          },
+          {
+            logo_path: '/5Maob4o5w8oZnNeYpCDyVFD3M7X.png',
+            provider_id: 192,
+            provider_name: 'YouTube',
+            display_priority: 21,
+          },
+          {
+            logo_path: '/wpOt6x0dRxTrIzuBosto4LGd7E9.png',
+            provider_id: 7,
+            provider_name: 'Fandango At Home',
+            display_priority: 37,
+          },
+          {
+            logo_path: '/6qPtM96UZkt3Bu4ZFPsDeHFWUZ2.png',
+            provider_id: 486,
+            provider_name: 'Spectrum On Demand',
+            display_priority: 119,
+          },
+          {
+            logo_path: '/blAEhvx3XX8sV0fFVFk88FFjubs.png',
+            provider_id: 538,
+            provider_name: 'Plex',
+            display_priority: 124,
+          },
+        ],
+        flatrate: [
+          {
+            logo_path: '/64fLWeSyZ1KQZhIdvTdy4QHeWty.png',
+            provider_id: 1825,
+            provider_name: 'HBO Max Amazon Channel',
+            display_priority: 11,
+          },
+          {
+            logo_path: '/48bVXEIyCLSL9pZUQ7gB9ToyWto.png',
+            provider_id: 2528,
+            provider_name: 'YouTube TV',
+            display_priority: 38,
+          },
+          {
+            logo_path: '/6cgMswJ1yXtJLP1uJhM476h2WTH.png',
+            provider_id: 363,
+            provider_name: 'TNT',
+            display_priority: 99,
+          },
+          {
+            logo_path: '/8MX4rbkjJUf2NMb2ZVwHq0IATJf.png',
+            provider_id: 506,
+            provider_name: 'TBS',
+            display_priority: 115,
+          },
+          {
+            logo_path: '/sksAwn7y5P55CNGZ2znVuwLNM8S.png',
+            provider_id: 507,
+            provider_name: 'tru TV',
+            display_priority: 121,
+          },
+          {
+            logo_path: '/skypuy7SXuugIQeYg0IglmzoKaS.png',
+            provider_id: 1899,
+            provider_name: 'HBO Max',
+            display_priority: 151,
+          },
+        ],
+      },
+    },
+  },
+  invalidKey: {
+    status_code: 7,
+    status_message: 'Invalid API key: You must be granted a valid key.',
+    success: false,
+  },
+} as const;

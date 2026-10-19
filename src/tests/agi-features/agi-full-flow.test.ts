@@ -41,7 +41,6 @@ import {
   markExecuted as auditMarkExecuted,
   queryAuditLog,
 } from '../../services/automation/audit-log.js';
-import { bookReservation } from '../../services/integrations/restaurant-booking.js';
 import { bookRide } from '../../services/integrations/rideshare-booking.js';
 
 describe('AGI Full Flow E2E', () => {
@@ -129,52 +128,6 @@ describe('AGI Full Flow E2E', () => {
   });
 
   describe('Booking Full Flow', () => {
-    it('should complete restaurant booking flow', async () => {
-      const preview = createMockActionPreview({
-        title: 'Book table',
-        summary: '4 people Saturday',
-        canUndo: true,
-        estimatedCost: 80,
-      });
-      const checkResult = await checkActionPermission(testUserId, 'book_restaurant', preview);
-      expect(checkResult.success).toBe(true);
-      expect(checkResult.requiresApproval).toBe(true);
-
-      const auditEntry = await logAction({
-        userId: testUserId,
-        category: 'booking',
-        actionType: 'book_restaurant',
-        description: 'Book table',
-        status: 'pending',
-        requestedBy: 'ferni',
-        approvalRequired: true,
-        canUndo: true,
-        monetaryValue: 80,
-        currency: 'USD',
-      });
-
-      const bookResult = await bookReservation({
-        userId: testUserId,
-        restaurant: {
-          id: 'rest_1',
-          name: 'Italian Place',
-          address: '123 Main St',
-          city: 'SF',
-          provider: 'google',
-        },
-        date: '2025-02-15',
-        time: '19:00',
-        partySize: 4,
-        guestName: 'Test User',
-        guestPhone: '+1234567890',
-        guestEmail: 'test@test.com',
-      });
-      expect(bookResult.success).toBe(true);
-
-      await auditMarkApproved(testUserId, auditEntry.id, 'ui');
-      await auditMarkExecuted(testUserId, auditEntry.id, 'success', 500);
-    });
-
     it('should complete rideshare booking flow', async () => {
       const preview = createMockActionPreview({
         title: 'Book Uber',

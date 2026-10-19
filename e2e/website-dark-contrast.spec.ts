@@ -9,7 +9,7 @@
 
 import { expect, test, type Page } from '@playwright/test';
 
-import { serveBuiltSite, type BuiltSite } from './built-site-server';
+import { keepOffProdApi, serveBuiltSite, type BuiltSite } from './built-site-server';
 
 const PORT = 8767;
 const SITE = `http://127.0.0.1:${PORT}`;
@@ -37,9 +37,29 @@ const PAGES = [
   '/team/',
   '/terms/',
   '/use-cases/',
+  '/what-ferni-is/',
 ];
 
 let site: BuiltSite | undefined;
+
+/**
+ * The cookie banner appears 1.5 to 2 seconds after load, and its link is
+ * measured in whatever state it's in. Wait until the banner has settled
+ * (shown, or dismissed by a stored choice) and the fonts have loaded, so the
+ * reading never depends on when the banner happened to appear.
+ */
+async function settle(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const banner = document.getElementById('cookieBanner');
+    return (
+      !banner ||
+      ['visible', 'is-visible', 'hidden', 'is-hidden'].some((name) =>
+        banner.classList.contains(name)
+      )
+    );
+  });
+  await page.evaluate(() => document.fonts.ready);
+}
 
 interface LowContrast {
   ratio: number;
@@ -143,6 +163,10 @@ test.describe('ferni.ai in dark mode', () => {
     site?.stop();
   });
 
+  test.beforeEach(async ({ context }) => {
+    await keepOffProdApi(context);
+  });
+
   for (const path of PAGES) {
     test(`${path} has no text under 3:1`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
@@ -154,6 +178,7 @@ test.describe('ferni.ai in dark mode', () => {
           '*{animation:none!important;transition:none!important}' +
           '.reveal,[data-animate],[class*="fade"]{opacity:1!important;transform:none!important}',
       });
+      await settle(page);
       expect(await lowContrastText(page)).toEqual([]);
     });
   }

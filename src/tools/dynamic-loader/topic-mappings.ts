@@ -9,6 +9,7 @@
 
 import type { ToolDomain } from '../registry/types.js';
 import { LOCAL_PLACE_TOPICS } from './local-place-topics.js';
+import { SCREEN_TOPICS } from './screen-topics.js';
 
 // ============================================================================
 // TOPIC TO DOMAIN MAPPING
@@ -262,13 +263,12 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   songs: ['entertainment'],
   spotify: ['entertainment'],
   playlist: ['entertainment'],
-  play: ['entertainment', 'play'],
-  playing: ['entertainment', 'play'],
+  // "Let's play a game" wants the games (gameState), not the joy-coaching play domain.
+  play: ['entertainment'],
+  playing: ['entertainment'],
   fun: ['play', 'entertainment'],
-  game: ['play', 'entertainment'],
-  games: ['play', 'entertainment'],
-  movie: ['entertainment'],
-  movies: ['entertainment'],
+  game: ['games'],
+  games: ['games'],
   show: ['entertainment'],
   shows: ['entertainment'],
   watch: ['video', 'entertainment'],
@@ -321,6 +321,7 @@ export const TOPIC_TO_DOMAINS: Record<string, ToolDomain[]> = {
   wondering: ['curiosity'],
 
   ...LOCAL_PLACE_TOPICS,
+  ...SCREEN_TOPICS,
 
   // =========================================================================
   // EMOTIONAL & SPIRITUAL TOPICS

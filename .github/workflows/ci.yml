@@ -67,9 +67,9 @@ jobs:
   # If that VM is stopped, UNSET the variable: a job waiting
   # for a runner is not covered by timeout-minutes, so with no runner online every
   # run sits in GitHub's 24h queue and is cancelled with no verdict (2026-07).
-  # Deploys never run on it: deploy-gce.yml is GitHub-hosted, because PR code on
-  # that VM has docker (root) access and must not share a host with deploy
-  # credentials. The VM's identity is github-runner-ci (log/metric write only).
+  # Deploys never run on it, because PR code on that VM has docker (root) access
+  # and must not share a host with deploy credentials. The VM's identity is
+  # github-runner-ci (log/metric write only).
   #
   # Setup also decides what a PR touched. Docs-only PRs skip the heavy jobs; the
   # merge queue and pushes always run everything. A required job is skipped with
@@ -90,7 +90,7 @@ jobs:
       # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
       code: ${{ steps.code.outputs.matched }}
       # 'false' also when a PR touches only apps that aren't the Node app (website,
-      # ios-native, android-native, macos-menubar): none is in the UI image, ESLint
+      # ios-native, android-native, android-twa, macos-menubar): none is in the UI image, ESLint
       # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
       # see the change. Security and Quality Gates (brand scans the website) stay on
       # `code`. The merge queue is scoped the same way unless CI_SCOPED_QUEUE=off.
@@ -118,7 +118,7 @@ jobs:
         id: node
         uses: ./.github/actions/pr-changes
         with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|android-twa|macos-menubar)/'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - name: Did the merge queue already test this tree?
@@ -173,7 +173,7 @@ jobs:
   lint:
     name: Lint & Type Check
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    timeout-minutes: 15
+    timeout-minutes: 25
     needs: setup
     if: needs.setup.outputs.node != 'false'
     steps:
@@ -215,6 +215,10 @@ jobs:
       - name: Lint check
         run: pnpm lint
 
+      # Blocking ratchet: every production file's ESLint errors may not grow (baseline: lint-coverage-baseline.json).
+      - name: Lint coverage ratchet
+        run: pnpm quality:lint-coverage
+
       - name: Tool schema validation
         run: pnpm tools:schemas:validate
 
@@ -233,8 +237,12 @@ jobs:
     needs: setup
     if: needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true'
     steps:
+      # Two commits on a pull request: GitHub's merge commit and its first parent, the
+      # base, which the affected-tests step below diffs against.
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -269,6 +277,11 @@ jobs:
         run: pnpm test:cli:unit
         env:
           NODE_ENV: test
+
+      # The root typecheck covers src/** only, so apps/cli was never typechecked.
+      # Its error count may only go down (baseline: apps/cli/tsc-error-baseline.json).
+      - name: CLI typecheck ratchet
+        run: node scripts/ci/cli-typecheck-ratchet.mjs
 
       # 60 call sites use the THROWING loadRustPerf() (tryLoadRustPerf is documented
       # "for availability checks, not for actual operations"), so the accelerator is
@@ -330,14 +343,30 @@ jobs:
           pnpm install
           pnpm exec napi build --platform
 
+      # A pull request runs only the tests whose imports reach a changed file, without
+      # coverage: the full coverage run was 19 of CI's ~47 runner-minutes per PR push
+      # while PR jobs waited ~30 min for a runner (2026-10-18). vitest.config.unit.ts
+      # lists the files no import reaches (setup, lockfile, runtime data); a change to
+      # one runs everything. The merge queue always runs the whole suite with coverage,
+      # so this changes how early a PR hears, never what reaches main. The
+      # `ci:full-tests` label runs the whole suite on a PR.
+      - name: Run unit tests affected by this pull request
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        run: pnpm exec vitest run --config vitest.config.unit.ts --changed HEAD^1 --passWithNoTests
+        env:
+          NODE_ENV: test
+          NODE_OPTIONS: '--max-old-space-size=8192'
+
       - name: Run unit tests with coverage
+        id: full-unit
+        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
         run: pnpm test:unit:coverage -- --reporter=verbose
         env:
           NODE_ENV: test
 
       - name: Upload unit coverage
         uses: codecov/codecov-action@v7
-        if: always()
+        if: always() && steps.full-unit.outcome != 'skipped'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
@@ -743,7 +772,10 @@ jobs:
 
       - name: Run pnpm audit
         if: needs.setup.outputs.code != 'false'
-        run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
+        # Fails on a new high or critical advisory. Known ones with no fix yet are
+        # listed (with why) under auditConfig.ignoreGhsas in pnpm-workspace.yaml.
+        # A registry outage passes rather than blocking every PR.
+        run: pnpm audit --audit-level=high --ignore-registry-errors
 
       # trufflehog is pinned to an immutable commit SHA, not @main: a mutable ref
       # means this job runs whatever is on that branch at run time, and this
@@ -1036,6 +1068,12 @@ jobs:
       - name: Install dependencies (node_modules cache miss)
         if: steps.nm-cache.outputs.cache-hit != 'true'
         run: pnpm install --no-frozen-lockfile
+
+      # Fails when a committed generated file (tokens.css, animation constants,
+      # expressions, iOS expressions.json...) is not what the generators produce
+      # from design-system/tokens/*.json. Fix: pnpm tokens:drift --fix, commit.
+      - name: Design-system drift gate
+        run: pnpm tokens:drift
 
       - name: Build design-system
         run: pnpm build:design-system

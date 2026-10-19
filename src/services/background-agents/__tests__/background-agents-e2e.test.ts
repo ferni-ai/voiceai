@@ -4,7 +4,6 @@
  * Comprehensive tests for the background agent system including:
  * - Unified result capture
  * - Research executor (Peter)
- * - Reservation executor (Jordan)
  * - Context injection for "While You Were Away"
  * - Notification delivery
  *
@@ -41,8 +40,7 @@ const mockFirestoreDb = {
       })),
       update: vi.fn(async (data: unknown) => {
         const existing = mockFirestoreData.get(name)?.get(id) as
-          | Record<string, unknown>
-          | undefined;
+          Record<string, unknown> | undefined;
         if (existing) {
           mockFirestoreData
             .get(name)!
@@ -168,15 +166,9 @@ import {
 
 import {
   executeResearchTask,
-  queueResearchTask,
+  RESEARCH_UNAVAILABLE_SUMMARY,
   type ResearchRequest,
 } from '../executors/research-executor.js';
-
-import {
-  executeReservationTask,
-  queueReservationTask,
-  type ReservationRequest,
-} from '../executors/reservation-executor.js';
 
 // ============================================================================
 // TEST SETUP
@@ -382,141 +374,25 @@ describe('Background Agents E2E', () => {
   // ==========================================================================
 
   describe('Research Executor', () => {
-    it('should execute a stock research task', async () => {
-      const request: ResearchRequest = {
-        userId: 'research-user',
-        query: 'Analyze NVDA',
-        type: 'stock_analysis',
-        depth: 'standard',
-        initiatedBy: 'peter',
-      };
+    // No research source is connected; see executors/__tests__/research-executor-unavailable.test.ts.
+    it.each(['stock_analysis', 'deep_dive', 'fact_check'] as const)(
+      'returns no findings for a %s request',
+      async (type) => {
+        const request: ResearchRequest = {
+          userId: 'research-user',
+          query: 'Analyze NVDA',
+          type,
+          depth: 'comprehensive',
+          initiatedBy: 'peter',
+        };
 
-      const result = await executeResearchTask(request);
+        const result = await executeResearchTask(request);
 
-      expect(result.query).toBe('Analyze NVDA');
-      expect(result.findings.length).toBeGreaterThan(0);
-      expect(result.summary).toContain('NVDA');
-      expect(result.completedAt).toBeDefined();
-    });
-
-    it('should execute a comprehensive deep dive', async () => {
-      const request: ResearchRequest = {
-        userId: 'deep-dive-user',
-        query: 'Retirement planning strategies',
-        type: 'deep_dive',
-        depth: 'comprehensive',
-        context: 'for someone in their 40s',
-        initiatedBy: 'peter',
-      };
-
-      const result = await executeResearchTask(request);
-
-      expect(result.findings.length).toBeGreaterThanOrEqual(2);
-      expect(result.methodology?.toLowerCase()).toContain('comprehensive');
-    });
-
-    it('should execute a fact check', async () => {
-      const request: ResearchRequest = {
-        userId: 'fact-check-user',
-        query: 'S&P 500 returns 10% on average',
-        type: 'fact_check',
-        depth: 'standard',
-        initiatedBy: 'peter',
-      };
-
-      const result = await executeResearchTask(request);
-
-      expect(result.findings.length).toBeGreaterThan(0);
-      expect(result.findings[0].title).toContain('Fact Check');
-    });
-
-    it('should queue research for background execution', async () => {
-      const request: ResearchRequest = {
-        userId: 'queue-user',
-        query: 'Market research',
-        type: 'market_research',
-        depth: 'quick',
-        initiatedBy: 'peter',
-      };
-
-      const taskId = await queueResearchTask(request);
-
-      expect(taskId).toMatch(/^research_/);
-    });
-  });
-
-  // ==========================================================================
-  // RESERVATION EXECUTOR TESTS
-  // ==========================================================================
-
-  describe('Reservation Executor', () => {
-    it('should execute a restaurant reservation', async () => {
-      const request: ReservationRequest = {
-        userId: 'reservation-user',
-        type: 'restaurant',
-        venue: 'Chez Michel',
-        dateTime: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-        partySize: 4,
-        specialRequests: 'Window table please',
-        initiatedBy: 'jordan',
-      };
-
-      const result = await executeReservationTask(request);
-
-      expect(result.success).toBe(true);
-      expect(result.venue).toBe('Chez Michel');
-      expect(result.confirmationNumber).toMatch(/^RES-/);
-      expect(result.partySize).toBe(4);
-    });
-
-    it('should execute a hotel reservation', async () => {
-      const request: ReservationRequest = {
-        userId: 'hotel-user',
-        type: 'hotel',
-        venue: 'Grand Hotel',
-        dateTime: new Date(Date.now() + 604800000).toISOString(), // Next week
-        specialRequests: 'Late checkout',
-        initiatedBy: 'jordan',
-      };
-
-      const result = await executeReservationTask(request);
-
-      expect(result.success).toBe(true);
-      expect(result.confirmationNumber).toMatch(/^HTL-/);
-      expect(result.cancellationPolicy).toContain('cancellation');
-    });
-
-    it('should execute a venue reservation', async () => {
-      const request: ReservationRequest = {
-        userId: 'venue-user',
-        type: 'venue',
-        venue: 'The Grand Ballroom',
-        dateTime: new Date(Date.now() + 2592000000).toISOString(), // ~30 days
-        partySize: 100,
-        context: 'wedding reception',
-        initiatedBy: 'jordan',
-      };
-
-      const result = await executeReservationTask(request);
-
-      expect(result.success).toBe(true);
-      expect(result.confirmationNumber).toMatch(/^VEN-/);
-    });
-
-    it('should queue reservation for background execution', async () => {
-      const request: ReservationRequest = {
-        userId: 'queue-reservation-user',
-        type: 'activity',
-        venue: 'City Walking Tour',
-        dateTime: new Date(Date.now() + 172800000).toISOString(),
-        partySize: 2,
-        initiatedBy: 'jordan',
-      };
-
-      const taskId = await queueReservationTask(request);
-
-      expect(taskId).toMatch(/^reservation_/);
-    });
+        expect(result.query).toBe('Analyze NVDA');
+        expect(result.findings).toEqual([]);
+        expect(result.summary).toBe(RESEARCH_UNAVAILABLE_SUMMARY);
+      }
+    );
   });
 
   // ==========================================================================
@@ -524,40 +400,17 @@ describe('Background Agents E2E', () => {
   // ==========================================================================
 
   describe('E2E Flows', () => {
-    it('should complete full research → capture → pending flow', async () => {
-      const userId = 'e2e-research-user';
-
-      // 1. Execute research task
+    it('captures nothing for a research request', async () => {
       const researchResult = await executeResearchTask({
-        userId,
+        userId: 'e2e-research-user',
         query: 'Investment strategies',
         type: 'general',
         depth: 'standard',
         initiatedBy: 'peter',
       });
 
-      expect(researchResult.findings.length).toBeGreaterThan(0);
-
-      // 2. Result should have been captured (via executeResearchTask internal call)
-      // 3. Pending results should include it
-      // (In real flow, Firestore would have the result)
-    });
-
-    it('should complete full reservation → capture → pending flow', async () => {
-      const userId = 'e2e-reservation-user';
-
-      // 1. Execute reservation task
-      const reservationResult = await executeReservationTask({
-        userId,
-        type: 'restaurant',
-        venue: 'Test Restaurant',
-        dateTime: new Date().toISOString(),
-        partySize: 2,
-        initiatedBy: 'jordan',
-      });
-
-      expect(reservationResult.success).toBe(true);
-      expect(reservationResult.confirmationNumber).toBeDefined();
+      expect(researchResult.findings).toEqual([]);
+      expect(mockFirestoreData.size).toBe(0);
     });
 
     it('should handle multiple result types for same user', async () => {

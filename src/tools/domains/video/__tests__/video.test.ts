@@ -93,7 +93,11 @@ describe('Video Domain Tools', () => {
 
   describe('Tool Loading', () => {
     it('should load all video tool definitions', async () => {
-      expect(toolDefinitions.length).toBe(4);
+      // 4 YouTube + 5 movie and where-to-watch (TMDB; registered only with its key)
+      expect(toolDefinitions.length).toBe(9);
+      expect(toolDefinitions.filter((t) => t.requiresEnv?.includes('TMDB_API_KEY'))).toHaveLength(
+        5
+      );
     });
 
     it('should have correct tool IDs', () => {

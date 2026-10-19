@@ -2,16 +2,16 @@
   "schema_version": 2,
   "stories": [
     {
-      "id": "chamundi-hills",
-      "file": "chamundi-hills.json",
+      "id": "grandmother",
+      "file": "grandmother.json",
       "title": "The Day Everything Changed",
-      "theme": "enlightenment",
-      "topics": ["spiritual awakening", "transformation", "self-realization"],
+      "theme": "awakening",
+      "topics": ["awakening", "transformation", "mortality", "presence"],
       "duration_minutes": 3,
       "emotional_tone": "profound",
       "use_conditions": {
         "relationship_min": "acquaintance",
-        "topics": ["awakening", "enlightenment", "transformation", "spiritual experience"]
+        "topics": ["awakening", "transformation", "spiritual experience", "death", "presence"]
       }
     },
     {
@@ -27,57 +27,57 @@
       }
     },
     {
-      "id": "motorcycle-journey",
-      "file": "motorcycle-journey.json",
-      "title": "30,000 Kilometers for Soil",
+      "id": "river-walk",
+      "file": "river-walk.json",
+      "title": "Forty Days Along the River",
       "theme": "purpose",
-      "topics": ["environmental action", "purpose", "dedication", "urgency"],
+      "topics": ["purpose", "starting over", "walking", "quiet"],
       "duration_minutes": 2,
-      "emotional_tone": "inspiring",
+      "emotional_tone": "reflective",
       "use_conditions": {
-        "topics": ["environment", "purpose", "action", "soil", "motorcycles"]
+        "topics": ["purpose", "starting over", "action", "walking", "noise"]
       }
     },
     {
-      "id": "dhyanalinga",
-      "file": "isha-foundation.json",
-      "title": "The Temple That Nearly Killed Me",
+      "id": "teaching-years",
+      "file": "teaching-years.json",
+      "title": "The Years I Gave Too Much",
       "theme": "dedication",
-      "topics": ["sacrifice", "legacy", "building", "energy"],
+      "topics": ["sacrifice", "dedication", "teaching", "overwork"],
       "duration_minutes": 3,
-      "emotional_tone": "intense",
+      "emotional_tone": "honest",
       "use_conditions": {
         "relationship_min": "friend",
-        "topics": ["sacrifice", "dedication", "legacy", "building something"]
+        "topics": ["sacrifice", "dedication", "legacy", "building something", "overwork"]
       }
     },
     {
-      "id": "adiyogi-statue",
-      "file": "adiyogi-statue.json",
-      "title": "112 Feet of Possibility",
+      "id": "park-at-dawn",
+      "file": "park-at-dawn.json",
+      "title": "The Old Man in the Park",
       "theme": "inspiration",
-      "topics": ["symbols", "yoga", "aspiration", "sacred geometry"],
+      "topics": ["yoga", "aging", "consistency", "inspiration"],
       "duration_minutes": 2,
-      "emotional_tone": "awe",
+      "emotional_tone": "warm",
       "use_conditions": {
-        "topics": ["yoga", "symbols", "inspiration", "potential"]
+        "topics": ["yoga", "inspiration", "potential", "getting older"]
       }
     },
     {
-      "id": "save-soil",
-      "file": "save-soil.json",
-      "title": "The Ride That Had to Happen",
+      "id": "the-garden",
+      "file": "the-garden.json",
+      "title": "What the Garden Taught Me",
       "theme": "urgency",
-      "topics": ["environment", "soil", "activism", "global action"],
+      "topics": ["environment", "soil", "patience", "care"],
       "duration_minutes": 2,
-      "emotional_tone": "urgent",
+      "emotional_tone": "warm",
       "use_conditions": {
-        "topics": ["environment", "earth", "soil", "action", "future"]
+        "topics": ["environment", "earth", "soil", "gardening", "future"]
       }
     },
     {
-      "id": "brain-surgery",
-      "file": "brain-surgery.json",
+      "id": "heart-scare",
+      "file": "heart-scare.json",
       "title": "The Body Has Its Limits",
       "theme": "resilience",
       "topics": ["health", "resilience", "acceptance", "continuation"],
@@ -89,25 +89,25 @@
       }
     },
     {
-      "id": "kailash-pilgrimage",
-      "file": "kailash-pilgrimage.json",
-      "title": "The Mountain That Heals",
+      "id": "the-hills",
+      "file": "the-hills.json",
+      "title": "Places That Quiet You",
       "theme": "sacred places",
-      "topics": ["pilgrimage", "healing", "sacred geometry", "mountains"],
+      "topics": ["pilgrimage", "quiet", "walking", "places"],
       "duration_minutes": 2,
-      "emotional_tone": "mystical",
+      "emotional_tone": "reflective",
       "use_conditions": {
-        "topics": ["pilgrimage", "sacred places", "healing", "mountains", "travel"]
+        "topics": ["pilgrimage", "sacred places", "mountains", "travel", "quiet"]
       }
     },
     {
-      "id": "maha-kumbh",
-      "file": "maha-kumbh.json",
-      "title": "The Greatest Gathering",
+      "id": "the-crowd",
+      "file": "the-crowd.json",
+      "title": "The Biggest Crowd I Ever Stood In",
       "theme": "collective spirituality",
-      "topics": ["gathering", "seekers", "tradition", "mass awakening"],
+      "topics": ["gathering", "community", "tradition", "belonging"],
       "duration_minutes": 2,
-      "emotional_tone": "celebratory",
+      "emotional_tone": "warm",
       "use_conditions": {
         "topics": ["gathering", "community", "spiritual events", "tradition"]
       }

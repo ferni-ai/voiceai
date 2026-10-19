@@ -16,7 +16,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { isSyntheticUserId } from '../../utils/synthetic-user.js';
+import { isPersonAccountId, nonAccountPrefixOf } from '../../utils/synthetic-user.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { deliver, getChannelStatus, type DeliveryChannel } from './unified-delivery.js';
 import {
@@ -38,6 +38,7 @@ import {
 } from './outreach-cadence.js';
 import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
 import { blocksGenericCheckIns } from './grounded-checkin.js';
+import { skipReasonCounts, type SchedulerResult } from './scheduler-report.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
 
@@ -58,19 +59,7 @@ export interface SchedulerConfig {
   dryRun: boolean;
 }
 
-export interface SchedulerResult {
-  processed: number;
-  sent: number;
-  skipped: number;
-  errors: number;
-  details: Array<{
-    userId: string;
-    status: 'sent' | 'skipped' | 'error';
-    channel?: string;
-    outreachType?: string;
-    reason?: string;
-  }>;
-}
+export type { SchedulerResult };
 
 interface UserOutreachCandidate {
   userId: string;
@@ -116,6 +105,8 @@ export async function runDailyOutreach(
     sent: 0,
     skipped: 0,
     errors: 0,
+    skipReasons: {},
+    genericCheckInsBlocked: blocksGenericCheckIns(),
     details: [],
   };
 
@@ -157,15 +148,10 @@ export async function runDailyOutreach(
       }
     }
 
-    log.info(
-      {
-        processed: result.processed,
-        sent: result.sent,
-        skipped: result.skipped,
-        errors: result.errors,
-      },
-      'Daily outreach job complete'
-    );
+    result.skipReasons = skipReasonCounts(result.details);
+    // Counts and reasons only: details carry user IDs and stay out of the log.
+    const { details: _details, ...summary } = result;
+    log.info(summary, 'Daily outreach job complete');
 
     return result;
   } catch (error) {
@@ -292,6 +278,10 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
       if (page.empty) break;
       scanned += page.size;
       lastId = page.docs[page.docs.length - 1].id;
+      // anon:/onbehalf: docs pile up one per session: jump past the rest of
+      // that id range rather than spend the scan bound reading it.
+      const prefix = nonAccountPrefixOf(lastId);
+      if (prefix) lastId = `${prefix}\uf8ff`;
 
       for (const doc of page.docs) {
         if (candidates.length >= limit) break;
@@ -299,7 +289,8 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         const data = doc.data();
         const userId = doc.id;
         if (data.outreachPreferences?.enabled === false) continue;
-        if (isSyntheticUserId(userId)) continue; // test harness accounts
+        // Test harnesses and ids that name no account: skipped before the cap.
+        if (!isPersonAccountId(userId)) continue;
 
         const lastOutreach = data.lastOutreachDate?.toDate?.() || data.lastOutreachDate;
         const engagementLevel = engagementLevelOf(data, now.getTime());

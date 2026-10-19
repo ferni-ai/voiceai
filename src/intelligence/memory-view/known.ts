@@ -97,7 +97,7 @@ export interface KnownStore {
   /** YYYY-MM-DD of the caller's summaries with these ids, for pondering's provenance. */
   summaryDays: (userId: string, ids: string[]) => Promise<Map<string, string>>;
   /** Topics the caller asked Ferni to forget (memory/recall/forget.ts). Throws if unreadable. */
-  forgotten: (userId: string) => Promise<string[]>;
+  forgotten: (userId: string) => Promise<string[] | null>;
 }
 
 const PREFERENCE =
@@ -126,7 +126,7 @@ function fromFact(f: KnownFact): KnownItem {
   };
 }
 
-function fromWorld(f: TemporalFact): KnownItem {
+function fromWorld(f: TemporalFact, kept: Kept): KnownItem {
   const attribute = f.attribute.replace(/_/g, ' ');
   return {
     id: f.id,
@@ -135,20 +135,21 @@ function fromWorld(f: TemporalFact): KnownItem {
     ...(f.subjectKind === 'person' && { about: f.subject }),
     ...(f.relation && { relation: f.relation }),
     source: 'told',
-    ...(f.source?.quote && { quote: f.source.quote }),
+    // The quote is shown words too: it goes when it names a forgotten topic.
+    ...(f.source?.quote && kept(f.source.quote) && { quote: f.source.quote }),
     at: f.observedAt,
     ...(f.eventDate && { day: f.eventDate }),
   };
 }
 
-function fromPattern(p: Pattern): KnownItem {
+function fromPattern(p: Pattern, kept: Kept): KnownItem {
   const latest = p.moments[p.moments.length - 1];
   return {
     id: p.key,
     kind: 'pattern',
     text: p.statement,
     source: 'noticed',
-    ...(latest?.cue && { quote: latest.cue }),
+    ...(latest?.cue && kept(latest.cue) && { quote: latest.cue }),
     at: p.lastSeen,
   };
 }
@@ -194,7 +195,7 @@ function readings(mind: MindModel | null, kept: Kept): KnownItem[] {
   );
   const sensitivities = (mind?.sensitivities ?? []).filter((x) => kept(`${x.topic} ${x.how}`));
   return [
-    ...established.map(fromPattern),
+    ...established.map((p) => fromPattern(p, kept)),
     ...sensitivities.map((s): KnownItem => ({
       id: hashId(s.topic),
       kind: 'sensitivity',
@@ -231,7 +232,7 @@ export function buildKnownView(parts: KnownParts, now: Date, withPondering: bool
       f.validTo === null && SAFE_ID.test(f.id) && kept(`${f.subject} ${f.attribute} ${f.value}`)
   );
   for (const w of current) {
-    const item = fromWorld(w);
+    const item = fromWorld(w, kept);
     if (item.day === undefined) fileLife(view, item);
     else if (item.day >= earliest) view.dates.push(item);
   }
@@ -249,17 +250,42 @@ function unread<T>(source: string, empty: T): (error: unknown) => T {
   };
 }
 
-/** The caller's view. Each source is read independently; one failing leaves its section empty. */
+/**
+ * What the caller asked Ferni to forget couldn't be read (a throw, or the
+ * forget store's null): the view is refused (503), never shown unfiltered.
+ */
+export class ForgottenTopicsUnreadable extends Error {
+  constructor(cause?: unknown) {
+    super('Forgotten topics unreadable', { cause });
+    this.name = 'ForgottenTopicsUnreadable';
+  }
+}
+
+/** The topics, or ForgottenTopicsUnreadable; never [] standing in for a failed read. */
+async function readForgotten(store: KnownStore, userId: string): Promise<string[]> {
+  const topics = await store.forgotten(userId).catch((error: unknown) => {
+    throw new ForgottenTopicsUnreadable(error);
+  });
+  if (!Array.isArray(topics) || !topics.every((t) => typeof t === 'string')) {
+    throw new ForgottenTopicsUnreadable();
+  }
+  return topics;
+}
+
+/**
+ * The caller's view. The forgotten topics must be read or nothing is shown;
+ * otherwise each source is read independently, one failing leaving its section empty.
+ */
 export async function loadKnownView(
   userId: string,
   store: KnownStore,
   { now = new Date(), env = process.env }: { now?: Date; env?: Env } = {}
 ): Promise<KnownView> {
   const withPondering = isMemoryViewPonderingOn(env);
-  // Unreadable forgotten topics fail the view: showing what was forgotten is worse than nothing.
-  const [facts, forgotten, world, mind, pondering] = await Promise.all([
+  // Read first and alone: if it fails, nothing else is read or returned.
+  const forgotten = await readForgotten(store, userId);
+  const [facts, world, mind, pondering] = await Promise.all([
     store.facts(userId),
-    store.forgotten(userId),
     store.worldFacts(userId).catch(unread('world facts', [])),
     store.mindModel(userId).catch(unread('mind model', null)),
     withPondering

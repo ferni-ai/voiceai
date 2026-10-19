@@ -17,7 +17,7 @@ import { getDefaultStore, type MemoryStore } from '../../memory/index.js';
 import { createUserId, type UserId } from '../../types/branded.js';
 import type { UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
-import { anonymousIdFor } from './anonymous-session-id.js';
+import { anonymousSessionId } from './anonymous-session-id.js';
 import { phoneFromSignedDispatch } from './dispatch-phone.js';
 import { isSignedDispatch, signedClaim, trustedDeviceId } from './signed-dispatch-identity.js';
 import {
@@ -467,13 +467,13 @@ export async function identifyFromMetadata(
   }
 
   // Priority 6: Anonymous session (truly unknown users), one id per session
-  const sessionId = (metadata.session_id as string) || anonymousIdFor(metadata);
+  const sessionId = anonymousSessionId(metadata);
   return {
     userId: createUserId(sessionId),
     isNew: true,
     isReturning: false,
     profile: null,
-    source: { type: 'anonymous', identifier: sessionId as string },
+    source: { type: 'anonymous', identifier: sessionId },
     linkedIdentifiers: [],
   };
 }

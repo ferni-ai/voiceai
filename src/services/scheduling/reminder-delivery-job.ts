@@ -34,6 +34,8 @@ import {
   type ReminderDeliveryMethod,
   type ScheduledReminder,
 } from './reminder-scheduler.js';
+import { wasHeld } from './reminder-text-guard.js';
+import { logPromiseJobRun, logPromiseOutcome, reminderOutcome } from '../follow-through/index.js';
 
 const log = createLogger({ module: 'ReminderDeliveryJob' });
 
@@ -82,6 +84,8 @@ export interface ReminderRunResult {
   skipped: number;
   /** Delivered in-app because the chosen channel couldn't be reached. */
   rerouted: number;
+  /** Texts held to a later time by the guarded sender (quiet hours, its gap). */
+  held: number;
   dryRun: boolean;
   /** Overdue promises settled this run (absent on a dry run or when the check failed). */
   promises?: PromiseSweepResult;
@@ -119,6 +123,26 @@ async function sweepPromises(result: ReminderRunResult, now: Date): Promise<void
   }
 }
 
+/** A text due in quiet hours waits until 08:00 (reminder-text-guard.ts): held, not sent. */
+function deliveryEnd(sending: ScheduledReminder, ok: boolean): 'held' | 'delivered' | 'failed' {
+  if (wasHeld(sending)) return 'held';
+  return ok ? 'delivered' : 'failed';
+}
+
+/** Count the reminder's end and log it as a promise outcome. */
+function tally(
+  result: ReminderRunResult,
+  end: 'missed' | 'held' | 'delivered' | 'failed',
+  reminderId: string
+): void {
+  result[end]++;
+  logPromiseOutcome('reminder', reminderOutcome(end), { reminderId });
+}
+
+function logRun({ due, delivered, failed, held, missed }: ReminderRunResult): void {
+  logPromiseJobRun('deliver-reminders', { due, done: delivered, failed, held, missed });
+}
+
 export async function deliverDueReminders(
   opts: { now?: Date; limit?: number; dryRun?: boolean } = {}
 ): Promise<ReminderRunResult> {
@@ -133,6 +157,7 @@ export async function deliverDueReminders(
     missed: 0,
     skipped: 0,
     rerouted: 0,
+    held: 0,
     dryRun,
     promiseErrors: 0,
   };
@@ -181,7 +206,7 @@ export async function deliverDueReminders(
       continue;
     }
     if (claim === 'missed') {
-      result.missed++;
+      tally(result, 'missed', reminder.id);
       await settlePromise(result, {
         owner,
         reminderId: reminder.id,
@@ -193,14 +218,19 @@ export async function deliverDueReminders(
     }
 
     if (channel !== reminder.deliveryMethod) result.rerouted++;
-    const ok = await deliverReminder({ ...reminder, deliveryMethod: channel });
-    if (ok) result.delivered++;
-    else result.failed++;
+    const sending = { ...reminder, deliveryMethod: channel };
+    const ok = await deliverReminder(sending);
+    const end = deliveryEnd(sending, ok);
+    tally(result, end, reminder.id);
+    if (end === 'held') continue;
     const how = ok ? `reminder delivered (${channel})` : 'reminder could not be delivered';
     await settlePromise(result, { owner, reminderId: reminder.id, kept: ok, how, now });
   }
 
-  if (!dryRun) await sweepPromises(result, now);
+  if (!dryRun) {
+    await sweepPromises(result, now);
+    logRun(result);
+  }
 
   if (result.due > 0) log.info(result, 'Reminder delivery run');
   return result;

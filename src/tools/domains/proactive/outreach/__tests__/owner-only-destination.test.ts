@@ -46,7 +46,7 @@ vi.mock('../../../../../services/superhuman/semantic-intelligence/promise-keeper
 import type { ToolContext, ToolDefinition } from '../../../../registry/types.js';
 import { definitions as schedulingDefs } from '../../../scheduling/index.js';
 import { getAgentToUserOutreachDefinitions } from '../agent-to-user.js';
-import { setCallUserPort } from '../call-user-port.js';
+import { setCallUserPort, type CallUserPort } from '../call-user-port.js';
 import { getTelephonyToolDefinitions } from '../../../telephony/index.js';
 
 const ctx: ToolContext = { userId: 'owner-uid', agentId: 'ferni', agentDisplayName: 'Ferni' };
@@ -57,21 +57,44 @@ const run = (id: string, args: Record<string, unknown>) =>
     .create(ctx)
     .execute({ ...args, ...STRANGER }, {});
 
+/** The call-user port with the owner's verified phone and email; texts go through its guarded textOwner. */
+const guarded = vi.fn(async (..._a: unknown[]) => ({ sent: true }));
+const ownerPort = (call: CallUserPort['call'] = vi.fn()): CallUserPort => ({
+  verifiedPhone: async () => OWNER.phone,
+  verifiedEmail: async () => OWNER.email,
+  textOwner: guarded,
+  call,
+});
+
 afterEach(() => vi.clearAllMocks());
 
 describe('owner-only tools ignore a destination in their arguments', () => {
   it('sendMessageNow texts the owner, not the supplied number', async () => {
+    setCallUserPort(ownerPort());
     await run('sendMessageNow', { message: 'hi' });
-    expect(sent.sms.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
+    setCallUserPort(undefined);
+    // Through the guarded sender, to the owner, never straight to Twilio.
+    expect(guarded.mock.calls.map((c) => c[0])).toEqual(['owner-uid']);
+    expect(sent.sms).not.toHaveBeenCalled();
   });
 
   it('sendImmediateOutreach texts, emails and calls only the owner', async () => {
-    await run('sendImmediateOutreach', { message: 'hi', method: 'sms' });
-    await run('sendImmediateOutreach', { message: 'hi', method: 'email' });
-    await run('sendImmediateOutreach', { message: 'hi', method: 'call' });
-    expect(sent.sms.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
+    // Texts and calls go to the verified phone (call-user port), like callUser.
+    const placed = vi.fn(async (..._a: unknown[]) => ({ success: true, status: 'initiated' }));
+    setCallUserPort(ownerPort(placed));
+    try {
+      await run('sendImmediateOutreach', { message: 'hi', method: 'sms' });
+      await run('sendImmediateOutreach', { message: 'hi', method: 'email' });
+      await run('sendImmediateOutreach', { message: 'hi', method: 'call' });
+    } finally {
+      setCallUserPort(undefined);
+    }
+    expect(guarded.mock.calls.map((c) => c[0])).toEqual(['owner-uid']);
+    expect(sent.sms).not.toHaveBeenCalled();
     expect(sent.email.mock.calls.map((c) => c[0])).toEqual([OWNER.email]);
-    expect(sent.call.mock.calls.map((c) => c[0])).toEqual([OWNER.phone]);
+    expect(placed.mock.calls.map((c) => (c[0] as { phoneNumber: string }).phoneNumber)).toEqual([
+      OWNER.phone,
+    ]);
   });
 
   it('callUser calls only the owner, at the verified phone on the account', async () => {
@@ -93,9 +116,11 @@ describe('owner-only tools ignore a destination in their arguments', () => {
   });
 
   it('scheduleMessage / scheduleCall / scheduleEmail deliver only to the owner', async () => {
+    setCallUserPort(ownerPort());
     await run('scheduleMessage', { message: 'hi', when: 'in 2 hours' });
     await run('scheduleCall', { message: 'hi', when: 'in 2 hours' });
     await run('scheduleEmail', { subject: 's', message: 'hi', when: 'in 2 hours' });
+    setCallUserPort(undefined);
     const addresses = sent.reminder.mock.calls.map(
       (c) => (c[0] as { deliveryAddress: string }).deliveryAddress
     );

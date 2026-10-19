@@ -13,6 +13,7 @@
 import Redis from 'ioredis';
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval } from '../../utils/interval-manager.js';
+import { checkSharedInFirestore, wantsFirestoreSharedLimits } from './firestore-rate-limit.js';
 
 const log = createLogger({ module: 'RateLimiter' });
 
@@ -118,13 +119,15 @@ function initializeRedis(): void {
       redisAvailable = true;
     });
 
+    // Debug: ioredis emits these on every reconnect attempt. An outage is reported by
+    // rate_limit_redis_down, once per revive window, not once per attempt.
     redisClient.on('error', (err) => {
-      log.warn({ error: String(err) }, 'Redis connection error');
+      log.debug({ error: String(err) }, 'Redis connection error');
       redisAvailable = false;
     });
 
     redisClient.on('close', () => {
-      log.info('Redis connection closed');
+      log.debug('Redis connection closed');
       redisAvailable = false;
     });
 
@@ -308,10 +311,12 @@ export const rateLimiter = {
   },
 
   /**
-   * Like `check`, but for limits that must hold across instances (spend caps):
-   * when Redis is configured and unreachable it returns null instead of
-   * counting in this instance's memory, so the caller can fail closed. Uses
-   * memory only when no Redis is configured at all (local development).
+   * Like `check`, but for limits that must hold across instances (spend caps).
+   * The count lives in Redis when it is configured, otherwise in Firestore
+   * (firestore-rate-limit.ts); either way it returns null instead of counting in
+   * this instance's memory when the store is unreachable, so the caller can fail
+   * closed. Uses memory only in local development with neither (no Google Cloud,
+   * no emulator). A cost that isn't a positive finite number is refused (null).
    */
   async checkShared(
     key: string,
@@ -319,7 +324,12 @@ export const rateLimiter = {
     windowMs: number,
     cost = 1
   ): Promise<RateLimitResult | null> {
-    if (!redisClient) return checkMemoryRateLimit(key, maxRequests, windowMs, cost);
+    if (!Number.isFinite(cost) || cost <= 0) return null;
+    if (!redisClient) {
+      return wantsFirestoreSharedLimits()
+        ? checkSharedInFirestore(key, maxRequests, windowMs, cost)
+        : checkMemoryRateLimit(key, maxRequests, windowMs, cost);
+    }
     // Fail closed until 'connect' fires; rate_limit_redis_down reports it once per window.
     if (!redisAvailable) {
       reviveRedisIfGivenUp(key);
@@ -349,13 +359,14 @@ export const rateLimiter = {
   },
 
   /**
-   * Get rate limiter status for health checks.
+   * Rate limiter status for health checks: where shared limits count. Firestore is
+   * reported as connected because each check reaches it on its own (and fails closed).
    */
-  getStatus(): { backend: 'redis' | 'memory'; connected: boolean } {
-    return {
-      backend: redisAvailable ? 'redis' : 'memory',
-      connected: redisAvailable,
-    };
+  getStatus(): { backend: 'redis' | 'firestore' | 'memory'; connected: boolean } {
+    if (redisAvailable) return { backend: 'redis', connected: true };
+    if (!redisClient && wantsFirestoreSharedLimits())
+      return { backend: 'firestore', connected: true };
+    return { backend: 'memory', connected: false };
   },
 
   /**
@@ -371,18 +382,11 @@ export const rateLimiter = {
   },
 };
 
-// Log initialization status
-const isProduction =
-  process.env.NODE_ENV === 'production' ||
-  !!process.env.GOOGLE_CLOUD_PROJECT ||
-  !!process.env.K_SERVICE;
-
-// Warn only when no Redis is configured. At load time the connection is still in flight
-// (redisAvailable turns true on 'connect'), and connection failures log their own warnings.
-if (isProduction && !redisClient) {
-  log.warn(
-    'SECURITY: Using in-memory rate limiting in production. ' +
-      'Rate limits will reset on server restart. ' +
-      'Set REDIS_URL or REDIS_RATE_LIMIT_URL for persistent rate limiting.'
+// Without Redis, spend caps count in Firestore and only per-request limits stay per
+// instance, so there is nothing to warn about. With Redis configured, the connection is
+// still in flight at load time and its failures log their own warnings.
+if (!redisClient && wantsFirestoreSharedLimits()) {
+  log.info(
+    'No Redis configured: spend caps count in Firestore; per-request limits stay per instance'
   );
 }

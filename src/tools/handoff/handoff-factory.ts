@@ -26,6 +26,7 @@ import { isTeamMemberUnlocked } from '../../intelligence/context-builders/team/t
 import { getToolDescription } from '../utils/tool-descriptions.js';
 import { isHandoffTargetOpen } from './handoff-availability.js';
 import { assignHandoffToolNames, specialtyOf } from './handoff-tool-naming.js';
+import { chiefOfStaffDescription } from './chief-of-staff-note.js';
 // FIX BUG #6: Import normalizeAgentIdSync for robust ID matching
 import { normalizeAgentIdSync } from '../../personas/agent-directory.js';
 import { isCoach } from '../../personas/persona-ids.js';
@@ -35,11 +36,11 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { executeHandoff } from './executor.js';
 import { holdUnaskedHandoff } from './handoff-consent.js';
 import { handoffToolResponse } from './handoff-tool-response.js';
+import { holdHandoffThroughTalk } from './held-handoff-speech.js';
 import { noteHandoffReason } from './handoff-reasons.js';
 import { introduceTeammate } from './introduce-member.js';
 
-// FIX BUG: Use safe-logger utility instead of console fallback
-// This follows project conventions and provides consistent logging
+// FIX BUG: safe-logger, not a console fallback (project convention, consistent logging)
 import { getLogger } from '../../utils/safe-logger.js';
 
 // ============================================================================
@@ -439,14 +440,13 @@ export async function buildHandoffTools(
     }
     createdTools.push(def.name);
 
-    // Create the actual LLM tool
     const tool = llm.tool({
-      description: def.description,
+      description: chiefOfStaffDescription(def.agentId, def.description), // ALEX_CHIEF_OF_STAFF
       parameters: z.object({
         reason: z.string().describe(`Brief reason for handoff to ${def.agentName}`),
         context_summary: z.string().optional().describe('Summary of relevant conversation context'),
       }),
-      execute: async ({ reason, context_summary }, runContext) => {
+      execute: holdHandoffThroughTalk(async ({ reason, context_summary }, runContext) => {
         // The unlock check needs the RUNTIME profile ({ ctx: { userData } }); build time may lack it.
         // 🐛 FIX BUG-008: conversationTopics is in the type so it can be cleared
         interface RuntimeUserData {
@@ -521,7 +521,7 @@ export async function buildHandoffTools(
           // Note: We preserve lastEmotionAnalysis as it's useful context for the new persona
         }
         return handoffToolResponse(result, def.agentName, sessionId);
-      },
+      }),
     });
 
     tools[def.name] = tool;

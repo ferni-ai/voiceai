@@ -21,10 +21,14 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { messagingPipelineOn, writeOptOut } from '../messaging/consent.js';
+import { phoneHash } from './checkin-replies.js';
 import {
   onBehalfDispatchFor,
   onBehalfRequestFromDispatch,
   parseOnBehalfDispatch,
+  dispatchSigningSecret,
+  dispatchVerifySecrets,
   signOnBehalfDispatch,
   verifyOnBehalfDispatch,
   type OnBehalfDispatch,
@@ -172,6 +176,13 @@ export async function recordCallOptOut(
     .doc(key)
     .set({ phone: key, optedOutAt: new Date().toISOString(), ...context });
   log.info({ callId: context.callId }, 'Recorded a do-not-call request');
+  // MESSAGING_PIPELINE: also the one consent record every caller reads (messaging/consent.ts).
+  const hash = messagingPipelineOn() ? phoneHash(key) : null;
+  if (hash) {
+    await writeOptOut(hash, 'call', 'voice-call').catch((error: unknown) => {
+      log.warn({ error: String(error), callId: context.callId }, 'Call opt-out not in consent');
+    });
+  }
   return true;
 }
 
@@ -206,7 +217,7 @@ export async function scheduleCallRetry(
   call: OnBehalfDispatch,
   deps: CallRetryDeps = {}
 ): Promise<Date | null> {
-  const secret = process.env.LIVEKIT_API_SECRET;
+  const secret = dispatchSigningSecret();
   const recipient = toE164(call.contact.phone);
   if (call.retryOf || !recipient || !secret) return null;
   if (await isCallOptedOut(recipient)) return null;
@@ -300,7 +311,7 @@ export async function placeCallRetry(
 ): Promise<{ success: boolean; error?: string }> {
   if (!isCallFollowthroughEnabled()) return { success: false, error: 'CALL_FOLLOWTHROUGH is off' };
   const raw = JSON.stringify(signedDispatch ?? null);
-  if (!verifyOnBehalfDispatch(raw, process.env.LIVEKIT_API_SECRET)) {
+  if (!verifyOnBehalfDispatch(raw, dispatchVerifySecrets())) {
     return { success: false, error: 'Retry is not signed by the server' };
   }
   const call = parseOnBehalfDispatch(signedDispatch as Record<string, unknown>);
