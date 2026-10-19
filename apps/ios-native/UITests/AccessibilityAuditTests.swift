@@ -6,11 +6,12 @@ import XCTest
 final class AccessibilityAuditTests: XCTestCase {
     override func setUp() { continueAfterFailure = true }
 
-    private func audit(_ screen: Screen, size: TextSize) throws {
-        let app = XCUIApplication.ferni(screen, size: size)
+    private func audit(_ screen: Screen, size: TextSize, hour: Int? = nil) throws {
+        let app = XCUIApplication.ferni(screen, size: size, hour: hour)
         XCTAssertTrue(screen.ready(in: app).waitForExistence(timeout: 20), "\(screen) never appeared")
-        try XCTContext.runActivity(named: "\(screen) at \(size)") { _ in
-            try app.performAccessibilityAudit(for: .all) { Self.handle($0, on: "\(screen) \(size)") }
+        let name = "\(screen) \(size)" + (hour.map { " \($0)h" } ?? "")
+        try XCTContext.runActivity(named: name) { _ in
+            try app.performAccessibilityAudit(for: .all) { Self.handle($0, on: name) }
         }
         app.terminate()
     }
@@ -53,7 +54,16 @@ final class AccessibilityAuditTests: XCTestCase {
         return false
     }
 
-    func testHome() throws { try audit(.home, size: .standard); try audit(.home, size: .ax5) }
+    /// Home's room is lit by the hour (RoomLight), so it's audited in every
+    /// band, at a fixed hour each, instead of whenever the gate happens to run.
+    static let roomLightBands = [("morning", 8), ("day", 14), ("evening", 20), ("night", 2)]
+
+    func testHome() throws {
+        for (_, hour) in Self.roomLightBands {
+            try audit(.home, size: .standard, hour: hour)
+            try audit(.home, size: .ax5, hour: hour)
+        }
+    }
     func testConsent() throws { try audit(.consent, size: .standard); try audit(.consent, size: .ax5) }
     func testSettings() throws { try audit(.settings, size: .standard); try audit(.settings, size: .ax5) }
     func testCall() throws { try audit(.call, size: .standard); try audit(.call, size: .ax5) }
@@ -68,7 +78,7 @@ final class AccessibilityAuditTests: XCTestCase {
 
         for (motion, transparency) in [(true, false), (false, true)] {
             for screen in [Screen.call, .home] {
-                let app = XCUIApplication.ferni(screen, reduceMotion: motion, reduceTransparency: transparency)
+                let app = XCUIApplication.ferni(screen, reduceMotion: motion, reduceTransparency: transparency, hour: 14)
                 XCTAssertTrue(screen.ready(in: app).waitForExistence(timeout: 20), "\(screen)")
                 XCTAssertEqual(app.receivedSettings, "reduceMotion=\(motion) reduceTransparency=\(transparency)")
                 attachScreenshot("\(screen)-\(motion ? "reduce-motion" : "reduce-transparency")")
