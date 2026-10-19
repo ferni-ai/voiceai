@@ -6,7 +6,11 @@ import {
   compareArms,
   copiedNgrams,
   copyStats,
+  humannessOf,
+  humannessRate,
+  lengthMatched,
   maskNames,
+  MIN_MATCHED,
   median,
   ngramSet,
   noiseFloor,
@@ -20,7 +24,18 @@ import {
   verdictFor,
   words,
   type Metrics,
+  type Pair,
 } from '../bar-lib.js';
+
+/** `n` pairs where the arm wins the first `wins`, at the given word counts. */
+const pairs = (n: number, wins: number, armWords: number, baseWords: number): Pair[] =>
+  Array.from({ length: n }, (_, i) => ({
+    line: `l${i}`,
+    persona: 'ferni',
+    armWords,
+    baseWords,
+    armWins: i < wins,
+  }));
 
 const metrics = (d: number, i: number, c: number): Metrics => ({
   distinctness: rate(d, 100),
@@ -223,7 +238,13 @@ describe('A/A floor and comparison', () => {
 
   it('compares each metric against the baseline and its floor', () => {
     const floor = { distinctness: 0.05, insight: 0.05, copy: 0.05, humanness: 0.05 };
-    const rows = compareArms(metrics(24, 40, 30), metrics(40, 42, 10), rate(70, 100), floor);
+    // 100 length-matched pairs, 70 won.
+    const rows = compareArms(
+      metrics(24, 40, 30),
+      metrics(40, 42, 10),
+      humannessOf(pairs(100, 70, 10, 12)),
+      floor
+    );
     expect(rows.map((r) => [r.metric, r.verdict])).toEqual([
       ['distinctness', 'better'],
       ['humanness', 'better'],
@@ -236,5 +257,94 @@ describe('A/A floor and comparison', () => {
     expect(
       compareArms(metrics(24, 40, 30), metrics(40, 42, 10), null, null).map((r) => r.verdict)
     ).toEqual(['no A/A', 'no A/A', 'no A/A']);
+  });
+});
+
+describe('humanness length control', () => {
+  it('matches two lengths only when the longer is at most 1.5x the shorter', () => {
+    expect(lengthMatched(10, 15)).toBe(true);
+    expect(lengthMatched(15, 10)).toBe(true);
+    expect(lengthMatched(10, 16)).toBe(false);
+    expect(lengthMatched(8, 34)).toBe(false);
+    expect(lengthMatched(7, 7)).toBe(true);
+    expect(lengthMatched(0, 0)).toBe(false);
+    expect(lengthMatched(0, 3)).toBe(false);
+    expect(lengthMatched(10, 20, 2)).toBe(true);
+  });
+
+  it('reports all pairs and the length-matched pairs separately', () => {
+    // 40 short-vs-long pairs the arm loses, 20 matched pairs it wins 15 of.
+    const h = humannessOf([...pairs(40, 0, 8, 34), ...pairs(20, 15, 10, 12)]);
+    expect(h.overall.k).toBe(15);
+    expect(h.overall.n).toBe(60);
+    expect(h.matched.k).toBe(15);
+    expect(h.matched.n).toBe(20);
+    expect(h.matched.p).toBe(0.75);
+    expect(h.matched.lo).toBeGreaterThan(0.5);
+  });
+
+  it('rests the win rate on matched pairs only once there are 30', () => {
+    const few = humannessOf([...pairs(100, 10, 8, 34), ...pairs(MIN_MATCHED - 1, 20, 10, 10)]);
+    expect(humannessRate(few)).toBe(few.overall);
+    const enough = humannessOf([...pairs(100, 10, 8, 34), ...pairs(MIN_MATCHED, 20, 10, 10)]);
+    expect(humannessRate(enough)).toBe(enough.matched);
+  });
+
+  it('judges on matched pairs, so losing on length alone is not "worse"', () => {
+    const floor = { distinctness: 0.05, insight: 0.05, copy: 0.05, humanness: 0.05 };
+    // Loses 100 of 100 mismatched pairs, splits 40 matched pairs 20/20.
+    const h = humannessOf([...pairs(100, 0, 8, 34), ...pairs(40, 20, 10, 11)]);
+    const row = compareArms(metrics(20, 40, 10), metrics(20, 40, 10), h, floor).find(
+      (r) => r.metric === 'humanness'
+    );
+    expect(h.overall.p).toBeCloseTo(20 / 140, 10);
+    expect(row?.arm).toBe(0.5);
+    expect(row?.verdict).toBe('noise');
+  });
+
+  it('floors the matched verdict at the sampling gap of the matched n', () => {
+    // 22 of 40 matched = +5 points: beats a 2-point A/A floor, not the 15.5 that n=40 allows.
+    const h = humannessOf(pairs(40, 22, 10, 10));
+    const floor = { distinctness: 0.02, insight: 0.02, copy: 0.02, humanness: 0.02 };
+    const row = compareArms(metrics(20, 40, 10), metrics(20, 40, 10), h, floor).find(
+      (r) => r.metric === 'humanness'
+    );
+    expect(row?.floor).toBeCloseTo(1.96 * Math.sqrt(0.25 / 40), 10);
+    expect(row?.verdict).toBe('noise');
+  });
+
+  it('withholds the verdict under 30 matched pairs, however lopsided the rest', () => {
+    const h = humannessOf([...pairs(150, 0, 8, 34), ...pairs(MIN_MATCHED - 1, 29, 10, 10)]);
+    const floor = { distinctness: 0.05, insight: 0.05, copy: 0.05, humanness: 0.05 };
+    const row = compareArms(metrics(20, 40, 10), metrics(20, 40, 10), h, floor).find(
+      (r) => r.metric === 'humanness'
+    );
+    expect(row?.verdict).toBe('insufficient matched pairs');
+    expect(row?.floor).toBeNull();
+  });
+});
+
+describe('copy check, canon left out', () => {
+  const sheet = ngramSet(
+    'You have two cats, Compound and Interest. Work it out aloud, the way people do (hm, let me think).'
+  );
+  const canon = ngramSet('Maya and Daniel have two cats, Compound and Interest.');
+
+  it("does not count n-grams from the speaker's own canon, and still counts the rest", () => {
+    const reply = 'Daniel and I have our two cats, Compound and Interest. Hm, let me think.';
+    expect(copiedNgrams(reply, [sheet])).toEqual(
+      expect.arrayContaining([
+        'two cats compound and',
+        'cats compound and interest',
+        'hm let me think',
+      ])
+    );
+    expect(copiedNgrams(reply, [sheet], 4, canon)).toEqual(['hm let me think']);
+  });
+
+  it('leaves the check unchanged with no canon given', () => {
+    const reply = 'two cats compound and interest';
+    expect(copiedNgrams(reply, [sheet], 4, undefined)).toEqual(copiedNgrams(reply, [sheet]));
+    expect(copiedNgrams(reply, [sheet], 4, new Set())).toHaveLength(2);
   });
 });

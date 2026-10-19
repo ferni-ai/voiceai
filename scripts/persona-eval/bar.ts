@@ -54,6 +54,8 @@ import {
   ngramSet,
   noiseFloor,
   aaGap,
+  humannessOf,
+  humannessRate,
   parseCompanion,
   parsePick,
   parseSets,
@@ -62,9 +64,12 @@ import {
   shuffled,
   words,
   type Floor,
+  type Humanness,
   type Metrics,
+  type Pair,
   type Rate,
 } from './bar-lib.js';
+import { bible } from './canon-judge.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MODEL = process.env.CASCADE_LLM_MODEL ?? 'gemini-3.5-flash';
@@ -138,9 +143,20 @@ interface Result {
   at: string;
   scored: Scored;
   replies: Replies;
-  humanness?: { vs: string; rate: Rate; judgeFailures: number };
+  /** Whether the copy check left out n-grams from each persona's own canon (--exclude-canon). */
+  copyExcludesCanon?: boolean;
+  /** Set when --reuse re-scored saved replies instead of generating new ones. */
+  rescoredAt?: string;
+  humanness?: Humanness & { vs: string; judgeFailures: number; pairs: Pair[] };
   /** gap: how far the two runs landed; floor: max(gap, sampling gap), what a change must beat. */
-  aa?: { scored: Scored; humanness: Rate; gap: Floor; floor: Floor; replies: Replies };
+  aa?: {
+    scored: Scored;
+    humanness: Humanness;
+    pairs?: Pair[];
+    gap: Floor;
+    floor: Floor;
+    replies: Replies;
+  };
   comparison?: ReturnType<typeof compareArms>;
 }
 
@@ -163,6 +179,11 @@ const started = Date.now();
 const progress = (msg: string): void => {
   process.stderr.write(`[${((Date.now() - started) / 1000).toFixed(0)}s] ${msg}\n`);
 };
+/** The A/A win rate a floor rests on; results saved before length matching hold a plain Rate. */
+const pctCi = (r: Rate): string =>
+  `${r.k}/${r.n} = ${(100 * r.p).toFixed(1)}% [${(100 * r.lo).toFixed(1)}%, ${(100 * r.hi).toFixed(1)}%]`;
+const aaHumanRate = (h: Humanness | Rate): Rate => ('overall' in h ? humannessRate(h) : h);
+
 /** SSML a listener never sees as text; [laughter]-style sounds stay. */
 const untagged = (t: string): string =>
   t
@@ -182,6 +203,12 @@ async function main(): Promise<void> {
       baseline: { type: 'string' },
       aa: { type: 'boolean', default: false },
       rounds: { type: 'string', default: '1' },
+      // Re-score <out>/<arm>/result.json: same replies, judged again (humanness) and the copy
+      // check redone. Nothing is regenerated, and distinctness and insight are kept as saved.
+      reuse: { type: 'boolean', default: false },
+      // Leave the speaking persona's own canon (its bible, as canon-judge reads it) out of the
+      // copy check, so naming its own cats is not "reading the script".
+      'exclude-canon': { type: 'boolean', default: false },
     },
   });
   if (!values.arm || !values.flags || !values.out)
@@ -214,10 +241,15 @@ async function main(): Promise<void> {
   const base = (await loadModelBaseInstructions()) + timeContext(new Date(), 'America/New_York');
   const systems: Record<string, string> = {};
   const systemGrams: Record<string, Set<string>> = {};
+  const canonGrams: Record<string, Set<string> | undefined> = {};
+  const repo = join(HERE, '../..');
   for (const p of PERSONAS) {
     systems[p] = `${base}\n\n---\n\n${await loadSystemPrompt(p)}`;
     systemGrams[p] = ngramSet(systems[p]);
+    if (values['exclude-canon']) canonGrams[p] = ngramSet(bible(p, repo));
   }
+  const copiedFor = (p: string, reply: string, reminder: string): string[] =>
+    copiedNgrams(reply, [systemGrams[p], ngramSet(reminder)], 4, canonGrams[p]);
   const now = Date.now();
   const recallFor = (line: Line): string | null =>
     line.context
@@ -279,7 +311,7 @@ async function main(): Promise<void> {
           out[line.text][p] = {
             reply,
             reminder,
-            copied: copiedNgrams(reply, [systemGrams[p], ngramSet(reminder)]),
+            copied: copiedFor(p, reply, reminder),
           };
           if (++done % 30 === 0 || !reply)
             progress(
@@ -407,23 +439,25 @@ async function main(): Promise<void> {
     };
   }
 
-  /** How often `a`'s reply sounds more like a real friend than `b`'s, same persona and line. */
+  /**
+   * How often `a`'s reply sounds more like a real friend than `b`'s, same
+   * persona and line, over all pairs and over length-matched pairs only.
+   */
   async function pairwise(
     a: Replies,
     b: Replies,
     seed: string
-  ): Promise<{ rate: Rate; judgeFailures: number }> {
-    let wins = 0;
-    let n = 0;
+  ): Promise<Humanness & { judgeFailures: number; pairs: Pair[] }> {
+    const pairs: Pair[] = [];
     let judgeFailures = 0;
     await pooled(
       LINES.flatMap((line) =>
         PERSONAS.filter((p) => a[line.text]?.[p]?.reply && b[line.text]?.[p]?.reply).map(
           (p) => async () => {
+            const ra = untagged(a[line.text][p].reply);
+            const rb = untagged(b[line.text][p].reply);
             const aFirst = shuffled([true, false], `${seed}:${line.text}:${p}`)[0];
-            const [r1, r2] = aFirst
-              ? [a[line.text][p].reply, b[line.text][p].reply]
-              : [b[line.text][p].reply, a[line.text][p].reply];
+            const [r1, r2] = aFirst ? [ra, rb] : [rb, ra];
             const raw = await generate({
               model: JUDGE_MODEL,
               system: 'You judge spoken replies on a phone call between friends.',
@@ -433,9 +467,11 @@ async function main(): Promise<void> {
                   parts: [
                     {
                       text:
-                        `A caller said: "${line.text}"\n\nReply 1: "${untagged(r1)}"\nReply 2: "${untagged(r2)}"\n\n` +
+                        `A caller said: "${line.text}"\n\nReply 1: "${r1}"\nReply 2: "${r2}"\n\n` +
                         'Which reply sounds more like a real friend talking on the phone: a person, not an assistant or a script? ' +
-                        'Judge only how human it sounds, not which is longer or more helpful. Return JSON only: {"pick":"1"} or {"pick":"2"}',
+                        'Ignore length entirely: a short reply and a long one can be equally human, and either can sound scripted. ' +
+                        'Do not prefer the longer, fuller or more helpful reply, or the shorter one. Judge only whether it sounds like a real friend talking. ' +
+                        'Return JSON only: {"pick":"1"} or {"pick":"2"}',
                     },
                   ],
                 },
@@ -446,30 +482,63 @@ async function main(): Promise<void> {
             });
             const pick = parsePick(raw);
             if (pick === null) return void judgeFailures++;
-            n++;
-            if ((pick === 1) === aFirst) wins++;
+            pairs.push({
+              line: line.text,
+              persona: p,
+              armWords: words(ra).length,
+              baseWords: words(rb).length,
+              armWins: (pick === 1) === aFirst,
+            });
           }
         )
       )
     );
     progress(`${seed} humanness judged`);
-    return { rate: rate(wins, n), judgeFailures };
+    return { ...humannessOf(pairs), judgeFailures, pairs };
   }
 
   // ------------------------------------------------------------ run
-  const result: Result = {
-    arm,
-    sets,
-    flagsFile,
-    linesFile,
-    model: MODEL,
-    judgeModel: JUDGE_MODEL,
-    rounds,
-    at: new Date().toISOString(),
-    scored: undefined as unknown as Scored,
-    replies: await replies('run1'),
+  const dir = join(resolve(values.out), arm);
+  const prior = values.reuse
+    ? (JSON.parse(readFileSync(join(dir, 'result.json'), 'utf8')) as Result)
+    : null;
+  /** Saved scores with the copy check redone on the saved replies (cheap, no LLM). */
+  const recopied = (rs: Replies, scored: Scored): Scored => {
+    for (const byPersona of Object.values(rs))
+      for (const [p, r] of Object.entries(byPersona))
+        if (r.reply) r.copied = copiedFor(p, r.reply, r.reminder);
+    const copied = Object.values(rs).flatMap((byPersona) =>
+      Object.values(byPersona)
+        .filter((r) => r.reply)
+        .map((r) => r.copied)
+    );
+    return { ...scored, metrics: { ...scored.metrics, copy: copyStats(copied) } };
   };
-  result.scored = await score('run1', result.replies);
+  if (prior && (prior.arm !== arm || JSON.stringify(prior.sets) !== JSON.stringify(sets)))
+    throw new Error(`--reuse: ${dir}/result.json is arm ${prior.arm} with other overrides`);
+  const result: Result = prior
+    ? {
+        ...prior,
+        judgeModel: JUDGE_MODEL,
+        rescoredAt: new Date().toISOString(),
+        scored: recopied(prior.replies, prior.scored),
+      }
+    : {
+        arm,
+        sets,
+        flagsFile,
+        linesFile,
+        model: MODEL,
+        judgeModel: JUDGE_MODEL,
+        rounds,
+        at: new Date().toISOString(),
+        scored: undefined as unknown as Scored,
+        replies: await replies('run1'),
+      };
+  result.copyExcludesCanon = values['exclude-canon'];
+  delete result.humanness;
+  delete result.comparison;
+  if (!prior) result.scored = await score('run1', result.replies);
   const md: string[] = [
     `# Persona eval bar: ${arm}`,
     '',
@@ -486,16 +555,23 @@ async function main(): Promise<void> {
   ];
 
   if (values.aa) {
-    const replies2 = await replies('run2');
-    const scored2 = await score('run2', replies2);
+    const replies2 = prior?.aa ? prior.aa.replies : await replies('run2');
+    const scored2 = prior?.aa ? recopied(replies2, prior.aa.scored) : await score('run2', replies2);
     const h = await pairwise(replies2, result.replies, `${arm}:aa`);
-    const gap = aaGap(result.scored.metrics, scored2.metrics, h.rate);
-    const floor = noiseFloor(result.scored.metrics, scored2.metrics, h.rate);
-    result.aa = { scored: scored2, humanness: h.rate, gap, floor, replies: replies2 };
+    const gap = aaGap(result.scored.metrics, scored2.metrics, humannessRate(h));
+    const floor = noiseFloor(result.scored.metrics, scored2.metrics, humannessRate(h));
+    result.aa = {
+      scored: scored2,
+      humanness: { overall: h.overall, matched: h.matched },
+      pairs: h.pairs,
+      gap,
+      floor,
+      replies: replies2,
+    };
     md.push(
       metricsTable('run 1', result.scored.metrics),
       '',
-      metricsTable('run 2 (A/A)', scored2.metrics, h.rate),
+      metricsTable('run 2 (A/A)', scored2.metrics, h),
       '',
       '## A/A noise floor (a change counts only if its gap is larger)',
       '',
@@ -520,20 +596,21 @@ async function main(): Promise<void> {
     result.comparison = compareArms(
       baseResult.scored.metrics,
       result.scored.metrics,
-      h.rate,
+      h,
       // Recomputed from the saved A/A runs, so a baseline keeps up with the floor rule.
       baseResult.aa
         ? noiseFloor(
             baseResult.scored.metrics,
             baseResult.aa.scored.metrics,
-            baseResult.aa.humanness
+            aaHumanRate(baseResult.aa.humanness)
           )
         : null
     );
     md.push(
       `## ${arm} vs ${baseResult.arm}`,
       '',
-      `Humanness: ${arm} preferred in ${h.rate.k}/${h.rate.n} = ${(100 * h.rate.p).toFixed(1)}% [${(100 * h.rate.lo).toFixed(1)}%, ${(100 * h.rate.hi).toFixed(1)}%] of pairs (judge failures ${h.judgeFailures}).`,
+      `Humanness, ${arm} preferred: all pairs ${pctCi(h.overall)}; length-matched pairs (word counts within 1.5x) ${pctCi(h.matched)}. ` +
+        `The verdict uses the length-matched pairs when there are at least 30 (judge failures ${h.judgeFailures}).`,
       '',
       compareTable(result.comparison),
       ''
@@ -542,7 +619,7 @@ async function main(): Promise<void> {
 
   const top = result.scored.metrics.copy.top.slice(0, 10);
   md.push(
-    '## Most-copied 4-grams (replies containing each)',
+    `## Most-copied 4-grams (replies containing each${result.copyExcludesCanon ? "; the persona's own canon left out" : ''})`,
     '',
     ...top.map((t) => `- "${t.ngram}" (${t.replies})`),
     ''
@@ -559,7 +636,6 @@ async function main(): Promise<void> {
     ''
   );
 
-  const dir = join(resolve(values.out), arm);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'result.json'), JSON.stringify(result, null, 2));
   writeFileSync(join(dir, 'result.md'), md.join('\n'));

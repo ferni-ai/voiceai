@@ -151,13 +151,19 @@ export function ngramSet(text: string, n = 4): Set<string> {
 }
 
 /** The distinct n-grams of a spoken reply that also appear in any of the instruction texts. */
+/**
+ * The distinct n-grams of a spoken reply that also appear in any of the
+ * instruction texts. An n-gram in `exclude` (the speaker's own canon, say) is
+ * not a copy: a persona naming its own cats is telling its life, not reading a script.
+ */
 export function copiedNgrams(
   reply: string,
   instructions: ReadonlyArray<Set<string>>,
-  n = 4
+  n = 4,
+  exclude?: ReadonlySet<string>
 ): string[] {
-  return [...ngramSet(reply.replace(MARKUP, ' '), n)].filter((g) =>
-    instructions.some((s) => s.has(g))
+  return [...ngramSet(reply.replace(MARKUP, ' '), n)].filter(
+    (g) => !exclude?.has(g) && instructions.some((s) => s.has(g))
   );
 }
 
@@ -240,7 +246,47 @@ export function noiseFloor(a: Metrics, b: Metrics, humanness: Rate): Floor {
   };
 }
 
-export type Verdict = 'better' | 'worse' | 'noise' | 'no A/A';
+// ---------------------------------------------------------------- humanness, length-controlled
+
+/** One pairwise humanness judgment: the arm's reply against the baseline's. */
+export interface Pair {
+  line: string;
+  persona: string;
+  armWords: number;
+  baseWords: number;
+  armWins: boolean;
+}
+
+/** Two replies count as the same length when the longer is at most `ratio` times the shorter. */
+export const LENGTH_RATIO = 1.5;
+/** Fewer length-matched pairs than this and the humanness verdict is withheld. */
+export const MIN_MATCHED = 30;
+
+export function lengthMatched(a: number, b: number, ratio = LENGTH_RATIO): boolean {
+  if (a <= 0 || b <= 0) return false;
+  return Math.max(a, b) <= ratio * Math.min(a, b);
+}
+
+export interface Humanness {
+  /** Every judged pair. */
+  overall: Rate;
+  /** Only pairs whose word counts are within LENGTH_RATIO of each other: length can't decide these. */
+  matched: Rate;
+}
+
+export function humannessOf(pairs: readonly Pair[], ratio = LENGTH_RATIO): Humanness {
+  const m = pairs.filter((x) => lengthMatched(x.armWords, x.baseWords, ratio));
+  return {
+    overall: rate(pairs.filter((x) => x.armWins).length, pairs.length),
+    matched: rate(m.filter((x) => x.armWins).length, m.length),
+  };
+}
+
+/** The win rate a humanness verdict rests on: length-matched when there are enough pairs. */
+export const humannessRate = (h: Humanness): Rate =>
+  h.matched.n >= MIN_MATCHED ? h.matched : h.overall;
+
+export type Verdict = 'better' | 'worse' | 'noise' | 'no A/A' | 'insufficient matched pairs';
 export interface Row {
   metric: keyof Floor;
   baseline: number;
@@ -264,7 +310,7 @@ export function verdictFor(delta: number, floor: number | null, lowerIsBetter = 
 export function compareArms(
   base: Metrics,
   arm: Metrics,
-  humanness: Rate | null,
+  humanness: Humanness | null,
   floor: Floor | null
 ): Row[] {
   const row = (metric: keyof Floor, b: number, a: number, lower = false): Row => ({
@@ -277,22 +323,54 @@ export function compareArms(
   });
   return [
     row('distinctness', base.distinctness.p, arm.distinctness.p),
-    ...(humanness ? [row('humanness', 0.5, humanness.p)] : []),
+    ...(humanness ? [humannessRow(humanness, floor)] : []),
     row('insight', base.insight.p, arm.insight.p),
     row('copy', base.copy.p, arm.copy.p, true),
   ];
+}
+
+/**
+ * The humanness row, on length-matched pairs only, so a reply can't win by
+ * being longer or shorter. Its floor is at least the sampling gap at the
+ * matched n, which can be far smaller than the A/A's.
+ */
+function humannessRow(h: Humanness, floor: Floor | null): Row {
+  const m = h.matched;
+  if (m.n < MIN_MATCHED)
+    return {
+      metric: 'humanness',
+      baseline: 0.5,
+      arm: m.p,
+      delta: m.p - 0.5,
+      floor: null,
+      verdict: 'insufficient matched pairs',
+    };
+  const f = floor ? Math.max(floor.humanness, 1.96 * Math.sqrt(0.25 / m.n)) : null;
+  return {
+    metric: 'humanness',
+    baseline: 0.5,
+    arm: m.p,
+    delta: m.p - 0.5,
+    floor: f,
+    verdict: verdictFor(m.p - 0.5, f),
+  };
 }
 
 const pct = (x: number): string => `${(100 * x).toFixed(1)}%`;
 const ci = (r: Rate): string => `${r.k}/${r.n} = ${pct(r.p)} [${pct(r.lo)}, ${pct(r.hi)}]`;
 
 /** One arm's scores as a markdown table. */
-export function metricsTable(label: string, m: Metrics, humanness?: Rate | null): string {
+export function metricsTable(label: string, m: Metrics, humanness?: Humanness | null): string {
   return [
     `| ${label} | value (95% CI) |`,
     '|---|---|',
     `| distinctness (blind persona-ID, chance 16.7%) | ${ci(m.distinctness)} |`,
-    ...(humanness ? [`| humanness (pairwise win rate) | ${ci(humanness)} |`] : []),
+    ...(humanness
+      ? [
+          `| humanness, all pairs (pairwise win rate) | ${ci(humanness.overall)} |`,
+          `| humanness, length-matched pairs (within ${LENGTH_RATIO}x) | ${ci(humanness.matched)} |`,
+        ]
+      : []),
     `| insight (uses caller context naturally) | ${ci(m.insight)} |`,
     `| copy (replies with a 4-gram from their instructions) | ${ci(m.copy)} |`,
     `| median words per reply | ${m.medianWords} |`,
