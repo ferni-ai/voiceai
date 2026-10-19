@@ -41,6 +41,12 @@ struct FerniApp: App {
                         await model.push.reconcile(uid: model.account.user?.uid)
                     }
                 }
+                // A good call (two minutes or more, ended by you) counts toward the check-in ask.
+                .onChange(of: model.call.phase) { _, phase in
+                    if phase == .ended, model.call.lastCallWasGood, let uid = model.account.user?.uid {
+                        CheckInAsk().recordGoodCall(uid: uid)
+                    }
+                }
                 // The watch shows the call as it is now.
                 .onChange(of: model.remoteState) { _, state in model.watchRemote?.publish(state) }
                 // What Ferni remembers locks again whenever the app leaves the foreground.

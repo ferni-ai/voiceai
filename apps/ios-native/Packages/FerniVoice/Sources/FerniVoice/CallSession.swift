@@ -54,6 +54,12 @@ public final class CallSession {
     private let lifecycle: (any CallLifecycle)?
     private var callID: UUID?
     private var callBegan = ContinuousClock.now
+    /// The last call was a good one: at least two minutes live, and the person
+    /// ended it (not Ferni, a drop or an error). The check-in ask waits for one.
+    public private(set) var lastCallWasGood = false
+    private var liveSince: ContinuousClock.Instant?
+    /// The clock calls are timed with; tests replace it.
+    var now: () -> ContinuousClock.Instant = { .now }
     /// LiveCommunicationKit took this call: the system activates its audio.
     private var systemOwnsCall = false
     private var agentHere = false
@@ -136,7 +142,11 @@ public final class CallSession {
     }
 
     /// Hang up. Safe to call at any point, including while still connecting.
-    public func end() async {
+    public func end() async { await finish(byPerson: true) }
+
+    private func finish(byPerson: Bool) async {
+        lastCallWasGood = byPerson && liveSince.map { now() - $0 >= .seconds(120) } == true
+        liveSince = nil
         callTask?.cancel()
         callTask = nil
         await leaveRoom()
@@ -238,6 +248,7 @@ public final class CallSession {
             case .joined:
                 if !Task.isCancelled {
                     phase = .live
+                    if !rejoining { liveSince = now() }
                     if !rejoining, let id = callID { lifecycle?.connected(id: id) }
                     if !hasTalked {
                         hasTalked = true
@@ -314,6 +325,8 @@ public final class CallSession {
     }
 
     private func fail(_ problem: CallProblem) {
+        lastCallWasGood = false
+        liveSince = nil
         phase = .failed(problem)
         avatar.send(.failed)
         isOnHold = false
@@ -354,7 +367,7 @@ public final class CallSession {
         case .agentLeft:
             agentHere = false
             // Ferni hangs up at the end of a conversation; the call is over.
-            if phase == .live { Task { await end() } }
+            if phase == .live { Task { await finish(byPerson: false) } }
         case .data(let data):
             guard let json = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else { return }
             switch AgentSignals.userSpeech(from: json) {
