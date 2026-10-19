@@ -772,7 +772,10 @@ jobs:
 
       - name: Run pnpm audit
         if: needs.setup.outputs.code != 'false'
-        run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
+        # Fails on a new high or critical advisory. Known ones with no fix yet are
+        # listed (with why) under auditConfig.ignoreGhsas in pnpm-workspace.yaml.
+        # A registry outage passes rather than blocking every PR.
+        run: pnpm audit --audit-level=high --ignore-registry-errors
 
       # trufflehog is pinned to an immutable commit SHA, not @main: a mutable ref
       # means this job runs whatever is on that branch at run time, and this
