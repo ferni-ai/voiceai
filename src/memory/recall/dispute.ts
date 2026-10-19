@@ -35,6 +35,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { factText, type StoredFactRef } from './forget.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'dispute' });
 
@@ -165,7 +166,7 @@ export async function disputeForCaller(
   previousReply: string,
   store: DisputeStore
 ): Promise<DisputeResult> {
-  if (!userId || userId === 'anonymous') return { kind: 'nothing' };
+  if (!isMemberIdentity(userId)) return { kind: 'nothing' };
   const denial = denialOf(callerLine, previousReply);
   if (!denial) return { kind: 'nothing' };
   try {

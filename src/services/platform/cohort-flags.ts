@@ -50,8 +50,7 @@ export const COHORT_FLAGS = [
   'FACT_SUPERSESSION',
   'EXTRACTION_CONTEXT',
   'OPENER_FOLLOW_UP',
-  // Asked per person by readCallSummaries (call-summaries.ts) through personFlagOn.
-  'LIVE_SUMMARIES',
+  'LIVE_SUMMARIES', // asked per person: readCallSummaries (call-summaries.ts) via personFlagOn
   'COACH_FOLLOW_THROUGH',
   'LIFE_MOVES_ON',
   'CANDOR',
@@ -62,6 +61,8 @@ export const COHORT_FLAGS = [
   'WORLD_FACTS_IN_CALL',
   'POST_CALL_CHECKIN',
   'FOLLOW_THROUGH_TEXTS',
+  // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.
+  'FOLLOW_THROUGH_OPENER',
   'OUTREACH_PONDERED_NOTES',
   // Read once the agent is set up, on a turn or at a handoff: after applyCallerFlags
   // (docs/runbooks/cohort-rollout.md has the read sites).
@@ -78,6 +79,8 @@ export const COHORT_FLAGS = [
   'BARGE_IN_ACK_WORDS',
   'FRIEND_FOLLOWUPS',
   'INSIDE_JOKES',
+  // Read on each turn and each quiet-window sound, never at boot (named-tune-note.ts, tune-state.ts).
+  'NAMED_TUNE',
   // Persona flags, read at agent build, a handoff, a turn or a TTS reply, never cached
   // across calls. The system prompt (FERNI_PERSONA_SLIP_GUARD) loads after
   // applyCallerFlags: loadCallerPrompt (voice-agent-entry/persona-builder.ts).
@@ -85,29 +88,27 @@ export const COHORT_FLAGS = [
   // Read at agent build, a tool update and each turn's request, never at boot (same-turn-tools-config.ts).
   'TOOLS_SAME_TURN',
   'TEAM_VOICES',
+  'GOOD_NEWS_BIGGER',
   'FERNI_PERSONA_SLIP_GUARD',
   'DIRECTOR_PERSONA_AWARE',
+  // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
+  'ALEX_CHIEF_OF_STAFF',
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
   'WEEKLY_PREDICTION',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
-  // Read by the greeting (winFor); wins.ts records a win through personFlagOn on any server.
-  'COACH_WINS',
-  // Read by the greeting: anniversaryFor (friendship-anniversary.ts).
-  'FRIEND_CELEBRATIONS',
-  // Read when the turn hook is built at agent setup, then on each turn (revived-intelligence.ts).
-  'REVIVED_INTELLIGENCE',
-  // Read at tool build and per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on.
-  'CALL_JOURNAL',
-  // Read after the call through envForCaller (follow-through-import.ts).
-  'FOLLOW_THROUGH_IMPORT',
-  // Read by the greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too.
-  'PONDERING',
-  // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
-  // (services/outreach/morning-brief/brief-job.ts).
+  'COACH_WINS', // greeting (winFor); wins.ts records a win via personFlagOn on any server
+  'FRIEND_CELEBRATIONS', // greeting: anniversaryFor (friendship-anniversary.ts)
+  'REVIVED_INTELLIGENCE', // turn hook built at setup, then each turn (revived-intelligence.ts)
+  'CALL_JOURNAL', // tool build + per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on
+  'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
+  'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
+  // UI server's briefing job only, never in a call: usersWithFlag (morning-brief/brief-job.ts).
   'MORNING_BRIEF',
+  // Read per person on the web server (flagForUser): outreach pushes and the after-call ask (web-push-flag.ts).
+  'WEB_PUSH_DELIVERY',
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
@@ -122,9 +123,8 @@ const VALUES: ReadonlySet<string> = new Set(['on', 'off']);
 export const COHORT_FLAG_NEEDS: Partial<Record<CohortFlag, CohortFlag[]>> = {
   RECALL_EPISODES: ['SEMANTIC_RECALL'],
   WORLD_FACTS_IN_CALL: ['WORLD_MODEL_TEMPORAL'],
-  // Texts send follow-ups the import wrote; notes send what pondering wrote.
-  FOLLOW_THROUGH_TEXTS: ['FOLLOW_THROUGH_IMPORT'],
-  OUTREACH_PONDERED_NOTES: ['PONDERING'],
+  FOLLOW_THROUGH_TEXTS: ['FOLLOW_THROUGH_IMPORT'], // texts send follow-ups the import wrote
+  OUTREACH_PONDERED_NOTES: ['PONDERING'], // notes send what pondering wrote
 };
 
 /** Flags set on whose prerequisites are not: "RECALL_EPISODES needs SEMANTIC_RECALL". */

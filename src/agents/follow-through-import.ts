@@ -27,7 +27,6 @@ import {
   type FollowUpStore,
   type ImportResult,
 } from '../services/follow-through/index.js';
-import { isMemberCall } from '../services/outreach/after-call-checkin.js';
 import { envForCaller, type CohortStore } from '../services/platform/cohort-flags.js';
 import type { AfterCallContext } from '../services/session/after-call-tasks.js';
 import { createFollowUpSources } from '../services/stores/follow-through-sources.js';
@@ -35,13 +34,11 @@ import { createFollowUpStore } from '../services/stores/follow-through-store.js'
 import { isRealUserId } from '../tools/registry/user-id-guard.js';
 import { getFirestoreDb } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { isPersonAccountId } from '../utils/synthetic-user.js';
 
 const log = createLogger({ module: 'follow-through-import-task' });
 
 export const FOLLOW_THROUGH_IMPORT_TASK = 'follow-through-import';
-
-/** Synthetic callers from scripts/voice-eval/run.sh. */
-const EVAL_PREFIX = 'voice-eval-';
 
 export interface ImportTaskDeps {
   env?: Env;
@@ -65,7 +62,7 @@ function firestoreStores(): { store: FollowUpStore; sources: FollowUpSources } |
 
 /** An account id that belongs to one real person, not a placeholder, anonymous or eval id. */
 export function isOwnAccountId(userId: string): boolean {
-  return isMemberCall(userId) && isRealUserId(userId) && !userId.startsWith(EVAL_PREFIX);
+  return isPersonAccountId(userId) && isRealUserId(userId);
 }
 
 export async function importFollowUpsAfterCall(
