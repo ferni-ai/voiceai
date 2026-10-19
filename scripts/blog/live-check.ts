@@ -3,9 +3,10 @@
  * cite a merged PR whose change people can use today. Two rules, both
  * conservative: when in doubt a PR is left out.
  *
- * Deployed. Every merge to main deploys the web app (apps/web) and the website
- * (apps/website/ferni-website), so a PR that touches only those is live once
- * merged. Everything else, the voice agent above all, reaches production by a
+ * Deployed. Every merge to main deploys the web app (apps/web), the website
+ * (apps/website/ferni-website) and the developers portal
+ * (apps/website/developers-portal), so a PR that touches only those is live
+ * once merged. Everything else, the voice agent above all, reaches production by a
  * manual `lk agent deploy`, and nothing committed records which commit
  * production runs, so such a PR counts only once it has been merged for
  * SETTLE_DAYS days.
@@ -24,8 +25,11 @@ import type { GhRunner } from './grounding.js';
 export const SETTLE_DAYS = 7;
 const DAY = 86_400_000;
 
-/** Paths that main deploys on every merge (deploy-firebase.yml: app and landing). */
-export const DEPLOYED_ON_MERGE = /^apps\/(?:web|website\/ferni-website)\//;
+/**
+ * Paths that main deploys on every merge: deploy-firebase.yml (app and landing)
+ * and deploy-developers.yml (developers portal).
+ */
+export const DEPLOYED_ON_MERGE = /^apps\/(?:web|website\/(?:ferni-website|developers-portal))\//;
 
 const MANIFESTS = ['src/config/flag-manifest.ts', 'src/config/flag-manifest-entries.ts'];
 const MANIFEST_FILE = /^src\/config\/flag-manifest[\w-]*\.ts$/;

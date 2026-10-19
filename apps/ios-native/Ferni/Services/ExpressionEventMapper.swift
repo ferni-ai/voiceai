@@ -10,6 +10,7 @@
 //
 // Reference: apps/web/src/app/data-message-handlers.ts
 
+import FerniDesign
 import Foundation
 import FerniShared
 
