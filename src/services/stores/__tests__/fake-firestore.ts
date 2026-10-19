@@ -3,14 +3,21 @@ import type { Firestore } from '@google-cloud/firestore';
 // A Firestore fake with only the calls the follow-through and errand stores make:
 // documents by path, where (==, in, >=, <, <=), orderBy, limit, collectionGroup and
 // transactions. Transactions are optimistic like Firestore's: writes are buffered,
-// a read after a write throws, and if a document read inside one changed before it
-// commits, it runs again.
+// a read after a write throws, and a transaction whose reads (documents or queries)
+// changed before it commits runs again. Every write bumps a document's version, so
+// a rewrite with identical data still counts as a change.
 type Cond = [string, string, unknown];
+interface Snap {
+  id: string;
+  ref: Record<string, unknown>;
+  exists: boolean;
+  data: () => Record<string, unknown> | undefined;
+}
 export function fakeFirestore() {
   const docs = new Map<string, Record<string, unknown>>();
   const versions = new Map<string, number>();
   const version = (path: string): number => versions.get(path) ?? 0;
-  const snapOf = (path: string) => ({
+  const snapOf = (path: string): Snap => ({
     id: path.split('/').pop() ?? '',
     ref: docRef(path),
     exists: docs.has(path),
@@ -37,43 +44,55 @@ export function fakeFirestore() {
     conds: Cond[] = [],
     order?: string,
     max?: number
-  ): Record<string, unknown> => ({
-    where: (f: string, op: string, v: unknown) => query(pick, [...conds, [f, op, v]], order, max),
-    orderBy: (f: string) => query(pick, conds, f, max),
-    limit: (n: number) => query(pick, conds, order, n),
-    get: async () => {
+  ): Record<string, unknown> => {
+    const run = (): { docs: Snap[] } => {
       let hits = [...docs.entries()].filter(
         ([p, d]) => pick(p) && conds.every((c) => matches(d, c))
       );
       if (order) hits = hits.sort((a, b) => String(a[1][order]).localeCompare(String(b[1][order])));
       if (max !== undefined) hits = hits.slice(0, max);
       return { docs: hits.map(([p]) => snapOf(p)) };
-    },
-  });
+    };
+    return {
+      where: (f: string, op: string, v: unknown) => query(pick, [...conds, [f, op, v]], order, max),
+      orderBy: (f: string) => query(pick, conds, f, max),
+      limit: (n: number) => query(pick, conds, order, n),
+      run,
+      get: async () => run(),
+    };
+  };
   const coll = (path: string): Record<string, unknown> => ({
     ...query((p) => p.startsWith(`${path}/`) && p.split('/').length === path.split('/').length + 1),
     doc: (id: string) => docRef(`${path}/${id}`),
   });
+  const seen = (s: { docs: Snap[] }): string =>
+    JSON.stringify(s.docs.map((d) => [d.ref.path, version(d.ref.path as string), d.data()]));
   const db = {
     collection: (name: string) => coll(name),
     collectionGroup: (name: string) => query((p) => p.split('/').slice(-2, -1)[0] === name),
     runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => {
       for (let attempt = 0; attempt < 5; attempt++) {
-        const reads = new Map<string, number>();
+        const unchanged: Array<() => boolean> = [];
         const writes: Array<[string, Record<string, unknown>]> = [];
         const result = await fn({
-          get: async (ref: { path: string }) => {
+          get: async (target: { path?: string; run?: () => { docs: Snap[] } }) => {
             if (writes.length) throw new Error('fake transaction: a read after a write');
-            reads.set(ref.path, version(ref.path));
-            return snapOf(ref.path);
+            const read = (): { docs: Snap[] } =>
+              typeof target.path === 'string'
+                ? { docs: [snapOf(target.path)] }
+                : (target.run as () => { docs: Snap[] })();
+            const before = seen(read());
+            unchanged.push(() => seen(read()) === before);
+            return typeof target.path === 'string' ? snapOf(target.path) : read();
           },
           set: (ref: { path: string }, data: Record<string, unknown>) =>
             void writes.push([ref.path, structuredClone(data)]),
         });
-        if ([...reads].every(([path, v]) => version(path) === v)) {
-          for (const [path, data] of writes) {
-            docs.set(path, data);
-            versions.set(path, version(path) + 1);
+        // Commit: synchronous, so no other transaction runs between check and write
+        if (unchanged.every((ok) => ok())) {
+          for (const [p, d] of writes) {
+            docs.set(p, d);
+            versions.set(p, version(p) + 1);
           }
           return result;
         }

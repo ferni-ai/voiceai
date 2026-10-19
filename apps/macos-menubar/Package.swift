@@ -31,7 +31,7 @@ let package = Package(
         ),
         .testTarget(
             name: "FerniVoiceTests",
-            dependencies: ["FerniVoice"],
+            dependencies: ["FerniVoice", .product(name: "FerniAuth", package: "shared")],
             path: "Tests"
         )
     ]
