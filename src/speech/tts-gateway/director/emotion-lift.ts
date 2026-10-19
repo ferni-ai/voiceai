@@ -72,9 +72,12 @@ const LAUGHTER = /\[(?:laugh\w*|chuckl\w*|warm laugh|big laugh)\]/i;
 /** The caller laughed. */
 const CALLER_LAUGH =
   /\b(?:ha(?:ha)+|he(?:he)+|lol+|lmao|rofl|hilarious|crack(?:ed|ing) up|(?:crying|dying) laughing)\b|[\u{1F602}\u{1F923}]/iu;
-/** The caller brings good news. */
+/**
+ * The caller brings good news, theirs or someone's they love ("my friend got
+ * the job"). Also GOOD_NEWS_BIGGER's vocabulary (callerGoodNews).
+ */
 const GOOD_NEWS =
-  /\b(?:good news|great news|(?:we're|we are|i'm|i am|just got|got) engaged|getting married|got married|i got (?:it|in|the (?:job|offer|part|apartment|house))|got (?:in|accepted|promoted|the job)|passed (?:my|the) (?:exam|test|bar|boards|driving test)|(?:i|we) won|closed on (?:the|our|a) (?:house|home|apartment|place)|bought a (?:house|home|place)|nailed it|so excited|so happy|can'?t wait)\b/i;
+  /\b(?:good news|great news|best news|(?:we're|we are|i'm|i am|just got|got) engaged|getting married|got married|i got (?:it|in|the (?:job|offer|part|apartment|house))|got (?:in|accepted|promoted|the (?:job|offer|role|promotion|raise|scholarship)|a (?:raise|promotion|scholarship))|passed (?:my|the|her|his) (?:exam|test|bar|boards|driving test)|graduated|(?:i|we) won|won (?:the|first)|first place|made the (?:team|cut|finals)|landed (?:the|a|my) (?:job|role|client|deal|contract|offer)|(?:finally )?finished (?:my|the|our) (?:first )?(?:marathon|race|thesis|dissertation|degree|book|novel)|pulled it off|closed on (?:the|our|a) (?:house|home|apartment|place)|bought a (?:house|home|place)|nailed it|so excited|so happy|can'?t wait)\b/i;
 /** The caller says something is funny: with a laugh, that is bright content. */
 const FUNNY = /\b(?:funny|funniest|hilarious|so good|best (?:thing|part))\b/i;
 /** Weak praise next to a sarcasm marker, either side: "lol great", "great, of course". */
@@ -138,6 +141,34 @@ export function callerBright(said: string | undefined): boolean {
   // as sarcasm ("lol great"), so it does not count.
   if (CALLER_LAUGH.test(t)) return FUNNY.test(t);
   return readValence(t) === 'bright';
+}
+
+/** Mixed news: a win with a "but" ("I got promoted but my mom is sick"). */
+const MIXED = /\b(?:but|though|although|except|however)\b/i;
+/** Not news yet: "if I get in", "hoping I passed". */
+const NOT_YET = /\b(?:if|hope|hoping|wish|whether|praying|fingers crossed)\b/i;
+/** Irony markers SARCASM misses when no weak praise is near ("yeah right, I got promoted"). */
+const IRONY = /\b(?:yeah,? right|as if|lol|lmao|whatever)\b/i;
+/** "got in" that is not getting in: "got in the car", "got in trouble". */
+const GOT_INTO = /\bgot in (?:the|a|an|my|his|her|their|our|trouble|line)\b/i;
+
+/** Any of these caller turns is a heavy moment or has bad-news words (idioms aside). */
+export function callerHeavyLately(turns: ReadonlyArray<string | undefined>): boolean {
+  return strongHeavy(turns) || turns.some((t) => !!t && CALLER_BAD.test(unidiom(t)));
+}
+
+/**
+ * GOOD_NEWS_BIGGER: the caller's turn is good news, read conservatively. A
+ * bright turn (callerBright) whose words are news, with no "but", nothing
+ * hoped for, no irony, and no heavy or bad turn among the caller's last
+ * LIFT_LOOKBACK (`earlier` is their turns before this one, oldest first).
+ */
+export function callerGoodNews(said: string | undefined, earlier: readonly string[] = []): boolean {
+  if (!said || !callerBright(said)) return false;
+  const t = plain(said);
+  if (!GOOD_NEWS.test(t) || GOT_INTO.test(t)) return false;
+  if (MIXED.test(t) || NOT_YET.test(t) || IRONY.test(t)) return false;
+  return !callerHeavyLately([...earlier.slice(-(LIFT_LOOKBACK - 1)), said]);
 }
 
 /** What the lift knows before Ferni speaks. */
@@ -362,7 +393,7 @@ export function emotionLift(
   const honours = voiceHonorsProsodyTags(opts.voiceId);
   const context: LiftContext = {
     callerBright: callerBright(said),
-    callerHeavy: strongHeavy(turns) || turns.some((t) => !!t && CALLER_BAD.test(unidiom(t))),
+    callerHeavy: callerHeavyLately(turns),
     cues,
     tags: {
       emotion: honours && modes.emotion === 'live',

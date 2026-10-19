@@ -26,6 +26,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
 import { closeForgottenFollowUps } from './forget-follow-ups.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 export { isForgotten };
 
@@ -41,6 +42,8 @@ export type ForgetResult =
   | { kind: 'forgotten'; marked: number }
   | { kind: 'too-broad'; matched: number }
   | { kind: 'nothing' }
+  /** No member on this call (anonymous, anon:, onbehalf:), so nothing about them is stored. */
+  | { kind: 'not-saved' }
   | { kind: 'failed' };
 
 export interface StoredFactRef {
@@ -117,7 +120,7 @@ export async function forgetForCaller(
   topic: string,
   store: ForgetStore = firestoreForgetStore
 ): Promise<ForgetResult> {
-  if (!userId || userId === 'anonymous') return { kind: 'failed' };
+  if (!isMemberIdentity(userId)) return { kind: 'not-saved' };
   return forgetTopic(userId, topic, store).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Could not forget from stored memory');
     return { kind: 'failed' as const };
@@ -130,6 +133,7 @@ export function forgetProblem(result: Exclude<ForgetResult, { kind: 'forgotten' 
     return 'That covers a lot of what I know about you. Which part should I forget?';
   }
   if (result.kind === 'nothing') return 'What exactly should I forget?';
+  if (result.kind === 'not-saved') return "There's nothing saved about you here.";
   return "I couldn't remove that just now. Ask me again in a moment?";
 }
 
