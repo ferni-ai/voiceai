@@ -21,20 +21,65 @@ public struct FirebaseAuthBackend: AuthBackend {
         return try await user.getIDTokenResult(forcingRefresh: forceRefresh).token
     }
 
-    public func linkOrSignIn(apple: AppleCredential) async throws -> AccountUser {
-        let credential = OAuthProvider.appleCredential(
-            withIDToken: apple.idToken, rawNonce: apple.rawNonce, fullName: apple.fullName
-        )
-        guard let user = Auth.auth().currentUser else {
-            return Self.account(try await Auth.auth().signIn(with: credential).user)
-        }
+    /// Without APNs (the build has no push entitlement) Firebase proves the app
+    /// with a reCAPTCHA page, which comes back on the reversed client ID URL
+    /// scheme (project.yml; `FerniFirebase.canHandle`).
+    public func sendPhoneCode(to phoneNumber: String) async throws -> String {
         do {
-            return Self.account(try await user.link(with: credential).user)
+            return try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
+        } catch {
+            throw Self.signInError(error)
+        }
+    }
+
+    public func linkOrSignIn(_ credential: SignInCredential) async throws -> SignInResult {
+        let firebase: AuthCredential = switch credential {
+        case .apple(let apple):
+            OAuthProvider.appleCredential(withIDToken: apple.idToken, rawNonce: apple.rawNonce, fullName: apple.fullName)
+        case .phone(let verificationID, let code):
+            PhoneAuthProvider.provider().credential(withVerificationID: verificationID, verificationCode: code)
+        case .google(let idToken, let accessToken):
+            GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
+        }
+        guard let current = Auth.auth().currentUser else {
+            return SignInResult(user: try await Self.signIn(with: firebase), leftBehind: nil)
+        }
+        // Before anything changes: once signed into another account, the
+        // anonymous one's token can't be had, and it's the server's proof.
+        let anonymous = current.isAnonymous ? current.uid : nil
+        let anonymousToken = current.isAnonymous ? try? await current.getIDToken() : nil
+        do {
+            return SignInResult(user: Self.account(try await current.link(with: firebase).user), leftBehind: nil)
         } catch let error as NSError where error.code == AuthErrorCode.credentialAlreadyInUse.rawValue {
-            // This Apple ID already has a Ferni account: continue as that person.
-            // Apple's nonce is single use, so Firebase hands back a fresh credential.
-            let updated = error.userInfo[AuthErrorUserInfoUpdatedCredentialKey] as? AuthCredential ?? credential
-            return Self.account(try await Auth.auth().signIn(with: updated).user)
+            // The credential already has a Ferni account: continue as that person.
+            // Apple's nonce and the texted code are single use, so Firebase hands back a fresh credential.
+            let updated = error.userInfo[AuthErrorUserInfoUpdatedCredentialKey] as? AuthCredential ?? firebase
+            let user = try await Self.signIn(with: updated)
+            let leftBehind = anonymous.flatMap { $0 == user.uid ? nil : LeftBehindAccount(uid: $0, idToken: anonymousToken) }
+            return SignInResult(user: user, leftBehind: leftBehind)
+        } catch {
+            throw Self.signInError(error)
+        }
+    }
+
+    private static func signIn(with credential: AuthCredential) async throws -> AccountUser {
+        do {
+            return account(try await Auth.auth().signIn(with: credential).user)
+        } catch {
+            throw signInError(error)
+        }
+    }
+
+    /// Firebase's errors as the few a person can act on; others pass through.
+    static func signInError(_ error: Error) -> Error {
+        let nsError = error as NSError
+        guard nsError.domain == AuthErrorDomain, let code = AuthErrorCode(rawValue: nsError.code) else { return error }
+        switch code {
+        case .invalidPhoneNumber, .missingPhoneNumber: return SignInError.invalidPhoneNumber
+        case .invalidVerificationCode, .missingVerificationCode, .sessionExpired: return SignInError.invalidCode
+        case .tooManyRequests, .quotaExceeded: return SignInError.tooManyAttempts
+        case .webContextCancelled: return SignInError.cancelled
+        default: return error
         }
     }
 
@@ -72,6 +117,11 @@ public enum FerniFirebase {
     }
 
     @MainActor private static var isConfigured = false
+
+    /// The reCAPTCHA page's return trip during phone sign-in.
+    @MainActor public static func canHandle(_ url: URL) -> Bool {
+        isConfigured && Auth.auth().canHandle(url)
+    }
 
     /// Configures Firebase once. Returns false (and logs why) when it can't.
     @MainActor

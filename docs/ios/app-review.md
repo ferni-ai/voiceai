@@ -110,6 +110,7 @@ No tracking and no tracking domains. Required-reason APIs: UserDefaults
 
 - [ ] PR #2038 (reports) and PR #2004 (Apple revoke) merged and deployed.
 - [ ] H4 decided: `TAP_INTERRUPT` on in production, or the gesture removed.
+- [ ] `POST /api/identity/merge-anonymous` live in production with IDENTITY_MERGE_ANON on, before any external TestFlight or App Store build. Signing in to an account someone already has merges this phone's anonymous calls into it; without the route the app signs them in and quietly leaves those calls behind ("Earlier calls on this phone stay separate").
 - [ ] A device run of `docs/ios/device-test-checklist.md` on an iPhone and an iPad.
 - [x] The accessibility audit lane (XCUITest `performAccessibilityAudit`, default size and AX5): gating in CI on iPhone 17 Pro Max (0 findings); reported on iPad Pro 13" (see the note below).
 

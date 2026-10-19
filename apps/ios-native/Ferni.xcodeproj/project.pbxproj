@@ -48,6 +48,7 @@
 		80B3324091516CE8022F9CFD /* TalkOnPhoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA352150CE2DBF9E6254A20 /* TalkOnPhoneIntent.swift */; };
 		835CA763B4004C499BBA655B /* FerniLink in Frameworks */ = {isa = PBXBuildFile; productRef = F667C1DECD86E1F2360CB8C1 /* FerniLink */; };
 		848DC4E9F3BACD5DBACFB471 /* goodbye.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = BE53A65C5F71E02C0E7B4239 /* goodbye.mp3 */; };
+		85999614D935C3EB4A80F82B /* SignInUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47728781CB10E67E259A236C /* SignInUITests.swift */; };
 		89C6C497D887627D3AFD147D /* handoff-to-alex.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */; };
 		8D43BE71BA55A181C28E990A /* Sentry-Dynamic in Frameworks */ = {isa = PBXBuildFile; productRef = B0FFE05E246C1F74D336D1D5 /* Sentry-Dynamic */; };
 		8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */; };
@@ -66,6 +67,7 @@
 		BA62672ACCAD9A10B9C98EBB /* BackgroundModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */; };
 		BC287679EE1EF47277B6C045 /* UITestScenario.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58F17318F25CDB7266DAE932 /* UITestScenario.swift */; };
 		BCE90CE9171EFACA00BD18DE /* NextStepViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314CF4DEF139B4B6126A1C63 /* NextStepViews.swift */; };
+		BEF8E5051FBEB918F15A9BF9 /* SignInPromptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49166809F7360686AEAE615A /* SignInPromptTests.swift */; };
 		C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */; };
 		C2499BBA5ED850991089AF31 /* FerniWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA1FBC06E2F396B11D85385 /* FerniWatchApp.swift */; };
 		CAAC14DD23372C8B957B3BAB /* MemoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E67B08698448132C9E2AE39 /* MemoryViews.swift */; };
@@ -77,6 +79,7 @@
 		DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */; };
 		E094C588E3F4D4ECCDC656EC /* NextStepTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3751457DBC4CF962D924D247 /* NextStepTests.swift */; };
 		E264DB68385FB7094C895AAE /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 129CF5787F87ED1DCDD384F0 /* FerniDesign */; };
+		E391C436C8BCB997D029137B /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */; };
 		E67FBA51E487A86BF76A408A /* ReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */; };
 		E88BB02A6FEC21AF520A766B /* TalkIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */; };
 		EA64D0860B43223CE3A8D6EB /* FerniShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 766CF4344E77F81DF8043439 /* FerniShortcuts.swift */; };
@@ -191,7 +194,9 @@
 		3CC34062567D316808D0D03C /* ConsentSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentSheetTests.swift; sourceTree = "<group>"; };
 		41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkButtonTests.swift; sourceTree = "<group>"; };
 		41E550D3CF186D8D463FF66E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		47728781CB10E67E259A236C /* SignInUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInUITests.swift; sourceTree = "<group>"; };
 		4838DCCE1D8223A8914D4F7D /* FerniUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FerniUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		49166809F7360686AEAE615A /* SignInPromptTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInPromptTests.swift; sourceTree = "<group>"; };
 		49306E5B24BD5C520DBE56ED /* CallFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallFeedback.swift; sourceTree = "<group>"; };
 		4E67B08698448132C9E2AE39 /* MemoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryViews.swift; sourceTree = "<group>"; };
 		4EA1FBC06E2F396B11D85385 /* FerniWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchApp.swift; sourceTree = "<group>"; };
@@ -239,6 +244,7 @@
 		C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
 		CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		D088A9791D1BAB4D7E6860C8 /* CallIntentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallIntentTests.swift; sourceTree = "<group>"; };
+		E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundModeTests.swift; sourceTree = "<group>"; };
 		E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-maya.mp3"; sourceTree = "<group>"; };
 		F0356DF8A0D911077889805D /* Ferni.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ferni.entitlements; sourceTree = "<group>"; };
@@ -335,6 +341,7 @@
 				127F69758285759483323D63 /* NextDayTests.swift */,
 				3751457DBC4CF962D924D247 /* NextStepTests.swift */,
 				3CC0928CF00671D4E0E8D998 /* NoteTests.swift */,
+				49166809F7360686AEAE615A /* SignInPromptTests.swift */,
 				809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */,
 				8E89091B5C3A80108F67BD0F /* TeamSpotlightTests.swift */,
 			);
@@ -370,6 +377,7 @@
 				32CB80CF1D9492393B441589 /* DeepLinkUITests.swift */,
 				B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */,
 				BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */,
+				47728781CB10E67E259A236C /* SignInUITests.swift */,
 				AE06F525671F6FD0FBC7779D /* StoreScreenshotTests.swift */,
 				41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */,
 			);
@@ -402,6 +410,7 @@
 				A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */,
 				94F50B2CC9B38F03C94B7E3D /* RootView.swift */,
 				41E550D3CF186D8D463FF66E /* SettingsView.swift */,
+				E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */,
 				B7634ABC1059A12DE12D714D /* TeamSpotlight.swift */,
 				58F17318F25CDB7266DAE932 /* UITestScenario.swift */,
 				AE2FE78E70E6B38E7C790922 /* WatchRemote.swift */,
@@ -724,6 +733,7 @@
 				E67FBA51E487A86BF76A408A /* ReportSheet.swift in Sources */,
 				4E1D8F2D04D189C0702BF65C /* RootView.swift in Sources */,
 				B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */,
+				E391C436C8BCB997D029137B /* SignInView.swift in Sources */,
 				E88BB02A6FEC21AF520A766B /* TalkIntent.swift in Sources */,
 				61BEA8F1B053CC170C3118CF /* TeamSpotlight.swift in Sources */,
 				BC287679EE1EF47277B6C045 /* UITestScenario.swift in Sources */,
@@ -754,6 +764,7 @@
 				24044B237183631A0FD997E3 /* DeepLinkUITests.swift in Sources */,
 				C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */,
 				8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */,
+				85999614D935C3EB4A80F82B /* SignInUITests.swift in Sources */,
 				124CC2F5CBCF36E657BE6075 /* StoreScreenshotTests.swift in Sources */,
 				49961E1E4E6B791C493108B4 /* TalkButtonTests.swift in Sources */,
 			);
@@ -778,6 +789,7 @@
 				FAF0486E16A9EE9064362BB3 /* NextDayTests.swift in Sources */,
 				E094C588E3F4D4ECCDC656EC /* NextStepTests.swift in Sources */,
 				F8C4CC6E41EE7F5F394E4D21 /* NoteTests.swift in Sources */,
+				BEF8E5051FBEB918F15A9BF9 /* SignInPromptTests.swift in Sources */,
 				F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */,
 				FA1AE32023D2C3C72BA2DB10 /* TeamSpotlightTests.swift in Sources */,
 			);

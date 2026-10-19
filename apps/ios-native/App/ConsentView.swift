@@ -1,4 +1,5 @@
 import FerniDesign
+import FerniKit
 import SwiftUI
 
 /// Before the first call: which companies hear what you say, in plain words.
@@ -6,6 +7,9 @@ import SwiftUI
 struct ConsentView: View {
     let onAgree: () -> Void
     let onNotNow: () -> Void
+    /// Offers "Already use Ferni? Sign in" while the account is anonymous.
+    var account: AccountStore?
+    @State private var signingIn = false
 
     var body: some View {
         ScrollView {
@@ -48,6 +52,11 @@ struct ConsentView: View {
                 Button("Not now", action: onNotNow)
                     .font(FerniType.button)
                     .frame(minHeight: 44)
+                if let account, SignInPrompt.shown(account.state) != nil {
+                    Button(SignInPrompt.offerText) { signingIn = true }
+                        .font(FerniType.footnote)
+                        .frame(minHeight: 44)
+                }
             }
             .tint(FerniColor.accent)
             .padding(.horizontal, FerniSpace.rest)
@@ -58,6 +67,9 @@ struct ConsentView: View {
         }
         .background(FerniColor.background.ignoresSafeArea())
         .interactiveDismissDisabled()
+        .sheet(isPresented: $signingIn) {
+            if let account { SignInView(account: account) }
+        }
     }
 
     private static func row(_ title: LocalizedStringKey) -> some View {
