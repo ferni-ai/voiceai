@@ -245,7 +245,7 @@ const STYLES = `
 
 .outreach-schedule-empty-subtext {
   font-size: 13px;
-  opacity: 0.7;
+  color: var(--color-text-secondary);
 }
 
 .outreach-item {

@@ -46,7 +46,7 @@ vi.mock('../../../../services/yelp.js', () => ({
 }));
 
 // Stands in for Firestore-backed preferences. updateUserPreferences merges like the real one.
-type SavedCity = { city: string; regionCode?: string; savedAt: string };
+type SavedCity = { placeId?: string; city: string; regionCode?: string; savedAt: string };
 const store = vi.hoisted(() => ({
   prefs: new Map<string, { callerCity?: SavedCity | undefined }>(),
   failWrites: false,
@@ -64,6 +64,26 @@ vi.mock('../../information/preferences/storage.js', () => ({
 }));
 
 import { cleanForFirestore } from '../../../../utils/firestore-utils.js';
+
+// Places confirms a city name with a place ID. Only these names have a locality; everything else has none.
+const knownCities: Record<string, string> = {
+  'philadelphia, pa': 'place-philadelphia',
+  'philly, pa': 'place-philadelphia',
+  'philadelphia': 'place-philadelphia',
+  'boston, ma': 'place-boston',
+  'st. george': 'place-st-george',
+  'st. louis': 'place-st-louis',
+  'two harbors': 'place-two-harbors',
+  'high point': 'place-high-point',
+  'west point': 'place-west-point',
+  'dade city': 'place-dade-city',
+};
+const geo = vi.hoisted(() => ({
+  findCityByName: vi.fn(async (query: string): Promise<{ placeId: string } | null> => null),
+}));
+vi.mock('../places-locality.js', () => ({
+  findCityByName: geo.findCityByName,
+}));
 import type { ToolContext } from '../../../registry/types.js';
 
 type UserLocation = { city?: string; regionCode?: string; countryCode?: string };
@@ -97,6 +117,11 @@ const rememberCity = () => domainTool('rememberCallerCity');
 const forgetCity = () => domainTool('forgetCallerCity');
 
 beforeEach(() => {
+  geo.findCityByName.mockReset();
+  geo.findCityByName.mockImplementation(async (q: string) => {
+    const placeId = knownCities[q.toLowerCase()];
+    return placeId ? { placeId } : null;
+  });
   process.env.PLACES_LOCATION = 'on';
   process.env.REQUIRE_FIX_MEMORY = 'on';
   store.prefs.clear();
@@ -206,16 +231,39 @@ describe('source order (PLACES_LOCATION on)', () => {
 });
 
 describe('saving the city', () => {
-  it('stores the city and region only, with no coordinates or address fields', async () => {
+  it('stores the place ID and the caller\'s own words, with no coordinates or address fields', async () => {
+    const result = await (await rememberCity()).execute(
+      { city: 'Philly', region: 'PA', callerSaidYes: true },
+      phoneInStGeorge
+    );
+    expect(result).toMatch(/Saved Philly, PA\./);
+    expect(geo.findCityByName).toHaveBeenCalledWith('Philly, PA');
+    // Only the place ID and the caller's own words are persisted: no Google name, address or coordinates.
+    const saved = store.prefs.get('u1')?.callerCity;
+    expect(Object.keys(saved ?? {}).sort()).toEqual(['city', 'placeId', 'regionCode', 'savedAt']);
+    expect(saved?.placeId).toBe('place-philadelphia');
+    expect(saved?.city).toBe('Philly');
+    expect(saved?.regionCode).toBe('PA');
+  });
+
+  it('asks which city when Places finds no locality, and stores nothing', async () => {
+    const result = await (await rememberCity()).execute(
+      { city: 'Baker Street London', callerSaidYes: true },
+      phoneInStGeorge
+    );
+    expect(result).toMatch(/Which city is it in/);
+    expect(store.prefs.get('u1')?.callerCity).toBeUndefined();
+  });
+
+  it('says so when the Places check fails, and stores nothing', async () => {
+    geo.findCityByName.mockRejectedValueOnce(new Error('Places lookup failed with status 503'));
     const result = await (await rememberCity()).execute(
       { city: 'Philadelphia', region: 'PA', callerSaidYes: true },
       phoneInStGeorge
     );
-    expect(result).toMatch(/Saved/);
-    const saved = store.prefs.get('u1')?.callerCity;
-    expect(Object.keys(saved ?? {}).sort()).toEqual(['city', 'regionCode', 'savedAt']);
-    expect(saved?.city).toBe('Philadelphia');
-    expect(saved?.regionCode).toBe('PA');
+    expect(result).toMatch(/couldn't check that place/);
+    expect(result).not.toMatch(/^Saved /);
+    expect(store.prefs.get('u1')?.callerCity).toBeUndefined();
   });
 
   it('refuses a street address or coordinates and stores nothing', async () => {
@@ -228,8 +276,8 @@ describe('saving the city', () => {
       { city: '39.95, -75.16', callerSaidYes: true },
       phoneInStGeorge
     );
-    expect(street).toMatch(/city or town name/);
-    expect(point).toMatch(/city or town name/);
+    expect(street).toMatch(/Which city is it in/);
+    expect(point).toMatch(/Which city is it in/);
     expect(store.prefs.get('u1')?.callerCity).toBeUndefined();
   });
 
@@ -252,17 +300,17 @@ describe('saving the city', () => {
     'Flat B',
     'Philly 19103',
     'Wall Street area',
-  ])('refuses "%s", which names a street, a unit, a home or a coordinate', async (name) => {
+  ])('saves nothing for "%s": a digit is refused first, else Places gives no locality', async (name) => {
     const result = await (await rememberCity()).execute(
       { city: name, callerSaidYes: true },
       phoneInStGeorge
     );
-    expect(result).toMatch(/city or town name/);
+    expect(result).toMatch(/Which city is it in/);
     expect(store.prefs.get('u1')?.callerCity).toBeUndefined();
   });
 
   it.each(['St. George', 'St. Louis', 'Two Harbors', 'High Point', 'West Point', 'Dade City', 'Philadelphia'])(
-    'accepts "%s" as a city name',
+    'accepts "%s" when Places confirms it as a city',
     async (name) => {
       const result = await (await rememberCity()).execute(
         { city: name, callerSaidYes: true },
@@ -272,6 +320,11 @@ describe('saving the city', () => {
       expect(store.prefs.get('u1')?.callerCity?.city).toBe(name);
     }
   );
+
+  it('does not ask Places during a search', async () => {
+    await (await findRestaurants()).execute({ cuisine: 'coffee' }, phoneInStGeorge);
+    expect(geo.findCityByName).not.toHaveBeenCalled();
+  });
 
   it('does not save for a placeholder or on-behalf caller, whose id is never read again', async () => {
     for (const userId of ['anon:3f2a', 'onbehalf:call-9']) {
@@ -311,7 +364,7 @@ describe('saving the city', () => {
       phoneInStGeorge
     );
     expect(result).toMatch(/couldn't save/);
-    expect(result).not.toMatch(/Saved\./);
+    expect(result).not.toMatch(/^Saved /);
     expect(store.prefs.get('u1')?.callerCity).toBeUndefined();
   });
 
