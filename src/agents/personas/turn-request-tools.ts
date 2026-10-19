@@ -18,6 +18,9 @@ import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.
 import { filterCaptionStream, type Caption } from './caption-filter.js';
 import { tapSpokenBursts } from './vocal-bursts.js';
 
+/** For toolsForTurn: this turn's topic tools go into its request (TOOLS_SAME_TURN). */
+export { withSameTurnTools } from './same-turn-tools.js';
+
 /** Live tool retrieval waits this long for the pick before falling back (see toolsForTurn). */
 const LIVE_PICK_WAIT_MS = 150;
 
