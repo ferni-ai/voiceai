@@ -38,7 +38,7 @@ final class AccessibilityAuditTests: XCTestCase {
         if let label = element?.label, accepted.contains(where: {
             screen.hasPrefix($0.screen) && issue.auditType == $0.type && label.hasPrefix($0.label)
         }) { return true }
-        print("AUDIT [\(screen)] \(issue.compactDescription): \(element.map { "\($0.elementType.rawValue) '\($0.label)' id='\($0.identifier)' \($0.frame)" } ?? "no element")")
+        print("AUDIT [\(screen)] \(issue.compactDescription): \(element.map { "\($0.elementType.rawValue) '\($0.label)' id='\($0.identifier)' \($0.frame)" } ?? "no element") | \(issue.detailedDescription)")
         return false
     }
 

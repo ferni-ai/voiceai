@@ -17,11 +17,13 @@ final class TalkButtonTests: XCTestCase {
         XCTAssertTrue(talk.waitForExistence(timeout: 20))
         // The button's frame is the capsule people see (420 x 56 at most).
         XCTAssertGreaterThanOrEqual(talk.frame.height, 56, "the hit area is only the words: \(talk.frame)")
-        // On the glass, outside the words: 12% across the screen, level with the button.
-        let window = app.windows.firstMatch.frame
-        XCTAssertLessThan(window.width * 0.12, talk.frame.minX + 40, "the tap must land on the capsule")
+        // On the glass, outside the words: 20 pt in from the capsule's leading
+        // edge. The capsule is centred on the words, at most 420 wide and inset
+        // 21 pt from the screen (or, on iPad, the detail pane) edge.
+        let half = min(210, talk.frame.midX - 21)
+        let x = talk.frame.midX - half + 20
         app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: window.width * 0.12, dy: talk.frame.midY)).tap()
+            .withOffset(CGVector(dx: x, dy: talk.frame.midY)).tap()
         // Not agreed yet in a fresh launch, so Talk opens the consent screen.
         XCTAssertTrue(app.buttons["Not now"].waitForExistence(timeout: 5), "a tap on the capsule did nothing")
     }
