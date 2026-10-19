@@ -213,6 +213,7 @@
       "product": [
         { "title": "Meet the Team", "url": "/team/" },
         { "title": "Capabilities", "url": "/capabilities/" },
+        { "title": "What Ferni is", "url": "/what-ferni-is/" },
         { "title": "Help & Support", "url": "/help/" }
       ],
       "company": [
