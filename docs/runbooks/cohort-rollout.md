@@ -23,7 +23,8 @@ the later id wins. Their own overrides come last and beat every cohort. A disabl
 counts for nothing. Anyone in no cohort gets the agent's own values.
 
 Only switches in `COHORT_FLAGS` can be set: behaviour, never infrastructure or secrets.
-Anything else is dropped and logged. Values are `on` or `off`.
+Anything else is dropped and logged. Values are `on` or `off`, except `TURN_LENGTH` and
+`TURN_TEXTURE`, which take `learned` or `off`.
 
 ## Audiences (cohort ids)
 

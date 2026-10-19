@@ -2,7 +2,7 @@ name: FerniVoice
 options:
   bundleIdPrefix: com.sethdford
   deploymentTarget:
-    iOS: "16.0"
+    iOS: "18.0"
     watchOS: "9.0"
   xcodeVersion: "15.0"
   generateEmptyDirectories: true
@@ -13,6 +13,8 @@ packages:
     exactVersion: 2.12.1
   FerniShared:
     path: ../shared
+  FerniDesign:
+    path: Packages/FerniDesign
   Firebase:
     url: https://github.com/firebase/firebase-ios-sdk
     from: "11.0.0"
@@ -29,7 +31,7 @@ targets:
   FerniVoice:
     type: application
     platform: iOS
-    deploymentTarget: "16.0"
+    deploymentTarget: "18.0"
     sources:
       - path: Sources
         type: group
@@ -44,6 +46,7 @@ targets:
         product: LiveKit
       - package: FerniShared
         product: FerniShared
+      - package: FerniDesign
       - package: Firebase
         product: FirebaseAuth
       - package: Firebase
@@ -58,7 +61,6 @@ targets:
       - path: FerniVoice/LaunchScreen.storyboard
       - path: FerniVoice/Preview Content
       - path: FerniVoice/GoogleService-Info.plist
-      - path: Ferni/Resources
     info:
       path: FerniVoice/Info.plist
       properties:
@@ -132,7 +134,7 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         ENABLE_PREVIEWS: YES
         SWIFT_EMIT_LOC_STRINGS: YES
-        IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+        IPHONEOS_DEPLOYMENT_TARGET: "18.0"
 
   FerniVoiceTests:
     type: bundle.unit-test
@@ -287,6 +289,7 @@ schemes:
       config: Debug
       targets:
         - FerniVoiceTests
+        - package: FerniDesign/FerniDesignTests
       storeKitConfiguration: Ferni.storekit
     profile:
       config: Release
