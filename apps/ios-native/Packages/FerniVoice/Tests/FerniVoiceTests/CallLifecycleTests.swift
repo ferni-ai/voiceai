@@ -25,14 +25,14 @@ final class CallLifecycleTests: XCTestCase {
     private var room = CallSessionTests.FakeRoom()
     private let audio = CallSessionTests.FakeAudio()
 
-    private func session() -> CallSession {
+    private func session(agentTimeout: Duration = .milliseconds(200)) -> CallSession {
         let room = room
         return CallSession(
             fetchToken: { _ in CallToken(token: "t", url: "wss://x", room: "r", agentDispatched: true) },
             makeRoom: { room },
             audio: audio,
             lifecycle: lifecycle,
-            agentTimeout: .milliseconds(200),
+            agentTimeout: agentTimeout,
             defaults: UserDefaults(suiteName: "lifecycle-\(UUID().uuidString)")!
         )
     }
@@ -69,7 +69,8 @@ final class CallLifecycleTests: XCTestCase {
 
     func testASystemThatEndsTheCallAtOnceDoesNotStopIt() async {
         room = CallSessionTests.FakeRoom(agentOnConnect: nil)
-        let call = session()
+        // Generous: under a loaded test run 200 ms could expire before the agent joins.
+        let call = session(agentTimeout: .seconds(2))
         call.start()
         await until(call.phase == .waitingForFerni)
         lifecycle.ask.yield(.end) // within a moment of starting, before it's live
