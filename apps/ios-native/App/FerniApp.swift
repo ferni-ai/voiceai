@@ -18,7 +18,7 @@ struct FerniApp: App {
 
     var body: some Scene {
         WindowGroup {
-            HomeView()
+            RootView()
                 .environment(model)
                 // Silent, anonymous on a first launch: talking never waits on a sign-in screen.
                 .task {

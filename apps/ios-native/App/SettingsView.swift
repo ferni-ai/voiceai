@@ -7,6 +7,8 @@ import SwiftUI
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
+    /// False in the iPad sidebar, where Settings is a page, not a sheet.
+    var showsDone = true
 
     var body: some View {
         NavigationStack {
@@ -32,7 +34,7 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    if showsDone { Button("Done") { dismiss() } }
                 }
             }
             .tint(FerniColor.accent)

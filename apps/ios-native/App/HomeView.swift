@@ -9,51 +9,68 @@ import SwiftUI
 /// the call controls. There's no screen change. Never silent, never stuck:
 /// End (Cancel while connecting) is always there.
 struct HomeView: View {
+    /// False in the iPad sidebar layout, which has Settings in the sidebar.
+    var showsAccountButton = true
     @Environment(AppModel.self) private var model
     @Environment(\.dynamicTypeSize) private var typeSize
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.horizontalSizeClass) private var widthClass
+    @State private var landscape = false
 
     var body: some View {
         @Bindable var model = model
         let call = model.call
         let inCall = call.isActive
+        // iPad in landscape: the captions sit beside Ferni, not under (UX spec §9).
+        let beside = inCall && widthClass == .regular && landscape
         NavigationStack {
             ScrollView {
                 VStack(spacing: FerniSpace.rest) {
-                    if inCall { NameChip(personaID: call.avatar.personaID) }
-                    CallAvatar(call: call)
-                        .frame(width: inCall ? 240 : 200, height: inCall ? 240 : 200)
-                        .opacity(call.phase == .reconnecting ? 0.5 : 1)
-                        .padding(.top, inCall ? FerniSpace.breath : FerniSpace.silence)
-                    if inCall {
-                        CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
-                    } else {
-                        RestingLine(call: call)
-                        if call.phase == .ended {
-                            RememberCard(call: call, memory: model.memory)
-                            #if FERNI_PUSH
-                            if call.hasTalked { NotificationAsk(push: model.push, uid: model.account.user?.uid) }
-                            #endif
+                    if beside {
+                        HStack(alignment: .center, spacing: FerniSpace.silence) {
+                            VStack(spacing: FerniSpace.rest) {
+                                NameChip(personaID: call.avatar.personaID)
+                                avatar(call: call, size: 320)
+                            }
+                            .frame(maxWidth: 600)
+                            CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
+                                .frame(maxWidth: 380)
                         }
-                        TeamRow(team: model.team)
+                    } else {
+                        if inCall { NameChip(personaID: call.avatar.personaID) }
+                        avatar(call: call, size: inCall ? 240 : 200)
+                            .padding(.top, inCall ? FerniSpace.breath : FerniSpace.silence)
+                        if inCall {
+                            CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
+                        } else {
+                            RestingLine(call: call)
+                            if call.phase == .ended {
+                                RememberCard(call: call, memory: model.memory)
+                                #if FERNI_PUSH
+                                if call.hasTalked { NotificationAsk(push: model.push, uid: model.account.user?.uid) }
+                                #endif
+                            }
+                            TeamRow(team: model.team)
+                        }
                     }
                     // At accessibility text sizes the controls scroll with the
                     // content instead of covering it.
                     if typeSize.isAccessibilitySize { controls }
                 }
-                .frame(maxWidth: 560)
+                .frame(maxWidth: beside ? 1000 : 560)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, FerniSpace.rest)
                 .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.55), value: inCall)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { landscape = $0 }
             .safeAreaInset(edge: .bottom) {
                 if !typeSize.isAccessibilitySize { controls }
             }
             .background(RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID)))
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                if showsAccountButton { ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         model.isShowingSettings = true
                     } label: {
@@ -64,7 +81,7 @@ struct HomeView: View {
                     }
                     .tint(FerniColor.accent)
                     .accessibilityLabel("Account and settings")
-                }
+                } }
             }
             .sheet(isPresented: $model.isShowingSettings) {
                 SettingsView()
@@ -88,6 +105,12 @@ struct HomeView: View {
                 )
             }
         }
+    }
+
+    private func avatar(call: CallSession, size: CGFloat) -> some View {
+        CallAvatar(call: call)
+            .frame(width: size, height: size)
+            .opacity(call.phase == .reconnecting ? 0.5 : 1)
     }
 
     private var controls: some View {
