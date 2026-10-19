@@ -24,6 +24,7 @@ struct CallAvatar: View {
             name: PersonaRegistry.get(avatar.personaID).name,
             covered: covered,
             wake: wake,
+            personSpeaking: call.isUserSpeaking,
             level: { [level = call.agentLevel] in level.level },
             onCue: onCue
         )

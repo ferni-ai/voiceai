@@ -20,6 +20,7 @@ public struct AvatarView: View {
     let onCue: ((KeyedCue) -> Void)?
     let reading: Bool
     let wake: Int
+    let personSpeaking: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -47,7 +48,8 @@ public struct AvatarView: View {
     ///   - onCue: what the body asks the app for (a haptic on a touch, a chime on landing), after each frame.
     public init(
         persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
-        name: String = "Ferni", covered: Bool = false, wake: Int = 0, level: @escaping @Sendable () -> Float = { 0 },
+        name: String = "Ferni", covered: Bool = false, wake: Int = 0, personSpeaking: Bool = false,
+        level: @escaping @Sendable () -> Float = { 0 },
         reading: Bool = false, onCue: ((KeyedCue) -> Void)? = nil
     ) {
         self.persona = persona
@@ -59,6 +61,7 @@ public struct AvatarView: View {
         self.onCue = onCue
         self.reading = reading
         self.wake = wake
+        self.personSpeaking = personSpeaking
     }
 
     public var body: some View {
@@ -131,7 +134,7 @@ public struct AvatarView: View {
                 if activity == .idle, let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
             }
             .onChange(of: expression) { _, next in
-                if Self.wins.contains(next), !reduceMotion { rig.play(.win) }
+                if Self.winPlays(next, reduceMotion: reduceMotion, personSpeaking: personSpeaking) { rig.play(.win) }
             }
             .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)) { _ in
                 lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
@@ -181,6 +184,12 @@ public struct AvatarView: View {
     static func joinPlan(from: AvatarActivity, to: AvatarActivity, waited: Double, reduceMotion: Bool, arrived: Bool) -> JoinPlan {
         guard from == .arriving, to == .listening || to == .speaking, !arrived, !reduceMotion else { return .none }
         return waited < 0.3 ? .settle : .hop
+    }
+
+    /// The big win (a spin and hops) plays for a celebrating face, never while
+    /// the person is speaking (it would spin over them) and not under Reduce Motion.
+    static func winPlays(_ expression: AvatarExpression, reduceMotion: Bool, personSpeaking: Bool) -> Bool {
+        wins.contains(expression) && !reduceMotion && !personSpeaking
     }
 
     /// Ferni draws at the screen's own scale (3x on most iPhones, gap 8), at
