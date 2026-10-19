@@ -14,7 +14,6 @@ import {
   flagForUser,
   forgetAgentValues,
   inSample,
-  isCohortMember,
   missingPrerequisites,
   forgetFlagCache,
   usersWithFlag,
@@ -25,6 +24,7 @@ import {
   type Cohort,
   type CohortStore,
 } from '../cohort-flags.js';
+import { isCohortMember } from '../cohort-membership.js';
 
 const store = (
   cohorts: Record<string, Cohort[]>,

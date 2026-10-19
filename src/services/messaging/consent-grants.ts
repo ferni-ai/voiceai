@@ -22,7 +22,7 @@
  */
 import { createLogger } from '../../utils/safe-logger.js';
 import { last4, phoneHash, phoneHashKeyVersion, toE164 } from '../outreach/checkin-replies.js';
-import { isCohortMember } from '../platform/cohort-flags.js';
+import { isCohortMember } from '../platform/cohort-membership.js';
 import {
   consentBlocks,
   defaultConsentDeps,
