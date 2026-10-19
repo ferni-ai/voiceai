@@ -169,7 +169,7 @@ export async function sendMilestoneOutreach(
 
     // The app fires a milestone when the call that crosses it connects, before it has ended,
     // so the live call counts here (only here): without it the milestone read as n-1 forever
-    const sessions = await getSessionsTogether(userId, contactInfo.timezone);
+    const sessions = await getSessionsTogether(userId, contactInfo.timezone, { fresh: true });
     const days = [...new Set([...sessions.days, ...sessions.inProgress.days])].sort();
     const facts: Facts = {
       ...sessions,

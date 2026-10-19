@@ -110,7 +110,7 @@ class ConversationHistoryService {
       const [calls, storedSessions, together] = await Promise.all([
         readAgentCalls(userId, limit),
         store.getConversationSessions(userId, limit),
-        getSessionsTogether(userId),
+        getSessionsTogether(userId, undefined, { fresh: true }), // rows are live: so is the total
       ]);
       totalSessions = together.count;
       const webSessions = storedSessions.map((s) => ({

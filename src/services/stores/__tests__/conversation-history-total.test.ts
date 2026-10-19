@@ -48,6 +48,7 @@ vi.mock('../../../utils/firestore-utils.js', () => ({
 }));
 
 const { getConversationHistoryService } = await import('../conversation-history.js');
+const { clearSessionsTogetherCache } = await import('../sessions-together.js');
 
 describe('Past Chats total', () => {
   it.each([
@@ -71,6 +72,7 @@ describe('Past Chats total', () => {
     },
   ])('n=$n: lists $listed, totals $total', async ({ docs, limit, listed, total }) => {
     calls.length = 0;
+    clearSessionsTogetherCache(); // the total is cached per user for display
     calls.push(...docs);
     const history = await getConversationHistoryService().getHistory('u1', limit);
     expect(history.sessions).toHaveLength(listed);

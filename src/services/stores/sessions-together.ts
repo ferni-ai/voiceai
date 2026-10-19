@@ -11,6 +11,7 @@
  */
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { getLogger } from '../../utils/safe-logger.js';
 
 /** One stored call, as realtime-memory writes it. */
 export interface StoredCall {
@@ -135,24 +136,64 @@ export function longestDayStreak(days: string[]): number {
   return best;
 }
 
+/** Most calls read for one user: the newest first. Hitting it is logged (counts cap here). */
+export const MAX_CALLS_READ = 2000;
+/** The oldest calls read to find the first session together. */
+const FIRST_CALLS_READ = 20;
+/** A display count may be this old; never across users, never for a milestone check. */
+const CACHE_MS = 60_000;
+
+const FIELDS = ['startedAt', 'endedAt', 'turnCount', 'userTurnCount'] as const;
+const cache = new Map<string, { at: number; value: SessionsTogether }>();
+
+/** Drop cached counts (tests, or after a write that must show at once). */
+export function clearSessionsTogetherCache(): void {
+  cache.clear();
+}
+
 /**
- * Read every stored call for a user and summarize it. Throws when Firestore
- * can't be read, so a caller never mistakes a failed read for "no sessions".
+ * Summarize a user's stored calls with bounded reads: the newest MAX_CALLS_READ calls
+ * (count, days, streak, the live call) and the oldest few (when the first session was).
+ * Throws when Firestore can't be read, so a caller never mistakes a failed read for "no
+ * sessions". `fresh` skips the 60s per-user cache: a milestone check must see the live call.
  */
 export async function getSessionsTogether(
   userId: string,
-  timeZone?: string
+  timeZone?: string,
+  options: { fresh?: boolean } = {}
 ): Promise<SessionsTogether> {
+  const key = `${userId}\u0000${timeZone ?? ''}`;
+  const hit = cache.get(key);
+  if (!options.fresh && hit && Date.now() - hit.at < CACHE_MS) return hit.value;
+
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore unavailable');
-  const snapshot = await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('conversations')
-    .select('startedAt', 'endedAt', 'turnCount', 'userTurnCount')
-    .get();
-  return summarizeSessions(
-    snapshot.docs.map((d) => d.data() as StoredCall),
+  const calls = db.collection('bogle_users').doc(userId).collection('conversations');
+  const [recent, oldest] = await Promise.all([
+    calls
+      .select(...FIELDS)
+      .orderBy('startedAt', 'desc')
+      .limit(MAX_CALLS_READ)
+      .get(),
+    calls
+      .select(...FIELDS)
+      .orderBy('startedAt', 'asc')
+      .limit(FIRST_CALLS_READ)
+      .get(),
+  ]);
+  if (recent.docs.length >= MAX_CALLS_READ) {
+    getLogger().warn({ userId, max: MAX_CALLS_READ }, 'Sessions together: read cap hit');
+  }
+  const value = summarizeSessions(
+    recent.docs.map((d) => d.data() as StoredCall),
     timeZone
   );
+  // The first session together may be older than the newest MAX_CALLS_READ calls
+  const first = summarizeSessions(
+    oldest.docs.map((d) => d.data() as StoredCall),
+    timeZone
+  ).firstAt;
+  if (first && (!value.firstAt || first < value.firstAt)) value.firstAt = first;
+  cache.set(key, { at: Date.now(), value });
+  return value;
 }
