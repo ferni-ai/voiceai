@@ -47,7 +47,7 @@ function itinerary(overrides: {
     arrival_time_local: s.arr,
   }));
   return {
-    ignav_id: overrides.ignav_id,
+    ignav_id: overrides.ignav_id ?? 'ig_default',
     price: { amount: overrides.amount, currency: 'USD' },
     outbound: {
       carrier: overrides.carrier ?? 'UA',
@@ -292,10 +292,246 @@ describe('IgnavFlightProvider', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it('answers unsupported-query for zero passengers', async () => {
+    const outcome = await new IgnavFlightProvider('test-key').search({ ...QUERY, passengers: 0 });
+
+    expect(outcome).toEqual({ status: 'unavailable', reason: 'unsupported-query' });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('answers unsupported-query for more than one passenger', async () => {
     const outcome = await new IgnavFlightProvider('test-key').search({ ...QUERY, passengers: 2 });
 
     expect(outcome).toEqual({ status: 'unavailable', reason: 'unsupported-query' });
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('takes the airline from the segment and says N/A when the leg carrier and duration are null', async () => {
+    // The documented shape (ItineraryModel, LegModel, SegmentModel): null is allowed for these.
+    fetchMock.mockResolvedValue(
+      jsonReply(200, {
+        origin: 'BOS',
+        destination: 'DEN',
+        departure_date: '2026-10-23',
+        itineraries: [
+          {
+            ignav_id: 'ig_null',
+            price: { amount: 150, currency: 'USD', status: 'verified' },
+            outbound: {
+              carrier: null,
+              duration_minutes: null,
+              segments: [
+                {
+                  marketing_carrier_code: 'WN',
+                  flight_number: '1234',
+                  operating_carrier_name: 'Southwest Airlines',
+                  departure_airport: 'BOS',
+                  departure_timezone: null,
+                  departure_time_local: '2026-10-23T08:05:00',
+                  departure_time_utc: null,
+                  arrival_airport: 'DEN',
+                  arrival_timezone: null,
+                  arrival_time_local: '2026-10-23T10:30:00',
+                  arrival_time_utc: null,
+                  duration_minutes: 145,
+                  aircraft: null,
+                },
+              ],
+            },
+            cabin_class: 'economy',
+            bags: null,
+            requires_self_transfer: null,
+          },
+        ],
+        observed_at: null,
+        cache_hit: false,
+      })
+    );
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({
+      status: 'live',
+      results: [
+        expect.objectContaining({
+          id: 'ig_null',
+          airline: 'Southwest Airlines',
+          price: 150,
+          departureTime: '8:05 AM',
+          arrivalTime: '10:30 AM',
+          duration: 'N/A',
+          stops: 0,
+        }),
+      ],
+    });
+  });
+
+  it('keeps the valid options when one itinerary has an unexpected shape', async () => {
+    fetchMock.mockResolvedValue(
+      jsonReply(200, {
+        itineraries: [
+          itinerary({ ignav_id: 'ig_good', amount: 200, carrier: 'UA' }),
+          itinerary({
+            ignav_id: 'ig_bad',
+            amount: 100,
+            carrier: 'AA',
+            segments: [{ dep: '2026-10-23T08:00:00', arr: 'x2026-10-23T10:30:00' }],
+          }),
+        ],
+      })
+    );
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({
+      status: 'live',
+      results: [expect.objectContaining({ id: 'ig_good', airline: 'UA', price: 200 })],
+    });
+  });
+
+  it.each(['economy', 'premium_economy', 'business', 'first'] as const)(
+    'sends the %s cabin as the API names it',
+    async (cabinClass) => {
+      fetchMock.mockResolvedValue(jsonReply(200, SEARCH_REPLY));
+
+      await new IgnavFlightProvider('test-key').search({ ...QUERY, cabinClass });
+
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(init.body as string).cabin_class).toBe(cabinClass);
+    }
+  );
+
+  it('sends the local calendar day, not the UTC day, for a late-evening departure', async () => {
+    // 23:30 in Los Angeles is 06:30 UTC on the next day.
+    vi.stubEnv('TZ', 'America/Los_Angeles');
+    try {
+      const lateDeparture = new Date(2026, 9, 23, 23, 30);
+      fetchMock.mockResolvedValue(jsonReply(200, SEARCH_REPLY));
+
+      await new IgnavFlightProvider('test-key').search({ ...QUERY, departureDate: lateDeparture });
+
+      const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+      expect(JSON.parse(init.body as string).departure_date).toBe('2026-10-23');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('says provider-error for a 503 with a non-JSON body', async () => {
+    fetchMock.mockResolvedValue(new Response('Service Unavailable', { status: 503 }));
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({ status: 'unavailable', reason: 'provider-error' });
+  });
+
+  describe('airline name fallback', () => {
+    function withLegCarrier(carrier: string | null, segmentNames: Record<string, string | null>) {
+      const base = itinerary({ ignav_id: 'ig_fallback', amount: 120 });
+      return {
+        ...base,
+        outbound: {
+          ...base.outbound,
+          carrier,
+          segments: [{ ...base.outbound.segments[0], ...segmentNames }],
+        },
+      };
+    }
+
+    it('uses the marketing carrier code when the leg and operating names are null', async () => {
+      fetchMock.mockResolvedValue(
+        jsonReply(200, {
+          itineraries: [
+            withLegCarrier(null, { operating_carrier_name: null, marketing_carrier_code: 'WN' }),
+          ],
+        })
+      );
+
+      const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+      expect(outcome).toEqual({
+        status: 'live',
+        results: [expect.objectContaining({ airline: 'WN' })],
+      });
+    });
+
+    it("says 'Unknown' when no carrier name is given", async () => {
+      fetchMock.mockResolvedValue(
+        jsonReply(200, {
+          itineraries: [
+            withLegCarrier(null, { operating_carrier_name: null, marketing_carrier_code: null }),
+          ],
+        })
+      );
+
+      const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+      expect(outcome).toEqual({
+        status: 'live',
+        results: [expect.objectContaining({ airline: 'Unknown' })],
+      });
+    });
+
+    it('prefers the leg carrier over the segment operating carrier name', async () => {
+      fetchMock.mockResolvedValue(
+        jsonReply(200, {
+          itineraries: [
+            withLegCarrier('UA', {
+              operating_carrier_name: 'Southwest',
+              marketing_carrier_code: 'WN',
+            }),
+          ],
+        })
+      );
+
+      const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+      expect(outcome).toEqual({
+        status: 'live',
+        results: [expect.objectContaining({ airline: 'UA' })],
+      });
+    });
+  });
+
+  it('drops an itinerary that has no ignav_id and keeps the others', async () => {
+    const withoutId = { ...itinerary({ amount: 90, carrier: 'AA' }) } as Record<string, unknown>;
+    delete withoutId.ignav_id;
+    fetchMock.mockResolvedValue(
+      jsonReply(200, {
+        itineraries: [withoutId, itinerary({ ignav_id: 'ig_kept', amount: 200, carrier: 'UA' })],
+      })
+    );
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({
+      status: 'live',
+      results: [expect.objectContaining({ id: 'ig_kept', airline: 'UA' })],
+    });
+  });
+
+  it('returns a live empty result when Ignav finds no itineraries', async () => {
+    fetchMock.mockResolvedValue(jsonReply(200, { itineraries: [] }));
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({ status: 'live', results: [] });
+  });
+
+  it('drops an itinerary with no segments and keeps the others', async () => {
+    const noSegments = itinerary({ ignav_id: 'ig_empty', amount: 90, carrier: 'AA' });
+    noSegments.outbound.segments = [];
+    fetchMock.mockResolvedValue(
+      jsonReply(200, {
+        itineraries: [noSegments, itinerary({ ignav_id: 'ig_kept', amount: 200, carrier: 'UA' })],
+      })
+    );
+
+    const outcome = await new IgnavFlightProvider('test-key').search(QUERY);
+
+    expect(outcome).toEqual({
+      status: 'live',
+      results: [expect.objectContaining({ id: 'ig_kept', airline: 'UA' })],
+    });
   });
 });

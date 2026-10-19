@@ -12,9 +12,9 @@
  */
 
 import { t } from '../i18n/index.js';
-import { tp } from '../i18n/plural.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
-import { buyCosmetic, canPurchase, COSMETICS_CATALOG, equipCosmetic, getCosmeticName, getEquippedCosmetics, getOwnedCosmetics, onCosmeticsChange, type CosmeticItem, type CosmeticType } from '../services/cosmetics.service.js';
+import { equipCosmetic, getCosmeticName, getEquippedCosmetics, onCosmeticsChange, type CosmeticItem, type CosmeticType } from '../services/cosmetics.service.js';
+import { listedCosmetics } from '../services/cosmetics-listed.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
@@ -190,10 +190,6 @@ const styles = `
   box-shadow: var(--shadow-md);
 }
 
-.personalize-item.owned {
-  border-color: var(--persona-primary, #4a6741);
-}
-
 .personalize-item.equipped {
   border-width: 2px;
   border-color: var(--persona-primary, #4a6741);
@@ -299,14 +295,6 @@ const styles = `
 
 .personalize-item-status.equipped {
   color: var(--persona-text);
-}
-
-.personalize-item-status.owned {
-  color: var(--color-text-muted);
-}
-
-.personalize-item-status.available {
-  color: var(--color-text-secondary);
 }
 
 /* Action Button */
@@ -498,7 +486,7 @@ function renderCategories(): string {
   return `
     <div class="personalize-categories">
       ${categories
-        .filter((cat) => cat === 'all' || COSMETICS_CATALOG.some((item) => item.type === cat))
+        .filter((cat) => cat === 'all' || listedCosmetics().some((item) => item.type === cat))
         .map(
           (cat) => `
         <button 
@@ -569,11 +557,9 @@ function renderPreview(item: CosmeticItem): string {
 }
 
 function renderItems(): string {
-  const owned = getOwnedCosmetics();
-  const ownedIds = new Set(owned.map((c) => c.id));
   const equipped = getEquippedCosmetics();
 
-  let items = COSMETICS_CATALOG;
+  let items = listedCosmetics(); // only items that change something (personalize-extras-flag.ts)
   if (selectedCategory !== 'all') {
     items = items.filter((item) => item.type === selectedCategory);
   }
@@ -590,20 +576,17 @@ function renderItems(): string {
     <div class="personalize-grid">
       ${items
         .map((item) => {
-          const isOwned = ownedIds.has(item.id);
           const isEquipped = Object.values(equipped).includes(item.id);
-          const { canBuy } = canPurchase(item.id);
 
           return `
           <div 
-            class="personalize-item ${isOwned ? 'owned' : ''} ${isEquipped ? 'equipped' : ''}"
+            class="personalize-item ${isEquipped ? 'equipped' : ''}"
             data-item-id="${item.id}"
           >
             ${renderPreview(item)}
             <div class="personalize-item-name">${getCosmeticName(item)}</div>
             <div class="personalize-item-type">${t(TYPE_LABEL_KEYS[item.type])}</div>
-            ${renderItemStatus(item, isOwned, isEquipped)}
-            ${renderItemAction(item, isOwned, isEquipped, canBuy)}
+            ${renderItemChoice(item, isEquipped)}
           </div>
         `;
         })
@@ -612,49 +595,18 @@ function renderItems(): string {
   `;
 }
 
-function renderItemStatus(item: CosmeticItem, isOwned: boolean, isEquipped: boolean): string {
+/**
+ * Seeds are cut (Seth, 2026-10-17), so every style, theme and sound here is
+ * free to pick: the one in use says so, every other one has "Use this". No
+ * price, balance or "Need more Seeds".
+ */
+function renderItemChoice(item: CosmeticItem, isEquipped: boolean): string {
   if (isEquipped) {
     return `<div class="personalize-item-status equipped">${t('personalize.status.active')}</div>`;
   }
-  if (isOwned) {
-    return `<div class="personalize-item-status owned">${t('personalize.status.owned')}</div>`;
-  }
-  if (item.priceInSeeds === null) {
-    return `<div class="personalize-item-status available">${t('personalize.status.default')}</div>`;
-  }
-  return `<div class="personalize-item-status available">${tp('personalize.status.price', item.priceInSeeds)}</div>`;
-}
-
-function renderItemAction(
-  item: CosmeticItem,
-  isOwned: boolean,
-  isEquipped: boolean,
-  canBuy: boolean
-): string {
-  // No button needed for already-active items - status badge is enough
-  if (isEquipped) {
-    return '';
-  }
-
-  if (isOwned || item.priceInSeeds === null) {
-    return `
-      <button class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
-        ${t('accessibility.useThis')}
-      </button>
-    `;
-  }
-
-  if (!canBuy) {
-    return `
-      <button class="personalize-item-action" disabled>
-        ${t('accessibility.needMoreSeeds')}
-      </button>
-    `;
-  }
-
   return `
-    <button class="personalize-item-action" data-action="buy" data-item-id="${item.id}">
-      ${t('accessibility.getThis')}
+    <button class="personalize-item-action" data-action="equip" data-item-id="${item.id}">
+      ${t('accessibility.useThis')}
     </button>
   `;
 }
@@ -678,9 +630,7 @@ function setupEventListeners(overlay: HTMLElement): void {
     const itemId = actionBtn.getAttribute('data-item-id');
     if (!itemId) return;
 
-    if (action === 'buy') {
-      void handlePurchase(itemId);
-    } else if (action === 'equip') {
+    if (action === 'equip') {
       handleEquip(itemId);
     }
   });
@@ -689,16 +639,6 @@ function setupEventListeners(overlay: HTMLElement): void {
   cosmeticsUnsubscribe = onCosmeticsChange(() => {
     refreshUI();
   });
-}
-
-async function handlePurchase(itemId: string): Promise<void> {
-  const success = await buyCosmetic(itemId);
-  if (success) {
-    toast.success(t('personalize.purchased'));
-    equipCosmetic(itemId);
-  } else {
-    toast.error(t('toasts.couldNotComplete'));
-  }
 }
 
 function handleEquip(itemId: string): void {
