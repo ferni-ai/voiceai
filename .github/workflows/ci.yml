@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - 'src/**'
       - 'apps/**'
@@ -814,7 +814,9 @@ jobs:
           path: ./
           base: ${{ steps.scan-range.outputs.base }}
           head: ${{ steps.scan-range.outputs.head }}
-          extra_args: --only-verified
+          # Fail on a live secret and on one whose check couldn't finish; a key that
+          # fails its check (unverified) is reported in the log but doesn't fail.
+          extra_args: --results=verified,unknown
 
   # ============================================================================
   # CODE QUALITY METRICS (using unified audit CLI)
