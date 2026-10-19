@@ -4,8 +4,11 @@ import {
   aaGap,
   armEnv,
   compareArms,
+  comparePersonaTells,
   copiedNgrams,
   copyStats,
+  endsOnQuestion,
+  exclaims,
   humannessOf,
   hourIn,
   humannessRate,
@@ -16,6 +19,7 @@ import {
   ngramSet,
   noiseFloor,
   notesIn,
+  opensWithReaction,
   parseCompanion,
   parsePick,
   parseSets,
@@ -24,6 +28,8 @@ import {
   samplingGap,
   scoredTurns,
   shuffled,
+  tellsOf,
+  therapistCheckIn,
   verdictFor,
   words,
   zoneAtLocalHour,
@@ -407,5 +413,117 @@ describe('multi-turn', () => {
     // New York is at 8 am, Tokyo at 9 pm: 23 is two hours from Tokyo, nine from New York.
     expect(zoneAtLocalHour(23, now, ['America/New_York', 'Asia/Tokyo'])).toBe('Asia/Tokyo');
     expect(zoneAtLocalHour(1, now, ['America/New_York', 'Asia/Tokyo'])).toBe('Asia/Tokyo');
+  });
+});
+
+describe('model tells', () => {
+  it('reads a reply as ending on a question only when the last thing said is one', () => {
+    expect(endsOnQuestion('Big week. How did the interview go?')).toBe(true);
+    expect(endsOnQuestion('you okay?" <break time="300ms"/>')).toBe(true);
+    expect(endsOnQuestion('Wait, what? No way. That is huge.')).toBe(false);
+    expect(endsOnQuestion('That is huge.')).toBe(false);
+    expect(endsOnQuestion('')).toBe(false);
+  });
+
+  it('flags a stock reaction word only as the first spoken word', () => {
+    for (const r of [
+      'Oh, wow.',
+      'Ugh. Mondays.',
+      'Yeah so',
+      'Hmmm... okay',
+      'Wow!',
+      'Ahh',
+      'Well, look',
+    ])
+      expect(opensWithReaction(r)).toBe(true);
+    expect(opensWithReaction('<speed ratio="0.9"/>[laughter] Oh no')).toBe(true);
+    // A reaction word later in the reply, or a word that only starts like one, is not an opener.
+    expect(opensWithReaction('Congrats. Oh, and the cats?')).toBe(false);
+    expect(opensWithReaction('Ahead of you on that.')).toBe(false);
+    expect(opensWithReaction('Wellington was rainy.')).toBe(false);
+    expect(opensWithReaction('Okay.')).toBe(false);
+  });
+
+  it('catches therapist check-ins, not plain sympathy', () => {
+    expect(therapistCheckIn('How are you holding up?')).toBe(true);
+    expect(therapistCheckIn("How're you feeling about it")).toBe(true);
+    expect(therapistCheckIn('How does that make you feel?')).toBe(true);
+    expect(therapistCheckIn('That sounds really exhausting.')).toBe(true);
+    expect(therapistCheckIn('That must be so hard.')).toBe(true);
+    expect(therapistCheckIn('Hard week. Want to get a beer?')).toBe(false);
+    expect(therapistCheckIn('That sounds like a plan.')).toBe(false);
+  });
+
+  it('counts exclamation marks in speech, not in markup', () => {
+    expect(exclaims('No way!')).toBe(true);
+    expect(exclaims('<!-- x --> fine.')).toBe(false);
+  });
+
+  it('gives each tell as a share of non-empty replies', () => {
+    const t = tellsOf([
+      'Oh, how are you holding up?',
+      'Nice!',
+      'Mm. Tell me.',
+      'Long day. What happened?',
+      '',
+    ]);
+    expect(t.question.k).toBe(2);
+    expect(t.question.n).toBe(4);
+    expect(t.opener.k).toBe(1);
+    expect(t.checkin.k).toBe(1);
+    expect(t.exclaim.k).toBe(1);
+    expect(t.asks.k).toBe(2);
+  });
+
+  it('floors and judges the tells like the other metrics, fewer being better', () => {
+    const tells = (q: number, n = 100) =>
+      tellsOf([
+        ...Array.from({ length: q }, () => 'What happened?'),
+        ...Array.from({ length: n - q }, () => 'Fine.'),
+      ]);
+    const a = { ...metrics(20, 40, 10), tells: tells(90) };
+    const b = { ...metrics(20, 40, 10), tells: tells(86) };
+    const floor = noiseFloor(a, b, rate(50, 100));
+    // 4 points apart; n=100 at 90%/86% allows 1.96 * sqrt(.09/100 + .1204/100) = 0.0898.
+    expect(floor.tells?.question).toBeCloseTo(0.0898, 3);
+    expect(floor.tells?.opener).toBe(0);
+    const rows = compareArms(a, { ...metrics(20, 40, 10), tells: tells(30) }, null, floor);
+    const q = rows.find((r) => r.metric === 'tells: question');
+    expect(q?.delta).toBeCloseTo(-0.6, 10);
+    expect(q?.verdict).toBe('better');
+    const worse = compareArms(
+      { ...metrics(20, 40, 10), tells: tells(30) },
+      { ...metrics(20, 40, 10), tells: tells(90) },
+      null,
+      floor
+    ).find((r) => r.metric === 'tells: question');
+    expect(worse?.verdict).toBe('worse');
+    // No tells on either side (a result saved before the metric): no tell rows at all.
+    expect(compareArms(metrics(20, 40, 10), metrics(20, 40, 10), null, floor)).toHaveLength(3);
+  });
+
+  it('reports per-persona tells as a direction against the persona floor, not a verdict', () => {
+    const asks = (k: number, n = 30) =>
+      tellsOf([
+        ...Array.from({ length: k }, () => 'And then?'),
+        ...Array.from({ length: n - k }, () => 'Mm.'),
+      ]);
+    const rows = comparePersonaTells(
+      { 'nayan-patel': asks(28), 'maya-santos': asks(10) },
+      { 'nayan-patel': asks(3), 'maya-santos': asks(12) }
+    );
+    const nayan = rows.find((r) => r.persona === 'nayan-patel' && r.tell === 'question');
+    expect(nayan?.move).toBe('down');
+    expect(nayan?.floor).toBeGreaterThan(0.1);
+    const maya = rows.find((r) => r.persona === 'maya-santos' && r.tell === 'question');
+    expect(maya?.move).toBe('noise');
+    // A persona's own A/A gap widens its floor.
+    const wide = comparePersonaTells(
+      { 'maya-santos': asks(10) },
+      { 'maya-santos': asks(25) },
+      { 'maya-santos': asks(29) }
+    ).find((r) => r.tell === 'question');
+    expect(wide?.floor).toBeCloseTo(19 / 30, 10);
+    expect(wide?.move).toBe('noise');
   });
 });
