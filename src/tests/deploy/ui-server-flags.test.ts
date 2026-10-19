@@ -1,6 +1,6 @@
 /**
- * Web-server flags are declared in the deploy commands. `--set-env-vars`
- * replaces the service's env on every deploy, so a flag set by hand on Cloud
+ * Web-server flags are declared in deploy/ui-server/env.yaml, which the deploy
+ * passes as --env-vars-file. It replaces the service's env on every deploy, so a flag set by hand on Cloud
  * Run was gone after the next main push (2026-10-17: prod john-bogle-ui had
  * only the 7 vars the workflow sets; MEMORY_VIEW and JOURNAL_ONE_STORE were
  * off). The production workflow is the only deploy path (the ferni CLI's ui
@@ -10,6 +10,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { uiServerEnv as workflowEnv } from './ui-deploy-env.js';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const read = (p: string): string => readFileSync(join(ROOT, p), 'utf8');
@@ -32,15 +33,6 @@ const SERVER_FLAGS = [
   'PROACTIVE_CHANNELS=on',
   'FOLLOW_THROUGH_JOB=on',
 ];
-
-/** The `--set-env-vars` value of the workflow's john-bogle-ui deploy, split on its `::` delimiter. */
-function workflowEnv(): string[] {
-  const start = workflow.search(/run deploy john-bogle-ui\b/);
-  expect(start).toBeGreaterThan(-1);
-  const m = /--set-env-vars "\^::\^([^"]*)"/.exec(workflow.slice(start));
-  expect(m).not.toBeNull();
-  return m![1].split('::');
-}
 
 describe('web-server flags survive a deploy', () => {
   it.each(SERVER_FLAGS)('the production workflow sets %s', (flag) => {
