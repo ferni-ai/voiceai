@@ -13,6 +13,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { commitmentCache, loadActiveCommitmentsOrThrow } from './commitment-store.js';
+import { followUpsDue } from './commitment-checkin-cooldown.js';
 import {
   validateCommitmentFeasibility,
   createCalendarBlocksForCommitment,
@@ -23,7 +24,7 @@ import { syncCommitmentToCalendar } from '../calendar/calendar-bridge.js';
 import { onCommitmentKeeperChange } from '../data-layer/hooks/superhuman-hooks.js';
 import { onCommitmentMade, onCommitmentAtRisk } from '../outreach/superhuman-outreach-bridge.js';
 import { recordWinFromCommitment } from './wins.js';
-import { commitmentSentences, isNotOwnCommitment } from './commitment-filters.js';
+import { commitmentSentences, isNotOwnCommitment } from '../../utils/commitment-filters.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
@@ -720,11 +721,8 @@ export async function getFollowUpsForUser(userId: string): Promise<CommitmentFol
 
 export async function buildCommitmentContextForLLM(userId: string): Promise<string> {
   const commitments = await loadUserCommitments(userId);
-  const followUps = await getFollowUpsForUser(userId);
-
-  if (commitments.length === 0) {
-    return '';
-  }
+  if (commitments.length === 0) return '';
+  const followUps = await followUpsDue(userId, await getFollowUpsForUser(userId), commitments);
 
   const sections: string[] = ['[COMMITMENT KEEPER - Better Than Human Accountability]'];
   sections.push('You remember EVERYTHING they commit to. This is your superpower.');
