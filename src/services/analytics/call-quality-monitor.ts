@@ -17,6 +17,7 @@ import { registerInterval, clearNamedInterval } from '../../utils/interval-manag
 import { SlackNotificationService } from '../slack-notifications.js';
 import { recordMetricValue } from '../predictive-alerting.js';
 import { emitCallEnd, type CallSummary } from './bq-call-events.js';
+import { gateSmallSamples } from './call-quality-sample.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
 
@@ -32,6 +33,7 @@ export interface CallQualityConfig {
   firstResponseTimeCriticalMs: number;
   disconnectRateWarning: number;
   disconnectRateCritical: number;
+  minCallsForRateAlerts: number; // rate and score alerts wait for this many calls
 
   // Check intervals
   qualityCheckIntervalMs: number;
@@ -49,6 +51,7 @@ const DEFAULT_CONFIG: CallQualityConfig = {
   firstResponseTimeCriticalMs: 5000, // 5 seconds
   disconnectRateWarning: 0.05, // 5%
   disconnectRateCritical: 0.1, // 10%
+  minCallsForRateAlerts: 5,
 
   qualityCheckIntervalMs: 60_000, // Every minute
   alertCooldownMs: 300_000, // 5 minute cooldown
@@ -210,10 +213,8 @@ export function recordCallEvent(event: CallEvent): void {
     sessions.set(event.callId, session);
   }
 
-  // Add event
   session.events.push(event);
 
-  // Process event
   switch (event.type) {
     case 'connection_success':
       session.connectionTimeMs = event.timestamp - session.startTime;
@@ -268,7 +269,6 @@ export function recordCallEvent(event: CallEvent): void {
             ? 'disconnect'
             : 'error';
 
-      // Move to completed
       completedSessions.push(session);
       sessions.delete(event.callId);
 
@@ -537,7 +537,6 @@ function calculateQualityScore(factors: {
   const completionScore = factors.completionRate * 100;
   const handoffScore = factors.handoffSuccessRate * 100;
 
-  // Weighted average
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
   const score =
     (connectionScore * weights.connectionSuccessRate +
@@ -593,15 +592,16 @@ async function sendQualityAlert(
   }
 }
 
-async function checkQualityAlerts(): Promise<void> {
+export async function checkQualityAlerts(): Promise<void> {
   const metrics = calculateMetrics();
+  const gated = gateSmallSamples(metrics, config.minCallsForRateAlerts);
 
   // Feed to predictive alerting
   recordMetricValue('connection_success_rate', metrics.connectionSuccessRate * 100);
   recordMetricValue('disconnect_rate', metrics.disconnectRate * 100);
 
   // Connection success rate
-  if (metrics.connectionSuccessRate < config.connectionSuccessRateCritical) {
+  if (gated.connectionSuccessRate < config.connectionSuccessRateCritical) {
     await sendQualityAlert(
       'critical',
       'Connection Success Rate Critical',
@@ -611,7 +611,7 @@ async function checkQualityAlerts(): Promise<void> {
         connectionAttempts: metrics.connectionAttempts,
       }
     );
-  } else if (metrics.connectionSuccessRate < config.connectionSuccessRateWarning) {
+  } else if (gated.connectionSuccessRate < config.connectionSuccessRateWarning) {
     await sendQualityAlert(
       'warning',
       'Connection Success Rate Degraded',
@@ -641,14 +641,14 @@ async function checkQualityAlerts(): Promise<void> {
   }
 
   // Disconnect rate
-  if (metrics.disconnectRate > config.disconnectRateCritical) {
+  if (gated.disconnectRate > config.disconnectRateCritical) {
     await sendQualityAlert(
       'critical',
       'Disconnect Rate Critical',
       `${(metrics.disconnectRate * 100).toFixed(1)}% of calls ending in disconnection`,
       { disconnectRate: metrics.disconnectRate, disconnectCount: metrics.disconnectCount }
     );
-  } else if (metrics.disconnectRate > config.disconnectRateWarning) {
+  } else if (gated.disconnectRate > config.disconnectRateWarning) {
     await sendQualityAlert(
       'warning',
       'Disconnect Rate Elevated',
@@ -658,14 +658,14 @@ async function checkQualityAlerts(): Promise<void> {
   }
 
   // Quality score alert
-  if (metrics.qualityScore < 70) {
+  if (gated.qualityScore < 70) {
     await sendQualityAlert(
       'critical',
       'Call Quality Score Low',
       `Overall quality score is ${metrics.qualityScore}/100`,
       metrics
     );
-  } else if (metrics.qualityScore < 85) {
+  } else if (gated.qualityScore < 85) {
     await sendQualityAlert(
       'warning',
       'Call Quality Score Degraded',

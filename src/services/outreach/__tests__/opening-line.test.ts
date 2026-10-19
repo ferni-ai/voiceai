@@ -51,6 +51,34 @@ describe('outboundOpener', () => {
   });
 });
 
+describe('a family check-in', () => {
+  const parties = partiesOf({
+    recipientName: 'Mom',
+    userName: 'Seth',
+    callType: 'personal',
+    kind: 'family_checkin',
+  });
+
+  it('is marked from the call context kind; an on-behalf call is not', () => {
+    expect(parties.checkin).toBe(true);
+    expect(
+      partiesOf({ recipientName: 'Mom', userName: 'Seth', callType: 'personal', kind: 'on_behalf' })
+        .checkin
+    ).toBeUndefined();
+  });
+
+  it('introduces Ferni by name only, and an on-behalf call keeps "AI friend"', () => {
+    expect(ferniIntro(parties)).toBe("it's Ferni");
+    expect(ferniIntro({ ...parties, checkin: undefined })).toBe("it's Ferni, Seth's AI friend");
+  });
+
+  it('opens with the dispatched line even though it names no AI', () => {
+    const openingLine = "Good morning Mom, it's Ferni. Seth asked me to check in on you.";
+    expect(outboundOpener({ ...parties, openingLine })).toBe(openingLine);
+    expect(outboundOpener({ ...parties, checkin: undefined, openingLine })).toMatch(/AI friend/);
+  });
+});
+
 // Prod 2026-10-18: a contact saved as "mom" was greeted "Hi mom, it's Ferni, ...".
 describe('a contact saved by what they are to the user', () => {
   it.each([
