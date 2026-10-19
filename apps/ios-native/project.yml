@@ -60,6 +60,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         FerniAPIBaseURL: $(FERNI_API_BASE_URL)
+        # The web app's locales (App/Localizable.xcstrings, scripts/build-string-catalog.py).
+        CFBundleLocalizations: [en, en-GB, ar, de, es, fr, he, ja, ko, zh-Hans, zh-Hant]
         # Crash reporting: empty (off) unless Config/Sentry.local.xcconfig sets it.
         SentryDSN: $(SENTRY_DSN)
         ITSAppUsesNonExemptEncryption: false

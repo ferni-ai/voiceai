@@ -139,11 +139,11 @@ private struct RestingLine: View {
                     .tint(FerniColor.accent)
                 }
             case .ended:
-                greeting("Talk soon.", "I'm here whenever you want to talk again.")
+                greeting(String(localized: "Talk soon."), String(localized: "I'm here whenever you want to talk again."))
             default:
                 greeting(
                     Greeting.headline(hour: Calendar.current.component(.hour, from: .now), firstVisit: !call.hasTalked),
-                    "Whenever you're ready, I'm here."
+                    String(localized: "Whenever you're ready, I'm here.")
                 )
             }
         }
@@ -163,12 +163,12 @@ private struct RestingLine: View {
 /// Ferni's hello, by time of day. A first visit gets an introduction.
 enum Greeting {
     static func headline(hour: Int, firstVisit: Bool) -> String {
-        if firstVisit { return "Hi, I'm Ferni." }
+        if firstVisit { return String(localized: "Hi, I'm Ferni.") }
         switch hour {
-        case 5..<12: return "Good morning."
-        case 12..<17: return "Good afternoon."
-        case 17..<22: return "Good evening."
-        default: return "Up late? I'm here."
+        case 5..<12: return String(localized: "Good morning.")
+        case 12..<17: return String(localized: "Good afternoon.")
+        case 17..<22: return String(localized: "Good evening.")
+        default: return String(localized: "Up late? I'm here.")
         }
     }
 }

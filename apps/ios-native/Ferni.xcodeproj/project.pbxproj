@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		04679B6431BF53D7077D2AB0 /* FerniVoice in Frameworks */ = {isa = PBXBuildFile; productRef = 76CF00479EBF92F01F2F2463 /* FerniVoice */; };
 		117123ACF45A5D57E6E0056D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */; };
+		11741E1DFD5DE949343B912A /* LocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */; };
 		27464AAE3E6286E2D651309D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C71781BAD997D314C08864 /* HomeView.swift */; };
 		2FD49FFFD4A0F9F9441CB534 /* FerniLive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FE8F191561C68141BA565BFB /* FerniLive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */; };
@@ -24,6 +25,7 @@
 		775B0EC80FED93D54BCEEF37 /* TalkIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */; };
 		78E7BB2CF29B9CB32F9054E3 /* arrival.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = FADB5DC0AC364E861BD63F4D /* arrival.mp3 */; };
 		7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974DF185A4FA58E1F08FD688 /* FerniApp.swift */; };
+		7E839CEE93CE178C80DF895C /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = F8052F50F9702D6512F41BF8 /* Localizable.xcstrings */; };
 		8008F255B971A496A174CC6F /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E0556D7156242BE3423D87 /* Notifications.swift */; };
 		848DC4E9F3BACD5DBACFB471 /* goodbye.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = BE53A65C5F71E02C0E7B4239 /* goodbye.mp3 */; };
 		89C6C497D887627D3AFD147D /* handoff-to-alex.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */; };
@@ -113,12 +115,14 @@
 		BE53A65C5F71E02C0E7B4239 /* goodbye.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = goodbye.mp3; sourceTree = "<group>"; };
 		C5DE888F55AE5FD01208AD72 /* FerniDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniDesign; path = Packages/FerniDesign; sourceTree = SOURCE_ROOT; };
 		C643B5190988DED731CADF82 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
+		C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
 		CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-maya.mp3"; sourceTree = "<group>"; };
 		F0356DF8A0D911077889805D /* Ferni.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ferni.entitlements; sourceTree = "<group>"; };
 		F11E986D6A235319241904D1 /* Ferni.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Ferni.xcconfig; sourceTree = "<group>"; };
 		F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		F76007C81E8DC1B134090AD5 /* TalkControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkControl.swift; sourceTree = "<group>"; };
+		F8052F50F9702D6512F41BF8 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		FADB5DC0AC364E861BD63F4D /* arrival.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = arrival.mp3; sourceTree = "<group>"; };
 		FE8F191561C68141BA565BFB /* FerniLive.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = FerniLive.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -164,6 +168,7 @@
 			children = (
 				0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */,
 				6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */,
+				C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */,
 			);
 			path = AppTests;
 			sourceTree = "<group>";
@@ -202,6 +207,7 @@
 				F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */,
 				B8C71781BAD997D314C08864 /* HomeView.swift */,
 				C643B5190988DED731CADF82 /* LiveActivityController.swift */,
+				F8052F50F9702D6512F41BF8 /* Localizable.xcstrings */,
 				4E67B08698448132C9E2AE39 /* MemoryViews.swift */,
 				58E0556D7156242BE3423D87 /* Notifications.swift */,
 				5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */,
@@ -349,7 +355,17 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
+				ar,
+				de,
 				en,
+				"en-GB",
+				es,
+				fr,
+				he,
+				ja,
+				ko,
+				"zh-Hans",
+				"zh-Hant",
 			);
 			mainGroup = 15E9CD6162E4ABA203CC3EA7;
 			minimizedProjectReferenceProxies = 1;
@@ -379,6 +395,7 @@
 				462F30BCD7F633DBEFD782D2 /* AppIcon.icon in Resources */,
 				6F1A1895F228B47FE081346A /* Assets.xcassets in Resources */,
 				31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */,
+				7E839CEE93CE178C80DF895C /* Localizable.xcstrings in Resources */,
 				117123ACF45A5D57E6E0056D /* PrivacyInfo.xcprivacy in Resources */,
 				78E7BB2CF29B9CB32F9054E3 /* arrival.mp3 in Resources */,
 				848DC4E9F3BACD5DBACFB471 /* goodbye.mp3 in Resources */,
@@ -434,6 +451,7 @@
 			files = (
 				CF99FB01C1F6E7CF14AF4FCA /* AppModelTests.swift in Sources */,
 				3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */,
+				11741E1DFD5DE949343B912A /* LocalizationTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
