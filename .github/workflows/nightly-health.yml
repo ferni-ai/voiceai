@@ -14,6 +14,9 @@ on:
       - Memory Recall Gate
       - BTH Capability Benchmarks
       - AI Automation Suite
+      # The monitors themselves: when one dies, nothing else reports it.
+      - Required Check Backfill
+      - CI Health
     types: [completed]
 
 permissions:
