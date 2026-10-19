@@ -196,21 +196,47 @@ export interface Metrics {
   medianWords: number;
 }
 
-/** How far apart two runs of the same arm landed, per metric: the gap a change has to beat. */
+/** A gap per metric, in rate units: what a change has to beat. */
 export interface Floor {
   distinctness: number;
   insight: number;
   copy: number;
-  /** |win rate - 0.5| when the second run was judged against the first. */
+  /** For humanness, the distance from 0.5 of the second run's win rate over the first. */
   humanness: number;
 }
 
-export function noiseFloor(a: Metrics, b: Metrics, humanness: Rate): Floor {
+/** How far apart two runs of the same arm actually landed. */
+export function aaGap(a: Metrics, b: Metrics, humanness: Rate): Floor {
   return {
     distinctness: Math.abs(a.distinctness.p - b.distinctness.p),
     insight: Math.abs(a.insight.p - b.insight.p),
     copy: Math.abs(a.copy.p - b.copy.p),
     humanness: Math.abs(humanness.p - 0.5),
+  };
+}
+
+/**
+ * The 95% half-width of the difference between two independent runs at these
+ * rates: the gap the sample sizes alone allow, whatever one A/A pair showed.
+ */
+export function samplingGap(a: Rate, b: Rate): number {
+  return 1.96 * Math.sqrt(variance(a) + variance(b));
+}
+const variance = (r: Rate): number => (r.n ? (r.p * (1 - r.p)) / r.n : 0);
+
+/**
+ * The noise floor: the larger of the observed A/A gap and the sampling gap.
+ * One A/A pair can land close by luck (0.6 points apart at n=180, where
+ * sampling alone allows 8); on its own it would pass noise as a change.
+ */
+export function noiseFloor(a: Metrics, b: Metrics, humanness: Rate): Floor {
+  const seen = aaGap(a, b, humanness);
+  return {
+    distinctness: Math.max(seen.distinctness, samplingGap(a.distinctness, b.distinctness)),
+    insight: Math.max(seen.insight, samplingGap(a.insight, b.insight)),
+    copy: Math.max(seen.copy, samplingGap(a.copy, b.copy)),
+    // A pairwise win rate is one sample against 0.5, not a difference of two.
+    humanness: Math.max(seen.humanness, 1.96 * Math.sqrt(variance({ ...humanness, p: 0.5 }))),
   };
 }
 

@@ -48,12 +48,12 @@ run takes about 1,000. The default model and judge are `gemini-3.5-flash`
 
 ## What it measures
 
-| metric           | how                                                                                                                                                                                                                                                                                                                                                       | better |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| **distinctness** | A blind judge reads one reply at a time and gets the six voice descriptions (from CASTING.md), lettered in a seeded random order. It guesses who spoke. Persona names are masked. Chance is 16.7%.                                                                                                                                                        | higher |
-| **humanness**    | Pairwise against the baseline arm. For the same persona and line, the judge sees both replies in a seeded random order and picks the one that sounds more like a real friend on the phone. Reported as the arm's win rate with a 95% Wilson interval. 50% means no difference.                                                                            | higher |
-| **insight**      | Ten lines carry 2–3 facts about the caller. Each set has one fact the line invites and one it doesn't. The facts arrive as a memory-recall note built by the real `formatRecall`, placed where `memory-recall-hook.ts` puts it. The judge rates each reply natural, forced or none. The rate is the share rated natural; the forced share is in the JSON. | higher |
-| **copy**         | Deterministic, no LLM. This is the share of replies that contain any 4-word run that also appears in the instructions the model received: the system prompt plus the per-turn reminder. The recall note and the caller's words don't count. The report lists the most-copied runs.                                                                        | lower  |
+| metric           | how                                                                                                                                                                                                                                                                                                                                                        | better |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| **distinctness** | A blind judge reads one reply at a time and gets the six voice descriptions (from CASTING.md), lettered in a seeded random order. It guesses who spoke. Persona names are masked. Chance is 16.7%.                                                                                                                                                         | higher |
+| **humanness**    | Pairwise against the baseline arm. For the same persona and line, the judge sees both replies in a seeded random order and picks the one that sounds more like a real friend on the phone. Reported as the arm's win rate with a 95% Wilson interval. 50% means no difference.                                                                             | higher |
+| **insight**      | Nine lines carry 2–3 facts about the caller. Each set has one fact the line invites and one it doesn't. The facts arrive as a memory-recall note built by the real `formatRecall`, placed where `memory-recall-hook.ts` puts it. The judge rates each reply natural, forced or none. The rate is the share rated natural; the forced share is in the JSON. | higher |
+| **copy**         | Deterministic, no LLM. This is the share of replies that contain any 4-word run that also appears in the instructions the model received: the system prompt plus the per-turn reminder. The recall note and the caller's words don't count. The report lists the most-copied runs.                                                                         | lower  |
 
 Not replayed: audio and TTS, tools, the greeting, and the background
 turn-intelligence notes. Each test is one turn deep. Compare arms; don't read
@@ -61,9 +61,13 @@ the absolute numbers as what happens on live calls.
 
 ## The A/A rule
 
-**A change counts only if its gap beats the A/A noise floor.** The floor is how
-far two runs of the same arm landed apart on each metric. For humanness, it is
-the distance of the A/A pairwise win rate from 50%. A change has to move a
+**A change counts only if its gap beats the A/A noise floor.** The A/A gap is
+how far two runs of the same arm landed apart on each metric. For humanness, it
+is the distance of the A/A pairwise win rate from 50%. One A/A pair can land
+close together by luck. On 2026-10-18 the distinctness runs were 0.6 points
+apart, where n=180 alone allows about 8. So the floor is the larger of the A/A
+gap and the 95% gap the sample sizes allow: 1.96 times the standard error of a
+difference of two rates, or of one win rate against 0.5. A change has to move a
 metric further than the floor before it is real. If it doesn't, the comparison
 table reports `noise`. Run a fresh A/A whenever the model, the judge or the
 fixture changes. (Earlier same-config set-judge runs differed by 22 points,

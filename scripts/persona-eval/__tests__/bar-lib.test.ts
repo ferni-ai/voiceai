@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  aaGap,
   armEnv,
   compareArms,
   copiedNgrams,
@@ -14,6 +15,7 @@ import {
   parseSets,
   parseUse,
   rate,
+  samplingGap,
   shuffled,
   verdictFor,
   words,
@@ -175,12 +177,38 @@ describe('copy check', () => {
 });
 
 describe('A/A floor and comparison', () => {
-  it('is the absolute gap between the two runs, and the pairwise distance from 50%', () => {
-    const floor = noiseFloor(metrics(24, 40, 10), metrics(30, 35, 12), rate(45, 100));
-    expect(floor.distinctness).toBeCloseTo(0.06, 10);
-    expect(floor.insight).toBeCloseTo(0.05, 10);
-    expect(floor.copy).toBeCloseTo(0.02, 10);
-    expect(floor.humanness).toBeCloseTo(0.05, 10);
+  it('measures the A/A gap as the absolute gap, and pairwise as the distance from 50%', () => {
+    const gap = aaGap(metrics(24, 40, 10), metrics(30, 35, 12), rate(45, 100));
+    expect(gap.distinctness).toBeCloseTo(0.06, 10);
+    expect(gap.insight).toBeCloseTo(0.05, 10);
+    expect(gap.copy).toBeCloseTo(0.02, 10);
+    expect(gap.humanness).toBeCloseTo(0.05, 10);
+  });
+
+  it('gives the 95% half-width of a difference of two independent rates', () => {
+    // 1.96 * sqrt(.24*.76/100 + .30*.70/100) = 0.1227
+    expect(samplingGap(rate(24, 100), rate(30, 100))).toBeCloseTo(0.1227, 3);
+    expect(samplingGap(rate(0, 0), rate(0, 0))).toBe(0);
+  });
+
+  it('never lets a lucky-close A/A pair set a floor below what sampling allows', () => {
+    // The two runs landed 6 points apart, but n=100 allows 12.3: the floor is 12.3.
+    const close = noiseFloor(metrics(24, 40, 10), metrics(30, 35, 12), rate(45, 100));
+    expect(close.distinctness).toBeCloseTo(0.1227, 3);
+    // A pairwise rate against 0.5 at n=100: 1.96 * sqrt(.25/100) = 0.098.
+    expect(close.humanness).toBeCloseTo(0.098, 3);
+    // The pairwise variance is taken at 0.5 (no difference), not at the observed win rate:
+    // 1/4 wins gives 1.96 * sqrt(.25/4) = 0.49, where the observed rate would give 0.424.
+    expect(noiseFloor(metrics(0, 0, 0), metrics(0, 0, 0), rate(1, 4)).humanness).toBeCloseTo(
+      0.49,
+      3
+    );
+  });
+
+  it('keeps the observed A/A gap when it is wider than sampling allows', () => {
+    const wide = noiseFloor(metrics(20, 40, 10), metrics(50, 40, 10), rate(20, 100));
+    expect(wide.distinctness).toBeCloseTo(0.3, 10);
+    expect(wide.humanness).toBeCloseTo(0.3, 10);
   });
 
   it('calls a gap inside the floor noise, and reads copy as lower-is-better', () => {

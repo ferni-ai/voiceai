@@ -53,6 +53,7 @@ import {
   metricsTable,
   ngramSet,
   noiseFloor,
+  aaGap,
   parseCompanion,
   parsePick,
   parseSets,
@@ -138,7 +139,8 @@ interface Result {
   scored: Scored;
   replies: Replies;
   humanness?: { vs: string; rate: Rate; judgeFailures: number };
-  aa?: { scored: Scored; humanness: Rate; floor: Floor; replies: Replies };
+  /** gap: how far the two runs landed; floor: max(gap, sampling gap), what a change must beat. */
+  aa?: { scored: Scored; humanness: Rate; gap: Floor; floor: Floor; replies: Replies };
   comparison?: ReturnType<typeof compareArms>;
 }
 
@@ -487,8 +489,9 @@ async function main(): Promise<void> {
     const replies2 = await replies('run2');
     const scored2 = await score('run2', replies2);
     const h = await pairwise(replies2, result.replies, `${arm}:aa`);
+    const gap = aaGap(result.scored.metrics, scored2.metrics, h.rate);
     const floor = noiseFloor(result.scored.metrics, scored2.metrics, h.rate);
-    result.aa = { scored: scored2, humanness: h.rate, floor, replies: replies2 };
+    result.aa = { scored: scored2, humanness: h.rate, gap, floor, replies: replies2 };
     md.push(
       metricsTable('run 1', result.scored.metrics),
       '',
@@ -496,9 +499,14 @@ async function main(): Promise<void> {
       '',
       '## A/A noise floor (a change counts only if its gap is larger)',
       '',
-      '| metric | floor |',
-      '|---|---|',
-      ...Object.entries(floor).map(([k, v]) => `| ${k} | ${(100 * v).toFixed(1)} pts |`),
+      'Floor = the larger of the gap the two runs showed and the 95% gap their sample sizes allow.',
+      '',
+      '| metric | A/A gap | sampling gap (when larger) | floor |',
+      '|---|---|---|---|',
+      ...(Object.keys(floor) as Array<keyof Floor>).map(
+        (k) =>
+          `| ${k} | ${(100 * gap[k]).toFixed(1)} pts | ${floor[k] > gap[k] ? `${(100 * floor[k]).toFixed(1)} pts` : '-'} | ${(100 * floor[k]).toFixed(1)} pts |`
+      ),
       ''
     );
   } else md.push(metricsTable(arm, result.scored.metrics), '');
@@ -513,7 +521,14 @@ async function main(): Promise<void> {
       baseResult.scored.metrics,
       result.scored.metrics,
       h.rate,
-      baseResult.aa?.floor ?? null
+      // Recomputed from the saved A/A runs, so a baseline keeps up with the floor rule.
+      baseResult.aa
+        ? noiseFloor(
+            baseResult.scored.metrics,
+            baseResult.aa.scored.metrics,
+            baseResult.aa.humanness
+          )
+        : null
     );
     md.push(
       `## ${arm} vs ${baseResult.arm}`,
