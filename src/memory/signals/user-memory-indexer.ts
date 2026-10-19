@@ -14,6 +14,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { indexConversationSummary } from '../semantic-rag.js';
 import { removeConversationDocument } from '../retrieval/conversation-index.js';
 import { isForgotten } from '../recall/session-recall.js';
+import { isPlainFactRow } from '../recall/expired.js';
 import { getFirestore } from '../firestore-factory.js';
 import { readCallSummaries } from '../storage/call-summaries.js';
 
@@ -223,7 +224,9 @@ export async function indexUserMemories(
       const searchableText = fact.key ? `${named}${fact.key}: ${text}` : `${named}${text}`;
       // Marked by forget.ts, or about a forgotten topic: never searchable again.
       const about = `${String(fact.entityName ?? '')} ${String(fact.key ?? '')} ${text}`;
-      if (fact.forgottenAt != null || isForgotten(about, forgotten)) {
+      // Expired (recall/expired.ts), or someone else's words from a call, which
+      // search results can't frame as reported speech: its index copy goes too.
+      if (fact.forgottenAt != null || !isPlainFactRow(fact) || isForgotten(about, forgotten)) {
         await dropForgotten(`fact_${doc.id}`, result);
         continue;
       }

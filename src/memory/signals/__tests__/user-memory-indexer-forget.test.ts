@@ -72,6 +72,9 @@ const facts: Array<[string, Record<string, unknown>]> = [
   ],
   // The forgotten topic is only the person's name, never in "key: value".
   ['f4', { entityName: 'Steve', key: 'job', value: 'plumber in Ogden', extractedAt: at }],
+  // Past its expireAt (recall/expired.ts), and someone else's words from a call.
+  ['f5', { entityName: 'Mom', key: 'said', value: 'Mom said: church', expireAt: new Date(0) }],
+  ['f6', { entityName: 'Mom', key: 'said', value: 'Mom said: pie', source: 'on_behalf_call' }],
 ];
 vi.mock('../../firestore-factory.js', () => ({
   getFirestore: () => ({
@@ -102,11 +105,11 @@ beforeEach(() => {
 });
 
 describe('the user-memory index and forgetting', () => {
-  it('never indexes a fact marked forgotten or a memory about a forgotten topic, and removes old copies', async () => {
+  it('never indexes a fact marked forgotten, expired, from a call, or about a forgotten topic, and removes old copies', async () => {
     const result = await indexUserMemories('u1', {} as never);
     expect(indexed.map((d) => d.id).sort()).toEqual(['fact_f1', 's2']);
-    expect(removed.sort()).toEqual(['fact_f2', 'fact_f3', 'fact_f4', 's1']);
-    expect(result.categories['forgotten']).toBe(4);
+    expect(removed.sort()).toEqual(['fact_f2', 'fact_f3', 'fact_f4', 'fact_f5', 'fact_f6', 's1']);
+    expect(result.categories['forgotten']).toBe(6);
   });
 
   it('names the person in an indexed fact, so a topic that is only a name matches it', async () => {

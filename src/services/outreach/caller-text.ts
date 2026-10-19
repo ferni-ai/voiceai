@@ -107,3 +107,6 @@ export function reportedFromCall(name: string | undefined, lines: string[]): str
     `(end of report from ${label})`,
   ];
 }
+
+/** CALLER_TEXT_GUARD + reportedFromCall, for recall to frame remembered call rows (memory/recall/reported-call.ts). */
+export const REPORTED_CALL_FRAME = { guard: CALLER_TEXT_GUARD, frame: reportedFromCall };

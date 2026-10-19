@@ -26,6 +26,7 @@ import {
   type HumanMemoryProfileLike,
 } from '../../../memory/storage/human-signal-merge.js';
 import { getFirestoreDb, toSafeDate } from '../../../utils/firestore-utils.js';
+import { plainFactDocs } from '../../../memory/recall/expired.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { BuilderCategory } from '../core/categories.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../core/types.js';
@@ -265,10 +266,8 @@ async function getRecentEntities(userId: string): Promise<DynamicEntity[]> {
   }
 }
 
-/**
- * Retrieve facts about specific entities
- */
-async function getFactsForEntities(userId: string, entityNames: string[]): Promise<DynamicFact[]> {
+/** Facts about these entities, without expired or reported-call rows (recall/expired.ts). */
+export async function getFactsForEntities(userId: string, entityNames: string[]) {
   if (entityNames.length === 0) return [];
 
   try {
@@ -290,7 +289,7 @@ async function getFactsForEntities(userId: string, entityNames: string[]): Promi
         .limit(config.maxFactsPerEntity)
         .get();
 
-      const facts = snapshot.docs.map((doc) => {
+      const facts = plainFactDocs(snapshot.docs).map((doc) => {
         const data = doc.data();
         return {
           id: doc.id,
