@@ -9,6 +9,8 @@ struct CallAvatar: View {
     let call: CallSession
     /// A sheet or cover hides Ferni, so the avatar stops drawing.
     var covered = false
+    /// What the body asks for (a touch's haptic).
+    var onCue: ((KeyedCue) -> Void)?
 
     var body: some View {
         let avatar = call.avatar
@@ -19,9 +21,11 @@ struct CallAvatar: View {
             activity: Self.activity(avatar.pose),
             name: PersonaRegistry.get(avatar.personaID).name,
             covered: covered,
-            level: { [level = call.agentLevel] in level.level }
+            level: { [level = call.agentLevel] in level.level },
+            onCue: onCue
         )
-        .contentShape(Circle())
+        // AvatarView's own shape (Ferni, not his whole square) is the hit area
+        // for this tap too; an outer shape here would replace it.
         .onTapGesture { if speaking { Task { await call.interrupt() } } }
         .accessibilityHint(speaking ? "Tap to interrupt" : "")
         .accessibilityActions {

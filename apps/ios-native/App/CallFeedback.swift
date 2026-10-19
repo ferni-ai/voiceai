@@ -34,6 +34,20 @@ final class CallFeedback {
         }
     }
 
+    /// What Ferni's body asks for outside the call's own feedback: a touch at
+    /// rest is one soft tap (the rig already limits it to one every 2 s).
+    func play(_ cue: KeyedCue) {
+        switch cue {
+        case .touch:
+            haptics.play(.touch)
+            #if DEBUG
+            UITestScenario.Counters.shared.touches += 1
+            #endif
+        default:
+            break
+        }
+    }
+
     /// One prepared player per sound, on the call's own audio session.
     private func player(for name: String) -> AVAudioPlayer? {
         if let player = players[name] { return player }
