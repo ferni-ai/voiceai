@@ -24,6 +24,11 @@ import { flagOn } from './env-flag.js';
 import { isChiefOfStaffTool } from './alex-chief-of-staff-flag.js';
 import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
 import { llmContextCacheEnabled } from './llm-context-cache-flag.js';
+import {
+  isLeanAlwaysOnTool,
+  LEAN_ALWAYS_ON_TOOLS,
+  sameTurnToolsEnabled,
+} from './same-turn-tools-config.js';
 
 const log = createLogger({ module: 'ToolConfig' });
 
@@ -386,8 +391,12 @@ const callJournalToolsOn = (): boolean => flagOn('CALL_JOURNAL') && flagOn('JOUR
  */
 export function isEssentialTool(toolName: string): boolean {
   const config = getToolConfig();
+  const listed = sameTurnToolsEnabled() // TOOLS_SAME_TURN: the lean always-on set
+    ? isLeanAlwaysOnTool(toolName) ||
+      (isCoachLocalEnabled() && COACH_LOCAL_TOOLS.includes(toolName))
+    : config.essentialTools.includes(toolName);
   return (
-    config.essentialTools.includes(toolName) ||
+    listed ||
     (CALL_JOURNAL_TOOLS.includes(toolName) && callJournalToolsOn()) ||
     isChiefOfStaffTool(toolName) || // ALEX_CHIEF_OF_STAFF=on (multi-agent/chief-of-staff-tools.ts)
     toolName.startsWith('handoffTo') ||
@@ -400,6 +409,7 @@ export function isEssentialTool(toolName: string): boolean {
  * Get the essential tools list
  */
 export function getEssentialTools(): readonly string[] {
+  if (sameTurnToolsEnabled()) return Object.keys(LEAN_ALWAYS_ON_TOOLS);
   return getToolConfig().essentialTools;
 }
 

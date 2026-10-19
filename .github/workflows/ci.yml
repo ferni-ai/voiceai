@@ -35,6 +35,12 @@ on:
     # runs stop starving the merge queue for runners. The queue runs everything.
   # The merge queue tests each PR on top of main and whatever is queued ahead of it.
   merge_group:
+  # Once a night the whole suite runs on main, whatever changed. The queue and pushes
+  # skip jobs a change can't reach (setup's code/node scoping), which is right only if
+  # the exclude patterns are right; this catches it when they aren't. A failure opens a
+  # ci-health issue (nightly-health.yml).
+  schedule:
+    - cron: '41 6 * * *'
 
 # A new push to a PR supersedes its running checks. Merge-queue entries and pushes to
 # main always finish: cancelling one drops the queue entry or main's only verdict.
