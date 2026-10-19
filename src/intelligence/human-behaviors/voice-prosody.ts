@@ -65,7 +65,7 @@ export function getVoiceProsodyResponse(voiceEmotion: VoiceEmotionInput | null):
     return {
       shouldAdjust: true,
       guidance: guidance.join(' '),
-      emotionalMirror: 'I hear you... <break time="300ms"/>',
+      emotionalMirror: 'Mm... <break time="300ms"/>',
     };
   }
 

@@ -17,8 +17,7 @@ vi.mock('../../../../../utils/firestore-utils.js', async (orig) => ({
   getFirestoreDb: () => fake.db.db,
 }));
 const member = vi.hoisted(() => ({ value: false }));
-vi.mock('../../../../../services/platform/cohort-flags.js', async (orig) => ({
-  ...(await orig<typeof import('../../../../../services/platform/cohort-flags.js')>()),
+vi.mock('../../../../../services/platform/cohort-membership.js', () => ({
   isCohortMember: async (_uid: string, cohort: string) =>
     cohort === 'friends-and-family' && member.value,
 }));

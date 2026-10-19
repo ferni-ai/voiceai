@@ -107,7 +107,6 @@ function draftEmail(
 ): DraftedEmail {
   const id = `draft_${Date.now()}`;
 
-  // Generate body based on tone
   let body: string;
   let signoff: string;
 
@@ -157,7 +156,6 @@ async function sendApprovedEmailReal(to: string, subject: string, body: string):
 
   const result = await sendEmail(validation.sanitized as string, subject, body);
 
-  // Find and update draft status if exists
   for (const [id, draft] of emailDrafts.entries()) {
     if (draft.to === to && draft.subject === subject) {
       draft.status = 'sent';
@@ -210,7 +208,6 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
   }
 
   try {
-    // Default TwiML for a simple voice message
     const defaultTwiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Say voice="alice">Hi! This is a call from Alex, your communication assistant. ${purpose}. Have a great day!</Say>
@@ -286,7 +283,6 @@ async function sendVoiceMessageRealWithUserId(
   }
 
   try {
-    // Create voice message record
     const voiceMsg = await createVoiceMessage({
       userId,
       message,
@@ -340,7 +336,6 @@ async function scheduleReminderReal(params: {
   const deliveryMethod: ReminderDeliveryMethod =
     params.deliveryMethod || (params.contact ? 'sms' : 'in_app');
 
-  // Validate the contact
   if (deliveryMethod === 'email' && deliveryAddress) {
     const validation = validateEmail(deliveryAddress);
     if (!validation.valid) {
@@ -711,7 +706,6 @@ export function createCommunicationTools() {
           return "I'll remember that for this conversation. For permanent storage, I'd need access to your profile.";
         }
 
-        // Validate inputs
         if (phone) {
           const validation = validatePhone(phone);
           if (!validation.valid) {
