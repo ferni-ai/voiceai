@@ -64,6 +64,12 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         FerniAPIBaseURL: $(FERNI_API_BASE_URL)
+        # CarPlay (voice-based conversation, iOS 26.4) is built and tested but not
+        # registered until Apple grants com.apple.developer.carplay-voice-based-conversation.
+        # To ship it: add that entitlement above and, under UIApplicationSceneManifest,
+        # UISceneConfigurations: {CPTemplateApplicationSceneSessionRoleApplication:
+        # [{UISceneClassName: CPTemplateApplicationScene,
+        #   UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).CarPlaySceneDelegate}]}.
         # The web app's locales (App/Localizable.xcstrings, scripts/build-string-catalog.py).
         CFBundleLocalizations: [en, en-GB, ar, de, es, fr, he, ja, ko, zh-Hans, zh-Hant]
         # Crash reporting: empty (off) unless Config/Sentry.local.xcconfig sets it.
