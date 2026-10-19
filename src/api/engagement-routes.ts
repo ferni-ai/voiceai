@@ -41,6 +41,7 @@ import { handleGroupCoachingRoutes } from './routes/group-coaching.js';
 import { handleGrowthRoutes } from './routes/growth.js';
 import { handleMemoriesRoutes } from './routes/memories.js';
 import { handleRememberedRoutes } from './routes/remembered.js';
+import { handleCallRememberedRoute } from './routes/call-remembered.js';
 import { handleKnownRoutes } from './routes/known.js';
 import { handlePredictionsRoutes } from './routes/predictions.js';
 import { handleRelationshipRoutes } from './routes/relationship.js';
@@ -161,6 +162,11 @@ export async function handleEngagementRoutes(
 
   // Rituals
   if (await handleRitualsRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // What Ferni kept from the call that just ended (the app's "I'll remember" card)
+  if (await handleCallRememberedRoute(req, res, pathname, parsedUrl)) {
     return true;
   }
 
