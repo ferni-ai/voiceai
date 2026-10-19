@@ -13,11 +13,7 @@
  *
  * @module services/follow-through/opener-pick
  */
-import {
-  forgottenInProcess,
-  forgottenTopicsOrNull,
-  isForgotten,
-} from '../../memory/recall/forget.js';
+import { forgottenInProcess, forgottenTopicsOrNull, isForgotten } from '../../memory/index.js';
 import type { FollowUp, FollowUpKind } from './follow-up.js';
 import type { FollowUpStore } from './ports.js';
 import { rightMoment } from './right-moment.js';
