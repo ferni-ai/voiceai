@@ -40,6 +40,8 @@ vi.mock('../../outreach/unified-delivery.js', () => ({
   getChannelStatus: vi.fn(async () => ({ push: { available: pushUp } })),
 }));
 vi.mock('../../calendar/unified-calendar-store.js', () => ({ getEvents }));
+const listTokenUsers = vi.fn(async () => ['cal-user']);
+vi.mock('../../identity/google-calendar-token-store.js', () => ({ listTokenUsers }));
 
 const { runCalendarTriggerCheck } = await import('../calendar-trigger-worker.js');
 
@@ -54,7 +56,7 @@ describe('runCalendarTriggerCheck', () => {
   it('fetches no calendars when push is off and nobody has calendar workflows', async () => {
     const result = await runCalendarTriggerCheck();
     expect(result).toEqual({ usersChecked: 0, push: false });
-    expect(collections).not.toContain('google_calendar_tokens');
+    expect(listTokenUsers).not.toHaveBeenCalled();
     expect(collections).not.toContain('calendar_providers');
     expect(getEvents).not.toHaveBeenCalled();
   });
@@ -70,7 +72,15 @@ describe('runCalendarTriggerCheck', () => {
     pushUp = true;
     const result = await runCalendarTriggerCheck();
     expect(result.push).toBe(true);
-    expect(collections).toContain('google_calendar_tokens');
+    expect(listTokenUsers).toHaveBeenCalled();
     expect(result.usersChecked).toBeGreaterThan(0);
+  });
+
+  it('finds Google users in the encrypted store, not the retired root collection', async () => {
+    pushUp = true;
+    listTokenUsers.mockResolvedValueOnce(['google-only-user']);
+    await runCalendarTriggerCheck();
+    expect(collections).not.toContain('google_calendar_tokens');
+    expect(getEvents).toHaveBeenCalledWith('google-only-user', expect.anything(), expect.anything());
   });
 });

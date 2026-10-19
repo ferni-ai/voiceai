@@ -29,10 +29,10 @@ import { getRateLimiter } from '../../tools/rate-limiter.js';
 // CONFIGURATION
 // ============================================================================
 
-const GOOGLE_OAUTH_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || '';
-const GOOGLE_OAUTH_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || '';
+const GOOGLE_OAUTH_CLIENT_ID = (process.env.GOOGLE_CALENDAR_CLIENT_ID ?? '').trim();
+const GOOGLE_OAUTH_CLIENT_SECRET = (process.env.GOOGLE_CALENDAR_CLIENT_SECRET ?? '').trim();
 const GOOGLE_OAUTH_REDIRECT_URI =
-  process.env.GOOGLE_CALENDAR_REDIRECT_URI || 'http://localhost:3003/auth/google/callback';
+  process.env.GOOGLE_CALENDAR_REDIRECT_URI?.trim() || 'http://localhost:3003/auth/google/callback';
 
 // Scopes needed for calendar and email operations
 // NOTE: Gmail scope is read-only for security
