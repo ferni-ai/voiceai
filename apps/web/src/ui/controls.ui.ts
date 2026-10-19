@@ -163,10 +163,7 @@ function updateButtonVisibility(state: ConnectionState): void {
       show(elements.connectBtn, 'flex');
       hide(elements.disconnectBtn);
       showConnectingStatus(elements.connectBtn, false);
-      // Reset disconnect button to default styling
-      removeClass(elements.disconnectBtn, 'btn-primary');
-      removeClass(elements.disconnectBtn, 'btn-magnetic');
-      addClass(elements.disconnectBtn, 'btn-secondary');
+      removeClass(elements.disconnectBtn, 'btn-end-call');
       break;
 
     case 'connecting':
@@ -182,10 +179,9 @@ function updateButtonVisibility(state: ConnectionState): void {
       hide(elements.connectBtn);
       show(elements.disconnectBtn, 'flex');
       elements.disconnectBtn.disabled = false;
-      // Make disconnect button match persona colors!
-      removeClass(elements.disconnectBtn, 'btn-secondary');
-      addClass(elements.disconnectBtn, 'btn-primary');
-      addClass(elements.disconnectBtn, 'btn-magnetic');
+      // Ending the call must not look like starting one: a calm outlined button
+      // with a soft warm tint, never the filled persona Connect pill.
+      addClass(elements.disconnectBtn, 'btn-end-call');
       break;
 
     case 'error':

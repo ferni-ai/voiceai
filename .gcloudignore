@@ -46,6 +46,7 @@
 # Exclude large subdirs but keep apps/cli/ for build scripts
 apps/android/
 apps/android-native/
+apps/android-twa/
 apps/ios/
 apps/ios-native/
 apps/macos-menubar/
@@ -297,3 +298,6 @@ models/
 **/.venv*/
 *.pyc
 __pycache__/
+
+# Retired apps kept for reference (apps/archive/README.md)
+apps/archive/
