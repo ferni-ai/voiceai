@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FollowUp } from '../../follow-through/index.js';
 import { followUp } from '../../follow-through/__tests__/fixtures.js';
 import { storedTopic } from '../../../memory/recall/session-recall.js';
@@ -9,6 +9,21 @@ import {
   sendDueFollowUpTexts,
   type FollowUpTextDeps,
 } from '../follow-up-texts.js';
+
+// The log lines only; the outcome mapping is the real one.
+const { logPromiseOutcome, logPromiseJobRun } = vi.hoisted(() => ({
+  logPromiseOutcome: vi.fn(),
+  logPromiseJobRun: vi.fn(),
+}));
+vi.mock('../../follow-through/promise-outcomes.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../follow-through/promise-outcomes.js')>()),
+  logPromiseOutcome,
+  logPromiseJobRun,
+}));
+beforeEach(() => {
+  logPromiseOutcome.mockClear();
+  logPromiseJobRun.mockClear();
+});
 
 const NOW = new Date('2026-10-13T16:10:00Z'); // 12:10 in New York; the fixture is due at 12:00
 
@@ -168,6 +183,60 @@ describe('sendDueFollowUpTexts', () => {
   });
 });
 
+describe('PROMISE_OUTCOME / PROMISE_JOB_RUN lines', () => {
+  it('a sent text is done, an expired follow-up failed missed-window, by follow-up id', async () => {
+    const stale = followUp({ id: 'stale', dueAt: '2026-10-09T16:00:00.000Z' });
+    const { d } = deps([followUp(), stale]);
+    await sendDueFollowUpTexts(d, { now: NOW });
+    expect(logPromiseOutcome.mock.calls).toEqual([
+      [
+        'follow-through-text',
+        { outcome: 'failed', reason: 'missed-window' },
+        { followUpId: 'stale' },
+      ],
+      ['follow-through-text', { outcome: 'done' }, { followUpId: 'f1' }],
+    ]);
+    expect(logPromiseJobRun).toHaveBeenCalledWith('follow-through', {
+      due: 2,
+      done: 1,
+      failed: 0,
+      held: 0,
+      missed: 1,
+    });
+  });
+
+  it("the sender's skips: opted-out failed, a rate gap held", async () => {
+    const { d } = deps([followUp()]);
+    d.sendText = vi.fn(async () => ({ sent: false, reason: 'opted-out' }));
+    await sendDueFollowUpTexts(d, { now: NOW });
+    d.sendText = vi.fn(async () => ({ sent: false, reason: 'recently-sent' }));
+    await sendDueFollowUpTexts(d, { now: NOW });
+    expect(logPromiseOutcome.mock.calls.map((c) => c[1])).toEqual([
+      { outcome: 'failed', reason: 'opted-out' },
+      { outcome: 'held', reason: 'rate-gap' },
+    ]);
+    expect(logPromiseJobRun.mock.calls.map((c) => c[1])).toEqual([
+      { due: 1, done: 0, failed: 1, held: 0, missed: 0 },
+      { due: 1, done: 0, failed: 0, held: 1, missed: 0 },
+    ]);
+  });
+
+  it('logs a run with nobody opted in, and nothing on a dry run', async () => {
+    await sendDueFollowUpTexts(deps([]).d, { now: NOW });
+    expect(logPromiseJobRun).toHaveBeenCalledWith('follow-through', {
+      due: 0,
+      done: 0,
+      failed: 0,
+      held: 0,
+      missed: 0,
+    });
+    logPromiseJobRun.mockClear();
+    await sendDueFollowUpTexts(deps([followUp()]).d, { now: NOW, dryRun: true });
+    expect(logPromiseJobRun).not.toHaveBeenCalled();
+    expect(logPromiseOutcome).not.toHaveBeenCalled();
+  });
+});
+
 describe('sendDueFollowUpTexts and forgotten topics', () => {
   const trip = followUp({ id: 'trip', text: 'ask how the Lisbon trip planning went' });
 
@@ -177,6 +246,12 @@ describe('sendDueFollowUpTexts and forgotten topics', () => {
     expect(d.sendText).not.toHaveBeenCalled();
     expect(docs.get('trip')).toMatchObject({ status: 'released', closedReason: 'forgotten' });
     expect(report).toMatchObject({ sent: 0, forgotten: 1 });
+    // The person's own stop: cancelled, never a failure.
+    expect(logPromiseOutcome).toHaveBeenCalledWith(
+      'follow-through-text',
+      { outcome: 'cancelled', reason: 'forgotten' },
+      { followUpId: 'trip' }
+    );
   });
 
   it('still texts the next due follow-up that is not about the topic', async () => {
@@ -212,6 +287,7 @@ describe('sendDueFollowUpTexts and forgotten topics', () => {
     const report = await sendDueFollowUpTexts(d, { now: NOW, dryRun: true });
     expect(saved).toHaveLength(0);
     expect(report).toMatchObject({ wouldSend: 0, forgotten: 1 });
+    expect(logPromiseOutcome).not.toHaveBeenCalled();
   });
 });
 

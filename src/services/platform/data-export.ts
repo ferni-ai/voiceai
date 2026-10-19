@@ -678,9 +678,7 @@ class DataExportService {
     }
   }
 
-  // ============================================================================
   // COUNT HELPERS
-  // ============================================================================
 
   private async getProfileItemCount(userId: string): Promise<number> {
     try {
@@ -756,9 +754,7 @@ class DataExportService {
     }
   }
 
-  // ============================================================================
   // DELETE ALL DATA
-  // ============================================================================
 
   /**
    * Delete all user data (GDPR right to erasure).
@@ -783,6 +779,11 @@ class DataExportService {
       await step('gmail_send_grant', 'Failed to revoke the Gmail send grant', async () => {
         const { forgetGmailSendGrant } = await import('../identity/gmail-send-as-user.js');
         await forgetGmailSendGrant(userId);
+      });
+      // 1c. Revoke the Google Calendar grant (and delete its tokens) the same way
+      await step('google_calendar_grant', 'Failed to revoke the Google Calendar grant', async () => {
+        const { disconnectGoogleCalendar } = await import('../identity/google-calendar-disconnect.js');
+        await disconnectGoogleCalendar(userId);
       });
 
       // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed
@@ -875,9 +876,7 @@ class DataExportService {
     }
   }
 
-  // ============================================================================
   // HELPERS
-  // ============================================================================
 
   /**
    * Convert category name to JSON key.
