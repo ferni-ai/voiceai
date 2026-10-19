@@ -16,6 +16,7 @@
 		2FD49FFFD4A0F9F9441CB534 /* FerniLive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FE8F191561C68141BA565BFB /* FerniLive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */; };
 		335AA4AA085EDDDDB1BC48CF /* FerniLink in Frameworks */ = {isa = PBXBuildFile; productRef = 9532464E6AF9B9AA9D7F09DD /* FerniLink */; };
+		358627D9E201AD0580FC0F1C /* CallAnnouncementTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52EB4AF176D7F4E747ABBAA4 /* CallAnnouncementTests.swift */; };
 		35F9F60F2744005E17C2FE1C /* CarPlaySceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DA4BC7C1EABDFAE3445A318 /* CarPlaySceneDelegate.swift */; };
 		3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */; };
 		38240C7BC3E78705B56F4A7C /* handoff-to-nayan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */; };
@@ -149,6 +150,7 @@
 		49306E5B24BD5C520DBE56ED /* CallFeedback.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallFeedback.swift; sourceTree = "<group>"; };
 		4E67B08698448132C9E2AE39 /* MemoryViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryViews.swift; sourceTree = "<group>"; };
 		4EA1FBC06E2F396B11D85385 /* FerniWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchApp.swift; sourceTree = "<group>"; };
+		52EB4AF176D7F4E747ABBAA4 /* CallAnnouncementTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallAnnouncementTests.swift; sourceTree = "<group>"; };
 		58E0556D7156242BE3423D87 /* Notifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notifications.swift; sourceTree = "<group>"; };
 		5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-nayan.mp3"; sourceTree = "<group>"; };
@@ -255,6 +257,7 @@
 			isa = PBXGroup;
 			children = (
 				0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */,
+				52EB4AF176D7F4E747ABBAA4 /* CallAnnouncementTests.swift */,
 				6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */,
 				C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */,
 			);
@@ -626,6 +629,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CF99FB01C1F6E7CF14AF4FCA /* AppModelTests.swift in Sources */,
+				358627D9E201AD0580FC0F1C /* CallAnnouncementTests.swift in Sources */,
 				3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */,
 				11741E1DFD5DE949343B912A /* LocalizationTests.swift in Sources */,
 			);

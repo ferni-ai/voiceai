@@ -69,6 +69,10 @@ struct HomeView: View {
             }
             .background(RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID)))
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
+            // Trouble is announced wherever you are, including after the call view goes.
+            .onChange(of: CallAnnouncement.text(phase: call.phase, onHold: call.isOnHold)) { _, line in
+                if let line { AccessibilityNotification.Announcement(line).post() }
+            }
             .toolbar {
                 if showsAccountButton { ToolbarItem(placement: .topBarTrailing) {
                     Button {
