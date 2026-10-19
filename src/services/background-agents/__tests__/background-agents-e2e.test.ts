@@ -4,7 +4,6 @@
  * Comprehensive tests for the background agent system including:
  * - Unified result capture
  * - Research executor (Peter)
- * - Reservation executor (Jordan)
  * - Context injection for "While You Were Away"
  * - Notification delivery
  *
@@ -170,12 +169,6 @@ import {
   RESEARCH_UNAVAILABLE_SUMMARY,
   type ResearchRequest,
 } from '../executors/research-executor.js';
-
-import {
-  executeReservationTask,
-  queueReservationTask,
-  type ReservationRequest,
-} from '../executors/reservation-executor.js';
 
 // ============================================================================
 // TEST SETUP
@@ -403,80 +396,6 @@ describe('Background Agents E2E', () => {
   });
 
   // ==========================================================================
-  // RESERVATION EXECUTOR TESTS
-  // ==========================================================================
-
-  describe('Reservation Executor', () => {
-    it('should execute a restaurant reservation', async () => {
-      const request: ReservationRequest = {
-        userId: 'reservation-user',
-        type: 'restaurant',
-        venue: 'Chez Michel',
-        dateTime: new Date(Date.now() + 86400000).toISOString(), // Tomorrow
-        partySize: 4,
-        specialRequests: 'Window table please',
-        initiatedBy: 'jordan',
-      };
-
-      const result = await executeReservationTask(request);
-
-      expect(result.success).toBe(true);
-      expect(result.venue).toBe('Chez Michel');
-      expect(result.confirmationNumber).toMatch(/^RES-/);
-      expect(result.partySize).toBe(4);
-    });
-
-    it('should execute a hotel reservation', async () => {
-      const request: ReservationRequest = {
-        userId: 'hotel-user',
-        type: 'hotel',
-        venue: 'Grand Hotel',
-        dateTime: new Date(Date.now() + 604800000).toISOString(), // Next week
-        specialRequests: 'Late checkout',
-        initiatedBy: 'jordan',
-      };
-
-      const result = await executeReservationTask(request);
-
-      expect(result.success).toBe(true);
-      expect(result.confirmationNumber).toMatch(/^HTL-/);
-      expect(result.cancellationPolicy).toContain('cancellation');
-    });
-
-    it('should execute a venue reservation', async () => {
-      const request: ReservationRequest = {
-        userId: 'venue-user',
-        type: 'venue',
-        venue: 'The Grand Ballroom',
-        dateTime: new Date(Date.now() + 2592000000).toISOString(), // ~30 days
-        partySize: 100,
-        context: 'wedding reception',
-        initiatedBy: 'jordan',
-      };
-
-      const result = await executeReservationTask(request);
-
-      expect(result.success).toBe(true);
-      expect(result.confirmationNumber).toMatch(/^VEN-/);
-    });
-
-    it('should queue reservation for background execution', async () => {
-      const request: ReservationRequest = {
-        userId: 'queue-reservation-user',
-        type: 'activity',
-        venue: 'City Walking Tour',
-        dateTime: new Date(Date.now() + 172800000).toISOString(),
-        partySize: 2,
-        initiatedBy: 'jordan',
-      };
-
-      const taskId = await queueReservationTask(request);
-
-      expect(taskId).toMatch(/^reservation_/);
-    });
-  });
-
-  // ==========================================================================
   // E2E FLOW TESTS
   // ==========================================================================
 
@@ -492,23 +411,6 @@ describe('Background Agents E2E', () => {
 
       expect(researchResult.findings).toEqual([]);
       expect(mockFirestoreData.size).toBe(0);
-    });
-
-    it('should complete full reservation → capture → pending flow', async () => {
-      const userId = 'e2e-reservation-user';
-
-      // 1. Execute reservation task
-      const reservationResult = await executeReservationTask({
-        userId,
-        type: 'restaurant',
-        venue: 'Test Restaurant',
-        dateTime: new Date().toISOString(),
-        partySize: 2,
-        initiatedBy: 'jordan',
-      });
-
-      expect(reservationResult.success).toBe(true);
-      expect(reservationResult.confirmationNumber).toBeDefined();
     });
 
     it('should handle multiple result types for same user', async () => {

@@ -30,6 +30,7 @@ import { isProactiveCall } from './greeting-direction.js';
 import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 import { talkThroughFor, type TalkThrough } from './handoff-talk-through.js';
+import { holdOutOfMemory } from './arrival-grounding.js';
 import {
   arrivalLine,
   briefedHandoffs,
@@ -38,7 +39,6 @@ import {
   withBrief,
 } from './handoff-brief.js';
 export { calmGreeting } from './greeting-direction.js';
-
 // Predictive handoff - pre-briefings for specialist personas
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
 import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
@@ -826,7 +826,7 @@ export class AgentOrchestrator {
   ): Promise<void> {
     const greeting =
       firstLine ?? this.getGreetingPhrase(agent.personaId, previousPersonaId, request);
-    const textToSpeak = greeting || "Hey! What's up?";
+    const textToSpeak = holdOutOfMemory(this.sessionId, greeting || "Hey! What's up?"); // ARRIVAL_LINE_GROUNDED
 
     log.info(
       {
