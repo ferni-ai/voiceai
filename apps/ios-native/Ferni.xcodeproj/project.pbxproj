@@ -28,6 +28,7 @@
 		4E1D8F2D04D189C0702BF65C /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F50B2CC9B38F03C94B7E3D /* RootView.swift */; };
 		58CE92EB04A747ACB439AC52 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */; };
 		639D84959EC4165C2F4DA23F /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB291C79E629A29D4B86C651 /* AccessibilityAuditTests.swift */; };
+		65A85BD3CF6927E84BDB94EC /* AvatarTouchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */; };
 		6C5C041CBBDFB39263B52443 /* FerniLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65555DCB199766EA982A43A3 /* FerniLive.swift */; };
 		6F1A1895F228B47FE081346A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F086DF8C257F87FC0940C6A /* Assets.xcassets */; };
 		761A16438630BC6B8CC02981 /* EndCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */; };
@@ -191,6 +192,7 @@
 		AE2FE78E70E6B38E7C790922 /* WatchRemote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRemote.swift; sourceTree = "<group>"; };
 		AEF97D68E6384026BE0D8738 /* FerniWatchWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchWidgets.swift; sourceTree = "<group>"; };
 		B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniUITestSupport.swift; sourceTree = "<group>"; };
+		B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarTouchTests.swift; sourceTree = "<group>"; };
 		B8C71781BAD997D314C08864 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		BB291C79E629A29D4B86C651 /* AccessibilityAuditTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityAuditTests.swift; sourceTree = "<group>"; };
 		BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkIntent.swift; sourceTree = "<group>"; };
@@ -315,6 +317,7 @@
 			isa = PBXGroup;
 			children = (
 				BB291C79E629A29D4B86C651 /* AccessibilityAuditTests.swift */,
+				B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */,
 				B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */,
 				AE06F525671F6FD0FBC7779D /* StoreScreenshotTests.swift */,
 				41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */,
@@ -695,6 +698,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				639D84959EC4165C2F4DA23F /* AccessibilityAuditTests.swift in Sources */,
+				65A85BD3CF6927E84BDB94EC /* AvatarTouchTests.swift in Sources */,
 				C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */,
 				124CC2F5CBCF36E657BE6075 /* StoreScreenshotTests.swift in Sources */,
 				49961E1E4E6B791C493108B4 /* TalkButtonTests.swift in Sources */,

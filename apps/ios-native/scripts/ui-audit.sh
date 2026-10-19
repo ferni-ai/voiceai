@@ -1,5 +1,5 @@
 #!/bin/bash
-# The accessibility audit and the Talk-button hit tests (FerniUITests) on one
+# The accessibility audit, the Talk-button hit tests and the avatar touch tests (FerniUITests) on one
 # simulator, picked by name so CI audits the layouts that were checked by hand.
 #
 #   gate:   any failure fails the job (iPhone 17 Pro Max).
@@ -30,7 +30,7 @@ run() {
   rm -rf "$bundle"
   set +e
   xcodebuild test-without-building "${common[@]}" -resultBundlePath "$bundle" \
-    -only-testing:FerniUITests/AccessibilityAuditTests -only-testing:FerniUITests/TalkButtonTests \
+    -only-testing:FerniUITests/AccessibilityAuditTests -only-testing:FerniUITests/TalkButtonTests -only-testing:FerniUITests/AvatarTouchTests \
     2>&1 | tee "$out/ui-audit-$slug.log" | grep -E "AUDIT \[|Test Case .*(passed|failed)|Executed [0-9]+ tests"
   status=${PIPESTATUS[0]}
   set -e

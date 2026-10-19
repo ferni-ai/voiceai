@@ -84,6 +84,14 @@ private final class SilentAudio: CallAudio, @unchecked Sendable {
     func systemAudio(active: Bool) {}
 }
 
+extension UITestScenario {
+    /// What happened in this launch, for the probe.
+    @MainActor @Observable final class Counters {
+        static let shared = Counters()
+        var touches = 0
+    }
+}
+
 /// Reports the accessibility settings the views actually received, so a UI
 /// test can tell an override that took effect from one that didn't.
 struct UITestEnvironmentProbe: View {
@@ -98,6 +106,12 @@ struct UITestEnvironmentProbe: View {
             // Verbatim: test-only text stays out of the String Catalog.
             .accessibilityLabel(Text(verbatim: "Test settings"))
             .accessibilityValue(Text(verbatim: "reduceMotion=\(reduceMotion) reduceTransparency=\(reduceTransparency)"))
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityElement()
+            .accessibilityIdentifier("uitest.touches")
+            .accessibilityLabel(Text(verbatim: "Test touches"))
+            .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.touches)"))
     }
 }
 

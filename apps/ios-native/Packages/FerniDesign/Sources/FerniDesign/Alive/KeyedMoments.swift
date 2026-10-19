@@ -46,6 +46,8 @@ public enum KeyChannel: Sendable, CaseIterable {
 /// What a keyed moment asks the app for at a given frame (sound, sparkle).
 public enum KeyedCue: Equatable, Sendable {
     case arrivalChime, pop, sparkle, land, hop, whoosh, giggle, heart
+    /// A finger on Ferni: one soft tap in the hand, at most every 2 s.
+    case touch
 }
 
 /// Hand-keyed moments: poses on exact frames at 60 fps, each key with its own
