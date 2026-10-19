@@ -169,15 +169,12 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
   const callId = `call-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
   try {
-    // Validate phone number format
     const normalizedPhone = normalizePhoneNumber(phoneNumber);
     if (!normalizedPhone) {
       return { success: false, error: 'Invalid phone number format' };
     }
-    // MESSAGING_PIPELINE: callUser and every proactive call stop at a call opt-out. A call
-    // the call-hours guard holds comes back through here when it is placed (deferred-calls.ts),
-    // so it is checked again then. A quiet-hours call saved to scheduled_calls below is not
-    // dialled later by anything (no job reads pending scheduled_calls), so there is no later dial.
+    // MESSAGING_PIPELINE: every proactive call stops at a call opt-out. A call-hours hold is
+    // re-checked when placed (deferred-calls.ts); no job ever dials a stored quiet-hours call.
     const refused = await consentBlocks(normalizedPhone, 'call', true);
     if (refused) return { success: false, error: `Not calling: ${refused}` };
 
@@ -195,10 +192,8 @@ export async function scheduleProactiveCall(request: ProactiveCallRequest): Prom
     if (quiet) log.info({ userId, callId }, 'Call delayed due to quiet hours');
     const scheduledFor = quiet && hours ? hours.until : requestedFor;
 
-    // Enhance SSML for natural delivery
     const enhancedSSML = enhanceSSMLForCall(ssml, personaId);
 
-    // Store scheduled call in Firestore
     const scheduledCall: ScheduledCall = {
       id: callId,
       userId,
@@ -249,10 +244,8 @@ async function initiateCall(
   }
 ): Promise<CallResult> {
   try {
-    // Update status
     await updateCallStatus(call.id, 'in_progress', { lastAttemptAt: new Date().toISOString() });
 
-    // Check if Twilio is configured
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
@@ -294,7 +287,6 @@ async function initiateCall(
       statusCallbackEvent: ['initiated', 'ringing', 'answered', 'completed'],
     });
 
-    // Update with Twilio SID
     await updateCallStatus(call.id, 'in_progress', {
       twilioSid: twilioCall.sid,
     });
@@ -308,7 +300,6 @@ async function initiateCall(
   } catch (error) {
     log.error({ error: String(error), callId: call.id }, 'Failed to initiate call');
 
-    // Update attempt count
     const attempts = call.attempts + 1;
     if (attempts < call.maxAttempts) {
       await updateCallStatus(call.id, 'pending', { attempts });
