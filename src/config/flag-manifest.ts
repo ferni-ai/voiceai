@@ -168,6 +168,8 @@ export const FLAG_MANIFEST = {
   FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: at call start, ask once about a date the caller told us (dates/recall.ts; needs DATES_THAT_MATTER)
   FRIEND_FOLLOWUPS: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: a fact the caller corrects is kept with its words and the old fact retired; next call recalls it (friend-repair.ts)
+  FRIEND_REPAIR: { default: 'off', owner: 'memory', kind: 'experiment' },
   FTIS_COLLECT_TRAINING_DATA: { default: 'off', owner: 'tools', kind: 'experiment' },
   FTIS_ENABLED: { default: 'off', owner: 'platform', kind: 'config' },
   FTIS_ONLY_MODE: { default: 'off', owner: 'tools', kind: 'experiment' },
