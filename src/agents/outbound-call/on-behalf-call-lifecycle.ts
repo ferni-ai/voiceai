@@ -25,6 +25,7 @@ import {
 } from '../../services/outreach/on-behalf-dispatch.js';
 import { screenedCallerText } from '../../services/outreach/caller-text.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
+import { noteCallRefinement } from '../../services/follow-through/index.js';
 import type { CallDisposition } from './call-control.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
@@ -264,14 +265,20 @@ async function defaultPorts(): Promise<CallLifecyclePorts> {
   };
 }
 
-const reportedCalls = new Set<string>();
+/** The report under way (or done) per callId, so every exit path waits for the one report. */
+const reports = new Map<string, Promise<CallOutcome | null>>();
+
+/** The fixed reason logged when a finished call's result is dropped for an unsigned dispatch. */
+export const UNSIGNED_RESULT_DROPPED = 'unsigned_dispatch';
 
 /**
  * Report the finished call to the requester. `trusted` says the dispatch was
  * signed by our server (verifyOnBehalfDispatch); a forged one never reports
  * and never touches state belonging to the callId it names.
  * Safe to call from every session exit path: only the first call for a callId
- * reports. Never throws.
+ * reports, and a later one waits for that report to finish (the job's
+ * shutdown callback relies on this to keep the process alive until the
+ * requester has been told). Never throws.
  */
 export async function completeOnBehalfCall(
   sessionId: string,
@@ -283,18 +290,33 @@ export async function completeOnBehalfCall(
   // An unsigned dispatch names a callId someone else chose: touch nothing keyed
   // by it (another call's report guard or transcript), only this session.
   if (!trusted) {
+    // The result is dropped, not stored: the only place to keep it is under the
+    // user the dispatch names, and an unsigned dispatch can name anyone.
     log.warn(
-      { callId: call.callId, requesterUserId: call.requester.userId },
-      'Unsigned on-behalf dispatch; not reporting to the named requester'
+      { callId: call.callId, reason: UNSIGNED_RESULT_DROPPED },
+      'On-behalf call result dropped: unsigned dispatch'
     );
     const { cleanupOnBehalfCapture } =
       await import('../integrations/on-behalf-transcript-capture.js');
     cleanupOnBehalfCapture(sessionId);
     return null;
   }
-  if (reportedCalls.has(call.callId)) return null;
-  reportedCalls.add(call.callId);
+  const running = reports.get(call.callId);
+  if (running) {
+    await running;
+    return null;
+  }
+  const reported = reportCall(sessionId, call, durationSeconds, ports);
+  reports.set(call.callId, reported);
+  return reported;
+}
 
+async function reportCall(
+  sessionId: string,
+  call: OnBehalfDispatch,
+  durationSeconds: number,
+  ports?: CallLifecyclePorts
+): Promise<CallOutcome | null> {
   try {
     const { readDisposition, readTranscript, analyze, report, scheduleRetry, recordOptOut } =
       ports ?? (await defaultPorts());
@@ -352,6 +374,13 @@ export async function completeOnBehalfCall(
         };
       }
     }
+    const refined =
+      disposition === 'wrong_number'
+        ? 'wrong-number'
+        : disposition === 'refused' || refused
+          ? 'declined'
+          : undefined;
+    if (refined) noteCallRefinement(call.callId, refined); // read by captureCallResult's PROMISE_OUTCOME
     await report(call.callId, outcome, request);
     // The owner asked for this call (CONTACT_CALL_MEMORY, signed): keep what may be kept.
     if (talked && call.ownerMemory && classifyAnsweredCall(heard, durationSeconds) === 'answered') {

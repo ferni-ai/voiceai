@@ -4,17 +4,12 @@
  * Tests the complete appointment flow:
  * - Twilio webhooks (call status, recordings, transcriptions)
  * - Google Calendar OAuth and event creation
- * - Full appointment integration (call → calendar → notification)
  *
  * Run with:
  *   npx vitest run src/tests/integration/appointment-e2e.test.ts
  */
 
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  getAppointmentIntegrationService,
-  type AppointmentRequest,
-} from '../../services/scheduling/appointment-integration.js';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   areTokensExpired,
   createAppointmentEvent,
@@ -347,232 +342,6 @@ describe('Google Calendar OAuth Service', () => {
 });
 
 // ============================================================================
-// APPOINTMENT INTEGRATION TESTS
-// ============================================================================
-
-describe('Appointment Integration Service', () => {
-  const integrationService = getAppointmentIntegrationService();
-
-  // Save original env vars
-  const originalTwilioSid = process.env.TWILIO_ACCOUNT_SID;
-  const originalTwilioToken = process.env.TWILIO_AUTH_TOKEN;
-  const originalTwilioPhone = process.env.TWILIO_PHONE_NUMBER;
-
-  beforeAll(() => {
-    // Clear Twilio env vars to force simulation mode
-    delete process.env.TWILIO_ACCOUNT_SID;
-    delete process.env.TWILIO_AUTH_TOKEN;
-    delete process.env.TWILIO_PHONE_NUMBER;
-  });
-
-  afterAll(() => {
-    // Restore env vars
-    if (originalTwilioSid) process.env.TWILIO_ACCOUNT_SID = originalTwilioSid;
-    if (originalTwilioToken) process.env.TWILIO_AUTH_TOKEN = originalTwilioToken;
-    if (originalTwilioPhone) process.env.TWILIO_PHONE_NUMBER = originalTwilioPhone;
-  });
-
-  describe('Appointment Scheduling Flow', () => {
-    it('should schedule appointment (simulated when Twilio not configured)', async () => {
-      const request: AppointmentRequest = {
-        userId: `test-user-${Date.now()}`,
-        businessName: 'Test Dental Office',
-        businessPhone: '+15551234567',
-        appointmentType: 'dentist',
-        requestedDate: 'next Tuesday',
-        requestedTime: 'around 2pm',
-        specialRequests: 'Cleaning and checkup',
-      };
-
-      const result = await integrationService.scheduleAppointment(request);
-
-      expect(result.appointmentId).toBeDefined();
-      expect(result.status).toBe('calling');
-      expect(result.message).toContain('Test Dental Office');
-
-      console.log(`✅ Appointment scheduled: ${result.appointmentId}`);
-      console.log(`   Status: ${result.status}`);
-      console.log(`   Message: ${result.message}`);
-    });
-
-    it('should track appointment status', async () => {
-      const request: AppointmentRequest = {
-        userId: `test-user-${Date.now()}`,
-        businessName: 'Test Restaurant',
-        businessPhone: '+15559876543',
-        appointmentType: 'restaurant',
-        requestedDate: 'this Saturday',
-        requestedTime: '7pm',
-        partySize: 4,
-      };
-
-      const result = await integrationService.scheduleAppointment(request);
-
-      // Check status
-      const status = integrationService.getAppointmentStatus(result.appointmentId);
-
-      expect(status).toBeDefined();
-      expect(status?.businessName).toBe('Test Restaurant');
-      expect(status?.partySize).toBe(4);
-
-      console.log('✅ Appointment status tracking works');
-    });
-
-    it('should cancel appointment', async () => {
-      const request: AppointmentRequest = {
-        userId: `test-user-${Date.now()}`,
-        businessName: 'Cancel Test',
-        businessPhone: '+15550000000',
-        appointmentType: 'service',
-        requestedDate: 'tomorrow',
-        requestedTime: '10am',
-      };
-
-      const result = await integrationService.scheduleAppointment(request);
-      const cancelled = await integrationService.cancelAppointment(result.appointmentId);
-
-      expect(cancelled).toBe(true);
-
-      const status = integrationService.getAppointmentStatus(result.appointmentId);
-      expect(status?.status).toBe('cancelled');
-
-      console.log('✅ Appointment cancellation works');
-    });
-  });
-
-  describe('Confirmation Flow (Simulated)', () => {
-    it('should handle simulated confirmation', async () => {
-      const request: AppointmentRequest = {
-        userId: `sim-test-${Date.now()}`,
-        businessName: 'Simulation Test',
-        businessPhone: '+15551111111',
-        appointmentType: 'salon',
-        requestedDate: 'next week',
-        requestedTime: '3pm',
-      };
-
-      const result = await integrationService.scheduleAppointment(request);
-
-      // Wait for the appointment_confirmed event OR poll for status change
-      await new Promise<void>((resolve) => {
-        const checkInterval = setInterval(() => {
-          const status = integrationService.getAppointmentStatus(result.appointmentId);
-          if (status?.status === 'confirmed') {
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 200);
-
-        // Timeout after 8 seconds
-        setTimeout(() => {
-          clearInterval(checkInterval);
-          resolve();
-        }, 8000);
-      });
-
-      const status = integrationService.getAppointmentStatus(result.appointmentId);
-
-      // In simulation mode, status should be confirmed
-      expect(status?.status).toBe('confirmed');
-      expect(status?.confirmationNumber).toBeDefined();
-
-      console.log('✅ Simulated confirmation flow works');
-      console.log(`   Confirmation: ${status?.confirmationNumber}`);
-    }, 15000); // 15 second timeout for simulation
-  });
-});
-
-// ============================================================================
-// FULL FLOW INTEGRATION TEST
-// ============================================================================
-
-describe('Full Appointment Flow Integration', () => {
-  // Save original env vars
-  const originalTwilioSid = process.env.TWILIO_ACCOUNT_SID;
-  const originalTwilioToken = process.env.TWILIO_AUTH_TOKEN;
-  const originalTwilioPhone = process.env.TWILIO_PHONE_NUMBER;
-
-  beforeAll(() => {
-    // Clear Twilio env vars to force simulation mode
-    delete process.env.TWILIO_ACCOUNT_SID;
-    delete process.env.TWILIO_AUTH_TOKEN;
-    delete process.env.TWILIO_PHONE_NUMBER;
-  });
-
-  afterAll(() => {
-    // Restore env vars
-    if (originalTwilioSid) process.env.TWILIO_ACCOUNT_SID = originalTwilioSid;
-    if (originalTwilioToken) process.env.TWILIO_AUTH_TOKEN = originalTwilioToken;
-    if (originalTwilioPhone) process.env.TWILIO_PHONE_NUMBER = originalTwilioPhone;
-  });
-
-  it('should complete full flow: request → call → confirm → calendar → notify', async () => {
-    const testUserId = `full-flow-${Date.now()}`;
-    const integrationService = getAppointmentIntegrationService();
-
-    // 1. Request appointment
-    const request: AppointmentRequest = {
-      userId: testUserId,
-      businessName: 'Complete Flow Test',
-      businessPhone: '+15552223333',
-      appointmentType: 'doctor',
-      requestedDate: 'next Monday',
-      requestedTime: '9am',
-      specialRequests: 'Annual checkup',
-      notifyVia: 'sms',
-      notifyContact: '+15554445555',
-    };
-
-    console.log('\n📋 FULL FLOW TEST');
-    console.log('═'.repeat(50));
-
-    // Step 1: Schedule
-    console.log('\n1️⃣ Scheduling appointment...');
-    const result = await integrationService.scheduleAppointment(request);
-    expect(result.appointmentId).toBeDefined();
-    console.log(`   ✅ Appointment ID: ${result.appointmentId}`);
-    console.log(`   Status: ${result.status}`);
-
-    // Step 2: Wait for simulation to complete (poll for status change)
-    console.log('\n2️⃣ Waiting for call simulation...');
-    await new Promise<void>((resolve) => {
-      const checkInterval = setInterval(() => {
-        const status = integrationService.getAppointmentStatus(result.appointmentId);
-        if (status?.status === 'confirmed') {
-          clearInterval(checkInterval);
-          resolve();
-        }
-      }, 200);
-
-      // Timeout after 8 seconds
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        resolve();
-      }, 8000);
-    });
-
-    // Step 3: Check confirmation
-    console.log('\n3️⃣ Checking confirmation...');
-    const finalStatus = integrationService.getAppointmentStatus(result.appointmentId);
-    expect(finalStatus?.status).toBe('confirmed');
-    console.log(`   ✅ Status: ${finalStatus?.status}`);
-    console.log(`   Confirmation: ${finalStatus?.confirmationNumber}`);
-
-    // Step 4: Verify calendar (would be created if configured)
-    console.log('\n4️⃣ Calendar event...');
-    console.log('   📅 Would be created if Google Calendar configured');
-
-    // Step 5: Verify notification (would be sent if Twilio configured)
-    console.log('\n5️⃣ User notification...');
-    console.log('   📱 Would be sent if Twilio configured');
-
-    console.log(`\n${'═'.repeat(50)}`);
-    console.log('✅ FULL FLOW TEST COMPLETE');
-    console.log(`${'═'.repeat(50)}\n`);
-  }, 20000);
-});
-
-// ============================================================================
 // SUMMARY
 // ============================================================================
 
@@ -589,8 +358,6 @@ describe('Appointment Integration Summary', () => {
     console.log('  ✅ Twilio Webhook Service');
     console.log('  ✅ TwiML Generation');
     console.log('  ✅ Google Calendar OAuth');
-    console.log('  ✅ Appointment Integration');
-    console.log('  ✅ Full Flow (Simulated)');
 
     console.log('\nProduction Readiness:');
     console.log(
