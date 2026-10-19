@@ -1,3 +1,5 @@
+> **Archived 2026-10-18.** Not built or maintained. Android ships as a Trusted Web Activity: see `apps/android-twa` and `apps/archive/README.md`.
+
 # Ferni Voice - Android Native
 
 Native Android app for Ferni Voice AI, built with Kotlin and Jetpack Compose.

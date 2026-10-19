@@ -34,19 +34,14 @@
 import {
   apply,
   closeFromReply,
-  rightMoment,
   type FollowUp,
   type FollowUpEvent,
-  type FollowUpKind,
   type FollowUpStore,
   type ReplyVerdict,
 } from '../../services/follow-through/index.js';
 import { firestoreFollowUpStore } from '../../services/stores/follow-through-store.js';
-import {
-  forgottenInProcess,
-  forgottenTopicsOrNull,
-  isForgotten,
-} from '../../memory/recall/forget.js';
+import { forgottenInProcess, isForgotten } from '../../memory/recall/forget.js';
+import { loadOpenerPick } from '../../services/follow-through/opener-pick.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'FollowThroughOpener' });
@@ -57,40 +52,13 @@ export function followThroughOpenerEnabled(
   return env.FOLLOW_THROUGH_OPENER === 'on';
 }
 
-/** The caller's own things. Ferni's promises and actions are told (promise ledger phase 3), not asked. */
-const ASKABLE: ReadonlySet<FollowUpKind> = new Set([
-  'commitment',
-  'reminder',
-  'thread',
-  'date',
-  'dose',
-]);
+export { pickOpenerFollowUp } from '../../services/follow-through/opener-pick.js';
+
 /** Ferni's replies after the raise that may carry the ask before the listener stands down. */
 const ASK_WITHIN_REPLIES = 2;
 const DAY_MS = 86_400_000;
 /** A raise lapses after this, so one call's ask never reaches the next call (as opener-claim.ts). */
 export const RAISED_MS = 10 * 60_000;
-
-/** Raised once: at or after its due time (undated: ever) by an opener. */
-function raisedByOpener(f: FollowUp): boolean {
-  const since = f.dueAt ? Date.parse(f.dueAt) : 0;
-  return f.surfaced.some((s) => s.via === 'opener' && Date.parse(s.at) >= since);
-}
-
-/** The one follow-up to ask about now: due ones first (latest due first), then undated, newest first. */
-export function pickOpenerFollowUp(live: readonly FollowUp[], now: Date): FollowUp | null {
-  const askable = live.filter((f) => {
-    if (!ASKABLE.has(f.kind) || f.action || raisedByOpener(f)) return false;
-    const moment = rightMoment(f, now);
-    return moment === 'next-call' || moment === 'text-now';
-  });
-  const key = (f: FollowUp) => (f.dueAt ? [1, Date.parse(f.dueAt)] : [0, Date.parse(f.createdAt)]);
-  askable.sort((a, b) => {
-    const [ka, kb] = [key(a), key(b)];
-    return kb[0] - ka[0] || kb[1] - ka[1];
-  });
-  return askable[0] ?? null;
-}
 
 const STOP = new Set(
   `the and you your yours she her him his they them their its it's that this those these was were
@@ -184,21 +152,22 @@ export function createFollowThroughOpener(deps: {
   now?: () => Date;
 }): FollowThroughOpener {
   const now = deps.now ?? (() => new Date());
-  const forgotten = deps.forgotten ?? ((userId: string) => forgottenTopicsOrNull(userId));
   let picked: FollowUp | null = null;
   let raisedOnce = false;
   raisedFor.delete(deps.userId); // a new opener: nothing from an earlier call is still waiting
-  // Recall's rule for raw words: unreadable forgotten topics mean nothing is offered.
-  const ready = Promise.all([deps.store.live(deps.userId), forgotten(deps.userId)])
-    .then(([live, topics]) => {
-      if (topics === null) {
+  const ready = loadOpenerPick({
+    userId: deps.userId,
+    store: deps.store,
+    forgotten: deps.forgotten,
+    now: now(),
+  })
+    .then((read) => {
+      if (read.status === 'unreadable') {
         log.warn({}, 'Forgotten topics unreadable: the opener offers no follow-up');
         return;
       }
-      const all = [...topics, ...forgottenInProcess(deps.userId)];
-      const kept = live.filter((f) => !isForgotten(f.text, all));
-      picked = pickOpenerFollowUp(kept, now());
-      log.info({ live: live.length, picked: picked?.kind ?? null }, 'FOLLOW_THROUGH_OPENER_LOADED');
+      picked = read.picked;
+      log.info({ live: read.live, picked: picked?.kind ?? null }, 'FOLLOW_THROUGH_OPENER_LOADED');
     })
     .catch((error: unknown) => log.warn({ error: String(error) }, 'Follow-ups not loaded'));
   /** Still not forgotten: a forget asked earlier in this call applies at once. */

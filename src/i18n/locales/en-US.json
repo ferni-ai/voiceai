@@ -349,7 +349,7 @@
         "activity": "Activity tracking"
       },
       "privacy": {
-        "note": "Your health data stays private. We only share aggregated insights with your coaching sessions."
+        "note": "Ferni saves your health data to spot patterns with you. We never sell it, and deleting your account erases it."
       },
       "providers": {
         "apple_health": {
