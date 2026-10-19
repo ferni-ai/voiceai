@@ -136,7 +136,7 @@ struct HomeView: View {
 /// At rest: Ferni's hello and the last outcome (an ended call, or what went wrong).
 private struct RestingLine: View {
     let call: CallSession
-    let home: HomeLineStore.Line?
+    let home: HomeLineStore.Home?
     /// The minute it is, so the greeting changes with the day.
     let now: Date
     @Environment(\.openURL) private var openURL
@@ -154,13 +154,12 @@ private struct RestingLine: View {
                     }
                     .tint(FerniColor.accent)
                 }
-            case .ended:
-                greeting(String(localized: "Talk soon."), RestingWords.detail(ended: true, homeLine: nil))
             default:
-                greeting(
-                    Greeting.headline(hour: Calendar.current.component(.hour, from: now), firstVisit: !call.hasTalked, name: home?.name),
-                    RestingWords.detail(ended: false, homeLine: home?.line)
+                let words = RestingWords.words(
+                    home: home, ended: call.phase == .ended,
+                    hour: Calendar.current.component(.hour, from: now), hasTalked: call.hasTalked
                 )
+                greeting(words.headline, words.detail)
             }
         }
         .multilineTextAlignment(.center)
@@ -191,28 +190,27 @@ enum Welcome {
     }
 }
 
-/// Home's second line at rest: the goodbye right after a call, else Ferni's
-/// thread from last time when there is one, else the open invitation.
+/// What Home says at rest. Right after a call: the goodbye. Otherwise the
+/// time of day (or the introduction on a first visit; the server's answer
+/// decides that when there is one, since it knows calls on other devices)
+/// and, when Ferni has a follow-up, that follow-up as his question. The
+/// follow-up is in the person's own words (GET /api/home); the clock words
+/// stay the app's own, so they're localised.
 enum RestingWords {
-    static func detail(ended: Bool, homeLine: String?) -> String {
-        if ended { return String(localized: "I'm here whenever you want to talk again.") }
-        return homeLine ?? String(localized: "Whenever you're ready, I'm here.")
+    static func words(home: HomeLineStore.Home?, ended: Bool, hour: Int, hasTalked: Bool) -> (headline: String, detail: String) {
+        if ended { return (String(localized: "Talk soon."), String(localized: "I'm here whenever you want to talk again.")) }
+        let firstVisit = home?.greeting.map { $0 == .firstVisit } ?? !hasTalked
+        let detail: String = if case .followUp(let text, _)? = home?.greeting {
+            String(localized: "How's \(text) going?")
+        } else {
+            String(localized: "Whenever you're ready, I'm here.")
+        }
+        return (Greeting.headline(hour: hour, firstVisit: firstVisit), detail)
     }
 }
 
 /// Ferni's hello, by time of day. A first visit gets an introduction.
 enum Greeting {
-    /// With the person's name when the server knows it (only if they said it).
-    static func headline(hour: Int, firstVisit: Bool, name: String?) -> String {
-        guard let name, !firstVisit else { return headline(hour: hour, firstVisit: firstVisit) }
-        switch hour {
-        case 5..<12: return String(localized: "Good morning, \(name).")
-        case 12..<17: return String(localized: "Good afternoon, \(name).")
-        case 17..<22: return String(localized: "Good evening, \(name).")
-        default: return String(localized: "Up late, \(name)? I'm here.")
-        }
-    }
-
     static func headline(hour: Int, firstVisit: Bool) -> String {
         if firstVisit { return String(localized: "Hi, I'm Ferni.") }
         switch hour {
