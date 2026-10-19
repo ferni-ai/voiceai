@@ -72,7 +72,7 @@ private struct AccountSection: View {
                 Button("Sign out", role: .destructive) { confirmingSignOut = true }
                     .disabled(account.isWorking)
             case .signedIn:
-                Text("Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you.")
+                Text("Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there.")
                     .foregroundStyle(FerniColor.textSecondary)
                 SignInWithAppleButton(.continue) { request in
                     nonce = AppleNonce()
