@@ -26,6 +26,8 @@ export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
 
 export const FLAG_MANIFEST = {
   ...FLAGS_ACTION_TO_BYPASS,
+  // on: a teammate's first line restates only the caller's words, else a plain hello; kept out of memory (arrival-grounding.ts)
+  ARRIVAL_LINE_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_ASSERTED_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_RECOGNITION: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -120,6 +122,8 @@ export const FLAG_MANIFEST = {
   ENTITY_HYGIENE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // late turn-1 words join that turn instead of opening a new one
   EOT_CONTINUED_MERGE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // errands as durable workflows: owner-confirmed calls, verified bookings (services/errands, errands-flag.ts)
+  ERRANDS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -167,6 +171,8 @@ export const FLAG_MANIFEST = {
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
+  GOOD_NEWS_BIGGER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GREETING_WIRE_AFTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GTM_AUTO_PUBLISH: { default: 'off', owner: 'platform', kind: 'experiment' },
   GTM_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
@@ -235,6 +241,8 @@ export const FLAG_MANIFEST = {
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
   // Alex's 8am text brief, with MORNING_BRIEF_USERS (services/outreach/morning-brief/brief-job.ts)
   MORNING_BRIEF: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: the caller can name the tune Ferni whistles, or ask him to stop (personas/named-tune-note.ts)
+  NAMED_TUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -432,6 +440,9 @@ export const FLAG_MANIFEST = {
   WEATHER_SAVED_HOME: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   // on: web callers' audio gets BVC noise cancellation (multi-agent/room-input-options.ts)
   WEB_NOISE_CANCEL: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on for a person (cohort flag, read per person): outreach and the after-call card reach their
+  // browser by web push (outreach/web-push-delivery.ts, web-push-flag.ts)
+  WEB_PUSH_DELIVERY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: searchWeb answers from Vertex Google Search grounding, not DuckDuckGo (information/web-search.ts);
   // caps SEARCH_MAX_PER_PERSON_HOUR (20), SEARCH_MAX_ANON_PER_HOUR (10, all unverified callers)
   // and SEARCH_MAX_PER_DAY (150 Google queries)

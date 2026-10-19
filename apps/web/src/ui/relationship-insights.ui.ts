@@ -35,7 +35,7 @@ export interface RelationshipStats {
   familyCount: number;
   friendCount: number;
   colleagueCount: number;
-  averageStrength: number;
+  averageStrength: number | null; // null until a contact has a score: shown as a dash
   upcomingDates: number;
   needsAttention: number;
 }
@@ -744,7 +744,7 @@ function renderOverviewTab(): string {
         <div class="ri-stat-label">${t('relationshipInsights.upcomingDates')}</div>
       </div>
       <div class="ri-stat">
-        <div class="ri-stat-value">${stats.averageStrength}%</div>
+        <div class="ri-stat-value">${stats.averageStrength === null ? '–' : `${stats.averageStrength}%`}</div>
         <div class="ri-stat-label">${t('relationshipInsights.avgStrength')}</div>
       </div>
     </div>

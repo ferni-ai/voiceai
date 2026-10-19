@@ -39,6 +39,20 @@ export const onHealthGoalChange = createDomainHook<HealthGoalEntity>({
 // WELLNESS CHECKINS
 // ============================================================================
 
+/** A real 0-10 reading; a missing or NaN score is unknown, never 0. */
+function outOfTen(value: number | undefined): value is number {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+
+/** ": Mood 7/10, Energy 6/10" with only the scores that were measured. */
+function wellnessScores(w: WellnessCheckinEntity): string {
+  const parts = [
+    outOfTen(w.mood) ? `Mood ${w.mood}/10` : '',
+    outOfTen(w.energy) ? `Energy ${w.energy}/10` : '',
+  ].filter(Boolean);
+  return parts.length > 0 ? `: ${parts.join(', ')}` : '';
+}
+
 /**
  * Track regular wellness checkins
  */
@@ -47,8 +61,8 @@ export const onWellnessCheckinChange = createDomainHook<WellnessCheckinEntity>({
   entityType: 'wellness_checkin',
   contentBuilder: (w) =>
     joinNonEmpty([
-      `Wellness check: Mood ${w.mood}/10, Energy ${w.energy}/10.`,
-      w.stressLevel !== undefined ? `Stress: ${w.stressLevel}/10.` : '',
+      `Wellness check${wellnessScores(w)}.`,
+      outOfTen(w.stressLevel) ? `Stress: ${w.stressLevel}/10.` : '',
       formatField('Notes', w.notes),
     ]),
   metadataExtractor: (w) => ({
