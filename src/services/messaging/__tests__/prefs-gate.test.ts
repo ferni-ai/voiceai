@@ -168,6 +168,7 @@ describe('follow-through (right moment)', () => {
         optedIn: async () => [userId],
         resolveFlags: async () => ({ FOLLOW_THROUGH_TEXTS: 'on', MESSAGING_PREFS: flag }),
         quietFor: quietCheckFor,
+        forgotten: async () => [],
         sendText,
       },
       { now: at('20:30') }

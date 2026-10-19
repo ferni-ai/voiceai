@@ -21,6 +21,7 @@
 
 import { createLogger } from '../utils/safe-logger.js';
 import { flagOn } from './env-flag.js';
+import { isChiefOfStaffTool } from './alex-chief-of-staff-flag.js';
 import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
 import { llmContextCacheEnabled } from './llm-context-cache-flag.js';
 
@@ -388,6 +389,7 @@ export function isEssentialTool(toolName: string): boolean {
   return (
     config.essentialTools.includes(toolName) ||
     (CALL_JOURNAL_TOOLS.includes(toolName) && callJournalToolsOn()) ||
+    isChiefOfStaffTool(toolName) || // ALEX_CHIEF_OF_STAFF=on (multi-agent/chief-of-staff-tools.ts)
     toolName.startsWith('handoffTo') ||
     toolName === 'endCall' ||
     toolName === 'askForTeammate' // stands in for locked handoffs (locked-teammates.ts)

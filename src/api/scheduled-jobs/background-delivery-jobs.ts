@@ -162,16 +162,26 @@ export function followThroughFlags(
   };
 }
 
-/** The real follow-through deps: the Firestore store, cohort flags, the guarded sender. Null without Firestore. */
+/**
+ * The real follow-through deps: the Firestore store, cohort flags, the guarded
+ * sender and the person's forgotten topics. Null without Firestore.
+ */
 async function defaultFollowThroughDeps(): Promise<FollowUpTextDeps | null> {
-  const [{ firestoreFollowUpStore }, { sendGuardedText }] = await Promise.all([
-    import('../../services/stores/follow-through-store.js'),
-    import('../../services/outreach/guarded-text.js'),
-  ]);
+  const [{ firestoreFollowUpStore }, { sendGuardedText }, { forgottenTopicsOrNull }] =
+    await Promise.all([
+      import('../../services/stores/follow-through-store.js'),
+      import('../../services/outreach/guarded-text.js'),
+      import('../../memory/recall/forget.js'),
+    ]);
   const store = firestoreFollowUpStore();
   if (!store) return null;
-  const sendText: FollowUpTextDeps['sendText'] = async (t) => sendGuardedText(t);
-  return { store, ...followThroughFlags(), sendText, quietFor: quietCheckFor };
+  return {
+    store,
+    ...followThroughFlags(),
+    sendText: async (t) => sendGuardedText(t),
+    forgotten: async (userId) => forgottenTopicsOrNull(userId),
+    quietFor: quietCheckFor,
+  };
 }
 
 /**

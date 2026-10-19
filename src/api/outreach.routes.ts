@@ -24,6 +24,7 @@ import {
   type ThinkingOfYouTrigger,
 } from '../services/outreach/index.js';
 import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js';
+import { webPushDeliveryOn } from '../services/outreach/web-push-flag.js';
 import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
 import { sendOutreachHistory } from './outreach-history-route.js';
 import { panelConsentPatch, savePanelPrefs } from './messaging-prefs-route.js';
@@ -136,9 +137,7 @@ export async function handleOutreachRoutes(
     // GET /api/outreach/preferences
     if (route === '/preferences' && method === 'GET') {
       const userId = authenticatedUserId;
-
-      const engine = getOutreachDecisionEngine();
-      const state = engine.getUserState(userId);
+      const state = getOutreachDecisionEngine().getUserState(userId);
       // On/off and channels come from the stored consent the scheduler obeys,
       // not the in-memory engine (which forgets on restart).
       const consent = await readOutreachConsent(userId);
@@ -148,6 +147,7 @@ export async function handleOutreachRoutes(
         preferences: state.preferences,
         allowedChannels: settingsFromChannels(consent.channels),
         outreachEnabled: consent.enabled,
+        webPushDelivery: await webPushDeliveryOn(userId), // the after-call ask (push-ask.ts)
         relationshipStage: state.relationshipStage,
         counters: state.counters,
       });

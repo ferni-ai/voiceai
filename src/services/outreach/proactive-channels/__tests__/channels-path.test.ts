@@ -198,6 +198,25 @@ describe('proactive check-in channel', () => {
     expect(texts).toHaveLength(0);
   });
 
+  it('MESSAGING_PREFS on: texts they turned off in messagingPrefs stay off; off: as today', async () => {
+    const run = async (flag: string) => {
+      docs.clear();
+      texts.length = 0;
+      process.env.MESSAGING_PREFS = flag;
+      seedUser({ messagingPrefs: { channels: { sms: false } } });
+      seedPromise('p1');
+      await runHandler();
+      return texts.length;
+    };
+    try {
+      expect(await run('off')).toBe(1);
+      expect(await run('on')).toBe(0);
+      expect(logOf('promise:p1')).toMatchObject({ channel: 'in_app' });
+    } finally {
+      delete process.env.MESSAGING_PREFS;
+    }
+  });
+
   it('two overlapping runs send a check-in once', async () => {
     seedUser();
     seedPromise('p1');
