@@ -11,10 +11,15 @@ final class RoomTests: XCTestCase {
         }
     }
 
-    func testMorningIsBrighterAndLateNightDimmerThanTheDay() {
+    /// Evening and night dim with their amber tint; the persona wash stays at
+    /// the day's, which Home's secondary line needs to pass the accessibility
+    /// audit (2026-10-19; AccessibilityAuditTests.testHome, every band).
+    func testMorningIsBrighterAndTheNightIsAmber() {
         XCTAssertGreaterThan(RoomLight(hour: 8).wash, RoomLight(hour: 14).wash)
-        XCTAssertLessThan(RoomLight(hour: 1).wash, RoomLight(hour: 14).wash)
+        XCTAssertEqual(RoomLight(hour: 19).wash, RoomLight(hour: 14).wash)
+        XCTAssertEqual(RoomLight(hour: 1).wash, RoomLight(hour: 14).wash)
         XCTAssertEqual(RoomLight(hour: 14).tintOpacity, 0, "daytime is the room as designed")
+        XCTAssertGreaterThan(RoomLight(hour: 19).tintOpacity, 0)
         XCTAssertGreaterThan(RoomLight(hour: 23).tintOpacity, RoomLight(hour: 19).tintOpacity)
     }
 }

@@ -3,8 +3,8 @@ import SwiftUI
 /// The room Ferni lives in (design north star §3.1): the theme's paper or
 /// Night Ink field, lit softly from behind the avatar in the current
 /// speaker's persona color. The time of day changes the light, never the
-/// layout: brighter and warmer in the morning, dimmer and a little amber late
-/// at night. Opaque content, never glass.
+/// layout: brighter and warmer in the morning, a little amber in the evening
+/// and late at night. Opaque content, never glass.
 public struct RoomBackground: View {
     let persona: WindowPersona
     let date: Date
@@ -48,12 +48,15 @@ public struct RoomLight: Equatable, Sendable {
             wash = 0.08
             tint = .clear
             tintOpacity = 0
+        // Evening and night keep the day's wash: at 0.07/0.06 Apple's audit failed
+        // Home's secondary line on contrast (2026-10-19), though its pixels measure
+        // 6.5:1. AccessibilityAuditTests.testHome checks every band.
         case 18..<23: // evening
-            wash = 0.07
+            wash = 0.08
             tint = Color(red: 1, green: 0.7, blue: 0.4)
             tintOpacity = 0.04
-        default: // late night: dimmer, a little amber
-            wash = 0.06
+        default: // late night: a little more amber
+            wash = 0.08
             tint = Color(red: 0.9, green: 0.55, blue: 0.25)
             tintOpacity = 0.07
         }

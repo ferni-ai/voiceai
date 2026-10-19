@@ -78,7 +78,7 @@ struct HomeView: View {
             }
             .background(TimelineView(.everyMinute) { minute in
                 // The room's light follows the clock, so an evening glow doesn't last until morning.
-                RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID), date: minute.date)
+                RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID), date: HomeClock.time(minute.date))
             })
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
             // Trouble is announced wherever you are, including after the call view goes.
@@ -176,12 +176,8 @@ private struct RestingLine: View {
         .multilineTextAlignment(.center)
     }
 
-    /// The hour the greeting is written for; store screenshots fix it (-FerniHour).
     private static func hour(at date: Date) -> Int {
-        #if DEBUG
-        if let hour = UITestScenario.hour { return hour }
-        #endif
-        return Calendar.current.component(.hour, from: date)
+        Calendar.current.component(.hour, from: HomeClock.time(date))
     }
 
     @ViewBuilder private func greeting(_ headline: String, _ detail: String) -> some View {
@@ -197,6 +193,19 @@ private struct RestingLine: View {
 /// Coming back to the app (delight gap 1). After 20 minutes away the last
 /// call's goodbye (or its failure) is old news; after 8 hours Ferni wakes up
 /// as you open the app. Nothing changes under a call.
+/// The time Home is lit and greeted for: the clock, except that UI tests and
+/// store screenshots fix the hour (-FerniHour), so the audit can check every
+/// RoomLight band whatever the time it runs at.
+enum HomeClock {
+    static func time(_ date: Date) -> Date {
+        #if DEBUG
+        if let hour = UITestScenario.hour,
+           let fixed = Calendar.current.date(bySettingHour: hour, minute: 30, second: 0, of: date) { return fixed }
+        #endif
+        return date
+    }
+}
+
 enum Welcome {
     static let forgetAfter: TimeInterval = 20 * 60
     static let wakeAfter: TimeInterval = 8 * 3600
