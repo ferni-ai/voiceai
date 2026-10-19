@@ -162,7 +162,7 @@ final class AppModel {
         call = CallSession(
             fetchToken: CallTokens.fetcher(api: api),
             makeRoom: { LiveKitVoiceRoom(agentLevel: level) },
-            audio: SystemCallAudio(),
+            audio: SystemCallAudio(systemManagesCalls: ConversationLifecycle.isAvailable),
             avatar: AvatarModel(play: { [feedback] in feedback.play($0) }),
             lifecycle: ConversationLifecycle.isAvailable ? ConversationLifecycle() : nil,
             agentLevel: level
