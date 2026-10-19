@@ -187,7 +187,7 @@ struct CallControls: View {
                     } label: {
                         Image(systemName: "phone.down.fill")
                             .font(.title)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(FerniColor.onError)
                             .frame(width: 72, height: 72)
                     }
                     .buttonStyle(.plain)
@@ -202,7 +202,7 @@ struct CallControls: View {
                     Button(action: talk) {
                         Label(talkLabel, systemImage: "waveform")
                             .font(FerniType.button)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(FerniColor.onAccent)
                             .frame(maxWidth: 420, minHeight: 56)
                     }
                     .buttonStyle(.plain)

@@ -29,6 +29,9 @@ public enum FerniColor {
 
     // Status: themes.*.semantic
     public static let error = adaptive(light: 0xB5453A, dark: 0xE7A39A)
+    /// Text and glyphs on `error` (the End button): white on the light theme's
+    /// red, near-black on the dark theme's coral (white there is about 2:1).
+    public static let onError = adaptive(light: 0xFFFFFF, dark: 0x14110E)
     public static let success = adaptive(light: 0x3D7A52, dark: 0x6BC48F)
 
     static func adaptive(
