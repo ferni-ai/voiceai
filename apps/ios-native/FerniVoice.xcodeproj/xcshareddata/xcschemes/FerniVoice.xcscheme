@@ -78,6 +78,17 @@
                ReferencedContainer = "container:FerniVoice.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FerniDesignTests"
+               BuildableName = "FerniDesignTests"
+               BlueprintName = "FerniDesignTests"
+               ReferencedContainer = "container:Packages/FerniDesign">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

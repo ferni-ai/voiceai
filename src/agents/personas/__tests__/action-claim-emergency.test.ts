@@ -12,7 +12,8 @@ import { describe, expect, it } from 'vitest';
 
 import { TURN_CONTEXT_HEADER } from '../../multi-agent/turn-context-header.js';
 import { IN_DANGER_NOW } from '../../safety/crisis-guard.js';
-import { honestLine, withActionClaimCheck } from '../action-claim-guard.js';
+import { withActionClaimCheck } from '../action-claim-guard.js';
+import { honestLine } from '../honest-line.js';
 import {
   claimedAction,
   emergencyClaim,

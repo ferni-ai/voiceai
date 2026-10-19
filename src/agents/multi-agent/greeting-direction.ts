@@ -26,6 +26,7 @@ import {
   anniversaryFor,
   lineSaysAnniversary,
 } from './friendship-anniversary.js';
+import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
@@ -47,11 +48,19 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
   'warm and a little playful, glad it\'s them, one short sentence, maybe a quick easy question or a light, friendly tease. No exclamation marks, no "so good to hear your voice", no hype,'
 );
 
-/** The hello's direction for this persona. */
-export function greetingDirection(personaId: string, env: Env = process.env): string {
-  return personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env)
-    ? PLAYFUL_GREETING_DIRECTION
-    : GREETING_DIRECTION;
+/**
+ * The hello's direction for this persona. Never the playful one after a heavy
+ * last call (what they talked about reads as heavy-moment.ts does) or when
+ * welcome-back held back a tender thread: a tease is no way to pick that up.
+ */
+export function greetingDirection(
+  personaId: string,
+  env: Env = process.env,
+  last: { topic?: string; tender?: boolean } = {}
+): string {
+  const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
+  const careful = last.tender === true || isHeavyMoment([last.topic]);
+  return playful && !careful ? PLAYFUL_GREETING_DIRECTION : GREETING_DIRECTION;
 }
 
 /**
@@ -375,7 +384,10 @@ export async function directedGreeting(
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const direction =
-    greetingDirection(personaId) +
+    greetingDirection(personaId, process.env, {
+      topic: history?.lastTopic,
+      tender: back?.heldBack,
+    }) +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
