@@ -95,8 +95,9 @@ struct UITestEnvironmentProbe: View {
             .frame(width: 1, height: 1)
             .accessibilityElement()
             .accessibilityIdentifier("uitest.environment")
-            .accessibilityLabel("Test settings")
-            .accessibilityValue("reduceMotion=\(reduceMotion) reduceTransparency=\(reduceTransparency)")
+            // Verbatim: test-only text stays out of the String Catalog.
+            .accessibilityLabel(Text(verbatim: "Test settings"))
+            .accessibilityValue(Text(verbatim: "reduceMotion=\(reduceMotion) reduceTransparency=\(reduceTransparency)"))
     }
 }
 

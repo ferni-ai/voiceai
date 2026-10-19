@@ -25,7 +25,7 @@ struct RootView: View {
         var symbol: String {
             switch self {
             case .talk: "waveform"
-            case .team: "person.3"
+            case .team: "person.2" // person.3 is wider than the sidebar's icon column
             case .remembers: "heart.text.square"
             case .settings: "gearshape"
             }
@@ -48,14 +48,18 @@ struct RootView: View {
                 }
                 .navigationTitle("Ferni")
             } detail: {
-                switch section ?? .talk {
-                case .talk: HomeView(showsAccountButton: false)
-                case .team: NavigationStack { TeamScreen(team: model.team) { section = .talk } }
-                case .remembers: NavigationStack { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
-                case .settings: SettingsView(showsDone: false)
+                Group {
+                    switch section ?? .talk {
+                    case .talk: HomeView(showsAccountButton: false)
+                    case .team: NavigationStack { TeamScreen(team: model.team) { section = .talk } }
+                    case .remembers: NavigationStack { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
+                    case .settings: SettingsView(showsDone: false)
+                    }
                 }
+                // The accent stays out of the sidebar: green text on the grey
+                // selection fell below 4.5:1.
+                .tint(FerniColor.accent)
             }
-            .tint(FerniColor.accent)
             .onChange(of: model.call.isActive) { _, active in if active { section = .talk } }
         } else {
             HomeView()
