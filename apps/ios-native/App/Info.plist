@@ -42,6 +42,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSFaceIDUsageDescription</key>
+	<string>Ferni uses Face ID to keep what Ferni remembers just for you.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Ferni listens only while you're talking together, so you can talk out loud.</string>
 	<key>NSSupportsLiveActivities</key>
