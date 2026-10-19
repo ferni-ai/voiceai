@@ -2,11 +2,9 @@
        iOS/MOBILE COMPATIBILITY
        ======================================================================== */
 
-/* Safe area insets for notched iPhones */
-html {
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
-    env(safe-area-inset-left);
-}
+/* Safe area insets: #app pads the sides; the header and .main pad the top and
+   bottom themselves. Padding <html> as well counted the top inset twice and
+   pushed #app off the bottom of the screen, where nothing could scroll to it. */
 
 /* Prevent iOS tap highlight and text selection issues */
 * {
@@ -2911,8 +2909,12 @@ body {
 #app {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  min-height: 100dvh;
+  /* Exactly the screen (html and body are fixed to it), so it is the scroll
+     container: in landscape or with a tall notice, the rest scrolls into view */
+  height: 100%;
+  box-sizing: border-box;
+  padding: 0 env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
+    env(safe-area-inset-left, 0px);
   position: relative;
   /* Clip horizontal (ambient orbs) but allow vertical scroll if content overflows */
   overflow-x: hidden;
@@ -2920,6 +2922,13 @@ body {
   background: var(--color-bg-primary);
   /* Warm/cool shift based on time of day */
   filter: sepia(calc(var(--ambient-warmth) * 0.03)) saturate(calc(1 + var(--ambient-warmth) * 0.05));
+}
+
+/* #app scrolls instead of .main shrinking: a squeezed .main wraps its controls
+   into a column off the right edge (the short-landscape rules set flex-wrap).
+   !important because the layout container rules below set `flex: 1 !important`. */
+#app > .main {
+  flex: 1 0 auto !important;
 }
 
 /* Layered background effects */

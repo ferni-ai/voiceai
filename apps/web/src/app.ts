@@ -40,8 +40,10 @@ import {
   openPersonalize,
   openReferral,
   openRitualBuilder,
+  openSanctuary,
   openSupportFerni,
   openYourPeople,
+  openYourYear,
   showAppleHealthSettings,
   showConversationMemory,
   showEightSleepSettings,
@@ -1843,7 +1845,7 @@ class VoiceAIApp {
         onAnalyticsClick: () => void showAnalyticsDashboard(),
         onCognitiveClick: () => void showCognitiveInsights(),
         onRitualBuilderClick: () => void openRitualBuilder(),
-        onCommandsClick: () => void getSanctuaryUI().open(),
+        onCommandsClick: () => void openSanctuary(),
         onPredictionTrackerClick: () => void showPredictionTracker(),
         onExportDataClick: () => void showDataExport(),
         onOnboardingClick: () => getOnboardingUI().start(),
@@ -1880,19 +1882,7 @@ class VoiceAIApp {
         onYourStoryClick: () => void showYourStoryDashboard(),
         onActivityClick: () => showActivity(),
         onYourYearClick: () => {
-          // Open "Your Year with Ferni" visualization
-          log.debug('YourYear callback triggered, starting import');
-          import('./ui/your-year-with-ferni.ui.js')
-            .then(({ openYourYearWithFerni }) => {
-              log.debug('YourYear module loaded, opening');
-              return openYourYearWithFerni();
-            })
-            .then(() => {
-              log.debug('YourYear opened successfully');
-            })
-            .catch((err) => {
-              log.error({ error: String(err) }, 'YourYear error');
-            });
+          openYourYear().catch((err) => log.error({ error: String(err) }, 'YourYear error'));
         },
         onFutureInsightsClick: () => void openFutureInsights(),
         onDeepInsightsClick: () => {
@@ -1944,7 +1934,7 @@ class VoiceAIApp {
         onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
         // Warm menu callbacks
         onTogetherSessionsClick: () => void showGroupCoaching(), // Combines group coaching + team huddles
-        onAllConnectionsClick: () => openEverythingConnected(), // Connected Life: all integrations
+        onAllConnectionsClick: () => void openEverythingConnected(), // Connected Life: all integrations
         // New feature callbacks
         onMemoryLaneClick: () => void openMemoryLane(),
         onPatternInsightsClick: () => {
