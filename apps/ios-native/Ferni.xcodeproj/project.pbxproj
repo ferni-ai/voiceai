@@ -15,6 +15,7 @@
 		3658546F18732A8F5698869E /* CrashPolicyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */; };
 		38240C7BC3E78705B56F4A7C /* handoff-to-nayan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 5EEAAAFBD1E806CD800A6C17 /* handoff-to-nayan.mp3 */; };
 		3D35744BE349C5C980D7C2A6 /* FerniKit in Frameworks */ = {isa = PBXBuildFile; productRef = ED4AC2AA3060D84427234E43 /* FerniKit */; };
+		462F30BCD7F633DBEFD782D2 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */; };
 		4A50AB47CB1B846447DE63F9 /* handoff-to-maya.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */; };
 		6C5C041CBBDFB39263B52443 /* FerniLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65555DCB199766EA982A43A3 /* FerniLive.swift */; };
 		6F1A1895F228B47FE081346A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F086DF8C257F87FC0940C6A /* Assets.xcassets */; };
@@ -110,6 +111,7 @@
 		BE53A65C5F71E02C0E7B4239 /* goodbye.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = goodbye.mp3; sourceTree = "<group>"; };
 		C5DE888F55AE5FD01208AD72 /* FerniDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniDesign; path = Packages/FerniDesign; sourceTree = SOURCE_ROOT; };
 		C643B5190988DED731CADF82 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
+		CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-maya.mp3"; sourceTree = "<group>"; };
 		F0356DF8A0D911077889805D /* Ferni.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ferni.entitlements; sourceTree = "<group>"; };
 		F11E986D6A235319241904D1 /* Ferni.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Ferni.xcconfig; sourceTree = "<group>"; };
@@ -185,6 +187,7 @@
 		A744F1ADE1586BD6791C2E97 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */,
 				0F086DF8C257F87FC0940C6A /* Assets.xcassets */,
 				03F678B752992C142D10FE5E /* AudioRoutePicker.swift */,
 				49306E5B24BD5C520DBE56ED /* CallFeedback.swift */,
@@ -370,6 +373,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				462F30BCD7F633DBEFD782D2 /* AppIcon.icon in Resources */,
 				6F1A1895F228B47FE081346A /* Assets.xcassets in Resources */,
 				31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */,
 				117123ACF45A5D57E6E0056D /* PrivacyInfo.xcprivacy in Resources */,
