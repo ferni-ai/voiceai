@@ -17,16 +17,6 @@
 	<key>CFBundleLocalizations</key>
 	<array>
 		<string>en</string>
-		<string>en-GB</string>
-		<string>ar</string>
-		<string>de</string>
-		<string>es</string>
-		<string>fr</string>
-		<string>he</string>
-		<string>ja</string>
-		<string>ko</string>
-		<string>zh-Hans</string>
-		<string>zh-Hant</string>
 	</array>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>

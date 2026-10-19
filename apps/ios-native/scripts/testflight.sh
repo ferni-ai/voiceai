@@ -21,6 +21,8 @@ xcodebuild archive \
   -archivePath "$work/Ferni.xcarchive" \
   "${auth[@]}"
 
+scripts/check-archive.sh "$work/Ferni.xcarchive"
+
 xcodebuild -exportArchive \
   -archivePath "$work/Ferni.xcarchive" \
   -exportOptionsPlist ExportOptions-TestFlight.plist \
