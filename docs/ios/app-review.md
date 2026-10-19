@@ -59,7 +59,7 @@ notes as a one-time link, never in this repository.
 | Siri, Shortcuts, Action button | "Talk to Ferni", "Call Ferni", "Talk to Maya on Ferni" | App Intents. Talk always goes through consent; End is the Live Activity's button. |
 | Control Center and Lock Screen control | Controls gallery, "Talk to Ferni" | |
 | iPad | Sidebar (Talk, Team, What Ferni remembers, Settings) | In a landscape call, captions sit beside Ferni. Keyboard: Command-Return talks, Command-Period ends, Command-M mutes. |
-| Languages | System language | The web app's 11 locales. Untranslated strings show in English. |
+| Languages | English | 1.0 ships in English only (most of the catalog was still English placeholders). The app declares `en` and builds no other language; the String Catalog stays in the repository for real translations later. |
 | Accessibility | Throughout | Dynamic Type, VoiceOver labels and actions (including Interrupt while Ferni speaks), Reduce Motion (Ferni moves at 35% and skips the big moments). |
 | Crash reports | Not visible | Sentry, only in builds that carry a DSN. No user, screenshots, view hierarchy or replay. |
 
