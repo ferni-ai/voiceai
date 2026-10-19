@@ -14,7 +14,7 @@
  * @module services/outreach/after-call-checkin
  */
 import { createLogger } from '../../utils/safe-logger.js';
-import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 import { cohortFlagsEnabled, resolveCallerFlags } from '../platform/cohort-flags.js';
 import type { AfterCallContext } from '../session/after-call-tasks.js';
 import {
@@ -63,8 +63,7 @@ export interface CheckinOutcome {
 
 /** Calls placed on someone's behalf, or with no known person, are not the member's own call. */
 export function isMemberCall(userId: string): boolean {
-  const id = userId.trim();
-  return id !== '' && id !== 'anonymous' && nonAccountPrefixOf(id) === undefined;
+  return isMemberIdentity(userId);
 }
 
 /** The skip reasons that need no reads: whose call it was and how long it ran. */
