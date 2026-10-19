@@ -56,6 +56,23 @@ final class HomeLineTests: XCTestCase {
         XCTAssertNil(home.current)
     }
 
+    /// Security review (2026-10-19): a response still in flight when the
+    /// person signs out or switches must not land on the next person's Home.
+    func testALineInFlightAtSignOutNeverShows() async throws {
+        let home = HomeLineStore(api: FerniAPI(baseURL: URL(string: "https://app.example.test")!, idToken: { _ in "t" }) { request in
+            try await Task.sleep(for: .milliseconds(300))
+            let body = #"{"name":"Sam","line":"How did the interview go?"}"#
+            return (Data(body.utf8), HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        })
+        let inFlight = Task { await home.refresh() }
+        try await Task.sleep(for: .milliseconds(50))
+        home.reset()
+        await inFlight.value
+        XCTAssertNil(home.current, "the previous person's line")
+        await home.refresh()
+        XCTAssertEqual(home.current?.name, "Sam", "a refresh after the switch still works")
+    }
+
     /// Home is not the place for a paragraph: overlong text is not shown.
     func testOnlyAShortLineAndAShortName() async {
         let server = Server()

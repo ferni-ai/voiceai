@@ -21,21 +21,30 @@ public final class HomeLineStore {
 
     public private(set) var current: Line?
     @ObservationIgnored private let api: FerniAPI
+    /// Bumped by reset(): an answer for the previous person is dropped.
+    @ObservationIgnored private var generation = 0
 
     public init(api: FerniAPI) { self.api = api }
 
     /// Fetch again. A failure clears the line rather than keeping a stale one.
     public func refresh() async {
+        let asked = generation
+        let line: Line?
         do {
             let data = try await api.data("/api/home")
-            current = Self.cleaned(try JSONDecoder().decode(Line.self, from: data))
+            line = Self.cleaned(try JSONDecoder().decode(Line.self, from: data))
         } catch {
-            current = nil
+            line = nil
         }
+        guard asked == generation else { return } // someone else signed in meanwhile
+        current = line
     }
 
     /// The person signed out or changed.
-    public func reset() { current = nil }
+    public func reset() {
+        generation += 1
+        current = nil
+    }
 
     static func cleaned(_ raw: Line) -> Line? {
         func clean(_ s: String?, max: Int) -> String?? {
