@@ -35,6 +35,9 @@ targets:
   Ferni:
     type: application
     platform: iOS
+    configFiles:
+      Debug: Config/Ferni.xcconfig
+      Release: Config/Ferni.xcconfig
     sources:
       - path: App
         excludes:
@@ -53,6 +56,8 @@ targets:
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         FerniAPIBaseURL: $(FERNI_API_BASE_URL)
+        # Crash reporting: empty (off) unless Config/Sentry.local.xcconfig sets it.
+        SentryDSN: $(SENTRY_DSN)
         ITSAppUsesNonExemptEncryption: false
         NSSupportsLiveActivities: true
         # ProMotion: the avatar asks for 120 Hz only while Ferni speaks.
