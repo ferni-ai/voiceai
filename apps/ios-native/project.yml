@@ -80,6 +80,7 @@ targets:
         UIBackgroundModes:
           - audio
           - voip
+        NSFaceIDUsageDescription: Ferni uses Face ID to keep what Ferni remembers just for you.
         NSMicrophoneUsageDescription: Ferni listens only while you're talking together, so you can talk out loud.
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

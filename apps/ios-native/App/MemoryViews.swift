@@ -121,8 +121,32 @@ struct RememberCard: View {
 /// Everything Ferni remembers, grouped, each note forgettable (UX spec §5).
 struct MemoryScreen: View {
     let memory: MemoryStore
+    let lock: MemoryLock
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
+        Group {
+            if lock.isLocked {
+                // Locked: nothing is fetched or shown until the phone's owner confirms.
+                ContentUnavailableView {
+                    Label("What Ferni remembers is locked", systemImage: "lock")
+                } actions: {
+                    Button("Unlock with \(lock.method ?? String(localized: "passcode"))") { Task { await lock.unlock() } }
+                        .buttonStyle(.borderedProminent)
+                        .tint(FerniColor.accent)
+                }
+                .task { await lock.unlock() }
+            } else {
+                notes
+            }
+        }
+        // The app switcher's snapshot never shows the notes when the lock is on.
+        .overlay { if lock.isEnabled && scenePhase != .active { Rectangle().fill(.regularMaterial).ignoresSafeArea() } }
+        .navigationTitle("What Ferni remembers")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var notes: some View {
         List {
             switch memory.load {
             case .failed where memory.notes.isEmpty:
@@ -159,8 +183,6 @@ struct MemoryScreen: View {
             }
         }
         .overlay { if memory.load == .loading && memory.notes.isEmpty { ProgressView() } }
-        .navigationTitle("What Ferni remembers")
-        .navigationBarTitleDisplayMode(.inline)
         .task { await memory.refresh() }
         .refreshable { await memory.refresh() }
     }

@@ -16,6 +16,8 @@ struct FerniApp: App {
         _model = State(initialValue: AppModel(firebaseReady: FerniFirebase.configure()))
     }
 
+    @Environment(\.scenePhase) private var scenePhase
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -39,6 +41,8 @@ struct FerniApp: App {
                         await model.push.reconcile(uid: model.account.user?.uid)
                     }
                 }
+                // What Ferni remembers locks again whenever the app leaves the foreground.
+                .onChange(of: scenePhase) { _, phase in if phase != .active { model.memoryLock.lock() } }
                 .onChange(of: model.account.user?.uid, initial: true) { old, uid in
                     model.accountChanged(from: old, to: uid)
                 }
@@ -61,6 +65,7 @@ final class AppModel {
     let memory: MemoryStore
     let minimumBuild: MinimumBuild
     let callRemembered: CallRemembered
+    let memoryLock = MemoryLock()
     let liveActivity = LiveActivityController()
     let push: PushStore
     var isShowingSettings = false
@@ -138,6 +143,7 @@ final class AppModel {
 
     private func forgetPerson() {
         memory.reset()
+        memoryLock.reset()
         team.reset()
         call.forgetLastCall()
         UserDefaults.standard.removeObject(forKey: "ferni.call.hasTalked")

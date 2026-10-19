@@ -51,7 +51,7 @@ struct RootView: View {
                 switch section ?? .talk {
                 case .talk: HomeView(showsAccountButton: false)
                 case .team: TeamScreen(team: model.team) { section = .talk }
-                case .remembers: NavigationStack { MemoryScreen(memory: model.memory) }
+                case .remembers: NavigationStack { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
                 case .settings: SettingsView(showsDone: false)
                 }
             }
