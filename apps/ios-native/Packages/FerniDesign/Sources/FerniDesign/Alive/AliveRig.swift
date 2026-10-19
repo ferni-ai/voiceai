@@ -281,7 +281,8 @@ public final class AliveRig {
         let breathing = still ? 0 : breath(face) * m
         self[.squash].t = face.squash + breathing + env * 0.04 * m
         self[.posY].t = face.posY + (still ? 0 : sin(now * 1.05) * 0.03 * m) + env * 0.02 * m
-        self[.glow].t = face.glow + env * 0.45
+        // Connecting: he leans in, his light rising, eyes up for whoever is coming.
+        self[.glow].t = face.glow + env * 0.45 + (activity == .arriving ? 0.3 * m : 0)
         self[.posX].t = 0
         self[.ringY].t = self[.posY].x
         self[.ringS].t = 1
@@ -344,6 +345,7 @@ public final class AliveRig {
             nextSaccade = time + rng.range(1.1, 3.4)
         }
         if reading, focus == nil { gazeTarget.y = min(gazeTarget.y, f.gy - 0.4) }
+        if activity == .arriving, focus == nil { gazeTarget.y = max(gazeTarget.y, 0.4) }
         let drift = still ? .zero : SIMD2(sin(time * .pi * 2 / 8) * 0.04, sin(time * .pi * 2 / 8 * 1.3 + 1) * 0.03)
         self[.gx].t = clamp(gazeTarget.x + drift.x, -0.85, 0.85) * max(m, 0.5)
         self[.gy].t = clamp(gazeTarget.y + drift.y, -0.7, 0.7) * max(m, 0.5)
