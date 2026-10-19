@@ -52,6 +52,9 @@ struct HomeView: View {
                                 NotificationAsk(push: model.push, uid: model.account.user?.uid)
                                 #endif
                             }
+                            if call.phase == .idle, let note = model.homeLine.current?.note {
+                                NoteCard(note: note) { model.talk(aboutNote: note) }
+                            }
                             TeamRow(team: model.team)
                         }
                     }
@@ -111,7 +114,7 @@ struct HomeView: View {
                         model.isAskingConsent = false
                         Task { await model.agreeAndTalk() }
                     },
-                    onNotNow: { model.isAskingConsent = false }
+                    onNotNow: { model.notNow() }
                 )
                 .presentationDetents([.large])
             }
@@ -206,6 +209,36 @@ enum RestingWords {
             String(localized: "Whenever you're ready, I'm here.")
         }
         return (Greeting.headline(hour: hour, firstVisit: firstVisit), detail)
+    }
+}
+
+/// Ferni's note on Home: something he's been turning over from your last
+/// talks, in your own words (GET /api/home `note`).
+enum NoteWords {
+    static func line(_ note: HomeLineStore.Home.Note) -> String {
+        String(localized: "I've been thinking about \(note.text).")
+    }
+}
+
+/// At rest, when Ferni has a note: his thought and a way to talk about it.
+private struct NoteCard: View {
+    let note: HomeLineStore.Home.Note
+    let talk: () -> Void
+
+    var body: some View {
+        VStack(spacing: FerniSpace.breath) {
+            Text(NoteWords.line(note))
+                .font(FerniType.body)
+                .foregroundStyle(FerniColor.textSecondary)
+                .multilineTextAlignment(.center)
+            Button("Talk about this", action: talk)
+                .font(FerniType.button)
+                .frame(minHeight: 44)
+                .tint(FerniColor.accent)
+        }
+        .padding(FerniSpace.rest)
+        .frame(maxWidth: .infinity)
+        .background(FerniColor.surface, in: .rect(cornerRadius: FerniRadius.medium))
     }
 }
 

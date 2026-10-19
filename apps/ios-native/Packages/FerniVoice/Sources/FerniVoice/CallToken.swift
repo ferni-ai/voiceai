@@ -27,7 +27,12 @@ public struct CallToken: Decodable, Sendable, Equatable {
 public enum CallTokens {
     /// Asks the server for a call token as the signed-in account. Each call
     /// gets a fresh room name the caller then owns (token-room-owner.ts).
-    public static func fetcher(api: FerniAPI) -> @Sendable (_ personaID: String) async throws -> CallToken {
+    /// - Parameter origin: where this call started, read at each token request:
+    ///   `note:<id>` for Home's note (docs/api/from-note.md). Only that exact
+    ///   form is sent, as `from`; anything else is left out.
+    public static func fetcher(
+        api: FerniAPI, origin: @escaping @Sendable () async -> String? = { nil }
+    ) -> @Sendable (_ personaID: String) async throws -> CallToken {
         { personaID in
             let room = "ios-\(UUID().uuidString.lowercased())"
             let data = try await api.data("/token", query: [
@@ -37,8 +42,13 @@ public enum CallTokens {
                 URLQueryItem(name: "username", value: "User"),
                 URLQueryItem(name: "persona_id", value: personaID),
                 URLQueryItem(name: "timezone", value: TimeZone.current.identifier),
-            ])
+            ] + (Self.from(await origin()).map { [URLQueryItem(name: "from", value: $0)] } ?? []))
             return try JSONDecoder().decode(CallToken.self, from: data)
         }
+    }
+
+    static func from(_ origin: String?) -> String? {
+        guard let origin, origin.hasPrefix("note:"), HomeLineStore.validNoteID(String(origin.dropFirst(5))) else { return nil }
+        return origin
     }
 }
