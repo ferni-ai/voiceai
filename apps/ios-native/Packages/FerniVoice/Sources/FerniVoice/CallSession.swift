@@ -322,6 +322,23 @@ public final class CallSession {
 
     // MARK: - Events
 
+    /// The agent brings in a teammate (critic H3). Only teammates the app
+    /// knows ever reach the screen; a rejoin continues with whoever is on now.
+    private func handle(_ handoff: AgentSignals.Handoff?) {
+        switch handoff {
+        case .started(let id)?:
+            if let teammate = PersonaRegistry.known(serverID: id) { avatar.send(.handoffStarted(to: teammate.id)) }
+        case .completed(let id)?:
+            guard let teammate = PersonaRegistry.known(serverID: id) else { return }
+            personaID = teammate.id
+            avatar.send(.handoffCompleted(to: teammate.id, name: teammate.name))
+        case .failed?:
+            avatar.send(.handoffFailed)
+        case nil:
+            break
+        }
+    }
+
     private func handle(_ event: RoomEvent, from source: any VoiceRoom) {
         guard source === room else { return } // a room we already left
         switch event {
@@ -342,6 +359,7 @@ public final class CallSession {
             case .ended?, .paused?: isUserSpeaking = false
             case nil: break
             }
+            handle(AgentSignals.handoff(from: json))
             if let result = ExpressionEventMapper.shared.processMessage(json) {
                 let hold = RemoteDuration.seconds(result.hold ?? result.duration)
                 avatar.send(.expression(result.expression, hold: hold))
