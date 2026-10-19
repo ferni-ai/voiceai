@@ -1017,7 +1017,7 @@ class NotificationSettingsUI {
 
       .notif-settings__tab--active {
         background: var(--persona-primary, #4a6741);
-        color: white;
+        color: var(--persona-on-primary, #ffffff);
       }
 
       .notif-settings__tab--active:hover { background: var(--persona-secondary, #3d5a35); }
@@ -1863,7 +1863,7 @@ class NotificationSettingsUI {
       [data-theme="midnight"] .notif-settings__toggle-track { background: var(--color-background-tertiary, #2a241f); }
       [data-theme="midnight"] .notif-settings__time-field input { background: var(--color-background-secondary, #1e1a16); color: var(--color-text-primary, #faf6f0); }
       [data-theme="midnight"] .notif-settings__close { background: var(--color-background-tertiary, #2a241f); color: var(--color-text-secondary, #f0ebe4); }
-      [data-theme="midnight"] .notif-settings__tab { color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .notif-settings__tab:not(.notif-settings__tab--active) { color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .notif-settings__tab:hover { background: var(--color-background-secondary, #1e1a16); }
       [data-theme="midnight"] .notif-settings__empty-tip { background: var(--color-background-secondary, #1e1a16); }
       [data-theme="midnight"] .notif-settings__upcoming-btn { background: var(--color-background-tertiary, #2a241f); }
