@@ -18,6 +18,7 @@ import * as path from 'path';
 import * as os from 'os';
 import * as http from 'http';
 import { URL } from 'url';
+import { refreshFirebaseSession } from './firebase-token-refresh.js';
 
 // ============================================================================
 // TYPES
@@ -94,6 +95,8 @@ export function storeToken(token: AuthToken): void {
   fs.writeFileSync(DEFAULT_CONFIG.tokenPath, JSON.stringify(token, null, 2), {
     mode: 0o600, // Owner read/write only
   });
+  // `mode` only applies when the file is created; tighten one that already exists.
+  fs.chmodSync(DEFAULT_CONFIG.tokenPath, 0o600);
 }
 
 /**
@@ -121,13 +124,16 @@ export function isTokenExpired(token: AuthToken): boolean {
   return Date.now() > token.expiresAt - bufferMs;
 }
 
+/** A session is usable while its ID token is fresh or it can be refreshed. */
+function hasUsableSession(token: AuthToken | null): token is AuthToken {
+  return !!token && (!isTokenExpired(token) || !!token.refreshToken);
+}
+
 /**
- * Check if user is authenticated with valid token
+ * Check if user is signed in (an expired token still counts if it can be refreshed)
  */
 export function isAuthenticated(): boolean {
-  const token = readStoredToken();
-  if (!token) return false;
-  return !isTokenExpired(token);
+  return hasUsableSession(readStoredToken());
 }
 
 /**
@@ -135,7 +141,7 @@ export function isAuthenticated(): boolean {
  */
 export function getCurrentUser(): { userId: string; email: string; displayName?: string } | null {
   const token = readStoredToken();
-  if (!token || isTokenExpired(token)) return null;
+  if (!hasUsableSession(token)) return null;
   return {
     userId: token.userId,
     email: token.email,
@@ -147,46 +153,39 @@ export function getCurrentUser(): { userId: string; email: string; displayName?:
 // TOKEN REFRESH
 // ============================================================================
 
-/**
- * Refresh an expired token using the refresh token
- */
-export async function refreshToken(token: AuthToken): Promise<AuthToken | null> {
-  try {
-    const response = await fetch(`${DEFAULT_CONFIG.apiBaseUrl}/api/auth/refresh`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        refreshToken: token.refreshToken,
-      }),
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    const data = (await response.json()) as {
-      token: string;
-      refreshToken: string;
-      expiresIn: number;
-      user: { uid: string; email: string; displayName?: string };
-    };
-
-    const newToken: AuthToken = {
-      userId: data.user.uid,
-      email: data.user.email,
-      displayName: data.user.displayName,
-      firebaseToken: data.token,
-      refreshToken: data.refreshToken,
-      expiresAt: Date.now() + data.expiresIn * 1000,
-    };
-
-    storeToken(newToken);
-    return newToken;
-  } catch {
-    return null;
+/** Thrown when Firebase will not refresh the session: the user must sign in again. */
+export class SessionExpiredError extends Error {
+  constructor(detail: string) {
+    super(`Your Ferni session has ended (${detail}). Sign in again with \`ferni auth login\`.`);
+    this.name = 'SessionExpiredError';
   }
+}
+
+/**
+ * Refresh an expired token with Firebase and store the new one.
+ * Throws SessionExpiredError (stored token cleared) when Firebase refuses the
+ * refresh token, or a plain Error (stored token kept) when it can't be reached.
+ */
+export async function refreshToken(token: AuthToken): Promise<AuthToken> {
+  const result = await refreshFirebaseSession(token.refreshToken, DEFAULT_CONFIG.appUrl);
+  if (!result.ok) {
+    if (result.reason === 'rejected') {
+      clearStoredToken();
+      throw new SessionExpiredError(result.detail);
+    }
+    throw new Error(
+      `Could not refresh your Ferni session (${result.detail}). Check your connection and try again.`
+    );
+  }
+
+  const newToken: AuthToken = {
+    ...token,
+    firebaseToken: result.idToken,
+    refreshToken: result.refreshToken,
+    expiresAt: Date.now() + result.expiresInSec * 1000,
+  };
+  storeToken(newToken);
+  return newToken;
 }
 
 // ============================================================================
@@ -194,23 +193,14 @@ export async function refreshToken(token: AuthToken): Promise<AuthToken | null> 
 // ============================================================================
 
 /**
- * Get a valid auth token, refreshing if needed
- * Returns null if not authenticated or refresh fails
+ * Get a valid auth token, refreshing once if it has expired.
+ * Returns null if not signed in; throws if the refresh fails (see refreshToken).
  */
 export async function getAuthToken(): Promise<string | null> {
   const token = readStoredToken();
   if (!token) return null;
-
-  if (isTokenExpired(token)) {
-    const refreshed = await refreshToken(token);
-    if (!refreshed) {
-      clearStoredToken();
-      return null;
-    }
-    return refreshed.firebaseToken;
-  }
-
-  return token.firebaseToken;
+  if (!isTokenExpired(token)) return token.firebaseToken;
+  return (await refreshToken(token)).firebaseToken;
 }
 
 /**
@@ -345,26 +335,46 @@ export function getLoginUrl(): string {
 // LOGOUT
 // ============================================================================
 
+export interface LogoutResult {
+  /** Whether the server revoked the refresh tokens. The local session is cleared either way. */
+  revoked: boolean;
+  /** Why the server revoke failed, when it did */
+  error?: string;
+}
+
 /**
- * Log out the current user
+ * Log out the current user: revoke their refresh tokens on the server, then
+ * clear the local session whatever the server said.
  */
-export async function logout(): Promise<void> {
+export async function logout(): Promise<LogoutResult> {
   const token = readStoredToken();
-  if (token) {
-    // Optionally revoke the token on the server
-    try {
-      await fetch(`${DEFAULT_CONFIG.apiBaseUrl}/api/auth/revoke`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token.firebaseToken}`,
-          'Content-Type': 'application/json',
-        },
-      });
-    } catch {
-      // Ignore errors - token will be cleared locally regardless
-    }
+  if (!token) return { revoked: false, error: 'no stored session' };
+
+  let result: LogoutResult;
+  try {
+    const response = await fetch(`${DEFAULT_CONFIG.apiBaseUrl}/api/auth/revoke`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token.firebaseToken}` },
+    });
+    result = response.ok
+      ? { revoked: true }
+      : { revoked: false, error: await describeFailure(response) };
+  } catch (error) {
+    result = { revoked: false, error: error instanceof Error ? error.message : String(error) };
+  } finally {
+    clearStoredToken();
   }
-  clearStoredToken();
+  return result;
+}
+
+async function describeFailure(response: Response): Promise<string> {
+  try {
+    const body = (await response.json()) as { error?: unknown };
+    if (typeof body.error === 'string') return `HTTP ${response.status}: ${body.error}`;
+  } catch {
+    // Not JSON: the status alone says enough.
+  }
+  return `HTTP ${response.status}`;
 }
 
 // ============================================================================

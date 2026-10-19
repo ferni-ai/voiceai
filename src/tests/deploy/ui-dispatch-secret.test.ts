@@ -31,7 +31,11 @@ function uiDeployValue(flag: string): string {
 
 describe('dispatch signing secret mount', () => {
   it('the production web deploy mounts it from Secret Manager', () => {
-    expect(uiDeployValue('--set-secrets').split(',')).toContain(MOUNT);
+    // The deploy passes the job's UI_SECRETS, which the secret preflight checks too.
+    expect(uiDeployValue('--set-secrets')).toBe('$UI_SECRETS');
+    const list = /^ {6}UI_SECRETS: "([^"]*)"$/m.exec(workflow);
+    expect(list).not.toBeNull();
+    expect(list![1].split(',')).toContain(MOUNT);
   });
 
   it('never as a plain env var', () => {

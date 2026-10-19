@@ -22,7 +22,11 @@ function workflowSecrets(): string[] {
   expect(start).toBeGreaterThan(-1);
   const m = /--set-secrets "([^"]*)"/.exec(workflow.slice(start));
   expect(m).not.toBeNull();
-  return m![1].split(',');
+  // The deploy passes the job's UI_SECRETS, which the secret preflight checks too.
+  expect(m![1]).toBe('$UI_SECRETS');
+  const list = /^ {6}UI_SECRETS: "([^"]*)"$/m.exec(workflow);
+  expect(list).not.toBeNull();
+  return list![1].split(',');
 }
 
 describe('web server deploys without Redis', () => {
