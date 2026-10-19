@@ -365,7 +365,7 @@ public final class AliveRig {
 
     // MARK: Tables
 
-    static func targets(_ c: KeyChannel) -> [Ch] {
+    nonisolated static func targets(_ c: KeyChannel) -> [Ch] {
         switch c {
         case .posY: [.posY]
         case .posX: [.posX]
@@ -389,7 +389,7 @@ public final class AliveRig {
     /// motion.json personaModifiers.timingMultiplier
     static let tempo: [WindowPersona: Double] = [.ferni: 1, .maya: 0.95, .peter: 0.85, .alex: 1, .jordan: 0.8, .nayan: 1.1]
 
-    static func colours(_ p: WindowPersona) -> (body: SIMD3<Float>, glow: SIMD3<Float>) {
+    nonisolated static func colours(_ p: WindowPersona) -> (body: SIMD3<Float>, glow: SIMD3<Float>) {
         let hex: (String, String) = switch p {
         case .ferni: ("#4a6741", "#6b8760")
         case .maya: ("#a67a6a", "#c69a8a")
@@ -403,7 +403,7 @@ public final class AliveRig {
 
     /// The envelope target for a gated RMS level: back to dB, then the
     /// prototype's -48...-18 dB window.
-    static func envelopeTarget(_ level: Float) -> Double {
+    nonisolated static func envelopeTarget(_ level: Float) -> Double {
         guard level > 0 else { return 0 }
         let rms = Double(level) / 4 + 0.02
         return clamp((20 * log10(rms) + 48) / 30, 0, 1)

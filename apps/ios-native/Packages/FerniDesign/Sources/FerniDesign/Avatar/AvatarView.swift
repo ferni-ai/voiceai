@@ -120,3 +120,8 @@ public struct AvatarView: View {
         }
     }
 }
+
+/// What Ferni is doing, as the avatar shows it.
+public enum AvatarActivity: Equatable, Sendable {
+    case idle, arriving, listening, thinking, speaking, reconnecting, error
+}
