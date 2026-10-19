@@ -43,7 +43,9 @@ struct HomeView: View {
                         if inCall {
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
                         } else {
-                            RestingLine(call: call)
+                            TimelineView(.everyMinute) { minute in
+                                RestingLine(call: call, home: model.homeLine.current, now: minute.date)
+                            }
                             if call.phase == .ended {
                                 RememberCard(call: call, remembered: model.callRemembered)
                                 #if FERNI_PUSH
@@ -67,7 +69,10 @@ struct HomeView: View {
             .safeAreaInset(edge: .bottom) {
                 if !typeSize.isAccessibilitySize { controls }
             }
-            .background(RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID)))
+            .background(TimelineView(.everyMinute) { minute in
+                // The room's light follows the clock, so an evening glow doesn't last until morning.
+                RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID), date: minute.date)
+            })
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
             // Trouble is announced wherever you are, including after the call view goes.
             .onChange(of: CallAnnouncement.text(phase: call.phase, onHold: call.isOnHold)) { _, line in
@@ -116,7 +121,7 @@ struct HomeView: View {
     private func avatar(call: CallSession, size: CGFloat) -> some View {
         // The Settings page sheet and the consent cover hide Ferni; the
         // smaller sheets (More, Report) leave him in view.
-        CallAvatar(call: call, covered: model.isShowingSettings || model.isAskingConsent) { model.feedback.play($0) }
+        CallAvatar(call: call, covered: model.isShowingSettings || model.isAskingConsent, wake: model.wakeCount) { model.feedback.play($0) }
             .frame(width: size, height: size)
             .opacity(call.phase == .reconnecting ? 0.5 : 1)
     }
@@ -131,6 +136,9 @@ struct HomeView: View {
 /// At rest: Ferni's hello and the last outcome (an ended call, or what went wrong).
 private struct RestingLine: View {
     let call: CallSession
+    let home: HomeLineStore.Line?
+    /// The minute it is, so the greeting changes with the day.
+    let now: Date
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -147,11 +155,11 @@ private struct RestingLine: View {
                     .tint(FerniColor.accent)
                 }
             case .ended:
-                greeting(String(localized: "Talk soon."), String(localized: "I'm here whenever you want to talk again."))
+                greeting(String(localized: "Talk soon."), RestingWords.detail(ended: true, homeLine: nil))
             default:
                 greeting(
-                    Greeting.headline(hour: Calendar.current.component(.hour, from: .now), firstVisit: !call.hasTalked),
-                    String(localized: "Whenever you're ready, I'm here.")
+                    Greeting.headline(hour: Calendar.current.component(.hour, from: now), firstVisit: !call.hasTalked, name: home?.name),
+                    RestingWords.detail(ended: false, homeLine: home?.line)
                 )
             }
         }
@@ -168,8 +176,43 @@ private struct RestingLine: View {
     }
 }
 
+/// Coming back to the app (delight gap 1). After 20 minutes away the last
+/// call's goodbye (or its failure) is old news; after 8 hours Ferni wakes up
+/// as you open the app. Nothing changes under a call.
+enum Welcome {
+    static let forgetAfter: TimeInterval = 20 * 60
+    static let wakeAfter: TimeInterval = 8 * 3600
+
+    static func onReturn(callEndedAt: Date?, wasActiveAt: Date?, inCall: Bool, now: Date) -> (forgetCall: Bool, wake: Bool) {
+        guard !inCall else { return (false, false) }
+        let forget = callEndedAt.map { now.timeIntervalSince($0) > forgetAfter } ?? false
+        let wake = wasActiveAt.map { now.timeIntervalSince($0) > wakeAfter } ?? false
+        return (forget, wake)
+    }
+}
+
+/// Home's second line at rest: the goodbye right after a call, else Ferni's
+/// thread from last time when there is one, else the open invitation.
+enum RestingWords {
+    static func detail(ended: Bool, homeLine: String?) -> String {
+        if ended { return String(localized: "I'm here whenever you want to talk again.") }
+        return homeLine ?? String(localized: "Whenever you're ready, I'm here.")
+    }
+}
+
 /// Ferni's hello, by time of day. A first visit gets an introduction.
 enum Greeting {
+    /// With the person's name when the server knows it (only if they said it).
+    static func headline(hour: Int, firstVisit: Bool, name: String?) -> String {
+        guard let name, !firstVisit else { return headline(hour: hour, firstVisit: firstVisit) }
+        switch hour {
+        case 5..<12: return String(localized: "Good morning, \(name).")
+        case 12..<17: return String(localized: "Good afternoon, \(name).")
+        case 17..<22: return String(localized: "Good evening, \(name).")
+        default: return String(localized: "Up late, \(name)? I'm here.")
+        }
+    }
+
     static func headline(hour: Int, firstVisit: Bool) -> String {
         if firstVisit { return String(localized: "Hi, I'm Ferni.") }
         switch hour {

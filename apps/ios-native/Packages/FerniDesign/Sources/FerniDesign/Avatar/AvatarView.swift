@@ -19,6 +19,7 @@ public struct AvatarView: View {
     let covered: Bool
     let onCue: ((KeyedCue) -> Void)?
     let reading: Bool
+    let wake: Int
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -45,7 +46,7 @@ public struct AvatarView: View {
     ///   - onCue: what the body asks the app for (a haptic on a touch, a chime on landing), after each frame.
     public init(
         persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
-        name: String = "Ferni", covered: Bool = false, level: @escaping @Sendable () -> Float = { 0 },
+        name: String = "Ferni", covered: Bool = false, wake: Int = 0, level: @escaping @Sendable () -> Float = { 0 },
         reading: Bool = false, onCue: ((KeyedCue) -> Void)? = nil
     ) {
         self.persona = persona
@@ -56,6 +57,7 @@ public struct AvatarView: View {
         self.level = level
         self.onCue = onCue
         self.reading = reading
+        self.wake = wake
     }
 
     public var body: some View {
@@ -122,6 +124,10 @@ public struct AvatarView: View {
                     if !reduceMotion { rig.play(.goodbye) }
                     rig.dismissGuest()
                 }
+            }
+            // Back after a long time away: he wakes where he is, as on opening the app.
+            .onChange(of: wake) { _, _ in
+                if activity == .idle, let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
             }
             .onChange(of: expression) { _, next in
                 if Self.wins.contains(next), !reduceMotion { rig.play(.win) }
