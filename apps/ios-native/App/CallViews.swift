@@ -281,6 +281,9 @@ struct CallMoreSheet: View {
                     Link(destination: URL(string: "tel:988")!) {
                         Label("Get help now (988)", systemImage: "phone.arrow.up.right")
                     }
+                    Link(destination: URL(string: "sms:988")!) {
+                        Label("Text 988", systemImage: "message")
+                    }
                 } footer: {
                     Text("988 is the Suicide & Crisis Lifeline in the US, free and open all day and night.")
                 }
