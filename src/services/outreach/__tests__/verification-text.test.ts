@@ -30,7 +30,7 @@ import {
 
 const ENV = { LOG_HASH_SECRET: 'test-secret' };
 const START = Date.parse('2026-10-18T16:00:00Z');
-const N = '+15555550100';
+const N = '+12125550100';
 
 /** The same reads and writes as Firestore, one at a time; `stopped`: hashes that sent STOP. */
 function memoryAtomically(store: Map<string, string[]>, stopped: Set<string>): Atomically {
@@ -58,13 +58,13 @@ function deps(over: Partial<CodeTextDeps> = {}) {
 const makeCode = () => vi.fn(async (_e164: string) => '123456');
 const ask = (d: CodeTextDeps, user = 'uid-1', phone = N, ip?: string) =>
   textVerificationCode(user, phone, makeCode(), d, ip);
-const num = (i: number) => `+1555555${String(1000 + i)}`;
+const num = (i: number) => `+1212555${String(1000 + i)}`;
 
 describe('textVerificationCode', () => {
   it('texts the code to the number given, in plain words, and only then is it sent', async () => {
     const { d } = deps();
     const make = makeCode();
-    expect(await textVerificationCode('uid-1', '(555) 555-0100', make, d)).toEqual({ sent: true });
+    expect(await textVerificationCode('uid-1', '(212) 555-0100', make, d)).toEqual({ sent: true });
     expect(make).toHaveBeenCalledWith(N);
     expect(d.send).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -82,7 +82,13 @@ describe('textVerificationCode', () => {
 
   it('only North American numbers (no SMS pumping to premium routes abroad)', async () => {
     const { d } = deps();
-    for (const abroad of ['+447700900123', '+2348012345678', '12']) {
+    for (const abroad of [
+      '+447700900123',
+      '+2348012345678',
+      '12',
+      '+18765550100',
+      '+19005550100',
+    ]) {
       expect(await ask(d, 'uid-1', abroad)).toEqual({ sent: false, reason: 'invalid-number' });
     }
     expect(d.send).not.toHaveBeenCalled();
@@ -163,7 +169,7 @@ describe('textVerificationCode', () => {
       expect(make).not.toHaveBeenCalled(); // no usable code exists for a number we never texted
       const all = JSON.stringify(logged.all);
       expect(all).toContain('refused quietly');
-      expect(all).not.toContain('5555550100');
+      expect(all).not.toContain('2125550100');
     }
     expect(stoppedCase.d.send).not.toHaveBeenCalled();
   });
@@ -171,7 +177,7 @@ describe('textVerificationCode', () => {
   it('confirm tries are limited per (user, number): five an hour', async () => {
     const { d, advance } = deps();
     for (let i = 0; i < 5; i++) expect(await reserveConfirmTry('uid-a', N, d)).toBe('ok');
-    expect(await reserveConfirmTry('uid-a', '(555) 555-0100', d)).toBe('locked');
+    expect(await reserveConfirmTry('uid-a', '(212) 555-0100', d)).toBe('locked');
     expect(await reserveConfirmTry('uid-b', N, d)).toBe('ok'); // another user
     expect(await reserveConfirmTry('uid-a', num(1), d)).toBe('ok'); // another number
     advance(60 * 60 * 1000);
@@ -240,7 +246,7 @@ describe('textVerificationCode', () => {
     expect(logged.all.length).toBeGreaterThan(1);
     const all = JSON.stringify(logged.all);
     expect(all).not.toContain('123456');
-    expect(all).not.toContain('5555550100');
+    expect(all).not.toContain('2125550100');
     expect(all).toContain('0100'); // last four only
   });
 });

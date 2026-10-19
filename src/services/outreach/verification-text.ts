@@ -2,7 +2,7 @@
  * Texts a phone-verification code to the number being verified. That number
  * is not verified yet (that's the point), so the guarded sender's
  * verified-phone rule can't apply; the code goes straight to it over the same
- * transport. North American numbers only (call-retry's toE164), against SMS
+ * transport. US and Canadian numbers only (us-ca-numbers.ts), against SMS
  * pumping. Everything else is decided in ONE Firestore transaction, in order:
  *
  * 1. the requester's own limits, per user (1 a minute, 5 an hour) and per IP
@@ -34,7 +34,7 @@
  */
 import { createHmac, randomInt } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { toE164 } from './call-retry.js';
+import { toUsCaE164 as toE164 } from './us-ca-numbers.js';
 import { checkinDb, last4, OPTOUTS, phoneHash, phoneHashKey, type Env } from './checkin-replies.js';
 import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
 import { defaultTextDeps, redactNumbers } from './guarded-text.js';
