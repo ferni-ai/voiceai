@@ -21,6 +21,30 @@ The minimum-build screen (`MinimumBuild`) shows only when the server names
 this build as too old. That route doesn't exist yet, so it never shows. It
 gates no feature.
 
+## Paid plans: unreachable, and what's left in the binary
+
+Ferni is free for now (2026-10-10). `PaidPlans.isOffered` is a constant
+`false`, so the app never prices, sells or restores a plan, and nothing
+leads to the StoreKit code (`SubscriptionService`, `PlanPurchaseModel`),
+which stays in the source so paid plans can come back. The constant is a
+`let`, not a build-time `#if`: the code is compiled, then stripped where the
+linker can.
+
+Measured on an unsigned Release archive (build 2026101918.59, 2026-10-19):
+
+| Looked for in `Ferni.app/Ferni` | Found |
+|---|---|
+| The four product IDs (`com.ferni.subscription.*`) | none |
+| Purchase copy ("Restore purchases", "Your plan", "per month") | none |
+| A `.storekit` configuration in the bundle | none |
+| The class names `SubscriptionService`, `PlanPurchaseModel` | yes, as Objective-C runtime names (`_TtC8FerniKit19SubscriptionService`). Swift classes are listed in `__objc_classlist`, which the linker never strips |
+| StoreKit | linked (`otool -L`), for one type: `StoreKit.Product` |
+
+So no purchase path, product or price ships, but a static scan will see
+StoreKit linked and those two class names. Linking StoreKit isn't a
+guideline issue on its own, and nothing a reviewer can reach depends on it.
+If even that should go, wrap `FerniKit/Store/` in `#if PAID_PLANS`.
+
 ## Signing in: no demo account needed
 
 The app signs in anonymously on first launch, so a reviewer can talk to Ferni
