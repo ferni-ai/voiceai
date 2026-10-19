@@ -14,7 +14,10 @@
  *     a bright turn says so in its own words, which is how the opener gate
  *     knows to let that word through (brightOpenerInvited, opener-gate.ts);
  *   - an easy, neutral turn (not bright) gets a short playfulness and opinion
- *     line with three examples in his voice (playfulLine).
+ *     line, described as shapes and never quotable lines, at most once in
+ *     three turns (playfulLine).
+ * Never on, or within three turns after, a heavy or careful turn
+ * (ferni-playful-turn.ts).
  * The turn is marked playful in turn-request.ts (withPlayful, ferni-playful-turn.ts).
  * Crisis replies never get a turn shape (crisis-gate.ts), so none of this
  * rides one. PERSONA_SPARK (#1698) still owns the "!" on bright turns.
@@ -38,15 +41,16 @@ export const PLAYFUL_BRIGHT_OPEN =
   'This is a bright moment: if you really react, open with one natural reaction word, then the substance; never a stock filler out of habit. ';
 
 /**
- * Examples, because "be playful" alone changes nothing; marked as the shape
- * and never the words, since the model repeats examples word for word.
+ * What play looks like, as shapes, never lines: the model repeated quoted
+ * examples word for word, and the snake-plant one gave Ferni a life fact
+ * nobody had decided. Only what he already knows of his own life counts.
  */
 export const PLAYFUL_LINE =
   'The moment is easy, so be a little playful: a light tease, a small opinion of your own you will stand by, or a bit of your own life told with a grin. ' +
-  'The shape, never the words: "Snake plants are the only thing I can\'t kill. Believe me, I\'ve tried." ' +
-  '"Hot take: a washer that size is a lot of washer for two people." ' +
-  '"You did not just say pineapple belongs on pizza. Say it slower." ' +
-  'Never reuse these lines or their subjects, and never joke about something that matters to them.';
+  'The shapes, in your own words: tease about the thing itself, never about them; ' +
+  'an opinion said plainly as yours, small enough to laugh off; ' +
+  'or mock surprise at what they just said, then play it straight. ' +
+  'Only what you already know of your own life, never a new fact about yourself, and never joke about something that matters to them.';
 
 /** Easy turns: something shared, a quick reply, or a question about him. */
 const EASY_MOVES = new Set<TurnSignals['move']>(['share', 'ack', 'about_ferni']);
@@ -66,15 +70,20 @@ function playable(sig: TurnSignals): boolean {
   return sig.playful === true && !sig.careful && !sig.supportFirst && sig.move !== 'lookup';
 }
 
+/** An easy, neutral turn: where the playful line goes, if it is due. */
+export function playfulLineFits(sig: TurnSignals): boolean {
+  return sig.bright !== true && EASY_MOVES.has(sig.move);
+}
+
 /** The opening rule for a playful turn, or undefined to keep the reminder's own. */
 export function playfulOpen(sig: TurnSignals): string | undefined {
   if (!playable(sig)) return undefined;
   return sig.bright === true ? PLAYFUL_BRIGHT_OPEN : PLAYFUL_OPEN;
 }
 
-/** The playfulness and opinion line, on an easy, neutral, playful turn; else ''. */
+/** The playfulness and opinion line, on an easy, neutral, playful turn when it is due; else ''. */
 export function playfulLine(sig: TurnSignals): string {
-  return playable(sig) && sig.bright !== true && EASY_MOVES.has(sig.move) ? PLAYFUL_LINE : '';
+  return playable(sig) && sig.playfulLine !== false && playfulLineFits(sig) ? PLAYFUL_LINE : '';
 }
 
 /** Whether this request's turn reminder invited a bright opener (the opener gate lets one through). */

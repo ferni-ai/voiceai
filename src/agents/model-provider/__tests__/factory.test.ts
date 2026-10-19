@@ -29,7 +29,6 @@ describe('ModelProviderFactory', () => {
   beforeEach(() => {
     clearModelProvider();
     // Clear env vars
-    delete process.env.USE_OPENAI_REALTIME;
     delete process.env.VOICE_PIPELINE;
     delete process.env.GEMINI_USE_NATIVE_FC;
     resetGeminiFCConfig();
@@ -37,7 +36,6 @@ describe('ModelProviderFactory', () => {
 
   afterEach(() => {
     clearModelProvider();
-    delete process.env.USE_OPENAI_REALTIME;
     delete process.env.VOICE_PIPELINE;
     delete process.env.GEMINI_USE_NATIVE_FC;
     resetGeminiFCConfig();
