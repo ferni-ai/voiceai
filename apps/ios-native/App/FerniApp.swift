@@ -189,6 +189,15 @@ final class AppModel {
         noticeDetail = String(localized: "Everything Ferni remembered about you is gone.")
     }
 
+    /// The Home Screen quick action "Get help now" (static, in Info.plist, so
+    /// it's there even when Ferni can't connect). It opens Help (critic L4).
+    static let helpShortcut = "com.sethdford.ferni.help"
+    var isShowingHelp = false
+
+    func performShortcut(_ type: String) {
+        if type == Self.helpShortcut { isShowingHelp = true }
+    }
+
     /// The consent sheet's Not now: no call, and nothing carried to the next one.
     func notNow() {
         isAskingConsent = false
@@ -338,6 +347,7 @@ final class AppModel {
             guard let self else { return }
             Task { await self.push.received(deviceToken: token, uid: self.account.user?.uid) }
         }
+        FerniAppDelegate.onShortcut = { [weak self] type in self?.performShortcut(type) }
         FerniAppDelegate.onTalk = { [weak self] in
             guard let self else { return }
             self.talk(to: self.team.chosen)

@@ -56,6 +56,17 @@
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>
 	</dict>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>phone.arrow.up.right</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Get help now</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.sethdford.ferni.help</string>
+		</dict>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
