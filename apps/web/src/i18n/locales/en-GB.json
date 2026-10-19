@@ -795,7 +795,11 @@
     "time": {
       "am": "AM",
       "pm": "PM"
-    }
+    },
+    "smsDisclosure": "Turn on texts and Ferni will text this number with reminders and check-ins, up to 3 a day. Msg & data rates may apply. Reply STOP to cancel, HELP for help.",
+    "smsTerms": "SMS terms",
+    "callDisclosure": "Ferni will only call this number when you ask, or for check-ins you've turned on.",
+    "errorChannelsRefresh": "I couldn't turn that on just yet. Refresh the page and try again?"
   },
   "creativeYou": {
     "eyebrow": "THINGS I FOUND FOR YOU",
@@ -5320,7 +5324,9 @@
     "quietNote": "If you're awake at 2am and reach out, I'm here with the same presence as noon.",
     "guardianDesc": "Watching out for you 24/7",
     "emptyCta": "Keep talking with me. Every conversation helps me understand when and how to support you best.",
-    "emptyTip": "Enable \"{feature}\" in Settings to unlock proactive support"
+    "emptyTip": "Enable \"{feature}\" in Settings to unlock proactive support",
+    "smsSetUp": "Set up texts",
+    "smsSetUpDesc": "Texts are turned on next to your number, where you can see what they include."
   },
   "trophyRoom": {
     "yourJourney": "YOUR JOURNEY",
