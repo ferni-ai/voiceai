@@ -26,6 +26,7 @@ interface HostingEntry {
   site?: string;
   target?: string;
   rewrites?: Rewrite[];
+  redirects?: Array<{ source: string; destination: string; type: number }>;
 }
 
 function hosting(path: string): HostingEntry[] {
@@ -56,6 +57,20 @@ describe('landing hosting config', () => {
 
   it('routes /share/** to the UI server', () => {
     expectShareRoutedToBackend(entries[0]);
+  });
+
+  // People guess ferni.ai/app (or /login, /signin, /start) and landed on the 404
+  // page (new-person hunt, 2026-10-18). Exact paths only: no catch-all.
+  it.each(['/app', '/login', '/signin', '/start'])('redirects %s to app.ferni.ai (301)', (path) => {
+    const matches = (entries[0].redirects ?? []).filter((r) => r.source === path);
+    expect(matches).toEqual([{ source: path, destination: 'https://app.ferni.ai/', type: 301 }]);
+  });
+
+  it('sends nothing else to the app', () => {
+    const toApp = (entries[0].redirects ?? []).filter((r) =>
+      r.destination.includes('app.ferni.ai')
+    );
+    expect(toApp.map((r) => r.source).sort()).toEqual(['/app', '/login', '/signin', '/start']);
   });
 
   // The ferni CLI's landing deploy was removed 2026-10-17: the workflow is the only path.

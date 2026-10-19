@@ -551,7 +551,7 @@ export function generateRepair(detection: MisunderstandingDetection): RepairAppr
     space: {
       openers: ['Take your time.', 'No rush.', "We don't have to go there."],
       templates: [
-        "We don't have to go there. I'm here when you're ready.",
+        "We don't have to go there. Your call.",
         'No pressure. What would feel good to talk about?',
         "I pushed too fast. Let's slow down.",
       ],
@@ -567,7 +567,7 @@ export function generateRepair(detection: MisunderstandingDetection): RepairAppr
   // Fallback if repair doesn't land
   const fallback =
     severity === 'significant'
-      ? "I hear you. I'll follow your lead."
+      ? "Got it. I'll follow your lead."
       : 'Got it. What would be helpful?';
 
   return {

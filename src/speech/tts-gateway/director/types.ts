@@ -68,6 +68,8 @@ export interface TurnContext {
   turnNumber?: number;
   /** The user's words this reply answers. */
   userRequest?: string;
+  /** userRequest was read from this reply's own chat context (agents/shared/reply-caller-turn.ts). */
+  callerTurnFresh?: boolean;
   userEmotion?: { primary?: string };
   /** Rapport 0-1, for the laughter rules; their default when absent. */
   comfortLevel?: number;
