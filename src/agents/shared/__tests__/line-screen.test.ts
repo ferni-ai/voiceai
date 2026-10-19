@@ -183,3 +183,17 @@ describe('FerniAgent while a call is screened', () => {
     vi.useRealTimers();
   });
 });
+
+describe('voicemailMessage on a family check-in', () => {
+  const checkin = { recipientName: 'Mom', sponsorName: 'Seth', personal: true, checkin: true };
+
+  it('says it is Ferni and who asked, without "AI friend" (Seth, 2026-10-18)', () => {
+    expect(voicemailMessage(checkin)).toBe(
+      "Hi Mom, it's Ferni. Seth asked me to check in, no need to call back, I'll try again another time."
+    );
+  });
+
+  it('still says "AI friend" on a personal call placed on someone\'s behalf (control)', () => {
+    expect(voicemailMessage({ ...checkin, checkin: undefined })).toMatch(/Seth's AI friend/);
+  });
+});
