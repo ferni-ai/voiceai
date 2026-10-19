@@ -4,7 +4,13 @@
  * still opens until the migration re-seals it.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { encryptData, keyIdOf, openEnvelope, tokenKeyId } from '../token-encryption.js';
+import {
+  decryptData,
+  encryptData,
+  keyIdOf,
+  openEnvelope,
+  tokenKeyId,
+} from '../token-encryption.js';
 import { openTokens, sealTokens } from '../token-at-rest.js';
 
 const warn = vi.hoisted(() => vi.fn());
@@ -163,5 +169,51 @@ describe('production without a token key', () => {
     process.env.NODE_ENV = 'production';
     keys(NEW, undefined);
     expect(JSON.parse(encryptData(RAW))).toMatchObject({ encrypted: true, kid: keyIdOf(NEW) });
+  });
+});
+
+describe('decryptData fails closed', () => {
+  const savedNodeEnv = process.env.NODE_ENV;
+  afterEach(() => {
+    keys(saved.o, saved.l);
+    process.env.NODE_ENV = savedNodeEnv;
+  });
+
+  it('decrypts an untampered envelope (control)', () => {
+    keys(NEW, undefined);
+    expect(decryptData(encryptData(RAW))).toEqual(RAW);
+  });
+
+  it('returns null for a tampered envelope, not the envelope object', () => {
+    const env = sealedEnvelope(RAW);
+    env.authTag = flipByte(env.authTag, 0);
+    expect(decryptData(JSON.stringify(env))).toBeNull();
+  });
+
+  it('returns null for an envelope sealed with a key it does not hold', () => {
+    keys('some-other-key', undefined);
+    const foreign = encryptData(RAW);
+    keys(NEW, LEGACY);
+    expect(decryptData(foreign)).toBeNull();
+  });
+
+  it('returns null for an envelope in production with no key, instead of throwing', () => {
+    const sealed = JSON.stringify(sealedEnvelope(RAW));
+    process.env.NODE_ENV = 'production';
+    keys(undefined, undefined);
+    expect(decryptData(sealed)).toBeNull();
+  });
+
+  it('still returns legacy plaintext JSON written with no key configured', () => {
+    keys(undefined, undefined);
+    const plain = encryptData(RAW); // dev with no key writes plain JSON
+    expect(JSON.parse(plain)).toEqual(RAW);
+    keys(NEW, LEGACY);
+    expect(decryptData(plain)).toEqual(RAW);
+  });
+
+  it('returns null for garbage', () => {
+    keys(NEW, undefined);
+    expect(decryptData('not json')).toBeNull();
   });
 });
