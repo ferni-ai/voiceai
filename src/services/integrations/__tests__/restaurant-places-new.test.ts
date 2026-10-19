@@ -1,11 +1,11 @@
 /**
- * The restaurant-booking and travel restaurant searches go through Places API
+ * The travel restaurant search goes through Places API
  * (New) via services/google-places. The Places key returns REQUEST_DENIED on
  * the legacy maps.googleapis.com/maps/api/place endpoints.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// google-places.ts and restaurant-booking.ts read keys at import.
+// google-places.ts reads keys at import.
 vi.hoisted(() => {
   process.env.GOOGLE_PLACES_API_KEY = 'test-places-key';
   delete process.env.YELP_API_KEY;
@@ -26,7 +26,6 @@ vi.mock('../../automation/trust-level-system.js', () => ({
 }));
 vi.mock('@livekit/agents', () => ({ llm: { tool: vi.fn((c) => c) } }));
 
-import { searchRestaurants as searchBookingRestaurants } from '../restaurant-booking.js';
 import { searchRestaurants as searchTravelRestaurants } from '../../../tools/domains/travel/restaurants.js';
 
 const SEARCH_TEXT_URL = 'https://places.googleapis.com/v1/places:searchText';
@@ -72,32 +71,6 @@ afterEach(() => {
   // No lookup may reach the legacy endpoints, which deny the Places key.
   for (const [url] of fetchMock.mock.calls) expect(String(url)).not.toContain('maps.googleapis');
   vi.unstubAllGlobals();
-});
-
-describe('restaurant-booking searchRestaurants', () => {
-  it('searches Places (New) and maps to Restaurant without a keyed photo URL', async () => {
-    respond({ places: [CAFE] });
-
-    const results = await searchBookingRestaurants('coffee', 'Tampa');
-
-    expect(sent()).toEqual({
-      url: SEARCH_TEXT_URL,
-      textQuery: 'coffee restaurant near Tampa',
-      key: 'test-places-key',
-    });
-    expect(results).toEqual([
-      {
-        id: 'google_ChIJ-test-cafe-1',
-        name: 'Harbor Test Coffee',
-        address: '100 Central Ave, St. Petersburg, FL 33701, USA',
-        city: 'Tampa',
-        rating: 4.6,
-        priceRange: 1,
-        provider: 'google',
-        externalId: 'ChIJ-test-cafe-1',
-      },
-    ]);
-  });
 });
 
 describe('travel searchRestaurants', () => {

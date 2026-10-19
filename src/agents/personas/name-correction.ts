@@ -33,6 +33,7 @@ import { runBackground } from '../../utils/background-task.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { guestsPresent } from './room-guests.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'NameCorrection' });
 
@@ -154,7 +155,7 @@ const outboundOf = (deps: NameCorrectionDeps): ((sessionId: string) => boolean) 
 function ownerMayKeep(user: SessionUser, deps: NameCorrectionDeps): boolean {
   const { userId, services } = user;
   const sessionId = services?.sessionId;
-  if (!userId || userId === 'anonymous' || !sessionId) return false;
+  if (!isMemberIdentity(userId) || !sessionId) return false;
   return deps.verifiedOwner?.(sessionId) === true && !outboundOf(deps)(sessionId);
 }
 
