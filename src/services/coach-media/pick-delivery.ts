@@ -39,6 +39,7 @@ import { COACH_MEDIA_COMMITMENT_PREFIX, recordHelped } from './feedback.js';
 import { markSent, recentPicks } from './pick-log.js';
 import { takeDailyBudget } from './quota.js';
 import { topicOnlyQuery } from './topic-query.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 
 export interface SentPick {
   topic: string;
@@ -166,8 +167,7 @@ export async function deliverPick(
 ): Promise<string> {
   const sent = session ? lastPicks.get(session) : undefined;
   if (!sent) return 'There is no checked pick on this call to send. Find one first.';
-  if (!userId || userId === 'anonymous')
-    return "Can't send it: this call isn't tied to an account.";
+  if (!isMemberIdentity(userId)) return "Can't send it: this call isn't tied to an account.";
   const c = sent.candidate;
   const link = sendableLink(c);
   if (!link) return "That link isn't one Ferni can send; describe it instead.";
@@ -263,7 +263,7 @@ export async function recordPickFeedback(
   feedback: { helped: 'yes' | 'somewhat' | 'no'; whatMattered?: string },
   names: Array<string | undefined>
 ): Promise<string> {
-  if (!userId || userId === 'anonymous') return 'Noted for this call only.';
+  if (!isMemberIdentity(userId)) return 'Noted for this call only.';
   const value = topicOnlyQuery(feedback.whatMattered ?? '', names);
   if (!value) return 'Ask what made it work or not, in a few words, then record that.';
   const pick = (await recentPicks(userId)).find((p) => p.sentVia && !p.helped);
