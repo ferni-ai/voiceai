@@ -89,7 +89,8 @@ describe('This Year Together', () => {
     await settle(openYourYearWithFerni());
     expect(document.querySelector('#milestones-title')).toBeNull();
     expect(document.querySelector('#dreams-title')).toBeNull();
-    expect(document.querySelector('#team-title')).toBeNull();
+    // The team section stays and says why it is empty (main: TEAM_BY_NEED, teamUnavailable).
+    expect(document.querySelector('.your-year-team-empty')).not.toBeNull();
   });
 
   it('keeps quiet days in the heat map, 13 full weeks, counts on the right days', async () => {
