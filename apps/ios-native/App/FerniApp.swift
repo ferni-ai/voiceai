@@ -60,6 +60,7 @@ final class AppModel {
     let team: TeamStore
     let memory: MemoryStore
     let minimumBuild: MinimumBuild
+    let callRemembered: CallRemembered
     let liveActivity = LiveActivityController()
     let push: PushStore
     var isShowingSettings = false
@@ -148,6 +149,7 @@ final class AppModel {
         api = account.api(baseURL: config.apiBaseURL)
         team = TeamStore(api: api)
         memory = MemoryStore(api: api)
+        callRemembered = CallRemembered(api: api)
         minimumBuild = MinimumBuild(api: api, currentBuild: (Bundle.main.infoDictionary?["CFBundleVersion"] as? String).flatMap(Int.init))
         #if DEBUG
         let apnsEnvironment = "sandbox"
