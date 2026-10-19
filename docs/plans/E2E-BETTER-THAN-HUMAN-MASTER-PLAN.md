@@ -254,19 +254,19 @@ curl -s http://localhost:3001/health && curl -s http://localhost:3002/health && 
 - [x] **Phase 4:** Mac GPU (Rust build + embed script doc) pass on macOS; no regression on Linux.
 - [x] **Phase 5:** BTH superhuman E2E pass (`superhuman-services-e2e.test.ts`); memory/emotion tests listed in E2E-TEST-LIST.
 - [x] **Phase 6:** Tool routing and handoff E2E pass (tool-routing-e2e, handoff-e2e, handoff-fast-path).
-- [x] **Runbooks:** [E2E-PHASE-RUNBOOKS.md](../runbooks/E2E-PHASE-RUNBOOKS.md) – "when E2E fails" steps for each phase.
+- [x] **Runbooks:** E2E-PHASE-RUNBOOKS.md (archived: `git show docs-archive-2026-10-18:docs/runbooks/E2E-PHASE-RUNBOOKS.md`) – "when E2E fails" steps for each phase.
 
 ### 10.2 Runbook index
 
 | Phase | If it fails…                           | Runbook / doc                                                                                                                                                         |
 | ----- | -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 0     | Servers won’t start or health fails    | `CLAUDE.md` dev servers; `ferni dev cursor`; check ports and .env                                                                                                     |
-| 1     | useQwen3Omni wrong or menu wrong       | [E2E-PHASE-RUNBOOKS.md](../runbooks/E2E-PHASE-RUNBOOKS.md#phase-1-useqwen3omni-wrong-or-menu-wrong); token route env; connection.service and settings-menu            |
-| 2     | Director WebSocket auth or state wrong | [E2E-PHASE-RUNBOOKS.md](../runbooks/E2E-PHASE-RUNBOOKS.md#phase-2-director-websocket-auth-or-state-wrong); `pnpm test:director-ws`                                    |
-| 3     | Stress test fails or Thinker fails     | [E2E-PHASE-RUNBOOKS.md](../runbooks/E2E-PHASE-RUNBOOKS.md#phase-3-stress-test-fails-or-thinker-fails); [STRESS-TEST-QWEN-OMNI.md](../guides/STRESS-TEST-QWEN-OMNI.md) |
-| 4     | Mac Core ML or embed fails             | [E2E-PHASE-RUNBOOKS.md](../runbooks/E2E-PHASE-RUNBOOKS.md#phase-4-mac-core-ml-or-embed-fails); [ONNX-APPLE-GPU-BUILD.md](../guides/ONNX-APPLE-GPU-BUILD.md)           |
-| 5     | BTH or memory tests fail               | [E2E-PHASE-RUNBOOKS.md](../runbooks/E2E-PHASE-RUNBOOKS.md#phase-5-bth-or-memory-tests-fail); [E2E-TEST-LIST.md](../testing/E2E-TEST-LIST.md)                          |
-| 6     | Voice or tool/handoff fails            | [E2E-PHASE-RUNBOOKS.md](../runbooks/E2E-PHASE-RUNBOOKS.md#phase-6-voice-or-toolhandoff-fails); [DISCONNECT-DEBUGGING.md](../runbooks/DISCONNECT-DEBUGGING.md)         |
+| 1     | useQwen3Omni wrong or menu wrong       | E2E-PHASE-RUNBOOKS.md (archived: `git show docs-archive-2026-10-18:docs/runbooks/E2E-PHASE-RUNBOOKS.md`); token route env; connection.service and settings-menu            |
+| 2     | Director WebSocket auth or state wrong | E2E-PHASE-RUNBOOKS.md (archived: `git show docs-archive-2026-10-18:docs/runbooks/E2E-PHASE-RUNBOOKS.md`); `pnpm test:director-ws`                                    |
+| 3     | Stress test fails or Thinker fails     | E2E-PHASE-RUNBOOKS.md (archived: `git show docs-archive-2026-10-18:docs/runbooks/E2E-PHASE-RUNBOOKS.md`); [STRESS-TEST-QWEN-OMNI.md](../guides/STRESS-TEST-QWEN-OMNI.md) |
+| 4     | Mac Core ML or embed fails             | E2E-PHASE-RUNBOOKS.md (archived: `git show docs-archive-2026-10-18:docs/runbooks/E2E-PHASE-RUNBOOKS.md`); [ONNX-APPLE-GPU-BUILD.md](../guides/ONNX-APPLE-GPU-BUILD.md)           |
+| 5     | BTH or memory tests fail               | E2E-PHASE-RUNBOOKS.md (archived: `git show docs-archive-2026-10-18:docs/runbooks/E2E-PHASE-RUNBOOKS.md`); [E2E-TEST-LIST.md](../testing/E2E-TEST-LIST.md)                          |
+| 6     | Voice or tool/handoff fails            | E2E-PHASE-RUNBOOKS.md (archived: `git show docs-archive-2026-10-18:docs/runbooks/E2E-PHASE-RUNBOOKS.md`); [DISCONNECT-DEBUGGING.md](../runbooks/DISCONNECT-DEBUGGING.md)         |
 
 ### 10.3 Regression guard
 
