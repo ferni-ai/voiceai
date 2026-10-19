@@ -59,7 +59,7 @@ import {
 } from './action-claims.js';
 import { withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
-import { FirstClauseFlush, firstClauseFlushEnabled } from './first-clause-flush.js';
+import { clauseSafeFor, FirstClauseFlush, firstClauseFlushEnabled } from './first-clause-flush.js';
 import {
   askedCallLine,
   askedCallLookup,
@@ -341,13 +341,7 @@ async function checkActionClaims<T>(
   const ahead = (kind: ActionKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
   // FIRST_CLAUSE_FLUSH: a held reply's first clause goes early when it names no action (first-clause-flush.ts).
   const firstClause = new FirstClauseFlush(hold && firstClauseFlushEnabled(env));
-  /** The clause alone passes every check a sentence gets: no claim, promise, call story or action word. */
-  const clauseSafe = (clause: string): boolean =>
-    claimedAction(clause) === null &&
-    !(ahead('call') && bareOnIt(clause)) &&
-    promisedAction(clause) === null &&
-    !(unheard && narratesCallOutcome(clause, unheard.askedHow)) &&
-    !ACTION_TALK.test(plain(clause));
+  const clauseSafe = clauseSafeFor(ahead('call'), unheard, (c) => ACTION_TALK.test(plain(c)));
   let id = '';
   let stringChunks = true;
   const out = (text: string): Chunk =>
@@ -356,7 +350,6 @@ async function checkActionClaims<T>(
     async start(controller) {
       let pending = '';
       let passed = 0; // how much of pending already streamed out
-      let clauseSent = 0; // how much of pending went out as the reply's first clause
       let last = '';
       let said = false; // an honest line already went out
       let lineLast = false; // the last thing out was an honest line
@@ -383,13 +376,9 @@ async function checkActionClaims<T>(
         last = spaced;
         lineLast = false;
       };
-      /**
-       * A whole sentence: held ones go out unless they claim; streamed ones are already out.
-       * `sent` leading characters already went out as the first clause: the claim check
-       * reads the whole sentence, and only the rest is emitted, queued or dropped.
-       */
-      const flush = (whole: string, sent = 0): void => {
-        const text = whole.slice(sent);
+      /** A whole sentence is checked; held ones go out (less the first clause sent) unless they claim. */
+      const flush = (whole: string): void => {
+        const text = whole.slice(firstClause.sent);
         // On the yes to a call, "I'm on it" says the call is under way too.
         const claimed = claimedAction(whole) ?? (ahead('call') && bareOnIt(whole) ? 'call' : null);
         // "I'll text him then": a promise only a tool call in this reply keeps (action-promises.ts).
@@ -451,10 +440,9 @@ async function checkActionClaims<T>(
             // flushing on them cut words at the piece break ("cr ickets", "don' t").
             const names = toolNamesOf(chunk);
             if (names.length > 0) {
-              if (pending && !told(pending)) flush(pending, clauseSent);
+              if (pending && !told(pending)) flush(pending);
               pending = '';
               passed = 0;
-              clauseSent = 0;
               firstClause.close();
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
@@ -480,21 +468,17 @@ async function checkActionClaims<T>(
           pending += content;
           for (let end = sentenceEnd(pending); end > 0; end = sentenceEnd(pending)) {
             if (!hold) pass(pending.slice(passed, end)); // the rest of this sentence, then any correction
-            if (!told(pending.slice(0, end))) flush(pending.slice(0, end), clauseSent);
+            if (!told(pending.slice(0, end))) flush(pending.slice(0, end));
             pending = pending.slice(end);
             passed = 0;
-            clauseSent = 0;
             firstClause.close();
           }
           if (!hold) {
             pass(pending.slice(passed));
             passed = pending.length;
-          } else if (clauseSent === 0) {
-            clauseSent = firstClause.take(pending, clauseSafe);
-            if (clauseSent > 0) emit(pending.slice(0, clauseSent)); // the rest of its sentence stays held
-          }
+          } else emit(pending.slice(0, firstClause.take(pending, clauseSafe))); // first clause, once
         }
-        if (pending && !told(pending)) flush(pending, clauseSent);
+        if (pending && !told(pending)) flush(pending);
         if (deferred && !said && !calling.has(deferred.kind)) {
           emit(deferred.offer ?? honestLine(deferred.kind, deferred.reason, open.has('reminder')));
         }

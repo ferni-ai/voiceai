@@ -27,6 +27,9 @@
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { bareOnIt, claimedAction } from './action-claims.js';
+import { promisedAction } from './action-promises.js';
+import { narratesCallOutcome } from './call-narration.js';
 
 const log = createLogger({ module: 'FirstClauseFlush' });
 
@@ -87,12 +90,32 @@ export function findFirstClauseEnd(text: string, minChars = FIRST_CLAUSE_MIN_CHA
 }
 
 /**
+ * The guard's sentence checks, run on the first clause alone: it goes early only
+ * when none of them could drop it. No claim (nor a bare "I'm on it" on a call's
+ * yes), no promise, no story of a call no result came back from, no action word.
+ */
+export function clauseSafeFor(
+  callYes: boolean,
+  unheard: { askedHow: boolean } | null,
+  actionTalk: (clause: string) => boolean
+): (clause: string) => boolean {
+  return (clause) =>
+    claimedAction(clause) === null &&
+    !(callYes && bareOnIt(clause)) &&
+    promisedAction(clause) === null &&
+    !(unheard && narratesCallOutcome(clause, unheard.askedHow)) &&
+    !actionTalk(clause);
+}
+
+/**
  * One reply's first-clause release. `take` is asked with the reply's first
  * sentence so far; it answers how much of it may go out now (0: keep holding).
  * It answers yes at most once per reply, and never after `close()`.
  */
 export class FirstClauseFlush {
   private open: boolean;
+  /** How much of the current sentence already went out as the first clause. */
+  sent = 0;
 
   constructor(enabled: boolean) {
     this.open = enabled;
@@ -115,11 +138,13 @@ export class FirstClauseFlush {
     }
     // Once per reply, length only (never words), so dev can count how often it fires.
     log.info({ chars: spokenLength(clause) }, 'FIRST_CLAUSE_FLUSH');
+    this.sent = end;
     return end;
   }
 
   /** The first sentence ended, or a tool call cut it, before a clause went out. */
   close(): void {
     this.open = false;
+    this.sent = 0;
   }
 }
