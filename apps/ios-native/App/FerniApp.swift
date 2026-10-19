@@ -27,12 +27,6 @@ struct FerniApp: App {
                     model.liveActivity.follow(content, startedAt: model.call.startedAt)
                 }
                 .task {
-                    EndCallIntent.end = { [call = model.call] in await call.end() }
-                    TalkIntent.handler = { [model] personaID in model.talk(to: personaID) }
-                    FerniAppDelegate.onToken = { [model] token in
-                        Task { await model.push.received(deviceToken: token, uid: model.account.user?.uid) }
-                    }
-                    FerniAppDelegate.onTalk = { [model] in model.talk(to: model.team.chosen) }
                     // Back online: finish any unbind or registration that didn't go through,
                     // starting an account first if one is waiting to be unbound. This loop
                     // never ends, so it stays last in this task.
@@ -172,5 +166,22 @@ final class AppModel {
             agentLevel: level
         )
         feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
+        installSystemHandlers()
+    }
+
+    /// Siri, Control Center, the Action button and notifications can launch
+    /// the app cold and arrive before any view appears (critic H6), so they're
+    /// wired as soon as the model exists, before the app finishes launching.
+    private func installSystemHandlers() {
+        EndCallIntent.end = { [weak self] in await self?.call.end() }
+        TalkIntent.handler = { [weak self] personaID in self?.talk(to: personaID) }
+        FerniAppDelegate.onToken = { [weak self] token in
+            guard let self else { return }
+            Task { await self.push.received(deviceToken: token, uid: self.account.user?.uid) }
+        }
+        FerniAppDelegate.onTalk = { [weak self] in
+            guard let self else { return }
+            self.talk(to: self.team.chosen)
+        }
     }
 }
