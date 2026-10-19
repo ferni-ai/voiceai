@@ -626,7 +626,7 @@ const styles = `
     width: 56px;
     height: 56px;
     /* Ferni's warm sage green */
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
     /* Soft glow for warmth */
     filter: drop-shadow(0 0 16px rgba(74, 103, 65, 0.3));
     /* Organic heartbeat - alive and gentle */
@@ -920,7 +920,7 @@ const styles = `
     transition: all var(--duration-fast, 100ms) ease;
     border: none;
     background: var(--color-ferni);
-    color: white;
+    color: var(--color-ferni-on-primary);
   }
   
   .wellbeing-btn:hover {
@@ -1128,12 +1128,12 @@ const styles = `
   }
 
   [data-theme="midnight"] .wellbeing-btn {
-    background: var(--color-accent-secondary);
-    color: var(--color-text-primary-dark);
+    background: var(--color-accent-primary); /* light sage, so on-accent ink text */
+    color: var(--color-text-on-accent);
   }
 
   [data-theme="midnight"] .wellbeing-btn:hover {
-    background: var(--color-accent-secondary-hover);
+    background: var(--color-accent-hover);
   }
 
   [data-theme="midnight"] .wellbeing-btn--secondary {
@@ -1677,7 +1677,7 @@ function renderContent(): void {
   if (loadError) {
     content.innerHTML = `
       <div class="wellbeing-error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">
-        ${t('wellbeing.couldntLoadData')} <button type="button" class="wellbeing-btn" style="margin-top: var(--space-4); color: var(--color-ferni);">${t('wellbeing.tryAgain')}</button>
+        ${t('wellbeing.couldntLoadData')} <button type="button" class="wellbeing-btn" style="margin-top: var(--space-4);">${t('wellbeing.tryAgain')}</button>
       </div>
     `;
     content.querySelector('button')?.addEventListener('click', () => {
