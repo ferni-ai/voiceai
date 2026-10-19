@@ -4802,7 +4802,10 @@
     "funGames": "Juegos divertidos",
     "reflectionGames": "Juegos de reflexión",
     "tipLabel": "Consejo:",
-    "tipContent": "Di \"parar\" o \"terminar juego\" en cualquier momento para acabar antes. ¡Tu progreso siempre se guarda!"
+    "tipContent": "Di \"parar\" o \"terminar juego\" en cualquier momento para acabar antes. ¡Tu progreso siempre se guarda!",
+    "connectFirst": "Primero empieza una llamada con Ferni y luego elige un juego.",
+    "starting": "Empezando {game}…",
+    "startFailed": "No se pudo empezar ese juego. Pídeselo a Ferni."
   },
   "digitalTwinProfile": {
     "title": "Crea tu gemelo digital",

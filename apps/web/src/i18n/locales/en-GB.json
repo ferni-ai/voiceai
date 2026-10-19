@@ -618,7 +618,6 @@
     "youGave": "You gave",
     "youReceived": "You received",
     "yourJourney": "Your Journey",
-    "yourLibrary": "Your Library",
     "yourTeam": "Your Team",
     "yourTrackedDreams": "Your tracked dreams",
     "zap": "Zap",
@@ -1327,7 +1326,9 @@
         "calendar": "Calendar",
         "history": "Past chats",
         "people": "Your people",
-        "insights": "What I've learned"
+        "insights": "What I've learned",
+        "soundOn": "Sound effects: on",
+        "soundOff": "Sound effects: off"
       }
     },
     "ariaLabel": "Settings menu",
@@ -4647,8 +4648,6 @@
     "games": "Games",
     "pickAGame": "Pick a game to play together",
     "reflectionNotice": "Mindful moments with Ferni. Quick reflections to check in with yourself.",
-    "libraryNotice": "Play games using YOUR Spotify library!",
-    "libraryHint": "Connect Spotify to unlock these personalised games.",
     "footerHint": "Or just say \"Let's play a game\" to Ferni!",
     "howToPlayGames": "How to Play Games",
     "nameThatTune": "Name That Tune",
@@ -4715,15 +4714,14 @@
     "valuesCardSort": "Values Card Sort",
     "valuesCardSortDesc": "Discover your core values by sorting cards. Deep self-discovery.",
     "valuesCardSortHelp": "A deeper exercise to discover your core values by sorting cards. Takes 10-15 minutes.",
-    "yourLibraryMix": "Your Library Mix",
-    "yourLibraryMixDesc": "Name songs from YOUR Spotify library. Personal challenge!",
-    "deepCutsChallenge": "Deep Cuts Challenge",
-    "deepCutsChallengeDesc": "Remember those songs you saved ages ago? Time to prove it!",
     "musicGames": "Music Games",
     "funGames": "Fun Games",
     "reflectionGames": "Reflection Games",
     "tipLabel": "Tip:",
-    "tipContent": "Say \"stop\" or \"end game\" anytime to finish early. Your progress is always saved!"
+    "tipContent": "Say \"stop\" or \"end game\" anytime to finish early. Your progress is always saved!",
+    "connectFirst": "Start a call with Ferni first, then pick a game.",
+    "starting": "Starting {game}...",
+    "startFailed": "Couldn't start that game. Try asking Ferni."
   },
   "digitalTwinProfile": {
     "title": "Build Your Digital Twin",

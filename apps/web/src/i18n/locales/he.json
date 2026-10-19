@@ -4799,7 +4799,10 @@
     "funGames": "משחקים מהנים",
     "reflectionGames": "משחקי השתקפות",
     "tipLabel": "טיפ:",
-    "tipContent": "אפשר להגיד \"stop\" או \"end game\" בכל שלב כדי לסיים מוקדם. ההתקדמות תמיד נשמרת!"
+    "tipContent": "אפשר להגיד \"stop\" או \"end game\" בכל שלב כדי לסיים מוקדם. ההתקדמות תמיד נשמרת!",
+    "connectFirst": "קודם מתחילים שיחה עם Ferni, ואז בוחרים משחק.",
+    "starting": "מתחילים את {game}…",
+    "startFailed": "לא הצלחנו להתחיל את המשחק. אפשר לבקש מ-Ferni."
   },
   "digitalTwinProfile": {
     "title": "בניית התאום הדיגיטלי שלך",

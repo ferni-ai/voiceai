@@ -4802,7 +4802,10 @@
     "reflectionGames": "Jeux de réflexion",
     "tipLabel": "Astuce :",
     "tipContent": "Dis « stop » ou « arrête le jeu » à tout moment pour finir plus tôt. Ta progression est toujours sauvegardée !",
-    "fortuneCookie": "Biscuit de la fortune"
+    "fortuneCookie": "Biscuit de la fortune",
+    "connectFirst": "Lance d'abord un appel avec Ferni, puis choisis un jeu.",
+    "starting": "Lancement de {game}…",
+    "startFailed": "Impossible de lancer ce jeu. Demande à Ferni."
   },
   "digitalTwinProfile": {
     "title": "Crée ton double digital",
