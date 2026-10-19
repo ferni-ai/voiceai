@@ -19,26 +19,22 @@ struct SignInView: View {
         NavigationStack {
             Form {
                 Section {
-                    if let verification {
+                    if verification != nil {
                         TextField("Code from the text", text: $code)
                             .keyboardType(.numberPad)
                             .textContentType(.oneTimeCode)
-                        Button("Sign in") {
-                            Task { await account.signIn(phoneVerification: verification, code: code) }
-                        }
-                        .disabled(account.isWorking || code.count < 6)
+                            .submitLabel(.go)
+                            .onSubmit { Task { await primary() } }
                         Button("Use a different number") {
-                            self.verification = nil
+                            verification = nil
                             code = ""
                         }
                     } else {
                         TextField("Phone number", text: $number)
                             .keyboardType(.phonePad)
                             .textContentType(.telephoneNumber)
-                        Button("Text me a code") {
-                            Task { verification = await account.sendPhoneCode(to: number) }
-                        }
-                        .disabled(account.isWorking || number.isEmpty)
+                            .submitLabel(.send)
+                            .onSubmit { Task { await primary() } }
                     }
                 } header: {
                     Text("With your phone number")
@@ -55,6 +51,22 @@ struct SignInView: View {
                     Section { Text(problem).foregroundStyle(FerniColor.error) }
                 }
             }
+            // The step's action sits under the form, not in it: on iPad a tap on a
+            // List row while its text field has the keyboard only ends editing.
+            .safeAreaInset(edge: .bottom) {
+                Button { Task { await primary() } } label: {
+                    Text(verification == nil ? "Text me a code" : "Sign in")
+                        .font(FerniType.button)
+                        .frame(maxWidth: 420, minHeight: 56)
+                }
+                .ferniPrimaryGlass()
+                .buttonBorderShape(.capsule)
+                .disabled(!canContinue)
+                .accessibilityIdentifier("signIn.continue")
+                .padding(.horizontal, FerniSpace.rest)
+                .padding(.bottom, FerniSpace.breath)
+                .tint(FerniColor.accent)
+            }
             .navigationTitle("Sign in to Ferni")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -66,6 +78,20 @@ struct SignInView: View {
             .onChange(of: account.user?.isAnonymous == false) { _, signedIn in
                 if signedIn { dismiss() }
             }
+        }
+    }
+
+    private var canContinue: Bool {
+        !account.isWorking && (verification == nil ? !number.isEmpty : code.filter(\.isNumber).count >= 6)
+    }
+
+    /// Text the code, or sign in with it.
+    private func primary() async {
+        guard canContinue else { return }
+        if let verification {
+            await account.signIn(phoneVerification: verification, code: code)
+        } else {
+            verification = await account.sendPhoneCode(to: number)
         }
     }
 
