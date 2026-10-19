@@ -42,6 +42,65 @@ interface EmotionalTrajectory {
 }
 
 // ============================================================================
+// DISTRESS
+// ============================================================================
+
+/** Emotions that read as distress. Joy, excitement or pride at any intensity never do. */
+const NEGATIVE_EMOTIONS = new Set([
+  'sad',
+  'sadness',
+  'angry',
+  'anger',
+  'frustrated',
+  'frustration',
+  'anxious',
+  'anxiety',
+  'worried',
+  'worry',
+  'fearful',
+  'fear',
+  'afraid',
+  'scared',
+  'overwhelmed',
+  'guilty',
+  'guilt',
+  'ashamed',
+  'shame',
+  'stressed',
+  'stress',
+  'lonely',
+  'loneliness',
+  'hurt',
+  'grief',
+  'grieving',
+  'depressed',
+  'hopeless',
+  'despair',
+  'panicked',
+  'panic',
+  'distressed',
+  'upset',
+  'nervous',
+  'irritated',
+  'disappointed',
+  'heartbroken',
+  'exhausted',
+]);
+
+/**
+ * How much of a cached emotion counts as distress: its intensity when the emotion is
+ * negative, 0 otherwise. Using any emotion's intensity made joy at 0.8 read as
+ * "High distress detected (80%)".
+ */
+export function distressFromEmotion(
+  primary: string | undefined,
+  intensity: number | undefined
+): number {
+  if (!primary || !NEGATIVE_EMOTIONS.has(primary.trim().toLowerCase())) return 0;
+  return Math.max(0, Math.min(1, intensity ?? 0));
+}
+
+// ============================================================================
 // TRAJECTORY LOADER
 // ============================================================================
 
@@ -78,8 +137,11 @@ async function loadEmotionalTrajectory(userId: string): Promise<EmotionalTraject
     // Merge with real-time cached state if available
     if (cachedState && trajectory) {
       trajectory.currentMood = cachedState.primary || trajectory.currentMood;
-      // Use intensity as a proxy for distress (high intensity often correlates with distress)
-      trajectory.distressLevel = Math.max(trajectory.distressLevel, cachedState.intensity || 0);
+      // Intensity is distress only for a negative emotion
+      trajectory.distressLevel = Math.max(
+        trajectory.distressLevel,
+        distressFromEmotion(cachedState.primary, cachedState.intensity)
+      );
     } else if (cachedState && !trajectory) {
       // Only have real-time state, no trajectory
       trajectory = {
@@ -87,7 +149,7 @@ async function loadEmotionalTrajectory(userId: string): Promise<EmotionalTraject
         trend: 'stable',
         trendDuration: 'now',
         recentEmotions: [cachedState.primary || 'neutral'],
-        distressLevel: cachedState.intensity || 0,
+        distressLevel: distressFromEmotion(cachedState.primary, cachedState.intensity),
       };
     }
 

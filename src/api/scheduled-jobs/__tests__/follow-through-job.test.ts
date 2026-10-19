@@ -85,6 +85,7 @@ function world(due: FollowUp[], cohort: string[] = ['u1']) {
       cohort.includes(u) ? { FOLLOW_THROUGH_TEXTS: 'on' } : {}
     ),
     sendText: (t) => sendGuardedText(t, texts.textDeps),
+    forgotten: async () => [],
   };
   const run = (dryRun = false) =>
     runFollowThroughJob({ dryRun, env: ON, deps: async () => deps, now: clock.now });

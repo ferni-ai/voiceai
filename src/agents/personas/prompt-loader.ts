@@ -831,12 +831,12 @@ export async function loadModelBaseInstructions(): Promise<string> {
       );
     }
 
-    // The one sincere-ask rule, on every base so no path loses it (ai-honesty.ts).
-    const honestyRule = await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8');
-    const aiHonesty = withStoryHonesty(honestyRule);
+    // The sincere-ask rule (ai-honesty.ts) and the true answer to "what happens to what I tell you", on every base.
+    const aiHonesty = withStoryHonesty(await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8'));
+    const privacyAnswer = await fs.readFile(join(sharedDir, 'privacy-answer.md'), 'utf-8');
 
     // Combine: base content + voice output rules (always appended)
-    const combined = [baseContent, voiceOutputRules, aiHonesty]
+    const combined = [baseContent, voiceOutputRules, aiHonesty, privacyAnswer]
       .filter(Boolean)
       .join('\n\n---\n\n');
 
