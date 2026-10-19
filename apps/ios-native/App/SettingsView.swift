@@ -169,6 +169,15 @@ struct HelpView: View {
             } footer: {
                 Text("Free and confidential, any time. If you're in danger, call 911.")
             }
+            Section {
+                Link(destination: URL(string: "https://findahelpline.com")!) {
+                    Label("Find a helpline outside the US", systemImage: "globe")
+                }
+            } header: {
+                SettingsHeader("Outside the US")
+            } footer: {
+                Text("Free, confidential helplines in your country. If you're in danger, call your local emergency number.")
+            }
         }
         .navigationTitle("Help")
         .navigationBarTitleDisplayMode(.inline)

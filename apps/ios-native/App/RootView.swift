@@ -35,6 +35,13 @@ struct RootView: View {
     var body: some View {
         @Bindable var model = model
         layout
+            .sheet(isPresented: $model.isShowingHelp) {
+                NavigationStack {
+                    HelpView().toolbar {
+                        ToolbarItem(placement: .confirmationAction) { Button("Done") { model.isShowingHelp = false } }
+                    }
+                }
+            }
             .alert(model.notice ?? "", isPresented: Binding(
                 get: { model.notice != nil }, set: { if !$0 { model.notice = nil; model.noticeDetail = nil } }
             )) {

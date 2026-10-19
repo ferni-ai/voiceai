@@ -54,6 +54,7 @@ Checklist steps:
 | 9 | AirPods, locked phone, "Hey Siri, talk to Ferni" | NOT RUN |
 | 10 | AirPods stem mute and unmute | NOT RUN |
 | 11 | AirPods route changes mid-call | NOT RUN |
+| 12 | Get help now quick action, cold and running | NOT RUN |
 
 Still unproven on hardware: interruptions (Siri, a phone call), the call
 with the phone locked, ending from the Lock Screen, the Live Activity and

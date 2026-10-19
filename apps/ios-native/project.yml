@@ -76,6 +76,11 @@ targets:
         # placeholders. Add languages back here, and stop excluding the catalog
         # below, once real translations exist.
         CFBundleLocalizations: [en]
+        # "Get help now" on the Home Screen icon, there even when Ferni can't connect (critic L4).
+        UIApplicationShortcutItems:
+          - UIApplicationShortcutItemType: com.sethdford.ferni.help
+            UIApplicationShortcutItemTitle: Get help now
+            UIApplicationShortcutItemIconSymbolName: phone.arrow.up.right
         # ferniapp:// only answers the web's Apple Health link with a note (App/DeepLink.swift).
         CFBundleURLTypes:
           - CFBundleURLName: com.sethdford.ferni

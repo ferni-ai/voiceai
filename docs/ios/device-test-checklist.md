@@ -27,6 +27,7 @@ was an iPad Air).
 | 9 | AirPods in, phone locked in a pocket: "Hey Siri, talk to Ferni" | Note exactly what happens. Expected today: Siri asks to unlock first, because Talk is a foreground intent. A hands-free start from a locked phone would need a different intent design; report before changing it. (Ecosystem plan item 7.) |
 | 10 | In a call with AirPods: press the stem to mute, then again | Muted: the call says "You're muted" and Ferni hears nothing; pressed again, the call comes back. This is the system's mute action reaching the call through LiveCommunicationKit. |
 | 11 | Mid-call, take one AirPod out, then put both away (audio to the speaker) | The call keeps going on whatever route is left, both ways; it never goes quiet. |
+| 12 | Long-press the Ferni icon: Get help now. Once with Ferni closed, once with it open in the background | Help opens both times (Call or Text 988, and Find a helpline outside the US). It never starts a call. |
 | 8 | Stay on Home for 2 minutes, then call again for 3 minutes | No warmth or slowdown; fps stays near 30 at rest and up to 120 while Ferni speaks. Ferni now renders at the screen's own scale: the avatar log must say `scale=3.0` on a 3x iPhone (1.5 only in Low Power Mode or when hot), with fps still at least 55 while he speaks. If 3x can't hold that, report the numbers; don't lower the scale on a guess. |
 
 ## Evidence to capture
