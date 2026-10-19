@@ -110,10 +110,11 @@ async function charge(key: string, max: number, cost: number): Promise<number | 
 let warnedForWindow = -1;
 
 /**
- * Charges a measured clip of `tokens` to the caller's share, then to this
- * hour's shared budget, or throws: ClipTooLongError over the clip cap
- * (nothing charged), TranscribeBudgetSpentError when either can't afford it
- * or the count can't be reached (warns once per window for the shared one).
+ * Charges a measured clip of `tokens` to this hour's shared budget, then to the
+ * caller's share (so a spent or unreachable shared budget never uses up the
+ * caller's hour), or throws: ClipTooLongError over the clip cap (nothing
+ * charged), TranscribeBudgetSpentError when either can't afford it or the count
+ * can't be reached (warns once per window for the shared one).
  */
 export async function chargeAudioBudget(tokens: number): Promise<void> {
   const clipMinutes = maxClipMinutes();
@@ -122,21 +123,21 @@ export async function chargeAudioBudget(tokens: number): Promise<void> {
     throw new ClipTooLongError(tokens, clipMinutes);
   }
   const cost = Math.ceil(tokens);
-  const principal = caller.getStore();
-  if (principal) {
-    const key = `${AUDIO_BUDGET_KEY}:${principal}`;
-    const personReset = await charge(key, maxPersonAudioTokensPerHour(), cost);
-    if (personReset !== null) throw new TranscribeBudgetSpentError(retryAfter(personReset));
-  }
   const max = maxAudioTokensPerHour();
   const resetAt = await charge(AUDIO_BUDGET_KEY, max, cost);
-  if (resetAt === null) return;
-  if (warnedForWindow !== resetAt) {
-    warnedForWindow = resetAt;
-    log.warn(
-      { maxTokensPerHour: max, resetAt: new Date(resetAt).toISOString() },
-      'Journal transcription budget spent (audio minutes this hour); every caller refused until it resets. Check for abuse and the billing alert'
-    );
+  if (resetAt !== null) {
+    if (warnedForWindow !== resetAt) {
+      warnedForWindow = resetAt;
+      log.warn(
+        { maxTokensPerHour: max, resetAt: new Date(resetAt).toISOString() },
+        'Journal transcription budget spent (audio minutes this hour); every caller refused until it resets. Check for abuse and the billing alert'
+      );
+    }
+    throw new TranscribeBudgetSpentError(retryAfter(resetAt));
   }
-  throw new TranscribeBudgetSpentError(retryAfter(resetAt));
+  const principal = caller.getStore();
+  if (!principal) return;
+  const key = `${AUDIO_BUDGET_KEY}:${principal}`;
+  const personReset = await charge(key, maxPersonAudioTokensPerHour(), cost);
+  if (personReset !== null) throw new TranscribeBudgetSpentError(retryAfter(personReset));
 }

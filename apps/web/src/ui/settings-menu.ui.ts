@@ -1021,7 +1021,7 @@ class SettingsMenuUI {
           <span class="settings-menu__icon">${ICONS.globe}</span>
           <span class="settings-menu__label">${t('menu.items.language')}</span>
           <span class="settings-menu__language-current">
-            <span class="settings-menu__language-flag">${currentLang?.flag || ''}</span>
+            <span class="settings-menu__language-tag" aria-hidden="true">${currentLang?.tag || ''}</span>
             <span class="settings-menu__language-name">${currentLang?.nativeName || currentLocale}</span>
           </span>
           <span class="settings-menu__chevron">${ICONS.chevronRight}</span>
@@ -1037,7 +1037,7 @@ class SettingsMenuUI {
                 data-action="set-language"
                 data-locale="${lang.code}"
               >
-                <span class="settings-menu__language-flag">${lang.flag}</span>
+                <span class="settings-menu__language-tag" aria-hidden="true">${lang.tag}</span>
                 <span class="settings-menu__language-name">${lang.nativeName}</span>
                 ${lang.code === currentLocale ? '<span class="settings-menu__language-check">✓</span>' : ''}
               </button>
@@ -1453,8 +1453,7 @@ class SettingsMenuUI {
         font-weight: 500;
         text-transform: uppercase;
         letter-spacing: 0.08em;
-        color: var(--persona-primary, #4a6741);
-        opacity: 0.85;
+        color: var(--persona-text, var(--color-accent-text)); /* theme-aware; no opacity on 11px type */
       }
 
       .settings-menu__header h2 {
@@ -2065,8 +2064,11 @@ class SettingsMenuUI {
         font-size: var(--text-sm);
       }
 
-      .settings-menu__language-flag {
-        font-size: 1.1em;
+      .settings-menu__language-tag {
+        font-size: 0.6875rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: var(--color-text-secondary);
       }
 
       .settings-menu__language-name {
@@ -2292,10 +2294,6 @@ class SettingsMenuUI {
           var(--color-accent-secondary, #7cb36b) 50%,
           transparent 100%
         );
-      }
-
-      [data-theme="midnight"] .settings-menu__header-eyebrow {
-        color: var(--color-accent-secondary, #7cb36b);
       }
 
       [data-theme="midnight"] .settings-menu__header h2 {
