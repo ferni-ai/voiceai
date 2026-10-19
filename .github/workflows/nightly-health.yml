@@ -6,6 +6,7 @@ name: Nightly Health
 on:
   workflow_run:
     workflows:
+      - CI
       - Signed-in E2E
       - Agent E2E Tests
       - Data Layer E2E Tests

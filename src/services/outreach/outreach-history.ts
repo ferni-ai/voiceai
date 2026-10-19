@@ -84,8 +84,8 @@ export async function recordOutreachAttempt(
 
     // Check if we should suppress further outreach
     const redis = getRedisCache();
-    if (attemptData.status === 'sent') {
-      // Suppress outreach for 2 hours after sending
+    if (attemptData.status === 'sent' || attemptData.status === 'delivered') {
+      // It reached them (writers record 'delivered', never 'sent'): hold outreach for 2 hours
       await redis.suppressOutreach(userId, 'recent_outreach', 7200);
     }
 

@@ -28,6 +28,9 @@ export default defineConfig({
       'node_modules/**',
       '**/node_modules/**',
       'dist/**',
+      // Agent worktrees nest full, stale repo copies under .claude/worktrees/: never run them
+      '.claude/**',
+      '**/.claude/**',
       'apps/**',
       'e2e/**',
       'design-system/**',

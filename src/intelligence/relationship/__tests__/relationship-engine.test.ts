@@ -360,11 +360,13 @@ describe('RelationshipEngine', () => {
 
     it('should detect improving trajectory', async () => {
       const memory = createDefaultMemory('user-123', 'ferni');
+      // A trend needs 3 older and 3 recent sessions (the 6th is recorded below)
       memory.emotionalTrajectory.recentSessions = [
         { sessionNumber: 1, date: new Date(), mood: 'struggling', topics: [] },
         { sessionNumber: 2, date: new Date(), mood: 'struggling', topics: [] },
-        { sessionNumber: 3, date: new Date(), mood: 'neutral', topics: [] },
+        { sessionNumber: 3, date: new Date(), mood: 'struggling', topics: [] },
         { sessionNumber: 4, date: new Date(), mood: 'neutral', topics: [] },
+        { sessionNumber: 5, date: new Date(), mood: 'neutral', topics: [] },
       ];
 
       const engine = new RelationshipEngine('user-123', 'ferni', memory);
