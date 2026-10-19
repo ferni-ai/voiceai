@@ -31,7 +31,6 @@
   "src/personas/greetings.ts -> src/config/feature-flags.ts",
   "src/personas/greetings.ts -> src/intelligence/context-builders/external/personal-journey.ts",
   "src/services/automation/insight-action-bridge.ts -> src/services/outreach/outreach-orchestrator.ts",
-  "src/services/automation/send-on-behalf.ts -> src/services/outreach/delivery/email-delivery.ts",
   "src/services/background-agents/executors/followup-executor.ts -> src/services/outreach/delivery/email-delivery.ts",
   "src/services/background-agents/index.ts -> src/services/outreach/delivery/email-delivery.ts",
   "src/services/background-agents/index.ts -> src/services/outreach/delivery/push-notifications.ts",
