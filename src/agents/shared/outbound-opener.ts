@@ -34,11 +34,13 @@ export function outboundPartiesFor(sessionId: string): OutboundParties | undefin
  */
 export function outboundCallerAwareness(parties: OutboundParties | undefined): string {
   if (!parties) return '';
-  const { recipientName, sponsorName } = parties;
+  const { recipientName, relation, sponsorName } = parties;
   const lines = [
     recipientName
       ? `You placed a phone call to ${recipientName}. ${recipientName} is the person on the line.`
-      : 'You placed a phone call. The person on the line is the one you called.',
+      : relation && sponsorName
+        ? `You placed a phone call to ${sponsorName}'s ${relation}. Don't call them "${relation}"; you don't know their name yet.`
+        : 'You placed a phone call. The person on the line is the one you called.',
   ];
   if (sponsorName) {
     lines.push(

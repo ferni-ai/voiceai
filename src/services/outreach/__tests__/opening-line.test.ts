@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ferniIntro, outboundOpener, partiesOf } from '../opening-line.js';
+import { ferniIntro, nameAndRelation, outboundOpener, partiesOf } from '../opening-line.js';
 
 describe('partiesOf', () => {
   it('reads who is on the line and who asked from the call context', () => {
@@ -76,5 +76,56 @@ describe('a family check-in', () => {
     const openingLine = "Good morning Mom, it's Ferni. Seth asked me to check in on you.";
     expect(outboundOpener({ ...parties, openingLine })).toBe(openingLine);
     expect(outboundOpener({ ...parties, checkin: undefined, openingLine })).toMatch(/AI friend/);
+  });
+});
+
+// Prod 2026-10-18: a contact saved as "mom" was greeted "Hi mom, it's Ferni, ...".
+describe('a contact saved by what they are to the user', () => {
+  it.each([
+    ['mom', undefined, 'mom'],
+    ['Mom', undefined, 'mom'],
+    ['my dad', undefined, 'dad'],
+    ['Grandma', undefined, 'grandma'],
+    ['Mom (Linda)', 'Linda', 'mom'],
+    ['Linda (Mom)', 'Linda', 'mom'],
+    ['Linda', 'Linda', undefined],
+    ['Grandma Rose', 'Grandma Rose', undefined],
+    ['Unknown', undefined, undefined],
+  ])('%j is name %j, relation %j', (saved, name, relation) => {
+    expect(nameAndRelation(saved)).toEqual({ name, relation });
+  });
+
+  it('a relation alone: Ferni asks who answered, with the same AI disclosure', () => {
+    for (const saved of ['mom', 'Mother', 'my sister']) {
+      const parties = partiesOf({ recipientName: saved, userName: 'Seth', callType: 'personal' });
+      const opener = outboundOpener(parties);
+      expect(opener, saved).toMatch(
+        /^Hi, is this Seth's (?:mom|mother|sister)\? It's Ferni, Seth's AI friend\. /
+      );
+      expect(opener.toLowerCase()).toContain(ferniIntro(parties).toLowerCase());
+      expect(opener).not.toMatch(/^Hi (?:mom|mother|my sister)\b/i);
+    }
+  });
+
+  it('a real name, or a name beside the relation, is greeted by name as before', () => {
+    const linda = partiesOf({
+      recipientName: 'Mom (Linda)',
+      userName: 'Seth',
+      callType: 'personal',
+    });
+    expect(outboundOpener(linda)).toBe(
+      "Hi Linda, it's Ferni, Seth's AI friend. Seth asked me to check in on you. Is now an okay time?"
+    );
+    const doug = partiesOf({ recipientName: 'Doug', userName: 'Seth', callType: 'personal' });
+    expect(outboundOpener(doug)).toMatch(/^Hi Doug, it's Ferni/);
+  });
+
+  it('with no sponsor name, or on a business call, no one is greeted by a relation', () => {
+    expect(outboundOpener(partiesOf({ recipientName: 'mom', callType: 'personal' }))).toMatch(
+      /^Hi, it's Ferni/
+    );
+    expect(outboundOpener(partiesOf({ recipientName: 'mom', userName: 'Seth' }))).toMatch(
+      /^Hi, this is Ferni/
+    );
   });
 });
