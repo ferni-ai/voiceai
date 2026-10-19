@@ -127,6 +127,8 @@ export const FLAG_MANIFEST = {
   ENDPOINT_FAST_FINISHED: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: extracted entities that are numbers, placeholders, the team or requests to Ferni are not stored (memory/entity-hygiene.ts)
   ENTITY_HYGIENE: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // with ENTITY_HYGIENE: role labels for Ferni ("Assistant", "user's interlocutor") are not stored (entity-hygiene.ts)
+  ENTITY_ROLE_LABELS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // late turn-1 words join that turn instead of opening a new one
   EOT_CONTINUED_MERGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // errands as durable workflows: owner-confirmed calls, verified bookings (services/errands, errands-flag.ts)
