@@ -140,6 +140,18 @@ jobs:
         # launched is retried, once, with a warning (scripts/ci-test.sh).
         run: scripts/ci-test.sh "${{ steps.sim.outputs.udid }}" "$SPM_DIR" "$RUNNER_TEMP"
 
+      # Apple's accessibility audit at the default size and AX5, Reduce Motion
+      # and Reduce Transparency, and the Talk button's hit area (UITests).
+      - name: Accessibility audit (iPhone, gating)
+        working-directory: apps/ios-native
+        run: scripts/ui-audit.sh gate "iPhone 17 Pro Max" "$SPM_DIR" "$RUNNER_TEMP"
+
+      # Reported as a warning with the finding count until the iPad is clean;
+      # then switch "report" to "gate".
+      - name: Accessibility audit (iPad, reported)
+        working-directory: apps/ios-native
+        run: scripts/ui-audit.sh report "iPad Pro 13-inch (M5)" "$SPM_DIR" "$RUNNER_TEMP"
+
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v7
@@ -148,6 +160,7 @@ jobs:
           path: |
             ${{ runner.temp }}/*.xcresult
             ${{ runner.temp }}/app-tests*.log
+            ${{ runner.temp }}/ui-audit-*.log
           retention-days: 14
 
       # Tags and manual runs also check that a Release archive builds. It is
