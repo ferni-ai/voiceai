@@ -7,6 +7,8 @@ import SwiftUI
 /// Ferni to stop; that is the avatar's only gesture.
 struct CallAvatar: View {
     let call: CallSession
+    /// A sheet or cover hides Ferni, so the avatar stops drawing.
+    var covered = false
 
     var body: some View {
         let avatar = call.avatar
@@ -16,6 +18,7 @@ struct CallAvatar: View {
             expression: avatar.expression,
             activity: Self.activity(avatar.pose),
             name: PersonaRegistry.get(avatar.personaID).name,
+            covered: covered,
             level: { [level = call.agentLevel] in level.level }
         )
         .contentShape(Circle())
