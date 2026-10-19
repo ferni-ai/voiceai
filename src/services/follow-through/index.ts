@@ -23,4 +23,16 @@ export { isQuietHour, rightMoment, type Moment } from './right-moment.js';
 export { closeFromReply, type ReplyVerdict } from './close-from-reply.js';
 export type { FollowUpSources, FollowUpStore, NewFollowUp, SourceItem } from './ports.js';
 export { importFollowUps, type ImportResult } from './import-follow-ups.js';
+export {
+  deferredCallOutcome,
+  followUpTextOutcome,
+  logCallResultOutcome,
+  logPromiseJobRun,
+  logPromiseOutcome,
+  noteCallRefinement,
+  reminderOutcome,
+  scheduledOutreachOutcome,
+  type OutreachEnd,
+  type PromiseJobCounts,
+} from './promise-outcomes.js';
 export { releaseForgotten } from './release-forgotten.js';
