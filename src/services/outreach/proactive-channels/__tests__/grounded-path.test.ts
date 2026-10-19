@@ -200,6 +200,27 @@ describe('grounded check-ins', () => {
     expect((await run()).status).toBe('idle');
   });
 
+  // As logCrisisSignal writes it (human-transfer/index.ts), `daysAgo` days before the demo evening.
+  function crisisSignal(id: string, daysAgo: number, signals: Record<string, unknown>) {
+    const at = new Date(DEMO_EVENING.getTime() - daysAgo * 86_400_000).toISOString();
+    docs.set(`${U}/crisis_signals/${id}`, { timestamp: at, signals, sessionId: 'session-x' });
+  }
+
+  it('sends nothing within the quiet window after a crisis-level signal', async () => {
+    seed([{ text: DEMO_Q, when: '2026-10-14', basis: 's1' }]);
+    crisisSignal('c1', 2, { suicidalIdeation: true, severity: 8 });
+    expect((await run()).status).toBe('idle');
+    expect(notes()).toHaveLength(0);
+  });
+
+  it('a minor signal, or a crisis before the window, does not hold it back', async () => {
+    seed([{ text: DEMO_Q, when: '2026-10-14', basis: 's1' }]);
+    crisisSignal('m1', 1, { anxietyDisorder: true, severity: 3 });
+    crisisSignal('c-old', 20, { suicidalIdeation: true, severity: 8 });
+    expect(await run()).toMatchObject({ status: 'sent', channel: 'in_app' });
+    expect(notes()).toHaveLength(1);
+  });
+
   it('sends nothing about what only Ferni said', async () => {
     seed([{ text: 'How did the Stripe interview go?', when: '2026-10-14', basis: 's1' }]);
     expect((await run()).status).toBe('idle');
