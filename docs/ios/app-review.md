@@ -52,6 +52,7 @@ notes as a one-time link, never in this repository.
 | Teammates | Home, the team row (iPad: sidebar, then Team) | Choose who answers next. Locked teammates say why. |
 | The family table | During a call, when Ferni brings in a teammate | The teammate peeks in, they greet and swap, and the room light changes. |
 | "I'll remember" | Home, after a call | Up to three things Ferni kept, each with Forget. |
+| Your next step | Home, after a call where you said you'd do something | The step in your words with its time. Add to Calendar opens the system's event sheet (EventKitUI; no calendar permission is asked, and the app can't read the calendar). Share opens the share sheet for Reminders, Things, Todoist or anything else. Needs the review account to have said something it will do. |
 | What Ferni remembers | Settings, then What Ferni remembers (iPad: sidebar) | View and forget memories. |
 | Account and Sign in with Apple | Settings, then Account | Links the anonymous account to an Apple ID. |
 | Delete account (5.1.1(v)) | Settings, then Delete account | Deletes the account and its data on the server, and revokes Sign in with Apple. The revoke needs PR #2004. |

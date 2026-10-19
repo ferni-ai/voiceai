@@ -48,6 +48,7 @@ struct HomeView: View {
                             }
                             if call.phase == .ended {
                                 RememberCard(call: call, remembered: model.callRemembered)
+                                NextStepsCard(call: call, steps: model.nextSteps)
                                 #if FERNI_PUSH
                                 NotificationAsk(push: model.push, uid: model.account.user?.uid)
                                 #endif

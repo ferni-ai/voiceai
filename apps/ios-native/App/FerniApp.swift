@@ -102,6 +102,7 @@ final class AppModel {
     let callRemembered: CallRemembered
     let memoryLock = MemoryLock()
     let homeLine: HomeLineStore
+    let nextSteps: NextSteps
     /// Bumped when Ferni should wake on a return (Welcome).
     var wakeCount = 0
     @ObservationIgnored var callEndedAt: Date?
@@ -254,6 +255,7 @@ final class AppModel {
         team = TeamStore(api: api)
         memory = MemoryStore(api: api)
         callRemembered = CallRemembered(api: api)
+        nextSteps = NextSteps(api: api)
         homeLine = HomeLineStore(api: api)
         minimumBuild = MinimumBuild(api: api, currentBuild: (Bundle.main.infoDictionary?["CFBundleVersion"] as? String).flatMap(Int.init))
         #if DEBUG
