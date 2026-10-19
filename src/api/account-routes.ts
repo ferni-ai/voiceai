@@ -6,6 +6,7 @@
  * - DELETE /api/account - Delete account (GDPR)
  * - PUT /api/account/profile - Update profile info
  * - POST /api/account/apple-authorization - Keep a Sign in with Apple grant to revoke on delete
+ * - GET|POST|DELETE /api/account/processing-consent - Third-party processing consent
  *
  * @module AccountRoutes
  */
@@ -28,8 +29,10 @@ import { erasePushRecordsFor } from '../services/push-endpoint-owners.js';
 import { recordSecurityEvent } from '../services/security-events.js';
 import { createUserProfile } from '../types/user-profile.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { eraseConsentFor } from '../services/processing-consent.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
+import { handleProcessingConsent } from './processing-consent-routes.js';
 
 // Alias for compatibility
 const sendJson = sendJSON;
@@ -68,6 +71,11 @@ export async function handleAccountRoutes(
   const method = req.method || 'GET';
 
   try {
+    // GET|POST|DELETE /api/account/processing-consent - third-party processing consent
+    if (pathname === '/api/account/processing-consent') {
+      return await handleProcessingConsent(req, res, auth);
+    }
+
     // GET /api/account - Get account info
     if (pathname === '/api/account' && method === 'GET') {
       return await handleGetAccount(res, userId, auth.firebaseUid);
@@ -185,6 +193,7 @@ const LINKED_RECORDS: ReadonlyArray<readonly [string, (userId: string) => Promis
   ['musical_challenges_and_leaderboards', eraseMusicalSocialData],
   ['social_challenges', eraseSocialChallengesFor],
   ['social_user_stats', eraseSocialStatsFor],
+  ['processing_consent', eraseConsentFor],
 ];
 
 /** Best effort: every sweep runs; returns the names of those that failed. */

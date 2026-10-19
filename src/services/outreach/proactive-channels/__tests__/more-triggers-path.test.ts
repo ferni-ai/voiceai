@@ -98,6 +98,14 @@ describe('a reminder that did not reach them', () => {
     expect(texts).toHaveLength(1);
   });
 
+  it('one left in the app with nobody told counts as not reaching them', async () => {
+    seedReminder('inbox', { status: 'in_app_unnotified' });
+    await runHandler();
+    expect(texts).toEqual([
+      "Hey, it's Ferni. I was meant to remind you earlier: call the pharmacy. Sorry that slipped. Did it happen?",
+    ]);
+  });
+
   it('not after 12 hours, not for delivered ones, not for reminders to a contact', async () => {
     seedReminder('old', { scheduledFor: new Date(NOW.getTime() - 13 * HOUR).toISOString() });
     seedReminder('ok', { status: 'delivered' });

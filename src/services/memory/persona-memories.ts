@@ -244,23 +244,22 @@ export function getMemoriesCacheStats(): { users: number; entries: number } {
   return { users: users.size, entries: memoriesCache.size };
 }
 
-/**
- * Register with SessionDataManager (call during initialization).
- */
+/** Register with SessionDataManager (on module load): a session's end saves, then drops, that user. */
 export async function registerWithSessionDataManager(): Promise<void> {
   try {
     const { getSessionDataManager } = await import('../session-data-manager.js');
     getSessionDataManager().registerService({
       name: 'PersonaMemories',
-      clearUserData: clearUserMemoriesCache,
+      clearUserData: async (userId: string) =>
+        saveMemoriesForUser(userId).then(() => clearUserMemoriesCache(userId)),
       clearAllData: clearAllMemoriesCache,
       getStats: getMemoriesCacheStats,
     });
   } catch {
-    // SessionDataManager may not be initialized yet
     getLogger().debug('SessionDataManager not available for PersonaMemories registration');
   }
 }
+void registerWithSessionDataManager();
 
 // ============================================================================
 // PERSISTENCE FUNCTIONS
