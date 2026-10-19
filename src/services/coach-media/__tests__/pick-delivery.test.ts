@@ -449,4 +449,14 @@ describe('recordPickFeedback', () => {
     await recordPickFeedback('user-1', { helped: 'yes' }, []);
     expect(storeUserPreferences).not.toHaveBeenCalled();
   });
+
+  it.each(['anon:3b0e7c1e', 'onbehalf:call-1'])(
+    'stores nothing about a non-member (%s), even with a sent pick to attach it to',
+    async (userId) => {
+      picks.set('pick-3', { id: 'pick-3', sentVia: 'app', helped: null });
+      const reply = await recordPickFeedback(userId, { helped: 'yes', whatMattered: 'short' }, []);
+      expect(reply).toBe('Noted for this call only.');
+      expect(storeUserPreferences).not.toHaveBeenCalled();
+    }
+  );
 });

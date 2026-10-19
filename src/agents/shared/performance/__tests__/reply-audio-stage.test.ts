@@ -649,16 +649,14 @@ describe('applyPostTTSEnhancement with Stage 2 off == Stage 2 module stubbed out
     expect(await applyPostTTSEnhancement(s, { sessionId: SID }, TURN)).toBe(s);
   });
 
-  it('the old opt-in and its per-effect switches no longer start the chain', async () => {
+  it('the old per-effect switches no longer start the chain', async () => {
     delete process.env.SPEECH_STAGE2_NONVERBAL;
     delete process.env.SPEECH_STAGE2_TEMPO;
-    process.env.POST_TTS_ENHANCEMENT_ENABLED = 'true';
     process.env.POST_TTS_WARMTH = 'true';
     try {
       const s = streamOf(toneFrames(3));
       expect(await applyPostTTSEnhancement(s, { sessionId: SID }, TURN)).toBe(s);
     } finally {
-      delete process.env.POST_TTS_ENHANCEMENT_ENABLED;
       delete process.env.POST_TTS_WARMTH;
     }
   });

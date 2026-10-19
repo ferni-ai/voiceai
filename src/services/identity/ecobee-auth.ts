@@ -14,6 +14,7 @@ import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
 import type {
   EcobeeTokens,
   EcobeeAuthorizeResponse,
@@ -136,12 +137,7 @@ export async function storeUserTokens(userId: string, tokens: EcobeeTokens): Pro
       await firestore
         .collection(ECOBEE_TOKENS_COLLECTION)
         .doc(userId)
-        .set(
-          removeUndefined({
-            ...tokens,
-            updatedAt: new Date(),
-          })
-        );
+        .set(removeUndefined({ ...sealTokens(tokens), updatedAt: new Date() }));
       log.info({ userId }, 'Stored Ecobee tokens in Firestore');
     } catch (err) {
       log.warn({ err, userId }, 'Failed to persist Ecobee tokens to Firestore');
@@ -164,8 +160,10 @@ export async function getUserTokens(userId: string): Promise<EcobeeTokens | unde
     if (firestore) {
       try {
         const doc = await firestore.collection(ECOBEE_TOKENS_COLLECTION).doc(userId).get();
-        if (doc.exists) {
-          const data = doc.data() as EcobeeTokens;
+        const data = doc.exists
+          ? openTokens<EcobeeTokens>(doc.data(), ECOBEE_TOKENS_COLLECTION)
+          : null;
+        if (data) {
           userTokens.set(userId, data);
           loadedTokenUsers.add(userId);
           return data;

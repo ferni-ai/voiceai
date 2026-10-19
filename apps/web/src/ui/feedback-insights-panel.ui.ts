@@ -350,7 +350,7 @@ function renderContent(): void {
   if (loadError) {
     content.innerHTML = `
       <div class="feedback-insights-panel__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, rgba(44, 37, 32, 0.5));">
-        ${t('feedbackInsights.loadError')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('feedbackInsights.tryAgain')}</button>
+        ${t('feedbackInsights.loadError')} <button type="button" style="color: var(--color-ferni-on-surface); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('feedbackInsights.tryAgain')}</button>
       </div>
     `;
     content.querySelector('button')?.addEventListener('click', () => {

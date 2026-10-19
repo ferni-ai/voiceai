@@ -29,6 +29,10 @@ const biometrics = vi.hoisted(() => ({
   getConnectedPlatformAsync: vi.fn(async () => null),
 }));
 vi.mock('../../../../services/biometrics/index.js', () => biometrics);
+const calendarDisconnect = vi.hoisted(() => ({
+  disconnectGoogleCalendar: vi.fn(async () => ({ revoked: true, keptGmailGrant: false })),
+}));
+vi.mock('../../../../services/identity/google-calendar-disconnect.js', () => calendarDisconnect);
 
 const { handleIntegrationsRoutes } = await import('../handler.js');
 
@@ -63,6 +67,18 @@ describe('integrations auth gate', () => {
     const res = await call('DELETE', '/biometrics/disconnect', 'tok-A');
     expect(res.status).toBe(200);
     expect(biometrics.disconnectBiometrics).toHaveBeenCalledWith('uid-A');
+  });
+
+  it('disconnects Google Calendar through the revoking helper', async () => {
+    const res = await call('DELETE', '/calendar/disconnect', 'tok-A');
+    expect(res.status).toBe(200);
+    expect(calendarDisconnect.disconnectGoogleCalendar).toHaveBeenCalledWith('uid-A');
+  });
+
+  it('answers an error, not success, when the calendar disconnect fails', async () => {
+    calendarDisconnect.disconnectGoogleCalendar.mockRejectedValueOnce(new Error('read failed'));
+    const res = await call('DELETE', '/calendar/disconnect', 'tok-A');
+    expect(res.status).toBe(500);
   });
 
   it('refuses an unauthenticated disconnect with 401', async () => {
