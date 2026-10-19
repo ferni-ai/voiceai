@@ -617,7 +617,7 @@ class ManageSubscriptionUI {
       .manage-sub__footer-note {
         font-family: var(--font-body);
         font-size: 0.8125rem;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-secondary);
         text-align: center;
         margin: 0;
         line-height: 1.5;

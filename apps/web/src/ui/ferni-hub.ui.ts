@@ -544,7 +544,7 @@ function addStyles(): void {
       height: 40px;
       border-radius: 50%;
       border: none;
-      background: var(--color-background-subtle, #f5f0eb);
+      background: var(--color-background-subtle);
       color: var(--color-text-secondary);
       cursor: pointer;
       display: flex;
@@ -554,7 +554,7 @@ function addStyles(): void {
     }
 
     .ferni-hub-close:hover {
-      background: var(--color-background-muted, #ebe5df);
+      background: var(--color-background-hover);
       transform: scale(1.05);
     }
 

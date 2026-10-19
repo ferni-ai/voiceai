@@ -83,6 +83,10 @@ jobs:
           VITE_MEMORY_VIEW: ${{ vars.VITE_MEMORY_VIEW }}
           # Promises in the Your Day hub (apps/web/src/ui/hub-promises.ui.ts); off unless exactly "true".
           VITE_PROMISES_PANEL: ${{ vars.VITE_PROMISES_PANEL }}
+          # Talk first (apps/web/src/config/try-first-flag.ts): on for prod since
+          # 2026-10-18. To turn it off, set the repo variable VITE_TRY_FIRST=false
+          # and re-run this workflow.
+          VITE_TRY_FIRST: ${{ vars.VITE_TRY_FIRST || 'true' }}
 
       - name: Deploy to Firebase (ferni-prod)
         id: deploy-ferni
