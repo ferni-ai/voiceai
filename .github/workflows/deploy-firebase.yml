@@ -81,6 +81,10 @@ jobs:
           VITE_CAPTIONS_HEARD: ${{ vars.VITE_CAPTIONS_HEARD }}
           # What Ferni Knows (apps/web/src/ui/memory/known.ts); off unless exactly "true".
           VITE_MEMORY_VIEW: ${{ vars.VITE_MEMORY_VIEW }}
+          # Talk first (apps/web/src/config/try-first-flag.ts): on for prod since
+          # 2026-10-18. To turn it off, set the repo variable VITE_TRY_FIRST=false
+          # and re-run this workflow.
+          VITE_TRY_FIRST: ${{ vars.VITE_TRY_FIRST || 'true' }}
           # Android app links (apps/web/scripts/asset-links.ts): the signing
           # SHA-256 fingerprint(s), comma separated. Unset serves [] as before.
           ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}

@@ -19,6 +19,9 @@ import type { llm } from '@livekit/agents';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 
+/** llmNode notes the caller's words each reply answers (reply-caller-turn.ts). */
+export { noteReplyCallerTurn } from '../shared/reply-caller-turn.js';
+
 /** The caller turn for a reply they didn't prompt. Bracketed like the other stage notes. */
 export const NO_NEW_WORDS_NOTE = "(They haven't said anything since your last words.)";
 
