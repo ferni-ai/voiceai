@@ -92,24 +92,34 @@ describe('Relationship Insights', () => {
   });
 
   it.each([
-    { n: 0, averageStrength: null, bars: [] as typeof serverBody.strengthDistribution, shown: 'Not enough yet' },
+    {
+      n: 0,
+      averageStrength: null,
+      bars: [] as typeof serverBody.strengthDistribution,
+      shown: 'Not enough yet',
+    },
     { n: 1, averageStrength: 80, bars: serverBody.strengthDistribution, shown: '80%' },
     { n: 3, averageStrength: 47, bars: serverBody.strengthDistribution, shown: '47%' },
-  ])('with $n scored people the strength stat reads "$shown"', async ({ averageStrength, bars, shown }) => {
-    const body = {
-      ...serverBody,
-      stats: { ...serverBody.stats, averageStrength },
-      strengthDistribution: bars,
-    };
-    apiFetch.mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
+  ])(
+    'with $n scored people the strength stat reads "$shown"',
+    async ({ averageStrength, bars, shown }) => {
+      const body = {
+        ...serverBody,
+        stats: { ...serverBody.stats, averageStrength },
+        strengthDistribution: bars,
+      };
+      apiFetch.mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
 
-    const text = await openAndSettle();
+      const text = await openAndSettle();
 
-    const stats = [...document.querySelectorAll('.ri-stat-value')].map((el) => el.textContent?.trim());
-    expect(stats[3]).toBe(shown);
-    expect(text).not.toContain('null%');
-    expect(Boolean(document.querySelector('.ri-chart-empty'))).toBe(bars.length === 0);
-  });
+      const stats = [...document.querySelectorAll('.ri-stat-value')].map((el) =>
+        el.textContent?.trim()
+      );
+      expect(stats[3]).toBe(shown);
+      expect(text).not.toContain('null%');
+      expect(Boolean(document.querySelector('.ri-chart-empty'))).toBe(bars.length === 0);
+    }
+  );
 
   it('says it could not load instead of showing made-up people', async () => {
     apiFetch.mockResolvedValue(new Response('{"error":"Internal server error"}', { status: 500 }));
