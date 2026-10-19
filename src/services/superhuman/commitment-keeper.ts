@@ -40,12 +40,12 @@ export type CommitmentType =
   | 'conversation' // "I need to talk to..." - interpersonal
   | 'decision' // "I've decided..." - firm choice
   | 'experiment'; // "I'm going to try..." - exploratory;
-
 export type CommitmentStatus =
   | 'active' // Still working toward it
   | 'completed' // User confirmed done
   | 'deferred' // Postponed with reason
   | 'abandoned' // User decided not to pursue
+  | 'dismissed' // Closed from the app as no longer theirs; not counted as giving up
   | 'unclear'; // Need to check in
 
 export type FollowUpTone =

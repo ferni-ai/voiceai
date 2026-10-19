@@ -17,9 +17,10 @@
  * @module services/linkedin
  */
 
-import { getStore } from '../../memory/store-factory.js';
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
+import { readProfileTokenField, writeProfileTokenField } from '../identity/profile-token-field.js';
 
 import type {
   CareerMilestone,
@@ -56,6 +57,7 @@ const linkedInCircuitBreaker = getCircuitBreaker('linkedin-api', {
 // ============================================================================
 
 const userLinkedIn = new Map<string, LinkedInUserData>();
+const PROFILE_FIELD = 'linkedInTokens';
 
 // Sync interval
 const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
@@ -69,9 +71,6 @@ const SYNC_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
  */
 async function persistTokens(userId: string, data: LinkedInUserData): Promise<void> {
   try {
-    const store = await getStore();
-    const profile = await store.getOrCreateProfile(userId);
-
     const tokensToSave: PersistedLinkedInTokens = {
       accessToken: data.tokens.accessToken,
       refreshToken: data.tokens.refreshToken,
@@ -80,13 +79,8 @@ async function persistTokens(userId: string, data: LinkedInUserData): Promise<vo
       lastSync: data.lastSync.toISOString(),
     };
 
-    // Store tokens in user profile
-    const updatedProfile = {
-      ...profile,
-      linkedInTokens: tokensToSave,
-    } as typeof profile & { linkedInTokens: PersistedLinkedInTokens };
-
-    await store.saveProfile(updatedProfile);
+    // Sealed on the profile; never the plaintext token (backups export the db).
+    await writeProfileTokenField(userId, PROFILE_FIELD, sealTokens(tokensToSave));
     log.debug({ userId }, 'LinkedIn tokens persisted');
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to persist LinkedIn tokens');
@@ -94,14 +88,14 @@ async function persistTokens(userId: string, data: LinkedInUserData): Promise<vo
 }
 
 /**
- * Load LinkedIn tokens from persistent storage
+ * Load LinkedIn tokens from persistent storage (sealed, or legacy plaintext)
  */
 async function loadTokens(userId: string): Promise<LinkedInTokens | null> {
   try {
-    const store = await getStore();
-    const profile = await store.getOrCreateProfile(userId);
-
-    const persisted = (profile as { linkedInTokens?: PersistedLinkedInTokens }).linkedInTokens;
+    const persisted = openTokens<PersistedLinkedInTokens>(
+      await readProfileTokenField(userId, PROFILE_FIELD),
+      PROFILE_FIELD
+    );
     if (!persisted) return null;
 
     return {
@@ -222,14 +216,8 @@ export async function disconnectLinkedIn(userId: string): Promise<void> {
   userLinkedIn.delete(userId);
 
   try {
-    const store = await getStore();
-    const profile = await store.getOrCreateProfile(userId);
-
-    // Remove tokens from profile
-    const updatedProfile = { ...profile };
-    delete (updatedProfile as { linkedInTokens?: unknown }).linkedInTokens;
-
-    await store.saveProfile(updatedProfile);
+    // A real field delete: a merge write of the profile without the key left it behind.
+    await writeProfileTokenField(userId, PROFILE_FIELD, null);
     log.info({ userId }, 'LinkedIn disconnected');
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to clean up LinkedIn tokens');
