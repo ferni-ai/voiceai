@@ -9,6 +9,7 @@
  * @module OutreachConsent
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import type { DeliveryChannel } from './unified-delivery.js';
@@ -212,10 +213,12 @@ export async function writeOutreachConsent(
   );
   log.info({ userId, ...outreachPreferences }, 'Outreach consent saved');
   const granted = (outreachPreferences.smsConsent as { grantedAt?: string } | undefined)?.grantedAt;
-  if (granted && how.source === 'web-settings') await confirmOptIn(userId, granted);
+  if (granted && how.source === 'web-settings' && flagOn('SMS_OPT_IN_CONFIRM')) {
+    await confirmOptIn(userId, granted);
+  }
 }
 
-/** Texts going on in settings get one confirmation text (opt-in-text.ts); it never fails the save. */
+/** SMS_OPT_IN_CONFIRM on: texts going on in settings get one confirmation text; never fails the save. */
 async function confirmOptIn(userId: string, grantedAt: string): Promise<void> {
   try {
     const { confirmSmsOptIn } = await import('./opt-in-text.js');

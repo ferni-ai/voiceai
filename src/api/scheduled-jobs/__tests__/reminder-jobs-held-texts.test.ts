@@ -1,6 +1,6 @@
-/** The every-minute reminder job also releases texts a guard held (held-texts.ts). */
+/** With SMS_OPT_IN_CONFIRM on, the every-minute reminder job also releases texts a guard held (held-texts.ts). */
 import type { IncomingMessage, ServerResponse } from 'http';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const releaseHeldTexts = vi.hoisted(() => vi.fn(async () => ({ sent: 1, dropped: 0, waiting: 0 })));
 vi.mock('../../../services/outreach/held-texts.js', () => ({ releaseHeldTexts }));
@@ -18,8 +18,27 @@ function run(url: string) {
   );
 }
 
-describe('deliver-reminders job', () => {
+describe('deliver-reminders job, SMS_OPT_IN_CONFIRM off (default)', () => {
   beforeEach(() => releaseHeldTexts.mockClear());
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('does not release held texts when the flag is unset or off', async () => {
+    vi.stubEnv('SMS_OPT_IN_CONFIRM', undefined);
+    const body = await run('/api/jobs/deliver-reminders');
+    expect(body).toContain('"success":true');
+    expect(body).not.toContain('heldTexts');
+    vi.stubEnv('SMS_OPT_IN_CONFIRM', 'off');
+    await run('/api/jobs/deliver-reminders');
+    expect(releaseHeldTexts).not.toHaveBeenCalled();
+  });
+});
+
+describe('deliver-reminders job, SMS_OPT_IN_CONFIRM on', () => {
+  beforeEach(() => {
+    releaseHeldTexts.mockClear();
+    vi.stubEnv('SMS_OPT_IN_CONFIRM', 'on');
+  });
+  afterEach(() => vi.unstubAllEnvs());
 
   it('releases held texts on a real run and reports them', async () => {
     expect(await run('/api/jobs/deliver-reminders')).toContain('"heldTexts":{"sent":1');
