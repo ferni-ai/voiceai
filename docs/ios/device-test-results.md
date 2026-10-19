@@ -51,6 +51,9 @@ Checklist steps:
 | 7 | End from the Lock Screen | NOT RUN |
 | 8 | Two minutes on Home, three in a call: fps and heat | NOT RUN |
 | — | The Watch round trip | NOT RUN |
+| 9 | AirPods, locked phone, "Hey Siri, talk to Ferni" | NOT RUN |
+| 10 | AirPods stem mute and unmute | NOT RUN |
+| 11 | AirPods route changes mid-call | NOT RUN |
 
 Still unproven on hardware: interruptions (Siri, a phone call), the call
 with the phone locked, ending from the Lock Screen, the Live Activity and
