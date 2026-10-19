@@ -68,6 +68,7 @@ import { attachMindNote, theoryOfMindMode } from './mind-note-hook.js';
 import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
+import { withChiefOfStaffRole } from '../personas/chief-of-staff-role.js';
 // Tool loading - hoisted for faster initial agent startup
 import {
   buildEssentialToolSet,
@@ -331,10 +332,10 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let stableBase = '';
   try {
     mark('load_prompts_start');
-    // Load both levels of instructions in parallel (imports now hoisted to module level)
+    // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
-      loadSystemPrompt(persona.id),
+      loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
     ]);
     mark('load_prompts_done');
 
@@ -946,8 +947,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         return await loadEssentialToolsFallback();
       }
 
-      // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
-      // This ensures handoff tools are ready BEFORE any handoff request
+      // Full tools loaded: warm the session's handoff tools now, so they're ready before any handoff
       try {
         const cacheStart = Date.now();
         const tier =
