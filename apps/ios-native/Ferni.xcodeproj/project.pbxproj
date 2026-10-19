@@ -81,6 +81,7 @@
 		EA64D0860B43223CE3A8D6EB /* FerniShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 766CF4344E77F81DF8043439 /* FerniShortcuts.swift */; };
 		EDB3152BB385F9869882B733 /* CallIntentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D088A9791D1BAB4D7E6860C8 /* CallIntentTests.swift */; };
 		F04C1D4DF69A4646E1699849 /* handoff-to-ferni.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 15418FA6D6693B28961C02AC /* handoff-to-ferni.mp3 */; };
+		F4FA3A53E53F74B1477513D4 /* AccountStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01554191EA22D85DC469F56C /* AccountStatusTests.swift */; };
 		F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */; };
 		F8659A8DCBD2D3621DA596A3 /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 3A2B0DD01002A1C6F9C20247 /* FerniDesign */; };
 		F8BE59CFC9BCA7538FD1A854 /* LiveActivityContentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F6D02CA803627F1860ACBDA /* LiveActivityContentTests.swift */; };
@@ -165,6 +166,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		01554191EA22D85DC469F56C /* AccountStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountStatusTests.swift; sourceTree = "<group>"; };
 		02CC2476B0294D4796003A93 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		03F678B752992C142D10FE5E /* AudioRoutePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRoutePicker.swift; sourceTree = "<group>"; };
 		0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
@@ -316,6 +318,7 @@
 		487C9788B8573873296BCA3B /* AppTests */ = {
 			isa = PBXGroup;
 			children = (
+				01554191EA22D85DC469F56C /* AccountStatusTests.swift */,
 				0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */,
 				E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */,
 				52EB4AF176D7F4E747ABBAA4 /* CallAnnouncementTests.swift */,
@@ -756,6 +759,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F4FA3A53E53F74B1477513D4 /* AccountStatusTests.swift in Sources */,
 				CF99FB01C1F6E7CF14AF4FCA /* AppModelTests.swift in Sources */,
 				BA62672ACCAD9A10B9C98EBB /* BackgroundModeTests.swift in Sources */,
 				358627D9E201AD0580FC0F1C /* CallAnnouncementTests.swift in Sources */,
