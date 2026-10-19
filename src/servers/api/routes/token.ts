@@ -365,16 +365,10 @@ export async function handleTokenRoutes(
           res.end(JSON.stringify({ error: 'Invalid or expired authentication token' }));
           return true;
         }
-        if (
-          firebase_uid_param &&
-          firebase_uid_param !== verified.uid &&
-          verified.claims.admin !== true
-        ) {
+        isAdmin = verified.claims.admin === true;
+        if (firebase_uid_param && firebase_uid_param !== verified.uid && !isAdmin) {
           log.warn(
-            {
-              claimed: firebase_uid_param.substring(0, 8),
-              actual: verified.uid.substring(0, 8),
-            },
+            { claimed: firebase_uid_param.substring(0, 8), actual: verified.uid.substring(0, 8) },
             'SECURITY: /token rejected — firebase_uid does not match authenticated user'
           );
           res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -382,7 +376,6 @@ export async function handleTokenRoutes(
           return true;
         }
         firebaseUid = verified.uid;
-        isAdmin = verified.claims.admin === true;
         verifiedEmail = verified.emailVerified ? verified.email : undefined;
         log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
       } catch (firebaseErr) {
@@ -392,7 +385,8 @@ export async function handleTokenRoutes(
         return true;
       }
       // WAITLIST_GATE=on: only admitted people get a voice session (the demo route stays open)
-      if (await refuseUnadmitted({ uid: firebaseUid, email: verifiedEmail, isAdmin }, res)) return true;
+      if (await refuseUnadmitted({ uid: firebaseUid, email: verifiedEmail, isAdmin }, res))
+        return true;
       if (await refuseUnownedRoom(room, firebaseUid, res)) return true; // never join another's room
       // A custom agent id must be the caller's own, else the call is with Ferni.
       const selectedPersona = await personaForCaller(requestedPersona, firebaseUid);

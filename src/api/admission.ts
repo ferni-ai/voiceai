@@ -22,7 +22,7 @@ import type { ServerResponse } from 'http';
 import type { Firestore } from '@google-cloud/firestore';
 import { waitlistGateOn } from './open-access.js';
 import { getFirestoreDb } from '../utils/firestore-utils.js';
-import { isCohortMember } from '../services/platform/cohort-flags.js';
+import { isCohortMember } from '../services/platform/cohort-membership.js';
 import { createLogger } from '../utils/safe-logger.js';
 
 const log = createLogger({ module: 'Admission' });
@@ -98,7 +98,7 @@ export const firestoreAdmissionStore: AdmissionStore = {
     const user = await getFirebaseUserOrThrow(uid);
     return user?.metadata.creationTime ? new Date(user.metadata.creationTime) : null;
   },
-  inCohort: async (cohort, uid) => isCohortMember(cohort, uid), // enabled + member (cohort-flags.ts)
+  inCohort: async (cohort, uid) => isCohortMember(cohort, uid), // enabled + member (cohort-membership.ts)
 };
 
 const cache = new Map<string, { value: Admission; at: number }>();

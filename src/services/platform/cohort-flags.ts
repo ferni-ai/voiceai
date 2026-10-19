@@ -378,15 +378,6 @@ export const firestoreCohortStore: CohortStore = {
   },
 };
 
-/** One definition of membership: listed in `members` AND enabled, so disabling a cohort is the fast kill. */
-export async function isCohortMember(
-  cohortId: string,
-  userId: string,
-  store: Pick<CohortStore, 'cohortsFor'> = firestoreCohortStore
-): Promise<boolean> {
-  return (await store.cohortsFor(userId)).some((c) => c.id === cohortId && c.enabled);
-}
-
 /** Finds who might have a flag on, without reading every user. */
 export interface FlagHolderStore {
   /** Members of cohorts setting `flag` to 'on', and users whose own override sets it 'on'. */
