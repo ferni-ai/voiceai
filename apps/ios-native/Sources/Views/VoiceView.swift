@@ -70,6 +70,10 @@ struct VoiceView: View {
         }
         .ignoresSafeArea()
         .animation(.easeInOut(duration: 0.5), value: session.state == .connecting)
+        // On the waitlist: their place in line instead of "Failed to get token"
+        .fullScreenCover(item: Binding(get: { session.waitlist }, set: { if $0 == nil { session.dismissWaitlist() } })) { status in
+            WaitingView(status: status, onDismiss: { session.dismissWaitlist() })
+        }
         .onChange(of: session.state) { newState in
             handleStateChange(newState)
         }

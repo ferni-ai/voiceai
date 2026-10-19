@@ -185,6 +185,22 @@ describe('store allowlist', () => {
     }
   });
 
+  it('covers every store found under real owners on 2026-10-18 that was missing', () => {
+    const exported = [
+      'energy_readings',
+      'follow_through',
+      'implicit_preferences',
+      'learnings',
+      'memory_state',
+      'move_outcomes',
+      'persona_life_updates',
+      'personality_profiles',
+    ];
+    for (const sub of exported) expect(EXPORTED_STORES.bogle_users, sub).toContain(sub);
+    for (const sub of ['deferred_calls', 'system'])
+      expect(WITHHELD_STORES, sub).toHaveProperty(sub);
+  });
+
   it('never also allowlists a withheld store', () => {
     const exported = Object.values(EXPORTED_STORES).flat();
     expect(exported.filter((s) => s in WITHHELD_STORES)).toEqual([]);

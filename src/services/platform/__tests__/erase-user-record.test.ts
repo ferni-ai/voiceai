@@ -4,7 +4,7 @@ import {
   eraseUserRecord,
   findUserRecordRemnants,
 } from '../erase-user-record.js';
-import type { OwnedStore } from '../user-stores.js';
+import { ERASED_STORES, type OwnedStore } from '../user-stores.js';
 
 vi.mock('../../identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => false }));
 
@@ -81,6 +81,23 @@ describe('eraseUserRecord', () => {
       'bogle_users/u-2/dynamic_facts/f1',
       'contact_relationships/r2',
       'users/u-2/journal/j1',
+    ]);
+  });
+
+  it('erases the relationship memories and flag overrides account deletion used to leave', async () => {
+    const stores = ERASED_STORES.filter((s) =>
+      ['relationship_memories', 'feature_flag_overrides'].includes(s.collection)
+    );
+    const { db, docs } = fakeFirestore({
+      'relationship_memories/u-1_ferni': { userId: 'u-1' },
+      'relationship_memories/u-2_ferni': { userId: 'u-2' },
+      'feature_flag_overrides/u-1': { flag: 'on' },
+      'feature_flag_overrides/u-2': { flag: 'on' },
+    });
+    await eraseUserRecord('u-1', db, stores, []);
+    expect([...docs.keys()].sort()).toEqual([
+      'feature_flag_overrides/u-2',
+      'relationship_memories/u-2_ferni',
     ]);
   });
 

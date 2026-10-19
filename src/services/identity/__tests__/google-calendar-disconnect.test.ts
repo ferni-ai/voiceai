@@ -13,10 +13,14 @@ const store = vi.hoisted(() => ({
 vi.mock('../google-calendar-token-store.js', () => store);
 const gmail = vi.hoisted(() => ({ hasGmailSendGrant: vi.fn(async () => false) }));
 vi.mock('../gmail-send-as-user.js', () => gmail);
+const queueGoogleRevocation = vi.hoisted(() => vi.fn(async () => undefined));
+vi.mock('../google-revocations.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  queueGoogleRevocation,
+}));
 
-const { disconnectGoogleCalendar, GOOGLE_REVOKE_URL } = await import(
-  '../google-calendar-disconnect.js'
-);
+const { disconnectGoogleCalendar, GOOGLE_REVOKE_URL } =
+  await import('../google-calendar-disconnect.js');
 
 const fetchMock = vi.fn();
 
@@ -45,6 +49,7 @@ describe('disconnectGoogleCalendar', () => {
     expect(await disconnectGoogleCalendar('user-1')).toEqual({
       revoked: true,
       keptGmailGrant: false,
+      queued: false,
     });
 
     expect(GOOGLE_REVOKE_URL).toBe('https://oauth2.googleapis.com/revoke');
@@ -71,7 +76,11 @@ describe('disconnectGoogleCalendar', () => {
   });
 
   it('revokes the access token when there is no refresh token', async () => {
-    store.readTokensFresh.mockResolvedValue({ access_token: 'access-1', refresh_token: '', expires_at: 0 });
+    store.readTokensFresh.mockResolvedValue({
+      access_token: 'access-1',
+      refresh_token: '',
+      expires_at: 0,
+    });
     fetchMock.mockResolvedValue(new Response('', { status: 200 }));
 
     await disconnectGoogleCalendar('user-1');
@@ -84,6 +93,7 @@ describe('disconnectGoogleCalendar', () => {
     expect(await disconnectGoogleCalendar('user-1')).toEqual({
       revoked: false,
       keptGmailGrant: false,
+      queued: false,
     });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(store.removeTokens).toHaveBeenCalledWith('user-1');
@@ -95,6 +105,7 @@ describe('disconnectGoogleCalendar', () => {
     expect(await disconnectGoogleCalendar('user-1')).toEqual({
       revoked: false,
       keptGmailGrant: true,
+      queued: false,
     });
     expect(gmail.hasGmailSendGrant).toHaveBeenCalledWith('user-1');
     expect(fetchMock).not.toHaveBeenCalled();
@@ -115,5 +126,27 @@ describe('disconnectGoogleCalendar', () => {
     await expect(disconnectGoogleCalendar('user-1')).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(store.removeTokens).not.toHaveBeenCalled();
+  });
+
+  it('erasure (queueIfUnreachable): a revoke Google could not take is queued, then deleted', async () => {
+    fetchMock.mockResolvedValue(new Response('', { status: 503 }));
+
+    expect(await disconnectGoogleCalendar('user-1', { queueIfUnreachable: true })).toMatchObject({
+      revoked: false,
+      queued: true,
+    });
+    expect(queueGoogleRevocation).toHaveBeenCalledWith('refresh-1');
+    expect(queueGoogleRevocation.mock.invocationCallOrder[0]).toBeLessThan(
+      store.removeTokens.mock.invocationCallOrder[0]
+    );
+  });
+
+  it('queues nothing on a plain disconnect, or when Google refuses the token', async () => {
+    fetchMock.mockResolvedValue(new Response('', { status: 503 }));
+    await disconnectGoogleCalendar('user-1');
+    fetchMock.mockResolvedValue(new Response('{"error":"invalid_token"}', { status: 400 }));
+    await disconnectGoogleCalendar('user-1', { queueIfUnreachable: true });
+
+    expect(queueGoogleRevocation).not.toHaveBeenCalled();
   });
 });
