@@ -30,7 +30,7 @@ export function isExpired(expireAt: unknown, now: number = Date.now()): boolean 
  */
 export const REPORTED_CALL_SOURCE = 'on_behalf_call';
 
-export function isReportedCallRow(row: Record<string, unknown>): boolean {
+function isReportedCallRow(row: Record<string, unknown>): boolean {
   return row.source === REPORTED_CALL_SOURCE;
 }
 
