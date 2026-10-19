@@ -65,7 +65,7 @@ public static let idle = Values(scaleY: 1.012, scaleX: 0.994, translateY: -1.5, 
 
 ### Android Implementation
 ```kotlin
-// apps/android-native/app/.../PixarAnimations.kt
+// apps/archive/android-native/app/.../PixarAnimations.kt
 object Idle {
     const val SCALE_Y = 1.012f
     const val SCALE_X = 0.994f
@@ -315,14 +315,14 @@ These are things **native can do better than web ever will**:
 - `apps/ios-native/Sources/Services/BetterThanHumanIntegration.swift` - iOS-specific integration
 
 ### Android Native
-- `apps/android-native/.../ui/animations/PixarAnimations.kt` - Timing + squash values
-- `apps/android-native/.../ui/components/VoiceOrb.kt` - 8-layer orb with eyes
-- `apps/android-native/.../ui/components/MagicalPixarEyes.kt` - **NEW!** Eye system
-- `apps/android-native/.../betterthanuman/BetterThanHumanEngine.kt` - EQ engine
-- `apps/android-native/.../betterthanuman/PixarPersonalityEngine.kt` - Lamp animations
-- `apps/android-native/.../betterthanuman/MicroExpressions.kt` - Subliminal flashes
-- `apps/android-native/.../betterthanuman/ActiveListening.kt` - Nod detection
-- `apps/android-native/.../betterthanuman/BreathSync.kt` - Neural mirroring
+- `apps/archive/android-native/.../ui/animations/PixarAnimations.kt` - Timing + squash values
+- `apps/archive/android-native/.../ui/components/VoiceOrb.kt` - 8-layer orb with eyes
+- `apps/archive/android-native/.../ui/components/MagicalPixarEyes.kt` - **NEW!** Eye system
+- `apps/archive/android-native/.../betterthanuman/BetterThanHumanEngine.kt` - EQ engine
+- `apps/archive/android-native/.../betterthanuman/PixarPersonalityEngine.kt` - Lamp animations
+- `apps/archive/android-native/.../betterthanuman/MicroExpressions.kt` - Subliminal flashes
+- `apps/archive/android-native/.../betterthanuman/ActiveListening.kt` - Nod detection
+- `apps/archive/android-native/.../betterthanuman/BreathSync.kt` - Neural mirroring
 
 ---
 
