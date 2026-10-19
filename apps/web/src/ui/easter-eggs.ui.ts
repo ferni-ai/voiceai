@@ -22,6 +22,8 @@ import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { soundUI } from './sound.ui.js';
 import { isToastRegionEnabled } from './overlay/toast-flag.js';
+import { createShakeDetector } from './shake-detector.js';
+import { appState } from '../state/app.state.js';
 import { showToast } from './overlay/toast-region.js';
 
 // Track all setTimeout calls for proper cleanup
@@ -325,36 +327,15 @@ function handleAvatarClick(): void {
 // DEVICE MOTION (Shake detection)
 // ============================================================================
 
-const shakeThreshold = 15;
-let lastShakeTime = 0;
-let shakeCount = 0;
+// Gravity left out, so a phone held still never counts (shake-detector.ts).
+const shakeDetector = createShakeDetector();
 
 function handleDeviceMotion(e: DeviceMotionEvent): void {
-  const acceleration = e.accelerationIncludingGravity;
-  if (!acceleration) return;
-  
-  const total =
-    Math.abs(acceleration.x ?? 0) + Math.abs(acceleration.y ?? 0) + Math.abs(acceleration.z ?? 0);
-  
-  const now = Date.now();
-  
-  if (total > shakeThreshold) {
-    if (now - lastShakeTime > 100) {
-      shakeCount++;
-      lastShakeTime = now;
-      
-      // 5 shakes triggers surprise
-      if (shakeCount >= 5) {
-        triggerShakeSurprise();
-        shakeCount = 0;
-      }
-    }
-  }
-  
-  // Reset shake count after 2 seconds
-  if (now - lastShakeTime > 2000) {
-    shakeCount = 0;
-  }
+  if (!shakeDetector.onMotion(e)) return;
+  // On a call the phone moves in a hand or a pocket: no surprise chime over the voices.
+  // (Read the call state itself: nothing sets a `connected` class on <body>.)
+  if (appState.get('connection') !== 'disconnected') return;
+  triggerShakeSurprise();
 }
 
 // ============================================================================

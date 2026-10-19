@@ -270,8 +270,8 @@ function injectStyles(): void {
       font-variant-numeric: tabular-nums;
     }
 
-    /* Warning pulse (only while shown: its opacity keyframes would override the hidden state) */
-    .connection-quality--visible.connection-quality--warning {
+    /* Warning pulse, while shown, on the bars only: fading the pill took the label below AA */
+    .connection-quality--visible.connection-quality--warning .connection-quality__bars {
       animation: quality-pulse 2s ease-in-out infinite;
     }
 

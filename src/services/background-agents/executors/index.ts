@@ -13,14 +13,6 @@ export {
   type ResearchFinding,
 } from './research-executor.js';
 
-// Reservation executor (Jordan's domain)
-export {
-  executeReservationTask,
-  queueReservationTask,
-  type ReservationRequest,
-  type ReservationResult,
-} from './reservation-executor.js';
-
 // Habit reminder executor (Maya's domain)
 export {
   executeHabitReminder,
