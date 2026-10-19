@@ -548,8 +548,8 @@ export function showThemeLanguageSettings(): void {
 
   container = document.createElement('div');
   container.className = 'theme-language-settings';
-  container.setAttribute('role', 'dialog');
-  container.setAttribute('aria-modal', 'true');
+  // The named role="dialog" is the card render() draws inside; a second, unnamed
+  // one around it made screen readers announce an empty dialog first
   document.body.appendChild(container);
 
   render();
