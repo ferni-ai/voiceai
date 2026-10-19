@@ -118,11 +118,30 @@ struct RememberCard: View {
     }
 }
 
+/// "When did I mention Ana?": the notes that answer, with when you said them.
+/// Searched on this phone by its own model; shown only where that exists.
+private struct OnDeviceSearch: ViewModifier {
+    @Binding var query: String
+    let submit: () -> Void
+
+    func body(content: Content) -> some View {
+        if NoteSearch.isAvailable {
+            content
+                .searchable(text: $query, prompt: Text("When did I mention…"))
+                .onSubmit(of: .search, submit)
+        } else {
+            content
+        }
+    }
+}
+
 /// Everything Ferni remembers, grouped, each note forgettable (UX spec §5).
 struct MemoryScreen: View {
     let memory: MemoryStore
     let lock: MemoryLock
     @Environment(\.scenePhase) private var scenePhase
+    @State private var query = ""
+    @State private var search = NoteSearch(ranker: OnDeviceNoteRanker())
 
     var body: some View {
         Group {
@@ -146,8 +165,36 @@ struct MemoryScreen: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
+    @ViewBuilder private var searchResults: some View {
+        Section {
+            switch search.state {
+            case .searching:
+                ProgressView()
+            case .done where search.results.isEmpty, .failed:
+                Text("Nothing in your notes about that.")
+                    .foregroundStyle(FerniColor.textSecondary)
+            default:
+                ForEach(search.results) { note in
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(note.content)
+                        if let when = note.learnedAt {
+                            Text(when.formatted(date: .abbreviated, time: .omitted))
+                                .font(FerniType.footnote)
+                                .foregroundStyle(FerniColor.textSecondary)
+                        }
+                    }
+                }
+            }
+        } header: {
+            Text("From your notes")
+        } footer: {
+            Text("Searched on this iPhone. Nothing left it.")
+        }
+    }
+
     private var notes: some View {
         List {
+            if !query.isEmpty, search.state != .idle { searchResults }
             switch memory.load {
             case .failed where memory.notes.isEmpty:
                 Section {
@@ -183,6 +230,8 @@ struct MemoryScreen: View {
             }
         }
         .overlay { if memory.load == .loading && memory.notes.isEmpty { ProgressView() } }
+        .modifier(OnDeviceSearch(query: $query) { Task { await search.search(query, in: memory.notes) } })
+        .onChange(of: query) { _, text in if text.isEmpty { search.clear() } }
         .task { await memory.refresh() }
         .refreshable { await memory.refresh() }
     }
