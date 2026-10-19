@@ -1,0 +1,28 @@
+{
+  "displayName": "Ferni promise failed and nobody was told",
+  "documentation": {
+    "mimeType": "text/markdown",
+    "content": "A promise failed for a reason that is not ours to fix (missed window, opted out, bad number, no verified phone, the approval never came), in an executor that has no way to tell the person yet: deferred calls, scheduled outreach, reminders, follow-through texts. On-behalf call results are left out because they already reach the person (push, email, While You Were Away). Our-fault reasons go to \"Ferni promise failed (our fault)\" instead. Today every such failure is untold, so this matches each one. When the promise-ledger sweeper ships (design PR 2.5), switch the filter to its `PROMISE_UNTOLD` line (failed and untold for more than 24 h). Promise-ledger design, alert policy 2."
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "A PROMISE_OUTCOME line is failed in an executor that tells nobody",
+      "conditionMatchedLog": {
+        "filter": "resource.type=\"cloud_run_revision\" AND jsonPayload.event=\"PROMISE_OUTCOME\" AND jsonPayload.outcome=\"failed\" AND jsonPayload.kind=(\"deferred-call\" OR \"scheduled-outreach\" OR \"reminder\" OR \"follow-through-text\") AND NOT jsonPayload.reason=(\"provider-error\" OR \"store-error\" OR \"job-not-run\" OR \"flag-off\" OR \"not-configured\" OR \"send-failed\")",
+        "labelExtractors": {
+          "kind": "EXTRACT(jsonPayload.kind)",
+          "reason": "EXTRACT(jsonPayload.reason)"
+        }
+      }
+    }
+  ],
+  "alertStrategy": {
+    "notificationRateLimit": {
+      "period": "3600s"
+    },
+    "autoClose": "3600s"
+  },
+  "notificationChannels": ["projects/johnb-2025/notificationChannels/497418305396229287"],
+  "enabled": true
+}

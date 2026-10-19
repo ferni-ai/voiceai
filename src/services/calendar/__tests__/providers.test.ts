@@ -49,6 +49,11 @@ vi.mock('../../identity/google-calendar-oauth.js', () => ({
   deleteUserTokens: vi.fn().mockResolvedValue(undefined),
 }));
 
+const calendarDisconnect = vi.hoisted(() => ({
+  disconnectGoogleCalendar: vi.fn(async () => ({ revoked: true, keptGmailGrant: false })),
+}));
+vi.mock('../../identity/google-calendar-disconnect.js', () => calendarDisconnect);
+
 describe('Calendar Provider Registry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -124,6 +129,12 @@ describe('Google Calendar Provider', () => {
     const provider = new GoogleCalendarProvider();
 
     expect(provider.isConfigured()).toBe(true);
+  });
+
+  it('disconnects through the revoking helper', async () => {
+    const { GoogleCalendarProvider } = await import('../providers/google-provider.js');
+    await new GoogleCalendarProvider().disconnect('user-123');
+    expect(calendarDisconnect.disconnectGoogleCalendar).toHaveBeenCalledWith('user-123');
   });
 
   it('should fetch events', async () => {
