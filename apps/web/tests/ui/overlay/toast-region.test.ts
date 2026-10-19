@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { TOAST_REGION_STORAGE_KEY } from '../../../src/ui/overlay/toast-flag';
 
 vi.mock('@/services/haptics.service.js', () => ({
   getHapticsService: () => ({ play: vi.fn() }),
@@ -62,7 +63,9 @@ describe('toastDuration', () => {
 
   it('gives errors and toasts with an action at least 6 s', () => {
     expect(toastDuration({ message: 'Nope', tone: 'error' })).toBe(6000);
-    expect(toastDuration({ message: 'Hi', action: { label: 'View', callback: () => undefined } })).toBe(6000);
+    expect(
+      toastDuration({ message: 'Hi', action: { label: 'View', callback: () => undefined } })
+    ).toBe(6000);
   });
 
   it('lets callers extend the time but never shorten it', () => {
@@ -488,7 +491,14 @@ describe('Moments routing behind the overlay-host flag', () => {
     expect(isOverlayHostEnabled()).toBe(false);
   });
 
-  it('keeps the Moments pill when the flag is off', () => {
+  it('renders whispers in the toast region by default, with no flag set', () => {
+    getMomentsManager().whisper('Saved', { type: 'success' });
+    expect(document.querySelector('.moment-whisper')).toBeNull();
+    expect(document.querySelector('.ferni-toast')).not.toBeNull();
+  });
+
+  it('keeps the Moments pill with the toast kill switch set', () => {
+    localStorage.setItem(TOAST_REGION_STORAGE_KEY, 'off'); // the kill switch: old per-surface toasts
     getMomentsManager().whisper('Saved', { type: 'success' });
     expect(document.querySelector('.moment-whisper')).not.toBeNull();
     expect(document.querySelector('.ferni-toast')).toBeNull();

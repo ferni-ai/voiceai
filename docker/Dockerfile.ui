@@ -140,6 +140,9 @@ ARG VITE_CAPTIONS_HEARD=""
 ENV VITE_CAPTIONS_V2=$VITE_CAPTIONS_V2 VITE_CAPTIONS_BREATH=$VITE_CAPTIONS_BREATH VITE_CAPTIONS_HEARD=$VITE_CAPTIONS_HEARD
 ARG VITE_MEMORY_VIEW=""
 ENV VITE_MEMORY_VIEW=$VITE_MEMORY_VIEW
+# Toast region (apps/web/src/ui/overlay/toast-flag.ts): on unless set to "off".
+ARG VITE_TOAST_REGION=""
+ENV VITE_TOAST_REGION=$VITE_TOAST_REGION
 RUN pnpm run build
 
 # ============================================================================
