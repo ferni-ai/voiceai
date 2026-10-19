@@ -75,7 +75,10 @@ function injectStyles(): void {
       font: inherit;
       cursor: pointer;
     }
-    .call-status__btn--primary { background: var(--persona-primary, var(--color-accent-primary)); color: var(--color-text-inverse); border-color: transparent; }
+    /* Text pairs with its own fill: --persona-on-primary for the persona colour,
+       --color-text-on-accent for the accent fallback. --color-text-inverse is ink in
+       midnight, which put dark text on the dark forest fill (2.96:1). */
+    .call-status__btn--primary { background: var(--persona-primary, var(--color-accent-primary)); color: var(--persona-on-primary, var(--color-text-on-accent)); border-color: transparent; }
     .call-status__btn:hover, .call-status__btn:focus-visible { border-color: var(--color-border-strong); }
     .call-status__btn:focus-visible { outline: 2px solid var(--persona-primary, var(--color-accent-primary)); outline-offset: 2px; }
   `;
