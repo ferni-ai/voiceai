@@ -17,10 +17,22 @@ import {
   showWearableSettings,
 } from './lazy-screens.js';
 import { triggerSpotifyLinkToggle } from './spotify.ui.js';
+import { t } from '../i18n/index.js';
+import { openWithLoadingShell } from './components/panel-loading-shell.js';
 
-export function openEverythingConnected(): void {
-  void import('./connected-life.ui.js').then(({ showConnectedLife }) => {
-    void showConnectedLife({
+export function openEverythingConnected(): Promise<void> {
+  // It checks every integration before it draws: the shell answers the tap meanwhile
+  return openWithLoadingShell({
+    label: t('menu.items.allConnections'),
+    readySelector: '.connected-life-overlay',
+    open: openConnectedLife,
+    close: () => void import('./connected-life.ui.js').then((m) => m.hideConnectedLife()),
+  });
+}
+
+function openConnectedLife(): Promise<void> {
+  return import('./connected-life.ui.js').then(({ showConnectedLife }) => {
+    return showConnectedLife({
       onConnectAppleHealth: () => void showAppleHealthSettings(),
       onConnectOura: () => void showOuraSettings(),
       onConnectEightSleep: () => void showEightSleepSettings(),
