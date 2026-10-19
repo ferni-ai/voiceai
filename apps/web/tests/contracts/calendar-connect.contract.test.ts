@@ -36,9 +36,14 @@ vi.mock('../../../../src/services/calendar/webhooks/google-webhook.js', () => ({
 
 /** Firestore, in memory: documents by full path. */
 const firestoreDocs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+/** Document paths whose reads fail (Firestore unavailable). */
+const failingReads = vi.hoisted(() => new Set<string>());
 vi.mock('@google-cloud/firestore', () => {
   const docRef = (path: string): Record<string, unknown> => ({
-    get: async () => ({ exists: firestoreDocs.has(path), data: () => firestoreDocs.get(path) }),
+    get: async () => {
+      if (failingReads.has(path)) throw new Error('Firestore unavailable');
+      return { exists: firestoreDocs.has(path), data: () => firestoreDocs.get(path) };
+    },
     set: async (value: Record<string, unknown>, opts?: { merge?: boolean }) => {
       const prev = opts?.merge ? (firestoreDocs.get(path) ?? {}) : {};
       firestoreDocs.set(path, { ...prev, ...value });
@@ -96,12 +101,15 @@ let http: Server;
 let base = '';
 const realFetch = globalThis.fetch;
 const cookieJar = new Map<string, string>();
+/** Requests that left for an outside host (Google), in order. */
+const outsideCalls: Array<{ href: string; body: string }> = [];
 const mockLocation = { href: 'http://localhost:3000/', origin: 'http://localhost:3000' };
 
 /** Browser-side fetch: same-origin requests go to the API server with cookies. */
 async function browserFetch(input: string | URL, init: RequestInit = {}): Promise<Response> {
   const url = new URL(String(input), mockLocation.origin);
   if (url.origin !== mockLocation.origin) {
+    outsideCalls.push({ href: url.href, body: String(init.body) });
     // Google's token endpoint answers the connect callback's code exchange;
     // any other outside call (e.g. cloud credentials) fails fast.
     const isCodeExchange =
@@ -170,6 +178,8 @@ async function panelCalendarStatus(token: string): Promise<unknown> {
   return body.integrations.calendar.connected;
 }
 
+const TOKEN_DOC = 'bogle_users/user-A/google_calendar_tokens/data';
+
 describe('Google Calendar: one connect path, one token store', () => {
   it('a connect started from the integrations panel is readable by the calendar service for the same uid', async () => {
     expect(await calendarOAuth.getValidAccessToken('user-A')).toBeNull();
@@ -211,15 +221,58 @@ describe('Google Calendar: one connect path, one token store', () => {
     expect(await calendarOAuth.getValidAccessToken('user-B')).toBeNull();
   });
 
-  it("the panel's Disconnect removes the tokens every reader uses", async () => {
+  it("the panel's Disconnect reports an error, and keeps the tokens, when they can't be read", async () => {
+    failingReads.add(TOKEN_DOC);
+    outsideCalls.length = 0;
+    try {
+      await createIntegrationsCallbacks().onDisconnectCalendar?.();
+    } finally {
+      failingReads.delete(TOKEN_DOC);
+    }
+
+    expect(messageUI.show).toHaveBeenLastCalledWith("Couldn't disconnect. Try again?", 'error', 4000);
+    expect(outsideCalls).toEqual([]);
+    expect(firestoreDocs.has(TOKEN_DOC)).toBe(true);
+  });
+
+  it("the panel's Disconnect revokes at Google and removes the tokens every reader uses", async () => {
     expect(await calendarOAuth.isCalendarConfigured('user-A')).toBe(true);
+    outsideCalls.length = 0;
 
     await createIntegrationsCallbacks().onDisconnectCalendar?.();
+
+    // The refresh token is revoked at Google. Google is offline here (503), and
+    // disconnect still removes everything below: revoke is best effort.
+    expect(outsideCalls).toContainEqual({
+      href: 'https://oauth2.googleapis.com/revoke',
+      body: 'token=g-refresh',
+    });
 
     expect(messageUI.show).toHaveBeenLastCalledWith('Calendar disconnected', 'success', 2500);
     expect(await calendarOAuth.getValidAccessToken('user-A')).toBeNull();
     expect(firestoreDocs.size).toBe(0);
     expect(await panelCalendarStatus('tok-user-A')).toBe(false);
+  });
+
+  it('with a Gmail send grant, Disconnect deletes the calendar tokens without revoking', async () => {
+    await calendarOAuth.storeUserTokens('user-A', {
+      access_token: 'g-access-2',
+      refresh_token: 'g-refresh-2',
+      expires_in: 3600,
+      token_type: 'Bearer',
+    });
+    const gmailDoc = 'bogle_users/user-A/gmail_send_tokens/data';
+    firestoreDocs.set(gmailDoc, { encrypted: 'gmail-grant' });
+    outsideCalls.length = 0;
+
+    await createIntegrationsCallbacks().onDisconnectCalendar?.();
+
+    expect(messageUI.show).toHaveBeenLastCalledWith('Calendar disconnected', 'success', 2500);
+    // Revoking would end the Gmail send grant too (one OAuth client).
+    expect(outsideCalls).toEqual([]);
+    expect(firestoreDocs.has(TOKEN_DOC)).toBe(false);
+    expect(firestoreDocs.has(gmailDoc)).toBe(true);
+    firestoreDocs.delete(gmailDoc);
   });
 
   it('the v1 integrations API no longer runs a second calendar connect flow', async () => {

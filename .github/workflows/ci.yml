@@ -90,7 +90,7 @@ jobs:
       # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
       code: ${{ steps.code.outputs.matched }}
       # 'false' also when a PR touches only apps that aren't the Node app (website,
-      # ios-native, android-native, macos-menubar): none is in the UI image, ESLint
+      # ios-native, android-native, android-twa, macos-menubar): none is in the UI image, ESLint
       # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
       # see the change. Security and Quality Gates (brand scans the website) stay on
       # `code`. The merge queue is scoped the same way unless CI_SCOPED_QUEUE=off.
@@ -118,7 +118,7 @@ jobs:
         id: node
         uses: ./.github/actions/pr-changes
         with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|android-twa|macos-menubar)/'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - name: Did the merge queue already test this tree?
@@ -237,8 +237,12 @@ jobs:
     needs: setup
     if: needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true'
     steps:
+      # Two commits on a pull request: GitHub's merge commit and its first parent, the
+      # base, which the affected-tests step below diffs against.
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -339,14 +343,30 @@ jobs:
           pnpm install
           pnpm exec napi build --platform
 
+      # A pull request runs only the tests whose imports reach a changed file, without
+      # coverage: the full coverage run was 19 of CI's ~47 runner-minutes per PR push
+      # while PR jobs waited ~30 min for a runner (2026-10-18). vitest.config.unit.ts
+      # lists the files no import reaches (setup, lockfile, runtime data); a change to
+      # one runs everything. The merge queue always runs the whole suite with coverage,
+      # so this changes how early a PR hears, never what reaches main. The
+      # `ci:full-tests` label runs the whole suite on a PR.
+      - name: Run unit tests affected by this pull request
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        run: pnpm exec vitest run --config vitest.config.unit.ts --changed HEAD^1 --passWithNoTests
+        env:
+          NODE_ENV: test
+          NODE_OPTIONS: '--max-old-space-size=8192'
+
       - name: Run unit tests with coverage
+        id: full-unit
+        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
         run: pnpm test:unit:coverage -- --reporter=verbose
         env:
           NODE_ENV: test
 
       - name: Upload unit coverage
         uses: codecov/codecov-action@v7
-        if: always()
+        if: always() && steps.full-unit.outcome != 'skipped'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
