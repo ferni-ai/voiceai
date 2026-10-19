@@ -39,6 +39,7 @@ import {
   directorDirects,
   directsSystem,
   policesDelivery,
+  readsMind,
   scriptedNote,
   transcriptNote,
 } from './director-directs.js';
@@ -199,8 +200,9 @@ export function parseNotes(
   call?: Line[],
   speaking?: string,
   /**
-   * DIRECTOR_DIRECTS=on: also drop notes that correct the delivery, script a
-   * line or read as a line of the call by one of `names` (director-directs.ts).
+   * DIRECTOR_DIRECTS=on: also drop notes that correct the delivery, pin an
+   * unsaid feeling or motive on the caller, script a line or read as a line of
+   * the call by one of `names` (director-directs.ts).
    */
   opts: { directs?: boolean; names?: readonly string[] } = {}
 ): string[] {
@@ -224,6 +226,7 @@ export function parseNotes(
       (l) =>
         !opts.directs ||
         (!policesDelivery(l) &&
+          !readsMind(l) &&
           !scriptedNote(l, callerSaid) &&
           !transcriptNote(l, opts.names ?? []))
     )
@@ -317,7 +320,7 @@ export class Director {
         }
         const names = [this.opts.userName || 'Them', asked.speaking ?? 'Ferni'];
         this.notes = parseNotes(reply, lines.slice(-12), asked.speaking, { directs, names });
-        // DIRECTOR_DIRECTS: how many notes the guard dropped as style policing or a scripted line.
+        // DIRECTOR_DIRECTS: how many notes the guard dropped (style policing, mind-reading, a scripted line).
         this.critiqued = directs
           ? parseNotes(reply, lines.slice(-12), asked.speaking).length - this.notes.length
           : 0;
