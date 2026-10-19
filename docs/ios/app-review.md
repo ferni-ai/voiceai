@@ -57,6 +57,7 @@ notes as a one-time link, never in this repository.
 | Account and Sign in with Apple | Settings, then Account | Links the anonymous account to an Apple ID. |
 | Delete account (5.1.1(v)) | Settings, then Delete account | Deletes the account and its data on the server, and revokes Sign in with Apple. The revoke needs PR #2004. |
 | Withdraw consent | Settings, then Privacy | Ferni asks again before the next call. |
+| Teammates in Spotlight | Spotlight: type a teammate's name or what they help with ("money", "habits") | Only teammates the person has met are indexed (a new account: Ferni). Opening one goes through Talk, so consent comes first. Shortcuts offers the same teammates. Memories, people and follow-ups are never indexed. |
 | Siri, Shortcuts, Action button | "Talk to Ferni", "Call Ferni", "Talk to Maya on Ferni" | App Intents. Talk always goes through consent; End is the Live Activity's button. |
 | Control Center and Lock Screen control | Controls gallery, "Talk to Ferni" | |
 | iPad | Sidebar (Talk, Team, What Ferni remembers, Settings) | In a landscape call, captions sit beside Ferni. Keyboard: Command-Return talks, Command-Period ends, Command-M mutes. |
