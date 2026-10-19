@@ -503,7 +503,7 @@ function addStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
       animation: wave 1.5s ease-in-out infinite;
     }
 
@@ -611,7 +611,7 @@ function addStyles(): void {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
     }
 
     .ferni-hub-section-icon svg {
@@ -732,7 +732,7 @@ function addStyles(): void {
       font-size: 0.75rem;
       padding: 4px 8px;
       background: var(--color-ferni-tint, rgba(74, 103, 65, 0.1));
-      color: var(--color-ferni);
+      color: var(--color-ferni-on-surface);
       border-radius: var(--radius-full, 100px);
       display: inline-flex;
       align-items: center;
@@ -771,7 +771,7 @@ function addStyles(): void {
 
     .ferni-hub-continue-btn {
       font-size: 0.8125rem;
-      color: var(--color-ferni);
+      color: var(--color-ferni-on-surface);
       font-weight: 500;
       opacity: 0;
       transition: opacity ${DURATION.FAST}ms;
@@ -857,7 +857,7 @@ function addStyles(): void {
       width: 64px;
       height: 64px;
       margin: 0 auto var(--space-4);
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
     }
 
     .ferni-hub-empty-icon svg {
