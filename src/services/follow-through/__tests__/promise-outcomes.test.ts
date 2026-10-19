@@ -60,6 +60,7 @@ describe('each executor maps to the design table', () => {
       ['quiet-hours', 'held', 'quiet-hours'],
       ['rate-gap', 'held', 'rate-gap'],
       ['opted-out', 'failed', 'opted-out'],
+      ['needs-consent', 'failed', 'needs-consent'],
       ['bad-number', 'failed', 'bad-number'],
       ['missed', 'failed', 'missed-window'],
       ['retrying', 'pending', 'provider-error'],

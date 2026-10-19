@@ -153,7 +153,8 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
           channel: channelUsed,
           error: `skipped: ${refused}`,
         });
-        return;
+        // An unreadable consent record is not a stop: it ends like the text sender's send-failed.
+        return refused === 'unverifiable' ? 'failed' : refused;
       }
 
       if (channelUsed === 'conversation') {
@@ -209,7 +210,7 @@ async function runOutreach(outreach: ScheduledOutreach): Promise<OutreachEnd> {
           error: `skipped: ${sent.reason}`,
         });
         log.info({ userId, id, reason: sent.reason }, 'Scheduled text skipped');
-        return sent.reason as 'opted-out' | 'bad-number'; // the FINAL_SKIPS
+        return sent.reason as 'opted-out' | 'needs-consent' | 'bad-number'; // the FINAL_SKIPS
       }
       success = sent.sent;
       errorMsg = sent.sent ? undefined : sent.reason;
