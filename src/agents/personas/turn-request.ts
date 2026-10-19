@@ -79,6 +79,7 @@ import {
 } from './turn-style.js';
 import { burstLine, clearBurstOffer } from './vocal-bursts.js';
 import { withHeavyMoment } from './heavy-turn.js';
+import { SCRIPT_FREE_BASE, scriptFreeOn, scriptFreeShapeFor } from './script-free.js';
 
 // Moved to turn-request-tools.ts; re-exported for existing importers.
 export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
@@ -117,6 +118,9 @@ export function withTurnReminder(
   const director = getDirector(session);
   const view = unlockViewFor((session as { userData?: unknown }).userData);
   const words = callerWords(chatCtx);
+  // SCRIPT_FREE_REMINDER=on: no shared style or quoted lines; never on a crisis turn (script-free.ts).
+  const crisis = options.shape === false;
+  const plain = !crisis && scriptFreeOn();
   // Nothing steers back to a locked teammate the caller didn't just name.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
@@ -128,20 +132,20 @@ export function withTurnReminder(
     ? ''
     : formatNotes(listeningNotes(offered.filter(keep), chatCtx, session));
   // REPAIR_MODE=on: own a correction, and keep earlier ones; none with crisis guidance.
-  const corrected = options.shape !== false ? correctionNotesFor(chatCtx, session) : '';
+  const corrected = crisis ? '' : correctionNotesFor(chatCtx, session, process.env, plain);
   // Never with crisis guidance (shape: false): no thought rides a crisis reply.
   const thought = options.shape !== false ? thoughtFor(session, words) : '';
   // How Ferni is doing (FERNI_STATE=on), and if his own story may ride; none in a crisis.
   const state = ferniStateTurn(chatCtx, session, { careful: options.shape === false });
   const style = turnStyleReminderEnabled()
-    ? styleFor(chatCtx, session, options.shape !== false, state, answering)
+    ? styleFor(chatCtx, session, options.shape !== false, state, { answering, plain })
     : undefined;
   noteTurn(session, words, style?.turn); // MOVE_OUTCOMES=on (move-log.ts)
   // The style goes last, nearest the reply, where the turn shape is followed best (turn-shape.ts).
   // CONTEXT_PACKET=on carries these same notes, in this order (turn-packet.ts).
   const turnNotes = [
     // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
-    teammateIdentityNote(view.currentAgentId),
+    teammateIdentityNote(view.currentAgentId, process.env, plain),
     worldNowNote(session),
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
@@ -167,9 +171,9 @@ export function withTurnReminder(
       careful: options.shape === false,
     }),
     // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
-    firstCallNote(chatCtx, session, words),
+    firstCallNote(chatCtx, session, words, process.env, plain),
     // ROOM_GUESTS=on: someone else is in the room on the same mic (room-guests.ts)
-    roomGuestsNote(session, words),
+    roomGuestsNote(session, words, process.env, plain),
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's
     nameCorrectionNote(chatCtx, session, words, process.env, {
       verifiedOwner: sessionIsVerifiedOwner,
@@ -177,13 +181,13 @@ export function withTurnReminder(
     // TEAM_BY_NEED=on: who helps with what, and the teammate this turn calls for, if any
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // ALEX_CHIEF_OF_STAFF=on: todos, goals, calendar and agenda go to Alex (chief-of-staff-note.ts)
-    chiefOfStaffNote(view.currentAgentId ?? 'ferni', words, lastAgentWordsIn(chatCtx.items)),
+    chiefOfStaffNote(view.currentAgentId ?? 'ferni', words, lastAgentWordsIn(chatCtx.items), plain),
     // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
     // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
     ...withLiveData(style?.text ?? '', callerTurnsOf(chatCtx)),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
-    options.shape !== false ? exitFor(chatCtx, session, words) : '',
+    options.shape !== false ? exitFor(chatCtx, session, words, plain) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).
     state.last,
     // ATTUNE=on: how to meet the caller's state (questions, advice, own stories), after the
@@ -195,7 +199,7 @@ export function withTurnReminder(
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
-    options.shape !== false && !answering ? repairNoteFor(chatCtx, session) : '',
+    !crisis && !answering ? repairNoteFor(chatCtx, session, process.env, plain) : '',
   ].filter(Boolean);
   // WORLD_FACTS_IN_CALL=on: where their life stands (in-call-load.ts); nothing when off.
   const caller = callerOf(session);
@@ -252,7 +256,7 @@ function thoughtFor(session: object, said: string): string {
 }
 
 /** HAPPY_EXITS or SHORT_GOODBYE: the goodbye note when they are wrapping up (happy-exits.ts). */
-function exitFor(chatCtx: llm.ChatContext, session: object, said: string): string {
+function exitFor(chatCtx: llm.ChatContext, session: object, said: string, plain = false): string {
   if (!goodbyeNoteOn() || !said) return '';
   const { signals } = signalsFor(session, said);
   return happyExitNote(session, {
@@ -261,6 +265,7 @@ function exitFor(chatCtx: llm.ChatContext, session: object, said: string): strin
     careful: (signals ?? regexSignals(said, callerMove(said))).careful,
     wantsToEnd: understandingFor(session, said)?.wantsToEnd,
     rng: rngFor(`${callSeed(session)}:exit:${said}`),
+    scriptFree: plain,
   });
 }
 
@@ -311,11 +316,11 @@ function styleFor(
   session: object,
   shape: boolean,
   state: { ownStory?: boolean; brief?: boolean } = {},
-  answering = false
+  { answering = false, plain = false }: { answering?: boolean; plain?: boolean } = {}
 ): { text: string; turn?: TurnShape } {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
-  if (!said) return { text: TURN_STYLE_REMINDER };
-  const listening = listeningReply(said, chatCtx, session);
+  if (!said) return { text: plain ? SCRIPT_FREE_BASE : TURN_STYLE_REMINDER };
+  const listening = listeningReply(said, chatCtx, session, plain);
   if (listening) return { text: listening };
   // Seeded per call and words: preemptive and final requests agree; another call may differ.
   const { signals, source } = signalsFor(session, said);
@@ -325,13 +330,7 @@ function styleFor(
   const quiet = withQuiet(told, said, chatCtx);
   const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
   const troubled = withCallTrouble(session, said, shaped, source);
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, troubled);
-  // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
-  const burst = burstLine(
-    session,
-    shaped ?? regexSignals(said, callerMove(said)),
-    rngFor(`${callSeed(session)}:${said}:burst`)
-  );
+  const { turn, burst } = shapeFor(session, said, troubled, shaped, plain);
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
   log.info(
@@ -346,6 +345,24 @@ function styleFor(
     'TURN_SHAPE'
   );
   return { text: burst ? `${turn.reminder} ${burst}` : turn.reminder, turn };
+}
+
+/**
+ * The turn shape (turn-shape.ts), then VOCAL_BURSTS=on's own draw, so the shape is
+ * the same either way. SCRIPT_FREE_REMINDER=on: no style in it and no burst (script-free.ts).
+ */
+function shapeFor(
+  session: object,
+  said: string,
+  signals: TurnSignals | undefined,
+  shaped: TurnSignals | undefined,
+  plain: boolean
+): { turn: TurnShape; burst: string } {
+  const rng = rngFor(`${callSeed(session)}:${said}`);
+  if (plain) return { turn: scriptFreeShapeFor(said, rng, signals), burst: '' };
+  const turn = turnShapeFor(said, rng, undefined, signals);
+  const seed = rngFor(`${callSeed(session)}:${said}:burst`);
+  return { turn, burst: burstLine(session, shaped ?? regexSignals(said, callerMove(said)), seed) };
 }
 
 /**

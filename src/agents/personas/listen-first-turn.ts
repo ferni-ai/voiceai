@@ -41,11 +41,12 @@ export function listeningNotes(
 export function listeningReply(
   said: string,
   chatCtx: llm.ChatContext,
-  session: object
+  session: object,
+  scriptFree = false
 ): string | null {
   const listening = listeningFor(chatCtx, session);
   if (!listening) return null;
-  const turn = listeningShapeFor(said, listening);
+  const turn = listeningShapeFor(said, listening, scriptFree);
   log.info({ move: turn.move, shape: turn.shape, extras: turn.extras }, 'TURN_SHAPE');
   return turn.reminder;
 }

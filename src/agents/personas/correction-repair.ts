@@ -120,8 +120,10 @@ function remember(session: object, said: string): string[] {
 const clip = (text: string): string =>
   text.length > MAX_CHARS ? `${text.slice(0, MAX_CHARS - 3)}...` : text;
 
-export function correctionNote(said: string): string {
-  return `They just corrected you ("${clip(said)}"). Own it in one short line, the way a friend would ("Ah, my mistake."), then go on with what they said. Don't argue, explain why, or repeat your old version.`;
+/** `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): their words only, no line to say. */
+export function correctionNote(said: string, scriptFree = false): string {
+  const how = scriptFree ? '' : ', the way a friend would ("Ah, my mistake.")';
+  return `They just corrected you ("${clip(said)}"). Own it in one short line${how}, then go on with what they said. Don't argue, explain why, or repeat your old version.`;
 }
 
 export function settledNote(earlier: string[]): string {
@@ -158,7 +160,8 @@ function linesOf(chatCtx: llm.ChatContext): { said: string; ferni: string[] } {
 export function correctionNotesFor(
   chatCtx: llm.ChatContext,
   session: object,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  scriptFree = false
 ): string {
   if (!correctionRepairEnabled(env)) return '';
   const { said, ferni } = linesOf(chatCtx);
@@ -167,7 +170,10 @@ export function correctionNotesFor(
   // An earlier one is anything not this turn's words (or a partial of them).
   const earlier = carried.filter((c) => !said.startsWith(c)).reverse();
   if (correcting) log.info({ carried: carried.length }, 'CORRECTION_REPAIR');
-  return [correcting ? correctionNote(said) : '', earlier.length ? settledNote(earlier) : '']
+  return [
+    correcting ? correctionNote(said, scriptFree) : '',
+    earlier.length ? settledNote(earlier) : '',
+  ]
     .filter(Boolean)
     .join(' ');
 }
