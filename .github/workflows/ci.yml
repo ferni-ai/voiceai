@@ -90,7 +90,7 @@ jobs:
       # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
       code: ${{ steps.code.outputs.matched }}
       # 'false' also when a PR touches only apps that aren't the Node app (website,
-      # ios-native, android-native, macos-menubar): none is in the UI image, ESLint
+      # ios-native, android-native, android-twa, macos-menubar): none is in the UI image, ESLint
       # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
       # see the change. Security and Quality Gates (brand scans the website) stay on
       # `code`. The merge queue is scoped the same way unless CI_SCOPED_QUEUE=off.
@@ -118,7 +118,7 @@ jobs:
         id: node
         uses: ./.github/actions/pr-changes
         with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|android-twa|macos-menubar)/'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - name: Did the merge queue already test this tree?
@@ -772,7 +772,10 @@ jobs:
 
       - name: Run pnpm audit
         if: needs.setup.outputs.code != 'false'
-        run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
+        # Fails on a new high or critical advisory. Known ones with no fix yet are
+        # listed (with why) under auditConfig.ignoreGhsas in pnpm-workspace.yaml.
+        # A registry outage passes rather than blocking every PR.
+        run: pnpm audit --audit-level=high --ignore-registry-errors
 
       # trufflehog is pinned to an immutable commit SHA, not @main: a mutable ref
       # means this job runs whatever is on that branch at run time, and this
