@@ -31,6 +31,24 @@ enum CrashPolicy {
 
 /// Crash reporting, off unless this build carries a DSN.
 enum CrashReporting {
+    /// Whether the SDK is compiled into this build at all.
+    static var isLinked: Bool {
+        #if canImport(Sentry)
+        true
+        #else
+        false
+        #endif
+    }
+
+    /// Whether the SDK is running (it never is without a DSN).
+    @MainActor static var isRunning: Bool {
+        #if canImport(Sentry)
+        SentrySDK.isEnabled
+        #else
+        false
+        #endif
+    }
+
     static func start(info: [String: Any]? = Bundle.main.infoDictionary) {
         guard let dsn = CrashPolicy.dsn(from: info) else { return }
         #if canImport(Sentry)

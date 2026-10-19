@@ -20,6 +20,15 @@ final class CrashPolicyTests: XCTestCase {
         XCTAssertNil(CrashPolicy.dsn(from: Bundle.main.infoDictionary))
     }
 
+    /// The app launched (and this test calls start again) with no DSN: the
+    /// SDK is in the binary but never starts.
+    @MainActor
+    func testTheSDKIsLinkedButNeverStartsWithoutADSN() {
+        XCTAssertTrue(CrashReporting.isLinked, "sentry-cocoa is part of this build")
+        CrashReporting.start()
+        XCTAssertFalse(CrashReporting.isRunning)
+    }
+
     func testBreadcrumbsKeepTheKindOfThingNeverItsContent() {
         let kept = CrashPolicy.breadcrumbData([
             "method": "POST", "status_code": 503, "url": "https://app.ferni.ai/api/memories?q=ana",
