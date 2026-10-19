@@ -82,6 +82,8 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   MULTI_AGENT_SINGLE_SESSION: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MUSIC_CONTINUE_AS_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
   MUSIC_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  // on: every writer of the caller's name takes it from utils/caller-name.ts (capitalised, not a stopword or teammate)
+  NAME_CAPTURE_STRICT: { default: 'off', owner: 'memory', kind: 'experiment' },
   NAME_CORRECTION: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: an opening "Hey Seth, ..." is voiced as "Hey Seth." so the name falls (speech/tts-gateway/name-intonation.ts);
   // a name kept later in a reply ends its sentence the same way (agents/personas/name-gate.ts)
