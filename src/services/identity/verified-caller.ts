@@ -19,6 +19,21 @@
  * @module services/identity/verified-caller
  */
 
+import { flagOn } from '../../config/env-flag.js';
+
+/** VERIFIED_CALLER_ALLOWANCE=on: per-person allowances follow verifiedAllowanceKey (default off). */
+export function verifiedCallerAllowanceOn(env: NodeJS.ProcessEnv = process.env): boolean {
+  return flagOn('VERIFIED_CALLER_ALLOWANCE', env);
+}
+
+/**
+ * For /token: a verified Firebase token from a real sign-in. Any client can mint
+ * a fresh anonymous Firebase user, so 'anonymous' (or no provider) never counts.
+ */
+export function isSignedInAccount(signInProvider: string | undefined): boolean {
+  return signInProvider !== undefined && signInProvider !== 'anonymous';
+}
+
 interface VerifiableSource {
   type: string;
   verified?: boolean;
