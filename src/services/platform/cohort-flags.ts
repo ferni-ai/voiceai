@@ -88,6 +88,8 @@ export const COHORT_FLAGS = [
   'TEAM_VOICES',
   'FERNI_PERSONA_SLIP_GUARD',
   'DIRECTOR_PERSONA_AWARE',
+  // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
+  'ALEX_CHIEF_OF_STAFF',
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',

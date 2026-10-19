@@ -28,6 +28,7 @@ import {
   anniversaryFor,
   lineSaysAnniversary,
 } from './friendship-anniversary.js';
+import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
@@ -49,16 +50,21 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
   'warm and a little playful, glad it\'s them, one short sentence, maybe a quick easy question or a light, friendly tease. No exclamation marks, no "so good to hear your voice", no hype,'
 );
 
-/** The hello's direction for this persona; `introAs` is set on a first call (FIRST_CALL_INTRO). */
+/**
+ * The hello's direction for this persona. Never the playful one after a heavy
+ * last call (what they talked about reads as heavy-moment.ts does) or when
+ * welcome-back held back a tender thread: a tease is no way to pick that up.
+ * `introAs` is set on a first call (FIRST_CALL_INTRO).
+ */
 export function greetingDirection(
   personaId: string,
   env: Env = process.env,
+  last: { topic?: string; tender?: boolean } = {},
   introAs?: string
 ): string {
-  const base =
-    personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env)
-      ? PLAYFUL_GREETING_DIRECTION
-      : GREETING_DIRECTION;
+  const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
+  const careful = last.tender === true || isHeavyMoment([last.topic]);
+  const base = playful && !careful ? PLAYFUL_GREETING_DIRECTION : GREETING_DIRECTION;
   return introAs ? withFirstCallIntro(base, introAs) : base;
 }
 
@@ -395,7 +401,12 @@ export async function directedGreeting(
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const direction =
-    greetingDirection(personaId, process.env, introAs) +
+    greetingDirection(
+      personaId,
+      process.env,
+      { topic: history?.lastTopic, tender: back?.heldBack },
+      introAs
+    ) +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
