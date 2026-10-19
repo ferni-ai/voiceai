@@ -270,6 +270,7 @@ final class AppModel {
     /// wired as soon as the model exists, before the app finishes launching.
     private func installSystemHandlers() {
         EndCallIntent.end = { [weak self] in await self?.call.end() }
+        MuteCallIntent.toggle = { [weak self] in await self?.call.toggleMute() }
         TalkIntent.handler = { [weak self] personaID in self?.talk(to: personaID) }
         FerniAppDelegate.onToken = { [weak self] token in
             guard let self else { return }
