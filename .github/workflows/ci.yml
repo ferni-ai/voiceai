@@ -30,11 +30,17 @@ on:
     # No path filter on PRs: branch protection requires these checks, so a PR
     # they skip can never merge (docs, .claude/, dependabot.yml PRs all stuck).
     # PR runs are the fast checks only: Lint & Type Check, Frontend Quality, Unit
-    # Tests, Security Scan. Integration Tests, Quality Gates, Build and the other
+    # Tests, Security Scan, Quality Gates. Integration Tests, Build and the other
     # slow jobs skip on pull_request (a skipped job still reports its check), so PR
     # runs stop starving the merge queue for runners. The queue runs everything.
   # The merge queue tests each PR on top of main and whatever is queued ahead of it.
   merge_group:
+  # Once a night the whole suite runs on main, whatever changed. The queue and pushes
+  # skip jobs a change can't reach (setup's code/node scoping), which is right only if
+  # the exclude patterns are right; this catches it when they aren't. A failure opens a
+  # ci-health issue (nightly-health.yml).
+  schedule:
+    - cron: '41 6 * * *'
 
 # A new push to a PR supersedes its running checks. Merge-queue entries and pushes to
 # main always finish: cancelling one drops the queue entry or main's only verdict.
@@ -658,17 +664,17 @@ jobs:
         if: steps.nm-cache.outputs.cache-hit != 'true'
         run: pnpm install --no-frozen-lockfile
 
+      # Blocking. Both ran with continue-on-error, so the job was green whatever
+      # they did; main passes both (93 and 6 tests, 2026-10-18).
       - name: Run AGI Feature Unit Tests
         run: pnpm test:agi-features -- --reporter=verbose
         env:
           NODE_ENV: test
-        continue-on-error: true
 
       - name: Run AGI Actions API E2E Tests
         run: pnpm test:agi-actions-api -- --reporter=verbose
         env:
           NODE_ENV: test
-        continue-on-error: true
 
   # ============================================================================
   # BUILD
@@ -863,7 +869,10 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: github.event_name != 'pull_request' && needs.setup.outputs.code != 'false'
+    # Runs on pull_request too. Skipped there, it first ran in the merge queue, so
+    # one PR that grew a 713-line file to 723 failed 15 of 15 merge groups and
+    # knocked out every PR queued with it (2026-10-18). Its three steps are cheap.
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7

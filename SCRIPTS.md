@@ -176,7 +176,6 @@ Design tokens and components
 
 | Script | Command |
 |--------|----------|
-| `npm run design-system` | `node design-system/dev-server.js` |
 | `npm run design-system:dev` | `node design-system/dev-server.js` |
 | `npm run design-system:test` | `npx playwright test --config=design-system/playwright.con...` |
 | `npm run design-system:test:update` | `npx playwright test --config=design-system/playwright.con...` |
@@ -295,9 +294,9 @@ npm run ferni health
 
 ## 📚 Additional Resources
 
-- [Deployment Guide](./docs/DEPLOYMENT.md)
-- [Development Setup](./docs/DEVELOPMENT.md)
-- [Architecture Overview](./docs/ARCHITECTURE.md)
+- [Deploy runbook](./docs/runbooks/deploy.md)
+- [Development Setup](./ONBOARDING.md)
+- [Docs index](./docs/README.md)
 
 ---
 
