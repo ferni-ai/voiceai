@@ -443,8 +443,8 @@ export async function loadRecallSnapshot(
   if (forgotten === null) return { facts: [], followUps: [], insideJokes: [] };
   const facts = dedupeFacts(
     rawFacts
-      // Marked by forget.ts: left in storage (recoverable), out of recall.
-      .filter((d) => typeof d.forgottenAt !== 'string')
+      // Marked by forget.ts, or a miss the caller corrected (friend-repair.ts): kept, never recalled.
+      .filter((d) => typeof d.forgottenAt !== 'string' && typeof d.correctedAt !== 'string')
       .slice(0, MAX_FACTS)
       .map((d): RecallFact => ({
         entity: String(d.entityName ?? ''),
