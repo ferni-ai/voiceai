@@ -22,12 +22,12 @@ final class SignInUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Not now"].exists, "no consent, no call as someone new")
         number.tap()
         number.typeText("4155550134")
-        app.buttons["Text me a code"].tap()
+        app.buttons["signIn.continue"].tap() // "Text me a code"
         let code = app.textFields["Code from the text"]
         XCTAssertTrue(code.waitForExistence(timeout: 5))
         code.tap()
         code.typeText("123456")
-        app.collectionViews.buttons["Sign in"].tap() // the sheet's, not Home's behind it
+        app.buttons["signIn.continue"].tap() // "Sign in", the sheet's, not Home's behind it
 
         XCTAssertTrue(number.waitForNonExistence(timeout: 5) && code.waitForNonExistence(timeout: 5), "the sheet closes")
         XCTAssertFalse(app.staticTexts["Sign in so Ferni remembers you."].exists)
