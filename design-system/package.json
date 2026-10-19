@@ -41,7 +41,7 @@
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "storybook": "^10.6.1",
-    "vite": "^6.4.3"
+    "vite": "^8.3.4"
   },
   "files": [
     "dist",
