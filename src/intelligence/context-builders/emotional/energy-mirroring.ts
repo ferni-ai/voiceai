@@ -197,7 +197,7 @@ const ENERGY_GUIDANCE: Record<EnergyLevel, EnergyGuidance> = {
     tone: [
       'Gentle, almost hushed',
       'Minimal energy expenditure',
-      'Holding space without demands',
+      'Quiet company, no demands',
       'Soft, warm, like a blanket',
     ],
     avoid: [
