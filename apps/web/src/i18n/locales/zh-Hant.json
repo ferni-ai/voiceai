@@ -777,7 +777,7 @@
     "phoneLabel": "傳簡訊或打電話給我",
     "emailLabel": "寄送最新消息給我",
     "nameLabel": "我該怎麼稱呼你？",
-    "privacyNote": "我只會將此用於自我檢視。絕不發送垃圾訊息，也絕不分享。",
+    "privacyNote": "我只會將此用於自我檢視。絕不發送垃圾訊息，也絕不出售。",
     "quietHours": "勿擾時間",
     "dontCall": "不要打電話",
     "until": "直到",
@@ -2408,7 +2408,7 @@
     "intro": "連結你的穿戴式裝置，讓 Ferni 更了解你的健康狀況與活力水平。",
     "loading": "載入中...",
     "privacy": {
-      "note": "你的健康數據會保持私密。我們只會將整合後的洞察分享到你的教練對話中。"
+      "note": "Ferni 會儲存你的健康數據，以便和你一起發現規律。我們絕不出售這些數據，刪除帳戶即會將其清除。"
     },
     "providers": {
       "appleHealth": {
@@ -2883,6 +2883,9 @@
     "openConversations": "開啟的對話",
     "onYourMind": "你心裡在想的事",
     "thingsTracking": "你的團隊為你留意的大小事",
+    "trackedDone": "完成",
+    "trackedDismiss": "忽略",
+    "trackedUpdateFailed": "無法更新，請再試一次。",
     "quickConnections": "快速連結",
     "startWithAnyone": "與你團隊中的任何人開始對話",
     "allCaughtUp": "都跟上進度囉！",
@@ -2948,7 +2951,7 @@
     "orUseEmail": "或使用電子郵件",
     "emailLabel": "電子郵件",
     "passwordLabel": "密碼",
-    "privacyNote": "你的資料將永遠保持私密。",
+    "privacyNote": "我們絕不出售你的資料。刪除帳戶即會將其清除。",
     "loading": "請稍等一下...",
     "welcomeBack": "歡迎回來！我都記得。",
     "somethingWentWrong": "出了點問題",
@@ -2971,7 +2974,7 @@
     "waitlistMessage": "我們正在逐步開放 Ferni，以確保每個人都能獲得最佳體驗。一旦有空缺，我們就會發送電子郵件給你。",
     "waitlistEmail": "我們將會發送通知至 {email}",
     "tryDifferentAccount": "嘗試其他帳號",
-    "checkingAccess": "正在檢查你的存取權限...",
+    "checkingAccess": "正在準備…",
     "checkingLabel": "請稍等一下...",
     "signInError": "登入已取消或失敗。請再試一次。",
     "verifyEmailTitle": "驗證你的電子郵件",
@@ -3429,7 +3432,7 @@
     "weeklyDigest": "每週摘要",
     "weeklyDigestDesc": "在週日晚上預覽你未來一週的行程",
     "viewSyncConflicts": "查看同步衝突",
-    "integrationsPrivacy": "整合功能會將你現有的行程同步至 Ferni。你的資料將保持私密。",
+    "integrationsPrivacy": "整合功能會將你現有的行程同步至 Ferni。我們絕不出售你的資料。",
     "tryAgain": "再試一次",
     "syncing": "正在同步...",
     "connectAppleCalendar": "連線 Apple Calendar",
@@ -9889,7 +9892,7 @@
       "title": "個人化",
       "message": "你的位置能讓我們的對話感覺更親近、更貼切 — 就像我真的陪在你身邊一樣。"
     },
-    "note": "這完全是我們之間的小秘密 — 我只會用它來讓我們的對話更貼近你。",
+    "note": "我只會用它來讓我們的對話更貼近你，絕不出售。",
     "notNow": "稍後再說",
     "allow": "允許定位"
   },
@@ -10800,7 +10803,7 @@
   },
   "entrance": {
     "helper": "你的貼心嚮導",
-    "connectToTalk": "聊聊",
+    "connectToTalk": "和 Ferni 聊聊",
     "endTalk": "掛斷",
     "connectingCancel": "正在連線。輕點即可取消",
     "connectingNow": "正在連線…",
