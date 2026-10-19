@@ -353,7 +353,10 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       );
       // Semantic recall finds more, so it also keeps each turn's recall small.
       const laterText = (id: string) => laterFollowUps.get(id) ?? laterTold.get(id)?.fact ?? '';
-      const facts = blend ? withinTokens(ranked, (f) => factText(f), tokensLeft) : ranked;
+      // screen() reads only "- " items, so a call report (quoted "> " lines)
+      // about a topic they asked to avoid never reaches the frame at all.
+      const screened = ranked.filter((f) => !isReportedCallFact(f) || world.keep(factText(f)));
+      const facts = blend ? withinTokens(screened, (f) => factText(f), tokensLeft) : screened;
       const factTokens = estimateTokens(facts.map((f) => factText(f)));
       const extras = blend ? withinTokens(later, laterText, tokensLeft - factTokens) : later;
       const extraTold = extras.flatMap((id) => laterTold.get(id) ?? []);
