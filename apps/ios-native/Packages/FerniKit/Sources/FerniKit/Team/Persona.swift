@@ -36,6 +36,17 @@ public enum PersonaRegistry {
     public static func get(_ id: String) -> Persona {
         all.first { $0.id == id.lowercased() } ?? ferni
     }
+
+    /// The teammate a server persona id names, or nil when it isn't one of
+    /// them. The server's canonical ids are full names (src/personas/persona-ids.ts);
+    /// an explicit table, because "peter-lynch" is not Peter.
+    public static func known(serverID: String) -> Persona? {
+        let canonical = ["ferni": "ferni", "maya-santos": "maya", "alex-chen": "alex",
+                         "jordan-taylor": "jordan", "peter-john": "peter", "nayan-patel": "nayan"]
+        let id = serverID.lowercased()
+        let appID = canonical[id] ?? id
+        return all.first { $0.id == appID }
+    }
 }
 
 /// How far the relationship with Ferni has come. Raw values are the server's
