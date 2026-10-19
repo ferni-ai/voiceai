@@ -9,6 +9,8 @@ struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     /// False in the iPad sidebar, where Settings is a page, not a sheet.
     var showsDone = true
+    /// The sign-in sheet hangs off the List: a sheet on a Section inside it doesn't present.
+    @State private var signingIn = false
 
     var body: some View {
         NavigationStack {
@@ -18,7 +20,7 @@ struct SettingsView: View {
                     NavigationLink("What Ferni remembers") { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
                     SoundsToggle()
                 }
-                AccountSection(account: model.account, signOut: model.signOut)
+                AccountSection(account: model.account, signOut: model.signOut, signingIn: $signingIn)
                 Section {
                     NavigationLink("Help") { HelpView() }
                     NavigationLink("Delete account") { DeleteAccountView(delete: model.deleteAccount) }
@@ -33,6 +35,7 @@ struct SettingsView: View {
                     SettingsHeader("About")
                 }
             }
+            .sheet(isPresented: $signingIn) { SignInView(account: model.account) }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -76,7 +79,7 @@ enum AccountStatus: Equatable {
         switch state {
         case .starting: waited >= slowAfter ? .slow : .working
         case .unavailable(let message): .unavailable(message)
-        case .signedIn: .ready
+        case .signedIn, .needsSignIn: .ready
         }
     }
 
@@ -95,6 +98,7 @@ private struct AccountSection: View {
     @Environment(\.colorScheme) private var colorScheme
     @State private var nonce = AppleNonce()
     @State private var confirmingSignOut = false
+    @Binding var signingIn: Bool
     @State private var startedWaiting = Date.now
     @State private var now = Date.now
 
@@ -115,8 +119,15 @@ private struct AccountSection: View {
             case .unavailable(let message):
                 Text(message).foregroundStyle(FerniColor.textSecondary)
                 Button("Try again") { Task { await account.start() } }
+            case .needsSignIn:
+                Text(SignInPrompt.askText).foregroundStyle(FerniColor.textSecondary)
+                Button("Sign in") { signingIn = true }
             case .signedIn(let user) where user.isSignedInWithApple:
                 LabeledContent("Signed in with Apple", value: user.email ?? "")
+                Button("Sign out", role: .destructive) { confirmingSignOut = true }
+                    .disabled(account.isWorking)
+            case .signedIn(let user) where !user.isAnonymous:
+                LabeledContent("Signed in", value: user.email ?? (user.providerIDs.contains("phone") ? String(localized: "With your phone number") : ""))
                 Button("Sign out", role: .destructive) { confirmingSignOut = true }
                     .disabled(account.isWorking)
             case .signedIn:
@@ -141,6 +152,7 @@ private struct AccountSection: View {
                 .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
                 .frame(minHeight: 48)
                 .disabled(account.isWorking)
+                Button(SignInPrompt.offerText) { signingIn = true }
             }
             if let notice = account.notice {
                 Text(notice).foregroundStyle(FerniColor.error)
@@ -155,7 +167,7 @@ private struct AccountSection: View {
         .confirmationDialog("Sign out?", isPresented: $confirmingSignOut, titleVisibility: .visible) {
             Button("Sign out", role: .destructive) { Task { await signOut() } }
         } message: {
-            Text("Ferni will start fresh on this phone until you sign in again.")
+            Text("To talk with Ferni on this phone again, you'll sign in.")
         }
     }
 }
