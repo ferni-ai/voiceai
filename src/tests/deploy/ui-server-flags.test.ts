@@ -10,7 +10,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { uiServerEnv as workflowEnv } from './ui-deploy-env.js';
+import { uiServerEnv as workflowEnv, uiServerSecrets as workflowSecrets } from './ui-deploy-env.js';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const read = (p: string): string => readFileSync(join(ROOT, p), 'utf8');
@@ -34,9 +34,20 @@ const SERVER_FLAGS = [
   'FOLLOW_THROUGH_JOB=on',
 ];
 
+/** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */
+const PROACTIVE_USERS_SECRET = 'PROACTIVE_CHANNELS_USERS=proactive-channels-users:latest';
+
 describe('web-server flags survive a deploy', () => {
   it.each(SERVER_FLAGS)('the production workflow sets %s', (flag) => {
     expect(workflowEnv()).toContain(flag);
+  });
+
+  it('the production workflow mounts the proactive allowlist from Secret Manager', () => {
+    expect(workflowSecrets()).toContain(PROACTIVE_USERS_SECRET);
+  });
+
+  it('never puts the proactive allowlist in plain env', () => {
+    expect(workflowEnv().filter((v) => v.startsWith('PROACTIVE_CHANNELS_USERS='))).toEqual([]);
   });
 
   it('the What Ferni Knows build flag reaches both web builds', () => {
