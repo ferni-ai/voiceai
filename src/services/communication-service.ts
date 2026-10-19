@@ -165,8 +165,9 @@ export async function sendEmail(
   const sanitizedBody = isHtml ? body : sanitizePlainText(body);
   const sanitizedSubject = sanitizePlainText(subject);
 
-  // Gmail backs off inside its transport. SendGrid only marks a 429/5xx or a
-  // network error retryable, so those are retried here by status.
+  // Gmail backs off inside its transport. SendGrid doesn't retry at all, so its
+  // failures are retried here by status (isRetryableSendError: 408, 429, 5xx),
+  // plus a network error, which has no status.
   const retryHere = sender.provider === 'sendgrid';
   let result: EmailSendResult;
   try {
@@ -179,7 +180,7 @@ export async function sendEmail(
         fromName: 'Ferni',
         kind: 'transactional',
       });
-      if (retryHere && !attempt.ok && attempt.retryable) {
+      if (retryHere && !attempt.ok && (attempt.status || attempt.retryable)) {
         const message = attempt.error ?? 'send failed';
         throw attempt.status ? new ProviderHttpError(message, attempt.status) : new Error(message);
       }
