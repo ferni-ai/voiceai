@@ -338,8 +338,7 @@ export async function completeOnBehalfCall(
     // A voicemail is retried only when the words heard read as a recorded greeting
     // (or nothing was transcribed); anything a person might have said fails closed.
     const machine = heardAs === 'voicemail' || heard.length === 0;
-    const missed =
-      outcome.status === 'no_answer' || (outcome.status === 'voicemail' && machine);
+    const missed = outcome.status === 'no_answer' || (outcome.status === 'voicemail' && machine);
     const refused = heardAs === 'opted_out' || heardAs === 'declined';
     if (followthrough && missed && !refused && scheduleRetry) {
       const retryAt = await scheduleRetry(call);
@@ -354,6 +353,11 @@ export async function completeOnBehalfCall(
       }
     }
     await report(call.callId, outcome, request);
+    // The owner asked for this call (CONTACT_CALL_MEMORY, signed): keep what may be kept.
+    if (talked && call.ownerMemory && classifyAnsweredCall(heard, durationSeconds) === 'answered') {
+      const { rememberCall } = await import('../../services/outreach/call-memory.js');
+      await rememberCall({ call, outcome, analysis, heard, answered: true });
+    }
     log.info(
       { callId: call.callId, status: outcome.status, objectiveAchieved: outcome.objectiveAchieved },
       'On-behalf call reported to requester'

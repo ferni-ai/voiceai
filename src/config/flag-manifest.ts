@@ -64,6 +64,8 @@ export const FLAG_MANIFEST = {
   // adds what Ferni and the caller both know to the first recall note
   COMMON_GROUND: { default: 'off', owner: 'memory', kind: 'experiment' },
   CONDITIONAL_BUILDERS: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // on: what someone the owner had Ferni call says is kept in the owner's memory (outreach/call-memory.ts)
+  CONTACT_CALL_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
   // The user's own "in memory" mark on a contact (services/contacts/in-memory.ts)
   CONTACT_IN_MEMORY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CONTEXT_PACKET: { default: 'off', owner: 'intelligence', kind: 'experiment' },

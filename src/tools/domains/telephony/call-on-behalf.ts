@@ -268,19 +268,8 @@ function inferRelationshipFromQuery(query: string): string | undefined {
   const queryLower = query.toLowerCase();
 
   // Family relationships
-  const familyWords = [
-    'mom',
-    'mother',
-    'dad',
-    'father',
-    'brother',
-    'sister',
-    'grandma',
-    'grandpa',
-    'aunt',
-    'uncle',
-    'cousin',
-  ];
+  const familyWords =
+    'mom mother dad father brother sister grandma grandpa aunt uncle cousin'.split(' ');
   for (const word of familyWords) {
     if (queryLower.includes(word)) return word;
   }
@@ -377,7 +366,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
 
     parameters: callOnBehalfSchema,
 
-    execute: async (params) => {
+    execute: async (params, opts) => {
       const {
         contactQuery,
         phoneNumber,
@@ -475,6 +464,7 @@ export function createCallOnBehalfTool(ctx: ToolContext): Tool {
             additionalContext,
           },
           recordingConsent: recordingConsent ?? true,
+          ownerMemory: (await import('./call-confirm.js')).ownerMemoryFor(opts),
           requiresHIPAA:
             callType === 'business' &&
             ['doctor', 'dentist', 'therapist', 'pharmacy', 'clinic', 'hospital'].some((kw) =>

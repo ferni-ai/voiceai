@@ -57,6 +57,9 @@ export const COHORT_FLAGS = [
   'WORLD_MODEL_TEMPORAL',
   // Read when the call session is built, after applyCallerFlags (in-call-load.ts).
   'WORLD_FACTS_IN_CALL',
+  // Read in the owner's call when callOnBehalf runs (telephony/call-confirm.ts), after applyCallerFlags;
+  // the placed call carries the decision in its signed dispatch.
+  'CONTACT_CALL_MEMORY',
   'POST_CALL_CHECKIN',
   'FOLLOW_THROUGH_TEXTS',
   // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.

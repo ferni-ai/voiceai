@@ -43,6 +43,8 @@ export interface OnBehalfDispatch {
   userPreferences?: unknown;
   /** The missed call this one retries; a retry is never retried. Signed with the rest. */
   retryOf?: string;
+  /** The verified owner asked for it with CONTACT_CALL_MEMORY on (call-memory.ts). Signed with the rest. */
+  ownerMemory?: true;
   /** When signDispatch signed it (epoch ms); covered by the signature. */
   signedAt?: number;
   /** HMAC from a trusted dispatcher; see signOnBehalfDispatch. */
@@ -180,6 +182,7 @@ export function onBehalfDispatchFor(
     script,
     userPreferences: request.userPreferences,
     retryOf: request.retryOf,
+    ownerMemory: request.ownerMemory === true || undefined,
   });
 }
 
@@ -197,6 +200,7 @@ export function onBehalfRequestFromDispatch(call: OnBehalfDispatch): OnBehalfCal
     userName: call.requester.name,
     recordingConsent: false,
     retryOf: call.retryOf,
+    ownerMemory: call.ownerMemory,
   };
 }
 
@@ -276,5 +280,7 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
     callType: oneOf(metadata.callType, CALL_TYPES, 'personal'),
     script: str(metadata.script) || undefined,
     retryOf: str(metadata.retryOf) || undefined,
+    // Trusted only with the signature over the raw payload (verifyOnBehalfDispatch).
+    ownerMemory: metadata.ownerMemory === true || undefined,
   });
 }
