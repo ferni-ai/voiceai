@@ -11,6 +11,7 @@
 		117123ACF45A5D57E6E0056D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */; };
 		11741E1DFD5DE949343B912A /* LocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */; };
 		1EED7714DC0D3C8377299659 /* FerniHomeWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = F090A53D7F69DB1A6CD82A19 /* FerniHomeWidget.swift */; };
+		225590E855D547E5CCB89A22 /* FerniLink in Frameworks */ = {isa = PBXBuildFile; productRef = F667C1DECD86E1F2360CB8C1 /* FerniLink */; };
 		27464AAE3E6286E2D651309D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C71781BAD997D314C08864 /* HomeView.swift */; };
 		2FD49FFFD4A0F9F9441CB534 /* FerniLive.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FE8F191561C68141BA565BFB /* FerniLive.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */; };
@@ -33,6 +34,7 @@
 		8D43BE71BA55A181C28E990A /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = 33A1DEA5AF10BC35BE304AFA /* Sentry */; };
 		9B5B3E0DC766449E9764FA0D /* handoff-to-jordan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 649C35992ED39D62D2F8714A /* handoff-to-jordan.mp3 */; };
 		9D3C3C27AA79ECED1768D30E /* EndCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */; };
+		9F244EF18E695FB66A1F961B /* WatchRemote.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2FE78E70E6B38E7C790922 /* WatchRemote.swift */; };
 		A6EC64BC0F35C99AB84B8055 /* AudioRoutePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F678B752992C142D10FE5E /* AudioRoutePicker.swift */; };
 		B0638D9FFF8A35EDC5CD683B /* TalkControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = F76007C81E8DC1B134090AD5 /* TalkControl.swift */; };
 		B0B567B29058A9FEF290836E /* CallViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 346AABA0EB545D4C92B2D8CD /* CallViews.swift */; };
@@ -104,12 +106,14 @@
 		69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndCallIntent.swift; sourceTree = "<group>"; };
 		6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashPolicyTests.swift; sourceTree = "<group>"; };
 		766CF4344E77F81DF8043439 /* FerniShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniShortcuts.swift; sourceTree = "<group>"; };
+		7D40773682D7EA8473CE46CA /* FerniLink */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniLink; path = Packages/FerniLink; sourceTree = SOURCE_ROOT; };
 		7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
 		90F94F51F9D61D01EEED1837 /* handoff-to-peter.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-peter.mp3"; sourceTree = "<group>"; };
 		94F50B2CC9B38F03C94B7E3D /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		974DF185A4FA58E1F08FD688 /* FerniApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniApp.swift; sourceTree = "<group>"; };
 		A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportSheet.swift; sourceTree = "<group>"; };
 		ADAF04ADD5C0DB140C9F7769 /* Ferni.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Ferni.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AE2FE78E70E6B38E7C790922 /* WatchRemote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRemote.swift; sourceTree = "<group>"; };
 		B8C71781BAD997D314C08864 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkIntent.swift; sourceTree = "<group>"; };
 		BE26440C63996901B649797F /* FerniAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FerniAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -138,6 +142,7 @@
 				04679B6431BF53D7077D2AB0 /* FerniVoice in Frameworks */,
 				F8659A8DCBD2D3621DA596A3 /* FerniDesign in Frameworks */,
 				8D43BE71BA55A181C28E990A /* Sentry in Frameworks */,
+				225590E855D547E5CCB89A22 /* FerniLink in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -217,6 +222,7 @@
 				A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */,
 				94F50B2CC9B38F03C94B7E3D /* RootView.swift */,
 				41E550D3CF186D8D463FF66E /* SettingsView.swift */,
+				AE2FE78E70E6B38E7C790922 /* WatchRemote.swift */,
 				D4C06A9CF9494E3A7EC15BDE /* Sounds */,
 			);
 			path = App;
@@ -235,6 +241,7 @@
 			children = (
 				C5DE888F55AE5FD01208AD72 /* FerniDesign */,
 				12AD4DC924A1BFC0A91BA221 /* FerniKit */,
+				7D40773682D7EA8473CE46CA /* FerniLink */,
 				351D4C8121FCCE2BDDE55A5E /* FerniVoice */,
 			);
 			path = Packages;
@@ -306,6 +313,7 @@
 				76CF00479EBF92F01F2F2463 /* FerniVoice */,
 				3A2B0DD01002A1C6F9C20247 /* FerniDesign */,
 				33A1DEA5AF10BC35BE304AFA /* Sentry */,
+				F667C1DECD86E1F2360CB8C1 /* FerniLink */,
 			);
 			productName = Ferni;
 			productReference = ADAF04ADD5C0DB140C9F7769 /* Ferni.app */;
@@ -376,6 +384,7 @@
 				F43E7EC1FF1B319573A0C910 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
 				7BC739DC71C09346C8C483F2 /* XCLocalSwiftPackageReference "Packages/FerniDesign" */,
 				3FBC12A1AE6109615DB8F2B2 /* XCLocalSwiftPackageReference "Packages/FerniKit" */,
+				272F3218CBCC04FC5CFC9CFD /* XCLocalSwiftPackageReference "Packages/FerniLink" */,
 				7A9FAAD44E02C0635AD5ED7C /* XCLocalSwiftPackageReference "Packages/FerniVoice" */,
 			);
 			preferredProjectObjectVersion = 77;
@@ -434,6 +443,7 @@
 				4E1D8F2D04D189C0702BF65C /* RootView.swift in Sources */,
 				B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */,
 				E88BB02A6FEC21AF520A766B /* TalkIntent.swift in Sources */,
+				9F244EF18E695FB66A1F961B /* WatchRemote.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -758,6 +768,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		272F3218CBCC04FC5CFC9CFD /* XCLocalSwiftPackageReference "Packages/FerniLink" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/FerniLink;
+		};
 		3FBC12A1AE6109615DB8F2B2 /* XCLocalSwiftPackageReference "Packages/FerniKit" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = Packages/FerniKit;
@@ -804,6 +818,10 @@
 		ED4AC2AA3060D84427234E43 /* FerniKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FerniKit;
+		};
+		F667C1DECD86E1F2360CB8C1 /* FerniLink */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = FerniLink;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

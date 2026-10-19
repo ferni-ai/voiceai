@@ -71,5 +71,17 @@ final class AppModelTests: XCTestCase {
     func testNotesFromFerniWaitForTheServerRoute() {
         XCTAssertFalse(FerniBuild.pushNotes, "the entitlement is checked on the signed build (codesign)")
     }
+
+    /// The watch is a remote: its Talk goes through consent like the phone's,
+    /// and Mute or End with no call do nothing.
+    func testTheWatchsTalkGoesThroughConsent() {
+        let model = model()
+        WatchRemote.handle(.mute, model: model)
+        WatchRemote.handle(.end, model: model)
+        XCTAssertFalse(model.call.isActive)
+        WatchRemote.handle(.talk, model: model)
+        XCTAssertTrue(model.isAskingConsent, "no call before consent")
+        XCTAssertFalse(model.call.isActive)
+    }
 }
 

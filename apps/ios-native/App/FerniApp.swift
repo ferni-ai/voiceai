@@ -41,6 +41,8 @@ struct FerniApp: App {
                         await model.push.reconcile(uid: model.account.user?.uid)
                     }
                 }
+                // The watch shows the call as it is now.
+                .onChange(of: model.remoteState) { _, state in model.watchRemote?.publish(state) }
                 // What Ferni remembers locks again whenever the app leaves the foreground.
                 .onChange(of: scenePhase) { _, phase in if phase != .active { model.memoryLock.lock() } }
                 .onChange(of: model.account.user?.uid, initial: true) { old, uid in
@@ -66,6 +68,7 @@ final class AppModel {
     let minimumBuild: MinimumBuild
     let callRemembered: CallRemembered
     let memoryLock = MemoryLock()
+    @ObservationIgnored private(set) var watchRemote: WatchRemote?
     let liveActivity = LiveActivityController()
     let push: PushStore
     var isShowingSettings = false
@@ -181,6 +184,8 @@ final class AppModel {
         )
         feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
         installSystemHandlers()
+        watchRemote = WatchRemote(model: self)
+        watchRemote?.start()
     }
 
     /// Siri, Control Center, the Action button and notifications can launch
