@@ -125,9 +125,6 @@ Set environment variables:
 ```bash
 # Enable new tool registry
 export USE_NEW_TOOL_SYSTEM=true
-
-# Enable new team handler registry
-export USE_NEW_TEAM_HANDLERS=true
 ```
 
 ### Registering All Handlers
