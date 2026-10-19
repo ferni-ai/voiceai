@@ -82,10 +82,10 @@ function generateMusicalDNASVG(data: MusicalDNACardData): string {
       const barWidth = (genre.score / 100) * 700;
       return `
       <g transform="translate(190, ${y})">
-        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="600" fill="${COLORS.textPrimary}">${genre.name}</text>
+        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="600" fill="${COLORS.textPrimary}">${escapeXml(genre.name)}</text>
         <rect x="0" y="20" width="700" height="16" rx="8" fill="${COLORS.bgWarm}"/>
-        <rect x="0" y="20" width="${barWidth}" height="16" rx="8" fill="${COLORS.ferni}"/>
-        <text x="720" y="35" font-family="Plus Jakarta Sans, sans-serif" font-size="32" font-weight="700" fill="${COLORS.textSecondary}">${genre.score}%</text>
+        <rect x="0" y="20" width="${escapeXml(barWidth)}" height="16" rx="8" fill="${COLORS.ferni}"/>
+        <text x="720" y="35" font-family="Plus Jakarta Sans, sans-serif" font-size="32" font-weight="700" fill="${COLORS.textSecondary}">${escapeXml(genre.score)}%</text>
       </g>
     `;
     })
@@ -126,10 +126,10 @@ function generateMusicalDNASVG(data: MusicalDNACardData): string {
     <text x="540" y="0" font-size="56" text-anchor="middle">✨</text>
     
     <!-- Personality label -->
-    <text x="540" y="80" font-family="Plus Jakarta Sans, sans-serif" font-size="56" font-weight="700" fill="${COLORS.textPrimary}" text-anchor="middle">${data.personalityLabel}</text>
+    <text x="540" y="80" font-family="Plus Jakarta Sans, sans-serif" font-size="56" font-weight="700" fill="${COLORS.textPrimary}" text-anchor="middle">${escapeXml(data.personalityLabel)}</text>
     
     <!-- Personality description -->
-    <text x="540" y="150" font-family="Inter, sans-serif" font-size="32" fill="${COLORS.textSecondary}" text-anchor="middle">"${data.personalityDescription}"</text>
+    <text x="540" y="150" font-family="Inter, sans-serif" font-size="32" fill="${COLORS.textSecondary}" text-anchor="middle">"${escapeXml(data.personalityDescription)}"</text>
   </g>
   
   <!-- Divider -->
@@ -145,12 +145,12 @@ function generateMusicalDNASVG(data: MusicalDNACardData): string {
   <g transform="translate(0, 1580)">
     <g transform="translate(270, 0)">
       <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="64" font-weight="700" fill="${COLORS.ferni}">🏆</text>
-      <text x="80" y="-5" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="${COLORS.textPrimary}">${data.totalGames}</text>
+      <text x="80" y="-5" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="${COLORS.textPrimary}">${escapeXml(data.totalGames)}</text>
       <text x="80" y="45" font-family="Inter, sans-serif" font-size="24" fill="${COLORS.textMuted}">games</text>
     </g>
     <g transform="translate(540, 0)">
       <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="64" font-weight="700" fill="${COLORS.coral}">🔥</text>
-      <text x="80" y="-5" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="${COLORS.textPrimary}">${data.currentStreak}</text>
+      <text x="80" y="-5" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="${COLORS.textPrimary}">${escapeXml(data.currentStreak)}</text>
       <text x="80" y="45" font-family="Inter, sans-serif" font-size="24" fill="${COLORS.textMuted}">day streak</text>
     </g>
   </g>
@@ -175,9 +175,9 @@ function generateDesertIslandSVG(data: DesertIslandCardData): string {
       const y = 380 + i * 120;
       return `
       <g transform="translate(100, ${y})">
-        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="700" fill="${COLORS.ferni}">${pick.rank}.</text>
-        <text x="60" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="32" font-weight="600" fill="${COLORS.textPrimary}">"${truncate(pick.trackName, 28)}"</text>
-        <text x="60" y="45" font-family="Inter, sans-serif" font-size="26" fill="${COLORS.textSecondary}">${truncate(pick.artistName, 35)}</text>
+        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="700" fill="${COLORS.ferni}">${escapeXml(pick.rank)}.</text>
+        <text x="60" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="32" font-weight="600" fill="${COLORS.textPrimary}">"${escapeXml(truncate(pick.trackName, 28))}"</text>
+        <text x="60" y="45" font-family="Inter, sans-serif" font-size="26" fill="${COLORS.textSecondary}">${escapeXml(truncate(pick.artistName, 35))}</text>
       </g>
     `;
     })
@@ -258,13 +258,13 @@ function generateGameVictorySVG(data: GameVictoryCardData): string {
   <!-- Game Type -->
   <g transform="translate(60, 60)">
     <text x="0" y="0" font-size="36">🎵</text>
-    <text x="50" y="5" font-family="Plus Jakarta Sans, sans-serif" font-size="24" font-weight="600" fill="${COLORS.textSecondary}" letter-spacing="2">${data.gameDisplayName.toUpperCase()}</text>
+    <text x="50" y="5" font-family="Plus Jakarta Sans, sans-serif" font-size="24" font-weight="600" fill="${COLORS.textSecondary}" letter-spacing="2">${escapeXml(String(data.gameDisplayName ?? '').toUpperCase())}</text>
   </g>
   
   <!-- Main Score -->
   <g transform="translate(60, 200)">
     <text x="0" y="0" font-size="48">⚡</text>
-    <text x="70" y="10" font-family="Plus Jakarta Sans, sans-serif" font-size="72" font-weight="700" fill="${COLORS.textPrimary}">${timeDisplay}</text>
+    <text x="70" y="10" font-family="Plus Jakarta Sans, sans-serif" font-size="72" font-weight="700" fill="${COLORS.textPrimary}">${escapeXml(timeDisplay)}</text>
   </g>
   
   <!-- Track Info -->
@@ -272,8 +272,8 @@ function generateGameVictorySVG(data: GameVictoryCardData): string {
     data.trackName
       ? `
   <g transform="translate(60, 340)">
-    <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="600" fill="${COLORS.textPrimary}">"${truncate(data.trackName, 40)}"</text>
-    <text x="0" y="50" font-family="Inter, sans-serif" font-size="28" fill="${COLORS.textSecondary}">${data.artistName || ''}</text>
+    <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="600" fill="${COLORS.textPrimary}">"${escapeXml(truncate(data.trackName, 40))}"</text>
+    <text x="0" y="50" font-family="Inter, sans-serif" font-size="28" fill="${COLORS.textSecondary}">${escapeXml(data.artistName)}</text>
   </g>
   `
       : ''
@@ -311,7 +311,7 @@ function generateWeeklyRecapSVG(data: WeeklyRecapCardData): string {
   <g transform="translate(0, 150)">
     <text x="540" y="0" font-size="64" text-anchor="middle">🎵</text>
     <text x="540" y="100" font-family="Plus Jakarta Sans, sans-serif" font-size="42" font-weight="700" fill="${COLORS.textPrimary}" text-anchor="middle">MY WEEK IN MUSIC</text>
-    <text x="540" y="160" font-family="Inter, sans-serif" font-size="28" fill="${COLORS.textSecondary}" text-anchor="middle">${weekLabel}</text>
+    <text x="540" y="160" font-family="Inter, sans-serif" font-size="28" fill="${COLORS.textSecondary}" text-anchor="middle">${escapeXml(weekLabel)}</text>
   </g>
   
   <!-- Stats Grid -->
@@ -319,21 +319,21 @@ function generateWeeklyRecapSVG(data: WeeklyRecapCardData): string {
     <!-- Games Played -->
     <g transform="translate(0, 0)">
       <rect x="0" y="0" width="300" height="180" rx="20" fill="white"/>
-      <text x="150" y="70" font-family="Plus Jakarta Sans, sans-serif" font-size="64" font-weight="700" fill="${COLORS.ferni}" text-anchor="middle">${data.gamesPlayed}</text>
+      <text x="150" y="70" font-family="Plus Jakarta Sans, sans-serif" font-size="64" font-weight="700" fill="${COLORS.ferni}" text-anchor="middle">${escapeXml(data.gamesPlayed)}</text>
       <text x="150" y="120" font-family="Inter, sans-serif" font-size="28" fill="${COLORS.textSecondary}" text-anchor="middle">games played</text>
     </g>
     
     <!-- Minutes -->
     <g transform="translate(400, 0)">
       <rect x="0" y="0" width="300" height="180" rx="20" fill="white"/>
-      <text x="150" y="70" font-family="Plus Jakarta Sans, sans-serif" font-size="64" font-weight="700" fill="${COLORS.teal}" text-anchor="middle">${data.totalMinutes}</text>
+      <text x="150" y="70" font-family="Plus Jakarta Sans, sans-serif" font-size="64" font-weight="700" fill="${COLORS.teal}" text-anchor="middle">${escapeXml(data.totalMinutes)}</text>
       <text x="150" y="120" font-family="Inter, sans-serif" font-size="28" fill="${COLORS.textSecondary}" text-anchor="middle">minutes</text>
     </g>
     
     <!-- Streak -->
     <g transform="translate(200, 220)">
       <rect x="0" y="0" width="300" height="180" rx="20" fill="white"/>
-      <text x="150" y="70" font-family="Plus Jakarta Sans, sans-serif" font-size="64" font-weight="700" fill="${COLORS.coral}" text-anchor="middle">🔥 ${data.streakDays}</text>
+      <text x="150" y="70" font-family="Plus Jakarta Sans, sans-serif" font-size="64" font-weight="700" fill="${COLORS.coral}" text-anchor="middle">🔥 ${escapeXml(data.streakDays)}</text>
       <text x="150" y="120" font-family="Inter, sans-serif" font-size="28" fill="${COLORS.textSecondary}" text-anchor="middle">day streak</text>
     </g>
   </g>
@@ -341,13 +341,13 @@ function generateWeeklyRecapSVG(data: WeeklyRecapCardData): string {
   <!-- Best Moment -->
   <g transform="translate(0, 1100)">
     <text x="540" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="28" font-weight="600" fill="${COLORS.textSecondary}" text-anchor="middle">BEST MOMENT</text>
-    <text x="540" y="60" font-family="Inter, sans-serif" font-size="32" fill="${COLORS.textPrimary}" text-anchor="middle">"${data.bestMoment}"</text>
+    <text x="540" y="60" font-family="Inter, sans-serif" font-size="32" fill="${COLORS.textPrimary}" text-anchor="middle">"${escapeXml(data.bestMoment)}"</text>
   </g>
   
   <!-- Top Genre -->
   <g transform="translate(0, 1280)">
     <text x="540" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="28" font-weight="600" fill="${COLORS.textSecondary}" text-anchor="middle">TOP GENRE THIS WEEK</text>
-    <text x="540" y="60" font-family="Plus Jakarta Sans, sans-serif" font-size="40" font-weight="700" fill="${COLORS.ferni}" text-anchor="middle">${data.topGenreThisWeek}</text>
+    <text x="540" y="60" font-family="Plus Jakarta Sans, sans-serif" font-size="40" font-weight="700" fill="${COLORS.ferni}" text-anchor="middle">${escapeXml(data.topGenreThisWeek)}</text>
   </g>
   
   <!-- Footer -->
@@ -371,10 +371,10 @@ function generateCreativeProfileSVG(data: CreativeProfileCardData): string {
       const barWidth = Math.min((topic.score / 100) * 700, 700);
       return `
       <g transform="translate(190, ${y})">
-        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="600" fill="${COLORS.textPrimary}">${topic.name}</text>
+        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="600" fill="${COLORS.textPrimary}">${escapeXml(topic.name)}</text>
         <rect x="0" y="20" width="700" height="16" rx="8" fill="${COLORS.bgWarm}"/>
-        <rect x="0" y="20" width="${barWidth}" height="16" rx="8" fill="${COLORS.teal}"/>
-        <text x="720" y="35" font-family="Plus Jakarta Sans, sans-serif" font-size="32" font-weight="700" fill="${COLORS.textSecondary}">${Math.round(topic.score)}</text>
+        <rect x="0" y="20" width="${escapeXml(barWidth)}" height="16" rx="8" fill="${COLORS.teal}"/>
+        <text x="720" y="35" font-family="Plus Jakarta Sans, sans-serif" font-size="32" font-weight="700" fill="${COLORS.textSecondary}">${escapeXml(Math.round(topic.score))}</text>
       </g>
     `;
     })
@@ -413,23 +413,23 @@ function generateCreativeProfileSVG(data: CreativeProfileCardData): string {
     <rect x="0" y="0" width="${width - 200}" height="100" rx="30" fill="${COLORS.teal}" clip-path="url(#roundTop)"/>
     
     <!-- Personality Label -->
-    <text x="440" y="200" font-family="Plus Jakarta Sans, sans-serif" font-size="56" font-weight="700" fill="${COLORS.textPrimary}" text-anchor="middle">${data.personalityLabel}</text>
+    <text x="440" y="200" font-family="Plus Jakarta Sans, sans-serif" font-size="56" font-weight="700" fill="${COLORS.textPrimary}" text-anchor="middle">${escapeXml(data.personalityLabel)}</text>
     
     <!-- Description -->
-    <text x="440" y="280" font-family="Inter, sans-serif" font-size="28" fill="${COLORS.textSecondary}" text-anchor="middle">${descTruncated}</text>
+    <text x="440" y="280" font-family="Inter, sans-serif" font-size="28" fill="${COLORS.textSecondary}" text-anchor="middle">${escapeXml(descTruncated)}</text>
     
     <!-- Stats Row -->
     <g transform="translate(90, 350)">
       <g transform="translate(0, 0)">
-        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="${COLORS.teal}">${data.totalContent}</text>
+        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="${COLORS.teal}">${escapeXml(data.totalContent)}</text>
         <text x="0" y="40" font-family="Inter, sans-serif" font-size="22" fill="${COLORS.textMuted}">content watched</text>
       </g>
       <g transform="translate(250, 0)">
-        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="${COLORS.coral}">${data.insightsSaved}</text>
+        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="48" font-weight="700" fill="${COLORS.coral}">${escapeXml(data.insightsSaved)}</text>
         <text x="0" y="40" font-family="Inter, sans-serif" font-size="22" fill="${COLORS.textMuted}">insights saved</text>
       </g>
       <g transform="translate(500, 0)">
-        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="600" fill="${COLORS.textPrimary}">${data.learningStyle}</text>
+        <text x="0" y="0" font-family="Plus Jakarta Sans, sans-serif" font-size="36" font-weight="600" fill="${COLORS.textPrimary}">${escapeXml(data.learningStyle)}</text>
         <text x="0" y="40" font-family="Inter, sans-serif" font-size="22" fill="${COLORS.textMuted}">learning style</text>
       </g>
     </g>
@@ -454,7 +454,23 @@ function generateCreativeProfileSVG(data: CreativeProfileCardData): string {
 // UTILITY FUNCTIONS
 // ============================================================================
 
-function truncate(str: string, maxLength: number): string {
+/**
+ * Escape a value for SVG/XML text or a quoted attribute. Card data comes from
+ * the request body unchecked, and the SVG is served as a document, so every
+ * value that reaches the markup goes through here (after truncation, so an
+ * entity is never cut in half).
+ */
+export function escapeXml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function truncate(value: unknown, maxLength: number): string {
+  const str = String(value ?? '');
   if (str.length <= maxLength) return str;
   return str.slice(0, maxLength - 3) + '...';
 }

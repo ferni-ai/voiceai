@@ -60,6 +60,12 @@ vi.mock('../helpers.js', () => ({
   handleCorsPreflightIfNeeded: (...args: unknown[]) => mockHandleCorsPreflightIfNeeded(...args),
 }));
 
+// Verified caller, as the identity door resolved it (a real account by default)
+const mockOptionalAuthAsync = vi.fn();
+vi.mock('../auth-middleware.js', () => ({
+  optionalAuthAsync: (...args: unknown[]) => mockOptionalAuthAsync(...args),
+}));
+
 import { handleSitesRoutes } from '../sites-routes.js';
 
 // ============================================================================
@@ -178,6 +184,11 @@ describe('Sites API Routes', () => {
     vi.clearAllMocks();
     setupFirestoreMocks();
     mockHandleCorsPreflightIfNeeded.mockReturnValue(false);
+    mockOptionalAuthAsync.mockResolvedValue({
+      userId: 'user-123',
+      isAnonymous: false,
+      authMethod: 'firebase',
+    });
   });
 
   describe('Route matching', () => {
@@ -352,6 +363,44 @@ describe('Sites API Routes', () => {
       await handleSitesRoutes(req, res, '/api/sites/site_456');
 
       expect(mockSendError).toHaveBeenCalledWith(res, 'Access denied', 403);
+    });
+  });
+
+  describe('publishing needs a real account', () => {
+    const routes = ['/api/sites/deploy', '/api/sites/generate-and-deploy'];
+
+    it.each(routes)('%s refuses an anonymous (guest) sign-in and stores nothing', async (path) => {
+      mockGetUserId.mockReturnValue('anon-uid');
+      mockOptionalAuthAsync.mockResolvedValue({
+        userId: 'anon-uid',
+        isAnonymous: true,
+        authMethod: 'firebase',
+      });
+      mockParseBody.mockResolvedValue({
+        files: { 'index.html': '<html><body>hi</body></html>' },
+        config: { agentId: 'a1' },
+      });
+
+      await handleSitesRoutes(createMockRequest('POST', path), createMockResponse(), path);
+
+      expect(mockSendError).toHaveBeenCalledWith(
+        expect.anything(),
+        'Sign in with an account to publish a site',
+        403
+      );
+      expect(mockFirestoreSet).not.toHaveBeenCalled();
+    });
+
+    it('refuses when no verified identity is attached (fails closed)', async () => {
+      mockGetUserId.mockReturnValue('user-123');
+      mockOptionalAuthAsync.mockResolvedValue(null);
+      mockParseBody.mockResolvedValue({ files: { 'index.html': '<html></html>' } });
+
+      const path = '/api/sites/deploy';
+      await handleSitesRoutes(createMockRequest('POST', path), createMockResponse(), path);
+
+      expect(mockSendError).toHaveBeenCalledWith(expect.anything(), expect.any(String), 403);
+      expect(mockFirestoreSet).not.toHaveBeenCalled();
     });
   });
 
@@ -674,6 +723,40 @@ describe('Sites API Routes', () => {
 
       expect(res._statusCode).toBe(200);
       expect(res._data).toContain('SPA App');
+    });
+  });
+
+  describe('published content is sandboxed off the app origin', () => {
+    const site = {
+      userId: 'user-123',
+      files: { 'index.html': '<html><body>Page</body></html>', 'app.js': 'void 0' },
+      analytics: { views: 0 },
+    };
+
+    async function serve(path: string) {
+      mockFirestoreGet.mockResolvedValueOnce({ empty: true, docs: [] });
+      mockFirestoreGet.mockResolvedValueOnce({ exists: true, id: 'site_1', data: () => site });
+      mockFirestoreUpdate.mockResolvedValue(undefined);
+      const res = createMockResponse();
+      await handleSitesRoutes(createMockRequest('GET', path), res, path);
+      return res;
+    }
+
+    it.each([
+      ['the page', '/sites/site_1'],
+      ['a script file', '/sites/site_1/app.js'],
+      ['the SPA fallback', '/sites/site_1/deep/route'],
+    ])('%s gets an opaque-origin sandbox and nosniff', async (_label, path) => {
+      const res = await serve(path);
+      expect(res._statusCode).toBe(200);
+      const csp = res._headers['Content-Security-Policy'] ?? '';
+      const sandbox = csp
+        .split(';')
+        .map((d) => d.trim())
+        .find((d) => d.startsWith('sandbox'));
+      expect(sandbox).toBe('sandbox allow-scripts allow-forms allow-popups');
+      expect(csp).not.toContain('allow-same-origin');
+      expect(res._headers['X-Content-Type-Options']).toBe('nosniff');
     });
   });
 

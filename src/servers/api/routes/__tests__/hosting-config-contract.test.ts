@@ -27,6 +27,7 @@ interface HostingEntry {
   target?: string;
   rewrites?: Rewrite[];
   redirects?: Array<{ source: string; destination: string; type: number }>;
+  headers?: Array<{ source: string; headers: Array<{ key: string; value: string }> }>;
 }
 
 function hosting(path: string): HostingEntry[] {
@@ -51,7 +52,10 @@ describe('landing hosting config', () => {
 
   it('deploys only to the ferni-landing site', () => {
     expect(entries.map((e) => e.site ?? e.target)).toEqual(['ferni-landing']);
-    const firebaserc = readFileSync(resolve(ROOT, 'apps/website/ferni-website/.firebaserc'), 'utf8');
+    const firebaserc = readFileSync(
+      resolve(ROOT, 'apps/website/ferni-website/.firebaserc'),
+      'utf8'
+    );
     expect(firebaserc).not.toContain('ferni-prod');
   });
 
@@ -90,5 +94,15 @@ describe('app hosting config', () => {
     const entry = hosting('apps/web/firebase.json').find((e) => e.target === target);
     expect(entry).toBeDefined();
     expectShareRoutedToBackend(entry!);
+  });
+
+  // /sites/** is publisher-written HTML on the app's own host: the hosting
+  // layer sandboxes it too, so it never shares the app's origin.
+  it.each(['ferni-prod', 'johnb-app'])('%s sandboxes /sites/** responses', (target) => {
+    const entry = hosting('apps/web/firebase.json').find((e) => e.target === target);
+    const rule = entry?.headers?.find((h) => h.source === '/sites/**');
+    const value = (key: string) => rule?.headers.find((h) => h.key === key)?.value;
+    expect(value('Content-Security-Policy')).toBe('sandbox allow-scripts allow-forms allow-popups');
+    expect(value('X-Content-Type-Options')).toBe('nosniff');
   });
 });
