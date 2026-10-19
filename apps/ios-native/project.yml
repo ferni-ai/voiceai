@@ -76,6 +76,10 @@ targets:
         # placeholders. Add languages back here, and stop excluding the catalog
         # below, once real translations exist.
         CFBundleLocalizations: [en]
+        # ferniapp:// only answers the web's Apple Health link with a note (App/DeepLink.swift).
+        CFBundleURLTypes:
+          - CFBundleURLName: com.sethdford.ferni
+            CFBundleURLSchemes: [ferniapp]
         # Crash reporting: empty (off) unless Config/Sentry.local.xcconfig sets it.
         SentryDSN: $(SENTRY_DSN)
         ITSAppUsesNonExemptEncryption: false

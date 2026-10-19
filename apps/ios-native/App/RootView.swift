@@ -33,7 +33,15 @@ struct RootView: View {
     }
 
     var body: some View {
+        @Bindable var model = model
         layout
+            .alert(model.notice ?? "", isPresented: Binding(
+                get: { model.notice != nil }, set: { if !$0 { model.notice = nil } }
+            )) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text("You can keep talking with Ferni as usual.")
+            }
             // Only a build the server names as too old; nothing can dismiss it.
             .fullScreenCover(isPresented: .constant(model.minimumBuild.updateRequired)) {
                 UpdateRequiredView(message: model.minimumBuild.message)
