@@ -83,9 +83,14 @@ describe('deployReason', () => {
     expect(deployReason(pr('x', '', '2026-10-11T00:00:00Z'), agent, '2026-10-18')).toBe(undefined);
   });
 
-  it('does not count the developers portal as deployed on merge', () => {
+  it('counts a developers-portal-only PR as live the day it merges', () => {
     const portal = [{ filename: 'apps/website/developers-portal/src/blog/a.md' }];
-    expect(deployReason(pr('x'), portal, '2026-10-17')).toMatch(/7 days/);
+    expect(deployReason(pr('x'), portal, '2026-10-17')).toBeUndefined();
+  });
+
+  it('does not count another website folder as deployed on merge', () => {
+    const other = [{ filename: 'apps/website/marketplace-portal/index.html' }];
+    expect(deployReason(pr('x'), other, '2026-10-17')).toMatch(/7 days/);
   });
 
   it('does not count a PR with no files as web-only', () => {

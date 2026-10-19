@@ -284,7 +284,6 @@
     "generateReportNow": "Generate Report Now",
     "getIdeas": "Get Ideas",
     "getNewPrompt": "Get new prompt",
-    "getThis": "Get This",
     "gettingStarted": "Getting Started",
     "gift": "Gift",
     "giftSuggestions": "Gift suggestions",
@@ -387,7 +386,6 @@
     "myItems": "My Items",
     "nameThatTune": "Name That Tune",
     "nayan": "Nayan",
-    "needMoreSeeds": "Need more Seeds",
     "needsAttention": "Needs attention",
     "nervous": "Nervous",
     "neutral": "Neutral",
@@ -1576,7 +1574,7 @@
         "title": "Just Speak"
       },
       "welcome": {
-        "description": "Your personal team of AI life coaches. Each brings unique wisdom to support your journey.",
+        "description": "Your personal team of guides. Each brings their own way of seeing things.",
         "title": "Welcome to Ferni"
       }
     },
@@ -3616,19 +3614,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — Your AI Life Coach",
+      "title": "Meet Ferni",
       "message": "I've been using Ferni and it's genuinely changed how I approach my day. Join me! {url}",
       "shortMessage": "Join me on Ferni! {url}",
-      "emailSubject": "You should try Ferni",
-      "emailBody": "Hey! I've been using Ferni — it's an AI life coach that actually feels human. Thought you'd love it. {url}"
-    },
-    "modal": {
-      "title": "Share the Growth",
-      "subtitle": "When friends join, everyone grows",
-      "bonusAmount": "{seeds} bonus seeds",
-      "bonusWhen": "when they join!",
-      "quote": "The best things in life are better shared",
-      "linkLabel": "Your link:"
+      "emailSubject": "You should try Ferni"
     },
     "buttons": {
       "share": "Share",
@@ -3636,27 +3625,17 @@
       "email": "Email",
       "text": "Text"
     },
-    "gardenStats": {
-      "title": "Your referral garden",
-      "friendsGrowing": "{count} friends growing",
-      "seedsEarned": "{seeds} seeds earned",
-      "emptyState": "Plant your first seed"
-    },
     "errorClipboard": "Couldn't copy. Try again?",
     "copyError": "Couldn't copy. Try again?",
     "linkUnavailable": "Couldn't load your link right now. Try again in a moment.",
-    "bonusAmount": "You'll both get {seeds} seeds",
-    "bonusWhen": "when they join!",
-    "garden": {
-      "earned": "You've earned {seeds} seeds from sharing",
-      "empty": "Seeds grow when shared. Start your garden today.",
-      "friendsGrowing": "{count} friends growing",
-      "title": "Your garden:"
-    },
     "quoteMessage": "\"Give them someone who remembers everything, shows up at 2am, and never judges.\"",
     "subtitle": "Know someone who could use a friend like this?",
     "title": "Share the Growth",
-    "yourLink": "Your link:"
+    "yourLink": "Your link:",
+    "friendsJoined": {
+      "one": "{count} friend has joined through you",
+      "other": "{count} friends have joined through you"
+    }
   },
   "conversationMemory": {
     "demoBanner": "Demo mode - showing example data",
@@ -4533,7 +4512,7 @@
     "title": "Create Agent Page",
     "nameLabel": "Agent Name",
     "namePlaceholder": "e.g., Nate Holloway",
-    "nameHint": "The full name of your AI agent",
+    "nameHint": "The full name of your agent",
     "initialsLabel": "Initials",
     "initialsPlaceholder": "e.g., JD",
     "initialsHint": "Shown on the avatar (2-3 characters)",
@@ -7255,7 +7234,7 @@
       "feature1": "Record daily voice journals",
       "feature2": "Talk to your past self",
       "feature3": "Track your growth over time",
-      "feature4": "AI-generated insights"
+      "feature4": "Insights drawn from your journals"
     },
     "fictional": {
       "name": "Fictional",
@@ -9484,7 +9463,14 @@
     "close": "Close",
     "seeCost": "What this call cost",
     "feedbackQuestion": "How did that feel?",
-    "feedbackThanks": "Thanks, that helps."
+    "feedbackThanks": "Thanks, that helps.",
+    "pushAskQuestion": "Want Ferni to check in about this?",
+    "pushAskYes": "Yes, please",
+    "pushAskNotNow": "Not now",
+    "pushAskDone": "Done. Notes from Ferni will come to this device.",
+    "pushAskLater": "No problem. You can change this in Settings later.",
+    "pushAskHomeScreen": "To get notes from Ferni here, add Ferni to your Home Screen: tap Share, then Add to Home Screen.",
+    "pushAskGotIt": "Got it"
   },
   "moments": {
     "teamUnlockTitle": "Meet {name}",
@@ -9776,7 +9762,7 @@
     },
     "marketplace": {
       "headline": "Find your people.",
-      "description": "Beyond Ferni core team, a garden of specialised AI coaches awaits. ADHD support, sobriety companions, sleep specialists, parenting guides - experts who understand your specific journey.",
+      "description": "Beyond Ferni core team, a garden of specialised coaches awaits. ADHD support, sobriety companions, sleep specialists, parenting guides - experts who understand your specific journey.",
       "superhuman1": "Specialised personas - Coaches for specific life challenges",
       "superhuman2": "Community ratings - Real experiences, real reviews",
       "superhuman3": "Free and premium - Support for every budget",
@@ -9784,7 +9770,7 @@
     },
     "developerPortal": {
       "headline": "Build what matters.",
-      "description": "Ferni technology is opening up. Build your own AI coaches, create specialised personas, and reach people who need exactly what you offer. The platform that powers Ferni - now yours.",
+      "description": "Ferni technology is opening up. Build your own coaches, create specialised personas, and reach people who need exactly what you offer. The platform that powers Ferni - now yours.",
       "superhuman1": "Full API documentation - Everything you need to build",
       "superhuman2": "SDK and libraries - TypeScript-first development",
       "superhuman3": "Persona builder - Visual tools for creating coaches",
@@ -10480,7 +10466,7 @@
   },
   "ferniAwakens": {
     "greeting": "Hello.",
-    "subtext": "I'm Ferni, your AI life coach."
+    "subtext": "I'm Ferni, your personal guide."
   },
   "serviceHealth": {
     "names": {
@@ -10490,7 +10476,7 @@
       "historicalFacts": "Historical Facts",
       "smartHome": "Smart Home",
       "lighting": "Lighting",
-      "aiContext": "AI Context",
+      "aiContext": "Memory & context",
       "sleepHealth": "Sleep & Health Data",
       "other": "A connected service"
     },
@@ -10647,9 +10633,6 @@
     "patronShort": "Patron",
     "founderAria": "{tier}. Thank you for believing in us! Click to manage."
   },
-  "splash": {
-    "tagline": "Your AI team is ready"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "All Support",
@@ -10703,15 +10686,8 @@
     "subtitle": "Choose how Ferni looks and sounds",
     "comingSoon": "More options coming soon.",
     "status": {
-      "active": "Active",
-      "owned": "Yours",
-      "default": "Default",
-      "price": {
-        "one": "{count} Seed",
-        "other": "{count} Seeds"
-      }
-    },
-    "purchased": "It's yours!"
+      "active": "Active"
+    }
   },
   "capabilityCard": {
     "betterThanHuman": "Better than Human"
