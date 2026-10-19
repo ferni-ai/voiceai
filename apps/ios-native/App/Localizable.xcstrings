@@ -5377,66 +5377,66 @@
         }
       }
     },
-    "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you.": {
+    "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "en-GB": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "he": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you."
+            "value": "Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there."
           }
         }
       }
