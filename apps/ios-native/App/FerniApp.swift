@@ -30,6 +30,8 @@ struct FerniApp: App {
             RootView()
                 .environment(model)
                 .onOpenURL { model.open($0) }
+                // Spotlight and Shortcuts know the team as it is now.
+                .task(id: model.team.unlocked) { await model.teamSpotlight.sync(met: model.team.unlocked) }
                 #if DEBUG
                 .uiTestEnvironment()
                 #endif
@@ -103,6 +105,7 @@ final class AppModel {
     let memoryLock = MemoryLock()
     let homeLine: HomeLineStore
     let nextSteps: NextSteps
+    let teamSpotlight = TeamSpotlight()
     /// Bumped when Ferni should wake on a return (Welcome).
     var wakeCount = 0
     @ObservationIgnored var callEndedAt: Date?
@@ -311,6 +314,7 @@ final class AppModel {
         EndCallIntent.end = { [weak self] in await self?.call.end() }
         MuteCallIntent.mute = { [weak self] in await self?.call.muteFromLockScreen() }
         TalkIntent.handler = { [weak self] personaID in self?.talk(to: personaID) }
+        TeamMemberQuery.met = { [weak self] in self?.team.unlocked ?? [PersonaRegistry.ferni.id] }
         FerniAppDelegate.onToken = { [weak self] token in
             guard let self else { return }
             Task { await self.push.received(deviceToken: token, uid: self.account.user?.uid) }
