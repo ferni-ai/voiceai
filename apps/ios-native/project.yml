@@ -25,6 +25,9 @@ packages:
   Sentry:
     url: https://github.com/getsentry/sentry-cocoa
     exactVersion: 9.30.0
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    exactVersion: 10.0.0
 
 settings:
   base:
@@ -58,6 +61,8 @@ targets:
       # dSYMs, so the archive carries them (the static one ships none).
       - package: Sentry
         product: Sentry-Dynamic
+      - package: GoogleSignIn
+        product: GoogleSignIn
       - package: FerniLink
       - target: FerniWatch
       - target: FerniLive
