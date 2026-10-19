@@ -9,6 +9,7 @@ struct FerniApp: App {
     @State private var model: AppModel
 
     init() {
+        CrashReporting.start()
         FerniFonts.register()
         _model = State(initialValue: AppModel(firebaseReady: FerniFirebase.configure()))
     }
