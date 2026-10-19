@@ -85,11 +85,11 @@ targets:
         # One window: a call is one session, and a second iPad window would share it.
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
-        # Calls keep talking with the screen locked, reported to the system through
-        # LiveCommunicationKit (a VoIP call app). Nothing else runs in the background.
+        # Calls keep talking with the screen locked on audio, reported to the system
+        # through LiveCommunicationKit. Outgoing calls only and no PushKit, so no VoIP
+        # mode (guideline 2.5.4). Nothing else runs in the background.
         UIBackgroundModes:
           - audio
-          - voip
         NSFaceIDUsageDescription: Ferni uses Face ID to keep what Ferni remembers just for you.
         NSMicrophoneUsageDescription: Ferni listens only while you're talking together, so you can talk out loud.
         UISupportedInterfaceOrientations:
