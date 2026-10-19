@@ -1,0 +1,31 @@
+{
+  "displayName": "Ferni daily outreach sent nothing two days running",
+  "documentation": {
+    "mimeType": "text/markdown",
+    "content": "The daily outreach run (POST /api/outreach/scheduler/daily, 16:00Z) processed users but sent to none of them on two runs in a row. A zero like that read as healthy for five days in October 2026 (#1782). Read the run's `skipReasons` and `genericCheckInsBlocked` in the \"Daily outreach job complete\" log line. If the zero is intended (grounded check-ins on, nothing grounded to say), say so in the run report rather than silencing this. Needs the log metric `daily_outreach_zero_sends` (monitoring/promise/daily-outreach-zero-sends-metric.json). The 25 h rolling window holds two daily runs. Promise-ledger design, alert policy 4."
+  },
+  "combiner": "OR",
+  "conditions": [
+    {
+      "displayName": "Two zero-send daily runs within 25 hours",
+      "conditionThreshold": {
+        "filter": "resource.type=\"cloud_run_revision\" AND metric.type=\"logging.googleapis.com/user/daily_outreach_zero_sends\"",
+        "aggregations": [
+          {
+            "alignmentPeriod": "90000s",
+            "perSeriesAligner": "ALIGN_SUM",
+            "crossSeriesReducer": "REDUCE_SUM"
+          }
+        ],
+        "comparison": "COMPARISON_GT",
+        "thresholdValue": 1,
+        "duration": "0s"
+      }
+    }
+  ],
+  "alertStrategy": {
+    "autoClose": "86400s"
+  },
+  "notificationChannels": ["projects/johnb-2025/notificationChannels/497418305396229287"],
+  "enabled": true
+}
