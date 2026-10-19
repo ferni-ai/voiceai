@@ -57,6 +57,19 @@ export const DEFAULT_PREFS: MessagingPrefs = {
 /** The design's cap: 3 Ferni-started texts per person per day. */
 export const MAX_PER_DAY = 3;
 
+/** A quiet window lasts 4 to 16 hours, so a typo can't mean "text me all night". */
+export const QUIET_MIN_HOURS = 4;
+export const QUIET_MAX_HOURS = 16;
+
+const minutesOf = (hhmm: string): number => Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3));
+
+/** A quiet window in that range, else undefined. */
+export function quietSpan(v: unknown): LocalSpan | undefined {
+  const s = spanOf(v);
+  const length = s ? (minutesOf(s.end) - minutesOf(s.start) + 1440) % 1440 : 0;
+  return length >= QUIET_MIN_HOURS * 60 && length <= QUIET_MAX_HOURS * 60 ? s : undefined;
+}
+
 function toHhmm(v: unknown): string | undefined {
   const m = typeof v === 'string' ? /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(v.trim()) : null;
   return m ? `${m[1].padStart(2, '0')}:${m[2]}` : undefined;
@@ -103,8 +116,8 @@ export function prefsFromDoc(doc: Doc): MessagingPrefs {
   const older = field(doc, 'outreachPreferences');
   const oldQuiet = older.quietHours as { enabled?: unknown } | undefined;
   const quiet =
-    spanOf({ start: saved.quietStart, end: saved.quietEnd }) ??
-    (oldQuiet?.enabled === false ? undefined : spanOf(oldQuiet));
+    quietSpan({ start: saved.quietStart, end: saved.quietEnd }) ??
+    (oldQuiet?.enabled === false ? undefined : quietSpan(oldQuiet));
   const ch = field(saved, 'channels');
   const channels = Object.fromEntries(
     CHANNELS.map((c) => [c, typeof ch[c] === 'boolean' ? ch[c] : true])
@@ -182,8 +195,9 @@ export async function writePrefs(
     updatedAt: new Date().toISOString(),
     updatedBy: source,
   };
-  if (next.quietStart === next.quietEnd)
-    throw new PrefsError('Quiet hours need a different start and end');
+  if (!quietSpan({ start: next.quietStart, end: next.quietEnd })) {
+    throw new PrefsError(`Quiet hours must last ${QUIET_MIN_HOURS} to ${QUIET_MAX_HOURS} hours`);
+  }
   const zone = patch.zone ?? zoneOf(field(doc, 'messagingPrefs').zone);
   const { zone: _readZone, ...stored } = next;
   await ref.set({ messagingPrefs: { ...stored, ...(zone && { zone }) } }, { merge: true });

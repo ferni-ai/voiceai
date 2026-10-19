@@ -30,6 +30,7 @@ import { allowedDeliveryChannels } from './outreach-consent.js';
 import { verifiedPhoneOf } from './user-reach.js';
 import { isValidTimezone } from './call-hours-guard.js';
 import { hoursWindow, isQuietAt, isQuietHoursUnified, isUserQuiet } from './quiet-hours.js';
+import { prefsQuietUntil } from '../messaging/prefs-gate.js';
 import {
   cadenceHold,
   engagementLevel as engagementLevelOf,
@@ -179,9 +180,12 @@ async function processCandidate(
   const now = new Date();
   const proactive = await dailyCheckIn(userId, now);
 
-  // Check quiet hours
-  if (!proactive && config.respectQuietHours && isInQuietHours(candidate)) {
-    return { sent: false, reason: 'In quiet hours' };
+  // Check quiet hours: their messagingPrefs with MESSAGING_PREFS on, else this scheduler's rule
+  if (!proactive && config.respectQuietHours) {
+    const fromPrefs = await prefsQuietUntil(userId, now);
+    if (fromPrefs !== undefined ? fromPrefs !== null : isInQuietHours(candidate)) {
+      return { sent: false, reason: 'In quiet hours' };
+    }
   }
 
   // Determine outreach type based on user state

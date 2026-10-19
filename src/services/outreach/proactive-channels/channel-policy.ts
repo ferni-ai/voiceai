@@ -58,6 +58,7 @@ interface ProactivePrefs {
   quietHours?: { enabled?: unknown; start?: unknown; end?: unknown };
   quietHoursStart?: unknown;
   quietHoursEnd?: unknown;
+  ownerQuietWindow?: QuietWindow;
 }
 
 export function frequencyOf(prefs: unknown): ProactiveFrequency {
@@ -68,10 +69,12 @@ export function frequencyOf(prefs: unknown): ProactiveFrequency {
 /**
  * 21:00 to 08:00 always, plus their own window if they set one (quiet-hours.ts
  * rules: quietHours when enabled, else quietHoursStart/End). Theirs can add
- * quiet time, never take it away.
+ * quiet time, never take it away. With MESSAGING_PREFS on, the owner's saved
+ * window replaces it all (ownerQuietWindow, messaging/prefs-gate.ts).
  */
 function quietWindows(prefs: unknown): QuietWindow[] {
   const p = prefs as ProactivePrefs | undefined;
+  if (p?.ownerQuietWindow) return [p.ownerQuietWindow];
   const q = p?.quietHours;
   const own =
     q && Boolean(q.enabled) ? parseQuietWindow(String(q.start), String(q.end)) : undefined;

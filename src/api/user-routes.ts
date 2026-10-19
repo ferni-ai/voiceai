@@ -668,9 +668,9 @@ export async function handleUserRoutes(
       log.info({ userId, updates }, '⚙️ User preferences updated');
       sendJson(res, 200, { success: true, preferences: panelView(await readPrefs(userId)) });
     } catch (error) {
-      log.error({ error, userId }, 'Failed to update preferences');
-      const status = error instanceof PrefsError ? 400 : 500;
-      sendJson(res, status, { success: false, error: 'Failed to update preferences' });
+      const bad = error instanceof PrefsError ? error.message : undefined;
+      if (!bad) log.error({ error, userId }, 'Failed to update preferences');
+      sendJson(res, bad ? 400 : 500, { success: false, error: bad ?? 'Failed to save' });
     }
     return true;
   }

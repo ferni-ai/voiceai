@@ -452,16 +452,24 @@ describe('Contact Settings UI', () => {
       // May or may not exist depending on implementation
     });
 
-    it('should update preferences on toggle change', async () => {
+    const savedQuietHours = () =>
+      mockApiPost.mock.calls.find(([url]) => String(url).includes('/api/user/preferences'))?.[1];
+
+    it('saves the chosen window while quiet hours are on', async () => {
       await openContactSettings();
+      await new Promise((r) => setTimeout(r, 200));
+      findSaveButton()?.click();
       await new Promise((r) => setTimeout(r, 100));
+      expect(savedQuietHours()).toMatchObject({ quietHoursStart: '22:00', quietHoursEnd: '08:00' });
+    });
 
-      const toggle = findQuietHoursToggle();
-      toggle?.click();
-
+    it('switching quiet hours off saves the default 21:00-08:00, never "no quiet hours"', async () => {
+      await openContactSettings();
+      await new Promise((r) => setTimeout(r, 200));
+      findQuietHoursToggle()?.click();
+      findSaveButton()?.click();
       await new Promise((r) => setTimeout(r, 100));
-
-      // Should call API (implementation dependent)
+      expect(savedQuietHours()).toMatchObject({ quietHoursStart: '21:00', quietHoursEnd: '08:00' });
     });
   });
 

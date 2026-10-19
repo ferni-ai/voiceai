@@ -110,10 +110,20 @@ describe('writing', () => {
     await expect(writePrefs('u1', { quietStart: 'late' }, 'text')).rejects.toBeInstanceOf(
       PrefsError
     );
-    await expect(
-      writePrefs('u1', { quietStart: '08:00', quietEnd: '08:00' }, 'panel')
-    ).rejects.toThrow(/different start and end/);
+    for (const [quietStart, quietEnd] of [
+      ['08:00', '08:00'],
+      ['23:00', '01:00'],
+      ['20:00', '14:00'],
+    ]) {
+      await expect(writePrefs('u1', { quietStart, quietEnd }, 'panel')).rejects.toThrow(
+        'Quiet hours must last 4 to 16 hours'
+      );
+    }
+    // 4 h and 16 h are the edges, both allowed.
+    await writePrefs('u2', { quietStart: '23:00', quietEnd: '03:00' }, 'panel');
+    await writePrefs('u3', { quietStart: '16:00', quietEnd: '08:00' }, 'panel');
     expect(store.docs.has('u1')).toBe(false);
+    expect(await readPrefs('u3')).toMatchObject({ quietStart: '16:00', quietEnd: '08:00' });
   });
 
   it("never copies the profile's zone into the record (the profile's can change)", async () => {

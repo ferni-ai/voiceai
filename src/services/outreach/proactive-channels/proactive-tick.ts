@@ -26,6 +26,7 @@ import type { WorldDueItem } from './more-triggers.js';
 import { collectTriggers } from './triggers.js';
 import { ponderedTriggers } from './pondered-triggers.js';
 import { chooseChannel, type ChannelChoice, type PolicyInput } from './channel-policy.js';
+import { proactivePolicyPrefs } from '../../messaging/prefs-gate.js';
 import {
   alreadySent,
   claimOutreach,
@@ -261,11 +262,13 @@ async function runForUser(
   if (trigger.weight === 'meaningful' && !canCall) {
     log.info({ userId, sourceId: trigger.sourceId }, 'No SIP trunk here, so no call');
   }
+  // With MESSAGING_PREFS on: their quiet window, zone and switched-off channels (prefs-gate.ts).
+  const { prefs, timezone } = await proactivePolicyPrefs(userId, user, timezoneOf(user));
   const input = {
     trigger,
     now,
-    prefs: user.outreachPreferences,
-    timezone: timezoneOf(user),
+    prefs,
+    timezone,
     verifiedPhone,
     lastTalkedAt: lastTalkedAt(user),
     canCall,

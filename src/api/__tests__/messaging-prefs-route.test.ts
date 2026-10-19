@@ -134,6 +134,16 @@ describe('"When I\'ll Check In": save, reload, same values', () => {
     expect(seth().messagingPrefs).toBeUndefined();
   });
 
+  it('a window shorter than 4 h (a typo for "all night") is refused with a clear error', async () => {
+    const { status, json } = await prefs('POST', {
+      quietHoursStart: '23:00',
+      quietHoursEnd: '01:00',
+    });
+    expect(status).toBe(400);
+    expect(json.error).toBe('Quiet hours must last 4 to 16 hours');
+    expect(seth().messagingPrefs).toBeUndefined();
+  });
+
   it('answers 500, not a false "saved", when it cannot store', async () => {
     h.db = null;
     expect((await prefs('POST', { quietHoursStart: '22:00', quietHoursEnd: '07:00' })).status).toBe(

@@ -906,10 +906,10 @@ async function handleSave(): Promise<void> {
   render();
   if (invalid) return;
 
-  // Get quiet hours values
-  const quietHoursStart = state.contactInfo.quietHoursStart || '22:00';
-  const quietHoursEnd = state.contactInfo.quietHoursEnd || '08:00';
+  // Quiet hours "off" saves the default 21:00-08:00, never "no quiet hours": a switch can't open nights to texts.
   const quietHoursEnabled = state.contactInfo.quietHoursEnabled !== false;
+  const quietHoursStart = (quietHoursEnabled && state.contactInfo.quietHoursStart) || '21:00';
+  const quietHoursEnd = (quietHoursEnabled && state.contactInfo.quietHoursEnd) || '08:00';
 
   try {
     // Save contact info
@@ -927,17 +927,13 @@ async function handleSave(): Promise<void> {
       throw new Error(personalResponse.error || 'Failed to save contact info');
     }
 
-    // Save quiet hours preferences (only if enabled)
-    if (quietHoursEnabled) {
-      const prefsResponse = await apiPost('/api/user/preferences', {
-        timezone: state.contactInfo.timezone || getUserTimezone(),
-        quietHoursStart,
-        quietHoursEnd,
-      });
-
-      if (!prefsResponse.ok) {
-        log.warn('Failed to save quiet hours preferences');
-      }
+    const prefsResponse = await apiPost('/api/user/preferences', {
+      timezone: state.contactInfo.timezone || getUserTimezone(),
+      quietHoursStart,
+      quietHoursEnd,
+    });
+    if (!prefsResponse.ok) {
+      log.warn({ error: prefsResponse.error }, 'Failed to save quiet hours preferences');
     }
 
     state.contactInfo = {
