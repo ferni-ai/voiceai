@@ -78,10 +78,11 @@ const PROD_API = /^https:\/\/([a-z0-9-]+\.)*ferni\.ai\/api\//;
 
 /**
  * Answers the built pages' calls to the production API in the browser, so a
- * spec never reaches it. Some scripts use absolute prod URLs (the exit beacon
- * in conversion-tracking.js posts to app.ferni.ai's experiments/track/batch);
- * from CI that was 167 HTTP 400s and 153 CORS blocks in prod logs from origin
- * 127.0.0.1:8768 after the consent spec landed. Returns the URLs it answered.
+ * spec never reaches it. Some scripts used absolute prod URLs (the exit beacon
+ * in conversion-tracking.js posted to app.ferni.ai's experiments/track/batch
+ * until 2026-10-18); from CI that was 167 HTTP 400s and 153 CORS blocks in prod
+ * logs from origin 127.0.0.1:8768 after the consent spec landed. Returns the
+ * URLs it answered.
  */
 export async function keepOffProdApi(context: BrowserContext): Promise<string[]> {
   const caught: string[] = [];

@@ -1,11 +1,18 @@
 import type { Firestore } from '@google-cloud/firestore';
 
-// A Firestore fake with only the calls the follow-through store makes: documents by
+// A Firestore fake with only the calls the follow-through stores make: documents by
 // path, where (in, >=, <, <=), orderBy, limit, collectionGroup and transactions.
+// Transactions are optimistic like the real ones: writes apply at commit, and a
+// transaction whose reads (documents or queries) changed meanwhile runs again.
 type Cond = [string, string, unknown];
+interface Snap {
+  id: string;
+  exists: boolean;
+  data: () => Record<string, unknown> | undefined;
+}
 export function fakeFirestore() {
   const docs = new Map<string, Record<string, unknown>>();
-  const snapOf = (path: string) => ({
+  const snapOf = (path: string): Snap => ({
     id: path.split('/').pop() ?? '',
     exists: docs.has(path),
     data: () => docs.get(path),
@@ -29,32 +36,56 @@ export function fakeFirestore() {
     conds: Cond[] = [],
     order?: string,
     max?: number
-  ): Record<string, unknown> => ({
-    where: (f: string, op: string, v: unknown) => query(pick, [...conds, [f, op, v]], order, max),
-    orderBy: (f: string) => query(pick, conds, f, max),
-    limit: (n: number) => query(pick, conds, order, n),
-    get: async () => {
+  ): Record<string, unknown> => {
+    const run = (): { docs: Snap[] } => {
       let hits = [...docs.entries()].filter(
         ([p, d]) => pick(p) && conds.every((c) => matches(d, c))
       );
       if (order) hits = hits.sort((a, b) => String(a[1][order]).localeCompare(String(b[1][order])));
       if (max !== undefined) hits = hits.slice(0, max);
       return { docs: hits.map(([p]) => snapOf(p)) };
-    },
-  });
+    };
+    return {
+      where: (f: string, op: string, v: unknown) => query(pick, [...conds, [f, op, v]], order, max),
+      orderBy: (f: string) => query(pick, conds, f, max),
+      limit: (n: number) => query(pick, conds, order, n),
+      run,
+      get: async () => run(),
+    };
+  };
   const coll = (path: string): Record<string, unknown> => ({
     ...query((p) => p.startsWith(`${path}/`) && p.split('/').length === path.split('/').length + 1),
     doc: (id: string) => docRef(`${path}/${id}`),
   });
+  const seen = (s: { docs: Snap[] }): string => JSON.stringify(s.docs.map((d) => [d.id, d.data()]));
   const db = {
     collection: (name: string) => coll(name),
     collectionGroup: (name: string) => query((p) => p.split('/').slice(-2, -1)[0] === name),
-    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> =>
-      fn({
-        get: async (ref: { path: string }) => snapOf(ref.path),
-        set: (ref: { path: string }, data: Record<string, unknown>) =>
-          void docs.set(ref.path, { ...data }),
-      }),
+    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => {
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const unchanged: Array<() => boolean> = [];
+        const writes: Array<[string, Record<string, unknown>]> = [];
+        const result = await fn({
+          get: async (target: { path?: string; run?: () => { docs: Snap[] } }) => {
+            const read = (): { docs: Snap[] } =>
+              typeof target.path === 'string'
+                ? { docs: [snapOf(target.path)] }
+                : (target.run as () => { docs: Snap[] })();
+            const before = seen(read());
+            unchanged.push(() => seen(read()) === before);
+            return typeof target.path === 'string' ? snapOf(target.path) : read();
+          },
+          set: (ref: { path: string }, data: Record<string, unknown>) =>
+            void writes.push([ref.path, structuredClone(data)]),
+        });
+        // Commit: synchronous, so no other transaction runs between check and write
+        if (unchanged.every((ok) => ok())) {
+          for (const [p, d] of writes) docs.set(p, d);
+          return result;
+        }
+      }
+      throw new Error('transaction kept losing');
+    },
   };
   return { db: db as unknown as Firestore, docs };
 }

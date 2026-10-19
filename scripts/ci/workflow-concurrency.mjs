@@ -32,6 +32,8 @@ export const ALLOWED = {
     'never cancels: a cleanup cut short leaves a PR preview running; grouped per PR',
   'deploy-worker.yml':
     'deploy group keyed on the ref (worker-<ref>), shared with manual deploys; PR builds are path-filtered',
+  'android-twa.yml':
+    'group keyed on the ref with the PR-only cancel, so main pushes and Play-signing dispatches queue instead of running side by side; no merge_group trigger',
 };
 
 const TRIGGERS = /^(pull_request|pull_request_target)$/;

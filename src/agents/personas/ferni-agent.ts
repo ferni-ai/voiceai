@@ -691,7 +691,7 @@ Respond with ONLY your greeting as plain text. No JSON. No quotes. Just speak na
         super.llmNode(ctx, tools, modelSettings),
         logToolMarkup('llm', sessionId)
       );
-      return withActionClaimCheck(text, ctx, tools, this.session.userData?.personaId) as never;
+      return withActionClaimCheck(text, ctx, tools, this.session.userData) as never;
     };
     const reply = await gatedReply(chatCtx, this.session, model, this.openerGate as never);
     return dropLeadingSaidBy(filterSilenceReply(this.session, reply)) as never;
