@@ -774,7 +774,7 @@
     "phoneLabel": "Text or call me",
     "emailLabel": "Send me updates",
     "nameLabel": "What should I call you?",
-    "privacyNote": "I'll only use this for check-ins. Never spam, never shared.",
+    "privacyNote": "I'll only use this for check-ins. Never spam, never sold.",
     "quietHours": "Quiet Hours",
     "dontCall": "Don't call",
     "until": "until",
@@ -2482,7 +2482,7 @@
     "intro": "Connect your wearables to give Ferni context about your health and energy levels.",
     "loading": "Loading...",
     "privacy": {
-      "note": "Your health data stays private. We only share aggregated insights with your coaching sessions."
+      "note": "Ferni saves your health data to spot patterns with you. We never sell it, and deleting your account erases it."
     },
     "providers": {
       "appleHealth": {
@@ -2925,6 +2925,9 @@
     "openConversations": "Open Conversations",
     "onYourMind": "On Your Mind",
     "thingsTracking": "Things your team is keeping track of for you",
+    "trackedDone": "Done",
+    "trackedDismiss": "Dismiss",
+    "trackedUpdateFailed": "Couldn't update that. Try again?",
     "quickConnections": "Quick Connections",
     "startWithAnyone": "Start a conversation with anyone on your team",
     "allCaughtUp": "All caught up!",
@@ -2990,7 +2993,7 @@
     "orUseEmail": "or use email",
     "emailLabel": "Email",
     "passwordLabel": "Password",
-    "privacyNote": "Your data stays private. Always.",
+    "privacyNote": "We never sell your data. Deleting your account erases it.",
     "loading": "Just a moment...",
     "welcomeBack": "Welcome back! I remember everything.",
     "somethingWentWrong": "Something went wrong",
@@ -3013,7 +3016,7 @@
     "waitlistMessage": "We're rolling out Ferni gradually to ensure everyone gets the best experience. We'll send you an email as soon as your spot opens up.",
     "waitlistEmail": "We'll notify you at {email}",
     "tryDifferentAccount": "Try a different account",
-    "checkingAccess": "Checking your access...",
+    "checkingAccess": "Getting things ready…",
     "checkingLabel": "Just a moment...",
     "signInError": "Sign-in was cancelled or failed. Please try again.",
     "verifyEmailTitle": "Verify your email",
@@ -3429,7 +3432,7 @@
     "weeklyDigest": "Weekly digest",
     "weeklyDigestDesc": "Sunday evening preview of your week ahead",
     "viewSyncConflicts": "View Sync Conflicts",
-    "integrationsPrivacy": "Integrations sync your existing events into Ferni. Your data stays private.",
+    "integrationsPrivacy": "Integrations sync your existing events into Ferni. We never sell your data.",
     "tryAgain": "Try Again",
     "syncing": "Syncing...",
     "connectAppleCalendar": "Connect Apple Calendar",
@@ -8225,7 +8228,7 @@
     "chapter": {
       "default": {
         "verb": "navigating",
-        "encouragement": "Something beautiful is taking shape."
+        "encouragement": "Whatever this turns out to be, you don't have to work it out alone."
       },
       "growth": {
         "verb": "growing through",
@@ -8245,6 +8248,18 @@
       },
       "struggle": {
         "encouragement": "This is hard, and you're doing it anyway."
+      },
+      "loss": {
+        "verb": "carrying",
+        "encouragement": "Go gently. There's no right way to grieve, and you don't have to carry it alone."
+      },
+      "connection": {
+        "verb": "growing closer through",
+        "encouragement": "The people in your life matter to you. That comes through."
+      },
+      "decision": {
+        "verb": "deciding",
+        "encouragement": "Big choices take time. You can think out loud here."
       }
     }
   },
@@ -9847,7 +9862,7 @@
       "title": "Personalisation",
       "message": "Your location helps me make our conversations feel more personal and relevant—like I'm actually there with you."
     },
-    "note": "This stays just between us—I only use it to make our conversations more personal.",
+    "note": "I only use this to make our conversations more personal, and I never sell it.",
     "notNow": "Not now",
     "allow": "Allow location"
   },
@@ -10752,7 +10767,7 @@
   },
   "entrance": {
     "helper": "Your personal guide",
-    "connectToTalk": "Connect",
+    "connectToTalk": "Talk to Ferni",
     "endTalk": "Disconnect",
     "connectingCancel": "Connecting. Tap to cancel",
     "connectingNow": "Connecting…",

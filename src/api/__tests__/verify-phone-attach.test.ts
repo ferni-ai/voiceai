@@ -44,6 +44,10 @@ vi.mock('../../services/trust-and-identity/verification-store.js', () => ({
     fake.codes.set(userId, { phone, code: '123456', verified: false });
     return { code: '123456', expiresAt: new Date() };
   }),
+  getVerificationStatus: vi.fn(async (userId: string) => {
+    const stored = fake.codes.get(userId);
+    return stored ? { hasPendingCode: true, phone: stored.phone } : null;
+  }),
   verifyCode: vi.fn(async (userId: string, code: string) => {
     const stored = fake.codes.get(userId);
     if (!stored) return { valid: false, reason: 'not_found' };
@@ -52,9 +56,55 @@ vi.mock('../../services/trust-and-identity/verification-store.js', () => ({
     return { valid: true, reason: 'success', phone: stored.phone };
   }),
 }));
-vi.mock('../../tools/domains/proactive/outreach/index.js', () => ({
-  textUser: vi.fn(async () => ({ success: true })),
+const textUser = vi.hoisted(() => vi.fn(async () => ({ success: true })));
+vi.mock('../../tools/domains/proactive/outreach/index.js', () => ({ textUser }));
+// The real textVerificationCode (number, STOP, limits) with Firestore and Twilio faked.
+const sms = vi.hoisted(() => ({
+  send: vi.fn(async (_m: { to: string; body: string }) => ({ success: true, messageSid: 'SM1' })),
+  optedOut: false,
+  ips: [] as (string | undefined)[],
+  sends: new Map<string, string[]>(),
 }));
+vi.mock('../../services/outreach/verification-text.js', async (importOriginal) => {
+  const real =
+    await importOriginal<typeof import('../../services/outreach/verification-text.js')>();
+  const sends = sms.sends;
+  const deps = {
+    env: { LOG_HASH_SECRET: 'test-secret' },
+    atomically: async <T>(
+      keys: string[],
+      _optOutHash: string,
+      decide: (
+        r: Record<string, string[]>,
+        optedOut: boolean
+      ) => { result: T; write?: Record<string, string[]> }
+    ) => {
+      const { result, write } = decide(
+        Object.fromEntries(keys.map((k) => [k, sends.get(k) ?? []])),
+        sms.optedOut
+      );
+      for (const [k, v] of Object.entries(write ?? {})) sends.set(k, v);
+      return result;
+    },
+    send: (m: { to: string; body: string }) => sms.send(m),
+    now: () => new Date(),
+  };
+  return {
+    ...real,
+    reserveConfirmTry: (user: string, phone: string) => real.reserveConfirmTry(user, phone, deps),
+    textVerificationCode: (
+      u: string,
+      p: string,
+      make: (e: string) => Promise<string>,
+      _deps: unknown,
+      ip?: string
+    ) => {
+      for (const k of [...sends.keys()]) if (!k.startsWith('confirm:')) sends.delete(k);
+      sms.ips.push(ip);
+      return real.textVerificationCode(u, p, make, deps, ip);
+    },
+  };
+});
 
 const { handleOutreachRoutes } = await import('../outreach.routes.js');
 
@@ -79,6 +129,7 @@ afterAll(
 beforeEach(() => {
   fake.phones.clear();
   fake.codes.clear();
+  sms.sends.clear();
   vi.clearAllMocks();
 });
 
@@ -89,11 +140,84 @@ const post = (path: string, body: unknown, token: string) =>
     body: JSON.stringify(body),
   });
 
-const MINE = '+15555550100';
+const MINE = '+12125550100';
+
+describe('asking for a phone code', () => {
+  it('texts the code to the number given (never a user lookup), and says sent only when it went', async () => {
+    const res = await post('/verify-phone', { phone: '(212) 555-0100' }, 'tok-A');
+    expect(res.status).toBe(200);
+    expect(sms.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: MINE,
+        body: 'Your Ferni code is 123456. It expires in 10 minutes.',
+      })
+    );
+    expect(textUser).not.toHaveBeenCalled();
+  });
+
+  it("limits the caller's IP: the route passes the client address", async () => {
+    sms.ips.length = 0;
+    await fetch(`${base}/api/outreach/verify-phone`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer tok-A',
+        'x-forwarded-for': '203.0.113.9',
+      },
+      body: JSON.stringify({ phone: MINE }),
+    });
+    expect(sms.ips).toEqual(['203.0.113.9']);
+  });
+
+  it('a quiet refusal stores no code, so confirming that number fails', async () => {
+    sms.optedOut = true;
+    await post('/verify-phone', { phone: MINE }, 'tok-A');
+    sms.optedOut = false;
+    expect(fake.codes.has('uid-A')).toBe(false);
+    const res = await post('/verify-phone/confirm', { phone: MINE, code: '123456' }, 'tok-A');
+    expect(res.status).toBe(400);
+    expect(fake.phones.get('uid-A')).toBeUndefined();
+  });
+
+  it('confirm tries are limited per (user, number): the sixth try in the hour is refused, even a right one', async () => {
+    await post('/verify-phone', { phone: '+12125550177' }, 'tok-A');
+    for (let i = 0; i < 5; i++) {
+      await post('/verify-phone/confirm', { phone: '+12125550177', code: '000000' }, 'tok-A');
+    }
+    const res = await post(
+      '/verify-phone/confirm',
+      { phone: '+12125550177', code: '123456' },
+      'tok-A'
+    );
+    expect(res.status).toBe(400); // the same answer as any failed confirm
+    expect(fake.phones.get('uid-A')).toBeUndefined();
+  });
+
+  it('a number that sent STOP gets the same answer as a send, and nothing is sent', async () => {
+    const sent = await (await post('/verify-phone', { phone: MINE }, 'tok-A')).json();
+    sms.send.mockClear();
+    sms.optedOut = true;
+    const res = await post('/verify-phone', { phone: MINE }, 'tok-A');
+    sms.optedOut = false;
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual(sent); // nothing tells the caller the number opted out
+    expect(sms.send).not.toHaveBeenCalled();
+  });
+
+  it('a send the provider refused answers with a friendly error, not "sent"', async () => {
+    sms.send.mockResolvedValueOnce({ success: false, error: 'carrier said no' } as never);
+    const res = await post('/verify-phone', { phone: MINE }, 'tok-A');
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({
+      success: false,
+      error: "Couldn't send the code. Try again?",
+    });
+  });
+});
 
 describe('confirming a phone code', () => {
   it("puts the number on the signed-in user's Firebase account", async () => {
-    expect((await post('/verify-phone', { phone: '(555) 555-0100' }, 'tok-A')).status).toBe(200);
+    expect((await post('/verify-phone', { phone: '(212) 555-0100' }, 'tok-A')).status).toBe(200);
     expect(fake.phones.get('uid-A')).toBeUndefined();
     const res = await post('/verify-phone/confirm', { phone: MINE, code: '123456' }, 'tok-A');
     expect(res.status).toBe(200);
@@ -151,7 +275,7 @@ describe('confirming a phone code', () => {
     await post('/verify-phone', { phone: MINE }, 'tok-A');
     const res = await post(
       '/verify-phone/confirm',
-      { phone: '+15555550999', code: '123456' },
+      { phone: '+12125550999', code: '123456' },
       'tok-A'
     );
     expect(res.status).toBe(200);

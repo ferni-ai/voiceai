@@ -17,8 +17,21 @@ const log = createLogger('CallStatusUI');
 const NOTICE_ID = 'callStatusNotice';
 const STYLE_ID = 'call-status-styles';
 
-const MIC_HELP =
-  'Open your browser’s site settings (the icon left of the address bar), set Microphone to Allow, then try again.';
+/**
+ * How to allow the microphone on this device. Phones have no desktop-style
+ * site-settings icon: iPhone Safari keeps it under the aA menu, other iPhone
+ * browsers in iOS Settings, Chrome on Android under the address-bar icon.
+ */
+export function micHelpText(userAgent: string = navigator.userAgent, touchPoints = navigator.maxTouchPoints): string {
+  // iPadOS reports itself as a Mac; touch support gives it away.
+  const ios = /iPad|iPhone|iPod/.test(userAgent) || (/Macintosh/.test(userAgent) && touchPoints > 1);
+  if (ios) {
+    const otherBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/.test(userAgent);
+    return t(otherBrowser ? 'entrance.micHelpIos' : 'entrance.micHelpIosSafari');
+  }
+  if (/Android/.test(userAgent)) return t('entrance.micHelpAndroid');
+  return t('entrance.micHelpDesktop');
+}
 
 export interface CallNoticeHandlers {
   /** Start a new call attempt. */
@@ -125,7 +138,7 @@ export function showCallNotice(failure: ConnectFailure, handlers: CallNoticeHand
   if (failure.action === 'mic-help') {
     const help = document.createElement('p');
     help.className = 'call-status__help';
-    help.textContent = MIC_HELP;
+    help.textContent = micHelpText();
     help.hidden = true;
     notice.appendChild(help);
     actions.append(
