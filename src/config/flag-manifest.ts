@@ -203,6 +203,8 @@ export const FLAG_MANIFEST = {
   HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
   HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: POST /api/identity/merge-anonymous moves an anonymous account's data into the signed-in one
+  IDENTITY_MERGE_ANON: { default: 'off', owner: 'platform', kind: 'experiment' },
   INSIDE_JOKES: { default: 'off', owner: 'memory', kind: 'experiment' },
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   INTERRUPT_TRACE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
