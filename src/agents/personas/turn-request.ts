@@ -13,6 +13,11 @@ import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
 import {
+  hasThirdPartyTools,
+  mayReachOthers,
+  withoutThirdPartyTools,
+} from '../shared/third-party-tools.js';
+import {
   phoneOnlyIdentity,
   sessionIsVerifiedOwner,
 } from '../voice-agent-entry/caller-recognition.js';
@@ -88,6 +93,8 @@ export interface TurnToolsState {
 
 const sessionIdOf = (userData: unknown): string | undefined =>
   (userData as { services?: { sessionId?: string } } | undefined)?.services?.sessionId;
+const userIdOf = (userData: unknown): string | undefined =>
+  (userData as { userId?: string } | undefined)?.userId;
 
 /**
  * A copy of the context with the turn reminder, plus what Ferni has already
@@ -313,9 +320,14 @@ export async function toolsForTurn(
   if (staticCoreToolsEnabled()) withPinnedTools(toolCtx, state.agent);
   else withSameTurnTools(session, chatCtx, toolCtx); // TOOLS_SAME_TURN: this turn's topic tools
   const view = unlockViewFor(session.userData);
-  const allowed = phoneOnlyIdentity(sessionIdOf(session.userData))
+  const sessionId = sessionIdOf(session.userData);
+  // Not a verified owner (an anon: caller included): nothing that reaches other people.
+  const others = mayReachOthers(userIdOf(session.userData), sessionId, sessionIsVerifiedOwner);
+  const allowed = phoneOnlyIdentity(sessionId)
     ? await withoutAccountTools(toolCtx, state)
-    : toolCtx;
+    : others
+      ? toolCtx
+      : await withoutReachingOthers(toolCtx, state);
   const unlocked = await withoutLockedHandoffs(allowed, view).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
     return allowed;
@@ -329,7 +341,28 @@ export async function toolsForTurn(
       'Handoffs to locked teammates kept out of the request'
     );
   }
-  return retrievedTools(session, chatCtx, withTeammateAsk(unlocked, view));
+  const picked = await retrievedTools(session, chatCtx, withTeammateAsk(unlocked, view));
+  return others ? picked : withoutThirdPartyTools(picked); // retrieval may pick from the catalog
+}
+
+/**
+ * Third-party tools leave the request and the agent itself (third-party-tools.ts),
+ * unless changing the agent's tools would restart a realtime session: then the
+ * tools refuse the call themselves (outbound-gate.ts).
+ */
+async function withoutReachingOthers(
+  toolCtx: llm.ToolContext,
+  state: TurnToolsState
+): Promise<llm.ToolContext> {
+  const agent = state.agent as ToolHolder | undefined;
+  if (agent && hasThirdPartyTools(agent.toolCtx)) {
+    const { isMidSessionToolUpdateSafe } = await import('../shared/tool-updater.js');
+    if (isMidSessionToolUpdateSafe()) {
+      await agent.updateTools(Object.values(withoutThirdPartyTools(agent.toolCtx).functionTools));
+      log.info({}, 'Tools that reach other people closed for a caller who is not a verified owner');
+    }
+  }
+  return withoutThirdPartyTools(toolCtx);
 }
 
 /**
@@ -339,7 +372,9 @@ export async function toolsForTurn(
  */
 interface ToolHolder {
   readonly toolCtx: llm.ToolContext;
-  updateTools(tools: llm.ToolContext): Promise<void>;
+  updateTools(
+    tools: llm.ToolContext | Parameters<llm.ToolContext['updateTools']>[0]
+  ): Promise<void>;
 }
 
 async function withoutAccountTools(
