@@ -5,8 +5,6 @@
  * included), "100% disconnects" (one call after a restart) and "quality 39/100",
  * 126 times in 6 hours, while turn receipts showed reply p90 2.9 s.
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const notify = vi.fn().mockResolvedValue(true);
@@ -31,12 +29,7 @@ import {
   startCall,
   startCallQualityMonitor,
 } from '../call-quality-monitor.js';
-import {
-  callQualityAlertsEnabled,
-  evaluateSlos,
-  PROD_AGENT_ID,
-  type SloLimits,
-} from '../call-quality-slo.js';
+import { evaluateSlos, type SloLimits } from '../call-quality-slo.js';
 
 const MINUTE = 60_000;
 const LIMITS: SloLimits = {
@@ -135,7 +128,7 @@ describe('call-quality alerts', () => {
     expect(sent('incident_opened')[0][0]).toMatchObject({
       severity: 'error',
       metadata: { key: 'reply_p90', value: 6000, samples: 24 },
-      message: 'Reply time p90 6.0s over 24 prod samples',
+      message: 'Reply time p90 6.0s over 24 samples',
     });
     expect(notify).toHaveBeenCalledTimes(1);
   });
@@ -207,31 +200,56 @@ describe('call-quality alerts', () => {
     expect(conditions.every((c) => !c.sampled)).toBe(true);
   });
 
-  it('outside the prod agent a breach is only logged', async () => {
-    vi.stubEnv('CALL_QUALITY_ALERTS', '');
-    for (let i = 0; i < 12; i++) call(`slow-${i}`, { replies: [1200, 6000] });
-
-    await evaluate(5);
-    expect(notify).not.toHaveBeenCalled();
-  });
 });
 
-describe('callQualityAlertsEnabled', () => {
-  const prodPod = 'deployment-p-ms2t7uqxlas-ca-gefvepsnxlsf-58fd4c844c-5r6vh';
-  const devPod = 'deployment-p-abc-ca-sitdmheba4fg-7d9c-xk2lp';
-
-  it.each([
-    [{}, prodPod, true],
-    [{}, devPod, false],
-    [{}, 'Mac.lan', false],
-    [{ CALL_QUALITY_ALERTS: 'off' }, prodPod, false],
-    [{ CALL_QUALITY_ALERTS: 'on' }, devPod, true],
-  ] as const)('%o on %s → %s', (env, host, expected) => {
-    expect(callQualityAlertsEnabled(env, host)).toBe(expected);
+describe('CALL_QUALITY_ALERTS picks the rule that pages', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(1_800_000_000_000);
+    notify.mockClear();
+    startCallQualityMonitor({ qualityCheckIntervalMs: 24 * 60 * MINUTE });
+  });
+  afterEach(() => {
+    resetCallQualityStateForTests();
+    vi.unstubAllEnvs();
+    vi.useRealTimers();
   });
 
-  it('names the agent livekit.prod-cloud.toml deploys', () => {
-    const toml = readFileSync(join(process.cwd(), 'livekit.prod-cloud.toml'), 'utf8');
-    expect(toml).toContain(`id = "${PROD_AGENT_ID}"`);
+  /** 12 calls, 2 dropped: over both the 10% threshold and the drop-rate SLO. */
+  const dropTwelve = (): void => {
+    for (let i = 0; i < 12; i++)
+      call(`c-${i}`, { replies: [1200], end: i < 2 ? 'disconnect' : 'natural' });
+  };
+  const titles = () => notify.mock.calls.map(([n]) => String(n.title));
+  const sloPages = () => notify.mock.calls.filter(([n]) => n.metadata?.key !== undefined);
+
+  it.each([undefined, 'off'])('%s: the threshold alerts page, as on main', async (value) => {
+    if (value !== undefined) vi.stubEnv('CALL_QUALITY_ALERTS', value);
+    dropTwelve();
+    await evaluate();
+    expect(titles()).toContain('📞 Disconnect Rate Critical');
+    expect(sloPages()).toHaveLength(0);
+  });
+
+  it('off: one dropped call pages nothing (fewer than 5 calls)', async () => {
+    call('only', { replies: [1200], end: 'disconnect' });
+    await evaluate();
+    expect(notify).not.toHaveBeenCalled();
+  });
+
+  it('shadow: the threshold alerts still page and the SLO incident is not sent', async () => {
+    vi.stubEnv('CALL_QUALITY_ALERTS', 'shadow');
+    dropTwelve();
+    await evaluate(5);
+    expect(titles()).toContain('📞 Disconnect Rate Critical');
+    expect(sloPages()).toHaveLength(0);
+  });
+
+  it('on: the SLO incident pages once and the threshold alerts are off', async () => {
+    vi.stubEnv('CALL_QUALITY_ALERTS', 'on');
+    dropTwelve();
+    await evaluate(5);
+    expect(sloPages().map(([n]) => n.metadata.key)).toEqual(['drop_rate']);
+    expect(titles()).not.toContain('📞 Disconnect Rate Critical');
   });
 });

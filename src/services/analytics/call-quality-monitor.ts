@@ -12,13 +12,13 @@
  * before they tell us.
  */
 
-import { hostname } from 'node:os';
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService } from '../slack-notifications.js';
 import { recordMetricValue } from '../predictive-alerting.js';
+import { flagModeOf } from '../../config/env-flag.js';
+import { checkThresholdAlerts } from './call-quality-thresholds.js';
 import {
-  callQualityAlertsEnabled,
   evaluateSlos,
   noteSloEvent,
   resetSloStateForTests,
@@ -46,6 +46,7 @@ export interface CallQualityConfig {
   minSampleCalls: number; // nothing is judged on fewer completed calls (or turns) in the window
   minSampleTurns: number;
   sloWindowMs: number;
+  minCallsForRateAlerts: number; // rate and score alerts wait for this many calls
 
   // Check intervals
   qualityCheckIntervalMs: number;
@@ -67,6 +68,7 @@ const DEFAULT_CONFIG: CallQualityConfig = {
   minSampleCalls: 10,
   minSampleTurns: 30,
   sloWindowMs: 60 * 60 * 1000,
+  minCallsForRateAlerts: 5,
 
   qualityCheckIntervalMs: 60_000, // Every minute
   alertCooldownMs: 300_000, // 5 minute cooldown
@@ -232,10 +234,8 @@ export function recordCallEvent(event: CallEvent): void {
     sessions.set(event.callId, session);
   }
 
-  // Add event
   session.events.push(event);
 
-  // Process event
   switch (event.type) {
     case 'connection_success':
       session.connectionTimeMs = event.timestamp - session.startTime;
@@ -287,7 +287,6 @@ export function recordCallEvent(event: CallEvent): void {
             ? 'disconnect'
             : 'error';
 
-      // Move to completed
       completedSessions.push(session);
       sessions.delete(event.callId);
 
@@ -562,7 +561,6 @@ function calculateQualityScore(factors: {
   const completionScore = factors.completionRate * 100;
   const handoffScore = factors.handoffSuccessRate * 100;
 
-  // Weighted average
   const totalWeight = Object.values(weights).reduce((a, b) => a + b, 0);
   const score =
     (connectionScore * weights.connectionSuccessRate +
@@ -640,11 +638,17 @@ function sloLimits(c: CallQualityConfig): SloLimits {
   };
 }
 
-/** One evaluation: pages only when an incident opens or escalates, on the prod agent. */
+/** One evaluation. With CALL_QUALITY_ALERTS=on, pages only when an SLO incident opens or escalates. */
 export async function checkQualityAlerts(now: number = Date.now()): Promise<void> {
   const metrics = calculateMetrics();
   recordMetricValue('connection_success_rate', metrics.connectionSuccessRate * 100);
   recordMetricValue('disconnect_rate', metrics.disconnectRate * 100);
+
+  // off (default): today's threshold alerts page; shadow: they still page and the
+  // SLO incidents are only logged; on: the SLO incidents page instead.
+  const mode = flagModeOf('CALL_QUALITY_ALERTS');
+  if (mode !== 'on') await checkThresholdAlerts(metrics, config, sendQualityAlert);
+  if (mode === 'off') return;
 
   const conditions = evaluateSlos(
     completedSessions,
@@ -652,15 +656,15 @@ export async function checkQualityAlerts(now: number = Date.now()): Promise<void
     sloLimits(config),
     now
   );
-  const pages = callQualityAlertsEnabled(process.env, hostname());
   const changes = trackIncidents(incidents, conditions, now, config.sloWindowMs);
+  const pages = mode === 'on';
   for (const { kind, condition: c } of changes) {
     const v = c.value ?? 0;
     const rate = c.key === 'drop_rate' || c.key === 'connect_fail';
     const value = rate ? `${(v * 100).toFixed(1)}%` : `${(v / 1000).toFixed(1)}s`;
-    const summary = `${SLO_LABELS[c.key]} ${value} over ${c.samples} prod samples`;
+    const summary = `${SLO_LABELS[c.key]} ${value} over ${c.samples} samples`;
     if (kind === 'closed' || !pages || !c.severity) {
-      log[pages ? 'info' : 'debug']({ kind, ...c }, `Call-quality incident ${kind}: ${summary}`);
+      log.info({ kind, mode, ...c }, `Call-quality incident ${kind}: ${summary}`);
       continue;
     }
     const detail = { key: c.key, value: c.value, samples: c.samples };

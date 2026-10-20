@@ -143,16 +143,6 @@ export function trackIncidents(
   return changes;
 }
 
-/** The prod LiveKit agent (livekit.prod-cloud.toml); pods are named ...-ca-gefvepsnxlsf-... */
-export const PROD_AGENT_ID = 'CA_GeFvEpsNXLSF';
-
-/** CALL_QUALITY_ALERTS=on|off; unset, only the prod agent's pods page. */
-export function callQualityAlertsEnabled(env: NodeJS.ProcessEnv, host: string): boolean {
-  const flag = env.CALL_QUALITY_ALERTS;
-  const prodPod = host.toLowerCase().includes(PROD_AGENT_ID.toLowerCase().replace('_', '-'));
-  return flag === 'on' || (flag !== 'off' && prodPod);
-}
-
 /** Test seam: forget samples and exclusions. */
 export function resetSloStateForTests(): void {
   replies.length = 0;
