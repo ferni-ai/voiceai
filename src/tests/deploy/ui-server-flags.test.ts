@@ -31,6 +31,8 @@ const SERVER_FLAGS = [
   'COHORT_FLAGS=on',
   'PROACTIVE_CHANNELS=on',
   'FOLLOW_THROUGH_JOB=on',
+  // The whole team from the first call, introduced by need (Seth, 2026-10-20; the agent has it too).
+  'TEAM_BY_NEED=on',
 ];
 
 /** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */
