@@ -1,5 +1,7 @@
 import { EventEmitter } from 'node:events';
 
+import { DisconnectReason } from '@livekit/rtc-node';
+
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { classifyCallEnd } from '../../../../services/analytics/call-end-reason.js';
@@ -74,6 +76,21 @@ describe('waitForSessionEnd', () => {
     const reason = await ended;
     expect(reason).toBe('room.disconnected');
     expect(classifyCallEnd(reason)).toBe('disconnect');
+  });
+
+  it('a room closed on purpose is room.closed with the caller there, caller_left once they left', async () => {
+    const withCaller = new FakeRoom();
+    const ended = waitForSessionEnd(withCaller);
+    withCaller.emit('disconnected', DisconnectReason.ROOM_DELETED);
+    expect(await ended).toBe('room.closed');
+    expect(classifyCallEnd('room.closed')).toBe('natural');
+
+    const empty = new FakeRoom();
+    const ended2 = waitForSessionEnd(empty);
+    empty.remoteParticipants.size = 0;
+    empty.emit('participantDisconnected', {});
+    empty.emit('disconnected', DisconnectReason.ROOM_DELETED);
+    expect(await ended2).toBe('caller_left');
   });
 
   it('the poll seeing the connection gone after the caller left is natural too', async () => {

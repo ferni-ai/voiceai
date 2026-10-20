@@ -26,6 +26,7 @@ const store = vi.hoisted(() => ({
   assignVariant: vi.fn(async () => null),
   trackExposure: vi.fn(async () => undefined),
   trackConversion: vi.fn(async () => undefined),
+  trackEvent: vi.fn(async (_event: Record<string, unknown>) => undefined),
 }));
 vi.mock('../../services/experiments/web-experiments.js', () => store);
 
@@ -44,10 +45,11 @@ interface Sent {
 }
 
 /** Loads both scripts on a fake ferni.ai page, leaves it, and returns what was sent. */
-function leavePage(opts: { consented: boolean }): Sent[] {
-  const storage = new Map<string, string>([
-    ['ferni_experiments', JSON.stringify({ 'hero-test': { variantId: 'b', assignedAt: 1 } })],
-  ]);
+function leavePage(opts: { consented: boolean; inExperiment?: boolean }): Sent[] {
+  const storage = new Map<string, string>();
+  if (opts.inExperiment !== false) {
+    storage.set('ferni_experiments', JSON.stringify({ 'hero-test': { variantId: 'b', assignedAt: 1 } })); // prettier-ignore
+  }
   if (opts.consented) storage.set('ferni_cookies', 'accepted');
   const sent: Sent[] = [];
   const listeners: Record<string, Array<() => void>> = {};
@@ -160,6 +162,29 @@ describe('ferni.ai exit events', () => {
     expect(Object.keys(events[0]).sort()).toEqual(
       ['eventType', 'experimentId', 'goalId', 'userId', 'value', 'variantId'].sort()
     );
+    // In an experiment: sent through the experiment only, never also as engagement.
+    expect(events.filter((e) => e.eventType !== 'conversion')).toEqual([]);
+  });
+
+  it('sends nothing before consent from a visitor in no experiment either', () => {
+    expect(leavePage({ consented: false, inExperiment: false })).toEqual([]);
+  });
+
+  it('after consent, a visitor in no experiment sends the same metrics once, as engagement', () => {
+    const sent = leavePage({ consented: true, inExperiment: false });
+    expect(sent.map((s) => s.url)).toEqual(['/api/landing/experiments/track/batch']);
+    expect(sent[0].keepalive).toBe(true);
+    const { events } = sent[0].body;
+    expect(events.map((e) => [e.goalId, e.eventType, e.experimentId])).toEqual([
+      ['final_scroll_depth', 'engagement', 'all'],
+      ['time_on_page', 'engagement', 'all'],
+    ]);
+    for (const event of events) {
+      expect(event.userId).toMatch(/^anon_\d+_[a-z0-9]+$/);
+      expect(typeof event.value).toBe('number');
+      expect(event).not.toHaveProperty('variantId');
+    }
+    expect(events[1].userId).toBe(events[0].userId);
   });
 });
 
@@ -173,6 +198,18 @@ describe('POST /api/v1/public/experiments/track/batch', () => {
       [userId, 'final_scroll_depth'],
       [userId, 'time_on_page'],
     ]);
+  });
+
+  it("records a visitor's exit metrics when they are in no experiment", async () => {
+    const [{ body }] = leavePage({ consented: true, inExperiment: false });
+    const res = await postBatch(body);
+    expect(res).toEqual({ status: 200, json: { success: true, tracked: 2, failed: 0 } });
+    const { userId } = body.events[0];
+    expect(store.trackEvent.mock.calls.map(([e]) => [e.userId, e.eventType, e.goalId])).toEqual([
+      [userId, 'engagement', 'final_scroll_depth'],
+      [userId, 'engagement', 'time_on_page'],
+    ]);
+    expect(store.trackConversion).not.toHaveBeenCalled();
   });
 
   it('refuses the old exit beacon (no userId), recording nothing', async () => {

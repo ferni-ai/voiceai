@@ -150,6 +150,7 @@ import { initConversationSession } from '../integrations/conversation-session-in
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
+import { calendarDaysSince } from '../../utils/calendar-days.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
 const log = getLogger();
@@ -372,7 +373,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : services.userProfile;
     if (userProfile) {
-      rememberCallerHistory(sessionId, callerHistory(userProfile)); // for the greeting
+      // Days since the last call count in the zone this call settled (phone-parity.ts)
+      const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
+      rememberCallerHistory(sessionId, callerHistory(userProfile, new Date(), callZone));
       const userAwareness: string[] = [];
       const sessionStartTime = new Date();
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
@@ -399,12 +402,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           );
         }
 
-        // Last conversation time
+        // Last conversation, in calendar days where they live ("yesterday" is the calendar day)
         if (userProfile.lastContact) {
-          const lastContactDate = new Date(userProfile.lastContact);
-          const daysSince = Math.floor(
-            (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
-          );
+          const daysSince = calendarDaysSince(userProfile.lastContact, sessionStartTime, callZone);
           userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
