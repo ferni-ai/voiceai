@@ -18,6 +18,8 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { heldAfter } from '../../utils/minor-care.js';
+// Each stores (or reaches out), so each asks MINOR_CARE first (minor-care.ts).
 import {
   persistChapter,
   persistDream,
@@ -525,13 +527,9 @@ Human friends forget promises. You don't.`,
           priority: 73,
         });
 
-        // Fire-and-forget: Save to commitment keeper (original path)
-        void saveCommitmentAsync(
-          ctx.userId,
-          commitment.type!,
-          commitment.phrase!,
-          ctx.currentTopic
-        );
+        // Fire-and-forget: Save to commitment keeper (original path); MINOR_CARE=on holds it
+        if (!heldAfter(ctx.sessionId, ctx.userText))
+          void saveCommitmentAsync(ctx.userId, commitment.type!, commitment.phrase!, ctx.currentTopic);
       }
     }
 
@@ -792,7 +790,8 @@ Your superpower: You notice cycles before they hit.
           currentEmotion: ctx.emotionalState.primary,
           emotionIntensity: ctx.emotionalState.intensity,
           topics: ctx.analysis.topics?.detected || [],
-        }
+        },
+        ctx.userText
       );
     }
 
@@ -971,6 +970,7 @@ async function loadCommitmentE2EAsync(
   ctx: LiveSuperhumanContext
 ): Promise<CommitmentE2EResult | null> {
   try {
+    if (heldAfter(ctx.sessionId, ctx.userText)) return null; // MINOR_CARE=on: it stores (minor-care.ts)
     const { detectCommitmentE2E } =
       await import('../../services/superhuman/commitment-keeper-e2e.js');
 
