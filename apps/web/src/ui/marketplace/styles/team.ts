@@ -89,12 +89,6 @@ export function getTeamStyles(): string {
       margin: 0 auto;
     }
 
-    .leadership-grid.cofounders {
-      grid-template-columns: repeat(3, 1fr);
-      max-width: 320px;
-      margin: 0 auto;
-    }
-
     .leadership-grid.employees {
       grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
       max-width: 600px;
@@ -184,42 +178,6 @@ export function getTeamStyles(): string {
       color: var(--color-text-secondary);
       line-height: 1.5;
       margin: 0;
-    }
-
-    /* ========================================
-       CO-FOUNDER CARDS
-       ======================================== */
-
-    .leader-card.cofounder {
-      gap: var(--space-xs);
-    }
-
-    .cofounder-avatar {
-      width: 48px;
-      height: 48px;
-      font-size: 0;
-      animation: avatar-breathe 5s var(--ease-smooth) infinite;
-    }
-
-    .cofounder-avatar svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    .leader-card.cofounder:nth-child(1) .cofounder-avatar { animation-delay: 0s; }
-    .leader-card.cofounder:nth-child(2) .cofounder-avatar { animation-delay: 0.4s; }
-    .leader-card.cofounder:nth-child(3) .cofounder-avatar { animation-delay: 0.8s; }
-
-    .leader-card.cofounder:hover .cofounder-avatar {
-      transform: scale(1.1);
-      animation: avatar-breathe 2s var(--ease-spring-gentle) infinite;
-    }
-
-    .cofounder-name {
-      font-family: var(--font-body);
-      font-size: 0.75rem;
-      font-weight: 500;
-      color: var(--color-text-secondary);
     }
 
     /* ========================================
