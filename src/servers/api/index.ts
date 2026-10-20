@@ -6,6 +6,7 @@
 
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
+import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only)
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -32,6 +33,7 @@ import { bindBodyLimitResponse } from '../../api/bounded-body.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { runBackgroundServices } from './background-services.js';
 import { parseRawBody } from '../../api/helpers.js';
+import { handleAppConfigIos } from '../../api/app-config-ios.js';
 
 // Local routes
 import {
@@ -320,8 +322,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // LOCAL ROUTES (TypeScript modules)
   // ============================================================================
 
-  // Health routes
-  if (await handleHealthRoutes(req, res, pathname)) return;
+  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname))) return;
 
   // Token routes (LiveKit tokens, demo sessions)
   if (await handleTokenRoutes(req, res, pathname, parsedUrl)) return;
@@ -1487,7 +1488,6 @@ registerDDoSAlertCallback(async (details) => {
 // Start automatic DDoS monitoring
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
-// Start the server
 server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
 async function startBackgroundServices(): Promise<void> {
   log.info({ port: PORT, livekitUrl: LIVEKIT_URL, ddosProtection: true }, 'UI Server started');
