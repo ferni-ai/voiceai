@@ -43,6 +43,18 @@ public enum CallActivityState: String, Codable, Hashable, Sendable {
     /// End and Mute, on every state of a call; nothing to press once it's over.
     public var hasControls: Bool { self != .ended && self != .couldNotJoin }
 
+    /// The Dynamic Island's compact trailing glyph. Once the call is over, a
+    /// wave goodbye: the waveform stayed there ~4.5 s after hang-up, as if the
+    /// call were still on (design audit P1-11).
+    public func islandSymbol(muted: Bool) -> String {
+        guard hasControls else { return "hand.wave.fill" }
+        return muted ? "mic.slash.fill" : "waveform"
+    }
+
+    /// The running time shows only while there's a call; after it, it kept
+    /// counting under "Talk soon." until the activity went.
+    public var showsDuration: Bool { hasControls }
+
     /// From the caller's side, like the call screen's state line.
     public func words(_ name: String) -> String {
         switch self {
