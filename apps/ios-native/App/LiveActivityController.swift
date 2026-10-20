@@ -24,7 +24,10 @@ final class LiveActivityController {
     ) -> CallActivityAttributes.ContentState? {
         let state: CallActivityState
         switch phase {
-        case .connecting, .waitingForFerni: state = .arriving
+        case .connecting: state = .calling
+        case .waitingForFerni: state = .arriving
+        // Ferni never came: say so on the Lock Screen too, then end there.
+        case .failed(.ferniDidNotJoin): state = .couldNotJoin
         case .reconnecting: state = .reconnecting
         case .live:
             if onHold { state = .onHold } else {
@@ -42,12 +45,14 @@ final class LiveActivityController {
     /// What the activity shows once the call is over: a short goodbye from the
     /// same person, with nothing to press (gap 6).
     static func final(after latest: CallActivityAttributes.ContentState) -> CallActivityAttributes.ContentState {
-        .init(state: .ended, personaID: latest.personaID, personaName: latest.personaName)
+        latest.state == .couldNotJoin ? latest : .init(state: .ended, personaID: latest.personaID, personaName: latest.personaName)
     }
 
     func follow(_ content: CallActivityAttributes.ContentState?, startedAt: Date?) {
         guard let content else { return end() }
         latest = content
+        // The call's last word: shown as the activity ends (and goes 4 s later).
+        if !content.state.hasControls { return end() }
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
         if activity == nil {
             activity = try? Activity.request(

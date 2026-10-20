@@ -6,9 +6,18 @@ final class CallActivityStateTests: XCTestCase {
     func testAnEndedCallSaysGoodbyeAndHasNothingToPress() {
         XCTAssertEqual(CallActivityState.ended.words("Ferni"), "Talk soon.")
         XCTAssertFalse(CallActivityState.ended.hasControls, "no End or Mute on a call that's over")
-        for state in [CallActivityState.arriving, .listening, .thinking, .speaking, .reconnecting, .onHold] {
+        for state in [CallActivityState.calling, .arriving, .listening, .thinking, .speaking, .reconnecting, .onHold] {
             XCTAssertTrue(state.hasControls, "\(state): End always works while there's a call")
         }
+    }
+
+    /// Calling, then on the way, then (if Ferni never comes) saying so, with
+    /// nothing to press (2026-10-19).
+    func testCallingOnTheWayAndCouldntJoin() {
+        XCTAssertEqual(CallActivityState.calling.words("Ferni"), "Calling Ferni")
+        XCTAssertEqual(CallActivityState.arriving.words("Ferni"), "Ferni's on the way")
+        XCTAssertEqual(CallActivityState.couldNotJoin.words("Ferni"), "Ferni couldn't join right now")
+        XCTAssertFalse(CallActivityState.couldNotJoin.hasControls)
     }
 
     /// Activities in flight keep decoding after the new field arrives.
