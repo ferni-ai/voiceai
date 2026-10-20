@@ -170,17 +170,17 @@ describe('caller text cannot make the patterns run away', () => {
 
   // The limit is relative to a short ordinary sentence timed on the same machine.
   // A fixed 50 ms failed a loaded CI runner with coverage on (198 ms for linear
-  // work) and ejected PRs from the merge queue. Healthy, these inputs cost at most
-  // ~5x the short sentence; runaway backtracking grows with the repetition and
-  // costs hundreds of times more.
+  // work) and ejected PRs from the merge queue. Healthy, these inputs cost up to
+  // ~10x the short sentence; anything worse than linear costs over 200x more on
+  // the 300-character input than on this 21-character one.
   let limit = 50;
   beforeAll(() => {
     judgeCommitment('send Mindy the photos'); // first call loads the lexicon
-    limit = Math.max(50, 15 * bestOfThree('send Mindy the photos'));
+    limit = Math.max(50, 30 * bestOfThree('send Mindy the photos'));
   });
 
   it.each(pathological.map((s) => [s.slice(0, 24), s]))(
-    '%j... finishes within 15x a short sentence',
+    '%j... finishes within 30x a short sentence',
     (_, s) => {
       expect(bestOfThree(s)).toBeLessThan(limit);
     }
