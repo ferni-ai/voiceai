@@ -7,7 +7,7 @@
  * Routes:
  *   GET  /api/v1/public/experiments/:id/variant  - Get variant for user
  *   POST /api/v1/public/experiments/track        - Track exposure/conversion/engagement
- *   POST /api/v1/public/experiments/track/batch  - Batch track events
+ *   POST /api/v1/public/experiments/track/batch  - Batch track events (handleTrackBatch)
  *
  * @module PublicExperimentsAPI
  */
@@ -189,38 +189,7 @@ export async function handlePublicExperimentsRoutes(
 
     // POST /api/v1/public/experiments/track/batch
     if (pathname === `${BASE_PATH}/track/batch` && method === 'POST') {
-      const body = (await parseBody(req)) as { events: TrackedEvent[] };
-
-      if (!Array.isArray(body.events) || body.events.length === 0) {
-        sendJson(res, 400, { error: 'events array is required' });
-        return true;
-      }
-      // One browser, one subject: every event must name the same id
-      const ids = new Set(body.events.map((e) => e.userId));
-      if (ids.size !== 1 || body.events.length > MAX_BATCH_EVENTS) {
-        sendJson(res, 400, { error: `1-${MAX_BATCH_EVENTS} events for a single userId` });
-        return true;
-      }
-      const userId = await experimentSubject(req, res, [...ids][0]);
-      if (userId === null) return true;
-
-      // An event the API does not record is reported back, not counted as tracked
-      const skipped: string[] = [];
-      const results = await Promise.allSettled(
-        body.events.map(async (event) => {
-          const refused = await recordEvent(event, userId);
-          if (refused) skipped.push(`${event.eventType}: ${refused}`);
-        })
-      );
-
-      const failed = results.filter((r) => r.status === 'rejected').length;
-
-      sendJson(res, 200, {
-        success: true,
-        tracked: results.length - failed - skipped.length,
-        failed,
-        ...(skipped.length > 0 && { skipped }),
-      });
+      await handleTrackBatch(req, res);
       return true;
     }
 
@@ -238,6 +207,44 @@ export async function handlePublicExperimentsRoutes(
     sendJson(res, 500, { error: 'Internal server error' });
     return true;
   }
+}
+
+/**
+ * One browser's batch of experiment events, recorded under one subject
+ * (experiment-subject.ts: an anonymous visitor id, or the verified caller, each
+ * rate-limited). At most MAX_BATCH_EVENTS; unknown types and conversions with no
+ * goal come back in `skipped` (recordEvent's rules, engagement included). Only ids, the goal and its value are stored:
+ * client `metadata` is not passed on. Serves app.ferni.ai's route and ferni.ai's
+ * /api/landing/experiments/track/batch (landing-intelligence.routes.ts).
+ */
+export async function handleTrackBatch(req: IncomingMessage, res: ServerResponse): Promise<void> {
+  const body = (await parseBody(req)) as { events?: TrackedEvent[] } | undefined;
+  const events = body?.events;
+  if (!Array.isArray(events) || events.length === 0) {
+    sendJson(res, 400, { error: 'events array is required' });
+    return;
+  }
+  // One browser, one subject: every event must name the same id
+  const ids = new Set(events.map((e) => e.userId));
+  if (ids.size !== 1 || events.length > MAX_BATCH_EVENTS) {
+    sendJson(res, 400, { error: `1-${MAX_BATCH_EVENTS} events for a single userId` });
+    return;
+  }
+  const userId = await experimentSubject(req, res, [...ids][0]);
+  if (userId === null) return;
+
+  const skipped: string[] = [];
+  const results = await Promise.allSettled(
+    events.map(async (event) => {
+      // Client metadata is never stored from a batch
+      const refused = await recordEvent({ ...event, metadata: undefined }, userId);
+      if (refused) skipped.push(`${event.eventType}: ${refused}`);
+      return refused === null;
+    })
+  );
+  const tracked = results.filter((r) => r.status === 'fulfilled' && r.value).length;
+  const failed = results.filter((r) => r.status === 'rejected').length;
+  sendJson(res, 200, { success: true, tracked, failed, ...(skipped.length > 0 && { skipped }) });
 }
 
 export default { handlePublicExperimentsRoutes };

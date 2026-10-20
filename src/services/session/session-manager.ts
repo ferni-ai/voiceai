@@ -268,12 +268,13 @@ export async function createSessionServices(
       return global.store.getProfile(uid);
     });
 
+    const warnUnsaved = (e: unknown) => getLogger().warn({ error: String(e) }, 'Profile not saved');
     if (!userProfile) {
       const { createUserProfile } = await import('../../types/user-profile.js');
       // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
       userProfile = createUserProfile(profileUserId, userName);
-      await global.store.saveProfile(userProfile);
-      // Cache the new profile
+      // Never fatal: a refused write (synthetic-write-guard) must not end the call
+      await global.store.saveProfile(userProfile).catch(warnUnsaved);
       void cacheProfile(profileUserId, userProfile);
       getLogger().info(
         { userId: profileUserId, name: userName || '(none)' },
@@ -282,8 +283,7 @@ export async function createSessionServices(
     } else if (!userProfile.name && userName) {
       // Existing profile without a name, but we now have one - update it!
       userProfile.name = userName;
-      await global.store.saveProfile(userProfile);
-      // Invalidate cache so next session gets updated profile
+      await global.store.saveProfile(userProfile).catch(warnUnsaved);
       void invalidateProfile(profileUserId);
       getLogger().info(
         { userId: profileUserId, name: userName },

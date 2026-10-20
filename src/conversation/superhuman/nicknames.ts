@@ -11,6 +11,7 @@
 
 import { seededChance, seededFloat, seededIndex, seededPick } from '../utils/random-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { extractCallerName, nameCaptureStrict } from '../../utils/caller-name.js';
 
 const log = createLogger({ module: 'Nicknames' });
 
@@ -209,6 +210,15 @@ export function recordNameUsage(userId: string): void {
 export function extractNameFromMessage(
   message: string
 ): { firstName?: string; preferredName?: string } | null {
+  // NAME_CAPTURE_STRICT=on: the shared extractor; the patterns below take "not" from "I'm not sure".
+  if (nameCaptureStrict()) {
+    const name = extractCallerName(message);
+    if (!name) return null;
+    return {
+      firstName: name,
+      preferredName: /call(?:s)? me|go by/i.test(message) ? name : undefined,
+    };
+  }
   // Common patterns for sharing names
   const patterns = [
     /my name is (\w+)/i,

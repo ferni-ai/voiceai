@@ -937,7 +937,7 @@ function attachMarketplaceAgentListeners(
   // FUTURE: Implement handoff.service.ts support for marketplace agents
   const cleanup = addListener(element, 'click', (e) => {
     e.stopPropagation();
-
+    if (!isPanelVisible('marketplace')) return; // hidden panel: an old tile must not open it
     log.debug('Clicked marketplace agent:', name);
 
     // Visual feedback - FIX BUG: Use DURATION constant instead of hardcoded value

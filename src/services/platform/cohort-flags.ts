@@ -27,9 +27,8 @@
  * infrastructure or secrets. Reading cohorts never holds a call up for more
  * than READ_TIMEOUT_MS. Off unless COHORT_FLAGS=on.
  *
- * Servers that act for many users in one process (the UI server's scheduled
- * jobs) must never write process.env; they ask per person instead, with
- * flagForUser and usersWithFlag below.
+ * Servers that act for many users in one process (the UI server's scheduled jobs) must never
+ * write process.env; they ask per person instead, with flagForUser and usersWithFlag below.
  *
  * @module services/platform/cohort-flags
  */
@@ -70,6 +69,7 @@ export const COHORT_FLAGS = [
   'PHONE_GOODBYE',
   'HAPPY_EXITS',
   'HANDOFF_TALK_THROUGH',
+  'FAMILY_TABLE',
   // Read once the greeting's handlers are wired (greeting-wiring.ts), after applyCallerFlags.
   'HANDOFF_FIRST_FIX',
   'NAME_CORRECTION',
