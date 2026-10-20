@@ -336,7 +336,10 @@ export async function toolsForTurn(
   // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores
   // anything. The phone-safe set holds no tool that reaches others, so it covers both.
   const others = mayReachOthers(userIdOf(session.userData), sessionId, sessionIsVerifiedOwner);
-  const held = heldAfter(sessionId, callerWords(chatCtx), { asked: lastFerniLine(chatCtx.items) });
+  const held = heldAfter(sessionId, callerWords(chatCtx), {
+    asked: lastFerniLine(chatCtx.items),
+    userId: userIdOf(session.userData), // userHeld follows
+  });
   const allowed =
     phoneOnlyIdentity(sessionId) || held
       ? await withoutAccountTools(toolCtx, state)

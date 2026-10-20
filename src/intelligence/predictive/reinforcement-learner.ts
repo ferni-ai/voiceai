@@ -1,22 +1,17 @@
 /**
  * Reinforcement Learning from Outreach Outcomes
- *
  * TRUE PREDICTIVE INTELLIGENCE: Learn what actually works, not just what we think works.
- *
  * This module tracks the outcomes of predictions and outreach actions to continuously
  * improve the system. It answers questions like:
- *
  * - Did the user engage when we predicted they would?
  * - Did our proactive outreach help or annoy?
  * - Which signals are actually predictive vs noise?
  * - Are we calibrated? (When we say 70% confident, are we right 70% of the time?)
- *
  * Learning modes:
  * 1. SIGNAL CALIBRATION - Adjust confidence scores based on actual accuracy
  * 2. WEIGHT LEARNING - Which signals matter for which users
  * 3. TIMING OPTIMIZATION - When do actions have positive outcomes
  * 4. PERSONALIZATION - User-specific preferences and patterns
- *
  * @module intelligence/predictive/reinforcement-learner
  */
 
@@ -140,6 +135,11 @@ const CONFIG = {
 
 const trackedPredictions = new Map<string, TrackedPrediction[]>();
 const learningStats = new Map<string, LearningStats>();
+/** MINOR_CARE: drop a held caller under 18's state, so it is never written later. */
+export function clearHeldReinforcementUser(userId: string): void {
+  trackedPredictions.delete(userId);
+  learningStats.delete(userId);
+}
 
 // ============================================================================
 // TRACKING PREDICTIONS
