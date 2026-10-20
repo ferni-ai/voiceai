@@ -41,6 +41,7 @@ export function injectUserAwareness(opts: {
     isReturningUser,
     userName,
     sessionStartTime,
+    timeZone: userData?.callerTimezone, // the browser's zone (phone-parity.ts settleCallerZone)
   });
   if (facts.length > 0) {
     process.stderr.write(

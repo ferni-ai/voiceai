@@ -16,6 +16,7 @@
 import { lastMoodNote } from '../../../services/session/last-mood-note.js';
 import { placeholderSummaryNote } from '../../../services/session/placeholder-summary.js';
 import type { UserProfile } from '../../../types/user-profile.js';
+import { daysSinceLastTalk } from '../../../utils/days-since-last-talk.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../../shared/outbound-opener.js';
 
 // ============================================================================
@@ -33,6 +34,8 @@ export interface UserAwarenessConfig {
   userName?: string;
   /** Session start time for time calculations */
   sessionStartTime: Date;
+  /** The call's zone, for calendar days under AWARENESS_LOCAL_DAYS */
+  timeZone?: unknown;
 }
 
 export interface UserAwarenessResult {
@@ -73,7 +76,7 @@ const LIFE_EVENT_TYPES: Record<string, string> = {
  * and understand the user like a superhuman friend would.
  */
 export function buildUserAwareness(config: UserAwarenessConfig): UserAwarenessResult {
-  const { userProfile, isReturningUser, userName, sessionStartTime } = config;
+  const { userProfile, isReturningUser, userName, sessionStartTime, timeZone } = config;
 
   const facts: string[] = [];
 
@@ -101,7 +104,7 @@ export function buildUserAwareness(config: UserAwarenessConfig): UserAwarenessRe
   }
 
   // Relationship context
-  addRelationshipContext(facts, profile, isReturningUser, sessionStartTime);
+  addRelationshipContext(facts, profile, isReturningUser, sessionStartTime, timeZone);
 
   // Better Than Human #1: Last Conversation Context
   if (isReturningUser && profile.lastConversationSummary) {
@@ -147,7 +150,8 @@ function addRelationshipContext(
   facts: string[],
   profile: UserProfile,
   isReturningUser: boolean,
-  sessionStartTime: Date
+  sessionStartTime: Date,
+  timeZone?: unknown
 ): void {
   if (isReturningUser && profile.totalConversations) {
     const convCount = profile.totalConversations;
@@ -163,7 +167,7 @@ function addRelationshipContext(
 
     // Last conversation time
     if (profile.lastContact) {
-      addLastContactContext(facts, profile.lastContact, sessionStartTime);
+      addLastContactContext(facts, profile.lastContact, sessionStartTime, timeZone);
     }
   } else if (!isReturningUser) {
     facts.push('This is your first conversation with them - be welcoming but not overwhelming.');
@@ -182,12 +186,11 @@ function addRelationshipContext(
 function addLastContactContext(
   facts: string[],
   lastContact: string | Date,
-  sessionStartTime: Date
+  sessionStartTime: Date,
+  timeZone?: unknown
 ): void {
   const lastContactDate = typeof lastContact === 'string' ? new Date(lastContact) : lastContact;
-  const daysSince = Math.floor(
-    (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
-  );
+  const daysSince = daysSinceLastTalk(lastContactDate, sessionStartTime, timeZone);
 
   if (daysSince === 0) {
     facts.push('You talked earlier today.');

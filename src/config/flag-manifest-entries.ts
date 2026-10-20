@@ -58,6 +58,8 @@ export const FLAGS_ACTION_TO_BYPASS = {
   AVATAR_REPLY_TONE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // getCurrentContext / getTodaySignificance in the caller's zone, with the cached weather
   AWARENESS_CALLER_TIME: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  // "earlier today" / "yesterday" in the caller's calendar days, not 24-hour blocks (days-since-last-talk.ts)
+  AWARENESS_LOCAL_DAYS: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKCHANNELS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: live backchannels time the caller's pause on the audio clock and skip stale frames
   BACKCHANNEL_AUDIO_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },

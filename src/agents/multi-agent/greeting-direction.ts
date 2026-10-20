@@ -15,6 +15,7 @@ import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { daysSinceLastTalk } from '../../utils/days-since-last-talk.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { callerHour } from '../shared/time-context.js';
 import {
@@ -205,14 +206,17 @@ export function callerHistory(
     /** Only a last-call summary checked for who said what (caller-assertions.ts). */
     lastCallerSummary?: string;
   },
-  now: Date = new Date()
+  now: Date = new Date(),
+  /** The call's zone, for calendar days under AWARENESS_LOCAL_DAYS. */
+  timeZone?: unknown
 ): CallerHistory | undefined {
   const calls = profile.totalConversations ?? 0;
   if (calls <= 0) return undefined;
   const history: CallerHistory = { calls };
   if (profile.lastContact) {
-    const ms = now.getTime() - new Date(profile.lastContact).getTime();
-    if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
+    const last = new Date(profile.lastContact);
+    const ms = now.getTime() - last.getTime();
+    if (Number.isFinite(ms) && ms >= 0) history.daysSince = daysSinceLastTalk(last, now, timeZone);
   }
   const fc = profile.firstContact;
   const first =
