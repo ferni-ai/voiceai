@@ -193,7 +193,9 @@ describe('phone goodbye on a call with crisis risk', () => {
     noteCrisisRisk('s-crisis');
     expect(await callEndCall(a, events)).toBe(JSON.stringify(CRISIS_HOLD));
     expect(events.some((e) => e.startsWith('hung up'))).toBe(false);
-    expect(held()).toEqual([['END_CALL_HELD_CRISIS', { sessionId: 's-crisis', tool: 'phone' }]]);
+    expect(held()).toEqual([
+      ['END_CALL_HELD_CRISIS', { sessionId: 's-crisis', tool: 'phone', stage: 'before_playout' }],
+    ]);
   });
 
   it('holds while a crisis read is still in flight, and hangs up once it reads clean', async () => {
@@ -213,6 +215,22 @@ describe('phone goodbye on a call with crisis risk', () => {
     await read;
     expect(await callEndCall(a, events)).toContain('The call has ended.');
     expect(events).toEqual(['goodbye played', 'hung up room-s-reading']);
+  });
+
+  it('does not hang up when crisis risk is noted while the goodbye plays', async () => {
+    const { a, events } = await phoneCall('s-mid-goodbye');
+    const output = await callEndCall(a, events, async () => {
+      events.push('goodbye played');
+      noteCrisisRisk('s-mid-goodbye');
+    });
+    expect(output).toBe(JSON.stringify(CRISIS_HOLD));
+    expect(events).toEqual(['goodbye played']);
+    expect(held()).toEqual([
+      [
+        'END_CALL_HELD_CRISIS',
+        { sessionId: 's-mid-goodbye', tool: 'phone', stage: 'after_playout' },
+      ],
+    ]);
   });
 
   it('hangs up as before when the call has no risk, even if another call does', async () => {

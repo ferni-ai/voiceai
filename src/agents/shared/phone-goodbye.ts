@@ -40,17 +40,23 @@ export type HangUp = (roomName: string) => Promise<void>;
 export const CRISIS_HOLD =
   "Don't hang up: this call has had a crisis moment. Stay with them; the call ends when they hang up.";
 
+/** Where in the teardown the crisis check ran. */
+export type CrisisHoldStage = 'before_playout' | 'after_playout' | 'before_delete';
+
 /**
  * True when endCall must not end this call: crisis risk noted on it, or a
- * crisis read still in flight. Logs END_CALL_HELD_CRISIS so prod can see it.
+ * crisis read still in flight. Checked again after the goodbye plays (and
+ * before the app's delayed room delete), since a read can start meanwhile.
+ * Logs END_CALL_HELD_CRISIS so prod can see it.
  * Without a sessionId there is nothing to look up, so it does not hold.
  */
 export function holdEndCallForCrisis(
   sessionId: string | undefined,
-  tool: 'phone' | 'app'
+  tool: 'phone' | 'app',
+  stage: CrisisHoldStage = 'before_playout'
 ): boolean {
   if (!sessionId || !crisisRiskThisCall(sessionId)) return false;
-  log.warn({ sessionId, tool }, 'END_CALL_HELD_CRISIS');
+  log.warn({ sessionId, tool, stage }, 'END_CALL_HELD_CRISIS');
   return true;
 }
 
@@ -86,6 +92,7 @@ export function createEndCallTool(
       } catch {
         // Hang up anyway: a cut-off goodbye beats a line left open
       }
+      if (holdEndCallForCrisis(sessionId, 'phone', 'after_playout')) return CRISIS_HOLD;
       try {
         await hangUp(roomName);
         log.info({ roomName }, 'Ferni hung up after the goodbye');

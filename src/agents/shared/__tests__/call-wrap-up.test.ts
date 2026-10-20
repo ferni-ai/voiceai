@@ -19,6 +19,7 @@ import {
   WRAP_UP_DESCRIPTION,
   wrapUpCall,
 } from '../call-wrap-up.js';
+import { farewellSaid } from '../call-farewell.js';
 import { CRISIS_HOLD, END_CALL } from '../phone-goodbye.js';
 import { clearSessionClosing, isSessionClosing } from '../session-closing-tracker.js';
 import {
@@ -321,6 +322,28 @@ describe('call wrap-up on a call with crisis risk', () => {
     expect(await callEndCall(c.a, c.playout)).toBe('');
     expect(isSessionClosing(c.id)).toBe(true);
     expect(c.timers.map((t) => t.ms)).toEqual([REMOVAL_GRACE_MS]);
+  });
+
+  it('ends nothing when crisis risk is noted while the goodbye plays', async () => {
+    const c = await appCall();
+    const output = await callEndCall(c.a, async () => {
+      c.events.push('played');
+      noteCrisisRisk(c.id);
+    });
+    expect(output).toBe(JSON.stringify(CRISIS_HOLD));
+    expect(c.events).toEqual(['played']); // no conversation_end
+    expect(isSessionClosing(c.id)).toBe(false);
+    expect(farewellSaid(c.id)).toBe(false); // Ferni is not kept quiet
+    expect(c.timers).toHaveLength(0); // no room delete scheduled
+  });
+
+  it('does not delete the room when crisis risk is noted during the grace window', async () => {
+    const c = await appCall();
+    expect(await callEndCall(c.a, c.playout)).toBe('');
+    expect(c.timers.map((t) => t.ms)).toEqual([REMOVAL_GRACE_MS]);
+    noteCrisisRisk(c.id);
+    await c.runTimers();
+    expect(c.events.some((e) => e.startsWith('deleted'))).toBe(false);
   });
 
   it('ends the call as before when it has no risk, even if another call does', async () => {
