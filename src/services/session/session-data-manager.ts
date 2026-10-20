@@ -23,9 +23,7 @@ const log = createLogger({ module: 'SessionDataManager' });
 // TYPES
 // ============================================================================
 
-/**
- * Interface for services that cache user data
- */
+/** Interface for services that cache user data */
 export interface SessionDataService {
   /** Unique name for this service */
   name: string;
@@ -154,10 +152,7 @@ class SessionDataManagerImpl {
     }
   }
 
-  /**
-   * Clean up ALL cached data for a user.
-   * Call this when a voice session disconnects.
-   */
+  /** Clean up ALL cached data for a user when a voice session disconnects. */
   async sessionEnded(
     userId: string,
     options: { save?: boolean } = {}
