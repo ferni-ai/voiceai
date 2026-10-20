@@ -42,6 +42,7 @@
 		621E18533277A7BC22296241 /* FloorFadeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BFB87749BD4C9D4FD65978F /* FloorFadeUITests.swift */; };
 		639D84959EC4165C2F4DA23F /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB291C79E629A29D4B86C651 /* AccessibilityAuditTests.swift */; };
 		65A85BD3CF6927E84BDB94EC /* AvatarTouchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */; };
+		6AEF0AA3C0A2BB52913602A3 /* MemoryEdgesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32CB97AAAE8B87F35E050CA3 /* MemoryEdgesUITests.swift */; };
 		6C5C041CBBDFB39263B52443 /* FerniLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65555DCB199766EA982A43A3 /* FerniLive.swift */; };
 		6F1A1895F228B47FE081346A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F086DF8C257F87FC0940C6A /* Assets.xcassets */; };
 		73E420E1A1EF13C436B2D8A6 /* MuteCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655A6BDFEE3CE0F40FDD86B9 /* MuteCallIntent.swift */; };
@@ -215,6 +216,7 @@
 		2DA4BC7C1EABDFAE3445A318 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
 		314CF4DEF139B4B6126A1C63 /* NextStepViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextStepViews.swift; sourceTree = "<group>"; };
 		32CB80CF1D9492393B441589 /* DeepLinkUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkUITests.swift; sourceTree = "<group>"; };
+		32CB97AAAE8B87F35E050CA3 /* MemoryEdgesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryEdgesUITests.swift; sourceTree = "<group>"; };
 		346AABA0EB545D4C92B2D8CD /* CallViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViews.swift; sourceTree = "<group>"; };
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
 		3751457DBC4CF962D924D247 /* NextStepTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextStepTests.swift; sourceTree = "<group>"; };
@@ -437,6 +439,7 @@
 				BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */,
 				F133B033213FD0942D68871F /* HomeBalanceUITests.swift */,
 				2B807054CD639997DA9CFB4F /* IPadHomeUITests.swift */,
+				32CB97AAAE8B87F35E050CA3 /* MemoryEdgesUITests.swift */,
 				8ABF5A8522BA18DED299ED09 /* MemoryJournalUITests.swift */,
 				28FFB847C77E5459E255C656 /* MuteLookUITests.swift */,
 				EDC1F42CEAB8576041D1E034 /* PaperScreensUITests.swift */,
@@ -845,6 +848,7 @@
 				8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */,
 				AEA5F6881617AB84E1E3A42B /* HomeBalanceUITests.swift in Sources */,
 				7DA13593D47CC26EA4439F02 /* IPadHomeUITests.swift in Sources */,
+				6AEF0AA3C0A2BB52913602A3 /* MemoryEdgesUITests.swift in Sources */,
 				E7F087D73B4FD9846D1E5AB3 /* MemoryJournalUITests.swift in Sources */,
 				3DBF3ECAF8368EDDD6EE6956 /* MuteLookUITests.swift in Sources */,
 				C54E78DAA6C5D8493E76C06D /* PaperScreensUITests.swift in Sources */,
