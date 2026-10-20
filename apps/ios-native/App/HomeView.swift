@@ -44,7 +44,6 @@ struct HomeView: View {
                                 .frame(maxWidth: 380)
                         }
                     } else {
-                        if inCall { NameChip(personaID: call.avatar.personaID) }
                         // At accessibility sizes Ferni steps back so the words fit: in a
                         // call, the captions; at home, the greeting above the pinned Talk
                         // (design audit P1-9: on an SE at AX5 it sat behind Talk).
@@ -88,6 +87,16 @@ struct HomeView: View {
             // The container's size is already inside the bar and Talk's inset.
             .onScrollGeometryChange(for: CGFloat.self) { $0.containerSize.height } action: { _, height in
                 visibleHeight = height
+            }
+            // Who you're talking with stays in view: at AX5 the chip scrolled
+            // up under the status bar with the captions (design audit P2 #19).
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if inCall && !beside {
+                    NameChip(personaID: call.avatar.personaID)
+                        .padding(.vertical, FerniSpace.breath)
+                        .frame(maxWidth: .infinity)
+                        .background { TimelineView(.everyMinute) { RoomFade(date: HomeClock.time($0.date), from: .top) } }
+                }
             }
             // Pinned at every text size: End, Mute and More (and Talk) never
             // scroll away. At accessibility sizes they scrolled with the

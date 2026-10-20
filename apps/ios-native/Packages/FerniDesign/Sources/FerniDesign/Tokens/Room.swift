@@ -36,18 +36,43 @@ public struct RoomBackground: View {
 /// instead of sitting half-covered behind it (design audit P1-4).
 public struct RoomFade: View {
     let date: Date
+    let edge: VerticalEdge
 
-    public init(date: Date = .now) { self.date = date }
+    /// - Parameter from: the edge the floor (or ceiling) is solid at; it fades
+    ///   to clear toward the other. The top one sits under the call's name chip
+    ///   (design audit P2 #19).
+    public init(date: Date = .now, from edge: VerticalEdge = .bottom) {
+        self.date = date
+        self.edge = edge
+    }
+
+    /// How far the ceiling's fade hangs below what it sits under.
+    static let ceilingFade: CGFloat = 32
 
     public var body: some View {
         let light = RoomLight(hour: Calendar.current.component(.hour, from: date))
-        ZStack {
+        let room = ZStack {
             FerniColor.background
             light.tint.opacity(light.tintOpacity)
         }
-        .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.45)],
-                             startPoint: .top, endPoint: .bottom))
-        .ignoresSafeArea(edges: .bottom)
+        Group {
+            if edge == .bottom {
+                room
+                    .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.45)],
+                                         startPoint: .top, endPoint: .bottom))
+                    .ignoresSafeArea(edges: .bottom)
+            } else {
+                // Solid behind what it sits under (the words stay on the room's
+                // paper), fading out just below it.
+                VStack(spacing: 0) {
+                    room
+                    room.mask(LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom))
+                        .frame(height: Self.ceilingFade)
+                }
+                .padding(.bottom, -Self.ceilingFade)
+                .ignoresSafeArea(edges: .top)
+            }
+        }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
