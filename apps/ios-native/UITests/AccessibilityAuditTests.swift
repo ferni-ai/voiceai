@@ -122,8 +122,8 @@ final class AccessibilityAuditTests: XCTestCase {
          "The call's state line in medium secondary ink: #5c544a on #f2ebdf, 6.3:1 measured from the iPad screenshot (2026-10-20); flagged on iPad only, where \"Reconnecting…\" in the same place passes."),
         ("failed", .contrast, "Couldn't reach Ferni",
          "The failed call's message: #2c2520 on #f7eee3, 13.1:1 measured from the 17 Pro screenshot (2026-10-20); flagged in regular and medium weight alike."),
-        ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "Talk", "iPad sidebar row: the AX5 screenshot shows the full word."),
-        ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "What Ferni remembers", "iPad sidebar row: wraps to three full lines at AX5 (screenshot)."),
+        ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "#sidebar.talk", "iPad sidebar row (that row only, by identifier): the AX5 screenshot shows the full word."),
+        ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "#sidebar.remembers", "iPad sidebar row (that row only, by identifier): wraps to three full lines at AX5 (screenshot)."),
         ("settings", .dynamicType, "Try again", "A system List button row; it scales at AX5 like the other rows."),
         ("settings", .dynamicType, "Get help with your account",
          "Account footer link; HelpLinksUITests.testAccountHelpGrowsWithTextSize proves it grows at AX5 (pinned, it stays 34 pt and fails)."),
@@ -134,8 +134,10 @@ final class AccessibilityAuditTests: XCTestCase {
     nonisolated static func handle(_ issue: XCUIAccessibilityAuditIssue, on screen: String) -> Bool {
         let element = issue.element
         if element?.identifier.hasPrefix("uitest.") == true { return true }
-        if let label = element?.label, accepted.contains(where: {
-            $0.screen.split(separator: "|").contains { screen.hasPrefix($0) } && issue.auditType == $0.type && label.hasPrefix($0.label)
+        // An entry is a label prefix, or "#identifier" for exactly one element.
+        if let element, accepted.contains(where: {
+            $0.screen.split(separator: "|").contains { screen.hasPrefix($0) } && issue.auditType == $0.type
+                && ($0.label.hasPrefix("#") ? element.identifier == String($0.label.dropFirst()) : element.label.hasPrefix($0.label))
         }) { return true }
         print("AUDIT [\(screen)] \(issue.compactDescription): \(element.map { "\($0.elementType.rawValue) '\($0.label)' id='\($0.identifier)' \($0.frame)" } ?? "no element") | \(issue.detailedDescription)")
         return false
