@@ -96,7 +96,9 @@ public struct AvatarDirector: Equatable, Sendable {
         case .arriving, .listening, .handoffArriving: return .listening
         case .thinking: return .thinking
         case .speaking: return .speaking
-        case .reconnecting: return .sleepy
+        // Waiting for you, eyes open: sleepy (with its z's) looked like Ferni had
+        // nodded off when the line dropped (expression audit P2 #1).
+        case .reconnecting: return .attentive
         case .error: return .concerned
         }
     }
