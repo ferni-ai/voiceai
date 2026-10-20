@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { dataOf, loadDoc, type LoadResult } from './load-state.js';
 
 const log = createLogger({ module: 'superhuman:proactive-milestone-detector' });
 
@@ -139,25 +140,10 @@ const SIGNIFICANCE_MAP: Record<number, MilestoneSignificance> = {
 
 const COLLECTION = 'milestone_detector';
 
-async function loadMilestoneProfile(userId: string): Promise<MilestoneDetectorProfile | null> {
+async function loadMilestoneProfile(userId: string): Promise<LoadResult<MilestoneDetectorProfile>> {
   const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
-    if (doc.exists) {
-      return doc.data() as MilestoneDetectorProfile;
-    }
-    return null;
-  } catch (error) {
-    log.debug({ error, userId }, 'Failed to load milestone detector profile');
-    return null;
-  }
+  const ref = db?.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile');
+  return loadDoc<MilestoneDetectorProfile>(ref, log);
 }
 
 async function saveMilestoneProfile(
@@ -201,7 +187,9 @@ export async function trackDate(
     context?: string;
   }
 ): Promise<TrackedDate> {
-  const profile = (await loadMilestoneProfile(userId)) || createDefaultProfile(userId);
+  // A failed read still returns the result, but saving a default would wipe the stored doc.
+  const loaded = await loadMilestoneProfile(userId);
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   const dateStr = typeof date === 'string' ? date : date.toISOString().split('T')[0];
   const id = `${type}_${dateStr}_${Date.now()}`;
@@ -228,7 +216,7 @@ export async function trackDate(
     profile.trackedDates.push(trackedDate);
   }
 
-  await saveMilestoneProfile(userId, profile);
+  if (loaded.status !== 'error') await saveMilestoneProfile(userId, profile);
   log.info({ userId, label, type, date: dateStr }, 'Tracking new date for milestones');
 
   return trackedDate;
@@ -242,7 +230,9 @@ export async function trackQuietWin(
   label: string,
   startDate: Date | string
 ): Promise<void> {
-  const profile = (await loadMilestoneProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadMilestoneProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   const dateStr = typeof startDate === 'string' ? startDate : startDate.toISOString().split('T')[0];
   const daysSinceStart = Math.floor(
@@ -276,7 +266,7 @@ export async function trackQuietWin(
  * Reset a quiet win streak (e.g., streak broken)
  */
 export async function resetQuietWin(userId: string, label: string): Promise<void> {
-  const profile = await loadMilestoneProfile(userId);
+  const profile = dataOf(await loadMilestoneProfile(userId));
   if (!profile) return;
 
   const existingIdx = profile.quietWins.findIndex(
@@ -301,7 +291,9 @@ export async function recordLifeStageSignal(
   signals: string[],
   confidence: number
 ): Promise<void> {
-  const profile = (await loadMilestoneProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadMilestoneProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   // Check if we already have this transition
   const existingIdx = profile.lifeStageSignals.findIndex(
@@ -341,7 +333,7 @@ export async function detectUpcomingMilestones(
   userId: string,
   lookaheadDays: number = 60
 ): Promise<DetectedMilestone[]> {
-  const profile = await loadMilestoneProfile(userId);
+  const profile = dataOf(await loadMilestoneProfile(userId));
   if (!profile) return [];
 
   const milestones: DetectedMilestone[] = [];
@@ -400,7 +392,9 @@ export async function acknowledgeMilestone(
   label: string,
   date: string
 ): Promise<void> {
-  const profile = (await loadMilestoneProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadMilestoneProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   profile.acknowledgedMilestones.push({
     label,
@@ -425,7 +419,7 @@ export async function getLifeStageInsights(
   userId: string,
   minConfidence: number = 0.5
 ): Promise<LifeStageSignal[]> {
-  const profile = await loadMilestoneProfile(userId);
+  const profile = dataOf(await loadMilestoneProfile(userId));
   if (!profile) return [];
 
   return profile.lifeStageSignals.filter((s) => s.confidence >= minConfidence);
