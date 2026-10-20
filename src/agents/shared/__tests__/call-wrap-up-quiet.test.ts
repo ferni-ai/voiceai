@@ -80,7 +80,11 @@ function agent(): PersonaVoiceAgent {
 }
 
 /** An app (or phone) call wired the way persona-agent-factory wires it, with a manual clock. */
-async function appCall(env: Record<string, string>, kind = ParticipantKind.STANDARD) {
+async function appCall(
+  env: Record<string, string>,
+  kind = ParticipantKind.STANDARD,
+  onBehalf = false
+) {
   const sessionId = newId();
   const session = new EventEmitter();
   const events: string[] = [];
@@ -95,7 +99,7 @@ async function appCall(env: Record<string, string>, kind = ParticipantKind.STAND
     room: { name: `room-${sessionId}`, remoteParticipants: { size: 1 } },
     session,
     participant: { kind },
-    onBehalf: false,
+    onBehalf,
     env,
     hangUp: async (room) => void events.push(`deleted ${room}`),
     setTimer: (fn, ms) => {
@@ -135,6 +139,25 @@ describe('idle window after the goodbyes', () => {
       `deleted room-${c.sessionId}`,
     ]);
   });
+
+  it.each([
+    ['app', ParticipantKind.STANDARD],
+    ['phone', ParticipantKind.SIP],
+  ])(
+    "default-on: a %s call placed on the user's behalf never ends on goodbyes",
+    async (_, kind) => {
+      const own = await appCall({}, kind);
+      goodbyes(own.session);
+      expect([...own.timers.values()].map((t) => t.ms)).toEqual([IDLE_AFTER_GOODBYE_MS]);
+
+      const c = await appCall({}, kind, true);
+      goodbyes(c.session);
+      expect(c.timers.size).toBe(0);
+      await c.fire(IDLE_AFTER_GOODBYE_MS);
+      expect(c.events).toEqual([]);
+      expect(isSessionClosing(c.sessionId)).toBe(false);
+    }
+  );
 
   it('both flags off: the goodbyes arm nothing and the call carries on as before', async () => {
     const c = await appCall({ GOODBYE_ENDS_CALL: 'off' });
