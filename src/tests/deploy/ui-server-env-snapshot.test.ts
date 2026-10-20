@@ -11,13 +11,13 @@ import { uiServerEnv, uiServerSecrets } from './ui-deploy-env.js';
 
 const ENV = [
   'ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app',
-  'BUILD_SHA=${{ env.DEPLOY_SHA }}',
+  'BUILD_SHA=$DEPLOY_SHA',
   'CALL_HOURS_GUARD=on',
   'COHORT_FLAGS=on',
   'FAMILY_CHECKIN_STOP=on',
   'FOLLOW_THROUGH_JOB=on',
-  'GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}',
-  'GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}',
+  'GCLOUD_PROJECT=$GCP_PROJECT_ID',
+  'GOOGLE_CLOUD_PROJECT=$GCP_PROJECT_ID',
   'JOURNAL_ONE_STORE=on',
   'JOURNAL_TRANSCRIBE_VERTEX=on',
   'MEMORY_VIEW=on',

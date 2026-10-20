@@ -42,10 +42,15 @@ describe('web-server env and secrets files', () => {
 
   it('the per-deploy keys come from the workflow, not the file', () => {
     const env = uiServerEnv();
-    expect(env).toContain('BUILD_SHA=${{ env.DEPLOY_SHA }}');
-    expect(env).toContain('GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}');
-    expect(env).toContain('GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}');
+    expect(env).toContain('BUILD_SHA=$DEPLOY_SHA');
+    expect(env).toContain('GOOGLE_CLOUD_PROJECT=$GCP_PROJECT_ID');
+    expect(env).toContain('GCLOUD_PROJECT=$GCP_PROJECT_ID');
     expect(env).toContain('NODE_ENV=production');
+  });
+
+  it('reads per-deploy values from shell env, never ${{ }} pasted into the script', () => {
+    // DEPLOY_SHA can come from a workflow_dispatch input: pasted in, it is code injection.
+    expect(uiServerEnv().filter((kv) => kv.includes('${{'))).toEqual([]);
   });
 
   it('no env key is also a secret mount', () => {

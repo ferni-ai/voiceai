@@ -384,9 +384,11 @@ jobs:
           # both REPLACE the service's on every deploy). Per-deploy env, one printf per key:
           ENV_FILE=$(mktemp --suffix=.yaml)
           cp deploy/ui-server/env.yaml "$ENV_FILE"
-          printf 'BUILD_SHA: "%s"\n' "${{ env.DEPLOY_SHA }}" >> "$ENV_FILE"
-          printf 'GCLOUD_PROJECT: "%s"\n' "${{ env.GCP_PROJECT_ID }}" >> "$ENV_FILE"
-          printf 'GOOGLE_CLOUD_PROJECT: "%s"\n' "${{ env.GCP_PROJECT_ID }}" >> "$ENV_FILE"
+          # Read from shell env, never pasted in as a workflow expression: DEPLOY_SHA can
+          # come from a workflow_dispatch input (CodeQL code injection, as in the summary).
+          printf 'BUILD_SHA: "%s"\n' "$DEPLOY_SHA" >> "$ENV_FILE"
+          printf 'GCLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
+          printf 'GOOGLE_CLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
           SECRETS=$(grep -v -e '^#' -e '^$' deploy/ui-server/secrets.txt | paste -sd, -)
           gcloud run deploy john-bogle-ui \
             --image ${{ env.UI_IMAGE }}:${{ env.DEPLOY_SHA }} \
