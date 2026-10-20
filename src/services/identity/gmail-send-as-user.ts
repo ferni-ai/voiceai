@@ -50,6 +50,7 @@ interface GmailSendTokens {
 
 const store = createPersistenceStore<{ encrypted: string; updated_at: number }>({
   collection: 'gmail_send_tokens',
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // bogle_users/{uid}/gmail_send_tokens/data
   syncIntervalMs: 2000,

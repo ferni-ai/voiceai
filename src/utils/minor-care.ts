@@ -27,6 +27,7 @@
  */
 import { flagOn } from '../config/env-flag.js';
 import { createLogger } from './safe-logger.js';
+import { PLACEHOLDER_IDS } from './synthetic-user.js';
 
 const log = createLogger({ module: 'minor-care' });
 
@@ -275,7 +276,7 @@ export function heldAfter(
 
 /** This session is this user's (session start, and any detector call that knows the userId). */
 export function bindSessionUser(sessionId: string | undefined, userId: string | undefined): void {
-  if (!sessionId || !userId) return;
+  if (!sessionId || !userId || sharedId(userId)) return; // never a placeholder or shared id
   sessionUsers.delete(sessionId);
   sessionUsers.set(sessionId, userId);
   for (const s of sessionUsers.keys()) {
@@ -290,13 +291,21 @@ export function bindSessionUser(sessionId: string | undefined, userId: string | 
  * timer can't keep a hold alive past IDLE_MS.
  */
 export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
-  if (!userId || !minorCareOn(env)) return false;
+  if (!userId || sharedId(userId) || !minorCareOn(env)) return false;
   for (const [sessionId, owner] of sessionUsers) {
     const used = likely.get(sessionId);
     const live = used !== undefined && Date.now() - used <= IDLE_MS;
     if (owner === userId && live && !ownerCheck(sessionId)) return true;
   }
   return false;
+}
+
+/**
+ * A placeholder or shared id ('anonymous', 'default', 'unknown', blank): one bucket for many
+ * people, so never held, bound or purged. A per-device id (anon:<id>) is one caller's: held.
+ */
+export function sharedId(userId: string | undefined): boolean {
+  return !userId?.trim() || PLACEHOLDER_IDS.has(userId.trim().toLowerCase());
 }
 
 /** Tests only. */

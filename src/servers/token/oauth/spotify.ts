@@ -58,6 +58,7 @@ export const SPOTIFY_SCOPES = [
 export const SPOTIFY_LINK_COLLECTION = 'spotify_links';
 const tokenStore = createPersistenceStore<EncryptedTokenData>({
   collection: SPOTIFY_LINK_COLLECTION,
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // Per-user storage
   syncIntervalMs: 2000,
