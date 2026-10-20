@@ -19,7 +19,7 @@
   {{#if seo.ogImage}}<meta name="twitter:image" content="{{seo.ogImage}}">{{/if}}
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="{{favicon}}">
+  <link rel="icon" type="image/svg+xml" href="{{safeUrl favicon}}">
 
   <!-- LiveKit SDK -->
   <script src="https://cdn.jsdelivr.net/npm/livekit-client@2.1.0/dist/livekit-client.umd.min.js"></script>
@@ -496,13 +496,6 @@
         font-size: 2.5rem;
       }
     }
-
-    /* =========================================================================
-       CUSTOM CSS INJECTION POINT
-       ========================================================================= */
-    {{#if customCss}}
-    {{{customCss}}}
-    {{/if}}
   </style>
 </head>
 <body data-theme="{{theme}}">
@@ -598,10 +591,10 @@
     // CONFIGURATION
     // =========================================================================
     const CONFIG = {
-      tokenEndpoint: '{{deployment.tokenEndpoint}}',
-      livekitUrl: '{{deployment.livekitUrl}}',
-      isProduction: {{deployment.isProduction}},
-      advisors: {{{json advisors}}}
+      tokenEndpoint: {{json deployment.tokenEndpoint}},
+      livekitUrl: {{json deployment.livekitUrl}},
+      isProduction: {{json deployment.isProduction}},
+      advisors: {{json advisors}}
     };
 
     // Map advisor IDs to colors for dynamic styling
@@ -831,13 +824,6 @@
     els.endCallButton.addEventListener('click', () => {
       disconnectFromRoom();
     });
-
-    // =========================================================================
-    // CUSTOM JS INJECTION POINT
-    // =========================================================================
-    {{#if customJs}}
-    {{{customJs}}}
-    {{/if}}
   </script>
 </body>
 </html>
