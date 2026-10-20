@@ -14,6 +14,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { GameMemory, MusicMemory } from '../../types/user-profile.js';
 import { createEmptyGameMemory } from './game-persistence.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { userHeld } from '../../utils/minor-care.js';
 
 const log = getLogger();
 
@@ -151,6 +152,7 @@ async function flushDirtyUsers(): Promise<void> {
     const store = await getEngagementStore();
 
     for (const userId of usersToSave) {
+      if (userHeld(userId)) continue; // MINOR_CARE: a held caller under 18's game and music memory
       try {
         const profile = await store.getProfile(userId);
 
@@ -183,8 +185,9 @@ async function flushDirtyUsers(): Promise<void> {
  * Force immediate save for a user (call on session end)
  */
 export async function forceSaveGameMemory(userId: string): Promise<void> {
-  // Clear from pending
+  // Clear from pending; never written for a held caller under 18 (MINOR_CARE)
   dirtyUsers.delete(userId);
+  if (userHeld(userId)) return;
 
   const gameMemory = gameMemoryCache.get(userId);
   const musicMemory = musicMemoryCache.get(userId);

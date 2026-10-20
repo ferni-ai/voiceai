@@ -1,6 +1,5 @@
 /**
  * Predictive Intelligence Persistence Layer
- *
  * Stores learned ML model state to Firestore so patterns survive restarts.
  *
  * WHAT GETS PERSISTED:
@@ -19,6 +18,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { userHeld } from '../../utils/minor-care.js';
 import { getFirestoreDb, cleanForFirestore } from '../../services/superhuman/firestore-utils.js';
 import { Timestamp } from '@google-cloud/firestore';
 
@@ -150,7 +150,7 @@ async function withFlushLock(userId: string, fn: () => Promise<void>): Promise<v
  * Save Markov model state to Firestore
  */
 export async function saveMarkovState(userId: string, data: MarkovPersistenceData): Promise<void> {
-  const firestore = getFirestoreDb();
+  const firestore = userHeld(userId) ? null : getFirestoreDb(); // MINOR_CARE, at write time
   if (!firestore) {
     log.debug({ userId }, 'Firestore not available, skipping Markov save');
     return;
@@ -212,7 +212,7 @@ export async function saveTimeSeriesState(
   userId: string,
   data: TimeSeriesPersistenceData
 ): Promise<void> {
-  const firestore = getFirestoreDb();
+  const firestore = userHeld(userId) ? null : getFirestoreDb(); // MINOR_CARE, at write time
   if (!firestore) {
     log.debug({ userId }, 'Firestore not available, skipping time series save');
     return;
@@ -297,7 +297,7 @@ export async function saveReinforcementState(
   userId: string,
   data: ReinforcementPersistenceData
 ): Promise<void> {
-  const firestore = getFirestoreDb();
+  const firestore = userHeld(userId) ? null : getFirestoreDb(); // MINOR_CARE, at write time
   if (!firestore) {
     log.debug({ userId }, 'Firestore not available, skipping reinforcement save');
     return;

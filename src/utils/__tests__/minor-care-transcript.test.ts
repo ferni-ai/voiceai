@@ -35,7 +35,7 @@ vi.mock('../../memory/dynamic/index.js', async (orig) => ({
 }));
 
 import { createTranscriptHandler } from '../../agents/voice-agent/transcript-handler.js';
-import { noteCallerWords, resetMinorCare, setVerifiedOwnerCheck } from '../minor-care.js';
+import { noteCallerWords, resetMinorCare, setVerifiedOwnerCheck, userHeld } from '../minor-care.js';
 
 type Case = 'held' | 'owner' | 'off';
 let n = 0;
@@ -114,11 +114,19 @@ describe('transcript-handler: held caller under 18', () => {
     await turn('held');
     expect(w.fastCapture).not.toHaveBeenCalled();
   });
+
+  it('the per-user flush timers see the hold (userHeld, keyed by userId)', async () => {
+    const { userId } = await turn('held');
+    expect(userHeld(userId)).toBe(true);
+  });
 });
 
 describe.each<Case>(['owner', 'off'])('transcript-handler: %s still records', (c) => {
   it('each writer runs with the real userId', async () => {
     const { userId } = await turn(c);
+    // Poll: the writers run fire-and-forget, so a loaded machine can be slower than the turn wait
+    await vi.waitFor(() => expect(w.ftis).toHaveBeenCalled(), { timeout: 5_000 });
+    await vi.waitFor(() => expect(w.bth).toHaveBeenCalled(), { timeout: 5_000 });
     expect(w.bth).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ userId }));
     expect(w.feedback).toHaveBeenCalledWith(
       expect.any(String),

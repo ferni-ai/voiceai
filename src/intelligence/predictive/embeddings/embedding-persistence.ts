@@ -1,6 +1,5 @@
 /**
  * Embedding Intelligence Persistence
- *
  * Persists embedding-powered predictive data to Firestore.
  *
  * Similar to superhuman-persistence.ts but for the embedding capabilities:
@@ -17,6 +16,7 @@
 import { isRequireFixMemoryEnabled } from '../../../config/require-fix-memory-flag.js';
 import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { userHeld } from '../../../utils/minor-care.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { embeddingObservability } from './embedding-observability.js';
 
@@ -196,7 +196,7 @@ async function saveToFirestore(
   docName: string,
   data: Record<string, unknown>
 ): Promise<void> {
-  const firestore = getFirestoreDb();
+  const firestore = userHeld(userId) ? null : getFirestoreDb(); // MINOR_CARE, at write time
   if (!firestore) {
     log.debug({ userId, docName }, 'Firestore not available, skipping embedding save');
     return;

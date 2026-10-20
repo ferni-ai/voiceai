@@ -1287,7 +1287,7 @@ async function processFinalTranscript(
     agent,
   } = ctx;
   // MINOR_CARE=on: a caller under 18 who isn't a verified owner: nothing below stores their words.
-  const held = heldAfter(sessionId, event.transcript);
+  const held = heldAfter(sessionId, event.transcript, { userId }); // userId: the per-user flushes
   const memoryUserId = held ? undefined : userId;
 
   // ===============================================
