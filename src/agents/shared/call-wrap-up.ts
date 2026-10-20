@@ -35,8 +35,10 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   addEndCallTool,
   attachPhoneHangUp,
+  CRISIS_HOLD,
   deleteRoom,
   END_CALL,
+  holdEndCallForCrisis,
   type HangUp,
 } from './phone-goodbye.js';
 import { markFarewell, watchFarewell } from './call-farewell.js';
@@ -51,8 +53,8 @@ export function callWrapUpEnabled(env: Env = process.env): boolean {
 export const WRAP_UP_DESCRIPTION =
   'End this call. Use it ONLY after a mutual goodbye: the caller has said goodbye and you have ' +
   'already said your own goodbye in this reply. Never mid-conversation, never after a pause or ' +
-  'when they might have more to say, and never on a heavy or crisis call unless the caller has ' +
-  'clearly ended it themselves. Your goodbye finishes playing before the call closes.';
+  'when they might have more to say. It never ends a call that has had a crisis moment: the ' +
+  'caller ends that one. Your goodbye finishes playing before the call closes.';
 
 /** The app's goodbye sound before it disconnects. */
 export const DISCONNECT_DELAY_MS = 800;
@@ -124,13 +126,17 @@ async function closeRoomIfStillThere(call: WrapUpCall, reason: WrapUpReason): Pr
   }
 }
 
-/** The endCall tool for an app call. It asks for no reply: there is nothing left to say. */
+/**
+ * The endCall tool for an app call. It asks for no reply: there is nothing left
+ * to say. On a call with crisis risk it ends nothing and tells Ferni to stay.
+ */
 export function createWrapUpTool(call: WrapUpCall): llm.ToolContext['functionTools'][string] {
   return llm.tool({
     name: END_CALL,
     description: WRAP_UP_DESCRIPTION,
     parameters: z.object({}),
     execute: async (_args, { ctx }) => {
+      if (holdEndCallForCrisis(call.sessionId, 'app')) return CRISIS_HOLD;
       await wrapUpCall(call, 'goodbye_complete', async () => ctx.waitForPlayout());
       return undefined;
     },
