@@ -105,7 +105,10 @@ float eyeLD(float3 q, constant U& u, thread const Ctx& c) { return eyeD(eyeLocal
 float eyeRD(float3 q, constant U& u, thread const Ctx& c) { return eyeD(eyeLocal(q, c.ER, c.RX, c.RY, c.RZ), c.SR, u.lids.y, u.lids.w, u.arch.y, -1.0, u.pos.w); }
 float tearD(float3 q, float side, float prog, float a, thread const Ctx& c) {
   if (a < 0.02) return 10.0;
-  float3 s = onBody(side * 0.44, 0.05 - 0.24 - prog * 0.72, c);
+  // From the eye's own lower lid, toward its outer corner, wherever the eye is looking:
+  // it used to start below and outside the eye, a speck on the cheek (audit P1 #12).
+  float3 ec = side < 0.0 ? c.EL : c.ER; float3 es = side < 0.0 ? c.SL : c.SR;
+  float3 s = onBody(ec.x + side * es.x * 0.4, ec.y - es.y * 0.75 - prog * 0.72, c);
   float3 n = normalize(s / (c.RB * c.RB));
   return sdEllipsoid(q - (s + n * 0.012), float3(0.034, 0.05 + prog * 0.02, 0.03) * a);
 }
