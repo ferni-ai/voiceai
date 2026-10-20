@@ -13,6 +13,7 @@ struct RememberCard: View {
     @State private var editing: String?
     @State private var draft = ""
     @State private var problem: String?
+    @FocusState private var writing: Bool
 
     var body: some View {
         // A permanent zero-height anchor: .task on a view that renders nothing never runs.
@@ -47,19 +48,33 @@ struct RememberCard: View {
             Text(item.sentence)
                 .font(FerniType.body)
                 .foregroundStyle(FerniColor.textSecondary)
-            HStack(spacing: FerniSpace.rest) {
+            HStack(spacing: FerniSpace.breath) {
                 Button("Not quite") {
                     draft = item.value
                     editing = item.id
                     problem = nil
                 }
+                .buttonStyle(Pressable())
                 .accessibilityLabel("Not quite: correct \(item.sentence)")
                 Button("Forget") { Task { await forget(item) } }
+                    .buttonStyle(Pressable())
                     .accessibilityLabel("Forget \(item.sentence)")
             }
             .font(FerniType.footnote)
             .tint(FerniColor.accent)
-            .frame(minHeight: 44)
+        }
+    }
+
+    /// A text button whose whole 44 pt row presses, not just its 16 pt of
+    /// words (design audit P1-5: "Not quite" and "Forget" were 16 pt tall).
+    private struct Pressable: ButtonStyle {
+        func makeBody(configuration: Configuration) -> some View {
+            configuration.label
+                .foregroundStyle(.tint)
+                .frame(minWidth: 44, minHeight: 44)
+                .padding(.horizontal, FerniSpace.breath / 2)
+                .contentShape(Rectangle())
+                .opacity(configuration.isPressed ? 0.5 : 1)
         }
     }
 
@@ -70,21 +85,35 @@ struct RememberCard: View {
                     .font(FerniType.footnote)
                     .foregroundStyle(FerniColor.textSecondary)
             }
-            TextField("What's right?", text: $draft)
+            // Wraps as you write and takes the keyboard at once (design audit
+            // P1-5: one line, and a second tap before you could type). Done saves.
+            TextField("What's right?", text: $draft, axis: .vertical)
+                // Room for the whole thought from the start, so the card doesn't
+                // grow under the keyboard as you write.
+                .lineLimit(4, reservesSpace: true)
                 .textFieldStyle(.roundedBorder)
                 .submitLabel(.done)
-                .onSubmit { Task { await save(item) } }
+                .focused($writing)
+                .accessibilityIdentifier("remember.correction")
                 .onChange(of: draft) { _, text in
+                    // Return is Done here: a fact is one thought.
+                    if text.contains("\n") {
+                        draft = text.replacingOccurrences(of: "\n", with: "")
+                        Task { await save(item) }
+                        return
+                    }
                     if text.count > CallRemembered.maxCorrection { draft = String(text.prefix(CallRemembered.maxCorrection)) }
                 }
-            HStack(spacing: FerniSpace.rest) {
+                .onAppear { writing = true }
+            HStack(spacing: FerniSpace.breath) {
                 Button("Cancel") { editing = nil }
+                    .buttonStyle(Pressable())
                 Button("Save") { Task { await save(item) } }
+                    .buttonStyle(Pressable())
                     .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .font(FerniType.footnote)
             .tint(FerniColor.accent)
-            .frame(minHeight: 44)
         }
     }
 
