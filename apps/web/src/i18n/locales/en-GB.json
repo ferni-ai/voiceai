@@ -7098,7 +7098,8 @@
     "viewAllMoments": {
       "one": "View all {count} moment",
       "other": "View all {count} moments"
-    }
+    },
+    "strengthNotEnough": "Still getting to know them"
   },
   "valueCapture": {
     "youDidIt": "You Did It!",
@@ -8284,7 +8285,9 @@
     "keepConnecting": "Keep connecting with your people!",
     "less": "Less",
     "more": "More",
-    "basedOnActivity": "Based on Your Activity"
+    "basedOnActivity": "Based on Your Activity",
+    "notEnoughYet": "Not enough yet",
+    "strengthNotEnough": "We'll show this once you've caught up with a few people."
   },
   "calendarConflicts": {
     "syncConflicts": "Sync Conflicts",

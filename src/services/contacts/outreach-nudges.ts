@@ -20,6 +20,7 @@ import {
   getContactsNeedingAttention,
   type ContactRelationship,
 } from './contact-relationship-service.js';
+import { daysSinceLastInteraction } from './last-interaction.js';
 import { getGroups } from './contact-groups.js';
 import { datesToNudge, isRememberedContact, memorialSuggestion } from './remembered-contacts.js';
 import { thanksgivingDay as thanksDay } from '../../utils/us-holidays.js';
@@ -157,9 +158,8 @@ export async function generateNudges(userId: string): Promise<OutreachNudge[]> {
     // 2. Check for contacts needing attention
     const needsAttention = await getContactsNeedingAttention(userId, 5);
     for (const contact of needsAttention) {
-      const daysSince = Math.floor(
-        (now.getTime() - new Date(contact.lastInteraction).getTime()) / (1000 * 60 * 60 * 24)
-      );
+      const daysSince = daysSinceLastInteraction(contact, now); // null: nothing real to nudge on
+      if (daysSince === null) continue;
 
       nudges.push({
         id: `nudge_attention_${contact.id}_${now.getTime()}`,
@@ -361,9 +361,8 @@ export async function buildNudgeContext(userId: string): Promise<NudgeContext> {
   const needsAttention: NudgeContext['needsAttention'] = [];
   const attentionContacts = await getContactsNeedingAttention(userId, 5);
   for (const contact of attentionContacts) {
-    const daysSince = Math.floor(
-      (now.getTime() - new Date(contact.lastInteraction).getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const daysSince = daysSinceLastInteraction(contact, now);
+    if (daysSince === null) continue;
     needsAttention.push({
       contactName: contact.name,
       daysSinceContact: daysSince,
@@ -502,13 +501,11 @@ export async function getOverdueFrequentContacts(userId: string): Promise<Freque
     if (contact.interactionCount < 5 || isRememberedContact(contact)) continue;
 
     const firstDate = new Date(contact.firstInteraction);
+    if (!contact.lastInteraction) continue; // no real last interaction, nothing to measure
     const lastDate = new Date(contact.lastInteraction);
 
     // Calculate average days between contacts
-    const totalDays = Math.max(
-      1,
-      (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const totalDays = Math.max(1, (lastDate.getTime() - firstDate.getTime()) / 86_400_000);
     const avgDaysBetween = totalDays / contact.interactionCount;
 
     // How long since last contact
