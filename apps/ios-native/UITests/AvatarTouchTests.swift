@@ -88,17 +88,23 @@ final class AvatarTouchTests: XCTestCase {
         let app = XCUIApplication.ferni(.home)
         let avatar = ferni(app)
         XCTAssertTrue(avatar.waitForExistence(timeout: 20))
-        // Ferni's slot on Home at rest is 200 pt (HomeView); the element's frame
-        // follows the touch shape, so only its centre is used.
+        // Ferni's slot on Home at rest is 200 pt (HomeView) and his touch circle
+        // 0.35 of it; the element's frame follows the circle, so only its
+        // centre is used (a wider circle must still fail here).
         let f = avatar.frame, side: CGFloat = 200
         let centre = CGPoint(x: f.midX, y: f.midY)
-        // Beside Ferni, still inside his square: 24 pt outside his touch circle
-        // (0.35 of the slot), clear of the area a fingertip covers.
-        let corner = CGPoint(x: centre.x - 0.47 * side, y: centre.y)
+        // Beside Ferni, clear of the area a fingertip covers. A touch counts when
+        // its area overlaps the circle, and fingertips reach farther on iPad:
+        // measured on the simulators (2026-10-20), under 24 pt past the circle on
+        // iPhone and 28-35 pt on iPad (a circle shrunk to 50 pt reached 75 pt but
+        // not 85). So 24 pt past it on iPhone, inside his square, and 36 pt on
+        // iPad, where the whole square is within a fingertip's reach.
+        let iPad = app.buttons["Hide Sidebar"].exists
+        let beside = CGPoint(x: centre.x - (0.35 * side + (iPad ? 36 : 24)), y: centre.y)
         app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
-            .withOffset(CGVector(dx: corner.x, dy: corner.y)).tap()
+            .withOffset(CGVector(dx: beside.x, dy: beside.y)).tap()
         sleep(1)
-        XCTAssertEqual(touches(app), "0", "frame \(f) side \(side) tapped \(corner)")
+        XCTAssertEqual(touches(app), "0", "frame \(f) tapped \(beside) iPad \(iPad)")
     }
 
     /// In a call a tap on Ferni is the call's (interrupt while he speaks), never a touch.
