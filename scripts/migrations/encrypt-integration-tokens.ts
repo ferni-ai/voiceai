@@ -5,18 +5,24 @@
  * Dry run by default; counts only, never a token, uid or email.
  *
  *   GOOGLE_CLOUD_PROJECT=<project> pnpm tsx scripts/migrations/encrypt-integration-tokens.ts   # dry run
- *   LOG_HASH_SECRET=... GOOGLE_CLOUD_PROJECT=<project> \
+ *   OAUTH_ENCRYPTION_KEY=... LOG_HASH_SECRET=... GOOGLE_CLOUD_PROJECT=<project> \
  *     pnpm tsx scripts/migrations/encrypt-integration-tokens.ts --apply --expect-kid=<kid>
  *
- * --apply needs proof that this run seals with the servers' key: either an
- * envelope the servers already wrote opens with it, or --expect-kid matches
- * the token_at_rest_kid the web server and agent log at boot.
- * It refuses otherwise, and with no key at all (encryptData would write plain JSON).
+ * --apply always needs --expect-kid, and it must equal the token_at_rest_kid
+ * line BOTH the web server and the agent log at boot (check both match first):
+ * the agent reads these tokens too, and an envelope that opens here only proves
+ * the web's key. As an extra check, if the servers have written envelopes, at
+ * least one must open with this run's keys. It refuses otherwise, and with no
+ * key at all (encryptData would write plain JSON).
+ *
+ * Set the env vars the servers have. A re-seal run after OAUTH_ENCRYPTION_KEY
+ * is introduced needs BOTH: the new key to seal, LOG_HASH_SECRET to open the
+ * legacy envelopes it re-seals (without it they count as unopenable).
  *
  * Per record: plaintext is sealed and its plaintext keys deleted; an
  * `encrypted` string that is not a real envelope (written with no key) is
  * plaintext too; an envelope with plaintext keys beside it keeps the envelope
- * and loses the keys. Sealed records are skipped, so a re-run writes nothing.
+ * and loses the keys (unless no key opens the envelope: then nothing is touched). Sealed records are skipped, so a re-run writes nothing.
  * Each write is an update() with a lastUpdateTime precondition, so a token
  * refreshed mid-run is not clobbered: that doc (or any doc whose write fails)
  * keeps what it has, is counted under its error code, and a re-run picks it up.
@@ -30,7 +36,7 @@ import {
   type QueryDocumentSnapshot,
 } from '@google-cloud/firestore';
 import { getFirestoreDb } from '../../src/utils/firestore-utils.js';
-import { decryptData, isEncrypted } from '../../src/utils/token-encryption.js';
+import { isEncrypted, openEnvelope } from '../../src/utils/token-encryption.js';
 import {
   PLAINTEXT_TOKEN_KEYS,
   openTokens,
@@ -68,6 +74,10 @@ export interface Counts {
   plaintext: number;
   /** A real envelope with plaintext keys left beside it. */
   mixed: number;
+  /** An envelope sealed with a key other than this run's (the LOG_HASH_SECRET legacy key): re-sealed. */
+  legacy: number;
+  /** An envelope no key on the ring opens: left alone, needs a look. */
+  unopenable: number;
   written: number;
   failed: number;
   failureCodes: Record<string, number>;
@@ -75,12 +85,12 @@ export interface Counts {
 
 export interface RunOptions {
   apply: boolean;
-  /** The kid the servers log at boot; required with apply unless an envelope proves the key. */
+  /** The kid the web server and the agent log at boot; required with apply. */
   expectKid?: string;
 }
 
 type Json = Record<string, unknown>;
-type Kind = 'sealed' | 'plaintext' | 'mixed' | 'empty';
+type Kind = 'sealed' | 'plaintext' | 'mixed' | 'legacy' | 'unopenable' | 'empty';
 interface Job {
   counts: Counts;
   ref: DocumentReference;
@@ -93,6 +103,8 @@ const newCounts = (): Counts => ({
   sealed: 0,
   plaintext: 0,
   mixed: 0,
+  legacy: 0,
+  unopenable: 0,
   written: 0,
   failed: 0,
   failureCodes: {},
@@ -111,7 +123,14 @@ export function classify(record: unknown): Kind {
   if (record === null || typeof record !== 'object') return 'empty';
   const r = record as Json;
   const plain = plaintextKeysOf(r).length > 0;
-  if (envelopeOf(r) !== undefined) return plain ? 'mixed' : 'sealed';
+  const envelope = envelopeOf(r);
+  if (envelope !== undefined) {
+    const opened = openEnvelope(envelope);
+    // An envelope nothing opens may be the only copy: keep its plaintext keys too.
+    if (opened === null) return 'unopenable';
+    if (plain) return 'mixed';
+    return opened.kid === tokenKeyId() ? 'sealed' : 'legacy';
+  }
   return plain || typeof r.encrypted === 'string' ? 'plaintext' : 'empty';
 }
 
@@ -136,17 +155,25 @@ function tokensOf(record: Json): Json {
 function docUpdate(record: Json, kind: Kind): Json {
   const deletes = (keys: string[]) => Object.fromEntries(keys.map((k) => [k, FieldValue.delete()]));
   if (kind === 'mixed') return deletes(plaintextKeysOf(record)); // keep the envelope as it is
+  if (kind === 'legacy') return { encrypted: resealed(record) };
   const tokens = tokensOf(record);
   // Every plaintext key goes, including ones left beside a no-key `encrypted` string.
   const stale = new Set([...Object.keys(tokens), ...plaintextKeysOf(record)]);
   return { ...deletes([...stale]), ...sealVerified(tokens) };
 }
 
+/** A legacy-key envelope opened with the ring and sealed again with this run's key. */
+function resealed(record: Json): string {
+  const opened = openEnvelope<Json>(envelopeOf(record) ?? '');
+  if (opened === null) throw new Error('legacy envelope no longer opens');
+  return sealVerified(opened.value).encrypted;
+}
+
 /** The replacement map for a profile token field (update() replaces the whole map). */
 function fieldValue(record: Json, kind: Kind): Json {
-  return kind === 'mixed'
-    ? { encrypted: envelopeOf(record) }
-    : { ...sealVerified(tokensOf(record)) };
+  if (kind === 'mixed') return { encrypted: envelopeOf(record) };
+  if (kind === 'legacy') return { encrypted: resealed(record) };
+  return { ...sealVerified(tokensOf(record)) };
 }
 
 function errorCode(error: unknown): string {
@@ -154,26 +181,27 @@ function errorCode(error: unknown): string {
   return code === undefined ? 'unknown' : String(code);
 }
 
-/** True when any envelope the servers wrote opens with this run's key. */
-async function keyOpensServerEnvelope(db: Firestore, seen: string[]): Promise<boolean> {
-  const opens = (envelope: string) => {
-    const opened = decryptData<Json>(envelope);
-    return opened !== null && opened.encrypted !== true;
-  };
-  if (seen.some(opens)) return true;
+/**
+ * Whether the servers' envelopes open with this run's keys: 'none-found' when
+ * there are none yet, else 'opens' if at least one does.
+ */
+async function serverEnvelopes(
+  db: Firestore,
+  seen: string[]
+): Promise<'none-found' | 'opens' | 'none-open'> {
+  const found = [...seen];
   for (const name of KEY_PROBE_COLLECTIONS) {
     const snaps = await db.collection(name).where('encrypted', '!=', null).limit(20).get();
-    if (
-      snaps.docs.some(
-        (s) => typeof s.data().encrypted === 'string' && opens(s.data().encrypted as string)
-      )
-    )
-      return true;
+    for (const s of snaps.docs) {
+      const e = s.data().encrypted;
+      if (typeof e === 'string' && isEncrypted(e)) found.push(e);
+    }
   }
-  return false;
+  if (found.length === 0) return 'none-found';
+  return found.some((e) => openEnvelope(e) !== null) ? 'opens' : 'none-open';
 }
 
-/** Throws unless this run's key is proven to be the servers' key (see the header). */
+/** Throws unless --expect-kid names this run's key and the servers' envelopes open (see the header). */
 export async function assertServerKey(db: Firestore, seen: string[], expectKid?: string) {
   const kid = tokenKeyId();
   if (kid === 'none') {
@@ -181,17 +209,19 @@ export async function assertServerKey(db: Firestore, seen: string[], expectKid?:
       'No encryption key (OAUTH_ENCRYPTION_KEY / LOG_HASH_SECRET): refusing to write'
     );
   }
-  if (expectKid !== undefined) {
-    if (expectKid !== kid) {
-      throw new Error(
-        `This run's kid ${kid} does not match --expect-kid=${expectKid}: refusing to write`
-      );
-    }
-    return;
-  }
-  if (!(await keyOpensServerEnvelope(db, seen))) {
+  if (expectKid === undefined) {
     throw new Error(
-      `No server-written envelope opens with kid ${kid}; pass --expect-kid=<token_at_rest_kid from the servers boot log>`
+      `--apply needs --expect-kid=<token_at_rest_kid>, matching the web server and the agent boot logs (this run: ${kid})`
+    );
+  }
+  if (expectKid !== kid) {
+    throw new Error(
+      `This run's kid ${kid} does not match --expect-kid=${expectKid}: refusing to write`
+    );
+  }
+  if ((await serverEnvelopes(db, seen)) === 'none-open') {
+    throw new Error(
+      "No envelope the servers wrote opens with this run's keys (set the same env vars they have): refusing to write"
     );
   }
 }
@@ -215,8 +245,8 @@ export async function runEncryptIntegrationTokens(
     if (kind === 'empty') return;
     const envelope = envelopeOf(record as Json);
     if (envelope !== undefined) seenEnvelopes.push(envelope);
-    if (kind === 'sealed') {
-      counts.sealed++;
+    if (kind === 'sealed' || kind === 'unopenable') {
+      counts[kind]++;
       return;
     }
     counts[kind]++;
