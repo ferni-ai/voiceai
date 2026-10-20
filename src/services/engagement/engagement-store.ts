@@ -539,7 +539,7 @@ export class EngagementStore {
   // ============================================================================
 
   async addConversationSession(userId: string, session: Record<string, unknown>): Promise<void> {
-    if (!this.db) return;
+    if (!this.db || userHeld(userId)) return; // MINOR_CARE: never for a held caller
     try {
       const docRef = this.db.collection(this.COLLECTION).doc(userId);
       const sessionsRef = docRef.collection('conversation_sessions');
@@ -587,7 +587,7 @@ export class EngagementStore {
   }
 
   async addInsightToLatestSession(userId: string, insight: string): Promise<void> {
-    if (!this.db) return;
+    if (!this.db || userHeld(userId)) return; // MINOR_CARE: insights are the caller's words
     try {
       const sessions = await this.getConversationSessions(userId, 1);
       if (sessions.length === 0) return;
@@ -602,7 +602,7 @@ export class EngagementStore {
   }
 
   async addHighlightToLatestSession(userId: string, highlight: string): Promise<void> {
-    if (!this.db) return;
+    if (!this.db || userHeld(userId)) return; // MINOR_CARE: highlights too
     try {
       const sessions = await this.getConversationSessions(userId, 1);
       if (sessions.length === 0) return;
@@ -624,7 +624,7 @@ export class EngagementStore {
     mood: string,
     energy?: string
   ): Promise<void> {
-    if (!this.db) return;
+    if (!this.db || userHeld(userId)) return; // MINOR_CARE: never for a held caller
     try {
       const docRef = this.db.collection(this.COLLECTION).doc(userId);
       const sessionRef = docRef.collection('conversation_sessions').doc(sessionId);

@@ -28,7 +28,6 @@ export interface PersistenceConfig {
 
   /** Document ID (defaults to 'data') */
   documentId?: string;
-
   /** How often to batch sync (ms) - default 5000 */
   syncIntervalMs?: number;
 
@@ -195,7 +194,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   };
   // Forced (shutdown, explicit flush): held parts ignore their backoff
   const flushOnce = async (force: boolean): Promise<void> => {
-    if (dirty.size === 0) return;
+    if (dirty.size === 0 && !heldParts.owed()) return;
 
     const firestore = await getFirestore();
     if (!firestore) return;
@@ -387,6 +386,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
           : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
 
         await docRef.delete();
+        heldParts.documentDeleted(userId); // only now is a pending compensating delete moot
         log.debug({ collection, userId }, 'User data deleted');
       } catch (error) {
         log.error({ error, collection, userId }, 'Failed to delete user data');
@@ -425,7 +425,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     shutdown: async () => {
       isShutdown = true;
       stopSyncInterval();
-      await flushAll(true);
+      await heldParts.capped(flushAll(true)); // at most 10 s on a hung held write
       heldParts.reportPending(collection);
       cache.clear();
       dirty.clear();
