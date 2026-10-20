@@ -23,6 +23,8 @@ final class AccessibilityAuditTests: XCTestCase {
          "Two paragraphs in one Text; the screenshot at the default size shows every line in full (2026-10-19)."),
         ("settings", .dynamicType, "Done",
          "A system toolbar button: bar buttons stop growing by design and show the Large Content Viewer instead."),
+        ("signIn", .dynamicType, "Cancel",
+         "The sign-in sheet's system toolbar button, like Settings' Done: the Large Content Viewer instead."),
         ("settings", .dynamicType, "Privacy",
          "Same SettingsHeader as Account, which the AX5 screenshot shows at full size."),
         ("settings", .dynamicType, "Lock what Ferni remembers",
@@ -69,6 +71,22 @@ final class AccessibilityAuditTests: XCTestCase {
 
     /// The overrides reach the views (so the snapshots below show those paths),
     /// and an ordinary launch doesn't have them.
+    /// The sign-in sheet (design audit P1-6), opened from Home's offer.
+    func testSignIn() throws {
+        for size in [TextSize.standard, .ax5] {
+            let app = XCUIApplication.ferni(.home, size: size, account: "anonymous")
+            let offer = app.buttons["home.signIn"]
+            XCTAssertTrue(offer.waitForExistence(timeout: 20), "Home's sign-in offer never appeared")
+            offer.tap()
+            XCTAssertTrue(app.textFields["Phone number"].waitForExistence(timeout: 5), "the sign-in sheet never appeared")
+            let name = "signIn \(size)"
+            try XCTContext.runActivity(named: name) { _ in
+                try app.performAccessibilityAudit(for: .all) { Self.handle($0, on: name) }
+            }
+            app.terminate()
+        }
+    }
+
     func testReduceMotionAndTransparency() throws {
         let plain = XCUIApplication.ferni(.call)
         XCTAssertTrue(Screen.call.ready(in: plain).waitForExistence(timeout: 20))
