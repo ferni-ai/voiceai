@@ -18,6 +18,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { dataOf, loadDoc, type LoadResult } from './load-state.js';
 
 const log = createLogger({ module: 'superhuman:anticipatory-planning' });
 
@@ -578,25 +579,10 @@ const COLLECTION = 'anticipatory_planning';
 
 async function loadAnticipatoryProfile(
   userId: string
-): Promise<AnticipatoryPlanningProfile | null> {
+): Promise<LoadResult<AnticipatoryPlanningProfile>> {
   const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
-    if (doc.exists) {
-      return doc.data() as AnticipatoryPlanningProfile;
-    }
-    return null;
-  } catch (error) {
-    log.debug({ error, userId }, 'Failed to load anticipatory planning profile');
-    return null;
-  }
+  const ref = db?.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile');
+  return loadDoc<AnticipatoryPlanningProfile>(ref, log);
 }
 
 async function saveAnticipatoryProfile(
@@ -675,7 +661,9 @@ export async function recordTransitionSignal(
   triggers: string[],
   source: TransitionSignal['source'] = 'conversation'
 ): Promise<void> {
-  const profile = (await loadAnticipatoryProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadAnticipatoryProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   const signal: TransitionSignal = {
     transition,
@@ -701,7 +689,9 @@ export async function updateDemographics(
   userId: string,
   demographics: Partial<AnticipatoryPlanningProfile['demographics']>
 ): Promise<void> {
-  const profile = (await loadAnticipatoryProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadAnticipatoryProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   profile.demographics = { ...profile.demographics, ...demographics };
   profile.predictions = computePredictions(profile);
@@ -717,7 +707,7 @@ export async function getAnticipatedTransitions(
   userId: string,
   minConfidence: number = 0.4
 ): Promise<TransitionPrediction[]> {
-  const profile = await loadAnticipatoryProfile(userId);
+  const profile = dataOf(await loadAnticipatoryProfile(userId));
   if (!profile) return [];
 
   // Filter by confidence and exclude already surfaced (unless user acknowledged)
@@ -746,7 +736,7 @@ export async function markTransitionSurfaced(
   transition: LifeTransition,
   userResponse: 'acknowledged' | 'not_ready' | 'inaccurate' | 'unknown' = 'unknown'
 ): Promise<void> {
-  const profile = await loadAnticipatoryProfile(userId);
+  const profile = dataOf(await loadAnticipatoryProfile(userId));
   if (!profile) return;
 
   // Update or add surfaced record
