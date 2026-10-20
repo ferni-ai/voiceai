@@ -130,21 +130,27 @@ describe('recordJudgedCommitments', () => {
 describe('readers under COMMITMENT_SINGLE_WRITER', () => {
   const legacy = {
     status: 'active',
-    statement: "I'll catch you later tonight, okay",
+    statement: "I'll send Tom the resume by Thursday",
     createdAt: NOW - 86_400_000,
   };
   const judged = { ...legacy, statement: 'text Mindy back', source: JUDGED_SOURCE };
 
   it('flag off: a legacy row reads exactly as before', () => {
-    expect(toOpenCommitment('l', legacy)).toMatchObject({ statement: legacy.statement });
+    expect(toOpenCommitment('l', legacy)).toMatchObject({
+      statement: 'send Tom the resume by Thursday',
+    });
     expect(toOpenCommitment('l', { ...legacy, statement: 'call her tomorrow' })).toBeNull();
   });
 
   it('flag on: legacy rows are hidden, judged rows show, three words included', () => {
-    expect(toOpenCommitment('l', legacy, true)).toBeNull();
-    expect(toOpenCommitment('j', judged, true)).toMatchObject({ statement: 'text Mindy back' });
+    expect(toOpenCommitment('l', legacy, { judgedOnly: true })).toBeNull();
+    expect(toOpenCommitment('j', judged, { judgedOnly: true })).toMatchObject({
+      statement: 'text Mindy back',
+    });
     // "go for a run" ends on a word the regex-capture filter takes for a sign-off.
-    expect(toOpenCommitment('j', { ...judged, statement: 'go for a run' }, true)).not.toBeNull();
+    expect(
+      toOpenCommitment('j', { ...judged, statement: 'go for a run' }, { judgedOnly: true })
+    ).not.toBeNull();
   });
 
   it('check-ins hide a judged row about a forgotten person (person field only), and show nothing blind', async () => {
@@ -184,7 +190,7 @@ describe('readers under COMMITMENT_SINGLE_WRITER', () => {
     expect(await singleWriterFor('mom', agentOn, store)).toBe(true);
     expect(await singleWriterFor('opted-out', agentOn, store)).toBe(false);
     const seen = await Promise.all(
-      ['seth', 'mom'].map(async (u) => toOpenCommitment(u, legacy, await singleWriterFor(u, env, store))) // prettier-ignore
+      ['seth', 'mom'].map(async (u) => toOpenCommitment(u, legacy, { judgedOnly: await singleWriterFor(u, env, store) })) // prettier-ignore
     );
     expect(seen.map((c) => c !== null)).toEqual([false, true]);
   });

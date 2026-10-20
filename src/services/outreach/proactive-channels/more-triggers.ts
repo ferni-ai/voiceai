@@ -20,6 +20,7 @@ import {
   dueForPush,
   firestoreCommitmentStore,
   toOpenCommitment,
+  youSaidYoud,
 } from '../../superhuman/commitment-follow-up.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { shownRows, singleWriterFor } from '../../superhuman/commitment-single-writer.js';
@@ -42,17 +43,21 @@ function quote(s: unknown, max = 90): string | undefined {
   return t && t.length <= max ? t : undefined;
 }
 
-/** Reminders to the user (not to a contact) that didn't reach them in the last 12 hours. */
+/**
+ * Reminders to the user (not to a contact) that didn't reach them in the last
+ * 12 hours: missed, failed, or saved in the app with nobody told (in_app_unnotified).
+ */
 export async function reminderTriggers(userId: string, now: Date): Promise<ProactiveTrigger[]> {
   const db = getFirestoreDb();
   if (!db) return [];
   const col = db.collection('bogle_users').doc(userId).collection('reminders');
-  const [missed, failed] = await Promise.all([
+  const [missed, failed, unnotified] = await Promise.all([
     col.where('status', '==', 'missed').get(),
     col.where('status', '==', 'failed').get(),
+    col.where('status', '==', 'in_app_unnotified').get(),
   ]);
   const out: ProactiveTrigger[] = [];
-  for (const doc of [...missed.docs, ...failed.docs]) {
+  for (const doc of [...missed.docs, ...failed.docs, ...unnotified.docs]) {
     const r = doc.data();
     const at = Date.parse(String(r.scheduledFor ?? ''));
     const what = quote(r.message);
@@ -87,18 +92,18 @@ export async function commitmentTriggers(userId: string, now: Date): Promise<Pro
   const shown = await shownRows(userId, judgedOnly);
   const out: ProactiveTrigger[] = [];
   for (const { id, data } of await store.active(userId)) {
-    const open = shown(data) ? toOpenCommitment(id, data, judgedOnly) : null;
+    const open = shown(data) ? toOpenCommitment(id, data, { judgedOnly }) : null;
     // A money or credential item is raised only on a call, never in a proactive text.
     const c = open?.sensitive ? null : open;
-    const said = quote(c?.statement, 120);
+    const said = c && quote(youSaidYoud(c), 120);
     if (!c || !said || !dueForPush(c, now.getTime())) continue;
     out.push({
       sourceId: `commitment:${c.id}:${c.followUpCount}`,
       kind: 'follow_up',
       weight: 'light',
       timely: true,
-      text: `Hey, it's Ferni. Last time you said: "${said}". How did it go?`,
-      reason: `last time they said "${said}", and it's time to ask how it went`,
+      text: `Hey, it's Ferni. Last time you said ${said}. How did it go?`,
+      reason: `last time they said they'd ${c.statement}, and it's time to ask how it went`,
       afterSend: async () => store.markFollowedUp(userId, c, now.getTime()),
     });
   }

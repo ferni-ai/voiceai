@@ -22,6 +22,8 @@ vi.mock('../../../superhuman/commitment-follow-up.js', async (orig) => ({
 const { readDay } = await import('../default-deps.js');
 
 const NOW = new Date('2026-10-18T13:05:00Z');
+/** The brief carries commitments only with MORNING_BRIEF_COMMITMENTS on (default-deps.ts). */
+const ENV = { MORNING_BRIEF_COMMITMENTS: 'on' };
 const row = (id: string, data: Record<string, unknown>) => ({
   id,
   data: { status: 'active', createdAt: NOW.getTime() - 86_400_000, ...data },
@@ -40,24 +42,22 @@ afterEach(() => {
 describe('morning brief commitments', () => {
   it('flag off: open commitments as the old rules keep them, judged or not (the brief names two)', async () => {
     h.rows = ROWS;
-    const day = await readDay('u1', {}, 'America/Chicago', NOW);
-    expect(day.commitments).toEqual([
-      'I need to call the bank about that charge',
-      'text Rosa back',
-    ]);
+    const day = await readDay('u1', {}, 'America/Chicago', NOW, ENV);
+    // The legacy line is cleaned up as every reader does (commitment-quality.ts).
+    expect(day.commitments).toEqual(['call the bank about that charge', 'text Rosa back']);
     // A judged row says who it is about in its statement ("call your sister tomorrow (Mindy)"),
     // so even with the flag off the forget check sees a forgotten person.
     h.rows = [ROWS[2]];
-    expect((await readDay('u1', {}, 'America/Chicago', NOW)).commitments).toEqual([]);
+    expect((await readDay('u1', {}, 'America/Chicago', NOW, ENV)).commitments).toEqual([]);
     h.forgotten = [];
-    expect((await readDay('u1', {}, 'America/Chicago', NOW)).commitments).toEqual(['call your sister tomorrow (Mindy)']); // prettier-ignore
+    expect((await readDay('u1', {}, 'America/Chicago', NOW, ENV)).commitments).toEqual(['call your sister tomorrow (Mindy)']); // prettier-ignore
   });
 
   it('flag on: only judged rows, and none about a forgotten person in the person field', async () => {
     process.env.COMMITMENT_SINGLE_WRITER = 'on';
     // The forgotten one first, so the brief's limit of two can't hide a leak.
     h.rows = [ROWS[2], ROWS[0], ROWS[1]];
-    const day = await readDay('u1', {}, 'America/Chicago', NOW);
+    const day = await readDay('u1', {}, 'America/Chicago', NOW, ENV);
     expect(day.commitments).toEqual(['text Rosa back']);
   });
 
@@ -65,6 +65,6 @@ describe('morning brief commitments', () => {
     process.env.COMMITMENT_SINGLE_WRITER = 'on';
     h.rows = ROWS;
     h.forgotten = null;
-    expect((await readDay('u1', {}, 'America/Chicago', NOW)).commitments).toEqual([]);
+    expect((await readDay('u1', {}, 'America/Chicago', NOW, ENV)).commitments).toEqual([]);
   });
 });

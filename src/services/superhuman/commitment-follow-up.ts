@@ -13,6 +13,13 @@
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
+  commitmentLine,
+  MAX_CHARS,
+  needsContext,
+  toSecondPerson,
+  type CommitmentLine,
+} from '../../utils/commitment-quality.js';
+import {
   isCommitmentSingleWriterOn,
   isJudgedRow,
   shownRows,
@@ -33,7 +40,9 @@ export function coachFollowThroughMode(
 /** The fields of a stored commitment this module reads (commitment-keeper.ts). */
 export interface OpenCommitment {
   id: string;
+  /** What they said they'd do ("call my sister Sunday"), or their whole line (`whole`). */
   statement: string;
+  whole?: true;
   /** Money or a credential (judged-commitments.ts): raised on a call only, never in a text. */
   sensitive?: true;
   createdAt: number;
@@ -64,10 +73,10 @@ const STALE_AFTER_MS = 30 * DAY_MS;
 /** Next follow-up after one is made. */
 const NEXT_FOLLOW_UP_MS = 3 * DAY_MS;
 
-// The capture regex takes any "I'll" or "I need to", so the store holds
-// sign-offs and filler too ("I need to go", "I'll let you go"). Whole words only.
-const OFFHAND =
-  /\b(go|run|head out|hop off|let you go|talk (to you )?(later|soon)|call you|see|think about it|try|figure it out|be fine|be okay|be right back|bbl)\b[.!?]?\s*$/i;
+// Every reader of open commitments (call check-in, push, proactive tick,
+// follow-through import, morning brief) comes through here: the stored line is
+// cleaned up, goodbyes stored before the writers checked are left out, and a
+// line that needs context ("call her tomorrow") is shown only with context.
 const MIN_WORDS = 4;
 
 function num(v: unknown): number | undefined {
@@ -83,36 +92,51 @@ export function sayBack(statement: string, person: unknown): string {
   return who && !statement.toLowerCase().includes(who.toLowerCase()) ? `${statement} (${who})` : statement; // prettier-ignore
 }
 
+/** How a reader asks: `withContext` (its model has the conversation), `judgedOnly` (single writer on). */
+export interface OpenCommitmentOptions {
+  withContext?: boolean;
+  judgedOnly?: boolean;
+}
+
 /**
- * The statement to ask about, or null when the row shouldn't be. `judgedOnly`
+ * The line to ask about, or null when the row shouldn't be. `judgedOnly`
  * (COMMITMENT_SINGLE_WRITER on for this person) keeps only rows the after-call
- * judge wrote. Those were judged with the whole call, so the word filters
- * meant for the regex captures don't apply to them ("text Mindy back").
+ * judge wrote. Those were judged with the whole call, so the line cleanup
+ * meant for the regex captures doesn't apply to them ("text Mindy back").
+ * Without `withContext`, a captured line that needs context to make sense is null.
  */
-function askableStatement(d: Record<string, unknown>, judgedOnly: boolean): string | null {
+function askableLine(
+  d: Record<string, unknown>,
+  opts: OpenCommitmentOptions
+): CommitmentLine | null {
   const judged = isJudgedRow(d);
-  if (judgedOnly && !judged) return null;
-  const statement = String(d.statement ?? d.summary ?? '').trim();
-  if (judged) return statement.split(/\s+/).length >= 2 ? sayBack(statement, d.person) : null;
-  return statement.split(/\s+/).length < MIN_WORDS || OFFHAND.test(statement) ? null : statement;
+  if (opts.judgedOnly === true && !judged) return null;
+  const said = String(d.statement ?? d.summary ?? '')
+    .slice(0, MAX_CHARS)
+    .trim();
+  const words = said.split(/\s+/).length;
+  if (judged) return words >= 2 ? { text: sayBack(said, d.person), whole: false } : null;
+  const line = words < MIN_WORDS ? null : commitmentLine(said);
+  return line === null || (opts.withContext !== true && needsContext(line)) ? null : line;
 }
 
 /** A stored document as an open commitment, or null when it isn't one worth asking about. */
 export function toOpenCommitment(
   id: string,
   d: Record<string, unknown>,
-  judgedOnly = false
+  opts: OpenCommitmentOptions = {}
 ): OpenCommitment | null {
   if (d.status !== 'active') return null;
-  const statement = askableStatement(d, judgedOnly);
-  if (statement === null) return null;
+  const line = askableLine(d, opts);
+  if (line === null) return null;
   const createdAt = num(d.createdAt);
   if (createdAt === undefined) return null;
   const targetDate = num(d.targetDate);
   const lastFollowUp = num(d.lastFollowUp);
   return {
     id,
-    statement,
+    statement: line.text,
+    ...(line.whole && { whole: true as const }),
     createdAt,
     followUpAfter: num(d.followUpAfter) ?? createdAt + NEXT_FOLLOW_UP_MS,
     followUpCount: num(d.followUpCount) ?? 0,
@@ -145,6 +169,11 @@ export function pickForCall(all: OpenCommitment[], now: number, limit = 2): Open
     .filter((c) => askableOnCall(c, now))
     .sort((a, b) => rank(a) - rank(b) || b.createdAt - a.createdAt)
     .slice(0, limit);
+}
+
+/** The commitment said back to them: "you'd call your sister Sunday", or their whole line quoted. */
+export function youSaidYoud(c: OpenCommitment): string {
+  return c.whole ? `"${c.statement}"` : `you'd ${toSecondPerson(c.statement)}`;
 }
 
 function daysAgo(ms: number): string {
@@ -228,7 +257,7 @@ export async function loadCallCheckIns(
     ]);
     const all = docs
       .filter((d) => shown(d.data))
-      .map((d) => toOpenCommitment(d.id, d.data, judgedOnly))
+      .map((d) => toOpenCommitment(d.id, d.data, { withContext: true, judgedOnly }))
       .filter((c): c is OpenCommitment => c !== null);
     // A call Ferni was asked to make is asked about only once it has happened (call-status.ts).
     const said = notes

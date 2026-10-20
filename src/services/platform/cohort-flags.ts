@@ -27,9 +27,8 @@
  * infrastructure or secrets. Reading cohorts never holds a call up for more
  * than READ_TIMEOUT_MS. Off unless COHORT_FLAGS=on.
  *
- * Servers that act for many users in one process (the UI server's scheduled
- * jobs) must never write process.env; they ask per person instead, with
- * flagForUser and usersWithFlag below.
+ * Servers that act for many users in one process (the UI server's scheduled jobs) must never
+ * write process.env; they ask per person instead, with flagForUser and usersWithFlag below.
  *
  * @module services/platform/cohort-flags
  */
@@ -102,12 +101,14 @@ export const COHORT_FLAGS = [
   'WEEKLY_PREDICTION',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
-  // Read per call, never at boot: on a turn and the greeting check-in from process.env as applied,
-  // after the call through envForCaller, and per person on the UI server (judged-commitments.ts).
+  // Read per call, never at boot: as applied mid-call, envForCaller after it, flagForUser on the UI server.
   'COMMITMENT_SINGLE_WRITER',
-  // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
-  // (services/outreach/morning-brief/brief-job.ts).
+  // Read by the UI server's calendar-briefing job, never in a call (morning-brief/brief-job.ts).
   'MORNING_BRIEF',
+  // The UI server's deliver-reminders job reads both per person, through flagForUser
+  // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
+  'REMINDER_SMS_DEFAULT',
+  'REMINDER_IN_APP_PUSH',
   // Read per person on the web server (flagForUser): outreach pushes and the after-call ask (web-push-flag.ts).
   'WEB_PUSH_DELIVERY',
 ] as const;

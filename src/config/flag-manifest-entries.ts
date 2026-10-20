@@ -72,6 +72,27 @@ export const FLAGS_ACTION_TO_BYPASS = {
   BYPASS_TEAM_UNLOCKS: { default: 'off', owner: 'tools', kind: 'kill-switch' },
 } as const satisfies Record<string, FlagSpec>;
 
+/** CALL_CPU_PROFILE .. CI */
+export const FLAGS_CALL_TO_CI = {
+  CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
+  CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
+  CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
+  CALL_RESULT_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  CALL_JOURNAL_ASK: { default: 'off', owner: 'memory', kind: 'experiment' },
+  CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
+  CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
+  CARTESIA_STREAMING_TTS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  CASCADE_APPEND_ONLY_TOOLS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  CASCADE_CACHE_WARM: { default: 'off', owner: 'voice', kind: 'experiment' },
+  CASCADE_FAST_LANE: { default: 'off', owner: 'voice', kind: 'kill-switch' },
+  CASCADE_TRIM_LEAD_SILENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // vad restores the silence timer; anything else is the STT end-of-turn (cartesia-cascade.ts)
+  CASCADE_TURN_DETECTION: { default: 'stt', owner: 'voice', kind: 'config' },
+  // set by CI runners, not by us
+  CI: { default: 'off', owner: 'tools', kind: 'config' },
+} as const satisfies Record<string, FlagSpec>;
+
 /** MOVE_OUTCOMES .. PHONE_AUDIO_MODE */
 export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   // on: log which moves each reply made and what followed, saved after the call (move-log.ts)
@@ -112,6 +133,8 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   OUTREACH_DRY_RUN: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   // on: the daily scheduler sends no generic "thinking of you" check-ins
   OUTREACH_GROUNDED_CHECKINS: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
+  // on: a daily-outreach note saved in the app also sends a push saying it is there (in-app-push.ts)
+  OUTREACH_IN_APP_PUSH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: pondered follow-ups go out as in-app notes (also a per-person cohort flag)
   OUTREACH_PONDERED_NOTES: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OVERLAP_GREETING_WITH_PREWARM: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -121,6 +144,7 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   PERSONA_BEATS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // character-spark.md after the character sheet, one "!" on bright turns (agents/personas/prompt-loader.ts, turn-shape.ts)
   PERSONA_SPARK: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PERSONA_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PERSONA_MOOD_NOT_CALLERS: { default: 'on', owner: 'memory', kind: 'kill-switch' },
   PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },

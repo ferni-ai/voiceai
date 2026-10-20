@@ -12,6 +12,7 @@ import {
   dueForPush,
   firestoreCommitmentStore,
   toOpenCommitment,
+  youSaidYoud,
   type CommitmentStore,
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
@@ -43,9 +44,9 @@ export function pickDuePerUser(rows: DueCommitment[], now: number): DueCommitmen
   return [...byUser.values()];
 }
 
-/** The push text: their own words, and a question a friend would ask. */
+/** The push text: what they said they'd do, and a question a friend would ask. */
 export function pushMessage(c: OpenCommitment): string {
-  return `How did it go? Last time you said: "${c.statement}"`;
+  return `Last time you said ${youSaidYoud(c)}. How did it go?`;
 }
 
 async function scanDue(now: number): Promise<DueCommitment[]> {
@@ -72,7 +73,7 @@ async function scanDue(now: number): Promise<DueCommitment[]> {
     if (!userId) continue;
     const flag = byUser.get(userId);
     if (flag && !flag.shown(doc.data())) continue;
-    const commitment = toOpenCommitment(doc.id, doc.data(), flag?.on);
+    const commitment = toOpenCommitment(doc.id, doc.data(), { judgedOnly: flag?.on === true });
     // A money or credential item is raised only on a call, never in a push.
     if (commitment && !commitment.sensitive) rows.push({ userId, commitment });
   }

@@ -372,7 +372,7 @@ async function handleSmartFAQ(req: IncomingMessage, res: ServerResponse): Promis
     },
     privacy: {
       answer:
-        "Your conversations are encrypted and never sold or shared. We use your data only to provide you with a better experience. You can export or delete all your data anytime. What you tell us stays between us—that's a promise.",
+        "Ferni saves your conversations and the things you tell it so it can remember you next time. We never sell your data. Outside providers process it to make Ferni work, like the models that write Ferni's replies. You can download your data anytime, and deleting your account erases it.",
       related: [
         'Where is my data stored?',
         'Can I delete my data?',

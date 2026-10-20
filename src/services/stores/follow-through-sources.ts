@@ -73,7 +73,7 @@ async function openCommitments(
   const docs = await firestoreCommitmentStore.active(userId);
   const judgedOnly = await singleWriterFor(userId);
   return docs.flatMap((d) => {
-    const c = toOpenCommitment(d.id, d.data, judgedOnly);
+    const c = toOpenCommitment(d.id, d.data, { judgedOnly });
     // A judged row's resolved statement may not name the person: check its person too.
     if (!c || isForgotten(judgedOnly ? judgedRowText(d.data) : c.statement, forgotten)) return [];
     // A money or credential item is raised only on a call, never in a follow-through text.
