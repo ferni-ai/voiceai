@@ -476,6 +476,7 @@ public final class CallSession {
             if let result = ExpressionEventMapper.shared.processMessage(json) {
                 let hold = RemoteDuration.seconds(result.hold ?? result.duration)
                 avatar.send(.expression(result.expression, hold: hold))
+                if let micro = result.microExpression { avatar.send(.micro(micro.design)) }
             }
         case .caption(let chunk):
             captions.apply(chunk, room: roomName)

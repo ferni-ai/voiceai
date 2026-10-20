@@ -21,6 +21,7 @@ public struct AvatarView: View {
     let reading: Bool
     let wake: Int
     let personSpeaking: Bool
+    let micro: MicroBeat?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -49,6 +50,7 @@ public struct AvatarView: View {
     public init(
         persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
         name: String = "Ferni", covered: Bool = false, wake: Int = 0, personSpeaking: Bool = false,
+        micro: MicroBeat? = nil,
         level: @escaping @Sendable () -> Float = { 0 },
         reading: Bool = false, onCue: ((KeyedCue) -> Void)? = nil
     ) {
@@ -62,6 +64,7 @@ public struct AvatarView: View {
         self.reading = reading
         self.wake = wake
         self.personSpeaking = personSpeaking
+        self.micro = micro
     }
 
     public var body: some View {
@@ -132,6 +135,10 @@ public struct AvatarView: View {
             // Back after a long time away: he wakes where he is, as on opening the app.
             .onChange(of: wake) { _, _ in
                 if activity == .idle, let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
+            }
+            // A micro-expression from the call (the agent's humanization signals).
+            .onChange(of: micro) { _, next in
+                if let next { rig.micro(next.expression) }
             }
             .onChange(of: expression) { _, next in
                 if Self.winPlays(next, reduceMotion: reduceMotion, personSpeaking: personSpeaking) { rig.play(.win) }

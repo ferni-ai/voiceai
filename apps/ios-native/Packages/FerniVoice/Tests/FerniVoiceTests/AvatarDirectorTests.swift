@@ -1,4 +1,5 @@
 import FerniDesign
+import Observation
 import XCTest
 @testable import FerniVoice
 
@@ -32,6 +33,41 @@ final class AvatarDirectorTests: XCTestCase {
         _ = d.send(.connectTapped(personaID: "ferni"), now: .zero)
         XCTAssertEqual(d.send(.agentJoined, now: ms(500)), [.haptic(.presence), .earcon(.arrival)])
         XCTAssertEqual(d.send(.agentJoined, now: ms(900)), [], "once per call")
+    }
+
+    /// Micro-expressions (parity item 2): each one is its own beat, so the
+    /// body flashes the same one twice in a row; the face underneath stays.
+    func testEachMicroIsANewBeatOverTheSameFace() {
+        var d = live()
+        XCTAssertNil(d.micro)
+        _ = d.send(.micro(.warmth), now: ms(100))
+        let first = d.micro
+        XCTAssertEqual(first?.expression, .warmth)
+        _ = d.send(.micro(.warmth), now: ms(200))
+        XCTAssertEqual(d.micro?.expression, .warmth)
+        XCTAssertNotEqual(d.micro, first, "the second plays too")
+        XCTAssertEqual(d.pose, .listening)
+    }
+
+    /// The screen hears a micro on its own, with nothing else changing (the
+    /// avatar view replays it from `model.micro`).
+    @MainActor
+    func testAMicroAloneWakesTheScreen() {
+        let model = AvatarModel()
+        model.send(.connectTapped(personaID: "ferni"))
+        let woke = Woke()
+        withObservationTracking { _ = model.micro } onChange: { woke.set() }
+        model.send(.micro(.delight))
+        XCTAssertTrue(woke.value)
+        XCTAssertEqual(model.micro?.expression, .delight)
+    }
+
+    func testTheAgentsMicrosReadAsTheDesignSystems() {
+        XCTAssertEqual(MicroExpressionType.protective.design, .concern)
+        XCTAssertEqual(MicroExpressionType.connection.design, .warmth)
+        for same in [MicroExpressionType.concern, .delight, .interest, .warmth, .recognition] {
+            XCTAssertEqual(same.design.rawValue, same.rawValue)
+        }
     }
 
     func testAQuickFlickerNeverShows() {
@@ -147,4 +183,12 @@ final class AvatarDirectorTests: XCTestCase {
             XCTAssertLessThanOrEqual(haptics.count, 1, "\(event)")
         }
     }
+}
+
+/// A flag the observation callback can set from any thread.
+private final class Woke: @unchecked Sendable {
+    private let lock = NSLock()
+    private var flag = false
+    var value: Bool { lock.withLock { flag } }
+    func set() { lock.withLock { flag = true } }
 }
