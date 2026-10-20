@@ -33,6 +33,7 @@ import { bindBodyLimitResponse } from '../../api/bounded-body.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { runBackgroundServices } from './background-services.js';
 import { parseRawBody } from '../../api/helpers.js';
+import { handleAppConfigIos } from '../../api/app-config-ios.js';
 
 // Local routes
 import {
@@ -321,8 +322,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // LOCAL ROUTES (TypeScript modules)
   // ============================================================================
 
-  // Health routes
-  if (await handleHealthRoutes(req, res, pathname)) return;
+  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname))) return;
 
   // Token routes (LiveKit tokens, demo sessions)
   if (await handleTokenRoutes(req, res, pathname, parsedUrl)) return;
