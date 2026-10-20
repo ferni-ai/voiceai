@@ -43,7 +43,7 @@ const words = (t) =>
 const contentWords = (t) => new Set(words(t).filter((w) => w.length >= 5 && !STOP.has(w)));
 
 /** A growing or corrected caption of one utterance shares at least half its start. */
-function sameUtterance(prev, next) {
+export function sameUtterance(prev, next) {
   const a = prev.toLowerCase();
   const b = next.toLowerCase();
   let i = 0;

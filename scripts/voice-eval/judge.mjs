@@ -233,6 +233,7 @@ async function askClaude(prompt, ctx) {
     res = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', headers, body: JSON.stringify({ model: ctx.model, ...body }) });
   }
   const msg = await res.json();
+  ctx.usage = msg.usage; // token counts for callers that report cost (coach-tagger.mjs)
   if (!res.ok) throw new Error(`claude (${ctx.via}) ${res.status}: ${JSON.stringify(msg.error ?? msg).slice(0, 300)}`);
   if (msg.stop_reason === 'refusal') throw new Error(`claude refused (${msg.stop_details?.category ?? 'no category'})`);
   return parseJudgeJson((msg.content ?? []).map((b) => (b.type === 'text' ? b.text : '')).join(''));
