@@ -7,11 +7,16 @@ import os
 ///
 /// `POST /api/identity/merge-anonymous {anonIdToken}` as the account they're
 /// on now. The anonymous token is the proof the old account was theirs; the
-/// server takes it under an hour old. Idempotent, so a lost answer is retried;
-/// 409 `{merged: false, reason}` is a final no. Behind IDENTITY_MERGE_ANON.
+/// server takes it under an hour old. Idempotent, so a lost answer or a 500
+/// `{merged: false, error}` is retried once; 409 `{merged: false, reason}`,
+/// 403 (the token isn't anonymous) and 404 (route not deployed) are a quiet
+/// no. Behind IDENTITY_MERGE_ANON (PR #2226).
 public enum AnonymousMerge {
+    /// One retry, never a loop.
+    public static let retryDelays: [Duration] = [.seconds(2)]
+
     public static func merger(
-        api: FerniAPI, retryDelays: [Duration] = [.seconds(1), .seconds(3)]
+        api: FerniAPI, retryDelays: [Duration] = AnonymousMerge.retryDelays
     ) -> @Sendable (LeftBehindAccount) async -> Bool {
         { leftBehind in
             let log = Logger(subsystem: "com.sethdford.ferni", category: "account")

@@ -21,7 +21,7 @@ final class AnonymousMergeTests: XCTestCase {
         let api = FerniAPI(baseURL: URL(string: "https://ferni.test")!, idToken: { _ in "real-account-token" }) {
             try server.send($0)
         }
-        return await AnonymousMerge.merger(api: api, retryDelays: [.zero, .zero])(leftBehind)
+        return await AnonymousMerge.merger(api: api, retryDelays: [.zero])(leftBehind)
     }
 
     private let anon = LeftBehindAccount(uid: "anon-1", idToken: "anon-token")
@@ -40,11 +40,27 @@ final class AnonymousMergeTests: XCTestCase {
         XCTAssertEqual(body, ["anonIdToken": "anon-token"])
     }
 
-    func testANetworkFailureIsRetriedThenSucceeds() async {
-        let server = Server([.failure(URLError(.timedOut)), .success((503, "{}")), .success((200, #"{"merged":true}"#))])
+    func testANetworkFailureIsRetriedOnceThenSucceeds() async {
+        let server = Server([.failure(URLError(.timedOut)), .success((200, #"{"merged":true}"#))])
         let merged = await merge(server, anon)
         XCTAssertTrue(merged)
-        XCTAssertEqual(server.requests.count, 3)
+        XCTAssertEqual(server.requests.count, 2)
+    }
+
+    /// 500 `{merged: false, error}` is worth one more try, and only one.
+    func testAServerErrorIsRetriedOnce() async {
+        let server = Server([.success((500, #"{"merged":false,"error":"x"}"#)), .success((500, #"{"merged":false,"error":"x"}"#))])
+        let merged = await merge(server, anon)
+        XCTAssertFalse(merged)
+        XCTAssertEqual(server.requests.count, 2)
+    }
+
+    /// 403: the token wasn't anonymous. Nothing to merge, nothing to say.
+    func testAForbiddenTokenIsAQuietNo() async {
+        let server = Server([.success((403, #"{"merged":false,"reason":"not anonymous"}"#))])
+        let merged = await merge(server, anon)
+        XCTAssertFalse(merged)
+        XCTAssertEqual(server.requests.count, 1)
     }
 
     func testARefusalIsFinal() async {
@@ -60,6 +76,10 @@ final class AnonymousMergeTests: XCTestCase {
         let merged = await merge(server, anon)
         XCTAssertFalse(merged)
         XCTAssertEqual(server.requests.count, 1)
+    }
+
+    func testTheAppRetriesOnceAtMost() {
+        XCTAssertEqual(AnonymousMerge.retryDelays.count, 1)
     }
 
     func testNoTokenMeansNoRequest() async {
