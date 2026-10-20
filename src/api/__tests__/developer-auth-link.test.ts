@@ -116,6 +116,12 @@ beforeEach(() => {
   publishers.set('pub-legacy', { email: 'legacy@example.com', name: 'Legacy', verified: false });
   // The record every anonymous sign-in used to collapse onto
   publishers.set('pub-shared', { email: '', name: 'Developer', verified: false, firebaseUid: 'x' });
+  publishers.set('pub-anonv', {
+    email: 'anonv@example.com',
+    name: 'AnonV',
+    verified: false,
+    firebaseUid: 'uid-anonv',
+  });
 });
 
 const verify = (token: string, claims: Claims) => {
@@ -246,6 +252,17 @@ describe('getPublisherFromToken', () => {
   it('does not resolve an anonymous account to a publisher, even one linked earlier', async () => {
     tokens.set(jwt('anon'), { uid: 'x', firebase: { sign_in_provider: 'anonymous' } });
     expect(await getPublisherFromToken(req(jwt('anon')))).toBeNull();
+  });
+
+  it('does not resolve an anonymous account even with a verified, matching email', async () => {
+    // Only the anonymous check can refuse this token: the email checks all pass
+    tokens.set(jwt('anonv'), {
+      uid: 'uid-anonv',
+      email: 'anonv@example.com',
+      email_verified: true,
+      firebase: { sign_in_provider: 'anonymous' },
+    });
+    expect(await getPublisherFromToken(req(jwt('anonv')))).toBeNull();
   });
 
   it('resolves a verified account to its linked publisher', async () => {

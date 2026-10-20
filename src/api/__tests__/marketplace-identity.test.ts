@@ -28,6 +28,14 @@ vi.mock('../../services/identity/firebase-auth.js', async (importOriginal) => ({
       'tok-owner': { uid: 'uid-owner', email: 'Owner@Example.com', claims: {} },
       'tok-other': { uid: 'uid-other', email: 'other@example.com', claims: {} },
       'tok-anon': { uid: 'uid-anon', claims: {}, isAnonymous: true, emailVerified: false },
+      // Anonymous, yet carrying a verified email equal to its publisher's: only the
+      // anonymous check can refuse it
+      'tok-anon-verified': {
+        uid: 'uid-anon-verified',
+        email: 'anonv@example.com',
+        isAnonymous: true,
+        claims: {},
+      },
       // Linked earlier, but the email was never verified / is someone else's
       'tok-owner-unverified': {
         uid: 'uid-owner',
@@ -56,6 +64,15 @@ const publishers = vi.hoisted(
       ],
       // An anonymous uid that was linked to a publisher before linking was fixed
       ['pub-shared', { email: '', name: 'Developer', verified: false, firebaseUid: 'uid-anon' }],
+      [
+        'pub-anonv',
+        {
+          email: 'anonv@example.com',
+          name: 'AnonV',
+          verified: false,
+          firebaseUid: 'uid-anon-verified',
+        },
+      ],
     ])
 );
 vi.mock('@google-cloud/firestore', () => {
@@ -379,6 +396,38 @@ describe('marketplace publisher routes', () => {
     });
     expect(res.status).toBe(403);
     expect(tools.has('anon-tool')).toBe(false);
+  });
+
+  it('refuses an anonymous account even with a verified email matching its publisher', async () => {
+    const res = await call('GET', '/api/marketplace/billing/payouts', {
+      token: 'tok-anon-verified',
+    });
+    expect(res.status).toBe(403);
+  });
+
+  // The victim's item sits only in the OTHER store, so each direction of the
+  // cross-store check is exercised on its own
+  it("refuses an agent submission whose id is another publisher's tool", async () => {
+    tools.set('victim-tool', toolManifest('victim-tool', 'pub-other'));
+    const res = await call('POST', '/api/marketplace/publisher/submit', {
+      token: 'tok-owner',
+      body: {
+        type: 'agent',
+        manifest: { ...toolManifest('victim-tool', 'pub-owner'), displayName: 'Mine' },
+      },
+    });
+    expect(res.status).toBe(403);
+    expect(agents.has('victim-tool')).toBe(false);
+  });
+
+  it("refuses a tool submission whose id is another publisher's agent", async () => {
+    agents.set('victim-agent', toolManifest('victim-agent', 'pub-other'));
+    const res = await call('POST', '/api/marketplace/publisher/submit', {
+      token: 'tok-owner',
+      body: { type: 'tool', manifest: toolManifest('victim-agent', 'pub-owner') },
+    });
+    expect(res.status).toBe(403);
+    expect(tools.has('victim-agent')).toBe(false);
   });
 
   it("refuses a tool owner writing another publisher's agent with the same id", async () => {
