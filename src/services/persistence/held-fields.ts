@@ -20,14 +20,25 @@ export function heldFields<T>(whenHeld?: (data: T) => Partial<T> | null) {
       parts.set(userId, { ...parts.get(userId), ...part });
       return true;
     },
-    /** Write each kept part with a merge write, then forget it. Errors are logged, never thrown. */
-    async write(set: (userId: string, part: Partial<T>) => Promise<unknown>): Promise<void> {
+    /**
+     * Write each kept part with a merge write. A failed part is put back (a part kept since
+     * wins field by field) and its user marked dirty for the next sync: never dropped, never thrown.
+     */
+    async write(
+      set: (userId: string, part: Partial<T>) => Promise<unknown>,
+      dirty: Set<string>
+    ): Promise<void> {
       for (const [userId, part] of Array.from(parts)) {
         parts.delete(userId);
         try {
           await set(userId, part);
         } catch (error) {
-          log.warn({ userId, error: String(error) }, 'Held-user field write failed');
+          parts.set(userId, { ...part, ...parts.get(userId) });
+          dirty.add(userId);
+          log.warn(
+            { userId, error: String(error) },
+            'Held-user field write failed; retried next sync'
+          );
         }
       }
     },

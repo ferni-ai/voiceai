@@ -6,7 +6,6 @@
  *
  * Features: debounced batch writes, flush on shutdown, startup rehydration, memory cleanup,
  * write-through for critical data, and MINOR_CARE's hold by default (holdWrites).
- *
  * @module PersistenceLayer
  */
 
@@ -176,7 +175,8 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   const intervalName = `persistence-sync-${collection}`;
   const tainted = new Set<string>(); // held once: dropped on every set and sync from then on
   const held = (userId: string): boolean =>
-    (tainted.has(userId) || holdWrites(userId)) && (tainted.add(userId), cache.delete(userId), true);
+    (tainted.has(userId) || holdWrites(userId)) &&
+    (tainted.add(userId), cache.delete(userId), true);
   const heldParts = heldFields<T>(whenHeld as ((data: T) => Partial<T> | null) | undefined);
   let isShutdown = false;
 
@@ -219,7 +219,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         _updatedAt: new Date().toISOString(),
         _userId: userId,
       });
-    await heldParts.write((u, part) => docRefFor(u).set(toDoc(u, part), { merge: true }));
+    await heldParts.write((u, part) => docRefFor(u).set(toDoc(u, part), { merge: true }), dirty);
 
     try {
       let batch = firestore.batch();
