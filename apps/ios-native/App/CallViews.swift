@@ -338,18 +338,8 @@ struct CallMoreSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                Toggle("Captions", isOn: $showCaptions)
-                if let lastReply {
-                    Button("Report something Ferni said", systemImage: "flag") {
-                        dismiss()
-                        report(lastReply)
-                    }
-                }
-                HStack {
-                    Text("Audio output")
-                    Spacer()
-                    AudioRoutePicker().frame(width: 44, height: 44)
-                }
+                // Help first: on an SE it was below the half sheet's fold, under
+                // the settings (design audit P1-7).
                 Section {
                     Link(destination: URL(string: "tel:988")!) {
                         Label("Get help now (988)", systemImage: "phone.arrow.up.right")
@@ -360,6 +350,20 @@ struct CallMoreSheet: View {
                 } footer: {
                     Text("988 is the Suicide & Crisis Lifeline in the US, free and open all day and night.")
                 }
+                Section {
+                    Toggle("Captions", isOn: $showCaptions)
+                    if let lastReply {
+                        Button("Report something Ferni said", systemImage: "flag") {
+                            dismiss()
+                            report(lastReply)
+                        }
+                    }
+                    HStack {
+                        Text("Audio output")
+                        Spacer()
+                        AudioRoutePicker().frame(width: 44, height: 44)
+                    }
+                }
             }
             .navigationTitle("More")
             .navigationBarTitleDisplayMode(.inline)
@@ -368,6 +372,7 @@ struct CallMoreSheet: View {
             }
             .tint(FerniColor.accent)
         }
-        .presentationDetents([.medium])
+        // Half height over the call; drag up for the rest.
+        .presentationDetents([.medium, .large])
     }
 }
