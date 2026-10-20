@@ -33,7 +33,7 @@ struct CallLiveActivity: Widget {
             .activityBackgroundTint(FerniColor.background)
         } dynamicIsland: { context in
             DynamicIsland {
-                DynamicIslandExpandedRegion(.leading) { portrait(context.state).frame(width: 40, height: 40) }
+                DynamicIslandExpandedRegion(.leading) { portrait(context.state, onBlack: true).frame(width: 40, height: 40) }
                 DynamicIslandExpandedRegion(.trailing) {
                     if context.state.state.hasControls {
                         HStack(spacing: 8) { muteButton(context.state.muted); endButton }
@@ -46,20 +46,21 @@ struct CallLiveActivity: Widget {
                     if context.state.state.showsDuration { duration(context.attributes) }
                 }
             } compactLeading: {
-                portrait(context.state).frame(width: 22, height: 22)
+                portrait(context.state, onBlack: true).frame(width: 22, height: 22)
             } compactTrailing: {
                 Image(systemName: context.state.state.islandSymbol(muted: context.state.muted))
                     .symbolEffect(.variableColor.iterative, isActive: context.state.state == .speaking && !context.state.muted)
                     .contentTransition(.symbolEffect(.replace))
             } minimal: {
-                portrait(context.state).frame(width: 22, height: 22)
+                portrait(context.state, onBlack: true).frame(width: 22, height: 22)
             }
         }
         .supplementalActivityFamilies([.small])
     }
 
-    private func portrait(_ state: CallActivityAttributes.ContentState) -> some View {
-        AvatarPortrait(persona: WindowPersona(personaId: state.personaID))
+    /// - Parameter onBlack: in the Dynamic Island, always black (design audit P2 #15).
+    private func portrait(_ state: CallActivityAttributes.ContentState, onBlack: Bool = false) -> some View {
+        AvatarPortrait(persona: WindowPersona(personaId: state.personaID), onBlack: onBlack)
             .accessibilityLabel(state.personaName)
     }
 
