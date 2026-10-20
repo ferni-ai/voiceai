@@ -11,11 +11,29 @@ import { createFakeProfileFirestore, type FakeProfileFirestore } from './fake-pr
 
 let fake: FakeProfileFirestore;
 vi.mock('../firestore-utils.js', () => ({ getFirestoreDb: () => fake.db }));
+// planning-coordination's readiness check also reads these; keep them offline.
+const { offline } = vi.hoisted(() => ({
+  offline: () => Promise.reject(new Error('offline in tests')),
+}));
+vi.mock('../../calendar/calendar-load-service.js', () => ({ getCalendarLoadFactors: offline }));
+vi.mock('../capacity-guardian.js', () => ({
+  assessBurnoutRisk: offline,
+  loadEnergyHistory: offline,
+}));
+vi.mock('../semantic-intelligence/self-awareness.js', () => ({
+  getValuesAlignment: offline,
+  getBlindSpots: offline,
+}));
 
 import * as milestones from '../proactive-milestone-detector.js';
 import * as eventPatterns from '../event-pattern-memory.js';
 import * as guests from '../guest-intelligence.js';
 import * as seasonal from '../seasonal-planning-intelligence.js';
+import * as celebration from '../celebration-balance.js';
+import * as coordination from '../planning-coordination.js';
+import * as postEvent from '../post-event-learning.js';
+import * as anticipatory from '../anticipatory-planning.js';
+import * as stories from '../event-story-capture.js';
 import type { EventOutcome } from '../event-pattern-memory.js';
 
 const USER = 'user-1';
@@ -96,6 +114,44 @@ describe('a failed read leaves the stored profile alone', () => {
       () => seasonal.updateCulturalBackgrounds(USER, ['jewish']),
       () => seasonal.updatePersonalPatterns(USER, { preferredCelebrationMonths: [6] }),
       () => seasonal.recordEventOutcome(USER, 'birthday', '2026-06-01', 9),
+    ]);
+  });
+
+  it('celebration-balance', async () => {
+    const path = seed('celebration_balance');
+    await expectUntouched(path, [
+      () =>
+        celebration.recordCelebration(USER, 'Promotion', 'personal_achievement', 'small', 'self'),
+    ]);
+  });
+
+  it('planning-coordination', async () => {
+    const path = seed('planning_coordination');
+    await expectUntouched(path, [
+      () => coordination.checkPlanningReadiness(USER, 'birthday', 500, '2026-12-01'),
+    ]);
+  });
+
+  it('post-event-learning', async () => {
+    const path = seed('post_event_learning');
+    await expectUntouched(path, [
+      () => postEvent.scheduleEventFollowUps(USER, 'e1', 'Party', '2026-06-01', 'birthday'),
+      () => postEvent.recordLearning(USER, 'e1', 'immediate', {}),
+    ]);
+  });
+
+  it('anticipatory-planning', async () => {
+    const path = seed('anticipatory_planning');
+    await expectUntouched(path, [
+      () => anticipatory.recordTransitionSignal(USER, 'retirement', ['retiring next year']),
+      () => anticipatory.updateDemographics(USER, { birthYear: 1960 }),
+    ]);
+  });
+
+  it('event-story-capture', async () => {
+    const path = seed('event_stories');
+    await expectUntouched(path, [
+      () => stories.startStoryCapture(USER, 'Wedding', 'wedding', '2026-06-01'),
     ]);
   });
 });

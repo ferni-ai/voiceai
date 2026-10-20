@@ -16,7 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
-import { dataOf, loadDoc, type LoadResult } from './load-state.js';
+import { loadDoc, type LoadResult } from './load-state.js';
 import { getValuesAlignment, getBlindSpots } from './semantic-intelligence/self-awareness.js';
 
 const log = createLogger({ module: 'superhuman:planning-coordination' });
