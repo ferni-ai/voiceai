@@ -177,12 +177,17 @@ struct HomeView: View {
 
     private static let rememberID = "home.remember"
 
-    /// Ferni at rest: 200 pt on a phone; on iPad, sized to the room (design
+    /// Ferni at rest: on a phone up to 280 pt; on iPad, sized to the room (design
     /// audit P1-14: a phone column, ~65% of the screen empty).
     private var restSize: CGFloat { Self.restSize(room: room, regular: widthClass == .regular) }
 
+    /// On a phone, up to 280 pt as the room's height allows (award upgrade 2:
+    /// a Home that's never half empty; it was 200 everywhere): about 260 on a
+    /// 17 Pro and 280 on a Pro Max, less on an SE, so his words, a thread card
+    /// and the team still clear the fade over Talk.
     static func restSize(room: CGSize, regular: Bool) -> CGFloat {
-        guard regular, room.width > 0 else { return 200 }
+        guard room.width > 0, room.height > 0 else { return 200 }
+        guard regular else { return min(max(room.height * 0.42, 200), 280, room.width * 0.72) }
         return min(max(min(room.width * 0.5, room.height * 0.42), 200), 440)
     }
 

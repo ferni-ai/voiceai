@@ -91,6 +91,10 @@ enum UITestScenario: String {
                 body = #"{"unlockedMembers":["ferni","maya-santos","peter-john","alex-chen","jordan-taylor"],"members":[{"id":"nayan-patel","unlocked":false}]}"#
             } else if path.hasSuffix("/api/memories/from-call") {
                 body = #"{"items":[{"id":"f1","subject":"you","detail":"Finished the garden. Tomatoes went in first"},{"id":"f2","subject":"Ana","detail":"her birthday is Friday"},{"id":"f3","subject":"you","detail":"Want to walk before work, three mornings a week"}]}"#
+            } else if path.hasSuffix("/api/home") {
+                // Home with a thread to pick up (award upgrade 2): a follow-up in the
+                // person's words and one note of Ferni's, as GET /api/home sends them.
+                body = #"{"greeting":{"kind":"followUp","text":"the garden","topicId":"t-garden"},"note":{"id":"5f2c9a1e7b3d4c80","text":"how Sunday evenings feel heavy before the week","createdAt":"2026-10-19T21:00:00.000Z"}}"#
             } else if path.hasSuffix("/api/cognitive/memories") {
                 body = memories
             } else if path.contains("/api/cognitive/memories/"), request.httpMethod == "DELETE" {
