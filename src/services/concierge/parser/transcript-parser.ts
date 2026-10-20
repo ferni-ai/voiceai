@@ -8,6 +8,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { extractCallerName, nameCaptureStrict } from '../../../utils/caller-name.js';
 import type { ConciergeResultData, ConciergeDomain } from '../types.js';
 
 const log = createLogger({ module: 'concierge-parser' });
@@ -265,19 +266,17 @@ function extractDates(transcript: string): Date[] {
  * Extract contact name from transcript
  */
 function extractContactName(transcript: string): string | undefined {
+  // NAME_CAPTURE_STRICT=on: the shared extractor; with the i flag below [A-Z] matches "not" too.
+  if (nameCaptureStrict()) return extractCallerName(transcript) ?? undefined;
   // Common patterns: "my name is X", "this is X speaking", "X here"
   const patterns = [
     /(?:my name is|this is|i'm|i am)\s+([A-Z][a-z]+)/i,
     /([A-Z][a-z]+)\s+(?:here|speaking)/i,
   ];
-
   for (const pattern of patterns) {
     const match = transcript.match(pattern);
-    if (match?.[1]) {
-      return match[1];
-    }
+    if (match?.[1]) return match[1];
   }
-
   return undefined;
 }
 
