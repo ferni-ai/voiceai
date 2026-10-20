@@ -77,6 +77,7 @@
 		BEF8E5051FBEB918F15A9BF9 /* SignInPromptTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49166809F7360686AEAE615A /* SignInPromptTests.swift */; };
 		C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */; };
 		C2499BBA5ED850991089AF31 /* FerniWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EA1FBC06E2F396B11D85385 /* FerniWatchApp.swift */; };
+		C36151BDB3A1F5F1AD551FD2 /* SignInProblemTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C193BBD95DA87669BB25C713 /* SignInProblemTests.swift */; };
 		CAAC14DD23372C8B957B3BAB /* MemoryViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E67B08698448132C9E2AE39 /* MemoryViews.swift */; };
 		CB8FD7D5F9B4F62D90207F20 /* CrashReporting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 175D63C93899C628033FCCA8 /* CrashReporting.swift */; };
 		CF99FB01C1F6E7CF14AF4FCA /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */; };
@@ -254,6 +255,7 @@
 		BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkIntent.swift; sourceTree = "<group>"; };
 		BE26440C63996901B649797F /* FerniAppTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FerniAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		BE53A65C5F71E02C0E7B4239 /* goodbye.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = goodbye.mp3; sourceTree = "<group>"; };
+		C193BBD95DA87669BB25C713 /* SignInProblemTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInProblemTests.swift; sourceTree = "<group>"; };
 		C39F5D1C1DE13481A55A4387 /* SharedScreensTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedScreensTests.swift; sourceTree = "<group>"; };
 		C5DE888F55AE5FD01208AD72 /* FerniDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniDesign; path = Packages/FerniDesign; sourceTree = SOURCE_ROOT; };
 		C643B5190988DED731CADF82 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
@@ -402,6 +404,7 @@
 				32CB80CF1D9492393B441589 /* DeepLinkUITests.swift */,
 				B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */,
 				BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */,
+				C193BBD95DA87669BB25C713 /* SignInProblemTests.swift */,
 				47728781CB10E67E259A236C /* SignInUITests.swift */,
 				AE06F525671F6FD0FBC7779D /* StoreScreenshotTests.swift */,
 				41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */,
@@ -797,6 +800,7 @@
 				24044B237183631A0FD997E3 /* DeepLinkUITests.swift in Sources */,
 				C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */,
 				8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */,
+				C36151BDB3A1F5F1AD551FD2 /* SignInProblemTests.swift in Sources */,
 				85999614D935C3EB4A80F82B /* SignInUITests.swift in Sources */,
 				124CC2F5CBCF36E657BE6075 /* StoreScreenshotTests.swift in Sources */,
 				49961E1E4E6B791C493108B4 /* TalkButtonTests.swift in Sources */,
