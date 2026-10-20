@@ -41,6 +41,12 @@ public struct AliveUniforms: Equatable, Sendable {
 ///
 /// Compiled at runtime from this source (no build-time Metal toolchain).
 public enum AliveShader {
+    /// Half the width of the web's lid overlay box, in body radii: the live
+    /// overlay (apps/web ferni-expressions.ui.ts, `.avatar-lid-overlay`) is
+    /// `inset: 0` on #coachAvatar, the orb itself, so its 100-unit box is the
+    /// orb's diameter. (The design-system playground's box is 2.5 radii.)
+    public static let lidBox = 1.0
+
     public static let source = #"""
 #include <metal_stdlib>
 using namespace metal;
@@ -166,6 +172,21 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
   eyeFrame(1.0, u.eyes.zw, u.gaze.zw, c, c.ER, c.RX, c.RY, c.RZ, c.SR);
   float3 ro = float3(0.0, 0.0, 5.0); float3 rd = normalize(float3(uv, -zoom));
   float2 cuv = float2(uv.x - u.pos.x / 5.0 * zoom, uv.y - u.pos.y / 5.0 * zoom) / (radiusPx / res.y);
+  // The web's lid caps (the live overlay, .avatar-lid-overlay over the orb): page-colour
+  // shapes over the body whose curved edge carries the expression. Its box is
+  // 2·B body radii wide; its quadratic edge is y = B - B·cap·(1 - (x/B)²). Flat on the
+  // screen like the web's, turning with the head's roll (measured on the body's surface,
+  // perspective made every cap about half as deep). Worked out here, before any
+  // per-pixel branch, so fwidth gives the edge's true pixel width.
+  const float B = \#(lidBox);
+  // In units of the orb's outline on screen (perspective draws it 5/sqrt(25 - r²) wide).
+  float2 capP = (rot(u.lean.x) * cuv) / (uScale * c.RB.xy) * (sqrt(25.0 - uScale * uScale) / 5.0);
+  float capFall = 1.0 - (capP.x / B) * (capP.x / B);
+  float overTop = capP.y - (B - B * u.caps.x * capFall), underBot = (-B + B * u.caps.y * capFall) - capP.y;
+  // Blended over two pixels each side: one left a single grey step (a stair on a curve).
+  float fwT = 2.0 * max(fwidth(overTop), 1e-5), fwB = 2.0 * max(fwidth(underBot), 1e-5);
+  // A closed-off cap (the web's lids above the orb, Y < 0) draws nothing, not a shaved top.
+  float capped = max(step(0.001, u.caps.x) * smoothstep(-fwT, fwT, overTop), step(0.001, u.caps.y) * smoothstep(-fwB, fwB, underBot));
 
   // The room's light, premultiplied: glow and the presence ring add light (alpha 0), the floor shadow darkens.
   float d0 = length(cuv);
@@ -261,11 +282,29 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
         // eyes: porcelain, shaded by the lid caps above and below
         bool left = dL < dR; float3 l = left ? lL : lR; float3 es = left ? c.SL : c.SR;
         float tY, bY; lidLines(l, es, left ? u.lids.x : u.lids.y, left ? u.lids.z : u.lids.w, left ? u.arch.x : u.arch.y, left ? 1.0 : -1.0, u.pos.w, tY, bY);
+        // The white is the eyeball less the lids, each edge blended over a few pixels.
+        // The lid cuts are steps in depth the ray lands on one side of, so their blends
+        // come from the distance to each lid line, not from which surface the ray hit; that
+        // width is the pixel's footprint at this depth (what fwidth would give, but
+        // Metal leaves derivatives undefined inside this per-pixel branch). An eye
+        // whose lids all but meet stays closed (eyeD's margin).
+        float px = 2.5 / (res.y * zoom) * ts / uScale;   // two and a half pixels each side
+        // The eyeball's outline keeps its 3D blend: it bulges out of the body, and its
+        // shaded side is part of its look.
+        float ball = smoothstep(pxw, -pxw, sdEllipsoid(l, es) - dB);
+        // Distance to each lid line, not height above it: near the corners the lines
+        // turn steep, and a height there changes by more than a pixel per pixel.
+        float tY2, bY2; lidLines(l + float3(0.002, 0.0, 0.0), es, left ? u.lids.x : u.lids.y, left ? u.lids.z : u.lids.w, left ? u.arch.x : u.arch.y, left ? 1.0 : -1.0, u.pos.w, tY2, bY2);
+        float slopeT = (tY2 - tY) / 0.002, slopeB = (bY2 - bY) / 0.002;
+        float lidEdge = min(min((tY - l.y) * rsqrt(1.0 + slopeT * slopeT), (l.y - bY) * rsqrt(1.0 + slopeB * slopeB)), 0.5 * (tY - bY) - 0.01);
+        eyeMix = ball * smoothstep(-px, px, lidEdge);
         float lidShade = mix(0.74, 1.0, smoothstep(0.0, 0.06, tY - l.y)) * mix(0.88, 1.0, smoothstep(0.0, 0.05, l.y - bY));
         float3 white = float3(0.92, 0.91, 0.88);
         float3 ce = white * (key * (0.55 + 0.45 * max(ndl, 0.0)) * 0.8 + fill * 0.5) * lidShade;
         ce += key * (pow(ndh, 90.0) * 0.6 + softbox(reflect(rd, n), 0.1) * 0.35) * lidShade;
-        ce += rim * fres * 0.15; ce *= mix(0.7, 1.0, ao);
+        // Where the ray landed on the body beside a lid cut, the white blended in is the
+        // white at its edge, not one darkened by the body's crease there.
+        ce += rim * fres * 0.15; ce *= mix(0.7, 1.0, mat < 1.5 ? 1.0 : ao);
         col = mix(cb, ce, eyeMix);
         if (u.fly.w > 0.0) {                                             // the firefly's light falls on Ferni
           float3 lv = u.fly.xyz - p; float dd = dot(lv, lv);
@@ -275,18 +314,7 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
           col = cb * 0.75 + float3(0.05, 0.07, 0.09) + key * (pow(ndh, 140.0) * 1.4 + softbox(reflect(rd, n), 0.05) * 0.9) + rim * fres * 0.8;
         }
       }
-      if (mat < 3.5) {
-        // The web's lid caps (apps/web lid overlay, the playground's .lid-top/.lid-bottom):
-        // page-colour shapes over the body whose curved edge carries the expression. The
-        // web box is 2.5 body radii wide; its quadratic edge is y = 1.25 - 1.25·cap·(1 - (x/1.25)²).
-        // Flat on the screen like the web's, turning with the head's roll: measured on the
-        // body's surface instead, perspective made every cap about half as deep as the web's.
-        float2 b = (rot(u.lean.x) * cuv) / (uScale * c.RB.xy); float fall = 1.0 - (b.x / 1.25) * (b.x / 1.25);
-        float topEdge = 1.25 - 1.25 * u.caps.x * fall, botEdge = -1.25 + 1.25 * u.caps.y * fall;
-        float aa = 0.9 / (radiusPx * uScale);   // about a pixel
-        float capped = max(smoothstep(topEdge - aa, topEdge + aa, b.y), smoothstep(botEdge + aa, botEdge - aa, b.y));
-        alpha *= 1.0 - capped;
-      }
+      if (mat < 3.5) alpha *= 1.0 - capped;   // the lid caps, worked out above
       col = mix(col, float3(dot(col, float3(0.2126, 0.7152, 0.0722))), 0.08);
       col = gamma(aces(col));
       col += (hash21(frag + fract(u.res.z)) - 0.5) / 255.0;
