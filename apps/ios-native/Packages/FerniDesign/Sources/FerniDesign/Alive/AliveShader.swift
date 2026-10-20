@@ -265,7 +265,11 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
         cb += key * (pow(ndh, 14.0) * 0.03 + softbox(reflect(rd, n), 0.25) * 0.025);
         cb += rim * fres * 0.4 + u.glowCol.xyz * u.bg1.w * (1.0 - fres) * 0.09;
         float ch = exp(-pow(length((q.xy - float2(-0.5, -0.2)) / float2(0.17, 0.1)), 2.0)) + exp(-pow(length((q.xy - float2(0.5, -0.2)) / float2(0.17, 0.1)), 2.0));
-        cb = mix(cb, cb * float3(1.5, 0.9, 0.84) + float3(0.03, 0.0, 0.0), u.glowCol.w * ch * step(0.0, q.z) * 0.6);
+        // Blush: the cheeks warm toward pink, lit like the body there. Multiplying the
+        // green by a warm tint made a brown smudge (expression audit P1 #11).
+        float3 lumaW = float3(0.2126, 0.7152, 0.0722);
+        float3 pink = float3(0.80, 0.33, 0.36) * (dot(cb, lumaW) / max(dot(base, lumaW), 1e-3));
+        cb = mix(cb, pink, u.glowCol.w * ch * step(0.0, q.z) * 0.42);
         for (int s = 0; s < 2; s++) {
           float3 l = s == 0 ? lL : lR; float3 es = s == 0 ? c.SL : c.SR;
           float top = s == 0 ? u.lids.x : u.lids.y, bot = s == 0 ? u.lids.z : u.lids.w, ar = s == 0 ? u.arch.x : u.arch.y;
