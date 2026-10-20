@@ -171,6 +171,8 @@ struct MemoryScreen: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var query = ""
     @State private var search = NoteSearch(ranker: OnDeviceNoteRanker())
+    /// The note whose Forget was tapped, until you say so or don't.
+    @State private var forgetting: MemoryStore.Note?
 
     var body: some View {
         Group {
@@ -235,22 +237,19 @@ struct MemoryScreen: View {
                 Text("Nothing yet. As you talk, Ferni keeps notes here so you never have to repeat yourself.")
                     .foregroundStyle(FerniColor.textSecondary)
             default:
-                ForEach(Self.groups, id: \.kind) { group in
-                    let notes = memory.notes.filter { $0.kind == group.kind }
-                    if !notes.isEmpty {
-                        Section(group.title) {
-                            ForEach(notes) { note in
-                                Text(note.content)
-                                    .swipeActions {
-                                        if note.canForget {
-                                            Button("Forget", role: .destructive) { Task { await memory.forget(note) } }
-                                        }
-                                    }
-                                    .accessibilityAction(named: "Forget") {
-                                        if note.canForget { Task { await memory.forget(note) } }
-                                    }
-                            }
+                // A journal, not a database: said to you, newest first, each note
+                // with when Ferni learned it and a Forget you can see (design
+                // audit P2 #6: third person, grouped by type, Forget in a swipe).
+                ForEach(MemoryJournal.sections(memory.notes, now: .now), id: \.period) { section in
+                    Section {
+                        ForEach(section.notes) { note in
+                            // No swipe as well: it forgot without asking, and its hidden
+                            // button failed the audit's hit-area check on every row.
+                            NoteRow(note: note) { forgetting = note }
                         }
+                    } header: {
+                        // The system header grey only nearly passes the contrast audit on paper.
+                        Text(Self.title(section.period)).foregroundStyle(FerniColor.textSecondary)
                     }
                 }
                 Section {
@@ -261,16 +260,57 @@ struct MemoryScreen: View {
         }
         .overlay { if memory.load == .loading && memory.notes.isEmpty { ProgressView() } }
         .screenIntro(ScreenIntro.memory)
+        .confirmationDialog("Forget this?", isPresented: Binding(get: { forgetting != nil }, set: { if !$0 { forgetting = nil } }),
+                            titleVisibility: .visible, presenting: forgetting) { note in
+            Button("Forget", role: .destructive) { Task { await memory.forget(note) } }
+        } message: { note in
+            Text(MemoryJournal.toYou(note.content))
+        }
         .modifier(OnDeviceSearch(query: $query) { Task { await search.search(query, in: memory.notes) } })
         .onChange(of: query) { _, text in if text.isEmpty { search.clear() } }
         .task { await memory.refresh() }
         .refreshable { await memory.refresh() }
     }
 
-    static let groups: [(kind: String, title: String)] = [
-        ("goal", "Things you're working on"),
-        ("preference", "Things you like"),
-        ("fact", "About you"),
-        ("pattern", "Your rhythms"),
-    ]
+    static func title(_ period: MemoryJournal.Period) -> LocalizedStringKey {
+        switch period {
+        case .thisWeek: "This week"
+        case .thisMonth: "This month"
+        case .earlier: "Before that"
+        }
+    }
+}
+
+/// One note: in ink, said to you, with when it was learned and, where it can
+/// be, a Forget that asks first.
+private struct NoteRow: View {
+    let note: MemoryStore.Note
+    let forget: () -> Void
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: FerniSpace.breath) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(MemoryJournal.toYou(note.content))
+                    .foregroundStyle(FerniColor.textPrimary)
+                if let when = note.learnedAt {
+                    Text(when.formatted(.relative(presentation: .named)))
+                        .font(FerniType.footnote)
+                        .foregroundStyle(FerniColor.textSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if note.canForget {
+                Button(action: forget) {
+                    // The whole 44 pt square is the target, not just the word.
+                    Text("Forget")
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.borderless)
+                .font(FerniType.footnote)
+                .foregroundStyle(FerniColor.textSecondary)
+                    .accessibilityLabel(Text("Forget: \(MemoryJournal.toYou(note.content))"))
+            }
+        }
+    }
 }
