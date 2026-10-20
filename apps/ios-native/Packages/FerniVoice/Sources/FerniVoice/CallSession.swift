@@ -210,6 +210,7 @@ public final class CallSession {
         isMuted = muted
         do {
             try await room?.setMicrophone(enabled: !muted)
+            avatar.send(.muted(muted))
             return true
         } catch {
             isMuted = !muted
