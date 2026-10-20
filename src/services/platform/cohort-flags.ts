@@ -103,8 +103,7 @@ export const COHORT_FLAGS = [
   'WELLBEING_AFTER_CALL',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
-  // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
-  // (services/outreach/morning-brief/brief-job.ts).
+  // Read by the UI server's calendar-briefing job, never in a call (usersWithFlag, morning-brief/brief-job.ts).
   'MORNING_BRIEF',
   // The UI server's deliver-reminders job reads both per person, through flagForUser
   // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
