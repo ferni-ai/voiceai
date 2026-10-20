@@ -12,6 +12,7 @@ import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { heldAfter, lastFerniLine } from '../../utils/minor-care.js';
 import {
   phoneOnlyIdentity,
   sessionIsVerifiedOwner,
@@ -313,9 +314,11 @@ export async function toolsForTurn(
   if (staticCoreToolsEnabled()) withPinnedTools(toolCtx, state.agent);
   else withSameTurnTools(session, chatCtx, toolCtx); // TOOLS_SAME_TURN: this turn's topic tools
   const view = unlockViewFor(session.userData);
-  const allowed = phoneOnlyIdentity(sessionIdOf(session.userData))
-    ? await withoutAccountTools(toolCtx, state)
-    : toolCtx;
+  const sessionId = sessionIdOf(session.userData);
+  // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores anything.
+  const held = heldAfter(sessionId, callerWords(chatCtx), { asked: lastFerniLine(chatCtx.items) });
+  const allowed =
+    phoneOnlyIdentity(sessionId) || held ? await withoutAccountTools(toolCtx, state) : toolCtx;
   const unlocked = await withoutLockedHandoffs(allowed, view).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
     return allowed;

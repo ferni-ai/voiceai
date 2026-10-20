@@ -28,6 +28,7 @@ import {
   beginReturningCaller,
   returningCallerEnabled,
 } from '../../services/identity/returning-caller.js';
+import { setVerifiedOwnerCheck } from '../../utils/minor-care.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   readSipCaller,
@@ -187,6 +188,8 @@ export function rememberDispatchIdentity(sessionId: string, source: string, meta
 export function sessionIsVerifiedOwner(sessionId: string): boolean {
   return callerRecognitionFor(sessionId)?.status === 'known' || namedByDispatch.has(sessionId);
 }
+// MINOR_CARE (minor-care.ts, a lower layer) asks this before holding a session's memory.
+setVerifiedOwnerCheck(sessionIsVerifiedOwner);
 
 /** A session known only by its phone number: only conversational tools are open. */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {

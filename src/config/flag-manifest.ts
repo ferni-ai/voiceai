@@ -257,6 +257,8 @@ export const FLAG_MANIFEST = {
   // on: the caller can name the tune Ferni whistles, or ask him to stop (personas/named-tune-note.ts)
   NAMED_TUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
+  // on: a caller who says they're under 18 (and isn't a verified owner): nothing personal stored (minor-care.ts)
+  MINOR_CARE: { default: 'off', owner: 'memory', kind: 'experiment' },
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
