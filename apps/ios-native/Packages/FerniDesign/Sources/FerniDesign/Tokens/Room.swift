@@ -88,3 +88,34 @@ public struct RoomLight: Equatable, Sendable {
         }
     }
 }
+
+/// The widget's day (design audit P2 #16: the medium widget never changed).
+/// Its hello follows Home's greeting hours and its light follows RoomLight, so
+/// the widget turns over at both sets of boundaries.
+public enum WidgetMoment: Equatable, Sendable {
+    case morning, afternoon, evening, night
+
+    /// Home's greeting hours (the app's Greeting): 5-12, 12-17, 17-22, then night.
+    public init(hour: Int) {
+        switch hour {
+        case 5..<12: self = .morning
+        case 12..<17: self = .afternoon
+        case 17..<22: self = .evening
+        default: self = .night
+        }
+    }
+
+    /// Hours where either the hello or the light changes.
+    static let turns = [5, 11, 12, 17, 18, 22, 23]
+
+    /// The next day's worth of turns after `date`, in order: the widget's timeline.
+    public static func turns(after date: Date, calendar: Calendar = .current) -> [Date] {
+        let start = calendar.startOfDay(for: date)
+        return (0...1).flatMap { day in
+            turns.compactMap { hour in
+                calendar.date(byAdding: DateComponents(day: day, hour: hour), to: start)
+            }
+        }
+        .filter { $0 > date && $0 <= date.addingTimeInterval(24 * 3600) }
+    }
+}
