@@ -15,6 +15,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from '../../helpers.js';
 import { getPublisherFromToken, getFirestore } from './shared/developer-auth.js';
+import { developerVoiceErrors } from './voice-routes.js';
 
 const log = getLogger().child({ module: 'developers-personas' });
 
@@ -112,12 +113,7 @@ function validateManifest(manifest: PersonaManifest): ValidationResult {
   if (!manifest.voice) {
     errors.push('Voice section is required');
   } else {
-    if (manifest.voice.provider !== 'cartesia') {
-      errors.push('Voice provider must be "cartesia"');
-    }
-    if (!manifest.voice.voice_id) {
-      errors.push('Voice ID is required');
-    }
+    errors.push(...developerVoiceErrors(manifest.voice));
   }
 
   // Personality validation

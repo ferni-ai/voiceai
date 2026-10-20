@@ -3,21 +3,25 @@
  * Firestore emulator. Amounts are the ones the app showed people (+5 a day; 25/50/100/
  * 200/500 at 7/14/30/60/100 days), now computed where they can't be faked or double-paid.
  */
-import admin from 'firebase-admin';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
+import type { Firestore } from 'firebase-admin/firestore';
+import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+// src/tests/setup.ts fakes firebase-admin for every test; the ledger writes its
+// Timestamp and FieldValue through firebase-admin/firestore, so read the emulator.
+vi.mock('firebase-admin/app', () => vi.importActual('firebase-admin/app'));
+vi.mock('firebase-admin/firestore', () => vi.importActual('firebase-admin/firestore'));
 import { awardDailyConversation, dailyStatus, localDate } from '../earn.js';
 import { STARTER_SEEDS } from '../ledger.js';
 
 const emulator = !!process.env.FIRESTORE_EMULATOR_HOST;
-let db: admin.firestore.Firestore;
+let db: Firestore;
 let uid: string;
 
 beforeAll(() => {
   if (!emulator) return;
-  const app =
-    admin.apps.find((a) => a?.name === 'seed-earn-test') ??
-    admin.initializeApp({ projectId: 'demo-seed-ledger' }, 'seed-earn-test');
-  db = app.firestore();
+  // The helper takes the project from env; pin this file's emulator project.
+  process.env.GCP_PROJECT_ID ??= 'demo-seed-ledger';
+  db = getAdminFirestore();
 });
 
 beforeEach(() => {

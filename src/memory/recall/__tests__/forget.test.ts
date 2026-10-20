@@ -127,11 +127,20 @@ describe('forgetTopic', () => {
 
 describe('forgetForCaller', () => {
   it('reports a failure as failed, never as forgotten', async () => {
-    expect(await forgetForCaller(undefined, 'my divorce')).toEqual({ kind: 'failed' });
+    expect(await forgetForCaller(undefined, 'my divorce')).toEqual({ kind: 'not-saved' });
     const failing = memoryStore([]).store;
     failing.facts = async () => Promise.reject(new Error('firestore down'));
     expect(await forgetForCaller('u', 'my divorce', failing)).toEqual({ kind: 'failed' });
     expect(forgetProblem({ kind: 'failed' })).toMatch(/couldn't remove/);
+  });
+
+  it('tells a caller with no saved memory so calmly, never "ask me again"', async () => {
+    for (const id of ['anonymous', 'anon:3f2a', 'onbehalf:call-1']) {
+      const result = await forgetForCaller(id, 'my divorce');
+      expect(result).toEqual({ kind: 'not-saved' });
+      if (result.kind === 'forgotten') throw new Error('unreachable');
+      expect(forgetProblem(result)).toBe("There's nothing saved about you here.");
+    }
   });
 });
 
