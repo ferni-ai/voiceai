@@ -1,7 +1,6 @@
 /**
  * Outreach Intelligence Service
  * Predicts when and why agents should proactively reach out to users.
- *
  * TRIGGERS:
  * 1. Commitments - "I'll work out tomorrow" → check-in next evening
  * 2. Goals - Progress milestones, streaks at risk, celebrations
@@ -145,7 +144,8 @@ export async function initializeOutreachPersistence(): Promise<void> {
 
   persistenceStore = createPersistenceStore<OutreachUserData>({
     collection: 'outreach_data',
-    holdWrites: () => false, // MINOR_CARE opt-out: do-not-contact and quiet hours always persist
+    // MINOR_CARE, held: only contact preferences (outreach off, quiet hours) persist
+    whenHeld: (d: OutreachUserData) => ({ preferences: d.preferences }),
     syncIntervalMs: 10000, // Sync every 10 seconds
     maxPendingChanges: 30,
   });
