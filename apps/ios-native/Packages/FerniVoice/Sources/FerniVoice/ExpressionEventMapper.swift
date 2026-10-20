@@ -172,8 +172,11 @@ public final class ExpressionEventMapper: Sendable {
             return mapTrajectorySignal(message)
 
         case "high_engagement":
+            // The small win is this signal's moment. Excited would also play
+            // the big win (a spin) over it: one signal, two celebrations
+            // (expression audit P1 #13). Happy is the web's face for it too.
             return ExpressionResult(
-                expression: .excited,
+                expression: .happy,
                 microExpression: .delight,
                 moment: "celebration_small"
             )

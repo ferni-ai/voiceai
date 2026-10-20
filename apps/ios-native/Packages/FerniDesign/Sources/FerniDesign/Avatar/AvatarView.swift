@@ -41,8 +41,8 @@ public struct AvatarView: View {
     /// Canvas size and Ferni's place in it, in slot widths.
     static let canvas = CGSize(width: 1.7, height: 1.5)
     static let radius = 0.30, lift = 0.1
-    /// Expressions that earn the hand-keyed "big win".
-    static let wins: Set<AvatarExpression> = [.cheering, .proud, .excited]
+    /// Expressions that earn the hand-keyed "big win" (a spin) when the face changes to one.
+    public static let wins: Set<AvatarExpression> = [.cheering, .proud, .excited]
     /// The part of the slot a finger can touch: Ferni himself (radius 0.30 of
     /// the slot) with a little slop, never the slot's corners.
     static let touchScale = 0.7
