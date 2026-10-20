@@ -9,24 +9,47 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const written = vi.hoisted(() => [] as { path: string; data: unknown; merge?: boolean }[]);
+/** Paths whose next direct write fails once (Firestore unavailable). */
+const failOnce = vi.hoisted(() => new Set<string>());
+/** Calendar documents as stored: a merge write merges maps and replaces arrays, like Firestore. */
+const calendarDocs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
 
 /** A fake Firestore that records every write (path and data). */
 const fakeDb = vi.hoisted(() => {
   const empty = { exists: false, empty: true, docs: [], size: 0, data: () => undefined };
+  const isMap = (v: unknown): v is Record<string, unknown> =>
+    typeof v === 'object' && v !== null && !Array.isArray(v);
+  const merge = (to: Record<string, unknown>, from: Record<string, unknown>) => {
+    for (const [k, v] of Object.entries(from))
+      to[k] = isMap(v) && isMap(to[k]) ? merge({ ...(to[k] as object) } as never, v) : v;
+    return to;
+  };
+  const record = (path: string, data: unknown, opts?: { merge?: boolean }) => {
+    written.push({ path, data, merge: opts?.merge });
+    if (!path.includes('/calendar_reminders/')) return;
+    const doc = data as Record<string, unknown>;
+    calendarDocs.set(path, opts?.merge ? merge({ ...calendarDocs.get(path) }, doc) : doc);
+  };
   const ref = (path: string): Record<string, unknown> =>
     new Proxy(
       {
         path,
         collection: (name: string) => ref(`${path}/${name}`),
         doc: (id = 'auto') => ref(`${path}/${id}`),
-        get: async () => empty,
-        set: async (data: unknown, opts?: { merge?: boolean }) =>
-          void written.push({ path, data, merge: opts?.merge }),
+        get: async () => {
+          const doc = calendarDocs.get(path);
+          return doc ? { exists: true, data: () => structuredClone(doc) } : empty;
+        },
+        set: async (data: unknown, opts?: { merge?: boolean }) => {
+          for (const p of failOnce)
+            if (path.includes(p)) throw new Error(`unavailable: ${failOnce.delete(p)}`);
+          record(path, data, opts);
+        },
       } as Record<string | symbol, unknown>,
       { get: (t, k) => (k in t ? t[k] : k === 'then' ? undefined : () => ref(path)) }
     );
   const tx = (r: { path: string }, data: unknown, opts?: { merge?: boolean }) =>
-    void written.push({ path: r.path, data, merge: opts?.merge });
+    record(r.path, data, opts);
   return Object.assign(ref(''), {
     batch: () => ({ set: tx, update: tx, delete: tx, commit: async () => undefined }),
   });
@@ -42,14 +65,21 @@ vi.mock('@google-cloud/firestore', async (orig) => ({
 
 import { createPersistenceStore } from '../../services/persistence/index.js';
 import { recordVoiceSample } from '../../services/trust-systems/voice-prosody-learning.js';
-import { initializeOutreachPersistence, setPreferences } from '../../services/outreach/outreach-intelligence.js';
+import {
+  initializeOutreachPersistence,
+  setPreferences,
+} from '../../services/outreach/outreach-intelligence.js';
 import {
   initMonetizationPersistence,
   saveUserJourney,
   saveValueEvent,
 } from '../../services/monetization/persistence.js';
 import { detect, recordContribution } from '../../services/monetization/value-capture.js';
-import { upsertEvent } from '../../services/scheduling/calendar-reminders.js';
+import {
+  getUpcomingEvents,
+  shutdownCalendarReminders,
+  upsertEvent,
+} from '../../services/scheduling/calendar-reminders.js';
 import { getMayaNotificationService } from '../../services/engagement/engagement-notification-service.js';
 import { heldAfter, resetMinorCare, setVerifiedOwnerCheck, userHeld } from '../minor-care.js';
 
@@ -88,7 +118,9 @@ function store(optOut = false) {
 }
 
 beforeAll(async () => {
-  vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearInterval', 'clearTimeout', 'Date'] });
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'setInterval', 'clearInterval', 'clearTimeout', 'Date'],
+  });
   // Initialise the layer's Firestore once: two stores' first flushes racing it would get null
   const warm = store();
   warm.set('warm-up', { note: 'warm' });
@@ -216,7 +248,7 @@ const keysOf = (w: { data: unknown }) =>
   Object.keys(w.data as object).filter((k) => !k.startsWith('_'));
 
 describe('field-level hold (whenHeld): only consent fields persist, as a merge write', () => {
-  it('a store with whenHeld: a held user\'s allowed fields persist, the rest never written', async () => {
+  it("a store with whenHeld: a held user's allowed fields persist, the rest never written", async () => {
     const s = createPersistenceStore<{ prefs: { off: boolean }; story: string }>({
       collection: 'minor_care_fields',
       syncIntervalMs: 1_000,
@@ -232,6 +264,25 @@ describe('field-level hold (whenHeld): only consent fields persist, as a merge w
     expect(h?.merge).toBe(true); // a merge write: stored fields are never blanked
     expect(wrote(held.userId, 'their school')).toBe(false);
     expect(wrote(owner.userId, 'owner story')).toBe(true);
+  });
+
+  it('a failed field write is put back and written on the next sync, never dropped', async () => {
+    const s = createPersistenceStore<{ prefs: { off: boolean }; story: string }>({
+      collection: 'minor_care_retry',
+      syncIntervalMs: 1_000,
+      whenHeld: (d: { prefs: { off: boolean } }) => ({ prefs: d.prefs }),
+    });
+    const held = caller('held');
+    s.set(held.userId, { prefs: { off: true }, story: 'their school' });
+    failOnce.add('/minor_care_retry/');
+    await tick(1_000);
+    expect(failOnce.size).toBe(0); // the first write was tried, and failed
+    expect(writesTo(held.userId, 'minor_care_retry')).toEqual([]);
+    await tick(1_000);
+    const [w] = writesTo(held.userId, 'minor_care_retry');
+    expect(w && keysOf(w)).toEqual(['prefs']);
+    expect(wrote(held.userId, '"off":true')).toBe(true);
+    expect(wrote(held.userId, 'their school')).toBe(false);
   });
 
   it('outreach: outreach off and quiet hours persist; commitments never written', async () => {
@@ -265,7 +316,7 @@ describe('field-level hold (whenHeld): only consent fields persist, as a merge w
     expect(w?.merge).toBe(true);
   });
 
-  it('calendar: event title, place and attendees never written; an owner\'s are', async () => {
+  it("calendar: event title, place and attendees never written; an owner's are", async () => {
     const event = (userId: string, title: string) => ({
       id: `e-${userId}`,
       userId,
@@ -283,10 +334,47 @@ describe('field-level hold (whenHeld): only consent fields persist, as a merge w
     await upsertEvent(event(held.userId, 'held title'));
     await upsertEvent(event(owner.userId, 'owner title'));
     await tick(5_000);
-    expect(writesTo(held.userId, 'calendar_reminders').every((w) => keysOf(w).join() === 'remindersSent')).toBe(true);
+    expect(
+      writesTo(held.userId, 'calendar_reminders').every(
+        (w) => keysOf(w).sort().join() === 'eventFlags,remindersSent'
+      )
+    ).toBe(true);
     expect(wrote(held.userId, 'held title')).toBe(false);
     expect(wrote(held.userId, 'their school')).toBe(false);
     expect(wrote(owner.userId, 'owner title')).toBe(true);
+  });
+
+  it('calendar: a held user cancels a stored event; it stays cancelled, no content written', async () => {
+    const who = caller('mid');
+    const event = {
+      id: `stored-${who.userId}`,
+      userId: who.userId,
+      title: 'stored title',
+      location: 'their school',
+      attendees: ['a friend'],
+      startTime: new Date(Date.now() + 86_400_000),
+      endTime: new Date(Date.now() + 90_000_000),
+      isAllDay: false,
+      reminders: [],
+      source: 'manual' as const,
+    };
+    await upsertEvent(event);
+    await tick(5_000); // stored before the hold, with its content
+    who.hold();
+    written.length = 0;
+    await upsertEvent({ ...event, cancelled: true });
+    await tick(5_000);
+    const writes = writesTo(who.userId, 'calendar_reminders');
+    expect(writes.length).toBeGreaterThan(0);
+    expect(writes.every((w) => keysOf(w).sort().join() === 'eventFlags,remindersSent')).toBe(true);
+    expect(wrote(who.userId, 'stored title')).toBe(false);
+    expect(wrote(who.userId, 'their school')).toBe(false);
+    expect(wrote(who.userId, 'a friend')).toBe(false);
+    // A fresh process reloads the stored event: content from before the hold, now cancelled
+    await shutdownCalendarReminders();
+    await upsertEvent({ ...event, id: `other-${who.userId}`, title: 'other' });
+    const [stored] = getUpcomingEvents(who.userId, 48).filter((e) => e.id === event.id);
+    expect(stored).toMatchObject({ title: 'stored title', cancelled: true });
   });
 });
 
