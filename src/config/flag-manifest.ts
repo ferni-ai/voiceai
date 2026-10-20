@@ -126,6 +126,8 @@ export const FLAG_MANIFEST = {
   FAMILY_CHECKIN_CALLS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // agent: a family member's "stop calling" withdraws their consent; server: refuses do-not-call numbers
   FAMILY_CHECKIN_STOP: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // a handoff says one fond, canon line about the teammate (multi-agent/family-table.ts)
+  FAMILY_TABLE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on (with FERNI_THREADS): now and then he asks the caller a small hand with his thread (ferni-asks-help.ts)
   FERNI_ASKS_HELP: { default: 'off', owner: 'voice', kind: 'experiment' },
   // never on when NODE_ENV=production
