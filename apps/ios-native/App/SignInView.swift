@@ -12,8 +12,28 @@ import UIKit
 /// Apple first, then Google's own button, then the phone number. Apple sits
 /// first because a sheet that offers Google must offer Apple too (App Review
 /// 4.8), and it was missing.
+/// Whether the sheet offers the phone number. Apple and Google always show.
+/// Phone sign-in fails on hardware (Firebase 17062) until the API key's
+/// restriction is changed, so: the server's word (app config `phoneSignIn`)
+/// when it gives one; otherwise on in Debug and off in Release (critic H3).
+enum PhoneSignIn {
+    static func shown(remote: Bool?) -> Bool {
+        #if DEBUG
+        // UI tests: `-FerniPhoneSignIn NO` hides it, as Release does.
+        if let forced = UserDefaults.standard.string(forKey: "FerniPhoneSignIn") { return forced == "YES" }
+        #endif
+        if let remote { return remote }
+        #if DEBUG
+        return true
+        #else
+        return false
+        #endif
+    }
+}
+
 struct SignInView: View {
     let account: AccountStore
+    @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var number = ""
     @State private var code = ""
@@ -26,6 +46,8 @@ struct SignInView: View {
     @State private var tried: Way?
 
     private enum Way { case apple, google, phone }
+
+    private var phoneShown: Bool { PhoneSignIn.shown(remote: model.minimumBuild.phoneSignIn) }
 
     /// What went wrong, if anything, for the way they last tried.
     private var problem: String? { googleProblem ?? account.notice ?? nudge }
@@ -63,15 +85,17 @@ struct SignInView: View {
                             if tried == .apple || tried == .google, let problem { Self.problemText(problem) }
                         }
 
-                        Divider()
-                        phone
+                        if phoneShown {
+                            Divider()
+                            phone
+                        }
                     }
                     .frame(maxWidth: 480)
                     .frame(maxWidth: .infinity)
                     .padding(FerniSpace.rest)
                 }
                 // Room under the last row for the pinned button, at any text size.
-                .contentMargins(.bottom, buttonHeight + FerniSpace.rest, for: .scrollContent)
+                .contentMargins(.bottom, (phoneShown ? buttonHeight : 0) + FerniSpace.rest, for: .scrollContent)
                 .scrollBounceBehavior(.basedOnSize)
                 .scrollDismissesKeyboard(.interactively)
                 // A new problem is scrolled into view, never left under the
@@ -85,25 +109,7 @@ struct SignInView: View {
             // a button in the scrolling content while the field has the keyboard only
             // ends editing, and the code was never sent.
             .safeAreaInset(edge: .bottom) {
-                Button { Task { await primary() } } label: {
-                    Text(verification == nil ? "Text me a code" : "Sign in")
-                        .font(FerniType.button)
-                        .frame(maxWidth: 420, minHeight: 52)
-                }
-                .ferniPrimaryGlass()
-                .buttonBorderShape(.capsule)
-                // Never greyed out: a dimmed label failed the contrast audit, and a tap
-                // with nothing typed yet says what to type instead (design audit P1-6).
-                .disabled(account.isWorking)
-                .accessibilityIdentifier("signIn.continue")
-                .padding(.horizontal, FerniSpace.rest)
-                .padding(.top, FerniSpace.breath)
-                .padding(.bottom, FerniSpace.breath)
-                .tint(FerniColor.accent)
-                // The words scroll under the button; they shouldn't show through around
-                // it (at AX5 the audit read the divider through the glass), as on consent.
-                .background(FerniColor.background.ignoresSafeArea(edges: .bottom))
-                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { buttonHeight = $0 }
+                if phoneShown { continueButton }
             }
             .background(FerniColor.background.ignoresSafeArea())
             .navigationTitle("Sign in to Ferni")
@@ -122,6 +128,29 @@ struct SignInView: View {
                 if signedIn { dismiss() }
             }
         }
+    }
+
+    /// The phone step's action, pinned under the scroll view.
+    private var continueButton: some View {
+        Button { Task { await primary() } } label: {
+            Text(verification == nil ? "Text me a code" : "Sign in")
+                .font(FerniType.button)
+                .frame(maxWidth: 420, minHeight: 52)
+        }
+        .ferniPrimaryGlass()
+        .buttonBorderShape(.capsule)
+        // Never greyed out: a dimmed label failed the contrast audit, and a tap
+        // with nothing typed yet says what to type instead (design audit P1-6).
+        .disabled(account.isWorking)
+        .accessibilityIdentifier("signIn.continue")
+        .padding(.horizontal, FerniSpace.rest)
+        .padding(.top, FerniSpace.breath)
+        .padding(.bottom, FerniSpace.breath)
+        .tint(FerniColor.accent)
+        // The words scroll under the button; they shouldn't show through around
+        // it (at AX5 the audit read the divider through the glass), as on consent.
+        .background(FerniColor.background.ignoresSafeArea(edges: .bottom))
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { buttonHeight = $0 }
     }
 
     /// The phone number, then the code: the field, what to do or what went

@@ -83,6 +83,7 @@
 		B20DE0108244A0A6616255E5 /* FerniWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6DB1FD5E9768FDDD7A8B82CB /* FerniWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B616B2B1DCA4FD7C436D0823 /* FoleyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F84B922CA763C39E2781DA /* FoleyTests.swift */; };
 		B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E550D3CF186D8D463FF66E /* SettingsView.swift */; };
+		B758CBD54564BFB892A51A92 /* PhoneSignInTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C18C72F54E1677C5FD4C82C /* PhoneSignInTests.swift */; };
 		B781726DB4C7013EBEAFBE2E /* TeamAtRestUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B194FE9B1DAA9A9C45908496 /* TeamAtRestUITests.swift */; };
 		BA62672ACCAD9A10B9C98EBB /* BackgroundModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */; };
 		BC287679EE1EF47277B6C045 /* UITestScenario.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58F17318F25CDB7266DAE932 /* UITestScenario.swift */; };
@@ -218,6 +219,7 @@
 		175D63C93899C628033FCCA8 /* CrashReporting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporting.swift; sourceTree = "<group>"; };
 		1A9921DFB678374C2A898ED0 /* HomeFullnessUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFullnessUITests.swift; sourceTree = "<group>"; };
 		1AA352150CE2DBF9E6254A20 /* TalkOnPhoneIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkOnPhoneIntent.swift; sourceTree = "<group>"; };
+		1C18C72F54E1677C5FD4C82C /* PhoneSignInTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSignInTests.swift; sourceTree = "<group>"; };
 		226B4915E8A70F4DAB1B6B4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		27693C03A0148090C7187B34 /* TeamAtRestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamAtRestTests.swift; sourceTree = "<group>"; };
 		2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-alex.mp3"; sourceTree = "<group>"; };
@@ -411,6 +413,7 @@
 				3751457DBC4CF962D924D247 /* NextStepTests.swift */,
 				3CC0928CF00671D4E0E8D998 /* NoteTests.swift */,
 				CA97A1BA4C871BBC78CCE319 /* PhoneSignInForwardingTests.swift */,
+				1C18C72F54E1677C5FD4C82C /* PhoneSignInTests.swift */,
 				C39F5D1C1DE13481A55A4387 /* SharedScreensTests.swift */,
 				49166809F7360686AEAE615A /* SignInPromptTests.swift */,
 				27693C03A0148090C7187B34 /* TeamAtRestTests.swift */,
@@ -917,6 +920,7 @@
 				E094C588E3F4D4ECCDC656EC /* NextStepTests.swift in Sources */,
 				F8C4CC6E41EE7F5F394E4D21 /* NoteTests.swift in Sources */,
 				7AEB4E80F7300B0C87AEB9C2 /* PhoneSignInForwardingTests.swift in Sources */,
+				B758CBD54564BFB892A51A92 /* PhoneSignInTests.swift in Sources */,
 				43BF427F9C73A159BA48B00B /* SharedScreensTests.swift in Sources */,
 				BEF8E5051FBEB918F15A9BF9 /* SignInPromptTests.swift in Sources */,
 				4DAE4DACF6CCF7CB16324945 /* TeamAtRestTests.swift in Sources */,

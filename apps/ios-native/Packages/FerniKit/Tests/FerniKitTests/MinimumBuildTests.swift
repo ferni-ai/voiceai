@@ -34,4 +34,16 @@ final class MinimumBuildTests: XCTestCase {
             XCTAssertFalse(gate.updateRequired, "\(status) \(body) \(String(describing: build))")
         }
     }
+
+    /// Critic H3: the server can show or hide phone sign-in; silent, the app decides.
+    func testThePhoneSignInFlagIsReadWhenSent() async {
+        let on = await check(answer: 200, body: #"{"minimumBuild":null,"message":null,"phoneSignIn":true}"#, build: 1)
+        let off = await check(answer: 200, body: #"{"phoneSignIn":false}"#, build: 1)
+        let silent = await check(answer: 200, body: #"{"minimumBuild":null,"message":null}"#, build: 1)
+        let down = await check(answer: 404, body: "", build: 1)
+        XCTAssertEqual(on.phoneSignIn, true)
+        XCTAssertEqual(off.phoneSignIn, false)
+        XCTAssertNil(silent.phoneSignIn)
+        XCTAssertNil(down.phoneSignIn)
+    }
 }
