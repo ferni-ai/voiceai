@@ -37,6 +37,7 @@
 		58CE92EB04A747ACB439AC52 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */; };
 		5E58C2614D2E1C7FBDC20DC1 /* DeepLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 565F1332B57CB1EE0A6D05BB /* DeepLinkTests.swift */; };
 		61BEA8F1B053CC170C3118CF /* TeamSpotlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7634ABC1059A12DE12D714D /* TeamSpotlight.swift */; };
+		621E18533277A7BC22296241 /* FloorFadeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BFB87749BD4C9D4FD65978F /* FloorFadeUITests.swift */; };
 		639D84959EC4165C2F4DA23F /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB291C79E629A29D4B86C651 /* AccessibilityAuditTests.swift */; };
 		65A85BD3CF6927E84BDB94EC /* AvatarTouchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */; };
 		6C5C041CBBDFB39263B52443 /* FerniLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65555DCB199766EA982A43A3 /* FerniLive.swift */; };
@@ -231,6 +232,7 @@
 		6F39A0EA10A8F4060522D7F3 /* CrashPolicyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashPolicyTests.swift; sourceTree = "<group>"; };
 		766CF4344E77F81DF8043439 /* FerniShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniShortcuts.swift; sourceTree = "<group>"; };
 		7BBEC35DE0011C78F56EB70E /* FirstMinuteAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirstMinuteAppTests.swift; sourceTree = "<group>"; };
+		7BFB87749BD4C9D4FD65978F /* FloorFadeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloorFadeUITests.swift; sourceTree = "<group>"; };
 		7D40773682D7EA8473CE46CA /* FerniLink */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniLink; path = Packages/FerniLink; sourceTree = SOURCE_ROOT; };
 		7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
 		809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamRowTests.swift; sourceTree = "<group>"; };
@@ -408,6 +410,7 @@
 				3CC34062567D316808D0D03C /* ConsentSheetTests.swift */,
 				32CB80CF1D9492393B441589 /* DeepLinkUITests.swift */,
 				B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */,
+				7BFB87749BD4C9D4FD65978F /* FloorFadeUITests.swift */,
 				A7085820FA32335FEED58C9E /* HandoffUITests.swift */,
 				BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */,
 				C193BBD95DA87669BB25C713 /* SignInProblemTests.swift */,
@@ -805,6 +808,7 @@
 				13E295A0E158B401D107C1D5 /* ConsentSheetTests.swift in Sources */,
 				24044B237183631A0FD997E3 /* DeepLinkUITests.swift in Sources */,
 				C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */,
+				621E18533277A7BC22296241 /* FloorFadeUITests.swift in Sources */,
 				DA81277E93D9A12995CC138A /* HandoffUITests.swift in Sources */,
 				8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */,
 				C36151BDB3A1F5F1AD551FD2 /* SignInProblemTests.swift in Sources */,
