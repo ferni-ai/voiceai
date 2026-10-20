@@ -50,6 +50,7 @@ final class CallFeedback {
         if let effect = Self.effect(for: cue) { play(effect) } // earcons still pass the sound director's gates
         #if DEBUG
         if cue == .touch { UITestScenario.Counters.shared.touches += 1 }
+        if cue == .notice { UITestScenario.Counters.shared.notices += 1 }
         #endif
     }
 

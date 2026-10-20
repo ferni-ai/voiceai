@@ -48,6 +48,8 @@ public enum KeyedCue: Equatable, Sendable {
     case arrivalChime, pop, sparkle, land, hop, whoosh, giggle, heart
     /// A finger on Ferni: one soft tap in the hand, at most every 2 s.
     case touch
+    /// A finger held near Ferni: he noticed it (the prototype's "huh").
+    case notice
 }
 
 /// Hand-keyed moments: poses on exact frames at 60 fps, each key with its own

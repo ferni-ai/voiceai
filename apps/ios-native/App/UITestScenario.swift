@@ -173,6 +173,7 @@ extension UITestScenario {
     @MainActor @Observable final class Counters {
         static let shared = Counters()
         var touches = 0
+        var notices = 0
     }
 }
 
@@ -196,6 +197,12 @@ struct UITestEnvironmentProbe: View {
             .accessibilityIdentifier("uitest.touches")
             .accessibilityLabel(Text(verbatim: "Test touches"))
             .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.touches)"))
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityElement()
+            .accessibilityIdentifier("uitest.notices")
+            .accessibilityLabel(Text(verbatim: "Test notices"))
+            .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.notices)"))
     }
 }
 
