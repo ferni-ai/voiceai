@@ -38,7 +38,8 @@ struct HomeView: View {
                         }
                     } else {
                         if inCall { NameChip(personaID: call.avatar.personaID) }
-                        avatar(call: call, size: inCall ? 240 : 200)
+                        // In a call at accessibility sizes Ferni steps back so the words fit.
+                        avatar(call: call, size: inCall ? (typeSize.isAccessibilitySize ? 120 : 240) : 200)
                             .padding(.top, inCall ? FerniSpace.breath : FerniSpace.silence)
                         if inCall {
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
@@ -62,9 +63,6 @@ struct HomeView: View {
                             TeamRow(team: model.team)
                         }
                     }
-                    // At accessibility text sizes the controls scroll with the
-                    // content instead of covering it.
-                    if typeSize.isAccessibilitySize { controls }
                 }
                 .frame(maxWidth: beside ? 1000 : 560)
                 .frame(maxWidth: .infinity)
@@ -73,9 +71,10 @@ struct HomeView: View {
             }
             .scrollBounceBehavior(.basedOnSize)
             .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { landscape = $0 }
-            .safeAreaInset(edge: .bottom) {
-                if !typeSize.isAccessibilitySize { controls }
-            }
+            // Pinned at every text size: End, Mute and More (and Talk) never
+            // scroll away. At accessibility sizes they scrolled with the
+            // captions and End left the screen (design audit P0-1, 2026-10-20).
+            .safeAreaInset(edge: .bottom) { controls }
             .background(TimelineView(.everyMinute) { minute in
                 // The room's light follows the clock, so an evening glow doesn't last until morning.
                 RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID), date: HomeClock.time(minute.date))
