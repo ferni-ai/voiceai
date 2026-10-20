@@ -33,6 +33,7 @@ final class CallLifecycleTests: XCTestCase {
             audio: audio,
             lifecycle: lifecycle,
             agentTimeout: agentTimeout,
+            arrivingAfter: .milliseconds(50), // "on the way" soon, as in CallSessionTests
             defaults: UserDefaults(suiteName: "lifecycle-\(UUID().uuidString)")!
         )
     }
