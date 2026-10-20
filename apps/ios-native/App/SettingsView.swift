@@ -36,6 +36,7 @@ struct SettingsView: View {
                 }
             }
             .ferniPaper()
+            .screenIntro(ScreenIntro.settings)
             .sheet(isPresented: $signingIn) { SignInView(account: model.account) }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -214,6 +215,7 @@ struct HelpView: View {
             }
         }
         .ferniPaper()
+        .screenIntro(ScreenIntro.help)
         .navigationTitle("Help")
         .navigationBarTitleDisplayMode(.inline)
         .tint(FerniColor.accent)
