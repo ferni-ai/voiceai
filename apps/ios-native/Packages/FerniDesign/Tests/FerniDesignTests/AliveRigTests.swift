@@ -110,6 +110,21 @@ final class AliveRigTests: XCTestCase {
         XCTAssertEqual(u.guest.w, 0)
     }
 
+    /// A head tilt is a pose: Reduce Motion keeps it whole (at 35% confused
+    /// read as neutral: expression audit P1 #7).
+    func testReduceMotionKeepsTheTilt() {
+        func roll(_ reduce: Bool) -> Float {
+            let rig = AliveRig(seed: 6)
+            rig.reduceMotion = reduce
+            rig.expression = "confused"
+            rig.still = true
+            return run(rig, for: 0.1).lean.x
+        }
+        XCTAssertNotEqual(roll(false), 0, "confused tilts his head")
+        // Within the gaze's own small share of the roll, which Reduce Motion halves.
+        XCTAssertEqual(roll(true), roll(false), accuracy: 0.01)
+    }
+
     func testReduceMotionKeepsTheBreathSmall() {
         func swing(_ reduce: Bool) -> Float {
             let rig = AliveRig(seed: 6)
