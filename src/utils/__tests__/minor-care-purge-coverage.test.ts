@@ -20,6 +20,8 @@ const fakeDb = vi.hoisted(() => {
         doc: (id = 'auto') => ref(`${path}/${id}`),
         get: async () => empty,
         set: async (data: unknown) => void stored.push({ path, data }),
+        add: async (data: unknown) => void stored.push({ path, data }),
+        update: async (data: unknown) => void stored.push({ path, data }),
       } as Record<string | symbol, unknown>,
       { get: (t, k) => (k in t ? t[k] : k === 'then' ? undefined : () => ref(path)) }
     );
@@ -57,6 +59,8 @@ import {
 } from '../../services/trust-systems/persona-growth.js';
 import { getEngagementStore } from '../../services/engagement/engagement-store.js';
 import { heldAfter, resetMinorCare } from '../minor-care.js';
+
+type Store = Awaited<ReturnType<typeof getEngagementStore>>;
 
 let n = 0;
 const user = () => `user-coverage-${++n}`;
@@ -120,6 +124,31 @@ describe('engagement store', () => {
     expect(await store.savePrediction(userId, { id: 'p1' } as never)).toBe(false);
     await store.recordWeather(userId, { date: new Date().toISOString() } as never);
     expect(writesFor(userId)).toEqual([]);
+  });
+
+  it.each([
+    [
+      'addConversationSession',
+      (st: Store, u: string) => st.addConversationSession(u, { summary: 'what they said' }),
+    ],
+    [
+      'addInsightToLatestSession',
+      (st: Store, u: string) => st.addInsightToLatestSession(u, 'what they said'),
+    ],
+    [
+      'addHighlightToLatestSession',
+      (st: Store, u: string) => st.addHighlightToLatestSession(u, 'what they said'),
+    ],
+    ['updateSessionMood', (st: Store, u: string) => st.updateSessionMood(u, 's1', 'stormy')],
+  ] as const)('%s: refused for a held caller, written for an adult', async (_name, write) => {
+    const store = await getEngagementStore();
+    vi.spyOn(store, 'getConversationSessions').mockResolvedValue([{ id: 's1' }] as never);
+    const [held, adult] = [user(), user()];
+    hold(held);
+    await write(store, held);
+    await write(store, adult);
+    expect(writesFor(held)).toEqual([]);
+    expect(writesFor(adult).length).toBe(1);
   });
 
   it('the purge drops a cached profile (a held call may have changed it in place)', async () => {
