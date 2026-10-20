@@ -22,6 +22,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb } from '../firestore-utils.js';
 import { MISSED_AFTER_MS } from '../../scheduling/reminder-delivery-job.js';
 import { settleLegacyPromises, type LegacyPassResult } from './legacy-promises.js';
+import { isMemberIdentity } from '../../identity/member-identity.js';
 import { isInvitation } from './promise-kinds.js';
 import {
   clearCommitmentCache,
@@ -72,8 +73,7 @@ async function settle(
   });
 }
 
-const isPerson = (userId: string): boolean =>
-  !!userId && userId !== 'anonymous' && userId !== 'unknown';
+const isPerson = (userId: string): boolean => isMemberIdentity(userId);
 
 /**
  * Ferni just promised to remind the user (or text, email or call them at a
@@ -204,6 +204,8 @@ async function verdictFor(
     .get();
   const status: unknown = reminder.exists ? reminder.data()?.status : undefined;
   if (status === 'delivered') return ['kept', 'reminder delivered'];
+  // Saved in the app with no text or push: it never reached them.
+  if (status === 'in_app_unnotified') return ['missed', 'reminder left in the app, no one told'];
   if (status === 'cancelled') return ['released', 'reminder cancelled'];
   if (status === undefined) return ['released', 'reminder deleted'];
   return ['missed', `reminder ${String(status)}`];

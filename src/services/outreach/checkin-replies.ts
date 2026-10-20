@@ -22,7 +22,7 @@ const log = createLogger({ module: 'checkin-replies' });
 
 export const REPLY_WINDOW_MS = 72 * 60 * 60 * 1000;
 export const CHECKINS = 'feature_checkins';
-const OPTOUTS = 'feature_checkin_optouts';
+export const OPTOUTS = 'feature_checkin_optouts';
 const HASH_PURPOSE = 'after-call-checkin/phone/v1';
 /** As in user-reach.ts. */
 const E164 = /^\+[1-9]\d{7,14}$/;
@@ -46,7 +46,14 @@ export type Env = Record<string, string | undefined>;
 
 /** What a text was: the after-call check-in, a follow-up (commitment, thread), a reminder the user set, a text the member got right away ("text me that"), or one sent for a member to someone else. */
 export type TextKind =
-  'checkin' | 'follow-up' | 'reminder' | 'message' | 'on-behalf' | 'morning-brief' | 'proactive';
+  | 'checkin'
+  | 'follow-up'
+  | 'reminder'
+  | 'message'
+  | 'on-behalf'
+  | 'morning-brief'
+  | 'call-result'
+  | 'proactive';
 
 export interface CheckinRecord {
   userId: string;
@@ -104,13 +111,29 @@ export function toE164(raw: string): string | null {
 
 let warnedNoSecret = false;
 
-/** This purpose's own key, derived from LOG_HASH_SECRET. Null, with one warning, without it. */
+/**
+ * This purpose's own key, derived from LOG_HASH_SECRET. Null, with one warning, without it.
+ *
+ * Every phone-keyed opt-out (feature_checkin_optouts, consent/{phoneHash}) is
+ * stored under this hash. Rotating LOG_HASH_SECRET changes every hash, so every
+ * STOP on record stops matching and everyone who opted out is texted again.
+ * Rotation needs a re-key migration first (re-hash each stored doc under the
+ * new key; consent docs carry keyVersion to find stale ones).
+ */
 export function phoneHashKey(env: Env): Buffer | null {
   const secret = env.LOG_HASH_SECRET;
   if (secret) return createHmac('sha256', secret).update(HASH_PURPOSE).digest();
   if (!warnedNoSecret) log.warn('LOG_HASH_SECRET is not set, so check-in phones are not hashed');
   warnedNoSecret = true;
   return null;
+}
+
+/** Which key hashed a phone: the purpose plus a short fingerprint of the derived key (not reversible). */
+export function phoneHashKeyVersion(env: Env = process.env): string | null {
+  const key = phoneHashKey(env);
+  return key
+    ? `${HASH_PURPOSE}:${createHmac('sha256', key).update('key-version').digest('hex').slice(0, 8)}`
+    : null;
 }
 
 /** HMAC of toE164(raw). Unkeyed, a ~10^10 number space is brute-forced in minutes. */

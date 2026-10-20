@@ -66,6 +66,7 @@ const TEXT_TYPE: Record<TextKind, SentAttempt['type']> = {
   message: 'check_in',
   'on-behalf': 'check_in',
   'morning-brief': 'check_in',
+  'call-result': 'follow_up',
   proactive: 'check_in',
 };
 
