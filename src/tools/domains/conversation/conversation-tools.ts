@@ -7,6 +7,7 @@
 
 import { llm } from '@livekit/agents';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { nameCaptureStrict, rejectsAsName } from '../../../utils/caller-name.js';
 import { z } from 'zod';
 // Import directly from types to avoid circular dependency through services/index
 import type { SessionServices } from '../../../services/types.js';
@@ -59,25 +60,12 @@ export function createConversationTools() {
       execute: async ({ name }, { ctx }) => {
         // CRITICAL: Prevent saving persona names as user names!
         // This happens when user says "Hi Maya" after Maya introduces herself
-        const personaNames = new Set([
-          'ferni',
-          'maya',
-          'peter',
-          'alex',
-          'jordan',
-          'nayan',
-          'santos',
-          'chen',
-          'taylor',
-          'john',
-          'patel',
-          // Full names
-          'maya santos',
-          'alex chen',
-          'jordan taylor',
-          'peter john',
-          'nayan patel',
-        ]);
+        const personaNames = new Set(
+          // First, last and full names
+          'ferni|maya|peter|alex|jordan|nayan|santos|chen|taylor|john|patel|maya santos|alex chen|jordan taylor|peter john|nayan patel'.split(
+            '|'
+          )
+        );
 
         const nameLower = name.toLowerCase().trim();
         if (personaNames.has(nameLower)) {
@@ -85,6 +73,12 @@ export function createConversationTools() {
             `Blocked saving persona name "${name}" as user name - this is a team member, not the user!`
           );
           return `[INTERNAL: "${name}" is a team member name, not the user's name. Ask the user for their actual name.]`;
+        }
+        // NAME_CAPTURE_STRICT=on: a common word ("not", "sure") or a teammate's speech-to-text
+        // spelling is not a name either (utils/caller-name.ts).
+        if (nameCaptureStrict() && rejectsAsName(nameLower.split(/\s+/)[0] ?? '')) {
+          getLogger().warn({ name }, 'Blocked saving a non-name as the user name');
+          return `[INTERNAL: "${name}" is not a name. Do not call them that; ask their name if you need it.]`;
         }
 
         getLogger().info(`Remembering user name: ${name}`);
