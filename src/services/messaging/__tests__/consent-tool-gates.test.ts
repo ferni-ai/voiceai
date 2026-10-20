@@ -56,7 +56,16 @@ import { writeOptOut } from '../consent.js';
 const PHONE = '+12025550166';
 const env = { MESSAGING_PIPELINE: 'on', LOG_HASH_SECRET: 'test-secret' };
 const target = { id: 't1', requestId: 'r1', name: 'Example Dental', phone: PHONE, attempts: 0 };
-const twilioCalls = () => fetchSpy.mock.calls.filter(([u]) => String(u).includes('twilio.com'));
+/** A request to Twilio, by host (not a substring of the whole URL). */
+const isTwilio = (u: unknown): boolean => {
+  try {
+    const host = new URL(String(u)).hostname;
+    return host === 'twilio.com' || host.endsWith('.twilio.com');
+  } catch {
+    return false;
+  }
+};
+const twilioCalls = () => fetchSpy.mock.calls.filter(([u]) => isTwilio(u));
 
 beforeEach(async () => {
   mem.consent = memoryConsentStore();
