@@ -53,6 +53,10 @@ public final class AliveRig {
     private var tracks: [Track] = []
     private var sequenceBeats: [(at: Double, step: AliveSequence.Step, holdUntil: Double)] = []
     private var playing: (id: String, until: Double)?
+    /// At home, a choice made mid-handoff, and whether the one who handed
+    /// over steps out after (`rest(with:)`).
+    private var restingWith: WindowPersona?
+    private var aloneAfterHandoff = false
     private var layer = SequenceLayer()
     private var listeningMicros: [(at: Double, micro: MicroExpression)] = []
     private var keyed: (moment: KeyedMoment, start: Double, fired: Int)?
@@ -146,6 +150,44 @@ public final class AliveRig {
         }
         handoff = Handoff(to: to, from: persona, start: time, fromCorner: fromCorner)
         flash("intrigued", seconds: 0.1)
+    }
+
+    /// At home: who answers the next call, at the family table (design audit
+    /// P1-1: choosing a teammate changed only Talk's label). A teammate takes
+    /// the middle and the room's light while Ferni waits small in the corner;
+    /// choosing Ferni again, he takes it back and the teammate steps out. From
+    /// one teammate to another the colours change, Ferni still in the corner.
+    /// Mid-handoff, the choice waits for the swap. Not `animated`: at once.
+    public func rest(with next: WindowPersona, animated: Bool = true) {
+        guard animated, !still else {
+            show(next, animated: false)
+            if next == .ferni {
+                guestPersona = nil
+            } else {
+                guestPersona = .ferni
+                g = Guest()
+                (g.x.x, g.y.x, g.s.x) = (-1.2, -0.62, 0.42)
+                (g.x.t, g.y.t, g.s.t) = (-1.2, -0.62, 0.42)
+            }
+            return
+        }
+        if handoff != nil { restingWith = next; return }
+        restingWith = nil
+        switch (next == .ferni, persona == .ferni) {
+        case (true, true): dismissGuest()                         // Ferni alone
+        case (true, false): handOff(to: .ferni); aloneAfterHandoff = true
+        case (false, true): handOff(to: next)
+        case (false, false):
+            show(next)
+            // Ferni comes back to his corner if he isn't there (after a call
+            // with a teammate, the corner was empty).
+            if guestPersona != .ferni || g.leaving != nil {
+                guestPersona = .ferni
+                g = Guest()
+                (g.x.x, g.y.x, g.s.x) = (-2.8, -0.62, 0.42)
+                (g.x.t, g.y.t, g.s.t) = (-1.2, -0.62, 0.42)
+            }
+        }
     }
 
     /// The teammate in the corner steps out (the call ended).
@@ -779,6 +821,14 @@ public final class AliveRig {
             flash("happy", seconds: 0.9)
             cues.append(.sparkle)
             handoff = nil
+            if aloneAfterHandoff {
+                aloneAfterHandoff = false
+                dismissGuest()
+            }
+            if let next = restingWith {
+                restingWith = nil
+                rest(with: next)
+            }
             return
         }
         handoff = h

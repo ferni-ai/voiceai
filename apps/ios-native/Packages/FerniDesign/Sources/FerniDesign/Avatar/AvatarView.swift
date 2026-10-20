@@ -123,12 +123,13 @@ public struct AvatarView: View {
             .accessibilityLabel(name)
             .accessibilityValue(Self.words(for: activity, name: name))
             .onAppear {
-                rig.show(persona, animated: false)
+                if activity == .idle { rig.rest(with: persona, animated: false) } else { rig.show(persona, animated: false) }
                 if let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
             }
             .onChange(of: persona) { _, next in
-                // In a call a new teammate arrives at the family table; at home the light just changes.
-                if activity == .idle { rig.show(next) } else { rig.handOff(to: next) }
+                // In a call a new teammate arrives at the family table; at home
+                // whoever answers next sits there too, Ferni in the corner.
+                if activity == .idle { rig.rest(with: next) } else { rig.handOff(to: next) }
             }
             .onChange(of: activity) { previous, next in
                 if next == .arriving, previous == .idle { arrivingSince = .now }
@@ -145,7 +146,8 @@ public struct AvatarView: View {
                 }
                 if next == .idle, previous != .idle, previous != .arriving {
                     if !reduceMotion { rig.play(.goodbye) }
-                    rig.dismissGuest()
+                    // Back home: whoever answers next at the family table.
+                    rig.rest(with: persona)
                 }
             }
             // Back after a long time away: he wakes where he is, as on opening the app.

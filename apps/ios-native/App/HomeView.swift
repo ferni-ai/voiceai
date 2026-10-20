@@ -48,7 +48,7 @@ struct HomeView: View {
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
                         } else {
                             TimelineView(.everyMinute) { minute in
-                                RestingLine(call: call, home: model.homeLine.current, now: minute.date)
+                                RestingLine(call: call, home: model.homeLine.current, now: minute.date, chosen: model.team.chosen)
                             }
                             if call.phase == .ended {
                                 RememberCard(call: call, remembered: model.callRemembered)
@@ -98,7 +98,7 @@ struct HomeView: View {
             }
             .background(TimelineView(.everyMinute) { minute in
                 // The room's light follows the clock, so an evening glow doesn't last until morning.
-                RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID), date: HomeClock.time(minute.date))
+                RoomBackground(persona: WindowPersona(personaId: shownPersona(call)), date: HomeClock.time(minute.date))
             })
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
             // Trouble is announced wherever you are, including after the call view goes.
@@ -147,6 +147,12 @@ struct HomeView: View {
 
     private static let rememberID = "home.remember"
 
+    /// In a call, who's talking; at home, who answers next (design audit P1-1:
+    /// choosing a teammate changed only Talk's label).
+    private func shownPersona(_ call: CallSession) -> String {
+        call.isActive ? call.avatar.personaID : model.team.chosen
+    }
+
     private var consent: some View {
         ConsentView(
             onAgree: {
@@ -169,8 +175,9 @@ struct HomeView: View {
         // smaller sheets (More, Report) leave him in view.
         CallAvatar(
             call: call, covered: model.isShowingSettings || model.isAskingConsent,
-            wake: model.wakeCount, doubleTake: model.doubleTakeCount
-        ) { model.feedback.play($0) }
+            wake: model.wakeCount, doubleTake: model.doubleTakeCount,
+            onCue: { model.feedback.play($0) }, personaID: shownPersona(call)
+        )
             .frame(width: size, height: size)
             .opacity(call.phase == .reconnecting ? 0.5 : 1)
     }
@@ -188,6 +195,8 @@ private struct RestingLine: View {
     let home: HomeLineStore.Home?
     /// The minute it is, so the greeting changes with the day.
     let now: Date
+    /// Who answers the next call.
+    var chosen = PersonaRegistry.ferni.id
     @Environment(\.openURL) private var openURL
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -207,7 +216,7 @@ private struct RestingLine: View {
             default:
                 let words = RestingWords.words(
                     home: home, ended: call.phase == .ended,
-                    hour: Self.hour(at: now), hasTalked: call.hasTalked
+                    hour: Self.hour(at: now), hasTalked: call.hasTalked, chosen: chosen
                 )
                 greeting(words.headline, words.detail)
             }
@@ -283,8 +292,14 @@ enum Welcome {
 /// follow-up is in the person's own words (GET /api/home); the clock words
 /// stay the app's own, so they're localised.
 enum RestingWords {
-    static func words(home: HomeLineStore.Home?, ended: Bool, hour: Int, hasTalked: Bool) -> (headline: String, detail: String) {
+    static func words(home: HomeLineStore.Home?, ended: Bool, hour: Int, hasTalked: Bool,
+                      chosen: String = PersonaRegistry.ferni.id) -> (headline: String, detail: String) {
         if ended { return (String(localized: "Talk soon."), String(localized: "I'm here whenever you want to talk again.")) }
+        // A teammate chosen for the next call: Ferni introduces them, in his
+        // words from the persona bundle (design audit P1-1).
+        if chosen != PersonaRegistry.ferni.id, let intro = TeammateIntroduction.forPersona(chosen) {
+            return (String(localized: "\(PersonaRegistry.get(chosen).name)'s here."), intro.ferniSays)
+        }
         let firstVisit = home?.greeting.map { $0 == .firstVisit } ?? !hasTalked
         let detail: String = if case .followUp(let text, _)? = home?.greeting {
             String(localized: "How's \(text) going?")
