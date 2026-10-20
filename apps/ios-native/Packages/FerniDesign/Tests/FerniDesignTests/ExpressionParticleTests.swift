@@ -87,6 +87,28 @@ final class ExpressionParticleTests: XCTestCase {
         XCTAssertFalse(later)
     }
 
+    /// A faint sparkle (glad, 0.35) trickles about a third as often as a full one.
+    func testSparklesAtTheTokensStrength() {
+        func count(_ id: String) -> Int {
+            let rig = AliveRig(seed: 5)
+            var t = 0.0, seen = 0, last = 0
+            while t < 0.5 { t += 1.0 / 60; _ = rig.frame(at: t) }
+            rig.expression = id
+            while t < 10.5 {
+                t += 1.0 / 60
+                _ = rig.frame(at: t)
+                let n = rig.particles.filter { $0.kind == .sparkle }.count
+                if n > last { seen += n - last }
+                last = n
+            }
+            return seen
+        }
+        let glad = count("glad"), delighted = count("delighted")
+        XCTAssertGreaterThan(delighted, 12, "a full sparkle, about two a second")
+        XCTAssertLessThan(Double(glad), Double(delighted) * 0.5, "glad \(glad), delighted \(delighted)")
+        XCTAssertGreaterThan(glad, 2, "but glad does sparkle")
+    }
+
     func testANeutralFaceHasNone() {
         XCTAssertTrue(shown("neutral").isEmpty)
     }
@@ -133,7 +155,7 @@ final class ExpressionParticleTests: XCTestCase {
             XCTAssertGreaterThan(alphas.max() ?? 0, 0.9, "\(id): faded in")
             XCTAssertLessThan(alphas.min() ?? 1, 0.3, "\(id): from nothing")
         }
-        XCTAssertNil(shown("joyful", reduceMotion: true)[.sparkle], "no sparkle bursts")
-        XCTAssertNotNil(shown("joyful")[.sparkle], "which play with motion")
+        XCTAssertNil(shown("delighted", reduceMotion: true)[.sparkle], "no sparkle bursts")
+        XCTAssertNotNil(shown("delighted")[.sparkle], "which play with motion")
     }
 }
