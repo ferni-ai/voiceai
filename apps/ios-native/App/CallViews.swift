@@ -311,13 +311,15 @@ struct CallControls: View {
             Image(systemName: muted ? "mic.slash.fill" : symbol)
                 .font(.title2)
                 .dynamicTypeSize(...Self.largestGlyph)
-                .foregroundStyle(FerniColor.textPrimary)
+                // Muted is plain at a glance: an ink circle, the glyph in paper
+                // (design audit P2 #4: it barely looked different).
+                .foregroundStyle(muted ? FerniColor.background : FerniColor.textPrimary)
                 .frame(width: 60, height: 60)
                 .contentShape(.circle)
         }
         .buttonStyle(.plain)
         .accessibilityShowsLargeContentViewer { Label(label, systemImage: muted ? "mic.slash.fill" : symbol) }
-        .glassEffect(.regular.interactive(), in: .circle)
+        .glassEffect(muted ? .regular.tint(FerniColor.textPrimary).interactive() : .regular.interactive(), in: .circle)
         .accessibilityLabel(label)
     }
 

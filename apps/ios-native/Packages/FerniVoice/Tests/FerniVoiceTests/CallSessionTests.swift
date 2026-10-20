@@ -456,8 +456,10 @@ final class CallSessionTests: XCTestCase {
 
         await session.toggleMute()
         XCTAssertTrue(session.isMuted)
+        XCTAssertEqual(session.avatar.micro?.expression, .warmth, "Ferni reacts to it (design audit P2 #4)")
         await session.toggleMute()
         XCTAssertEqual(rooms.made[0].micStates, [true, false, true])
+        XCTAssertEqual(session.avatar.micro?.expression, .recognition, "and to you coming back")
     }
 
     func testReconnectingShowsAndRecovers() async {
