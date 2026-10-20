@@ -95,8 +95,6 @@ enum AccountStatus: Equatable {
 private struct AccountSection: View {
     let account: AccountStore
     let signOut: () async -> Void
-    @Environment(\.colorScheme) private var colorScheme
-    @State private var nonce = AppleNonce()
     @State private var confirmingSignOut = false
     @Binding var signingIn: Bool
     @State private var startedWaiting = Date.now
@@ -133,25 +131,7 @@ private struct AccountSection: View {
             case .signedIn:
                 Text("Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there.")
                     .foregroundStyle(FerniColor.textSecondary)
-                SignInWithAppleButton(.continue) { request in
-                    nonce = AppleNonce()
-                    request.requestedScopes = [.fullName, .email]
-                    request.nonce = nonce.sha256
-                } onCompletion: { result in
-                    guard case .success(let authorization) = result,
-                          let apple = authorization.credential as? ASAuthorizationAppleIDCredential,
-                          let idToken = apple.identityToken.flatMap({ String(data: $0, encoding: .utf8) })
-                    else { return } // cancelled, or Apple sent nothing to sign in with
-                    let credential = AppleCredential(
-                        idToken: idToken, rawNonce: nonce.raw,
-                        authorizationCode: apple.authorizationCode.flatMap { String(data: $0, encoding: .utf8) },
-                        fullName: apple.fullName
-                    )
-                    Task { await account.signInWithApple(credential) }
-                }
-                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
-                .frame(minHeight: 48)
-                .disabled(account.isWorking)
+                AppleSignInButton(account: account)
                 Button(SignInPrompt.offerText) { signingIn = true }
             }
             if let notice = account.notice {

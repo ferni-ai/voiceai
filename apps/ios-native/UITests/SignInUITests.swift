@@ -52,4 +52,41 @@ final class SignInUITests: XCTestCase {
             app.terminate()
         }
     }
+
+    /// One designed sheet (design audit P1-6): Apple first, then Google's
+    /// button, then the phone number. A sheet that offers Google offers Apple
+    /// too (App Review 4.8).
+    func testTheSheetOffersAppleThenGoogleThenThePhone() {
+        let app = XCUIApplication.ferni(.home, account: "anonymous")
+        let offer = app.buttons["home.signIn"]
+        XCTAssertTrue(offer.waitForExistence(timeout: 20))
+        offer.tap()
+        let number = app.textFields["Phone number"]
+        XCTAssertTrue(number.waitForExistence(timeout: 5))
+        let apple = app.buttons["Sign in with Apple"], google = app.buttons["Continue with Google"]
+        XCTAssertTrue(apple.exists, "Apple is offered")
+        XCTAssertTrue(google.exists, "Google is offered")
+        XCTAssertLessThan(apple.frame.minY, google.frame.minY, "Apple comes first")
+        XCTAssertLessThan(google.frame.maxY, number.frame.minY, "then Google, then the phone number")
+        XCTAssertGreaterThanOrEqual(apple.frame.height, 44)
+        XCTAssertEqual(apple.frame.height, google.frame.height, accuracy: 1, "the two buttons match")
+    }
+
+    /// The button is never greyed out (its dimmed label failed the contrast
+    /// audit): a tap with nothing typed says what to type, right there.
+    func testTheButtonSaysWhatToTypeFirst() {
+        let app = XCUIApplication.ferni(.home, account: "anonymous")
+        let offer = app.buttons["home.signIn"]
+        XCTAssertTrue(offer.waitForExistence(timeout: 20))
+        offer.tap()
+        let send = app.buttons["signIn.continue"]
+        XCTAssertTrue(send.waitForExistence(timeout: 5))
+        XCTAssertTrue(send.isEnabled)
+        send.tap()
+        XCTAssertTrue(app.staticTexts["Type your phone number first."].waitForExistence(timeout: 3))
+        let number = app.textFields["Phone number"]
+        number.tap()
+        number.typeText("4")
+        XCTAssertTrue(app.staticTexts["Type your phone number first."].waitForNonExistence(timeout: 3), "typing clears it")
+    }
 }
