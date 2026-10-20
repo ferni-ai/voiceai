@@ -11,6 +11,7 @@
  * @module services/outreach/morning-brief/default-deps
  */
 
+import { flagOn } from '../../../config/env-flag.js';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { wallTimeIn } from '../../../utils/time-zone.js';
@@ -53,9 +54,18 @@ async function todaysEvents(userId: string, zone: string, now: Date): Promise<Br
     [-DAY_MS, 0, DAY_MS].map((d) => getEventsForDay(userId, new Date(now.getTime() + d)))
   );
   const byId = new Map(days.flat().map((e) => [e.id, e]));
+  // Only their own events (Ferni's calendar, ones they organized) and invites they
+  // accepted go in by title. Anything else, including unknown, goes by time only:
+  // anyone can send an invite, and its title would reach them as a Ferni text.
   return [...byId.values()]
-    .filter((e) => e.status !== 'cancelled' && sameLocalDay(e.startTime, now, zone))
-    .map((e) => ({ title: e.title, start: e.startTime, allDay: e.isAllDay }));
+    .filter((e) => e.status !== 'cancelled' && e.ownerResponse !== 'declined')
+    .filter((e) => sameLocalDay(e.startTime, now, zone))
+    .map((e) => ({
+      title: e.title,
+      start: e.startTime,
+      allDay: e.isAllDay,
+      invite: e.ownerResponse !== 'organizer' && e.ownerResponse !== 'accepted',
+    }));
 }
 
 async function remindersDueToday(userId: string, zone: string, now: Date): Promise<string[]> {
@@ -106,16 +116,24 @@ async function openCommitments(userId: string): Promise<string[]> {
     .slice(0, COMMITMENTS);
 }
 
+/**
+ * Commitments stay out of the text unless MORNING_BRIEF_COMMITMENTS=on: the
+ * turn-path capture stored goodbyes and unresolved pronouns ("catch you
+ * later", "call her tomorrow") as commitments, and a text read alone can't
+ * recover who "her" is. On once the after-call writer is the only source.
+ */
 export async function readDay(
   userId: string,
   user: Record<string, unknown>,
   zone: string,
-  now: Date
+  now: Date,
+  env: Record<string, string | undefined> = process.env
 ): Promise<DayItems> {
+  const withCommitments = flagOn('MORNING_BRIEF_COMMITMENTS', env);
   const [events, reminders, commitments] = await Promise.all([
     orNone('calendar', userId, () => todaysEvents(userId, zone, now)),
     orNone('reminders', userId, () => remindersDueToday(userId, zone, now)),
-    orNone('commitments', userId, () => openCommitments(userId)),
+    withCommitments ? orNone('commitments', userId, () => openCommitments(userId)) : [],
   ]);
   return { events, reminders, tasks: openTasks(user), commitments };
 }

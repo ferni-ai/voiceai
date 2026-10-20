@@ -18,7 +18,10 @@ const state = vi.hoisted(() => ({
     data: Record<string, unknown>;
   }>,
   users: {} as Record<string, Record<string, unknown>>,
+  /** Through the old, unguarded sendReminder: must stay empty. */
   texts: [] as Array<{ to: string; message: string }>,
+  /** Through the guarded sender (stubbed here; reminder-sms-default.test.ts runs the real one). */
+  guarded: [] as Array<{ to: string; message: string }>,
 }));
 
 vi.mock('../services/superhuman/firestore-utils.js', async () => {
@@ -78,6 +81,7 @@ vi.mock('../services/outreach/unified-delivery.js', () => ({
 import { getToolDefinitions } from '../tools/domains/productivity/index.js';
 import { NO_NUMBER_TO_TEXT } from '../tools/domains/productivity/reminders.js';
 import { deliverDueReminders } from '../services/scheduling/reminder-delivery-job.js';
+import { installReminderTextGuard } from '../services/scheduling/reminder-text-guard.js';
 import type { ToolContext } from '../tools/registry/types.js';
 
 const PHONE_USER = 'phone:+15551234567';
@@ -101,9 +105,15 @@ beforeEach(() => {
   state.rows = [];
   state.users = {};
   state.texts = [];
+  state.guarded = [];
+  installReminderTextGuard(async (r) => {
+    state.guarded.push({ to: r.deliveryAddress, message: r.message });
+    return 'sent';
+  });
 });
 afterEach(() => {
   delete process.env.ASSISTANT_ACTIONS_REAL;
+  installReminderTextGuard(undefined);
 });
 
 describe('flag on', () => {
@@ -123,8 +133,9 @@ describe('flag on', () => {
     ]);
 
     const run = await deliverDueReminders({ now: soon() });
-    expect(run).toMatchObject({ delivered: 1, rerouted: 0 });
-    expect(state.texts).toEqual([{ to: '+15551234567', message: 'take the bread out' }]);
+    expect(run).toMatchObject({ delivered: 1, rerouted: 0, texted: 1 });
+    expect(state.guarded).toEqual([{ to: '+15551234567', message: 'take the bread out' }]);
+    expect(state.texts).toEqual([]); // never the old, unguarded sender
   });
 
   it('a phone-first user is texted even when they just said "remind me"', async () => {
@@ -174,7 +185,8 @@ describe('flag off (today)', () => {
     expect(reply).toMatch(/^Saved: .*one reminder to .*sent as a message in the Ferni app\./);
     expect(stored(WEB_USER)[0]).toMatchObject({ deliveryMethod: 'voice_message' });
     const run = await deliverDueReminders({ now: soon() });
-    expect(run).toMatchObject({ delivered: 1, rerouted: 1 });
+    // In the app with no push: it didn't reach them, so it isn't counted delivered.
+    expect(run).toMatchObject({ delivered: 0, rerouted: 1, inboxOnly: 1 });
     expect(state.texts).toEqual([]);
   });
 });
