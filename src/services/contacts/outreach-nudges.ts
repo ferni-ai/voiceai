@@ -22,6 +22,7 @@ import {
 } from './contact-relationship-service.js';
 import { getGroups } from './contact-groups.js';
 import { datesToNudge, isRememberedContact, memorialSuggestion } from './remembered-contacts.js';
+import { thanksgivingDay as thanksDay } from '../../utils/us-holidays.js';
 
 type ImportantDate = NonNullable<ContactRelationship['importantDates']>[number];
 
@@ -47,7 +48,6 @@ export interface OutreachNudge {
   type: NudgeType;
   priority: NudgePriority;
 
-  // Who to reach out to
   contactId: string;
   contactName: string;
   relationship: string;
@@ -122,7 +122,7 @@ const HOLIDAYS: Holiday[] = [
   { name: "Valentine's Day", month: 2, day: 14, occasion: 'thinking_of_you', leadTimeDays: 7 },
   { name: "Mother's Day", month: 5, day: 12, occasion: 'thinking_of_you', leadTimeDays: 14 }, // 2nd Sunday May (approx)
   { name: "Father's Day", month: 6, day: 16, occasion: 'thinking_of_you', leadTimeDays: 14 }, // 3rd Sunday June (approx)
-  { name: 'Thanksgiving', month: 11, day: 28, occasion: 'thanksgiving', leadTimeDays: 7 },
+  { name: 'Thanksgiving', month: 11, day: thanksDay(), occasion: 'thanksgiving', leadTimeDays: 7 },
   { name: 'Christmas', month: 12, day: 25, occasion: 'christmas', leadTimeDays: 14 },
 ];
 
