@@ -70,6 +70,18 @@ final class FaceTests: XCTestCase {
         XCTAssertEqual(Face.of("neutral").tilt, 0)
     }
 
+    /// The smile crease is a cheek lift (the lower lids rise and curve up), never
+    /// a stroke under the eye: Seth read that stroke as a floating lower lid.
+    func testASmileCreaseLiftsTheCheeks() {
+        for (id, bot, arch) in [("speaking", 0.15, 0.15), ("wise", 0.2, 0.2), ("sassy", 0.2, 0.3), ("neutral", 0.06, 0.0)] {
+            let f = Face.of(id)
+            XCTAssertEqual(f.left.bot, bot, accuracy: 1e-9, "\(id): lower lid")
+            XCTAssertEqual(f.left.arch, arch, accuracy: 1e-9, "\(id): arch")
+        }
+        XCTAssertEqual(Face.of("happy").left.arch, 0.45, accuracy: 1e-9, "a happy face keeps its own arch")
+        XCTAssertEqual(Face.of("happy").left.bot, 0)
+    }
+
     func testAnUnknownExpressionIsNeutral() {
         XCTAssertEqual(Face.of("not-a-face"), Face.of("neutral"))
         XCTAssertEqual(Face.of("neutral").left.top, 0.108, accuracy: 1e-9)

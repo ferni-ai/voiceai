@@ -25,15 +25,16 @@ public struct AliveUniforms: Equatable, Sendable {
     public var lids = SIMD4<Float>(0.1, 0.1, 0.06, 0.06) // top left, top right, bottom left, bottom right
     public var poke = SIMD4<Float>(0, 0.3, 0.95, 0)    // where Ferni was touched (dir), amount
     public var tear = SIMD4<Float>(0, 0, 0, 0)         // tear progress left/right, alpha left/right
+    public var caps = SIMD4<Float>(0, 0, 0, 0)         // lid cap top, lid cap bottom (web control point / 100), -, -
 
     public init() {}
 
-    static let slots = 21
+    static let slots = 22
 }
 
 /// The ray-marched Ferni from the owner's alive prototype (WebGL), in Metal:
-/// a soft body, Luxo eyes on its surface with curved top and bottom lid caps,
-/// the happy arch, the smile crease, per-eye scale, a teammate for the family
+/// a soft body, Luxo eyes on its surface with curved lids, the happy arch,
+/// the web's page-colour lid caps over the body, per-eye scale, a teammate for the family
 /// table, a firefly's light and tears. Output is premultiplied alpha so the
 /// room behind stays SwiftUI's: glow and the presence ring add light, the floor
 /// shadow darkens, the body sits on top.
@@ -45,7 +46,7 @@ public enum AliveShader {
 using namespace metal;
 
 struct U {
-  float4 res, body, bg0, bg1, glowCol, key, rim, fill, pos, lean, gaze, eyes, arch, ring, fly, guest, guestEye, guestCol, lids, poke, tear;
+  float4 res, body, bg0, bg1, glowCol, key, rim, fill, pos, lean, gaze, eyes, arch, ring, fly, guest, guestEye, guestCol, lids, poke, tear, caps;
 };
 
 struct Ctx {
@@ -85,7 +86,9 @@ void lidLines(float3 l, float3 es, float top, float bot, float arch, float inner
 }
 float eyeD(float3 l, float3 es, float top, float bot, float arch, float inner, float tilt) {
   float d = sdEllipsoid(l, es); float tY, bY; lidLines(l, es, top, bot, arch, inner, tilt, tY, bY);
-  return max(d, max((l.y - tY) * 0.7, (bY - l.y) * 0.7));
+  // Where the lids all but meet (a closed eye's corners) there's no eye: a sliver there
+  // showed as white specks at the ends of the wink's closed eye.
+  return max(max(d, max((l.y - tY) * 0.7, (bY - l.y) * 0.7)), (0.02 - (tY - bY)) * 0.7);   // wider than the edge blend (about 0.012)
 }
 float bodyD(float3 q, constant U& u, thread const Ctx& c) {
   float3 nq = normalize(q); float3 dp = nq - u.poke.xyz;
@@ -248,17 +251,11 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
           float tY, bY; lidLines(l, es, top, bot, ar, s == 0 ? 1.0 : -1.0, u.pos.w, tY, bY);
           float uu = l.x / es.x; float front = step(-0.08, l.z);
           float closed = smoothstep(0.03, -0.01, tY - bY);
-          float crease = (1.0 - smoothstep(0.006, 0.016, abs(l.y - max(tY, bY)))) * (1.0 - smoothstep(0.8, 1.0, abs(uu))) * closed * front;
-          cb *= 1.0 - 0.32 * crease;   // a soft fold, not a drawn line
-          // lid thickness: a soft highlight along the edge of each lid cap, just outside the white
-          float inside = (1.0 - smoothstep(0.9, 1.05, abs(uu))) * front * (1.0 - closed);
-          float rimTop = (1.0 - smoothstep(0.0, 0.03, l.y - tY)) * step(tY, l.y) * step(0.02, top);
-          float rimBot = (1.0 - smoothstep(0.0, 0.03, bY - l.y)) * step(l.y, bY) * step(0.02, bot + ar);
-          cb += key * base * 0.45 * (rimTop + rimBot) * inside;
-          // smile crease: a thin cream highlight under the eye, never a dark stroke that reads as a brow
-          float cy = -es.y * 1.18 - 0.035 * (1.0 - uu * uu);
-          float sc = (1.0 - smoothstep(0.004, 0.011, abs(l.y - cy))) * (1.0 - smoothstep(0.5, 0.8, abs(uu))) * front * u.lean.w;
-          cb = mix(cb, float3(0.80, 0.76, 0.66) * (key * 0.7 + fill * 0.4), sc * 0.55);
+          float crease = (1.0 - smoothstep(0.006, 0.016, abs(l.y - max(tY, bY)))) * (1.0 - smoothstep(0.55, 0.85, abs(uu))) * closed * front;
+          cb *= 1.0 - 0.32 * crease;   // a closed eye's soft fold, inside the eye; its upturned ends faded out
+          // No other strokes near the eyes: the lid-edge highlights and the smile crease
+          // under each eye read as eyebrows or floating lower lids (Seth, 2026-10-20). The
+          // expression's lids are the page-colour caps below, as on the web.
         }
         cb *= mix(0.5, 1.0, ao);
         // eyes: porcelain, shaded by the lid caps above and below
@@ -277,6 +274,18 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
         if (mat > 2.5 && mat < 3.5) {                                    // a tear: clear water over the body
           col = cb * 0.75 + float3(0.05, 0.07, 0.09) + key * (pow(ndh, 140.0) * 1.4 + softbox(reflect(rd, n), 0.05) * 0.9) + rim * fres * 0.8;
         }
+      }
+      if (mat < 3.5) {
+        // The web's lid caps (apps/web lid overlay, the playground's .lid-top/.lid-bottom):
+        // page-colour shapes over the body whose curved edge carries the expression. The
+        // web box is 2.5 body radii wide; its quadratic edge is y = 1.25 - 1.25·cap·(1 - (x/1.25)²).
+        // Flat on the screen like the web's, turning with the head's roll: measured on the
+        // body's surface instead, perspective made every cap about half as deep as the web's.
+        float2 b = (rot(u.lean.x) * cuv) / (uScale * c.RB.xy); float fall = 1.0 - (b.x / 1.25) * (b.x / 1.25);
+        float topEdge = 1.25 - 1.25 * u.caps.x * fall, botEdge = -1.25 + 1.25 * u.caps.y * fall;
+        float aa = 0.9 / (radiusPx * uScale);   // about a pixel
+        float capped = max(smoothstep(topEdge - aa, topEdge + aa, b.y), smoothstep(botEdge + aa, botEdge - aa, b.y));
+        alpha *= 1.0 - capped;
       }
       col = mix(col, float3(dot(col, float3(0.2126, 0.7152, 0.0722))), 0.08);
       col = gamma(aces(col));
