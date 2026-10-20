@@ -28,6 +28,7 @@ import { forgottenTopicsOrNull, isForgotten } from '../../memory/index.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isTeammateTalk } from '../../utils/teammate-talk.js';
+import { isActionableCommitment } from '../../utils/commitment-quality.js';
 
 const log = createLogger({ module: 'AfterCallCommitments' });
 
@@ -157,6 +158,9 @@ export function callerCommitmentDocs(
     if (o.confidence < MIN_CONFIDENCE) continue;
     const quote = o.source.quote?.trim();
     if (!quote || quote.split(/\s+/).length < 3 || !SAYS_WILL.test(quote)) continue;
+    // A goodbye, or "I'll call her tomorrow": the quote is repeated back word for word, so a
+    // bare pronoun is not filled in from the extractor's paraphrase; it is left out.
+    if (!isActionableCommitment(quote)) continue;
     if (flagOn('TEAMMATE_TALK_FILTER') && isTeammateTalk(quote)) continue; // "I'm going to talk to Jordan": a teammate, not a plan
     if (docs.some((d) => sameCommitment(String(d.statement), quote))) continue;
     const tz = ctx.timezone ?? 'UTC';
