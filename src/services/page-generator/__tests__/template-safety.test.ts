@@ -16,7 +16,7 @@ import { readFileSync } from 'fs';
 import { join } from 'path';
 import Handlebars from 'handlebars';
 import { describe, expect, it } from 'vitest';
-import { cssToken, safeUrl, scriptJson } from '../generator.js';
+import { cssToken, safeUrl, scriptJson } from '../template-encoders.js';
 
 interface Node {
   type: string;

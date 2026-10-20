@@ -24,6 +24,7 @@ import type {
 import { deriveBrandColors, generatePersonaCss, hexToRgba } from './color-utils.js';
 import { generateFavicon, generateAppleTouchIcon } from './favicon-generator.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { registerHelpers } from './template-encoders.js';
 
 const log = createLogger({ module: 'page-generator' });
 
@@ -31,39 +32,6 @@ const log = createLogger({ module: 'page-generator' });
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const TEMPLATES_DIR = join(__dirname, 'templates');
-
-// Encoders for template output: generated pages run on the app's own origin
-// (__tests__/template-safety.test.ts checks every template expression uses them).
-
-/** JSON for an inline <script>: `<`, `>`, `&` and line separators are \u-escaped. */
-export function scriptJson(value: unknown): string {
-  return (JSON.stringify(value) ?? 'null').replace(
-    /[<>&\u2028\u2029]/g,
-    (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`
-  );
-}
-
-/** A URL for href/src/url(): web, mail, same-site path or image data, else '#'. */
-export function safeUrl(value: unknown): string {
-  const url = typeof value === 'string' ? value.trim() : '';
-  return /^(https?:|mailto:|data:image\/|\/(?![/\\]))[^\s\\]*$/i.test(url) ? url : '#';
-}
-
-/** A CSS name or keyword (font family, weight, style): letters, digits, space, '-', '.', ','. */
-export function cssToken(value: unknown): string {
-  return String(value ?? '').replace(/[^\w .,-]/g, '');
-}
-
-function registerHelpers(): void {
-  Handlebars.registerHelper(
-    'json',
-    (value: unknown) => new Handlebars.SafeString(scriptJson(value))
-  );
-  Handlebars.registerHelper('safeUrl', (value: unknown) => safeUrl(value));
-  Handlebars.registerHelper('cssToken', (value: unknown) => cssToken(value));
-  Handlebars.registerHelper('currentYear', () => new Date().getFullYear());
-  Handlebars.registerHelper('eq', (a: unknown, b: unknown) => a === b);
-}
 
 const SLUG = /^[A-Za-z0-9_-]{1,64}$/;
 
