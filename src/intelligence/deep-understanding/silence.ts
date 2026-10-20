@@ -565,9 +565,7 @@ export function recordSilence(
   log.debug({ userId, type: analysis.type, duration: analysis.duration }, '🤫 Silence recorded');
 }
 
-/**
- * Format silence analysis for prompt injection
- */
+/** Format silence analysis for prompt injection */
 export function formatSilenceForPrompt(analysis: SilenceAnalysis): string {
   const lines = [analysis.guidance];
 
@@ -586,9 +584,7 @@ export function formatSilenceForPrompt(analysis: SilenceAnalysis): string {
 // IMPORT/EXPORT (for persistence)
 // ============================================================================
 
-/**
- * Import a silence pattern into memory (for persistence)
- */
+/** Import a silence pattern into memory (for persistence) */
 export function importSilencePattern(pattern: SilencePattern): void {
   userPatterns.set(pattern.userId, pattern);
 }
@@ -597,11 +593,14 @@ export function importSilencePattern(pattern: SilencePattern): void {
 // RESET (for testing)
 // ============================================================================
 
-/**
- * Reset all silence intelligence state (for testing)
- */
+/** Reset all silence intelligence state (for testing) */
 export function resetSilenceIntelligence(): void {
   userPatterns.clear();
+}
+
+/** MINOR_CARE purge: this user's state, so nothing a held call taught it is written later */
+export function forgetSilenceUser(userId: string): void {
+  userPatterns.delete(userId);
 }
 
 // ============================================================================

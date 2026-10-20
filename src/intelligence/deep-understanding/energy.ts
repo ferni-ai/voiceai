@@ -615,9 +615,7 @@ export function markTopicEnergy(
 // PROMPT FORMATTING
 // ============================================================================
 
-/**
- * Format energy assessment for prompt injection
- */
+/** Format energy assessment for prompt injection */
 export function formatEnergyForPrompt(assessment: EnergyAssessment): string {
   const lines = ['[ENERGY AWARENESS]'];
 
@@ -653,9 +651,7 @@ export function formatEnergyForPrompt(assessment: EnergyAssessment): string {
 // IMPORT/EXPORT (for persistence)
 // ============================================================================
 
-/**
- * Import an energy pattern into memory (for persistence)
- */
+/** Import an energy pattern into memory (for persistence) */
 export function importEnergyPattern(pattern: EnergyPattern): void {
   userPatterns.set(pattern.userId, pattern);
 }
@@ -664,11 +660,14 @@ export function importEnergyPattern(pattern: EnergyPattern): void {
 // RESET (for testing)
 // ============================================================================
 
-/**
- * Reset all energy state inference state (for testing)
- */
+/** Reset all energy state inference state (for testing) */
 export function resetEnergyStateInference(): void {
   userPatterns.clear();
+}
+
+/** MINOR_CARE purge: this user's state, so nothing a held call taught it is written later */
+export function forgetEnergyUser(userId: string): void {
+  userPatterns.delete(userId);
 }
 
 // ============================================================================

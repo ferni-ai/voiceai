@@ -816,9 +816,7 @@ function formatChapterName(chapter: ChapterType): string {
 // PROMPT FORMATTING
 // ============================================================================
 
-/**
- * Format chapter analysis for prompt
- */
+/** Format chapter analysis for prompt */
 export function formatChapterForPrompt(analysis: ChapterAnalysis): string {
   const lines = ['[LIFE CHAPTER AWARENESS]'];
 
@@ -859,9 +857,7 @@ export function formatChapterForPrompt(analysis: ChapterAnalysis): string {
 // IMPORT/EXPORT (for persistence)
 // ============================================================================
 
-/**
- * Import a chapter profile into memory (for persistence)
- */
+/** Import a chapter profile into memory (for persistence) */
 export function importChapterProfile(profile: ChapterProfile): void {
   profiles.set(profile.userId, profile);
 }
@@ -870,11 +866,14 @@ export function importChapterProfile(profile: ChapterProfile): void {
 // RESET (for testing)
 // ============================================================================
 
-/**
- * Reset all life chapter awareness state (for testing)
- */
+/** Reset all life chapter awareness state (for testing) */
 export function resetLifeChapterAwareness(): void {
   profiles.clear();
+}
+
+/** MINOR_CARE purge: this user's state, so nothing a held call taught it is written later */
+export function forgetLifeChapterUser(userId: string): void {
+  profiles.delete(userId);
 }
 
 // ============================================================================

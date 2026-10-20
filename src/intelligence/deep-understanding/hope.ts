@@ -744,9 +744,7 @@ function buildHopeGuidance(
 // PROMPT FORMATTING
 // ============================================================================
 
-/**
- * Format hope analysis for prompt injection
- */
+/** Format hope analysis for prompt injection */
 export function formatHopeForPrompt(analysis: HopeAnalysis): string {
   const lines = ['[HOPE TRAJECTORY AWARENESS]'];
 
@@ -790,9 +788,7 @@ export function formatHopeForPrompt(analysis: HopeAnalysis): string {
 // IMPORT/EXPORT (for persistence)
 // ============================================================================
 
-/**
- * Import a hope profile into memory (for persistence)
- */
+/** Import a hope profile into memory (for persistence) */
 export function importHopeProfile(profile: HopeProfile): void {
   profiles.set(profile.userId, profile);
 }
@@ -801,11 +797,14 @@ export function importHopeProfile(profile: HopeProfile): void {
 // RESET (for testing)
 // ============================================================================
 
-/**
- * Reset all hope trajectory state (for testing)
- */
+/** Reset all hope trajectory state (for testing) */
 export function resetHopeTrajectory(): void {
   profiles.clear();
+}
+
+/** MINOR_CARE purge: this user's state, so nothing a held call taught it is written later */
+export function forgetHopeUser(userId: string): void {
+  profiles.delete(userId);
 }
 
 // ============================================================================

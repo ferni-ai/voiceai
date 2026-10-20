@@ -775,9 +775,7 @@ export function formatResistanceForPrompt(analysis: ResistanceAnalysis): string 
   return lines.join('\n');
 }
 
-/**
- * Get summary for a user
- */
+/** Get summary for a user */
 export function getResistanceSummary(userId: string): string | null {
   const profile = getResistanceProfile(userId);
 
@@ -806,9 +804,7 @@ export function getResistanceSummary(userId: string): string | null {
 // IMPORT/EXPORT (for persistence)
 // ============================================================================
 
-/**
- * Import a resistance profile into memory (for persistence)
- */
+/** Import a resistance profile into memory (for persistence) */
 export function importResistanceProfile(profile: ResistanceProfile): void {
   profiles.set(profile.userId, profile);
 }
@@ -817,11 +813,14 @@ export function importResistanceProfile(profile: ResistanceProfile): void {
 // RESET (for testing)
 // ============================================================================
 
-/**
- * Reset all resistance detection state (for testing)
- */
+/** Reset all resistance detection state (for testing) */
 export function resetResistanceDetection(): void {
   profiles.clear();
+}
+
+/** MINOR_CARE purge: this user's state, so nothing a held call taught it is written later */
+export function forgetResistanceUser(userId: string): void {
+  profiles.delete(userId);
 }
 
 // ============================================================================
