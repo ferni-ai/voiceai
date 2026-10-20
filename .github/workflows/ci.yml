@@ -28,6 +28,9 @@ on:
       - '.dockerignore'
       - 'cloudbuild*.yaml'
       - 'infra/**'
+      # The web server's env and secrets (deploy/ui-server/). A flag flip that
+      # edits only these must still get a push run, or nothing deploys it.
+      - 'deploy/**'
   pull_request:
     branches: [main, develop]
     # No path filter on PRs: branch protection requires these checks, so a PR
