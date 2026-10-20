@@ -115,6 +115,7 @@
 		EDB3152BB385F9869882B733 /* CallIntentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D088A9791D1BAB4D7E6860C8 /* CallIntentTests.swift */; };
 		F04C1D4DF69A4646E1699849 /* handoff-to-ferni.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 15418FA6D6693B28961C02AC /* handoff-to-ferni.mp3 */; };
 		F4FA3A53E53F74B1477513D4 /* AccountStatusTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01554191EA22D85DC469F56C /* AccountStatusTests.swift */; };
+		F5D3D1662704B7EF7C73B675 /* IPadSidebarUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 157A1C5004D0CA3D476ECA08 /* IPadSidebarUITests.swift */; };
 		F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */; };
 		F8659A8DCBD2D3621DA596A3 /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 3A2B0DD01002A1C6F9C20247 /* FerniDesign */; };
 		F8BE59CFC9BCA7538FD1A854 /* LiveActivityContentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F6D02CA803627F1860ACBDA /* LiveActivityContentTests.swift */; };
@@ -210,6 +211,7 @@
 		12AD4DC924A1BFC0A91BA221 /* FerniKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniKit; path = Packages/FerniKit; sourceTree = SOURCE_ROOT; };
 		148438D4C1E42EF27B5A09AC /* FerniSceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniSceneDelegate.swift; sourceTree = "<group>"; };
 		15418FA6D6693B28961C02AC /* handoff-to-ferni.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-ferni.mp3"; sourceTree = "<group>"; };
+		157A1C5004D0CA3D476ECA08 /* IPadSidebarUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPadSidebarUITests.swift; sourceTree = "<group>"; };
 		175D63C93899C628033FCCA8 /* CrashReporting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporting.swift; sourceTree = "<group>"; };
 		1AA352150CE2DBF9E6254A20 /* TalkOnPhoneIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkOnPhoneIntent.swift; sourceTree = "<group>"; };
 		226B4915E8A70F4DAB1B6B4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -449,6 +451,7 @@
 				BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */,
 				F133B033213FD0942D68871F /* HomeBalanceUITests.swift */,
 				2B807054CD639997DA9CFB4F /* IPadHomeUITests.swift */,
+				157A1C5004D0CA3D476ECA08 /* IPadSidebarUITests.swift */,
 				CE6F99AEBFB1F92A89ED2A23 /* KnownPersonHomeUITests.swift */,
 				32CB97AAAE8B87F35E050CA3 /* MemoryEdgesUITests.swift */,
 				8ABF5A8522BA18DED299ED09 /* MemoryJournalUITests.swift */,
@@ -861,6 +864,7 @@
 				8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */,
 				AEA5F6881617AB84E1E3A42B /* HomeBalanceUITests.swift in Sources */,
 				7DA13593D47CC26EA4439F02 /* IPadHomeUITests.swift in Sources */,
+				F5D3D1662704B7EF7C73B675 /* IPadSidebarUITests.swift in Sources */,
 				C74160109DE8EDE54E12AFE9 /* KnownPersonHomeUITests.swift in Sources */,
 				6AEF0AA3C0A2BB52913602A3 /* MemoryEdgesUITests.swift in Sources */,
 				E7F087D73B4FD9846D1E5AB3 /* MemoryJournalUITests.swift in Sources */,
