@@ -111,22 +111,35 @@ struct HomeView: View {
             .sheet(item: $model.reporting) { caption in
                 ReportSheet(caption: caption) { reason, note in try await model.report(caption, reason: reason, note: note) }
             }
-            // A sheet over the room rather than a cover: Home stays behind it.
-            .sheet(isPresented: $model.isAskingConsent) {
-                ConsentView(
-                    onAgree: {
-                        model.isAskingConsent = false
-                        Task { await model.agreeAndTalk() }
-                    },
-                    onNotNow: { model.notNow() },
-                    account: model.account
-                )
-                .presentationDetents([.large])
+            // iPhone: a sheet over the room, so Home stays behind it. iPad: the
+            // whole screen. As a form sheet the sidebar stayed drawn behind it but
+            // out of VoiceOver's reach, and at AX5 the words ran past the sheet's
+            // edge onto the dimmed room, so the audit failed both (2026-10-20).
+            .sheet(isPresented: askingConsent(fullScreen: false)) {
+                consent.presentationDetents([.large])
             }
+            .fullScreenCover(isPresented: askingConsent(fullScreen: true)) { consent }
             .sheet(isPresented: $model.isSigningIn, onDismiss: { model.signInFinished() }) {
                 SignInView(account: model.account)
             }
         }
+    }
+
+    private var consent: some View {
+        ConsentView(
+            onAgree: {
+                model.isAskingConsent = false
+                Task { await model.agreeAndTalk() }
+            },
+            onNotNow: { model.notNow() },
+            account: model.account
+        )
+    }
+
+    /// Consent is asked one way at a time. Only the model's answer closes it, so
+    /// a width change mid-question moves it across instead of dropping it.
+    private func askingConsent(fullScreen: Bool) -> Binding<Bool> {
+        Binding(get: { model.isAskingConsent && (widthClass == .regular) == fullScreen }, set: { _ in })
     }
 
     private func avatar(call: CallSession, size: CGFloat) -> some View {
