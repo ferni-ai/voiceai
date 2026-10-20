@@ -35,8 +35,8 @@ final class AccessibilityAuditTests: XCTestCase {
         // rows' contrast findings (and the unnamed ones, two to four a launch) went away when the
         // sidebar got an opaque background (2026-10-20); none are accepted any more.
         ("call", .contrast, "Ferni · ", "Name chip: #5c544a on #f7f5ee, 6.8:1 (caption text needs 4.5)."),
-        ("home|call", .textClipped, "Talk", "iPad sidebar row: the AX5 screenshot shows the full word."),
-        ("home|call", .textClipped, "What Ferni remembers", "iPad sidebar row: wraps to three full lines at AX5 (screenshot)."),
+        ("home|call|team", .textClipped, "Talk", "iPad sidebar row: the AX5 screenshot shows the full word."),
+        ("home|call|team", .textClipped, "What Ferni remembers", "iPad sidebar row: wraps to three full lines at AX5 (screenshot)."),
         ("settings", .dynamicType, "Try again", "A system List button row; it scales at AX5 like the other rows."),
         ("settings", .dynamicType, "Get help with your account",
          "Account footer link; HelpLinksUITests.testAccountHelpGrowsWithTextSize proves it grows at AX5 (pinned, it stays 34 pt and fails)."),
@@ -71,6 +71,26 @@ final class AccessibilityAuditTests: XCTestCase {
 
     /// The overrides reach the views (so the snapshots below show those paths),
     /// and an ordinary launch doesn't have them.
+    /// The team (design audit P1-15): teammates you haven't met yet are read as
+    /// information in the secondary text colour, not a greyed-out button.
+    func testTeam() throws {
+        for size in [TextSize.standard, .ax5] {
+            let pad = UIDevice.current.userInterfaceIdiom == .pad
+            let app = XCUIApplication.ferni(pad ? .home : .settings, size: size)
+            let way = pad ? app.staticTexts["Team"].firstMatch : app.buttons["Your team"].firstMatch
+            XCTAssertTrue(way.waitForExistence(timeout: 20), "no way to the team")
+            way.tap()
+            let notYet = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'team.notYet.'")).firstMatch
+            XCTAssertTrue(notYet.waitForExistence(timeout: 5), "a teammate not met yet")
+            XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'team.notYet.'")).count, 0, "not a button")
+            let name = "team \(size)"
+            try XCTContext.runActivity(named: name) { _ in
+                try app.performAccessibilityAudit(for: .all) { Self.handle($0, on: name) }
+            }
+            app.terminate()
+        }
+    }
+
     /// The sign-in sheet (design audit P1-6), opened from Home's offer.
     func testSignIn() throws {
         for size in [TextSize.standard, .ax5] {
