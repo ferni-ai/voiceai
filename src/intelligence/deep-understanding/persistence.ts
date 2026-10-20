@@ -13,6 +13,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { userHeld } from '../../utils/minor-care.js';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
 
 // Import all deep understanding systems
@@ -133,9 +134,7 @@ function getDoc(userId: string, systemName: string) {
 // SAVE FUNCTIONS
 // ============================================================================
 
-/**
- * Save a single system profile
- */
+/** Save a single system profile */
 async function saveSystemProfile<T>(
   userId: string,
   systemName: string,
@@ -159,15 +158,20 @@ async function saveSystemProfile<T>(
   }
 }
 
-/**
- * Save all deep understanding profiles for a user
- */
+/** Users read from storage in this process: only they are written (a default would replace it) */
+const loadedUsers = new Set<string>();
+export function forgetDeepUnderstandingLoaded(userId: string): void {
+  loadedUsers.delete(userId); // MINOR_CARE purge (forget.ts): the next session reloads first
+}
+
+/** Save all deep understanding profiles for a user */
 export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
   saved: string[];
   failed: string[];
 }> {
   const saved: string[] = [];
   const failed: string[] = [];
+  if (!loadedUsers.has(userId) || userHeld(userId)) return { saved, failed }; // MINOR_CARE
 
   // 1. Silence Pattern
   const silencePattern = getSilencePattern(userId);
@@ -261,9 +265,7 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
 // LOAD FUNCTIONS
 // ============================================================================
 
-/**
- * Load a single system profile
- */
+/** Load a single system profile */
 async function loadSystemProfile<T>(userId: string, systemName: string): Promise<T | null> {
   try {
     const doc = await getDoc(userId, systemName).get();
@@ -397,6 +399,7 @@ export async function loadDeepUnderstandingProfiles(userId: string): Promise<{
     '📂 Deep understanding profiles loaded'
   );
 
+  loadedUsers.add(userId);
   return { loaded, notFound };
 }
 
@@ -404,9 +407,7 @@ export async function loadDeepUnderstandingProfiles(userId: string): Promise<{
 // SESSION HOOKS
 // ============================================================================
 
-/**
- * Call at session start to load deep understanding profiles
- */
+/** Call at session start to load deep understanding profiles */
 export async function onSessionStart(userId: string): Promise<void> {
   try {
     await loadDeepUnderstandingProfiles(userId);
@@ -415,9 +416,7 @@ export async function onSessionStart(userId: string): Promise<void> {
   }
 }
 
-/**
- * Call at session end to save deep understanding profiles
- */
+/** Call at session end to save deep understanding profiles */
 export async function onSessionEnd(userId: string): Promise<void> {
   try {
     await saveDeepUnderstandingProfiles(userId);

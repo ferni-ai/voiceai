@@ -762,9 +762,7 @@ export function generateRelationalInsights(userId: string): RelationalInsight[] 
   return insights;
 }
 
-/**
- * Format insights for prompt injection
- */
+/** Format insights for prompt injection */
 export function formatRelationalInsightsForPrompt(
   userId: string,
   currentPersonMentioned?: string
@@ -810,9 +808,7 @@ export function formatRelationalInsightsForPrompt(
 // IMPORT/EXPORT (for persistence)
 // ============================================================================
 
-/**
- * Import a relational network into memory (for persistence)
- */
+/** Import a relational network into memory (for persistence) */
 export function importRelationalNetwork(network: RelationalNetwork): void {
   // Convert people array back to Map if needed
   if (Array.isArray(network.people)) {
@@ -829,11 +825,14 @@ export function importRelationalNetwork(network: RelationalNetwork): void {
 // RESET (for testing)
 // ============================================================================
 
-/**
- * Reset all relational network state (for testing)
- */
+/** Reset all relational network state (for testing) */
 export function resetRelationalNetwork(): void {
   networks.clear();
+}
+
+/** MINOR_CARE purge: this user's state, so nothing a held call taught it is written later */
+export function forgetRelationshipsUser(userId: string): void {
+  networks.delete(userId);
 }
 
 // ============================================================================

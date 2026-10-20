@@ -657,9 +657,7 @@ export function formatRepairForPrompt(
   return lines.join('\n');
 }
 
-/**
- * Check if repair is needed (quick check for context builder)
- */
+/** Check if repair is needed (quick check for context builder) */
 export function quickRepairCheck(
   userResponse: string,
   emotionShift: number
@@ -688,9 +686,7 @@ export function quickRepairCheck(
 // IMPORT/EXPORT (for persistence)
 // ============================================================================
 
-/**
- * Import a repair profile into memory (for persistence)
- */
+/** Import a repair profile into memory (for persistence) */
 export function importRepairProfile(profile: RepairProfile): void {
   profiles.set(profile.userId, profile);
 }
@@ -699,12 +695,15 @@ export function importRepairProfile(profile: RepairProfile): void {
 // RESET (for testing)
 // ============================================================================
 
-/**
- * Reset all repair intelligence state (for testing)
- */
+/** Reset all repair intelligence state (for testing) */
 export function resetRepairIntelligence(): void {
   profiles.clear();
   recentResponses.clear();
+}
+
+/** MINOR_CARE purge: this user's state, so nothing a held call taught it is written later */
+export function forgetRepairUser(userId: string): void {
+  profiles.delete(userId);
 }
 
 // ============================================================================
