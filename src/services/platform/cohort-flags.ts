@@ -62,8 +62,7 @@ export const COHORT_FLAGS = [
   // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.
   'FOLLOW_THROUGH_OPENER',
   'OUTREACH_PONDERED_NOTES',
-  // Read once the agent is set up, on a turn or at a handoff: after applyCallerFlags
-  // (docs/runbooks/cohort-rollout.md has the read sites).
+  // Read at setup, a turn or a handoff, after applyCallerFlags (docs/runbooks/cohort-rollout.md).
   'CALL_WRAP_UP',
   'WRAP_UP',
   'SHORT_GOODBYE',
@@ -77,8 +76,7 @@ export const COHORT_FLAGS = [
   'BARGE_IN_ACK_WORDS',
   'FRIEND_FOLLOWUPS',
   'INSIDE_JOKES',
-  // Read at the hello and on each turn (greeting-direction.ts, first-call-rapport.ts).
-  'FIRST_CALL_INTRO',
+  'FIRST_CALL_INTRO', // read at the hello and each turn (greeting-direction, first-call-rapport)
   // Read on each turn and each quiet-window sound, never at boot (named-tune-note.ts, tune-state.ts).
   'NAMED_TUNE',
   // Persona flags, read at agent build, a handoff, a turn or a TTS reply, never cached
@@ -107,6 +105,10 @@ export const COHORT_FLAGS = [
   // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
   // (services/outreach/morning-brief/brief-job.ts).
   'MORNING_BRIEF',
+  // The UI server's deliver-reminders job reads both per person, through flagForUser
+  // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
+  'REMINDER_SMS_DEFAULT',
+  'REMINDER_IN_APP_PUSH',
   // Read per person on the web server (flagForUser): outreach pushes and the after-call ask (web-push-flag.ts).
   'WEB_PUSH_DELIVERY',
 ] as const;
