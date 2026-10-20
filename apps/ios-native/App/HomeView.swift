@@ -119,7 +119,9 @@ struct HomeView: View {
                 if let line { AccessibilityNotification.Announcement(line).post() }
             }
             .toolbar {
-                if showsAccountButton { ToolbarItem(placement: .topBarTrailing) {
+                // In a call the room is Ferni's and yours: the account button
+                // steps out until it ends (design audit P2 #5).
+                if showsAccountButton && !inCall { ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         model.isShowingSettings = true
                     } label: {
