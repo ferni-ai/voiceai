@@ -24,3 +24,19 @@ final class TeamAtRestTests: XCTestCase {
         XCTAssertEqual(RestingWords.words(home: nil, ended: true, hour: 10, hasTalked: true, chosen: "maya").headline, "Talk soon.")
     }
 }
+
+/// Design audit P1-14: on iPad Home was a phone column, Ferni 200 pt.
+final class RestSizeTests: XCTestCase {
+    func testAPhoneKeepsFerniAt200() {
+        XCTAssertEqual(HomeView.restSize(room: CGSize(width: 402, height: 874), regular: false), 200)
+    }
+
+    func testAnIPadSizesFerniToTheRoom() {
+        // iPad Pro 13", the detail beside the sidebar, portrait and landscape.
+        XCTAssertEqual(HomeView.restSize(room: CGSize(width: 700, height: 1376), regular: true), 350, accuracy: 0.5)
+        XCTAssertEqual(HomeView.restSize(room: CGSize(width: 1032, height: 1032), regular: true), 433.4, accuracy: 0.5)
+        XCTAssertEqual(HomeView.restSize(room: CGSize(width: 2000, height: 2000), regular: true), 440, "no bigger than 440")
+        XCTAssertEqual(HomeView.restSize(room: CGSize(width: 400, height: 500), regular: true), 200, "no smaller than a phone's")
+        XCTAssertEqual(HomeView.restSize(room: .zero, regular: true), 200, "before it's measured")
+    }
+}

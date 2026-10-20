@@ -51,6 +51,7 @@
 		7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974DF185A4FA58E1F08FD688 /* FerniApp.swift */; };
 		7B4E238C055C0630113D7B75 /* AvatarGlueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9376BA757C00332F94F01A1F /* AvatarGlueTests.swift */; };
 		7C091827B71428685858522D /* FerniWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7DA13593D47CC26EA4439F02 /* IPadHomeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B807054CD639997DA9CFB4F /* IPadHomeUITests.swift */; };
 		8008F255B971A496A174CC6F /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E0556D7156242BE3423D87 /* Notifications.swift */; };
 		80B3324091516CE8022F9CFD /* TalkOnPhoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA352150CE2DBF9E6254A20 /* TalkOnPhoneIntent.swift */; };
 		835CA763B4004C499BBA655B /* FerniLink in Frameworks */ = {isa = PBXBuildFile; productRef = F667C1DECD86E1F2360CB8C1 /* FerniLink */; };
@@ -204,6 +205,7 @@
 		226B4915E8A70F4DAB1B6B4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		27693C03A0148090C7187B34 /* TeamAtRestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamAtRestTests.swift; sourceTree = "<group>"; };
 		2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-alex.mp3"; sourceTree = "<group>"; };
+		2B807054CD639997DA9CFB4F /* IPadHomeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPadHomeUITests.swift; sourceTree = "<group>"; };
 		2DA4BC7C1EABDFAE3445A318 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
 		314CF4DEF139B4B6126A1C63 /* NextStepViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextStepViews.swift; sourceTree = "<group>"; };
 		32CB80CF1D9492393B441589 /* DeepLinkUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkUITests.swift; sourceTree = "<group>"; };
@@ -422,6 +424,7 @@
 				7BFB87749BD4C9D4FD65978F /* FloorFadeUITests.swift */,
 				A7085820FA32335FEED58C9E /* HandoffUITests.swift */,
 				BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */,
+				2B807054CD639997DA9CFB4F /* IPadHomeUITests.swift */,
 				EDC1F42CEAB8576041D1E034 /* PaperScreensUITests.swift */,
 				0BAAA6ED05EC97C25ABF4A4A /* RememberEditUITests.swift */,
 				C193BBD95DA87669BB25C713 /* SignInProblemTests.swift */,
@@ -823,6 +826,7 @@
 				621E18533277A7BC22296241 /* FloorFadeUITests.swift in Sources */,
 				DA81277E93D9A12995CC138A /* HandoffUITests.swift in Sources */,
 				8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */,
+				7DA13593D47CC26EA4439F02 /* IPadHomeUITests.swift in Sources */,
 				C54E78DAA6C5D8493E76C06D /* PaperScreensUITests.swift in Sources */,
 				8568B9B5D8FBCEE53623E3D3 /* RememberEditUITests.swift in Sources */,
 				C36151BDB3A1F5F1AD551FD2 /* SignInProblemTests.swift in Sources */,
