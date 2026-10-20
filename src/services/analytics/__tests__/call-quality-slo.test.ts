@@ -14,8 +14,9 @@ vi.mock('../../slack-notifications.js', () => ({
   }),
 }));
 vi.mock('../../predictive-alerting.js', () => ({ recordMetricValue: vi.fn() }));
+const { logInfo } = vi.hoisted(() => ({ logInfo: vi.fn() }));
 vi.mock('../../../utils/safe-logger.js', () => ({
-  createLogger: () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  createLogger: () => ({ debug: vi.fn(), info: logInfo, warn: vi.fn(), error: vi.fn() }),
 }));
 
 import {
@@ -104,7 +105,9 @@ describe('call-quality alerts', () => {
 
     const [reply, greeting] = evaluateSlos(getRecentCalls(), getActiveCalls(), LIMITS);
     // Measured from the caller's speech and from the pickup, never from the dial.
-    expect(getRecentCalls()[0].firstResponseTimeMs).toBe(1500);
+    expect(getRecentCalls()[0].firstReplyMs).toBe(1500);
+    // The threshold path keeps main's greeting time, dial included.
+    expect(getRecentCalls()[0].firstResponseTimeMs).toBe(21_500);
     expect(reply).toMatchObject({ key: 'reply_p90', value: 1500, sampled: false });
     expect(greeting).toMatchObject({ key: 'greeting_p90', value: 1500, sampled: false });
     await evaluate(5);
@@ -199,7 +202,6 @@ describe('call-quality alerts', () => {
     const conditions = evaluateSlos(getRecentCalls(), [], LIMITS);
     expect(conditions.every((c) => !c.sampled)).toBe(true);
   });
-
 });
 
 describe('CALL_QUALITY_ALERTS picks the rule that pages', () => {
@@ -239,10 +241,16 @@ describe('CALL_QUALITY_ALERTS picks the rule that pages', () => {
 
   it('shadow: the threshold alerts still page and the SLO incident is not sent', async () => {
     vi.stubEnv('CALL_QUALITY_ALERTS', 'shadow');
+    logInfo.mockClear();
     dropTwelve();
     await evaluate(5);
     expect(titles()).toContain('📞 Disconnect Rate Critical');
     expect(sloPages()).toHaveLength(0);
+    // The incident it would have paged is logged once, the evidence for promoting to on.
+    const opened = logInfo.mock.calls.filter(([, msg]) =>
+      String(msg).startsWith('Call-quality incident opened')
+    );
+    expect(opened.map(([o]) => o.key)).toEqual(['drop_rate']);
   });
 
   it('on: the SLO incident pages once and the threshold alerts are off', async () => {

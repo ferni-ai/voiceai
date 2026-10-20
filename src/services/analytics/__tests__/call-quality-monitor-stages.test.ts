@@ -6,7 +6,9 @@ import {
   recordBargeInAgentStopped,
   recordBargeInDetected,
   endCall,
+  getActiveCalls,
   getMetrics,
+  getRecentCalls,
   resetCallQualityStateForTests,
 } from '../call-quality-monitor.js';
 
@@ -33,6 +35,8 @@ describe('call quality stage timings', () => {
     expect(m.lastSessionStages?.prewarm_done).toBeTypeOf('number');
     expect(m.lastSessionStages?.first_audio).toBeTypeOf('number');
     expect(m.lastSessionStages?.jobToFirstAudioMs).toBe(m.lastSessionStages?.first_audio);
+    // The threshold alerts' response time is the greeting, as on main.
+    expect(m.avgFirstResponseTimeMs).toBe(m.lastSessionStages?.first_audio);
   });
 
   it('keeps relative stage marks after endCall', () => {
@@ -48,7 +52,9 @@ describe('call quality stage timings', () => {
     endCall('c2', 'natural');
     const m = getMetrics();
     expect(m.lastSessionStages?.session_initialized).toBeTypeOf('number');
-    expect(m.avgFirstResponseTimeMs).toBe(1400);
+    // A turn reply feeds the SLOs only; it never stands in for the greeting.
+    expect(m.avgFirstResponseTimeMs).toBe(0);
+    expect(getRecentCalls()[0]?.firstReplyMs).toBe(1400);
   });
 
   it('exposes absolute first-audio timing contract with elapsed stage marks', () => {
@@ -96,7 +102,8 @@ describe('call quality stage timings', () => {
 
     const m = getMetrics();
 
-    expect(m.avgFirstResponseTimeMs).toBe(900);
+    expect(m.avgFirstResponseTimeMs).toBe(200); // the first greeting, as on main
+    expect(getActiveCalls().find((c) => c.callId === 'c4')?.firstReplyMs).toBe(900);
     expect(m.lastSessionStages?.first_audio).toBe(200);
     expect(m.lastSessionStages?.jobToFirstAudioMs).toBe(200);
     expect(m.lastSessionStages?.firstAudioMs).toBe(1_200);

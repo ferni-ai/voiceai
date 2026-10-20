@@ -10,7 +10,6 @@
  *
  * @module services/analytics/call-quality-slo
  */
-import { recordMetricValue } from '../predictive-alerting.js';
 import type { CallEvent, CallSession } from './call-quality-monitor.js';
 
 export type SloKey = 'reply_p90' | 'greeting_p90' | 'drop_rate' | 'connect_fail';
@@ -52,10 +51,7 @@ export function noteSloEvent(event: CallEvent, session: CallSession | undefined)
   if (event.metadata?.userKind === 'eval') exclude(event.callId);
   replies.push({ callId: event.callId, at: event.timestamp, ms });
   if (replies.length > MAX_REPLIES) replies.splice(0, replies.length - MAX_REPLIES);
-  if (session && session.firstResponseTimeMs === undefined) {
-    session.firstResponseTimeMs = ms;
-    recordMetricValue('first_response_time', ms);
-  }
+  if (session && session.firstReplyMs === undefined) session.firstReplyMs = ms;
   return true;
 }
 

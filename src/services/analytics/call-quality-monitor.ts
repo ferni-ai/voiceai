@@ -113,7 +113,8 @@ export interface CallSession {
   stages?: Record<string, number>;
   endTime?: number;
   connectionTimeMs?: number;
-  firstResponseTimeMs?: number;
+  firstResponseTimeMs?: number; // job start to Ferni's first audio (the greeting), as on main
+  firstReplyMs?: number; // the first caller turn's reply latency (turn receipt); read only by the SLOs
   totalDurationMs?: number;
   userSpeechCount: number;
   agentSpeechCount: number;
@@ -242,12 +243,14 @@ export function recordCallEvent(event: CallEvent): void {
       break;
 
     case 'first_audio':
-      if (session.stages?.first_audio === undefined) {
+      if (session.firstResponseTimeMs === undefined) {
+        session.firstResponseTimeMs = getElapsedStageMs(session, event.timestamp);
         session.stages = {
           ...session.stages,
           session_start: session.stages?.session_start ?? 0,
-          first_audio: getElapsedStageMs(session, event.timestamp),
+          first_audio: session.firstResponseTimeMs,
         };
+        recordMetricValue('first_response_time', session.firstResponseTimeMs);
       }
       break;
 
