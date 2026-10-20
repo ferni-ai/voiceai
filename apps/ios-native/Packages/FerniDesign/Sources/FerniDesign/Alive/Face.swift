@@ -94,6 +94,10 @@ public struct Face: Equatable, Sendable {
     public var tilt = 0.0, crease = 0.0, halo = 0.2
     public var posY = 0.0, roll = 0.0, squash = 1.0, scale = 1.0
     public var blush = 0.0, glow = 0.36
+    /// The web's page-colour lid caps over the body: the control point of its
+    /// quadratic top and bottom edges, /100 (apps/web lid overlay). 0.2 just
+    /// touches the body; sleepy's 0.55 covers its top 44%.
+    public var capTop = 0.0, capBottom = 0.0
     public var animation: String?
     public var effect: String?
     public var family = "core"
@@ -120,8 +124,13 @@ public struct Face: Equatable, Sendable {
         // The lifted inner corners need a lid to show on: concern's own lids
         // (curve 4-8) sit higher than neutral's.
         let upper = max(clamp(max(top, 0) * 0.9 * (happy ? 0.6 : 1) / 100, 0, 0.95), worry ? 0.24 : 0)
-        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100, 0, 0.6), worry ? 0.14 : 0)
-        let arch = happy ? clamp(-bot * 3 / 100, 0, 0.85) : 0
+        // The smile crease is a cheek lift, not a line: the lower lids rise and curve
+        // up, a little of the happy arch. Drawn as a cream stroke under each eye it
+        // read as a floating lower lid (Seth, build .57, 2026-10-20); as a pose it also
+        // tells apart four faces that rendered the same (expression audit twins).
+        let cheek = clamp(e.smileCrease?.opacity ?? 0, 0, 1) * 0.5
+        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100 + min(cheek, 0.2), 0, 0.6), worry ? 0.14 : 0)
+        let arch = happy ? clamp(-bot * 3 / 100, 0, 0.85) : cheek
         let sx = e.eyeWhite?.scaleX ?? 1, sy = e.eyeWhite?.scaleY ?? 1
 
         func eye(_ o: ExpressionToken.Scale?) -> Eye {
@@ -150,6 +159,10 @@ public struct Face: Equatable, Sendable {
         f.scale = (body.sx * body.sy).squareRoot()
         f.blush = e.family == "embarrassed" ? 0.9 : happy ? 0.55 : e.family == "warmth" ? 0.4 : 0
         f.glow = 0.2 + f.halo * 0.8
+        // The tokens' lid curves are the web overlay's control points: top as is,
+        // bottom from 100 (the happy arch and a raised lower lid both lift it).
+        f.capTop = clamp(top / 100, 0, 0.8)
+        f.capBottom = clamp(abs(bot) / 100, 0, 0.6)
         f.animation = e.animation
         f.effect = e.sparkleGroup != nil ? "sparkle" : id == "crying" ? "tears" : familyEffect[e.family]
         f.family = e.family
