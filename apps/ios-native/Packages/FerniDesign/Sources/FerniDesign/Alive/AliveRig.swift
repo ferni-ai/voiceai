@@ -46,6 +46,14 @@ public final class AliveRig {
     private var gazeTarget = SIMD2<Double>(0, 0)
     private var overlay: (id: String, until: Double)?
     private var lastActivity = AvatarActivity.idle
+    private struct Track {
+        var key: WritableKeyPath<SequenceLayer, Double>, values: [Double], at: Double, duration: Double
+        var ease: (Double) -> Double
+    }
+    private var tracks: [Track] = []
+    private var sequenceBeats: [(at: Double, step: AliveSequence.Step, holdUntil: Double)] = []
+    private var playing: (id: String, until: Double)?
+    private var layer = SequenceLayer()
     private var listeningMicros: [(at: Double, micro: MicroExpression)] = []
     private var keyed: (moment: KeyedMoment, start: Double, fired: Int)?
     private var handoff: Handoff?
@@ -130,6 +138,57 @@ public final class AliveRig {
     }
 
     func flash(_ id: String, seconds: Double) { overlay = (id, time + seconds * tempo) }
+
+    /// A choreographed moment from the design system's sequences (the
+    /// prototype's playSequence), at the persona's tempo. One plays at a time:
+    /// a lower-priority moment doesn't interrupt one still playing
+    /// (orchestration.priorities). Under Reduce Motion the steps the tokens
+    /// remove are left out and the motion is scaled down. Returns whether it plays.
+    @discardableResult
+    public func play(sequence id: String) -> Bool {
+        guard !still, let sequence = SequenceTokens.sequence(id) else { return false }
+        if let playing, time < playing.until, SequenceTokens.priority(id) < SequenceTokens.priority(playing.id) { return false }
+        let removed = reduceMotion ? SequenceTokens.removedUnderReduceMotion(id) : []
+        let end = (sequence.totalDuration ?? 1000) / 1000 * tempo
+        tracks.removeAll()
+        sequenceBeats.removeAll()
+        for step in sequence.steps where !removed.contains(step.element) {
+            let delay = (step.delay ?? 0) / 1000 * tempo, duration = max(0.001, (step.duration ?? 0) / 1000 * tempo)
+            if step.expression != nil || step.element == "sparkle" || step.element == "confetti" || step.element == "ambientLight" {
+                sequenceBeats.append((time + delay, step, time + max(0.5, end - delay + 0.4)))
+            }
+            for (property, key) in SequenceLayer.channels[step.element] ?? [:] {
+                guard let values = step.tracks[property] else { continue }
+                tracks.append(Track(key: key, values: values, at: time + delay, duration: duration, ease: sequenceEase(step.easing)))
+            }
+        }
+        playing = (id, time + end)
+        return true
+    }
+
+    /// The sequence playing now, if any.
+    var playingSequence: String? { playing.flatMap { time < $0.until ? $0.id : nil } }
+
+    /// This frame's layer from the playing tracks, and the steps that came due.
+    private func stepSequence() {
+        tracks.removeAll { time > $0.at + $0.duration + 0.05 }
+        var l = SequenceLayer()
+        for tr in tracks where time >= tr.at {
+            let u = tr.ease(clamp((time - tr.at) / tr.duration, 0, 1)) * Double(tr.values.count - 1)
+            let i = min(tr.values.count - 2, max(0, Int(u.rounded(.down))))
+            let v = tr.values[i] + (tr.values[i + 1] - tr.values[i]) * (u - Double(i)), v0 = tr.values[0]
+            if SequenceLayer.multiplies(tr.key) { l[keyPath: tr.key] *= v0 != 0 ? v / v0 : 1 }
+            else if SequenceLayer.lights(tr.key) { l[keyPath: tr.key] += v - v0 }
+            else { l[keyPath: tr.key] += v }
+        }
+        layer = l
+        while let beat = sequenceBeats.first, time >= beat.at {
+            sequenceBeats.removeFirst()
+            if let face = beat.step.expression { overlay = (face, beat.holdUntil) }
+            if beat.step.element == "sparkle" || beat.step.element == "confetti" { pendingSparkles += min(14, (beat.step.particles ?? 6) + 3) }
+            if beat.step.element == "ambientLight" { self[.glow].v += 3 }
+        }
+    }
 
     /// A micro-expression: its face for 80-120 ms (at the persona's tempo),
     /// felt more than seen. It never cuts a longer flash short, and still
@@ -291,6 +350,20 @@ public final class AliveRig {
             self[.squash].v += 3.4 * m
             self[.posY].v += 1.4 * m
         }
+    }
+
+    /// The playing sequence on the body, as the prototype lays it over the pose.
+    private func applyLayer(m: Double) {
+        let l = layer
+        guard l != SequenceLayer() else { return }
+        let squash = pow(l.sy / l.sx, 2.0 / 3)
+        if squashHold == nil { self[.squash].t *= squash }
+        self[.scale].t *= l.scale * (l.sx * l.sy).squareRoot() / squash
+        self[.posY].t -= l.ty / 100 * 1.6 * m
+        self[.roll].t += l.rot * .pi / 180 * 1.8 * m
+        self[.glow].t += l.glow
+        self[.halo].t += l.halo
+        self[.ringS].t = l.haloS
     }
 
     /// One turn about his axis in 0.9 s, easing out; then the yaw unwinds the
@@ -479,6 +552,7 @@ public final class AliveRig {
         pending.removeAll()
         let m = motion
         stepMicros()
+        stepSequence()
         let face = Face.of(faceID())
         apply(face, m: m)
         stepHandoff(m: m)
@@ -515,6 +589,7 @@ public final class AliveRig {
         self[.posX].t = 0
         self[.ringY].t = self[.posY].x
         self[.ringS].t = 1
+        applyLayer(m: m)
         self[.shear].t = clamp(-self[.posX].v * 0.05 - self[.yaw].v * 0.012, -0.16, 0.16) * m
         self[.poke].t = 0
 
@@ -607,7 +682,7 @@ public final class AliveRig {
         if activity == .arriving, focus == nil { gazeTarget.y = max(gazeTarget.y, 0.4) }
         let drift = still ? .zero : SIMD2(sin(time * .pi * 2 / 8) * 0.04, sin(time * .pi * 2 / 8 * 1.3 + 1) * 0.03)
         self[.gx].t = clamp(gazeTarget.x + drift.x, -0.85, 0.85) * max(m, 0.5)
-        self[.gy].t = clamp(gazeTarget.y + drift.y, -0.7, 0.7) * max(m, 0.5)
+        self[.gy].t = clamp(gazeTarget.y + drift.y + layer.eyesTy * -0.03, -0.7, 0.7) * max(m, 0.5)
         self[.yaw].t = self[.gx].t * 0.32
         self[.roll].t += self[.gx].t * 0.05
         self[.pitch].t += self[.gy].t * 0.12
@@ -638,6 +713,7 @@ public final class AliveRig {
             g.x.t = 0.35; g.y.t = 0; g.s.t = 1; g.y.v += 3 * m; g.sq.v += 3 * m; g.arch.t = 0
             self[.stageX].t = -1.2; self[.stageY].t = -0.62; self[.stageS].t = 0.42; self[.posY].v += 2 * m
             cues.append(.whoosh)
+            play(sequence: "handoff_transition")
             h.done = 4
         }
         if h.done == 4, t >= 2.15 {                                          // hand over the role mid-flight
