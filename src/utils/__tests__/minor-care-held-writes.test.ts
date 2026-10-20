@@ -14,6 +14,8 @@ const docs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
 type Hook = { fail: number; failed: number; during?: () => unknown; hang?: Promise<void> };
 /** Per path: how many of the next deletes fail. */
 const failDeletes = vi.hoisted(() => new Map<string, number>());
+/** Deletes that landed, by path. */
+const deletes = vi.hoisted(() => [] as string[]);
 const hooks = vi.hoisted(() => new Map<string, Hook>());
 /** Writes in flight right now, and the most at once. */
 const flight = vi.hoisted(() => ({ now: 0, max: 0 }));
@@ -52,6 +54,7 @@ const fakeDb = vi.hoisted(() => {
             throw new Error('unavailable');
           }
           docs.delete(path);
+          deletes.push(path);
         },
       } as Record<string | symbol, unknown>,
       { get: (t, k) => (k in t ? t[k] : k === 'then' ? undefined : () => ref(path)) }
@@ -317,6 +320,27 @@ describe('held fields: never resurrected, never stale, written at shutdown', () 
     expect(docOf(userId, collection)).toBeDefined(); // resurrected, for now
     await tick(1_000); // the next flush retries the compensating delete
     expect(docOf(userId, collection)).toBeUndefined();
+  });
+
+  it('a new opt-out kept while a compensating delete is pending is written after it: only it remains', async () => {
+    const { s, collection } = prefsStore();
+    const userId = caller();
+    s.set(userId, { prefs: { optOut: 'old' }, story: 'x' });
+    let release!: () => void;
+    hooks.set(`/${collection}/`, { fail: 0, failed: 0, hang: new Promise((r) => (release = r)) });
+    await tick(1_000); // the old write starts, and hangs
+    const deleting = s.delete(userId);
+    await vi.advanceTimersByTimeAsync(10_100);
+    await deleting;
+    failDeletes.set(`/${collection}/`, 2); // the compensating delete and its first retry fail
+    release(); // the old write lands after the delete
+    await tick(0);
+    s.set(userId, { prefs: { optOut: 'new' }, story: 'y' }); // a new opt-out is kept
+    await tick(1_000); // the retry fails again: the new opt-out waits behind it
+    await tick(1_000); // the delete lands, then the new opt-out is written
+    expect(deletes.filter((p) => p.includes(userId))).toHaveLength(2); // the delete, then its retry
+    expect(docOf(userId, collection)?.prefs).toEqual({ optOut: 'new' });
+    expect(JSON.stringify(docOf(userId, collection))).not.toContain('old');
   });
 
   it('a delete waits at most 10 s for a hung held write; a late landing is deleted again', async () => {

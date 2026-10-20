@@ -79,11 +79,13 @@ export function heldFields<T>(
         parts.clear();
         generations.clear();
         written.clear();
+        removeAgain.clear();
         return;
       }
       generations.set(userId, (generations.get(userId) ?? 0) + 1);
       parts.delete(userId);
       written.delete(userId);
+      removeAgain.delete(userId);
       if (isDelete && inFlight.has(userId)) deleted.add(userId);
     },
     /** Once this user's write in flight has settled, or after 10 s: a delete waits, never hangs. */
@@ -116,6 +118,8 @@ export function heldFields<T>(
         for (const userId of Array.from(removeAgain)) await compensate(userId, remove, dirty);
       for (const [userId, queued] of Array.from(parts)) {
         dirty.add(userId); // keeps the sync running until the part is written
+        // A newer part waits for a pending compensating delete, so that delete can't wipe it
+        if (removeAgain.has(userId)) continue;
         if (!force && queued.notBefore > Date.now()) continue;
         parts.delete(userId);
         // Right before each try: drop the fields a newer part has already written
@@ -129,7 +133,7 @@ export function heldFields<T>(
         inFlight.set(userId, writing);
         try {
           await writing;
-          if (!parts.has(userId)) dirty.delete(userId);
+          if (!parts.has(userId) && !removeAgain.has(userId)) dirty.delete(userId);
           // A delete that stopped waiting (10 s) ran before this write landed: delete again
           if (generation(userId) !== before && deleted.delete(userId) && remove)
             await compensate(userId, remove, dirty); // its own try: a failure never reads as the write's
