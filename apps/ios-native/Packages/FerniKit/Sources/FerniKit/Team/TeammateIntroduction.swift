@@ -4,12 +4,12 @@ import Foundation
 /// `about` is the persona bundle's description and `ferniSays` one of Ferni's
 /// handoff introductions (src/personas/bundles/<id>/persona.manifest.json);
 /// `helpsWith` is drawn from the bundle's role domains.
-struct TeammateIntroduction: Equatable {
-    let ferniSays: String
-    let about: String
-    let helpsWith: [String]
+public struct TeammateIntroduction: Equatable, Sendable {
+    public let ferniSays: String
+    public let about: String
+    public let helpsWith: [String]
 
-    static func forPersona(_ personaId: String) -> TeammateIntroduction? {
+    public static func forPersona(_ personaId: String) -> TeammateIntroduction? {
         all[personaId.lowercased()]
     }
 
