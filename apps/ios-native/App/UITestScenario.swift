@@ -31,6 +31,9 @@ enum UITestScenario: String {
     /// the system settings, so these set the environment values the views read.
     static let reduceMotion = flag("-FerniReduceMotion")
     static let reduceTransparency = flag("-FerniReduceTransparency")
+    /// `-FerniAuditFixture`: a deliberately faint, unlabelled line mid-screen,
+    /// so AccessibilityAuditTests can prove its gate still fails on one.
+    static let auditFixture = flag("-FerniAuditFixture")
     /// Store screenshots: a person who has talked before, with a team and notes
     /// (canned answers from a fake API, fake first names only).
     static let storeData = flag("-FerniStoreData")
@@ -218,6 +221,24 @@ extension UITestScenario {
     }
 }
 
+/// Lines nobody could read (near-white on paper) in the middle of the screen,
+/// where a scroll nudge can't carry them off an edge: one with no accessibility
+/// label set (its words are all it has), one with an empty label. The audit
+/// must fail on them (AccessibilityAuditTests.testTheGateStillFails).
+struct AuditFixture: View {
+    var body: some View {
+        VStack(spacing: 12) {
+            Text(verbatim: "faint words nobody can read")
+            Text(verbatim: "faint and nameless").accessibilityLabel(Text(verbatim: ""))
+        }
+        .font(.body)
+        .foregroundStyle(Color(white: 0.93))
+        .padding(12)
+        .background(Color(red: 0.98, green: 0.973, blue: 0.961))
+        .allowsHitTesting(false)
+    }
+}
+
 /// Reports the accessibility settings the views actually received, so a UI
 /// test can tell an override that took effect from one that didn't.
 struct UITestEnvironmentProbe: View {
@@ -265,6 +286,7 @@ extension View {
         if UITestScenario.current != nil {
             self
                 .overlay(alignment: .topLeading) { UITestEnvironmentProbe() }
+                .overlay { if UITestScenario.auditFixture { AuditFixture() } }
                 .environment(\._accessibilityReduceMotion, UITestScenario.reduceMotion)
                 .environment(\._accessibilityReduceTransparency, UITestScenario.reduceTransparency)
                 .preferredColorScheme(UITestScenario.dark ? .dark : nil)
