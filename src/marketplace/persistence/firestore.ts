@@ -406,7 +406,6 @@ export async function getMarketplaceStore(): Promise<MarketplaceStore> {
   // Try Firestore first in production
   const useFirestore =
     process.env.NODE_ENV === 'production' ||
-    process.env.USE_FIRESTORE_MARKETPLACE === 'true' ||
     process.env.GCP_PROJECT_ID ||
     process.env.FIREBASE_PROJECT_ID;
 
