@@ -94,18 +94,36 @@ public struct Face: Equatable, Sendable {
     public var tilt = 0.0, crease = 0.0, halo = 0.2
     public var posY = 0.0, roll = 0.0, squash = 1.0, scale = 1.0
     public var blush = 0.0, glow = 0.36
-    /// The web's page-colour lid caps over the body: the control point of its
-    /// quadratic top and bottom edges, /100 (apps/web lid overlay). 0.2 just
-    /// touches the body; sleepy's 0.55 covers its top 44%.
+    /// The web's page-colour lid caps over the body: the control point of the
+    /// live overlay's quadratic top edge, and 100 minus its bottom one, /100
+    /// (`webLids`). Its box is the orb, so sleepy's 0.55 covers the top 55%.
     public var capTop = 0.0, capBottom = 0.0
     public var animation: String?
     public var effect: String?
     public var family = "core"
 
+    /// The live web overlay's lids (apps/web ferni-expressions.ui.ts, the
+    /// `expressions` table): the top path's control point and 100 minus the
+    /// bottom one's, for every id it draws. Skeptical and worried have two-curve
+    /// paths there; these are their peaks.
+    static let webLids: [String: (top: Double, bottom: Double)] = [
+        "neutral": (-10, -10), "happy": (25, 15), "delighted": (28, 18), "surprised": (-18, -18), "curious": (15, 0),
+        "skeptical": (10, 0), "worried": (18, 5), "sad": (35, 0), "sleepy": (55, 30), "thinking": (12, 5),
+        "empathetic": (20, 10), "excited": (-12, -12), "contemplative": (18, 8), "noticing": (8, 0),
+        "holdingSpace": (22, 12), "attentive": (5, -5), "absorbing": (20, 8), "receiving": (18, 10),
+        "curiousLean": (10, -2), "warm": (12, 5), "pleased": (18, 10), "proud": (22, 12), "celebrating": (26, 16),
+        "present": (10, 2), "holding": (20, 10), "accompanying": (18, 8), "waiting": (15, 5), "encouraging": (15, 8),
+        "challenging": (10, 2), "reflecting": (14, 5), "recognizing": (18, 10), "remembering": (16, 6),
+        "reconnecting": (20, 12), "insider": (22, 14), "growing": (20, 12), "processing": (18, 6),
+        "realizing": (-8, -8), "shifting": (8, 0), "settling": (14, 4), "farewell": (22, 12),
+    ]
+
     /// The Luxo head tilt: curious faces lean in with the whole body.
     static let tilt: [String: Double] = [
         "curious": 0.22, "intrigued": 0.17, "interested": 0.12, "puzzled": 0.19, "confused": 0.15,
         "skeptical": 0.1, "attentive": 0.05, "wondering": 0.18,
+        // A knowing tilt: without it wise rendered as peaceful (expression audit twins).
+        "wise": 0.08,
     ]
     static let familyEffect: [String: String] = [
         "happy": "sparkle", "warmth": "heart", "tired": "z", "nervous": "sweat", "confused": "question",
@@ -128,8 +146,12 @@ public struct Face: Equatable, Sendable {
         // up, a little of the happy arch. Drawn as a cream stroke under each eye it
         // read as a floating lower lid (Seth, build .57, 2026-10-20); as a pose it also
         // tells apart four faces that rendered the same (expression audit twins).
-        let cheek = clamp(e.smileCrease?.opacity ?? 0, 0, 1) * 0.5
-        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100 + min(cheek, 0.2), 0, 0.6), worry ? 0.14 : 0)
+        // Not on speaking, the everyday talking face: there the lift read smug and
+        // narrowed his range (2026-10-20); speaking differs from neutral by voice.
+        let cheek = id == "speaking" ? 0 : clamp(e.smileCrease?.opacity ?? 0, 0, 1) * 0.5
+        // A glare pushes the lower lids up too, so frustration reads apart from focus
+        // (expression audit P1 #8: focused and frustrated rendered the same).
+        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100 + min(cheek, 0.2), 0, 0.6), worry ? 0.14 : glare ? 0.12 : 0)
         let arch = happy ? clamp(-bot * 3 / 100, 0, 0.85) : cheek
         let sx = e.eyeWhite?.scaleX ?? 1, sy = e.eyeWhite?.scaleY ?? 1
 
@@ -150,7 +172,7 @@ public struct Face: Equatable, Sendable {
         let body = BodyTransform(e.body?.transform)
         f.gx = (e.eyesGroup?.translateX ?? 0) * 0.09
         f.gy = -(e.eyesGroup?.translateY ?? 0) * 0.09
-        f.tilt = e.lidTop?.droop == true ? 0.5 : worry ? 0.45 : glare ? -0.35 : 0
+        f.tilt = e.lidTop?.droop == true ? 0.5 : worry ? 0.45 : glare ? -0.6 : 0
         f.crease = clamp(e.smileCrease?.opacity ?? 0, 0, 1)
         f.halo = clamp(e.presenceRing.map { $0.opacity ?? 0.2 } ?? 0.2, 0, 1)
         f.posY = -body.ty / 100 * 1.6
@@ -159,10 +181,16 @@ public struct Face: Equatable, Sendable {
         f.scale = (body.sx * body.sy).squareRoot()
         f.blush = e.family == "embarrassed" ? 0.9 : happy ? 0.55 : e.family == "warmth" ? 0.4 : 0
         f.glow = 0.2 + f.halo * 0.8
-        // The tokens' lid curves are the web overlay's control points: top as is,
-        // bottom from 100 (the happy arch and a raised lower lid both lift it).
-        f.capTop = clamp(top / 100, 0, 0.8)
-        f.capBottom = clamp(abs(bot) / 100, 0, 0.6)
+        if let web = webLids[id] {
+            f.capTop = clamp(web.top / 100, 0, 0.8)
+            f.capBottom = clamp(web.bottom / 100, 0, 0.6)
+        } else {
+            // Ids the overlay doesn't draw (the web leaves its lids alone for them):
+            // only heavy lids from the tokens, the tired faces sleepy's table entry
+            // stands for. A wink (20) or a light squint stays the eyes' own lids.
+            f.capTop = top > 25 ? clamp(top / 100, 0, 0.8) : 0
+            f.capBottom = abs(bot) > 25 ? clamp(abs(bot) / 100, 0, 0.6) : 0
+        }
         f.animation = e.animation
         f.effect = e.sparkleGroup != nil ? "sparkle" : id == "crying" ? "tears" : familyEffect[e.family]
         f.family = e.family
