@@ -66,6 +66,7 @@ export const COHORT_FLAGS = [
   // Read when the call session is built, after applyCallerFlags (in-call-load.ts).
   'WORLD_FACTS_IN_CALL',
   'POST_CALL_CHECKIN',
+  'IOS_PUSH', // per person by the web server's push service: flagForUser (services/ios-push.ts)
   'FOLLOW_THROUGH_TEXTS',
   // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.
   'FOLLOW_THROUGH_OPENER',
@@ -112,8 +113,7 @@ export const COHORT_FLAGS = [
   'WEEKLY_PREDICTION',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
-  // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
-  // (services/outreach/morning-brief/brief-job.ts).
+  // UI server's briefing job only, never in a call: usersWithFlag (morning-brief/brief-job.ts).
   'MORNING_BRIEF',
   // The UI server's deliver-reminders job reads both per person, through flagForUser
   // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
