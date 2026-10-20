@@ -11,7 +11,7 @@ public struct WaitlistStatus: Decodable, Equatable, Sendable, Identifiable {
         public let max: Int
     }
 
-    /// waiting | admitted (expired and not_joined never reach the screen).
+    /// waiting | admitted | not_joined (expired never reaches the screen).
     public let status: String
     public let position: Int?
     public let wavesAway: Int?
@@ -26,6 +26,20 @@ public struct WaitlistStatus: Decodable, Equatable, Sendable, Identifiable {
 
     /// The refusal said "waitlisted" without saying where; /me can fill it in.
     public var detailsUnknown: Bool { status == "waiting" && position == nil }
+
+    /// Not on the list at all: the server never puts an anonymous account on it
+    /// (isAdmitted refuses anonymous; /me answers not_joined). They have no place,
+    /// no invite link and no email to be told at, so the screen asks them to
+    /// sign in instead of promising an email (critic H1, 2026-10-20).
+    public var notJoined: Bool { status == "not_joined" }
+
+    /// Someone who isn't on the list yet: not_joined, or an anonymous account
+    /// whose place couldn't be read.
+    public func needsToJoin(anonymous: Bool) -> Bool {
+        !isAdmitted && (notJoined || (anonymous && position == nil))
+    }
+
+    public static let notJoinedStatus = WaitlistStatus(status: "not_joined")
 
     public init(
         status: String, position: Int? = nil, wavesAway: Int? = nil, nextWaveAt: String? = nil,
@@ -59,10 +73,10 @@ public struct WaitlistStatus: Decodable, Equatable, Sendable, Identifiable {
     }
 
     /// The body of GET /api/waitlist/me (or a contract refusal); nil unless
-    /// waiting or admitted.
+    /// waiting, admitted or not_joined.
     public static func fromMe(_ body: Data) -> WaitlistStatus? {
         guard let status = try? JSONDecoder().decode(WaitlistStatus.self, from: body),
-              ["waiting", "admitted"].contains(status.status)
+              ["waiting", "admitted", "not_joined"].contains(status.status)
         else { return nil }
         return status
     }

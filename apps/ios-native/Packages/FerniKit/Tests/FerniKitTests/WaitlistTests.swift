@@ -55,11 +55,25 @@ final class WaitlistTests: XCTestCase {
         XCTAssertEqual(WaitlistStatus.fromRefusal(statusCode: 403, body: body(json))?.positionLine, "You’re #12, in the very next wave")
     }
 
-    /// Expired and not-joined accounts don't get the waiting screen.
-    func testOnlyWaitingAndAdmittedReachTheScreen() {
+    /// Expired accounts don't get the screen. Not-joined ones do, read as such,
+    /// so it asks them to sign in and join instead of showing a place they
+    /// don't have (critic H1).
+    func testWaitingAdmittedAndNotJoinedReachTheScreen() throws {
         XCTAssertNil(WaitlistStatus.fromMe(body(#"{"status":"expired","position":1}"#)))
-        XCTAssertNil(WaitlistStatus.fromMe(body(#"{"status":"not_joined","position":null}"#)))
+        let notJoined = try XCTUnwrap(WaitlistStatus.fromMe(body(#"{"status":"not_joined","position":null}"#)))
+        XCTAssertTrue(notJoined.notJoined)
         XCTAssertNotNil(WaitlistStatus.fromMe(body(#"{"status":"waiting","position":null}"#)))
+    }
+
+    /// Who's asked to sign in and join: not_joined, or anonymous with no place.
+    /// Someone waiting with a place, or admitted, isn't, anonymous or not.
+    func testWhoNeedsToJoin() throws {
+        let waiting = try XCTUnwrap(WaitlistStatus.fromRefusal(statusCode: 403, body: body(self.waiting)))
+        XCTAssertTrue(WaitlistStatus.notJoinedStatus.needsToJoin(anonymous: false))
+        XCTAssertTrue(WaitlistStatus.unknownPosition.needsToJoin(anonymous: true), "anonymous, place unknown")
+        XCTAssertFalse(WaitlistStatus.unknownPosition.needsToJoin(anonymous: false), "signed in, place still loading")
+        XCTAssertFalse(waiting.needsToJoin(anonymous: false))
+        XCTAssertFalse(WaitlistStatus(status: "admitted").needsToJoin(anonymous: true))
     }
 
     func testTheWordsHaveNoEmDashesOrEllipses() throws {

@@ -45,10 +45,18 @@ StoreKit linked and those two class names. Linking StoreKit isn't a
 guideline issue on its own, and nothing a reviewer can reach depends on it.
 If even that should go, wrap `FerniKit/Store/` in `#if PAID_PLANS`.
 
-## Signing in: no demo account needed
+## Signing in: no demo account needed (unless the waitlist gate is on)
 
 The app signs in anonymously on first launch, so a reviewer can talk to Ferni
-without an account. Sign in with Apple (Settings, then Account) links the same
+without an account.
+
+**With the server's `WAITLIST_GATE` on, an admitted demo account is
+required.** The gate never admits an anonymous account (the server's
+`isAdmitted` refuses it and `/api/waitlist/me` answers `not_joined`), so a
+reviewer's Talk would end on "Sign in to join the list" instead of a call.
+Prepare an admitted review account on the server and put the steps to sign
+into it in App Store Connect's review notes as a one-time link, never in this
+repository. With the gate off (the default) none of this applies. Sign in with Apple (Settings, then Account) links the same
 account; the reviewer can use their own Apple ID. Delete account works for
 either kind. No credentials go in the repository or the review notes.
 
@@ -65,7 +73,7 @@ notes as a one-time link, never in this repository.
 |---|---|---|
 | Coming back | Home, after time away | After 20 minutes away the last call's goodbye clears; after 8 hours Ferni wakes as the app opens. The greeting and the room's light follow the clock. With `GET /api/home` (server route in review), Home asks about one light thread from last time ("How's the interview on Thursday going?") and may show a note from Ferni with Talk about this; without it, the time-of-day greeting. No server flag hides UI. |
 | Touch Ferni | Home, tap Ferni at rest | He dents where touched, glances at the finger and lights up, with one soft tap in the hand (and, with Sounds on, a soft boop: a system sound; whether the silent switch mutes it is on the device checklist). Four quick taps and he spins. Hold a finger on him and he notices it ("huh?"), leans in and watches it, his eyes crossing when it's close. Back on Home after a few seconds away, a double take. After a quiet 20 s at rest a firefly may wander by, land on his head and get sneezed away, once. Not in a call (there, a tap while Ferni speaks interrupts). Reduce Motion: a glance and a blink only, and no sounds. |
-| Talk to Ferni (a voice call) | Home, the Talk button | The first time, the consent screen comes first. It names the processors (Google, Anthropic, Cartesia, LiveKit). With the server's `WAITLIST_GATE` on, an account not admitted yet sees its place in line instead of a call; the review account must be admitted (the gate is off by default). |
+| Talk to Ferni (a voice call) | Home, the Talk button | The first time, the consent screen comes first. It names the processors (Google, Anthropic, Cartesia, LiveKit). With the server's `WAITLIST_GATE` on, an account not admitted yet sees its place in line instead of a call, and an anonymous or not-joined one is asked to sign in to join the list (no email promise: there's no email to write to). The review account must be admitted (the gate is off by default; see Signing in). |
 | Microphone permission | First call | "Ferni listens only while you're talking together, so you can talk out loud." Denied: Home explains and offers Open Settings. |
 | The call on the system | During a call | LiveCommunicationKit shows the call on the Lock Screen and in the system call UI. AirPods mute and the Lock Screen's end button work. |
 | Live Activity and Dynamic Island | During a call | Who's talking, call time and an End button. |
