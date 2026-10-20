@@ -123,17 +123,22 @@ struct HomeView: View {
                 // In a call the room is Ferni's and yours: the account button
                 // steps out until it ends (design audit P2 #5).
                 if showsAccountButton && !inCall { ToolbarItem(placement: .topBarTrailing) {
+                    // Its own 44 pt glass circle: in the bar's shared glass it was 48 by 36
+                    // (design audit P2 #18).
                     Button {
                         model.isShowingSettings = true
                     } label: {
                         Image(systemName: model.account.user?.isSignedInWithApple == true
                               ? "person.crop.circle.fill" : "person.crop.circle")
                             .font(.title2)
-                            .frame(minWidth: 44, minHeight: 44)
+                            .foregroundStyle(FerniColor.accent)
+                            .frame(width: 44, height: 44)
+                            .glassEffect(.regular.interactive(), in: .circle)
                     }
-                    .tint(FerniColor.accent)
+                    .buttonStyle(.plain)
                     .accessibilityLabel("Account and settings")
-                } }
+                }
+                .sharedBackgroundVisibility(.hidden) }
             }
             .sheet(isPresented: $model.isShowingSettings) {
                 SettingsView()
