@@ -3,9 +3,10 @@
  * Ferni settled in, their place in line, the next wave and their invite link;
  * "You're in" with the founding-member badge once their spot opens.
  *
- * Shown only when the server says so, so it is on by default. Off with
- * VITE_WAITLIST_SCREEN=false or localStorage `ferni:flag:waitlist-screen` =
- * 'false' (the plain notice comes back). Colors are design tokens only.
+ * Off by default: it reads GET /api/waitlist/me, which the server does not
+ * serve yet, so turning it on everywhere would 404 on every sign-in. On with
+ * VITE_WAITLIST_SCREEN=true or localStorage `ferni:flag:waitlist-screen` =
+ * 'true'; off, the plain notice stays. Colors are design tokens only.
  */
 
 import { getLocale, t } from '../i18n/index.js';
@@ -34,7 +35,7 @@ function stored(key: string): string | null {
 export function isWaitlistScreenEnabled(): boolean {
   const override = stored(WAITLIST_SCREEN_STORAGE_KEY);
   if (override === 'true' || override === 'false') return override === 'true';
-  return import.meta.env.VITE_WAITLIST_SCREEN !== 'false';
+  return import.meta.env.VITE_WAITLIST_SCREEN === 'true';
 }
 
 const STYLES = `

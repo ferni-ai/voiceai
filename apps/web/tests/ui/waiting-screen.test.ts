@@ -34,6 +34,7 @@ const {
   buildWaitingScreen,
   celebrateAdmissionOnce,
   hideWaitingOverlay,
+  isWaitlistScreenEnabled,
   WAITLIST_SCREEN_STORAGE_KEY,
 } = await import('../../src/ui/waiting-screen.ui.js');
 const { setLocale } = await import('../../src/i18n/index.js');
@@ -68,6 +69,8 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 beforeEach(() => {
   apiGet.mockReset();
   vi.unstubAllGlobals();
+  // The screen is off by default; these tests are of it turned on (the default is tested below)
+  localStorage.setItem(WAITLIST_SCREEN_STORAGE_KEY, 'true');
 });
 
 afterEach(() => {
@@ -132,6 +135,49 @@ describe('a 403 WAITLISTED from /token', () => {
     expect(document.getElementById('callStatusNotice')?.textContent).toContain(
       'You’re on the list'
     );
+  });
+});
+
+describe('flag unset (the default): off, and /api/waitlist/me is never asked', () => {
+  beforeEach(() => localStorage.removeItem(WAITLIST_SCREEN_STORAGE_KEY));
+
+  it('is off unless turned on', () => {
+    expect(isWaitlistScreenEnabled()).toBe(false);
+  });
+
+  it('a 403 WAITLISTED from /token is the one-line notice', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        async () =>
+          new Response(JSON.stringify({ code: 'WAITLISTED', ...waiting }), { status: 403 })
+      )
+    );
+    const request = { room: 'r', username: 'u', deviceId: 'd', personaId: 'ferni' };
+    const failure = classifyConnectError(
+      await fetchConnectionToken(request).catch((e: unknown) => e)
+    );
+    showCallNotice(failure, { onRetry: vi.fn() });
+    expect(document.querySelector('.waiting-screen')).toBeNull();
+    expect(document.getElementById('callStatusNotice')?.textContent).toContain(
+      'You’re on the list'
+    );
+  });
+
+  it('the sign-in gate keeps its plain waitlist notice', async () => {
+    apiGet.mockResolvedValue({ ok: true, status: 200, data: waiting });
+    void showSignInGate();
+    await flush();
+    await flush();
+    expect(document.querySelector('.waiting-screen')).toBeNull();
+    expect(document.querySelector('.sign-in-gate-waitlist')).not.toBeNull();
+    expect(apiGet).not.toHaveBeenCalled();
+  });
+
+  it('an approved sign-in gets no celebration and no status read', async () => {
+    const read = vi.fn(async () => parseWaitlistStatus(admitted));
+    expect(await celebrateAdmissionOnce(read)).toBe(false);
+    expect(read).not.toHaveBeenCalled();
   });
 });
 
