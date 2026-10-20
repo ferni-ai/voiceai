@@ -30,6 +30,7 @@ import {
   rememberDispatchIdentity,
   callerRecognitionEnabled,
   recognizePhoneSession,
+  startReturningCaller,
 } from '../voice-agent-entry/caller-recognition.js';
 import { flagOn } from '../../config/env-flag.js';
 
@@ -193,6 +194,10 @@ export async function identifyUser(
 
   // Friends-and-family flags for this caller, before anything reads a flag (cohort-flags.ts).
   await applyCallerFlags(userId);
+  // An unverified phone caller who called before (RETURNING_CALLER, returning-caller.ts).
+  await startReturningCaller(room, sessionId, userId).catch((e: unknown) => {
+    diag.warn('Returning caller lookup failed', { error: String(e) });
+  });
 
   return {
     userId,
