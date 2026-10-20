@@ -86,6 +86,7 @@ export const COHORT_FLAGS = [
   'BARGE_IN_ACK_WORDS',
   'FRIEND_FOLLOWUPS',
   'INSIDE_JOKES',
+  'OPEN_LOOPS_IN_CONTEXT',
   // Read on each turn and each quiet-window sound, never at boot (named-tune-note.ts, tune-state.ts).
   'NAMED_TUNE',
   // Persona flags, read at agent build, a handoff, a turn or a TTS reply, never cached
