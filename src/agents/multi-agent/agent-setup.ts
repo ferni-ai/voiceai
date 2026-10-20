@@ -1612,7 +1612,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
     modelProvider.getPromptModules(),
     { stableBase }
   );
-
   const agent = new FerniAgent(agentInstructions, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
@@ -1629,6 +1628,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       userId,
       userName: userData.userName,
       personaId: persona.id,
+      sessionId, // its open loops and Ferni's promises (OPEN_LOOPS_IN_CONTEXT)
     });
     const nameLift = startNameLift(recall, createDataMessageSender(room)); // NAME_LIFT=on
     const onRecallTranscript = (event: unknown) => {

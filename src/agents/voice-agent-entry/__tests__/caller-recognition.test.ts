@@ -36,6 +36,8 @@ const {
   toE164,
   unrecognisedCallerGreeting,
 } = await import('../caller-recognition.js');
+const { mintPhoneAttestation, PHONE_ATTEST_ATTRIBUTE } =
+  await import('../../../services/identity/phone-attestation.js');
 
 const SETH = '+15555550100';
 const realSignedAttestation = productionRecognitionDeps.signedAttestation;
@@ -153,6 +155,25 @@ describe('caller recognition on an inbound call', () => {
     expect(result.userId).toBeUndefined();
   });
 
+  it('reads and awaits the attestation for a number with no account (no timing oracle)', async () => {
+    let release: (level: SipAttestation | null) => void = () => {};
+    const reads: string[] = [];
+    productionRecognitionDeps.signedAttestation = (_p, e164) => {
+      reads.push(e164);
+      return new Promise((resolve) => (release = resolve));
+    };
+    const stranger = '+15555550123';
+    let settled = false;
+    const call = inbound(sipCaller(null, stranger)).then((r) => ((settled = true), r));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(reads).toEqual([stranger]);
+    expect(settled).toBe(false);
+    release('A');
+    const { result, recognition } = await call;
+    expect(recognition?.status).toBe('stranger');
+    expect(result.userId).toBeUndefined();
+  });
+
   it('leaves a session the app named alone', async () => {
     identifyFromMetadata.mockResolvedValue({ userId: 'user-app', source: { type: 'web_auth' } });
     const { result, recognition } = await inbound(
@@ -171,9 +192,142 @@ describe('caller recognition on an inbound call', () => {
     expect(recognition).toBeUndefined();
     expect(getFirebaseUserByPhone).not.toHaveBeenCalled();
   });
+});
 
-  it('has no signed attestation in production yet, so nobody is known (#605 adds it)', async () => {
-    expect(await realSignedAttestation(sipCaller('TN-Validation-Passed-A'), SETH)).toBeNull();
+/**
+ * The production signed-attestation check, end to end: a token minted the way
+ * our Twilio webhook mints it (attested-twiml.ts), carried on the participant
+ * as the trunk maps X-Ferni-Attest, read through identifyUser.
+ */
+describe('caller recognition with a signed attestation token', () => {
+  const SECRET = 'test-attest-secret';
+  const OTHER = '+15555550199';
+
+  const token = (
+    verstat: string,
+    opts: { from?: string; secret?: string; nowMs?: number } = {}
+  ): string =>
+    mintPhoneAttestation(
+      { callSid: 'CA123', from: opts.from ?? SETH, to: '+15550199', verstat },
+      opts.secret ?? SECRET,
+      { nowMs: opts.nowMs }
+    );
+
+  const withToken = (value: string, extra: Record<string, string> = {}) => {
+    const p = sipCaller(null);
+    Object.assign(p.attributes, { [PHONE_ATTEST_ATTRIBUTE]: value }, extra);
+    return p;
+  };
+
+  beforeEach(() => {
+    process.env.CALLER_RECOGNITION = 'on';
+    process.env.PHONE_ATTEST_SECRET = SECRET;
+    productionRecognitionDeps.signedAttestation = realSignedAttestation;
+    getFirebaseUserByPhone.mockReset();
+    getFirebaseUserByPhone.mockImplementation(async (e164: string) =>
+      e164 === SETH ? { uid: 'user-seth', displayName: 'Seth Ford' } : null
+    );
+    identifyFromMetadata.mockReset();
+  });
+  afterEach(() => {
+    delete process.env.CALLER_RECOGNITION;
+    delete process.env.PHONE_ATTEST_SECRET;
+  });
+
+  /** Unrecognised: no account loads and the session isn't phone-only. */
+  function expectNoAccount(r: Awaited<ReturnType<typeof inbound>>): void {
+    expect(r.result.userId).toBeUndefined();
+    expect(r.result.userName).toBeUndefined();
+    expect(r.recognition?.userId).toBeUndefined();
+    expect(['maybe', 'stranger']).toContain(r.recognition?.status);
+    expect(phoneOnlyIdentity(r.sessionId)).toBe(false);
+  }
+
+  it("runs a valid A token for the owner's number as the owner", async () => {
+    const r = await inbound(withToken(token('TN-Validation-Passed-A')));
+    expect(r.recognition?.status).toBe('known');
+    expect(r.recognition?.attestation).toBe('A');
+    expect(r.result.userId).toBe('user-seth');
+    expect(r.result.userName).toBe('Seth');
+    expect(phoneOnlyIdentity(r.sessionId)).toBe(true);
+  });
+
+  it('reads the token from the raw sip.h.x-ferni-attest header attribute too', async () => {
+    const p = sipCaller(null);
+    p.attributes['sip.h.x-ferni-attest'] = token('TN-Validation-Passed-A');
+    expect((await inbound(p)).recognition?.status).toBe('known');
+  });
+
+  it('waits for a token that lands in a later attributes update', async () => {
+    const p = sipCaller(null);
+    let listener: ((changed: Record<string, string>, who: object) => void) | undefined;
+    const room = {
+      remoteParticipants: new Map([['caller', p]]),
+      on: (event: string, fn: typeof listener) => {
+        if (event === 'participantAttributesChanged') listener = fn;
+      },
+      off: vi.fn(),
+    } as unknown as Room;
+    setTimeout(
+      () => listener?.({ [PHONE_ATTEST_ATTRIBUTE]: token('TN-Validation-Passed-A') }, p),
+      20
+    );
+    const sessionId = `call-late-${n++}`;
+    const result = await identifyUser({ room, sessionId });
+    expect(callerRecognitionFor(sessionId)?.status).toBe('known');
+    expect(result.userId).toBe('user-seth');
+  });
+
+  it('never falls back to a raw X-Twilio-VerStat A when no token arrives', async () => {
+    const r = await inbound(sipCaller('TN-Validation-Passed-A'));
+    expect(r.recognition?.attestation).toBe('none');
+    expectNoAccount(r);
+  });
+
+  it('a valid B token is only a maybe', async () => {
+    const r = await inbound(withToken(token('TN-Validation-Passed-B')));
+    expect(r.recognition?.status).toBe('maybe');
+    expect(r.recognition?.attestation).toBe('B');
+    expectNoAccount(r);
+  });
+
+  it('fails closed on an expired token', async () => {
+    const r = await inbound(
+      withToken(token('TN-Validation-Passed-A', { nowMs: Date.now() - 10 * 60_000 }))
+    );
+    expect(r.recognition?.attestation).toBe('none');
+    expectNoAccount(r);
+  });
+
+  it('fails closed on a token minted for a different number, even with A in the header', async () => {
+    const r = await inbound(
+      withToken(token('TN-Validation-Passed-A', { from: OTHER }), {
+        'sip.h.x-twilio-verstat': 'TN-Validation-Passed-A',
+      })
+    );
+    expect(r.recognition?.attestation).toBe('none');
+    expectNoAccount(r);
+  });
+
+  it('fails closed on a forged signature', async () => {
+    const forged = token('TN-Validation-Passed-A', { secret: 'attacker-secret' });
+    expectNoAccount(await inbound(withToken(forged)));
+    const [body] = token('TN-Validation-Passed-B').split('.');
+    const [, sig] = token('TN-Validation-Passed-A').split('.');
+    expectNoAccount(await inbound(withToken(`${body}.${sig}`)));
+  });
+
+  it('fails closed with no PHONE_ATTEST_SECRET on the agent', async () => {
+    delete process.env.PHONE_ATTEST_SECRET;
+    expectNoAccount(await inbound(withToken(token('TN-Validation-Passed-A'))));
+  });
+
+  it('looks nobody up with the flag off, even with a valid A token', async () => {
+    delete process.env.CALLER_RECOGNITION;
+    const r = await inbound(withToken(token('TN-Validation-Passed-A')));
+    expect(getFirebaseUserByPhone).not.toHaveBeenCalled();
+    expect(r.recognition).toBeUndefined();
+    expect(r.result.userId).toBeUndefined();
   });
 });
 
