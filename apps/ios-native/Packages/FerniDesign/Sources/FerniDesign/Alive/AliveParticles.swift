@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 /// What the prototype drew around Ferni (sparkles, hearts, the firefly, and
-/// a feeling's z, sweat, ? or !), from
+/// a feeling's z or sweat), from
 /// `AliveRig.particles`. Drawn over the Metal canvas, which lights Ferni with
 /// the firefly but doesn't draw it.
 struct AliveParticles: View {
@@ -37,14 +37,14 @@ struct AliveParticles: View {
                                  with: .color(Color(uiColor: UIColor(rgb: dark ? Self.sparkleCore.dark : Self.sparkleCore.light))))
                 case .heart:
                     context.fill(Self.heart(at: at, r: r), with: .color(Color(red: 0.91, green: 0.64, blue: 0.62)))
-                case .z, .question, .bang:
-                    let mark = p.kind == .z ? "z" : p.kind == .question ? "?" : "!"
-                    var text = context
-                    text.translateBy(x: at.x, y: at.y)
-                    text.rotate(by: .radians(p.rotation))
-                    text.draw(Text(mark)
-                        .font(.system(size: r, weight: .heavy, design: .rounded))
-                        .foregroundStyle(FerniColor.textPrimary.opacity(p.kind == .z ? 0.65 : 1)), at: .zero)
+                case .z:
+                    // A hand-drawn z in ink, not system type (expression audit P2 #4:
+                    // the glyphs looked like placeholders).
+                    var ink = context
+                    ink.translateBy(x: at.x, y: at.y)
+                    ink.rotate(by: .radians(p.rotation - 0.12))
+                    ink.stroke(Self.z(r: r), with: .color(FerniColor.textPrimary.opacity(0.7)),
+                               style: StrokeStyle(lineWidth: max(1.2, r * 0.16), lineCap: .round, lineJoin: .round))
                 case .sweat:
                     context.fill(Self.drop(at: at, r: r), with: .linearGradient(
                         Gradient(colors: [Color(red: 0.85, green: 0.94, blue: 1), Color(red: 0.49, green: 0.75, blue: 0.94)]),
@@ -63,6 +63,18 @@ struct AliveParticles: View {
         }
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+    }
+
+    /// A z as a pen draws it, centred on the origin: a slightly rising top
+    /// stroke, a long diagonal, and a bottom stroke that runs a little past.
+    static func z(r: CGFloat) -> Path {
+        var path = Path()
+        let w = r * 0.62, h = r * 0.62
+        path.move(to: CGPoint(x: -w * 0.5, y: -h * 0.42))
+        path.addQuadCurve(to: CGPoint(x: w * 0.48, y: -h * 0.5), control: CGPoint(x: 0, y: -h * 0.52))
+        path.addLine(to: CGPoint(x: -w * 0.46, y: h * 0.46))
+        path.addQuadCurve(to: CGPoint(x: w * 0.56, y: h * 0.44), control: CGPoint(x: w * 0.05, y: h * 0.56))
+        return path
     }
 
     /// A four-point star.
