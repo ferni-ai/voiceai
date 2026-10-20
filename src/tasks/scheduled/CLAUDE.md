@@ -142,15 +142,17 @@ Removes redundant memories using LSH (Locality Sensitive Hashing).
 
 ### TranscriptCleanupJob
 
-Removes old transcripts and summaries per retention policy.
+`transcript-cleanup-job.ts`. **Off unless `TRANSCRIPT_CLEANUP` is on**: the
+privacy policy keeps conversation history for the life of the account. When
+on, it deletes records under `bogle_users/{uid}` older than:
 
-| Constant | Value | Description |
+| Env var | Default | Deletes |
 |----------|-------|-------------|
-| `TRANSCRIPT_RETENTION_DAYS` | 30 | Keep transcripts 30 days |
-| `SUMMARY_RETENTION_DAYS` | 90 | Keep summaries 90 days |
-| `GROUP_TRANSCRIPT_RETENTION_DAYS` | 7 | Keep group transcripts 7 days |
+| `TRANSCRIPT_RETENTION_DAYS` | 90 | `conversations` and their `turns` |
+| `SUMMARY_RETENTION_DAYS` | 365 | `conversation_summaries` |
+| `GROUP_TRANSCRIPT_RETENTION_DAYS` | 180 | `group_sessions` and their subcollections |
 
-**Schedule:** Daily (5am PT)
+**Schedule:** `infra/cloud-scheduler-jobs.yaml` defines `transcript-cleanup` (2am PT daily).
 
 ---
 

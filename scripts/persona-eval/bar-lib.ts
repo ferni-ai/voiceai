@@ -388,3 +388,92 @@ export function compareTable(rows: readonly Row[]): string {
     ),
   ].join('\n');
 }
+
+// ---------------------------------------------------------------- multi-turn
+
+/** One scripted call: fixed caller turns; the persona's replies are generated. */
+export interface Conversation {
+  id: string;
+  kind: string;
+  turns: string[];
+  /** Caller facts, given as a memory-recall note at the start of the call. */
+  context?: unknown[];
+  /** The caller's local hour (0-23) the call is placed at (zoneAtLocalHour). */
+  localHour?: number;
+  /** Something said early in the call matters later: insight is judged here. */
+  callback?: boolean;
+}
+
+/** A persona reply that gets scored: one of the last `last` caller turns of a call. */
+export interface ScoredTurn {
+  /** `<conversation id>#<turn index>`: the key replies are saved under. */
+  key: string;
+  conversation: string;
+  turn: number;
+  /** The caller's words this reply answers, and what they said before on the call. */
+  text: string;
+  earlier: string[];
+  /** Judged for insight: the call has caller facts, a callback or a local time. */
+  insight: boolean;
+}
+
+export function scoredTurns(convs: readonly Conversation[], last = 2): ScoredTurn[] {
+  return convs.flatMap((c) =>
+    c.turns.slice(-last).map((text, j) => {
+      const turn = Math.max(0, c.turns.length - last) + j;
+      return {
+        key: `${c.id}#${turn}`,
+        conversation: c.id,
+        turn,
+        text,
+        earlier: c.turns.slice(0, turn),
+        insight: Boolean(c.context?.length || c.callback || c.localHour !== undefined),
+      };
+    })
+  );
+}
+
+/**
+ * The notes a reply's reminder carried: the director's (formatNotes in
+ * director-notes.ts, joined with " / ") and the deliberator's thought
+ * (formatThought in deliberation.ts), for the audit trail.
+ */
+export function notesIn(reminder: string): { director: string[]; thought: string } {
+  const director = /\[Director: ([^\]]*)\]/.exec(reminder)?.[1];
+  const thought = /\[On your mind, if it fits: ([^\]]*)\]/.exec(reminder)?.[1] ?? '';
+  return { director: director ? director.split(' / ') : [], thought };
+}
+
+/** The local hour (0-23) in a time zone at `now`. */
+export function hourIn(zone: string, now: Date): number {
+  return Number(
+    new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: zone }).format(
+      now
+    )
+  );
+}
+
+/** Zones a call can be placed in, one per offset band, so some zone is at any hour. */
+export const CALLER_ZONES = (
+  'America/New_York America/Chicago America/Denver America/Los_Angeles America/Anchorage ' +
+  'Pacific/Gambier Pacific/Honolulu Pacific/Auckland Pacific/Fiji Australia/Sydney ' +
+  'Australia/Brisbane Asia/Tokyo Asia/Shanghai Asia/Bangkok Asia/Dhaka Asia/Karachi Asia/Dubai ' +
+  'Europe/Moscow Europe/Athens Europe/Paris Europe/London Atlantic/Azores Atlantic/Cape_Verde ' +
+  'America/Noronha America/Sao_Paulo America/Halifax'
+).split(' ');
+
+/**
+ * A real zone where it is `hour` o'clock at `now` (else the nearest hour), so
+ * a call can be placed at, say, 11 pm the caller's time on any run.
+ */
+export function zoneAtLocalHour(
+  hour: number,
+  now: Date,
+  zones: readonly string[] = CALLER_ZONES
+): string {
+  const off = (z: string): number => {
+    const d = Math.abs(hourIn(z, now) - hour);
+    return Math.min(d, 24 - d);
+  };
+  return zones.reduce((best, z) => (off(z) < off(best) ? z : best));
+}

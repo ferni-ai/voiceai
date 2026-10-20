@@ -21,6 +21,7 @@ import type { llm } from '@livekit/agents';
 import { ReadableStream, type ReadableStreamDefaultController } from 'node:stream/web';
 
 import { flagOn } from '../../config/env-flag.js';
+import { firstClauseFlushEnabled } from './first-clause-flush.js';
 import { leadingBurst, withoutBurst, withRenderedBurst } from './vocal-bursts.js';
 
 export const OPENER_EVERY = 3;
@@ -126,12 +127,15 @@ export class OpenerGate {
 
   /**
    * `early`: decide as soon as the opening is decidable (openingDecidable)
-   * instead of after DECIDE_AFTER characters. OPENER_GATE_EARLY=on.
+   * instead of after DECIDE_AFTER characters. OPENER_GATE_EARLY=on, and
+   * FIRST_CLAUSE_FLUSH=on: a first clause shorter than DECIDE_AFTER would
+   * otherwise wait here for its sentence (first-clause-flush.ts).
    * `playful`: FERNI_PLAYFUL=on, a bright turn may keep its word (mayKeep).
    */
   constructor(
     private readonly every: number = OPENER_EVERY,
-    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on',
+    private readonly early: boolean = process.env.OPENER_GATE_EARLY === 'on' ||
+      firstClauseFlushEnabled(),
     private readonly playful: boolean = flagOn('FERNI_PLAYFUL')
   ) {
     this.repliesSinceKept = every; // the first reply may keep one
