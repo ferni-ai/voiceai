@@ -29,6 +29,7 @@ import {
 } from '../../tools/handoff/locked-teammates.js';
 import { heardTeammateNote } from '../../tools/handoff/teammate-names.js';
 import { teammateIdentityNote } from './teammate-identity.js';
+import { personaVoiceNote } from './persona-voice.js';
 import { agentWordsIn, teamByNeedNote } from '../../tools/handoff/team-by-need-note.js';
 import { chiefOfStaffNote, lastAgentWordsIn } from '../../tools/handoff/chief-of-staff-note.js';
 import { isAnswerTurn } from './answer-turn.js';
@@ -178,6 +179,8 @@ export function withTurnReminder(
     honestFriendNote(chatCtx, words, { careful: options.shape === false }),
     // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
     ...withLiveData(style?.text ?? '', callerTurnsOf(chatCtx)),
+    // PERSONA_VOICE=on: how this persona sounds, after the shared style so it wins (persona-voice.ts).
+    personaVoiceNote(view.currentAgentId, { careful: options.shape === false }),
     // HAPPY_EXITS=on: after the style, so "no question" beats its question allowance.
     options.shape !== false ? exitFor(chatCtx, session, words) : '',
     // His self-share line after the shape, nearest the reply (ferni-state.ts).

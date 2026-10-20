@@ -159,6 +159,8 @@ export const FLAG_MANIFEST = {
   // unset: resting pace 1. A number, clamped to 0.85-1.2: Ferni's resting pace (same module)
   FERNI_VOICE_SPEED: { default: 'off', owner: 'voice', kind: 'config' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a reply's first clause goes to tts at a comma, not its sentence's end (agents/personas/first-clause-flush.ts)
+  FIRST_CLAUSE_FLUSH: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_DEFER_BACKGROUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_TURN_FAST: { default: 'off', owner: 'voice', kind: 'experiment' },
   // which flight search backs searchFlights and getFlightPrice: amadeus (default) or ignav (travel/flight-provider.ts)
@@ -313,6 +315,8 @@ export const FLAG_MANIFEST = {
   // read as 'true', not 'on' (adaptive echo window)
   REQUIRE_FIX_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   RESUME_AFTER_DROP: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // unverified phone callers: hashed number → first name + one-line summary, 30 days (returning-caller.ts)
+  RETURNING_CALLER: { default: 'off', owner: 'memory', kind: 'experiment' },
   REVIVED_INTELLIGENCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   ROOM_GUESTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   ROTATED_SEGMENT_FIX: { default: 'off', owner: 'voice', kind: 'experiment' }, // 1.9.3 patch, #2566
