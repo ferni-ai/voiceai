@@ -307,9 +307,6 @@ async function attemptDelivery(
   const signature = signPayload(webhook.secret, payload);
 
   try {
-    const controller = new globalThis.AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
     const response = await safeOutboundFetch(webhook.url, {
       method: 'POST',
       headers: {
@@ -320,10 +317,8 @@ async function attemptDelivery(
         'User-Agent': 'Ferni-Webhooks/1.0',
       },
       body: JSON.stringify(payload),
-      signal: controller.signal,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
     });
-
-    clearTimeout(timeoutId);
 
     const executionTimeMs = Date.now() - startTime;
 
@@ -357,7 +352,7 @@ async function attemptDelivery(
     const err = error instanceof Error ? error : new Error(String(error));
     const executionTimeMs = Date.now() - startTime;
 
-    const errorMessage = err.name === 'AbortError' ? 'Request timeout' : err.message;
+    const errorMessage = err.name === 'TimeoutError' ? 'Request timeout' : err.message;
 
     return {
       webhookId: webhook.id,

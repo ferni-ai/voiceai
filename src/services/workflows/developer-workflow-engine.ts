@@ -503,9 +503,7 @@ async function executeWebhook(node: WorkflowNode, context: ExecutionContext): Pr
   const method = config.method || 'POST';
 
   // Interpolate headers
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (config.headers) {
     for (const [key, value] of Object.entries(config.headers)) {
       headers[key] = interpolate(value, context.execution.variables);
@@ -532,7 +530,6 @@ async function executeWebhook(node: WorkflowNode, context: ExecutionContext): Pr
 
   log.info({ url, method }, 'Executing webhook');
 
-  // url is interpolated from run variables, so it is checked here, at the moment of the call.
   const response = await safeOutboundFetch(url, {
     method,
     headers,

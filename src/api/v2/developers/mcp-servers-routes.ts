@@ -43,12 +43,7 @@ import {
 } from './shared/types.js';
 import { getFirestore } from '../../v1/developers/shared/developer-auth.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import {
-  assertSafeOutboundUrl,
-  guardedLookup,
-  readCappedText,
-  safeOutboundFetch,
-} from '../../../utils/outbound-url-guard.js';
+import * as outbound from '../../../utils/outbound-url-guard.js';
 import { encryptSensitive, decryptSensitive } from '../../../services/privacy-crypto.js';
 
 const log = getLogger().child({ module: 'mcp-servers-routes' });
@@ -616,7 +611,7 @@ async function testHTTPMCPConnection(
       },
     };
 
-    const initResponse = await safeOutboundFetch(server.endpoint!, {
+    const initResponse = await outbound.safeOutboundFetch(server.endpoint!, {
       method: 'POST',
       headers,
       body: JSON.stringify(initializeRequest),
@@ -633,7 +628,7 @@ async function testHTTPMCPConnection(
       };
     }
 
-    const initResult = JSON.parse(await readCappedText(initResponse, 256 * 1024)) as MCPMessage;
+    const initResult = await outbound.readCappedJson<MCPMessage>(initResponse);
 
     if (initResult.error) {
       clearTimeout(timeout);
@@ -651,7 +646,7 @@ async function testHTTPMCPConnection(
       method: 'notifications/initialized',
     };
 
-    const notified = await safeOutboundFetch(server.endpoint!, {
+    const notified = await outbound.safeOutboundFetch(server.endpoint!, {
       method: 'POST',
       headers,
       body: JSON.stringify(initializedNotification),
@@ -666,7 +661,7 @@ async function testHTTPMCPConnection(
       method: 'tools/list',
     };
 
-    const toolsResponse = await safeOutboundFetch(server.endpoint!, {
+    const toolsResponse = await outbound.safeOutboundFetch(server.endpoint!, {
       method: 'POST',
       headers,
       body: JSON.stringify(toolsRequest),
@@ -684,7 +679,7 @@ async function testHTTPMCPConnection(
       };
     }
 
-    const toolsResult = JSON.parse(await readCappedText(toolsResponse, 256 * 1024)) as MCPMessage;
+    const toolsResult = await outbound.readCappedJson<MCPMessage>(toolsResponse, 1_000_000);
 
     if (toolsResult.error) {
       // Server connected but tools/list failed - still a successful connection
@@ -740,11 +735,9 @@ async function testWebSocketMCPConnection(
   timeoutMs: number,
   startTime: number
 ): Promise<MCPServerTestResult> {
-  // WebSocket implementation requires Node.js ws package
-  // For now, return a meaningful error if WebSocket is selected
   try {
     const { WebSocket } = await import('ws');
-    await assertSafeOutboundUrl(server.endpoint!, { protocols: ['wss:'] });
+    await outbound.assertSafeOutboundUrl(server.endpoint!, { protocols: ['wss:'] });
 
     return new Promise((resolve) => {
       const wsTimeout = setTimeout(() => {
@@ -764,10 +757,8 @@ async function testWebSocketMCPConnection(
         wsUrl = url.toString();
       }
 
-      const ws = new WebSocket(wsUrl, {
-        headers: server.headers,
-        lookup: guardedLookup, // the socket connects only to an address that passed the guard
-      });
+      // guardedLookup: the socket connects only to an address that passed the guard
+      const ws = new WebSocket(wsUrl, { headers: server.headers, lookup: outbound.guardedLookup });
 
       let initDone = false;
       const tools: string[] = [];
@@ -909,14 +900,8 @@ async function testStdioMCPConnection(
 
       // Validate command against allowlist to prevent command injection
       const ALLOWED_MCP_COMMANDS = [
-        'npx',
-        'node',
-        'python',
-        'python3',
-        'uvx',
-        'deno',
-        'mcp-server',
-        'mcp-proxy',
+        'npx', 'node', 'python', 'python3', 'uvx', 'deno',
+        'mcp-server', 'mcp-proxy',
       ];
       const SHELL_METACHARACTERS = /[;|&$`\\!><(){}\[\]'"]/;
 

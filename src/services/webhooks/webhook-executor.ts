@@ -262,11 +262,9 @@ export async function executeWebhook(
     };
   }
 
-  // Stored URLs may predate the create/update checks: refuse them here too, before the
-  // circuit breaker, so one user's bad URL cannot trip it for everyone.
+  // Stored URLs may predate the create/update checks: refuse them before the shared breaker.
   const urlCheck = checkOutboundUrl(webhook.url);
   if (!urlCheck.ok) {
-    log.warn({ userId, webhookId: webhook.id, reason: urlCheck.reason }, 'Webhook URL refused');
     return {
       success: false,
       webhookId: webhook.id,
@@ -316,29 +314,12 @@ export async function executeWebhook(
   while (attempts <= MAX_RETRIES) {
     try {
       const result = await webhookCircuitBreaker.execute(async () => {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
-
-        try {
-          const response = await safeOutboundFetch(webhook.url, {
-            method: webhook.method,
-            headers,
-            body: payload,
-            signal: controller.signal,
-          });
-
-          clearTimeout(timeoutId);
-
-          const responseBody = await readCappedText(response, 1000);
-
-          return {
-            statusCode: response.status,
-            responseBody, // Limit stored response
-            success: response.ok,
-          };
-        } finally {
-          clearTimeout(timeoutId);
-        }
+        const init = { method: webhook.method, headers, body: payload };
+        const response = await safeOutboundFetch(webhook.url, init, {
+          timeoutMs: WEBHOOK_TIMEOUT_MS,
+        });
+        const responseBody = await readCappedText(response, 1000); // Limit stored response
+        return { statusCode: response.status, responseBody, success: response.ok };
       });
 
       lastResult = result;
@@ -471,17 +452,8 @@ export async function testWebhook(
   };
 
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
-
-    const response = await safeOutboundFetch(webhook.url, {
-      method: webhook.method,
-      headers,
-      body: payload,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
+    const init = { method: webhook.method, headers, body: payload };
+    const response = await safeOutboundFetch(webhook.url, init, { timeoutMs: WEBHOOK_TIMEOUT_MS });
     await response.body?.cancel().catch(() => undefined);
 
     log.info(

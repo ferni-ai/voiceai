@@ -243,3 +243,11 @@ export async function readCappedText(
   await reader.cancel().catch(() => undefined);
   return new TextDecoder().decode(Buffer.concat(chunks));
 }
+
+/** Parse at most maxBytes of a response body as JSON. */
+export async function readCappedJson<T = unknown>(
+  response: Response,
+  maxBytes: number = DEFAULT_MAX_BODY_BYTES
+): Promise<T> {
+  return JSON.parse(await readCappedText(response, maxBytes)) as T;
+}

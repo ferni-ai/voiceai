@@ -305,8 +305,7 @@ async function sendTestWebhook(
 
     // Update lastDeliveredAt in Firestore on success
     if (response.ok) {
-      const collection = getWebhooksCollection();
-      await collection.doc(webhookId).update({
+      await getWebhooksCollection().doc(webhookId).update({
         lastDeliveredAt: new Date(),
         failureCount: 0, // Reset failure count on success
       });
@@ -328,10 +327,8 @@ async function sendTestWebhook(
     const err = error instanceof Error ? error : new Error(String(error));
 
     // Increment failure count in Firestore
-    const collection = getWebhooksCollection();
-    await collection.doc(webhookId).update({
-      failureCount: (webhook.failureCount || 0) + 1,
-    });
+    const failureCount = (webhook.failureCount || 0) + 1;
+    await getWebhooksCollection().doc(webhookId).update({ failureCount });
 
     log.error({ publisherId, webhookId, error: err.message }, 'Test webhook failed');
 
