@@ -39,7 +39,8 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
-import { noteCrisisReply, noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import { noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import { noteCrisisReplyForCall } from '../safety/crisis-reply-record.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import {
   callRiskBeforeTurn,
@@ -185,7 +186,7 @@ export function startCrisisGate(
   const decision = decisionFor(detection);
   if (decision.action !== 'pass') {
     noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
-    noteCrisisReply(sessionScope(userData), latest); // this reply carries crisis handling
+    noteCrisisReplyForCall(sessionScope(userData), latest); // this reply carries crisis handling
     log.info(
       { action: decision.action, source: 'patterns', indicators: detection.indicators },
       'CRISIS_GATE'
@@ -279,7 +280,7 @@ export function startCrisisGate(
   });
   // The reply carries whatever the escalation decided: noted for the next turn's adjudicator.
   const noted = escalation.then((d) => {
-    if (d && d.action !== 'pass') noteCrisisReply(call, latest);
+    if (d && d.action !== 'pass') noteCrisisReplyForCall(call, latest);
     return d;
   });
   return { decision, escalation: noted };

@@ -112,22 +112,45 @@ export function crisisRiskThisCall(sessionId: string, latest?: string, now = Dat
  * Per call: the caller turns whose reply carried crisis handling (guidance, the
  * script or the soft check), noted by the reply gate and the turn pipeline.
  * The adjudicator never softens the turn that answers one (crisis-adjudicator.ts).
+ * Least recently noted first; dropped when the call ends (clearCrisisCall, run
+ * by the session cleanup registry), after 6 hours, or past CRISIS_REPLY_CALLS_MAX.
  */
 const replied = new Map<string, { at: number; turns: Set<string> }>();
 const REPLIED_TURNS_MAX = 64;
+export const CRISIS_REPLY_CALLS_MAX = 2000;
 
-/** This turn's reply carries crisis guidance, the crisis script or the soft check. */
+/**
+ * This turn's reply carries crisis guidance, the crisis script or the soft
+ * check. True when the call had no record yet (its caller registers the clear).
+ */
 export function noteCrisisReply(
   sessionId: string | undefined,
   latest: string,
   now = Date.now()
-): void {
-  if (!sessionId || !latest.trim()) return;
-  for (const [id, v] of replied) if (now - v.at > TTL_MS) replied.delete(id);
-  const turns = replied.get(sessionId)?.turns ?? new Set<string>();
+): boolean {
+  if (!sessionId || !latest.trim()) return false;
+  for (const [id, v] of replied) {
+    if (now - v.at <= TTL_MS) break;
+    replied.delete(id);
+  }
+  const held = replied.get(sessionId);
+  const turns = held?.turns ?? new Set<string>();
   if (turns.size >= REPLIED_TURNS_MAX) turns.delete(turns.values().next().value ?? '');
   turns.add(turnOf(latest));
+  replied.delete(sessionId);
   replied.set(sessionId, { at: now, turns });
+  while (replied.size > CRISIS_REPLY_CALLS_MAX) {
+    const oldest = replied.keys().next().value;
+    if (oldest === undefined) break;
+    replied.delete(oldest);
+  }
+  return !held;
+}
+
+/** The call is over: forget its crisis replies and its noted risk. Never mid-call. */
+export function clearCrisisCall(sessionId: string): void {
+  replied.delete(sessionId);
+  risky.delete(sessionId);
 }
 
 /** Whether the reply to these caller words carried crisis handling on this call. */

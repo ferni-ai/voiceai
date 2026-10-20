@@ -24,7 +24,8 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { noteCrisisReply, noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import { noteCrisisReplyForCall } from '../../safety/crisis-reply-record.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import {
   callRiskBeforeTurn,
@@ -174,7 +175,7 @@ export function startTurnCrisis(
         : Promise.resolve({ crisis: patterns, soft: false })
     ).then((s) => {
       // This turn's reply carries crisis handling: noted for the next turn's adjudicator.
-      if (s.soft || s.crisis.isCrisis) noteCrisisReply(call, userText);
+      if (s.soft || s.crisis.isCrisis) noteCrisisReplyForCall(call, userText);
       return s;
     }));
   return {
