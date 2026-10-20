@@ -592,6 +592,13 @@ ${colors.bold}Documentation:${colors.reset}
 
 `);
 
+  // The Android app is a Trusted Web Activity (apps/android-twa). Its upload key
+  // lives only in GitHub Actions secrets; the script never writes it to disk.
+  console.log(`Run ${colors.bold}scripts/android/make-upload-key.sh${colors.reset}. It creates the Play
+upload key, stores it as the ANDROID_UPLOAD_* GitHub Actions secrets, and
+prints the SHA-256 fingerprint for Play Console and app links.
+`);
+
   return true;
 }
 

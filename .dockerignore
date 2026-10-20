@@ -193,6 +193,9 @@ __pycache__/
 # Claude config
 .claude/
 
+# Retired apps kept for reference (apps/archive/README.md)
+apps/archive/
+
 # Written by the deploy-agent chain; .gitignore excludes it and lk agent deploy
 # applies .gitignore to its upload, so re-include it here (later patterns win).
 !.build-sha

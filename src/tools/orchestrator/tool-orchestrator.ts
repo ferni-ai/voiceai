@@ -62,7 +62,6 @@ import {
   explainSelection,
   limitTools,
 } from './orchestrator-helpers.js';
-import { getToolsSimplifiedRoute } from './simplified-routing.js';
 
 // Re-export all types for backward compatibility
 export type {
@@ -200,11 +199,6 @@ export class UnifiedToolOrchestrator {
   // ==========================================================================
 
   async getToolsForIntent(request: ToolSelectionRequest): Promise<ToolSelectionResult> {
-    // Simplified routing feature flag
-    if (process.env.USE_SIMPLIFIED_ROUTING === 'true') {
-      return this.getToolsSimplified(request);
-    }
-
     const startTime = Date.now();
 
     if (!this.initialized) {
@@ -401,19 +395,6 @@ export class UnifiedToolOrchestrator {
     });
 
     return result;
-  }
-
-  // ==========================================================================
-  // SIMPLIFIED ROUTING (Feature Flag: USE_SIMPLIFIED_ROUTING=true)
-  // Delegated to simplified-routing.ts for modularity
-  // ==========================================================================
-
-  private async getToolsSimplified(request: ToolSelectionRequest): Promise<ToolSelectionResult> {
-    if (!this.initialized) {
-      log.warn('Orchestrator not initialized, initializing now...');
-      await this.initialize();
-    }
-    return getToolsSimplifiedRoute(request, this.config, this.selectionCache);
   }
 
   // ==========================================================================

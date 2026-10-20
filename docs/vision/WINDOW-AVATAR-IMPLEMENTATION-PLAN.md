@@ -344,7 +344,7 @@ struct ConversationView: View {
 
 ### Create Compose Component
 
-**File:** `apps/android-native/app/src/main/java/ai/ferni/ui/avatar/FerniWindowAvatar.kt`
+**File:** `apps/archive/android-native/app/src/main/java/ai/ferni/ui/avatar/FerniWindowAvatar.kt`
 
 ```kotlin
 package ai.ferni.ui.avatar

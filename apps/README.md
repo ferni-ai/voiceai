@@ -10,6 +10,7 @@ Native desktop and mobile applications for Ferni Voice AI - your AI life coach.
 | Windows | Electron | Ready |
 | Linux | Electron | Ready |
 | iOS | Native Swift/SwiftUI | Ready |
+| Android | Trusted Web Activity over app.ferni.ai (`android-twa/`) | In progress (Play setup) |
 
 ## Structure
 
@@ -17,6 +18,7 @@ Native desktop and mobile applications for Ferni Voice AI - your AI life coach.
 apps/
 ├── electron/        # Desktop app (macOS, Windows, Linux)
 ├── ios-native/      # Native iOS app (Swift/SwiftUI)
+├── android-twa/     # Android app: the web app in a Trusted Web Activity
 ├── web/             # Web frontend (shared with Electron)
 ├── macos-menubar/   # macOS menu bar app
 └── README.md
@@ -49,6 +51,17 @@ open FerniVoice.xcodeproj
 - Xcode 15+
 - iOS 16+ deployment target
 - LiveKit Swift SDK (via Swift Package Manager)
+
+### Android (Trusted Web Activity)
+
+```bash
+cd apps/android-twa
+./gradlew bundleRelease    # Play bundle (unsigned locally)
+```
+
+The app wraps https://app.ferni.ai, so web changes reach Android without a new
+bundle. Signing and Play upload: `apps/android-twa/README.md`. The old native
+Kotlin app was removed; git history keeps it.
 
 ## Platform-Specific Features
 
@@ -85,10 +98,9 @@ FerniVoice/
     └── HapticManager.swift     # Haptic feedback
 ```
 
-
 ## Backend Connection
 
-Both native apps connect to the same backend:
+The iOS app connects to the same backend as the web app (Android runs the web app itself):
 
 | Endpoint | Purpose |
 |----------|---------|

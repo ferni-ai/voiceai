@@ -466,6 +466,7 @@ export async function captureBackgroundResult(params: {
   callbackTime?: string;
   relatedTaskId?: string;
   specificData?: Record<string, unknown>;
+  skipPush?: boolean; // the caller tells the user its own way (one text)
 }): Promise<BackgroundResult> {
   const result = createBackgroundResult({
     userId: params.userId,
@@ -503,15 +504,14 @@ export async function captureBackgroundResult(params: {
       sentToActive = await sendToActiveSession(params.sessionId, result);
     }
 
-    // 3. Send push notification (always - works even if connected)
-    await sendPushNotification(result);
+    // 3. Push (works even if connected), unless the caller tells them itself
+    if (!params.skipPush) await sendPushNotification(result);
 
     // 4. Send email for high priority results
     if (result.priority === 'urgent' || result.priority === 'high') {
       await sendEmailNotification(result);
     }
 
-    // 5. If sent to active session, mark as delivered
     if (sentToActive) {
       await markResultsDelivered(result.userId, [result.id], 'voice');
     }
