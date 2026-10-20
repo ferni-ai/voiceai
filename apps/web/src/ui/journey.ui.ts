@@ -104,10 +104,9 @@ function updateVoiceIdDisplay(): void {
 // ============================================================================
 
 interface TrustInsights {
-  trustScore: number;
   growthMoments: number;
   winsCelebrated: number;
-  boundariesRespected: number;
+  boundariesSet: number;
   sharedMoments: number;
   growthPatterns: Array<{ type: string; count: number }>;
   recentWins: Array<{ type: string; description: string }>;
@@ -685,10 +684,9 @@ async function loadTrustInsights(): Promise<void> {
  */
 function transformTrustData(data: TrustJourneyData): TrustInsights {
   return {
-    trustScore: data.summary.relationshipStrength,
     growthMoments: data.summary.growthMomentsNoticed,
     winsCelebrated: data.summary.winsCelebrated,
-    boundariesRespected: data.summary.boundariesRespected,
+    boundariesSet: data.summary.boundariesSet,
     sharedMoments: data.summary.sharedMomentsCount,
     growthPatterns: data.growth.patterns.slice(0, 5).map(p => ({
       type: formatGrowthType(p.type),
@@ -751,7 +749,7 @@ function renderTrustInsights(): void {
   const insightsBody = journeyModal.querySelector('.journey-insights-body');
   if (!insightsBody) return;
 
-  const { trustScore: _trustScore, growthMoments, winsCelebrated, boundariesRespected, sharedMoments, growthPatterns, recentWins, timeline } = trustInsightsData;
+  const { growthMoments, winsCelebrated, boundariesSet, sharedMoments, growthPatterns, recentWins, timeline } = trustInsightsData;
 
   // Check if we have any meaningful data
   const hasData = growthMoments > 0 || winsCelebrated > 0 || sharedMoments > 0 || growthPatterns.length > 0;
@@ -776,8 +774,8 @@ function renderTrustInsights(): void {
       </div>
       <div class="journey-trust-stat">
         <span class="journey-trust-stat__icon">${ICONS.shield}</span>
-        <span class="journey-trust-stat__value">${boundariesRespected}</span>
-        <span class="journey-trust-stat__label">${t('journey.boundariesHonored')}</span>
+        <span class="journey-trust-stat__value">${boundariesSet}</span>
+        <span class="journey-trust-stat__label">${t('journey.boundariesYouSet')}</span>
       </div>
       <div class="journey-trust-stat">
         <span class="journey-trust-stat__icon">${ICONS.messageHeart}</span>

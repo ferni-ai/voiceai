@@ -50,6 +50,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/calendar-triggers',
   '/api/jobs/calendar-briefing',
   '/api/jobs/follow-through',
+  '/api/jobs/retry-pending-revocations',
   '/api/jobs/deep-analysis',
   '/api/jobs/pondering',
   '/api/jobs/knowledge-graph-insights',
@@ -70,6 +71,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/semantic-router-volume-check',
   '/api/jobs/semantic-router-quality-check',
   '/api/jobs/semantic-router-health',
+  '/api/jobs/reply-reports-summary',
 ]);
 
 // Background task handlers
@@ -110,12 +112,14 @@ import {
 import { handleTTLCleanup, handleTTLBackfill, handleDailyAdminReport } from './maintenance-jobs.js';
 
 import { handleDeliverReminders } from './reminder-jobs.js';
+import { handleReplyReportSummaryJob } from '../reply-reports/reply-report-summary.js';
 import {
   handleCalendarTriggers,
   handleCalendarBriefing,
   handleDeliverScheduledActions,
   handleExecuteScheduledOutreach,
   handleFollowThrough,
+  handleRetryPendingRevocations,
 } from './background-delivery-jobs.js';
 
 // Memory maintenance handlers
@@ -313,6 +317,10 @@ export async function handleScheduledJobsRoutes(
       await handleFollowThrough(req, res);
       return true;
 
+    case '/api/jobs/retry-pending-revocations':
+      await handleRetryPendingRevocations(res);
+      return true;
+
     case '/api/jobs/deep-analysis':
       await handleDeepAnalysis(res);
       return true;
@@ -391,6 +399,10 @@ export async function handleScheduledJobsRoutes(
 
     case '/api/jobs/semantic-router-health':
       await handleSemanticRouterHealth(res);
+      return true;
+
+    case '/api/jobs/reply-reports-summary':
+      await handleReplyReportSummaryJob(res);
       return true;
 
     default:
