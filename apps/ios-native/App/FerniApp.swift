@@ -11,6 +11,7 @@ struct FerniApp: App {
     init() {
         CrashReporting.start()
         FerniFonts.register()
+        FerniFonts.useForNavigationTitles()
         // Compile Ferni's shader off the main thread, ahead of the first frame.
         Task.detached(priority: .userInitiated) { AliveRenderer.warmUp() }
         #if DEBUG

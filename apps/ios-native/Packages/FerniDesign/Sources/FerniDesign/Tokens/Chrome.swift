@@ -17,3 +17,13 @@ public extension View {
         buttonStyle(.glass)
     }
 }
+
+public extension View {
+    /// A list on Ferni's paper, not the system's grouped grey #F2F2F7 (design
+    /// audit P1-13: Settings, Team, Memory and Help read as system screens).
+    /// Rows keep the system's raised card.
+    func ferniPaper() -> some View {
+        scrollContentBackground(.hidden)
+            .background(FerniColor.background.ignoresSafeArea())
+    }
+}
