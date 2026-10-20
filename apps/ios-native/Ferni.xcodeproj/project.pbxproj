@@ -53,6 +53,7 @@
 		7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974DF185A4FA58E1F08FD688 /* FerniApp.swift */; };
 		7B4E238C055C0630113D7B75 /* AvatarGlueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9376BA757C00332F94F01A1F /* AvatarGlueTests.swift */; };
 		7C091827B71428685858522D /* FerniWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		7CFB13A608161F743E924185 /* AccountButtonUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F9321267293791367541362 /* AccountButtonUITests.swift */; };
 		7DA13593D47CC26EA4439F02 /* IPadHomeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B807054CD639997DA9CFB4F /* IPadHomeUITests.swift */; };
 		8008F255B971A496A174CC6F /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E0556D7156242BE3423D87 /* Notifications.swift */; };
 		80B3324091516CE8022F9CFD /* TalkOnPhoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA352150CE2DBF9E6254A20 /* TalkOnPhoneIntent.swift */; };
@@ -220,6 +221,7 @@
 		3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FerniWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CC0928CF00671D4E0E8D998 /* NoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTests.swift; sourceTree = "<group>"; };
 		3CC34062567D316808D0D03C /* ConsentSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentSheetTests.swift; sourceTree = "<group>"; };
+		3F9321267293791367541362 /* AccountButtonUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountButtonUITests.swift; sourceTree = "<group>"; };
 		41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkButtonTests.swift; sourceTree = "<group>"; };
 		41E550D3CF186D8D463FF66E /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		47728781CB10E67E259A236C /* SignInUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInUITests.swift; sourceTree = "<group>"; };
@@ -422,6 +424,7 @@
 			isa = PBXGroup;
 			children = (
 				BB291C79E629A29D4B86C651 /* AccessibilityAuditTests.swift */,
+				3F9321267293791367541362 /* AccountButtonUITests.swift */,
 				B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */,
 				F8DBF14CF40ADDB7A8768FBE /* CallControlsAtLargeTextTests.swift */,
 				3CC34062567D316808D0D03C /* ConsentSheetTests.swift */,
@@ -828,6 +831,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				639D84959EC4165C2F4DA23F /* AccessibilityAuditTests.swift in Sources */,
+				7CFB13A608161F743E924185 /* AccountButtonUITests.swift in Sources */,
 				65A85BD3CF6927E84BDB94EC /* AvatarTouchTests.swift in Sources */,
 				E1ABFBCDC6B88A70EC864834 /* CallControlsAtLargeTextTests.swift in Sources */,
 				13E295A0E158B401D107C1D5 /* ConsentSheetTests.swift in Sources */,
