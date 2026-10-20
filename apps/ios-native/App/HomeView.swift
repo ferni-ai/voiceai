@@ -254,9 +254,6 @@ private struct RestingLine: View {
             case .failed(let problem):
                 Text(problem.message)
                     .font(FerniType.bodyLarge)
-                    // Medium, like the greeting's line: in regular weight the audit failed
-                    // it on contrast over Ferni's glow (design audit P2 #20's scenario).
-                    .fontWeight(.medium)
                     .foregroundStyle(FerniColor.textPrimary)
                 if problem == .microphoneDenied {
                     Button("Open Settings") {
@@ -276,12 +273,20 @@ private struct RestingLine: View {
         // At accessibility sizes the words grow down over Ferni's glow and the
         // room's gradient, and the audit failed the line on contrast in every
         // band though it reads 6.4:1 (design audit P1-10): a paper plate under it.
-        .padding(typeSize.isAccessibilitySize ? FerniSpace.pause : 0)
+        // The failed message gets the plate at every size: on the bare room the
+        // audit failed it at 13.1:1 measured (critic M3, 2026-10-20).
+        .padding(plated ? FerniSpace.pause : 0)
         .background {
-            if typeSize.isAccessibilitySize {
+            if plated {
                 RoundedRectangle(cornerRadius: FerniRadius.large).fill(FerniColor.background)
             }
         }
+    }
+
+    private var plated: Bool {
+        if typeSize.isAccessibilitySize { return true }
+        if case .failed = call.phase { return true }
+        return false
     }
 
     private static func hour(at date: Date) -> Int {
