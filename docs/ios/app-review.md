@@ -58,7 +58,11 @@ Prepare an admitted review account on the server and put the steps to sign
 into it in App Store Connect's review notes as a one-time link, never in this
 repository. With the gate off (the default) none of this applies. Sign in with Apple (Settings, then Account) links the same
 account; the reviewer can use their own Apple ID. Delete account works for
-either kind. No credentials go in the repository or the review notes.
+either kind. The sign-in sheet offers Apple, then Google; phone-number
+sign-in shows only when the server's app config (`GET /api/app-config/ios`,
+`phoneSignIn: true`) turns it on, so a Release build without that field
+doesn't offer it (it fails on hardware until the Firebase key restriction is
+changed). No credentials go in the repository or the review notes.
 
 The teammates (Maya, Peter, Alex, Jordan, Nayan) join as the relationship
 grows, so a new account sees them dimmed. To review a handoff, ask Ferni in a
