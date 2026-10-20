@@ -5,16 +5,8 @@
  * This module ensures all trust profile data has a SINGLE source of truth
  * in Firestore. It prevents data drift between in-memory and persisted state.
  *
- * The Problem: multiple systems maintain their own in-memory Maps
- * - Periodic sync can lead to stale/inconsistent data
- * - Server restarts lose recent changes
- *
- * The Solution:
- * - Real-time write-through for critical changes
- * - Periodic batch sync for efficiency
- * - Single document structure per user
- * - Conflict resolution with timestamps
- *
+ * The Problem: many in-memory Maps; periodic sync drifts; restarts lose recent changes.
+ * The Solution: write-through for critical changes, batch sync otherwise, one document per user.
  * @module UnifiedTrustPersistence
  */
 
@@ -244,6 +236,7 @@ export async function saveSystemData(
   data: unknown,
   options: { immediate?: boolean } = {}
 ): Promise<void> {
+  if (userHeld(userId)) return purgeUnifiedUser(userId); // MINOR_CARE: not even cached
   const shouldWriteThrough =
     options.immediate ||
     (config.realtimeWriteThrough && config.criticalSystems.includes(systemName));
@@ -351,13 +344,20 @@ async function flushUserChanges(userId: string): Promise<void> {
   log.debug({ userId, systemCount: userPending.size }, 'Flushed user changes');
 }
 
+/** MINOR_CARE: a held caller under 18's trust state, dropped so nothing is written later. */
+export function purgeUnifiedUser(userId: string): void {
+  profileCache.delete(userId);
+  pendingChanges.delete(userId);
+}
+
 /**
  * Persist a profile to Firestore
  */
 async function persistProfile(userId: string, profile: UnifiedTrustProfile): Promise<void> {
   try {
-    // MINOR_CARE: every path (timer, write-through, session end) checks at write time
-    const firestore = userHeld(userId) ? null : await getFirestore();
+    // MINOR_CARE: every path (timer, write-through, session end) checks at write time, and drops
+    if (userHeld(userId)) return purgeUnifiedUser(userId);
+    const firestore = await getFirestore();
     if (!firestore) return;
 
     await firestore

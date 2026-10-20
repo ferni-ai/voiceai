@@ -20,6 +20,7 @@ import { createPersistenceStore, type PersistenceStore } from '../services/persi
 
 // Import types and functions from learning modules
 import {
+  clearHeldMusicProfile as clearHeldProfile,
   getUserProfile,
   importUserProfile,
   exportUserProfile,
@@ -29,6 +30,7 @@ import {
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { userHeld } from '../utils/minor-care.js';
 import {
+  clearHeldMusicMemories as clearHeldMemories,
   exportUserMusicMemories,
   importUserMusicMemories,
   type MusicHelpedMemory,
@@ -153,13 +155,24 @@ let memoryPersistence: PersistenceStore<PersistedMusicMemories> | null = null;
 const loadedProfileUsers = new Set<string>();
 const loadedMemoryUsers = new Set<string>();
 
+/** MINOR_CARE: drop everything music learning holds for this user (cleanup of a held session). */
+export function purgeMusicLearning(userId: string): void {
+  clearHeldProfile(userId);
+  clearHeldMemories(userId);
+  profilePersistence?.clearCache(userId);
+  memoryPersistence?.clearCache(userId);
+}
+
+/** At each store sync or set: a held user is dropped, learning maps included, never written. */
+const heldPurged = (userId: string): boolean => userHeld(userId) && (purgeMusicLearning(userId), true);
+
 function getProfilePersistence(): PersistenceStore<PersistedTransitionProfile> {
   if (!profilePersistence) {
     profilePersistence = createPersistenceStore<PersistedTransitionProfile>({
       collection: 'music_learning',
       documentId: 'profile',
       syncIntervalMs: 10000, // Sync every 10 seconds
-      holdWrites: userHeld, // MINOR_CARE: a held caller under 18's music learning is never written
+      holdWrites: heldPurged, // MINOR_CARE: a held caller under 18's music learning: dropped
     });
   }
   return profilePersistence;
@@ -171,7 +184,7 @@ function getMemoryPersistence(): PersistenceStore<PersistedMusicMemories> {
       collection: 'music_learning',
       documentId: 'memories',
       syncIntervalMs: 15000, // Sync every 15 seconds (less frequent)
-      holdWrites: userHeld,
+      holdWrites: heldPurged,
     });
   }
   return memoryPersistence;

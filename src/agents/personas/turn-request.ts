@@ -316,7 +316,10 @@ export async function toolsForTurn(
   const view = unlockViewFor(session.userData);
   const sessionId = sessionIdOf(session.userData);
   // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores anything.
-  const held = heldAfter(sessionId, callerWords(chatCtx), { asked: lastFerniLine(chatCtx.items) });
+  const held = heldAfter(sessionId, callerWords(chatCtx), {
+    asked: lastFerniLine(chatCtx.items),
+    userId: (session.userData as { userId?: string } | undefined)?.userId, // userHeld follows
+  });
   const allowed =
     phoneOnlyIdentity(sessionId) || held ? await withoutAccountTools(toolCtx, state) : toolCtx;
   const unlocked = await withoutLockedHandoffs(allowed, view).catch((error: unknown) => {

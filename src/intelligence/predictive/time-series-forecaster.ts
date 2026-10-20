@@ -1,17 +1,13 @@
 /**
  * Time Series Forecaster
- *
  * TRUE PREDICTIVE INTELLIGENCE: Forecast mood, energy, and engagement over time.
- *
  * Unlike simple rules like "if Sunday → anxious", this uses actual time-series
  * forecasting to predict continuous values based on historical patterns.
- *
  * Techniques:
  * - Exponential smoothing for trend detection
  * - Seasonal decomposition (weekly, monthly cycles)
  * - Anomaly detection for unusual states
  * - Confidence intervals for predictions
- *
  * @module intelligence/predictive/time-series-forecaster
  */
 
@@ -157,6 +153,10 @@ const CONFIG = {
 // ============================================================================
 
 const userProfiles = new Map<string, TimeSeriesProfile>();
+/** MINOR_CARE: drop a held caller under 18's state, so it is never written later. */
+export function clearHeldTimeSeriesUser(userId: string): void {
+  userProfiles.delete(userId);
+}
 
 // ============================================================================
 // MAIN FUNCTIONS
