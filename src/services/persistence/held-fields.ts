@@ -17,6 +17,8 @@ const log = createLogger({ module: 'PersistenceHeldFields' });
 /** At this many failed writes in a row, one error is logged (alerting); retries continue. */
 const ALERT_AFTER = 5;
 const MAX_BACKOFF_MS = 10 * 60 * 1000;
+/** A delete waits at most this long for a held write in flight, then deletes anyway. */
+const DELETE_WAIT_MS = 10_000;
 
 interface Pending<T> {
   part: Partial<T>;
@@ -42,6 +44,8 @@ export function heldFields<T>(
   let epoch = 0;
   const generations = new Map<string, number>();
   const generation = (userId: string) => `${epoch}:${generations.get(userId) ?? 0}`;
+  /** Users whose document was deleted while one of their writes was in flight */
+  const deleted = new Set<string>();
   return {
     /** A held user's set: keep only what whenHeld allows. True if anything was kept. */
     keep(userId: string, data: T): boolean {
@@ -52,8 +56,8 @@ export function heldFields<T>(
       parts.set(userId, { part: merged, tries: 0, notBefore: 0, stamp: ++stamps });
       return true;
     },
-    /** The user's data was deleted or cleared (all users without one): drop their pending part. */
-    forget(userId?: string): void {
+    /** The user's data was deleted (`isDelete`) or cleared (all users without one): drop it. */
+    forget(userId?: string, isDelete = false): void {
       if (userId === undefined) {
         epoch++;
         parts.clear();
@@ -64,10 +68,12 @@ export function heldFields<T>(
       generations.set(userId, (generations.get(userId) ?? 0) + 1);
       parts.delete(userId);
       written.delete(userId);
+      if (isDelete && inFlight.has(userId)) deleted.add(userId);
     },
-    /** Resolves once this user's write in flight (if any) has settled: a delete waits for it. */
+    /** Once this user's write in flight has settled, or after 10 s: a delete waits, never hangs. */
     async settled(userId: string): Promise<void> {
-      await inFlight.get(userId)?.catch(() => undefined);
+      const cap = new Promise<void>((resolve) => setTimeout(resolve, DELETE_WAIT_MS).unref?.());
+      await Promise.race([inFlight.get(userId)?.catch(() => undefined), cap]);
     },
     /** At shutdown, after the final forced write: one error for anything still pending. */
     reportPending(collection: string): void {
@@ -87,12 +93,18 @@ export function heldFields<T>(
     async write(
       set: (userId: string, part: Partial<T>) => Promise<unknown>,
       dirty: Set<string>,
-      force = false
+      force = false,
+      remove?: (userId: string) => Promise<unknown>
     ): Promise<void> {
-      for (const [userId, pending] of Array.from(parts)) {
+      for (const [userId, queued] of Array.from(parts)) {
         dirty.add(userId); // keeps the sync running until the part is written
-        if (!force && pending.notBefore > Date.now()) continue;
+        if (!force && queued.notBefore > Date.now()) continue;
         parts.delete(userId);
+        // Right before each try: drop the fields a newer part has already written
+        const newest = written.get(userId);
+        const stale = newest && newest.stamp > queued.stamp ? newest.keys : new Set<string>();
+        const pending = { ...queued, part: omit(queued.part, stale) };
+        if (Object.keys(pending.part).length === 0) continue;
         const before = generation(userId);
         // Registered before the write starts, so a delete issued meanwhile always waits for it
         const writing = Promise.resolve().then(() => set(userId, pending.part));
@@ -100,11 +112,16 @@ export function heldFields<T>(
         try {
           await writing;
           if (!parts.has(userId)) dirty.delete(userId);
+          // A delete that stopped waiting (10 s) ran before this write landed: delete again
+          if (generation(userId) !== before && deleted.delete(userId)) await remove?.(userId);
           const last = written.get(userId);
           if (!last || last.stamp < pending.stamp)
             written.set(userId, { stamp: pending.stamp, keys: new Set(Object.keys(pending.part)) });
         } catch (error) {
-          if (generation(userId) !== before) continue; // deleted or cleared meanwhile
+          if (generation(userId) !== before) {
+            deleted.delete(userId); // deleted or cleared meanwhile: nothing landed, nothing to undo
+            continue;
+          }
           const tries = pending.tries + 1;
           const wait = Math.min(syncIntervalMs * 2 ** tries, MAX_BACKOFF_MS);
           const newer = parts.get(userId);
