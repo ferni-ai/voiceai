@@ -88,6 +88,25 @@ public extension AliveUniforms {
         bg1 = SIMD4(roomBottom, bg1.w)
     }
 
+    /// The room's time-of-day light on Ferni too (expression audit P2 #7: the
+    /// evening and late-night amber reached the room, not him). His key and
+    /// fill light and the room he reflects lean toward the tint, a few times
+    /// harder than the room's own wash so the warmth reads on his body.
+    mutating func roomLight(_ light: RoomLight) {
+        guard light.tintOpacity > 0 else { return }
+        let tint = SIMD3<Float>(Float(light.tintRGB.x), Float(light.tintRGB.y), Float(light.tintRGB.z))
+        let k = Float(min(light.tintOpacity * 3, 0.3))
+        func lean(_ v: SIMD4<Float>, _ amount: Float) -> SIMD4<Float> {
+            let c = SIMD3(v.x, v.y, v.z)
+            let warm = c * (SIMD3<Float>(repeating: 1 - amount) + tint * amount)
+            return SIMD4(warm, v.w)
+        }
+        key = lean(key, k)
+        fill = lean(fill, k)
+        bg0 = lean(bg0, k * 0.5)
+        bg1 = lean(bg1, k * 0.5)
+    }
+
     /// Canvas geometry: `size` in pixels, Ferni's radius in pixels, and how far
     /// below the canvas centre Ferni sits (pixels; headroom for hops above).
     mutating func frame(size: SIMD2<Float>, radius: Float, below: Float = 0) {
