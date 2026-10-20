@@ -1,6 +1,5 @@
 /**
  * Outreach Intelligence Service
- *
  * Predicts when and why agents should proactively reach out to users.
  *
  * TRIGGERS:
@@ -146,6 +145,7 @@ export async function initializeOutreachPersistence(): Promise<void> {
 
   persistenceStore = createPersistenceStore<OutreachUserData>({
     collection: 'outreach_data',
+    holdWrites: () => false, // MINOR_CARE opt-out: do-not-contact and quiet hours always persist
     syncIntervalMs: 10000, // Sync every 10 seconds
     maxPendingChanges: 30,
   });

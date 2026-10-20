@@ -134,23 +134,25 @@ export function initMonetizationPersistence(): void {
   // User-specific stores
   tipStore = createPersistenceStore<UserTipData>({
     collection: 'monetization_tips',
-    holdWrites: () => false, // MINOR_CARE opt-out: billing records stay
+    holdWrites: () => false, // MINOR_CARE opt-out: financial records, not the caller's memory
     syncIntervalMs: 3000,
   });
 
   valueCaptureStore = createPersistenceStore<UserValueCaptureData>({
     collection: 'monetization_value_capture',
+    holdWrites: () => false, // MINOR_CARE opt-out: financial records, not the caller's memory
     syncIntervalMs: 3000,
   });
 
   userFundStore = createPersistenceStore<UserFundData>({
     collection: 'monetization_fund_contributions',
-    holdWrites: () => false, // MINOR_CARE opt-out: billing records stay
+    holdWrites: () => false, // MINOR_CARE opt-out: financial records, not the caller's memory
     syncIntervalMs: 3000,
   });
 
   journeyStore = createPersistenceStore<UserJourneyData>({
     collection: 'monetization_journey',
+    holdWrites: () => false, // MINOR_CARE opt-out: financial records, not the caller's memory
     syncIntervalMs: 5000,
   });
 
