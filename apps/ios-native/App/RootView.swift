@@ -55,9 +55,13 @@ struct RootView: View {
             .fullScreenCover(item: Binding(
                 get: { model.call.waitlist }, set: { if $0 == nil { model.call.closeWaitlist() } }
             )) { place in
-                WaitingView(place: place, onClose: { model.call.closeWaitlist() }, onComeIn: {
+                WaitingView(place: place, anonymous: model.account.user?.isAnonymous ?? false,
+                            onClose: { model.call.closeWaitlist() }, onComeIn: {
                     model.call.closeWaitlist()
                     model.talk()
+                }, onSignIn: {
+                    model.call.closeWaitlist()
+                    model.isSigningIn = true
                 })
             }
             // Only a build the server names as too old; nothing can dismiss it.

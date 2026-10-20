@@ -115,7 +115,11 @@ enum UITestScenario: String {
         let (status, body): (Int, String) = path.hasSuffix("/token")
             ? (403, #"{"error":"not_admitted","status":"pending","waitlisted":true,"message":"You're on the list."}"#)
             : path.hasSuffix("/api/waitlist/me")
-            ? (200, #"{"status":"waiting","position":432,"wavesAway":4,"nextWaveAt":"2026-10-22T17:00:00.000Z","referralUrl":"https://ferni.ai/?ref=abc123-fern","referrals":{"verified":1,"creditedDays":3,"max":5},"admittedAt":null,"seatExpiresAt":null,"foundingMember":false,"foundingWave":null}"#)
+            // `-FerniWaitlistMe notJoined|none`: the account isn't on the list, or
+            // /me can't be read (critic H1).
+            ? (value(after: "-FerniWaitlistMe") == "notJoined" ? (200, #"{"status":"not_joined","position":null}"#)
+               : value(after: "-FerniWaitlistMe") == "none" ? (404, "{}")
+               : (200, #"{"status":"waiting","position":432,"wavesAway":4,"nextWaveAt":"2026-10-22T17:00:00.000Z","referralUrl":"https://ferni.ai/?ref=abc123-fern","referrals":{"verified":1,"creditedDays":3,"max":5},"admittedAt":null,"seatExpiresAt":null,"foundingMember":false,"foundingWave":null}"#))
             : (404, "{}")
         return (Data(body.utf8), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
     })
