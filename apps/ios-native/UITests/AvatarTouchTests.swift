@@ -22,6 +22,7 @@ final class AvatarTouchTests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["uitest.touches"].firstMatch
             .waitForValue("1", timeout: 3), "a tap on Ferni at rest is a touch: \(touches(app))")
         XCTAssertFalse(app.buttons["Not now"].exists, "touching Ferni doesn't start talking")
+        XCTAssertEqual(app.descendants(matching: .any)["uitest.foley"].firstMatch.value as? String, "0", "Sounds are off")
 
         let talk = Screen.home.ready(in: app)
         talk.tap()
@@ -68,6 +69,18 @@ final class AvatarTouchTests: XCTestCase {
         sleep(5)
         app.activate()
         XCTAssertTrue(startles.waitForValue("1", timeout: 5), "a double take: \(startles.value ?? "missing")")
+    }
+
+    /// Parity item 8: with Sounds on, a touch at rest makes a soft boop (a
+    /// system sound the silent switch mutes); in a call it makes none.
+    func testWithSoundsOnATouchBoops() {
+        let app = XCUIApplication.ferni(.home, sounds: true)
+        let avatar = ferni(app)
+        XCTAssertTrue(avatar.waitForExistence(timeout: 20))
+        let foley = app.descendants(matching: .any)["uitest.foley"].firstMatch
+        XCTAssertEqual(foley.value as? String, "0")
+        avatar.tap()
+        XCTAssertTrue(foley.waitForValue("1", timeout: 3), "a boop: \(foley.value ?? "missing")")
     }
 
     /// Only Ferni takes a touch, not the empty space beside him.

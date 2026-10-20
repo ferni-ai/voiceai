@@ -25,7 +25,7 @@ enum TextSize: String {
 extension XCUIApplication {
     static func ferni(
         _ screen: Screen, size: TextSize = .standard, reduceMotion: Bool = false, reduceTransparency: Bool = false,
-        account: String? = nil, hour: Int? = nil
+        account: String? = nil, hour: Int? = nil, sounds: Bool = false
     ) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -33,6 +33,7 @@ extension XCUIApplication {
             "-UIPreferredContentSizeCategoryName", size.rawValue,
             "-FerniReduceMotion", reduceMotion ? "YES" : "NO",
             "-FerniReduceTransparency", reduceTransparency ? "YES" : "NO",
+            "-FerniSounds", sounds ? "YES" : "NO",
         ] + (account.map { ["-FerniAccount", $0] } ?? []) + (hour.map { ["-FerniHour", String($0)] } ?? [])
         app.launch()
         return app
