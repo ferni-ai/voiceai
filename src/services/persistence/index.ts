@@ -55,38 +55,28 @@ export interface LoadOptions {
 export interface PersistenceStore<T> {
   /** Get data for a user */
   get: (userId: string) => Promise<T | null>;
-
   /** Set data for a user (queued for batch write) */
   set: (userId: string, data: T) => void;
-
   /** Set data and write immediately */
   setImmediate: (userId: string, data: T) => Promise<void>;
-
   /** Delete data for a user */
   delete: (userId: string) => Promise<void>;
-
   /** Mark data as dirty (needs sync) */
   markDirty: (userId: string) => void;
-
   /** Flush all pending changes */
   flush: () => Promise<void>;
-
   /** Flush changes for a specific user */
   flushUser: (userId: string) => Promise<void>;
-
   /**
    * Load data from Firestore into memory. `fresh` skips a clean cache entry, for
    * data another process may have changed (unflushed local writes still win).
    * `strict` throws when Firestore can't be read instead of answering null.
    */
   load: (userId: string, options?: LoadOptions) => Promise<T | null>;
-
   /** Clear memory cache for user */
   clearCache: (userId: string) => void;
-
   /** Clear all memory caches */
   clearAllCaches: () => void;
-
   /** Get stats about memory usage */
   getStats: () => { cached: number; dirty: number };
 
@@ -193,8 +183,18 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     clearNamedInterval(intervalName);
   };
 
-  // Flush all dirty data; forced (shutdown, explicit flush): held parts ignore their backoff
+  // One flush at a time per store: a tick waits for the running one; a forced flush runs after it
+  let flushing: Promise<void> | undefined;
   const flushAll = async (force = false): Promise<void> => {
+    while (flushing) {
+      if (!force) return flushing;
+      await flushing;
+    }
+    flushing = flushOnce(force).finally(() => (flushing = undefined));
+    return flushing;
+  };
+  // Forced (shutdown, explicit flush): held parts ignore their backoff
+  const flushOnce = async (force: boolean): Promise<void> => {
     if (dirty.size === 0) return;
 
     const firestore = await getFirestore();
@@ -218,7 +218,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         _userId: userId,
       });
     const setPart = (u: string, part: unknown) => docRefFor(u).set(toDoc(u, part), { merge: true });
-    await heldParts.write(setPart, dirty, force);
+    await heldParts.write(setPart, dirty, force, (u) => docRefFor(u).delete());
 
     try {
       let batch = firestore.batch();
@@ -375,7 +375,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     delete: async (userId: string) => {
       cache.delete(userId);
       dirty.delete(userId);
-      heldParts.forget(userId); // a pending held part, even one in flight, never outlives this
+      heldParts.forget(userId, true); // a pending held part, even one in flight, never outlives this
       await heldParts.settled(userId); // a held write in flight lands before the delete, not after
 
       const firestore = await getFirestore();
