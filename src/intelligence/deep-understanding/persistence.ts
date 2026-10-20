@@ -123,9 +123,7 @@ function getDb(): FirebaseFirestore.Firestore {
   return db;
 }
 
-/**
- * Get deep understanding document reference
- */
+/** Get deep understanding document reference */
 function getDoc(userId: string, systemName: string) {
   return getDb().collection('bogle_users').doc(userId).collection(COLLECTION_NAME).doc(systemName);
 }
@@ -134,14 +132,28 @@ function getDoc(userId: string, systemName: string) {
 // SAVE FUNCTIONS
 // ============================================================================
 
+/** Users read from storage in this process: only they are written (a default would replace it) */
+const loadedUsers = new Set<string>();
+/** Bumped by each purge; a save that began before one stops (saveGen: where it began) */
+const generations = new Map<string, number>();
+const saveGen = new Map<string, number>();
+export function forgetDeepUnderstandingLoaded(userId: string): void {
+  loadedUsers.delete(userId); // MINOR_CARE purge (forget.ts): the next session reloads first
+  generations.set(userId, (generations.get(userId) ?? 0) + 1);
+}
+/** Right before each write: loaded here, not held, and no purge since this save began */
+const writable = (userId: string): boolean =>
+  loadedUsers.has(userId) &&
+  !userHeld(userId) &&
+  saveGen.get(userId) === (generations.get(userId) ?? 0);
+
 /** Save a single system profile */
 async function saveSystemProfile<T>(
   userId: string,
   systemName: string,
   profile: T | null | undefined
 ): Promise<boolean> {
-  if (!profile) return false;
-
+  if (!profile || !writable(userId)) return false; // MINOR_CARE: a hold can start mid-save
   try {
     const doc: FirestoreDoc = {
       data: JSON.stringify(profile),
@@ -158,12 +170,6 @@ async function saveSystemProfile<T>(
   }
 }
 
-/** Users read from storage in this process: only they are written (a default would replace it) */
-const loadedUsers = new Set<string>();
-export function forgetDeepUnderstandingLoaded(userId: string): void {
-  loadedUsers.delete(userId); // MINOR_CARE purge (forget.ts): the next session reloads first
-}
-
 /** Save all deep understanding profiles for a user */
 export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
   saved: string[];
@@ -173,6 +179,7 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
   const failed: string[] = [];
   if (userHeld(userId)) return { saved, failed }; // MINOR_CARE: a held caller, never
   if (!loadedUsers.has(userId)) return { saved, failed }; // not read here: a default would replace it
+  saveGen.set(userId, generations.get(userId) ?? 0);
 
   // 1. Silence Pattern
   const silencePattern = getSilencePattern(userId);
@@ -426,9 +433,7 @@ export async function onSessionEnd(userId: string): Promise<void> {
   }
 }
 
-/**
- * Periodic sync during long sessions (every 5 minutes)
- */
+/** Periodic sync during long sessions (every 5 minutes) */
 export async function periodicSync(userId: string): Promise<void> {
   try {
     const { saved, failed } = await saveDeepUnderstandingProfiles(userId);
@@ -444,9 +449,7 @@ export async function periodicSync(userId: string): Promise<void> {
 // BUNDLE OPERATIONS
 // ============================================================================
 
-/**
- * Export all deep understanding profiles as a single bundle
- */
+/** Export all deep understanding profiles as a single bundle */
 export function exportDeepUnderstandingBundle(userId: string): DeepUnderstandingBundle {
   return {
     userId,
@@ -465,9 +468,7 @@ export function exportDeepUnderstandingBundle(userId: string): DeepUnderstanding
   };
 }
 
-/**
- * Import a deep understanding bundle into memory
- */
+/** Import a deep understanding bundle into memory */
 export function importDeepUnderstandingBundle(bundle: DeepUnderstandingBundle): void {
   if (bundle.silencePattern) {
     importSilencePattern(bundle.silencePattern);
@@ -507,9 +508,7 @@ export function importDeepUnderstandingBundle(bundle: DeepUnderstandingBundle): 
 // CLEANUP
 // ============================================================================
 
-/**
- * Delete all deep understanding profiles for a user (for GDPR deletion)
- */
+/** Delete all deep understanding profiles for a user (for GDPR deletion) */
 export async function deleteDeepUnderstandingProfiles(userId: string): Promise<void> {
   try {
     const batch = getDb().batch();
