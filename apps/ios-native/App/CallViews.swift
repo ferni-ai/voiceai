@@ -63,13 +63,26 @@ struct CallAvatar: View {
 /// Who you're talking with, small, at the top of a call.
 struct NameChip: View {
     let personaID: String
+    /// Who it says: in a handoff, the new name waits until the teammate has
+    /// the middle of the stage (design audit P1-3: it said Maya ~2.5 s early,
+    /// while Ferni was still in front).
+    @State private var shown: String?
 
     var body: some View {
-        let persona = PersonaRegistry.get(personaID)
+        let persona = PersonaRegistry.get(shown ?? personaID)
         Text("\(persona.name) · \(persona.role)")
             .font(FerniType.caption)
             .foregroundStyle(FerniColor.textSecondary)
+            .contentTransition(.opacity)
             .accessibilityAddTraits(.isHeader)
+            .accessibilityIdentifier("call.nameChip")
+            .task(id: personaID) {
+                if let from = shown, from != personaID {
+                    try? await Task.sleep(for: .seconds(AliveRig.handoffSeconds(from: WindowPersona(personaId: from))))
+                    guard !Task.isCancelled else { return }
+                }
+                withAnimation(.easeOut(duration: 0.25)) { shown = personaID }
+            }
     }
 }
 
@@ -86,15 +99,17 @@ struct CallCaptions: View {
         // Two lines at accessibility sizes: three no longer fit above the controls.
         let lines = showWords ? Array(call.captions.lines.suffix(typeSize.isAccessibilitySize ? 2 : 3)) : []
         VStack(alignment: .leading, spacing: FerniSpace.breath) {
+            let labelled = Self.labelled(lines)
             ForEach(lines) { line in
                 let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
                 let isFerni = line.speaker == .ferni
+                if labelled.contains(line.id), let id = line.personaID { Speaker(personaID: id) }
                 Text(text)
                     .font(FerniType.bodyLarge)
                     .foregroundStyle(isFerni ? FerniColor.textPrimary : FerniColor.textSecondary)
                     .frame(maxWidth: .infinity, alignment: isFerni ? .leading : .trailing)
                     .multilineTextAlignment(isFerni ? .leading : .trailing)
-                    .accessibilityLabel(isFerni ? "\(name): \(text)" : "You: \(text)")
+                    .accessibilityLabel(isFerni ? "\(PersonaRegistry.get(line.personaID ?? call.avatar.personaID).name): \(text)" : "You: \(text)")
                     .contextMenu {
                         if isFerni {
                             Button("Copy", systemImage: "doc.on.doc") { UIPasteboard.general.string = text }
@@ -123,6 +138,22 @@ struct CallCaptions: View {
 
     private var name: String { PersonaRegistry.get(call.avatar.personaID).name }
 
+    /// Lines that start a run from one teammate get their name over them, once
+    /// more than Ferni has spoken (or a teammate took the call): after a
+    /// handoff, Maya's words looked exactly like Ferni's (design audit P1-3).
+    /// A call with only Ferni stays as it was.
+    static func labelled(_ lines: [Caption]) -> Set<String> {
+        let ours = lines.filter { $0.speaker == .ferni }
+        let who = Set(ours.compactMap(\.personaID))
+        guard who.count > 1 || who.contains(where: { $0 != PersonaRegistry.ferni.id }) else { return [] }
+        var labelled: Set<String> = [], previous: String?
+        for line in ours {
+            if line.personaID != previous { labelled.insert(line.id) }
+            previous = line.personaID
+        }
+        return labelled
+    }
+
     /// Nil while Ferni is talking: the words say it.
     static func state(_ call: CallSession, name: String) -> String? {
         switch call.phase {
@@ -139,6 +170,25 @@ struct CallCaptions: View {
             }
         default: return nil
         }
+    }
+}
+
+/// Whose words follow: a dot in the teammate's colour and their name.
+private struct Speaker: View {
+    let personaID: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(WindowPersona(personaId: personaID).primaryColor)
+                .frame(width: 8, height: 8)
+            Text(PersonaRegistry.get(personaID).name)
+                .font(FerniType.caption)
+                .foregroundStyle(FerniColor.textSecondary)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityHidden(true) // each line's label already says who
+        .accessibilityIdentifier("captions.speaker.\(personaID)")
     }
 }
 

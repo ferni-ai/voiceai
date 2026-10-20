@@ -564,6 +564,21 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(session.avatar.personaID, "maya")
     }
 
+    /// Design audit P1-3: each caption line from Ferni's side says who said it,
+    /// so after a handoff the screen can name Maya's words as hers.
+    func testCaptionsRememberWhoSaidThem() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        let room = rooms.made[0]
+        room.send(.caption(CaptionChunk(streamID: "s1", segmentID: "a", speaker: .ferni, text: "Let me bring her in.", isFinal: true)))
+        room.send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"maya-santos","timestamp":2}"#.utf8)))
+        await until(session.avatar.personaID == "maya")
+        room.send(.caption(CaptionChunk(streamID: "s2", segmentID: "b", speaker: .ferni, text: "Hi! Which days?", isFinal: true)))
+        await until(session.captions.lines.count == 2)
+        XCTAssertEqual(session.captions.lines.map(\.personaID), ["ferni", "maya"])
+    }
+
     /// An id the app doesn't know (or a lookalike) never changes who's on screen.
     func testAHandoffToAnUnknownTeammateChangesNothing() async {
         let session = makeSession()

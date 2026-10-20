@@ -504,7 +504,7 @@ public final class CallSession {
                 if let moment = result.moment { avatar.send(.moment(moment)) }
             }
         case .caption(let chunk):
-            captions.apply(chunk, room: roomName)
+            captions.apply(chunk, room: roomName, persona: personaID)
         case .reconnecting:
             if phase == .live { phase = .reconnecting }
             avatar.send(.reconnecting)
