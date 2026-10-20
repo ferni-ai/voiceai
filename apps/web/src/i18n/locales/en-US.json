@@ -9997,7 +9997,8 @@
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
     "agentLeft": "Ferni dropped off the line. Reconnect?",
-    "unknown": "Couldn't connect. Try again?"
+    "unknown": "Couldn't connect. Try again?",
+    "waitlisted": "You’re on the list. I’ll email you the moment your spot opens."
   },
   "ambientSounds": {
     "rain": {
@@ -11174,5 +11175,27 @@
   },
   "panelShell": {
     "gettingReady": "One moment, I'm getting this ready for you"
+  },
+  "waitlistScreen": {
+    "title": "You’re on the list",
+    "position": "You’re #{position}, about {waves} waves away",
+    "positionNext": "You’re #{position}, in the very next wave",
+    "nextWave": "The next wave opens {date}.",
+    "inviteLabel": "Your invite link",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "share": "Share",
+    "inviteHelp": "Each friend who joins moves you up a few days.",
+    "friendsMovedYouUp": {
+      "one": "Your friends have already moved you up {count} day.",
+      "other": "Your friends have already moved you up {count} days."
+    },
+    "emailPromise": "I’ll email you the moment your spot opens.",
+    "inTitle": "You’re in",
+    "inMessage": "Your spot is open. Come in within a week to keep it.",
+    "badge": "Founding member · Wave {wave}",
+    "badgeNoWave": "Founding member",
+    "enter": "Come in",
+    "notNow": "Not now"
   }
 }
