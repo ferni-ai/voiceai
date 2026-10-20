@@ -12,10 +12,13 @@ struct ConsentView: View {
     var account: AccountStore?
     @State private var signingIn = false
     @Environment(\.horizontalSizeClass) private var widthClass
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         Group {
-            if widthClass == .regular {
+            // At accessibility sizes on iPhone too: pinned, the buttons left two to
+            // four lines of the words between them (design audit P1-8).
+            if widthClass == .regular || typeSize.isAccessibilitySize {
                 // iPad: the words and the buttons stay together in the middle of
                 // the screen, like a note held out to you, rather than the
                 // buttons waiting a hand's width below the last line. Large text

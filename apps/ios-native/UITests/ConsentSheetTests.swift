@@ -36,6 +36,22 @@ final class ConsentSheetTests: XCTestCase {
         }
     }
 
+    /// Design audit P1-8: at AX5 on iPhone the pinned buttons left two to four
+    /// lines of the words between them. At accessibility sizes the buttons
+    /// follow the words and scroll with them.
+    func testAtTheLargestSizeTheButtonsFollowTheWords() {
+        let app = XCUIApplication.ferni(.consent, size: .ax5)
+        XCTAssertTrue(Screen.consent.ready(in: app).waitForExistence(timeout: 20))
+        sleep(1)
+        let terms = app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Terms'")).firstMatch
+        let agree = app.buttons["I agree, let's talk"].firstMatch
+        XCTAssertTrue(terms.exists && agree.exists)
+        attachScreenshot("consent-ax5")
+        XCTAssertGreaterThanOrEqual(agree.frame.minY, terms.frame.maxY, "the buttons come after the words: Terms \(terms.frame), agree \(agree.frame)")
+        for _ in 0..<12 where !agree.isHittable { app.swipeUp() }
+        XCTAssertTrue(agree.isHittable, "and are reached by scrolling")
+    }
+
     /// iPad: the words and the buttons stay together, centred, in both
     /// orientations, instead of the buttons waiting at the bottom of the screen.
     func testOnIPadTheButtonsSitRightBelowTheWords() throws {
