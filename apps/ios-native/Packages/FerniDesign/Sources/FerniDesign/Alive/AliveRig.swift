@@ -184,6 +184,7 @@ public final class AliveRig {
     private var quickTaps: [Double] = []
     private var spinStart: Double?
     private var spinSparkles = 0
+    private var doubleTakeStart: Double?, doubleTakeAway = SIMD2<Double>.zero, squashHoldUntil: Double?
     private var lastTouchCue = -10.0
     private var quietSince = 0.0
     private var fireflyStart: Double?, fireflyDone = false
@@ -226,6 +227,37 @@ public final class AliveRig {
         if time - lastTouchCue >= 2 {
             lastTouchCue = time
             pending.append(.touch)
+        }
+    }
+
+    /// The person is back after a little while (the prototype's doubleTake):
+    /// a glance at them, a look away, a held breath with a half blink, then
+    /// the snap back with a little start and a flash of surprise.
+    public func doubleTake() {
+        guard !still, doubleTakeStart == nil, handoff == nil, keyed == nil else { return }
+        doubleTakeStart = time
+        // Away is where he was looking, or a side glance if that was at them.
+        doubleTakeAway = simd_length(gazeTarget) > 0.3 ? gazeTarget : SIMD2(rng.unit() < 0.5 ? -0.5 : 0.5, 0.15)
+    }
+
+    /// The double take's beats, at the persona's tempo: at them 0-0.2 s,
+    /// away until 0.67 s (holding his breath from 0.56 s), then back at them.
+    private func stepDoubleTake(m: Double) {
+        guard let start = doubleTakeStart else { return }
+        let e = (time - start) / tempo
+        nextSaccade = time + 1.2
+        gazeTarget = e < 0.2 ? .zero : doubleTakeAway
+        if e >= 0.56, squashHoldUntil == nil {
+            squashHoldUntil = time + 0.11 * tempo
+            halfBlink()
+        }
+        if e >= 0.67 {
+            doubleTakeStart = nil
+            squashHoldUntil = nil
+            gazeTarget = .zero
+            micro(.surprise)
+            self[.squash].v += 3.4 * m
+            self[.posY].v += 1.4 * m
         }
     }
 
@@ -351,6 +383,7 @@ public final class AliveRig {
         apply(face, m: m)
         stepHandoff(m: m)
         stepGuest(dt, m: m)
+        stepDoubleTake(m: m)
         stepGaze(face, m: m)
         stepSpin()
 
@@ -372,6 +405,7 @@ public final class AliveRig {
 
         let breathing = still ? 0 : breath(face) * m
         self[.squash].t = face.squash + breathing + env * 0.04 * m
+        if squashHoldUntil != nil { self[.squash].t = 1 - 0.07 * m }
         self[.posY].t = face.posY + (still ? 0 : sin(now * 1.05) * 0.03 * m) + env * 0.02 * m
         // Connecting: he leans in, his light rising, eyes up for whoever is coming.
         self[.glow].t = face.glow + env * 0.45 + (activity == .arriving ? 0.3 * m : 0)

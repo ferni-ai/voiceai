@@ -22,6 +22,20 @@ final class NextDayTests: XCTestCase {
         let r = Welcome.onReturn(callEndedAt: now - 9 * 3600, wasActiveAt: now - 9 * 3600, inCall: true, now: now)
         XCTAssertFalse(r.forgetCall)
         XCTAssertFalse(r.wake)
+        XCTAssertFalse(Welcome.onReturn(callEndedAt: nil, wasActiveAt: now - 60, inCall: true, now: now).doubleTake)
+    }
+
+    /// Parity item 5: back after more than 4 s (and under the 8 h that wakes
+    /// him), a double take; a glance at a notification isn't one.
+    func testAShortTimeAwayGetsADoubleTake() {
+        func take(_ away: TimeInterval?) -> Bool {
+            Welcome.onReturn(callEndedAt: nil, wasActiveAt: away.map { now - $0 }, inCall: false, now: now).doubleTake
+        }
+        XCTAssertTrue(take(5))
+        XCTAssertTrue(take(3 * 3600))
+        XCTAssertFalse(take(3), "a second away")
+        XCTAssertFalse(take(9 * 3600), "he wakes instead")
+        XCTAssertFalse(take(nil), "a cold launch")
     }
 
     private func words(_ home: HomeLineStore.Home?, ended: Bool = false, hour: Int = 9, hasTalked: Bool = true) -> [String] {

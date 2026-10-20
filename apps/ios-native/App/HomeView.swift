@@ -132,7 +132,10 @@ struct HomeView: View {
     private func avatar(call: CallSession, size: CGFloat) -> some View {
         // The Settings page sheet and the consent cover hide Ferni; the
         // smaller sheets (More, Report) leave him in view.
-        CallAvatar(call: call, covered: model.isShowingSettings || model.isAskingConsent, wake: model.wakeCount) { model.feedback.play($0) }
+        CallAvatar(
+            call: call, covered: model.isShowingSettings || model.isAskingConsent,
+            wake: model.wakeCount, doubleTake: model.doubleTakeCount
+        ) { model.feedback.play($0) }
             .frame(width: size, height: size)
             .opacity(call.phase == .reconnecting ? 0.5 : 1)
     }
@@ -209,12 +212,18 @@ enum HomeClock {
 enum Welcome {
     static let forgetAfter: TimeInterval = 20 * 60
     static let wakeAfter: TimeInterval = 8 * 3600
+    /// Away a little while (the prototype's 4 s without seeing you): a double take.
+    static let doubleTakeAfter: TimeInterval = 4
 
-    static func onReturn(callEndedAt: Date?, wasActiveAt: Date?, inCall: Bool, now: Date) -> (forgetCall: Bool, wake: Bool) {
-        guard !inCall else { return (false, false) }
+    static func onReturn(
+        callEndedAt: Date?, wasActiveAt: Date?, inCall: Bool, now: Date
+    ) -> (forgetCall: Bool, wake: Bool, doubleTake: Bool) {
+        guard !inCall else { return (false, false, false) }
         let forget = callEndedAt.map { now.timeIntervalSince($0) > forgetAfter } ?? false
-        let wake = wasActiveAt.map { now.timeIntervalSince($0) > wakeAfter } ?? false
-        return (forget, wake)
+        let away = wasActiveAt.map { now.timeIntervalSince($0) }
+        let wake = away.map { $0 > wakeAfter } ?? false
+        let doubleTake = !wake && (away.map { $0 > doubleTakeAfter } ?? false)
+        return (forget, wake, doubleTake)
     }
 }
 

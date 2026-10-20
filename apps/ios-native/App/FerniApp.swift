@@ -111,6 +111,8 @@ final class AppModel {
     let teamSpotlight = TeamSpotlight()
     /// Bumped when Ferni should wake on a return (Welcome).
     var wakeCount = 0
+    /// Bumped when Ferni should do a double take on a short return (Welcome).
+    var doubleTakeCount = 0
     @ObservationIgnored var callEndedAt: Date?
     @ObservationIgnored private var wentAwayAt: Date?
 
@@ -122,6 +124,7 @@ final class AppModel {
         let r = Welcome.onReturn(callEndedAt: callEndedAt, wasActiveAt: wentAwayAt, inCall: call.isActive, now: now)
         if r.forgetCall { call.forgetLastCall(); callEndedAt = nil }
         if r.wake { wakeCount += 1 }
+        if r.doubleTake { doubleTakeCount += 1 }
         wentAwayAt = nil
         if r.forgetCall || r.wake { Task { await homeLine.refresh() } }
     }

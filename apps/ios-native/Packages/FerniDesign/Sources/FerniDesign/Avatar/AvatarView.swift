@@ -20,6 +20,7 @@ public struct AvatarView: View {
     let onCue: ((KeyedCue) -> Void)?
     let reading: Bool
     let wake: Int
+    let doubleTake: Int
     let personSpeaking: Bool
     let micro: MicroBeat?
 
@@ -49,7 +50,7 @@ public struct AvatarView: View {
     ///   - onCue: what the body asks the app for (a haptic on a touch, a chime on landing), after each frame.
     public init(
         persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
-        name: String = "Ferni", covered: Bool = false, wake: Int = 0, personSpeaking: Bool = false,
+        name: String = "Ferni", covered: Bool = false, wake: Int = 0, doubleTake: Int = 0, personSpeaking: Bool = false,
         micro: MicroBeat? = nil,
         level: @escaping @Sendable () -> Float = { 0 },
         reading: Bool = false, onCue: ((KeyedCue) -> Void)? = nil
@@ -63,6 +64,7 @@ public struct AvatarView: View {
         self.onCue = onCue
         self.reading = reading
         self.wake = wake
+        self.doubleTake = doubleTake
         self.personSpeaking = personSpeaking
         self.micro = micro
     }
@@ -135,6 +137,10 @@ public struct AvatarView: View {
             // Back after a long time away: he wakes where he is, as on opening the app.
             .onChange(of: wake) { _, _ in
                 if activity == .idle, let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
+            }
+            // Back after a few seconds away: a glance, a look away, the snap back.
+            .onChange(of: doubleTake) { _, _ in
+                if activity == .idle { rig.doubleTake() }
             }
             // A micro-expression from the call (the agent's humanization signals).
             .onChange(of: micro) { _, next in
