@@ -373,7 +373,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : services.userProfile;
     if (userProfile) {
-      rememberCallerHistory(sessionId, callerHistory(userProfile)); // for the greeting
+      // Days since the last call count in the zone this call settled (phone-parity.ts)
+      const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
+      rememberCallerHistory(sessionId, callerHistory(userProfile, new Date(), callZone));
       const userAwareness: string[] = [];
       const sessionStartTime = new Date();
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
@@ -402,8 +404,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
 
         // Last conversation, in calendar days where they live ("yesterday" is the calendar day)
         if (userProfile.lastContact) {
-          const timeZone = userProfile.contactInfo?.timezone;
-          const daysSince = calendarDaysSince(userProfile.lastContact, sessionStartTime, timeZone);
+          const daysSince = calendarDaysSince(userProfile.lastContact, sessionStartTime, callZone);
           userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {

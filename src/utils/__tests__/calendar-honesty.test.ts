@@ -50,8 +50,9 @@ describe('greeting "last talked"', () => {
     { n: 3, last: '2026-10-16T13:00:00Z', days: 2 },
   ])('n=$n: daysSince $days on the calendar in their zone', ({ n, last, days }) => {
     const history = callerHistory(
-      { totalConversations: n, lastContact: last, contactInfo: { timezone: 'America/New_York' } },
-      new Date('2026-10-18T13:00:00Z')
+      { totalConversations: n, lastContact: last },
+      new Date('2026-10-18T13:00:00Z'),
+      'America/New_York'
     );
     expect(history?.daysSince).toBe(days);
   });

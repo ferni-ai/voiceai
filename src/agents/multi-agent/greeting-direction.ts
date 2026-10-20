@@ -205,9 +205,10 @@ export function callerHistory(
     firstContact?: string | number | Date | { toDate: () => Date };
     /** Only a last-call summary checked for who said what (caller-assertions.ts). */
     lastCallerSummary?: string;
-    contactInfo?: { timezone?: string };
   },
-  now: Date = new Date()
+  now: Date = new Date(),
+  /** The call's settled zone (phone-parity.ts), never read off the profile here. */
+  timeZone?: string
 ): CallerHistory | undefined {
   const calls = profile.totalConversations ?? 0;
   if (calls <= 0) return undefined;
@@ -216,7 +217,7 @@ export function callerHistory(
     // Calendar days in their zone: "yesterday" means the calendar day, not 24-48 hours ago
     const last = new Date(profile.lastContact).getTime();
     if (Number.isFinite(last) && last <= now.getTime()) {
-      history.daysSince = calendarDaysSince(last, now, profile.contactInfo?.timezone);
+      history.daysSince = calendarDaysSince(last, now, timeZone);
     }
   }
   const fc = profile.firstContact;
