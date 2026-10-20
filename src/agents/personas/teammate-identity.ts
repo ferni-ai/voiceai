@@ -24,10 +24,14 @@ import { isCoach } from '../../personas/persona-ids.js';
 import { getPersonaPronouns } from '../../personas/persona-pronouns.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 
-/** The turn's identity line for `personaId`, or '' for Ferni (or with the flag off). */
+/**
+ * The turn's identity line for `personaId`, or '' for Ferni (or with the flag off).
+ * `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): no quoted example.
+ */
 export function teammateIdentityNote(
   personaId: string | undefined,
-  env: Env = process.env
+  env: Env = process.env,
+  scriptFree = false
 ): string {
   if (!personaId || isCoach(personaId) || !flagOn('TEAMMATE_IDENTITY_NOTE', env)) return '';
   const name = getPersonaDisplayName(personaId).split(/\s+/)[0];
@@ -35,7 +39,7 @@ export function teammateIdentityNote(
   return (
     `You are ${name}. Assistant lines earlier in this call may be Ferni's or another teammate's, ` +
     `from before you joined: you are not them, so never say you are Ferni or speak as ${him}. ` +
-    `If the caller asks for Ferni or a teammate, even by a misheard name ("Fern"), call that ` +
+    `If the caller asks for Ferni or a teammate, even by a misheard name${scriptFree ? '' : ' ("Fern")'}, call that ` +
     `teammate's handoff tool in this reply instead of saying you'll pass them along.`
   );
 }
