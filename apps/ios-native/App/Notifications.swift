@@ -51,7 +51,20 @@ final class FerniAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificatio
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        FerniFirebase.setAPNSToken(deviceToken)
         Task { @MainActor in Self.onToken?(deviceToken) }
+    }
+
+    /// Firebase phone sign-in checks that remote notifications reach it before
+    /// it texts a code: it sends a probe through this method. Without it,
+    /// "Text me a code" failed with 17054 ERROR_NOTIFICATION_NOT_FORWARDED
+    /// (2026-10-19, Seth's iPhone) and never got to the reCAPTCHA fallback.
+    func application(
+        _ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+        fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) {
+        _ = FerniFirebase.canHandleNotification(userInfo)
+        completionHandler(.noData)
     }
 
     nonisolated func userNotificationCenter(

@@ -25,6 +25,8 @@ public struct FirebaseAuthBackend: AuthBackend {
     /// with a reCAPTCHA page, which comes back on the reversed client ID URL
     /// scheme (project.yml; `FerniFirebase.canHandle`).
     public func sendPhoneCode(to phoneNumber: String) async throws -> String {
+        FerniFirebase.phoneVerifications.withLock { $0 += 1 }
+        defer { FerniFirebase.phoneVerifications.withLock { $0 -= 1 } }
         do {
             return try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
         } catch {
@@ -71,10 +73,15 @@ public struct FirebaseAuthBackend: AuthBackend {
     }
 
     /// Firebase's errors as the few a person can act on; others pass through.
+    /// Every one is logged with its code and name (nothing personal in them).
     static func signInError(_ error: Error) -> Error {
         let nsError = error as NSError
+        let name = nsError.userInfo["FIRAuthErrorUserInfoNameKey"] as? String ?? "-"
+        Logger(subsystem: "com.sethdford.ferni", category: "account")
+            .error("Firebase sign-in error \(nsError.domain, privacy: .public) \(nsError.code, privacy: .public) \(name, privacy: .public)")
         guard nsError.domain == AuthErrorDomain, let code = AuthErrorCode(rawValue: nsError.code) else { return error }
         switch code {
+        case .networkError: return SignInError.offline
         case .invalidPhoneNumber, .missingPhoneNumber: return SignInError.invalidPhoneNumber
         case .invalidVerificationCode, .missingVerificationCode, .sessionExpired: return SignInError.invalidCode
         case .tooManyRequests, .quotaExceeded: return SignInError.tooManyAttempts
@@ -117,6 +124,26 @@ public enum FerniFirebase {
     }
 
     @MainActor private static var isConfigured = false
+
+    /// Phone verifications in flight (`FirebaseAuthBackend.sendPhoneCode`).
+    static let phoneVerifications = OSAllocatedUnfairLock(initialState: 0)
+
+    /// Firebase phone sign-in sends itself a probe notification before texting
+    /// a code; the app delegate hands every remote notification here. Passed
+    /// on only while a verification is running: Auth crashes on a notification
+    /// that arrives before it has finished starting (its notification manager
+    /// is set late), and it's certainly started once it's verifying a number.
+    @MainActor public static func canHandleNotification(_ userInfo: [AnyHashable: Any]) -> Bool {
+        guard isConfigured, phoneVerifications.withLock({ $0 > 0 }) else { return false }
+        return Auth.auth().canHandleNotification(userInfo)
+    }
+
+    /// With push on, phone sign-in proves the app by a silent notification
+    /// instead of reCAPTCHA.
+    @MainActor public static func setAPNSToken(_ token: Data) {
+        guard isConfigured else { return }
+        Auth.auth().setAPNSToken(token, type: .unknown)
+    }
 
     /// The reCAPTCHA page's return trip during phone sign-in.
     @MainActor public static func canHandle(_ url: URL) -> Bool {
