@@ -63,12 +63,10 @@ export const FLAGS_ACTION_TO_BYPASS = {
   BACKCHANNEL_AUDIO_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKCHANNEL_CLIPS: { default: 'on', owner: 'voice', kind: 'config' },
   BACKCHANNEL_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
-  BACKGROUND_TURN_LATENCY_WARNINGS: { default: 'off', owner: 'voice', kind: 'experiment' },
   BARGE_IN_ACK_WORDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   BARGE_IN_FASTPATH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   BARGE_IN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   BRIEFED_HANDOFF: { default: 'off', owner: 'voice', kind: 'experiment' },
-  BYPASS_INJECTION_FILTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   BYPASS_TEAM_UNLOCKS: { default: 'off', owner: 'tools', kind: 'kill-switch' },
 } as const satisfies Record<string, FlagSpec>;
 
@@ -102,12 +100,13 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // First on-behalf dial checks the do-not-call list (first-dial-opt-out.ts)
   ON_BEHALF_DNC_CHECK: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  ON_BEHALF_TEXTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // off: texts to someone else skip the STOP, quiet-hours and 10-minute guards (guarded-text.ts); rollback only
   ON_BEHALF_TEXT_GUARD: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
   OPENER_FOLLOW_UP: { default: 'off', owner: 'memory', kind: 'experiment' },
   OPENER_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: open loops and Ferni's own promises join a call's recall note, once a call (agents/multi-agent/open-loops-recall.ts)
+  OPEN_LOOPS_IN_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   OUTBOUND_CONFIRM: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
   // ms, 10-1000: the room audio output queue; unset keeps the SDK default (1000 ms in 1.5.1)
   OUTPUT_QUEUE_MS: { default: 'sdk', owner: 'voice', kind: 'config' },
