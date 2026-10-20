@@ -360,6 +360,17 @@ final class CallSessionTests: XCTestCase {
         await until(!session.isUserSpeaking)
     }
 
+    /// A name the web's older expression code uses reaches the face it means,
+    /// not neutral (expression audit P1 #9).
+    func testAnAliasedExpressionReachesItsFace() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        rooms.made[0].send(.data(Data(#"{"type":"expression_update","expression":"celebrating"}"#.utf8)))
+        await until(session.avatar.expression == .joyful)
+        XCTAssertEqual(session.avatar.expression, .joyful)
+    }
+
     /// The agent's humanization signals carry a micro-expression; it reaches
     /// the avatar (parity item 2), with the expression it comes with.
     func testAHumanizationSignalFlashesItsMicroExpression() async {
