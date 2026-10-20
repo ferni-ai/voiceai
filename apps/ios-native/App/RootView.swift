@@ -120,32 +120,44 @@ struct TeamScreen: View {
     var body: some View {
         List(PersonaRegistry.all) { persona in
             let here = team.isOnTeam(persona.id)
-            Button {
-                if here { team.choose(persona.id); talk() }
-            } label: {
-                HStack(spacing: FerniSpace.pause) {
-                    AvatarPortrait(persona: WindowPersona(personaId: persona.id), present: here)
-                        .frame(width: 56, height: 56)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("\(persona.name) · \(persona.role)").font(FerniType.headline)
-                        Text(here ? persona.specialty
-                             : team.teasers[persona.id] ?? "\(persona.name) joins as you and Ferni get to know each other.")
-                            .font(FerniType.body)
-                            .foregroundStyle(FerniColor.textSecondary)
-                    }
-                    Spacer(minLength: 0)
-                    if team.chosen == persona.id {
-                        Image(systemName: "checkmark").foregroundStyle(FerniColor.accent).accessibilityHidden(true)
-                    }
-                }
-                .frame(minHeight: 64)
-                .contentShape(.rect)
+            if here {
+                Button {
+                    team.choose(persona.id); talk()
+                } label: { row(persona, here: true) }
+                .buttonStyle(.plain)
+                .accessibilityValue(team.chosen == persona.id ? "Answers next" : "On your team")
+            } else {
+                // Not a dimmed button: information, in the secondary text colour. Disabled,
+                // the system greyed it to #ada9a4, 2.34:1 (design audit P1-15).
+                row(persona, here: false)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityValue("Not on your team yet")
+                    .accessibilityIdentifier("team.notYet.\(persona.id)")
             }
-            .buttonStyle(.plain)
-            .disabled(!here)
-            .accessibilityValue(team.chosen == persona.id ? "Answers next" : here ? "On your team" : "Not on your team yet")
         }
         .navigationTitle("Team")
+    }
+
+    private func row(_ persona: Persona, here: Bool) -> some View {
+        HStack(spacing: FerniSpace.pause) {
+            AvatarPortrait(persona: WindowPersona(personaId: persona.id), present: here)
+                .frame(width: 56, height: 56)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(persona.name) · \(persona.role)")
+                    .font(FerniType.headline)
+                    .foregroundStyle(here ? FerniColor.textPrimary : FerniColor.textSecondary)
+                Text(here ? persona.specialty
+                     : team.teasers[persona.id] ?? "\(persona.name) joins as you and Ferni get to know each other.")
+                    .font(FerniType.body)
+                    .foregroundStyle(FerniColor.textSecondary)
+            }
+            Spacer(minLength: 0)
+            if team.chosen == persona.id {
+                Image(systemName: "checkmark").foregroundStyle(FerniColor.accent).accessibilityHidden(true)
+            }
+        }
+        .frame(minHeight: 64)
+        .contentShape(.rect)
     }
 }
 
