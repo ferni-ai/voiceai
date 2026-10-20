@@ -19,14 +19,10 @@ import { registerInterval, clearNamedInterval } from '../../utils/interval-manag
 
 const log = createLogger({ module: 'UnifiedTrustPersistence' });
 
-// Module-level Firestore instance (lazy initialized)
-let db: FirestoreType | null = null;
-// FIX: Promise-based singleton to prevent race condition
-let dbInitPromise: Promise<FirestoreType | null> | null = null;
+let db: FirestoreType | null = null; // lazy initialized
+let dbInitPromise: Promise<FirestoreType | null> | null = null; // one init, no race
 
-/**
- * Get Firestore connection (lazy initialized)
- */
+/** Get Firestore connection (lazy initialized) */
 async function getFirestore(): Promise<FirestoreType | null> {
   if (db) return db;
   if (dbInitPromise) return dbInitPromise;
@@ -128,6 +124,7 @@ const DEFAULT_CONFIG: PersistenceConfig = {
 let config = { ...DEFAULT_CONFIG };
 const pendingChanges = new Map<string, Set<string>>(); // userId -> set of system names
 const profileCache = new Map<string, UnifiedTrustProfile>();
+const loadedFromStorage = new Set<string>(); // read from Firestore here: only those are written
 let isInitialized = false;
 
 // ============================================================================
@@ -201,7 +198,7 @@ export async function loadUnifiedProfile(userId: string): Promise<UnifiedTrustPr
       .collection('trust')
       .doc('unified_profile')
       .get();
-
+    loadedFromStorage.add(userId);
     if (!doc.exists) {
       return null;
     }
@@ -348,15 +345,15 @@ async function flushUserChanges(userId: string): Promise<void> {
 export function purgeUnifiedUser(userId: string): void {
   profileCache.delete(userId);
   pendingChanges.delete(userId);
+  loadedFromStorage.delete(userId); // the next session reloads before it writes
 }
 
-/**
- * Persist a profile to Firestore
- */
+/** Persist a profile to Firestore */
 async function persistProfile(userId: string, profile: UnifiedTrustProfile): Promise<void> {
   try {
     // MINOR_CARE: every path (timer, write-through, session end) checks at write time, and drops
     if (userHeld(userId)) return purgeUnifiedUser(userId);
+    if (!loadedFromStorage.has(userId)) return log.warn({ userId }, 'Not written: never loaded');
     const firestore = await getFirestore();
     if (!firestore) return;
 
@@ -435,6 +432,7 @@ export async function migrateToUnifiedProfile(userId: string): Promise<boolean> 
     profile.systems = systems;
     profile.systemVersions = systemVersions;
 
+    loadedFromStorage.add(userId); // the old documents were read above
     await persistProfile(userId, profile);
     profileCache.set(userId, profile);
 
