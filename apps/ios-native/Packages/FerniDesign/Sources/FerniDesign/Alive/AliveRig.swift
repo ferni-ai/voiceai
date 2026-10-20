@@ -314,9 +314,9 @@ public final class AliveRig {
     /// Something the prototype drew around Ferni, for the view's overlay. In
     /// Ferni radii from his centre, y up.
     public struct Particle: Equatable, Sendable {
-        /// z (tired), sweat (nervous), question (confused) and bang (surprised)
-        /// arrive once with the expression, as in the prototype's playFx.
-        public enum Kind: Sendable { case sparkle, heart, firefly, z, sweat, question, bang }
+        /// z (sleepy, drowsy, resting; at home) and sweat (nervous,
+        /// embarrassed) arrive once with the expression, as in the prototype's playFx.
+        public enum Kind: Sendable { case sparkle, heart, firefly, z, sweat }
         public var kind: Kind
         public var x: Double, y: Double, size: Double, alpha: Double
         public var rotation = 0.0
@@ -623,11 +623,12 @@ public final class AliveRig {
 
     /// The prototype's emit() for the feelings with weight, in Ferni radii (y up):
     /// three z's drifting up one after another, a bead of sweat that slides
-    /// down, a ? or ! above his head, and hearts for warmth.
+    /// down, and hearts for warmth.
     private func emitFeeling(_ effect: String?, burst: (Particle.Kind, Int) -> Void) {
         let held = reduceMotion
         switch effect {
-        case "z":
+        // z's at home only: in a call a sleepy face is a mood, not sleep.
+        case "z" where activity == .idle:
             for i in 0..<3 {
                 let d = Double(i)
                 sparks.append(Spark(kind: .z, x: 0.55 + d * 0.12, y: 0.75 + d * 0.1, vx: held ? 0 : rng.range(0.09, 0.16),
@@ -635,10 +636,6 @@ public final class AliveRig {
             }
         case "sweat":
             sparks.append(Spark(kind: .sweat, x: 0.72, y: 0.55, vx: 0, vy: held ? 0 : -0.05, size: 0.18, born: time, life: 1.8, ay: held ? 0 : -0.55))
-        case "question", "bang":
-            let question = effect == "question"
-            sparks.append(Spark(kind: question ? .question : .bang, x: 0.62, y: 1.05, vx: 0, vy: held ? 0 : 0.07, size: 0.3,
-                                born: time, life: 1.5, rotation: question ? 0.18 : -0.12))
         case "heart":
             burst(.heart, 4)
         default:
