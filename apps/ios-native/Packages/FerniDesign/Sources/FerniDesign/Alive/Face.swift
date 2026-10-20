@@ -118,12 +118,17 @@ public struct Face: Equatable, Sendable {
         "realizing": (-8, -8), "shifting": (8, 0), "settling": (14, 4), "farewell": (22, 12),
     ]
 
+    /// The warm faces that show hearts.
+    static let hearts: Set<String> = ["loving", "tender", "nurturing", "caring"]
+
     /// The Luxo head tilt: curious faces lean in with the whole body.
     static let tilt: [String: Double] = [
         "curious": 0.22, "intrigued": 0.17, "interested": 0.12, "puzzled": 0.19, "confused": 0.15,
         "skeptical": 0.1, "attentive": 0.05, "wondering": 0.18,
         // A knowing tilt: without it wise rendered as peaceful (expression audit twins).
         "wise": 0.08,
+        // Leaning in to someone who's hurting: it rendered as caring.
+        "compassionate": 0.1,
     ]
     static let familyEffect: [String: String] = [
         "happy": "sparkle", "warmth": "heart", "tired": "z", "nervous": "sweat", "confused": "question",
@@ -198,6 +203,14 @@ public struct Face: Equatable, Sendable {
         }
         f.animation = e.animation
         f.effect = e.sparkleGroup != nil ? "sparkle" : id == "crying" ? "tears" : familyEffect[e.family]
+        // Hearts are for love and tenderness, not every warm face: four clumped
+        // hearts on supportive (the face for someone struggling) read as cute at
+        // the wrong moment (expression audit P1 #10). The other warm faces swell
+        // the glow instead.
+        if e.family == "warmth", !Self.hearts.contains(id) {
+            f.effect = nil
+            f.glow = max(f.glow, 0.8)
+        }
         f.family = e.family
         return f
     }
