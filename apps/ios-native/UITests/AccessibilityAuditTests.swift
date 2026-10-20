@@ -20,7 +20,8 @@ final class AccessibilityAuditTests: XCTestCase {
     /// contrast finding with the Privacy link at 873 pt, Dynamic Type with it
     /// 35 pt higher, none in the old order). The screen is nudged once, 120 pt,
     /// and audited again: a no-element finding of the same type in both
-    /// positions fails. Only one nudge, never a search for a passing position.
+    /// positions fails. Only one nudge, never a search for a passing position,
+    /// and only on a screen the nudge actually scrolls (otherwise they fail).
     /// Every finding waved through is printed and kept as an attachment
     /// ("audit-waved-through …") for a reviewer; testTheGateStillFails proves a
     /// faint unlabelled line mid-screen still fails.
@@ -32,9 +33,18 @@ final class AccessibilityAuditTests: XCTestCase {
             return true
         }
         guard !held.isEmpty else { return }
+        // Only a screen that scrolls has a second position (critic M2): if the
+        // nudge moves nothing, every held finding fails where it stands.
+        let texts = app.staticTexts.allElementsBoundByIndex.prefix(12)
+        let before = texts.map(\.frame)
         let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
         start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -120)))
         sleep(1)
+        let moved = zip(before, texts.map { $0.exists ? $0.frame : .zero }).contains { abs($0.minY - $1.minY) > 20 }
+        guard moved else {
+            for h in held { XCTFail("AUDIT [\(name)] no element, and the screen doesn't scroll: \(h.what)") }
+            return
+        }
         var again: [Unnamed] = []
         try app.performAccessibilityAudit(for: .all) { issue in
             guard issue.element == nil else { return true } // the first pass judged the named ones
