@@ -11,6 +11,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const stored = vi.hoisted(() => [] as { path: string; data: unknown }[]);
+/** Per user: called after each of their writes lands, with how many have landed. */
+const afterWrite = vi.hoisted(() => new Map<string, (count: number) => unknown>());
 const fakeDb = vi.hoisted(() => {
   const empty = { exists: false, empty: true, docs: [], size: 0, data: () => undefined };
   const ref = (path: string): Record<string, unknown> =>
@@ -20,7 +22,12 @@ const fakeDb = vi.hoisted(() => {
         collection: (name: string) => ref(`${path}/${name}`),
         doc: (id = 'auto') => ref(`${path}/${id}`),
         get: async () => empty,
-        set: async (data: unknown) => void stored.push({ path, data }),
+        set: async (data: unknown) => {
+          stored.push({ path, data });
+          for (const [userId, fn] of afterWrite)
+            if (path.includes(userId))
+              await fn(stored.filter((w) => w.path.includes(userId)).length);
+        },
         add: async (data: unknown) => void stored.push({ path, data }),
         update: async (data: unknown) => void stored.push({ path, data }),
       } as Record<string | symbol, unknown>,
@@ -182,6 +189,28 @@ describe('deep understanding: each system forgets the user; writes need a reload
     expect(writesFor(userId)).toEqual([]);
     await loadDeepUnderstandingProfiles(userId);
     expect((await saveDeepUnderstandingProfiles(userId)).saved.length).toBeGreaterThan(0);
+  });
+
+  it('a hold that starts after the 3rd write stops the remaining writes', async () => {
+    const userId = user();
+    await loadDeepUnderstandingProfiles(userId);
+    afterWrite.set(userId, (count) => void (count === 3 && hold(userId)));
+    await saveDeepUnderstandingProfiles(userId);
+    afterWrite.delete(userId);
+    expect(writesFor(userId)).toHaveLength(3);
+  });
+
+  it('a purge (and a reload) after the 3rd write stops the save that began before it', async () => {
+    const userId = user();
+    await loadDeepUnderstandingProfiles(userId);
+    afterWrite.set(userId, async (count) => {
+      if (count !== 3) return;
+      purgeHeldUser(userId);
+      await loadDeepUnderstandingProfiles(userId); // loaded again: only the generation stops it
+    });
+    await saveDeepUnderstandingProfiles(userId);
+    afterWrite.delete(userId);
+    expect(writesFor(userId)).toHaveLength(3);
   });
 
   it("a held user's write is refused at write time", async () => {
