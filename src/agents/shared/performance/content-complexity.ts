@@ -1,5 +1,5 @@
 /**
- * Content complexity analysis for adaptive pacing (POST_TTS_ADAPTIVE_PACING).
+ * Content complexity analysis for adaptive pacing.
  *
  * @module agents/shared/performance/content-complexity
  */
@@ -7,7 +7,7 @@
 /**
  * Analyze text content to determine complexity for adaptive pacing.
  *
- * This enables the POST_TTS_ADAPTIVE_PACING feature to automatically adjust
+ * Adaptive pacing (PostTTSConfig.enableAdaptivePacing) uses it to adjust
  * speech tempo based on how complex the content is:
  * - Complex content (technical, multi-clause) → slower pacing for comprehension
  * - Simple content (casual, short) → natural/faster pacing

@@ -31,7 +31,13 @@ const SERVER_FLAGS = [
   'COHORT_FLAGS=on',
   'PROACTIVE_CHANNELS=on',
   'FOLLOW_THROUGH_JOB=on',
+  // The hourly pondering job (ponder-job.ts). On the web server it reads only the
+  // friends-and-family cohort plus PONDERING_USERS, and only writes their pondering doc.
+  'PONDERING=on',
 ];
+
+/** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */
+const PROACTIVE_USERS_SECRET = 'PROACTIVE_CHANNELS_USERS=proactive-channels-users:latest';
 
 /** The `--set-env-vars` value of the workflow's john-bogle-ui deploy, split on its `::` delimiter. */
 function workflowEnv(): string[] {
@@ -42,14 +48,39 @@ function workflowEnv(): string[] {
   return m![1].split('::');
 }
 
+/** The `--set-secrets` value of the workflow's john-bogle-ui deploy, split on commas. */
+function workflowSecrets(): string[] {
+  const start = workflow.search(/run deploy john-bogle-ui\b/);
+  expect(start).toBeGreaterThan(-1);
+  const m = /--set-secrets "([^"]*)"/.exec(workflow.slice(start));
+  expect(m).not.toBeNull();
+  return m![1].split(',');
+}
+
 describe('web-server flags survive a deploy', () => {
   it.each(SERVER_FLAGS)('the production workflow sets %s', (flag) => {
     expect(workflowEnv()).toContain(flag);
+  });
+
+  it('the production workflow mounts the proactive allowlist from Secret Manager', () => {
+    expect(workflowSecrets()).toContain(PROACTIVE_USERS_SECRET);
+  });
+
+  it('never puts the proactive allowlist in plain env', () => {
+    expect(workflowEnv().filter((v) => v.startsWith('PROACTIVE_CHANNELS_USERS='))).toEqual([]);
   });
 
   it('the What Ferni Knows build flag reaches both web builds', () => {
     expect(firebase).toMatch(/VITE_MEMORY_VIEW: \$\{\{ vars\.VITE_MEMORY_VIEW \}\}/);
     expect(workflow).toMatch(/--build-arg VITE_MEMORY_VIEW="\$\{\{ vars\.VITE_MEMORY_VIEW \}\}"/);
     expect(dockerfile).toMatch(/ARG VITE_MEMORY_VIEW=""\nENV VITE_MEMORY_VIEW=\$VITE_MEMORY_VIEW/);
+  });
+
+  // The toasts kill switch (apps/web/src/ui/overlay/toast-flag.ts) must reach both
+  // builds, or setting VITE_TOAST_REGION=off would change nothing.
+  it('the toast-region kill switch reaches both web builds', () => {
+    expect(firebase).toMatch(/VITE_TOAST_REGION: \$\{\{ vars\.VITE_TOAST_REGION \}\}/);
+    expect(workflow).toMatch(/--build-arg VITE_TOAST_REGION="\$\{\{ vars\.VITE_TOAST_REGION \}\}"/);
+    expect(dockerfile).toMatch(/ARG VITE_TOAST_REGION=""\nENV VITE_TOAST_REGION=\$VITE_TOAST_REGION/);
   });
 });

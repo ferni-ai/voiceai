@@ -1,3 +1,4 @@
+import FerniDesign
 import Foundation
 import AVFoundation
 import Combine
@@ -59,6 +60,8 @@ class IOSLiveKitSession: ObservableObject {
     @Published private(set) var transcriptMessages: [TranscriptMessage] = []
     @Published private(set) var isMuted: Bool = false
     @Published private(set) var connectionProgress: String = ""
+    /// Set when /token answers 403 WAITLISTED: the waiting screen shows instead of an error
+    @Published private(set) var waitlist: WaitlistStatus?
 
     // Handoff state
     @Published private(set) var isHandoffInProgress: Bool = false
@@ -265,7 +268,13 @@ class IOSLiveKitSession: ObservableObject {
         connectionProgress = "Getting access token..."
 
         // Fetch token
+        waitlist = nil
         guard let tokenData = await fetchToken() else {
+            if waitlist != nil {
+                sessionLog.info("Token refused: on the waitlist")
+                state = .disconnected  // not an error: they're in line
+                return
+            }
             sessionLog.error("Failed to fetch token")
             state = .error("Failed to get token")
             return
@@ -472,6 +481,12 @@ class IOSLiveKitSession: ObservableObject {
         return false
     }
 
+    /// The waiting screen was closed ("Not now" / "Come in").
+    @MainActor
+    func dismissWaitlist() {
+        waitlist = nil
+    }
+
     // MARK: - Token Fetch
 
     private struct TokenResponse: Decodable {
@@ -479,6 +494,17 @@ class IOSLiveKitSession: ObservableObject {
         let url: String
         let room: String
         let sessionId: String?
+    }
+
+    /// GET /api/waitlist/me; nil when it can't be read.
+    private func fetchWaitlistMe(authorization: String?) async -> WaitlistStatus? {
+        guard let url = URL(string: "\(tokenServer)/api/waitlist/me") else { return nil }
+        var request = URLRequest(url: url)
+        request.setValue(authorization, forHTTPHeaderField: "Authorization")
+        guard let (data, response) = try? await URLSession.shared.data(for: request),
+              (response as? HTTPURLResponse)?.statusCode == 200
+        else { return nil }
+        return WaitlistStatus.fromMe(data)
     }
 
     private func fetchToken() async -> TokenResponse? {
@@ -504,6 +530,14 @@ class IOSLiveKitSession: ObservableObject {
             let (data, response) = try await URLSession.shared.data(for: request)
 
             if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                if let status = WaitlistStatus.fromRefusal(statusCode: httpResponse.statusCode, body: data) {
+                    // Refused without details: show the soft screen now, then ask where they stand
+                    await MainActor.run { self.waitlist = status }
+                    if status.detailsUnknown, let details = await fetchWaitlistMe(authorization: request.value(forHTTPHeaderField: "Authorization")) {
+                        await MainActor.run { self.waitlist = details }
+                    }
+                    return nil
+                }
                 sessionLog.error("Token request failed with status \(httpResponse.statusCode)")
                 return nil
             }
