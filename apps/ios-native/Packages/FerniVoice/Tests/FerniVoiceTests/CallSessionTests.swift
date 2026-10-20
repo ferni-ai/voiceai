@@ -727,3 +727,53 @@ final class RemoteDurationTests: XCTestCase {
         XCTAssertEqual(RemoteDuration.seconds(1.5), .milliseconds(1500))
     }
 }
+
+// MARK: - The waitlist (#1988's screen, in the new app)
+
+extension CallSessionTests {
+    private static let inLine = WaitlistStatus(status: "waiting", position: 432, wavesAway: 4)
+
+    /// Talk refused for the waitlist: their place, back to rest, and not a failure
+    /// (no error face, sound or "Try again").
+    func testAWaitlistedAccountGetsItsPlaceNotAnError() async {
+        tokens.error = FerniAPIError.waitlisted(Self.inLine)
+        let session = makeSession()
+        XCTAssertNil(session.waitlist)
+        session.start()
+        await until(session.waitlist == Self.inLine)
+        XCTAssertEqual(session.phase, .idle)
+        XCTAssertTrue(rooms.made.isEmpty, "no room for someone still in line")
+        XCTAssertEqual(tokens.requests.count, 1, "and no retry")
+        session.closeWaitlist()
+        XCTAssertNil(session.waitlist)
+    }
+
+    /// An admitted account never sees it.
+    func testAnAdmittedAccountNeverSeesTheWaitlist() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        XCTAssertNil(session.waitlist)
+    }
+
+    /// Any other refusal is still an error with words to act on.
+    func testA403ThatIsNotTheWaitlistStaysAnError() async {
+        tokens.error = FerniAPIError.status(403)
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .failed(.notSignedIn))
+        XCTAssertNil(session.waitlist)
+    }
+
+    /// Talk again (their spot opened) starts clean.
+    func testTalkingAgainClearsTheWaitlist() async {
+        tokens.error = FerniAPIError.waitlisted(Self.inLine)
+        let session = makeSession()
+        session.start()
+        await until(session.waitlist != nil)
+        tokens.error = nil
+        session.start()
+        XCTAssertNil(session.waitlist)
+        await until(session.phase == .live)
+    }
+}

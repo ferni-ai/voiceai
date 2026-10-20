@@ -65,6 +65,7 @@ final class AccessibilityAuditTests: XCTestCase {
     func testConsent() throws { try audit(.consent, size: .standard); try audit(.consent, size: .ax5) }
     func testSettings() throws { try audit(.settings, size: .standard); try audit(.settings, size: .ax5) }
     func testCall() throws { try audit(.call, size: .standard); try audit(.call, size: .ax5) }
+    func testWaitlist() throws { try audit(.waitlist, size: .standard); try audit(.waitlist, size: .ax5) }
 
     /// The overrides reach the views (so the snapshots below show those paths),
     /// and an ordinary launch doesn't have them.

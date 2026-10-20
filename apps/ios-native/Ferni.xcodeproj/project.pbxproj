@@ -57,6 +57,7 @@
 		89C6C497D887627D3AFD147D /* handoff-to-alex.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */; };
 		8D43BE71BA55A181C28E990A /* Sentry-Dynamic in Frameworks */ = {isa = PBXBuildFile; productRef = B0FFE05E246C1F74D336D1D5 /* Sentry-Dynamic */; };
 		8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */; };
+		96CE1F719A503FE95C9F392A /* WaitingScreenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A9BA6FE2BCA7A20529FAF50 /* WaitingScreenTests.swift */; };
 		9B5B3E0DC766449E9764FA0D /* handoff-to-jordan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 649C35992ED39D62D2F8714A /* handoff-to-jordan.mp3 */; };
 		9D3C3C27AA79ECED1768D30E /* EndCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */; };
 		9F244EF18E695FB66A1F961B /* WatchRemote.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE2FE78E70E6B38E7C790922 /* WatchRemote.swift */; };
@@ -81,6 +82,7 @@
 		CF99FB01C1F6E7CF14AF4FCA /* AppModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */; };
 		CFB4A2A20FF174CCCBC95045 /* CallFeedback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49306E5B24BD5C520DBE56ED /* CallFeedback.swift */; };
 		D1583676262D8254FE6C3D86 /* LiveActivityController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C643B5190988DED731CADF82 /* LiveActivityController.swift */; };
+		D4096E38AC9A8E5E87A93DF6 /* WaitingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EACADCDEBFCC9BE4949C943 /* WaitingView.swift */; };
 		D97964358313EBBFF83DB5B6 /* Foley.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF1DD1C23E8F40636385BCA6 /* Foley.swift */; };
 		DA508231BAC73A0C503073A2 /* FerniSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148438D4C1E42EF27B5A09AC /* FerniSceneDelegate.swift */; };
 		DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */; };
@@ -181,6 +183,7 @@
 		02CC2476B0294D4796003A93 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		03F678B752992C142D10FE5E /* AudioRoutePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRoutePicker.swift; sourceTree = "<group>"; };
 		0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
+		0EACADCDEBFCC9BE4949C943 /* WaitingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitingView.swift; sourceTree = "<group>"; };
 		0F086DF8C257F87FC0940C6A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		127F69758285759483323D63 /* NextDayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextDayTests.swift; sourceTree = "<group>"; };
 		12AD4DC924A1BFC0A91BA221 /* FerniKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniKit; path = Packages/FerniKit; sourceTree = SOURCE_ROOT; };
@@ -196,6 +199,7 @@
 		346AABA0EB545D4C92B2D8CD /* CallViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallViews.swift; sourceTree = "<group>"; };
 		351D4C8121FCCE2BDDE55A5E /* FerniVoice */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniVoice; path = Packages/FerniVoice; sourceTree = SOURCE_ROOT; };
 		3751457DBC4CF962D924D247 /* NextStepTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextStepTests.swift; sourceTree = "<group>"; };
+		3A9BA6FE2BCA7A20529FAF50 /* WaitingScreenTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitingScreenTests.swift; sourceTree = "<group>"; };
 		3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FerniWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3CC0928CF00671D4E0E8D998 /* NoteTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteTests.swift; sourceTree = "<group>"; };
 		3CC34062567D316808D0D03C /* ConsentSheetTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentSheetTests.swift; sourceTree = "<group>"; };
@@ -398,6 +402,7 @@
 				47728781CB10E67E259A236C /* SignInUITests.swift */,
 				AE06F525671F6FD0FBC7779D /* StoreScreenshotTests.swift */,
 				41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */,
+				3A9BA6FE2BCA7A20529FAF50 /* WaitingScreenTests.swift */,
 			);
 			path = UITests;
 			sourceTree = "<group>";
@@ -432,6 +437,7 @@
 				E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */,
 				B7634ABC1059A12DE12D714D /* TeamSpotlight.swift */,
 				58F17318F25CDB7266DAE932 /* UITestScenario.swift */,
+				0EACADCDEBFCC9BE4949C943 /* WaitingView.swift */,
 				AE2FE78E70E6B38E7C790922 /* WatchRemote.swift */,
 				D4C06A9CF9494E3A7EC15BDE /* Sounds */,
 			);
@@ -758,6 +764,7 @@
 				E88BB02A6FEC21AF520A766B /* TalkIntent.swift in Sources */,
 				61BEA8F1B053CC170C3118CF /* TeamSpotlight.swift in Sources */,
 				BC287679EE1EF47277B6C045 /* UITestScenario.swift in Sources */,
+				D4096E38AC9A8E5E87A93DF6 /* WaitingView.swift in Sources */,
 				9F244EF18E695FB66A1F961B /* WatchRemote.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -789,6 +796,7 @@
 				85999614D935C3EB4A80F82B /* SignInUITests.swift in Sources */,
 				124CC2F5CBCF36E657BE6075 /* StoreScreenshotTests.swift in Sources */,
 				49961E1E4E6B791C493108B4 /* TalkButtonTests.swift in Sources */,
+				96CE1F719A503FE95C9F392A /* WaitingScreenTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

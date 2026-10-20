@@ -40,6 +40,9 @@ public final class CallSession {
     public private(set) var roomName: String?
     public private(set) var captions = CaptionBook()
     public private(set) var personaID = "ferni"
+    /// Talk was refused because this account is still on the waitlist: where
+    /// they stand. The app shows their place in line instead of an error.
+    public private(set) var waitlist: WaitlistStatus?
     /// Whether this phone has ever had a call go live (Home's first-visit hello).
     public private(set) var hasTalked: Bool
     private let defaults: UserDefaults
@@ -114,6 +117,7 @@ public final class CallSession {
     public func start(personaID: String = "ferni", prepare: (@MainActor () async -> Bool)? = nil) {
         guard !isActive else { return }
         self.personaID = personaID
+        waitlist = nil
         isMuted = false // a new call starts unmuted (critic M1)
         avatar.send(.connectTapped(personaID: personaID))
         let id = UUID()
@@ -276,6 +280,9 @@ public final class CallSession {
             case .ferniMissing:
                 log.error("Ferni didn't join (attempt \(attempt)); leaving room \(self.roomName ?? "-", privacy: .public)")
                 await leaveRoom()
+            case .failed(.waitlisted(let place)):
+                await leaveRoom()
+                return stepAside(for: place)
             case .failed(let problem):
                 await leaveRoom()
                 return fail(problem)
@@ -419,6 +426,25 @@ public final class CallSession {
         agentLevel.reset()
     }
 
+    /// Not a failure: they're in line. Back to rest, no error sound or face,
+    /// and the system call ends as an ordinary one.
+    private func stepAside(for place: WaitlistStatus) {
+        log.info("Token refused: on the waitlist")
+        lastCallWasGood = false
+        liveSince = nil
+        waitlist = place
+        phase = .idle
+        avatar.send(.ended)
+        isOnHold = false
+        if let id = callID {
+            callID = nil
+            Task { await lifecycle?.ended(id: id, failed: false) }
+        }
+    }
+
+    /// The waiting screen was closed.
+    public func closeWaitlist() { waitlist = nil }
+
     private func fail(_ problem: CallProblem) {
         lastCallWasGood = false
         liveSince = nil
@@ -540,10 +566,13 @@ public enum CallProblem: Equatable, Sendable {
     case server(Int)
     case ferniDidNotJoin
     case connectionLost
+    /// Not admitted yet; never shown as an error (see `CallSession.waitlist`).
+    case waitlisted(WaitlistStatus)
 
     init(_ error: Error) {
         switch error as? FerniAPIError {
         case .notSignedIn?: self = .notSignedIn
+        case .waitlisted(let place)?: self = .waitlisted(place)
         case .status(let code)?: self = code == 401 || code == 403 ? .notSignedIn : .server(code)
         case .unreachable?, nil: self = .offline
         }
@@ -563,6 +592,8 @@ public enum CallProblem: Equatable, Sendable {
             "Ferni couldn't join right now. Try again in a minute."
         case .connectionLost:
             "Lost the connection. Call back?"
+        case .waitlisted:
+            "You’re on the list. I’ll let you know as soon as your spot opens."
         }
     }
 }

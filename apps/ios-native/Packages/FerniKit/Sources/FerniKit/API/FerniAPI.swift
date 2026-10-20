@@ -8,6 +8,9 @@ public enum FerniAPIError: Error, Equatable, Sendable {
     case status(Int)
     /// The request never got an answer (offline, timed out).
     case unreachable
+    /// A 403 saying the account isn't admitted yet: where they stand in line.
+    /// Only for requests made with `readsWaitlist`.
+    case waitlisted(WaitlistStatus)
 }
 
 /// Calls the same JSON endpoints the web app uses, as the signed-in account:
@@ -35,23 +38,27 @@ public struct FerniAPI: Sendable {
     }
 
     /// The response body of a 2xx answer.
+    /// - Parameter readsWaitlist: a 403 that says the account is on the
+    ///   waitlist throws `.waitlisted` instead of `.status(403)`. Off by
+    ///   default, so other callers keep reading a 403 as they always have.
     public func data(
         _ path: String,
         method: String = "GET",
         query: [URLQueryItem] = [],
         json body: (any Encodable & Sendable)? = nil,
-        timeout: TimeInterval = 15
+        timeout: TimeInterval = 15,
+        readsWaitlist: Bool = false
     ) async throws -> Data {
         guard let token = await idToken(false) else { throw FerniAPIError.notSignedIn }
         var request = try makeRequest(path, method: method, query: query, body: body, timeout: timeout)
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         let (data, status) = try await perform(request)
-        guard status == 401 else { return try accept(data, status) }
+        guard status == 401 else { return try accept(data, status, readsWaitlist: readsWaitlist) }
 
         guard let fresh = await idToken(true) else { throw FerniAPIError.notSignedIn }
         request.setValue("Bearer \(fresh)", forHTTPHeaderField: "Authorization")
         let (retryData, retryStatus) = try await perform(request)
-        return try accept(retryData, retryStatus)
+        return try accept(retryData, retryStatus, readsWaitlist: readsWaitlist)
     }
 
     private func makeRequest(
@@ -81,7 +88,10 @@ public struct FerniAPI: Sendable {
         }
     }
 
-    private func accept(_ data: Data, _ status: Int) throws -> Data {
+    private func accept(_ data: Data, _ status: Int, readsWaitlist: Bool) throws -> Data {
+        if readsWaitlist, let place = WaitlistStatus.fromRefusal(statusCode: status, body: data) {
+            throw FerniAPIError.waitlisted(place)
+        }
         guard (200..<300).contains(status) else { throw FerniAPIError.status(status) }
         return data
     }
