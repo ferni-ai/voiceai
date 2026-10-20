@@ -78,6 +78,9 @@ struct ConsentView: View {
                 Link(destination: URL(string: "https://ferni.ai/terms")!) { Self.row("Terms") }
             }
             .font(FerniType.body)
+            // Medium, like Home's line: in regular weight the audit failed "Terms" on
+            // contrast though it's #3D5A45 on paper, 7:1 (design audit P1-10).
+            .fontWeight(.medium)
             .tint(FerniColor.accent)
         }
         .frame(maxWidth: 560, alignment: .leading)

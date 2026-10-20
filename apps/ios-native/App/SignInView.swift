@@ -63,7 +63,7 @@ struct SignInView: View {
                             if tried == .apple || tried == .google, let problem { Self.problemText(problem) }
                         }
 
-                        Self.divider
+                        Divider()
                         phone
                     }
                     .frame(maxWidth: 480)
@@ -97,8 +97,12 @@ struct SignInView: View {
                 .disabled(account.isWorking)
                 .accessibilityIdentifier("signIn.continue")
                 .padding(.horizontal, FerniSpace.rest)
+                .padding(.top, FerniSpace.breath)
                 .padding(.bottom, FerniSpace.breath)
                 .tint(FerniColor.accent)
+                // The words scroll under the button; they shouldn't show through around
+                // it (at AX5 the audit read the divider through the glass), as on consent.
+                .background(FerniColor.background.ignoresSafeArea(edges: .bottom))
                 .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { buttonHeight = $0 }
             }
             .background(FerniColor.background.ignoresSafeArea())
@@ -165,16 +169,28 @@ struct SignInView: View {
         }
     }
 
-    private static var divider: some View {
-        HStack(spacing: FerniSpace.pause) {
-            Rectangle().fill(FerniColor.border).frame(height: 1)
-            Text("or with your phone number")
-                .font(FerniType.footnote)
-                .foregroundStyle(FerniColor.textSecondary)
-                .fixedSize()
-                .accessibilityAddTraits(.isHeader)
-            Rectangle().fill(FerniColor.border).frame(height: 1)
+    /// "or with your phone number" between two rules; at accessibility sizes the
+    /// words alone, wrapping. Held to one line they pushed the sheet wider than
+    /// the screen at AX5, and with the rules beside the wrapped lines the audit
+    /// failed them on contrast (design audit P1-10).
+    private struct Divider: View {
+        @Environment(\.dynamicTypeSize) private var typeSize
+
+        var body: some View {
+            HStack(spacing: FerniSpace.pause) {
+                if !typeSize.isAccessibilitySize { rule }
+                Text("or with your phone number")
+                    .font(FerniType.footnote)
+                    .fontWeight(.medium)
+                    .foregroundStyle(FerniColor.textSecondary)
+                    .multilineTextAlignment(.center)
+                    .layoutPriority(1)
+                    .accessibilityAddTraits(.isHeader)
+                if !typeSize.isAccessibilitySize { rule }
+            }
         }
+
+        private var rule: some View { Rectangle().fill(FerniColor.border).frame(minWidth: 16, maxHeight: 1) }
     }
 
     private static let problemID = "signIn.problem"

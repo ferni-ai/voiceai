@@ -166,6 +166,7 @@ private struct RestingLine: View {
     /// The minute it is, so the greeting changes with the day.
     let now: Date
     @Environment(\.openURL) private var openURL
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         VStack(spacing: FerniSpace.breath) {
@@ -189,6 +190,15 @@ private struct RestingLine: View {
             }
         }
         .multilineTextAlignment(.center)
+        // At accessibility sizes the words grow down over Ferni's glow and the
+        // room's gradient, and the audit failed the line on contrast in every
+        // band though it reads 6.4:1 (design audit P1-10): a paper plate under it.
+        .padding(typeSize.isAccessibilitySize ? FerniSpace.pause : 0)
+        .background {
+            if typeSize.isAccessibilitySize {
+                RoundedRectangle(cornerRadius: FerniRadius.large).fill(FerniColor.background)
+            }
+        }
     }
 
     private static func hour(at date: Date) -> Int {
