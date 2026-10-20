@@ -733,9 +733,9 @@ describe('Sites API Routes', () => {
       analytics: { views: 0 },
     };
 
-    async function serve(path: string) {
+    async function serve(path: string, record: Record<string, unknown> = site) {
       mockFirestoreGet.mockResolvedValueOnce({ empty: true, docs: [] });
-      mockFirestoreGet.mockResolvedValueOnce({ exists: true, id: 'site_1', data: () => site });
+      mockFirestoreGet.mockResolvedValueOnce({ exists: true, id: 'site_1', data: () => record });
       mockFirestoreUpdate.mockResolvedValue(undefined);
       const res = createMockResponse();
       await handleSitesRoutes(createMockRequest('GET', path), res, path);
@@ -757,6 +757,116 @@ describe('Sites API Routes', () => {
       expect(sandbox).toBe('sandbox allow-scripts allow-forms allow-popups');
       expect(csp).not.toContain('allow-same-origin');
       expect(res._headers['X-Content-Type-Options']).toBe('nosniff');
+    });
+
+    const directives = (res: { _headers: Record<string, string> }) =>
+      (res._headers['Content-Security-Policy'] ?? '').split(';').map((d) => d.trim());
+
+    it.each([
+      ['uploaded', { kind: 'uploaded' }],
+      ['without a kind', {}],
+      ['with an unknown kind', { kind: 'Generated' }],
+    ])('a site %s stays sandboxed', async (_label, extra) => {
+      for (const path of ['/sites/site_1', '/sites/site_1/deep/route']) {
+        const res = await serve(path, { ...site, ...extra });
+        expect(directives(res)).toContain('sandbox allow-scripts allow-forms allow-popups');
+      }
+    });
+
+    it.each(['/sites/site_1', '/sites/site_1/deep/route'])(
+      'a page our templates rendered (%s) keeps the app origin, nosniff and a tight policy',
+      async (path) => {
+        const res = await serve(path, { ...site, kind: 'generated' });
+        const csp = directives(res);
+        expect(csp.some((d) => d.startsWith('sandbox'))).toBe(false);
+        expect(res._headers['X-Content-Type-Options']).toBe('nosniff');
+        expect(csp.join(';')).not.toContain('unsafe-eval');
+        expect(csp).toContain("object-src 'none'");
+        expect(csp).toContain("base-uri 'self'");
+        const scripts = csp.find((d) => d.startsWith('script-src')) ?? '';
+        expect(scripts).not.toMatch(/https:\/\/cdn\.jsdelivr\.net(\s|$)/);
+        const connect = csp.find((d) => d.startsWith('connect-src')) ?? '';
+        expect(connect).not.toContain('googleapis');
+      }
+    );
+  });
+
+  describe('the server, not the publisher, records what kind of site it is', () => {
+    const hostile = '</script><script>alert(1)</script>"onload="alert(1)\\';
+
+    function savedSite(): Record<string, unknown> & { files: Record<string, string> } {
+      expect(mockFirestoreSet).toHaveBeenCalledTimes(1);
+      return mockFirestoreSet.mock.calls[0][0];
+    }
+
+    async function generateAndDeploy(config: Record<string, unknown>) {
+      mockGetUserId.mockReturnValue('user-123');
+      mockParseBody.mockResolvedValue({ config, kind: 'uploaded' });
+      mockFirestoreSet.mockResolvedValue(undefined);
+      const path = '/api/sites/generate-and-deploy';
+      await handleSitesRoutes(createMockRequest('POST', path), createMockResponse(), path);
+    }
+
+    const baseConfig = {
+      agent: { id: 'agent-1', name: 'Ada', initials: 'AD', tagline: 't', description: 'd' },
+      brand: { primary: '#96151D' },
+    };
+
+    it('an uploaded site is recorded as uploaded even when the body claims otherwise', async () => {
+      mockGetUserId.mockReturnValue('user-123');
+      mockParseBody.mockResolvedValue({
+        files: { 'index.html': '<html></html>' },
+        kind: 'generated',
+      });
+      mockFirestoreSet.mockResolvedValue(undefined);
+      const path = '/api/sites/deploy';
+      await handleSitesRoutes(createMockRequest('POST', path), createMockResponse(), path);
+      expect(savedSite().kind).toBe('uploaded');
+    });
+
+    it('a generated page is recorded as generated and renders hostile input inert', async () => {
+      await generateAndDeploy({
+        ...baseConfig,
+        agent: {
+          ...baseConfig.agent,
+          name: hostile,
+          displayName: hostile,
+          tagline: '"><img src=x onerror=alert(1)>',
+          conversationStarters: [hostile],
+          quote: { text: hostile, context: hostile },
+        },
+        brand: { ...baseConfig.brand, logoUrl: 'javascript:alert(1)' },
+        seo: { title: `</title>${hostile}`, description: hostile },
+        footer: { links: [{ label: hostile, href: 'javascript:alert(1)' }], disclaimer: hostile },
+        customJs: 'alert(1)',
+        customCss: '</style><script>alert(1)</script>',
+        deployment: { tokenEndpoint: 'https://collector.example/t', livekitUrl: 'wss://x.example' },
+      });
+      const site = savedSite();
+      expect(site.kind).toBe('generated');
+      const html = site.files['index.html'];
+
+      expect(html).not.toContain('<script>alert');
+      expect(html).not.toContain('<img src=x');
+      expect(html).not.toMatch(/(^|[^\\])"\s*onload=/);
+      expect(html).not.toMatch(/javascript:/i);
+      expect(html).not.toContain('collector.example');
+      expect(html.match(/<script/g)).toHaveLength(3);
+      // The name stays one JS string inside the boot script, whatever it contains.
+      const literal = html.match(/personaName: (.*),\n/)?.[1] ?? '';
+      expect(JSON.parse(literal)).toBe(hostile);
+    });
+
+    it.each([
+      ['an id that is not a slug', { agent: { ...baseConfig.agent, id: 'a"]{}</style><script>' } }],
+      [
+        'a secondary colour that is not hex',
+        { brand: { primary: '#96151D', secondary: 'red}</style>' } },
+      ],
+    ])('generate-and-deploy refuses %s and stores nothing', async (_label, override) => {
+      await generateAndDeploy({ ...baseConfig, ...override });
+      expect(mockSendError).toHaveBeenCalledWith(expect.anything(), expect.any(String), 400);
+      expect(mockFirestoreSet).not.toHaveBeenCalled();
     });
   });
 

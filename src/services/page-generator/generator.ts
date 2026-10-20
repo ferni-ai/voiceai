@@ -32,6 +32,41 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const TEMPLATES_DIR = join(__dirname, 'templates');
 
+// Encoders for template output: generated pages run on the app's own origin
+// (__tests__/template-safety.test.ts checks every template expression uses them).
+
+/** JSON for an inline <script>: `<`, `>`, `&` and line separators are \u-escaped. */
+export function scriptJson(value: unknown): string {
+  return (JSON.stringify(value) ?? 'null').replace(
+    /[<>&\u2028\u2029]/g,
+    (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`
+  );
+}
+
+/** A URL for href/src/url(): web, mail, same-site path or image data, else '#'. */
+export function safeUrl(value: unknown): string {
+  const url = typeof value === 'string' ? value.trim() : '';
+  return /^(https?:|mailto:|data:image\/|\/(?![/\\]))[^\s\\]*$/i.test(url) ? url : '#';
+}
+
+/** A CSS name or keyword (font family, weight, style): letters, digits, space, '-', '.', ','. */
+export function cssToken(value: unknown): string {
+  return String(value ?? '').replace(/[^\w .,-]/g, '');
+}
+
+function registerHelpers(): void {
+  Handlebars.registerHelper(
+    'json',
+    (value: unknown) => new Handlebars.SafeString(scriptJson(value))
+  );
+  Handlebars.registerHelper('safeUrl', (value: unknown) => safeUrl(value));
+  Handlebars.registerHelper('cssToken', (value: unknown) => cssToken(value));
+  Handlebars.registerHelper('currentYear', () => new Date().getFullYear());
+  Handlebars.registerHelper('eq', (a: unknown, b: unknown) => a === b);
+}
+
+const SLUG = /^[A-Za-z0-9_-]{1,64}$/;
+
 // Cache compiled templates
 let compiledTemplate: Handlebars.TemplateDelegate<TemplateContext> | null = null;
 let compiledMultiAdvisorTemplate: Handlebars.TemplateDelegate<MultiAdvisorTemplateContext> | null =
@@ -48,22 +83,7 @@ function getCompiledTemplate(): Handlebars.TemplateDelegate<TemplateContext> {
 
   const templatePath = join(TEMPLATES_DIR, 'base.hbs');
   const templateSource = readFileSync(templatePath, 'utf-8');
-
-  // Register helper for safe JSON output in script tags
-  Handlebars.registerHelper('json', (context: unknown) => {
-    return new Handlebars.SafeString(JSON.stringify(context, null, 2));
-  });
-
-  // Register helper for triple-brace raw HTML (already supported, but explicit)
-  Handlebars.registerHelper('raw', (content: string) => {
-    return new Handlebars.SafeString(content);
-  });
-
-  // Register helper for current year in footer
-  Handlebars.registerHelper('currentYear', () => {
-    return new Date().getFullYear();
-  });
-
+  registerHelpers();
   compiledTemplate = Handlebars.compile<TemplateContext>(templateSource);
   return compiledTemplate;
 }
@@ -91,6 +111,13 @@ function validateConfig(config: AgentPageConfig): void {
     throw new Error(
       `Invalid primary color format: ${config.brand.primary}. Use hex format like #96151D`
     );
+  }
+  // Both reach the page's CSS unescaped (generatePersonaCss), so they must be inert.
+  if (!SLUG.test(config.agent.id)) {
+    throw new Error('agent.id may only use letters, digits, - and _');
+  }
+  if (config.brand.secondary !== undefined && !hexPattern.test(config.brand.secondary)) {
+    throw new Error('Invalid secondary color format. Use hex format like #B41E28');
   }
 }
 
@@ -192,8 +219,6 @@ function buildTemplateContext(config: AgentPageConfig): TemplateContext {
     footer: config.footer,
     favicon,
     personaCss,
-    customCss: config.customCss,
-    customJs: config.customJs,
   };
 }
 
@@ -323,18 +348,7 @@ function getCompiledMultiAdvisorTemplate(): Handlebars.TemplateDelegate<MultiAdv
 
   const templatePath = join(TEMPLATES_DIR, 'financial-legends.hbs');
   const templateSource = readFileSync(templatePath, 'utf-8');
-
-  // Register helpers if not already registered
-  if (!Handlebars.helpers['json']) {
-    Handlebars.registerHelper('json', (context: unknown) => {
-      return new Handlebars.SafeString(JSON.stringify(context, null, 2));
-    });
-  }
-
-  if (!Handlebars.helpers['eq']) {
-    Handlebars.registerHelper('eq', (a: unknown, b: unknown) => a === b);
-  }
-
+  registerHelpers();
   compiledMultiAdvisorTemplate = Handlebars.compile<MultiAdvisorTemplateContext>(templateSource);
   return compiledMultiAdvisorTemplate;
 }
@@ -355,8 +369,8 @@ function validateMultiAdvisorConfig(config: MultiAdvisorPageConfig): void {
 
   // Validate each advisor
   for (const advisor of config.advisors) {
-    if (!advisor.id) {
-      throw new Error('Each advisor must have an id');
+    if (!advisor.id || !SLUG.test(advisor.id)) {
+      throw new Error('Each advisor must have an id of letters, digits, - and _');
     }
     if (!advisor.name) {
       throw new Error(`Advisor ${advisor.id} must have a name`);
@@ -440,8 +454,6 @@ function buildMultiAdvisorTemplateContext(
       twitterCard: config.seo?.twitterCard || 'summary_large_image',
     },
     favicon,
-    customCss: config.customCss,
-    customJs: config.customJs,
   };
 }
 

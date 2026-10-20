@@ -36,30 +36,48 @@ export async function refuseAnonymousPublisher(
   return true;
 }
 
+/** How a site's HTML was made. Written by the server at deploy time, never taken from a request. */
+export type SiteKind = 'generated' | 'uploaded';
+
 /**
  * Headers for every response that carries a published site's own content.
- * Landing pages need LiveKit and inline scripts, so the policy is permissive
- * about sources; the sandbox is what keeps that script off the app's origin.
+ *
+ * Uploaded HTML, and any record without a known kind, is sandboxed. Pages our
+ * own templates rendered (generate-and-deploy) encode every input, which
+ * page-generator's template-safety test enforces, and their voice call needs
+ * the app origin (device id in storage, same-origin /token, microphone). So
+ * they skip the sandbox, and their policy allows only what the templates load:
+ * the pinned LiveKit client, Google Fonts, /token and LiveKit. Inline script
+ * stays allowed (the templates' boot script is inline); no unsafe-eval.
  */
-export function userSiteHeaders(): Record<string, string> {
-  const isDev = process.env.NODE_ENV === 'development';
-  const connectSrc = isDev
-    ? "connect-src 'self' http://localhost:* ws://localhost:* https://*.livekit.cloud wss://*.livekit.cloud https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://api.cartesia.ai https://cdn.jsdelivr.net"
-    : "connect-src 'self' https://*.livekit.cloud wss://*.livekit.cloud https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://api.cartesia.ai https://cdn.jsdelivr.net";
+export function siteHeaders(kind: unknown): Record<string, string> {
+  const local =
+    process.env.NODE_ENV === 'development' ? ' http://localhost:* ws://localhost:*' : '';
+  const connect = `connect-src 'self'${local} https://*.livekit.cloud wss://*.livekit.cloud`;
+  const ownPolicy =
+    kind === 'generated'
+      ? [
+          "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net/npm/livekit-client@2.0.0/ https://cdn.jsdelivr.net/npm/livekit-client@2.1.0/",
+          connect,
+          "form-action 'self'",
+        ]
+      : [
+          USER_SITE_SANDBOX,
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://apis.google.com https://js.stripe.com",
+          `${connect} https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://api.cartesia.ai https://cdn.jsdelivr.net`,
+        ];
 
-  const landingPageCSP = [
-    USER_SITE_SANDBOX,
+  const csp = [
+    ...ownPolicy,
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://apis.google.com https://js.stripe.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com https://constellation-static.web.vanguard.com data:",
     "img-src 'self' data: https: blob:",
-    connectSrc,
     "media-src 'self' blob: https:",
     "object-src 'none'",
     "frame-ancestors 'self'",
     "base-uri 'self'",
   ].join('; ');
 
-  return { 'Content-Security-Policy': landingPageCSP, 'X-Content-Type-Options': 'nosniff' };
+  return { 'Content-Security-Policy': csp, 'X-Content-Type-Options': 'nosniff' };
 }

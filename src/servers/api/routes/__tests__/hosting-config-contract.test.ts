@@ -96,13 +96,17 @@ describe('app hosting config', () => {
     expectShareRoutedToBackend(entry!);
   });
 
-  // /sites/** is publisher-written HTML on the app's own host: the hosting
-  // layer sandboxes it too, so it never shares the app's origin.
-  it.each(['ferni-prod', 'johnb-app'])('%s sandboxes /sites/** responses', (target) => {
+  // /sites/** is served by the app server, which picks the policy per site:
+  // uploaded HTML is sandboxed, pages our templates rendered are not (their
+  // voice call needs the origin). A hosting-level CSP would apply to every
+  // site alike, so the hosting layer only adds nosniff.
+  it.each(['ferni-prod', 'johnb-app'])('%s leaves the /sites/** policy to the server', (target) => {
     const entry = hosting('apps/web/firebase.json').find((e) => e.target === target);
+    const rewrite = entry?.rewrites?.find((r) => r.source === '/sites/**');
+    expect(rewrite?.run?.serviceId).toBe('john-bogle-ui');
     const rule = entry?.headers?.find((h) => h.source === '/sites/**');
     const value = (key: string) => rule?.headers.find((h) => h.key === key)?.value;
-    expect(value('Content-Security-Policy')).toBe('sandbox allow-scripts allow-forms allow-popups');
+    expect(value('Content-Security-Policy')).toBeUndefined();
     expect(value('X-Content-Type-Options')).toBe('nosniff');
   });
 });
