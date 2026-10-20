@@ -15,6 +15,8 @@ struct CallAvatar: View {
     var doubleTake = 0
     /// What the body asks for (a touch's haptic).
     var onCue: ((KeyedCue) -> Void)?
+    /// Ferni's body; a test passes its own to see what reached it.
+    var rig: AliveRig?
 
     var body: some View {
         let avatar = call.avatar
@@ -30,6 +32,7 @@ struct CallAvatar: View {
             personSpeaking: call.isUserSpeaking,
             micro: avatar.micro,
             moment: avatar.moment,
+            rig: rig,
             level: { [level = call.agentLevel] in level.level },
             onCue: onCue
         )

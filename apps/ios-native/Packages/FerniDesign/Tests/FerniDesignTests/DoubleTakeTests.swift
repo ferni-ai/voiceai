@@ -17,9 +17,10 @@ final class DoubleTakeTests: XCTestCase {
         let rig = AliveRig(seed: 21)
         run(rig, from: 0, to: 2)
         rig.doubleTake()
-        var glance: [Double] = [], away: [Double] = [], back: [Double] = [], surprised = false
+        var glance: [Double] = [], away: [Double] = [], back: [Double] = [], surprised = false, startle: Double?
         run(rig, from: 2, to: 3.6) { t, u in
             let e = t - 2
+            if rig.cues.contains(.startle), startle == nil { startle = e }
             if (0.12...0.2).contains(e) { glance.append(gaze(u)) }
             if (0.4...0.62).contains(e) { away.append(gaze(u)) }
             if (1.0...1.5).contains(e) { back.append(gaze(u)) }
@@ -29,6 +30,7 @@ final class DoubleTakeTests: XCTestCase {
         XCTAssertGreaterThan(away.min() ?? 0, 0.3, "away")
         XCTAssertLessThan(back.max() ?? 1, 0.15, "back at you")
         XCTAssertTrue(surprised, "with a flash of surprise")
+        XCTAssertEqual(startle ?? 0, 0.69, accuracy: 0.04, "and a start the app hears at the snap")
     }
 
     /// He holds his breath (squashed a little) just before the snap, then

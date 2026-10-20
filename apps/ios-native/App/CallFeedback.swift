@@ -51,6 +51,7 @@ final class CallFeedback {
         #if DEBUG
         if cue == .touch { UITestScenario.Counters.shared.touches += 1 }
         if cue == .notice { UITestScenario.Counters.shared.notices += 1 }
+        if cue == .startle { UITestScenario.Counters.shared.startles += 1 }
         #endif
     }
 

@@ -56,6 +56,20 @@ final class AvatarTouchTests: XCTestCase {
         XCTAssertEqual(touches(app), "1", "or a tap")
     }
 
+    /// The whole double-take path on the real app (parity item 5): Home goes
+    /// to the background for 5 s, comes back, and Ferni starts (the snap back
+    /// of his double take reaches the app as a cue).
+    func testComingBackAfterAFewSecondsHeDoesADoubleTake() {
+        let app = XCUIApplication.ferni(.home)
+        XCTAssertTrue(ferni(app).waitForExistence(timeout: 20))
+        let startles = app.descendants(matching: .any)["uitest.startles"].firstMatch
+        XCTAssertEqual(startles.value as? String, "0")
+        XCUIDevice.shared.press(.home)
+        sleep(5)
+        app.activate()
+        XCTAssertTrue(startles.waitForValue("1", timeout: 5), "a double take: \(startles.value ?? "missing")")
+    }
+
     /// Only Ferni takes a touch, not the empty space beside him.
     func testTheSpaceBesideFerniIsNotFerni() {
         let app = XCUIApplication.ferni(.home)
