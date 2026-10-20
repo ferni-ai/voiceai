@@ -140,7 +140,8 @@ export function initMonetizationPersistence(): void {
 
   valueCaptureStore = createPersistenceStore<UserValueCaptureData>({
     collection: 'monetization_value_capture',
-    holdWrites: () => false, // MINOR_CARE opt-out: financial records, not the caller's memory
+    // MINOR_CARE opt-out: for a held user only payment records reach it (value-capture.ts)
+    holdWrites: () => false,
     syncIntervalMs: 3000,
   });
 
@@ -152,7 +153,6 @@ export function initMonetizationPersistence(): void {
 
   journeyStore = createPersistenceStore<UserJourneyData>({
     collection: 'monetization_journey',
-    holdWrites: () => false, // MINOR_CARE opt-out: financial records, not the caller's memory
     syncIntervalMs: 5000,
   });
 

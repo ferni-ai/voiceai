@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { userHeld } from '../../utils/minor-care.js';
+import { heldFields } from './held-fields.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -43,6 +44,8 @@ export interface PersistenceConfig {
    * withhold: credentials, push endpoints, billing.
    */
   holdWrites?: (userId: string) => boolean;
+  /** For a held user, the fields that still persist (merge write); default: none (held-fields.ts) */
+  whenHeld?: (data: never) => Record<string, unknown> | null;
 }
 
 export interface LoadOptions {
@@ -118,12 +121,8 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
     db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
       databaseId: process.env.FIRESTORE_DATABASE || '(default)',
-      // Belt-and-suspenders: this client is private to the persistence layer
-      // (module-scoped `db`, not shared with other Firestore clients in the
-      // codebase), so this is safe to set here without side effects elsewhere.
-      // Callers should still avoid writing `undefined` explicitly (see
-      // cleanForFirestore below), but a nested `undefined` slipping through
-      // (e.g. inside an array of records) must not fail the whole batch.
+      // Safe here (this client is private to the layer): a nested `undefined` that slips past
+      // cleanForFirestore (e.g. inside an array of records) must not fail the whole batch.
       ignoreUndefinedProperties: true,
     });
     log.info('Persistence layer Firestore initialized');
@@ -168,6 +167,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     maxPendingChanges = 20,
     useRootCollection = false,
     holdWrites = userHeld,
+    whenHeld,
   } = config;
 
   // In-memory cache
@@ -177,6 +177,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   const tainted = new Set<string>(); // held once: dropped on every set and sync from then on
   const held = (userId: string): boolean =>
     (tainted.has(userId) || holdWrites(userId)) && (tainted.add(userId), cache.delete(userId), true);
+  const heldParts = heldFields<T>(whenHeld as ((data: T) => Partial<T> | null) | undefined);
   let isShutdown = false;
 
   // Start sync interval using managed interval
@@ -218,6 +219,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         _updatedAt: new Date().toISOString(),
         _userId: userId,
       });
+    await heldParts.write((u, part) => docRefFor(u).set(toDoc(u, part), { merge: true }));
 
     try {
       let batch = firestore.batch();
@@ -230,8 +232,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         batch.set(docRefFor(userId), toDoc(userId, data), { merge: true });
         batchCount++;
 
-        // Firestore batch limit is 500. A WriteBatch cannot be reused after
-        // commit(), so start a fresh one for the remaining documents.
+        // Firestore batch limit is 500; a committed WriteBatch can't be reused, so start afresh.
         if (batchCount >= 450) {
           await batch.commit();
           log.debug({ collection, count: batchCount }, 'Batch committed (limit reached)');
@@ -355,7 +356,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         log.warn({ collection, userId }, 'Attempted to set data after shutdown');
         return;
       }
-      if (held(userId)) return;
+      if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);
 
@@ -366,7 +367,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     },
 
     setImmediate: async (userId: string, data: T) => {
-      if (held(userId)) return;
+      if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);
       await flushUser(userId);

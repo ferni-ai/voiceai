@@ -4,7 +4,6 @@
  * Bridges the gap between:
  * - Maya's proactive opportunity detection
  * - The reminder scheduler's delivery capabilities (SMS, email, etc.)
- *
  * Features:
  * - Scheduled habit reminders
  * - Streak-at-risk alerts
@@ -135,7 +134,8 @@ class MayaNotificationService extends EventEmitter {
     // Initialize persistence store
     this.persistenceStore = createPersistenceStore<MayaNotificationData>({
       collection: 'maya_notifications',
-      holdWrites: () => false, // MINOR_CARE opt-out: quiet hours and opt-outs must always persist
+      // MINOR_CARE, held: only notification preferences and opt-outs persist
+      whenHeld: (d: MayaNotificationData) => ({ preferences: d.preferences }),
       syncIntervalMs: 15000, // Sync every 15 seconds
       maxPendingChanges: 30,
     });

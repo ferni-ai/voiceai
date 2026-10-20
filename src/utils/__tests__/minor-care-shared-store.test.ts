@@ -8,7 +8,7 @@
  */
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const written = vi.hoisted(() => [] as { path: string; data: unknown }[]);
+const written = vi.hoisted(() => [] as { path: string; data: unknown; merge?: boolean }[]);
 
 /** A fake Firestore that records every write (path and data). */
 const fakeDb = vi.hoisted(() => {
@@ -20,11 +20,13 @@ const fakeDb = vi.hoisted(() => {
         collection: (name: string) => ref(`${path}/${name}`),
         doc: (id = 'auto') => ref(`${path}/${id}`),
         get: async () => empty,
-        set: async (data: unknown) => void written.push({ path, data }),
+        set: async (data: unknown, opts?: { merge?: boolean }) =>
+          void written.push({ path, data, merge: opts?.merge }),
       } as Record<string | symbol, unknown>,
       { get: (t, k) => (k in t ? t[k] : k === 'then' ? undefined : () => ref(path)) }
     );
-  const tx = (r: { path: string }, data: unknown) => void written.push({ path: r.path, data });
+  const tx = (r: { path: string }, data: unknown, opts?: { merge?: boolean }) =>
+    void written.push({ path: r.path, data, merge: opts?.merge });
   return Object.assign(ref(''), {
     batch: () => ({ set: tx, update: tx, delete: tx, commit: async () => undefined }),
   });
@@ -46,6 +48,9 @@ import {
   saveUserJourney,
   saveValueEvent,
 } from '../../services/monetization/persistence.js';
+import { detect, recordContribution } from '../../services/monetization/value-capture.js';
+import { upsertEvent } from '../../services/scheduling/calendar-reminders.js';
+import { getMayaNotificationService } from '../../services/engagement/engagement-notification-service.js';
 import { heldAfter, resetMinorCare, setVerifiedOwnerCheck, userHeld } from '../minor-care.js';
 
 type Case = 'held' | 'owner' | 'off';
@@ -204,16 +209,102 @@ describe('voice prosody (built on the shared store, 10 s sync)', () => {
   });
 });
 
-describe('opted out: a held user\'s consent and billing still persist', () => {
-  it('outreach: turning outreach off (do-not-contact) is written', async () => {
+/** The writes to this user's document in one collection. */
+const writesTo = (userId: string, collection: string) =>
+  written.filter((w) => w.path.includes(userId) && w.path.includes(`/${collection}/`));
+const keysOf = (w: { data: unknown }) =>
+  Object.keys(w.data as object).filter((k) => !k.startsWith('_'));
+
+describe('field-level hold (whenHeld): only consent fields persist, as a merge write', () => {
+  it('a store with whenHeld: a held user\'s allowed fields persist, the rest never written', async () => {
+    const s = createPersistenceStore<{ prefs: { off: boolean }; story: string }>({
+      collection: 'minor_care_fields',
+      syncIntervalMs: 1_000,
+      whenHeld: (d: { prefs: { off: boolean } }) => ({ prefs: d.prefs }),
+    });
+    const held = caller('held');
+    const owner = caller('owner');
+    s.set(held.userId, { prefs: { off: true }, story: 'their school' });
+    s.set(owner.userId, { prefs: { off: false }, story: 'owner story' });
+    await tick(1_000);
+    const [h] = writesTo(held.userId, 'minor_care_fields');
+    expect(h && keysOf(h)).toEqual(['prefs']);
+    expect(h?.merge).toBe(true); // a merge write: stored fields are never blanked
+    expect(wrote(held.userId, 'their school')).toBe(false);
+    expect(wrote(owner.userId, 'owner story')).toBe(true);
+  });
+
+  it('outreach: outreach off and quiet hours persist; commitments never written', async () => {
     await initializeOutreachPersistence();
     const { userId } = caller('held');
     setPreferences(userId, { enabled: false, quietHoursStart: '20:00' });
     await tick(10_000);
+    const [w] = writesTo(userId, 'outreach_data');
+    expect(w && keysOf(w)).toEqual(['preferences']);
+    expect(w?.merge).toBe(true);
     expect(wrote(userId, '"quietHoursStart":"20:00"')).toBe(true);
   });
 
-  it('billing: a contribution record and the journey are written', async () => {
+  it('outreach: an owner writes the whole document', async () => {
+    await initializeOutreachPersistence();
+    const { userId } = caller('owner');
+    setPreferences(userId, { enabled: false });
+    await tick(10_000);
+    const [w] = writesTo(userId, 'outreach_data');
+    expect(w && keysOf(w)).toEqual(expect.arrayContaining(['preferences', 'commitments']));
+  });
+
+  it('notifications: opt-outs persist; scheduled notification content never written', async () => {
+    const maya = getMayaNotificationService();
+    await maya.initialize();
+    const { userId } = caller('held');
+    await maya.setPreferences(userId, { enabled: false });
+    await tick(15_000);
+    const [w] = writesTo(userId, 'maya_notifications');
+    expect(w && keysOf(w)).toEqual(['preferences']);
+    expect(w?.merge).toBe(true);
+  });
+
+  it('calendar: event title, place and attendees never written; an owner\'s are', async () => {
+    const event = (userId: string, title: string) => ({
+      id: `e-${userId}`,
+      userId,
+      title,
+      location: 'their school',
+      attendees: ['a friend'],
+      startTime: new Date(Date.now() + 86_400_000),
+      endTime: new Date(Date.now() + 90_000_000),
+      isAllDay: false,
+      reminders: [],
+      source: 'manual' as const,
+    });
+    const held = caller('held');
+    const owner = caller('owner');
+    await upsertEvent(event(held.userId, 'held title'));
+    await upsertEvent(event(owner.userId, 'owner title'));
+    await tick(5_000);
+    expect(writesTo(held.userId, 'calendar_reminders').every((w) => keysOf(w).join() === 'remindersSent')).toBe(true);
+    expect(wrote(held.userId, 'held title')).toBe(false);
+    expect(wrote(held.userId, 'their school')).toBe(false);
+    expect(wrote(owner.userId, 'owner title')).toBe(true);
+  });
+});
+
+describe('billing', () => {
+  it('value capture: what a held caller said is never stored; their payment record is', async () => {
+    vi.stubEnv('PAYWALL', 'on');
+    initMonetizationPersistence();
+    const { userId } = caller('held');
+    const event = await detect({ userId, message: 'I got a raise today!', conversationId: 'c1' });
+    expect(event).not.toBeNull();
+    await tick(3_000);
+    expect(wrote(userId, 'financial_gain')).toBe(false);
+    await recordContribution({ eventId: event!.id, amountCents: 500, stripePaymentId: 'pi_1' });
+    await tick(3_000);
+    expect(wrote(userId, 'pi_1')).toBe(true);
+  });
+
+  it('a direct contribution record is written for a held user', async () => {
     initMonetizationPersistence();
     const { userId } = caller('held');
     await saveValueEvent(userId, {
@@ -223,17 +314,15 @@ describe('opted out: a held user\'s consent and billing still persist', () => {
       status: 'contributed',
       createdAt: new Date().toISOString(),
     });
-    await saveUserJourney(userId, { userId, stage: 'paid-stage-marker' } as never);
-    await tick(5_000);
+    await tick(3_000);
     expect(wrote(userId, '"contributionCents":500')).toBe(true);
-    expect(wrote(userId, 'paid-stage-marker')).toBe(true);
   });
 
-  it('and an ordinary write for the same held user is still dropped', async () => {
-    const s = store();
+  it('the journey (milestones, not a payment) is held', async () => {
+    initMonetizationPersistence();
     const { userId } = caller('held');
-    s.set(userId, { note: 'their school' });
-    await tick(1_000);
-    expect(wrote(userId, 'their school')).toBe(false);
+    await saveUserJourney(userId, { userId, stage: 'journey-marker' } as never);
+    await tick(5_000);
+    expect(wrote(userId, 'journey-marker')).toBe(false);
   });
 });

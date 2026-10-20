@@ -4,7 +4,6 @@
  * - Morning digest of today's schedule
  * - Pre-event reminders (1 hour, 15 minutes)
  * - Smart contextual reminders ("Your interview is tomorrow - get rest!")
- *
  * Integrates with Google Calendar OAuth and proactive outreach.
  *
  * PERSISTENCE: Calendar events and reminder logs are persisted to Firestore.
@@ -104,7 +103,8 @@ function getPersistence(): PersistenceStore<UserCalendarData> {
   if (!persistence) {
     persistence = createPersistenceStore<UserCalendarData>({
       collection: 'calendar_reminders',
-      holdWrites: () => false, // MINOR_CARE opt-out: a cancelled reminder must always persist
+      // MINOR_CARE, held: only which reminders were sent persists, never event content
+      whenHeld: (d: UserCalendarData) => ({ remindersSent: d.remindersSent }),
       documentId: 'data',
       syncIntervalMs: 5000,
     });
