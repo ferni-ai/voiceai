@@ -110,6 +110,19 @@ final class AliveRenderTests: XCTestCase {
         XCTAssertGreaterThan(left, 10, "drawn as an arc of white, not a dark notch")
     }
 
+    /// A yawn scrunches both eyes into tight arcs of white, narrower and
+    /// thinner than a wink's closed eye. It shut them to the fold, a blank
+    /// face with two tiny brackets (expression audit P1 #6).
+    func testAYawnScrunchesBothEyes() throws {
+        let yawn = try face("yawning"), wink = try face("winking")
+        let winked = wink.whites(x: 70..<120, y: 80..<130)
+        for (side, x) in [("left", 70..<120), ("right", 120..<170)] {
+            let white = yawn.whites(x: x, y: 80..<130)
+            XCTAssertGreaterThan(white, 8, "\(side): an arc of white, not a blank")
+            XCTAssertLessThan(white, winked, "\(side): tighter than a wink's closed eye (\(white) against \(winked))")
+        }
+    }
+
     /// The family table: Maya steps up, Ferni waits small in the corner.
     func testTheFamilyTableShowsBothCharacters() throws {
         var u = AliveUniforms.settled(Face.of("happy"), body: maya, glow: mayaLight)
