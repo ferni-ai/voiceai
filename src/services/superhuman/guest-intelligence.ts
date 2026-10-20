@@ -18,6 +18,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { dataOf, loadDoc, type LoadResult } from './load-state.js';
 
 const log = createLogger({ module: 'superhuman:guest-intelligence' });
 
@@ -132,25 +133,12 @@ export interface GuestIntelligenceProfile {
 
 const COLLECTION = 'guest_intelligence';
 
-async function loadGuestIntelligence(userId: string): Promise<GuestIntelligenceProfile | null> {
+async function loadGuestIntelligence(
+  userId: string
+): Promise<LoadResult<GuestIntelligenceProfile>> {
   const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
-    if (doc.exists) {
-      return doc.data() as GuestIntelligenceProfile;
-    }
-    return null;
-  } catch (error) {
-    log.debug({ error, userId }, 'Failed to load guest intelligence');
-    return null;
-  }
+  const ref = db?.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile');
+  return loadDoc<GuestIntelligenceProfile>(ref, log);
 }
 
 async function saveGuestIntelligence(
@@ -187,7 +175,7 @@ export async function getGuestProfile(
   userId: string,
   guestName: string
 ): Promise<GuestProfile | null> {
-  const intelligence = await loadGuestIntelligence(userId);
+  const intelligence = dataOf(await loadGuestIntelligence(userId));
   if (!intelligence) return null;
 
   const normalizedName = guestName.toLowerCase().trim();
@@ -218,7 +206,9 @@ export async function upsertGuestProfile(
   guestName: string,
   updates: DeepPartial<Omit<GuestProfile, 'name' | 'createdAt' | 'updatedAt'>>
 ): Promise<GuestProfile> {
-  const intelligence = (await loadGuestIntelligence(userId)) || createDefaultProfile(userId);
+  // A failed read still returns the result, but saving a default would wipe the stored doc.
+  const loaded = await loadGuestIntelligence(userId);
+  const intelligence = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
   const normalizedName = guestName.trim();
   const key = normalizedName.toLowerCase();
 
@@ -297,7 +287,7 @@ export async function upsertGuestProfile(
       updatedAt: now,
     };
     intelligence.guests[key] = updated;
-    await saveGuestIntelligence(userId, intelligence);
+    if (loaded.status !== 'error') await saveGuestIntelligence(userId, intelligence);
     log.info({ userId, guest: normalizedName }, 'Updated guest profile');
     return updated;
   } else {
@@ -347,7 +337,7 @@ export async function upsertGuestProfile(
       updatedAt: now,
     };
     intelligence.guests[key] = newGuest;
-    await saveGuestIntelligence(userId, intelligence);
+    if (loaded.status !== 'error') await saveGuestIntelligence(userId, intelligence);
     log.info({ userId, guest: normalizedName }, 'Created guest profile');
     return newGuest;
   }
@@ -386,7 +376,9 @@ export async function recordGuestRelationship(
   strength: number,
   context: string
 ): Promise<void> {
-  const intelligence = (await loadGuestIntelligence(userId)) || createDefaultProfile(userId);
+  const loaded = await loadGuestIntelligence(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const intelligence = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   // Check if relationship exists (either direction)
   const existingIdx = intelligence.relationships.findIndex(
@@ -426,7 +418,9 @@ export async function upsertGuestGroup(
   type: GuestGroup['type'],
   notes?: string
 ): Promise<void> {
-  const intelligence = (await loadGuestIntelligence(userId)) || createDefaultProfile(userId);
+  const loaded = await loadGuestIntelligence(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const intelligence = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   const existingIdx = intelligence.groups.findIndex(
     (g) => g.name.toLowerCase() === groupName.toLowerCase()
@@ -451,7 +445,7 @@ export async function getSeatingRecommendations(
   userId: string,
   guestList: string[]
 ): Promise<SeatingRecommendation[]> {
-  const intelligence = await loadGuestIntelligence(userId);
+  const intelligence = dataOf(await loadGuestIntelligence(userId));
   if (!intelligence) return [];
 
   const recommendations: SeatingRecommendation[] = [];
@@ -534,7 +528,7 @@ export async function getGuestListDietary(
   allergies: Array<{ guest: string; allergies: string[] }>;
   other: Array<{ guest: string; restrictions: string[] }>;
 }> {
-  const intelligence = await loadGuestIntelligence(userId);
+  const intelligence = dataOf(await loadGuestIntelligence(userId));
   if (!intelligence) {
     return { vegetarian: [], vegan: [], glutenFree: [], allergies: [], other: [] };
   }
@@ -591,7 +585,7 @@ export async function predictAttendance(
   unknown: string[];
   expectedCount: { min: number; max: number; expected: number };
 }> {
-  const intelligence = await loadGuestIntelligence(userId);
+  const intelligence = dataOf(await loadGuestIntelligence(userId));
   if (!intelligence) {
     return {
       likely: guestList.map((g) => ({ guest: g, rate: 0.7 })),
