@@ -140,20 +140,29 @@ jobs:
         # launched is retried, once, with a warning (scripts/ci-test.sh).
         run: scripts/ci-test.sh "${{ steps.sim.outputs.udid }}" "$SPM_DIR" "$RUNNER_TEMP"
 
-      # Apple's accessibility audit at the default size and AX5, Reduce Motion
-      # and Reduce Transparency, and the Talk button's hit area (UITests).
-      - name: Accessibility audit (iPhone, gating)
+      # Every UI test but the store screenshots: Apple's accessibility audit at
+      # the default size and AX5, Reduce Motion and Reduce Transparency, and the
+      # behaviour tests (scripts/ui-audit.sh).
+      - name: UI tests and accessibility audit (iPhone, gating)
         working-directory: apps/ios-native
         run: scripts/ui-audit.sh gate "iPhone 17 Pro Max" "$SPM_DIR" "$RUNNER_TEMP"
 
-      # Reported as a warning with the finding count until the iPad is clean;
-      # then switch "report" to "gate".
-      - name: Accessibility audit (iPad, reported)
+      # The iPad audit is clean (2026-10-20), so it gates too: the iPad-only
+      # tests (sidebar, shelf) bite here.
+      - name: UI tests and accessibility audit (iPad, gating)
         working-directory: apps/ios-native
-        run: scripts/ui-audit.sh report "iPad Pro 13-inch (M5)" "$SPM_DIR" "$RUNNER_TEMP"
+        run: scripts/ui-audit.sh gate "iPad Pro 13-inch (M5)" "$SPM_DIR" "$RUNNER_TEMP"
+
+      # The large-text and small-screen tests on the smallest iPhone, where they
+      # bite (a call at AX5 only scrolls there).
+      - name: UI tests, large text (iPhone SE, gating)
+        working-directory: apps/ios-native
+        run: >-
+          scripts/ui-audit.sh gate "iPhone SE (3rd generation)" "$SPM_DIR" "$RUNNER_TEMP"
+          CallControlsAtLargeTextTests,NameChipUITests,SettingsTitleUITests,HomeFullnessUITests,MemoryEdgesUITests,HelpLinksUITests,PaperScreensUITests
 
       - name: Upload test results
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: ios-test-results
