@@ -46,6 +46,7 @@
 		73E420E1A1EF13C436B2D8A6 /* MuteCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655A6BDFEE3CE0F40FDD86B9 /* MuteCallIntent.swift */; };
 		761A16438630BC6B8CC02981 /* EndCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */; };
 		775B0EC80FED93D54BCEEF37 /* TalkIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */; };
+		7818E9B3C0F3BBD06436BE85 /* ScreenIntro.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4A2C11155BCB3E9C2DCC909 /* ScreenIntro.swift */; };
 		78E7BB2CF29B9CB32F9054E3 /* arrival.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = FADB5DC0AC364E861BD63F4D /* arrival.mp3 */; };
 		7AEB4E80F7300B0C87AEB9C2 /* PhoneSignInForwardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA97A1BA4C871BBC78CCE319 /* PhoneSignInForwardingTests.swift */; };
 		7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974DF185A4FA58E1F08FD688 /* FerniApp.swift */; };
@@ -278,6 +279,7 @@
 		CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		CF1DD1C23E8F40636385BCA6 /* Foley.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Foley.swift; sourceTree = "<group>"; };
 		D088A9791D1BAB4D7E6860C8 /* CallIntentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallIntentTests.swift; sourceTree = "<group>"; };
+		D4A2C11155BCB3E9C2DCC909 /* ScreenIntro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenIntro.swift; sourceTree = "<group>"; };
 		E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		E3003E9888FF685BDEA0DD95 /* CaptionSpeakerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptionSpeakerTests.swift; sourceTree = "<group>"; };
 		E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundModeTests.swift; sourceTree = "<group>"; };
@@ -463,6 +465,7 @@
 				5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */,
 				A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */,
 				94F50B2CC9B38F03C94B7E3D /* RootView.swift */,
+				D4A2C11155BCB3E9C2DCC909 /* ScreenIntro.swift */,
 				41E550D3CF186D8D463FF66E /* SettingsView.swift */,
 				E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */,
 				B7634ABC1059A12DE12D714D /* TeamSpotlight.swift */,
@@ -788,6 +791,7 @@
 				8008F255B971A496A174CC6F /* Notifications.swift in Sources */,
 				E67FBA51E487A86BF76A408A /* ReportSheet.swift in Sources */,
 				4E1D8F2D04D189C0702BF65C /* RootView.swift in Sources */,
+				7818E9B3C0F3BBD06436BE85 /* ScreenIntro.swift in Sources */,
 				B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */,
 				0D00DF7F9A49A84B2DFD9889 /* SharedScreens.swift in Sources */,
 				E391C436C8BCB997D029137B /* SignInView.swift in Sources */,

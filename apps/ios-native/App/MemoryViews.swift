@@ -260,6 +260,7 @@ struct MemoryScreen: View {
             }
         }
         .overlay { if memory.load == .loading && memory.notes.isEmpty { ProgressView() } }
+        .screenIntro(ScreenIntro.memory)
         .modifier(OnDeviceSearch(query: $query) { Task { await search.search(query, in: memory.notes) } })
         .onChange(of: query) { _, text in if text.isEmpty { search.clear() } }
         .task { await memory.refresh() }

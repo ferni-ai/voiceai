@@ -40,3 +40,13 @@ final class RestSizeTests: XCTestCase {
         XCTAssertEqual(HomeView.restSize(room: .zero, regular: true), 200, "before it's measured")
     }
 }
+
+/// A screen's intro (a small Ferni and a line) steps aside at AX3 and up.
+final class ScreenIntroTests: XCTestCase {
+    func testTheIntroStepsAsideAtLargeAccessibilitySizes() {
+        XCTAssertTrue(ScreenIntro.shows(at: .large))
+        XCTAssertTrue(ScreenIntro.shows(at: .accessibility2))
+        XCTAssertFalse(ScreenIntro.shows(at: .accessibility3))
+        XCTAssertFalse(ScreenIntro.shows(at: .accessibility5))
+    }
+}

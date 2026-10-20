@@ -118,24 +118,27 @@ struct TeamScreen: View {
     let talk: () -> Void
 
     var body: some View {
-        List(PersonaRegistry.all) { persona in
-            let here = team.isOnTeam(persona.id)
-            if here {
-                Button {
-                    team.choose(persona.id); talk()
-                } label: { row(persona, here: true) }
-                .buttonStyle(.plain)
-                .accessibilityValue(team.chosen == persona.id ? "Answers next" : "On your team")
-            } else {
-                // Not a dimmed button: information, in the secondary text colour. Disabled,
-                // the system greyed it to #ada9a4, 2.34:1 (design audit P1-15).
-                row(persona, here: false)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityValue("Not on your team yet")
-                    .accessibilityIdentifier("team.notYet.\(persona.id)")
+        List {
+            ForEach(PersonaRegistry.all) { persona in
+                let here = team.isOnTeam(persona.id)
+                if here {
+                    Button {
+                        team.choose(persona.id); talk()
+                    } label: { row(persona, here: true) }
+                    .buttonStyle(.plain)
+                    .accessibilityValue(team.chosen == persona.id ? "Answers next" : "On your team")
+                } else {
+                    // Not a dimmed button: information, in the secondary text colour. Disabled,
+                    // the system greyed it to #ada9a4, 2.34:1 (design audit P1-15).
+                    row(persona, here: false)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityValue("Not on your team yet")
+                        .accessibilityIdentifier("team.notYet.\(persona.id)")
+                }
             }
         }
         .ferniPaper()
+        .screenIntro(ScreenIntro.team)
         .navigationTitle("Team")
     }
 
