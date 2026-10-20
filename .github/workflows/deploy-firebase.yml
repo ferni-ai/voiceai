@@ -87,6 +87,8 @@ jobs:
           VITE_TRY_FIRST: ${{ vars.VITE_TRY_FIRST || 'true' }}
           # Apple sign-in on the web (apps/web/src/config/apple-web-signin-flag.ts); hidden unless exactly "true".
           VITE_APPLE_WEB_SIGNIN: ${{ vars.VITE_APPLE_WEB_SIGNIN }}
+          # Goodbye ceremony and reconnect prompt (apps/web/src/config/call-wrap-up-flag.ts); off unless exactly "true".
+          VITE_CALL_WRAP_UP: ${{ vars.VITE_CALL_WRAP_UP }}
 
       - name: Deploy to Firebase (ferni-prod)
         id: deploy-ferni
