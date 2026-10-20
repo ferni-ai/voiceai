@@ -6,15 +6,17 @@
  * said they were 16 also gave personal details, and the memory tools kept
  * them. Product call: don't save, gentle care.
  *
- * "Sounds under 18" is read conservatively and only from the caller's own
- * words this call: a stated age under 18 ("I'm 16 years old", "I just turned
+ * "Sounds under 18" is read only from the caller's own words this call: a
+ * stated age under 18 ("I'm 16 years old", "I'm only 14", "I just turned
  * fifteen", "16." answering "how old are you?") or a school grade they're in
  * ("I'm in 10th grade", "I'm in high school"). Never from their voice or
- * vocabulary, someone else's age ("my son is 16"), the past ("I was 16"), a
- * number with a unit ("I'll be 10 minutes late"), a bare number nobody asked
- * about as an age ("I'm 8" on a pain scale), a school event ("I go to high
- * school games") or a joke ("lol I feel like I'm 12"). A false positive holds
- * an adult's memory for the whole call, so ambiguity reads as adult.
+ * vocabulary, someone else's age or words ("my son is 16", "she said I'm 14"),
+ * the past ("I was 16", "16 years old when I had her"), a number with a unit
+ * ("I'm 14 days sober"), a low bare number nobody asked about as an age ("I'm
+ * 8" on a pain scale), a parent at a school ("I'm in high school now, waiting
+ * for my son") or a joke ("lol I feel like I'm 12"). The cost is asymmetric:
+ * a false hold costs an adult one call's memory, a miss stores a child's
+ * details, so "I'm" plus 10-17 ending its clause ("I'm 14.") counts.
  *
  * memoryHeld(sessionId) is the one check every writer asks: flag on, the
  * caller sounds under 18, and the session is not a verified account owner's
@@ -50,13 +52,17 @@ const WORD_AGES: Record<string, number> = {
   eighteen: 18,
 };
 const AGE = `(\\d{1,2}|${Object.keys(WORD_AGES).join('|')})`;
+/** "years old" that isn't their age now: "at heart", or the past ("16 years old when I had her"). */
+const NOT_PAST = String.raw`(?![\s,]+(?:at heart|when|is when|was|back then)\b)`;
 /** What may follow a stated age: the end, a pause, "years old", or a joining word. Not a unit ("16 minutes"). */
-const AFTER_AGE = String.raw`(?=\s*(?:$|[.,!?;:]|years?\s+old\b|yrs?\s+old\b|y\/?o\b|and\b|but\b|so\b|now\b|actually\b|though\b))`;
+const AFTER_AGE = String.raw`(?=\s*(?:$|[.,!?;:]|(?:years?|yrs?)\s+old\b${NOT_PAST}|y\/?o\b|and\b|but\b|so\b|now\b|actually\b|though\b))`;
 /** A unit after the number: "10 minutes late", "12 days sober", "15 years sober", "16 percent". */
 const UNIT = String.raw`(?:min(?:ute)?s?|h(?:ou)?rs?|days?|weeks?|wks?|months?|(?:years?|yrs?)(?!\s*old)|sec(?:ond)?s?|percent|per\s*cent|%|miles?|mi|km|kilomet(?:er|re)s?|met(?:er|re)s?|feet|foot|ft|inch(?:es)?|pounds?|lbs?|kilos?|kgs?|dollars?|bucks|cents?|points?|pts|times|pages?|steps|reps|laps|o'?clock|[ap]\.?m\b\.?|degrees?|people|sober|more|less|late|early|out\s+of|of|grand|hundred|thousand|k)\b`;
 const NO_UNIT = String.raw`(?!\s*-?\s*${UNIT})`;
-/** "I'm", not "I feel like I'm" or "as if I'm" (a joke or a comparison). */
-const ME = String.raw`(?<!\blike\s)(?<!\bas if\s)(?<!\bas though\s)\b(?:i'm|im|i am)\s+(?:only\s+|just\s+)?`;
+/** Someone else's words: "she said I'm 14", "my mom goes I'm 14", "he told me I'm 14" (not "I said I'm 14"). */
+const NOT_REPORTED = String.raw`(?<!\b(?!i\b)[a-z']+\s+(?:said|says|goes)[,:]?\s+(?:that\s+)?["“”']?)(?<!\b(?:told|tells)\s+me[,:]?\s+(?:that\s+)?["“”']?)`;
+/** "I'm", not "I feel like I'm" or "as if I'm" (a joke or a comparison), nor someone else's words. */
+const ME = String.raw`(?<!\blike\s)(?<!\bas if\s)(?<!\bas though\s)${NOT_REPORTED}\b(?:i'm|im|i am)\s+(?:only\s+|just\s+)?`;
 /** The start of what they said, after a filler: "um, 16 years old", "yeah, junior in high school". */
 const LEAD = String.raw`(?:^|[.!?]\s+)(?:(?:um+|uh+|er+|well|oh|yeah|yes|yep|so|i mean)[,\s]+)*`;
 /** Words that make a bare "I'm 16" about age: on their own, "I'm 8" is as likely a 1-10 answer or a golf score. */
@@ -70,9 +76,14 @@ const ASKED_AGE = /\b(?:how old|your age|what age|age are you)\b/i;
 const AGE_NOW = new RegExp(`${ME}${AGE}${AFTER_AGE}`, 'gi');
 /** "16 years old." at the start, "I'm a 15 year old girl": always an age, theirs. */
 const YEARS_OLD = new RegExp(
-  String.raw`(?:${LEAD}|${ME}a\s+)${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b`,
+  String.raw`(?:${LEAD}|${ME}a\s+)${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b${NOT_PAST}`,
   'gi'
 );
+/** "I'm 14", "im only 13.", "I'm just fifteen, so": a present age that ends its clause (10-17 only). */
+const CLAUSE_END = String.raw`(?=\s*(?:$|[.,!?;:]|(?:so|but|now)\b|and\b(?!\s+a\s+half\b)))`;
+const AGE_ENDS = new RegExp(`${ME}(?:like\\s+)?${AGE}${CLAUSE_END}`, 'gi');
+/** Ferni asked for a rating or an amount: "I'm 10." then answers that, not an age. */
+const ASKED_AMOUNT = /\b(?:scale|one to ten|1 to 10|1-10|rate|rating|out of (?:ten|10)|how (?:many|much|far|long|soon))\b/i;
 /** "16." or "Sixteen." and nothing else, answering "how old are you?". */
 const BARE_ANSWER = new RegExp(
   String.raw`^\s*(?:(?:um+|uh+|er+|well|oh|so|yeah|i'm|im|i am|just|only|almost)[,\s]+)*${AGE}\s*[.!]*\s*$`,
@@ -92,7 +103,9 @@ const WILL_BE = new RegExp(
 const WILL_BE_LOOSE = new RegExp(String.raw`\bi(?:'ll| will) be\s+${AGE}\b${NO_UNIT}`, 'gi');
 
 /** "I'm in high school" as the whole thing they said, not "high school football games" or "pickup". */
-const AFTER_PRED = String.raw`(?=\s*(?:$|[.,!?;:)]|(?:and|but|so|now|right now|this year|still|too|though|actually|at|over|in|near|with|here|yet)\b))`;
+const AFTER_PRED = String.raw`(?=\s*(?:$|[.,!?;:)]|(?:and|but|so|at|over|in|near|with|here)\b|(?:right now|now|this year|still|too|though|actually|yet)\s*(?:$|[.,!?;:)]|(?:and|but|so)\b)))`;
+/** Their own child in the same breath ("I'm in high school now, waiting for my son"): a parent, not a student. */
+const PARENT = /\b(?:my|our)\s+(?:kids?|sons?|daughters?|child|children)\b(?!\s+(?:brother|sister))/i;
 const GRADE_WORDS =
   'first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth';
 const ORDINAL = String.raw`(?:(?:[1-9]|1[0-2])(?:st|nd|rd|th)|${GRADE_WORDS})`;
@@ -117,10 +130,10 @@ function ageOf(word: string): number {
   return WORD_AGES[word.toLowerCase()] ?? Number(word);
 }
 
-function anyAge(re: RegExp, text: string, under: number): boolean {
+function anyAge(re: RegExp, text: string, under: number, from = 6): boolean {
   for (const m of text.matchAll(re)) {
     const age = ageOf(m[1] ?? '');
-    if (age >= 6 && age < under) return true;
+    if (age >= from && age < under) return true;
   }
   return false;
 }
@@ -148,10 +161,12 @@ export function askedAboutAge(ferniSaid: string | undefined): boolean {
  */
 export function statesUnder18(text: string, asked?: string): boolean {
   const t = text.replace(/[‘’]/g, "'");
-  if (GRADE.test(t) || IN_SCHOOL.test(t) || SCHOOL_YEAR.test(t)) return true;
+  if (!PARENT.test(t) && (GRADE.test(t) || IN_SCHOOL.test(t) || SCHOOL_YEAR.test(t))) return true;
   if (LAUGH.test(t)) return false;
   const aboutAge = askedAboutAge(asked) || AGE_WORDS.test(t);
   return (
+    // A miss stores a child's details; a false hold costs an adult one call's memory.
+    (!ASKED_AMOUNT.test(asked ?? '') && anyAge(AGE_ENDS, t, 18, 10)) ||
     anyAge(YEARS_OLD, t, 18) ||
     anyAge(TURNED, t, 18) ||
     anyAge(TURNING, t, 19) ||

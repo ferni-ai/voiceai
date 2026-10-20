@@ -7,6 +7,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const stored = vi.hoisted(() => [] as string[]);
+/** Each write's path and data, for checking what a writer stored. */
+const written = vi.hoisted(() => [] as { path: string; data: unknown }[]);
 
 /** A fake Firestore that records every write path (src/tests/setup.ts mocks both getFirestoreDb paths). */
 const fakeDb = vi.hoisted(() => {
@@ -18,8 +20,9 @@ const fakeDb = vi.hoisted(() => {
     data: () => undefined,
     forEach: () => undefined,
   };
-  const write = (path: string) => async () => {
+  const write = (path: string) => async (data?: unknown) => {
     stored.push(path);
+    written.push({ path, data });
     return { id: 'stored-1' };
   };
   const ref = (path: string): Record<string, unknown> =>
@@ -38,7 +41,10 @@ const fakeDb = vi.hoisted(() => {
       } as Record<string | symbol, unknown>,
       { get: (t, k) => (k in t ? t[k] : k === 'then' ? undefined : () => ref(path)) }
     );
-  const tx = (r: { path: string }) => void stored.push(r.path);
+  const tx = (r: { path: string }, data?: unknown) => {
+    stored.push(r.path);
+    written.push({ path: r.path, data });
+  };
   return Object.assign(ref(''), {
     runTransaction: async (fn: (t: unknown) => unknown) =>
       fn({ get: async () => empty, set: tx, update: tx, create: tx, delete: tx }),
@@ -80,7 +86,7 @@ import '../../../services/outreach/pattern-outreach-integration.js';
 let n = 0;
 
 /** Run one turn of the real builder and let its fire-and-forget writes land. */
-async function turn(userText: string, intensity = 0.3): Promise<void> {
+async function turn(userText: string, intensity = 0.3): Promise<string> {
   const sessionId = `writes-${++n}`;
   await buildLiveSuperhumanInjections({
     userId: `user-${sessionId}`,
@@ -93,12 +99,14 @@ async function turn(userText: string, intensity = 0.3): Promise<void> {
   await new Promise<void>((resolve) => {
     setTimeout(resolve, 150);
   });
+  return sessionId;
 }
 
 beforeEach(() => {
   vi.mocked(getFirestoreDb).mockReturnValue(fakeDb as never);
   vi.mocked(superhumanDb).mockReturnValue(fakeDb as never);
   stored.length = 0;
+  written.length = 0;
   published.mockClear();
 });
 
@@ -125,6 +133,15 @@ describe('live superhuman writers store through the per-turn builder', () => {
     expect(stored).toEqual([]);
     await turn(said);
     expect(stored.some((p) => where.test(p))).toBe(true);
+  });
+
+  it('the life chapter is keyed by the session, so one chat counts once', async () => {
+    const sessionId = await turn('I quit my job at the store last week.');
+    const chapters = written.filter((w) => /chapter|narrative/i.test(w.path));
+    expect(chapters.length).toBeGreaterThan(0);
+    // conversationIds, not just the path: the userId contains the session id too
+    const ids = chapters.map((w) => (w.data as { conversationIds?: string[] }).conversationIds);
+    expect(ids).toContainEqual([sessionId]);
   });
 
   it('schedulePatternOutreachAsync: outreach is scheduled', async () => {
