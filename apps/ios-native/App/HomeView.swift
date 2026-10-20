@@ -74,7 +74,13 @@ struct HomeView: View {
             // Pinned at every text size: End, Mute and More (and Talk) never
             // scroll away. At accessibility sizes they scrolled with the
             // captions and End left the screen (design audit P0-1, 2026-10-20).
-            .safeAreaInset(edge: .bottom) { controls }
+            .safeAreaInset(edge: .bottom) {
+                controls
+                    .padding(.top, FerniSpace.rest)
+                    // What scrolls under Talk fades into the floor instead of sitting
+                    // half-covered behind it (design audit P1-4).
+                    .background { TimelineView(.everyMinute) { RoomFade(date: HomeClock.time($0.date)) } }
+            }
             .background(TimelineView(.everyMinute) { minute in
                 // The room's light follows the clock, so an evening glow doesn't last until morning.
                 RoomBackground(persona: WindowPersona(personaId: call.avatar.personaID), date: HomeClock.time(minute.date))

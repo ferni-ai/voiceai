@@ -31,6 +31,28 @@ public struct RoomBackground: View {
     }
 }
 
+/// The room's floor colour (no persona wash reaches the bottom), fading in
+/// from clear: under a floating control, so what scrolls beneath it goes soft
+/// instead of sitting half-covered behind it (design audit P1-4).
+public struct RoomFade: View {
+    let date: Date
+
+    public init(date: Date = .now) { self.date = date }
+
+    public var body: some View {
+        let light = RoomLight(hour: Calendar.current.component(.hour, from: date))
+        ZStack {
+            FerniColor.background
+            light.tint.opacity(light.tintOpacity)
+        }
+        .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.45)],
+                             startPoint: .top, endPoint: .bottom))
+        .ignoresSafeArea(edges: .bottom)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
 /// How the room is lit at an hour of the day.
 public struct RoomLight: Equatable, Sendable {
     /// Persona wash opacity, within the north star's 6-10%.
