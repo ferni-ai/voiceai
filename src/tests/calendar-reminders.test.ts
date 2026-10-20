@@ -20,6 +20,7 @@ import {
   clearAllCalendarData,
   getCalendarMemoryStats,
   pruneOldCalendarData,
+  checkAndSendReminders,
   type CalendarEvent,
   type EventReminder,
   type CalendarDigest,
@@ -64,6 +65,12 @@ vi.mock('../services/persistence/index.js', () => ({
 
 // NOTE: mock removed - the code under test never imports this module, so it
 // controlled nothing (it was also pointing at a path that did not resolve).
+
+const scheduleText = vi.hoisted(() => vi.fn(async () => ({ success: true })));
+vi.mock('../tools/domains/proactive/outreach/index.js', () => ({
+  canReachUser: vi.fn(async () => true),
+  scheduleText,
+}));
 
 vi.mock('../services/outreach-intelligence.js', () => ({
   canSendOutreach: vi.fn().mockReturnValue(true),
@@ -908,5 +915,44 @@ describe('Edge cases', () => {
     const reminderTypes = result.reminders.map((r) => r.type);
     expect(reminderTypes).toContain('pre_event');
     expect(reminderTypes).toContain('contextual');
+  });
+});
+
+describe('checkAndSendReminders: a cancelled event, or one with reminders off, is never reminded', () => {
+  beforeEach(() => {
+    clearAllCalendarData();
+    scheduleText.mockClear();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-19T12:00:00')); // not digest hour
+  });
+
+  it.each<{ name: string; flags: Partial<CalendarEvent>; reminded: boolean }>([
+    { name: 'live', flags: {}, reminded: true },
+    { name: 'cancelled', flags: { cancelled: true }, reminded: false },
+    { name: 'reminders off', flags: { remindersDisabled: true }, reminded: false },
+  ])('$name: reminded = $reminded', async ({ name, flags, reminded }) => {
+    const start = new Date(Date.now() + 10 * 60_000); // inside its 30-minute reminder
+    await upsertEvent({
+      id: `due-${name}`,
+      userId: `user-due-${name}`,
+      title: `Due ${name}`,
+      startTime: start,
+      endTime: new Date(start.getTime() + 3600000),
+      isAllDay: false,
+      reminders: [
+        {
+          id: `r-${name}`,
+          eventId: `due-${name}`,
+          type: 'pre_event',
+          minutesBefore: 30,
+          sent: false,
+        },
+      ],
+      source: 'manual',
+      ...flags,
+    });
+    await checkAndSendReminders();
+    expect(scheduleText.mock.calls.some((c) => String(c).includes(`Due ${name}`))).toBe(reminded);
+    vi.useRealTimers();
   });
 });
