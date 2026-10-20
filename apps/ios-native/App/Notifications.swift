@@ -18,6 +18,15 @@ final class FerniAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificatio
     func application(
         _ application: UIApplication, didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        // Here, not in FerniApp.init: Auth sets up phone sign-in's notification
+        // and APNs managers only if UIApplication exists when it starts, and in
+        // App.init it doesn't yet. Started from there, every "Text me a code"
+        // failed with 17054 (2026-10-19, Seth's iPhone).
+        #if DEBUG
+        if UITestScenario.current == nil { FerniFirebase.configure() }
+        #else
+        FerniFirebase.configure()
+        #endif
         let center = UNUserNotificationCenter.current()
         center.delegate = self
         // A note from Ferni: talk now, or later (just dismisses).

@@ -20,7 +20,10 @@ struct FerniApp: App {
             return
         }
         #endif
-        _model = State(initialValue: AppModel(firebaseReady: FerniFirebase.configure()))
+        // Firebase itself starts in the app delegate's didFinishLaunching
+        // (FerniAppDelegate): here, in App.init, UIApplication doesn't exist yet
+        // and Auth would start without what phone sign-in needs (17054).
+        _model = State(initialValue: AppModel(firebaseReady: FerniFirebase.isUsable()))
     }
 
     @Environment(\.scenePhase) private var scenePhase

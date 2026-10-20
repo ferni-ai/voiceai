@@ -25,8 +25,6 @@ public struct FirebaseAuthBackend: AuthBackend {
     /// with a reCAPTCHA page, which comes back on the reversed client ID URL
     /// scheme (project.yml; `FerniFirebase.canHandle`).
     public func sendPhoneCode(to phoneNumber: String) async throws -> String {
-        FerniFirebase.phoneVerifications.withLock { $0 += 1 }
-        defer { FerniFirebase.phoneVerifications.withLock { $0 -= 1 } }
         do {
             return try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
         } catch {
@@ -125,17 +123,19 @@ public enum FerniFirebase {
 
     @MainActor private static var isConfigured = false
 
-    /// Phone verifications in flight (`FirebaseAuthBackend.sendPhoneCode`).
-    static let phoneVerifications = OSAllocatedUnfairLock(initialState: 0)
-
     /// Firebase phone sign-in sends itself a probe notification before texting
-    /// a code; the app delegate hands every remote notification here. Passed
-    /// on only while a verification is running: Auth crashes on a notification
-    /// that arrives before it has finished starting (its notification manager
-    /// is set late), and it's certainly started once it's verifying a number.
+    /// a code; the app delegate hands every remote notification here. Firebase
+    /// starts in didFinishLaunching, before any notification can arrive.
     @MainActor public static func canHandleNotification(_ userInfo: [AnyHashable: Any]) -> Bool {
-        guard isConfigured, phoneVerifications.withLock({ $0 > 0 }) else { return false }
-        return Auth.auth().canHandleNotification(userInfo)
+        isConfigured && Auth.auth().canHandleNotification(userInfo)
+    }
+
+    /// Whether the bundled GoogleService-Info.plist can start Firebase for this
+    /// app, without starting it (the app model is built before launch finishes).
+    public static func isUsable(bundle: Bundle = .main) -> Bool {
+        let path = bundle.path(forResource: "GoogleService-Info", ofType: "plist")
+        let config = path.flatMap { NSDictionary(contentsOfFile: $0) as? [String: Any] }
+        return problem(config: config, bundleID: bundle.bundleIdentifier) == nil
     }
 
     /// With push on, phone sign-in proves the app by a silent notification
