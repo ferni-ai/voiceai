@@ -4,9 +4,10 @@
  * priorityKey) the composite index serves, and a once-only referral credit.
  */
 import { queueFields, readEntry } from '../queue.js';
+import { readSettings } from '../settings.js';
 import type { WaitlistStore } from '../store.js';
 
-export function memoryStore() {
+export function memoryStore(settings: Record<string, unknown> = {}) {
   const docs = new Map<string, Record<string, unknown>>();
   const find = (pred: (d: Record<string, unknown>) => boolean) => {
     const hit = [...docs.entries()].find(([, d]) => pred(d));
@@ -43,6 +44,7 @@ export function memoryStore() {
       merge(referredId, { referralCredited: true });
       return true;
     },
+    settings: async () => readSettings(settings),
   };
   return { docs, store };
 }
