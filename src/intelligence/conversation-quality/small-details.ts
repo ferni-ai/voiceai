@@ -14,6 +14,7 @@
  */
 
 import type { SmallDetail } from './types.js';
+import { findCallerName, nameCaptureStrict } from '../../utils/caller-name.js';
 
 // ============================================================================
 // PATTERNS
@@ -364,20 +365,16 @@ export function extractSmallDetails(text: string): SmallDetail[] {
   const now = new Date();
   const seenNames = new Set<string>(); // Avoid duplicates
 
-  // Extract user names
-  for (const pattern of USER_NAME_PATTERNS) {
-    const matches = text.matchAll(pattern);
-    for (const match of matches) {
-      const name = match[1];
-      if (name && isValidName(name) && !seenNames.has(name.toLowerCase())) {
-        seenNames.add(name.toLowerCase());
-        details.push({
-          type: 'user_name',
-          value: name,
-          context: match[0].trim(),
-          extractedAt: now,
-        });
-      }
+  // Extract user names (NAME_CAPTURE_STRICT=on: the shared extractor, utils/caller-name.ts)
+  const own = nameCaptureStrict() ? [findCallerName(text)] : null;
+  const nameMatches: ReadonlyArray<ArrayLike<string>> = own
+    ? own.flatMap((m) => (m ? [[m.phrase, m.name]] : []))
+    : USER_NAME_PATTERNS.flatMap((pattern) => [...text.matchAll(pattern)]);
+  for (const match of nameMatches) {
+    const name = match[1];
+    if (name && isValidName(name) && !seenNames.has(name.toLowerCase())) {
+      seenNames.add(name.toLowerCase());
+      details.push({ type: 'user_name', value: name, context: match[0].trim(), extractedAt: now });
     }
   }
 

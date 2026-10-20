@@ -36,7 +36,7 @@ describe('ferni.ai/delete-account', () => {
   });
 
   it('walks through the in-app path using the labels the app shows', () => {
-    expect(strings.menu.items.exportData).toBe('Take Your Story');
+    expect(strings.menu.items.exportData).toBe('Privacy & your data');
     expect(strings.dataExport.deleteAccount).toBe('Delete my account');
     expect(page).toContain(`<strong>${strings.menu.items.exportData}</strong>`);
     expect(page).toContain(`<strong>${strings.dataExport.deleteAccount}</strong>`);
