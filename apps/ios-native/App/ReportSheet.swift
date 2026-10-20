@@ -48,6 +48,7 @@ struct ReportSheet: View {
                     }
                 }
             }
+            .ferniPaper()
             .navigationTitle("Report a reply")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -62,6 +63,8 @@ struct ReportSheet: View {
             .tint(FerniColor.accent)
         }
         .presentationDetents([.medium, .large])
+        // Paper, not glass: the call showed through (design audit P2 #3).
+        .presentationBackground(FerniColor.background)
     }
 
     private func submit() async {
