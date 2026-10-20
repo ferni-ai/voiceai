@@ -13,10 +13,16 @@
  * (what a live call sends now: the first agent's 64 essentials, then the
  * post-greeting update to 88, both through the production cap code); core
  * (TOOL_CORE_STATIC: the static core, findTools searching the whole catalog
- * and appending what it finds, as the pinner does). EVAL_LABELS=head keeps
- * only requests for the 20 tools prod and dev calls used (2026-10-04..11).
+ * and appending what it finds, as the pinner does); handoff (what PERSONA gets
+ * when Ferni hands it the call, built in agent-setup.ts's order, with
+ * SPECIALIST_TOOLS off); handoff-persona (the same with SPECIALIST_TOOLS on).
+ * EVAL_LABELS=head keeps only requests for the 20 tools prod and dev calls used
+ * (2026-10-04..11). PERSONA (default ferni) picks the system prompt and agent;
+ * EVAL_DOMAINS=a,b keeps requests whose tool is in those domains (specialty:
+ * the domains of PERSONA's specialist list).
  *
- * usage: [TOOL_SET=today|core] npx tsx scripts/tool-retrieval/eval-choice.ts <n> [seed] [label]
+ * usage: [TOOL_SET=today|core|handoff|handoff-persona] [PERSONA=id] [EVAL_DOMAINS=a,b|specialty]
+ *   npx tsx scripts/tool-retrieval/eval-choice.ts <n> [seed] [label]
  * Writes scripts/tool-retrieval/out/choice-<label>.json and prints a summary.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -38,19 +44,35 @@ import { TurnToolRetrieval } from '../../src/tools/retrieval/turn-tool-retrieval
 import { createFindToolsTool, FIND_TOOLS } from '../../src/tools/retrieval/find-tools-tool.js';
 import { loadSystemPrompt } from '../../src/agents/personas/prompt-loader.js';
 import { cascadeThinking } from '../../src/agents/model-provider/cartesia-cascade.js';
-import { capToolsToLimit, getEssentialTools } from '../../src/config/tool-config.js';
+import { capToolsToLimit, getEssentialTools, getMaxTools } from '../../src/config/tool-config.js';
 import { DEFAULT_ESSENTIAL_DOMAINS } from '../../src/tools/dynamic-loader/index.js';
 import { updateAgentTools } from '../../src/agents/shared/tool-updater.js';
 import { staticCoreCallTools } from '../../src/agents/shared/static-core-tools.js';
+import {
+  buildEssentialToolSet,
+  handoffGetsEssentialSet,
+} from '../../src/agents/multi-agent/essential-tool-set.js';
+import {
+  filterInitialSpawnTools,
+  getInitialToolPolicyFromEnv,
+  resolveInitialToolLimit,
+} from '../../src/agents/multi-agent/initial-tools.js';
+import { withCallJournalTools } from '../../src/agents/multi-agent/call-journal-tools.js';
+import { withAlwaysOnTools } from '../../src/agents/multi-agent/everyday-basics.js';
+import { singleSessionHandoffs } from '../../src/agents/multi-agent/persona-swap.js';
+import { SPECIALIST_TOOL_SETS } from '../../src/agents/multi-agent/specialist-tool-sets.js';
+import { getToolGateway } from '../../src/tools/gateway/index.js';
+import { createSessionToolLoader } from '../../src/tools/dynamic-loader/index.js';
 
 const [nArg, seedArg, label = 'live'] = process.argv.slice(2);
 const n = Number(nArg || 100);
 const seed = Number(seedArg || 1);
 const MODEL = process.env.CASCADE_LLM_MODEL || 'gemini-3.5-flash';
-const TOOL_SETS = ['retrieval', 'today', 'core'] as const;
+const TOOL_SETS = ['retrieval', 'today', 'core', 'handoff', 'handoff-persona'] as const;
 const TOOL_SET = (process.env.TOOL_SET || 'retrieval') as (typeof TOOL_SETS)[number];
 if (!TOOL_SETS.includes(TOOL_SET))
   throw new Error(`TOOL_SET must be one of ${TOOL_SETS.join(', ')}`);
+const PERSONA = process.env.PERSONA || 'ferni';
 const CONCURRENCY = 6;
 const MAX_STEPS = 3;
 /** Look-up tools the model often calls before acting, with a plausible answer. */
@@ -75,8 +97,8 @@ await autoRegisterAllDomains();
 await initializeToolRegistry({ lazyLoading: false });
 const ctx = {
   userId: 'eval',
-  agentId: 'ferni',
-  agentDisplayName: 'Ferni',
+  agentId: PERSONA,
+  agentDisplayName: PERSONA,
   services: { has: () => true, get: () => undefined },
 } as unknown as ToolContext;
 const built = toolRegistry.buildToolSet({ domains: [...ALL_TOOL_DOMAINS] as ToolDomain[] }, ctx);
@@ -89,8 +111,67 @@ const catalog = new llm.ToolContext({
 // same for every request, built with the production code.
 const asTools = (r: Record<string, unknown>) =>
   r as unknown as Record<string, llm.AnonFunctionTool>;
+/** `current` after a post-greeting update offering `offered` (updateAgentTools, its cap). */
+async function afterUpdate(current: Record<string, unknown>, offered: Record<string, unknown>) {
+  const agent = {
+    get toolCtx() {
+      return { functionTools: current };
+    },
+    async updateTools(tools: Record<string, unknown>) {
+      current = tools;
+    },
+  };
+  await updateAgentTools(agent as never, offered);
+  return current;
+}
+/**
+ * PERSONA handed the call by Ferni, in agent-setup.ts's order: the handoff's
+ * set (essential set with HANDOFF_FULL_TOOLS, else the warmed gateway), the
+ * call journal and always-on tools, the cap; without MULTI_AGENT_SINGLE_SESSION
+ * (default on), the post-greeting update too.
+ */
+async function handoffSet(): Promise<Record<string, unknown>> {
+  process.env.SPECIALIST_TOOLS = TOOL_SET === 'handoff-persona' ? 'on' : 'off';
+  const named = { userId: 'eval', sessionId: 'eval', agentId: PERSONA, agentDisplayName: PERSONA };
+  let loaded: Record<string, unknown>;
+  if (handoffGetsEssentialSet()) {
+    const team = ['ferni', ...Object.keys(SPECIALIST_TOOL_SETS)];
+    const set = await buildEssentialToolSet({
+      personaId: PERSONA,
+      userId: 'eval',
+      services: { userProfile: { totalConversations: 40, unlockedPersonas: team } as never },
+    });
+    const keep = filterInitialSpawnTools(
+      Object.keys(set.tools).map((name) => ({ name })),
+      new Set(Object.keys(set.essentialTools)),
+      new Set(Object.keys(set.handoffTools)),
+      getInitialToolPolicyFromEnv()
+    );
+    loaded = Object.fromEntries(keep.map(({ name }) => [name, set.tools[name]]));
+  } else {
+    await getToolGateway().warmup(); // gce/warmup.ts at boot
+    loaded = getToolGateway().getSessionTools();
+  }
+  const always = await withAlwaysOnTools(await withCallJournalTools(loaded, named), named, true);
+  const atSetup = capToolsToLimit(always, resolveInitialToolLimit(getMaxTools()));
+  const set = singleSessionHandoffs() ? atSetup : await afterGreeting(atSetup, named);
+  const specialty = Object.keys(SPECIALIST_TOOL_SETS[PERSONA] ?? {});
+  process.stderr.write(
+    `${PERSONA} ${TOOL_SET}: ${Object.keys(set).length} tools (${Object.keys(atSetup).length} at setup), specialty ${specialty.filter((n) => n in set).length}/${specialty.length}\n`
+  );
+  return set;
+}
+/** Without MULTI_AGENT_SINGLE_SESSION: wireHandlers' update from the session's tool loader. */
+async function afterGreeting(atSetup: Record<string, unknown>, named: object) {
+  const loader = createSessionToolLoader({ enableAutoUnload: false });
+  await loader.initialize(named as never);
+  const updated = await afterUpdate(atSetup, loader.getCurrentTools());
+  loader.shutdown();
+  return updated;
+}
 async function fixedSet(): Promise<llm.ToolContext | null> {
   if (TOOL_SET === 'retrieval') return null;
+  if (TOOL_SET.startsWith('handoff')) return new llm.ToolContext(asTools(await handoffSet()));
   const essentialDomains = DEFAULT_ESSENTIAL_DOMAINS as ToolDomain[];
   if (TOOL_SET === 'core') {
     const core = await staticCoreCallTools(built.tools, 'eval', undefined, {
@@ -105,19 +186,15 @@ async function fixedSet(): Promise<llm.ToolContext | null> {
     { domains: essentialDomains, optional: [...getEssentialTools()] },
     ctx
   ).tools;
-  let current: Record<string, unknown> = capToolsToLimit(essentials, 64);
-  const agent = {
-    get toolCtx() {
-      return { functionTools: current };
-    },
-    async updateTools(tools: Record<string, unknown>) {
-      current = tools;
-    },
-  };
-  await updateAgentTools(agent as never, loaderNow);
-  return new llm.ToolContext(asTools(current));
+  return new llm.ToolContext(
+    asTools(await afterUpdate(capToolsToLimit(essentials, 64), loaderNow))
+  );
 }
 const fixed = await fixedSet();
+if (fixed) {
+  const names = Object.keys(fixed.functionTools);
+  writeFileSync(`scripts/tool-retrieval/out/set-${label}.json`, JSON.stringify(names, null, 1));
+}
 /** The tools prod and dev calls used, 2026-10-04..11 (tool-surface.md). */
 const HEAD = new Set([
   'quickTimer',
@@ -143,7 +220,7 @@ const HEAD = new Set([
 ]);
 
 process.env.PROMPT_MODE ??= 'character';
-const system = await loadSystemPrompt('ferni');
+const system = await loadSystemPrompt(PERSONA);
 const embedder = createVertexEmbedder();
 const index = await getSharedToolIndex(embedder);
 const manual = loadIntentManual();
@@ -154,12 +231,22 @@ const genai = new GoogleGenAI({
 });
 
 // Deterministic sample.
+const domainArg = process.env.EVAL_DOMAINS;
+const domains = !domainArg
+  ? null
+  : new Set<string>(
+      domainArg === 'specialty'
+        ? Object.values(SPECIALIST_TOOL_SETS[PERSONA] ?? {})
+        : domainArg.split(',').map((d) => d.trim())
+    );
 const all = (
   JSON.parse(readFileSync('scripts/tool-retrieval/out/generated-test.json', 'utf8')) as Array<{
     query: string;
     tool: string;
   }>
-).filter((item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool));
+)
+  .filter((item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool))
+  .filter((item) => !domains || domains.has(manual.tools[item.tool]?.domain ?? ''));
 let s = seed;
 const rand = (): number => (s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
 const sample = [...all].sort(() => rand() - 0.5).slice(0, n);
@@ -315,6 +402,8 @@ console.log(
   JSON.stringify(
     {
       label,
+      persona: PERSONA,
+      domains: domains ? [...domains].join(',') : 'all',
       model: MODEL,
       n: ok.length,
       errors: rows.length - ok.length,

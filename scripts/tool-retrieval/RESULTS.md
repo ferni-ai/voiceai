@@ -75,3 +75,72 @@ Tokens: the top 10 tools average ~1.2k tokens, top 20 ~2.5k (vs ~28k for the
 - The always-on core set, recently used tools and a findTool fallback, which
   the runtime design adds on top of retrieval.
 - Multi-turn context ("yes, do that"): the queries here are single turns.
+
+## Specialist tool sets on handoff (SPECIALIST_TOOLS, 2026-10-20)
+
+Does a specialist handed the call choose its tools better with its own set
+(`specialist-tool-sets.ts`) than with today's? `eval-choice.ts` with
+`TOOL_SET=handoff` (flag off) vs `handoff-persona` (flag on), the persona's own
+character prompt (`PERSONA`), gemini-3.5-flash, same requests in both arms.
+Both sets are built by the production functions in `agent-setup.ts`'s order
+(warmed gateway Tier 0, `withCallJournalTools`, `withAlwaysOnTools`, the cap;
+`MULTI_AGENT_SINGLE_SESSION` is on by default, so no post-greeting update). A
+`setupPersonaAgent` dump (the branch's test path) gave the same flag-on set for
+all six personas; flag off, the eval's set had one extra tool (`setVibe`).
+
+Specialty: 60 requests per seed whose labelled tool is in one of the persona's
+specialty domains (`EVAL_DOMAINS=specialty`), seeds 1 and 2. General: the 38
+requests for the 20 tools prod calls use most (`EVAL_LABELS=head`). Right =
+labelled tool or a judged equivalent. findTools was used 0% in every run.
+
+| persona       | specialty right, off (s1/s2) | on (s1/s2)  | delta | general right off -> on | tools off/on | prompt tokens off/on | ship |
+| ------------- | ---------------------------- | ----------- | ----- | ----------------------- | ------------ | -------------------- | ---- |
+| maya-santos   | 0.0 / 0.0                    | 40.0 / 35.0 | +37.5 | 47.4 -> 52.6            | 47 / 48      | 5.65k / 6.17k        | yes  |
+| alex-chen     | 5.0 / 6.7                    | 25.0 / 31.7 | +22.5 | 47.4 -> 47.4            | 47 / 49      | 5.71k / 6.84k        | yes  |
+| jordan-taylor | 5.0 / 3.3                    | 36.7 / 31.7 | +30.0 | 42.1 -> 52.6            | 47 / 47      | 5.75k / 6.44k        | yes  |
+| nayan-patel   | 3.3 / 3.3                    | 60.0 / 60.0 | +56.7 | 44.7 -> 57.9            | 47 / 46      | 5.65k / 6.33k        | yes  |
+| peter-john    | 0.0 / 0.0                    | 20.0 / 22.0 | +21.0 | 44.7 -> 50.0            | 47 / 48      | 5.83k / 6.38k        | yes  |
+| joel-dickson  | 1.7 / 0.0                    | 18.3 / 18.3 | +17.5 | 39.5 -> 60.5            | 47 / 43      | 11.84k / 11.98k      | yes  |
+
+Ship rule: right(on) >= right(off) - 1 point and tools sent <= 64. Seed-to-seed
+noise at n=60 was up to 6.7 points; every delta is well above it.
+
+- **Flag off, a specialist cannot do its job**: its specialty tools are never
+  sent (right tool sent 0% for all six), and the model calls `processing` or
+  `adjustPacing` instead.
+- **Flag on, when the specialty tool is in the set it is called**: 35/39
+  (Maya), 19/22, 35/36, 67/68, 19/21, 17/19 right. The low totals come from
+  domain requests for tools left off the lists (Maya: habitStrategy,
+  habitSetback, behaviorArchitecture, bankAccount; Alex: detectCalendarIssues,
+  getNotes; Peter: trackHypothesis, budgetPlanner; Joel: the
+  security-specific tools, left out on purpose). Repeated in-set misses:
+  gentleAccountability -> setReminder (Maya, 4), emotionalSupport ->
+  deEscalateAnxiety (Joel, 2).
+- **General requests: no persona loses.** Both arms lack getWeatherForecast,
+  quickWeather, setTimer, tellJoke, getFunFact, searchWeb, callOnBehalf and
+  addRelationship (getWeather and quickTimer stand in). Flag on adds
+  connectToHumanExpert and drops getTodaySignificance.
+- **Risk**: with `MULTI_AGENT_SINGLE_SESSION=off` (kill switch), the
+  post-greeting update re-caps the set to 88 essentials-first, and Maya keeps
+  4 of her 18 specialty tools.
+
+Control (Ferni, all requests, seed 1, n=300): `TOOL_SET=today` right 15.1%
+(right tool sent 5.0%, 88 tools); `retrieval` 75.2% (sent 77.9%). On the same
+300 requests the 2026-09-30 files score 73.0% (`baseline-s1`, all rows) and
+82.1% (`base2-s1`, 26 errored rows dropped).
+
+```bash
+export GOOGLE_CLOUD_PROJECT=johnb-2025
+for P in maya-santos alex-chen jordan-taylor nayan-patel peter-john joel-dickson; do
+  for T in handoff handoff-persona; do
+    for S in 1 2; do
+      TOOL_SET=$T PERSONA=$P EVAL_DOMAINS=specialty npx tsx scripts/tool-retrieval/eval-choice.ts 60 $S sp-$P-$T-s$S
+    done
+    TOOL_SET=$T PERSONA=$P EVAL_LABELS=head npx tsx scripts/tool-retrieval/eval-choice.ts 60 1 gen-$P-$T
+  done
+done
+TOOL_SET=today npx tsx scripts/tool-retrieval/eval-choice.ts 300 1 ctl-ferni-today
+npx tsx scripts/tool-retrieval/eval-choice.ts 300 1 ctl-ferni-retrieval
+```
+
+38 runs, 3 in parallel: ~13 min, ~2.4k requests to gemini-3.5-flash.
