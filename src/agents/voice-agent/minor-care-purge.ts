@@ -21,15 +21,15 @@ const log = createLogger({ module: 'minor-care-purge' });
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
- * session reloads from storage before any write. Never a placeholder or shared id (one bucket for
- * many people), nor a user with a verified owner's session here (it would wipe the owner's state).
- * Never throws.
+ * write reloads from storage first. Never a placeholder or shared id (one bucket for many people).
+ * A live verified owner session for the same user is purged too: it reloads before its next write,
+ * so it loses at most unsaved in-memory updates, never stored data. Never throws.
  */
 export function purgeHeldUser(userId: string): void {
   if (sharedId(userId)) return log.warn('MINOR_CARE purge skipped: a shared or placeholder id');
   const ownerSession = ownerSessionFor(userId);
   if (ownerSession)
-    return log.warn({ ownerSession }, 'MINOR_CARE purge skipped: owner session live');
+    log.info({ ownerSession }, 'MINOR_CARE purged while an owner session was live; it will reload');
   const purges: Array<[string, (userId: string) => void]> = [
     ['unified trust', purgeUnifiedUser],
     ['game memory', purgeGameMemory],
