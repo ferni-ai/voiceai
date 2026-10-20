@@ -41,9 +41,11 @@ struct HomeView: View {
                         }
                     } else {
                         if inCall { NameChip(personaID: call.avatar.personaID) }
-                        // In a call at accessibility sizes Ferni steps back so the words fit.
-                        avatar(call: call, size: inCall ? (typeSize.isAccessibilitySize ? 120 : 240) : 200)
-                            .padding(.top, inCall ? FerniSpace.breath : FerniSpace.silence)
+                        // At accessibility sizes Ferni steps back so the words fit: in a
+                        // call, the captions; at home, the greeting above the pinned Talk
+                        // (design audit P1-9: on an SE at AX5 it sat behind Talk).
+                        avatar(call: call, size: typeSize.isAccessibilitySize ? (inCall ? 120 : 140) : (inCall ? 240 : 200))
+                            .padding(.top, inCall || typeSize.isAccessibilitySize ? FerniSpace.breath : FerniSpace.silence)
                         if inCall {
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
                         } else {
