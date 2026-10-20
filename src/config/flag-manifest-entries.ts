@@ -15,6 +15,7 @@ export const FLAG_OWNERS = [
   'outreach',
   'billing',
   'platform',
+  'safety',
 ] as const;
 export const FLAG_KINDS = ['experiment', 'kill-switch', 'config'] as const;
 

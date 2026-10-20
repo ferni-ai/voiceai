@@ -18,11 +18,17 @@
  * crisis guidance into the agreement gate's SOFT_CRISIS_CHECK; held back to
  * shadow for now (resolveCrisisAdjudicatorMode).
  *
+ * CRISIS_ADJUDICATOR_GRIEF (off by default): grief or overwhelm with no risk
+ * shape reads "checkin" (CRISIS_ADJUDICATOR_GRIEF_RULE), and a caller's first
+ * line is read when Ferni has spoken. Off, the request is byte-identical to the
+ * prompt the 2026-10-17 replay measured.
+ *
  * Privacy: logs carry the decision and why, never the transcript or the reply.
  *
  * @module CrisisAdjudicator
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import type { CrisisGenerateFn, CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
@@ -70,6 +76,21 @@ How to read it:
 5. When you are unsure, escalate. A missed crisis is far worse than an unneeded check-in.
 
 Return JSON only, in this order: {"caller_risk":"<the caller's words that suggest risk, quoted briefly, or empty>","decision":"escalate"|"checkin","confidence":"high"|"low"}`;
+
+/**
+ * CRISIS_ADJUDICATOR_GRIEF: in a scripted dev eval call (2026-10-20) a caller
+ * grieving a sudden death said they didn't know what to do with themselves and
+ * heard the 988 line in 4/4 runs; rule 4 lets only plainly everyday calls check
+ * in. Grief keeps its risky shapes (rule 2) as escalate.
+ */
+export const CRISIS_ADJUDICATOR_GRIEF_RULE = `4a. Grief and overwhelm with no caller risk also count as everyday for rule 4: a recent loss, shock, sadness, numbness, guilt or regret about someone who died or left, crying ("I can't stop crying"), exhaustion, overwhelm, feeling lost or not knowing what to do with themselves ("I don't know what to do with myself"). Ferni stays with them warmly without the crisis line: "checkin". Grief with any risk shape is caller risk under rule 2, so escalate: wanting to join or be with the person who died or go where they are, wishing they had died instead ("it should have been me"), funeral or burial wishes for themselves, "no point now" or no reason to be here without them, giving their own things away, a plan or means, "I can't go on", or passive ideation such as not wanting to wake up.`;
+
+/** The prompt for one read: the baseline prompt, or the grief rule inserted before rule 5. */
+export function crisisAdjudicatorPrompt(grief: boolean): string {
+  if (!grief) return CRISIS_ADJUDICATOR_PROMPT;
+  const rule5 = '\n5. When you are unsure';
+  return CRISIS_ADJUDICATOR_PROMPT.replace(rule5, `\n${CRISIS_ADJUDICATOR_GRIEF_RULE}${rule5}`);
+}
 
 /**
  * Live is held back: on the 2026-10-17 replay (scripts/crisis-eval/
@@ -136,9 +157,14 @@ export function adjudicatorEligible(
 /**
  * Trimmed, SSML-free, the last MAX_LINES. Null (escalate) unless the last line
  * is the caller's and there is a Ferni line and an earlier caller line: a
- * short reply cannot be judged without what came before it.
+ * short reply cannot be judged without what came before it. `firstTurn`
+ * (CRISIS_ADJUDICATOR_GRIEF) drops the earlier-caller-line need: Ferni's line
+ * is the context a first reply answers.
  */
-export function normalizeTranscript(lines: readonly AdjudicatorLine[]): AdjudicatorLine[] | null {
+export function normalizeTranscript(
+  lines: readonly AdjudicatorLine[],
+  options: { firstTurn?: boolean } = {}
+): AdjudicatorLine[] | null {
   if (!Array.isArray(lines)) return null;
   const kept = lines
     .map((l) => ({
@@ -152,8 +178,22 @@ export function normalizeTranscript(lines: readonly AdjudicatorLine[]): Adjudica
     )
     .slice(-MAX_LINES);
   if (kept.at(-1)?.speaker !== 'caller' || !kept.some((l) => l.speaker === 'ferni')) return null;
-  if (!kept.slice(0, -1).some((l) => l.speaker === 'caller')) return null;
+  if (!options.firstTurn && !kept.slice(0, -1).some((l) => l.speaker === 'caller')) return null;
   return kept;
+}
+
+export interface AdjudicatorRequest {
+  prompt: string;
+  transcript: AdjudicatorLine[];
+}
+
+/** What the model is sent for these lines, or null (escalate, no_context). */
+export function buildAdjudicatorRequest(
+  lines: readonly AdjudicatorLine[],
+  grief: boolean
+): AdjudicatorRequest | null {
+  const transcript = normalizeTranscript(lines, { firstTurn: grief });
+  return transcript && { prompt: crisisAdjudicatorPrompt(grief), transcript };
 }
 
 /**
@@ -184,7 +224,15 @@ export async function adjudicateCrisis(
   prompt: string = CRISIS_ADJUDICATOR_PROMPT
 ): Promise<AdjudicatorResult> {
   const transcript = normalizeTranscript(lines);
-  if (!transcript) return { decision: 'escalate', why: 'no_context' };
+  return sendAdjudication(transcript && { prompt, transcript }, generate, timeoutMs);
+}
+
+async function sendAdjudication(
+  request: AdjudicatorRequest | null,
+  generate: CrisisGenerateFn,
+  timeoutMs: number
+): Promise<AdjudicatorResult> {
+  if (!request) return { decision: 'escalate', why: 'no_context' };
   const controller = new globalThis.AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<null>((resolve) => {
@@ -195,7 +243,7 @@ export async function adjudicateCrisis(
   });
   try {
     const reply = await Promise.race([
-      generate(prompt, JSON.stringify(transcript), controller.signal),
+      generate(request.prompt, JSON.stringify(request.transcript), controller.signal),
       timeout,
     ]);
     if (reply === null) return { decision: 'escalate', why: 'timeout' };
@@ -271,20 +319,25 @@ export function startCrisisAdjudicator(
   const mode = resolveCrisisAdjudicatorMode(env);
   if (mode === 'off' || !adjudicatorEligible(options.pattern, options.verdicts)) return null;
   const startedAt = Date.now();
-  const key = JSON.stringify([options.scope ?? '', mode, normalizeTranscript(lines)]);
+  const grief = flagOn('CRISIS_ADJUDICATOR_GRIEF', env);
+  const request = buildAdjudicatorRequest(lines, grief);
+  const key = JSON.stringify([options.scope ?? '', mode, grief, request?.transcript ?? null]);
   for (const [k, v] of recent) if (startedAt - v.at > RECENT_TTL_MS) recent.delete(k);
   const shared = recent.get(key)?.run;
   if (shared) return shared;
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiAdjudicatorGenerate());
-  const result = adjudicateCrisis(lines, generate, resolveCrisisAdjudicatorTimeoutMs(env)).then(
-    (r) => {
-      const held = mode === 'shadow' && env.CRISIS_ADJUDICATOR?.trim().toLowerCase() === 'live';
-      const stats = { latencyMs: Date.now() - startedAt, ...(held ? { liveHeld: true } : {}) };
-      log.info({ mode, source: options.source, ...r, ...stats }, 'CRISIS_ADJUDICATOR');
-      return r;
-    }
-  );
+  const timeoutMs = resolveCrisisAdjudicatorTimeoutMs(env);
+  const result = sendAdjudication(request, generate, timeoutMs).then((r) => {
+    const held = mode === 'shadow' && env.CRISIS_ADJUDICATOR?.trim().toLowerCase() === 'live';
+    const stats = {
+      latencyMs: Date.now() - startedAt,
+      ...(held ? { liveHeld: true } : {}),
+      ...(grief ? { grief: true } : {}),
+    };
+    log.info({ mode, source: options.source, ...r, ...stats }, 'CRISIS_ADJUDICATOR');
+    return r;
+  });
   const run: CrisisAdjudicatorRun = { mode, result };
   if (recent.size >= RECENT_MAX) {
     const oldest = recent.keys().next().value;

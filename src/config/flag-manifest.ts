@@ -23,7 +23,6 @@ import {
 } from './flag-manifest-entries.js';
 
 export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
-
 export const FLAG_MANIFEST = {
   ...FLAGS_ACTION_TO_BYPASS,
   // on: a teammate's first line restates only the caller's words, else a plain hello; kept out of memory (arrival-grounding.ts)
@@ -72,6 +71,7 @@ export const FLAG_MANIFEST = {
   CONTEXT_PACKET: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CONVERSATION_RULES: { default: 'on', owner: 'voice', kind: 'config' },
   CRISIS_ADJUDICATOR: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  CRISIS_ADJUDICATOR_GRIEF: { default: 'off', owner: 'safety', kind: 'experiment' },
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
