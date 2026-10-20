@@ -28,6 +28,7 @@ import {
 } from './friendship-anniversary.js';
 import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
+import { takeRecentTextFacts } from './recent-texts-awareness.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -335,6 +336,8 @@ export async function directedGreeting(
   const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
   // A returning caller's greeting can pick up from last time (agent-setup hands it over).
   const history = takeCallerHistory(sessionId);
+  // CALL_KNOWS_RECENT_TEXTS: what agent setup found it texted them lately (never a new read).
+  const texted = takeRecentTextFacts(sessionId);
   const hour = callerHour(new Date(), userData?.callerTimezone);
   const ctx = {
     hour: hour ?? 12,
@@ -356,6 +359,7 @@ export async function directedGreeting(
       facts: {
         ...greetingFacts(partOfDay, userData?.userName, history),
         ...proactiveReasonFacts(proactive),
+        ...texted,
       },
       fallback: proactiveFallback(userData?.userName),
       urgency: 'now',
@@ -397,17 +401,20 @@ export async function directedGreeting(
   const directed = await directedText(sessionId, {
     moment: 'greeting',
     direction,
-    facts: welcomeBackFacts(
-      greetingFacts(
-        partOfDay,
-        userData?.userName,
-        history,
-        checkIn,
-        unknown ? undefined : ask?.text,
-        win?.text
+    facts: {
+      ...welcomeBackFacts(
+        greetingFacts(
+          partOfDay,
+          userData?.userName,
+          history,
+          checkIn,
+          unknown ? undefined : ask?.text,
+          win?.text
+        ),
+        back
       ),
-      back
-    ),
+      ...(unknown ? {} : texted), // never told to a caller Ferni hasn't recognised
+    },
     fallback: scripted,
     urgency: 'now',
     maxChars: 140,

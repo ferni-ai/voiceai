@@ -151,6 +151,7 @@ import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
+import { recentTextsBlock } from './recent-texts-awareness.js';
 
 const log = getLogger();
 
@@ -339,20 +340,19 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   try {
     mark('load_prompts_start');
     // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
-    const [baseInstructions, loadedSystemPrompt] = await Promise.all([
+    const [baseInstructions, loadedSystemPrompt, texts] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
+      recentTextsBlock(sessionId, userId, userData?.callerTimezone), // CALL_KNOWS_RECENT_TEXTS
     ]);
     mark('load_prompts_done');
 
     systemPrompt = loadedSystemPrompt;
     stableBase = baseInstructions;
 
-    // =========================================================================
     // DATE/TIME AWARENESS - Critical for grounding agent in reality
     // This is injected into model-level instructions so the agent knows
     // the date/time from the VERY FIRST MOMENT (including greeting)
-    // =========================================================================
     // The caller's local time and part of day (time-context.ts); never the server's UTC clock.
     // Append date/time to model base instructions (session-specific, not cached)
     const outboundAwareness = outboundCallerAwareness(outboundPartiesFor(sessionId));
@@ -367,7 +367,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // CALLER_CITY_CONTEXT=on: the city their device reported (caller-city.ts)
     const cityContext = callerCityContext(userData?.userLocation, Boolean(outboundAwareness));
     modelBaseInstructions =
-      baseInstructions + dateTimeContext + worldNowRule + cityContext + outboundAwareness;
+      baseInstructions + dateTimeContext + worldNowRule + cityContext + outboundAwareness + texts;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : services.userProfile;
