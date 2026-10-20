@@ -121,6 +121,14 @@ public final class AliveRig {
         keyed = (moment, time, 0)
     }
 
+    /// When, in the outgoing persona's beats, the teammate takes the middle.
+    static let handoffSwap = 2.15
+
+    /// Seconds from a handoff's start until the teammate has the middle of the
+    /// stage, at `from`'s tempo: when the call's name should change (design
+    /// audit P1-3: the chip said Maya while Ferni was still in front).
+    public static func handoffSeconds(from: WindowPersona) -> Double { handoffSwap * (tempo[from] ?? 1) }
+
     /// The family table: `to` peeks in, they greet, swap places, and `to`
     /// takes the call while the one before waits small in the corner.
     public func handOff(to: WindowPersona) {
@@ -737,7 +745,7 @@ public final class AliveRig {
             play(sequence: "handoff_transition")
             h.done = 4
         }
-        if h.done == 4, t >= 2.15 {                                          // hand over the role mid-flight
+        if h.done == 4, t >= Self.handoffSwap {                              // hand over the role mid-flight
             func swap(_ a: Ch, _ b: WritableKeyPath<Guest, RigSpring>) {
                 let (x, v) = (self[a].x, self[a].v)
                 self[a].x = g[keyPath: b].x; self[a].v = g[keyPath: b].v

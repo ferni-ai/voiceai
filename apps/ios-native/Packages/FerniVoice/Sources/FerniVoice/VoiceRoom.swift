@@ -59,14 +59,21 @@ public struct Caption: Identifiable, Sendable, Equatable {
     /// The room it was heard in. A rejoin gets a new room, so a report about
     /// an earlier line uses this, not the call's room at send time (critic L2).
     public var room: String?
+    /// Who on the team said it (Ferni's side only): after a handoff, the
+    /// captions say whose words they are (design audit P1-3).
+    public var personaID: String?
 
-    public init(id: String, speaker: CaptionChunk.Speaker, text: String, isFinal: Bool, at: Date = .now, room: String? = nil) {
+    public init(
+        id: String, speaker: CaptionChunk.Speaker, text: String, isFinal: Bool, at: Date = .now, room: String? = nil,
+        personaID: String? = nil
+    ) {
         self.id = id
         self.speaker = speaker
         self.text = text
         self.isFinal = isFinal
         self.at = at
         self.room = room
+        self.personaID = personaID
     }
 }
 
@@ -80,7 +87,7 @@ public struct CaptionBook: Sendable, Equatable {
 
     public init(keep: Int = 6) { self.keep = keep }
 
-    public mutating func apply(_ chunk: CaptionChunk, room: String? = nil) {
+    public mutating func apply(_ chunk: CaptionChunk, room: String? = nil, persona: String? = nil) {
         guard !chunk.text.isEmpty || chunk.isFinal else { return }
         let id = "\(chunk.speaker)-\(chunk.segmentID)"
         if let index = lines.firstIndex(where: { $0.id == id }) {
@@ -89,7 +96,8 @@ public struct CaptionBook: Sendable, Equatable {
             lines[index].isFinal = chunk.isFinal
         } else if !chunk.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             // A bare end-of-segment marker with nothing said isn't a line.
-            lines.append(Caption(id: id, speaker: chunk.speaker, text: chunk.text, isFinal: chunk.isFinal, room: room))
+            lines.append(Caption(id: id, speaker: chunk.speaker, text: chunk.text, isFinal: chunk.isFinal, room: room,
+                                 personaID: chunk.speaker == .ferni ? persona : nil))
             if lines.count > keep { lines.removeFirst(lines.count - keep) }
         }
         streamForSegment[id] = chunk.streamID
