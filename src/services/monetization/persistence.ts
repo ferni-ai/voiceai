@@ -134,6 +134,7 @@ export function initMonetizationPersistence(): void {
   // User-specific stores
   tipStore = createPersistenceStore<UserTipData>({
     collection: 'monetization_tips',
+    holdWrites: () => false, // MINOR_CARE opt-out: billing records stay
     syncIntervalMs: 3000,
   });
 
@@ -144,6 +145,7 @@ export function initMonetizationPersistence(): void {
 
   userFundStore = createPersistenceStore<UserFundData>({
     collection: 'monetization_fund_contributions',
+    holdWrites: () => false, // MINOR_CARE opt-out: billing records stay
     syncIntervalMs: 3000,
   });
 

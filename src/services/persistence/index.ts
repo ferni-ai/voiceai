@@ -4,17 +4,14 @@
  * Provides a consistent pattern for persisting in-memory data to Firestore.
  * All services that need persistence should use this layer.
  *
- * Features:
- * - Debounced batch writes for efficiency
- * - Graceful shutdown with flush
- * - Startup rehydration
- * - Memory cleanup utilities
- * - Write-through for critical data
+ * Features: debounced batch writes, flush on shutdown, startup rehydration, memory cleanup,
+ * write-through for critical data, and MINOR_CARE's hold by default (holdWrites).
  *
  * @module PersistenceLayer
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { userHeld } from '../../utils/minor-care.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -40,7 +37,11 @@ export interface PersistenceConfig {
 
   /** Whether to use root collection (not under bogle_users) */
   useRootCollection?: boolean;
-  /** Checked at each sync: a held user's data is dropped, not written (MINOR_CARE, music learning) */
+  /**
+   * MINOR_CARE, on by default (userHeld): a held caller under 18's data is never cached or written,
+   * here or later in this process. Opt out with () => false only for data that isn't theirs to
+   * withhold: credentials, push endpoints, billing.
+   */
   holdWrites?: (userId: string) => boolean;
 }
 
@@ -166,13 +167,16 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     syncIntervalMs = 5000,
     maxPendingChanges = 20,
     useRootCollection = false,
-    holdWrites,
+    holdWrites = userHeld,
   } = config;
 
   // In-memory cache
   const cache = new Map<string, T>();
   const dirty = new Set<string>();
   const intervalName = `persistence-sync-${collection}`;
+  const tainted = new Set<string>(); // held once: dropped on every set and sync from then on
+  const held = (userId: string): boolean =>
+    (tainted.has(userId) || holdWrites(userId)) && (tainted.add(userId), cache.delete(userId), true);
   let isShutdown = false;
 
   // Start sync interval using managed interval
@@ -197,7 +201,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     const firestore = await getFirestore();
     if (!firestore) return;
 
-    const toFlush = Array.from(dirty).filter((userId) => !holdWrites?.(userId));
+    const toFlush = Array.from(dirty).filter((userId) => !held(userId));
     dirty.clear();
 
     const docRefFor = (userId: string) =>
@@ -205,12 +209,9 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         ? firestore.collection(collection).doc(userId)
         : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
 
-    // Deep-clean (not just top-level removeUndefined) before every write: a
-    // Firestore document rejects `undefined` anywhere in the tree, including
-    // nested inside arrays (e.g. `events[].estimatedValueCents`), and
-    // top-level-only stripping silently let those through. `ignoreUndefinedProperties`
-    // on the client (see initializeFirestore) is the primary guard; this stays as
-    // defense-in-depth and keeps Date handling consistent with flushUser().
+    // Deep-clean before every write: Firestore rejects `undefined` anywhere in the tree, even
+    // inside arrays (`events[].estimatedValueCents`). `ignoreUndefinedProperties` on the client
+    // is the primary guard; this is defense in depth and matches flushUser()'s Date handling.
     const toDoc = (userId: string, data: unknown) =>
       cleanForFirestore({
         ...(data as Record<string, unknown>),
@@ -244,10 +245,8 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         log.debug({ collection, count: batchCount }, 'Persistence batch committed');
       }
     } catch (error) {
-      // A batch commit is all-or-nothing: one invalid document (bad data,
-      // a stale ref, etc.) fails every document in that batch, even though
-      // most are fine. Isolate by retrying each document individually so a
-      // single bad user can't block everyone else's data from persisting.
+      // A batch commit is all-or-nothing, so one bad document fails them all: retry each one
+      // alone so a single bad user can't block everyone else's data from persisting.
       log.error(
         { error, collection, count: toFlush.length },
         'Persistence batch failed; retrying documents individually'
@@ -275,7 +274,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 
   // Flush a single user
   const flushUser = async (userId: string): Promise<void> => {
-    if (!dirty.has(userId) || holdWrites?.(userId)) return;
+    if (!dirty.has(userId) || held(userId)) return;
 
     const firestore = await getFirestore();
     if (!firestore) return;
@@ -356,6 +355,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         log.warn({ collection, userId }, 'Attempted to set data after shutdown');
         return;
       }
+      if (held(userId)) return;
       cache.set(userId, data);
       dirty.add(userId);
 
@@ -366,6 +366,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     },
 
     setImmediate: async (userId: string, data: T) => {
+      if (held(userId)) return;
       cache.set(userId, data);
       dirty.add(userId);
       await flushUser(userId);
