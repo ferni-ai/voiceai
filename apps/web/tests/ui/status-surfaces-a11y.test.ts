@@ -69,6 +69,8 @@ describe('thinking float', () => {
 describe('connection quality indicator', () => {
   it('is aria-hidden while hidden and exposed while shown', async () => {
     document.body.innerHTML = '';
+    // The corner pill is the kill-switch path; by default the status island shows the weak state
+    localStorage.setItem('ferni:flag:toast-region', 'off');
     const cq = await import('../../src/ui/connection-quality.ui.js');
     cq.initConnectionQuality();
     const el = document.querySelector('.connection-quality');

@@ -16,6 +16,7 @@
  */
 import { callerTimeZoneFor } from '../../utils/caller-time-zone.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { memoryHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'after-call-tasks' });
 
@@ -104,6 +105,14 @@ async function runOne(
 
 /** Starts every registered task for this call and returns without waiting. */
 export function runAfterCallTasks(ctx: AfterCallContext): void {
+  // MINOR_CARE=on: nothing about a caller under 18 (not a verified owner) is extracted or kept.
+  if (memoryHeld(ctx.sessionId)) {
+    log.info(
+      { sessionId: ctx.sessionId, skipped: tasks.size },
+      'After-call tasks held: MINOR_CARE'
+    );
+    return;
+  }
   for (const [name, reg] of tasks) {
     const p = runOne(name, reg, ctx);
     inFlight.add(p);
