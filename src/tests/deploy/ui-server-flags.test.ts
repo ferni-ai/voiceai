@@ -75,4 +75,12 @@ describe('web-server flags survive a deploy', () => {
     expect(workflow).toMatch(/--build-arg VITE_MEMORY_VIEW="\$\{\{ vars\.VITE_MEMORY_VIEW \}\}"/);
     expect(dockerfile).toMatch(/ARG VITE_MEMORY_VIEW=""\nENV VITE_MEMORY_VIEW=\$VITE_MEMORY_VIEW/);
   });
+
+  // The toasts kill switch (apps/web/src/ui/overlay/toast-flag.ts) must reach both
+  // builds, or setting VITE_TOAST_REGION=off would change nothing.
+  it('the toast-region kill switch reaches both web builds', () => {
+    expect(firebase).toMatch(/VITE_TOAST_REGION: \$\{\{ vars\.VITE_TOAST_REGION \}\}/);
+    expect(workflow).toMatch(/--build-arg VITE_TOAST_REGION="\$\{\{ vars\.VITE_TOAST_REGION \}\}"/);
+    expect(dockerfile).toMatch(/ARG VITE_TOAST_REGION=""\nENV VITE_TOAST_REGION=\$VITE_TOAST_REGION/);
+  });
 });
