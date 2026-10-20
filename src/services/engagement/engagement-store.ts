@@ -14,6 +14,7 @@
 
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { userHeld } from '../../utils/minor-care.js';
 import type { EmotionalWeather, RitualStreak, UserRitualProfile } from '../daily-rituals.js';
 import {
   averageRealAccuracy,
@@ -198,8 +199,15 @@ export class EngagementStore {
     return profile;
   }
 
+  /** MINOR_CARE purge: drop the cached profile (a held call may have changed it in place) */
+  forgetUser(userId: string): void {
+    this.memoryCache.delete(userId);
+  }
+
   /** Save engagement profile */
   async saveProfile(profile: EngagementProfile): Promise<void> {
+    // MINOR_CARE: a held caller's profile is neither cached nor written
+    if (userHeld(profile.userId)) return void this.memoryCache.delete(profile.userId);
     if ((profile as { [READ_FAILED]?: true })[READ_FAILED]) {
       // Saving it would overwrite the real stored profile with defaults.
       getLogger().warn({ userId: profile.userId }, 'Engagement profile read failed; not saving');
@@ -220,9 +228,7 @@ export class EngagementStore {
     }
   }
 
-  /**
-   * Get ritual streak
-   */
+  /** Get ritual streak */
   async getRitualStreak(userId: string, ritualId: string): Promise<StoredRitualStreak | null> {
     if (this.db) {
       try {
@@ -245,11 +251,9 @@ export class EngagementStore {
     return null;
   }
 
-  /**
-   * Save ritual streak
-   */
+  /** Save ritual streak */
   async saveRitualStreak(userId: string, streak: StoredRitualStreak): Promise<void> {
-    if (this.db) {
+    if (this.db && !userHeld(userId)) {
       try {
         await this.db
           .collection(this.COLLECTION)
@@ -266,11 +270,9 @@ export class EngagementStore {
     }
   }
 
-  /**
-   * Record emotional weather
-   */
+  /** Record emotional weather */
   async recordWeather(userId: string, entry: StoredWeatherEntry): Promise<void> {
-    if (this.db) {
+    if (this.db && !userHeld(userId)) {
       try {
         const docId = entry.date.split('T')[0]; // Use date as ID for easy lookup
         await this.db
@@ -290,9 +292,7 @@ export class EngagementStore {
     }
   }
 
-  /**
-   * Get weather history
-   */
+  /** Get weather history */
   async getWeatherHistory(userId: string, days = 30): Promise<StoredWeatherEntry[]> {
     if (!this.db) return [];
 
@@ -322,7 +322,7 @@ export class EngagementStore {
 
   /** Saves a prediction. False when it wasn't written: no Firestore, or the write failed. */
   async savePrediction(userId: string, prediction: StoredPrediction): Promise<boolean> {
-    if (!this.db) return false;
+    if (!this.db || userHeld(userId)) return false; // MINOR_CARE: never for a held caller
     try {
       await this.db
         .collection(this.COLLECTION)
@@ -424,7 +424,7 @@ export class EngagementStore {
     predictionId: string,
     actuals: Record<string, number>
   ): Promise<PredictionScore | 'no-matching-metric' | null> {
-    if (!this.db) return null;
+    if (!this.db || userHeld(userId)) return null;
 
     try {
       const ref = this.db

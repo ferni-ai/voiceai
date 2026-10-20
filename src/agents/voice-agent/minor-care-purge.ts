@@ -14,10 +14,25 @@ import { purgeMusicLearning } from '../../audio/music-learning-persistence.js';
 import { purgeGameMemory } from '../../services/games/game-store.js';
 import { purgeUnifiedUser } from '../../services/trust-systems/unified-persistence.js';
 import { forgetLoadedUser } from '../../intelligence/predictive/persistence.js';
+import { purgeDeepUnderstandingUser } from '../../intelligence/deep-understanding/persistence.js';
+import { getEngagementStore } from '../../services/engagement/engagement-store.js';
+import { clearUserThinking } from '../../services/trust-systems/between-session-thinking.js';
+import { clearAllUserTextures } from '../../services/trust-systems/conversation-texture.js';
+import { clearUserMentions } from '../../services/trust-systems/curiosity-memory.js';
+import { clearAllUserGrowth } from '../../services/trust-systems/persona-growth.js';
+import { clearTonalProfile } from '../../services/trust-systems/tonal-memory.js';
 import { ownerSessionFor, sharedId } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'minor-care-purge' });
+
+/** The engagement store loads lazily; a failure is logged like any other store's. */
+const forgetEngagement = (userId: string) =>
+  getEngagementStore()
+    .then((store) => store.forgetUser(userId))
+    .catch((error: unknown) =>
+      log.warn({ error: String(error) }, 'MINOR_CARE purge failed: engagement')
+    );
 
 /**
  * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
@@ -38,6 +53,14 @@ export function purgeHeldUser(userId: string): void {
     ['time-series model', clearTimeSeries],
     ['reinforcement model', clearReinforcement],
     ['predictive loaded markers', forgetLoadedUser],
+    // The trust systems session cleanup saves through saveSystemData: their per-user maps
+    ['between-session thinking', clearUserThinking],
+    ['tonal memory', clearTonalProfile],
+    ['curiosity memory', clearUserMentions],
+    ['persona growth', clearAllUserGrowth],
+    ['conversation texture', clearAllUserTextures],
+    ['deep understanding (never written again here)', purgeDeepUnderstandingUser],
+    ['engagement profile cache', (u) => void forgetEngagement(u)],
   ];
   for (const [name, purge] of purges) {
     try {
