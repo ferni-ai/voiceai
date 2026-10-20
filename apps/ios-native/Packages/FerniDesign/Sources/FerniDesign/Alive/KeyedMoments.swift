@@ -68,7 +68,7 @@ public enum KeyedMoment: String, CaseIterable, Sendable {
         switch self {
         case .arrival: 128
         case .win: 110
-        case .goodbye: 168
+        case .goodbye: 232
         case .wake: 66
         case .join: 84
         }
@@ -179,18 +179,26 @@ public enum KeyedMoment: String, CaseIterable, Sendable {
         .blush: k([(0, 0, .linear), (34, 0, .hold), (42, 0.7, .out), (104, 0, .inOut)]),
     ]
 
+    /// A nod, a smile and a wave; he settles and his eyes close. Then, as
+    /// waking does, they open slowly with one blink and his light comes back,
+    /// so the springs take over from the resting pose. Before, the keys ended
+    /// with the eyes shut and the springs snapped them open (expression audit
+    /// P0 #2, 2026-10-20).
     private static let goodbyeKeys: [KeyChannel: [Key]] = [
         .pitch: k([(0, 0, .linear), (14, -0.12, .inOut), (40, -0.12, .linear), (46, -0.2, .inOut), (52, -0.08, .inOut),
-                   (58, -0.18, .inOut), (66, -0.02, .inOut)]),
-        .gazeY: k([(0, 0, .linear), (14, 0.05, .inOut)]),
+                   (58, -0.18, .inOut), (66, -0.02, .inOut), (90, 0, .inOut)]),
+        .gazeY: k([(0, 0, .linear), (14, 0.05, .inOut), (176, 0.05, .linear), (204, 0, .inOut)]),
         .arch: k([(0, 0, .linear), (16, 0.55, .out), (70, 0.55, .linear), (86, 0, .inOut)]),
-        .blush: k([(0, 0, .linear), (16, 0.5, .out), (86, 0.2, .inOut)]),
+        .blush: k([(0, 0, .linear), (16, 0.5, .out), (86, 0.2, .inOut), (176, 0.2, .linear), (210, 0, .inOut)]),
         .roll: k([(0, 0, .linear), (64, 0, .linear), (72, 0.13, .inOut), (82, -0.13, .inOut), (92, 0.1, .inOut),
                   (102, 0, .inOut)]),
-        .posY: k([(0, 0, .linear), (100, 0, .linear), (132, -0.18, .inOut), (168, -0.2, .linear)]),
-        .squash: k([(0, 1, .linear), (100, 1, .linear), (132, 0.94, .inOut)]),
-        .top: k([(0, 0.05, .linear), (86, 0.05, .linear), (98, 0.4, .inOut), (122, 0.6, .inOut), (144, 1, .inOut)]),
-        .glow: k([(0, 0.5, .linear), (60, 0.6, .inOut), (168, 0.1, .inOut)]),
-        .halo: k([(0, 0.4, .linear), (168, 0.05, .inOut)]),
+        .posY: k([(0, 0, .linear), (100, 0, .linear), (132, -0.18, .inOut), (168, -0.2, .linear), (180, -0.2, .linear),
+                  (214, 0, .inOut)]),
+        .squash: k([(0, 1, .linear), (100, 1, .linear), (132, 0.94, .inOut), (180, 0.94, .linear), (214, 1, .inOut)]),
+        .top: k([(0, 0.05, .linear), (86, 0.05, .linear), (98, 0.4, .inOut), (122, 0.6, .inOut), (144, 1, .inOut),
+                 (176, 1, .linear), (198, 0.16, .out), (206, 0.16, .linear), (209, 1, .snap), (215, 0.1, .out),
+                 (232, 0.108, .inOut)]),
+        .glow: k([(0, 0.5, .linear), (60, 0.6, .inOut), (168, 0.1, .inOut), (180, 0.1, .linear), (214, 0.36, .out)]),
+        .halo: k([(0, 0.4, .linear), (168, 0.05, .inOut), (180, 0.05, .linear), (214, 0.2, .out)]),
     ]
 }
