@@ -189,6 +189,10 @@ private struct RestingLine: View {
             .foregroundStyle(FerniColor.textPrimary)
         Text(detail)
             .font(FerniType.bodyLarge)
+            // Medium, not regular: in the evening band on iPad the audit failed
+            // the regular line on contrast though its pixels measure 6.4:1
+            // (#5c544a on #f2eee7); the fuller strokes pass in every band.
+            .fontWeight(.medium)
             .foregroundStyle(FerniColor.textSecondary)
     }
 }
