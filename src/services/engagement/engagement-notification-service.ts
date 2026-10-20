@@ -1,6 +1,5 @@
 /**
  * Maya Notification Service
- *
  * Connects Maya's proactive coaching system to actual notification delivery.
  * Bridges the gap between:
  * - Maya's proactive opportunity detection
@@ -136,6 +135,7 @@ class MayaNotificationService extends EventEmitter {
     // Initialize persistence store
     this.persistenceStore = createPersistenceStore<MayaNotificationData>({
       collection: 'maya_notifications',
+      holdWrites: () => false, // MINOR_CARE opt-out: quiet hours and opt-outs must always persist
       syncIntervalMs: 15000, // Sync every 15 seconds
       maxPendingChanges: 30,
     });

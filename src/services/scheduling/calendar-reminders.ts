@@ -1,6 +1,5 @@
 /**
  * Calendar Reminders Service
- *
  * Proactively reminds users about upcoming calendar events:
  * - Morning digest of today's schedule
  * - Pre-event reminders (1 hour, 15 minutes)
@@ -105,6 +104,7 @@ function getPersistence(): PersistenceStore<UserCalendarData> {
   if (!persistence) {
     persistence = createPersistenceStore<UserCalendarData>({
       collection: 'calendar_reminders',
+      holdWrites: () => false, // MINOR_CARE opt-out: a cancelled reminder must always persist
       documentId: 'data',
       syncIntervalMs: 5000,
     });

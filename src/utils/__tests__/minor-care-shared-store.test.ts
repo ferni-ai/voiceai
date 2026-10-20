@@ -40,6 +40,12 @@ vi.mock('@google-cloud/firestore', async (orig) => ({
 
 import { createPersistenceStore } from '../../services/persistence/index.js';
 import { recordVoiceSample } from '../../services/trust-systems/voice-prosody-learning.js';
+import { initializeOutreachPersistence, setPreferences } from '../../services/outreach/outreach-intelligence.js';
+import {
+  initMonetizationPersistence,
+  saveUserJourney,
+  saveValueEvent,
+} from '../../services/monetization/persistence.js';
 import { heldAfter, resetMinorCare, setVerifiedOwnerCheck, userHeld } from '../minor-care.js';
 
 type Case = 'held' | 'owner' | 'off';
@@ -195,5 +201,39 @@ describe('voice prosody (built on the shared store, 10 s sync)', () => {
     recordVoiceSample(who.userId, VOICE, { conversationContext: 'my school' });
     await tick(10_000);
     expect(wrote(who.userId, 'my school')).toBe(false);
+  });
+});
+
+describe('opted out: a held user\'s consent and billing still persist', () => {
+  it('outreach: turning outreach off (do-not-contact) is written', async () => {
+    await initializeOutreachPersistence();
+    const { userId } = caller('held');
+    setPreferences(userId, { enabled: false, quietHoursStart: '20:00' });
+    await tick(10_000);
+    expect(wrote(userId, '"quietHoursStart":"20:00"')).toBe(true);
+  });
+
+  it('billing: a contribution record and the journey are written', async () => {
+    initMonetizationPersistence();
+    const { userId } = caller('held');
+    await saveValueEvent(userId, {
+      id: 'v1',
+      type: 'tip',
+      contributionCents: 500,
+      status: 'contributed',
+      createdAt: new Date().toISOString(),
+    });
+    await saveUserJourney(userId, { userId, stage: 'paid-stage-marker' } as never);
+    await tick(5_000);
+    expect(wrote(userId, '"contributionCents":500')).toBe(true);
+    expect(wrote(userId, 'paid-stage-marker')).toBe(true);
+  });
+
+  it('and an ordinary write for the same held user is still dropped', async () => {
+    const s = store();
+    const { userId } = caller('held');
+    s.set(userId, { note: 'their school' });
+    await tick(1_000);
+    expect(wrote(userId, 'their school')).toBe(false);
   });
 });
