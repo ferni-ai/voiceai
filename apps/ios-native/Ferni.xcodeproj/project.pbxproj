@@ -42,6 +42,7 @@
 		761A16438630BC6B8CC02981 /* EndCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */; };
 		775B0EC80FED93D54BCEEF37 /* TalkIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BCECCB59D014D61AE3AD2BFD /* TalkIntent.swift */; };
 		78E7BB2CF29B9CB32F9054E3 /* arrival.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = FADB5DC0AC364E861BD63F4D /* arrival.mp3 */; };
+		7AEB4E80F7300B0C87AEB9C2 /* PhoneSignInForwardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA97A1BA4C871BBC78CCE319 /* PhoneSignInForwardingTests.swift */; };
 		7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974DF185A4FA58E1F08FD688 /* FerniApp.swift */; };
 		7C091827B71428685858522D /* FerniWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8008F255B971A496A174CC6F /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E0556D7156242BE3423D87 /* Notifications.swift */; };
@@ -242,6 +243,7 @@
 		C5DE888F55AE5FD01208AD72 /* FerniDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniDesign; path = Packages/FerniDesign; sourceTree = SOURCE_ROOT; };
 		C643B5190988DED731CADF82 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
 		C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
+		CA97A1BA4C871BBC78CCE319 /* PhoneSignInForwardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSignInForwardingTests.swift; sourceTree = "<group>"; };
 		CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		D088A9791D1BAB4D7E6860C8 /* CallIntentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallIntentTests.swift; sourceTree = "<group>"; };
 		E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
@@ -341,6 +343,7 @@
 				127F69758285759483323D63 /* NextDayTests.swift */,
 				3751457DBC4CF962D924D247 /* NextStepTests.swift */,
 				3CC0928CF00671D4E0E8D998 /* NoteTests.swift */,
+				CA97A1BA4C871BBC78CCE319 /* PhoneSignInForwardingTests.swift */,
 				49166809F7360686AEAE615A /* SignInPromptTests.swift */,
 				809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */,
 				8E89091B5C3A80108F67BD0F /* TeamSpotlightTests.swift */,
@@ -789,6 +792,7 @@
 				FAF0486E16A9EE9064362BB3 /* NextDayTests.swift in Sources */,
 				E094C588E3F4D4ECCDC656EC /* NextStepTests.swift in Sources */,
 				F8C4CC6E41EE7F5F394E4D21 /* NoteTests.swift in Sources */,
+				7AEB4E80F7300B0C87AEB9C2 /* PhoneSignInForwardingTests.swift in Sources */,
 				BEF8E5051FBEB918F15A9BF9 /* SignInPromptTests.swift in Sources */,
 				F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */,
 				FA1AE32023D2C3C72BA2DB10 /* TeamSpotlightTests.swift in Sources */,
