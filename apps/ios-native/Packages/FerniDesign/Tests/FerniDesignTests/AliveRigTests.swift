@@ -150,3 +150,35 @@ final class FrameMeterTests: XCTestCase {
         for fps in reports { XCTAssertEqual(fps, 60, accuracy: 0.5) }
     }
 }
+
+/// Expression audit P2 #8: thinking overrode every expression's own gaze.
+@MainActor
+final class ThinkingGazeTests: XCTestCase {
+    private func meanGaze(_ id: String, _ activity: AvatarActivity) -> SIMD2<Float> {
+        let rig = AliveRig(seed: 41)
+        rig.activity = activity
+        rig.expression = id
+        var t = 0.0, sum = SIMD2<Float>(0, 0), n: Float = 0
+        while t < 8 {
+            t += 1.0 / 60
+            let u = rig.frame(at: t)
+            if t > 2 { sum += SIMD2(u.gaze.x, u.gaze.y); n += 1 }
+        }
+        return sum / n
+    }
+
+    func testAnExpressionKeepsItsOwnLookWhileThinking() {
+        // analyzing looks a little to one side; thinking used to swing it up and over.
+        let own = meanGaze("analyzing", .listening), thinking = meanGaze("analyzing", .thinking)
+        XCTAssertEqual(thinking.x, own.x, accuracy: 0.12, "its own look: \(own) thinking \(thinking)")
+        XCTAssertLessThan(thinking.y, 0.25, "not thrown up to the thinking look")
+    }
+
+    /// With no expression of its own, thinking wears pondering, which looks up
+    /// and aside by its own token.
+    func testANeutralFaceStillLooksUpToThink() {
+        let g = meanGaze("neutral", .thinking)
+        XCTAssertGreaterThan(g.y, 0.12, "up: \(g)")
+        XCTAssertGreaterThan(abs(g.x), 0.12, "and aside: \(g)")
+    }
+}
