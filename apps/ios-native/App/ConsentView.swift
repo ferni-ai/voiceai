@@ -11,66 +11,101 @@ struct ConsentView: View {
     /// Offers "Already use Ferni? Sign in" while the account is anonymous.
     var account: AccountStore?
     @State private var signingIn = false
+    @Environment(\.horizontalSizeClass) private var widthClass
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: FerniSpace.rest) {
-                // Ferni stays in the room, small, reading along with you.
-                AvatarView(persona: .ferni, expression: .neutral, activity: .idle, reading: true)
-                    .frame(width: 72, height: 72)
-                    .frame(maxWidth: .infinity)
-                    .accessibilityHidden(true)
-                Text("Before we talk")
-                    .font(FerniType.greeting)
-                    .foregroundStyle(FerniColor.textPrimary)
-                    .accessibilityAddTraits(.isHeader)
-                Text(Self.body)
-                    .font(FerniType.bodyLarge)
-                    .foregroundStyle(FerniColor.textSecondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                VStack(alignment: .leading, spacing: 0) {
-                    // Each link is a full 44-pt row, not just its words.
-                    Link(destination: URL(string: "https://ferni.ai/privacy")!) { Self.row("How Ferni handles your data") }
-                    Link(destination: URL(string: "https://ferni.ai/terms")!) { Self.row("Terms") }
+        Group {
+            if widthClass == .regular {
+                // iPad: the words and the buttons stay together in the middle of
+                // the screen, like a note held out to you, rather than the
+                // buttons waiting a hand's width below the last line. Large text
+                // scrolls, the buttons with it. One layout at every size: a
+                // ViewThatFits swap to the iPhone layout failed the audit's
+                // Dynamic Type check on every element.
+                GeometryReader { screen in
+                    ScrollView {
+                        VStack(spacing: FerniSpace.rest) {
+                            words
+                            buttons
+                        }
+                        .padding(.vertical, FerniSpace.rest)
+                        .frame(maxWidth: .infinity, minHeight: screen.size.height)
+                    }
+                    .scrollBounceBehavior(.basedOnSize)
                 }
-                .font(FerniType.body)
-                .tint(FerniColor.accent)
+            } else {
+                scrolling
             }
-            .frame(maxWidth: 560, alignment: .leading)
-            .frame(maxWidth: .infinity)
-            .padding(FerniSpace.rest)
-        }
-        .scrollBounceBehavior(.basedOnSize)
-        .safeAreaInset(edge: .bottom) {
-            VStack(spacing: FerniSpace.breath) {
-                Button(action: onAgree) {
-                    Text("I agree, let's talk")
-                        .font(FerniType.button)
-                        .frame(maxWidth: 420, minHeight: 56)
-                }
-                .ferniPrimaryGlass()
-                .buttonBorderShape(.capsule)
-                Button("Not now", action: onNotNow)
-                    .font(FerniType.button)
-                    .frame(minHeight: 44)
-                if let account, SignInPrompt.shown(account.state) != nil {
-                    Button(SignInPrompt.offerText) { signingIn = true }
-                        .font(FerniType.footnote)
-                        .frame(minHeight: 44)
-                }
-            }
-            .tint(FerniColor.accent)
-            .padding(.horizontal, FerniSpace.rest)
-            .padding(.top, FerniSpace.breath)
-            .padding(.bottom, FerniSpace.pause)
-            // The words scroll under the buttons; they shouldn't show through them.
-            .background(FerniColor.background.ignoresSafeArea(edges: .bottom))
         }
         .background(FerniColor.background.ignoresSafeArea())
         .interactiveDismissDisabled()
         .sheet(isPresented: $signingIn) {
             if let account { SignInView(account: account) }
         }
+    }
+
+    /// The words scroll; the buttons stay in reach at the bottom.
+    private var scrolling: some View {
+        ScrollView { words }
+            .scrollBounceBehavior(.basedOnSize)
+            .safeAreaInset(edge: .bottom) {
+                buttons
+                    .padding(.top, FerniSpace.breath)
+                    .padding(.bottom, FerniSpace.pause)
+                    // The words scroll under the buttons; they shouldn't show through them.
+                    .background(FerniColor.background.ignoresSafeArea(edges: .bottom))
+            }
+    }
+
+    private var words: some View {
+        VStack(alignment: .leading, spacing: FerniSpace.rest) {
+            // Ferni stays in the room, small, reading along with you.
+            AvatarView(persona: .ferni, expression: .neutral, activity: .idle, reading: true)
+                .frame(width: 72, height: 72)
+                .frame(maxWidth: .infinity)
+                .accessibilityHidden(true)
+            Text("Before we talk")
+                .font(FerniType.greeting)
+                .foregroundStyle(FerniColor.textPrimary)
+                .accessibilityAddTraits(.isHeader)
+            Text(Self.body)
+                .font(FerniType.bodyLarge)
+                .foregroundStyle(FerniColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 0) {
+                // Each link is a full 44-pt row, not just its words.
+                Link(destination: URL(string: "https://ferni.ai/privacy")!) { Self.row("How Ferni handles your data") }
+                Link(destination: URL(string: "https://ferni.ai/terms")!) { Self.row("Terms") }
+            }
+            .font(FerniType.body)
+            .tint(FerniColor.accent)
+        }
+        .frame(maxWidth: 560, alignment: .leading)
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, FerniSpace.rest)
+        .padding(.vertical, FerniSpace.rest)
+    }
+
+    private var buttons: some View {
+        VStack(spacing: FerniSpace.breath) {
+            Button(action: onAgree) {
+                Text("I agree, let's talk")
+                    .font(FerniType.button)
+                    .frame(maxWidth: 420, minHeight: 56)
+            }
+            .ferniPrimaryGlass()
+            .buttonBorderShape(.capsule)
+            Button("Not now", action: onNotNow)
+                .font(FerniType.button)
+                .frame(minHeight: 44)
+            if let account, SignInPrompt.shown(account.state) != nil {
+                Button(SignInPrompt.offerText) { signingIn = true }
+                    .font(FerniType.footnote)
+                    .frame(minHeight: 44)
+            }
+        }
+        .tint(FerniColor.accent)
+        .padding(.horizontal, FerniSpace.rest)
     }
 
     private static func row(_ title: LocalizedStringKey) -> some View {

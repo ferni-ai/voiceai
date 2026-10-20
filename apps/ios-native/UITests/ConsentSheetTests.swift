@@ -36,6 +36,29 @@ final class ConsentSheetTests: XCTestCase {
         }
     }
 
+    /// iPad: the words and the buttons stay together, centred, in both
+    /// orientations, instead of the buttons waiting at the bottom of the screen.
+    func testOnIPadTheButtonsSitRightBelowTheWords() throws {
+        guard UIDevice.current.userInterfaceIdiom == .pad else {
+            throw XCTSkip("iPhone keeps the buttons at the bottom, in thumb reach")
+        }
+        for orientation in [UIDeviceOrientation.portrait, .landscapeLeft] {
+            XCUIDevice.shared.orientation = orientation
+            let app = XCUIApplication.ferni(.consent)
+            XCTAssertTrue(Screen.consent.ready(in: app).waitForExistence(timeout: 20))
+            sleep(1)
+            let terms = app.descendants(matching: .any).matching(NSPredicate(format: "label == 'Terms'")).firstMatch
+            let agree = app.buttons["I agree, let's talk"].firstMatch
+            XCTAssertTrue(terms.exists && agree.exists)
+            let gap = agree.frame.minY - terms.frame.maxY
+            XCTAssertTrue((0..<80).contains(gap), "\(orientation.rawValue): \(gap) pt between Terms and the buttons")
+            let notNow = Screen.consent.ready(in: app), height = app.windows.firstMatch.frame.height
+            XCTAssertLessThan(notNow.frame.maxY / height, 0.85, "\(orientation.rawValue): the buttons aren't at the bottom")
+            app.terminate()
+        }
+        XCUIDevice.shared.orientation = .portrait
+    }
+
     /// Mean WCAG relative luminance of one pixel row a few points below the top
     /// edge, under the status bar's words: the room dimmed behind a sheet measures
     /// about 0.55, consent's background (#faf8f5) 0.94.
