@@ -7,6 +7,7 @@ import {
   copiedNgrams,
   copyStats,
   humannessOf,
+  hourIn,
   humannessRate,
   lengthMatched,
   maskNames,
@@ -14,15 +15,18 @@ import {
   median,
   ngramSet,
   noiseFloor,
+  notesIn,
   parseCompanion,
   parsePick,
   parseSets,
   parseUse,
   rate,
   samplingGap,
+  scoredTurns,
   shuffled,
   verdictFor,
   words,
+  zoneAtLocalHour,
   type Metrics,
   type Pair,
 } from '../bar-lib.js';
@@ -346,5 +350,62 @@ describe('copy check, canon left out', () => {
     const reply = 'two cats compound and interest';
     expect(copiedNgrams(reply, [sheet], 4, undefined)).toEqual(copiedNgrams(reply, [sheet]));
     expect(copiedNgrams(reply, [sheet], 4, new Set())).toHaveLength(2);
+  });
+});
+
+describe('multi-turn', () => {
+  const convs = [
+    { id: 'job', kind: 'good news', turns: ['a', 'b', 'c', 'd'], context: [{ key: 'job' }] },
+    { id: 'tea', kind: 'small talk', turns: ['x', 'y', 'z'] },
+    { id: 'late', kind: 'local time', turns: ['p', 'q'], localHour: 23 },
+    { id: 'plan', kind: 'callback', turns: ['m', 'n', 'o'], callback: true },
+  ];
+
+  it('scores the last two caller turns of each call, with what was said before them', () => {
+    const turns = scoredTurns(convs);
+    expect(turns.map((t) => t.key)).toEqual([
+      'job#2',
+      'job#3',
+      'tea#1',
+      'tea#2',
+      'late#0',
+      'late#1',
+      'plan#1',
+      'plan#2',
+    ]);
+    expect(turns[1]).toMatchObject({ text: 'd', earlier: ['a', 'b', 'c'], conversation: 'job' });
+    expect(turns[4].earlier).toEqual([]);
+  });
+
+  it('judges insight only where the call has facts, a callback or a local time', () => {
+    const insight = Object.fromEntries(scoredTurns(convs).map((t) => [t.conversation, t.insight]));
+    expect(insight).toEqual({ job: true, tea: false, late: true, plan: true });
+    expect(scoredTurns([{ ...convs[1], context: [] }])[0].insight).toBe(false);
+  });
+
+  it("reads the director's notes and the thought a reminder carried", () => {
+    const reminder =
+      'Keep it short. [Director: They sound wiped out / Too many questions lately] ' +
+      '[On your mind, if it fits: the move and the mom are one worry. Not if venting. What they just said comes first.] Answer.';
+    expect(notesIn(reminder)).toEqual({
+      director: ['They sound wiped out', 'Too many questions lately'],
+      thought:
+        'the move and the mom are one worry. Not if venting. What they just said comes first.',
+    });
+    expect(notesIn('Keep it short.')).toEqual({ director: [], thought: '' });
+  });
+
+  it('places a call in a zone where it is the asked-for hour, whatever the clock says', () => {
+    for (const iso of ['2026-10-18T03:10:00Z', '2026-10-18T15:40:00Z', '2026-01-05T21:00:00Z']) {
+      const now = new Date(iso);
+      for (const hour of [7, 23]) expect(hourIn(zoneAtLocalHour(hour, now), now)).toBe(hour);
+    }
+  });
+
+  it('falls back to the nearest hour, across midnight', () => {
+    const now = new Date('2026-10-18T12:00:00Z');
+    // New York is at 8 am, Tokyo at 9 pm: 23 is two hours from Tokyo, nine from New York.
+    expect(zoneAtLocalHour(23, now, ['America/New_York', 'Asia/Tokyo'])).toBe('Asia/Tokyo');
+    expect(zoneAtLocalHour(1, now, ['America/New_York', 'Asia/Tokyo'])).toBe('Asia/Tokyo');
   });
 });

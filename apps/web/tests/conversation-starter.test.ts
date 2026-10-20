@@ -44,6 +44,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   unbind.splice(0).forEach((fn) => fn());
   document.body.innerHTML = '';
 });
@@ -113,11 +114,17 @@ describe('real buttons', () => {
     expect(connect).toHaveBeenCalledTimes(1);
   });
 
-  it('the outreach "let\'s talk" button starts a conversation', async () => {
+  // By default the outreach is a toast with a "let's talk" action; with the
+  // toast-region kill switch set it is the old card (src/ui/overlay/toast-flag.ts).
+  it.each([
+    ['as a toast (default)', 'on', '.ferni-toast__action'],
+    ['as the old card (kill switch)', 'off', '.proactive-outreach__action--respond'],
+  ])('the outreach "let\'s talk" button starts a conversation %s', async (_name, flag, selector) => {
+    vi.stubEnv('VITE_TOAST_REGION', flag);
     const outreach = await import('../src/ui/proactive-outreach.ui.js');
     outreach.initProactiveOutreachUI();
     outreach.showOutreach({ id: 'o1', type: 'thinking_of_you', message: 'Thinking of you' });
-    const respond = document.querySelector<HTMLButtonElement>('.proactive-outreach__action--respond');
+    const respond = document.querySelector<HTMLButtonElement>(selector);
     expect(respond).not.toBeNull();
 
     respond!.click();

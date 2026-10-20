@@ -2,7 +2,6 @@
  * Session Manager
  *
  * > "We believe in making AI human, and the decisions we make will reflect that."
- *
  * Handles creation and lifecycle of per-conversation sessions.
  * Each session gets its own set of services and state.
  *
@@ -21,6 +20,7 @@ import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import { runAfterCall } from './after-call-tasks.js';
+import { memoryHeld } from '../../utils/minor-care.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 
@@ -268,12 +268,13 @@ export async function createSessionServices(
       return global.store.getProfile(uid);
     });
 
+    const warnUnsaved = (e: unknown) => getLogger().warn({ error: String(e) }, 'Profile not saved');
     if (!userProfile) {
       const { createUserProfile } = await import('../../types/user-profile.js');
       // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
       userProfile = createUserProfile(profileUserId, userName);
-      await global.store.saveProfile(userProfile);
-      // Cache the new profile
+      // Never fatal: a refused write (synthetic-write-guard) must not end the call
+      await global.store.saveProfile(userProfile).catch(warnUnsaved);
       void cacheProfile(profileUserId, userProfile);
       getLogger().info(
         { userId: profileUserId, name: userName || '(none)' },
@@ -282,8 +283,7 @@ export async function createSessionServices(
     } else if (!userProfile.name && userName) {
       // Existing profile without a name, but we now have one - update it!
       userProfile.name = userName;
-      await global.store.saveProfile(userProfile);
-      // Invalidate cache so next session gets updated profile
+      await global.store.saveProfile(userProfile).catch(warnUnsaved);
       void invalidateProfile(profileUserId);
       getLogger().info(
         { userId: profileUserId, name: userName },
@@ -699,7 +699,7 @@ export async function createSessionServices(
     const autoSaveCallback = async (uid: string) => {
       const startTime = Date.now();
       try {
-        if (services.userProfile) {
+        if (services.userProfile && !memoryHeld(sessionId)) {
           // Export current intelligence state
           const updatedProfile = applyIntelligenceToProfile(services.userProfile, uid);
           services.userProfile = updatedProfile;
@@ -969,7 +969,7 @@ export async function createSessionServices(
       }
 
       // Persist the turn to Firestore now, in the background.
-      if (validatedUserId && realtimeConversationId) {
+      if (validatedUserId && realtimeConversationId && !memoryHeld(sessionId)) {
         const now = turn.timestamp || new Date();
         // 🧹 ISSUE-005 FIX: Strip SSML from assistant turns before persisting
         // Raw SSML tags like <break time="200ms"/> should not appear in memory
@@ -1558,7 +1558,7 @@ export async function createSessionServices(
       // CRITICAL FIX: Use services.userProfile, not the closure variable!
       // The closure variable is stale and doesn't include updates from endSession()
       const profileToSave = services.userProfile;
-      if (profileToSave && validatedUserId) {
+      if (profileToSave && validatedUserId && !memoryHeld(sessionId)) {
         try {
           const history = historyTracker.getSessionHistory();
           const state = stateMachine.getState();
@@ -1639,7 +1639,7 @@ export async function createSessionServices(
         getLogger().debug({ userId: validatedUserId }, 'Stopped auto-save at session start');
       }
 
-      if (validatedUserId && userProfile) {
+      if (validatedUserId && userProfile && !memoryHeld(sessionId)) {
         try {
           const turns = historyTracker.getSimpleTurns();
 
@@ -2272,7 +2272,7 @@ export async function createSessionServices(
 
       // 🔴 REALTIME: End conversation and trigger async summarization
       // The turns are already persisted - summarization happens in background
-      if (validatedUserId && realtimeConversationId) {
+      if (validatedUserId && realtimeConversationId && !memoryHeld(sessionId)) {
         try {
           await realtimeMemory.endConversation(validatedUserId, realtimeConversationId);
 
