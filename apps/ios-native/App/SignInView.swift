@@ -14,9 +14,19 @@ struct SignInView: View {
     @State private var code = ""
     @State private var verification: String?
     @State private var googleProblem: String?
+    /// Which way they last tried, so a problem shows under that one.
+    @State private var tried: Way?
+    /// The pinned button's height: the form scrolls clear of it.
+    @State private var buttonHeight: CGFloat = 80
+
+    private enum Way { case phone, google }
+
+    /// What went wrong, if anything, for the way they last tried.
+    private var problem: String? { googleProblem ?? account.notice }
 
     var body: some View {
         NavigationStack {
+            ScrollViewReader { scroller in
             Form {
                 Section {
                     if verification != nil {
@@ -39,17 +49,29 @@ struct SignInView: View {
                 } header: {
                     Text("With your phone number")
                 } footer: {
-                    Text("Use the number you signed up with. Ferni texts you a code.")
+                    // A problem shows right under the field it's about, never
+                    // below the button or the keyboard (design audit P0-2).
+                    if tried == .phone, let problem {
+                        Self.problemText(problem)
+                    } else {
+                        Text("Use the number you signed up with. Ferni texts you a code.")
+                    }
                 }
                 if GoogleSignInFlow.isAvailable {
                     Section {
                         Button("Continue with Google") { Task { await signInWithGoogle() } }
                             .disabled(account.isWorking)
+                    } footer: {
+                        if tried == .google, let problem { Self.problemText(problem) }
                     }
                 }
-                if let problem = googleProblem ?? account.notice {
-                    Section { Text(problem).foregroundStyle(FerniColor.error) }
-                }
+            }
+            // Room under the last row for the pinned button, so nothing sits
+            // behind it at any text size.
+            .contentMargins(.bottom, buttonHeight + FerniSpace.rest, for: .scrollContent)
+            .onChange(of: problem) { _, problem in
+                guard problem != nil else { return }
+                withAnimation { scroller.scrollTo(Self.problemID, anchor: .center) }
             }
             // The step's action sits under the form, not in it: on iPad a tap on a
             // List row while its text field has the keyboard only ends editing.
@@ -66,6 +88,8 @@ struct SignInView: View {
                 .padding(.horizontal, FerniSpace.rest)
                 .padding(.bottom, FerniSpace.breath)
                 .tint(FerniColor.accent)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { buttonHeight = $0 }
+            }
             }
             .navigationTitle("Sign in to Ferni")
             .navigationBarTitleDisplayMode(.inline)
@@ -81,6 +105,16 @@ struct SignInView: View {
         }
     }
 
+    private static let problemID = "signIn.problem"
+
+    private static func problemText(_ problem: String) -> some View {
+        Text(problem)
+            .font(FerniType.body)
+            .foregroundStyle(FerniColor.error)
+            .id(problemID)
+            .accessibilityIdentifier(problemID)
+    }
+
     private var canContinue: Bool {
         !account.isWorking && (verification == nil ? !number.isEmpty : code.filter(\.isNumber).count >= 6)
     }
@@ -88,6 +122,9 @@ struct SignInView: View {
     /// Text the code, or sign in with it.
     private func primary() async {
         guard canContinue else { return }
+        tried = .phone
+        googleProblem = nil
+        account.clearNotice()
         if let verification {
             await account.signIn(phoneVerification: verification, code: code)
         } else {
@@ -97,6 +134,8 @@ struct SignInView: View {
 
     private func signInWithGoogle() async {
         googleProblem = nil
+        account.clearNotice()
+        tried = .google
         do {
             await account.signIn(try await GoogleSignInFlow.credential())
         } catch {
