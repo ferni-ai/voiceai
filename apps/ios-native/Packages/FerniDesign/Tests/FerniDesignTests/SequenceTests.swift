@@ -58,6 +58,26 @@ final class SequenceTests: XCTestCase {
         XCTAssertEqual(last.a.pos.y, last.b.pos.y, accuracy: 0.01, "and back")
     }
 
+    /// Expression audit P2 #9: celebration_big's confetti rendered as cream
+    /// sparkles. It's paper in the team's colours, thrown up and falling.
+    func testABigWinThrowsConfetti() {
+        let rig = AliveRig(seed: 57)
+        run(rig, from: 0, to: 1)
+        rig.play(sequence: "celebration_big")
+        var most = 0, tones = Set<Int>(), heights: [Double] = [], sparkles = 0
+        run(rig, from: 1, to: 4.5) { _, _ in
+            let confetti = rig.particles.filter { $0.kind == .confetti }
+            most = max(most, confetti.count)
+            confetti.forEach { tones.insert($0.tone % WindowPersona.allCases.count) }
+            if let first = confetti.first { heights.append(first.y) }
+            sparkles = max(sparkles, rig.particles.filter { $0.kind == .sparkle }.count)
+        }
+        XCTAssertGreaterThanOrEqual(most, 20, "a handful of confetti")
+        XCTAssertGreaterThanOrEqual(tones.count, 4, "in the team's colours")
+        XCTAssertLessThan(heights.last ?? 9, heights.max() ?? 0, "falling")
+        XCTAssertEqual(sparkles, 0, "not cream sparkles")
+    }
+
     /// deep_moment: the empathetic face over the whole moment, a warm, slow glow.
     func testABreakthroughSoftensAndWarms() {
         let frames = twins({ $0.play(sequence: "deep_moment") }, for: 4)

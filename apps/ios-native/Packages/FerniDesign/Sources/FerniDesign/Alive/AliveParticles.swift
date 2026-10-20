@@ -51,6 +51,14 @@ struct AliveParticles: View {
                         startPoint: CGPoint(x: at.x, y: at.y - r * 0.55), endPoint: CGPoint(x: at.x, y: at.y + r * 0.4)))
                     context.fill(Path(ellipseIn: CGRect(x: at.x - r * 0.17, y: at.y - r * 0.07, width: r * 0.14, height: r * 0.24)),
                                  with: .color(.white.opacity(0.8)))
+                case .confetti:
+                    // A paper strip in one of the team's colours, tumbling.
+                    let tones = WindowPersona.allCases
+                    var paper = context
+                    paper.translateBy(x: at.x, y: at.y)
+                    paper.rotate(by: .radians(p.rotation))
+                    paper.fill(Path(roundedRect: CGRect(x: -r * 0.6, y: -r * 0.28, width: r * 1.2, height: r * 0.56), cornerRadius: r * 0.12),
+                               with: .color(tones[p.tone % tones.count].primaryColor))
                 case .firefly:
                     let glow = CGRect(x: at.x - r * 2.5, y: at.y - r * 2.5, width: r * 5, height: r * 5)
                     context.fill(Path(ellipseIn: glow), with: .radialGradient(
