@@ -516,21 +516,26 @@ public final class AliveRig {
 
     private func stepParticles(_ face: Face, dt: Double) {
         sparks.removeAll { $0.kind == .firefly || time - $0.born > $0.life }
-        guard !reduceMotion else { sparks.removeAll(); particles = []; return }
+        // Under Reduce Motion the feelings stay (confused without its ? read as
+        // neutral: expression audit P1 #7), held still and faded in and out.
+        // The bursts, which are only motion (sparkles, a touch's or goodbye's
+        // hearts), don't play.
+        let held = reduceMotion
+        if held { pendingSparkles = 0 }
         func burst(_ kind: Particle.Kind, _ n: Int) {
             for _ in 0..<n {
                 let a = rng.range(0, 2 * .pi), r = rng.range(1.05, 1.3)
                 if kind == .heart {
-                    sparks.append(Spark(kind: .heart, x: rng.range(-0.7, 0.7), y: rng.range(0.6, 1.0), vx: rng.range(-0.08, 0.08),
-                                        vy: rng.range(0.35, 0.55), size: rng.range(0.14, 0.2), born: time, life: 1.6))
-                } else {
+                    sparks.append(Spark(kind: .heart, x: rng.range(-0.7, 0.7), y: rng.range(0.6, 1.0), vx: held ? 0 : rng.range(-0.08, 0.08),
+                                        vy: held ? 0 : rng.range(0.35, 0.55), size: rng.range(0.14, 0.2), born: time, life: 1.6))
+                } else if !held {
                     sparks.append(Spark(kind: .sparkle, x: cos(a) * r, y: sin(a) * r, vx: cos(a) * 0.25, vy: sin(a) * 0.25,
                                         size: rng.range(0.08, 0.14), born: time, life: rng.range(0.7, 1.0)))
                 }
             }
         }
         if pendingSparkles > 0 { burst(.sparkle, pendingSparkles); pendingSparkles = 0 }
-        for cue in cues {
+        for cue in cues where !held {
             if cue == .sparkle { burst(.sparkle, 6) }
             if cue == .heart { burst(.heart, 3) }
         }
@@ -539,12 +544,12 @@ public final class AliveRig {
             effectExpression = expression
             emitFeeling(Face.of(expression).effect, burst: burst)
         }
-        if face.effect == "sparkle", overlay == nil, time >= nextSparkle {
+        if face.effect == "sparkle", overlay == nil, time >= nextSparkle, !held {
             burst(.sparkle, 1)
             nextSparkle = time + 0.5
         }
         if sparks.count > 24 { sparks.removeFirst(sparks.count - 24) }
-        for i in sparks.indices where sparks[i].kind != .firefly && time >= sparks[i].born {
+        for i in sparks.indices where sparks[i].kind != .firefly && time >= sparks[i].born && !held {
             sparks[i].vy += sparks[i].ay * dt
             sparks[i].x += sparks[i].vx * dt
             sparks[i].y += sparks[i].vy * dt
@@ -559,18 +564,19 @@ public final class AliveRig {
     /// three z's drifting up one after another, a bead of sweat that slides
     /// down, a ? or ! above his head, and hearts for warmth.
     private func emitFeeling(_ effect: String?, burst: (Particle.Kind, Int) -> Void) {
+        let held = reduceMotion
         switch effect {
         case "z":
             for i in 0..<3 {
                 let d = Double(i)
-                sparks.append(Spark(kind: .z, x: 0.55 + d * 0.12, y: 0.75 + d * 0.1, vx: rng.range(0.09, 0.16),
-                                    vy: rng.range(0.2, 0.27), size: 0.2 * (0.8 + d * 0.25), born: time + d * 0.55, life: 2.2))
+                sparks.append(Spark(kind: .z, x: 0.55 + d * 0.12, y: 0.75 + d * 0.1, vx: held ? 0 : rng.range(0.09, 0.16),
+                                    vy: held ? 0 : rng.range(0.2, 0.27), size: 0.2 * (0.8 + d * 0.25), born: time + d * 0.55, life: 2.2))
             }
         case "sweat":
-            sparks.append(Spark(kind: .sweat, x: 0.72, y: 0.55, vx: 0, vy: -0.05, size: 0.18, born: time, life: 1.8, ay: -0.55))
+            sparks.append(Spark(kind: .sweat, x: 0.72, y: 0.55, vx: 0, vy: held ? 0 : -0.05, size: 0.18, born: time, life: 1.8, ay: held ? 0 : -0.55))
         case "question", "bang":
             let question = effect == "question"
-            sparks.append(Spark(kind: question ? .question : .bang, x: 0.62, y: 1.05, vx: 0, vy: 0.07, size: 0.3,
+            sparks.append(Spark(kind: question ? .question : .bang, x: 0.62, y: 1.05, vx: 0, vy: held ? 0 : 0.07, size: 0.3,
                                 born: time, life: 1.5, rotation: question ? 0.18 : -0.12))
         case "heart":
             burst(.heart, 4)
@@ -658,7 +664,9 @@ public final class AliveRig {
         self[.tilt].t = f.tilt; self[.crease].t = f.crease; self[.halo].t = f.halo; self[.blush].t = f.blush
         self[.capT].t = f.capTop; self[.capB].t = f.capBottom
         self[.capPitch].t = clamp(f.gy, -0.7, 0.7) * max(m, 0.5) * 0.12
-        self[.roll].t = f.roll * m; self[.pitch].t = 0; self[.scale].t = 1 + (f.scale - 1) * m
+        // The head's tilt is a pose, not motion: Reduce Motion keeps it (at 35%
+        // confused read as neutral, expression audit P1 #7).
+        self[.roll].t = f.roll; self[.pitch].t = 0; self[.scale].t = 1 + (f.scale - 1) * m
     }
 
     private func breath(_ f: Face) -> Double {
