@@ -26,7 +26,9 @@ export const USER_RECORD_ROOTS = ['bogle_users', 'users'] as const;
  * The stores exported, by name: an ALLOWLIST, so a store nobody has reviewed (a new
  * credential, a session table) never leaves in a file people share. Names come from a
  * read-only listing of prod on 2026-10-12 (bogle_users: 83 names over 2,783 records;
- * users: 18 over 659). A new store is exported only once it's added here.
+ * users: 18 over 659). A names-only listing on 2026-10-18 of real owners' records
+ * (no test, eval or anon: ids) found 10 more: 8 exported, 2 withheld. A new store
+ * is exported only once it's added here.
  */
 export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
   bogle_users: [
@@ -49,22 +51,28 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'dynamic_facts',
     'dynamic_relationships',
     'emotional_arcs',
+    'energy_readings',
     'ferni_commitments',
+    'follow_through',
     'follow_up_actions',
     'future_self_letters',
     'human_memory',
     'human_signals',
     'humanization',
     'humor_history',
+    'implicit_preferences',
     'journal',
+    'learnings',
     'memories',
     'memory_capsules',
     'memory_highlights',
     'memory_protection',
+    'memory_state',
     'mind_model',
     'monetization_tips',
     'monetization_value_capture',
     'motivational_interviewing',
+    'move_outcomes',
     'music_learning',
     'on_behalf_calls',
     'onboarding_arc',
@@ -73,7 +81,9 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'outreach_history',
     'persona_affinities',
     'persona_interactions',
+    'persona_life_updates',
     'persona_told',
+    'personality_profiles',
     'personality_resonance',
     'planning_coordination',
     'predictive_ml',
@@ -152,6 +162,8 @@ export const WITHHELD_STORES: Readonly<Record<string, string>> = {
   background_results: 'job results already delivered into conversations',
   extraction_history: 'pipeline bookkeeping (which turns were processed)',
   insights_cache: 'cache rebuilt from the stores above',
+  deferred_calls: 'in-flight call queue: a held-back call waits here until its hour',
+  system: 'pipeline bookkeeping (when memory maintenance last ran)',
 };
 
 /** Stores outside those records: a document keyed by the uid, or documents naming it */
@@ -191,6 +203,8 @@ export const OWNED_ELSEWHERE: ReadonlyArray<
     ],
   },
   { collection: 'contact_interactions', field: 'userId' },
+  // What the older agent remembered of the relationship: shared moments, inside jokes
+  { collection: 'relationship_memories', field: 'userId' },
   // Family Phone Access: only what the sponsor entered (CreateSponsoredIdentityData). Not the
   // family member's own activity (calls, minutes, last call), voice enrollment, self-
   // registration, or familyUserId, the key to that person's own record.

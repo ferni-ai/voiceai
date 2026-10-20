@@ -15,6 +15,11 @@
  * - a request to Ferni ("play music", "talk to Maya", "call my dad", "set a timer").
  * Whole words only, so "Mayan ruins" or "Unknownmortal Orchestra" are kept.
  *
+ * ENTITY_ROLE_LABELS (off by default, needs ENTITY_HYGIENE): also a role label for
+ * Ferni in the extractor's own words. Prod 2026-10-19 stored "User's interlocutor",
+ * "Assistant" and "The user's conversational partner" as people in one call: none
+ * names Ferni, so the persona check let them through.
+ *
  * @module memory/entity-hygiene
  */
 
@@ -23,6 +28,10 @@ import { HEARD_AS, TEAM_FIRST_NAMES } from '../utils/teammate-talk.js';
 
 export function entityHygieneOn(env: Env = process.env): boolean {
   return flagOn('ENTITY_HYGIENE', env);
+}
+
+export function entityRoleLabelsOn(env: Env = process.env): boolean {
+  return flagOn('ENTITY_ROLE_LABELS', env);
 }
 
 export interface NamedEntity {
@@ -72,6 +81,14 @@ const REQUEST = [
 /** Relationships that are a real person in the caller's life, not Ferni's team. */
 const NOT_A_RELATION = /^(?:assistant|ai|bot|coach|advisor|helper|persona|teammate|companion)$/i;
 
+/** The extractor's words for Ferni: a role, never a name ("the user's conversational partner"). */
+const ROLE_LABEL =
+  /\b(?:interlocutor|conversation(?:al)? partner|chat partner|chatbot|(?:ai|virtual|voice) assistant)\b/i;
+/** A bare role noun as the whole name ("Assistant", "the AI"). */
+const BARE_ROLE = /^(?:the\s+)?(?:assistant|ai|bot)$/i;
+
+const isRoleLabel = (name: string): boolean => ROLE_LABEL.test(name) || BARE_ROLE.test(name);
+
 const wordsOf = (name: string): string[] =>
   name
     .toLowerCase()
@@ -80,20 +97,23 @@ const wordsOf = (name: string): string[] =>
     .filter(Boolean);
 
 /** The reason this entity is junk, or null when it is a real person, place or topic. */
-export function junkReason(entity: NamedEntity): JunkReason | null {
+export function junkReason(entity: NamedEntity, env: Env = process.env): JunkReason | null {
   const name = entity.name.trim();
   if (/^[\d\s.,:/#%$-]+$/.test(name)) return 'number';
   const words = wordsOf(name);
   const placeholder = words.some((w) => PLACEHOLDER.has(w)) || GENERIC.test(name);
   if (placeholder || (words.length === 1 && NOT_A_NAME.has(words[0]))) return 'placeholder';
   if (REQUEST.some((re) => re.test(name))) return 'request';
-  if (words.some((w) => FERNI.has(w))) return 'persona';
-  if (TEAMMATE_ALONE.test(words.join(' '))) {
-    const relation = entity.relationship?.trim() ?? '';
-    const theirs = entity.type === 'person' && relation !== '' && !NOT_A_RELATION.test(relation);
-    if (!theirs) return 'persona';
-  }
-  return null;
+  return isPersona(entity, name, words, env) ? 'persona' : null;
+}
+
+/** Ferni, a role label for him (ENTITY_ROLE_LABELS), or a teammate who isn't theirs. */
+function isPersona(entity: NamedEntity, name: string, words: string[], env: Env): boolean {
+  if (words.some((w) => FERNI.has(w))) return true;
+  if (entityRoleLabelsOn(env) && isRoleLabel(name)) return true;
+  if (!TEAMMATE_ALONE.test(words.join(' '))) return false;
+  const relation = entity.relationship?.trim() ?? '';
+  return !(entity.type === 'person' && relation !== '' && !NOT_A_RELATION.test(relation));
 }
 
 /** The entities worth storing; with the flag off, all of them. */
@@ -105,7 +125,7 @@ export function keepRealEntities<T extends NamedEntity>(
   const kept: T[] = [];
   const dropped: Array<{ name: string; reason: JunkReason }> = [];
   for (const entity of entities) {
-    const reason = junkReason(entity);
+    const reason = junkReason(entity, env);
     if (reason) dropped.push({ name: entity.name, reason });
     else kept.push(entity);
   }

@@ -63,6 +63,7 @@ import { withCallerVoiceGuard } from './caller-voice-guard.js';
 import { CRISIS_TALK } from './emergency-claim.js';
 import { honestLine, type MissReason } from './honest-line.js';
 import { emergencyCheck, emergencyCorrection } from './emergency-correction.js';
+import { clauseSafeFor, FirstClauseFlush, firstClauseFlushEnabled } from './first-clause-flush.js';
 import { plain, spokenOf, type Item } from './spoken-words.js';
 import {
   askedCallLine,
@@ -282,6 +283,9 @@ async function checkActionClaims<T>(
   };
   /** A call claimed on the yes, before the call tool has said whether anything rang. */
   const ahead = (kind: ActionKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
+  // FIRST_CLAUSE_FLUSH: a held reply's first clause goes early when it names no action (first-clause-flush.ts).
+  const firstClause = new FirstClauseFlush(hold && firstClauseFlushEnabled(env));
+  const clauseSafe = clauseSafeFor(ahead('call'), unheard, (c) => ACTION_TALK.test(plain(c)));
   let id = '';
   let stringChunks = true;
   const out = (text: string): Chunk =>
@@ -322,9 +326,10 @@ async function checkActionClaims<T>(
         if (deferred?.reason === 'uncalled' || deferred?.reason === 'promised') queued.push(text);
         else emit(text);
       };
-      /** A whole sentence: held ones go out unless they claim; streamed ones are already out. */
-      const flush = (text: string): void => {
-        const { kind, claimed, promised, reason: judged } = judge(text, calling);
+      /** A whole sentence is checked; held ones go out (less the first clause sent) unless they claim. */
+      const flush = (whole: string): void => {
+        const text = whole.slice(firstClause.sent);
+        const { kind, claimed, promised, reason: judged } = judge(whole, calling);
         let reason = judged;
         if (kind && !reason && hold && ahead(kind)) {
           log.warn({ kind, reason: 'before_result', held: hold }, 'ACTION_CLAIM_DROPPED');
@@ -351,7 +356,7 @@ async function checkActionClaims<T>(
         const waits = reason === 'uncalled' || reason === 'promised';
         if (reason === 'failed' || reason === 'elsewhere' || (waits && hold)) {
           // An unkept promise is asked as an offer instead ("Want me to text him?").
-          const offer = reason === 'promised' ? offerFor(text) : undefined;
+          const offer = reason === 'promised' ? offerFor(whole) : undefined;
           deferred = { kind, reason, text: hold ? text : undefined, offer };
           return;
         }
@@ -389,6 +394,7 @@ async function checkActionClaims<T>(
               if (pending && !told(pending)) flush(pending);
               pending = '';
               passed = 0;
+              firstClause.close();
             }
             for (const name of names) kindsOfTool(name).forEach((k) => calling.add(k));
             if (names.some(isCalendarCreate)) calendarCalled = true;
@@ -416,11 +422,12 @@ async function checkActionClaims<T>(
             if (!told(pending.slice(0, end))) flush(pending.slice(0, end));
             pending = pending.slice(end);
             passed = 0;
+            firstClause.close();
           }
           if (!hold) {
             pass(pending.slice(passed));
             passed = pending.length;
-          }
+          } else emit(pending.slice(0, firstClause.take(pending, clauseSafe))); // first clause, once
         }
         if (pending && !told(pending)) flush(pending);
         if (deferred && !said && !calling.has(deferred.kind)) {
