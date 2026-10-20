@@ -35,6 +35,7 @@ struct SettingsView: View {
                     SettingsHeader("About")
                 }
             }
+            .ferniPaper()
             .sheet(isPresented: $signingIn) { SignInView(account: model.account) }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -212,6 +213,7 @@ struct HelpView: View {
                 Text("Free, confidential helplines in your country. If you're in danger, call your local emergency number.")
             }
         }
+        .ferniPaper()
         .navigationTitle("Help")
         .navigationBarTitleDisplayMode(.inline)
         .tint(FerniColor.accent)
@@ -243,6 +245,7 @@ struct DeleteAccountView: View {
                 }
             }
         }
+        .ferniPaper()
         .navigationTitle("Delete account")
         .navigationBarTitleDisplayMode(.inline)
         .alert("Delete everything?", isPresented: $confirming) {

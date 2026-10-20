@@ -189,6 +189,7 @@ struct MemoryScreen: View {
             }
         }
         // The app switcher's snapshot never shows the notes when the lock is on.
+        .ferniPaper()
         .overlay { if lock.isEnabled && scenePhase != .active { Rectangle().fill(.regularMaterial).ignoresSafeArea() } }
         .navigationTitle("What Ferni remembers")
         .navigationBarTitleDisplayMode(.inline)

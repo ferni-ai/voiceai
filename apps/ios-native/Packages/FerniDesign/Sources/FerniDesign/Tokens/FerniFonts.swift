@@ -34,6 +34,21 @@ public enum FerniFonts {
     @discardableResult
     public static func register() -> Bool { registered }
 
+    /// Navigation titles in the brand face, inline (17, like headline) and
+    /// large (34, like largeTitle), scaling with Dynamic Type (design audit
+    /// P1-13: Settings, Team and Memory read as system screens). Call once at
+    /// launch, after `register()`. Returns whether the face was there to use.
+    @MainActor @discardableResult
+    public static func useForNavigationTitles() -> Bool {
+        guard register(), let inline = UIFont(name: greetingName, size: 17), let large = UIFont(name: greetingName, size: 34) else {
+            return false
+        }
+        let bar = UINavigationBar.appearance()
+        bar.titleTextAttributes = [.font: UIFontMetrics(forTextStyle: .headline).scaledFont(for: inline)]
+        bar.largeTitleTextAttributes = [.font: UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: large)]
+        return true
+    }
+
     /// The brand face at `size`, scaling with Dynamic Type like `style`;
     /// `fallback` when the font isn't available.
     static func brand(_ name: String, size: CGFloat, relativeTo style: Font.TextStyle, fallback: Font) -> Font {
