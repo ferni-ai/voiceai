@@ -116,7 +116,10 @@ describe('each post type', () => {
   it('names a whats-new post by date and a consumer post by its title', async () => {
     const dev = deps(() => answer('Anything'));
     await draftPost({ type: 'whats-new' }, dev.d);
-    expect(path.basename(dev.writes[0].file)).toBe(`whats-new-${TODAY}.md`);
+    // -2, -3... when that day's real post is already in the folder (it landed for TODAY in #2214).
+    expect(path.basename(dev.writes[0].file)).toMatch(
+      new RegExp(`^whats-new-${TODAY}(-\\d+)?\\.md$`)
+    );
     const consumer = deps(() => answer("Why Ferni Says It Doesn't Know"));
     await draftPost({ type: 'mission-essay' }, consumer.d);
     expect(path.basename(consumer.writes[0].file)).toBe('why-ferni-says-it-doesnt-know.md');
