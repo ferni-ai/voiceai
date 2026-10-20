@@ -81,6 +81,29 @@ final class MicroExpressionTests: XCTestCase {
         XCTAssertEqual((shown.last ?? 0) - 1, 0.102, accuracy: 0.017)
     }
 
+    /// Expression audit P2 #5: recognition and interest were invisible (the
+    /// eyes moved 0.017, a face he already wore). Now the eyes widen as on the
+    /// web: recognition about 1.2 tall, interest about 1.12.
+    func testRecognitionAndInterestWidenTheEyes() {
+        func peak(_ micro: MicroExpression) -> Double {
+            let a = AliveRig(seed: 31), b = AliveRig(seed: 31)
+            for rig in [a, b] { rig.expression = "attentive" }
+            var t = 0.0
+            while t < 1 { t += 1.0 / 60; _ = a.frame(at: t); _ = b.frame(at: t) }
+            a.micro(micro)
+            var most = 0.0
+            while t < 1.5 {
+                t += 1.0 / 60
+                let ua = a.frame(at: t), ub = b.frame(at: t)
+                most = max(most, Double(ua.eyes.y / ub.eyes.y))
+            }
+            return most
+        }
+        XCTAssertGreaterThan(peak(.recognition), 1.15, "recognition")
+        XCTAssertGreaterThan(peak(.interest), 1.08, "interest")
+        XCTAssertLessThan(peak(.interest), peak(.recognition), "interest the smaller")
+    }
+
     func testStillFramesPlayNone() {
         let rig = AliveRig(seed: 10)
         rig.still = true

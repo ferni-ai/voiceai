@@ -290,6 +290,21 @@ public final class AliveRig {
     public func micro(_ m: MicroExpression) {
         record(.micro(m))
         guard !still, let flash = m.flash else { return }
+        // Recognition and interest are the eyes widening for an instant, as on
+        // the web (micro-recognition: 1.2 tall, 1.1 wide; micro-interest: 1.12
+        // tall, a touch up). Their faces are the listening face he already
+        // wears, so the flash alone changed nothing (expression audit P2 #5).
+        let pop: (sy: Double, sx: Double, up: Double)? = switch m {
+        case .recognition: (7.2, 3.6, 0)
+        case .interest: (4.3, 0, 0.6)
+        default: nil
+        }
+        if let pop {
+            let k = motion
+            for c in [Ch.syL, .syR] { self[c].v += pop.sy * k }
+            for c in [Ch.sxL, .sxR] { self[c].v += pop.sx * k }
+            self[.gy].v += pop.up * k
+        }
         if let overlay, overlay.until - time > flash.seconds * tempo { return }
         self.flash(flash.face, seconds: flash.seconds)
     }
