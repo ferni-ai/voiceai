@@ -228,6 +228,47 @@ jobs:
           echo "Wait for CI to pass (that deploys it), or rerun this once it has."
           exit 1
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Fix local dependencies for CI
+        run: |
+          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+
+      # No install scripts: nothing compiles on the host. The safety check, the
+      # design-system build and the smoke tests need only tsx and plain Node.
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
+
+      - name: Deployment safety check
+        if: ${{ !inputs.skip_tests }}
+        run: |
+          echo "🔍 Scanning for unsafe deployment patterns..."
+          npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all || {
+            echo "❌ Unsafe deployment patterns detected!"
+            echo "Direct gcloud/firebase commands are forbidden."
+            echo "Use 'ferni deploy' CLI instead."
+            exit 1
+          }
+          echo "✅ Deployment safety passed"
+
+      # ── 3. Build ───────────────────────────────────────────────────────────
+      # Dockerfile.ui builds the backend and the frontend itself; it copies only
+      # design-system/dist from the host.
+      - name: Build design-system (required for Docker)
+        run: node design-system/build.js
+
       # ═══════════════════════════════════════════════════════════════════════
       # GCR AUTHENTICATION
       # ═══════════════════════════════════════════════════════════════════════
@@ -235,6 +276,9 @@ jobs:
       # Required to push the UI image to gcr.io, and here first so the guard
       # can read what production serves. The build itself pulls nothing
       # private (the ferni-speaker base image is gone from Dockerfile.ui).
+      # Dependency code (install, safety check, design-system build) runs above,
+      # before any cloud credentials exist in this job; credentials load only for
+      # the forward guard, the image push and the deploy.
       # ═══════════════════════════════════════════════════════════════════════
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -256,52 +300,6 @@ jobs:
           REASON: ${{ inputs.reason }}
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
         run: bash scripts/ci/deploy-forward-guard.sh
-
-      - name: Setup pnpm
-        if: steps.guard.outputs.deploy == 'true'
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        if: steps.guard.outputs.deploy == 'true'
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Fix local dependencies for CI
-        if: steps.guard.outputs.deploy == 'true'
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      # No install scripts: nothing compiles on the host. The safety check, the
-      # design-system build and the smoke tests need only tsx and plain Node.
-      - name: Install dependencies
-        if: steps.guard.outputs.deploy == 'true'
-        run: pnpm install --no-frozen-lockfile --ignore-scripts
-
-      - name: Deployment safety check
-        if: ${{ steps.guard.outputs.deploy == 'true' && !inputs.skip_tests }}
-        run: |
-          echo "🔍 Scanning for unsafe deployment patterns..."
-          npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all || {
-            echo "❌ Unsafe deployment patterns detected!"
-            echo "Direct gcloud/firebase commands are forbidden."
-            echo "Use 'ferni deploy' CLI instead."
-            exit 1
-          }
-          echo "✅ Deployment safety passed"
-
-      # ── 3. Build ───────────────────────────────────────────────────────────
-      # Dockerfile.ui builds the backend and the frontend itself; it copies only
-      # design-system/dist from the host.
-      - name: Build design-system (required for Docker)
-        if: steps.guard.outputs.deploy == 'true'
-        run: node design-system/build.js
 
       - name: Configure Docker for GCR
         if: steps.guard.outputs.deploy == 'true'

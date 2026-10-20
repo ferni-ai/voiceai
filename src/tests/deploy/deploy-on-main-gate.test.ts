@@ -48,6 +48,19 @@ describe('deploy-production.yml: commit is on main before its code runs', () => 
     expect(gate).not.toMatch(/scripts\//);
   });
 
+  it('installs and runs dependency code before any cloud credentials load', () => {
+    const auth = names.indexOf('Authenticate to Google Cloud');
+    for (const n of [
+      'Install dependencies',
+      'Deployment safety check',
+      'Build design-system (required for Docker)',
+    ]) {
+      expect(names.indexOf(n), n).toBeGreaterThan(-1);
+      expect(names.indexOf(n), n).toBeLessThan(auth);
+    }
+    for (const s of steps.slice(auth)) expect(s).not.toMatch(/pnpm install/);
+  });
+
   it.each(['identical', 'behind'])('allows a commit main contains (%s)', (status) => {
     const r = run({}, status);
     expect(r.status, r.stdout + r.stderr).toBe(0);
