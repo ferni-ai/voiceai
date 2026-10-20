@@ -117,15 +117,29 @@ No tracking and no tracking domains. Required-reason APIs: UserDefaults
 ### Accessibility audit: known iPad findings
 
 `scripts/ui-audit.sh` runs the audit in CI. The iPhone is clean and gates the
-build. The iPad step reports without gating; as of 2026-10-19 it has 19:
+build (Home in all four RoomLight bands, both text sizes). The iPad step
+reports without gating. Re-run on 2026-10-19 on a dedicated simulator (an
+earlier run may have been cut short by another lane's `simctl shutdown all`):
 
-- **16 "Contrast failed" with no element**, exactly 2 per Home or call launch.
-  They disappear when the Metal avatar is replaced by its static portrait (a
+- **Contrast failed with no element, 2 per Home or call launch.** They go
+  away when the Metal avatar is replaced by its static portrait (a
   diagnostic build), so they come from the avatar's canvas, which draws no
-  text. The audit gives no element or frame to measure. Accepted as known.
-- **3 in Settings:** two "Potentially inaccessible text" with no element, and
-  the "can't reach your account" message at AX5, which only appears in a
-  UI-test build (no account there). Open.
+  text. Home is now audited in four light bands at two sizes, so there are
+  more of them; the class is unchanged. Accepted as known.
+- **Settings: one contrast finding with no element at AX5.** Settings on iPad
+  is now the sidebar's page, never a sheet. As a sheet it produced four
+  findings that were artifacts of the sheet (Home's text peeking out behind
+  it, and a row clipped at its edge measured against the dimmed backdrop).
+  The remaining one names no element. Open.
+- **Consent: "potentially inaccessible text" with no element**, standard and
+  AX5. The consent sheet leaves Home's headline visible above it, which is
+  correctly hidden from accessibility while the sheet is modal. Plus one
+  contrast finding on the consent body at AX5. Open.
+- **Home at 20h: contrast on "Whenever you're ready, I'm here."** on iPad
+  (the iPhone passes in every band). Open.
+- **AvatarTouchTests.testTheSpaceBesideFerniIsNotFerni fails on iPad:** a tap
+  24 pt outside Ferni's 140 pt touch circle counts as touching him on the
+  iPad simulator, probably the larger touch area. Not confirmed on a device.
 
 Every other finding was fixed, or accepted per element with the measured
 contrast or a screenshot (`AccessibilityAuditTests.accepted`).
