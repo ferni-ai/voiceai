@@ -55,6 +55,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+// The old per-surface toasts: the kill-switch path of src/ui/overlay/toast-flag.ts.
+beforeEach(() => vi.stubEnv('VITE_TOAST_REGION', 'off'));
+afterEach(() => vi.unstubAllEnvs());
+
 describe.each([
   { on: true, label: 'flag on' },
   { on: false, label: 'flag off (unchanged)' },

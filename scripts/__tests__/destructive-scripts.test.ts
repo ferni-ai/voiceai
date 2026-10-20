@@ -60,6 +60,10 @@ describe('destructive gate', () => {
     expect(
       destructiveMode(['--execute', '--confirm-project=johnb-2025', '--dry-run'], 'johnb-2025')
     ).toBe('dry-run');
+    expect(destructiveMode(['--apply'], 'johnb-2025')).toBe('refused');
+    expect(destructiveMode(['--apply', '--confirm-project=johnb-2025'], 'johnb-2025')).toBe(
+      'execute'
+    );
   });
 });
 
