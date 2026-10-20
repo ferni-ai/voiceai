@@ -9,8 +9,10 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const written = vi.hoisted(() => [] as { path: string; data: unknown; merge?: boolean }[]);
-/** Paths whose next direct write fails once (Firestore unavailable). */
-const failOnce = vi.hoisted(() => new Set<string>());
+/** Paths whose next `left` direct writes fail (Firestore unavailable), running `during` first. */
+const failing = vi.hoisted(
+  () => new Map<string, { left: number; failed: number; during?: () => unknown }>()
+);
 /** Calendar documents as stored: a merge write merges maps and replaces arrays, like Firestore. */
 const calendarDocs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
 
@@ -41,8 +43,13 @@ const fakeDb = vi.hoisted(() => {
           return doc ? { exists: true, data: () => structuredClone(doc) } : empty;
         },
         set: async (data: unknown, opts?: { merge?: boolean }) => {
-          for (const p of failOnce)
-            if (path.includes(p)) throw new Error(`unavailable: ${failOnce.delete(p)}`);
+          for (const [p, f] of failing) {
+            if (!path.includes(p) || f.left <= 0) continue;
+            f.left--;
+            f.failed++;
+            await f.during?.();
+            throw new Error('unavailable');
+          }
           record(path, data, opts);
         },
       } as Record<string | symbol, unknown>,
@@ -274,15 +281,50 @@ describe('field-level hold (whenHeld): only consent fields persist, as a merge w
     });
     const held = caller('held');
     s.set(held.userId, { prefs: { off: true }, story: 'their school' });
-    failOnce.add('/minor_care_retry/');
+    failing.set('/minor_care_retry/', { left: 1, failed: 0 });
     await tick(1_000);
-    expect(failOnce.size).toBe(0); // the first write was tried, and failed
+    expect(failing.get('/minor_care_retry/')?.failed).toBe(1); // tried, and failed
     expect(writesTo(held.userId, 'minor_care_retry')).toEqual([]);
     await tick(1_000);
     const [w] = writesTo(held.userId, 'minor_care_retry');
     expect(w && keysOf(w)).toEqual(['prefs']);
     expect(wrote(held.userId, '"off":true')).toBe(true);
     expect(wrote(held.userId, 'their school')).toBe(false);
+  });
+
+  it('a user deleted while their field write fails: the part is never written', async () => {
+    const s = createPersistenceStore<{ prefs: { off: boolean }; story: string }>({
+      collection: 'minor_care_deleted',
+      syncIntervalMs: 1_000,
+      whenHeld: (d: { prefs: { off: boolean } }) => ({ prefs: d.prefs }),
+    });
+    const held = caller('held');
+    s.set(held.userId, { prefs: { off: true }, story: 'their school' });
+    // A GDPR delete lands while the write is in flight, then the write fails
+    failing.set('/minor_care_deleted/', {
+      left: 1,
+      failed: 0,
+      during: () => s.delete(held.userId),
+    });
+    await tick(1_000);
+    expect(failing.get('/minor_care_deleted/')?.failed).toBe(1);
+    await tick(1_000);
+    await tick(1_000);
+    expect(writesTo(held.userId, 'minor_care_deleted')).toEqual([]);
+  });
+
+  it('a field write that keeps failing is tried 5 times, then dropped', async () => {
+    const s = createPersistenceStore<{ prefs: { off: boolean }; story: string }>({
+      collection: 'minor_care_capped',
+      syncIntervalMs: 1_000,
+      whenHeld: (d: { prefs: { off: boolean } }) => ({ prefs: d.prefs }),
+    });
+    const held = caller('held');
+    s.set(held.userId, { prefs: { off: true }, story: 'their school' });
+    failing.set('/minor_care_capped/', { left: 99, failed: 0 });
+    for (let i = 0; i < 8; i++) await tick(1_000);
+    expect(failing.get('/minor_care_capped/')?.failed).toBe(5);
+    expect(writesTo(held.userId, 'minor_care_capped')).toEqual([]);
   });
 
   it('outreach: outreach off and quiet hours persist; commitments never written', async () => {
