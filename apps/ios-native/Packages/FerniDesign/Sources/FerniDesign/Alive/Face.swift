@@ -151,15 +151,20 @@ public struct Face: Equatable, Sendable {
         let cheek = id == "speaking" ? 0 : clamp(e.smileCrease?.opacity ?? 0, 0, 1) * 0.5
         // A glare pushes the lower lids up too, so frustration reads apart from focus
         // (expression audit P1 #8: focused and frustrated rendered the same).
-        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100 + min(cheek, 0.2), 0, 0.6), worry ? 0.14 : glare ? 0.12 : 0)
+        // Present: settled, soft eyes, the lower lids up a touch (it rendered as speaking).
+        let soft = id == "present" ? 0.2 : 0
+        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100 + min(cheek, 0.2) + soft, 0, 0.6), worry ? 0.14 : glare ? 0.12 : 0)
         let arch = happy ? clamp(-bot * 3 / 100, 0, 0.85) : cheek
         let sx = e.eyeWhite?.scaleX ?? 1, sy = e.eyeWhite?.scaleY ?? 1
 
         func eye(_ o: ExpressionToken.Scale?) -> Eye {
             let ex = o?.scaleX ?? sx, ey = o?.scaleY ?? sy
-            // A squeezed-shut eye (wink, yawn) reads as a closed happy arc, not a sliver.
-            return ey < 0.35 ? Eye(sx: ex, sy: 1, top: 1, bot: 0, arch: 0.55)
-                : Eye(sx: ex, sy: ey, top: upper, bot: lower, arch: arch)
+            // A squeezed-shut eye. A wink is a gentle closed arc, a thin band of white
+            // bowed up (the web's squashed eye; the shut lid with only a fold read as a
+            // dark notch, 2026-10-20). A tired face (the yawn) shuts it to the fold.
+            guard ey < 0.35 else { return Eye(sx: ex, sy: ey, top: upper, bot: lower, arch: arch) }
+            return e.family == "tired" ? Eye(sx: ex, sy: 1, top: 1, bot: 0, arch: 0.55)
+                : Eye(sx: ex, sy: 0.9, top: 0.45, bot: 0, arch: 0.85)
         }
 
         var f = Face()
