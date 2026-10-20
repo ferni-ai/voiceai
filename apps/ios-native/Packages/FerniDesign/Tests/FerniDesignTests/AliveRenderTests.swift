@@ -85,11 +85,29 @@ final class AliveRenderTests: XCTestCase {
         XCTAssertGreaterThan(j, 40, "but the eyes are still there")
     }
 
+    /// A lid cap is a darker shade of the persona's own colour (the web's
+    /// color-mix with ink): Maya's lids are a Maya shade, Ferni's a Ferni one.
+    func testALidIsAShadeOfThePersona() throws {
+        for (name, body, light) in [("ferni", ferni, ferniLight), ("maya", maya, mayaLight)] {
+            let lidded = AliveUniforms.settled(Face.of("sleepy"), body: body, glow: light)
+            var open = lidded
+            open.caps = .zero
+            let a = try render(lidded, name: "lid-\(name)"), b = try render(open, name: "lid-\(name)-open")
+            let x = Self.size / 2, top = try XCTUnwrap((0..<Self.size).first { a.px(x, $0).a > 0.99 })
+            let lid = a.px(x, top + 8), face = b.px(x, top + 8)
+            XCTAssertLessThan(lid.r + lid.g + lid.b, (face.r + face.g + face.b) * 0.92, "\(name): the lid is darker")
+            XCTAssertEqual(lid.r / lid.g, face.r / face.g, accuracy: 0.15, "\(name): in the persona's own hue")
+            XCTAssertEqual(lid.a, 1, accuracy: 0.01, "\(name): on the orb, not cut out of it")
+        }
+    }
+
     func testAWinkClosesOnlyOneEye() throws {
         let img = try face("winking")
         let left = img.whites(x: 70..<120, y: 80..<130), right = img.whites(x: 120..<170, y: 80..<130)
         XCTAssertGreaterThan(right, 120, "the open eye")
-        XCTAssertLessThan(Double(left), Double(right) * 0.2, "the winking eye is a closed arc")
+        // A gentle closed arc: a thin band of white, well under the open eye's.
+        XCTAssertLessThan(Double(left), Double(right) * 0.6, "the winking eye is a closed arc")
+        XCTAssertGreaterThan(left, 10, "drawn as an arc of white, not a dark notch")
     }
 
     /// The family table: Maya steps up, Ferni waits small in the corner.

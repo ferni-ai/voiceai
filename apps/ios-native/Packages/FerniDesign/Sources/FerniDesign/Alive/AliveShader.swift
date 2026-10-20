@@ -34,7 +34,7 @@ public struct AliveUniforms: Equatable, Sendable {
 
 /// The ray-marched Ferni from the owner's alive prototype (WebGL), in Metal:
 /// a soft body, Luxo eyes on its surface with curved lids, the happy arch,
-/// the web's page-colour lid caps over the body, per-eye scale, a teammate for the family
+/// the web's lid caps (a darker shade of the face), per-eye scale, a teammate for the family
 /// table, a firefly's light and tears. Output is premultiplied alpha so the
 /// room behind stays SwiftUI's: glow and the presence ring add light, the floor
 /// shadow darkens, the body sits on top.
@@ -172,8 +172,8 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
   eyeFrame(1.0, u.eyes.zw, u.gaze.zw, c, c.ER, c.RX, c.RY, c.RZ, c.SR);
   float3 ro = float3(0.0, 0.0, 5.0); float3 rd = normalize(float3(uv, -zoom));
   float2 cuv = float2(uv.x - u.pos.x / 5.0 * zoom, uv.y - u.pos.y / 5.0 * zoom) / (radiusPx / res.y);
-  // The web's lid caps (the live overlay, .avatar-lid-overlay over the orb): page-colour
-  // shapes over the body whose curved edge carries the expression. Its box is
+  // The web's lid caps (the live overlay, .avatar-lid-overlay over the orb): shapes in a
+  // darker shade of the face, over the body and eyes, whose curved edge carries the expression. Its box is
   // 2·B body radii wide; its quadratic edge is y = B - B·cap·(1 - (x/B)²). Flat on the
   // screen like the web's, turning with the head's roll (measured on the body's surface,
   // perspective made every cap about half as deep). Worked out here, before any
@@ -240,7 +240,7 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
       float fres = pow(1.0 - max(dot(n, V), 0.0), 4.0);
       float ao = calcAO(p, n, u, c);
       float3 key = u.key.xyz, rim = u.rim.xyz, fill = u.fill.xyz, bg1 = u.bg1.xyz;
-      float3 col;
+      float3 col, lidCol = float3(0.0);
       if (mat > 3.5) {
         float wrapG = clamp((ndl + 0.6) / 1.6, 0.0, 1.0);
         if (mat < 4.5) {
@@ -276,7 +276,7 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
           cb *= 1.0 - 0.32 * crease;   // a closed eye's soft fold, inside the eye; its upturned ends faded out
           // No other strokes near the eyes: the lid-edge highlights and the smile crease
           // under each eye read as eyebrows or floating lower lids (Seth, 2026-10-20). The
-          // expression's lids are the page-colour caps below, as on the web.
+          // expression's lids are the caps below, as on the web.
         }
         cb *= mix(0.5, 1.0, ao);
         // eyes: porcelain, shaded by the lid caps above and below
@@ -306,6 +306,11 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
         // white at its edge, not one darkened by the body's crease there.
         ce += rim * fres * 0.15; ce *= mix(0.7, 1.0, mat < 1.5 ? 1.0 : ao);
         col = mix(cb, ce, eyeMix);
+        // The lid: the web's fill, color-mix(in srgb, persona 82%, natural ink #2c2520), lit
+        // like the body under it (the sphere's shading, over the eyeball's bulge too), so it
+        // reads as a lid on Ferni, not a hole cut out of him (the web moved away from that).
+        float3 lidBase = pow(mix(pow(base, float3(1.0 / 2.2)), float3(0.1725, 0.1451, 0.1255), 0.18), float3(2.2));
+        lidCol = cb * lidBase / max(base, float3(1e-4));
         if (u.fly.w > 0.0) {                                             // the firefly's light falls on Ferni
           float3 lv = u.fly.xyz - p; float dd = dot(lv, lv);
           col += float3(0.75, 0.95, 0.4) * u.fly.w * max(dot(n, normalize(lv)), 0.0) * mix(base * 2.2, float3(0.5), eyeMix) / (dd * 1.6 + 0.12);
@@ -314,7 +319,7 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
           col = cb * 0.75 + float3(0.05, 0.07, 0.09) + key * (pow(ndh, 140.0) * 1.4 + softbox(reflect(rd, n), 0.05) * 0.9) + rim * fres * 0.8;
         }
       }
-      if (mat < 3.5) alpha *= 1.0 - capped;   // the lid caps, worked out above
+      if (mat < 3.5) col = mix(col, lidCol, capped);   // the lid caps, worked out above; the outline stays round
       col = mix(col, float3(dot(col, float3(0.2126, 0.7152, 0.0722))), 0.08);
       col = gamma(aces(col));
       col += (hash21(frag + fract(u.res.z)) - 0.5) / 255.0;
