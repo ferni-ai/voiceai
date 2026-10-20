@@ -39,6 +39,10 @@ struct SettingsView: View {
                 }
             }
             .ferniPaper()
+            // A hard edge under the bar: with the soft one, the black Sign in with
+            // Apple button showed through behind "Settings" (design audit P2 #10;
+            // at AX3+, where the pinned intro steps aside).
+            .scrollEdgeEffectStyle(.hard, for: .top)
             .screenIntro(ScreenIntro.settings)
             .sheet(isPresented: $signingIn) { SignInView(account: model.account) }
             .navigationTitle("Settings")
