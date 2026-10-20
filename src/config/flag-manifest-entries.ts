@@ -32,6 +32,8 @@ export const FLAGS_ACTION_TO_BYPASS = {
   // set by the job runner for its child processes
   AGENT_JOB_CHILD: { default: 'off', owner: 'voice', kind: 'config' },
   AI_HONESTY_STORY: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // Alex keeps the caller's todos, goals, calendar and agenda; Ferni hands planning to him (alex-chief-of-staff-flag.ts)
+  ALEX_CHIEF_OF_STAFF: { default: 'off', owner: 'voice', kind: 'experiment' },
   ALLOW_CLIENT_DEV_MODE: { default: 'off', owner: 'voice', kind: 'kill-switch' },
   ALLOW_PRODUCTION_DATA: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   ALLOW_SOTA_SEED: { default: 'off', owner: 'voice', kind: 'config' },
@@ -110,6 +112,8 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   OUTREACH_DRY_RUN: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   // on: the daily scheduler sends no generic "thinking of you" check-ins
   OUTREACH_GROUNDED_CHECKINS: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
+  // on: a daily-outreach note saved in the app also sends a push saying it is there (in-app-push.ts)
+  OUTREACH_IN_APP_PUSH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: pondered follow-ups go out as in-app notes (also a per-person cohort flag)
   OUTREACH_PONDERED_NOTES: { default: 'off', owner: 'outreach', kind: 'experiment' },
   OVERLAP_GREETING_WITH_PREWARM: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -119,6 +123,7 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   PERSONA_BEATS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // character-spark.md after the character sheet, one "!" on bright turns (agents/personas/prompt-loader.ts, turn-shape.ts)
   PERSONA_SPARK: { default: 'off', owner: 'voice', kind: 'experiment' },
+  PERSONA_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PERSONA_MOOD_NOT_CALLERS: { default: 'on', owner: 'memory', kind: 'kill-switch' },
   PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },

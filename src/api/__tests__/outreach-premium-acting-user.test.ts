@@ -43,6 +43,13 @@ vi.mock('../../services/outreach/index.js', async (importOriginal) => ({
   registerUserForOutreach: outreach.registerUserForOutreach,
   updateUserContext: outreach.updateUserContext,
 }));
+// The code send itself is tested in verification-text.test.ts; here only whose code is made.
+vi.mock('../../services/outreach/verification-text.js', () => ({
+  textVerificationCode: async (_u: string, p: string, make: (e164: string) => Promise<string>) => {
+    await make(p);
+    return { sent: true };
+  },
+}));
 vi.mock('../../tools/domains/proactive/outreach/index.js', () => ({
   setUserContactInfo: outreach.setUserContactInfo,
   textUser: outreach.textUser,

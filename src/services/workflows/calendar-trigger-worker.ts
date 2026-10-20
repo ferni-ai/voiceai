@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { listTokenUsers } from '../identity/google-calendar-token-store.js';
 import { getWorkflowEngine } from './workflow-engine.js';
 import { getActiveWorkflows, type Workflow } from '../stores/workflow-store.js';
 import type { CalendarEvent } from '../calendar/types.js';
@@ -134,11 +135,10 @@ async function getUsersWithCalendarConnected(): Promise<string[]> {
       databaseId: process.env.FIRESTORE_DATABASE || '(default)',
     });
 
-    // Get users from Google Calendar tokens
-    const googleSnapshot = await db.collection('google_calendar_tokens').get();
+    // Users with Google Calendar tokens in the encrypted per-user store (the
+    // root google_calendar_tokens collection is retired and being emptied).
     const userIds = new Set<string>(
-      googleSnapshot.docs
-        .map((doc) => doc.id)
+      (await listTokenUsers())
         // Filter out test users to avoid token refresh errors
         .filter((id) => !id.startsWith('cal-test-') && !id.startsWith('test-'))
     );

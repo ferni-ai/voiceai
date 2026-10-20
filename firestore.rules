@@ -116,6 +116,20 @@ service cloud.firestore {
     }
     
     // ============================================================================
+    // REPORTED REPLIES (POST /api/reports; the server writes with the Admin SDK)
+    // Holds a reply and the person's words before it: admins read, nobody else.
+    // ============================================================================
+
+    match /reply_reports/{reportId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /reply_report_quota/{uid} {
+      allow read, write: if false;
+    }
+
+    // ============================================================================
     // PHONE LOOKUP INDEX (for cross-device identification)
     // Stores hashed phone -> userId mappings
     // ============================================================================

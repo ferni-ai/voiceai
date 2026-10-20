@@ -184,6 +184,25 @@ describe('completeOnBehalfCall', () => {
     expect(p.report).toHaveBeenCalledTimes(1);
   });
 
+  it('a later exit path waits for the report already under way (the job exits after it)', async () => {
+    let release: () => void = () => undefined;
+    const p = ports(conversation);
+    p.report.mockImplementation(() => new Promise<void>((r) => (release = r)));
+    const call = makeCall('c-wait');
+    const first = completeOnBehalfCall('s-wait', call, 90, true, p);
+    let laterDone = false;
+    const later = completeOnBehalfCall('s-wait', call, 91, true, p).then(() => {
+      laterDone = true;
+    });
+    await vi.waitFor(() => expect(p.report).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(laterDone).toBe(false);
+    release();
+    await Promise.all([first, later]);
+    expect(laterDone).toBe(true);
+    expect(p.report).toHaveBeenCalledTimes(1);
+  });
+
   it('still tells the requester how it went when the analysis throws', async () => {
     const p = ports(conversation, async () => {
       throw new Error('llm down');
