@@ -174,7 +174,8 @@ public final class ExpressionEventMapper: Sendable {
         case "high_engagement":
             return ExpressionResult(
                 expression: .excited,
-                microExpression: .delight
+                microExpression: .delight,
+                moment: "celebration_small"
             )
 
         case "disengagement":
@@ -192,7 +193,8 @@ public final class ExpressionEventMapper: Sendable {
         case "breakthrough":
             return ExpressionResult(
                 expression: .pleased,
-                microExpression: .recognition
+                microExpression: .recognition,
+                moment: "deep_moment"
             )
 
         default:
@@ -344,17 +346,21 @@ public struct ExpressionResult: Sendable {
     public let microExpression: MicroExpressionType?
     public let duration: TimeInterval?
     public let hold: TimeInterval?
+    /// A choreographed moment from sequences.json to play with it.
+    public let moment: String?
 
     init(
         expression: AvatarExpression,
         microExpression: MicroExpressionType? = nil,
         duration: TimeInterval? = nil,
-        hold: TimeInterval? = nil
+        hold: TimeInterval? = nil,
+        moment: String? = nil
     ) {
         self.expression = expression
         self.microExpression = microExpression
         self.duration = duration
         self.hold = hold
+        self.moment = moment
     }
 }
 

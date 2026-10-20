@@ -18,6 +18,8 @@ public enum CallEvent: Equatable, Sendable {
     case expression(AvatarExpression, hold: Duration?)
     /// An 80-120 ms flash over whatever face is showing.
     case micro(MicroExpression)
+    /// A choreographed moment (sequences.json), e.g. a breakthrough's deep_moment.
+    case moment(String)
     case handoffStarted(to: String)
     case handoffCompleted(to: String, name: String)
     case handoffFailed
@@ -59,6 +61,8 @@ public struct AvatarDirector: Equatable, Sendable {
     private var presencePlayed = false
     /// The latest micro-expression, for the body to flash once.
     public private(set) var micro: MicroBeat?
+    /// The latest choreographed moment, for the body to play once.
+    public private(set) var moment: MomentBeat?
 
     public init() {}
 
@@ -126,6 +130,8 @@ public struct AvatarDirector: Equatable, Sendable {
             expressionOverride = (face, now + (hold ?? Self.defaultHold))
         case .micro(let m):
             micro = MicroBeat(m, count: (micro?.count ?? 0) + 1)
+        case .moment(let id):
+            moment = MomentBeat(id, count: (moment?.count ?? 0) + 1)
         case .handoffStarted(let to):
             handoffTo = to
         case .handoffCompleted(let to, let name):
@@ -217,6 +223,6 @@ public struct AvatarDirector: Equatable, Sendable {
 
     public static func == (lhs: AvatarDirector, rhs: AvatarDirector) -> Bool {
         lhs.pose == rhs.pose && lhs.expression == rhs.expression && lhs.personaID == rhs.personaID
-            && lhs.nextDeadline == rhs.nextDeadline && lhs.micro == rhs.micro
+            && lhs.nextDeadline == rhs.nextDeadline && lhs.micro == rhs.micro && lhs.moment == rhs.moment
     }
 }

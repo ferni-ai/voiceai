@@ -23,6 +23,7 @@ public struct AvatarView: View {
     let doubleTake: Int
     let personSpeaking: Bool
     let micro: MicroBeat?
+    let moment: MomentBeat?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -52,7 +53,7 @@ public struct AvatarView: View {
     public init(
         persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
         name: String = "Ferni", covered: Bool = false, wake: Int = 0, doubleTake: Int = 0, personSpeaking: Bool = false,
-        micro: MicroBeat? = nil,
+        micro: MicroBeat? = nil, moment: MomentBeat? = nil,
         level: @escaping @Sendable () -> Float = { 0 },
         reading: Bool = false, onCue: ((KeyedCue) -> Void)? = nil
     ) {
@@ -68,6 +69,7 @@ public struct AvatarView: View {
         self.doubleTake = doubleTake
         self.personSpeaking = personSpeaking
         self.micro = micro
+        self.moment = moment
     }
 
     public var body: some View {
@@ -130,12 +132,16 @@ public struct AvatarView: View {
             .onChange(of: activity) { previous, next in
                 if next == .arriving, previous == .idle { arrivingSince = .now }
                 let waited = arrivingSince.map { Date.now.timeIntervalSince($0) } ?? 0
-                switch Self.joinPlan(from: previous, to: next, waited: waited, reduceMotion: reduceMotion, arrived: arrivedThisCall) {
+                let plan = Self.joinPlan(from: previous, to: next, waited: waited, reduceMotion: reduceMotion, arrived: arrivedThisCall)
+                switch plan {
                 case .hop: rig.play(.join); arrivedThisCall = true
                 case .settle: [KeyedCue.arrivalChime, .land].forEach { onCue?($0) }; arrivedThisCall = true
                 case .none: if next != .arriving, previous == .arriving { arrivedThisCall = true }
                 }
                 if next == .idle { arrivedThisCall = false; arrivingSince = nil }
+                if let sequence = Self.sequence(from: previous, to: next, join: plan, reduceMotion: reduceMotion) {
+                    rig.play(sequence: sequence)
+                }
                 if next == .idle, previous != .idle, previous != .arriving {
                     if !reduceMotion { rig.play(.goodbye) }
                     rig.dismissGuest()
@@ -152,6 +158,10 @@ public struct AvatarView: View {
             // A micro-expression from the call (the agent's humanization signals).
             .onChange(of: micro) { _, next in
                 if let next { rig.micro(next.expression) }
+            }
+            // A choreographed moment from the call (a breakthrough, a small win).
+            .onChange(of: moment) { _, next in
+                if let next { rig.play(sequence: next.id) }
             }
             .onChange(of: expression) { _, next in
                 if Self.winPlays(next, reduceMotion: reduceMotion, personSpeaking: personSpeaking) { rig.play(.win) }
@@ -222,6 +232,17 @@ public struct AvatarView: View {
     static func joinPlan(from: AvatarActivity, to: AvatarActivity, waited: Double, reduceMotion: Bool, arrived: Bool) -> JoinPlan {
         guard from == .arriving, to == .listening || to == .speaking, !arrived, !reduceMotion else { return .none }
         return waited < 0.3 ? .settle : .hop
+    }
+
+    /// The design system's sequence for a change in what Ferni is doing:
+    /// connection_success for a fast join (it has no hop), error_recovery back
+    /// from a dropped connection, and under Reduce Motion session_end for the
+    /// goodbye (the keyed goodbye otherwise).
+    static func sequence(from: AvatarActivity, to: AvatarActivity, join: JoinPlan, reduceMotion: Bool) -> String? {
+        if join == .settle { return "connection_success" }
+        if from == .reconnecting, [.listening, .thinking, .speaking].contains(to) { return "error_recovery" }
+        if to == .idle, from != .idle, from != .arriving, reduceMotion { return "session_end" }
+        return nil
     }
 
     /// The big win (a spin and hops) plays for a celebrating face, never while

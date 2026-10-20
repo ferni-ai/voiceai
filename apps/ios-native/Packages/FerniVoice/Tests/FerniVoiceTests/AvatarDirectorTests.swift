@@ -62,6 +62,23 @@ final class AvatarDirectorTests: XCTestCase {
         XCTAssertEqual(model.micro?.expression, .delight)
     }
 
+    /// Choreographed moments (parity item 1) are beats too: the same one
+    /// twice plays twice, and a moment alone wakes the screen.
+    @MainActor
+    func testEachMomentIsANewBeat() {
+        let model = AvatarModel()
+        model.send(.connectTapped(personaID: "ferni"))
+        XCTAssertNil(model.moment)
+        let woke = Woke()
+        withObservationTracking { _ = model.moment } onChange: { woke.set() }
+        model.send(.moment("deep_moment"))
+        XCTAssertTrue(woke.value)
+        let first = model.moment
+        XCTAssertEqual(first?.id, "deep_moment")
+        model.send(.moment("deep_moment"))
+        XCTAssertNotEqual(model.moment, first)
+    }
+
     func testTheAgentsMicrosReadAsTheDesignSystems() {
         XCTAssertEqual(MicroExpressionType.protective.design, .concern)
         XCTAssertEqual(MicroExpressionType.connection.design, .warmth)
