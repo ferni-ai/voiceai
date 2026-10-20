@@ -114,7 +114,7 @@ export interface CallSession {
   endTime?: number;
   connectionTimeMs?: number;
   firstResponseTimeMs?: number; // job start to Ferni's first audio (the greeting), as on main
-  firstReplyMs?: number; // the first caller turn's reply latency (turn receipt); read only by the SLOs
+  firstReplyMs?: number; // the first caller turn's reply latency, for inspection; the SLOs keep their own samples
   totalDurationMs?: number;
   userSpeechCount: number;
   agentSpeechCount: number;
