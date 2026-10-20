@@ -71,7 +71,21 @@ public struct SignInResult: Equatable, Sendable {
 
 /// Why a sign-in didn't go through, in words a person can act on.
 public enum SignInError: Error, Equatable, Sendable {
-    case invalidPhoneNumber, invalidCode, tooManyAttempts, offline, cancelled, other
+    case invalidPhoneNumber, invalidCode, tooManyAttempts, offline, cancelled
+    /// Phone sign-in itself can't run: Ferni's setup (a blocked API key, app
+    /// verification, the provider off), not anything the person did.
+    case phoneUnavailable
+    /// Signing in can't run on Ferni's side, whatever the way in.
+    case unavailable
+    /// The reCAPTCHA check (phone sign-in without push) didn't pass.
+    case robotCheckFailed
+    /// Anything else, with Firebase's code for whoever helps.
+    case other(code: Int?)
+
+    /// The words for any error a sign-in step threw.
+    public static func from(_ error: Error) -> SignInError {
+        error as? SignInError ?? .other(code: (error as NSError).code)
+    }
 
     /// Nil when there's nothing to say (the person cancelled).
     public var message: String? {
@@ -81,7 +95,11 @@ public enum SignInError: Error, Equatable, Sendable {
         case .tooManyAttempts: "Too many tries for now. Give it a few minutes, then try again."
         case .offline: "Couldn't reach Ferni. Check your connection and try again."
         case .cancelled: nil
-        case .other: "That didn't go through. Try again?"
+        case .phoneUnavailable: "Phone sign-in isn't working on Ferni's side right now. Try Continue with Google."
+        case .unavailable: "Signing in isn't working on Ferni's side right now. Try again a little later."
+        case .robotCheckFailed: "The robot check didn't go through. Try again."
+        case .other(let code?): "That didn't go through (error \(code)). Try again?"
+        case .other(nil): "That didn't go through. Try again?"
         }
     }
 }

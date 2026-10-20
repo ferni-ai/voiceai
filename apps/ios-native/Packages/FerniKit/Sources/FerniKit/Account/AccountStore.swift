@@ -109,7 +109,7 @@ public final class AccountStore {
             return verification
         } catch {
             log.error("Phone code not sent: \(error.localizedDescription, privacy: .public)")
-            notice = (error as? SignInError ?? .other).message
+            notice = SignInError.from(error).message
             return nil
         }
     }
@@ -131,7 +131,7 @@ public final class AccountStore {
             result = try await backend.linkOrSignIn(credential)
         } catch {
             log.error("Sign-in failed: \(error.localizedDescription, privacy: .public)")
-            notice = (error as? SignInError ?? .other).message
+            notice = SignInError.from(error).message
             return false
         }
         state = .signedIn(result.user)

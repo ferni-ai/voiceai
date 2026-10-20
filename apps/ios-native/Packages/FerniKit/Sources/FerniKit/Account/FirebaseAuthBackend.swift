@@ -28,7 +28,7 @@ public struct FirebaseAuthBackend: AuthBackend {
         do {
             return try await PhoneAuthProvider.provider().verifyPhoneNumber(phoneNumber, uiDelegate: nil)
         } catch {
-            throw Self.signInError(error)
+            throw Self.signInError(error, phone: true)
         }
     }
 
@@ -41,8 +41,9 @@ public struct FirebaseAuthBackend: AuthBackend {
         case .google(let idToken, let accessToken):
             GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken)
         }
+        let phone = if case .phone = credential { true } else { false }
         guard let current = Auth.auth().currentUser else {
-            return SignInResult(user: try await Self.signIn(with: firebase), leftBehind: nil)
+            return SignInResult(user: try await Self.signIn(with: firebase, phone: phone), leftBehind: nil)
         }
         // Before anything changes: once signed into another account, the
         // anonymous one's token can't be had, and it's the server's proof.
@@ -54,32 +55,41 @@ public struct FirebaseAuthBackend: AuthBackend {
             // The credential already has a Ferni account: continue as that person.
             // Apple's nonce and the texted code are single use, so Firebase hands back a fresh credential.
             let updated = error.userInfo[AuthErrorUserInfoUpdatedCredentialKey] as? AuthCredential ?? firebase
-            let user = try await Self.signIn(with: updated)
+            let user = try await Self.signIn(with: updated, phone: phone)
             let leftBehind = anonymous.flatMap { $0 == user.uid ? nil : LeftBehindAccount(uid: $0, idToken: anonymousToken) }
             return SignInResult(user: user, leftBehind: leftBehind)
         } catch {
-            throw Self.signInError(error)
+            throw Self.signInError(error, phone: phone)
         }
     }
 
-    private static func signIn(with credential: AuthCredential) async throws -> AccountUser {
+    private static func signIn(with credential: AuthCredential, phone: Bool) async throws -> AccountUser {
         do {
             return account(try await Auth.auth().signIn(with: credential).user)
         } catch {
-            throw signInError(error)
+            throw signInError(error, phone: phone)
         }
     }
 
-    /// Firebase's errors as the few a person can act on; others pass through.
-    /// Every one is logged with its code and name (nothing personal in them).
-    static func signInError(_ error: Error) -> Error {
+    /// Firebase's errors as the few a person can act on; others pass through
+    /// (shown with their code). Every one is logged with its code and name
+    /// (nothing personal in them).
+    static func signInError(_ error: Error, phone: Bool = false) -> Error {
         let nsError = error as NSError
         let name = nsError.userInfo["FIRAuthErrorUserInfoNameKey"] as? String ?? "-"
         Logger(subsystem: "com.sethdford.ferni", category: "account")
             .error("Firebase sign-in error \(nsError.domain, privacy: .public) \(nsError.code, privacy: .public) \(name, privacy: .public)")
         guard nsError.domain == AuthErrorDomain, let code = AuthErrorCode(rawValue: nsError.code) else { return error }
         switch code {
-        case .networkError: return SignInError.offline
+        case .networkError, .webNetworkRequestFailed: return SignInError.offline
+        case .captchaCheckFailed: return SignInError.robotCheckFailed
+        // Ferni's setup, not the person: a blocked API key behind the reCAPTCHA
+        // page (17062, API_KEY_IOS_APP_BLOCKED, 2026-10-19), app verification,
+        // the client or the provider not set up.
+        case .webInternalError, .notificationNotForwarded, .missingAppToken, .missingAppCredential, .invalidAppCredential,
+             .appNotAuthorized, .appNotVerified, .missingClientIdentifier, .invalidClientID, .missingClientType,
+             .operationNotAllowed, .recaptchaNotEnabled, .missingRecaptchaToken, .invalidRecaptchaToken, .recaptchaSDKNotLinked:
+            return phone ? SignInError.phoneUnavailable : SignInError.unavailable
         case .invalidPhoneNumber, .missingPhoneNumber: return SignInError.invalidPhoneNumber
         case .invalidVerificationCode, .missingVerificationCode, .sessionExpired: return SignInError.invalidCode
         case .tooManyRequests, .quotaExceeded: return SignInError.tooManyAttempts
