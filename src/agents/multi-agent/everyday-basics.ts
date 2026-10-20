@@ -18,6 +18,7 @@ import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { withChiefOfStaffTools } from './chief-of-staff-tools.js';
 import { withLeanAlwaysOnTools } from './lean-always-on.js';
 import { withRegistryTools } from './registry-tools.js';
+import { withSpecialistTools } from './specialist-tools.js';
 
 /** Each everyday basic and the domain it is registered in. */
 export const EVERYDAY_BASICS: Readonly<Record<string, ToolDomain>> = {
@@ -39,16 +40,19 @@ export async function withEverydayBasics<T>(
  * and for a persona the caller is handed to, the everyday basics. With
  * TOOLS_SAME_TURN, the lean always-on set instead (lean-always-on.ts). Either way,
  * Alex also gets his planning tools while ALEX_CHIEF_OF_STAFF is on
- * (chief-of-staff-tools.ts).
+ * (chief-of-staff-tools.ts). Last, with SPECIALIST_TOOLS on, a specialist's set
+ * becomes its core and specialty tools (specialist-tools.ts).
  */
 export async function withAlwaysOnTools<T>(
   tools: Record<string, T>,
   ctx: ToolContext,
   handedTo: boolean
 ): Promise<Record<string, T>> {
-  if (sameTurnToolsEnabled())
-    return withChiefOfStaffTools(await withLeanAlwaysOnTools(tools, ctx), ctx);
+  if (sameTurnToolsEnabled()) {
+    const lean = await withChiefOfStaffTools(await withLeanAlwaysOnTools(tools, ctx), ctx);
+    return withSpecialistTools(lean, ctx);
+  }
   const withInfo = await withAlwaysOnInfoTools(tools, ctx);
   const withBasics = handedTo ? await withEverydayBasics(withInfo, ctx) : withInfo;
-  return withChiefOfStaffTools(withBasics, ctx);
+  return withSpecialistTools(await withChiefOfStaffTools(withBasics, ctx), ctx);
 }

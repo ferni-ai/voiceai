@@ -355,6 +355,8 @@ export const FLAG_MANIFEST = {
   SKIP_PREWARM_GENERATEREPLY: { default: 'true', owner: 'platform', kind: 'config' },
   SKIP_TWILIO_VALIDATION: { default: 'off', owner: 'platform', kind: 'config' },
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // a specialist gets its own specialty tools within the 64 cap (multi-agent/specialist-tool-sets.ts)
+  SPECIALIST_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
   // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
   SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // off, shadow or live; the default is off under tests (speech/tts-gateway/director/gate.ts)

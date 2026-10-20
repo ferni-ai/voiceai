@@ -18,10 +18,9 @@
  * values first. After-call work that is still running when the next call
  * starts sees the next caller's flags, so it reads them with envForCaller.
  *
- * A cohort can also take a sample of every known caller (percent, 1 to 100):
- * the same callers stay in it from call to call, and a bigger percent keeps
- * everyone already in. So a feature can go to a named cohort first, then 5%,
- * then 25%, before the agent's own flag goes on for everyone.
+ * A cohort can also take a sample of every known caller (percent, 1 to 100): the same callers
+ * stay in it from call to call, and a bigger percent keeps everyone already in. So a feature can
+ * go to a named cohort first, then 5%, then 25%, before the agent's own flag goes on for everyone.
  *
  * Only flags in COHORT_FLAGS can be set this way: behaviour switches, never
  * infrastructure or secrets. Reading cohorts never holds a call up for more
@@ -96,6 +95,7 @@ export const COHORT_FLAGS = [
   'TURN_TEXTURE',
   // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
   'ALEX_CHIEF_OF_STAFF',
+  'SPECIALIST_TOOLS', // read at each agent build (multi-agent/specialist-tool-sets.ts)
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
