@@ -83,6 +83,13 @@ struct RootView: View {
                 .tint(FerniColor.accent)
             }
             .onChange(of: model.call.isActive) { _, active in if active { section = .talk } }
+            // On iPad, Settings is the sidebar's page, never a sheet over Home
+            // (which half-covered Home and clipped its own last rows).
+            .onChange(of: model.isShowingSettings, initial: true) { _, showing in
+                guard showing else { return }
+                section = .settings
+                model.isShowingSettings = false
+            }
         } else {
             HomeView()
         }
