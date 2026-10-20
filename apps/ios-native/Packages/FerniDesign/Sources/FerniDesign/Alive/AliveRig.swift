@@ -607,7 +607,7 @@ public final class AliveRig {
         }
         if face.effect == "sparkle", overlay == nil, time >= nextSparkle, !held {
             burst(.sparkle, 1)
-            nextSparkle = time + 0.5
+            nextSparkle = time + 0.5 / max(face.sparkle, 0.1)
         }
         if sparks.count > 24 { sparks.removeFirst(sparks.count - 24) }
         for i in sparks.indices where sparks[i].kind != .firefly && time >= sparks[i].born && !held {

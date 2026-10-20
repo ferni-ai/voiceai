@@ -100,6 +100,8 @@ public struct Face: Equatable, Sendable {
     public var capTop = 0.0, capBottom = 0.0
     public var animation: String?
     public var effect: String?
+    /// How strongly a sparkling face sparkles (its token's sparkleGroup opacity).
+    public var sparkle = 0.0
     public var family = "core"
 
     /// The live web overlay's lids (apps/web ferni-expressions.ui.ts, the
@@ -131,7 +133,7 @@ public struct Face: Equatable, Sendable {
         "compassionate": 0.1,
     ]
     static let familyEffect: [String: String] = [
-        "happy": "sparkle", "warmth": "heart", "coaching": "sparkle",
+        "warmth": "heart",
     ]
     /// Glyphs, each for the few faces it belongs to (expression audit P2 #4):
     /// z's for sleep, a bead of sweat for nerves. No ? or ! (the web's rule is
@@ -214,7 +216,10 @@ public struct Face: Equatable, Sendable {
             f.capBottom = abs(bot) > 25 ? clamp(abs(bot) / 100, 0, 0.6) : 0
         }
         f.animation = e.animation
+        // Sparkles only where the tokens give them, at their strength: every happy
+        // and coaching face sparkled twice a second (expression audit P2 #3).
         f.effect = e.sparkleGroup != nil ? "sparkle" : id == "crying" ? "tears" : glyphs[id] ?? familyEffect[e.family]
+        f.sparkle = e.sparkleGroup.map { $0.opacity ?? 1 } ?? 0
         // Hearts are for love and tenderness, not every warm face: four clumped
         // hearts on supportive (the face for someone struggling) read as cute at
         // the wrong moment (expression audit P1 #10). The other warm faces swell
