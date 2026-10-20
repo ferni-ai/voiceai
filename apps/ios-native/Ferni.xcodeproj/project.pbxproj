@@ -100,6 +100,7 @@
 		DA508231BAC73A0C503073A2 /* FerniSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148438D4C1E42EF27B5A09AC /* FerniSceneDelegate.swift */; };
 		DA81277E93D9A12995CC138A /* HandoffUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7085820FA32335FEED58C9E /* HandoffUITests.swift */; };
 		DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */; };
+		DF31D65CAE25E9D2BDE1B308 /* DeleteAccountUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FFF0730357D938F61676E9 /* DeleteAccountUITests.swift */; };
 		E094C588E3F4D4ECCDC656EC /* NextStepTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3751457DBC4CF962D924D247 /* NextStepTests.swift */; };
 		E1ABFBCDC6B88A70EC864834 /* CallControlsAtLargeTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8DBF14CF40ADDB7A8768FBE /* CallControlsAtLargeTextTests.swift */; };
 		E264DB68385FB7094C895AAE /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 129CF5787F87ED1DCDD384F0 /* FerniDesign */; };
@@ -243,6 +244,7 @@
 		649C35992ED39D62D2F8714A /* handoff-to-jordan.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-jordan.mp3"; sourceTree = "<group>"; };
 		65555DCB199766EA982A43A3 /* FerniLive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniLive.swift; sourceTree = "<group>"; };
 		655A6BDFEE3CE0F40FDD86B9 /* MuteCallIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuteCallIntent.swift; sourceTree = "<group>"; };
+		67FFF0730357D938F61676E9 /* DeleteAccountUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeleteAccountUITests.swift; sourceTree = "<group>"; };
 		69DFC6F3A44810EED3131D80 /* EndCallIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EndCallIntent.swift; sourceTree = "<group>"; };
 		6C2FB03578887200033CDD5B /* DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLink.swift; sourceTree = "<group>"; };
 		6DB1FD5E9768FDDD7A8B82CB /* FerniWatchWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FerniWatchWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -433,6 +435,7 @@
 				F8DBF14CF40ADDB7A8768FBE /* CallControlsAtLargeTextTests.swift */,
 				3CC34062567D316808D0D03C /* ConsentSheetTests.swift */,
 				32CB80CF1D9492393B441589 /* DeepLinkUITests.swift */,
+				67FFF0730357D938F61676E9 /* DeleteAccountUITests.swift */,
 				B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */,
 				7BFB87749BD4C9D4FD65978F /* FloorFadeUITests.swift */,
 				A7085820FA32335FEED58C9E /* HandoffUITests.swift */,
@@ -842,6 +845,7 @@
 				E1ABFBCDC6B88A70EC864834 /* CallControlsAtLargeTextTests.swift in Sources */,
 				13E295A0E158B401D107C1D5 /* ConsentSheetTests.swift in Sources */,
 				24044B237183631A0FD997E3 /* DeepLinkUITests.swift in Sources */,
+				DF31D65CAE25E9D2BDE1B308 /* DeleteAccountUITests.swift in Sources */,
 				C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */,
 				621E18533277A7BC22296241 /* FloorFadeUITests.swift in Sources */,
 				DA81277E93D9A12995CC138A /* HandoffUITests.swift in Sources */,
