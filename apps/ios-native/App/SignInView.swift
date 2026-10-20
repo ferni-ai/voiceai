@@ -100,7 +100,7 @@ struct SignInView: View {
         do {
             await account.signIn(try await GoogleSignInFlow.credential())
         } catch {
-            googleProblem = (error as? SignInError ?? .other).message
+            googleProblem = SignInError.from(error).message
         }
     }
 }
@@ -158,10 +158,10 @@ enum GoogleSignInFlow {
     static var isAvailable: Bool { Bundle.main.object(forInfoDictionaryKey: "GIDClientID") is String }
 
     @MainActor static func credential() async throws -> SignInCredential {
-        guard let presenter = topViewController() else { throw SignInError.other }
+        guard let presenter = topViewController() else { throw SignInError.other(code: nil) }
         do {
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: presenter)
-            guard let idToken = result.user.idToken?.tokenString else { throw SignInError.other }
+            guard let idToken = result.user.idToken?.tokenString else { throw SignInError.other(code: nil) }
             return .google(idToken: idToken, accessToken: result.user.accessToken.tokenString)
         } catch let error as NSError where error.domain == kGIDSignInErrorDomain && error.code == GIDSignInError.canceled.rawValue {
             throw SignInError.cancelled
