@@ -18,7 +18,7 @@ function row(userId: string, over: Partial<OpenCommitment> = {}): DueCommitment 
     userId,
     commitment: {
       id: `${userId}-c`,
-      statement: "I'll call the landlord about the leak.",
+      statement: 'call the landlord about the leak',
       createdAt: NOW - 4 * DAY,
       followUpAfter: NOW - DAY,
       followUpCount: 0,
@@ -43,9 +43,9 @@ describe('pickDuePerUser', () => {
 });
 
 describe('pushMessage', () => {
-  it('uses their own words', () => {
-    expect(pushMessage(row('a').commitment)).toBe(
-      'How did it go? Last time you said: "I\'ll call the landlord about the leak."'
+  it('says back what they said they would do', () => {
+    expect(pushMessage(row('a', { statement: 'call my landlord about the leak' }).commitment)).toBe(
+      "Last time you said you'd call your landlord about the leak. How did it go?"
     );
   });
 });

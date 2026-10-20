@@ -44,7 +44,7 @@ export const LAYER_MAP: Record<string, string> = {
   // every context, so they are pipeline steps, not a context of their own.
   'src/agents': 'L4',
   ...under('src', 'L4', ['context', 'runtime', 'handoff', 'intelligence/context-builders']),
-  ...under('src/services', 'L4', ['session', 'session-manager', 'session-ext', 'di', 'outreach']),
+  ...under('src/services', 'L4', ['session', 'session-manager', 'session-ext', 'di', 'outreach', 'messaging']),
   // Flags live in L4: an L3 import of a flag module is debt (have L4 pass the decision in).
   ...under('src/config', 'L4', ['feature-flags.ts', 'voice-humanization-flags.ts', 'linkedin-flag.ts']),
   ...under('src/config', 'L4', ['assistant-actions-flag.ts', 'call-opening-flag.ts', 'gmail-send-flag.ts']),

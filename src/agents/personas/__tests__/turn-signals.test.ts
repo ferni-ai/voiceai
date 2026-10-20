@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { extrasFor, modelSignals, PLAIN_SIGNALS } from '../turn-extras.js';
 import { turnShapeFor } from '../turn-shape.js';
-import { signalsFor } from '../turn-request.js';
+import { signalsFor } from '../turn-request-style.js';
 import {
   setTurnUnderstander,
   TurnUnderstander,
