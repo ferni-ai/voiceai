@@ -43,9 +43,29 @@ final class ExpressionParticleTests: XCTestCase {
         XCTAssertEqual(shown("nervous")[.sweat], 1)
     }
 
-    func testConfusedAsksAndSurprisedExclaims() {
-        XCTAssertEqual(shown("confused")[.question], 1)
-        XCTAssertEqual(shown("surprised")[.bang], 1)
+    /// Expression audit P2 #4: no ? or !, z's only for sleep and only at home,
+    /// sweat only for nerves and embarrassment.
+    func testEachGlyphOnlyWhereItBelongs() {
+        for id in ["confused", "surprised", "puzzled", "shocked"] { XCTAssertTrue(shown(id).isEmpty, "\(id): no glyph") }
+        for id in ["sleepy", "drowsy", "resting"] { XCTAssertEqual(shown(id)[.z], 3, id) }
+        for id in ["exhausted", "yawning", "blissful"] { XCTAssertNil(shown(id)[.z], "\(id): no z's") }
+        for id in ["nervous", "embarrassed"] { XCTAssertEqual(shown(id)[.sweat], 1, id) }
+        for id in ["anxious", "scared", "awkward"] { XCTAssertNil(shown(id)[.sweat], "\(id): no sweat") }
+    }
+
+    func testZsOnlyAtHome() {
+        var listening: [Kind: Int] = [:]
+        let rig = AliveRig(seed: 3)
+        rig.activity = .listening
+        var t = 0.0
+        while t < 0.5 { t += 1.0 / 60; _ = rig.frame(at: t) }
+        rig.expression = "sleepy"
+        while t < 3 {
+            t += 1.0 / 60
+            _ = rig.frame(at: t)
+            for p in rig.particles { listening[p.kind, default: 0] += 1 }
+        }
+        XCTAssertNil(listening[.z], "in a call a sleepy face is a mood, not sleep")
     }
 
     /// Love floats hearts; the other warm faces don't (expression audit P1 #10).
@@ -73,7 +93,7 @@ final class ExpressionParticleTests: XCTestCase {
 
     /// Each one is actually drawn: alone on a clear canvas, it leaves pixels.
     func testEachFeelingIsDrawn() throws {
-        for kind in [Kind.z, .sweat, .question, .bang] {
+        for kind in [Kind.z, .sweat] {
             let particle = AliveRig.Particle(kind: kind, x: 0, y: 0, size: 0.3, alpha: 1)
             let view = AliveParticles(particles: [particle], centre: CGPoint(x: 50, y: 50), radius: 100)
                 .frame(width: 100, height: 100)
@@ -99,7 +119,7 @@ final class ExpressionParticleTests: XCTestCase {
     /// (it removed them all, so confused read as neutral: expression audit
     /// P1 #7). The sparkle bursts, which are only motion, don't play.
     func testReduceMotionHoldsTheFeelingsStill() {
-        for (id, kind) in [("confused", Kind.question), ("sleepy", .z), ("nervous", .sweat), ("loving", .heart)] {
+        for (id, kind) in [("sleepy", Kind.z), ("nervous", .sweat), ("embarrassed", .sweat), ("loving", .heart)] {
             var spots = Set<String>(), alphas: [Double] = [], frames = 0
             let most = shown(id, reduceMotion: true) { rig in
                 let mine = rig.particles.filter { $0.kind == kind }

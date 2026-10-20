@@ -131,8 +131,13 @@ public struct Face: Equatable, Sendable {
         "compassionate": 0.1,
     ]
     static let familyEffect: [String: String] = [
-        "happy": "sparkle", "warmth": "heart", "tired": "z", "nervous": "sweat", "confused": "question",
-        "surprised": "bang", "embarrassed": "blush", "coaching": "sparkle",
+        "happy": "sparkle", "warmth": "heart", "coaching": "sparkle",
+    ]
+    /// Glyphs, each for the few faces it belongs to (expression audit P2 #4):
+    /// z's for sleep, a bead of sweat for nerves. No ? or ! (the web's rule is
+    /// no emoji-like marks; Ferni's face carries confusion and surprise).
+    static let glyphs: [String: String] = [
+        "sleepy": "z", "drowsy": "z", "resting": "z", "nervous": "sweat", "embarrassed": "sweat",
     ]
 
     /// The face for an expression id; neutral for an id the tokens don't have.
@@ -209,7 +214,7 @@ public struct Face: Equatable, Sendable {
             f.capBottom = abs(bot) > 25 ? clamp(abs(bot) / 100, 0, 0.6) : 0
         }
         f.animation = e.animation
-        f.effect = e.sparkleGroup != nil ? "sparkle" : id == "crying" ? "tears" : familyEffect[e.family]
+        f.effect = e.sparkleGroup != nil ? "sparkle" : id == "crying" ? "tears" : glyphs[id] ?? familyEffect[e.family]
         // Hearts are for love and tenderness, not every warm face: four clumped
         // hearts on supportive (the face for someone struggling) read as cute at
         // the wrong moment (expression audit P1 #10). The other warm faces swell
