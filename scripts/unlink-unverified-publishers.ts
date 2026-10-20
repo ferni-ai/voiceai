@@ -20,12 +20,13 @@ import 'dotenv/config';
 import admin from 'firebase-admin';
 import { pathToFileURL } from 'node:url';
 import { destructiveMode } from './destructive-gate.js';
+import {
+  accountFromUser,
+  linkProblem,
+  type LinkedAccount,
+} from '../src/api/v1/developers/shared/publisher-link-rules.js';
 
-export interface LinkedAccount {
-  email?: string;
-  emailVerified: boolean;
-  anonymous: boolean;
-}
+export type { LinkedAccount };
 
 /** Why a publisher's link must be cleared, or null when it is sound. */
 export function unlinkReason(
@@ -33,26 +34,12 @@ export function unlinkReason(
   account: LinkedAccount | null
 ): string | null {
   if (!account) return 'linked account no longer exists';
-  if (account.anonymous) return 'linked account is anonymous';
-  if (!account.email) return 'linked account has no email';
-  if (!account.emailVerified) return 'linked account email is not verified';
-  if (
-    typeof publisherEmail !== 'string' ||
-    publisherEmail.toLowerCase() !== account.email.toLowerCase()
-  ) {
-    return 'linked account email differs from the publisher record';
-  }
-  return null;
+  return linkProblem(publisherEmail, account);
 }
 
 async function linkedAccount(uid: string): Promise<LinkedAccount | null> {
   try {
-    const user = await admin.auth().getUser(uid);
-    return {
-      email: user.email,
-      emailVerified: user.emailVerified === true,
-      anonymous: user.providerData.length === 0,
-    };
+    return accountFromUser(await admin.auth().getUser(uid));
   } catch {
     return null;
   }

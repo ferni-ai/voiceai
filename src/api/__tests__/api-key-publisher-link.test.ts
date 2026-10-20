@@ -1,14 +1,37 @@
 /**
  * An API key works only while its publisher is still linked to the account
- * that minted it.
+ * that minted it, and that account is itself sound: not anonymous, a verified
+ * email, equal to the publisher's email.
  *
  * Firebase-token requests re-check the publisher link on every call, but
  * requireApiKeyAuth accepted any enabled key on its own, so a key minted
  * through a link that was later cleared or replaced kept working. Real
- * middleware; Firestore is an in-memory fake at the client boundary.
+ * middleware; Firestore and Firebase Auth are in-memory fakes at the client
+ * boundary.
  */
 import type { ServerResponse } from 'node:http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+interface User {
+  email?: string;
+  emailVerified: boolean;
+  providerData: object[];
+}
+const users = vi.hoisted(() => new Map<string, User | Error>());
+const getUser = vi.hoisted(() =>
+  vi.fn(async (uid: string) => {
+    const user = users.get(uid);
+    if (user instanceof Error) throw user;
+    if (!user) throw Object.assign(new Error('no user'), { code: 'auth/user-not-found' });
+    return user;
+  })
+);
+vi.mock('firebase-admin/app', () => ({
+  getApps: () => [{}],
+  initializeApp: vi.fn(),
+  applicationDefault: vi.fn(),
+}));
+vi.mock('firebase-admin/auth', () => ({ getAuth: () => ({ getUser }) }));
 
 const store = vi.hoisted(() => new Map<string, Map<string, Record<string, unknown>>>());
 vi.mock('@google-cloud/firestore', () => {
@@ -50,6 +73,7 @@ vi.mock('@google-cloud/firestore', () => {
 });
 
 const { requireApiKeyAuth } = await import('../v2/developers/shared/middleware.js');
+const { resetApiKeyLinkCache } = await import('../v2/developers/shared/api-key-link.js');
 
 const KEY = 'pk_test_abcdefghijklmnopqrstuvwxyz012345';
 
@@ -73,7 +97,23 @@ async function callWithKey() {
   return { auth, status: res.status, body: res.body };
 }
 
-beforeEach(() => store.clear());
+const SOUND: User = { email: 'Owner@Example.com', emailVerified: true, providerData: [{}] };
+
+beforeEach(() => {
+  store.clear();
+  users.clear();
+  users.set('uid-owner', SOUND);
+  getUser.mockClear();
+  resetApiKeyLinkCache();
+  vi.restoreAllMocks();
+});
+
+/** A key minted by the publisher's linked account, so only that account's soundness decides. */
+function linkedTo(uid: string, user: User | Error | undefined) {
+  if (user) users.set(uid, user);
+  linkPublisher(uid);
+  keyDoc({ publisherId: 'pub-1', createdByUid: uid });
+}
 
 describe('requireApiKeyAuth follows the publisher link', () => {
   it('(a) accepts a key minted by the account the publisher is linked to', async () => {
@@ -125,5 +165,68 @@ describe('requireApiKeyAuth follows the publisher link', () => {
   it('refuses a key whose publisher record is gone', async () => {
     keyDoc({ publisherId: 'pub-missing', createdByUid: 'uid-owner' });
     expect((await callWithKey()).status).toBe(401);
+  });
+});
+
+describe('requireApiKeyAuth requires the linked account to be sound', () => {
+  it('refuses a key when the linked account is anonymous', async () => {
+    linkedTo('uid-anon', { ...SOUND, providerData: [] });
+    const { auth, status } = await callWithKey();
+    expect(auth).toBeNull();
+    expect(status).toBe(401);
+  });
+
+  it('refuses a key when the linked account email is not verified', async () => {
+    linkedTo('uid-unverified', { ...SOUND, emailVerified: false });
+    expect((await callWithKey()).status).toBe(401);
+  });
+
+  it("refuses a key when the linked account email is not the publisher's", async () => {
+    linkedTo('uid-other', { ...SOUND, email: 'other@example.com' });
+    expect((await callWithKey()).status).toBe(401);
+  });
+
+  it('refuses a key when the linked account was deleted', async () => {
+    linkedTo('uid-deleted', undefined);
+    const { status, body } = await callWithKey();
+    expect(getUser).toHaveBeenCalledWith('uid-deleted');
+    expect(status).toBe(401);
+    expect(body).toContain('key revoked: re-link your account');
+  });
+
+  it('fails closed on any other Auth error, and does not cache it', async () => {
+    linkedTo(
+      'uid-flaky',
+      Object.assign(new Error('backend down'), { code: 'auth/internal-error' })
+    );
+    const failed = await callWithKey();
+    expect(failed.status).toBe(401);
+    expect(failed.body).toContain('Authentication failed');
+
+    users.set('uid-flaky', SOUND);
+    expect((await callWithKey()).auth?.publisherId).toBe('pub-1');
+    expect(getUser).toHaveBeenCalledTimes(2);
+  });
+
+  it('caches a sound account for five minutes', async () => {
+    linkedTo('uid-owner', SOUND);
+    const now = Date.now();
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
+    expect((await callWithKey()).auth?.publisherId).toBe('pub-1');
+    expect((await callWithKey()).auth?.publisherId).toBe('pub-1');
+    expect(getUser).toHaveBeenCalledTimes(1);
+
+    clock.mockReturnValue(now + 5 * 60 * 1000 + 1);
+    expect((await callWithKey()).auth?.publisherId).toBe('pub-1');
+    expect(getUser).toHaveBeenCalledTimes(2);
+  });
+
+  it('never caches an unsound result', async () => {
+    linkedTo('uid-late', { ...SOUND, emailVerified: false });
+    expect((await callWithKey()).status).toBe(401);
+
+    users.set('uid-late', SOUND);
+    expect((await callWithKey()).auth?.publisherId).toBe('pub-1');
+    expect(getUser).toHaveBeenCalledTimes(2);
   });
 });
