@@ -112,6 +112,8 @@ struct SequenceLayer: Equatable {
     var ty = 0.0, rot = 0.0, scale = 1.0, sx = 1.0, sy = 1.0, glow = 0.0, halo = 0.0, haloS = 1.0, eyesTy = 0.0
     /// Degrees, negative down. No token drives it; accents do (SequenceAccent).
     var pitch = 0.0
+    /// Added to where the eyes look (gaze units, -1...1): an eyeroll's arc, a dart.
+    var gazeX = 0.0, gazeY = 0.0
 
     /// Which body channel each element's property drives (the prototype's CHANNEL).
     /// Immutable; key paths just aren't marked Sendable.
@@ -143,6 +145,60 @@ struct SequenceAccent: Equatable {
         // turn, invisible at phone size over the listening face. A small win
         // is a happy beat and an approving nod: down, up, a smaller down.
         "celebration_small": SequenceAccent(face: "happy", hold: 0.9, nod: [0, -9, 1.5, -5, 0], nodSeconds: 0.75),
+    ]
+}
+
+/// An expression's own motion, played once as it arrives: the `animation`
+/// each expression token names (expression audit P1 #4: none of the 15
+/// played). The web defines two of them (eyerollArc and delightedBounce,
+/// expressions.generated.css, 0.5 s); the other 13 are named in the tokens
+/// with no keyframes anywhere, so these are designed here, each in the
+/// spirit of its name and no bigger than the web's two.
+enum ExpressionAnimation {
+    struct Track {
+        let key: WritableKeyPath<SequenceLayer, Double>
+        let values: [Double]
+        /// Seconds, before the persona's tempo.
+        let seconds: Double
+        var ease = "gentle"
+    }
+
+    /// Immutable; key paths just aren't marked Sendable.
+    nonisolated(unsafe) static let all: [String: [Track]] = [
+        // Web keyframes: up 3, 5 (and across), 3 px; here the eyes travel the arc too.
+        "eyerollArc": [Track(key: \.ty, values: [0, -3, -5, -3, 0], seconds: 0.9),
+                       Track(key: \.gazeY, values: [0, 0.45, 0.6, 0.45, 0], seconds: 0.9),
+                       Track(key: \.gazeX, values: [-0.5, -0.3, 0, 0.3, 0], seconds: 0.9)],
+        // Web keyframes, as changes from the pose: up 4 px twice, a 2° rock, 3% bigger.
+        "delightedBounce": [Track(key: \.ty, values: [0, -4, 0, -4, 0], seconds: 0.5, ease: "linear"),
+                            Track(key: \.rot, values: [-2, 0, 2, 0, 0], seconds: 0.5, ease: "linear"),
+                            Track(key: \.scale, values: [1, 1.03, 1, 1.03, 1], seconds: 0.5, ease: "linear")],
+        "excitedBounce": [Track(key: \.ty, values: [0, -6, 0, -4, 0], seconds: 0.5, ease: "linear"),
+                          Track(key: \.scale, values: [1, 1.04, 1, 1.02, 1], seconds: 0.5, ease: "linear")],
+        "cheeringBounce": [Track(key: \.ty, values: [0, -8, 0, -6, 0, -3, 0], seconds: 0.7, ease: "linear")],
+        "winkPop": [Track(key: \.scale, values: [1, 1.06, 1], seconds: 0.3, ease: "spring"),
+                    Track(key: \.rot, values: [0, 3, 0], seconds: 0.3)],
+        // The web's yawn quirk: inhale wide and up, hold, settle (2.5 s).
+        "yawnCycle": [Track(key: \.sx, values: [1, 1.05, 1.08, 1.06, 0.98, 1], seconds: 2.5),
+                      Track(key: \.sy, values: [1, 0.95, 0.92, 0.94, 1.02, 1], seconds: 2.5),
+                      Track(key: \.ty, values: [0, -3, -5, -4, 2, 0], seconds: 2.5),
+                      Track(key: \.pitch, values: [0, 4, 6, 5, -1, 0], seconds: 2.5)],
+        "drowsyBlink": [Track(key: \.pitch, values: [0, -4, -5, 0], seconds: 1.4),
+                        Track(key: \.ty, values: [0, 2, 3, 0], seconds: 1.4)],
+        // A quick look aside and back, then a second, smaller one.
+        "nervousLook": [Track(key: \.gazeX, values: [0, -0.6, -0.6, 0, 0.4, 0], seconds: 1.0, ease: "linear")],
+        "anxiousDart": [Track(key: \.gazeX, values: [0, 0.6, -0.5, 0.5, -0.3, 0], seconds: 0.7, ease: "linear"),
+                        Track(key: \.gazeY, values: [0, 0.1, -0.1, 0.1, 0, 0], seconds: 0.7, ease: "linear")],
+        "calmBreathe": [Track(key: \.sy, values: [1, 1.025, 1], seconds: 2.4),
+                        Track(key: \.sx, values: [1, 0.99, 1], seconds: 2.4)],
+        "caringSettle": [Track(key: \.ty, values: [0, 3, 1, 0], seconds: 0.9),
+                         Track(key: \.pitch, values: [0, -3, -1, 0], seconds: 0.9)],
+        "lovingGlow": [Track(key: \.glow, values: [0, 0.45, 0], seconds: 1.4)],
+        "passionatePulse": [Track(key: \.scale, values: [1, 1.04, 1, 1.03, 1], seconds: 0.6, ease: "linear")],
+        "playfulSway": [Track(key: \.rot, values: [0, 4, -4, 2, 0], seconds: 0.8)],
+        "sillyWobble": [Track(key: \.rot, values: [0, -5, 5, -3, 3, 0], seconds: 0.7, ease: "linear"),
+                        Track(key: \.sx, values: [1, 1.04, 0.97, 1.03, 0.99, 1], seconds: 0.7, ease: "linear"),
+                        Track(key: \.sy, values: [1, 0.96, 1.03, 0.97, 1.01, 1], seconds: 0.7, ease: "linear")],
     ]
 }
 
