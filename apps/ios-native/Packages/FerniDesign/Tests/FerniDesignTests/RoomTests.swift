@@ -1,3 +1,4 @@
+import simd
 import XCTest
 @testable import FerniDesign
 
@@ -21,6 +22,25 @@ final class RoomTests: XCTestCase {
         XCTAssertEqual(RoomLight(hour: 14).tintOpacity, 0, "daytime is the room as designed")
         XCTAssertGreaterThan(RoomLight(hour: 19).tintOpacity, 0)
         XCTAssertGreaterThan(RoomLight(hour: 23).tintOpacity, RoomLight(hour: 19).tintOpacity)
+    }
+}
+
+/// Design audit P2 #1: the time of day was too faint to feel. Each band's
+/// floor (the paper under its tint) is a visibly different colour.
+final class RoomBandsTests: XCTestCase {
+    static func floor(_ hour: Int) -> SIMD3<Double> {
+        let light = RoomLight(hour: hour), paper = SIMD3<Double>(250, 248, 245)
+        return paper * (1 - light.tintOpacity) + light.tintRGB * 255 * light.tintOpacity
+    }
+
+    func testEachBandIsVisiblyItsOwn() {
+        let bands = [8, 14, 20, 2].map(Self.floor)
+        for (i, a) in bands.enumerated() {
+            for b in bands[(i + 1)...] {
+                XCTAssertGreaterThan(simd_distance(a, b), 6, "\(a) and \(b) are too close")
+            }
+        }
+        XCTAssertGreaterThan(Self.floor(2).x - Self.floor(2).z, 20, "late night is plainly amber")
     }
 }
 
