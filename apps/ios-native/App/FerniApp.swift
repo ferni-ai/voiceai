@@ -351,6 +351,10 @@ final class AppModel {
             agentLevel: level
         )
         feedback.isSomeoneSpeaking = { [call] in (call.avatar.pose == .speaking, call.isUserSpeaking) }
+        feedback.isAtRest = { [call] in !call.isActive }
+        #if DEBUG
+        if scenario != nil { feedback.reduceMotion = { UITestScenario.reduceMotion } }
+        #endif
         installSystemHandlers()
         Self.shared = self
         #if DEBUG
