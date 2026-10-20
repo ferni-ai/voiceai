@@ -9,7 +9,9 @@ final class AccessibilityAuditTests: XCTestCase {
     private func audit(_ screen: Screen, size: TextSize, hour: Int? = nil, extra: [String] = []) throws {
         let app = XCUIApplication.ferni(screen, size: size, hour: hour, extra: extra)
         XCTAssertTrue(screen.ready(in: app).waitForExistence(timeout: 20), "\(screen) never appeared")
+        // " ipad" last, so an allowance can name a finding seen only there.
         let name = "\(screen) \(size)" + (hour.map { " \($0)h" } ?? "") + (extra.isEmpty ? "" : " " + extra.joined(separator: " "))
+            + (UIDevice.current.userInterfaceIdiom == .pad ? " ipad" : "")
         try XCTContext.runActivity(named: name) { _ in try auditTwice(app, name: name) }
         app.terminate()
     }
@@ -128,10 +130,8 @@ final class AccessibilityAuditTests: XCTestCase {
         // rows' contrast findings (and the unnamed ones, two to four a launch) went away when the
         // sidebar got an opaque background (2026-10-20); none are accepted any more.
         ("call", .contrast, "Ferni · ", "Name chip: #5c544a on #f7f5ee, 6.8:1 (caption text needs 4.5)."),
-        ("onHold", .contrast, "On hold",
-         "The call's state line in medium secondary ink: #5c544a on #f2ebdf, 6.3:1 measured from the iPad screenshot (2026-10-20); flagged on iPad only, where \"Reconnecting…\" in the same place passes."),
-        ("failed", .contrast, "Couldn't reach Ferni",
-         "The failed call's message: #2c2520 on #f7eee3, 13.1:1 measured from the 17 Pro screenshot (2026-10-20); flagged in regular and medium weight alike."),
+        ("onHold standard ipad", .contrast, "On hold",
+         "The call's state line in medium secondary ink: #5c544a on #f2ebdf, 6.3:1 measured from the iPad screenshot (2026-10-20); flagged on iPad only (this entry matches only there), where \"Reconnecting…\" in the same place passes."),
         ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "#sidebar.talk", "iPad sidebar row (that row only, by identifier): the AX5 screenshot shows the full word."),
         ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "#sidebar.remembers", "iPad sidebar row (that row only, by identifier): wraps to three full lines at AX5 (screenshot)."),
         ("settings", .dynamicType, "Try again", "A system List button row; it scales at AX5 like the other rows."),
