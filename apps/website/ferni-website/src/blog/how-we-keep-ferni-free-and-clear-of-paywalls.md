@@ -6,6 +6,8 @@ authorInitials: "FE"
 authorColor: "#4a6741"
 date: 2026-10-18
 category: "Product"
+image: "how-we-keep-ferni-free-and-clear-of-paywalls.png"
+imageAlt: "Flowing wind lines drawn in sage over soft amber washes on cream, moving freely"
 readTime: 3
 sources:
   - "PR #1647: feat(web): avatar settles in the evening and looks glad when you come back (https://github.com/ferni-ai/voiceai/pull/1647)"

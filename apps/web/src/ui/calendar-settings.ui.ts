@@ -204,16 +204,16 @@ class CalendarSettingsUI {
 
   private async loadStatus(): Promise<void> {
     try {
-      // Load legacy status for backward compatibility
-      const response = await apiGet<{ success: boolean; status: CalendarStatus }>(
+      // The server answers flat ({ connected, configured, lastSynced }); reading
+      // a { success, status } envelope left connected users looking at "Connect".
+      const response = await apiGet<{ connected?: boolean; lastSynced?: string }>(
         '/api/calendar/status'
       );
 
-      if (response.data?.success) {
-        this.status = response.data.status;
-      } else {
-        this.status = { connected: false };
-      }
+      this.status =
+        response.ok && response.data?.connected === true
+          ? { connected: true, lastSynced: response.data.lastSynced }
+          : { connected: false };
 
       // Try to load providers status (new API)
       try {
