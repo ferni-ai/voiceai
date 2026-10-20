@@ -86,6 +86,18 @@ final class FaceTests: XCTestCase {
         XCTAssertEqual(Face.of("present").left.bot, 0.2, accuracy: 1e-9, "present's settled, soft eyes")
     }
 
+    /// Expression audit P1 #5: happy and coaching faces with no lower-lid curve
+    /// had only their top lids lowered, so they looked sleepy (and after the win
+    /// spin Ferni settled half-lidded and bored). Every one of them now smiles
+    /// from below: the happy arch, or the cheek lift's.
+    func testHappyAndCoachingFacesSmileFromBelow() {
+        let ids = ExpressionTokens.all.filter { ["happy", "coaching"].contains($0.value.family) }.keys.sorted()
+        XCTAssertGreaterThan(ids.count, 10)
+        for id in ids {
+            XCTAssertGreaterThanOrEqual(Face.of(id).left.arch, 0.2, "\(id) smiles from below")
+        }
+    }
+
     func testAnUnknownExpressionIsNeutral() {
         XCTAssertEqual(Face.of("not-a-face"), Face.of("neutral"))
         XCTAssertEqual(Face.of("neutral").left.top, 0.108, accuracy: 1e-9)
