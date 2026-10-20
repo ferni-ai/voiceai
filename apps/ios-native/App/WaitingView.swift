@@ -8,32 +8,43 @@ import SwiftUI
 /// Once their spot has opened: "You're in", with the founding-member badge.
 struct WaitingView: View {
     let place: WaitlistStatus
+    /// The account is anonymous: the server never puts one on the list.
+    var anonymous = false
     let onClose: () -> Void
     /// "Come in": their spot is open, so Talk again.
     let onComeIn: () -> Void
+    /// Not on the list yet: sign in, which is how a person joins it.
+    var onSignIn: () -> Void = {}
     @State private var copied = false
 
     var body: some View {
+        let joining = place.needsToJoin(anonymous: anonymous)
         ScrollView {
             VStack(spacing: FerniSpace.rest) {
                 AvatarView(persona: .ferni, expression: place.isAdmitted ? .happy : .content, activity: .idle)
                     .frame(width: 120, height: 120)
                     .accessibilityHidden(true)
-                Text(place.isAdmitted ? "You’re in" : "You’re on the list")
+                Text(place.isAdmitted ? "You’re in" : joining ? "Sign in to join the list" : "You’re on the list")
                     .font(FerniType.greeting)
                     .foregroundStyle(FerniColor.textPrimary)
                     .accessibilityAddTraits(.isHeader)
-                if place.isAdmitted { admitted } else { waiting }
+                if place.isAdmitted { admitted } else if joining { join } else { waiting }
                 Button {
-                    place.isAdmitted ? onComeIn() : onClose()
+                    place.isAdmitted ? onComeIn() : joining ? onSignIn() : onClose()
                 } label: {
-                    Text(place.isAdmitted ? "Come in" : "Not now")
+                    Text(place.isAdmitted ? "Come in" : joining ? "Sign in" : "Not now")
                         .font(FerniType.button)
                         .frame(maxWidth: 420, minHeight: 56)
                 }
                 .ferniPrimaryGlass()
                 .buttonBorderShape(.capsule)
                 .tint(FerniColor.accent)
+                if joining {
+                    Button("Not now", action: onClose)
+                        .font(FerniType.button)
+                        .frame(minHeight: 44)
+                        .tint(FerniColor.accent)
+                }
             }
             .multilineTextAlignment(.center)
             .frame(maxWidth: 560)
@@ -44,6 +55,14 @@ struct WaitingView: View {
         .background(FerniColor.background.ignoresSafeArea())
         .interactiveDismissDisabled()
         .accessibilityIdentifier("waiting")
+    }
+
+    /// Not on the list (anonymous, or not_joined): no place, no link and no email
+    /// to write to, so no promise of one (critic H1). Signing in joins.
+    private var join: some View {
+        Text("I’m letting people in a few at a time. Sign in and you’ll get your place in line.")
+            .font(FerniType.bodyLarge)
+            .foregroundStyle(FerniColor.textSecondary)
     }
 
     @ViewBuilder private var admitted: some View {
