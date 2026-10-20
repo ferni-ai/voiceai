@@ -217,7 +217,7 @@ function injectStyles(): void {
     }
 
     .sleep-settings__preview-emoji svg {
-      width: 2rem; height: 2rem; color: var(--color-ferni, #4a6741);
+      width: 2rem; height: 2rem; color: var(--color-ferni-on-surface);
     }
 
     .sleep-settings__preview-info {
