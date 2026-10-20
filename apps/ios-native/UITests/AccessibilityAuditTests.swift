@@ -6,37 +6,95 @@ import XCTest
 final class AccessibilityAuditTests: XCTestCase {
     override func setUp() { continueAfterFailure = true }
 
-    private func audit(_ screen: Screen, size: TextSize, hour: Int? = nil) throws {
-        let app = XCUIApplication.ferni(screen, size: size, hour: hour)
+    private func audit(_ screen: Screen, size: TextSize, hour: Int? = nil, extra: [String] = []) throws {
+        let app = XCUIApplication.ferni(screen, size: size, hour: hour, extra: extra)
         XCTAssertTrue(screen.ready(in: app).waitForExistence(timeout: 20), "\(screen) never appeared")
-        let name = "\(screen) \(size)" + (hour.map { " \($0)h" } ?? "")
-        try XCTContext.runActivity(named: name) { _ in
-            // A finding with no element is held back, not passed: a row sitting
-            // across the screen's bottom edge yields one whose type changes as the
-            // row moves (Settings, design audit P2 #9: a contrast finding with the
-            // Privacy link at 873 pt, Dynamic Type with it 35 pt higher, none in
-            // the old order). Nudged 120 pt, the screen is audited again, and one
-            // that's still there fails.
-            var unnamed: [UInt64] = []
-            try app.performAccessibilityAudit(for: .all) { issue in
-                guard issue.element == nil else { return Self.handle(issue, on: name) }
-                unnamed.append(issue.auditType.rawValue)
-                return true
-            }
-            guard !unnamed.isEmpty else { return }
-            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
-            start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -120)))
-            sleep(1)
-            try app.performAccessibilityAudit(for: .all) { issue in
-                guard issue.element == nil else { return true } // the first pass judged the named ones
-                if unnamed.contains(issue.auditType.rawValue) {
-                    print("AUDIT [\(name)] \(issue.compactDescription): no element, in both positions | \(issue.detailedDescription)")
-                    return false
-                }
-                return true
-            }
-        }
+        let name = "\(screen) \(size)" + (hour.map { " \($0)h" } ?? "") + (extra.isEmpty ? "" : " " + extra.joined(separator: " "))
+        try XCTContext.runActivity(named: name) { _ in try auditTwice(app, name: name) }
         app.terminate()
+    }
+
+    /// The audit, with one allowance. A finding with no element is held back,
+    /// not passed: a row sitting across the screen's bottom edge yields one
+    /// whose type changes as the row moves (Settings, design audit P2 #9: a
+    /// contrast finding with the Privacy link at 873 pt, Dynamic Type with it
+    /// 35 pt higher, none in the old order). The screen is nudged once, 120 pt,
+    /// and audited again: a no-element finding of the same type in both
+    /// positions fails. Only one nudge, never a search for a passing position.
+    /// Every finding waved through is printed and kept as an attachment
+    /// ("audit-waved-through …") for a reviewer; testTheGateStillFails proves a
+    /// faint unlabelled line mid-screen still fails.
+    private func auditTwice(_ app: XCUIApplication, name: String) throws {
+        var held: [Unnamed] = []
+        try app.performAccessibilityAudit(for: .all) { issue in
+            guard issue.element == nil else { return Self.handle(issue, on: name) }
+            held.append(Unnamed(issue))
+            return true
+        }
+        guard !held.isEmpty else { return }
+        let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -120)))
+        sleep(1)
+        var again: [Unnamed] = []
+        try app.performAccessibilityAudit(for: .all) { issue in
+            guard issue.element == nil else { return true } // the first pass judged the named ones
+            again.append(Unnamed(issue))
+            return true
+        }
+        let verdict = Self.nudgeVerdict(held: held, again: again)
+        for f in verdict.failing { XCTFail("AUDIT [\(name)] no element, in both positions: \(f.what)") }
+        guard !verdict.waved.isEmpty else { return }
+        let report = verdict.waved.map { "AUDIT-WAVED [\(name)] no element (frame unknown) \($0)" }.joined(separator: "\n")
+        print(report)
+        let attachment = XCTAttachment(string: report)
+        attachment.name = "audit-waved-through \(name)"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    /// A finding with no element: its type and what the audit said.
+    struct Unnamed {
+        let type: UInt64
+        let what: String
+        init(type: UInt64, what: String) { self.type = type; self.what = what }
+        init(_ issue: XCUIAccessibilityAuditIssue) {
+            self.init(type: issue.auditType.rawValue, what: "\(issue.compactDescription) | \(issue.detailedDescription)")
+        }
+    }
+
+    /// The one allowance, as a rule: a no-element finding fails if its type is
+    /// there both before and after the nudge; the rest are waved through, and
+    /// listed so they can be read.
+    nonisolated static func nudgeVerdict(held: [Unnamed], again: [Unnamed]) -> (failing: [Unnamed], waved: [String]) {
+        let failing = again.filter { a in held.contains { $0.type == a.type } }
+        let waved = held.filter { h in !again.contains { $0.type == h.type } }.map { "before the nudge, gone after: \($0.what)" }
+            + again.filter { a in !held.contains { $0.type == a.type } }.map { "only after the nudge: \($0.what)" }
+        return (failing, waved)
+    }
+
+    /// The rule itself: in both positions fails; in one is waved through and listed.
+    func testANoElementFindingThatStaysFails() {
+        let contrast = XCUIAccessibilityAuditType.contrast.rawValue, type = XCUIAccessibilityAuditType.dynamicType.rawValue
+        let stays = Self.nudgeVerdict(held: [Unnamed(type: contrast, what: "a")], again: [Unnamed(type: contrast, what: "a")])
+        XCTAssertEqual(stays.failing.count, 1, "the same type in both positions fails")
+        XCTAssertTrue(stays.waved.isEmpty)
+        let moves = Self.nudgeVerdict(held: [Unnamed(type: contrast, what: "edge row")], again: [Unnamed(type: type, what: "edge row")])
+        XCTAssertTrue(moves.failing.isEmpty, "a type that changes with position is the edge, not the screen")
+        XCTAssertEqual(moves.waved, ["before the nudge, gone after: edge row", "only after the nudge: edge row"], "and it's listed")
+    }
+
+    /// The gate can still go red: a faint (near-white on paper), unlabelled line
+    /// mid-screen, which a nudge can't carry off an edge, fails the audit.
+    func testTheGateStillFails() throws {
+        var seen: [String] = []
+        let options = XCTExpectedFailure.Options()
+        options.issueMatcher = { issue in seen.append(issue.compactDescription); return true }
+        XCTExpectFailure("the audit must fail on the faint fixture", options: options) {
+            try? audit(.home, size: .standard, extra: ["-FerniAuditFixture", "YES"])
+        }
+        XCTAssertTrue(seen.contains { $0.contains("Contrast") }, "a contrast failure on the faint line: \(seen)")
+        XCTAssertTrue(seen.contains { $0.contains("no description") || $0.contains("Element has no description") },
+                      "and on the nameless one: \(seen)")
     }
 
     /// Audit findings checked by hand and found not to be problems, each for one
