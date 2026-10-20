@@ -2,6 +2,8 @@ import { ParticipantKind } from '@livekit/rtc-node';
 import { describe, expect, it, vi } from 'vitest';
 import {
   TAP_INTERRUPT_ATTRIBUTE,
+  TAP_LIMIT,
+  TAP_WINDOW_MS,
   advertiseTapInterrupt,
   handleTapInterrupt,
   tapInterruptEnabled,
@@ -92,7 +94,6 @@ describe('handleTapInterrupt', () => {
   it.each([
     ['null', null],
     ['a string', 'user_interrupt'],
-    ['no timestamp', { type: 'user_interrupt' }],
     ['a string timestamp', { type: 'user_interrupt', timestamp: 'now' }],
     ['a NaN timestamp', { type: 'user_interrupt', timestamp: Number.NaN }],
     ['the wrong type', { type: 'user_reaction', timestamp: 1 }],
@@ -121,5 +122,55 @@ describe('handleTapInterrupt', () => {
     });
     const outcome = await handleTapInterrupt(tap, makeRoom(), session, CALLER, ON);
     expect(outcome).toBe('failed');
+  });
+
+  it("accepts the iPhone app's message, which carries no timestamp", async () => {
+    const session = makeSession('speaking');
+    const outcome = await handleTapInterrupt(
+      { type: 'user_interrupt' },
+      makeRoom(),
+      session,
+      CALLER,
+      ON
+    );
+    expect(outcome).toBe('interrupted');
+    expect(session.interrupt).toHaveBeenCalledTimes(1);
+  });
+
+  describe('rate limit', () => {
+    const t0 = 1_760_000_000_000;
+
+    it('drops taps past the budget and lets them through again after the window', async () => {
+      const room = makeRoom();
+      const session = makeSession('speaking');
+      for (let i = 0; i < TAP_LIMIT; i++) {
+        expect(await handleTapInterrupt(tap, room, session, CALLER, ON, t0 + i)).toBe(
+          'interrupted'
+        );
+      }
+      expect(await handleTapInterrupt(tap, room, session, CALLER, ON, t0 + 10)).toBe(
+        'rate_limited'
+      );
+      expect(session.interrupt).toHaveBeenCalledTimes(TAP_LIMIT);
+      const later = t0 + TAP_WINDOW_MS + TAP_LIMIT;
+      expect(await handleTapInterrupt(tap, room, session, CALLER, ON, later)).toBe('interrupted');
+    });
+
+    it("counts per room, and a stranger's taps do not spend the caller's budget", async () => {
+      const room = makeRoom();
+      const session = makeSession('speaking');
+      for (let i = 0; i < TAP_LIMIT * 2; i++) {
+        expect(await handleTapInterrupt(tap, room, session, 'stranger', ON, t0 + i)).toBe(
+          'not_caller'
+        );
+      }
+      expect(await handleTapInterrupt(tap, room, session, CALLER, ON, t0 + 20)).toBe('interrupted');
+      const other = makeRoom();
+      for (let i = 0; i < TAP_LIMIT; i++)
+        await handleTapInterrupt(tap, room, session, CALLER, ON, t0 + 30 + i);
+      expect(await handleTapInterrupt(tap, other, session, CALLER, ON, t0 + 40)).toBe(
+        'interrupted'
+      );
+    });
   });
 });

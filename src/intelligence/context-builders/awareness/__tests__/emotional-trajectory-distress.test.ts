@@ -40,6 +40,36 @@ describe('distress is negative-valence intensity only', () => {
   });
 });
 
+describe('every label the detectors write', () => {
+  // Text detector PrimaryEmotion and voice detector VoiceEmotion, as cached by turn-handler
+  it.each([
+    ['sadness', true],
+    ['anger', true],
+    ['fear', true],
+    ['disgust', true],
+    ['anxiety', true],
+    ['regret', true],
+    ['joy', false],
+    ['surprise', false],
+    ['trust', false],
+    ['anticipation', false],
+    ['neutral', false],
+    ['sad', true],
+    ['angry', true],
+    ['fearful', true],
+    ['anxious', true],
+    ['contempt', true],
+    ['disgusted', true],
+    ['happy', false],
+    ['excited', false],
+    ['surprised', false],
+    ['bored', false],
+    ['confused', false],
+  ])('%s counts as distress: %s', (label, negative) => {
+    expect(distressFromEmotion(label as string, 0.9) > 0).toBe(negative);
+  });
+});
+
 describe('the agent alert', () => {
   it.each([
     { n: 'joy 0.8', primary: 'joy', intensity: 0.8, alert: false },
