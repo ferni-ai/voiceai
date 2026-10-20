@@ -18,7 +18,7 @@ import { attachTurnReceipts } from '../turn-receipt-session.js';
 afterEach(() => resetCallQualityStateForTests());
 
 describe('turn receipts → call quality', () => {
-  it("a caller turn answered 1.4 s after they stopped sets the call's first response", () => {
+  it("a caller turn answered 1.4 s after they stopped sets the call's first reply", () => {
     let t = 100_000;
     startCall('call-r');
     const session = new EventEmitter();
@@ -34,7 +34,7 @@ describe('turn receipts → call quality', () => {
     // Ferni's greeting opens no caller turn and sets nothing.
     state('speaking');
     state('listening');
-    expect(getActiveCalls()[0].firstResponseTimeMs).toBeUndefined();
+    expect(getActiveCalls()[0].firstReplyMs).toBeUndefined();
 
     t += 20_000;
     session.emit('metrics_collected', {
@@ -46,6 +46,6 @@ describe('turn receipts → call quality', () => {
     state('listening');
     detach();
 
-    expect(getActiveCalls()[0].firstResponseTimeMs).toBe(1_400);
+    expect(getActiveCalls()[0].firstReplyMs).toBe(1_400);
   });
 });
