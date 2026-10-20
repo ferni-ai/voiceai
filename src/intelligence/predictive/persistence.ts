@@ -146,9 +146,7 @@ async function withFlushLock(userId: string, fn: () => Promise<void>): Promise<v
 // MARKOV PERSISTENCE
 // ============================================================================
 
-/**
- * Save Markov model state to Firestore
- */
+/** Save Markov model state to Firestore */
 export async function saveMarkovState(userId: string, data: MarkovPersistenceData): Promise<void> {
   const firestore = userHeld(userId) ? null : getFirestoreDb(); // MINOR_CARE, at write time
   if (!firestore) {
@@ -175,12 +173,10 @@ export async function saveMarkovState(userId: string, data: MarkovPersistenceDat
   }
 }
 
-/**
- * Load Markov model state from Firestore
- */
+/** Load Markov model state from Firestore */
 export async function loadMarkovState(userId: string): Promise<MarkovPersistenceData | null> {
   const firestore = getFirestoreDb();
-  if (!firestore) return null;
+  if (!firestore) throw new Error('Firestore unavailable'); // not loaded, so never written
 
   try {
     const docRef = firestore
@@ -197,7 +193,7 @@ export async function loadMarkovState(userId: string): Promise<MarkovPersistence
     return data;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load Markov state');
-    return null;
+    throw error; // the model retries later; a failed read never counts as loaded
   }
 }
 
@@ -205,9 +201,7 @@ export async function loadMarkovState(userId: string): Promise<MarkovPersistence
 // TIME SERIES PERSISTENCE
 // ============================================================================
 
-/**
- * Save time series model state to Firestore
- */
+/** Save time series model state to Firestore */
 export async function saveTimeSeriesState(
   userId: string,
   data: TimeSeriesPersistenceData
@@ -253,14 +247,12 @@ export async function saveTimeSeriesState(
   }
 }
 
-/**
- * Load time series model state from Firestore
- */
+/** Load time series model state from Firestore */
 export async function loadTimeSeriesState(
   userId: string
 ): Promise<TimeSeriesPersistenceData | null> {
   const firestore = getFirestoreDb();
-  if (!firestore) return null;
+  if (!firestore) throw new Error('Firestore unavailable'); // not loaded, so never written
 
   try {
     const docRef = firestore
@@ -282,7 +274,7 @@ export async function loadTimeSeriesState(
     return data;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load time series state');
-    return null;
+    throw error; // the model retries later; a failed read never counts as loaded
   }
 }
 
@@ -351,7 +343,7 @@ export async function loadReinforcementState(
   userId: string
 ): Promise<ReinforcementPersistenceData | null> {
   const firestore = getFirestoreDb();
-  if (!firestore) return null;
+  if (!firestore) throw new Error('Firestore unavailable'); // not loaded, so never written
 
   try {
     const docRef = firestore
@@ -371,7 +363,7 @@ export async function loadReinforcementState(
     return data;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load reinforcement state');
-    return null;
+    throw error; // the model retries later; a failed read never counts as loaded
   }
 }
 
@@ -431,20 +423,59 @@ export function markDirty(userId: string): void {
   dirtyUsers.add(userId);
 }
 
-/** Check if user is loaded */
-export function isUserLoaded(userId: string): boolean {
-  return loadedUsers.has(userId);
+export type LoadedModel = 'markov' | 'timeseries' | 'reinforcement';
+const MODELS: LoadedModel[] = ['markov', 'timeseries', 'reinforcement'];
+/** `model:userId` -> failed loads, and when the next may start (Infinity: one in flight) */
+const loadRetry = new Map<string, { fails: number; next: number }>();
+
+/** Has this model read the user from storage in this process? Only those are written. */
+export function isUserLoaded(userId: string, model: LoadedModel): boolean {
+  return loadedUsers.has(`${model}:${userId}`);
 }
 
-/** Mark user as loaded */
-export function markUserLoaded(userId: string): void {
-  loadedUsers.add(userId);
+/** After a successful read only: a failed load calls loadFailed instead */
+export function markUserLoaded(userId: string, model: LoadedModel): void {
+  loadedUsers.add(`${model}:${userId}`);
+  loadRetry.delete(`${model}:${userId}`);
+}
+
+/** True when this model should load the user now: not loaded, none in flight, past backoff */
+export function startLoad(userId: string, model: LoadedModel): boolean {
+  const key = `${model}:${userId}`;
+  const retry = loadRetry.get(key) ?? { fails: 0, next: 0 };
+  if (loadedUsers.has(key) || Date.now() < retry.next) return false;
+  loadRetry.set(key, { ...retry, next: Infinity });
+  return true;
+}
+
+/** A failed load is retried on a later access, 30 s x 2^fails apart (at most 30 min) */
+export function loadFailed(userId: string, model: LoadedModel): void {
+  const fails = (loadRetry.get(`${model}:${userId}`)?.fails ?? 0) + 1;
+  const next = Date.now() + Math.min(30_000 * 2 ** fails, 30 * 60_000);
+  loadRetry.set(`${model}:${userId}`, { fails, next });
 }
 
 /** MINOR_CARE purge: the next session reloads from storage before anything is written. */
 export function forgetLoadedUser(userId: string): void {
-  loadedUsers.delete(userId);
+  for (const m of MODELS) [loadedUsers, loadRetry].forEach((s) => s.delete(`${m}:${userId}`));
   dirtyUsers.delete(userId);
+}
+
+/** Saves only the models that read this user from storage here: the rest would replace it */
+function saveLoadedModels(
+  userId: string,
+  getMarkovData: (userId: string) => MarkovPersistenceData | null,
+  getTimeSeriesData: (userId: string) => TimeSeriesPersistenceData | null,
+  getReinforcementData: (userId: string) => ReinforcementPersistenceData | null
+): Promise<void>[] {
+  const markov = isUserLoaded(userId, 'markov') ? getMarkovData(userId) : null;
+  const series = isUserLoaded(userId, 'timeseries') ? getTimeSeriesData(userId) : null;
+  const rl = isUserLoaded(userId, 'reinforcement') ? getReinforcementData(userId) : null;
+  return [
+    ...(markov ? [saveMarkovState(userId, markov)] : []),
+    ...(series ? [saveTimeSeriesState(userId, series)] : []),
+    ...(rl ? [saveReinforcementState(userId, rl)] : []),
+  ];
 }
 
 /**
@@ -467,27 +498,11 @@ export async function flushDirtyUsers(
     if (now - lastFlush < FLUSH_INTERVAL_MS) {
       continue; // Skip - too soon
     }
-    if (!loadedUsers.has(userId)) continue; // never loaded here: it would replace stored state
+    if (!MODELS.some((m) => isUserLoaded(userId, m))) continue; // kept dirty until one loads
 
     try {
-      // Save all model types in parallel
-      const markovData = getMarkovData(userId);
-      const timeSeriesData = getTimeSeriesData(userId);
-      const reinforcementData = getReinforcementData(userId);
-
-      const promises: Promise<void>[] = [];
-
-      if (markovData) {
-        promises.push(saveMarkovState(userId, markovData));
-      }
-      if (timeSeriesData) {
-        promises.push(saveTimeSeriesState(userId, timeSeriesData));
-      }
-      if (reinforcementData) {
-        promises.push(saveReinforcementState(userId, reinforcementData));
-      }
-
-      await Promise.all(promises);
+      const getters = [getMarkovData, getTimeSeriesData, getReinforcementData] as const;
+      await Promise.all(saveLoadedModels(userId, ...getters));
 
       dirtyUsers.delete(userId);
       lastFlushTime.set(userId, now);
@@ -516,24 +531,9 @@ export async function forceFlushUser(
   getReinforcementData: (userId: string) => ReinforcementPersistenceData | null
 ): Promise<void> {
   return withFlushLock(userId, async () => {
-    if (!loadedUsers.has(userId)) return; // never loaded here: it would replace stored state
-    const markovData = getMarkovData(userId);
-    const timeSeriesData = getTimeSeriesData(userId);
-    const reinforcementData = getReinforcementData(userId);
-
-    const promises: Promise<void>[] = [];
-
-    if (markovData) {
-      promises.push(saveMarkovState(userId, markovData));
-    }
-    if (timeSeriesData) {
-      promises.push(saveTimeSeriesState(userId, timeSeriesData));
-    }
-    if (reinforcementData) {
-      promises.push(saveReinforcementState(userId, reinforcementData));
-    }
-
-    await Promise.all(promises);
+    if (!MODELS.some((m) => isUserLoaded(userId, m))) return; // nothing read here to write
+    const getters = [getMarkovData, getTimeSeriesData, getReinforcementData] as const;
+    await Promise.all(saveLoadedModels(userId, ...getters));
 
     dirtyUsers.delete(userId);
     lastFlushTime.set(userId, Date.now());

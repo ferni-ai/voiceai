@@ -21,7 +21,8 @@ import type { SignalSource, PredictionTarget, FusedPrediction } from './multi-si
 import {
   loadReinforcementState,
   markDirty,
-  isUserLoaded,
+  startLoad,
+  loadFailed,
   markUserLoaded,
   type ReinforcementPersistenceData,
 } from './persistence.js';
@@ -286,6 +287,7 @@ function updateLearningStats(
     stats = createEmptyStats(userId);
     learningStats.set(userId, stats);
   }
+  if (startLoad(userId, 'reinforcement')) void loadReinforcementFromFirestore(userId); // async
 
   stats.totalPredictions++;
   stats.totalWithOutcome++;
@@ -633,8 +635,6 @@ export function getReinforcementDataForPersistence(
  * Load reinforcement state from Firestore (async, called on first access)
  */
 export async function loadReinforcementFromFirestore(userId: string): Promise<void> {
-  if (isUserLoaded(userId)) return;
-
   try {
     const data = await loadReinforcementState(userId);
     if (data) {
@@ -677,10 +677,10 @@ export async function loadReinforcementFromFirestore(userId: string): Promise<vo
         'Loaded reinforcement state from Firestore'
       );
     }
-    markUserLoaded(userId);
+    markUserLoaded(userId, 'reinforcement');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to load reinforcement state');
-    markUserLoaded(userId);
+    loadFailed(userId, 'reinforcement'); // not loaded: nothing is written until a load succeeds
   }
 }
 
