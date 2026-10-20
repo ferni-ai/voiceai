@@ -62,17 +62,19 @@ export const firestoreCohortStore: CohortStore = {
   },
 };
 
-/** Finds who might have a flag on, without reading every user. */
+/** Finds who might have a flag on, without reading every caller. */
 export interface FlagHolderStore {
-  /** Members of cohorts setting `flag` to 'on', and users whose own override sets it 'on'. */
+  /** Members of cohorts setting `flag` to 'on', and callers whose own override sets it 'on'. */
   candidatesFor: (flag: string) => Promise<string[]>;
 }
+
+const FLAG_NAME = /^[A-Z][A-Z0-9_]*$/;
 
 export const firestoreFlagHolders: FlagHolderStore = {
   async candidatesFor(flag) {
     const db = getFirestoreDb();
-    if (!db) return [];
-    // `flag` is from COHORT_FLAGS, so the field path is one of ours.
+    // Callers pass a COHORT_FLAGS name; anything else could change the field path.
+    if (!db || !FLAG_NAME.test(flag)) return [];
     const [cohorts, overrides] = await Promise.all([
       db.collection('feature_cohorts').where(`flags.${flag}`, '==', 'on').get(),
       db.collection('feature_flag_overrides').where(`flags.${flag}`, '==', 'on').get(),
