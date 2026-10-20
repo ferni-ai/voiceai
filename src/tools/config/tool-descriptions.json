@@ -1105,7 +1105,7 @@
       "_original": "Create a new daily routine from a template or custom steps. Use when user wants to: - Set up a morning routine - Create an evening wind-down - Build a workout routine - Design a custom routine"
     },
     "createSafeSpace": {
-      "description": "Establish explicit safety and confidentiality before vulnerable sharing. Use at the start of any conversation involving shame, secrets, or deeply personal topics to build trust first.",
+      "description": "Establish explicit safety and care before vulnerable sharing. Use at the start of any conversation involving shame, secrets, or deeply personal topics to build trust first.",
       "file": "src/tools/domains/vulnerability/index.ts"
     },
     "createSafetyPlan": {
@@ -1614,11 +1614,6 @@
       "description": "To delete memories. Execute. Use when user says.",
       "file": "src/tools/domains/memory/tools.ts",
       "_original": "CALL immediately to delete memories. Execute without announcing. Use when user says"
-    },
-    "forgetThisAboutMe": {
-      "description": "Delete/forget a specific memory. Use when user wants to remove something you remember about them. Examples:.",
-      "file": "src/tools/persona-memory-tools.ts",
-      "_original": "Delete/forget a specific memory. Use when user wants to remove something you remember about them. Examples:"
     },
     "fortnight_fighter": {
       "description": "Complete a 14-day streak.",
@@ -3928,11 +3923,6 @@
       "description": "Share a piece of investment wisdom.",
       "file": "src/tasks/finance-tasks.ts"
     },
-    "showAllPeterKnowledge": {
-      "description": "Show all Peter.",
-      "file": "src/tools/persona-memory-tools.ts",
-      "_original": "Show all Peter"
-    },
     "showImportantDates": {
       "description": "Show all important dates Jordan is tracking.",
       "file": "src/tools/persona-memory-tools.ts"
@@ -4422,11 +4412,6 @@
       "description": "Change a task.",
       "file": "src/tools/tasks.ts",
       "_original": "Change a task"
-    },
-    "updateWhatYouKnow": {
-      "description": "Update an existing memory with new information. Examples:.",
-      "file": "src/tools/persona-memory-tools.ts",
-      "_original": "Update an existing memory with new information. Examples:"
     },
     "useFreePreviews": {
       "description": "To switch to free previews.",
