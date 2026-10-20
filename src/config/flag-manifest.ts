@@ -183,6 +183,8 @@ export const FLAG_MANIFEST = {
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a goodbye (or "hang up") ends the call after Ferni's goodbye plays, app and phone; never on crisis risk (call-farewell.ts)
+  GOODBYE_ENDS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
   GOOD_NEWS_BIGGER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GREETING_WIRE_AFTER: { default: 'off', owner: 'voice', kind: 'experiment' },

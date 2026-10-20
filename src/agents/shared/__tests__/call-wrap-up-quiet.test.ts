@@ -1,7 +1,7 @@
 /**
  * CALL_WRAP_UP after the goodbyes: no silence remark, early check-in or
- * presence sound, and a 10 s idle window that ends the call through the same
- * wrap-up as endCall. With the flag off, none of it happens.
+ * presence sound, and a short idle window that ends the call through the same
+ * wrap-up as endCall. With it and GOODBYE_ENDS_CALL off, none of it happens.
  */
 import { llm, voice } from '@livekit/agents';
 import { ParticipantKind } from '@livekit/rtc-node';
@@ -136,8 +136,8 @@ describe('idle window after the goodbyes', () => {
     ]);
   });
 
-  it('flag off: the goodbyes arm nothing and the call carries on as before', async () => {
-    const c = await appCall({});
+  it('both flags off: the goodbyes arm nothing and the call carries on as before', async () => {
+    const c = await appCall({ GOODBYE_ENDS_CALL: 'off' });
     goodbyes(c.session);
     expect(c.timers.size).toBe(0);
     expect(c.session.listenerCount(voice.AgentSessionEventTypes.ConversationItemAdded)).toBe(0);
@@ -169,14 +169,25 @@ describe('phone calls after the goodbyes', () => {
     expect(c.events.at(-1)).toBe(`deleted room-${c.sessionId}`);
   });
 
-  it('CALL_WRAP_UP off: a phone call watches nothing, as before', async () => {
-    const c = await appCall({ PHONE_GOODBYE: 'on' }, SIP);
+  it('CALL_WRAP_UP and GOODBYE_ENDS_CALL off: a phone call watches nothing, as before', async () => {
+    const c = await appCall({ PHONE_GOODBYE: 'on', GOODBYE_ENDS_CALL: 'off' }, SIP);
     expect(c.added).toBe(true);
     goodbyes(c.session);
     expect(c.session.listenerCount(voice.AgentSessionEventTypes.ConversationItemAdded)).toBe(0);
     expect(c.timers.size).toBe(0);
     expect(stayQuietOn(c.session, { CALL_WRAP_UP: 'on' })).toBe(false);
     expect(blocked(c.sessionId)).toBe(false);
+  });
+});
+
+describe('GOODBYE_ENDS_CALL on, CALL_WRAP_UP off (prod today)', () => {
+  it("a phone call ends after the goodbyes, but the quiet stays CALL_WRAP_UP's", async () => {
+    const c = await appCall({ PHONE_GOODBYE: 'on' }, ParticipantKind.SIP);
+    goodbyes(c.session);
+    expect(stayQuietOn(c.session, {})).toBe(false); // silence remarks etc. unchanged
+    await c.fire(IDLE_AFTER_GOODBYE_MS);
+    await c.fire(0);
+    expect(c.events.at(-1)).toBe(`deleted room-${c.sessionId}`);
   });
 });
 
