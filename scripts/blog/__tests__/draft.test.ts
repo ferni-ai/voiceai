@@ -73,7 +73,7 @@ const BODY = Array.from(
 const answer = (title: string, body = BODY) =>
   JSON.stringify({ title, excerpt: 'A short, honest note.', body });
 
-function deps(model: (prompt: string) => string, gh = fakeGh()) {
+function deps(model: (prompt: string) => string, gh = fakeGh(), taken: string[] = []) {
   const writes: Array<{ file: string; content: string }> = [];
   const generate = vi.fn(async (prompt: string) => model(prompt));
   const d: DraftDeps = {
@@ -83,6 +83,8 @@ function deps(model: (prompt: string) => string, gh = fakeGh()) {
     today: TODAY,
     model: { generate },
     writeFile: (file, content) => writes.push({ file, content }),
+    // Never the real folder: a post published on TODAY would rename the draft (#2214).
+    fileExists: (file) => taken.includes(path.basename(file)),
   };
   return { d, writes, generate, gh };
 }
@@ -112,6 +114,12 @@ describe('each post type', () => {
       }
     });
   }
+
+  it('takes the next free name when a post with that name exists', async () => {
+    const dev = deps(() => answer('Anything'), fakeGh(), [`whats-new-${TODAY}.md`]);
+    await draftPost({ type: 'whats-new' }, dev.d);
+    expect(path.basename(dev.writes[0].file)).toBe(`whats-new-${TODAY}-2.md`);
+  });
 
   it('names a whats-new post by date and a consumer post by its title', async () => {
     const dev = deps(() => answer('Anything'));

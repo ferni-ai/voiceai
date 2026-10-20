@@ -17,6 +17,7 @@ import { isPaywallOn } from '../services/paywall.service.js';
 import { isVenmoChipInEnabled, openSupport } from './support/open-support.js';
 import { createLogger } from '../utils/logger.js';
 import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
+import { isPanelVisible } from '../config/menu-visibility.js';
 import { openWithLoadingShell } from './components/panel-loading-shell.js';
 import { getSanctuaryUI } from './sanctuary.ui.js';
 
@@ -103,6 +104,9 @@ export async function openCreativeYouDashboard(userId: string): Promise<void> {
 }
 
 export async function openMarketplace(): Promise<void> {
+  // Hidden panels open from nowhere: an old localStorage install still renders a
+  // roster tile for its marketplace agent, and that tile used to open this anyway.
+  if (!isPanelVisible('marketplace')) return;
   const m = await loadScreen('lazyScreens.screens.marketplace', () => import('./marketplace.ui.js'));
   await m?.openMarketplace();
 }
