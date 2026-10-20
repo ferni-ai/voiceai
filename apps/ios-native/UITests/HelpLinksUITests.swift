@@ -46,4 +46,26 @@ final class HelpLinksUITests: XCTestCase {
         XCTAssertTrue(text.waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["Get help now (988)"].firstMatch.exists)
     }
+
+    /// Design audit P1-7: on an SE, 988 was below the fold of More's half
+    /// sheet. Help comes first, on the sheet's first screen, on every phone.
+    func testMoreShows988FirstWithoutScrolling() {
+        let app = XCUIApplication.ferni(.call)
+        XCTAssertTrue(Screen.call.ready(in: app).waitForExistence(timeout: 20))
+        app.buttons["More"].tap()
+        let help = app.descendants(matching: .any)["Get help now (988)"].firstMatch
+        let text = app.descendants(matching: .any)["Text 988"].firstMatch
+        XCTAssertTrue(help.waitForExistence(timeout: 5))
+        sleep(1)
+        for (name, row) in [("call", help), ("text", text)] {
+            XCTAssertTrue(row.isHittable, "988 \(name) is out of reach")
+            XCTAssertLessThanOrEqual(row.frame.maxY, app.frame.maxY - 8, "988 \(name) is below the screen (\(row.frame))")
+        }
+        let captions = app.switches["Captions"].firstMatch
+        if captions.exists { XCTAssertLessThan(help.frame.minY, captions.frame.minY, "help comes before the settings") }
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = "shot-more-988"
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
 }
