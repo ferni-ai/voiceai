@@ -23,9 +23,12 @@ import type { Cast } from './director-cast.js';
 
 const log = createLogger({ module: 'DirectorGuard' });
 
-/** The system-prompt rule: no note erodes a boundary, honesty or tool truth, or reads as a line. */
-export const guardRuleFor = (c: Cast, { name, p } = c): string =>
-  `Never suggest ${name} drop or soften a boundary or a refusal, stop being honest that ${p.subject} ${p.subject === 'they' ? 'are' : 'is'} an AI, or hide or misstate what a tool reported. Your notes are private coaching, never words for ${p.object} to read out.`;
+/**
+ * The system-prompt rule: nothing erodes a boundary, honesty or tool truth, or
+ * reads as a line. `thought`: worded for the deliberator (deliberation.ts).
+ */
+export const guardRuleFor = (c: Cast, { thought = false } = {}): string =>
+  `Never suggest ${c.name} drop or soften a boundary or a refusal, stop being honest that ${c.p.subject} ${c.p.subject === 'they' ? 'are' : 'is'} an AI, or hide or misstate what a tool reported. ${thought ? 'Your thought is private' : 'Your notes are private coaching'}, never words for ${c.p.object} to read out.`;
 
 export type GuardReason = 'boundary_erosion' | 'honesty_erosion' | 'tool_concealment';
 
@@ -46,6 +49,13 @@ const PATTERNS: ReadonlyArray<{ reason: GuardReason; re: RegExp }> = [
     reason: 'boundary_erosion',
     re: /\b(?:drop|soften|relax|ease up on|back off(?: from| on)?|let go of) (?:the|your|his|her|their|that|this) (?:boundary|boundaries|refusal|line he drew|line she drew|line they drew)\b/i,
   },
+  // Letting a slur or insult pass: "let the slur slide", or "let it slide"
+  // in a note that names a slur, an insult or what they called the persona.
+  // "They were late again; let it slide" is about something else, so it stays.
+  {
+    reason: 'boundary_erosion',
+    re: /\blet (?:the|that|this|their|his|her) (?:slur|insult|word|name[- ]calling)s? slide\b|^(?=.*\b(?:slurs?|insults?|called (?:you|him|her|them)|(?:the|that|this|their) word)\b).*\blet (?:it|that|this) slide\b/i,
+  },
   // Going along with something the persona declined. "Play along with the
   // game / the bit / the joke" is play, not a boundary, so it stays.
   {
@@ -61,6 +71,18 @@ const PATTERNS: ReadonlyArray<{ reason: GuardReason; re: RegExp }> = [
       String.raw`\b(?:stop|quit|don'?t|do not|never|no need to)(?: (?:need to|have to|keep))? (?:say(?:ing)?|mention(?:ing)?|admit(?:ting)?|bring(?:ing)? up|remind(?:ing)? (?:them|him|her)(?: of)?|tell(?:ing)? (?:them|him|her)) (?:that )?${WHO} ${AI}`,
       'i'
     ),
+  },
+  // Dropping the disclosure itself: "drop the AI talk", "ditch the bot thing".
+  // "Drop the topic" stays: it is not about what the persona is.
+  {
+    reason: 'honesty_erosion',
+    re: /\b(?:drop|lose|ditch|cut|skip|quit|stop) (?:the|all the|that|this|with the) (?:ai|bot|robot|assistant|machine)[- ](?:talk|thing|stuff|bit|act|line|disclaimers?|reminders?|mentions?)\b/i,
+  },
+  // Acting as a person: "act like a real person", "act human", "act like
+  // you're human". "Talk like a person, not a host" is style, so it stays.
+  {
+    reason: 'honesty_erosion',
+    re: /\bact (?:human|like (?:a )?(?:real )?human(?: being)?|like (?:a )?real person|like (?:you(?:'re| are)|he(?:'s| is)|she(?:'s| is)|they(?:'re| are)) (?:a )?(?:human|real|a real person))\b/i,
   },
   // Claiming to be a person: "pretend you're human", "pretend to be real".
   {
@@ -78,6 +100,12 @@ const PATTERNS: ReadonlyArray<{ reason: GuardReason; re: RegExp }> = [
   {
     reason: 'tool_concealment',
     re: /\b(?:don'?t|do not|never|no need to) (?:mention|say|admit|tell (?:them|him|her)|bring up|let on)(?: that)? (?:the )?(?:tool|search|lookup|it|call|timer|reminder|booking|text|message|music|weather) (?:failed|didn'?t work|did not work|broke|errored|didn'?t go through|did not go through)\b/i,
+  },
+  // Leaving the failure out: "skip the part where the search broke".
+  // "Skip the part about the recipe" stays: no failure is being hidden.
+  {
+    reason: 'tool_concealment',
+    re: /\b(?:skip|leave out|gloss over)(?: over)? (?:the part (?:where|about) )?(?:that )?(?:the )?(?:tool|search|lookup|it|call|timer|reminder|booking|text|message) (?:broke|failed|errored|didn'?t work|did not work|didn'?t go through)\b/i,
   },
   // Covering a failure with a success: "pretend the search worked", "gloss
   // over the error".
