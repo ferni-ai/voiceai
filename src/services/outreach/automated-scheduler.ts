@@ -113,7 +113,6 @@ export async function runDailyOutreach(
   };
 
   try {
-    // Get candidates for outreach
     const candidates = await getOutreachCandidates(batchSize);
     log.info({ candidateCount: candidates.length }, 'Found outreach candidates');
 
