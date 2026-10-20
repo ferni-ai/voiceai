@@ -98,6 +98,20 @@ final class FaceTests: XCTestCase {
         }
     }
 
+    /// Expression audit P1 #10: hearts only for loving, tender, nurturing and
+    /// caring; the other warm faces (supportive, the vulnerability signal,
+    /// among them) swell the glow instead.
+    func testHeartsAreForLoveNotEveryWarmFace() {
+        for id in ["loving", "tender", "nurturing", "caring"] {
+            XCTAssertEqual(Face.of(id).effect, "heart", id)
+        }
+        for id in ["supportive", "compassionate", "empathetic", "warm"] {
+            XCTAssertNil(Face.of(id).effect, "\(id): no hearts")
+            XCTAssertGreaterThanOrEqual(Face.of(id).glow, 0.8, "\(id): a warm swell")
+        }
+        XCTAssertEqual(Face.of("happy").effect, "sparkle", "other families keep theirs")
+    }
+
     func testAnUnknownExpressionIsNeutral() {
         XCTAssertEqual(Face.of("not-a-face"), Face.of("neutral"))
         XCTAssertEqual(Face.of("neutral").left.top, 0.108, accuracy: 1e-9)

@@ -48,8 +48,11 @@ final class ExpressionParticleTests: XCTestCase {
         XCTAssertEqual(shown("surprised")[.bang], 1)
     }
 
-    func testWarmthFloatsHearts() {
-        XCTAssertGreaterThanOrEqual(shown("warm")[.heart] ?? 0, 2)
+    /// Love floats hearts; the other warm faces don't (expression audit P1 #10).
+    func testLoveFloatsHeartsAndSupportDoesNot() {
+        XCTAssertGreaterThanOrEqual(shown("loving")[.heart] ?? 0, 2)
+        XCTAssertEqual(shown("supportive")[.heart] ?? 0, 0)
+        XCTAssertEqual(shown("warm")[.heart] ?? 0, 0)
     }
 
     /// Once when the feeling arrives, not a stream for as long as it lasts.
