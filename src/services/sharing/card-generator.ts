@@ -14,6 +14,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { escapeXml, truncate } from './svg-text.js';
 import type {
   CardType,
   ShareableCard,
@@ -453,27 +454,6 @@ function generateCreativeProfileSVG(data: CreativeProfileCardData): string {
 // ============================================================================
 // UTILITY FUNCTIONS
 // ============================================================================
-
-/**
- * Escape a value for SVG/XML text or a quoted attribute. Card data comes from
- * the request body unchecked, and the SVG is served as a document, so every
- * value that reaches the markup goes through here (after truncation, so an
- * entity is never cut in half).
- */
-export function escapeXml(value: unknown): string {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-function truncate(value: unknown, maxLength: number): string {
-  const str = String(value ?? '');
-  if (str.length <= maxLength) return str;
-  return str.slice(0, maxLength - 3) + '...';
-}
 
 function formatWeekLabel(date: Date): string {
   const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };

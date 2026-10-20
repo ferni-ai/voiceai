@@ -23,6 +23,7 @@ import {
   getCardDimensions,
   type CardData,
 } from '../../services/sharing/card-generator.js';
+import { sendSVG } from './share-svg-response.js';
 import { cleanForFirestore, getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireAuth } from '../auth-middleware.js';
@@ -169,24 +170,6 @@ function sendPNG(res: ServerResponse, buffer: Buffer): void {
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-/**
- * Opened directly, an SVG is a document on this origin. The policy keeps it
- * inert: no script, no fetches, sandboxed to an opaque origin, styles only.
- */
-export const SVG_RESPONSE_HEADERS = {
-  'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
-  'X-Content-Type-Options': 'nosniff',
-} as const;
-
-function sendSVG(res: ServerResponse, svg: string): void {
-  res.writeHead(200, {
-    ...SVG_RESPONSE_HEADERS,
-    'Content-Type': 'image/svg+xml',
-    'Cache-Control': 'public, max-age=86400', // 24 hours
-  });
-  res.end(svg);
-}
 
 function getBaseUrl(req: IncomingMessage): string {
   const host = req.headers.host || 'app.ferni.ai';

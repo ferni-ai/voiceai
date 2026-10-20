@@ -839,21 +839,15 @@ class CalendarViewUI {
             <div class="calendar-view__practice-section-header">
               <span class="calendar-view__practice-section-eyebrow">${t('calendarView.teamInsights')}</span>
             </div>
-            ${apiData.crossPersonaInsights.slice(0, 2).map(insight => {
-              // Server text: escaped, and the persona only reaches CSS as a bare name
-              const persona = String(insight.persona ?? '');
-              const cssPersona = /^[a-z]+$/.test(persona) ? persona : 'ferni';
-              const label = t(insight.type === 'notice' ? 'calendarView.personaNotices' : insight.type === 'celebrate' ? 'calendarView.personaCelebrates' : 'calendarView.personaSuggests', { persona: persona.charAt(0).toUpperCase() + persona.slice(1) });
-              return `
+            ${apiData.crossPersonaInsights.slice(0, 2).map(insight => `
               <div class="calendar-view__practice-whisper">
                 <div class="calendar-view__practice-whisper-persona">
-                  <div class="calendar-view__practice-persona-dot" style="background: var(--color-${cssPersona}, var(--color-ferni))"></div>
-                  <span>${this.escapeHtml(label)}</span>
+                  <div class="calendar-view__practice-persona-dot" style="background: var(--color-${/^[a-z]+$/.test(insight.persona) ? insight.persona : 'ferni'}, var(--color-ferni))"></div>
+                  <span>${this.escapeHtml(t(insight.type === 'notice' ? 'calendarView.personaNotices' : insight.type === 'celebrate' ? 'calendarView.personaCelebrates' : 'calendarView.personaSuggests', { persona: insight.persona.charAt(0).toUpperCase() + insight.persona.slice(1) }))}</span>
                 </div>
                 <p class="calendar-view__practice-whisper-text">"${this.escapeHtml(insight.message)}"</p>
               </div>
-            `;
-            }).join('')}
+            `).join('')}
           </div>
         ` : ''}
       </div>
