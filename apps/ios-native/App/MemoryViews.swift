@@ -151,10 +151,13 @@ struct RememberCard: View {
 /// Searched on this phone by its own model; shown only where that exists.
 private struct OnDeviceSearch: ViewModifier {
     @Binding var query: String
+    /// There's something to search (design audit P2 #7: the error state
+    /// offered search over nothing).
+    let hasNotes: Bool
     let submit: () -> Void
 
     func body(content: Content) -> some View {
-        if NoteSearch.isAvailable {
+        if NoteSearch.isAvailable && hasNotes {
             content
                 .searchable(text: $query, prompt: Text("When did I mention…"))
                 .onSubmit(of: .search, submit)
@@ -266,7 +269,7 @@ struct MemoryScreen: View {
         } message: { note in
             Text(MemoryJournal.toYou(note.content))
         }
-        .modifier(OnDeviceSearch(query: $query) { Task { await search.search(query, in: memory.notes) } })
+        .modifier(OnDeviceSearch(query: $query, hasNotes: !memory.notes.isEmpty) { Task { await search.search(query, in: memory.notes) } })
         .onChange(of: query) { _, text in if text.isEmpty { search.clear() } }
         .task { await memory.refresh() }
         .refreshable { await memory.refresh() }
