@@ -41,6 +41,7 @@ export const FLAG_MANIFEST = {
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
+  CALL_RESULT_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_JOURNAL_ASK: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
   CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -74,6 +75,8 @@ export const FLAG_MANIFEST = {
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // a classifier-only crisis read of a bare "pass me to Nayan", with no risk on the call, gets the soft check-in
+  CRISIS_TRANSFER_EVERYDAY: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
   // after-call date extraction into world_facts (nothing reads them in a call yet)
   DATES_THAT_MATTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -313,6 +316,8 @@ export const FLAG_MANIFEST = {
   // read as 'true', not 'on' (adaptive echo window)
   REQUIRE_FIX_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
   RESUME_AFTER_DROP: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // unverified phone callers: hashed number → first name + one-line summary, 30 days (returning-caller.ts)
+  RETURNING_CALLER: { default: 'off', owner: 'memory', kind: 'experiment' },
   REVIVED_INTELLIGENCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   ROOM_GUESTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   ROTATED_SEGMENT_FIX: { default: 'off', owner: 'voice', kind: 'experiment' }, // 1.9.3 patch, #2566
@@ -397,6 +402,9 @@ export const FLAG_MANIFEST = {
   TOOL_REQUIRES_ENV: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   // hourly pool shared by anonymous journal transcriptions (api/journal-transcribe-limits.ts)
   TRANSCRIBE_ANON_MAX_PER_HOUR: { default: '200', owner: 'memory', kind: 'config' },
+  // on: the nightly job deletes transcripts past TRANSCRIPT_RETENTION_DAYS. Off: kept for the
+  // life of the account, as the privacy policy says (tasks/scheduled/transcript-cleanup-job.ts)
+  TRANSCRIPT_CLEANUP: { default: 'off', owner: 'memory', kind: 'config' },
   // on: the anonymous device fallback trusts an unsigned device_id (the one /token copies from its query)
   TRUST_UNSIGNED_DEVICE_ID: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // on: inner TTS failures reach the agent session (which closes after 4 in a row)

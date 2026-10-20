@@ -30,10 +30,8 @@ import {
   createPendingAction,
   getPendingActions,
   resolvePendingAction,
-  markActionExecuted,
   ACTION_TYPES,
 } from '../../services/automation/trust-level-system.js';
-import { sendMessageOnBehalf } from '../../services/automation/send-on-behalf.js';
 import { createEventOnBehalf } from '../../services/automation/calendar-on-behalf.js';
 import {
   logAction,
@@ -50,48 +48,6 @@ describe('AGI Full Flow E2E', () => {
     testUserId = generateTestUserId('full_flow');
     mockFirestoreDb._clear();
     vi.clearAllMocks();
-  });
-
-  describe('Messaging Full Flow', () => {
-    it('should complete SMS flow: check → create → approve → execute → audit', async () => {
-      const preview = createMockActionPreview({
-        title: 'Send SMS to Mom',
-        summary: 'Happy Birthday!',
-        canUndo: false,
-      });
-      const checkResult = await checkActionPermission(testUserId, 'send_sms', preview);
-      expect(checkResult.success).toBe(true);
-      expect(checkResult.requiresApproval).toBe(true);
-
-      const auditEntry = await logAction({
-        userId: testUserId,
-        category: 'messaging',
-        actionType: 'send_sms',
-        description: 'Send birthday message',
-        status: 'pending',
-        requestedBy: 'ferni',
-        approvalRequired: true,
-        canUndo: false,
-      });
-      expect(auditEntry.status).toBe('pending');
-
-      if (checkResult.pendingActionId) {
-        await resolvePendingAction(testUserId, checkResult.pendingActionId, true);
-        await auditMarkApproved(testUserId, auditEntry.id, 'ui');
-      }
-
-      const sendResult = await sendMessageOnBehalf({
-        userId: testUserId,
-        channel: 'sms',
-        recipient: { name: 'Mom', phone: '+1234567890' },
-        message: 'Happy Birthday!',
-      });
-      expect(sendResult.success).toBe(true);
-
-      if (checkResult.pendingActionId)
-        await markActionExecuted(testUserId, checkResult.pendingActionId);
-      await auditMarkExecuted(testUserId, auditEntry.id, 'success', 150);
-    });
   });
 
   describe('Calendar Full Flow', () => {

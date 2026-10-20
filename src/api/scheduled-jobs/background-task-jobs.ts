@@ -276,6 +276,7 @@ export async function handleCleanupTranscripts(res: ServerResponse): Promise<voi
       success: true,
       job: 'cleanup-transcripts',
       stats: {
+        enabled: result.enabled,
         transcriptsDeleted: result.transcriptsDeleted,
         summariesDeleted: result.summariesDeleted,
         groupTranscriptsDeleted: result.groupTranscriptsDeleted,

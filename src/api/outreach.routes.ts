@@ -27,6 +27,7 @@ import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js'
 import { webPushDeliveryOn } from '../services/outreach/web-push-flag.js';
 import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
 import { sendOutreachHistory } from './outreach-history-route.js';
+import { sendUpcomingOutreach } from './outreach-upcoming-route.js';
 import { panelConsentPatch, savePanelPrefs } from './messaging-prefs-route.js';
 import {
   readOutreachConsent,
@@ -355,35 +356,9 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // GET /api/outreach/upcoming - formatted for UI
+    // GET /api/outreach/upcoming: what is really set to go out (outreach-upcoming-route.ts)
     if (route === '/upcoming' && method === 'GET') {
-      // Use authenticated userId
-      const userId = authenticatedUserId;
-
-      const pending = getPendingOutreach(userId);
-
-      // Format for the schedule UI
-      const upcoming = pending.map((trigger) => ({
-        id: trigger.id,
-        type: trigger.type,
-        personaId: trigger.suggestedPersona || 'ferni',
-        personaName: getPersonaName(trigger.suggestedPersona || 'ferni'),
-        channel: 'sms' as const, // Default channel
-        scheduledFor: trigger.suggestedTime || new Date(),
-        preview: {
-          body: trigger.reason,
-        },
-        reason: trigger.commitment || trigger.milestone || trigger.event || 'Check-in scheduled',
-        priority: trigger.priority,
-        canReschedule: true,
-        canCancel: true,
-      }));
-
-      sendJsonResponse(res, 200, {
-        success: true,
-        upcoming,
-        count: upcoming.length,
-      });
+      await sendUpcomingOutreach(res, authenticatedUserId, new URL(req.url || '', 'http://x'));
       return true;
     }
 
