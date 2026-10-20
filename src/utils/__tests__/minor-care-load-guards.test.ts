@@ -66,7 +66,9 @@ import { createPersistenceStore } from '../../services/persistence/index.js';
 import {
   forceSaveGameMemory,
   loadGameMemory,
+  loadMusicMemory,
   saveGameMemory,
+  saveMusicMemory,
   updateCachedGameMemory,
 } from '../../services/games/game-store.js';
 import { saveProfile as saveMusicProfile } from '../../audio/music-learning-persistence.js';
@@ -115,6 +117,45 @@ beforeEach(() => {
 });
 afterEach(() => {
   vi.unstubAllEnvs();
+});
+
+describe('game memory: game and music each count as loaded only after their own read', () => {
+  const stored = (userId: string) => ({
+    userId,
+    gameMemory: { totalGamesPlayed: 7 },
+    musicMemory: { desertIslandPicks: ['stored song'] },
+  });
+  const sent = (key: 'gameMemory' | 'musicMemory') =>
+    engagement.saveProfile.mock.calls.map(([p]) =>
+      JSON.stringify((p as Record<string, unknown>)[key])
+    );
+
+  it('music loads, the game read fails: the game write is refused and the next load re-reads', async () => {
+    const userId = user();
+    engagement.getProfile.mockImplementation(async (u: string) => stored(u) as never);
+    await loadMusicMemory(userId);
+    engagement.getProfile.mockRejectedValueOnce(new Error('unavailable'));
+    const fallback = await loadGameMemory(userId);
+    await saveGameMemory(userId, { ...fallback, totalGamesPlayed: 1 } as never);
+    await forceSaveGameMemory(userId);
+    expect(sent('gameMemory').filter((g) => g?.includes('"totalGamesPlayed":1'))).toEqual([]);
+    expect((await loadGameMemory(userId)).totalGamesPlayed).toBe(7); // re-read from storage
+    engagement.getProfile.mockImplementation(async (u: string) => ({ userId: u }) as never);
+  });
+
+  it('the game loads, the music read fails: the music write is refused and the next load re-reads', async () => {
+    const userId = user();
+    engagement.getProfile.mockImplementation(async (u: string) => stored(u) as never);
+    await loadGameMemory(userId);
+    engagement.getProfile.mockRejectedValueOnce(new Error('unavailable'));
+    expect(await loadMusicMemory(userId)).toBeNull();
+    await saveMusicMemory(userId, { desertIslandPicks: ['held-over song'] } as never);
+    await forceSaveGameMemory(userId);
+    expect(sent('musicMemory').filter((m) => m?.includes('held-over song'))).toEqual([]);
+    const music = (await loadMusicMemory(userId)) as unknown as { desertIslandPicks?: string[] };
+    expect(music?.desertIslandPicks).toEqual(['stored song']); // re-read from storage
+    engagement.getProfile.mockImplementation(async (u: string) => ({ userId: u }) as never);
+  });
 });
 
 describe('game memory', () => {
@@ -183,7 +224,11 @@ describe('predictive models', () => {
     expect(isUserLoaded(userId, 'markov')).toBe(false);
     await tick(5 * 60_000 + 1);
     markDirty(userId);
-    await flushDirtyUsers(getMarkovDataForPersistence, () => null, () => null);
+    await flushDirtyUsers(
+      getMarkovDataForPersistence,
+      () => null,
+      () => null
+    );
     expect(writesTo(userId, '/predictive_ml/markov')).toEqual([]); // never loaded: not written
     recordTransition(userId, 'emotion:calm', 'emotion:anxious'); // past the backoff: retried
     await tick(0);
