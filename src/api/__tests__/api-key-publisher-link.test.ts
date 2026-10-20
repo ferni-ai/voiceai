@@ -15,6 +15,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 interface User {
   email?: string;
   emailVerified: boolean;
+  disabled?: boolean;
   providerData: object[];
 }
 const users = vi.hoisted(() => new Map<string, User | Error>());
@@ -172,6 +173,14 @@ describe('requireApiKeyAuth requires the linked account to be sound', () => {
   it('refuses a key when the linked account is anonymous', async () => {
     linkedTo('uid-anon', { ...SOUND, providerData: [] });
     const { auth, status } = await callWithKey();
+    expect(auth).toBeNull();
+    expect(status).toBe(401);
+  });
+
+  it('refuses a key when the linked account is disabled', async () => {
+    linkedTo('uid-disabled', { ...SOUND, disabled: true });
+    const { auth, status } = await callWithKey();
+    expect(getUser).toHaveBeenCalledWith('uid-disabled');
     expect(auth).toBeNull();
     expect(status).toBe(401);
   });

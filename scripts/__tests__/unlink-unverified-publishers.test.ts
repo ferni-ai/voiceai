@@ -83,6 +83,14 @@ describe('unlinkReason', () => {
       unlinkReason('a@x.com', { email: 'b@x.com', emailVerified: true, anonymous: false })
     ).toMatch(/differs/);
     expect(unlinkReason('a@x.com', null)).toMatch(/no longer exists/);
+    expect(
+      unlinkReason('a@x.com', {
+        email: 'a@x.com',
+        emailVerified: true,
+        anonymous: false,
+        disabled: true,
+      })
+    ).toMatch(/disabled/);
   });
 });
 
