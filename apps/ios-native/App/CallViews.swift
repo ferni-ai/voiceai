@@ -19,6 +19,8 @@ struct CallAvatar: View {
     var rig: AliveRig?
     /// Who's shown, when not the call's (at home: who answers next).
     var personaID: String?
+    /// The room's hour, so its evening light reaches Ferni.
+    var roomHour: Int?
 
     var body: some View {
         let avatar = call.avatar
@@ -37,6 +39,7 @@ struct CallAvatar: View {
             moment: avatar.moment,
             rig: rig,
             level: { [level = call.agentLevel] in level.level },
+            roomHour: roomHour,
             onCue: onCue
         )
         // AvatarView's own shape (Ferni, not his whole square) is the hit area

@@ -19,6 +19,8 @@ public struct AvatarView: View {
     let covered: Bool
     let onCue: ((KeyedCue) -> Void)?
     let reading: Bool
+    /// The room's hour, for its light on Ferni (the app's clock; now if nil).
+    let roomHour: Int?
     let wake: Int
     let doubleTake: Int
     let personSpeaking: Bool
@@ -55,8 +57,9 @@ public struct AvatarView: View {
         name: String = "Ferni", covered: Bool = false, wake: Int = 0, doubleTake: Int = 0, personSpeaking: Bool = false,
         micro: MicroBeat? = nil, moment: MomentBeat? = nil, rig: AliveRig? = nil,
         level: @escaping @Sendable () -> Float = { 0 },
-        reading: Bool = false, onCue: ((KeyedCue) -> Void)? = nil
+        reading: Bool = false, roomHour: Int? = nil, onCue: ((KeyedCue) -> Void)? = nil
     ) {
+        self.roomHour = roomHour
         self.persona = persona
         self.expression = expression
         self.activity = activity
@@ -219,6 +222,7 @@ public struct AvatarView: View {
             Task { @MainActor in cues.forEach(onCue) }
         }
         u.light(dark: dark, roomTop: linear(hex: dark ? "#1e1a16" : "#faf8f5"), roomBottom: linear(hex: dark ? "#14110e" : "#efe9e0"))
+        u.roomLight(RoomLight(hour: roomHour ?? Calendar.current.component(.hour, from: date)))
         return u
     }
 

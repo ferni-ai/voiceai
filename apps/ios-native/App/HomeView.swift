@@ -189,7 +189,8 @@ struct HomeView: View {
         CallAvatar(
             call: call, covered: model.isShowingSettings || model.isAskingConsent,
             wake: model.wakeCount, doubleTake: model.doubleTakeCount,
-            onCue: { model.feedback.play($0) }, personaID: shownPersona(call)
+            onCue: { model.feedback.play($0) }, personaID: shownPersona(call),
+            roomHour: Calendar.current.component(.hour, from: HomeClock.time(.now))
         )
             .frame(width: size, height: size)
             .opacity(call.phase == .reconnecting ? 0.5 : 1)
