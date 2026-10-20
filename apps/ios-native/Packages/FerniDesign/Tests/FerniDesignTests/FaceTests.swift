@@ -33,7 +33,7 @@ final class FaceTests: XCTestCase {
         XCTAssertEqual(f.halo, 0.5)
         XCTAssertEqual(f.glow, 0.6, accuracy: 1e-9)
         XCTAssertEqual(f.blush, 0.55)
-        XCTAssertEqual(f.effect, "sparkle")
+        XCTAssertNil(f.effect, "joyful has no sparkleGroup in the tokens (P2 #3)")
     }
 
     func testAWinkClosesOneEyeIntoAnArc() {
@@ -109,7 +109,17 @@ final class FaceTests: XCTestCase {
             XCTAssertNil(Face.of(id).effect, "\(id): no hearts")
             XCTAssertGreaterThanOrEqual(Face.of(id).glow, 0.8, "\(id): a warm swell")
         }
-        XCTAssertEqual(Face.of("happy").effect, "sparkle", "other families keep theirs")
+        XCTAssertEqual(Face.of("sleepy").effect, "z", "other faces keep theirs")
+    }
+
+    /// Expression audit P2 #3: 17 faces sparkled twice a second; the tokens
+    /// give sparkles to five, at set strengths.
+    func testOnlyTheTokensSparklingFacesSparkle() {
+        let sparkling = Set(ExpressionTokens.all.keys.filter { Face.of($0).effect == "sparkle" })
+        XCTAssertEqual(sparkling, ["amazed", "cheering", "delighted", "excited", "glad"])
+        XCTAssertEqual(Face.of("glad").sparkle, 0.35)
+        XCTAssertEqual(Face.of("delighted").sparkle, 1)
+        XCTAssertEqual(Face.of("happy").sparkle, 0)
     }
 
     /// The last twins, told apart by pose: resolute is steady, half determined's
