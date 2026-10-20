@@ -30,8 +30,8 @@ export interface SessionDataService {
   /** Unique name for this service */
   name: string;
 
-  /** Clear all cached data for a specific user */
-  clearUserData: (userId: string) => void | Promise<void>;
+  /** Clear all cached data for a specific user; { save: false }: drop it without saving (MINOR_CARE) */
+  clearUserData: (userId: string, options?: { save?: boolean }) => void | Promise<void>;
 
   /** Clear ALL cached data (for shutdown) */
   clearAllData: () => void | Promise<void>;
@@ -158,7 +158,10 @@ class SessionDataManagerImpl {
    * Clean up ALL cached data for a user.
    * Call this when a voice session disconnects.
    */
-  async sessionEnded(userId: string): Promise<{ cleaned: string[]; errors: string[] }> {
+  async sessionEnded(
+    userId: string,
+    options: { save?: boolean } = {}
+  ): Promise<{ cleaned: string[]; errors: string[] }> {
     const results = { cleaned: [] as string[], errors: [] as string[] };
 
     if (this.isShuttingDown) {
@@ -172,7 +175,7 @@ class SessionDataManagerImpl {
     // Clean up all registered services
     for (const [name, service] of this.services) {
       try {
-        await service.clearUserData(userId);
+        await service.clearUserData(userId, options);
         results.cleaned.push(name);
       } catch (error) {
         results.errors.push(name);

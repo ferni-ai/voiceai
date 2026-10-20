@@ -131,6 +131,11 @@ export async function finalizeSessionLearning(sessionKey: string, userId: string
   clearCapabilityTracking(sessionKey);
 }
 
+/** MINOR_CARE: a held caller under 18's session: its tracking is cleared, never aggregated. */
+export function discardSessionLearning(sessionKey: string): void {
+  clearCapabilityTracking(sessionKey);
+}
+
 /**
  * Update aggregate pattern with new data point
  */

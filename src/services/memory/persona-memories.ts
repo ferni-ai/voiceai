@@ -16,8 +16,7 @@
  * - "Maya, I always overspend at Target"
  * - "Jordan, my anniversary is June 15th"
  *
- * PERSISTENCE: Memories are stored in UserProfile.personaMemories and
- * persist across sessions via Firestore/PostgreSQL.
+ * PERSISTENCE: stored in UserProfile.personaMemories, kept across sessions (Firestore/PostgreSQL).
  */
 
 import { getProfileStore } from '../../memory/profile-store.js';
@@ -201,9 +200,7 @@ const loadedUsers = new Set<string>();
 // ============================================================================
 
 /**
- * Clear ALL cached data for a specific user.
- * Called by SessionDataManager when a session ends.
- * This is CRITICAL for preventing memory leaks.
+ * Clear ALL cached data for a specific user, when a session ends (CRITICAL for memory leaks).
  */
 export function clearUserMemoriesCache(userId: string): void {
   let cleared = 0;
@@ -244,14 +241,17 @@ export function getMemoriesCacheStats(): { users: number; entries: number } {
   return { users: users.size, entries: memoriesCache.size };
 }
 
-/** Register with SessionDataManager (on module load): a session's end saves, then drops, that user. */
+/** Register with SessionDataManager (on module load): a session's end saves, then drops, that user;
+ * with { save: false } (MINOR_CARE, a held caller under 18) it only drops them. */
 export async function registerWithSessionDataManager(): Promise<void> {
   try {
     const { getSessionDataManager } = await import('../session-data-manager.js');
     getSessionDataManager().registerService({
       name: 'PersonaMemories',
-      clearUserData: async (userId: string) =>
-        saveMemoriesForUser(userId).then(() => clearUserMemoriesCache(userId)),
+      clearUserData: async (userId: string, options?: { save?: boolean }) =>
+        (options?.save === false ? Promise.resolve() : saveMemoriesForUser(userId)).then(() =>
+          clearUserMemoriesCache(userId)
+        ),
       clearAllData: clearAllMemoriesCache,
       getStats: getMemoriesCacheStats,
     });

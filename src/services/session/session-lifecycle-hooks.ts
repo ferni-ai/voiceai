@@ -16,6 +16,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { getRedisCache } from '../../memory/redis-cache.js';
+import { memoryHeld } from '../../utils/minor-care.js';
 import { personaAffinity } from '../superhuman/persona-affinity.js';
 import { userCorrections } from '../superhuman/user-corrections.js';
 import { outreachHistory } from '../outreach/outreach-history.js';
@@ -184,25 +185,27 @@ export async function onSessionEnd(
     // 3. Clear session
     await redis.deleteSession(userId);
 
-    // 4. Update persona affinity based on session quality
-    await personaAffinity.updateAfterSession(userId, {
-      personaId: sessionData.personaId,
-      duration: sessionData.duration,
-      topics: sessionData.topics,
-      sentiment: sessionData.sentiment,
-      userEngagement: sessionData.userEngagement,
-    });
+    // 4-5. Persona affinity and interaction (topics, sentiment): never for a caller MINOR_CARE
+    // holds (under 18, not a verified owner). Presence and outreach suppression above still run.
+    if (!memoryHeld(sessionId)) {
+      await personaAffinity.updateAfterSession(userId, {
+        personaId: sessionData.personaId,
+        duration: sessionData.duration,
+        topics: sessionData.topics,
+        sentiment: sessionData.sentiment,
+        userEngagement: sessionData.userEngagement,
+      });
 
-    // 5. Record persona interaction
-    await personaAffinity.recordInteraction(userId, {
-      personaId: sessionData.personaId,
-      interactionType: 'session',
-      topics: sessionData.topics,
-      sentiment: sessionData.sentiment,
-      duration: sessionData.duration,
-      outcome: sessionData.sentiment === 'positive' ? 'successful' : 'needs_follow_up',
-    });
-
+      // 5. Record persona interaction
+      await personaAffinity.recordInteraction(userId, {
+        personaId: sessionData.personaId,
+        interactionType: 'session',
+        topics: sessionData.topics,
+        sentiment: sessionData.sentiment,
+        duration: sessionData.duration,
+        outcome: sessionData.sentiment === 'positive' ? 'successful' : 'needs_follow_up',
+      });
+    }
 
     // 7. Broadcast session end via Pub/Sub for cross-instance awareness
     if (publishSession) {
