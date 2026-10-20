@@ -21,7 +21,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { messagingPipelineOn, writeOptOut } from '../messaging/consent.js';
+import { writeOptOut } from '../messaging/consent.js';
 import { phoneHash } from './checkin-replies.js';
 import {
   onBehalfDispatchFor,
@@ -178,12 +178,15 @@ export async function recordCallOptOut(
     .doc(key)
     .set({ phone: key, optedOutAt: new Date().toISOString(), ...context });
   log.info({ callId: context.callId }, 'Recorded a do-not-call request');
-  // MESSAGING_PIPELINE: also the one consent record every caller reads (messaging/consent.ts).
-  const hash = messagingPipelineOn() ? phoneHash(key) : null;
-  if (hash) {
-    await writeOptOut(hash, 'call', 'voice-call').catch((error: unknown) => {
-      log.warn({ error: String(error), callId: context.callId }, 'Call opt-out not in consent');
-    });
+  // Also the one consent record (messaging/consent.ts), flag or not, so no opt-out is lost
+  // before MESSAGING_PIPELINE is armed; nothing reads it while the flag is off.
+  const hash = phoneHash(key);
+  try {
+    if (!hash) throw new Error('no LOG_HASH_SECRET');
+    await writeOptOut(hash, 'call', 'voice-call');
+  } catch (error) {
+    // Still on call_opt_outs above, which every call path reads today.
+    log.error({ error: String(error), callId: context.callId }, 'Call opt-out not in consent');
   }
   return true;
 }
