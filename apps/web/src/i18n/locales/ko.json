@@ -3969,7 +3969,6 @@
       "ceo": "대표",
       "ferniRole": "CEO 겸 라이프 코치",
       "ferniDesc": "모든 것의 중심에 있는 따뜻하고 지혜로운 존재입니다. Ferni는 완벽한 기억력과 편견 없는 마음으로 늘 곁에서 팀을 조율해 줍니다.",
-      "coFounders": "공동 창립자",
       "coreTeam": "핵심 팀",
       "footer": "우리는 함께, 내 이야기에 진심으로 귀 기울여 주는 팀이 무엇인지 새롭게 정의해 나가고 있어요.",
       "roles": {
@@ -9062,10 +9061,6 @@
     "chiefExecutive": "대표",
     "ferni": "Ferni",
     "ferniRole": "CEO 겸 라이프 코치",
-    "coFounders": "공동 창립자",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "핵심 팀",
     "tagline": "진심으로 귀를 기울여주는 팀이 곁에 있다는 것이 어떤 의미인지, 저희가 함께 보여드릴게요.",
     "inTeam": "팀에 합류함",

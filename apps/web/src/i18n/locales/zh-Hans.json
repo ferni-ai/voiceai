@@ -3970,7 +3970,6 @@
       "ceo": "首席执行官",
       "ferniRole": "CEO 兼人生教练",
       "ferniDesc": "温暖而睿智的存在，是一切的核心。Ferni 以完美的记忆、毫无评判的态度和时刻的陪伴，协调着整个团队。",
-      "coFounders": "联合创始人",
       "coreTeam": "核心团队",
       "footer": "携手并肩，我们正在重新定义什么是真正倾听你的团队。",
       "roles": {
@@ -9062,10 +9061,6 @@
     "chiefExecutive": "首席执行官",
     "ferni": "Ferni",
     "ferniRole": "CEO 兼生活教练",
-    "coFounders": "联合创始人",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "核心团队",
     "tagline": "在一起，我们正在重新定义什么是真正倾听你的团队。",
     "inTeam": "团队中",

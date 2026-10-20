@@ -3995,7 +3995,6 @@
       "ceo": "Dirección",
       "ferniRole": "CEO y Coach de vida",
       "ferniDesc": "La presencia cálida y sabia en el corazón de todo. Ferni coordina al equipo con un recuerdo perfecto, cero juicios y una presencia constante.",
-      "coFounders": "Cofundadores",
       "coreTeam": "Equipo principal",
       "footer": "En conjunto, estamos redefiniendo lo que significa tener un equipo que te escucha de verdad.",
       "roles": {
@@ -9132,10 +9131,6 @@
     "chiefExecutive": "Dirección Ejecutiva",
     "ferni": "Ferni",
     "ferniRole": "CEO y Coach de vida",
-    "coFounders": "Cofundadores",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "Equipo principal",
     "tagline": "En equipo, estamos redefiniendo lo que significa tener a alguien que te escuche de verdad.",
     "inTeam": "En el equipo",
