@@ -177,7 +177,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   const held = (userId: string): boolean =>
     (tainted.has(userId) || holdWrites(userId)) &&
     (tainted.add(userId), cache.delete(userId), true);
-  const heldParts = heldFields<T>(whenHeld as ((data: T) => Partial<T> | null) | undefined);
+  const heldParts = heldFields<T>(whenHeld, syncIntervalMs);
   let isShutdown = false;
 
   // Start sync interval using managed interval
@@ -428,7 +428,6 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       await flushAll();
       cache.clear();
       dirty.clear();
-      heldParts.forget();
       log.info({ collection }, 'Persistence store shutdown complete');
     },
   };

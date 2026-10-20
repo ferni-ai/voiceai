@@ -273,7 +273,7 @@ describe('field-level hold (whenHeld): only consent fields persist, as a merge w
     expect(wrote(owner.userId, 'owner story')).toBe(true);
   });
 
-  it('a failed field write is put back and written on the next sync, never dropped', async () => {
+  it('a failed field write is put back and written after its backoff (2 s), never dropped', async () => {
     const s = createPersistenceStore<{ prefs: { off: boolean }; story: string }>({
       collection: 'minor_care_retry',
       syncIntervalMs: 1_000,
@@ -285,7 +285,7 @@ describe('field-level hold (whenHeld): only consent fields persist, as a merge w
     await tick(1_000);
     expect(failing.get('/minor_care_retry/')?.failed).toBe(1); // tried, and failed
     expect(writesTo(held.userId, 'minor_care_retry')).toEqual([]);
-    await tick(1_000);
+    await tick(2_000);
     const [w] = writesTo(held.userId, 'minor_care_retry');
     expect(w && keysOf(w)).toEqual(['prefs']);
     expect(wrote(held.userId, '"off":true')).toBe(true);
@@ -308,23 +308,46 @@ describe('field-level hold (whenHeld): only consent fields persist, as a merge w
     });
     await tick(1_000);
     expect(failing.get('/minor_care_deleted/')?.failed).toBe(1);
-    await tick(1_000);
-    await tick(1_000);
+    for (let i = 0; i < 10; i++) await tick(1_000); // past its backoff
     expect(writesTo(held.userId, 'minor_care_deleted')).toEqual([]);
   });
 
-  it('a field write that keeps failing is tried 5 times, then dropped', async () => {
-    const s = createPersistenceStore<{ prefs: { off: boolean }; story: string }>({
-      collection: 'minor_care_capped',
+  /** A store whose held users keep only prefs, and a held caller with a pending opt-out. */
+  function pendingOptOut(collection: string) {
+    const s = createPersistenceStore<{ prefs: { off: boolean; n?: number }; story: string }>({
+      collection,
       syncIntervalMs: 1_000,
       whenHeld: (d: { prefs: { off: boolean } }) => ({ prefs: d.prefs }),
     });
     const held = caller('held');
     s.set(held.userId, { prefs: { off: true }, story: 'their school' });
-    failing.set('/minor_care_capped/', { left: 99, failed: 0 });
-    for (let i = 0; i < 8; i++) await tick(1_000);
-    expect(failing.get('/minor_care_capped/')?.failed).toBe(5);
-    expect(writesTo(held.userId, 'minor_care_capped')).toEqual([]);
+    return { s, userId: held.userId };
+  }
+
+  it('consent is never dropped: after 6 failed writes it is still pending, then written', async () => {
+    const { userId } = pendingOptOut('minor_care_never_dropped');
+    const fail = { left: 6, failed: 0 };
+    failing.set('/minor_care_never_dropped/', fail);
+    // Backoff: 2 s, 4 s, 8 s ... between tries, so a few minutes covers 7 tries
+    for (let i = 0; i < 300 && writesTo(userId, 'minor_care_never_dropped').length === 0; i++)
+      await tick(1_000);
+    expect(fail.failed).toBe(6);
+    const [w] = writesTo(userId, 'minor_care_never_dropped');
+    expect(w && keysOf(w)).toEqual(['prefs']);
+  });
+
+  it('a failed write backs off; a new opt-out resets it and is written on the next sync', async () => {
+    const { s, userId } = pendingOptOut('minor_care_backoff');
+    const fail = { left: 3, failed: 0 };
+    failing.set('/minor_care_backoff/', fail);
+    for (let i = 0; i < 20 && fail.failed < 3; i++) await tick(1_000);
+    expect(fail.failed).toBe(3); // the next try is 16 s away
+    await tick(1_000);
+    expect(writesTo(userId, 'minor_care_backoff')).toEqual([]); // backing off
+    s.set(userId, { prefs: { off: true, n: 2 }, story: 'more of their school' });
+    await tick(1_000);
+    expect(wrote(userId, '"n":2')).toBe(true);
+    expect(wrote(userId, 'their school')).toBe(false);
   });
 
   it('outreach: outreach off and quiet hours persist; commitments never written', async () => {
