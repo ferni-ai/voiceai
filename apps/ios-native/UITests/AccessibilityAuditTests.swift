@@ -11,7 +11,30 @@ final class AccessibilityAuditTests: XCTestCase {
         XCTAssertTrue(screen.ready(in: app).waitForExistence(timeout: 20), "\(screen) never appeared")
         let name = "\(screen) \(size)" + (hour.map { " \($0)h" } ?? "")
         try XCTContext.runActivity(named: name) { _ in
-            try app.performAccessibilityAudit(for: .all) { Self.handle($0, on: name) }
+            // A finding with no element is held back, not passed: a row sitting
+            // across the screen's bottom edge yields one whose type changes as the
+            // row moves (Settings, design audit P2 #9: a contrast finding with the
+            // Privacy link at 873 pt, Dynamic Type with it 35 pt higher, none in
+            // the old order). Nudged 120 pt, the screen is audited again, and one
+            // that's still there fails.
+            var unnamed: [UInt64] = []
+            try app.performAccessibilityAudit(for: .all) { issue in
+                guard issue.element == nil else { return Self.handle(issue, on: name) }
+                unnamed.append(issue.auditType.rawValue)
+                return true
+            }
+            guard !unnamed.isEmpty else { return }
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+            start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -120)))
+            sleep(1)
+            try app.performAccessibilityAudit(for: .all) { issue in
+                guard issue.element == nil else { return true } // the first pass judged the named ones
+                if unnamed.contains(issue.auditType.rawValue) {
+                    print("AUDIT [\(name)] \(issue.compactDescription): no element, in both positions | \(issue.detailedDescription)")
+                    return false
+                }
+                return true
+            }
         }
         app.terminate()
     }
@@ -31,6 +54,8 @@ final class AccessibilityAuditTests: XCTestCase {
          "A system Toggle row, like Call sounds, which the AX5 screenshot shows at full size."),
         ("settings", .dynamicType, "You haven't agreed",
          "A plain Text row, like the account message the AX5 screenshot shows at full size."),
+        ("settings", .dynamicType, "Ferni can't reach your account",
+         "The account message, a plain Text row: the same audit at AX5 doesn't flag it, and the AX5 screenshot shows the section's message at full size. Flagged on the SE at the default size only, once Help joined the first section (2026-10-20)."),
         // iPad (2026-10-19), measured from the screenshot pixels with WCAG luminance. The sidebar
         // rows' contrast findings (and the unnamed ones, two to four a launch) went away when the
         // sidebar got an opaque background (2026-10-20); none are accepted any more.

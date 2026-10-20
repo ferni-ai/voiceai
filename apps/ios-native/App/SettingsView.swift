@@ -18,14 +18,11 @@ struct SettingsView: View {
                 Section {
                     NavigationLink("Your team") { TeamScreen(team: model.team) { dismiss() } }
                     NavigationLink("What Ferni remembers") { MemoryScreen(memory: model.memory, lock: model.memoryLock) }
+                    // Help (988) up with the things you came for, not alone further down.
+                    NavigationLink("Help") { HelpView() }
                     SoundsToggle()
                 }
                 AccountSection(account: model.account, signOut: model.signOut, signingIn: $signingIn)
-                Section {
-                    NavigationLink("Help") { HelpView() }
-                    NavigationLink("Delete account") { DeleteAccountView(delete: model.deleteAccount) }
-                        .foregroundStyle(FerniColor.error)
-                }
                 PrivacySection(consent: model.consent, lock: model.memoryLock) { await model.withdrawConsent() }
                 Section {
                     LabeledContent("Version", value: Self.version)
@@ -33,6 +30,12 @@ struct SettingsView: View {
                     Link("Terms of Service", destination: URL(string: "https://ferni.ai/terms")!)
                 } header: {
                     SettingsHeader("About")
+                }
+                // Last, on its own: not between Help and Privacy where a thumb
+                // lands looking for something else (design audit P2 #9).
+                Section {
+                    NavigationLink("Delete account") { DeleteAccountView(delete: model.deleteAccount) }
+                        .foregroundStyle(FerniColor.error)
                 }
             }
             .ferniPaper()
@@ -233,9 +236,13 @@ struct DeleteAccountView: View {
     var body: some View {
         List {
             Section {
-                Text("This deletes your Ferni account and everything Ferni remembers about you: conversations, notes, check-ins and settings. If you signed in with Apple, Ferni's access to your Apple ID ends too.")
+                // Short and plain (design audit P2 #9: long legal copy), and only
+                // what this build keeps (P2 #13: it named check-ins, which it doesn't have).
+                Text("Your account goes, and everything Ferni remembers about you: conversations, notes and settings.")
                 Text("It can't be undone.")
                     .foregroundStyle(FerniColor.error)
+            } footer: {
+                Text("Signed in with Apple? Ferni's access to your Apple ID ends too.")
             }
             Section {
                 Button("Delete my account", role: .destructive) { confirming = true }
