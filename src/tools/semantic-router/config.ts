@@ -37,28 +37,13 @@ import { DEFAULT_ROUTER_CONFIG } from './types.js';
  * reliability and latency. Adjust with caution.
  */
 export function getDefaultConfig(): SemanticRouterConfig {
-  // FTIS_ONLY_MODE: Lower thresholds since there's no JSON workaround fallback
-  // FTIS is the 100% solution - we need to be more aggressive
-  const isFTISOnly = process.env.FTIS_ONLY_MODE === 'true';
-
   return {
     ...DEFAULT_ROUTER_CONFIG,
     thresholds: {
-      // Jan 2026: Thresholds depend on mode
-      // - Hybrid mode (default): 0.92 - conservative, JSON catches rest
-      // - FTIS_ONLY_MODE: 0.70 - aggressive, FTIS handles everything
-      autoExecute: parseFloat(
-        process.env.SEMANTIC_ROUTING_THRESHOLD_AUTO_EXECUTE || (isFTISOnly ? '0.70' : '0.92')
-      ),
-      confirm: parseFloat(
-        process.env.SEMANTIC_ROUTING_THRESHOLD_CONFIRM || (isFTISOnly ? '0.55' : '0.75')
-      ),
-      hint: parseFloat(
-        process.env.SEMANTIC_ROUTING_THRESHOLD_HINT || (isFTISOnly ? '0.40' : '0.60')
-      ),
-      minimum: parseFloat(
-        process.env.SEMANTIC_ROUTING_THRESHOLD_MINIMUM || (isFTISOnly ? '0.25' : '0.40')
-      ),
+      autoExecute: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_AUTO_EXECUTE || '0.92'),
+      confirm: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_CONFIRM || '0.75'),
+      hint: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_HINT || '0.60'),
+      minimum: parseFloat(process.env.SEMANTIC_ROUTING_THRESHOLD_MINIMUM || '0.40'),
     },
     embeddingModel:
       (process.env.SEMANTIC_ROUTING_EMBEDDING_MODEL as 'local' | 'openai' | 'voyage' | 'cohere') ||
