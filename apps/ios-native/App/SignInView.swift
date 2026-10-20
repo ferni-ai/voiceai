@@ -321,7 +321,8 @@ enum SignInPrompt: Equatable {
         }
     }
 
-    static let askText = "Sign in so Ferni remembers you."
+    /// To someone Ferni already knows (design audit P2 #11): pick up, not start.
+    static let askText = "Sign in and we'll pick up where we left off."
     static let offerText = "Already use Ferni? Sign in"
 }
 
