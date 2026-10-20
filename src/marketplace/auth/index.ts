@@ -11,7 +11,6 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { checkOutboundUrl } from '../../utils/outbound-url-guard.js';
 import { registerInterval } from '../../utils/interval-manager.js';
 import type { MarketplaceId, PermissionScope, TrustLevel, UserId } from '../schema/types.js';
 
@@ -278,11 +277,27 @@ export function isValidExternalUrl(url: string): boolean {
       return false;
     }
 
-    // Disallow internal/private destinations (shared rules: utils/outbound-url-guard)
-    const check = checkOutboundUrl(url);
-    if (!check.ok) {
-      log.warn({ url, reason: check.reason }, 'Blocked internal URL');
-      return false;
+    // Disallow internal/private IPs
+    const hostname = parsed.hostname;
+    const internalPatterns = [
+      /^localhost$/i,
+      /^127\./,
+      /^10\./,
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+      /^192\.168\./,
+      /^169\.254\./, // AWS metadata
+      /^0\./,
+      /^\[::1\]$/,
+      /^\[fe80:/i,
+      /^\[fc00:/i,
+      /^\[fd00:/i,
+    ];
+
+    for (const pattern of internalPatterns) {
+      if (pattern.test(hostname)) {
+        log.warn({ url, hostname }, 'Blocked internal URL');
+        return false;
+      }
     }
 
     return true;

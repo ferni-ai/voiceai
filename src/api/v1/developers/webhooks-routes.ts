@@ -12,8 +12,6 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { safeOutboundFetch } from '../../../utils/outbound-url-guard.js';
-import { OutboundUrlSchema } from '../../v2/developers/shared/validation.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from '../../helpers.js';
 import { getPublisherFromToken } from './shared/developer-auth.js';
 import { z } from 'zod';
@@ -47,7 +45,7 @@ const WebhookEventType = z.enum([
 
 const CreateWebhookSchema = z.object({
   name: z.string().min(1).max(100),
-  url: OutboundUrlSchema,
+  url: z.string().url(),
   events: z.array(WebhookEventType).min(1),
   personaId: z.string().optional(),
   enabled: z.boolean().default(true),
@@ -55,7 +53,7 @@ const CreateWebhookSchema = z.object({
 
 const UpdateWebhookSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  url: OutboundUrlSchema.optional(),
+  url: z.string().url().optional(),
   events: z.array(WebhookEventType).min(1).optional(),
   enabled: z.boolean().optional(),
 });
@@ -290,7 +288,7 @@ async function sendTestWebhook(
   const startTime = Date.now();
 
   try {
-    const response = await safeOutboundFetch(webhook.url, {
+    const response = await fetch(webhook.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -299,13 +297,13 @@ async function sendTestWebhook(
       },
       body: JSON.stringify(testPayload),
     });
-    await response.body?.cancel().catch(() => undefined);
 
     const executionTimeMs = Date.now() - startTime;
 
     // Update lastDeliveredAt in Firestore on success
     if (response.ok) {
-      await getWebhooksCollection().doc(webhookId).update({
+      const collection = getWebhooksCollection();
+      await collection.doc(webhookId).update({
         lastDeliveredAt: new Date(),
         failureCount: 0, // Reset failure count on success
       });
@@ -327,8 +325,10 @@ async function sendTestWebhook(
     const err = error instanceof Error ? error : new Error(String(error));
 
     // Increment failure count in Firestore
-    const failureCount = (webhook.failureCount || 0) + 1;
-    await getWebhooksCollection().doc(webhookId).update({ failureCount });
+    const collection = getWebhooksCollection();
+    await collection.doc(webhookId).update({
+      failureCount: (webhook.failureCount || 0) + 1,
+    });
 
     log.error({ publisherId, webhookId, error: err.message }, 'Test webhook failed');
 
