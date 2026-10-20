@@ -73,6 +73,7 @@ import {
 } from '../../services/superhuman/commitment-follow-up.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { createWorldRecall, type WorldRecallDeps } from './world-recall.js';
+import { callLoopsRecallFor, type CallLoopsRecall } from './open-loops-recall.js';
 import { predictionCheckInFor, type PredictionCheckIn } from './prediction-check-in.js';
 import { OPENER_FOLLOW_UP_LINE, openerFollowUpEnabled } from '../../memory/recall/opener.js';
 import { takeOpenerClaim } from '../../memory/recall/opener-claim.js';
@@ -115,6 +116,9 @@ export interface MemoryRecallDeps {
   dates?: DatesRecall;
   /** Peter's weekly prediction, a week on (prediction-check-in.ts, WEEKLY_PREDICTION). */
   week?: PredictionCheckIn;
+  loops?: CallLoopsRecall; // open loops + Ferni's promises, once a call (OPEN_LOOPS_IN_CONTEXT)
+  /** The call's session id: with no `loops` given, its loops come from callLoopsRecallFor. */
+  sessionId?: string;
   /** FERNI_SELF_RECALL=on; read from the environment when not given. */
   selfRecall?: boolean;
   /** SEMANTIC_RECALL=on; read from the environment when not given. */
@@ -173,6 +177,8 @@ function factText(f: RecallFact, userName?: string): string {
 }
 
 export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
+  const loops =
+    deps.loops ?? (deps.sessionId ? callLoopsRecallFor(deps.userId, deps.sessionId) : undefined);
   const started = Date.now();
   let snapshot: RecallSnapshot | undefined;
   const surfaced = new Set<string>();
@@ -312,7 +318,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const week = deps.week ?? predictionCheckInFor(deps.userId, personaId);
   const loading = [loaded, since, checkedIn, ground, canonLoaded, dates.ready, world.ready];
   const repairs = loadRepairRecall(deps.userId, deps.repairStore); // FRIEND_REPAIR, first note
-  const ready = Promise.all([...loading, repairs.ready]).then(() => undefined);
+  const ready = Promise.all([...loading, repairs.ready, loops?.ready]).then(() => undefined);
 
   return {
     ready,
@@ -404,7 +410,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
           : null;
       if (self) selfNoteGiven = true;
       const [summary, episode] = [summaryRecall?.take(text) ?? null, episodes?.take() ?? null];
-      const worldNote = world.note();
+      const [worldNote, loopsNow] = [world.note(), loops?.note() ?? null];
       // The same note with or without the facts: CONTEXT_PACKET labels those in the packet.
       const noteWith = (shown: RecallFact[]): string | null =>
         world.screen(
@@ -412,6 +418,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
             checkIn,
             worldNote,
             dateNow,
+            loopsNow,
             weekNow,
             formatRecall(shown, followUps, deps.userName, Date.now(), { insideJokes, bridge }),
             opener,
@@ -439,6 +446,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       if (checkIn) checkInOffered = true;
       if (opener) followThrough.raised(threadsNow);
       if (dateNow) dates.raised();
+      if (loopsNow) loops?.raised();
       if (checkIn || dateNow || greetingAsked || weekNow) week.raised(weekNow !== null);
       tokensLeft -= factTokens + estimateTokens(extras.map(laterText));
       for (const id of extras) surfaced.add(id);

@@ -15,6 +15,7 @@
 
 import { Firestore, FieldValue } from '@google-cloud/firestore';
 import { createLogger } from './safe-logger.js';
+import { installSyntheticWriteGuard } from './synthetic-write-guard.js';
 
 const log = createLogger({ module: 'firestore-utils' });
 
@@ -100,6 +101,7 @@ export function getFirestoreDb(): Firestore | null {
   }
 
   try {
+    installSyntheticWriteGuard();
     db = new Firestore();
     initialized = true;
     initializationError = null;
