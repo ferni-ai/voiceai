@@ -68,4 +68,34 @@ final class HelpLinksUITests: XCTestCase {
         shot.lifetime = .keepAlways
         add(shot)
     }
+
+    /// Design audit P2 #3: More was glass, and the call (Ferni, the captions,
+    /// End) showed through it. On paper, the sheet between its sections is
+    /// Ferni's paper, whatever is behind it.
+    func testMoreIsOnPaperNotGlass() {
+        let app = XCUIApplication.ferni(.call)
+        XCTAssertTrue(Screen.call.ready(in: app).waitForExistence(timeout: 20))
+        app.buttons["More"].tap()
+        let footer = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH '988 is'")).firstMatch
+        let captions = app.switches["Captions"].firstMatch
+        XCTAssertTrue(footer.waitForExistence(timeout: 5) && captions.exists)
+        sleep(1)
+        guard let cg = app.screenshot().image.cgImage else { return XCTFail("no screenshot") }
+        let w = cg.width, h = cg.height
+        var bytes = [UInt8](repeating: 0, count: w * h * 4)
+        let ctx = CGContext(data: &bytes, width: w, height: h, bitsPerComponent: 8, bytesPerRow: w * 4,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.draw(cg, in: CGRect(x: 0, y: 0, width: w, height: h))
+        let scale = Double(w) / app.frame.width
+        // The gap between the help section's footer and the settings below, across the middle,
+        // where Ferni's body sits behind the sheet.
+        let y = (footer.frame.maxY + captions.frame.minY) / 2 - 14
+        var worst = 0
+        for x in stride(from: app.frame.width * 0.3, through: app.frame.width * 0.7, by: 8) {
+            let i = (Int(y * scale) * w + Int(x * scale)) * 4
+            let rgb = [Int(bytes[i]), Int(bytes[i + 1]), Int(bytes[i + 2])]
+            worst = max(worst, abs(rgb[0] - 250), abs(rgb[1] - 248), abs(rgb[2] - 245))
+        }
+        XCTAssertLessThanOrEqual(worst, 6, "the call shows through the sheet (off paper by \(worst))")
+    }
 }
