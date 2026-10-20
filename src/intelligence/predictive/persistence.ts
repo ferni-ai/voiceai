@@ -426,25 +426,25 @@ export async function loadCommunityPatterns(): Promise<MarkovPersistenceData | n
 // BATCH OPERATIONS
 // ============================================================================
 
-/**
- * Mark a user's ML state as dirty (needs persistence)
- */
+/** Mark a user's ML state as dirty (needs persistence) */
 export function markDirty(userId: string): void {
   dirtyUsers.add(userId);
 }
 
-/**
- * Check if user is loaded
- */
+/** Check if user is loaded */
 export function isUserLoaded(userId: string): boolean {
   return loadedUsers.has(userId);
 }
 
-/**
- * Mark user as loaded
- */
+/** Mark user as loaded */
 export function markUserLoaded(userId: string): void {
   loadedUsers.add(userId);
+}
+
+/** MINOR_CARE purge: the next session reloads from storage before anything is written. */
+export function forgetLoadedUser(userId: string): void {
+  loadedUsers.delete(userId);
+  dirtyUsers.delete(userId);
 }
 
 /**
@@ -467,6 +467,7 @@ export async function flushDirtyUsers(
     if (now - lastFlush < FLUSH_INTERVAL_MS) {
       continue; // Skip - too soon
     }
+    if (!loadedUsers.has(userId)) continue; // never loaded here: it would replace stored state
 
     try {
       // Save all model types in parallel
@@ -515,6 +516,7 @@ export async function forceFlushUser(
   getReinforcementData: (userId: string) => ReinforcementPersistenceData | null
 ): Promise<void> {
   return withFlushLock(userId, async () => {
+    if (!loadedUsers.has(userId)) return; // never loaded here: it would replace stored state
     const markovData = getMarkovData(userId);
     const timeSeriesData = getTimeSeriesData(userId);
     const reinforcementData = getReinforcementData(userId);
@@ -545,9 +547,7 @@ export async function forceFlushUser(
 let initialized = false;
 let flushIntervalHandle: NodeJS.Timeout | null = null;
 
-/**
- * Initialize persistence layer with periodic flushing
- */
+/** Initialize persistence layer with periodic flushing */
 export function initializePersistence(
   getMarkovData: (userId: string) => MarkovPersistenceData | null,
   getTimeSeriesData: (userId: string) => TimeSeriesPersistenceData | null,

@@ -159,12 +159,12 @@ const loadedMemoryUsers = new Set<string>();
 export function purgeMusicLearning(userId: string): void {
   clearHeldProfile(userId);
   clearHeldMemories(userId);
-  profilePersistence?.clearCache(userId);
-  memoryPersistence?.clearCache(userId);
+  clearUserCache(userId); // and its loaded markers: the next session reloads before it writes
 }
 
 /** At each store sync or set: a held user is dropped, learning maps included, never written. */
-const heldPurged = (userId: string): boolean => userHeld(userId) && (purgeMusicLearning(userId), true);
+const heldPurged = (userId: string): boolean =>
+  userHeld(userId) && (purgeMusicLearning(userId), true);
 
 function getProfilePersistence(): PersistenceStore<PersistedTransitionProfile> {
   if (!profilePersistence) {
@@ -259,6 +259,7 @@ export function isMusicLearningLoaded(userId: string): boolean {
  * Save user's transition profile (queued for batch write)
  */
 export function saveProfile(userId: string): void {
+  if (!loadedProfileUsers.has(userId)) return; // never loaded here: it would replace stored state
   try {
     const profile = exportUserProfile(userId);
     if (profile) {
@@ -275,6 +276,7 @@ export function saveProfile(userId: string): void {
  * Save user's music memories (queued for batch write)
  */
 export function saveMemories(userId: string): void {
+  if (!loadedMemoryUsers.has(userId)) return; // never loaded here: it would replace stored state
   try {
     const memories = exportUserMusicMemories(userId);
     if (memories.memories.length > 0 || memories.preferences.length > 0) {

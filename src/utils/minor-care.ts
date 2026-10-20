@@ -300,6 +300,13 @@ export function userHeld(userId: string | undefined, env: Env = process.env): bo
   return false;
 }
 
+/** A verified owner's session bound to this user, if any: purgeHeldUser leaves their state. */
+export function ownerSessionFor(userId: string): string | undefined {
+  for (const [sessionId, owner] of sessionUsers)
+    if (owner === userId && ownerCheck(sessionId)) return sessionId;
+  return undefined;
+}
+
 /**
  * A placeholder or shared id ('anonymous', 'default', 'unknown', blank): one bucket for many
  * people, so never held, bound or purged. A per-device id (anon:<id>) is one caller's: held.

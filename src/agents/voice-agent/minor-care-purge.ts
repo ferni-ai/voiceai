@@ -13,12 +13,23 @@ import { clearHeldReinforcementUser as clearReinforcement } from '../../intellig
 import { purgeMusicLearning } from '../../audio/music-learning-persistence.js';
 import { purgeGameMemory } from '../../services/games/game-store.js';
 import { purgeUnifiedUser } from '../../services/trust-systems/unified-persistence.js';
+import { forgetLoadedUser } from '../../intelligence/predictive/persistence.js';
+import { ownerSessionFor, sharedId } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'minor-care-purge' });
 
-/** Drop everything the per-user stores hold for this user. Never throws. */
+/**
+ * Drop everything the per-user stores hold for this user, and their loaded markers, so the next
+ * session reloads from storage before any write. Never a placeholder or shared id (one bucket for
+ * many people), nor a user with a verified owner's session here (it would wipe the owner's state).
+ * Never throws.
+ */
 export function purgeHeldUser(userId: string): void {
+  if (sharedId(userId)) return log.warn('MINOR_CARE purge skipped: a shared or placeholder id');
+  const ownerSession = ownerSessionFor(userId);
+  if (ownerSession)
+    return log.warn({ ownerSession }, 'MINOR_CARE purge skipped: owner session live');
   const purges: Array<[string, (userId: string) => void]> = [
     ['unified trust', purgeUnifiedUser],
     ['game memory', purgeGameMemory],
@@ -26,6 +37,7 @@ export function purgeHeldUser(userId: string): void {
     ['markov model', clearMarkov],
     ['time-series model', clearTimeSeries],
     ['reinforcement model', clearReinforcement],
+    ['predictive loaded markers', forgetLoadedUser],
   ];
   for (const [name, purge] of purges) {
     try {
