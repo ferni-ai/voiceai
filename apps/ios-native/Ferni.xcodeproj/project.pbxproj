@@ -71,6 +71,7 @@
 		A5CF1C46DD73308ABC0DFDD4 /* FerniWatchWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AEF97D68E6384026BE0D8738 /* FerniWatchWidgets.swift */; };
 		A6EC64BC0F35C99AB84B8055 /* AudioRoutePicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03F678B752992C142D10FE5E /* AudioRoutePicker.swift */; };
 		ACBC10BEA8BB7135AA48C60A /* MuteCallIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655A6BDFEE3CE0F40FDD86B9 /* MuteCallIntent.swift */; };
+		AEA5F6881617AB84E1E3A42B /* HomeBalanceUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F133B033213FD0942D68871F /* HomeBalanceUITests.swift */; };
 		B0638D9FFF8A35EDC5CD683B /* TalkControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = F76007C81E8DC1B134090AD5 /* TalkControl.swift */; };
 		B0B567B29058A9FEF290836E /* CallViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 346AABA0EB545D4C92B2D8CD /* CallViews.swift */; };
 		B20DE0108244A0A6616255E5 /* FerniWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6DB1FD5E9768FDDD7A8B82CB /* FerniWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -288,6 +289,7 @@
 		F0356DF8A0D911077889805D /* Ferni.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ferni.entitlements; sourceTree = "<group>"; };
 		F090A53D7F69DB1A6CD82A19 /* FerniHomeWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniHomeWidget.swift; sourceTree = "<group>"; };
 		F11E986D6A235319241904D1 /* Ferni.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Ferni.xcconfig; sourceTree = "<group>"; };
+		F133B033213FD0942D68871F /* HomeBalanceUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeBalanceUITests.swift; sourceTree = "<group>"; };
 		F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		F76007C81E8DC1B134090AD5 /* TalkControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkControl.swift; sourceTree = "<group>"; };
 		F8DBF14CF40ADDB7A8768FBE /* CallControlsAtLargeTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallControlsAtLargeTextTests.swift; sourceTree = "<group>"; };
@@ -426,6 +428,7 @@
 				7BFB87749BD4C9D4FD65978F /* FloorFadeUITests.swift */,
 				A7085820FA32335FEED58C9E /* HandoffUITests.swift */,
 				BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */,
+				F133B033213FD0942D68871F /* HomeBalanceUITests.swift */,
 				2B807054CD639997DA9CFB4F /* IPadHomeUITests.swift */,
 				EDC1F42CEAB8576041D1E034 /* PaperScreensUITests.swift */,
 				0BAAA6ED05EC97C25ABF4A4A /* RememberEditUITests.swift */,
@@ -830,6 +833,7 @@
 				621E18533277A7BC22296241 /* FloorFadeUITests.swift in Sources */,
 				DA81277E93D9A12995CC138A /* HandoffUITests.swift in Sources */,
 				8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */,
+				AEA5F6881617AB84E1E3A42B /* HomeBalanceUITests.swift in Sources */,
 				7DA13593D47CC26EA4439F02 /* IPadHomeUITests.swift in Sources */,
 				C54E78DAA6C5D8493E76C06D /* PaperScreensUITests.swift in Sources */,
 				8568B9B5D8FBCEE53623E3D3 /* RememberEditUITests.swift in Sources */,

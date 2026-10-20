@@ -18,6 +18,8 @@ struct HomeView: View {
     @State private var landscape = false
     /// Home's own size: on iPad Ferni is sized to it.
     @State private var room = CGSize.zero
+    /// The height Home can show without scrolling (between the bar and Talk).
+    @State private var visibleHeight: CGFloat = 0
     /// The keyboard is up (correcting what Ferni remembered).
     @State private var typing = false
 
@@ -75,10 +77,17 @@ struct HomeView: View {
                 .frame(maxWidth: beside ? 1000 : 560)
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal, FerniSpace.rest)
+                // At rest, the room's middle, not its top half with the bottom 40%
+                // empty (design audit P2 #2). Taller than the screen, it scrolls as before.
+                .frame(minHeight: inCall ? 0 : visibleHeight, alignment: .center)
                 .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.55), value: inCall)
             }
             .scrollBounceBehavior(.basedOnSize)
             .onGeometryChange(for: CGSize.self) { $0.size } action: { room = $0; landscape = $0.width > $0.height }
+            // The container's size is already inside the bar and Talk's inset.
+            .onScrollGeometryChange(for: CGFloat.self) { $0.containerSize.height } action: { _, height in
+                visibleHeight = height
+            }
             // Pinned at every text size: End, Mute and More (and Talk) never
             // scroll away. At accessibility sizes they scrolled with the
             // captions and End left the screen (design audit P0-1, 2026-10-20).
