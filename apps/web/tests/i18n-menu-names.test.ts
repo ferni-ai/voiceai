@@ -59,7 +59,7 @@ describe.each(ENGLISH)('%s', (name) => {
     expect(title).toBe(row);
   });
 
-  it('Take Your Story has a plain subtitle', () => {
+  it('the data panel has a plain subtitle', () => {
     expect(valueOf(locale, 'dataExport.subtitle')).toBe("Download what we've shared");
   });
 

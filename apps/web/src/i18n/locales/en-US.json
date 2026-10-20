@@ -9399,7 +9399,7 @@
     "invitesNotReady": "Family sharing isn't ready yet, so no invite was sent."
   },
   "dataExport": {
-    "title": "Take Your Story",
+    "title": "Privacy & your data",
     "intro": {
       "one": "You have {count} item across {categories}. Select what to export.",
       "other": "You have {count} items across {categories}. Select what to export."
