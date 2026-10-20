@@ -12,6 +12,8 @@ const written = vi.hoisted(() => [] as { path: string; data: unknown }[]);
 const docs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
 /** Per path: run `during` inside the next write (still in flight), then fail it or let it land. */
 type Hook = { fail: number; failed: number; during?: () => unknown; hang?: Promise<void> };
+/** Per path: how many of the next deletes fail. */
+const failDeletes = vi.hoisted(() => new Map<string, number>());
 const hooks = vi.hoisted(() => new Map<string, Hook>());
 /** Writes in flight right now, and the most at once. */
 const flight = vi.hoisted(() => ({ now: 0, max: 0 }));
@@ -43,7 +45,14 @@ const fakeDb = vi.hoisted(() => {
           written.push({ path, data });
           docs.set(path, { ...docs.get(path), ...data });
         },
-        delete: async () => void docs.delete(path),
+        delete: async () => {
+          const entry = [...failDeletes].find(([p, left]) => path.includes(p) && left > 0);
+          if (entry) {
+            failDeletes.set(entry[0], entry[1] - 1);
+            throw new Error('unavailable');
+          }
+          docs.delete(path);
+        },
       } as Record<string | symbol, unknown>,
       { get: (t, k) => (k in t ? t[k] : k === 'then' ? undefined : () => ref(path)) }
     );
@@ -290,6 +299,24 @@ describe('held fields: never resurrected, never stale, written at shutdown', () 
     await second;
     await parts.write(async (_u, p) => void sets.push(JSON.stringify(p)), dirty, true); // retry
     expect(sets.at(-1)).toContain('new'); // the older part was dropped: nothing older after it
+  });
+
+  it('a compensating delete that fails is retried on the next flush: the doc ends deleted', async () => {
+    const { s, collection } = prefsStore();
+    const userId = caller();
+    s.set(userId, { prefs: { optOut: 'texts' }, story: 'x' });
+    let release!: () => void;
+    hooks.set(`/${collection}/`, { fail: 0, failed: 0, hang: new Promise((r) => (release = r)) });
+    await tick(1_000); // the write starts, and hangs
+    const deleting = s.delete(userId);
+    await vi.advanceTimersByTimeAsync(10_100);
+    await deleting; // the delete gave up waiting and ran
+    failDeletes.set(`/${collection}/`, 1); // the first compensating delete fails
+    release(); // the hung write lands after the delete
+    await tick(0);
+    expect(docOf(userId, collection)).toBeDefined(); // resurrected, for now
+    await tick(1_000); // the next flush retries the compensating delete
+    expect(docOf(userId, collection)).toBeUndefined();
   });
 
   it('a delete waits at most 10 s for a hung held write; a late landing is deleted again', async () => {

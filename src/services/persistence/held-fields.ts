@@ -46,6 +46,22 @@ export function heldFields<T>(
   const generation = (userId: string) => `${epoch}:${generations.get(userId) ?? 0}`;
   /** Users whose document was deleted while one of their writes was in flight */
   const deleted = new Set<string>();
+  /** Users whose compensating delete failed: retried at the start of every flush */
+  const removeAgain = new Set<string>();
+  const compensate = async (
+    userId: string,
+    remove: (userId: string) => Promise<unknown>,
+    dirty: Set<string>
+  ): Promise<void> => {
+    try {
+      await remove(userId);
+      removeAgain.delete(userId);
+    } catch {
+      removeAgain.add(userId);
+      dirty.add(userId); // keeps the sync running until the delete lands
+      log.error({ userId }, 'Compensating delete failed; retried on the next flush');
+    }
+  };
   return {
     /** A held user's set: keep only what whenHeld allows. True if anything was kept. */
     keep(userId: string, data: T): boolean {
@@ -96,6 +112,8 @@ export function heldFields<T>(
       force = false,
       remove?: (userId: string) => Promise<unknown>
     ): Promise<void> {
+      if (remove)
+        for (const userId of Array.from(removeAgain)) await compensate(userId, remove, dirty);
       for (const [userId, queued] of Array.from(parts)) {
         dirty.add(userId); // keeps the sync running until the part is written
         if (!force && queued.notBefore > Date.now()) continue;
@@ -113,7 +131,8 @@ export function heldFields<T>(
           await writing;
           if (!parts.has(userId)) dirty.delete(userId);
           // A delete that stopped waiting (10 s) ran before this write landed: delete again
-          if (generation(userId) !== before && deleted.delete(userId)) await remove?.(userId);
+          if (generation(userId) !== before && deleted.delete(userId) && remove)
+            await compensate(userId, remove, dirty); // its own try: a failure never reads as the write's
           const last = written.get(userId);
           if (!last || last.stamp < pending.stamp)
             written.set(userId, { stamp: pending.stamp, keys: new Set(Object.keys(pending.part)) });
