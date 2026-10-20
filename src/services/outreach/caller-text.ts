@@ -42,7 +42,8 @@ export function callerText(text: string | undefined | null, maxLength = 300): st
     .replace(/"/g, "'");
   for (const phrase of INSTRUCTION_PHRASES) clean = clean.replace(phrase, '[removed]');
   clean = clean.replace(/\s+/g, ' ').trim();
-  return clean.length > maxLength ? `${clean.slice(0, maxLength - 1).trimEnd()}…` : clean;
+  // ASCII dots, not '…': NFKC turns '…' into '...', so a second pass would change the text.
+  return clean.length > maxLength ? `${clean.slice(0, maxLength - 3).trimEnd()}...` : clean;
 }
 
 /** Links, phone or account numbers, and requests for money, credentials or codes. */
@@ -71,9 +72,12 @@ export function screenedCallerText(
   maxLength = 300
 ): string {
   const clean = callerText(text, maxLength);
-  return clean && isRiskyCallerText(clean)
-    ? `${name} said something about money, an account or a number; ask them directly.`
-    : clean;
+  return clean && isRiskyCallerText(clean) ? riskyCallerLine(name) : clean;
+}
+
+/** What is said instead of risky caller text: Ferni's own fixed words, never theirs. */
+export function riskyCallerLine(name: string): string {
+  return `${name} said something about money, an account or a number; ask them directly.`;
 }
 
 /** Put in front of call results in a prompt: what follows is reported speech, not instructions. */
