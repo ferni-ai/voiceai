@@ -63,6 +63,26 @@ Not replayed: audio and TTS, tools, the greeting, and the background
 turn-intelligence notes. Each test is one turn deep. Compare arms; don't read
 the absolute numbers as what happens on live calls.
 
+## Multi-turn: changes that act between turns
+
+The director, deliberation and recall act between turns, which one turn can't
+show. `--multi-turn` plays `fixtures/bar-conversations.json` instead: 12 calls
+of 4–5 fixed caller turns (good news, something hard, advice, small talk that
+turns personal, a person or plan that matters later, a call at 11 pm the
+caller's time), six with caller facts as the recall note. Each reply joins the
+chat, then the session goes speaking -> listening, so the real director and
+deliberator that `installDirectorNotes` (turn-observers.ts) installs run their
+real model calls as on a live session (the director keeps its 4 s budget), and
+the next turn's reminder carries their notes. Whatever director code the tree
+has is what runs, so an arm like DIRECTOR_SEES_SCENE needs only its flag.
+
+The last two replies of each call are scored as above; judges also see the
+caller's earlier words on the call. Insight is judged on calls with facts, a
+callback or a local time. Each scored reply records the notes and thought it
+was given; `transcripts` holds every turn. `--aa`, `--baseline` and `--reuse`
+work the same. Not replayed: the turn-intelligence note, where the deliberator
+reads memory on a call. An A/A run takes about 2,000 Gemini calls.
+
 ## The A/A rule
 
 **A change counts only if its gap beats the A/A noise floor.** The A/A gap is

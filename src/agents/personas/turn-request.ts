@@ -12,6 +12,7 @@ import { contextPacketEnabled } from '../../config/context-packet-flag.js';
 import { staticCoreToolsEnabled } from '../../config/tool-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { onlyPhoneSafeTools } from '../shared/phone-safe-tools.js';
+import { heldAfter, lastFerniLine, minorCareNote } from '../../utils/minor-care.js';
 import {
   hasThirdPartyTools,
   mayReachOthers,
@@ -158,6 +159,11 @@ export function withTurnReminder(
     state.note,
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     porchLightNote(chatCtx, session, { careful: options.shape === false }),
+    // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts); none with crisis guidance.
+    minorCareNote(sessionIdOf((session as { userData?: unknown }).userData), words, {
+      careful: options.shape === false,
+      asked: lastFerniLine(chatCtx.items),
+    }),
     // PERSONA_BEATS=on: his life as written, light on a first call, heavy only with history.
     beatNote({
       said: words,
@@ -322,12 +328,16 @@ export async function toolsForTurn(
   const view = unlockViewFor(session.userData);
   const sessionId = sessionIdOf(session.userData);
   // Not a verified owner (an anon: caller included): nothing that reaches other people.
+  // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores
+  // anything. The phone-safe set holds no tool that reaches others, so it covers both.
   const others = mayReachOthers(userIdOf(session.userData), sessionId, sessionIsVerifiedOwner);
-  const allowed = phoneOnlyIdentity(sessionId)
-    ? await withoutAccountTools(toolCtx, state)
-    : others
-      ? toolCtx
-      : await withoutReachingOthers(toolCtx, state);
+  const held = heldAfter(sessionId, callerWords(chatCtx), { asked: lastFerniLine(chatCtx.items) });
+  const allowed =
+    phoneOnlyIdentity(sessionId) || held
+      ? await withoutAccountTools(toolCtx, state)
+      : others
+        ? toolCtx
+        : await withoutReachingOthers(toolCtx, state);
   const unlocked = await withoutLockedHandoffs(allowed, view).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'locked-handoff filter failed; sending tools as is');
     return allowed;
