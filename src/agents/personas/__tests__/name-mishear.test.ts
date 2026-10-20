@@ -95,6 +95,69 @@ describe('normalizeNameMishear', () => {
   });
 });
 
+/** Prod call 2026-10-20: "Hey Ferni" came through as "Hey Fred." and memory stored a Fred. */
+describe('more mishearings, said to Ferni only', () => {
+  it('puts a name STT heard for Ferni right when it addresses him', () => {
+    const cases: Array<[string, string]> = [
+      // From the calls.
+      ['Hey Fred.', 'Hey Ferni.'],
+      ['Uh, go ahead, Fred.', 'Uh, go ahead, Ferni.'],
+      ['Hey, Bernie, hang up the phone.', 'Hey, Ferni, hang up the phone.'],
+      ['Well, thanks, Bernie.', 'Well, thanks, Ferni.'],
+      ['Hey Bernie. returning all these', 'Hey Ferni. returning all these'],
+      // The other names and spellings.
+      ['Hi Freddie', 'Hi Ferni'],
+      ['Hey Fernando, how are you?', 'Hey Ferni, how are you?'],
+      ['Thanks, Ernie!', 'Thanks, Ferni!'],
+      ['Hello Fanny.', 'Hello Ferni.'],
+      ['What do you think, Ferney?', 'What do you think, Ferni?'],
+      ['Fernee?', 'Ferni?'],
+      ['Morning Furni', 'Morning Ferni'],
+      ['Hey Furney how are you', 'Hey Ferni how are you'],
+      // Everyday words: only straight after an opening greeting, ending the clause.
+      ['Hey, funny.', 'Hey, Ferni.'],
+      ['Hi ferry!', 'Hi Ferni!'],
+      ['Hello, fairy, can you hear me?', 'Hello, Ferni, can you hear me?'],
+    ];
+    for (const [heard, fixed] of cases) expect(normalizeNameMishear(heard), heard).toBe(fixed);
+  });
+
+  it('leaves the real people and everyday words alone', () => {
+    for (const text of [
+      'my friend Fred',
+      'Fred came over last night.',
+      'Hey Fred came by the shop',
+      'I told Fred.',
+      'Bernie Sanders is speaking tonight.',
+      'Hey Bernie Sanders is on TV',
+      'I voted for Bernie.',
+      'Fernando called me.',
+      'Ernie and Bert',
+      'a fanny pack',
+      "That's funny.",
+      'Funny.',
+      'Okay, funny.',
+      'Ferni, you are pretty funny.',
+      'Hey, funny how that works.',
+      'We took the ferry.',
+      'Ferry?',
+      'a fairy tale',
+      'Fairy.',
+      'Fredrick is here',
+      'Hey Ferni.',
+    ]) {
+      expect(normalizeNameMishear(text), text).toBe(text);
+    }
+  });
+
+  it('a transfer still changes only the first five mishearings', () => {
+    const transfers = { vocatives: false, transfers: true };
+    for (const text of ['transfer me to Fred.', 'talk to Bernie.', 'I want to talk to Fernando.']) {
+      expect(normalizeNameMishear(text, transfers), text).toBe(text);
+    }
+  });
+});
+
 describe('a transfer to Ferni (prod call 2026-10-17)', () => {
   const transfers = { vocatives: false, transfers: true };
 
@@ -142,6 +205,8 @@ describe('sttWithNameFix', () => {
     expect(await texts(await sttWithNameFix(session, events(), ON))).toEqual([
       'How are you doing, Ferni?',
     ]);
+    const heyFred = () => Promise.resolve(streamOf([final('Hey Fred.')]));
+    expect(await texts(await sttWithNameFix(session, heyFred(), ON))).toEqual(['Hey Ferni.']);
   });
 
   it("logs which name was changed, never the caller's words", async () => {
