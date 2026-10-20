@@ -80,9 +80,11 @@ struct CallCaptions: View {
     let call: CallSession
     let showWords: Bool
     let report: (Caption) -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        let lines = showWords ? Array(call.captions.lines.suffix(3)) : []
+        // Two lines at accessibility sizes: three no longer fit above the controls.
+        let lines = showWords ? Array(call.captions.lines.suffix(typeSize.isAccessibilitySize ? 2 : 3)) : []
         VStack(alignment: .leading, spacing: FerniSpace.breath) {
             ForEach(lines) { line in
                 let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -206,11 +208,15 @@ struct CallControls: View {
                     } label: {
                         Image(systemName: "phone.down.fill")
                             .font(.title)
+                            .dynamicTypeSize(...Self.largestGlyph)
                             .foregroundStyle(FerniColor.onError)
                             .frame(width: 72, height: 72)
                             .contentShape(.circle)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityShowsLargeContentViewer {
+                        Label(call.phase == .live || call.phase == .reconnecting ? "End call" : "Cancel", systemImage: "phone.down.fill")
+                    }
                     .glassEffect(.regular.tint(FerniColor.error).interactive(), in: .circle)
                     .glassEffectID("talk", in: glass)
                     .accessibilityLabel(call.phase == .live || call.phase == .reconnecting ? "End call" : "Cancel")
@@ -240,15 +246,21 @@ struct CallControls: View {
         .padding(.bottom, FerniSpace.pause)
     }
 
+    /// The call circles keep their size, so their glyphs stop growing here;
+    /// a long press shows the Large Content Viewer instead, as bar buttons do.
+    static let largestGlyph = DynamicTypeSize.xxxLarge
+
     private func circle(_ symbol: String, muted: Bool, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: muted ? "mic.slash.fill" : symbol)
                 .font(.title2)
+                .dynamicTypeSize(...Self.largestGlyph)
                 .foregroundStyle(FerniColor.textPrimary)
                 .frame(width: 60, height: 60)
                 .contentShape(.circle)
         }
         .buttonStyle(.plain)
+        .accessibilityShowsLargeContentViewer { Label(label, systemImage: muted ? "mic.slash.fill" : symbol) }
         .glassEffect(.regular.interactive(), in: .circle)
         .accessibilityLabel(label)
     }

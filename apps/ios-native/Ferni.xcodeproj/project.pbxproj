@@ -87,6 +87,7 @@
 		DA508231BAC73A0C503073A2 /* FerniSceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 148438D4C1E42EF27B5A09AC /* FerniSceneDelegate.swift */; };
 		DE233F98A04E5A1FDC02357F /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DCF77EDAD7EEA904F8C2796 /* ConsentView.swift */; };
 		E094C588E3F4D4ECCDC656EC /* NextStepTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3751457DBC4CF962D924D247 /* NextStepTests.swift */; };
+		E1ABFBCDC6B88A70EC864834 /* CallControlsAtLargeTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8DBF14CF40ADDB7A8768FBE /* CallControlsAtLargeTextTests.swift */; };
 		E264DB68385FB7094C895AAE /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 129CF5787F87ED1DCDD384F0 /* FerniDesign */; };
 		E391C436C8BCB997D029137B /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */; };
 		E67FBA51E487A86BF76A408A /* ReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */; };
@@ -269,6 +270,7 @@
 		F11E986D6A235319241904D1 /* Ferni.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Ferni.xcconfig; sourceTree = "<group>"; };
 		F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		F76007C81E8DC1B134090AD5 /* TalkControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkControl.swift; sourceTree = "<group>"; };
+		F8DBF14CF40ADDB7A8768FBE /* CallControlsAtLargeTextTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallControlsAtLargeTextTests.swift; sourceTree = "<group>"; };
 		FADB5DC0AC364E861BD63F4D /* arrival.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = arrival.mp3; sourceTree = "<group>"; };
 		FE8F191561C68141BA565BFB /* FerniLive.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = FerniLive.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -395,6 +397,7 @@
 			children = (
 				BB291C79E629A29D4B86C651 /* AccessibilityAuditTests.swift */,
 				B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */,
+				F8DBF14CF40ADDB7A8768FBE /* CallControlsAtLargeTextTests.swift */,
 				3CC34062567D316808D0D03C /* ConsentSheetTests.swift */,
 				32CB80CF1D9492393B441589 /* DeepLinkUITests.swift */,
 				B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */,
@@ -789,6 +792,7 @@
 			files = (
 				639D84959EC4165C2F4DA23F /* AccessibilityAuditTests.swift in Sources */,
 				65A85BD3CF6927E84BDB94EC /* AvatarTouchTests.swift in Sources */,
+				E1ABFBCDC6B88A70EC864834 /* CallControlsAtLargeTextTests.swift in Sources */,
 				13E295A0E158B401D107C1D5 /* ConsentSheetTests.swift in Sources */,
 				24044B237183631A0FD997E3 /* DeepLinkUITests.swift in Sources */,
 				C004013039D45373716B8992 /* FerniUITestSupport.swift in Sources */,
