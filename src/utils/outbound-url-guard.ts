@@ -226,6 +226,20 @@ export async function safeOutboundFetch(
   }
 }
 
+/**
+ * fetch() for long-lived streams to user-supplied URLs (MCP over SSE): the same URL, DNS and
+ * connect-time checks as safeOutboundFetch, but no overall timeout (it would cut the stream)
+ * and redirects refused instead of followed.
+ */
+export async function guardedStreamFetch(
+  rawUrl: string | URL,
+  init: RequestInit = {},
+  options: OutboundUrlOptions = {}
+): Promise<Response> {
+  const url = await assertSafeOutboundUrl(String(rawUrl), options);
+  return fetch(url, { ...init, redirect: 'error', dispatcher: getGuardedAgent() } as RequestInit);
+}
+
 /** Read at most maxBytes of a response body as text, then stop reading. */
 export async function readCappedText(
   response: Response,

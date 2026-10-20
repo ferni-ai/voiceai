@@ -13,6 +13,7 @@ import {
   isBlockedIp,
   OutboundUrlBlockedError,
   readCappedText,
+  guardedStreamFetch,
   safeOutboundFetch,
 } from '../outbound-url-guard.js';
 
@@ -175,6 +176,29 @@ describe('safeOutboundFetch: redirects', () => {
     vi.stubGlobal('fetch', fetchSpy);
     await expect(safeOutboundFetch('https://[::1]/')).rejects.toThrow(OutboundUrlBlockedError);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('guardedStreamFetch', () => {
+  it('refuses a name that resolves to a private address without fetching', async () => {
+    resolveTo({ 'mcp.example.com': '192.168.1.4' });
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    await expect(guardedStreamFetch('https://mcp.example.com/sse')).rejects.toThrow(
+      OutboundUrlBlockedError
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('adds no timeout, refuses redirects and connects through the guarded agent', async () => {
+    resolveTo({ 'mcp.example.com': PUBLIC_V4 });
+    const fetchSpy = vi.fn(async (_url: unknown, _init?: RequestInit) => new Response('ok'));
+    vi.stubGlobal('fetch', fetchSpy);
+    await guardedStreamFetch(new URL('https://mcp.example.com/sse'), { method: 'GET' });
+    const init = fetchSpy.mock.calls[0]?.[1] as RequestInit & { dispatcher?: unknown };
+    expect(init).toMatchObject({ method: 'GET', redirect: 'error' });
+    expect(init.signal).toBeUndefined();
+    expect(init.dispatcher).toBe(getGuardedAgent());
   });
 });
 
