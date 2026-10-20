@@ -178,9 +178,13 @@ reports without gating. Re-run on 2026-10-20 on a dedicated simulator:
   contrast finding on the consent body at AX5. Open.
 - **Home at 20h: contrast on "Whenever you're ready, I'm here."** on iPad
   (the iPhone passes in every band). Open.
-- **AvatarTouchTests.testTheSpaceBesideFerniIsNotFerni fails on iPad:** a tap
-  24 pt outside Ferni's 140 pt touch circle counts as touching him on the
-  iPad simulator, probably the larger touch area. Not confirmed on a device.
+- **Fixed: AvatarTouchTests.testTheSpaceBesideFerniIsNotFerni on iPad.** Not
+  an avatar bug: Ferni's touch circle is honored exactly (shrunk to 50 pt it
+  reached 75 pt, not 85), but a touch counts when its area overlaps the
+  circle, and fingertips reach 28-35 pt past it on the iPad simulator (under
+  24 pt on iPhone). The test's 24 pt was an iPhone fingertip; it now taps
+  36 pt past the circle on iPad, still anchored to the 200 pt slot so a
+  wider circle fails it on both. To confirm on a device.
 
 Every other finding was fixed, or accepted per element with the measured
 contrast or a screenshot (`AccessibilityAuditTests.accepted`).
