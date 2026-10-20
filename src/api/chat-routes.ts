@@ -11,12 +11,12 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-
 import type { FunctionDeclaration } from '@google/generative-ai';
 
 import { claimedUserFor } from './acting-user.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { offeredChatTools, refuseChatTool } from './chat-tool-access.js';
+import { refuseUnadmittedCaller } from './admission.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { executeTool } from '../agents/shared/tool-dispatcher.js';
@@ -407,7 +407,7 @@ export async function handleChatRoutes(
 
   // Require authentication
   const auth = await requireAuth(req, res, { allowDevMode: true });
-  if (!auth) return true;
+  if (!auth || (await refuseUnadmittedCaller(auth, res))) return true; // WAITLIST_GATE: chat is Ferni too
 
   try {
     // POST /api/chat/message - Send a message

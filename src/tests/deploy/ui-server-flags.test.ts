@@ -31,6 +31,9 @@ const SERVER_FLAGS = [
   'COHORT_FLAGS=on',
   'PROACTIVE_CHANNELS=on',
   'FOLLOW_THROUGH_JOB=on',
+  // The hourly pondering job (ponder-job.ts). On the web server it reads only the
+  // friends-and-family cohort plus PONDERING_USERS, and only writes their pondering doc.
+  'PONDERING=on',
 ];
 
 /** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */

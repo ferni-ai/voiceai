@@ -5,6 +5,7 @@
  * - GET /api/account - Get account info
  * - DELETE /api/account - Delete account (GDPR)
  * - PUT /api/account/profile - Update profile info
+ * - POST /api/account/apple-authorization - Keep a Sign in with Apple grant to revoke on delete
  * - GET|POST|DELETE /api/account/processing-consent - Third-party processing consent
  *
  * @module AccountRoutes
@@ -13,6 +14,11 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getStore } from '../memory/store-factory.js';
 import { deleteOAuthLinkStatesFor } from '../servers/token/oauth-link-state.js';
+import {
+  exchangeAuthorizationCode,
+  revokeAppleSignIn,
+  type SiwaClient,
+} from '../services/apple/siwa-tokens.js';
 import { tombstoneTransactionOwnersFor } from '../services/billing/apple-signed-data.js';
 import { eraseMusicalSocialData } from '../services/musical-you/social.js';
 import { eraseSocialChallengesFor } from '../services/social/challenges.js';
@@ -83,6 +89,11 @@ export async function handleAccountRoutes(
     // PUT /api/account/profile - Update profile
     if (pathname === '/api/account/profile' && method === 'PUT') {
       return await handleUpdateProfile(req, res, userId);
+    }
+
+    // POST /api/account/apple-authorization - Sign in with Apple code, kept to revoke on delete
+    if (pathname === '/api/account/apple-authorization' && method === 'POST') {
+      return await handleAppleAuthorization(req, res, auth.firebaseUid);
     }
 
     // Route not found
@@ -247,6 +258,9 @@ async function handleDeleteAccount(
     return true;
   }
 
+  // Before the Firebase user goes: Apple's grant to this app is revoked (5.1.1(v)).
+  // Never throws; a failure is logged and the deletion goes on.
+  const appleSignIn = await revokeAppleSignIn(userId);
   const failures = await eraseLinkedRecords(userId);
 
   const firebaseDeleted = firebaseUid ? await deleteFirebaseUser(firebaseUid) : false;
@@ -263,8 +277,59 @@ async function handleDeleteAccount(
         ? 'Your account and all associated data have been deleted.'
         : "Your account is deleted, but some records couldn't be removed.",
     deletedAt: new Date().toISOString(),
-    details: { dataDeleted: true, firebaseDeleted, failures },
+    details: { dataDeleted: true, firebaseDeleted, failures, appleSignIn },
   });
+  return true;
+}
+
+const AUTH_CODE = /^[A-Za-z0-9._-]{1,1024}$/;
+const EXCHANGE_STATUS = { rejected: 400, not_linked: 403, no_refresh_token: 502 } as const;
+
+/**
+ * POST /api/account/apple-authorization { authorizationCode, client?: 'native' | 'web' }
+ *
+ * After a Sign in with Apple, the app sends Apple's one-time code; the server
+ * trades it for a refresh token (siwa-tokens.ts) so DELETE /api/account can
+ * revoke it. 200 { stored: false, reason: 'not_configured' } while the Sign in
+ * with Apple key isn't set.
+ */
+async function handleAppleAuthorization(
+  req: IncomingMessage,
+  res: ServerResponse,
+  firebaseUid?: string
+): Promise<boolean> {
+  if (!firebaseUid) {
+    sendError(res, 'Sign in with Apple first', 403);
+    return true;
+  }
+  if (rateLimit(req, res, { maxRequests: 10, windowMs: 600_000, keyPrefix: 'apple-auth' })) {
+    return true;
+  }
+  const body = await parseJsonBody<{ authorizationCode?: unknown; client?: unknown }>(req);
+  const client: SiwaClient | null =
+    body.client === undefined || body.client === 'native'
+      ? 'native'
+      : body.client === 'web'
+        ? 'web'
+        : null;
+  if (typeof body.authorizationCode !== 'string' || !AUTH_CODE.test(body.authorizationCode)) {
+    sendError(res, 'authorizationCode is required', 400);
+    return true;
+  }
+  if (!client) {
+    sendError(res, "client must be 'native' or 'web'", 400);
+    return true;
+  }
+  const result = await exchangeAuthorizationCode(firebaseUid, body.authorizationCode, client);
+  if (result.stored || result.reason === 'not_configured') {
+    sendJson(res, result);
+  } else {
+    sendError(
+      res,
+      `Apple authorization not kept: ${result.reason}`,
+      EXCHANGE_STATUS[result.reason]
+    );
+  }
   return true;
 }
 
