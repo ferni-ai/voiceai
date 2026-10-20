@@ -12,6 +12,12 @@ public final class MinimumBuild {
     public private(set) var updateRequired = false
     /// The server's words for the update screen, if it sent any.
     public private(set) var message: String?
+    /// Whether the phone-number sign-in shows, when the server says (the
+    /// optional `phoneSignIn` field); nil when it doesn't, and the app decides.
+    /// Phone sign-in fails on hardware (Firebase 17062) until the API key's
+    /// restriction changes, so it's hidden in Release until the server turns
+    /// it on (critic H3, 2026-10-20).
+    public private(set) var phoneSignIn: Bool?
 
     private let api: FerniAPI
     private let currentBuild: Int?
@@ -27,9 +33,10 @@ public final class MinimumBuild {
               let answer = Self.parse(data) else { return }
         updateRequired = Self.required(current: currentBuild, minimum: answer.minimumBuild)
         message = updateRequired ? answer.message : nil
+        phoneSignIn = answer.phoneSignIn
     }
 
-    struct Answer: Decodable { let minimumBuild: Int?; let message: String? }
+    struct Answer: Decodable { let minimumBuild: Int?; let message: String?; let phoneSignIn: Bool? }
 
     static func parse(_ data: Data) -> Answer? { try? JSONDecoder().decode(Answer.self, from: data) }
 

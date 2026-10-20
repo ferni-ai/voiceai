@@ -72,6 +72,23 @@ final class SignInUITests: XCTestCase {
         XCTAssertEqual(apple.frame.height, google.frame.height, accuracy: 1, "the two buttons match")
     }
 
+    /// Critic H3: phone sign-in fails on hardware until the key changes, so
+    /// Release hides it unless the server's app config turns it on. Hidden is
+    /// hidden: no field, no "or with your phone number", no Text me a code;
+    /// Apple and Google stay.
+    func testWithPhoneSignInOffOnlyAppleAndGoogleShow() {
+        let app = XCUIApplication.ferni(.home, account: "anonymous", extra: ["-FerniPhoneSignIn", "NO"])
+        let offer = app.buttons["home.signIn"]
+        XCTAssertTrue(offer.waitForExistence(timeout: 20))
+        offer.tap()
+        XCTAssertTrue(app.buttons["Sign in with Apple"].waitForExistence(timeout: 5), "Apple is offered")
+        XCTAssertTrue(app.buttons["Continue with Google"].exists, "Google is offered")
+        XCTAssertFalse(app.textFields["Phone number"].exists, "no phone field")
+        XCTAssertFalse(app.staticTexts["or with your phone number"].exists)
+        XCTAssertFalse(app.buttons["signIn.continue"].exists, "no Text me a code")
+        attachScreenshot("signin-no-phone")
+    }
+
     /// The button is never greyed out (its dimmed label failed the contrast
     /// audit): a tap with nothing typed says what to type, right there.
     func testTheButtonSaysWhatToTypeFirst() {
