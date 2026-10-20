@@ -49,6 +49,26 @@ enum UITestScenario: String {
         if storeData { UserDefaults.standard.set(true, forKey: "ferni.call.hasTalked") }
     }
 
+    /// The notes behind What Ferni remembers, learned over the last two months
+    /// (a journal needs dates: today, this week, this month, before that).
+    private static var memories: String {
+        let notes: [(id: String, content: String, kind: String, daysAgo: Double)] = [
+            ("m1", "Walk before work, three mornings a week", "goal", 0.2),
+            ("m6", "Sister Ana's birthday is Friday", "fact", 0.2),
+            ("m5", "Has a dog called Biscuit", "fact", 3),
+            ("m3", "Strong coffee, no sugar", "preference", 5),
+            ("m7", "Finished the garden this month", "fact", 12),
+            ("m2", "Read more fiction this winter", "goal", 20),
+            ("m4", "Long walks with Biscuit", "preference", 41),
+            ("m8", "Sunday evenings feel heavy before the week", "pattern", 60),
+        ]
+        let iso = ISO8601DateFormatter()
+        let items = notes.map { n in
+            #"{"id":"\#(n.id)","content":"\#(n.content)","type":"\#(n.kind)","sourceType":"persona_memory","learnedAt":"\#(iso.string(from: Date().addingTimeInterval(-n.daysAgo * 86_400)))"}"#
+        }
+        return #"{"memories":["# + items.joined(separator: ",") + "]}"
+    }
+
     /// The fake API behind `-FerniStoreData`: a team, the call's three
     /// remembered things, and notes. Anything else is a 404.
     static func api(baseURL: URL) -> FerniAPI {
@@ -60,7 +80,9 @@ enum UITestScenario: String {
             } else if path.hasSuffix("/api/memories/from-call") {
                 body = #"{"items":[{"id":"f1","subject":"you","detail":"Finished the garden. Tomatoes went in first"},{"id":"f2","subject":"Ana","detail":"her birthday is Friday"},{"id":"f3","subject":"you","detail":"Want to walk before work, three mornings a week"}]}"#
             } else if path.hasSuffix("/api/cognitive/memories") {
-                body = #"{"memories":[{"id":"m1","content":"Walk before work, three mornings a week","type":"goal","sourceType":"persona_memory"},{"id":"m2","content":"Read more fiction this winter","type":"goal","sourceType":"persona_memory"},{"id":"m3","content":"Strong coffee, no sugar","type":"preference","sourceType":"persona_memory"},{"id":"m4","content":"Long walks with Biscuit","type":"preference","sourceType":"persona_memory"},{"id":"m5","content":"Has a dog called Biscuit","type":"fact","sourceType":"persona_memory"},{"id":"m6","content":"Sister Ana's birthday is Friday","type":"fact","sourceType":"persona_memory"},{"id":"m7","content":"Finished the garden this month","type":"fact","sourceType":"persona_memory"},{"id":"m8","content":"Sunday evenings feel heavy before the week","type":"pattern","sourceType":"persona_memory"}]}"#
+                body = memories
+            } else if path.contains("/api/cognitive/memories/"), request.httpMethod == "DELETE" {
+                body = "{}"
             } else {
                 body = nil
             }
