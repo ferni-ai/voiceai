@@ -16,6 +16,8 @@ type Hook = { fail: number; failed: number; during?: () => unknown; hang?: Promi
 const failDeletes = vi.hoisted(() => new Map<string, number>());
 /** Deletes that landed, by path. */
 const deletes = vi.hoisted(() => [] as string[]);
+/** The order of writes and deletes, for the sequence tests. */
+const events = vi.hoisted(() => [] as string[]);
 const hooks = vi.hoisted(() => new Map<string, Hook>());
 /** Writes in flight right now, and the most at once. */
 const flight = vi.hoisted(() => ({ now: 0, max: 0 }));
@@ -45,16 +47,25 @@ const fakeDb = vi.hoisted(() => {
           }
           if (fails) throw new Error('unavailable');
           written.push({ path, data });
-          docs.set(path, { ...docs.get(path), ...data });
+          // A merge set: top-level fields replace; FieldValue.delete() removes the field
+          const isDelete = (v: unknown) =>
+            (v as { methodName?: string })?.methodName === 'FieldValue.delete';
+          const removed = Object.keys(data).filter((k) => isDelete(data[k]));
+          events.push(removed.length ? `delete ${removed}` : `set ${JSON.stringify(data.prefs)}`);
+          const doc: Record<string, unknown> = { ...docs.get(path), ...data };
+          for (const k of removed) delete doc[k];
+          docs.set(path, doc);
         },
         delete: async () => {
           const entry = [...failDeletes].find(([p, left]) => path.includes(p) && left > 0);
           if (entry) {
             failDeletes.set(entry[0], entry[1] - 1);
+            events.push('remove FAIL');
             throw new Error('unavailable');
           }
           docs.delete(path);
           deletes.push(path);
+          events.push('remove ok');
         },
       } as Record<string | symbol, unknown>,
       { get: (t, k) => (k in t ? t[k] : k === 'then' ? undefined : () => ref(path)) }
@@ -278,30 +289,26 @@ describe('held fields: never resurrected, never stale, written at shutdown', () 
     expect(docOf(userId, collection)?.prefs).toEqual({ optOut: 'new' });
   });
 
-  it('case B: the older fails while the newer is in flight; it lands; the older retries; newer wins', async () => {
+  it('case B: the older fails while the newer waits behind it; the older retries; newer wins', async () => {
     const parts = heldFields<Prefs>((d: Prefs) => ({ prefs: d.prefs }), 1_000);
     const sets: string[] = [];
     let failOld!: (e: Error) => void;
-    let landNew!: () => void;
     const dirty = new Set<string>();
     parts.keep('u', { prefs: { optOut: 'old' }, story: 'x' });
     const first = parts.write((_u, p) => {
       sets.push(JSON.stringify(p));
-      return new Promise((_, reject) => (failOld = reject));
+      return new Promise((_, reject) => {
+        failOld = reject;
+      });
     }, dirty);
     await Promise.resolve();
     parts.keep('u', { prefs: { optOut: 'new' }, story: 'y' });
-    const second = parts.write((_u, p) => {
-      sets.push(JSON.stringify(p));
-      return new Promise<void>((resolve) => (landNew = resolve));
-    }, dirty);
-    await Promise.resolve();
-    failOld(new Error('unavailable')); // the older fails while the newer is still in flight
+    await parts.write(async (_u, p) => void sets.push(JSON.stringify(p)), dirty); // waits: in flight
+    expect(sets).toHaveLength(1);
+    failOld(new Error('unavailable')); // the older fails; the newer was kept meanwhile
     await first;
-    landNew(); // then the newer lands
-    await second;
     await parts.write(async (_u, p) => void sets.push(JSON.stringify(p)), dirty, true); // retry
-    expect(sets.at(-1)).toContain('new'); // the older part was dropped: nothing older after it
+    expect(sets.slice(1)).toEqual(['{"prefs":{"optOut":"new"}}']); // nothing older after it
   });
 
   it('a compensating delete that fails is retried on the next flush: the doc ends deleted', async () => {
@@ -309,7 +316,13 @@ describe('held fields: never resurrected, never stale, written at shutdown', () 
     const userId = caller();
     s.set(userId, { prefs: { optOut: 'texts' }, story: 'x' });
     let release!: () => void;
-    hooks.set(`/${collection}/`, { fail: 0, failed: 0, hang: new Promise((r) => (release = r)) });
+    hooks.set(`/${collection}/`, {
+      fail: 0,
+      failed: 0,
+      hang: new Promise((r) => {
+        release = r;
+      }),
+    });
     await tick(1_000); // the write starts, and hangs
     const deleting = s.delete(userId);
     await vi.advanceTimersByTimeAsync(10_100);
@@ -327,7 +340,13 @@ describe('held fields: never resurrected, never stale, written at shutdown', () 
     const userId = caller();
     s.set(userId, { prefs: { optOut: 'old' }, story: 'x' });
     let release!: () => void;
-    hooks.set(`/${collection}/`, { fail: 0, failed: 0, hang: new Promise((r) => (release = r)) });
+    hooks.set(`/${collection}/`, {
+      fail: 0,
+      failed: 0,
+      hang: new Promise((r) => {
+        release = r;
+      }),
+    });
     await tick(1_000); // the old write starts, and hangs
     const deleting = s.delete(userId);
     await vi.advanceTimersByTimeAsync(10_100);
@@ -338,9 +357,94 @@ describe('held fields: never resurrected, never stale, written at shutdown', () 
     s.set(userId, { prefs: { optOut: 'new' }, story: 'y' }); // a new opt-out is kept
     await tick(1_000); // the retry fails again: the new opt-out waits behind it
     await tick(1_000); // the delete lands, then the new opt-out is written
-    expect(deletes.filter((p) => p.includes(userId))).toHaveLength(2); // the delete, then its retry
     expect(docOf(userId, collection)?.prefs).toEqual({ optOut: 'new' });
     expect(JSON.stringify(docOf(userId, collection))).not.toContain('old');
+  });
+
+  /** A held write that hangs, then the user's delete (it stops waiting after 10 s). */
+  async function lateWriteAfterDelete(failingDeletes: number) {
+    const { s, collection } = prefsStore();
+    const userId = caller();
+    s.set(userId, { prefs: { optOut: 'old' }, story: 'x' });
+    let release!: () => void;
+    hooks.set(`/${collection}/`, {
+      fail: 0,
+      failed: 0,
+      hang: new Promise((r) => {
+        release = r;
+      }),
+    });
+    await tick(1_000); // the old write starts, and hangs
+    const deleting = s.delete(userId);
+    await vi.advanceTimersByTimeAsync(10_100);
+    await deleting;
+    failDeletes.set(`/${collection}/`, failingDeletes);
+    events.length = 0;
+    release(); // the old write lands after the delete
+    await tick(0);
+    return { s, collection, userId };
+  }
+
+  it('verifier sequence: set old, remove FAIL, remove FAIL, set recreated: the recreated user stays', async () => {
+    const { s, collection, userId } = await lateWriteAfterDelete(2);
+    await tick(1_000); // the retry fails again
+    s.set(userId, { prefs: { optOut: 'recreated' }, story: 'y' }); // the user is recreated
+    await tick(1_000);
+    await tick(1_000);
+    expect(events).toEqual([
+      'set {"optOut":"old"}',
+      'remove FAIL',
+      'remove FAIL',
+      'delete prefs', // only the stale write's fields, deleted per field
+      'set {"optOut":"recreated"}',
+    ]);
+    expect(docOf(userId, collection)?.prefs).toEqual({ optOut: 'recreated' });
+  });
+
+  it('a pending compensating delete survives clearCache and runs on the next flush', async () => {
+    const { s, collection, userId } = await lateWriteAfterDelete(1);
+    expect(docOf(userId, collection)).toBeDefined(); // resurrected, for now
+    s.clearCache(userId);
+    await tick(1_000);
+    expect(docOf(userId, collection)).toBeUndefined();
+  });
+
+  it('a hung held write holds up neither the sync nor shutdown past 10 s', async () => {
+    const { s, collection } = prefsStore();
+    const stuck = caller();
+    const other = caller();
+    s.set(stuck, { prefs: { optOut: 'calls' }, story: 'x' });
+    hooks.set(`/${collection}/`, { fail: 0, failed: 0, hang: new Promise<void>(() => {}) }); // never settles
+    await tick(1_000); // the stuck user's write starts, and never settles
+    s.set(other, { prefs: { optOut: 'texts' }, story: 'y' });
+    await vi.advanceTimersByTimeAsync(12_000);
+    await tick(1_000);
+    expect(docOf(other, collection)?.prefs).toEqual({ optOut: 'texts' }); // the sync went on
+    let down = false;
+    const shutting = s.shutdown().then(() => void (down = true));
+    await vi.advanceTimersByTimeAsync(10_100);
+    await shutting;
+    expect(down).toBe(true);
+  });
+
+  it('shutdown waits at most 10 s even when a running flush has several hung writes', async () => {
+    const { s, collection } = prefsStore();
+    const [a, b] = [caller(), caller()];
+    for (const userId of [a, b]) {
+      s.set(userId, { prefs: { optOut: 'calls' }, story: 'x' });
+      hooks.set(`${userId}/${collection}/`, {
+        fail: 0,
+        failed: 0,
+        hang: new Promise<void>(() => {}),
+      });
+    }
+    await tick(1_000); // the flush starts: a's write hangs, then b's would (10 s each)
+    let down = false;
+    const shutting = s.shutdown().then(() => void (down = true));
+    await vi.advanceTimersByTimeAsync(10_100);
+    expect(down).toBe(true); // not 20 s
+    await vi.advanceTimersByTimeAsync(20_000);
+    await shutting;
   });
 
   it('a delete waits at most 10 s for a hung held write; a late landing is deleted again', async () => {
@@ -348,7 +452,13 @@ describe('held fields: never resurrected, never stale, written at shutdown', () 
     const userId = caller();
     s.set(userId, { prefs: { optOut: 'texts' }, story: 'x' });
     let release!: () => void;
-    hooks.set(`/${collection}/`, { fail: 0, failed: 0, hang: new Promise((r) => (release = r)) });
+    hooks.set(`/${collection}/`, {
+      fail: 0,
+      failed: 0,
+      hang: new Promise((r) => {
+        release = r;
+      }),
+    });
     await tick(1_000); // the write starts, and hangs
     let done = false;
     const deleting = s.delete(userId).then(() => void (done = true));
