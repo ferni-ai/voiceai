@@ -58,6 +58,18 @@ final class SequenceTests: XCTestCase {
         XCTAssertEqual(last.a.pos.y, last.b.pos.y, accuracy: 0.01, "and back")
     }
 
+    /// Expression audit P2 #10: connection_establishing's ring (scale 0 to
+    /// 1.5) never expanded.
+    func testTheConnectionRingExpands() {
+        let rig = AliveRig(seed: 58)
+        run(rig, from: 0, to: 1)
+        rig.play(sequence: "connection_establishing")
+        var largest: Float = 0
+        run(rig, from: 1, to: 2.2) { _, u in largest = max(largest, u.ring.y) }
+        // The ring's spring smooths the start; it reaches well past its rest (1).
+        XCTAssertGreaterThan(largest, 1.3, "out past him: \(largest)")
+    }
+
     /// Expression audit P2 #9: celebration_big's confetti rendered as cream
     /// sparkles. It's paper in the team's colours, thrown up and falling.
     func testABigWinThrowsConfetti() {

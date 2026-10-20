@@ -271,7 +271,10 @@ public final class AliveRig {
             let u = tr.ease(clamp((time - tr.at) / tr.duration, 0, 1)) * Double(tr.values.count - 1)
             let i = min(tr.values.count - 2, max(0, Int(u.rounded(.down))))
             let v = tr.values[i] + (tr.values[i + 1] - tr.values[i]) * (u - Double(i)), v0 = tr.values[0]
-            if SequenceLayer.multiplies(tr.key) { l[keyPath: tr.key] *= v0 != 0 ? v / v0 : 1 }
+            // A scale track from 0 (the connection ring's [0, 1.5]) is the scale
+            // itself: relative to 0 it stayed 1, and the ring never expanded
+            // (expression audit P2 #10).
+            if SequenceLayer.multiplies(tr.key) { l[keyPath: tr.key] *= v0 != 0 ? v / v0 : v }
             else if SequenceLayer.lights(tr.key) { l[keyPath: tr.key] += v - v0 }
             else { l[keyPath: tr.key] += v }
         }
