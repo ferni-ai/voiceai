@@ -72,6 +72,20 @@ export const FLAGS_ACTION_TO_BYPASS = {
   BYPASS_TEAM_UNLOCKS: { default: 'off', owner: 'tools', kind: 'kill-switch' },
 } as const satisfies Record<string, FlagSpec>;
 
+/** DEBUG_AGENT .. DEBUG_VOICE_AGENT */
+export const FLAGS_DEBUG = {
+  DEBUG_AGENT: { default: 'off', owner: 'voice', kind: 'config' },
+  DEBUG_BUILDER_PRIORITIZATION: { default: 'off', owner: 'intelligence', kind: 'config' },
+  DEBUG_GEMINI_ALL: { default: 'off', owner: 'voice', kind: 'config' },
+  DEBUG_GEMINI_MESSAGES: { default: 'off', owner: 'voice', kind: 'config' },
+  DEBUG_GEMINI_TRANSCRIPTS: { default: 'off', owner: 'voice', kind: 'config' },
+  DEBUG_INJECTIONS: { default: 'off', owner: 'intelligence', kind: 'config' },
+  DEBUG_ROUTING: { default: 'off', owner: 'voice', kind: 'config' },
+  DEBUG_TTS_PIPELINE: { default: 'off', owner: 'voice', kind: 'config' },
+  DEBUG_TURN_TIMING: { default: 'off', owner: 'voice', kind: 'config' },
+  DEBUG_VOICE_AGENT: { default: 'off', owner: 'voice', kind: 'config' },
+} as const satisfies Record<string, FlagSpec>;
+
 /** MOVE_OUTCOMES .. PHONE_AUDIO_MODE */
 export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   // on: log which moves each reply made and what followed, saved after the call (move-log.ts)
