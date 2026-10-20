@@ -708,7 +708,7 @@ async function testHTTPMCPConnection(
     clearTimeout(timeout);
     const err = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
 
-    if (err.name === 'AbortError') {
+    if (err.name === 'AbortError' || err.name === 'TimeoutError') {
       return {
         success: false,
         connected: false,

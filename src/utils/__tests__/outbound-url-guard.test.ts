@@ -108,6 +108,13 @@ describe('checkOutboundUrl: literal destinations', () => {
   });
 });
 
+describe('isBlockedIp: IPv4 embedded in IPv6', () => {
+  it('blocks IPv4-translated and local-use NAT64 addresses', () => {
+    expect(isBlockedIp('::ffff:0:7f00:1')).toBe(true);
+    expect(isBlockedIp('64:ff9b:1::a00:7')).toBe(true);
+  });
+});
+
 describe('assertSafeOutboundUrl: DNS answers', () => {
   it('refuses a public-looking name that resolves to a private address', async () => {
     resolveTo({ 'internal-alias.example.com': '10.0.0.7' });

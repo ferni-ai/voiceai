@@ -54,7 +54,9 @@ for (const [net6, prefix] of [
   ['::', 128],
   ['::1', 128],
   ['::', 96], // IPv4-compatible (deprecated): ::127.0.0.1
+  ['::ffff:0:0:0', 96], // IPv4-translated (SIIT): ::ffff:0:7f00:1
   ['64:ff9b::', 96], // NAT64, embeds an IPv4 address
+  ['64:ff9b:1::', 48], // local-use NAT64
   ['2001:db8::', 32],
   ['2002::', 16], // 6to4, embeds an IPv4 address
   ['fc00::', 7], // unique local
