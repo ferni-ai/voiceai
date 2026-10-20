@@ -1,6 +1,5 @@
 /**
  * Automated Outreach Scheduler
- *
  * > "We show up. Every day. Without being asked."
  *
  * Cloud Scheduler integration for automated proactive outreach:
@@ -39,6 +38,7 @@ import {
 } from './outreach-cadence.js';
 import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
 import { blocksGenericCheckIns } from './grounded-checkin.js';
+import { pushInAppIfOn } from './in-app-push.js';
 import { skipReasonCounts, type SchedulerResult } from './scheduler-report.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
@@ -238,6 +238,7 @@ async function processCandidate(
   });
 
   await proactive?.done(outreachType, deliveryResult.success);
+  await pushInAppIfOn(userId, deliveryResult, { ...content, kind: outreachType });
 
   if (deliveryResult.success) {
     // Record that we sent outreach

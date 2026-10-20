@@ -30,8 +30,10 @@ import {
   rememberDispatchIdentity,
   callerRecognitionEnabled,
   recognizePhoneSession,
+  startReturningCaller,
 } from '../voice-agent-entry/caller-recognition.js';
 import { flagOn } from '../../config/env-flag.js';
+import { isVerifiedIdentification } from '../../services/identity/verified-caller.js';
 
 // ============================================================================
 // TYPES
@@ -55,6 +57,8 @@ export interface UserIdentificationResult {
   identificationSource: string;
   /** User's preferred accent for TTS */
   userAccent: 'american' | 'british' | 'australian' | 'indian';
+  /** The server verified this account (verified-caller.ts); tools read it as userData.verifiedCaller */
+  verified: boolean;
 }
 
 // ============================================================================
@@ -99,6 +103,7 @@ export async function identifyUser(
   let userId: string | undefined;
   let userName: string | undefined;
   let identificationSource = 'anonymous';
+  let verified = false;
   let userAccent: 'american' | 'british' | 'australian' | 'indian' = 'american';
 
   diag.user('Step 1: Identifying user');
@@ -113,6 +118,7 @@ export async function identifyUser(
 
       userId = identification.userId;
       identificationSource = identification.source.type;
+      verified = isVerifiedIdentification(identification.source, metadata);
 
       // CRITICAL: Only use REAL names, never placeholders!
       // Priority: 1. Profile name (persistent), 2. Metadata name (if real)
@@ -170,6 +176,7 @@ export async function identifyUser(
     else if (phone && identificationSource !== 'anonymous' && identificationSource !== 'device')
       userId = userName = undefined;
     if (phone) identificationSource = 'phone';
+    if (phone) verified = false; // a number names the caller now, not the verified account
     // The prefetch above ran before recognition named the account (PHONE_PARITY).
     if (phone?.userId && flagOn('PHONE_PARITY')) void prefetchUserCommitments(phone.userId);
   }
@@ -193,12 +200,17 @@ export async function identifyUser(
 
   // Friends-and-family flags for this caller, before anything reads a flag (cohort-flags.ts).
   await applyCallerFlags(userId);
+  // An unverified phone caller who called before (RETURNING_CALLER, returning-caller.ts).
+  await startReturningCaller(room, sessionId, userId).catch((e: unknown) => {
+    diag.warn('Returning caller lookup failed', { error: String(e) });
+  });
 
   return {
     userId,
     userName,
     identificationSource,
     userAccent,
+    verified,
   };
 }
 
