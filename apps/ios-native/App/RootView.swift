@@ -79,6 +79,8 @@ struct RootView: View {
                         // on the grey selection; the primary text colour is clear of it.
                         Text(item.title)
                             .foregroundStyle(section == item ? FerniColor.textPrimary : Color.primary)
+                            // The audit's sidebar allowances name this row, not the words.
+                            .accessibilityIdentifier("sidebar.\(item)")
                     } icon: {
                         Image(systemName: item.symbol)
                     }
