@@ -443,7 +443,8 @@ export async function recordInteraction(
 
     // Update strength score based on interaction type weight
     const weight = INTERACTION_WEIGHTS[interaction.type] || 3;
-    contact.strengthScore = Math.min(100, (contact.strengthScore ?? 0) + weight); // earned from 0
+    contact.strengthScore = // earned from the first real interaction, never a stored default
+      contact.strengthScore === undefined ? weight : Math.min(100, contact.strengthScore + weight);
 
     // Decay prevention - recent interactions slow decay
     if (contact.strengthScore < 30) {
@@ -646,7 +647,7 @@ export async function getContactsNeedingAttention(
     if (contact.relationship === 'friend') score += 10;
 
     // High strength contacts get priority
-    score += (contact.strengthScore ?? 0) / 5;
+    if (contact.strengthScore !== undefined) score += contact.strengthScore / 5;
 
     return { contact, score, due: overdue || (daysSinceContact ?? 0) > NEEDS_ATTENTION_AFTER_DAYS };
   });
