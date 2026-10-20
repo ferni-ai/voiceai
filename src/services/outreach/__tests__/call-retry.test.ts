@@ -344,14 +344,10 @@ describe('placing the retry', () => {
     vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
     expect(await placeCallRetry(signed, 'seth', inHours)).toMatchObject({ success: false });
     expect(initiateCall).not.toHaveBeenCalled();
-    const { writeOptIn } = await import('../../messaging/consent.js');
-    const { phoneHash } = await import('../checkin-replies.js');
+    const { recordOwnerAttestation } = await import('../../messaging/consent-grants.js');
     const env = { MESSAGING_PIPELINE: 'on', LOG_HASH_SECRET: 'test-secret' };
-    await writeOptIn(phoneHash('+18015550123', env) as string, 'call', 'inbound-sms', {
-      env,
-      store: consentMem.store as never,
-      now: () => NOW,
-    });
+    const deps = { env, store: consentMem.store as never, now: () => NOW };
+    await recordOwnerAttestation('+18015550123', 'call', 'seth', deps, async () => true);
     expect(await placeCallRetry(signed, 'seth', inHours)).toEqual({ success: true });
   });
 

@@ -25,3 +25,35 @@ export function memoryConsentStore() {
   };
   return { store, docs, legacySms, legacyCall };
 }
+
+/**
+ * Just enough Firestore for firestoreConsentStore and the old phone-keyed
+ * stores (top-level docs, get/set/delete, runTransaction get/set), so a test
+ * can drive the real default deps: mock utils/firestore-utils' getFirestoreDb
+ * to return this. `docs` is keyed "collection/id".
+ */
+export function fakeConsentDb() {
+  const docs = new Map<string, Record<string, unknown>>();
+  const ref = (c: string, id: string) => ({
+    path: `${c}/${id}`,
+    get: async () => ({ exists: docs.has(`${c}/${id}`), data: () => docs.get(`${c}/${id}`) }),
+    set: async (data: Record<string, unknown>) => {
+      docs.set(`${c}/${id}`, { ...data });
+    },
+    delete: async () => {
+      docs.delete(`${c}/${id}`);
+    },
+  });
+  const db = {
+    collection: (c: string) => ({ doc: (id: string) => ref(c, id) }),
+    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>) =>
+      fn({
+        get: async (r: { path: string }) => ({
+          exists: docs.has(r.path),
+          data: () => docs.get(r.path),
+        }),
+        set: (r: { path: string }, data: Record<string, unknown>) => docs.set(r.path, { ...data }),
+      }),
+  };
+  return { db, docs };
+}
