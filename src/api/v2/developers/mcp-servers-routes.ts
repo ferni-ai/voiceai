@@ -4,6 +4,10 @@
  * Allows developers to register external MCP servers that agents can use.
  * Servers are stored in Firestore and loaded at session start.
  *
+ * Publisher servers must be reachable over http/websocket. stdio servers are
+ * refused everywhere here: a stdio server is a process this server would start
+ * from publisher-supplied configuration.
+ *
  * Endpoints:
  * - POST   /api/v2/developers/mcp-servers          - Register server
  * - GET    /api/v2/developers/mcp-servers          - List servers
@@ -34,6 +38,8 @@ import {
   CreateMCPServerSchema,
   UpdateMCPServerSchema,
   PaginationSchema,
+  STDIO_MCP_NOT_HOSTED_MESSAGE,
+  isStdioMCPConfig,
 } from './shared/validation.js';
 import {
   type DeveloperMCPServer,
@@ -183,6 +189,10 @@ async function handleCreateServer(
   }
 
   const body = await parseBody(req);
+  if (isStdioMCPConfig(body)) {
+    sendError(res, STDIO_MCP_NOT_HOSTED_MESSAGE, 400);
+    return true;
+  }
   const parseResult = CreateMCPServerSchema.safeParse(body);
 
   if (!parseResult.success) {
@@ -205,8 +215,6 @@ async function handleCreateServer(
     name: input.name,
     description: input.description,
     transport: input.transport,
-    command: input.command,
-    args: input.args,
     endpoint: input.endpoint,
     headers: input.headers,
     secrets: encryptedSecrets, // Encrypted with AES-256-GCM
@@ -324,6 +332,10 @@ async function handleUpdateServer(
   }
 
   const body = await parseBody(req);
+  if (isStdioMCPConfig(body)) {
+    sendError(res, STDIO_MCP_NOT_HOSTED_MESSAGE, 400);
+    return true;
+  }
   const parseResult = UpdateMCPServerSchema.safeParse(body);
 
   if (!parseResult.success) {
@@ -355,8 +367,6 @@ async function handleUpdateServer(
   if (input.name !== undefined) updates.name = input.name;
   if (input.description !== undefined) updates.description = input.description;
   if (input.transport !== undefined) updates.transport = input.transport;
-  if (input.command !== undefined) updates.command = input.command;
-  if (input.args !== undefined) updates.args = input.args;
   if (input.endpoint !== undefined) updates.endpoint = input.endpoint;
   if (input.headers !== undefined) updates.headers = input.headers;
   if (input.secrets !== undefined) {
@@ -444,6 +454,11 @@ async function handleTestServer(
     return true;
   }
 
+  if (isStdioMCPConfig(server)) {
+    sendError(res, STDIO_MCP_NOT_HOSTED_MESSAGE, 400);
+    return true;
+  }
+
   // Test connection based on transport type
   const result = await testMCPConnection(server);
 
@@ -481,6 +496,11 @@ async function handleListServerTools(
   const server = firestoreToServer(doc);
 
   if (!verifyOwnership(res, server.publisherId, auth)) {
+    return true;
+  }
+
+  if (isStdioMCPConfig(server)) {
+    sendError(res, STDIO_MCP_NOT_HOSTED_MESSAGE, 400);
     return true;
   }
 
@@ -543,10 +563,6 @@ async function testMCPConnection(server: DeveloperMCPServer): Promise<MCPServerT
 
     if (server.transport === 'websocket' && server.endpoint) {
       return await testWebSocketMCPConnection(server, decryptedSecrets, timeoutMs, startTime);
-    }
-
-    if (server.transport === 'stdio' && server.command) {
-      return await testStdioMCPConnection(server, decryptedSecrets, timeoutMs, startTime);
     }
 
     return {
@@ -865,180 +881,6 @@ async function testWebSocketMCPConnection(
       success: false,
       connected: false,
       error: 'WebSocket support not available',
-      latencyMs: Date.now() - startTime,
-    };
-  }
-}
-
-/**
- * Test stdio-based MCP connection (spawn process)
- */
-async function testStdioMCPConnection(
-  server: DeveloperMCPServer,
-  secrets: Record<string, string> | undefined,
-  timeoutMs: number,
-  startTime: number
-): Promise<MCPServerTestResult> {
-  try {
-    const { spawn } = await import('child_process');
-
-    return new Promise((resolve) => {
-      const processTimeout = setTimeout(() => {
-        resolve({
-          success: false,
-          connected: false,
-          error: 'Process connection timeout',
-          latencyMs: Date.now() - startTime,
-        });
-      }, timeoutMs);
-
-      // Build environment with secrets
-      const env = {
-        ...process.env,
-        ...secrets,
-      };
-
-      // Validate command against allowlist to prevent command injection
-      const ALLOWED_MCP_COMMANDS = [
-        'npx', 'node', 'python', 'python3', 'uvx', 'deno',
-        'mcp-server', 'mcp-proxy',
-      ];
-      const SHELL_METACHARACTERS = /[;|&$`\\!><(){}\[\]'"]/;
-
-      const rawCommand = server.command!;
-      if (SHELL_METACHARACTERS.test(rawCommand)) {
-        resolve({
-          success: false,
-          connected: false,
-          error: 'Command contains invalid characters',
-          latencyMs: Date.now() - startTime,
-        });
-        clearTimeout(processTimeout);
-        return;
-      }
-
-      const [cmd, ...defaultArgs] = rawCommand.split(' ');
-      if (!ALLOWED_MCP_COMMANDS.includes(cmd)) {
-        resolve({
-          success: false,
-          connected: false,
-          error: `Command not allowed: ${cmd}. Allowed: ${ALLOWED_MCP_COMMANDS.join(', ')}`,
-          latencyMs: Date.now() - startTime,
-        });
-        clearTimeout(processTimeout);
-        return;
-      }
-
-      const args = [...defaultArgs, ...(server.args || [])];
-
-      const child = spawn(cmd, args, {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env,
-      });
-
-      let stdout = '';
-      let initDone = false;
-
-      child.stdout.on('data', (data: Buffer) => {
-        stdout += data.toString();
-
-        // Try to parse complete JSON messages
-        const lines = stdout.split('\n');
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            const message = JSON.parse(line) as MCPMessage;
-
-            if (message.id === 1 && !message.error) {
-              initDone = true;
-
-              // Send initialized notification
-              const initializedNotif: MCPMessage = {
-                jsonrpc: '2.0',
-                method: 'notifications/initialized',
-              };
-              child.stdin.write(JSON.stringify(initializedNotif) + '\n');
-
-              // Send tools/list request
-              const toolsRequest: MCPMessage = {
-                jsonrpc: '2.0',
-                id: 2,
-                method: 'tools/list',
-              };
-              child.stdin.write(JSON.stringify(toolsRequest) + '\n');
-            } else if (message.id === 2) {
-              clearTimeout(processTimeout);
-              child.kill();
-
-              if (message.error) {
-                resolve({
-                  success: true,
-                  connected: true,
-                  tools: [],
-                  latencyMs: Date.now() - startTime,
-                });
-              } else {
-                const toolsData = message.result as { tools?: MCPToolDefinition[] } | undefined;
-                const toolNames = toolsData?.tools?.map((t) => t.name) || [];
-                resolve({
-                  success: true,
-                  connected: true,
-                  tools: toolNames,
-                  latencyMs: Date.now() - startTime,
-                });
-              }
-            }
-          } catch {
-            // Incomplete JSON, wait for more data
-          }
-        }
-        // Keep last incomplete line
-        stdout = lines[lines.length - 1] || '';
-      });
-
-      child.on('error', (err) => {
-        clearTimeout(processTimeout);
-        resolve({
-          success: false,
-          connected: false,
-          error: `Process error: ${err.message}`,
-          latencyMs: Date.now() - startTime,
-        });
-      });
-
-      child.on('close', (code) => {
-        if (!initDone) {
-          clearTimeout(processTimeout);
-          resolve({
-            success: false,
-            connected: false,
-            error: `Process exited with code ${code}`,
-            latencyMs: Date.now() - startTime,
-          });
-        }
-      });
-
-      // Send initialize request
-      const initRequest: MCPMessage = {
-        jsonrpc: '2.0',
-        id: 1,
-        method: 'initialize',
-        params: {
-          protocolVersion: '2024-11-05',
-          capabilities: {},
-          clientInfo: {
-            name: 'ferni-developer-platform',
-            version: '1.0.0',
-          },
-        },
-      };
-      child.stdin.write(JSON.stringify(initRequest) + '\n');
-    });
-  } catch (importError) {
-    return {
-      success: false,
-      connected: false,
-      error: 'Process spawn not available',
       latencyMs: Date.now() - startTime,
     };
   }
