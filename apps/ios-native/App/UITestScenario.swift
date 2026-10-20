@@ -21,6 +21,9 @@ enum UITestScenario: String {
     case handoff
     /// Store screenshots: a call that just ended, with the "I'll remember" card.
     case remember
+    /// Talk, refused because the account is on the waitlist: the gate's first
+    /// refusal (no details), then /api/waitlist/me says where they stand.
+    case waitlist
 
     static let current: UITestScenario? = value(after: "-FerniUITest").flatMap(UITestScenario.init(rawValue:))
 
@@ -67,9 +70,22 @@ enum UITestScenario: String {
         })
     }
 
+    /// The server a waitlisted account meets: /token refuses as #1953 does,
+    /// /api/waitlist/me answers as #2033 does (a made-up referral code).
+    static let waitlistAPI = FerniAPI(baseURL: config.apiBaseURL, idToken: { _ in "uitest" }, send: { request in
+        let path = request.url?.path ?? ""
+        let (status, body): (Int, String) = path.hasSuffix("/token")
+            ? (403, #"{"error":"not_admitted","status":"pending","waitlisted":true,"message":"You're on the list."}"#)
+            : path.hasSuffix("/api/waitlist/me")
+            ? (200, #"{"status":"waiting","position":432,"wavesAway":4,"nextWaveAt":"2026-10-22T17:00:00.000Z","referralUrl":"https://ferni.ai/?ref=abc123-fern","referrals":{"verified":1,"creditedDays":3,"max":5},"admittedAt":null,"seatExpiresAt":null,"foundingMember":false,"foundingWave":null}"#)
+            : (404, "{}")
+        return (Data(body.utf8), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
+    })
+
     @MainActor static func callSession(avatar: AvatarModel, level: AudioLevelMeter) -> CallSession {
         CallSession(
-            fetchToken: { _ in CallToken(token: "t", url: "wss://127.0.0.1:9", room: "ios-uitest", agentDispatched: true) },
+            fetchToken: current == .waitlist ? CallTokens.fetcher(api: waitlistAPI)
+                : { @Sendable _ in CallToken(token: "t", url: "wss://127.0.0.1:9", room: "ios-uitest", agentDispatched: true) },
             makeRoom: { ScriptedRoom(script: current == .handoff ? .handoff : .garden) },
             audio: SilentAudio(),
             avatar: avatar,

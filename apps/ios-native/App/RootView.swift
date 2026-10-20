@@ -49,6 +49,16 @@ struct RootView: View {
             } message: {
                 if let detail = model.noticeDetail { Text(detail) }
             }
+            // Talk refused for the waitlist: their place in line, not an error.
+            // Over the whole app, so the iPad sidebar isn't left behind it.
+            .fullScreenCover(item: Binding(
+                get: { model.call.waitlist }, set: { if $0 == nil { model.call.closeWaitlist() } }
+            )) { place in
+                WaitingView(place: place, onClose: { model.call.closeWaitlist() }, onComeIn: {
+                    model.call.closeWaitlist()
+                    model.talk()
+                })
+            }
             // Only a build the server names as too old; nothing can dismiss it.
             .fullScreenCover(isPresented: .constant(model.minimumBuild.updateRequired)) {
                 UpdateRequiredView(message: model.minimumBuild.message)

@@ -35,15 +35,21 @@ public enum CallTokens {
     ) -> @Sendable (_ personaID: String) async throws -> CallToken {
         { personaID in
             let room = "ios-\(UUID().uuidString.lowercased())"
-            let data = try await api.data("/token", query: [
+            let query = [
                 URLQueryItem(name: "room", value: room),
                 // "User" is the placeholder the agent knows not to say aloud
                 // (isRealName in user-identification-handler.ts), as the web sends.
                 URLQueryItem(name: "username", value: "User"),
                 URLQueryItem(name: "persona_id", value: personaID),
                 URLQueryItem(name: "timezone", value: TimeZone.current.identifier),
-            ] + (Self.from(await origin()).map { [URLQueryItem(name: "from", value: $0)] } ?? []))
-            return try JSONDecoder().decode(CallToken.self, from: data)
+            ] + (Self.from(await origin()).map { [URLQueryItem(name: "from", value: $0)] } ?? [])
+            do {
+                let data = try await api.data("/token", query: query, readsWaitlist: true)
+                return try JSONDecoder().decode(CallToken.self, from: data)
+            } catch FerniAPIError.waitlisted(let place) where place.detailsUnknown {
+                // The gate's first refusal (#1953) says "waitlisted" but not where: ask.
+                throw FerniAPIError.waitlisted(await WaitlistStatus.me(api: api) ?? place)
+            }
         }
     }
 

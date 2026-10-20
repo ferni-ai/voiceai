@@ -3,7 +3,7 @@ import XCTest
 /// Launches Ferni into one screen of `UITestScenario` (App/UITestScenario.swift):
 /// no network, no account, no microphone, no sound.
 enum Screen: String, CaseIterable {
-    case home, consent, settings, call
+    case home, consent, settings, call, waitlist
 
     /// Something that's only there once the screen is ready.
     func ready(in app: XCUIApplication) -> XCUIElement {
@@ -12,6 +12,7 @@ enum Screen: String, CaseIterable {
         case .consent: app.buttons["Not now"]
         case .settings: app.navigationBars["Settings"]
         case .call: app.buttons["End call"]
+        case .waitlist: app.staticTexts["You’re on the list"]
         }
     }
 }

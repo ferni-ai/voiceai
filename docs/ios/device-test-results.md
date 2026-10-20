@@ -4,6 +4,19 @@ Results of `device-test-checklist.md`, newest first. "Not run" means not
 proven on hardware: the simulator never runs LiveCommunicationKit, so a
 simulator pass says nothing about those steps.
 
+## 2026-10-20: Seth's iPhone 16 Pro Max, build 2026102000.54 (`fe0c39522`)
+
+**Owner-observed, critic C2 (sign in to the account you already have): PASS.**
+Seth signed in with Google on the phone, and a call afterwards greeted him by
+name, so the app was on his real Ferni account, not a new anonymous one. This
+is Seth's report, relayed by the coordinator; no trace was captured.
+
+| Check | Result |
+|---|---|
+| Google sign-in to an existing account | Pass, owner-observed |
+| The next call knows who he is (greeted by name) | Pass, owner-observed |
+| Phone-number sign-in | Blocked: Firebase 17062, the API key's restriction. Waiting on Seth's choice of fix (A or B) |
+
 ## 2026-10-19: Seth's iPhone 16 Pro Max (00008140-001631841190801C)
 
 Builds: 9ad88b3bd (Seth's install, signed Debug, API https://app.ferni.ai),
