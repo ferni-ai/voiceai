@@ -42,7 +42,7 @@ final class AliveRenderTests: XCTestCase {
         try render(.settled(Face.of(id), body: ferni, glow: ferniLight), name: id)
     }
 
-    func testTheUniformsAreTwentyOneFloat4Slots() {
+    func testTheUniformsAreWholeFloat4Slots() {
         XCTAssertEqual(MemoryLayout<AliveUniforms>.size, AliveUniforms.slots * 16)
     }
 

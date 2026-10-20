@@ -113,6 +113,7 @@ public extension AliveUniforms {
         u.arch = SIMD4(Float(clamp(face.left.arch, 0, 1)), Float(clamp(face.right.arch, 0, 1)), Float(clamp(face.halo, 0, 1.2)), 0)
         u.lids = SIMD4(Float(clamp(face.left.top, 0, 1)), Float(clamp(face.right.top, 0, 1)),
                        Float(clamp(face.left.bot, 0, 1)), Float(clamp(face.right.bot, 0, 1)))
+        u.caps = SIMD4(Float(clamp(face.capTop, 0, 0.9)), Float(clamp(face.capBottom, 0, 0.7)), 0, 0)
         return u
     }
 }

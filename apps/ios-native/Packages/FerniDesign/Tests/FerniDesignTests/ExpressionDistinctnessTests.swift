@@ -24,10 +24,9 @@ final class ExpressionDistinctnessTests: XCTestCase {
     /// Pairs still under the threshold, as found on 2026-10-20 before any fix.
     /// Fixing one makes `testTheKnownTwinsAreStillTwins` fail: remove it here.
     static let knownTwins: Set<Pair> = [
-        Pair("determined", "resolute"), Pair("caring", "compassionate"), Pair("empathetic", "sympathetic"),
-        Pair("listening", "nervous"), Pair("peaceful", "wise"), Pair("confident", "encouraging"),
-        Pair("present", "speaking"), Pair("focused", "frustrated"), Pair("absorbing", "nervous"),
-        Pair("receptive", "present"),
+        Pair("determined", "resolute"), Pair("caring", "compassionate"),
+        Pair("listening", "nervous"), Pair("peaceful", "wise"),
+        Pair("focused", "frustrated"), Pair("absorbing", "nervous"),
     ]
 
     struct Pair: Hashable, CustomStringConvertible {
