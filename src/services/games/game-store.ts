@@ -67,9 +67,9 @@ export async function loadGameMemory(userId: string): Promise<GameMemory> {
     log.warn({ error, userId }, '🎮 Failed to load game memory from Firestore');
   }
 
-  // Nothing stored (or the read failed: not cached, so the next load reads storage again)
+  // Nothing stored, or the read failed (then fromStorage stays unset, so nothing is written)
   const emptyMemory = cached ?? createEmptyGameMemory();
-  if (fromStorage.has(userId)) gameMemoryCache.set(userId, emptyMemory);
+  gameMemoryCache.set(userId, emptyMemory);
   return emptyMemory;
 }
 
