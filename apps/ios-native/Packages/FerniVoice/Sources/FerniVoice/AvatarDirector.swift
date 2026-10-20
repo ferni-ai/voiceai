@@ -16,6 +16,8 @@ public enum CallEvent: Equatable, Sendable {
     case agentJoined
     case agentState(AgentSignals.AgentActivity)
     case expression(AvatarExpression, hold: Duration?)
+    /// An 80-120 ms flash over whatever face is showing.
+    case micro(MicroExpression)
     case handoffStarted(to: String)
     case handoffCompleted(to: String, name: String)
     case handoffFailed
@@ -55,6 +57,8 @@ public struct AvatarDirector: Equatable, Sendable {
     private var firstTurnSeen = false
     private var firstWordPlayed = false
     private var presencePlayed = false
+    /// The latest micro-expression, for the body to flash once.
+    public private(set) var micro: MicroBeat?
 
     public init() {}
 
@@ -120,6 +124,8 @@ public struct AvatarDirector: Equatable, Sendable {
             effects += setTurn(Self.turn(for: activity), now: now)
         case .expression(let face, let hold):
             expressionOverride = (face, now + (hold ?? Self.defaultHold))
+        case .micro(let m):
+            micro = MicroBeat(m, count: (micro?.count ?? 0) + 1)
         case .handoffStarted(let to):
             handoffTo = to
         case .handoffCompleted(let to, let name):
@@ -211,6 +217,6 @@ public struct AvatarDirector: Equatable, Sendable {
 
     public static func == (lhs: AvatarDirector, rhs: AvatarDirector) -> Bool {
         lhs.pose == rhs.pose && lhs.expression == rhs.expression && lhs.personaID == rhs.personaID
-            && lhs.nextDeadline == rhs.nextDeadline
+            && lhs.nextDeadline == rhs.nextDeadline && lhs.micro == rhs.micro
     }
 }

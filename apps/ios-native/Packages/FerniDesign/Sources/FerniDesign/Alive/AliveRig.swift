@@ -45,6 +45,8 @@ public final class AliveRig {
     private var nextBlink = 2.5, nextSaccade = 0.0, nextNod = 0.0
     private var gazeTarget = SIMD2<Double>(0, 0)
     private var overlay: (id: String, until: Double)?
+    private var lastActivity = AvatarActivity.idle
+    private var listeningMicros: [(at: Double, micro: MicroExpression)] = []
     private var keyed: (moment: KeyedMoment, start: Double, fired: Int)?
     private var handoff: Handoff?
     private var bodyFrom: SIMD3<Float>, bodyTo: SIMD3<Float>, glowFrom: SIMD3<Float>, glowTo: SIMD3<Float>, colourT = 1.0
@@ -128,6 +130,30 @@ public final class AliveRig {
     }
 
     func flash(_ id: String, seconds: Double) { overlay = (id, time + seconds * tempo) }
+
+    /// A micro-expression: its face for 80-120 ms (at the persona's tempo),
+    /// felt more than seen. It never cuts a longer flash short, and still
+    /// frames don't play it.
+    public func micro(_ m: MicroExpression) {
+        guard !still, let flash = m.flash else { return }
+        if let overlay, overlay.until - time > flash.seconds * tempo { return }
+        self.flash(flash.face, seconds: flash.seconds)
+    }
+
+    /// When Ferni starts listening: recognition at 0.3 s ("I hear you"), then
+    /// interest or warmth at 1.5 s, each only while he's still listening (the
+    /// prototype's runCall).
+    private func stepMicros() {
+        if activity != lastActivity {
+            lastActivity = activity
+            listeningMicros = activity == .listening
+                ? [(time + 0.3, .recognition), (time + 1.5, rng.unit() < 0.5 ? .interest : .warmth)] : []
+        }
+        while let next = listeningMicros.first, time >= next.at {
+            listeningMicros.removeFirst()
+            micro(next.micro)
+        }
+    }
 
     // MARK: Touch, tears, the firefly and particles
 
@@ -294,6 +320,7 @@ public final class AliveRig {
         cues = pending
         pending.removeAll()
         let m = motion
+        stepMicros()
         let face = Face.of(faceID())
         apply(face, m: m)
         stepHandoff(m: m)

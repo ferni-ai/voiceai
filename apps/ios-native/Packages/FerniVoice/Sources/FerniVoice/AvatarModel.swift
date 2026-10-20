@@ -20,6 +20,7 @@ public final class AvatarModel {
     public var pose: AvatarPose { director.pose }
     public var expression: AvatarExpression { director.expression }
     public var personaID: String { director.personaID }
+    public var micro: MicroBeat? { director.micro }
 
     /// Reduce Motion lengthens the turn settle (the view drops scale and gaze).
     public var reduceMotion: Bool {

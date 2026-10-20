@@ -93,6 +93,18 @@ struct AnticipationSignalMessage {
 /// `microExpressions`).
 public enum MicroExpressionType: String, Sendable {
     case concern, delight, interest, warmth, recognition, protective, connection
+
+    /// The design system's micro-expression for it. The tokens have no
+    /// protective or connection micro, so those read as concern and warmth.
+    public var design: MicroExpression {
+        switch self {
+        case .concern, .protective: .concern
+        case .delight: .delight
+        case .interest: .interest
+        case .warmth, .connection: .warmth
+        case .recognition: .recognition
+        }
+    }
 }
 
 // MARK: - Expression Event Mapper

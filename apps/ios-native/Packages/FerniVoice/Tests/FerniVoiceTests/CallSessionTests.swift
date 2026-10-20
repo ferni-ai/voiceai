@@ -360,6 +360,21 @@ final class CallSessionTests: XCTestCase {
         await until(!session.isUserSpeaking)
     }
 
+    /// The agent's humanization signals carry a micro-expression; it reaches
+    /// the avatar (parity item 2), with the expression it comes with.
+    func testAHumanizationSignalFlashesItsMicroExpression() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        XCTAssertNil(session.avatar.micro)
+        rooms.made[0].send(.data(Data(#"{"type":"humanization_signal","signalType":"high_engagement"}"#.utf8)))
+        await until(session.avatar.micro != nil)
+        XCTAssertEqual(session.avatar.micro?.expression, .delight)
+        XCTAssertEqual(session.avatar.expression, .excited)
+        rooms.made[0].send(.data(Data(#"{"type":"humanization_signal","signalType":"concern_detected","concernLevel":"crisis"}"#.utf8)))
+        await until(session.avatar.micro?.expression == .concern)
+    }
+
     /// Untrusted numbers in a packet never crash the app (security review).
     func testHugeOrNegativeExpressionTimesAreClampedNotFatal() async {
         let session = makeSession()
