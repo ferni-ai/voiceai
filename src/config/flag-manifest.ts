@@ -18,6 +18,7 @@ import {
   FLAG_KINDS,
   FLAG_OWNERS,
   FLAGS_ACTION_TO_BYPASS,
+  FLAGS_HONEST_TO_IDENTITY,
   FLAGS_MOVE_TO_PHONE_AUDIO,
   type FlagSpec,
 } from './flag-manifest-entries.js';
@@ -209,10 +210,7 @@ export const FLAG_MANIFEST = {
   HANDOFF_TALK_THROUGH: { default: 'off', owner: 'voice', kind: 'experiment' },
   HAPPY_EXITS: { default: 'off', owner: 'voice', kind: 'experiment' },
   HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
-  HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on: POST /api/identity/merge-anonymous moves an anonymous account's data into the signed-in one
-  IDENTITY_MERGE_ANON: { default: 'off', owner: 'platform', kind: 'experiment' },
+  ...FLAGS_HONEST_TO_IDENTITY,
   INSIDE_JOKES: { default: 'off', owner: 'memory', kind: 'experiment' },
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: the voice agent publishes intelligence events; nothing consumes intelligence_queue (intelligence-publisher.ts)

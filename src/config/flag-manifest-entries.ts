@@ -72,6 +72,14 @@ export const FLAGS_ACTION_TO_BYPASS = {
   BYPASS_TEAM_UNLOCKS: { default: 'off', owner: 'tools', kind: 'kill-switch' },
 } as const satisfies Record<string, FlagSpec>;
 
+/** HONEST_FRIEND .. IDENTITY_MERGE_ANON */
+export const FLAGS_HONEST_TO_IDENTITY = {
+  HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
+  HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: POST /api/identity/merge-anonymous moves an anonymous account's data into the signed-in one
+  IDENTITY_MERGE_ANON: { default: 'off', owner: 'platform', kind: 'experiment' },
+} as const satisfies Record<string, FlagSpec>;
+
 /** MOVE_OUTCOMES .. PHONE_AUDIO_MODE */
 export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   // on: log which moves each reply made and what followed, saved after the call (move-log.ts)
