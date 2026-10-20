@@ -138,4 +138,74 @@ final class AliveTouchTests: XCTestCase {
         _ = run(rig, from: 0, to: 3) { _, _ in any = any || !rig.particles.isEmpty }
         XCTAssertFalse(any)
     }
+
+    /// Parity item 7 (the prototype's tapReaction): four taps within 1.4 s and
+    /// he spins once, silly, with sparkles and a whoosh, then faces front.
+    private func taps(_ rig: AliveRig, _ n: Int, every gap: Double, from t0: Double) -> Double {
+        var t = t0
+        for i in 0..<n {
+            if i > 0 { _ = run(rig, from: t, to: t + gap); t += gap }
+            rig.poke(at: SIMD2(0.2, 0.3))
+        }
+        return t
+    }
+
+    func testFourQuickTapsSpinHimOnceWithSparklesAndAWhoosh() {
+        let rig = AliveRig(seed: 11)
+        _ = run(rig, from: 0, to: 1)
+        let t = taps(rig, 4, every: 0.3, from: 1)
+        var turn: Float = 0, whooshes = 0, sparkles = 0, last: Float = 0, backward: Float = 0
+        _ = run(rig, from: t, to: t + 1.2) { _, u in
+            turn = max(turn, u.lean.z)
+            let d = u.lean.z - last
+            if d < 0, d > -.pi { backward -= d } // not the full turn handed back at the end
+            last = u.lean.z
+            whooshes += rig.cues.filter { $0 == .whoosh }.count
+            sparkles = max(sparkles, rig.particles.filter { $0.kind == .sparkle }.count)
+        }
+        XCTAssertGreaterThan(turn, .pi, "past half a turn")
+        XCTAssertEqual(whooshes, 1)
+        XCTAssertGreaterThanOrEqual(sparkles, 8)
+        _ = run(rig, from: t + 1.2, to: t + 4) { _, u in
+            let d = u.lean.z - last
+            if d < 0, d > -.pi { backward -= d }
+            last = u.lean.z
+        }
+        XCTAssertLessThan(backward, 0.6, "he finishes the turn forward, never unwinds it")
+        let settled = rig.frame(at: t + 4.02)
+        XCTAssertLessThan(abs(settled.lean.z), 0.25, "facing front again")
+    }
+
+    func testTheSpinFaceIsSilly() {
+        let rig = AliveRig(seed: 12)
+        _ = run(rig, from: 0, to: 1)
+        let t = taps(rig, 4, every: 0.2, from: 1)
+        _ = run(rig, from: t, to: t + 0.5)
+        XCTAssertEqual(rig.faceID(), "silly")
+    }
+
+    func testThreeQuickTapsOrFourSlowOnesDoNotSpin() {
+        for (n, gap) in [(3, 0.3), (4, 0.6)] {
+            let rig = AliveRig(seed: 13)
+            _ = run(rig, from: 0, to: 1)
+            let t = taps(rig, n, every: gap, from: 1)
+            var turn: Float = 0
+            _ = run(rig, from: t, to: t + 1.5) { _, u in turn = max(turn, abs(u.lean.z)) }
+            XCTAssertLessThan(turn, 0.6, "\(n) taps \(gap) s apart")
+        }
+    }
+
+    func testUnderReduceMotionFourQuickTapsDoNotSpin() {
+        let rig = AliveRig(seed: 14)
+        rig.reduceMotion = true
+        _ = run(rig, from: 0, to: 1)
+        let t = taps(rig, 4, every: 0.2, from: 1)
+        var turn: Float = 0, whooshes = 0
+        _ = run(rig, from: t, to: t + 1.5) { _, u in
+            turn = max(turn, abs(u.lean.z))
+            whooshes += rig.cues.filter { $0 == .whoosh }.count
+        }
+        XCTAssertLessThan(turn, 0.6)
+        XCTAssertEqual(whooshes, 0)
+    }
 }

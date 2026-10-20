@@ -180,6 +180,10 @@ public final class AliveRig {
     private var pending: [KeyedCue] = []
     private var pokeDir = SIMD3<Double>(0, 0.3, 0.95)
     private var pokeTimes: [Double] = []
+    /// Taps in the last 1.4 s: four make him spin (the prototype's tapReaction).
+    private var quickTaps: [Double] = []
+    private var spinStart: Double?
+    private var spinSparkles = 0
     private var lastTouchCue = -10.0
     private var quietSince = 0.0
     private var fireflyStart: Double?, fireflyDone = false
@@ -188,19 +192,28 @@ public final class AliveRig {
 
     /// A finger on Ferni at `point`, in Ferni radii from his centre (y up):
     /// a jelly dent there, a glance at the finger, a small flash of delight,
-    /// and one soft tap in the hand at most every 2 s. After five in ten
-    /// seconds it's only a calm "I'm here" look. Nothing is counted or kept.
+    /// and one soft tap in the hand at most every 2 s. Four quick taps (within
+    /// 1.4 s) and he spins, silly, with sparkles and a whoosh. After five in
+    /// ten seconds it's only a calm "I'm here" look. Nothing is counted or kept.
     public func poke(at point: SIMD2<Double>) {
         let len = simd_length(point)
         let p = len > 1 ? point / len : point
         quietSince = time
         if fireflyStart != nil { fireflyStart = nil; fireflyDone = true }
         pokeTimes = pokeTimes.filter { time - $0 < 10 } + [time]
+        quickTaps = quickTaps.filter { time - $0 < 1.4 } + [time]
         pokeDir = simd_normalize(SIMD3(p.x, p.y, max((1 - simd_length_squared(p)).squareRoot(), 0.25)))
         gazeTarget = SIMD2(clamp(p.x, -0.85, 0.85), clamp(p.y, -0.7, 0.7))
         nextSaccade = time + 1.4
         if reduceMotion {
             scheduleBlink(at: time)
+        } else if quickTaps.count >= 4, spinStart == nil {
+            quickTaps = []
+            spinStart = time
+            spinSparkles = 10
+            flash("silly", seconds: 1.6)
+            pending.append(.whoosh)
+            self[.poke].v += 9
         } else if pokeTimes.count >= 5 {
             flash("content", seconds: 1.6)
             scheduleBlink(at: time + 0.15, slow: true)
@@ -213,6 +226,18 @@ public final class AliveRig {
         if time - lastTouchCue >= 2 {
             lastTouchCue = time
             pending.append(.touch)
+        }
+    }
+
+    /// One turn about his axis in 0.9 s, easing out; then the yaw unwinds the
+    /// full turn so he settles facing front.
+    private func stepSpin() {
+        guard let spinStart else { return }
+        let u = clamp((time - spinStart) / 0.9, 0, 1)
+        self[.yaw].t += 2 * .pi * (1 - pow(1 - u, 3))
+        if u >= 1 {
+            self.spinStart = nil
+            self[.yaw].x -= 2 * .pi
         }
     }
 
@@ -262,6 +287,7 @@ public final class AliveRig {
                 }
             }
         }
+        if spinSparkles > 0 { burst(.sparkle, spinSparkles); spinSparkles = 0 }
         for cue in cues {
             if cue == .sparkle { burst(.sparkle, 6) }
             if cue == .heart { burst(.heart, 3) }
@@ -326,6 +352,7 @@ public final class AliveRig {
         stepHandoff(m: m)
         stepGuest(dt, m: m)
         stepGaze(face, m: m)
+        stepSpin()
 
         // Ferni's real voice moves the body: loudness as an envelope, syllable onsets as nods.
         if activity == .speaking {
