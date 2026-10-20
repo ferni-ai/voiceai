@@ -1,9 +1,9 @@
 # iPhone app PRs over the 400-line review cap
 
 The PR size gate (`~/.claude/hooks/pdlc/pr_size_gate.py`) counts added plus
-deleted lines, leaving out tests, lockfiles and generated files. Four commits
+deleted lines, leaving out tests, lockfiles and generated files. Five commits
 in the iPhone rebuild chain are over 400 lines. The overrides below were
-approved by the lead on 2026-10-19. Use each reason verbatim as
+approved by the lead: the first four on 2026-10-19, `189099e05` on 2026-10-20. Use each reason verbatim as
 `PDLC_LARGE_PR="<reason>" gh pr create ...`, and say the same in the PR body.
 
 | Commit | Change | Added | Deleted | Reason (verbatim) |
@@ -12,6 +12,7 @@ approved by the lead on 2026-10-19. Use each reason verbatim as
 | `5066c222f` | Remove the old iPhone app | 0 | 12,886 | `pure deletion of the unbuilt old app` |
 | `5c817d152` | One Canvas avatar on one clock | 363 | 761 | `+363 added; -678 is deleting the replaced FerniWindowAvatar` |
 | `59865de19` | The call happens in the same room | 312 | 161 | `+312 added; restyle replaces old views` |
+| `189099e05` | Ferni's body moves on springs, keys and the real voice | 427 | 0 | `one new file, AliveRig.swift; 27 over, and splitting it would cut the rig in half` |
 
 ## The shell PR: what a reviewer can skip
 
