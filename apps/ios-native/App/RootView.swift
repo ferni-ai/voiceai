@@ -135,6 +135,7 @@ struct TeamScreen: View {
                     .accessibilityIdentifier("team.notYet.\(persona.id)")
             }
         }
+        .ferniPaper()
         .navigationTitle("Team")
     }
 
