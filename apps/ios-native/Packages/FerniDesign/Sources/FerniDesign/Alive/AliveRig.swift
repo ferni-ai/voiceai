@@ -795,7 +795,9 @@ public final class AliveRig {
         } else if time > nextSaccade {
             let prev = gazeTarget
             gazeTarget = SIMD2(f.gx + rng.range(-0.2, 0.2) * (activity == .listening ? 0.5 : 1), f.gy + rng.range(-0.14, 0.14))
-            if activity == .thinking { gazeTarget = SIMD2(0.5 + rng.range(-0.1, 0.1), 0.42) }
+            // Thinking looks up and aside, unless the expression has a look of its
+            // own (it overrode every face's gaze: expression audit P2 #8).
+            if activity == .thinking, abs(f.gx) + abs(f.gy) < 0.01 { gazeTarget = SIMD2(0.5 + rng.range(-0.1, 0.1), 0.42) }
             if simd_distance(gazeTarget, prev) > 0.25, rng.unit() < 0.35 { scheduleBlink(at: time + 0.01) }
             nextSaccade = time + rng.range(1.1, 3.4)
         }
