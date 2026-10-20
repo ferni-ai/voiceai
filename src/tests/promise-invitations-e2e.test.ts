@@ -40,7 +40,7 @@ const { trackFerniCommitments } =
   await import('../services/superhuman/semantic-intelligence/integration.js');
 const { clearCommitmentCache } =
   await import('../services/superhuman/semantic-intelligence/ferni-commitments.js');
-const { buildPromiseContext, resetOfferedMisses } =
+const { buildPromiseContext } =
   await import('../services/superhuman/semantic-intelligence/promise-keeper.js');
 const { writeTrustDoc } = await import('../services/trust-systems/trust-doc.js');
 const { TIMELINE_DOC } = await import('../services/trust-systems/dashboard-history.js');
@@ -92,7 +92,6 @@ async function ferniSays(day: number, reply: string): Promise<void> {
 beforeEach(async () => {
   fs.store.clear();
   clearCommitmentCache();
-  resetOfferedMisses();
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(START);
   await seedConversations();
@@ -119,7 +118,6 @@ describe('invitations are remembered, never broken', () => {
     expect(lapsed.violated).toBeUndefined();
 
     vi.setSystemTime(at(10 * DAY));
-    resetOfferedMisses();
     clearCommitmentCache();
     expect(await buildPromiseContext(UID)).not.toContain("PROMISES YOU DIDN'T KEEP");
     expect(await followsThrough(11)).toEqual({ kept: 1, total: 1 });

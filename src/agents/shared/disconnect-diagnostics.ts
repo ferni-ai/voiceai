@@ -201,17 +201,35 @@ export interface DisconnectAnalysis {
 }
 
 /**
+ * Reasons the voice agent gives by name (voice-agent-entry's finish reasons)
+ * for a call that ended normally. parseInt turned each into code 0, which is
+ * not graceful, so ordinary hang-ups were filed as crashes. Keys are lower case.
+ */
+const GRACEFUL_NAMED_REASONS: Record<string, { name: string; description: string }> = {
+  empty_room: { name: 'EMPTY_ROOM', description: 'Everyone else left the room' },
+  participant_left: { name: 'PARTICIPANT_LEFT', description: 'The caller left the room' },
+  client_initiated: { name: 'CLIENT_INITIATED', description: 'User intentionally disconnected' },
+  'job.shutdowncallback': { name: 'JOB_SHUTDOWN', description: 'LiveKit ended the job' },
+};
+
+/**
  * Analyze a disconnect event and provide diagnostic information
  */
 export function analyzeDisconnect(context: DisconnectContext): DisconnectAnalysis {
+  const named =
+    typeof context.reason === 'string'
+      ? GRACEFUL_NAMED_REASONS[context.reason.trim().toLowerCase()]
+      : undefined;
   const reasonCode =
     typeof context.reason === 'number' ? context.reason : parseInt(String(context.reason), 10) || 0;
 
-  const reasonInfo = DISCONNECT_REASONS[reasonCode] || DISCONNECT_REASONS[0];
+  const reasonInfo = named
+    ? { ...DISCONNECT_REASONS[1], ...named, likelyCauses: ['Call ended normally'] }
+    : DISCONNECT_REASONS[reasonCode] || DISCONNECT_REASONS[0];
 
   // Determine if graceful (user-initiated or expected)
   const gracefulCodes = [1, 8, 12]; // CLIENT_INITIATED, MIGRATION, USER_REJECTED
-  const wasGraceful = gracefulCodes.includes(reasonCode);
+  const wasGraceful = named !== undefined || gracefulCodes.includes(reasonCode);
 
   // Determine if needs investigation
   const criticalCodes = [2, 6, 10]; // DUPLICATE_IDENTITY, STATE_MISMATCH, ROOM_CLOSED
