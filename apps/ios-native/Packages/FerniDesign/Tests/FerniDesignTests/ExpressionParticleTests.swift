@@ -95,7 +95,25 @@ final class ExpressionParticleTests: XCTestCase {
         return stride(from: 3, to: data.count, by: 4).filter { data[$0] > 32 }.count
     }
 
-    func testReduceMotionShowsNone() {
-        XCTAssertTrue(shown("sleepy", reduceMotion: true).isEmpty)
+    /// Reduce Motion keeps the feelings, held still and faded in and out
+    /// (it removed them all, so confused read as neutral: expression audit
+    /// P1 #7). The sparkle bursts, which are only motion, don't play.
+    func testReduceMotionHoldsTheFeelingsStill() {
+        for (id, kind) in [("confused", Kind.question), ("sleepy", .z), ("nervous", .sweat), ("loving", .heart)] {
+            var spots = Set<String>(), alphas: [Double] = [], frames = 0
+            let most = shown(id, reduceMotion: true) { rig in
+                let mine = rig.particles.filter { $0.kind == kind }
+                if !mine.isEmpty { frames += 1 }
+                for p in mine { spots.insert("\(p.x),\(p.y)"); alphas.append(p.alpha) }
+            }
+            XCTAssertGreaterThanOrEqual(most[kind] ?? 0, 1, "\(id): its \(kind) stays")
+            XCTAssertGreaterThan(frames, 20, "\(id): on screen a while")
+            // Each one where it appeared: as many places as there are of them.
+            XCTAssertEqual(spots.count, most[kind] ?? 0, "\(id): they don't drift, rise or fall")
+            XCTAssertGreaterThan(alphas.max() ?? 0, 0.9, "\(id): faded in")
+            XCTAssertLessThan(alphas.min() ?? 1, 0.3, "\(id): from nothing")
+        }
+        XCTAssertNil(shown("joyful", reduceMotion: true)[.sparkle], "no sparkle bursts")
+        XCTAssertNotNil(shown("joyful")[.sparkle], "which play with motion")
     }
 }
