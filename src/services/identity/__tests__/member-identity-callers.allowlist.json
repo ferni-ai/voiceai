@@ -18,6 +18,12 @@
     "reason": "Linguistic mirroring keeps an in-process engine per id for this call and stores nothing; a unique anon:/onbehalf: id keys its own engine, only the shared 'anonymous' id would mix callers."
   },
   {
+    "file": "agents/voice-agent-entry/caller-recognition.ts",
+    "count": 1,
+    "category": "inverse",
+    "reason": "startReturningCaller runs only for an anon: session (an unverified phone caller), so it wants a non-member id, never a member's (RETURNING_CALLER, #1909)."
+  },
+  {
     "file": "agents/voice-agent/user-identification-handler.ts",
     "count": 1,
     "category": "enum",
@@ -53,6 +59,12 @@
     "count": 1,
     "category": "inverse",
     "reason": "The opposite question: only a pre-sign-in device: or anon: id may be linked INTO a Firebase account, so it must require a non-account prefix, not refuse one."
+  },
+  {
+    "file": "services/identity/verified-caller.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "Compares the Firebase sign-in provider enum ('anonymous' provider), not a user id: an anonymous Firebase user never counts as verified."
   },
   {
     "file": "services/world-awareness/session-integration.ts",
