@@ -27,8 +27,15 @@ final class TeamAtRestTests: XCTestCase {
 
 /// Design audit P1-14: on iPad Home was a phone column, Ferni 200 pt.
 final class RestSizeTests: XCTestCase {
-    func testAPhoneKeepsFerniAt200() {
-        XCTAssertEqual(HomeView.restSize(room: CGSize(width: 402, height: 874), regular: false), 200)
+    /// Award upgrade 2: on a phone Ferni fills the room up to 280 pt, as the
+    /// height allows (he was 200 everywhere, the room half empty).
+    func testAPhoneFillsTheRoomUpTo280() {
+        // Home's own size (between the bar and Talk): 17 Pro about 402 by 626.
+        XCTAssertEqual(HomeView.restSize(room: CGSize(width: 402, height: 626), regular: false), 262.9, accuracy: 0.5, "17 Pro")
+        XCTAssertEqual(HomeView.restSize(room: CGSize(width: 440, height: 720), regular: false), 280, "Pro Max: no bigger")
+        XCTAssertEqual(HomeView.restSize(room: CGSize(width: 375, height: 520), regular: false), 218.4, accuracy: 0.5, "SE: by its height")
+        XCTAssertEqual(HomeView.restSize(room: CGSize(width: 320, height: 400), regular: false), 200, "never under 200")
+        XCTAssertEqual(HomeView.restSize(room: .zero, regular: false), 200, "before it's measured")
     }
 
     func testAnIPadSizesFerniToTheRoom() {
