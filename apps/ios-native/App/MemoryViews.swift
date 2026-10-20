@@ -43,25 +43,30 @@ struct RememberCard: View {
         .task(id: call.startedAt) { await load() }
     }
 
+    /// Your words in ink, with one quiet way to change them (design audit P2
+    /// #8: the words were grey under three pairs of links).
     private func row(_ item: CallRemembered.Item) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
+        HStack(alignment: .firstTextBaseline, spacing: FerniSpace.breath) {
             Text(item.sentence)
                 .font(FerniType.body)
-                .foregroundStyle(FerniColor.textSecondary)
-            HStack(spacing: FerniSpace.breath) {
+                .foregroundStyle(FerniColor.textPrimary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Menu {
                 Button("Not quite") {
                     draft = item.value
                     editing = item.id
                     problem = nil
                 }
-                .buttonStyle(Pressable())
-                .accessibilityLabel("Not quite: correct \(item.sentence)")
-                Button("Forget") { Task { await forget(item) } }
-                    .buttonStyle(Pressable())
-                    .accessibilityLabel("Forget \(item.sentence)")
+                Button("Forget", role: .destructive) { Task { await forget(item) } }
+            } label: {
+                Image(systemName: "ellipsis")
+                    .font(FerniType.body)
+                    .foregroundStyle(FerniColor.textSecondary)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
-            .font(FerniType.footnote)
-            .tint(FerniColor.accent)
+            .accessibilityLabel("Change: \(item.sentence)")
+            .accessibilityIdentifier("remember.change")
         }
     }
 
