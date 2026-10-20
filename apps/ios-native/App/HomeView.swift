@@ -249,6 +249,9 @@ private struct RestingLine: View {
             case .failed(let problem):
                 Text(problem.message)
                     .font(FerniType.bodyLarge)
+                    // Medium, like the greeting's line: in regular weight the audit failed
+                    // it on contrast over Ferni's glow (design audit P2 #20's scenario).
+                    .fontWeight(.medium)
                     .foregroundStyle(FerniColor.textPrimary)
                 if problem == .microphoneDenied {
                     Button("Open Settings") {
