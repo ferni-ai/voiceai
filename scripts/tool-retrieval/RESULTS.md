@@ -144,3 +144,9 @@ npx tsx scripts/tool-retrieval/eval-choice.ts 300 1 ctl-ferni-retrieval
 ```
 
 38 runs, 3 in parallel: ~13 min, ~2.4k requests to gemini-3.5-flash.
+
+**List fix, 2026-10-20 (same seed 1, handoff-persona, 60 specialty requests):** added the tools the
+misses pointed at (Maya habitStrategy/habitSetback/behaviorArchitecture; Alex detectCalendarIssues/getNotes;
+Jordan exploreGrowthAreas/createLearningPath; Nayan protectPresence/assessMindfulness; Peter
+trackHypothesis/budgetPlanner; bankAccount left out: it sends a link by text/email). Right-or-equivalent:
+Maya 40.0→43.3, Alex 25.0→27.1, Jordan 36.7→41.7, Nayan 60.0→65.0, Peter 20.0→25.0; tools sent ≤ 51.

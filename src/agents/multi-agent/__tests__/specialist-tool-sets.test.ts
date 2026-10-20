@@ -56,9 +56,11 @@ describe('specialist tool lists', () => {
     60_000
   );
 
-  it.each(Object.entries(SPECIALIST_TOOL_SETS))('%s: 10 to 20 tools', (_, set) => {
+  // 22: the tool-choice eval (scripts/tool-retrieval/RESULTS.md) found Maya's and Alex's
+  // misses were tools left off their lists; the 64 cap on the whole set still holds.
+  it.each(Object.entries(SPECIALIST_TOOL_SETS))('%s: 10 to 22 tools', (_, set) => {
     expect(Object.keys(set).length).toBeGreaterThanOrEqual(10);
-    expect(Object.keys(set).length).toBeLessThanOrEqual(20);
+    expect(Object.keys(set).length).toBeLessThanOrEqual(22);
   });
 
   it('no list holds a tool about specific securities', () => {
