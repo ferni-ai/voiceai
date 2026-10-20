@@ -346,12 +346,12 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     publisherId,
     duration: sessionDuration,
   });
-
-  // Call quality: how the call ended (a hang-up is not a dropped connection)
+  // Call quality: how the call ended (a hang-up is not a dropped connection), and its turns
   try {
     const { endCall } = await import('../../services/analytics/call-quality-monitor.js');
     const { classifyCallEnd } = await import('../../services/analytics/call-end-reason.js');
-    endCall(sessionId, classifyCallEnd(ctx.endReason));
+    const { callSummary } = await import('../../services/analytics/bq-call-events.js');
+    endCall(sessionId, classifyCallEnd(ctx.endReason), await callSummary(sessionId));
   } catch (qualityErr) {
     diag.debug('Call quality end failed (non-fatal)', { error: String(qualityErr) });
   }

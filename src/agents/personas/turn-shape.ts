@@ -22,7 +22,6 @@
 import { flagOn } from '../../config/env-flag.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { playfulLine, playfulOpen, SUBSTANCE_FIRST } from './ferni-playful.js';
-import { listeningLines, type ListeningCues } from './listen-first.js';
 import { biasShapeOdds, NEUTRAL_STYLE, scaled, type StyleProfile } from './style-profile.js';
 import { stanceFor } from './turn-candor.js';
 import {
@@ -182,10 +181,21 @@ export const ABOUT_YOU =
  * "did you tackle that mail yet?" read as something shared and got a story
  * about his own morning (prod, 2026-10-12; answer-turn.ts).
  */
-const TAKE_UP_ANSWER =
+export const TAKE_UP_ANSWER =
   'They just answered what you asked: take up their answer first, the way a friend would, rather than anything from your own life.';
 
-const REGISTER =
+/**
+ * judge.mjs on dev calls (2026-10-10): "that long drive down from the north"
+ * to someone who only said they got home; "Classic Biscuit" for a dog just
+ * mentioned; "I can set an alarm for you" to someone going to bed. Facts, not
+ * style: kept with SCRIPT_FREE_REMINDER=on (script-free.ts).
+ */
+export const ONLY_WHAT_THEY_TOLD =
+  'Build only on what they actually told you: never fill in details of their day, plans or people they did not mention, and never talk as if you already know someone or something they just brought up. ';
+export const NOT_AN_ASSISTANT =
+  'You are their friend, not an assistant: never offer to set up, remind or do things for them unless they ask.';
+
+export const REGISTER =
   SUBSTANCE_FIRST +
   'Talk like a close friend, not a therapist, coach or host: never ask how something feels or what it\'s like for them, no stock validation ("that sounds exhausting", "I hear you"), no generic cheerleading or exclamation marks. ' +
   // Read as "no excitement", that line flattened big good news: a sister's
@@ -193,11 +203,8 @@ const REGISTER =
   // dev calls (judge.mjs, 2026-10-10).
   'When they share good news that really matters to them, be genuinely delighted about that specific thing, in your own words, the way a close friend would. ' +
   'Sound spoken, not written, and never the same filler twice in a row. No paragraph breaks. ' +
-  // judge.mjs on dev calls (2026-10-10): "that long drive down from the north"
-  // to someone who only said they got home; "Classic Biscuit" for a dog just
-  // mentioned; "I can set an alarm for you" to someone going to bed.
-  'Build only on what they actually told you: never fill in details of their day, plans or people they did not mention, and never talk as if you already know someone or something they just brought up. ' +
-  'You are their friend, not an assistant: never offer to set up, remind or do things for them unless they ask.';
+  ONLY_WHAT_THEY_TOLD +
+  NOT_AN_ASSISTANT;
 
 /**
  * PERSONA_SPARK=on, on a genuinely bright turn (good news, a win, a joke; never
@@ -274,7 +281,7 @@ export interface TurnShape {
  */
 const NEVER_MADE_UP =
   "Never state a forecast, score, headline, price, opening hour or travel time that you didn't get from a tool on this call; if no tool can get it, say you can't check that right now.";
-const LOOKUP = `They asked about something live that you have to look up: if you have no tool result for it yet, call the tool for it now and answer from what it returns. ${NEVER_MADE_UP}`;
+export const LOOKUP = `They asked about something live that you have to look up: if you have no tool result for it yet, call the tool for it now and answer from what it returns. ${NEVER_MADE_UP}`;
 
 /**
  * The rule rides the next replies too. Prod 2026-10-17: "can you check the
@@ -483,18 +490,4 @@ export function rngFor(text: string): () => number {
 /** The replay harness's entry point (scripts/humanness-eval/replay.ts). */
 export function reminderForTurn(userText: string): string {
   return turnShapeFor(userText).reminder;
-}
-
-/**
- * LISTEN_FIRST=on, caller low on energy (listen-first.ts): no second story, no
- * stance, no rough self-correction to dress up a monologue; a few words, an
- * easy question every other turn at most, or just company.
- */
-export function listeningShapeFor(
-  userText: string,
-  cues: Omit<ListeningCues, 'aboutFerni'>
-): TurnShape {
-  const move = callerMove(userText);
-  const lines = listeningLines({ ...cues, aboutFerni: move === 'about_ferni' });
-  return { move, shape: 'one', reminder: [REGISTER, ...lines].join(' '), extras: ['listen_first'] };
 }

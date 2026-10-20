@@ -47,7 +47,7 @@ export interface RelationshipPerson {
   notes?: string;
   
   // Relationship health
-  strengthScore: number;
+  strengthScore?: number; // undefined until a real interaction has been recorded
   strengthTrend?: 'growing' | 'stable' | 'fading';
   lastInteraction?: Date | string;
   daysSinceContact?: number;
@@ -1085,7 +1085,7 @@ function render(): void {
 function renderHeader(): string {
   const person = state.person!;
   const initials = getInitials(person.name);
-  const strengthPercent = person.strengthScore || 50;
+  const strengthPercent = person.strengthScore ?? 0;
   const strengthColor = getStrengthColor(strengthPercent);
   const trendIcon = person.strengthTrend === 'growing' ? ICONS.trendUp :
                     person.strengthTrend === 'fading' ? ICONS.trendDown : ICONS.minus;
@@ -1113,7 +1113,7 @@ function renderHeader(): string {
         <div class="rc-info">
           <h2 class="rc-name">${escapeHtml(person.name)}</h2>
           <div class="rc-relationship-type">${person.relationship ? t(`addPerson.relationships.${person.relationship.toLowerCase()}`, person.relationship) : t('relationshipCard.contact')}</div>
-          
+          ${typeof person.strengthScore !== 'number' ? `<div class="rc-strength rc-strength-empty">${t('relationshipCard.strengthNotEnough')}</div>` : `
           <div class="rc-strength">
             <div class="rc-strength-bar">
               <div class="rc-strength-fill" style="width: ${strengthPercent}%; background: ${strengthColor};"></div>
@@ -1122,7 +1122,7 @@ function renderHeader(): string {
               <span class="rc-strength-trend ${person.strengthTrend || 'stable'}">${trendIcon}</span>
               ${trendLabel}
             </span>
-          </div>
+          </div>`}
           
           ${lastContactText ? `<div class="rc-last-contact">${lastContactText}</div>` : ''}
         </div>
