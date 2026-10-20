@@ -67,7 +67,9 @@ public struct RoomLight: Equatable, Sendable {
         case 5..<11: // morning: warmer, brighter
             wash = 0.10
             tintRGB = SIMD3(1, 0.85, 0.6)
-            tintOpacity = 0.04
+            // Felt, not just measured: at 0.04-0.07 the four bands came out
+            // #f6f3ed / #f7f5f1 / #f7f2eb / #f6eee5 (design audit P2 #1).
+            tintOpacity = 0.08
         case 11..<18: // day: as designed
             wash = 0.08
             tintRGB = SIMD3(1, 1, 1)
@@ -78,11 +80,11 @@ public struct RoomLight: Equatable, Sendable {
         case 18..<23: // evening
             wash = 0.08
             tintRGB = SIMD3(1, 0.7, 0.4)
-            tintOpacity = 0.04
+            tintOpacity = 0.10
         default: // late night: a little more amber
             wash = 0.08
             tintRGB = SIMD3(0.9, 0.55, 0.25)
-            tintOpacity = 0.07
+            tintOpacity = 0.14
         }
     }
 }
