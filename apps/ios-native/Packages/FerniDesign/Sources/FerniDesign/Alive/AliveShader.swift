@@ -25,7 +25,7 @@ public struct AliveUniforms: Equatable, Sendable {
     public var lids = SIMD4<Float>(0.1, 0.1, 0.06, 0.06) // top left, top right, bottom left, bottom right
     public var poke = SIMD4<Float>(0, 0.3, 0.95, 0)    // where Ferni was touched (dir), amount
     public var tear = SIMD4<Float>(0, 0, 0, 0)         // tear progress left/right, alpha left/right
-    public var caps = SIMD4<Float>(0, 0, 0, 0)         // lid cap top, lid cap bottom (web control point / 100), -, -
+    public var caps = SIMD4<Float>(0, 0, 0, 0)         // lid cap top, lid cap bottom (web control point / 100), the pitch the face rests at, -
 
     public init() {}
 
@@ -112,6 +112,19 @@ float tearD(float3 q, float side, float prog, float a, thread const Ctx& c) {
   float3 n = normalize(s / (c.RB * c.RB));
   return sdEllipsoid(q - (s + n * 0.012), float3(0.034, 0.05 + prog * 0.02, 0.03) * a);
 }
+// Where a screen point sits in the lid caps' box (the orb's outline on screen, turned with
+// the head's roll), carried along with `face` (a point on the face, body-local) by however
+// far the head's pitch, from the pitch the face rests at (caps.z), moves it on the screen.
+float2 capPoint(float3 face, float2 cuv, constant U& u, thread const Ctx& c, float zoom, float pxScale) {
+  float s = u.bg0.w;
+  float3 p = face * s, p0 = p;
+  p.xy = rot(-u.lean.x) * p.xy; p.yz = rot(-u.lean.y) * p.yz; p.xz = rot(-u.lean.z) * p.xz;
+  p0.xy = rot(-u.lean.x) * p0.xy; p0.yz = rot(-u.caps.z) * p0.yz; p0.xz = rot(-u.lean.z) * p0.xz;
+  p += u.pos.xyz; p0 += u.pos.xyz;
+  float2 follow = (p.xy / (5.0 - p.z) - p0.xy / (5.0 - p0.z)) * zoom / pxScale;
+  // In units of the orb's outline on screen (perspective draws it 5/sqrt(25 - r²) wide).
+  return (rot(u.lean.x) * (cuv - follow)) / (s * c.RB.xy) * (sqrt(25.0 - s * s) / 5.0);
+}
 // A teammate sharing the screen: same body and Luxo eyes, simpler lids (blink and the happy arch).
 float2 guestMap(float3 p, constant U& u) {
   if (u.guest.w < 0.5) return float2(10.0, 0.0);
@@ -182,10 +195,16 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
   // perspective made every cap about half as deep). Worked out here, before any
   // per-pixel branch, so fwidth gives the edge's true pixel width.
   const float B = \#(lidBox);
-  // In units of the orb's outline on screen (perspective draws it 5/sqrt(25 - r²) wide).
-  float2 capP = (rot(u.lean.x) * cuv) / (uScale * c.RB.xy) * (sqrt(25.0 - uScale * uScale) / 5.0);
-  float capFall = 1.0 - (capP.x / B) * (capP.x / B);
-  float overTop = capP.y - (B - B * u.caps.x * capFall), underBot = (-B + B * u.caps.y * capFall) - capP.y;
+  // A lid belongs to the face: the caps follow the head's pitch, carried by as much as
+  // it moves the eyes on the screen, so a nod or a look up or down keeps each eye's gap
+  // to its cap. Each cap follows a point on the eyes' surface 0.6 of the way up or down,
+  // where the lid edges are seen (a point inside the eye moves less under a nod, one on
+  // its front more: either let the gap drift 3 px over ±0.1 rad).
+  float3 mid = 0.5 * (c.EL + c.ER), up = 0.5 * (c.LY * c.SL.y + c.RY * c.SR.y), out = 0.5 * (c.LZ * c.SL.z + c.RZ * c.SR.z);
+  float2 capT = capPoint(mid + 0.6 * up + 0.8 * out, cuv, u, c, zoom, radiusPx / res.y);
+  float2 capB = capPoint(mid - 0.6 * up + 0.8 * out, cuv, u, c, zoom, radiusPx / res.y);
+  float fallT = 1.0 - (capT.x / B) * (capT.x / B), fallB = 1.0 - (capB.x / B) * (capB.x / B);
+  float overTop = capT.y - (B - B * u.caps.x * fallT), underBot = (-B + B * u.caps.y * fallB) - capB.y;
   // Blended over two pixels each side: one left a single grey step (a stair on a curve).
   float fwT = 2.0 * max(fwidth(overTop), 1e-5), fwB = 2.0 * max(fwidth(underBot), 1e-5);
   // A closed-off cap (the web's lids above the orb, Y < 0) draws nothing, not a shaved top.
