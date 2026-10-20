@@ -9,6 +9,7 @@
  * Not a gate. Not a fee. An invitation to participate in mutual success.
  */
 
+import { userHeld } from '../../utils/minor-care.js';
 import {
   THANK_YOU_MESSAGES,
   VALUE_CAPTURE_PROMPTS,
@@ -182,7 +183,8 @@ export async function detect(params: {
           status: 'detected',
           createdAt: event.createdAt.toISOString(),
         };
-        await saveValueEvent(userId, record);
+        // MINOR_CARE: detected from what a held caller said, so never stored (payments still are)
+        if (!userHeld(userId)) await saveValueEvent(userId, record);
 
         log.info(
           {
