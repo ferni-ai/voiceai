@@ -73,16 +73,34 @@ vi.mock('../../services/engagement/engagement-store.js', async (orig) => ({
   getEngagementStore: async () => engagement,
 }));
 
-import { startPeriodicSync, stopPeriodicSync } from '../../agents/voice-agent/periodic-sync-handler.js';
-import { flushPendingChanges, saveSystemData } from '../../services/trust-systems/unified-persistence.js';
-import { flushDirtyUsers, markDirty } from '../../intelligence/predictive/persistence.js';
+import {
+  startPeriodicSync,
+  stopPeriodicSync,
+} from '../../agents/voice-agent/periodic-sync-handler.js';
+import {
+  flushPendingChanges,
+  saveSystemData,
+} from '../../services/trust-systems/unified-persistence.js';
+import {
+  flushDirtyUsers,
+  markDirty,
+  markUserLoaded,
+} from '../../intelligence/predictive/persistence.js';
 import { saveAvoidanceState } from '../../intelligence/predictive/superhuman-persistence.js';
 import { saveSemanticAvoidance } from '../../intelligence/predictive/embeddings/embedding-persistence.js';
-import { saveProfile as saveMusicProfile } from '../../audio/music-learning-persistence.js';
+import {
+  ensureProfileLoaded,
+  saveProfile as saveMusicProfile,
+} from '../../audio/music-learning-persistence.js';
 import { getUserProfile as musicProfile } from '../../audio/music-user-learning.js';
-import { saveGameMemory } from '../../services/games/game-store.js';
+import { loadGameMemory, saveGameMemory } from '../../services/games/game-store.js';
 import { getFirestoreDb as superhumanDb } from '../../services/superhuman/firestore-utils.js';
-import { heldAfter, resetMinorCare, setVerifiedOwnerCheck } from '../minor-care.js';
+import {
+  bindSessionUser,
+  heldAfter,
+  resetMinorCare,
+  setVerifiedOwnerCheck,
+} from '../minor-care.js';
 
 type Case = 'held' | 'owner' | 'off';
 let n = 0;
@@ -115,6 +133,7 @@ const WRITERS: Record<string, (who: { sessionId: string; userId: string }) => Pr
   },
   'predictive ML flush': async ({ userId }) => {
     await vi.advanceTimersByTimeAsync(5 * 60_000 + 1); // past the per-user flush interval
+    markUserLoaded(userId); // the models load a user before they learn (stores write only those)
     markDirty(userId);
     await flushDirtyUsers(...getters); // the 5-minute interval's whole body
   },
@@ -125,11 +144,13 @@ const WRITERS: Record<string, (who: { sessionId: string; userId: string }) => Pr
     await saveSemanticAvoidance(userId, { topics: ['school'] } as never);
   },
   'music learning store sync (10 s)': async ({ userId }) => {
+    await ensureProfileLoaded(userId);
     musicProfile(userId);
     saveMusicProfile(userId);
     await vi.advanceTimersByTimeAsync(10_000);
   },
   'game memory flush (3 s)': async ({ userId }) => {
+    await loadGameMemory(userId);
     await saveGameMemory(userId, { gameStats: {}, desertIslandPicks: ['a song'] } as never);
     await vi.advanceTimersByTimeAsync(3_000);
     await vi.dynamicImportSettled(); // the flush imports the engagement store lazily
@@ -146,7 +167,9 @@ const writes = (name: string): number =>
 
 // One fake clock for the file: the music store and game store keep their timers across tests.
 beforeAll(() => {
-  vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearInterval', 'clearTimeout', 'Date'] });
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'setInterval', 'clearInterval', 'clearTimeout', 'Date'],
+  });
 });
 afterAll(() => {
   vi.useRealTimers();
@@ -161,6 +184,22 @@ beforeEach(() => {
 afterEach(() => {
   resetMinorCare();
   vi.unstubAllEnvs();
+});
+
+describe('periodic sync: held whenever any session of the same user is held (userHeld)', () => {
+  it.each<[string, boolean]>([
+    ['another session of this user is held', false],
+    ['no session of this user is held', true],
+  ])('%s: syncs = %s', async (_name, syncs) => {
+    const other = caller(syncs ? 'off' : 'held');
+    vi.stubEnv('MINOR_CARE', 'on');
+    const sessionId = `${other.sessionId}-second`;
+    bindSessionUser(sessionId, other.userId); // session-init-handler, before startPeriodicSync
+    startPeriodicSync(sessionId, other.userId, 60_000);
+    await vi.advanceTimersByTimeAsync(60_000);
+    stopPeriodicSync(sessionId);
+    expect(deepSync.mock.calls.length > 0).toBe(syncs);
+  });
 });
 
 describe.each(Object.keys(WRITERS))('%s', (name) => {

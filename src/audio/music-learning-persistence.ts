@@ -159,7 +159,10 @@ const loadedMemoryUsers = new Set<string>();
 export function purgeMusicLearning(userId: string): void {
   clearHeldProfile(userId);
   clearHeldMemories(userId);
-  clearUserCache(userId); // and its loaded markers: the next session reloads before it writes
+  loadedProfileUsers.delete(userId); // the next session reloads before it writes
+  loadedMemoryUsers.delete(userId);
+  profilePersistence?.clearCache(userId); // never creates a store (they share one interval name)
+  memoryPersistence?.clearCache(userId);
 }
 
 /** At each store sync or set: a held user is dropped, learning maps included, never written. */

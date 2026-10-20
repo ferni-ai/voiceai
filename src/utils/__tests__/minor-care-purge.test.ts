@@ -1,0 +1,233 @@
+/**
+ * MINOR_CARE=on: at the end of a held call (a caller under 18, not a verified owner) every
+ * per-user store's in-memory state for that user is purged, with its loaded markers, and a store
+ * never writes a user it hasn't loaded from storage in this process. So nothing learned during
+ * the held call is written later, and no store writes an empty or partial document over the
+ * stored one. Placeholder ids are never held or purged. Each store runs for real; only Firestore
+ * and the engagement store are faked.
+ */
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+
+const stored = vi.hoisted(() => [] as { path: string; data: unknown }[]);
+/** Documents as stored, by path; a read of a path containing a `failReads` entry throws. */
+const docs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+const failReads = vi.hoisted(() => new Set<string>());
+const reads = vi.hoisted(() => [] as string[]);
+
+/** A fake Firestore that records every write (path and data) and serves `docs`. */
+const fakeDb = vi.hoisted(() => {
+  const empty = { exists: false, empty: true, docs: [], size: 0, data: () => undefined };
+  const ref = (path: string): Record<string, unknown> =>
+    new Proxy(
+      {
+        path,
+        collection: (name: string) => ref(`${path}/${name}`),
+        doc: (id = 'auto') => ref(`${path}/${id}`),
+        get: async () => {
+          reads.push(path);
+          if ([...failReads].some((f) => path.includes(f))) throw new Error('unavailable');
+          const doc = docs.get(path);
+          return doc ? { exists: true, data: () => structuredClone(doc) } : empty;
+        },
+        set: async (data: unknown) => void stored.push({ path, data }),
+      } as Record<string | symbol, unknown>,
+      { get: (t, k) => (k in t ? t[k] : k === 'then' ? undefined : () => ref(path)) }
+    );
+  const tx = (r: { path: string }, data: unknown) => void stored.push({ path: r.path, data });
+  return Object.assign(ref(''), {
+    batch: () => ({ set: tx, update: tx, delete: tx, commit: async () => undefined }),
+  });
+});
+vi.mock('@google-cloud/firestore', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  Firestore: class {
+    constructor() {
+      return fakeDb;
+    }
+  },
+}));
+const engagement = vi.hoisted(() => ({
+  getProfile: vi.fn(async (userId: string) => ({ userId, gameMemory: { totalGamesPlayed: 7 } })),
+  saveProfile: vi.fn(async (_profile: unknown) => undefined),
+}));
+vi.mock('../../services/engagement/engagement-store.js', async (orig) => ({
+  ...(await orig<Record<string, unknown>>()),
+  getEngagementStore: async () => engagement,
+}));
+
+import { purgeHeldUser } from '../../agents/voice-agent/minor-care-purge.js';
+import {
+  purgeUnifiedUser,
+  saveSystemData,
+} from '../../services/trust-systems/unified-persistence.js';
+import {
+  forceSaveGameMemory,
+  getCachedGameMemory,
+  loadGameMemory,
+  saveGameMemory,
+  updateCachedGameMemory,
+} from '../../services/games/game-store.js';
+import {
+  ensureProfileLoaded,
+  isMusicLearningLoaded,
+} from '../../audio/music-learning-persistence.js';
+import {
+  flushDirtyUsers,
+  isUserLoaded,
+  markDirty,
+  markUserLoaded,
+} from '../../intelligence/predictive/persistence.js';
+import {
+  bindSessionUser,
+  heldAfter,
+  resetMinorCare,
+  setVerifiedOwnerCheck,
+  userHeld,
+} from '../minor-care.js';
+
+let n = 0;
+const SIXTEEN = "I'm 16 years old and kind of bored";
+const HOLD_LAPSES_MS = 7 * 60 * 60 * 1000; // past the 6 h hold
+const unifiedPath = (userId: string) => `/bogle_users/${userId}/trust/unified_profile`;
+const writesFor = (userId: string) => stored.filter((w) => w.path.includes(userId));
+
+/** A user with a session that will say they're 16 (hold()), flag on. */
+function caller(userId = `user-purge-${++n}`): {
+  userId: string;
+  sessionId: string;
+  hold: () => void;
+} {
+  const sessionId = `session-${userId}`;
+  vi.stubEnv('MINOR_CARE', 'on');
+  bindSessionUser(sessionId, userId); // session-init-handler does this at session start
+  return { userId, sessionId, hold: () => void heldAfter(sessionId, SIXTEEN, { userId }) };
+}
+
+beforeAll(() => {
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'setInterval', 'clearInterval', 'clearTimeout', 'Date'],
+  });
+});
+afterAll(() => {
+  vi.useRealTimers();
+});
+beforeEach(() => {
+  stored.length = 0;
+  reads.length = 0;
+  failReads.clear();
+  engagement.saveProfile.mockClear();
+});
+afterEach(() => {
+  resetMinorCare();
+  vi.unstubAllEnvs();
+});
+
+describe('placeholder ids and other users', () => {
+  it.each(['anonymous', 'default', 'unknown', ' '])(
+    '%j is never held, bound or purged',
+    async (id) => {
+      vi.stubEnv('MINOR_CARE', 'on');
+      heldAfter(`session-${id}-${++n}`, SIXTEEN, { userId: id });
+      expect(userHeld(id)).toBe(false);
+      await saveGameMemory(id, { totalGamesPlayed: 1 } as never);
+      purgeHeldUser(id);
+      expect(getCachedGameMemory(id)).not.toBeNull(); // one bucket for many people: left alone
+    }
+  );
+
+  it('holding and purging one user never touches another', async () => {
+    const a = caller();
+    const b = caller();
+    await saveGameMemory(b.userId, { totalGamesPlayed: 2 } as never);
+    a.hold();
+    purgeHeldUser(a.userId);
+    expect(userHeld(a.userId)).toBe(true);
+    expect(userHeld(b.userId)).toBe(false);
+    expect(getCachedGameMemory(b.userId)).not.toBeNull();
+  });
+});
+
+describe('purge: every store drops the user and their loaded markers', () => {
+  it('predictive and music: loaded markers cleared, so the next session reloads', async () => {
+    const who = caller();
+    markUserLoaded(who.userId);
+    await ensureProfileLoaded(who.userId);
+    expect([isUserLoaded(who.userId), isMusicLearningLoaded(who.userId)]).toEqual([true, true]);
+    who.hold();
+    purgeHeldUser(who.userId);
+    expect([isUserLoaded(who.userId), isMusicLearningLoaded(who.userId)]).toEqual([false, false]);
+  });
+
+  it('game: after a purge, memory cached without a reload is never written', async () => {
+    const who = caller();
+    await loadGameMemory(who.userId);
+    purgeHeldUser(who.userId);
+    updateCachedGameMemory(who.userId, { totalGamesPlayed: 0 } as never);
+    await forceSaveGameMemory(who.userId);
+    expect(engagement.saveProfile).not.toHaveBeenCalled();
+  });
+
+  it('unified trust: after a purge, a failed reload writes nothing (no empty profile)', async () => {
+    const who = caller();
+    await saveSystemData(who.userId, 'boundaries', { topics: ['before'] }); // loads, writes through
+    expect(writesFor(who.userId).length).toBe(1);
+    purgeUnifiedUser(who.userId);
+    failReads.add(who.userId);
+    await saveSystemData(who.userId, 'boundaries', { topics: ['after'] });
+    expect(writesFor(who.userId).length).toBe(1);
+  });
+});
+
+describe('a store never writes a user it has not loaded in this process', () => {
+  it('unified trust: the read failed, so no empty profile replaces the stored one', async () => {
+    const who = caller();
+    failReads.add(who.userId);
+    await saveSystemData(who.userId, 'boundaries', { topics: ['x'] }); // write-through system
+    expect(writesFor(who.userId)).toEqual([]);
+  });
+
+  it('predictive: a dirty user never loaded is not flushed', async () => {
+    const who = caller();
+    const markov = vi.fn(() => ({ transitionCounts: {}, lastState: 'x' }) as never);
+    await vi.advanceTimersByTimeAsync(5 * 60_000 + 1);
+    markDirty(who.userId);
+    await flushDirtyUsers(
+      markov,
+      () => null,
+      () => null
+    );
+    expect(markov).not.toHaveBeenCalled();
+  });
+
+  it('game: forceSaveGameMemory writes nothing for a held caller (pin)', async () => {
+    const who = caller();
+    await loadGameMemory(who.userId);
+    updateCachedGameMemory(who.userId, { totalGamesPlayed: 8 } as never);
+    who.hold();
+    await forceSaveGameMemory(who.userId);
+    expect(engagement.saveProfile).not.toHaveBeenCalled();
+  });
+});
+
+describe('Decision: purge during a live owner session', () => {
+  it("the owner's next write reloads from storage first and has none of the held call's data", async () => {
+    const userId = `user-owner-live-${++n}`;
+    docs.set(unifiedPath(userId), { version: 3, systems: { growth: { note: 'stored' } } });
+    const owner = `owner-${userId}`;
+    setVerifiedOwnerCheck((s) => s === owner);
+    bindSessionUser(owner, userId);
+    const held = caller(userId);
+    // The held session's first turn, before it said its age: cached, waiting for the batch sync
+    await saveSystemData(userId, 'growth', { note: 'from the held call' });
+    held.hold();
+    purgeHeldUser(userId); // its cleanup, while the owner session is still live
+    await vi.advanceTimersByTimeAsync(HOLD_LAPSES_MS);
+    reads.length = 0;
+    await saveSystemData(userId, 'boundaries', { topics: ['owner change'] });
+    expect(reads).toContain(unifiedPath(userId)); // reloaded before writing
+    const [w] = writesFor(userId);
+    expect(JSON.stringify(w?.data)).toContain('stored');
+    expect(JSON.stringify(w?.data)).toContain('owner change');
+    expect(JSON.stringify(w?.data)).not.toContain('from the held call');
+  });
+});

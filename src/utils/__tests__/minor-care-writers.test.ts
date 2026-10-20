@@ -63,7 +63,7 @@ import {
   registerAfterCallTask,
   runAfterCallTasks,
 } from '../../services/session/after-call-tasks.js';
-import { noteCallerWords, resetMinorCare, setVerifiedOwnerCheck } from '../minor-care.js';
+import { noteCallerWords, resetMinorCare, setVerifiedOwnerCheck, userHeld } from '../minor-care.js';
 import { createSessionServices } from '../../services/session/session-manager.js';
 
 type Case = 'held' | 'owner' | 'off';
@@ -182,6 +182,24 @@ describe.each<[Case, boolean]>([
     expect('rememberAboutUser' in sent.functionTools).toBe(stores);
     expect('rememberAboutUser' in agent.toolCtx.functionTools).toBe(stores);
     expect('getWeather' in sent.functionTools).toBe(true);
+  });
+});
+
+describe('the live tools path (turn-request.ts) binds the userId, so userHeld follows', () => {
+  it('a caller who says 16 holds their user for the per-user stores', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    const sessionId = `minor-turn-${++n}`;
+    const userId = `user-${sessionId}`;
+    const agent = { toolCtx: new llm.ToolContext({}), async updateTools() {} };
+    const chat = llm.ChatContext.empty();
+    chat.addMessage({ role: 'user', content: "I'm 16 years old and kind of bored" });
+    await toolsForTurn(
+      { userData: { personaId: 'ferni', userId, services: { sessionId } } } as never,
+      chat,
+      agent.toolCtx,
+      { loggedLockedHandoffs: true, agent } as never
+    );
+    expect(userHeld(userId)).toBe(true);
   });
 });
 
