@@ -63,6 +63,13 @@ async function toastError(): Promise<void> {
   showWhisper({ message: "Couldn't reach Ferni. Try again?", type: 'error', duration: HOLD_MS });
 }
 
+/** An error long enough that a two-line clamp would cut off what to do about it. */
+async function toastLong(): Promise<void> {
+  const message =
+    'We could not save your reminder because the calendar connection expired. Reconnect your calendar from Settings and try again.';
+  (await import('../whisper.ui.js')).showWhisper({ message, type: 'error', duration: HOLD_MS });
+}
+
 async function toastWarning(): Promise<void> {
   const { showWhisper } = await import('../whisper.ui.js');
   showWhisper({
@@ -291,6 +298,7 @@ async function captionMoments(): Promise<void> {
 export const SCENES: Readonly<Record<string, Scene>> = {
   'toast-pair': twoToasts,
   'toast-error': toastError,
+  'toast-long': toastLong,
   'toast-warning': toastWarning,
   'notice-action': noticeWithAction,
   achievement,
