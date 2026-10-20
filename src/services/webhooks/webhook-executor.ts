@@ -6,6 +6,11 @@
  */
 
 import { getCircuitBreaker } from '../../utils/circuit-breaker.js';
+import {
+  checkOutboundUrl,
+  readCappedText,
+  safeOutboundFetch,
+} from '../../utils/outbound-url-guard.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type {
   RateLimitConfig,
@@ -257,6 +262,21 @@ export async function executeWebhook(
     };
   }
 
+  // Stored URLs may predate the create/update checks: refuse them here too, before the
+  // circuit breaker, so one user's bad URL cannot trip it for everyone.
+  const urlCheck = checkOutboundUrl(webhook.url);
+  if (!urlCheck.ok) {
+    log.warn({ userId, webhookId: webhook.id, reason: urlCheck.reason }, 'Webhook URL refused');
+    return {
+      success: false,
+      webhookId: webhook.id,
+      webhookName: webhook.name,
+      error: `Webhook URL not allowed: ${urlCheck.reason}`,
+      durationMs: Date.now() - startTime,
+      timestamp,
+    };
+  }
+
   // Build payload context
   const payloadContext: WebhookPayloadContext = {
     userId,
@@ -300,7 +320,7 @@ export async function executeWebhook(
         const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
 
         try {
-          const response = await fetch(webhook.url, {
+          const response = await safeOutboundFetch(webhook.url, {
             method: webhook.method,
             headers,
             body: payload,
@@ -309,11 +329,11 @@ export async function executeWebhook(
 
           clearTimeout(timeoutId);
 
-          const responseBody = await response.text();
+          const responseBody = await readCappedText(response, 1000);
 
           return {
             statusCode: response.status,
-            responseBody: responseBody.slice(0, 1000), // Limit stored response
+            responseBody, // Limit stored response
             success: response.ok,
           };
         } finally {
@@ -454,7 +474,7 @@ export async function testWebhook(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), WEBHOOK_TIMEOUT_MS);
 
-    const response = await fetch(webhook.url, {
+    const response = await safeOutboundFetch(webhook.url, {
       method: webhook.method,
       headers,
       body: payload,
@@ -462,7 +482,7 @@ export async function testWebhook(
     });
 
     clearTimeout(timeoutId);
-    const responseBody = await response.text();
+    await response.body?.cancel().catch(() => undefined);
 
     log.info(
       { userId, webhookId: webhook.id, statusCode: response.status },
@@ -474,7 +494,7 @@ export async function testWebhook(
       webhookId: webhook.id,
       webhookName: webhook.name,
       statusCode: response.status,
-      responseBody: responseBody.slice(0, 1000),
+      // No response body: a test call reports reachability, it does not relay content.
       error: response.ok ? undefined : `HTTP ${response.status}`,
       durationMs: Date.now() - startTime,
       timestamp,

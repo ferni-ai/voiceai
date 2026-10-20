@@ -29,6 +29,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import crypto from 'crypto';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { readCappedText, safeOutboundFetch } from '../../../utils/outbound-url-guard.js';
 import { sendError } from '../../helpers.js';
 import { encryptSensitive, decryptSensitive } from '../../../services/privacy-crypto.js';
 import {
@@ -742,7 +743,7 @@ async function handleCallback(req: IncomingMessage, res: ServerResponse): Promis
     const providerData = providerDoc.data() as Record<string, unknown>;
 
     // Exchange code for tokens
-    const tokenResponse = await fetch(providerData.tokenUrl as string, {
+    const tokenResponse = await safeOutboundFetch(providerData.tokenUrl as string, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -757,13 +758,13 @@ async function handleCallback(req: IncomingMessage, res: ServerResponse): Promis
     });
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
+      const errorText = await readCappedText(tokenResponse, 500);
       log.error({ status: tokenResponse.status, error: errorText }, 'Token exchange failed');
       sendError(res, 'Failed to exchange authorization code', 400);
       return true;
     }
 
-    const tokenData = (await tokenResponse.json()) as Record<string, unknown>;
+    const tokenData = JSON.parse(await readCappedText(tokenResponse)) as Record<string, unknown>;
 
     // Store token
     const tokenId = generateId(ID_PREFIXES.OAUTH_TOKEN);
@@ -960,7 +961,7 @@ async function handleRefreshToken(
     const refreshToken = await decryptSecret(tokenData.refreshToken as string);
 
     // Exchange refresh token for new access token
-    const tokenResponse = await fetch(providerData.tokenUrl as string, {
+    const tokenResponse = await safeOutboundFetch(providerData.tokenUrl as string, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
@@ -974,13 +975,13 @@ async function handleRefreshToken(
     });
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text();
+      const errorText = await readCappedText(tokenResponse, 500);
       log.error({ status: tokenResponse.status, error: errorText }, 'Token refresh failed');
       sendError(res, 'Failed to refresh token', 400);
       return true;
     }
 
-    const newTokenData = (await tokenResponse.json()) as Record<string, unknown>;
+    const newTokenData = JSON.parse(await readCappedText(tokenResponse)) as Record<string, unknown>;
 
     // Update stored token
     const now = new Date();
@@ -1082,7 +1083,7 @@ async function handleGetAccessToken(
       const clientSecret = await decryptSecret(providerData.clientSecret as string);
       const refreshToken = await decryptSecret(tokenData.refreshToken as string);
 
-      const tokenResponse = await fetch(providerData.tokenUrl as string, {
+      const tokenResponse = await safeOutboundFetch(providerData.tokenUrl as string, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
@@ -1096,11 +1097,14 @@ async function handleGetAccessToken(
       });
 
       if (!tokenResponse.ok) {
-        const errorText = await tokenResponse.text();
+        const errorText = await readCappedText(tokenResponse, 500);
         log.error({ status: tokenResponse.status, error: errorText }, 'Auto-refresh failed');
         // Continue with old token - may still work
       } else {
-        const newTokenData = (await tokenResponse.json()) as Record<string, unknown>;
+        const newTokenData = JSON.parse(await readCappedText(tokenResponse)) as Record<
+          string,
+          unknown
+        >;
 
         // Update stored token
         const now = new Date();

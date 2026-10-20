@@ -19,6 +19,7 @@
 
 import crypto from 'crypto';
 import { getLogger } from '../../utils/safe-logger.js';
+import { readCappedText, safeOutboundFetch } from '../../utils/outbound-url-guard.js';
 import {
   MAX_RETRIES,
   RETRY_DELAY_MS,
@@ -309,7 +310,7 @@ async function attemptDelivery(
     const controller = new globalThis.AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
 
-    const response = await fetch(webhook.url, {
+    const response = await safeOutboundFetch(webhook.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -342,7 +343,7 @@ async function attemptDelivery(
     }
 
     // Non-2xx response
-    const errorBody = await response.text().catch(() => '');
+    const errorBody = await readCappedText(response, 200).catch(() => '');
 
     return {
       webhookId: webhook.id,

@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { readCappedText, safeOutboundFetch } from '../../utils/outbound-url-guard.js';
 import { COLLECTIONS, ID_PREFIXES, type WebhookEventType } from '../../types/developer-platform.js';
 import { dispatchWebhookEvent } from '../integrations/developer-webhook-dispatcher.js';
 import {
@@ -531,13 +532,14 @@ async function executeWebhook(node: WorkflowNode, context: ExecutionContext): Pr
 
   log.info({ url, method }, 'Executing webhook');
 
-  const response = await fetch(url, {
+  // url is interpolated from run variables, so it is checked here, at the moment of the call.
+  const response = await safeOutboundFetch(url, {
     method,
     headers,
     body: method !== 'GET' ? body : undefined,
   });
 
-  const responseText = await response.text();
+  const responseText = await readCappedText(response, 256 * 1024);
   let responseData: unknown;
 
   try {
