@@ -364,36 +364,86 @@ enum TeamRowModel {
     }
 }
 
-/// Your corner: your team, small. Tap a teammate to choose who answers next.
+/// Your corner: your team, small, each with their name under their face (design
+/// audit P1-2: no names, and Maya and Jordan look alike). Tap a teammate to
+/// choose who answers next; press and hold for who they are.
 private struct TeamRow: View {
     let team: TeamStore
 
     var body: some View {
         let shown = TeamRowModel.shown(unlocked: team.unlocked)
         if !shown.isEmpty {
-            HStack(spacing: FerniSpace.pause) {
-                ForEach(shown) { persona in
-                    Button {
-                        team.choose(persona.id)
-                    } label: {
-                        AvatarPortrait(persona: WindowPersona(personaId: persona.id))
-                            .frame(width: 40, height: 40)
-                            .padding(2)
-                            .overlay {
-                                if team.chosen == persona.id {
-                                    Circle().stroke(FerniColor.accent, lineWidth: 2)
-                                }
-                            }
-                            .frame(minWidth: 44, minHeight: 44)
-                            .contentShape(.circle)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(persona.name), \(persona.role.lowercased())")
-                    .accessibilityValue(team.chosen == persona.id ? "Answers next" : "On your team")
+            // One row while the names fit; at large text sizes, as many rows as they need.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: FerniSpace.pause) { faces(shown) }
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: FerniSpace.pause)], spacing: FerniSpace.pause) {
+                    faces(shown)
                 }
             }
             .sensoryFeedback(.selection, trigger: team.chosen)
         }
+    }
+
+    @ViewBuilder private func faces(_ shown: [Persona]) -> some View {
+        ForEach(shown) { persona in
+            Button {
+                team.choose(persona.id)
+            } label: {
+                VStack(spacing: 4) {
+                    AvatarPortrait(persona: WindowPersona(personaId: persona.id))
+                        .frame(width: 40, height: 40)
+                        .padding(2)
+                        .overlay {
+                            if team.chosen == persona.id {
+                                Circle().stroke(FerniColor.accent, lineWidth: 2)
+                            }
+                        }
+                        .frame(minWidth: 44, minHeight: 44)
+                    Text(persona.name)
+                        .font(FerniType.caption)
+                        .foregroundStyle(team.chosen == persona.id ? FerniColor.textPrimary : FerniColor.textSecondary)
+                        .fixedSize()
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("team.\(persona.id)")
+            .accessibilityLabel("\(persona.name), \(persona.role.lowercased())")
+            .accessibilityValue(team.chosen == persona.id ? "Answers next" : "On your team")
+            .contextMenu {
+                Button("Talk to \(persona.name) next", systemImage: "phone") { team.choose(persona.id) }
+            } preview: {
+                TeammatePeek(persona: persona)
+            }
+        }
+    }
+}
+
+/// Who a teammate is, in Ferni's words, when you press and hold their face.
+private struct TeammatePeek: View {
+    let persona: Persona
+
+    var body: some View {
+        VStack(spacing: FerniSpace.breath) {
+            AvatarPortrait(persona: WindowPersona(personaId: persona.id))
+                .frame(width: 72, height: 72)
+            Text(persona.name)
+                .font(FerniType.headline)
+                .foregroundStyle(FerniColor.textPrimary)
+            Text(persona.role)
+                .font(FerniType.footnote)
+                .foregroundStyle(FerniColor.textSecondary)
+            if let intro = TeammateIntroduction.forPersona(persona.id) {
+                Text(intro.ferniSays)
+                    .font(FerniType.body)
+                    .foregroundStyle(FerniColor.textPrimary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(FerniSpace.rest)
+        .frame(width: 300)
+        .background(FerniColor.background)
     }
 }
 
