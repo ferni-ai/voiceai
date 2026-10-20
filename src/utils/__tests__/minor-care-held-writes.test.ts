@@ -11,9 +11,10 @@ const written = vi.hoisted(() => [] as { path: string; data: unknown }[]);
 /** The documents as they end up: a set merges top-level fields, a delete removes the doc. */
 const docs = vi.hoisted(() => new Map<string, Record<string, unknown>>());
 /** Per path: run `during` inside the next write (still in flight), then fail it or let it land. */
-const hooks = vi.hoisted(
-  () => new Map<string, { fail: number; failed: number; during?: () => unknown }>()
-);
+type Hook = { fail: number; failed: number; during?: () => unknown; hang?: Promise<void> };
+const hooks = vi.hoisted(() => new Map<string, Hook>());
+/** Writes in flight right now, and the most at once. */
+const flight = vi.hoisted(() => ({ now: 0, max: 0 }));
 
 const fakeDb = vi.hoisted(() => {
   const empty = { exists: false, empty: true, docs: [], size: 0, data: () => undefined };
@@ -26,12 +27,18 @@ const fakeDb = vi.hoisted(() => {
         get: async () => empty,
         set: async (data: Record<string, unknown>) => {
           const hook = [...hooks].find(([p]) => path.includes(p))?.[1];
-          const during = hook?.during;
+          const { during, hang } = hook ?? {};
           const fails = !!hook && hook.fail > 0; // decided at the start: this write's outcome
-          if (hook) Object.assign(hook, { during: undefined, fail: hook.fail - +fails });
-          if (fails) hook.failed++;
-          await during?.();
-          for (let i = 0; i < 20; i++) await Promise.resolve(); // still in flight a while
+          if (hook) Object.assign(hook, { during: undefined, hang: undefined });
+          if (hook && fails) Object.assign(hook, { fail: hook.fail - 1, failed: hook.failed + 1 });
+          flight.max = Math.max(flight.max, ++flight.now);
+          try {
+            await during?.();
+            await hang; // a write that hangs until the test releases it
+            for (let i = 0; i < 20; i++) await Promise.resolve(); // still in flight a while
+          } finally {
+            flight.now--;
+          }
           if (fails) throw new Error('unavailable');
           written.push({ path, data });
           docs.set(path, { ...docs.get(path), ...data });
@@ -58,6 +65,7 @@ vi.mock('@google-cloud/firestore', async (orig) => ({
 }));
 
 import { createPersistenceStore } from '../../services/persistence/index.js';
+import { heldFields } from '../../services/persistence/held-fields.js';
 import {
   initMonetizationPersistence,
   saveTip,
@@ -236,23 +244,72 @@ describe('held fields: never resurrected, never stale, written at shutdown', () 
     expect(docOf(userId, collection)).toBeUndefined(); // ...and the delete came after it
   });
 
-  it('an older failed part never overwrites a newer one written meanwhile', async () => {
+  it('one flush at a time: a flush during a write waits for it, and the newer opt-out wins', async () => {
     const { s, collection } = prefsStore();
     const userId = caller();
     s.set(userId, { prefs: { optOut: 'old' }, story: 'x' });
+    flight.max = 0;
+    let flushed: Promise<void> | undefined;
     // While the old part's write is in flight (it will fail), a newer opt-out is kept and flushed
     hooks.set(`/${collection}/`, {
       fail: 1,
       failed: 0,
-      during: async () => {
+      during: () => {
         s.set(userId, { prefs: { optOut: 'new' }, story: 'y' });
-        await s.flush();
+        flushed = s.flush(); // not awaited: it waits for the running flush
       },
     });
     await tick(1_000);
+    await flushed;
     for (let i = 0; i < 30; i++) await tick(1_000); // past any backoff
-    expect(hooks.get(`/${collection}/`)?.failed).toBe(1);
+    expect(flight.max).toBe(1); // never two writes for the store at once
     expect(docOf(userId, collection)?.prefs).toEqual({ optOut: 'new' });
+  });
+
+  it('case B: the older fails while the newer is in flight; it lands; the older retries; newer wins', async () => {
+    const parts = heldFields<Prefs>((d: Prefs) => ({ prefs: d.prefs }), 1_000);
+    const sets: string[] = [];
+    let failOld!: (e: Error) => void;
+    let landNew!: () => void;
+    const dirty = new Set<string>();
+    parts.keep('u', { prefs: { optOut: 'old' }, story: 'x' });
+    const first = parts.write((_u, p) => {
+      sets.push(JSON.stringify(p));
+      return new Promise((_, reject) => (failOld = reject));
+    }, dirty);
+    await Promise.resolve();
+    parts.keep('u', { prefs: { optOut: 'new' }, story: 'y' });
+    const second = parts.write((_u, p) => {
+      sets.push(JSON.stringify(p));
+      return new Promise<void>((resolve) => (landNew = resolve));
+    }, dirty);
+    await Promise.resolve();
+    failOld(new Error('unavailable')); // the older fails while the newer is still in flight
+    await first;
+    landNew(); // then the newer lands
+    await second;
+    await parts.write(async (_u, p) => void sets.push(JSON.stringify(p)), dirty, true); // retry
+    expect(sets.at(-1)).toContain('new'); // the older part was dropped: nothing older after it
+  });
+
+  it('a delete waits at most 10 s for a hung held write; a late landing is deleted again', async () => {
+    const { s, collection } = prefsStore();
+    const userId = caller();
+    s.set(userId, { prefs: { optOut: 'texts' }, story: 'x' });
+    let release!: () => void;
+    hooks.set(`/${collection}/`, { fail: 0, failed: 0, hang: new Promise((r) => (release = r)) });
+    await tick(1_000); // the write starts, and hangs
+    let done = false;
+    const deleting = s.delete(userId).then(() => void (done = true));
+    await vi.advanceTimersByTimeAsync(9_000);
+    expect(done).toBe(false);
+    await vi.advanceTimersByTimeAsync(1_100);
+    await deleting;
+    expect(done).toBe(true);
+    release(); // the hung write finally lands, after the delete
+    await tick(0);
+    expect(writesTo(userId, collection).length).toBe(1);
+    expect(docOf(userId, collection)).toBeUndefined(); // deleted again
   });
 
   it.each(['shutdown', 'flush'] as const)('a part in backoff is written on %s', async (how) => {
