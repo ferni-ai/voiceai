@@ -29,11 +29,9 @@ final class AccessibilityAuditTests: XCTestCase {
          "A system Toggle row, like Call sounds, which the AX5 screenshot shows at full size."),
         ("settings", .dynamicType, "You haven't agreed",
          "A plain Text row, like the account message the AX5 screenshot shows at full size."),
-        // iPad (2026-10-19), measured from the screenshot pixels with WCAG luminance:
-        ("home|call", .contrast, "Talk", "iPad sidebar, selected row: #2c2520 on #dcdad5, 10.8:1 (was 4.54 in the accent green)."),
-        ("home|call", .contrast, "Team", "iPad sidebar row: #000000 on #faf8f2, 19.8:1."),
-        ("home|call", .contrast, "What Ferni remembers", "iPad sidebar row: #000000 on #faf7f2, 19.7:1."),
-        ("home|call", .contrast, "Settings", "iPad sidebar row: #000000 on #faf7f2, 19.7:1."),
+        // iPad (2026-10-19), measured from the screenshot pixels with WCAG luminance. The sidebar
+        // rows' contrast findings (and the unnamed ones, two to four a launch) went away when the
+        // sidebar got an opaque background (2026-10-20); none are accepted any more.
         ("call", .contrast, "Ferni · ", "Name chip: #5c544a on #f7f5ee, 6.8:1 (caption text needs 4.5)."),
         ("home|call", .textClipped, "Talk", "iPad sidebar row: the AX5 screenshot shows the full word."),
         ("home|call", .textClipped, "What Ferni remembers", "iPad sidebar row: wraps to three full lines at AX5 (screenshot)."),

@@ -157,19 +157,21 @@ No tracking and no tracking domains. Required-reason APIs: UserDefaults
 
 `scripts/ui-audit.sh` runs the audit in CI. The iPhone is clean and gates the
 build (Home in all four RoomLight bands, both text sizes). The iPad step
-reports without gating. Re-run on 2026-10-19 on a dedicated simulator (an
-earlier run may have been cut short by another lane's `simctl shutdown all`):
+reports without gating. Re-run on 2026-10-20 on a dedicated simulator:
 
-- **Contrast failed with no element, 2 per Home or call launch.** They go
-  away when the Metal avatar is replaced by its static portrait (a
-  diagnostic build), so they come from the avatar's canvas, which draws no
-  text. Home is now audited in four light bands at two sizes, so there are
-  more of them; the class is unchanged. Accepted as known.
-- **Settings: one contrast finding with no element at AX5.** Settings on iPad
-  is now the sidebar's page, never a sheet. As a sheet it produced four
-  findings that were artifacts of the sheet (Home's text peeking out behind
-  it, and a row clipped at its edge measured against the dimmed backdrop).
-  The remaining one names no element. Open.
+- **Fixed: the sidebar.** Over the system's glass sidebar the audit failed
+  the contrast of every sidebar row (their pixels measure 19.7:1), naming
+  them in some runs and not in others. The unnamed ones were the "no
+  element, 2 per launch" findings on Home and in a call, earlier put down to
+  the avatar's canvas: with the sidebar hidden, Home, the call and Settings
+  had none. The sidebar now has Ferni's room colour, and Home, the call,
+  Settings and the Reduce Motion and Transparency audits have no contrast
+  findings left. The four per-row acceptances were removed, so the audit
+  guards it.
+- **Fixed: Settings.** As a sheet it had sheet artifacts (Home's text
+  behind it, a row clipped at its edge); as the sidebar's page (90b244273)
+  those are gone, and the two sidebar rows above were all that was left.
+  Settings now passes on iPad at both sizes.
 - **Consent: "potentially inaccessible text" with no element**, standard and
   AX5. The consent sheet leaves Home's headline visible above it, which is
   correctly hidden from accessibility while the sheet is modal. Plus one

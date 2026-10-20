@@ -69,6 +69,11 @@ struct RootView: View {
                     }
                 }
                 .navigationTitle("Ferni")
+                // Ferni's room colour, not the system's glass: over the glass the
+                // accessibility audit failed every row's contrast (often without
+                // naming it), though the pixels measure 19.7:1 (2026-10-20).
+                .scrollContentBackground(.hidden)
+                .background(FerniColor.background)
             } detail: {
                 Group {
                     switch section ?? .talk {
