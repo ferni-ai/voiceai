@@ -9,25 +9,29 @@ public struct Persona: Identifiable, Equatable, Sendable {
     public let specialty: String
 }
 
-/// Everyone on the team, in the order the app shows them.
+/// Everyone on the team, in the order the app shows them. Roles are the web's
+/// role labels (aiLabel.role in apps/web's en-US.json), in sentence case like
+/// every other label, except Alex: Seth made him the chief of staff
+/// (2026-10-18). One table: TeamUnlock reads its roles from here (design audit
+/// P2 #14: two tables, six names that disagreed, mixed capitals).
 public enum PersonaRegistry {
     public static let ferni = Persona(
-        id: "ferni", name: "Ferni", role: "Life Coach",
+        id: "ferni", name: "Ferni", role: "Life coach",
         specialty: "Life direction, and bringing in the right teammate")
     public static let maya = Persona(
-        id: "maya", name: "Maya", role: "Habits Coach",
+        id: "maya", name: "Maya", role: "Habits coach",
         specialty: "Building habits, breaking bad ones")
     public static let alex = Persona(
-        id: "alex", name: "Alex", role: "Communications",
+        id: "alex", name: "Alex", role: "Chief of staff",
         specialty: "Hard conversations, relationships, your calendar")
     public static let jordan = Persona(
-        id: "jordan", name: "Jordan", role: "Life Planner",
+        id: "jordan", name: "Jordan", role: "Life planner",
         specialty: "Goals, plans and life's big moments")
     public static let peter = Persona(
-        id: "peter", name: "Peter", role: "Research",
+        id: "peter", name: "Peter", role: "Insights mentor",
         specialty: "Patterns, research and finding answers")
     public static let nayan = Persona(
-        id: "nayan", name: "Nayan", role: "Wisdom",
+        id: "nayan", name: "Nayan", role: "Wisdom guide",
         specialty: "Mindfulness and the bigger questions")
 
     public static let all: [Persona] = [ferni, maya, alex, jordan, peter, nayan]

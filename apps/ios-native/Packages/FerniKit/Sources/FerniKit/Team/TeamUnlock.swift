@@ -11,7 +11,7 @@ public enum TeamUnlock {
         TeamMemberConfig(
             id: "ferni",
             displayName: "Ferni",
-            role: "Your Life Coach",
+            role: PersonaRegistry.ferni.role,
             description: "Asks the questions that unlock insight.",
             unlocksAt: .firstMeeting,
             introMessage: "Hey! I'm Ferni. I'm so glad you're here.",
@@ -20,7 +20,7 @@ public enum TeamUnlock {
         TeamMemberConfig(
             id: "maya",
             displayName: "Maya",
-            role: "Habits Coach",
+            role: PersonaRegistry.maya.role,
             description: "Helps you build habits that stick.",
             unlocksAt: .gettingStarted,
             introMessage: "I want you to meet Maya. She's incredible at habits.",
@@ -29,7 +29,7 @@ public enum TeamUnlock {
         TeamMemberConfig(
             id: "peter",
             displayName: "Peter",
-            role: "The Quant",
+            role: PersonaRegistry.peter.role,
             description: "Spots patterns nobody else sees.",
             unlocksAt: .buildingTrust,
             introMessage: "You're ready for Peter. He sees patterns most people miss.",
@@ -38,7 +38,7 @@ public enum TeamUnlock {
         TeamMemberConfig(
             id: "alex",
             displayName: "Alex",
-            role: "Chief of Staff",
+            role: PersonaRegistry.alex.role,
             description: "Communication coach. Helps you say what you mean.",
             unlocksAt: .established,
             introMessage: "Alex is going to change how you communicate.",
@@ -47,7 +47,7 @@ public enum TeamUnlock {
         TeamMemberConfig(
             id: "jordan",
             displayName: "Jordan",
-            role: "Lifetime Planner",
+            role: PersonaRegistry.jordan.role,
             description: "Turns vague dreams into lived experiences.",
             unlocksAt: .established,
             introMessage: "Jordan helps people turn dreams into actual plans.",
@@ -56,7 +56,7 @@ public enum TeamUnlock {
         TeamMemberConfig(
             id: "nayan",
             displayName: "Nayan",
-            role: "The Sage",
+            role: PersonaRegistry.nayan.role,
             description: "Small, consistent actions create extraordinary results.",
             unlocksAt: .deepPartnership,
             introMessage: "Nayan is the wisest person I know. You've earned this.",
