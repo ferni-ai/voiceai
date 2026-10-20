@@ -100,7 +100,7 @@ final class AccessibilityAuditTests: XCTestCase {
     /// Audit findings checked by hand and found not to be problems, each for one
     /// element on one screen, so anything else on that element still fails.
     nonisolated static let accepted: [(screen: String, type: XCUIAccessibilityAuditType, label: String, why: String)] = [
-        ("consent", .textClipped, "When you talk with Ferni",
+        ("consent", .textClipped, "When we talk",
          "Two paragraphs in one Text; the screenshot at the default size shows every line in full (2026-10-19)."),
         ("settings", .dynamicType, "Done",
          "A system toolbar button: bar buttons stop growing by design and show the Large Content Viewer instead."),

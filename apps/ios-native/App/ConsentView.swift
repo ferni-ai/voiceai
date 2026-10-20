@@ -120,11 +120,12 @@ struct ConsentView: View {
             .contentShape(.rect)
     }
 
-    // Names the providers, as App Store 5.1.2(i) asks. Wording is versioned
+    // Names the providers, as App Store 5.1.2(i) asks, all in Ferni's own voice
+    // (design audit P2 #12: it switched between "Ferni" and "I"). Wording is versioned
     // (ConsentStore.currentVersion): change one, change the other.
     static let body = """
-        When you talk with Ferni, your voice and what you say are sent to companies \
-        that help Ferni hear, think and speak: Google (Gemini), Anthropic (Claude), \
+        When we talk, your voice and what you say are sent to companies \
+        that help me hear, think and speak: Google (Gemini), Anthropic (Claude), \
         Cartesia (speech) and LiveKit (the call itself). They process it to answer you.
 
         I keep notes from our talks so I can remember you. You can see, change or \
