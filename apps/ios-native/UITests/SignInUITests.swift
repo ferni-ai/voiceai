@@ -14,7 +14,7 @@ final class SignInUITests: XCTestCase {
     func testTalkAsksASignedOutPersonToSignInByPhone() {
         let app = XCUIApplication.ferni(.home, account: "needsSignIn")
         XCTAssertTrue(talk(app).waitForExistence(timeout: 20))
-        XCTAssertTrue(app.staticTexts["Sign in so Ferni remembers you."].exists)
+        XCTAssertTrue(app.staticTexts["Sign in and we'll pick up where we left off."].exists)
 
         talk(app).tap()
         let number = app.textFields["Phone number"]
@@ -30,7 +30,7 @@ final class SignInUITests: XCTestCase {
         app.buttons["signIn.continue"].tap() // "Sign in", the sheet's, not Home's behind it
 
         XCTAssertTrue(number.waitForNonExistence(timeout: 5) && code.waitForNonExistence(timeout: 5), "the sheet closes")
-        XCTAssertFalse(app.staticTexts["Sign in so Ferni remembers you."].exists)
+        XCTAssertFalse(app.staticTexts["Sign in and we'll pick up where we left off."].exists)
         talk(app).tap()
         XCTAssertTrue(app.buttons["Not now"].waitForExistence(timeout: 5), "now Talk goes on to consent")
     }

@@ -54,7 +54,8 @@ struct HomeView: View {
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
                         } else {
                             TimelineView(.everyMinute) { minute in
-                                RestingLine(call: call, home: model.homeLine.current, now: minute.date, chosen: model.team.chosen)
+                                RestingLine(call: call, home: model.homeLine.current, now: minute.date, chosen: model.team.chosen,
+                                            knownHere: model.account.needsSignIn)
                             }
                             if call.phase == .ended {
                                 RememberCard(call: call, remembered: model.callRemembered)
@@ -223,6 +224,8 @@ private struct RestingLine: View {
     let now: Date
     /// Who answers the next call.
     var chosen = PersonaRegistry.ferni.id
+    /// Someone with an account on this phone before, signed out (design audit P2 #11).
+    var knownHere = false
     @Environment(\.openURL) private var openURL
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -242,7 +245,7 @@ private struct RestingLine: View {
             default:
                 let words = RestingWords.words(
                     home: home, ended: call.phase == .ended,
-                    hour: Self.hour(at: now), hasTalked: call.hasTalked, chosen: chosen
+                    hour: Self.hour(at: now), hasTalked: call.hasTalked, chosen: chosen, knownHere: knownHere
                 )
                 greeting(words.headline, words.detail)
             }
@@ -318,14 +321,19 @@ enum Welcome {
 /// follow-up is in the person's own words (GET /api/home); the clock words
 /// stay the app's own, so they're localised.
 enum RestingWords {
+    /// - Parameter knownHere: a real account was on this phone and is signed
+    ///   out. Signing out forgets that they've talked (CallSession.forgetPerson),
+    ///   but they aren't new: "Hi, I'm Ferni." greeted someone Ferni knows
+    ///   (design audit P2 #11).
     static func words(home: HomeLineStore.Home?, ended: Bool, hour: Int, hasTalked: Bool,
-                      chosen: String = PersonaRegistry.ferni.id) -> (headline: String, detail: String) {
+                      chosen: String = PersonaRegistry.ferni.id, knownHere: Bool = false) -> (headline: String, detail: String) {
         if ended { return (String(localized: "Talk soon."), String(localized: "I'm here whenever you want to talk again.")) }
         // A teammate chosen for the next call: Ferni introduces them, in his
         // words from the persona bundle (design audit P1-1).
         if chosen != PersonaRegistry.ferni.id, let intro = TeammateIntroduction.forPersona(chosen) {
             return (String(localized: "\(PersonaRegistry.get(chosen).name)'s here."), intro.ferniSays)
         }
+        if knownHere, home == nil { return (String(localized: "Welcome back."), String(localized: "Whenever you're ready, I'm here.")) }
         let firstVisit = home?.greeting.map { $0 == .firstVisit } ?? !hasTalked
         let detail: String = if case .followUp(let text, _)? = home?.greeting {
             String(localized: "How's \(text) going?")
