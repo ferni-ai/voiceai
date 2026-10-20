@@ -347,6 +347,19 @@ final class AccountStoreTests: XCTestCase {
         XCTAssertEqual(backend.anonymousCalls, 0)
     }
 
+    /// Firebase's codes become words a person can act on (P0 2026-10-19: all of
+    /// them were "That didn't go through").
+    func testFirebaseErrorsBecomeSpecificWords() {
+        func mapped(_ code: Int) -> SignInError? {
+            FirebaseAuthBackend.signInError(NSError(domain: "FIRAuthErrorDomain", code: code)) as? SignInError
+        }
+        XCTAssertEqual(mapped(17020), .offline, "network error")
+        XCTAssertEqual(mapped(17042), .invalidPhoneNumber)
+        XCTAssertEqual(mapped(17044), .invalidCode)
+        XCTAssertEqual(mapped(17010), .tooManyAttempts)
+        XCTAssertNotNil(SignInError.offline.message)
+    }
+
     /// Deleting the account is the one way back to a fresh anonymous start.
     func testTheDeletionKeysIncludeTheRealAccountMemory() {
         XCTAssertTrue(AccountDeletion.localKeys.contains(AccountMemory.key))

@@ -71,7 +71,7 @@ public struct SignInResult: Equatable, Sendable {
 
 /// Why a sign-in didn't go through, in words a person can act on.
 public enum SignInError: Error, Equatable, Sendable {
-    case invalidPhoneNumber, invalidCode, tooManyAttempts, cancelled, other
+    case invalidPhoneNumber, invalidCode, tooManyAttempts, offline, cancelled, other
 
     /// Nil when there's nothing to say (the person cancelled).
     public var message: String? {
@@ -79,6 +79,7 @@ public enum SignInError: Error, Equatable, Sendable {
         case .invalidPhoneNumber: "That number doesn't look right. Try it with the country code, like +1."
         case .invalidCode: "That code didn't match. Check the text and try again."
         case .tooManyAttempts: "Too many tries for now. Give it a few minutes, then try again."
+        case .offline: "Couldn't reach Ferni. Check your connection and try again."
         case .cancelled: nil
         case .other: "That didn't go through. Try again?"
         }
