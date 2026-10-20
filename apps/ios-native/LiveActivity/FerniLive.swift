@@ -21,7 +21,7 @@ struct CallLiveActivity: Widget {
                 portrait(context.state).frame(width: 44, height: 44)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(context.state.state.words(context.state.personaName)).font(.headline)
-                    duration(context.attributes)
+                    if context.state.state.showsDuration { duration(context.attributes) }
                 }
                 Spacer()
                 if context.state.state.hasControls {
@@ -42,11 +42,13 @@ struct CallLiveActivity: Widget {
                 DynamicIslandExpandedRegion(.center) {
                     Text(context.state.state.words(context.state.personaName)).font(.headline)
                 }
-                DynamicIslandExpandedRegion(.bottom) { duration(context.attributes) }
+                DynamicIslandExpandedRegion(.bottom) {
+                    if context.state.state.showsDuration { duration(context.attributes) }
+                }
             } compactLeading: {
                 portrait(context.state).frame(width: 22, height: 22)
             } compactTrailing: {
-                Image(systemName: context.state.muted ? "mic.slash.fill" : "waveform")
+                Image(systemName: context.state.state.islandSymbol(muted: context.state.muted))
                     .symbolEffect(.variableColor.iterative, isActive: context.state.state == .speaking && !context.state.muted)
                     .contentTransition(.symbolEffect(.replace))
             } minimal: {
@@ -90,8 +92,10 @@ struct CallLiveActivity: Widget {
 
     private var endButton: some View {
         Button(intent: EndCallIntent()) {
+            // On the error colour's own ink: white on dark mode's #E7A39A was 2.08:1
+            // (design audit P1-12).
             Image(systemName: "phone.down.fill")
-                .foregroundStyle(.white)
+                .foregroundStyle(FerniColor.onError)
                 .frame(width: 44, height: 44)
                 .background(FerniColor.error, in: Circle())
         }
