@@ -134,14 +134,22 @@ public final class AliveRig {
     /// Something the prototype drew around Ferni, for the view's overlay. In
     /// Ferni radii from his centre, y up.
     public struct Particle: Equatable, Sendable {
-        public enum Kind: Sendable { case sparkle, heart, firefly }
+        /// z (tired), sweat (nervous), question (confused) and bang (surprised)
+        /// arrive once with the expression, as in the prototype's playFx.
+        public enum Kind: Sendable { case sparkle, heart, firefly, z, sweat, question, bang }
         public var kind: Kind
         public var x: Double, y: Double, size: Double, alpha: Double
+        public var rotation = 0.0
     }
 
     public private(set) var particles: [Particle] = []
 
-    private struct Spark { var kind: Particle.Kind; var x, y, vx, vy, size, born, life: Double }
+    private struct Spark {
+        var kind: Particle.Kind; var x, y, vx, vy, size, born, life: Double
+        var ay = 0.0, rotation = 0.0
+    }
+    /// The expression the once-per-feeling particles last came for.
+    private var effectExpression = "neutral"
     private var sparks: [Spark] = []
     private var pending: [KeyedCue] = []
     private var pokeDir = SIMD3<Double>(0, 0.3, 0.95)
@@ -232,18 +240,48 @@ public final class AliveRig {
             if cue == .sparkle { burst(.sparkle, 6) }
             if cue == .heart { burst(.heart, 3) }
         }
+        // Once when the expression arrives (not for a touch's brief flash).
+        if expression != effectExpression {
+            effectExpression = expression
+            emitFeeling(Face.of(expression).effect, burst: burst)
+        }
         if face.effect == "sparkle", overlay == nil, time >= nextSparkle {
             burst(.sparkle, 1)
             nextSparkle = time + 0.5
         }
         if sparks.count > 24 { sparks.removeFirst(sparks.count - 24) }
-        for i in sparks.indices where sparks[i].kind != .firefly {
+        for i in sparks.indices where sparks[i].kind != .firefly && time >= sparks[i].born {
+            sparks[i].vy += sparks[i].ay * dt
             sparks[i].x += sparks[i].vx * dt
             sparks[i].y += sparks[i].vy * dt
         }
-        particles = sparks.map { s in
+        particles = sparks.filter { time >= $0.born }.map { s in
             let alpha = s.kind == .firefly ? 1 : sin(.pi * clamp((time - s.born) / s.life, 0, 1))
-            return Particle(kind: s.kind, x: s.x, y: s.y, size: s.size, alpha: alpha)
+            return Particle(kind: s.kind, x: s.x, y: s.y, size: s.size, alpha: alpha, rotation: s.rotation)
+        }
+    }
+
+    /// The prototype's emit() for the feelings with weight, in Ferni radii (y up):
+    /// three z's drifting up one after another, a bead of sweat that slides
+    /// down, a ? or ! above his head, and hearts for warmth.
+    private func emitFeeling(_ effect: String?, burst: (Particle.Kind, Int) -> Void) {
+        switch effect {
+        case "z":
+            for i in 0..<3 {
+                let d = Double(i)
+                sparks.append(Spark(kind: .z, x: 0.55 + d * 0.12, y: 0.75 + d * 0.1, vx: rng.range(0.09, 0.16),
+                                    vy: rng.range(0.2, 0.27), size: 0.2 * (0.8 + d * 0.25), born: time + d * 0.55, life: 2.2))
+            }
+        case "sweat":
+            sparks.append(Spark(kind: .sweat, x: 0.72, y: 0.55, vx: 0, vy: -0.05, size: 0.18, born: time, life: 1.8, ay: -0.55))
+        case "question", "bang":
+            let question = effect == "question"
+            sparks.append(Spark(kind: question ? .question : .bang, x: 0.62, y: 1.05, vx: 0, vy: 0.07, size: 0.3,
+                                born: time, life: 1.5, rotation: question ? 0.18 : -0.12))
+        case "heart":
+            burst(.heart, 4)
+        default:
+            break
         }
     }
 
