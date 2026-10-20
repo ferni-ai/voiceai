@@ -18,6 +18,14 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  persistChapter,
+  persistDream,
+  persistEnergy,
+  persistPerson,
+  persistValue,
+  schedulePatternOutreachAsync,
+} from './live-superhuman-writes.js';
 import type { ContextInjection, EmotionalState } from './types.js';
 import type { SessionServices } from '../../services/types.js';
 // UserData type available if needed for future enhancements
@@ -34,40 +42,6 @@ import type {
 import type { PersonaId } from '../../memory/cross-persona/index.js';
 
 const log = createLogger({ module: 'LiveSuperhumanInjections' });
-
-// ============================================================================
-// PROACTIVE OUTREACH INTEGRATION (lazy loaded)
-// ============================================================================
-
-/**
- * Schedule pattern-based outreach (fire-and-forget)
- * Uses dynamic import to avoid breaking turn processor if outreach is unavailable
- */
-async function schedulePatternOutreachAsync(
-  pattern: {
-    pattern: string;
-    patternDescription: string;
-    tendency: string;
-    suggestedOutreach: string;
-    actionable: string;
-  },
-  ctx: {
-    userId: string;
-    sessionId: string;
-    currentEmotion?: string;
-    emotionIntensity?: number;
-    topics?: string[];
-  }
-): Promise<void> {
-  try {
-    const { schedulePatternOutreachAsync: scheduleOutreach } =
-      await import('../../services/outreach/pattern-outreach-integration.js');
-    scheduleOutreach(pattern, ctx);
-  } catch (error) {
-    // Non-critical - outreach is optional
-    log.debug({ error: String(error) }, 'Outreach scheduling unavailable (non-fatal)');
-  }
-}
 
 // ============================================================================
 // TYPES
@@ -580,16 +554,7 @@ Your superpower: You notice when their actions contradict their values.
     }
 
     // Fire-and-forget: Persist detected value to Firestore
-    if (values.detected && values.value) {
-      void import('../../services/superhuman/values-alignment.js')
-        .then(m => {
-          const detected = m.detectValue(ctx.userText);
-          if (detected) {
-            void m.recordValueMention(ctx.userId, detected);
-          }
-        })
-        .catch(e => log.debug({ error: String(e) }, 'Value recording skipped'));
-    }
+    if (values.detected && values.value) void persistValue(ctx);
 
     // 3. CAPACITY GUARDIAN
     const capacity = detectCapacitySignals(ctx.userText);
@@ -611,24 +576,7 @@ Your superpower: You catch burnout before it happens.
     }
 
     // Fire-and-forget: Persist energy reading to Firestore
-    if (capacity.level !== 'none') {
-      void import('../../services/superhuman/capacity-guardian.js')
-        .then(m => {
-          const energyLevel = capacity.level === 'critical' ? 'depleted'
-            : capacity.level === 'high' ? 'low'
-            : 'moderate';
-          const energyScore = capacity.level === 'critical' ? 10
-            : capacity.level === 'high' ? 25
-            : 40;
-          return m.recordEnergyReading(ctx.userId, {
-            energyLevel: energyLevel as 'depleted' | 'low' | 'moderate',
-            energyScore,
-            detectedFrom: ['text'] as Array<'voice' | 'text' | 'pattern' | 'explicit'>,
-            indicators: capacity.signals,
-          });
-        })
-        .catch(e => log.debug({ error: String(e) }, 'Energy recording skipped'));
-    }
+    if (capacity.level !== 'none') void persistEnergy(ctx, { ...capacity, level: capacity.level });
 
     // 4. VOICE BIOMARKERS (Better Than Human - hearing what's not said)
     const voiceAnalysis = analyzeVoiceBiomarkers(ctx.voiceEmotion);
@@ -741,14 +689,7 @@ Your superpower: You remember everyone in their life.
       });
 
       // Fire-and-forget: Extract and persist person mention
-      void import('../../services/superhuman/relationship-network.js')
-        .then(m => {
-          const person = m.extractPerson(ctx.userText);
-          if (person) {
-            void m.recordMention(ctx.userId, person);
-          }
-        })
-        .catch(e => log.debug({ error: String(e) }, 'Relationship recording skipped'));
+      void persistPerson(ctx);
     }
 
     // 8c. DREAM KEEPER (Better Than Human - never forget aspirations)
@@ -770,14 +711,7 @@ Your superpower: You never forget what they dreamed of becoming.
       });
 
       // Fire-and-forget: Detect and persist dream
-      void import('../../services/superhuman/dream-keeper.js')
-        .then(m => {
-          const dream = m.detectDream(ctx.userText);
-          if (dream) {
-            void m.recordDreamMention(ctx.userId, dream);
-          }
-        })
-        .catch(e => log.debug({ error: String(e) }, 'Dream recording skipped'));
+      void persistDream(ctx);
     }
 
     // 8d. LIFE NARRATIVE (Better Than Human - remember every chapter)
@@ -799,18 +733,7 @@ Your superpower: You remember their WHOLE story.
       });
 
       // Fire-and-forget: persist the moment, keyed by session so one chat counts once
-      void import('../../services/superhuman/life-narrative.js')
-        .then(m => {
-          const chapter = m.detectChapterMoment(ctx.userText);
-          if (chapter) {
-            void m.createOrUpdateChapter(ctx.userId, {
-              type: chapter.type,
-              quote: ctx.userText.slice(0, 200),
-              emotion: ctx.emotionalState.primary, conversationId: ctx.sessionId,
-            });
-          }
-        })
-        .catch(e => log.debug({ error: String(e) }, 'Life narrative recording skipped'));
+      void persistChapter(ctx);
     }
 
     // ========================================================================
