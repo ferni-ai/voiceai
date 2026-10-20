@@ -35,9 +35,11 @@ on:
           - mobile
           - ios
 
-# A newer push to a pull request replaces its older run; every main and tag run finishes.
+# A newer push to a PR cancels that PR's older run. Merge-queue, tag and manual
+# runs each get their own group and are never cancelled: cancelling a queue run
+# for a re-request on its ref drops the entry (see ci.yml's header).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:

@@ -1,9 +1,7 @@
 /**
- * The call quality monitor only alerts on a rate or the quality score once a
- * worker has seen enough calls, and only abnormal drops count as disconnects.
- *
- * Prod, the day to 2026-10-18: 17 "Disconnect Rate Critical" pages
- * ("100.0% of calls ending in disconnection") from { totalCalls: 1 }.
+ * Only abnormal drops count as disconnects: a call the caller or the agent
+ * ended on purpose is a natural end, so it never feeds the disconnect-rate
+ * or quality-score alerts. (The minimum sample is call-quality-sample.ts.)
  */
 import { DisconnectReason } from '@livekit/rtc-node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -21,7 +19,6 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 }));
 
 import { classifyCallEnd, roomDisconnectEndReason } from '../call-end-reason.js';
-import { alertMinCalls } from '../call-quality-min-sample.js';
 import {
   calculateMetrics,
   checkQualityAlerts,
@@ -42,7 +39,7 @@ function call(id: string, waitEndReason: string): void {
 }
 
 async function alertTitles(): Promise<string[]> {
-  startCallQualityMonitor({ qualityCheckIntervalMs: 3_600_000 });
+  startCallQualityMonitor({ qualityCheckIntervalMs: 3_600_000, minCallsForRateAlerts: 1 });
   await checkQualityAlerts();
   return notify.mock.calls.map(([n]) => String(n.title));
 }
@@ -50,50 +47,20 @@ async function alertTitles(): Promise<string[]> {
 afterEach(() => {
   resetCallQualityStateForTests();
   notify.mockClear();
-  vi.unstubAllEnvs();
 });
 
-describe('call quality alerts need enough calls', () => {
+describe('normal endings never count as disconnects', () => {
   it('one call that ends normally raises no alert, even with a minimum of 1', async () => {
-    vi.stubEnv('CALL_QUALITY_ALERT_MIN_CALLS', '1');
     call('a', 'empty_room');
     expect(await alertTitles()).toEqual([]);
   });
 
-  it('one abnormal drop is 100% disconnects but below the minimum: no alert', async () => {
+  it('one abnormal drop with a minimum of 1 still pages', async () => {
     call('a', 'room.disconnected');
     expect(calculateMetrics().disconnectRate).toBe(1);
-    expect(await alertTitles()).toEqual([]);
-  });
-
-  it('one call that never connected is 0% connected but below the minimum: no alert', async () => {
-    startCall('a');
-    expect(calculateMetrics().connectionSuccessRate).toBe(0);
-    expect(await alertTitles()).toEqual([]);
-  });
-
-  it('five calls with four abnormal drops still page', async () => {
-    call('ok', 'empty_room');
-    for (const id of ['d1', 'd2', 'd3', 'd4']) call(id, 'room.disconnected');
-
-    expect(calculateMetrics().disconnectRate).toBe(0.8);
     expect(await alertTitles()).toContain('📞 Disconnect Rate Critical');
   });
 
-  it('CALL_QUALITY_ALERT_MIN_CALLS lowers the minimum', async () => {
-    vi.stubEnv('CALL_QUALITY_ALERT_MIN_CALLS', '1');
-    expect(alertMinCalls()).toBe(1);
-    call('a', 'room.disconnected');
-    expect(await alertTitles()).toContain('📞 Disconnect Rate Critical');
-  });
-
-  it('ignores a bad override', () => {
-    vi.stubEnv('CALL_QUALITY_ALERT_MIN_CALLS', 'zero');
-    expect(alertMinCalls()).toBe(5);
-  });
-});
-
-describe('normal endings never count as disconnects', () => {
   it.each([
     ['caller left (LiveKit closed the room)', DisconnectReason.ROOM_CLOSED],
     ['agent hung up (end-call tool deleted the room)', DisconnectReason.ROOM_DELETED],
