@@ -2,9 +2,11 @@ import FerniDesign
 import SwiftUI
 import WidgetKit
 
-/// Ferni on the Home Screen and in StandBy: peeking, with a Talk button that
-/// starts a call through the same door as the app's (consent first). Nothing
-/// personal is shown, since widgets also appear in StandBy and on shared screens.
+/// Ferni on the Home Screen, in StandBy, in CarPlay and on Apple HomeView:
+/// peeking. The medium size adds a Talk button that starts a call through the
+/// same door as the app's (consent first); the small size, which also shows
+/// on shared screens, has none (SharedScreens). Nothing personal is shown,
+/// anywhere: the extension can't read the app's data.
 struct FerniHomeWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "FerniHome", provider: Provider()) { _ in
@@ -34,16 +36,14 @@ struct FerniHomeWidgetView: View {
     var body: some View {
         let peek = FerniPeek(accented: mode != .fullColor, dark: scheme == .dark)
         Group {
-            if family == .systemMedium {
+            if SharedScreens.widgetOffersTalk(family) {
                 HStack {
                     peek
                     talk.frame(maxWidth: .infinity)
                 }
             } else {
-                ZStack(alignment: .topLeading) {
-                    peek
-                    talk
-                }
+                // A tap opens Ferni on the iPhone; it never starts a call.
+                peek
             }
         }
         .containerBackground(for: .widget) { FerniColor.background }

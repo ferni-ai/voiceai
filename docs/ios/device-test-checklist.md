@@ -28,6 +28,7 @@ was an iPad Air).
 | 10 | In a call with AirPods: press the stem to mute, then again | Muted: the call says "You're muted" and Ferni hears nothing; pressed again, the call comes back. This is the system's mute action reaching the call through LiveCommunicationKit. |
 | 11 | Mid-call, take one AirPod out, then put both away (audio to the speaker) | The call keeps going on whatever route is left, both ways; it never goes quiet. |
 | 12 | Long-press the Ferni icon: Get help now. Once with Ferni closed, once with it open in the background | Help opens both times (Call or Text 988, and Find a helpline outside the US). It never starts a call. |
+| 13 | Sounds on (Settings), at rest on Home: tap Ferni once; then flip the silent switch on and tap again (2 s later) | A soft boop the first time; none with the switch on. Hold a finger on him for a second: a small "huh?" (switch off). If the switch doesn't silence them, report it: they're system sounds, and the docs say they play on the device speaker at the system volume but don't say whether silent mode mutes them. |
 | 8 | Stay on Home for 2 minutes, then call again for 3 minutes | No warmth or slowdown; fps stays near 30 at rest and up to 120 while Ferni speaks. Ferni now renders at the screen's own scale: the avatar log must say `scale=3.0` on a 3x iPhone (1.5 only in Low Power Mode or when hot), with fps still at least 55 while he speaks. If 3x can't hold that, report the numbers; don't lower the scale on a guess. |
 
 ## Evidence to capture

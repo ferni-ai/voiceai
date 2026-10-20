@@ -18,6 +18,9 @@ struct TalkIntent: AppIntent {
     static let title: LocalizedStringResource = "Talk to Ferni"
     static let description = IntentDescription("Start a conversation with Ferni or a teammate.")
     static let supportedModes: IntentModes = .foreground
+    /// Asked from another device (a shared screen's Siri, a HomePod, a watch),
+    /// the phone must be unlocked by its owner first: a call starts as them.
+    static let authenticationPolicy: IntentAuthenticationPolicy = .requiresLocalDeviceAuthentication
 
     @Parameter(title: "Who", default: .ferni)
     var teammate: Teammate
