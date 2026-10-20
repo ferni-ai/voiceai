@@ -16,6 +16,8 @@ struct HomeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var widthClass
     @State private var landscape = false
+    /// Home's own size: on iPad Ferni is sized to it.
+    @State private var room = CGSize.zero
     /// The keyboard is up (correcting what Ferni remembered).
     @State private var typing = false
 
@@ -44,7 +46,7 @@ struct HomeView: View {
                         // At accessibility sizes Ferni steps back so the words fit: in a
                         // call, the captions; at home, the greeting above the pinned Talk
                         // (design audit P1-9: on an SE at AX5 it sat behind Talk).
-                        avatar(call: call, size: typeSize.isAccessibilitySize ? (inCall ? 120 : 140) : (inCall ? 240 : 200))
+                        avatar(call: call, size: typeSize.isAccessibilitySize ? (inCall ? 120 : 140) : (inCall ? 240 : restSize))
                             .padding(.top, inCall || typeSize.isAccessibilitySize ? FerniSpace.breath : FerniSpace.silence)
                         if inCall {
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
@@ -66,7 +68,7 @@ struct HomeView: View {
                             if let prompt = SignInPrompt.shown(model.account.state) {
                                 SignInPromptView(prompt: prompt) { model.isSigningIn = true }
                             }
-                            TeamRow(team: model.team)
+                            TeamRow(team: model.team, shelf: widthClass == .regular)
                         }
                     }
                 }
@@ -76,7 +78,7 @@ struct HomeView: View {
                 .animation(reduceMotion ? nil : .spring(response: 0.45, dampingFraction: 0.55), value: inCall)
             }
             .scrollBounceBehavior(.basedOnSize)
-            .onGeometryChange(for: Bool.self) { $0.size.width > $0.size.height } action: { landscape = $0 }
+            .onGeometryChange(for: CGSize.self) { $0.size } action: { room = $0; landscape = $0.width > $0.height }
             // Pinned at every text size: End, Mute and More (and Talk) never
             // scroll away. At accessibility sizes they scrolled with the
             // captions and End left the screen (design audit P0-1, 2026-10-20).
@@ -149,6 +151,15 @@ struct HomeView: View {
 
     private static let rememberID = "home.remember"
 
+    /// Ferni at rest: 200 pt on a phone; on iPad, sized to the room (design
+    /// audit P1-14: a phone column, ~65% of the screen empty).
+    private var restSize: CGFloat { Self.restSize(room: room, regular: widthClass == .regular) }
+
+    static func restSize(room: CGSize, regular: Bool) -> CGFloat {
+        guard regular, room.width > 0 else { return 200 }
+        return min(max(min(room.width * 0.5, room.height * 0.42), 200), 440)
+    }
+
     /// In a call, who's talking; at home, who answers next (design audit P1-1:
     /// choosing a teammate changed only Talk's label).
     private func shownPersona(_ call: CallSession) -> String {
@@ -182,6 +193,7 @@ struct HomeView: View {
         )
             .frame(width: size, height: size)
             .opacity(call.phase == .reconnecting ? 0.5 : 1)
+            .accessibilityIdentifier("home.avatar")
     }
 
     private var controls: some View {
@@ -371,13 +383,15 @@ enum TeamRowModel {
 /// choose who answers next; press and hold for who they are.
 private struct TeamRow: View {
     let team: TeamStore
+    /// On iPad: a shelf of bigger faces (design audit P1-14).
+    var shelf = false
 
     var body: some View {
         let shown = TeamRowModel.shown(unlocked: team.unlocked)
         if !shown.isEmpty {
             // One row while the names fit; at large text sizes, as many rows as they need.
             ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: FerniSpace.pause) { faces(shown) }
+                HStack(alignment: .top, spacing: shelf ? FerniSpace.rest : FerniSpace.pause) { faces(shown) }
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: FerniSpace.pause)], spacing: FerniSpace.pause) {
                     faces(shown)
                 }
@@ -393,7 +407,7 @@ private struct TeamRow: View {
             } label: {
                 VStack(spacing: 4) {
                     AvatarPortrait(persona: WindowPersona(personaId: persona.id))
-                        .frame(width: 40, height: 40)
+                        .frame(width: shelf ? 72 : 40, height: shelf ? 72 : 40)
                         .padding(2)
                         .overlay {
                             if team.chosen == persona.id {
@@ -402,7 +416,7 @@ private struct TeamRow: View {
                         }
                         .frame(minWidth: 44, minHeight: 44)
                     Text(persona.name)
-                        .font(FerniType.caption)
+                        .font(shelf ? FerniType.footnote : FerniType.caption)
                         .foregroundStyle(team.chosen == persona.id ? FerniColor.textPrimary : FerniColor.textSecondary)
                         .fixedSize()
                 }
