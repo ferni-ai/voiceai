@@ -29,6 +29,7 @@ struct CallAvatar: View {
             doubleTake: doubleTake,
             personSpeaking: call.isUserSpeaking,
             micro: avatar.micro,
+            moment: avatar.moment,
             level: { [level = call.agentLevel] in level.level },
             onCue: onCue
         )

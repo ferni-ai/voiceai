@@ -477,6 +477,7 @@ public final class CallSession {
                 let hold = RemoteDuration.seconds(result.hold ?? result.duration)
                 avatar.send(.expression(result.expression, hold: hold))
                 if let micro = result.microExpression { avatar.send(.micro(micro.design)) }
+                if let moment = result.moment { avatar.send(.moment(moment)) }
             }
         case .caption(let chunk):
             captions.apply(chunk, room: roomName)

@@ -375,6 +375,22 @@ final class CallSessionTests: XCTestCase {
         await until(session.avatar.micro?.expression == .concern)
     }
 
+    /// A breakthrough plays deep_moment and high engagement a small
+    /// celebration (sequences.json), through the avatar to the body.
+    func testSignalsPlayTheirMoments() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        XCTAssertNil(session.avatar.moment)
+        rooms.made[0].send(.data(Data(#"{"type":"humanization_signal","signalType":"breakthrough"}"#.utf8)))
+        await until(session.avatar.moment?.id == "deep_moment")
+        rooms.made[0].send(.data(Data(#"{"type":"humanization_signal","signalType":"high_engagement"}"#.utf8)))
+        await until(session.avatar.moment?.id == "celebration_small")
+        rooms.made[0].send(.data(Data(#"{"type":"humanization_signal","signalType":"vulnerability"}"#.utf8)))
+        await until(session.avatar.micro?.expression == .warmth)
+        XCTAssertEqual(session.avatar.moment?.id, "celebration_small", "a vulnerable moment plays none")
+    }
+
     /// Untrusted numbers in a packet never crash the app (security review).
     func testHugeOrNegativeExpressionTimesAreClampedNotFatal() async {
         let session = makeSession()
