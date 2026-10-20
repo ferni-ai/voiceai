@@ -139,9 +139,7 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 
 const activeStores: Array<{ name: string; store: PersistenceStore<unknown> }> = [];
 
-/**
- * Create a persistence store for a specific data type
- */
+/** Create a persistence store for a specific data type */
 /**
  * Firestore stores a Date as a Timestamp and gives back the Timestamp, so a
  * value saved as a Date comes back as something `new Date(x)` turns into an
@@ -195,8 +193,8 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     clearNamedInterval(intervalName);
   };
 
-  // Flush all dirty data
-  const flushAll = async (): Promise<void> => {
+  // Flush all dirty data; forced (shutdown, explicit flush): held parts ignore their backoff
+  const flushAll = async (force = false): Promise<void> => {
     if (dirty.size === 0) return;
 
     const firestore = await getFirestore();
@@ -219,7 +217,8 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         _updatedAt: new Date().toISOString(),
         _userId: userId,
       });
-    await heldParts.write((u, part) => docRefFor(u).set(toDoc(u, part), { merge: true }), dirty);
+    const setPart = (u: string, part: unknown) => docRefFor(u).set(toDoc(u, part), { merge: true });
+    await heldParts.write(setPart, dirty, force);
 
     try {
       let batch = firestore.batch();
@@ -377,6 +376,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       cache.delete(userId);
       dirty.delete(userId);
       heldParts.forget(userId); // a pending held part, even one in flight, never outlives this
+      await heldParts.settled(userId); // a held write in flight lands before the delete, not after
 
       const firestore = await getFirestore();
       if (!firestore) return;
@@ -399,7 +399,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       }
     },
 
-    flush: flushAll,
+    flush: () => flushAll(true),
 
     flushUser,
 
@@ -425,7 +425,8 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     shutdown: async () => {
       isShutdown = true;
       stopSyncInterval();
-      await flushAll();
+      await flushAll(true);
+      heldParts.reportPending(collection);
       cache.clear();
       dirty.clear();
       log.info({ collection }, 'Persistence store shutdown complete');
