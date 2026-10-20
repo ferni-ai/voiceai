@@ -9,10 +9,10 @@ import type { AgentManifest, ToolManifest } from '../../marketplace/schema/types
 import { getSubscriptionInfo } from '../../services/billing/stripe-subscription.js';
 import type { SubscriptionTier } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { optionalAuthAsync } from '../auth-middleware.js';
+import { isVerifiedToken, verifyFirebaseToken } from '../../services/identity/firebase-auth.js';
 import { parseBody as parseBodyHelper, sendJSON } from '../helpers.js';
 import { isVerifiedAdmin } from '../rate-limit-identity.js';
-import { findPublisherByFirebaseUid } from '../v1/developers/shared/developer-auth.js';
+import { resolvePublisher } from '../v1/developers/shared/developer-auth.js';
 
 const log = createLogger({ module: 'marketplace-helpers' });
 
@@ -75,27 +75,44 @@ export function getUserId(req: IncomingMessage): string | null {
 
 /**
  * The publisher the caller is, from their verified Firebase token: the
- * publishers record linked to that uid at developer sign-in. Request headers
- * (x-publisher-id, x-publisher-name) are claims and are never read. Anonymous
- * tokens are not publishers. `verified` comes from the record, which only an
- * admin can change.
+ * publishers record linked to that uid, re-checked on every request against a
+ * verified, non-anonymous email equal to the record's. Request headers
+ * (x-publisher-id, x-publisher-name) are claims and are never read.
+ * `verified` comes from the record, which only an admin can change.
+ * Returns null after sending the 401/403 that explains why.
  */
-export async function getPublisher(req: IncomingMessage): Promise<PublisherSession | null> {
-  const auth = await optionalAuthAsync(req);
-  if (!auth || auth.authMethod !== 'firebase' || auth.isAnonymous || !auth.firebaseUid) {
-    return null;
-  }
+export async function requirePublisher(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<PublisherSession | null> {
+  const header = req.headers.authorization;
+  const token = header?.startsWith('Bearer ') ? header.slice(7).trim() : '';
   try {
-    const record = await findPublisherByFirebaseUid(auth.firebaseUid);
-    if (!record) return null;
+    const verified = token ? await verifyFirebaseToken(token) : null;
+    if (!isVerifiedToken(verified)) {
+      sendJson(res, 401, { error: 'Publisher authentication required' });
+      return null;
+    }
+    const resolved = await resolvePublisher({
+      uid: verified.uid,
+      email: verified.email,
+      emailVerified: verified.emailVerified === true,
+      anonymous: verified.isAnonymous === true,
+    });
+    if (!resolved.ok) {
+      sendJson(res, resolved.status, { error: resolved.error });
+      return null;
+    }
+    const record = resolved.publisher;
     return {
       publisherId: record.id,
       publisherName: record.name || 'Unknown Publisher',
-      email: record.email || undefined,
+      email: record.email,
       verified: record.verified === true,
     };
   } catch (error) {
     log.warn({ error: String(error) }, 'Publisher lookup failed');
+    sendJson(res, 500, { error: 'Publisher lookup failed' });
     return null;
   }
 }

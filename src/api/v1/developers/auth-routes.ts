@@ -17,6 +17,7 @@ import {
   type Publisher,
 } from '../../publisher-auth.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { RELINK_MESSAGE } from './shared/developer-auth.js';
 
 const log = getLogger().child({ module: 'developers-auth' });
 
@@ -203,6 +204,16 @@ class PublisherLinkConflict extends Error {
   }
 }
 
+class PublisherRelinkRequired extends Error {
+  constructor() {
+    super(RELINK_MESSAGE);
+  }
+}
+
+function sameEmail(a: string | undefined, b: string | undefined): boolean {
+  return !!a && !!b && a.toLowerCase() === b.toLowerCase();
+}
+
 /**
  * Who may hold a publisher account: a signed-in, non-anonymous user whose
  * email Firebase has verified. Linking matches publishers by email, so an
@@ -228,9 +239,10 @@ async function linkFirebaseToPublisher(
 ): Promise<{ publisher: Publisher; isNew: boolean; apiKey?: string }> {
   const db = await getFirestore();
 
-  // Check if already linked
+  // Check if already linked (and still by this verified email)
   const existing = await findPublisherByFirebaseUid(firebaseUid);
   if (existing) {
+    if (!sameEmail(existing.email, email)) throw new PublisherRelinkRequired();
     return { publisher: existing, isNew: false };
   }
 
@@ -357,6 +369,10 @@ export async function handleDeveloperAuthRoutes(
       try {
         linked = await linkFirebaseToPublisher(firebaseUid, email, name);
       } catch (error) {
+        if (error instanceof PublisherRelinkRequired) {
+          sendError(res, RELINK_MESSAGE, 403);
+          return true;
+        }
         if (!(error instanceof PublisherLinkConflict)) throw error;
         log.warn({ firebaseUid }, 'Refused to re-link a publisher owned by another account');
         sendError(res, 'This email is already linked to another account', 409);
@@ -416,8 +432,8 @@ export async function handleDeveloperAuthRoutes(
         return true;
       }
 
-      if (decodedToken.firebase?.sign_in_provider === 'anonymous') {
-        sendError(res, 'Sign in with an account to use the developer console', 403);
+      if (publisherIdentityError(decodedToken)) {
+        sendError(res, RELINK_MESSAGE, 403);
         return true;
       }
 
@@ -425,6 +441,11 @@ export async function handleDeveloperAuthRoutes(
       const publisher = await findPublisherByFirebaseUid(decodedToken.uid);
       if (!publisher) {
         sendError(res, 'Publisher not found. Please sign in first.', 404);
+        return true;
+      }
+      // A link made from another (or an unverified) email no longer works
+      if (!sameEmail(publisher.email, decodedToken.email)) {
+        sendError(res, RELINK_MESSAGE, 403);
         return true;
       }
 

@@ -29,7 +29,7 @@ import {
   type UpdateReviewInput,
 } from '../../marketplace/reviews/index.js';
 import { getAgent, getTool } from '../../marketplace/index.js';
-import { getPublisher } from '../marketplace/helpers.js';
+import { requirePublisher } from '../marketplace/helpers.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { parseBody, sendJSON } from '../helpers.js';
 
@@ -55,10 +55,6 @@ function getUserId(req: IncomingMessage): string | null {
   return (req.headers['x-user-id'] as string) || null;
 }
 
-/** The caller's publisher id from their verified token; never the x-publisher-id header. */
-async function getPublisherId(req: IncomingMessage): Promise<string | null> {
-  return (await getPublisher(req))?.publisherId ?? null;
-}
 
 // ============================================================================
 // ROUTE HANDLER
@@ -267,11 +263,10 @@ export async function handleReviewsRoutes(
 
   // POST /api/marketplace/reviews/:reviewId/respond
   if (pathname.match(/^\/api\/marketplace\/reviews\/[^/]+\/respond$/) && method === 'POST') {
-    const publisherId = await getPublisherId(req);
-    if (!publisherId) {
-      sendJson(res, 401, { error: 'Publisher authentication required' });
-      return true;
-    }
+    // The caller's publisher from their verified token; never the x-publisher-id header
+    const publisher = await requirePublisher(req, res);
+    if (!publisher) return true;
+    const publisherId = publisher.publisherId;
 
     const reviewId = pathname.split('/')[4];
 

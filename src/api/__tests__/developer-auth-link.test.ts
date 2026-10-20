@@ -82,7 +82,8 @@ vi.mock('../publisher-auth.js', () => ({
 }));
 
 const { handleDeveloperAuthRoutes } = await import('../v1/developers/auth-routes.js');
-const { getPublisherFromToken } = await import('../v1/developers/shared/developer-auth.js');
+const { getPublisherFromToken, requirePublisherFromToken } =
+  await import('../v1/developers/shared/developer-auth.js');
 
 let server: Server;
 let base = '';
@@ -159,6 +160,15 @@ describe('POST /api/v1/developers/auth/verify', () => {
     expect(publishers.get('pub-victim')!.firebaseUid).toBe('uid-victim');
   });
 
+  it("refuses signing back in when the uid's publisher has a different email", async () => {
+    const res = await verify('t8', {
+      uid: 'uid-victim',
+      email: 'new@example.com',
+      email_verified: true,
+    });
+    expect(res.status).toBe(403);
+  });
+
   it('signs the owner back in to their publisher', async () => {
     const res = await verify('t5', {
       uid: 'uid-victim',
@@ -192,6 +202,40 @@ describe('POST /api/v1/developers/auth/verify', () => {
   });
 });
 
+describe('GET /api/v1/developers/auth/session', () => {
+  const session = (token: string, claims: Claims) => {
+    tokens.set(token, claims);
+    return fetch(`${base}/api/v1/developers/auth/session`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+  };
+
+  it('refuses a publisher linked by an unverified email', async () => {
+    const res = await session('s1', { uid: 'uid-victim', email: 'dev@example.com' });
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toMatch(/re-link/i);
+  });
+
+  it("refuses a verified email that is not the publisher's", async () => {
+    const res = await session('s2', {
+      uid: 'uid-victim',
+      email: 'x@example.com',
+      email_verified: true,
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('returns the session for the verified owner', async () => {
+    const res = await session('s3', {
+      uid: 'uid-victim',
+      email: 'dev@example.com',
+      email_verified: true,
+    });
+    expect(res.status).toBe(200);
+    expect((await res.json()).session.publisherId).toBe('pub-victim');
+  });
+});
+
 describe('getPublisherFromToken', () => {
   const req = (token: string) =>
     ({
@@ -204,8 +248,39 @@ describe('getPublisherFromToken', () => {
     expect(await getPublisherFromToken(req(jwt('anon')))).toBeNull();
   });
 
-  it('resolves a signed-in account to its linked publisher', async () => {
-    tokens.set(jwt('dev'), { uid: 'uid-victim', firebase: { sign_in_provider: 'google.com' } });
+  it('resolves a verified account to its linked publisher', async () => {
+    tokens.set(jwt('dev'), {
+      uid: 'uid-victim',
+      email: 'DEV@example.com',
+      email_verified: true,
+      firebase: { sign_in_provider: 'google.com' },
+    });
     expect(await getPublisherFromToken(req(jwt('dev')))).toBe('pub-victim');
+  });
+
+  it('refuses a link whose token email is unverified, with a re-link message', async () => {
+    tokens.set(jwt('unv'), { uid: 'uid-victim', email: 'dev@example.com' });
+    expect(await getPublisherFromToken(req(jwt('unv')))).toBeNull();
+    const sent = { status: 0, body: '' };
+    const res = {
+      writeHead: (code: number) => {
+        sent.status = code;
+      },
+      end: (b: string) => {
+        sent.body = b;
+      },
+    } as unknown as import('http').ServerResponse;
+    expect(await requirePublisherFromToken(req(jwt('unv')), res)).toBeNull();
+    expect(sent.status).toBe(403);
+    expect(JSON.parse(sent.body).error).toMatch(/re-link/i);
+  });
+
+  it("refuses a link whose verified email is not the publisher's", async () => {
+    tokens.set(jwt('other'), {
+      uid: 'uid-victim',
+      email: 'mallory@example.com',
+      email_verified: true,
+    });
+    expect(await getPublisherFromToken(req(jwt('other')))).toBeNull();
   });
 });

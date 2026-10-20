@@ -13,7 +13,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from '../../helpers.js';
-import { getPublisherFromToken } from './shared/developer-auth.js';
+import { requirePublisherFromToken } from './shared/developer-auth.js';
 import { z } from 'zod';
 import * as crypto from 'crypto';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
@@ -372,11 +372,8 @@ export async function handleDeveloperWebhooksRoutes(
   const method = req.method?.toUpperCase();
 
   // Authenticate
-  const publisherId = await getPublisherFromToken(req);
-  if (!publisherId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  const publisherId = await requirePublisherFromToken(req, res);
+  if (!publisherId) return true;
 
   try {
     // GET /api/v2/developers/webhooks - List webhooks

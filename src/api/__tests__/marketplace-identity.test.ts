@@ -5,10 +5,15 @@
  * publisher routes took the publisher from x-publisher-id. Both are client
  * claims. Admin now requires the shared requireAdmin (Firebase admin claim or
  * admin API key); the publisher is the record linked to the caller's verified,
- * non-anonymous Firebase uid; publisher writes can never mark an item verified.
+ * non-anonymous Firebase uid, re-checked on every request against a verified
+ * email equal to the record's; publisher writes can never mark an item
+ * verified; an id owned by another publisher in either store (tool or agent)
+ * is refused; an admin approves only the current submission of the current
+ * content.
  *
- * Real HTTP, real routes and auth middleware. Firebase token verification, the
- * uid -> publisher lookup, the registry, the review queue and email are mocked.
+ * Real HTTP, real routes, auth middleware and publisher resolution. Firebase
+ * token verification, Firestore, the registry, the review queue's storage and
+ * email are fakes.
  */
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -20,37 +25,56 @@ vi.mock('../../services/identity/firebase-auth.js', async (importOriginal) => ({
     const users: Record<string, object> = {
       'tok-admin': { uid: 'admin-1', email: 'ops@example.com', claims: { admin: true } },
       'tok-user': { uid: 'uid-user', claims: {} },
-      'tok-owner': { uid: 'uid-owner', claims: {} },
-      'tok-other': { uid: 'uid-other', claims: {} },
-      'tok-anon': { uid: 'uid-anon', claims: {}, isAnonymous: true },
+      'tok-owner': { uid: 'uid-owner', email: 'Owner@Example.com', claims: {} },
+      'tok-other': { uid: 'uid-other', email: 'other@example.com', claims: {} },
+      'tok-anon': { uid: 'uid-anon', claims: {}, isAnonymous: true, emailVerified: false },
+      // Linked earlier, but the email was never verified / is someone else's
+      'tok-owner-unverified': {
+        uid: 'uid-owner',
+        email: 'owner@example.com',
+        emailVerified: false,
+        claims: {},
+      },
+      'tok-owner-other-email': { uid: 'uid-owner', email: 'mallory@example.com', claims: {} },
     };
     const user = users[token];
     return user ? { emailVerified: true, isAnonymous: false, ...user } : null;
   }),
 }));
 
-const publishersByUid = vi.hoisted(
+// The publishers collection, keyed by doc id (Firestore fake)
+const publishers = vi.hoisted(
   () =>
-    new Map<string, { id: string; email: string; name: string; verified: boolean }>([
+    new Map<string, Record<string, unknown>>([
       [
-        'uid-owner',
-        { id: 'pub-owner', email: 'owner@example.com', name: 'Owner', verified: false },
+        'pub-owner',
+        { email: 'owner@example.com', name: 'Owner', verified: false, firebaseUid: 'uid-owner' },
       ],
       [
-        'uid-other',
-        { id: 'pub-other', email: 'other@example.com', name: 'Other', verified: false },
+        'pub-other',
+        { email: 'other@example.com', name: 'Other', verified: false, firebaseUid: 'uid-other' },
       ],
       // An anonymous uid that was linked to a publisher before linking was fixed
-      ['uid-anon', { id: 'pub-shared', email: '', name: 'Developer', verified: false }],
+      ['pub-shared', { email: '', name: 'Developer', verified: false, firebaseUid: 'uid-anon' }],
     ])
 );
-vi.mock('../v1/developers/shared/developer-auth.js', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('../v1/developers/shared/developer-auth.js')>()),
-  findPublisherByFirebaseUid: vi.fn(async (uid: string) => {
-    const p = publishersByUid.get(uid);
-    return p ? { ...p, createdAt: new Date() } : null;
-  }),
-}));
+vi.mock('@google-cloud/firestore', () => {
+  const query = (field: string, value: unknown) => ({
+    limit: () => query(field, value),
+    get: async () => {
+      const docs = [...publishers.entries()]
+        .filter(([, d]) => d[field] === value)
+        .map(([id, d]) => ({ id, exists: true, data: () => d }));
+      return { empty: docs.length === 0, docs, size: docs.length };
+    },
+  });
+  class Firestore {
+    collection() {
+      return { where: (f: string, _op: string, v: unknown) => query(f, v) };
+    }
+  }
+  return { Firestore };
+});
 
 type Item = {
   id: string;
@@ -61,30 +85,37 @@ type Item = {
   [k: string]: unknown;
 };
 const tools = vi.hoisted(() => new Map<string, Item>());
+const agents = vi.hoisted(() => new Map<string, Item>());
 vi.mock('../../marketplace/index.js', () => ({
   getTool: (id: string) => tools.get(id),
-  getAgent: () => undefined,
+  getAgent: (id: string) => agents.get(id),
   listTools: () => [...tools.values()],
-  listAgents: () => [],
+  listAgents: () => [...agents.values()],
   listInstallations: () => [],
   getExecutionHistory: () => [],
   registerTool: (m: Item) => {
     tools.set(m.id, structuredClone(m));
     return { success: true };
   },
-  registerAgent: () => ({ success: true }),
+  registerAgent: (m: Item) => {
+    agents.set(m.id, structuredClone(m));
+    return { success: true };
+  },
 }));
 
-vi.mock('../review-queue.js', () => ({
+// Real content hashing; the submissions store is a map of the open submission per item
+const openSubmissions = vi.hoisted(() => new Map<string, { id: string; contentHash: string }>());
+vi.mock('../review-queue.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../review-queue.js')>()),
   submitForReview: vi.fn(async () => ({
     id: 'sub-1',
     status: 'pending_review',
     automatedChecks: { passedValidation: true },
   })),
+  getOpenSubmission: vi.fn(async (itemId: string) => openSubmissions.get(itemId) ?? null),
   getReviewHistory: vi.fn(async () => []),
   getReviewQueue: vi.fn(async () => []),
   assignReviewer: vi.fn(),
-  getSubmission: vi.fn(),
   submitReview: vi.fn(),
 }));
 
@@ -106,6 +137,7 @@ vi.mock('../../services/outreach/delivery/email-delivery.js', () => ({
   generatePersonaEmailHTML: () => '<p></p>',
 }));
 
+const { manifestContentHash } = await import('../review-content-hash.js');
 const { handleMarketplaceRoutes } = await import('../marketplace/index.js');
 const { handleMarketplaceAdminRoutes } = await import('../routes/marketplace-admin.js');
 
@@ -149,6 +181,8 @@ function toolManifest(id: string, publisherId: string, version = '1.0.0'): Item 
 beforeEach(() => {
   vi.clearAllMocks();
   tools.clear();
+  agents.clear();
+  openSubmissions.clear();
   tools.set(
     'owner-tool',
     toolManifest('owner-tool', 'pub-owner') // owned by uid-owner's publisher
@@ -198,12 +232,44 @@ describe('marketplace admin routes', () => {
     expect(res.status).toBe(401);
   });
 
-  it('lets a verified admin approve, recording the admin uid', async () => {
-    const res = await call('POST', approve, { token: 'tok-admin', body: {} });
+  it('lets a verified admin approve the current submission, recording the admin uid', async () => {
+    const hash = manifestContentHash(tools.get('owner-tool') as never);
+    openSubmissions.set('owner-tool', { id: 'sub-now', contentHash: hash });
+    const res = await call('POST', approve, {
+      token: 'tok-admin',
+      body: { submissionId: 'sub-now' },
+    });
     expect(res.status).toBe(200);
     const item = tools.get('owner-tool')!;
     expect(item.verification.verified).toBe(true);
     expect(item.verification.verifiedBy).toBe('admin-1');
+  });
+
+  it('refuses to approve content that changed after the reviewed submission', async () => {
+    // The reviewer looked at version 1; the publisher has since replaced it
+    const reviewed = manifestContentHash(tools.get('owner-tool') as never);
+    tools.set('owner-tool', {
+      ...toolManifest('owner-tool', 'pub-owner', '2.0.0'),
+      name: 'swapped',
+    });
+    openSubmissions.set('owner-tool', { id: 'sub-old', contentHash: reviewed });
+    const res = await call('POST', approve, {
+      token: 'tok-admin',
+      body: { submissionId: 'sub-old' },
+    });
+    expect(res.status).toBe(409);
+    expect(tools.get('owner-tool')!.verification.verified).toBe(false);
+  });
+
+  it('refuses to approve a superseded submission', async () => {
+    const hash = manifestContentHash(tools.get('owner-tool') as never);
+    openSubmissions.set('owner-tool', { id: 'sub-new', contentHash: hash });
+    const res = await call('POST', approve, {
+      token: 'tok-admin',
+      body: { submissionId: 'sub-old' },
+    });
+    expect(res.status).toBe(409);
+    expect(tools.get('owner-tool')!.verification.verified).toBe(false);
   });
 
   it('sends the rejection only to the publisher address on record', async () => {
@@ -311,8 +377,40 @@ describe('marketplace publisher routes', () => {
       headers: { 'x-publisher-id': 'pub-shared' },
       body: { type: 'tool', manifest: toolManifest('anon-tool', 'pub-shared') },
     });
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(403);
     expect(tools.has('anon-tool')).toBe(false);
+  });
+
+  it("refuses a tool owner writing another publisher's agent with the same id", async () => {
+    tools.set('shared-id', toolManifest('shared-id', 'pub-owner'));
+    agents.set('shared-id', toolManifest('shared-id', 'pub-other'));
+    const res = await call('POST', '/api/marketplace/publisher/submit', {
+      token: 'tok-owner',
+      body: {
+        type: 'agent',
+        manifest: { ...toolManifest('shared-id', 'pub-owner', '2.0.0'), displayName: 'Mine' },
+      },
+    });
+    expect(res.status).toBe(403);
+    expect(agents.get('shared-id')!.publisher.id).toBe('pub-other');
+    expect(agents.get('shared-id')!.version).toBe('1.0.0');
+  });
+
+  it('refuses a publisher whose link came from an unverified email', async () => {
+    const res = await call('GET', '/api/marketplace/billing/payouts', {
+      token: 'tok-owner-unverified',
+    });
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toMatch(/re-link/i);
+  });
+
+  it("refuses a token whose verified email is not the publisher's", async () => {
+    const res = await call('PUT', '/api/marketplace/publisher/owner-tool', {
+      token: 'tok-owner-other-email',
+      body: { type: 'tool', manifest: toolManifest('owner-tool', 'pub-owner', '2.0.0') },
+    });
+    expect(res.status).toBe(403);
+    expect(tools.get('owner-tool')!.version).toBe('1.0.0');
   });
 
   it('refuses payouts to a request that only carries x-publisher-id', async () => {

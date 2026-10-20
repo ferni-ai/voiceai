@@ -59,9 +59,10 @@ vi.mock('../review-queue.js', () => ({
   getReviewQueue: vi.fn(() => Promise.resolve([])),
   assignReviewer: vi.fn(() => Promise.resolve()),
   getReviewHistory: vi.fn(() => Promise.resolve([])),
-  getSubmission: vi.fn(() => Promise.resolve(null)),
   submitReview: vi.fn(() => Promise.resolve()),
+  getOpenSubmission: vi.fn(() => Promise.resolve({ id: 'sub-1', contentHash: 'h' })),
 }));
+vi.mock('../review-content-hash.js', () => ({ matchesCurrentContent: () => true }));
 
 import { getAgent, getTool, listAgents, listTools } from '../../marketplace/index.js';
 import { moderateReview } from '../../marketplace/reviews/index.js';
@@ -202,7 +203,7 @@ describe('Marketplace Admin API', () => {
       const req = createMockRequest(
         'POST',
         '/api/admin/marketplace/item/tool-1/approve',
-        { trustLevel: 'verified' },
+        { trustLevel: 'verified', submissionId: 'sub-1' },
         {
           authorization: 'Bearer admin-token',
         }

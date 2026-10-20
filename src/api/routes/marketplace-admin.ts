@@ -18,14 +18,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import {
-  getAgent,
-  getTool,
-  listAgents,
-  listTools,
-  type AgentManifest,
-  type ToolManifest,
-} from '../../marketplace/index.js';
+import { getAgent, getTool, listAgents, listTools } from '../../marketplace/index.js';
 import {
   getPendingReviews,
   getReviewStats,
@@ -33,11 +26,12 @@ import {
 } from '../../marketplace/reviews/index.js';
 import {
   assignReviewer,
+  getOpenSubmission,
   getReviewHistory,
   getReviewQueue,
-  getSubmission,
   submitReview,
 } from '../review-queue.js';
+import { matchesCurrentContent } from '../review-content-hash.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { requireAdmin } from '../auth-middleware.js';
 import { parseBody, sendJSON } from '../helpers.js';
@@ -57,28 +51,6 @@ interface AdminSession {
   adminId: string;
   adminName: string;
   permissions: string[];
-}
-
-interface ReviewQueueItem {
-  id: string;
-  type: 'tool' | 'agent';
-  name: string;
-  displayName?: string;
-  version: string;
-  publisher: {
-    id: string;
-    name: string;
-    verified: boolean;
-  };
-  description: string;
-  submittedAt: string;
-  trustLevel: string;
-  permissions: {
-    required: number;
-    optional: number;
-  };
-  category: string;
-  tags: string[];
 }
 
 // ============================================================================
@@ -175,32 +147,6 @@ async function getAdmin(req: IncomingMessage, res: ServerResponse): Promise<Admi
     adminId: auth.userId,
     adminName: auth.email || 'Admin',
     permissions: ['marketplace:review', 'marketplace:moderate'],
-  };
-}
-
-/**
- * Convert manifest to queue item
- */
-function toQueueItem(
-  manifest: ToolManifest | AgentManifest,
-  type: 'tool' | 'agent'
-): ReviewQueueItem {
-  return {
-    id: manifest.id,
-    type,
-    name: manifest.name,
-    displayName: type === 'agent' ? (manifest as AgentManifest).displayName : undefined,
-    version: manifest.version,
-    publisher: manifest.publisher,
-    description: manifest.description.short,
-    submittedAt: manifest.verification.verifiedAt || new Date().toISOString(),
-    trustLevel: manifest.verification.trustLevel,
-    permissions: {
-      required: manifest.permissions.required.length,
-      optional: manifest.permissions.optional.length,
-    },
-    category: manifest.metadata.category,
-    tags: manifest.metadata.tags,
   };
 }
 
@@ -367,13 +313,26 @@ export async function handleMarketplaceAdminRoutes(
     const itemId = pathname.split('/')[5];
 
     try {
-      const body = await parseBody<{ note?: string; trustLevel?: string }>(req);
+      const body = await parseBody<{ note?: string; trustLevel?: string; submissionId?: string }>(
+        req
+      );
       const tool = getTool(itemId);
       const agent = getAgent(itemId);
       const item = tool || agent;
 
       if (!item) {
         sendJson(res, 404, { error: 'Item not found' });
+        return true;
+      }
+
+      // Approve only the submission the admin reviewed, and only while it is
+      // still the item's content (an update supersedes it)
+      const open = await getOpenSubmission(itemId);
+      if (!open || open.id !== body.submissionId || !matchesCurrentContent(open, item)) {
+        sendJson(res, 409, {
+          error: 'The item changed or has no open submission; review the current submission',
+          currentSubmissionId: open?.id,
+        });
         return true;
       }
 
