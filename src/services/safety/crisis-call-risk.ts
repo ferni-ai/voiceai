@@ -11,6 +11,9 @@
  * - reads still in flight, which count as risk until they finish.
  * A call with risk noted is never dropped before its 6 hours are up.
  *
+ * Also per call: which caller turns got a reply with crisis handling
+ * (noteCrisisReply), so the adjudicator never softens the turn answering one.
+ *
  * @module CrisisCallRisk
  */
 
@@ -105,8 +108,37 @@ export function crisisRiskThisCall(sessionId: string, latest?: string, now = Dat
   return [...reads.keys()].some((t) => t !== turn);
 }
 
+/**
+ * Per call: the caller turns whose reply carried crisis handling (guidance, the
+ * script or the soft check), noted by the reply gate and the turn pipeline.
+ * The adjudicator never softens the turn that answers one (crisis-adjudicator.ts).
+ */
+const replied = new Map<string, { at: number; turns: Set<string> }>();
+const REPLIED_TURNS_MAX = 64;
+
+/** This turn's reply carries crisis guidance, the crisis script or the soft check. */
+export function noteCrisisReply(
+  sessionId: string | undefined,
+  latest: string,
+  now = Date.now()
+): void {
+  if (!sessionId || !latest.trim()) return;
+  for (const [id, v] of replied) if (now - v.at > TTL_MS) replied.delete(id);
+  const turns = replied.get(sessionId)?.turns ?? new Set<string>();
+  if (turns.size >= REPLIED_TURNS_MAX) turns.delete(turns.values().next().value ?? '');
+  turns.add(turnOf(latest));
+  replied.set(sessionId, { at: now, turns });
+}
+
+/** Whether the reply to these caller words carried crisis handling on this call. */
+export function crisisReplyOnTurn(sessionId: string, latest: string, now = Date.now()): boolean {
+  const v = replied.get(sessionId);
+  return !!v && now - v.at <= TTL_MS && v.turns.has(turnOf(latest));
+}
+
 /** For tests. */
 export function resetCrisisCallRisk(): void {
   risky.clear();
   pending.clear();
+  replied.clear();
 }

@@ -18,6 +18,12 @@
  * crisis guidance into the agreement gate's SOFT_CRISIS_CHECK; held back to
  * shadow for now (resolveCrisisAdjudicatorMode).
  *
+ * Always on (only ever more conservative; the 2026-10-20 replay softened call
+ * requests that answered a safety question or the 988 line): a turn that
+ * answers a reply which carried crisis handling escalates without a read,
+ * from the call's record (crisis-call-risk.ts noteCrisisReply), never from
+ * words.
+ *
  * CRISIS_ADJUDICATOR_GRIEF (off by default): grief or overwhelm with no risk
  * shape reads "checkin" (CRISIS_ADJUDICATOR_GRIEF_RULE), and a caller's first
  * line is read when Ferni has spoken. Off, the request is byte-identical to the
@@ -30,6 +36,7 @@
 
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { crisisReplyOnTurn } from './crisis-call-risk.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import type { CrisisGenerateFn, CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 
@@ -39,7 +46,14 @@ export type CrisisAdjudicatorMode = 'off' | 'shadow' | 'live';
 export type AdjudicatorDecision = 'escalate' | 'checkin';
 /** Why a decision was made: only 'model' can be a checkin. */
 export type AdjudicatorWhy =
-  'model' | 'low_confidence' | 'risk_quoted' | 'unparsed' | 'timeout' | 'error' | 'no_context';
+  | 'model'
+  | 'low_confidence'
+  | 'risk_quoted'
+  | 'unparsed'
+  | 'timeout'
+  | 'error'
+  | 'no_context'
+  | 'after_crisis_reply';
 
 export interface AdjudicatorLine {
   speaker: 'caller' | 'ferni';
@@ -70,7 +84,7 @@ The input is the recent call, oldest first: lines marked "caller" are the caller
 
 How to read it:
 1. A short reply ("I'm waiting", "go ahead", "do it", "call my mom", "text him", "ok", "yes") means what it means in context. If anything the caller said earlier in the call carries risk, the short reply belongs to that and you escalate.
-2. Caller risk, anywhere in the call, includes: wanting to die or not be here, not waking up, no future, being a burden, hopelessness or feeling trapped; an attempt, taking something, means (pills, a weapon, a high place), a plan, a date or a time; saying goodbye or thanks as if for the last time, being at peace or calm because things are arranged or decided, giving things away or asking someone to look after a pet, child or belongings; funeral or burial wishes for themselves; wanting to join someone who died, or wishing they had died instead; apologies, love or farewells to pass on to someone ("tell her I'm sorry", "text my mom adios"); asking Ferni to reach a doctor, therapist, nurse, ambulance, emergency services or a crisis line, or saying a crisis number (988, 911, 1-800-273-8255), even with no reason given; worry that someone else is at risk; questions about lethal amounts or methods; agreeing with or echoing something dark Ferni said ("same", "me too", "honestly yeah"), which makes it the caller's own. Judge meaning, not keywords, in any language.
+2. Caller risk, anywhere in the call, includes: wanting to die or not be here, not waking up, no future, being a burden, hopelessness or feeling trapped; an attempt, taking something, means (pills, a weapon, a high place), a plan, a date or a time; saying goodbye or thanks as if for the last time, being at peace or calm because things are arranged or decided, giving things away or asking someone to look after a pet, child or belongings; arranging care for children, pets or belongings, especially tonight or "just in case"; funeral or burial wishes for themselves; wanting to join someone who died, or wishing they had died instead; apologies, love or farewells to pass on to someone ("tell her I'm sorry", "text my mom adios"); asking Ferni to reach a doctor, therapist, nurse, ambulance, emergency services or a crisis line, or saying a crisis number (988, 911, 1-800-273-8255), even with no reason given; worry that someone else is at risk; questions about lethal amounts or methods; agreeing with or echoing something dark Ferni said ("same", "me too", "honestly yeah"), which makes it the caller's own. Judge meaning, not keywords, in any language.
 3. Ferni's lines are Ferni's, not the caller's state. A safety check-in or crisis line Ferni brought up is not by itself evidence of risk, and Ferni's reassurance never cancels risk the caller expressed. But when Ferni's last line asked about the caller's safety or gave a crisis line, escalate unless the caller's reply answers it by saying they are okay (or plainly yes to "are you okay?"); a reply that ignores it, even an everyday one, is escalate.
 4. "checkin" only when every caller line in the call is plainly everyday: asking Ferni to call or text a friend or family member with an ordinary message ("say hi", "I'll be late"), giving a number, waiting for or asking about that call ("is it ringing?", "I'm waiting", "go ahead"), greetings, chit-chat, plans, remarks about the conversation or about Ferni, ordinary goodbyes. A counselor reading this call would be comfortable not mentioning the crisis line.
 5. When you are unsure, escalate. A missed crisis is far worse than an unneeded check-in.
@@ -180,6 +194,26 @@ export function normalizeTranscript(
   if (kept.at(-1)?.speaker !== 'caller' || !kept.some((l) => l.speaker === 'ferni')) return null;
   if (!options.firstTurn && !kept.slice(0, -1).some((l) => l.speaker === 'caller')) return null;
   return kept;
+}
+
+/**
+ * The caller's previous turn, as both call sites note it: the caller lines just
+ * before Ferni's last line, joined (the reply gate), and the last of them (the
+ * turn pipeline). Empty on a first turn.
+ */
+function previousTurn(lines: readonly AdjudicatorLine[]): string[] {
+  let ferni = lines.length - 2;
+  while (ferni >= 0 && lines[ferni]?.speaker !== 'ferni') ferni--;
+  let start = ferni;
+  while (start > 0 && lines[start - 1]?.speaker === 'caller') start--;
+  const run = ferni > 0 ? lines.slice(start, ferni).map((l) => String(l.text ?? '')) : [];
+  return run.length ? [run.join(' '), run[run.length - 1]] : [];
+}
+
+/** The reply to the caller's previous turn carried crisis handling (crisis-call-risk.ts). */
+function answersCrisisReply(lines: readonly AdjudicatorLine[], scope: string | undefined): boolean {
+  if (!scope || !Array.isArray(lines)) return false;
+  return previousTurn(lines).some((turn) => crisisReplyOnTurn(scope, turn));
 }
 
 export interface AdjudicatorRequest {
@@ -321,14 +355,20 @@ export function startCrisisAdjudicator(
   const startedAt = Date.now();
   const grief = flagOn('CRISIS_ADJUDICATOR_GRIEF', env);
   const request = buildAdjudicatorRequest(lines, grief);
-  const key = JSON.stringify([options.scope ?? '', mode, grief, request?.transcript ?? null]);
+  // Always on: a turn answering a crisis reply is never softened, and the model is not asked.
+  const afterReply = answersCrisisReply(lines, options.scope);
+  const key = JSON.stringify([options.scope ?? '', mode, grief, afterReply, request?.transcript]);
   for (const [k, v] of recent) if (startedAt - v.at > RECENT_TTL_MS) recent.delete(k);
   const shared = recent.get(key)?.run;
   if (shared) return shared;
 
   const generate = options.generate ?? (defaultGenerate ??= createGeminiAdjudicatorGenerate());
   const timeoutMs = resolveCrisisAdjudicatorTimeoutMs(env);
-  const result = sendAdjudication(request, generate, timeoutMs).then((r) => {
+  const result = (
+    afterReply
+      ? Promise.resolve<AdjudicatorResult>({ decision: 'escalate', why: 'after_crisis_reply' })
+      : sendAdjudication(request, generate, timeoutMs)
+  ).then((r) => {
     const held = mode === 'shadow' && env.CRISIS_ADJUDICATOR?.trim().toLowerCase() === 'live';
     const stats = {
       latencyMs: Date.now() - startedAt,

@@ -2,8 +2,9 @@
  * CRISIS_ADJUDICATOR_GRIEF (off by default): a grief/overwhelm rule in the
  * adjudicator's prompt and a first-turn read when Ferni has spoken.
  *
- * - Off: the prompt and the request are byte-identical to the 2026-10-17
- *   prompt, so the replay baseline measured on it stays valid.
+ * - Off: the prompt is the 2026-10-17 replay baseline plus exactly one always-on
+ *   rule-2 addition (arranging care for children, pets or belongings), and the
+ *   request is otherwise unchanged.
  * - On: the prompt carries the grief rule and keeps every other line; a caller's
  *   first line is read when there is a Ferni line.
  * - Live stays held back: with the flag on, what the reply model is told is
@@ -34,7 +35,12 @@ import { SOFT_CRISIS_CHECK } from '../crisis-agreement.js';
 import { resetCrisisClassifierCache, type CrisisGenerateFn } from '../crisis-classifier.js';
 
 /** sha256 of the adjudicator prompt on origin/main 25c054ef3 (the replay baseline). */
-const BASELINE_PROMPT_SHA256 = '2d27e3923f6460c64192dca05448ca2d22c28c1ce71f497ebc95d055e8c522ae';
+const MAIN_PROMPT_SHA256 = '2d27e3923f6460c64192dca05448ca2d22c28c1ce71f497ebc95d055e8c522ae';
+/** Always on, flag or not: rule 2's one addition (the 2026-10-20 replay's softened positives). */
+const RULE2_ADDITION =
+  ' arranging care for children, pets or belongings, especially tonight or "just in case";';
+/** sha256 of the flag-off prompt: main's plus RULE2_ADDITION. */
+const BASELINE_PROMPT_SHA256 = 'c8b94d2827e9863e37553c5508d80273c0a2ff8880042cfbb23ade54db914759';
 const sha256 = (s: string): string => createHash('sha256').update(s).digest('hex');
 /** The grief rule's own line in the flag-on prompt. */
 const GRIEF_RULE = /^4a\. .*grief/im;
@@ -116,8 +122,13 @@ describe('flag', () => {
   });
 });
 
-describe('flag off: byte-identical to the replay baseline', () => {
-  it('the exported prompt is the baseline prompt', () => {
+describe("flag off: main's prompt plus exactly the rule-2 addition", () => {
+  it('the exported prompt differs from main only by the rule-2 addition, inside rule 2', () => {
+    expect(CRISIS_ADJUDICATOR_PROMPT.split(RULE2_ADDITION)).toHaveLength(2);
+    const rule2 = CRISIS_ADJUDICATOR_PROMPT.split('\n').find((l) => l.includes(RULE2_ADDITION));
+    expect(rule2).toMatch(/^2\. Caller risk, anywhere in the call, includes: /);
+    expect(rule2).toContain(`look after a pet, child or belongings;${RULE2_ADDITION} funeral`);
+    expect(sha256(CRISIS_ADJUDICATOR_PROMPT.replace(RULE2_ADDITION, ''))).toBe(MAIN_PROMPT_SHA256);
     expect(sha256(CRISIS_ADJUDICATOR_PROMPT)).toBe(BASELINE_PROMPT_SHA256);
   });
 
@@ -207,10 +218,10 @@ describe('flag on: the first caller line is read when Ferni has spoken', () => {
 });
 
 describe('the 2026-10-20 eval set: what the model is sent per case', () => {
-  it('has the 60 synthetic cases, 30 that must be offered and 30 that must not', () => {
-    expect(CASES).toHaveLength(60);
+  it('has the 63 synthetic cases, 33 that must be offered and 30 that must not', () => {
+    expect(CASES).toHaveLength(63);
     expect(CASES.filter((c) => c.expect === 'no_offer')).toHaveLength(30);
-    expect(new Set(CASES.map((c) => c.id)).size).toBe(60);
+    expect(new Set(CASES.map((c) => c.id)).size).toBe(63);
   });
 
   it.each(CASES.map((c) => [c.id, c] as const))(
