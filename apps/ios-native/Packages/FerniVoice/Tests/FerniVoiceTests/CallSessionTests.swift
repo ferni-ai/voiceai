@@ -98,7 +98,8 @@ final class CallSessionTests: XCTestCase {
     /// where Ferni is missing makes him missing without the clock (the token
     /// says not dispatched) or passes a short timeout and never sends him.
     private func makeSession(
-        timeout: Duration = .seconds(5), defaults: UserDefaults = UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
+        timeout: Duration = .seconds(5), arriving: Duration = .milliseconds(50),
+        defaults: UserDefaults = UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
     ) -> CallSession {
         let rooms = rooms, tokens = tokens
         return CallSession(
@@ -115,6 +116,7 @@ final class CallSessionTests: XCTestCase {
             },
             audio: audio,
             agentTimeout: timeout,
+            arrivingAfter: arriving,
             defaults: defaults
         )
     }
@@ -219,6 +221,67 @@ final class CallSessionTests: XCTestCase {
         rooms.next = { FakeRoom() }
         session.start()
         await until(session.phase == .live)
+    }
+
+    // MARK: Ferni never arrives (2026-10-19: the only worker was busy for 14
+    // minutes; the token said dispatched, no agent joined, and the app sat on "calling")
+
+    /// "Calling…" first; "on the way" only once Ferni is late, not the moment
+    /// the room connects.
+    func testOnTheWayOnlyOnceFerniIsLate() async {
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+        let session = makeSession(timeout: .seconds(3), arriving: .milliseconds(400))
+        session.start()
+
+        await until(rooms.made.first?.connectedTo != nil)
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(session.phase, .connecting, "in the room, not late yet")
+        await until(session.phase == .waitingForFerni)
+        rooms.made[0].send(.agentJoined(attributes: [:]))
+        await until(session.phase == .live)
+    }
+
+    /// The deadline covers the whole attempt: a join stuck before the room
+    /// connects (token, connect) is abandoned too, then retried once.
+    func testAStuckJoinIsAbandonedAtTheDeadlineAndRetriedOnce() async {
+        rooms.next = {
+            let room = FakeRoom(agentOnConnect: nil)
+            room.connectDelay = .seconds(30)
+            return room
+        }
+        let session = makeSession(timeout: .milliseconds(500), arriving: .milliseconds(150))
+        session.start()
+
+        await until(session.phase == .waitingForFerni)
+        XCTAssertEqual(rooms.made.count, 1)
+        await until(session.phase == .failed(.ferniDidNotJoin))
+        XCTAssertEqual(rooms.made.count, 2, "one fresh room, once")
+        XCTAssertEqual(tokens.requests.count, 2, "and a fresh token")
+    }
+
+    /// No retry loops: one automatic retry, then it's the person's Try again.
+    func testAtMostOneAutomaticRetry() async {
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+        let session = makeSession(timeout: .milliseconds(150), arriving: .milliseconds(50))
+        session.start()
+
+        await until(session.phase == .failed(.ferniDidNotJoin))
+        try? await Task.sleep(for: .milliseconds(600)) // four more deadlines' worth
+        XCTAssertEqual(rooms.made.count, 2)
+        XCTAssertEqual(tokens.requests.count, 2)
+        XCTAssertEqual(session.phase, .failed(.ferniDidNotJoin))
+    }
+
+    /// A patience longer than the deadline never stretches the deadline.
+    func testTheDeadlineHoldsWhateverThePatience() async {
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+        let session = makeSession(timeout: .milliseconds(150), arriving: .seconds(30))
+        session.start()
+        await until(session.phase == .failed(.ferniDidNotJoin))
+    }
+
+    func testCouldntJoinSaysWhenToTryAgain() {
+        XCTAssertEqual(CallProblem.ferniDidNotJoin.message, "Ferni couldn't join right now. Try again in a minute.")
     }
 
     func testAFailedDispatchDoesNotWaitOutTheTimeout() async {

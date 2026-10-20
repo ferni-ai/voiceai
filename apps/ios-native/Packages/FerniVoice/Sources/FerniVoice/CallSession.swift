@@ -5,8 +5,9 @@ import os
 
 /// One conversation with Ferni, from tapping talk to hanging up.
 ///
-/// Joining isn't done until the agent is in the room: the session waits up to
-/// `agentTimeout` for it, tries once more with a fresh room, and otherwise
+/// Joining isn't done until the agent is in the room. Each attempt (token, room,
+/// agent) gets `agentTimeout` in all, whatever it's stuck on, and says "on the
+/// way" after `arrivingAfter`; then one more try with a fresh room, and otherwise
 /// stops with something the person can act on (Retry). Silence on
 /// "Connected" is what App Review hit in January 2026.
 @MainActor
@@ -50,6 +51,7 @@ public final class CallSession {
     private let makeRoom: @Sendable () -> any VoiceRoom
     private let audio: any CallAudio
     private let agentTimeout: Duration
+    private let arrivingAfter: Duration
     private var room: (any VoiceRoom)?
     private let lifecycle: (any CallLifecycle)?
     private var callID: UUID?
@@ -74,7 +76,8 @@ public final class CallSession {
         avatar: AvatarModel = AvatarModel(),
         lifecycle: (any CallLifecycle)? = nil,
         agentLevel: AudioLevelMeter = AudioLevelMeter(),
-        agentTimeout: Duration = .seconds(10),
+        agentTimeout: Duration = .seconds(20),
+        arrivingAfter: Duration = .seconds(8),
         defaults: UserDefaults = .standard
     ) {
         self.defaults = defaults
@@ -86,6 +89,7 @@ public final class CallSession {
         self.makeRoom = makeRoom
         self.audio = audio
         self.agentTimeout = agentTimeout
+        self.arrivingAfter = arrivingAfter
         Task { [weak self, interruptions = audio.interruptions] in
             for await interruption in interruptions { await self?.handle(interruption) }
         }
@@ -243,7 +247,7 @@ public final class CallSession {
     // MARK: - Joining
 
     /// `cancelled`: the person hung up meanwhile; nothing may change on screen.
-    private enum Attempt { case joined, ferniMissing, failed(CallProblem), cancelled }
+    private enum Attempt: Equatable, Sendable { case joined, ferniMissing, failed(CallProblem), cancelled }
 
     private func run(rejoining: Bool) async {
         guard !Task.isCancelled else { return }
@@ -254,7 +258,9 @@ public final class CallSession {
         // dropped call gets a single try.
         for attempt in 1...(rejoining ? 1 : 2) {
             if Task.isCancelled { return }
-            switch await join() {
+            // The retry follows a late Ferni: still "on the way", never back to "Calling…".
+            if attempt > 1 { phase = .waitingForFerni }
+            switch await joinBeforeDeadline(attempt: attempt, rejoining: rejoining) {
             case .joined:
                 if !Task.isCancelled {
                     phase = .live
@@ -268,7 +274,7 @@ public final class CallSession {
                 if rejoining { avatar.send(.reconnected) }
                 return
             case .ferniMissing:
-                log.error("Ferni didn't join (attempt \(attempt))")
+                log.error("Ferni didn't join (attempt \(attempt)); leaving room \(self.roomName ?? "-", privacy: .public)")
                 await leaveRoom()
             case .failed(let problem):
                 await leaveRoom()
@@ -277,13 +283,94 @@ public final class CallSession {
                 return
             }
         }
-        if !Task.isCancelled { fail(rejoining ? .connectionLost : .ferniDidNotJoin) }
+        if !Task.isCancelled {
+            log.error("Giving up after \(rejoining ? 1 : 2) room(s); \(self.secondsSinceStart, privacy: .public) s since Talk")
+            fail(rejoining ? .connectionLost : .ferniDidNotJoin)
+        }
     }
 
-    private func join() async -> Attempt {
+    /// One attempt, with a watchdog: "on the way" at `arrivingAfter`, and at
+    /// `agentTimeout` the attempt is abandoned wherever it's stuck (token,
+    /// connect or waiting for the agent) and counts as Ferni missing. The
+    /// watchdog stops the waiting, not just the join: a connect that ignores
+    /// cancellation finishes later on its own, in a room already left.
+    private func joinBeforeDeadline(attempt: Int, rejoining: Bool) async -> Attempt {
+        let race = AttemptRace()
+        let result = await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Attempt, Never>) in
+                race.start(continuation,
+                    joining: Task { race.finish(await self.join(attempt: attempt)) },
+                    watchdog: Task { [weak self, arrivingAfter, agentTimeout] in
+                        // The deadline wins if it's the shorter of the two.
+                        try? await Task.sleep(for: min(arrivingAfter, agentTimeout))
+                        guard let self, !Task.isCancelled else { return }
+                        if !rejoining, arrivingAfter < agentTimeout, self.phase == .connecting {
+                            self.phase = .waitingForFerni
+                            self.log.info("Attempt \(attempt): no Ferni yet at \(self.secondsSinceStart, privacy: .public) s; on the way")
+                        }
+                        try? await Task.sleep(for: max(.zero, agentTimeout - arrivingAfter))
+                        guard !Task.isCancelled, !self.agentHere else { return }
+                        self.log.error("Attempt \(attempt): no Ferni after \(agentTimeout.components.seconds) s; abandoning it")
+                        race.finish(.ferniMissing)
+                    })
+            }
+        } onCancel: {
+            race.finish(.cancelled) // hung up
+        }
+        race.stop()
+        return result
+    }
+
+    /// The first of an attempt's join and its watchdog to finish decides it.
+    private final class AttemptRace: @unchecked Sendable {
+        private let lock = OSAllocatedUnfairLock()
+        private var continuation: CheckedContinuation<Attempt, Never>?
+        private var early: Attempt?
+        private var joining: Task<Void, Never>?
+        private var watchdog: Task<Void, Never>?
+
+        func start(_ continuation: CheckedContinuation<Attempt, Never>, joining: Task<Void, Never>, watchdog: Task<Void, Never>) {
+            let early: Attempt? = lock.withLock {
+                self.joining = joining
+                self.watchdog = watchdog
+                if let early = self.early { return early }
+                self.continuation = continuation
+                return nil
+            }
+            // Hung up before it began.
+            if let early { stop(); continuation.resume(returning: early) }
+        }
+
+        func finish(_ result: Attempt) {
+            let waiting: CheckedContinuation<Attempt, Never>? = lock.withLock {
+                guard continuation != nil else {
+                    if early == nil, joining == nil { early = result }
+                    return nil
+                }
+                defer { continuation = nil }
+                return continuation
+            }
+            waiting?.resume(returning: result)
+        }
+
+        func stop() {
+            let (joining, watchdog) = lock.withLock { (self.joining, self.watchdog) }
+            joining?.cancel()
+            watchdog?.cancel()
+        }
+    }
+
+    /// Seconds since Talk, for the "call" log's timings.
+    private var secondsSinceStart: String {
+        let elapsed = (ContinuousClock.now - callBegan).components
+        return String(format: "%.1f", Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18)
+    }
+
+    private func join(attempt: Int) async -> Attempt {
         let token: CallToken
         do {
             token = try await fetchToken(personaID)
+            log.info("Attempt \(attempt): token at \(self.secondsSinceStart, privacy: .public) s (dispatched: \(token.agentDispatched.map(String.init) ?? "?", privacy: .public))")
         } catch {
             // A hang-up surfaces as a network error from URLSession: not a failure (critic H1).
             return Task.isCancelled ? .cancelled : .failed(CallProblem(error))
@@ -307,18 +394,16 @@ public final class CallSession {
             return Task.isCancelled || self.room !== room ? .cancelled : .failed(.offline)
         }
         if Task.isCancelled || self.room !== room { return .cancelled }
-        if !agentHere { phase = .waitingForFerni }
+        log.info("Attempt \(attempt): in room \(token.room, privacy: .public) at \(self.secondsSinceStart, privacy: .public) s")
         // The server already knows dispatch failed: no point waiting it out.
-        let wait = token.agentDispatched == false ? Duration.zero : agentTimeout
-        return await waitForAgent(upTo: wait) ? .joined : .ferniMissing
-    }
-
-    private func waitForAgent(upTo limit: Duration) async -> Bool {
-        let deadline = ContinuousClock.now + limit
-        while !agentHere, ContinuousClock.now < deadline, !Task.isCancelled {
+        if token.agentDispatched == false, !agentHere { return .ferniMissing }
+        // Until Ferni arrives or the attempt's watchdog gives up on him.
+        while !agentHere, !Task.isCancelled {
             try? await Task.sleep(for: .milliseconds(50))
         }
-        return agentHere
+        guard agentHere else { return Task.isCancelled ? .cancelled : .ferniMissing }
+        log.info("Attempt \(attempt): Ferni joined at \(self.secondsSinceStart, privacy: .public) s")
+        return .joined
     }
 
     private func leaveRoom() async {
@@ -473,7 +558,7 @@ public enum CallProblem: Equatable, Sendable {
         case .server:
             "Something went wrong on our side. Try again in a minute."
         case .ferniDidNotJoin:
-            "Ferni couldn't join. Let's try again."
+            "Ferni couldn't join right now. Try again in a minute."
         case .connectionLost:
             "Lost the connection. Call back?"
         }
