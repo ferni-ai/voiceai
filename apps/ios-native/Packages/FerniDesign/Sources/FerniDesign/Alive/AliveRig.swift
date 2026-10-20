@@ -183,13 +183,20 @@ public final class AliveRig {
     /// Taps in the last 1.4 s: four make him spin (the prototype's tapReaction).
     private var quickTaps: [Double] = []
     private var spinStart: Double?
-    private var spinSparkles = 0
+    private var pendingSparkles = 0
     /// A finger held on or near him (in Ferni radii, y up; nil until it moves).
     private var fingerDown = false, finger: SIMD2<Double>?, fingerNear = false
-    private var doubleTakeStart: Double?, doubleTakeAway = SIMD2<Double>.zero, squashHoldUntil: Double?
+    private var doubleTakeStart: Double?, doubleTakeAway = SIMD2<Double>.zero, doubleTakeHeld = false
+    /// A held breath: the body's squash pinned at `value` until `until`.
+    private var squashHold: (until: Double, value: Double)?
     private var lastTouchCue = -10.0
     private var quietSince = 0.0
-    private var fireflyStart: Double?, fireflyDone = false
+    private struct Fly {
+        enum Phase { case wander, approach, land, flee }
+        var phase: Phase, start: Double, pos: SIMD3<Double>, vel: SIMD3<Double>
+    }
+    private var fly: Fly?, fireflyDone = false
+    private var sneezeStart: Double?, sneezeStage = 0, chooAt = 0.0
     private var nextSparkle = 0.0
     private var tearT = 0.0, tearA = 0.0
 
@@ -202,7 +209,7 @@ public final class AliveRig {
         let len = simd_length(point)
         let p = len > 1 ? point / len : point
         quietSince = time
-        if fireflyStart != nil { fireflyStart = nil; fireflyDone = true }
+        if fly != nil { fly = nil; fireflyDone = true; sneezeStart = nil; sneezeStage = 0; squashHold = nil }
         pokeTimes = pokeTimes.filter { time - $0 < 10 } + [time]
         quickTaps = quickTaps.filter { time - $0 < 1.4 } + [time]
         pokeDir = simd_normalize(SIMD3(p.x, p.y, max((1 - simd_length_squared(p)).squareRoot(), 0.25)))
@@ -213,7 +220,7 @@ public final class AliveRig {
         } else if quickTaps.count >= 4, spinStart == nil {
             quickTaps = []
             spinStart = time
-            spinSparkles = 10
+            pendingSparkles = 10
             flash("silly", seconds: 1.6)
             pending.append(.whoosh)
             self[.poke].v += 9
@@ -270,13 +277,15 @@ public final class AliveRig {
         let e = (time - start) / tempo
         nextSaccade = time + 1.2
         gazeTarget = e < 0.2 ? .zero : doubleTakeAway
-        if e >= 0.56, squashHoldUntil == nil {
-            squashHoldUntil = time + 0.11 * tempo
+        if e >= 0.56, !doubleTakeHeld {
+            doubleTakeHeld = true
+            squashHold = (time + 0.11 * tempo, 1 - 0.07 * m)
             halfBlink()
         }
         if e >= 0.67 {
             doubleTakeStart = nil
-            squashHoldUntil = nil
+            doubleTakeHeld = false
+            squashHold = nil
             gazeTarget = .zero
             micro(.surprise)
             self[.squash].v += 3.4 * m
@@ -305,28 +314,96 @@ public final class AliveRig {
     }
 
     /// Once a session, after 20 s at rest with no touch, a firefly wanders by
-    /// for seven seconds and Ferni watches it.
-    private func stepFirefly() -> SIMD4<Float> {
+    /// for 5.5 s while Ferni watches, comes in to land on his head (his eyes
+    /// crossing as it nears), rests there 1.6 s, and he sneezes it away: the
+    /// prototype's stepFly and sneeze.
+    private func stepFirefly(dt: Double, m: Double) {
         if activity != .idle || reduceMotion {
-            if fireflyStart != nil { fireflyStart = nil; fireflyDone = true }
+            if fly != nil { fly = nil; fireflyDone = true; sneezeStart = nil }
             quietSince = max(quietSince, time)
-            return .zero
+            return
         }
-        if fireflyStart == nil, !fireflyDone, time - quietSince >= 20 { fireflyStart = time }
-        guard let start = fireflyStart else { return .zero }
-        let t = time - start, life = 7.0
-        if t > life { fireflyStart = nil; fireflyDone = true; return .zero }
-        let x = -1.9 + t / life * 3.8 + 0.25 * sin(t * 2.3)
-        let y = 0.75 + 0.35 * sin(t * 1.7) + 0.1 * sin(t * 5.1)
-        let w = min(1, t, life - t) * (0.75 + 0.25 * sin(t * 9))
-        gazeTarget = SIMD2(clamp(x / 1.6, -0.85, 0.85), clamp((y - 0.05) / 1.25, -0.7, 0.7))
-        nextSaccade = time + 0.5
-        sparks.append(Spark(kind: .firefly, x: x, y: y, vx: 0, vy: 0, size: 0.09, born: time, life: 0))
-        return SIMD4(Float(x), Float(y), 0.9, Float(w * 0.8))
+        if fly == nil, !fireflyDone, time - quietSince >= 20 {
+            fly = Fly(phase: .wander, start: time, pos: Self.wander(0), vel: .zero)
+        }
+        stepSneeze(m: m)
+        guard var f = fly else { return }
+        let t = time - f.start
+        switch f.phase {
+        case .wander:
+            let p = Self.wander(t)
+            f.vel = (p - f.pos) / max(dt, 1e-3)
+            f.pos = p
+            if t >= 5.5 { f.phase = .approach; f.start = time }
+        case .approach:
+            let head = headTop
+            f.vel += ((head - f.pos) * 2.2 - f.vel * 1.4) * dt
+            f.pos += f.vel * dt
+            if simd_distance(f.pos, head) < 0.08 || t > 6 {
+                f.phase = .land; f.start = time
+                self[.squash].v -= 1.2 * m
+            }
+        case .land:
+            f.pos = headTop
+            if t > 1.6, sneezeStart == nil { sneezeStart = time }
+        case .flee:
+            f.pos += f.vel * dt
+            if f.pos.y > 4 || abs(f.pos.x) > 4 { fly = nil; fireflyDone = true; return }
+        }
+        fly = f
     }
 
-    /// Sparkles and hearts for the cues that ask for them, and a few sparkles
-    /// while the expression itself sparkles. None under Reduce Motion.
+    /// The top of his head, where the firefly lands (in Ferni radii, a little in front).
+    private var headTop: SIMD3<Double> {
+        SIMD3(self[.posX].x * 0.35, self[.posY].x + self[.squash].x + 0.07, 0.25)
+    }
+
+    /// The firefly's wandering path, `t` seconds in.
+    static func wander(_ t: Double) -> SIMD3<Double> {
+        SIMD3(-1.9 + t / 7 * 3.8 + 0.25 * sin(t * 2.3), 0.75 + 0.35 * sin(t * 1.7) + 0.1 * sin(t * 5.1), 0.7 + 0.3 * sin(t * 0.9))
+    }
+
+    /// Ah... ah... (a yawn-wide inhale, held), choo (a jolt down and up, the
+    /// firefly sent off), then a giggle and a few sparkles.
+    private func stepSneeze(m: Double) {
+        guard let start = sneezeStart else { return }
+        let e = (time - start) / tempo
+        if sneezeStage == 0 {
+            sneezeStage = 1
+            flash("yawning", seconds: 0.52)
+            squashHold = (time + 0.42 * tempo, 1.1)
+        }
+        if sneezeStage == 1, e >= 0.46 {
+            sneezeStage = 2
+            chooAt = time
+            squashHold = nil
+            self[.squash].v -= 6 * m
+            self[.pitch].v -= 4 * m
+            self[.posY].v += 1.6 * m
+            if var f = fly {
+                f.phase = .flee; f.start = time
+                f.vel = SIMD3(rng.range(-1.2, 1.2), 3, 0)
+                fly = f
+            }
+        }
+        if sneezeStage == 2, time - chooAt >= 0.26 {
+            sneezeStart = nil
+            sneezeStage = 0
+            flash("amused", seconds: 1.5)
+            pending.append(.giggle)
+            pendingSparkles += 5
+        }
+    }
+
+    /// The firefly's light for the shader: where it is and how bright.
+    private func fireflyLight() -> SIMD4<Float> {
+        guard let f = fly else { return .zero }
+        let fadeIn = f.phase == .wander ? min(1, time - f.start) : 1
+        let w = fadeIn * (0.75 + 0.25 * sin(time * 9))
+        sparks.append(Spark(kind: .firefly, x: f.pos.x, y: f.pos.y, vx: 0, vy: 0, size: 0.09, born: time, life: 0))
+        return SIMD4(Float(f.pos.x), Float(f.pos.y), Float(max(f.pos.z, 0.25)), Float(w * 0.8))
+    }
+
     private func stepParticles(_ face: Face, dt: Double) {
         sparks.removeAll { $0.kind == .firefly || time - $0.born > $0.life }
         guard !reduceMotion else { sparks.removeAll(); particles = []; return }
@@ -342,7 +419,7 @@ public final class AliveRig {
                 }
             }
         }
-        if spinSparkles > 0 { burst(.sparkle, spinSparkles); spinSparkles = 0 }
+        if pendingSparkles > 0 { burst(.sparkle, pendingSparkles); pendingSparkles = 0 }
         for cue in cues {
             if cue == .sparkle { burst(.sparkle, 6) }
             if cue == .heart { burst(.heart, 3) }
@@ -407,6 +484,7 @@ public final class AliveRig {
         stepHandoff(m: m)
         stepGuest(dt, m: m)
         stepDoubleTake(m: m)
+        stepFirefly(dt: dt, m: m)
         stepGaze(face, m: m)
         stepSpin()
 
@@ -428,7 +506,9 @@ public final class AliveRig {
 
         let breathing = still ? 0 : breath(face) * m
         self[.squash].t = face.squash + breathing + env * 0.04 * m
-        if squashHoldUntil != nil { self[.squash].t = 1 - 0.07 * m }
+        if let hold = squashHold {
+            if time < hold.until { self[.squash].t = hold.value } else { squashHold = nil }
+        }
         self[.posY].t = face.posY + (still ? 0 : sin(now * 1.05) * 0.03 * m) + env * 0.02 * m
         // Connecting: he leans in, his light rising, eyes up for whoever is coming.
         self[.glow].t = face.glow + env * 0.45 + (activity == .arriving ? 0.3 * m : 0)
@@ -445,7 +525,7 @@ public final class AliveRig {
         if still { for i in s.indices { s[i].x = s[i].t; s[i].v = 0 } }
         if colourT < 1 { colourT = min(1, colourT + dt / 0.55) }
         var u = uniforms(now)
-        u.fly = stepFirefly()
+        u.fly = fireflyLight()
         u.tear = stepTears(face, dt: dt)
         stepParticles(face, dt: dt)
         return u
@@ -481,14 +561,24 @@ public final class AliveRig {
         if let handoff, handoff.done < 4, guestPersona != nil {
             focus = SIMD2(g.x.x - self[.stageX].x, g.y.x - self[.stageY].x)
         }
-        // A finger held near him: noticed once, then the focus (in front of him, z 1.3).
-        let near = fingerDown && activity == .idle && doubleTakeStart == nil && (finger.map { simd_length($0) < Self.nearWithin } ?? true)
+        // A finger held near him: noticed once, then the focus (in front of him,
+        // z 1.3). The firefly, while it's here, has his attention instead.
+        let near = fingerDown && activity == .idle && doubleTakeStart == nil && fly == nil
+            && (finger.map { simd_length($0) < Self.nearWithin } ?? true)
         if near, !fingerNear {
             micro(.noticing)
             pending.append(.notice)
         }
         fingerNear = near
-        let held = near && focus == nil ? finger.map { SIMD3($0.x * 0.9, $0.y * 0.9, 1.3) } : nil
+        let held: SIMD3<Double>? = if focus != nil || doubleTakeStart != nil {
+            nil
+        } else if let f = fly {
+            SIMD3(f.pos.x - self[.posX].x * 0.35, f.pos.y - self[.posY].x, f.pos.z)
+        } else if near {
+            finger.map { SIMD3($0.x * 0.9, $0.y * 0.9, 1.3) }
+        } else {
+            nil
+        }
         self[.conv].t = held.map { clamp(0.32 / (simd_length(SIMD3($0.x, $0.y - 0.1, $0.z - 1.05)) + 0.25) - 0.18, 0, 0.32) } ?? 0
         if near, focus == nil {
             // He leans in, eyes a little wider.
