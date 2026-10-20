@@ -172,7 +172,7 @@ class ConversationHistoryUI {
       <div class="history__backdrop"></div>
       <div class="history__card">
         ${this.renderHeader()}
-        <div class="history__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('conversationHistory.loadError')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('conversationHistory.tryAgain')}</button></div>
+        <div class="history__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('conversationHistory.loadError')} <button type="button" style="color: var(--color-ferni-on-surface); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('conversationHistory.tryAgain')}</button></div>
       </div>
     `;
     this.panel.querySelector('.history__close')?.addEventListener('click', () => this.hide());

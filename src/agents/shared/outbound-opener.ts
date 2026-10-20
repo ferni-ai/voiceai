@@ -13,6 +13,7 @@
 
 import {
   AI_DISCLOSURE_RULE,
+  CHECKIN_HONESTY_RULE,
   getOutboundCallContext,
 } from '../../intelligence/context-builders/external/outbound-call-context.js';
 import { partiesOf, type OutboundParties } from '../../services/outreach/opening-line.js';
@@ -54,10 +55,12 @@ export function outboundCallerAwareness(parties: OutboundParties | undefined): s
       `You are calling on behalf of ${sponsorName}, who is not on this call. Never call the person on the line ${sponsorName}.`
     );
   }
+  // A check-in's opener doesn't say "AI" (they know Ferni), so don't claim it did
+  const honesty = parties.checkin ? CHECKIN_HONESTY_RULE : AI_DISCLOSURE_RULE;
   lines.push(
     sponsorName
-      ? `You are Ferni, ${sponsorName}'s friend. ${AI_DISCLOSURE_RULE}`
-      : `You are Ferni, a friend calling to check in. ${AI_DISCLOSURE_RULE}`
+      ? `You are Ferni, ${sponsorName}'s friend. ${honesty}`
+      : `You are Ferni, a friend calling to check in. ${honesty}`
   );
   return `\n---\n\n## Who You're Talking To\n\n${lines.join('\n')}\n`;
 }

@@ -7,6 +7,7 @@
  * POST /api/jobs/calendar-triggers           (every 5 minutes)
  * POST /api/jobs/calendar-briefing           (every 15 minutes; MORNING_BRIEF texts)
  * POST /api/jobs/follow-through              (every 5 minutes; ?dryRun=true; FOLLOW_THROUGH_JOB)
+ * POST /api/jobs/retry-pending-revocations  (every 15 minutes; Google revokes erasure queued)
  *
  * @module api/scheduled-jobs/background-delivery-jobs
  */
@@ -206,4 +207,13 @@ export async function handleFollowThrough(
   res: ServerResponse
 ): Promise<void> {
   await run(res, 'follow-through', async () => runFollowThroughJob({ dryRun: isDryRun(req) }));
+}
+
+/** Revokes Google couldn't take during an account erasure (identity/google-revocations). */
+export async function handleRetryPendingRevocations(res: ServerResponse): Promise<void> {
+  await run(res, 'retry-pending-revocations', async () => {
+    const { retryPendingRevocations } =
+      await import('../../services/identity/google-revocations.js');
+    return { ...(await retryPendingRevocations()) };
+  });
 }

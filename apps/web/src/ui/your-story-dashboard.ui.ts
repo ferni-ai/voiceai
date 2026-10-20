@@ -591,7 +591,7 @@ class YourStoryUI {
   private showActionsError(): void {
     const container = this.panel?.querySelector('#viz-actions-taken');
     if (!container) return;
-    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('yourStory.actionsError.message')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('yourStory.actionsError.retry')}</button></div>`;
+    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('yourStory.actionsError.message')} <button type="button" style="color: var(--color-ferni-on-surface); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('yourStory.actionsError.retry')}</button></div>`;
     container.querySelector('button')?.addEventListener('click', () => {
       container.innerHTML = '<div class="loading-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">' + t('common.loading') + '</div>';
       void this.fetchActionsData();

@@ -1870,7 +1870,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__summary--clear .calendar-view__summary-icon {
-        color: var(--color-ferni, #4a6741);
+        color: var(--color-ferni-on-surface);
       }
 
       .calendar-view__summary--busy .calendar-view__summary-icon {
@@ -2632,7 +2632,7 @@ class CalendarViewUI {
       .calendar-view__practice-clear-icon {
         width: 32px;
         height: 32px;
-        color: var(--color-ferni, #4a6741);
+        color: var(--color-ferni-on-surface);
       }
 
       .calendar-view__practice-clear-icon svg {
@@ -3119,7 +3119,7 @@ class CalendarViewUI {
       }
 
       .calendar-view__metric-trend.positive {
-        color: var(--color-ferni, #4a6741);
+        color: var(--color-ferni-on-surface);
       }
 
       .calendar-view__metric-trend.negative {

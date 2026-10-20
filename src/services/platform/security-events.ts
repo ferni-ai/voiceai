@@ -25,6 +25,7 @@ import { getRedisCache } from '../../memory/redis-cache.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { opsAlert } from './ops-alert.js';
+import { withExpiry } from './security-event-expiry.js';
 import { registerInterval } from '../../utils/interval-manager.js';
 
 const log = getLogger();
@@ -242,12 +243,7 @@ async function saveEventToFirestore(event: SecurityEvent): Promise<void> {
     await db
       .collection(EVENTS_COLLECTION)
       .doc(event.id)
-      .set(
-        removeUndefined({
-          ...event,
-          timestamp: event.timestamp,
-        })
-      );
+      .set(removeUndefined(withExpiry(event)));
   } catch (error) {
     log.error({ error, eventId: event.id }, 'Failed to save security event to Firestore');
   }

@@ -371,6 +371,7 @@ jobs:
             --build-arg VITE_CAPTIONS_BREATH="${{ vars.VITE_CAPTIONS_BREATH }}" \
             --build-arg VITE_CAPTIONS_HEARD="${{ vars.VITE_CAPTIONS_HEARD }}" \
             --build-arg VITE_MEMORY_VIEW="${{ vars.VITE_MEMORY_VIEW }}" \
+            --build-arg VITE_APPLE_WEB_SIGNIN="${{ vars.VITE_APPLE_WEB_SIGNIN }}" \
             .
 
           # Push all tags
@@ -499,6 +500,9 @@ jobs:
           # on-behalf, family check-ins); the voice agent verifies with the same secret (#1706).
           # This repo is public: who gets proactive check-ins (PROACTIVE_CHANNELS_USERS,
           # Firebase uids) comes from the proactive-channels-users secret, never this file.
+          # APNS_* send pushes to the iPhone app straight to Apple (token auth, .p8 key);
+          # SIWA_* revoke a Sign in with Apple grant when that person deletes their account.
+          # Both do nothing until the code that reads them ships; IOS_PUSH stays off per person.
           gcloud run deploy john-bogle-ui \
             --image ${{ env.UI_IMAGE }}:${{ github.sha }} \
             --region ${{ env.GCP_REGION }} \
@@ -515,8 +519,8 @@ jobs:
             --min-instances 0 \
             --max-instances 10 \
             --vpc-connector ferni-redis-connector \
-            --set-env-vars "^::^NODE_ENV=production::BUILD_SHA=${{ github.sha }}::GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app::SIP_TRUNK_ID=ST_AEE6NnKE84XP::JOURNAL_TRANSCRIBE_VERTEX=on::MEMORY_VIEW=on::JOURNAL_ONE_STORE=on::CALL_HOURS_GUARD=on::FAMILY_CHECKIN_STOP=on::COHORT_FLAGS=on::PROACTIVE_CHANNELS=on::FOLLOW_THROUGH_JOB=on" \
-            --set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,CARTESIA_API_KEY=cartesia-api-key:latest,VAPID_PUBLIC_KEY=vapid-public-key:latest,VAPID_PRIVATE_KEY=vapid-private-key:latest,WAITLIST_APPROVAL_SECRET=waitlist-approval-secret:latest,DISPATCH_SIGNING_SECRET=dispatch-signing-secret:latest,PROACTIVE_CHANNELS_USERS=proactive-channels-users:latest"
+            --set-env-vars "^::^NODE_ENV=production::BUILD_SHA=${{ github.sha }}::GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app::SIP_TRUNK_ID=ST_AEE6NnKE84XP::JOURNAL_TRANSCRIBE_VERTEX=on::MEMORY_VIEW=on::JOURNAL_ONE_STORE=on::CALL_HOURS_GUARD=on::FAMILY_CHECKIN_STOP=on::COHORT_FLAGS=on::PROACTIVE_CHANNELS=on::FOLLOW_THROUGH_JOB=on::PONDERING=on" \
+            --set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,CARTESIA_API_KEY=cartesia-api-key:latest,VAPID_PUBLIC_KEY=vapid-public-key:latest,VAPID_PRIVATE_KEY=vapid-private-key:latest,WAITLIST_APPROVAL_SECRET=waitlist-approval-secret:latest,DISPATCH_SIGNING_SECRET=dispatch-signing-secret:latest,PROACTIVE_CHANNELS_USERS=proactive-channels-users:latest,APNS_KEY_P8=apns-key-p8:latest,APNS_KEY_ID=apns-key-id:latest,APNS_TEAM_ID=apple-team-id:latest,APNS_TOPIC=apns-topic:latest,SIWA_KEY_P8=siwa-key-p8:latest,SIWA_KEY_ID=siwa-key-id:latest,SIWA_TEAM_ID=apple-team-id:latest"
           
           REVISION=$(gcloud run revisions list --service=john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(REVISION)" --limit=1)
           URL=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format="value(status.url)")
