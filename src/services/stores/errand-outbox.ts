@@ -18,7 +18,7 @@
  * @module services/stores/errand-outbox
  */
 
-import type { DocumentReference, Firestore, Query, Transaction } from '@google-cloud/firestore';
+import type { DocumentReference, Firestore, Transaction } from '@google-cloud/firestore';
 import type { Env } from '../../config/env-flag.js';
 import { errandsEnabled } from '../../config/errands-flag.js';
 import {
@@ -179,11 +179,22 @@ export function createEffectOutbox(db: Firestore, makeId: () => string = newId):
   return {
     async claimEffect(now, leaseMs) {
       const at = now.toISOString();
-      const query = (status: EffectStatus, field: string): Query =>
-        db.collectionGroup('effects').where('status', '==', status).where(field, '<=', at);
+      // Written out in full so the index-coverage check can match each to its index.
       const [expired, pending] = await Promise.all([
-        query('running', 'leaseUntil').orderBy('leaseUntil').limit(SCAN).get(),
-        query('pending', 'notBefore').orderBy('notBefore').limit(SCAN).get(),
+        db
+          .collectionGroup('effects')
+          .where('status', '==', 'running')
+          .where('leaseUntil', '<=', at)
+          .orderBy('leaseUntil')
+          .limit(SCAN)
+          .get(),
+        db
+          .collectionGroup('effects')
+          .where('status', '==', 'pending')
+          .where('notBefore', '<=', at)
+          .orderBy('notBefore')
+          .limit(SCAN)
+          .get(),
       ]);
       // One at a time on purpose: each try is its own transaction, and the first win ends it.
       for (const d of [...expired.docs, ...pending.docs]) {
