@@ -204,7 +204,7 @@ public enum AvatarExpression: String, CaseIterable, Codable, Sendable {
     case neutral, listening, speaking
 
     // Happy family
-    case happy, joyful, delighted, amused, pleased, content, excited, grateful, proud
+    case happy, joyful, delighted, amused, pleased, content, excited, grateful, proud, glad
 
     // Warmth family
     case warm, caring, loving, tender, supportive, compassionate, empathetic, nurturing
@@ -222,7 +222,7 @@ public enum AvatarExpression: String, CaseIterable, Codable, Sendable {
     case attentive, engaged, interested, absorbing, receptive
 
     // Presence family
-    case present, grounded, calm, serene, peaceful
+    case present, grounded, calm, serene, peaceful, settling
 
     // Coaching family
     case encouraging, cheering, guiding, wise, knowing
@@ -297,8 +297,19 @@ public enum AvatarExpression: String, CaseIterable, Codable, Sendable {
 
     // MARK: - Factory
 
-    /// Create from string, falling back to neutral for unknown values
+    /// The face a name means: a token id, or a name the web's older expression
+    /// code uses (apps/web ui/face/face-model.ts ALIASES), else neutral. Those
+    /// names used to become neutral silently (expression audit P1 #9).
     public static func from(_ string: String) -> AvatarExpression {
-        return AvatarExpression(rawValue: string) ?? .neutral
+        AvatarExpression(rawValue: string) ?? aliases[string] ?? .neutral
     }
+
+    /// The web's ALIASES, one name space with it.
+    public static let aliases: [String: AvatarExpression] = [
+        "accompanying": .supportive, "celebrating": .joyful, "challenging": .determined, "contemplative": .thinking,
+        "curiousLean": .curious, "farewell": .warm, "growing": .proud, "holding": .compassionate,
+        "holdingSpace": .compassionate, "insider": .playful, "noticing": .attentive, "realizing": .surprised,
+        "receiving": .tender, "recognizing": .warm, "reconnecting": .happy, "remembering": .thinking,
+        "shifting": .neutral, "waiting": .resting,
+    ]
 }
