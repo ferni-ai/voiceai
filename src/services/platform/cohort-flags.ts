@@ -35,7 +35,15 @@
  */
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import {
+  firestoreCohortStore,
+  firestoreFlagHolders,
+  type Cohort,
+  type CohortStore,
+} from './cohort-firestore.js';
+
+export { firestoreCohortStore, firestoreFlagHolders };
+export type { Cohort, CohortStore };
 
 const log = createLogger({ module: 'cohort-flags' });
 
@@ -158,23 +166,6 @@ export function oneCallPerProcess(env: Record<string, string | undefined> = proc
   if (env.AGENT_JOB_EXECUTOR === 'process') return true;
   const raw = env.AGENT_MAX_JOBS_PER_WORKER;
   return raw === undefined || raw.trim() === '' || Number(raw) === 1;
-}
-
-export interface Cohort {
-  id: string;
-  enabled: boolean;
-  flags: Record<string, string>;
-  /** Also every caller whose sample bucket falls under this (1 to 100); members are always in. */
-  percent?: number;
-}
-
-export interface CohortStore {
-  /** Cohorts the caller is a member of. */
-  cohortsFor: (userId: string) => Promise<Cohort[]>;
-  /** The caller's own overrides. */
-  overridesFor: (userId: string) => Promise<Record<string, string>>;
-  /** Cohorts that take a percent of all callers. */
-  sampledCohorts?: () => Promise<Cohort[]>;
 }
 
 /**
@@ -339,45 +330,6 @@ export async function applyCallerFlags(
   }
 }
 
-function toCohort(id: string, x: Record<string, unknown>): Cohort {
-  return {
-    id,
-    enabled: x.enabled !== false,
-    flags:
-      typeof x.flags === 'object' && x.flags !== null ? (x.flags as Record<string, string>) : {},
-    ...(typeof x.percent === 'number' && { percent: x.percent }),
-  };
-}
-
-/**
- * feature_cohorts/{id}: { name, enabled, members: [uid], flags, percent? };
- * feature_flag_overrides/{uid}: { flags }.
- */
-export const firestoreCohortStore: CohortStore = {
-  async cohortsFor(userId) {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    const snap = await db
-      .collection('feature_cohorts')
-      .where('members', 'array-contains', userId)
-      .get();
-    return snap.docs.map((d) => toCohort(d.id, d.data()));
-  },
-  async sampledCohorts() {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    const snap = await db.collection('feature_cohorts').where('percent', '>=', 1).get();
-    return snap.docs.map((d) => toCohort(d.id, d.data()));
-  },
-  async overridesFor(userId) {
-    const db = getFirestoreDb();
-    if (!db) return {};
-    const doc = await db.collection('feature_flag_overrides').doc(userId).get();
-    const flags = doc.exists ? doc.data()?.flags : undefined;
-    return flags && typeof flags === 'object' ? (flags as Record<string, string>) : {};
-  },
-};
-
 /** Finds who might have a flag on, without reading every user. */
 export interface FlagHolderStore {
   /** Members of cohorts setting `flag` to 'on', and users whose own override sets it 'on'. */
@@ -480,21 +432,3 @@ export async function usersWithFlag(flag: string, opts: FlagLookupOptions = {}):
     return cached && now - cached.at < FLAG_STALE_MAX_MS ? cached.users : [];
   }
 }
-
-export const firestoreFlagHolders: FlagHolderStore = {
-  async candidatesFor(flag) {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    // `flag` is from COHORT_FLAGS, so the field path is one of ours.
-    const [cohorts, overrides] = await Promise.all([
-      db.collection('feature_cohorts').where(`flags.${flag}`, '==', 'on').get(),
-      db.collection('feature_flag_overrides').where(`flags.${flag}`, '==', 'on').get(),
-    ]);
-    const members = cohorts.docs.flatMap((d) => {
-      const x = d.data();
-      if (x.enabled === false || !Array.isArray(x.members)) return [];
-      return (x.members as unknown[]).filter((m): m is string => typeof m === 'string');
-    });
-    return [...members, ...overrides.docs.map((d) => d.id)];
-  },
-};
