@@ -176,8 +176,11 @@ reports without gating. Re-run on 2026-10-20 on a dedicated simulator:
   AX5. The consent sheet leaves Home's headline visible above it, which is
   correctly hidden from accessibility while the sheet is modal. Plus one
   contrast finding on the consent body at AX5. Open.
-- **Home at 20h: contrast on "Whenever you're ready, I'm here."** on iPad
-  (the iPhone passes in every band). Open.
+- **Fixed: Home at 20h, "Whenever you're ready, I'm here."** on iPad. Its
+  pixels measure 6.4:1 (#5c544a on #f2eee7), but the audit failed the
+  regular weight in the evening band only. At medium weight (same colours)
+  iPad Home passes in all four bands at both sizes; back at regular, the
+  line fails again.
 - **Fixed: AvatarTouchTests.testTheSpaceBesideFerniIsNotFerni on iPad.** Not
   an avatar bug: Ferni's touch circle is honored exactly (shrunk to 50 pt it
   reached 75 pt, not 85), but a touch counts when its area overlaps the
