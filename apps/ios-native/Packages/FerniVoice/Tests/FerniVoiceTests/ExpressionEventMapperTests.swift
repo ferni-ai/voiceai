@@ -29,6 +29,23 @@ final class ExpressionEventMapperTests: XCTestCase {
         XCTAssertEqual(result.microExpression, .protective)
     }
 
+    /// A signal that plays a moment doesn't also pick a face that plays the
+    /// big win: high engagement sent excited with its small win, so the spin
+    /// played over it (expression audit P1 #13).
+    func testASignalPlaysOneCelebration() throws {
+        let types = ["concern_detected", "voice_state_detected", "emotional_trajectory", "high_engagement",
+                     "disengagement", "vulnerability", "breakthrough"]
+        for type in types {
+            guard let result = mapper.processMessage(["type": "humanization_signal", "signalType": type]),
+                  let moment = result.moment else { continue }
+            XCTAssertFalse(AvatarView.wins.contains(result.expression),
+                           "\(type) plays \(moment) and \(result.expression), which plays the big win too")
+        }
+        let engaged = try XCTUnwrap(mapper.processMessage(["type": "humanization_signal", "signalType": "high_engagement"]))
+        XCTAssertEqual(engaged.moment, "celebration_small")
+        XCTAssertEqual(engaged.expression, .happy)
+    }
+
     func testOtherMessagesAreNotExpressions() {
         XCTAssertNil(mapper.processMessage(["type": "speech_state", "innerType": "speech_start"]))
         XCTAssertNil(mapper.processMessage(["expression": "warm"]))

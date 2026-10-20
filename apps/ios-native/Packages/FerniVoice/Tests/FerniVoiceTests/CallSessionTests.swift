@@ -381,7 +381,7 @@ final class CallSessionTests: XCTestCase {
         rooms.made[0].send(.data(Data(#"{"type":"humanization_signal","signalType":"high_engagement"}"#.utf8)))
         await until(session.avatar.micro != nil)
         XCTAssertEqual(session.avatar.micro?.expression, .delight)
-        XCTAssertEqual(session.avatar.expression, .excited)
+        XCTAssertEqual(session.avatar.expression, .happy, "happy, not excited: excited would play the big win over the small one")
         rooms.made[0].send(.data(Data(#"{"type":"humanization_signal","signalType":"concern_detected","concernLevel":"crisis"}"#.utf8)))
         await until(session.avatar.micro?.expression == .concern)
     }
