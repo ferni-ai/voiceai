@@ -65,7 +65,8 @@ final class FaceTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(f.left.top, 0.24, id)
             XCTAssertEqual(f.left.bot, 0.14, accuracy: 1e-9, id)
         }
-        XCTAssertEqual(Face.of("irritated").tilt, -0.35)
+        XCTAssertEqual(Face.of("irritated").tilt, -0.6)
+        XCTAssertEqual(Face.of("irritated").left.bot, 0.12, accuracy: 1e-9, "a glare pushes the lower lids up")
         XCTAssertEqual(Face.of("sympathetic").tilt, 0, "concern without a furrow keeps its soft face")
         XCTAssertEqual(Face.of("neutral").tilt, 0)
     }
@@ -73,7 +74,8 @@ final class FaceTests: XCTestCase {
     /// The smile crease is a cheek lift (the lower lids rise and curve up), never
     /// a stroke under the eye: Seth read that stroke as a floating lower lid.
     func testASmileCreaseLiftsTheCheeks() {
-        for (id, bot, arch) in [("speaking", 0.15, 0.15), ("wise", 0.2, 0.2), ("sassy", 0.2, 0.3), ("neutral", 0.06, 0.0)] {
+        // Not speaking: there it read smug on the everyday talking face (2026-10-20).
+        for (id, bot, arch) in [("speaking", 0.0, 0.0), ("wise", 0.2, 0.2), ("sassy", 0.2, 0.3), ("neutral", 0.06, 0.0)] {
             let f = Face.of(id)
             XCTAssertEqual(f.left.bot, bot, accuracy: 1e-9, "\(id): lower lid")
             XCTAssertEqual(f.left.arch, arch, accuracy: 1e-9, "\(id): arch")
