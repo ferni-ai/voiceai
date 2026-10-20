@@ -12,7 +12,17 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 let repo = '';
 const git = (...args: string[]): string => execFileSync('git', args, { cwd: repo, encoding: 'utf8' });
 
+// Inside a git hook (pre-commit, pre-push) git sets these, and they beat cwd: the temp
+// repo's `git add`/`git commit` (and the review's own git reads) would act on the real
+// repository, committing whatever merge was in progress there. Drop them for this file.
+const HOOK_GIT_VARS = ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_OBJECT_DIRECTORY'];
+const savedGitVars = new Map<string, string | undefined>();
+
 beforeAll(() => {
+  for (const key of HOOK_GIT_VARS) {
+    savedGitVars.set(key, process.env[key]);
+    delete process.env[key];
+  }
   // main has base.ts; origin/main then gains main-only.ts; the branch adds feature.ts.
   repo = mkdtempSync(join(tmpdir(), 'ai-review-'));
   git('init', '-q', '-b', 'main');
@@ -33,7 +43,10 @@ beforeAll(() => {
   git('switch', '-q', 'feature');
 });
 
-afterAll(() => rmSync(repo, { recursive: true, force: true }));
+afterAll(() => {
+  rmSync(repo, { recursive: true, force: true });
+  for (const [key, value] of savedGitVars) if (value !== undefined) process.env[key] = value;
+});
 
 const fetchMock = vi.fn();
 

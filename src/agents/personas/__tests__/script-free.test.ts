@@ -192,10 +192,15 @@ describe('SCRIPT_FREE_REMINDER on', () => {
 
 describe('script-free notes outside the shape (flags off in prod)', () => {
   it('keep what the caller said and drop the line to say', () => {
-    expect(correctionNote('no, it was Tuesday', true)).toBe(
+    expect(correctionNote('no, it was Tuesday', false, true)).toBe(
       'They just corrected you ("no, it was Tuesday"). Own it in one short line, then go on with what they said. Don\'t argue, explain why, or repeat your old version.'
     );
     expect(correctionNote('no, it was Tuesday')).toContain('("Ah, my mistake.")');
+    // FRIEND_REPAIR=on with it: still names the miss, without its quoted lines.
+    const friend = correctionNote('no, it was Tuesday', true, true);
+    expect(friend).toContain('names what you had wrong, light if they are, plain if not,');
+    expect(friend.replace('"no, it was Tuesday"', '')).not.toMatch(/["“”]/);
+    expect(correctionNote('no, it was Tuesday', true)).toContain('("My mistake, your brother.")');
     const name = repairNote({ kind: 'name', heard: 'Bethany' }, true);
     expect(name).toContain('Speech-to-text heard "Bethany"');
     expect(name).not.toContain('Sorry');

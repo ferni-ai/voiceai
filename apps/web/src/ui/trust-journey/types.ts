@@ -55,9 +55,8 @@ export interface TrustJourneyData {
   userId: string;
   generatedAt: string;
   summary: {
-    relationshipStrength: number;
     trustSignalsDetected: number;
-    boundariesRespected: number;
+    boundariesSet: number;
     growthMomentsNoticed: number;
     sharedMomentsCount: number;
     winsCelebrated: number;

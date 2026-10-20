@@ -99,6 +99,7 @@ import {
 } from '../../conversation-thread/superhuman-outreach-intelligence.js';
 import { detectEnergyLevel, detectOvercommitment } from '../capacity-guardian.js';
 import { detectConflict, loadUserValues, type UserValue } from '../values-alignment.js';
+import { isMemberIdentity } from '../../identity/member-identity.js';
 
 // NOTE: Additional superhuman services are called with dynamic imports
 // to avoid coupling issues with varying API signatures. Each service
@@ -185,7 +186,7 @@ export interface AgentAdviceContext {
 export async function processSemanticIntelligence(data: TurnSemanticData): Promise<void> {
   const { userId, userText, topic, textEmotion, textEmotionIntensity } = data;
 
-  if (!userId || userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     log.debug({ userId }, '⏭️ Skipping semantic intelligence for anonymous user');
     return; // Skip for anonymous users
   }
@@ -943,9 +944,7 @@ async function recordThreadingData(data: TurnSemanticData): Promise<void> {
 export async function recordAgentAdvice(advice: AgentAdviceContext): Promise<void> {
   const { userId, adviceText, topic, userSituation } = advice;
 
-  if (!userId || userId === 'anonymous') {
-    return;
-  }
+  if (!isMemberIdentity(userId)) return;
 
   try {
     await recordDecisionPoint(userId, {
@@ -973,9 +972,7 @@ export async function trackFerniCommitments(
     userMessage?: string;
   }
 ): Promise<void> {
-  if (!userId || userId === 'anonymous') {
-    return;
-  }
+  if (!isMemberIdentity(userId)) return;
 
   try {
     await trackResponsePromises(userId, responseText, context);
@@ -997,9 +994,7 @@ export async function recordAdviceOutcome(
     userFeedback?: string;
   }
 ): Promise<void> {
-  if (!userId || userId === 'anonymous') {
-    return;
-  }
+  if (!isMemberIdentity(userId)) return;
 
   try {
     // For now, use the counterfactual memory module's exported function
@@ -1075,9 +1070,7 @@ const NEGATIVE_OUTCOME_PATTERNS = [
  * not just the most recent one.
  */
 export async function detectAdviceOutcome(userId: string, userText: string): Promise<void> {
-  if (!userId || userId === 'anonymous') {
-    return;
-  }
+  if (!isMemberIdentity(userId)) return;
 
   const lowerText = userText.toLowerCase();
 

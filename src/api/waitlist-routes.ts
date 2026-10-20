@@ -27,13 +27,14 @@ import { BRAND_ACCENT, BRAND_TEXT_PRIMARY, getPersonaColor } from '../config/bra
 import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { waitlistRateLimit } from './waitlist-rate-limits.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
-import { grantAccess, waitlistGateOn } from './open-access.js';
+import { grantAccess, grantFoundingMember, waitlistGateOn } from './open-access.js';
 import {
   buildApprovalUrl,
   getApprovalSecret,
   verifyApprovalToken,
 } from './waitlist-approval-token.js';
-import { addSigninToWaitlist, keepWaitlistReferral } from './waitlist-record.js';
+import { addSigninToWaitlist, keepWaitlistReferral, offeredReferral } from './waitlist-record.js';
+import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/waitlist/queue.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
 
@@ -104,16 +105,6 @@ const VALID_SOURCES: WaitlistSource[] = [
 function sendJson(res: ServerResponse, status: number, data: unknown): void {
   res.writeHead(status, { 'Content-Type': 'application/json' });
   res.end(JSON.stringify(data));
-}
-
-/**
- * Validate email format
- */
-function isValidEmail(email: unknown): email is string {
-  if (typeof email !== 'string') return false;
-  // Basic email validation regex
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email) && email.length <= 254;
 }
 
 /**
@@ -254,6 +245,10 @@ async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<
     sendJson(res, 400, { error: 'Valid email is required' });
     return true;
   }
+  if (isDisposableEmail(body.email)) {
+    sendJson(res, 400, { error: 'disposable_email', message: 'Use an inbox you’ll keep, so we can reach you.' }); // prettier-ignore
+    return true;
+  }
 
   const source = isValidSource(body.source) ? body.source : 'marketplace';
 
@@ -272,36 +267,34 @@ async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<
       ...(req.headers.referer && { referrer: req.headers.referer }),
     };
 
-    // Use email as document ID to prevent duplicates
+    // Doc id = email. Create only: an existing entry (maybe someone else's) is never changed,
+    // and the reply below is the same either way, so this can't probe or overwrite the list.
     const docId = Buffer.from(signup.email).toString('base64').replace(/[/+=]/g, '_');
-
-    await db
+    const doc = cleanForFirestore({ ...signup, emailCanonical: canonicalEmail(signup.email), updatedAt: new Date() }); // prettier-ignore
+    const created = await db
       .collection('waitlist')
       .doc(docId)
-      .set(
-        cleanForFirestore({
-          ...signup,
-          updatedAt: new Date(),
-        }),
-        { merge: true }
+      .create(doc)
+      .then(
+        () => true,
+        (err: { code?: number | string }) => {
+          if (err.code === 6 || err.code === 'already-exists') return false;
+          throw err;
+        }
       );
-
-    log.info('Waitlist signup recorded', {
-      email: hashEmail(body.email),
-      source,
-      hasPhone: !!body.phone,
-    });
-
-    // Send admin notification (fire-and-forget)
-    void notifyAdminOfSignup(signup.email, source, signup.phone).catch((err) => {
-      log.warn({ error: String(err) }, 'Failed to send admin notification');
-    });
+    log.info('Waitlist signup', { email: hashEmail(body.email), source, created });
+    if (created) {
+      void notifyAdminOfSignup(signup.email, source, signup.phone).catch((err) => {
+        log.warn({ error: String(err) }, 'Failed to send admin notification');
+      });
+    }
 
     // For newsletter signups, send welcome email immediately (no approval needed)
     if (source === 'newsletter') {
-      void sendNewsletterWelcomeEmail(signup.email).catch((err) => {
-        log.warn({ error: String(err) }, 'Failed to send newsletter welcome email');
-      });
+      if (created)
+        void sendNewsletterWelcomeEmail(signup.email).catch((err) => {
+          log.warn({ error: String(err) }, 'Failed to send newsletter welcome email');
+        });
 
       sendJson(res, 200, {
         success: true,
@@ -431,6 +424,9 @@ async function handleGetVotes(res: ServerResponse, featureId: string): Promise<b
 // ACCESS CHECK
 // ============================================================================
 
+/** Waitlist statuses that let a person in: approved before waves, admitted by one, or signed in. */
+const ADMITTED_WAITLIST_STATUSES = new Set<unknown>(['approved', 'admitted', 'joined']);
+
 /**
  * Check if authenticated user has app access.
  * Verifies Firebase ID token and checks waitlist/approval status.
@@ -545,12 +541,19 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       }
     }
 
-    if (waitlistDoc.exists && waitlistDoc.data()?.status === 'approved') {
-      // Approved but no profile yet - create one now
-      const grant = { email, uid: decodedToken.uid, tier: 'partner' as const, years: 10 };
+    const waitlisted = waitlistDoc.data();
+    if (waitlistDoc.exists && ADMITTED_WAITLIST_STATUSES.has(waitlisted?.status)) {
+      // Admitted (a wave, or approved before waves) and no profile yet: the free tier plus the
+      // founding-member perk, which replaces the 10-year partner grant (decided 2026-10-18).
+      const foundingWave = typeof waitlisted?.foundingWave === 'number' ? waitlisted.foundingWave : 0; // prettier-ignore
+      const grant = { email, uid: decodedToken.uid, tier: 'free' as const, foundingWave };
       await grantAccess(db, profileDocId, { ...grant, grantedVia: 'waitlist-approval-auto' });
-      log.info({ email: hashEmail(email) }, 'Auto-created profile for approved waitlist user');
-      sendJson(res, 200, { approved: true, status: 'approved', tier: 'partner', email, referralCode });
+      // A claimed wave seat: 'joined' stops it lapsing back to the pool
+      if (waitlisted?.status === 'admitted') {
+        await waitlistRef.set({ status: 'joined', signedInAt: new Date() }, { merge: true });
+      }
+      log.info({ email: hashEmail(email), foundingWave }, 'Admitted waitlist user let in as a founding member'); // prettier-ignore
+      sendJson(res, 200, { approved: true, status: 'approved', tier: 'free', email, referralCode, foundingMember: true, foundingWave }); // prettier-ignore
       return true;
     }
 
@@ -558,35 +561,33 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     if (!waitlistGateOn()) {
       const grant = { email, uid: decodedToken.uid, tier: 'free' as const };
       await grantAccess(db, profileDocId, { ...grant, grantedVia: 'open-access' });
-      await db.collection('waitlist').doc(waitlistDocId).set(
-        cleanForFirestore({ email, status: 'approved', source: 'open_access', approvedAt: new Date() }),
-        { merge: true }
-      );
+      await db
+        .collection('waitlist')
+        .doc(waitlistDocId)
+        .set(
+          cleanForFirestore({
+            email,
+            status: 'approved',
+            source: 'open_access',
+            approvedAt: new Date(),
+          }),
+          { merge: true }
+        );
       log.info({ email: hashEmail(email) }, 'Open access: signed-in user let in on the free tier');
       sendJson(res, 200, { approved: true, status: 'approved', tier: 'free', email, referralCode });
       return true;
     }
 
-    if (waitlistDoc.exists) {
-      log.info({ email: hashEmail(email) }, 'User on waitlist, pending approval');
-      sendJson(res, 200, {
-        approved: false,
-        status: 'pending',
-        email,
-        message: "You're on the waitlist! We'll notify you when it's your turn.",
-      });
-      return true;
-    }
-
-    // Not on waitlist - add them automatically
-    await addSigninToWaitlist(waitlistRef, email, referralCode);
-
-    log.info({ email: hashEmail(email) }, 'Auto-added user to waitlist on sign-in');
+    // Gate on: in line as a verified person (this verifies an existing website signup too)
+    await addSigninToWaitlist(email, offeredReferral(req), decodedToken.uid);
+    log.info({ email: hashEmail(email), existed: waitlistDoc.exists }, 'Signed-in user waiting in line'); // prettier-ignore
     sendJson(res, 200, {
       approved: false,
       status: 'pending',
       email,
-      message: "You've been added to the waitlist! We'll notify you when it's your turn.",
+      message: waitlistDoc.exists
+        ? "You're on the waitlist! We'll notify you when it's your turn."
+        : "You've been added to the waitlist! We'll notify you when it's your turn.",
     });
     return true;
   } catch (error) {
@@ -875,37 +876,13 @@ async function approveUserAndGrantAccess(
     })
   );
 
-  // Grant app access by creating/updating user profile with partner tier
+  // Grant app access as a founding member (replaced the 10-year partner grant, 2026-10-18)
   // Use email as a consistent user ID (base64 encoded)
   const userId = docId;
+  const profile = { email: email.toLowerCase().trim(), phone: waitlistData.phone || null };
+  await grantFoundingMember(db, userId, profile);
 
-  const profileRef = db.collection('user_profiles').doc(userId);
-  await profileRef.set(
-    cleanForFirestore({
-      email: email.toLowerCase().trim(),
-      phone: waitlistData.phone || null,
-      subscription: {
-        tier: 'partner',
-        status: 'active',
-        subscribedAt: new Date(),
-        currentPeriodEnd: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10), // 10 years
-        inTrial: false,
-        stripeCustomerId: null,
-        stripeSubscriptionId: null,
-        grantedVia: 'waitlist-approval',
-        monthlyUsage: {
-          conversationCount: 0,
-          minutesTalked: 0,
-          lastUpdated: new Date(),
-        },
-      },
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }),
-    { merge: true }
-  );
-
-  log.info({ email: hashEmail(email), userId }, 'User granted partner tier access');
+  log.info({ email: hashEmail(email), userId }, 'User granted access as a founding member');
 
   // Trigger welcome call or email
   if (waitlistData.phone) {
