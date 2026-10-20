@@ -41,6 +41,7 @@ export const FLAG_MANIFEST = {
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
+  CALL_RESULT_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_JOURNAL_ASK: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
   CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -74,6 +75,8 @@ export const FLAG_MANIFEST = {
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // a classifier-only crisis read of a bare "pass me to Nayan", with no risk on the call, gets the soft check-in
+  CRISIS_TRANSFER_EVERYDAY: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
   // after-call date extraction into world_facts (nothing reads them in a call yet)
   DATES_THAT_MATTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -117,6 +120,7 @@ export const FLAG_MANIFEST = {
   DISABLE_VAD: { default: 'off', owner: 'voice', kind: 'config' },
   DISPUTE_DENIED_FACTS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // Ferni rests calm and lifts on bright words (director/emotion-lift.ts)
+  EMAIL_PROVIDER: { default: 'sendgrid', owner: 'platform', kind: 'config' },
   EMOTION_LIFT: { default: 'off', owner: 'voice', kind: 'experiment' },
   ENABLE_EMBEDDING_WORKER: { default: 'off', owner: 'platform', kind: 'experiment' },
   ENABLE_INTELLIGENT_ROUTING: { default: 'on', owner: 'tools', kind: 'kill-switch' },
@@ -124,6 +128,8 @@ export const FLAG_MANIFEST = {
   ENDPOINT_FAST_FINISHED: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: extracted entities that are numbers, placeholders, the team or requests to Ferni are not stored (memory/entity-hygiene.ts)
   ENTITY_HYGIENE: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // with ENTITY_HYGIENE: role labels for Ferni ("Assistant", "user's interlocutor") are not stored (entity-hygiene.ts)
+  ENTITY_ROLE_LABELS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // late turn-1 words join that turn instead of opening a new one
   EOT_CONTINUED_MERGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // errands as durable workflows: owner-confirmed calls, verified bookings (services/errands, errands-flag.ts)
@@ -207,6 +213,8 @@ export const FLAG_MANIFEST = {
   HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
   INSIDE_JOKES: { default: 'off', owner: 'memory', kind: 'experiment' },
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: the voice agent publishes intelligence events; nothing consumes intelligence_queue (intelligence-publisher.ts)
+  INTELLIGENCE_QUEUE: { default: 'off', owner: 'platform', kind: 'experiment' },
   INTERRUPT_TRACE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   IN_PROCESS_SCHEDULERS: { default: 'off', owner: 'platform', kind: 'kill-switch' },
   // every journal surface reads and writes bogle_users/{uid}/journal (old twin arrays merged in)
@@ -262,6 +270,8 @@ export const FLAG_MANIFEST = {
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a placeholder last summary is told as unknown, not as a topic (services/session/placeholder-summary.ts)
+  PLACEHOLDER_SUMMARY_UNKNOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   // Keep off: needs #1855, the privacy-page wording, and a legal read of the Maps terms for storing the place ID. #1760 merged with an unverified head.
   PLACES_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -399,6 +409,9 @@ export const FLAG_MANIFEST = {
   TOOL_REQUIRES_ENV: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   // hourly pool shared by anonymous journal transcriptions (api/journal-transcribe-limits.ts)
   TRANSCRIBE_ANON_MAX_PER_HOUR: { default: '200', owner: 'memory', kind: 'config' },
+  // on: the nightly job deletes transcripts past TRANSCRIPT_RETENTION_DAYS. Off: kept for the
+  // life of the account, as the privacy policy says (tasks/scheduled/transcript-cleanup-job.ts)
+  TRANSCRIPT_CLEANUP: { default: 'off', owner: 'memory', kind: 'config' },
   // on: the anonymous device fallback trusts an unsigned device_id (the one /token copies from its query)
   TRUST_UNSIGNED_DEVICE_ID: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // on: inner TTS failures reach the agent session (which closes after 4 in a row)
@@ -438,6 +451,9 @@ export const FLAG_MANIFEST = {
   USE_TTS_GATEWAY: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // readers disagree: on in memory and Gemini config, off in Gemini Live and Gemma
   USE_VERTEX_AI: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  // on: per-person allowances (web search's hour) follow the verified-caller signal, an allowlist,
+  // not the user id's shape (identity/verified-caller.ts)
+  VERIFIED_CALLER_ALLOWANCE: { default: 'off', owner: 'platform', kind: 'experiment' },
   VERTEX_KEEPALIVE: { default: 'off', owner: 'voice', kind: 'experiment' },
   VITEST: { default: 'off', owner: 'tools', kind: 'experiment' },
   VOCAL_BURSTS: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -454,6 +470,8 @@ export const FLAG_MANIFEST = {
   // which voice pipeline runs; anything unrecognised is the Cartesia cascade (model-provider-config.ts)
   VOICE_PIPELINE: { default: 'cartesia-cascade', owner: 'voice', kind: 'config' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // with WAITLIST_GATE=on: accounts created before this ISO date stay admitted; unset = none by date (api/admission.ts)
+  WAITLIST_GATE_SINCE: { default: 'unset', owner: 'platform', kind: 'config' },
   // current weather is reused 10 min per place and answered within 3 s (information/weather.ts)
   WEATHER_FAST_ANSWER: { default: 'on', owner: 'tools', kind: 'kill-switch' },
   // weather with no place named: saved home, then profile, then this call's city (weather-location.ts)
