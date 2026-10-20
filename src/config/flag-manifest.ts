@@ -19,6 +19,7 @@ import {
   FLAG_OWNERS,
   FLAGS_ACTION_TO_BYPASS,
   FLAGS_MOVE_TO_PHONE_AUDIO,
+  FLAGS_SHORT_GOODBYE_TO_SMS,
   type FlagSpec,
 } from './flag-manifest-entries.js';
 
@@ -352,20 +353,7 @@ export const FLAG_MANIFEST = {
   SESSION_CONTINUITY_WRITE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: tell the caller's app when the agent session ends without them (session-ended-signal.ts)
   SESSION_ENDED_SIGNAL: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // once the caller said bye, Ferni's goodbye is one or two short sentences (short-goodbye.ts)
-  SHORT_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // a call with no caller turn is not counted in the profile (services/session/silent-call.ts)
-  SILENT_CALL_SKIP_PROFILE: { default: 'off', owner: 'memory', kind: 'experiment' },
-  SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
-  SKIP_GEMINI_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
-  SKIP_PERSONA_INDEXING: { default: 'off', owner: 'platform', kind: 'config' },
-  // anything but 'false' skips the full generateReply prewarm, the quick path (generate-reply-gateway.ts)
-  SKIP_PREWARM_GENERATEREPLY: { default: 'true', owner: 'platform', kind: 'config' },
-  SKIP_TWILIO_VALIDATION: { default: 'off', owner: 'platform', kind: 'config' },
-  // on: a text confirming opt-in when texts go on in settings, and the reminder job releases held texts (opt-in-text.ts)
-  SMS_OPT_IN_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  ...FLAGS_SHORT_GOODBYE_TO_SMS,
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
   SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
