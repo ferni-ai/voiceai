@@ -279,7 +279,9 @@ public final class AliveRig {
         while let beat = sequenceBeats.first, time >= beat.at {
             sequenceBeats.removeFirst()
             if let face = beat.step.expression { overlay = (face, beat.holdUntil) }
-            if beat.step.element == "sparkle" || beat.step.element == "confetti" { pendingSparkles += min(14, (beat.step.particles ?? 6) + 3) }
+            if beat.step.element == "sparkle" { pendingSparkles += min(14, (beat.step.particles ?? 6) + 3) }
+            // Confetti is confetti, not more cream sparkles (expression audit P2 #9).
+            if beat.step.element == "confetti" { pendingConfetti += min(36, beat.step.particles ?? 30) }
             if beat.step.element == "ambientLight" { self[.glow].v += 3 }
         }
     }
@@ -331,17 +333,19 @@ public final class AliveRig {
     public struct Particle: Equatable, Sendable {
         /// z (sleepy, drowsy, resting; at home) and sweat (nervous,
         /// embarrassed) arrive once with the expression, as in the prototype's playFx.
-        public enum Kind: Sendable { case sparkle, heart, firefly, z, sweat }
+        public enum Kind: Sendable { case sparkle, heart, firefly, z, sweat, confetti }
         public var kind: Kind
         public var x: Double, y: Double, size: Double, alpha: Double
         public var rotation = 0.0
+        /// Confetti: which of the team's colours.
+        public var tone = 0
     }
 
     public private(set) var particles: [Particle] = []
 
     private struct Spark {
         var kind: Particle.Kind; var x, y, vx, vy, size, born, life: Double
-        var ay = 0.0, rotation = 0.0
+        var ay = 0.0, rotation = 0.0, spin = 0.0, tone = 0
     }
     /// The expression the once-per-feeling particles last came for.
     private var effectExpression = "neutral"
@@ -353,6 +357,7 @@ public final class AliveRig {
     private var quickTaps: [Double] = []
     private var spinStart: Double?
     private var pendingSparkles = 0
+    private var pendingConfetti = 0
     /// A finger held on or near him (in Ferni radii, y up; nil until it moves).
     private var fingerDown = false, finger: SIMD2<Double>?, fingerNear = false
     private var doubleTakeStart: Double?, doubleTakeAway = SIMD2<Double>.zero, doubleTakeHeld = false
@@ -597,7 +602,7 @@ public final class AliveRig {
         // The bursts, which are only motion (sparkles, a touch's or goodbye's
         // hearts), don't play.
         let held = reduceMotion
-        if held { pendingSparkles = 0 }
+        if held { pendingSparkles = 0; pendingConfetti = 0 }
         func burst(_ kind: Particle.Kind, _ n: Int) {
             for _ in 0..<n {
                 let a = rng.range(0, 2 * .pi), r = rng.range(1.05, 1.3)
@@ -611,6 +616,15 @@ public final class AliveRig {
             }
         }
         if pendingSparkles > 0 { burst(.sparkle, pendingSparkles); pendingSparkles = 0 }
+        if pendingConfetti > 0 {
+            // From above him, tossed up and out, tumbling down in the team's colours.
+            for i in 0..<pendingConfetti {
+                sparks.append(Spark(kind: .confetti, x: rng.range(-0.9, 0.9), y: rng.range(1.0, 1.4), vx: rng.range(-0.45, 0.45),
+                                    vy: rng.range(0.3, 1.0), size: rng.range(0.07, 0.11), born: time + rng.range(0, 0.25),
+                                    life: rng.range(1.8, 2.6), ay: -1.6, rotation: rng.range(0, 2 * .pi), spin: rng.range(-7, 7), tone: i))
+            }
+            pendingConfetti = 0
+        }
         for cue in cues where !held {
             if cue == .sparkle { burst(.sparkle, 6) }
             if cue == .heart { burst(.heart, 3) }
@@ -624,15 +638,17 @@ public final class AliveRig {
             burst(.sparkle, 1)
             nextSparkle = time + 0.5 / max(face.sparkle, 0.1)
         }
-        if sparks.count > 24 { sparks.removeFirst(sparks.count - 24) }
+        let cap = sparks.contains { $0.kind == .confetti } ? 64 : 24
+        if sparks.count > cap { sparks.removeFirst(sparks.count - cap) }
         for i in sparks.indices where sparks[i].kind != .firefly && time >= sparks[i].born && !held {
             sparks[i].vy += sparks[i].ay * dt
             sparks[i].x += sparks[i].vx * dt
             sparks[i].y += sparks[i].vy * dt
+            sparks[i].rotation += sparks[i].spin * dt
         }
         particles = sparks.filter { time >= $0.born }.map { s in
             let alpha = s.kind == .firefly ? 1 : sin(.pi * clamp((time - s.born) / s.life, 0, 1))
-            return Particle(kind: s.kind, x: s.x, y: s.y, size: s.size, alpha: alpha, rotation: s.rotation)
+            return Particle(kind: s.kind, x: s.x, y: s.y, size: s.size, alpha: alpha, rotation: s.rotation, tone: s.tone)
         }
     }
 

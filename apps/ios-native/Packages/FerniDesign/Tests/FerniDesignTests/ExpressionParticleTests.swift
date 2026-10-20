@@ -115,7 +115,7 @@ final class ExpressionParticleTests: XCTestCase {
 
     /// Each one is actually drawn: alone on a clear canvas, it leaves pixels.
     func testEachFeelingIsDrawn() throws {
-        for kind in [Kind.z, .sweat] {
+        for kind in [Kind.z, .sweat, .confetti] {
             let particle = AliveRig.Particle(kind: kind, x: 0, y: 0, size: 0.3, alpha: 1)
             let view = AliveParticles(particles: [particle], centre: CGPoint(x: 50, y: 50), radius: 100)
                 .frame(width: 100, height: 100)
