@@ -42,6 +42,17 @@ vi.mock('../../llm-content-generator.js', () => ({
   })),
 }));
 
+// The push service under in-app-push.ts (web push / APNs), stubbed at its boundary.
+const pushes: Array<{ userId: string; payload: Record<string, unknown> }> = [];
+vi.mock('../../../push-notifications.js', () => ({
+  getPushNotificationsService: () => ({
+    sendNotification: vi.fn(async (userId: string, payload: Record<string, unknown>) => {
+      pushes.push({ userId, payload });
+      return true;
+    }),
+  }),
+}));
+
 let modelReply: string | null = null;
 vi.mock('../../../llm-utils.js', () => ({ callLLM: vi.fn(async () => modelReply) }));
 
@@ -76,6 +87,7 @@ beforeEach(() => {
   // Phone-keyed opt-outs are read under this key; without it nothing is texted.
   process.env.LOG_HASH_SECRET = 'test-hash-secret';
   docs.clear();
+  pushes.length = 0;
   modelReply = null;
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
@@ -91,9 +103,36 @@ afterEach(() => {
   delete process.env.PROACTIVE_CHANNELS;
   delete process.env.PROACTIVE_CHANNELS_USERS;
   delete process.env.OUTREACH_GROUNDED_CHECKINS;
+  delete process.env.OUTREACH_IN_APP_PUSH;
 });
 
 describe('daily outreach for allowlisted users', () => {
+  it('OUTREACH_IN_APP_PUSH on: the note in the app comes with one push saying it is there', async () => {
+    process.env.OUTREACH_IN_APP_PUSH = 'on';
+    seedUser(SETH);
+    expect(pushes).toHaveLength(0);
+    await runDailyOutreach();
+    const [[, note]] = notesOf(SETH);
+    expect(pushes).toEqual([
+      {
+        userId: SETH,
+        payload: expect.objectContaining({
+          title: 'Ferni',
+          body: note.text,
+          type: 'ferni_checkin',
+          data: { kind: 'momentum_check', messageId: note.id },
+        }),
+      },
+    ]);
+  });
+
+  it('OUTREACH_IN_APP_PUSH off (the default): the note is saved and no push goes out', async () => {
+    seedUser(SETH);
+    await runDailyOutreach();
+    expect(notesOf(SETH)).toHaveLength(1);
+    expect(pushes).toHaveLength(0);
+  });
+
   it('goes to the app (not email or a text), once a day, and is logged', async () => {
     seedUser(SETH);
     expect(logOf(SETH)).toHaveLength(0);

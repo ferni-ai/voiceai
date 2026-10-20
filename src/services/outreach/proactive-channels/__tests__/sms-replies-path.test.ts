@@ -108,6 +108,18 @@ describe('replies to a proactive text', () => {
     expect(res.twiml).toContain('unsubscribed');
   });
 
+  it('STOP gets one carrier-ready confirmation and HELP gets a help reply', async () => {
+    const stop = await inbound('stop');
+    expect(stop.twiml).toContain(
+      'You&apos;re unsubscribed from Ferni texts. Reply START to resubscribe.'
+    );
+    expect(stop.twiml?.match(/<Message>/g)).toHaveLength(1);
+    const help = await inbound(' HELP ');
+    expect(help.twiml).toContain('Msg &amp; data rates may apply. Reply STOP to cancel.');
+    expect(help.twiml).toContain('support@ferni.ai');
+    expect(routed).not.toHaveBeenCalled();
+  });
+
   it('any other answer counts as a reply and goes on to the conversation', async () => {
     const res = await inbound('Pretty good, the boxes are mostly packed');
     expect(res.twiml).toBeUndefined();

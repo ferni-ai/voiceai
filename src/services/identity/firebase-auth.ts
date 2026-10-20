@@ -16,6 +16,7 @@
 import admin from 'firebase-admin';
 import { getAuth } from 'firebase-admin/auth';
 import { createLogger } from '../../utils/safe-logger.js';
+import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
 
 const log = createLogger({ module: 'FirebaseAuth' });
 
@@ -225,8 +226,11 @@ export async function verifyFirebaseToken(
 /**
  * Get Firebase user by UID.
  * Useful for checking user status, custom claims, etc.
+ * An anon: or onbehalf: session id names no account, so it is never looked up
+ * (each lookup used to fail and log an error).
  */
 export async function getFirebaseUser(uid: string): Promise<admin.auth.UserRecord | null> {
+  if (nonAccountPrefixOf(uid.trim()) !== undefined) return null;
   if (!ensureInitialized()) {
     return null;
   }
