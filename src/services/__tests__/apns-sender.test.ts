@@ -140,6 +140,7 @@ describe('http2Transport', () => {
   const seen: Array<{ headers: http2.IncomingHttpHeaders; body: string }> = [];
   let server: http2.Http2Server;
   let origin: string;
+  const sessions = new Set<http2.ServerHttp2Session>();
 
   beforeAll(async () => {
     server = http2.createServer((req, res) => {
@@ -153,12 +154,15 @@ describe('http2Transport', () => {
         res.end(gone ? '{"reason":"Unregistered"}' : '');
       });
     });
+    // The transport keeps its connection open for reuse, so close() waits on it.
+    server.on('session', (session) => sessions.add(session));
     await new Promise<void>((resolve) => {
       server.listen(0, '127.0.0.1', resolve);
     });
     origin = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   });
   afterAll(async () => {
+    for (const session of sessions) session.destroy();
     await new Promise<void>((resolve) => {
       server.close(() => resolve());
     });
