@@ -15,6 +15,9 @@ import { asModalDialog } from '../utils/accessibility.js';
 import { tp } from '../i18n/plural.js';
 import { DURATION, EASING } from '../config/animation-constants.js';
 
+/** Canonical privacy policy page (https://ferni.ai/privacy/ 301s here). */
+const PRIVACY_POLICY_URL = 'https://ferni.ai/privacy';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -141,7 +144,10 @@ class DataExportUI {
       </div>
 
       <div class="data-export__footer">
-        <p>${t('dataExport.footer')}</p>
+        <p>
+          ${t('dataExport.footer')}
+          <a class="data-export__privacy-link" href="${PRIVACY_POLICY_URL}" target="_blank" rel="noopener">${t('dataExport.privacyPolicyLink')}</a>
+        </p>
         <button type="button" class="data-export__delete-account">${t('dataExport.deleteAccount')}</button>
       </div>
     `;
@@ -426,6 +432,20 @@ class DataExportUI {
         font-size: var(--text-xs, 0.75rem);
         color: var(--color-text-muted, #756a5e);
         margin: 0;
+      }
+
+      /* Same color as the sentence it follows (themed via --color-text-muted), set apart by the underline */
+      .data-export__privacy-link {
+        color: inherit;
+        font-weight: var(--font-weight-medium, 500);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+
+      .data-export__privacy-link:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+        border-radius: var(--radius-sm, 4px);
       }
 
       /* Dark theme - WCAG AA Compliant */

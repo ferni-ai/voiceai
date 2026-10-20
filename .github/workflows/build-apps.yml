@@ -3,9 +3,11 @@
 # Builds the iOS app. The Electron desktop app was removed, and the native
 # Android app was archived (apps/archive/android-native): Android ships as a
 # Trusted Web Activity built by android-twa.yml.
-# The iOS build and unit tests run on every pull request, merge-queue group and
-# push to main that touches the iPhone app, the shared Swift package or this
-# workflow. Tags (v*) and manual dispatch also build an unsigned iOS archive.
+# The iOS build and unit tests run on every pull request and push to main that
+# touches the iPhone app, the shared Swift package or this workflow. Merge-queue
+# groups skip them: no required check comes from here, and a macOS job per group
+# held queue runners (merge-queue-jobs.test.ts). Tags (v*) and manual dispatch
+# also build an unsigned iOS archive.
 
 name: Build Native Apps
 
@@ -35,9 +37,11 @@ on:
           - mobile
           - ios
 
-# A newer push to a pull request replaces its older run; every main and tag run finishes.
+# A newer push to a PR cancels that PR's older run. Merge-queue, tag and manual
+# runs each get their own group and are never cancelled: cancelling a queue run
+# for a re-request on its ref drops the entry (see ci.yml's header).
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
@@ -47,14 +51,14 @@ jobs:
   # ============================================================================
   # iOS (Native SwiftUI): build and unit tests on a simulator, archive on tags
   # ============================================================================
-  # Pull requests and merge-queue groups run the iOS job only when they touch the
-  # iPhone app, the shared Swift package or this workflow (a skipped job still
-  # reports its check, so it can be a required check). Pushes to main are
-  # path-filtered in `on:` above. ci.yml's
+  # Pull requests run the iOS job only when they touch the iPhone app, the shared
+  # Swift package or this workflow; merge-queue groups never run it (a skipped job
+  # still reports its check). Pushes to main are path-filtered in `on:` above,
+  # and a failed push run opens a main-red issue (nightly-health.yml). ci.yml's
   # Node jobs keep excluding apps/ios-native: they cannot see a Swift change.
   ios-changes:
     name: Did the iOS app change?
-    if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -68,13 +72,12 @@ jobs:
         uses: ./.github/actions/pr-changes
         with:
           include: '^(apps/ios-native/|apps/shared/|\.github/workflows/build-apps\.yml$)'
-          merge-group: 'true'
 
   build-ios:
     name: iOS build and test
     needs: ios-changes
     if: >
-      !cancelled() && (
+      !cancelled() && github.event_name != 'merge_group' && (
         needs.ios-changes.outputs.ios == 'true' ||
         github.event_name == 'push' ||
         github.event.inputs.platforms == 'all' ||

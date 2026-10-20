@@ -1,6 +1,6 @@
 /**
  * "Don't call me again" on a call (recordCallOptOut) also lands in the one
- * consent record when MESSAGING_PIPELINE is on, and only then.
+ * consent record, flag or not, so no opt-out is lost before arming.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,10 +33,16 @@ describe('recordCallOptOut and consent/{phoneHash}', () => {
     expect(writeOptOut).toHaveBeenCalledWith(phoneHash(PHONE), 'call', 'voice-call');
   });
 
-  it('flag off: only the old do-not-call list, as today', async () => {
+  it('flag off: still recorded in consent (nothing reads it until the flag is armed)', async () => {
     vi.stubEnv('MESSAGING_PIPELINE', 'off');
     vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
     expect(await recordCallOptOut(PHONE, { callId: 'c1', requesterUserId: 'owner' })).toBe(true);
-    expect(writeOptOut).not.toHaveBeenCalled();
+    expect(writeOptOut).toHaveBeenCalledWith(phoneHash(PHONE), 'call', 'voice-call');
+  });
+
+  it('a failed consent write never fails the do-not-call request (it is on the old list)', async () => {
+    vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
+    writeOptOut.mockRejectedValueOnce(new Error('unavailable'));
+    expect(await recordCallOptOut(PHONE, { callId: 'c1', requesterUserId: 'owner' })).toBe(true);
   });
 });

@@ -204,6 +204,8 @@ async function verdictFor(
     .get();
   const status: unknown = reminder.exists ? reminder.data()?.status : undefined;
   if (status === 'delivered') return ['kept', 'reminder delivered'];
+  // Saved in the app with no text or push: it never reached them.
+  if (status === 'in_app_unnotified') return ['missed', 'reminder left in the app, no one told'];
   if (status === 'cancelled') return ['released', 'reminder cancelled'];
   if (status === undefined) return ['released', 'reminder deleted'];
   return ['missed', `reminder ${String(status)}`];
