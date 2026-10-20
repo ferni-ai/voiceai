@@ -171,7 +171,8 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
 }> {
   const saved: string[] = [];
   const failed: string[] = [];
-  if (!loadedUsers.has(userId) || userHeld(userId)) return { saved, failed }; // MINOR_CARE
+  if (userHeld(userId)) return { saved, failed }; // MINOR_CARE: a held caller, never
+  if (!loadedUsers.has(userId)) return { saved, failed }; // not read here: a default would replace it
 
   // 1. Silence Pattern
   const silencePattern = getSilencePattern(userId);
