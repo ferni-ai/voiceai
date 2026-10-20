@@ -103,14 +103,12 @@ export const COHORT_FLAGS = [
   'CALL_JOURNAL', // tool build + per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on
   'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
   'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
-  // UI server's briefing job only, never in a call: usersWithFlag (morning-brief/brief-job.ts).
-  'MORNING_BRIEF',
+  'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
   // The UI server's deliver-reminders job reads both per person, through flagForUser
   // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
   'REMINDER_SMS_DEFAULT',
   'REMINDER_IN_APP_PUSH',
-  // Read per person on the web server (flagForUser): outreach pushes and the after-call ask (web-push-flag.ts).
-  'WEB_PUSH_DELIVERY',
+  'WEB_PUSH_DELIVERY', // web server, per person (flagForUser): pushes, after-call ask
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
