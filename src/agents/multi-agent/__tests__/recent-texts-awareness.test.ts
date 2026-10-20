@@ -21,6 +21,10 @@ const { recentTextsBlock, sentWhen, takeRecentTextFacts } =
   await import('../recent-texts-awareness.js');
 const { textSnippet } = await import('../../../services/outreach/recent-texts.js');
 const { directedGreeting } = await import('../greeting-direction.js');
+const { rememberCallerRecognition, rememberDispatchIdentity } =
+  await import('../../voice-agent-entry/caller-recognition.js');
+// The production owner check, as job-executor.ts registers it.
+await import('../../voice-agent-entry/recent-texts-owner-register.js');
 
 const NOW = new Date('2026-10-19T16:00:00Z');
 const HOUR = 3_600_000;
@@ -56,6 +60,12 @@ const deps = (s: RecentTextsStore, env: Record<string, string> = ON) => ({
   now: () => NOW,
 });
 
+/** A signed-in app call: the dispatch named the account (web_auth), not a phone. */
+async function webBlock(sessionId: string, d: ReturnType<typeof deps>): Promise<string> {
+  rememberDispatchIdentity(sessionId, 'web_auth', '{}');
+  return recentTextsBlock(sessionId, 'u1', 'UTC', false, d);
+}
+
 interface Request {
   facts: Record<string, string>;
 }
@@ -64,7 +74,7 @@ const lastFacts = (): Record<string, string> =>
 
 describe('recent texts at call start', () => {
   it('a text 2 h ago is a fact with its kind and snippet, and the greeting has it', async () => {
-    const block = await recentTextsBlock('rt-1', 'u1', 'UTC', deps(store([record()])));
+    const block = await webBlock('rt-1', deps(store([record()])));
     expect(block).toContain(
       'You texted them about 2 hours ago (a reminder: "Hey Sam, just a nudge'
     );
@@ -74,25 +84,25 @@ describe('recent texts at call start', () => {
   });
 
   it('a text with a reply says they replied', async () => {
-    const block = await recentTextsBlock('rt-2', 'u1', 'UTC', deps(store([record()], ['r1'])));
+    const block = await webBlock('rt-2', deps(store([record()], ['r1'])));
     expect(block).toContain('They replied.');
     expect(block).not.toContain("haven't replied");
   });
 
   it('leaves out a text sent for them to someone else', async () => {
     const s = store([record({ kind: 'on-behalf', question: 'Hi Mike, Sam asked me to text you' })]);
-    expect(await recentTextsBlock('rt-3', 'u1', 'UTC', deps(s))).toBe('');
+    expect(await webBlock('rt-3', deps(s))).toBe('');
     expect(takeRecentTextFacts('rt-3')).toEqual({});
   });
 
   it('leaves out a text sent 7 h ago', async () => {
     const s = store([record({ sentAt: ago(7) })]);
-    expect(await recentTextsBlock('rt-4', 'u1', 'UTC', deps(s))).toBe('');
+    expect(await webBlock('rt-4', deps(s))).toBe('');
   });
 
   it('flag off: nothing is read and the greeting has no text fact', async () => {
     const s = store([record()]);
-    expect(await recentTextsBlock('rt-5', 'u1', 'UTC', deps(s, {}))).toBe('');
+    expect(await webBlock('rt-5', deps(s, {}))).toBe('');
     expect(s.forUser).not.toHaveBeenCalled();
     await directedGreeting('rt-5', 'ferni', { userId: 'voice-eval-rt5' });
     expect(lastFacts()['a text you sent them before this call']).toBeUndefined();
@@ -109,7 +119,7 @@ describe('recent texts at call start', () => {
       hasReply: vi.fn(async () => false),
     };
     const started = Date.now();
-    expect(await recentTextsBlock('rt-6', 'u1', 'UTC', deps(slow))).toBe('');
+    expect(await webBlock('rt-6', deps(slow))).toBe('');
     expect(Date.now() - started).toBeLessThan(1000);
     expect(slow.forUser).toHaveBeenCalled();
   });
@@ -121,7 +131,47 @@ describe('recent texts at call start', () => {
       }),
       hasReply: vi.fn(async () => false),
     };
-    expect(await recentTextsBlock('rt-7', 'u1', 'UTC', deps(failing))).toBe('');
+    expect(await webBlock('rt-7', deps(failing))).toBe('');
+  });
+});
+
+describe('only a proven owner on the line hears about their texts', () => {
+  const phoneBlock = async (sessionId: string, s: RecentTextsStore): Promise<string> =>
+    recentTextsBlock(sessionId, 'u1', 'UTC', true, deps(s));
+
+  it('a phone caller recognised as maybe or stranger: nothing read, nothing kept', async () => {
+    for (const status of ['maybe', 'stranger'] as const) {
+      const s = store([record()]);
+      rememberCallerRecognition(`ph-${status}`, { status, attestation: 'none' });
+      expect(await phoneBlock(`ph-${status}`, s)).toBe('');
+      expect(s.forUser).not.toHaveBeenCalled();
+      expect(takeRecentTextFacts(`ph-${status}`)).toEqual({});
+    }
+  });
+
+  it('a phone session with no recognition: nothing read', async () => {
+    const s = store([record()]);
+    expect(await phoneBlock('ph-none', s)).toBe('');
+    expect(s.forUser).not.toHaveBeenCalled();
+  });
+
+  it("a call Ferni placed to the owner's number (dispatch names the account): nothing read", async () => {
+    const s = store([record()]);
+    rememberDispatchIdentity('ph-placed', 'firebase', '{"type":"proactive_outreach"}');
+    expect(await phoneBlock('ph-placed', s)).toBe('');
+    expect(s.forUser).not.toHaveBeenCalled();
+  });
+
+  it('an app session the dispatch did not authenticate: nothing read', async () => {
+    const s = store([record()]);
+    expect(await recentTextsBlock('web-anon', 'u1', 'UTC', false, deps(s))).toBe('');
+    expect(s.forUser).not.toHaveBeenCalled();
+  });
+
+  it('a recognised (known) phone caller and a signed-in app call both get the facts', async () => {
+    rememberCallerRecognition('ph-known', { status: 'known', attestation: 'A', userId: 'u1' });
+    expect(await phoneBlock('ph-known', store([record()]))).toContain('a reminder');
+    expect(await webBlock('web-auth', deps(store([record()])))).toContain('a reminder');
   });
 });
 

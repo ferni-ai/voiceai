@@ -343,7 +343,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     const [baseInstructions, loadedSystemPrompt, texts] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
-      recentTextsBlock(sessionId, userId, userData?.callerTimezone), // CALL_KNOWS_RECENT_TEXTS
+      recentTextsBlock(sessionId, userId, userData?.callerTimezone, config.phoneCaller === true),
     ]);
     mark('load_prompts_done');
 

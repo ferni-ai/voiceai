@@ -26,6 +26,8 @@ import '../voice-agent-entry/follow-through-import-register.js';
 import '../voice-agent-entry/returning-caller-register.js';
 // Which sessions may read their own texts with Ferni (readSMS refuses all until this loads).
 import '../voice-agent-entry/sms-owner-register.js';
+// Which sessions may hear about the texts Ferni sent them (CALL_KNOWS_RECENT_TEXTS).
+import '../voice-agent-entry/recent-texts-owner-register.js';
 
 // ============================================================================
 // TYPES

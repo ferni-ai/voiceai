@@ -92,6 +92,18 @@ if (flagOn('CALL_KNOWS_RECENT_TEXTS')) {
   });
 }
 
+/**
+ * Whether the account owner is proven to be on the line. The answer lives a
+ * layer up (caller-recognition.ts ownerProvenOnLine), registered by
+ * voice-agent-entry/recent-texts-owner-register.ts. Until it is, no one is.
+ */
+type OwnerCheck = (sessionId: string, phoneCall: boolean) => boolean;
+let ownerOnLine: OwnerCheck = () => false;
+
+export function registerRecentTextsOwnerCheck(check: OwnerCheck): void {
+  ownerOnLine = check;
+}
+
 /** What each session's setup found, for its greeting. */
 const found = new Map<string, { facts: string[]; at: number }>();
 
@@ -125,16 +137,20 @@ async function readInTime(
 
 /**
  * The model-instructions block naming the texts sent lately, or '' (flag off,
- * no user, a call to someone else on a member's behalf, none sent, or too slow).
+ * no user, the owner not proven to be on the line, a call to someone else on
+ * a member's behalf, none sent, or too slow). Nothing is read, and nothing is
+ * kept for the greeting, unless the owner is proven (ownerOnLine).
  */
 export async function recentTextsBlock(
   sessionId: string,
   userId: string | undefined,
   timeZone: string | undefined,
+  phoneCall: boolean,
   deps: RecentTextsDeps = {}
 ): Promise<string> {
   if (!flagOn('CALL_KNOWS_RECENT_TEXTS', deps.env ?? process.env)) return '';
   if (!userId || userId === 'anonymous') return '';
+  if (!ownerOnLine(sessionId, phoneCall)) return '';
   // Imported here so the greeting's import of this module stays light.
   const { outboundPartiesFor } = await import('../shared/outbound-opener.js');
   if (outboundPartiesFor(sessionId)) return ''; // a third party is on the line
