@@ -38,10 +38,11 @@ enum UITestScenario: String {
 
     static let config = FerniConfig(apiBaseURL: URL(string: "http://127.0.0.1:9")!)
 
-    /// Every launch starts from nothing the last one left, with sounds off.
+    /// Every launch starts from nothing the last one left, with sounds off
+    /// unless `-FerniSounds YES` (a test of Ferni's foley).
     @MainActor static func resetDefaults() {
         if let id = Bundle.main.bundleIdentifier { UserDefaults.standard.removePersistentDomain(forName: id) }
-        UserDefaults.standard.set(false, forKey: CallFeedback.soundsKey)
+        UserDefaults.standard.set(flag("-FerniSounds"), forKey: CallFeedback.soundsKey)
         if storeData { UserDefaults.standard.set(true, forKey: "ferni.call.hasTalked") }
     }
 
@@ -175,6 +176,7 @@ extension UITestScenario {
         var touches = 0
         var notices = 0
         var startles = 0
+        var foley = 0
     }
 }
 
@@ -210,6 +212,12 @@ struct UITestEnvironmentProbe: View {
             .accessibilityIdentifier("uitest.startles")
             .accessibilityLabel(Text(verbatim: "Test startles"))
             .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.startles)"))
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityElement()
+            .accessibilityIdentifier("uitest.foley")
+            .accessibilityLabel(Text(verbatim: "Test foley"))
+            .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.foley)"))
     }
 }
 
