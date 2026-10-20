@@ -8,6 +8,7 @@ import SwiftUI
 struct RootView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.horizontalSizeClass) private var width
+    @Environment(\.dynamicTypeSize) private var typeSize
     @State private var section: Section? = .talk
 
     enum Section: Hashable, CaseIterable {
@@ -79,6 +80,9 @@ struct RootView: View {
                     }
                 }
                 .navigationTitle("Ferni")
+                // At accessibility sizes a wider sidebar: at AX5 its default width broke
+                // "Settings" across two lines with a hyphen (design audit P2 #17).
+                .navigationSplitViewColumnWidth(typeSize.isAccessibilitySize ? 420 : 320)
                 // Ferni's room colour, not the system's glass: over the glass the
                 // accessibility audit failed every row's contrast (often without
                 // naming it), though the pixels measure 19.7:1 (2026-10-20).
