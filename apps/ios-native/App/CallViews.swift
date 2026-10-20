@@ -25,6 +25,7 @@ struct CallAvatar: View {
             covered: covered,
             wake: wake,
             personSpeaking: call.isUserSpeaking,
+            micro: avatar.micro,
             level: { [level = call.agentLevel] in level.level },
             onCue: onCue
         )

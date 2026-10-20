@@ -37,14 +37,44 @@ public struct ExpressionToken: Decodable, Equatable, Sendable {
 
 /// All of Ferni's expressions, loaded once from the bundled token copy.
 public enum ExpressionTokens {
-    struct File: Decodable { var expressions: [String: ExpressionToken] }
+    /// A micro-expression: a face held 80-120 ms, felt more than seen.
+    struct Micro: Decodable, Equatable, Sendable { var expression: String, duration: Int }
 
-    public static let all: [String: ExpressionToken] = {
+    struct File: Decodable {
+        var expressions: [String: ExpressionToken]
+        var microExpressions: [String: Micro]?
+    }
+
+    static let file: File? = {
         guard let url = Bundle.module.url(forResource: "expression-tokens", withExtension: "json"),
-              let data = try? Data(contentsOf: url),
-              let file = try? JSONDecoder().decode(File.self, from: data) else { return [:] }
-        return file.expressions
+              let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode(File.self, from: data)
     }()
+
+    public static let all: [String: ExpressionToken] = file?.expressions ?? [:]
+    static let micro: [String: Micro] = file?.microExpressions ?? [:]
+}
+
+/// The design system's seven micro-expressions (expressions.json →
+/// microExpressions), as the alive prototype's `micro()` plays them.
+public enum MicroExpression: String, CaseIterable, Sendable {
+    case recognition, concern, delight, warmth, interest, surprise, noticing
+
+    /// The face it flashes and for how long, from the tokens.
+    var flash: (face: String, seconds: Double)? {
+        ExpressionTokens.micro[rawValue].map { ($0.expression, Double($0.duration) / 1000) }
+    }
+}
+
+/// A micro-expression to play, numbered so the same one twice in a row plays twice.
+public struct MicroBeat: Equatable, Sendable {
+    public let expression: MicroExpression
+    public let count: Int
+
+    public init(_ expression: MicroExpression, count: Int) {
+        self.expression = expression
+        self.count = count
+    }
 }
 
 /// The face geometry for one expression: lids, arch, eye sizes, gaze, the
