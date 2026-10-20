@@ -112,8 +112,8 @@ export function crisisRiskThisCall(sessionId: string, latest?: string, now = Dat
  * Per call: the caller turns whose reply carried crisis handling (guidance, the
  * script or the soft check), noted by the reply gate and the turn pipeline.
  * The adjudicator never softens the turn that answers one (crisis-adjudicator.ts).
- * Least recently noted first; dropped when the call ends (clearCrisisCall, run
- * by the session cleanup registry), after 6 hours, or past CRISIS_REPLY_CALLS_MAX.
+ * Least recently noted first; dropped when the call ends (clearCrisisReplies,
+ * run by the session cleanup registry), after 6 hours, or past CRISIS_REPLY_CALLS_MAX.
  */
 const replied = new Map<string, { at: number; turns: Set<string> }>();
 const REPLIED_TURNS_MAX = 64;
@@ -147,10 +147,14 @@ export function noteCrisisReply(
   return !held;
 }
 
-/** The call is over: forget its crisis replies and its noted risk. Never mid-call. */
-export function clearCrisisCall(sessionId: string): void {
+/**
+ * Forget the call's crisis replies, and only those: noted risk (crisisRiskThisCall)
+ * gates live behaviour and keeps its 6 hours. Run by the session cleanup
+ * registry, whose orphan sweep can fire on a call still live after 2 hours;
+ * losing this record then only means the adjudicator asks the model.
+ */
+export function clearCrisisReplies(sessionId: string): void {
   replied.delete(sessionId);
-  risky.delete(sessionId);
 }
 
 /** Whether the reply to these caller words carried crisis handling on this call. */

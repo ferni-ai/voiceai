@@ -5,11 +5,14 @@
  * CRISIS_REPLY_CALLS_MAX calls. Synthetic lines.
  */
 import { llm } from '@livekit/agents';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { startCrisisGate } from '../../personas/crisis-gate.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
-import { runSessionCleanup } from '../../session/event-cleanup-registry.js';
+import {
+  cleanupOrphanedSessions,
+  runSessionCleanup,
+} from '../../session/event-cleanup-registry.js';
 import {
   CRISIS_REPLY_CALLS_MAX,
   crisisReplyOnTurn,
@@ -47,7 +50,9 @@ describe('call end', () => {
     expect(crisisRiskThisCall('end-gate')).toBe(true);
     await runSessionCleanup('end-gate');
     expect(crisisReplyOnTurn('end-gate', RISK)).toBe(false);
-    expect(crisisRiskThisCall('end-gate')).toBe(false);
+    // Noted risk gates live behaviour (no hang-up, goodbye hold): it keeps its 6 hours,
+    // since the registry's orphan sweep can run this cleanup on a call still live.
+    expect(crisisRiskThisCall('end-gate')).toBe(true);
   });
 
   it('the turn pipeline: the call ends and its record is gone', async () => {
@@ -56,6 +61,7 @@ describe('call end', () => {
     expect(crisisReplyOnTurn('end-pipe', RISK)).toBe(true);
     await runSessionCleanup('end-pipe');
     expect(crisisReplyOnTurn('end-pipe', RISK)).toBe(false);
+    expect(crisisRiskThisCall('end-pipe')).toBe(true);
   });
 
   it("a live call's record is untouched by another call's cleanup", async () => {
@@ -65,6 +71,33 @@ describe('call end', () => {
     expect(crisisReplyOnTurn('ended-call', RISK)).toBe(false);
     expect(crisisReplyOnTurn('live-call', RISK)).toBe(true);
     expect(crisisRiskThisCall('live-call')).toBe(true);
+  });
+});
+
+describe('the registry orphan sweep (2 h without access)', () => {
+  const HOUR = 60 * 60 * 1000;
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('noting a reply bumps lastAccessedAt: an active crisis call is not swept', async () => {
+    gateTurn('active');
+    vi.advanceTimersByTime(1.5 * HOUR);
+    gateTurn('active'); // another crisis reply on the same call
+    vi.advanceTimersByTime(1 * HOUR); // 2.5 h since registering, 1 h since the last reply
+    await cleanupOrphanedSessions();
+    expect(crisisReplyOnTurn('active', RISK)).toBe(true);
+  });
+
+  it('a call with no reply for over 2 h is swept: its record goes, its noted risk stays', async () => {
+    gateTurn('idle');
+    vi.advanceTimersByTime(2.5 * HOUR);
+    await cleanupOrphanedSessions();
+    expect(crisisReplyOnTurn('idle', RISK)).toBe(false);
+    expect(crisisRiskThisCall('idle')).toBe(true);
   });
 });
 
