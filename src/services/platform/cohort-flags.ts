@@ -100,12 +100,10 @@ export const COHORT_FLAGS = [
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
   'WEEKLY_PREDICTION',
-  // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
+  // Read each time callUser or forgetMemory runs mid-call, per person (telephony/index.ts, recall/forget.ts).
   'TOOLS_REAL_CALL_USER',
-  // forgetMemory reads it each time it runs mid-call (memory/recall/forget.ts).
   'FORGET_DELETES',
-  // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
-  // (services/outreach/morning-brief/brief-job.ts).
+  // Read by the UI server's calendar-briefing job, never in a call (morning-brief/brief-job.ts).
   'MORNING_BRIEF',
   // The UI server's deliver-reminders job reads both per person, through flagForUser
   // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
