@@ -44,7 +44,8 @@ async function firstAgentTools(coachMedia: string): Promise<Record<string, unkno
   const { capToolsToLimit, getMaxTools } = await import('../../config/tool-config.js');
   const { tools } = await buildEssentialToolSet({
     personaId: 'ferni',
-    userId: 'test-user',
+    // Shaped like a real uid: test-* owners are harness users, and outreach refuses them
+    userId: 'coachMediaWiringUser1',
     services: { userProfile: profile } as never,
   });
   return capToolsToLimit(tools, resolveInitialToolLimit(getMaxTools())) as Record<string, unknown>;
