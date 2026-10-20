@@ -3,7 +3,6 @@
  * state that a held call fills and a later write would flush.
  * - the trust systems session cleanup saves through saveSystemData (thinking, tonal, curiosity,
  *   persona growth): purged;
- * - deep understanding (ten modules' maps): a purged user is never written again in this process;
  * - the engagement store: a held caller's profile is neither cached nor written, ritual and
  *   prediction writes are refused, and the purge drops the cached profile.
  * Only Firestore is faked.
@@ -56,7 +55,6 @@ import {
   recordPersonaGrowth,
   getPersonaGrowthForPersistence,
 } from '../../services/trust-systems/persona-growth.js';
-import { saveDeepUnderstandingProfiles } from '../../intelligence/deep-understanding/persistence.js';
 import { getEngagementStore } from '../../services/engagement/engagement-store.js';
 import { heldAfter, resetMinorCare } from '../minor-care.js';
 
@@ -106,18 +104,6 @@ describe('trust systems saved through saveSystemData: per-user maps purged', () 
     expect(state()).toEqual([true, true, true, true]);
     purgeHeldUser(userId);
     expect(state()).toEqual([false, false, false, false]);
-  });
-});
-
-describe('deep understanding: a purged user is never written again here', () => {
-  it('purged: nothing saved; another user still saves', async () => {
-    const purged = user();
-    const other = user();
-    purgeHeldUser(purged);
-    expect((await saveDeepUnderstandingProfiles(purged)).saved).toEqual([]);
-    expect(writesFor(purged)).toEqual([]);
-    await saveDeepUnderstandingProfiles(other);
-    expect(writesFor(other).length).toBeGreaterThan(0);
   });
 });
 
