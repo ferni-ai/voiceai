@@ -249,6 +249,8 @@ export const FLAG_MANIFEST = {
   // (patches/@livekit__agents@1.9.3.patch), and save tools refuse them (tools/utils/own-note.ts)
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
   // Alex's 8am text brief, with MORNING_BRIEF_USERS (services/outreach/morning-brief/brief-job.ts)
+  // on: mirroring keeps English: "nah" only for a standalone no, no clause-final contractions (conversation/superhuman/mirroring-grammar.ts)
+  MIRROR_GRAMMAR_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   MORNING_BRIEF: { default: 'off', owner: 'outreach', kind: 'experiment' },
   MORNING_BRIEF_COMMITMENTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the caller can name the tune Ferni whistles, or ask him to stop (personas/named-tune-note.ts)
