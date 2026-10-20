@@ -24,6 +24,8 @@ public enum CallEvent: Equatable, Sendable {
     case handoffCompleted(to: String, name: String)
     case handoffFailed
     case reconnecting, reconnected
+    /// The person muted (true) or unmuted their microphone.
+    case muted(Bool)
     case failed
     case ended
 }
@@ -59,6 +61,8 @@ public struct AvatarDirector: Equatable, Sendable {
     private var firstTurnSeen = false
     private var firstWordPlayed = false
     private var presencePlayed = false
+    /// The person's microphone is off: Ferni waits, at ease, while they're away.
+    public private(set) var muted = false
     /// The latest micro-expression, for the body to flash once.
     public private(set) var micro: MicroBeat?
     /// The latest choreographed moment, for the body to play once.
@@ -91,6 +95,9 @@ public struct AvatarDirector: Equatable, Sendable {
 
     public var expression: AvatarExpression {
         if let expressionOverride { return expressionOverride.face }
+        // Muted, he doesn't sit there listening hard to silence: he settles, at
+        // ease, until you're back (design audit P2 #4: Ferni didn't react).
+        if muted, pose == .listening { return .calm }
         switch pose {
         case .idle, .departing: return .neutral
         case .arriving, .listening, .handoffArriving: return .listening
@@ -154,6 +161,11 @@ public struct AvatarDirector: Equatable, Sendable {
                 reconnectingShowsAt = nil
                 if wasShown { effects.append(.haptic(.reconnected)) }
             }
+        case .muted(let on):
+            guard on != muted else { break }
+            muted = on
+            // Going: a warm "take your time". Back: his eyes widen, he's with you.
+            micro = MicroBeat(on ? .warmth : .recognition, count: (micro?.count ?? 0) + 1)
         case .failed:
             connection = .error
             pendingTurn = nil

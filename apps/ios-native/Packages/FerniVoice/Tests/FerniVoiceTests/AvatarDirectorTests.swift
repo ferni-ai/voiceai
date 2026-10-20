@@ -16,6 +16,28 @@ final class AvatarDirectorTests: XCTestCase {
         return d
     }
 
+    /// Design audit P2 #4: muting changed nothing in Ferni. He settles while
+    /// you're away, with a warm flash going and his eyes widening when you're back.
+    func testMutingSettlesFerniUntilYouAreBack() {
+        var d = live()
+        XCTAssertEqual(d.expression, .listening)
+        _ = d.send(.muted(true), now: ms(100))
+        XCTAssertEqual(d.expression, .calm, "at ease, not listening hard to silence")
+        XCTAssertEqual(d.micro?.expression, .warmth)
+        _ = d.send(.agentState(.speaking), now: ms(200))
+        _ = d.tick(now: ms(400))
+        XCTAssertEqual(d.expression, .speaking, "he still talks to you")
+        _ = d.send(.agentState(.listening), now: ms(500))
+        _ = d.tick(now: ms(700))
+        XCTAssertEqual(d.expression, .calm)
+        _ = d.send(.muted(false), now: ms(800))
+        XCTAssertEqual(d.expression, .listening, "back to listening")
+        XCTAssertEqual(d.micro?.expression, .recognition, "with his eyes on you")
+        let before = d.micro
+        _ = d.send(.muted(false), now: ms(900))
+        XCTAssertEqual(d.micro, before, "no flash for a mute that didn't change")
+    }
+
     func testArrivingUntilFerniJoinsThenTheFirstTurnShowsAtOnce() {
         var d = AvatarDirector()
         _ = d.send(.connectTapped(personaID: "ferni"), now: .zero)
