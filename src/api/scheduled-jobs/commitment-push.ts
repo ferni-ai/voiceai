@@ -12,6 +12,7 @@ import {
   dueForPush,
   firestoreCommitmentStore,
   toOpenCommitment,
+  youSaidYoud,
   type CommitmentStore,
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
@@ -42,9 +43,9 @@ export function pickDuePerUser(rows: DueCommitment[], now: number): DueCommitmen
   return [...byUser.values()];
 }
 
-/** The push text: their own words, and a question a friend would ask. */
+/** The push text: what they said they'd do, and a question a friend would ask. */
 export function pushMessage(c: OpenCommitment): string {
-  return `How did it go? Last time you said: "${c.statement}"`;
+  return `Last time you said ${youSaidYoud(c)}. How did it go?`;
 }
 
 async function scanDue(now: number): Promise<DueCommitment[]> {

@@ -324,7 +324,7 @@
       "contactInfo": "Staying in Touch",
       "howIReachYou": "How I reach you",
       "howIReachYouHint": "Your number, and whether I text, call or leave a note in the app",
-      "exportData": "Take Your Story",
+      "exportData": "Privacy & your data",
       "shareFerni": "Bring a Friend",
       "supportFerni": "Support Ferni",
       "takeTour": "Show Me Around",
@@ -1430,7 +1430,11 @@
     "time": {
       "am": "AM",
       "pm": "PM"
-    }
+    },
+    "smsDisclosure": "Turn on texts and Ferni will text this number with reminders and check-ins, up to 3 a day. Msg & data rates may apply. Reply STOP to cancel, HELP for help.",
+    "smsTerms": "SMS terms",
+    "callDisclosure": "Ferni will only call this number when you ask, or for check-ins you've turned on.",
+    "errorChannelsRefresh": "I couldn't turn that on just yet. Refresh the page and try again?"
   },
   "accessibility": {
     "accountMenu": "Account menu",
@@ -5395,7 +5399,9 @@
     "quietNote": "If you're awake at 2am and reach out, I'm here with the same presence as noon.",
     "guardianDesc": "Watching out for you 24/7",
     "emptyCta": "Keep talking with me. Every conversation helps me understand when and how to support you best.",
-    "emptyTip": "Enable \"{feature}\" in Settings to unlock proactive support"
+    "emptyTip": "Enable \"{feature}\" in Settings to unlock proactive support",
+    "smsSetUp": "Set up texts",
+    "smsSetUpDesc": "Texts are turned on next to your number, where you can see what they include."
   },
   "trophyRoom": {
     "yourJourney": "YOUR JOURNEY",
@@ -9404,7 +9410,8 @@
     },
     "exportFormat": "Export format",
     "deleteAll": "Delete All Data",
-    "footer": "Your data belongs to you. We respect your privacy.",
+    "footer": "I save our conversations and the things you tell me so I can remember them next time, and if you ever want them gone, deleting your account erases them.",
+    "privacyPolicyLink": "Read the privacy policy",
     "deleteAccount": "Delete my account",
     "confirmDeleteAll": "Are you sure you want to delete all your data? This cannot be undone.",
     "confirmDeleteAccount": "Delete your Ferni account? This erases everything Ferni knows about you and signs you out for good. It cannot be undone."
