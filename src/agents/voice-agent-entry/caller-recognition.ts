@@ -24,6 +24,10 @@
  *
  * @module agents/voice-agent-entry/caller-recognition
  */
+import {
+  beginReturningCaller,
+  returningCallerEnabled,
+} from '../../services/identity/returning-caller.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   readSipCaller,
@@ -240,3 +244,31 @@ export async function recognizePhoneSession(
 
 /** How long to wait for the caller to join. */
 const PARTICIPANT_WAIT_MS = 3000;
+
+/**
+ * RETURNING_CALLER=on: an unverified phone caller (an `anon:` session on a
+ * SIP call, never an account or a proven owner) gets what they told Ferni
+ * before, looked up by their hashed number (returning-caller.ts). Caller ID
+ * can be spoofed, so only a call with a signed attestation A (the signal
+ * 'known' needs) reads or writes a record; anything else gets neither.
+ */
+export async function startReturningCaller(
+  room: RoomLike,
+  sessionId: string,
+  userId: string | undefined,
+  deps: Pick<RecognitionDeps, 'signedAttestation'> = productionRecognitionDeps,
+  begin: typeof beginReturningCaller = beginReturningCaller
+): Promise<void> {
+  if (!returningCallerEnabled() || !userId?.startsWith('anon:')) return;
+  if (sessionIsVerifiedOwner(sessionId)) return;
+  const participant = await firstParticipant(room, PARTICIPANT_WAIT_MS);
+  if (!participant || !(await readSipCaller(participant, { waitMs: 0 })).isSip) return;
+  const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
+  if (!e164) return;
+  const signed = await deps.signedAttestation(participant, e164).catch(() => null);
+  if (signed !== 'A') {
+    getLogger().info({ sessionId, attestation: signed ?? 'none' }, 'RETURNING_CALLER skipped');
+    return;
+  }
+  await begin(sessionId, e164);
+}

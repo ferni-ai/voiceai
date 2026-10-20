@@ -24,6 +24,8 @@ import '../journal-store-register.js';
 import '../voice-agent-entry/follow-through-import-register.js';
 // Letters to future you are kept for the account's owner (futureSelfLetter).
 import '../voice-agent-entry/future-letter-register.js';
+// An unverified phone caller's first name and a one-line summary, by hashed number (RETURNING_CALLER).
+import '../voice-agent-entry/returning-caller-register.js';
 // Which sessions may read their own texts with Ferni (readSMS refuses all until this loads).
 import '../voice-agent-entry/sms-owner-register.js';
 
