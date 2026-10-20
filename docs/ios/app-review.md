@@ -172,10 +172,15 @@ reports without gating. Re-run on 2026-10-20 on a dedicated simulator:
   behind it, a row clipped at its edge); as the sidebar's page (90b244273)
   those are gone, and the two sidebar rows above were all that was left.
   Settings now passes on iPad at both sizes.
-- **Consent: "potentially inaccessible text" with no element**, standard and
-  AX5. The consent sheet leaves Home's headline visible above it, which is
-  correctly hidden from accessibility while the sheet is modal. Plus one
-  contrast finding on the consent body at AX5. Open.
+- **Fixed: Consent.** As a form sheet it had two findings. The "potentially
+  inaccessible text" with no element (standard and AX5) was the sidebar,
+  drawn beside the sheet but hidden from VoiceOver while it's modal: with
+  the sidebar hidden, it went away. The AX5 contrast finding was the body:
+  its words measure 7.0:1 (#5c544a on #faf8f5), but at AX5 the paragraph
+  runs past the sheet's bottom edge onto the dimmed room. On iPad consent
+  now covers the whole screen (the iPhone keeps its sheet over the room),
+  and Consent passes on iPad at both sizes; as a sheet again, both findings
+  come back.
 - **Fixed: Home at 20h, "Whenever you're ready, I'm here."** on iPad. Its
   pixels measure 6.4:1 (#5c544a on #f2eee7), but the audit failed the
   regular weight in the evening band only. At medium weight (same colours)
