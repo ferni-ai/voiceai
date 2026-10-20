@@ -180,7 +180,9 @@ reports without gating. Re-run on 2026-10-20 on a dedicated simulator:
   runs past the sheet's bottom edge onto the dimmed room. On iPad consent
   now covers the whole screen (the iPhone keeps its sheet over the room),
   and Consent passes on iPad at both sizes; as a sheet again, both findings
-  come back.
+  come back. Full screen, its words and buttons stay together in the middle
+  (the buttons had waited 728 pt below the Terms link in portrait); large
+  text scrolls, the buttons with it.
 - **Fixed: Home at 20h, "Whenever you're ready, I'm here."** on iPad. Its
   pixels measure 6.4:1 (#5c544a on #f2eee7), but the audit failed the
   regular weight in the evening band only. At medium weight (same colours)
