@@ -39,7 +39,7 @@ final class FaceTests: XCTestCase {
     func testAWinkClosesOneEyeIntoAnArc() {
         let f = Face.of("winking")
         XCTAssertEqual(f.left, Face.Eye(sx: 1, sy: 0.9, top: 0.45, bot: 0, arch: 0.85), "a gentle closed arc")
-        XCTAssertEqual(Face.of("yawning").left, Face.Eye(sx: 0.95, sy: 1, top: 1, bot: 0, arch: 0.55), "a yawn shuts to the fold")
+        XCTAssertEqual(Face.of("yawning").left, Face.Eye(sx: 0.95 * 0.85, sy: 0.85, top: 0.45, bot: 0, arch: 0.95), "a yawn scrunches")
         XCTAssertEqual(f.right.top, 0.18, accuracy: 1e-9)
         XCTAssertEqual(f.right.sy, 0.9)
         XCTAssertEqual(f.roll, 2 * .pi / 180 * 1.8, accuracy: 1e-9)

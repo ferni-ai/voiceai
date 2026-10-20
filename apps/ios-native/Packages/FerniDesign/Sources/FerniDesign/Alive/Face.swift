@@ -168,9 +168,11 @@ public struct Face: Equatable, Sendable {
             let ex = o?.scaleX ?? sx, ey = o?.scaleY ?? sy
             // A squeezed-shut eye. A wink is a gentle closed arc, a thin band of white
             // bowed up (the web's squashed eye; the shut lid with only a fold read as a
-            // dark notch, 2026-10-20). A tired face (the yawn) shuts it to the fold.
+            // dark notch, 2026-10-20). A yawn scrunches both: narrower, tighter arcs,
+            // squeezed from below (it shut to the fold, a blank face with two tiny
+            // brackets: expression audit P1 #6).
             guard ey < 0.35 else { return Eye(sx: ex, sy: ey, top: upper, bot: lower, arch: arch) }
-            return e.family == "tired" ? Eye(sx: ex, sy: 1, top: 1, bot: 0, arch: 0.55)
+            return e.family == "tired" ? Eye(sx: ex * 0.85, sy: 0.85, top: 0.45, bot: 0, arch: 0.95)
                 : Eye(sx: ex, sy: 0.9, top: 0.45, bot: 0, arch: 0.85)
         }
 
