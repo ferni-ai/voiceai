@@ -197,12 +197,27 @@ function getMemoryPersistence(): PersistenceStore<PersistedMusicMemories> {
 // CORE API
 // ============================================================================
 
-/**
- * Ensure user's transition profile is loaded from persistence
- */
-export async function ensureProfileLoaded(userId: string): Promise<void> {
-  if (loadedProfileUsers.has(userId)) return;
+const loads = new Map<string, Promise<void>>();
+/** One load per user and kind at a time: a save waiting on it and the caller share it. */
+function loadOnce(key: string, load: () => Promise<void>): Promise<void> {
+  const running = loads.get(key) ?? load().finally(() => loads.delete(key));
+  loads.set(key, running);
+  return running;
+}
+const warned = new Set<string>();
+/** A save that waited for the load, and the load failed: logged once, never silent. */
+function notLoaded(userId: string, what: string): void {
+  if (warned.has(`${what}:${userId}`) || !warned.add(`${what}:${userId}`)) return;
+  log.warn({ userId, what }, 'Music learning not written: not loaded from storage in this process');
+}
 
+/** Ensure user's transition profile is loaded from persistence */
+export function ensureProfileLoaded(userId: string): Promise<void> {
+  if (loadedProfileUsers.has(userId)) return Promise.resolve();
+  return loadOnce(`profile:${userId}`, () => loadProfile(userId));
+}
+
+async function loadProfile(userId: string): Promise<void> {
   try {
     const data = await getProfilePersistence().load(userId);
     if (data) {
@@ -219,12 +234,13 @@ export async function ensureProfileLoaded(userId: string): Promise<void> {
   }
 }
 
-/**
- * Ensure user's music memories are loaded from persistence
- */
-export async function ensureMemoriesLoaded(userId: string): Promise<void> {
-  if (loadedMemoryUsers.has(userId)) return;
+/** Ensure user's music memories are loaded from persistence */
+export function ensureMemoriesLoaded(userId: string): Promise<void> {
+  if (loadedMemoryUsers.has(userId)) return Promise.resolve();
+  return loadOnce(`memories:${userId}`, () => loadMemories(userId));
+}
 
+async function loadMemories(userId: string): Promise<void> {
   try {
     const data = await getMemoryPersistence().load(userId);
     if (data) {
@@ -262,7 +278,12 @@ export function isMusicLearningLoaded(userId: string): boolean {
  * Save user's transition profile (queued for batch write)
  */
 export function saveProfile(userId: string): void {
-  if (!loadedProfileUsers.has(userId)) return; // never loaded here: it would replace stored state
+  // Never before the stored profile is read (it would replace it): the save waits for that read
+  if (!loadedProfileUsers.has(userId)) {
+    const after = () =>
+      loadedProfileUsers.has(userId) ? saveProfile(userId) : notLoaded(userId, 'profile');
+    return void ensureProfileLoaded(userId).then(after);
+  }
   try {
     const profile = exportUserProfile(userId);
     if (profile) {
@@ -279,7 +300,11 @@ export function saveProfile(userId: string): void {
  * Save user's music memories (queued for batch write)
  */
 export function saveMemories(userId: string): void {
-  if (!loadedMemoryUsers.has(userId)) return; // never loaded here: it would replace stored state
+  if (!loadedMemoryUsers.has(userId)) {
+    const after = () =>
+      loadedMemoryUsers.has(userId) ? saveMemories(userId) : notLoaded(userId, 'memories');
+    return void ensureMemoriesLoaded(userId).then(after);
+  }
   try {
     const memories = exportUserMusicMemories(userId);
     if (memories.memories.length > 0 || memories.preferences.length > 0) {

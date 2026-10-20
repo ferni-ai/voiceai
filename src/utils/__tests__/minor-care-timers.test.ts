@@ -133,7 +133,7 @@ const WRITERS: Record<string, (who: { sessionId: string; userId: string }) => Pr
   },
   'predictive ML flush': async ({ userId }) => {
     await vi.advanceTimersByTimeAsync(5 * 60_000 + 1); // past the per-user flush interval
-    markUserLoaded(userId); // the models load a user before they learn (stores write only those)
+    markUserLoaded(userId, 'markov'); // the models load a user before they learn (only those written)
     markDirty(userId);
     await flushDirtyUsers(...getters); // the 5-minute interval's whole body
   },

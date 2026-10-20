@@ -16,7 +16,8 @@ import {
   loadTimeSeriesState,
   saveTimeSeriesState,
   markDirty,
-  isUserLoaded,
+  startLoad,
+  loadFailed,
   markUserLoaded,
   type TimeSeriesPersistenceData,
 } from './persistence.js';
@@ -423,12 +424,9 @@ function getOrCreateProfile(userId: string): TimeSeriesProfile {
       lastUpdated: Date.now(),
     };
     userProfiles.set(userId, profile);
-
-    // Async load from Firestore (don't block)
-    if (!isUserLoaded(userId)) {
-      void loadTimeSeriesProfileFromFirestore(userId);
-    }
   }
+  // Load from Firestore (async): a failed load is retried on a later access, with backoff
+  if (startLoad(userId, 'timeseries')) void loadTimeSeriesProfileFromFirestore(userId);
 
   return profile;
 }
@@ -493,10 +491,10 @@ async function loadTimeSeriesProfileFromFirestore(userId: string): Promise<void>
         log.debug({ userId, totalPoints }, 'Loaded time series profile from Firestore');
       }
     }
-    markUserLoaded(userId);
+    markUserLoaded(userId, 'timeseries');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to load time series profile');
-    markUserLoaded(userId); // Don't retry
+    loadFailed(userId, 'timeseries'); // not loaded: nothing is written until a load succeeds
   }
 }
 
