@@ -17,13 +17,18 @@ const RUNS_VITEST = /\bvitest\b|\bpnpm (run )?test\b|\bnpm (run )?test\b|\bpnpm 
 const GCP_CREDENTIALS =
   /google-github-actions\/auth|credentials_json|workload_identity_provider|GCP_SA_KEY|GOOGLE_APPLICATION_CREDENTIALS|ALLOW_PRODUCTION_DATA/;
 
-/** Each top-level job of a workflow file, by name, as raw text. */
+/**
+ * Each top-level job of a workflow file, by name, as raw text without its
+ * whole-line comments: a comment runs nothing and holds nothing, and a deploy
+ * job's comment mentioning "pnpm test" made it look like a test job (#2082).
+ */
 function jobsOf(text: string): Map<string, string> {
   const jobs = new Map<string, string>();
   const body = text.split(/^jobs:\s*$/m)[1] ?? '';
   let name: string | null = null;
   let lines: string[] = [];
   for (const line of body.split('\n')) {
+    if (/^\s*#/.test(line)) continue; // a column-0 comment would otherwise end the scan
     const header = /^ {2}([A-Za-z0-9_-]+):\s*$/.exec(line);
     if (header || /^\S/.test(line)) {
       if (name) jobs.set(name, lines.join('\n'));
