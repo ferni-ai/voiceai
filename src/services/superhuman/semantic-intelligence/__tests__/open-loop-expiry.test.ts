@@ -11,7 +11,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type Doc = Record<string, unknown>;
 const stored: Doc[] = [];
-const writes: Doc[] = [];
+const writes: Doc[] = []; // update() calls
+const sets: Doc[] = []; // set() calls (whole-doc rewrites)
 
 vi.mock('../../firestore-utils.js', () => ({
   getFirestoreDb: () => ({
@@ -23,7 +24,10 @@ vi.mock('../../firestore-utils.js', () => ({
             orderBy: () => query,
             limit: () => query,
             get: async () => ({ docs: stored.map((d) => ({ data: () => d })) }),
-            doc: () => ({ set: async (d: Doc) => void writes.push(d) }),
+            doc: (id: string) => ({
+              set: async (d: Doc) => void sets.push({ id, ...d }),
+              update: async (d: Doc) => void writes.push({ id, ...d }),
+            }),
           };
           return query;
         },
@@ -63,6 +67,7 @@ function loop(id: string, daysPast: number): Doc {
 beforeEach(() => {
   stored.length = 0;
   writes.length = 0;
+  sets.length = 0;
   loops.clearLoopCache();
 });
 
@@ -110,6 +115,9 @@ describe('getAllOpenLoops over stored loops', () => {
     stored.push(...docs);
     const open = await loops.getAllOpenLoops('u1');
     expect(open.map((l) => l.id)).toEqual(live);
-    expect(writes.filter((w) => w.status === 'expired').map((w) => w.id)).toEqual(expired);
+    await vi.waitFor(() => expect(writes.map((w) => w.id)).toEqual(expired));
+    // Only the status is written (update), never the whole loaded doc (set)
+    expect(writes.every((w) => Object.keys(w).sort().join() === 'id,status')).toBe(true);
+    expect(sets).toEqual([]);
   });
 });
