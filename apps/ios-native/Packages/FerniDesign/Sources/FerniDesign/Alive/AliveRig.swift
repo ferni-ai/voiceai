@@ -33,7 +33,7 @@ public final class AliveRig {
     enum Ch: Int, CaseIterable {
         case squash, scale, posY, roll, pitch, yaw, gx, gy, topL, topR, botL, botR, archL, archR,
              sxL, syL, sxR, syR, tilt, crease, halo, glow, blush, poke, posX, shear, ringY, ringS, conv,
-             stageX, stageY, stageS, capT, capB
+             stageX, stageY, stageS, capT, capB, capPitch
     }
 
     var s: [RigSpring]
@@ -89,6 +89,10 @@ public final class AliveRig {
             // The lid caps spring past and settle like the web's 0.3 s
             // cubic-bezier(0.34, 1.56, 0.64, 1).
             (0, 170, 13), (0, 170, 13),
+            // The pitch the face itself rests at (its own look up or down), as
+            // the pitch spring follows it: the caps sit on the orb as the web's
+            // there and follow the head only from it.
+            (0, 80, 11),
         ]
         s = table.map { RigSpring($0.0, k: $0.1, d: $0.2) }
     }
@@ -653,6 +657,7 @@ public final class AliveRig {
         self[.sxL].t = f.left.sx; self[.syL].t = f.left.sy; self[.sxR].t = f.right.sx; self[.syR].t = f.right.sy
         self[.tilt].t = f.tilt; self[.crease].t = f.crease; self[.halo].t = f.halo; self[.blush].t = f.blush
         self[.capT].t = f.capTop; self[.capB].t = f.capBottom
+        self[.capPitch].t = clamp(f.gy, -0.7, 0.7) * max(m, 0.5) * 0.12
         self[.roll].t = f.roll * m; self[.pitch].t = 0; self[.scale].t = 1 + (f.scale - 1) * m
     }
 
@@ -852,7 +857,7 @@ public final class AliveRig {
                        lid(self[.topR].x + lidGaze + (1 - self[.topR].x) * blink),
                        lid(self[.botL].x + blink * 0.15 + env * 0.2), lid(self[.botR].x + blink * 0.15 + env * 0.2))
         u.poke = SIMD4(SIMD3<Float>(pokeDir), Float(clamp(self[.poke].x, -0.6, 0.6)))
-        u.caps = SIMD4(Float(clamp(self[.capT].x, 0, 0.9)), Float(clamp(self[.capB].x, 0, 0.7)), 0, 0)
+        u.caps = SIMD4(Float(clamp(self[.capT].x, 0, 0.9)), Float(clamp(self[.capB].x, 0, 0.7)), Float(self[.capPitch].x), 0)
         if let guest = guestPersona {
             u.guest = SIMD4(Float(g.x.x), Float(g.y.x), Float(g.s.x), 1)
             u.guestEye = SIMD4(Float(g.gx.x), Float(g.gy.x), Float(clamp(1 - abs(time - g.blinkAt - 0.075) / 0.075, 0, 1)),
