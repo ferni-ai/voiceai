@@ -4,6 +4,8 @@ import XCTest
 /// no network, no account, no microphone, no sound.
 enum Screen: String, CaseIterable {
     case home, consent, settings, call, waitlist
+    /// The call's other states (design audit P2 #20).
+    case connecting, reconnecting, onHold, failed
 
     /// Something that's only there once the screen is ready.
     func ready(in app: XCUIApplication) -> XCUIElement {
@@ -13,6 +15,10 @@ enum Screen: String, CaseIterable {
         case .settings: app.navigationBars["Settings"]
         case .call: app.buttons["End call"]
         case .waitlist: app.staticTexts["You’re on the list"]
+        case .connecting: app.buttons["Cancel"]
+        case .reconnecting: app.staticTexts.matching(NSPredicate(format: "label == 'Reconnecting…'")).firstMatch
+        case .onHold: app.buttons["Resume call"]
+        case .failed: app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Try again'")).firstMatch
         }
     }
 }

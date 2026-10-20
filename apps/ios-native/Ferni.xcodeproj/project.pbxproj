@@ -41,6 +41,7 @@
 		61BEA8F1B053CC170C3118CF /* TeamSpotlight.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7634ABC1059A12DE12D714D /* TeamSpotlight.swift */; };
 		621E18533277A7BC22296241 /* FloorFadeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BFB87749BD4C9D4FD65978F /* FloorFadeUITests.swift */; };
 		639D84959EC4165C2F4DA23F /* AccessibilityAuditTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB291C79E629A29D4B86C651 /* AccessibilityAuditTests.swift */; };
+		65150D77E21577CA712A7717 /* CallStatesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C95CFB4C743D2DC4CD45702F /* CallStatesUITests.swift */; };
 		65A85BD3CF6927E84BDB94EC /* AvatarTouchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */; };
 		6AEF0AA3C0A2BB52913602A3 /* MemoryEdgesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32CB97AAAE8B87F35E050CA3 /* MemoryEdgesUITests.swift */; };
 		6C5C041CBBDFB39263B52443 /* FerniLive.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65555DCB199766EA982A43A3 /* FerniLive.swift */; };
@@ -295,6 +296,7 @@
 		C5DE888F55AE5FD01208AD72 /* FerniDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniDesign; path = Packages/FerniDesign; sourceTree = SOURCE_ROOT; };
 		C643B5190988DED731CADF82 /* LiveActivityController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityController.swift; sourceTree = "<group>"; };
 		C691103BD38CBE1B5704AE31 /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
+		C95CFB4C743D2DC4CD45702F /* CallStatesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallStatesUITests.swift; sourceTree = "<group>"; };
 		CA97A1BA4C871BBC78CCE319 /* PhoneSignInForwardingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneSignInForwardingTests.swift; sourceTree = "<group>"; };
 		CE6F99AEBFB1F92A89ED2A23 /* KnownPersonHomeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnownPersonHomeUITests.swift; sourceTree = "<group>"; };
 		CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
@@ -444,6 +446,7 @@
 				3F9321267293791367541362 /* AccountButtonUITests.swift */,
 				B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */,
 				F8DBF14CF40ADDB7A8768FBE /* CallControlsAtLargeTextTests.swift */,
+				C95CFB4C743D2DC4CD45702F /* CallStatesUITests.swift */,
 				3CC34062567D316808D0D03C /* ConsentSheetTests.swift */,
 				32CB80CF1D9492393B441589 /* DeepLinkUITests.swift */,
 				67FFF0730357D938F61676E9 /* DeleteAccountUITests.swift */,
@@ -858,6 +861,7 @@
 				7CFB13A608161F743E924185 /* AccountButtonUITests.swift in Sources */,
 				65A85BD3CF6927E84BDB94EC /* AvatarTouchTests.swift in Sources */,
 				E1ABFBCDC6B88A70EC864834 /* CallControlsAtLargeTextTests.swift in Sources */,
+				65150D77E21577CA712A7717 /* CallStatesUITests.swift in Sources */,
 				13E295A0E158B401D107C1D5 /* ConsentSheetTests.swift in Sources */,
 				24044B237183631A0FD997E3 /* DeepLinkUITests.swift in Sources */,
 				DF31D65CAE25E9D2BDE1B308 /* DeleteAccountUITests.swift in Sources */,
