@@ -33,6 +33,7 @@
 		462F30BCD7F633DBEFD782D2 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */; };
 		49961E1E4E6B791C493108B4 /* TalkButtonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */; };
 		4A50AB47CB1B846447DE63F9 /* handoff-to-maya.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */; };
+		4DAE4DACF6CCF7CB16324945 /* TeamAtRestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27693C03A0148090C7187B34 /* TeamAtRestTests.swift */; };
 		4E1D8F2D04D189C0702BF65C /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 94F50B2CC9B38F03C94B7E3D /* RootView.swift */; };
 		58CE92EB04A747ACB439AC52 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */; };
 		5E58C2614D2E1C7FBDC20DC1 /* DeepLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 565F1332B57CB1EE0A6D05BB /* DeepLinkTests.swift */; };
@@ -73,6 +74,7 @@
 		B20DE0108244A0A6616255E5 /* FerniWatchWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 6DB1FD5E9768FDDD7A8B82CB /* FerniWatchWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		B616B2B1DCA4FD7C436D0823 /* FoleyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2F84B922CA763C39E2781DA /* FoleyTests.swift */; };
 		B70C335AFB9662FD5580FB56 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41E550D3CF186D8D463FF66E /* SettingsView.swift */; };
+		B781726DB4C7013EBEAFBE2E /* TeamAtRestUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B194FE9B1DAA9A9C45908496 /* TeamAtRestUITests.swift */; };
 		BA62672ACCAD9A10B9C98EBB /* BackgroundModeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */; };
 		BC287679EE1EF47277B6C045 /* UITestScenario.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58F17318F25CDB7266DAE932 /* UITestScenario.swift */; };
 		BCE90CE9171EFACA00BD18DE /* NextStepViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314CF4DEF139B4B6126A1C63 /* NextStepViews.swift */; };
@@ -199,6 +201,7 @@
 		175D63C93899C628033FCCA8 /* CrashReporting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashReporting.swift; sourceTree = "<group>"; };
 		1AA352150CE2DBF9E6254A20 /* TalkOnPhoneIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TalkOnPhoneIntent.swift; sourceTree = "<group>"; };
 		226B4915E8A70F4DAB1B6B4A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		27693C03A0148090C7187B34 /* TeamAtRestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamAtRestTests.swift; sourceTree = "<group>"; };
 		2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-alex.mp3"; sourceTree = "<group>"; };
 		2DA4BC7C1EABDFAE3445A318 /* CarPlaySceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CarPlaySceneDelegate.swift; sourceTree = "<group>"; };
 		314CF4DEF139B4B6126A1C63 /* NextStepViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextStepViews.swift; sourceTree = "<group>"; };
@@ -251,6 +254,7 @@
 		AE06F525671F6FD0FBC7779D /* StoreScreenshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreScreenshotTests.swift; sourceTree = "<group>"; };
 		AE2FE78E70E6B38E7C790922 /* WatchRemote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchRemote.swift; sourceTree = "<group>"; };
 		AEF97D68E6384026BE0D8738 /* FerniWatchWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniWatchWidgets.swift; sourceTree = "<group>"; };
+		B194FE9B1DAA9A9C45908496 /* TeamAtRestUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamAtRestUITests.swift; sourceTree = "<group>"; };
 		B22FCCA00E7D0B31EC4640A3 /* FerniUITestSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniUITestSupport.swift; sourceTree = "<group>"; };
 		B2F84B922CA763C39E2781DA /* FoleyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoleyTests.swift; sourceTree = "<group>"; };
 		B3815F6DF71C428C4E811609 /* AvatarTouchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarTouchTests.swift; sourceTree = "<group>"; };
@@ -376,6 +380,7 @@
 				CA97A1BA4C871BBC78CCE319 /* PhoneSignInForwardingTests.swift */,
 				C39F5D1C1DE13481A55A4387 /* SharedScreensTests.swift */,
 				49166809F7360686AEAE615A /* SignInPromptTests.swift */,
+				27693C03A0148090C7187B34 /* TeamAtRestTests.swift */,
 				809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */,
 				8E89091B5C3A80108F67BD0F /* TeamSpotlightTests.swift */,
 			);
@@ -420,6 +425,7 @@
 				47728781CB10E67E259A236C /* SignInUITests.swift */,
 				AE06F525671F6FD0FBC7779D /* StoreScreenshotTests.swift */,
 				41A996E21805AFB3D97DF21F /* TalkButtonTests.swift */,
+				B194FE9B1DAA9A9C45908496 /* TeamAtRestUITests.swift */,
 				3A9BA6FE2BCA7A20529FAF50 /* WaitingScreenTests.swift */,
 			);
 			path = UITests;
@@ -819,6 +825,7 @@
 				85999614D935C3EB4A80F82B /* SignInUITests.swift in Sources */,
 				124CC2F5CBCF36E657BE6075 /* StoreScreenshotTests.swift in Sources */,
 				49961E1E4E6B791C493108B4 /* TalkButtonTests.swift in Sources */,
+				B781726DB4C7013EBEAFBE2E /* TeamAtRestUITests.swift in Sources */,
 				96CE1F719A503FE95C9F392A /* WaitingScreenTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -848,6 +855,7 @@
 				7AEB4E80F7300B0C87AEB9C2 /* PhoneSignInForwardingTests.swift in Sources */,
 				43BF427F9C73A159BA48B00B /* SharedScreensTests.swift in Sources */,
 				BEF8E5051FBEB918F15A9BF9 /* SignInPromptTests.swift in Sources */,
+				4DAE4DACF6CCF7CB16324945 /* TeamAtRestTests.swift in Sources */,
 				F7F72C6ABD49FAC907C56DAE /* TeamRowTests.swift in Sources */,
 				FA1AE32023D2C3C72BA2DB10 /* TeamSpotlightTests.swift in Sources */,
 			);

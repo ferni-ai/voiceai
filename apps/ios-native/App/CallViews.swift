@@ -17,15 +17,18 @@ struct CallAvatar: View {
     var onCue: ((KeyedCue) -> Void)?
     /// Ferni's body; a test passes its own to see what reached it.
     var rig: AliveRig?
+    /// Who's shown, when not the call's (at home: who answers next).
+    var personaID: String?
 
     var body: some View {
         let avatar = call.avatar
         let speaking = avatar.pose == .speaking
+        let shown = personaID ?? avatar.personaID
         AvatarView(
-            persona: WindowPersona(personaId: avatar.personaID),
+            persona: WindowPersona(personaId: shown),
             expression: avatar.expression,
             activity: Self.activity(avatar.pose),
-            name: PersonaRegistry.get(avatar.personaID).name,
+            name: PersonaRegistry.get(shown).name,
             covered: covered,
             wake: wake,
             doubleTake: doubleTake,
