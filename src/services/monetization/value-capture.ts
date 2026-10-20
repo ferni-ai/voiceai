@@ -169,6 +169,7 @@ export async function detect(params: {
           contributed: false,
           conversationId,
           createdAt: new Date(),
+          ...(userHeld(userId) ? { held: true } : {}), // MINOR_CARE: decided now, kept for good
         };
 
         // Cache and persist
@@ -184,7 +185,7 @@ export async function detect(params: {
           createdAt: event.createdAt.toISOString(),
         };
         // MINOR_CARE: detected from what a held caller said, so never stored (payments still are)
-        if (!userHeld(userId)) await saveValueEvent(userId, record);
+        if (!event.held) await saveValueEvent(userId, record);
 
         log.info(
           {
@@ -249,6 +250,7 @@ export async function recordContribution(params: {
     status: 'contributed',
     createdAt: event.createdAt.toISOString(),
     contributedAt: event.contributedAt.toISOString(),
+    ...(event.held ? { held: true } : {}),
   };
   await saveValueEvent(event.userId, record);
 

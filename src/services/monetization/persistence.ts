@@ -37,6 +37,7 @@ export interface TipRecord {
   stripePaymentId?: string;
   createdAt: string;
   completedAt?: string;
+  held?: boolean; // MINOR_CARE: created while held: never stored with its note
 }
 
 export interface UserValueCaptureData {
@@ -54,6 +55,7 @@ export interface ValueCaptureRecord {
   status: 'detected' | 'contributed' | 'declined';
   createdAt: string;
   contributedAt?: string;
+  held?: boolean; // MINOR_CARE: detected while held: never stored with its type or estimate
 }
 
 export interface UserFundData {
@@ -188,7 +190,7 @@ export async function saveTip(userId: string, given: TipRecord): Promise<void> {
   if (!tipStore) initMonetizationPersistence();
   // MINOR_CARE, held: the payment record is kept, never the note they typed with it
   const { message: _note, ...payment } = given;
-  const tip: TipRecord = userHeld(userId) ? payment : given;
+  const tip: TipRecord = given.held || userHeld(userId) ? { ...payment, held: true } : given;
   const data = await getUserTips(userId);
 
   // Check if tip already exists (update) or new (add)
@@ -225,9 +227,10 @@ export async function saveValueEvent(userId: string, given: ValueCaptureRecord):
   if (!valueCaptureStore) initMonetizationPersistence();
   // MINOR_CARE, held, checked here at write time: only a contribution (a payment) is stored, and
   // not what it was for: the type and estimate come from what the caller said
-  if (userHeld(userId) && given.status !== 'contributed') return;
+  const held = given.held || userHeld(userId); // the flag set at capture outlives the hold
+  if (held && given.status !== 'contributed') return;
   const { type: _type, estimatedValueCents: _estimate, ...payment } = given;
-  const event = userHeld(userId) ? { ...payment, type: 'contribution' } : given;
+  const event = held ? { ...payment, type: 'contribution', held: true } : given;
   const data = await getUserValueCapture(userId);
 
   const existingIndex = data.events.findIndex((e) => e.id === event.id);

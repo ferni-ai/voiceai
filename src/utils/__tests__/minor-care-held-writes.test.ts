@@ -63,7 +63,9 @@ import {
   saveTip,
   saveValueEvent,
 } from '../../services/monetization/persistence.js';
-import { heldAfter, resetMinorCare, setVerifiedOwnerCheck } from '../minor-care.js';
+import { tipJar } from '../../services/monetization/tip-jar.js';
+import { valueCapture } from '../../services/monetization/value-capture.js';
+import { heldAfter, resetMinorCare, setVerifiedOwnerCheck, userHeld } from '../minor-care.js';
 
 let n = 0;
 /** A held caller (said 16, not an owner), or a verified owner. */
@@ -163,6 +165,57 @@ describe('payments from a held caller: the record, never their words', () => {
     const text = JSON.stringify(writesTo(userId, 'monetization_tips'));
     expect(text).toContain('"amountCents":300');
     expect(text.includes('my homework')).toBe(kept);
+  });
+});
+
+describe('decided at capture: a record made while held stays redacted after the hold lapses', () => {
+  const lapse = async (userId: string) => {
+    await vi.advanceTimersByTimeAsync(7 * 60 * 60 * 1000); // past the 6 h hold
+    expect(userHeld(userId)).toBe(false);
+    written.length = 0;
+  };
+
+  it('a tip: completed after the hold, still stored without the note', async () => {
+    const userId = caller();
+    const tip = await tipJar.create({ userId, amountCents: 500, message: 'for my homework' });
+    await lapse(userId);
+    await tipJar.complete(tip.id, 'pi_paid');
+    await tick(3_000);
+    const text = JSON.stringify(writesTo(userId, 'monetization_tips'));
+    expect(text).toContain('pi_paid');
+    expect(text).toContain('"held":true');
+    expect(text).not.toContain('homework');
+  });
+
+  it('persistence honours the flag: a held record saved later never gets its note back', async () => {
+    const userId = caller();
+    await lapse(userId);
+    const tip = { id: 't-flag', amountCents: 500, status: 'pending' as const, held: true };
+    await saveTip(userId, {
+      ...tip,
+      message: 'restored note',
+      createdAt: new Date().toISOString(),
+    });
+    await tick(3_000);
+    expect(JSON.stringify(writesTo(userId, 'monetization_tips'))).not.toContain('restored note');
+  });
+
+  it('a value event: contributed after the hold, stored without its type or estimate', async () => {
+    vi.stubEnv('PAYWALL', 'on');
+    const userId = caller();
+    const event = await valueCapture.detect({
+      userId,
+      message: 'I negotiated $9000 more at my summer job',
+      conversationId: 'c1',
+    });
+    expect(event?.held).toBe(true);
+    await lapse(userId);
+    await valueCapture.recordContribution({ eventId: event!.id, amountCents: 200 });
+    await tick(3_000);
+    const text = JSON.stringify(writesTo(userId, 'monetization_value_capture'));
+    expect(text).toContain('"contributionCents":200');
+    expect(text).not.toContain('negotiat');
+    expect(text).not.toContain('estimatedValueCents');
   });
 });
 
