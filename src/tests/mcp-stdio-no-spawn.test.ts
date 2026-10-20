@@ -7,6 +7,7 @@
  * - The runtime MCP loader refuses stdio configs (from Firestore or anywhere
  *   else) unless the server is in the first-party allowlist checked into the
  *   repo, and even then runs only the allowlisted command.
+ * - The create/update schemas refuse stdio on their own, not only through the routes.
  */
 
 import { Readable } from 'stream';
@@ -392,5 +393,42 @@ describe('runtime MCP loader refuses stdio outside the first-party allowlist', (
     expect(params.env?.NODE_OPTIONS).toBeUndefined();
 
     await disconnectAllMCPServers();
+  });
+});
+
+// The routes check isStdioMCPConfig themselves, so the route tests above still pass
+// if a schema loses its refine. These pin the schema layer on its own.
+describe('MCP server schemas refuse stdio on their own', () => {
+  it.each([
+    ['a stdio transport', { transport: 'stdio' }],
+    ['a command', { command: 'sh' }],
+    ['args', { args: ['-c', 'id'] }],
+  ])('UpdateMCPServerSchema rejects %s', async (_, input) => {
+    const { UpdateMCPServerSchema, STDIO_MCP_NOT_HOSTED_MESSAGE } =
+      await import('../api/v2/developers/shared/validation.js');
+    const parsed = UpdateMCPServerSchema.safeParse(input);
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.issues.map((i) => i.message)).toContain(STDIO_MCP_NOT_HOSTED_MESSAGE);
+  });
+
+  it('UpdateMCPServerSchema still accepts a rename or a public https endpoint', async () => {
+    const { UpdateMCPServerSchema } = await import('../api/v2/developers/shared/validation.js');
+    expect(UpdateMCPServerSchema.safeParse({ name: 'Weather' }).success).toBe(true);
+    expect(
+      UpdateMCPServerSchema.safeParse({ endpoint: 'https://mcp.example.com/sse' }).success
+    ).toBe(true);
+  });
+
+  it('CreateMCPServerSchema rejects a stdio server', async () => {
+    const { CreateMCPServerSchema, STDIO_MCP_NOT_HOSTED_MESSAGE } =
+      await import('../api/v2/developers/shared/validation.js');
+    const parsed = CreateMCPServerSchema.safeParse({
+      name: 'Local',
+      description: 'runs a process',
+      transport: 'stdio',
+      command: 'sh',
+    });
+    expect(parsed.success).toBe(false);
+    expect(parsed.error?.issues.map((i) => i.message)).toContain(STDIO_MCP_NOT_HOSTED_MESSAGE);
   });
 });
