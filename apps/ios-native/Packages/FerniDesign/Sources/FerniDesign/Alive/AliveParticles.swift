@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 /// What the prototype drew around Ferni (sparkles, hearts, the firefly, and
 /// a feeling's z, sweat, ? or !), from
@@ -9,6 +10,15 @@ struct AliveParticles: View {
     /// Ferni's centre in this view, and his radius, in points.
     let centre: CGPoint
     let radius: CGFloat
+    @Environment(\.colorScheme) private var scheme
+
+    /// The web's warmth sparkle: gold with a gold glow (#b8956a, two soft
+    /// shadows). The prototype's cream #FFF2C7 was 1.1:1 on the light room and
+    /// vanished (expression audit P1 #3), so the core is a deeper gold (3:1 or
+    /// more on the room) and the web's gold glows around it. On the dark room,
+    /// a light gold.
+    static let sparkleCore = (light: UInt32(0x9C7A4E), dark: UInt32(0xF2D9A6))
+    static let sparkleGlow = (light: UInt32(0xB8956A), dark: UInt32(0xE7C98F))
 
     var body: some View {
         Canvas { context, _ in
@@ -18,7 +28,13 @@ struct AliveParticles: View {
                 context.opacity = p.alpha
                 switch p.kind {
                 case .sparkle:
-                    context.fill(Self.star(at: at, r: r), with: .color(Color(red: 1, green: 0.95, blue: 0.78)))
+                    let dark = scheme == .dark
+                    let glow = Color(uiColor: UIColor(rgb: dark ? Self.sparkleGlow.dark : Self.sparkleGlow.light))
+                    context.fill(Path(ellipseIn: CGRect(x: at.x - r * 1.6, y: at.y - r * 1.6, width: r * 3.2, height: r * 3.2)),
+                                 with: .radialGradient(Gradient(colors: [glow.opacity(0.45), glow.opacity(0)]),
+                                                       center: at, startRadius: 0, endRadius: r * 1.6))
+                    context.fill(Self.star(at: at, r: r),
+                                 with: .color(Color(uiColor: UIColor(rgb: dark ? Self.sparkleCore.dark : Self.sparkleCore.light))))
                 case .heart:
                     context.fill(Self.heart(at: at, r: r), with: .color(Color(red: 0.91, green: 0.64, blue: 0.62)))
                 case .z, .question, .bang:
