@@ -121,3 +121,63 @@ describe('extractEntities (the extractor whose entities the entity store creates
     expect(entities.map((e) => e.name)).toEqual(['mother']);
   });
 });
+
+/** ENTITY_ROLE_LABELS: Ferni stored under the extractor's role words (prod 2026-10-19). */
+describe('ENTITY_ROLE_LABELS', () => {
+  const ROLES_ON = { ...ON, ENTITY_ROLE_LABELS: 'on' };
+  const roles: NamedEntity[] = [
+    { name: "User's interlocutor", type: 'person', relationship: 'collaborator' },
+    { name: 'Assistant', type: 'person', relationship: 'AI assistant / conversational partner' },
+    {
+      name: "The user's conversational partner",
+      type: 'person',
+      relationship: 'conversational partner',
+    },
+    { name: 'the AI', type: 'person' },
+    { name: 'AI assistant', type: 'concept' },
+  ];
+
+  it.each(roles)('on: rejects %o as persona', (entity) => {
+    expect(junkReason(entity, ROLES_ON)).toBe('persona');
+  });
+
+  it.each(roles)('off: %o is kept, as before', (entity) => {
+    expect(junkReason(entity, ON)).toBeNull();
+  });
+
+  const real: NamedEntity[] = [
+    { name: 'Karen', type: 'person', relationship: 'assistant' },
+    { name: 'my assistant Karen', type: 'person', relationship: 'assistant' },
+    { name: 'Google Assistant', type: 'organization' },
+    { name: 'Ainsley', type: 'person' },
+    { name: 'business partner', type: 'concept' },
+  ];
+  it.each(real)('on: keeps %o', (entity) => {
+    expect(junkReason(entity, ROLES_ON)).toBeNull();
+  });
+
+  it('the extractor drops the role labels only with both flags on', async () => {
+    const reply = JSON.stringify([
+      {
+        name: "User's interlocutor",
+        type: 'person',
+        relationship: 'collaborator',
+        confidence: 0.7,
+      },
+      { name: 'Assistant', type: 'person', confidence: 0.7 },
+      { name: 'Sarah', type: 'person', relationship: 'sister', confidence: 0.9 },
+    ]);
+    const context = { userId: 'u1', sessionId: 's1', turnNumber: 1 };
+    model.reply = reply;
+    vi.stubEnv('ENTITY_HYGIENE', 'on');
+    const hygieneOnly = await extractEntities('my sister Sarah says hi', context);
+    expect(hygieneOnly.entities.map((e) => e.name)).toEqual([
+      "User's interlocutor",
+      'Assistant',
+      'Sarah',
+    ]);
+    vi.stubEnv('ENTITY_ROLE_LABELS', 'on');
+    const both = await extractEntities('my sister Sarah says hi', context);
+    expect(both.entities.map((e) => e.name)).toEqual(['Sarah']);
+  });
+});

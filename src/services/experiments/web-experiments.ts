@@ -20,6 +20,7 @@ import { FieldValue, getFirestore, type Firestore } from 'firebase-admin/firesto
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { eventExpireAt } from './event-retention.js';
 
 const log = createLogger({ module: 'WebExperiments' });
 
@@ -192,7 +193,6 @@ export async function initWebExperiments(): Promise<void> {
   try {
     const db = getDb();
 
-    // Load all experiments
     const experimentsSnap = await db.collection('web_experiments').get();
     experimentsCache.clear();
 
@@ -522,7 +522,6 @@ export async function trackEvent(event: ExperimentEvent): Promise<void> {
   try {
     const db = getDb();
 
-    // Write event to events collection
     await db
       .collection('web_experiments')
       .doc(event.experimentId)
@@ -531,6 +530,7 @@ export async function trackEvent(event: ExperimentEvent): Promise<void> {
         removeUndefined({
           ...event,
           timestamp: FieldValue.serverTimestamp(),
+          expireAt: eventExpireAt(), // TTL deletes the raw event (event-retention.ts)
         })
       );
 

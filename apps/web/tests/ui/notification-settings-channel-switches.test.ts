@@ -5,6 +5,8 @@
  * all for switching one back on. Now the panel sends the switches the person
  * changed (smsEnabled/emailEnabled), and only those: the rest of its copy is
  * this browser's and may be stale, so saving quiet hours never flips texts.
+ * Texts themselves have no switch here (#2059): they are turned on only in
+ * Contact Settings, next to the disclosure, so this tests the email switch.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -51,17 +53,23 @@ afterEach(() => {
 });
 
 describe("When I'll Check In: SMS and email switches", () => {
-  it('switching texts off sends smsEnabled: false (not the ignored disabledChannels)', async () => {
+  it('switching email off sends emailEnabled: false (not the ignored disabledChannels)', async () => {
     await openPanel();
-    flip('smsEnabled', false);
-    expect(await save()).toEqual({ smsEnabled: false });
+    flip('emailEnabled', false);
+    expect(await save()).toEqual({ emailEnabled: false });
   });
 
-  it('switching texts back on is sent too', async () => {
-    localStorage.setItem('ferni-outreach-prefs', JSON.stringify({ smsEnabled: false }));
+  it('switching email back on is sent too', async () => {
+    localStorage.setItem('ferni-outreach-prefs', JSON.stringify({ emailEnabled: false }));
     await openPanel();
-    flip('smsEnabled', true);
-    expect(await save()).toEqual({ smsEnabled: true });
+    flip('emailEnabled', true);
+    expect(await save()).toEqual({ emailEnabled: true });
+  });
+
+  it('texts have no switch here: they go on only next to the disclosure', async () => {
+    await openPanel();
+    expect(document.querySelector('[data-outreach="smsEnabled"]')).toBeNull();
+    expect(document.querySelector('[data-action="open-contact-texts"]')).not.toBeNull();
   });
 
   it('a save that changed no switch sends none, so a stale copy flips nothing', async () => {

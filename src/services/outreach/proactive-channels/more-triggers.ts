@@ -20,6 +20,7 @@ import {
   dueForPush,
   firestoreCommitmentStore,
   toOpenCommitment,
+  youSaidYoud,
 } from '../../superhuman/commitment-follow-up.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
 import { flagForUser } from '../../platform/cohort-flags.js';
@@ -89,15 +90,15 @@ export async function commitmentTriggers(userId: string, now: Date): Promise<Pro
   const out: ProactiveTrigger[] = [];
   for (const { id, data } of await store.active(userId)) {
     const c = toOpenCommitment(id, data);
-    const said = quote(c?.statement, 120);
+    const said = c && quote(youSaidYoud(c), 120);
     if (!c || !said || !dueForPush(c, now.getTime())) continue;
     out.push({
       sourceId: `commitment:${c.id}:${c.followUpCount}`,
       kind: 'follow_up',
       weight: 'light',
       timely: true,
-      text: `Hey, it's Ferni. Last time you said: "${said}". How did it go?`,
-      reason: `last time they said "${said}", and it's time to ask how it went`,
+      text: `Hey, it's Ferni. Last time you said ${said}. How did it go?`,
+      reason: `last time they said they'd ${c.statement}, and it's time to ask how it went`,
       afterSend: async () => store.markFollowedUp(userId, c, now.getTime()),
     });
   }
