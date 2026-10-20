@@ -499,15 +499,22 @@ jobs:
       # ── 6. Notify (always, so a failed deploy still reports; not on a no-op) ─
       - name: Create deployment summary
         if: always() && steps.guard.outputs.deploy != 'false'
+        # Values reach the script as env, never pasted into it: the revision is
+        # gcloud output on a workflow_dispatch path (CodeQL code injection).
+        env:
+          JOB_STATUS: ${{ job.status }}
+          REVISION: ${{ steps.deploy.outputs.revision }}
+          ACTOR: ${{ github.actor }}
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
           echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Status | Revision |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|----------|" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "${{ job.status }}" == "success" ]]; then
-            echo "| UI Server | ✅ Success | \`${{ steps.deploy.outputs.revision }}\` |" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ job.status }}" == "failure" ]]; then
+          if [[ "$JOB_STATUS" == "success" ]]; then
+            echo "| UI Server | ✅ Success | \`${REVISION}\` |" >> $GITHUB_STEP_SUMMARY
+          elif [[ "$JOB_STATUS" == "failure" ]]; then
             echo "| UI Server | ❌ Failed | - |" >> $GITHUB_STEP_SUMMARY
           else
             echo "| UI Server | ⏭️ Cancelled | - |" >> $GITHUB_STEP_SUMMARY
@@ -515,8 +522,8 @@ jobs:
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${DEPLOY_SHA}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ steps.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** ${ACTOR}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${VERSION}" >> $GITHUB_STEP_SUMMARY
 
       - name: Determine status
         id: status
