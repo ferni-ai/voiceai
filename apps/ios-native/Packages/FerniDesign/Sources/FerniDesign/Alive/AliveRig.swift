@@ -187,6 +187,10 @@ public final class AliveRig {
                 tracks.append(Track(key: key, values: values, at: time + delay, duration: duration, ease: sequenceEase(step.easing)))
             }
         }
+        if let accent = SequenceAccent.all[id] {
+            flash(accent.face, seconds: accent.hold)
+            tracks.append(Track(key: \.pitch, values: accent.nod, at: time, duration: accent.nodSeconds * tempo, ease: sequenceEase("linear")))
+        }
         playing = (id, time + end)
         return true
     }
@@ -389,6 +393,7 @@ public final class AliveRig {
         self[.scale].t *= l.scale * (l.sx * l.sy).squareRoot() / squash
         self[.posY].t -= l.ty / 100 * 1.6 * m
         self[.roll].t += l.rot * .pi / 180 * 1.8 * m
+        self[.pitch].t += l.pitch * .pi / 180 * m
         self[.glow].t += l.glow
         self[.halo].t += l.halo
         self[.ringS].t = l.haloS

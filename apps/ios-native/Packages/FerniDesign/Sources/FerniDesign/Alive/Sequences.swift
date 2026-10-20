@@ -110,6 +110,8 @@ public struct MomentBeat: Equatable, Sendable {
 /// The prototype's layer: what the playing sequence adds to the body this frame.
 struct SequenceLayer: Equatable {
     var ty = 0.0, rot = 0.0, scale = 1.0, sx = 1.0, sy = 1.0, glow = 0.0, halo = 0.0, haloS = 1.0, eyesTy = 0.0
+    /// Degrees, negative down. No token drives it; accents do (SequenceAccent).
+    var pitch = 0.0
 
     /// Which body channel each element's property drives (the prototype's CHANNEL).
     /// Immutable; key paths just aren't marked Sendable.
@@ -126,6 +128,22 @@ struct SequenceLayer: Equatable {
         k == \.scale || k == \.sx || k == \.sy || k == \.haloS
     }
     static func lights(_ k: WritableKeyPath<SequenceLayer, Double>) -> Bool { k == \.glow || k == \.halo }
+}
+
+/// What iOS adds to a sequence whose tokens read as nothing on a phone. The
+/// tokens stay the design system's; the accent plays over them.
+struct SequenceAccent: Equatable {
+    /// A face held from the start, for `hold` seconds (before the tempo).
+    var face: String, hold: Double
+    /// A nod: pitch keys in degrees (negative down) over `nodSeconds`.
+    var nod: [Double], nodSeconds: Double
+
+    static let all: [String: SequenceAccent] = [
+        // Expression audit P1 #13: celebration_small is a 4 px hop and a 2°
+        // turn, invisible at phone size over the listening face. A small win
+        // is a happy beat and an approving nod: down, up, a smaller down.
+        "celebration_small": SequenceAccent(face: "happy", hold: 0.9, nod: [0, -9, 1.5, -5, 0], nodSeconds: 0.75),
+    ]
 }
 
 /// The prototype's EASE table; anything else eases gently.
