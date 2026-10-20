@@ -54,6 +54,7 @@
 		80B3324091516CE8022F9CFD /* TalkOnPhoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA352150CE2DBF9E6254A20 /* TalkOnPhoneIntent.swift */; };
 		835CA763B4004C499BBA655B /* FerniLink in Frameworks */ = {isa = PBXBuildFile; productRef = F667C1DECD86E1F2360CB8C1 /* FerniLink */; };
 		848DC4E9F3BACD5DBACFB471 /* goodbye.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = BE53A65C5F71E02C0E7B4239 /* goodbye.mp3 */; };
+		8568B9B5D8FBCEE53623E3D3 /* RememberEditUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BAAA6ED05EC97C25ABF4A4A /* RememberEditUITests.swift */; };
 		85999614D935C3EB4A80F82B /* SignInUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47728781CB10E67E259A236C /* SignInUITests.swift */; };
 		89C6C497D887627D3AFD147D /* handoff-to-alex.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 2798E3DCEAF0BE36DB796E26 /* handoff-to-alex.mp3 */; };
 		8D43BE71BA55A181C28E990A /* Sentry-Dynamic in Frameworks */ = {isa = PBXBuildFile; productRef = B0FFE05E246C1F74D336D1D5 /* Sentry-Dynamic */; };
@@ -187,6 +188,7 @@
 		01554191EA22D85DC469F56C /* AccountStatusTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountStatusTests.swift; sourceTree = "<group>"; };
 		02CC2476B0294D4796003A93 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		03F678B752992C142D10FE5E /* AudioRoutePicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRoutePicker.swift; sourceTree = "<group>"; };
+		0BAAA6ED05EC97C25ABF4A4A /* RememberEditUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RememberEditUITests.swift; sourceTree = "<group>"; };
 		0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelTests.swift; sourceTree = "<group>"; };
 		0EACADCDEBFCC9BE4949C943 /* WaitingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaitingView.swift; sourceTree = "<group>"; };
 		0F086DF8C257F87FC0940C6A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -413,6 +415,7 @@
 				7BFB87749BD4C9D4FD65978F /* FloorFadeUITests.swift */,
 				A7085820FA32335FEED58C9E /* HandoffUITests.swift */,
 				BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */,
+				0BAAA6ED05EC97C25ABF4A4A /* RememberEditUITests.swift */,
 				C193BBD95DA87669BB25C713 /* SignInProblemTests.swift */,
 				47728781CB10E67E259A236C /* SignInUITests.swift */,
 				AE06F525671F6FD0FBC7779D /* StoreScreenshotTests.swift */,
@@ -811,6 +814,7 @@
 				621E18533277A7BC22296241 /* FloorFadeUITests.swift in Sources */,
 				DA81277E93D9A12995CC138A /* HandoffUITests.swift in Sources */,
 				8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */,
+				8568B9B5D8FBCEE53623E3D3 /* RememberEditUITests.swift in Sources */,
 				C36151BDB3A1F5F1AD551FD2 /* SignInProblemTests.swift in Sources */,
 				85999614D935C3EB4A80F82B /* SignInUITests.swift in Sources */,
 				124CC2F5CBCF36E657BE6075 /* StoreScreenshotTests.swift in Sources */,

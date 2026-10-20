@@ -16,6 +16,8 @@ struct HomeView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.horizontalSizeClass) private var widthClass
     @State private var landscape = false
+    /// The keyboard is up (correcting what Ferni remembered).
+    @State private var typing = false
 
     var body: some View {
         @Bindable var model = model
@@ -24,6 +26,7 @@ struct HomeView: View {
         // iPad in landscape: the captions sit beside Ferni, not under (UX spec §9).
         let beside = inCall && widthClass == .regular && landscape
         NavigationStack {
+            ScrollViewReader { scroller in
             ScrollView {
                 VStack(spacing: FerniSpace.rest) {
                     if beside {
@@ -49,6 +52,7 @@ struct HomeView: View {
                             }
                             if call.phase == .ended {
                                 RememberCard(call: call, remembered: model.callRemembered)
+                                    .id(Self.rememberID)
                                 NextStepsCard(call: call, steps: model.nextSteps)
                                 #if FERNI_PUSH
                                 NotificationAsk(push: model.push, uid: model.account.user?.uid)
@@ -75,11 +79,22 @@ struct HomeView: View {
             // scroll away. At accessibility sizes they scrolled with the
             // captions and End left the screen (design audit P0-1, 2026-10-20).
             .safeAreaInset(edge: .bottom) {
-                controls
-                    .padding(.top, FerniSpace.rest)
-                    // What scrolls under Talk fades into the floor instead of sitting
-                    // half-covered behind it (design audit P1-4).
-                    .background { TimelineView(.everyMinute) { RoomFade(date: HomeClock.time($0.date)) } }
+                // While you type, Talk steps aside: riding the keyboard it covered
+                // the field and its Save (design audit P1-5).
+                if inCall || !typing {
+                    controls
+                        .padding(.top, FerniSpace.rest)
+                        // What scrolls under Talk fades into the floor instead of sitting
+                        // half-covered behind it (design audit P1-4).
+                        .background { TimelineView(.everyMinute) { RoomFade(date: HomeClock.time($0.date)) } }
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in typing = true }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in typing = false }
+            // The card you're correcting, whole, above the keyboard.
+            .onChange(of: typing) { _, now in
+                if now, !inCall { withAnimation(reduceMotion ? nil : .default) { scroller.scrollTo(Self.rememberID, anchor: .bottom) } }
+            }
             }
             .background(TimelineView(.everyMinute) { minute in
                 // The room's light follows the clock, so an evening glow doesn't last until morning.
@@ -129,6 +144,8 @@ struct HomeView: View {
             }
         }
     }
+
+    private static let rememberID = "home.remember"
 
     private var consent: some View {
         ConsentView(
