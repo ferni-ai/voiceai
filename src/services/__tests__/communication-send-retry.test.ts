@@ -58,7 +58,9 @@ describe('send retry classification', () => {
     fetchMock.mockResolvedValue(
       reply(401, '{"errors":[{"message":"The provided authorization grant is not authorized"}]}')
     );
-    await expect(sendEmail('a@example.com', 'hi', 'body')).rejects.toThrow('SendGrid error: 401');
+    await expect(sendEmail('a@example.com', 'hi', 'body')).rejects.toThrow(
+      'Email send failed (sendgrid): SendGrid 401'
+    );
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -70,8 +72,24 @@ describe('send retry classification', () => {
 
   it('retries a SendGrid 429 up to the limit', async () => {
     fetchMock.mockImplementation(async () => reply(429));
-    await expect(sendEmail('a@example.com', 'hi', 'body')).rejects.toThrow('SendGrid error: 429');
+    await expect(sendEmail('a@example.com', 'hi', 'body')).rejects.toThrow(
+      'Email send failed (sendgrid): SendGrid 429'
+    );
     expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries a SendGrid 408 like main did', async () => {
+    fetchMock.mockResolvedValueOnce(reply(408)).mockResolvedValueOnce(reply(202));
+    await expect(sendEmail('a@example.com', 'hi', 'body')).resolves.toContain('Email sent');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('retries a SendGrid network error', async () => {
+    fetchMock
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(reply(202));
+    await expect(sendEmail('a@example.com', 'hi', 'body')).resolves.toContain('Email sent');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('sends a Twilio 400 once', async () => {
