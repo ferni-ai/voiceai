@@ -4,8 +4,10 @@ import Foundation
 /// Ferni's two quiet sounds at rest, synthesised the way the alive
 /// prototype's Sound.tone makes them: a soft "boop" when he's touched, and a
 /// small rising "huh?" when he notices you (a finger held near him, the
-/// double take's start). Played as system sounds, so the silent switch mutes
-/// them and a call's audio session is never touched.
+/// double take's start). Played as system sounds: on the device's own
+/// speaker at the system volume, and a call's audio session is never
+/// touched. Whether the silent switch mutes them is a device check
+/// (docs/ios/device-test-checklist.md, step 13), not yet confirmed.
 enum Foley: String, CaseIterable, Sendable {
     case poke, huh
 

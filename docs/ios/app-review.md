@@ -64,7 +64,7 @@ notes as a one-time link, never in this repository.
 | Feature | Where | Notes |
 |---|---|---|
 | Coming back | Home, after time away | After 20 minutes away the last call's goodbye clears; after 8 hours Ferni wakes as the app opens. The greeting and the room's light follow the clock. With `GET /api/home` (server route in review), Home asks about one light thread from last time ("How's the interview on Thursday going?") and may show a note from Ferni with Talk about this; without it, the time-of-day greeting. No server flag hides UI. |
-| Touch Ferni | Home, tap Ferni at rest | He dents where touched, glances at the finger and lights up, with one soft tap in the hand. After a quiet 20 s at rest a firefly may wander by, once. Not in a call (there, a tap while Ferni speaks interrupts). Reduce Motion: a glance and a blink only. |
+| Touch Ferni | Home, tap Ferni at rest | He dents where touched, glances at the finger and lights up, with one soft tap in the hand (and, with Sounds on, a soft boop: a system sound; whether the silent switch mutes it is on the device checklist). Four quick taps and he spins. Hold a finger on him and he notices it ("huh?"), leans in and watches it, his eyes crossing when it's close. Back on Home after a few seconds away, a double take. After a quiet 20 s at rest a firefly may wander by, land on his head and get sneezed away, once. Not in a call (there, a tap while Ferni speaks interrupts). Reduce Motion: a glance and a blink only, and no sounds. |
 | Talk to Ferni (a voice call) | Home, the Talk button | The first time, the consent screen comes first. It names the processors (Google, Anthropic, Cartesia, LiveKit). |
 | Microphone permission | First call | "Ferni listens only while you're talking together, so you can talk out loud." Denied: Home explains and offers Open Settings. |
 | The call on the system | During a call | LiveCommunicationKit shows the call on the Lock Screen and in the system call UI. AirPods mute and the Lock Screen's end button work. |
@@ -82,13 +82,52 @@ notes as a one-time link, never in this repository.
 | Delete account (5.1.1(v)) | Settings, then Delete account | Deletes the account and its data on the server, and revokes Sign in with Apple. The revoke needs PR #2004. |
 | Withdraw consent | Settings, then Privacy | Ferni asks again before the next call. |
 | Teammates in Spotlight | Spotlight: type a teammate's name or what they help with ("money", "habits") | Only teammates the person has met are indexed (a new account: Ferni). Opening one goes through Talk, so consent comes first. Shortcuts offers the same teammates. Memories, people and follow-ups are never indexed. |
-| Siri, Shortcuts, Action button | "Talk to Ferni", "Call Ferni", "Talk to Maya on Ferni" | App Intents. Talk always goes through consent; End is the Live Activity's button. |
+| Siri, Shortcuts, Action button | "Talk to Ferni", "Call Ferni", "Talk to Maya on Ferni" | App Intents. Talk always goes through consent; asked from another device (a shared screen's Siri, a HomePod, a watch), the iPhone's owner unlocks it first. Nothing is said or shown back. End is the Live Activity's button. |
 | Control Center and Lock Screen control | Controls gallery, "Talk to Ferni" | |
 | iPad | Sidebar (Talk, Team, What Ferni remembers, Settings) | In a landscape call, captions sit beside Ferni. Keyboard: Command-Return talks, Command-Period ends, Command-M mutes. |
 | The web's Apple Health link | `ferniapp://healthkit/authorize` (from Ferni on the web, on an iPhone) | Opens Ferni with "Health sharing isn't in the iPhone app yet." The app has no HealthKit; no link starts a call or changes anything. |
 | Languages | English | 1.0 ships in English only (most of the catalog was still English placeholders). The app declares `en` and builds no other language; the String Catalog stays in the repository for real translations later. |
 | Accessibility | Throughout | Dynamic Type, VoiceOver labels and actions (including Interrupt while Ferni speaks), Reduce Motion (Ferni moves at 35% and skips the big moments). |
 | Crash reports | Not visible | Sentry, only in builds that carry a DSN. No user, screenshots, view hierarchy or replay. |
+
+## Shared screens: Apple HomeView and CarPlay
+
+Apple HomeView (a household's shared screen, shipping 2026-11-13) and CarPlay
+show small widgets from a connected iPhone. Whoever is looking or tapping may
+not be the phone's owner, so:
+
+- **The small widget is Ferni, peeking, and nothing else.** No Talk button,
+  no text, no names, notes, last call or anything from the account. The
+  widget extension can't read the app's data at all: it links only
+  FerniDesign and has no shared app group (`SharedScreensTests`). A tap opens
+  Ferni on the iPhone; it never starts a call.
+- **Talk from a shared screen:** there's no Talk on a shared screen. The
+  medium widget, which keeps Talk, only shows on an iPhone or iPad's own Home
+  Screen and Today View. Siri there ("Talk to Ferni", "Talk to Maya on
+  Ferni") runs the same App Intents as on the phone, which require local
+  device authentication: the system asks to unlock the iPhone before a call
+  starts as its owner, then consent comes first as always.
+- **CarPlay:** the small widget has no interaction that needs an unlocked
+  iPhone, so it isn't disfavored for CarPlay (agreement 6.4.1). The medium
+  widget doesn't show there.
+- **Rendering modes:** the widget peeks in full colour, and in tinted and
+  clear modes draws a plain body with the eyes as the accented layer
+  (`FerniPeekTests`). In StandBy, CarPlay and HomeView's Modular face the
+  background is removed and it's scaled up.
+
+What's verified from Apple's own pages, and what isn't:
+
+| Claim | Status | Source |
+|---|---|---|
+| HomeView shows system small widgets from a connected iPhone or iPad, with the iPhone's appearance (light, dark, clear, tinted); on the Modular face, background removed and scaled up | Verified | HIG, Widgets (change log: 2026-10-13, "Added guidance for Apple HomeView") |
+| iPhone system small: Home Screen, Today View, StandBy, CarPlay and HomeView; system medium: Home Screen and Today View only | Verified | HIG, Widgets, the supported-contexts table |
+| iOS widgets may be made available on CarPlay and HomeView; disfavor with `disfavoredLocations` a widget not suitable for CarPlay, e.g. one that needs the iPhone unlocked | Verified | Developer Program License Agreement 6.4.1 |
+| Apps with a CarPlay entitlement in categories Apple names may be offered on HomeView while running on a paired iPhone | Verified | DPLA 6.4.2 |
+| `requiresLocalDeviceAuthentication` asks to unlock the device running the intent "even if the request originated from an already authenticated Apple Watch or remote device" | Verified | App Intents documentation |
+| The SDK has no HomeView API: `WidgetLocation` has `.carPlay` (iOS 26) but no HomeView location, and nothing in WidgetKit, App Intents or CarPlay names HomeView | Verified | iPhoneOS 27.1 SDK interfaces (Xcode 27.1) |
+| Disfavoring `.carPlay` also keeps a widget off HomeView | Inferred, not stated | The agreement pairs them; the API has only `.carPlay` |
+| HomeView's Siri runs an iPhone app's App Intents, and where a foreground intent opens | Inferred | No Apple page describes it; no HomeView simulator |
+| Ferni as a CarPlay voice-conversation app on HomeView | UNCONFIRMED | Needs Apple to grant a CarPlay entitlement in an eligible category (6.4.2) and HomeView to ship; Ferni has no CarPlay entitlement today |
 
 ## Privacy label
 

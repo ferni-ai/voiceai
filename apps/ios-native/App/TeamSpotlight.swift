@@ -55,6 +55,8 @@ struct TeamMemberQuery: EntityQuery {
 /// asked first and someone not on the team means Ferni answers.
 struct TalkToTeammateIntent: OpenIntent {
     static let title: LocalizedStringResource = "Talk to a teammate"
+    /// Like TalkIntent: from another device, the phone's owner unlocks it first.
+    static let authenticationPolicy: IntentAuthenticationPolicy = .requiresLocalDeviceAuthentication
 
     @Parameter(title: "Teammate") var target: TeamMember
 
