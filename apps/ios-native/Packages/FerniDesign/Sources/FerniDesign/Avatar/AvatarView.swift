@@ -35,6 +35,7 @@ public struct AvatarView: View {
     @State private var slot = CGSize.zero
     @State private var arrivingSince: Date?
     @State private var arrivedThisCall = false
+    @GestureState private var holding = false
 
     /// Canvas size and Ferni's place in it, in slot widths.
     static let canvas = CGSize(width: 1.7, height: 1.5)
@@ -106,9 +107,15 @@ public struct AvatarView: View {
                 .allowsHitTesting(false)
             }
             .onGeometryChange(for: CGSize.self) { $0.size } action: { slot = $0 }
-            // At rest Ferni can be touched; in a call only the app's own gestures apply.
+            // At rest Ferni can be touched, or a finger held on him (he leans
+            // toward it); in a call only the app's own gestures apply. The hold
+            // fails as soon as the finger moves, so Home still scrolls.
             .contentShape(.interaction, Circle().scale(Self.touchScale))
             .gesture(SpatialTapGesture().onEnded { touch(at: $0.location) }, including: activity == .idle ? .all : .none)
+            .simultaneousGesture(hold, including: activity == .idle ? .all : .none)
+            .onChange(of: holding) { _, now in
+                if !now { rig.fingerLifted() }
+            }
             .accessibilityElement()
             .accessibilityLabel(name)
             .accessibilityValue(Self.words(for: activity, name: name))
@@ -157,12 +164,30 @@ public struct AvatarView: View {
             }
     }
 
-    /// A tap at `location` in the slot, as a point in Ferni radii from his centre.
+    /// A finger held still first, then followed wherever it goes.
+    private var hold: some Gesture {
+        LongPressGesture(minimumDuration: AliveRig.noticeAfter)
+            .sequenced(before: DragGesture(minimumDistance: 0))
+            .updating($holding) { value, state, _ in
+                if case .second(true, _) = value { state = true }
+            }
+            .onChanged { value in
+                guard case .second(true, let drag) = value else { return }
+                rig.fingerHeld(at: drag.flatMap { point(at: $0.location) })
+            }
+    }
+
+    /// A tap at `location` in the slot.
     private func touch(at location: CGPoint) {
+        if let p = point(at: location) { rig.poke(at: p) }
+    }
+
+    /// A point in the slot as Ferni radii from his centre (y up).
+    private func point(at location: CGPoint) -> SIMD2<Double>? {
         let side = min(slot.width, slot.height)
-        guard side > 0 else { return }
+        guard side > 0 else { return nil }
         let r = side * Self.radius
-        rig.poke(at: SIMD2((location.x - slot.width / 2) / r, (slot.height / 2 - location.y) / r))
+        return SIMD2((location.x - slot.width / 2) / r, (slot.height / 2 - location.y) / r)
     }
 
     /// One frame: this moment's inputs into the rig, out come the uniforms.

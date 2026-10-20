@@ -184,6 +184,8 @@ public final class AliveRig {
     private var quickTaps: [Double] = []
     private var spinStart: Double?
     private var spinSparkles = 0
+    /// A finger held on or near him (in Ferni radii, y up; nil until it moves).
+    private var fingerDown = false, finger: SIMD2<Double>?, fingerNear = false
     private var doubleTakeStart: Double?, doubleTakeAway = SIMD2<Double>.zero, squashHoldUntil: Double?
     private var lastTouchCue = -10.0
     private var quietSince = 0.0
@@ -228,6 +230,27 @@ public final class AliveRig {
             lastTouchCue = time
             pending.append(.touch)
         }
+    }
+
+    /// How long a finger stays still before Ferni notices it (the prototype's 650 ms).
+    public static let noticeAfter = 0.65
+    /// Farther than this (in Ferni radii) and the finger isn't near him.
+    static let nearWithin = 1.9
+
+    /// A finger held still on Ferni at rest (`noticeAfter`), then wherever it
+    /// moves (`point`, in Ferni radii from his centre, y up; nil when it hasn't
+    /// moved yet): he notices it, leans toward it, his eyes follow it, and
+    /// they cross when it's close to his face (the prototype's stepFinger).
+    public func fingerHeld(at point: SIMD2<Double>?) {
+        guard !still else { return }
+        fingerDown = true
+        if let point { finger = point }
+    }
+
+    /// The finger is lifted: he lets it go.
+    public func fingerLifted() {
+        fingerDown = false
+        finger = nil
     }
 
     /// The person is back after a little while (the prototype's doubleTake):
@@ -458,9 +481,29 @@ public final class AliveRig {
         if let handoff, handoff.done < 4, guestPersona != nil {
             focus = SIMD2(g.x.x - self[.stageX].x, g.y.x - self[.stageY].x)
         }
+        // A finger held near him: noticed once, then the focus (in front of him, z 1.3).
+        let near = fingerDown && activity == .idle && doubleTakeStart == nil && (finger.map { simd_length($0) < Self.nearWithin } ?? true)
+        if near, !fingerNear {
+            micro(.noticing)
+            pending.append(.notice)
+        }
+        fingerNear = near
+        let held = near && focus == nil ? finger.map { SIMD3($0.x * 0.9, $0.y * 0.9, 1.3) } : nil
+        self[.conv].t = held.map { clamp(0.32 / (simd_length(SIMD3($0.x, $0.y - 0.1, $0.z - 1.05)) + 0.25) - 0.18, 0, 0.32) } ?? 0
+        if near, focus == nil {
+            // He leans in, eyes a little wider.
+            self[.pitch].t -= 0.06 * m
+            for c in [Ch.sxL, .sxR] { self[c].t *= 1.04 }
+            for c in [Ch.syL, .syR] { self[c].t *= 1.08 }
+        }
         if let focus {
             gazeTarget = SIMD2(clamp(focus.x / 1.2, -1, 1), clamp((focus.y - 0.05) / 1.25, -1, 1))
             self[.roll].t += clamp(focus.x * 0.06, -0.12, 0.12)
+        } else if let p = held {
+            gazeTarget = SIMD2(clamp(p.x / (1.2 + p.z * 0.15), -1, 1), clamp((p.y - 0.05) / 1.25, -1, 1))
+            self[.roll].t += clamp(p.x * 0.06, -0.12, 0.12) * m
+            self[.pitch].t += clamp((p.y - 0.2) * 0.08, -0.1, 0.18) * m
+            nextSaccade = time + 0.8
         } else if still {
             gazeTarget = SIMD2(f.gx, f.gy)
         } else if time > nextSaccade {
