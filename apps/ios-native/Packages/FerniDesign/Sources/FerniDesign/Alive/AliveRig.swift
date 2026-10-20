@@ -56,6 +56,9 @@ public final class AliveRig {
     /// At home, a choice made mid-handoff, and whether the one who handed
     /// over steps out after (`rest(with:)`).
     private var restingWith: WindowPersona?
+    private var animatedExpression = "neutral"
+    /// Tests compare a face with and without its own motion.
+    var playsExpressionAnimations = true
     private var aloneAfterHandoff = false
     private var layer = SequenceLayer()
     private var listeningMicros: [(at: Double, micro: MicroExpression)] = []
@@ -239,6 +242,19 @@ public final class AliveRig {
         }
         playing = (id, time + end)
         return true
+    }
+
+    /// An expression's own motion (its token's `animation`), once as it
+    /// arrives, over the pose and any sequence. Not in still frames or under
+    /// Reduce Motion (it's only motion).
+    private func stepExpressionAnimation() {
+        guard expression != animatedExpression else { return }
+        animatedExpression = expression
+        guard playsExpressionAnimations, !still, !reduceMotion,
+              let name = Face.of(expression).animation, let anim = ExpressionAnimation.all[name] else { return }
+        for t in anim {
+            tracks.append(Track(key: t.key, values: t.values, at: time, duration: t.seconds * tempo, ease: sequenceEase(t.ease)))
+        }
     }
 
     /// The sequence playing now, if any.
@@ -637,6 +653,7 @@ public final class AliveRig {
         pending.removeAll()
         let m = motion
         stepMicros()
+        stepExpressionAnimation()
         stepSequence()
         let face = Face.of(faceID())
         apply(face, m: m)
@@ -770,8 +787,8 @@ public final class AliveRig {
         if reading, focus == nil { gazeTarget.y = min(gazeTarget.y, f.gy - 0.4) }
         if activity == .arriving, focus == nil { gazeTarget.y = max(gazeTarget.y, 0.4) }
         let drift = still ? .zero : SIMD2(sin(time * .pi * 2 / 8) * 0.04, sin(time * .pi * 2 / 8 * 1.3 + 1) * 0.03)
-        self[.gx].t = clamp(gazeTarget.x + drift.x, -0.85, 0.85) * max(m, 0.5)
-        self[.gy].t = clamp(gazeTarget.y + drift.y + layer.eyesTy * -0.03, -0.7, 0.7) * max(m, 0.5)
+        self[.gx].t = clamp(gazeTarget.x + drift.x + layer.gazeX, -0.85, 0.85) * max(m, 0.5)
+        self[.gy].t = clamp(gazeTarget.y + drift.y + layer.eyesTy * -0.03 + layer.gazeY, -0.7, 0.7) * max(m, 0.5)
         self[.yaw].t = self[.gx].t * 0.32
         self[.roll].t += self[.gx].t * 0.05
         self[.pitch].t += self[.gy].t * 0.12
