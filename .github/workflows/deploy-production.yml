@@ -161,6 +161,27 @@ jobs:
           fi
           echo "✅ All secrets configured"
 
+      # Runs before checkout and before any cloud credentials: DEPLOY_SHA's own
+      # code (scripts/ci/*, package.json) must never run with prod credentials
+      # unless the commit is already on main. Uses only the API, no checkout.
+      - name: Commit is on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ env.DEPLOY_SHA }}
+          SKIP_TESTS: ${{ inputs.skip_tests }}
+          CUSTOM_SHA: ${{ inputs.sha }}
+        run: |
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Not a full commit SHA: $SHA"; exit 1; }
+          if [ "$SKIP_TESTS" = "true" ] && [ -n "$CUSTOM_SHA" ]; then
+            echo "::error::skip_tests can't be combined with a custom sha"; exit 1
+          fi
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$SHA" --jq .status) ||
+            { echo "::error::Could not compare $SHA with main"; exit 1; }
+          case "$status" in
+            identical|behind) echo "✅ $SHA is on main ($status)" ;;
+            *) echo "::error::$SHA is not on main ($status)"; exit 1 ;;
+          esac
+
       - name: Checkout
         uses: actions/checkout@v7
         with:
