@@ -11,6 +11,8 @@ struct CallAvatar: View {
     var covered = false
     /// Bumped when the person comes back after a long time away: Ferni wakes.
     var wake = 0
+    /// Bumped when the person comes back after a few seconds away: a double take.
+    var doubleTake = 0
     /// What the body asks for (a touch's haptic).
     var onCue: ((KeyedCue) -> Void)?
 
@@ -24,6 +26,7 @@ struct CallAvatar: View {
             name: PersonaRegistry.get(avatar.personaID).name,
             covered: covered,
             wake: wake,
+            doubleTake: doubleTake,
             personSpeaking: call.isUserSpeaking,
             micro: avatar.micro,
             level: { [level = call.agentLevel] in level.level },
