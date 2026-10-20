@@ -98,9 +98,15 @@ final class AliveTouchTests: XCTestCase {
         XCTAssertNotNil(firstLight)
         XCTAssertGreaterThanOrEqual(firstLight ?? 0, 20)
         XCTAssertTrue(rig.particles.contains { $0.kind == .firefly } || firstLight != nil)
-        var again = false
-        _ = run(rig, from: 40, to: 120) { _, u in if u.fly.w > 0 { again = true } }
-        XCTAssertFalse(again, "once per session")
+        // Frame by frame to two minutes: its light comes on once, and goes for good.
+        var visits = firstLight == nil ? 0 : 1, lit = true, gone: Double?
+        _ = run(rig, from: 30, to: 120) { t, u in
+            if u.fly.w > 0, !lit { visits += 1 }
+            if u.fly.w == 0, lit, gone == nil { gone = t }
+            lit = u.fly.w > 0
+        }
+        XCTAssertEqual(visits, 1, "once per session")
+        XCTAssertLessThan(gone ?? 120, 40, "and the visit ends")
     }
 
     func testATouchResetsTheQuietAndTheFireflyNeverVisitsACall() {
