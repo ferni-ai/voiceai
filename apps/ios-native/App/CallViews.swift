@@ -133,7 +133,12 @@ struct CallCaptions: View {
                     if call.avatar.pose == .thinking { ThinkingDots() }
                 }
                 .font(FerniType.body)
-                .foregroundStyle(FerniColor.textMuted)
+                // Secondary ink in medium weight: the muted grey's thin strokes read
+                // 4.9:1 at best on the room, and the audit failed "Calling Ferni…",
+                // "Reconnecting…" and "On hold" once a scenario showed them (design
+                // audit P2 #20).
+                .fontWeight(.medium)
+                .foregroundStyle(FerniColor.textSecondary)
                 .frame(maxWidth: .infinity)
                 .contentTransition(.opacity)
                 .accessibilityElement(children: .combine)

@@ -24,6 +24,15 @@ enum UITestScenario: String {
     /// Talk, refused because the account is on the waitlist: the gate's first
     /// refusal (no details), then /api/waitlist/me says where they stand.
     case waitlist
+    /// The call's other states (design audit P2 #20: never exercised by a
+    /// scenario). Calling: the room never answers, so it stays "Calling…".
+    case connecting
+    /// Live, then the connection drops into "Reconnecting…" and stays there.
+    case reconnecting
+    /// Live, then the system takes the audio (a phone call): "On hold".
+    case onHold
+    /// Talk can't reach Ferni: the problem in words, and Try again.
+    case failed
 
     static let current: UITestScenario? = value(after: "-FerniUITest").flatMap(UITestScenario.init(rawValue:))
 
@@ -108,11 +117,21 @@ enum UITestScenario: String {
     })
 
     @MainActor static func callSession(avatar: AvatarModel, level: AudioLevelMeter) -> CallSession {
-        CallSession(
-            fetchToken: current == .waitlist ? CallTokens.fetcher(api: waitlistAPI)
-                : { @Sendable _ in CallToken(token: "t", url: "wss://127.0.0.1:9", room: "ios-uitest", agentDispatched: true) },
-            makeRoom: { ScriptedRoom(script: current == .handoff ? .handoff : .garden) },
-            audio: SilentAudio(),
+        let script: ScriptedRoom.Script = switch current {
+        case .handoff: .handoff
+        case .connecting: .neverAnswers
+        case .reconnecting: .drops
+        default: .garden
+        }
+        let fetchToken: CallSession.FetchToken = switch current {
+        case .waitlist: CallTokens.fetcher(api: waitlistAPI)
+        case .failed: { @Sendable _ in throw FerniAPIError.unreachable }
+        default: { @Sendable _ in CallToken(token: "t", url: "wss://127.0.0.1:9", room: "ios-uitest", agentDispatched: true) }
+        }
+        return CallSession(
+            fetchToken: fetchToken,
+            makeRoom: { ScriptedRoom(script: script) },
+            audio: SilentAudio(interrupted: current == .onHold),
             avatar: avatar,
             agentLevel: level
         )
@@ -158,7 +177,7 @@ private final class UITestAuthBackend: AuthBackend, @unchecked Sendable {
 
 /// Ferni arrives speaking and the call stays up until it's ended.
 private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
-    enum Script { case garden, handoff }
+    enum Script { case garden, handoff, neverAnswers, drops }
     let events: AsyncStream<RoomEvent>
     private let continuation: AsyncStream<RoomEvent>.Continuation
     private let script: Script
@@ -169,8 +188,22 @@ private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
     }
 
     func connect(url: String, token: String) async throws {
+        if script == .neverAnswers {
+            // Calling, until the person cancels (or the session's own watchdog gives up).
+            try await Task.sleep(for: .seconds(3600))
+            return
+        }
         continuation.yield(.agentJoined(attributes: ["lk.agent.state": "speaking"]))
         switch script {
+        case .neverAnswers: break
+        case .drops:
+            say([(.you, "Long week. I finally finished the garden."),
+                 (.ferni, "That's huge! What did you plant first?")])
+            let continuation = continuation
+            Task {
+                try? await Task.sleep(for: .seconds(1.5))
+                continuation.yield(.reconnecting)
+            }
         case .garden:
             say([(.you, "Long week. I finally finished the garden."),
                  (.ferni, "That's huge! What did you plant first?")])
@@ -201,9 +234,21 @@ private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
     func disconnect() async { continuation.finish() }
 }
 
-/// No audio session, no permission prompt.
+/// No audio session, no permission prompt. `interrupted`: 1.5 s in, the
+/// system takes the audio (a phone call), and gives it back when asked.
 private final class SilentAudio: CallAudio, @unchecked Sendable {
-    let interruptions = AsyncStream<AudioInterruption> { _ in }
+    let interruptions: AsyncStream<AudioInterruption>
+
+    init(interrupted: Bool = false) {
+        interruptions = AsyncStream { continuation in
+            guard interrupted else { return }
+            Task {
+                try? await Task.sleep(for: .seconds(1.5))
+                continuation.yield(.began)
+            }
+        }
+    }
+
     func requestMicrophone() async -> Bool { true }
     func activate(systemOwned: Bool) throws {}
     func deactivate(systemOwned: Bool) {}

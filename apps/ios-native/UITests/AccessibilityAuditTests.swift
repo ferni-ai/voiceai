@@ -118,8 +118,12 @@ final class AccessibilityAuditTests: XCTestCase {
         // rows' contrast findings (and the unnamed ones, two to four a launch) went away when the
         // sidebar got an opaque background (2026-10-20); none are accepted any more.
         ("call", .contrast, "Ferni · ", "Name chip: #5c544a on #f7f5ee, 6.8:1 (caption text needs 4.5)."),
-        ("home|call|team", .textClipped, "Talk", "iPad sidebar row: the AX5 screenshot shows the full word."),
-        ("home|call|team", .textClipped, "What Ferni remembers", "iPad sidebar row: wraps to three full lines at AX5 (screenshot)."),
+        ("onHold", .contrast, "On hold",
+         "The call's state line in medium secondary ink: #5c544a on #f2ebdf, 6.3:1 measured from the iPad screenshot (2026-10-20); flagged on iPad only, where \"Reconnecting…\" in the same place passes."),
+        ("failed", .contrast, "Couldn't reach Ferni",
+         "The failed call's message: #2c2520 on #f7eee3, 13.1:1 measured from the 17 Pro screenshot (2026-10-20); flagged in regular and medium weight alike."),
+        ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "Talk", "iPad sidebar row: the AX5 screenshot shows the full word."),
+        ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "What Ferni remembers", "iPad sidebar row: wraps to three full lines at AX5 (screenshot)."),
         ("settings", .dynamicType, "Try again", "A system List button row; it scales at AX5 like the other rows."),
         ("settings", .dynamicType, "Get help with your account",
          "Account footer link; HelpLinksUITests.testAccountHelpGrowsWithTextSize proves it grows at AX5 (pinned, it stays 34 pt and fails)."),
@@ -151,6 +155,13 @@ final class AccessibilityAuditTests: XCTestCase {
     func testSettings() throws { try audit(.settings, size: .standard); try audit(.settings, size: .ax5) }
     func testCall() throws { try audit(.call, size: .standard); try audit(.call, size: .ax5) }
     func testWaitlist() throws { try audit(.waitlist, size: .standard); try audit(.waitlist, size: .ax5) }
+    /// Calling, reconnecting, on hold and failed (design audit P2 #20).
+    func testCallStates() throws {
+        for screen in [Screen.connecting, .reconnecting, .onHold, .failed] {
+            try audit(screen, size: .standard)
+            try audit(screen, size: .ax5)
+        }
+    }
 
     /// The overrides reach the views (so the snapshots below show those paths),
     /// and an ordinary launch doesn't have them.
