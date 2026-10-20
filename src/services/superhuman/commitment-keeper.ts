@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { judgeCommitment } from '../../utils/commitment-quality.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { commitmentCache, loadActiveCommitmentsOrThrow } from './commitment-store.js';
 import { followUpsDue } from './commitment-checkin-cooldown.js';
@@ -333,8 +334,9 @@ export function detectCommitment(
 export async function saveCommitment(
   commitment: Omit<Commitment, 'id'>,
   options?: { validateCalendar?: boolean; createCalendarBlocks?: boolean }
-): Promise<{ commitment: Commitment; feasibility?: CommitmentFeasibility }> {
+): Promise<{ commitment: Commitment; feasibility?: CommitmentFeasibility; notActionable?: true }> {
   const id = `commit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const verdict = judgeCommitment(commitment.statement); // a sign-off or "call her" is never stored
   const fullCommitment: Commitment = {
     ...commitment,
     id,
@@ -345,8 +347,10 @@ export async function saveCommitment(
     status: 'active',
     followUpCount: 0,
   };
-
-  // Better Than Human: Validate against calendar
+  if (!verdict.ok) {
+    log.info({ userId: commitment.userId, reason: verdict.reason }, 'Commitment not stored');
+    return { commitment: fullCommitment, notActionable: true };
+  }
   let feasibility: CommitmentFeasibility | undefined;
   if (options?.validateCalendar !== false) {
     try {
@@ -393,7 +397,6 @@ export async function saveCommitment(
       'create'
     );
 
-    // Better Than Human: Create calendar blocks for the commitment
     // Auto-create blocks when there's a target date (better than human by default)
     const shouldCreateBlocks = options?.createCalendarBlocks ?? !!commitment.targetDate;
     if (shouldCreateBlocks && feasibility?.suggestedSlots?.length) {
@@ -407,7 +410,6 @@ export async function saveCommitment(
         if (blocks.eventIds.length > 0) {
           fullCommitment.calendarEventIds = blocks.eventIds;
 
-          // Update Firestore with calendar event IDs
           if (db) {
             await db
               .collection('bogle_users')
@@ -431,7 +433,6 @@ export async function saveCommitment(
       }
     }
 
-    // Sync commitment target date to calendar as reminder event
     if (commitment.targetDate) {
       try {
         await syncCommitmentToCalendar(
@@ -453,7 +454,6 @@ export async function saveCommitment(
     // Only a list read from the store is cached: seeding one with just this commitment hid the rest
     commitmentCache.get(commitment.userId)?.push(fullCommitment);
 
-    // Better Than Human: Schedule proactive follow-up via outreach system
     try {
       await onCommitmentMade(commitment.userId, {
         id,

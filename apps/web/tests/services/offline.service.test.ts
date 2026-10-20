@@ -374,6 +374,63 @@ describe('OfflineService', () => {
       expect(isOffline()).toBe(false);
     });
 
+    it('rechecks soon when one probe answers while the browser still says offline', async () => {
+      // 2026-10-19 nightly (#2180): the probe sent on the offline event got a 200
+      // (it raced the drop), and the service stopped checking, so the notice never
+      // showed while the browser stayed offline.
+      disposeOfflineService(); // earlier tests leave real recheck timers behind
+      vi.useFakeTimers();
+      try {
+        mockFetch.mockReset();
+        mockFetch
+          .mockResolvedValueOnce({ ok: true, status: 200 })
+          .mockRejectedValue(new Error('network down'));
+        navigatorMock.onLine = true;
+        initOfflineService();
+        const seen: boolean[] = [];
+        onOfflineChange((offline) => seen.push(offline));
+
+        navigatorMock.onLine = false;
+        windowListeners.offline.forEach((handler) => handler());
+        await vi.advanceTimersByTimeAsync(0);
+        expect(mockFetch).toHaveBeenCalledTimes(1);
+        expect(isOffline()).toBe(false);
+
+        await vi.advanceTimersByTimeAsync(1_000);
+        expect(mockFetch).toHaveBeenCalledTimes(2);
+        expect(isOffline()).toBe(true);
+        expect(seen).toEqual([true]);
+      } finally {
+        disposeOfflineService();
+        vi.useRealTimers();
+        mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+      }
+    });
+
+    it('keeps one quick recheck, then the 10s cadence, when the browser is wrong', async () => {
+      // macOS VPNs: navigator.onLine stays false while the network works.
+      disposeOfflineService(); // earlier tests leave real recheck timers behind
+      vi.useFakeTimers();
+      try {
+        mockFetch.mockReset();
+        mockFetch.mockResolvedValue({ ok: true, status: 200 });
+        navigatorMock.onLine = true;
+        initOfflineService();
+
+        navigatorMock.onLine = false;
+        windowListeners.offline.forEach((handler) => handler());
+        await vi.advanceTimersByTimeAsync(9_999);
+        expect(mockFetch).toHaveBeenCalledTimes(2); // the event's probe, one quick recheck
+        await vi.advanceTimersByTimeAsync(1);
+        expect(mockFetch).toHaveBeenCalledTimes(3);
+        expect(isOffline()).toBe(false);
+      } finally {
+        disposeOfflineService();
+        vi.useRealTimers();
+        mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve({}) });
+      }
+    });
+
     it('should update lastOnline when coming online', () => {
       navigatorMock.onLine = false;
       initOfflineService();

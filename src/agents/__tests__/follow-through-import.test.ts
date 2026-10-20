@@ -125,7 +125,8 @@ describe('follow-through import after a call (FOLLOW_THROUGH_IMPORT)', () => {
 
     const made = followUps('owner-1');
     expect(made.map((f) => [f.kind, f.text, f.status, f.userId]).sort()).toEqual([
-      ['commitment', 'I am going to ask my sister about the trip', 'open', 'owner-1'],
+      // The stored line with its lead-in off (toOpenCommitment).
+      ['commitment', 'ask my sister about the trip', 'open', 'owner-1'],
       ['reminder', 'Call the dentist', 'open', 'owner-1'],
     ]);
     expect(made.every((f) => f.zone === 'America/Denver')).toBe(true);
