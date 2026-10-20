@@ -149,7 +149,7 @@ export async function handleUsageRoutes(
 
   // GET /api/marketplace/billing/payouts - Get pending payouts (for publishers)
   if (pathname === '/api/marketplace/billing/payouts' && method === 'GET') {
-    const publisher = getPublisher(req);
+    const publisher = await getPublisher(req);
     if (!publisher) {
       sendJson(res, 401, { error: 'Publisher authentication required' });
       return true;

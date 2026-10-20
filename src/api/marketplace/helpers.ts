@@ -9,8 +9,10 @@ import type { AgentManifest, ToolManifest } from '../../marketplace/schema/types
 import { getSubscriptionInfo } from '../../services/billing/stripe-subscription.js';
 import type { SubscriptionTier } from '../../types/subscription.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { optionalAuthAsync } from '../auth-middleware.js';
 import { parseBody as parseBodyHelper, sendJSON } from '../helpers.js';
 import { isVerifiedAdmin } from '../rate-limit-identity.js';
+import { findPublisherByFirebaseUid } from '../v1/developers/shared/developer-auth.js';
 
 const log = createLogger({ module: 'marketplace-helpers' });
 
@@ -21,6 +23,8 @@ const log = createLogger({ module: 'marketplace-helpers' });
 export interface PublisherSession {
   publisherId: string;
   publisherName: string;
+  /** The publisher's email on record (set at developer sign-in from a verified token). */
+  email?: string;
   verified: boolean;
 }
 
@@ -70,17 +74,30 @@ export function getUserId(req: IncomingMessage): string | null {
 }
 
 /**
- * Get publisher session from headers
+ * The publisher the caller is, from their verified Firebase token: the
+ * publishers record linked to that uid at developer sign-in. Request headers
+ * (x-publisher-id, x-publisher-name) are claims and are never read. Anonymous
+ * tokens are not publishers. `verified` comes from the record, which only an
+ * admin can change.
  */
-export function getPublisher(req: IncomingMessage): PublisherSession | null {
-  const publisherId = req.headers['x-publisher-id'] as string;
-  if (!publisherId) return null;
-
-  return {
-    publisherId,
-    publisherName: (req.headers['x-publisher-name'] as string) || 'Unknown Publisher',
-    verified: true,
-  };
+export async function getPublisher(req: IncomingMessage): Promise<PublisherSession | null> {
+  const auth = await optionalAuthAsync(req);
+  if (!auth || auth.authMethod !== 'firebase' || auth.isAnonymous || !auth.firebaseUid) {
+    return null;
+  }
+  try {
+    const record = await findPublisherByFirebaseUid(auth.firebaseUid);
+    if (!record) return null;
+    return {
+      publisherId: record.id,
+      publisherName: record.name || 'Unknown Publisher',
+      email: record.email || undefined,
+      verified: record.verified === true,
+    };
+  } catch (error) {
+    log.warn({ error: String(error) }, 'Publisher lookup failed');
+    return null;
+  }
 }
 
 /**

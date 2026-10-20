@@ -39,6 +39,7 @@ import {
   submitReview,
 } from '../review-queue.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { requireAdmin } from '../auth-middleware.js';
 import { parseBody, sendJSON } from '../helpers.js';
 import {
   sendEmail,
@@ -163,17 +164,16 @@ async function sendRejectionEmail(
 }
 
 /**
- * Verify admin authentication
+ * The verified admin making the request: a Firebase token carrying the admin
+ * claim, or an admin API key (the shared requireAdmin). Sends 401/403 and
+ * returns null otherwise. Client headers such as x-admin-id are never trusted.
  */
-function getAdmin(req: IncomingMessage): AdminSession | null {
-  const adminId = req.headers['x-admin-id'] as string;
-  const adminName = req.headers['x-admin-name'] as string;
-
-  if (!adminId) return null;
-
+async function getAdmin(req: IncomingMessage, res: ServerResponse): Promise<AdminSession | null> {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return null;
   return {
-    adminId,
-    adminName: adminName || 'Admin',
+    adminId: auth.userId,
+    adminName: auth.email || 'Admin',
     permissions: ['marketplace:review', 'marketplace:moderate'],
   };
 }
@@ -215,12 +215,9 @@ export async function handleMarketplaceAdminRoutes(
 ): Promise<boolean> {
   const method = req.method || 'GET';
 
-  // All admin routes require authentication
-  const admin = getAdmin(req);
-  if (!admin) {
-    sendJson(res, 401, { error: 'Admin authentication required' });
-    return true;
-  }
+  // All admin routes require a verified admin (getAdmin has already answered 401/403)
+  const admin = await getAdmin(req, res);
+  if (!admin) return true;
 
   // GET /api/admin/marketplace/queue - Get items pending review (NEW - uses review-queue)
   if (pathname === '/api/admin/marketplace/queue' && method === 'GET') {
@@ -418,11 +415,7 @@ export async function handleMarketplaceAdminRoutes(
     const itemId = pathname.split('/')[5];
 
     try {
-      const body = await parseBody<{
-        reason: string;
-        note?: string;
-        publisherEmail?: string;
-      }>(req);
+      const body = await parseBody<{ reason: string; note?: string }>(req);
 
       if (!body.reason) {
         sendJson(res, 400, { error: 'Rejection reason is required' });
@@ -445,9 +438,9 @@ export async function handleMarketplaceAdminRoutes(
 
       log.info({ itemId, adminId: admin.adminId, reason: body.reason }, 'Item rejected');
 
-      // Send rejection email to publisher if email is available
+      // Notify the publisher at the address on record for the item, never one from the request
       let emailSent = false;
-      const publisherEmail = body.publisherEmail || item.publisher?.email;
+      const publisherEmail = item.publisher?.email;
       if (publisherEmail) {
         emailSent = await sendRejectionEmail(
           publisherEmail,

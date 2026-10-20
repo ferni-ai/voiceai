@@ -29,6 +29,7 @@ import {
   type UpdateReviewInput,
 } from '../../marketplace/reviews/index.js';
 import { getAgent, getTool } from '../../marketplace/index.js';
+import { getPublisher } from '../marketplace/helpers.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { parseBody, sendJSON } from '../helpers.js';
 
@@ -54,8 +55,9 @@ function getUserId(req: IncomingMessage): string | null {
   return (req.headers['x-user-id'] as string) || null;
 }
 
-function getPublisherId(req: IncomingMessage): string | null {
-  return (req.headers['x-publisher-id'] as string) || null;
+/** The caller's publisher id from their verified token; never the x-publisher-id header. */
+async function getPublisherId(req: IncomingMessage): Promise<string | null> {
+  return (await getPublisher(req))?.publisherId ?? null;
 }
 
 // ============================================================================
@@ -265,7 +267,7 @@ export async function handleReviewsRoutes(
 
   // POST /api/marketplace/reviews/:reviewId/respond
   if (pathname.match(/^\/api\/marketplace\/reviews\/[^/]+\/respond$/) && method === 'POST') {
-    const publisherId = getPublisherId(req);
+    const publisherId = await getPublisherId(req);
     if (!publisherId) {
       sendJson(res, 401, { error: 'Publisher authentication required' });
       return true;

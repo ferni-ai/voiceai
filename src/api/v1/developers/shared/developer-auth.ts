@@ -173,6 +173,8 @@ export async function getPublisherFromToken(req: IncomingMessage): Promise<strin
   try {
     const auth = await getFirebaseAuth();
     const decodedToken = (await auth.verifyIdToken(idToken)) as FirebaseDecodedToken;
+    // Anonymous accounts are not publishers (they once all shared one record)
+    if (decodedToken.firebase?.sign_in_provider === 'anonymous') return null;
 
     const db = await getFirestore();
     const query = db.collection('publishers').where('firebaseUid', '==', decodedToken.uid).limit(1);
