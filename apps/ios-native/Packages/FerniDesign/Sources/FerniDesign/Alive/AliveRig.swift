@@ -22,6 +22,9 @@ public final class AliveRig {
     public var dark = false
     /// Reading along (the consent sheet): eyes down, slow blinks.
     public var reading = false
+    /// Quiet: at rest and blinking, nothing else (no wandering eyes, no
+    /// breath or bob). The small Ferni beside a screen's intro line.
+    public var blinksOnly = false
 
     // MARK: State
 
@@ -680,12 +683,12 @@ public final class AliveRig {
             env *= pow(0.85, dt * 60)
         }
 
-        let breathing = still ? 0 : breath(face) * m
+        let breathing = still || blinksOnly ? 0 : breath(face) * m
         self[.squash].t = face.squash + breathing + env * 0.04 * m
         if let hold = squashHold {
             if time < hold.until { self[.squash].t = hold.value } else { squashHold = nil }
         }
-        self[.posY].t = face.posY + (still ? 0 : sin(now * 1.05) * 0.03 * m) + env * 0.02 * m
+        self[.posY].t = face.posY + (still || blinksOnly ? 0 : sin(now * 1.05) * 0.03 * m) + env * 0.02 * m
         // Connecting: he leans in, his light rising, eyes up for whoever is coming.
         self[.glow].t = face.glow + env * 0.45 + (activity == .arriving ? 0.3 * m : 0)
         self[.posX].t = 0
@@ -775,7 +778,7 @@ public final class AliveRig {
             self[.roll].t += clamp(p.x * 0.06, -0.12, 0.12) * m
             self[.pitch].t += clamp((p.y - 0.2) * 0.08, -0.1, 0.18) * m
             nextSaccade = time + 0.8
-        } else if still {
+        } else if still || blinksOnly {
             gazeTarget = SIMD2(f.gx, f.gy)
         } else if time > nextSaccade {
             let prev = gazeTarget
@@ -786,7 +789,7 @@ public final class AliveRig {
         }
         if reading, focus == nil { gazeTarget.y = min(gazeTarget.y, f.gy - 0.4) }
         if activity == .arriving, focus == nil { gazeTarget.y = max(gazeTarget.y, 0.4) }
-        let drift = still ? .zero : SIMD2(sin(time * .pi * 2 / 8) * 0.04, sin(time * .pi * 2 / 8 * 1.3 + 1) * 0.03)
+        let drift = still || blinksOnly ? .zero : SIMD2(sin(time * .pi * 2 / 8) * 0.04, sin(time * .pi * 2 / 8 * 1.3 + 1) * 0.03)
         self[.gx].t = clamp(gazeTarget.x + drift.x + layer.gazeX, -0.85, 0.85) * max(m, 0.5)
         self[.gy].t = clamp(gazeTarget.y + drift.y + layer.eyesTy * -0.03 + layer.gazeY, -0.7, 0.7) * max(m, 0.5)
         self[.yaw].t = self[.gx].t * 0.32
@@ -871,6 +874,9 @@ public final class AliveRig {
         if !slow, rng.unit() < 0.16 { blinkPlan += [(t + 0.26, 0.05, 1), (t + 0.33, 0.08, 0)] }
         nextBlink = time + rng.range(3, 7) * (activity == .listening ? 1.25 : 1)
     }
+
+    /// Seconds until the next blink starts, as of the last frame.
+    var secondsToNextBlink: Double { max(0, nextBlink - time) }
 
     func halfBlink() { blinkPlan = [(time, 0.045, 0.5), (time + 0.055, 0.055, 0)] }
 
