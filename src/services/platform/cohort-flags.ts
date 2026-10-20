@@ -40,10 +40,11 @@ import {
   firestoreFlagHolders,
   type Cohort,
   type CohortStore,
+  type FlagHolderStore,
 } from './cohort-firestore.js';
 
 export { firestoreCohortStore, firestoreFlagHolders };
-export type { Cohort, CohortStore };
+export type { Cohort, CohortStore, FlagHolderStore };
 
 const log = createLogger({ module: 'cohort-flags' });
 
@@ -328,12 +329,6 @@ export async function applyCallerFlags(
   } finally {
     if (timer) clearTimeout(timer);
   }
-}
-
-/** Finds who might have a flag on, without reading every user. */
-export interface FlagHolderStore {
-  /** Members of cohorts setting `flag` to 'on', and users whose own override sets it 'on'. */
-  candidatesFor: (flag: CohortFlag) => Promise<string[]>;
 }
 
 /** How long a per-user or per-flag read is reused. The scheduled jobs run every minute. */

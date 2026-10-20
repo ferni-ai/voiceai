@@ -62,8 +62,13 @@ export const firestoreCohortStore: CohortStore = {
   },
 };
 
-/** Members of cohorts setting `flag` to 'on', and users whose own override sets it 'on'. */
-export const firestoreFlagHolders: { candidatesFor: (flag: string) => Promise<string[]> } = {
+/** Finds who might have a flag on, without reading every user. */
+export interface FlagHolderStore {
+  /** Members of cohorts setting `flag` to 'on', and users whose own override sets it 'on'. */
+  candidatesFor: (flag: string) => Promise<string[]>;
+}
+
+export const firestoreFlagHolders: FlagHolderStore = {
   async candidatesFor(flag) {
     const db = getFirestoreDb();
     if (!db) return [];
