@@ -17,7 +17,6 @@
  * @module tools/registry/outbound-gate
  */
 
-import { canonPeople, canonPersonIn } from '../../personas/canon-people.js';
 import { isSyntheticUserId, namesNoAccount } from '../../utils/synthetic-user.js';
 import {
   isOutreachConfirmOn,
@@ -127,6 +126,7 @@ async function canonTargetRefusal(
   if (ADDRESS_ARGS.some((k) => textArg(args, k))) return null;
   const target = TARGET_ARGS.map((k) => textArg(args, k)).find(Boolean);
   if (!target) return null;
+  const { canonPeople, canonPersonIn } = await import('../../personas/index.js');
   const canon = canonPersonIn(target, await canonPeople());
   if (!canon) return null;
   const { resolveContact } = await import('../domains/telephony/call-on-behalf.js');
