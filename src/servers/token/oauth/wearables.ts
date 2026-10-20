@@ -159,6 +159,7 @@ function getTokenStore(provider: WearableProvider) {
       provider,
       createPersistenceStore<EncryptedTokenData>({
         collection: `wearable_${provider}_tokens`,
+        holdWrites: () => false, // MINOR_CARE opt-out: credentials
         documentId: 'data',
         useRootCollection: false, // Per-user storage
         syncIntervalMs: 2000,
@@ -523,8 +524,7 @@ export function buildAuthUrl(
     // Cleanup old verifiers (> 10 minutes)
     const maxAge = 10 * 60 * 1000;
     for (const [key, _] of pkceVerifiers) {
-      // We don't store timestamps, so we rely on the caller to cleanup
-      // In production, use Redis with TTL
+      // No timestamps stored, so the caller cleans up (in production, Redis with a TTL)
     }
 
     url.searchParams.set('code_challenge', codeChallenge);

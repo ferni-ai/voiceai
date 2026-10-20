@@ -43,6 +43,7 @@ const PLAID_BASE_URL =
 // reads accept legacy plaintext until the encrypt-integration-tokens migration runs.
 const tokenStore = createPersistenceStore<Record<string, unknown>>({
   collection: 'plaid_tokens',
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // Per-user storage
   syncIntervalMs: 2000,
