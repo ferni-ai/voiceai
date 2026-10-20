@@ -3,7 +3,8 @@ import FerniKit
 import SwiftUI
 
 /// Before the first call: which companies hear what you say, in plain words.
-/// Shown full screen and not swipe-dismissable; nothing is sent until you agree.
+/// A sheet over the room on iPhone, the whole screen on iPad (HomeView); never
+/// swipe-dismissable, and nothing is sent until you agree.
 struct ConsentView: View {
     let onAgree: () -> Void
     let onNotNow: () -> Void
