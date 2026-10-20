@@ -56,6 +56,20 @@ final class FaceTests: XCTestCase {
         XCTAssertEqual(f.roll, 3 * .pi / 180 * 1.8 + 0.22, accuracy: 1e-9)
     }
 
+    /// A furrow is worry on a concern or nervous face (inner corners lifted,
+    /// lower lids tensed) and a glare on a frustrated one (audit P0 #1).
+    func testAFurrowIsWorryOnAConcernFaceAndAGlareOnAnAngryOne() {
+        for id in ["concerned", "worried", "anxious"] {
+            let f = Face.of(id)
+            XCTAssertEqual(f.tilt, 0.45, id)
+            XCTAssertGreaterThanOrEqual(f.left.top, 0.24, id)
+            XCTAssertEqual(f.left.bot, 0.14, accuracy: 1e-9, id)
+        }
+        XCTAssertEqual(Face.of("irritated").tilt, -0.35)
+        XCTAssertEqual(Face.of("sympathetic").tilt, 0, "concern without a furrow keeps its soft face")
+        XCTAssertEqual(Face.of("neutral").tilt, 0)
+    }
+
     func testAnUnknownExpressionIsNeutral() {
         XCTAssertEqual(Face.of("not-a-face"), Face.of("neutral"))
         XCTAssertEqual(Face.of("neutral").left.top, 0.108, accuracy: 1e-9)

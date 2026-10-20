@@ -6,8 +6,11 @@ public struct ExpressionToken: Decodable, Equatable, Sendable {
     public struct Scale: Decodable, Equatable, Sendable { var scaleX: Double?, scaleY: Double? }
     public struct Lid: Decodable, Equatable, Sendable {
         var curve: Double?, asymmetry: Double?, droop: Bool?
+        /// A drawn-together brow: worry on a concern or nervous face, a glare
+        /// on a frustrated or intense one.
+        var furrow: Bool?
 
-        enum CodingKeys: String, CodingKey { case curve, asymmetry, droop }
+        enum CodingKeys: String, CodingKey { case curve, asymmetry, droop, furrow }
 
         // A curve can be a word ("voice-reactive"): like the web's curveOf, anything but a number is 0.
         public init(from decoder: any Decoder) throws {
@@ -15,6 +18,7 @@ public struct ExpressionToken: Decodable, Equatable, Sendable {
             curve = try? c.decodeIfPresent(Double.self, forKey: .curve)
             asymmetry = try c.decodeIfPresent(Double.self, forKey: .asymmetry)
             droop = try c.decodeIfPresent(Bool.self, forKey: .droop)
+            furrow = try c.decodeIfPresent(Bool.self, forKey: .furrow)
         }
     }
     public struct Offset: Decodable, Equatable, Sendable { var translateX: Double?, translateY: Double? }
@@ -108,8 +112,15 @@ public struct Face: Equatable, Sendable {
     public static func of(_ id: String, tokens: [String: ExpressionToken] = ExpressionTokens.all) -> Face {
         guard let e = tokens[id] ?? tokens["neutral"] else { return Face() }
         let top = e.lidTop?.curve ?? 0, bot = e.lidBottom?.curve ?? 0, happy = bot < 0
-        let upper = clamp(max(top, 0) * 0.9 * (happy ? 0.6 : 1) / 100, 0, 0.95)
-        let lower = happy ? 0 : clamp(bot * 0.5 / 100, 0, 0.6)
+        let glare = e.family == "frustrated" || e.family == "intense"
+        // A furrow on a worried face: the inner corners lift and the lower lids
+        // tense. Without it concern rendered as neutral, lids wider than
+        // neutral's (expression audit P0 #1, 2026-10-20).
+        let worry = e.lidTop?.furrow == true && !glare
+        // The lifted inner corners need a lid to show on: concern's own lids
+        // (curve 4-8) sit higher than neutral's.
+        let upper = max(clamp(max(top, 0) * 0.9 * (happy ? 0.6 : 1) / 100, 0, 0.95), worry ? 0.24 : 0)
+        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100, 0, 0.6), worry ? 0.14 : 0)
         let arch = happy ? clamp(-bot * 3 / 100, 0, 0.85) : 0
         let sx = e.eyeWhite?.scaleX ?? 1, sy = e.eyeWhite?.scaleY ?? 1
 
@@ -130,7 +141,7 @@ public struct Face: Equatable, Sendable {
         let body = BodyTransform(e.body?.transform)
         f.gx = (e.eyesGroup?.translateX ?? 0) * 0.09
         f.gy = -(e.eyesGroup?.translateY ?? 0) * 0.09
-        f.tilt = e.lidTop?.droop == true ? 0.5 : (e.family == "frustrated" || e.family == "intense" ? -0.35 : 0)
+        f.tilt = e.lidTop?.droop == true ? 0.5 : worry ? 0.45 : glare ? -0.35 : 0
         f.crease = clamp(e.smileCrease?.opacity ?? 0, 0, 1)
         f.halo = clamp(e.presenceRing.map { $0.opacity ?? 0.2 } ?? 0.2, 0, 1)
         f.posY = -body.ty / 100 * 1.6
