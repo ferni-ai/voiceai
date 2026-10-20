@@ -376,6 +376,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     delete: async (userId: string) => {
       cache.delete(userId);
       dirty.delete(userId);
+      heldParts.forget(userId); // a pending held part, even one in flight, never outlives this
 
       const firestore = await getFirestore();
       if (!firestore) return;
@@ -407,11 +408,13 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     clearCache: (userId: string) => {
       cache.delete(userId);
       dirty.delete(userId);
+      heldParts.forget(userId);
     },
 
     clearAllCaches: () => {
       cache.clear();
       dirty.clear();
+      heldParts.forget();
     },
 
     getStats: () => ({
@@ -425,6 +428,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       await flushAll();
       cache.clear();
       dirty.clear();
+      heldParts.forget();
       log.info({ collection }, 'Persistence store shutdown complete');
     },
   };
@@ -469,16 +473,12 @@ export async function shutdownPersistence(): Promise<void> {
   log.info('Persistence layer shutdown complete');
 }
 
-/**
- * Flush all pending changes across all stores
- */
+/** Flush all pending changes across all stores */
 export async function flushAllStores(): Promise<void> {
   await Promise.all(activeStores.map(async ({ store }) => store.flush()));
 }
 
-/**
- * Get stats for all stores
- */
+/** Get stats for all stores */
 export function getAllStats(): Record<string, { cached: number; dirty: number }> {
   const stats: Record<string, { cached: number; dirty: number }> = {};
   for (const { name, store } of activeStores) {
