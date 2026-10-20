@@ -24,15 +24,25 @@ final class FirstMinuteAppTests: XCTestCase {
     /// them, so everyone is asked again. Update both constants together.
     func testConsentWordingAndVersionChangeTogether() {
         let digest = SHA256.hash(data: Data(ConsentView.body.utf8)).map { String(format: "%02x", $0) }.joined()
-        XCTAssertEqual(ConsentStore.currentVersion, "2026-10-19")
-        XCTAssertEqual(digest.prefix(16), "35f85465386a57d9", "wording changed: bump ConsentStore.currentVersion, then update this digest")
+        XCTAssertEqual(ConsentStore.currentVersion, "2026-10-20")
+        XCTAssertEqual(digest.prefix(16), "806c867387abab74", "wording changed: bump ConsentStore.currentVersion, then update this digest")
     }
 
-    /// Ferni speaks for himself about his notes; the provider sentence stays
-    /// exactly as reviewed.
+    /// Ferni speaks for himself throughout (design audit P2 #12: the provider
+    /// sentence said "Ferni", the notes "I").
     func testConsentIsInFerniVoice() {
+        XCTAssertTrue(ConsentView.body.hasPrefix("When we talk, your voice and what you say are sent to companies that help me hear, think and speak:"))
         XCTAssertTrue(ConsentView.body.contains("I keep notes from our talks so I can remember you."))
+        XCTAssertFalse(ConsentView.body.contains("Ferni"), "no switching to \"Ferni\": \(ConsentView.body)")
         XCTAssertFalse(ConsentView.body.contains("so it can remember you"))
-        XCTAssertTrue(ConsentView.body.hasPrefix("When you talk with Ferni, your voice and what you say are sent to companies that help Ferni hear, think and speak: Google (Gemini), Anthropic (Claude), Cartesia (speech) and LiveKit (the call itself). They process it to answer you."))
+    }
+
+    /// App Store 5.1.2(i): whatever the copy says later, it names every company
+    /// the call's audio and words go to, and what they do with it.
+    func testConsentNamesEveryProcessorAndWhatTheyDo() {
+        for processor in ["Google (Gemini)", "Anthropic (Claude)", "Cartesia (speech)", "LiveKit (the call itself)"] {
+            XCTAssertTrue(ConsentView.body.contains(processor), "the consent drops \(processor)")
+        }
+        XCTAssertTrue(ConsentView.body.contains("They process it to answer you."), "and what they do with it")
     }
 }
