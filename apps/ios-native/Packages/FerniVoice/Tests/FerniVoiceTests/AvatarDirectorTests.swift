@@ -160,7 +160,7 @@ final class AvatarDirectorTests: XCTestCase {
         XCTAssertEqual(d.pose, .speaking, "a blip under a second doesn't show")
         _ = d.tick(now: ms(1300))
         XCTAssertEqual(d.pose, .reconnecting)
-        XCTAssertEqual(d.expression, .sleepy)
+        XCTAssertEqual(d.expression, .attentive, "waiting, eyes open; sleepy read as asleep")
         XCTAssertEqual(d.send(.failed, now: ms(1400)), [.haptic(.error)])
         XCTAssertEqual(d.pose, .error)
         XCTAssertEqual(d.expression, .concerned)
