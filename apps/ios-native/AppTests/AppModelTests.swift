@@ -20,6 +20,20 @@ final class AppModelTests: XCTestCase {
         XCTAssertFalse(model.call.isActive)
     }
 
+    /// Parity item 5: back after a few seconds, the avatar's double take is
+    /// asked for (HomeView passes the count on); not after a second.
+    func testAShortReturnBumpsTheDoubleTake() {
+        let model = model()
+        let now = Date()
+        model.wentAway(now: now)
+        model.cameBack(now: now + 1)
+        XCTAssertEqual(model.doubleTakeCount, 0)
+        model.wentAway(now: now + 2)
+        model.cameBack(now: now + 8)
+        XCTAssertEqual(model.doubleTakeCount, 1)
+        XCTAssertEqual(model.wakeCount, 0)
+    }
+
     func testATeammateNotOnTheTeamMeansFerniAnswers() {
         let model = model()
         model.talk(to: "nayan")

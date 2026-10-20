@@ -29,7 +29,7 @@ public struct AvatarView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
-    @State private var rig = AliveRig()
+    @State private var rig: AliveRig
     @State private var woke = Date()
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     @State private var hot = ProcessInfo.processInfo.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue
@@ -53,7 +53,7 @@ public struct AvatarView: View {
     public init(
         persona: WindowPersona, expression: AvatarExpression, activity: AvatarActivity,
         name: String = "Ferni", covered: Bool = false, wake: Int = 0, doubleTake: Int = 0, personSpeaking: Bool = false,
-        micro: MicroBeat? = nil, moment: MomentBeat? = nil,
+        micro: MicroBeat? = nil, moment: MomentBeat? = nil, rig: AliveRig? = nil,
         level: @escaping @Sendable () -> Float = { 0 },
         reading: Bool = false, onCue: ((KeyedCue) -> Void)? = nil
     ) {
@@ -70,6 +70,7 @@ public struct AvatarView: View {
         self.personSpeaking = personSpeaking
         self.micro = micro
         self.moment = moment
+        _rig = State(initialValue: rig ?? AliveRig())
     }
 
     public var body: some View {

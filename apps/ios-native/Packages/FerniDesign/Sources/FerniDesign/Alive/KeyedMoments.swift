@@ -50,6 +50,8 @@ public enum KeyedCue: Equatable, Sendable {
     case touch
     /// A finger held near Ferni: he noticed it (the prototype's "huh").
     case notice
+    /// The double take's snap back: a little start (the prototype's "huh" there too).
+    case startle
 }
 
 /// Hand-keyed moments: poses on exact frames at 60 fps, each key with its own
