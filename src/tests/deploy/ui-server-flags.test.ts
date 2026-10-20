@@ -31,6 +31,9 @@ const SERVER_FLAGS = [
   'COHORT_FLAGS=on',
   'PROACTIVE_CHANNELS=on',
   'FOLLOW_THROUGH_JOB=on',
+  // Alex's 8am text brief: the job runs, but sends only to people whose own flag is on
+  // (feature_flag_overrides; Seth only, 2026-10-19). MORNING_BRIEF_COMMITMENTS stays off.
+  'MORNING_BRIEF=on',
 ];
 
 /** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */
