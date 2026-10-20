@@ -74,6 +74,14 @@ describe('statesUnder18: their own stated age or grade, nothing else', () => {
     "I'm in high school now, and I hate it",
     "I'm in 8th grade and my mom is picking me up",
     "I'm turning 18 next week",
+    // when unsure, the caller's own words: the exclusions stay narrow
+    "I'm in 8th grade and my kids at school are mean",
+    "I'm a sophomore, my parents' kids are loud",
+    "I'm 15 years old, was wondering",
+    "I'm 14 years old when I'm with my dad",
+    "I just said I'm 14",
+    "I already said I'm 14 years old",
+    "I literally said I'm 14",
   ])('flags %j', (said) => {
     expect(statesUnder18(said)).toBe(true);
   });
@@ -152,6 +160,7 @@ describe('statesUnder18: their own stated age or grade, nothing else', () => {
     "I'm in high school now, waiting for my son",
     "I'm in middle school pickup with my son",
     "I'm a high school teacher",
+    "I'm a freshman in college",
     // school words that aren't their school
     'I go to high school football games',
     'I attend high school games',
