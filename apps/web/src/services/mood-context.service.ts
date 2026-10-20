@@ -152,8 +152,8 @@ const SPECIAL_DATES: Record<string, SpecialDate> = {
     note: 'New beginnings. What do you want this year to mean?',
   },
   
-  // Thanksgiving (US) - approximate
-  '11-28': {
+  // Thanksgiving (US): the fourth Thursday of November, computed for this year
+  [`11-${21 + 1 + ((4 - new Date(new Date().getFullYear(), 10, 1).getDay() + 7) % 7)}`]: {
     name: 'thanksgiving',
     mood: 'grateful',
     energyModifier: 0.05,

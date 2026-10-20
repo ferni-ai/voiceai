@@ -41,11 +41,14 @@ import { createLogger } from '../../utils/safe-logger.js';
 import {
   addEndCallTool,
   attachPhoneHangUp,
+  CRISIS_HOLD,
   deleteRoom,
   END_CALL,
+  holdEndCallForCrisis,
   type HangUp,
 } from './phone-goodbye.js';
-import { markFarewell, watchFarewell } from './call-farewell.js';
+import { clearFarewell, markFarewell, watchFarewell } from './call-farewell.js';
+import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { isSessionClosing, markSessionClosing } from './session-closing-tracker.js';
 
 const log = createLogger({ module: 'call-wrap-up' });
@@ -62,8 +65,8 @@ export function goodbyeEndsCallEnabled(env: Env = process.env): boolean {
 export const WRAP_UP_DESCRIPTION =
   'End this call. Use it ONLY after a mutual goodbye: the caller has said goodbye and you have ' +
   'already said your own goodbye in this reply. Never mid-conversation, never after a pause or ' +
-  'when they might have more to say, and never on a heavy or crisis call unless the caller has ' +
-  'clearly ended it themselves. Your goodbye finishes playing before the call closes.';
+  'when they might have more to say. It never ends a call that has had a crisis moment: the ' +
+  'caller ends that one. Your goodbye finishes playing before the call closes.';
 
 /** The app's goodbye sound before it disconnects. */
 export const DISCONNECT_DELAY_MS = 800;
@@ -88,7 +91,8 @@ const wrapping = new Set<string>();
 
 /**
  * Ends the call: playout, closing, `conversation_end`, then the room after a
- * grace period. Returns false, doing nothing, when the call is already ending.
+ * grace period. Returns false, doing nothing, when the call is already ending,
+ * or ending nothing when crisis risk appeared while the goodbye played.
  */
 export async function wrapUpCall(
   call: WrapUpCall,
@@ -105,6 +109,12 @@ export async function wrapUpCall(
   } catch (error) {
     // End anyway: a cut-off goodbye beats a room left open
     log.warn({ sessionId, error: String(error) }, 'CALL_WRAP_UP playout did not finish');
+  }
+  // Crisis risk that appeared while the goodbye played: the call carries on
+  if (holdEndCallForCrisis(sessionId, 'app', 'after_playout')) {
+    wrapping.delete(sessionId);
+    clearFarewell(sessionId);
+    return false;
   }
   markSessionClosing(sessionId);
   const signal = call.signal ?? sendFrontendSignal;
@@ -126,6 +136,7 @@ async function closeRoomIfStillThere(call: WrapUpCall, reason: WrapUpReason): Pr
   const { sessionId, roomName } = call;
   try {
     if (!call.callerInRoom()) return;
+    if (holdEndCallForCrisis(sessionId, 'app', 'before_delete')) return;
     await (call.hangUp ?? deleteRoom)(roomName);
     log.info({ sessionId, roomName, reason }, 'CALL_WRAP_UP room deleted; caller was still in it');
   } catch (error) {
@@ -135,15 +146,19 @@ async function closeRoomIfStillThere(call: WrapUpCall, reason: WrapUpReason): Pr
   }
 }
 
-/** The endCall tool for an app call. It asks for no reply: there is nothing left to say. */
+/**
+ * The endCall tool for an app call. It asks for no reply: there is nothing left
+ * to say. On a call with crisis risk it ends nothing and tells Ferni to stay.
+ */
 export function createWrapUpTool(call: WrapUpCall): llm.ToolContext['functionTools'][string] {
   return llm.tool({
     name: END_CALL,
     description: WRAP_UP_DESCRIPTION,
     parameters: z.object({}),
     execute: async (_args, { ctx }) => {
-      await wrapUpCall(call, 'goodbye_complete', async () => ctx.waitForPlayout());
-      return undefined;
+      if (holdEndCallForCrisis(call.sessionId, 'app')) return CRISIS_HOLD;
+      const began = await wrapUpCall(call, 'goodbye_complete', async () => ctx.waitForPlayout());
+      return began || !crisisRiskThisCall(call.sessionId) ? undefined : CRISIS_HOLD;
     },
   });
 }

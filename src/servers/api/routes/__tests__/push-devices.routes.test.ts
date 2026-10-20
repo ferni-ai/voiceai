@@ -105,6 +105,20 @@ describe('POST /api/push/devices', () => {
     expect(await listDevices('bob')).toEqual([]);
   });
 
+  it("answers with the caller's own recipient tag, the one their pushes carry, never the uid", async () => {
+    vi.stubEnv('LOG_HASH_SECRET', 'test-secret');
+    const { recipientTag } = await import('../../../../services/ios-push.js');
+
+    const res = await call('POST', DEVICE, as('alice-uid-123'));
+
+    const body = JSON.parse(res.body) as { success?: boolean; recipientTag?: string };
+    expect(body).toEqual({ success: true, recipientTag: recipientTag('alice-uid-123') });
+    expect(body.recipientTag).toMatch(/^[A-Za-z0-9_-]{22}$/);
+    expect(body.recipientTag).not.toBe(recipientTag('bob'));
+    expect(res.body).not.toContain('alice-uid-123');
+    vi.unstubAllEnvs();
+  });
+
   it('lets an anonymous Firebase user register', async () => {
     const res = await call('POST', DEVICE, as('anon-1', 'anon'));
     expect(res.status).toBe(200);

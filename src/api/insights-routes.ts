@@ -284,8 +284,10 @@ async function handleGetInsights(
       }));
     }
 
-    if (upcomingDates.length > 0) {
-      holding.upcomingDates = upcomingDates.slice(0, 2).map((d) => ({
+    // Only dates the user told us about: a calendar holiday is not something they shared
+    const sharedDates = upcomingDates.filter((d) => !d.date.id.startsWith('universal_'));
+    if (sharedDates.length > 0) {
+      holding.upcomingDates = sharedDates.slice(0, 2).map((d) => ({
         name: d.date.name,
         daysUntil: d.daysUntil,
       }));
