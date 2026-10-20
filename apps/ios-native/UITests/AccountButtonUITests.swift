@@ -17,4 +17,15 @@ final class AccountButtonUITests: XCTestCase {
         XCTAssertTrue(Screen.home.ready(in: app).waitForExistence(timeout: 20))
         XCTAssertTrue(app.buttons["Account and settings"].waitForExistence(timeout: 5), "the account button at home")
     }
+
+    /// Design audit P2 #18: it was 48 by 36 pt, under the 44 pt minimum.
+    func testTheAccountButtonIsAFullSizeTarget() {
+        let app = XCUIApplication.ferni(.home)
+        let account = app.buttons["Account and settings"]
+        XCTAssertTrue(account.waitForExistence(timeout: 20))
+        // 44 pt, give or take the pixel grid.
+        attachScreenshot("home-account-button")
+        XCTAssertGreaterThanOrEqual(account.frame.width, 43.5, "\(account.frame)")
+        XCTAssertGreaterThanOrEqual(account.frame.height, 43.5, "\(account.frame)")
+    }
 }
