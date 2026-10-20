@@ -368,6 +368,7 @@ struct CallMoreSheet: View {
                     }
                 }
             }
+            .ferniPaper()
             .navigationTitle("More")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -375,7 +376,10 @@ struct CallMoreSheet: View {
             }
             .tint(FerniColor.accent)
         }
-        // Half height over the call; drag up for the rest.
+        // Half height over the call; drag up for the rest. On paper, not glass:
+        // through it End's red and the captions showed behind the 988 rows
+        // (design audit P2 #3).
         .presentationDetents([.medium, .large])
+        .presentationBackground(FerniColor.background)
     }
 }
