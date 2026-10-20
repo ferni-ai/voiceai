@@ -364,8 +364,9 @@ final class AccountStoreTests: XCTestCase {
 
     /// What Seth hit (2026-10-19): the reCAPTCHA page blocked by the API key's
     /// iOS-only restriction (17062), and before that 17054. Ferni's setup, said
-    /// as such, pointing to Google; anything unknown shows its code.
-    func testSetupProblemsSaySoAndUnknownsShowTheirCode() {
+    /// as such, pointing to Google. Anything unknown keeps its code for the logs
+    /// but never shows it (design audit P1-16: "(error 17020)" reached the screen).
+    func testSetupProblemsSaySoAndUnknownsKeepTheirCodeOffScreen() {
         func mapped(_ code: Int, phone: Bool) -> Error {
             FirebaseAuthBackend.signInError(NSError(domain: "FIRAuthErrorDomain", code: code), phone: phone)
         }
@@ -375,7 +376,13 @@ final class AccountStoreTests: XCTestCase {
         XCTAssertTrue(SignInError.phoneUnavailable.message?.contains("Google") == true)
         let unknown = SignInError.from(mapped(17999, phone: true))
         XCTAssertEqual(unknown, .other(code: 17999))
-        XCTAssertTrue(unknown.message?.contains("17999") == true)
+        XCTAssertEqual(unknown.message, "That didn't go through. Try again?")
+        // A network failure from a step that didn't map it is still "offline".
+        XCTAssertEqual(SignInError.from(NSError(domain: "FIRAuthErrorDomain", code: 17020)), .offline)
+        XCTAssertEqual(SignInError.from(NSError(domain: NSURLErrorDomain, code: NSURLErrorNotConnectedToInternet)), .offline)
+        for code in [17020, 17999, 12345] {
+            XCTAssertFalse(SignInError.other(code: code).message?.contains(String(code)) == true, "no raw \(code) on screen")
+        }
     }
 
     /// Deleting the account is the one way back to a fresh anonymous start.

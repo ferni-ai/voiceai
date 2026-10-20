@@ -79,12 +79,20 @@ public enum SignInError: Error, Equatable, Sendable {
     case unavailable
     /// The reCAPTCHA check (phone sign-in without push) didn't pass.
     case robotCheckFailed
-    /// Anything else, with Firebase's code for whoever helps.
+    /// Anything else. The code is for the logs and whoever helps, never the screen.
     case other(code: Int?)
 
-    /// The words for any error a sign-in step threw.
+    /// The words for any error a sign-in step threw. A network failure is
+    /// "offline" whichever step threw it: a raw "(error 17020)", Firebase's
+    /// network error, could reach the screen from steps that didn't map it
+    /// (design audit P1-16).
     public static func from(_ error: Error) -> SignInError {
-        error as? SignInError ?? .other(code: (error as NSError).code)
+        if let known = error as? SignInError { return known }
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain || (ns.domain == "FIRAuthErrorDomain" && [17020, 17061].contains(ns.code)) {
+            return .offline
+        }
+        return .other(code: ns.code)
     }
 
     /// Nil when there's nothing to say (the person cancelled).
@@ -98,8 +106,7 @@ public enum SignInError: Error, Equatable, Sendable {
         case .phoneUnavailable: "Phone sign-in isn't working on Ferni's side right now. Try Continue with Google."
         case .unavailable: "Signing in isn't working on Ferni's side right now. Try again a little later."
         case .robotCheckFailed: "The robot check didn't go through. Try again."
-        case .other(let code?): "That didn't go through (error \(code)). Try again?"
-        case .other(nil): "That didn't go through. Try again?"
+        case .other: "That didn't go through. Try again?"
         }
     }
 }
