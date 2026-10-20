@@ -112,6 +112,17 @@ final class FaceTests: XCTestCase {
         XCTAssertEqual(Face.of("sleepy").effect, "z", "other faces keep theirs")
     }
 
+    /// Expression audit P2 #6: the asymmetry token did nothing on raised-lid
+    /// faces. One eye stays wide, the other drops a little.
+    func testAsymmetryShowsOnRaisedLids() {
+        for id in ["curious", "bewildered"] {
+            let f = Face.of(id)
+            XCTAssertGreaterThan(abs(f.left.top - f.right.top), 0.07, "\(id): \(f.left.top) / \(f.right.top)")
+        }
+        XCTAssertEqual(Face.of("curious").left.top, 0, "curious: the bigger left eye stays wide")
+        XCTAssertEqual(Face.of("bewildered").right.top, 0, "bewildered: the bigger right eye stays wide")
+    }
+
     /// Expression audit P2 #3: 17 faces sparkled twice a second; the tokens
     /// give sparkles to five, at set strengths.
     func testOnlyTheTokensSparklingFacesSparkle() {

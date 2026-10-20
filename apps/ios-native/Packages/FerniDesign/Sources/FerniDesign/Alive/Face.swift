@@ -187,8 +187,15 @@ public struct Face: Equatable, Sendable {
         f.left = eye(e.eyeLeft)
         f.right = eye(e.eyeRight)
         if let asym = e.lidTop?.asymmetry, asym != 0 {
-            f.left.top = clamp(f.left.top * (1 + asym * 2), 0, 1)
-            f.right.top = clamp(f.right.top * (1 - asym), 0, 1)
+            if max(f.left.top, f.right.top) > 0.01 {
+                f.left.top = clamp(f.left.top * (1 + asym * 2), 0, 1)
+                f.right.top = clamp(f.right.top * (1 - asym), 0, 1)
+            } else {
+                // Raised lids (curious, bewildered): scaling a lid at 0 did nothing
+                // (expression audit P2 #6). One eye stays wide and the other
+                // drops a little, the smaller one by the tokens' own eye sizes.
+                if f.left.sy < f.right.sy { f.left.top = asym * 0.5 } else { f.right.top = asym * 0.5 }
+            }
         }
         let body = BodyTransform(e.body?.transform)
         f.gx = (e.eyesGroup?.translateX ?? 0) * 0.09
