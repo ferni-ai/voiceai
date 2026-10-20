@@ -57,29 +57,31 @@ public struct RoomFade: View {
 public struct RoomLight: Equatable, Sendable {
     /// Persona wash opacity, within the north star's 6-10%.
     public let wash: Double
-    public let tint: Color
+    /// The tint as sRGB components (Ferni's own light takes it too).
+    public let tintRGB: SIMD3<Double>
     public let tintOpacity: Double
+    public var tint: Color { Color(red: tintRGB.x, green: tintRGB.y, blue: tintRGB.z) }
 
     public init(hour: Int) {
         switch hour {
         case 5..<11: // morning: warmer, brighter
             wash = 0.10
-            tint = Color(red: 1, green: 0.85, blue: 0.6)
+            tintRGB = SIMD3(1, 0.85, 0.6)
             tintOpacity = 0.04
         case 11..<18: // day: as designed
             wash = 0.08
-            tint = .clear
+            tintRGB = SIMD3(1, 1, 1)
             tintOpacity = 0
         // Evening and night keep the day's wash: at 0.07/0.06 Apple's audit failed
         // Home's secondary line on contrast (2026-10-19), though its pixels measure
         // 6.5:1. AccessibilityAuditTests.testHome checks every band.
         case 18..<23: // evening
             wash = 0.08
-            tint = Color(red: 1, green: 0.7, blue: 0.4)
+            tintRGB = SIMD3(1, 0.7, 0.4)
             tintOpacity = 0.04
         default: // late night: a little more amber
             wash = 0.08
-            tint = Color(red: 0.9, green: 0.55, blue: 0.25)
+            tintRGB = SIMD3(0.9, 0.55, 0.25)
             tintOpacity = 0.07
         }
     }
