@@ -18,7 +18,7 @@ import { DURATION, prefersReducedMotion } from '../config/animation-constants.js
 import { isNoStreaksOn } from '../config/no-streaks.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { ICONS, injectSharedStyles, escapeHtml, type IconName } from './engagement-components.js';
-import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { dismissToast, showToast } from './overlay/toast-region.js';
 import {
   NOTIFICATION_COPY,
@@ -102,7 +102,7 @@ class NotificationsUI {
    * Show a notification
    */
   show(notification: Notification): void {
-    if (isOverlayHostEnabled()) {
+    if (isToastRegionEnabled()) {
       this.showInToastRegion(notification);
       return;
     }
