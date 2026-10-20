@@ -14,6 +14,7 @@ import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
 import { openDialog, type DialogHandle } from './overlay/dialog.js';
 import { STYLES } from './mobile-bottom-sheet.styles.js';
 import { isSheetActionVisible } from '../config/menu-visibility.js';
+import { soundSheetAction } from './mobile-sheet-sound.js';
 
 // ============================================================================
 // TYPES
@@ -373,6 +374,7 @@ function getDefaultActions(): BottomSheetAction[] {
         window.dispatchEvent(new CustomEvent('ferni:open-people'));
       },
     },
+    soundSheetAction(), // Sound effects on/off, without closing the sheet (mobile-sheet-sound.ts)
     {
       id: 'insights',
       iconPath: ICON_PATHS.insights,
@@ -397,7 +399,6 @@ function populateActions(actions: BottomSheetAction[]): void {
     button.className = 'mobile-bottom-sheet__action';
     button.setAttribute('data-action', action.id);
 
-    // Create icon container
     const iconContainer = document.createElement('span');
     iconContainer.className = 'mobile-bottom-sheet__action-icon';
     if (action.color) {
@@ -406,7 +407,6 @@ function populateActions(actions: BottomSheetAction[]): void {
     iconContainer.appendChild(createSvgIcon(action.iconPath));
     button.appendChild(iconContainer);
 
-    // Create label
     const label = document.createElement('span');
     label.className = 'mobile-bottom-sheet__action-label';
     label.textContent = action.label;

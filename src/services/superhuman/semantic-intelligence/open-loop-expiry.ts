@@ -9,6 +9,11 @@
  * @module services/superhuman/semantic-intelligence/open-loop-expiry
  */
 
+import { getFirestoreDb } from '../firestore-utils.js';
+import { createLogger } from '../../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'open-loop-expiry' });
+
 /** Days past followUpBefore after which an open loop is closed as expired. */
 export const OPEN_LOOP_GRACE_DAYS = 7;
 
@@ -30,4 +35,52 @@ export function shouldExpireLoop(loop: LoopTiming, now: Date = new Date()): bool
   const before = loop.followUpBefore.getTime();
   if (loop.status !== 'open') return false;
   return !Number.isFinite(before) || now.getTime() > before + OPEN_LOOP_GRACE_DAYS * DAY_MS;
+}
+
+/**
+ * Close a stored loop as expired: update() of the status only, so nothing else in the doc is
+ * rewritten from the (possibly stale) loaded copy. The semantic index stops treating it as
+ * something to follow up on.
+ */
+export async function expireStoredLoop(
+  userId: string,
+  loop: { id: string; type?: string },
+  /** The semantic-index hook (open-loops hands in onCoachingInsightChange) */
+  onIndexChange?: (
+    userId: string,
+    id: string,
+    data: {
+      insight: string;
+      context: string;
+      personaId: string;
+      category: 'follow_up';
+      actionable: boolean;
+    },
+    op: 'update'
+  ) => unknown
+): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) return;
+  try {
+    await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('open_loops')
+      .doc(loop.id)
+      .update({ status: 'expired' });
+    void onIndexChange?.(
+      userId,
+      `open_loop_${loop.id}`,
+      {
+        insight: `Open loop (${loop.type ?? 'item'}) expired`,
+        context: 'Status: expired',
+        personaId: 'ferni',
+        category: 'follow_up',
+        actionable: false,
+      },
+      'update'
+    );
+  } catch (error) {
+    log.warn({ error: String(error), userId, loopId: loop.id }, 'Failed to expire open loop');
+  }
 }
