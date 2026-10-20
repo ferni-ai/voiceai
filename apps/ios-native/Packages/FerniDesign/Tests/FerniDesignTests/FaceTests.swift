@@ -112,6 +112,17 @@ final class FaceTests: XCTestCase {
         XCTAssertEqual(Face.of("happy").effect, "sparkle", "other families keep theirs")
     }
 
+    /// The last twins, told apart by pose: resolute is steady, half determined's
+    /// glare and no lower-lid push; nervous lifts its inner corners on a tense lid.
+    func testResoluteIsSteadyAndNervousIsTense() {
+        XCTAssertEqual(Face.of("determined").tilt, -0.6)
+        XCTAssertEqual(Face.of("resolute").tilt, -0.3)
+        XCTAssertLessThan(Face.of("resolute").left.bot, Face.of("determined").left.bot)
+        XCTAssertEqual(Face.of("nervous").tilt, 0.3)
+        XCTAssertGreaterThanOrEqual(Face.of("nervous").left.top, 0.16)
+        XCTAssertEqual(Face.of("anxious").tilt, 0.45, "anxious keeps its furrowed worry")
+    }
+
     func testAnUnknownExpressionIsNeutral() {
         XCTAssertEqual(Face.of("not-a-face"), Face.of("neutral"))
         XCTAssertEqual(Face.of("neutral").left.top, 0.108, accuracy: 1e-9)

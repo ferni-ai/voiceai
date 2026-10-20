@@ -23,10 +23,7 @@ final class ExpressionDistinctnessTests: XCTestCase {
 
     /// Pairs still under the threshold, as found on 2026-10-20 before any fix.
     /// Fixing one makes `testTheKnownTwinsAreStillTwins` fail: remove it here.
-    static let knownTwins: Set<Pair> = [
-        Pair("determined", "resolute"),
-        Pair("listening", "nervous"),
-    ]
+    static let knownTwins: Set<Pair> = []
 
     /// Twins by design, each with why: a still frame can't tell them apart.
     static let allowedTwins: [Pair: String] = [

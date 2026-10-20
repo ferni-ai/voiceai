@@ -146,7 +146,9 @@ public struct Face: Equatable, Sendable {
         let worry = e.lidTop?.furrow == true && !glare
         // The lifted inner corners need a lid to show on: concern's own lids
         // (curve 4-8) sit higher than neutral's.
-        let upper = max(clamp(max(top, 0) * 0.9 * (happy ? 0.6 : 1) / 100, 0, 0.95), worry ? 0.24 : 0)
+        // Nervous: a tense lid for its slightly lifted inner corners to show on.
+        let nervous = e.family == "nervous" && !worry
+        let upper = max(clamp(max(top, 0) * 0.9 * (happy ? 0.6 : 1) / 100, 0, 0.95), worry ? 0.24 : nervous ? 0.16 : 0)
         // The smile crease is a cheek lift, not a line: the lower lids rise and curve
         // up, a little of the happy arch. Drawn as a cream stroke under each eye it
         // read as a floating lower lid (Seth, build .57, 2026-10-20); as a pose it also
@@ -158,7 +160,7 @@ public struct Face: Equatable, Sendable {
         // (expression audit P1 #8: focused and frustrated rendered the same).
         // Present: settled, soft eyes, the lower lids up a touch (it rendered as speaking).
         let soft = id == "present" ? 0.2 : 0
-        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100 + min(cheek, 0.2) + soft, 0, 0.6), worry ? 0.14 : glare ? 0.12 : 0)
+        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100 + min(cheek, 0.2) + soft, 0, 0.6), worry ? 0.14 : glare && id != "resolute" ? 0.12 : 0)
         let arch = happy ? clamp(-bot * 3 / 100, 0, 0.85) : cheek
         let sx = e.eyeWhite?.scaleX ?? 1, sy = e.eyeWhite?.scaleY ?? 1
 
@@ -182,7 +184,10 @@ public struct Face: Equatable, Sendable {
         let body = BodyTransform(e.body?.transform)
         f.gx = (e.eyesGroup?.translateX ?? 0) * 0.09
         f.gy = -(e.eyesGroup?.translateY ?? 0) * 0.09
-        f.tilt = e.lidTop?.droop == true ? 0.5 : worry ? 0.45 : glare ? -0.6 : 0
+        // Resolute is steady, not fierce: half the glare (it rendered as determined).
+        // Nervous lifts its inner corners a little, short of worry (it rendered as listening).
+        f.tilt = e.lidTop?.droop == true ? 0.5 : worry ? 0.45 : glare ? (id == "resolute" ? -0.3 : -0.6)
+            : nervous ? 0.3 : 0
         f.crease = clamp(e.smileCrease?.opacity ?? 0, 0, 1)
         f.halo = clamp(e.presenceRing.map { $0.opacity ?? 0.2 } ?? 0.2, 0, 1)
         f.posY = -body.ty / 100 * 1.6
