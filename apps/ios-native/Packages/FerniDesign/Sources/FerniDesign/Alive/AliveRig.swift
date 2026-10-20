@@ -100,8 +100,21 @@ public final class AliveRig {
 
     // MARK: Moments
 
+    /// What the rig was asked to do, newest last (the last 16): lets a test
+    /// check that a view passed each of its inputs on to the body.
+    public enum Request: Equatable, Sendable {
+        case keyed(KeyedMoment), sequence(String), micro(MicroExpression), doubleTake
+    }
+    public private(set) var requests: [Request] = []
+
+    private func record(_ request: Request) {
+        requests.append(request)
+        if requests.count > 16 { requests.removeFirst(requests.count - 16) }
+    }
+
     /// A hand-keyed moment (arrival, a big win, goodbye).
     public func play(_ moment: KeyedMoment) {
+        record(.keyed(moment))
         keyed = (moment, time, 0)
     }
 
@@ -146,6 +159,7 @@ public final class AliveRig {
     /// remove are left out and the motion is scaled down. Returns whether it plays.
     @discardableResult
     public func play(sequence id: String) -> Bool {
+        record(.sequence(id))
         guard !still, let sequence = SequenceTokens.sequence(id) else { return false }
         if let playing, time < playing.until, SequenceTokens.priority(id) < SequenceTokens.priority(playing.id) { return false }
         let removed = reduceMotion ? SequenceTokens.removedUnderReduceMotion(id) : []
@@ -194,6 +208,7 @@ public final class AliveRig {
     /// felt more than seen. It never cuts a longer flash short, and still
     /// frames don't play it.
     public func micro(_ m: MicroExpression) {
+        record(.micro(m))
         guard !still, let flash = m.flash else { return }
         if let overlay, overlay.until - time > flash.seconds * tempo { return }
         self.flash(flash.face, seconds: flash.seconds)
@@ -323,6 +338,7 @@ public final class AliveRig {
     /// a glance at them, a look away, a held breath with a half blink, then
     /// the snap back with a little start and a flash of surprise.
     public func doubleTake() {
+        record(.doubleTake)
         guard !still, doubleTakeStart == nil, handoff == nil, keyed == nil else { return }
         doubleTakeStart = time
         // Away is where he was looking, or a side glance if that was at them.
@@ -347,6 +363,7 @@ public final class AliveRig {
             squashHold = nil
             gazeTarget = .zero
             micro(.surprise)
+            pending.append(.startle)
             self[.squash].v += 3.4 * m
             self[.posY].v += 1.4 * m
         }

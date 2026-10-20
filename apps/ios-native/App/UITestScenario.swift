@@ -174,6 +174,7 @@ extension UITestScenario {
         static let shared = Counters()
         var touches = 0
         var notices = 0
+        var startles = 0
     }
 }
 
@@ -203,6 +204,12 @@ struct UITestEnvironmentProbe: View {
             .accessibilityIdentifier("uitest.notices")
             .accessibilityLabel(Text(verbatim: "Test notices"))
             .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.notices)"))
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityElement()
+            .accessibilityIdentifier("uitest.startles")
+            .accessibilityLabel(Text(verbatim: "Test startles"))
+            .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.startles)"))
     }
 }
 

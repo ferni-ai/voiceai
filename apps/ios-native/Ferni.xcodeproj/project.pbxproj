@@ -44,6 +44,7 @@
 		78E7BB2CF29B9CB32F9054E3 /* arrival.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = FADB5DC0AC364E861BD63F4D /* arrival.mp3 */; };
 		7AEB4E80F7300B0C87AEB9C2 /* PhoneSignInForwardingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA97A1BA4C871BBC78CCE319 /* PhoneSignInForwardingTests.swift */; };
 		7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974DF185A4FA58E1F08FD688 /* FerniApp.swift */; };
+		7B4E238C055C0630113D7B75 /* AvatarGlueTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9376BA757C00332F94F01A1F /* AvatarGlueTests.swift */; };
 		7C091827B71428685858522D /* FerniWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 3BE4238DB6F5DAD2E6F74A33 /* FerniWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8008F255B971A496A174CC6F /* Notifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E0556D7156242BE3423D87 /* Notifications.swift */; };
 		80B3324091516CE8022F9CFD /* TalkOnPhoneIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA352150CE2DBF9E6254A20 /* TalkOnPhoneIntent.swift */; };
@@ -222,6 +223,7 @@
 		809CE395DF48D6F9DE5DD654 /* TeamRowTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamRowTests.swift; sourceTree = "<group>"; };
 		8E89091B5C3A80108F67BD0F /* TeamSpotlightTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamSpotlightTests.swift; sourceTree = "<group>"; };
 		90F94F51F9D61D01EEED1837 /* handoff-to-peter.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-peter.mp3"; sourceTree = "<group>"; };
+		9376BA757C00332F94F01A1F /* AvatarGlueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarGlueTests.swift; sourceTree = "<group>"; };
 		94F50B2CC9B38F03C94B7E3D /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		974DF185A4FA58E1F08FD688 /* FerniApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FerniApp.swift; sourceTree = "<group>"; };
 		9BD3D9DDFE0E010B045913FF /* CallCueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallCueTests.swift; sourceTree = "<group>"; };
@@ -330,6 +332,7 @@
 			children = (
 				01554191EA22D85DC469F56C /* AccountStatusTests.swift */,
 				0CC5DFCDE2A4B444E3ABC8AA /* AppModelTests.swift */,
+				9376BA757C00332F94F01A1F /* AvatarGlueTests.swift */,
 				E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */,
 				52EB4AF176D7F4E747ABBAA4 /* CallAnnouncementTests.swift */,
 				9BD3D9DDFE0E010B045913FF /* CallCueTests.swift */,
@@ -779,6 +782,7 @@
 			files = (
 				F4FA3A53E53F74B1477513D4 /* AccountStatusTests.swift in Sources */,
 				CF99FB01C1F6E7CF14AF4FCA /* AppModelTests.swift in Sources */,
+				7B4E238C055C0630113D7B75 /* AvatarGlueTests.swift in Sources */,
 				BA62672ACCAD9A10B9C98EBB /* BackgroundModeTests.swift in Sources */,
 				358627D9E201AD0580FC0F1C /* CallAnnouncementTests.swift in Sources */,
 				1982B1CBB32C74D8DB23DA40 /* CallCueTests.swift in Sources */,
