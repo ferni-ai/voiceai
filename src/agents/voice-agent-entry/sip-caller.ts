@@ -133,19 +133,69 @@ export async function readSipCaller(
   options: { updates?: AttributeUpdates; waitMs?: number; env?: Env } = {}
 ): Promise<SipCallerReading> {
   const { updates, waitMs = 1500, env = process.env } = options;
+  const attributes = participant.attributes ?? {};
+  if (participant.kind !== ParticipantKind.SIP && !hasSipAttributes(attributes)) {
+    return reading(participant, { ...attributes }, 0, env);
+  }
+  const got = await collectAttributes(participant, hasIdentityHeader, updates, waitMs);
+  return reading(participant, got.attributes, got.waitedMs, env);
+}
+
+/**
+ * The attestation level of the signed token on this participant, verified
+ * against PHONE_ATTEST_SECRET for exactly `e164`, or null. Waits up to
+ * `waitMs` for the token to land in a later attributes update. The raw
+ * X-Twilio-VerStat header is never read: a missing, malformed, expired,
+ * forged or other-number token, or no secret, is null.
+ */
+export async function readSignedAttestation(
+  participant: SipParticipantLike,
+  e164: string,
+  options: { updates?: AttributeUpdates; waitMs?: number; env?: Env } = {}
+): Promise<SipAttestation | null> {
+  const { updates, waitMs = 1500, env = process.env } = options;
+  if (!env.PHONE_ATTEST_SECRET) {
+    getLogger().warn({ signedReason: 'no-secret' }, 'CALLER_ATTESTATION');
+    return null;
+  }
+  const hasToken = (a: Record<string, string>): boolean => findAttest(a) !== undefined;
+  const { attributes, waitedMs } = await collectAttributes(participant, hasToken, updates, waitMs);
+  const result = verifyPhoneAttestation(findAttest(attributes), {
+    secret: env.PHONE_ATTEST_SECRET,
+    phoneNumber: e164,
+  });
+  getLogger().info(
+    {
+      signedStatus: result.status,
+      ...(result.status === 'invalid' ? { signedReason: result.reason } : {}),
+      waitedMs,
+    },
+    'CALLER_ATTESTATION'
+  );
+  return result.status === 'signed' ? parseVerStat(result.claims.verstat) : null;
+}
+
+/**
+ * The participant's attributes, folding in later attribute updates for up to
+ * `waitMs` until `ready` holds. Returns at once when it already holds or
+ * there are no updates to wait on.
+ */
+function collectAttributes(
+  participant: SipParticipantLike,
+  ready: (attributes: Record<string, string>) => boolean,
+  updates: AttributeUpdates | undefined,
+  waitMs: number
+): Promise<{ attributes: Record<string, string>; waitedMs: number }> {
   const startedAt = Date.now();
   const attributes: Record<string, string> = { ...(participant.attributes ?? {}) };
-  const isSipNow = participant.kind === ParticipantKind.SIP || hasSipAttributes(attributes);
-
-  if (!isSipNow || hasIdentityHeader(attributes) || !updates || waitMs <= 0) {
-    return reading(participant, attributes, 0, env);
+  if (ready(attributes) || !updates || waitMs <= 0) {
+    return Promise.resolve({ attributes, waitedMs: 0 });
   }
-
-  return new Promise<SipCallerReading>((resolve) => {
+  return new Promise((resolve) => {
     const finish = (): void => {
       clearTimeout(timer);
       updates.off('participantAttributesChanged', onChanged);
-      resolve(reading(participant, attributes, Date.now() - startedAt, env));
+      resolve({ attributes, waitedMs: Date.now() - startedAt });
     };
     const onChanged = (changed: Record<string, string>, who: SipParticipantLike): void => {
       const same =
@@ -153,7 +203,7 @@ export async function readSipCaller(
         (who?.identity !== undefined && who.identity === participant.identity);
       if (!same) return;
       Object.assign(attributes, participant.attributes ?? {}, changed);
-      if (hasIdentityHeader(attributes)) finish();
+      if (ready(attributes)) finish();
     };
     const timer = setTimeout(finish, waitMs);
     updates.on('participantAttributesChanged', onChanged);
