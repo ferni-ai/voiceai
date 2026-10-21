@@ -28,6 +28,24 @@ final class MemoryJournalTests: XCTestCase {
         }
     }
 
+    /// Critic L7: a rewrite only when every pronoun still agrees. A he/she/they
+    /// that could be you stays as Ferni wrote it; one that's plainly the
+    /// relative's is fine.
+    func testARewriteOnlyWhenThePronounsAgree() {
+        let said: [(String, String)] = [
+            ("User's sister lives in Lisbon with her husband", "Your sister lives in Lisbon with her husband"),
+            ("Mom's knee surgery went well; she's home", "Your mom's knee surgery went well; she's home"),
+            ("Brother Sam got his license", "Your brother Sam got his license"),
+            ("Has a dog called Biscuit", "You have a dog called Biscuit"),
+        ]
+        for (note, rewritten) in said { XCTAssertEqual(MemoryJournal.toYou(note), rewritten, note) }
+        for note in ["Has a dog; his name is Biscuit", "User likes their coffee strong",
+                     "The user said she runs on Sundays", "User's sister calls him every Sunday",
+                     "User's boss promoted her", "Loves her garden", "Sister Ana visits them in May"] {
+            XCTAssertEqual(MemoryJournal.toYou(note), note, "left as written")
+        }
+    }
+
     func testNewestFirstByWhenItWasLearned() {
         let now = Date(timeIntervalSince1970: 1_800_000_000)
         func note(_ id: String, daysAgo: Double?, kind: String = "fact") -> MemoryStore.Note {
