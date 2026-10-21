@@ -45,9 +45,17 @@ final class AccessibilityAuditTests: XCTestCase {
             held.append(Unnamed(issue))
             return true
         }
-        try underTheFloor(app, cut: cut, floor: floor, name: name)
+        // The nudge first, from where the first pass was: the floor pass scrolls,
+        // and before, the nudge's "second position" was the floor's (critic M-A).
+        try nudge(app, held: held, name: name, allowed: nudges)
+        try underTheFloor(app, cut: cut, floor: Self.floor(app).top, name: name)
+    }
+
+    /// The one allowance for findings with no element: the screen is nudged
+    /// exactly 120 pt, and the same type in both positions fails.
+    private func nudge(_ app: XCUIApplication, held: [Unnamed], name: String, allowed: Bool) throws {
         guard !held.isEmpty else { return }
-        guard nudges else {
+        guard allowed else {
             for h in held { XCTFail("AUDIT [\(name)] no element: \(h.what)") }
             return
         }
@@ -56,7 +64,10 @@ final class AccessibilityAuditTests: XCTestCase {
         let texts = app.staticTexts.allElementsBoundByIndex.prefix(12)
         let before = texts.map(\.frame)
         let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
-        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -120)))
+        // Exactly 120 pt: a quick drag flung the list ~300 pt, a different second
+        // position each run (critic H-A); slow and held, it stops where it's let go.
+        start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -120)),
+                    withVelocity: 200, thenHoldForDuration: 0.5)
         sleep(1)
         let moved = zip(before, texts.map { $0.exists ? $0.frame : .zero }).contains { abs($0.minY - $1.minY) > 20 }
         guard moved else {
@@ -83,7 +94,8 @@ final class AccessibilityAuditTests: XCTestCase {
     /// The top of the floor: the pinned button (Home's Talk, sign-in's "Text me
     /// a code") and the paper behind it, a little above the button.
     static func floor(_ app: XCUIApplication) -> (top: CGFloat, button: CGRect) {
-        let talk = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Talk'")).firstMatch
+        // By identifier: "Talk" matched "Talk about this" and iPad's sidebar row (critic L).
+        let talk = app.buttons["home.talk"]
         let pinned = talk.exists ? talk : app.buttons["signIn.continue"]
         return pinned.exists ? (pinned.frame.minY - 24, pinned.frame) : (app.frame.maxY, .null)
     }
@@ -138,6 +150,19 @@ final class AccessibilityAuditTests: XCTestCase {
             }
         }
         return (failing, waved)
+    }
+
+    /// The whole floor path can go red: a faint line planted a screen below the
+    /// floor on Home is scrolled into full view, is still faint, and fails.
+    func testTheFloorRuleStillFails() throws {
+        var seen: [String] = []
+        let options = XCTExpectedFailure.Options()
+        options.issueMatcher = { issue in seen.append(issue.compactDescription); return true }
+        XCTExpectFailure("the floor rule must fail the faint planted line", options: options) {
+            try? audit(.home, size: .standard, extra: ["-FerniFloorFixture", "YES"])
+        }
+        XCTAssertTrue(seen.contains { $0.contains("in full view too") && $0.contains("faint words under the floor") },
+                      "failed in full view: \(seen)")
     }
 
     /// The floor rule itself: in full view it's judged like any other text.
