@@ -461,6 +461,25 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(tokens.requests.count, 2)
     }
 
+    /// A dropped call whose rejoin Ferni never joins ends as a lost connection,
+    /// after exactly one fresh room and token: no second rejoin attempt, and
+    /// no rejoining again after the rejoin fails (the train's verifier: no
+    /// test covered a failed rejoin, so either loop shipped green).
+    func testAFailedRejoinEndsTheCallAfterOneFreshRoom() async {
+        let session = makeSession(timeout: .milliseconds(150), arriving: .milliseconds(50))
+        session.start()
+        await until(session.phase == .live)
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+
+        rooms.made[0].send(.disconnected(byUs: false))
+
+        await until(session.phase == .failed(.connectionLost))
+        try? await Task.sleep(for: .milliseconds(600)) // four more deadlines' worth
+        XCTAssertEqual(session.phase, .failed(.connectionLost))
+        XCTAssertEqual(rooms.made.count, 2, "the first room and one fresh room")
+        XCTAssertEqual(tokens.requests.count, 2, "and one fresh token")
+    }
+
     /// A different person doesn't inherit the last call's card or captions.
     func testForgettingTheLastCallClearsItsTraces() async {
         let session = makeSession()
