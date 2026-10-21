@@ -43,6 +43,8 @@ enum UITestScenario: String {
     /// `-FerniAuditFixture`: a deliberately faint, unlabelled line mid-screen,
     /// so AccessibilityAuditTests can prove its gate still fails on one.
     static let auditFixture = flag("-FerniAuditFixture")
+    /// Plants a faint line below the floor on Home, to prove the floor rule can fail.
+    static let floorFixture = flag("-FerniFloorFixture")
     /// Store screenshots: a person who has talked before, with a team and notes
     /// (canned answers from a fake API, fake first names only).
     static let storeData = flag("-FerniStoreData")
@@ -289,6 +291,21 @@ struct AuditFixture: View {
         .foregroundStyle(Color(white: 0.93))
         .padding(12)
         .background(Color(red: 0.98, green: 0.973, blue: 0.961))
+        .allowsHitTesting(false)
+    }
+}
+
+/// A faint line a screen below the floor, in Home's scroll content: scrolled
+/// into full view it's still faint, so the floor rule must fail it.
+struct FloorFixture: View {
+    let below: CGFloat
+    var body: some View {
+        VStack(spacing: 0) {
+            Color.clear.frame(height: below)
+            Text(verbatim: "faint words under the floor, two lines of them so they cross it")
+                .font(.body)
+                .foregroundStyle(Color(white: 0.93))
+        }
         .allowsHitTesting(false)
     }
 }
