@@ -137,20 +137,24 @@ async function sweep(): Promise<string[]> {
   return added;
 }
 
-function controlStore(key: string) {
+function controlStore(key: string, value = 'old') {
   const written: Array<Record<string, unknown>> = [];
-  const old = { entityName: 'User', key, value: 'old', confidence: 0.9 };
+  const forgotten: string[] = [];
+  const old: Record<string, unknown> = { entityName: 'User', key, value, confidence: 0.9 };
   const store: MemoryControlStore = {
     facts: async () => [{ id: 'f1', data: old }],
     fact: async () => old,
     copies: async () => [{ id: 'f1', data: old }],
     forgotten: async () => [],
-    forget: async () => undefined,
+    forget: async (_u, id, _d, at) => {
+      forgotten.push(id);
+      old.forgottenAt = at;
+    },
     correct: async (_u, _wrong, right) => {
       written.push(right.data);
     },
   };
-  return { store, written };
+  return { store, written, forgotten };
 }
 
 beforeEach(() => {
@@ -197,16 +201,31 @@ describe('SPOKEN_CREDENTIAL_FILTER on', () => {
     expect((await sweep()).sort()).toEqual([...ORDINARY].sort());
   });
 
-  it('a correction that is a code is refused and not written; an ordinary one is', async () => {
-    const pin = controlStore('pin');
-    const refused = await correctRemembered('user-1', 'f1', '2580', pin.store);
-    expect(refused).toEqual({ kind: 'invalid', reason: 'Codes and passwords are not kept' });
-    expect(pin.written).toEqual([]);
+  it('logs the sweep drops as the sweep', async () => {
+    await sweep();
+    const drops = seen.info.filter((a) => a[1] === 'Did not store a spoken credential');
+    expect(drops.map((a) => (a[0] as { writer: string }).writer)).toEqual(['sweep']);
+  });
 
+  it('a correction that is a code is not kept, and forgets the fact it corrects', async () => {
+    const door = controlStore('door_code', '4821');
+    const result = await correctRemembered('user-1', 'f1', '5512', door.store);
+    expect(result).toEqual({ kind: 'not-kept', reason: 'credential' });
+    expect(door.written).toEqual([]);
+    // the old code goes the way the forget button takes it, not left stored
+    expect(door.forgotten).toEqual(['f1']);
+    // trying again finds nothing to correct, so the app shows "not found", not a loop
+    expect(await correctRemembered('user-1', 'f1', '5512', door.store)).toEqual({
+      kind: 'not-found',
+    });
+  });
+
+  it('an ordinary correction is written as before', async () => {
     const age = controlStore('age');
     const kept = await correctRemembered('user-1', 'f1', '35', age.store);
     expect(kept.kind).toBe('corrected');
     expect(age.written.map((d) => d.value)).toEqual(['35']);
+    expect(age.forgotten).toEqual([]);
   });
 });
 
@@ -222,9 +241,10 @@ describe('SPOKEN_CREDENTIAL_FILTER off (the default)', () => {
     expect((await sweep()).sort()).toEqual([...ALL_VALUES].sort());
   });
 
-  it('a correction to a PIN is written', async () => {
-    const pin = controlStore('pin');
-    expect((await correctRemembered('user-1', 'f1', '2580', pin.store)).kind).toBe('corrected');
-    expect(pin.written.map((d) => d.value)).toEqual(['2580']);
+  it('a correction to a door code is written, and nothing is forgotten outside it', async () => {
+    const door = controlStore('door_code', '4821');
+    expect((await correctRemembered('user-1', 'f1', '5512', door.store)).kind).toBe('corrected');
+    expect(door.written.map((d) => d.value)).toEqual(['5512']);
+    expect(door.forgotten).toEqual([]);
   });
 });
