@@ -646,7 +646,7 @@ async function handleAccountDeletion(
       } catch (firebaseErr) {
         // Firebase deletion is best-effort - don't fail the whole request
         log.warn(
-          { error: String(firebaseErr), userId: `${userId.substring(0, 8)}...` },
+          { error: erasureErrorCode(firebaseErr), userId: `${userId.substring(0, 8)}...` },
           'Firebase user deletion failed (non-fatal)'
         );
       }

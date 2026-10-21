@@ -261,7 +261,7 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
         log.info({ userId: `${userId.substring(0, 8)}...` }, 'Firebase user deleted');
       } catch (firebaseErr) {
         log.warn(
-          { error: String(firebaseErr), userId: `${userId.substring(0, 8)}...` },
+          { error: erasureErrorCode(firebaseErr), userId: `${userId.substring(0, 8)}...` },
           'Firebase user deletion failed (non-fatal)'
         );
       }
@@ -301,7 +301,7 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
       throw deletionError;
     }
   } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to handle account deletion');
+    log.error({ error: erasureErrorCode(error), userId }, 'Failed to handle account deletion');
     throw error;
   }
 }
@@ -439,7 +439,7 @@ export async function processAppleNotification(rawPayload: string): Promise<Noti
       success: false,
       eventType: event.type,
       userId,
-      error: String(error),
+      error: erasureErrorCode(error),
     };
   }
 }
