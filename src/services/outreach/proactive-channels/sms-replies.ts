@@ -88,7 +88,7 @@ export async function handleProactiveSmsReply(
     if (!userId || !(await isProactiveChannelsUser(userId))) return undefined;
     const said = body.trim().toLowerCase().replace(/\s+/g, ' ');
 
-    if (inboundKeyword(body)?.keyword === 'stop') {
+    if (inboundKeyword(body)?.kind === 'opt-out') {
       await setPrefs(userId, { proactiveFrequency: 'off' });
       log.info({ userId }, 'Proactive check-ins stopped by text');
       return undefined;

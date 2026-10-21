@@ -21,8 +21,8 @@
  * An inbound STOP or START is written to consent/{phoneHash} and to
  * feature_checkin_optouts with or without MESSAGING_PIPELINE, and the guarded
  * sender reads both (outreach/text-consent.ts): honouring a revocation is the
- * law, not a feature. consentBlocks (third-party consent, do-not-call) and the
- * call_opt_outs mirror stay behind MESSAGING_PIPELINE (off by default).
+ * law, not a feature; so is "stop calling" reaching call_opt_outs.
+ * consentBlocks (third-party consent) stays behind MESSAGING_PIPELINE.
  *
  * @module services/messaging/consent
  */
@@ -37,7 +37,7 @@ import {
   toE164,
   type Env,
 } from '../outreach/checkin-replies.js';
-import { inboundKeyword } from './sms-keywords.js';
+import { inboundKeyword, type InboundKeyword } from './sms-keywords.js';
 
 const log = createLogger({ module: 'messaging-consent' });
 
@@ -114,6 +114,23 @@ export async function readConsent(
   return consent;
 }
 
+/** How long a possible opt-out ("please cancel") holds proactive texts at most. */
+export const SMS_PAUSE_MAX_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** True while consent/{hash}.smsPause holds texts: set less than 7 days ago and not yet over. */
+export function smsPaused(doc: Record<string, unknown> | undefined, now: Date): boolean {
+  const p = (doc?.smsPause ?? {}) as { at?: unknown; until?: unknown };
+  const [at, until] = [Date.parse(String(p.at)), Date.parse(String(p.until))];
+  return until > now.getTime() && now.getTime() - at < SMS_PAUSE_MAX_MS;
+}
+
+/** The doc without its pause: an explicit choice (STOP, START, "keep texting") answers it. */
+function unpaused(doc: Record<string, unknown> | undefined): Record<string, unknown> {
+  const rest = { ...doc };
+  delete rest.smsPause;
+  return rest;
+}
+
 /** Every channel in one transaction, so a STOP for texts and calls never lands half-written. */
 async function writeConsent(
   hash: string,
@@ -128,7 +145,7 @@ async function writeConsent(
     const history = Array.isArray(doc?.history) ? (doc.history as unknown[]) : [];
     const changes = channels.map((c) => `${at} ${c} ${state} ${source}`);
     return {
-      ...doc,
+      ...unpaused(doc),
       ...Object.fromEntries(channels.map((c) => [c, { state, source, at }])),
       updatedAt: at,
       keyVersion,
@@ -177,12 +194,34 @@ async function attempt(
   }
 }
 
-/** What an inbound text changes (sms-keywords.ts, the one list), or null for anything else. */
-function consentChange(body: string): ConsentKeyword | null {
-  const said = inboundKeyword(body);
-  if (said?.keyword === 'stop') return { state: 'opted-out', channels: [...said.channels] };
-  if (said?.keyword === 'start') return { state: 'opted-in', channels: [...said.channels] };
+/** What an inbound text changes (sms-keywords.ts, the one reading), or null for anything else. */
+function consentChange(said: InboundKeyword | null): ConsentKeyword | null {
+  if (said?.kind === 'opt-out') return { state: 'opted-out', channels: [...said.channels] };
+  if (said?.kind === 'opt-in') return { state: 'opted-in', channels: [...said.channels] };
   return null;
+}
+
+/** A possible opt-out pauses texts to the phone for 7 days; "keep texting me" lifts it. */
+async function recordPause(e164: string, pause: boolean, deps: ConsentDeps): Promise<void> {
+  const hash = phoneHash(e164, deps.env);
+  if (!hash) return;
+  const now = deps.now();
+  const at = now.toISOString();
+  await attempt('consent pause', last4(e164), async () => {
+    // "keep texting me" with no pause on record changes nothing, so nothing is written.
+    if (!pause && (await deps.store.read(hash))?.smsPause === undefined) return;
+    await deps.store.apply(hash, (doc) => {
+      if (!pause) return unpaused(doc);
+      const history = Array.isArray(doc?.history) ? (doc.history as unknown[]) : [];
+      const until = new Date(now.getTime() + SMS_PAUSE_MAX_MS).toISOString();
+      return {
+        ...doc,
+        smsPause: { at, until, source: 'inbound-sms' },
+        updatedAt: at,
+        history: [...history, `${at} sms paused inbound-sms`].slice(-HISTORY_MAX),
+      };
+    });
+  });
 }
 
 /**
@@ -191,11 +230,11 @@ function consentChange(body: string): ConsentKeyword | null {
  * text at once. It is the one writer of an inbound STOP or START, to both text
  * opt-out stores, flag or not: consent/{phoneHash} and feature_checkin_optouts,
  * which the guarded sender and verification codes read (TCPA: a revocation
- * stops every text). A STOP must never be lost, so each store is written on its
- * own and one failure doesn't skip the rest: the do-not-call list first (it is
- * what call paths read today; only with MESSAGING_PIPELINE on), then consent,
- * then the old text opt-out. Returns the change when consent was saved, else
- * null. Never throws.
+ * stops every text), and "stop calling" to call_opt_outs too. A STOP must never
+ * be lost, so each store is written on its own and one failure doesn't skip the
+ * rest: the do-not-call list first (what call paths read today), then consent,
+ * then the old text opt-out. A possible opt-out only pauses texts (recordPause).
+ * Returns the change when consent was saved, else null. Never throws.
  */
 export async function recordInboundSmsConsent(
   from: unknown,
@@ -203,13 +242,17 @@ export async function recordInboundSmsConsent(
   deps: ConsentDeps = defaultConsentDeps()
 ): Promise<ConsentKeyword | null> {
   if (typeof from !== 'string' || typeof body !== 'string') return null;
-  const keyword = consentChange(body);
-  const e164 = keyword ? toE164(from) : null;
+  const said = inboundKeyword(body);
+  const e164 = said ? toE164(from) : null;
+  if (e164 && (said?.kind === 'maybe-opt-out' || said?.kind === 'resume')) {
+    await recordPause(e164, said.kind === 'maybe-opt-out', deps);
+  }
+  const keyword = consentChange(said);
   if (!keyword || !e164) return null;
   const phoneLast4 = last4(e164);
   const at = deps.now().toISOString();
   // Keyed by number, so it needs no hash secret: written even when the rest can't be.
-  if (messagingPipelineOn(deps.env) && keyword.channels.includes('call')) {
+  if (keyword.channels.includes('call')) {
     await attempt('call_opt_outs', phoneLast4, async () =>
       deps.store.setLegacyCallOptOut(e164, at)
     );

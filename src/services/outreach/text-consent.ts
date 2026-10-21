@@ -7,8 +7,14 @@
  * refuses: an "opted-in" in one never outweighs an opt-out in the other. Until
  * 2026-10-21 only the old store was read here, so a "revoke" or "opt out"
  * (written to consent/ only) did not stop check-ins, reminders, the brief or
- * texts to third parties. Honouring a revocation is the law (TCPA), so no flag
- * turns this off.
+ * texts to third parties. Honouring a revocation is the law (TCPA), so no
+ * feature flag gates it. The one switch that skips it is ON_BEHALF_TEXT_GUARD=off,
+ * the rollback-only kill switch that makes textOnBehalf bypass sendOnBehalfText
+ * (and so every guard) for third-party texts.
+ *
+ * A possible opt-out ("please cancel", sms-keywords.ts) pauses texts to that
+ * phone for up to 7 days (consent/{hash}.smsPause): every text is refused
+ * ('paused') except one the owner asked for just now.
  *
  * Fails closed. If a store can't be read within CONSENT_READ_TIMEOUT_MS, the
  * text is not sent, with one exception: a text the owner asked for just now in
@@ -22,7 +28,7 @@
  */
 import { withTimeout } from '../../utils/async.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { channelOf, firestoreConsentStore } from '../messaging/consent.js';
+import { channelOf, firestoreConsentStore, smsPaused } from '../messaging/consent.js';
 
 const log = createLogger({ module: 'text-consent' });
 
@@ -40,8 +46,8 @@ export interface TextConsentReaders {
 export const readConsentDoc = async (hash: string): Promise<Record<string, unknown> | undefined> =>
   firestoreConsentStore.read(hash);
 
-/** Why a text was refused: an opt-out on record, or a record that couldn't be read. */
-export type ConsentRefusal = 'opted-out' | 'consent-unknown';
+/** Why a text was refused: an opt-out on record, a record that couldn't be read, or a pause. */
+export type ConsentRefusal = 'opted-out' | 'consent-unknown' | 'paused';
 
 /**
  * Null when `hash` may be texted, else why not. `askedNow`: the owner asked
@@ -51,6 +57,7 @@ export async function smsConsentRefusal(
   hash: string,
   readers: TextConsentReaders,
   askedNow: boolean,
+  now: Date,
   timeoutMs: number = CONSENT_READ_TIMEOUT_MS
 ): Promise<ConsentRefusal | null> {
   const [old, current] = await Promise.allSettled([
@@ -61,7 +68,9 @@ export async function smsConsentRefusal(
   const stop =
     current.status === 'fulfilled' && channelOf(current.value?.sms).state === 'opted-out';
   if (oldStop || stop) return 'opted-out';
-  if (old.status === 'fulfilled' && current.status === 'fulfilled') return null;
+  if (old.status === 'fulfilled' && current.status === 'fulfilled') {
+    return smsPaused(current.value, now) && !askedNow ? 'paused' : null;
+  }
   const unread = [old, current].flatMap((r) => (r.status === 'rejected' ? [String(r.reason)] : []));
   const allowed = askedNow && old.status === 'fulfilled';
   log.warn({ error: unread.join('; '), askedNow, sending: allowed }, 'Text opt-out not readable');

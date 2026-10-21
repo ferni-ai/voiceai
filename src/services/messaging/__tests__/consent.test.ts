@@ -74,7 +74,7 @@ describe('recordInboundSmsConsent', () => {
     expect(m.legacySms.has(HASH)).toBe(false);
   });
 
-  it('flag off: a STOP still reaches both text opt-out stores (the law, not a feature); calls stay as today', async () => {
+  it('flag off: "stop calling" still reaches every store, do-not-call included (the law, not a feature)', async () => {
     const m = memoryStore();
     await recordInboundSmsConsent(PHONE, 'stop calling', depsWith(m.store, OFF));
     expect(m.docs.get(HASH)).toMatchObject({
@@ -82,7 +82,31 @@ describe('recordInboundSmsConsent', () => {
       call: { state: 'opted-out' },
     });
     expect(m.legacySms.has(HASH)).toBe(true);
-    expect(m.legacyCall.size).toBe(0);
+    expect(m.legacyCall.has(PHONE)).toBe(true);
+  });
+
+  it('a possible opt-out only pauses texts for 7 days; "keep texting me" lifts it', async () => {
+    const m = memoryStore();
+    const deps = depsWith(m.store, OFF);
+    expect(await recordInboundSmsConsent(PHONE, 'please cancel', deps)).toBeNull();
+    expect(m.docs.get(HASH)?.smsPause).toEqual({
+      at: NOW.toISOString(),
+      until: new Date(NOW.getTime() + 7 * 24 * 3_600_000).toISOString(),
+      source: 'inbound-sms',
+    });
+    expect(m.docs.get(HASH)?.sms).toBeUndefined();
+    expect(m.legacySms.size).toBe(0);
+    await recordInboundSmsConsent(PHONE, 'keep texting me', deps);
+    expect(m.docs.get(HASH)?.smsPause).toBeUndefined();
+  });
+
+  it('an ordinary message that only sounds like one ("cancel my 3pm") writes nothing', async () => {
+    const m = memoryStore();
+    for (const body of ['cancel my 3pm', "don't stop", 'end of day works']) {
+      // eslint-disable-next-line no-await-in-loop
+      expect(await recordInboundSmsConsent(PHONE, body, depsWith(m.store, OFF))).toBeNull();
+    }
+    expect(m.docs.size + m.legacySms.size + m.legacyCall.size).toBe(0);
   });
 
   it('flag off: START and UNSTOP clear both text stores', async () => {

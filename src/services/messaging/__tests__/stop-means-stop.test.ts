@@ -67,12 +67,17 @@ vi.mock('../../outreach/delivery/sms-delivery.js', async (orig) => ({
   isSMSDeliveryAvailable: () => true,
   sendSMS,
 }));
+// The webhook's profile scan finds the owner, so ordinary texts reach the thread router.
 vi.mock('../../../memory/profile-store.js', () => ({
-  getProfileStore: async () => ({ isInitialized: true, listProfiles: async () => [] }),
+  getProfileStore: async () => ({
+    isInitialized: true,
+    listProfiles: async () => [{ id: OWNER_UID, contactInfo: { phone: OWNER } }],
+  }),
 }));
-vi.mock('../../conversation-thread/inbound-router.js', () => ({
-  handleInboundSMS: vi.fn(async () => ({ routeDecision: {}, shouldInitiateCall: false })),
-}));
+const routed = vi.hoisted(() =>
+  vi.fn(async (..._args: unknown[]) => ({ routeDecision: {}, shouldInitiateCall: false }))
+);
+vi.mock('../../conversation-thread/inbound-router.js', () => ({ handleInboundSMS: routed }));
 vi.mock('../../contacts/optimal-timing.js', () => ({
   findContactByPhone: vi.fn(async () => null),
   markContactResponded: vi.fn(),
@@ -84,11 +89,18 @@ const { guardReminderText } = await import('../../outreach/reminder-texts.js');
 const { callUserAdapter } = await import('../../outreach/call-user-adapter.js');
 const { phoneHash } = await import('../../outreach/checkin-replies.js');
 const { CONSENT_READ_TIMEOUT_MS } = await import('../../outreach/text-consent.js');
-const { SMS_KEYWORD_REPLIES } = await import('../sms-keywords.js');
+const { keywordReply, inboundKeyword } = await import('../sms-keywords.js');
 
 const SECRET = 'test-hash-secret';
 const hashOf = (phone: string): string => phoneHash(phone, { LOG_HASH_SECRET: SECRET }) ?? '';
-const CONFIRM = SMS_KEYWORD_REPLIES.stop;
+const CONFIRM = keywordReply(inboundKeyword('please stop')) ?? '';
+const CALLS_TOO = keywordReply(inboundKeyword('stop calling me')) ?? '';
+const WELCOME = keywordReply(inboundKeyword('Start.')) ?? '';
+/** Twilio confirms its own keywords; the app confirms every other explicit phrase, once. */
+const replyTo = (phrase: string): string[] =>
+  inboundKeyword(phrase)?.kind === 'opt-out' && !/^(stop|revoke|optout)$/i.test(phrase)
+    ? [CONFIRM]
+    : [];
 
 const unescape = (x: string): string =>
   x
@@ -158,6 +170,7 @@ async function attempt(sender: Sender): Promise<{ texted: boolean; outcome: unkn
 
 beforeEach(() => {
   docs.clear();
+  routed.mockClear();
   fault.consent = 'ok';
   fault.feature_checkin_optouts = 'ok';
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -185,8 +198,9 @@ describe('before any opt-out, every sender texts', () => {
 const OPT_OUTS = ['STOP', 'revoke', 'REVOKE', 'opt out', 'Opt-Out', 'optout', 'please stop'];
 
 describe.each(OPT_OUTS)('the owner texts %j', (phrase) => {
-  it('every inbound handler acts on it: one confirmation, both stores, proactive off', async () => {
-    expect(await inbound(phrase)).toEqual([CONFIRM]);
+  it('every inbound handler acts on it: at most one confirmation, both stores, proactive off', async () => {
+    expect(await inbound(phrase)).toEqual(replyTo(phrase));
+    expect(routed).not.toHaveBeenCalled();
     expect(docs.get(`consent/${hashOf(OWNER)}`)).toMatchObject({ sms: { state: 'opted-out' } });
     expect(docs.has(`feature_checkin_optouts/${hashOf(OWNER)}`)).toBe(true);
     const prefs = docs.get(`bogle_users/${OWNER_UID}`)?.outreachPreferences as Json;
@@ -201,7 +215,7 @@ describe.each(OPT_OUTS)('the owner texts %j', (phrase) => {
 
 describe.each(['STOP', 'revoke', 'opt out'])('a third party texts %j', (phrase) => {
   it('then no text goes to them for a member, and Ferni is told why', async () => {
-    expect(await inbound(phrase, FRIEND)).toEqual([CONFIRM]);
+    expect(await inbound(phrase, FRIEND)).toEqual(replyTo(phrase));
     expect(await attempt('third party')).toEqual({
       texted: false,
       outcome: { sent: false, reason: 'opted-out' },
@@ -235,7 +249,7 @@ describe('START and UNSTOP re-opt in, in both stores', () => {
   it.each(['START', 'unstop'])('%s after STOP: every sender texts again', async (optIn) => {
     await inbound('revoke');
     await inbound('revoke', FRIEND);
-    expect(await inbound(optIn)).toEqual([SMS_KEYWORD_REPLIES.start]);
+    expect(await inbound(optIn)).toEqual([]); // Twilio's own welcome; no second from the app
     await inbound(optIn, FRIEND);
     expect(docs.has(`feature_checkin_optouts/${hashOf(OWNER)}`)).toBe(false);
     expect(docs.get(`consent/${hashOf(OWNER)}`)).toMatchObject({ sms: { state: 'opted-in' } });
@@ -305,5 +319,96 @@ describe('fails closed when the consent record cannot be read', () => {
     sendSMS.mockClear();
     expect(await owned('checkin', false)).toEqual({ sent: false, reason: 'consent-unknown' });
     expect(await owned('checkin', true)).toEqual({ sent: true });
+  });
+});
+
+describe('confirmations: exactly one per opt-out, and an ordinary text is never swallowed', () => {
+  it.each([
+    ['STOP', []],
+    ['stop', []],
+    ['START', []],
+    ['UNSTOP', []],
+    ['HELP', []],
+    ['Stop.', [CONFIRM]],
+    ['OPT OUT', [CONFIRM]],
+    ['please stop', [CONFIRM]],
+    ['stop calling me', [CALLS_TOO]],
+    ['Start.', [WELCOME]],
+  ])('%j gets %j from the app', async (body, replies) => {
+    expect(await inbound(body)).toEqual(replies);
+  });
+
+  it.each(['cancel my 3pm', "don't stop", 'end of day works', 'quit my job today', 'help!'])(
+    '%j reaches Ferni and opts nobody out',
+    async (body) => {
+      expect(await inbound(body)).toEqual([]);
+      expect(routed).toHaveBeenCalledWith(OWNER_UID, OWNER, body, false);
+      expect(docs.has(`consent/${hashOf(OWNER)}`)).toBe(false);
+      expect(docs.has(`feature_checkin_optouts/${hashOf(OWNER)}`)).toBe(false);
+      for (const sender of Object.keys(SENDERS) as Sender[]) {
+        // eslint-disable-next-line no-await-in-loop
+        expect({ sender, ...(await attempt(sender)) }).toMatchObject({ sender, texted: true });
+      }
+    }
+  );
+
+  it('"stop calling me" with MESSAGING_PIPELINE off still reaches the do-not-call list', async () => {
+    await inbound('stop calling me');
+    expect(docs.has(`call_opt_outs/${OWNER}`)).toBe(true);
+    expect(docs.get(`consent/${hashOf(OWNER)}`)).toMatchObject({ call: { state: 'opted-out' } });
+  });
+});
+
+describe('a possible opt-out pauses texts (leaning toward stopping) and asks', () => {
+  it.each(['please cancel', 'Can you cancel?', 'leave me alone'])(
+    '%j: no opt-out, no confirmation, Ferni sees it flagged, texts paused',
+    async (body) => {
+      expect(await inbound(body)).toEqual([]);
+      expect(routed).toHaveBeenCalledWith(OWNER_UID, OWNER, body, true);
+      expect(docs.has(`feature_checkin_optouts/${hashOf(OWNER)}`)).toBe(false);
+      const consent = docs.get(`consent/${hashOf(OWNER)}`);
+      expect(consent?.sms).toBeUndefined();
+      expect(consent?.smsPause).toMatchObject({ source: 'inbound-sms' });
+      for (const sender of PROACTIVE) {
+        // eslint-disable-next-line no-await-in-loop
+        expect(await attempt(sender)).toMatchObject({ texted: false });
+      }
+      expect((await attempt('post-call check-in')).outcome).toEqual({
+        sent: false,
+        reason: 'paused',
+      });
+      expect((await attempt('text the owner asked for')).texted).toBe(true);
+    }
+  );
+
+  it('a third party\'s "Can you cancel?" pauses texts to them', async () => {
+    await inbound('Can you cancel?', FRIEND);
+    expect(await attempt('third party')).toEqual({
+      texted: false,
+      outcome: { sent: false, reason: 'paused' },
+    });
+  });
+
+  it('"yes, stop" then opts out for good, with one confirmation', async () => {
+    await inbound('please cancel');
+    expect(await inbound('yes, stop')).toEqual([CONFIRM]);
+    expect(docs.has(`feature_checkin_optouts/${hashOf(OWNER)}`)).toBe(true);
+    expect(docs.get(`consent/${hashOf(OWNER)}`)?.smsPause).toBeUndefined();
+    expect((await attempt('text the owner asked for')).texted).toBe(false);
+  });
+
+  it.each(['keep texting me', "no, don't stop"])('%j lifts the pause', async (body) => {
+    await inbound('please cancel');
+    expect(await inbound(body)).toEqual([]);
+    expect(docs.get(`consent/${hashOf(OWNER)}`)?.smsPause).toBeUndefined();
+    expect((await attempt('post-call check-in')).texted).toBe(true);
+  });
+
+  it('the pause clears itself after 7 days', async () => {
+    await inbound('please cancel');
+    vi.setSystemTime(new Date(Date.now() + 6 * 24 * 3_600_000));
+    expect((await attempt('morning brief')).texted).toBe(false);
+    vi.setSystemTime(new Date(Date.now() + 24 * 3_600_000));
+    expect((await attempt('morning brief')).texted).toBe(true);
   });
 });

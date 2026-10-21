@@ -100,6 +100,7 @@ export type TextSkip =
   | 'sms-off'
   | 'opted-out'
   | 'consent-unknown'
+  | 'paused'
   | 'send-failed';
 export type TextOutcome = { sent: true } | { sent: false; reason: TextSkip };
 
@@ -243,7 +244,7 @@ export async function sendGuardedText(
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');
   const [refusal, toPhone] = await Promise.all([
-    smsConsentRefusal(hash, deps.store, t.askedNow === true),
+    smsConsentRefusal(hash, deps.store, t.askedNow === true, now),
     deps.store.forPhoneHash(hash),
   ]);
   if (refusal) return skip(refusal);
@@ -350,7 +351,7 @@ export async function sendOnBehalfText(
     return reportText(t.senderUserId, 'on-behalf', { sent: false, reason: 'quiet-hours', until });
   }
   const [refusal, toPhone] = await Promise.all([
-    smsConsentRefusal(hash, deps.store, false),
+    smsConsentRefusal(hash, deps.store, false, now),
     deps.store.forPhoneHash(hash),
   ]);
   if (refusal) return skip(refusal);
@@ -411,6 +412,7 @@ export function onBehalfNotSent(name: string, reason: OnBehalfSkip): string {
   const why: Record<OnBehalfSkip, string> = {
     'opted-out': "that number replied STOP to our texts, so I can't text it",
     'consent-unknown': "I couldn't check whether that number asked us to stop texting, so I didn't",
+    paused: 'they recently sounded like they might want fewer texts, so texts to them are on hold',
     'quiet-hours': "it's late where they are (9pm to 8am their time). Nothing is queued",
     'recently-sent': 'I already texted that number in the last ten minutes',
     'bad-number': "that doesn't look like a valid phone number",
