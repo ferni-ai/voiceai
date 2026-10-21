@@ -34,7 +34,7 @@ jobs:
       SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
       WINDOW_MINUTES: ${{ inputs.minutes || '60' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           sparse-checkout: scripts/ops
       - uses: google-github-actions/auth@v3
