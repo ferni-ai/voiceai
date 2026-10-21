@@ -16,6 +16,7 @@ import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { createInsight } from './insight-broker.js';
 import { onCoachingInsightChange } from '../../data-layer/hooks/coaching-hooks.js';
 
+import { expireStoredLoop, isLoopLive, shouldExpireLoop } from './open-loop-expiry.js';
 const log = createLogger({ module: 'open-loops' });
 
 // ============================================================================
@@ -241,7 +242,7 @@ export async function dismissLoop(userId: string, loopId: string): Promise<void>
  */
 export async function getAllOpenLoops(userId: string): Promise<OpenLoop[]> {
   const loops = await loadOpenLoops(userId);
-  return loops.filter((l) => l.status === 'open');
+  return loops.filter((l) => isLoopLive(l)); // past followUpBefore is never surfaced
 }
 
 /**
@@ -249,7 +250,7 @@ export async function getAllOpenLoops(userId: string): Promise<OpenLoop[]> {
  */
 export async function getLoopsByType(userId: string, type: OpenLoopType): Promise<OpenLoop[]> {
   const loops = await loadOpenLoops(userId);
-  return loops.filter((l) => l.type === type && l.status === 'open');
+  return loops.filter((l) => l.type === type && isLoopLive(l));
 }
 
 // ============================================================================
@@ -533,8 +534,12 @@ async function loadOpenLoops(userId: string): Promise<OpenLoop[]> {
       } as OpenLoop;
     });
 
-    loopCache.set(userId, loops);
-    return loops;
+    // Close loops well past their window (followUpBefore + grace) instead of carrying them
+    const expired = loops.filter((l) => shouldExpireLoop(l));
+    for (const loop of expired) void expireStoredLoop(userId, loop, onCoachingInsightChange);
+    const kept = loops.filter((l) => !expired.includes(l));
+    loopCache.set(userId, kept);
+    return kept;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load open loops');
     return [];
@@ -575,11 +580,21 @@ async function saveOpenLoop(userId: string, loop: OpenLoop): Promise<void> {
 // CONTEXT FORMATTING
 // ============================================================================
 
+const LOOP_TYPE_LABELS: Partial<Record<OpenLoopType, string>> = {
+  intention: '📋 STATED INTENTIONS',
+  life_event: '📅 LIFE EVENTS',
+  advice: '💡 ADVICE GIVEN',
+  commitment: '🎯 COMMITMENTS',
+  question: '❓ QUESTIONS',
+  concern: '💭 CONCERNS',
+  emotional_peak: '💗 EMOTIONAL MOMENTS',
+};
+
 /**
- * Format open loops for LLM context injection.
+ * Format open loops for LLM context injection: these loops, or the user's due ones.
  */
-export async function formatOpenLoopsContext(userId: string): Promise<string> {
-  const loops = await getLoopsReadyForFollowUp(userId);
+export async function formatOpenLoopsContext(userId: string, due?: OpenLoop[]): Promise<string> {
+  const loops = due ?? (await getLoopsReadyForFollowUp(userId));
   if (loops.length === 0) return '';
 
   const sections: string[] = [];
@@ -594,24 +609,7 @@ export async function formatOpenLoopsContext(userId: string): Promise<string> {
 
   // Format each group
   for (const [type, typeLoops] of byType) {
-    const typeLabel =
-      type === 'intention'
-        ? '📋 STATED INTENTIONS'
-        : type === 'life_event'
-          ? '📅 LIFE EVENTS'
-          : type === 'advice'
-            ? '💡 ADVICE GIVEN'
-            : type === 'commitment'
-              ? '🎯 COMMITMENTS'
-              : type === 'question'
-                ? '❓ QUESTIONS'
-                : type === 'concern'
-                  ? '💭 CONCERNS'
-                  : type === 'emotional_peak'
-                    ? '💗 EMOTIONAL MOMENTS'
-                    : '🔗 OPEN ITEMS';
-
-    sections.push(typeLabel);
+    sections.push(LOOP_TYPE_LABELS[type] ?? '🔗 OPEN ITEMS');
     for (const loop of typeLoops.slice(0, 3)) {
       // Max 3 per type
       const daysAgo = Math.floor((Date.now() - loop.created.getTime()) / (1000 * 60 * 60 * 24));

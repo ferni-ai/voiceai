@@ -1,6 +1,6 @@
 # Ferni Pub/Sub worker and outreach worker images.
 #
-# Every PR, and every push to main, that touches the workers builds both images
+# Every PR, and every push to main, that touches an input of the worker images builds both
 # (no push, no credentials), so a Dockerfile can't silently rot again. Both
 # were npm-based against a pnpm workspace and could never build; this workflow
 # also targeted a GCP project ("ferni-prod") that doesn't exist, and failed
@@ -15,34 +15,49 @@ name: Deploy Pub/Sub Worker
 on:
   pull_request:
     paths:
-      - 'src/services/pubsub/**'
-      - 'src/workers/**'
-      - 'src/memory/embeddings.ts'
-      - 'src/memory/summarizer.ts'
-      - 'src/intelligence/context-service.ts'
-      - 'Dockerfile.worker'
-      - 'docker/Dockerfile.outreach'
+      # Every input of both images (worker-build-paths.test.ts checks each COPY).
+      # Both copy all of src/, and the entries import ~2,700 src files across 20
+      # of src's top-level dirs, so a narrower src list would miss real breakage.
+      - 'src/**'
+      - 'design-system/**'
+      - 'tsconfig.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.npmrc'
+      - 'patches/**'
+      - 'apps/*/package.json'
+      - 'packages/*/package.json'
+      - '.dockerignore'
+      - 'Dockerfile.worker'
+      - 'docker/Dockerfile.outreach'
       - '.github/workflows/deploy-worker.yml'
   push:
     branches: [main]
+    # Same list as pull_request (worker-build-paths.test.ts keeps them equal).
     paths:
-      - 'src/services/pubsub/**'
-      - 'src/workers/**'
-      - 'src/memory/embeddings.ts'
-      - 'src/memory/summarizer.ts'
-      - 'src/intelligence/context-service.ts'
-      - 'Dockerfile.worker'
-      - 'docker/Dockerfile.outreach'
+      - 'src/**'
+      - 'design-system/**'
+      - 'tsconfig.json'
       - 'package.json'
       - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.npmrc'
+      - 'patches/**'
+      - 'apps/*/package.json'
+      - 'packages/*/package.json'
+      - '.dockerignore'
+      - 'Dockerfile.worker'
+      - 'docker/Dockerfile.outreach'
       - '.github/workflows/deploy-worker.yml'
   workflow_dispatch:
 
+# A newer push to a PR cancels that PR's older build. A manual deploy has its own
+# group and is never cancelled: it used to share worker-refs/heads/main with the
+# build that every push to main runs, so a merge mid-deploy cancelled the deploy.
 concurrency:
-  group: worker-${{ github.ref }}
-  cancel-in-progress: true
+  group: worker-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   PROJECT_ID: johnb-2025
