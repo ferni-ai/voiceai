@@ -63,6 +63,7 @@ function call(...turns: Array<[role: 'user' | 'assistant', text: string]>) {
   return {
     opts,
     said: (text: string) => items.push({ type: 'message', role: 'user', textContent: text }),
+    ferni: (text: string) => items.push({ type: 'message', role: 'assistant', textContent: text }),
   };
 }
 
@@ -119,7 +120,7 @@ describe('setReminder with REMINDER_TIME_FROM_CALLER on', () => {
     );
   });
 
-  it('a corrected time moves the reminder set earlier in the call', async () => {
+  it('the #2289 correction ("Dinner is tonight") moves the reminder set earlier', async () => {
     const live = call(['user', 'Remind me tomorrow morning to invite my friend to dinner']);
     const tool = setReminder();
     await tool.execute(
@@ -127,7 +128,8 @@ describe('setReminder with REMINDER_TIME_FROM_CALLER on', () => {
       live.opts
     );
 
-    live.said("Tomorrow's a little bit late. Dinner is tonight, so make it 5 pm.");
+    live.ferni("I've got that reminder set for you for tomorrow morning.");
+    live.said("Tomorrow's a little bit late. Dinner is tonight, so 5 pm.");
     const said = await tool.execute(
       { message: 'Invite my friend to dinner', when: 'tonight at 5pm' },
       live.opts
@@ -139,6 +141,32 @@ describe('setReminder with REMINDER_TIME_FROM_CALLER on', () => {
       '2026-10-20T17:00:00.000Z'
     );
     expect(said).toMatch(/replaces the one for .*cancelled/);
+  });
+
+  it('the same reminder at a second time, with no correction, keeps both', async () => {
+    const live = call(['user', 'Remind me to take my pill tonight at 9pm']);
+    const tool = setReminder();
+    await tool.execute({ message: 'take my pill', when: 'tonight at 9pm' }, live.opts);
+
+    live.ferni('Saved for tonight at 9.');
+    live.said('And tomorrow at 9am.');
+    await tool.execute({ message: 'take my pill', when: 'tomorrow at 9am' }, live.opts);
+
+    expect(store.reminders).toHaveLength(2);
+    expect(store.cancelled).toEqual([]);
+  });
+
+  it('a longer message that contains the first is a new reminder, even after "actually"', async () => {
+    const live = call(['user', 'Remind me to take pill at 8pm']);
+    const tool = setReminder();
+    await tool.execute({ message: 'take pill', when: 'at 8pm' }, live.opts);
+
+    live.ferni('Saved for 8 tonight.');
+    live.said('Actually, also remind me to take pill with food tomorrow at 8am.');
+    await tool.execute({ message: 'take pill with food', when: 'tomorrow at 8am' }, live.opts);
+
+    expect(store.reminders).toHaveLength(2);
+    expect(store.cancelled).toEqual([]);
   });
 
   it('a reminder for something else in the same call is not moved', async () => {

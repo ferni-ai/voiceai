@@ -11,9 +11,11 @@
  * - Every time word in `when` must be in the caller's own recent words (the
  *   session's chat history, user turns only, never Ferni's notes). A missing
  *   or unsaid time saves nothing and tells the model to ask when.
- * - A second setReminder in the same call for the same thing moves the first
- *   one (cancelReminder also removes its calendar item) instead of adding a
- *   second reminder at the new time.
+ * - A second setReminder in the same call moves the first one (cancelReminder
+ *   also removes its calendar item) only when the message is the same and the
+ *   caller's latest turn corrects the time ("Dinner is tonight", "actually,
+ *   make it 6"). Otherwise both are kept: "take my pill tonight at 9 and
+ *   tomorrow at 9am" is two reminders.
  *
  * With no chat history (a context without a live session) the time is not
  * checked, as handoff-consent.ts does.
@@ -22,7 +24,9 @@
  */
 
 import { flagOn, type Env } from '../../../config/env-flag.js';
+import { isCorrection } from '../../../agents/personas/correction-repair.js';
 import { historyOf } from '../../handoff/handoff-consent.js';
+import { latestUserText } from '../../retrieval/turn-tool-retrieval.js';
 import { isOwnContextNote } from '../../utils/own-note.js';
 
 export function reminderTimeFromCallerOn(env: Env = process.env): boolean {
@@ -170,7 +174,34 @@ function sessionOf(runCtx: unknown): object | undefined {
 
 const words = (s: string): string => timeWords(s).join(' ');
 
-/** The reminder this call already set for the same thing, if the flag is on. */
+/**
+ * Words that change a time just given: "actually", "instead", "change/make/move
+ * it", a reply opening "no", "tomorrow's too late", "dinner is tonight". Not a
+ * bare "and tomorrow at 9", which asks for another reminder.
+ */
+const CHANGES_TIME =
+  /\b(?:actually|instead|(?:change|make|move|push|switch) it|(?:too|a little(?: bit)?|a bit) (?:late|early)|(?:it'?s|is) (?:tonight|today|tomorrow|this (?:morning|afternoon|evening)))\b|^\s*(?:no|nope|nah)\b/i;
+
+/** Ferni's last few lines in this call, oldest first. */
+function ferniLines(runCtx: unknown): string[] {
+  const items = historyOf(runCtx)?.items ?? [];
+  return items
+    .filter((i) => i.type === 'message' && i.role === 'assistant')
+    .map((i) => (i.type === 'message' ? (i.textContent ?? '') : ''))
+    .slice(-3);
+}
+
+/** Whether the caller's latest turn changes a time (correction-repair.ts covers "<this>, not <that>"). */
+export function callerCorrectsTime(runCtx: unknown): boolean {
+  const history = historyOf(runCtx);
+  const said = history ? (latestUserText(history) ?? '') : '';
+  return CHANGES_TIME.test(said) || isCorrection(said, ferniLines(runCtx));
+}
+
+/**
+ * The reminder this call already set that this one corrects, if the flag is
+ * on: the same message, exactly, and the caller's latest turn changes the time.
+ */
 export function earlierReminderFor(
   message: string,
   runCtx: unknown,
@@ -179,10 +210,8 @@ export function earlierReminderFor(
   const session = sessionOf(runCtx);
   if (!session || !reminderTimeFromCallerOn(env)) return undefined;
   const earlier = setInCall.get(session);
-  if (!earlier) return undefined;
-  // Whole words: "call mom" is not part of "recall moments".
-  const [a, b] = [` ${words(earlier.message)} `, ` ${words(message)} `];
-  return a.trim() && b.trim() && (a.includes(b) || b.includes(a)) ? earlier : undefined;
+  if (!earlier || words(earlier.message) !== words(message) || !words(message)) return undefined;
+  return callerCorrectsTime(runCtx) ? earlier : undefined;
 }
 
 /** Remember the reminder this call just set, so a corrected time moves it. */
