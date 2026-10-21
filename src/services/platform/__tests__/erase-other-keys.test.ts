@@ -5,6 +5,11 @@ vi.mock('../../identity/firebase-auth.js', () => ({
   ensureFirebaseAdmin: () => false,
   getFirebaseUserOrThrow,
 }));
+const logged = vi.hoisted(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }));
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/safe-logger.js')>()),
+  createLogger: () => ({ ...logged, child: () => logged }),
+}));
 
 import { emailDocId, KEYED_STORES } from '../erase-other-keys.js';
 import { gatherErasureKeys, type ErasureKeys } from '../erasure-keys.js';
@@ -340,6 +345,18 @@ describe('gatherErasureKeys', () => {
     expect(keys.stripeCustomerIds).toEqual(['cus_1']);
   });
 
+  it.each(['google.com', 'apple.com', 'password'])(
+    'finds a phone profile linked under auth:%s once the Firebase user is gone',
+    async (provider) => {
+      getFirebaseUserOrThrow.mockResolvedValue(null); // no provider list to read
+      const { db } = fakeFirestore({
+        'bogle_users/phone:+15550000005': { linkedIdentifiers: [`auth:${provider}:u-1`] },
+        'bogle_users/phone:+15550000006': { linkedIdentifiers: [`auth:${provider}:u-2`] },
+      });
+      expect((await gatherErasureKeys(db, 'u-1')).linkedUserIds).toEqual(['phone:+15550000005']);
+    }
+  );
+
   it('a phone profile that linked another sign-in is not erased, even on the verified number', async () => {
     getFirebaseUserOrThrow.mockResolvedValue({ phoneNumber: '+15550000009', providerData: [] });
     const { db } = fakeFirestore({
@@ -364,6 +381,35 @@ describe('eraseUserRecord with keyed stores', () => {
       eraseUserRecord('u-1', db, [{ collection: 'bogle_users', doc: 'uid' }])
     ).rejects.toThrow('keys unreadable, so not erased: waitlist/{email}');
     expect(docs.size).toBe(2);
+  });
+
+  it("logs the failed key lookup's code, not its message", async () => {
+    logged.error.mockClear();
+    getFirebaseUserOrThrow.mockRejectedValue(
+      Object.assign(new Error('lookup failed for someone@example.com'), {
+        code: 'auth/internal-error',
+      })
+    );
+    const { db } = fakeFirestore({ 'bogle_users/u-1': {} });
+    await expect(
+      eraseUserRecord('u-1', db, [{ collection: 'bogle_users', doc: 'uid' }])
+    ).rejects.toThrow('keys unreadable');
+    expect(logged.error).toHaveBeenCalledWith(
+      { error: 'Error:auth/internal-error', userId: 'u-1' },
+      expect.any(String)
+    );
+    expect(JSON.stringify(logged.error.mock.calls)).not.toContain('example.com');
+  });
+
+  it('erases a phone profile linked by a non-default sign-in after the Firebase user is gone', async () => {
+    getFirebaseUserOrThrow.mockResolvedValue(null);
+    const { db, docs } = fakeFirestore({
+      'bogle_users/u-1': {},
+      'bogle_users/phone:+15550000007': { linkedIdentifiers: ['auth:apple.com:u-1'] },
+      'bogle_users/phone:+15550000007/summaries/s1': {},
+    });
+    await eraseUserRecord('u-1', db, [{ collection: 'bogle_users', doc: 'uid' }]);
+    expect([...docs.keys()]).toEqual([]);
   });
 
   it("erases a linked phone profile's record like the uid's, and keeps the Stripe id first", async () => {

@@ -12,6 +12,7 @@ import { rateLimit } from '../auth-middleware.js';
 import { requireUserId, sendJSON, sendError } from '../helpers.js';
 import { rateLimitUid } from '../rate-limit-identity.js';
 import { ExportLimitError } from '../../services/platform/bounded-reader.js';
+import { erasureErrorCode } from '../../services/platform/erasure-step.js';
 import { validateBody, ExportDataSchema, DeleteAllDataSchema } from '../validators.js';
 import { API_ERRORS } from '../error-messages.js';
 
@@ -130,7 +131,7 @@ export async function handleDeleteAllData(
     log.info({ userId }, 'All user data deleted (GDPR request)');
     sendJSON(res, { success: true, message: 'All data deleted' });
   } catch (err) {
-    log.error({ error: err }, 'Failed to delete data');
+    log.error({ error: erasureErrorCode(err) }, 'Failed to delete data');
     sendError(res, API_ERRORS.DATA_DELETE_FAILED, 500);
   }
 }

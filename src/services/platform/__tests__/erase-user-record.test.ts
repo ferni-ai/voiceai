@@ -9,6 +9,12 @@ import { bqHash } from '../../analytics/bq-events.js';
 
 vi.mock('../../identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => false }));
 
+const logged = vi.hoisted(() => ({ warn: vi.fn(), error: vi.fn(), info: vi.fn(), debug: vi.fn() }));
+vi.mock('../../../utils/safe-logger.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../utils/safe-logger.js')>()),
+  createLogger: () => ({ ...logged, child: () => logged }),
+}));
+
 const STORES: OwnedStore[] = [
   { collection: 'bogle_users', doc: 'uid' },
   { collection: 'users', doc: 'uid' },
@@ -173,6 +179,30 @@ describe('eraseUserRecord', () => {
       'contact_relationships[userId]'
     );
     expect(docs.has('users/u-1/calendar_events/e1')).toBe(false);
+  });
+
+  it("logs the store and the error's code, never a message that names the person", async () => {
+    logged.warn.mockClear();
+    const { db, raw } = seedTwoUsers();
+    const failing = Object.assign(
+      new Error(
+        `5 NOT_FOUND: waitlist/${Buffer.from('someone@example.com').toString('base64')} ` +
+          'bogle_users/phone:+15550000000 someone@example.com'
+      ),
+      { code: 5 }
+    );
+    raw.recursiveDelete.mockRejectedValue(failing);
+    await expect(eraseUserRecord('u-1', db, STORES, [])).rejects.toThrow(
+      'User record not fully erased'
+    );
+    const lines = JSON.stringify(logged.warn.mock.calls);
+    expect(logged.warn).toHaveBeenCalledWith(
+      { error: 'Error:5', userId: 'u-1', store: 'users/{uid}' },
+      'Store not erased'
+    );
+    expect(lines).not.toContain('example.com');
+    expect(lines).not.toContain(Buffer.from('someone@example.com').toString('base64'));
+    expect(lines).not.toContain('5550000000');
   });
 
   it.each(['', 'a/b', 'u-1/dynamic_facts', '.', '..'])(

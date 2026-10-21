@@ -13,6 +13,7 @@
 import type { JWTPayload } from 'jose';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import { createLogger } from '../../utils/safe-logger.js';
+import { erasureErrorCode } from '../platform/erasure-step.js';
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 
 const log = createLogger({ module: 'apple-signin-notifications' });
@@ -282,7 +283,7 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
       );
     } catch (deletionError) {
       log.error(
-        { error: String(deletionError), userId: `${userId.substring(0, 8)}...` },
+        { error: erasureErrorCode(deletionError), userId: `${userId.substring(0, 8)}...` },
         'GDPR deletion failed - manual cleanup required'
       );
 
@@ -293,7 +294,7 @@ async function handleAccountDelete(userId: string, event: AppleNotificationEvent
         .update(
           cleanForFirestore({
             deletionStatus: 'failed',
-            deletionError: String(deletionError),
+            deletionError: erasureErrorCode(deletionError),
           })
         );
 
