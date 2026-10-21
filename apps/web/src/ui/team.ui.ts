@@ -826,11 +826,11 @@ async function loadDynamicAgents(): Promise<void> {
 }
 
 /**
- * Load and render installed marketplace agents
- * Only shows marketplace agents if the full core team is unlocked
+ * Load and render installed marketplace agents: only while the marketplace is visible
+ * (none have a deployable bundle; TEAM_BY_NEED unlocks the full team for everyone)
  */
 function loadInstalledMarketplaceAgents(): void {
-  if (!rosterContainer) return;
+  if (!rosterContainer || !isPanelVisible('marketplace')) return;
 
   const installed = marketplaceService.getInstalledAgents();
 
