@@ -16,7 +16,7 @@ import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { createInsight } from './insight-broker.js';
 import { onCoachingInsightChange } from '../../data-layer/hooks/coaching-hooks.js';
 
-import { isLoopLive, shouldExpireLoop } from './open-loop-expiry.js';
+import { expireStoredLoop, isLoopLive, shouldExpireLoop } from './open-loop-expiry.js';
 const log = createLogger({ module: 'open-loops' });
 
 // ============================================================================
@@ -536,7 +536,7 @@ async function loadOpenLoops(userId: string): Promise<OpenLoop[]> {
 
     // Close loops well past their window (followUpBefore + grace) instead of carrying them
     const expired = loops.filter((l) => shouldExpireLoop(l));
-    for (const loop of expired) void saveOpenLoop(userId, { ...loop, status: 'expired' });
+    for (const loop of expired) void expireStoredLoop(userId, loop, onCoachingInsightChange);
     const kept = loops.filter((l) => !expired.includes(l));
     loopCache.set(userId, kept);
     return kept;
@@ -591,10 +591,10 @@ const LOOP_TYPE_LABELS: Partial<Record<OpenLoopType, string>> = {
 };
 
 /**
- * Format open loops for LLM context injection.
+ * Format open loops for LLM context injection: these loops, or the user's due ones.
  */
-export async function formatOpenLoopsContext(userId: string): Promise<string> {
-  const loops = await getLoopsReadyForFollowUp(userId);
+export async function formatOpenLoopsContext(userId: string, due?: OpenLoop[]): Promise<string> {
+  const loops = due ?? (await getLoopsReadyForFollowUp(userId));
   if (loops.length === 0) return '';
 
   const sections: string[] = [];

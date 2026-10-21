@@ -42,6 +42,7 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { getLogger } from '../../utils/safe-logger.js';
+import { guardedStreamFetch } from '../../utils/outbound-url-guard.js';
 import type { BundleMCPConfig, BundleMCPServer } from './types/commands.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { COLLECTIONS, type DeveloperMCPServer } from '../../types/developer-platform.js';
@@ -435,8 +436,7 @@ export async function connectToMCPServer(server: BundleMCPServer): Promise<MCPCo
         throw new Error('http/websocket transport requires url');
       }
 
-      // SSE transport uses URL constructor
-      transport = new SSEClientTransport(new URL(server.url));
+      transport = new SSEClientTransport(new URL(server.url), { fetch: guardedStreamFetch });
     } else {
       throw new Error(`Unsupported transport: ${server.transport}`);
     }

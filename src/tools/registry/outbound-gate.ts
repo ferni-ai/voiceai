@@ -17,7 +17,7 @@
  * @module tools/registry/outbound-gate
  */
 
-import { isSyntheticUserId } from '../../utils/synthetic-user.js';
+import { isSyntheticUserId, namesNoAccount } from '../../utils/synthetic-user.js';
 import {
   isOutreachConfirmOn,
   testAccountReply,
@@ -85,10 +85,100 @@ export function gateLegacyTool(
   return { ...(tool as Tool), execute };
 }
 
+/**
+ * Tools that call, text or email someone other than the account owner: the
+ * gated ones above plus the shortcuts that hand off to them. Never offered to
+ * a caller who isn't a verified account owner (agents/shared/third-party-tools.ts).
+ */
+export const THIRD_PARTY_TOOLS: ReadonlySet<string> = new Set([
+  ...Object.keys(OUTBOUND_TOOLS),
+  ...['quickCall', 'quickText', 'quickEmail'],
+]);
+
+/** What an outbound tool says to a caller with no account (an anon: session, no id). */
+export const NO_ACCOUNT_REFUSAL =
+  "Nothing was sent: I can only reach out to people for you once I know it's you.";
+
+/** The refusal for a caller with no account, or null when `userIds` all name one. */
+export function noAccountRefusal(...userIds: Array<string | undefined>): string | null {
+  const ids = userIds.filter((id) => id !== undefined);
+  return ids.length === 0 || ids.some(namesNoAccount) ? NO_ACCOUNT_REFUSAL : null;
+}
+
+/** Arguments that name who a tool reaches, and those that give an address for them. */
+const TARGET_ARGS = ['contactQuery', 'contact', 'contactName', 'recipientName', 'friendName'];
+const ADDRESS_ARGS = ['phoneNumber', 'phone', 'email', 'to'];
+const textArg = (args: Record<string, unknown>, k: string): string => {
+  const v = args[k];
+  return typeof v === 'string' ? v.trim() : '';
+};
+
+/**
+ * A person from a persona's own life (Jim, Ferni's friend) asked for by name,
+ * with no number or address given and none of the owner's contacts by that
+ * name: the refusal, or null. The owner's own Jim (saved, or given with a
+ * number) is reached as before.
+ */
+async function canonTargetRefusal(
+  args: Record<string, unknown>,
+  userId: string
+): Promise<string | null> {
+  if (ADDRESS_ARGS.some((k) => textArg(args, k))) return null;
+  const target = TARGET_ARGS.map((k) => textArg(args, k)).find(Boolean);
+  if (!target) return null;
+  const { canonPeople, canonPersonIn } = await import('../../personas/index.js');
+  const canon = canonPersonIn(target, await canonPeople());
+  if (!canon) return null;
+  const { resolveContact } = await import('../domains/telephony/call-on-behalf.js');
+  if (await resolveContact(target, userId).catch(() => null)) return null;
+  const name = canon[0].toUpperCase() + canon.slice(1);
+  return (
+    `Nothing was sent: ${name} is someone from my own life, and you have no saved number for ` +
+    `anyone by that name. If you mean someone you know, I'll need their number.`
+  );
+}
+
+/** Marks a definition already wrapped by withCallerChecks. */
+const CHECKED = Symbol.for('ferni.outbound-caller-checks');
+
+/**
+ * Before the confirm gate: a caller with no account reaches nobody, and no one
+ * is reached for a name from a persona's own life. Nothing runs (no contact is
+ * looked up or saved, no read-back) when either refuses.
+ */
+function withCallerChecks(def: ToolDefinition): ToolDefinition {
+  const checked: ToolDefinition = {
+    ...def,
+    create: (ctx: ToolContext): Tool => {
+      const tool = def.create(ctx);
+      type Execute = (a: unknown, o?: unknown) => Promise<unknown>;
+      const execute = (tool as { execute: Execute }).execute.bind(tool);
+      const run = async (args: Record<string, unknown>, opts?: unknown): Promise<unknown> => {
+        const spec = OUTBOUND_TOOLS[def.id];
+        if (spec?.applies && !spec.applies(args)) return execute(args, opts); // e.g. to the owner
+        if (isSyntheticUserId(ctx.userId)) return execute(args, opts); // the confirm gate answers
+        type Run = { ctx?: { userData?: { userId?: unknown } } } | undefined;
+        const caller = (opts as Run)?.ctx?.userData?.userId;
+        const refusal =
+          noAccountRefusal(
+            ctx.userId || undefined,
+            typeof caller === 'string' ? caller : undefined
+          ) ?? (await canonTargetRefusal(args ?? {}, ctx.userId));
+        if (refusal) return refusal;
+        return execute(args, opts);
+      };
+      return { ...tool, execute: run } as Tool;
+    },
+  };
+  (checked as unknown as Record<symbol, unknown>)[CHECKED] = true;
+  return checked;
+}
+
 /** The definition, wrapped to wait for the caller's yes if it reaches a third party. */
 export function gateOutboundTool(def: ToolDefinition): ToolDefinition {
+  if ((def as unknown as Record<symbol, unknown>)[CHECKED]) return def;
   const spec = Object.hasOwn(OUTBOUND_TOOLS, def.id) ? OUTBOUND_TOOLS[def.id] : undefined;
-  return spec ? withOutreachConfirmation(def, spec) : def;
+  return spec ? withCallerChecks(withOutreachConfirmation(def, spec)) : def;
 }
 
 /** Names the executor path (agents/shared/tool-executors) runs that reach a third party. */
@@ -114,6 +204,8 @@ export function outboundDispatchRefusal(
   const spec = Object.entries(OUTBOUND_TOOLS).find(([id]) => id.toLowerCase() === fn.toLowerCase());
   if (spec?.[1].applies && !spec[1].applies(args)) return null; // e.g. a reminder to the owner
   if (isSyntheticUserId(userId)) return testAccountReply(fn);
+  const noAccount = noAccountRefusal(userId); // with or without the confirm gate
+  if (noAccount) return noAccount;
   if (!isOutreachConfirmOn()) return null;
   return 'Nothing was sent: I can only call, text or email someone after the caller says yes on a live call.';
 }
