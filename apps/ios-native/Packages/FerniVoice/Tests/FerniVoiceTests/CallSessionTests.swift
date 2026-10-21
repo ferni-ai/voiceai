@@ -284,6 +284,15 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(CallProblem.ferniDidNotJoin.message, "Ferni couldn't join right now. Try again in a minute.")
     }
 
+    /// Critic L4: only a connectivity error says "check your connection".
+    func testOnlyConnectivitySaysOffline() {
+        XCTAssertEqual(CallProblem(FerniAPIError.unreachable), .offline)
+        XCTAssertEqual(CallProblem(URLError(.notConnectedToInternet)), .offline)
+        XCTAssertEqual(CallProblem(FerniAPIError.failed), .server(0))
+        XCTAssertEqual(CallProblem(URLError(.serverCertificateUntrusted)), .server(0))
+        XCTAssertEqual(CallProblem(NSError(domain: "x", code: 1)), .server(0))
+    }
+
     func testAFailedDispatchDoesNotWaitOutTheTimeout() async {
         tokens.dispatched = false
         rooms.next = { FakeRoom(agentOnConnect: nil) }

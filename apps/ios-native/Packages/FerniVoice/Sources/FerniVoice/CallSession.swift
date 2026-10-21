@@ -577,7 +577,12 @@ public enum CallProblem: Equatable, Sendable {
         case .notSignedIn?: self = .notSignedIn
         case .waitlisted(let place)?: self = .waitlisted(place)
         case .status(let code)?: self = code == 401 || code == 403 ? .notSignedIn : .server(code)
-        case .unreachable?, nil: self = .offline
+        case .unreachable?: self = .offline
+        // Only a real connectivity error says "check your connection"; anything
+        // else is the generic "something went wrong" (critic L4).
+        case .failed?: self = .server(0)
+        case nil:
+            if let url = error as? URLError, FerniAPI.isConnectivity(url.code) { self = .offline } else { self = .server(0) }
         }
     }
 

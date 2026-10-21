@@ -6,8 +6,12 @@ public enum FerniAPIError: Error, Equatable, Sendable {
     case notSignedIn
     /// The server answered with this status.
     case status(Int)
-    /// The request never got an answer (offline, timed out).
+    /// The request never got an answer (offline, timed out): a connectivity
+    /// error, the only kind that's worth "check your connection".
     case unreachable
+    /// The request failed for another reason (a certificate or TLS problem, a
+    /// bad URL): nothing the person's connection can fix (critic L4).
+    case failed
     /// A 403 saying the account isn't admitted yet: where they stand in line.
     /// Only for requests made with `readsWaitlist`.
     case waitlisted(WaitlistStatus)
@@ -83,9 +87,21 @@ public struct FerniAPI: Sendable {
             return (data, (response as? HTTPURLResponse)?.statusCode ?? 0)
         } catch is CancellationError {
             throw CancellationError()
+        } catch let error as URLError {
+            // A cancelled request (-999: a hang-up, a dismissed screen) is silent.
+            if error.code == .cancelled { throw CancellationError() }
+            throw Self.isConnectivity(error.code) ? FerniAPIError.unreachable : FerniAPIError.failed
         } catch {
-            throw FerniAPIError.unreachable
+            throw FerniAPIError.failed
         }
+    }
+
+    /// The URLError codes that mean the network is the problem (critic L4:
+    /// certificate errors and a cancelled request read as "offline").
+    public static func isConnectivity(_ code: URLError.Code) -> Bool {
+        [.notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotFindHost, .cannotConnectToHost,
+         .dnsLookupFailed, .internationalRoamingOff, .dataNotAllowed, .callIsActive]
+            .contains(code)
     }
 
     private func accept(_ data: Data, _ status: Int, readsWaitlist: Bool) throws -> Data {
