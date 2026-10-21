@@ -54,7 +54,9 @@ for (const [net6, prefix] of [
   ['::', 128],
   ['::1', 128],
   ['::', 96], // IPv4-compatible (deprecated): ::127.0.0.1
+  ['::ffff:0:0:0', 96], // IPv4-translated (SIIT): ::ffff:0:7f00:1
   ['64:ff9b::', 96], // NAT64, embeds an IPv4 address
+  ['64:ff9b:1::', 48], // local-use NAT64
   ['2001:db8::', 32],
   ['2002::', 16], // 6to4, embeds an IPv4 address
   ['fc00::', 7], // unique local
@@ -222,6 +224,20 @@ export async function safeOutboundFetch(
     }
     url = target;
   }
+}
+
+/**
+ * fetch() for long-lived streams to user-supplied URLs (MCP over SSE): the same URL, DNS and
+ * connect-time checks as safeOutboundFetch, but no overall timeout (it would cut the stream)
+ * and redirects refused instead of followed.
+ */
+export async function guardedStreamFetch(
+  rawUrl: string | URL,
+  init: RequestInit = {},
+  options: OutboundUrlOptions = {}
+): Promise<Response> {
+  const url = await assertSafeOutboundUrl(String(rawUrl), options);
+  return fetch(url, { ...init, redirect: 'error', dispatcher: getGuardedAgent() } as RequestInit);
 }
 
 /** Read at most maxBytes of a response body as text, then stop reading. */

@@ -1,0 +1,85 @@
+/* The call's own room (ui/call-room/call-room.ts, behind config/call-room-flag.ts).
+   Every rule is scoped to body.call-room or the state line, which exist only
+   with the flag on, so with it off nothing here applies. */
+
+/* Home's chrome steps aside; display: none so no gap is left behind */
+body.call-room .engagement-triggers,
+body.call-room .mobile-menu-trigger,
+body.call-room #helperText,
+body.call-room #teamRoster,
+body.call-room #personaSubtitle {
+  display: none !important;
+}
+
+/* One composition: Ferni centred in the room, the controls low in thumb reach */
+body.call-room .header {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+body.call-room .main {
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  padding-bottom: calc(var(--space-xl) + env(safe-area-inset-bottom, 0px));
+}
+
+/* Who is doing what, under the name */
+.call-room-state {
+  display: none;
+  margin: 0;
+  min-height: 1.5em;
+  font-size: var(--text-base, 1rem);
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+  text-align: center;
+  transition: color var(--duration-normal) var(--ease-out-expo);
+}
+
+body.call-room .call-room-state {
+  display: block;
+}
+
+body.call-room .call-room-state[data-state='muted'] {
+  color: var(--color-semantic-error);
+  font-weight: 600;
+}
+
+/* End: the one tinted control, in clay */
+body.call-room #disconnectBtn.btn-end-call {
+  min-height: 56px;
+  background: var(--color-semantic-error);
+  color: var(--color-semantic-on-error);
+  border-color: transparent;
+}
+
+body.call-room #disconnectBtn.btn-end-call:hover:not(:disabled),
+body.call-room #disconnectBtn.btn-end-call:focus-visible {
+  background: var(--color-semantic-error);
+  color: var(--color-semantic-on-error);
+  filter: brightness(1.08);
+}
+
+/* Mute matches End's height and shows when it is pressed */
+body.call-room .btn-mute {
+  width: 56px;
+  min-width: 56px;
+  height: 56px;
+  transition:
+    background-color var(--duration-normal) var(--ease-out-expo),
+    color var(--duration-normal) var(--ease-out-expo);
+}
+
+body.call-room .btn-mute[aria-pressed='true'] {
+  background: var(--color-text-primary);
+  color: var(--color-bg-primary);
+  border-color: var(--color-text-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .call-room-state,
+  body.call-room .btn-mute {
+    transition: none;
+  }
+}

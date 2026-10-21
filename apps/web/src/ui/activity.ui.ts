@@ -20,6 +20,7 @@ import { DURATION_GENERATED, EASING_GENERATED } from '../config/animation-consta
 import { apiGet } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { contentIcon } from './icons/content-icons.js';
 
 // Alias for cleaner usage
 const DURATION = DURATION_GENERATED;
@@ -294,7 +295,6 @@ const ACTIVITY_STYLES = `
   }
 
   .activity-empty__icon {
-    font-size: 3rem;
     margin-bottom: var(--space-md);
     opacity: 0.5;
   }
@@ -861,7 +861,7 @@ class ActivityUI {
 
     const icon = document.createElement('div');
     icon.className = 'activity-empty__icon';
-    icon.textContent = '📋';
+    icon.innerHTML = contentIcon('clipboard', 48);
     empty.appendChild(icon);
 
     const text = document.createElement('p');
@@ -885,7 +885,7 @@ class ActivityUI {
 
     const icon = document.createElement('div');
     icon.className = 'activity-empty__icon';
-    icon.textContent = '😔';
+    icon.innerHTML = contentIcon('frown', 48);
     empty.appendChild(icon);
 
     const text = document.createElement('p');
