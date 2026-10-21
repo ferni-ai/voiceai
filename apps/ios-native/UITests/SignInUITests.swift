@@ -45,7 +45,9 @@ final class SignInUITests: XCTestCase {
             let offer = app.buttons.matching(NSPredicate(
                 format: "label == 'Already use Ferni? Sign in' AND identifier != %@", screen == .home ? "" : "home.signIn"
             )).firstMatch
-            XCTAssertTrue(offer.waitForExistence(timeout: 5), "\(screen)")
+            // On an SE, Settings' Account section is below the fold.
+            for _ in 0..<6 where !(offer.waitForExistence(timeout: 2) && offer.isHittable) { app.collectionViews.firstMatch.swipeUp(velocity: .slow) }
+            XCTAssertTrue(offer.exists, "\(screen)")
             offer.tap()
             XCTAssertTrue(app.textFields["Phone number"].waitForExistence(timeout: 5), "\(screen)")
             XCTAssertTrue(app.buttons["Continue with Google"].exists, "\(screen)")
@@ -70,6 +72,20 @@ final class SignInUITests: XCTestCase {
         XCTAssertLessThan(google.frame.maxY, number.frame.minY, "then Google, then the phone number")
         XCTAssertGreaterThanOrEqual(apple.frame.height, 44)
         XCTAssertEqual(apple.frame.height, google.frame.height, accuracy: 1, "the two buttons match")
+    }
+
+    /// Critic M-A: on an SE the hint under the phone field sat under the pinned
+    /// "Text me a code" at the default size. It's whole above the button.
+    func testTheHintIsAboveTheButton() {
+        let app = XCUIApplication.ferni(.home, account: "anonymous")
+        let offer = app.buttons["home.signIn"]
+        XCTAssertTrue(offer.waitForExistence(timeout: 20))
+        offer.tap()
+        let hint = app.staticTexts["signIn.hint"], button = app.buttons["signIn.continue"]
+        XCTAssertTrue(hint.waitForExistence(timeout: 5))
+        XCTAssertTrue(button.exists)
+        sleep(1)
+        XCTAssertLessThanOrEqual(hint.frame.maxY, button.frame.minY - 24, "the hint \(hint.frame) clears the button's fade at \(button.frame)")
     }
 
     /// Critic H3: phone sign-in fails on hardware until the key changes, so
