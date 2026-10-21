@@ -289,6 +289,8 @@ export const FLAG_MANIFEST = {
   // at most one check-in per commitment every 3 days, kept across calls (superhuman/commitment-checkin-cooldown.ts)
   PROACTIVE_COOLDOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: GET /api/promises, the Today panel's follow-through list (api/routes/promises.ts)
+  PROMISES_PANEL: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // character loads a short character sheet instead of the full prompt (prompt-loader.ts)
   PROMPT_MODE: { default: 'full', owner: 'voice', kind: 'config' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },

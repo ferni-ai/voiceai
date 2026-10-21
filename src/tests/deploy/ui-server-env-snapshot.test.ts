@@ -27,6 +27,7 @@ const ENV = [
   'ON_BEHALF_DNC_CHECK=on',
   'PONDERING=on',
   'PROACTIVE_CHANNELS=on',
+  'PROMISES_PANEL=off',
   'SIP_TRUNK_ID=ST_AEE6NnKE84XP',
   'TEAM_BY_NEED=on',
 ];
