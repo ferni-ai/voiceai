@@ -46,6 +46,7 @@ import {
   recordHybridSearchOutcome,
   runHybridSearchWithTimeout,
 } from './hybrid-search-timeout-stats.js';
+import { scaleTurnMemories, turnMemoryRrfScaleOn } from './turn-memory-scale.js';
 
 const log = createLogger({ module: 'TurnMemoryRetrieval' });
 
@@ -308,14 +309,17 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
   try {
     // 1. HYBRID SEARCH (BM25 + Vector + Entity Store)
     const hybridStart = Date.now();
-    const { results: hybridResults, metrics: hybridMetrics } = await runHybridSearchWithTimeout(
+    const rrfScale = turnMemoryRrfScaleOn(); // gate on cosine, not the fused rank score
+    const searched = await runHybridSearchWithTimeout(
       userId,
       transcript,
-      config.totalTimeoutMs
+      config.totalTimeoutMs,
+      rrfScale
     );
+    const hybridResults = rrfScale ? scaleTurnMemories(searched.results) : searched.results;
 
     metrics.hybridSearchMs = Date.now() - hybridStart;
-    metrics.rawResultCount = hybridResults.length;
+    metrics.rawResultCount = searched.results.length;
 
     if (hybridResults.length === 0) {
       return {
@@ -352,7 +356,9 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     // 2.5. ASSOCIATIVE MEMORY (find naturally associated memories)
     // When user mentions something, find what a friend would naturally think of
     const associativeResults: HybridSearchResult[] = [];
-    if (rankedResults.length > 0) {
+    // Never reached before TURN_MEMORY_RRF_SCALE (nothing passed the search),
+    // and its activation is not a cosine: the flag keeps it out.
+    if (!rrfScale && rankedResults.length > 0) {
       try {
         const { getAssociativeMemory } = await import('../associative-memory.js');
         const associative = getAssociativeMemory(userId);

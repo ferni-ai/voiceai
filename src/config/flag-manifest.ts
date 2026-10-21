@@ -373,6 +373,8 @@ export const FLAG_MANIFEST = {
   TURN_KEEPER_SPOKE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_OPENING_SOUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_LENGTH: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: per-turn memory search gates on the vector leg's cosine (0.55), not the RRF score no memory reaches (turn-memory-scale.ts)
+  TURN_MEMORY_RRF_SCALE: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_STYLE_REMINDER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
