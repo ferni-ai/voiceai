@@ -337,6 +337,9 @@ export const FLAG_MANIFEST = {
   SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
   // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
   SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the speech director contracts "that is" / "it is" / "I am not" when a word follows
+  // (speech/tts-gateway/director/spoken-contractions.ts, #2334)
+  SPOKEN_CONTRACTIONS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // streaks count days from the summaries subcollection (up to 400 reads per profile load)
   STREAK_FROM_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
