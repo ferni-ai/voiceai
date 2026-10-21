@@ -113,6 +113,23 @@ describe('the value written to the file', () => {
     expect(out.text).toBe('plain');
   });
 
+  it("leaves a fact's stored vector out, and keeps the fact", async () => {
+    const { FieldValue } = await import('@google-cloud/firestore');
+    const embedding = FieldValue.vector(Array.from({ length: 768 }, () => 0.5));
+    const fact = {
+      entityName: 'Biscuit',
+      factType: 'attribute',
+      value: 'golden retriever',
+      embedding,
+    };
+    expect(toPlain(fact)).toEqual({
+      entityName: 'Biscuit',
+      factType: 'attribute',
+      value: 'golden retriever',
+    });
+    expect(toPlain({ scores: [0.5, 0.25] })).toEqual({ scores: [0.5, 0.25] });
+  });
+
   it('writes a Firestore timestamp as an ISO string', async () => {
     const { Timestamp } = await import('firebase-admin/firestore');
     expect(toPlain({ at: Timestamp.fromMillis(0) })).toEqual({ at: '1970-01-01T00:00:00.000Z' });

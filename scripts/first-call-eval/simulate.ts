@@ -144,7 +144,7 @@ async function oneCall(p: Persona, shared: string, label: string): Promise<Line[
     isReturningUser: false,
     userName: p.accountName,
     callerTimezone: 'America/New_York',
-    services: { sessionId },
+    services: { sessionId, userProfile: null },
   };
   const session = { userData };
   const lines: Line[] = [

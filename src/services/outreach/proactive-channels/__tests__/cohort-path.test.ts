@@ -35,8 +35,14 @@ vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
 vi.mock('../../../identity/firebase-auth.js', () => ({
   getFirebaseUser: vi.fn(async (uid: string) => authUsers.get(uid) ?? null),
 }));
-vi.mock('../../../communication-service.js', () => ({
-  sendSMS: vi.fn(async (to: string, body: string) => void texts.push({ to, body })),
+// Proactive texts go through the guarded sender; Twilio is stubbed at its transport.
+vi.mock('../../delivery/sms-delivery.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isSMSDeliveryAvailable: () => true,
+  sendSMS: vi.fn(async ({ to, body }: { to: string; body: string }) => {
+    texts.push({ to, body });
+    return { success: true, messageSid: 'SM1' };
+  }),
 }));
 vi.mock('../../../llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
 
