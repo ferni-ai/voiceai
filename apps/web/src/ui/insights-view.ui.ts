@@ -457,7 +457,7 @@ export class InsightsView {
             ${t('insights.keepTalking')}
           </p>
           <div class="insights-empty__invitation-footer">
-            <span class="insights-empty__invitation-icon">✨</span>
+            <span class="insights-empty__invitation-icon" aria-hidden="true">${CHAPTER_ICONS.celebration.replace(/width="24" height="24"/, 'width="16" height="16"')}</span>
             ${t('insights.betterThanMemory')}
           </div>
         </div>
