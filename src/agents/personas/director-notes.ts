@@ -45,6 +45,7 @@ import {
   type Cast,
 } from './director-cast.js';
 import { formatScene, scriptedNote, type Stage } from './director-scene.js';
+import { erodesGuard, guardRuleFor } from './director-guard.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -72,6 +73,7 @@ export type NoteWriter = (system: string, prompt: string) => Promise<string | un
 const roleFor = (c: Cast): string =>
   `You are the director of a live, unscripted phone call between ${c.name}${c.brief ? ` (${c.brief})` : ''} and someone ${c.p.subject} ${verbS(c, 'care')} about. ${c.name} improvises every word. Between ${c.p.possessive} turns you whisper at most two private notes for ${c.p.possessive} next reply.`;
 const rulesFor = (c: Cast, { p, name } = c): string[] => [
+  guardRuleFor(c), // director-guard.ts: no note erodes a boundary, honesty or tool truth
   `Never tell ${p.object} to acknowledge, validate, support or ask about feelings: that's what a therapist does and ${isShort(c)} a friend. Never write lines for ${p.object} to say.`,
   `Pauses, short answers and unanswered questions are normal in conversation: never tell ${p.object} to call them out, ask again or check they're still there. Prefer an observation to an instruction to ask something.`,
   `Don't guess at hidden motives or moods (that they're dodging, ignoring ${p.object}, testing ${p.object}, stuck, distant, escaping) and never tell ${p.object} to talk about their tone, mood or reasons instead of what they said. When they ask something, the next reply answers it.`,
@@ -222,7 +224,7 @@ export function parseNotes(
   call?: Line[],
   speaking?: string,
   /** DIRECTOR_SEES_SCENE=on: also drop notes that script a line (director-scene.ts). */
-  opts: { scripted?: boolean } = {}
+  opts: { scripted?: boolean; sessionId?: string } = {}
 ): string[] {
   if (!reply) return [];
   const said = call ? contentWords(call.map((l) => l.text).join(' ')) : null;
@@ -232,6 +234,8 @@ export function parseNotes(
     .filter((l) => l && !/^none\b/i.test(l))
     // A note that is a quoted line for Ferni to say is exactly what we don't want.
     .filter((l) => !/^["“'].*["”']$/.test(l))
+    // Never against a boundary, honesty or tool truth, whatever the flags (director-guard.ts).
+    .filter((l) => !erodesGuard(l, opts.sessionId))
     .filter((l) => !GENERIC.test(l) && !PUSHY.test(l) && !MIND_READING.test(l))
     .filter((l) => directorLooksBack() || !backToEarlier(l))
     .filter((l) => !directorSeesTools() || !CAPABILITY_DENIAL.test(l))
@@ -326,6 +330,7 @@ export class Director {
         }
         this.notes = parseNotes(reply, lines.slice(-12), asked.speaking, {
           scripted: !!framed,
+          sessionId: this.opts.sessionId,
         });
         const escalated = this.escalate();
         log.info(

@@ -1,0 +1,36 @@
+{
+  "fond": {
+    "maya-santos": [
+      "Maya's coming on. Training for a half marathon, and she hates running.",
+      "Here's Maya. Her cats are Compound and Interest, which says everything.",
+      "Maya's taking this. Ask about her paintings sometime. She hangs every one."
+    ],
+    "jordan-taylor": [
+      "Jordan's coming on. Fair warning, she plans her free time too.",
+      "Here's Jordan. She swears her dog Compass is never wrong.",
+      "Jordan's taking this. She writes one good thing down every night."
+    ],
+    "peter-john": [
+      "Here's Peter. He's kept a pattern journal for forty years.",
+      "Peter's coming on. If he talks fast, that means he's happy.",
+      "Here's Peter. Take him to dinner and he'll study the customer flow."
+    ],
+    "alex-chen": [
+      "Here's Alex. Ask about Peggy, his peace lily. She's dramatic.",
+      "Alex is coming on. He owns a label maker, and he uses it.",
+      "Here's Alex. There's a spreadsheet for this, I promise."
+    ],
+    "nayan-patel": [
+      "Here's Nayan. If there's a long silence, he's still there.",
+      "Nayan's coming on. Strong chai, long walks, and all the patience in the world.",
+      "Here's Nayan. His garden mostly feeds the neighbours, which is very him."
+    ]
+  },
+  "back": {
+    "maya-santos": "Maya's too kind.",
+    "jordan-taylor": "Jordan oversold me again.",
+    "peter-john": "Peter's been bragging about me again.",
+    "alex-chen": "Alex is being nice about me. Rare.",
+    "nayan-patel": "Nayan's too generous."
+  }
+}

@@ -111,7 +111,10 @@ class DataExportUI {
 
     this.wrapper.innerHTML = `
       <header class="data-export__header">
-        <h2>${t('dataExport.title')}</h2>
+        <div>
+          <h2>${t('dataExport.title')}</h2>
+          <p class="data-export__subtitle">${t('dataExport.subtitle')}</p>
+        </div>
         <button class="data-export__close" aria-label="${t('common.close')}">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -243,6 +246,12 @@ class DataExportUI {
         justify-content: space-between;
         padding: var(--ma-rest, 21px) var(--ma-silence, 34px);
         border-bottom: 1px solid var(--color-border-subtle, rgba(44, 37, 32, 0.05));
+      }
+
+      .data-export__subtitle {
+        margin: var(--space-1, 4px) 0 0;
+        font-size: var(--text-sm, 0.875rem);
+        color: var(--color-text-secondary);
       }
 
       .data-export__header h2 {

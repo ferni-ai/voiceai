@@ -66,7 +66,7 @@ const { trackFerniCommitments } =
   await import('../services/superhuman/semantic-intelligence/integration.js');
 const { clearCommitmentCache } =
   await import('../services/superhuman/semantic-intelligence/ferni-commitments.js');
-const { buildPromiseContext, resetOfferedMisses } =
+const { buildPromiseContext, markMissesOffered, promiseContextFor } =
   await import('../services/superhuman/semantic-intelligence/promise-keeper.js');
 const { writeTrustDoc } = await import('../services/trust-systems/trust-doc.js');
 const { TIMELINE_DOC } = await import('../services/trust-systems/dashboard-history.js');
@@ -128,7 +128,6 @@ beforeEach(() => {
   vi.stubEnv('OUTBOUND_CONFIRM', 'off'); // pins promise keeping; the confirm gate is tested elsewhere
   fs.store.clear();
   clearCommitmentCache();
-  resetOfferedMisses();
   sendSms.mockClear();
   unguarded.mockClear();
   installReminderTextGuard(async (r) => sendSms(r.deliveryAddress, r.message));
@@ -271,15 +270,18 @@ describe('Ferni keeps her promises', () => {
     await deliverDueReminders({ now: at(7 * DAY + 60_000) });
     vi.setSystemTime(at(8 * DAY));
 
-    const firstCall = await buildPromiseContext(UID);
-    expect(firstCall).toContain("PROMISES YOU DIDN'T KEEP");
-    expect(firstCall).toContain("I'll check in about that");
+    // A web view reads it without owning it; the call that shows it marks it (open-loops-recall.ts).
+    expect(await buildPromiseContext(UID)).toContain("PROMISES YOU DIDN'T KEEP");
+    expect(promises()[0]?.ownOfferedAt).toBeUndefined();
+    const firstCall = await promiseContextFor(UID);
+    expect(firstCall.text).toContain("PROMISES YOU DIDN'T KEEP");
+    expect(firstCall.text).toContain("I'll check in about that");
+    await markMissesOffered(UID, firstCall.misses);
     expect(promises()[0]).toMatchObject({
       outcome: 'missed',
       ownOfferedAt: at(8 * DAY).toISOString(),
     });
 
-    resetOfferedMisses(); // a new call, a new process
     clearCommitmentCache();
     const nextCall = await buildPromiseContext(UID);
     expect(nextCall).not.toContain("PROMISES YOU DIDN'T KEEP");

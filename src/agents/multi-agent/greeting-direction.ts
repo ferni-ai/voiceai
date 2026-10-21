@@ -28,6 +28,7 @@ import {
 } from './friendship-anniversary.js';
 import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
+import { calendarDaysSince } from '../../utils/calendar-days.js';
 import {
   letterOfferDirection,
   letterToOffer,
@@ -210,14 +211,19 @@ export function callerHistory(
     /** Only a last-call summary checked for who said what (caller-assertions.ts). */
     lastCallerSummary?: string;
   },
-  now: Date = new Date()
+  now: Date = new Date(),
+  /** The call's settled zone (phone-parity.ts), never read off the profile here. */
+  timeZone?: string
 ): CallerHistory | undefined {
   const calls = profile.totalConversations ?? 0;
   if (calls <= 0) return undefined;
   const history: CallerHistory = { calls };
   if (profile.lastContact) {
-    const ms = now.getTime() - new Date(profile.lastContact).getTime();
-    if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
+    // Calendar days in their zone: "yesterday" means the calendar day, not 24-48 hours ago
+    const last = new Date(profile.lastContact).getTime();
+    if (Number.isFinite(last) && last <= now.getTime()) {
+      history.daysSince = calendarDaysSince(last, now, timeZone);
+    }
   }
   const fc = profile.firstContact;
   const first =

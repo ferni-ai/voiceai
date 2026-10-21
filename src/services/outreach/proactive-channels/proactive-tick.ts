@@ -6,7 +6,9 @@
  *
  * The channel (a note in the app, a text or a call) comes from channel-policy.ts: the
  * user's opt-ins, verified phone, quiet hours, daily caps and back-off. The
- * words come from outreach-text.ts.
+ * words come from outreach-text.ts. Before either, the verified phone's STOP
+ * and do-not-call records are read (opt-outs.ts); if they can't be, nothing
+ * goes out and the trigger waits for a later run.
  *
  * Off unless PROACTIVE_CHANNELS=on, and then only for the user ids in
  * PROACTIVE_CHANNELS_USERS (comma separated) and the people whose cohort flags
@@ -40,6 +42,7 @@ import {
 } from './outreach-log.js';
 import type { CallOutcome } from './self-call.js';
 import { writeOutreachText } from './outreach-text.js';
+import { optedOutChannels, phoneOptOuts, type PhoneOptOuts } from './opt-outs.js';
 import type { ProactiveChannel, ProactiveTrigger } from './types.js';
 
 const log = createLogger({ module: 'ProactiveChannels' });
@@ -240,7 +243,7 @@ async function send(
       ? await call(userId, toSend, phone, policy, deps)
       : await deliver(userId, toSend, choice.channel, phone, deps);
   await writeOutreachLog(userId, {
-    ...claimFor(trigger, choice, policy.now),
+    ...claimFor(trigger, choice, policy),
     channel: sent.channel,
     outcome: sent.outcome ?? (sent.ok ? 'sent' : 'failed'),
     text: written.text,
@@ -257,17 +260,26 @@ async function send(
   return sent;
 }
 
-function claimFor(trigger: ProactiveTrigger, choice: ChannelChoice, now: Date): OutreachLogEntry {
+function claimFor(
+  trigger: ProactiveTrigger,
+  choice: ChannelChoice,
+  policy: Pick<PolicyInput, 'now' | 'optedOut'>
+): OutreachLogEntry {
+  const optedOut = optedOutChannels(policy.optedOut);
   return {
     sourceId: trigger.sourceId,
     kind: trigger.kind,
     channel: choice.channel ?? 'in_app',
     reason: trigger.reason,
     why: choice.why,
-    at: now.toISOString(),
+    at: policy.now.toISOString(),
     outcome: 'pending',
+    ...(optedOut.length > 0 && { optedOut }),
   };
 }
+
+/** No verified phone: nothing to opt out of, and nothing is texted or rung. */
+const NO_PHONE: PhoneOptOuts = { sms: false, call: false };
 
 async function runForUser(
   userId: string,
@@ -284,6 +296,16 @@ async function runForUser(
   if (!trigger) return { userId, status: 'idle' };
   // Notes only: no phone and no calls, so the policy can only pick a note in the app.
   const verifiedPhone = notesOnly ? undefined : await deps.verifiedPhone(userId, user);
+  let optedOut = NO_PHONE;
+  if (verifiedPhone) {
+    try {
+      optedOut = await phoneOptOuts(userId, user, verifiedPhone);
+    } catch (error) {
+      // Fail closed: an opt-out we can't read must not pass for none.
+      log.warn({ error: String(error), userId }, 'Opt-outs not read; sending nothing');
+      return { userId, sourceId: trigger.sourceId, status: 'held', why: 'opt-out list unreadable' };
+    }
+  }
   const canCall = !notesOnly && deps.canCall?.() === true && deps.placeCall !== undefined;
   if (trigger.weight === 'meaningful' && !canCall) {
     log.info({ userId, sourceId: trigger.sourceId }, 'No SIP trunk here, so no call');
@@ -296,11 +318,12 @@ async function runForUser(
     verifiedPhone,
     lastTalkedAt: lastTalkedAt(user),
     canCall,
+    optedOut,
   };
   const since = new Date(now.getTime() - HISTORY_MS);
   const decided = await claimOutreach(userId, trigger.sourceId, since, (recent) => {
     const choice = chooseChannel({ ...input, recent });
-    const claim = choice.channel && !dryRun ? claimFor(trigger, choice, now) : undefined;
+    const claim = choice.channel && !dryRun ? claimFor(trigger, choice, input) : undefined;
     return { result: { choice, policy: { ...input, recent } }, claim };
   });
   if (decided === 'claimed') return { userId, status: 'idle', why: 'another run has it' };

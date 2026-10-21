@@ -136,13 +136,26 @@ function remember(session: object, said: string): string[] {
 const clip = (text: string): string =>
   text.length > MAX_CHARS ? `${text.slice(0, MAX_CHARS - 3)}...` : text;
 
-/** With FRIEND_REPAIR=on the line names what he had wrong, light only if they are (friend-repair.ts). */
+/**
+ * With FRIEND_REPAIR=on the line names what he had wrong, light only if they are (friend-repair.ts).
+ * `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): their words only, no quoted line to say.
+ */
 const OWN_IT = 'Own it in one short line, the way a friend would ("Ah, my mistake.")';
 const OWN_IT_FRIEND =
   'Own it in one short line that names what you had wrong, light if they are ("Ha, I had your sister as the one in Denver, my mistake."), plain if not ("My mistake, your brother.")';
+const OWN_IT_PLAIN = 'Own it in one short line';
+const OWN_IT_FRIEND_PLAIN =
+  'Own it in one short line that names what you had wrong, light if they are, plain if not';
 
-export function correctionNote(said: string, friend = false): string {
-  return `They just corrected you ("${clip(said)}"). ${friend ? OWN_IT_FRIEND : OWN_IT}, then go on with what they said. Don't argue, explain why, or repeat your old version.`;
+export function correctionNote(said: string, friend = false, scriptFree = false): string {
+  const own = scriptFree
+    ? friend
+      ? OWN_IT_FRIEND_PLAIN
+      : OWN_IT_PLAIN
+    : friend
+      ? OWN_IT_FRIEND
+      : OWN_IT;
+  return `They just corrected you ("${clip(said)}"). ${own}, then go on with what they said. Don't argue, explain why, or repeat your old version.`;
 }
 
 export function settledNote(earlier: string[]): string {
@@ -179,7 +192,8 @@ function linesOf(chatCtx: llm.ChatContext): { said: string; ferni: string[] } {
 export function correctionNotesFor(
   chatCtx: llm.ChatContext,
   session: object,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  scriptFree = false
 ): string {
   if (!correctionRepairEnabled(env)) return '';
   const { said, ferni } = linesOf(chatCtx);
@@ -190,7 +204,7 @@ export function correctionNotesFor(
   if (correcting) log.info({ carried: carried.length }, 'CORRECTION_REPAIR');
   const friend = env.FRIEND_REPAIR === 'on';
   return [
-    correcting ? correctionNote(said, friend) : '',
+    correcting ? correctionNote(said, friend, scriptFree) : '',
     earlier.length ? settledNote(earlier) : '',
   ]
     .filter(Boolean)

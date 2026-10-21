@@ -3970,7 +3970,6 @@
       "ceo": "首席执行官",
       "ferniRole": "CEO 兼人生教练",
       "ferniDesc": "温暖而睿智的存在，是一切的核心。Ferni 以完美的记忆、毫无评判的态度和时刻的陪伴，协调着整个团队。",
-      "coFounders": "联合创始人",
       "coreTeam": "核心团队",
       "footer": "携手并肩，我们正在重新定义什么是真正倾听你的团队。",
       "roles": {
@@ -4770,7 +4769,10 @@
     "funGames": "趣味游戏",
     "reflectionGames": "反思游戏",
     "tipLabel": "提示：",
-    "tipContent": "随时可以说“停止”或“结束游戏”来提前结束。你的进度会一直保存！"
+    "tipContent": "随时可以说“停止”或“结束游戏”来提前结束。你的进度会一直保存！",
+    "connectFirst": "先和 Ferni 开始通话，再选一个游戏。",
+    "starting": "正在开始{game}…",
+    "startFailed": "没能开始这个游戏。试试直接问 Ferni。"
   },
   "digitalTwinProfile": {
     "title": "打造你的数字分身",
@@ -9059,10 +9061,6 @@
     "chiefExecutive": "首席执行官",
     "ferni": "Ferni",
     "ferniRole": "CEO 兼生活教练",
-    "coFounders": "联合创始人",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "核心团队",
     "tagline": "在一起，我们正在重新定义什么是真正倾听你的团队。",
     "inTeam": "团队中",
@@ -11132,5 +11130,21 @@
     "helper": "用手机相机扫一扫，或点按“打开 Venmo”。金额可以修改。",
     "maybeLater": "以后再说",
     "close": "关闭"
+  },
+  "reportReply": {
+    "button": "举报",
+    "describe": "举报{name}说的话",
+    "title": "举报回复",
+    "whichReply": "哪条回复？",
+    "whatsWrong": "有什么问题？",
+    "reasonHarmful": "有害或不安全",
+    "reasonWrong": "错误或误导",
+    "reasonInappropriate": "不恰当",
+    "reasonOther": "其他",
+    "note": "还有什么要补充的吗？（可选）",
+    "send": "发送",
+    "thanks": "谢谢，会有专人查看。",
+    "failed": "发送失败，请重试。",
+    "tooMany": "你今天已经提交了很多举报，请明天再试。"
   }
 }

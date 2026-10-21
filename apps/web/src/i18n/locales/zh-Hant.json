@@ -3970,7 +3970,6 @@
       "ceo": "執行長",
       "ferniRole": "CEO 與人生教練",
       "ferniDesc": "一切的核心，溫暖而睿智的存在。Ferni 以完美的回憶、毫無批判的包容，以及時刻的陪伴，協調著整個團隊。",
-      "coFounders": "共同創辦人",
       "coreTeam": "核心團隊",
       "footer": "攜手同行，我們正在重新定義什麼是「真正傾聽你的團隊」。",
       "roles": {
@@ -4770,7 +4769,10 @@
     "funGames": "趣味遊戲",
     "reflectionGames": "反思遊戲",
     "tipLabel": "小撇步：",
-    "tipContent": "隨時說「停止」或「結束遊戲」就能提早結束。你的進度隨時都會自動儲存喔！"
+    "tipContent": "隨時說「停止」或「結束遊戲」就能提早結束。你的進度隨時都會自動儲存喔！",
+    "connectFirst": "先和 Ferni 開始通話，再選一個遊戲。",
+    "starting": "正在開始{game}…",
+    "startFailed": "沒能開始這個遊戲。試試直接問 Ferni。"
   },
   "digitalTwinProfile": {
     "title": "打造你的數位分身",
@@ -9059,10 +9061,6 @@
     "chiefExecutive": "執行長",
     "ferni": "Ferni",
     "ferniRole": "CEO 與人生教練",
-    "coFounders": "共同創辦人",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "核心團隊",
     "tagline": "攜手合作，我們正在重新定義什麼是「真正傾聽你」的團隊。",
     "inTeam": "團隊中",
@@ -11132,5 +11130,21 @@
     "helper": "用手機相機掃描，或點按「開啟 Venmo」。金額可以修改。",
     "maybeLater": "以後再說",
     "close": "關閉"
+  },
+  "reportReply": {
+    "button": "檢舉",
+    "describe": "檢舉{name}說的話",
+    "title": "檢舉回覆",
+    "whichReply": "哪則回覆？",
+    "whatsWrong": "有什麼問題？",
+    "reasonHarmful": "有害或不安全",
+    "reasonWrong": "錯誤或具誤導性",
+    "reasonInappropriate": "不恰當",
+    "reasonOther": "其他",
+    "note": "還有要補充的嗎？（選填）",
+    "send": "傳送",
+    "thanks": "謝謝，會有專人查看。",
+    "failed": "傳送失敗，請再試一次。",
+    "tooMany": "你今天已經送出很多檢舉，請明天再試。"
   }
 }

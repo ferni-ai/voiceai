@@ -19,6 +19,11 @@ vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => pathFirestore(docs),
 }));
+// The opt-out stores (opt-outs.ts) import the canonical module.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
 vi.mock('../../../workflows/scheduled-actions.js', () => ({
   deliverDueScheduledActions: vi.fn(async () => ({ due: 0, delivered: 0 })),
 }));
@@ -85,6 +90,8 @@ const notes = () =>
   [...docs.keys()].filter((p) => p.startsWith(`bogle_users/${SETH}/pending_messages/`));
 
 beforeEach(() => {
+  // Phone-keyed opt-outs are read under this key; without it nothing is texted.
+  process.env.LOG_HASH_SECRET = 'test-hash-secret';
   docs.clear();
   texts.length = 0;
   dispatches.length = 0;
@@ -108,6 +115,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
+  delete process.env.LOG_HASH_SECRET;
   vi.useRealTimers();
   for (const k of [
     'PROACTIVE_CHANNELS',

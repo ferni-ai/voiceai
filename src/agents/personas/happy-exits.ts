@@ -118,8 +118,9 @@ const EXIT =
   'If they are wrapping up the call, let them go happily: be genuinely glad they are off to their life and say a warm goodbye in one or two short sentences, calmly and with no exclamation marks, then stop. ' +
   'No question of any kind (not even "okay?" or "right?"), nothing to keep them on the line, no guilt about them going. ' +
   'Never say "I\'ll miss you", "come back soon", "I\'ll be here when you need me", "you know where to find me" or anything like them.';
-const nameIt = (plan: string): string =>
-  `They mentioned what they are off to (their words: "${plan}"). This time you may name it in a few glad words as you let them go, the way a friend would ("${yours(plan)}, good, go."), without asking about it.`;
+/** `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): their words, but no line to say. */
+const nameIt = (plan: string, scriptFree = false): string =>
+  `They mentioned what they are off to (their words: "${plan}"). This time you may name it in a few glad words as you let them go${scriptFree ? '' : `, the way a friend would ("${yours(plan)}, good, go.")`}, without asking about it.`;
 const SIMPLE = 'A warm, simple goodbye: nothing about what they are doing next.';
 const HEAVY =
   'It has been a heavy call: a warm, simple goodbye, gentle and short, nothing about what they are doing next.';
@@ -134,6 +135,8 @@ export interface ExitInput {
   /** The model's reading that they are wrapping up (TURN_UNDERSTANDING). */
   wantsToEnd?: boolean;
   rng: () => number;
+  /** SCRIPT_FREE_REMINDER=on (script-free.ts). */
+  scriptFree?: boolean;
 }
 
 export interface Exit {
@@ -152,7 +155,7 @@ export function happyExitFor(input: ExitInput, env: Env = process.env): Exit {
     return { note: `${EXIT} ${HEAVY}`, fired: 'heavy' };
   const plan = mentionedPlan(input.callerTurns);
   if (plan && input.rng() < NAME_ODDS)
-    return { note: `${EXIT} ${nameIt(plan)}`, fired: 'named', plan };
+    return { note: `${EXIT} ${nameIt(plan, input.scriptFree)}`, fired: 'named', plan };
   return { note: `${EXIT} ${SIMPLE}`, fired: 'simple', ...(plan && { plan }) };
 }
 

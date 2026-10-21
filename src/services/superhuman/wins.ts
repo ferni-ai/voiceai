@@ -23,6 +23,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { personFlagOn } from '../../config/person-flag.js';
 import { forgottenTopicsOrNull, isForgotten } from '../../memory/index.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -129,13 +130,19 @@ export interface WinDeps {
   now?: Date;
 }
 
-/** Records a win for a commitment just marked done. Returns whether one was written. Never throws. */
+/**
+ * Records a win for a commitment just marked done. Returns whether one was written. Never throws.
+ * COACH_WINS is the person's own (cohort-flags.ts): "done" also comes from the UI server and
+ * after a call, where process.env is not theirs.
+ */
 export async function recordWinFromCommitment(
   userId: string,
   commitmentId: string,
   deps: WinDeps = {}
 ): Promise<boolean> {
-  if (!isWinsOn(deps.env) || !userId || !commitmentId) return false;
+  if (!userId || !commitmentId || !(await personFlagOn(userId, 'COACH_WINS', deps.env))) {
+    return false;
+  }
   const store = deps.store ?? firestoreWinStore;
   try {
     const data = await store.commitment(userId, commitmentId);

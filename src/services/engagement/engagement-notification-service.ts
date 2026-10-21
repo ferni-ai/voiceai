@@ -29,6 +29,7 @@ import { getProductivityStore } from '../stores/productivity-store.js';
 import { getGamificationStore } from './gamification-store.js';
 import { isUserBusy, getNextOutreachWindow } from '../scheduling/calendar-busy-detection.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { verifiedAddressFor } from './engagement-reach-port.js';
 
 // ============================================================================
 // TYPES
@@ -310,15 +311,13 @@ class MayaNotificationService extends EventEmitter {
       return null;
     }
 
-    // Get user's contact info
-    const store = await getProfileStore();
+    const store = await getProfileStore(); // for the timezone only
     const profile = await store.getProfile(request.userId);
 
-    const deliveryAddress =
-      prefs.preferredMethod === 'sms' ? profile?.contactInfo?.phone : profile?.contactInfo?.email;
+    const deliveryAddress = await verifiedAddressFor(request.userId, prefs.preferredMethod); // verified
 
     if (!deliveryAddress) {
-      getLogger().warn({ userId: request.userId }, 'No contact info for Maya notification');
+      getLogger().warn({ userId: request.userId }, 'No verified phone or email for Maya notification');
       return null;
     }
 
@@ -347,6 +346,7 @@ class MayaNotificationService extends EventEmitter {
       timezone: profile?.contactInfo?.timezone || 'Etc/UTC',
       deliveryMethod: prefs.preferredMethod,
       deliveryAddress,
+      addressSource: 'verified-own', // so its text always takes the guarded sender
       createdBy: 'maya',
     });
 

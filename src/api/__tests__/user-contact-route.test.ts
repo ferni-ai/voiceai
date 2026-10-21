@@ -21,6 +21,8 @@ const h = vi.hoisted(() => ({
   userDoc: undefined as Record<string, unknown> | undefined,
 }));
 
+// Texts going on send a confirmation (opt-in-text.ts); not from this route test.
+vi.mock('../../services/outreach/opt-in-text.js', () => ({ confirmSmsOptIn: async () => 'sent' }));
 vi.mock('../auth-middleware.js', () => ({
   rateLimit: () => false,
   requireAuth: async () => ({ userId: 'user-1', authMethod: 'firebase', isAdmin: false }),

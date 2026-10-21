@@ -11,6 +11,7 @@ import {
   type CallUserPort,
 } from '../../tools/domains/proactive/outreach/call-user-port.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
+import { setEngagementReachPort } from '../engagement/engagement-reach-port.js';
 import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
@@ -67,4 +68,9 @@ export const callUserAdapter: CallUserPort = {
 /** Install the adapter; safe to call on every call. */
 export function installCallUserPort(): void {
   setCallUserPort(callUserAdapter);
+  // Maya's notifications (services/engagement) reach only the same verified phone and email.
+  setEngagementReachPort({
+    verifiedPhone: callUserAdapter.verifiedPhone,
+    verifiedEmail: async (userId) => (await callUserAdapter.verifiedEmail?.(userId)) ?? undefined,
+  });
 }

@@ -102,7 +102,10 @@ export function getFirestoreDb(): Firestore | null {
 
   try {
     installSyntheticWriteGuard();
-    db = new Firestore();
+    // Firestore rejects a document with an undefined field anywhere in it, so one
+    // optional value left unset failed the whole write (crisis signals in prod).
+    // The persistence client sets the same option.
+    db = new Firestore({ ignoreUndefinedProperties: true });
     initialized = true;
     initializationError = null;
     log.debug('Firestore initialized');

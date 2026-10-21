@@ -23,8 +23,14 @@ on:
       - '.github/workflows/**'
       - '.github/actions/**'
       - '**/Dockerfile*'
+      # Shapes the UI image's build context. Prod web deploys start from this
+      # push run's verdict (deploy-production.yml), so it must run on it.
+      - '.dockerignore'
       - 'cloudbuild*.yaml'
       - 'infra/**'
+      # The web server's env and secrets (deploy/ui-server/). A flag flip that
+      # edits only these must still get a push run, or nothing deploys it.
+      - 'deploy/**'
   pull_request:
     branches: [main, develop]
     # No path filter on PRs: branch protection requires these checks, so a PR
@@ -101,7 +107,7 @@ jobs:
       # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
       code: ${{ steps.code.outputs.matched }}
       # 'false' also when a PR touches only apps that aren't the Node app (website,
-      # ios-native, android-native, android-twa, macos-menubar): none is in the UI image, ESLint
+      # ios-native, android-twa, macos-menubar): none is in the UI image, ESLint
       # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
       # see the change. Security and Quality Gates (brand scans the website) stay on
       # `code`. The merge queue is scoped the same way unless CI_SCOPED_QUEUE=off.
@@ -129,7 +135,7 @@ jobs:
         id: node
         uses: ./.github/actions/pr-changes
         with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|android-twa|macos-menubar)/'
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-twa|macos-menubar)/'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - name: Did the merge queue already test this tree?
@@ -293,6 +299,17 @@ jobs:
       # Its error count may only go down (baseline: apps/cli/tsc-error-baseline.json).
       - name: CLI typecheck ratchet
         run: node scripts/ci/cli-typecheck-ratchet.mjs
+
+      # The env-name list test scans src/ as text, so no import edge reaches it and
+      # `--changed` skips it whenever a PR adds or drops an env read; the PR then
+      # failed only in the queue. It takes ~4 s and needs no native binding, so a PR
+      # always runs it, before the Rust build. The list merges with git's union
+      # driver (.gitattributes), which this test makes safe.
+      - name: Check the env-name list
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts
+        env:
+          NODE_ENV: test
 
       # 60 call sites use the THROWING loadRustPerf() (tryLoadRustPerf is documented
       # "for availability checks, not for actual operations"), so the accelerator is
@@ -816,7 +833,7 @@ jobs:
 
       - name: Check for secrets
         if: steps.scan-range.outcome == 'success' && steps.scan-range.outputs.commits != '0'
-        uses: trufflesecurity/trufflehog@b2b0a92070f206ab7b5a1105d82a7f2f48d92341 # v3.99.0
+        uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
         with:
           path: ./
           base: ${{ steps.scan-range.outputs.base }}

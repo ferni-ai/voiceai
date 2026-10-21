@@ -7,10 +7,13 @@
  *
  * - The agent's goodbye (`conversation_end`) plays the one end sound. The
  *   hang-up that follows stays quiet (a plain bug fix, not flagged).
+ * - The room closing after a planned goodbye (deleted, or we were removed) is
+ *   the planned end, not a dropped call, flag on or off: the agent closes the
+ *   room after every goodbye (GOODBYE_ENDS_CALL, default on), and prod web
+ *   builds have never set VITE_CALL_WRAP_UP.
  * - With VITE_CALL_WRAP_UP on, only a planned goodbye (services/planned-goodbye.ts) is
  *   the agent ending the call:
- *   - the room closing after one (deleted, or we were removed) is the planned
- *     end, not a dropped call, and the agent leaving after one is left to it;
+ *   - the agent leaving after one is left to it;
  *   - the agent leaving without one (silence, a crash, a drop, anything
  *     unclear) never hangs up here: the reconnect prompt (#1328,
  *     services/agent-drop-watch.ts) or today's path takes it;
@@ -77,7 +80,7 @@ export function noteConversationEnd(event: ConversationEndEvent): void {
 
 /** The room closed under us after a planned goodbye: the planned end, so no "dropped" notice. */
 export function afterConversationEnd(): boolean {
-  return isCallWrapUpEnabled() && plannedGoodbye;
+  return plannedGoodbye;
 }
 
 /**

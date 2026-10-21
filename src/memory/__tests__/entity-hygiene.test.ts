@@ -33,6 +33,8 @@ describe('junkReason', () => {
     [{ name: 'giving the item to Ferni', type: 'topic' }, 'persona'],
     [{ name: 'Hey Maya', type: 'person' }, 'persona'],
     [{ name: 'Ferni', type: 'person', relationship: 'friend' }, 'persona'],
+    [{ name: 'Fernie', type: 'person' }, 'persona'],
+    [{ name: 'Furny', type: 'person' }, 'persona'],
     [{ name: 'Maya', type: 'person' }, 'persona'],
     [{ name: 'Peter John', type: 'person' }, 'persona'],
     [{ name: 'Jordon', type: 'person' }, 'persona'],
@@ -119,6 +121,55 @@ describe('extractEntities (the extractor whose entities the entity store creates
     model.reply = 'not json';
     const { entities } = await extractEntities('Hi Maya, my mom said Ferni was great', context);
     expect(entities.map((e) => e.name)).toEqual(['mother']);
+  });
+});
+
+/** Prod 2026-10-20: STT heard "Hey Ferni" as "Hey Fred."; "Fred" and "Everyone" were stored. */
+describe('a name the caller only greets, and "everyone"', () => {
+  const said = 'Hey Fred.\nEveryone very good.';
+  const fred: NamedEntity = { name: 'Fred', type: 'person', relationship: 'friend' };
+
+  it('drops the greeted name and "Everyone" from the call', () => {
+    expect(junkReason(fred, ON, said)).toBe('greeted');
+    const everyone = { name: 'Everyone', type: 'person', relationship: 'social circle' };
+    expect(junkReason(everyone, ON, said)).toBe('placeholder');
+    expect(junkReason({ name: 'everybody at work', type: 'person' }, ON)).toBe('placeholder');
+  });
+
+  it.each(['Hi, Fred, how are you?', 'Hello Fred', 'Okay. Hey Fred!'])(
+    'drops a person only greeted in %j',
+    (text) => {
+      expect(junkReason(fred, ON, text)).toBe('greeted');
+    }
+  );
+
+  it.each([
+    'my friend Fred says hi',
+    'Hey Fred came over yesterday.',
+    'Hey Fred. My friend Fred is visiting.',
+    'I saw Fred.',
+    'Hey Fred Rogers was on TV',
+    '',
+  ])('keeps a person the caller talks about in %j', (text) => {
+    expect(junkReason(fred, ON, text)).toBeNull();
+  });
+
+  it('keeps a place or topic that follows a greeting', () => {
+    expect(junkReason({ name: 'Denver', type: 'place' }, ON, 'Hey Denver.')).toBeNull();
+  });
+
+  it('the extractor stores neither from the call, and a real Fred still', async () => {
+    model.reply = JSON.stringify([
+      { name: 'Fred', type: 'person', relationship: 'friend', confidence: 0.8 },
+      { name: 'Everyone', type: 'person', relationship: 'social circle', confidence: 0.6 },
+    ]);
+    const context = { userId: 'u1', sessionId: 's1', turnNumber: 2 };
+    vi.stubEnv('ENTITY_HYGIENE', 'on');
+    expect((await extractEntities(said, context)).entities).toEqual([]);
+    const real = await extractEntities('my friend Fred says hi to everyone', context);
+    expect(real.entities.map((e) => e.name)).toEqual(['Fred']);
+    vi.stubEnv('ENTITY_HYGIENE', 'off');
+    expect((await extractEntities(said, context)).entities).toHaveLength(2);
   });
 });
 

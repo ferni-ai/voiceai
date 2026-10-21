@@ -19,6 +19,11 @@ vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => pathFirestore(docs),
 }));
+// The opt-out stores (opt-outs.ts) import the canonical module.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
 vi.mock('../../../workflows/scheduled-actions.js', () => ({
   deliverDueScheduledActions: vi.fn(async () => ({ due: 0, delivered: 0 })),
 }));
@@ -98,6 +103,8 @@ async function runHandler(): Promise<{ status: string; channel?: string; why?: s
 }
 
 beforeEach(() => {
+  // Phone-keyed opt-outs are read under this key; without it nothing is texted.
+  process.env.LOG_HASH_SECRET = 'test-hash-secret';
   docs.clear();
   authUsers.clear();
   texts.length = 0;
@@ -111,6 +118,7 @@ beforeEach(() => {
   process.env.PROACTIVE_CHANNELS_USERS = SETH;
 });
 afterEach(() => {
+  delete process.env.LOG_HASH_SECRET;
   vi.useRealTimers();
   delete process.env.PROACTIVE_CHANNELS;
   delete process.env.PROACTIVE_CHANNELS_USERS;

@@ -21,6 +21,7 @@ import { loadAfterCallData } from './after-call-data.js';
 import { buildCallFeedbackRow } from './call-feedback.js';
 import { isAfterCallCardEnabled } from './after-call-flag.js';
 import { addPushAsk } from './push-ask.js';
+import { buildReportLink } from '../report-reply/report-reply-entry.js';
 
 const log = createLogger('PostCall');
 
@@ -39,7 +40,9 @@ function openSupport(): void {
 
 export async function showPostCallCard(): Promise<void> {
   if (!isAfterCallCardEnabled()) {
-    addFeedbackRow(await showConversationCost());
+    const costCard = await showConversationCost();
+    addFeedbackRow(costCard);
+    addReportLink(costCard, 'Ferni');
     return;
   }
 
@@ -62,8 +65,15 @@ export async function showPostCallCard(): Promise<void> {
     onSupport: canOpenSupport() ? openSupport : undefined,
   });
   addFeedbackRow(card);
+  addReportLink(card, session?.personaName || 'Ferni');
   // One optional "check in about this?" when it applies (push-ask.ts); never blocks the card.
   void addPushAsk(card);
+}
+
+/** Store policy: a way to report what was said, right where the call ends. */
+function addReportLink(card: HTMLElement | null, personaName: string): void {
+  const link = card ? buildReportLink(personaName) : null;
+  if (link) card?.appendChild(link);
 }
 
 function addFeedbackRow(card: HTMLElement | null): void {

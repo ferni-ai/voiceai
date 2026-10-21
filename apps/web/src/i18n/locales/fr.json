@@ -3995,7 +3995,6 @@
       "ceo": "Direction générale",
       "ferniRole": "CEO & Coach de vie",
       "ferniDesc": "Une présence chaleureuse et sage au cœur de tout. Ferni coordonne l'équipe avec une mémoire parfaite, sans aucun jugement et une présence constante.",
-      "coFounders": "Co-fondateurs",
       "coreTeam": "Équipe principale",
       "footer": "Ensemble, nous redéfinissons ce que signifie avoir une équipe qui t'écoute vraiment.",
       "roles": {
@@ -4802,7 +4801,10 @@
     "reflectionGames": "Jeux de réflexion",
     "tipLabel": "Astuce :",
     "tipContent": "Dis « stop » ou « arrête le jeu » à tout moment pour finir plus tôt. Ta progression est toujours sauvegardée !",
-    "fortuneCookie": "Biscuit de la fortune"
+    "fortuneCookie": "Biscuit de la fortune",
+    "connectFirst": "Lance d'abord un appel avec Ferni, puis choisis un jeu.",
+    "starting": "Lancement de {game}…",
+    "startFailed": "Impossible de lancer ce jeu. Demande à Ferni."
   },
   "digitalTwinProfile": {
     "title": "Crée ton double digital",
@@ -9129,10 +9131,6 @@
     "chiefExecutive": "Direction générale",
     "ferni": "Ferni",
     "ferniRole": "CEO & Coach de vie",
-    "coFounders": "Co-fondateurs",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "Équipe principale",
     "tagline": "Ensemble, nous redéfinissons ce que signifie avoir une équipe qui t'écoute vraiment.",
     "inTeam": "Dans l'équipe",
@@ -11257,5 +11255,21 @@
     "helper": "Scanne-le avec l'appareil photo de ton téléphone ou touche Ouvrir Venmo. Tu peux changer le montant.",
     "maybeLater": "Plus tard",
     "close": "Fermer"
+  },
+  "reportReply": {
+    "button": "Signaler",
+    "describe": "Signaler quelque chose que {name} a dit",
+    "title": "Signaler une réponse",
+    "whichReply": "Quelle réponse ?",
+    "whatsWrong": "Quel est le problème ?",
+    "reasonHarmful": "Nuisible ou dangereuse",
+    "reasonWrong": "Fausse ou trompeuse",
+    "reasonInappropriate": "Inappropriée",
+    "reasonOther": "Autre chose",
+    "note": "Quelque chose à ajouter ? (facultatif)",
+    "send": "Envoyer",
+    "thanks": "Merci. Une personne va examiner cela.",
+    "failed": "L'envoi a échoué. Réessaie.",
+    "tooMany": "Tu as envoyé beaucoup de signalements aujourd'hui. Réessaie demain."
   }
 }

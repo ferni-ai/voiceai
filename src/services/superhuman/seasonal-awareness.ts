@@ -12,6 +12,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from './firestore-utils.js';
 import { onSeasonalPatternChange } from '../data-layer/hooks/superhuman-hooks.js';
+import { thanksgivingDay } from '../../utils/us-holidays.js';
 import {
   onImportantDateApproaching,
   onSeasonalPatternDetected,
@@ -38,7 +39,6 @@ export interface SeasonalObservation {
   id: string;
   userId: string;
 
-  // When
   month: number; // 1-12
   dayOfMonth?: number; // For specific dates
   season: Season;
@@ -149,8 +149,8 @@ const UNIVERSAL_DATES: Array<{
   },
   {
     month: 11,
-    day: 24,
-    name: 'Thanksgiving (approximate)',
+    day: thanksgivingDay(), // the fourth Thursday, not a fixed date
+    name: 'Thanksgiving',
     type: 'celebration',
     guidance: 'Family gatherings can be complex. How are they feeling about it?',
   },

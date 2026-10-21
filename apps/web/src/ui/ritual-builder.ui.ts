@@ -456,7 +456,7 @@ class RitualBuilderUI {
 
       <!-- Better Than Human Footer -->
       <div class="ritual-builder__bth-footer">
-        <span class="ritual-builder__bth-icon">✨</span>
+        <span class="ritual-builder__bth-icon" aria-hidden="true">${ICONS.sparkles.replace('<svg ', '<svg width="14" height="14" ')}</span>
         <span class="ritual-builder__bth-text">
           ${t('rituals.bthFooter', "I'll learn your patterns and find the perfect time for your practice.")}
         </span>
