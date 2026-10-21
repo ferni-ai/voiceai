@@ -8,8 +8,10 @@ import UIKit
 /// real glass.)
 public extension View {
     /// The one primary action on a screen: tinted glass, forest in light mode, sage in dark.
+    /// Its words in onAccent ink, never the system's white: on Night Ink's light
+    /// sage, white "I agree, let's talk" was 2.48:1 (critic H-B).
     func ferniPrimaryGlass() -> some View {
-        buttonStyle(.glassProminent).tint(FerniColor.accent)
+        buttonStyle(.glassProminent).tint(FerniColor.accent).foregroundStyle(FerniColor.onAccent)
     }
 
     /// Secondary floating controls (mute, more).
