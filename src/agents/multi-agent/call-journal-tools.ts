@@ -19,7 +19,10 @@ import { CALL_JOURNAL_TOOLS } from '../../config/tool-config.js';
 import { toolRegistry } from '../../tools/registry/index.js';
 import { loadToolDomainsLazy } from '../../tools/registry/loader.js';
 import type { ToolContext } from '../../tools/registry/types.js';
-import { callJournalOn } from '../../tools/domains/productivity/call-journal.js';
+import {
+  callJournalGratitude,
+  callJournalOn,
+} from '../../tools/domains/productivity/call-journal.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
 const log = getLogger();
@@ -42,6 +45,8 @@ export async function withCallJournalTools<T>(
     for (const def of toolRegistry.getByDomain('productivity')) {
       if (missing.includes(def.id)) added[def.id] = def.create(ctx) as T;
     }
+    // Never in the registry, which is built once per process: it exists only for this caller.
+    if (missing.includes('addGratitude')) added.addGratitude = callJournalGratitude() as T;
     const absent = missing.filter((name) => !(name in added));
     if (absent.length > 0) log.warn({ absent }, 'Call journal tools not in the registry');
     return { ...tools, ...added };

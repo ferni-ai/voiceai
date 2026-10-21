@@ -4,7 +4,9 @@
  *
  * IPA is in Cartesia's notation: <<...>>, symbols split by |, from Cartesia's
  * 41-symbol General American set (docs: capability-guides/phonemes), the
- * stress mark before the stressed syllable's first consonant. There is no ʌ:
+ * stress mark before the stressed syllable's first consonant, one primary
+ * stress an entry. An entry may be several <<...>> words to stop Sonic gliding
+ * across a syllable break (Nayan); only one of them carries ˈ. There is no ʌ:
  * a stressed ə is "uh". Sounds-like spellings stay lowercase: Sonic spelled
  * capitalised syllables out as letters ("NUH-yun" as "N-U-H yun", "HOR-hay"
  * as "H-O-R hay").
@@ -38,9 +40,11 @@ export const TEAM_NAME_PRONUNCIATIONS: Readonly<Record<string, string>> = {
   Alex: '<<ˈ|æ|l|ə|k|s>>',
   Chen: '<<ˈ|tʃ|ɛ|n>>',
   Peter: '<<ˈ|p|i|t|ɝ>>',
-  // Was <<ˈ|n|ʌ|j|ə|n>>: ʌ is outside Cartesia's set. Neither form, nor any
-  // sounds-like tried, reliably avoided "NIGH-un" to the ASR judge; by ear TBD.
-  Nayan: '<<ˈ|n|ə|j|ə|n>>',
+  // NAH-yahn, /ˈnɑ.jɑn/ (the owner, 2026-10-20). As one IPA word Sonic glides
+  // ɑ+j into "aɪ" (NIGH-un, 1 of 24 takes right); split into two words, with
+  // the second unstressed, it says n ɑ j ɑ n in 36 of 36 takes on three voices,
+  // possessive included, with no added pause (lexicon-free phone recogniser).
+  Nayan: '<<ˈ|n|ɑ>> <<j|ɑ|n>>',
   Patel: '<<p|ə|ˈ|t|ɛ|l>>',
   // The legends
   Henry: '<<ˈ|h|ɛ|n|ɹ|i>>',

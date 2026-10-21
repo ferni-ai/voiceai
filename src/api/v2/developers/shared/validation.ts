@@ -73,6 +73,22 @@ export const JSONSchemaSchema: z.ZodType<unknown> = z.lazy(() =>
 /** MCP transport type */
 export const MCPTransportSchema = z.enum(['stdio', 'http', 'websocket']);
 
+/**
+ * Publisher-registered MCP servers can't be stdio: a stdio server is a process our
+ * server would start from publisher-supplied configuration.
+ */
+export const STDIO_MCP_NOT_HOSTED_MESSAGE = "stdio servers can't be hosted; use an https endpoint";
+
+/**
+ * True when an MCP server config asks us to start a local process.
+ * Stored documents use null for absent fields, so null counts as absent.
+ */
+export function isStdioMCPConfig(input: unknown): boolean {
+  if (!input || typeof input !== 'object') return false;
+  const config = input as Record<string, unknown>;
+  return config.transport === 'stdio' || config.command != null || config.args != null;
+}
+
 /** Create MCP server input */
 export const CreateMCPServerSchema = z
   .object({
@@ -89,37 +105,27 @@ export const CreateMCPServerSchema = z
     enabled: z.boolean().default(true),
     timeout: z.number().int().min(1000).max(60000).optional(),
   })
-  .refine(
-    (data) => {
-      // Stdio requires command
-      if (data.transport === 'stdio' && !data.command) {
-        return false;
-      }
-      // HTTP/WebSocket require endpoint
-      if ((data.transport === 'http' || data.transport === 'websocket') && !data.endpoint) {
-        return false;
-      }
-      return true;
-    },
-    {
-      message: 'stdio transport requires command; http/websocket require endpoint',
-    }
-  );
+  .refine((data) => !isStdioMCPConfig(data), { message: STDIO_MCP_NOT_HOSTED_MESSAGE })
+  .refine((data) => data.transport === 'stdio' || !!data.endpoint, {
+    message: 'http/websocket transport requires endpoint',
+  });
 
 /** Update MCP server input */
-export const UpdateMCPServerSchema = z.object({
-  name: z.string().min(1).max(100).optional(),
-  description: z.string().max(500).optional(),
-  transport: MCPTransportSchema.optional(),
-  command: z.string().optional(),
-  args: z.array(z.string()).optional(),
-  endpoint: MCPEndpointSchema.optional(),
-  headers: z.record(z.string(), z.string()).optional(),
-  secrets: z.record(z.string(), z.string()).optional(),
-  autoConnect: z.boolean().optional(),
-  enabled: z.boolean().optional(),
-  timeout: z.number().int().min(1000).max(60000).optional(),
-});
+export const UpdateMCPServerSchema = z
+  .object({
+    name: z.string().min(1).max(100).optional(),
+    description: z.string().max(500).optional(),
+    transport: MCPTransportSchema.optional(),
+    command: z.string().optional(),
+    args: z.array(z.string()).optional(),
+    endpoint: MCPEndpointSchema.optional(),
+    headers: z.record(z.string(), z.string()).optional(),
+    secrets: z.record(z.string(), z.string()).optional(),
+    autoConnect: z.boolean().optional(),
+    enabled: z.boolean().optional(),
+    timeout: z.number().int().min(1000).max(60000).optional(),
+  })
+  .refine((data) => !isStdioMCPConfig(data), { message: STDIO_MCP_NOT_HOSTED_MESSAGE });
 
 // ============================================================================
 // CUSTOM TOOL SCHEMAS (Phase 2)

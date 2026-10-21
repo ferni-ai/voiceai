@@ -268,12 +268,7 @@ describe.skipIf(SKIP_E2E)('API E2E Tests', () => {
     });
 
     it('GET /api/admin/marketplace/queue returns review queue', async () => {
-      const res = await adminRequest('/api/admin/marketplace/queue', {
-        headers: {
-          'x-admin-id': 'e2e-admin',
-          'x-admin-name': 'E2E Admin',
-        },
-      });
+      const res = await adminRequest('/api/admin/marketplace/queue');
 
       expect(res.ok).toBe(true);
       const data = await res.json();
