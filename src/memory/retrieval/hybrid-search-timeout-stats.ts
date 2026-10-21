@@ -30,6 +30,9 @@ import {
 
 const log = createLogger({ module: 'HybridSearchTimeout' });
 
+/** Time left after the leg deadline for fusion (measured 0 ms) before the race ends. */
+export const LEG_DEADLINE_MARGIN_MS = 50;
+
 let hybridSearchAttempts = 0;
 let hybridSearchTimeouts = 0;
 
@@ -59,6 +62,9 @@ export async function runHybridSearchWithTimeout(
     bm25Weight: 0.4,
     vectorWeight: 0.6,
     includeEntities: true,
+    // Fuse the legs that made it, just inside the race, so one late leg (the
+    // vector leg, waiting out a 429 backoff) costs its own results, not all.
+    legDeadlineMs: Math.max(0, budgetMs - LEG_DEADLINE_MARGIN_MS),
   });
   // A search that loses the race still finishes. Log how late, per leg, so the
   // budget is set from what the search actually takes (dev 2026-10-05: 20 of
