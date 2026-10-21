@@ -55,6 +55,43 @@ final class PortraitAssetTests: XCTestCase {
         }
     }
 
+    /// Critic L1: the bundled portraits drift from Ferni as the shader
+    /// changes. Each must match a fresh render at the current shader: mean
+    /// difference per channel under 1%. Regenerate (above) when it fails.
+    func testTheBundledPortraitsMatchTheCurrentShader() throws {
+        let renderer = try XCTUnwrap(AliveRenderer.shared)
+        let n = AlivePortraits.pixels
+        for persona in WindowPersona.allCases {
+            for dark in [false, true] {
+                let fresh = try XCTUnwrap(renderer.image(AlivePortraits.uniforms(for: persona, dark: dark), width: n, height: n))
+                let freshImage = try XCTUnwrap(UIImage(data: try XCTUnwrap(Self.png(fresh, size: n)))?.cgImage)
+                let bundled = try XCTUnwrap(AlivePortraits.image(persona, dark: dark)?.cgImage, "\(persona) \(dark)")
+                let a = Self.rgba(freshImage, size: n), b = Self.rgba(bundled, size: n)
+                // Over Ferni himself (any pixel either one covers), not the empty corners.
+                var sum = 0.0, count = 0.0
+                for i in stride(from: 0, to: a.count, by: 4) where a[i + 3] > 0 || b[i + 3] > 0 {
+                    for c in 0..<4 { sum += abs(Double(a[i + c]) - Double(b[i + c])) }
+                    count += 4
+                }
+                let mean = sum / max(count, 1) / 255
+                XCTAssertLessThan(mean, Self.driftTolerance, "\(persona) \(dark ? "dark" : "light") portrait is \(mean) off the current shader: regenerate")
+            }
+        }
+    }
+
+    /// Freshly regenerated, the portraits match to well under this; the set
+    /// bundled before the 2026-10-20 regeneration was further off (see the commit).
+    static let driftTolerance = 0.0005
+
+    /// Every byte of an image drawn at `size`, RGBA premultiplied.
+    static func rgba(_ image: CGImage, size n: Int) -> [UInt8] {
+        var px = [UInt8](repeating: 0, count: n * n * 4)
+        let ctx = CGContext(data: &px, width: n, height: n, bitsPerComponent: 8, bytesPerRow: n * 4,
+                            space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        ctx.draw(image, in: CGRect(x: 0, y: 0, width: n, height: n))
+        return px
+    }
+
     static func hueSaturation(_ c: SIMD3<Float>) -> (hue: Float, saturation: Float) {
         let hi = c.max(), lo = c.min(), d = hi - lo
         guard d > 0 else { return (0, 0) }
