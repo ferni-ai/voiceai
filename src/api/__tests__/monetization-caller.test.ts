@@ -75,7 +75,7 @@ vi.mock('../../services/monetization/contextual-partnerships.js', () => ({
   contextualPartnerships: {
     recordReferral: m.recordReferral,
     recordClick: () => {},
-    getActivePartners: () => [],
+    getActivePartners: () => PARTNERS,
     updateQuality: m.updateQuality,
     getBestRecommendation: m.recommend,
   },
@@ -83,6 +83,14 @@ vi.mock('../../services/monetization/contextual-partnerships.js', () => ({
 vi.mock('../../services/monetization/ferni-fund.js', () => ({
   ferniFund: { COST_PER_CONVERSATION: 50 },
 }));
+
+/** The active partner catalogue: a few named partners plus more than one person may rate */
+const PARTNERS = [
+  'p-recommend-1',
+  'p-twice',
+  'p-x',
+  ...Array.from({ length: 120 }, (_, i) => `p-${i}`),
+].map((id) => ({ id }));
 
 const ORG = { id: 'org_1', memberUserIds: ['uid-alice'], adminUserIds: ['uid-alice'] };
 vi.mock('../../services/monetization/b2b-licensing.js', () => ({
@@ -99,6 +107,7 @@ vi.mock('../../services/monetization/b2b-licensing.js', () => ({
 }));
 
 const { handleMonetizationRequest } = await import('../monetization-routes.js');
+const { MAX_PARTNERS_RATED_PER_USER } = await import('../monetization-access.js');
 
 function request(
   method: 'GET' | 'POST',
@@ -343,5 +352,58 @@ describe('POST /api/monetization/partners/feedback, voted twice', () => {
     expect((await vote('uid-dave')).status).toBe(200);
     expect(m.updateQuality).toHaveBeenCalledTimes(2);
     expect(m.updateQuality).toHaveBeenLastCalledWith('p-twice', 'not_helpful');
+  });
+});
+
+describe('POST /api/monetization/partners/feedback, hostile input', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const vote = (as: string, partnerId: unknown, feedback: unknown = 'not_helpful') =>
+    request('POST', '/api/monetization/partners/feedback', { body: { partnerId, feedback }, as });
+  const votesOn = (partnerId: string) =>
+    m.updateQuality.mock.calls.filter(([id]) => id === partnerId).length;
+
+  it('records nothing for a partner that does not exist', async () => {
+    const res = await vote('uid-erin', 'p-made-up');
+    expect(res.status).toBe(404);
+    expect(m.updateQuality).not.toHaveBeenCalled();
+  });
+
+  it.each([['very_bad'], [''], [5], [null], [['helpful']]])(
+    'refuses feedback %j with 400',
+    async (feedback) => {
+      const res = await vote('uid-erin', 'p-x', feedback);
+      expect(res.status).toBe(400);
+      expect(m.updateQuality).not.toHaveBeenCalled();
+    }
+  );
+
+  it("a flood of votes on other partners can't reset a person's vote on partner X", async () => {
+    expect((await vote('uid-frank', 'p-x')).status).toBe(200);
+    expect(votesOn('p-x')).toBe(1);
+
+    // more made-up partners than the old FIFO held, then every real partner
+    const fake = Array.from({ length: 50_001 }, (_, i) => vote('uid-frank', `p-fake-${i}`));
+    const real = PARTNERS.filter((p) => p.id !== 'p-x').map((p) => vote('uid-frank', p.id));
+    await Promise.all([...fake, ...real]);
+
+    expect((await vote('uid-frank', 'p-x')).status).toBe(200);
+    expect(votesOn('p-x')).toBe(1);
+  });
+
+  it('refuses a new partner past the per-person cap instead of forgetting an old vote', async () => {
+    const ids = PARTNERS.map((p) => p.id);
+    const first = await Promise.all(
+      ids.slice(0, MAX_PARTNERS_RATED_PER_USER).map((id) => vote('uid-gina', id))
+    );
+    expect(first.every((r) => r.status === 200)).toBe(true);
+    expect(m.updateQuality).toHaveBeenCalledTimes(MAX_PARTNERS_RATED_PER_USER);
+
+    const over = await vote('uid-gina', ids[MAX_PARTNERS_RATED_PER_USER]);
+    expect(over.status).toBe(429);
+    expect(m.updateQuality).toHaveBeenCalledTimes(MAX_PARTNERS_RATED_PER_USER);
+    // and the earliest vote still holds
+    await vote('uid-gina', ids[0]);
+    expect(m.updateQuality).toHaveBeenCalledTimes(MAX_PARTNERS_RATED_PER_USER);
   });
 });

@@ -139,34 +139,47 @@ export async function completeTip(ctx: Ctx): Promise<Answer> {
   }
 }
 
-/** `${uid}:${partnerId}` for each partner a person has rated, oldest first */
-const partnerVotes = new Set<string>();
-const MAX_PARTNER_VOTES = 50_000;
+/** Who has rated each partner. Never evicted: these sets are what make a vote count once. */
+const votersByPartner = new Map<string, Set<string>>();
+/** How many distinct partners each person has rated */
+const partnersRatedByUser = new Map<string, number>();
+/** Far above the partner catalogue; past it a person's votes are refused, not rotated */
+export const MAX_PARTNERS_RATED_PER_USER = 100;
+
+const FEEDBACK = new Set(['helpful', 'not_helpful']);
 
 /**
  * POST /api/monetization/partners/feedback
  *
  * Feedback moves a partner's global quality score, and eight "not_helpful"
  * votes deactivate it, so only a person's first vote on a partner counts;
- * repeats are thanked, not applied.
+ * repeats are thanked, not applied. Only active partners can be rated, so a
+ * flood of made-up ids records nothing, and nothing a person does elsewhere
+ * can forget their vote on a partner.
  */
 export async function recordPartnerFeedback(ctx: Ctx): Promise<Answer> {
-  const { partnerId, feedback } = (ctx.body ?? {}) as {
-    partnerId?: string;
-    feedback?: 'helpful' | 'not_helpful';
-  };
-  if (!partnerId || !feedback) {
+  const { partnerId, feedback } = (ctx.body ?? {}) as { partnerId?: unknown; feedback?: unknown };
+  if (typeof partnerId !== 'string' || !partnerId) {
     return json(400, { error: 'partnerId and feedback are required' });
   }
+  if (typeof feedback !== 'string' || !FEEDBACK.has(feedback)) {
+    return json(400, { error: "feedback must be 'helpful' or 'not_helpful'" });
+  }
+  if (!contextualPartnerships.getActivePartners().some((p) => p.id === partnerId)) {
+    return json(404, { error: 'Partner not found' });
+  }
 
-  const vote = `${ctx.authUserId}:${partnerId}`;
-  if (!partnerVotes.has(vote)) {
-    partnerVotes.add(vote);
-    // bounded: forget the oldest vote rather than grow without limit
-    if (partnerVotes.size > MAX_PARTNER_VOTES) {
-      partnerVotes.delete(partnerVotes.values().next().value as string);
+  const uid = ctx.authUserId as string; // verified by refuseUnverifiedWrite
+  const voters = votersByPartner.get(partnerId) ?? new Set<string>();
+  if (!voters.has(uid)) {
+    const rated = partnersRatedByUser.get(uid) ?? 0;
+    if (rated >= MAX_PARTNERS_RATED_PER_USER) {
+      return json(429, { error: 'Too many partners rated' });
     }
-    contextualPartnerships.updateQuality(partnerId, feedback);
+    voters.add(uid);
+    votersByPartner.set(partnerId, voters);
+    partnersRatedByUser.set(uid, rated + 1);
+    contextualPartnerships.updateQuality(partnerId, feedback as 'helpful' | 'not_helpful');
   }
   return json(200, { success: true, message: 'Thank you for your feedback!' });
 }
