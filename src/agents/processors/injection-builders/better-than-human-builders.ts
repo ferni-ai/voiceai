@@ -371,7 +371,8 @@ export async function buildAmbientModeInjections(userId: string): Promise<Contex
  */
 export async function buildHumanTransferInjections(
   userText: string,
-  userId?: string
+  userId?: string,
+  sessionId?: string
 ): Promise<ContextInjection | null> {
   try {
     const { humanTransfer, buildTransferAwarenessContext, logCrisisSignal } =
@@ -380,7 +381,7 @@ export async function buildHumanTransferInjections(
     const signals = humanTransfer.detectCrisisSignals(userText);
 
     if (userId && signals.severity > 0) {
-      logCrisisSignal(userId, signals, userText).catch((err: Error) => {
+      logCrisisSignal(userId, signals, userText, sessionId).catch((err: Error) => {
         diag.debug('Crisis signal logging failed', { error: String(err) });
       });
     }

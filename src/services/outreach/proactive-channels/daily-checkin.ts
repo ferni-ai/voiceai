@@ -92,6 +92,8 @@ export async function dailyCheckIn(userId: string, now: Date): Promise<DailyChec
     lastTalkedAt: lastTalkedAt(user),
     recent,
     canCall: false,
+    // Never a text or call (no phone given), so no opt-out is read; both stay ruled out.
+    optedOut: { sms: true, call: true },
   });
   return dailyCheckInFor(userId, now, choice, recent);
 }

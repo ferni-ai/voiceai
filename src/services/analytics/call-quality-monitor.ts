@@ -27,6 +27,7 @@ import {
   type SloKey,
   type SloLimits,
 } from './call-quality-slo.js';
+import { emitCallEnd, type CallSummary } from './bq-call-events.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
 
@@ -298,14 +299,8 @@ export function recordCallEvent(event: CallEvent): void {
         completedSessions.splice(0, completedSessions.length - MAX_COMPLETED_SESSIONS);
       }
 
-      log.debug(
-        {
-          callId: session.callId,
-          duration: session.totalDurationMs,
-          endReason: session.endReason,
-        },
-        'Call completed'
-      );
+      log.debug({ callId: session.callId, endReason: session.endReason }, 'Call completed');
+      emitCallEnd(session, event.metadata?.summary as CallSummary | undefined);
       break;
   }
 }
@@ -371,17 +366,17 @@ export function recordBargeInAgentStopped(callId: string, atMs: number = Date.no
 /** Convenience function to end a call */
 export function endCall(
   callId: string,
-  reason: 'natural' | 'disconnect' | 'error' = 'natural'
+  reason: 'natural' | 'disconnect' | 'error' = 'natural',
+  summary?: CallSummary
 ): void {
-  if (forward) return forward('endCall', [callId, reason]);
+  if (forward) return forward('endCall', summary ? [callId, reason, summary] : [callId, reason]);
   const type =
     reason === 'natural'
       ? 'call_end_natural'
       : reason === 'disconnect'
         ? 'call_end_disconnect'
         : 'call_end_error';
-
-  recordCallEvent({ callId, timestamp: Date.now(), type });
+  recordCallEvent({ callId, timestamp: Date.now(), type, metadata: summary && { summary } });
 }
 
 // --- Metrics calculation ---
