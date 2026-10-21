@@ -43,6 +43,11 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # 14.18.0 drops the word after "in" ("practice in spanish" -> "practice in"),
+      # breaking coach-media topic queries (topic-query.test.ts, #2217). Lift this
+      # with a PR that adapts topicOnlyQuery to the new version.
+      - dependency-name: "compromise"
+        versions: [">=14.18.0"]
 
   # Frontend (apps/web): covered by the root entry above. apps/web is a pnpm
   # workspace package; its old npm package-lock.json is gone, and

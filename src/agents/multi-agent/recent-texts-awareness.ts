@@ -30,6 +30,7 @@ const KIND_LABEL: Record<TextKind, string> = {
   'morning-brief': 'their morning brief',
   'on-behalf': 'a text',
   'call-result': 'how a call you made for them went',
+  'opt-in': 'a note confirming they turned texts on',
 };
 
 export interface RecentTextsDeps {

@@ -38,7 +38,7 @@ export interface UserContext {
 
   // Relationship context
   daysSinceSignup: number;
-  conversationCount: number;
+  conversationCount?: number; // unknown: countLine() omits it, never state a guess
   lastConversationDate?: Date;
   engagementLevel: 'high' | 'medium' | 'low' | 'silent';
 
@@ -176,6 +176,11 @@ For voice (SSML), use natural pauses with <break time="300ms"/> between sentence
 // CONTENT SEEDS (Dynamic prompts based on context)
 // ============================================================================
 
+function countLine(ctx: UserContext, line: (n: number) => string): string {
+  const n = ctx.conversationCount;
+  return typeof n === 'number' && Number.isInteger(n) && n >= 0 ? `\n${line(n)}` : '';
+}
+
 interface ContentSeed {
   type: OutreachType;
   contextPrompt: (ctx: UserContext) => string;
@@ -197,8 +202,7 @@ Write a warm Day 1 check-in for ${ctx.name || 'this person'}.
   next_day_check: {
     type: 'next_day_check',
     contextPrompt: (ctx) => `
-Write a Day 2 follow-up for ${ctx.name || 'this person'}.
-- They've had ${ctx.conversationCount} conversation(s) so far
+Write a Day 2 follow-up for ${ctx.name || 'this person'}.${countLine(ctx, (n) => `- They've had ${n} conversation(s) so far`)}
 - They mentioned caring about: ${ctx.primaryConcerns?.join(', ') || 'still learning about them'}
 - Recent topics: ${ctx.recentTopics?.join(', ') || 'their first steps'}
 - Goal: Follow the thread of something they shared. Show you were listening.`,
@@ -220,8 +224,7 @@ Write a topic follow-up for ${ctx.name || 'this person'}.
   first_week_reflection: {
     type: 'first_week_reflection',
     contextPrompt: (ctx) => `
-Write a first week reflection for ${ctx.name || 'this person'}.
-- They've had ${ctx.conversationCount} conversations this week
+Write a first week reflection for ${ctx.name || 'this person'}.${countLine(ctx, (n) => `- They've had ${n} conversations this week`)}
 - Engagement level: ${ctx.engagementLevel}
 - Milestones reached: ${ctx.milestonesReached?.join(', ') || 'starting their journey'}
 - Goal: Acknowledge the week, invite reflection, celebrate showing up.`,
@@ -231,8 +234,7 @@ Write a first week reflection for ${ctx.name || 'this person'}.
   momentum_check: {
     type: 'momentum_check',
     contextPrompt: (ctx) => `
-Write a momentum check for ${ctx.name || 'this person'} around day ${ctx.daysSinceSignup}.
-- Conversations: ${ctx.conversationCount}
+Write a momentum check for ${ctx.name || 'this person'} around day ${ctx.daysSinceSignup}.${countLine(ctx, (n) => `- Conversations: ${n}`)}
 - Last conversation: ${ctx.lastConversationDate ? `${Math.floor((Date.now() - ctx.lastConversationDate.getTime()) / (24 * 60 * 60 * 1000))} days ago` : 'recently'}
 - Recent topics: ${ctx.recentTopics?.join(', ') || 'their ongoing journey'}
 - Goal: Check if momentum is building. Gentle encouragement if slowing.`,
@@ -242,8 +244,7 @@ Write a momentum check for ${ctx.name || 'this person'} around day ${ctx.daysSin
   two_week_celebration: {
     type: 'two_week_celebration',
     contextPrompt: (ctx) => `
-Write a two-week milestone message for ${ctx.name || 'this person'}.
-- Total conversations: ${ctx.conversationCount}
+Write a two-week milestone message for ${ctx.name || 'this person'}.${countLine(ctx, (n) => `- Total conversations: ${n}`)}
 - Milestones: ${ctx.milestonesReached?.join(', ') || 'showing up consistently'}
 - Engagement: ${ctx.engagementLevel}
 - Goal: Celebrate two weeks of showing up. Make it feel earned, not automatic.`,
@@ -277,7 +278,7 @@ Write a gentle habit nudge for ${ctx.name || 'this person'}.
     contextPrompt: (ctx) => `
 Write a win celebration for ${ctx.name || 'this person'}.
 - Recent achievement: ${ctx.milestonesReached?.[ctx.milestonesReached.length - 1] || 'a breakthrough'}
-- Their journey: ${ctx.conversationCount} conversations over ${ctx.daysSinceSignup} days
+- Days since they started: ${ctx.daysSinceSignup}${countLine(ctx, (n) => `- Conversations so far: ${n}`)}
 - Goal: Celebrate effort, not just outcome. Make them feel seen for trying.`,
     voiceGuidance: 'Genuine pride. "That took courage. I\'m proud of you."',
   },
@@ -297,8 +298,7 @@ Write a supportive message for ${ctx.name || 'this person'} who may be strugglin
     type: 'reengagement_gentle',
     contextPrompt: (ctx) => `
 Write a gentle re-engagement for ${ctx.name || 'this person'} who's been quiet.
-- Days since last conversation: ${ctx.lastConversationDate ? Math.floor((Date.now() - ctx.lastConversationDate.getTime()) / (24 * 60 * 60 * 1000)) : 'a while'}
-- Total conversations before: ${ctx.conversationCount}
+- Days since last conversation: ${ctx.lastConversationDate ? Math.floor((Date.now() - ctx.lastConversationDate.getTime()) / (24 * 60 * 60 * 1000)) : 'a while'}${countLine(ctx, (n) => `- Total conversations before: ${n}`)}
 - Their interests: ${ctx.primaryConcerns?.join(', ') || 'what we talked about'}
 - Goal: Wave, don't chase. Let them know you noticed and you're here.`,
     voiceGuidance: 'Light touch. "Just wanted to say hi. No pressure."',

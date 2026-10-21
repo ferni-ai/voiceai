@@ -17,12 +17,18 @@
  *    room, as the phone path does. The session then ends on #1077's path.
  * It runs once per call; a second call does nothing.
  *
- * After the goodbyes Ferni stays quiet, and a short idle window ends the
- * call with reason `idle_after_goodbye` (call-farewell.ts).
+ * Saying goodbye ends every call, app or phone, whatever the model does:
+ * GOODBYE_ENDS_CALL (default on, a kill switch). The farewell watcher
+ * (call-farewell.ts) sees the goodbyes, or the caller asking Ferni to hang
+ * up, and after a short quiet window once Ferni's goodbye has played, ends
+ * the call with reason `idle_after_goodbye` through wrapUpCall. Before it,
+ * only the model calling endCall could end a call, and it rarely did: on
+ * 2026-10-19 no prod call ended on a goodbye (7 phone calls had endCall; 1
+ * used it, after three "hang up"s). It never ends a call with crisis risk.
  *
- * Phone callers keep PHONE_GOODBYE's own endCall. With CALL_WRAP_UP on they
- * also get the quiet after the goodbyes and the idle end, which hangs up the
- * line straight away: there is no app to leave on its own.
+ * Phone callers keep PHONE_GOODBYE's own endCall. Their idle end hangs up the
+ * line straight away: there is no app to leave on its own. With CALL_WRAP_UP
+ * on, Ferni also stays quiet after the goodbyes (stayQuiet, call-farewell.ts).
  *
  * @module agents/shared/call-wrap-up
  */
@@ -49,6 +55,11 @@ const log = createLogger({ module: 'call-wrap-up' });
 
 export function callWrapUpEnabled(env: Env = process.env): boolean {
   return flagOn('CALL_WRAP_UP', env);
+}
+
+/** GOODBYE_ENDS_CALL: a goodbye ends the call without waiting on the model (default on). */
+export function goodbyeEndsCallEnabled(env: Env = process.env): boolean {
+  return flagOn('GOODBYE_ENDS_CALL', env);
 }
 
 export const WRAP_UP_DESCRIPTION =
@@ -159,9 +170,10 @@ interface CallRoom {
 
 /**
  * Gives the agent its endCall: PHONE_GOODBYE's for a phone caller, this one
- * for an app caller with CALL_WRAP_UP on. With CALL_WRAP_UP on, either kind
- * of call also gets the farewell watcher. Never for calls placed on the
- * user's behalf, or an agent that already has an endCall.
+ * for an app caller with CALL_WRAP_UP on. With GOODBYE_ENDS_CALL or
+ * CALL_WRAP_UP on, either kind of call also gets the farewell watcher, which
+ * ends it after the goodbyes. Never for calls placed on the user's behalf, or
+ * an agent that already has an endCall. Returns whether endCall was added.
  */
 export async function attachCallWrapUp(
   agent: object,
@@ -181,7 +193,8 @@ export async function attachCallWrapUp(
   const roomName = call.room.name ?? '';
   const phone = call.participant?.kind === ParticipantKind.SIP;
   const wrapUp = callWrapUpEnabled(call.env) && !call.onBehalf;
-  if (!phone && !wrapUp) return false;
+  const endOnGoodbye = goodbyeEndsCallEnabled(call.env) && !call.onBehalf;
+  if (!phone && !wrapUp && !endOnGoodbye) return false;
   const wrap: WrapUpCall = {
     sessionId: call.sessionId,
     roomName,
@@ -190,8 +203,9 @@ export async function attachCallWrapUp(
     setTimer: call.setTimer,
     ...(phone && { graceMs: 0 }),
   };
-  // Quiet after the goodbyes, and a short idle window that ends the call (call-farewell.ts)
-  if (wrapUp && call.session) {
+  // A short quiet window after the goodbyes ends the call (call-farewell.ts)
+  if ((wrapUp || endOnGoodbye) && call.session) {
+    log.info({ sessionId: call.sessionId, phone }, 'GOODBYE_WATCH_ATTACHED');
     watchFarewell(call.session, {
       sessionId: call.sessionId,
       setTimer: call.setTimer,
@@ -206,5 +220,6 @@ export async function attachCallWrapUp(
     });
   }
   if (phone) return attachPhoneHangUp(agent, { ...call, roomName });
+  if (!wrapUp) return false;
   return addEndCallTool(agent, () => createWrapUpTool(wrap));
 }

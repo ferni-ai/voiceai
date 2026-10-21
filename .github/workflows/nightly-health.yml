@@ -19,6 +19,9 @@ on:
       - AI Automation Suite
       - CI
       - Build Native Apps
+      # The monitors themselves: when one dies, nothing else reports it.
+      - Required Check Backfill
+      - CI Health
     types: [completed]
 
 permissions:

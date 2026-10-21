@@ -1,20 +1,27 @@
 /**
- * After a goodbye, Ferni goes quiet and the call ends. CALL_WRAP_UP=on.
+ * After a goodbye, the call ends. GOODBYE_ENDS_CALL (default on, a kill
+ * switch) ends it; CALL_WRAP_UP=on also makes Ferni go quiet meanwhile.
  *
  * Before this, a goodbye that didn't end the call left Ferni talking into the
  * line: a silence remark about 15 s after "bye", a whistle, a hum or a snore
  * (presence-watcher.ts), and no hang-up at all.
  *
- * "Farewell said" is per call. It is set by endCall (call-wrap-up.ts), or
- * when the caller says goodbye and Ferni's next reply says his. While it
+ * "Farewell said" is per call. It is set by endCall (call-wrap-up.ts); when
+ * the caller says goodbye and Ferni's next reply says his, or Ferni had
+ * already said his; or when the caller asks Ferni to hang up ("hang up now"),
+ * whatever Ferni answers. Ferni carrying on (a reply that isn't a goodbye)
+ * clears it, except after a hang-up ask. With CALL_WRAP_UP on, while it
  * holds, stayQuiet() is true: no silence or away remark
  * (silence-response-blockers.ts, session-state-handler.ts), no early
  * check-in, no presence sound. If the caller then says something that isn't a
  * goodbye ("oh wait, one more thing"), it clears and the call carries on.
  *
- * After a farewell, IDLE_AFTER_GOODBYE_MS of quiet ends the call (the
- * watcher's onIdle; call-wrap-up.ts sends `idle_after_goodbye`). Without a
- * farewell nothing here runs, so the call's idle behaviour is unchanged.
+ * After a farewell, IDLE_AFTER_GOODBYE_MS of quiet once Ferni's goodbye has
+ * finished playing ends the call (the watcher's onIdle; call-wrap-up.ts sends
+ * `idle_after_goodbye` and hangs up). The caller speaking in that window holds
+ * it. Never on a call with crisis risk (crisis-call-risk.ts): that call stays
+ * open until the caller leaves. Without a farewell nothing here runs, so the
+ * call's idle behaviour is unchanged.
  *
  * Caller goodbyes are whole words in a closing position: "okay bye", "gotta
  * go, talk soon". "goodbye to my old job" and "say bye to grandma for me" are
@@ -26,17 +33,24 @@
 import { voice } from '@livekit/agents';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { isSessionClosing } from './session-closing-tracker.js';
 
 const log = createLogger({ module: 'call-farewell' });
 
-/** Quiet after both goodbyes before the call ends on its own. */
-export const IDLE_AFTER_GOODBYE_MS = 10_000;
+/**
+ * Quiet after both goodbyes (Ferni's finished playing) before the call ends:
+ * time to say "wait", short enough that the caller isn't left on the line.
+ */
+export const IDLE_AFTER_GOODBYE_MS = 4_000;
 
 const farewells = new Set<string>();
 const sessionIds = new WeakMap<object, string>();
 
-export function markFarewell(sessionId: string, by: 'end_call' | 'goodbyes'): void {
+export function markFarewell(
+  sessionId: string,
+  by: 'end_call' | 'goodbyes' | 'hang_up_asked'
+): void {
   if (farewells.has(sessionId)) return;
   farewells.add(sessionId);
   log.info({ sessionId, by }, 'CALL_WRAP_UP farewell said');
@@ -95,12 +109,23 @@ const GOOD_TIME = expand(
   ['good', 'great', 'nice'],
   ['one', 'night', 'day', 'evening', 'weekend']
 );
-/** Words that may lead into a goodbye: "okay so, thanks, bye". */
+/** Words that may lead into a goodbye: "okay so, thanks, bye", "I said hang up". */
 const LEADS = new Set([
   ...['ok', 'okay', 'alright', 'all right', 'well', 'so', 'anyway', 'yeah', 'yep', 'cool'],
-  ...['great', 'perfect', 'right'],
+  ...['great', 'perfect', 'right', 'just', 'please', 'hey', 'i said', 'go ahead and'],
+  ...["i'll", 'ill', 'i will'],
   ...THANKS,
 ]);
+/**
+ * An ask to end the call: "hang up", "you need to end the call". Ends it
+ * whatever Ferni answers. "you ..." only leads into these, never a goodbye:
+ * "you gotta go" is not the caller leaving.
+ */
+const HANG_UPS = new Set(
+  expand(['', 'you', 'you can', 'you need to', 'you have to'], ['hang up', 'end the call']).map(
+    (p) => p.trim()
+  )
+);
 /** A goodbye on its own. */
 const CLOSERS = new Set([
   ...['bye', 'bye bye', 'byebye', 'goodbye', 'good night', 'goodnight', 'night night', 'later'],
@@ -117,6 +142,7 @@ const CLOSERS = new Set([
     ['go', 'run', 'get going', 'head out', 'hop off']
   ),
   ...expand(['gotta', 'got to'], ['go', 'run', 'get going']),
+  ...HANG_UPS,
 ]);
 /** Words that may trail a goodbye: "bye now", "talk soon, ferni". */
 const TAILS = new Set([
@@ -125,7 +151,12 @@ const TAILS = new Set([
   'ferni',
   'friend',
   'buddy',
+  'bro',
+  'man',
   'for now',
+  'right now',
+  'please',
+  'the phone',
   'bye',
   'bye bye',
   'byebye',
@@ -134,10 +165,11 @@ const TAILS = new Set([
 const AFTERWORDS = new Set([
   ...THANKS,
   ...['ok', 'okay', 'alright', 'love you', 'you too', 'ferni', 'take care'],
+  ...['bro', 'man', 'buddy', 'friend', 'dude'],
   ...GOOD_TIME,
 ]);
-/** Longest phrase in any set, in words. */
-const MAX_PHRASE_WORDS = 5;
+/** Longest phrase in any set, in words ("you need to end the call"). */
+const MAX_PHRASE_WORDS = 6;
 
 /** The longest phrase from `set` starting at word `at`, as a word count (0 if none). */
 function phraseAt(words: readonly string[], at: number, set: ReadonlySet<string>): number {
@@ -158,14 +190,18 @@ function onlyPhrases(words: readonly string[], from: number, set: ReadonlySet<st
 }
 
 /** A clause that is a goodbye and nothing else: leads, one goodbye, tails. */
-function closingClause(words: readonly string[]): boolean {
-  let i = 0;
-  for (let len = phraseAt(words, i, LEADS); len > 0; len = phraseAt(words, i, LEADS)) i += len;
-  // Try each goodbye length here: "bye bye now" is "bye bye" + "now" or "bye" + "bye now".
-  for (let len = Math.min(MAX_PHRASE_WORDS, words.length - i); len > 0; len--) {
-    if (CLOSERS.has(words.slice(i, i + len).join(' ')) && onlyPhrases(words, i + len, TAILS)) {
-      return true;
+function closingClause(words: readonly string[], closers: ReadonlySet<string>): boolean {
+  // The goodbye may start after any run of leads: "I'll let you go" is a goodbye that
+  // starts with the lead "i'll", "okay, I'll talk to you later" one after it.
+  for (let i = 0, lead = 0; i < words.length; i += lead) {
+    // Try each goodbye length here: "bye bye now" is "bye bye" + "now" or "bye" + "bye now".
+    for (let len = Math.min(MAX_PHRASE_WORDS, words.length - i); len > 0; len--) {
+      if (closers.has(words.slice(i, i + len).join(' ')) && onlyPhrases(words, i + len, TAILS)) {
+        return true;
+      }
     }
+    lead = phraseAt(words, i, LEADS);
+    if (lead === 0) return false;
   }
   return false;
 }
@@ -183,19 +219,26 @@ function clauseWords(text: string): string[][] {
     .filter((words) => words.length > 0);
 }
 
-/**
- * The caller is ending the call: the last thing they said (afterwords like
- * "thanks" aside) is a goodbye on its own.
- */
-export function callerSaysGoodbye(text: string): boolean {
+/** The last thing said (afterwords like "thanks" aside) is a clause from `closers` on its own. */
+function endsWith(text: string, closers: ReadonlySet<string>): boolean {
   if (text.trim().endsWith('?')) return false; // "bye?" is a question, not a goodbye
   const parts = clauseWords(text);
   for (let i = parts.length - 1; i >= 0; i--) {
     const words = parts[i] ?? [];
-    if (closingClause(words)) return true;
+    if (closingClause(words, closers)) return true;
     if (!onlyPhrases(words, 0, AFTERWORDS)) return false;
   }
   return false;
+}
+
+/** The caller is ending the call: their turn ends on a goodbye or a "hang up". */
+export function callerSaysGoodbye(text: string): boolean {
+  return endsWith(text, CLOSERS);
+}
+
+/** The caller asks Ferni to end the call: "hang up now", "you can end the call". */
+export function callerAsksToHangUp(text: string): boolean {
+  return endsWith(text, HANG_UPS);
 }
 
 const FERNI_GOODBYE =
@@ -235,6 +278,8 @@ export function watchFarewell(
     idleMs?: number;
     setTimer?: (fn: () => void, ms: number) => unknown;
     clearTimer?: (handle: unknown) => void;
+    /** Crisis risk on this call: never end it then (default crisis-call-risk.ts). */
+    crisis?: () => boolean;
   }
 ): () => void {
   const { sessionId } = opts;
@@ -243,7 +288,10 @@ export function watchFarewell(
   const setT = opts.setTimer ?? ((fn: () => void, ms: number) => setTimeout(fn, ms));
   const clearT = opts.clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>));
   sessionIds.set(session, sessionId);
+  const crisis = opts.crisis ?? (() => crisisRiskThisCall(sessionId));
   let callerSaidBye = false;
+  let ferniSaidBye = false;
+  let hangUpAsked = false;
   let agent = 'initializing';
   let user = 'listening';
   let timer: unknown = null;
@@ -259,25 +307,48 @@ export function watchFarewell(
     timer = setT(() => {
       timer = null;
       if (!farewellSaid(sessionId) || isSessionClosing(sessionId)) return;
-      log.info({ sessionId }, 'CALL_WRAP_UP idle after goodbye; ending the call');
+      if (crisis()) {
+        log.info({ sessionId }, 'GOODBYE_END_HELD crisis risk on this call; it stays open');
+        return;
+      }
+      log.info(
+        { sessionId, hangUpAsked },
+        'GOODBYE_ENDS_CALL quiet after goodbye; ending the call'
+      );
       opts.onIdle();
     }, opts.idleMs ?? IDLE_AFTER_GOODBYE_MS);
   };
 
   const onCaller = (text: string): void => {
     callerSaidBye = callerSaysGoodbye(text);
-    if (callerSaidBye || isSessionClosing(sessionId)) return;
+    if (isSessionClosing(sessionId)) return;
+    if (callerSaidBye) {
+      hangUpAsked = hangUpAsked || callerAsksToHangUp(text);
+      if (hangUpAsked) markFarewell(sessionId, 'hang_up_asked');
+      else if (ferniSaidBye) markFarewell(sessionId, 'goodbyes'); // his came first
+      arm();
+      return;
+    }
     if (farewellSaid(sessionId)) log.info({ sessionId }, 'CALL_WRAP_UP caller carried on');
+    hangUpAsked = false;
     clearFarewell(sessionId);
     cancel();
+  };
+  const onFerni = (text: string): void => {
+    ferniSaidBye = ferniSaysGoodbye(text);
+    if (callerSaidBye && ferniSaidBye) {
+      markFarewell(sessionId, 'goodbyes');
+      arm();
+    } else if (!ferniSaidBye && !hangUpAsked && farewellSaid(sessionId)) {
+      log.info({ sessionId }, 'CALL_WRAP_UP Ferni carried on');
+      clearFarewell(sessionId);
+      cancel();
+    }
   };
   const onItem = ({ item }: ItemEvent): void => {
     if (!item?.textContent) return; // only messages carry text
     if (item.role === 'user') onCaller(item.textContent);
-    else if (item.role === 'assistant' && callerSaidBye && ferniSaysGoodbye(item.textContent)) {
-      markFarewell(sessionId, 'goodbyes');
-      arm();
-    }
+    else if (item.role === 'assistant') onFerni(item.textContent);
   };
   const onAgent = (ev: StateEvent): void => {
     agent = ev.newState ?? agent;

@@ -137,6 +137,25 @@ describe('outreach consent routes', () => {
     ).toBe(200);
   });
 
+  it('refuses turning texts on without the current disclosure version, and saves nothing', async () => {
+    for (const disclosureVersion of [undefined, '2025-01-01']) {
+      const res = await call('POST', '/preferences', {
+        preferences: { allowedChannels: ['sms'], disclosureVersion },
+      });
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { error: string }).error).toMatch(/refresh the page/i);
+    }
+    expect(writeOutreachConsent).not.toHaveBeenCalled();
+    // Calls alone, and texts already on, don't need it.
+    expect(
+      (await call('POST', '/preferences', { preferences: { allowedChannels: ['call'] } })).status
+    ).toBe(200);
+    readOutreachConsent.mockResolvedValueOnce({ enabled: true, channels: ['sms'] });
+    expect(
+      (await call('POST', '/preferences', { preferences: { allowedChannels: ['sms'] } })).status
+    ).toBe(200);
+  });
+
   it('saves switching outreach off for the logged-in user', async () => {
     const res = await call('POST', '/preferences', {
       userId: 'someone-else',

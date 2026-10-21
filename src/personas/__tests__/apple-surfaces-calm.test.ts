@@ -7,6 +7,10 @@
  *
  * `streakDays` / `checkInStreak` may still be READ (old App Group data must
  * load without crashing); they just must not reach a view.
+ *
+ * The iPhone app's watch app and widgets were deleted in the native rebuild
+ * (never shipped: the watch app wasn't embedded). The watch complication in the
+ * shared Swift package remains, so it stays checked.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -14,15 +18,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = process.cwd();
 const COMPLICATION = 'apps/shared/Sources/FerniShared/WatchOS/FerniComplication.swift';
-const WATCH_APP = 'apps/ios-native/FerniWatch/FerniWatchContentView.swift';
-// Emoji is checked on the watch only: the iPhone widget emoji are PR #1042's
-// fix. Add the widget files to the emoji list once #1042 is on main.
-const SURFACES: Array<{ rel: string; emoji: boolean }> = [
-  { rel: COMPLICATION, emoji: true },
-  { rel: WATCH_APP, emoji: true },
-  { rel: 'apps/ios-native/FerniWidgets/InteractiveMoodWidget.swift', emoji: false },
-  { rel: 'apps/ios-native/FerniWidgets/FerniWidgets.swift', emoji: false },
-];
+const SURFACES: Array<{ rel: string; emoji: boolean }> = [{ rel: COMPLICATION, emoji: true }];
 
 // Mood faces, thought bubble, flame, hearts: anything with emoji presentation.
 const EMOJI = /\p{Extended_Pictographic}/u;
@@ -72,7 +68,7 @@ describe('Apple watch and widget surfaces: no emoji, no streak display', () => {
     expect(offenders(rel, read(rel), emoji)).toEqual([]);
   });
 
-  it('watch moods use the same SF Symbols as the iPhone mood widget', () => {
+  it('watch moods are SF Symbols, not emoji faces', () => {
     const src = read(COMPLICATION);
     for (const symbol of [
       'sun.max.fill',
@@ -83,6 +79,5 @@ describe('Apple watch and widget surfaces: no emoji, no streak display', () => {
     ]) {
       expect(src).toContain(`"${symbol}"`);
     }
-    expect(read(WATCH_APP)).toContain('Image(systemName: currentMood.symbolName)');
   });
 });

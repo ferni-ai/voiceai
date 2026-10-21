@@ -17,6 +17,14 @@
 #   - Manual dispatch deploys only commits on main. With ALLOW_OLDER=true and
 #     a REASON it skips the forward-only check, for an intentional rollback.
 #     rollback.yml doesn't come through here; it shifts traffic on its own.
+#   - A push to main (the merge-queue fast path) deploys only when QUEUE_TESTED
+#     is true (the queue-verdict job, scripts/ci/queue-fast-path.sh: a successful
+#     merge-queue CI run, QUEUE_RUN_ID, tested exactly this tree) AND, checked
+#     again here against production, that run counts as full CI (scripts/ci/queue-verdict.sh: every
+#     required check passed, none skipped by scoping, on a tested base). If not
+#     (admin merge, direct push, scoped run, untested base), the push is a no-op
+#     and the workflow_run path deploys after push CI passes. Either way the
+#     forward-only check holds.
 #   - While a rollback's deploy freeze holds (scripts/ci/deploy-freeze.sh), it
 #     is a no-op ("frozen: <reason>"), except for a manual run with allow_older.
 #   - On workflow_run, the triggering push CI run (CI_RUN_ID) must have run
@@ -27,9 +35,8 @@
 #     missing required job refuses (red).
 #
 # Env: DEPLOY_SHA, EVENT (github.event_name), ALLOW_OLDER, REASON, CI_RUN_ID,
-# GCP_REGION,
-# GCP_PROJECT_ID, GITHUB_REPOSITORY, GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, and
-# GH_TOKEN for gh.
+# QUEUE_TESTED, QUEUE_RUN_ID, GCP_REGION, GCP_PROJECT_ID, GITHUB_REPOSITORY,
+# GITHUB_OUTPUT, GITHUB_STEP_SUMMARY, and GH_TOKEN for gh.
 set -euo pipefail
 
 SERVICE=john-bogle-ui
@@ -57,6 +64,10 @@ case "$rc" in
   3) noop "frozen: $frozen. Automatic deploys wait for a deliberate unfreeze (deploy-production with unfreeze: true and a reason, or delete the deploy-freeze tag). A manual run with allow_older still deploys." ;;
   *) refuse "could not read the deploy freeze" ;;
 esac
+
+if [ "$EVENT" = push ] && [ "${QUEUE_TESTED:-false}" != true ]; then
+  noop "no successful merge-queue run tested this tree (admin merge or direct push?), so it deploys once push CI passes on main."
+fi
 
 if [ "$EVENT" = workflow_dispatch ]; then
   on_main=$(compare "$DEPLOY_SHA" main)
@@ -96,6 +107,7 @@ echo "main's tip: ${tip:-unknown}"
 err=$(mktemp)
 if ! svc=$(gcloud run services describe "$SERVICE" --region="$GCP_REGION" --project="$GCP_PROJECT_ID" --format=json 2>"$err"); then
   if grep -qiE 'could not be found|not found' "$err"; then
+    [ "$EVENT" != push ] || noop "$SERVICE doesn't exist yet; its first deploy waits for push CI."
     deploy "$SERVICE doesn't exist yet, so there is nothing to move backwards from"
   fi
   cat "$err"
@@ -109,6 +121,16 @@ if [ -n "$rev" ]; then
     | jq -r 'first(.spec.containers[0].env[]? | select(.name == "BUILD_SHA") | .value) // empty')
 fi
 echo "serving: ${rev:-none} (BUILD_SHA ${live:-unknown})"
+
+if [ "$EVENT" = push ]; then
+  rc=0
+  why=$(bash "$(dirname "$0")/queue-verdict.sh" "${QUEUE_RUN_ID:-}" "$live") || rc=$?
+  case "$rc" in
+    0) echo "✅ Merge-queue run ${QUEUE_RUN_ID} $why" ;;
+    3) noop "merge-queue run ${QUEUE_RUN_ID:-?} doesn't count as full CI: $why. It deploys once push CI passes on main." ;;
+    *) noop "could not check merge-queue run ${QUEUE_RUN_ID:-?} ($why). It deploys once push CI passes on main." ;;
+  esac
+fi
 
 status=""
 [[ "$live" =~ ^[0-9a-f]{40}$ ]] && status=$(compare "$live" "$DEPLOY_SHA")

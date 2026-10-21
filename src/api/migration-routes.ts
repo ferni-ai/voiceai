@@ -6,6 +6,7 @@
  * Endpoints:
  * - POST /api/auth/migrate - Migrate user data to Firebase UID
  * - GET /api/auth/migration-status - Check migration status for a device
+ * - POST /api/identity/merge-anonymous - Move an anonymous account (identity-merge-routes.ts)
  *
  * @module MigrationRoutes
  */
@@ -19,6 +20,7 @@ import {
 import { createLogger } from '../utils/safe-logger.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
 import { parseBody, sendError, sendJSON } from './helpers.js';
+import { handleIdentityMergeRoutes } from './identity-merge-routes.js';
 
 // Alias for compatibility
 const sendJson = sendJSON;
@@ -57,7 +59,7 @@ export async function handleMigrationRoutes(
     return true;
   }
 
-  return false;
+  return handleIdentityMergeRoutes(req, res, pathname);
 }
 
 // ============================================================================
