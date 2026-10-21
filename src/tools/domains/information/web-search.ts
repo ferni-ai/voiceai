@@ -24,6 +24,10 @@
 import { flagOn } from '../../../config/env-flag.js';
 import { isUnverifiedUserId } from '../../../services/identity/unverified-user-id.js';
 import {
+  verifiedAllowanceKey,
+  verifiedCallerAllowanceOn,
+} from '../../../services/identity/verified-caller.js';
+import {
   groundedSearch,
   resolveSourceUrl,
   type GroundedAnswer,
@@ -303,8 +307,13 @@ export async function runWebSearch(query: string, principal: string): Promise<st
  * Those ids are minted per session or supplied by the caller, so keying on one
  * would hand a fresh hour to anyone who changes it.
  */
-export function searchPrincipal(opts: unknown): string {
-  const userId = (opts as { ctx?: { userData?: { userId?: string } } } | undefined)?.ctx?.userData
-    ?.userId;
+export function searchPrincipal(opts: unknown, env: NodeJS.ProcessEnv = process.env): string {
+  const userData = (opts as { ctx?: { userData?: { userId?: string } } } | undefined)?.ctx
+    ?.userData;
+  // VERIFIED_CALLER_ALLOWANCE=on: the server's verified-caller signal decides (an allowlist)
+  if (verifiedCallerAllowanceOn(env)) {
+    return verifiedAllowanceKey(userData, isUnverifiedUserId) ?? ANONYMOUS;
+  }
+  const userId = userData?.userId;
   return userId && !isUnverifiedUserId(userId) ? `user:${userId}` : ANONYMOUS;
 }

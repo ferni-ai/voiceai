@@ -27,10 +27,13 @@ import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js'
 import { webPushDeliveryOn } from '../services/outreach/web-push-flag.js';
 import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
 import { sendOutreachHistory } from './outreach-history-route.js';
+import { sendMilestoneOutreach } from './milestone-outreach-route.js';
+import { sendUpcomingOutreach } from './outreach-upcoming-route.js';
 import { panelConsentPatch, savePanelPrefs } from './messaging-prefs-route.js';
 import {
   readOutreachConsent,
   settingsFromChannels,
+  webConsent,
   writeOutreachConsent,
 } from '../services/outreach/outreach-consent.js';
 import type { OutreachType, OutreachChannel } from '../services/outreach/llm-content-generator.js';
@@ -49,9 +52,10 @@ const log = getLogger().child({ module: 'outreach-handler' });
 const OUTREACH_PREFIX = '/api/outreach';
 /** A client-named user in a request body; checked against the caller by claimedUserFor. */
 type Named = { userId?: unknown };
+type SentPrefs = Parameters<typeof updateOutreachPreferences>[1] & { disclosureVersion?: unknown };
 
 import { handleVerifyPhone } from './verify-phone-routes.js';
-import { phoneChannelRefusal } from './user-contact.js';
+import { channelConsentRefusal } from './user-contact.js';
 
 // Helper to get persona display name
 function getPersonaName(personaId: string): string {
@@ -156,19 +160,17 @@ export async function handleOutreachRoutes(
 
     // POST /api/outreach/preferences
     if (route === '/preferences' && method === 'POST') {
-      const body = await parseRequestBody(req);
-      const { preferences } = body as {
-        preferences: Parameters<typeof updateOutreachPreferences>[1];
-      };
+      const body = (await parseRequestBody(req)) as { preferences?: SentPrefs };
+      const { disclosureVersion, ...preferences } = body.preferences ?? {};
       const patch = await panelConsentPatch(authenticatedUserId, preferences);
-      // Texts and calls only to a number the user proved is theirs (a texted code).
-      const refusal = await phoneChannelRefusal(auth, patch.channels);
+      // Texts and calls only to a verified number; texts only with the disclosure shown.
+      const refusal = await channelConsentRefusal(auth, patch.channels, disclosureVersion);
       if (refusal) {
         sendJsonResponse(res, 409, { success: false, error: refusal });
         return true;
       }
       // Use authenticated userId (ignore body.userId to prevent tampering)
-      await savePanelPrefs(authenticatedUserId, patch, preferences);
+      await savePanelPrefs(authenticatedUserId, patch, preferences, webConsent(disclosureVersion));
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;
@@ -355,35 +357,9 @@ export async function handleOutreachRoutes(
       return true;
     }
 
-    // GET /api/outreach/upcoming - formatted for UI
+    // GET /api/outreach/upcoming: what is really set to go out (outreach-upcoming-route.ts)
     if (route === '/upcoming' && method === 'GET') {
-      // Use authenticated userId
-      const userId = authenticatedUserId;
-
-      const pending = getPendingOutreach(userId);
-
-      // Format for the schedule UI
-      const upcoming = pending.map((trigger) => ({
-        id: trigger.id,
-        type: trigger.type,
-        personaId: trigger.suggestedPersona || 'ferni',
-        personaName: getPersonaName(trigger.suggestedPersona || 'ferni'),
-        channel: 'sms' as const, // Default channel
-        scheduledFor: trigger.suggestedTime || new Date(),
-        preview: {
-          body: trigger.reason,
-        },
-        reason: trigger.commitment || trigger.milestone || trigger.event || 'Check-in scheduled',
-        priority: trigger.priority,
-        canReschedule: true,
-        canCancel: true,
-      }));
-
-      sendJsonResponse(res, 200, {
-        success: true,
-        upcoming,
-        count: upcoming.length,
-      });
+      await sendUpcomingOutreach(res, authenticatedUserId, new URL(req.url || '', 'http://x'));
       return true;
     }
 
@@ -725,71 +701,9 @@ export async function handleOutreachRoutes(
     // MILESTONE & JOURNEY OUTREACH
     // ========================================================================
 
-    // POST /api/outreach/milestone - Send milestone celebration
+    // POST /api/outreach/milestone - once per milestone, checked and counted on the server
     if (route === '/milestone' && method === 'POST') {
-      const body = await parseRequestBody(req);
-      const { milestoneId, milestoneName, milestoneMessage, daysTogether, streak } = body as {
-        milestoneId: string;
-        milestoneName: string;
-        milestoneMessage: string;
-        daysTogether?: number;
-        streak?: number;
-      };
-
-      if (!milestoneId || !milestoneName || !milestoneMessage) {
-        sendJsonResponse(res, 400, {
-          success: false,
-          error: 'milestoneId, milestoneName, and milestoneMessage are required',
-        });
-        return true;
-      }
-
-      const { emailUser, textUser, getUserContactInfo } =
-        await import('../tools/domains/proactive/outreach/index.js');
-
-      // Get user's contact info and preferences
-      const contactInfo = await getUserContactInfo(authenticatedUserId);
-
-      if (!contactInfo?.email && !contactInfo?.phone) {
-        sendJsonResponse(res, 200, {
-          success: true,
-          message: 'No contact info set - skipping outreach',
-          sent: false,
-        });
-        return true;
-      }
-
-      const results: { email?: boolean; sms?: boolean } = {};
-
-      // Build warm email content
-      if (contactInfo.email) {
-        const emailBody = `${milestoneMessage}
-
-${daysTogether ? `We've been on this journey for ${daysTogether} days now.` : ''}
-${streak && streak > 1 ? `That's ${streak} days in a row.` : ''}
-
-I don't take these moments for granted. Thank you for trusting me with your thoughts.
-
-Here's to many more.`;
-
-        const result = await emailUser(authenticatedUserId, milestoneName, emailBody);
-        results.email = result.success;
-      }
-
-      // Build warm SMS content (shorter)
-      if (contactInfo.phone && contactInfo.preferredMethod !== 'email') {
-        const smsBody = `${milestoneName}: ${milestoneMessage} ${streak && streak > 1 ? `(${streak}-day streak!)` : ''} - Ferni`;
-
-        const result = await textUser(authenticatedUserId, smsBody);
-        results.sms = result.success;
-      }
-
-      log.info({ userId: authenticatedUserId, milestoneId, results }, 'Milestone outreach sent');
-      sendJsonResponse(res, 200, {
-        success: true,
-        message: 'Milestone celebration sent',
-        results,
-      });
+      await sendMilestoneOutreach(res, authenticatedUserId, await parseRequestBody(req));
       return true;
     }
 

@@ -98,6 +98,35 @@ describe('runPonderingJob', () => {
     expect(sets).toEqual([]);
   });
 
+  it('with PONDERING off on the server, ponders only those whose own cohort flags turn it on', async () => {
+    const { db, sets, reads } = fakeFirestore({
+      ...cohort(['mom']),
+      ...caller('seth'),
+      ...caller('mom'),
+    });
+    const llm = vi.fn().mockResolvedValue(answer);
+    const out = await runPonderingJob(db, llm, {
+      now: night,
+      env: {},
+      holders: async () => ['seth'],
+    });
+    expect(out).toMatchObject({ status: 'ran', cohort: 1, due: 1, stored: 1 });
+    expect(sets.map((x) => x.path)).toEqual(['bogle_users/seth/predictive_intelligence/pondering']);
+    // friends-and-family is the server's own audience: not read while the server's flag is off.
+    expect(reads.some((p) => p.includes('mom') || p.includes('feature_cohorts'))).toBe(false);
+  });
+
+  it('adds the flag holders to the cohort when the server has PONDERING on', async () => {
+    const { db } = fakeFirestore({ ...cohort(['mom']), ...caller('seth'), ...caller('mom') });
+    const llm = vi.fn().mockResolvedValue(answer);
+    const out = await runPonderingJob(db, llm, {
+      now: night,
+      env: on,
+      holders: async () => ['seth'],
+    });
+    expect(out).toMatchObject({ status: 'ran', cohort: 2, stored: 2 });
+  });
+
   it('ponders a due cohort member and never touches a caller outside the cohort', async () => {
     const { db, sets, reads } = fakeFirestore({
       ...cohort(['u1']),

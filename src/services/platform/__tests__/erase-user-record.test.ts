@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   assertErasableUserId,
   eraseUserRecord,
   findUserRecordRemnants,
 } from '../erase-user-record.js';
 import { ERASED_STORES, type OwnedStore } from '../user-stores.js';
+import { bqHash } from '../../analytics/bq-events.js';
 
 vi.mock('../../identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => false }));
 
@@ -31,6 +32,8 @@ function fakeFirestore(seed: Record<string, Record<string, string>>, opts = { de
       })),
   });
   const db = {
+    runTransaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn({ set: (r: { path: string }, d: Record<string, string>) => void docs.set(r.path, d) }),
     collection: (name: string) => ({
       doc: (id: string) => docRef(`${name}/${id}`),
       where: (field: string, _op: string, value: string) => ({
@@ -82,6 +85,54 @@ describe('eraseUserRecord', () => {
       'contact_relationships/r2',
       'users/u-2/journal/j1',
     ]);
+  });
+
+  describe('BigQuery erasure queue (BQ_ERASURE)', () => {
+    const hash = bqHash('user', 'u-1', { LOG_HASH_SECRET: 'test-secret' });
+    const failingQueue = (raw: { runTransaction: unknown }) => {
+      raw.runTransaction = vi.fn(async () => {
+        throw new Error('firestore down');
+      });
+      return raw.runTransaction as ReturnType<typeof vi.fn>;
+    };
+    beforeEach(() => vi.stubEnv('LOG_HASH_SECRET', 'test-secret'));
+    afterEach(() => vi.unstubAllEnvs());
+
+    it('off (the default): writes no queue doc and erases as before', async () => {
+      const { db, docs } = seedTwoUsers();
+      await eraseUserRecord('u-1', db, STORES, []);
+      expect([...docs.keys()].filter((p) => p.startsWith('bq_erasure/'))).toEqual([]);
+      expect(await findUserRecordRemnants(db, 'u-1', STORES)).toEqual([]);
+    });
+
+    it('off: erasure completes even when the queue store would throw', async () => {
+      const { db, raw } = seedTwoUsers();
+      const tx = failingQueue(raw);
+      await expect(eraseUserRecord('u-1', db, STORES, [])).resolves.toBeUndefined();
+      expect(tx).not.toHaveBeenCalled();
+      expect(await findUserRecordRemnants(db, 'u-1', STORES)).toEqual([]);
+    });
+
+    it("on: queues the account's user_hash (never the uid) for the analytics erasure job", async () => {
+      vi.stubEnv('BQ_ERASURE', 'on');
+      const { db, docs } = seedTwoUsers();
+      await eraseUserRecord('u-1', db, STORES, []);
+      expect(docs.get(`bq_erasure/${hash}`)).toMatchObject({ attempts: 0, doneTables: [] });
+      expect(JSON.stringify([...docs])).not.toContain('"u-1"');
+    });
+
+    it('on: a failed queue write fails the erasure before anything is erased', async () => {
+      vi.stubEnv('BQ_ERASURE', 'on');
+      const { db, raw } = seedTwoUsers();
+      const tx = failingQueue(raw);
+      await expect(eraseUserRecord('u-1', db, STORES, [])).rejects.toThrow('firestore down');
+      expect(tx).toHaveBeenCalled();
+      expect(await findUserRecordRemnants(db, 'u-1', STORES)).toEqual([
+        'bogle_users/{uid}',
+        'users/{uid}',
+        'contact_relationships[userId]',
+      ]);
+    });
   });
 
   it('erases the relationship memories and flag overrides account deletion used to leave', async () => {

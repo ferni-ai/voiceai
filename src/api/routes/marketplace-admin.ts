@@ -18,14 +18,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import {
-  getAgent,
-  getTool,
-  listAgents,
-  listTools,
-  type AgentManifest,
-  type ToolManifest,
-} from '../../marketplace/index.js';
+import { getAgent, getTool, listAgents, listTools } from '../../marketplace/index.js';
 import {
   getPendingReviews,
   getReviewStats,
@@ -33,12 +26,14 @@ import {
 } from '../../marketplace/reviews/index.js';
 import {
   assignReviewer,
+  getOpenSubmission,
   getReviewHistory,
   getReviewQueue,
-  getSubmission,
   submitReview,
 } from '../review-queue.js';
+import { matchesCurrentContent } from '../review-content-hash.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import { requireAdmin } from '../auth-middleware.js';
 import { parseBody, sendJSON } from '../helpers.js';
 import {
   sendEmail,
@@ -56,28 +51,6 @@ interface AdminSession {
   adminId: string;
   adminName: string;
   permissions: string[];
-}
-
-interface ReviewQueueItem {
-  id: string;
-  type: 'tool' | 'agent';
-  name: string;
-  displayName?: string;
-  version: string;
-  publisher: {
-    id: string;
-    name: string;
-    verified: boolean;
-  };
-  description: string;
-  submittedAt: string;
-  trustLevel: string;
-  permissions: {
-    required: number;
-    optional: number;
-  };
-  category: string;
-  tags: string[];
 }
 
 // ============================================================================
@@ -163,44 +136,17 @@ async function sendRejectionEmail(
 }
 
 /**
- * Verify admin authentication
+ * The verified admin making the request: a Firebase token carrying the admin
+ * claim, or an admin API key (the shared requireAdmin). Sends 401/403 and
+ * returns null otherwise. Client headers such as x-admin-id are never trusted.
  */
-function getAdmin(req: IncomingMessage): AdminSession | null {
-  const adminId = req.headers['x-admin-id'] as string;
-  const adminName = req.headers['x-admin-name'] as string;
-
-  if (!adminId) return null;
-
+async function getAdmin(req: IncomingMessage, res: ServerResponse): Promise<AdminSession | null> {
+  const auth = await requireAdmin(req, res);
+  if (!auth) return null;
   return {
-    adminId,
-    adminName: adminName || 'Admin',
+    adminId: auth.userId,
+    adminName: auth.email || 'Admin',
     permissions: ['marketplace:review', 'marketplace:moderate'],
-  };
-}
-
-/**
- * Convert manifest to queue item
- */
-function toQueueItem(
-  manifest: ToolManifest | AgentManifest,
-  type: 'tool' | 'agent'
-): ReviewQueueItem {
-  return {
-    id: manifest.id,
-    type,
-    name: manifest.name,
-    displayName: type === 'agent' ? (manifest as AgentManifest).displayName : undefined,
-    version: manifest.version,
-    publisher: manifest.publisher,
-    description: manifest.description.short,
-    submittedAt: manifest.verification.verifiedAt || new Date().toISOString(),
-    trustLevel: manifest.verification.trustLevel,
-    permissions: {
-      required: manifest.permissions.required.length,
-      optional: manifest.permissions.optional.length,
-    },
-    category: manifest.metadata.category,
-    tags: manifest.metadata.tags,
   };
 }
 
@@ -215,12 +161,9 @@ export async function handleMarketplaceAdminRoutes(
 ): Promise<boolean> {
   const method = req.method || 'GET';
 
-  // All admin routes require authentication
-  const admin = getAdmin(req);
-  if (!admin) {
-    sendJson(res, 401, { error: 'Admin authentication required' });
-    return true;
-  }
+  // All admin routes require a verified admin (getAdmin has already answered 401/403)
+  const admin = await getAdmin(req, res);
+  if (!admin) return true;
 
   // GET /api/admin/marketplace/queue - Get items pending review (NEW - uses review-queue)
   if (pathname === '/api/admin/marketplace/queue' && method === 'GET') {
@@ -370,13 +313,26 @@ export async function handleMarketplaceAdminRoutes(
     const itemId = pathname.split('/')[5];
 
     try {
-      const body = await parseBody<{ note?: string; trustLevel?: string }>(req);
+      const body = await parseBody<{ note?: string; trustLevel?: string; submissionId?: string }>(
+        req
+      );
       const tool = getTool(itemId);
       const agent = getAgent(itemId);
       const item = tool || agent;
 
       if (!item) {
         sendJson(res, 404, { error: 'Item not found' });
+        return true;
+      }
+
+      // Approve only the submission the admin reviewed, and only while it is
+      // still the item's content (an update supersedes it)
+      const open = await getOpenSubmission(itemId);
+      if (!open || open.id !== body.submissionId || !matchesCurrentContent(open, item)) {
+        sendJson(res, 409, {
+          error: 'The item changed or has no open submission; review the current submission',
+          currentSubmissionId: open?.id,
+        });
         return true;
       }
 
@@ -418,11 +374,7 @@ export async function handleMarketplaceAdminRoutes(
     const itemId = pathname.split('/')[5];
 
     try {
-      const body = await parseBody<{
-        reason: string;
-        note?: string;
-        publisherEmail?: string;
-      }>(req);
+      const body = await parseBody<{ reason: string; note?: string }>(req);
 
       if (!body.reason) {
         sendJson(res, 400, { error: 'Rejection reason is required' });
@@ -445,9 +397,9 @@ export async function handleMarketplaceAdminRoutes(
 
       log.info({ itemId, adminId: admin.adminId, reason: body.reason }, 'Item rejected');
 
-      // Send rejection email to publisher if email is available
+      // Notify the publisher at the address on record for the item, never one from the request
       let emailSent = false;
-      const publisherEmail = body.publisherEmail || item.publisher?.email;
+      const publisherEmail = item.publisher?.email;
       if (publisherEmail) {
         emailSent = await sendRejectionEmail(
           publisherEmail,

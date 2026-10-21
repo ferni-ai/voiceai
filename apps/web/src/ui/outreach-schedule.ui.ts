@@ -247,6 +247,8 @@ const STYLES = `
   font-size: 13px;
   color: var(--color-text-secondary);
 }
+/* The button is display: flex (block-level), so text-align can't center it */
+.outreach-schedule-empty-action { flex: none; margin: 16px auto 0; min-height: 44px; padding: 0 20px; }
 
 .outreach-item {
   padding: 16px;
@@ -465,9 +467,7 @@ const STYLES = `
 // INITIALIZATION
 // ============================================================================
 
-/**
- * Initialize the outreach schedule UI
- */
+/** Initialize the outreach schedule UI */
 export function initializeOutreachScheduleUI(): void {
   // Cleanup any existing instances
   cleanupOrphanedElements();

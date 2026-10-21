@@ -53,7 +53,10 @@ export function quietProcessReport(): void {
   if (report) report.excludeNetwork = true;
 }
 
-/** Import the call path's dynamic imports and the native audio module. Never throws. */
+/**
+ * Import the call path's dynamic imports and the native audio module, and load
+ * the bundle voices. Never throws.
+ */
 export async function warmCallPath(
   log: LogFn,
   files: readonly string[] = CALL_PATH
@@ -86,6 +89,14 @@ export async function warmCallPath(
     const { isNativeAudioAvailable } =
       await import('../../speech/audio-prosody/native-analyzer.js');
     isNativeAudioAvailable();
+  } catch {
+    failed++;
+  }
+  // Bundle voices, before the call path's first getVoiceId would settle for the
+  // hardcoded fallbacks (voice-registry.ts).
+  try {
+    const { initializeVoiceRegistry } = await import('../../personas/voice-registry.js');
+    await initializeVoiceRegistry();
   } catch {
     failed++;
   }
