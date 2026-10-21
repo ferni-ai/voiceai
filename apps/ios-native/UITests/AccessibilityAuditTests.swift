@@ -27,14 +27,16 @@ final class AccessibilityAuditTests: XCTestCase {
     /// Every finding waved through is printed and kept as an attachment
     /// ("audit-waved-through …") for a reviewer; testTheGateStillFails proves a
     /// faint unlabelled line mid-screen still fails.
-    private func auditTwice(_ app: XCUIApplication, name: String) throws {
+    private func auditTwice(_ app: XCUIApplication, name: String, nudges: Bool = true) throws {
         var held: [Unnamed] = [], cut: [Named] = []
-        let floor = Self.floorTop(app)
+        let (floor, pinned) = Self.floor(app)
         try app.performAccessibilityAudit(for: .all) { issue in
             if let element = issue.element {
                 // Text running under the floor (the fade behind Talk) is read in
                 // full once scrolled up; it's audited there (see underTheFloor).
-                if issue.auditType == .contrast, element.frame.minY < floor, element.frame.maxY > floor, !element.label.isEmpty {
+                // The pinned button's own label is the floor, not text under it.
+                if issue.auditType == .contrast, element.frame.maxY > floor, !element.label.isEmpty,
+                   !pinned.insetBy(dx: -2, dy: -2).contains(element.frame) {
                     cut.append(Named(issue, label: element.label))
                     return true
                 }
@@ -45,6 +47,10 @@ final class AccessibilityAuditTests: XCTestCase {
         }
         try underTheFloor(app, cut: cut, floor: floor, name: name)
         guard !held.isEmpty else { return }
+        guard nudges else {
+            for h in held { XCTFail("AUDIT [\(name)] no element: \(h.what)") }
+            return
+        }
         // Only a screen that scrolls has a second position (critic M2): if the
         // nudge moves nothing, every held finding fails where it stands.
         let texts = app.staticTexts.allElementsBoundByIndex.prefix(12)
@@ -74,25 +80,30 @@ final class AccessibilityAuditTests: XCTestCase {
         add(attachment)
     }
 
-    /// The top of the floor: the fade behind Talk starts a little above it.
-    static func floorTop(_ app: XCUIApplication) -> CGFloat {
+    /// The top of the floor: the pinned button (Home's Talk, sign-in's "Text me
+    /// a code") and the paper behind it, a little above the button.
+    static func floor(_ app: XCUIApplication) -> (top: CGFloat, button: CGRect) {
         let talk = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Talk'")).firstMatch
-        return talk.exists ? talk.frame.minY - 24 : app.frame.maxY
+        let pinned = talk.exists ? talk : app.buttons["signIn.continue"]
+        return pinned.exists ? (pinned.frame.minY - 24, pinned.frame) : (app.frame.maxY, .null)
     }
 
-    /// Contrast findings on text cut off by the floor (award upgrade 2: a long
-    /// note at AX5 runs from mid-screen into the fade behind Talk, and the audit
-    /// reads the faded part). Each is scrolled up once, just enough to clear the
+    /// Contrast findings on text cut off by the floor or below it (award upgrade
+    /// 2: a long note at AX5 runs from mid-screen into the fade behind Talk, and
+    /// on an SE starts below it; the audit reads the floor, not the text). Each is scrolled up once, just enough to clear the
     /// floor, and audited there: the same finding on the same text, in full
     /// view, fails. Waved ones are printed and attached, like the nudge's.
     private func underTheFloor(_ app: XCUIApplication, cut: [Named], floor: CGFloat, name: String) throws {
         var waved: [String] = []
         for finding in cut {
             let text = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", finding.label)).firstMatch
-            let lift = text.frame.maxY - floor + 24
-            if lift > 0 {
-                let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
-                start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -lift)))
+            // In steps of at most 240 pt, held at the end so nothing flings past.
+            for _ in 0..<4 {
+                let lift = min(text.frame.maxY - floor + 24, 240)
+                guard lift > 0 else { break }
+                let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+                start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -lift)),
+                            withVelocity: 300, thenHoldForDuration: 0.3)
                 sleep(1)
             }
             var again: [Named] = []
@@ -220,17 +231,6 @@ final class AccessibilityAuditTests: XCTestCase {
          "The call's state line in medium secondary ink: #5c544a on #f2ebdf, 6.3:1 measured from the iPad screenshot (2026-10-20); flagged on iPad only (this entry matches only there), where \"Reconnecting…\" in the same place passes."),
         ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "#sidebar.talk", "iPad sidebar row (that row only, by identifier): the AX5 screenshot shows the full word."),
         ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "#sidebar.remembers", "iPad sidebar row (that row only, by identifier): wraps to three full lines at AX5 (screenshot)."),
-        // Home once you've talked, on iPad only (these entries match only there), 2026-10-20: the
-        // audit fails the follow-up line and the team's names, though the screenshot's pixels
-        // measure #5c544a on #faf8f5, 7.0:1, and the chosen name #2c2520, 14.2:1 (WCAG luminance;
-        // voiceai-evidence/ios-design-audit-2026-10-20/fixes/award-upgrade-2-team-row). The same lines pass on every iPhone,
-        // and the same line without the follow-up passes on iPad.
-        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#home.detail", "Follow-up line: 7.0:1 measured on the iPad screenshot."),
-        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#team.name.ferni", "Chosen name: 14.2:1 measured on the iPad screenshot."),
-        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#team.name.maya", "Name: 7.0:1 measured on the iPad screenshot."),
-        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#team.name.alex", "Name: 7.0:1 measured on the iPad screenshot."),
-        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#team.name.jordan", "Name: 7.0:1 measured on the iPad screenshot."),
-        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#team.name.peter", "Name: 7.0:1 measured on the iPad screenshot."),
         ("settings", .dynamicType, "Try again", "A system List button row; it scales at AX5 like the other rows."),
         ("settings", .dynamicType, "Get help with your account",
          "Account footer link; HelpLinksUITests.testAccountHelpGrowsWithTextSize proves it grows at AX5 (pinned, it stays 34 pt and fails)."),
@@ -290,7 +290,10 @@ final class AccessibilityAuditTests: XCTestCase {
             XCTAssertTrue(way.waitForExistence(timeout: 20), "no way to the team")
             way.tap()
             let notYet = app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'team.notYet.'")).firstMatch
-            XCTAssertTrue(notYet.waitForExistence(timeout: 5), "a teammate not met yet")
+            // Met teammates come first: at AX5 on an SE the others are below the
+            // fold, and the list loads them as they scroll in.
+            for _ in 0..<6 where !notYet.waitForExistence(timeout: 2) { app.swipeUp() }
+            XCTAssertTrue(notYet.exists, "a teammate not met yet")
             XCTAssertEqual(app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'team.notYet.'")).count, 0, "not a button")
             let name = "team \(size)"
             try XCTContext.runActivity(named: name) { _ in
@@ -309,9 +312,9 @@ final class AccessibilityAuditTests: XCTestCase {
             offer.tap()
             XCTAssertTrue(app.textFields["Phone number"].waitForExistence(timeout: 5), "the sign-in sheet never appeared")
             let name = "signIn \(size)"
-            try XCTContext.runActivity(named: name) { _ in
-                try app.performAccessibilityAudit(for: .all) { Self.handle($0, on: name) }
-            }
+            // Through the floor rule: on an SE the hint under the field runs under
+            // the pinned button, and reads in full scrolled up.
+            try XCTContext.runActivity(named: name) { _ in try auditTwice(app, name: name, nudges: false) }
             app.terminate()
         }
     }

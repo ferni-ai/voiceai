@@ -154,12 +154,12 @@ jobs:
         run: scripts/ui-audit.sh gate "iPad Pro 13-inch (M5)" "$SPM_DIR" "$RUNNER_TEMP"
 
       # The large-text and small-screen tests on the smallest iPhone, where they
-      # bite (a call at AX5 only scrolls there).
+      # bite (a call at AX5 only scrolls there), and the audit on every screen.
       - name: UI tests, large text (iPhone SE, gating)
         working-directory: apps/ios-native
         run: >-
           scripts/ui-audit.sh gate "iPhone SE (3rd generation)" "$SPM_DIR" "$RUNNER_TEMP"
-          CallControlsAtLargeTextTests,NameChipUITests,SettingsTitleUITests,HomeFullnessUITests,MemoryEdgesUITests,HelpLinksUITests,PaperScreensUITests
+          CallControlsAtLargeTextTests,NameChipUITests,SettingsTitleUITests,HomeFullnessUITests,MemoryEdgesUITests,HelpLinksUITests,PaperScreensUITests,AccessibilityAuditTests
 
       - name: Upload test results
         if: always()
