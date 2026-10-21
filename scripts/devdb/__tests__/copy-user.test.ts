@@ -77,15 +77,30 @@ describe('what is copied', () => {
     expect(copied.length + Object.keys(EXCLUDED_STORES).length).toBe(labels.length);
   });
 
-  it('keeps scheduling stores out at any depth, but copies ferni_commitments', () => {
-    for (const name of ['reminders', 'recurring_reminders', 'outreach_attempts', 'outreach_x']) {
-      expect(excludedSubcollection(name, true)).toBe(true);
-      expect(excludedSubcollection(name, false)).toBe(true);
+  it('excludes scheduling, credential, queue and other-people names, but not ferni_commitments', () => {
+    for (const name of [
+      'reminders',
+      'recurring_reminders',
+      'outreach_attempts',
+      'outreach_x',
+      'contacts',
+      'push_subscriptions',
+      'google_calendar_tokens',
+      'on_behalf_calls',
+      'deferred_calls',
+      'voice_profile',
+      // collections of EXCLUDED_STORES entries, wherever they appear
+      'phone_mappings',
+      'oura_tokens',
+      'pending_actions',
+      'sponsored_identities',
+      'family_messages',
+    ]) {
+      expect(excludedSubcollection(name)).toBe(true);
     }
-    expect(excludedSubcollection('ferni_commitments', true)).toBe(false);
-    expect(excludedSubcollection('memories', true)).toBe(false);
-    expect(excludedSubcollection('contacts', true)).toBe(true);
-    expect(excludedSubcollection('contacts', false)).toBe(false);
+    for (const name of ['ferni_commitments', 'memories', 'entities', 'conversations']) {
+      expect(excludedSubcollection(name)).toBe(false);
+    }
     const copied = COPIED_STORES.map(storeLabel);
     expect(copied.filter((l) => l.startsWith('outreach_'))).toEqual([]);
     expect(copied).toContain('feature_flag_overrides/{uid}');

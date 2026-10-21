@@ -44,6 +44,14 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
       [`bogle_users/${ME}`, { name: 'me', createdAt: AT }],
       [`bogle_users/${ME}/memories/m1`, { text: 'mine', at: AT }],
       [`bogle_users/${ME}/memories/m1/notes/n1`, { deep: true }],
+      // excluded names below depth 1, and under an owner-field doc: must stay behind
+      [`bogle_users/${ME}/memories/m1/contacts/c`, { phone: '+15550000004' }],
+      [`bogle_users/${ME}/memories/m1/push_subscriptions/p`, { endpoint: 'https://push.invalid' }],
+      ['entities/mine1/contacts/c', { phone: '+15550000005' }],
+      ['entities/mine1/push_subscriptions/p', { endpoint: 'https://push.invalid' }],
+      // owner field nested in a map: { injection: { userId } }, not a literal dotted key
+      ['context_injection_outcomes/mine', { injection: { userId: ME }, at: AT }],
+      ['context_injection_outcomes/theirs', { injection: { userId: OTHER } }],
       [`bogle_users/${ME}/contacts/c1`, { phone: '+15550000001' }],
       [`bogle_users/${ME}/deferred_calls/d1`, { to: '+15550000002' }],
       [`bogle_users/${ME}/reminders/r1`, { dueAt: AT }],
@@ -76,6 +84,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
         `bogle_users/${ME}/ferni_commitments/f1`,
         `bogle_users/${ME}/memories/m1`,
         `bogle_users/${ME}/memories/m1/notes/n1`,
+        'context_injection_outcomes/mine',
         `entity_store/${ME}/entities/e1`,
         'entities/mine1',
         `users/${ME}/journal/j1`,
@@ -85,7 +94,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
     expect(copied).toBeInstanceOf(Timestamp);
     expect((copied as Timestamp).isEqual(AT)).toBe(true);
     // the source is untouched
-    expect(await paths(source)).toHaveLength(17);
+    expect(await paths(source)).toHaveLength(23);
   });
 
   it('skips what dev already has unless --overwrite', async () => {

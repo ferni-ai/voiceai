@@ -81,7 +81,10 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'family_shared_context[toUserId]': `${OTHERS}: shared by family members`,
 };
 
-/** Subcollections directly under a copied {uid} record that are skipped, by name. */
+/**
+ * Subcollections skipped by name, at ANY depth: under a {uid} record, under a
+ * document found by an owner field, and under anything below those.
+ */
 export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   google_calendar_tokens: CREDENTIAL,
   push_subscriptions: CREDENTIAL,
@@ -97,13 +100,19 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Every reminders / *_reminders / outreach_* subcollection, at any depth, is a
- * scheduling store (SCHEDULING), named above or not. ferni_commitments is kept:
- * Ferni reads it in calls for follow-through and nothing on dev delivers from it.
+ * A collection name excluded wherever it appears as a subcollection: the names
+ * above, the collection of every EXCLUDED_STORES entry (credentials, queues,
+ * other people's data), and any reminders / *_reminders / outreach_* (SCHEDULING).
+ * ferni_commitments is kept: Ferni reads it in calls for follow-through and
+ * nothing on dev delivers from it.
  */
 const SCHEDULING_NAME = /^outreach_|(^|_)reminders$/;
-export const excludedSubcollection = (name: string, isRecord: boolean): boolean =>
-  SCHEDULING_NAME.test(name) || (isRecord && Object.hasOwn(EXCLUDED_SUBCOLLECTIONS, name));
+const EXCLUDED_NAMES: ReadonlySet<string> = new Set([
+  ...Object.keys(EXCLUDED_SUBCOLLECTIONS),
+  ...Object.keys(EXCLUDED_STORES).map((label) => label.replace(/(\/\{uid\}|\[[^\]]+\])$/, '')),
+]);
+export const excludedSubcollection = (name: string): boolean =>
+  SCHEDULING_NAME.test(name) || EXCLUDED_NAMES.has(name);
 
 /** What is copied: the erasure catalog minus EXCLUDED_STORES. */
 export const COPIED_STORES: readonly OwnedStore[] = ERASED_STORES.filter(
@@ -173,11 +182,7 @@ export async function copyUser(opts: {
   };
 
   /** Copy these documents (same paths in dev), then everything under each. */
-  const copyDocs = async (
-    refs: DocumentReference[],
-    count: StoreCount,
-    isRecord: boolean
-  ): Promise<void> => {
+  const copyDocs = async (refs: DocumentReference[], count: StoreCount): Promise<void> => {
     for (let i = 0; i < refs.length; i += PAGE) {
       const page = refs.slice(i, i + PAGE);
       const snaps = await source.getAll(...page);
@@ -196,8 +201,8 @@ export async function copyUser(opts: {
       }
       for (const ref of page) {
         for (const sub of await ref.listCollections()) {
-          if (excludedSubcollection(sub.id, isRecord)) continue;
-          await copyDocs(await sub.listDocuments(), count, false);
+          if (excludedSubcollection(sub.id)) continue;
+          await copyDocs(await sub.listDocuments(), count);
         }
       }
     }
@@ -207,13 +212,12 @@ export async function copyUser(opts: {
     const count: StoreCount = { found: 0, copied: 0, skipped: 0 };
     const collection = source.collection(store.collection);
     if ('doc' in store) {
-      await copyDocs([collection.doc(uid)], count, true);
+      await copyDocs([collection.doc(uid)], count);
     } else {
       const snap = await collection.where(store.field, '==', uid).select().get();
       await copyDocs(
         snap.docs.map((d) => d.ref),
-        count,
-        false
+        count
       );
     }
     if (count.found > 0) counts[storeLabel(store)] = count;
