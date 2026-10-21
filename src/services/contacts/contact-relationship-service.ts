@@ -23,6 +23,8 @@ import { onContactChange, onContactInteractionChange } from '../data-layer/hooks
 import { createExpiringMarks } from '../../utils/expiring-marks.js';
 import { isRememberedContact, type InMemory } from './remembered-contacts.js';
 import { RELATIONSHIP_ALIASES } from './relationship-aliases.js';
+import { daysSinceLastInteraction, formatDaysAgo, interactionFields } from './last-interaction.js';
+export { daysSinceLastInteraction, formatDaysAgo } from './last-interaction.js';
 
 const log = getLogger();
 
@@ -45,9 +47,9 @@ export interface ContactRelationship {
 
   // Relationship tracking
   firstInteraction: Date;
-  lastInteraction: Date;
+  lastInteraction?: Date; // undefined until a real interaction, never a creation default
   interactionCount: number;
-  strengthScore: number; // 0-100
+  strengthScore?: number; // 0-100, undefined until a real interaction
 
   // Communication patterns
   avgResponseTimeHours?: number;
@@ -301,9 +303,9 @@ export async function upsertContact(
       notes: contact.notes,
       howWeMet: contact.howWeMet,
       firstInteraction: contact.firstInteraction || now,
-      lastInteraction: contact.lastInteraction || now,
-      interactionCount: contact.interactionCount || 0,
-      strengthScore: contact.strengthScore || 50,
+      lastInteraction: contact.lastInteraction, // no "last time" or score before a real one
+      interactionCount: contact.interactionCount ?? 0,
+      strengthScore: contact.strengthScore,
       preferredChannel: contact.preferredChannel,
       bestTimeToReach: contact.bestTimeToReach,
       avgResponseTimeHours: contact.avgResponseTimeHours,
@@ -441,7 +443,8 @@ export async function recordInteraction(
 
     // Update strength score based on interaction type weight
     const weight = INTERACTION_WEIGHTS[interaction.type] || 3;
-    contact.strengthScore = Math.min(100, contact.strengthScore + weight);
+    contact.strengthScore = // earned from the first real interaction, never a stored default
+      contact.strengthScore === undefined ? weight : Math.min(100, contact.strengthScore + weight);
 
     // Decay prevention - recent interactions slow decay
     if (contact.strengthScore < 30) {
@@ -582,12 +585,11 @@ export async function getRelationshipInsights(userId: string): Promise<ContactIn
       }
     }
 
-    // Check for weakening relationships
-    const daysSinceContact = Math.floor(
-      (now.getTime() - contact.lastInteraction.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    // Without a real interaction there is no "days since you talked": say nothing
+    const daysSinceContact = daysSinceLastInteraction(contact, now);
+    if (daysSinceContact === null) continue;
 
-    if (daysSinceContact > 30 && contact.strengthScore > 30) {
+    if (daysSinceContact > 30 && (contact.strengthScore ?? 0) > 30) {
       insights.push({
         contactId: contact.contactId,
         contactName: contact.name,
@@ -630,26 +632,24 @@ export async function getContactsNeedingAttention(
 
   // Score contacts by urgency
   const scored = contacts.map((contact) => {
-    const daysSinceContact = Math.floor(
-      (now.getTime() - contact.lastInteraction.getTime()) / (1000 * 60 * 60 * 24)
-    );
+    const daysSinceContact = daysSinceLastInteraction(contact, now);
 
     const followUp = contact.pendingFollowUp;
     // Overdue follow-up = highest priority
     const overdue = !!followUp && !followUp.completed && followUp.dueDate < now;
     let score = overdue ? 100 : 0;
 
-    // Long time since contact
-    score += Math.min(50, daysSinceContact);
+    // Long time since contact (only when we actually know when that was)
+    score += Math.min(50, daysSinceContact ?? 0);
 
     // Family/friends get priority
     if (contact.relationship === 'family') score += 20;
     if (contact.relationship === 'friend') score += 10;
 
     // High strength contacts get priority
-    score += contact.strengthScore / 5;
+    if (contact.strengthScore !== undefined) score += contact.strengthScore / 5;
 
-    return { contact, score, due: overdue || daysSinceContact > NEEDS_ATTENTION_AFTER_DAYS };
+    return { contact, score, due: overdue || (daysSinceContact ?? 0) > NEEDS_ATTENTION_AFTER_DAYS };
   });
   // Ranked among those actually due: someone you talked to this week never needs attention
   const due = scored.filter((s) => s.due).sort((a, b) => b.score - a.score);
@@ -752,10 +752,7 @@ export async function getContactContext(userId: string, contactId: string): Prom
   const contact = await getContact(userId, contactId);
   if (!contact) return null;
 
-  const now = new Date();
-  const daysSinceContact = Math.floor(
-    (now.getTime() - contact.lastInteraction.getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const daysSinceContact = daysSinceLastInteraction(contact);
 
   let context = `${contact.name}`;
   if (contact.relationship) {
@@ -763,9 +760,9 @@ export async function getContactContext(userId: string, contactId: string): Prom
   }
   context += `:\n`;
 
-  context += `- Last contact: ${daysSinceContact === 0 ? 'today' : daysSinceContact === 1 ? 'yesterday' : `${daysSinceContact} days ago`}\n`;
+  context += `- Last contact: ${formatDaysAgo(daysSinceContact) ?? 'none recorded yet (do not guess)'}\n`;
   context += `- Total interactions: ${contact.interactionCount}\n`;
-  context += `- Relationship strength: ${contact.strengthScore}/100\n`;
+  if (contact.strengthScore !== undefined) context += `- Strength: ${contact.strengthScore}/100\n`;
 
   if (contact.preferredChannel) {
     context += `- Prefers: ${contact.preferredChannel}\n`;
@@ -1012,7 +1009,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
     const snapshot = await firestore
       .collection(CONTACTS_COLLECTION)
       .where('userId', '==', userId)
-      .orderBy('lastInteraction', 'desc')
+      // No orderBy('lastInteraction'): it would drop every contact with no interaction yet
       .get();
 
     const contacts: ContactRelationship[] = [];
@@ -1021,7 +1018,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
       contacts.push({
         ...data,
         firstInteraction: toSafeDate(data.firstInteraction),
-        lastInteraction: toSafeDate(data.lastInteraction),
+        ...interactionFields(data),
         createdAt: toSafeDate(data.createdAt),
         updatedAt: toSafeDate(data.updatedAt),
         topics: (data.topics || []).map((t: Record<string, unknown>) => ({
@@ -1039,6 +1036,9 @@ async function ensureUserLoaded(userId: string): Promise<void> {
       } as ContactRelationship);
     }
 
+    contacts.sort(
+      (a, b) => (b.lastInteraction?.getTime() ?? 0) - (a.lastInteraction?.getTime() ?? 0)
+    );
     contactCache.set(userId, contacts);
     loadedUsers.add(userId);
     loadFailures.delete(userId);

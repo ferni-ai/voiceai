@@ -14,6 +14,7 @@ import {
   getContactsNeedingAttention,
 } from '../../../services/contacts/contact-relationship-service.js';
 import { isMemberIdentity } from '../../../services/identity/member-identity.js';
+import { daysSinceLastInteraction } from '../../../services/contacts/last-interaction.js';
 
 const log = createLogger({ module: 'context:contact-awareness' });
 
@@ -61,12 +62,11 @@ export const contactAwarenessBuilder: ContextBuilder = {
       // Contacts needing attention
       if (needsAttention.length > 0) {
         content += `\nContacts that could use attention:\n`;
-        const now = new Date();
         needsAttention.forEach((contact) => {
-          const daysSince = Math.floor(
-            (now.getTime() - contact.lastInteraction.getTime()) / (1000 * 60 * 60 * 24)
-          );
-          content += `- ${contact.name} (${daysSince} days since last contact)`;
+          const daysSince = daysSinceLastInteraction(contact);
+          content += `- ${contact.name}`;
+          // Never state a gap we have not measured
+          if (daysSince !== null) content += ` (${daysSince} days since last contact)`;
           if (contact.pendingFollowUp && !contact.pendingFollowUp.completed) {
             content += ` - Follow-up pending`;
           }
