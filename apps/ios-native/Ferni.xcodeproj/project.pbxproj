@@ -67,6 +67,7 @@
 		8A0DA19AC7D9E83028D7037C /* HomeFullnessUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A9921DFB678374C2A898ED0 /* HomeFullnessUITests.swift */; };
 		8D43BE71BA55A181C28E990A /* Sentry-Dynamic in Frameworks */ = {isa = PBXBuildFile; productRef = B0FFE05E246C1F74D336D1D5 /* Sentry-Dynamic */; };
 		8D8B15C91C23C5637658B6B5 /* HelpLinksUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4B225A0C8DC9AE55E5C172 /* HelpLinksUITests.swift */; };
+		9672E7CDB2677FD6617507B6 /* GreetingHoursTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D03022058C95404A7A708092 /* GreetingHoursTests.swift */; };
 		96CE1F719A503FE95C9F392A /* WaitingScreenTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A9BA6FE2BCA7A20529FAF50 /* WaitingScreenTests.swift */; };
 		972C014927E4F3D01E988672 /* KnownPersonGreetingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BD0FD80728B703432778F2D /* KnownPersonGreetingTests.swift */; };
 		9B5B3E0DC766449E9764FA0D /* handoff-to-jordan.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = 649C35992ED39D62D2F8714A /* handoff-to-jordan.mp3 */; };
@@ -305,6 +306,7 @@
 		CE6F99AEBFB1F92A89ED2A23 /* KnownPersonHomeUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KnownPersonHomeUITests.swift; sourceTree = "<group>"; };
 		CEFE4784BAD14645AE3B2DF0 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		CF1DD1C23E8F40636385BCA6 /* Foley.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Foley.swift; sourceTree = "<group>"; };
+		D03022058C95404A7A708092 /* GreetingHoursTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GreetingHoursTests.swift; sourceTree = "<group>"; };
 		D088A9791D1BAB4D7E6860C8 /* CallIntentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallIntentTests.swift; sourceTree = "<group>"; };
 		D4A2C11155BCB3E9C2DCC909 /* ScreenIntro.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenIntro.swift; sourceTree = "<group>"; };
 		E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
@@ -405,6 +407,7 @@
 				565F1332B57CB1EE0A6D05BB /* DeepLinkTests.swift */,
 				7BBEC35DE0011C78F56EB70E /* FirstMinuteAppTests.swift */,
 				B2F84B922CA763C39E2781DA /* FoleyTests.swift */,
+				D03022058C95404A7A708092 /* GreetingHoursTests.swift */,
 				BBCDC6DB88741D7B10F71E73 /* HelpShortcutTests.swift */,
 				7BD0FD80728B703432778F2D /* KnownPersonGreetingTests.swift */,
 				4F6D02CA803627F1860ACBDA /* LiveActivityContentTests.swift */,
@@ -912,6 +915,7 @@
 				5E58C2614D2E1C7FBDC20DC1 /* DeepLinkTests.swift in Sources */,
 				379EA73E4D83C65C9AFE0A98 /* FirstMinuteAppTests.swift in Sources */,
 				B616B2B1DCA4FD7C436D0823 /* FoleyTests.swift in Sources */,
+				9672E7CDB2677FD6617507B6 /* GreetingHoursTests.swift in Sources */,
 				1F28866ECB7A823762E0A1AC /* HelpShortcutTests.swift in Sources */,
 				972C014927E4F3D01E988672 /* KnownPersonGreetingTests.swift in Sources */,
 				F8BE59CFC9BCA7538FD1A854 /* LiveActivityContentTests.swift in Sources */,
