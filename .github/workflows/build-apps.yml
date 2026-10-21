@@ -1,8 +1,7 @@
 # Voice AI - Build Native Apps
 #
-# Builds the iOS app. The Electron desktop app was removed, and the native
-# Android app was archived (apps/archive/android-native): Android ships as a
-# Trusted Web Activity built by android-twa.yml.
+# Builds the iOS app. The Electron desktop app and the native Android app were
+# removed: Android ships as a Trusted Web Activity built by android-twa.yml.
 # The iOS build and unit tests run on every pull request and push to main that
 # touches the iPhone app, the shared Swift package or this workflow. Merge-queue
 # groups skip them: no required check comes from here, and a macOS job per group

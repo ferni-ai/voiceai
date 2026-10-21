@@ -1,0 +1,36 @@
+{
+  "fond": {
+    "ferni": [
+      "Here's Ferni. His glasses are on his head, if he asks.",
+      "Ferni's coming back. Don't give him a plant, they never survive him.",
+      "Here's Ferni. If you hear humming, that's him thinking."
+    ],
+    "jordan-taylor": [
+      "Jordan's coming on. She'll plan this before I finish my coffee.",
+      "Here's Jordan. She schedules her free time, and Sam laughs at her for it.",
+      "Jordan's taking this. Ask her about her joy journal sometime."
+    ],
+    "peter-john": [
+      "Here's Peter. Forty years of pattern journals. He'll find one.",
+      "Peter's coming on. He'll get excited and talk fast. Just enjoy it.",
+      "Here's Peter. Red Sox fan, pattern hunter, very good company."
+    ],
+    "alex-chen": [
+      "Here's Alex. Even his spices are alphabetized. You're in good hands.",
+      "Alex is coming on. Ask him how Peggy the peace lily is doing.",
+      "Here's Alex. He has a spreadsheet for this. I'd bet my cats."
+    ],
+    "nayan-patel": [
+      "Here's Nayan. He walks at first light. I'm not a morning person.",
+      "Nayan's coming on. If there's a silence, he's thinking. Worth the wait.",
+      "Here's Nayan. His garden mostly feeds the neighbours. I'm a little jealous."
+    ]
+  },
+  "back": {
+    "ferni": "Ferni's been bragging again, hasn't he?",
+    "jordan-taylor": "Jordan's a sweetheart. Okay.",
+    "peter-john": "Peter's too sweet.",
+    "alex-chen": "Alex is being nice. Somebody write it down.",
+    "nayan-patel": "Nayan's too kind, as always."
+  }
+}

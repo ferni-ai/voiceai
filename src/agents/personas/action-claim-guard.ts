@@ -28,6 +28,8 @@
  *   again when it doesn't.
  *   Prod call 2026-10-17: on the yes Nayan said "Well, I'm placing the call
  *   now." and the call was held until 9:00 AM their time.
+ * - Ferni says he called emergency services or help (#1553), always false: the
+ *   way to real help goes out instead (emergency-correction.ts).
  * Everything else streams untouched, so the confirm read-back, the yes turn's
  * other words (outreach-confirm.ts), a tool the model is about to call, and talk about an
  * action that really happened are never changed. Text and tool calls keep
@@ -49,7 +51,6 @@ import { ReadableStream } from 'node:stream/web';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { isClearYes } from '../../tools/domains/communication/outreach/outreach-confirm.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
   bareOnIt,
   callActions,
@@ -59,7 +60,11 @@ import {
 } from './action-claims.js';
 import { withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
+import { CRISIS_TALK } from './emergency-claim.js';
+import { honestLine, type MissReason } from './honest-line.js';
+import { emergencyCheck, emergencyCorrection } from './emergency-correction.js';
 import { clauseSafeFor, FirstClauseFlush, firstClauseFlushEnabled } from './first-clause-flush.js';
+import { plain, spokenOf, type Item } from './spoken-words.js';
 import {
   askedCallLine,
   askedCallLookup,
@@ -78,12 +83,6 @@ const isCalendarCreate = (name: string): boolean =>
   /calendar/i.test(name) && kindsOfTool(name).includes('schedule');
 
 type Chunk = llm.ChatChunk | string | object;
-/**
- * 'uncalled': a create tool is open, but no create ran on this call for this claim (#1547).
- * 'promised': "I'll text him" with the tool open, and none called yet in this reply (action-promises.ts).
- */
-export type MissReason =
-  'no_tool' | 'failed' | 'awaiting' | 'held' | 'uncalled' | 'elsewhere' | 'promised';
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
@@ -92,63 +91,6 @@ export function actionClaimGuardEnabled(env: Env = process.env): boolean {
 /** Stream turns with no action in play (off: every turn holds, as before). */
 export function actionClaimStreamEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_STREAM', env);
-}
-
-const DID_NOT_GO: Record<ActionKind, string> = {
-  call: "That call didn't go through, so nothing's been dialed.",
-  send: "That didn't go through, so nothing's been sent.",
-  schedule: "That didn't go through, so it isn't booked.",
-  reminder: "That didn't go through, so there's no reminder set.",
-  save: "That didn't go through, so it isn't saved.",
-};
-const CANNOT: Record<ActionKind, string> = {
-  call: "I can't actually make calls for you, so I haven't rung anyone.",
-  send: "I can't actually send messages for you, so nothing's gone out.",
-  schedule: "I can't actually book that for you, so it isn't booked.",
-  reminder: "I can't actually set reminders for you, so there isn't one set.",
-  save: "I can't actually save that for you, so it isn't saved.",
-};
-/** A yes/no question, since the gate sends only on a plain yes to it. */
-const NOT_YET: Record<ActionKind, string> = {
-  call: "I haven't actually dialed yet, though. Should I go ahead and call?",
-  send: "Nothing's gone out yet, though. Should I go ahead and send it?",
-  schedule: "It isn't booked yet, though. Should I go ahead and book it?",
-  reminder: "It isn't set yet, though. Should I go ahead and set it?",
-  save: "It isn't saved yet, though. Should I go ahead and save it?",
-};
-/** A held action: set for later, not done (only calls are held today). */
-const HELD: Record<ActionKind, string> = {
-  call: "I haven't dialed yet, though. The call is held for a better time.",
-  send: "Nothing's gone out yet, though. It's held for a better time.",
-  schedule: "It isn't booked yet, though. It's held for later.",
-  reminder: "It isn't set yet, though. It's held for later.",
-  save: "It isn't saved yet, though. It's held for later.",
-};
-const INSTEAD: Record<ActionKind, string> = {
-  call: ' I can help you work out what to say, though.',
-  send: ' I can help you word it, though.',
-  schedule: '',
-  reminder: ' Maybe pop it in your phone so it nudges you.',
-  save: '',
-};
-const REMIND = ' Want me to remind you to do it?';
-
-/** What Ferni says in place of a claim, and what he can do instead. */
-export function honestLine(
-  kind: ActionKind,
-  reason: MissReason,
-  canRemind: boolean,
-  when?: string
-): string {
-  if (reason === 'elsewhere') return "It's saved to Ferni's own list, not your calendar.";
-  if (reason === 'awaiting' || reason === 'uncalled' || reason === 'promised') return NOT_YET[kind];
-  if (reason === 'held') {
-    return kind === 'call' && when
-      ? `I haven't dialed yet, though. I'll call ${when} their time.`
-      : HELD[kind];
-  }
-  const instead = canRemind && kind !== 'reminder' && kind !== 'save' ? REMIND : INSTEAD[kind];
-  return `${reason === 'failed' ? DID_NOT_GO[kind] : CANNOT[kind]}${instead}`;
 }
 
 function contentOf(chunk: Chunk): string | undefined {
@@ -178,32 +120,15 @@ const ACTION_TALK =
  * emergency. A wrong match only costs a held sentence; a missed ask speaks a claim.
  * Case-blind, since speech-to-text capitalises the start of every sentence.
  */
-const ASK_SHAPE =
-  /\b(?:(?:can|could|would|will) you|please|i need you to|i want you to|go ahead|for me|ambulance|911|police|emergency|fire department|help|hurt\w*|fell|fallen|(?:can'?t|cannot|can not) breathe|heart attack|chest|bleed\w*|breaking in|broke in|overdos\w*|suicid\w*|not breathing|collaps\w*|passed out|unconscious|stroke|chok\w*|seizure|fire|accident|gun|knife|cops|kill (?:my|him|her)sel(?:f|ves)|end it all|(?:don'?t|do not) want to (?:live|be here)|ayuda|hilfe|socorro|aiuto|au secours|(?:my|your|our) (?:\w+ )?(?:mom|mum|mother|mama|dad|father|papa|sister|sis|brother|bro|grandma|grandmother|gran|nana|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|friend|bestie|boss|doctor|dentist|therapist|landlord|teacher|neighbou?r|family|roommate)|her|him|them)\b/i;
+const ASK_SHAPE = new RegExp(
+  `\\b(?:(?:can|could|would|will) you|please|i need you to|i want you to|go ahead|for me|help|${CRISIS_TALK}|(?:my|your|our) (?:\\w+ )?(?:mom|mum|mother|mama|dad|father|papa|sister|sis|brother|bro|grandma|grandmother|gran|nana|grandpa|grandfather|aunt|auntie|uncle|cousin|wife|husband|partner|girlfriend|boyfriend|son|daughter|kids?|friend|bestie|boss|doctor|dentist|therapist|landlord|teacher|neighbou?r|family|roommate)|her|him|them)\\b`,
+  'i'
+);
 /** Someone named mid-sentence: a capitalised word other than Ferni's name (case matters here). */
 const NAMED = /\s(?!(?:Ferni|Fern)\b)[A-Z][a-z]+/;
 
 /** How many of the caller's (and Ferni's) latest messages can put an action in play. */
 const ASK_WINDOW = 6;
-
-interface Item {
-  type?: string;
-  role?: string;
-  name?: string;
-  content?: unknown;
-  textContent?: string;
-}
-
-/** The caller's spoken words: the first line only, since a per-turn reminder rides after a blank line (turn-style.ts). */
-const spokenOf = (item: Item): string => {
-  const text =
-    item.textContent ??
-    (Array.isArray(item.content)
-      ? item.content.filter((part): part is string => typeof part === 'string').join(' ')
-      : '');
-  const first = text.split('\n')[0].trim();
-  return first.startsWith(TURN_CONTEXT_HEADER) ? '' : first;
-};
 
 /** Ferni's own line claimed an action or said honestly he couldn't: the action is still in play. */
 const HONEST_SAID = /\b(?:can't actually|didn't go through)\b/i;
@@ -222,9 +147,6 @@ const actedOn = (text: string): boolean =>
         claimedAction(part) !== null ||
         (OFFER.test(part) && (ACTION_TALK.test(part) || ASK_SHAPE.test(part)))
     );
-/** Curly apostrophes from speech-to-text read as straight ones. */
-const plain = (text: string): string => text.replace(/[\u2018\u2019]/g, "'");
-
 /** The caller's latest words. */
 function lastCallerWords(chatCtx: { items: readonly unknown[] }): string {
   const asks = (chatCtx.items as readonly Item[]).filter(
@@ -310,6 +232,7 @@ async function checkActionClaims<T>(
   // Only a calendar create can make "on your calendar" false here; other bookings are not held (#1547).
   const calendarCreateOpen = toolNames.some(isCalendarCreate);
   const hold = !actionClaimStreamEnabled(env) || actionInPlay(chatCtx);
+  const isEmergency = emergencyCheck(chatCtx);
   // A story of how a call went that no result came back from (call-narration.ts).
   const callRan = [done, awaiting, failed, held].some((kinds) => kinds.has('call'));
   const unheard = callOutcomeUnheard(chatCtx, callRan, await askedLookup);
@@ -319,17 +242,15 @@ async function checkActionClaims<T>(
       ? 'no_tool'
       : failed.has(kind)
         ? 'failed'
-        : failed.has(kind)
-          ? 'failed'
-          : elsewhere.has(kind)
-            ? 'elsewhere'
-            : held.has(kind)
-              ? 'held'
-              : awaiting.has(kind) && !yesTurn
-                ? 'awaiting'
-                : kind === 'schedule' && calendarCreateOpen && !done.has(kind) && !calling.has(kind)
-                  ? 'uncalled'
-                  : null;
+        : elsewhere.has(kind)
+          ? 'elsewhere'
+          : held.has(kind)
+            ? 'held'
+            : awaiting.has(kind) && !yesTurn
+              ? 'awaiting'
+              : kind === 'schedule' && calendarCreateOpen && !done.has(kind) && !calling.has(kind)
+                ? 'uncalled'
+                : null;
   // A tool that ran since the caller last spoke already answers a promise of its kind.
   const ranThisTurn = kindsRunThisTurn(chatCtx);
   /** Why a promise ("I'll text him") is not kept yet, or null when it may stand (action-promises.ts). */
@@ -337,6 +258,29 @@ async function checkActionClaims<T>(
     calling.has(kind) || ranThisTurn.has(kind) || (awaiting.has(kind) && !yesTurn)
       ? null // its tool runs in this reply, ran this turn, or this is the read-back
       : (missing(kind, calling) ?? 'promised');
+  /**
+   * What one sentence claims or promises, and why that is false (reason null: it may stand).
+   * An emergency claim is judged first, so "I'll call 911 for you" never becomes an offer.
+   */
+  const judge = (
+    text: string,
+    calling: ReadonlySet<ActionKind>
+  ): {
+    kind: ActionKind | null;
+    reason: MissReason | null;
+    claimed: ActionKind | null;
+    promised: ActionKind | null;
+  } => {
+    if (isEmergency(text))
+      return { kind: 'call', reason: 'emergency', claimed: 'call', promised: null };
+    // On the yes to a call, "I'm on it" says the call is under way too.
+    const claimed = claimedAction(text) ?? (ahead('call') && bareOnIt(text) ? 'call' : null);
+    // "I'll text him then": a promise only a tool call in this reply keeps (action-promises.ts).
+    const promised = hold ? promisedAction(text) : null;
+    const kind = claimed ?? promised;
+    const reason = !kind ? null : claimed ? missing(kind, calling) : unkept(kind, calling);
+    return { kind, reason, claimed, promised };
+  };
   /** A call claimed on the yes, before the call tool has said whether anything rang. */
   const ahead = (kind: ActionKind): boolean => kind === 'call' && yesTurn && awaiting.has(kind);
   // FIRST_CLAUSE_FLUSH: a held reply's first clause goes early when it names no action (first-clause-flush.ts).
@@ -352,6 +296,7 @@ async function checkActionClaims<T>(
       let passed = 0; // how much of pending already streamed out
       let last = '';
       let said = false; // an honest line already went out
+      const correctEmergency = emergencyCorrection(); // the emergency line, once per reply
       let lineLast = false; // the last thing out was an honest line
       // `text` is the held sentence, kept until the reply shows whether the claim came true.
       let deferred:
@@ -376,15 +321,16 @@ async function checkActionClaims<T>(
         last = spaced;
         lineLast = false;
       };
+      /** Held words go out in order: behind an uncalled claim's sentence, or now. */
+      const release = (text: string): void => {
+        if (deferred?.reason === 'uncalled' || deferred?.reason === 'promised') queued.push(text);
+        else emit(text);
+      };
       /** A whole sentence is checked; held ones go out (less the first clause sent) unless they claim. */
       const flush = (whole: string): void => {
         const text = whole.slice(firstClause.sent);
-        // On the yes to a call, "I'm on it" says the call is under way too.
-        const claimed = claimedAction(whole) ?? (ahead('call') && bareOnIt(whole) ? 'call' : null);
-        // "I'll text him then": a promise only a tool call in this reply keeps (action-promises.ts).
-        const promised = hold ? promisedAction(whole) : null;
-        const kind = claimed ?? promised;
-        let reason = !kind ? null : claimed ? missing(kind, calling) : unkept(kind, calling);
+        const { kind, claimed, promised, reason: judged } = judge(whole, calling);
+        let reason = judged;
         if (kind && !reason && hold && ahead(kind)) {
           log.warn({ kind, reason: 'before_result', held: hold }, 'ACTION_CLAIM_DROPPED');
           early ??= kind; // said nothing yet: the tool's result is spoken next
@@ -393,12 +339,17 @@ async function checkActionClaims<T>(
         // "I'll call her now" claims and promises: it stands only with its tool in this reply.
         if (claimed && !reason && promised === claimed) reason = unkept(claimed, calling);
         if (!kind || !reason) {
-          if (!hold) return;
-          if (deferred?.reason === 'uncalled' || deferred?.reason === 'promised') queued.push(text);
-          else emit(text);
+          if (hold) release(text);
           return;
         }
         log.warn({ kind, reason, held: hold }, 'ACTION_CLAIM_DROPPED');
+        if (reason === 'emergency') {
+          const { line, rest } = correctEmergency(text, hold);
+          if (line) emit(line);
+          if (line) said = lineLast = true;
+          if (rest) release(rest);
+          return;
+        }
         if (said || deferred) return;
         // A call of the kind later in this reply makes the claim true, so a held claim waits for the
         // reply to show. Streamed words cannot wait, so they are corrected at once.

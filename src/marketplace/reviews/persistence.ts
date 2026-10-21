@@ -426,7 +426,6 @@ export async function getReviewsStore(): Promise<ReviewsStore> {
 
   const useFirestore =
     process.env.NODE_ENV === 'production' ||
-    process.env.USE_FIRESTORE_REVIEWS === 'true' ||
     process.env.GCP_PROJECT_ID ||
     process.env.FIREBASE_PROJECT_ID;
 
