@@ -152,6 +152,8 @@ export const FLAG_MANIFEST = {
   FERNI_VOICE_EMOTION: { default: 'off', owner: 'voice', kind: 'config' },
   // unset: resting pace 1. A number, clamped to 0.85-1.2: Ferni's resting pace (same module)
   FERNI_VOICE_SPEED: { default: 'off', owner: 'voice', kind: 'config' },
+  // report | refuse | off: a client bound to another database than FIRESTORE_DATABASE (utils/firestore-db-pin.ts)
+  FIRESTORE_DB_PIN: { default: 'report', owner: 'platform', kind: 'kill-switch' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a reply's first clause goes to tts at a comma, not its sentence's end (agents/personas/first-clause-flush.ts)
   FIRST_CLAUSE_FLUSH: { default: 'off', owner: 'voice', kind: 'experiment' },

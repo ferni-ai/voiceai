@@ -131,13 +131,14 @@ export function refusedOwner(write: WriteProto, env: Env = process.env): string 
   return null;
 }
 
-type FirestoreClass = { prototype: Record<string | symbol, unknown> };
+export type FirestoreClass = { prototype: Record<string | symbol, unknown> };
 
 /**
  * Every copy of the client class: the one this module imports (the bundled copy
  * when the agent is bundled), plus the app's and firebase-admin's own requires.
+ * The database pin (firestore-db-pin.ts) patches the same set.
  */
-function realFirestoreClasses(): FirestoreClass[] {
+export function realFirestoreClasses(): FirestoreClass[] {
   const classes = new Set<FirestoreClass>([ImportedFirestore as unknown as FirestoreClass]);
   try {
     const fromHere = createRequire(import.meta.url);
