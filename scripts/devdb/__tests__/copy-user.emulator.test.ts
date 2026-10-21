@@ -46,6 +46,10 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
       [`bogle_users/${ME}/memories/m1/notes/n1`, { deep: true }],
       [`bogle_users/${ME}/contacts/c1`, { phone: '+15550000001' }],
       [`bogle_users/${ME}/deferred_calls/d1`, { to: '+15550000002' }],
+      [`bogle_users/${ME}/reminders/r1`, { dueAt: AT }],
+      [`bogle_users/${ME}/outreach_attempts/o1`, { at: AT }],
+      [`bogle_users/${ME}/ferni_commitments/f1`, { dueBy: 'tomorrow' }],
+      [`outreach_profiles/${ME}`, { cadence: 'weekly' }],
       [`users/${ME}/journal/j1`, { entry: 'mine' }],
       [`entity_store/${ME}/entities/e1`, { name: 'mine' }],
       ['entities/mine1', { userId: ME, at: AT }],
@@ -60,7 +64,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
 
   it('a dry run counts but writes nothing', async () => {
     const counts = await copyUser({ source, dest, uids: [ME], apply: false });
-    expect(counts['bogle_users/{uid}']).toEqual({ found: 3, copied: 3, skipped: 0 });
+    expect(counts['bogle_users/{uid}']).toEqual({ found: 4, copied: 4, skipped: 0 });
     expect(await paths(dest)).toEqual([]);
   });
 
@@ -69,6 +73,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
     expect(await paths(dest)).toEqual(
       [
         `bogle_users/${ME}`,
+        `bogle_users/${ME}/ferni_commitments/f1`,
         `bogle_users/${ME}/memories/m1`,
         `bogle_users/${ME}/memories/m1/notes/n1`,
         `entity_store/${ME}/entities/e1`,
@@ -80,7 +85,7 @@ describe.skipIf(!process.env.FIRESTORE_EMULATOR_HOST)('copy-user on the emulator
     expect(copied).toBeInstanceOf(Timestamp);
     expect((copied as Timestamp).isEqual(AT)).toBe(true);
     // the source is untouched
-    expect(await paths(source)).toHaveLength(13);
+    expect(await paths(source)).toHaveLength(17);
   });
 
   it('skips what dev already has unless --overwrite', async () => {

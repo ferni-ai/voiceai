@@ -39,6 +39,8 @@ const PAGE = 300;
 
 const CREDENTIAL = 'a live credential: dev could act on the real account or device';
 const QUEUE = 'an in-flight queue: the dev worker would send or place it for real';
+const SCHEDULING =
+  'a scheduling store: a dev job runner reading it would text the person a second time';
 const OTHERS = "other people's identifiers or words, not the person's own";
 
 /** Stores in ERASED_STORES that are not copied (labels as storeLabel writes them). */
@@ -61,6 +63,10 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'message_drafts[userId]': `${QUEUE}; drafts name their recipients`,
   'delivery_orders[userId]': QUEUE,
   'tracked_appointments[userId]': `${QUEUE} (appointment follow-ups)`,
+  'outreach_profiles/{uid}': SCHEDULING,
+  'outreach_context/{uid}': SCHEDULING,
+  'outreach_history/{uid}': SCHEDULING,
+  'outreach_history[userId]': SCHEDULING,
   'sponsored_identities[sponsorUserId]': `${OTHERS}: family members' names and phones`,
   'user_contacts/{uid}': `${OTHERS}: contacts`,
   'user_contacts[userId]': `${OTHERS}: contacts`,
@@ -85,7 +91,19 @@ export const EXCLUDED_SUBCOLLECTIONS: Readonly<Record<string, string>> = {
   scheduled_calls: QUEUE,
   contacts: `${OTHERS}: contacts`,
   on_behalf_calls: `${OTHERS}: third parties' numbers and what they said`,
+  reminders: SCHEDULING,
+  outreach_attempts: SCHEDULING,
+  outreach_history: SCHEDULING,
 };
+
+/**
+ * Every reminders / *_reminders / outreach_* subcollection, at any depth, is a
+ * scheduling store (SCHEDULING), named above or not. ferni_commitments is kept:
+ * Ferni reads it in calls for follow-through and nothing on dev delivers from it.
+ */
+const SCHEDULING_NAME = /^outreach_|(^|_)reminders$/;
+export const excludedSubcollection = (name: string, isRecord: boolean): boolean =>
+  SCHEDULING_NAME.test(name) || (isRecord && Object.hasOwn(EXCLUDED_SUBCOLLECTIONS, name));
 
 /** What is copied: the erasure catalog minus EXCLUDED_STORES. */
 export const COPIED_STORES: readonly OwnedStore[] = ERASED_STORES.filter(
@@ -178,7 +196,7 @@ export async function copyUser(opts: {
       }
       for (const ref of page) {
         for (const sub of await ref.listCollections()) {
-          if (isRecord && Object.hasOwn(EXCLUDED_SUBCOLLECTIONS, sub.id)) continue;
+          if (excludedSubcollection(sub.id, isRecord)) continue;
           await copyDocs(await sub.listDocuments(), count, false);
         }
       }

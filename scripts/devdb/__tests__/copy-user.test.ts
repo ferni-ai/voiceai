@@ -12,6 +12,7 @@ import {
   COPIED_STORES,
   copyUser,
   EXCLUDED_STORES,
+  excludedSubcollection,
   uidRefusal,
 } from '../copy-user.js';
 
@@ -76,6 +77,20 @@ describe('what is copied', () => {
     expect(copied.length + Object.keys(EXCLUDED_STORES).length).toBe(labels.length);
   });
 
+  it('keeps scheduling stores out at any depth, but copies ferni_commitments', () => {
+    for (const name of ['reminders', 'recurring_reminders', 'outreach_attempts', 'outreach_x']) {
+      expect(excludedSubcollection(name, true)).toBe(true);
+      expect(excludedSubcollection(name, false)).toBe(true);
+    }
+    expect(excludedSubcollection('ferni_commitments', true)).toBe(false);
+    expect(excludedSubcollection('memories', true)).toBe(false);
+    expect(excludedSubcollection('contacts', true)).toBe(true);
+    expect(excludedSubcollection('contacts', false)).toBe(false);
+    const copied = COPIED_STORES.map(storeLabel);
+    expect(copied.filter((l) => l.startsWith('outreach_'))).toEqual([]);
+    expect(copied).toContain('feature_flag_overrides/{uid}');
+  });
+
   it('pins the copied list, so a store added to the catalog is reviewed here', () => {
     expect(COPIED_STORES.map(storeLabel)).toMatchInlineSnapshot(`
       [
@@ -110,9 +125,6 @@ describe('what is copied', () => {
         "feature_flag_overrides/{uid}",
         "apple_health_status/{uid}",
         "apple_health_data/{uid}",
-        "outreach_profiles/{uid}",
-        "outreach_context/{uid}",
-        "outreach_history/{uid}",
         "analytics_users/{uid}",
         "story_journeys/{uid}",
         "user_gardens/{uid}",
@@ -145,7 +157,6 @@ describe('what is copied', () => {
         "user_milestones[userId]",
         "feature_votes[userId]",
         "roadmap_suggestions[userId]",
-        "outreach_history[userId]",
         "voice_conversations[userId]",
         "marketplace_installations[userId]",
         "trust_analytics[userId]",
