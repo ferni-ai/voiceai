@@ -412,22 +412,22 @@ function getGrowthNote(affinity: AffinityScore): string {
 
 function generateMilestoneDisplays(milestones: GameMilestone[]): MilestoneDisplay[] {
   const displays: Record<string, { name: string; icon: string; desc: string }> = {
-    first_game: { name: 'First Game', icon: '🎉', desc: 'Started your music game journey!' },
-    first_perfect_round: { name: 'Perfect Round', icon: '✨', desc: 'Nailed every single guess!' },
-    ten_games: { name: '10 Games', icon: '🎮', desc: 'A regular! 10 games played.' },
-    fifty_games: { name: '50 Games', icon: '🏆', desc: 'Music game veteran!' },
-    fastest_guess: { name: 'Speed Demon', icon: '⚡', desc: 'Fastest guess ever!' },
-    high_score_beaten: { name: 'New High Score', icon: '🏅', desc: 'Beat your personal best!' },
-    streak_five: { name: 'On Fire', icon: '🔥', desc: '5 correct in a row!' },
-    streak_ten: { name: 'Unstoppable', icon: '🔥', desc: '10 correct in a row!' },
-    genre_master: { name: 'Genre Master', icon: '🎸', desc: 'Mastered a genre!' },
-    decade_specialist: { name: 'Era Expert', icon: '📅', desc: 'Decade specialist!' },
-    music_savant: { name: 'Music Savant', icon: '🎹', desc: 'Exceptional musical knowledge!' },
+    first_game: { name: 'First Game', icon: 'party', desc: 'Started your music game journey!' },
+    first_perfect_round: { name: 'Perfect Round', icon: 'sparkles', desc: 'Nailed every single guess!' },
+    ten_games: { name: '10 Games', icon: 'gamepad', desc: 'A regular! 10 games played.' },
+    fifty_games: { name: '50 Games', icon: 'trophy', desc: 'Music game veteran!' },
+    fastest_guess: { name: 'Speed Demon', icon: 'zap', desc: 'Fastest guess ever!' },
+    high_score_beaten: { name: 'New High Score', icon: 'star', desc: 'Beat your personal best!' },
+    streak_five: { name: 'On Fire', icon: 'flame', desc: '5 correct in a row!' },
+    streak_ten: { name: 'Unstoppable', icon: 'flame', desc: '10 correct in a row!' },
+    genre_master: { name: 'Genre Master', icon: 'music', desc: 'Mastered a genre!' },
+    decade_specialist: { name: 'Era Expert', icon: 'calendar', desc: 'Decade specialist!' },
+    music_savant: { name: 'Music Savant', icon: 'music', desc: 'Exceptional musical knowledge!' },
   };
 
   return milestones
     .map((m) => {
-      const display = displays[m.type] || { name: m.type, icon: '🎵', desc: '' };
+      const display = displays[m.type] || { name: m.type, icon: 'music', desc: '' };
       return {
         type: m.type,
         displayName: display.name,
@@ -507,7 +507,7 @@ function generateMemorableMoments(gameMemory: GameMemory): MemorableMoment[] {
       type: 'fastest_guess',
       title: 'Fastest Guess',
       value: `"${gameMemory.fastestGuessSong}" in ${(gameMemory.fastestGuessMs / 1000).toFixed(1)}s`,
-      icon: '⚡',
+      icon: 'zap',
       coachingNote: 'That song must really be in your DNA!',
     });
   }
@@ -518,7 +518,7 @@ function generateMemorableMoments(gameMemory: GameMemory): MemorableMoment[] {
       type: 'best_streak',
       title: 'Best Streak',
       value: `${gameMemory.bestStreak} correct in a row`,
-      icon: '🔥',
+      icon: 'flame',
       coachingNote: gameMemory.bestStreak >= 7 ? 'Incredible focus!' : 'You were in the zone!',
     });
   }
@@ -529,7 +529,7 @@ function generateMemorableMoments(gameMemory: GameMemory): MemorableMoment[] {
       type: 'desert_island',
       title: 'Desert Island Picks',
       value: gameMemory.desertIslandPicks.slice(0, 3).join(', '),
-      icon: '🏝️',
+      icon: 'music',
       coachingNote: 'These songs say a lot about you.',
     });
   }
@@ -543,7 +543,7 @@ function generateMemorableMoments(gameMemory: GameMemory): MemorableMoment[] {
         type: 'high_score',
         title: 'Personal Best',
         value: `${highestScore} points`,
-        icon: '🏆',
+        icon: 'trophy',
         coachingNote: 'Can you beat it?',
       });
     }

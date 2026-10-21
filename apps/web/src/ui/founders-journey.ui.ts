@@ -765,7 +765,7 @@ function renderFounderTile(founder: Founder): string {
           ? `<img src="${founder.avatar}" alt="${founder.displayName || t('foundersJourney.founders.anonymous')}" />`
           : `<span class="founders-tile-initials">${founder.initials}</span>`
         }
-        ${founder.isEarlyBird ? `<span class="founders-tile-early" title="${t('foundersJourney.founders.earlyBird')}">⭐</span>` : ''}
+        ${founder.isEarlyBird ? `<span class="founders-tile-early" title="${t('foundersJourney.founders.earlyBird')}">${ICONS.star}</span>` : ''}
       </div>
       <div class="founders-tile-info">
         <span class="founders-tile-name">${founder.displayName || t('foundersJourney.founders.anonymous')}</span>

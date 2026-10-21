@@ -37,6 +37,7 @@ import {
   getProgress,
   getTotalMilestonesCount,
 } from './ferni-milestones.ui.js';
+import { getCategoryIcon } from './ferni-milestone-icons.js';
 import { JOURNEY_ICONS } from './icons/journey-icons.js';
 import { injectJourneyStyles } from './journey/styles.js';
 import { shareJourneySummaryCard } from './milestone-card.ui.js';
@@ -1028,7 +1029,7 @@ function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], col
   }
 
   // Emoji/icon for the milestone type (or mystery for locked)
-  const milestoneEmoji = isCelebrated && milestone.emoji ? milestone.emoji : '✨';
+  const milestoneIcon = getCategoryIcon(milestone.category).replace(/width="24" height="24"/, 'width="28" height="28"');
 
   if (isCelebrated) {
     // Celebrated - full polaroid with details
@@ -1040,7 +1041,7 @@ function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], col
            aria-label="${escapeHtml(t(milestone.name))}">
         <div class="journey-polaroid__image">
           <div class="journey-polaroid__glow"></div>
-          <span class="journey-polaroid__emoji">${milestoneEmoji}</span>
+          <span class="journey-polaroid__emoji" aria-hidden="true">${milestoneIcon}</span>
         </div>
         <div class="journey-polaroid__caption">
           <span class="journey-polaroid__title">${escapeHtml(t(milestone.name))}</span>
@@ -1188,7 +1189,6 @@ async function animateOut(modal: HTMLElement): Promise<void> {
 
 // NOTE: Styles extracted to journey/styles.ts (~1,200 lines of CSS)
 // Import: injectJourneyStyles() from './journey/styles.js'
-
 
 // ============================================================================
 // GLOBAL EVENT LISTENER - For backwards compatibility
