@@ -9,9 +9,17 @@ import {
   refusedOwner,
   SyntheticWriteRefusedError,
 } from '../synthetic-write-guard.js';
-import { isSyntheticUserId, syntheticOwnerPrefix } from '../synthetic-user.js';
+import {
+  PROD_FIRESTORE_DATABASE,
+  PROD_FIRESTORE_PROJECT,
+  isProdFirestore,
+  isSyntheticUserId,
+  syntheticOwnerPrefix,
+} from '../synthetic-user.js';
 
 const PROD = 'projects/johnb-2025/databases/(default)/documents';
+/** The dev database: same project, its own database. */
+const DEV_DB = 'projects/johnb-2025/databases/ferni-dev/documents';
 const update = (path: string, fields: Record<string, string> = {}, project = PROD) => ({
   update: {
     name: `${project}/${path}`,
@@ -90,14 +98,24 @@ describe('refusedOwner', () => {
   });
 });
 
-describe('what counts as prod: the project in the written document, nothing else', () => {
-  const write = (project: string) =>
-    update('bogle_users/test-user-1', {}, `projects/${project}/databases/(default)/documents`);
+describe('what counts as prod: the project AND database in the written document, nothing else', () => {
+  const write = (project: string, database = '(default)') =>
+    update('bogle_users/test-user-1', {}, `projects/${project}/databases/${database}/documents`);
+
+  it('prod is johnb-2025 / (default), and only that pair', () => {
+    expect(PROD_FIRESTORE_PROJECT).toBe('johnb-2025');
+    expect(PROD_FIRESTORE_DATABASE).toBe('(default)');
+    expect(isProdFirestore('johnb-2025', '(default)')).toBe(true);
+    expect(isProdFirestore('johnb-2025', 'ferni-dev')).toBe(false);
+    expect(isProdFirestore('johnb-2025', 'dev')).toBe(false);
+    expect(isProdFirestore('ferni-dev', '(default)')).toBe(false);
+    expect(isProdFirestore('johnb-2025', 'default')).toBe(false); // the id has parentheses
+  });
 
   it.each([
     ['the prod agent', { NODE_ENV: 'production', AGENT_NAME: 'voice-agent' }],
     [
-      'the ferni-dev agent, which also writes to johnb-2025',
+      'the ferni-dev agent, while it still writes to (default)',
       { NODE_ENV: 'production', AGENT_NAME: 'voice-agent-lkcloud' },
     ],
     [
@@ -105,7 +123,8 @@ describe('what counts as prod: the project in the written document, nothing else
       { NODE_ENV: 'development', ALLOW_PRODUCTION_DATA: '1' },
     ],
     ['a process whose env names another project', { GOOGLE_CLOUD_PROJECT: 'ferni-dev' }],
-  ])('refuses a johnb-2025 write from %s', (_who, env) => {
+    ['a process whose env names the dev database', { FIRESTORE_DATABASE: 'ferni-dev' }],
+  ])('refuses a johnb-2025/(default) write from %s', (_who, env) => {
     expect(refusedOwner(write('johnb-2025'), env)).toBe('test-user-1');
   });
 
@@ -113,6 +132,39 @@ describe('what counts as prod: the project in the written document, nothing else
     const env = { NODE_ENV: 'production', GOOGLE_CLOUD_PROJECT: 'johnb-2025' };
     for (const project of ['ferni-dev', 'ferni-test-no-gcp', 'demo-project']) {
       expect(refusedOwner(write(project), env), project).toBeNull();
+    }
+  });
+
+  it('lets every harness write through to the dev database in johnb-2025, without PROD_EVAL_WRITES', () => {
+    const env = { NODE_ENV: 'production', GOOGLE_CLOUD_PROJECT: 'johnb-2025' };
+    expect(refusedOwner(write('johnb-2025', 'ferni-dev'), env)).toBeNull();
+    for (const owner of [
+      'voice-eval-sam',
+      'e2e-1',
+      'flow-test-2',
+      'test-user-3',
+      'ctx-e2e-4',
+      'device:cli-5',
+    ]) {
+      expect(
+        refusedOwner(update(`bogle_users/${owner}/memories/m`, {}, DEV_DB), env),
+        owner
+      ).toBeNull();
+      expect(refusedOwner(update('vectors/v', { userId: owner }, DEV_DB), env), owner).toBeNull();
+    }
+    expect(refusedOwner(update('phone_mappings/+15551234567', {}, DEV_DB), env)).toBeNull();
+    const transform = { transform: { document: `${DEV_DB}/bogle_users/e2e-1/stats/s` } };
+    expect(refusedOwner(transform, env)).toBeNull();
+  });
+
+  it('keeps the current behaviour for names it cannot parse: they pass', () => {
+    for (const name of [
+      'projects/johnb-2025/documents/bogle_users/test-user-1', // no databases segment
+      'projects/johnb-2025/databases//documents/bogle_users/test-user-1', // empty database id
+      'bogle_users/test-user-1', // relative path
+      '',
+    ]) {
+      expect(refusedOwner({ update: { name } }, {}), name).toBeNull();
     }
   });
 });
@@ -202,6 +254,27 @@ describe('installSyntheticWriteGuard', () => {
     expect(request).toHaveBeenCalledWith('batchWrite', { writes: [real1, real2] });
     expect(response.status.map((st) => st.code)).toEqual([0, 7, 0]);
     expect(response.writeResults).toEqual([{ updateTime: 't0' }, {}, { updateTime: 't1' }]);
+  });
+
+  it('sends commits and batchWrites to the dev database whole, harness writes included', async () => {
+    const { cls, request } = fakeClass();
+    installSyntheticWriteGuard({}, [cls]);
+    const send = cls.prototype.request as (...a: unknown[]) => Promise<unknown>;
+    const mixed = [
+      update('bogle_users/RealUid/r/1', {}, DEV_DB),
+      update('bogle_users/test-user-1/r/2', {}, DEV_DB),
+    ];
+    await send('commit', { writes: mixed });
+    expect(request).toHaveBeenLastCalledWith('commit', { writes: mixed });
+    const harnessOnly = [
+      update('bogle_users/voice-eval-sam', {}, DEV_DB),
+      update('users/e2e-1', {}, DEV_DB),
+    ];
+    await send('commit', { writes: harnessOnly });
+    expect(request).toHaveBeenLastCalledWith('commit', { writes: harnessOnly });
+    await send('batchWrite', { writes: harnessOnly });
+    expect(request).toHaveBeenLastCalledWith('batchWrite', { writes: harnessOnly });
+    expect(request).toHaveBeenCalledTimes(3);
   });
 
   it('sends real writes, deletes and reads unchanged, and wraps only once', async () => {
