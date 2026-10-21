@@ -26,7 +26,7 @@
 
 import type { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
-import { flagOn } from '../../config/env-flag.js';
+import { lookupBridgeOn, msFromEnv } from '../model-provider/after-tool-hedge.js';
 import { callerTurn } from '../model-provider/fast-lane.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
@@ -41,23 +41,11 @@ export const BRIDGES = ['Okay, got it.', 'Alright.', 'Got it.', 'Okay.'] as cons
 /** Look-ups the lead-in list missed, given one under the flag. */
 export const EXTRA_LOOKUP_TOOLS: ReadonlySet<string> = new Set(['findBusiness']);
 
-export function lookupBridgeOn(env: Env = process.env): boolean {
-  return flagOn('LOOKUP_BRIDGE', env);
-}
-
-function ms(value: string | undefined, fallback: number): number {
-  const n = Number(value);
-  return value !== undefined && Number.isFinite(n) && n >= 0 ? n : fallback;
-}
-
-/** The hedge delay for the reply after a tool result, or undefined when the flag is off. */
-export function afterToolHedgeMs(env: Env = process.env): number | undefined {
-  return lookupBridgeOn(env) ? ms(env.LOOKUP_BRIDGE_HEDGE_MS, 500) : undefined;
-}
+export { afterToolHedgeMs, lookupBridgeOn } from '../model-provider/after-tool-hedge.js';
 
 /** How long the reply after a tool result may say nothing before the bridge. */
 export function bridgeAfterMs(env: Env = process.env): number {
-  return ms(env.LOOKUP_BRIDGE_MS, 700);
+  return msFromEnv(env.LOOKUP_BRIDGE_MS, 700);
 }
 
 interface ItemView {
