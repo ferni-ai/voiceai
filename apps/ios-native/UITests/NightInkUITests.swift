@@ -41,6 +41,24 @@ final class NightInkUITests: XCTestCase {
         XCTAssertGreaterThan(home(hour: 5), 0.8, "5 am: paper again")
     }
 
+    /// Critic M-C: the first night it comes on, a note says so and where to
+    /// change it, then goes by itself. (Every UI-test launch starts fresh, so
+    /// only this test asks for it; NightInkTests pins "once".)
+    func testTheFirstNightANoteSaysSo() {
+        let app = XCUIApplication.ferni(.home, hour: 23, extra: ["-FerniNightNote", "YES"])
+        let note = app.descendants(matching: .any)["nightInk.note"]
+        XCTAssertTrue(note.waitForExistence(timeout: 20), "the note")
+        XCTAssertTrue(note.label.contains("Settings"), "where to change it: \(note.label)")
+        attachScreenshot("night-ink-note")
+        let gone = NSPredicate(format: "exists == false")
+        expectation(for: gone, evaluatedWith: note)
+        waitForExpectations(timeout: 12)
+        let day = XCUIApplication.ferni(.home, hour: 14, extra: ["-FerniNightNote", "YES"])
+        XCTAssertTrue(Screen.home.ready(in: day).waitForExistence(timeout: 20))
+        sleep(2)
+        XCTAssertFalse(day.descendants(matching: .any)["nightInk.note"].exists, "not by day")
+    }
+
     func testTurnedOffItStaysLight() {
         XCTAssertGreaterThan(home(hour: 23, extra: ["-ferni.nightInk", "NO"]), 0.8, "Dark at night off")
     }
