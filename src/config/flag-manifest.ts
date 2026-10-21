@@ -178,6 +178,8 @@ export const FLAG_MANIFEST = {
   GOODBYE_ENDS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
   GOOD_NEWS_BIGGER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // off: a process on a non-prod Firestore database (dev) skips Spanner graph writes; the graph is prod's (spanner-graph/client.ts)
+  GRAPH_WRITES_ON_DEV_DB: { default: 'off', owner: 'memory', kind: 'config' },
   GREETING_WIRE_AFTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GTM_AUTO_PUBLISH: { default: 'off', owner: 'platform', kind: 'experiment' },
   GTM_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
