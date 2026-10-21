@@ -68,26 +68,27 @@ const SOURCE: Readonly<Record<string, HeldSource>> = {
 
 /** 7 to 15 digits with phone punctuation between them. */
 const PHONE_LIKE = /\+?\d[\d\s().-]{5,}\d/g;
-/** An ISO date, with a time after it or not: set aside so its digits never read as a phone number. */
-const DATE_TIME = /\d{4}-\d{2}-\d{2}(?:[T ]\d{1,2}:\d{2}(?::\d{2})?)?/g;
+/** A whole match that is only an ISO date (real month and day) is a date, not a number. */
+const DATE_ONLY = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/;
+/** ...or a date and an hour, when the text goes on ":mm" ("2026-10-22 8:30"). */
+const DATE_HOUR = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01]) \d{1,2}$/;
 const EMAIL_LIKE = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
 
-function withoutPhones(part: string): string {
-  return part.replace(PHONE_LIKE, (m) => {
-    const digits = m.replace(/\D/g, '').length;
-    return digits >= 7 && digits <= 15 ? 'a number' : m;
-  });
-}
-
+/**
+ * Phone-shaped runs are matched over the whole text first, and one is kept only
+ * when all of it is a date or a date-time, so a date-shaped run inside a longer
+ * number can never split that number and leave part of it showing.
+ */
 function withoutContactDetails(text: string): string {
-  const masked = text.replace(EMAIL_LIKE, 'an email address');
-  let out = '';
-  let last = 0;
-  for (const m of masked.matchAll(DATE_TIME)) {
-    out += withoutPhones(masked.slice(last, m.index)) + m[0];
-    last = m.index + m[0].length;
-  }
-  return out + withoutPhones(masked.slice(last));
+  return text
+    .replace(EMAIL_LIKE, 'an email address')
+    .replace(PHONE_LIKE, (m: string, offset: number, whole: string) => {
+      const digits = m.replace(/\D/g, '').length;
+      if (digits < 7 || digits > 15) return m;
+      if (DATE_ONLY.test(m)) return m;
+      if (DATE_HOUR.test(m) && whole[offset + m.length] === ':') return m;
+      return 'a number';
+    });
 }
 
 /**

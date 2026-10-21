@@ -166,5 +166,8 @@ describe('toHeldItem', () => {
     expect(t('dentist 2026-10-22 8:30')).toBe('dentist 2026-10-22 8:30');
     expect(t('dentist 2026-10-22T08:30')).toBe('dentist 2026-10-22T08:30');
     expect(t('call 415-555-0132 on 2026-10-22 9:15')).toBe('call a number on 2026-10-22 9:15');
+    // A date-shaped run inside a longer number never splits it.
+    expect(t('ring +44 2026-10-22 1234 now')).not.toMatch(/2026|1234/);
+    expect(t('ring 4155-12-0132 77 today')).toBe('ring a number today');
   });
 });
