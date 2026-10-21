@@ -53,6 +53,8 @@ export const FLAG_MANIFEST = {
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // off: threshold pages; shadow: they page and SLO incidents are logged; on: SLO pages (call-quality-slo.ts)
+  CALL_QUALITY_ALERTS: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_RESULT_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_JOURNAL_ASK: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },

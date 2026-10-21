@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const info = vi.fn();
 const warn = vi.fn();
 vi.mock('../../../utils/safe-logger.js', () => ({ getLogger: () => ({ info, warn }) }));
+vi.mock('../call-quality-context.js', () => ({ noteCallQualityContext: vi.fn() }));
 
 const {
   logSipCallerShadow,

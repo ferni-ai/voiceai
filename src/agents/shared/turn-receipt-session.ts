@@ -6,6 +6,7 @@
  *
  * @module agents/shared/turn-receipt-session
  */
+import { recordCallEvent } from '../../services/analytics/call-quality-monitor.js';
 import { onGatewayFirstAudio } from '../../speech/tts-gateway/first-audio-observer.js';
 import { onPauseHoldReleased } from '../../speech/output-control/pause-hold.js';
 import {
@@ -17,6 +18,7 @@ import {
   logReceipt,
   TurnReceiptRecorder,
   type BargeInSource,
+  type TurnReceipt,
   type TurnReceiptOptions,
 } from './turn-receipt.js';
 import {
@@ -56,6 +58,18 @@ export function noteRequest(
     ?.onRequest(request.items as ItemView[], Object.keys(functionTools).length, schemaChars);
 }
 
+/** A caller turn's reply latency, for the call-quality reply SLO (call-quality-slo.ts). */
+export function noteReplyLatency(receipt: TurnReceipt): void {
+  const firstAudioMs = receipt.timing.firstAudioMs;
+  if (firstAudioMs === null || firstAudioMs === undefined) return;
+  recordCallEvent({
+    callId: receipt.sessionId,
+    timestamp: Date.now(),
+    type: 'first_response',
+    metadata: { firstAudioMs, userKind: receipt.userKind },
+  });
+}
+
 interface EventSource {
   on(event: string, handler: (ev: unknown) => void): unknown;
   off(event: string, handler: (ev: unknown) => void): unknown;
@@ -68,13 +82,18 @@ interface EventSource {
 export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOptions): () => void {
   const emit = opts.emit ?? logReceipt;
   const tokensOn = turnTokenReceiptEnabled(opts.env);
+  const sent = tokensOn ? withInputTokens(emit) : emit;
   const rec = new TurnReceiptRecorder({
     handling: () => ({
       turnDetection: turnDetectionInUse(session),
       interruptionMode: interruptionModeInUse(session),
     }),
     ...opts,
-    emit: tokensOn ? withInputTokens(emit) : emit,
+    // the call-quality reply SLO hears every receipt that was emitted
+    emit: (receipt) => {
+      sent(receipt);
+      noteReplyLatency(receipt);
+    },
   });
   recorders.set(session, rec);
   if (tokensOn) measuringTokens.add(session);

@@ -16,9 +16,19 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService } from '../slack-notifications.js';
 import { recordMetricValue } from '../predictive-alerting.js';
+import { flagModeOf } from '../../config/env-flag.js';
+import { checkThresholdAlerts } from './call-quality-thresholds.js';
+import {
+  evaluateSlos,
+  noteSloEvent,
+  resetSloStateForTests,
+  trackIncidents,
+  type OpenIncidents,
+  type SloKey,
+  type SloLimits,
+} from './call-quality-slo.js';
 import { logCallStartStages } from './call-start-stages.js';
 import { emitCallEnd, type CallSummary } from './bq-call-events.js';
-import { gateSmallSamples } from './call-quality-sample.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
 
@@ -34,6 +44,10 @@ export interface CallQualityConfig {
   firstResponseTimeCriticalMs: number;
   disconnectRateWarning: number;
   disconnectRateCritical: number;
+  greetingTimeWarningMs: number;
+  minSampleCalls: number; // nothing is judged on fewer completed calls (or turns) in the window
+  minSampleTurns: number;
+  sloWindowMs: number;
   minCallsForRateAlerts: number; // rate and score alerts wait for this many calls
 
   qualityCheckIntervalMs: number; // how often quality is checked
@@ -51,6 +65,10 @@ const DEFAULT_CONFIG: CallQualityConfig = {
   firstResponseTimeCriticalMs: 5000, // 5 seconds
   disconnectRateWarning: 0.05, // 5%
   disconnectRateCritical: 0.1, // 10%
+  greetingTimeWarningMs: 4000,
+  minSampleCalls: 10,
+  minSampleTurns: 30,
+  sloWindowMs: 60 * 60 * 1000,
   minCallsForRateAlerts: 5,
 
   qualityCheckIntervalMs: 60_000, // Every minute
@@ -72,7 +90,9 @@ export interface CallEvent {
     | 'connection_attempt'
     | 'connection_success'
     | 'connection_failed'
-    | 'first_response'
+    | 'first_audio' // Ferni's first audio on the call (usually the greeting)
+    | 'first_response' // one caller turn's reply, metadata.firstAudioMs (call-quality-slo.ts)
+    | 'call_context' // metadata.traffic 'eval': left out of the SLOs
     | 'user_speech'
     | 'agent_speech'
     | 'interruption'
@@ -94,7 +114,8 @@ export interface CallSession {
   stages?: Record<string, number>;
   endTime?: number;
   connectionTimeMs?: number;
-  firstResponseTimeMs?: number;
+  firstResponseTimeMs?: number; // job start to Ferni's first audio (the greeting), as on main
+  firstReplyMs?: number; // the first caller turn's reply latency, for inspection; the SLOs keep their own samples
   totalDurationMs?: number;
   userSpeechCount: number;
   agentSpeechCount: number;
@@ -167,6 +188,7 @@ const sessions = new Map<string, CallSession>();
 const completedSessions: CallSession[] = [];
 const MAX_COMPLETED_SESSIONS = 10000;
 const lastAlerts = new Map<string, number>();
+const incidents: OpenIncidents = new Map();
 let slackService: SlackNotificationService | null = null;
 let isRunning = false;
 
@@ -192,6 +214,7 @@ export function setCallQualityForwarder(fn: typeof forward): void {
 export function recordCallEvent(event: CallEvent): void {
   if (forward) return forward('recordCallEvent', [event]);
   let session = sessions.get(event.callId);
+  if (noteSloEvent(event, session)) return;
 
   if (!session) {
     session = {
@@ -219,7 +242,7 @@ export function recordCallEvent(event: CallEvent): void {
       session.connectionTimeMs = event.timestamp - session.startTime;
       break;
 
-    case 'first_response':
+    case 'first_audio':
       if (session.firstResponseTimeMs === undefined) {
         session.firstResponseTimeMs = getElapsedStageMs(session, event.timestamp);
         session.stages = {
@@ -227,7 +250,6 @@ export function recordCallEvent(event: CallEvent): void {
           session_start: session.stages?.session_start ?? 0,
           first_audio: session.firstResponseTimeMs,
         };
-        // Feed to predictive alerting (true first audio only)
         recordMetricValue('first_response_time', session.firstResponseTimeMs);
         logCallStartStages(session);
       }
@@ -389,9 +411,9 @@ function getLastSessionStages(
     stages,
   };
 
-  if (latestSession.firstResponseTimeMs !== undefined) {
-    timings.firstAudioMs = latestSession.startTime + latestSession.firstResponseTimeMs;
-    timings.jobToFirstAudioMs = latestSession.firstResponseTimeMs;
+  if (stages.first_audio !== undefined) {
+    timings.firstAudioMs = latestSession.startTime + stages.first_audio;
+    timings.jobToFirstAudioMs = stages.first_audio;
   }
 
   return timings;
@@ -563,7 +585,7 @@ async function sendQualityAlert(
   severity: 'warning' | 'critical',
   title: string,
   message: string,
-  metrics: Partial<CallQualityMetrics>
+  metrics: Record<string, unknown>
 ): Promise<void> {
   const alertKey = `${severity}:${title}`;
 
@@ -584,7 +606,7 @@ async function sendQualityAlert(
         title: `📞 ${title}`,
         message,
         severity: severity === 'critical' ? 'error' : 'warning',
-        metadata: metrics as unknown as Record<string, unknown>,
+        metadata: metrics,
       });
     } catch (error) {
       log.warn({ error: String(error) }, 'Failed to send Slack alert');
@@ -592,97 +614,60 @@ async function sendQualityAlert(
   }
 }
 
-export async function checkQualityAlerts(): Promise<void> {
-  const metrics = calculateMetrics();
-  const gated = gateSmallSamples(metrics, config.minCallsForRateAlerts);
+const SLO_LABELS: Record<SloKey, string> = {
+  reply_p90: 'Reply time p90',
+  greeting_p90: 'Greeting time p90',
+  drop_rate: 'Dropped-call rate',
+  connect_fail: 'Failed-connection rate',
+};
 
-  // Feed to predictive alerting
+function sloLimits(c: CallQualityConfig): SloLimits {
+  return {
+    reply_p90: { warn: c.firstResponseTimeWarningMs, critical: c.firstResponseTimeCriticalMs },
+    greeting_p90: { warn: c.greetingTimeWarningMs, critical: Infinity },
+    drop_rate: { warn: c.disconnectRateWarning, critical: c.disconnectRateCritical },
+    connect_fail: {
+      warn: 1 - c.connectionSuccessRateWarning,
+      critical: 1 - c.connectionSuccessRateCritical,
+    },
+    minCalls: c.minSampleCalls,
+    minTurns: c.minSampleTurns,
+    windowMs: c.sloWindowMs,
+  };
+}
+
+/** One evaluation. With CALL_QUALITY_ALERTS=on, pages only when an SLO incident opens or escalates. */
+export async function checkQualityAlerts(now: number = Date.now()): Promise<void> {
+  const metrics = calculateMetrics();
   recordMetricValue('connection_success_rate', metrics.connectionSuccessRate * 100);
   recordMetricValue('disconnect_rate', metrics.disconnectRate * 100);
 
-  // Connection success rate
-  if (gated.connectionSuccessRate < config.connectionSuccessRateCritical) {
-    await sendQualityAlert(
-      'critical',
-      'Connection Success Rate Critical',
-      `Only ${(metrics.connectionSuccessRate * 100).toFixed(1)}% of calls connecting successfully`,
-      {
-        connectionSuccessRate: metrics.connectionSuccessRate,
-        connectionAttempts: metrics.connectionAttempts,
-      }
-    );
-  } else if (gated.connectionSuccessRate < config.connectionSuccessRateWarning) {
-    await sendQualityAlert(
-      'warning',
-      'Connection Success Rate Degraded',
-      `${(metrics.connectionSuccessRate * 100).toFixed(1)}% connection rate is below normal`,
-      { connectionSuccessRate: metrics.connectionSuccessRate }
-    );
-  }
+  // off (default): today's threshold alerts page; shadow: they still page and the
+  // SLO incidents are only logged; on: the SLO incidents page instead.
+  const mode = flagModeOf('CALL_QUALITY_ALERTS');
+  if (mode !== 'on') await checkThresholdAlerts(metrics, config, sendQualityAlert);
+  if (mode === 'off') return;
 
-  // First response time
-  if (metrics.avgFirstResponseTimeMs > config.firstResponseTimeCriticalMs) {
-    await sendQualityAlert(
-      'critical',
-      'Response Time Critical',
-      `Average first response ${(metrics.avgFirstResponseTimeMs / 1000).toFixed(1)}s exceeds ${config.firstResponseTimeCriticalMs / 1000}s threshold`,
-      {
-        avgFirstResponseTimeMs: metrics.avgFirstResponseTimeMs,
-        p95FirstResponseTimeMs: metrics.p95FirstResponseTimeMs,
-      }
-    );
-  } else if (metrics.avgFirstResponseTimeMs > config.firstResponseTimeWarningMs) {
-    await sendQualityAlert(
-      'warning',
-      'Response Time Elevated',
-      `Average first response ${(metrics.avgFirstResponseTimeMs / 1000).toFixed(1)}s is slow`,
-      { avgFirstResponseTimeMs: metrics.avgFirstResponseTimeMs }
-    );
-  }
-
-  // Disconnect rate
-  if (gated.disconnectRate > config.disconnectRateCritical) {
-    await sendQualityAlert(
-      'critical',
-      'Disconnect Rate Critical',
-      `${(metrics.disconnectRate * 100).toFixed(1)}% of calls ending in disconnection`,
-      { disconnectRate: metrics.disconnectRate, disconnectCount: metrics.disconnectCount }
-    );
-  } else if (gated.disconnectRate > config.disconnectRateWarning) {
-    await sendQualityAlert(
-      'warning',
-      'Disconnect Rate Elevated',
-      `${(metrics.disconnectRate * 100).toFixed(1)}% disconnect rate is above normal`,
-      { disconnectRate: metrics.disconnectRate }
-    );
-  }
-
-  // Quality score alert
-  if (gated.qualityScore < 70) {
-    await sendQualityAlert(
-      'critical',
-      'Call Quality Score Low',
-      `Overall quality score is ${metrics.qualityScore}/100`,
-      metrics
-    );
-  } else if (gated.qualityScore < 85) {
-    await sendQualityAlert(
-      'warning',
-      'Call Quality Score Degraded',
-      `Quality score ${metrics.qualityScore}/100 is below optimal`,
-      { qualityScore: metrics.qualityScore }
-    );
-  }
-
-  log.debug(
-    {
-      qualityScore: metrics.qualityScore,
-      totalCalls: metrics.totalCalls,
-      connectionRate: (metrics.connectionSuccessRate * 100).toFixed(1),
-      disconnectRate: (metrics.disconnectRate * 100).toFixed(1),
-    },
-    'Quality check complete'
+  const conditions = evaluateSlos(
+    completedSessions,
+    [...sessions.values()],
+    sloLimits(config),
+    now
   );
+  const changes = trackIncidents(incidents, conditions, now, config.sloWindowMs);
+  const pages = mode === 'on';
+  for (const { kind, condition: c } of changes) {
+    const v = c.value ?? 0;
+    const rate = c.key === 'drop_rate' || c.key === 'connect_fail';
+    const value = rate ? `${(v * 100).toFixed(1)}%` : `${(v / 1000).toFixed(1)}s`;
+    const summary = `${SLO_LABELS[c.key]} ${value} over ${c.samples} samples`;
+    if (kind === 'closed' || !pages || !c.severity) {
+      log.info({ kind, mode, ...c }, `Call-quality incident ${kind}: ${summary}`);
+      continue;
+    }
+    const detail = { key: c.key, value: c.value, samples: c.samples };
+    await sendQualityAlert(c.severity, `${SLO_LABELS[c.key]} ${c.severity}`, summary, detail);
+  }
 }
 
 // ============================================================================
@@ -751,6 +736,8 @@ export function resetCallQualityStateForTests(): void {
   sessions.clear();
   completedSessions.length = 0;
   lastAlerts.clear();
+  incidents.clear();
+  resetSloStateForTests();
   config = { ...DEFAULT_CONFIG };
   slackService = null;
 }

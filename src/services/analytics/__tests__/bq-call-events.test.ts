@@ -44,7 +44,7 @@ describe('call_events from the call-quality monitor', () => {
   it('sends one pseudonymous row when a call ends', async () => {
     vi.stubEnv('BQ_EVENTS', 'on');
     startCall('RM_1', 'uid-42', 'ferni');
-    recordCallEvent({ callId: 'RM_1', timestamp: Date.now() + 900, type: 'first_response' });
+    recordCallEvent({ callId: 'RM_1', timestamp: Date.now() + 900, type: 'first_audio' });
     recordBargeInDetected('RM_1');
     endCall('RM_1', 'natural', { turns: 6 });
     await flushBqEvents();

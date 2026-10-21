@@ -23,6 +23,7 @@ import {
   verifyPhoneAttestation,
 } from '../../services/identity/phone-attestation.js';
 import { notePhoneListener } from '../shared/performance/phone-voice-profile.js';
+import { noteCallQualityContext } from './call-quality-context.js';
 
 export { maskPhoneNumber };
 
@@ -256,5 +257,6 @@ export async function noteCallerJoined(
   input: Parameters<typeof logSipCallerShadow>[0]
 ): Promise<SipCallerReading | null> {
   notePhoneListener(input.sessionId, input.participant);
+  noteCallQualityContext(input);
   return logSipCallerShadow(input);
 }

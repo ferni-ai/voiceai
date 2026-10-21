@@ -6,7 +6,9 @@ import {
   recordBargeInAgentStopped,
   recordBargeInDetected,
   endCall,
+  getActiveCalls,
   getMetrics,
+  getRecentCalls,
   resetCallQualityStateForTests,
 } from '../call-quality-monitor.js';
 
@@ -20,21 +22,21 @@ describe('call quality stage timings', () => {
     vi.useRealTimers();
   });
 
-  it('exposes jobToFirstAudioMs after first_response', () => {
-    const t0 = Date.now() - 250;
+  it('exposes jobToFirstAudioMs after first_audio', () => {
     startCall('c1', 'u1', 'ferni');
     const sessionStart = Date.now();
     markCallStage('c1', 'prewarm_done', sessionStart + 50);
     recordCallEvent({
       callId: 'c1',
-      type: 'first_response',
+      type: 'first_audio',
       timestamp: sessionStart + 200,
     });
     const m = getMetrics();
-    expect(m.avgFirstResponseTimeMs).toBeGreaterThan(0);
     expect(m.lastSessionStages?.prewarm_done).toBeTypeOf('number');
     expect(m.lastSessionStages?.first_audio).toBeTypeOf('number');
-    void t0;
+    expect(m.lastSessionStages?.jobToFirstAudioMs).toBe(m.lastSessionStages?.first_audio);
+    // The threshold alerts' response time is the greeting, as on main.
+    expect(m.avgFirstResponseTimeMs).toBe(m.lastSessionStages?.first_audio);
   });
 
   it('keeps relative stage marks after endCall', () => {
@@ -45,11 +47,14 @@ describe('call quality stage timings', () => {
       callId: 'c2',
       type: 'first_response',
       timestamp: sessionStart + 180,
+      metadata: { firstAudioMs: 1400 },
     });
     endCall('c2', 'natural');
     const m = getMetrics();
     expect(m.lastSessionStages?.session_initialized).toBeTypeOf('number');
-    expect(m.avgFirstResponseTimeMs).toBeGreaterThan(0);
+    // A turn reply feeds the SLOs only; it never stands in for the greeting.
+    expect(m.avgFirstResponseTimeMs).toBe(0);
+    expect(getRecentCalls()[0]?.firstReplyMs).toBe(1400);
   });
 
   it('exposes absolute first-audio timing contract with elapsed stage marks', () => {
@@ -60,7 +65,7 @@ describe('call quality stage timings', () => {
     markCallStage('c3', 'prewarm_done', 1_050);
     recordCallEvent({
       callId: 'c3',
-      type: 'first_response',
+      type: 'first_audio',
       timestamp: 1_180,
     });
 
@@ -73,25 +78,32 @@ describe('call quality stage timings', () => {
     expect(m.lastSessionStages?.stages?.first_audio).toBe(180);
   });
 
-  it('does not overwrite first_audio on later first_response events', () => {
+  it('keeps the first first_audio and the first reply, not later ones', () => {
     vi.useFakeTimers();
     vi.setSystemTime(1_000);
 
     startCall('c4', 'u4', 'ferni');
+    recordCallEvent({ callId: 'c4', type: 'first_audio', timestamp: 1_200 });
+    recordCallEvent({ callId: 'c4', type: 'first_audio', timestamp: 5_000 });
+    // A reply's latency is its own (turn receipt), not time since the call started.
+    const reply = (ms: number) => ({ firstAudioMs: ms, userKind: 'owner' });
     recordCallEvent({
       callId: 'c4',
       type: 'first_response',
-      timestamp: 1_200,
+      timestamp: 9_000,
+      metadata: reply(900),
     });
     recordCallEvent({
       callId: 'c4',
       type: 'first_response',
-      timestamp: 5_000,
+      timestamp: 20_000,
+      metadata: reply(3000),
     });
 
     const m = getMetrics();
 
-    expect(m.avgFirstResponseTimeMs).toBe(200);
+    expect(m.avgFirstResponseTimeMs).toBe(200); // the first greeting, as on main
+    expect(getActiveCalls().find((c) => c.callId === 'c4')?.firstReplyMs).toBe(900);
     expect(m.lastSessionStages?.first_audio).toBe(200);
     expect(m.lastSessionStages?.jobToFirstAudioMs).toBe(200);
     expect(m.lastSessionStages?.firstAudioMs).toBe(1_200);

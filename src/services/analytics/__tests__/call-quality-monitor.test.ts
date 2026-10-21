@@ -100,15 +100,20 @@ describe('CallQualityMonitor', () => {
         type: 'connection_attempt',
       });
 
+      // The greeting 1.5 s in is the response time the threshold alerts use, as on main.
+      recordCallEvent({ callId, timestamp: startTime + 1500, type: 'first_audio' });
+      // 25 s in, the caller's first turn got audio 0.9 s after they stopped: SLOs only.
       recordCallEvent({
         callId,
-        timestamp: startTime + 1500,
+        timestamp: startTime + 25_000,
         type: 'first_response',
+        metadata: { firstAudioMs: 900 },
       });
 
       const activeCalls = getActiveCalls();
       const session = activeCalls.find((c) => c.callId === callId);
       expect(session?.firstResponseTimeMs).toBe(1500);
+      expect(session?.firstReplyMs).toBe(900);
     });
 
     it('should count user speech events', () => {
@@ -348,6 +353,7 @@ describe('CallQualityMonitor', () => {
           callId,
           timestamp: startTime + 1000,
           type: 'first_response',
+          metadata: { firstAudioMs: 1000 },
         });
 
         // End some naturally, some with disconnect

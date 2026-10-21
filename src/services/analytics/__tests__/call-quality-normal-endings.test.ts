@@ -34,7 +34,7 @@ function call(id: string, waitEndReason: string): void {
   startCall(id);
   const now = Date.now();
   recordCallEvent({ callId: id, timestamp: now + 200, type: 'connection_success' });
-  recordCallEvent({ callId: id, timestamp: now + 900, type: 'first_response' });
+  recordCallEvent({ callId: id, timestamp: now + 900, type: 'first_audio' });
   endCall(id, classifyCallEnd(waitEndReason));
 }
 
