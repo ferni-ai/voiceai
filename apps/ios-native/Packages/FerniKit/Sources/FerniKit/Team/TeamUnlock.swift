@@ -1,29 +1,12 @@
 import Foundation
-import SwiftUI
-import Combine
-import FerniShared
 
-// MARK: - Team Unlock Service
-/// Manages team member unlock state based on relationship with Ferni.
-/// Philosophy: "Get to know Ferni first" - Team unlocks naturally as your friendship deepens.
+// MARK: - Team Unlock
+/// Who's on the team. Philosophy: "Get to know Ferni first" - teammates join
+/// naturally as the friendship deepens (the server's table is in
+/// src/types/relationship-stages.ts), or with a plan once plans return.
 
-public class TeamUnlockService: ObservableObject {
-    
-    // MARK: - Singleton
-    
-    public static let shared = TeamUnlockService()
-    
-    // MARK: - Published State
-    
-    @Published public private(set) var unlockedMembers: Set<String> = ["ferni"]
-    @Published public private(set) var memberStatuses: [String: MemberUnlockStatus] = [:]
-    
-    // MARK: - Dependencies
-    
-    private let relationshipService = RelationshipArcService.shared
-    
-    // MARK: - Team Member Definitions
-    
+public enum TeamUnlock {
+
     public static let allMembers: [TeamMemberConfig] = [
         TeamMemberConfig(
             id: "ferni",
@@ -82,89 +65,25 @@ public class TeamUnlockService: ObservableObject {
         ),
     ]
     
-    // MARK: - Initialization
+    /// The unlock config for a PersonaRegistry id.
+    public static func config(for personaId: String) -> TeamMemberConfig? {
+        allMembers.first { $0.id == personaId }
+    }
 
-    /// The plan's tier: a teammate on the plan is on the team whatever the stage.
-    private var planTier: SubscriptionTier = .free
-    private var cancellables = Set<AnyCancellable>()
+    /// What tapping a teammate does: talk to someone on the team, or meet
+    /// someone who isn't yet.
+    public enum CardTap: Equatable, Sendable {
+        case talk(String)
+        case meet(String)
+    }
 
-    private init() {
-        evaluateUnlocks()
-
-        // Listen for relationship changes
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(relationshipStageChanged),
-            name: NSNotification.Name("RelationshipStageChanged"),
-            object: nil
-        )
-
-        // Joining (or leaving) a plan changes who's on the team.
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            SubscriptionService.shared.$currentTier
-                .removeDuplicates()
-                .sink { [weak self] tier in
-                    self?.planTier = tier
-                    self?.evaluateUnlocks()
-                }
-                .store(in: &self.cancellables)
-        }
-    }
-    
-    // MARK: - Public API
-    
-    /// Check if a specific team member is unlocked
-    public func isUnlocked(_ personaId: String) -> Bool {
-        return unlockedMembers.contains(personaId)
-    }
-    
-    /// Get the config for a team member
-    public func getMemberConfig(_ personaId: String) -> TeamMemberConfig? {
-        return Self.allMembers.first { $0.id == personaId }
-    }
-    
-    /// Get unlock status for a member
-    public func getStatus(_ personaId: String) -> MemberUnlockStatus {
-        return memberStatuses[personaId] ?? MemberUnlockStatus(unlocked: false, progress: 0, lockReason: "Unknown", unlockHint: nil)
-    }
-    
-    /// Get the next member to be unlocked
-    public func getNextUnlock() -> TeamMemberConfig? {
-        let currentStage = relationshipService.currentStage
-        return Self.allMembers.first { member in
-            !unlockedMembers.contains(member.id) &&
-            member.unlocksAt.ordinal == currentStage.ordinal + 1
-        }
-    }
-    
-    /// Force refresh unlock state (call after subscription changes)
-    public func refreshUnlocks() {
-        evaluateUnlocks()
-    }
-    
-    // MARK: - Private
-    
-    @objc private func relationshipStageChanged() {
-        evaluateUnlocks()
-    }
-    
-    private func evaluateUnlocks() {
-        let result = Self.evaluate(
-            stage: relationshipService.currentStage,
-            stageProgress: relationshipService.stageProgress,
-            plan: planTier
-        )
-
-        DispatchQueue.main.async {
-            self.unlockedMembers = result.unlocked
-            self.memberStatuses = result.statuses
-        }
+    public static func cardTap(personaId: String, team: Set<String>) -> CardTap {
+        team.contains(personaId) ? .talk(personaId) : .meet(personaId)
     }
 
     /// Who's on the team: everyone the relationship has reached, plus everyone
     /// the plan includes. Ids are PersonaRegistry ids ("maya", not "maya-santos").
-    static func evaluate(
+    public static func evaluate(
         stage currentStage: RelationshipStage,
         stageProgress: Double,
         plan: SubscriptionTier
@@ -225,7 +144,7 @@ public class TeamUnlockService: ObservableObject {
 
 // MARK: - Supporting Types
 
-public struct TeamMemberConfig: Identifiable {
+public struct TeamMemberConfig: Identifiable, Sendable {
     public let id: String
     public let displayName: String
     public let role: String
@@ -236,7 +155,7 @@ public struct TeamMemberConfig: Identifiable {
     public var isPremium: Bool = false
 }
 
-public struct MemberUnlockStatus {
+public struct MemberUnlockStatus: Equatable, Sendable {
     public let unlocked: Bool
     public let progress: Double
     public let lockReason: String?

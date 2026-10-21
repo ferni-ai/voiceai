@@ -12,7 +12,6 @@
 
 import FerniDesign
 import Foundation
-import FerniShared
 
 // MARK: - Expression Update Message
 
@@ -89,22 +88,26 @@ struct AnticipationSignalMessage {
 }
 
 // MARK: - Micro Expression Type
-// Using FerniShared.MicroExpressionType (imported above)
-// Mapping: .noticing → .interest, .contemplation → .connection
+
+/// A brief flash layered on the main expression (design-system/tokens/expressions.json
+/// `microExpressions`).
+public enum MicroExpressionType: String, Sendable {
+    case concern, delight, interest, warmth, recognition, protective, connection
+}
 
 // MARK: - Expression Event Mapper
 
 /// Maps backend events to Avatar expressions
-final class ExpressionEventMapper {
+public final class ExpressionEventMapper: Sendable {
 
-    static let shared = ExpressionEventMapper()
+    public static let shared = ExpressionEventMapper()
 
     private init() {}
 
     // MARK: - Public API
 
     /// Process any data channel message and return the appropriate expression
-    func processMessage(_ json: [String: Any]) -> ExpressionResult? {
+    public func processMessage(_ json: [String: Any]) -> ExpressionResult? {
         guard let type = json["type"] as? String else { return nil }
 
         switch type {
@@ -324,11 +327,11 @@ final class ExpressionEventMapper {
 // MARK: - Expression Result
 
 /// Result of expression mapping, contains both the main expression and optional micro-expression
-struct ExpressionResult {
-    let expression: AvatarExpression
-    let microExpression: MicroExpressionType?
-    let duration: TimeInterval?
-    let hold: TimeInterval?
+public struct ExpressionResult: Sendable {
+    public let expression: AvatarExpression
+    public let microExpression: MicroExpressionType?
+    public let duration: TimeInterval?
+    public let hold: TimeInterval?
 
     init(
         expression: AvatarExpression,

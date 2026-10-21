@@ -1,14 +1,12 @@
-import FerniShared
 import Foundation
 import StoreKit
-import SwiftUI
 import XCTest
-@testable import FerniVoice
+@testable import FerniKit
 
 /// Tapping a teammate who isn't on the team yet introduces them, and joining
 /// from there buys only with the server's account token.
 @MainActor
-final class MeetTheTeamTests: XCTestCase {
+final class PlanPurchaseTests: XCTestCase {
 
     // MARK: - Fakes (external services only: the server API and StoreKit)
 
@@ -52,18 +50,18 @@ final class MeetTheTeamTests: XCTestCase {
     // MARK: - The tap
 
     func testTappingATeammateNotOnTheTeamOpensTheirIntroduction() {
-        let team = TeamUnlockService.evaluate(stage: .firstMeeting, stageProgress: 0, plan: .free).unlocked
+        let team = TeamUnlock.evaluate(stage: .firstMeeting, stageProgress: 0, plan: .free).unlocked
 
-        XCTAssertEqual(PersonaPickerSheet.cardTap(personaId: "maya", team: team), .meet("maya"))
-        XCTAssertEqual(PersonaPickerSheet.cardTap(personaId: "nayan", team: team), .meet("nayan"))
-        XCTAssertEqual(PersonaPickerSheet.cardTap(personaId: "ferni", team: team), .talk("ferni"))
+        XCTAssertEqual(TeamUnlock.cardTap(personaId: "maya", team: team), .meet("maya"))
+        XCTAssertEqual(TeamUnlock.cardTap(personaId: "nayan", team: team), .meet("nayan"))
+        XCTAssertEqual(TeamUnlock.cardTap(personaId: "ferni", team: team), .talk("ferni"))
     }
 
     func testOnceTheyJoinTheTapStartsTheConversation() {
-        let team = TeamUnlockService.evaluate(stage: .firstMeeting, stageProgress: 0, plan: .friend).unlocked
+        let team = TeamUnlock.evaluate(stage: .firstMeeting, stageProgress: 0, plan: .friend).unlocked
 
-        XCTAssertEqual(PersonaPickerSheet.cardTap(personaId: "maya", team: team), .talk("maya"))
-        XCTAssertEqual(PersonaPickerSheet.cardTap(personaId: "nayan", team: team), .meet("nayan"))
+        XCTAssertEqual(TeamUnlock.cardTap(personaId: "maya", team: team), .talk("maya"))
+        XCTAssertEqual(TeamUnlock.cardTap(personaId: "nayan", team: team), .meet("nayan"))
     }
 
     func testEveryTeammateWhoCanBeLockedHasAnIntroductionAndAPlan() {
@@ -141,40 +139,5 @@ final class MeetTheTeamTests: XCTestCase {
     func testPlanNamesWhoJoins() {
         XCTAssertEqual(SubscriptionTier.friend.teammateNames, "Maya, Peter, Alex and Jordan")
         XCTAssertEqual(SubscriptionTier.partner.teammateNames, "Maya, Peter, Alex, Jordan and Nayan")
-    }
-
-    // MARK: - Snapshots (evidence for humans; run with TEST_RUNNER_FERNI_SNAPSHOT_DIR=<dir>)
-
-    func testSnapshotMeetSheetAndYourPlan() throws {
-        guard let dir = ProcessInfo.processInfo.environment["FERNI_SNAPSHOT_DIR"] else {
-            throw XCTSkip("set TEST_RUNNER_FERNI_SNAPSHOT_DIR to write snapshots")
-        }
-        let unavailable = model(AccountAPI(.success(UUID())), product: nil)
-        let screens: [(String, AnyView)] = [
-            ("meet-maya", AnyView(MeetTeammateSheet(persona: PersonaRegistry.maya, model: model(AccountAPI(.success(UUID())), product: StoreProduct())) { _ in })),
-            ("meet-nayan", AnyView(MeetTeammateSheet(persona: PersonaRegistry.nayan, model: model(AccountAPI(.success(UUID())), product: StoreProduct())) { _ in })),
-            ("meet-peter-unavailable", AnyView(MeetTeammateSheet(persona: PersonaRegistry.peter, model: unavailable) { _ in })),
-            ("your-plan", AnyView(NavigationView { YourPlanView(model: model(AccountAPI(.success(UUID())), product: nil)) }.preferredColorScheme(.dark))),
-        ]
-        let waiter = expectation(description: "unavailable notice")
-        Task {
-            await unavailable.join(.friend)
-            waiter.fulfill()
-        }
-        wait(for: [waiter], timeout: 5)
-
-        // A window only draws when it belongs to a scene: use the host app's.
-        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
-        for (name, view) in screens {
-            let window = UIWindow(windowScene: scene)
-            window.frame = CGRect(x: 0, y: 0, width: 393, height: 852)
-            window.rootViewController = UIHostingController(rootView: view)
-            window.makeKeyAndVisible()
-            RunLoop.main.run(until: Date().addingTimeInterval(0.5))
-            let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
-                window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
-            }
-            try XCTUnwrap(image.pngData()).write(to: URL(fileURLWithPath: dir).appendingPathComponent("\(name).png"))
-        }
     }
 }

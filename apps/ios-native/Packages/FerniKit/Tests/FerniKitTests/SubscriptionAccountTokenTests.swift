@@ -1,7 +1,7 @@
 import Foundation
 import StoreKit
 import XCTest
-@testable import FerniVoice
+@testable import FerniKit
 
 /// Purchases must carry the server-issued appAccountToken, and never start without it.
 @MainActor

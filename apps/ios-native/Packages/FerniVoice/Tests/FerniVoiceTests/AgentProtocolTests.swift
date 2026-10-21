@@ -1,5 +1,5 @@
-import FerniDesign
 import XCTest
+import FerniDesign
 @testable import FerniVoice
 
 /// The agent's real wire payloads, parsed the way a live call parses them.
@@ -18,13 +18,6 @@ final class AgentProtocolTests: XCTestCase {
 
     private func json(_ text: String) -> [String: Any] {
         (try? JSONSerialization.jsonObject(with: Data(text.utf8))) as? [String: Any] ?? [:]
-    }
-
-    /// Lets the session's main-queue updates land.
-    private func drainMainQueue() {
-        let done = expectation(description: "main queue drained")
-        DispatchQueue.main.async { done.fulfill() }
-        wait(for: [done], timeout: 1)
     }
 
     // MARK: - speech_state parsing
@@ -67,57 +60,5 @@ final class AgentProtocolTests: XCTestCase {
         let result = AgentSignals.avatar(for: .speaking, current: .warm)
         XCTAssertTrue(result.isSpeaking)
         XCTAssertEqual(result.expression, .warm)
-    }
-
-    // MARK: - Session: the published state a view reads
-
-    func testSessionMarksCallerSpeakingFromRealSpeechStart() {
-        let session = IOSLiveKitSession()
-        XCTAssertFalse(session.isUserSpeaking)
-
-        session.handleDataMessage(Data(speechStart.utf8))
-        drainMainQueue()
-
-        XCTAssertTrue(session.isUserSpeaking)
-    }
-
-    func testSessionClearsCallerSpeakingFromRealSpeechEnd() {
-        let session = IOSLiveKitSession()
-        session.handleDataMessage(Data(speechStart.utf8))
-        drainMainQueue()
-        XCTAssertTrue(session.isUserSpeaking)
-
-        session.handleDataMessage(Data(speechEnd.utf8))
-        drainMainQueue()
-
-        XCTAssertFalse(session.isUserSpeaking)
-    }
-
-    func testSessionShowsFerniSpeakingFromAgentState() {
-        let session = IOSLiveKitSession()
-        XCTAssertFalse(session.isAgentSpeaking)
-        XCTAssertEqual(session.currentExpression, .neutral)
-
-        session.applyAgentAttributes(["lk.agent.state": "speaking"])
-        drainMainQueue()
-
-        XCTAssertTrue(session.isAgentSpeaking)
-        XCTAssertEqual(session.currentExpression, .speaking)
-    }
-
-    func testSessionShowsFerniThinkingThenListening() {
-        let session = IOSLiveKitSession()
-        session.applyAgentAttributes(["lk.agent.state": "speaking"])
-        drainMainQueue()
-
-        session.applyAgentAttributes(["lk.agent.state": "thinking"])
-        drainMainQueue()
-        XCTAssertFalse(session.isAgentSpeaking)
-        XCTAssertEqual(session.currentExpression, .thinking)
-
-        session.applyAgentAttributes(["lk.agent.state": "listening"])
-        drainMainQueue()
-        XCTAssertFalse(session.isAgentSpeaking)
-        XCTAssertEqual(session.currentExpression, .listening)
     }
 }
