@@ -82,4 +82,22 @@ final class MemoryJournalTests: XCTestCase {
         XCTAssertNil(MemoryJournal.person("Mom"), "a word alone isn't a note about her")
         XCTAssertEqual(MemoryJournal.person("The user's brother Sam got his license"), "brother")
     }
+
+    /// Critic L: "Mother's Day" isn't your mother, and mom and mother are one
+    /// person under one name.
+    func testAHolidayIsntAPersonAndMomIsMother() {
+        XCTAssertNil(MemoryJournal.person("Mother's Day plans with the kids"))
+        XCTAssertNil(MemoryJournal.person("Father's Day is hard this year"))
+        XCTAssertEqual(MemoryJournal.person("Mother is visiting in May"), "mom")
+        XCTAssertEqual(MemoryJournal.person("Mom's knee surgery went well"), "mom")
+        XCTAssertEqual(MemoryJournal.person("User's father retired"), "dad")
+        XCTAssertEqual(MemoryJournal.person("Grandmother turns 90"), "grandma")
+        XCTAssertNil(MemoryJournal.person("Momentum at work is good"), "a word, not the start of one")
+        let notes = ["Mom's knee surgery went well", "Mother is visiting in May", "Mother's Day plans with the kids"].map {
+            MemoryStore.Note(id: $0, content: $0, kind: "fact", learnedAt: nil, canForget: true)
+        }
+        let people = MemoryJournal.people(notes)
+        XCTAssertEqual(people.map(\.who), ["mom"], "one group")
+        XCTAssertEqual(people.first?.notes.count, 2, "the holiday isn't in it")
+    }
 }
