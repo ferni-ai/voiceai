@@ -17,11 +17,18 @@ final class ExpressionNamesTests: XCTestCase {
         XCTAssertEqual(AvatarExpression.from("celebrating"), .joyful)
         XCTAssertEqual(AvatarExpression.from("noticing"), .attentive)
         XCTAssertEqual(AvatarExpression.from("holding"), .compassionate)
-        XCTAssertEqual(AvatarExpression.from("waiting"), .resting)
+        XCTAssertEqual(AvatarExpression.from("waiting"), .attentive, "waiting on you, eyes open (critic L3)")
         for (name, face) in AvatarExpression.aliases {
             XCTAssertNotNil(ExpressionTokens.all[face.rawValue], "\(name) → \(face) is a token")
             XCTAssertNil(ExpressionTokens.all[name], "\(name) isn't a token itself")
         }
         XCTAssertEqual(AvatarExpression.from("not-a-face"), .neutral)
+    }
+
+    /// No older name puts Ferni to sleep: an alias never lands on a face with z's.
+    func testNoAliasGivesZs() {
+        for (name, face) in AvatarExpression.aliases {
+            XCTAssertNotEqual(Face.glyphs[face.rawValue], "z", "\(name) → \(face) shows z's")
+        }
     }
 }
