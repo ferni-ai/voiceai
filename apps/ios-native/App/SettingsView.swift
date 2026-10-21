@@ -24,15 +24,23 @@ struct SettingsView: View {
                 }
                 AccountSection(account: model.account, signOut: model.signOut, signingIn: $signingIn)
                 PrivacySection(consent: model.consent, lock: model.memoryLock) { await model.withdrawConsent() }
-                // Under Privacy, not beside Call sounds: a row above Account moved
-                // its header to where the SE audit fails it on Dynamic Type.
-                Section { NightInkToggle() }
                 Section {
                     LabeledContent("Version", value: Self.version)
                     Link("Privacy Policy", destination: URL(string: "https://ferni.ai/privacy")!)
                     Link("Terms of Service", destination: URL(string: "https://ferni.ai/terms")!)
                 } header: {
                     SettingsHeader("About")
+                }
+                // After About: a row above Account moved its header to where the SE
+                // audit fails it, and between Privacy and About an unnamed finding
+                // stayed at AX5 (critic H-A).
+                Section {
+                    NightInkToggle()
+                } header: {
+                    SettingsHeader("At night")
+                } footer: {
+                    Text("From 10 pm to 5 am Ferni goes dark, even when your phone is in light mode.")
+                        .foregroundStyle(FerniColor.textSecondary)
                 }
                 // Last, on its own: not between Help and Privacy where a thumb
                 // lands looking for something else (design audit P2 #9).
@@ -74,7 +82,15 @@ struct SettingsView: View {
 private struct SettingsHeader: View {
     let title: LocalizedStringKey
     init(_ title: LocalizedStringKey) { self.title = title }
-    var body: some View { Text(title).foregroundStyle(FerniColor.textSecondary) }
+    // Its own font, not the list header's: the system header font stops
+    // growing partway, and the SE audit failed "Account" and "Privacy" as
+    // partially unsupported Dynamic Type wherever they landed (critic H-A).
+    var body: some View {
+        Text(title)
+            .font(FerniType.footnote)
+            .fontWeight(.semibold)
+            .foregroundStyle(FerniColor.textSecondary)
+    }
 }
 
 /// What the Account section shows while the account is set up (critic L6):
@@ -120,7 +136,10 @@ private struct AccountSection: View {
                 Text("Setting up your account is taking longer than usual.").foregroundStyle(FerniColor.textSecondary)
                 Button("Try again") { Task { await account.start() } }
             case .starting:
-                LabeledContent("Account") { ProgressView() }
+                // Words, not a spinner: the spinner can't grow with the text size,
+                // and the audit failed it (no element, Dynamic Type unsupported)
+                // whenever it ran in the first 15 s on an SE at AX5 (critic H-A).
+                LabeledContent("Account", value: String(localized: "Setting up…"))
                     .task {
                         startedWaiting = .now
                         try? await Task.sleep(for: .seconds(AccountStatus.slowAfter))
@@ -291,7 +310,7 @@ private struct NightInkToggle: View {
     var body: some View {
         // One line in the primary ink: a grey subtitle "nearly passed" the
         // contrast audit and made the row two lines tall.
-        Toggle("Dark from 10 pm", isOn: $on)
+        Toggle("Dark at night", isOn: $on)
     }
 }
 
