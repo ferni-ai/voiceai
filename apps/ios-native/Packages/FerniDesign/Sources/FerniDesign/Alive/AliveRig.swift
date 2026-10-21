@@ -19,6 +19,10 @@ public final class AliveRig {
     public var reduceMotion = false
     /// Hold every pose exactly at its target (still images, tests).
     public var still = false
+    /// You're muted (award upgrade 9): he looks down and aside, giving you the
+    /// moment, instead of watching you, and back when you unmute. Held, not
+    /// wandering; a look, so Reduce Motion keeps it.
+    public var lookingAway = false
     public var dark = false
     /// Reading along (the consent sheet): eyes down, slow blinks.
     public var reading = false
@@ -791,6 +795,9 @@ public final class AliveRig {
         return sin(time * 2 * .pi / (period * tempo)) * amp
     }
 
+    /// Where he looks while you're muted: down and to his left, off you.
+    static let lookAway = SIMD2(-0.55, -0.3)
+
     private func stepGaze(_ f: Face, m: Double) {
         var focus: SIMD2<Double>?
         if let handoff, handoff.done < 4, guestPersona != nil {
@@ -839,6 +846,10 @@ public final class AliveRig {
             if activity == .thinking, abs(f.gx) + abs(f.gy) < 0.01 { gazeTarget = SIMD2(0.5 + rng.range(-0.1, 0.1), 0.42) }
             if simd_distance(gazeTarget, prev) > 0.25, rng.unit() < 0.35 { scheduleBlink(at: time + 0.01) }
             nextSaccade = time + rng.range(1.1, 3.4)
+        }
+        if lookingAway, focus == nil, held == nil {
+            gazeTarget = Self.lookAway
+            nextSaccade = time + 0.8
         }
         if reading, focus == nil { gazeTarget.y = min(gazeTarget.y, f.gy - 0.4) }
         if activity == .arriving, focus == nil { gazeTarget.y = max(gazeTarget.y, 0.4) }
