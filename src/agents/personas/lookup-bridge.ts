@@ -43,9 +43,13 @@ export const EXTRA_LOOKUP_TOOLS: ReadonlySet<string> = new Set(['findBusiness'])
 
 export { afterToolHedgeMs, lookupBridgeOn } from '../model-provider/after-tool-hedge.js';
 
-/** How long the reply after a tool result may say nothing before the bridge. */
+/**
+ * How long the reply after a tool result may say nothing before the bridge: 1 s,
+ * so it plays only on the slow tail (offline, 3 of 25 first words came after 1 s;
+ * p50 was ~800 ms). A person fills a pause only when it runs long.
+ */
 export function bridgeAfterMs(env: Env = process.env): number {
-  return msFromEnv(env.LOOKUP_BRIDGE_MS, 700);
+  return msFromEnv(env.LOOKUP_BRIDGE_MS, 1000);
 }
 
 interface ItemView {

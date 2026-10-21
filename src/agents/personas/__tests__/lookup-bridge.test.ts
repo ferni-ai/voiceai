@@ -134,8 +134,9 @@ describe('withLookupBridge', () => {
     expect(afterToolHedgeMs({})).toBeUndefined();
     expect(afterToolHedgeMs({ LOOKUP_BRIDGE: 'on' })).toBe(500);
     expect(afterToolHedgeMs({ LOOKUP_BRIDGE: 'on', LOOKUP_BRIDGE_HEDGE_MS: '300' })).toBe(300);
-    expect(bridgeAfterMs({})).toBe(700);
-    expect(bridgeAfterMs({ LOOKUP_BRIDGE_MS: 'soon' })).toBe(700);
+    expect(bridgeAfterMs({})).toBe(1000);
+    expect(bridgeAfterMs({ LOOKUP_BRIDGE_MS: 'soon' })).toBe(1000);
+    expect(bridgeAfterMs({ LOOKUP_BRIDGE_MS: '700' })).toBe(700);
   });
 });
 
