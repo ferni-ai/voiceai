@@ -634,8 +634,7 @@ async function handleAccountDeletion(
     const { getDataExportService } = await import('../services/data-export.js');
     const results = await getDataExportService().deleteAllData(userId);
 
-    // Also delete Firebase user if this is a Firebase UID
-    // Firebase UIDs are 28 characters and don't start with 'device:'
+    // Also delete the Firebase user if this is a Firebase UID (28 characters, not 'device:')
     let firebaseDeleted = false;
     if (!userId.startsWith('device:') && userId.length >= 20) {
       try {
