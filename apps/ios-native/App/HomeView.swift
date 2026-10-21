@@ -186,15 +186,14 @@ struct HomeView: View {
                         }
                 }
             }
-            .sheet(isPresented: $model.isShowingCallMore) {
-                CallMoreSheet(
-                    showCaptions: $model.showCaptions,
-                    lastReply: call.captions.lines.last { $0.speaker == .ferni && !$0.joined }
-                ) { model.reporting = $0 }
-            }
-            .sheet(item: $model.reporting) { caption in
-                ReportSheet(caption: caption) { reason, note in try await model.report(caption, reason: reason, note: note) }
-            }
+            // iPhone: sheets over the call. iPad: the whole screen, like consent
+            // there: as form sheets the call's captions and the sidebar showed,
+            // dimmed, around them, and the audit failed them as text out of
+            // VoiceOver's reach (2026-10-21).
+            .sheet(isPresented: pad ? .constant(false) : $model.isShowingCallMore) { moreSheet(call) }
+            .fullScreenCover(isPresented: pad ? $model.isShowingCallMore : .constant(false)) { moreSheet(call) }
+            .sheet(item: pad ? .constant(nil) : $model.reporting) { reportSheet($0) }
+            .fullScreenCover(item: pad ? $model.reporting : .constant(nil)) { reportSheet($0) }
             // iPhone: a sheet over the room, so Home stays behind it. iPad: the
             // whole screen. As a form sheet the sidebar stayed drawn behind it but
             // out of VoiceOver's reach, and at AX5 the words ran past the sheet's
@@ -210,6 +209,20 @@ struct HomeView: View {
     }
 
     private static let rememberID = "home.remember"
+
+    private var pad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+
+    private func moreSheet(_ call: CallSession) -> some View {
+        @Bindable var model = model
+        return CallMoreSheet(
+            showCaptions: $model.showCaptions,
+            lastReply: call.captions.lines.last { $0.speaker == .ferni && !$0.joined }
+        ) { model.reporting = $0 }
+    }
+
+    private func reportSheet(_ caption: Caption) -> some View {
+        ReportSheet(caption: caption) { reason, note in try await model.report(caption, reason: reason, note: note) }
+    }
 
     /// Ferni at rest: on a phone up to 280 pt; on iPad, sized to the room (design
     /// audit P1-14: a phone column, ~65% of the screen empty).
