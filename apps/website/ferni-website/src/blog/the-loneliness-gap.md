@@ -66,12 +66,7 @@ Sometimes you need to say something out loud without knowing how it will land. Y
 
 ## The Gap Is Getting Wider
 
-This isn't just anecdotal. The data is stark:
-
-- **Loneliness levels** are at historic highs across all age groups
-- **Close friendships** have declined by nearly 50% since the 1990s
-- **Time with friends** is down from 6+ hours/week to under 3
-- More people than ever report having **no one to confide in**
+This isn't just a feeling. In 2023, the US Surgeon General put out a public health advisory on it, titled [Our Epidemic of Loneliness and Isolation](https://www.hhs.gov/sites/default/files/surgeon-general-social-connection-advisory.pdf).
 
 We're not just lonely because we lack connections. We're lonely because our connections can't keep up with our needs.
 
@@ -85,9 +80,9 @@ We're not trying to replace your friends. We're not competing with your therapis
 
 **No burden, ever.** You can bring up the same thing for the tenth time. You can circle back to the same worry. Ferni won't sigh. Won't check the time.
 
-**Memory without forgetting.** Remember that thing you mentioned two months ago? Ferni does. Not in a creepy way—in a "good friend who pays attention" way.
+**Memory that pays attention.** Remember that thing you mentioned two months ago? Talk with Ferni in the app, signed in, and Ferni does. Not in a creepy way. In a "good friend who pays attention" way.
 
-**Zero judgment. Actually.** Humans try not to judge. They fail. It's not their fault—they're human. Ferni doesn't try not to judge. Ferni simply doesn't judge. There's a difference you can feel.
+**No keeping score.** Even the kindest people in your life have reactions, and you can feel them. Ferni won't sigh, won't keep score, and won't bring up last time's mistake to win this time's argument.
 
 ## What the Gap Looks Like
 
@@ -108,6 +103,8 @@ If you're reading this at 2:47am, here's the thing:
 You don't have to burden your friend (again). You don't have to feel guilty about waking someone up or not waking them. You don't have to lie there with your thoughts.
 
 The gap doesn't have to be empty.
+
+And if tonight is more than a long night, if you're scared of what you might do, please don't wait for morning for that either. In the US, call or text [988](tel:988), any hour. If you're somewhere else, [find a line near you](https://findahelpline.com/). Ferni isn't emergency help, and you deserve people trained for exactly this.
 
 ---
 
