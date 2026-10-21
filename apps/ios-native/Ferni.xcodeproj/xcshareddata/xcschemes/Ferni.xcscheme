@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1500"
+   LastUpgradeVersion = "2710"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
@@ -15,38 +15,10 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2330EDFA02079221D97BDE77"
-               BuildableName = "FerniVoice.app"
-               BlueprintName = "FerniVoice"
-               ReferencedContainer = "container:FerniVoice.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "NO"
-            buildForProfiling = "NO"
-            buildForArchiving = "NO"
-            buildForAnalyzing = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "8E5FE22A4AD9D915715F2766"
-               BuildableName = "FerniVoiceTests.xctest"
-               BlueprintName = "FerniVoiceTests"
-               ReferencedContainer = "container:FerniVoice.xcodeproj">
-            </BuildableReference>
-         </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "08F33F2F7B01D0368EE3975D"
-               BuildableName = "FerniWidgets.appex"
-               BlueprintName = "FerniWidgets"
-               ReferencedContainer = "container:FerniVoice.xcodeproj">
+               BlueprintIdentifier = "8EAD711030B44B12A5B3B4A6"
+               BuildableName = "Ferni.app"
+               BlueprintName = "Ferni"
+               ReferencedContainer = "container:Ferni.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -56,14 +28,15 @@
       selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES"
+      codeCoverageEnabled = "YES"
       onlyGenerateCoverageForSpecifiedTargets = "NO">
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "2330EDFA02079221D97BDE77"
-            BuildableName = "FerniVoice.app"
-            BlueprintName = "FerniVoice"
-            ReferencedContainer = "container:FerniVoice.xcodeproj">
+            BlueprintIdentifier = "8EAD711030B44B12A5B3B4A6"
+            BuildableName = "Ferni.app"
+            BlueprintName = "Ferni"
+            ReferencedContainer = "container:Ferni.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
       <Testables>
@@ -72,10 +45,21 @@
             parallelizable = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "8E5FE22A4AD9D915715F2766"
-               BuildableName = "FerniVoiceTests.xctest"
+               BlueprintIdentifier = "FerniKitTests"
+               BuildableName = "FerniKitTests"
+               BlueprintName = "FerniKitTests"
+               ReferencedContainer = "container:Packages/FerniKit">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FerniVoiceTests"
+               BuildableName = "FerniVoiceTests"
                BlueprintName = "FerniVoiceTests"
-               ReferencedContainer = "container:FerniVoice.xcodeproj">
+               ReferencedContainer = "container:Packages/FerniVoice">
             </BuildableReference>
          </TestableReference>
          <TestableReference
@@ -107,10 +91,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "2330EDFA02079221D97BDE77"
-            BuildableName = "FerniVoice.app"
-            BlueprintName = "FerniVoice"
-            ReferencedContainer = "container:FerniVoice.xcodeproj">
+            BlueprintIdentifier = "8EAD711030B44B12A5B3B4A6"
+            BuildableName = "Ferni.app"
+            BlueprintName = "Ferni"
+            ReferencedContainer = "container:Ferni.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>
@@ -129,10 +113,10 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "2330EDFA02079221D97BDE77"
-            BuildableName = "FerniVoice.app"
-            BlueprintName = "FerniVoice"
-            ReferencedContainer = "container:FerniVoice.xcodeproj">
+            BlueprintIdentifier = "8EAD711030B44B12A5B3B4A6"
+            BuildableName = "Ferni.app"
+            BlueprintName = "Ferni"
+            ReferencedContainer = "container:Ferni.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
       <CommandLineArguments>

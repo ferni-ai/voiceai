@@ -8,7 +8,6 @@
 //  (SubscriptionService.purchase refuses first).
 //
 
-import FerniShared
 import Foundation
 import StoreKit
 

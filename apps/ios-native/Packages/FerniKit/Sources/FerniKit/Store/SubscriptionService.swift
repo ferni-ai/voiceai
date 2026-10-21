@@ -20,10 +20,11 @@ import Foundation
 import StoreKit
 import os
 import Combine
+import UIKit
 
 // MARK: - Subscription Tiers
 
-enum SubscriptionTier: String, CaseIterable {
+public enum SubscriptionTier: String, CaseIterable, Sendable {
     case free = "free"
     case friend = "friend"      // $9.99/month
     case partner = "partner"    // $19.99/month
@@ -45,7 +46,7 @@ enum SubscriptionTier: String, CaseIterable {
     }
     
     /// Team members available at this tier
-    var availablePersonas: [String] {
+    public var availablePersonas: [String] {
         switch self {
         case .free:
             return ["ferni"]  // Only Ferni on free tier
@@ -351,9 +352,6 @@ final class SubscriptionService: ObservableObject {
         if oldTier != tier {
             tierChangedPublisher.send(tier)
             logger.info("Tier changed: \(oldTier.rawValue) → \(tier.rawValue)")
-            
-            // Notify Watch
-            WatchConnectivityService.shared.sendSubscriptionStatus(isSubscribed: isSubscribed)
         }
     }
     
