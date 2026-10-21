@@ -120,6 +120,9 @@ enum UITestScenario: String {
         let path = request.url?.path ?? ""
         let (status, body): (Int, String) = path.hasSuffix("/token")
             ? (403, #"{"error":"not_admitted","status":"pending","waitlisted":true,"message":"You're on the list."}"#)
+            // Joining puts them in line, then answers as /me does (critic H1).
+            : path.hasSuffix("/api/waitlist/join") && request.httpMethod == "POST"
+            ? (200, #"{"status":"waiting","position":433,"wavesAway":4,"nextWaveAt":"2026-10-22T17:00:00.000Z","referralUrl":"https://ferni.ai/?ref=abc123-fern","referrals":{"verified":0,"creditedDays":0,"max":5},"admittedAt":null,"seatExpiresAt":null,"foundingMember":false,"foundingWave":null}"#)
             : path.hasSuffix("/api/waitlist/me")
             // `-FerniWaitlistMe notJoined|none`: the account isn't on the list, or
             // /me can't be read (critic H1).
@@ -156,7 +159,7 @@ enum UITestScenario: String {
     @MainActor static func account() -> AccountStore? {
         guard current != nil, let kind = value(after: "-FerniAccount") else { return nil }
         let realBefore = kind == "needsSignIn"
-        let backend = UITestAuthBackend(anonymous: kind == "anonymous")
+        let backend = UITestAuthBackend(anonymous: kind == "anonymous", signedIn: kind == "signedIn")
         return AccountStore(backend: backend, memory: AccountMemory(get: { realBefore }, set: { _ in }))
     }
 
@@ -173,8 +176,9 @@ enum UITestScenario: String {
 private final class UITestAuthBackend: AuthBackend, @unchecked Sendable {
     private var user: AccountUser?
 
-    init(anonymous: Bool) {
-        user = anonymous ? AccountUser(uid: "uitest-anon", isAnonymous: true) : nil
+    init(anonymous: Bool, signedIn: Bool = false) {
+        user = anonymous ? AccountUser(uid: "uitest-anon", isAnonymous: true)
+            : signedIn ? AccountUser(uid: "uitest-real", isAnonymous: false, providerIDs: ["apple.com"]) : nil
     }
 
     func currentUser() async -> AccountUser? { user }

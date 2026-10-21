@@ -55,14 +55,15 @@ struct RootView: View {
             .fullScreenCover(item: Binding(
                 get: { model.call.waitlist }, set: { if $0 == nil { model.call.closeWaitlist() } }
             )) { place in
-                WaitingView(place: place, anonymous: model.account.user?.isAnonymous ?? false,
+                // No account at all is like an anonymous one: signing in is the way on.
+                WaitingView(place: place, anonymous: model.account.user?.isAnonymous ?? true,
                             onClose: { model.call.closeWaitlist() }, onComeIn: {
                     model.call.closeWaitlist()
                     model.talk()
                 }, onSignIn: {
                     model.call.closeWaitlist()
                     model.isSigningIn = true
-                })
+                }, onJoin: { await WaitlistStatus.join(api: model.waitlistAPI) })
             }
             // Only a build the server names as too old; nothing can dismiss it.
             .fullScreenCover(isPresented: .constant(model.minimumBuild.updateRequired)) {

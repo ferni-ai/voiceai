@@ -81,6 +81,29 @@ public struct WaitlistStatus: Decodable, Equatable, Sendable, Identifiable {
         return status
     }
 
+    /// What POST /api/waitlist/join did (src/api/waitlist-queue-routes.ts on main).
+    public enum JoinOutcome: Equatable, Sendable {
+        /// In line now: the answer is /me's.
+        case joined(WaitlistStatus)
+        /// The server joins only a sign-in with a verified email (401
+        /// sign_in_required): a phone number alone can't join.
+        case needsEmail
+        case failed
+    }
+
+    /// POST /api/waitlist/join as the signed-in account (critic H1: someone
+    /// signed in but not on the list had no way onto it from the app).
+    public static func join(api: FerniAPI) async -> JoinOutcome {
+        do {
+            let body = try await api.data("/api/waitlist/join", method: "POST", json: [String: String]())
+            return fromMe(body).map { .joined($0) } ?? .failed
+        } catch let error as FerniAPIError where error == .status(401) || error == .notSignedIn {
+            return .needsEmail
+        } catch {
+            return .failed
+        }
+    }
+
     /// GET /api/waitlist/me as the signed-in account; nil when it can't be read.
     public static func me(api: FerniAPI) async -> WaitlistStatus? {
         guard let body = try? await api.data("/api/waitlist/me") else { return nil }
