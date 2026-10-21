@@ -931,6 +931,11 @@ jobs:
       - name: Architecture gate
         run: pnpm quality:arch
 
+      # Blocking ratchet: a new Firestore client that ignores FIRESTORE_DATABASE (dev runs on
+      # ferni-dev, prod on '(default)') fails, and the allowlist may only shrink. ~10 s.
+      - name: Firestore database ratchet
+        run: pnpm tsx scripts/ci/firestore-database-ratchet.ts
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 
