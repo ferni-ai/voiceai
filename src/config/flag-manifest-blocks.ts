@@ -62,6 +62,8 @@ export const FLAGS_PUBSUB_TO_REQUIRE = {
   REMINDER_SCHEDULER_IN_PROCESS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: reminders go by text to the verified phone, via guarded-text (reminder-sms-flag.ts, reminder-reach.ts)
   REMINDER_SMS_DEFAULT: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: setReminder saves only a time the caller said, and a new time for the same thing moves it (reminder-time-heard.ts)
+  REMINDER_TIME_FROM_CALLER: { default: 'off', owner: 'tools', kind: 'experiment' },
   REPAIR_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH_NAME: { default: 'off', owner: 'outreach', kind: 'experiment' },

@@ -104,6 +104,20 @@ describe('asset links', () => {
     );
     expect(deploy).toMatch(/ANDROID_CERT_SHA256: \$\{\{ vars\.ANDROID_CERT_SHA256 \}\}/);
   });
+
+  it('signs a universal APK and refuses one whose key assetlinks would not list', () => {
+    const workflow = readFileSync(
+      resolve(WEB, '../../.github/workflows/android-twa.yml'),
+      'utf8'
+    );
+    const step = workflow.slice(workflow.indexOf('- name: Universal APK'));
+    expect(step).toMatch(/ANDROID_CERT_SHA256: \$\{\{ vars\.ANDROID_CERT_SHA256 \}\}/);
+    expect(step).toMatch(/BUNDLETOOL_SHA256: [0-9a-f]{64}\n/);
+    expect(step).toMatch(/sha256sum -c -/);
+    expect(step).toMatch(/grep -qx "\$signed"/);
+    expect(step).toMatch(/exit 1/);
+    expect(workflow).toMatch(/bundle\/ferni-universal\.apk\n\s+if-no-files-found: error/);
+  });
 });
 
 describe('web manifest (what the Android app installs from)', () => {
