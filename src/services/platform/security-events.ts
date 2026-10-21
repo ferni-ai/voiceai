@@ -27,6 +27,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { opsAlert } from './ops-alert.js';
 import { withExpiry } from './security-event-expiry.js';
 import { registerInterval } from '../../utils/interval-manager.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = getLogger();
 
@@ -160,17 +161,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   firestoreInitAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
-      const projectId = getGCPProjectId();
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     log.info('✅ Firestore initialized for security events');
     return firestoreInstance;
   } catch (error) {

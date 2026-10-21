@@ -18,6 +18,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'PersistenceLayer' });
 
@@ -114,7 +115,7 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
       // Belt-and-suspenders: this client is private to the persistence layer
       // (module-scoped `db`, not shared with other Firestore clients in the
       // codebase), so this is safe to set here without side effects elsewhere.

@@ -22,6 +22,7 @@ import { clearNamedInterval, registerInterval } from '../../utils/interval-manag
 import { getLogger } from '../../utils/safe-logger.js';
 import { getFinancialStore } from '../stores/financial-store.js';
 import { getLifeDataStore } from '../stores/life-data-store.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -37,20 +38,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   firestoreInitAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     getLogger().warn({ error }, 'Firebase not available for proactive insights');
