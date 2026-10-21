@@ -51,7 +51,9 @@ final class MemoryEdgesUITests: XCTestCase {
         sleep(1)
         let footer = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH \"Ferni's team shares\"")).firstMatch
         XCTAssertTrue(footer.exists)
-        XCTAssertLessThanOrEqual(footer.frame.maxY, app.frame.maxY - 34, "footer \(footer.frame) clear of the home indicator")
+        // Whole on screen: on an SE (no home indicator) the list ends at the edge.
+        XCTAssertLessThanOrEqual(footer.frame.maxY, app.frame.maxY + 0.5, "footer \(footer.frame) whole on screen")
+        XCTAssertTrue(footer.isHittable, "not under anything")
         attachScreenshot("memory-bottom")
     }
 }
