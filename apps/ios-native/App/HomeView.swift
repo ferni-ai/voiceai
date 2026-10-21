@@ -131,6 +131,23 @@ struct HomeView: View {
             .toolbar {
                 // In a call the room is Ferni's and yours: the account button
                 // steps out until it ends (design audit P2 #5).
+                // What Ferni remembers, one tap from Home (award upgrade 7); on iPad
+                // it's in the sidebar.
+                if showsAccountButton && !inCall { ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        model.isShowingMemory = true
+                    } label: {
+                        Image(systemName: "heart.text.square")
+                            .font(.title2)
+                            .foregroundStyle(FerniColor.accent)
+                            .frame(width: 44, height: 44)
+                            .glassEffect(.regular.interactive(), in: .circle)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("What Ferni remembers")
+                    .accessibilityIdentifier("home.memory")
+                }
+                .sharedBackgroundVisibility(.hidden) }
                 if showsAccountButton && !inCall { ToolbarItem(placement: .topBarTrailing) {
                     // Its own 44 pt glass circle: in the bar's shared glass it was 48 by 36
                     // (design audit P2 #18).
@@ -151,6 +168,14 @@ struct HomeView: View {
             }
             .sheet(isPresented: $model.isShowingSettings) {
                 SettingsView()
+            }
+            .sheet(isPresented: $model.isShowingMemory) {
+                NavigationStack {
+                    MemoryScreen(memory: model.memory, lock: model.memoryLock)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) { Button("Done") { model.isShowingMemory = false } }
+                        }
+                }
             }
             .sheet(isPresented: $model.isShowingCallMore) {
                 CallMoreSheet(

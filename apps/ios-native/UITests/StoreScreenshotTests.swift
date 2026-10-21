@@ -59,7 +59,7 @@ final class StoreScreenshotTests: XCTestCase {
             let item = app.staticTexts["What Ferni remembers"].firstMatch
             XCTAssertTrue(item.waitForExistence(timeout: 20)); item.tap()
         } else {
-            let link = app.buttons["What Ferni remembers"].firstMatch
+            let link = app.memoryLink
             XCTAssertTrue(link.waitForExistence(timeout: 20)); link.tap()
         }
         XCTAssertTrue(app.staticTexts["Walk before work, three mornings a week"].waitForExistence(timeout: 20))
