@@ -163,6 +163,7 @@
   "src/tasks/scheduled/transcript-cleanup-job.ts": 1,
   "src/tasks/scheduled/wellbeing-jobs.ts": 1,
   "src/tools/domains/information/relationships/storage.ts": 1,
+  "src/tools/domains/life-coaching-shared/user-profile.ts": 1,
   "src/tools/domains/marketing/storage.ts": 1,
   "src/tools/domains/research/user-data/user-data-service.ts": 1,
   "src/tools/domains/shared/analytics.ts": 1,

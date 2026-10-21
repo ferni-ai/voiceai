@@ -133,18 +133,27 @@ export function raised(main: Allowlist, current: Allowlist): string[] {
     );
 }
 
-/** origin/main's allowlist, or undefined where there is none to compare (no ref, or before it landed). */
-function mainAllowlist(): Allowlist | undefined {
+/**
+ * The allowlist as committed at `ref`: 'no-ref' when the ref isn't there (a shallow
+ * clone: CI must fetch it), 'no-file' when the ref predates the allowlist (true only
+ * for the PR that adds it). Once the allowlist is on main, every run compares to it.
+ */
+export function allowlistAt(
+  repo: string,
+  ref: string,
+  path: string
+): Allowlist | 'no-ref' | 'no-file' {
+  const git = (args: string[]): string =>
+    execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
   try {
-    const path = relative(REPO, BASELINE).split(sep).join('/');
-    const text = execFileSync('git', ['show', `origin/main:${path}`], {
-      cwd: REPO,
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    });
-    return JSON.parse(text) as Allowlist;
+    git(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
   } catch {
-    return undefined;
+    return 'no-ref';
+  }
+  try {
+    return JSON.parse(git(['show', `${ref}:${path}`])) as Allowlist;
+  } catch {
+    return 'no-file';
   }
 }
 
@@ -178,11 +187,22 @@ function main(): void {
     return;
   }
 
-  const onMain = mainAllowlist();
+  const atMain = allowlistAt(REPO, 'origin/main', relative(REPO, BASELINE).split(sep).join('/'));
+  if (atMain === 'no-ref' && process.env.CI) {
+    console.error(
+      '❌ origin/main is not fetched, so an allowlist raised above main would pass. Fetch it (fetch-depth: 0).'
+    );
+    process.exit(1);
+  }
+  const onMain = typeof atMain === 'object' ? atMain : undefined;
   const worse = [...regressions(allow, violations), ...(onMain ? raised(onMain, allow) : [])];
   console.log(
     `Firestore database ratchet: ${violations.length} sites now, allowlist ${total(allow)}` +
-      (onMain ? `, origin/main's ${total(onMain)}.` : ' (no origin/main allowlist to compare).')
+      (onMain
+        ? `, origin/main's ${total(onMain)}.`
+        : atMain === 'no-ref'
+          ? ' (origin/main not fetched: the raised-allowlist check did not run).'
+          : ' (origin/main has no allowlist yet: the raised-allowlist check starts once it does).')
   );
   if (worse.length > 0) {
     console.error(

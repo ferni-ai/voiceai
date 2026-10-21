@@ -74,7 +74,12 @@ interface Bindings {
   getFirestore: Set<string>;
   /** Local names bound to the whole firebase-admin/firestore module (`* as`, dynamic import). */
   adminFirestoreModule: Set<string>;
+  /** Local names bound to the Firestore class, aliases included (`{ Firestore as Fz }`). */
+  firestoreClass: Set<string>;
 }
+
+/** Modules that export the Firestore client class. */
+const FIRESTORE_CLASS_MODULES = ['@google-cloud/firestore', ADMIN_FIRESTORE];
 
 function moduleOf(node: ts.Expression | undefined): string | undefined {
   // import('x'), await import('x'), require('x'), (await import('x')).default
@@ -99,6 +104,7 @@ function collectBindings(sf: ts.SourceFile): Bindings {
     admin: new Set(),
     getFirestore: new Set(),
     adminFirestoreModule: new Set(),
+    firestoreClass: new Set(['Firestore']),
   };
   const visit = (node: ts.Node): void => {
     if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
@@ -108,6 +114,15 @@ function collectBindings(sf: ts.SourceFile): Bindings {
         if (clause.name) b.admin.add(clause.name.text);
         if (clause.namedBindings && ts.isNamespaceImport(clause.namedBindings)) {
           b.admin.add(clause.namedBindings.name.text);
+        }
+      }
+      if (
+        clause?.namedBindings &&
+        ts.isNamedImports(clause.namedBindings) &&
+        FIRESTORE_CLASS_MODULES.includes(from)
+      ) {
+        for (const el of clause.namedBindings.elements) {
+          if ((el.propertyName ?? el.name).text === 'Firestore') b.firestoreClass.add(el.name.text);
         }
       }
       if (clause && from === ADMIN_FIRESTORE && clause.namedBindings) {
@@ -129,6 +144,25 @@ function collectBindings(sf: ts.SourceFile): Bindings {
             el.propertyName && ts.isIdentifier(el.propertyName) ? el.propertyName.text : undefined;
           if (prop === 'default' && ts.isIdentifier(el.name)) b.admin.add(el.name.text);
         }
+      }
+      if (from && FIRESTORE_CLASS_MODULES.includes(from) && ts.isObjectBindingPattern(node.name)) {
+        for (const el of node.name.elements) {
+          const prop =
+            el.propertyName && ts.isIdentifier(el.propertyName) ? el.propertyName.text : undefined;
+          if (ts.isIdentifier(el.name) && (prop ?? el.name.text) === 'Firestore') {
+            b.firestoreClass.add(el.name.text);
+          }
+        }
+      }
+      // const Fz = (await import('@google-cloud/firestore')).Firestore
+      const init = node.initializer;
+      if (
+        ts.isIdentifier(node.name) &&
+        ts.isPropertyAccessExpression(init) &&
+        init.name.text === 'Firestore' &&
+        FIRESTORE_CLASS_MODULES.includes(moduleOf(init.expression) ?? '')
+      ) {
+        b.firestoreClass.add(node.name.text);
       }
       if (from === ADMIN_FIRESTORE && ts.isIdentifier(node.name))
         b.adminFirestoreModule.add(node.name.text);
@@ -244,7 +278,7 @@ export function findSites(sf: ts.SourceFile): Site[] {
     if (ts.isNewExpression(node)) {
       const callee = node.expression;
       const named =
-        (ts.isIdentifier(callee) && callee.text === 'Firestore') ||
+        (ts.isIdentifier(callee) && b.firestoreClass.has(callee.text)) ||
         (ts.isPropertyAccessExpression(callee) && callee.name.text === 'Firestore');
       if (named) {
         const arg = node.arguments?.[0];

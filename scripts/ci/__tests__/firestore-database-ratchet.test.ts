@@ -3,11 +3,13 @@
  * FIRESTORE_DATABASE, pass the allowlisted ones, and skip the helpers and tests.
  * Runs measure() over a throwaway tree laid out like the repo.
  */
+import { execFileSync } from 'child_process';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { dirname, join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  allowlistAt,
   countByFile,
   lowered,
   measure,
@@ -76,6 +78,41 @@ describe('firestore database ratchet', () => {
     const found = measure(r);
     expect(regressions({ 'scripts/tool.ts': 4 }, found)).toEqual([]);
     expect(regressions({ 'scripts/tool.ts': 3 }, found)).toHaveLength(1);
+  });
+
+  it('follows an aliased Firestore class, static or lazy', () => {
+    const r = tree({
+      'src/services/aliased.ts': `
+        import { Firestore as Fz } from '@google-cloud/firestore';
+        export const a = new Fz({ projectId: 'p' });
+        export async function b() {
+          const { Firestore: FirestoreClass } = await import('@google-cloud/firestore');
+          return new FirestoreClass();
+        }
+        export async function c() {
+          const Fc = (await import('@google-cloud/firestore')).Firestore;
+          return new Fc({ databaseId: 'x' });
+        }
+      `,
+    });
+    const found = measure(r);
+    expect(found.map((v) => v.site.text)).toEqual([
+      "new Fz({ projectId: 'p' })",
+      'new FirestoreClass()',
+    ]);
+    expect(regressions({}, found)).toHaveLength(1);
+  });
+
+  it("reads main's allowlist, and says when it can't", () => {
+    const repo = tree({ 'scripts/ci/list.json': '{"src/a.ts": 2}\n' });
+    const git = (...args: string[]): string =>
+      execFileSync('git', args, { cwd: repo, encoding: 'utf8', stdio: 'pipe' });
+    git('init', '-q', '-b', 'main');
+    expect(allowlistAt(repo, 'main', 'scripts/ci/list.json')).toBe('no-ref');
+    git('add', '.');
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '-m', 'x');
+    expect(allowlistAt(repo, 'main', 'scripts/ci/list.json')).toEqual({ 'src/a.ts': 2 });
+    expect(allowlistAt(repo, 'main', 'scripts/ci/other.json')).toBe('no-file');
   });
 
   it('ignores the two helpers and test files', () => {
