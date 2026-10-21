@@ -94,7 +94,7 @@ function addSkeletonStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      background: var(--color-background-primary, #0a0a0f);
+      background: var(--color-background-primary, #14110e);
       transition: opacity var(--duration-slower, 400ms) var(--ease-ease-out, ease-out), 
                   visibility var(--duration-slower, 400ms) var(--ease-ease-out, ease-out);
     }

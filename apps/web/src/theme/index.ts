@@ -38,8 +38,9 @@ export const PERSONA_IDS: PersonaId[] = [...ALL_PERSONA_IDS];
 
 const STORAGE_KEY = 'voiceai-theme';
 
-const CHROME_ZEN = '#fafaf9';
-const CHROME_MIDNIGHT = '#14110e';
+/** Browser chrome and body colour per theme: design-system/tokens/colors.json background.primary (pinned by a test). */
+export const CHROME_ZEN = '#faf8f5';
+export const CHROME_MIDNIGHT = '#14110e';
 
 /**
  * Decide the theme for a cold start.
