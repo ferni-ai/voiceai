@@ -47,6 +47,18 @@ describe('web-server flags survive a deploy', () => {
     expect(workflowEnv()).toContain(flag);
   });
 
+  it('sends app email through the ferni.ai Workspace, switchable back by repo variable', () => {
+    // The step's env holds the repo variables; the script reads them from the shell.
+    const workflow = read('.github/workflows/deploy-production.yml');
+    const at = workflow.indexOf('id: deploy');
+    const stepEnv = workflow.slice(at, workflow.indexOf('run: |', at));
+    expect(stepEnv).toContain("EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER || 'gmail' }}");
+    expect(stepEnv).toContain("EMAIL_FROM: ${{ vars.EMAIL_FROM || 'admin@ferni.ai' }}");
+    const env = workflowEnv();
+    expect(env).toContain('EMAIL_PROVIDER=$EMAIL_PROVIDER');
+    expect(env).toContain('EMAIL_FROM=$EMAIL_FROM');
+  });
+
   it('the production workflow mounts the proactive allowlist from Secret Manager', () => {
     expect(workflowSecrets()).toContain(PROACTIVE_USERS_SECRET);
   });
@@ -66,6 +78,8 @@ describe('web-server flags survive a deploy', () => {
   it('the toast-region kill switch reaches both web builds', () => {
     expect(firebase).toMatch(/VITE_TOAST_REGION: \$\{\{ vars\.VITE_TOAST_REGION \}\}/);
     expect(workflow).toMatch(/--build-arg VITE_TOAST_REGION="\$\{\{ vars\.VITE_TOAST_REGION \}\}"/);
-    expect(dockerfile).toMatch(/ARG VITE_TOAST_REGION=""\nENV VITE_TOAST_REGION=\$VITE_TOAST_REGION/);
+    expect(dockerfile).toMatch(
+      /ARG VITE_TOAST_REGION=""\nENV VITE_TOAST_REGION=\$VITE_TOAST_REGION/
+    );
   });
 });
