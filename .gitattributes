@@ -6,5 +6,8 @@
 # line), and Unit Tests runs it on every PR and in the merge queue. If that check
 # is ever loosened, remove this line. Fix a failure by regenerating:
 #   UPDATE_ENV_READ_NAMES=1 pnpm vitest run src/config/__tests__/env-read-names.test.ts
+# Recovery: merging a branch cut before #2019 (the old wrapped-paragraph format)
+# exits 0 but leaves the file unparseable (old tail spliced after the new one). The
+# test reads the file as text, so the same command still rewrites it; commit that.
 # Hand-edited files (flag-manifest.ts, locale JSON) must never use union.
 src/config/env-read-names.generated.ts merge=union
