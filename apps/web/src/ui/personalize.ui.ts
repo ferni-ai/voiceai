@@ -445,7 +445,7 @@ function createModal(): HTMLElement {
     <div class="personalize-card">
       ${renderHeader()}
       ${renderCategories()}
-      <div class="personalize-content">
+      <div class="personalize-content" tabindex="0" role="region" aria-label="${t('personalize.itemsRegion')}">
         ${renderItems()}
       </div>
     </div>

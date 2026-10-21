@@ -6,6 +6,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from './path-firestore.js';
+import type { ProactiveTrigger } from '../types.js';
 
 const docs = new Map<string, Record<string, unknown>>();
 const authUsers = new Map<string, { phoneNumber?: string }>();
@@ -14,6 +15,8 @@ let twilioDown = false;
 /** What the model writes; null means it is unavailable. */
 let modelReply: string | null | Error = null;
 const prompts: string[] = [];
+/** Runs while the model writes the words: after the run read the opt-outs, before the send. */
+let whileWriting: (() => void) | null = null;
 
 vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -33,17 +36,21 @@ vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
 vi.mock('../../../identity/firebase-auth.js', () => ({
   getFirebaseUser: vi.fn(async (uid: string) => authUsers.get(uid) ?? null),
 }));
-vi.mock('../../../communication-service.js', () => ({
-  sendSMS: vi.fn(async (to: string, body: string) => {
-    if (twilioDown) throw new Error('Twilio error: 503');
+// Proactive texts go through the guarded sender; Twilio is stubbed at its transport.
+vi.mock('../../delivery/sms-delivery.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isSMSDeliveryAvailable: () => true,
+  sendSMS: vi.fn(async ({ to, body }: { to: string; body: string }) => {
+    if (twilioDown) return { success: false, error: 'Twilio error: 503' };
     texts.push({ to, body });
-    return 'sent';
+    return { success: true, messageSid: 'SM1' };
   }),
 }));
 
 vi.mock('../../../llm-utils.js', () => ({
   callLLM: vi.fn(async (prompt: string) => {
     prompts.push(prompt);
+    whileWriting?.();
     if (modelReply instanceof Error) throw modelReply;
     return modelReply;
   }),
@@ -51,6 +58,7 @@ vi.mock('../../../llm-utils.js', () => ({
 
 const { handleDeliverScheduledActions } =
   await import('../../../../api/scheduled-jobs/background-delivery-jobs.js');
+const { phoneHash } = await import('../../checkin-replies.js');
 
 const SETH = 'seth-uid';
 const PHONE = '+15555550123';
@@ -111,6 +119,7 @@ beforeEach(() => {
   twilioDown = false;
   modelReply = null;
   prompts.length = 0;
+  whileWriting = null;
   authUsers.set(SETH, { phoneNumber: PHONE });
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);
@@ -366,5 +375,66 @@ describe('proactive check-in words', () => {
     expect(texts).toHaveLength(1);
     expect(texts[0].body).not.toBe(last);
     expect(logOf('promise:p1')).toMatchObject({ textSource: 'fallback' });
+  });
+});
+
+describe('proactive texts go through the guarded sender', () => {
+  const PROMISE_TEXT = "Hey, it's Ferni. I said I'd check in about the move. How's it going?";
+  const stopFrom = (phone: string) => {
+    docs.set(`feature_checkin_optouts/${phoneHash(phone)}`, {
+      at: NOW.toISOString(),
+      via: 'reply',
+    });
+  };
+  const records = () => under('feature_checkins/');
+
+  it('an opted-in member gets the same words, recorded as a proactive text', async () => {
+    seedUser();
+    seedPromise('p1');
+    expect(records()).toHaveLength(0);
+
+    await runHandler();
+
+    expect(texts).toEqual([{ to: PHONE, body: PROMISE_TEXT }]);
+    expect(records()).toEqual([
+      expect.objectContaining({
+        kind: 'proactive',
+        refId: 'promise:p1',
+        status: 'sent',
+        userId: SETH,
+        question: PROMISE_TEXT,
+      }),
+    ]);
+  });
+
+  it('a STOP that lands while the words are written stops the text; the words go to the app', async () => {
+    seedUser();
+    seedPromise('p1');
+    // Opted in when the run reads the opt-outs; the STOP arrives before the send.
+    whileWriting = () => stopFrom(PHONE);
+
+    await runHandler();
+
+    expect(texts).toHaveLength(0);
+    expect(records()).toHaveLength(0);
+    expect(notes()).toEqual([expect.objectContaining({ text: PROMISE_TEXT })]);
+    expect(logOf('promise:p1')).toMatchObject({ channel: 'in_app', fallbackFrom: 'sms' });
+  });
+
+  it('the text edge itself never texts a number that sent STOP', async () => {
+    seedUser();
+    stopFrom(PHONE);
+    const { defaultProactiveDeps } = await import('../default-deps.js');
+    const trigger: ProactiveTrigger = {
+      sourceId: 'promise:p1',
+      kind: 'promise',
+      weight: 'light',
+      timely: true,
+      reason: 'a promise',
+      text: PROMISE_TEXT,
+    };
+
+    expect(await defaultProactiveDeps().sendSms(SETH, trigger)).toBe(false);
+    expect(texts).toHaveLength(0);
   });
 });

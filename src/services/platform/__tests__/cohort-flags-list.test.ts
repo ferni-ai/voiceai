@@ -40,7 +40,7 @@ describe('COHORT_FLAGS', () => {
         'FOLLOW_THROUGH_OPENER', 'NAMED_TUNE', 'GOOD_NEWS_BIGGER', 'ALEX_CHIEF_OF_STAFF',
         'WEB_PUSH_DELIVERY', 'PERSONA_VOICE', 'TURN_LENGTH', 'TURN_TEXTURE',
         'REMINDER_SMS_DEFAULT', 'REMINDER_IN_APP_PUSH', 'FAMILY_TABLE', 'OPEN_LOOPS_IN_CONTEXT',
-        'IOS_PUSH',
+        'IOS_PUSH', 'FIRST_CALL_INTRO',
       ].sort() // prettier-ignore
     );
   });
