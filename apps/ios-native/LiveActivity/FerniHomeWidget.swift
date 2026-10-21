@@ -66,11 +66,14 @@ struct FerniHomeWidgetView: View {
             }
         }
         .containerBackground(for: .widget) {
-            // The room's light at this hour, as on Home (RoomLight).
+            // The room's light at this hour, as on Home (RoomLight), and in dark
+            // mode Night Ink's softer tint, so a dark widget is the app's warm
+            // near-black, not brown. The widget follows the phone's appearance:
+            // there's no app group, so it can't read the app's "Dark from 10 pm".
             let light = RoomLight(hour: hour)
             ZStack {
                 FerniColor.background
-                light.tint.opacity(light.tintOpacity)
+                light.tint.opacity(light.tintOpacity(dark: scheme == .dark))
             }
         }
     }
