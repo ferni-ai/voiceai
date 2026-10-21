@@ -18,13 +18,8 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
-
+import { askWhereFirst } from '../local-search/caller-city.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import {
-  NEED_LOCATION_RESULT,
-  placesNeedsLocationOn,
-  resolveSearchLocation,
-} from '../local-search/caller-city.js';
 
 /**
  * Execution context for internal tool routing, carrying the session's real user.
@@ -202,22 +197,15 @@ function getAppointmentToolDefinitions(): ToolDefinition[] {
               .optional()
               .describe('Special requests (outdoor, birthday, allergies)'),
           }),
-          execute: async (params, opts) => {
+          execute: async (params) => {
             log.info({ action: params.action, query: params.query }, '🍽️ Restaurant tool called');
 
             try {
               if (params.action === 'search') {
-                // PLACES_NEEDS_LOCATION: no search of "nearby" when nobody knows where that is.
-                let location = params.location || 'nearby';
-                if (placesNeedsLocationOn()) {
-                  const known = await resolveSearchLocation(params.location, opts, ctx);
-                  if (!known) return NEED_LOCATION_RESULT;
-                  location = known;
-                }
                 return await legacyTools.searchRestaurantsNearby.execute(
                   {
                     query: params.query || 'restaurants',
-                    location,
+                    location: params.location || 'nearby',
                     date: params.dateTime || 'today',
                     partySize: params.partySize || 2,
                   },
@@ -410,18 +398,8 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
             openNow: z.boolean().optional().describe('Only show places open now'),
             purpose: z.string().optional().describe('Purpose for calling'),
           }),
-          execute: async (params, opts) => {
+          execute: async (params) => {
             log.info({ action: params.action, query: params.query }, '📍 Business tool called');
-
-            // PLACES_NEEDS_LOCATION: the caller's words, saved city or device, or no search at all.
-            let location = params.location;
-            if (placesNeedsLocationOn()) {
-              location = await resolveSearchLocation(params.location, opts, ctx);
-              if (!location) {
-                log.info({ action: params.action }, '📍 No caller location: asking, not searching');
-                return NEED_LOCATION_RESULT;
-              }
-            }
 
             try {
               switch (params.action) {
@@ -429,7 +407,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
                   return await legacyTools.searchBusinesses.execute(
                     {
                       query: params.query || '',
-                      location,
+                      location: params.location,
                       openNow: params.openNow || false,
                     },
                     routedContext(ctx)
@@ -439,7 +417,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
                   return await legacyTools.getBusinessDetails.execute(
                     {
                       businessName: params.query || '',
-                      location,
+                      location: params.location,
                     },
                     routedContext(ctx)
                   );
@@ -448,7 +426,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
                   return await legacyTools.lookupBusinessPhone.execute(
                     {
                       businessName: params.query || '',
-                      location,
+                      location: params.location,
                     },
                     routedContext(ctx)
                   );
@@ -457,7 +435,7 @@ function getPlacesToolDefinitions(): ToolDefinition[] {
                   return await legacyTools.findAndCall.execute(
                     {
                       businessName: params.query || '',
-                      location,
+                      location: params.location,
                       purpose: params.purpose,
                     },
                     routedContext(ctx)
@@ -632,7 +610,7 @@ const calendarTools: ToolDefinition[] = [
   ...getPlacesToolDefinitions(),
   ...getContactsToolDefinitions(),
   ...smartCalendarTools,
-];
+].map(askWhereFirst); // PLACES_NEEDS_LOCATION: findBusiness, restaurant search (caller-city.ts)
 
 // ============================================================================
 // EXPORTS
