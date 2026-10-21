@@ -10,7 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { sendError, sendJSON, getCorsHeaders } from '../../../helpers.js';
 import {
-  getPublisherFromToken,
+  resolvePublisherForToken,
   verifyFirebaseToken,
   getFirestore,
 } from '../../../v1/developers/shared/developer-auth.js';
@@ -117,15 +117,15 @@ export async function requirePublisherAuth(
       return null;
     }
 
-    // Get publisher ID from Firebase UID
-    const publisherId = await getPublisherFromToken(req);
-    if (!publisherId) {
-      sendError(res, 'Publisher account not found', 403);
+    // The publisher linked to this uid, re-checked against the verified email
+    const resolved = await resolvePublisherForToken(decodedToken);
+    if (!resolved.ok) {
+      sendError(res, resolved.error, resolved.status);
       return null;
     }
 
     const authContext: AuthContext = {
-      publisherId,
+      publisherId: resolved.publisher.id,
       firebaseUid: decodedToken.uid,
       email: decodedToken.email,
     };

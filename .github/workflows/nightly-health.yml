@@ -3,6 +3,9 @@ name: Nightly Health
 # The suites OPTIONAL_CI keeps off PRs run on a schedule on main instead (#1366).
 # Nobody watches a scheduled run, so when one fails this opens or updates a
 # `ci-health` issue for it, in the same shape as scripts/ci/ci-health.sh.
+# CI's and Build Native Apps' jobs that no check requires run only on the push
+# to main, not in the merge queue, so a failed push run opens or updates a
+# `main-red` issue the same way (report-main).
 on:
   workflow_run:
     workflows:
@@ -14,6 +17,11 @@ on:
       - Memory Recall Gate
       - BTH Capability Benchmarks
       - AI Automation Suite
+      - CI
+      - Build Native Apps
+      # The monitors themselves: when one dies, nothing else reports it.
+      - Required Check Backfill
+      - CI Health
     types: [completed]
 
 permissions:
@@ -32,6 +40,25 @@ jobs:
         with:
           sparse-checkout: scripts/ci
       - name: Open or update the ci-health issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: scripts/ci/nightly-failure.sh
+
+  report-main:
+    name: Report failed push to main
+    if: >-
+      contains(fromJSON('["CI", "Build Native Apps"]'), github.event.workflow_run.name) &&
+      github.event.workflow_run.event == 'push' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      contains(fromJSON('["failure", "timed_out", "startup_failure"]'), github.event.workflow_run.conclusion)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci
+      - name: Open or update the main-red issue
         env:
           GH_TOKEN: ${{ github.token }}
           RUN_ID: ${{ github.event.workflow_run.id }}

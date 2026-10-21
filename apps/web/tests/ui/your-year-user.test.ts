@@ -52,7 +52,9 @@ describe('Your Year with Ferni: which user it loads', () => {
     await settle(openYourYearWithFerni());
 
     expect(apiGet).toHaveBeenCalledTimes(1);
-    expect(apiGet).toHaveBeenCalledWith('/api/year-in-review/firebase-uid-123');
+    expect(String(apiGet.mock.calls[0]?.[0])).toMatch(
+      /^\/api\/year-in-review\/firebase-uid-123\?tz=/
+    );
   });
 
   it('makes no request when nobody is signed in and shows the empty state', async () => {
