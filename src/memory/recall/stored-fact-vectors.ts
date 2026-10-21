@@ -37,6 +37,8 @@ export function recallVectorIndexEnabled(
 
 /** The Vertex task type a stored fact is embedded with: a memory, not a question. */
 export const EMBEDDING_TASK = 'RETRIEVAL_DOCUMENT';
+/** The dynamic_facts vector index's size (firestore.indexes.json): text-embedding-005. */
+export const FACT_VECTOR_DIMENSION = 768;
 /** Stored facts asked for per turn, and how long a search may take before it is dropped. */
 export const NEAREST_K = 8;
 export const NEAREST_TIMEOUT_MS = 1500;
@@ -114,6 +116,8 @@ export function createStoredVectors(
   const forget = base.forgotten;
   let topics: string[] | null = forget ? null : [];
   const found: RecallFact[] = [];
+  // One query at a time: a timed-out one still holds this until Firestore answers.
+  let querying = false;
   let pooled: { from: RecallSnapshot; count: number; to: RecallSnapshot } | undefined;
   const modelName = model.catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Embedding model unknown: stored vectors unused');
@@ -128,7 +132,7 @@ export function createStoredVectors(
     for (const d of docs) {
       const mine = d.embeddingModel === name && d.embeddingTask === EMBEDDING_TASK;
       const v = mine ? vectorOf(d.embedding) : undefined;
-      if (v) out.set(storedFactText(d), v);
+      if (v?.length === FACT_VECTOR_DIMENSION) out.set(storedFactText(d), v);
     }
     return out;
   };
@@ -145,12 +149,12 @@ export function createStoredVectors(
     },
     async nearest(queryVector) {
       const forgotten = topics;
-      if (!base.nearest || forgotten === null) return [];
-      const docs = await withTimeout(
-        base.nearest(userId, queryVector, NEAREST_K),
-        NEAREST_TIMEOUT_MS,
-        'Nearest facts'
-      );
+      if (!base.nearest || forgotten === null || querying) return [];
+      querying = true;
+      const query = base.nearest(userId, queryVector, NEAREST_K).finally(() => {
+        querying = false;
+      });
+      const docs = await withTimeout(query, NEAREST_TIMEOUT_MS, 'Nearest facts');
       const vectors = await vectorsOf(docs);
       // The same filters as the call's snapshot, with the topics it was loaded with.
       const { facts } = await loadRecallSnapshot(

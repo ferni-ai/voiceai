@@ -20,6 +20,7 @@ import {
 } from '../recall/semantic-recall.js';
 import {
   EMBEDDING_TASK,
+  FACT_VECTOR_DIMENSION,
   recallVectorIndexEnabled,
   storedFactText,
 } from '../recall/stored-fact-vectors.js';
@@ -28,8 +29,6 @@ const log = createLogger({ module: 'FactEmbeddings' });
 
 /** Long enough for a batch; the facts are written without vectors past it. */
 const EMBED_TIMEOUT_MS = 10_000;
-/** The dynamic_facts vector index's size (firestore.indexes.json): text-embedding-005. */
-export const FACT_VECTOR_DIMENSION = 768;
 
 export interface FactEmbeddingDeps {
   /** RECALL_VECTOR_INDEX=on; read from the environment when not given. */

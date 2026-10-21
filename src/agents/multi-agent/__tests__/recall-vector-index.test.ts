@@ -15,18 +15,22 @@ const fs = vi.hoisted(() => {
   const result = (rows: Array<Record<string, unknown>>) => ({
     docs: rows.map((d) => ({ data: () => d })),
   });
-  const query = () => ({
-    orderBy: () => query(),
-    where: () => query(),
+  const query = (path: string) => ({
+    orderBy: () => query(path),
+    where: () => query(path),
     limit: () => ({ get: async () => result([]) }),
     get: async () => result([]),
     doc: () => ({ get: async () => ({ exists: false, data: () => undefined }) }),
-    findNearest: (options: unknown) => {
-      asked.push(options);
+    findNearest: (options: Record<string, unknown>) => {
+      asked.push({ path, ...options });
       return { get: async () => result(nearestDocs) };
     },
   });
-  const db = { collection: () => ({ doc: () => ({ collection: () => query() }) }) };
+  const db = {
+    collection: (root: string) => ({
+      doc: (id: string) => ({ collection: (name: string) => query(`${root}/${id}/${name}`) }),
+    }),
+  };
   return { asked, db, nearestDocs };
 });
 vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
@@ -51,7 +55,8 @@ const TOPICS: RegExp[] = [
 const fakeEmbed: RetrievalEmbedder = async (texts) =>
   texts.map((t) => {
     const hit = TOPICS.findIndex((re) => re.test(t));
-    return [...TOPICS.map((_, i) => (i === hit ? 1 : 0.05)), 0.05, 0.05, 0.05, 0.05];
+    const v = [...TOPICS.map((_, i) => (i === hit ? 1 : 0.05)), 0.05, 0.05, 0.05, 0.05];
+    return [...v, ...new Array<number>(768 - v.length).fill(0)]; // the stored size
   });
 const settle = () =>
   new Promise((r) => {
@@ -243,6 +248,7 @@ describe('firestoreRecallStore.nearest', () => {
     const docs = await firestoreRecallStore.nearest!('u1', [0.1, 0.2], 8);
     expect(docs).toEqual([{ entityName: 'Biscuit', key: 'k', value: 'v' }]);
     expect(fs.asked.at(-1)).toEqual({
+      path: 'bogle_users/u1/dynamic_facts',
       vectorField: 'embedding',
       queryVector: [0.1, 0.2],
       limit: 8,

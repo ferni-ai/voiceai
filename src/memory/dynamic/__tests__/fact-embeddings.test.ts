@@ -1,8 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { FACT_VECTOR_DIMENSION, withFactEmbeddings } from '../fact-embeddings.js';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { withFactEmbeddings } from '../fact-embeddings.js';
 import { buildExtractionFirestoreWritePayloads } from '../extraction-firestore-docs.js';
 import type { RetrievalEmbedder } from '../../recall/semantic-recall.js';
-import { vectorOf } from '../../recall/stored-fact-vectors.js';
+import { FACT_VECTOR_DIMENSION, vectorOf } from '../../recall/stored-fact-vectors.js';
 
 const noLog = { debug: () => undefined };
 /** What the deep-extraction worker writes for two facts. */
@@ -46,7 +46,20 @@ function spyEmbed(make: (texts: string[]) => number[][] = (t) => t.map((_, i) =>
 }
 const model = async () => 'text-embedding-005';
 
+afterEach(() => vi.useRealTimers());
+
 describe('withFactEmbeddings', () => {
+  it('on: an embed that takes over 10 s writes the facts without vectors', async () => {
+    vi.useFakeTimers();
+    const embed: RetrievalEmbedder = () => new Promise(() => {});
+    let out: Array<Record<string, unknown>> | undefined;
+    void withFactEmbeddings(facts, { enabled: true, embed, model }).then((o) => (out = o));
+    await vi.advanceTimersByTimeAsync(9_999);
+    expect(out).toBeUndefined();
+    await vi.advanceTimersByTimeAsync(1);
+    expect(out).toEqual(facts);
+  });
+
   it('off: writes the facts exactly as before, with no embedding request', async () => {
     const { calls, embed } = spyEmbed();
     const out = await withFactEmbeddings(facts, { enabled: false, embed, model });

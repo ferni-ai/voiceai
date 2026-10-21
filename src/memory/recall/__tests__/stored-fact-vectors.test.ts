@@ -2,6 +2,7 @@ import { FieldValue } from '@google-cloud/firestore';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createStoredVectors,
+  FACT_VECTOR_DIMENSION,
   factItems,
   NEAREST_TIMEOUT_MS,
   recallVectorIndexEnabled,
@@ -12,12 +13,13 @@ import {
 import { loadRecallSnapshot, storedTopic } from '../session-recall.js';
 
 const MODEL = 'test-embedding-model';
+const V = Array.from({ length: FACT_VECTOR_DIMENSION }, (_, i) => (i % 3) / 10);
 const doc = (value: string, extra: Record<string, unknown> = {}) => ({
   entityName: 'user',
   key: 'note',
   value,
   confidence: 0.9,
-  embedding: FieldValue.vector([0.1, 0.2, 0.3]),
+  embedding: FieldValue.vector(V),
   embeddingModel: MODEL,
   embeddingTask: 'RETRIEVAL_DOCUMENT',
   ...extra,
@@ -62,17 +64,22 @@ describe('vectorOf', () => {
 describe('createStoredVectors', () => {
   it('gives the index stored vectors only from the current model', async () => {
     const store: VectorRecallStore = {
-      facts: async () => [doc('same model'), doc('older model', { embeddingModel: 'other' })],
+      facts: async () => [
+        doc('same model'),
+        doc('older model', { embeddingModel: 'other' }),
+        doc('wrong size', { embedding: FieldValue.vector([0.1, 0.2]) }),
+      ],
       summaries: async () => [],
     };
     const stored = await started(store);
     const snapshot = await loadRecallSnapshot(stored.store, 'u1');
     const items = factItems(snapshot.facts, 'Sam', stored);
     expect(items.map((i) => [i.text, i.vector])).toEqual([
-      ['Sam note: same model', [0.1, 0.2, 0.3]],
+      ['Sam note: same model', V],
       ['Sam note: older model', undefined],
+      ['Sam note: wrong size', undefined],
     ]);
-    expect(stored.vectorFor(storedFactText(doc('same model')))).toEqual([0.1, 0.2, 0.3]);
+    expect(stored.vectorFor(storedFactText(doc('same model')))).toEqual(V);
   });
 
   it('never returns a forgotten or corrected fact the search finds', async () => {
@@ -119,5 +126,31 @@ describe('createStoredVectors', () => {
     await vi.advanceTimersByTimeAsync(NEAREST_TIMEOUT_MS);
     await outcome;
     expect(stored.pool({ facts: [], followUps: [] }).facts).toEqual([]);
+  });
+
+  it('runs one query at a time, counting one that timed out until Firestore answers', async () => {
+    let answer: (docs: Array<Record<string, unknown>>) => void = () => undefined;
+    let queries = 0;
+    const slow: VectorRecallStore = {
+      ...storeWith([]),
+      nearest: () => {
+        queries++;
+        return new Promise((resolve) => {
+          answer = resolve;
+        });
+      },
+    };
+    const stored = await started(slow);
+    vi.useFakeTimers();
+    const first = expect(stored.nearest([1, 0, 0])).rejects.toThrow(/timed out/);
+    await vi.advanceTimersByTimeAsync(NEAREST_TIMEOUT_MS);
+    await first;
+    const second = stored.nearest([1, 0, 0]);
+    expect(queries).toBe(1);
+    expect(await second).toEqual([]);
+    answer([]);
+    await vi.advanceTimersByTimeAsync(0);
+    void stored.nearest([1, 0, 0]);
+    expect(queries).toBe(2);
   });
 });
