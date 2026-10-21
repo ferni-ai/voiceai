@@ -33,8 +33,8 @@ export const CARTESIA_MODEL = pinCartesiaModel(process.env.CARTESIA_MODEL);
 
 /**
  * Cartesia pronunciation dictionary for names TTS gets wrong (e.g. Nayan,
- * which sonic read as "NIGH-in"), built from COMMON_DIFFICULT_NAMES in
- * speech/pronunciation-memory/constants.ts. Spread into every TTS request.
+ * which sonic read as "NIGH-in"), built by pronunciationDictItems() in
+ * speech/pronunciation-memory/team-names.ts. Spread into every TTS request.
  */
 export function cartesiaPronunciation(env: Record<string, string | undefined> = process.env): {
   pronunciation_dict_id?: string;
@@ -139,9 +139,9 @@ export const VOICE_IDS = {
  * Ferni's previous voice, "First Principal 2" (Cartesia instant clone, Dec 2024
  * → 2026-10-03, and again 2026-10-04 → 10-17; rollback for FERNI_VOICE_ID). Not in
  * VOICE_IDS: no persona speaks with it now. It stays the default for new template
- * agents and the developer voice catalog (literals in .templates manifests,
- * cli/agent-manager.ts, api/v1/developers/voice-routes.ts) so those never default
- * to Lester's Professional Voice Clone.
+ * agents (literals in .templates manifests, cli/agent-manager.ts) so those never
+ * default to Lester's Professional Voice Clone. It is a clone, so the developer
+ * voice catalog doesn't offer it.
  */
 export const LEGACY_FERNI_IVC_VOICE_ID = 'fdeb5d75-4f2e-4224-9e98-6aa6aa1188bc';
 
