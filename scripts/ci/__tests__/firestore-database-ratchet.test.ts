@@ -115,6 +115,21 @@ describe('firestore database ratchet', () => {
     expect(allowlistAt(repo, 'main', 'scripts/ci/other.json')).toBe('no-file');
   });
 
+  it('does not count a local getFirestore() wrapper that shadows the import', () => {
+    const r = tree({
+      'scripts/tool.mjs': `
+        async function getFirestore() {
+          const { getFirestore } = require('firebase-admin/firestore');
+          return getFirestore(undefined, process.env.FIRESTORE_DATABASE || '(default)');
+        }
+        export async function run() {
+          return (await getFirestore()).collection('x');
+        }
+      `,
+    });
+    expect(measure(r)).toEqual([]);
+  });
+
   it('ignores the two helpers and test files', () => {
     const r = tree({
       'src/utils/firebase-admin-app.ts': VIOLATIONS,

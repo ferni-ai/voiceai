@@ -234,6 +234,30 @@ export function databaseIdProperty(
   );
 }
 
+/**
+ * True when the nearest declaration of `id` is a local function, parameter or variable
+ * not bound to firebase-admin/firestore, e.g. a file's own `getFirestore()` wrapper.
+ */
+function shadowed(id: ts.Identifier): boolean {
+  const name = id.text;
+  const names = (n: ts.BindingName): string[] =>
+    ts.isIdentifier(n)
+      ? [n.text]
+      : n.elements.flatMap((e) => (ts.isOmittedExpression(e) ? [] : names(e.name)));
+  for (let n: ts.Node | undefined = id.parent; n; n = n.parent) {
+    if (ts.isFunctionLike(n) && n.parameters.some((p) => names(p.name).includes(name))) return true;
+    if (!ts.isBlock(n) && !ts.isSourceFile(n)) continue;
+    for (const st of n.statements) {
+      if (ts.isFunctionDeclaration(st) && st.name?.text === name) return true;
+      if (!ts.isVariableStatement(st)) continue;
+      for (const d of st.declarationList.declarations) {
+        if (names(d.name).includes(name)) return moduleOf(d.initializer) !== ADMIN_FIRESTORE;
+      }
+    }
+  }
+  return false;
+}
+
 /** `const config = { ... }` in an enclosing block, for `new Firestore(config)`. */
 function localObject(id: ts.Identifier): ts.Expression | undefined {
   for (let n: ts.Node | undefined = id.parent; n; n = n.parent) {
@@ -305,7 +329,7 @@ export function findSites(sf: ts.SourceFile): Site[] {
         add('admin-namespace', node);
       }
       const getFs =
-        (ts.isIdentifier(callee) && b.getFirestore.has(callee.text)) ||
+        (ts.isIdentifier(callee) && b.getFirestore.has(callee.text) && !shadowed(callee)) ||
         (ts.isPropertyAccessExpression(callee) &&
           callee.name.text === 'getFirestore' &&
           ((ts.isIdentifier(callee.expression) &&

@@ -52,7 +52,6 @@ const NOT_YET_MIGRATED = new Set([
   'src/services/monetization/ferni-fund.ts',
   'src/services/outreach/firestore-persistence.ts',
   'src/services/outreach/unified-delivery.ts',
-  'src/services/platform/privacy-crypto.ts',
   'src/services/platform/security-events.ts',
   'src/services/pubsub/worker-main.ts',
   'src/services/scheduling/appointment-followup.ts',
