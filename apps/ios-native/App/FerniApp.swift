@@ -157,9 +157,8 @@ final class AppModel {
     /// question. More and Report open at half height and leave him in view.
     var coversFerni: Bool { isShowingSettings || isShowingMemory || isSigningIn || isAskingConsent }
 
-    /// Any sheet over the room: the room is out of reach, so it's out of
-    /// VoiceOver's and the audit's too (the dimmed call behind More was read as
-    /// clipped, faint captions with no element; critic H-C).
+    /// Any sheet over the room, half height included: you're in the middle of
+    /// something, so Night Ink's turn waits (critic M-C).
     var roomIsUnderASheet: Bool { coversFerni || isShowingCallMore || reporting != nil }
 
     /// The session a reported line belongs to: the room it was heard in.
