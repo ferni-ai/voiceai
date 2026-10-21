@@ -167,10 +167,12 @@ class SessionDataManagerImpl {
     const session = this.sessions.get(userId);
     const startTime = Date.now();
 
-    // Clean up all registered services
+    // Clean up all registered services; options go through only to drop without saving
     for (const [name, service] of this.services) {
       try {
-        await service.clearUserData(userId, options);
+        await (options.save === false
+          ? service.clearUserData(userId, options)
+          : service.clearUserData(userId));
         results.cleaned.push(name);
       } catch (error) {
         results.errors.push(name);
