@@ -13,6 +13,16 @@ final class CaptionSpeakerTests: XCTestCase {
         Caption(id: id, speaker: speaker, text: id, isFinal: true, personaID: persona)
     }
 
+    /// Critic M-F: at accessibility sizes the two caption lines are words; a
+    /// join is marked by the name chip instead. At other sizes it's a line.
+    func testAtAccessibilitySizesAJoinDoesntTakeALine() {
+        var joined = line("j", .ferni, "maya")
+        joined.joined = true
+        let lines = [line("a", .ferni, "ferni"), line("b", .you, nil), joined, line("c", .ferni, "maya")]
+        XCTAssertEqual(CallCaptions.shown(lines, accessibilitySize: true).map(\.id), ["b", "c"])
+        XCTAssertEqual(CallCaptions.shown(lines, accessibilitySize: false).map(\.id), ["b", "j", "c"])
+    }
+
     func testOnlyFerniHasNoNames() {
         let lines = [line("a", .you, nil), line("b", .ferni, "ferni"), line("c", .ferni, "ferni")]
         XCTAssertEqual(CallCaptions.labelled(lines), [])

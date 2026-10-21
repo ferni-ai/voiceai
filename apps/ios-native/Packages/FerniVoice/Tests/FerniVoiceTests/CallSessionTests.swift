@@ -603,6 +603,25 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(session.captions.lines.map(\.joined), [false, true, false])
     }
 
+    /// Critic M-F: the agent re-sending handoff_complete for whoever is
+    /// already speaking adds no "joined" line and no second swap.
+    func testARepeatedHandoffToWhoeverIsSpeakingJoinsNoOne() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        let room = rooms.made[0]
+        room.send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"maya-santos","timestamp":2}"#.utf8)))
+        await until(session.avatar.personaID == "maya")
+        room.send(.caption(CaptionChunk(streamID: "s1", segmentID: "a", speaker: .ferni, text: "Hi!", isFinal: true)))
+        room.send(.data(Data(#"{"type":"handoff_started","target":"maya-santos","newAgent":"maya-santos","previousAgent":"maya-santos","timestamp":3}"#.utf8)))
+        room.send(.data(Data(#"{"type":"handoff_complete","from":"maya-santos","target":"maya-santos","timestamp":4}"#.utf8)))
+        room.send(.caption(CaptionChunk(streamID: "s2", segmentID: "b", speaker: .ferni, text: "Which days?", isFinal: true)))
+        await until(session.captions.lines.count >= 3)
+        try? await Task.sleep(for: .milliseconds(100))
+        XCTAssertEqual(session.captions.lines.map(\.joined), [true, false, false], "one join, at the real handoff")
+        XCTAssertEqual(session.avatar.personaID, "maya")
+    }
+
     /// Award upgrade 4: a handoff that doesn't land joins no one.
     func testAFailedOrUnknownHandoffJoinsNoOne() async {
         let session = makeSession()
@@ -718,9 +737,21 @@ final class CaptionBookTests: XCTestCase {
         XCTAssertEqual(book.lines.map(\.joined), [false, true, false])
         XCTAssertEqual(book.lines[1].personaID, "maya")
         book.join("peter")
-        book.join("maya")
         XCTAssertEqual(book.lines.count, 3, "joins count toward the lines kept")
-        XCTAssertEqual(Set(book.lines.map(\.id)).count, 3, "each join is its own line")
+        XCTAssertEqual(book.lines.map(\.joined), [true, false, true], "the oldest line went")
+    }
+
+    /// Critic M-F: joins with nothing said between them collapse to the latest.
+    func testBackToBackJoinsAreOneLine() {
+        var book = CaptionBook()
+        book.apply(CaptionChunk(streamID: "s1", segmentID: "a", speaker: .ferni, text: "Let me bring her in.", isFinal: true))
+        book.join("maya")
+        book.join("ferni")
+        XCTAssertEqual(book.lines.map(\.joined), [false, true])
+        XCTAssertEqual(book.lines.last?.personaID, "ferni", "the latest join")
+        book.apply(CaptionChunk(streamID: "s2", segmentID: "b", speaker: .ferni, text: "I'm back.", isFinal: true))
+        book.join("maya")
+        XCTAssertEqual(book.lines.map(\.joined), [false, true, false, true], "words between them keep both")
     }
 
     func testACorrectedSegmentReplacesItsText() {
