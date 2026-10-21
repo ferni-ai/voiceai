@@ -27,17 +27,26 @@ final class AccessibilityAuditTests: XCTestCase {
     /// Every finding waved through is printed and kept as an attachment
     /// ("audit-waved-through …") for a reviewer; testTheGateStillFails proves a
     /// faint unlabelled line mid-screen still fails.
-    private func auditTwice(_ app: XCUIApplication, name: String, nudges: Bool = true) throws {
-        var held: [Unnamed] = [], cut: [Named] = []
+    /// With `asking`, the default size's "at larger sizes" findings are kept
+    /// (and returned) instead of failing: the AX5 launch answers them (see proveAtAX5).
+    @discardableResult
+    private func auditTwice(_ app: XCUIApplication, name: String, nudges: Bool = true, asking: Bool = false) throws -> [Named] {
+        var held: [Unnamed] = [], cut: [Named] = [], asked: [Named] = []
         let (floor, pinned) = Self.floor(app)
         try app.performAccessibilityAudit(for: .all) { issue in
             if let element = issue.element {
-                // Text running under the floor (the fade behind Talk) is read in
-                // full once scrolled up; it's audited there (see underTheFloor).
-                // The pinned button's own label is the floor, not text under it.
-                if issue.auditType == .contrast, element.frame.maxY > floor, !element.label.isEmpty,
-                   !pinned.insetBy(dx: -2, dy: -2).contains(element.frame) {
+                // Text running under the floor (the fade behind Talk), or for
+                // clipping, across the screen's bottom edge, is read in full once
+                // scrolled up; it's audited there (see underTheFloor). The pinned
+                // button's own label is the floor, not text under it.
+                if Self.cutByTheFloor(issue.auditType, element.frame, floor: floor), !element.label.isEmpty,
+                   !pinned.insetBy(dx: -2, dy: -2).contains(element.frame), !Self.isAccepted(issue, on: name) {
                     cut.append(Named(issue, label: element.label))
+                    return true
+                }
+                if asking, Self.askedAtLargerSizes.contains(issue.auditType), !element.label.isEmpty,
+                   !Self.isAccepted(issue, on: name) {
+                    asked.append(Named(issue, label: element.label, height: element.frame.height))
                     return true
                 }
                 return Self.handle(issue, on: name)
@@ -49,6 +58,97 @@ final class AccessibilityAuditTests: XCTestCase {
         // and before, the nudge's "second position" was the floor's (critic M-A).
         try nudge(app, held: held, name: name, allowed: nudges)
         try underTheFloor(app, cut: cut, floor: Self.floor(app).top, name: name)
+        return asked
+    }
+
+    /// The bottom inset under the home indicator: clipped text this close to
+    /// the screen's edge is the edge's, and is judged scrolled up.
+    nonisolated static let edge: CGFloat = 34
+
+    /// Contrast under the floor, and clipping across it or the screen's edge.
+    nonisolated static func cutByTheFloor(_ type: XCUIAccessibilityAuditType, _ frame: CGRect, floor: CGFloat) -> Bool {
+        switch type {
+        case .contrast: frame.maxY > floor
+        case .textClipped: frame.maxY > floor - edge
+        default: false
+        }
+    }
+
+    /// What the audit asks at the default size about larger sizes: "will not
+    /// be able to change the font size" and "may be clipped at larger sizes".
+    nonisolated static let askedAtLargerSizes: [XCUIAccessibilityAuditType] = [.dynamicType, .textClipped]
+
+    /// The AX5 launch's answer to the default size's questions (critic H-C: a
+    /// List section's footer flagged at the default size, never at AX5). Each
+    /// text is scrolled into full view at AX5 and measured there. "Will not be
+    /// able to change the font size" is answered by the size itself: it fails
+    /// unless the text grew to 1.8 times its default height (a fixed or capped
+    /// font doesn't). "May be clipped" fails if the audit flags it again in full
+    /// view. Never in full view fails. Waved ones are printed and attached.
+    private func proveAtAX5(_ app: XCUIApplication, asked: [Named], name: String) throws {
+        var waved: [String] = []
+        let bottom = Self.floor(app).top - Self.edge, top = app.frame.minY + 100
+        for q in asked {
+            let text = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", q.label)).firstMatch
+            func inView() -> Bool { text.exists && text.frame.minY >= top && text.frame.maxY <= bottom + 2 }
+            for _ in 0..<8 where !inView() {
+                // Up until it clears the bottom; down if a scroll carried it past the top.
+                let lift = !text.exists ? 240 : text.frame.minY < top
+                    ? -min(top - text.frame.minY + 24, 240) : min(max(text.frame.maxY - bottom + 24, 60), 240)
+                let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+                start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -lift)),
+                            withVelocity: 300, thenHoldForDuration: 0.3)
+                sleep(1)
+            }
+            var again: [Named] = []
+            try app.performAccessibilityAudit(for: [.dynamicType, .textClipped]) { issue in
+                if let element = issue.element, !element.label.isEmpty { again.append(Named(issue, label: element.label)) }
+                return true
+            }
+            let verdict = Self.ax5Verdict(asked: q, again: again, inView: inView(), height: text.exists ? text.frame.height : 0)
+            if let failing = verdict.failing { XCTFail("AUDIT [\(name)] \(failing) (at \(text.frame), full view \(top)–\(bottom))") }
+            if let ok = verdict.waved { waved.append("AUDIT-WAVED [\(name)] \(ok)") }
+        }
+        guard !waved.isEmpty else { return }
+        print(waved.joined(separator: "\n"))
+        let attachment = XCTAttachment(string: waved.joined(separator: "\n"))
+        attachment.name = "audit-waved-through ax5 \(name)"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    /// Asked at the default size, answered at AX5: never in full view fails;
+    /// a font-size question fails unless it grew 1.8 times; a clipping question
+    /// fails if it's flagged again in full view.
+    nonisolated static func ax5Verdict(asked: Named, again: [Named], inView: Bool, height: CGFloat) -> (failing: String?, waved: String?) {
+        if !inView { return ("asked at the default size, and couldn't be brought into full view at AX5: \(asked.what)", nil) }
+        let grew = "\(Int(asked.height)) to \(Int(height)) pt"
+        if asked.type == XCUIAccessibilityAuditType.dynamicType.rawValue {
+            if height < asked.height * 1.8 { return ("asked at the default size, and at AX5 it didn't grow (\(grew)): \(asked.what)", nil) }
+            return (nil, "grows at AX5 (\(grew)): \(asked.what)")
+        }
+        if again.contains(where: { $0.type == asked.type && $0.label == asked.label }) {
+            return ("asked at the default size, and flagged at AX5 in full view too: \(asked.what)", nil)
+        }
+        return (nil, "not flagged at AX5 in full view (\(grew)): \(asked.what)")
+    }
+
+    /// The AX5 answer's rule: each way it can fail, and the one way it passes.
+    func testADefaultSizeQuestionIsAnsweredAtAX5() {
+        let type = XCUIAccessibilityAuditType.dynamicType.rawValue, clipped = XCUIAccessibilityAuditType.textClipped.rawValue
+        let footer = Named(type: type, label: "a footer", what: "a footer", height: 36)
+        XCTAssertNotNil(Self.ax5Verdict(asked: footer, again: [], inView: false, height: 120).failing, "never in full view fails")
+        XCTAssertNotNil(Self.ax5Verdict(asked: footer, again: [], inView: true, height: 40).failing, "a fixed size fails")
+        XCTAssertNotNil(Self.ax5Verdict(asked: footer, again: [], inView: true, height: 54).failing, "capped at xxxLarge fails (1.5x)")
+        let grows = Self.ax5Verdict(asked: footer, again: [footer], inView: true, height: 120)
+        XCTAssertNil(grows.failing, "a font size question is answered by the size")
+        XCTAssertNotNil(grows.waved, "and it's listed")
+        let row = Named(type: clipped, label: "a row", what: "a row", height: 20)
+        XCTAssertNotNil(Self.ax5Verdict(asked: row, again: [row], inView: true, height: 63).failing, "clipped again in full view fails")
+        XCTAssertNil(Self.ax5Verdict(asked: row, again: [footer], inView: true, height: 63).failing, "not clipped in full view passes")
+        XCTAssertTrue(Self.cutByTheFloor(.textClipped, CGRect(x: 0, y: 887, width: 300, height: 63), floor: 956), "clipped at the edge")
+        XCTAssertFalse(Self.cutByTheFloor(.textClipped, CGRect(x: 0, y: 400, width: 300, height: 63), floor: 956), "mid-screen isn't")
+        XCTAssertFalse(Self.cutByTheFloor(.dynamicType, CGRect(x: 0, y: 900, width: 300, height: 63), floor: 956), "only contrast and clipping")
     }
 
     /// The one allowance for findings with no element: the screen is nudged
@@ -72,6 +172,7 @@ final class AccessibilityAuditTests: XCTestCase {
         let moved = zip(before, texts.map { $0.exists ? $0.frame : .zero }).contains { abs($0.minY - $1.minY) > 20 }
         guard moved else {
             for h in held { XCTFail("AUDIT [\(name)] no element, and the screen doesn't scroll: \(h.what)") }
+            keepScreenshot(app, "no element \(name)")
             return
         }
         var again: [Unnamed] = []
@@ -82,6 +183,7 @@ final class AccessibilityAuditTests: XCTestCase {
         }
         let verdict = Self.nudgeVerdict(held: held, again: again)
         for f in verdict.failing { XCTFail("AUDIT [\(name)] no element, in both positions: \(f.what)") }
+        if !verdict.failing.isEmpty { keepScreenshot(app, "no element \(name)") }
         guard !verdict.waved.isEmpty else { return }
         let report = verdict.waved.map { "AUDIT-WAVED [\(name)] no element (frame unknown) \($0)" }.joined(separator: "\n")
         print(report)
@@ -91,13 +193,23 @@ final class AccessibilityAuditTests: XCTestCase {
         add(attachment)
     }
 
+    /// A finding with no element has no element screenshot: the screen, for a reader.
+    private func keepScreenshot(_ app: XCUIApplication, _ name: String) {
+        let shot = XCTAttachment(screenshot: app.screenshot())
+        shot.name = name
+        shot.lifetime = .keepAlways
+        add(shot)
+    }
+
     /// The top of the floor: the pinned button (Home's Talk, sign-in's "Text me
     /// a code") and the paper behind it, a little above the button.
     static func floor(_ app: XCUIApplication) -> (top: CGFloat, button: CGRect) {
         // By identifier: "Talk" matched "Talk about this" and iPad's sidebar row (critic L).
+        // Hittable: Home's Talk stays in the tree under a sheet (Settings, Help),
+        // and was taken for the sheet's floor, 136 pt up.
         let talk = app.buttons["home.talk"]
-        let pinned = talk.exists ? talk : app.buttons["signIn.continue"]
-        return pinned.exists ? (pinned.frame.minY - 24, pinned.frame) : (app.frame.maxY, .null)
+        let pinned = talk.exists && talk.isHittable ? talk : app.buttons["signIn.continue"]
+        return pinned.exists && pinned.isHittable ? (pinned.frame.minY - 24, pinned.frame) : (app.frame.maxY, .null)
     }
 
     /// Contrast findings on text cut off by the floor or below it (award upgrade
@@ -110,8 +222,9 @@ final class AccessibilityAuditTests: XCTestCase {
         for finding in cut {
             let text = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", finding.label)).firstMatch
             // In steps of at most 240 pt, held at the end so nothing flings past.
+            let line = floor - (finding.type == XCUIAccessibilityAuditType.textClipped.rawValue ? Self.edge : 0)
             for _ in 0..<4 {
-                let lift = min(text.frame.maxY - floor + 24, 240)
+                let lift = min(text.frame.maxY - line + 24, 240)
                 guard lift > 0 else { break }
                 let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
                 start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -lift)),
@@ -119,11 +232,11 @@ final class AccessibilityAuditTests: XCTestCase {
                 sleep(1)
             }
             var again: [Named] = []
-            try app.performAccessibilityAudit(for: [.contrast]) { issue in
+            try app.performAccessibilityAudit(for: [.contrast, .textClipped]) { issue in
                 if let element = issue.element, !element.label.isEmpty { again.append(Named(issue, label: element.label)) }
                 return true
             }
-            let verdict = Self.floorVerdict(cut: [finding], again: again, clear: text.frame.maxY <= floor + 1)
+            let verdict = Self.floorVerdict(cut: [finding], again: again, clear: text.frame.maxY <= line + 1)
             for f in verdict.failing { XCTFail("AUDIT [\(name)] \(f)") }
             waved += verdict.waved.map { "AUDIT-WAVED [\(name)] \($0)" }
         }
@@ -178,11 +291,13 @@ final class AccessibilityAuditTests: XCTestCase {
 
     /// A finding on a labelled element: its type, the label and what the audit said.
     struct Named {
-        let type: UInt64, label: String, what: String
-        init(type: UInt64, label: String, what: String) { self.type = type; self.label = label; self.what = what }
-        init(_ issue: XCUIAccessibilityAuditIssue, label: String) {
+        let type: UInt64, label: String, what: String, height: CGFloat
+        init(type: UInt64, label: String, what: String, height: CGFloat = 0) {
+            self.type = type; self.label = label; self.what = what; self.height = height
+        }
+        init(_ issue: XCUIAccessibilityAuditIssue, label: String, height: CGFloat = 0) {
             self.init(type: issue.auditType.rawValue, label: label,
-                      what: "\(issue.compactDescription): '\(label)' | \(issue.detailedDescription)")
+                      what: "\(issue.compactDescription): '\(label)' | \(issue.detailedDescription)", height: height)
         }
     }
 
@@ -240,6 +355,12 @@ final class AccessibilityAuditTests: XCTestCase {
          "A system toolbar button: bar buttons stop growing by design and show the Large Content Viewer instead."),
         ("signIn", .dynamicType, "Cancel",
          "The sign-in sheet's system toolbar button, like Settings' Done: the Large Content Viewer instead."),
+        ("more|memory", .dynamicType, "Done",
+         "The More sheet's and the memory journal's system toolbar button, like Settings' Done: the Large Content Viewer instead."),
+        ("report", .dynamicType, "Cancel", "The report sheet's system toolbar button, like sign-in's Cancel."),
+        ("report", .dynamicType, "Send", "The report sheet's system toolbar button, like Settings' Done."),
+        ("report", .textClipped, "Cancel",
+         "The same toolbar button at AX5: bar buttons keep their size and show the Large Content Viewer, so the audit reads the word as cut."),
         ("settings", .dynamicType, "Privacy",
          "Same SettingsHeader as Account, which the AX5 screenshot shows at full size."),
         ("settings", .dynamicType, "Lock what Ferni remembers",
@@ -261,16 +382,22 @@ final class AccessibilityAuditTests: XCTestCase {
          "Account footer link; HelpLinksUITests.testAccountHelpGrowsWithTextSize proves it grows at AX5 (pinned, it stays 34 pt and fails)."),
     ]
 
+    /// The 1-pt probe, or an entry in `accepted`: a label prefix, or
+    /// "#identifier" for exactly one element.
+    nonisolated static func isAccepted(_ issue: XCUIAccessibilityAuditIssue, on screen: String) -> Bool {
+        guard let element = issue.element else { return false }
+        if element.identifier.hasPrefix("uitest.") { return true }
+        return accepted.contains(where: {
+            $0.screen.split(separator: "|").contains { screen.hasPrefix($0) } && issue.auditType == $0.type
+                && ($0.label.hasPrefix("#") ? element.identifier == String($0.label.dropFirst()) : element.label.hasPrefix($0.label))
+        })
+    }
+
     /// Every issue fails the test, named with its element so the log says what
     /// to fix. The 1-pt probe exists only in UI-test launches and is skipped.
     nonisolated static func handle(_ issue: XCUIAccessibilityAuditIssue, on screen: String) -> Bool {
         let element = issue.element
-        if element?.identifier.hasPrefix("uitest.") == true { return true }
-        // An entry is a label prefix, or "#identifier" for exactly one element.
-        if let element, accepted.contains(where: {
-            $0.screen.split(separator: "|").contains { screen.hasPrefix($0) } && issue.auditType == $0.type
-                && ($0.label.hasPrefix("#") ? element.identifier == String($0.label.dropFirst()) : element.label.hasPrefix($0.label))
-        }) { return true }
+        if isAccepted(issue, on: screen) { return true }
         print("AUDIT [\(screen)] \(issue.compactDescription): \(element.map { "\($0.elementType.rawValue) '\($0.label)' id='\($0.identifier)' \($0.frame)" } ?? "no element") | \(issue.detailedDescription)")
         return false
     }
@@ -300,6 +427,157 @@ final class AccessibilityAuditTests: XCTestCase {
         for screen in [Screen.connecting, .reconnecting, .onHold, .failed] {
             try audit(screen, size: .standard)
             try audit(screen, size: .ax5)
+        }
+    }
+
+    // MARK: - Every place, at both sizes and at night (critic H-B, H-C)
+
+    /// Night Ink's hour: 23:00, the app dark on a light-mode phone.
+    static let night = 23
+
+    /// Launches a scenario, walks to a place, and audits it there.
+    @discardableResult
+    private func auditPlace(_ place: String, scenario: String, size: TextSize, hour: Int? = nil, extra: [String] = [],
+                            asking: Bool = false, answering asked: [Named] = [], large: Bool = false,
+                            go: (XCUIApplication) -> XCUIElement) throws -> [Named] {
+        let app = XCUIApplication()
+        app.launchArguments = ["-FerniUITest", scenario, "-UIPreferredContentSizeCategoryName", size.rawValue,
+                               "-FerniReduceMotion", "NO", "-FerniReduceTransparency", "NO", "-FerniSounds", "NO"]
+            + (hour.map { ["-FerniHour", String($0)] } ?? []) + extra
+        app.launch()
+        let ready = go(app)
+        XCTAssertTrue(ready.waitForExistence(timeout: 20), "\(place) never appeared")
+        if large {
+            // Up to the large detent by the title bar. At half height the call
+            // shows dimmed above the sheet, and the audit reads its captions as
+            // faint, clipped text with no element (screenshot kept, 2026-10-21).
+            let top = ready.frame.minY
+            for _ in 0..<3 where ready.frame.minY > top - 100 {
+                ready.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                    .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.02)))
+                sleep(1)
+            }
+            XCTAssertLessThan(ready.frame.minY, top - 100, "\(place): the sheet went up to its large detent")
+        }
+        sleep(1)
+        let name = "\(place) \(size)" + (hour.map { " \($0)h" } ?? "")
+            + (UIDevice.current.userInterfaceIdiom == .pad ? " ipad" : "")
+        let found = try XCTContext.runActivity(named: name) { _ in try auditTwice(app, name: name, asking: asking) }
+        if !asked.isEmpty { try proveAtAX5(app, asked: asked, name: name) }
+        app.terminate()
+        return found
+    }
+
+    /// Standard by day and at night, then AX5, which answers what the
+    /// default size asked about larger sizes (once per text).
+    private func everyWay(_ place: String, scenario: String, extra: [String] = [], large: Bool = false,
+                          go: @escaping (XCUIApplication) -> XCUIElement) throws {
+        var asked = try auditPlace(place, scenario: scenario, size: .standard, hour: 14, extra: extra, asking: true, large: large, go: go)
+        asked += try auditPlace(place, scenario: scenario, size: .standard, hour: Self.night, extra: extra, asking: true, large: large, go: go)
+        var seen = Set<String>()
+        asked = asked.filter { seen.insert($0.label).inserted }
+        try auditPlace(place, scenario: scenario, size: .ax5, hour: 14, extra: extra, answering: asked, large: large, go: go)
+    }
+
+    private var pad: Bool { UIDevice.current.userInterfaceIdiom == .pad }
+
+    /// Opens a Settings link: on iPhone the Settings sheet, on iPad the sidebar's page.
+    private func settingsLink(_ app: XCUIApplication, _ label: String) -> XCUIElement {
+        if pad {
+            let item = app.staticTexts["Settings"].firstMatch
+            if item.waitForExistence(timeout: 20) { item.tap() }
+        }
+        let link = label == "What Ferni remembers" ? app.memoryLink : app.buttons[label].firstMatch
+        for _ in 0..<6 where !(link.waitForExistence(timeout: 2) && link.isHittable) { app.collectionViews.firstMatch.swipeUp(velocity: .slow) }
+        link.tap()
+        return app.navigationBars[label]
+    }
+
+    /// The main screens at night, in Night Ink (critic H-B: white on the light
+    /// sage, 2.48:1, on consent's button).
+    func testTheMainScreensAtNight() throws {
+        for screen in [Screen.consent, .settings, .call] {
+            try audit(screen, size: .standard, hour: Self.night)
+            try audit(screen, size: .ax5, hour: Self.night)
+        }
+    }
+
+    func testSignInAtNight() throws {
+        for size in [TextSize.standard, .ax5] {
+            try auditPlace("signIn", scenario: "home", size: size, hour: Self.night, extra: ["-FerniAccount", "anonymous"]) { app in
+                let offer = app.buttons["home.signIn"]
+                if offer.waitForExistence(timeout: 20) { offer.tap() }
+                return app.buttons["Continue with Google"]
+            }
+        }
+    }
+
+    /// Release hides phone sign-in (critic H3); audited that way too.
+    func testSignInWithoutThePhone() throws {
+        try auditPlace("signIn noPhone", scenario: "home", size: .standard, extra: ["-FerniAccount", "anonymous", "-FerniPhoneSignIn", "NO"]) { app in
+            let offer = app.buttons["home.signIn"]
+            if offer.waitForExistence(timeout: 20) { offer.tap() }
+            return app.buttons["Continue with Google"]
+        }
+    }
+
+    func testTeamAtNight() throws {
+        try auditPlace("team", scenario: pad ? "home" : "settings", size: .standard, hour: Self.night) { app in
+            let way = self.pad ? app.staticTexts["Team"].firstMatch : app.buttons["Your team"].firstMatch
+            if way.waitForExistence(timeout: 20) { way.tap() }
+            return app.descendants(matching: .any).matching(NSPredicate(format: "identifier BEGINSWITH 'team.'")).firstMatch
+        }
+    }
+
+    /// What Ferni remembers, opened from Home (iPhone) or the sidebar (iPad).
+    func testMemoryJournal() throws {
+        try everyWay("memory", scenario: "home", extra: ["-FerniStoreData", "YES"]) { app in
+            let open = self.pad ? app.staticTexts["What Ferni remembers"].firstMatch : app.buttons["home.memory"]
+            if open.waitForExistence(timeout: 20) { open.tap() }
+            return app.navigationBars["What Ferni remembers"]
+        }
+    }
+
+    /// The same journal, reached from Settings (pushed, not a sheet).
+    func testMemoryJournalFromSettings() throws {
+        try everyWay("memory settings", scenario: "settings", extra: ["-FerniStoreData", "YES"]) { app in
+            self.settingsLink(app, "What Ferni remembers")
+        }
+    }
+
+    /// The "I'll remember" card after a call.
+    func testRememberCard() throws {
+        try everyWay("remember", scenario: "remember", extra: ["-FerniStoreData", "YES"]) { app in
+            app.staticTexts["I'll remember"]
+        }
+    }
+
+    func testHelp() throws {
+        try everyWay("help", scenario: "settings") { app in self.settingsLink(app, "Help") }
+    }
+
+    func testDeleteAccount() throws {
+        try everyWay("deleteAccount", scenario: "settings") { app in self.settingsLink(app, "Delete account") }
+    }
+
+    /// The call's More sheet.
+    func testMore() throws {
+        try everyWay("more", scenario: "call", large: !pad) { app in
+            let more = app.buttons["More"]
+            if more.waitForExistence(timeout: 20) { more.tap() }
+            return app.navigationBars["More"]
+        }
+    }
+
+    /// The report sheet, from More.
+    func testReport() throws {
+        try everyWay("report", scenario: "call", large: !pad) { app in
+            let more = app.buttons["More"]
+            if more.waitForExistence(timeout: 20) { more.tap() }
+            let report = app.buttons["Report something Ferni said"]
+            for _ in 0..<4 where !(report.waitForExistence(timeout: 3) && report.isHittable) { app.collectionViews.firstMatch.swipeUp(velocity: .slow) }
+            report.tap()
+            return app.navigationBars["Report a reply"]
         }
     }
 
