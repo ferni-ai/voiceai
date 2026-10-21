@@ -1,8 +1,7 @@
 /**
  * Memory Domain - Tool Implementations
  *
- * Agent-agnostic memory tools that work with any persona.
- * No agent-specific references - just pure memory functionality.
+ * Agent-agnostic memory tools that work with any persona (no agent-specific references).
  */
 
 import { llm } from '@livekit/agents';
@@ -12,6 +11,7 @@ import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js'
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
+import { memoryHeld } from '../../../utils/minor-care.js';
 import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 // ============================================================================
 // SERVICE TYPES
@@ -99,7 +99,7 @@ export const rememberAboutUserDef: ToolDefinition = {
 
         // Feed to learning engine for persistence
         const { services } = userData;
-        if (services?.captureInsight) {
+        if (services?.captureInsight && !memoryHeld((services as { sessionId?: string }).sessionId)) {
           const typeMap: Record<string, string> = {
             personal: 'relationship',
             financial: 'concern',

@@ -332,13 +332,12 @@ async function fetchUserData(userId: string): Promise<UserData> {
     }
 
     // Fetch commitments
-    const commitmentsSnap = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('commitments')
-      .limit(10)
-      .get();
-    data.commitments = commitmentsSnap.docs.map((d) => d.data() as CommitmentData);
+    const [commitmentsSnap, shown] = await Promise.all([
+      db.collection('bogle_users').doc(userId).collection('commitments').limit(10).get(),
+      (await import('../../commitment-forget.js')).commitmentsShown(userId),
+    ]);
+    const kept = commitmentsSnap.docs.map((d) => d.data()).filter(shown); // forget requests
+    data.commitments = kept as CommitmentData[];
 
     // Fetch dreams
     const dreamsSnap = await db

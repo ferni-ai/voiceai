@@ -22,6 +22,7 @@
  * @module services/superhuman/unified-user-knowledge
  */
 
+import { commitmentsShown } from './commitment-forget.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import type { UserProfile } from '../../types/user-profile.js';
@@ -483,7 +484,8 @@ export async function buildUnifiedUserKnowledge(
         if (!commitmentsSnap.empty) {
           sources.push('superhuman_commitments');
 
-          for (const doc of commitmentsSnap.docs) {
+          const shown = await commitmentsShown(userId); // forget requests (commitment-forget.ts)
+          for (const doc of commitmentsSnap.docs.filter((d) => shown(d.data()))) {
             const commitment = doc.data();
             knowledge.commitments.push({
               description: commitment.description,
@@ -601,9 +603,7 @@ export async function buildUnifiedUserKnowledge(
 // FORMATTING
 // ============================================================================
 
-/**
- * Format unified knowledge into LLM context string
- */
+/** Format unified knowledge into LLM context string */
 function formatKnowledgeForLLM(knowledge: UnifiedUserKnowledge): string {
   const sections: string[] = [];
 
