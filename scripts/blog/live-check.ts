@@ -1,5 +1,5 @@
 /**
- * Is it live? Posts publish with no person reviewing them, so a post may only
+ * Is it live? Developer posts publish with no person reviewing them, so a post may only
  * cite a merged PR whose change people can use today. Two rules, both
  * conservative: when in doubt a PR is left out.
  *
@@ -31,7 +31,6 @@ const DAY = 86_400_000;
  */
 export const DEPLOYED_ON_MERGE = /^apps\/(?:web|website\/(?:ferni-website|developers-portal))\//;
 
-const MANIFESTS = ['src/config/flag-manifest.ts', 'src/config/flag-manifest-entries.ts'];
 const MANIFEST_FILE = /^src\/config\/flag-manifest[\w-]*\.ts$/;
 const OFF_ENTRY = /^\s*([A-Z][A-Z0-9_]*): \{ default: '(?:off|shadow)'/gm;
 const WEB_FLAG_FILE = /(?:^|\/)[\w.-]+-flag\.ts$/;
@@ -70,15 +69,35 @@ export interface LiveContext {
   today: string;
 }
 
+/** Every part of the flag manifest: flag-manifest.ts and the files it spreads in. */
+function manifestTexts(root: string): string[] {
+  const dir = path.join(root, 'src/config');
+  if (!fs.existsSync(dir)) return [];
+  return fs
+    .readdirSync(dir)
+    .filter((f) => MANIFEST_FILE.test(`src/config/${f}`))
+    .map((f) => fs.readFileSync(path.join(dir, f), 'utf-8'));
+}
+
 /** Flags the manifest has off (or shadow) by default. */
 export function offFlags(root: string): Set<string> {
   const names = new Set<string>();
-  for (const file of MANIFESTS) {
-    const full = path.join(root, file);
-    if (!fs.existsSync(full)) continue;
-    for (const m of fs.readFileSync(full, 'utf-8').matchAll(OFF_ENTRY)) names.add(m[1]);
-  }
+  for (const text of manifestTexts(root)) for (const m of text.matchAll(OFF_ENTRY)) names.add(m[1]);
   return names;
+}
+
+/** Each off-by-default flag, with the comment right above it when there is one. */
+export function offFlagNotes(root: string): string[] {
+  const notes: string[] = [];
+  for (const text of manifestTexts(root)) {
+    const lines = text.split('\n');
+    lines.forEach((line, i) => {
+      const name = new RegExp(OFF_ENTRY.source).exec(line)?.[1];
+      const note = /^\s*\/\/ ?(.*)$/.exec(lines[i - 1] ?? '')?.[1];
+      if (name) notes.push(note ? `${name}: ${note.trim()}` : name);
+    });
+  }
+  return notes.sort();
 }
 
 const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
