@@ -58,7 +58,8 @@ on:
   # run on the merged commit is the verdict. A push that CI's `paths:` filter
   # skips (docs only) deploys nothing; every input of the UI image is in that
   # list (src, apps, packages, design-system, docker, the root package and
-  # tsconfig files, patches, .npmrc, .dockerignore, this workflow).
+  # tsconfig files, patches, .npmrc, .dockerignore, this workflow) or of its
+  # deploy (deploy/ui-server/ env and secrets; ui-deploy-ci-paths.test.ts).
   # CI runs can still finish out of order, so the job's forward-only guard
   # (scripts/ci/deploy-forward-guard.sh) never deploys an older commit over a
   # newer one. A failed CI on main's tip is reported by report-not-live.
@@ -379,17 +380,17 @@ jobs:
           # whole project). It holds only what the server uses: Firestore
           # (datastore.user), Vertex Gemini (aiplatform.user), Firebase Auth user
           # get/delete (custom role ferniUiAuthUsers) and secretAccessor on each
-          # secret below. A new --set-secrets entry needs that grant too.
-          # Server flags live in --set-env-vars below. It REPLACES the service's env on every
-          # deploy, so a flag set by hand on Cloud Run is gone after the next main push:
-          # turn a web-server flag on here (and in apps/cli deploy.ts), in a reviewed PR.
-          # DISPATCH_SIGNING_SECRET signs the calls this server places (proactive check-ins,
-          # on-behalf, family check-ins); the voice agent verifies with the same secret (#1706).
-          # This repo is public: who gets proactive check-ins (PROACTIVE_CHANNELS_USERS,
-          # Firebase uids) comes from the proactive-channels-users secret, never this file.
-          # APNS_* send pushes to the iPhone app straight to Apple (token auth, .p8 key);
-          # SIWA_* revoke a Sign in with Apple grant when that person deletes their account.
-          # Both do nothing until the code that reads them ships; IOS_PUSH stays off per person.
+          # secret in deploy/ui-server/secrets.txt. A new secret needs that grant too.
+          # Env and secrets: one key per line in deploy/ui-server/ (env.yaml, secrets.txt;
+          # both REPLACE the service's on every deploy). Per-deploy env, one printf per key:
+          ENV_FILE=$(mktemp --suffix=.yaml)
+          cp deploy/ui-server/env.yaml "$ENV_FILE"
+          # Read from shell env, never pasted in as a workflow expression: DEPLOY_SHA can
+          # come from a workflow_dispatch input (CodeQL code injection, as in the summary).
+          printf 'BUILD_SHA: "%s"\n' "$DEPLOY_SHA" >> "$ENV_FILE"
+          printf 'GCLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
+          printf 'GOOGLE_CLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
+          SECRETS=$(grep -v -e '^#' -e '^$' deploy/ui-server/secrets.txt | paste -sd, -)
           gcloud run deploy john-bogle-ui \
             --image ${{ env.UI_IMAGE }}:${{ env.DEPLOY_SHA }} \
             --region ${{ env.GCP_REGION }} \
@@ -406,8 +407,8 @@ jobs:
             --min-instances 0 \
             --max-instances 10 \
             --vpc-connector ferni-redis-connector \
-            --set-env-vars "^::^NODE_ENV=production::BUILD_SHA=${{ env.DEPLOY_SHA }}::GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app::SIP_TRUNK_ID=ST_AEE6NnKE84XP::JOURNAL_TRANSCRIBE_VERTEX=on::MEMORY_VIEW=on::JOURNAL_ONE_STORE=on::CALL_HOURS_GUARD=on::FAMILY_CHECKIN_STOP=on::COHORT_FLAGS=on::PROACTIVE_CHANNELS=on::FOLLOW_THROUGH_JOB=on::PONDERING=on" \
-            --set-secrets "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,CARTESIA_API_KEY=cartesia-api-key:latest,VAPID_PUBLIC_KEY=vapid-public-key:latest,VAPID_PRIVATE_KEY=vapid-private-key:latest,WAITLIST_APPROVAL_SECRET=waitlist-approval-secret:latest,DISPATCH_SIGNING_SECRET=dispatch-signing-secret:latest,PROACTIVE_CHANNELS_USERS=proactive-channels-users:latest,APNS_KEY_P8=apns-key-p8:latest,APNS_KEY_ID=apns-key-id:latest,APNS_TEAM_ID=apple-team-id:latest,APNS_TOPIC=apns-topic:latest,SIWA_KEY_P8=siwa-key-p8:latest,SIWA_KEY_ID=siwa-key-id:latest,SIWA_TEAM_ID=apple-team-id:latest"
+            --env-vars-file "$ENV_FILE" \
+            --set-secrets "$SECRETS"
 
           SVC=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format=json)
           REVISION=$(jq -r '.status.latestCreatedRevisionName // empty' <<<"$SVC")

@@ -224,7 +224,7 @@ export async function extractEntities(
   context: ExtractionContext
 ): Promise<ExtractionResult> {
   const result = await extractAll(transcript, context);
-  const { kept, dropped } = keepRealEntities(result.entities);
+  const { kept, dropped } = keepRealEntities(result.entities, process.env, transcript);
   if (dropped.length > 0) {
     log.info({ userId: context.userId, dropped: dropped.length }, 'Junk entities not stored');
   }

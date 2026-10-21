@@ -33,8 +33,8 @@ export const CARTESIA_MODEL = pinCartesiaModel(process.env.CARTESIA_MODEL);
 
 /**
  * Cartesia pronunciation dictionary for names TTS gets wrong (e.g. Nayan,
- * which sonic read as "NIGH-in"), built from COMMON_DIFFICULT_NAMES in
- * speech/pronunciation-memory/constants.ts. Spread into every TTS request.
+ * which sonic read as "NIGH-in"), built by pronunciationDictItems() in
+ * speech/pronunciation-memory/team-names.ts. Spread into every TTS request.
  */
 export function cartesiaPronunciation(env: Record<string, string | undefined> = process.env): {
   pronunciation_dict_id?: string;

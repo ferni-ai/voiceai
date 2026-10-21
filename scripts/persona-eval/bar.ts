@@ -54,6 +54,7 @@ import { EventEmitter } from 'node:events';
 import {
   armEnv,
   compareArms,
+  comparePersonaTells,
   compareTable,
   copiedNgrams,
   copyStats,
@@ -70,9 +71,13 @@ import {
   parsePick,
   parseSets,
   parseUse,
+  personaTellsCompareTable,
+  personaTellsTable,
   rate,
   scoredTurns,
   shuffled,
+  tellsOf,
+  TELL_KEYS,
   words,
   zoneAtLocalHour,
   type Conversation,
@@ -80,7 +85,9 @@ import {
   type Humanness,
   type Metrics,
   type Pair,
+  type PersonaTellRow,
   type Rate,
+  type Tells,
 } from './bar-lib.js';
 import { bible } from './canon-judge.js';
 
@@ -176,7 +183,7 @@ interface Generated {
 interface Scored {
   metrics: Metrics;
   forced: Rate;
-  perPersona: Record<string, { distinctness: Rate; medianWords: number }>;
+  perPersona: Record<string, { distinctness: Rate; medianWords: number; tells?: Tells }>;
   confusion: Record<string, Record<string, number>>;
   judgeFailures: number;
   emptyReplies: number;
@@ -213,6 +220,8 @@ interface Result {
     observers?: Observers;
   };
   comparison?: ReturnType<typeof compareArms>;
+  /** Per persona, each tell vs the baseline (a direction, not a verdict). */
+  personaTells?: PersonaTellRow[];
 }
 
 const POOL = 8;
@@ -238,6 +247,30 @@ const progress = (msg: string): void => {
 const pctCi = (r: Rate): string =>
   `${r.k}/${r.n} = ${(100 * r.p).toFixed(1)}% [${(100 * r.lo).toFixed(1)}%, ${(100 * r.hi).toFixed(1)}%]`;
 const aaHumanRate = (h: Humanness | Rate): Rate => ('overall' in h ? humannessRate(h) : h);
+
+/**
+ * The tells, overall and per persona, recomputed from the replies. They are
+ * deterministic, so a result saved before the metric existed gets them too.
+ */
+function withTells(rs: Replies, scored: Scored): Scored {
+  const of = (ps: string[]): Tells =>
+    tellsOf(
+      Object.values(rs).flatMap((byPersona) =>
+        ps.map((p) => byPersona[p]?.reply ?? '').filter(Boolean)
+      )
+    );
+  return {
+    ...scored,
+    metrics: { ...scored.metrics, tells: of(PERSONAS) },
+    perPersona: Object.fromEntries(
+      PERSONAS.map((p) => [p, { ...scored.perPersona[p], tells: of([p]) }])
+    ),
+  };
+}
+const personaTellsOf = (s: Scored): Record<string, Tells> =>
+  Object.fromEntries(
+    Object.entries(s.perPersona).flatMap(([p, v]) => (v.tells ? [[p, v.tells]] : []))
+  );
 
 /** SSML a listener never sees as text; [laughter]-style sounds stay. */
 const untagged = (t: string): string =>
@@ -642,7 +675,7 @@ async function main(): Promise<void> {
     const sum = (o: Record<string, number>): number => Object.values(o).reduce((a, b) => a + b, 0);
     const lengths = (ps: string[]): number[] =>
       filled.filter((f) => ps.includes(f.p)).map((f) => words(untagged(f.r.reply)).length);
-    return {
+    return withTells(rs, {
       metrics: {
         distinctness: rate(sum(hits), sum(tries)),
         insight: rate(natural, insightN),
@@ -659,7 +692,7 @@ async function main(): Promise<void> {
       confusion,
       judgeFailures,
       emptyReplies,
-    };
+    });
   }
 
   /**
@@ -735,7 +768,7 @@ async function main(): Promise<void> {
         .filter((r) => r.reply)
         .map((r) => r.copied)
     );
-    return { ...scored, metrics: { ...scored.metrics, copy: copyStats(copied) } };
+    return withTells(rs, { ...scored, metrics: { ...scored.metrics, copy: copyStats(copied) } });
   };
   if (prior && (prior.arm !== arm || JSON.stringify(prior.sets) !== JSON.stringify(sets)))
     throw new Error(`--reuse: ${dir}/result.json is arm ${prior.arm} with other overrides`);
@@ -811,9 +844,9 @@ async function main(): Promise<void> {
       '',
       '| metric | A/A gap | sampling gap (when larger) | floor |',
       '|---|---|---|---|',
-      ...(Object.keys(floor) as Array<keyof Floor>).map(
-        (k) =>
-          `| ${k} | ${(100 * gap[k]).toFixed(1)} pts | ${floor[k] > gap[k] ? `${(100 * floor[k]).toFixed(1)} pts` : '-'} | ${(100 * floor[k]).toFixed(1)} pts |`
+      ...floorRows(gap, floor).map(
+        ([k, g, f]) =>
+          `| ${k} | ${(100 * g).toFixed(1)} pts | ${f > g ? `${(100 * f).toFixed(1)} pts` : '-'} | ${(100 * f).toFixed(1)} pts |`
       ),
       ''
     );
@@ -823,6 +856,9 @@ async function main(): Promise<void> {
     const baseResult = JSON.parse(
       readFileSync(join(resolve(values.baseline), 'result.json'), 'utf8')
     ) as Result;
+    baseResult.scored = withTells(baseResult.replies, baseResult.scored);
+    if (baseResult.aa)
+      baseResult.aa.scored = withTells(baseResult.aa.replies, baseResult.aa.scored);
     if ((baseResult.mode ?? 'single-turn') !== (result.mode ?? 'single-turn'))
       throw new Error(
         `--baseline ${baseResult.arm} is ${baseResult.mode ?? 'single-turn'}, this run is not`
@@ -842,6 +878,11 @@ async function main(): Promise<void> {
           )
         : null
     );
+    result.personaTells = comparePersonaTells(
+      personaTellsOf(baseResult.scored),
+      personaTellsOf(result.scored),
+      baseResult.aa ? personaTellsOf(baseResult.aa.scored) : undefined
+    );
     md.push(
       `## ${arm} vs ${baseResult.arm}`,
       '',
@@ -849,6 +890,10 @@ async function main(): Promise<void> {
         `The verdict uses the length-matched pairs when there are at least 30 (judge failures ${h.judgeFailures}).`,
       '',
       compareTable(result.comparison),
+      '',
+      `### Tells per persona that moved beyond their floor (the persona's A/A gap or the sampling gap at n≈${LINES.length}; a direction, not a verdict: a tell can be in character)`,
+      '',
+      personaTellsCompareTable(result.personaTells),
       ''
     );
   }
@@ -870,6 +915,10 @@ async function main(): Promise<void> {
       const s = result.scored.perPersona[p];
       return `| ${p} | ${s.distinctness.k}/${s.distinctness.n} | ${s.medianWords} |`;
     }),
+    '',
+    "## Tells per persona (run 1; share of that persona's replies)",
+    '',
+    personaTellsTable(personaTellsOf(result.scored)),
     ''
   );
 
@@ -878,6 +927,17 @@ async function main(): Promise<void> {
   writeFileSync(join(dir, 'result.md'), md.join('\n'));
   console.log(md.join('\n'));
   console.log(`-> ${dir}/result.json`);
+}
+
+/** The floor table's rows: each metric, then each tell, as [name, A/A gap, floor]. */
+function floorRows(gap: Floor, floor: Floor): Array<[string, number, number]> {
+  const base = (['distinctness', 'insight', 'copy', 'humanness'] as const).map(
+    (k): [string, number, number] => [k, gap[k], floor[k]]
+  );
+  const tells = TELL_KEYS.flatMap((k): Array<[string, number, number]> =>
+    gap.tells && floor.tells ? [[`tells: ${k}`, gap.tells[k], floor.tells[k]]] : []
+  );
+  return [...base, ...tells];
 }
 
 /** Multi-turn: what the director and deliberation did, and what the scored replies were given. */
