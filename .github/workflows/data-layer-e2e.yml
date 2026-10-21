@@ -91,7 +91,9 @@ jobs:
 
       - name: Start Firestore Emulator
         run: |
-          firebase emulators:start --only firestore --project demo-project > emulator.log 2>&1 &
+          # firebase.json lists one firestore entry per database; the emulator
+          # loads rules only when --only names one (both use firestore.rules).
+          firebase emulators:start --only firestore:ferni-dev --project demo-project > emulator.log 2>&1 &
           # Fail here if it never comes up: running the tests without it (as when
           # this job installed Java 17 and firebase-tools needed 21) hid the failure.
           for i in $(seq 1 60); do
@@ -206,9 +208,9 @@ jobs:
 
       - name: Start Firestore Emulator
         run: |
-          # firebase.json points firestore.indexes at firestore.indexes.json;
-          # the emulator loads those committed indexes on start.
-          firebase emulators:start --only firestore --project demo-project > emulator.log 2>&1 &
+          # firebase.json lists one firestore entry per database; the emulator
+          # loads rules only when --only names one (both use firestore.rules).
+          firebase emulators:start --only firestore:ferni-dev --project demo-project > emulator.log 2>&1 &
           for i in $(seq 1 60); do
             curl -s -o /dev/null http://localhost:8080/ && echo "Emulator up after ${i}s" && exit 0
             sleep 1
