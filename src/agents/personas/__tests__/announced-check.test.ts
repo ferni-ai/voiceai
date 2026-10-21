@@ -10,9 +10,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const warn = vi.hoisted(() => vi.fn());
 vi.mock('../../../utils/safe-logger.js', () => {
-  // child: some modules the guard imports log through getLogger().child (human-signal-extractor).
   const l: Record<string, unknown> = { debug: vi.fn(), info: vi.fn(), warn, error: vi.fn() };
-  l.child = () => l;
+  l.child = () => l; // modules loaded through the memory barrel make child loggers at import
   return { getLogger: () => l, createLogger: () => l, safeLog: () => l };
 });
 

@@ -63,34 +63,13 @@ export const FLAGS_ACTION_TO_BYPASS = {
   BACKCHANNEL_AUDIO_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKCHANNEL_CLIPS: { default: 'on', owner: 'voice', kind: 'config' },
   BACKCHANNEL_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
-  BACKGROUND_TURN_LATENCY_WARNINGS: { default: 'off', owner: 'voice', kind: 'experiment' },
   BARGE_IN_ACK_WORDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   BARGE_IN_FASTPATH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   BARGE_IN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: pseudonymous call and outreach rows go to BigQuery ferni_events (analytics/bq-events.ts)
+  BQ_EVENTS: { default: 'off', owner: 'platform', kind: 'experiment' },
   BRIEFED_HANDOFF: { default: 'off', owner: 'voice', kind: 'experiment' },
-  BYPASS_INJECTION_FILTER: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   BYPASS_TEAM_UNLOCKS: { default: 'off', owner: 'tools', kind: 'kill-switch' },
-} as const satisfies Record<string, FlagSpec>;
-
-/** CALL_CPU_PROFILE .. CI */
-export const FLAGS_CALL_TO_CI = {
-  CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
-  CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
-  CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
-  CALL_RESULT_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  CALL_JOURNAL_ASK: { default: 'off', owner: 'memory', kind: 'experiment' },
-  CALL_WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
-  CANDOR: { default: 'off', owner: 'voice', kind: 'experiment' },
-  CARTESIA_STREAMING_TTS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  CASCADE_APPEND_ONLY_TOOLS: { default: 'off', owner: 'platform', kind: 'experiment' },
-  CASCADE_CACHE_WARM: { default: 'off', owner: 'voice', kind: 'experiment' },
-  CASCADE_FAST_LANE: { default: 'off', owner: 'voice', kind: 'kill-switch' },
-  CASCADE_TRIM_LEAD_SILENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // vad restores the silence timer; anything else is the STT end-of-turn (cartesia-cascade.ts)
-  CASCADE_TURN_DETECTION: { default: 'stt', owner: 'voice', kind: 'config' },
-  // set by CI runners, not by us
-  CI: { default: 'off', owner: 'tools', kind: 'config' },
 } as const satisfies Record<string, FlagSpec>;
 
 /** MOVE_OUTCOMES .. PHONE_AUDIO_MODE */
@@ -103,6 +82,8 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   MULTI_AGENT_SINGLE_SESSION: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   MUSIC_CONTINUE_AS_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
   MUSIC_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  // on: every writer of the caller's name takes it from utils/caller-name.ts (capitalised, not a stopword or teammate)
+  NAME_CAPTURE_STRICT: { default: 'off', owner: 'memory', kind: 'experiment' },
   NAME_CORRECTION: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: an opening "Hey Seth, ..." is voiced as "Hey Seth." so the name falls (speech/tts-gateway/name-intonation.ts);
   // a name kept later in a reply ends its sentence the same way (agents/personas/name-gate.ts)
@@ -121,12 +102,13 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // First on-behalf dial checks the do-not-call list (first-dial-opt-out.ts)
   ON_BEHALF_DNC_CHECK: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  ON_BEHALF_TEXTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // off: texts to someone else skip the STOP, quiet-hours and 10-minute guards (guarded-text.ts); rollback only
   ON_BEHALF_TEXT_GUARD: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
   OPENER_FOLLOW_UP: { default: 'off', owner: 'memory', kind: 'experiment' },
   OPENER_GATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   OPENER_GATE_EARLY: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: open loops and Ferni's own promises join a call's recall note, once a call (agents/multi-agent/open-loops-recall.ts)
+  OPEN_LOOPS_IN_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   OUTBOUND_CONFIRM: { default: 'on', owner: 'outreach', kind: 'kill-switch' },
   // ms, 10-1000: the room audio output queue; unset keeps the SDK default (1000 ms in 1.5.1)
   OUTPUT_QUEUE_MS: { default: 'sdk', owner: 'voice', kind: 'config' },

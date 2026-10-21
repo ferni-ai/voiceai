@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { flushBqEvents, setBqTransportForTests } from '../../../services/analytics/bq-events.js';
 
 import {
   endCall,
@@ -12,6 +14,8 @@ import {
 import { replayCallQuality } from '../job-runner.js';
 
 afterEach(() => {
+  setBqTransportForTests(null);
+  vi.unstubAllEnvs();
   setCallQualityForwarder(null);
   resetCallQualityStateForTests();
 });
@@ -46,5 +50,21 @@ describe('call quality across processes', () => {
       'Ignored an unknown call-quality message from a child',
       'Ignored an unknown call-quality message from a child',
     ]);
+  });
+
+  it("the child's turn count rides endCall to the worker's call_events row", async () => {
+    const rows: Array<Record<string, unknown>> = [];
+    setBqTransportForTests(async (_table, batch) => void rows.push(...batch));
+    vi.stubEnv('BQ_EVENTS', 'on');
+    const sent: Array<[string, unknown[]]> = [];
+    setCallQualityForwarder((op, args) => void sent.push([op, args]));
+    endCall('call-3', 'natural', { turns: 4 });
+    expect(sent).toEqual([['endCall', ['call-3', 'natural', { turns: 4 }]]]);
+    setCallQualityForwarder(null);
+    const log = () => undefined;
+    await replayCallQuality('startCall', ['call-3', 'user-3', 'ferni'], log);
+    await replayCallQuality('endCall', sent[0]?.[1] ?? [], log);
+    await flushBqEvents();
+    expect(rows).toEqual([expect.objectContaining({ event_type: 'call_end', turns: 4 })]);
   });
 });

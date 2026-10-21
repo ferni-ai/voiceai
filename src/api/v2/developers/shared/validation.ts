@@ -8,10 +8,24 @@
  */
 
 import { z } from 'zod';
+import { checkOutboundUrl } from '../../../../utils/outbound-url-guard.js';
 
 // ============================================================================
 // COMMON SCHEMAS
 // ============================================================================
+
+/** A URL the server will fetch: must be a public https (or wss) destination. */
+function outboundUrl(protocols?: readonly string[]) {
+  return z
+    .string()
+    .url()
+    .superRefine((value, ctx) => {
+      const check = checkOutboundUrl(value, { protocols });
+      if (!check.ok) ctx.addIssue({ code: 'custom', message: `URL not allowed: ${check.reason}` });
+    });
+}
+export const OutboundUrlSchema = outboundUrl();
+const MCPEndpointSchema = outboundUrl(['https:', 'wss:']);
 
 /** Pagination query parameters */
 export const PaginationSchema = z.object({
@@ -68,7 +82,7 @@ export const CreateMCPServerSchema = z
     transport: MCPTransportSchema,
     command: z.string().optional(),
     args: z.array(z.string()).optional(),
-    endpoint: z.string().url().optional(),
+    endpoint: MCPEndpointSchema.optional(),
     headers: z.record(z.string(), z.string()).optional(),
     secrets: z.record(z.string(), z.string()).optional(),
     autoConnect: z.boolean().default(true),
@@ -99,7 +113,7 @@ export const UpdateMCPServerSchema = z.object({
   transport: MCPTransportSchema.optional(),
   command: z.string().optional(),
   args: z.array(z.string()).optional(),
-  endpoint: z.string().url().optional(),
+  endpoint: MCPEndpointSchema.optional(),
   headers: z.record(z.string(), z.string()).optional(),
   secrets: z.record(z.string(), z.string()).optional(),
   autoConnect: z.boolean().optional(),
@@ -117,7 +131,7 @@ export const ToolExecutionTypeSchema = z.enum(['webhook', 'mcp', 'prompt']);
 /** Tool config */
 export const ToolConfigSchema = z.object({
   // For webhook
-  url: z.string().url().optional(),
+  url: OutboundUrlSchema.optional(),
   method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional(),
   headers: z.record(z.string(), z.string()).optional(),
   // For mcp
@@ -214,7 +228,7 @@ export const RetryPolicySchema = z.object({
 export const CreateWebhookSchema = z.object({
   personaId: z.string().optional(),
   name: z.string().min(1).max(100),
-  url: z.string().url(),
+  url: OutboundUrlSchema,
   events: z.array(WebhookEventTypeSchema).min(1),
   enabled: z.boolean().default(true),
   retryPolicy: RetryPolicySchema.optional(),
@@ -223,7 +237,7 @@ export const CreateWebhookSchema = z.object({
 /** Update webhook input */
 export const UpdateWebhookSchema = z.object({
   name: z.string().min(1).max(100).optional(),
-  url: z.string().url().optional(),
+  url: OutboundUrlSchema.optional(),
   events: z.array(WebhookEventTypeSchema).min(1).optional(),
   enabled: z.boolean().optional(),
   retryPolicy: RetryPolicySchema.optional(),
@@ -311,7 +325,7 @@ export const NodeConfigSchema = z.object({
   toolName: z.string().optional(),
   arguments: z.record(z.string(), z.string()).optional(),
   // For webhook
-  url: z.string().url().optional(),
+  url: OutboundUrlSchema.optional(),
   method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).optional(),
   headers: z.record(z.string(), z.string()).optional(),
   body: z.string().optional(),
@@ -395,7 +409,7 @@ export const UpdateWorkflowSchema = z.object({
 export const CreateOAuthProviderSchema = z.object({
   name: z.string().min(1).max(100),
   authorizationUrl: z.string().url(),
-  tokenUrl: z.string().url(),
+  tokenUrl: OutboundUrlSchema,
   clientId: z.string().min(1),
   clientSecret: z.string().min(1),
   scopes: z.array(z.string()),
@@ -406,7 +420,7 @@ export const CreateOAuthProviderSchema = z.object({
 export const UpdateOAuthProviderSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   authorizationUrl: z.string().url().optional(),
-  tokenUrl: z.string().url().optional(),
+  tokenUrl: OutboundUrlSchema.optional(),
   clientId: z.string().min(1).optional(),
   clientSecret: z.string().min(1).optional(),
   scopes: z.array(z.string()).optional(),

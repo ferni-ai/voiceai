@@ -85,11 +85,22 @@ jobs:
     name: Rollback UI Server
     runs-on: ubuntu-latest
     if: ${{ inputs.service == 'ui-server' || inputs.service == 'all' }}
+    # Its own group, not deploy-production's: GitHub keeps one pending run per
+    # group, so a later deploy would replace (cancel) a pending rollback. The
+    # deploy freeze below keeps deploys off instead.
+    concurrency:
+      group: prod-rollback
+      cancel-in-progress: false
+    permissions:
+      contents: write  # the deploy-freeze tag
     outputs:
       previous_revision: ${{ steps.current.outputs.revision }}
       new_revision: ${{ steps.rollback.outputs.revision }}
     
     steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
@@ -136,6 +147,23 @@ jobs:
           
           echo "revision=$TARGET" >> $GITHUB_OUTPUT
 
+      # Freeze automatic deploys BEFORE moving traffic. Main's tip is still the
+      # commit being rolled back, and the next automatic deploy would put it
+      # straight back (scripts/ci/deploy-freeze.sh). A deploy already running
+      # re-checks the freeze right before its own traffic shift and stops; the
+      # pause lets one that passed that check a moment ago land first, so this
+      # rollback has the last word. Unfreeze deliberately afterwards
+      # (deploy-production with unfreeze: true and a reason).
+      - name: Freeze automatic deploys
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REASON: ${{ inputs.reason }}
+        run: |
+          # Never block a rollback on the freeze: if it can't be set, roll back anyway and say so loudly.
+          bash scripts/ci/deploy-freeze.sh set "rollback.yml by $GITHUB_ACTOR: $REASON" \
+            || echo "::error::Could not set the deploy freeze; rolling back anyway. The next automatic deploy may undo this rollback: freeze by hand (git tag -a deploy-freeze -m '<reason>' && git push origin deploy-freeze)."
+          sleep 30
+
       - name: Rollback traffic
         id: rollback
         run: |
@@ -153,6 +181,11 @@ jobs:
             --format="value(status.url)")
           
           curl -sf "$URL/health" > /dev/null && echo "Health check passed!" || echo "Warning: Health check failed"
+
+      - name: Confirm traffic stayed on the rollback target
+        env:
+          TARGET: ${{ steps.target.outputs.revision }}
+        run: bash scripts/ci/confirm-rollback-traffic.sh "$TARGET"
 
   # ============================================================================
   # TRACK ROLLBACK

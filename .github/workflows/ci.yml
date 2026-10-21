@@ -23,8 +23,14 @@ on:
       - '.github/workflows/**'
       - '.github/actions/**'
       - '**/Dockerfile*'
+      # Shapes the UI image's build context. Prod web deploys start from this
+      # push run's verdict (deploy-production.yml), so it must run on it.
+      - '.dockerignore'
       - 'cloudbuild*.yaml'
       - 'infra/**'
+      # The web server's env and secrets (deploy/ui-server/). A flag flip that
+      # edits only these must still get a push run, or nothing deploys it.
+      - 'deploy/**'
   pull_request:
     branches: [main, develop]
     # No path filter on PRs: branch protection requires these checks, so a PR
@@ -101,7 +107,7 @@ jobs:
       # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
       code: ${{ steps.code.outputs.matched }}
       # 'false' also when a PR touches only apps that aren't the Node app (website,
-      # ios-native, android-native, android-twa, macos-menubar): none is in the UI image, ESLint
+      # ios-native, android-twa, macos-menubar): none is in the UI image, ESLint
       # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
       # see the change. Security and Quality Gates (brand scans the website) stay on
       # `code`. The merge queue is scoped the same way unless CI_SCOPED_QUEUE=off.
@@ -129,7 +135,7 @@ jobs:
         id: node
         uses: ./.github/actions/pr-changes
         with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|android-twa|macos-menubar)/'
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-twa|macos-menubar)/'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - name: Did the merge queue already test this tree?
