@@ -52,6 +52,7 @@ const SECRETS = [
   'LIVEKIT_API_SECRET=livekit-api-secret:latest',
   'LIVEKIT_URL=livekit-url:latest',
   'LOG_HASH_SECRET=log-hash-secret:latest',
+  'OWNER_EMAIL=owner-email:latest',
   'PROACTIVE_CHANNELS_USERS=proactive-channels-users:latest',
   'SENDGRID_API_KEY=sendgrid-api-key:latest',
   'SENDGRID_FROM_EMAIL=sendgrid-from-email:latest',
