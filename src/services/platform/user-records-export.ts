@@ -256,7 +256,8 @@ export const KNOWN_USER_STORES: readonly string[] = [
 /**
  * Top-level fields a store keeps although the secret filter drops their name, because
  * there they are the person's data, not a credential (#2336). Only at a document's top
- * level, and only where listed: the same name nested in a value, or a `key` in any other
+ * level, only where listed, and only under the exact name (session_id, SESSION_ID or Key
+ * is still dropped): the same name nested in a value, or a `key` in any other
  * store, is still dropped, and a kept field holding a credential-looking value is too.
  *
  * - sessionId, in every store: the call a record came from. Where an exported store has

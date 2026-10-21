@@ -129,7 +129,7 @@ const NOTHING_SPARED: ReadonlySet<string> = new Set();
  * Firestore values as JSON, with secrets removed: timestamps become ISO strings,
  * references their paths, and a string holding JSON is filtered like any object and
  * kept as a string. Secret fields and secret-looking values are dropped. `spared` names
- * (normalised) skip the field-name filter on this object only, never on nested values,
+ * (exact, as stored) skip the field-name filter on this object only, never on nested values,
  * and their own values still go through the value filter.
  */
 function clean(
@@ -164,7 +164,7 @@ function cleanFields(
   // No prototype, so a stored "__proto__" key is an own field the filter sees, not a setter
   const out = Object.create(null) as Record<string, Plain>;
   for (const [k, v] of Object.entries(value)) {
-    if (isSecretField(k) && !spared.has(normaliseKey(k))) continue;
+    if (isSecretField(k) && !spared.has(k)) continue;
     const kept = clean(v, meter, depth + 1);
     if (kept !== DROP) out[k] = kept;
   }
@@ -193,7 +193,8 @@ function cleanString(value: string, meter: ParseMeter, depth: number): Plain | t
 /**
  * A stored value as it goes into the export file, any JSON parsing charged to the meter.
  * `keep` lists top-level fields of the value that stay although their name is on the
- * secret list, for a store where that name is the person's data (#2336). Only the top
+ * secret list, matched exactly as stored and never normalised (so `session_id` or `KEY`
+ * is still dropped), for a store where that name is the person's data (#2336). Only the top
  * level: the same name inside a nested map, an array or JSON kept as a string is still
  * dropped, and a kept field holding a credential-looking value is dropped all the same.
  */
@@ -202,6 +203,6 @@ export function toPlain(
   meter: ParseMeter = UNMETERED,
   keep: readonly string[] = []
 ): Plain {
-  const kept = clean(value, meter, 0, new Set(keep.map(normaliseKey)));
+  const kept = clean(value, meter, 0, new Set(keep));
   return kept === DROP ? null : kept;
 }

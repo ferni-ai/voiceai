@@ -267,6 +267,54 @@ describe('the records export keeps a fact whole (#2336)', () => {
       { id: 'c1', title: 'Call', sessionId: 's-2' },
     ]);
   });
+
+  it('keeps only the exact names: other spellings are still dropped as secrets', async () => {
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({
+        'bogle_users/u-1/dynamic_facts/f1': {
+          entityName: 'Biscuit',
+          key: 'breed',
+          Key: 'zz-secret-1',
+          _key: 'zz-secret-2',
+          KEY: 'zz-secret-3',
+        },
+        'bogle_users/u-1/conversations/c1': {
+          title: 'Call',
+          sessionId: 's-1',
+          session_id: 'zz-secret-4',
+          SESSION_ID: 'zz-secret-5',
+          'session.id': 'zz-secret-6',
+          ｓｅｓｓｉｏｎＩｄ: 'zz-secret-7',
+        },
+      })
+    );
+    expect(JSON.stringify(out)).not.toMatch(/zz-secret/);
+    expect(out[FACTS]).toEqual([{ id: 'f1', entityName: 'Biscuit', key: 'breed' }]);
+    expect(out['bogle_users/{uid}/conversations']).toEqual([
+      { id: 'c1', title: 'Call', sessionId: 's-1' },
+    ]);
+  });
+
+  it('drops a kept sessionId whose value is a credential', async () => {
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({
+        'bogle_users/u-1/conversations/c1': { title: 'Bearer', sessionId: 'Bearer zz-secret-1' },
+        'bogle_users/u-1/conversations/c2': {
+          title: 'JWT',
+          sessionId: 'eyJhbGciOiJIUzI1.eyJzdWIiOiIxMjM0.zz-secret-2',
+        },
+      })
+    );
+    expect(JSON.stringify(out)).not.toMatch(/zz-secret/);
+    expect(out['bogle_users/{uid}/conversations']).toEqual([
+      { id: 'c1', title: 'Bearer' },
+      { id: 'c2', title: 'JWT' },
+    ]);
+  });
 });
 
 describe('store allowlist', () => {
