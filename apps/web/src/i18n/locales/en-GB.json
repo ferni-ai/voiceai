@@ -618,7 +618,6 @@
     "youGave": "You gave",
     "youReceived": "You received",
     "yourJourney": "Your Journey",
-    "yourLibrary": "Your Library",
     "yourTeam": "Your Team",
     "yourTrackedDreams": "Your tracked dreams",
     "zap": "Zap",
@@ -795,7 +794,11 @@
     "time": {
       "am": "AM",
       "pm": "PM"
-    }
+    },
+    "smsDisclosure": "Turn on texts and Ferni will text this number with reminders and check-ins, up to 3 a day. Msg & data rates may apply. Reply STOP to cancel, HELP for help.",
+    "smsTerms": "SMS terms",
+    "callDisclosure": "Ferni will only call this number when you ask, or for check-ins you've turned on.",
+    "errorChannelsRefresh": "I couldn't turn that on just yet. Refresh the page and try again?"
   },
   "creativeYou": {
     "eyebrow": "THINGS I FOUND FOR YOU",
@@ -1323,7 +1326,9 @@
         "calendar": "Calendar",
         "history": "Past chats",
         "people": "Your people",
-        "insights": "What I've learned"
+        "insights": "What I've learned",
+        "soundOn": "Sound effects: on",
+        "soundOff": "Sound effects: off"
       }
     },
     "ariaLabel": "Settings menu",
@@ -3919,7 +3924,6 @@
       "ceo": "Chief Executive",
       "ferniRole": "CEO & Life Coach",
       "ferniDesc": "The warm, wise presence at the heart of everything. Ferni coordinates the team with perfect memory, zero judgement, and constant presence.",
-      "coFounders": "Co-Founders",
       "coreTeam": "Core Team",
       "footer": "Together, we're redefining what it means to have a team that truly listens.",
       "roles": {
@@ -4643,8 +4647,6 @@
     "games": "Games",
     "pickAGame": "Pick a game to play together",
     "reflectionNotice": "Mindful moments with Ferni. Quick reflections to check in with yourself.",
-    "libraryNotice": "Play games using YOUR Spotify library!",
-    "libraryHint": "Connect Spotify to unlock these personalised games.",
     "footerHint": "Or just say \"Let's play a game\" to Ferni!",
     "howToPlayGames": "How to Play Games",
     "nameThatTune": "Name That Tune",
@@ -4711,15 +4713,14 @@
     "valuesCardSort": "Values Card Sort",
     "valuesCardSortDesc": "Discover your core values by sorting cards. Deep self-discovery.",
     "valuesCardSortHelp": "A deeper exercise to discover your core values by sorting cards. Takes 10-15 minutes.",
-    "yourLibraryMix": "Your Library Mix",
-    "yourLibraryMixDesc": "Name songs from YOUR Spotify library. Personal challenge!",
-    "deepCutsChallenge": "Deep Cuts Challenge",
-    "deepCutsChallengeDesc": "Remember those songs you saved ages ago? Time to prove it!",
     "musicGames": "Music Games",
     "funGames": "Fun Games",
     "reflectionGames": "Reflection Games",
     "tipLabel": "Tip:",
-    "tipContent": "Say \"stop\" or \"end game\" anytime to finish early. Your progress is always saved!"
+    "tipContent": "Say \"stop\" or \"end game\" anytime to finish early. Your progress is always saved!",
+    "connectFirst": "Start a call with Ferni first, then pick a game.",
+    "starting": "Starting {game}...",
+    "startFailed": "Couldn't start that game. Try asking Ferni."
   },
   "digitalTwinProfile": {
     "title": "Build Your Digital Twin",
@@ -5320,7 +5321,9 @@
     "quietNote": "If you're awake at 2am and reach out, I'm here with the same presence as noon.",
     "guardianDesc": "Watching out for you 24/7",
     "emptyCta": "Keep talking with me. Every conversation helps me understand when and how to support you best.",
-    "emptyTip": "Enable \"{feature}\" in Settings to unlock proactive support"
+    "emptyTip": "Enable \"{feature}\" in Settings to unlock proactive support",
+    "smsSetUp": "Set up texts",
+    "smsSetUpDesc": "Texts are turned on next to your number, where you can see what they include."
   },
   "trophyRoom": {
     "yourJourney": "YOUR JOURNEY",
@@ -7095,7 +7098,8 @@
     "viewAllMoments": {
       "one": "View all {count} moment",
       "other": "View all {count} moments"
-    }
+    },
+    "strengthNotEnough": "Still getting to know them"
   },
   "valueCapture": {
     "youDidIt": "You Did It!",
@@ -8281,7 +8285,9 @@
     "keepConnecting": "Keep connecting with your people!",
     "less": "Less",
     "more": "More",
-    "basedOnActivity": "Based on Your Activity"
+    "basedOnActivity": "Based on Your Activity",
+    "notEnoughYet": "Not enough yet",
+    "strengthNotEnough": "We'll show this once you've caught up with a few people."
   },
   "calendarConflicts": {
     "syncConflicts": "Sync Conflicts",
@@ -9021,10 +9027,6 @@
     "chiefExecutive": "Chief Executive",
     "ferni": "Ferni",
     "ferniRole": "CEO & Life Coach",
-    "coFounders": "Co-Founders",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "Core Team",
     "tagline": "Together, we're redefining what it means to have a team that truly listens.",
     "inTeam": "In Team",
@@ -9908,7 +9910,8 @@
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
     "agentLeft": "Ferni dropped off the line. Reconnect?",
-    "unknown": "Couldn't connect. Try again?"
+    "unknown": "Couldn't connect. Try again?",
+    "waitlisted": "You’re on the list. I’ll email you the moment your spot opens."
   },
   "ambientSounds": {
     "rain": {
@@ -11086,5 +11089,27 @@
   },
   "panelShell": {
     "gettingReady": "One moment, I'm getting this ready for you"
+  },
+  "waitlistScreen": {
+    "title": "You’re on the list",
+    "position": "You’re #{position}, about {waves} waves away",
+    "positionNext": "You’re #{position}, in the very next wave",
+    "nextWave": "The next wave opens {date}.",
+    "inviteLabel": "Your invite link",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "share": "Share",
+    "inviteHelp": "Each friend who joins moves you up a few days.",
+    "friendsMovedYouUp": {
+      "one": "Your friends have already moved you up {count} day.",
+      "other": "Your friends have already moved you up {count} days."
+    },
+    "emailPromise": "I’ll email you the moment your spot opens.",
+    "inTitle": "You’re in",
+    "inMessage": "Your spot is open. Come in within a week to keep it.",
+    "badge": "Founding member · Wave {wave}",
+    "badgeNoWave": "Founding member",
+    "enter": "Come in",
+    "notNow": "Not now"
   }
 }

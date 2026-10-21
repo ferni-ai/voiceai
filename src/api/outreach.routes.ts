@@ -32,6 +32,7 @@ import { panelConsentPatch, savePanelPrefs } from './messaging-prefs-route.js';
 import {
   readOutreachConsent,
   settingsFromChannels,
+  webConsent,
   writeOutreachConsent,
 } from '../services/outreach/outreach-consent.js';
 import type { OutreachType, OutreachChannel } from '../services/outreach/llm-content-generator.js';
@@ -50,9 +51,10 @@ const log = getLogger().child({ module: 'outreach-handler' });
 const OUTREACH_PREFIX = '/api/outreach';
 /** A client-named user in a request body; checked against the caller by claimedUserFor. */
 type Named = { userId?: unknown };
+type SentPrefs = Parameters<typeof updateOutreachPreferences>[1] & { disclosureVersion?: unknown };
 
 import { handleVerifyPhone } from './verify-phone-routes.js';
-import { phoneChannelRefusal } from './user-contact.js';
+import { channelConsentRefusal } from './user-contact.js';
 
 // Helper to get persona display name
 function getPersonaName(personaId: string): string {
@@ -157,19 +159,17 @@ export async function handleOutreachRoutes(
 
     // POST /api/outreach/preferences
     if (route === '/preferences' && method === 'POST') {
-      const body = await parseRequestBody(req);
-      const { preferences } = body as {
-        preferences: Parameters<typeof updateOutreachPreferences>[1];
-      };
+      const body = (await parseRequestBody(req)) as { preferences?: SentPrefs };
+      const { disclosureVersion, ...preferences } = body.preferences ?? {};
       const patch = await panelConsentPatch(authenticatedUserId, preferences);
-      // Texts and calls only to a number the user proved is theirs (a texted code).
-      const refusal = await phoneChannelRefusal(auth, patch.channels);
+      // Texts and calls only to a verified number; texts only with the disclosure shown.
+      const refusal = await channelConsentRefusal(auth, patch.channels, disclosureVersion);
       if (refusal) {
         sendJsonResponse(res, 409, { success: false, error: refusal });
         return true;
       }
       // Use authenticated userId (ignore body.userId to prevent tampering)
-      await savePanelPrefs(authenticatedUserId, patch, preferences);
+      await savePanelPrefs(authenticatedUserId, patch, preferences, webConsent(disclosureVersion));
       updateOutreachPreferences(authenticatedUserId, preferences);
       sendJsonResponse(res, 200, { success: true, message: 'Preferences updated' });
       return true;

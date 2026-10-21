@@ -954,7 +954,7 @@ function upcomingLabel(date: NonNullable<Person['upcomingDate']>): string {
 
 function renderPersonItem(person: Person): string {
   const initials = getInitials(person.name);
-  const strengthColor = getStrengthColor(person.strengthScore || 50);
+  const strengthColor = typeof person.strengthScore === 'number' ? getStrengthColor(person.strengthScore) : 'var(--color-border, transparent)'; // unscored: neutral, never an invented 50
   
   const relationship = person.relationship
     ? t(`addPerson.relationships.${person.relationship.toLowerCase()}`, person.relationship)
