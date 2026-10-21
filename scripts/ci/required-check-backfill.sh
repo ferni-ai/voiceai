@@ -15,6 +15,12 @@
 # At most MAX PRs are updated per run, so a new required check can't flood the
 # runners.
 #
+# One PR's trouble never stops the run (#1953, a conflicted PR, made 4 runs in
+# a row exit before reaching the PRs after it). A PR whose update reports a
+# merge conflict is skipped: it needs its author, not CI, so it is not a
+# failure. Any other per-PR error (an API call, the update itself) is logged as
+# ::error::, the loop goes on, and the script exits 1 at the end.
+#
 # Usage: scripts/ci/required-check-backfill.sh [--dry-run]   (needs gh, jq)
 # Env:   MAX (default 5), MIN_AGE_MIN (default 30: skip heads pushed since,
 #        their checks may not have been created yet), BASE (default main)
@@ -48,6 +54,14 @@ queued=$(gh api graphql -F owner="${REPO%/*}" -F name="${REPO#*/}" -F branch="$B
 
 now=$(date -u +%s)
 touched=0
+conflicted=0
+failed=0
+
+# Log a per-PR error and move on; the exit status at the end reports it.
+fail() {
+  echo "::error::$*"
+  failed=$((failed + 1))
+}
 
 prs=$(gh pr list --repo "$REPO" --base "$BASE" --state open --limit 300 \
   --json number,headRefName,headRefOid,isDraft,isCrossRepository,autoMergeRequest,mergeable \
@@ -58,8 +72,11 @@ while IFS=$'\t' read -r pr branch sha mergeable; do
   [[ -z "$pr" ]] && continue
   grep -qxF "$pr" <<<"$queued" && continue
   # A conflicted PR gets no pull_request runs at all; it needs its author, not a rerun.
+  # GitHub computes `mergeable` lazily, so a conflicted PR often lists as UNKNOWN and
+  # only the update below finds out.
   if [[ "$mergeable" == "CONFLICTING" ]]; then
     echo "#$pr ($branch) has merge conflicts; skipped."
+    conflicted=$((conflicted + 1))
     continue
   fi
   if ((touched >= MAX)); then
@@ -67,22 +84,32 @@ while IFS=$'\t' read -r pr branch sha mergeable; do
     break
   fi
 
-  pushed=$(gh api "repos/$REPO/commits/$sha" --jq '.commit.committer.date')
+  if ! pushed=$(gh api "repos/$REPO/commits/$sha" --jq '.commit.committer.date'); then
+    fail "#$pr ($branch): could not read head commit $sha; skipped."
+    continue
+  fi
   age_min=$(((now - $(date -u -d "$pushed" +%s 2>/dev/null || date -u -j -f '%Y-%m-%dT%H:%M:%SZ' "$pushed" +%s)) / 60))
   ((age_min < MIN_AGE_MIN)) && continue
 
   # Runs still waiting for a runner haven't created all their checks yet.
-  busy=$(gh api "repos/$REPO/actions/runs?head_sha=$sha&per_page=100" \
-    --jq '[.workflow_runs[] | select(.status != "completed")] | length')
+  if ! busy=$(gh api "repos/$REPO/actions/runs?head_sha=$sha&per_page=100" \
+    --jq '[.workflow_runs[] | select(.status != "completed")] | length'); then
+    fail "#$pr ($branch): could not list runs for $sha; skipped."
+    continue
+  fi
   if ((busy > 0)); then
     echo "#$pr ($branch): $busy run(s) still in flight; skipped."
     continue
   fi
 
-  reported=$( {
-    gh api "repos/$REPO/commits/$sha/check-runs?per_page=100" --paginate --jq '.check_runs[].name'
-    gh api "repos/$REPO/commits/$sha/statuses?per_page=100" --paginate --jq '.[].context'
-  } | sort -u)
+  # Each call is checked on its own: a failed one would otherwise read as "no checks
+  # reported" and update the branch on an API error.
+  if ! check_runs=$(gh api "repos/$REPO/commits/$sha/check-runs?per_page=100" --paginate --jq '.check_runs[].name') ||
+    ! statuses=$(gh api "repos/$REPO/commits/$sha/statuses?per_page=100" --paginate --jq '.[].context'); then
+    fail "#$pr ($branch): could not read the checks on $sha; skipped."
+    continue
+  fi
+  reported=$(printf '%s\n%s\n' "$check_runs" "$statuses" | sort -u)
   missing=$(comm -23 <(sort -u <<<"$required") <(printf '%s\n' "$reported"))
   [[ -z "$missing" ]] && continue
 
@@ -90,8 +117,21 @@ while IFS=$'\t' read -r pr branch sha mergeable; do
   sed 's/^/  - /' <<<"$missing"
 
   echo "  -> update the branch"
-  $DRY_RUN || gh pr update-branch "$pr" --repo "$REPO"
+  if ! $DRY_RUN; then
+    if ! out=$(gh pr update-branch "$pr" --repo "$REPO" 2>&1); then
+      sed 's/^/     /' <<<"$out"
+      if grep -qi 'conflict' <<<"$out"; then
+        echo "  #$pr has merge conflicts; skipped (its author has to resolve them)."
+        conflicted=$((conflicted + 1))
+      else
+        fail "#$pr ($branch): update-branch failed: $out"
+      fi
+      continue
+    fi
+    sed 's/^/     /' <<<"$out"
+  fi
   touched=$((touched + 1))
 done <<<"$prs"
 
-echo "Updated $touched PR(s)$($DRY_RUN && echo ' (dry run)')."
+echo "Updated $touched PR(s)$($DRY_RUN && echo ' (dry run)'); skipped $conflicted with conflicts; $failed failed."
+((failed == 0)) || exit 1

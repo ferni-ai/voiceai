@@ -42,7 +42,7 @@ npm run build:linux # Linux AppImage + DEB + RPM
 
 ```bash
 cd apps/ios-native
-open FerniVoice.xcodeproj
+open Ferni.xcodeproj
 # Select your device/simulator in Xcode
 # Press Cmd+R to run
 ```
@@ -158,7 +158,7 @@ For CI/CD, the GitHub Actions workflow builds all platforms:
 
 ### iOS (Native)
 
-1. Open in Xcode: `open apps/ios-native/FerniVoice.xcodeproj`
+1. Open in Xcode: `open apps/ios-native/Ferni.xcodeproj`
 2. Select your signing team
 3. Archive: Product → Archive
 4. Distribute to App Store or TestFlight

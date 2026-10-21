@@ -351,7 +351,7 @@ async function deliverVoiceCall(
       userId,
       name: undefined, // Will be fetched from profile in the scheduler
       daysSinceSignup: 0, // Not critical for immediate calls
-      conversationCount: 0,
+      // conversationCount omitted: unknown here, so the writer is told no number
       engagementLevel: 'medium' as const,
     };
 

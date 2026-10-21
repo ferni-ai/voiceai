@@ -2790,11 +2790,10 @@ function createPanel(): HTMLElement {
             break;
           case 'milestone':
             result = await outreachService.sendMilestoneCelebration({
-              milestoneId: 'test-milestone',
+              // The server sends a real, reached milestone once per user; it ignores numbers
+              milestoneId: 'first-hello',
               milestoneName: 'Test Milestone',
               milestoneMessage: 'This is a test milestone celebration.',
-              daysTogether: 7,
-              streak: 3,
             });
             break;
           case 'streak-5':
