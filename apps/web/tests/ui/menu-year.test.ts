@@ -69,4 +69,35 @@ describe('This Year Together: load states', () => {
     expect(document.querySelector('.ferni-empty-state')).not.toBeNull();
     expect(document.querySelector('.your-year-error')).toBeNull();
   });
+
+  // 2026-10-18 UI audit: both states were blank. The box holding them was styled
+  // opacity: 0 / scale(0.9) for an entrance animation that only ever ran on the modal.
+  it('the empty and error box is not left hidden by an animation that never runs', async () => {
+    apiGet.mockResolvedValueOnce({ ok: true, status: 200, data: { stats: { totalConversations: 0 } } });
+    await settle(openYourYearWithFerni());
+    const css = [...document.querySelectorAll('style')].map((el) => el.textContent ?? '').join('\n');
+    const rule = css.match(/\.your-year-modal--empty \.your-year-content\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(rule).toContain('background');
+    expect(rule).not.toMatch(/opacity:\s*0/);
+    expect(rule).not.toMatch(/scale\(/);
+  });
+
+  it('the error state is warm and offers Try again, which loads the year again', async () => {
+    apiGet.mockResolvedValueOnce({ ok: false, status: 500, error: 'boom' });
+    await settle(openYourYearWithFerni());
+    const error = document.querySelector<HTMLElement>('.your-year-error');
+    expect(error?.getAttribute('role')).toBe('alert');
+    expect(error?.querySelector('.your-year-error__title')?.textContent).toBeTruthy();
+    expect(error?.querySelector('.your-year-error__body')?.textContent).toBeTruthy();
+    const retry = error?.querySelector<HTMLButtonElement>('.your-year-error__retry');
+    expect(retry?.textContent).toBeTruthy();
+
+    apiGet.mockResolvedValueOnce({ ok: true, status: 200, data: { stats: { totalConversations: 0 } } });
+    retry?.click();
+    await settle(Promise.resolve());
+    expect(apiGet).toHaveBeenCalledTimes(2);
+    expect(document.querySelector('.your-year-error')).toBeNull();
+    expect(document.querySelector('.ferni-empty-state')).not.toBeNull();
+    expect(document.querySelectorAll('.your-year-overlay')).toHaveLength(1);
+  });
 });

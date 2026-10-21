@@ -32,8 +32,9 @@ name: Deploy Production (Blue-Green)
 # for 3+ hours on 2026-10-18. The steps are unchanged; they now run in order
 # in the single deploy-ui job:
 # 1. Prepare  → Validate secrets, metadata, deployment safety check
-# 2. Gate     → CI verdict on this commit (see "on:" below), deploy freeze,
-#               forward-only guard
+# 2. Gate     → CI verdict on this commit, or the merge queue's on its tree
+#               (see "on:" below; a push first runs the small queue-verdict
+#               job), then the deploy freeze and forward-only guard
 # 3. Build    → design-system, then the UI Docker image
 # 4. Deploy   → Blue-green: green gets no traffic until it passes 5
 # 5. Verify   → Health check + smoke tests on green, freeze re-check; any
@@ -66,6 +67,20 @@ on:
   workflow_run:
     workflows: [CI]
     types: [completed]
+    branches: [main]
+  # Merge-queue fast path. A queue merge lands a tree that a successful
+  # merge-queue CI run already tested (squash merges land the same tree), so
+  # the push deploys right away instead of waiting 65-132 min for push CI
+  # (queue-tested finds the run; merge_group runs themselves never deploy,
+  # because the group can still be dequeued). The queue runs SCOPED CI, so the
+  # run counts only if every required check passed with none skipped, on a
+  # base that was itself tested (scripts/ci/queue-verdict.sh). An admin merge,
+  # direct push, scoped or docs-only run has no such verdict: the queue-verdict
+  # job says so, the deploy job never starts, and the workflow_run path deploys
+  # it after full push CI.
+  # One deploy per head: when push CI on a fast-pathed head passes, the
+  # workflow_run run finds production already serving it (identical) and stops.
+  push:
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -110,7 +125,17 @@ on:
 # Every CI completion on main starts a run, most of them cancelled or failed
 # CI that deploy nothing. Those take a group of their own, so they can never
 # replace a pending real deploy. The condition matches the deploying part of
-# the deploy-ui `if:`.
+# the deploy-ui `if:` for workflow_run and manual runs.
+# A push run never takes this group at the workflow level. Its queue-verdict
+# job decides outside any group, and only a push the merge queue fully tested
+# starts deploy-ui, which joins this same group at the job level (GitHub
+# shares group names across workflow and job level). So a push that would
+# no-op (admin merge, direct push, scoped or docs-only run) can never replace
+# a pending deploy. A fast-path push that does queue replaces only a pending
+# run for an earlier commit of main, which it contains; if its guard then
+# no-ops, its own push CI run (queue-fast-path.sh requires one) still deploys
+# it, or report-not-live says it didn't. A workflow_run that replaces a
+# pending fast-path deploy leaves that commit to its own push CI the same way.
 concurrency:
   group: ${{ ((github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.unfreeze != true) || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)) && 'deploy-production' || format('deploy-production-noop-{0}', github.run_id) }}
   cancel-in-progress: false
@@ -130,19 +155,67 @@ env:
 
 jobs:
   # ============================================================================
+  # MERGE-QUEUE FAST PATH: may this push deploy without waiting for push CI?
+  # ============================================================================
+  # Push runs only. In no concurrency group, with no cloud credentials and no
+  # install: a push that isn't queue-tested stops here and never reaches the
+  # deploy-production group, so it can't replace a pending deploy.
+  queue-verdict:
+    name: Merge-queue verdict
+    runs-on: ubuntu-24.04
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read  # to read the merge-queue and push CI runs
+    outputs:
+      tested: ${{ steps.verdict.outputs.tested }}
+      run-id: ${{ steps.verdict.outputs.run-id }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Did a successful merge-queue CI run test exactly this tree?
+      - name: Did the merge queue already test this tree?
+        id: queue
+        uses: ./.github/actions/queue-tested
+
+      - name: Does that run count as full CI?
+        id: verdict
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ github.sha }}
+          QUEUE_TESTED: ${{ steps.queue.outputs.tested }}
+          QUEUE_RUN_ID: ${{ steps.queue.outputs.run-id }}
+        run: bash scripts/ci/queue-fast-path.sh
+
+  # ============================================================================
   # UI SERVER: VALIDATE → BUILD → DEPLOY (Blue-Green) → VERIFY → NOTIFY
   # ============================================================================
   deploy-ui:
     name: 🔵🟢 Deploy UI Server (Blue-Green)
     # Pinned: ubuntu-latest moves to Ubuntu 26 on 2026-10-19 (CI pins 24.04 too).
     runs-on: ubuntu-24.04
-    # Manual deploys only from main's workflow file; never from a branch.
+    needs: queue-verdict
+    # Manual deploys only from main's workflow file; never from a branch. A
+    # push deploys only when queue-verdict passed it. `!cancelled()` because
+    # queue-verdict is skipped on every other event.
     if: >-
+      !cancelled() && (
       (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.unfreeze != true) ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.queue-verdict.result == 'success' && needs.queue-verdict.outputs.tested == 'true') ||
       (github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.event == 'push' &&
       github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository)
+      github.event.workflow_run.head_repository.full_name == github.repository))
+    # A fast-path push joins the deploy group here, at the job level (see the
+    # workflow's concurrency). Other runs already hold it at the workflow level
+    # and use a group of their own here: the same name at both levels would
+    # deadlock the run.
+    concurrency:
+      group: ${{ github.event_name == 'push' && 'deploy-production' || format('deploy-ui-{0}', github.run_id) }}
+      cancel-in-progress: false
     timeout-minutes: 60
     permissions:
       contents: read
@@ -299,6 +372,8 @@ jobs:
           EVENT: ${{ github.event_name }}
           ALLOW_OLDER: ${{ inputs.allow_older == true }}
           REASON: ${{ inputs.reason }}
+          QUEUE_TESTED: ${{ needs.queue-verdict.outputs.tested }}
+          QUEUE_RUN_ID: ${{ needs.queue-verdict.outputs.run-id }}
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
         run: bash scripts/ci/deploy-forward-guard.sh
 
@@ -330,6 +405,7 @@ jobs:
             --build-arg VITE_CAPTIONS_HEARD="${{ vars.VITE_CAPTIONS_HEARD }}" \
             --build-arg VITE_MEMORY_VIEW="${{ vars.VITE_MEMORY_VIEW }}" \
             --build-arg VITE_APPLE_WEB_SIGNIN="${{ vars.VITE_APPLE_WEB_SIGNIN }}" \
+            --build-arg VITE_CALL_WRAP_UP="${{ vars.VITE_CALL_WRAP_UP }}" \
             --build-arg VITE_TOAST_REGION="${{ vars.VITE_TOAST_REGION }}" \
             .
 
@@ -355,9 +431,62 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
+      # 2026-10-17: a --set-secrets entry named a secret with no enabled version.
+      # The new revision could not start and Cloud Run kept serving the old one
+      # for 3.5h. Check every secret before deploying, and name each bad one.
+      # Reads deploy/ui-server/secrets.txt exactly as the deploy step does.
+      - name: 🔐 Preflight - every mounted secret has an enabled version
+        id: preflight
+        if: steps.guard.outputs.deploy == 'true'
+        run: |
+          set -u
+          bad=()
+          declare -A seen=()
+          SECRETS=$(grep -v -e '^#' -e '^$' deploy/ui-server/secrets.txt | paste -sd, -)
+          IFS=',' read -ra entries <<< "$SECRETS"
+          for entry in "${entries[@]}"; do
+            ref=${entry#*=}
+            secret=${ref%%:*}
+            version=latest
+            if [[ "$ref" == *:* ]]; then version=${ref#*:}; fi
+            if [[ -n "${seen[$secret:$version]:-}" ]]; then continue; fi
+            seen[$secret:$version]=1
+
+            if out=$(gcloud secrets versions list "$secret" --filter=state:ENABLED --limit=1 --format='value(name)' 2>&1); then
+              if [[ -z "$out" ]]; then
+                bad+=("$secret: no ENABLED version")
+              elif [[ "$version" != latest ]]; then
+                state=$(gcloud secrets versions describe "$version" --secret="$secret" --format='value(state)' 2>&1)
+                if [[ "$state" != ENABLED ]]; then bad+=("$secret:$version: $state"); fi
+              fi
+            elif [[ "$out" == *PERMISSION_DENIED* ]]; then
+              # No secretmanager.versions.list: probe the exact version Cloud Run
+              # will mount. The payload goes to /dev/null and is never printed.
+              if ! err=$(gcloud secrets versions access "$version" --secret="$secret" 2>&1 >/dev/null); then
+                bad+=("$secret:$version: $(head -1 <<< "$err")")
+              fi
+            else
+              bad+=("$secret: $(head -1 <<< "$out")")
+            fi
+          done
+
+          if (( ${#bad[@]} > 0 )); then
+            for b in "${bad[@]}"; do echo "::error title=Secret preflight::$b"; done
+            echo "### ❌ Secret preflight failed" >> "$GITHUB_STEP_SUMMARY"
+            printf -- '- %s\n' "${bad[@]}" >> "$GITHUB_STEP_SUMMARY"
+            echo "Add or enable a version of each secret above, then re-run. Not deploying."
+            exit 1
+          fi
+          echo "✅ ${#seen[@]} secret references, each with an enabled version"
+
       - name: 🟢 Deploy GREEN revision (no traffic)
         if: steps.guard.outputs.deploy == 'true'
         id: deploy
+        env:
+          # App email goes through the ferni.ai Workspace (runbook: email-via-workspace.md).
+          # Back to SendGrid without a PR: `gh variable set EMAIL_PROVIDER --body sendgrid`, redeploy.
+          EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER || 'gmail' }}
+          EMAIL_FROM: ${{ vars.EMAIL_FROM || 'admin@ferni.ai' }}
         run: |
           REVISION_SUFFIX=${{ steps.meta.outputs.revision_suffix }}
 
@@ -390,6 +519,8 @@ jobs:
           printf 'BUILD_SHA: "%s"\n' "$DEPLOY_SHA" >> "$ENV_FILE"
           printf 'GCLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
           printf 'GOOGLE_CLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
+          printf 'EMAIL_PROVIDER: "%s"\n' "$EMAIL_PROVIDER" >> "$ENV_FILE"
+          printf 'EMAIL_FROM: "%s"\n' "$EMAIL_FROM" >> "$ENV_FILE"
           SECRETS=$(grep -v -e '^#' -e '^$' deploy/ui-server/secrets.txt | paste -sd, -)
           gcloud run deploy john-bogle-ui \
             --image ${{ env.UI_IMAGE }}:${{ env.DEPLOY_SHA }} \
@@ -489,6 +620,41 @@ jobs:
               --region=${{ env.GCP_REGION }} \
               --to-tags green=$TRAFFIC
           fi
+
+      # Runs after a failed deploy too, so the log says why the revision isn't live.
+      - name: ✅ Verify the new revision is Ready and serving
+        if: ${{ !cancelled() && steps.guard.outputs.deploy == 'true' && steps.preflight.outcome == 'success' }}
+        env:
+          EXPECTED: john-bogle-ui-${{ steps.meta.outputs.revision_suffix }}
+          TRAFFIC: ${{ inputs.traffic_percent || 100 }}
+          REGION: ${{ env.GCP_REGION }}
+        run: |
+          set -u
+          if ! rev=$(gcloud run revisions describe "$EXPECTED" --region="$REGION" --format=json); then
+            echo "::error title=Deploy not live::revision $EXPECTED was never created"
+            echo "### ❌ $EXPECTED was never created" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          svc=$(gcloud run services describe john-bogle-ui --region="$REGION" --format=json)
+          ready=$(jq -r '[.status.conditions[]? | select(.type == "Ready") | .status][0] // "Unknown"' <<< "$rev")
+          why=$(jq -r '[.status.conditions[]? | select(.type == "Ready") | (.message // .reason // "")][0] // ""' <<< "$rev")
+          serving=$(jq -r --arg r "$EXPECTED" '[.status.traffic[]? | select(.revisionName == $r) | (.percent // 0)] | add // 0' <<< "$svc")
+          echo "$EXPECTED: Ready=$ready, serving ${serving}% (expected ${TRAFFIC}%)"
+
+          fail=0
+          if [[ "$ready" != True ]]; then
+            echo "::error title=Deploy not live::$EXPECTED is not Ready ($ready): $why"
+            fail=1
+          fi
+          if [[ "$serving" != "$TRAFFIC" ]]; then
+            echo "::error title=Deploy not live::$EXPECTED serves ${serving}% of traffic, expected ${TRAFFIC}%; traffic did not move to it"
+            fail=1
+          fi
+          if (( fail )); then
+            echo "### ❌ $EXPECTED is not live: Ready=$ready, ${serving}% of traffic" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "### ✅ $EXPECTED is Ready and serving ${serving}%" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Rollback on failure
         if: always() && steps.guard.outputs.deploy == 'true' && steps.deploy.outcome == 'success' && (steps.health.outputs.healthy != 'true' || steps.smoke.outcome == 'failure' || steps.freeze.outcome == 'failure')
@@ -654,7 +820,7 @@ jobs:
         run: |
           tip=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha) || tip=""
           if [ "$SHA" = "$tip" ]; then
-            msg="Merged but not live: CI failed on $SHA, main's tip, so production was not deployed. CI: $CI_URL"
+            msg="Merged but not live: push CI failed on $SHA, main's tip. Unless the merge-queue fast path already deployed it (see this commit's push run), production is behind main. CI: $CI_URL"
             echo "::error::$msg"
             echo "### ❌ $msg" >> "$GITHUB_STEP_SUMMARY"
             exit 1

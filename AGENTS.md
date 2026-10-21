@@ -17,7 +17,7 @@ operating model's Review section; the reviewer is never the author.
 | Voice agent | LiveKit Cloud agents. Dev `CA_siTDMHEba4Fg` (project `ferni-dev`, dispatch name `voice-agent-lkcloud`), prod `CA_GeFvEpsNXLSF` (project `ferni-prod`). The GCE VM is gone. | `livekit.toml`, `livekit.prod-cloud.toml`, `docker/Dockerfile.agent` |
 | Voice pipeline | Cartesia cascade: Ink-2 STT → Gemini 3.5 Flash (Vertex) → Cartesia Sonic TTS, native function calling | `src/agents/model-provider/factory.ts` |
 | Agent config | Env secrets on the LiveKit agent. Behaviour changes ship **behind a flag, off by default**. | `lk agent update-secrets` |
-| UI server | Cloud Run `john-bogle-ui`, deployed by GitHub Actions once CI passes on a push to `main` | `.github/workflows/deploy-production.yml` |
+| UI server | Cloud Run `john-bogle-ui`, deployed by GitHub Actions on a merge-queue merge to `main` (or once push CI passes) | `.github/workflows/deploy-production.yml` |
 | Quality bar | `docs/DEFINITION-OF-CLEAN.md`, enforced by the ratchet | `apps/cli/src/commands/quality/ratchet.ts` |
 
 Docs elsewhere that mention GCE, Gemini Live, OpenAI Realtime, a JSON

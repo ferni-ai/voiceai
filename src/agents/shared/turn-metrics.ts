@@ -42,6 +42,8 @@ export interface LlmMetric {
   /** Prompt tokens the model served from its cache (Gemini cachedContentTokenCount). */
   promptCachedTokens?: number;
   completionTokens: number;
+  /** Which model answered (LiveKit's MetricsMetadata). */
+  metadata?: { modelName?: string };
   /** Epoch ms the request finished, and how long it ran. */
   timestamp?: number;
   durationMs?: number;

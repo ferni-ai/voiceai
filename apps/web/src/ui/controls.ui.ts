@@ -16,6 +16,7 @@ import {
 } from '../utils/dom.js';
 import { createLogger } from '../utils/logger.js';
 import { t } from '../i18n/index.js';
+import { endLabelKey, installCallRoom } from './call-room/call-room.js';
 
 const log = createLogger('ControlsUI');
 
@@ -49,6 +50,7 @@ interface ControlElements {
 let elements: ControlElements | null = null;
 let callbacks: ControlCallbacks | null = null;
 const cleanupFunctions: (() => void)[] = [];
+let uninstallCallRoom: (() => void) | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -74,6 +76,10 @@ export function initControlsUI(controlCallbacks: ControlCallbacks): void {
 
     // Set up state subscriptions
     setupSubscriptions();
+
+    // The call's own room, behind its off-by-default flag
+    uninstallCallRoom?.();
+    uninstallCallRoom = installCallRoom();
 
     // Initial state
     updateButtonVisibility(appState.get('connection'));
@@ -279,7 +285,7 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     // Reset button text
     const textSpan = elements.disconnectBtn.querySelector(LABEL_SELECTOR);
     if (textSpan) {
-      textSpan.textContent = t('entrance.endTalk');
+      textSpan.textContent = t(endLabelKey());
     }
     elements.disconnectBtn.removeAttribute('data-wrap-up-text');
     elements.disconnectBtn.setAttribute('aria-label', t('session.endConversation'));
@@ -362,6 +368,8 @@ export function dispose(): void {
     fn();
   }
   cleanupFunctions.length = 0;
+  uninstallCallRoom?.();
+  uninstallCallRoom = null;
   elements = null;
   callbacks = null;
 }

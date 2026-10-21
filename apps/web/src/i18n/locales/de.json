@@ -11130,5 +11130,21 @@
     "helper": "Scanne ihn mit der Kamera deines Handys oder tippe auf Venmo öffnen. Den Betrag kannst du ändern.",
     "maybeLater": "Vielleicht später",
     "close": "Schließen"
+  },
+  "reportReply": {
+    "button": "Melden",
+    "describe": "Etwas melden, das {name} gesagt hat",
+    "title": "Antwort melden",
+    "whichReply": "Welche Antwort?",
+    "whatsWrong": "Was stimmt damit nicht?",
+    "reasonHarmful": "Schädlich oder gefährlich",
+    "reasonWrong": "Falsch oder irreführend",
+    "reasonInappropriate": "Unangemessen",
+    "reasonOther": "Etwas anderes",
+    "note": "Möchtest du etwas ergänzen? (optional)",
+    "send": "Senden",
+    "thanks": "Danke – ein Mensch sieht sich das an.",
+    "failed": "Das wurde nicht gesendet. Bitte versuch es noch einmal.",
+    "tooMany": "Du hast heute schon viele Meldungen gesendet. Bitte versuch es morgen wieder."
   }
 }

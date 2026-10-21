@@ -15,6 +15,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { toast } from './whisper.ui.js';
 import { escapeHtml } from './trust-dashboard-data.js';
 import { t } from '../i18n/index.js';
+import { contentIcon } from './icons/content-icons.js';
 
 const log = createLogger('GroupConversationUI');
 
@@ -295,7 +296,7 @@ export class GroupConversationUI {
                style="--persona-color: ${color}">
             <div class="avatar">
               <span class="initial">${name?.[0] ?? '?'}</span>
-              ${!isUnlocked ? '<span class="lock-icon">🔒</span>' : ''}
+              ${!isUnlocked ? `<span class="lock-icon">${contentIcon('lock', 12)}</span>` : ''}
             </div>
             <span class="name">${name}</span>
             <span class="specialty">${specialtyKey ? t(specialtyKey) : ''}</span>
@@ -594,7 +595,6 @@ const styles = `
   position: absolute;
   bottom: -4px;
   right: -4px;
-  font-size: 12px;
 }
 
 .team-member .name {

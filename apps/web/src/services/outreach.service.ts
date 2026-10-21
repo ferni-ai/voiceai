@@ -43,12 +43,13 @@ export interface MilestoneOutreachData {
   milestoneId: string;
   milestoneName: string;
   milestoneMessage: string;
-  daysTogether?: number;
-  streak?: number;
 }
 
 export interface OutreachResult {
   success: boolean;
+  /** Milestones: whether this request sent it, and why not (e.g. 'already-sent') */
+  sent?: boolean;
+  reason?: string;
   message?: string;
   error?: string;
   results?: {

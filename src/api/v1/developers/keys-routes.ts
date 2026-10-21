@@ -12,7 +12,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from '../../helpers.js';
 import { createApiKey, listApiKeys, rotateApiKey, deleteApiKey } from '../../publisher-auth.js';
-import { getPublisherFromToken } from './shared/developer-auth.js';
+import { requirePublisherFromToken } from './shared/developer-auth.js';
 
 const log = getLogger().child({ module: 'developers-keys' });
 
@@ -47,11 +47,8 @@ export async function handleDeveloperKeysRoutes(
   const method = req.method?.toUpperCase();
 
   // Authenticate
-  const publisherId = await getPublisherFromToken(req);
-  if (!publisherId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  const publisherId = await requirePublisherFromToken(req, res);
+  if (!publisherId) return true;
 
   try {
     // GET /api/v1/developers/keys - List all keys

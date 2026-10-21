@@ -40,6 +40,7 @@ import { isOnBehalfCall } from '../shared/outbound-opener.js';
 import { roomOutputOptions } from './room-output-options.js';
 import { markCallStageSoon } from '../../services/analytics/call-start-stages.js';
 import { registerSessionEndedSignal } from './session-ended-signal.js';
+import { sessionRecording } from '../shared/session-recording.js';
 
 const log = getLogger();
 
@@ -227,8 +228,6 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
     if (context.callSession) return personaAgent;
 
     // Start the session in the room
-    // CRITICAL: For handoffs, use record: false to avoid "Only one AgentSession can be primary" error
-    // The old session may still be registered as primary even after close() is called
     try {
       log.info(
         { personaId, agentInstanceId, isHandoff: context.isHandoff },
@@ -241,9 +240,10 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
         room: context.room,
         agent: agentSetup.agent,
         ...input,
-        // For handoffs, don't claim primary status - the old session may still be releasing
-        // For initial agent, be primary (record: true is default)
-        ...(context.isHandoff ? { record: false } : {}),
+        // Handoffs never record (the old session may still hold primary status). The first
+        // session records only when LK_SESSION_RECORDING allows it, never in production:
+        // the privacy policy says we don't record calls (session-recording.ts).
+        record: context.isHandoff ? false : sessionRecording(),
         ...roomOutputOptions(), // OUTPUT_QUEUE_MS: the room audio queue (room-output-options.ts)
       });
       mark('session_started');
