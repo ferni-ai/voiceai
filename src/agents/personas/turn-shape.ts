@@ -68,8 +68,22 @@ const isLookup = (t: string): boolean => LIVE_TOPIC.test(t) && ASKED.test(t);
 
 const ASKS_FOR_MORE =
   /\b(explain|walk me through|step by step|tell me (a|about|again|more)|plan|ideas|suggest|recommend|advice|what should i|how (do|should|can|would) (i|we)|help me|how does|why (do|does|is|did))\b/i;
+/**
+ * "Do you think" asks about him only when what follows is about him ("do you
+ * think you'd like hiking?", "what do you think of yourself?"). Matched as
+ * plain "do you think", "So, what do you think?" read as about_ferni and was
+ * answered from his own day: "Oh, I'm just sitting here with a cold cup of
+ * tea", "My wife swears the new coffee grinder changed nothing" to "What do
+ * you think her next move is?" (dev capability sweep, 2026-10-21, B3).
+ */
 const ABOUT_FERNI =
-  /\b(how are you|how('s| is| was) your|what about you|and you\b|what('re| are) you (doing|up to)|what did you|do you (like|think|have|ever|remember)|have you (ever|been)|your (day|week|weekend|morning|life|wife|dad))\b/i;
+  /\b(how are you|how('s| is| was) your|what about you|and you\b|what('re| are) you (doing|up to)|what did you|do you (like|have|ever|remember)|do you think (?:(?:of|about) )?(?:you|your|yourself)\b|have you (ever|been)|your (day|week|weekend|morning|life|wife|dad))\b/i;
+/**
+ * Asked for his view on their topic: "what do you think?", "do you think I
+ * should quit?", "what would you do?". A request for an answer, not a question
+ * about him (read after ABOUT_FERNI, so "do you think you'd like it?" stays his).
+ */
+const OPINION_ASK = /\b(?:what do you think|do you think|what would you do)\b/i;
 const ACK =
   /^(yeah|yep|yes|ok(ay)?|right|sure|true|totally|haha+|ha|mm+|hm+|no|nope|got it|i guess|maybe|thanks?( you)?|cool|nice|wow)[.!?,\s]*$/i;
 
@@ -90,7 +104,13 @@ export function callerMove(text: string): CallerMove {
   if (isLookup(t)) return 'lookup';
   if (ASKS_FOR_MORE.test(t) || ABOUT_THEIR_THINGS.test(t)) return 'request';
   if (ABOUT_FERNI.test(t)) return 'about_ferni';
+  if (OPINION_ASK.test(t)) return 'request';
   return 'share';
+}
+
+/** Asked for his take on their topic, not about him (callerMove's opinion branch). */
+export function opinionAsk(text: string): boolean {
+  return OPINION_ASK.test(text) && callerMove(text) === 'request';
 }
 
 /** Asked of him, not told: a question, or "can you", "could you", "please". */

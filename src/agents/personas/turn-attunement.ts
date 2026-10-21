@@ -40,7 +40,7 @@ import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { hardNews } from './turn-candor.js';
 import { callerLaughed } from './turn-extras.js';
 import { lengthLearned } from './turn-length.js';
-import { callerMove } from './turn-shape.js';
+import { callerMove, opinionAsk } from './turn-shape.js';
 
 const log = createLogger({ module: 'Attunement' });
 
@@ -191,7 +191,9 @@ export function targetFor(state: CallerState, turns: string[], askedLast: boolea
   const said = turns[turns.length - 1] ?? '';
   const wantsAdvice = ASKS_ADVICE.test(said);
   // The turn shape's own read too ("How have you been?", "And you?"), so the two never disagree.
-  const own = ABOUT_HIM.test(said) || callerMove(said) === 'about_ferni';
+  // "So, what do you think?" has "do you" but asks his take on theirs, not about him.
+  const own =
+    (ABOUT_HIM.test(said) && !opinionAsk(said)) || callerMove(said) === 'about_ferni';
   const oneIfNoneLast: 0 | 1 = askedLast ? 0 : 1;
   switch (state) {
     case 'low': {
