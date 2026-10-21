@@ -391,21 +391,21 @@ struct CallMoreSheet: View {
                 // the settings (design audit P1-7).
                 Section {
                     Link(destination: URL(string: "tel:988")!) {
-                        Label("Get help now (988)", systemImage: "phone.arrow.up.right")
+                        IconRow("Get help now (988)", systemImage: "phone.arrow.up.right")
                     }
                     Link(destination: URL(string: "sms:988")!) {
-                        Label("Text 988", systemImage: "message")
+                        IconRow("Text 988", systemImage: "message")
                     }
                 } footer: {
-                    Text("988 is the Suicide & Crisis Lifeline in the US, free and open all day and night.")
+                    SettingsFooter("988 is the Suicide & Crisis Lifeline in the US, free and open all day and night.")
                 }
                 Section {
                     Toggle("Captions", isOn: $showCaptions)
                     if let lastReply {
-                        Button("Report something Ferni said", systemImage: "flag") {
+                        Button {
                             dismiss()
                             report(lastReply)
-                        }
+                        } label: { IconRow("Report something Ferni said", systemImage: "flag") }
                     }
                     HStack {
                         Text("Audio output")
