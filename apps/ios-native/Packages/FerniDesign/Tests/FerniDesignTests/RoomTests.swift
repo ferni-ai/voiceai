@@ -25,6 +25,34 @@ final class RoomTests: XCTestCase {
     }
 }
 
+/// Award upgrade 3: Night Ink from 22:00 to 05:00, on unless it's turned off;
+/// the room's late-night light starts with it.
+final class NightInkTests: XCTestCase {
+    func testDarkFromTenAtNightUntilFive() {
+        XCTAssertEqual((0..<24).filter { NightInk.isNight(hour: $0) }, [0, 1, 2, 3, 4, 22, 23])
+        XCTAssertEqual(NightInk.scheme(hour: 22, enabled: true), .dark)
+        XCTAssertEqual(NightInk.scheme(hour: 4, enabled: true), .dark)
+        XCTAssertNil(NightInk.scheme(hour: 5, enabled: true), "morning is the phone's own")
+        XCTAssertNil(NightInk.scheme(hour: 21, enabled: true))
+        XCTAssertNil(NightInk.scheme(hour: 23, enabled: false), "turned off, never forced")
+    }
+
+    /// Warm near-black, not brown: the tint's share over Night Ink's field.
+    func testNightInkStaysNearBlack() {
+        let light = RoomLight(hour: 23), field = SIMD3<Double>(0x14, 0x11, 0x0e)
+        let a = light.tintOpacity(dark: true)
+        let room = field * (1 - a) + light.tintRGB * 255 * a
+        XCTAssertLessThan(room.max() ?? 255, 36, "the late-night room in Night Ink: \(room)")
+        XCTAssertGreaterThan(room.x - room.z, 10, "and still warm")
+        XCTAssertEqual(light.tintOpacity(dark: false), light.tintOpacity, "paper keeps its tint")
+    }
+
+    func testTheLateNightLightStartsWithIt() {
+        XCTAssertEqual(RoomLight(hour: 22), RoomLight(hour: 2))
+        XCTAssertNotEqual(RoomLight(hour: 21), RoomLight(hour: 22))
+    }
+}
+
 /// Design audit P2 #1: the time of day was too faint to feel. Each band's
 /// floor (the paper under its tint) is a visibly different colour.
 final class RoomBandsTests: XCTestCase {

@@ -20,7 +20,7 @@ final class WidgetMomentTests: XCTestCase {
     func testTheTimelineTurnsWhereverTheHelloOrTheLightDoes() throws {
         let now = try XCTUnwrap(calendar.date(from: DateComponents(year: 2026, month: 10, day: 20, hour: 13, minute: 40)))
         let turns = WidgetMoment.turns(after: now, calendar: calendar)
-        XCTAssertEqual(turns.map { calendar.component(.hour, from: $0) }, [17, 18, 22, 23, 5, 11, 12])
+        XCTAssertEqual(turns.map { calendar.component(.hour, from: $0) }, [17, 18, 22, 5, 11, 12])
         XCTAssertTrue(turns.allSatisfy { $0 > now })
         for hour in 0..<24 {
             let next = (hour + 1) % 24
