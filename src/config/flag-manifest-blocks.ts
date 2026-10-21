@@ -52,6 +52,8 @@ export const FLAGS_PUBSUB_TO_REQUIRE = {
   RECALL_PEOPLE: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_RARE_WORDS: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with SEMANTIC_RECALL): facts are stored with their vectors, and recall finds older ones by meaning (stored-fact-vectors.ts)
+  RECALL_VECTOR_INDEX: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECENT_CALL_RESTRAINT: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // shows "I'll remember" in the app after a fact is stored
   REMEMBER_MOMENT: { default: 'off', owner: 'memory', kind: 'experiment' },
