@@ -270,6 +270,8 @@ export const FLAG_MANIFEST = {
   PLACEHOLDER_SUMMARY_UNKNOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   // Keep off: needs #1855, the privacy-page wording, and a legal read of the Maps terms for storing the place ID. #1760 merged with an unverified head.
   PLACES_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // findBusiness with no known caller location asks where they are instead of searching (local-search/caller-city.ts)
+  PLACES_NEEDS_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // read in patches/@livekit__agents@1.9.3.patch
   PLAYOUT_LAUNCH_RESUME: { default: 'on', owner: 'voice', kind: 'kill-switch' },

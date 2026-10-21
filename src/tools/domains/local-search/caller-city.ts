@@ -57,6 +57,24 @@ export function placesLocationOn(env = process.env): boolean {
   return flagOn('PLACES_LOCATION', env);
 }
 
+/** PLACES_NEEDS_LOCATION: a business search with no known place asks instead of searching. */
+export function placesNeedsLocationOn(env = process.env): boolean {
+  return flagOn('PLACES_NEEDS_LOCATION', env);
+}
+
+/**
+ * What a business search returns when nobody knows where the caller is: no
+ * search ran, so there is no place to name. Live (2026-10-21) a search for
+ * "tacos" with no location came back with a shop somewhere, and Ferni
+ * recommended it as "open right now".
+ */
+export const NEED_LOCATION_RESULT = JSON.stringify({
+  status: 'need_location',
+  instruction:
+    "No search was run: I don't know where the caller is. Don't name or recommend any place. " +
+    'Ask which city or neighborhood to look in, then search again with that location.',
+});
+
 /**
  * Remembering a city needs the caller's yes and a store that persists. Off
  * otherwise, and the remember and forget tools are not offered.
