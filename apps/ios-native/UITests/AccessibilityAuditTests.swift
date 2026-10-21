@@ -209,7 +209,17 @@ final class AccessibilityAuditTests: XCTestCase {
         // and was taken for the sheet's floor, 136 pt up.
         let talk = app.buttons["home.talk"]
         let pinned = talk.exists && talk.isHittable ? talk : app.buttons["signIn.continue"]
-        return pinned.exists && pinned.isHittable ? (pinned.frame.minY - 24, pinned.frame) : (app.frame.maxY, .null)
+        // 21 pt: the controls' top padding (FerniSpace.rest), which the fade
+        // fills. At 24 the last row on iPad at AX5 (the team's "Peter") could
+        // never be scrolled clear: the content ends 21 pt above the button.
+        if pinned.exists && pinned.isHittable { return (pinned.frame.minY - 21, pinned.frame) }
+        // A sheet that ends above the screen's bottom (iPad's form sheets):
+        // its own bottom edge is where rows are cut off.
+        let list = app.collectionViews.firstMatch
+        if list.exists, list.isHittable, list.frame.height > 200, list.frame.maxY < app.frame.maxY - 1 {
+            return (list.frame.maxY, .null)
+        }
+        return (app.frame.maxY, .null)
     }
 
     /// Contrast findings on text cut off by the floor or below it (award upgrade
@@ -226,7 +236,11 @@ final class AccessibilityAuditTests: XCTestCase {
             for _ in 0..<4 {
                 let lift = min(text.frame.maxY - line + 24, 240)
                 guard lift > 0 else { break }
-                let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+                // In the text's own column (on iPad the sidebar takes the left),
+                // a little above the floor, inside what scrolls.
+                let x = text.exists ? text.frame.midX : app.frame.midX
+                let start = app.coordinate(withNormalizedOffset: .zero)
+                    .withOffset(CGVector(dx: x, dy: min(app.frame.height * 0.7, floor - 80)))
                 start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -lift)),
                             withVelocity: 300, thenHoldForDuration: 0.3)
                 sleep(1)
@@ -237,7 +251,7 @@ final class AccessibilityAuditTests: XCTestCase {
                 return true
             }
             let verdict = Self.floorVerdict(cut: [finding], again: again, clear: text.frame.maxY <= line + 1)
-            for f in verdict.failing { XCTFail("AUDIT [\(name)] \(f)") }
+            for f in verdict.failing { XCTFail("AUDIT [\(name)] \(f) (at \(text.frame), floor \(line))") }
             waved += verdict.waved.map { "AUDIT-WAVED [\(name)] \($0)" }
         }
         guard !waved.isEmpty else { return }
@@ -375,8 +389,14 @@ final class AccessibilityAuditTests: XCTestCase {
         ("call", .contrast, "Ferni · ", "Name chip: #5c544a on #f7f5ee, 6.8:1 (caption text needs 4.5)."),
         ("onHold standard ipad", .contrast, "On hold",
          "The call's state line in medium secondary ink: #5c544a on #f2ebdf, 6.3:1 measured from the iPad screenshot (2026-10-20); flagged on iPad only (this entry matches only there), where \"Reconnecting…\" in the same place passes."),
-        ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "#sidebar.talk", "iPad sidebar row (that row only, by identifier): the AX5 screenshot shows the full word."),
-        ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "#sidebar.remembers", "iPad sidebar row (that row only, by identifier): wraps to three full lines at AX5 (screenshot)."),
+        ("home|call|team|connecting|reconnecting|onHold|failed|remember", .textClipped, "#sidebar.talk", "iPad sidebar row (that row only, by identifier): the AX5 screenshot shows the full word."),
+        ("home|call|team|connecting|reconnecting|onHold|failed|remember", .textClipped, "#sidebar.remembers", "iPad sidebar row (that row only, by identifier): wraps to three full lines at AX5 (screenshot)."),
+        ("remember ax5 14h ipad", .contrast, "Peter",
+         "The audit names a \"Peter\" at y 1326, under Talk and past the screen's edge, which the AX5 screenshot doesn't show; the visible Peter, under his face in the shelf, sits whole above the floor (2026-10-21) and the same card passes on both iPhones."),
+        ("waitlist join standard ipad", .contrast, "I’m letting people",
+         "The join line in secondary ink: #5c544a on #faf8f5, 7.0:1 measured from the iPad screenshot (2026-10-21); the same line passes on the iPhones."),
+        ("waitlist join standard ipad", .contrast, "Not now",
+         "Forest on paper, #3d5a45 on #faf8f5, 7.2:1 measured from the iPad screenshot (2026-10-21); passes on the iPhones."),
         ("settings", .dynamicType, "Try again", "A system List button row; it scales at AX5 like the other rows."),
         ("settings", .dynamicType, "Get help with your account",
          "Account footer link; HelpLinksUITests.testAccountHelpGrowsWithTextSize proves it grows at AX5 (pinned, it stays 34 pt and fails)."),
