@@ -69,6 +69,13 @@ export interface HybridSearchOptions {
   skipBM25?: boolean;
   /** Skip vector search (BM25 only) */
   skipVector?: boolean;
+  /**
+   * Fuse whatever legs have finished by this many ms and drop the rest. Prod
+   * 2026-10-18..21: in all 8 per-turn timeouts the vector leg (query embed +
+   * KNN, 1.3-2.6 s) was the late one while BM25 had answered, and the turn got
+   * no memories at all. Unset: wait for every leg.
+   */
+  legDeadlineMs?: number;
 }
 
 /**
@@ -146,6 +153,7 @@ export async function hybridSearch(
     minSources = 1,
     skipBM25 = false,
     skipVector = false,
+    legDeadlineMs,
   } = options;
 
   const metrics: HybridSearchMetrics = {
@@ -325,7 +333,17 @@ export async function hybridSearch(
   // The three searches are independent: run them together. One after
   // another they took ~280 ms against a 245 ms limit, so retrieval timed out
   // on 103 of 103 dev turns. Merge in a fixed order for stable fusion.
-  await Promise.all([bm25ListsRun, vectorListsRun, entityListsRun]);
+  const legs = { bm25: bm25ListsRun, vector: vectorListsRun, entity: entityListsRun };
+  const late = new Set(Object.keys(legs));
+  for (const [name, leg] of Object.entries(legs)) {
+    const finished = (): boolean => late.delete(name);
+    leg.then(finished, finished);
+  }
+  const allLegs = Promise.all(Object.values(legs));
+  if (legDeadlineMs === undefined) await allLegs;
+  else if (!(await settlesWithin(allLegs, legDeadlineMs))) {
+    log.info({ userId, legDeadlineMs, dropped: [...late] }, 'HYBRID_LEG_DROPPED');
+  }
   for (const lists of [bm25Lists, vectorLists, entityLists]) {
     for (const [source, list] of lists) rankedLists.set(source, list);
   }
@@ -437,3 +455,16 @@ export async function vectorOnlySearch(
 // ============================================================================
 // EXPORTS (types are exported inline above)
 // ============================================================================
+
+/** Whether `promise` settles within `ms`; it keeps running either way. */
+async function settlesWithin(promise: Promise<unknown>, ms: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => resolve(false), ms);
+  });
+  try {
+    return await Promise.race([promise.then(() => true), deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
