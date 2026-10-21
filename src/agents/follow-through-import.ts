@@ -1,8 +1,9 @@
 /**
  * The after-call task that brings a call's reminders, commitments and
  * threads into follow-ups (services/follow-through/import-follow-ups.ts),
- * for the verified owner of the account only. FOLLOW_THROUGH_IMPORT=on turns
- * it on; off, it returns before any read.
+ * for the verified owner of the account only. FOLLOW_THROUGH_IMPORT=on (the
+ * agent's, or the caller's through a cohort) turns it on; off, it returns
+ * before any store read.
  * agents/voice-agent-entry/follow-through-import-register.ts registers it and
  * hands in the owner check, which lives a layer up.
  *
@@ -26,6 +27,7 @@ import {
   type FollowUpStore,
   type ImportResult,
 } from '../services/follow-through/index.js';
+import { envForCaller, type CohortStore } from '../services/platform/cohort-flags.js';
 import type { AfterCallContext } from '../services/session/after-call-tasks.js';
 import { createFollowUpSources } from '../services/stores/follow-through-sources.js';
 import { createFollowUpStore } from '../services/stores/follow-through-store.js';
@@ -40,6 +42,8 @@ export const FOLLOW_THROUGH_IMPORT_TASK = 'follow-through-import';
 
 export interface ImportTaskDeps {
   env?: Env;
+  /** Injected for tests; defaults to Firestore. */
+  cohorts?: CohortStore;
   /** Whether this session's caller is the account's proven owner. Without one, nobody is. */
   verifiedOwner?: (sessionId: string) => boolean;
   /** Null where there is no Firestore (local dev without credentials). */
@@ -65,7 +69,9 @@ export async function importFollowUpsAfterCall(
   ctx: Pick<AfterCallContext, 'userId' | 'sessionId' | 'timezone'>,
   deps: ImportTaskDeps = {}
 ): Promise<ImportTaskOutcome> {
-  if (!flagOn('FOLLOW_THROUGH_IMPORT', deps.env)) return { imported: false, reason: 'flag-off' };
+  // As this caller's call had it: process.env may hold the next caller's (cohort-flags.ts).
+  const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
+  if (!flagOn('FOLLOW_THROUGH_IMPORT', env)) return { imported: false, reason: 'flag-off' };
   const verified = deps.verifiedOwner ?? (() => false);
   if (!isOwnAccountId(ctx.userId) || !verified(ctx.sessionId)) {
     log.info({ sessionId: ctx.sessionId }, 'Follow-up import skipped: not the account owner');

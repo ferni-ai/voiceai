@@ -188,6 +188,10 @@ export const newId = (): string => randomUUID().replace(/-/g, '').slice(0, 20);
 const errandsOf = (db: Firestore, userId: string): CollectionReference =>
   db.collection('bogle_users').doc(userId).collection('errands');
 
+/** bogle_users/{uid}/errands/{id}. */
+export const errandDoc = (db: Firestore, userId: string, id: string): DocumentReference =>
+  errandsOf(db, userId).doc(id);
+
 /** errands/{errandId}/effects/{idemKey}: one effect in the outbox. */
 export const effectDoc = (
   db: Firestore,

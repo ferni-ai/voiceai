@@ -22,6 +22,7 @@ import { soundUI } from './sound.ui.js';
 import { updateCustomAgent, getCustomAgent, type CustomAgent } from '../services/custom-agent.service.js';
 import { saveTwinProfile, getTwinProfile } from '../services/twin-profile.service.js';
 import { t } from '../i18n/index.js';
+import { contentIcon } from './icons/content-icons.js';
 
 const log = createLogger('DigitalTwinProfileUI');
 
@@ -383,19 +384,19 @@ function renderIntroSection(): string {
 
       <div class="intro-features">
         <div class="feature">
-          <span class="feature-icon">📖</span>
+          <span class="feature-icon" aria-hidden="true">${contentIcon('bookOpen', 20)}</span>
           <span class="feature-text">${t('digitalTwinProfile.intro.features.story')}</span>
         </div>
         <div class="feature">
-          <span class="feature-icon">💬</span>
+          <span class="feature-icon" aria-hidden="true">${contentIcon('message', 20)}</span>
           <span class="feature-text">${t('digitalTwinProfile.intro.features.expression')}</span>
         </div>
         <div class="feature">
-          <span class="feature-icon">💝</span>
+          <span class="feature-icon" aria-hidden="true">${contentIcon('heart', 20)}</span>
           <span class="feature-text">${t('digitalTwinProfile.intro.features.values')}</span>
         </div>
         <div class="feature">
-          <span class="feature-icon">✨</span>
+          <span class="feature-icon" aria-hidden="true">${contentIcon('sparkles', 20)}</span>
           <span class="feature-text">${t('digitalTwinProfile.intro.features.mannerisms')}</span>
         </div>
       </div>
@@ -538,22 +539,22 @@ function renderMannerismsSection(): string {
         <label class="form-label">${t('digitalTwinProfile.mannerisms.emotions')}</label>
         <div class="emotion-grid">
           <div class="emotion-input">
-            <span class="emotion-label">😊 When happy:</span>
+            <span class="emotion-label">${contentIcon('smile', 14)} When happy:</span>
             <input type="text" id="expr-happy" placeholder="${t('digitalTwinProfile.mannerisms.exprHappyPlaceholder')}"
                    value="${profile.expressionsWhenHappy.join(', ')}">
           </div>
           <div class="emotion-input">
-            <span class="emotion-label">😢 When sad:</span>
+            <span class="emotion-label">${contentIcon('frown', 14)} When sad:</span>
             <input type="text" id="expr-sad" placeholder="${t('digitalTwinProfile.mannerisms.exprSadPlaceholder')}"
                    value="${profile.expressionsWhenSad.join(', ')}">
           </div>
           <div class="emotion-input">
-            <span class="emotion-label">🎉 When excited:</span>
+            <span class="emotion-label">${contentIcon('party', 14)} When excited:</span>
             <input type="text" id="expr-excited" placeholder="${t('digitalTwinProfile.mannerisms.exprExcitedPlaceholder')}"
                    value="${profile.expressionsWhenExcited.join(', ')}">
           </div>
           <div class="emotion-input">
-            <span class="emotion-label">😤 When frustrated:</span>
+            <span class="emotion-label">${contentIcon('angry', 14)} When frustrated:</span>
             <input type="text" id="expr-frustrated" placeholder="${t('digitalTwinProfile.mannerisms.exprFrustratedPlaceholder')}"
                    value="${profile.expressionsWhenFrustrated.join(', ')}">
           </div>
@@ -788,22 +789,22 @@ function renderReviewSection(): string {
 
       <div class="review-grid">
         <div class="review-card">
-          <span class="review-icon">📖</span>
+          <span class="review-icon" aria-hidden="true">${contentIcon('bookOpen', 24)}</span>
           <span class="review-stat">${chapterCount}</span>
           <span class="review-label">${t('digitalTwinProfile.review.lifeChapters')}</span>
         </div>
         <div class="review-card">
-          <span class="review-icon">💬</span>
+          <span class="review-icon" aria-hidden="true">${contentIcon('message', 24)}</span>
           <span class="review-stat">${phraseCount}</span>
           <span class="review-label">${t('digitalTwinProfile.review.signaturePhrases')}</span>
         </div>
         <div class="review-card">
-          <span class="review-icon">💝</span>
+          <span class="review-icon" aria-hidden="true">${contentIcon('heart', 24)}</span>
           <span class="review-stat">${valueCount}</span>
           <span class="review-label">${t('digitalTwinProfile.review.coreValues')}</span>
         </div>
         <div class="review-card">
-          <span class="review-icon">✨</span>
+          <span class="review-icon" aria-hidden="true">${contentIcon('sparkles', 24)}</span>
           <span class="review-stat">${interestCount}</span>
           <span class="review-label">${t('digitalTwinProfile.review.interests')}</span>
         </div>
@@ -1606,10 +1607,6 @@ function getProfileStyles(): string {
       padding: var(--space-sm, 12px);
       background: var(--color-bg-secondary);
       border-radius: var(--radius-lg, 12px);
-    }
-    
-    .feature-icon {
-      font-size: 1.2rem;
     }
     
     .feature-text {

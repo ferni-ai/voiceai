@@ -60,7 +60,9 @@ main_passing=$(awk -F'\t' '$1 == "success" { print $2 }' <<<"$main_jobs")
 main_skipped=$(awk -F'\t' '$1 == "skipped" { print $2 }' <<<"$main_jobs")
 
 while IFS=$'\t' read -r job count; do
-  examples=$(awk -F'\t' -v j="$job" '$1 == j && !seen[$2]++ { print "- `" $2 "`: " $3 }' <<<"$failed_jobs" | head -10)
+  # No `| head`: under pipefail, head closing the pipe early kills awk with SIGPIPE and
+  # the script exits 141, on exactly the days many PRs fail (run 39217715410).
+  examples=$(awk -F'\t' -v j="$job" '$1 == j && !seen[$2]++ && shown++ < 10 { print "- `" $2 "`: " $3 }' <<<"$failed_jobs")
   if grep -qxF "$job" <<<"$main_passing"; then
     verdict="It **passed on main's latest run**, so it's most likely flaky (timing, teardown, a native crash) or depends on PR-only state such as a stale baseline."
   elif grep -qxF "$job" <<<"$main_skipped"; then
@@ -81,8 +83,9 @@ _Opened by scripts/ci/ci-health.sh._"
   echo "$title ($count PRs)"
   $DRY_RUN && { echo "  $verdict"; continue; }
 
+  # awk reads to the end (no `exit`): closing the pipe early would SIGPIPE gh under pipefail.
   existing=$(gh issue list -R "$REPO" --state open --label ci-health --search "in:title \"$job\"" \
-    --json number,title --jq '.[] | [.number, .title] | @tsv' | awk -F'\t' -v t="$title" '$2 == t { print $1; exit }')
+    --json number,title --jq '.[] | [.number, .title] | @tsv' | awk -F'\t' -v t="$title" '$2 == t && !found++ { print $1 }')
   if [[ -n "$existing" ]]; then
     gh issue comment "$existing" -R "$REPO" --body "$body" >/dev/null
     echo "  updated #$existing"

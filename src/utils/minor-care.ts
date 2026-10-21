@@ -1,6 +1,7 @@
 /**
  * A caller who sounds under 18 (MINOR_CARE=on, off by default): keep nothing
- * personal from the call.
+ * personal from the call, and a short note so Ferni stays a kind, careful
+ * friend-voice.
  *
  * Hardening from a call review (2026-10-18): on an unverified call a caller who
  * said they were 16 also gave personal details, and the memory tools kept
@@ -21,7 +22,8 @@
  * memoryHeld(sessionId) is the one check every writer asks: flag on, the
  * caller sounds under 18, and the session is not a verified account owner's
  * (the owner check is registered by caller-recognition.ts, a higher layer).
- * Crisis handling is untouched: nothing here reads or changes crisis code.
+ * Crisis handling is untouched: the note is never added to a crisis reply,
+ * and nothing here reads or changes crisis code.
  *
  * @module utils/minor-care
  */
@@ -286,6 +288,24 @@ export function userHeld(userId: string | undefined, env: Env = process.env): bo
     return false;
   }
   return !ownerCheck(sessionId);
+}
+
+export const MINOR_CARE_NOTE =
+  "[They sound under 18. Be warm and friendly, like a caring older friend. Don't ask for personal details: where they live, their school's name, their religion or their age. If they mention skipping school, being alone or something worrying, gently ask if they're okay, without a lecture. If they say they love you, kindly keep the same boundary every time: you're glad to talk, and you're a friend-voice, not a partner.]";
+
+/**
+ * The note for this reply: flag on, the caller sounds under 18 and isn't a
+ * verified account owner (an owner who mentions school isn't a stranger
+ * child). Never with crisis guidance.
+ */
+export function minorCareNote(
+  sessionId: string | undefined,
+  said: string,
+  options: HeardOptions & { careful?: boolean } = {}
+): string {
+  if (options.careful || !minorCareOn(options.env)) return '';
+  if (sessionId && ownerCheck(sessionId)) return '';
+  return noteCallerWords(sessionId, said, options) ? MINOR_CARE_NOTE : '';
 }
 
 /** Tests only. */

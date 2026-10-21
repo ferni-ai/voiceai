@@ -5,8 +5,8 @@
  * (minor-care.ts) and does nothing for a held session: a caller who sounds
  * under 18 and isn't a verified account owner.
  *
- * Moved out of live-superhuman-injections.ts (over 500 lines, so it may not
- * grow) so that every writer sits in one place a write-path check can reach.
+ * Split out of live-superhuman-injections.ts (over 500 lines, so it may not
+ * grow) when these writers were found storing for held sessions (#1897 review).
  * Each is fire-and-forget at its call site; failures are logged, never thrown.
  *
  * @module agents/processors/live-superhuman-writes
@@ -35,7 +35,7 @@ export async function persistValue(ctx: TurnWrite): Promise<void> {
   try {
     const m = await import('../../services/superhuman/values-alignment.js');
     const detected = m.detectValue(ctx.userText);
-    if (detected) void m.recordValueMention(ctx.userId, detected);
+    if (detected) await m.recordValueMention(ctx.userId, detected);
   } catch (e) {
     log.debug({ error: String(e) }, 'Value recording skipped');
   }
@@ -68,7 +68,7 @@ export async function persistPerson(ctx: TurnWrite): Promise<void> {
   try {
     const m = await import('../../services/superhuman/relationship-network.js');
     const person = m.extractPerson(ctx.userText);
-    if (person) void m.recordMention(ctx.userId, person);
+    if (person) await m.recordMention(ctx.userId, person);
   } catch (e) {
     log.debug({ error: String(e) }, 'Relationship recording skipped');
   }
@@ -80,20 +80,20 @@ export async function persistDream(ctx: TurnWrite): Promise<void> {
   try {
     const m = await import('../../services/superhuman/dream-keeper.js');
     const dream = m.detectDream(ctx.userText);
-    if (dream) void m.recordDreamMention(ctx.userId, dream);
+    if (dream) await m.recordDreamMention(ctx.userId, dream);
   } catch (e) {
     log.debug({ error: String(e) }, 'Dream recording skipped');
   }
 }
 
-/** A life chapter ("I quit my job"), keyed by session so one chat counts once: life-narrative. */
+/** A life chapter ("I quit my job"): life-narrative. */
 export async function persistChapter(ctx: TurnWrite): Promise<void> {
   if (held(ctx)) return;
   try {
     const m = await import('../../services/superhuman/life-narrative.js');
     const chapter = m.detectChapterMoment(ctx.userText);
     if (!chapter) return;
-    void m.createOrUpdateChapter(ctx.userId, {
+    await m.createOrUpdateChapter(ctx.userId, {
       type: chapter.type,
       quote: ctx.userText.slice(0, 200),
       emotion: ctx.emotionalState.primary,
@@ -105,9 +105,9 @@ export async function persistChapter(ctx: TurnWrite): Promise<void> {
 }
 
 /**
- * Schedule pattern-based outreach to the caller (fire-and-forget). Never for a
- * held session: Ferni must not reach out to a caller who sounds under 18. Lazy
- * import so the turn processor never breaks when outreach is unavailable.
+ * Schedule pattern-based outreach to the caller. Never for a held session:
+ * Ferni must not reach out to a caller who sounds under 18. Lazy import so the
+ * turn processor never breaks when outreach is unavailable.
  */
 export async function schedulePatternOutreachAsync(
   pattern: {

@@ -963,16 +963,14 @@ async function saveCommitmentAsync(
 }
 
 /**
- * Load Commitment E2E detection (Phase 13)
- * Enhanced commitment detection with conversation context and memory linking
+ * Load Commitment E2E detection (Phase 13): with conversation context and memory linking.
  */
 async function loadCommitmentE2EAsync(
   ctx: LiveSuperhumanContext
 ): Promise<CommitmentE2EResult | null> {
   try {
     if (heldAfter(ctx.sessionId, ctx.userText)) return null; // MINOR_CARE=on: it stores (minor-care.ts)
-    const { detectCommitmentE2E } =
-      await import('../../services/superhuman/commitment-keeper-e2e.js');
+    const { detectCommitmentE2E } = await import('../../services/superhuman/commitment-keeper-e2e.js');
 
     const result = await detectCommitmentE2E({
       userId: ctx.userId,

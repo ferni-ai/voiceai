@@ -1,0 +1,12 @@
+[
+  {"name": "event_ts", "type": "TIMESTAMP", "mode": "REQUIRED"},
+  {"name": "env", "type": "STRING"},
+  {"name": "event_type", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "user_hash", "type": "STRING"},
+  {"name": "channel", "type": "STRING"},
+  {"name": "kind", "type": "STRING"},
+  {"name": "reason", "type": "STRING"},
+  {"name": "outcome", "type": "STRING"},
+  {"name": "third_party", "type": "BOOL"},
+  {"name": "latency_ms", "type": "INT64"}
+]

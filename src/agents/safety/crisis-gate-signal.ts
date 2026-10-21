@@ -9,9 +9,17 @@
 
 export const CRISIS_GATE_SIGNAL = 'crisis_gate_decision';
 
+const crisisSessions = new WeakSet<object>();
+
+/** True once the gate guided or replaced a reply on this session: no banter for the rest of the call. */
+export function crisisDecidedOn(session: unknown): boolean {
+  return typeof session === 'object' && session !== null && crisisSessions.has(session);
+}
+
 /** Emits { action } on the session for any decision but 'pass'. */
 export function signalCrisisDecision(session: unknown, action: string | undefined): void {
   if (!action || action === 'pass') return;
+  if (typeof session === 'object' && session !== null) crisisSessions.add(session);
   const emitter = session as { emit?: (event: string, ...args: unknown[]) => unknown };
   emitter.emit?.(CRISIS_GATE_SIGNAL, { action });
 }

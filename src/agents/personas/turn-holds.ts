@@ -8,6 +8,7 @@
  * @module agents/personas/turn-holds
  */
 
+import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { troubleOpening, troublesTalkEnabled, troubleTurn } from './troubles-talk.js';
 import { candorEnabled, supportHeld } from './turn-candor.js';
 import { regexSignals, type TurnSignals } from './turn-extras.js';
@@ -47,4 +48,21 @@ export function withCallTrouble(
   const sig = signals ?? regexSignals(said, callerMove(said));
   const hurting = (source === 'model' && sig.careful) || troubleOpening(said);
   return { ...sig, trouble: supportHeld(session, said, hurting) || troubleTurn(said, sig) };
+}
+
+/**
+ * Crisis risk noted anywhere on this call (crisis-call-risk.ts) rides with the
+ * signals, so no thinking aloud lands near it (turn-extras.ts). This turn's own
+ * reads still in flight are left out: heavy-moment.ts already scores its words.
+ * A pure narrowing: with no risk, or no session id, the signals pass through.
+ */
+export function withCrisisRisk(
+  session: object,
+  said: string,
+  signals: TurnSignals | undefined
+): TurnSignals | undefined {
+  const call = (session as { userData?: { services?: { sessionId?: string } } }).userData?.services
+    ?.sessionId;
+  if (!call || !crisisRiskThisCall(call, said)) return signals;
+  return { ...(signals ?? regexSignals(said, callerMove(said))), crisisRisk: true };
 }

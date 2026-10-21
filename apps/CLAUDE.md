@@ -35,7 +35,6 @@ This directory contains all client applications and deployment targets. Each app
 | ----------------- | --------- | -------------------------------------------------------- |
 | `ios-native/`     | ✅        | Full iOS app (SwiftUI, LiveKit, Watch, CarPlay, Widgets) |
 | `android-twa/`    | README    | Android app: Trusted Web Activity over app.ferni.ai      |
-| `archive/`        | README    | Retired apps (native Android), reference only            |
 | `shared/`         | ✅        | Shared Swift Package for iOS/macOS                       |
 | `ios/`            | ✅        | Placeholder → points to `ios-native/`                    |
 
@@ -88,7 +87,7 @@ cd apps/web && pnpm dev     # Vite dev server on :3004
 
 ```bash
 cd apps/ios-native
-open FerniVoice.xcodeproj   # Xcode
+open Ferni.xcodeproj   # Xcode
 ```
 
 ### Electron Development

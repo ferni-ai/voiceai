@@ -19,6 +19,7 @@ import {
   updateWebhook,
   validateSiriToken,
   validateWebhookInput,
+  validateWebhookUrl,
   type WebhookPlatform,
 } from '../../../services/webhooks/index.js';
 import { requireAuth } from '../../../api/auth-middleware.js';
@@ -296,6 +297,16 @@ export async function handleWebhookRoutes(
     if (!body) {
       sendError(res, 400, 'Invalid JSON body');
       return true;
+    }
+
+    // The same URL rules as create: an update must not be a way around them.
+    if (body.url !== undefined) {
+      const urlCheck = validateWebhookUrl(body.url);
+      if (!urlCheck.valid) {
+        sendError(res, 400, urlCheck.error || 'Invalid webhook URL');
+        return true;
+      }
+      body.url = urlCheck.normalizedUrl;
     }
 
     const result = await updateWebhook(userId, {
