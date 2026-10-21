@@ -47,7 +47,10 @@
  */
 
 import { createRequire } from 'node:module';
-import { Firestore as ImportedFirestore } from '@google-cloud/firestore';
+import {
+  Firestore as ImportedFirestore,
+  WriteBatch as ImportedWriteBatch,
+} from '@google-cloud/firestore';
 import { createLogger } from './safe-logger.js';
 import {
   PROD_FIRESTORE_PROJECT,
@@ -133,13 +136,26 @@ export function refusedOwner(write: WriteProto, env: Env = process.env): string 
 
 export type FirestoreClass = { prototype: Record<string | symbol, unknown> };
 
+/** A copy of @google-cloud/firestore: its client class and, when found, its WriteBatch. */
+export interface FirestoreModule {
+  Firestore: FirestoreClass;
+  WriteBatch?: FirestoreClass;
+}
+
 /**
- * Every copy of the client class: the one this module imports (the bundled copy
+ * Every copy of the client package: the one this module imports (the bundled copy
  * when the agent is bundled), plus the app's and firebase-admin's own requires.
  * The database pin (firestore-db-pin.ts) patches the same set.
  */
-export function realFirestoreClasses(): FirestoreClass[] {
-  const classes = new Set<FirestoreClass>([ImportedFirestore as unknown as FirestoreClass]);
+export function realFirestoreModules(): FirestoreModule[] {
+  const modules = new Map<FirestoreClass, FirestoreModule>();
+  const imported: FirestoreModule = { Firestore: ImportedFirestore as unknown as FirestoreClass };
+  try {
+    imported.WriteBatch = ImportedWriteBatch as unknown as FirestoreClass;
+  } catch {
+    // A test's mock of the package without WriteBatch: there is no real one to patch.
+  }
+  modules.set(imported.Firestore, imported);
   try {
     const fromHere = createRequire(import.meta.url);
     const resolvers = [fromHere];
@@ -149,12 +165,18 @@ export function realFirestoreClasses(): FirestoreClass[] {
       // firebase-admin isn't installed here; the app's copy is the only one.
     }
     for (const req of resolvers) {
-      classes.add((req('@google-cloud/firestore') as { Firestore: FirestoreClass }).Firestore);
+      const sdk = req('@google-cloud/firestore') as FirestoreModule;
+      modules.set(sdk.Firestore, { Firestore: sdk.Firestore, WriteBatch: sdk.WriteBatch });
     }
   } catch {
     // No node_modules to resolve from (a bundle): the imported copy is the one in use.
   }
-  return [...classes];
+  return [...modules.values()];
+}
+
+/** The client class of every copy (realFirestoreModules). */
+export function realFirestoreClasses(): FirestoreClass[] {
+  return realFirestoreModules().map((m) => m.Firestore);
 }
 
 const warned = new Set<string>();

@@ -16,18 +16,29 @@
  * - report (default): log FIRESTORE_DB_MISMATCH with the expected and actual
  *   database, the RPC and the first app stack frame, then send the RPC.
  *   Deduped per call site and capped per minute, so a hot path cannot flood
- *   the logs. Prod runs this with '(default)' expected, so any stray
+ *   the logs; every mismatch not logged is counted in the next line's
+ *   `suppressed`. Prod runs this with '(default)' expected, so any stray
  *   named-database client in prod is reported too.
  * - refuse: log the same line and reject the RPC with
  *   FirestoreDatabaseMismatchError (PERMISSION_DENIED, never retried).
  * - off: no check.
  *
+ * Writes need their call site captured early. DocumentReference.set() and
+ * friends return `commit().then(...)`, and runTransaction() runs its callback
+ * after an await, so by the time `request('commit')` runs the app's frames are
+ * gone from the stack. WriteBatch.prototype.commit and
+ * Firestore.prototype.runTransaction therefore note the caller synchronously,
+ * only when the client is on the wrong database, in an AsyncLocalStorage that
+ * the RPC check reads. BulkWriter (no callers in src/) is still checked and
+ * refused, but its lines can say site "unknown".
+ *
  * @module utils/firestore-db-pin
  */
 
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { getFirestoreDatabase } from '../config/environment.js';
 import { createLogger } from './safe-logger.js';
-import { realFirestoreClasses, type FirestoreClass } from './synthetic-write-guard.js';
+import { realFirestoreModules, type FirestoreModule } from './synthetic-write-guard.js';
 
 const log = createLogger({ module: 'firestore-db-pin' });
 
@@ -38,6 +49,7 @@ export type FirestoreDbPinMode = 'report' | 'refuse' | 'off';
 /** The two methods every Firestore RPC goes through (index.js of @google-cloud/firestore). */
 const RPC_METHODS = ['request', 'requestStream'] as const;
 const PINNED = Symbol.for('ferni.firestoreDbPin');
+const NOTED = Symbol.for('ferni.firestoreDbPin.writeSite');
 const PERMISSION_DENIED = 7;
 const MAX_SITES = 500;
 const WINDOW_MS = 60_000;
@@ -72,7 +84,10 @@ export interface FirestoreDbMismatch {
   method: string;
   /** The first stack frame outside node_modules and Node: the code that made the call. */
   site: string;
-  /** Mismatches not logged since the last line, because the per-minute cap was hit. */
+  /**
+   * Mismatches not logged since the last line: repeats of a call site already
+   * logged, and anything over the per-minute cap.
+   */
   suppressed: number;
 }
 
@@ -83,10 +98,11 @@ const logMismatch: FirestoreDbMismatchSink = (m) => {
   else log.warn(m, 'FIRESTORE_DB_MISMATCH');
 };
 
-const LIBRARY_FRAME = /node_modules|\(node:|^at node:|synthetic-write-guard|gcp-test-guard/;
+const LIBRARY_FRAME =
+  /node_modules|\(node:|^at node:|synthetic-write-guard|gcp-test-guard|firestore-db-pin\.(ts|js):/;
 
 /** The first frame below `wrapper` that is app code. */
-function callerSite(wrapper: (...a: never[]) => unknown): string {
+export function callerSite(wrapper: (...a: never[]) => unknown): string {
   const holder: { stack?: string } = {};
   const limit = Error.stackTraceLimit;
   Error.stackTraceLimit = 50;
@@ -127,9 +143,12 @@ function createCheck(env: Env, sink: FirestoreDbMismatchSink): Check {
       suppressed++;
       return refusal;
     }
-    const site = callerSite(wrapper);
+    const site = writeSites().getStore() ?? callerSite(wrapper);
     const key = `${method}|${actual}|${site}`;
-    if (seen.has(key)) return refusal;
+    if (seen.has(key)) {
+      suppressed++;
+      return refusal;
+    }
     seen.add(key);
     lines++;
     sink({ event: 'FIRESTORE_DB_MISMATCH', mode, expected, actual, method, site, suppressed });
@@ -138,19 +157,53 @@ function createCheck(env: Env, sink: FirestoreDbMismatchSink): Check {
   };
 }
 
+// On globalThis: vitest reloads this module per test file, but a patched
+// prototype keeps the closure of the copy that patched it.
+const SITES = Symbol.for('ferni.firestoreDbPin.sites');
+function writeSites(): AsyncLocalStorage<string> {
+  const shared = globalThis as { [SITES]?: AsyncLocalStorage<string> };
+  return (shared[SITES] ??= new AsyncLocalStorage<string>());
+}
+
+type Method = (this: unknown, ...a: unknown[]) => unknown;
+
 /**
- * Patch every Firestore client class once. Idempotent; installed where the
+ * Run `name` inside the caller's site whenever the client it writes through is
+ * on another database than the pin expects. Matching clients pay one string
+ * compare.
+ */
+function noteWriteSite(
+  proto: Record<string | symbol, unknown>,
+  name: string,
+  env: Env,
+  databaseOf: (self: unknown) => string | undefined
+): void {
+  const original = proto[name];
+  if (typeof original !== 'function') return;
+  const noted = function (this: unknown, ...args: unknown[]): unknown {
+    const actual = databaseOf(this) ?? '(default)';
+    if (firestoreDbPinMode(env) === 'off' || actual === getFirestoreDatabase(env)) {
+      return (original as Method).apply(this, args);
+    }
+    const site = callerSite(noted);
+    return writeSites().run(site, () => (original as Method).apply(this, args));
+  };
+  proto[name] = noted;
+}
+
+/**
+ * Patch every copy of the Firestore client once. Idempotent; installed where the
  * synthetic-write guard is (getFirestoreDb, getAdminApp, process entrypoints).
  */
 export function installFirestoreDbPin(
   env: Env = process.env,
-  classes: FirestoreClass[] = realFirestoreClasses(),
+  modules: FirestoreModule[] = realFirestoreModules(),
   sink: FirestoreDbMismatchSink = logMismatch
 ): void {
   const check = createCheck(env, sink);
-  for (const Firestore of classes) {
+  for (const { Firestore, WriteBatch } of modules) {
     const proto = Firestore.prototype;
-    if (proto[PINNED] === true) continue;
+    if (Object.prototype.hasOwnProperty.call(proto, PINNED)) continue;
     for (const name of RPC_METHODS) {
       const original = proto[name];
       if (typeof original !== 'function') continue;
@@ -162,10 +215,21 @@ export function installFirestoreDbPin(
         // The SDK's getter: the bound databaseId, or '(default)'.
         const refusal = check(this.databaseId ?? '(default)', method, pinned);
         if (refusal) return Promise.reject(refusal);
-        return (original as (...a: unknown[]) => unknown).call(this, method, ...rest);
+        return (original as Method).call(this, method, ...rest);
       };
       proto[name] = pinned;
     }
+    noteWriteSite(proto, 'runTransaction', env, (db) => (db as { databaseId?: string }).databaseId);
     proto[PINNED] = true;
+    const batch = WriteBatch?.prototype;
+    if (batch && !Object.prototype.hasOwnProperty.call(batch, NOTED)) {
+      noteWriteSite(
+        batch,
+        'commit',
+        env,
+        (b) => (b as { _firestore?: { databaseId?: string } })._firestore?.databaseId
+      );
+      batch[NOTED] = true;
+    }
   }
 }

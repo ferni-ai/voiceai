@@ -39,7 +39,7 @@ function fakeClient(databaseId: string) {
 function setup(env: Record<string, string>, databaseId = '(default)') {
   const fake = fakeClient(databaseId);
   const lines: FirestoreDbMismatch[] = [];
-  installFirestoreDbPin(env, [fake.cls], (m) => lines.push(m));
+  installFirestoreDbPin(env, [{ Firestore: fake.cls }], (m) => lines.push(m));
   return { ...fake, lines };
 }
 
@@ -126,7 +126,7 @@ describe('installFirestoreDbPin', () => {
     expect(prod.requestStream).toHaveBeenCalledTimes(1);
   });
 
-  it('logs a call site once, but each distinct call site, and still refuses every call', async () => {
+  it('logs a call site once, counts its repeats, logs each distinct site, and refuses every call', async () => {
     const { cls, request, lines } = setup({ ...DEV, FIRESTORE_DB_PIN: 'refuse' });
     const client = clientOf(cls, '(default)');
     const rpc = cls.prototype.request as Rpc;
@@ -135,6 +135,8 @@ describe('installFirestoreDbPin', () => {
     await expect(rpc.call(client, 'commit')).rejects.toThrow(); // a second call site
     expect(lines).toHaveLength(2);
     expect(lines[0]?.site).not.toBe(lines[1]?.site);
+    // The four repeats of the first site were not logged, but they were counted.
+    expect(lines[1]?.suppressed).toBe(4);
     expect(request).not.toHaveBeenCalled();
   });
 
@@ -165,7 +167,7 @@ describe('installFirestoreDbPin', () => {
 
   it('wraps a class only once', async () => {
     const { cls, write, request, lines } = setup(DEV);
-    installFirestoreDbPin(DEV, [cls], (m) => lines.push(m));
+    installFirestoreDbPin(DEV, [{ Firestore: cls }], (m) => lines.push(m));
     await write();
     expect(request).toHaveBeenCalledTimes(1);
     expect(lines).toHaveLength(1);
@@ -211,5 +213,72 @@ describe('installFirestoreDbPin', () => {
         else process.env[key] = value;
       }
     }
+  });
+  it('names each real-SDK writer by its own app line, though set() commits after an await', async () => {
+    const sdk = createRequire(import.meta.url)(
+      '@google-cloud/firestore'
+    ) as typeof import('@google-cloud/firestore');
+    // The transport, stubbed beneath the pin: nothing leaves the process.
+    const ts = { seconds: 1, nanos: 0 };
+    const transport = vi.fn(async () => ({
+      writeResults: [{ updateTime: ts }],
+      commitTime: ts,
+      transaction: Buffer.from('tx'),
+    }));
+    class Probe extends sdk.Firestore {}
+    Object.assign(Probe.prototype, { request: transport });
+    const lines: FirestoreDbMismatch[] = [];
+    const saved = process.env.FIRESTORE_DATABASE;
+    process.env.FIRESTORE_DATABASE = 'ferni-dev';
+    installFirestoreDbPin(
+      process.env,
+      [
+        {
+          Firestore: Probe as unknown as FakeClass,
+          WriteBatch: sdk.WriteBatch as unknown as FakeClass,
+        },
+      ],
+      (m) => lines.push(m)
+    );
+    const db = new Probe({ projectId: 'demo-pin' });
+    (db as unknown as { initializeIfNeeded: () => Promise<void> }).initializeIfNeeded =
+      async () => {};
+    const writerA = async () => db.doc('a/1').set({ x: 1 });
+    const writerB = async () => db.collection('b').doc('2').update({ y: 2 });
+    const writerC = async () => {
+      const batch = db.batch();
+      batch.set(db.doc('c/3'), { z: 3 });
+      return batch.commit();
+    };
+    const writerD = async () => db.runTransaction(async (tx) => tx.set(db.doc('d/4'), { w: 4 }));
+    try {
+      await writerA();
+      await writerB();
+      await writerC();
+      await writerD();
+      await writerA(); // a repeat: counted, not logged
+      await writerA();
+      const commits = lines.filter((l) => l.method === 'commit');
+      expect(commits).toHaveLength(4);
+      for (const line of commits) expect(line.site).toMatch(/firestore-db-pin\.test\.ts:\d+/);
+      expect(new Set(commits.map((l) => l.site)).size).toBe(4);
+      expect(transport).toHaveBeenCalled();
+      await db.doc('e/5').delete(); // a fifth site carries the repeats
+      expect(lines.at(-1)).toMatchObject({ method: 'commit', suppressed: 2 });
+    } finally {
+      await db.terminate();
+      if (saved === undefined) delete process.env.FIRESTORE_DATABASE;
+      else process.env.FIRESTORE_DATABASE = saved;
+    }
+  });
+
+  it("firebase-admin's getFirestore() uses the same client class the pin patches", () => {
+    const fromHere = createRequire(import.meta.url);
+    const fromAdmin = createRequire(fromHere.resolve('firebase-admin'));
+    const mine = fromHere('@google-cloud/firestore') as typeof import('@google-cloud/firestore');
+    const admins = fromAdmin('@google-cloud/firestore') as typeof import('@google-cloud/firestore');
+    // If this ever splits, realFirestoreModules() lists both copies and both get pinned.
+    expect(admins.Firestore).toBe(mine.Firestore);
+    expect(admins.WriteBatch).toBe(mine.WriteBatch);
   });
 });
