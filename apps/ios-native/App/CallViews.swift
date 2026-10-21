@@ -330,6 +330,7 @@ struct CallControls: View {
                     .glassEffect(.regular.tint(FerniColor.accent).interactive(), in: .capsule)
                     .glassEffectID("talk", in: glass)
                     .keyboardShortcut(.return, modifiers: .command)
+                    .accessibilityIdentifier("home.talk")
                 }
             }
         }
