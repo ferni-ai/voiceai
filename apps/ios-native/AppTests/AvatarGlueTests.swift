@@ -78,4 +78,32 @@ final class AvatarGlueTests: XCTestCase {
         await expect(rig, hears: .sequence("error_recovery")) { avatar.send(.reconnected) }
         await expect(rig, hears: .keyed(.goodbye)) { avatar.send(.ended) }
     }
+
+    /// Award upgrade 9, through the real views (critic L: the test checked
+    /// CallAvatar's rule, not what reached Ferni): mute a live call while he
+    /// listens, and his rig looks away; unmute, and it looks back.
+    func testMutingALiveCallTurnsHisRigAway() async throws {
+        let avatar = AvatarModel()
+        let call = UITestScenario.callSession(avatar: avatar, level: AudioLevelMeter())
+        let rig = AliveRig(seed: 1)
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = UIHostingController(rootView: Host(call: call, inputs: Inputs(), rig: rig))
+        window.makeKeyAndVisible()
+        self.window = window
+        call.start()
+        for _ in 0..<100 where call.phase != .live { await settle(0.1) }
+        XCTAssertEqual(call.phase, .live)
+        avatar.send(.agentState(.listening))
+        await settle()
+        XCTAssertFalse(rig.lookingAway, "on you while you're heard")
+        await call.toggleMute()
+        avatar.send(.agentState(.listening))
+        await settle()
+        XCTAssertTrue(call.isMuted)
+        XCTAssertTrue(rig.lookingAway, "muted: he looks away")
+        await call.toggleMute()
+        await settle()
+        XCTAssertFalse(rig.lookingAway, "unmuted: back on you")
+        await call.end()
+    }
 }
