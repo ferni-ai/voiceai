@@ -81,7 +81,10 @@ public struct QuietAvatar: View {
     private func render(_ rig: AliveRig, at t: Double, side: CGFloat) async -> CGImage? {
         let dark = scheme == .dark
         var u = rig.frame(at: t)
-        u.light(dark: dark, roomTop: linear(hex: dark ? "#1e1a16" : "#faf8f5"), roomBottom: linear(hex: dark ? "#14110e" : "#efe9e0"))
+        // The paper he sits on, flat: the room's gradient drew a lighter box
+        // around him at night, on Night Ink's darker paper (critic H-B).
+        let paper = linear(hex: dark ? "#14110e" : "#faf8f5")
+        u.light(dark: dark, roomTop: paper, roomBottom: paper)
         let w = Int(side * AvatarView.canvas.width * displayScale), h = Int(side * AvatarView.canvas.height * displayScale)
         u.frame(size: SIMD2(Float(w), Float(h)), radius: Float(AvatarView.radius / AvatarView.canvas.width) * Float(w),
                 below: Float(AvatarView.lift / AvatarView.canvas.width) * Float(w))
