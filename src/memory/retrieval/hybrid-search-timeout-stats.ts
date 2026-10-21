@@ -45,11 +45,14 @@ export function recordHybridSearchAttempt(): void {
  * Run `hybridSearch()` racing against `totalTimeoutMs * 0.7`, recording the
  * attempt for {@link getHybridSearchTimeoutStats}. Extracted from
  * `retrieveForTurn()` so the timeout plumbing lives with its observability.
+ * `rrfScale` (TURN_MEMORY_RRF_SCALE): search only the vector leg and keep every
+ * fused result, for the caller to gate on cosine (turn-memory-scale.ts).
  */
 export async function runHybridSearchWithTimeout(
   userId: string,
   transcript: string,
-  totalTimeoutMs: number
+  totalTimeoutMs: number,
+  rrfScale = false
 ): Promise<{ results: HybridSearchResult[]; metrics: HybridSearchMetrics }> {
   recordHybridSearchAttempt();
   const budgetMs = totalTimeoutMs * 0.7;
@@ -58,7 +61,9 @@ export async function runHybridSearchWithTimeout(
   let timedOut = false;
   const search = hybridSearch(userId, transcript, {
     topK: 10,
-    minScore: 0.3, // Lower threshold, we'll filter later
+    // Off: an RRF score is at most ~0.016 per source, so 0.3 lets nothing through.
+    minScore: rrfScale ? 0 : 0.3,
+    skipBM25: rrfScale, // with the flag only a cosine can admit a memory
     bm25Weight: 0.4,
     vectorWeight: 0.6,
     includeEntities: true,

@@ -83,8 +83,13 @@ export interface HybridSearchOptions {
  */
 export interface HybridSearchResult {
   id: string;
-  /** Combined score from RRF */
+  /**
+   * Combined score from RRF: weight / (60 + rank) summed over sources, so at
+   * most about 0.016 per source. It orders results; it is not a 0-1 relevance.
+   */
   score: number;
+  /** Each source's own score before fusion (vector: cosine similarity, 0-1). */
+  legScores?: Record<string, number>;
   /** Result text/content */
   text: string;
   /** Result type (memory, entity, etc.) */
@@ -359,6 +364,13 @@ export async function hybridSearch(
     entity_search: 0.3, // Entity search results get lower weight
   };
 
+  // Each source's own score, which fusion replaces with a rank score.
+  const legScores = new Map<string, Record<string, number>>();
+  for (const [source, list] of rankedLists) {
+    for (const item of list)
+      legScores.set(item.id, { ...legScores.get(item.id), [source]: item.score });
+  }
+
   const fusedResults = reciprocalRankFusion(rankedLists, {
     k: 60,
     sourceWeights,
@@ -375,6 +387,7 @@ export async function hybridSearch(
   const results: HybridSearchResult[] = fusedResults.map((f) => ({
     ...f.data,
     score: f.fusedScore,
+    legScores: legScores.get(f.id),
     sources: f.sources,
     scoreBreakdown: Object.fromEntries(
       Object.entries(f.sourceContributions).map(([source, { rrfScore }]) => [
