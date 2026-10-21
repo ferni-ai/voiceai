@@ -12,6 +12,7 @@ public struct QuietAvatar: View {
     @Environment(\.colorScheme) private var scheme
     @Environment(\.displayScale) private var displayScale
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @State private var picture: CGImage?
 
     public init(persona: WindowPersona) {
@@ -33,13 +34,23 @@ public struct QuietAvatar: View {
             }
             .frame(width: side * AvatarView.canvas.width, height: side * AvatarView.canvas.height)
             .position(x: geo.size.width / 2, y: geo.size.height / 2 - side * AvatarView.lift)
-            .task(id: "\(side)-\(scheme == .dark)-\(persona.rawValue)") { await blink(side: side) }
+            // Only while the app is in front: in the background or the app
+            // switcher the blinks stop, and he's held as he was (critic M5).
+            .task(id: "\(side)-\(scheme == .dark)-\(persona.rawValue)-\(scenePhase == .active)") {
+                guard Self.blinks(in: scenePhase) else { return }
+                await blink(side: side)
+            }
         }
         .aspectRatio(1, contentMode: .fit)
         .accessibilityHidden(true)
     }
 
+    /// He blinks only while the scene is active.
+    static func blinks(in phase: ScenePhase) -> Bool { phase == .active }
+
     /// Ferni at rest, then each blink frame by frame, holding still between.
+    /// The rig steps on the main actor (it's cheap); each picture is drawn off
+    /// it, since a render waits on the GPU (critic M5).
     private func blink(side: CGFloat) async {
         guard side > 0, AliveRenderer.shared != nil else { return }
         let rig = AliveRig(persona: persona)
@@ -49,7 +60,7 @@ public struct QuietAvatar: View {
         var t = 0.0
         // Settle the springs, then draw him at rest.
         while t < 1.5 { t += 1.0 / 60; _ = rig.frame(at: t) }
-        picture = render(rig, at: t, side: side)
+        picture = await render(rig, at: t, side: side)
         while !Task.isCancelled {
             let wait = rig.secondsToNextBlink
             try? await Task.sleep(for: .seconds(max(0.2, wait)))
@@ -59,19 +70,29 @@ public struct QuietAvatar: View {
             _ = rig.frame(at: t)
             for _ in 0..<12 {
                 t += 1.0 / 30
-                picture = render(rig, at: t, side: side)
+                let next = await render(rig, at: t, side: side)
+                guard !Task.isCancelled else { return }
+                picture = next
                 try? await Task.sleep(for: .seconds(1.0 / 30))
             }
         }
     }
 
-    private func render(_ rig: AliveRig, at t: Double, side: CGFloat) -> CGImage? {
+    private func render(_ rig: AliveRig, at t: Double, side: CGFloat) async -> CGImage? {
         let dark = scheme == .dark
         var u = rig.frame(at: t)
         u.light(dark: dark, roomTop: linear(hex: dark ? "#1e1a16" : "#faf8f5"), roomBottom: linear(hex: dark ? "#14110e" : "#efe9e0"))
         let w = Int(side * AvatarView.canvas.width * displayScale), h = Int(side * AvatarView.canvas.height * displayScale)
         u.frame(size: SIMD2(Float(w), Float(h)), radius: Float(AvatarView.radius / AvatarView.canvas.width) * Float(w),
                 below: Float(AvatarView.lift / AvatarView.canvas.width) * Float(w))
+        let uniforms = u
+        return await Task.detached(priority: .utility) { Self.picture(uniforms, width: w, height: h) }.value
+    }
+
+    /// One frame drawn to a CGImage; runs off the main actor.
+    nonisolated static func picture(_ u: AliveUniforms, width w: Int, height h: Int) -> CGImage? {
+        // Debug builds stop here if it's ever drawn on the main thread again.
+        assert(!Thread.isMainThread, "QuietAvatar drew on the main thread")
         guard let bytes = AliveRenderer.shared?.image(u, width: w, height: h),
               let provider = CGDataProvider(data: Data(bytes) as CFData) else { return nil }
         let info = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
