@@ -29,6 +29,7 @@ import {
 import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
+import * as notYet from './greeting-not-yet.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -104,10 +105,11 @@ async function inTime<T>(work: Promise<T>): Promise<T | undefined> {
 }
 
 /** The commitment to open on, or undefined (flag off, none open, or too slow). */
-async function checkInFor(userId: string | undefined): Promise<string | undefined> {
+async function checkInFor(userId: string | undefined, zone?: string): Promise<string | undefined> {
   if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
-  // Never one about a call Ferni hasn't completed: it is held, failed or unheard.
-  return (await inTime(checkInsWithCalls(userId)))?.find((c) => !c.callNote)?.statement;
+  // Never one about a call Ferni hasn't completed (held, failed or unheard) or one not yet due.
+  const open = await inTime(checkInsWithCalls(userId));
+  return open?.find((c) => !c.callNote && !notYet.commitmentAhead(c, Date.now(), zone))?.statement;
 }
 
 /** A win not yet named, or undefined (COACH_WINS off, none, or too slow). */
@@ -372,7 +374,7 @@ export async function directedGreeting(
   const scripted = generateWarmGreeting(personaId, ctx);
   // Not gated on history: the profile behind it can still be loading.
   const [openCheckIn, openWin, pondered, welcome, anniversary] = await Promise.all([
-    checkInFor(userData?.userId),
+    checkInFor(userData?.userId, userData?.callerTimezone),
     winFor(userData?.userId),
     ponderFor(userData?.userId, history),
     loadWelcomeBack(userData?.userId, personaId, history),
@@ -380,9 +382,14 @@ export async function directedGreeting(
   ]);
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
   const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
-  const { win, checkIn } = unknown ? {} : openingThread(openWin, openCheckIn);
+  // Nothing still ahead, and nothing from before on a same-day return (greeting-not-yet.ts).
+  const hold = notYet.openingRestraint(history, userData?.callerTimezone);
+  const { win, checkIn } =
+    unknown || hold.sameDay
+      ? {}
+      : openingThread(openWin, hold.allows(openCheckIn) ? openCheckIn : undefined);
   // One thread per call: a win or what they said they'd do comes before a pondered ask.
-  const ask = win || checkIn ? undefined : pondered;
+  const ask = win || checkIn || !hold.allows(pondered?.text) ? undefined : pondered;
   // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
   const back =
     welcome && !unknown
@@ -399,6 +406,7 @@ export async function directedGreeting(
     (ask && !unknown ? PONDER_DIRECTION : '') +
     (back?.direction ?? '') +
     (anniversary && !unknown ? anniversaryDirection(anniversary) : '') +
+    (hold.sameDay ? notYet.SAME_DAY_DIRECTION : '') +
     (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
@@ -407,7 +415,7 @@ export async function directedGreeting(
       greetingFacts(
         partOfDay,
         userData?.userName,
-        history,
+        hold.history,
         checkIn,
         unknown ? undefined : ask?.text,
         win?.text
