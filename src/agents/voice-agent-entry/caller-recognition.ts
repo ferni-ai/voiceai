@@ -24,12 +24,14 @@
  *
  * @module agents/voice-agent-entry/caller-recognition
  */
+import { setVerifiedOwnerCheck } from '../../utils/minor-care.js';
 import {
   beginReturningCaller,
   returningCallerEnabled,
 } from '../../services/identity/returning-caller.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
+  readSignedAttestation,
   readSipCaller,
   type AttributeUpdates,
   type SipAttestation,
@@ -57,11 +59,13 @@ export interface RecognitionDeps {
   ownerOf: (e164: string) => Promise<PhoneOwner | null>;
   /**
    * The attestation level from a signed token verified for this caller and
-   * this number, or null when there is none. Never a raw header.
+   * this number, or null when there is none. Never a raw header. `updates`
+   * lets it wait for a token that lands after the caller joins.
    */
   signedAttestation: (
     participant: SipParticipantLike,
-    e164: string
+    e164: string,
+    updates?: AttributeUpdates
   ) => Promise<SipAttestation | null>;
 }
 
@@ -100,15 +104,22 @@ const firstName = (name: string | undefined): string | undefined =>
 /** Recognise a phone caller. Null for a participant that isn't a SIP caller. */
 export async function recognizeCaller(
   participant: SipParticipantLike,
-  deps: RecognitionDeps
+  deps: RecognitionDeps,
+  updates?: AttributeUpdates
 ): Promise<CallerRecognition | null> {
   // isSip only: the reading's attestation comes from a raw, forgeable header.
   const reading = await readSipCaller(participant, { waitMs: 0 });
   if (!reading.isSip) return null;
   const e164 = toE164(participant.attributes?.['sip.phoneNumber']);
-  const owner = e164 ? await deps.ownerOf(e164).catch(() => null) : null;
-  const signed =
-    owner && e164 ? await deps.signedAttestation(participant, e164).catch(() => null) : null;
+  // Both run, in parallel, whatever the owner lookup finds: reading the token
+  // only for a number with an account would let a caller time the call's
+  // start and learn whether that number has a Ferni account.
+  const [owner, signed] = e164
+    ? await Promise.all([
+        deps.ownerOf(e164).catch(() => null),
+        deps.signedAttestation(participant, e164, updates).catch(() => null),
+      ])
+    : [null, null];
   const status = classifyCaller(owner, signed);
   const recognition: CallerRecognition = { status, attestation: signed ?? 'none' };
   if (owner && status === 'known') {
@@ -119,9 +130,9 @@ export async function recognizeCaller(
 }
 
 /**
- * Production lookups. The signed attestation arrives with #605 (webhook
- * token, `ferni.attest`); until it is wired here there is none, so no caller
- * is 'known': recognition fails closed rather than trusting a header.
+ * Production lookups. The attestation is our webhook's signed token (#605,
+ * `ferni.attest`) verified against PHONE_ATTEST_SECRET for this participant
+ * and this number (readSignedAttestation); anything else is null.
  */
 export const productionRecognitionDeps: RecognitionDeps = {
   async ownerOf(e164) {
@@ -129,7 +140,8 @@ export const productionRecognitionDeps: RecognitionDeps = {
     const user = await getFirebaseUserByPhone(e164);
     return user ? { userId: user.uid, name: user.displayName } : null;
   },
-  signedAttestation: async () => null,
+  signedAttestation: (participant, e164, updates) =>
+    readSignedAttestation(participant, e164, { updates }),
 };
 
 /** The room's first remote participant, waiting up to `waitMs` for one to join. */
@@ -187,6 +199,8 @@ export function rememberDispatchIdentity(sessionId: string, source: string, meta
 export function sessionIsVerifiedOwner(sessionId: string): boolean {
   return callerRecognitionFor(sessionId)?.status === 'known' || namedByDispatch.has(sessionId);
 }
+// MINOR_CARE (minor-care.ts, a lower layer) asks this before holding a session's memory.
+setVerifiedOwnerCheck(sessionIsVerifiedOwner);
 
 /** A session known only by its phone number: only conversational tools are open. */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {
@@ -236,7 +250,7 @@ export async function recognizePhoneSession(
 ): Promise<{ userId?: string; userName?: string } | null> {
   const participant = await firstParticipant(room, PARTICIPANT_WAIT_MS);
   if (!participant) return null;
-  const r = await recognizeCaller(participant, deps);
+  const r = await recognizeCaller(participant, deps, room);
   if (!r) return null;
   rememberCallerRecognition(sessionId, r);
   return r.status === 'known' ? { userId: r.userId, userName: r.name } : {};

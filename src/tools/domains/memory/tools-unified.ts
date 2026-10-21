@@ -15,6 +15,7 @@ import { isTeammateTalk } from '../../../utils/teammate-talk.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getUnifiedMemoryService } from '../../../services/unified-memory-service.js';
+import { memoryHeld } from '../../../utils/minor-care.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -197,8 +198,9 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
         }
         userData.keyMoments.push(`[${category}] ${fact}`);
 
-        if (!userId) {
-          log.warn('No userId available for memory write');
+        // MINOR_CARE=on: nothing kept past this call for a caller under 18 (minor-care.ts)
+        if (!userId || memoryHeld(getSessionId({ ctx: toolCtx }))) {
+          log.warn('No memory write: no userId, or MINOR_CARE holds this call');
           return REMEMBERED_THIS_CALL;
         }
 
@@ -257,8 +259,8 @@ export const rememberImportantFactUnifiedDef: ToolDefinition = {
         const userData = toolCtx.userData as UserData;
         const userId = userData.userId || ctx.userId;
 
-        if (!userId) {
-          log.warn('No userId available for memory write');
+        if (!userId || memoryHeld(getSessionId({ ctx: toolCtx }))) {
+          log.warn('No memory write: no userId, or MINOR_CARE holds this call');
           return "I'll remember that.";
         }
 
