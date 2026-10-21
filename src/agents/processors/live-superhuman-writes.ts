@@ -1,14 +1,17 @@
 /**
  * The per-turn writers behind live-superhuman-injections.ts: each one stores
  * something about the caller (a value, an energy reading, a person, a dream, a
- * life chapter) or schedules outreach to them.
+ * life chapter) or schedules outreach to them, so each first asks MINOR_CARE
+ * (minor-care.ts) and does nothing for a held session: a caller who sounds
+ * under 18 and isn't a verified account owner.
  *
- * Moved out of live-superhuman-injections.ts (over 500 lines, so it may not
- * grow) so that every writer sits in one place a write-path check can reach.
+ * Split out of live-superhuman-injections.ts (over 500 lines, so it may not
+ * grow) when these writers were found storing for held sessions (#1897 review).
  * Each is fire-and-forget at its call site; failures are logged, never thrown.
  *
  * @module agents/processors/live-superhuman-writes
  */
+import { heldAfter } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'LiveSuperhumanWrites' });
@@ -21,12 +24,18 @@ export interface TurnWrite {
   emotionalState: { primary: string };
 }
 
+/** MINOR_CARE=on: this turn's words read first, so the turn that says "I'm 15 years old" is held too. */
+function held(ctx: Pick<TurnWrite, 'sessionId' | 'userText'>): boolean {
+  return heldAfter(ctx.sessionId, ctx.userText);
+}
+
 /** A value they stated ("I value my freedom"): values-alignment. */
 export async function persistValue(ctx: TurnWrite): Promise<void> {
+  if (held(ctx)) return;
   try {
     const m = await import('../../services/superhuman/values-alignment.js');
     const detected = m.detectValue(ctx.userText);
-    if (detected) void m.recordValueMention(ctx.userId, detected);
+    if (detected) await m.recordValueMention(ctx.userId, detected);
   } catch (e) {
     log.debug({ error: String(e) }, 'Value recording skipped');
   }
@@ -37,6 +46,7 @@ export async function persistEnergy(
   ctx: TurnWrite,
   capacity: { level: 'moderate' | 'high' | 'critical'; signals: string[] }
 ): Promise<void> {
+  if (held(ctx)) return;
   try {
     const m = await import('../../services/superhuman/capacity-guardian.js');
     const critical = capacity.level === 'critical';
@@ -54,10 +64,11 @@ export async function persistEnergy(
 
 /** A person in their life ("my mom Sarah"): relationship-network. */
 export async function persistPerson(ctx: TurnWrite): Promise<void> {
+  if (held(ctx)) return;
   try {
     const m = await import('../../services/superhuman/relationship-network.js');
     const person = m.extractPerson(ctx.userText);
-    if (person) void m.recordMention(ctx.userId, person);
+    if (person) await m.recordMention(ctx.userId, person);
   } catch (e) {
     log.debug({ error: String(e) }, 'Relationship recording skipped');
   }
@@ -65,22 +76,24 @@ export async function persistPerson(ctx: TurnWrite): Promise<void> {
 
 /** A dream ("I've always wanted to..."): dream-keeper. */
 export async function persistDream(ctx: TurnWrite): Promise<void> {
+  if (held(ctx)) return;
   try {
     const m = await import('../../services/superhuman/dream-keeper.js');
     const dream = m.detectDream(ctx.userText);
-    if (dream) void m.recordDreamMention(ctx.userId, dream);
+    if (dream) await m.recordDreamMention(ctx.userId, dream);
   } catch (e) {
     log.debug({ error: String(e) }, 'Dream recording skipped');
   }
 }
 
-/** A life chapter ("I quit my job"), keyed by session so one chat counts once: life-narrative. */
+/** A life chapter ("I quit my job"): life-narrative. */
 export async function persistChapter(ctx: TurnWrite): Promise<void> {
+  if (held(ctx)) return;
   try {
     const m = await import('../../services/superhuman/life-narrative.js');
     const chapter = m.detectChapterMoment(ctx.userText);
     if (!chapter) return;
-    void m.createOrUpdateChapter(ctx.userId, {
+    await m.createOrUpdateChapter(ctx.userId, {
       type: chapter.type,
       quote: ctx.userText.slice(0, 200),
       emotion: ctx.emotionalState.primary,
@@ -92,8 +105,9 @@ export async function persistChapter(ctx: TurnWrite): Promise<void> {
 }
 
 /**
- * Schedule pattern-based outreach to the caller (fire-and-forget). Lazy
- * import so the turn processor never breaks when outreach is unavailable.
+ * Schedule pattern-based outreach to the caller. Never for a held session:
+ * Ferni must not reach out to a caller who sounds under 18. Lazy import so the
+ * turn processor never breaks when outreach is unavailable.
  */
 export async function schedulePatternOutreachAsync(
   pattern: {
@@ -109,8 +123,10 @@ export async function schedulePatternOutreachAsync(
     currentEmotion?: string;
     emotionIntensity?: number;
     topics?: string[];
-  }
+  },
+  said: string
 ): Promise<void> {
+  if (held({ sessionId: ctx.sessionId, userText: said })) return;
   try {
     const { schedulePatternOutreachAsync: scheduleOutreach } =
       await import('../../services/outreach/pattern-outreach-integration.js');

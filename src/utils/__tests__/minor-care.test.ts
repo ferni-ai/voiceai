@@ -19,6 +19,8 @@ import {
   heldAfter,
   likelyMinor,
   memoryHeld,
+  MINOR_CARE_NOTE,
+  minorCareNote,
   noteCallerWords,
   resetMinorCare,
   setVerifiedOwnerCheck,
@@ -211,12 +213,27 @@ describe('the per-session hold', () => {
     expect(memoryHeld('owner', ON)).toBe(false);
   });
 
-  it('flag off: nothing held, no state and no log', () => {
+  it('flag off: nothing held, no note, no state and no log', () => {
     expect(heldAfter('s3', "I'm 15 years old", { env: {} })).toBe(false);
     expect(noteCallerWords('s3', "I'm 15 years old", { env: {} })).toBe(false);
+    expect(minorCareNote('s3', "I'm 15 years old", { env: {} })).toBe('');
     expect(likelyMinor('s3')).toBe(false);
     expect(memoryHeld('s3', ON)).toBe(false);
     expect(logged).toEqual([]);
+  });
+
+  it('the note: on for a caller who sounds under 18, never with crisis guidance', () => {
+    expect(minorCareNote('s4', 'hey', { env: ON })).toBe('');
+    expect(minorCareNote('s4', "I'm in 9th grade", { env: ON })).toBe(MINOR_CARE_NOTE);
+    expect(minorCareNote('s4', 'ok', { env: ON, careful: true })).toBe('');
+    expect(MINOR_CARE_NOTE).toMatch(/gently ask if they're okay/);
+    expect(MINOR_CARE_NOTE).toMatch(/friend-voice, not a partner/);
+  });
+
+  it('no care note for a verified account owner', () => {
+    setVerifiedOwnerCheck((id) => id === 'owner-note');
+    expect(minorCareNote('owner-note', "I'm in 9th grade", { env: ON })).toBe('');
+    expect(minorCareNote('not-owner', "I'm in 9th grade", { env: ON })).toBe(MINOR_CARE_NOTE);
   });
 });
 

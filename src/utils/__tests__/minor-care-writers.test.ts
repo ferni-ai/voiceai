@@ -51,7 +51,7 @@ vi.mock('../../memory/firestore-vector-store.js', () => ({
 
 import { getHistoryTracker } from '../../memory/index.js';
 import { memoryExecutor } from '../../agents/shared/tool-executors/memory-executor.js';
-import { toolsForTurn } from '../../agents/personas/turn-request.js';
+import { toolsForTurn, withTurnReminder } from '../../agents/personas/turn-request.js';
 import { rememberAboutUserDef } from '../../tools/domains/memory/tools.js';
 import {
   rememberAboutUserUnifiedDef,
@@ -63,7 +63,12 @@ import {
   registerAfterCallTask,
   runAfterCallTasks,
 } from '../../services/session/after-call-tasks.js';
-import { noteCallerWords, resetMinorCare, setVerifiedOwnerCheck } from '../minor-care.js';
+import {
+  MINOR_CARE_NOTE,
+  noteCallerWords,
+  resetMinorCare,
+  setVerifiedOwnerCheck,
+} from '../minor-care.js';
 import { createSessionServices } from '../../services/session/session-manager.js';
 
 type Case = 'held' | 'owner' | 'off';
@@ -185,30 +190,39 @@ describe.each<[Case, boolean]>([
   });
 });
 
-describe('a bare "16." on the live tools path (turn-request.ts)', () => {
-  it('holds only when it answers Ferni asking their age', async () => {
+describe('the care note on the live request (turn-request.ts)', () => {
+  const request = (sessionId: string, said: string, shape?: boolean): string => {
+    const chat = llm.ChatContext.empty();
+    chat.addMessage({ role: 'user', content: said });
+    const out = withTurnReminder(chat, { userData: { services: { sessionId } } }, { shape });
+    return (out.items.at(-1) as llm.ChatMessage).textContent ?? '';
+  };
+
+  it('rides the reply once they said they are under 18, flag on', () => {
     vi.stubEnv('MINOR_CARE', 'on');
-    const sent = async (sessionId: string, asked: string): Promise<boolean> => {
-      const tool = () =>
-        llm.tool({ description: 'x', parameters: z.object({}), execute: async () => 'ok' });
-      const agent = {
-        toolCtx: new llm.ToolContext({ rememberAboutUser: tool(), getWeather: tool() }),
-        async updateTools(tools: llm.ToolContext) {
-          this.toolCtx = tools;
-        },
-      };
+    expect(request('note-1', 'what should I watch tonight')).not.toContain(MINOR_CARE_NOTE);
+    expect(request('note-1', "I'm in 8th grade")).toContain(MINOR_CARE_NOTE);
+  });
+
+  it('a bare "16." counts only as the answer to Ferni asking their age', () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    const answer = (sessionId: string, asked: string): string => {
       const chat = llm.ChatContext.empty();
       chat.addMessage({ role: 'assistant', content: asked });
       chat.addMessage({ role: 'user', content: '16.' });
-      const out = await toolsForTurn(
-        { userData: { personaId: 'ferni', services: { sessionId } } } as never,
-        chat,
-        agent.toolCtx,
-        { loggedLockedHandoffs: true, agent } as never
-      );
-      return 'rememberAboutUser' in out.functionTools;
+      const out = withTurnReminder(chat, { userData: { services: { sessionId } } }, {});
+      return (out.items.at(-1) as llm.ChatMessage).textContent ?? '';
     };
-    expect(await sent('bare-1', 'How many minutes out are you?')).toBe(true);
-    expect(await sent('bare-2', 'How old are you, if you don’t mind me asking?')).toBe(false);
+    expect(answer('bare-1', 'How many minutes out are you?')).not.toContain(MINOR_CARE_NOTE);
+    expect(answer('bare-2', 'How old are you, if you don’t mind me asking?')).toContain(
+      MINOR_CARE_NOTE
+    );
+  });
+
+  it('never with crisis guidance, and not with the flag off', () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    expect(request('note-2', "I'm 15 years old", false)).not.toContain(MINOR_CARE_NOTE);
+    vi.stubEnv('MINOR_CARE', 'off');
+    expect(request('note-3', "I'm 15 years old")).not.toContain(MINOR_CARE_NOTE);
   });
 });

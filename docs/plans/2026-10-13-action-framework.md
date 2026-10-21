@@ -17,7 +17,7 @@ Ferni can already act for a person, but through five systems that overlap and di
 
 The guards each path already has, which we keep:
 
-- **Texts.** `sendOnBehalfText` (`guarded-text.ts:252`, #1277, `ON_BEHALF_TEXTS` off) sends only to a valid number, never after a STOP, not twice in 10 minutes, and not in quiet hours. It stores the number as a hash plus the last 4 digits. Nothing calls it yet.
+- **Texts.** `sendOnBehalfText` (`guarded-text.ts`, #1277) sends only to a valid number, never after a STOP, not twice in 10 minutes, and not in quiet hours. It stores the number as a hash plus the last 4 digits. Since #1684 every text to a third party goes through it via `textOnBehalf`, behind the `ON_BEHALF_TEXT_GUARD` kill switch (on by default; `off` restores the unguarded send). `ON_BEHALF_TEXTS` never had a reader and was removed from the flag manifest on 2026-10-18.
 - **Calls.**
   - `callOnBehalf` (`call-on-behalf.ts:380`) calls `initiateCall` (`on-behalf-call-orchestrator.ts:141`), which holds the call for call hours (:162) and then sends a signed dispatch (:356).
   - `call-confirm.ts` reads back the exact number that will ring.
@@ -177,7 +177,7 @@ The build order is **reminders, then calendar holds, then texts.** This differs 
 | 2 | Bypass test and baseline | none (test only) | ~150 |
 | 3 | Reminders on the gate | `ACTION_GATE_REMINDERS` | ~200 |
 | 4 | Calendar holds on the gate (Ferni calendar) | `ACTION_GATE_CALENDAR` | ~220 |
-| 5 | Texts: reachOut's text branch goes through the gate to `sendOnBehalfText` | `ON_BEHALF_TEXTS` (the existing #1277 switch; no new flag) | ~300 |
+| 5 | Texts: reachOut's text branch goes through the gate to `sendOnBehalfText` | `ON_BEHALF_TEXT_GUARD` (the existing #1684 kill switch; no new flag) | ~300 |
 | 6 | The receipts panel reads `action_records`, with undo | `ACTION_GATE` (web) | ~250 |
 
 **Reminders (T0)**

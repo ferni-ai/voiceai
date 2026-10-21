@@ -67,7 +67,9 @@ describe('ContactRelationshipService', () => {
       expect(contact.email).toBe('mom@family.com');
       expect(contact.relationship).toBe('family');
       expect(contact.importantDates).toHaveLength(2);
-      expect(contact.strengthScore).toBe(50); // Default
+      // No interaction yet, so no score (it used to default to an invented 50)
+      expect(contact.strengthScore).toBeUndefined();
+      expect(contact.lastInteraction).toBeUndefined();
     });
 
     it('should update existing contact preserving important dates', async () => {
@@ -117,7 +119,7 @@ describe('ContactRelationshipService', () => {
       });
 
       const updated = await getContact('user123', contact.contactId);
-      expect(updated?.strengthScore).toBeGreaterThan(initialScore);
+      expect(updated?.strengthScore).toBeGreaterThan(initialScore ?? 0);
       expect(updated?.interactionCount).toBe(1);
     });
   });

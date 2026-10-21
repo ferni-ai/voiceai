@@ -43,12 +43,13 @@ export interface MilestoneOutreachData {
   milestoneId: string;
   milestoneName: string;
   milestoneMessage: string;
-  daysTogether?: number;
-  streak?: number;
 }
 
 export interface OutreachResult {
   success: boolean;
+  /** Milestones: whether this request sent it, and why not (e.g. 'already-sent') */
+  sent?: boolean;
+  reason?: string;
   message?: string;
   error?: string;
   results?: {
@@ -70,7 +71,8 @@ const API_BASE = '/api/outreach';
 class OutreachService {
   private localPreferences: OutreachPreferences = {
     emailEnabled: true,
-    smsEnabled: true,
+    // Off until the server says the user turned texts on (Contact Settings, with the disclosure).
+    smsEnabled: false,
     weeklyRecap: true,
     monthlyRecap: true,
     streakReminders: true,
