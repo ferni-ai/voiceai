@@ -87,7 +87,7 @@ cd apps/web && pnpm dev     # Vite dev server on :3004
 
 ```bash
 cd apps/ios-native
-open FerniVoice.xcodeproj   # Xcode
+open Ferni.xcodeproj   # Xcode
 ```
 
 ### Electron Development
