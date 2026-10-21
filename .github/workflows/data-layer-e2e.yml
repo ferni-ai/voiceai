@@ -20,6 +20,7 @@ on:
       - 'src/services/platform/erase-user-record.ts'
       - 'src/services/platform/user-stores.ts'
       - 'src/services/platform/erase-other-keys.ts'
+      - 'scripts/devdb/**'
       - 'src/api/account-routes.ts'
       - 'src/memory/**'
       - 'src/tasks/scheduled/transcript-cleanup-job.ts'
@@ -46,6 +47,7 @@ on:
       - 'src/services/platform/erase-user-record.ts'
       - 'src/services/platform/user-stores.ts'
       - 'src/services/platform/erase-other-keys.ts'
+      - 'scripts/devdb/**'
       - 'src/api/account-routes.ts'
       - 'src/memory/**'
       - 'src/tasks/scheduled/transcript-cleanup-job.ts'
@@ -139,6 +141,14 @@ jobs:
         env:
           FIRESTORE_EMULATOR_HOST: localhost:8080
           GCLOUD_PROJECT: demo-project
+          NODE_ENV: test
+
+      # copy-user.ts copies one person from (default) to ferni-dev: only theirs, dry run writes nothing
+      - name: Run Dev Database Copy Tests
+        run: |
+          pnpm vitest run -c vitest.config.unit.ts scripts/devdb/__tests__/copy-user.emulator.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
           NODE_ENV: test
 
       - name: Run Transcript Cleanup Tests
