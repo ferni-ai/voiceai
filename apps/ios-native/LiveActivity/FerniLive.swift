@@ -20,7 +20,7 @@ struct CallLiveActivity: Widget {
             HStack(spacing: 12) {
                 portrait(context.state).frame(width: 44, height: 44)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(context.state.state.words(context.state.personaName)).font(.headline)
+                    Text(context.state.state.words(context.state.personaName, muted: context.state.muted)).font(.headline)
                     if context.state.state.showsDuration { duration(context.attributes) }
                 }
                 Spacer()
@@ -40,7 +40,7 @@ struct CallLiveActivity: Widget {
                     }
                 }
                 DynamicIslandExpandedRegion(.center) {
-                    Text(context.state.state.words(context.state.personaName)).font(.headline)
+                    Text(context.state.state.words(context.state.personaName, muted: context.state.muted)).font(.headline)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
                     if context.state.state.showsDuration { duration(context.attributes) }

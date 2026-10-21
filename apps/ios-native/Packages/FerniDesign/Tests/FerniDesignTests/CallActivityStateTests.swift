@@ -58,4 +58,16 @@ final class CallActivityStateTests: XCTestCase {
             XCTAssertGreaterThanOrEqual(ratio, 4.5, "\(style.rawValue): \(ratio)")
         }
     }
+
+    /// Award upgrade 9: muted in a live call, the Lock Screen and the Island
+    /// say so, as the call screen does; not on hold, reconnecting or after.
+    func testMutedItSaysYoureMuted() {
+        for state in [CallActivityState.listening, .thinking, .speaking] {
+            XCTAssertEqual(state.words("Ferni", muted: true), "You're muted", "\(state)")
+        }
+        XCTAssertEqual(CallActivityState.listening.words("Ferni"), "Ferni's listening")
+        XCTAssertEqual(CallActivityState.onHold.words("Ferni", muted: true), "On hold")
+        XCTAssertEqual(CallActivityState.reconnecting.words("Ferni", muted: true), "Reconnecting")
+        XCTAssertEqual(CallActivityState.ended.words("Ferni", muted: true), "Talk soon.")
+    }
 }
