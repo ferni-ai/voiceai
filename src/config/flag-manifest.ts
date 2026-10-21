@@ -84,6 +84,8 @@ export const FLAG_MANIFEST = {
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // a classifier-only imminent read the call plainly explains (two reads + a shared word) gets the soft check
+  CRISIS_GROUNDED_RELEASE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // a classifier-only crisis read of a bare "pass me to Nayan", with no risk on the call, gets the soft check-in
   CRISIS_TRANSFER_EVERYDAY: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
