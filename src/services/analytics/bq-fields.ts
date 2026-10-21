@@ -24,7 +24,7 @@ export const BQ_ENUMS = {
   kind: [
     ...['promise', 'follow_up', 'planned_checkin', 'hard_news', 'world_due', 'reminder'],
     ...['checkin', 'follow-up', 'message', 'on-behalf', 'morning-brief', 'call-result'],
-    'opt-in',
+    ...['opt-in', 'proactive', 'coach-media'],
   ],
   outcome: [
     ...['pending', 'sent', 'replied', 'ignored', 'failed'],
