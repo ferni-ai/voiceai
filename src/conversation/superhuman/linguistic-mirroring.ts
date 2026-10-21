@@ -21,6 +21,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 // 🦀 Rust-accelerated word counting
 import { countWordsRust, isTokenCountingAvailable } from '../../memory/rust-accelerator.js';
 import type { LinguisticProfile, MirroringApplication, MirroringResult } from './types.js';
+import { contractionPattern, noToNahPattern } from './mirroring-grammar.js';
 
 const logger = createLogger({ module: 'LinguisticMirroring' });
 const RUST_COUNTING_AVAILABLE = isTokenCountingAvailable();
@@ -503,11 +504,10 @@ export class LinguisticMirroringEngine {
       'here is': "here's",
     };
 
-
     if (this.profile.usesContractions) {
       // User uses contractions - contract our response
       for (const [expanded, contracted] of Object.entries(contractionMap)) {
-        const regex = new RegExp(`\\b${expanded}\\b`, 'gi');
+        const regex = contractionPattern(expanded);
         if (regex.test(result)) {
           const original = result;
           // Keep a capital at the start of a sentence: "It is" becomes "It's", not "it's".
@@ -544,7 +544,7 @@ export class LinguisticMirroringEngine {
       // Make more casual
       const casualizations: [RegExp, string][] = [
         [/\byes\b/gi, 'yeah'],
-        [/\bno\b(?!\w)/gi, 'nah'],
+        [noToNahPattern(), 'nah'],
         [/\bvery\b/gi, 'really'],
         [/\bperhaps\b/gi, 'maybe'],
         [/\bcertainly\b/gi, 'sure'],

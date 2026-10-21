@@ -1,0 +1,194 @@
+{
+  "caller": "Riley",
+  "note": "Scripted calls for bar.ts --multi-turn: fixed caller turns, generated replies, the director and deliberation running between turns. The last two replies of each call are scored. `context` facts arrive as a memory-recall note (formatRecall) at the start of the call; `callback` marks a call where something said early matters later; `localHour` places the call at that hour of the caller's day (zoneAtLocalHour). Insight is judged on calls with any of the three.",
+  "conversations": [
+    {
+      "id": "offer",
+      "kind": "good news",
+      "turns": [
+        "guess who got the offer",
+        "the bike company! they called like an hour ago",
+        "I'm kind of freaking out, it's more money than I've ever made",
+        "theo already bought champagne lol",
+        "ok but now I have to tell my current boss. how do people even do that"
+      ],
+      "context": [
+        {
+          "entity": "user",
+          "key": "interviewed for",
+          "value": "a UX designer role at a bike company in Portland, final round was last Thursday",
+          "daysAgo": 5
+        },
+        { "entity": "user", "key": "lives with", "value": "a roommate named Theo", "daysAgo": 30 },
+        { "entity": "user", "key": "coffee", "value": "drinks oat milk lattes", "daysAgo": 15 }
+      ]
+    },
+    {
+      "id": "sister",
+      "kind": "good news",
+      "turns": [
+        "so I have news but I'm not supposed to tell anyone yet",
+        "my sister's pregnant. like actually pregnant",
+        "she called me crying, I thought something was wrong at first",
+        "I'm gonna be an aunt. I don't know anything about babies"
+      ],
+      "context": [
+        {
+          "entity": "Dana",
+          "key": "relationship",
+          "value": "Riley's older sister, has been trying for a baby for two years",
+          "daysAgo": 60
+        },
+        { "entity": "user", "key": "plant", "value": "keeps killing basil plants", "daysAgo": 9 }
+      ]
+    },
+    {
+      "id": "biscuit",
+      "kind": "something hard",
+      "turns": [
+        "hey. sorry, I'm kind of a mess",
+        "we had to put Biscuit down this morning",
+        "the house is so quiet. I keep looking for her by the door",
+        "I don't even know what to do with her bowl"
+      ],
+      "context": [
+        {
+          "entity": "user",
+          "key": "dog",
+          "value": "Biscuit, a 14-year-old beagle who loved the beach",
+          "daysAgo": 40
+        },
+        {
+          "entity": "user",
+          "key": "favorite show",
+          "value": "The Great British Bake Off",
+          "daysAgo": 12
+        }
+      ]
+    },
+    {
+      "id": "grandpa",
+      "kind": "something hard",
+      "turns": [
+        "my grandpa had a stroke on tuesday",
+        "they think he'll make it but he can't really talk right now",
+        "I went to see him and he squeezed my hand. that's all he could do",
+        "I keep thinking about all the times I didn't call him back"
+      ]
+    },
+    {
+      "id": "denver",
+      "kind": "advice ask",
+      "turns": [
+        "ok I need a second opinion on something",
+        "I got offered a transfer to Denver. same job, more money",
+        "but my mom's here and she's not getting any younger",
+        "everyone keeps saying go for it but they don't have to live it",
+        "what would you do?"
+      ],
+      "context": [
+        {
+          "entity": "user",
+          "key": "mom",
+          "value": "lives ten minutes away in Cleveland, Riley drives her to physical therapy on Saturdays",
+          "daysAgo": 18
+        },
+        { "entity": "user", "key": "car", "value": "drives an old green Subaru", "daysAgo": 50 }
+      ]
+    },
+    {
+      "id": "dishes",
+      "kind": "advice ask",
+      "turns": [
+        "how do you tell someone they're kind of a bad roommate without it being a whole thing",
+        "he never does dishes. like ever. I've been doing them for months",
+        "and I don't want to be passive aggressive about it, I already left a note",
+        "should I just say it straight?"
+      ]
+    },
+    {
+      "id": "tea",
+      "kind": "small talk turns personal",
+      "turns": [
+        "hey! nothing really, just making tea",
+        "trying this new chamomile thing, it tastes like hay",
+        "it's supposed to help me sleep. I haven't been sleeping great",
+        "honestly I think it's work. I lie there replaying meetings",
+        "anyway. how's your week been?"
+      ]
+    },
+    {
+      "id": "peaches",
+      "kind": "small talk turns personal",
+      "turns": [
+        "just got back from the farmers market, bought way too many peaches",
+        "my dad used to make peach cobbler every august",
+        "he's been gone three years this week actually",
+        "huh. didn't expect to say that today"
+      ]
+    },
+    {
+      "id": "priya",
+      "kind": "callback (person)",
+      "callback": true,
+      "turns": [
+        "ok so I have a weird week coming up",
+        "monday the dentist, wednesday is my friend Priya's going-away party, she's moving to London",
+        "and work is a lot, we're shipping the redesign friday",
+        "I bought her a little travel journal, is that dumb",
+        "I think I'm sadder about it than I'm letting on"
+      ]
+    },
+    {
+      "id": "raise",
+      "kind": "callback (plan)",
+      "callback": true,
+      "turns": [
+        "so I've decided I'm going to ask for a raise",
+        "my review is next thursday, I'm going to bring it up then",
+        "random but my car made a horrible noise this morning",
+        "the mechanic says it's like 900 bucks",
+        "great timing huh"
+      ],
+      "context": [
+        { "entity": "user", "key": "car", "value": "drives an old green Subaru", "daysAgo": 50 },
+        {
+          "entity": "user",
+          "key": "job",
+          "value": "project coordinator at a hospital, three years there",
+          "daysAgo": 40
+        }
+      ]
+    },
+    {
+      "id": "late",
+      "kind": "local time",
+      "localHour": 23,
+      "turns": [
+        "just got home from the airport, flight was delayed four hours",
+        "I'm starving, thinking about making a whole pasta thing",
+        "and then I should probably answer some work emails",
+        "what should I eat"
+      ]
+    },
+    {
+      "id": "5k",
+      "kind": "good news",
+      "turns": [
+        "guess what I did this morning",
+        "I ran the whole 5k. didn't walk once",
+        "my time was terrible but who cares",
+        "my knee didn't even hurt"
+      ],
+      "context": [
+        {
+          "entity": "user",
+          "key": "goal",
+          "value": "started couch-to-5k in the spring after knee surgery",
+          "daysAgo": 45
+        },
+        { "entity": "user", "key": "music", "value": "into old Motown records", "daysAgo": 35 }
+      ]
+    }
+  ]
+}

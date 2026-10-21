@@ -196,7 +196,11 @@ test('family phone access: a number already set up says so, not just "couldn\'t 
   await addFamilyMember(page, panel, 'Uncle Lee', phone);
   await expect(panel).toContainText('Uncle Lee', { timeout: 10_000 });
   await addFamilyMember(page, panel, 'Uncle Lee again', phone);
-  await expect(page.getByText(/already set up for someone else/i)).toBeVisible({ timeout: 10_000 });
+  // The toast's text, not its screen-reader copy in the live region
+  const notice = page.getByText(/already set up for someone else/i);
+  await expect(notice.and(page.locator(':not(.ferni-toast-live)'))).toBeVisible({
+    timeout: 10_000,
+  });
 });
 
 test('family phone access: an added family member is listed and kept', async ({ page }) => {

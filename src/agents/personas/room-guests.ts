@@ -121,8 +121,11 @@ export function forgetRoom(sessionId: string): void {
   rooms.delete(sessionId);
 }
 
-/** The note for a reply while guests are present. No em dashes or ellipses (speech-markup-notes). */
-export function roomNote(guests: readonly string[], owner = 'they'): string {
+/**
+ * The note for a reply while guests are present. No em dashes or ellipses (speech-markup-notes).
+ * `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): no quoted question to ask.
+ */
+export function roomNote(guests: readonly string[], owner = 'they', scriptFree = false): string {
   const named = guests.filter(Boolean);
   const who = named.length > 0 ? named.join(' and ') : 'someone else';
   const verb = named.length > 1 ? 'are' : 'is';
@@ -130,7 +133,7 @@ export function roomNote(guests: readonly string[], owner = 'they'): string {
   return (
     `${owner} isn't alone: ${who} ${verb} in the room on the same mic, so any line could be from either of them. ` +
     `Don't assume it's ${owner}, and don't name who you're answering unless the line makes it clear. ` +
-    `If it matters who said it, ask lightly, like ${example}. ` +
+    `If it matters who said it, ask lightly${scriptFree ? '' : `, like ${example}`}. ` +
     `Questions about ${owner}'s mail, plans or tasks are about what you do for ${owner}, never about your own life.`
   );
 }
@@ -152,7 +155,8 @@ export function sessionIdOf(session: object): string | undefined {
 export function roomGuestsNote(
   session: object,
   callerWords: string,
-  env: Env = process.env
+  env: Env = process.env,
+  scriptFree = false
 ): string {
   if (!roomGuestsEnabled(env)) return '';
   const user = (session as { userData?: SessionUser }).userData;
@@ -162,5 +166,5 @@ export function roomGuestsNote(
     ? updateRoom(sessionId, callerWords, user?.userName)
     : [...(rooms.get(sessionId) ?? [])];
   const first = user?.userName?.split(/\s+/)[0];
-  return guests.length > 0 ? roomNote(guests, first) : '';
+  return guests.length > 0 ? roomNote(guests, first, scriptFree) : '';
 }

@@ -290,9 +290,22 @@
 
   }
 
+  // A visitor's own engagement, outside any experiment (scroll depth, time on
+  // page): an `engagement` event under the anonymous id, which the batch route
+  // records with no experiment arm. Same consent gate as every other event.
+  function trackEngagement(goalId, value) {
+    if (!hasConsent()) return;
+    queueEvent('all', undefined, getUserId(), 'engagement', goalId, value);
+  }
+
   // ============================================================================
   // UTILITIES
   // ============================================================================
+
+  /** True when this visitor has an experiment assignment (kept only after consent). */
+  function inAnyExperiment() {
+    return Object.keys(getCache()).length > 0;
+  }
 
   function isInVariant(experimentId, variantId) {
     const cache = getCache();
@@ -330,6 +343,8 @@
     getVariant: getVariant,
     trackConversion: trackConversion,
     trackConversionForAll: trackConversionForAll,
+    trackEngagement: trackEngagement,
+    inAnyExperiment: inAnyExperiment,
     isInVariant: isInVariant,
     getCurrentVariant: getCurrentVariant,
     getUserId: getUserId,

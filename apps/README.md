@@ -19,7 +19,6 @@ apps/
 ├── electron/        # Desktop app (macOS, Windows, Linux)
 ├── ios-native/      # Native iOS app (Swift/SwiftUI)
 ├── android-twa/     # Android app: the web app in a Trusted Web Activity
-├── archive/         # Retired apps, reference only (android-native)
 ├── web/             # Web frontend (shared with Electron)
 ├── macos-menubar/   # macOS menu bar app
 └── README.md
@@ -43,7 +42,7 @@ npm run build:linux # Linux AppImage + DEB + RPM
 
 ```bash
 cd apps/ios-native
-open FerniVoice.xcodeproj
+open Ferni.xcodeproj
 # Select your device/simulator in Xcode
 # Press Cmd+R to run
 ```
@@ -62,21 +61,21 @@ cd apps/android-twa
 
 The app wraps https://app.ferni.ai, so web changes reach Android without a new
 bundle. Signing and Play upload: `apps/android-twa/README.md`. The old native
-Kotlin app is archived in `archive/android-native/`.
+Kotlin app was removed; git history keeps it.
 
 ## Platform-Specific Features
 
-| Feature | Electron | iOS Native | Android Native |
-|---------|----------|------------|----------------|
-| WebRTC/LiveKit | Full | Native SDK | Native SDK |
-| Haptics | N/A | Native UIKit | Native Vibration |
-| System Tray | Yes | N/A | N/A |
-| Background Audio | Yes | AVAudioSession | Foreground Service |
-| Auto-update | electron-updater | App Store | Play Store |
-| Code Signing | Notarization | Apple | Keystore |
-| Error Tracking | Sentry | Sentry | Sentry |
-| Portrait Lock | N/A | Yes | Yes |
-| 7-Layer Avatar | Canvas | SwiftUI | Jetpack Compose |
+| Feature | Electron | iOS Native |
+|---------|----------|------------|
+| WebRTC/LiveKit | Full | Native SDK |
+| Haptics | N/A | Native UIKit |
+| System Tray | Yes | N/A |
+| Background Audio | Yes | AVAudioSession |
+| Auto-update | electron-updater | App Store |
+| Code Signing | Notarization | Apple |
+| Error Tracking | Sentry | Sentry |
+| Portrait Lock | N/A | Yes |
+| 7-Layer Avatar | Canvas | SwiftUI |
 
 ## Native App Architecture
 
@@ -159,16 +158,8 @@ For CI/CD, the GitHub Actions workflow builds all platforms:
 
 ### iOS (Native)
 
-1. Open in Xcode: `open apps/ios-native/FerniVoice.xcodeproj`
+1. Open in Xcode: `open apps/ios-native/Ferni.xcodeproj`
 2. Select your signing team
 3. Archive: Product → Archive
 4. Distribute to App Store or TestFlight
 
-### Android (Native)
-
-1. Generate signing key:
-   ```bash
-   keytool -genkey -v -keystore ferni-release.keystore -alias ferni -keyalg RSA -keysize 2048 -validity 10000
-   ```
-2. Build release: `./gradlew bundleRelease`
-3. Upload to Google Play Console

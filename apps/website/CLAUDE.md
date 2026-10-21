@@ -34,12 +34,10 @@ apps/website/
 │   ├── _site/
 │   └── README.md
 │
-├── marketplace-portal/     # Persona marketplace
-│   ├── src/
-│   ├── _site/
-│   └── README.md
-│
-└── ferni-landing-page.html # Standalone landing page
+└── marketplace-portal/     # Persona marketplace
+    ├── src/
+    ├── _site/
+    └── README.md
 ```
 
 ## Development

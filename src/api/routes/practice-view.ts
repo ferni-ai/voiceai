@@ -433,58 +433,6 @@ async function generateMayaPatternNotice(
 }
 
 /**
- * Generate cross-persona insights from superhuman services
- */
-async function generateCrossPersonaInsights(userId: string): Promise<CrossPersonaInsight[]> {
-  const insights: CrossPersonaInsight[] = [];
-
-  try {
-    const { buildSuperhumanContext } = await import('../../services/superhuman/index.js');
-    const superhumanCtx = await buildSuperhumanContext(userId, {});
-
-    // Commitment Keeper (Ferni)
-    if (superhumanCtx.commitments) {
-      insights.push({
-        persona: 'ferni',
-        type: 'notice',
-        message: superhumanCtx.commitments.substring(0, 200),
-      });
-    }
-
-    // Capacity Guardian (Maya)
-    if (superhumanCtx.capacity) {
-      insights.push({
-        persona: 'maya',
-        type: 'notice',
-        message: superhumanCtx.capacity.substring(0, 200),
-      });
-    }
-
-    // Dream Keeper (Nayan)
-    if (superhumanCtx.dreams) {
-      insights.push({
-        persona: 'nayan',
-        type: 'notice',
-        message: superhumanCtx.dreams.substring(0, 200),
-      });
-    }
-
-    // Relationship milestones (Jordan)
-    if (superhumanCtx.milestones) {
-      insights.push({
-        persona: 'jordan',
-        type: 'celebrate',
-        message: superhumanCtx.milestones.substring(0, 200),
-      });
-    }
-  } catch (error) {
-    log.warn({ error: String(error), userId }, 'Could not generate cross-persona insights');
-  }
-
-  return insights;
-}
-
-/**
  * Load predictions from the predictive coaching service
  */
 async function loadPredictions(userId: string): Promise<PracticePrediction[]> {
@@ -662,14 +610,12 @@ export async function handleGetPracticeView(
     );
 
     // Generate insights, patterns, predictions, and outreach in parallel
-    const [mayaNotices, crossPersonaInsights, stats, predictions, pendingOutreach] =
-      await Promise.all([
-        generateMayaPatternNotice(userId, weekData, locale),
-        generateCrossPersonaInsights(userId),
-        loadPracticeStats(practiceDb, userId),
-        loadPredictions(userId),
-        loadPendingOutreach(userId),
-      ]);
+    const [mayaNotices, stats, predictions, pendingOutreach] = await Promise.all([
+      generateMayaPatternNotice(userId, weekData, locale),
+      loadPracticeStats(practiceDb, userId),
+      loadPredictions(userId),
+      loadPendingOutreach(userId),
+    ]);
 
     const response: PracticeViewResponse = {
       success: true,
@@ -678,7 +624,11 @@ export async function handleGetPracticeView(
       todayEvents,
       intentions,
       mayaNotices,
-      crossPersonaInsights,
+      // Used to carry buildSuperhumanContext() output: model prompt text
+      // ("[COMMITMENT KEEPER - ...] You remember EVERYTHING ...") cut at 200
+      // chars and shown to the person verbatim. Prompt context is for the
+      // model only; nothing user-facing exists to send instead, so send none.
+      crossPersonaInsights: [],
       predictions,
       pendingOutreach,
       stats,
