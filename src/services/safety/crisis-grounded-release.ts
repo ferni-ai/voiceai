@@ -12,8 +12,8 @@
  * shadow.
  *
  * This asks a narrower question with evidence. Two independent model reads
- * of the call each say whether the flagged line could be about danger (and
- * quote the words if so), and which earlier line it is about, quoted exactly.
+ * of the call each say whether any caller line could be about danger (and
+ * quote the words if so), and what everyday matter the flagged line is about.
  * The turn gets the soft check (SOFT_CRISIS_CHECK: Ferni stays in the
  * conversation, checks in once if anything suggests it, and gives 988 on any
  * mention of self-harm) instead of the script only when every one of these holds:
@@ -22,16 +22,16 @@
  *     grounded release explained (crisis-call-risk.ts), and fewer than
  *     MAX_RELEASES_PER_CALL were released;
  *   - Ferni's line did not raise safety, and the caller is not agreeing with it;
- *   - something came before this turn (an earlier caller line or Ferni's
- *     line), no earlier caller line matches a pattern, the line is at most
- *     MAX_WORDS words, and it names no care arrangement, farewell message or
- *     means (NEVER_RELEASED);
+ *   - the caller said something before this turn, no earlier caller line
+ *     matches a pattern, the line is at most MAX_WORDS words, and it names no
+ *     care arrangement, farewell message, exit or means (NEVER_RELEASED);
  *   - both reads quote no danger words, decide "everyday", and name the
  *     everyday matter;
- *   - the flagged line names something said earlier itself (an earlier
- *     caller line or Ferni's last): a content word in common that is not a
- *     time word, a vague word or a name (anchorWords). The code checks this.
- *     A replay with held-out lines released "I've decided. It's tonight." and
+ *   - the flagged line names something the caller said earlier itself: a
+ *     content word in common with an earlier caller line (never Ferni's) that
+ *     is not a time word, a vague word or a name anywhere in the call
+ *     (anchorWords, namesIn). The code checks this, so it holds even when
+ *     both reads are wrong (crisis-gate-grounded-release.test.ts). A replay with held-out lines released "I've decided. It's tonight." and
  *     "Make sure David knows it wasn't his fault." after dinner plans with
  *     every model tried, with or without thinking; this rule stops both.
  * Anything else, any error, timeout or unparsed reply, keeps the script. A
@@ -99,7 +99,15 @@ const NEVER_RELEASED = new RegExp(
     '\\b(?:tak(?:e|es|ing)|took|watch(?:es|ing)?|keep(?:s|ing)?|kept|feed(?:s|ing)?|fed|ha(?:ve|s|ving)|mind(?:s|ing)?|look(?:s|ing)? after|car(?:e|es|ing) for|pick(?:s|ing)? up|walk(?:s|ing)?)\\b.{0,40}\\b(?:dogs?|cats?|pets?|puppy|kitten|kids?|children|son|daughter|baby|babies|fish|bird|horse)\\b',
     "\\b(?:dogs?|cats?|pets?|puppy|kitten|kids?|children|son|daughter|baby)\\b.{0,40}\\b(?:for a while|for good|from now on|after i'm|when i'm gone|if anything happens)",
     '\\b(?:sorry|forgive|fault|blame|proud of|remember me|love (?:her|him|them|you)|i love|miss (?:her|him|them|you)|goodbye|good bye|farewell|thank(?:s| you) for everything|adios)\\b',
-    '\\b(?:pills?|meds|medication|bottle|overdose|od|gun|rifle|pistol|rope|noose|knife|razor|blade|bridge|tracks|roof|ledge|charcoal|bleach|carbon monoxide|exhaust)\\b',
+    '\\b(?:pills?|meds|medication|medicine|prescriptions?|tablets?|insulin|bottle|overdose|od|(?:shot|hand)?guns?|firearm|ammo|bullets?|rifle|pistol|rope|cord|noose|knife|knives|razors?|blades?|stab(?:s|bing)?|bridge|tracks|roof|ledge|railing|charcoal|bleach|antifreeze|poison|carbon monoxide|exhaust|engine running)\\b',
+    // A plan, a date or a method in plain words (red team, 2026-10-21).
+    "\\b(?:do it|go(?:ing)? through with it|set the date|picked (?:a|the) (?:day|date)|the day i've picked|in front of (?:it|a|the)|lie down (?:in|on|until)|walk(?:s|ing)? (?:into|out into)|swallow(?:s|ing)?|cutting|funeral|on earth|finds me|won't need|another night|my last (?:week|month|year|day)|final (?:week|month|year)|being around|takes me out|high floor|breathing)\\b",
+    // Slang for self-harm (red team, 2026-10-21).
+    '\\b(?:unalive|kms|k m s|kys|self harm|cut(?:ting)? myself)\\b',
+    // Not being around, finality, and veiled exits (lead's verifier, 2026-10-21).
+    "\\b(?:miss me|won't be (?:anywhere|around|here|alive)|not be (?:anywhere|around|here|alive)|after tonight|last (?:supper|meal|time|day|night)|final (?:one|time|day|night|meal)|check(?:ing)? out|permanently|for good|forever|never (?:wake|come back|see)|end (?:it|things|my life)|ending (?:it|things|my life)|done with (?:it all|everything|everyone|life))\\b",
+    // Means with no weapon word: a height, water, traffic, a car driven into or off something.
+    '\\b(?:jump(?:s|ed|ing)?|top floor|rooftop|overpass|cliff|drown(?:s|ed|ing)?|hang(?:s|ed|ing)? myself|traffic|shoot(?:ing)?|gas)\\b|\\b(?:driv(?:e|es|ing)|drove|crash(?:es|ing)?|steer(?:s|ing)?)\\b.{0,30}\\b(?:into|off)\\b',
     '\\b(?:will|my|a) letters?\\b|\\bwill\\b.{0,20}\\b(?:things|stuff|house|car|money)\\b|\\b(?:giv(?:e|es|ing)|gave|given) (?:away|you|them|her|him)\\b',
   ].join('|')
 );
@@ -165,8 +173,8 @@ export function groundedReleaseEligible(args: {
     if (!latest || loose(latest).split(' ').length > MAX_WORDS || endorses(latest)) return false;
     if (companion && SAFETY_TALK.test(loose(companion))) return false;
     if (NEVER_RELEASED.test(loose(latest))) return false;
-    // A first turn may lean on Ferni's line alone (a bare "yeah" to a greeting); nothing else.
-    if (earlier.length === 0 && !companion) return false;
+    // The anchor must come from the caller's own earlier words, so a first turn is never read.
+    if (earlier.length === 0) return false;
     return !earlier.some((line) => {
       const scored = detectCrisis(line);
       return scored.severity > 0 || scored.indicators.length > 0;
@@ -193,38 +201,61 @@ const NOT_ANCHORS = new Set(
   ).split(' ')
 );
 
+/** Each sentence's words, raw, with their position in the sentence. */
+function* sentenceWords(line: string): Generator<{ raw: string; word: string; first: boolean }> {
+  for (const sentence of String(line ?? '').split(/[.!?]+/)) {
+    const raws = sentence.trim().split(/\s+/).filter(Boolean);
+    for (let i = 0; i < raws.length; i++) {
+      yield { raw: raws[i], word: loose(raws[i]).replace(/'.*$/, ''), first: i === 0 };
+    }
+  }
+}
+
+/**
+ * Names in the call: words capitalized after a sentence's first word in any
+ * line. A name written once ("dinner with David") is a name everywhere, so a
+ * lower-cased "david" in another line cannot anchor either.
+ */
+export function namesIn(lines: readonly string[]): Set<string> {
+  const names = new Set<string>();
+  for (const line of lines) {
+    for (const { raw, word, first } of sentenceWords(line)) {
+      if (!first && /^[A-Z]/.test(raw) && word) names.add(word);
+    }
+  }
+  return names;
+}
+
 /**
  * Content words of the caller's line that can anchor it: four letters or more,
  * not in NOT_ANCHORS, and not a name (capitalized after the first word of a
- * sentence: "Make sure David knows" must not anchor to "invite David").
+ * sentence here, or anywhere in `names`): "Make sure David knows" must not
+ * anchor to "invite David".
  */
-export function anchorWords(line: string): Set<string> {
+export function anchorWords(line: string, names: ReadonlySet<string> = new Set()): Set<string> {
   const out = new Set<string>();
-  for (const sentence of String(line ?? '').split(/[.!?]+/)) {
-    sentence
-      .trim()
-      .split(/\s+/)
-      .forEach((raw, i) => {
-        const word = loose(raw).replace(/'.*$/, '');
-        if (word.length < 4 || NOT_ANCHORS.has(word)) return;
-        if (i > 0 && /^[A-Z]/.test(raw)) return;
-        out.add(word);
-      });
+  for (const { raw, word, first } of sentenceWords(line)) {
+    if (word.length < 4 || NOT_ANCHORS.has(word) || names.has(word)) continue;
+    if (!first && /^[A-Z]/.test(raw)) continue;
+    out.add(word);
   }
   return out;
 }
 
 /**
  * One read's verdict: everyday only with no danger quoted, the matter named,
- * and the flagged line itself naming something said earlier in the call (an
- * anchor word in common, checked here, not taken from the model). "It's
- * tonight" after dinner plans names nothing; "Dinner is tonight" names the
- * dinner. A read's quote is often the flagged line itself, so it is not matched.
+ * and the flagged line itself naming something the caller said earlier (an
+ * anchor word in common, checked here, not taken from the model). Only the
+ * caller's own lines count, never Ferni's: Ferni asking "how was work?" must
+ * not anchor "I'm checking out of work". "It's tonight" after dinner plans
+ * names nothing; "Dinner is tonight" names the dinner. A read's quote is often
+ * the flagged line itself, so it is not matched. `names` are the call's names.
  */
 export function parseGroundedRead(
   reply: string,
-  sources: readonly string[],
-  latest: string
+  callerLines: readonly string[],
+  latest: string,
+  names: ReadonlySet<string> = namesIn([...callerLines, latest])
 ): ReadWhy {
   const json = typeof reply === 'string' ? reply.match(/\{[\s\S]*\}/)?.[0] : undefined;
   if (!json) return 'unparsed';
@@ -236,8 +267,8 @@ export function parseGroundedRead(
     if (danger.trim()) return 'danger_quoted';
     if (decision === 'flag') return 'flag';
     if (loose(about).split(' ').filter(Boolean).length < MIN_QUOTE_WORDS) return 'quote_missing';
-    const anchors = anchorWords(latest);
-    const named = sources.some((line) => {
+    const anchors = anchorWords(latest, names);
+    const named = callerLines.some((line) => {
       const said = new Set(
         loose(line)
           .split(' ')
@@ -265,8 +296,9 @@ export function groundedTranscript(input: GroundedInput): string {
 async function readOnce(
   generate: CrisisGenerateFn,
   transcript: string,
-  sources: readonly string[],
+  callerLines: readonly string[],
   latest: string,
+  names: ReadonlySet<string>,
   timeoutMs: number
 ): Promise<ReadWhy> {
   const controller = new globalThis.AbortController();
@@ -282,7 +314,7 @@ async function readOnce(
       generate(GROUNDED_RELEASE_PROMPT, transcript, controller.signal),
       timeout,
     ]);
-    return reply === null ? 'timeout' : parseGroundedRead(reply, sources, latest);
+    return reply === null ? 'timeout' : parseGroundedRead(reply, callerLines, latest, names);
   } catch {
     return 'error';
   } finally {
@@ -297,10 +329,10 @@ export async function readGrounded(
   timeoutMs = DEFAULT_GROUNDED_RELEASE_TIMEOUT_MS
 ): Promise<{ release: boolean; reads: ReadWhy[] }> {
   const { latest, earlier, companion } = linesOf(input);
-  const sources = companion ? [...earlier, companion] : earlier;
+  const names = namesIn([...earlier, companion, latest]);
   const transcript = groundedTranscript(input);
   const reads = await Promise.all(
-    generates.map((g) => readOnce(g, transcript, sources, latest, timeoutMs))
+    generates.map((g) => readOnce(g, transcript, earlier, latest, names, timeoutMs))
   );
   return { release: reads.length > 0 && reads.every((r) => r === 'everyday'), reads };
 }
