@@ -7,7 +7,7 @@ import {
   nameCaptureStrict,
   rejectsAsName,
 } from '../caller-name.js';
-import { HEARD_AS, TEAM_FIRST_NAMES } from '../teammate-talk.js';
+import { FERNI_HEARD_AS, HEARD_AS, TEAM_FIRST_NAMES } from '../teammate-talk.js';
 
 /** The prod lines of 2026-10-19 and the cases the fix must keep. */
 const CASES: Array<[string, string | null]> = [
@@ -35,6 +35,13 @@ describe('extractCallerName', () => {
     expect(extractCallerName('This is Ferni')).toBeNull();
     expect(extractCallerName("I'm Maya")).toBeNull();
     expect(extractCallerName("I'm Mya")).toBeNull();
+  });
+
+  it('never takes Ferni as heard by speech-to-text (dev call 2026-10-20)', () => {
+    // The line that named a caller "Fernie" on dev with NAME_CAPTURE_STRICT=on.
+    expect(extractCallerName('Anyway, this is Fernie, right?')).toBeNull();
+    expect(extractCallerName("I'm talking to Ferny")).toBeNull();
+    expect(extractCallerName('Hey Fernie, this is Seth')).toBe('Seth');
   });
 
   it('cuts a greeting said to someone, and keeps what follows it', () => {
@@ -91,7 +98,7 @@ describe('extractCallerName', () => {
 
 describe('name word checks', () => {
   it('rejects every team first name and speech-to-text spelling, from the roster in code', () => {
-    for (const n of [...TEAM_FIRST_NAMES, ...Object.keys(HEARD_AS)]) {
+    for (const n of [...TEAM_FIRST_NAMES, ...FERNI_HEARD_AS, ...Object.keys(HEARD_AS)]) {
       expect(rejectsAsName(n), n).toBe(true);
       const cap = n[0].toUpperCase() + n.slice(1);
       expect(acceptsSpokenName(cap), cap).toBe(false);

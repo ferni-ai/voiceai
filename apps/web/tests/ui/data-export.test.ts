@@ -563,7 +563,7 @@ describe('Data Export UI', () => {
       ui.show(mockExportableData);
 
       const heading = document.querySelector('.data-export__header h2');
-      expect(heading?.textContent).toContain('Your');
+      expect(heading?.textContent).toMatch(/\byour\b/i);
     });
 
     it('should have privacy-focused footer message', async () => {

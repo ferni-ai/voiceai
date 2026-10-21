@@ -1,5 +1,7 @@
 import type { Firestore } from 'firebase-admin/firestore';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
+import { usePersonFlagLookup } from '../../../config/person-flag.js';
+import { flagForUser, forgetFlagCache } from '../../../services/platform/cohort-flags.js';
 import { readCallSummaries, withLegacyNames } from '../call-summaries.js';
 
 interface Query {
@@ -98,6 +100,34 @@ describe('readCallSummaries', () => {
     expect(queries.map((q) => q.collection)).toEqual(['summaries', 'conversation_summaries']);
     expect(queries[1]?.orderBy).toEqual(['timestamp', 'asc']);
     expect(read.docs.map((d) => d.data())).toEqual([{ topics: ['old'] }]);
+  });
+});
+
+describe('LIVE_SUMMARIES per person (the UI server, many users, one process)', () => {
+  afterEach(() => {
+    usePersonFlagLookup(async () => undefined);
+    forgetFlagCache();
+  });
+
+  it("Seth's cohort turns it on for Seth only, with the server's own flag off", async () => {
+    // As api/scheduled-jobs/index.ts wires it, with the cohorts in a fake store.
+    const cohorts = {
+      cohortsFor: async (u: string) =>
+        u === 'seth' ? [{ id: 'seth', enabled: true, flags: { LIVE_SUMMARIES: 'on' } }] : [],
+      overridesFor: async () => ({}),
+    };
+    usePersonFlagLookup((u, f) =>
+      flagForUser(u, f, { store: cohorts, env: { COHORT_FLAGS: 'on' } })
+    );
+    const server = {}; // LIVE_SUMMARIES unset on the UI server
+    const seth = fakeDb({ summaries: [live], conversation_summaries: [{ topics: ['old'] }] });
+    const other = fakeDb({ summaries: [live], conversation_summaries: [{ topics: ['old'] }] });
+
+    await readCallSummaries(seth.db, 'seth', { limit: 10 }, server);
+    await readCallSummaries(other.db, 'mindy', { limit: 10 }, server);
+
+    expect(seth.queries.map((q) => q.collection)).toEqual(['summaries']);
+    expect(other.queries.map((q) => q.collection)).toEqual(['conversation_summaries']);
   });
 });
 

@@ -11255,5 +11255,21 @@
     "helper": "Escanéalo con la cámara de tu teléfono o toca Abrir Venmo. Puedes cambiar el importe.",
     "maybeLater": "Quizás después",
     "close": "Cerrar"
+  },
+  "reportReply": {
+    "button": "Reportar",
+    "describe": "Reportar algo que dijo {name}",
+    "title": "Reportar una respuesta",
+    "whichReply": "¿Qué respuesta?",
+    "whatsWrong": "¿Qué tiene de malo?",
+    "reasonHarmful": "Dañina o peligrosa",
+    "reasonWrong": "Incorrecta o engañosa",
+    "reasonInappropriate": "Inapropiada",
+    "reasonOther": "Otra cosa",
+    "note": "¿Algo que añadir? (opcional)",
+    "send": "Enviar",
+    "thanks": "Gracias. Una persona lo revisará.",
+    "failed": "No se pudo enviar. Inténtalo de nuevo.",
+    "tooMany": "Hoy has enviado muchos reportes. Inténtalo de nuevo mañana."
   }
 }

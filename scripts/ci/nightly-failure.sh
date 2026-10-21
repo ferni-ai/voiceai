@@ -55,8 +55,9 @@ fi
 
 [[ "$label" == main-red ]] &&
   gh label create main-red -R "$REPO" --force --color B60205 --description "A push to main failed CI" >/dev/null
+# awk reads to the end (no `exit`): closing the pipe early would SIGPIPE gh under pipefail.
 existing=$(gh issue list -R "$REPO" --state open --label "$label" --search "in:title \"$workflow\"" \
-  --json number,title --jq '.[] | [.number, .title] | @tsv' | awk -F'\t' -v t="$title" '$2 == t { print $1; exit }')
+  --json number,title --jq '.[] | [.number, .title] | @tsv' | awk -F'\t' -v t="$title" '$2 == t && !found++ { print $1 }')
 if [[ -n "$existing" ]]; then
   gh issue comment "$existing" -R "$REPO" --body "$body" >/dev/null
   echo "  updated #$existing"

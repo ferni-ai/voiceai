@@ -16,7 +16,7 @@
  * matches in any case; the name must be capitalised as it was transcribed
  * (no i flag on the capture), must not be a common or function word, must not
  * be Ferni or a teammate (utils/teammate-talk.ts TEAM_FIRST_NAMES and their
- * speech-to-text spellings), and must not be possessive ("I'm Jess's mom").
+ * speech-to-text spellings, "Fernie" included), and must not be possessive ("I'm Jess's mom").
  * A greeting said to someone ("Hey Ferni, ...") is cut before matching, so the
  * name in it is never taken. Words are matched whole, never as substrings.
  *
@@ -27,7 +27,7 @@
  */
 
 import { flagOn, type Env } from '../config/env-flag.js';
-import { HEARD_AS, TEAM_FIRST_NAMES } from './teammate-talk.js';
+import { FERNI_HEARD_AS, HEARD_AS, TEAM_FIRST_NAMES } from './teammate-talk.js';
 
 export function nameCaptureStrict(env: Env = process.env): boolean {
   return flagOn('NAME_CAPTURE_STRICT', env);
@@ -55,7 +55,11 @@ const NOT_NAMES = new Set(
 );
 
 /** Ferni and the teammates, with the spellings speech-to-text gives their names. */
-const TEAM_NAMES = new Set<string>([...TEAM_FIRST_NAMES, ...Object.keys(HEARD_AS)]);
+const TEAM_NAMES = new Set<string>([
+  ...TEAM_FIRST_NAMES,
+  ...FERNI_HEARD_AS,
+  ...Object.keys(HEARD_AS),
+]);
 
 /** Capitalised as transcribed: "Seth", "Mary-Jane"; not "seth" or "SETH". */
 const CAPITALISED = /^\p{Lu}\p{Ll}+(?:-\p{Lu}\p{Ll}+)?$/u;
