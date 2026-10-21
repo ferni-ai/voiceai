@@ -40,7 +40,7 @@ const { trackFerniCommitments } =
   await import('../services/superhuman/semantic-intelligence/integration.js');
 const { clearCommitmentCache } =
   await import('../services/superhuman/semantic-intelligence/ferni-commitments.js');
-const { buildPromiseContext, resetOfferedMisses } =
+const { buildPromiseContext } =
   await import('../services/superhuman/semantic-intelligence/promise-keeper.js');
 const { resetLegacyPass, settleLegacyPromises } =
   await import('../services/superhuman/semantic-intelligence/legacy-promises.js');
@@ -100,7 +100,6 @@ async function followsThrough(at: Date): Promise<{ kept: number; total: number }
 beforeEach(() => {
   fs.store.clear();
   clearCommitmentCache();
-  resetOfferedMisses();
   resetLegacyPass();
   vi.useFakeTimers({ toFake: ['Date'] });
   vi.setSystemTime(NOW);

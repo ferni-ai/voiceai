@@ -57,7 +57,6 @@ const NOT_YET_MIGRATED = new Set([
   'src/services/pubsub/worker-main.ts',
   'src/services/scheduling/appointment-followup.ts',
   'src/services/scheduling/proactive-insights-service.ts',
-  'src/services/scheduling/ritual-onboarding.ts',
   'src/services/self-healing/health-monitors.ts',
   'src/services/trust-systems/notification-delivery.ts',
   'src/services/voice/voice-audit-log.ts',

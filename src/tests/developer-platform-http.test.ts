@@ -404,8 +404,8 @@ describe('Validation Schemas', () => {
     };
     expect(() => CreateMCPServerSchema.parse(validHttpServer)).not.toThrow();
 
-    // Valid stdio server
-    const validStdioServer = {
+    // stdio servers are refused: no publisher processes on our servers
+    const stdioServer = {
       name: 'Local MCP',
       description: 'Local server',
       transport: 'stdio',
@@ -413,7 +413,7 @@ describe('Validation Schemas', () => {
       args: ['server.js'],
       autoConnect: false,
     };
-    expect(() => CreateMCPServerSchema.parse(validStdioServer)).not.toThrow();
+    expect(() => CreateMCPServerSchema.parse(stdioServer)).toThrow();
 
     // Invalid - missing required fields
     const invalidServer = {

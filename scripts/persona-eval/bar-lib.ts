@@ -200,6 +200,8 @@ export interface Metrics {
   insight: Rate;
   copy: CopyStats;
   medianWords: number;
+  /** The model's generic habits (tellsOf). Absent in results saved before the metric existed. */
+  tells?: Tells;
 }
 
 /** A gap per metric, in rate units: what a change has to beat. */
@@ -209,15 +211,20 @@ export interface Floor {
   copy: number;
   /** For humanness, the distance from 0.5 of the second run's win rate over the first. */
   humanness: number;
+  /** Per tell, when both runs carry tells. */
+  tells?: Record<TellKey, number>;
 }
 
 /** How far apart two runs of the same arm actually landed. */
 export function aaGap(a: Metrics, b: Metrics, humanness: Rate): Floor {
+  const ta = a.tells;
+  const tb = b.tells;
   return {
     distinctness: Math.abs(a.distinctness.p - b.distinctness.p),
     insight: Math.abs(a.insight.p - b.insight.p),
     copy: Math.abs(a.copy.p - b.copy.p),
     humanness: Math.abs(humanness.p - 0.5),
+    ...(ta && tb ? { tells: perTell((k) => Math.abs(ta[k].p - tb[k].p)) } : {}),
   };
 }
 
@@ -226,9 +233,19 @@ export function aaGap(a: Metrics, b: Metrics, humanness: Rate): Floor {
  * rates: the gap the sample sizes alone allow, whatever one A/A pair showed.
  */
 export function samplingGap(a: Rate, b: Rate): number {
-  return 1.96 * Math.sqrt(variance(a) + variance(b));
+  return 1.96 * Math.sqrt(atLeastOne(a) + atLeastOne(b));
 }
 const variance = (r: Rate): number => (r.n ? (r.p * (1 - r.p)) / r.n : 0);
+/**
+ * The variance with the rate kept at least one event from 0 or 1: two runs
+ * that both saw none of a rare tell (0/144 twice) would otherwise set a floor
+ * of 0, and a single reply with it in the arm would read as a change.
+ */
+const atLeastOne = (r: Rate): number => {
+  if (!r.n) return 0;
+  const p = Math.min(Math.max(r.p, 1 / r.n), 1 - 1 / r.n);
+  return (p * (1 - p)) / r.n;
+};
 
 /**
  * The noise floor: the larger of the observed A/A gap and the sampling gap.
@@ -243,6 +260,11 @@ export function noiseFloor(a: Metrics, b: Metrics, humanness: Rate): Floor {
     copy: Math.max(seen.copy, samplingGap(a.copy, b.copy)),
     // A pairwise win rate is one sample against 0.5, not a difference of two.
     humanness: Math.max(seen.humanness, 1.96 * Math.sqrt(variance({ ...humanness, p: 0.5 }))),
+    ...(a.tells && b.tells && seen.tells
+      ? {
+          tells: perTell((k) => Math.max(seen.tells![k], samplingGap(a.tells![k], b.tells![k]))),
+        }
+      : {}),
   };
 }
 
@@ -288,7 +310,7 @@ export const humannessRate = (h: Humanness): Rate =>
 
 export type Verdict = 'better' | 'worse' | 'noise' | 'no A/A' | 'insufficient matched pairs';
 export interface Row {
-  metric: keyof Floor;
+  metric: Exclude<keyof Floor, 'tells'> | `tells: ${TellKey}`;
   baseline: number;
   arm: number;
   delta: number;
@@ -313,19 +335,31 @@ export function compareArms(
   humanness: Humanness | null,
   floor: Floor | null
 ): Row[] {
-  const row = (metric: keyof Floor, b: number, a: number, lower = false): Row => ({
+  const row = (
+    metric: Row['metric'],
+    b: number,
+    a: number,
+    f: number | null,
+    lower = false
+  ): Row => ({
     metric,
     baseline: b,
     arm: a,
     delta: a - b,
-    floor: floor ? floor[metric] : null,
-    verdict: verdictFor(a - b, floor ? floor[metric] : null, lower),
+    floor: f,
+    verdict: verdictFor(a - b, f, lower),
   });
+  const bt = base.tells;
+  const at = arm.tells;
   return [
-    row('distinctness', base.distinctness.p, arm.distinctness.p),
+    row('distinctness', base.distinctness.p, arm.distinctness.p, floor?.distinctness ?? null),
     ...(humanness ? [humannessRow(humanness, floor)] : []),
-    row('insight', base.insight.p, arm.insight.p),
-    row('copy', base.copy.p, arm.copy.p, true),
+    row('insight', base.insight.p, arm.insight.p, floor?.insight ?? null),
+    row('copy', base.copy.p, arm.copy.p, floor?.copy ?? null, true),
+    // Each tell is a generic model habit across all six personas: fewer is better overall.
+    ...(bt && at
+      ? TELL_KEYS.map((k) => row(`tells: ${k}`, bt[k].p, at[k].p, floor?.tells?.[k] ?? null, true))
+      : []),
   ];
 }
 
@@ -356,6 +390,222 @@ function humannessRow(h: Humanness, floor: Floor | null): Row {
   };
 }
 
+// ---------------------------------------------------------------- replicated runs, two judges
+
+/** The metrics a judge model scores: each needs a second judge from another family to agree. */
+export const JUDGED_METRICS = ['distinctness', 'humanness', 'insight'] as const;
+
+/**
+ * Per metric, the widest of several floors (each baseline run's A/A floor and
+ * the spread between runs): one A/A pair in one run underestimates run-to-run variance.
+ */
+export function maxFloor(floors: readonly Floor[]): Floor {
+  const top = (f: (x: Floor) => number): number => Math.max(...floors.map(f));
+  const withTells = floors.every((f) => f.tells);
+  return {
+    distinctness: top((f) => f.distinctness),
+    insight: top((f) => f.insight),
+    copy: top((f) => f.copy),
+    humanness: top((f) => f.humanness),
+    ...(withTells ? { tells: perTell((k) => top((f) => f.tells![k])) } : {}),
+  };
+}
+
+/** One judge's verdict on one metric in one run (arm run i against baseline run i). */
+export interface Cell {
+  run: number;
+  judge: string;
+  verdict: Verdict;
+  delta: number;
+  floor: number | null;
+}
+export interface MetricVerdict {
+  metric: Row['metric'];
+  verdict: 'better' | 'worse' | 'noise';
+  /** Per run, e.g. "run 1: judges disagree (gemini +9.8/9.8 better, gpt-oss -2.0/9.8 noise)". */
+  note: string;
+  cells: Cell[];
+}
+
+/**
+ * A metric over runs and judges. A run is better (worse) only when every judge
+ * says so beyond its own floor, else noise. The metric is better only when
+ * every run is, and worse when any run is: no pass on one lucky draw.
+ */
+export function combineMetric(metric: Row['metric'], cells: readonly Cell[]): MetricVerdict {
+  const runs = [...new Set(cells.map((c) => c.run))].sort((a, b) => a - b);
+  const byRun = runs.map((run) => {
+    const cs = cells.filter((c) => c.run === run);
+    const all = (v: Verdict): boolean => cs.every((c) => c.verdict === v);
+    const v = all('better') ? 'better' : all('worse') ? 'worse' : 'noise';
+    const split = v === 'noise' && cs.some((c) => c.verdict === 'better' || c.verdict === 'worse');
+    // Each judge's arm-minus-baseline gap / its floor, in points, then its verdict.
+    const each = cs.map(
+      (c) =>
+        `${cs.length > 1 ? `${c.judge} ` : ''}${c.delta >= 0 ? '+' : ''}${(100 * c.delta).toFixed(1)}/${c.floor === null ? '-' : (100 * c.floor).toFixed(1)} ${c.verdict}`
+    );
+    return { run, v, text: `${split ? 'judges disagree' : v} (${each.join(', ')})` };
+  });
+  const verdict =
+    byRun.length && byRun.every((r) => r.v === 'better')
+      ? 'better'
+      : byRun.some((r) => r.v === 'worse')
+        ? 'worse'
+        : 'noise';
+  return {
+    metric,
+    verdict,
+    note: byRun.map((r) => `run ${r.run}: ${r.text}`).join('; '),
+    cells: [...cells],
+  };
+}
+
+/**
+ * The bar's summary line. PASS needs two runs and two judges, distinctness or
+ * humanness better (combineMetric), insight not worse, and no tell worse.
+ */
+export function barVerdict(
+  metrics: readonly MetricVerdict[],
+  runs: number,
+  judges: number
+): { pass: boolean; line: string } {
+  const reasons: string[] = [];
+  if (runs < 2) reasons.push(`${runs} run (a pass needs --runs 2 or more)`);
+  if (judges < 2) reasons.push(`${judges} judge (a pass needs a second judge from another family)`);
+  const of = (m: string): MetricVerdict | undefined => metrics.find((x) => x.metric === m);
+  const gains = (['distinctness', 'humanness'] as const).filter((m) => of(m)?.verdict === 'better');
+  if (!gains.length)
+    reasons.push(
+      'neither distinctness nor humanness is better in every run with the judges agreeing'
+    );
+  if (!of('insight')) reasons.push('no insight verdict');
+  else if (of('insight')!.verdict === 'worse') reasons.push('insight worse');
+  for (const m of metrics)
+    if (m.metric.startsWith('tells: ') && m.verdict === 'worse') reasons.push(`${m.metric} worse`);
+  if (reasons.length) return { pass: false, line: `NO PASS: ${reasons.join('; ')}` };
+  return {
+    pass: true,
+    line: `PASS: ${gains.join(' and ')} better in all ${runs} runs with all ${judges} judges agreeing; insight and tells not worse`,
+  };
+}
+
+// ---------------------------------------------------------------- model tells
+
+/**
+ * Generic model habits that read as "an assistant", not as a person: the
+ * defaults that came back when the shared scripts were removed (2026-10-18,
+ * SCRIPT_FREE_REMINDER: ends on a question 28% -> 94%, opens with a reaction
+ * word 7% -> 59%). Deterministic, no LLM. Each is the share of replies that
+ * show it; lower is better across the cast, but per persona a tell can be in
+ * character (Maya exclaims), so per persona they are reported, not judged.
+ */
+export const TELL_KEYS = ['question', 'opener', 'checkin', 'exclaim'] as const;
+export type TellKey = (typeof TELL_KEYS)[number];
+export type Tells = Record<TellKey, Rate> & {
+  /** Replies with any question mark (reported only; "rarely asks" is about this). */
+  asks: Rate;
+};
+
+const perTell = (f: (k: TellKey) => number): Record<TellKey, number> =>
+  Object.fromEntries(TELL_KEYS.map((k) => [k, f(k)])) as Record<TellKey, number>;
+
+/** What a listener hears: no SSML tags, no [laughter]-style sound cues, curly quotes folded. */
+function spoken(reply: string): string {
+  return reply
+    .replace(MARKUP, ' ')
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/** The last thing said is a question: the reply ends on "?" (closing quotes, brackets or dots aside). */
+export function endsOnQuestion(reply: string): boolean {
+  return /\?[\s"')\].…]*$/.test(spoken(reply));
+}
+
+/** Stock reaction words a model opens with (Oh/Ugh/Yeah/Hmm/Wow/Ah/Well, stretched or not). */
+const REACTION = /^(?:o+h+|u+g+h+|y+e+a+h*|h+m+|w+o+w+|a+h+|well)$/;
+
+/** The reply's first spoken word is a stock reaction ("Oh,", "Hmm...", "Yeah so", "Ugh."). */
+export function opensWithReaction(reply: string): boolean {
+  const first = /^[^a-z0-9]*([a-z0-9]+(?:'[a-z]+)*)/.exec(spoken(reply).toLowerCase())?.[1];
+  return first !== undefined && REACTION.test(first);
+}
+
+/** Therapist-style check-ins: how are you feeling / holding up, how does that make you feel, that sounds hard. */
+const CHECK_INS = [
+  /\bhow(?: are|'re| r) you (?:feeling|holding up)\b/,
+  /\bhow (?:does|did|is|do) (?:that|this|it|all that) (?:make|making) you feel\b/,
+  /\bthat (?:sounds|must be|must feel|must have been)(?: so| really| incredibly| super| just)? (?:hard|exhausting|tough|difficult|overwhelming)\b/,
+];
+
+export function therapistCheckIn(reply: string): boolean {
+  const t = spoken(reply).toLowerCase();
+  return CHECK_INS.some((re) => re.test(t));
+}
+
+export function exclaims(reply: string): boolean {
+  return spoken(reply).includes('!');
+}
+
+/** The tells over a set of replies (empty replies are not counted). */
+export function tellsOf(replies: readonly string[]): Tells {
+  const rs = replies.filter((r) => spoken(r));
+  const share = (f: (r: string) => boolean): Rate => rate(rs.filter(f).length, rs.length);
+  return {
+    question: share(endsOnQuestion),
+    opener: share(opensWithReaction),
+    checkin: share(therapistCheckIn),
+    exclaim: share(exclaims),
+    asks: share((r) => spoken(r).includes('?')),
+  };
+}
+
+export type TellMove = 'up' | 'down' | 'noise';
+export interface PersonaTellRow {
+  persona: string;
+  tell: TellKey | 'asks';
+  baseline: number;
+  arm: number;
+  delta: number;
+  floor: number;
+  /** Direction only: per persona a tell may be in character, so this is not better/worse. */
+  move: TellMove;
+}
+
+/**
+ * Per persona, each tell against the baseline. The floor is the larger of the
+ * persona's own A/A gap (when given) and the sampling gap at its n (about 30).
+ */
+export function comparePersonaTells(
+  base: Record<string, Tells>,
+  arm: Record<string, Tells>,
+  aa?: Record<string, Tells>
+): PersonaTellRow[] {
+  const keys = [...TELL_KEYS, 'asks'] as const;
+  return Object.keys(arm)
+    .filter((p) => base[p])
+    .flatMap((p) =>
+      keys.map((tell) => {
+        const b = base[p][tell];
+        const a = arm[p][tell];
+        const seen = aa?.[p] ? Math.abs(b.p - aa[p][tell].p) : 0;
+        const floor = Math.max(seen, samplingGap(b, a));
+        const delta = a.p - b.p;
+        return {
+          persona: p,
+          tell,
+          baseline: b.p,
+          arm: a.p,
+          delta,
+          floor,
+          move: Math.abs(delta) <= floor ? 'noise' : delta > 0 ? 'up' : 'down',
+        };
+      })
+    );
+}
+
 const pct = (x: number): string => `${(100 * x).toFixed(1)}%`;
 const ci = (r: Rate): string => `${r.k}/${r.n} = ${pct(r.p)} [${pct(r.lo)}, ${pct(r.hi)}]`;
 
@@ -374,6 +624,41 @@ export function metricsTable(label: string, m: Metrics, humanness?: Humanness | 
     `| insight (uses caller context naturally) | ${ci(m.insight)} |`,
     `| copy (replies with a 4-gram from their instructions) | ${ci(m.copy)} |`,
     `| median words per reply | ${m.medianWords} |`,
+    ...(m.tells
+      ? [
+          `| tells: ends on a question | ${ci(m.tells.question)} |`,
+          `| tells: opens with Oh/Ugh/Yeah/Hmm/Wow/Ah/Well | ${ci(m.tells.opener)} |`,
+          `| tells: therapist check-in | ${ci(m.tells.checkin)} |`,
+          `| tells: exclamation mark | ${ci(m.tells.exclaim)} |`,
+          `| tells: any question mark (reported only) | ${ci(m.tells.asks)} |`,
+        ]
+      : []),
+  ].join('\n');
+}
+
+/** Each persona's tells as a markdown table (rates of that persona's replies). */
+export function personaTellsTable(perPersona: Record<string, Tells>): string {
+  return [
+    '| persona | ends on ? | opener | check-in | ! | any ? |',
+    '|---|---|---|---|---|---|',
+    ...Object.entries(perPersona).map(
+      ([p, t]) =>
+        `| ${p} | ${pct(t.question.p)} | ${pct(t.opener.p)} | ${pct(t.checkin.p)} | ${pct(t.exclaim.p)} | ${pct(t.asks.p)} |`
+    ),
+  ].join('\n');
+}
+
+/** Per-persona tell moves vs the baseline, only the ones beyond their floor. */
+export function personaTellsCompareTable(rows: readonly PersonaTellRow[]): string {
+  const moved = rows.filter((r) => r.move !== 'noise');
+  return [
+    '| persona | tell | baseline | arm | delta | floor | move |',
+    '|---|---|---|---|---|---|---|',
+    ...moved.map(
+      (r) =>
+        `| ${r.persona} | ${r.tell} | ${pct(r.baseline)} | ${pct(r.arm)} | ${r.delta >= 0 ? '+' : ''}${pct(r.delta)} | ${pct(r.floor)} | ${r.move} |`
+    ),
+    ...(moved.length ? [] : ['| (none beyond their floor) | | | | | | |']),
   ].join('\n');
 }
 

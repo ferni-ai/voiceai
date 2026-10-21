@@ -85,6 +85,9 @@ work reads the flag with `envForCaller(userId)` (#1690), which goes back to the 
 It does not read `process.env`. The same applies to anything outside a call: the API server's
 scheduled jobs resolve the person's flags with `resolveCallerFlags` and need `COHORT_FLAGS=on`
 on that server.
+Code below `services/platform` in the layers (memory stores, capabilities) asks
+`personFlagOn(userId, FLAG)` (`src/config/person-flag.ts`) instead: the agent answers it with
+`callerFlag`, the UI server with `flagForUser`. The person's own value beats the process's.
 
 **Adding a flag to `COHORT_FLAGS`.** Find every read (`rg -w FLAG src`). Add the flag only if
 each read happens after `applyCallerFlags`: at agent setup, on a turn, at a handoff, or after

@@ -15,7 +15,9 @@
  * after a new call, each bounded by PER_USER_TIMEOUT_MS; the poll stops
  * starting callers after POLL_BUDGET_MS and the rest wait for the next poll.
  *
- * Off unless PONDERING=on; off, it reads nothing.
+ * Off unless PONDERING=on; off, it reads nothing. Even then, it ponders the
+ * people whose own cohort flags turn PONDERING on (`holders`, from
+ * cohort-flags.ts usersWithFlag), and only them.
  *
  * @module intelligence/pondering/ponder-job
  */
@@ -142,6 +144,8 @@ export interface PonderJobOptions {
   ignoreDue?: boolean;
   perUserTimeoutMs?: number;
   budgetMs?: number;
+  /** Who has PONDERING on through their own cohort flags; injected by the job route. */
+  holders?: () => Promise<string[]>;
 }
 
 export interface PonderJobResult {
@@ -198,7 +202,8 @@ async function gather(
 
 interface PassOptions {
   llm: PonderLlm;
-  env: Record<string, string | undefined>;
+  /** The env the pass reads for this caller. */
+  envFor: (uid: string) => Record<string, string | undefined>;
   dryRun: boolean;
   /** No caller is started after this (epoch ms). */
   deadline: number;
@@ -208,7 +213,7 @@ async function ponderDue(
   { db, now, result }: Poll,
   due: readonly DueEntry[],
   ready: ReadonlyMap<string, Candidate>,
-  { llm, env, dryRun, deadline }: PassOptions
+  { llm, envFor, dryRun, deadline }: PassOptions
 ): Promise<void> {
   // One model call at a time, so the poll's cost and duration stay bounded.
   for (const { uid } of due) {
@@ -218,7 +223,7 @@ async function ponderDue(
       // eslint-disable-next-line no-await-in-loop
       const out = await ponderUser(db, uid, llm, {
         now,
-        env,
+        env: envFor(uid),
         avoid: c.avoid,
         recent: c.recent,
         dryRun,
@@ -243,13 +248,18 @@ export async function runPonderingJob(
     ignoreDue = false,
     perUserTimeoutMs = PER_USER_TIMEOUT_MS,
     budgetMs = POLL_BUDGET_MS,
+    holders,
   }: PonderJobOptions = {}
 ): Promise<PonderJobResult> {
   const result = emptyResult();
-  if (!isPonderingOn(env)) return result;
+  const own = new Set((holders ? await holders() : []).filter(validUid));
+  const serverOn = isPonderingOn(env);
+  if (!serverOn && own.size === 0) return result;
   result.status = 'ran';
   const started = Date.now();
-  const cohort = await ponderingCohort(db, env);
+  const cohort = serverOn
+    ? [...new Set([...(await ponderingCohort(db, env)), ...own])].slice(0, MAX_COHORT)
+    : [...own].slice(0, MAX_COHORT);
   result.cohort = cohort.length;
   const ready = await gather({ db, now, result }, cohort);
   const entries = [...ready.values()].map((c) => c.entry);
@@ -258,6 +268,7 @@ export async function runPonderingJob(
 
   const think = bounded(llm, perUserTimeoutMs);
   const deadline = started + budgetMs;
-  await ponderDue({ db, now, result }, due, ready, { llm: think, env, dryRun, deadline });
+  const envFor = (uid: string): typeof env => (own.has(uid) ? { ...env, PONDERING: 'on' } : env);
+  await ponderDue({ db, now, result }, due, ready, { llm: think, envFor, dryRun, deadline });
   return result;
 }

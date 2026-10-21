@@ -191,3 +191,26 @@ describe('follow-through import after a call (FOLLOW_THROUGH_IMPORT)', () => {
     expect(followUps('owner-1')).toHaveLength(0);
   });
 });
+
+describe('FOLLOW_THROUGH_IMPORT from the caller’s cohort, the agent’s own flag off', () => {
+  const env = { COHORT_FLAGS: 'on' }; // the agent: FOLLOW_THROUGH_IMPORT unset
+  const cohorts = {
+    cohortsFor: async (u: string) =>
+      u === 'owner-1'
+        ? [{ id: 'seth', enabled: true, flags: { FOLLOW_THROUGH_IMPORT: 'on' } }]
+        : [],
+    overridesFor: async () => ({}),
+  };
+  const deps = { env, cohorts, verifiedOwner: () => true };
+
+  it('imports for the cohort member only', async () => {
+    delete process.env.FOLLOW_THROUGH_IMPORT;
+    const member = await importFollowUpsAfterCall(call('owner-1', 's-cohort'), deps);
+    const other = await importFollowUpsAfterCall(call('sponsor-1', 's-other'), deps);
+
+    expect(member.imported).toBe(true);
+    expect(followUps('owner-1').length).toBeGreaterThan(0);
+    expect(other).toEqual({ imported: false, reason: 'flag-off' });
+    expect(followUps('sponsor-1')).toHaveLength(0);
+  });
+});
