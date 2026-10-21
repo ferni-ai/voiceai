@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const info = vi.fn();
+const error = vi.fn();
 vi.mock('../safe-logger.js', () => ({
-  createLogger: () => ({ info, debug: vi.fn(), warn: vi.fn(), error: vi.fn() }),
-  getLogger: () => ({ info, debug: vi.fn(), warn: vi.fn(), error: vi.fn() }),
+  createLogger: () => ({ info, debug: vi.fn(), warn: vi.fn(), error }),
+  getLogger: () => ({ info, debug: vi.fn(), warn: vi.fn(), error }),
 }));
 
 describe('token key fingerprint at boot', () => {
@@ -30,6 +31,43 @@ describe('token key fingerprint at boot', () => {
     const { readFileSync } = await import('node:fs');
     for (const entry of ['src/agent.ts', 'src/servers/api/index.ts']) {
       expect(readFileSync(entry, 'utf8')).toContain('utils/token-key-fingerprint-boot.js');
+    }
+  });
+
+  it('names the encryption secrets a production process lacks, never their values', async () => {
+    const { missingProductionSecrets } = await import('../token-key-fingerprint-boot.js');
+    expect(missingProductionSecrets({ NODE_ENV: 'production' })).toEqual([
+      'DATA_ENCRYPTION_KEY',
+      'IDENTIFIER_HASH_SECRET',
+    ]);
+    expect(missingProductionSecrets({ NODE_ENV: 'production', DATA_ENCRYPTION_KEY: 'x' })).toEqual([
+      'IDENTIFIER_HASH_SECRET',
+    ]);
+    expect(
+      missingProductionSecrets({
+        NODE_ENV: 'production',
+        DATA_ENCRYPTION_KEY: 'x',
+        IDENTIFIER_HASH_SECRET: 'y',
+      })
+    ).toEqual([]);
+    expect(missingProductionSecrets({ NODE_ENV: 'development' })).toEqual([]);
+  });
+
+  it('logs the missing names at error level at boot in production', async () => {
+    vi.resetModules();
+    error.mockClear();
+    const saved = { ...process.env };
+    process.env.NODE_ENV = 'production';
+    process.env.LOG_HASH_SECRET = 'fixture-boot-key'; // token key present
+    process.env.DATA_ENCRYPTION_KEY = 'fixture-data-key';
+    delete process.env.IDENTIFIER_HASH_SECRET;
+    try {
+      await import('../token-key-fingerprint-boot.js');
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(error.mock.calls[0][0]).toEqual({ missing: ['IDENTIFIER_HASH_SECRET'] });
+      expect(JSON.stringify(error.mock.calls)).not.toContain('fixture-data-key');
+    } finally {
+      process.env = saved;
     }
   });
 });

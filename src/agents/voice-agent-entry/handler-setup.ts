@@ -13,7 +13,6 @@ import type { VoiceHumanizationCleanup } from './types.js';
 import { TOOL_HEALTH_CHECK_INTERVAL, MULTI_AGENT_MODE } from './constants.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { outboundOpener, outboundPartiesFor } from '../shared/outbound-opener.js';
-import { isPipelineSwitchingEnabled, selectPipeline, type PipelineSwitchContext } from '../shared/performance/pipeline-switcher.js';
 import { computeDynamicVADDuration } from '../shared/performance/adaptive-timing.js';
 import { finops } from '../../services/observability/finops.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -24,6 +23,7 @@ import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './pa
 import { noteCallerJoined } from './sip-caller.js';
 import { callerChecks } from './caller-recognition.js';
 import { setupFrontendPublisher } from './handler-frontend-publisher.js';
+import { sessionRecording } from '../shared/session-recording.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -197,7 +197,6 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     }
   }
 
-  // MUSIC HANDLER
   const musicResult = await setupMusicHandler({
     room: ctx.room, services, sessionPersona, conversationManager, sessionId,
     userId: userData.userId as string,
@@ -205,12 +204,11 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   cleanupHandlers.push(musicResult.cleanup);
   process.stderr.write(`[voice-agent-entry] 🎵 Music handler initialized\n`);
 
-  // Connection type detection + noise cancellation
+  // Connection type + noise cancellation, then start; calls are never recorded (session-recording.ts)
   const { detectConnectionType, setupNoiseCancellation } = await import('../voice-agent/phases/index.js');
   const { isPhoneCall, isWebConnection } = detectConnectionType(ctx, participant);
   const { inputOptions } = await setupNoiseCancellation({ isPhoneCall });
-
-  await session.start({ agent, room: ctx.room, inputOptions });
+  await session.start({ agent, room: ctx.room, inputOptions, record: sessionRecording() });
   process.stderr.write(
     `[voice-agent-entry] Session started! (isPhone: ${isPhoneCall}, isWeb: ${isWebConnection})\n`
   );
@@ -462,19 +460,6 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     const evt = event as { transcript?: string; isFinal?: boolean };
     if (evt.isFinal) {
       userData.turnCount = ((userData.turnCount as number) || 0) + 1;
-      if (isPipelineSwitchingEnabled()) {
-        const switchCtx: PipelineSwitchContext = {
-          emotion: (userData.lastEmotionAnalysis as { primary?: string })?.primary,
-          stressLevel: (userData.lastEmotionAnalysis as { distressLevel?: number })?.distressLevel,
-          wasInterrupted: userData.wasInterrupted as boolean | undefined,
-          turnCount: (userData.turnCount as number) ?? 0,
-          userTranscriptLength: evt.transcript?.length ?? 0,
-          isFirstResponse: ((userData.turnCount as number) ?? 0) === 1,
-          isQuestion: evt.transcript?.includes('?'),
-        };
-        const pipelineResult = selectPipeline(switchCtx);
-        process.stderr.write(`🔀 [TURN ${userData.turnCount}] Pipeline: ${pipelineResult.mode} (${pipelineResult.reason}, confidence=${pipelineResult.confidence})\n`);
-      }
       const transcript = evt.transcript || '';
       process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: "${transcript}"\n`);
       observeFinalTranscript({ transcript, userData, sessionId, crisisMode: crisisGuardMode });

@@ -14,6 +14,11 @@ vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => pathFirestore(docs),
 }));
+// The opt-out stores (opt-outs.ts) import the canonical module.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
 // commitment-follow-up.ts reads Firestore through the utils module.
 vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -56,6 +61,8 @@ async function runHandler(): Promise<void> {
 const logOf = (id: string) => docs.get(`bogle_users/${SETH}/proactive_outreach_log/${id}`);
 
 beforeEach(() => {
+  // Phone-keyed opt-outs are read under this key; without it nothing is texted.
+  process.env.LOG_HASH_SECRET = 'test-hash-secret';
   docs.clear();
   texts.length = 0;
   forgetFlagCache();
@@ -70,6 +77,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
+  delete process.env.LOG_HASH_SECRET;
   vi.useRealTimers();
   delete process.env.PROACTIVE_CHANNELS;
   delete process.env.PROACTIVE_CHANNELS_USERS;
@@ -149,7 +157,7 @@ describe('what they said they would do (COACH_FOLLOW_THROUGH)', () => {
     seedCommitment();
     await runHandler();
     expect(texts).toEqual([
-      'Hey, it\'s Ferni. Last time you said: "I will send the resume to Dana by Thursday". How did it go?',
+      "Hey, it's Ferni. Last time you said you'd send the resume to Dana by Thursday. How did it go?",
     ]);
     expect(docs.get(`bogle_users/${SETH}/commitments/c1`)).toMatchObject({
       followUpCount: 1,

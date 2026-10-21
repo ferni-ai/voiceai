@@ -21,7 +21,11 @@ const fakeDb = {
       update: async (data: Record<string, unknown>) =>
         void coll(name).set(id, { ...coll(name).get(id), ...data }),
     }),
-    where: () => ({ limit: () => ({ get: async () => ({ empty: true, docs: [] }) }) }),
+    where: (field: string, _op: string, value: string) => ({
+      limit: () => ({ get: async () => ({ empty: true, docs: [] }) }),
+      // feature_cohorts membership (array-contains), for the admission rules
+      get: async () => ({ docs: [...coll(name)].filter(([, d]) => (d[field] as string[] | undefined)?.includes(value)).map(([id, d]) => ({ id, data: () => d })) }), // prettier-ignore
+    }),
   }),
 };
 vi.mock('firebase-admin', () => ({
@@ -42,8 +46,14 @@ vi.mock('../../utils/firestore-utils.js', async (orig) => ({
   getFirestoreDb: () => fakeDb, // the queue store (services/waitlist) writes to the same docs
 }));
 vi.mock('../auth-middleware.js', () => ({ rateLimit: () => false, requireAdmin: () => true }));
+// The admission rules (admission.ts) read the same in-memory database
+vi.mock('../../utils/firestore-utils.js', async (orig) => ({
+  ...(await orig<typeof import('../../utils/firestore-utils.js')>()),
+  getFirestoreDb: () => fakeDb,
+}));
 
 const { handleWaitlistRoutes } = await import('../waitlist-routes.js');
+const { forgetAdmissionCache } = await import('../admission.js');
 
 async function check(
   referralCode?: string
@@ -99,6 +109,7 @@ describe('waitlist check', () => {
     email.value = 'newcomer@example.com';
     email.verified = true;
     store.clear();
+    forgetAdmissionCache();
     vi.unstubAllEnvs();
   });
 
@@ -221,6 +232,15 @@ describe('waitlist check', () => {
       verifiedAt: expect.any(Date),
       inviteCode: expect.stringMatching(/^[a-z0-9]{6}-[a-z]+$/),
     });
+  });
+
+  it('gate on: lets in a friends-and-family member, as the token route would', async () => {
+    vi.stubEnv('WAITLIST_GATE', 'on');
+    coll('feature_cohorts').set('friends-and-family', { members: ['uid-1'] });
+    const { body } = await check();
+    expect(body).toMatchObject({ approved: true, status: 'approved', tier: 'free' });
+    const profile = coll('user_profiles').get(docId(email.value)) as { subscription: Record<string, unknown> }; // prettier-ignore
+    expect(profile.subscription).toMatchObject({ grantedVia: 'admission' });
   });
 
   // A made-up address: the real owner address is the OWNER_EMAIL secret.

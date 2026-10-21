@@ -7,6 +7,7 @@
  */
 
 import type { ServerResponse } from 'http';
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
 import { ownerEmail } from '../../config/owner-email.js';
@@ -47,6 +48,31 @@ export async function handleTTLCleanup(res: ServerResponse): Promise<void> {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
     });
+  }
+}
+
+/** Deletes erased accounts' BigQuery analytics rows (services/analytics/bq-erasure.ts). */
+export async function handleBqErasure(res: ServerResponse): Promise<void> {
+  if (!flagOn('BQ_ERASURE')) {
+    log.info('BigQuery erasure skipped: BQ_ERASURE is off');
+    sendJson(res, 200, { success: true, job: 'bq-erasure', skipped: 'BQ_ERASURE off' });
+    return;
+  }
+  try {
+    const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
+    const { runBqErasure } = await import('../../services/analytics/bq-erasure.js');
+    const db = getFirestoreDb();
+    if (!db) throw new Error('Firestore not available');
+    const result = await runBqErasure(db);
+    log.info(result, 'BigQuery erasure run');
+    sendJson(res, result.retrying || result.overdue ? 500 : 200, {
+      success: !result.retrying && !result.overdue,
+      job: 'bq-erasure',
+      ...result,
+    });
+  } catch (error) {
+    log.error({ error: String(error) }, 'BigQuery erasure job failed');
+    sendJson(res, 500, { success: false, error: 'bq-erasure failed' });
   }
 }
 
@@ -125,7 +151,6 @@ export async function handleDailyAdminReport(res: ServerResponse): Promise<void>
 
     const emailResult = await sendEmail({
       to: owner,
-      toName: 'Seth Ford',
       subject: `Ferni Daily Report - ${reportData.date}`,
       body: plainText,
       html,

@@ -15,7 +15,11 @@
  * - panels that stay mounted and open/close by class or style are tracked too
  * - on close (removed, or hidden), focus returns to where it was before, or
  *   to the menu button when that place has since been hidden
+ * - back (Android's gesture, the browser button) closes the top one
+ *   (back-closes-overlay.ts) instead of leaving the app
  */
+
+import { installBackClosesOverlay } from './back-closes-overlay.js';
 
 const DIALOG_SELECTOR = '[role="dialog"], [role="alertdialog"]';
 const FOCUSABLE =
@@ -185,7 +189,9 @@ export function installDialogFocus(root: HTMLElement = document.body): () => voi
     attributeFilter: ['class', 'style', 'hidden', 'aria-hidden', 'inert'],
   });
   document.addEventListener('keydown', onKeydown, true);
+  const stopBack = installBackClosesOverlay(root);
   return () => {
+    stopBack();
     observer.disconnect();
     document.removeEventListener('keydown', onKeydown, true);
     stack.length = 0;

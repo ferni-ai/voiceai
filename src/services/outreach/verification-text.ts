@@ -57,6 +57,13 @@ export const LIMITS = {
   global: { windowMs: HOUR, gapMs: 0, max: 2000 },
 } as const;
 export const GLOBAL_ALERT = 500;
+
+/**
+ * Number abuse: this many distinct accounts hitting one number's ceiling within
+ * the window raises ONE alert per number per window. Requesters are stored as
+ * keyed hashes (never raw uids), newest CONTENTION_CAP kept.
+ */
+export const CONTENTION = { accounts: 3, windowMs: HOUR, cap: 20 } as const;
 type Bucket = keyof typeof LIMITS;
 
 export const codeText = (code: string): string =>
@@ -76,12 +83,39 @@ export type Atomically = <T>(
   ) => { result: T; write?: Record<string, string[]> }
 ) => Promise<T>;
 
+export interface ContentionAlert {
+  phoneLast4: string;
+  distinctAccounts: number;
+  windowMs: number;
+}
+
 export interface CodeTextDeps {
   env: Env;
   atomically: Atomically;
   send: (message: SMSMessage) => Promise<SMSDeliveryResult>;
   now: () => Date;
+  /** The ops alert for number abuse (security event + opsAlert by default). */
+  alert?: (a: ContentionAlert) => void;
 }
+
+/** Number abuse reaches ops the way other abuse does: a security event and an ops alert. */
+export const alertNumberContention = (a: ContentionAlert): void => {
+  const details = { ...a };
+  void import('../platform/ops-alert.js').then(({ opsAlert }) =>
+    opsAlert('abuse:verify_phone_number_contention', 'verify_phone_number_contention', details)
+  );
+  void import('../platform/security-events.js')
+    .then(({ recordSecurityEvent }) =>
+      recordSecurityEvent({
+        type: 'suspicious_activity',
+        actorType: 'system',
+        action: 'verify_phone_number_contention',
+        outcome: 'warning',
+        details,
+      })
+    )
+    .catch((error: unknown) => log.warn({ error: String(error) }, 'Security event not recorded'));
+};
 
 interface TxDoc {
   exists: boolean;
@@ -116,7 +150,8 @@ export const firestoreAtomically =
       });
       const { result, write } = decide(recent, optOut.exists);
       for (const [key, sentAt] of Object.entries(write ?? {})) {
-        tx.set(refs[keys.indexOf(key)], { sentAt });
+        // expireAt: a Firestore TTL policy on verify_code_sends removes idle docs a day on.
+        tx.set(refs[keys.indexOf(key)], { sentAt, expireAt: new Date(Date.now() + DAY) });
       }
       return result;
     });
@@ -126,6 +161,7 @@ export const defaultCodeTextDeps = (): CodeTextDeps => ({
   atomically: firestoreAtomically(() => checkinDb() as unknown as TxDb),
   send: defaultTextDeps().send, // the guarded sender's transport (Twilio via sms-delivery)
   now: () => new Date(),
+  alert: alertNumberContention,
 });
 
 /** The IP bucket: IPv4 as is (also when mapped into IPv6), IPv6 by its /64 (one host's usual share). */
@@ -158,9 +194,16 @@ const ipKey = (ip: string, env: Env): string | null => {
     : null;
 };
 
+/** The requester as stored in the contention list: a keyed hash, never the uid. */
+const requesterKey = (userId: string, env: Env): string =>
+  createHmac('sha256', phoneHashKey(env) ?? '')
+    .update(`verify-req/v1:${userId}`)
+    .digest('hex')
+    .slice(0, 16);
+
 type Verdict =
   | { kind: 'send'; alerts: string[] }
-  | { kind: 'quiet'; why: string }
+  | { kind: 'quiet'; why: string; contention?: number }
   | { kind: 'refuse'; reason: 'too-soon' | 'too-many' | 'unavailable'; why: string };
 
 /**
@@ -198,8 +241,13 @@ export async function textVerificationCode(
   const now = deps.now().getTime();
   const at = new Date(now).toISOString();
 
+  // Who hit this number's ceiling lately ("<requester>|<iso>"), and when it last alerted.
+  const contentionKey = `contention:${hash}`;
+  const alertedKey = `contention-alerted:${hash}`;
+  const requester = requesterKey(userId, deps.env);
+
   const verdict = await deps.atomically<Verdict>(
-    buckets.map((b) => keyOf[b] as string),
+    [...buckets.map((b) => keyOf[b] as string), contentionKey, alertedKey],
     hash,
     (recent, optedOut) => {
       const kept = {} as Record<Bucket, string[]>;
@@ -230,7 +278,28 @@ export async function textVerificationCode(
           : soon('pair') || over('pair')
             ? 'pair-limit'
             : null;
-      if (quiet) return { result: { kind: 'quiet', why: quiet }, write: record(['user', 'ip']) };
+      if (quiet !== 'number-limit') {
+        if (quiet) return { result: { kind: 'quiet', why: quiet }, write: record(['user', 'ip']) };
+      } else {
+        // Distinct accounts at this number's ceiling this hour; each requester once, newest kept.
+        const within = (t: string) => now - Date.parse(t) < CONTENTION.windowMs;
+        const others = (recent[contentionKey] ?? []).filter((e) => {
+          const [who, when = ''] = e.split('|');
+          return who !== requester && within(when);
+        });
+        const hits = [...others, `${requester}|${at}`].slice(-CONTENTION.cap);
+        const distinct = hits.length; // one entry per requester, by the filter above
+        const alertedRecently = (recent[alertedKey] ?? []).some(within);
+        const alertNow = distinct >= CONTENTION.accounts && !alertedRecently;
+        return {
+          result: { kind: 'quiet', why: quiet, ...(alertNow && { contention: distinct }) },
+          write: {
+            ...record(['user', 'ip']),
+            [contentionKey]: hits,
+            ...(alertNow && { [alertedKey]: [at] }),
+          },
+        };
+      }
       // 5. A send: every bucket records it.
       const alerts = [
         ...(kept.phoneDay.length + 1 >= LIMITS.phoneDay.max ? ['number-day'] : []),
@@ -251,6 +320,11 @@ export async function textVerificationCode(
     // A throwaway keeps the work similar; the requester's own code is left as it is.
     void randomInt(100000, 1000000);
     log.warn({ reason: verdict.why, phoneLast4 }, 'Verification code refused quietly');
+    if (verdict.contention !== undefined) {
+      const a = { phoneLast4, distinctAccounts: verdict.contention, windowMs: CONTENTION.windowMs };
+      log.warn(a, 'verify_phone_number_contention');
+      deps.alert?.(a);
+    }
     return { sent: false, reason: 'quiet' };
   }
   const code = await makeCode(phone);

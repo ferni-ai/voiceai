@@ -255,7 +255,6 @@ async function handleTriggerReport(res: ServerResponse): Promise<void> {
 
     const emailResult = await sendEmail({
       to: owner,
-      toName: 'Seth Ford',
       subject: `Ferni Daily Report - ${reportData.date} (Manual Trigger)`,
       body: plainText,
       html,

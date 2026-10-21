@@ -306,6 +306,35 @@ describe('spend caps', () => {
     expect(searchPrincipal(undefined)).toBe(ANONYMOUS);
   });
 
+  describe('VERIFIED_CALLER_ALLOWANCE (verified-caller.ts)', () => {
+    const ON = { VERIFIED_CALLER_ALLOWANCE: 'on' };
+    const OFF = {};
+    const caller = (userId: string, verifiedCaller?: boolean) => ({
+      ctx: { userData: { userId, verifiedCaller } },
+    });
+
+    it("on: a verified caller gets their own hour, an unverified one shares the strangers'", () => {
+      expect(searchPrincipal(caller('uid-1', true), ON)).toBe('user:uid-1');
+      // Account-shaped id, but the server never verified it: no hour of its own.
+      expect(searchPrincipal(caller('uid-1', false), ON)).toBe(ANONYMOUS);
+      expect(searchPrincipal(caller('anon:1f0c', false), ON)).toBe(ANONYMOUS);
+      expect(searchPrincipal({ ctx: { userData: { verifiedCaller: true } } }, ON)).toBe(ANONYMOUS);
+    });
+
+    it('off: unchanged, the id shape decides whatever the signal says', () => {
+      expect(searchPrincipal(caller('uid-1', false), OFF)).toBe('user:uid-1');
+      expect(searchPrincipal(caller('uid-1', true), OFF)).toBe('user:uid-1');
+      expect(searchPrincipal(caller('anon:1f0c', true), OFF)).toBe(ANONYMOUS);
+      expect(searchPrincipal(caller('device:abc123'), OFF)).toBe(ANONYMOUS);
+    });
+
+    it('the same unverified caller: own hour with the flag off, the shared one with it on', () => {
+      const unverified = caller('Kx9fQ2firebaseUid', false);
+      expect(searchPrincipal(unverified, OFF)).toBe('user:Kx9fQ2firebaseUid');
+      expect(searchPrincipal(unverified, ON)).toBe(ANONYMOUS);
+    });
+  });
+
   it('gives a verified uid its own hour while anon: and device: callers share one', async () => {
     vi.stubEnv('SEARCH_MAX_ANON_PER_HOUR', '2');
     vi.stubEnv('SEARCH_MAX_PER_PERSON_HOUR', '5');

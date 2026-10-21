@@ -1,7 +1,7 @@
 /**
  * An in-memory Firestore keyed by document path, with nested subcollections:
  * doc get/set (with merge)/update, runTransaction (serialized; create), collection where (==, >=,
- * <=, array-contains; dotted field paths), orderBy (asc/desc, or '__name__' for the document id),
+ * <=, array-contains; dotted field paths), select, orderBy (asc/desc, or '__name__' for the document id),
  * startAfter/startAt/endAt(id), limit. Enough for the
  * proactive check-in run and the daily outreach run end to end.
  */
@@ -70,6 +70,8 @@ export function pathFirestore(docs: Map<string, Json>) {
     return {
       where: (f: string, op: string, v: unknown) =>
         query(prefix, [...filters, [f, op, v]], order, n, after, range),
+      // Field masks are a read optimisation; whole documents come back here.
+      select: () => query(prefix, filters, order, n, after, range),
       orderBy: (f: string, dir = 'asc') => query(prefix, filters, [f, dir], n, after, range),
       limit: (k: number) => query(prefix, filters, order, k, after, range),
       startAfter: (id: string) => query(prefix, filters, order, n, id, range),

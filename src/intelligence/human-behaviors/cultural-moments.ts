@@ -7,6 +7,8 @@
  * @module intelligence/human-behaviors/cultural-moments
  */
 
+import { thanksgivingDay } from '../../utils/us-holidays.js';
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -171,7 +173,7 @@ const HOLIDAYS: HolidayEntry[] = [
   {
     name: 'Thanksgiving',
     month: 10,
-    day: 28, // Fourth Thursday of November (approximate)
+    day: thanksgivingDay(), // the fourth Thursday of November this year
     reference: 'Thanksgiving is here - a time for gratitude and family',
     relevance: 'high',
     daysBefore: 5,

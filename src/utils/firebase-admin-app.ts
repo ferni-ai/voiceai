@@ -15,6 +15,7 @@
 
 import { getApp, getApps, initializeApp, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { installSyntheticWriteGuard } from './synthetic-write-guard.js';
 
 const DEFAULT_APP_NAME = '[DEFAULT]';
 
@@ -34,6 +35,7 @@ export function resolveFirebaseProjectId(env: NodeJS.ProcessEnv = process.env): 
  * a default app.
  */
 export function getAdminApp(): App {
+  installSyntheticWriteGuard();
   if (getApps().some((app) => app.name === DEFAULT_APP_NAME)) return getApp();
   const projectId = resolveFirebaseProjectId();
   return projectId ? initializeApp({ projectId }) : initializeApp();

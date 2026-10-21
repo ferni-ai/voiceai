@@ -570,4 +570,48 @@ describe('per person: REMINDER_SMS_DEFAULT and REMINDER_IN_APP_PUSH from cohort 
     expect(rowOf(WEB_USER).data.status).toBe('in_app_unnotified');
     expect(state.settled).toEqual([]);
   });
+
+  it("a 'verified-own' text still takes the guarded sender, never the old one", async () => {
+    // Maya's notifications and the Alex tools store these whatever the flag says.
+    await setReminder({});
+    Object.assign(stored()[0], {
+      deliveryMethod: 'sms',
+      deliveryAddress: VERIFIED,
+      addressSource: 'verified-own',
+    });
+    await deliverDueReminders({ now: soon() });
+    expect(state.guarded).toEqual([{ to: VERIFIED, body: BODY }]);
+    expect(state.legacyTexts).toEqual([]);
+  });
+
+  it("a held 'verified-own' text (STOP) goes to the app, never the old sender", async () => {
+    await setReminder({});
+    Object.assign(stored()[0], {
+      deliveryMethod: 'sms',
+      deliveryAddress: VERIFIED,
+      addressSource: 'verified-own',
+    });
+    state.optedOut = true;
+    await deliverDueReminders({ now: soon() });
+    expect(state.guarded).toEqual([]);
+    expect(state.legacyTexts).toEqual([]);
+    expect(state.inApp).toEqual(['take the bread out']);
+  });
+
+  it("a 'verified-own' text due in quiet hours is held to 08:00, never sent the old way", async () => {
+    await setReminder({});
+    const row = stored()[0];
+    Object.assign(row, {
+      deliveryMethod: 'sms',
+      deliveryAddress: VERIFIED,
+      addressSource: 'verified-own',
+      scheduledFor: '2026-10-15T03:00:00.000Z', // 23:00 New York (EDT)
+      timezone: 'America/New_York',
+    });
+    state.now = new Date('2026-10-15T03:00:00.000Z');
+    const run = await deliverDueReminders({ now: state.now });
+    expect(run).toMatchObject({ held: 1, delivered: 0 });
+    noTexts();
+    expect(row).toMatchObject({ status: 'pending', scheduledFor: '2026-10-15T12:00:00.000Z' });
+  });
 });

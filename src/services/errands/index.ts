@@ -14,4 +14,25 @@ export {
   type RetryPolicy,
   type RetryableError,
 } from './retry-policy.js';
-export type { EffectStatus, ErrandStore, NewErrand, OutboxEffect } from './ports.js';
+export {
+  DEFAULT_HOURS,
+  DEFAULT_POLICY,
+  WEEKDAYS,
+  inWindow,
+  nextDialAt,
+  parallelAllowed,
+  textWaitMs,
+  withinHours,
+  type ErrandPolicy,
+  type ErrandPrefs,
+} from './policy.js';
+export type { StepContext, StepResult } from './draft.js';
+export type {
+  Claim,
+  EffectLease,
+  EffectOutbox,
+  EffectStatus,
+  ErrandStore,
+  NewErrand,
+  OutboxEffect,
+} from './ports.js';

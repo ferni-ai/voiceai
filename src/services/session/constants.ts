@@ -89,7 +89,8 @@ export const MAX_HUMANIZING_UPDATES = 100;
 /**
  * Transcript retention period in days.
  * Default: 90 days. Override with TRANSCRIPT_RETENTION_DAYS env var.
- * Used by scheduled cleanup jobs to remove old transcripts from Firestore.
+ * Applies only when TRANSCRIPT_CLEANUP is on; off (the default), transcripts
+ * are kept for the life of the account (tasks/scheduled/transcript-cleanup-job.ts).
  */
 export const TRANSCRIPT_RETENTION_DAYS = parseInt(
   process.env.TRANSCRIPT_RETENTION_DAYS || '90',
@@ -99,14 +100,14 @@ export const TRANSCRIPT_RETENTION_DAYS = parseInt(
 /**
  * Conversation summary retention in days.
  * Default: 365 days (1 year). Override with SUMMARY_RETENTION_DAYS env var.
- * Summaries are kept longer than raw transcripts for memory continuity.
+ * Applies only when TRANSCRIPT_CLEANUP is on.
  */
 export const SUMMARY_RETENTION_DAYS = parseInt(process.env.SUMMARY_RETENTION_DAYS || '365', 10);
 
 /**
  * Group conversation transcript retention in days.
  * Default: 180 days (6 months). Override with GROUP_TRANSCRIPT_RETENTION_DAYS env var.
- * Group transcripts may contain sensitive multi-party discussions.
+ * Applies only when TRANSCRIPT_CLEANUP is on.
  */
 export const GROUP_TRANSCRIPT_RETENTION_DAYS = parseInt(
   process.env.GROUP_TRANSCRIPT_RETENTION_DAYS || '180',

@@ -24,17 +24,18 @@ import { FieldValue, getFirestore } from 'firebase-admin/firestore';
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { BRAND_ACCENT, BRAND_TEXT_PRIMARY, getPersonaColor } from '../config/brand-colors.js';
-import { isOwnerEmail } from '../config/owner-email.js';
 import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { waitlistRateLimit } from './waitlist-rate-limits.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import { grantAccess, grantFoundingMember, waitlistGateOn } from './open-access.js';
+import { isAdminEmail, isAdmitted } from './admission.js';
 import {
   buildApprovalUrl,
   getApprovalSecret,
   verifyApprovalToken,
 } from './waitlist-approval-token.js';
 import { addSigninToWaitlist, keepWaitlistReferral, offeredReferral } from './waitlist-record.js';
+import { handleWaitlistQueueRoutes, QUEUE_ROUTE_PATHS } from './waitlist-queue-routes.js';
 import { canonicalEmail, isDisposableEmail, isValidEmail } from '../services/waitlist/queue.js';
 
 const log = createLogger({ module: 'waitlist-routes' });
@@ -163,6 +164,7 @@ export async function handleWaitlistRoutes(
   }
 
   try {
+    if (QUEUE_ROUTE_PATHS.has(pathname) && (await handleWaitlistQueueRoutes(req, res, pathname))) return true; // /me, /join
     // POST /api/waitlist - Add email to waitlist
     if (pathname === '/api/waitlist' && req.method === 'POST') {
       return await handleSignup(req, res);
@@ -484,7 +486,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     // =========================================================================
     // ADMIN BYPASS - Founders/admins should NEVER be blocked
     // =========================================================================
-    if (ADMIN_BYPASS_EMAILS.includes(email) || isOwnerEmail(email)) {
+    if (isAdminEmail(email)) {
       log.info({ email: hashEmail(email) }, '👑 Admin bypass - auto-approved');
       sendJson(res, 200, {
         approved: true,
@@ -558,23 +560,23 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
       return true;
     }
 
-    // Open access (the default): everyone who signs in gets the free tier.
-    if (!waitlistGateOn()) {
+    // Open access (the default): everyone who signs in gets the free tier. Gate on: the
+    // same for anyone the token route would admit (wave 0, friends-and-family), so the two agree.
+    const open = !waitlistGateOn();
+    if (open || (await isAdmitted({ uid: decodedToken.uid, email })).admitted) {
       const grant = { email, uid: decodedToken.uid, tier: 'free' as const };
-      await grantAccess(db, profileDocId, { ...grant, grantedVia: 'open-access' });
+      await grantAccess(db, profileDocId, {
+        ...grant,
+        grantedVia: open ? 'open-access' : 'admission',
+      });
       await db
         .collection('waitlist')
         .doc(waitlistDocId)
         .set(
-          cleanForFirestore({
-            email,
-            status: 'approved',
-            source: 'open_access',
-            approvedAt: new Date(),
-          }),
+          cleanForFirestore({ email, status: 'approved', source: open ? 'open_access' : 'admission', approvedAt: new Date() }), // prettier-ignore
           { merge: true }
         );
-      log.info({ email: hashEmail(email) }, 'Open access: signed-in user let in on the free tier');
+      log.info({ email: hashEmail(email) }, 'Signed-in user let in on the free tier');
       sendJson(res, 200, { approved: true, status: 'approved', tier: 'free', email, referralCode });
       return true;
     }
@@ -611,12 +613,6 @@ const ADMIN_NOTIFICATION_EMAILS: string[] = (
   .split(',')
   .map((e) => e.trim())
   .filter(Boolean);
-
-/**
- * Admin emails that bypass waitlist entirely (auto-approved).
- * The owner's own address comes from OWNER_EMAIL (isOwnerEmail), never from this list.
- */
-const ADMIN_BYPASS_EMAILS: string[] = ['noreply@ferni.ai', 'admin@ferni.ai'];
 
 /**
  * Send notification to admin when someone joins the waitlist

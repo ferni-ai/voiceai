@@ -81,12 +81,20 @@ jobs:
           VITE_CAPTIONS_HEARD: ${{ vars.VITE_CAPTIONS_HEARD }}
           # What Ferni Knows (apps/web/src/ui/memory/known.ts); off unless exactly "true".
           VITE_MEMORY_VIEW: ${{ vars.VITE_MEMORY_VIEW }}
+          # Toast region (apps/web/src/ui/overlay/toast-flag.ts): ON unless "off". Kill switch:
+          # set the repo variable VITE_TOAST_REGION=off and re-run this workflow.
+          VITE_TOAST_REGION: ${{ vars.VITE_TOAST_REGION }}
           # Talk first (apps/web/src/config/try-first-flag.ts): on for prod since
           # 2026-10-18. To turn it off, set the repo variable VITE_TRY_FIRST=false
           # and re-run this workflow.
           VITE_TRY_FIRST: ${{ vars.VITE_TRY_FIRST || 'true' }}
           # Apple sign-in on the web (apps/web/src/config/apple-web-signin-flag.ts); hidden unless exactly "true".
           VITE_APPLE_WEB_SIGNIN: ${{ vars.VITE_APPLE_WEB_SIGNIN }}
+          # Goodbye ceremony and reconnect prompt (apps/web/src/config/call-wrap-up-flag.ts); off unless exactly "true".
+          VITE_CALL_WRAP_UP: ${{ vars.VITE_CALL_WRAP_UP }}
+          # Android app links (apps/web/scripts/asset-links.ts): the signing
+          # SHA-256 fingerprint(s), comma separated. Unset serves [] as before.
+          ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
 
       - name: Deploy to Firebase (ferni-prod)
         id: deploy-ferni

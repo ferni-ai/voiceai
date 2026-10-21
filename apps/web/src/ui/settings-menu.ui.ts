@@ -211,12 +211,10 @@ const ICONS = {
   leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>',
   river:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 2c-2 4-6 6-6 10a6 6 0 0 0 12 0c0-4-4-6-6-10Z"/><path d="M12 22v-6"/></svg>',
-  scroll:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M8 21h12a2 2 0 0 0 2-2v-2H10v2a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v3h4"/><path d="M19 7V5a2 2 0 0 0-2-2H4"/><path d="M15 11H9"/><path d="M15 7H9"/></svg>',
   contact:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
-  download:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M8 21h8"/><path d="M3 16v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3"/></svg>',
+  shield:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/></svg>',
   // Your Day / Hub
   hub: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M12 6v1"/><path d="M18 12h-1"/><path d="M12 18v-1"/><path d="M6 12h1"/></svg>',
   // Contacts & Gifts
@@ -707,7 +705,8 @@ class SettingsMenuUI {
             ${this.renderMenuItem('voice-id-settings', ICONS.fingerprint, t('menu.items.voiceId'))}
             ${chipIn ? '' : this.renderMenuItem('billing', ICONS.creditCard, t('menu.items.accountBilling'))}
             ${memoryControlEnabled() ? this.renderMenuItem('cognitive', ICONS.brain, t('ferniKnows.panelTitle')) : ''}
-            ${this.renderMenuItem('export', ICONS.scroll, t('menu.items.exportData'))}
+            <!-- Export, delete data and delete account: one place, named for what's there -->
+            ${this.renderMenuItem('export', ICONS.shield, t('menu.items.exportData'))}
           `
           )}
 
@@ -926,7 +925,7 @@ class SettingsMenuUI {
       'household-members': { icon: ICONS.users, label: t('menu.items.householdMembers') },
       'family-callers': { icon: ICONS.phone, label: t('menu.items.familyCallers') },
       'contact-settings': { icon: ICONS.phone, label: t('menu.items.howIReachYou') },
-      export: { icon: ICONS.download, label: t('menu.items.exportData') },
+      export: { icon: ICONS.shield, label: t('menu.items.exportData') },
       'share-ferni': { icon: ICONS.share, label: t('menu.items.shareFerni') },
       help: { icon: ICONS.help, label: t('menu.items.takeTour') },
       billing: { icon: ICONS.creditCard, label: t('menu.items.billingPortal') },

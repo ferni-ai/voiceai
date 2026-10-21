@@ -17,6 +17,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import * as demoSessions from '../services/demo-sessions.js';
 import { prefetchUserData } from './user-data-prefetch.js';
 import { refuseUnownedRoom } from './token-room-owner.js';
+import { refuseUnadmitted } from '../../../api/admission.js';
 import { demoPersonaFor, personaForCaller } from './token-persona-owner.js';
 import { handleDemoClaim } from './demo-claim.js';
 import { handleDemoSessionUpdate } from './demo-session-update.js';
@@ -35,6 +36,7 @@ import {
 
 // Developer Platform: marketplace registry for persona→publisher lookup
 import { getAgentAsync } from '../../../marketplace/registry.js';
+import { isSignedInAccount } from '../../../services/identity/verified-caller.js';
 
 const log = createLogger({ module: 'TokenRoutes' });
 
@@ -323,9 +325,9 @@ export async function handleTokenRoutes(
     // The caller's IANA time zone from the browser, so Ferni knows their local time.
     const timezoneParam = parsedUrl.searchParams.get('timezone');
     const timezone = isValidTimeZone(timezoneParam) ? timezoneParam : undefined;
-    // 🐛 FIX: Read firebase_uid from query params (frontend sends this!)
     const firebase_uid_param = parsedUrl.searchParams.get('firebase_uid');
     let verifiedEmail: string | undefined; // from the verified token, never the query string
+    let firebaseAccount = false; // a signed-in account, not an anonymous Firebase user
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -353,6 +355,7 @@ export async function handleTokenRoutes(
       }
 
       let firebaseUid: string;
+      let isAdmin = false;
       try {
         const { verifyFirebaseToken, isVerifiedToken } =
           await import('../../../services/identity/firebase-auth.js');
@@ -363,16 +366,10 @@ export async function handleTokenRoutes(
           res.end(JSON.stringify({ error: 'Invalid or expired authentication token' }));
           return true;
         }
-        if (
-          firebase_uid_param &&
-          firebase_uid_param !== verified.uid &&
-          verified.claims.admin !== true
-        ) {
+        isAdmin = verified.claims.admin === true;
+        if (firebase_uid_param && firebase_uid_param !== verified.uid && !isAdmin) {
           log.warn(
-            {
-              claimed: firebase_uid_param.substring(0, 8),
-              actual: verified.uid.substring(0, 8),
-            },
+            { claimed: firebase_uid_param.substring(0, 8), actual: verified.uid.substring(0, 8) },
             'SECURITY: /token rejected — firebase_uid does not match authenticated user'
           );
           res.writeHead(403, { 'Content-Type': 'application/json' });
@@ -381,6 +378,7 @@ export async function handleTokenRoutes(
         }
         firebaseUid = verified.uid;
         verifiedEmail = verified.emailVerified ? verified.email : undefined;
+        firebaseAccount = isSignedInAccount(verified.signInProvider); // verified-caller.ts
         log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
       } catch (firebaseErr) {
         log.error({ error: String(firebaseErr) }, 'Firebase auth verification failed for /token');
@@ -388,11 +386,13 @@ export async function handleTokenRoutes(
         res.end(JSON.stringify({ error: 'Authentication service unavailable' }));
         return true;
       }
+      // WAITLIST_GATE=on: only admitted people get a voice session (the demo route stays open)
+      if (await refuseUnadmitted({ uid: firebaseUid, email: verifiedEmail, isAdmin }, res))
+        return true;
       if (await refuseUnownedRoom(room, firebaseUid, res)) return true; // never join another's room
       // A custom agent id must be the caller's own, else the call is with Ferni.
       const selectedPersona = await personaForCaller(requestedPersona, firebaseUid);
 
-      // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
       log.info(
         {
           room,
@@ -405,14 +405,9 @@ export async function handleTokenRoutes(
         '🧠 [MEMORY-AUDIT] Token endpoint identity chain'
       );
 
-      // 🌍 INTERNATIONAL ACCENT SUPPORT
-      // Priority order:
-      // 1. Explicit accent parameter from frontend (user's saved preference)
-      // 2. User's saved accent preference from Firestore profile (if authenticated)
-      // 3. Geo-detected accent from IP/locale
-      // 4. Default to 'american'
-
-      // Load the signed-in user's saved accent and location from their profile
+      // Accent: the explicit parameter, then the saved profile preference, then geo, then 'american'
+      // Try to load user's saved accent AND location from profile if authenticated
+      // "Better than Human" - We remember your accent preference AND location
       let savedAccent: string | undefined;
       let savedLocation:
         | {
@@ -543,6 +538,7 @@ export async function handleTokenRoutes(
       const roomMetadata: RoomMetadata = {
         user_name: username,
         firebase_uid: firebaseUid || undefined,
+        firebase_account: firebaseAccount || undefined,
         user_email: verifiedEmail,
         device_id: device_id || undefined,
         persona_id: selectedPersona,

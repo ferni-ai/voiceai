@@ -35,6 +35,10 @@ const pillTexts = (): string[] =>
     (el) => el.textContent?.trim() ?? ''
   );
 
+// The old per-surface toasts: the kill-switch path of src/ui/overlay/toast-flag.ts.
+beforeEach(() => vi.stubEnv('VITE_TOAST_REGION', 'off'));
+afterEach(() => vi.unstubAllEnvs());
+
 describe('Moments pill', () => {
   beforeEach(() => {
     vi.useFakeTimers();
