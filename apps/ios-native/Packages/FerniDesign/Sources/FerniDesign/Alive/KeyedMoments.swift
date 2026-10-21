@@ -197,7 +197,9 @@ public enum KeyedMoment: String, CaseIterable, Sendable {
         .squash: k([(0, 1, .linear), (100, 1, .linear), (132, 0.94, .inOut), (180, 0.94, .linear), (214, 1, .inOut)]),
         .top: k([(0, 0.05, .linear), (86, 0.05, .linear), (98, 0.4, .inOut), (122, 0.6, .inOut), (144, 1, .inOut),
                  (176, 1, .linear), (198, 0.16, .out), (206, 0.16, .linear), (209, 1, .snap), (215, 0.1, .out),
-                 (232, 0.108, .inOut)]),
+                 // Ending on the settle face's lid (serene, 0.225), which the rig then
+                 // holds: drooped, not neutral's 0.108 (critic M4).
+                 (232, 0.225, .inOut)]),
         .glow: k([(0, 0.5, .linear), (60, 0.6, .inOut), (168, 0.1, .inOut), (180, 0.1, .linear), (214, 0.36, .out)]),
         .halo: k([(0, 0.4, .linear), (168, 0.05, .inOut), (180, 0.05, .linear), (214, 0.2, .out)]),
     ]

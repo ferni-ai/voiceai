@@ -98,4 +98,12 @@ final class KeyedHandoverTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(reopen - closed, 24, "closed for a beat (\(reopen - closed) frames), not a blink")
         XCTAssertLessThanOrEqual(reopen, tr.endIndex, "open before the keys let go")
     }
+
+    /// Critic M4: keep the drooped-lid goodbye. He settles with his lids down
+    /// (the settle face, serene), not back at neutral's, and holds it.
+    func testGoodbyeSettlesWithDroopedLids() {
+        let tr = trace(.goodbye)
+        XCTAssertGreaterThan(tr.top[tr.endIndex], 0.2, "the keys end drooped: \(tr.top[tr.endIndex])")
+        XCTAssertGreaterThan(tr.top.last ?? 0, 0.2, "and 1.5 s later he's still settled: \(tr.top.last ?? 0) (neutral is 0.108)")
+    }
 }

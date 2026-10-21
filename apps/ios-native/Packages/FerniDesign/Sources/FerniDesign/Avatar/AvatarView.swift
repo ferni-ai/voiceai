@@ -38,6 +38,8 @@ public struct AvatarView: View {
     @State private var slot = CGSize.zero
     @State private var arrivingSince: Date?
     @State private var arrivedThisCall = false
+    /// The activity the last onChange handled (callJustEnded).
+    @State private var seenActivity = AvatarActivity.idle
     @GestureState private var holding = false
 
     /// Canvas size and Ferni's place in it, in slot widths.
@@ -126,15 +128,26 @@ public struct AvatarView: View {
             .accessibilityLabel(name)
             .accessibilityValue(Self.words(for: activity, name: name))
             .onAppear {
+                seenActivity = activity
                 if activity == .idle { rig.rest(with: persona, animated: false) } else { rig.show(persona, animated: false) }
                 if let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
             }
             .onChange(of: persona) { _, next in
                 // In a call a new teammate arrives at the family table; at home
-                // whoever answers next sits there too, Ferni in the corner.
-                if activity == .idle { rig.rest(with: next) } else { rig.handOff(to: next) }
+                // whoever answers next sits there too, Ferni in the corner. At
+                // hang-up the persona and the activity change together: whichever
+                // closure runs first, the goodbye comes first and the rest waits
+                // for it (critic M4), so a call that just ended is left to the
+                // activity's handler.
+                if activity == .idle {
+                    if Self.callJustEnded(seenActivity: seenActivity) { return }
+                    rig.rest(with: next)
+                } else {
+                    rig.handOff(to: next)
+                }
             }
             .onChange(of: activity) { previous, next in
+                seenActivity = next
                 if next == .arriving, previous == .idle { arrivingSince = .now }
                 let waited = arrivingSince.map { Date.now.timeIntervalSince($0) } ?? 0
                 let plan = Self.joinPlan(from: previous, to: next, waited: waited, reduceMotion: reduceMotion, arrived: arrivedThisCall)
@@ -149,7 +162,8 @@ public struct AvatarView: View {
                 }
                 if next == .idle, previous != .idle, previous != .arriving {
                     if !reduceMotion { rig.play(.goodbye) }
-                    // Back home: whoever answers next at the family table.
+                    // Back home: whoever answers next at the family table, once the
+                    // goodbye is over (the rig holds it till then).
                     rig.rest(with: persona)
                 }
             }
@@ -229,6 +243,12 @@ public struct AvatarView: View {
     /// What plays when Ferni first appears: he wakes where he is (gap 3).
     /// Under Reduce Motion he's simply there.
     static func launchMoment(reduceMotion: Bool) -> KeyedMoment? { reduceMotion ? nil : .wake }
+
+    /// The activity this view last handled: still a call's while the closure
+    /// for a hang-up's persona change runs ahead of the activity's.
+    static func callJustEnded(seenActivity: AvatarActivity) -> Bool {
+        seenActivity != .idle && seenActivity != .arriving
+    }
 
     /// What Ferni's body does when he joins a call (gap 4): the keyed join
     /// (`hop`); for a join under ~300 ms only its note and tap (`settle`), so
