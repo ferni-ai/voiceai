@@ -48,7 +48,9 @@ public enum MemoryJournal {
 
     /// Who a note is about, when it leads with a person in your life: "Sister
     /// Ana's birthday", "Mom's knee", "User's sister lives in Lisbon". Nil for
-    /// notes about you.
+    /// notes about you, and for a holiday named after one ("Mother's Day
+    /// plans"). Mom and mother are one person, as are dad and father and the
+    /// grandparents' two names (critic L).
     public static func person(_ note: String) -> String? {
         var words = note.trimmingCharacters(in: .whitespaces).split(separator: " ").map(String.init)
         if let first = words.first?.lowercased(), ["user's", "user’s", "your"].contains(first) {
@@ -60,8 +62,13 @@ public enum MemoryJournal {
             .replacingOccurrences(of: "’s", with: "").replacingOccurrences(of: "'s", with: "")
             .trimmingCharacters(in: .punctuationCharacters),
             family.contains(word), words.count > 1 else { return nil }
-        return word
+        let next = words[1].lowercased().trimmingCharacters(in: .punctuationCharacters)
+        if next == "day" || next == "day's" { return nil } // Mother's Day, Father's Day
+        return aliases[word] ?? word
     }
+
+    /// One name per person: the header says "Your mom" for mom and mother alike.
+    private static let aliases = ["mother": "mom", "father": "dad", "grandmother": "grandma", "grandfather": "grandpa"]
 
     /// A note said to you. Only the shapes it's sure of change: a leading
     /// "User"/"The user", a leading third-person verb it knows, or a leading
