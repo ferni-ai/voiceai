@@ -2,21 +2,16 @@
  * Ferni doesn't know how he's built, and says so instead of making it up.
  *
  * Prod call 2026-10-19 (#2223): both searchWeb calls came back "No results",
- * the caller pressed for the cause ("what back end service?", "tell me
- * everything about your system"), and over two minutes Ferni described a
+ * the caller pressed for the cause, and over two minutes Ferni described a
  * "Python layer", "web scrapers", "a JSON payload sent to a private backend"
- * and "a custom API gateway". None of it is true. Director notes ("Answer
- * their specific question about the backend service") pushed him further.
+ * and "a custom API gateway", none of it true, with director notes ("Answer
+ * their specific question about the backend service") pushing him further.
  *
- * NO_INVENTED_INTERNALS=on (off by default):
- * - the system prompt gains INTERNALS_HONESTY, beside the AI-honesty rule
- *   (prompt-loader.ts);
- * - a turn asking about his errors, code or systems after a tool failed gets
- *   ASK_NOTE; a turn after a reply of his that named technical internals no
- *   tool result mentioned gets RETRACT_NOTE (turn-request.ts);
- * - on either turn, director notes pushing him to answer the technical
- *   question are left out.
- * "Are you an AI?" is not this: it stays with ai-honesty.ts.
+ * NO_INVENTED_INTERNALS=on (off by default): INTERNALS_HONESTY in the system
+ * prompt (ai-honesty.ts); ASK_NOTE on a press about his errors or systems
+ * after a tool failed, RETRACT_NOTE after a reply that named internals no
+ * tool result mentioned (turn-request.ts), and on either turn no director
+ * note pushing the technical question. "Are you an AI?" stays ai-honesty.ts's.
  *
  * @module agents/personas/no-invented-internals
  */
