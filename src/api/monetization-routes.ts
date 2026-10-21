@@ -157,6 +157,9 @@ async function createTip(ctx: RequestContext): Promise<ResponseContext> {
 /**
  * POST /api/monetization/tip/complete
  * Confirm tip payment succeeded
+ *
+ * SECURITY: verified caller only (refuseUnverifiedWrite), and only for their own
+ * payment; someone else's answers like one that doesn't exist.
  */
 async function completeTip(ctx: RequestContext): Promise<ResponseContext> {
   const { paymentIntentId } = ctx.body as { paymentIntentId?: string };
@@ -171,6 +174,14 @@ async function completeTip(ctx: RequestContext): Promise<ResponseContext> {
 
   try {
     const result = await verifyPayment(paymentIntentId);
+
+    if (result.userId && result.userId !== ctx.authUserId) {
+      return {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+        body: { error: 'Payment not found' },
+      };
+    }
 
     if (result.succeeded) {
       const thankYou = tipJar.getThankYou();
@@ -524,6 +535,8 @@ async function createOrgInvite(ctx: RequestContext): Promise<ResponseContext> {
 /**
  * POST /api/monetization/partners/recommend
  * Get a contextual partner recommendation
+ *
+ * SECURITY: verified caller only (refuseUnverifiedWrite)
  */
 async function getPartnerRecommendation(ctx: RequestContext): Promise<ResponseContext> {
   const { message, conversationContext, excludePartnerIds } = ctx.body as {
@@ -614,9 +627,17 @@ async function recordPartnerClick(ctx: RequestContext): Promise<ResponseContext>
   };
 }
 
+/** Partners each verified caller has already rated: one vote per person per partner */
+const partnerVotes = new Set<string>();
+const MAX_PARTNER_VOTES = 50_000;
+
 /**
  * POST /api/monetization/partners/feedback
  * Record feedback on a partner recommendation
+ *
+ * SECURITY: verified caller only (refuseUnverifiedWrite). Feedback moves a
+ * partner's global quality score and eight "not_helpful" votes deactivate it, so
+ * only a person's first vote on a partner counts; repeats are thanked, not applied.
  */
 async function recordPartnerFeedback(ctx: RequestContext): Promise<ResponseContext> {
   const { partnerId, feedback } = ctx.body as {
@@ -632,7 +653,15 @@ async function recordPartnerFeedback(ctx: RequestContext): Promise<ResponseConte
     };
   }
 
-  contextualPartnerships.updateQuality(partnerId, feedback);
+  const vote = `${ctx.authUserId}:${partnerId}`;
+  if (!partnerVotes.has(vote)) {
+    partnerVotes.add(vote);
+    // bounded: forget the oldest vote rather than grow without limit
+    if (partnerVotes.size > MAX_PARTNER_VOTES) {
+      partnerVotes.delete(partnerVotes.values().next().value as string);
+    }
+    contextualPartnerships.updateQuality(partnerId, feedback);
+  }
 
   return {
     status: 200,

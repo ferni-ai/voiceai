@@ -6,7 +6,9 @@
  * the verified caller alone: without a token it answers 401, and a body that
  * names someone else is refused with 403 rather than quietly re-attributed, so
  * a confused client fails loudly. Nobody, admins included, pays or records
- * activity as another user.
+ * activity as another user. A few writes name no subject but still need a
+ * verified caller, because they move shared state (partner quality scores) or
+ * answer about a payment, so an anonymous request can't drive them.
  *
  * @module api/monetization-access
  */
@@ -47,13 +49,24 @@ const SUBJECT_FIELD: Record<string, string> = {
   '/api/monetization/b2b/organization': 'adminUserId',
 };
 
+/** POST routes that name no subject but still need a verified caller */
+const CALLER_REQUIRED = new Set([
+  '/api/monetization/tip/complete',
+  '/api/monetization/partners/recommend',
+  '/api/monetization/partners/feedback',
+]);
+
 /**
  * The refusal for a write that has no verified caller, or whose body names
  * someone other than the caller; null when the handler may act for
  * `ctx.authUserId`.
  */
 export function refuseUnverifiedWrite(ctx: Ctx): Answer | null {
-  if (ctx.method !== 'POST' || !Object.hasOwn(SUBJECT_FIELD, ctx.pathname)) return null;
+  if (ctx.method !== 'POST') return null;
+  if (CALLER_REQUIRED.has(ctx.pathname)) {
+    return ctx.authUserId ? null : json(401, { error: 'Authentication required' });
+  }
+  if (!Object.hasOwn(SUBJECT_FIELD, ctx.pathname)) return null;
   if (!ctx.authUserId) return json(401, { error: 'Authentication required' });
   const field = SUBJECT_FIELD[ctx.pathname] as string;
   const named =

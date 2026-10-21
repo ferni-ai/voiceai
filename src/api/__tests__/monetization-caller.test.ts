@@ -7,7 +7,9 @@
  * invites as someone else. A body that names another user is refused with 403
  * rather than silently re-attributed, so a confused client fails loudly.
  * Organization reads need a member (or platform admin), and an org the caller
- * can't see answers exactly like one that doesn't exist.
+ * can't see answers exactly like one that doesn't exist. Tip completion and
+ * partner recommend/feedback name no one but still need a verified caller:
+ * feedback moves global partner quality scores, so it counts once per person.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -29,13 +31,21 @@ const m = vi.hoisted(() => ({
   celebrate: vi.fn(async (_userId: string, _milestoneId: string) => undefined),
   createInvite: vi.fn(async (p: { invitedBy: string }) => ({ id: 'inv_1', ...p })),
   createOrganization: vi.fn(async (p: { adminUserId: string }) => ({ id: 'org_new', ...p })),
+  verifyPayment: vi.fn(async (_id: string) => ({
+    succeeded: true,
+    amountCents: 500,
+    type: 'tip',
+    userId: 'uid-alice',
+  })),
+  updateQuality: vi.fn((_partnerId: string, _feedback: string) => {}),
+  recommend: vi.fn((_p: { message: string }) => null),
 }));
 
 vi.mock('../../services/stripe-payments.js', () => ({
   createPaymentIntent: m.createPaymentIntent,
   getUserMonetizationData: vi.fn(),
   isStripeConfigured: () => true,
-  verifyPayment: vi.fn(),
+  verifyPayment: m.verifyPayment,
 }));
 vi.mock('../../services/monetization/persistence.js', () => ({
   initMonetizationPersistence: () => {},
@@ -51,7 +61,12 @@ vi.mock('../../services/monetization/journey.js', () => ({
   JOURNEY_MILESTONES: [{ id: 'm1', title: 'First steps' }],
 }));
 vi.mock('../../services/monetization/tip-jar.js', () => ({
-  tipJar: { create: m.tipCreate, getConfig: () => ({}), getStats: () => ({}) },
+  tipJar: {
+    create: m.tipCreate,
+    getConfig: () => ({}),
+    getStats: () => ({}),
+    getThankYou: () => 'thank you',
+  },
 }));
 vi.mock('../../services/monetization/value-capture.js', () => ({
   valueCapture: { detect: m.detect, getPrompt: () => '' },
@@ -61,6 +76,8 @@ vi.mock('../../services/monetization/contextual-partnerships.js', () => ({
     recordReferral: m.recordReferral,
     recordClick: () => {},
     getActivePartners: () => [],
+    updateQuality: m.updateQuality,
+    getBestRecommendation: m.recommend,
   },
 }));
 vi.mock('../../services/monetization/ferni-fund.js', () => ({
@@ -258,5 +275,73 @@ describe('GET /api/monetization/b2b/organization', () => {
     const res = await read('org_1', 'uid-admin', true);
     expect(res.status).toBe(200);
     expect(res.body).toMatchObject({ organization: { id: 'org_1' }, isAdmin: false });
+  });
+});
+
+/** [path, body, the service call the route makes for a verified caller] */
+const CALLER_REQUIRED: Array<[string, Record<string, unknown>, () => unknown[]]> = [
+  ['/api/monetization/tip/complete', { paymentIntentId: 'pi_1' }, () => m.verifyPayment.mock.calls],
+  [
+    '/api/monetization/partners/recommend',
+    { message: 'so stressed' },
+    () => m.recommend.mock.calls,
+  ],
+  [
+    '/api/monetization/partners/feedback',
+    { partnerId: 'p-recommend-1', feedback: 'not_helpful' },
+    () => m.updateQuality.mock.calls,
+  ],
+];
+
+describe.each(CALLER_REQUIRED)('POST %s', (path, body, calls) => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('refuses a request with no token, whoever the body or a header claims', async () => {
+    const res = await handleMonetizationRequest({
+      method: 'POST',
+      pathname: path,
+      query: {},
+      body: { ...body, userId: 'uid-alice' },
+      headers: { 'x-user-id': 'uid-alice' },
+    });
+    expect(res.status).toBe(401);
+    expect(calls()).toHaveLength(0);
+  });
+
+  it('serves a verified caller', async () => {
+    const res = await request('POST', path, { body, as: 'uid-alice' });
+    expect(res.status).toBe(200);
+    expect(calls()).toHaveLength(1);
+  });
+});
+
+describe('POST /api/monetization/tip/complete for a payment that is not yours', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("answers bob as if alice's payment did not exist", async () => {
+    const res = await request('POST', '/api/monetization/tip/complete', {
+      body: { paymentIntentId: 'pi_1' },
+      as: 'uid-bob',
+    });
+    expect(res.status).toBe(404);
+    expect(JSON.stringify(res.body)).not.toContain('thank you');
+  });
+});
+
+describe('POST /api/monetization/partners/feedback, voted twice', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("counts one person's vote on a partner once, and each person's vote", async () => {
+    const vote = (as: string) =>
+      request('POST', '/api/monetization/partners/feedback', {
+        body: { partnerId: 'p-twice', feedback: 'not_helpful' },
+        as,
+      });
+    const repeats = await Promise.all(Array.from({ length: 5 }, () => vote('uid-carol')));
+    expect(repeats.map((r) => r.status)).toEqual([200, 200, 200, 200, 200]);
+    expect(m.updateQuality).toHaveBeenCalledTimes(1);
+    expect((await vote('uid-dave')).status).toBe(200);
+    expect(m.updateQuality).toHaveBeenCalledTimes(2);
+    expect(m.updateQuality).toHaveBeenLastCalledWith('p-twice', 'not_helpful');
   });
 });
