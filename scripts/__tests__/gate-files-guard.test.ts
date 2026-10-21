@@ -464,6 +464,100 @@ describe('gate-files-guard.sh: what it flags', () => {
       /removed '- run: bash scripts\/ci\/gate-files-guard\.sh HEAD\^1 HEAD' .* 'Unit Tests'/
     );
   });
+
+  it('fails a test step moved from a required job into a job no check needs', () => {
+    const files = ci('      - name: Lint\n        run: pnpm lint\n', '');
+    files['.github/workflows/ci.yml'] = files['.github/workflows/ci.yml'].replace(
+      '      - run: pnpm extras\n',
+      '      - run: pnpm extras\n      - name: Lint\n        run: pnpm lint\n'
+    );
+    const res = guard(files);
+    expect(res.status).toBe(1);
+    expect(res.out).toMatch(
+      /removed 'run: pnpm lint' \(main's line 18\) from required job 'Unit Tests'/
+    );
+  });
+});
+
+describe('gate-files-guard.sh: the Gate files guard step', () => {
+  // In a job no check needs, so only the step comparison can catch these.
+  const STEP = [
+    '      - name: Gate files guard',
+    "        if: github.event_name == 'pull_request'",
+    '        run: |',
+    '          git show HEAD^1:scripts/ci/gate-files-guard.sh >"$RUNNER_TEMP/gate-files-guard.sh"',
+    '          bash "$RUNNER_TEMP/gate-files-guard.sh" HEAD^1 HEAD',
+    '',
+  ].join('\n');
+  const withStep = (step: string) =>
+    ci('      - run: pnpm extras\n', `${step}      - run: pnpm extras\n`);
+
+  beforeEach(() => {
+    guard(withStep(STEP));
+  });
+
+  it('passes an unrelated change while the step stays as on main', () => {
+    const files = withStep(STEP);
+    files['.github/workflows/ci.yml'] = files['.github/workflows/ci.yml'].replace(
+      'run: upload-coverage',
+      'run: upload-coverage --retry 3'
+    );
+    expect(guard(files).status).toBe(0);
+  });
+
+  it.each([
+    [
+      'only the bash line deleted',
+      STEP.replace(/ {10}bash .*\n/, ''),
+      /'Gate files guard' step changed/,
+    ],
+    [
+      "its if: changed to github.event_name == 'never'",
+      STEP.replace("'pull_request'", "'never'"),
+      /'Gate files guard' step changed/,
+    ],
+    ['the step deleted', '', /'Gate files guard' step is gone/],
+    [
+      'the step renamed',
+      STEP.replace('Gate files guard', 'Gate guard'),
+      /'Gate files guard' step is gone/,
+    ],
+  ])('fails with %s', (_what, step, reason) => {
+    const res = guard(withStep(step));
+    expect(res.status).toBe(1);
+    expect(res.out).toMatch(reason);
+  });
+});
+
+describe('gate-files-guard.sh: .gitattributes', () => {
+  it('still sees continue-on-error in a file marked -diff, and flags the attribute', () => {
+    const res = guard({ ...ADD_COE, '.gitattributes': '.github/workflows/ci.yml -diff\n' });
+    expect(res.status).toBe(1);
+    expect(res.out).toContain('.github/workflows/ci.yml:16: continue-on-error: true');
+    expect(res.out).toMatch(/\.gitattributes:1: attribute on CI files/);
+  });
+
+  it('ignores a textconv driver that would rewrite the diff', () => {
+    const res = guard(
+      { ...ADD_COE, '.gitattributes': '*.yml diff=hide\n' },
+      {
+        env: {
+          GIT_CONFIG_COUNT: '1',
+          GIT_CONFIG_KEY_0: 'diff.hide.textconv',
+          GIT_CONFIG_VALUE_0: 'true',
+        },
+      }
+    );
+    expect(res.out).toContain('.github/workflows/ci.yml:16: continue-on-error: true');
+    expect(res.out).toMatch(/\.gitattributes:1: attribute on CI files/);
+  });
+
+  it('passes merge=union on a file outside the CI trees (#2314)', () => {
+    const res = guard({
+      '.gitattributes': '# union\nsrc/config/env-read-names.generated.ts merge=union\n',
+    });
+    expect(res.status).toBe(0);
+  });
 });
 
 describe('gate-files-guard.sh: the ci-gate-change-ok label', () => {

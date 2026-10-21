@@ -49,8 +49,16 @@ done
 findings=() removed=()
 add() { findings+=("$1:$2: $3"); }  # line 0: a file-level or main-side finding
 
+# Attributes can hide a diff (`-diff`, `binary`, a textconv driver), so in-tree
+# .gitattributes and the user's attributes file are ignored, and any
+# .gitattributes change is read too (flagged below when it reaches the roots).
+gitx=(git -c core.attributesFile=/dev/null)
+empty=$(git hash-object -t tree /dev/null)
+"${gitx[@]}" --attr-source="$empty" rev-parse HEAD >/dev/null 2>&1 && gitx+=(--attr-source="$empty")
+
 # "<+|->\t<file>\t<line>\t<text>"; removed lines carry main's path and line.
-changes=$(git diff -U0 -M --no-color --no-ext-diff "$BASE" "$HEAD" -- "${ROOTS[@]}" | awk '
+changes=$("${gitx[@]}" diff -U0 -M --text --no-textconv --no-ext-diff --no-color "$BASE" "$HEAD" \
+  -- "${ROOTS[@]}" .gitattributes '*/.gitattributes' | awk '
   /^diff --git / { hdr = 1; next }
   hdr && /^--- / { old = substr($0, 7); next }
   hdr && /^\+\+\+ / { new = substr($0, 7); next }
@@ -61,6 +69,7 @@ changes=$(git diff -U0 -M --no-color --no-ext-diff "$BASE" "$HEAD" -- "${ROOTS[@
 ')
 
 show() { git show "$1" 2>/dev/null; }
+trim() { sed -E 's/^[[:space:]]+|[[:space:]]+$//g'; }
 indent() { local s=${1%%[! ]*}; echo ${#s}; }
 # <line> is a top-level line of a `run: |` block and the block's last line.
 ends_block() {
@@ -81,14 +90,22 @@ errexit='(^|[;[:space:]])set[[:space:]]+(-[[:alpha:]]*e|-o[[:space:]]+errexit)'
 while IFS=$'\t' read -r sign file line text; do
   [ -n "$sign" ] || continue
   [[ "$text" =~ ^[[:space:]]*# ]] && continue
+  if [[ "$file" == .gitattributes || "$file" == */.gitattributes ]]; then
+    # A pattern with no slash, or one under a scanned root, can reach CI files.
+    pat=${text%%[[:space:]]*}; pat=${pat#/}; pat=${pat#"**/"}
+    if [ "$sign" = + ] && [[ "$text" =~ (^|[[:space:]])(-diff|binary|diff=|-text|text=|merge=|filter=) ]] \
+      && [[ "$pat" != */* || "$pat" == .github* || "$pat" == scripts* || "$pat" == "*"* ]]; then
+      add "$file" "$line" "attribute on CI files can hide their diff from review and from this guard"
+    fi
+    continue
+  fi
   yaml=""; [[ "$file" == .github/* ]] && yaml=1
   if [ "$sign" = - ]; then
     if [[ "$text" =~ $errexit ]] && show "$HEAD:$file" >/dev/null && ! show "$HEAD:$file" | grep -Eq "$errexit"; then
       add "$file" 0 "removed errexit (main's line $line): failures no longer stop the script"
     fi
     if [[ "$file" == .github/workflows/* && "$text" =~ $CHECKS && ! "$text" =~ ^[[:space:]]*(-[[:space:]]+)?name: ]]; then
-      t=$(sed -E 's/^[[:space:]]+|[[:space:]]+$//g' <<<"$text")
-      show "$HEAD:$file" | sed -E 's/^[[:space:]]+|[[:space:]]+$//g' | grep -Fqx -- "$t" || removed+=("$file|$line|$t")
+      removed+=("$file|$line|$(trim <<<"$text")")
     fi
     continue
   fi
@@ -163,17 +180,38 @@ while IFS='|' read -r wf check; do
   [ -n "$wf" ] || continue
   path=.github/workflows/$wf
   IFS=$'\t' read -r bs be bn bc _ < <(job_for "$BASE:$path" "$check") || continue
-  if ! IFS=$'\t' read -r _ _ hn hc hl < <(job_for "$HEAD:$path" "$check"); then
+  if ! IFS=$'\t' read -r hs he hn hc hl < <(job_for "$HEAD:$path" "$check"); then
     add "$path" 0 "required check '$check' (scripts/ci/required-checks.sh) no longer has a job"
     continue
   fi
   [ -n "$hc" ] && [ "$hc" != "$bc" ] && add "$path" "$hl" "job-level if: on required job '$hn' can skip it, and a skipped required job passes"
   for r in "${removed[@]+"${removed[@]}"}"; do
     IFS='|' read -r rf rl rt <<<"$r"
-    [ "$rf" = "$path" ] && (( rl > bs && rl <= be )) \
-      && add "$path" 0 "removed '$rt' (main's line $rl) from required job '$bn'"
+    if [ "$rf" != "$path" ] || (( rl <= bs || rl > be )); then continue; fi
+    # Moved within the same job is fine; anywhere else it no longer gates.
+    show "$HEAD:$path" | sed -n "${hs},${he}p" | trim | grep -Fqx -- "$rt" \
+      || add "$path" 0 "removed '$rt' (main's line $rl) from required job '$bn'"
   done
 done <<<"$required"
+
+# --- The guard's own step ----------------------------------------------------
+# Main's copy of this file runs, but the step in the PR's ci.yml decides
+# whether and how. Any change to it, or its removal, needs the label.
+guard_step() {
+  show "$1" | awk '
+    /^[[:space:]]*- name:[[:space:]]*Gate files guard[[:space:]]*$/ { on = 1; d = match($0, /-/); print; next }
+    on && NF { if (match($0, /[^ ]/) <= d) exit; print }
+  ' | trim
+}
+ci_yml=.github/workflows/ci.yml
+if base_step=$(guard_step "$BASE:$ci_yml") && [ -n "$base_step" ]; then
+  head_step=$(guard_step "$HEAD:$ci_yml")
+  if [ -z "$head_step" ]; then
+    add "$ci_yml" 0 "the 'Gate files guard' step is gone (or renamed) from ci.yml"
+  elif [ "$head_step" != "$base_step" ]; then
+    add "$ci_yml" 0 "the 'Gate files guard' step changed: main's version decides whether and how the guard runs"
+  fi
+fi
 
 # --- Report --------------------------------------------------------------------
 mapfile -t findings < <(printf '%s\n' "${findings[@]+"${findings[@]}"}" | awk 'NF && !seen[$0]++')

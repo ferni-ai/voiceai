@@ -916,10 +916,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
-          guard="$RUNNER_TEMP/gate-files-guard.sh"
-          git show HEAD^1:scripts/ci/gate-files-guard.sh >"$guard" 2>/dev/null \
-            || cp scripts/ci/gate-files-guard.sh "$guard"
-          bash "$guard" HEAD^1 HEAD
+          git show HEAD^1:scripts/ci/gate-files-guard.sh >"$RUNNER_TEMP/gate-files-guard.sh" 2>/dev/null \
+            || cp scripts/ci/gate-files-guard.sh "$RUNNER_TEMP/gate-files-guard.sh"
+          bash "$RUNNER_TEMP/gate-files-guard.sh" HEAD^1 HEAD
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
