@@ -12,6 +12,9 @@ final class HandoffUITests: XCTestCase {
         let chip = app.staticTexts["call.nameChip"]
         XCTAssertTrue(chip.waitForExistence(timeout: 20))
         XCTAssertTrue(chip.label.hasPrefix("Ferni"), chip.label)
+        // Award upgrade 4: the captions say she came in.
+        XCTAssertTrue(app.descendants(matching: .any)["captions.joined.maya"].waitForExistence(timeout: 15), "Maya joined")
+        XCTAssertEqual(app.descendants(matching: .any)["captions.joined.maya"].label, "Maya joined")
         // Maya's first words: the stage is still swapping, so the name hasn't changed yet.
         let hers = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'Maya: Hi!'")).firstMatch
         XCTAssertTrue(hers.waitForExistence(timeout: 15), "her words are named as hers")

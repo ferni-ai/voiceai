@@ -469,6 +469,7 @@ public final class CallSession {
         case .completed(let id)?:
             guard let teammate = PersonaRegistry.known(serverID: id) else { return }
             personaID = teammate.id
+            captions.join(teammate.id, room: roomName)
             avatar.send(.handoffCompleted(to: teammate.id, name: teammate.name))
         case .failed?:
             avatar.send(.handoffFailed)

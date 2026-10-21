@@ -24,6 +24,15 @@ final class CaptionSpeakerTests: XCTestCase {
         XCTAssertEqual(CallCaptions.labelled(lines), ["a", "d"], "Ferni's run, then Maya's")
     }
 
+    /// Award upgrade 4: "Maya joined" is never a label itself, and her first
+    /// words after it are still named.
+    func testAJoinIsNotWordsAndHerWordsAreStillNamed() {
+        var joined = line("j", .ferni, "maya")
+        joined.joined = true
+        let lines = [line("a", .ferni, "ferni"), joined, line("d", .ferni, "maya")]
+        XCTAssertEqual(CallCaptions.labelled(lines), ["a", "d"])
+    }
+
     func testATeammateAloneIsNamed() {
         XCTAssertEqual(CallCaptions.labelled([line("a", .ferni, "maya")]), ["a"])
     }
