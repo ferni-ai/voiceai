@@ -59,6 +59,10 @@ public final class AliveRig {
     /// At home, a choice made mid-handoff, and whether the one who handed
     /// over steps out after (`rest(with:)`).
     private var restingWith: WindowPersona?
+    /// While the goodbye plays, the call's teammate stays in the middle: a
+    /// choice of who rests here waits until it ends (critic M4: hanging up
+    /// after a handoff played the goodbye and a reverse handoff at once).
+    private var farewell: (until: Double, then: WindowPersona?)?
     private var animatedExpression = "neutral"
     /// Tests compare a face with and without its own motion.
     var playsExpressionAnimations = true
@@ -133,7 +137,15 @@ public final class AliveRig {
     public func play(_ moment: KeyedMoment) {
         record(.keyed(moment))
         keyed = (moment, time, 0)
+        if moment == .goodbye { farewell = (time + moment.end / 60 * tempo, nil) }
     }
+
+    /// The face a goodbye settles on: lids drooped, at ease (critic M4: keep
+    /// the drooped-lid goodbye; it ended on neutral's lid).
+    static let goodbyeSettle = "serene"
+
+    /// The goodbye is still playing: who rests here waits for it.
+    public var isSayingGoodbye: Bool { farewell != nil }
 
     /// When, in the outgoing persona's beats, the teammate takes the middle.
     static let handoffSwap = 2.15
@@ -177,6 +189,7 @@ public final class AliveRig {
             }
             return
         }
+        if farewell != nil { farewell?.then = next; return }
         if handoff != nil { restingWith = next; return }
         restingWith = nil
         switch (next == .ferni, persona == .ferni) {
@@ -683,6 +696,13 @@ public final class AliveRig {
     public func frame(at now: Double) -> AliveUniforms {
         let dt = min(0.05, max(0, now - time))
         time = now
+        if let f = farewell, time >= f.until {
+            farewell = nil
+            // He stays settled, lids drooped, a while after the goodbye (the keys
+            // end on this face's lid) instead of popping back to neutral's.
+            flash(Self.goodbyeSettle, seconds: 6)
+            if let next = f.then { rest(with: next) }
+        }
         cues = pending
         pending.removeAll()
         let m = motion
