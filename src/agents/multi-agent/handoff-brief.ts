@@ -19,6 +19,7 @@ import { characterOf } from '../../speech/direction/cue-say.js';
 import { directLine, type Actor } from '../../speech/direction/director.js';
 import { handoffAskFirstEnabled } from '../../tools/handoff/handoff-consent.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { ArrivalReason, upToLastTopic } from './arrival-reason.js';
 import {
   ARRIVAL_DIRECTION_GROUNDED,
   addedWords,
@@ -93,6 +94,8 @@ export interface BriefInput {
   userName?: string;
   /** The caller's IANA zone, when the call knows it: the first line fits their hour. */
   timeZone?: string;
+  /** The call's session id: ARRIVAL_LINE_GROUNDED keeps its arrival lines apart from other calls'. */
+  callId?: string;
 }
 
 export interface Briefing {
@@ -195,8 +198,9 @@ export function groundedInput(input: BriefInput): BriefInput {
  * it's about, else NO_TOPIC. Earlier lines are quoted too. The handoff tool's reason is the
  * model's wording, so it never stands in for theirs.
  */
-export function plainBrief(input: BriefInput): HandoffBrief {
-  const callerLines = callerLinesOf(input);
+export function plainBrief(input: BriefInput, env: Env = process.env): HandoffBrief {
+  const all = callerLinesOf(input); // ARRIVAL_LINE_GROUNDED: "Can I talk to Nayan?" isn't the reason
+  const callerLines = arrivalGrounded(env) ? upToLastTopic(all) : all;
   const last = callerLines.at(-1);
   const lastHasTopic = last !== undefined && topicWords(last).length > 0;
   const earlier = callerLines.slice(0, -1).filter((l) => topicWords(l).length > 0);
@@ -375,11 +379,12 @@ export async function prepareBriefing(
   opts: { writer?: BriefWriter; actor?: Actor; budgetMs?: number; env?: Env; now?: Date } = {}
 ): Promise<Briefing> {
   const context = arrivalContextEnabled(opts.env);
-  const input = groundedInput(raw);
+  const fromBrief = new ArrivalReason(raw, fallbackLine, opts.env); // arrival-reason.ts
+  const input = groundedInput({ ...raw, turns: fromBrief.turns(raw.turns) });
   const callerLines = callerLinesOf(input);
   const started = Date.now();
   const budgetMs = opts.budgetMs ?? BRIEFING_BUDGET_MS;
-  const plain = plainBrief(input);
+  const plain = plainBrief(input, opts.env);
   const writer = opts.writer ?? defaultWriter;
   const late = new Promise<null>((resolve) => {
     setTimeout(() => resolve(null), budgetMs).unref?.();
@@ -393,8 +398,12 @@ export async function prepareBriefing(
     });
   const character = characterOf(input.toPersonaId);
   const grounded = arrivalGrounded(opts.env); // arrival-grounding.ts
-  const direction = `${context ? ARRIVAL_DIRECTION : ARRIVAL_DIRECTION_PLAIN}${grounded ? ARRIVAL_DIRECTION_GROUNDED : ''}`;
-  const facts = arrivalFacts(input, plain, context, opts.now ?? new Date());
+  const reason = fromBrief.reason(callerLines);
+  const direction = `${context ? ARRIVAL_DIRECTION : ARRIVAL_DIRECTION_PLAIN}${grounded ? ARRIVAL_DIRECTION_GROUNDED : ''}${fromBrief.cue(reason)}`;
+  const facts = fromBrief.facts(
+    arrivalFacts(input, plain, context, opts.now ?? new Date()),
+    reason
+  );
   const line = directLine(
     {
       moment: 'handoff_arrival',
@@ -424,7 +433,8 @@ export async function prepareBriefing(
   const invented =
     spoken.source === 'actor' && (ungroundedClaim(spoken.text, callerLines) || added.length > 0);
   const said = spoken.source === 'actor' && !invented ? spoken.text : undefined;
-  const firstLine = said !== undefined && context ? withoutStockOpener(said) : said;
+  const cut = said !== undefined && context ? withoutStockOpener(said) : said;
+  const firstLine = fromBrief.line(cut, reason);
   log.info(
     {
       to: input.toPersonaId,
@@ -432,7 +442,8 @@ export async function prepareBriefing(
       line: spoken.source,
       invented,
       added,
-      stockCut: firstLine !== said,
+      stockCut: cut !== said,
+      fromBrief: fromBrief.on ? firstLine !== cut : undefined,
       ms: Date.now() - started,
     },
     'Handoff brief ready'
@@ -447,7 +458,8 @@ export async function prepareBriefing(
 export async function briefingFor(
   from: { personaId: string; session: unknown },
   request: { targetPersonaId: string; reason: string; userName?: string; userEmotion?: string },
-  timeZone?: string
+  timeZone?: string,
+  callId?: string
 ): Promise<Briefing | null> {
   try {
     const { turns, remembered } = readConversation(from.session);
@@ -463,6 +475,7 @@ export async function briefingFor(
         emotion: request.userEmotion,
         userName: request.userName,
         timeZone,
+        callId,
       },
       arrivalLine(to, from.personaId)
     );
