@@ -951,7 +951,7 @@ class NowPlayingUI {
 
       /* Sparkle decoration for Our Song */
       .now-playing--our-song::before {
-        content: '✨';
+        content: '\\2726';
         position: absolute;
         top: -8px;
         inset-inline-end: -4px;

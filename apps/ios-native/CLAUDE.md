@@ -1,119 +1,48 @@
-# iOS Native App
+# Ferni for iPhone and iPad
 
-Native iOS voice client for Ferni with "Better Than Human" emotional intelligence.
+Native SwiftUI app, bundle `com.sethdford.ferni`, iOS 26+, Swift 6 language mode
+with strict concurrency. Plan: `voiceai-evidence/mobile-2026-10-18/IOS-PLAN.md`.
 
-## Purpose
-
-Full-featured iOS app with LiveKit voice sessions, native integrations (HealthKit, Calendar, Contacts, HomeKit, Siri, MusicKit), Apple Watch app, widgets, CarPlay, and Share Extension.
-
-## Key Files
+## Layout
 
 ```
 apps/ios-native/
-├── Sources/
-│   ├── App/                    # App entry, main views
-│   ├── Design/                 # FerniColors, design system
-│   ├── Services/
-│   │   ├── AmbientModeService.swift
-│   │   ├── AuthService.swift
-│   │   ├── BetterThanHumanIntegration.swift
-│   │   ├── CalendarService.swift
-│   │   ├── ContactsService.swift
-│   │   ├── HealthKitService.swift
-│   │   ├── HomeKitService.swift
-│   │   ├── IOSLiveKitSession.swift
-│   │   ├── KeychainManager.swift
-│   │   ├── LocationService.swift
-│   │   ├── MusicKitService.swift
-│   │   ├── ProactiveNotificationsService.swift
-│   │   ├── SharedItemsService.swift
-│   │   ├── SiriShortcutsService.swift
-│   │   ├── SubscriptionService.swift     # StoreKit 2
-│   │   ├── TeamUnlockService.swift
-│   │   └── WatchConnectivityService.swift
-│   └── Views/
-├── FerniWidgets/               # Home screen widgets
-├── FerniWatch/                 # Apple Watch app
-├── FerniWatchWidgets/          # Watch complications
-├── FerniCarPlay/               # CarPlay integration
-├── FerniShareExtension/        # Share extension
-└── project.yml                 # XcodeGen project spec
+├── App/                  thin SwiftUI shell: FerniApp (AppModel), HomeView, SettingsView,
+│                         Info.plist (generated), entitlements, assets, privacy manifest
+├── Packages/
+│   ├── FerniKit/         configuration, the account (Firebase: anonymous first, then
+│   │                     Sign in with Apple), the server API (Bearer ID token), team, plans
+│   ├── FerniVoice/       a call: agent signals (lk.agent.state, speech_state),
+│   │                     expression mapping, and next the LiveKit session
+│   └── FerniDesign/      color/type/spacing tokens from design-system/tokens, window avatar
+├── project.yml           XcodeGen spec; Ferni.xcodeproj is generated AND committed
+└── Ferni.storekit        StoreKit test configuration (plans are off: PaidPlans.isOffered)
 ```
 
-## Build & Run
+Views live in the app; logic lives in packages and is tested there. State is
+`@Observable` and `@MainActor`. No `ObservableObject`, no `DispatchQueue.main`.
+
+## Build and test
 
 ```bash
 cd apps/ios-native
-
-# Generate Xcode project (requires XcodeGen)
-xcodegen generate
-open FerniVoice.xcodeproj
-
-# Or use Xcode directly if project exists
+xcodegen generate        # after changing project.yml or adding/removing App/ files
+xcodebuild test -project Ferni.xcodeproj -scheme Ferni \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' CODE_SIGNING_ALLOWED=NO
 ```
 
-## Requirements
+The scheme runs every package's tests. CI (`.github/workflows/build-apps.yml`,
+"iOS build and test") runs the same on every PR touching `apps/ios-native/` and
+on pushes to main.
 
-- Xcode 15+
-- XcodeGen (`brew install xcodegen`)
-- iOS 16+ device/simulator
-- watchOS 9+ for Watch features
+XcodeGen rewrites `App/Info.plist` and `App/Ferni.entitlements` from
+`project.yml`: put keys and entitlements in the spec, not the files.
 
-## App Group
+## Rules
 
-All extensions share: `group.com.ferni.shared`
-
-## Subscription Tiers (StoreKit 2)
-
-Ferni is free for now: `PaidPlans.isOffered` (`Sources/App/PaidPlans.swift`)
-is `false`, so no plan, price or purchase button is shown, and teammates join
-by relationship stage only. The StoreKit code below stays for when plans return.
-
-| Tier | Price | Personas | Conversations |
-|------|-------|----------|---------------|
-| Free | $0 | Ferni only | 5/month |
-| Friend | $9.99/mo | All except Nayan | Unlimited |
-| Partner | $19.99/mo | All | Unlimited |
-
-## URL Schemes
-
-| URL | Action |
-|-----|--------|
-| `ferni://talk` | Start voice |
-| `ferni://checkin` | Mood check-in |
-| `ferni://vent` | Vent session |
-| `ferni://music` | Mood music |
-| `ferni://share?id={id}` | Open shared item |
-
-## Watch Connectivity
-
-**From Watch to iPhone:**
-- `requestVoiceSession()` - Start conversation
-- `sendMoodCheckIn(mood:)` - Log mood
-- `requestQuickVent()` - Vent session
-- `requestCalmingMusic()` - Play calming music
-
-**From iPhone to Watch:**
-- `sendVoiceStateUpdate()` - Push session state
-- `sendPersonaUpdate()` - Push persona changes
-- `updateComplication()` - Update watch face
-
-## Testing
-
-```bash
-# CarPlay: Xcode > I/O > External Displays > CarPlay
-# Watch: Pair watch simulator with iPhone simulator
-# Share Extension: Build FerniVoice, test from Safari
-```
-
-## Deployment
-
-1. Archive FerniVoice scheme (Product > Archive)
-2. Upload to App Store Connect
-3. Submit for TestFlight / App Review
-
-## Related Docs
-
-- `docs/audits/IOS-BETTER-THAN-HUMAN-AUDIT.md`
-- `design-system/docs/brand/BETTER-THAN-HUMAN.md`
-- `apps/shared/` - Shared Swift code
+- No "AI" in any UI string. Warm, short, human copy.
+- Only the microphone permission (notifications come with push). No background
+  mode but `audio`. No entitlement the app doesn't use.
+- No developer switches in Settings. Version and build come from the bundle.
+- Server calls go to the same JSON endpoints as the web (`FerniConfig.apiBaseURL`,
+  `FERNI_API_BASE_URL` in project.yml, production `https://app.ferni.ai`).

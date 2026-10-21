@@ -28,7 +28,7 @@ the Gmail API sends it from a ferni.ai mailbox. Tracking issue: #1848.
 | Env var | Default | Meaning |
 |---|---|---|
 | `EMAIL_PROVIDER` | `sendgrid` | `gmail` switches to the Workspace |
-| `EMAIL_FROM` | `hello@ferni.ai` | From address: the mailbox, or a send-as alias of it |
+| `EMAIL_FROM` | `admin@ferni.ai` | From address: the mailbox, or a send-as alias of it |
 | `EMAIL_FROM_NAME` | `Ferni` | From display name |
 | `EMAIL_MAILBOX` | `EMAIL_FROM` | The Workspace **user** to impersonate (JWT `sub`). Set it when `EMAIL_FROM` is an alias. |
 | `EMAIL_MAILER_SA` | `ferni-mailer@johnb-2025.iam.gserviceaccount.com` | The delegated service account |
@@ -39,20 +39,23 @@ the Gmail API sends it from a ferni.ai mailbox. Tracking issue: #1848.
 | Thing | State |
 |---|---|
 | `gmail.googleapis.com`, `iamcredentials.googleapis.com` on johnb-2025 | already enabled |
-| `ferni-mailer@johnb-2025` | does not exist yet |
+| `ferni-mailer@johnb-2025` | created 2026-10-18, no user-managed keys; Token Creator granted to `john-bogle-ui@`; Workspace delegation for gmail.send only |
 | Cloud Run `john-bogle-ui` runtime SA | `john-bogle-ui@johnb-2025.iam.gserviceaccount.com` |
 | MX `ferni.ai` | Google (`aspmx.l.google.com` + alts): Workspace receives mail |
-| SPF `ferni.ai` | `v=spf1 include:sendgrid.net ~all`: **Google is missing** |
-| DKIM `google._domainkey.ferni.ai` | **no record**: Workspace DKIM was never turned on |
+| SPF `ferni.ai` | `v=spf1 include:_spf.google.com include:sendgrid.net ~all` (Google added 2026-10-18) |
+| DKIM `google._domainkey.ferni.ai` | 2048-bit key published 2026-10-18; Admin console shows DKIM signing on |
 | DMARC `_dmarc.ferni.ai` | `v=DMARC1; p=none;` (monitor only, no reports) |
 | SendGrid DKIM `s1._domainkey` | CNAME to sendgrid.net (remove after cutover) |
 | DNS host | `ns-cloud-d*.googledomains.com` (Google Domains, now Squarespace). Not in johnb-2025 Cloud DNS. |
-| Does `hello@ferni.ai` exist as a user or an alias? | **not verified**. This needs Workspace directory access. Check in step (d). |
+| Does `hello@ferni.ai` exist as a user or an alias? | **No.** The Workspace users are `admin@` and two personal accounts, so app email sends as `admin@ferni.ai`. |
 
 Look up records with a public resolver; the local one returned nothing:
 `dig @8.8.8.8 TXT ferni.ai +short`.
 
 ## One-time setup
+
+**All of (a) to (e) and the DNS changes were done on 2026-10-18** (the
+lead, with Seth's OK). The steps stay here for a rebuild or another project.
 
 ### Claude can do these with gcloud (project johnb-2025)
 
@@ -101,15 +104,14 @@ It usually takes effect in minutes and can take up to 24 hours. Before it
 does, sends fail with `token exchange failed: 401 ... unauthorized_client`.
 
 **(d) Choose the mailbox.** In admin.google.com, go to Directory, Users.
+On 2026-10-18 there was no `hello@ferni.ai`, so app email sends as
+`admin@ferni.ai` (`EMAIL_FROM=admin@ferni.ai`; `EMAIL_MAILBOX` defaults to it).
 
-- **`hello@ferni.ai` is a user:** set nothing. `EMAIL_FROM` defaults to it.
-- **`hello@` doesn't exist:** take one of these routes.
-  - **Optional alias:** open the user's page (for example `admin@ferni.ai`),
-    go to User information, then Alternate email addresses, and add `hello`.
-    Then, in that user's Gmail, go to Settings, Accounts, "Send mail as" and add
-    `hello@ferni.ai`. Gmail rewrites From to the primary address otherwise. Set
-    `EMAIL_MAILBOX=admin@ferni.ai` and `EMAIL_FROM=hello@ferni.ai`.
-  - **No alias:** set `EMAIL_FROM=admin@ferni.ai`.
+To send as `hello@` later, add it as an alias: open `admin@ferni.ai` in
+Directory, go to User information, then Alternate email addresses, and add
+`hello`. Then, in that user's Gmail, go to Settings, Accounts, "Send mail as"
+and add `hello@ferni.ai` (Gmail rewrites From to the primary address
+otherwise). Set `EMAIL_MAILBOX=admin@ferni.ai` and `EMAIL_FROM=hello@ferni.ai`.
 
 A Google Group can't be the mailbox, because delegation only impersonates
 users.
@@ -130,34 +132,19 @@ users.
 
 ### Switch on
 
-**(e) Set the provider. This is a follow-up PR, not done yet.** The production
-workflow's `--set-env-vars` replaces the service's env on every deploy, so
-`EMAIL_*` must be set there. A value set by hand on Cloud Run is gone after
-the next main push. The CLI's `deploy.ts` no longer deploys the web server
-itself (#1835). Its `ui` target runs this same workflow, so one edit covers
-both deploy paths.
-
-Three open flag PRs (#1774, #1696 and the web-cohort-flags branch) edit that
-same line, so the email vars wait until they land. The follow-up appends these
-to the `john-bogle-ui` `--set-env-vars` list in
-`.github/workflows/deploy-production.yml`. It also adds an assertion for them
-in `src/tests/deploy/ui-server-flags.test.ts`.
+**(e) Set the provider. Done in the deploy workflow.** The production
+workflow's `--set-env-vars` replaces the service's env on every deploy, so the
+email vars live there; a value set by hand on Cloud Run is gone after the next
+main push. The CLI's `deploy.ts` `ui` target runs this same workflow (#1835),
+so the one edit covers both deploy paths:
 
 ```
-::EMAIL_PROVIDER=${{ vars.EMAIL_PROVIDER || 'sendgrid' }}
-::EMAIL_FROM=${{ vars.EMAIL_FROM || 'hello@ferni.ai' }}
-::EMAIL_MAILBOX=${{ vars.EMAIL_MAILBOX || vars.EMAIL_FROM || 'hello@ferni.ai' }}
+::EMAIL_PROVIDER=${{ vars.EMAIL_PROVIDER || 'gmail' }}
+::EMAIL_FROM=${{ vars.EMAIL_FROM || 'admin@ferni.ai' }}
 ```
 
-The values come from repository variables, and the defaults keep SendGrid, so
-that PR is safe to merge at any time. After (a) to (d) and that PR:
-
-```bash
-gh variable set EMAIL_PROVIDER --body gmail
-gh variable set EMAIL_FROM --body hello@ferni.ai        # or admin@ferni.ai, per (d)
-gh variable set EMAIL_MAILBOX --body hello@ferni.ai     # the user, per (d)
-gh workflow run deploy-production.yml --ref main -f service=ui-server   # or wait for the next main push
-```
+`EMAIL_MAILBOX` is unset, so it defaults to `EMAIL_FROM`. `WELCOME_NUDGE` is
+not set and stays off.
 
 **Verify.** Trigger one transactional email to an inbox Seth owns, for example
 approving a test waitlist entry. In Gmail's "Show original", check:
@@ -169,12 +156,19 @@ approving a test waitlist entry. In Gmail's "Show original", check:
 The server log line is `email-gmail`. Failures name the step: `signJwt failed`
 means (b) is missing, and `unauthorized_client` means (c) is missing.
 
+**Verified 2026-10-18** (Seth approved the test sends): one send to
+`admin@ferni.ai` and one to an outside Gmail inbox, both through this adapter.
+The outside copy landed in the inbox with `dkim=pass header.i=@ferni.ai
+header.s=google`, `spf=pass smtp.mailfrom=admin@ferni.ai` and `dmarc=pass
+(p=NONE) header.from=ferni.ai`.
+
 **Rollback.** Run `gh variable set EMAIL_PROVIDER --body sendgrid`, then
-redeploy. Nothing else changes.
+`gh workflow run deploy-production.yml --ref main -f service=ui-server`.
+Nothing else changes (and SendGrid only helps once its account is paid).
 
 ## Later: replies to the sender
 
-Replies to `hello@` land in the Workspace inbox, and nothing reads them yet.
+Replies to `admin@` land in the Workspace inbox, and nothing reads them yet.
 There are two ways to get them to Ferni. Either way needs a second, separate
 delegation decision: a read scope (`gmail.readonly`, or `gmail.modify` to label
 mail as processed) for the mailer.

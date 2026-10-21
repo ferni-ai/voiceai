@@ -7,8 +7,10 @@
  * @module api/v1/developers/shared/developer-auth
  */
 
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../../utils/safe-logger.js';
+import { sendError } from '../../../helpers.js';
+import { accountProblem, linkProblem } from './publisher-link-rules.js';
 
 const log = getLogger().child({ module: 'developer-auth' });
 
@@ -19,6 +21,7 @@ const log = getLogger().child({ module: 'developer-auth' });
 export interface FirebaseDecodedToken {
   uid: string;
   email?: string;
+  email_verified?: boolean;
   name?: string;
   firebase?: {
     sign_in_provider?: string;
@@ -146,48 +149,93 @@ export async function getFirestore(): Promise<Firestore> {
 // AUTH HELPERS
 // ============================================================================
 
+/** The verified facts about a caller that decide whether they may act as a publisher. */
+export interface PublisherCaller {
+  uid: string;
+  email?: string;
+  emailVerified: boolean;
+  anonymous: boolean;
+}
+
+export type PublisherResolution =
+  | { ok: true; publisher: { id: string; email: string; name: string; verified: boolean } }
+  | { ok: false; status: 401 | 403; error: string };
+
+export const RELINK_MESSAGE =
+  'Re-link your developer account: sign in with an account whose email is verified';
+
+export function callerFromDecodedToken(token: FirebaseDecodedToken): PublisherCaller {
+  return {
+    uid: token.uid,
+    email: token.email,
+    emailVerified: token.email_verified === true,
+    anonymous: token.firebase?.sign_in_provider === 'anonymous',
+  };
+}
+
 /**
- * Get publisher ID from Firebase token in Authorization header
- *
- * @param req - HTTP request with Authorization: Bearer <token>
- * @returns Publisher ID or null if auth fails
+ * The publisher a caller may act as, checked on every request: a non-anonymous
+ * account with a verified email equal to the email on the publisher record.
+ * A link made earlier from an unverified or empty email no longer works.
  */
-export async function getPublisherFromToken(req: IncomingMessage): Promise<string | null> {
+export async function resolvePublisher(caller: PublisherCaller): Promise<PublisherResolution> {
+  if (accountProblem(caller)) {
+    return { ok: false, status: 403, error: RELINK_MESSAGE };
+  }
+  const record = await findPublisherByFirebaseUid(caller.uid);
+  if (!record) return { ok: false, status: 403, error: 'Publisher account not found' };
+  if (linkProblem(record.email, caller)) {
+    log.warn({ firebaseUid: caller.uid, publisherId: record.id }, 'Publisher email mismatch');
+    return { ok: false, status: 403, error: RELINK_MESSAGE };
+  }
+  return { ok: true, publisher: record };
+}
+
+export function resolvePublisherForToken(
+  token: FirebaseDecodedToken
+): Promise<PublisherResolution> {
+  return resolvePublisher(callerFromDecodedToken(token));
+}
+
+/** Resolve the publisher for the request's Bearer token (401 if there is no valid token). */
+export async function resolvePublisherFromRequest(
+  req: IncomingMessage
+): Promise<PublisherResolution> {
   const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    log.debug('No Bearer token in Authorization header');
-    return null;
+  const idToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7).trim() : '';
+  // JWTs have 3 parts and are at least ~100 chars
+  if (idToken.length < 100 || idToken.split('.').length !== 3) {
+    return { ok: false, status: 401, error: 'Authentication required' };
   }
-
-  const idToken = authHeader.substring(7).trim();
-
-  // Validate token format (JWTs should have 3 parts and be at least ~100 chars)
-  if (!idToken || idToken.length < 100 || idToken.split('.').length !== 3) {
-    log.warn(
-      { tokenLength: idToken?.length ?? 0, tokenParts: idToken?.split('.').length ?? 0 },
-      'Invalid token format in getPublisherFromToken'
-    );
-    return null;
-  }
-
   try {
     const auth = await getFirebaseAuth();
     const decodedToken = (await auth.verifyIdToken(idToken)) as FirebaseDecodedToken;
-
-    const db = await getFirestore();
-    const query = db.collection('publishers').where('firebaseUid', '==', decodedToken.uid).limit(1);
-    const snapshot = await query.get();
-
-    if (snapshot.empty) {
-      log.warn({ firebaseUid: decodedToken.uid }, 'No publisher found for Firebase UID');
-      return null;
-    }
-    return snapshot.docs[0].id;
+    return await resolvePublisherForToken(decodedToken);
   } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error));
-    log.warn({ error: err.message }, 'Failed to get publisher from token');
-    return null;
+    log.warn({ error: String(error) }, 'Failed to get publisher from token');
+    return { ok: false, status: 401, error: 'Authentication required' };
   }
+}
+
+/**
+ * Publisher ID for the request's Firebase token, or null.
+ *
+ * @param req - HTTP request with Authorization: Bearer <token>
+ */
+export async function getPublisherFromToken(req: IncomingMessage): Promise<string | null> {
+  const result = await resolvePublisherFromRequest(req);
+  return result.ok ? result.publisher.id : null;
+}
+
+/** Publisher ID for the request, or null after sending the 401/403 that explains why. */
+export async function requirePublisherFromToken(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<string | null> {
+  const result = await resolvePublisherFromRequest(req);
+  if (result.ok) return result.publisher.id;
+  sendError(res, result.error, result.status);
+  return null;
 }
 
 /**
