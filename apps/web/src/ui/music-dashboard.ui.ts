@@ -38,7 +38,7 @@ import type {
   JourneyStats,
   PersonaPlayStats,
 } from './music-dashboard/types.js';
-import { ICONS } from './music-dashboard/icons.js';
+import { ICONS, insightIcon } from './music-dashboard/icons.js';
 
 // Re-export types for backward compatibility
 export type { MusicDashboardUICallbacks } from './music-dashboard/types.js';
@@ -543,7 +543,7 @@ class MusicDashboardUI {
       .map(
         (m) => `
       <div class="music-dashboard__milestone">
-        <span class="music-dashboard__milestone-icon">${m.icon}</span>
+        <span class="music-dashboard__milestone-icon" aria-hidden="true">${insightIcon(m.icon)}</span>
         <div class="music-dashboard__milestone-content">
           <span class="music-dashboard__milestone-name">${m.displayName}</span>
           <span class="music-dashboard__milestone-desc">${m.description}</span>
@@ -585,7 +585,7 @@ class MusicDashboardUI {
       .map(
         (m) => `
       <div class="music-dashboard__moment">
-        <span class="music-dashboard__moment-icon">${m.icon}</span>
+        <span class="music-dashboard__moment-icon" aria-hidden="true">${insightIcon(m.icon)}</span>
         <div class="music-dashboard__moment-content">
           <span class="music-dashboard__moment-title">${m.title}</span>
           <span class="music-dashboard__moment-value">${m.value}</span>

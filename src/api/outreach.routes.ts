@@ -27,6 +27,7 @@ import { runDailyOutreachJob } from '../services/outreach/daily-outreach-job.js'
 import { webPushDeliveryOn } from '../services/outreach/web-push-flag.js';
 import { cancelOwnedOutreach, findOwnedOutreach } from '../services/outreach/owned-outreach.js';
 import { sendOutreachHistory } from './outreach-history-route.js';
+import { sendMilestoneOutreach } from './milestone-outreach-route.js';
 import { sendUpcomingOutreach } from './outreach-upcoming-route.js';
 import { panelConsentPatch, savePanelPrefs } from './messaging-prefs-route.js';
 import {
@@ -700,71 +701,9 @@ export async function handleOutreachRoutes(
     // MILESTONE & JOURNEY OUTREACH
     // ========================================================================
 
-    // POST /api/outreach/milestone - Send milestone celebration
+    // POST /api/outreach/milestone - once per milestone, checked and counted on the server
     if (route === '/milestone' && method === 'POST') {
-      const body = await parseRequestBody(req);
-      const { milestoneId, milestoneName, milestoneMessage, daysTogether, streak } = body as {
-        milestoneId: string;
-        milestoneName: string;
-        milestoneMessage: string;
-        daysTogether?: number;
-        streak?: number;
-      };
-
-      if (!milestoneId || !milestoneName || !milestoneMessage) {
-        sendJsonResponse(res, 400, {
-          success: false,
-          error: 'milestoneId, milestoneName, and milestoneMessage are required',
-        });
-        return true;
-      }
-
-      const { emailUser, textUser, getUserContactInfo } =
-        await import('../tools/domains/proactive/outreach/index.js');
-
-      // Get user's contact info and preferences
-      const contactInfo = await getUserContactInfo(authenticatedUserId);
-
-      if (!contactInfo?.email && !contactInfo?.phone) {
-        sendJsonResponse(res, 200, {
-          success: true,
-          message: 'No contact info set - skipping outreach',
-          sent: false,
-        });
-        return true;
-      }
-
-      const results: { email?: boolean; sms?: boolean } = {};
-
-      // Build warm email content
-      if (contactInfo.email) {
-        const emailBody = `${milestoneMessage}
-
-${daysTogether ? `We've been on this journey for ${daysTogether} days now.` : ''}
-${streak && streak > 1 ? `That's ${streak} days in a row.` : ''}
-
-I don't take these moments for granted. Thank you for trusting me with your thoughts.
-
-Here's to many more.`;
-
-        const result = await emailUser(authenticatedUserId, milestoneName, emailBody);
-        results.email = result.success;
-      }
-
-      // Build warm SMS content (shorter)
-      if (contactInfo.phone && contactInfo.preferredMethod !== 'email') {
-        const smsBody = `${milestoneName}: ${milestoneMessage} ${streak && streak > 1 ? `(${streak}-day streak!)` : ''} - Ferni`;
-
-        const result = await textUser(authenticatedUserId, smsBody);
-        results.sms = result.success;
-      }
-
-      log.info({ userId: authenticatedUserId, milestoneId, results }, 'Milestone outreach sent');
-      sendJsonResponse(res, 200, {
-        success: true,
-        message: 'Milestone celebration sent',
-        results,
-      });
+      await sendMilestoneOutreach(res, authenticatedUserId, await parseRequestBody(req));
       return true;
     }
 
