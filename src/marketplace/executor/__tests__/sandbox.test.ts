@@ -2,6 +2,7 @@
  * Sandbox Executor Tests
  */
 
+import dns from 'node:dns';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock logger - must include both getLogger and createLogger
@@ -21,9 +22,16 @@ vi.mock('../../../utils/safe-logger.js', () => {
   };
 });
 
-// Mock fetch
+// Mock fetch. Endpoints go through the outbound URL guard, so DNS answers a public address.
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
+vi.spyOn(dns.promises, 'lookup').mockImplementation((async () => [
+  { address: '93.184.215.14', family: 4 },
+]) as unknown as typeof dns.promises.lookup);
+
+function jsonResponse(body: unknown): Response {
+  return new Response(JSON.stringify(body), { status: 200 });
+}
 
 import { executeMarketplaceTool, executeBatch, type ExecutionContext } from '../sandbox.js';
 import { registerTool, installItem, clearRegistry } from '../../registry.js';
@@ -130,13 +138,12 @@ describe('Sandbox Executor', () => {
 
   describe('executeMarketplaceTool', () => {
     it('should execute HTTP tool successfully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
+      mockFetch.mockResolvedValueOnce(
+        jsonResponse({
           data: { temperature: 72, conditions: 'sunny' },
           summary: "It's 72°F and sunny",
-        }),
-      });
+        })
+      );
 
       const result = await executeMarketplaceTool(
         'test-tool',
@@ -196,11 +203,7 @@ describe('Sandbox Executor', () => {
     });
 
     it('should handle HTTP errors gracefully', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        text: async () => 'Internal Server Error',
-      });
+      mockFetch.mockResolvedValueOnce(new Response('Internal Server Error', { status: 500 }));
 
       const result = await executeMarketplaceTool('test-tool', { query: 'test' }, createContext());
 
@@ -222,6 +225,18 @@ describe('Sandbox Executor', () => {
       expect(result.error?.userMessage).toContain('took too long');
     });
 
+    it('reports the guarded fetch timeout (TimeoutError) as a timeout', async () => {
+      mockFetch.mockRejectedValueOnce(
+        Object.assign(new Error('timed out'), { name: 'TimeoutError' })
+      );
+
+      const result = await executeMarketplaceTool('test-tool', { query: 'test' }, createContext(), {
+        timeoutMs: 100,
+      });
+
+      expect(result.error?.code).toBe('TIMEOUT');
+    });
+
     it('should skip permission check for platform tools', async () => {
       // No installation, but should work for platform tools
       clearRegistry();
@@ -235,10 +250,7 @@ describe('Sandbox Executor', () => {
         })
       );
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ data: 'result', summary: 'Done' }),
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse({ data: 'result', summary: 'Done' }));
 
       const result = await executeMarketplaceTool('platform-tool', {}, createContext(), {
         skipPermissionCheck: true,
@@ -278,10 +290,7 @@ describe('Sandbox Executor', () => {
         permissions: ['external:http:read'],
       });
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ summary: 'Done' }),
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse({ summary: 'Done' }));
 
       const result = await executeMarketplaceTool('community-tool', {}, createContext());
 
@@ -291,10 +300,7 @@ describe('Sandbox Executor', () => {
     });
 
     it('should include proper headers in HTTP requests', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ summary: 'Done' }),
-      });
+      mockFetch.mockResolvedValueOnce(jsonResponse({ summary: 'Done' }));
 
       await executeMarketplaceTool(
         'test-tool',
@@ -304,18 +310,15 @@ describe('Sandbox Executor', () => {
 
       // SECURITY: Implementation sends anonymized tokens, not raw IDs
       // Session ID and Tenant ID are intentionally NOT sent to external tools
-      expect(mockFetch).toHaveBeenCalledWith(
-        'https://api.test.com/execute',
-        expect.objectContaining({
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-            'X-Ferni-Tool-Id': 'test-tool',
-            'X-Ferni-Tool-Version': '1.0.0',
-            'X-Ferni-User-Token': expect.stringMatching(/^anon_/),
-            'X-Ferni-Request-Id': expect.stringMatching(/^req_/),
-          }),
-        })
-      );
+      const [url, init] = mockFetch.mock.calls[0] as [URL, RequestInit];
+      expect(String(url)).toBe('https://api.test.com/execute');
+      const headers = new globalThis.Headers(init.headers);
+      expect(headers.get('Content-Type')).toBe('application/json');
+      expect(headers.get('X-Ferni-Tool-Id')).toBe('test-tool');
+      expect(headers.get('X-Ferni-Tool-Version')).toBe('1.0.0');
+      expect(headers.get('X-Ferni-User-Token')).toMatch(/^anon_/);
+      expect(headers.get('X-Ferni-Request-Id')).toMatch(/^req_/);
+      expect(headers.get('X-Ferni-Session-Id')).toBeNull();
     });
   });
 
@@ -338,10 +341,7 @@ describe('Sandbox Executor', () => {
         permissions: ['external:http:read'],
       });
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ summary: 'Done' }),
-      });
+      mockFetch.mockImplementation(async () => jsonResponse({ summary: 'Done' }));
 
       const results = await executeBatch(
         [
@@ -367,10 +367,7 @@ describe('Sandbox Executor', () => {
         permissions: ['external:http:read'],
       });
 
-      mockFetch.mockResolvedValue({
-        ok: true,
-        json: async () => ({ summary: 'Done' }),
-      });
+      mockFetch.mockImplementation(async () => jsonResponse({ summary: 'Done' }));
 
       const results = await executeBatch(
         [

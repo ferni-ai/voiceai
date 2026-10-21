@@ -43,6 +43,7 @@ import {
 } from './shared/types.js';
 import { getFirestore } from '../../v1/developers/shared/developer-auth.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import * as outbound from '../../../utils/outbound-url-guard.js';
 import { encryptSensitive, decryptSensitive } from '../../../services/privacy-crypto.js';
 
 const log = getLogger().child({ module: 'mcp-servers-routes' });
@@ -610,7 +611,7 @@ async function testHTTPMCPConnection(
       },
     };
 
-    const initResponse = await fetch(server.endpoint!, {
+    const initResponse = await outbound.safeOutboundFetch(server.endpoint!, {
       method: 'POST',
       headers,
       body: JSON.stringify(initializeRequest),
@@ -627,7 +628,7 @@ async function testHTTPMCPConnection(
       };
     }
 
-    const initResult = (await initResponse.json()) as MCPMessage;
+    const initResult = await outbound.readCappedJson<MCPMessage>(initResponse);
 
     if (initResult.error) {
       clearTimeout(timeout);
@@ -645,12 +646,13 @@ async function testHTTPMCPConnection(
       method: 'notifications/initialized',
     };
 
-    await fetch(server.endpoint!, {
+    const notified = await outbound.safeOutboundFetch(server.endpoint!, {
       method: 'POST',
       headers,
       body: JSON.stringify(initializedNotification),
       signal: controller.signal,
     });
+    await notified.body?.cancel().catch(() => undefined);
 
     // Step 3: Request tools list
     const toolsRequest: MCPMessage = {
@@ -659,7 +661,7 @@ async function testHTTPMCPConnection(
       method: 'tools/list',
     };
 
-    const toolsResponse = await fetch(server.endpoint!, {
+    const toolsResponse = await outbound.safeOutboundFetch(server.endpoint!, {
       method: 'POST',
       headers,
       body: JSON.stringify(toolsRequest),
@@ -677,7 +679,7 @@ async function testHTTPMCPConnection(
       };
     }
 
-    const toolsResult = (await toolsResponse.json()) as MCPMessage;
+    const toolsResult = await outbound.readCappedJson<MCPMessage>(toolsResponse, 1_000_000);
 
     if (toolsResult.error) {
       // Server connected but tools/list failed - still a successful connection
@@ -706,7 +708,7 @@ async function testHTTPMCPConnection(
     clearTimeout(timeout);
     const err = fetchError instanceof Error ? fetchError : new Error(String(fetchError));
 
-    if (err.name === 'AbortError') {
+    if (err.name === 'AbortError' || err.name === 'TimeoutError') {
       return {
         success: false,
         connected: false,
@@ -733,10 +735,9 @@ async function testWebSocketMCPConnection(
   timeoutMs: number,
   startTime: number
 ): Promise<MCPServerTestResult> {
-  // WebSocket implementation requires Node.js ws package
-  // For now, return a meaningful error if WebSocket is selected
   try {
     const { WebSocket } = await import('ws');
+    await outbound.assertSafeOutboundUrl(server.endpoint!, { protocols: ['wss:'] });
 
     return new Promise((resolve) => {
       const wsTimeout = setTimeout(() => {
@@ -756,9 +757,8 @@ async function testWebSocketMCPConnection(
         wsUrl = url.toString();
       }
 
-      const ws = new WebSocket(wsUrl, {
-        headers: server.headers,
-      });
+      // guardedLookup: the socket connects only to an address that passed the guard
+      const ws = new WebSocket(wsUrl, { headers: server.headers, lookup: outbound.guardedLookup });
 
       let initDone = false;
       const tools: string[] = [];
