@@ -17,9 +17,14 @@
 # CI and its required-checks gate. Docs-only groups always fall through, which
 # is fine. Fall-through is always safe.
 #
-# Usage: queue-verdict.sh <queue-run-id> [<live-build-sha>]
+# Usage: queue-verdict.sh <queue-run-id> [<live-build-sha> | -]
+# `-` means production's commit isn't known here (deploy-production's
+# queue-verdict job, which holds no cloud credentials): a base without an
+# unscoped green push run is then left for the deploy job's guard to check
+# against production, inside the deploy group (exit 5).
 # Env: GH_TOKEN, GITHUB_REPOSITORY.
 # Exit: 0 counts | 3 doesn't count (prints why) | 1 can't tell (prints why)
+#       | 5 counts only if production serves the base (with `-`)
 set -euo pipefail
 
 REPO=$GITHUB_REPOSITORY
@@ -52,6 +57,7 @@ case "$rc" in
 esac
 
 base=$(gh api "repos/$REPO/commits/$head" --jq '.parents[0].sha') || cant "could not read the parent of $head"
+[[ "$base" =~ ^[0-9a-f]{40}$ ]] || cant "merge-queue run $RUN's head $head has no parent SHA"
 if [ -n "$LIVE" ] && [ "$base" = "$LIVE" ]; then
   echo "counts: every required check passed on $head, built on production's $base"
   exit 0
@@ -65,4 +71,8 @@ for id in $runs; do
     exit 0
   fi
 done
+if [ "$LIVE" = - ]; then
+  echo "every required check passed on $head; its base $base has no unscoped green push CI run, so it counts only if production serves $base"
+  exit 5
+fi
 nope "the queue run's base $base was never tested: it isn't production's commit and has no unscoped green push CI run on main"

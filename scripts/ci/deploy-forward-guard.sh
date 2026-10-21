@@ -18,8 +18,9 @@
 #     a REASON it skips the forward-only check, for an intentional rollback.
 #     rollback.yml doesn't come through here; it shifts traffic on its own.
 #   - A push to main (the merge-queue fast path) deploys only when QUEUE_TESTED
-#     is true (a successful merge-queue CI run, QUEUE_RUN_ID, tested exactly this
-#     tree) AND that run counts as full CI (scripts/ci/queue-verdict.sh: every
+#     is true (the queue-verdict job, scripts/ci/queue-fast-path.sh: a successful
+#     merge-queue CI run, QUEUE_RUN_ID, tested exactly this tree) AND, checked
+#     again here against production, that run counts as full CI (scripts/ci/queue-verdict.sh: every
 #     required check passed, none skipped by scoping, on a tested base). If not
 #     (admin merge, direct push, scoped run, untested base), the push is a no-op
 #     and the workflow_run path deploys after push CI passes. Either way the
