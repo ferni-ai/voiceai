@@ -144,6 +144,14 @@ final class AppModel {
     /// A line of Ferni's being reported.
     var reporting: Caption?
 
+    /// Where the waitlist is asked (in UI tests, the scripted waitlist server).
+    var waitlistAPI: FerniAPI {
+        #if DEBUG
+        if UITestScenario.current == .waitlist { return UITestScenario.waitlistAPI }
+        #endif
+        return api
+    }
+
     /// A full-height sheet or cover hides Ferni, so his avatar stops drawing:
     /// Settings, What Ferni remembers (critic M-B), sign-in and the consent
     /// question. More and Report open at half height and leave him in view.

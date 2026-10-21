@@ -26,6 +26,19 @@ final class WaitingScreenTests: XCTestCase {
         assertAskedToJoin(XCUIApplication.ferni(.waitlist, extra: ["-FerniWaitlistMe", "notJoined"]))
     }
 
+    /// Critic round 2, H1: signed in but not on the list, one tap joins it
+    /// (POST /api/waitlist/join), and their place shows.
+    func testSignedInButNotOnTheListJoinsWithOneTap() {
+        let app = XCUIApplication.ferni(.waitlist, account: "signedIn", extra: ["-FerniWaitlistMe", "notJoined"])
+        XCTAssertTrue(app.staticTexts["Join the list"].firstMatch.waitForExistence(timeout: 20))
+        XCTAssertFalse(app.staticTexts["Sign in to join the list"].exists, "already signed in")
+        XCTAssertFalse(app.staticTexts["I’ll email you the moment your spot opens."].exists, "no promise before joining")
+        app.buttons["Join the list"].tap()
+        XCTAssertTrue(app.staticTexts["You’re #433, about 4 waves away"].waitForExistence(timeout: 10), "in line, with a place")
+        XCTAssertTrue(app.buttons["Copy link"].exists, "and an invite link")
+        attachScreenshot("waitlist-joined")
+    }
+
     /// The same for an anonymous account whose place can't be read at all.
     func testAnAnonymousAccountIsAskedToSignIn() {
         assertAskedToJoin(XCUIApplication.ferni(.waitlist, account: "anonymous", extra: ["-FerniWaitlistMe", "none"]))

@@ -545,6 +545,16 @@ final class AccessibilityAuditTests: XCTestCase {
         }
     }
 
+    /// Signed in, not on the list: the waiting screen's "Join the list" (critic H1).
+    func testJoinTheList() throws {
+        for size in [TextSize.standard, .ax5] {
+            try auditPlace("waitlist join", scenario: "waitlist", size: size,
+                           extra: ["-FerniAccount", "signedIn", "-FerniWaitlistMe", "notJoined"]) { app in
+                app.buttons["Join the list"]
+            }
+        }
+    }
+
     /// The "I'll remember" card after a call.
     func testRememberCard() throws {
         try everyWay("remember", scenario: "remember", extra: ["-FerniStoreData", "YES"]) { app in
