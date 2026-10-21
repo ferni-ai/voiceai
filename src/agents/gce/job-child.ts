@@ -13,6 +13,7 @@ import { performance } from 'node:perf_hooks';
 import { initializeLogger } from '@livekit/agents';
 
 import { getDeepExtractionWorker } from '../../memory/dynamic/index.js';
+import { flushBqEvents } from '../../services/analytics/bq-events.js';
 import { setCallQualityForwarder } from '../../services/analytics/call-quality-monitor.js';
 import { pendingAfterCallTasks } from '../../services/session/after-call-tasks.js';
 import { registerGlobalErrorHandlers } from '../../utils/safe-fire-and-forget.js';
@@ -79,6 +80,7 @@ async function runOne(msg: Extract<ToChild, { t: 'job' }>, stop: () => void): Pr
   }
   const left = await drainBackground(pendingMemoryWork, DRAIN_MS);
   log('Job process exiting', { jobId: info.job.id, memoryWorkLeft: left });
+  await flushBqEvents(5_000); // rows this call queued here (texts sent in the call); off: a no-op
   stop();
   process.exit(0);
 }

@@ -1207,7 +1207,7 @@
       "createPractice": "Crea un ritual",
       "creativeYou": "Despierta tu creatividad",
       "discoverAgents": "Conoce a más amistades",
-      "exportData": "Llévate tu historia",
+      "exportData": "Privacidad y tus datos",
       "gifts": "Regalos y días especiales",
       "groupCoaching": "Con amistades",
       "guidedPractices": "El santuario",
@@ -3995,7 +3995,6 @@
       "ceo": "Dirección",
       "ferniRole": "CEO y Coach de vida",
       "ferniDesc": "La presencia cálida y sabia en el corazón de todo. Ferni coordina al equipo con un recuerdo perfecto, cero juicios y una presencia constante.",
-      "coFounders": "Cofundadores",
       "coreTeam": "Equipo principal",
       "footer": "En conjunto, estamos redefiniendo lo que significa tener un equipo que te escucha de verdad.",
       "roles": {
@@ -4802,7 +4801,10 @@
     "funGames": "Juegos divertidos",
     "reflectionGames": "Juegos de reflexión",
     "tipLabel": "Consejo:",
-    "tipContent": "Di \"parar\" o \"terminar juego\" en cualquier momento para acabar antes. ¡Tu progreso siempre se guarda!"
+    "tipContent": "Di \"parar\" o \"terminar juego\" en cualquier momento para acabar antes. ¡Tu progreso siempre se guarda!",
+    "connectFirst": "Primero empieza una llamada con Ferni y luego elige un juego.",
+    "starting": "Empezando {game}…",
+    "startFailed": "No se pudo empezar ese juego. Pídeselo a Ferni."
   },
   "digitalTwinProfile": {
     "title": "Crea tu gemelo digital",
@@ -9129,10 +9131,6 @@
     "chiefExecutive": "Dirección Ejecutiva",
     "ferni": "Ferni",
     "ferniRole": "CEO y Coach de vida",
-    "coFounders": "Cofundadores",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "Equipo principal",
     "tagline": "En equipo, estamos redefiniendo lo que significa tener a alguien que te escuche de verdad.",
     "inTeam": "En el equipo",
@@ -9418,7 +9416,8 @@
     "title": "Tus datos",
     "exportFormat": "Formato de exportación",
     "deleteAll": "Eliminar todos los datos",
-    "footer": "Tus datos te pertenecen. Respetamos tu privacidad.",
+    "footer": "Guardo nuestras conversaciones y lo que me cuentas para poder recordarlo la próxima vez, y si algún día quieres que desaparezca, al eliminar tu cuenta se borra todo.",
+    "privacyPolicyLink": "Lee la política de privacidad",
     "deleteAccount": "Eliminar mi cuenta",
     "confirmDeleteAll": "¿De verdad quieres eliminar todos tus datos? Esta acción no se puede deshacer.",
     "confirmDeleteAccount": "¿Quieres eliminar tu cuenta de Ferni? Esto borrará todo lo que Ferni sabe sobre ti y cerrará tu sesión de forma permanente. Esta acción no se puede deshacer.",
@@ -11256,5 +11255,21 @@
     "helper": "Escanéalo con la cámara de tu teléfono o toca Abrir Venmo. Puedes cambiar el importe.",
     "maybeLater": "Quizás después",
     "close": "Cerrar"
+  },
+  "reportReply": {
+    "button": "Reportar",
+    "describe": "Reportar algo que dijo {name}",
+    "title": "Reportar una respuesta",
+    "whichReply": "¿Qué respuesta?",
+    "whatsWrong": "¿Qué tiene de malo?",
+    "reasonHarmful": "Dañina o peligrosa",
+    "reasonWrong": "Incorrecta o engañosa",
+    "reasonInappropriate": "Inapropiada",
+    "reasonOther": "Otra cosa",
+    "note": "¿Algo que añadir? (opcional)",
+    "send": "Enviar",
+    "thanks": "Gracias. Una persona lo revisará.",
+    "failed": "No se pudo enviar. Inténtalo de nuevo.",
+    "tooMany": "Hoy has enviado muchos reportes. Inténtalo de nuevo mañana."
   }
 }

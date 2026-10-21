@@ -18,6 +18,8 @@ vi.mock('../../utils/firestore-utils.js', async () => {
   );
   return { ...actual, getFirestoreDb: vi.fn(actual.getFirestoreDb) };
 });
+const alerts = vi.hoisted(() => ({ opsAlert: vi.fn(() => true) }));
+vi.mock('../../services/platform/ops-alert.js', () => alerts);
 // Every log line any module writes, kept outside vi.fn so clearMocks can't empty it
 const logged = vi.hoisted(() => [] as unknown[][]);
 vi.mock('../../utils/safe-logger.js', async (importOriginal) => {
@@ -243,5 +245,26 @@ describe.skipIf(!emulator)('reporting a reply, call to report (Firestore emulato
     expect(lines).toContain('Reply reported'); // the route did log
     expect(lines).not.toContain('sleeping pills');
     expect(lines).not.toContain('please look at this one');
+  });
+
+  it('the daily summary sends counts by reason, and no text', async () => {
+    const { runReplyReportSummary } = await import('../reply-reports/reply-report-summary.js');
+    const uid = newUser();
+    const { T0 } = await callLikeTheAgent(uid);
+    const before = await runReplyReportSummary(db);
+    await report(uid, { messageAt: T0 + 24_000, reason: 'wrong' });
+    await report(uid, { messageAt: T0 + 4_000, reason: 'inappropriate' });
+    await report(newUser(), { messageAt: T0 + 4_000, reason: 'other' }); // no call: unmatched
+
+    alerts.opsAlert.mockClear();
+    const after = await runReplyReportSummary(db);
+    expect(after.total).toBe(before.total + 3);
+    expect(after.unmatched).toBe(before.unmatched + 1);
+    expect(after.byReason.wrong).toBe(before.byReason.wrong + 1);
+    expect(after.byReason.inappropriate).toBe(before.byReason.inappropriate + 1);
+    expect(alerts.opsAlert).toHaveBeenCalledTimes(1);
+    const [key, , details] = alerts.opsAlert.mock.calls[0] as unknown as [string, string, object];
+    expect(key).toBe('reply-reports:daily');
+    expect(JSON.stringify(details)).not.toMatch(/sleeping|exhausting/);
   });
 });

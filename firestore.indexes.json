@@ -17,6 +17,30 @@
       ]
     },
     {
+      "collectionGroup": "errands",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "state", "order": "ASCENDING" },
+        { "fieldPath": "nextWakeAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "effects",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "notBefore", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "effects",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "leaseUntil", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "pre_briefings",
       "queryScope": "COLLECTION",
       "fields": [

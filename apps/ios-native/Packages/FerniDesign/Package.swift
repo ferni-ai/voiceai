@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "FerniDesign",
-    platforms: [.iOS(.v18)],
+    platforms: [.iOS("26.0")],
     products: [.library(name: "FerniDesign", targets: ["FerniDesign"])],
     targets: [
         .target(name: "FerniDesign", resources: [.process("Resources")]),

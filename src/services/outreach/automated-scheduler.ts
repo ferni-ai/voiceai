@@ -1,6 +1,5 @@
 /**
  * Automated Outreach Scheduler
- *
  * > "We show up. Every day. Without being asked."
  *
  * Cloud Scheduler integration for automated proactive outreach:
@@ -32,12 +31,14 @@ import { isValidTimezone } from './call-hours-guard.js';
 import { hoursWindow, isQuietAt, isQuietHoursUnified, isUserQuiet } from './quiet-hours.js';
 import {
   cadenceHold,
+  conversationCountOf,
   engagementLevel as engagementLevelOf,
   lastTalkedAt,
   unansweredCount,
 } from './outreach-cadence.js';
 import { dailyCheckIn } from './proactive-channels/daily-checkin.js';
 import { blocksGenericCheckIns } from './grounded-checkin.js';
+import { pushInAppIfOn } from './in-app-push.js';
 import { skipReasonCounts, type SchedulerResult } from './scheduler-report.js';
 
 const log = createLogger({ module: 'AutomatedScheduler' });
@@ -67,6 +68,7 @@ interface UserOutreachCandidate {
   phone?: string;
   name?: string;
   daysSinceSignup: number;
+  conversationCount?: number;
   lastConversationDate?: Date;
   lastOutreachDate?: Date;
   onboardingDay?: number;
@@ -111,7 +113,6 @@ export async function runDailyOutreach(
   };
 
   try {
-    // Get candidates for outreach
     const candidates = await getOutreachCandidates(batchSize);
     log.info({ candidateCount: candidates.length }, 'Found outreach candidates');
 
@@ -205,12 +206,11 @@ async function processCandidate(
     return { sent: false, reason: 'No phone number' };
   }
 
-  // Build user context for personalization
   const userContext: UserContext = {
     userId,
     name,
     daysSinceSignup,
-    conversationCount: 0, // TODO: Get actual count
+    conversationCount: candidate.conversationCount, // unknown: the writer is told no number
     engagementLevel,
     preferredPersona: 'ferni',
   };
@@ -237,6 +237,7 @@ async function processCandidate(
   });
 
   await proactive?.done(outreachType, deliveryResult.success);
+  await pushInAppIfOn(userId, deliveryResult, { ...content, kind: outreachType });
 
   if (deliveryResult.success) {
     // Record that we sent outreach
@@ -298,7 +299,6 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
         // Quieter users wait longer between messages; unanswered ones stop.
         if (cadenceHold(data, engagementLevel, now.getTime())) continue;
 
-        // Build candidate
         const createdAt = data.createdAt?.toDate?.() || data.createdAt || now;
         const daysSinceSignup = Math.floor(
           (now.getTime() - new Date(createdAt).getTime()) / (24 * 60 * 60 * 1000)
@@ -310,6 +310,7 @@ async function getOutreachCandidates(limit: number): Promise<UserOutreachCandida
           phone: verifiedPhoneOf(userId, data), // never the model-written profile phone
           name: data.displayName || data.name,
           daysSinceSignup,
+          conversationCount: conversationCountOf(data),
           lastConversationDate: talkedAt === undefined ? undefined : new Date(talkedAt),
           lastOutreachDate: lastOutreach,
           onboardingDay: data.onboardingDay,

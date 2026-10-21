@@ -30,6 +30,7 @@ import {
   isCalendarConfigured,
   type CalendarEvent as GoogleCalendarEvent,
 } from '../identity/google-calendar-oauth.js';
+import { ownerResponseOf, type OwnerResponse } from '../identity/google-event-invite.js';
 import {
   getEventsForDay as getUnifiedEventsForDay,
   getEvents as getUnifiedEvents,
@@ -46,9 +47,7 @@ import type {
 
 const log = getLogger();
 
-// ============================================================================
 // TYPES
-// ============================================================================
 
 export interface CalendarEvent {
   id: string;
@@ -61,6 +60,8 @@ export interface CalendarEvent {
   attendees: string[];
   status: 'confirmed' | 'tentative' | 'cancelled';
   calendarId: string;
+  /** From Google: their own event, or their answer to someone else's invite. */
+  ownerResponse?: OwnerResponse;
 }
 
 export interface TimeSlot {
@@ -103,9 +104,7 @@ export interface WeekOverview {
   averageMeetingsPerDay: number;
 }
 
-// ============================================================================
 // ADAPTER FUNCTIONS (unified store <-> calendar-service types)
-// ============================================================================
 
 /**
  * Convert unified store event to calendar-service event type
@@ -125,6 +124,7 @@ function unifiedToCalendarEvent(
     attendees: unified.attendees,
     status: unified.status,
     calendarId: unified.externalCalendarId || calendarId,
+    ownerResponse: unified.source === 'ferni' ? 'organizer' : undefined,
   };
 }
 
@@ -173,9 +173,7 @@ function toUnifiedUpdateInput(updates: Partial<CreateEventInput>): UnifiedUpdate
   return result;
 }
 
-// ============================================================================
 // CONFIGURATION
-// ============================================================================
 
 const DEFAULT_CALENDAR_ID = 'primary';
 const WORK_DAY_START_HOUR = 9;
@@ -202,6 +200,7 @@ function googleEventToCalendarEvent(event: GoogleCalendarEvent, calendarId: stri
     attendees: (event.attendees || []).map((a) => a.email),
     status: event.status || 'confirmed',
     calendarId,
+    ownerResponse: ownerResponseOf(event),
   };
 }
 

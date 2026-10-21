@@ -21,6 +21,7 @@ import { findContactByPhone, markContactResponded } from '../../contacts/optimal
 // Bidirectional engagement - route replies to the right agent
 import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/inbound-router.js';
 import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
+import { SMS_KEYWORD_REPLIES, smsKeyword } from './sms-keywords.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -336,32 +337,13 @@ export async function handleInboundSMSWebhook(
   // Replies to proactive check-ins: "less", "not now", "stop" (sms-replies.ts).
   const proactiveReply = await handleProactiveSmsReply(From, Body);
   if (proactiveReply) return { success: true, twiml: generateTwiML(proactiveReply) };
-  // Check for opt-out
-  const optOutKeywords = ['stop', 'unsubscribe', 'cancel', 'quit', 'end'];
-  const normalizedBody = Body.toLowerCase().trim();
-
-  if (optOutKeywords.includes(normalizedBody)) {
-    log.info({ From }, '🚫 User opted out via SMS');
-    // Update user preferences to disable SMS outreach
-    await updateSmsOptStatus(From, false);
-    return {
-      success: true,
-      twiml: generateTwiML(
-        "You've been unsubscribed from Ferni messages. Reply START to resubscribe."
-      ),
-    };
+  // STOP, START and HELP get one reply each (sms-keywords.ts).
+  const keyword = smsKeyword(Body);
+  if (keyword === 'stop' || keyword === 'start') {
+    log.info({ From, keyword }, 'SMS opt-out or opt-in keyword');
+    await updateSmsOptStatus(From, keyword === 'start');
   }
-
-  // Check for opt-in
-  if (normalizedBody === 'start') {
-    log.info({ From }, '✅ User opted back in via SMS');
-    // Update user preferences to enable SMS outreach
-    await updateSmsOptStatus(From, true);
-    return {
-      success: true,
-      twiml: generateTwiML("Welcome back! You'll receive messages from Ferni again. 🌱"),
-    };
-  }
+  if (keyword) return { success: true, twiml: generateTwiML(SMS_KEYWORD_REPLIES[keyword]) };
 
   // Collect media URLs
   const mediaUrls: string[] = [];

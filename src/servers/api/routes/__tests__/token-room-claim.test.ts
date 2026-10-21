@@ -171,6 +171,14 @@ describe('atomic room claim', () => {
     expect(ROOM_CLAIM_TTL_MS).toBeGreaterThanOrEqual(3 * 60 * 60 * 1000);
   });
 
+  it('stores expireAt as a Date (a Firestore Timestamp) so the TTL policy deletes old claims', async () => {
+    const now = 1_760_000_000_000;
+    expect(await claimRoom('voice-ttl', 'uid-alice', now)).toBe('mine');
+    const [stored] = [...docs.values()].map((d) => d.data);
+    expect(stored?.expireAt).toBeInstanceOf(Date);
+    expect((stored?.expireAt as Date).getTime()).toBe(now + ROOM_CLAIM_TTL_MS);
+  });
+
   it('refuses a stranger while the claim is live, even with no LiveKit room yet', async () => {
     const now = Date.now();
     expect(await claimRoom('voice-x', 'uid-alice', now)).toBe('mine');

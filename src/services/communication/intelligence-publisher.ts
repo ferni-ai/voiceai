@@ -13,6 +13,8 @@ import { getProfileStore } from '../../memory/profile-store.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { flagOn } from '../../config/env-flag.js';
+import { Timestamp } from 'firebase-admin/firestore';
 
 // ============================================================================
 // TYPES (Duplicated from intelligence-worker to avoid cross-package imports)
@@ -103,6 +105,13 @@ const PUBSUB_ENABLED = process.env.INTELLIGENCE_PUBSUB_ENABLED === 'true';
 // Fallback to Firestore queue if Pub/Sub not configured
 const USE_FIRESTORE_QUEUE = !PUBSUB_ENABLED;
 
+/**
+ * intelligence_queue had a producer and no consumer: the worker that drains it
+ * runs as no service, so ~31K events sat "pending" (2026-10-18 audit). Nothing
+ * is published unless INTELLIGENCE_QUEUE=on, and queued documents expire.
+ */
+export const QUEUE_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+
 // ============================================================================
 // PUB/SUB CLIENT (Lazy loaded)
 // ============================================================================
@@ -137,13 +146,12 @@ async function queueToFirestore(event: IntelligenceEvent): Promise<void> {
   const admin = await import('firebase-admin');
   const db = admin.default.firestore();
 
-  await db.collection('intelligence_queue').add(
-    cleanForFirestore({
-      ...event,
-      status: 'pending',
-      queuedAt: new Date(),
-    })
-  );
+  const queuedAt = new Date();
+  await db.collection('intelligence_queue').add({
+    ...cleanForFirestore({ ...event, status: 'pending', queuedAt }),
+    // A Timestamp, which a TTL policy reads (cleanForFirestore turns a Date into a string)
+    expireAt: Timestamp.fromDate(new Date(queuedAt.getTime() + QUEUE_RETENTION_MS)),
+  });
 }
 
 // ============================================================================
@@ -184,6 +192,7 @@ export async function publishIntelligenceEvent(params: {
   sessionId: string;
   payload: unknown;
 }): Promise<void> {
+  if (!flagOn('INTELLIGENCE_QUEUE')) return;
   const event: IntelligenceEvent = {
     eventId: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
     type: params.type,

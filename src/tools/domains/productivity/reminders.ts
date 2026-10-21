@@ -161,12 +161,15 @@ const setReminderDef: ToolDefinition = {
 
           // Read back exactly what was stored: the user's local time, one
           // occurrence, and where it lands (a voice reminder is an app message).
+          // With texts on, the delivery job texts an app reminder to their verified number.
           const how =
-            method === 'voice_message'
-              ? 'as a message in the Ferni app'
-              : method === 'sms'
-                ? 'by text'
-                : 'by email';
+            method === 'voice_message' && isReminderSmsDefaultOn() && !keptInApp
+              ? "by text, or in the Ferni app if I can't text you"
+              : method === 'voice_message'
+                ? 'as a message in the Ferni app'
+                : method === 'sms'
+                  ? 'by text'
+                  : 'by email';
 
           log.info(
             { reminderId: reminder.id, scheduledFor: scheduledFor.toISOString() },

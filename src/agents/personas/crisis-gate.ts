@@ -40,6 +40,7 @@ import {
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
@@ -200,6 +201,10 @@ export function startCrisisGate(
   const scope = agreementGate || adjudicatorMode !== 'off' ? sessionScope(userData) : undefined;
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
+  // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
+  const transfer =
+    adjudicatorMode !== 'live' &&
+    transferRequestIsEveryday({ latest, earlier, companion }, pattern, call, env);
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, { latest, earlier, companion });
   const run = startCrisisClassifier(
@@ -218,6 +223,9 @@ export function startCrisisGate(
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
+    // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
+    // one whoever it is about, gets the soft check-in once every other check below has run.
+    let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';
     if (scope && !holdForReads) {
       const reads = turnVerdicts(scope, { latest, earlier, companion });
       shadowAdjudication(reads, callTranscript(chatCtx), {
@@ -239,6 +247,10 @@ export function startCrisisGate(
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
         return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
       }
+      // Reads of this turn that agree on risk are never eased.
+      if (verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2) {
+        softTransfer = false;
+      }
       // Every read of the turn is in: a classifier-only crisis gets a fuller second read.
       const adjudicator = startCrisisAdjudicator(callTranscript(chatCtx), {
         pattern,
@@ -252,6 +264,11 @@ export function startCrisisGate(
         log.info({ action: 'guide', source: 'adjudicator' }, 'CRISIS_GATE');
         return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
       }
+    }
+    noteCrisisRisk(call); // CRISIS_TRANSFER_EVERYDAY: risk on this call, soft or not
+    if (softTransfer) {
+      log.info({ action: 'guide', source: 'transfer-request' }, 'CRISIS_GATE');
+      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },

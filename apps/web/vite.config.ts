@@ -1,5 +1,7 @@
+import { readFileSync } from 'fs';
 import { basename, dirname, resolve } from 'path';
 import { defineConfig, loadEnv } from 'vite';
+import { assetLinksPlugin } from './scripts/asset-links';
 
 // Stub for Firebase when not configured (dev only)
 const firebaseStub = resolve(__dirname, 'src/stubs/firebase-stub.ts');
@@ -20,9 +22,18 @@ export default defineConfig(({ mode }) => {
   // `pnpm ui-server` to run a second checkout's stack beside one already on 3002.
   const uiServer = `http://localhost:${env.UI_SERVER_PORT || '3002'}`;
 
+  // The version reports carry (POST /api/reports): package version, plus the commit when CI sets one.
+  const { version } = JSON.parse(readFileSync(resolve(__dirname, 'package.json'), 'utf8')) as {
+    version: string;
+  };
+  const sha = (env.BUILD_SHA || env.GITHUB_SHA || '').slice(0, 7);
+
   return {
     root: '.',
     publicDir: 'public',
+    define: { __FERNI_APP_VERSION__: JSON.stringify(sha ? `${version}+${sha}` : version) },
+    // dist/.well-known/assetlinks.json for the Android app, from ANDROID_CERT_SHA256.
+    plugins: [assetLinksPlugin()],
     resolve: {
       // Allow .js imports to resolve to .ts files (Node-style ESM imports)
       extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],

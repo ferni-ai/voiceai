@@ -1,0 +1,108 @@
+name: Website checks
+
+# Builds ferni.ai on every PR that touches it and runs its Playwright checks:
+# the light and dark mode checks that Deploy Landing runs before a deploy
+# (apps/website/ferni-website/playwright.config.ts), then the screenshot
+# comparison of every page (e2e/website-visual.spec.ts), which runs only here.
+#
+# Everything runs in the Playwright image the approved screenshots were taken
+# in, so Chromium and the fonts match them. Run it by hand on a branch with
+# "update screenshots" ticked to get new images as the website-screenshots
+# artifact (see the top of the spec).
+#
+# Not OPTIONAL_CI-gated (that switch is off, which would skip it on every PR):
+# the path filter already keeps it to site changes. Not a required check, and
+# no merge_group trigger. To make it required, add
+# merge_group and drop the path filter: a required check that a path filter
+# skips stays "expected" and blocks the PR.
+
+on:
+  pull_request:
+    paths:
+      - 'apps/website/ferni-website/**'
+      - 'design-system/tokens/**'
+      - 'design-system/sync-promo-tokens.js'
+      - 'e2e/website-*.spec.ts'
+      - 'e2e/night-ink-website.spec.ts'
+      - 'e2e/built-site-server.ts'
+      - 'e2e/__screenshots__/website-visual/**'
+      - '.github/workflows/website-checks.yml'
+  workflow_dispatch:
+    inputs:
+      update_screenshots:
+        description: 'Take new approved screenshots and upload them as an artifact'
+        type: boolean
+        default: false
+
+# One run per PR: a new push cancels the PR's running one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  website:
+    name: Website checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    container:
+      # Moves together with PLAYWRIGHT_VERSION below, CHROMIUM in
+      # e2e/website-visual.spec.ts and new approved screenshots.
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    env:
+      PLAYWRIGHT_VERSION: 1.64.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Build the site
+        working-directory: apps/website/ferni-website
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build:prod
+
+      # The specs need only @playwright/test, so this installs it alone, at
+      # the image's version, instead of the whole pnpm workspace.
+      - name: Install Playwright
+        run: |
+          locked=$(grep -m1 -oE "^  '@playwright/test@[0-9.]+'" pnpm-lock.yaml | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
+          if [ "$locked" != "$PLAYWRIGHT_VERSION" ]; then
+            echo "::warning::pnpm-lock.yaml has @playwright/test $locked but this job runs $PLAYWRIGHT_VERSION. Move the image, PLAYWRIGHT_VERSION, CHROMIUM in the spec and the screenshots together."
+          fi
+          npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/pw" "@playwright/test@$PLAYWRIGHT_VERSION"
+          mkdir -p node_modules/@playwright
+          ln -s "$RUNNER_TEMP/pw/node_modules/@playwright/test" node_modules/@playwright/test
+          echo "$RUNNER_TEMP/pw/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Check light and dark mode
+        if: ${{ !inputs.update_screenshots }}
+        run: playwright test -c apps/website/ferni-website/playwright.config.ts
+
+      - name: Compare every page with its approved screenshots
+        if: ${{ !inputs.update_screenshots }}
+        run: playwright test -c apps/website/ferni-website/playwright.visual.config.ts
+
+      - name: Take new screenshots
+        if: ${{ inputs.update_screenshots }}
+        run: playwright test -c apps/website/ferni-website/playwright.visual.config.ts --update-snapshots=all
+
+      - name: Upload the differences
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: website-visual-differences
+          path: |
+            apps/website/ferni-website/test-results/
+            apps/website/ferni-website/playwright-report/
+          retention-days: 14
+
+      - name: Upload the new screenshots
+        if: ${{ inputs.update_screenshots }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: website-screenshots
+          path: e2e/__screenshots__/website-visual/
+          retention-days: 14

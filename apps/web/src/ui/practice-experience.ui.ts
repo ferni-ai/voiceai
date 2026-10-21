@@ -14,6 +14,7 @@ import { createLogger } from '../utils/logger.js';
 import { connectionService } from '../services/connection.service.js';
 import { soundUI } from './sound.ui.js';
 import { apiPost } from '../utils/api.js';
+import { isSanctuaryChatOn } from '../config/sanctuary-chat-flag.js';
 
 const log = createLogger('PracticeExperience');
 
@@ -1348,15 +1349,14 @@ export function startPractice(practice: Practice): void {
 
   // Check if voice is connected
   const roomState = connectionService.getRoomState();
-
   if (roomState.isConnected) {
     // Voice is connected - offer choice
     log.info('Voice connected, offering hybrid mode');
   }
 
-  // Get steps for this practice
+  // Get steps for this practice; the chat step only with VITE_SANCTUARY_CHAT (sanctuary-chat-flag.ts)
   const practiceId = practice.id.toLowerCase().replace(/\s+/g, '-');
-  const steps = PRACTICE_STEPS[practiceId] || DEFAULT_STEPS;
+  const steps = (PRACTICE_STEPS[practiceId] || DEFAULT_STEPS).filter((s) => s.type !== 'chat' || isSanctuaryChatOn());
 
   // Reset state
   state.currentPractice = practice;

@@ -45,6 +45,7 @@ async function regen() {
     // Use set with merge for nested files object
     await docRef.set({
       files: { ...(currentData.files || {}), 'index.html': result.html },
+      kind: 'generated',
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
     console.log('✓ Updated in Firestore (deployed-sites):', snap.docs[0].id);
@@ -55,6 +56,7 @@ async function regen() {
       subdomain: 'joel-dickson',
       status: 'active',
       files: { 'index.html': result.html },
+      kind: 'generated',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });

@@ -21,6 +21,8 @@ import { BuilderCategory } from '../core/categories.js';
 import { createHighInjection, createHintInjection, registerContextBuilder } from '../index.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from '../core/types.js';
 import { getRedisCache } from '../../../memory/redis-cache.js';
+import type { PrimaryEmotion } from '../../detectors/emotion.js';
+import type { VoiceEmotion } from '../../../speech/audio-prosody/types.js';
 
 const log = createLogger({ module: 'context:emotional-trajectory' });
 
@@ -45,31 +47,42 @@ interface EmotionalTrajectory {
 // DISTRESS
 // ============================================================================
 
-/** Emotions that read as distress. Joy, excitement or pride at any intensity never do. */
-const NEGATIVE_EMOTIONS = new Set([
-  'sad',
+/**
+ * The negative labels the detectors actually write to the cached emotion: the text
+ * detector's PrimaryEmotion and the voice detector's VoiceEmotion (turn-handler caches
+ * either). `satisfies` keeps these lists in step with the detectors' types.
+ */
+const TEXT_NEGATIVE = [
   'sadness',
-  'angry',
   'anger',
-  'frustrated',
-  'frustration',
-  'anxious',
-  'anxiety',
-  'worried',
-  'worry',
-  'fearful',
   'fear',
+  'disgust',
+  'anxiety',
+  'regret',
+] as const satisfies readonly PrimaryEmotion[];
+const VOICE_NEGATIVE = [
+  'sad',
+  'angry',
+  'fearful',
+  'anxious',
+  'contempt',
+  'disgusted',
+] as const satisfies readonly VoiceEmotion[];
+
+/** Emotions that read as distress. Joy, excitement, trust or surprise never do. */
+const NEGATIVE_EMOTIONS = new Set<string>([
+  ...TEXT_NEGATIVE,
+  ...VOICE_NEGATIVE,
+  // Words other emotion sources use for the same states
+  'frustrated',
+  'worried',
   'afraid',
   'scared',
   'overwhelmed',
   'guilty',
-  'guilt',
   'ashamed',
-  'shame',
   'stressed',
-  'stress',
   'lonely',
-  'loneliness',
   'hurt',
   'grief',
   'grieving',
@@ -77,14 +90,11 @@ const NEGATIVE_EMOTIONS = new Set([
   'hopeless',
   'despair',
   'panicked',
-  'panic',
   'distressed',
   'upset',
   'nervous',
-  'irritated',
   'disappointed',
   'heartbroken',
-  'exhausted',
 ]);
 
 /**

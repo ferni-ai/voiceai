@@ -19,6 +19,7 @@
 import type { llm } from '@livekit/agents';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 
 /** The base note on every reply of a first call. */
 export const FIRST_CALL_NOTE =
@@ -28,9 +29,19 @@ export const FIRST_CALL_NOTE =
 export const NAME_SWAP_NOTE =
   "If you don't know their name yet, swap names at the next easy moment, the way people do on a first call: yours, then theirs, in one short line (\"I'm Ferni, by the way. What should I call you?\"). Not while they're in the middle of something hard.";
 
+/** NAME_SWAP_NOTE in the speaking persona's name, nothing quoted (SCRIPT_FREE_REMINDER, script-free.ts). */
+export const nameSwapPlain = (name: string): string =>
+  `If you don't know their name yet, swap names at the next easy moment, the way people do on a first call: say you're ${name}, then ask theirs, in one short line. Not while they're in the middle of something hard.`;
+
 /** When the caller is wrapping up. */
 export const FIRST_GOODBYE_NOTE =
   'They\'re heading off. Keep the goodbye to one or two short sentences, by name if you know it, and name one specific thing they told you that you\'d like to hear about next time ("tell me how the interview goes"). No question, and no pitch for the app.';
+
+/** FIRST_GOODBYE_NOTE without its quoted example (SCRIPT_FREE_REMINDER). */
+export const FIRST_GOODBYE_PLAIN = FIRST_GOODBYE_NOTE.replace(
+  ' ("tell me how the interview goes")',
+  ''
+);
 
 /** Replies (the greeting counts as the first) during which a name swap may be suggested. */
 const NAME_SWAP_REPLIES = 4;
@@ -62,18 +73,27 @@ function agentLines(chatCtx: llm.ChatContext): string[] {
   );
 }
 
-/** The first-call note for this reply, or '' (flag off, not a first call, no caller words). */
+/**
+ * The first-call note for this reply, or '' (flag off, not a first call, no caller words).
+ * `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): nothing quoted, and the name
+ * swap in the speaking persona's own name.
+ */
 export function firstCallNote(
   chatCtx: llm.ChatContext,
   session: object,
   callerWords: string,
-  env: Env = process.env
+  env: Env = process.env,
+  scriptFree = false
 ): string {
   if (!callerWords || !firstCallRapportEnabled(env)) return '';
-  if (!isFirstCall((session as { userData?: unknown }).userData)) return '';
-  if (LEAVING.test(callerWords)) return FIRST_GOODBYE_NOTE;
+  const { userData } = session as { userData?: { personaId?: unknown } };
+  if (!isFirstCall(userData)) return '';
+  if (LEAVING.test(callerWords)) return scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
   const said = agentLines(chatCtx);
   const nameAsked = said.some((line) => NAME_ASKED.test(line));
   const early = said.length <= NAME_SWAP_REPLIES;
-  return !nameAsked && early ? `${FIRST_CALL_NOTE} ${NAME_SWAP_NOTE}` : FIRST_CALL_NOTE;
+  if (nameAsked || !early) return FIRST_CALL_NOTE;
+  const speaker = typeof userData?.personaId === 'string' ? userData.personaId : 'ferni';
+  const name = getPersonaDisplayName(speaker).split(/\s+/)[0];
+  return `${FIRST_CALL_NOTE} ${scriptFree ? nameSwapPlain(name) : NAME_SWAP_NOTE}`;
 }

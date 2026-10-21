@@ -26,6 +26,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { readCappedText, safeOutboundFetch } from '../../utils/outbound-url-guard.js';
 import { toolRegistry } from '../../tools/registry/index.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../tools/registry/types.js';
 import type { DeveloperTool } from '../../api/v2/developers/shared/types.js';
@@ -320,23 +321,24 @@ async function executeWebhookTool(
     ...(tool.config.headers || {}),
   };
 
-  const response = await fetch(tool.config.url, {
+  const response = await safeOutboundFetch(tool.config.url, {
     method,
     headers,
     body: method !== 'GET' ? JSON.stringify(params) : undefined,
   });
 
   if (!response.ok) {
+    await response.body?.cancel().catch(() => undefined);
     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
   }
 
   const contentType = response.headers.get('content-type') || '';
+  const text = await readCappedText(response, 256 * 1024);
 
   if (contentType.includes('application/json')) {
-    return await response.json();
-  } else {
-    return await response.text();
+    return JSON.parse(text) as unknown;
   }
+  return text;
 }
 
 /**

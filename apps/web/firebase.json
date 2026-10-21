@@ -131,6 +131,13 @@
       ],
       "headers": [
         {
+          "source": "/.well-known/assetlinks.json",
+          "headers": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "Cache-Control", "value": "public, max-age=300" }
+          ]
+        },
+        {
           "source": "/a/**",
           "headers": [
             { "key": "X-Frame-Options", "value": "DENY" },
@@ -143,6 +150,10 @@
             { "key": "X-Frame-Options", "value": "DENY" },
             { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" }
           ]
+        },
+        {
+          "source": "/sites/**",
+          "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }]
         },
         {
           "source": "**/*.@(js|css)",
@@ -313,6 +324,13 @@
       ],
       "headers": [
         {
+          "source": "/.well-known/assetlinks.json",
+          "headers": [
+            { "key": "Content-Type", "value": "application/json" },
+            { "key": "Cache-Control", "value": "public, max-age=300" }
+          ]
+        },
+        {
           "source": "/a/**",
           "headers": [
             { "key": "X-Frame-Options", "value": "DENY" },
@@ -325,6 +343,10 @@
             { "key": "X-Frame-Options", "value": "DENY" },
             { "key": "Content-Security-Policy", "value": "frame-ancestors 'none'" }
           ]
+        },
+        {
+          "source": "/sites/**",
+          "headers": [{ "key": "X-Content-Type-Options", "value": "nosniff" }]
         },
         {
           "source": "**/*.@(js|css)",
