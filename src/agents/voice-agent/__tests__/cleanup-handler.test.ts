@@ -34,7 +34,11 @@ describe('cleanup-handler', { timeout: CLEANUP_BUDGET_MS + 10_000 }, () => {
   it('marks session closing at start and clears on completion', async () => {
     expect(isSessionClosing(sessionId)).toBe(false);
 
-    const endSession = vi.fn().mockResolvedValue(undefined);
+    // Record the flag from inside the cleanup, while the work is running.
+    let closingDuringCleanup: boolean | undefined;
+    const endSession = vi.fn().mockImplementation(async () => {
+      closingDuringCleanup = isSessionClosing(sessionId);
+    });
     const ctx: CleanupContext = {
       sessionId,
       services: {
@@ -48,14 +52,18 @@ describe('cleanup-handler', { timeout: CLEANUP_BUDGET_MS + 10_000 }, () => {
 
     const p = handleSessionCleanup(ctx, CLEANUP_BUDGET_MS);
 
-    // Shortly after start, session should be marked closing
-    await new Promise((r) => setTimeout(r, 50));
+    // The session is marked before the cleanup's first await, so the flag is
+    // set by the time the call returns. No sleep: a fixed 50 ms wait failed on
+    // the loaded CI runner (run 39576629948) because the timer fired only
+    // after the whole ~1.4 s cleanup had finished and cleared the flag.
     expect(isSessionClosing(sessionId)).toBe(true);
 
     await p;
 
-    // After cleanup completes, session should be cleared
-    expect(isSessionClosing(sessionId)).toBe(false);
+    // It stayed marked while the cleanup worked...
     expect(endSession).toHaveBeenCalled();
+    expect(closingDuringCleanup).toBe(true);
+    // ...and was cleared once the cleanup completed.
+    expect(isSessionClosing(sessionId)).toBe(false);
   });
 });
