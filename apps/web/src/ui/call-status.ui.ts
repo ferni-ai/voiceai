@@ -10,14 +10,28 @@
 import { t } from '../i18n/index.js';
 import type { ConnectFailure } from '../services/connect-failure.js';
 import { createLogger } from '../utils/logger.js';
+import { isWaitlistScreenEnabled, showWaitingOverlay } from './waiting-screen.ui.js';
 
 const log = createLogger('CallStatusUI');
 
 const NOTICE_ID = 'callStatusNotice';
 const STYLE_ID = 'call-status-styles';
 
-const MIC_HELP =
-  'Open your browser’s site settings (the icon left of the address bar), set Microphone to Allow, then try again.';
+/**
+ * How to allow the microphone on this device. Phones have no desktop-style
+ * site-settings icon: iPhone Safari keeps it under the aA menu, other iPhone
+ * browsers in iOS Settings, Chrome on Android under the address-bar icon.
+ */
+export function micHelpText(userAgent: string = navigator.userAgent, touchPoints = navigator.maxTouchPoints): string {
+  // iPadOS reports itself as a Mac; touch support gives it away.
+  const ios = /iPad|iPhone|iPod/.test(userAgent) || (/Macintosh/.test(userAgent) && touchPoints > 1);
+  if (ios) {
+    const otherBrowser = /CriOS|FxiOS|EdgiOS|OPiOS/.test(userAgent);
+    return t(otherBrowser ? 'entrance.micHelpIos' : 'entrance.micHelpIosSafari');
+  }
+  if (/Android/.test(userAgent)) return t('entrance.micHelpAndroid');
+  return t('entrance.micHelpDesktop');
+}
 
 export interface CallNoticeHandlers {
   /** Start a new call attempt. */
@@ -62,7 +76,10 @@ function injectStyles(): void {
       font: inherit;
       cursor: pointer;
     }
-    .call-status__btn--primary { background: var(--persona-primary, var(--color-accent-primary)); color: var(--color-text-inverse); border-color: transparent; }
+    /* Text pairs with its own fill: --persona-on-primary for the persona colour,
+       --color-text-on-accent for the accent fallback. --color-text-inverse is ink in
+       midnight, which put dark text on the dark forest fill (2.96:1). */
+    .call-status__btn--primary { background: var(--persona-primary, var(--color-accent-primary)); color: var(--persona-on-primary, var(--color-text-on-accent)); border-color: transparent; }
     .call-status__btn:hover, .call-status__btn:focus-visible { border-color: var(--color-border-strong); }
     .call-status__btn:focus-visible { outline: 2px solid var(--persona-primary, var(--color-accent-primary)); outline-offset: 2px; }
   `;
@@ -98,6 +115,8 @@ function mount(notice: HTMLElement): void {
  */
 export function showCallNotice(failure: ConnectFailure, handlers: CallNoticeHandlers): void {
   clearCallNotice();
+  // Still on the waitlist: their place in line, not an error
+  if (failure.waitlist && isWaitlistScreenEnabled() && showWaitingOverlay(failure.waitlist)) return;
   if (!failure.message) return;
   injectStyles();
 
@@ -122,7 +141,7 @@ export function showCallNotice(failure: ConnectFailure, handlers: CallNoticeHand
   if (failure.action === 'mic-help') {
     const help = document.createElement('p');
     help.className = 'call-status__help';
-    help.textContent = MIC_HELP;
+    help.textContent = micHelpText();
     help.hidden = true;
     notice.appendChild(help);
     actions.append(

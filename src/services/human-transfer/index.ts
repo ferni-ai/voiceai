@@ -245,21 +245,7 @@ export function buildTransferAwarenessContext(decision: EscalationDecision): str
 // ============================================================================
 
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
-
-/**
- * Crisis event record stored in Firestore
- */
-interface CrisisEventRecord {
-  userId: string;
-  timestamp: string;
-  escalationType: EscalationType;
-  urgency: string;
-  reason: string;
-  transferSuccess?: boolean;
-  channel?: string;
-  resources?: string[];
-  sessionId?: string;
-}
+import { crisisLevelSignalsSince, type CrisisEventRecord } from './crisis-signals.js';
 
 /**
  * Log transfer event for analytics and safety audit trail
@@ -369,7 +355,8 @@ export async function logCrisisSignal(
         },
         // Store truncated transcript for context (privacy-conscious)
         transcriptSnippet: transcript ? transcript.slice(0, 200) : null,
-        sessionId,
+        // Firestore rejects an undefined field, which dropped every signal logged without one
+        ...(sessionId ? { sessionId } : {}),
       });
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to log crisis signal');
@@ -379,6 +366,12 @@ export async function logCrisisSignal(
 /**
  * Get user's crisis history (for cross-session awareness)
  * SAFETY-CRITICAL: Used for proactive check-ins
+ *
+ * Reads the crisis-level signals in bogle_users/{uid}/crisis_signals
+ * (crisis-signals.ts), which logCrisisSignal writes on the live turn path
+ * (buildHumanTransferInjections). It used to read
+ * crisis_history, whose only writer (logTransferEvent) nothing calls, so a
+ * caller in crisis yesterday got no follow-up today.
  */
 export async function getCrisisHistory(
   userId: string,
@@ -391,18 +384,7 @@ export async function getCrisisHistory(
     const cutoffDate = new Date();
     cutoffDate.setDate(cutoffDate.getDate() - limitDays);
 
-    const snapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('crisis_history')
-      .where('timestamp', '>=', cutoffDate.toISOString())
-      .orderBy('timestamp', 'desc')
-      .limit(10)
-      .get();
-
-    return snapshot.docs.map(
-      (doc: FirebaseFirestore.QueryDocumentSnapshot) => doc.data() as CrisisEventRecord
-    );
+    return await crisisLevelSignalsSince(db, userId, cutoffDate);
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get crisis history');
     return [];

@@ -11,8 +11,10 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { judgeCommitment } from '../../utils/commitment-quality.js';
 import { getFirestoreDb, cleanForFirestore, recordDegradation } from './firestore-utils.js';
 import { commitmentCache, loadActiveCommitmentsOrThrow } from './commitment-store.js';
+import { followUpsDue } from './commitment-checkin-cooldown.js';
 import {
   validateCommitmentFeasibility,
   createCalendarBlocksForCommitment,
@@ -23,6 +25,7 @@ import { syncCommitmentToCalendar } from '../calendar/calendar-bridge.js';
 import { onCommitmentKeeperChange } from '../data-layer/hooks/superhuman-hooks.js';
 import { onCommitmentMade, onCommitmentAtRisk } from '../outreach/superhuman-outreach-bridge.js';
 import { recordWinFromCommitment } from './wins.js';
+import { commitmentSentences, isNotOwnCommitment } from '../../utils/commitment-filters.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
@@ -38,12 +41,12 @@ export type CommitmentType =
   | 'conversation' // "I need to talk to..." - interpersonal
   | 'decision' // "I've decided..." - firm choice
   | 'experiment'; // "I'm going to try..." - exploratory;
-
 export type CommitmentStatus =
   | 'active' // Still working toward it
   | 'completed' // User confirmed done
   | 'deferred' // Postponed with reason
   | 'abandoned' // User decided not to pursue
+  | 'dismissed' // Closed from the app as no longer theirs; not counted as giving up
   | 'unclear'; // Need to check in
 
 export type FollowUpTone =
@@ -111,28 +114,6 @@ export interface CommitmentDetectionResult {
 // ============================================================================
 // COMMITMENT DETECTION PATTERNS
 // ============================================================================
-
-// Sarcasm indicators - reduce confidence when detected (P2 FIX)
-const SARCASM_INDICATORS = [
-  /\(not\)$/i,
-  /\bas if\b/i,
-  /\byeah right\b/i,
-  /\bsure,? (yeah|right|okay|uh huh)/i,
-  /\boh (sure|yeah|definitely|absolutely)\b/i,
-  /\bwhen (pigs fly|hell freezes)/i,
-  /\b(totally|definitely|absolutely),? (not|never)/i,
-  /\b🙄|\/s$/i, // Eye roll emoji or /s tag
-  /\blol as if\b/i,
-  /\bsuuure\b/i, // Drawn out "sure"
-];
-
-// External pressure - NOT the user's own commitment (P3 FIX)
-const EXTERNAL_PRESSURE_PATTERNS = [
-  /\b(everyone|they|people|my (mom|dad|parents|boss|friends)) (say|says|tell|tells|think|thinks) i should\b/i,
-  /\b(everyone|they) (want|wants) me to\b/i,
-  /\bi('m| am) supposed to\b/i, // Obligation, not commitment
-  /\bi('m| am) expected to\b/i,
-];
 
 const COMMITMENT_PATTERNS: Array<{
   pattern: RegExp;
@@ -276,27 +257,14 @@ const TIME_PATTERNS: Array<{ pattern: RegExp; daysFromNow: number }> = [
 // ============================================================================
 
 export function detectCommitment(
-  transcript: string,
+  said: string,
   userId: string,
   context?: { topic?: string; personMentioned?: string; emotionalIntensity?: number }
 ): CommitmentDetectionResult {
+  // Sarcasm, outside pressure, questions, requests to Ferni and food orders are not commitments.
+  if (isNotOwnCommitment(said)) return { detected: false, confidence: 0 };
+  const transcript = commitmentSentences(said);
   const lowerTranscript = transcript.toLowerCase();
-
-  // P2 FIX: Check for sarcasm indicators FIRST
-  const hasSarcasm = SARCASM_INDICATORS.some((pattern) => pattern.test(lowerTranscript));
-  if (hasSarcasm) {
-    // Don't detect commitments that are clearly sarcastic
-    return { detected: false, confidence: 0 };
-  }
-
-  // P3 FIX: Check for external pressure - not the user's own commitment
-  const isExternalPressure = EXTERNAL_PRESSURE_PATTERNS.some((pattern) =>
-    pattern.test(lowerTranscript)
-  );
-  if (isExternalPressure) {
-    // External pressure is NOT a commitment the user made
-    return { detected: false, confidence: 0 };
-  }
 
   // Find matching patterns
   let bestMatch: { type: CommitmentType; weight: number } | null = null;
@@ -366,8 +334,9 @@ export function detectCommitment(
 export async function saveCommitment(
   commitment: Omit<Commitment, 'id'>,
   options?: { validateCalendar?: boolean; createCalendarBlocks?: boolean }
-): Promise<{ commitment: Commitment; feasibility?: CommitmentFeasibility }> {
+): Promise<{ commitment: Commitment; feasibility?: CommitmentFeasibility; notActionable?: true }> {
   const id = `commit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const verdict = judgeCommitment(commitment.statement); // a sign-off or "call her" is never stored
   const fullCommitment: Commitment = {
     ...commitment,
     id,
@@ -378,8 +347,10 @@ export async function saveCommitment(
     status: 'active',
     followUpCount: 0,
   };
-
-  // Better Than Human: Validate against calendar
+  if (!verdict.ok) {
+    log.info({ userId: commitment.userId, reason: verdict.reason }, 'Commitment not stored');
+    return { commitment: fullCommitment, notActionable: true };
+  }
   let feasibility: CommitmentFeasibility | undefined;
   if (options?.validateCalendar !== false) {
     try {
@@ -426,7 +397,6 @@ export async function saveCommitment(
       'create'
     );
 
-    // Better Than Human: Create calendar blocks for the commitment
     // Auto-create blocks when there's a target date (better than human by default)
     const shouldCreateBlocks = options?.createCalendarBlocks ?? !!commitment.targetDate;
     if (shouldCreateBlocks && feasibility?.suggestedSlots?.length) {
@@ -440,7 +410,6 @@ export async function saveCommitment(
         if (blocks.eventIds.length > 0) {
           fullCommitment.calendarEventIds = blocks.eventIds;
 
-          // Update Firestore with calendar event IDs
           if (db) {
             await db
               .collection('bogle_users')
@@ -464,7 +433,6 @@ export async function saveCommitment(
       }
     }
 
-    // Sync commitment target date to calendar as reminder event
     if (commitment.targetDate) {
       try {
         await syncCommitmentToCalendar(
@@ -486,7 +454,6 @@ export async function saveCommitment(
     // Only a list read from the store is cached: seeding one with just this commitment hid the rest
     commitmentCache.get(commitment.userId)?.push(fullCommitment);
 
-    // Better Than Human: Schedule proactive follow-up via outreach system
     try {
       await onCommitmentMade(commitment.userId, {
         id,
@@ -754,11 +721,8 @@ export async function getFollowUpsForUser(userId: string): Promise<CommitmentFol
 
 export async function buildCommitmentContextForLLM(userId: string): Promise<string> {
   const commitments = await loadUserCommitments(userId);
-  const followUps = await getFollowUpsForUser(userId);
-
-  if (commitments.length === 0) {
-    return '';
-  }
+  if (commitments.length === 0) return '';
+  const followUps = await followUpsDue(userId, await getFollowUpsForUser(userId), commitments);
 
   const sections: string[] = ['[COMMITMENT KEEPER - Better Than Human Accountability]'];
   sections.push('You remember EVERYTHING they commit to. This is your superpower.');

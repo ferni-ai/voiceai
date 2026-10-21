@@ -23,7 +23,7 @@ export const BQ_ENUMS = {
   channel: ['in_app', 'sms', 'voice_call'],
   kind: [
     ...['promise', 'follow_up', 'planned_checkin', 'hard_news', 'world_due', 'reminder'],
-    ...['checkin', 'follow-up', 'message', 'on-behalf'],
+    ...['checkin', 'follow-up', 'message', 'on-behalf', 'morning-brief', 'call-result'],
   ],
   outcome: [
     ...['pending', 'sent', 'replied', 'ignored', 'failed'],

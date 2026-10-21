@@ -214,6 +214,19 @@ describe('emitEvent and flushing', () => {
     expect(vi.mocked(GoogleAuth)).not.toHaveBeenCalled();
   });
 
+  it('never throws into the caller, even when building the row throws', async () => {
+    // reportText runs inline in sendGuardedText: an analytics fault must not fail a send
+    const hostile = {
+      get event_type(): string {
+        throw new Error('getter blew up');
+      },
+    };
+    expect(() => emitEvent('outreach_events', hostile as never, {}, ON)).not.toThrow();
+    expect(emitEvent('outreach_events', hostile as never, {}, ON)).toBe(false);
+    await flushBqEvents();
+    expect(sent).toHaveLength(0);
+  });
+
   it('batches rows per table and sends them on flush', async () => {
     expect(emitEvent('outreach_events', { event_type: 'send', channel: 'sms' }, {}, ON)).toBe(true);
     expect(emitEvent('call_events', { event_type: 'call_end' }, {}, ON)).toBe(true);
@@ -265,7 +278,9 @@ describe('emitEvent and flushing', () => {
     const release: Array<() => void> = [];
     setBqTransportForTests(async (table, rows) => {
       sent.push({ table, rows });
-      await new Promise<void>((resolve) => release.push(resolve));
+      await new Promise<void>((resolve) => {
+        release.push(resolve);
+      });
     });
     for (let i = 0; i < 6; i++) {
       emitEvent('call_events', { event_type: 'call_end' }, {}, ON);

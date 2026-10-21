@@ -8,9 +8,11 @@ import {
   loadCallCheckIns,
   pickForCall,
   toOpenCommitment,
+  youSaidYoud,
   type CommitmentStore,
   type OpenCommitment,
 } from '../commitment-follow-up.js';
+import { ferniCallNotes, type CallRecords } from '../../outreach/call-status.js';
 
 const DAY = 86_400_000;
 const NOW = Date.parse('2026-10-10T18:00:00Z');
@@ -24,6 +26,17 @@ function commitment(over: Partial<OpenCommitment> = {}): OpenCommitment {
     followUpCount: 0,
     ...over,
   };
+}
+
+/** Best of three runs, in ms: the work done, not a scheduler or GC pause. */
+function fastest(run: () => unknown): number {
+  let best = Infinity;
+  for (let i = 0; i < 3; i++) {
+    const started = performance.now();
+    run();
+    best = Math.min(best, performance.now() - started);
+  }
+  return best;
 }
 
 describe('coachFollowThroughMode', () => {
@@ -43,10 +56,10 @@ describe('toOpenCommitment', () => {
     followUpCount: 1,
   };
 
-  it('reads the fields commitment-keeper writes', () => {
+  it('reads the fields commitment-keeper writes, the statement without its lead-in', () => {
     expect(toOpenCommitment('c9', doc)).toEqual({
       id: 'c9',
-      statement: "I'll start running three mornings a week.",
+      statement: 'start running three mornings a week',
       createdAt: NOW - DAY,
       followUpAfter: NOW + 2 * DAY,
       followUpCount: 1,
@@ -61,6 +74,48 @@ describe('toOpenCommitment', () => {
       "I'll try.",
     ]) {
       expect(toOpenCommitment('c', { ...doc, statement })).toBeNull();
+    }
+  });
+
+  it('cleans the stored line the same way for every reader', () => {
+    const said = (statement: string) => toOpenCommitment('c', { ...doc, statement })?.statement;
+    expect(said("Okay, I'm going to call my sister Sunday!")).toBe('call my sister Sunday');
+    expect(said("I'll probably send Mindy the photos lol")).toBe('send Mindy the photos');
+    expect(said("I'm going to the gym tonight.")).toBe('go to the gym tonight');
+    expect(said('Finish the deck by Friday.')).toBe('Finish the deck by Friday');
+  });
+
+  it('leaves out a line shown on its own when "her" or "it" is all it says', () => {
+    const her = { ...doc, statement: "I'll call her tomorrow." };
+    expect(toOpenCommitment('c', her)).toBeNull();
+    expect(toOpenCommitment('c', her, { withContext: true })?.statement).toBe('call her tomorrow');
+    expect(toOpenCommitment('c', { ...doc, statement: "I'll pay it Thursday" })).toBeNull();
+  });
+
+  it('shows a run-on line whole, and quotes it back', () => {
+    const c = toOpenCommitment('c', {
+      ...doc,
+      statement: "I owe Tom fifty bucks, I'll pay him back Friday.",
+    });
+    expect(c).toMatchObject({
+      statement: "I owe Tom fifty bucks, I'll pay him back Friday",
+      whole: true,
+    });
+    expect(c && youSaidYoud(c)).toBe('"I owe Tom fifty bucks, I\'ll pay him back Friday"');
+  });
+
+  it('says it back to them in the second person', () => {
+    const c = toOpenCommitment('c', {
+      ...doc,
+      statement: "I'll call my mom and tell her I'm sorry",
+    });
+    expect(c && youSaidYoud(c)).toBe("you'd call your mom and tell her you're sorry");
+  });
+
+  it('reads a pathological stored line quickly (cut to MAX_CHARS first)', () => {
+    toOpenCommitment('warm', doc);
+    for (const statement of [`${' ,'.repeat(5000)}x`, `${'my me '.repeat(2000)}x`]) {
+      expect(fastest(() => toOpenCommitment('c', { ...doc, statement }))).toBeLessThan(50);
     }
   });
 
@@ -143,6 +198,35 @@ describe('loadCallCheckIns', () => {
     expect(marked).toEqual(['c1']);
   });
 
+  it('leaves out a goodbye stored before the writers checked, and brings up the rest', async () => {
+    const stored = (id: string, statement: string, ageDays: number) => ({
+      id,
+      data: { status: 'active', statement, createdAt: NOW - ageDays * DAY, followUpCount: 0 },
+    });
+    const { store, marked } = fakeStore([
+      stored('junk', "I'll catch you later.", 1),
+      stored('be', "I'll be at Jake's recital Thursday.", 2),
+      stored('ok', "I'll send Mindy the photos.", 3),
+    ]);
+    const open = await loadCallCheckIns('u1', store, NOW);
+    expect(open.map((c) => [c.id, c.statement])).toEqual([
+      ['be', "be at Jake's recital Thursday"],
+      ['ok', 'send Mindy the photos'],
+    ]);
+    expect(marked).toEqual(['be', 'ok']);
+  });
+
+  it('brings "call her tomorrow" up on the call, where the model has the conversation', async () => {
+    const { store } = fakeStore([
+      {
+        id: 'her',
+        data: { status: 'active', statement: "I'll call her tomorrow.", createdAt: NOW - DAY },
+      },
+    ]);
+    const open = await loadCallCheckIns('u1', store, NOW);
+    expect(open.map((c) => c.statement)).toEqual(['call her tomorrow']);
+  });
+
   it('returns nothing instead of throwing when the store fails', async () => {
     const store: CommitmentStore = {
       active: async () => {
@@ -151,6 +235,61 @@ describe('loadCallCheckIns', () => {
       markFollowedUp: async () => undefined,
     };
     await expect(loadCallCheckIns('u1', store, NOW)).resolves.toEqual([]);
+  });
+});
+
+describe('a call Ferni was asked to make (owner call 2026-10-18)', () => {
+  const asked = {
+    status: 'active',
+    statement: 'Call my mom to check in on her',
+    createdAt: NOW - DAY,
+    followUpAfter: NOW - DAY,
+    followUpCount: 0,
+  };
+  const store: CommitmentStore = {
+    active: async () => [{ id: 'c-mom', data: asked }],
+    markFollowedUp: async () => undefined,
+  };
+  const notesFrom = (records: CallRecords) => (u: string, s: readonly string[], n: number) =>
+    ferniCallNotes(u, s, n, records);
+  const heldCall: CallRecords = {
+    load: async () => ({
+      deferred: [
+        {
+          kind: 'on_behalf',
+          status: 'pending',
+          scheduledFor: new Date(NOW + 2 * 3_600_000).toISOString(),
+          timezone: 'America/Denver',
+          request: { contactQuery: 'my mom' },
+        },
+      ],
+      results: [],
+    }),
+  };
+
+  it('held: the check-in says it has not happened, never to ask how it went', async () => {
+    const open = await loadCallCheckIns('u1', store, NOW, notesFrom(heldCall));
+    expect(open[0].callNote).toMatch(/has not happened yet/);
+    const note = formatCheckIn(open, NOW) ?? '';
+    expect(note).toContain('"Call my mom to check in on her" (they said this yesterday)');
+    expect(note).toMatch(
+      /has not happened yet: it is set for later today at 2:00\sPM their time\. Do not ask how it went/
+    );
+  });
+
+  it('completed, or never asked of Ferni: asked about as before', async () => {
+    const none: CallRecords = { load: async () => ({ deferred: [], results: [] }) };
+    const done: CallRecords = {
+      load: async () => ({
+        deferred: [],
+        results: [{ request: { contactQuery: 'my mom' }, outcome: { status: 'completed' } }],
+      }),
+    };
+    for (const calls of [none, done]) {
+      const open = await loadCallCheckIns('u1', store, NOW, notesFrom(calls));
+      expect(open[0].callNote).toBeUndefined();
+      expect(formatCheckIn(open, NOW)).not.toMatch(/Do not ask how it went/);
+    }
   });
 });
 

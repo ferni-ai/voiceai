@@ -5,11 +5,9 @@
  * @module agents/multi-agent/greeting-direction
  */
 
-import {
-  callCheckIns,
-  coachFollowThroughMode,
-} from '../../services/superhuman/commitment-follow-up.js';
+import { coachFollowThroughMode } from '../../services/superhuman/commitment-follow-up.js';
 import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
+import { checkInsWithCalls } from '../../services/outreach/call-status.js';
 import { contentWords } from '../../memory/recall/session-recall.js';
 import { claimOpenerFollowUp } from '../../memory/recall/opener-claim.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
@@ -28,7 +26,9 @@ import {
   anniversaryFor,
   lineSaysAnniversary,
 } from './friendship-anniversary.js';
+import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
+import { calendarDaysSince } from '../../utils/calendar-days.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -49,11 +49,19 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
   'warm and a little playful, glad it\'s them, one short sentence, maybe a quick easy question or a light, friendly tease. No exclamation marks, no "so good to hear your voice", no hype,'
 );
 
-/** The hello's direction for this persona. */
-export function greetingDirection(personaId: string, env: Env = process.env): string {
-  return personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env)
-    ? PLAYFUL_GREETING_DIRECTION
-    : GREETING_DIRECTION;
+/**
+ * The hello's direction for this persona. Never the playful one after a heavy
+ * last call (what they talked about reads as heavy-moment.ts does) or when
+ * welcome-back held back a tender thread: a tease is no way to pick that up.
+ */
+export function greetingDirection(
+  personaId: string,
+  env: Env = process.env,
+  last: { topic?: string; tender?: boolean } = {}
+): string {
+  const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
+  const careful = last.tender === true || isHeavyMoment([last.topic]);
+  return playful && !careful ? PLAYFUL_GREETING_DIRECTION : GREETING_DIRECTION;
 }
 
 /**
@@ -98,7 +106,8 @@ async function inTime<T>(work: Promise<T>): Promise<T | undefined> {
 /** The commitment to open on, or undefined (flag off, none open, or too slow). */
 async function checkInFor(userId: string | undefined): Promise<string | undefined> {
   if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
-  return (await inTime(callCheckIns(userId)))?.[0]?.statement;
+  // Never one about a call Ferni hasn't completed: it is held, failed or unheard.
+  return (await inTime(checkInsWithCalls(userId)))?.find((c) => !c.callNote)?.statement;
 }
 
 /** A win not yet named, or undefined (COACH_WINS off, none, or too slow). */
@@ -197,14 +206,19 @@ export function callerHistory(
     /** Only a last-call summary checked for who said what (caller-assertions.ts). */
     lastCallerSummary?: string;
   },
-  now: Date = new Date()
+  now: Date = new Date(),
+  /** The call's settled zone (phone-parity.ts), never read off the profile here. */
+  timeZone?: string
 ): CallerHistory | undefined {
   const calls = profile.totalConversations ?? 0;
   if (calls <= 0) return undefined;
   const history: CallerHistory = { calls };
   if (profile.lastContact) {
-    const ms = now.getTime() - new Date(profile.lastContact).getTime();
-    if (Number.isFinite(ms) && ms >= 0) history.daysSince = Math.floor(ms / 86_400_000);
+    // Calendar days in their zone: "yesterday" means the calendar day, not 24-48 hours ago
+    const last = new Date(profile.lastContact).getTime();
+    if (Number.isFinite(last) && last <= now.getTime()) {
+      history.daysSince = calendarDaysSince(last, now, timeZone);
+    }
   }
   const fc = profile.firstContact;
   const first =
@@ -376,7 +390,10 @@ export async function directedGreeting(
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const direction =
-    greetingDirection(personaId) +
+    greetingDirection(personaId, process.env, {
+      topic: history?.lastTopic,
+      tender: back?.heldBack,
+    }) +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +

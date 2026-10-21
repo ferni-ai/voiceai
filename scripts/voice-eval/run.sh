@@ -27,6 +27,11 @@
 #     Reuses a fixed user and everything it has piled up across past runs.
 # The user id must start with "voice-eval-": code that skips synthetic
 # callers keys on it (src/services/outreach/automated-scheduler.ts).
+# Both agents write to production Firestore (johnb-2025), which refuses every
+# harness user's writes (src/utils/synthetic-write-guard.ts). An agent started
+# with PROD_EVAL_WRITES=voice-eval lets voice-eval- users through; without it
+# the call still runs but nothing is remembered, so EVAL_SEED proves nothing.
+# Eval users are removed by cleanup-users.ts (older than 24 h).
 #
 # EVAL_TIER=partner gives the eval user a subscription first (seed-tier.ts): the
 #   whole team is unlocked, as for a real Partner subscriber.
@@ -107,8 +112,15 @@ fi
 if [[ $env != phone && -z ${EVAL_DRY_RUN:-} && -z ${EVAL_DISPATCH_SECRET:-} ]]; then
   dsecret=eval-dispatch-secret
   export EVAL_DISPATCH_SECRET=$(gcloud secrets versions access latest --secret=$dsecret --project=johnb-2025 2>/dev/null || true)
-  [[ -n $EVAL_DISPATCH_SECRET ]] ||
+  if [[ -z $EVAL_DISPATCH_SECRET ]]; then
+    # A returning caller unsigned is a stranger: the run would pass or fail on
+    # nothing (#1597, every eval ran as anon: for days). Refuse those.
+    if [[ -n $seed || -n ${4:-${EVAL_UID:-}} ]]; then
+      print -u2 "run.sh: can't read $dsecret, and a returning-caller run (EVAL_SEED or a user id) needs it"
+      exit 2
+    fi
     print -u2 "run.sh: can't read $dsecret, so the call goes unsigned and the agent takes $uid as a stranger"
+  fi
 fi
 json=$out/$scenario-$label.json
 stamp=$(date +%H%M%S)

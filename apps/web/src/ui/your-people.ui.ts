@@ -437,8 +437,8 @@ function injectStyles(): void {
     }
 
     .yp-nudge-badge.medium {
-      background: rgba(184, 149, 106, 0.15);
-      color: var(--nayan-primary, #b8956a);
+      background: var(--color-semantic-warning-tint);
+      color: var(--color-semantic-warning-text);
     }
 
     .yp-nudge-arrow {
@@ -954,7 +954,7 @@ function upcomingLabel(date: NonNullable<Person['upcomingDate']>): string {
 
 function renderPersonItem(person: Person): string {
   const initials = getInitials(person.name);
-  const strengthColor = getStrengthColor(person.strengthScore || 50);
+  const strengthColor = typeof person.strengthScore === 'number' ? getStrengthColor(person.strengthScore) : 'var(--color-border, transparent)'; // unscored: neutral, never an invented 50
   
   const relationship = person.relationship
     ? t(`addPerson.relationships.${person.relationship.toLowerCase()}`, person.relationship)

@@ -26,6 +26,7 @@ import { GEMINI_MODEL } from '../../config/gemini-config.js';
 import { getVoiceIdForPersona } from '../../config/voice-ids.js';
 import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
 import { finops } from '../../services/observability/finops.js';
+import { crisisLineSpeechTransform } from '../../services/safety/crisis-line-speech.js';
 import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
@@ -44,6 +45,7 @@ import {
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 import { logToolMarkup, toolMarkupTransform } from './tool-markup-strip.js';
+import { replyCallerTurnFields } from './reply-caller-turn.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
 import { isFtisEnabled } from '../../config/tool-config.js';
 
@@ -51,6 +53,7 @@ import { isFtisEnabled } from '../../config/tool-config.js';
 import { createGatewayTTSNode, isTTSGatewayEnabled } from '../../speech/tts-gateway/index.js';
 import { getReplyAudioId } from '../../speech/tts-gateway/reply-audio-id.js';
 import { recordQuirk } from '../../services/session/quirk-log.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'TtsWrapper' });
 
@@ -316,8 +319,9 @@ export interface TtsSessionContext {
 
   /** User's name for personalized responses */
   userName?: string;
-  /** What the user originally asked (from last transcript) */
+  /** The caller's words this reply answers (reply-caller-turn.ts) */
   userRequest?: string;
+  callerTurnFresh?: boolean; // userRequest was read from this reply's own chat context
   /** User's detected emotional state */
   userEmotion?: {
     primary?: string;
@@ -729,12 +733,10 @@ export async function wrappedTtsNode(
           // V3.2: Track Ferni's commitments in his response
           // This catches when Ferni says things like "I'll check in about that" or "Let me know how it goes"
           // Fire-and-forget to not block TTS stream
-          if (userId && userId !== 'anonymous' && rawLLMBuffer.length > 10 && !isGarbageResponse) {
+          if (isMemberIdentity(userId) && rawLLMBuffer.length > 10 && !isGarbageResponse) {
             import('../../services/superhuman/semantic-intelligence/integration.js')
               .then(({ trackFerniCommitments }) => {
-                trackFerniCommitments(userId, rawLLMBuffer, {
-                  // Context is minimal in TTS wrapper, but commitments will still be detected
-                });
+                void trackFerniCommitments(userId, rawLLMBuffer, {});
               })
               .catch((err) => {
                 // Non-critical - don't block TTS
@@ -992,9 +994,7 @@ export async function wrappedTtsNode(
     },
   });
 
-  // DIAGNOSTIC: Wrap the stream to detect cancellation
-  // The writable side's abort signal tells us if the consumer cancelled
-  const originalWritable = costTrackingStream.writable;
+  // DIAGNOSTIC: log if the cost-tracking stream is aborted
   const abortController = new AbortController();
   abortController.signal.addEventListener('abort', () => {
     log.warn(
@@ -1010,8 +1010,9 @@ export async function wrappedTtsNode(
     );
   });
 
-  // 5. Chain all transforms (sanitizer → interrupt-aware → mirroring → cost tracking)
-  const trackedText = linguisticallyMirroredText.pipeThrough(costTrackingStream);
+  // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → cost tracking)
+  const spokenText = linguisticallyMirroredText.pipeThrough(crisisLineSpeechTransform());
+  const trackedText = spokenText.pipeThrough(costTrackingStream);
 
   // 6. Apply streaming TTS optimization for lower latency
   // This chunks the text more aggressively for faster first-audio
@@ -1313,9 +1314,7 @@ export function extractTtsSessionContext(
     // User's name for personalized responses
     userName: (userData?.userName as string | undefined) || (userData?.name as string | undefined),
 
-    // What the user originally asked (from last transcript)
-    userRequest: userData?.lastUserMessage as string | undefined,
-
+    ...replyCallerTurnFields(agent, userData?.lastUserMessage),
     // User's detected emotional state (prefer voice emotion, fallback to last analysis)
     userEmotion:
       voiceEmotion || lastEmotionAnalysis

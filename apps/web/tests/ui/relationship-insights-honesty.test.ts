@@ -66,6 +66,16 @@ beforeEach(() => {
 });
 
 describe('Relationship Insights', () => {
+  it('says "Not enough yet", not "null%" or 0%, while no contact has a strength score', async () => {
+    const body = { ...serverBody, stats: { ...serverBody.stats, averageStrength: null } };
+    apiFetch.mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
+
+    await openAndSettle();
+
+    const stats = [...document.querySelectorAll('.ri-stat-value')].map((el) => el.textContent);
+    expect(stats).toEqual(['2', '1', '1', 'Not enough yet']);
+  });
+
   it("renders the server's real people and numbers", async () => {
     apiFetch.mockResolvedValue(new Response(JSON.stringify(serverBody), { status: 200 }));
 
@@ -80,6 +90,36 @@ describe('Relationship Insights', () => {
     const insights = [...document.querySelectorAll('.ri-insight-desc')].map((el) => el.textContent);
     expect(insights).toEqual(["You haven't connected with Dana in 40 days"]);
   });
+
+  it.each([
+    {
+      n: 0,
+      averageStrength: null,
+      bars: [] as typeof serverBody.strengthDistribution,
+      shown: 'Not enough yet',
+    },
+    { n: 1, averageStrength: 80, bars: serverBody.strengthDistribution, shown: '80%' },
+    { n: 3, averageStrength: 47, bars: serverBody.strengthDistribution, shown: '47%' },
+  ])(
+    'with $n scored people the strength stat reads "$shown"',
+    async ({ averageStrength, bars, shown }) => {
+      const body = {
+        ...serverBody,
+        stats: { ...serverBody.stats, averageStrength },
+        strengthDistribution: bars,
+      };
+      apiFetch.mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
+
+      const text = await openAndSettle();
+
+      const stats = [...document.querySelectorAll('.ri-stat-value')].map((el) =>
+        el.textContent?.trim()
+      );
+      expect(stats[3]).toBe(shown);
+      expect(text).not.toContain('null%');
+      expect(Boolean(document.querySelector('.ri-chart-empty'))).toBe(bars.length === 0);
+    }
+  );
 
   it('says it could not load instead of showing made-up people', async () => {
     apiFetch.mockResolvedValue(new Response('{"error":"Internal server error"}', { status: 500 }));

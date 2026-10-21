@@ -29,6 +29,8 @@ import { DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './topic-mappings.js'
 import { TOPIC_PATTERNS } from './topic-patterns.js';
 import { predictionTopicPatterns } from './prediction-topics.js';
 import { flagOn } from '../../config/env-flag.js';
+import { LEAN_LOADER_DOMAINS, sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
+import { SAME_TURN_TOPIC_PATTERNS } from './same-turn-topics.js';
 
 // Re-export types
 export type {
@@ -53,7 +55,10 @@ export class DynamicToolLoader {
 
   constructor(config: Partial<DynamicLoaderConfig> = {}) {
     this.config = {
-      essentialDomains: DEFAULT_ESSENTIAL_DOMAINS,
+      // TOOLS_SAME_TURN: the other essential domains load by topic (same-turn-tools-config.ts)
+      essentialDomains: sameTurnToolsEnabled()
+        ? (LEAN_LOADER_DOMAINS as ToolDomain[])
+        : DEFAULT_ESSENTIAL_DOMAINS,
       unloadAfterMs: 5 * 60 * 1000, // 5 minutes
       maxLoadedDomains: 10, // counts the essential domains: see types.ts
       enableAutoUnload: true,
@@ -121,9 +126,11 @@ export class DynamicToolLoader {
 
     // Check each topic keyword, as a whole word
     // WEEKLY_PREDICTION=on: "predict my week" loads Peter's game (prediction-topics.ts).
-    const patterns = flagOn('WEEKLY_PREDICTION')
-      ? [...TOPIC_PATTERNS, ...predictionTopicPatterns(this.toolContext?.userId)]
-      : TOPIC_PATTERNS;
+    const patterns = [
+      ...TOPIC_PATTERNS,
+      ...(flagOn('WEEKLY_PREDICTION') ? predictionTopicPatterns(this.toolContext?.userId) : []),
+      ...(sameTurnToolsEnabled() ? SAME_TURN_TOPIC_PATTERNS : []),
+    ];
     for (const [topic, domains, pattern] of patterns) {
       if (pattern.test(lowerMessage)) {
         detectedTopics.push(topic);

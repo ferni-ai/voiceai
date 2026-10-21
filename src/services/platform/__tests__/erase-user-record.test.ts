@@ -4,7 +4,7 @@ import {
   eraseUserRecord,
   findUserRecordRemnants,
 } from '../erase-user-record.js';
-import type { OwnedStore } from '../user-stores.js';
+import { ERASED_STORES, type OwnedStore } from '../user-stores.js';
 import { bqHash } from '../../analytics/bq-events.js';
 
 vi.mock('../../identity/firebase-auth.js', () => ({ ensureFirebaseAdmin: () => false }));
@@ -95,6 +95,23 @@ describe('eraseUserRecord', () => {
     expect(docs.get(`bq_erasure/${hash}`)).toMatchObject({ attempts: 0, doneTables: [] });
     expect(JSON.stringify([...docs])).not.toContain('"u-1"');
     vi.unstubAllEnvs();
+  });
+
+  it('erases the relationship memories and flag overrides account deletion used to leave', async () => {
+    const stores = ERASED_STORES.filter((s) =>
+      ['relationship_memories', 'feature_flag_overrides'].includes(s.collection)
+    );
+    const { db, docs } = fakeFirestore({
+      'relationship_memories/u-1_ferni': { userId: 'u-1' },
+      'relationship_memories/u-2_ferni': { userId: 'u-2' },
+      'feature_flag_overrides/u-1': { flag: 'on' },
+      'feature_flag_overrides/u-2': { flag: 'on' },
+    });
+    await eraseUserRecord('u-1', db, stores, []);
+    expect([...docs.keys()].sort()).toEqual([
+      'feature_flag_overrides/u-2',
+      'relationship_memories/u-2_ferni',
+    ]);
   });
 
   it('throws when anything survives, so no caller reports an erasure that did not happen', async () => {

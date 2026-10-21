@@ -17,6 +17,9 @@ import { isPaywallOn } from '../services/paywall.service.js';
 import { isVenmoChipInEnabled, openSupport } from './support/open-support.js';
 import { createLogger } from '../utils/logger.js';
 import { isPatternInsightsOn } from '../config/pattern-insights-flag.js';
+import { isPanelVisible } from '../config/menu-visibility.js';
+import { openWithLoadingShell } from './components/panel-loading-shell.js';
+import { getSanctuaryUI } from './sanctuary.ui.js';
 
 const log = createLogger('LazyScreens');
 
@@ -101,6 +104,9 @@ export async function openCreativeYouDashboard(userId: string): Promise<void> {
 }
 
 export async function openMarketplace(): Promise<void> {
+  // Hidden panels open from nowhere: an old localStorage install still renders a
+  // roster tile for its marketplace agent, and that tile used to open this anyway.
+  if (!isPanelVisible('marketplace')) return;
   const m = await loadScreen('lazyScreens.screens.marketplace', () => import('./marketplace.ui.js'));
   await m?.openMarketplace();
 }
@@ -222,9 +228,40 @@ export async function openPersonalize(): Promise<void> {
   m?.personalizeUI.open();
 }
 
+// These panels fetch before they draw, so each opens behind a named loading
+// shell: the tap answers at once instead of looking dead for seconds.
+
 export async function openReferral(): Promise<void> {
-  const m = await loadScreen('lazyScreens.screens.sharing', () => import('./referral.ui.js'));
-  await m?.referralUI.open();
+  await openWithLoadingShell({
+    label: t('menu.items.shareFerni'),
+    readySelector: '.referral-modal',
+    open: async () => {
+      const m = await loadScreen('lazyScreens.screens.sharing', () => import('./referral.ui.js'));
+      await m?.referralUI.open();
+    },
+    close: () => void import('./referral.ui.js').then((m) => m.referralUI.close()),
+  });
+}
+
+export async function openSanctuary(): Promise<void> {
+  await openWithLoadingShell({
+    label: t('menu.items.guidedPractices'),
+    readySelector: '.sanctuary-overlay',
+    open: () => getSanctuaryUI().open(),
+    close: () => void getSanctuaryUI().close(),
+  });
+}
+
+export async function openYourYear(): Promise<void> {
+  await openWithLoadingShell({
+    label: t('menu.items.yourYear'),
+    readySelector: '.your-year-overlay',
+    open: async () => {
+      const m = await loadScreen('lazyScreens.screens.yourYear', () => import('./your-year-with-ferni.ui.js'));
+      await m?.openYourYearWithFerni();
+    },
+    close: () => void import('./your-year-with-ferni.ui.js').then((m) => m.closeYourYearWithFerni()),
+  });
 }
 
 export async function openFutureInsights(): Promise<void> {
@@ -234,8 +271,15 @@ export async function openFutureInsights(): Promise<void> {
 
 type ManageSubscriptionArgs = Parameters<typeof import('./manage-subscription.ui.js').manageSubscriptionUI.open>;
 export async function openManageSubscription(...args: ManageSubscriptionArgs): Promise<void> {
-  const m = await loadScreen('lazyScreens.screens.subscription', () => import('./manage-subscription.ui.js'));
-  await m?.manageSubscriptionUI.open(...args);
+  await openWithLoadingShell({
+    label: t('menu.items.accountBilling'),
+    readySelector: '.manage-sub',
+    open: async () => {
+      const m = await loadScreen('lazyScreens.screens.subscription', () => import('./manage-subscription.ui.js'));
+      await m?.manageSubscriptionUI.open(...args);
+    },
+    close: () => void import('./manage-subscription.ui.js').then((m) => m.manageSubscriptionUI.close()),
+  });
 }
 
 // These screens inject their stylesheet in an init function that app.ts used

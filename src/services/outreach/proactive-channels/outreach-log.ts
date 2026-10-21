@@ -47,6 +47,8 @@ export interface OutreachLogEntry {
   fallbackFrom?: ProactiveChannel;
   /** A call that couldn't be placed: where its words went instead (it still counts as a call). */
   fallbackChannel?: ProactiveChannel;
+  /** Phone channels ruled out by the person's STOP or do-not-call (opt-outs.ts). */
+  optedOut?: ProactiveChannel[];
   /** What was sent, and who wrote it (outreach-text.ts). */
   text?: string;
   textSource?: TextSource;

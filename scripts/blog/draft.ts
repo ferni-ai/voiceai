@@ -15,6 +15,7 @@ import { getPostType, type PostType } from './post-types.js';
 import { buildPrompt, parseDraft, type DraftText } from './prompt.js';
 import { characterLabel, letterAuthor, pickPersona } from './team-letter.js';
 import { NEEDS_PRS, collectSources } from './type-sources.js';
+import { MAX_ANSWER_CHARS, unsafeOutput } from './untrusted-text.js';
 
 export interface DraftDeps {
   root: string;
@@ -24,6 +25,8 @@ export interface DraftDeps {
   today: string;
   model?: DraftModel;
   writeFile?: (file: string, content: string) => void;
+  /** Whether a post file already exists; defaults to the real folder. */
+  fileExists?: (file: string) => boolean;
 }
 
 export interface DraftOptions {
@@ -39,6 +42,8 @@ export interface DraftResult {
   prompt: string;
   sources: Source[];
   path?: string;
+  /** The written post's title, for the log line (see log-safe.ts). */
+  title?: string;
   markdown?: string;
   issues: GateIssue[];
 }
@@ -55,6 +60,8 @@ interface Attempt {
   draft?: DraftText;
   markdown?: string;
   issues: GateIssue[];
+  /** An off-allowlist link or raw HTML: rejected at once, never retried. */
+  unsafe?: boolean;
 }
 
 export const ATTEMPTS = 2;
@@ -107,9 +114,15 @@ async function attempt(
   gate: GateOptions
 ): Promise<Attempt> {
   const answer = await model.generate(prompt);
+  if (answer.length > MAX_ANSWER_CHARS) {
+    const message = `answer is ${answer.length} characters; the cap is ${MAX_ANSWER_CHARS}`;
+    return { issues: [{ rule: 'length', message }] };
+  }
   try {
     const draft = parseDraft(answer);
     const markdown = render(draft);
+    const unsafe = unsafeOutput(markdown);
+    if (unsafe.length > 0) return { draft, markdown, issues: unsafe, unsafe: true };
     return { draft, markdown, issues: checkPost(markdown, gate) };
   } catch (error) {
     return { issues: [{ rule: 'front-matter', message: `unreadable answer: ${String(error)}` }] };
@@ -117,10 +130,14 @@ async function attempt(
 }
 
 /** `<slug>.md` in the folder, or `<slug>-2.md` and on if that's taken. */
-function freePath(folder: string, title: string): string {
+function freePath(
+  folder: string,
+  title: string,
+  exists: (file: string) => boolean = fs.existsSync
+): string {
   const slug = slugify(title);
   let file = path.join(folder, `${slug}.md`);
-  for (let i = 2; fs.existsSync(file); i++) file = path.join(folder, `${slug}-${i}.md`);
+  for (let i = 2; exists(file); i++) file = path.join(folder, `${slug}-${i}.md`);
   return file;
 }
 
@@ -130,7 +147,7 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
   const existing = existingPosts(folder);
   const since = opts.since ?? defaultSince(type, existing[0]?.date, deps.today);
   const persona = pickPersona(isoWeek(deps.today), opts.persona);
-  const ctx = { root: deps.root, repo: deps.repo, gh: deps.gh, since, persona };
+  const ctx = { root: deps.root, repo: deps.repo, gh: deps.gh, since, today: deps.today, persona };
   const { prs, docs } = collectSources(type, ctx);
   const sources = [...prs, ...docs];
   const terms = forbiddenTerms(deps.root, type.audience);
@@ -161,14 +178,21 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
   for (let n = 1; n <= ATTEMPTS; n++) {
     // Sequential on purpose: the second call carries the first one's findings.
     // eslint-disable-next-line no-await-in-loop
-    const { draft, markdown, issues } = await attempt(result.prompt, deps.model, render, gate);
+    const { draft, markdown, issues, unsafe } = await attempt(
+      result.prompt,
+      deps.model,
+      render,
+      gate
+    );
+    if (unsafe) return { ...result, status: 'rejected', issues, markdown };
     if (draft && markdown && issues.length === 0) {
       const file = freePath(
         folder,
-        type.id === 'whats-new' ? `whats-new-${deps.today}` : draft.title
+        type.id === 'whats-new' ? `whats-new-${deps.today}` : draft.title,
+        deps.fileExists
       );
       (deps.writeFile ?? fs.writeFileSync)(file, markdown);
-      return { ...result, status: 'written', path: file, markdown };
+      return { ...result, status: 'written', path: file, title: draft.title, markdown };
     }
     Object.assign(result, { issues, markdown, prompt: ask(issues) });
   }

@@ -74,6 +74,7 @@ import { attachMindNote, theoryOfMindMode } from './mind-note-hook.js';
 import { startNameLift } from '../realtime/name-lift.js';
 import { sendRecall } from '../personas/context-packet/turn-packet.js';
 import { loadModelBaseInstructions, loadSystemPrompt } from '../personas/prompt-loader.js';
+import { withChiefOfStaffRole } from '../personas/chief-of-staff-role.js';
 // Tool loading - hoisted for faster initial agent startup
 import {
   buildEssentialToolSet,
@@ -118,7 +119,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
-import { giveLoadedDomainsToNewAgents } from '../voice-agent/deferred-tool-update.js';
+import { wireCallToolLoader } from '../voice-agent/deferred-tool-update.js';
 import { createPersonaTTS } from './persona-tts.js';
 import { createCallSession } from './call-session.js';
 import { agentOnCall, personaOnCall, rememberPersona } from './persona-swap.js';
@@ -149,6 +150,7 @@ import { initConversationSession } from '../integrations/conversation-session-in
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
+import { calendarDaysSince } from '../../utils/calendar-days.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
 const log = getLogger();
@@ -337,10 +339,10 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   let stableBase = '';
   try {
     mark('load_prompts_start');
-    // Load both levels of instructions in parallel (imports now hoisted to module level)
+    // Both levels in parallel; ALEX_CHIEF_OF_STAFF=on adds Alex's role (chief-of-staff-role.ts)
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
-      loadSystemPrompt(persona.id),
+      loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
     ]);
     mark('load_prompts_done');
 
@@ -371,7 +373,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : services.userProfile;
     if (userProfile) {
-      rememberCallerHistory(sessionId, callerHistory(userProfile)); // for the greeting
+      // Days since the last call count in the zone this call settled (phone-parity.ts)
+      const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
+      rememberCallerHistory(sessionId, callerHistory(userProfile, new Date(), callZone));
       const userAwareness: string[] = [];
       const sessionStartTime = new Date();
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
@@ -398,12 +402,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           );
         }
 
-        // Last conversation time
+        // Last conversation, in calendar days where they live ("yesterday" is the calendar day)
         if (userProfile.lastContact) {
-          const lastContactDate = new Date(userProfile.lastContact);
-          const daysSince = Math.floor(
-            (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
-          );
+          const daysSince = calendarDaysSince(userProfile.lastContact, sessionStartTime, callZone);
           userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
@@ -952,8 +953,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         return await loadEssentialToolsFallback();
       }
 
-      // ✅ SUCCESS: Full tools loaded. SYNCHRONOUSLY warmup session cache!
-      // This ensures handoff tools are ready BEFORE any handoff request
+      // Full tools loaded: warm the session's handoff tools now, so they're ready before any handoff
       try {
         const cacheStart = Date.now();
         const tier =
@@ -1612,7 +1612,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
     modelProvider.getPromptModules(),
     { stableBase }
   );
-
   const agent = new FerniAgent(agentInstructions, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
@@ -1629,6 +1628,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       userId,
       userName: userData.userName,
       personaId: persona.id,
+      sessionId, // its open loops and Ferni's promises (OPEN_LOOPS_IN_CONTEXT)
     });
     const nameLift = startNameLift(recall, createDataMessageSender(room)); // NAME_LIFT=on
     const onRecallTranscript = (event: unknown) => {
@@ -1977,7 +1977,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           agent,
         });
         // A handed-to agent gets this call's loaded domains (TOOLS_FOLLOW_AGENT)
-        cleanupFunctions.push(giveLoadedDomainsToNewAgents(session, agent, dynamicToolLoader, log));
+        cleanupFunctions.push(wireCallToolLoader(session, agent, dynamicToolLoader, log));
 
         // Wire transcript events
         const transcriptEventHandler = (event: unknown) => {
