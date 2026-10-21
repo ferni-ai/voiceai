@@ -66,7 +66,7 @@ const words = (text: string): string =>
 const BARE = /^[a-z' .,!?…-]+$/;
 
 /** Ferni's line asked about the caller's safety or gave a crisis line. */
-const SAFETY_TALK =
+export const SAFETY_TALK =
   /\b(?:988|911|crisis|lifeline|hotline|suicid\w*|self[- ]?harm|(?:hurt|harm|kill)(?:ing)? yourself|end(?:ing)? your life|safety|emergency|(?:are )?(?:you|u)(?:'re| are)? (?:feeling |doing |being )?(?:ok|okay|alright|all right|safe)|(?:keep|keeping|stay|staying) (?:yourself )?safe)\b/;
 
 const SIGN_OFF = [

@@ -25,6 +25,10 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import {
+  groundedPriorRisk,
+  groundedRelease,
+} from '../../../services/safety/crisis-grounded-release.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import {
   callRiskBeforeTurn,
@@ -75,6 +79,8 @@ export function startTurnCrisis(
     generate?: CrisisGenerateFn;
     /** The adjudicator's model call. */
     adjudicate?: CrisisGenerateFn;
+    /** The grounded release's model calls (crisis-grounded-release.ts). */
+    groundedReads?: readonly CrisisGenerateFn[];
   } = {}
 ): TurnCrisis {
   const patterns = detectCrisis(
@@ -104,6 +110,7 @@ export function startTurnCrisis(
     adjudicatorMode !== 'live' && transferRequestIsEveryday(input, pattern, call, env);
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, input);
+  const groundedPrior = groundedPriorRisk(call, userText);
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
   let settled: Promise<{ crisis: CrisisDetectionResult; soft: boolean }> | null = null;
   const settle = (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> =>
@@ -113,6 +120,21 @@ export function startTurnCrisis(
             // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
             if (loneImminentGoodbye({ detection: patterns, verdict, ...input, priorRisk })) {
               log.info({ outcome: 'soft', source: 'lone_imminent_goodbye' }, 'CRISIS_AGREEMENT');
+              return { crisis: patterns, soft: true };
+            }
+            // CRISIS_GROUNDED_RELEASE: an imminent read the call plainly explains (shared run).
+            const released = await groundedRelease({
+              detection: patterns,
+              verdict,
+              input,
+              priorRisk: groundedPrior,
+              call,
+              env,
+              source: 'pipeline',
+              generates: options.groundedReads,
+            });
+            if (released) {
+              log.info({ outcome: 'soft', source: 'grounded_release' }, 'CRISIS_AGREEMENT');
               return { crisis: patterns, soft: true };
             }
             const crisis = applyClassifierVerdict(patterns, verdict);
