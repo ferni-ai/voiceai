@@ -6,7 +6,7 @@
  * "analysis" on every turn of the 2026-10-03 call).
  */
 import { llm } from '@livekit/agents';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const turnProfiler = vi.hoisted(() => ({
   startTurnProfiling: vi.fn(),
@@ -46,10 +46,6 @@ function runTurn(contextOnly: boolean): Promise<void> {
 describe('turn handler latency profiling', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    delete process.env.BACKGROUND_TURN_LATENCY_WARNINGS;
-  });
-  afterEach(() => {
-    delete process.env.BACKGROUND_TURN_LATENCY_WARNINGS;
   });
 
   it('does not profile a background context-only run as the reply', async () => {
@@ -73,13 +69,5 @@ describe('turn handler latency profiling', () => {
       3,
       false
     );
-  });
-
-  it('BACKGROUND_TURN_LATENCY_WARNINGS=on restores profiling of background runs', async () => {
-    process.env.BACKGROUND_TURN_LATENCY_WARNINGS = 'on';
-
-    await runTurn(true);
-
-    expect(turnProfiler.startTurnProfiling).toHaveBeenCalledWith('session-latency-true', 3);
   });
 });

@@ -103,6 +103,7 @@ async function deploy() {
       files: {
         'index.html': result.html,
       },
+      kind: 'generated',
       updatedAt: new Date().toISOString(),
       analytics: {
         views: 0,
