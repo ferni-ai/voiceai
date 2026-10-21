@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The splash background in dark mode: the page's dark background (#14110e),
+    so a dark-mode launch never flashes the light splash before the first paint.
+    The light value is set by resValue in app/build.gradle; this night value
+    overrides it only when the system is in dark mode.
+-->
+<resources>
+    <color name="backgroundColor">#14110E</color>
+</resources>

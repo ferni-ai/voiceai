@@ -4,15 +4,29 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Offline - Ferni</title>
-    <meta name="theme-color" content="#F5F1E8" />
+    <!-- The design-system page background (zen and midnight background.primary), so the status bar matches the page -->
+    <meta name="theme-color" content="#faf8f5" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#14110e" media="(prefers-color-scheme: dark)" />
     <style>
       :root {
-        --color-bg-primary: #F5F1E8;
-        --color-text-primary: #2C2520;
+        --color-bg-primary: #faf8f5;
+        --color-text-primary: #2c2520;
         --color-text-secondary: #5c544a;
         --color-accent: #4a6741;
+        --color-on-accent: #ffffff;
         --font-display: 'Plus Jakarta Sans', system-ui, sans-serif;
         --font-body: 'Inter', system-ui, sans-serif;
+      }
+
+      /* Midnight theme tokens (design-system/tokens/colors.json) */
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --color-bg-primary: #14110e;
+          --color-text-primary: #f4efe6;
+          --color-text-secondary: #cfc3b4;
+          --color-accent: #8eae7a;
+          --color-on-accent: #14110e;
+        }
       }
 
       * {
@@ -42,8 +56,6 @@
         width: 80px;
         height: 80px;
         margin-bottom: 1.5rem;
-        color: var(--color-accent);
-        opacity: 0.8;
       }
 
       .offline-title {
@@ -67,12 +79,13 @@
         gap: 0.5rem;
         padding: 0.875rem 1.5rem;
         background: var(--color-accent);
-        color: white;
+        color: var(--color-on-accent);
         border: none;
         border-radius: 999px;
         font-family: var(--font-body);
         font-size: 0.9375rem;
         font-weight: 500;
+        min-height: 48px;
         cursor: pointer;
         transition: transform 0.2s ease, opacity 0.2s ease;
       }
@@ -90,17 +103,22 @@
         margin-top: 2rem;
         font-size: 0.875rem;
         color: var(--color-text-secondary);
-        opacity: 0.7;
       }
 
-      /* Animation for the icon */
-      @keyframes pulse {
-        0%, 100% { opacity: 0.6; }
-        50% { opacity: 1; }
+      /* Ferni breathes slowly while he waits */
+      @keyframes breathe {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.04); }
       }
 
       .offline-icon {
-        animation: pulse 2s ease-in-out infinite;
+        animation: breathe 4s ease-in-out infinite;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .offline-icon {
+          animation: none;
+        }
       }
 
       /* Online indicator */
@@ -110,7 +128,7 @@
         left: 0;
         right: 0;
         background: var(--color-accent);
-        color: white;
+        color: var(--color-on-accent);
         padding: 0.75rem;
         text-align: center;
         font-size: 0.875rem;
@@ -125,26 +143,22 @@
   </head>
   <body>
     <div class="online-banner" id="onlineBanner">
-      You're back online! Refreshing...
+      You're back online. Reloading now.
     </div>
 
     <div class="offline-container">
-      <!-- WiFi-off icon -->
-      <svg class="offline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M1 1l22 22" />
-        <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55" />
-        <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39" />
-        <path d="M10.71 5.05A16 16 0 0 1 22.58 9" />
-        <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88" />
-        <path d="M8.53 16.11a6 6 0 0 1 6.95 0" />
-        <circle cx="12" cy="20" r="1" fill="currentColor" />
+      <!-- Ferni, eyes resting while the connection is away -->
+      <svg class="offline-icon" viewBox="0 0 80 80" role="img" aria-label="Ferni">
+        <circle cx="40" cy="40" r="38" fill="#4a6741" />
+        <ellipse cx="29" cy="38" rx="6.5" ry="4" fill="#ffffff" />
+        <ellipse cx="51" cy="38" rx="6.5" ry="4" fill="#ffffff" />
       </svg>
 
       <h1 class="offline-title">You're offline</h1>
       
       <p class="offline-message">
-        It looks like you've lost your internet connection. 
-        We'll be here when you're back online.
+        It looks like your internet connection dropped.
+        I'll be right here when you're back online.
       </p>
 
       <button class="offline-btn" onclick="window.location.reload()">
