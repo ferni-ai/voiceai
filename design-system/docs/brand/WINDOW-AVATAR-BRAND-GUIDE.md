@@ -280,7 +280,6 @@ When implementing the Window Avatar:
 | Design Tokens | `design-system/tokens/window-avatar.json` |
 | Web Implementation | `apps/web/src/ui/speaking-mouth.ui.ts` |
 | iOS Implementation | `apps/ios-native/Ferni/UI/Avatar/FerniWindowAvatar.swift` |
-| Android Implementation | `apps/android-native/.../FerniWindowAvatar.kt` |
 | Vision Document | `docs/vision/WINDOW-AVATAR-DESIGN-LANGUAGE.md` |
 | Implementation Plan | `docs/vision/WINDOW-AVATAR-IMPLEMENTATION-PLAN.md` |
 | Interactive Mood Board | `design-system/playground/window-avatar-moodboard.html` |

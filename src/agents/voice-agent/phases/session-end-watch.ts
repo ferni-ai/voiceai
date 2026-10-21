@@ -8,7 +8,14 @@
  * participant or track arriving. Before 2026-10-12 a fixed 10-minute timer that
  * nothing reset ended every multi-agent call at 10 minutes, mid-conversation
  * (prod: caller turns at 07:57:12 and 07:57:20, hung up at 07:57:23).
+ *
+ * A caller hanging up often ends the room before the grace runs out: LiveKit
+ * deletes the room and the agent's connection closes. That is 'caller_left', not
+ * the agent losing the room (prod 2026-10-17..18: 5 of 6 'room.disconnected'
+ * endings came 2.5-3 s after the caller's own "Participant left").
  */
+
+import { roomDisconnectEndReason } from '../../../services/analytics/call-end-reason.js';
 
 export const EMPTY_ROOM_GRACE_MS = 5_000;
 export const IDLE_MS = 10 * 60_000;
@@ -35,8 +42,11 @@ export interface SessionEndOptions {
 
 const ACTIVITY_EVENTS = ['dataReceived', 'participantConnected', 'trackSubscribed'] as const;
 
-/** Resolves with why the call ended: room.disconnected, room.!isConnected, empty_room, idle or max_duration (or options.maxReason). */
-export function waitForSessionEnd(room: WatchedRoom, options: SessionEndOptions = {}): Promise<string> {
+/** Resolves with why the call ended: room.disconnected or room.closed, room.!isConnected, caller_left, empty_room, idle or max_duration (or options.maxReason). */
+export function waitForSessionEnd(
+  room: WatchedRoom,
+  options: SessionEndOptions = {}
+): Promise<string> {
   const idleMs = options.idleMs ?? IDLE_MS;
   const maxMs = options.maxMs ?? MAX_CALL_MS;
   const emptyGraceMs = options.emptyGraceMs ?? EMPTY_ROOM_GRACE_MS;
@@ -52,7 +62,9 @@ export function waitForSessionEnd(room: WatchedRoom, options: SessionEndOptions 
     const onSpeakers = (speakers: unknown): void => {
       if (Array.isArray(speakers) && speakers.length > 0) touch();
     };
-    const onDisconnected = (): void => finish('room.disconnected');
+    const lost = (reason: string): string => (emptySinceMs === null ? reason : 'caller_left');
+    const onDisconnected = (reason?: unknown): void =>
+      finish(lost(roomDisconnectEndReason(reason)));
     const onParticipantLeft = (): void => {
       if (room.remoteParticipants.size === 0) emptySinceMs = emptySinceMs ?? Date.now();
     };
@@ -75,7 +87,7 @@ export function waitForSessionEnd(room: WatchedRoom, options: SessionEndOptions 
     for (const event of ACTIVITY_EVENTS) room.on(event, touch);
 
     const poll = setInterval(() => {
-      if (!room.isConnected) return finish('room.!isConnected');
+      if (!room.isConnected) return finish(lost('room.!isConnected'));
       if (room.remoteParticipants.size === 0) {
         emptySinceMs = emptySinceMs ?? Date.now();
         if (Date.now() - emptySinceMs >= emptyGraceMs) return finish('empty_room');

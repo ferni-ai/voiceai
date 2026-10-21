@@ -17,7 +17,14 @@
  * message panel instead of failing.
  *
  * A reminder Ferni promised ("I'll remind you Sunday") settles that promise:
- * kept when it goes out, missed when it is found too late or can't be sent.
+ * kept when it reaches them (a text, email or call went out, or a push told
+ * them it is in the app), missed when it is found too late or can't be sent.
+ * One saved in the app with nothing to tell them is 'in_app_unnotified': its
+ * promise stays open, and the overdue check below calls it missed.
+ *
+ * The UI server delivers for everyone, so whether a person's reminders go by
+ * text (REMINDER_SMS_DEFAULT) and whether an in-app one gets a push come from
+ * `reach`, decided per person by the caller (services/outreach/reminder-reach.ts).
  * After sending, the run also settles every other overdue promise
  * (sweepOverduePromises), so Trust's "I follow through" reads real outcomes.
  *
@@ -28,13 +35,17 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
 import { getChannelStatus, type ChannelStatus } from '../outreach/unified-delivery.js';
 import type { PromiseSweepResult } from '../superhuman/semantic-intelligence/promise-keeper.js';
+import { isReminderSmsDefaultOn } from '../../config/reminder-sms-flag.js';
 import {
-  deliverReminder,
+  deliverReminderOutcome,
   reminderFromDoc,
   type ReminderDeliveryMethod,
   type ScheduledReminder,
 } from './reminder-scheduler.js';
-import { wasHeld } from './reminder-text-guard.js';
+import { textOnFor, type ReminderReach } from './reminder-outcome.js';
+import { logPromiseJobRun, logPromiseOutcome, reminderOutcome } from '../follow-through/index.js';
+
+export type { ReminderReach } from './reminder-outcome.js';
 
 const log = createLogger({ module: 'ReminderDeliveryJob' });
 
@@ -42,6 +53,10 @@ const log = createLogger({ module: 'ReminderDeliveryJob' });
 export const MISSED_AFTER_MS = 2 * 60 * 60 * 1000;
 
 const PHONE_METHODS: readonly ReminderDeliveryMethod[] = ['sms', 'voice_message', 'call'];
+const TEXT_METHODS: readonly ReminderDeliveryMethod[] = ['sms', 'voice_message'];
+
+/** This server's own env, and no push: what a caller that decides nothing per person gets. */
+const envReach: ReminderReach = { textOn: async () => isReminderSmsDefaultOn() };
 
 function isPhone(address: string): boolean {
   const digits = address.replace(/[^\d+]/g, '');
@@ -60,13 +75,19 @@ function channelUp(method: ReminderDeliveryMethod, status?: ChannelStatus): bool
 /**
  * The reminder's own channel when we can reach the user there, otherwise
  * in-app: no usable phone/email, or this server can't send on that channel.
+ * With texts on for the owner, a text reminder needs no phone of its own: the
+ * guarded sender texts their verified number, or keeps it in the app.
  */
 export function deliveryChannelFor(
   reminder: ScheduledReminder,
-  status?: ChannelStatus
+  status?: ChannelStatus,
+  textOn = false
 ): ReminderDeliveryMethod {
   const address = reminder.deliveryAddress ?? '';
-  if (PHONE_METHODS.includes(reminder.deliveryMethod) && !isPhone(address)) return 'in_app';
+  const guardedText = textOn && TEXT_METHODS.includes(reminder.deliveryMethod);
+  if (PHONE_METHODS.includes(reminder.deliveryMethod) && !guardedText && !isPhone(address)) {
+    return 'in_app';
+  }
   if (reminder.deliveryMethod === 'email' && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(address)) {
     return 'in_app';
   }
@@ -83,6 +104,12 @@ export interface ReminderRunResult {
   skipped: number;
   /** Delivered in-app because the chosen channel couldn't be reached. */
   rerouted: number;
+  /** Delivered by text (sms or voice message). */
+  texted: number;
+  /** Saved in the app, and a push told them. */
+  pushed: number;
+  /** Saved in the app with nothing to tell them: not delivered ('in_app_unnotified'). */
+  inboxOnly: number;
   /** Texts held to a later time by the guarded sender (quiet hours, its gap). */
   held: number;
   dryRun: boolean;
@@ -122,9 +149,34 @@ async function sweepPromises(result: ReminderRunResult, now: Date): Promise<void
   }
 }
 
+type ReminderEnd = 'missed' | 'held' | 'delivered' | 'failed';
+
+/** Log the reminder's end as a promise outcome (follow-through/promise-outcomes.ts). */
+function logEnd(end: ReminderEnd, reminderId: string): void {
+  logPromiseOutcome('reminder', reminderOutcome(end), { reminderId });
+}
+
+/** Count the reminder's end and log it as a promise outcome. */
+function tally(result: ReminderRunResult, end: ReminderEnd, reminderId: string): void {
+  result[end]++;
+  logEnd(end, reminderId);
+}
+
+/** An inbox row no one was told about is missed (promise-keeper verdictFor), never done. */
+function logRun({ due, delivered, failed, held, missed, inboxOnly }: ReminderRunResult): void {
+  logPromiseJobRun('deliver-reminders', {
+    due,
+    done: delivered,
+    failed,
+    held,
+    missed: missed + inboxOnly,
+  });
+}
+
 export async function deliverDueReminders(
-  opts: { now?: Date; limit?: number; dryRun?: boolean } = {}
+  opts: { now?: Date; limit?: number; dryRun?: boolean; reach?: ReminderReach } = {}
 ): Promise<ReminderRunResult> {
+  const reach = opts.reach ?? envReach;
   const db = getFirestoreDb();
   if (!db) throw new Error('Firestore not available');
   const now = opts.now ?? new Date();
@@ -136,6 +188,9 @@ export async function deliverDueReminders(
     missed: 0,
     skipped: 0,
     rerouted: 0,
+    texted: 0,
+    pushed: 0,
+    inboxOnly: 0,
     held: 0,
     dryRun,
     promiseErrors: 0,
@@ -161,7 +216,8 @@ export async function deliverDueReminders(
     if (!owner) continue;
     const reminder = { ...reminderFromDoc(doc.id, doc.data()), userId: owner };
     const late = now.getTime() - reminder.scheduledFor.getTime() > MISSED_AFTER_MS;
-    const channel = deliveryChannelFor(reminder, channels);
+    const textOn = await textOnFor(reach, owner); // a failed read: off, never a direct send
+    const channel = deliveryChannelFor(reminder, channels, textOn);
 
     if (dryRun) {
       if (late) result.missed++;
@@ -185,7 +241,7 @@ export async function deliverDueReminders(
       continue;
     }
     if (claim === 'missed') {
-      result.missed++;
+      tally(result, 'missed', reminder.id);
       await settlePromise(result, {
         owner,
         reminderId: reminder.id,
@@ -198,19 +254,40 @@ export async function deliverDueReminders(
 
     if (channel !== reminder.deliveryMethod) result.rerouted++;
     const sending = { ...reminder, deliveryMethod: channel };
-    const ok = await deliverReminder(sending);
-    if (wasHeld(sending)) {
-      result.held++; // a text due in quiet hours waits until 08:00 (reminder-text-guard.ts)
+    const outcome = await deliverReminderOutcome(sending, {
+      textOn,
+      notifyInApp: reach.notifyInApp,
+    });
+    if (outcome === 'held') {
+      tally(result, 'held', reminder.id); // a text due in quiet hours waits until 08:00 (reminder-text-guard.ts)
       continue;
     }
-    if (ok) result.delivered++;
-    else result.failed++;
-    const how = ok ? `reminder delivered (${channel})` : 'reminder could not be delivered';
-    await settlePromise(result, { owner, reminderId: reminder.id, kept: ok, how, now });
+    if (outcome === 'in_app_unnotified') {
+      result.inboxOnly++; // its promise stays open; the overdue check calls it missed
+      logEnd('missed', reminder.id);
+      continue;
+    }
+    tally(result, outcome === 'failed' ? 'failed' : 'delivered', reminder.id);
+    if (outcome === 'in_app') result.pushed++;
+    if (outcome === 'sent' && TEXT_METHODS.includes(channel)) result.texted++;
+    const kept = outcome !== 'failed';
+    const how = !kept
+      ? 'reminder could not be delivered'
+      : outcome === 'in_app'
+        ? 'reminder delivered (in_app, with a push)'
+        : `reminder delivered (${channel})`;
+    await settlePromise(result, { owner, reminderId: reminder.id, kept, how, now });
   }
 
-  if (!dryRun) await sweepPromises(result, now);
+  if (!dryRun) {
+    await sweepPromises(result, now);
+    logRun(result);
+  }
 
-  if (result.due > 0) log.info(result, 'Reminder delivery run');
+  const { due, texted, pushed, inboxOnly, missed, held, failed, skipped } = result;
+  log.info(
+    { due, texted, pushed, inboxOnly, missed, held, failed, skipped, dryRun },
+    'Reminder delivery run'
+  );
   return result;
 }

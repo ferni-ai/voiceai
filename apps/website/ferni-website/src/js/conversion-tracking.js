@@ -319,33 +319,25 @@
   // ============================================================================
 
   function initExitTracking() {
-    // Track time on page and scroll depth when leaving
+    // Scroll depth and time on page, recorded as the visitor leaves. They go
+    // through FerniExperiments like every other goal: only after cookie consent,
+    // under the visitor's anonymous id. A visitor in an experiment sends them as
+    // conversions of the experiments they are in; a visitor in none sends them
+    // once as engagement events, so every consented visit counts, and none twice.
+    // This used to be a beacon straight to app.ferni.ai with no id, sent before
+    // consent; the API answered every one with 400 "userId is required".
     window.addEventListener('beforeunload', function () {
+      var experiments = window.FerniExperiments;
+      if (typeof experiments === 'undefined') return;
       var timeOnPage = Math.round((Date.now() - pageLoadTime) / 1000);
-
-      // Final scroll depth
-      if (typeof window.FerniExperiments !== 'undefined') {
-        // Use sendBeacon for reliability
-        var events = [
-          {
-            experimentId: 'all',
-            eventType: 'engagement',
-            goalId: 'final_scroll_depth',
-            value: maxScrollDepth,
-          },
-          {
-            experimentId: 'all',
-            eventType: 'engagement',
-            goalId: 'time_on_page',
-            value: timeOnPage,
-          },
-        ];
-
-        navigator.sendBeacon(
-          'https://app.ferni.ai/api/v1/public/experiments/track/batch',
-          JSON.stringify({ events: events })
-        );
+      if (experiments.inAnyExperiment()) {
+        experiments.trackConversionForAll('final_scroll_depth', maxScrollDepth);
+        experiments.trackConversionForAll('time_on_page', timeOnPage);
+      } else {
+        experiments.trackEngagement('final_scroll_depth', maxScrollDepth);
+        experiments.trackEngagement('time_on_page', timeOnPage);
       }
+      experiments.flushEvents();
     });
 
     // Track bounce (leaving within 10 seconds without interaction)

@@ -36,7 +36,8 @@ export interface RelationshipInsightsView {
     familyCount: number;
     friendCount: number;
     colleagueCount: number;
-    averageStrength: number;
+    /** Null until at least one person has a real interaction to score. */
+    averageStrength: number | null;
     upcomingDates: number;
     needsAttention: number;
   };
@@ -80,10 +81,16 @@ export function buildRelationshipInsightsView(
 ): RelationshipInsightsView {
   const total = contacts.length;
   const count = (test: (c: ContactRelationship) => boolean) => contacts.filter(test).length;
-  const strengthSum = contacts.reduce((sum, c) => sum + (c.strengthScore || 0), 0);
+  // Only people with a real score count toward strength: an unscored person is not "0%"
+  const scores = contacts
+    .map((c) => c.strengthScore)
+    .filter((s): s is number => typeof s === 'number' && Number.isFinite(s));
+  const scored = scores.length;
+  const scoredCount = (test: (score: number) => boolean) => scores.filter(test).length;
 
   const lastReached = new Map<string, number>();
   for (const contact of contacts) {
+    if (!contact.lastInteraction) continue;
     const at = new Date(contact.lastInteraction);
     if (Number.isNaN(at.getTime())) continue;
     lastReached.set(dayKey(at), (lastReached.get(dayKey(at)) ?? 0) + 1);
@@ -97,7 +104,8 @@ export function buildRelationshipInsightsView(
       colleagueCount: count(
         (c) => c.relationship === 'colleague' || c.relationship === 'professional'
       ),
-      averageStrength: total > 0 ? Math.round(strengthSum / total) : 0,
+      averageStrength:
+        scored > 0 ? Math.round(scores.reduce((sum, s) => sum + s, 0) / scored) : null,
       upcomingDates: contacts.reduce(
         (sum, c) =>
           sum +
@@ -122,30 +130,30 @@ export function buildRelationshipInsightsView(
       priority: insight.priority,
     })),
     strengthDistribution:
-      total === 0
+      scored === 0
         ? []
         : [
             {
               label: 'Strong',
               value: percentOf(
-                count((c) => c.strengthScore >= 70),
-                total
+                scoredCount((s) => s >= 70),
+                scored
               ),
               color: 'var(--persona-primary)',
             },
             {
               label: 'Good',
               value: percentOf(
-                count((c) => c.strengthScore >= 40 && c.strengthScore < 70),
-                total
+                scoredCount((s) => s >= 40 && s < 70),
+                scored
               ),
               color: 'var(--nayan-primary)',
             },
             {
               label: 'Needs work',
               value: percentOf(
-                count((c) => c.strengthScore < 40),
-                total
+                scoredCount((s) => s < 40),
+                scored
               ),
               color: 'var(--color-semantic-error)',
             },

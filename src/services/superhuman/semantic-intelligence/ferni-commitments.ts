@@ -16,6 +16,7 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirestoreDb, cleanForFirestore } from '../firestore-utils.js';
 import { createInsight } from './insight-broker.js';
 import { onCommitmentKeeperChange } from '../../data-layer/hooks/superhuman-hooks.js';
+import { isMemberIdentity } from '../../identity/member-identity.js';
 
 const log = createLogger({ module: 'ferni-commitments' });
 
@@ -169,10 +170,15 @@ const COMMITMENT_PATTERNS: Array<{
 ];
 
 // ============================================================================
-// CACHE
+// CACHE (re-read after the TTL: with none, promises other processes wrote never showed)
 // ============================================================================
 
-const commitmentCache = new Map<string, FerniCommitment[]>();
+export const COMMITMENT_CACHE_TTL_MS = 15_000;
+const commitmentCache = new Map<string, { at: number; commitments: FerniCommitment[] }>();
+const freshCached = (userId: string): FerniCommitment[] | undefined => {
+  const entry = commitmentCache.get(userId);
+  return entry && Date.now() - entry.at < COMMITMENT_CACHE_TTL_MS ? entry.commitments : undefined;
+};
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -219,10 +225,7 @@ export async function createCommitment(
   // Save
   await saveCommitment(userId, ferniCommitment);
 
-  // Update cache
-  const cached = commitmentCache.get(userId) ?? [];
-  cached.push(ferniCommitment);
-  commitmentCache.set(userId, cached);
+  freshCached(userId)?.push(ferniCommitment); // with none, the next read loads all, not just this
 
   // Create proactive insight to fulfill
   if (commitment.type !== 'remember' && commitment.type !== 'avoid') {
@@ -378,8 +381,7 @@ export async function trackCommitmentsInResponse(
     userMessage?: string;
   }
 ): Promise<FerniCommitment[]> {
-  if (!userId || userId === 'anonymous') return [];
-
+  if (!isMemberIdentity(userId)) return [];
   const detected = detectCommitmentsInResponse(responseText);
   const created: FerniCommitment[] = [];
 
@@ -527,8 +529,7 @@ export function formatCommitmentsForContext(
 // ============================================================================
 
 async function loadCommitments(userId: string): Promise<FerniCommitment[]> {
-  // Check cache
-  const cached = commitmentCache.get(userId);
+  const cached = freshCached(userId);
   if (cached) return cached;
 
   const db = getFirestoreDb();
@@ -557,7 +558,7 @@ async function loadCommitments(userId: string): Promise<FerniCommitment[]> {
       } as FerniCommitment;
     });
 
-    commitmentCache.set(userId, commitments);
+    commitmentCache.set(userId, { at: Date.now(), commitments });
     return commitments;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to load commitments');
@@ -599,11 +600,8 @@ async function saveCommitment(userId: string, commitment: FerniCommitment): Prom
 // ============================================================================
 
 export function clearCommitmentCache(userId?: string): void {
-  if (userId) {
-    commitmentCache.delete(userId);
-  } else {
-    commitmentCache.clear();
-  }
+  if (userId) commitmentCache.delete(userId);
+  else commitmentCache.clear();
 }
 
 export const ferniCommitments = {
