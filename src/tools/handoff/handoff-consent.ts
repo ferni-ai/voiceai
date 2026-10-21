@@ -99,7 +99,7 @@ export function heldHandoff(agentName: string): {
 }
 
 /** The session's chat history from a tool's RunContext, if it has one. */
-function historyOf(runCtx: unknown): llm.ChatContext | undefined {
+export function historyOf(runCtx: unknown): llm.ChatContext | undefined {
   const history = (runCtx as { session?: { history?: unknown } } | undefined)?.session?.history;
   return typeof history === 'object' && history !== null && 'items' in history
     ? (history as llm.ChatContext)
