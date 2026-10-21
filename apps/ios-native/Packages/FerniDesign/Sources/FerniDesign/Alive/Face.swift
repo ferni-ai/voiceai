@@ -151,6 +151,10 @@ public struct Face: Equatable, Sendable {
         var lowerLift = 0.0
         /// The glare's share (1 = a full glare's tilt and lower lids; 0.5 = half).
         var glare = 1.0
+        /// Each eye's top lid, held, in place of the tokens' asymmetry, and how
+        /// much taller the open (left) eye is.
+        var tops: (left: Double, right: Double)?
+        var openEye = 1.0
     }
 
     static let tuning: [String: Tuning] = [
@@ -161,6 +165,10 @@ public struct Face: Equatable, Sendable {
         "present": Tuning(lowerLift: 0.2),
         // Steady, not fierce: half the glare, no lower-lid push (it rendered as determined).
         "resolute": Tuning(glare: 0.5),
+        // One eye narrowed, the other open: a pose, so it holds under Reduce
+        // Motion. Without the "?" (P2 #4) and its motion, confused leaned on the
+        // head tilt alone there, a tilted neutral (critic L2).
+        "confused": Tuning(tops: (left: 0, right: 0.32), openEye: 1.12),
     ]
 
     /// The face for an expression id; neutral for an id the tokens don't have.
@@ -207,7 +215,11 @@ public struct Face: Equatable, Sendable {
         var f = Face()
         f.left = eye(e.eyeLeft)
         f.right = eye(e.eyeRight)
-        if let asym = e.lidTop?.asymmetry, asym != 0 {
+        if let tops = tuned.tops {
+            f.left.top = tops.left
+            f.right.top = tops.right
+            f.left.sy *= tuned.openEye
+        } else if let asym = e.lidTop?.asymmetry, asym != 0 {
             if max(f.left.top, f.right.top) > 0.01 {
                 f.left.top = clamp(f.left.top * (1 + asym * 2), 0, 1)
                 f.right.top = clamp(f.right.top * (1 - asym), 0, 1)
