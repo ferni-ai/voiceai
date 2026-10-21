@@ -20,20 +20,38 @@ final class MemoryEdgesUITests: XCTestCase {
     func testNoSearchWhenThereAreNoNotesToSearch() throws {
         let app = try openMemories(storeData: false)
         XCTAssertTrue(app.buttons["Try again"].waitForExistence(timeout: 15), "the error state")
-        XCTAssertFalse(app.searchFields.firstMatch.exists, "search over nothing")
+        XCTAssertFalse(app.textFields["memory.search"].exists, "search over nothing")
         attachScreenshot("memory-error")
     }
 
-    func testTheLastWordsClearTheSearchBar() throws {
+    /// Return in the search row searches (it wraps, so Return is caught, not typed).
+    func testReturnSearches() throws {
         let app = try openMemories(storeData: true)
-        XCTAssertTrue(app.staticTexts["You have a dog called Biscuit"].waitForExistence(timeout: 10))
-        let search = app.searchFields.firstMatch
+        let search = app.textFields["memory.search"]
+        try XCTSkipUnless(search.waitForExistence(timeout: 10), "no on-device search on this simulator")
+        search.tap()
+        search.typeText("dog\n")
+        let header = app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", "From your notes")).firstMatch
+        XCTAssertTrue(header.waitForExistence(timeout: 20), "the search ran")
+        XCTAssertEqual(search.value as? String, "dog", "Return searched; it wasn't typed")
+    }
+
+    /// The search is a row at the top (critic M-D), and the last words still
+    /// clear the screen's bottom edge.
+    func testTheSearchIsOnTopAndTheLastWordsClearTheEdge() throws {
+        let app = try openMemories(storeData: true)
+        // The newest note, first on every phone (Biscuit is below the fold on an SE).
+        let first = app.staticTexts["Your sister Ana's birthday is Friday"]
+        XCTAssertTrue(first.waitForExistence(timeout: 10))
+        let search = app.textFields["memory.search"]
         try XCTSkipUnless(search.exists, "no on-device search on this simulator")
+        XCTAssertFalse(app.searchFields.firstMatch.exists, "no floating search bar")
+        XCTAssertLessThan(search.frame.maxY, first.frame.minY, "above the notes")
         for _ in 0..<4 { app.swipeUp() }
         sleep(1)
         let footer = app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH \"Ferni's team shares\"")).firstMatch
         XCTAssertTrue(footer.exists)
-        XCTAssertLessThanOrEqual(footer.frame.maxY, search.frame.minY, "footer \(footer.frame) under the search bar \(search.frame)")
+        XCTAssertLessThanOrEqual(footer.frame.maxY, app.frame.maxY - 34, "footer \(footer.frame) clear of the home indicator")
         attachScreenshot("memory-bottom")
     }
 }
