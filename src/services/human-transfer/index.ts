@@ -355,7 +355,8 @@ export async function logCrisisSignal(
         },
         // Store truncated transcript for context (privacy-conscious)
         transcriptSnippet: transcript ? transcript.slice(0, 200) : null,
-        sessionId,
+        // Firestore rejects an undefined field, which dropped every signal logged without one
+        ...(sessionId ? { sessionId } : {}),
       });
     forgetRecentCrisis(userId); // the next turn's check-in sees this signal
   } catch (error) {

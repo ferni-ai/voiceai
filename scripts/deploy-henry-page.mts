@@ -120,6 +120,7 @@ async function deploy() {
         files: {
           'index.html': result.html,
         },
+        kind: 'generated',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         analytics: {

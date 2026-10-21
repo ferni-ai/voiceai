@@ -109,7 +109,7 @@ export const relationshipHealthBuilder: ContextBuilder = {
 
       // Build health data from contacts
       const healthData = {
-        driftAlerts: needingAttention?.map((c) => {
+        driftAlerts: needingAttention?.filter((c) => c.lastInteraction).map((c) => {
           const daysSince = c.lastInteraction ? Math.floor((now - new Date(c.lastInteraction).getTime()) / dayMs) : 0;
           return {
             personName: c.name,
@@ -118,7 +118,8 @@ export const relationshipHealthBuilder: ContextBuilder = {
             suggestion: 'Consider reaching out',
           };
         }) || [],
-        priorityRelationships: contacts?.slice(0, 10).map((c) => {
+        // Only people with a real last interaction get a health reading: no data is not "healthy"
+        priorityRelationships: contacts?.filter((c) => c.lastInteraction).slice(0, 10).map((c) => {
           const daysSince = c.lastInteraction ? Math.floor((now - new Date(c.lastInteraction).getTime()) / dayMs) : 0;
           return {
             name: c.name,
