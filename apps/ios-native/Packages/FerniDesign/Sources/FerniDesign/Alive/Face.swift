@@ -169,6 +169,17 @@ public struct Face: Equatable, Sendable {
         // Motion. Without the "?" (P2 #4) and its motion, confused leaned on the
         // head tilt alone there, a tilted neutral (critic L2).
         "confused": Tuning(tops: (left: 0, right: 0.32), openEye: 1.12),
+        // Three faces told apart from a neighbour only by motion, so one face
+        // under Reduce Motion (critic M-E). Each holds a pose instead:
+        // calm, lids a little heavy and the cheeks soft (from neutral; it was
+        // only calmBreathe);
+        "calm": Tuning(lowerLift: 0.15, tops: (left: 0.18, right: 0.18)),
+        // tender, softer eyes, the lids half down (from caring; it was only
+        // caringSettle; a smiling face's lower lids don't take a lift);
+        "tender": Tuning(tops: (left: 0.22, right: 0.22)),
+        // nervous, the lower lids tensed under its lifted inner corners (from
+        // listening; it was only the sweat glyph and nervousLook).
+        "nervous": Tuning(lowerLift: 0.2),
     ]
 
     /// The face for an expression id; neutral for an id the tokens don't have.

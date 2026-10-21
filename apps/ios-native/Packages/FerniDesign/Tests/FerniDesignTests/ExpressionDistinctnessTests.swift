@@ -29,9 +29,6 @@ final class ExpressionDistinctnessTests: XCTestCase {
     /// Measured 2026-10-20 (FERNI_AUDIT_PRINT=1 on testPrintNearest).
     static let allowedTwins: [Pair: String] = [
         Pair("neutral", "speaking"): "0.0047: speaking is neutral plus the voice's motion, which a still frame can't see",
-        Pair("caring", "tender"): "0.0070: one warmth face by name; caring plays its caringSettle animation, tender doesn't",
-        Pair("calm", "neutral"): "0.0084: calm is neutral at ease; it breathes (its calmBreathe animation), neutral doesn't",
-        Pair("listening", "nervous"): "0.0084: nervous carries its sweat glyph and nervousLook animation; the still render has neither",
         Pair("absorbing", "listening"): "0.0092: absorbing is the tokens' listening family, a deeper listening by design",
         Pair("content", "serene"): "0.0093: two settled faces a step apart (lids 0.162 vs 0.225 on the rig); serene is the goodbye's settle face",
         Pair("confident", "encouraging"): "0.0097: steady and upbeat, cool vs coaching family; no motion tells them apart yet, the first to change if an audit flags it",
@@ -213,6 +210,21 @@ final class ExpressionDistinctnessTests: XCTestCase {
         let ratio = Double(max(left, right)) / Double(max(min(left, right), 1))
         if ProcessInfo.processInfo.environment["FERNI_AUDIT_PRINT"] != nil { print("RM confused eye rows \(left) \(right) \(ratio)") }
         XCTAssertGreaterThan(ratio, 1.3, "one eye narrowed, the other open: white rows \(left) vs \(right)")
+    }
+
+    /// Critic M-E: three pairs were told apart only by motion (caring's settle,
+    /// calm's breath, nervous's look), so under Reduce Motion they were one
+    /// face. Each now holds a pose, rendered with Reduce Motion on.
+    static let motionTwins = [("calm", "neutral"), ("caring", "tender"), ("listening", "nervous")]
+
+    func testTheMotionTwinsDifferWhenStill() throws {
+        for (a, b) in Self.motionTwins {
+            let d = Self.difference(Self.crop(try XCTUnwrap(Self.render(a, reduceMotion: true))),
+                                    Self.crop(try XCTUnwrap(Self.render(b, reduceMotion: true))))
+            if ProcessInfo.processInfo.environment["FERNI_AUDIT_PRINT"] != nil { print("MOTIONTWIN\t\(a)\t\(b)\t\(d)") }
+            XCTAssertGreaterThan(d, Self.twinThreshold, "\(a) vs \(b) under Reduce Motion: \(d)")
+            XCTAssertNil(Self.allowedTwins[Pair(a, b)], "\(Pair(a, b)) isn't allowed as a twin")
+        }
     }
 
     /// Eye-white samples in a face crop (near-white grey).
