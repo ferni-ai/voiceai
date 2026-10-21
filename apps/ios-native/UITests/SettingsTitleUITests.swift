@@ -9,7 +9,10 @@ final class SettingsTitleUITests: XCTestCase {
     /// there is.
     func testTheBarKeepsItsPaperWhenTheAppleButtonScrollsUnder() throws {
         try XCTSkipIf(UIDevice.current.userInterfaceIdiom == .pad, "iPad reaches Settings from the sidebar")
-        for size in [TextSize.standard, .ax5] { try scrollUnder(size) }
+        // On a tall phone the list can end before the button reaches the bar;
+        // the SE lane is where it does at every size.
+        let checked = try [TextSize.standard, .ax5].filter { try scrollUnder($0) }
+        try XCTSkipIf(checked.isEmpty, "the list never scrolls the button under the bar on this screen")
     }
 
     /// The mean luma of the screen in a band, beside where the title sits.
@@ -32,7 +35,9 @@ final class SettingsTitleUITests: XCTestCase {
         return sum / max(n, 1)
     }
 
-    private func scrollUnder(_ size: TextSize) throws {
+    /// Whether the button went under the bar at `size`: false only when the
+    /// list ended first.
+    private func scrollUnder(_ size: TextSize) throws -> Bool {
         let app = XCUIApplication.ferni(.settings, size: size, account: "anonymous")
         XCTAssertTrue(Screen.settings.ready(in: app).waitForExistence(timeout: 20))
         let bar = app.navigationBars["Settings"]
@@ -40,9 +45,12 @@ final class SettingsTitleUITests: XCTestCase {
         // The list in 60 pt steps (shorter than the button), dragged on the
         // margin so no row takes the touch; each step with the button across the
         // bar, the bar is checked for the button's black.
-        var seen = false, darkest = 1.0
+        var seen = false, darkest = 1.0, ended = false, lastY: CGFloat?
         for _ in 0..<40 {
             if apple.exists {
+                // The list stopped: the drag moved nothing.
+                if let y = lastY, abs(apple.frame.minY - y) < 1 { ended = true; break }
+                lastY = apple.frame.minY
                 seen = true
                 let f = apple.frame, b = bar.frame
                 if f.minY < b.maxY - 6, f.maxY > b.minY + 6 {
@@ -59,8 +67,10 @@ final class SettingsTitleUITests: XCTestCase {
             start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -60)), withVelocity: 200, thenHoldForDuration: 0.3)
         }
         XCTAssertTrue(seen, "\(size): the Apple button")
+        if ended && darkest == 1.0 { app.terminate(); return false }
         XCTAssertLessThan(darkest, 1.0, "\(size): never caught the button under the bar")
         XCTAssertGreaterThan(darkest, 0.7, "\(size): the button's black shows through the bar (mean luma \(darkest))")
         app.terminate()
+        return true
     }
 }

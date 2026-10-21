@@ -88,19 +88,22 @@ final class AvatarTouchTests: XCTestCase {
         let app = XCUIApplication.ferni(.home)
         let avatar = ferni(app)
         XCTAssertTrue(avatar.waitForExistence(timeout: 20))
-        // Ferni's slot on Home at rest is 200 pt (HomeView) and his touch circle
-        // 0.35 of it; the element's frame follows the circle, so only its
-        // centre is used (a wider circle must still fail here).
-        let f = avatar.frame, side: CGFloat = 200
+        // His touch circle is 0.35 of his slot, and the element's frame follows
+        // the circle. The slot depends on the room (HomeView.restSize: up to
+        // 280 pt on a phone, 440 on iPad), so the circle is read from the frame
+        // and held to 0.35 of the largest slot: a wider circle still fails here.
+        let f = avatar.frame, radius = f.width / 2
+        XCTAssertLessThanOrEqual(radius, 0.35 * (app.buttons["Hide Sidebar"].exists ? 440 : 280) + 0.5,
+                                 "a touch circle wider than 0.35 of his slot: \(f)")
         let centre = CGPoint(x: f.midX, y: f.midY)
         // Beside Ferni, clear of the area a fingertip covers. A touch counts when
         // its area overlaps the circle, and fingertips reach farther on iPad:
         // measured on the simulators (2026-10-20), under 24 pt past the circle on
         // iPhone and 28-35 pt on iPad (a circle shrunk to 50 pt reached 75 pt but
         // not 85). So 24 pt past it on iPhone, inside his square, and 36 pt on
-        // iPad, where the whole square is within a fingertip's reach.
+        // iPad.
         let iPad = app.buttons["Hide Sidebar"].exists
-        let beside = CGPoint(x: centre.x - (0.35 * side + (iPad ? 36 : 24)), y: centre.y)
+        let beside = CGPoint(x: centre.x - (radius + (iPad ? 36 : 24)), y: centre.y)
         app.windows.firstMatch.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: beside.x, dy: beside.y)).tap()
         sleep(1)
