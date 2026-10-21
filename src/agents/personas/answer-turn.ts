@@ -21,6 +21,7 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import type { TurnSignals } from './turn-extras.js';
+import { answersWho, onlyGreets, sharedWords } from './caller-greeting.js';
 
 export function answerTurnGuardEnabled(env: Env = process.env): boolean {
   return flagOn('DIRECTOR_ANSWER_TURN_GUARD', env);
@@ -37,20 +38,11 @@ export function endsOnQuestion(ferniLine: string): boolean {
 }
 
 /** Throat-clearing before the answer ("Oh, I did.", "Hey Ferni, I did."). */
-const LEAD_IN = /^(?:(?:oh|well|um+|uh+|ah|haha+|ha|hey|hi|hello|ferni)\b[\s,.!]*)+/i;
-/**
- * The caller saying who it is: "it's me", "me again", "I'm back". On a return call
- * the greeting asks about something ("did you end up sending that resume to Dana?"),
- * the caller says "Hey Ferni, it's me.", and read as an answer it got "They just
- * answered what you asked: take up their answer first", so the model made the answer
- * up as the caller: "Yeah, I sent it over." (dev capability sweep 2026-10-21, 3 of
- * 10 return calls; replayed 20x on each, 33/60 replies with that line, 0/60 without).
- */
-const SAYS_WHO_IT_IS =
-  /^(?:(?:it'?s|it is|this is)\s+(?:just\s+)?me(?:\s+again)?|(?:just\s+)?me again|i'?m back(?:\s+again)?|back again)[\s.!,]*$/i;
+const LEAD_IN =
+  /^(?:(?:oh|well|um+|uh+|ah|haha+|ha|hey|hi|hello|fern(?:i|ie|ee|ey|y))\b[\s,.!]*)+/i;
 /** How answers to a yes/no or how-did-it-go question start. Whole words only. */
 const ANSWER_START =
-  /^(?:yes|yeah|yep|yup|ya|no|nope|nah|not (?:yet|really|quite|at all)|i (?:did|didn'?t|did not|have|haven'?t|was|wasn'?t|will|won'?t|do|don'?t|think so|guess)|i'm|i am|kind of|kinda|sort of|a little|a bit|did|done|sure|ok(?:ay)?|alright|definitely|absolutely|totally|of course|maybe|mostly|almost|finally|never|nothing)\b/i;
+  /^(?:yes|yeah|yep|yup|ya|no|nope|nah|not (?:yet|really|quite|at all)|i (?:did|didn'?t|did not|have|haven'?t|was|wasn'?t|will|won'?t|do|don'?t|think so|guess)|i'm|i am|it'?s (?:done|sent|finished|over|handled)|kind of|kinda|sort of|a little|a bit|did|done|sure|ok(?:ay)?|alright|definitely|absolutely|totally|of course|maybe|mostly|almost|finally|never|nothing)\b/i;
 /** Their own question: a question mark, or a question word up front (STT drops the mark). */
 const ASKS =
   /\?|^(?:what|what's|whats|who|who's|when|where|where's|why|how|how's|which|can you|could you|would you|will you|do you|did you|have you|are you|is it|is there|should i|should we)\b/i;
@@ -82,17 +74,33 @@ const NOT_AN_ANSWER_WORDS = new Set([
 const MAX_ANSWER_WORDS = 12;
 const MAX_SHORT_DECLARATIVE_WORDS = 6;
 
-/** The caller's words answer the question in Ferni's line. */
-export function answersQuestion(ferniLine: string, said: string): boolean {
+/**
+ * The caller's words answer the question in Ferni's line. When unsure, they don't:
+ * taken for an answer, a hello got "take up their answer first" and the model made
+ * the answer up in the caller's voice (dev sweep 2026-10-21; replayed, 33/60 replies
+ * vs 0/60 without that line), while a missed answer costs a little warmth. LLMs pair
+ * questions with answers near chance, so this stays a rule, not a model call.
+ * `opener`: Ferni's line opened the call. Then only words that touch the question
+ * answer it, whatever their shape.
+ */
+export function answersQuestion(
+  ferniLine: string,
+  said: string,
+  { opener = false }: { opener?: boolean } = {}
+): boolean {
   if (!endsOnQuestion(ferniLine)) return false;
   const words = said.toLowerCase().match(/[a-z']+/g) ?? [];
   if (words.length === 0 || words.every((w) => NOT_AN_ANSWER_WORDS.has(w))) return false;
+  // "Hey Ferni, it's me.": a hello, not an answer, unless he asked who it is (caller-greeting.ts).
+  if (answersWho(said, ferniLine)) return true;
+  if (onlyGreets(said, ferniLine)) return false;
+  const touches = sharedWords(said, ferniLine).length > 0;
+  if (opener && !touches) return false;
   const answer = said.trim().replace(LEAD_IN, '');
-  if (SAYS_WHO_IT_IS.test(answer)) return false;
   if (ASKS.test(answer) || CHANGES_TOPIC.test(answer)) return false;
-  // A repeat of the question's verb ("Tackled it.") is a short declarative.
   if (ANSWER_START.test(answer)) return words.length <= MAX_ANSWER_WORDS;
-  return words.length <= MAX_SHORT_DECLARATIVE_WORDS;
+  // A short line that repeats the question's words ("Tackled it.") answers it.
+  return touches && words.length <= MAX_SHORT_DECLARATIVE_WORDS;
 }
 
 interface Item {
@@ -117,7 +125,17 @@ export function isAnswerTurn(
   said: string,
   env: Env = process.env
 ): boolean {
-  return answerTurnGuardEnabled(env) && !!said && answersQuestion(lastFerniLine(items), said);
+  if (!answerTurnGuardEnabled(env) || !said) return false;
+  return answersQuestion(lastFerniLine(items), said, { opener: ferniOpened(items) });
+}
+
+/** Ferni's last line opened the call: no words from the caller come before it. */
+export function ferniOpened(items: ReadonlyArray<Item>): boolean {
+  const spoken = (item: Item) =>
+    item.type === 'message' && !item.textContent?.startsWith(TURN_CONTEXT_HEADER);
+  let i = items.length - 1;
+  while (i >= 0 && !(spoken(items[i]) && items[i].role === 'assistant')) i--;
+  return i >= 0 && !items.slice(0, i).some((item) => spoken(item) && item.role === 'user');
 }
 
 /** The turn's signals on an answer turn: no story or advice ask of his own. */

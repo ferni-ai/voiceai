@@ -12,14 +12,16 @@ import { llm } from '@livekit/agents';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const GREETING = 'Hey Sam, did you end up sending that resume to Dana?';
-const directedText = vi.fn(async () => ({ text: GREETING, source: 'actor' as const, ms: 0 }));
+let actorLine = GREETING;
+const directedText = vi.fn(async () => ({ text: actorLine, source: 'actor' as const, ms: 0 }));
 vi.mock('../../../speech/direction/index.js', () => ({ directedText }));
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
 const { directedGreeting, rememberCallerHistory } = await import('../greeting-direction.js');
 const { createMemoryRecall } = await import('../memory-recall-hook.js');
 const { OPENER_FOLLOW_UP_LINE } = await import('../../../memory/recall/opener.js');
-const { clearOpenerClaims } = await import('../../../memory/recall/opener-claim.js');
+const { clearOpenerClaims, takeOpenerClaim } =
+  await import('../../../memory/recall/opener-claim.js');
 const { withTurnReminder } = await import('../../personas/turn-request.js');
 const { TAKE_UP_ANSWER } = await import('../../personas/turn-shape.js');
 const { MID_CALL_NOTE_FRAME_OPENING } = await import('../../../tools/utils/own-note.js');
@@ -32,9 +34,11 @@ const store = {
 };
 
 beforeEach(() => {
+  actorLine = GREETING;
   clearOpenerClaims();
   vi.stubEnv('DIRECTOR_ANSWER_TURN_GUARD', 'on');
   vi.stubEnv('MID_CALL_NOTE_FRAME', 'on');
+  vi.stubEnv('OPENER_FOLLOW_UP', 'on'); // the recall note would add its thread line
 });
 afterEach(() => vi.unstubAllEnvs());
 
@@ -99,5 +103,38 @@ describe('the reply to "it\'s me" after a greeting that asked a thread', () => {
     expect(note).not.toContain(OPENER_FOLLOW_UP_LINE);
     expect(said).toBe(SAID);
     expect(reminder).not.toContain(TAKE_UP_ANSWER);
+  });
+});
+
+describe("the greeting's claim on last call's topic (greeting-claim.ts)", () => {
+  const TOPIC = 'Sam decided to send a resume to Dana at Figma by Thursday';
+  async function greets(line: string, userId: string): Promise<string | undefined> {
+    actorLine = line;
+    rememberCallerHistory(`s-${userId}`, { calls: 2, lastTopic: TOPIC });
+    await directedGreeting(`s-${userId}`, 'ferni', { userId, userName: 'Sam' });
+    return takeOpenerClaim(userId);
+  }
+
+  it('claims when the line asks about the topic itself', async () => {
+    expect(await greets(GREETING, 'c1')).toBe('greeting');
+  });
+
+  it('does not claim on their name, a persona name or small talk', async () => {
+    for (const line of [
+      "Hey Sam, how's your evening going?",
+      'Hey Sam, how was your week?',
+      "Hey Sam, it's Ferni. How are things today?",
+    ])
+      expect(await greets(line, `c-${line.length}`), line).toBeUndefined();
+  });
+
+  it('does not claim a line that asks nothing, or when no thread line could follow', async () => {
+    expect(
+      await greets('Hey Sam, good to hear from you. The resume for Dana.', 'c2')
+    ).toBeUndefined();
+    vi.stubEnv('OPENER_FOLLOW_UP', 'off');
+    expect(await greets(GREETING, 'c3')).toBeUndefined();
+    vi.stubEnv('FOLLOW_THROUGH_OPENER', 'on');
+    expect(await greets(GREETING, 'c4')).toBe('greeting');
   });
 });

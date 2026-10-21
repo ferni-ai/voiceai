@@ -1,6 +1,13 @@
 import { llm } from '@livekit/agents';
 import { afterEach, describe, expect, it } from 'vitest';
-import { answersQuestion, endsOnQuestion, isAnswerTurn, lastFerniLine } from '../answer-turn.js';
+import {
+  answersQuestion,
+  endsOnQuestion,
+  ferniOpened,
+  isAnswerTurn,
+  lastFerniLine,
+} from '../answer-turn.js';
+import { onlyGreets } from '../caller-greeting.js';
 import { Director, setDirector } from '../director-notes.js';
 import { withTurnReminder } from '../turn-request.js';
 
@@ -72,8 +79,9 @@ describe('answersQuestion', () => {
     expect(answersQuestion(GREETING, 'Hey Ferni.')).toBe(false);
   });
 
-  it('does not read "it\'s me" after a return call\'s greeting as an answer (sweep 2026-10-21)', () => {
-    const asked = 'Hey Sam, did you end up sending that resume to Dana?';
+  // Dev capability sweep 2026-10-21 (B2) and its review: a hello after Ferni's question.
+  const RESUME = 'Hey Sam, did you end up sending that resume to Dana?';
+  it('reads a hello, a name for Ferni, or saying who it is as no answer, by its shape', () => {
     for (const said of [
       "Hey Ferni, it's me.",
       "Hey Ferni, it's me again.",
@@ -81,11 +89,69 @@ describe('answersQuestion', () => {
       'It is just me.',
       'Me again.',
       "Hey, I'm back.",
-    ])
-      expect(answersQuestion(asked, said), said).toBe(false);
-    // Still answers: a hello in front of one, or "it's" about the thing asked.
-    for (const said of ['Hey Ferni, I did.', "It's done.", "It's sent, finally.", 'Hi, yes.'])
-      expect(answersQuestion(asked, said), said).toBe(true);
+      "Hey there, it's me.",
+      "Hey Fernie, it's me.",
+      "Hey Fernee, it's me.",
+      "Hey Ferny, it's me.",
+      "Good morning Ferni, it's me.",
+      "Hey Ferni, it's me, Sam.",
+      'Hi Ferni, Sam here.',
+      "Hey it's Sam again.",
+      'Hey buddy.',
+      "Hey Naya, it's me.",
+    ]) {
+      expect(onlyGreets(said, RESUME), said).toBe(true);
+      expect(answersQuestion(RESUME, said), said).toBe(false);
+    }
+  });
+
+  it('still reads real answers, and words that are not a hello, as answers', () => {
+    for (const said of [
+      'Hey Ferni, I did.',
+      "It's done.",
+      "It's sent, finally.",
+      'Hi, yes.',
+      'Sent the resume Wednesday.',
+    ]) {
+      expect(onlyGreets(said, RESUME), said).toBe(false);
+      expect(answersQuestion(RESUME, said), said).toBe(true);
+    }
+    // "It's Monday." or "It is." is not someone saying who they are.
+    for (const said of ["It's Monday.", 'It is.'])
+      expect(onlyGreets(said, RESUME), said).toBe(false);
+  });
+
+  it('reads saying who it is as the answer when Ferni asked who it is or if they are back', () => {
+    for (const [asked, said] of [
+      ["Hey, who's this?", "It's me."],
+      ["Hey, who's this?", "It's just me."],
+      ["Hey, who's this?", "It's Sam."],
+      ['Hey Sam, are you back?', "I'm back."],
+    ]) {
+      expect(onlyGreets(said, asked), said).toBe(false);
+      expect(answersQuestion(asked, said), `${asked} ${said}`).toBe(true);
+    }
+  });
+
+  it("on Ferni's opener, only words that touch its question answer it", () => {
+    const opened = call(['ferni', RESUME], ['caller', 'Yeah, I did.']);
+    const env = { [FLAG]: 'on' };
+    expect(ferniOpened(opened.items)).toBe(true);
+    expect(isAnswerTurn(opened.items, 'Yeah, I did.', env)).toBe(false);
+    // Shares only greeting words with "Hey Sam, ...": no answer, whatever its shape.
+    expect(isAnswerTurn(opened.items, 'Hey hey, guess what.', env)).toBe(false);
+    expect(isAnswerTurn(opened.items, 'Yeah, the resume went out.', env)).toBe(true);
+    // Their name or Ferni's is not touching it: "Sam here" after "Hey Sam, ...".
+    expect(isAnswerTurn(opened.items, 'Yeah, Sam here, Ferni.', env)).toBe(false);
+    // Later in the call the same "Yeah, I did." answers.
+    const later = call(
+      ['ferni', RESUME],
+      ['caller', 'Hey.'],
+      ['ferni', RESUME],
+      ['caller', 'Yeah, I did.']
+    );
+    expect(ferniOpened(later.items)).toBe(false);
+    expect(isAnswerTurn(later.items, 'Yeah, I did.', env)).toBe(true);
   });
 
   it('does not read their own question or a change of topic as an answer', () => {
