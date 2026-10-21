@@ -27,6 +27,11 @@
 #     Reuses a fixed user and everything it has piled up across past runs.
 # The user id must start with "voice-eval-": code that skips synthetic
 # callers keys on it (src/services/outreach/automated-scheduler.ts).
+# Both agents write to production Firestore (johnb-2025), which refuses every
+# harness user's writes (src/utils/synthetic-write-guard.ts). An agent started
+# with PROD_EVAL_WRITES=voice-eval lets voice-eval- users through; without it
+# the call still runs but nothing is remembered, so EVAL_SEED proves nothing.
+# Eval users are removed by cleanup-users.ts (older than 24 h).
 #
 # EVAL_TIER=partner gives the eval user a subscription first (seed-tier.ts): the
 #   whole team is unlocked, as for a real Partner subscriber.

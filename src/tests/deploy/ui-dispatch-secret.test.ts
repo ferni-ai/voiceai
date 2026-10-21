@@ -11,34 +11,17 @@
  * An agent verifies with DISPATCH_SIGNING_SECRET and LIVEKIT_API_SECRET
  * (dispatchVerifySecrets): one without the new key refuses calls signed with it.
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-
-const ROOT = join(__dirname, '..', '..', '..');
-const workflow = readFileSync(join(ROOT, '.github/workflows/deploy-production.yml'), 'utf8');
+import { uiServerEnv, uiServerSecrets } from './ui-deploy-env.js';
 
 const MOUNT = 'DISPATCH_SIGNING_SECRET=dispatch-signing-secret:latest';
 
-/** One `--flag "value"` of the workflow's john-bogle-ui deploy. */
-function uiDeployValue(flag: string): string {
-  const start = workflow.search(/run deploy john-bogle-ui\b/);
-  expect(start).toBeGreaterThan(-1);
-  const m = new RegExp(`${flag} "([^"]*)"`).exec(workflow.slice(start));
-  expect(m).not.toBeNull();
-  return m![1];
-}
-
 describe('dispatch signing secret mount', () => {
   it('the production web deploy mounts it from Secret Manager', () => {
-    // The deploy passes the job's UI_SECRETS, which the secret preflight checks too.
-    expect(uiDeployValue('--set-secrets')).toBe('$UI_SECRETS');
-    const list = /^ {6}UI_SECRETS: "([^"]*)"$/m.exec(workflow);
-    expect(list).not.toBeNull();
-    expect(list![1].split(',')).toContain(MOUNT);
+    expect(uiServerSecrets()).toContain(MOUNT);
   });
 
   it('never as a plain env var', () => {
-    expect(uiDeployValue('--set-env-vars')).not.toMatch(/DISPATCH_SIGNING_SECRET=/);
+    expect(uiServerEnv().join('\n')).not.toMatch(/DISPATCH_SIGNING_SECRET=/);
   });
 });

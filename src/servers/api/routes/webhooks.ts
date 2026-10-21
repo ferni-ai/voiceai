@@ -22,6 +22,7 @@ import {
   type WebhookPlatform,
 } from '../../../services/webhooks/index.js';
 import { requireAuth } from '../../../api/auth-middleware.js';
+import { checkOutboundUrl } from '../../../utils/outbound-url-guard.js';
 import { setCorsHeaders, handleCorsPreflightRequest } from '../../shared/cors.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { handleTwilioCallStatus } from './twilio-call-status.js';
@@ -234,6 +235,11 @@ export async function handleWebhookRoutes(
       sendError(res, 400, validation.errors.join(', '));
       return true;
     }
+    const createCheck = checkOutboundUrl(validation.normalized!.url);
+    if (!createCheck.ok) {
+      sendError(res, 400, `Webhook URL not allowed: ${createCheck.reason}`);
+      return true;
+    }
 
     // Create webhook
     const result = await createWebhook(userId, {
@@ -296,6 +302,16 @@ export async function handleWebhookRoutes(
     if (!body) {
       sendError(res, 400, 'Invalid JSON body');
       return true;
+    }
+
+    // The same URL rules as create: an update must not be a way around them.
+    if (body.url !== undefined) {
+      const urlCheck = checkOutboundUrl(body.url);
+      if (!urlCheck.ok) {
+        sendError(res, 400, `Webhook URL not allowed: ${urlCheck.reason}`);
+        return true;
+      }
+      body.url = urlCheck.url.toString();
     }
 
     const result = await updateWebhook(userId, {

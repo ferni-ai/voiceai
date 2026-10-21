@@ -21,7 +21,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { messagingPipelineOn, writeOptOut } from '../messaging/consent.js';
+import { writeOptOut } from '../messaging/consent.js';
 import { phoneHash } from './checkin-replies.js';
 import {
   onBehalfDispatchFor,
@@ -119,10 +119,15 @@ export function localTimeAfter(
  * write of the do-not-call list, for the retry, and for the calling-hours
  * window: '+1NXXNXXXXXX'. Formatting is stripped and a leading 1 or +1 is
  * accepted. Anything that isn't a valid North American number is null; it is
- * never guessed, and callers fail closed on null.
+ * never guessed, and callers fail closed on null. A "+" with another country
+ * code is never re-read as +1 ("+234 803 1234" is Nigeria, not +1 234...),
+ * however it is dressed: invisible format characters (zero-width spaces, the
+ * BOM), whitespace and leading brackets are stripped before that check.
  */
 export function toE164(phone: string | undefined | null): string | null {
-  const digits = (phone ?? '').replace(/\D/g, '');
+  const head = (phone ?? '').replace(/\p{Cf}/gu, '').replace(/^[\s([{]+/u, '');
+  if (head.startsWith('+') && !/^\+[\s().-]*1/.test(head)) return null;
+  const digits = head.replace(/\D/g, '');
   const national = digits.length === 11 && digits.startsWith('1') ? digits.slice(1) : digits;
   return /^[2-9]\d{2}[2-9]\d{6}$/.test(national) ? `+1${national}` : null;
 }
@@ -176,12 +181,15 @@ export async function recordCallOptOut(
     .doc(key)
     .set({ phone: key, optedOutAt: new Date().toISOString(), ...context });
   log.info({ callId: context.callId }, 'Recorded a do-not-call request');
-  // MESSAGING_PIPELINE: also the one consent record every caller reads (messaging/consent.ts).
-  const hash = messagingPipelineOn() ? phoneHash(key) : null;
-  if (hash) {
-    await writeOptOut(hash, 'call', 'voice-call').catch((error: unknown) => {
-      log.warn({ error: String(error), callId: context.callId }, 'Call opt-out not in consent');
-    });
+  // Also the one consent record (messaging/consent.ts), flag or not, so no opt-out is lost
+  // before MESSAGING_PIPELINE is armed; nothing reads it while the flag is off.
+  const hash = phoneHash(key);
+  try {
+    if (!hash) throw new Error('no LOG_HASH_SECRET');
+    await writeOptOut(hash, 'call', 'voice-call');
+  } catch (error) {
+    // Still on call_opt_outs above, which every call path reads today.
+    log.error({ error: String(error), callId: context.callId }, 'Call opt-out not in consent');
   }
   return true;
 }

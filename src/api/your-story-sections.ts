@@ -186,11 +186,23 @@ export interface YourWorld {
   }>;
 }
 
+/** Close relations (spouse, partner, parent, child, sibling): one mention is enough. */
+const CLOSE_TYPES = new Set(['family', 'partner']);
+
+/**
+ * Someone who is really part of the user's world: mentioned at least twice, or a close
+ * relation. 80% of stored people were mentioned once, and all of them counted as
+ * "connections".
+ */
+export function isConnection(person: { mentionCount?: number; type?: string }): boolean {
+  return (person.mentionCount ?? 0) >= 2 || CLOSE_TYPES.has(person.type ?? '');
+}
+
 export async function fetchYourWorld(userId: string, now = Date.now()): Promise<YourWorld | null> {
   try {
     const { loadNetwork, findConnectionOpportunities } =
       await import('../services/superhuman/relationship-network.js');
-    const network = await loadNetwork(userId);
+    const network = (await loadNetwork(userId)).filter((p) => isConnection(p));
     if (network.length === 0) return null;
     const opportunities = await findConnectionOpportunities(userId);
 

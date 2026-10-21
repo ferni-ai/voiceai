@@ -58,7 +58,8 @@ on:
   # run on the merged commit is the verdict. A push that CI's `paths:` filter
   # skips (docs only) deploys nothing; every input of the UI image is in that
   # list (src, apps, packages, design-system, docker, the root package and
-  # tsconfig files, patches, .npmrc, .dockerignore, this workflow).
+  # tsconfig files, patches, .npmrc, .dockerignore, this workflow) or of its
+  # deploy (deploy/ui-server/ env and secrets; ui-deploy-ci-paths.test.ts).
   # CI runs can still finish out of order, so the job's forward-only guard
   # (scripts/ci/deploy-forward-guard.sh) never deploys an older commit over a
   # newer one. A failed CI on main's tip is reported by report-not-live.
@@ -146,9 +147,6 @@ jobs:
     permissions:
       contents: read
       actions: read  # to read CI's verdict on this commit
-    env:
-      # The --set-secrets list for the deploy below; the preflight checks the same string.
-      UI_SECRETS: "LIVEKIT_URL=livekit-url:latest,LIVEKIT_API_KEY=livekit-api-key:latest,LIVEKIT_API_SECRET=livekit-api-secret:latest,GITHUB_MARKETPLACE_TOKEN=github-marketplace-token:latest,ADMIN_API_KEYS=admin-api-key:latest,ADMIN_KEY=admin-api-key:latest,LOG_HASH_SECRET=log-hash-secret:latest,EVALOPS_ADMIN_KEY=evalops-admin-key:latest,TWITTER_CLIENT_ID=twitter-client-id:latest,TWITTER_CLIENT_SECRET=twitter-client-secret:latest,LINKEDIN_CLIENT_ID=linkedin-client-id:latest,LINKEDIN_CLIENT_SECRET=linkedin-client-secret:latest,GOOGLE_CALENDAR_CLIENT_ID=google-calendar-client-id:latest,GOOGLE_CALENDAR_CLIENT_SECRET=google-calendar-client-secret:latest,TWILIO_ACCOUNT_SID=twilio-account-sid:latest,TWILIO_AUTH_TOKEN=twilio-auth-token:latest,TWILIO_PHONE_NUMBER=twilio-phone-number:latest,SENDGRID_API_KEY=sendgrid-api-key:latest,SENDGRID_FROM_EMAIL=sendgrid-from-email:latest,CARTESIA_API_KEY=cartesia-api-key:latest,VAPID_PUBLIC_KEY=vapid-public-key:latest,VAPID_PRIVATE_KEY=vapid-private-key:latest,WAITLIST_APPROVAL_SECRET=waitlist-approval-secret:latest,DISPATCH_SIGNING_SECRET=dispatch-signing-secret:latest,PROACTIVE_CHANNELS_USERS=proactive-channels-users:latest"
 
     steps:
       # ── 1. Prepare ─────────────────────────────────────────────────────────
@@ -163,6 +161,27 @@ jobs:
             exit 1
           fi
           echo "✅ All secrets configured"
+
+      # Runs before checkout and before any cloud credentials: DEPLOY_SHA's own
+      # code (scripts/ci/*, package.json) must never run with prod credentials
+      # unless the commit is already on main. Uses only the API, no checkout.
+      - name: Commit is on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ env.DEPLOY_SHA }}
+          SKIP_TESTS: ${{ inputs.skip_tests }}
+          CUSTOM_SHA: ${{ inputs.sha }}
+        run: |
+          [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::Not a full commit SHA: $SHA"; exit 1; }
+          if [ "$SKIP_TESTS" = "true" ] && [ -n "$CUSTOM_SHA" ]; then
+            echo "::error::skip_tests can't be combined with a custom sha"; exit 1
+          fi
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/main...$SHA" --jq .status) ||
+            { echo "::error::Could not compare $SHA with main"; exit 1; }
+          case "$status" in
+            identical|behind) echo "✅ $SHA is on main ($status)" ;;
+            *) echo "::error::$SHA is not on main ($status)"; exit 1 ;;
+          esac
 
       - name: Checkout
         uses: actions/checkout@v7
@@ -210,6 +229,47 @@ jobs:
           echo "Wait for CI to pass (that deploys it), or rerun this once it has."
           exit 1
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Fix local dependencies for CI
+        run: |
+          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+          sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
+
+      # No install scripts: nothing compiles on the host. The safety check, the
+      # design-system build and the smoke tests need only tsx and plain Node.
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile --ignore-scripts
+
+      - name: Deployment safety check
+        if: ${{ !inputs.skip_tests }}
+        run: |
+          echo "🔍 Scanning for unsafe deployment patterns..."
+          npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all || {
+            echo "❌ Unsafe deployment patterns detected!"
+            echo "Direct gcloud/firebase commands are forbidden."
+            echo "Use 'ferni deploy' CLI instead."
+            exit 1
+          }
+          echo "✅ Deployment safety passed"
+
+      # ── 3. Build ───────────────────────────────────────────────────────────
+      # Dockerfile.ui builds the backend and the frontend itself; it copies only
+      # design-system/dist from the host.
+      - name: Build design-system (required for Docker)
+        run: node design-system/build.js
+
       # ═══════════════════════════════════════════════════════════════════════
       # GCR AUTHENTICATION
       # ═══════════════════════════════════════════════════════════════════════
@@ -217,6 +277,9 @@ jobs:
       # Required to push the UI image to gcr.io, and here first so the guard
       # can read what production serves. The build itself pulls nothing
       # private (the ferni-speaker base image is gone from Dockerfile.ui).
+      # Dependency code (install, safety check, design-system build) runs above,
+      # before any cloud credentials exist in this job; credentials load only for
+      # the forward guard, the image push and the deploy.
       # ═══════════════════════════════════════════════════════════════════════
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -238,52 +301,6 @@ jobs:
           REASON: ${{ inputs.reason }}
           CI_RUN_ID: ${{ github.event.workflow_run.id }}
         run: bash scripts/ci/deploy-forward-guard.sh
-
-      - name: Setup pnpm
-        if: steps.guard.outputs.deploy == 'true'
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        if: steps.guard.outputs.deploy == 'true'
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'pnpm'
-
-      - name: Fix local dependencies for CI
-        if: steps.guard.outputs.deploy == 'true'
-        run: |
-          sed -i 's|"file:../agents-js/agents"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/google"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/openai"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"file:../agents-js/plugins/silero"|"^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"@livekit/agents": "file:../agents-js/agents"|"@livekit/agents": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-          sed -i 's|"@livekit/agents-plugin-google": "file:../agents-js/plugins/google"|"@livekit/agents-plugin-google": "^${{ env.LIVEKIT_AGENTS_VERSION }}"|g' package.json
-
-      # No install scripts: nothing compiles on the host. The safety check, the
-      # design-system build and the smoke tests need only tsx and plain Node.
-      - name: Install dependencies
-        if: steps.guard.outputs.deploy == 'true'
-        run: pnpm install --no-frozen-lockfile --ignore-scripts
-
-      - name: Deployment safety check
-        if: ${{ steps.guard.outputs.deploy == 'true' && !inputs.skip_tests }}
-        run: |
-          echo "🔍 Scanning for unsafe deployment patterns..."
-          npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all || {
-            echo "❌ Unsafe deployment patterns detected!"
-            echo "Direct gcloud/firebase commands are forbidden."
-            echo "Use 'ferni deploy' CLI instead."
-            exit 1
-          }
-          echo "✅ Deployment safety passed"
-
-      # ── 3. Build ───────────────────────────────────────────────────────────
-      # Dockerfile.ui builds the backend and the frontend itself; it copies only
-      # design-system/dist from the host.
-      - name: Build design-system (required for Docker)
-        if: steps.guard.outputs.deploy == 'true'
-        run: node design-system/build.js
 
       - name: Configure Docker for GCR
         if: steps.guard.outputs.deploy == 'true'
@@ -312,6 +329,8 @@ jobs:
             --build-arg VITE_CAPTIONS_BREATH="${{ vars.VITE_CAPTIONS_BREATH }}" \
             --build-arg VITE_CAPTIONS_HEARD="${{ vars.VITE_CAPTIONS_HEARD }}" \
             --build-arg VITE_MEMORY_VIEW="${{ vars.VITE_MEMORY_VIEW }}" \
+            --build-arg VITE_APPLE_WEB_SIGNIN="${{ vars.VITE_APPLE_WEB_SIGNIN }}" \
+            --build-arg VITE_TOAST_REGION="${{ vars.VITE_TOAST_REGION }}" \
             .
 
           # Push all tags
@@ -339,6 +358,7 @@ jobs:
       # 2026-10-17: a --set-secrets entry named a secret with no enabled version.
       # The new revision could not start and Cloud Run kept serving the old one
       # for 3.5h. Check every secret before deploying, and name each bad one.
+      # Reads deploy/ui-server/secrets.txt exactly as the deploy step does.
       - name: 🔐 Preflight - every mounted secret has an enabled version
         id: preflight
         if: steps.guard.outputs.deploy == 'true'
@@ -346,7 +366,8 @@ jobs:
           set -u
           bad=()
           declare -A seen=()
-          IFS=',' read -ra entries <<< "$UI_SECRETS"
+          SECRETS=$(grep -v -e '^#' -e '^$' deploy/ui-server/secrets.txt | paste -sd, -)
+          IFS=',' read -ra entries <<< "$SECRETS"
           for entry in "${entries[@]}"; do
             ref=${entry#*=}
             secret=${ref%%:*}
@@ -407,14 +428,17 @@ jobs:
           # whole project). It holds only what the server uses: Firestore
           # (datastore.user), Vertex Gemini (aiplatform.user), Firebase Auth user
           # get/delete (custom role ferniUiAuthUsers) and secretAccessor on each
-          # secret below. A new --set-secrets entry needs that grant too.
-          # Server flags live in --set-env-vars below. It REPLACES the service's env on every
-          # deploy, so a flag set by hand on Cloud Run is gone after the next main push:
-          # turn a web-server flag on here (and in apps/cli deploy.ts), in a reviewed PR.
-          # DISPATCH_SIGNING_SECRET signs the calls this server places (proactive check-ins,
-          # on-behalf, family check-ins); the voice agent verifies with the same secret (#1706).
-          # This repo is public: who gets proactive check-ins (PROACTIVE_CHANNELS_USERS,
-          # Firebase uids) comes from the proactive-channels-users secret, never this file.
+          # secret in deploy/ui-server/secrets.txt. A new secret needs that grant too.
+          # Env and secrets: one key per line in deploy/ui-server/ (env.yaml, secrets.txt;
+          # both REPLACE the service's on every deploy). Per-deploy env, one printf per key:
+          ENV_FILE=$(mktemp --suffix=.yaml)
+          cp deploy/ui-server/env.yaml "$ENV_FILE"
+          # Read from shell env, never pasted in as a workflow expression: DEPLOY_SHA can
+          # come from a workflow_dispatch input (CodeQL code injection, as in the summary).
+          printf 'BUILD_SHA: "%s"\n' "$DEPLOY_SHA" >> "$ENV_FILE"
+          printf 'GCLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
+          printf 'GOOGLE_CLOUD_PROJECT: "%s"\n' "$GCP_PROJECT_ID" >> "$ENV_FILE"
+          SECRETS=$(grep -v -e '^#' -e '^$' deploy/ui-server/secrets.txt | paste -sd, -)
           gcloud run deploy john-bogle-ui \
             --image ${{ env.UI_IMAGE }}:${{ env.DEPLOY_SHA }} \
             --region ${{ env.GCP_REGION }} \
@@ -431,8 +455,8 @@ jobs:
             --min-instances 0 \
             --max-instances 10 \
             --vpc-connector ferni-redis-connector \
-            --set-env-vars "^::^NODE_ENV=production::BUILD_SHA=${{ env.DEPLOY_SHA }}::GOOGLE_CLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::GCLOUD_PROJECT=${{ env.GCP_PROJECT_ID }}::ALLOWED_ORIGINS=https://app.ferni.ai,https://ferni.ai,https://ferni-prod.web.app::SIP_TRUNK_ID=ST_AEE6NnKE84XP::JOURNAL_TRANSCRIBE_VERTEX=on::MEMORY_VIEW=on::JOURNAL_ONE_STORE=on::CALL_HOURS_GUARD=on::FAMILY_CHECKIN_STOP=on::COHORT_FLAGS=on::PROACTIVE_CHANNELS=on::FOLLOW_THROUGH_JOB=on" \
-            --set-secrets "$UI_SECRETS"
+            --env-vars-file "$ENV_FILE" \
+            --set-secrets "$SECRETS"
 
           SVC=$(gcloud run services describe john-bogle-ui --region=${{ env.GCP_REGION }} --format=json)
           REVISION=$(jq -r '.status.latestCreatedRevisionName // empty' <<<"$SVC")
@@ -560,15 +584,22 @@ jobs:
       # ── 6. Notify (always, so a failed deploy still reports; not on a no-op) ─
       - name: Create deployment summary
         if: always() && steps.guard.outputs.deploy != 'false'
+        # Values reach the script as env, never pasted into it: the revision is
+        # gcloud output on a workflow_dispatch path (CodeQL code injection).
+        env:
+          JOB_STATUS: ${{ job.status }}
+          REVISION: ${{ steps.deploy.outputs.revision }}
+          ACTOR: ${{ github.actor }}
+          VERSION: ${{ steps.meta.outputs.version }}
         run: |
           echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Service | Status | Revision |" >> $GITHUB_STEP_SUMMARY
           echo "|---------|--------|----------|" >> $GITHUB_STEP_SUMMARY
 
-          if [[ "${{ job.status }}" == "success" ]]; then
-            echo "| UI Server | ✅ Success | \`${{ steps.deploy.outputs.revision }}\` |" >> $GITHUB_STEP_SUMMARY
-          elif [[ "${{ job.status }}" == "failure" ]]; then
+          if [[ "$JOB_STATUS" == "success" ]]; then
+            echo "| UI Server | ✅ Success | \`${REVISION}\` |" >> $GITHUB_STEP_SUMMARY
+          elif [[ "$JOB_STATUS" == "failure" ]]; then
             echo "| UI Server | ❌ Failed | - |" >> $GITHUB_STEP_SUMMARY
           else
             echo "| UI Server | ⏭️ Cancelled | - |" >> $GITHUB_STEP_SUMMARY
@@ -576,8 +607,8 @@ jobs:
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** \`${DEPLOY_SHA}\`" >> $GITHUB_STEP_SUMMARY
-          echo "**Deployed by:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
-          echo "**Version:** ${{ steps.meta.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Deployed by:** ${ACTOR}" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** ${VERSION}" >> $GITHUB_STEP_SUMMARY
 
       - name: Determine status
         id: status
