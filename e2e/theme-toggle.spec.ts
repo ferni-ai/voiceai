@@ -90,6 +90,8 @@ test.describe('Theme Toggle UI', () => {
   test('dark theme applies Night Ink on the sign-in screen', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('voiceai-theme', 'midnight');
+      // Apple sign-in is off on the web by default; these checks need its button.
+      localStorage.setItem('ferni:flag:apple-web-signin', 'true');
     });
     await page.goto(BASE_URL);
     await page.waitForSelector('.sign-in-gate-btn--apple', { timeout: 10000 });
@@ -111,6 +113,8 @@ test.describe('Theme Toggle UI', () => {
   test('light theme applies zen chrome on the sign-in screen', async ({ page }) => {
     await page.addInitScript(() => {
       localStorage.setItem('voiceai-theme', 'zen');
+      // Apple sign-in is off on the web by default; these checks need its button.
+      localStorage.setItem('ferni:flag:apple-web-signin', 'true');
     });
     await page.goto(BASE_URL);
     await page.waitForSelector('.sign-in-gate-btn--apple', { timeout: 10000 });
@@ -125,6 +129,8 @@ test.describe('Theme Toggle UI', () => {
     await page.emulateMedia({ colorScheme: 'dark' });
     await page.addInitScript(() => {
       localStorage.removeItem('voiceai-theme');
+      // Apple sign-in is off on the web by default; these checks need its button.
+      localStorage.setItem('ferni:flag:apple-web-signin', 'true');
     });
     await page.goto(BASE_URL);
     await page.waitForSelector('.sign-in-gate-btn--apple', { timeout: 10000 });
