@@ -15,16 +15,25 @@ import {
 } from '../multi-agent/interruption-config.js';
 import type { ItemView, ReminderNote } from './prompt-sections.js';
 import {
+  logReceipt,
   TurnReceiptRecorder,
   type BargeInSource,
   type TurnReceipt,
   type TurnReceiptOptions,
 } from './turn-receipt.js';
+import {
+  toolSchemaChars,
+  turnTokenReceiptEnabled,
+  withInputTokens,
+  type ToolView,
+} from './turn-input-tokens.js';
 import { eotCallFrom } from './turn-receipt-eot.js';
 import { turnDetectionInUse } from './turn-patience.js';
 
 // One recorder per AgentSession, so llmNode and withTurnReminder can find it.
 const recorders = new WeakMap<object, TurnReceiptRecorder>();
+// Sessions whose turns also get a turn_input_tokens line (TURN_TOKEN_RECEIPT=on).
+const measuringTokens = new WeakSet<object>();
 
 /** withTurnReminder: the per-turn reminder of the request being built. */
 export function noteReminder(session: object, note: ReminderNote): void {
@@ -40,11 +49,13 @@ export function noteBargeIn(session: object, source: BargeInSource): void {
 export function noteRequest(
   session: object,
   request: { items: readonly unknown[] },
-  tools: { functionTools?: Record<string, unknown> }
+  tools: { functionTools?: Record<string, ToolView> }
 ): void {
+  const functionTools = tools.functionTools ?? {};
+  const schemaChars = measuringTokens.has(session) ? toolSchemaChars(functionTools) : undefined;
   recorders
     .get(session)
-    ?.onRequest(request.items as ItemView[], Object.keys(tools.functionTools ?? {}).length);
+    ?.onRequest(request.items as ItemView[], Object.keys(functionTools).length, schemaChars);
 }
 
 /** A caller turn's reply latency, for the call-quality reply SLO (call-quality-slo.ts). */
@@ -69,6 +80,8 @@ interface EventSource {
  * emits a turn still open and stops listening.
  */
 export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOptions): () => void {
+  const emit = opts.emit ?? logReceipt;
+  const tokensOn = turnTokenReceiptEnabled(opts.env);
   const rec = new TurnReceiptRecorder({
     handling: () => ({
       turnDetection: turnDetectionInUse(session),
@@ -76,8 +89,10 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     }),
     onReceipt: noteReplyLatency,
     ...opts,
+    emit: tokensOn ? withInputTokens(emit) : emit,
   });
   recorders.set(session, rec);
+  if (tokensOn) measuringTokens.add(session);
   const handlers: Array<[string, (ev: unknown) => void]> = [
     [
       'metrics_collected',
@@ -120,5 +135,6 @@ export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOption
     rec.flush();
     for (const [event, handler] of handlers) session.off(event, handler);
     recorders.delete(session);
+    measuringTokens.delete(session);
   };
 }

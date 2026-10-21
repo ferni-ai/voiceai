@@ -29,7 +29,10 @@
  *
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 pnpm tsx scripts/memory-eval/longmem.ts \
  *     [--only maya] [--category opener] [--date YYYY-MM-DD] [--arms off,on] [--memory file.json]
+ *     [--bq]
  *
+ * --bq writes each arm's accuracy and evidence share to ferni_events.eval_results
+ * (env dev, numbers only), and exits 1 if that insert fails.
  * The judge is the answerer's model family: cross-check with a second-family
  * judge before quoting a headline. The answer is at temperature 0, so the
  * headline is repeatable; the report records the model ids and prompt hashes.
@@ -72,6 +75,7 @@ import {
   judgePrompt,
   localDay,
   paired,
+  tally,
   parseCaseFile,
   parseYesNo,
   promptHashes,
@@ -81,6 +85,7 @@ import {
   type MemoryHistory,
 } from './longmem-lib.js';
 import { assertVertexOnly, writePrivate } from './real-data.js';
+import { longmemMetrics, newRunId, reportIfBq } from '../lib/eval-results-bq.js';
 
 const quiet = { debug: () => undefined };
 
@@ -405,6 +410,17 @@ async function main(): Promise<void> {
   console.log(
     `\nWritten: ${JSON.stringify(written)}\n\n${sections.join('\n\n')}\n\nReport: ${file}\nMemory: ${memoryOut}`
   );
+  const scenario = casesFile ? 'longmem_cases' : 'longmem';
+  await reportIfBq(argv.includes('--bq'), () => {
+    const runId = newRunId('longmem');
+    return arms.map((arm) => ({
+      runId,
+      arm,
+      scenario,
+      metrics: longmemMetrics(tally(results[arm])),
+      flags: arm === 'on' ? ['SEMANTIC_RECALL'] : [],
+    }));
+  });
 }
 
 // Exit explicitly: the memory modules leave timers and gRPC channels open, so

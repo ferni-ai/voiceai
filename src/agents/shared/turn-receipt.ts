@@ -86,6 +86,7 @@ interface OpenTurn {
   lane: { lane: 'fast' | 'main'; reason: string } | null;
   director: Omit<ReminderNote, 'reminder' | 'directorNotes'> & { kept: number };
   toolsOffered: number | null;
+  toolSchemaChars?: number;
   called: string[];
   toolErrors: number;
   reply: {
@@ -131,6 +132,7 @@ export type TurnReceipt = ReturnType<TurnReceiptRecorder['build']>;
 export type EndedBy = 'listening' | 'superseded' | 'session_end';
 
 const log = createLogger({ module: 'TurnReceipt' });
+export const logReceipt = (receipt: TurnReceipt): void => log.info(receipt, 'TURN_RECEIPT');
 /** Audio before a pause after which a cut reply must have words to commit. */
 const HEARD_MS = 1000;
 const ms = (n: number | undefined | null): number | null =>
@@ -231,13 +233,14 @@ export class TurnReceiptRecorder {
   }
 
   /** A request about to go to the model (preemptive, final or after tools): the last one counts. */
-  onRequest(items: readonly ItemView[], toolsOffered: number): void {
+  onRequest(items: readonly ItemView[], toolsOffered: number, schemaChars?: number): void {
     const turn = this.open();
     const note = this.reminder;
     this.reminder = null;
     turn.requests += 1;
     turn.sections = promptSections(items, note ?? undefined);
     turn.toolsOffered = toolsOffered;
+    turn.toolSchemaChars = schemaChars;
     turn.director = note
       ? {
           offered: note.offered,
@@ -362,7 +365,7 @@ export class TurnReceiptRecorder {
 
   private emit(receipt: TurnReceipt): void {
     try {
-      (this.opts.emit ?? ((r) => log.info(r, 'TURN_RECEIPT')))(receipt);
+      (this.opts.emit ?? logReceipt)(receipt);
       this.opts.onReceipt?.(receipt);
     } catch (error) {
       log.warn({ error: String(error) }, 'turn receipt not emitted');
@@ -457,6 +460,7 @@ export class TurnReceiptRecorder {
             prompt: llm.promptTokens,
             promptCached: llm.promptCachedTokens ?? 0,
             completion: llm.completionTokens,
+            model: llm.metadata?.modelName ?? null,
           }
         : null,
       prompt: {
@@ -469,6 +473,7 @@ export class TurnReceiptRecorder {
       director: turn.director,
       tools: {
         offered: turn.toolsOffered,
+        schemaChars: turn.toolSchemaChars ?? null, // TURN_TOKEN_RECEIPT=on (turn-input-tokens.ts)
         retrieval: toolRetrievalMode(),
         called: turn.called,
         errors: turn.toolErrors,

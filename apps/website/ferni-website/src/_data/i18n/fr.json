@@ -132,7 +132,7 @@
       },
       {
         "question": "Comment fonctionnent les appels téléphoniques ?",
-        "answer": "Appelez simplement le 1 (888) 598-3952 depuis n'importe quel téléphone. Pas d'application nécessaire, pas d'inscription requise. Ferni reconnaîtra votre numéro et se souviendra de vos conversations précédentes automatiquement."
+        "answer": "Appelez simplement le 1 (888) 598-3952 depuis n'importe quel téléphone. Pas d'application nécessaire, pas d'inscription requise. Pour l'instant, chaque appel repart de zéro. Pour que Ferni se souvienne de vous d'une conversation à l'autre, parlez-lui dans l'application en étant connecté."
       },
       {
         "question": "Ma conversation est-elle privée ?",
