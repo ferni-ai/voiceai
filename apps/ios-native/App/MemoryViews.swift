@@ -164,21 +164,45 @@ struct RememberCard: View {
 }
 
 /// "When did I mention Ana?": the notes that answer, with when you said them.
-/// Searched on this phone by its own model; shown only where that exists.
-private struct OnDeviceSearch: ViewModifier {
+/// Searched on this phone by its own model; shown only where that exists, and
+/// only when there's something to search (design audit P2 #7).
+///
+/// A row at the top of the list, not the system's floating search bar: that
+/// bar covered the last note's Forget on an SE (critic M-D), and rows passing
+/// behind its glass showed through as faint words the contrast audit failed,
+/// with no element to name (critic H-B, H-C).
+private struct SearchRow: View {
     @Binding var query: String
-    /// There's something to search (design audit P2 #7: the error state
-    /// offered search over nothing).
-    let hasNotes: Bool
     let submit: () -> Void
 
-    func body(content: Content) -> some View {
-        if NoteSearch.isAvailable && hasNotes {
-            content
-                .searchable(text: $query, prompt: Text("When did I mention…"))
-                .onSubmit(of: .search, submit)
-        } else {
-            content
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(FerniColor.textSecondary)
+                .accessibilityHidden(true)
+            // Wraps instead of cutting off at large sizes (the audit read the
+            // one-line field, and its prompt's "…", as clipped). Return searches.
+            TextField("Search what Ferni remembers", text: $query,
+                      prompt: Text("Find something you told me").foregroundStyle(FerniColor.textSecondary), axis: .vertical)
+                .lineLimit(1...4)
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+                .onChange(of: query) { _, text in
+                    guard text.contains("\n") else { return }
+                    query = text.replacingOccurrences(of: "\n", with: "")
+                    submit()
+                }
+                .accessibilityIdentifier("memory.search")
+            if !query.isEmpty {
+                Button { query = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(FerniColor.textSecondary)
+                        .frame(minWidth: 44, minHeight: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
         }
     }
 }
@@ -211,6 +235,10 @@ struct MemoryScreen: View {
         }
         // The app switcher's snapshot never shows the notes when the lock is on.
         .ferniPaper()
+        // Hard edges, as in Settings (design audit P2 #10): with soft ones, at
+        // AX5 (no intro) the rows under the bar showed through as faint words
+        // the audit failed (critic H-B).
+        .scrollEdgeEffectStyle(.hard, for: .all)
         .overlay { if lock.isEnabled && scenePhase != .active { Rectangle().fill(.regularMaterial).ignoresSafeArea() } }
         .navigationTitle("What Ferni remembers")
         .navigationBarTitleDisplayMode(.inline)
@@ -237,14 +265,17 @@ struct MemoryScreen: View {
                 }
             }
         } header: {
-            Text("From your notes")
+            SettingsHeader("From your notes")
         } footer: {
-            Text("Searched on this iPhone. Nothing left it.")
+            SettingsFooter("Searched on this iPhone. Nothing left it.")
         }
     }
 
     private var notes: some View {
         List {
+            if NoteSearch.isAvailable && !memory.notes.isEmpty {
+                Section { SearchRow(query: $query) { Task { await search.search(query, in: memory.notes) } } }
+            }
             if !query.isEmpty, search.state != .idle { searchResults }
             switch memory.load {
             case .failed where memory.notes.isEmpty:
@@ -285,7 +316,7 @@ struct MemoryScreen: View {
                 }
                 Section {
                 } footer: {
-                    Text("Ferni's team shares what you tell Ferni, so Maya and the others know it too.")
+                    SettingsFooter("Ferni's team shares what you tell Ferni, so Maya and the others know it too.")
                 }
             }
         }
@@ -297,7 +328,6 @@ struct MemoryScreen: View {
         } message: { note in
             Text(MemoryJournal.toYou(note.content))
         }
-        .modifier(OnDeviceSearch(query: $query, hasNotes: !memory.notes.isEmpty) { Task { await search.search(query, in: memory.notes) } })
         .onChange(of: query) { _, text in if text.isEmpty { search.clear() } }
         .task { await memory.refresh() }
         .refreshable { await memory.refresh() }
@@ -334,12 +364,12 @@ private struct NoteRow: View {
                 Button(action: forget) {
                     // The whole 44 pt square is the target, not just the word.
                     Text("Forget")
+                        .font(FerniType.footnote)
+                        .foregroundStyle(FerniColor.textSecondary)
                         .frame(minWidth: 44, minHeight: 44)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.borderless)
-                .font(FerniType.footnote)
-                .foregroundStyle(FerniColor.textSecondary)
+                .buttonStyle(.plain)
                     .accessibilityLabel(Text("Forget: \(MemoryJournal.toYou(note.content))"))
             }
         }

@@ -159,7 +159,7 @@ jobs:
         working-directory: apps/ios-native
         run: >-
           scripts/ui-audit.sh gate "iPhone SE (3rd generation)" "$SPM_DIR" "$RUNNER_TEMP"
-          CallControlsAtLargeTextTests,NameChipUITests,SettingsTitleUITests,HomeFullnessUITests,MemoryEdgesUITests,HelpLinksUITests,PaperScreensUITests,AccessibilityAuditTests
+          CallControlsAtLargeTextTests,NameChipUITests,SettingsTitleUITests,HomeFullnessUITests,MemoryEdgesUITests,MemoryJournalUITests,SignInUITests,HelpLinksUITests,PaperScreensUITests,AccessibilityAuditTests
 
       - name: Upload test results
         if: always()
