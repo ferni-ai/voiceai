@@ -309,7 +309,7 @@ jobs:
 
       - name: Nothing to draft
         if: steps.draft.outputs.status == 'nothing-to-draft'
-        run: echo "No merged PRs to write a $TYPE post from; no PR opened." | tee -a "$GITHUB_STEP_SUMMARY"
+        run: echo "Nothing to write a $TYPE post about (no fitting merged PRs, or the drafter skipped); no PR opened." | tee -a "$GITHUB_STEP_SUMMARY"
 
   # The weekly run (Mondays, or a manual "weekly") keeps one issue labelled
   # blog-weekly-failed: opened (or commented on) when a job fails, saying which

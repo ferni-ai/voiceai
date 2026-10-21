@@ -13,6 +13,7 @@ import { renderPack, sourceList, type GhRunner, type Source } from './grounding.
 import type { DraftModel } from './model.js';
 import { getPostType, type PostType } from './post-types.js';
 import { buildPrompt, parseDraft, type DraftText } from './prompt.js';
+import { RECENT_POSTS, mentionedPrs } from './repetition.js';
 import { characterLabel, letterAuthor, pickPersona } from './team-letter.js';
 import { NEEDS_PRS, collectSources } from './type-sources.js';
 import { MAX_ANSWER_CHARS, unsafeOutput } from './untrusted-text.js';
@@ -62,6 +63,8 @@ interface Attempt {
   issues: GateIssue[];
   /** An off-allowlist link or raw HTML: rejected at once, never retried. */
   unsafe?: boolean;
+  /** The model found nothing worth a post of this kind. */
+  skip?: boolean;
 }
 
 export const ATTEMPTS = 2;
@@ -111,7 +114,7 @@ async function attempt(
   prompt: string,
   model: DraftModel,
   render: (d: DraftText) => string,
-  gate: GateOptions
+  gate: (d: DraftText) => GateOptions
 ): Promise<Attempt> {
   const answer = await model.generate(prompt);
   if (answer.length > MAX_ANSWER_CHARS) {
@@ -120,10 +123,11 @@ async function attempt(
   }
   try {
     const draft = parseDraft(answer);
+    if (!draft) return { issues: [], skip: true };
     const markdown = render(draft);
     const unsafe = unsafeOutput(markdown);
     if (unsafe.length > 0) return { draft, markdown, issues: unsafe, unsafe: true };
-    return { draft, markdown, issues: checkPost(markdown, gate) };
+    return { draft, markdown, issues: checkPost(markdown, gate(draft)) };
   } catch (error) {
     return { issues: [{ rule: 'front-matter', message: `unreadable answer: ${String(error)}` }] };
   }
@@ -147,7 +151,16 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
   const existing = existingPosts(folder);
   const since = opts.since ?? defaultSince(type, existing[0]?.date, deps.today);
   const persona = pickPersona(isoWeek(deps.today), opts.persona);
-  const ctx = { root: deps.root, repo: deps.repo, gh: deps.gh, since, today: deps.today, persona };
+  const covered = new Set(existing.flatMap((p) => p.cited));
+  const ctx = {
+    root: deps.root,
+    repo: deps.repo,
+    gh: deps.gh,
+    since,
+    today: deps.today,
+    persona,
+    covered,
+  };
   const { prs, docs } = collectSources(type, ctx);
   const sources = [...prs, ...docs];
   const terms = forbiddenTerms(deps.root, type.audience);
@@ -173,17 +186,32 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
     seriesPart: existing.filter((p) => p.series === type.series).length + 1,
     label: letter ? characterLabel(persona) : undefined,
   };
-  const gate = { terms, sourceText: renderPack(sources), words: type.words };
-  const render = (d: DraftText): string => renderPost(type, d, meta);
+  // A post lists, and its numbers must come from, only the PRs its body mentions (and the docs).
+  const cited = (d: DraftText): Source[] => {
+    const mentioned = mentionedPrs(d.body);
+    return sources.filter((s) => {
+      const n = (s as { number?: unknown }).number;
+      return typeof n !== 'number' || mentioned.has(n);
+    });
+  };
+  const recentBodies = existing.slice(0, RECENT_POSTS).map((p) => p.body);
+  const gate = (d: DraftText): GateOptions => ({
+    terms,
+    sourceText: renderPack(cited(d)),
+    words: type.words,
+    recentBodies,
+  });
+  const render = (d: DraftText): string => renderPost(type, d, { ...meta, sources: cited(d) });
   for (let n = 1; n <= ATTEMPTS; n++) {
     // Sequential on purpose: the second call carries the first one's findings.
     // eslint-disable-next-line no-await-in-loop
-    const { draft, markdown, issues, unsafe } = await attempt(
+    const { draft, markdown, issues, unsafe, skip } = await attempt(
       result.prompt,
       deps.model,
       render,
       gate
     );
+    if (skip) return { ...result, status: 'nothing-to-draft' };
     if (unsafe) return { ...result, status: 'rejected', issues, markdown };
     if (draft && markdown && issues.length === 0) {
       const file = freePath(
@@ -192,7 +220,15 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
         deps.fileExists
       );
       (deps.writeFile ?? fs.writeFileSync)(file, markdown);
-      return { ...result, status: 'written', path: file, title: draft.title, markdown };
+      const used = cited(draft);
+      return {
+        ...result,
+        status: 'written',
+        sources: used,
+        path: file,
+        title: draft.title,
+        markdown,
+      };
     }
     Object.assign(result, { issues, markdown, prompt: ask(issues) });
   }
