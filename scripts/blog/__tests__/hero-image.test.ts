@@ -3,9 +3,11 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  ALT_MAX,
   HERO_SIZE,
   IMAGE_DIR,
   generateWithRetry,
+  heroAlt,
   heroPrompt,
   imageClientOptions,
   makeHeroImage,
@@ -92,6 +94,45 @@ describe('setImage', () => {
   it('refuses a file with no front matter', () => {
     expect(() => setImage('# just a body\n', 'x.png')).toThrow(/front matter/);
   });
+
+  it('with alt, puts imageAlt right after image and replaces an old one', () => {
+    const out = setImage(POST, 'x.png', 'Sage lines on cream');
+    const lines = out.split('\n');
+    expect(lines[lines.indexOf('image: "x.png"') + 1]).toBe('imageAlt: "Sage lines on cream"');
+    const again = setImage(out, 'y.png', 'Amber swirls');
+    expect(again.match(/^imageAlt:/gm)).toHaveLength(1);
+    expect(again).toContain('imageAlt: "Amber swirls"');
+  });
+});
+
+describe('heroAlt', () => {
+  const png = Buffer.from('img');
+  const generate = vi.fn();
+
+  it("uses the model's description as one clean line, without a trailing period", async () => {
+    const describe = vi.fn().mockResolvedValue('Flowing sage and amber lines\non cream paper.');
+    expect(await heroAlt({ generate, describe }, png, 'T')).toBe(
+      'Flowing sage and amber lines on cream paper'
+    );
+    expect(describe).toHaveBeenCalledWith(png);
+  });
+
+  it('clips a long description at a word, within ALT_MAX', async () => {
+    const describe = vi.fn().mockResolvedValue('word '.repeat(60));
+    const alt = await heroAlt({ generate, describe }, png, 'T');
+    expect(alt.length).toBeLessThanOrEqual(ALT_MAX);
+    expect(alt.endsWith('word…')).toBe(true);
+  });
+
+  it('falls back to a line naming the post when the model fails or says nothing', async () => {
+    const fails = vi.fn().mockRejectedValue(new Error('quota'));
+    expect(await heroAlt({ generate, describe: fails }, png, 'Quiet Patterns')).toBe(
+      "Line drawing in sage and amber on cream for 'Quiet Patterns'"
+    );
+    const empty = vi.fn().mockResolvedValue('  ');
+    expect(await heroAlt({ generate, describe: empty }, png, 'Q')).toMatch(/^Line drawing/);
+    expect(await heroAlt({ generate }, png, 'Q')).toMatch(/^Line drawing/);
+  });
 });
 
 describe('generateWithRetry', () => {
@@ -123,8 +164,9 @@ describe('makeHeroImage', () => {
       .png()
       .toBuffer();
     const generate = vi.fn().mockResolvedValue(square);
+    const describe = vi.fn().mockResolvedValue('A crescent moon drawn in sage on cream.');
 
-    const result = await makeHeroImage(post, { root, model: { generate } });
+    const result = await makeHeroImage(post, { root, model: { generate, describe } });
 
     expect(result.imagePath).toBe(path.join(root, IMAGE_DIR, 'my-post.png'));
     const meta = await sharp(fs.readFileSync(result.imagePath as string)).metadata();
@@ -133,7 +175,10 @@ describe('makeHeroImage', () => {
       HERO_SIZE.width,
       HERO_SIZE.height,
     ]);
-    expect(postFacts(fs.readFileSync(post, 'utf-8')).image).toBe('my-post.png');
+    const written = fs.readFileSync(post, 'utf-8');
+    expect(postFacts(written).image).toBe('my-post.png');
+    expect(written).toContain('imageAlt: "A crescent moon drawn in sage on cream"');
+    expect(result.alt).toBe('A crescent moon drawn in sage on cream');
     expect(generate).toHaveBeenCalledWith(heroPrompt(postFacts(POST)));
   });
 

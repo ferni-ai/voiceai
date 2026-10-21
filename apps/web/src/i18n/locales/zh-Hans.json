@@ -11130,5 +11130,21 @@
     "helper": "用手机相机扫一扫，或点按“打开 Venmo”。金额可以修改。",
     "maybeLater": "以后再说",
     "close": "关闭"
+  },
+  "reportReply": {
+    "button": "举报",
+    "describe": "举报{name}说的话",
+    "title": "举报回复",
+    "whichReply": "哪条回复？",
+    "whatsWrong": "有什么问题？",
+    "reasonHarmful": "有害或不安全",
+    "reasonWrong": "错误或误导",
+    "reasonInappropriate": "不恰当",
+    "reasonOther": "其他",
+    "note": "还有什么要补充的吗？（可选）",
+    "send": "发送",
+    "thanks": "谢谢，会有专人查看。",
+    "failed": "发送失败，请重试。",
+    "tooMany": "你今天已经提交了很多举报，请明天再试。"
   }
 }
