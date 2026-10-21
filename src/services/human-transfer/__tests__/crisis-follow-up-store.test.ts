@@ -33,7 +33,12 @@ const fake = vi.hoisted(() => {
         return chain;
       },
       get: async () => ({ docs: rows.map((d) => ({ data: () => structuredClone(d) })) }),
+      // Like Firestore without ignoreUndefinedProperties: an undefined field fails the write
       add: async (doc: Record<string, unknown>) => {
+        for (const [k, v] of Object.entries(doc)) {
+          if (v === undefined)
+            throw new Error(`Cannot use "undefined" as a Firestore value (${k})`);
+        }
         docs.push(doc);
       },
     };
@@ -53,7 +58,10 @@ vi.mock('../../../utils/safe-logger.js', () => ({
 }));
 
 import { detectCrisisSignals, hadRecentCrisis, logCrisisSignal } from '../index.js';
-import { buildCrisisHistoryInjection } from '../../../agents/processors/injection-builders/better-than-human-builders.js';
+import {
+  buildCrisisHistoryInjection,
+  buildHumanTransferInjections,
+} from '../../../agents/processors/injection-builders/better-than-human-builders.js';
 
 const DAY_MS = 86_400_000;
 
@@ -85,6 +93,25 @@ describe('crisis follow-up reads the live crisis store', () => {
     expect(injection?.content).toContain('[CRISIS FOLLOW-UP - Better Than Human]');
     expect(injection?.content).toContain('This user had a difficult moment 1 day(s) ago.');
     expect(injection?.content).toContain("- Don't immediately bring it up - let them lead");
+  });
+
+  // Prod (2026-10-19): the live caller passed no session id, the write carried
+  // `sessionId: undefined`, and Firestore rejected it, so no follow-up ever came.
+  it('a signal logged without a session id is still recorded', async () => {
+    const text = "I don't want to live anymore";
+    await logCrisisSignal('u-nosession', detectCrisisSignals(text), text);
+
+    const [doc] = fake.stores.get('u-nosession/crisis_signals') ?? [];
+    expect(doc).toBeDefined();
+    expect(doc).not.toHaveProperty('sessionId');
+    expect((await hadRecentCrisis('u-nosession', 7)).hasCrisis).toBe(true);
+  });
+
+  it('the live turn path records the call it happened in', async () => {
+    await buildHumanTransferInjections("I don't want to live anymore", 'u-live', 'session-123');
+    await vi.waitFor(() => expect(fake.stores.get('u-live/crisis_signals')).toHaveLength(1));
+
+    expect(fake.stores.get('u-live/crisis_signals')?.[0]?.sessionId).toBe('session-123');
   });
 
   it('a crisis signal older than the window does not', async () => {

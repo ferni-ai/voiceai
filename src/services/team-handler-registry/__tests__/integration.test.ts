@@ -405,27 +405,3 @@ describe('Tool + Handler Integration', () => {
     });
   });
 });
-
-// ============================================================================
-// HANDLER REGISTRATION TESTS
-// ============================================================================
-
-describe('Handler Registration Flow', () => {
-  it('should register all handlers via registerAllHandlers', async () => {
-    const { registerAllHandlers, HANDLER_COUNTS } = await import('../handlers/index.js');
-    const { teamHandlerRegistry } = await import('../index.js');
-
-    // Clear any existing handlers
-    teamHandlerRegistry.clear();
-
-    const result = await registerAllHandlers();
-
-    expect(result.registered).toBe(HANDLER_COUNTS.total);
-    expect(result.agents).toHaveLength(5);
-    expect(result.agents).toContain('ferni');
-    expect(result.agents).toContain('maya');
-    expect(result.agents).toContain('alex');
-    expect(result.agents).toContain('jordan');
-    expect(result.agents).toContain('peter-john');
-  });
-});

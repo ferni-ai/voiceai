@@ -21,6 +21,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { isActionableCommitment } from '../../utils/commitment-quality.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { indexCommitment, deindexCommitment } from '../data-layer/integrations/index.js';
 import { settleAwaitingAnswers, type FollowUpAnswer } from './commitment-follow-through.js';
@@ -471,9 +472,7 @@ function fromDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): Commitment | nul
   } as Commitment;
 }
 
-/**
- * Get user's active commitments
- */
+/** Get user's active commitments, none about a topic they asked Ferni to forget. */
 export async function getActiveCommitments(userId: string): Promise<Commitment[]> {
   try {
     const db = await getFirestoreDb();
@@ -490,7 +489,9 @@ export async function getActiveCommitments(userId: string): Promise<Commitment[]
       .limit(20)
       .get();
 
-    return snapshot.docs.flatMap((doc) => fromDoc(doc) ?? []);
+    // Lazy: the superhuman barrel is large. Forget requests: commitment-forget.ts.
+    const shown = await (await import('../superhuman/index.js')).commitmentsShown(userId);
+    return snapshot.docs.flatMap((doc) => (shown(doc.data()) ? (fromDoc(doc) ?? []) : []));
   } catch (err) {
     log.error({ error: String(err), userId }, 'Failed to get commitments');
     return [];
@@ -589,7 +590,6 @@ export async function processCommitments(
   /** Answers to a follow-up Ferni asked last turn, now recorded. */
   answers: FollowUpAnswer[];
 }> {
-  // Get existing commitments
   const existingCommitments = await getActiveCommitments(userId);
   const answers = await settleAwaitingAnswers(userId, userText, existingCommitments);
   const answered = new Set(answers.map((a) => a.id));
@@ -599,10 +599,9 @@ export async function processCommitments(
   const newCommitments: Commitment[] = [];
 
   for (const d of detected) {
-    // Check if similar commitment already exists
     const exists = existingCommitments.some((c) => isCommitmentRelated(c.content, d.content));
-
-    if (!exists) {
+    // Not a goodbye, and not "call her" with no name (utils/commitment-quality.ts).
+    if (!exists && isActionableCommitment(d.content)) {
       const commitment: Commitment = {
         id: `commitment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         userId,

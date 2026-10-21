@@ -12,10 +12,51 @@
  * docs pile up one per session, and no one can ever open a note sent to them:
  * isPersonAccountId.
  *
+ * Production keeps no data for the harness owners in SYNTHETIC_OWNER_PREFIXES:
+ * synthetic-write-guard.ts refuses their writes and
+ * scripts/migrations/purge-synthetic-data.ts removes what is left. The 2026-10-18
+ * audit found about 94% of bogle_users subcollection documents were theirs:
+ *   voice-eval-*  scripts/voice-eval/run.sh (one new user per call)
+ *   e2e-*         src/e2e/context-factory.ts, e2e/*, scripts/test-*-e2e.ts
+ *   flow-test-*   src/tests/cross-persona-integration.test.ts
+ *   test-*        test-user-* from the CLI, factories and seed scripts
+ *   ctx-e2e-*     context-builder e2e runs
+ *   device:cli-*  the ferni CLI's voice client (device_id cli-<ts>)
+ * plus phone_mappings rows for +1555 numbers (there is no 555 area code).
+ * anon: callers and real Firebase uids (28 alphanumerics, no hyphen) never match.
+ *
  * @module utils/synthetic-user
  */
 
-const SYNTHETIC_USER_ID = /^(voice-eval-|e2e-|device:(test|local-dev|debug))/;
+/** The production Firestore project, where synthetic owners must not be written. */
+export const PROD_FIRESTORE_PROJECT = 'johnb-2025';
+
+/** Harness owner id prefixes the write guard and the purge act on. An allowlist. */
+export const SYNTHETIC_OWNER_PREFIXES = [
+  'voice-eval-',
+  'e2e-',
+  'flow-test-',
+  'test-',
+  'ctx-e2e-',
+  'device:cli-',
+] as const;
+
+export type SyntheticOwnerPrefix = (typeof SYNTHETIC_OWNER_PREFIXES)[number];
+
+/** Phone numbers no person has: the +1 555 "area code" does not exist. */
+export const SYNTHETIC_PHONE_PREFIX = '+1555';
+
+/** The harness prefix an owner id starts with, or null for anyone real. */
+export function syntheticOwnerPrefix(ownerId: unknown): SyntheticOwnerPrefix | null {
+  if (typeof ownerId !== 'string') return null;
+  return SYNTHETIC_OWNER_PREFIXES.find((p) => ownerId.startsWith(p)) ?? null;
+}
+
+export function isSyntheticPhone(phone: unknown): boolean {
+  return typeof phone === 'string' && phone.startsWith(SYNTHETIC_PHONE_PREFIX);
+}
+
+const LOCAL_DEVICE_ID = /^device:(test|local-dev|debug)/;
 
 /** Prefixes of ids minted per session that never name an account. */
 export const NON_ACCOUNT_PREFIXES = ['anon:', 'onbehalf:'] as const;
@@ -30,7 +71,8 @@ export const PLACEHOLDER_IDS: ReadonlySet<string> = new Set([
 
 /** Whether this user id belongs to a test harness rather than a real person. */
 export function isSyntheticUserId(userId: string | undefined | null): boolean {
-  return typeof userId === 'string' && SYNTHETIC_USER_ID.test(userId);
+  if (typeof userId !== 'string') return false;
+  return syntheticOwnerPrefix(userId) !== null || LOCAL_DEVICE_ID.test(userId);
 }
 
 /** The non-account prefix this id starts with, if any (as given: a page cursor relies on it). */
