@@ -50,12 +50,14 @@ final class ExpressionDistinctnessTests: XCTestCase {
 
     /// The settled face (springs at target; no breath, saccade or blink), as
     /// Home shows it at rest in the light theme.
-    static func render(_ id: String) -> [UInt8]? {
+    static func render(_ id: String, reduceMotion: Bool = false, untilted: Bool = false) -> [UInt8]? {
         let rig = AliveRig(persona: .ferni, seed: 11)
         rig.still = true
+        rig.reduceMotion = reduceMotion
         rig.expression = id
         _ = rig.frame(at: 0.016)
         var u = rig.frame(at: 0.032)
+        if untilted { u.lean.x = 0 }
         u.light(dark: false, roomTop: linear(hex: "#faf8f5"), roomBottom: linear(hex: "#efe9e0"))
         let w = width, h = height
         u.frame(size: SIMD2(Float(w), Float(h)), radius: Float(AvatarView.radius / AvatarView.canvas.width) * Float(w),
@@ -184,6 +186,35 @@ final class ExpressionDistinctnessTests: XCTestCase {
         }
     }
 
+    /// Critic L2: under Reduce Motion confused has no "?" (P2 #4) and no
+    /// animation, so its pose has to carry it, held: one eye narrowed, the
+    /// other open. Past the twin line from neutral and thinking, and the
+    /// eyes' whites a third apart in height (without the pose, 1.06: two
+    /// near-equal eyes under a tilt, which read as a tilted neutral).
+    func testConfusedStillReadsUnderReduceMotion() throws {
+        func bytes(_ id: String, untilted: Bool = false) throws -> [UInt8] {
+            try XCTUnwrap(Self.render(id, reduceMotion: true, untilted: untilted))
+        }
+        let confused = Self.crop(try bytes("confused"))
+        for other in ["neutral", "thinking"] {
+            let d = Self.difference(confused, Self.crop(try bytes(other)))
+            XCTAssertGreaterThan(d, Self.twinThreshold, "confused vs \(other) under Reduce Motion: \(d)")
+        }
+        // Rows of eye white in each half of the face, the head held level.
+        let face = try bytes("confused", untilted: true)
+        let w = Self.width, h = Self.height
+        func rows(_ xs: Range<Int>) -> Int {
+            (0..<h).filter { y in xs.contains { x in
+                let i = (y * w + x) * 4
+                return face[i + 3] > 200 && min(face[i], face[i + 1], face[i + 2]) > 190
+            } }.count
+        }
+        let left = rows(0..<(w / 2)), right = rows((w / 2)..<w)
+        let ratio = Double(max(left, right)) / Double(max(min(left, right), 1))
+        if ProcessInfo.processInfo.environment["FERNI_AUDIT_PRINT"] != nil { print("RM confused eye rows \(left) \(right) \(ratio)") }
+        XCTAssertGreaterThan(ratio, 1.3, "one eye narrowed, the other open: white rows \(left) vs \(right)")
+    }
+
     /// Eye-white samples in a face crop (near-white grey).
     static func white(_ crop: [Float]) -> Int { crop.filter { $0 > 0.8 }.count }
 
@@ -193,6 +224,7 @@ final class ExpressionDistinctnessTests: XCTestCase {
         guard let dir = env["FERNI_AUDIT_DIR"] else { throw XCTSkip("FERNI_AUDIT_DIR unset") }
         let ids = env["FERNI_AUDIT_IDS"].map { $0.split(separator: ",").map(String.init) } ?? ExpressionTokens.all.keys.sorted()
         let tag = env["FERNI_AUDIT_TAG"] ?? "crop"
+        let reduceMotion = env["FERNI_AUDIT_RM"] != nil
         try FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
         let w = Self.width, h = Self.height
         let r = Int(AvatarView.radius / AvatarView.canvas.width * Double(w))
@@ -201,7 +233,7 @@ final class ExpressionDistinctnessTests: XCTestCase {
         let info = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedFirst.rawValue | CGBitmapInfo.byteOrder32Little.rawValue)
         var lines: [String] = []
         for id in ids {
-            let bytes = try XCTUnwrap(Self.render(id))
+            let bytes = try XCTUnwrap(Self.render(id, reduceMotion: reduceMotion))
             let provider = try XCTUnwrap(CGDataProvider(data: Data(bytes) as CFData))
             let image = try XCTUnwrap(CGImage(width: w, height: h, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: w * 4,
                                               space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: info, provider: provider,
