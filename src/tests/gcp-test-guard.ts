@@ -23,7 +23,10 @@
  *
  * The Firestore emulator (FIRESTORE_EMULATOR_HOST) keeps the real client, and
  * ALLOW_PRODUCTION_DATA=1 (the same opt-in as config/production-data-guard.ts)
- * turns both layers off for the on-demand external suite.
+ * turns both layers off, but only in the on-demand external suite
+ * (vitest.config.external.ts sets EXTERNAL_TEST_SUITE). The production-data
+ * guard tells developers to export ALLOW_PRODUCTION_DATA=1 to run a local
+ * server, and a shell that still has it must not unguard the unit suite.
  */
 
 import { appendFileSync } from 'node:fs';
@@ -59,7 +62,7 @@ export class RealGcpInTestError extends Error {
 }
 
 export function realGcpAllowed(env: Env = process.env): boolean {
-  return env.ALLOW_PRODUCTION_DATA === '1';
+  return env.ALLOW_PRODUCTION_DATA === '1' && env.EXTERNAL_TEST_SUITE === '1';
 }
 
 /** Layer 1: no Google client in this process can find credentials. */

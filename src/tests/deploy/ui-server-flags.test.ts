@@ -35,6 +35,8 @@ const SERVER_FLAGS = [
   // The hourly pondering job (ponder-job.ts). On the web server it reads only the
   // friends-and-family cohort plus PONDERING_USERS, and only writes their pondering doc.
   'PONDERING=on',
+  // The whole team from the first call, introduced by need (Seth, 2026-10-20; the agent has it too).
+  'TEAM_BY_NEED=on',
 ];
 
 /** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */
@@ -57,6 +59,18 @@ describe('web-server flags survive a deploy', () => {
     expect(dockerfile).toMatch(/ARG VITE_PROMISES_PANEL=""\nENV VITE_PROMISES_PANEL=\$VITE_PROMISES_PANEL/);
   });
 
+  it('sends app email through the ferni.ai Workspace, switchable back by repo variable', () => {
+    // The step's env holds the repo variables; the script reads them from the shell.
+    const workflow = read('.github/workflows/deploy-production.yml');
+    const at = workflow.indexOf('id: deploy');
+    const stepEnv = workflow.slice(at, workflow.indexOf('run: |', at));
+    expect(stepEnv).toContain("EMAIL_PROVIDER: ${{ vars.EMAIL_PROVIDER || 'gmail' }}");
+    expect(stepEnv).toContain("EMAIL_FROM: ${{ vars.EMAIL_FROM || 'admin@ferni.ai' }}");
+    const env = workflowEnv();
+    expect(env).toContain('EMAIL_PROVIDER=$EMAIL_PROVIDER');
+    expect(env).toContain('EMAIL_FROM=$EMAIL_FROM');
+  });
+
   it('the production workflow mounts the proactive allowlist from Secret Manager', () => {
     expect(workflowSecrets()).toContain(PROACTIVE_USERS_SECRET);
   });
@@ -76,6 +90,8 @@ describe('web-server flags survive a deploy', () => {
   it('the toast-region kill switch reaches both web builds', () => {
     expect(firebase).toMatch(/VITE_TOAST_REGION: \$\{\{ vars\.VITE_TOAST_REGION \}\}/);
     expect(workflow).toMatch(/--build-arg VITE_TOAST_REGION="\$\{\{ vars\.VITE_TOAST_REGION \}\}"/);
-    expect(dockerfile).toMatch(/ARG VITE_TOAST_REGION=""\nENV VITE_TOAST_REGION=\$VITE_TOAST_REGION/);
+    expect(dockerfile).toMatch(
+      /ARG VITE_TOAST_REGION=""\nENV VITE_TOAST_REGION=\$VITE_TOAST_REGION/
+    );
   });
 });

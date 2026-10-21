@@ -11255,5 +11255,21 @@
     "helper": "Scanne-le avec l'appareil photo de ton téléphone ou touche Ouvrir Venmo. Tu peux changer le montant.",
     "maybeLater": "Plus tard",
     "close": "Fermer"
+  },
+  "reportReply": {
+    "button": "Signaler",
+    "describe": "Signaler quelque chose que {name} a dit",
+    "title": "Signaler une réponse",
+    "whichReply": "Quelle réponse ?",
+    "whatsWrong": "Quel est le problème ?",
+    "reasonHarmful": "Nuisible ou dangereuse",
+    "reasonWrong": "Fausse ou trompeuse",
+    "reasonInappropriate": "Inappropriée",
+    "reasonOther": "Autre chose",
+    "note": "Quelque chose à ajouter ? (facultatif)",
+    "send": "Envoyer",
+    "thanks": "Merci. Une personne va examiner cela.",
+    "failed": "L'envoi a échoué. Réessaie.",
+    "tooMany": "Tu as envoyé beaucoup de signalements aujourd'hui. Réessaie demain."
   }
 }

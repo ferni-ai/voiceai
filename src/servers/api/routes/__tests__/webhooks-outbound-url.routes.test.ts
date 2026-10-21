@@ -1,5 +1,5 @@
 /**
- * /api/webhooks: an update cannot store a URL that create would refuse, and the test route
+ * /api/webhooks: create refuses a private URL, an update cannot store one either, and the test route
  * reports status only, never the body the destination sent back. Real routes, real store
  * (in-memory, Firestore unavailable) and real executor; auth, DNS and the network are doubles.
  */
@@ -73,6 +73,34 @@ beforeEach(() => {
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
+});
+
+// Create has no inline guard call of its own: validateWebhookInput sends the URL through
+// validateWebhookUrl, so this is the test that a private URL still cannot be created.
+describe('POST /api/webhooks', () => {
+  it.each([
+    'https://169.254.169.254/computeMetadata/v1/',
+    'https://[::1]/x',
+    'http://10.0.0.8/api/webhook/x',
+    'https://localhost/x',
+  ])('refuses to create a webhook for %s and stores nothing', async (url) => {
+    const created = await call('POST', '/api/webhooks', {
+      name: 'Sneaky',
+      url,
+      method: 'GET',
+      voiceTriggers: ['sneaky'],
+    });
+
+    expect(created.status).toBe(400);
+    const list = await call('GET', '/api/webhooks');
+    expect(list.status).toBe(200);
+    expect(JSON.stringify(list.json)).not.toContain('Sneaky');
+  });
+
+  it('creates a webhook for a public https URL', async () => {
+    const id = await createHook();
+    expect(id).toEqual(expect.any(String));
+  });
 });
 
 describe('PUT /api/webhooks/:id', () => {

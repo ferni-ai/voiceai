@@ -23,6 +23,7 @@ import { relationshipStageService } from '../services/relationship-stage.service
 import { createLogger } from '../utils/logger.js';
 import { formatDate, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
+import { contentIcon } from './icons/content-icons.js';
 
 const log = createLogger('TeaserPreviewUI');
 
@@ -87,17 +88,17 @@ const getTeaserContent = (): Record<TeaserType, TeaserContent> => ({
         </div>
         <div class="teaser-metrics">
           <div class="teaser-metric">
-            <span class="teaser-metric-icon">💪</span>
+            <span class="teaser-metric-icon" aria-hidden="true">${contentIcon('dumbbell', 16)}</span>
             <span class="teaser-metric-label">${t('wellbeing.energy')}</span>
             <div class="teaser-metric-bar"><div class="teaser-metric-fill" style="width: 72%"></div></div>
           </div>
           <div class="teaser-metric">
-            <span class="teaser-metric-icon">😊</span>
+            <span class="teaser-metric-icon" aria-hidden="true">${contentIcon('smile', 16)}</span>
             <span class="teaser-metric-label">${t('wellbeing.mood')}</span>
             <div class="teaser-metric-bar"><div class="teaser-metric-fill" style="width: 85%"></div></div>
           </div>
           <div class="teaser-metric">
-            <span class="teaser-metric-icon">🧘</span>
+            <span class="teaser-metric-icon" aria-hidden="true">${contentIcon('lotus', 16)}</span>
             <span class="teaser-metric-label">${t('accessibility.calm')}</span>
             <div class="teaser-metric-bar"><div class="teaser-metric-fill" style="width: 68%"></div></div>
           </div>
@@ -180,7 +181,7 @@ const getTeaserContent = (): Record<TeaserType, TeaserContent> => ({
       <div class="teaser-life">
         <div class="teaser-life-domains">
           <div class="teaser-life-domain">
-            <span class="teaser-life-domain-icon">💼</span>
+            <span class="teaser-life-domain-icon" aria-hidden="true">${contentIcon('briefcase', 20)}</span>
             <span class="teaser-life-domain-name">${t('yourPeople.groups.work')}</span>
             <div class="teaser-life-domain-level" style="--level: 65%">
               <div class="teaser-life-domain-fill"></div>
@@ -188,7 +189,7 @@ const getTeaserContent = (): Record<TeaserType, TeaserContent> => ({
             <span class="teaser-life-domain-status">${t('teaserPreview.life.moderateStress')}</span>
           </div>
           <div class="teaser-life-domain">
-            <span class="teaser-life-domain-icon">❤️</span>
+            <span class="teaser-life-domain-icon" aria-hidden="true">${contentIcon('heart', 20)}</span>
             <span class="teaser-life-domain-name">${t('lifeContext.domains.relationships')}</span>
             <div class="teaser-life-domain-level" style="--level: 82%">
               <div class="teaser-life-domain-fill"></div>
@@ -196,7 +197,7 @@ const getTeaserContent = (): Record<TeaserType, TeaserContent> => ({
             <span class="teaser-life-domain-status">${t('teaserPreview.life.feelingConnected')}</span>
           </div>
           <div class="teaser-life-domain">
-            <span class="teaser-life-domain-icon">🏃</span>
+            <span class="teaser-life-domain-icon" aria-hidden="true">${contentIcon('footprints', 20)}</span>
             <span class="teaser-life-domain-name">${t('trustDashboard.health')}</span>
             <div class="teaser-life-domain-level" style="--level: 70%">
               <div class="teaser-life-domain-fill"></div>
@@ -355,7 +356,7 @@ const getTeaserContent = (): Record<TeaserType, TeaserContent> => ({
         <div class="teaser-habit-card">
           <div class="teaser-habit-info">
             <span class="teaser-habit-name">${t('teaserPreview.habits.morningWalk')}</span>
-            <span class="teaser-habit-streak">🔥 ${tp('moments.streakTitle', 12)}</span>
+            <span class="teaser-habit-streak">${contentIcon('flame', 11)} ${tp('moments.streakTitle', 12)}</span>
           </div>
           <div class="teaser-habit-calendar">
             ${Array.from({ length: 7 }, (_, i) => {
@@ -367,7 +368,7 @@ const getTeaserContent = (): Record<TeaserType, TeaserContent> => ({
         <div class="teaser-habit-card">
           <div class="teaser-habit-info">
             <span class="teaser-habit-name">${t('teaserPreview.habits.readBeforeBed')}</span>
-            <span class="teaser-habit-streak">🌱 ${tp('moments.streakTitle', 5)}</span>
+            <span class="teaser-habit-streak">${contentIcon('sprout', 11)} ${tp('moments.streakTitle', 5)}</span>
           </div>
           <div class="teaser-habit-calendar">
             ${Array.from({ length: 7 }, (_, i) => {
@@ -379,7 +380,7 @@ const getTeaserContent = (): Record<TeaserType, TeaserContent> => ({
         <div class="teaser-habit-card teaser-habit-card--at-risk">
           <div class="teaser-habit-info">
             <span class="teaser-habit-name">${t('teaserPreview.habits.meditation')}</span>
-            <span class="teaser-habit-streak">⚠️ ${t('accessibility.needsAttention')}</span>
+            <span class="teaser-habit-streak">${contentIcon('alert', 11)} ${t('accessibility.needsAttention')}</span>
           </div>
           <div class="teaser-habit-calendar">
             ${Array.from({ length: 7 }, (_, i) => {
@@ -720,10 +721,6 @@ export class TeaserPreviewUI {
         display: flex;
         align-items: center;
         gap: var(--space-2);
-      }
-
-      .teaser-metric-icon {
-        font-size: 1rem;
       }
 
       .teaser-metric-label {

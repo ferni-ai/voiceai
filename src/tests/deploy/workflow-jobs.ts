@@ -62,14 +62,20 @@ function expandMatrix(name: string, text: string): string[] {
 
 /**
  * Whether a job-level `if:` is true for the event (refs/heads/main for push).
- * `outputs` overrides named `needs.X.outputs.Y` values; the rest read as 'true'.
+ * `outputs` overrides named `needs.X.outputs.Y` values (the rest read as 'true')
+ * and `needs.X.result` values (the rest read as 'success'). Workflow inputs and
+ * workflow_run payload fields read as '': these events carry neither.
  */
 function evaluate(cond: string, event: Event, outputs: Record<string, string> = {}): boolean {
   const src = cond
     .replace(/^\$\{\{\s*|\s*\}\}$/g, '')
     .replace(/needs\.[\w-]+\.outputs\.[\w-]+/g, (ref) => `'${outputs[ref] ?? 'true'}'`)
+    .replace(/needs\.[\w-]+\.result\b/g, (ref) => `'${outputs[ref] ?? 'success'}'`)
     .replace(/github\.event\.pull_request\.labels\.\*\.name/g, '[]')
     .replace(/github\.event\.inputs\.\w+/g, "''")
+    .replace(/github\.event\.workflow_run\.[\w.]+/g, "''")
+    .replace(/\binputs\.\w+/g, "''")
+    .replace(/github\.repository\b/g, "'o/r'")
     .replace(/github\.event_name/g, `'${event}'`)
     .replace(/github\.ref\b/g, "'refs/heads/main'");
   const tokens = src.match(/'[^']*'|\[\]|==|!=|&&|\|\||[!(),]|[A-Za-z_]\w*|\S/g) ?? [];
@@ -162,7 +168,8 @@ export function running(
       if (decided.has(j.id) || !j.needs.every((n) => decided.has(n))) continue;
       const needsOk = j.needs.every((n) => ran.has(n));
       const explicitStatus = j.if !== undefined && STATUS_FN.test(j.if);
-      const ok = (explicitStatus || needsOk) && (j.if === undefined || evaluate(j.if, event, outputs));
+      const ok =
+        (explicitStatus || needsOk) && (j.if === undefined || evaluate(j.if, event, outputs));
       if (ok) ran.add(j.id);
       decided.add(j.id);
     }

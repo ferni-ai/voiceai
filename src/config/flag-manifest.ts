@@ -18,7 +18,9 @@ import {
   FLAG_KINDS,
   FLAG_OWNERS,
   FLAGS_ACTION_TO_BYPASS,
+  FLAGS_HONEST_TO_IDENTITY,
   FLAGS_MOVE_TO_PHONE_AUDIO,
+  FLAGS_SHORT_GOODBYE_TO_SMS,
   type FlagSpec,
 } from './flag-manifest-entries.js';
 
@@ -32,6 +34,8 @@ export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
 
 export const FLAG_MANIFEST = {
   ...FLAGS_ACTION_TO_BYPASS,
+  // on: an emotional-arc proactive insight reaches the prompt once, not every third turn (commitment-follow-up-gate.ts)
+  ARC_INSIGHT_ONCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // on: a teammate's first line restates only the caller's words, else a plain hello; kept out of memory (arrival-grounding.ts)
   ARRIVAL_LINE_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_ASSERTED_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -117,6 +121,8 @@ export const FLAG_MANIFEST = {
   // errands as durable workflows: owner-confirmed calls, verified bookings (services/errands, errands-flag.ts)
   ERRANDS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // set only by vitest.config.external.ts: lets ALLOW_PRODUCTION_DATA unguard that suite
+  EXTERNAL_TEST_SUITE: { default: 'off', owner: 'platform', kind: 'config' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -167,10 +173,11 @@ export const FLAG_MANIFEST = {
   // on: a fact the caller corrects is kept with its words and the old fact retired; next call recalls it (friend-repair.ts)
   FRIEND_REPAIR: { default: 'off', owner: 'memory', kind: 'experiment' },
   FTIS_ENABLED: { default: 'off', owner: 'platform', kind: 'config' },
-  FTIS_PRIMARY: { default: 'off', owner: 'tools', kind: 'experiment' },
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a goodbye (or "hang up") ends the call after Ferni's goodbye plays, app and phone; never on crisis risk (call-farewell.ts)
+  GOODBYE_ENDS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
   GOOD_NEWS_BIGGER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GREETING_WIRE_AFTER: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -191,8 +198,7 @@ export const FLAG_MANIFEST = {
   HANDOFF_TALK_THROUGH: { default: 'off', owner: 'voice', kind: 'experiment' },
   HAPPY_EXITS: { default: 'off', owner: 'voice', kind: 'experiment' },
   HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
-  HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ...FLAGS_HONEST_TO_IDENTITY,
   INSIDE_JOKES: { default: 'off', owner: 'memory', kind: 'experiment' },
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: the voice agent publishes intelligence events; nothing consumes intelligence_queue (intelligence-publisher.ts)
@@ -218,6 +224,8 @@ export const FLAG_MANIFEST = {
   // the look-up rule rides the two replies after a live-data question (turn-shape.ts)
   LIVE_DATA_CARRYOVER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIVE_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: calls record audio and transcript to LiveKit Cloud, for debugging; never on when NODE_ENV=production (session-recording.ts)
+  LK_SESSION_RECORDING: { default: 'off', owner: 'voice', kind: 'config' },
   // the cascade's prompt-cache settings in one switch (llm-context-cache-flag.ts)
   LLM_CONTEXT_CACHE: { default: 'off', owner: 'voice', kind: 'experiment' },
   LLM_DYNAMIC_CONTENT_ENABLED: { default: 'on', owner: 'platform', kind: 'config' },
@@ -245,6 +253,8 @@ export const FLAG_MANIFEST = {
   // (patches/@livekit__agents@1.9.3.patch), and save tools refuse them (tools/utils/own-note.ts)
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
   // Alex's 8am text brief, with MORNING_BRIEF_USERS (services/outreach/morning-brief/brief-job.ts)
+  // on: mirroring keeps English: "nah" only for a standalone no, no clause-final contractions (conversation/superhuman/mirroring-grammar.ts)
+  MIRROR_GRAMMAR_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   MORNING_BRIEF: { default: 'off', owner: 'outreach', kind: 'experiment' },
   MORNING_BRIEF_COMMITMENTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the caller can name the tune Ferni whistles, or ask him to stop (personas/named-tune-note.ts)
@@ -256,7 +266,6 @@ export const FLAG_MANIFEST = {
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a placeholder last summary is told as unknown, not as a topic (services/session/placeholder-summary.ts)
   PLACEHOLDER_SUMMARY_UNKNOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   // Keep off: needs #1855, the privacy-page wording, and a legal read of the Maps terms for storing the place ID. #1760 merged with an unverified head.
@@ -294,6 +303,8 @@ export const FLAG_MANIFEST = {
   ROTATED_SEGMENT_FIX: { default: 'off', owner: 'voice', kind: 'experiment' }, // 1.9.3 patch, #2566
   ROUNDTABLE_VOICE: { default: 'off', owner: 'voice', kind: 'config' },
   SAVED_INTERESTS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // off: scheduled jobs skip the run-once Firestore lock (job-run-guard.ts)
+  SCHEDULED_JOB_LOCK: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   SCHEDULED_JOBS_AUTH: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // on: the scheduled-outreach job may text, call or email a member's contacts (founder opt-in); off holds them
   SCHEDULED_OUTREACH_THIRD_PARTY: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -318,18 +329,7 @@ export const FLAG_MANIFEST = {
   SESSION_CONTINUITY_WRITE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: tell the caller's app when the agent session ends without them (session-ended-signal.ts)
   SESSION_ENDED_SIGNAL: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // once the caller said bye, Ferni's goodbye is one or two short sentences (short-goodbye.ts)
-  SHORT_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // a call with no caller turn is not counted in the profile (services/session/silent-call.ts)
-  SILENT_CALL_SKIP_PROFILE: { default: 'off', owner: 'memory', kind: 'experiment' },
-  SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
-  SKIP_GEMINI_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
-  SKIP_PERSONA_INDEXING: { default: 'off', owner: 'platform', kind: 'config' },
-  // anything but 'false' skips the full generateReply prewarm, the quick path (generate-reply-gateway.ts)
-  SKIP_PREWARM_GENERATEREPLY: { default: 'true', owner: 'platform', kind: 'config' },
-  SKIP_TWILIO_VALIDATION: { default: 'off', owner: 'platform', kind: 'config' },
+  ...FLAGS_SHORT_GOODBYE_TO_SMS,
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: every reply says the 988 crisis line as "nine eight eight" (safety/crisis-line-speech.ts)
   SPEAK_988_DIGITS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -376,6 +376,8 @@ export const FLAG_MANIFEST = {
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_STYLE_REMINDER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a turn_input_tokens line per turn, the model's input in four parts (turn-input-tokens.ts)
+  TURN_TOKEN_RECEIPT: { default: 'off', owner: 'voice', kind: 'config' },
   UI_EVENTS_OVER_CALL: { default: 'off', owner: 'platform', kind: 'experiment' },
   UNFINISHED_TURN_HOLD: { default: 'on', owner: 'voice', kind: 'config' },
   USE_GENERATED_TOOL_DOCS: { default: 'off', owner: 'voice', kind: 'config' },
