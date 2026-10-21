@@ -26,13 +26,18 @@
  *   the first name the caller states, matching the record, confirms them;
  *   then the model gets the one-line topic hint (returning-caller-talk.ts).
  *   Any other stated name ends it and sets deniedUntil (7 days), during which
- *   nothing is surfaced or refreshed. Only the confirmed person refreshes it.
+ *   nothing is surfaced or refreshed, and counts against the number in that
+ *   transaction: after MAX_NAME_GUESSES, never again. A cooldown that can't be
+ *   stored holds the number in this process instead (fail closed). Only the
+ *   confirmed person refreshes it.
  * - "Forget me" overwrites the record with a tombstone (no name or summary)
  *   that keeps the number forgotten until expiry, retried with backoff; if it
  *   can't be stored, a pending-erase marker is (returning_caller_erasures, also
  *   TTL), and call start refuses the number and retries while it exists. Ferni
- *   says it's done only once the tombstone is stored. A read that failed, or
- *   a tombstone or marker found at write time, means no record is written.
+ *   says it's done only once a tombstone write finished after this call's own
+ *   request, so the reply never shows whether one was stored before. A read
+ *   that failed, or a tombstone or marker found at write time, means no record
+ *   is written.
  * - expireAt is a Firestore TTL field; reads also ignore an expired record.
  *
  * @module services/identity/returning-caller
@@ -45,6 +50,7 @@ import {
   deniedNow,
   expiryOf,
   firestoreReturningCallerStore,
+  guessesSpent,
   isLiveTombstone,
   tombstone,
   toStoredRecord,
@@ -111,8 +117,12 @@ interface SessionEntry {
   noWrite?: boolean;
   /** They asked to be forgotten (on this call, or a tombstone was read). */
   forgotten?: boolean;
-  /** The tombstone is stored: only then may Ferni say it's done. */
-  erased?: boolean;
+  /** A tombstone is known to be stored (read at call start, or written). */
+  tombstoned?: boolean;
+  /** They said "forget me" on this call. */
+  asked?: boolean;
+  /** A tombstone write finished after they asked: only then may Ferni say it's done. */
+  erasedThisCall?: boolean;
   erasing?: Promise<boolean>;
   /** The caller said they're the record's name (confirmed) or someone else (denied). */
   confirmed?: boolean;
@@ -129,6 +139,8 @@ function remember(sessionId: string, entry: SessionEntry): void {
 
 /** Hashes forgotten in this process whose tombstone could not be stored, until expiry. */
 const forgottenHere = new Map<string, number>();
+/** Hashes denied in this process whose cooldown could not be stored, until it would end. */
+const deniedHere = new Map<string, number>();
 
 function asView(data: Record<string, unknown> | null, now: Date): SessionEntry['record'] {
   if (!data) return undefined;
@@ -161,6 +173,10 @@ export async function beginReturningCaller(
     void eraseOnce(entry, store);
     return;
   }
+  if ((deniedHere.get(hash) ?? 0) > now.getTime()) {
+    entry.noWrite = true; // a cooldown that never landed: still held here
+    return;
+  }
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timedOut = Symbol('timed out');
   const timeout = new Promise<typeof timedOut>((resolve) => {
@@ -173,12 +189,13 @@ export async function beginReturningCaller(
     ]);
     if (read === timedOut) throw new Error('timed out');
     const [data, pending] = read;
-    if (isLiveTombstone(data, now)) entry.forgotten = entry.erased = true;
+    // Never "already cleared" from a read: that would tell them a record existed.
+    if (isLiveTombstone(data, now)) entry.forgotten = entry.tombstoned = true;
     else if (pending) {
       entry.forgotten = true; // a "forget me" whose tombstone never landed: try again now
       void eraseOnce(entry, store);
-    } else if (deniedNow(data, now))
-      entry.noWrite = true; // cooldown: surface and refresh nothing
+    } else if (deniedNow(data, now) || guessesSpent(data))
+      entry.noWrite = true; // cooldown, or too many wrong names: surface and refresh nothing
     else entry.record = asView(data, now);
     log.info({ sessionId, returning: !!entry.record }, 'RETURNING_CALLER lookup');
   } catch (error) {
@@ -240,7 +257,8 @@ async function erase(entry: SessionEntry, store: ReturningCallerStore): Promise<
     const stone = tombstone(new Date());
     try {
       await store.set(entry.hash, stone);
-      entry.erased = true;
+      entry.tombstoned = true;
+      if (entry.asked) entry.erasedThisCall = true;
       forgottenHere.delete(entry.hash);
       store.clearErasure(entry.hash).catch(() => undefined); // a marker may be left from before
       return true;
@@ -269,9 +287,13 @@ async function markPendingErasure(hash: string, store: ReturningCallerStore): Pr
   );
 }
 
-/** Starts the erase once per session, or again after one that failed. */
+/**
+ * Starts the erase once per session, or again after one that failed. Once
+ * they ask, a tombstone stored before the request doesn't count: one more is
+ * written, so the reply is the same whether or not a record existed.
+ */
 async function eraseOnce(entry: SessionEntry, store: ReturningCallerStore): Promise<boolean> {
-  if (entry.erased) return true;
+  if (entry.asked ? entry.erasedThisCall : entry.tombstoned) return true;
   entry.erasing ??= erase(entry, store).finally(() => {
     entry.erasing = undefined;
   });
@@ -291,9 +313,9 @@ export function returningCallerForgetNote(
   const entry = sessionId ? bySession.get(sessionId) : undefined;
   if (!entry || !asksToBeForgotten(callerWords)) return '';
   if (!entry.forgotten) log.info({ sessionId }, 'RETURNING_CALLER forgotten on request');
-  entry.forgotten = true;
+  entry.forgotten = entry.asked = true;
   void eraseOnce(entry, store);
-  return entry.erased ? FORGOTTEN_NOTE : FORGETTING_NOTE;
+  return entry.erasedThisCall ? FORGOTTEN_NOTE : FORGETTING_NOTE;
 }
 
 /** Ends this call's chance to confirm, and holds the record for DENY_COOLDOWN_MS. */
@@ -303,7 +325,11 @@ function deny(entry: SessionEntry, store: ReturningCallerStore, now = new Date()
   entry.denied = true;
   const until = new Date(now.getTime() + DENY_COOLDOWN_MS);
   return store.markDenied(entry.hash, until, now).catch(() => {
-    log.warn('Returning caller denial cooldown not stored');
+    // Fail closed: nothing more from the record on this call, nor here until it would end.
+    entry.record = undefined;
+    entry.noWrite = true;
+    deniedHere.set(entry.hash, until.getTime());
+    log.warn('Returning caller denial cooldown not stored: held in this process');
   });
 }
 
@@ -358,7 +384,7 @@ function mayBeMinor(sessionId: string): boolean {
 
 /** A forgotten caller is never written again; one more try at the tombstone if it hasn't landed. */
 async function settleForgotten(entry: SessionEntry, store: ReturningCallerStore): Promise<void> {
-  const stored = entry.erasing ? await entry.erasing : entry.erased === true;
+  const stored = entry.erasing ? await entry.erasing : entry.tombstoned === true;
   if (!stored) await eraseOnce(entry, store);
 }
 
@@ -436,6 +462,7 @@ export async function recordReturningCall(
 export function clearReturningCallers(): void {
   bySession.clear();
   forgottenHere.clear();
+  deniedHere.clear();
   warnedNoSecret = false;
   minorCheck = null;
   warnedNoMinorCheck = false;

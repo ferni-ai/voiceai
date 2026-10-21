@@ -14,6 +14,8 @@ export const RETURNING_CALLERS = 'returning_callers';
 export const RETURNING_CALLER_ERASURES = 'returning_caller_erasures';
 
 export const TTL_MS = 30 * 24 * 60 * 60 * 1000;
+/** Wrong names stated for a record, across every call: at this many it is never surfaced again. */
+export const MAX_NAME_GUESSES = 3;
 
 /** The only fields a record may hold. */
 export const RETURNING_CALLER_FIELDS = [
@@ -24,6 +26,7 @@ export const RETURNING_CALLER_FIELDS = [
   'expireAt',
   'forgotten',
   'deniedUntil',
+  'failedGuesses',
 ] as const;
 
 export interface StoredReturningCaller {
@@ -36,6 +39,8 @@ export interface StoredReturningCaller {
   forgotten?: true;
   /** Someone on this number stated another name: nothing is surfaced or refreshed until then. */
   deniedUntil?: Date;
+  /** Wrong names stated for this record on any call, counted in the denial's transaction. */
+  failedGuesses?: number;
 }
 
 export interface ReturningCallerStore {
@@ -51,7 +56,11 @@ export interface ReturningCallerStore {
   erasurePending: (hash: string, now: Date) => Promise<boolean>;
   markErasure: (hash: string, expireAt: Date) => Promise<void>;
   clearErasure: (hash: string) => Promise<void>;
-  /** Sets deniedUntil on a live record (not a tombstone), in a transaction. */
+  /**
+   * Sets deniedUntil on a live record (not a tombstone) and counts the wrong
+   * name, in one transaction, so calls running at once each count. Throws when
+   * nothing could be stored.
+   */
   markDenied: (hash: string, until: Date, now: Date) => Promise<void>;
 }
 
@@ -71,13 +80,17 @@ export const firestoreReturningCallerStore: ReturningCallerStore = {
     return db.runTransaction(async (tx) => {
       const [snap, mark] = await Promise.all([tx.get(ref), tx.get(marker)]);
       const stored = snap.exists ? (snap.data() ?? null) : null;
-      if (isLiveTombstone(stored, now) || deniedNow(stored, now)) return false;
+      if (isLiveTombstone(stored, now) || deniedNow(stored, now) || guessesSpent(stored)) {
+        return false;
+      }
       if (isLive(mark.exists ? (mark.data() ?? null) : null, now)) {
         tx.set(ref, tombstone(now));
         tx.delete(marker);
         return false;
       }
-      tx.set(ref, data);
+      // A refresh keeps the count of wrong names: only expiry clears it.
+      const failedGuesses = isLive(stored, now) ? stored?.failedGuesses : undefined;
+      tx.set(ref, toStoredRecord({ ...data, failedGuesses }));
       return true;
     });
   },
@@ -93,13 +106,13 @@ export const firestoreReturningCallerStore: ReturningCallerStore = {
   },
   async markDenied(hash, until, now) {
     const db = getFirestoreDb();
-    if (!db) return;
+    if (!db) throw new Error('Firestore unavailable');
     const ref = db.collection(RETURNING_CALLERS).doc(hash);
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       const stored = snap.exists ? (snap.data() ?? null) : null;
       if (!isLive(stored, now) || isLiveTombstone(stored, now)) return;
-      tx.set(ref, toStoredRecord({ ...stored, deniedUntil: until }));
+      tx.set(ref, withDenial(stored, until));
     });
   },
 };
@@ -133,6 +146,21 @@ export function deniedNow(data: Record<string, unknown> | null, now: Date): bool
   const until = data?.deniedUntil as { toDate?: () => Date } | Date | undefined;
   const at = until instanceof Date ? until : until?.toDate?.();
   return !!at && at.getTime() > now.getTime();
+}
+
+/** A stored record with one more wrong name counted, held until `until`. */
+export function withDenial(
+  stored: Record<string, unknown> | null,
+  until: Date
+): StoredReturningCaller {
+  const before = typeof stored?.failedGuesses === 'number' ? stored.failedGuesses : 0;
+  return toStoredRecord({ ...stored, deniedUntil: until, failedGuesses: before + 1 });
+}
+
+/** A record that has had MAX_NAME_GUESSES wrong names: never surfaced or refreshed again. */
+export function guessesSpent(data: Record<string, unknown> | null): boolean {
+  const n = data?.failedGuesses;
+  return typeof n === 'number' && n >= MAX_NAME_GUESSES;
 }
 
 /** What "forget me" leaves: no name, no summary, the number forgotten until expiry. */

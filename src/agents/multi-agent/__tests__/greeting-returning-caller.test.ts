@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => {
   const docs = new Map<string, Record<string, unknown>>();
-  /** Writes each collection refuses next (Infinity: every one). */
+  /** Writes each collection refuses next (Infinity: every one); 'tx': transactions. */
   const fail: Record<string, number> = {};
   const refuse = (c: string): void => {
     if ((fail[c] ?? 0) <= 0) return;
@@ -29,12 +29,14 @@ const h = vi.hoisted(() => {
   });
   const db = {
     collection: (c: string) => ({ doc: (id: string) => doc(c, id) }),
-    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> =>
-      fn({
+    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => {
+      refuse('tx');
+      return fn({
         get: async (ref: ReturnType<typeof doc>) => ref.get(),
         set: (ref: ReturnType<typeof doc>, d: Record<string, unknown>) => void ref.set(d),
         delete: (ref: ReturnType<typeof doc>) => void ref.delete(),
-      }),
+      });
+    },
   };
   const logged: Array<[string, unknown]> = [];
   const logger = (): Record<string, unknown> => {
@@ -129,6 +131,7 @@ beforeEach(() => {
   process.env.LOG_HASH_SECRET = 'test-secret';
 });
 afterEach(() => {
+  vi.useRealTimers();
   delete process.env.RETURNING_CALLER;
   delete process.env.LOG_HASH_SECRET;
 });
@@ -171,6 +174,40 @@ describe('a call from a number someone called from before', () => {
     expect(turn('next', "I'm Dana.")).toBe('');
     await end('next', "I'm Dana.");
     expect(record()).toMatchObject({ firstName: 'Dana', callCount: 1, summary: 'learning guitar' });
+  });
+
+  it('counts wrong names per number, across calls at once or apart: after three, never surfaced', async () => {
+    await seed();
+    await Promise.all([start('g1'), start('g2')]); // both read the record before either guess
+    expect(turn('g1', "I'm Sarah.")).toBe('');
+    expect(turn('g2', "I'm Maria.")).toBe('');
+    await vi.waitFor(() => expect(record()?.failedGuesses).toBe(2));
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(Date.now() + 8 * 86_400_000); // the cooldown is over, the record is not
+    await start('g3');
+    expect(turn('g3', "I'm Jo.")).toBe('');
+    await vi.waitFor(() => expect(record()?.failedGuesses).toBe(3));
+    vi.setSystemTime(Date.now() + 8 * 86_400_000);
+    await start('g4');
+    expect(turn('g4', "I'm Dana.")).toBe('');
+    await end('g4', "I'm Dana.");
+    expect(record()).toMatchObject({ firstName: 'Dana', callCount: 1, failedGuesses: 3 });
+  });
+
+  it('a cooldown that cannot be stored holds the number here: nothing surfaced or refreshed', async () => {
+    await seed();
+    await start('w1');
+    h.fail.tx = 1;
+    expect(turn('w1', "I'm Sarah.")).toBe('');
+    await vi.waitFor(
+      () =>
+      expect(h.logged.some(([, m]) => String(m).startsWith('Returning caller denial cooldown not stored'))).toBe(true) // prettier-ignore
+    );
+    expect(record()).not.toHaveProperty('deniedUntil');
+    await start('w2');
+    expect(turn('w2', "I'm Dana.")).toBe('');
+    await end('w2', "I'm Dana.");
+    expect(record()).toMatchObject({ firstName: 'Dana', callCount: 1 });
   });
 
   it('confirms only on the name they state, then gives the topic hint and refreshes her record', async () => {
@@ -256,6 +293,18 @@ describe('"forget me"', () => {
     expect(rc.returningCallerFor('k3')).toBeUndefined();
     await end('k3', "Hi, I'm Dana again.");
     expect(record()).not.toHaveProperty('firstName');
+  });
+
+  it('says the same whether or not a tombstone was already stored for the number', async () => {
+    await start('n1'); // nothing stored for this number yet
+    expect(turn('n1', 'Please forget me.')).toBe(rc.FORGETTING_NOTE);
+    await vi.waitFor(() => expect(record()?.forgotten).toBe(true));
+    expect(turn('n1', 'Please forget me.')).toBe(rc.FORGOTTEN_NOTE);
+    await end('n1');
+
+    await start('n2'); // a tombstone is stored now: the reply must not show it
+    expect(turn('n2', 'Please forget me.')).toBe(rc.FORGETTING_NOTE);
+    await vi.waitFor(() => expect(turn('n2', 'Please forget me.')).toBe(rc.FORGOTTEN_NOTE));
   });
 
   it('retries a tombstone write that fails, then confirms', async () => {

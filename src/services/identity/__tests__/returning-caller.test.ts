@@ -43,6 +43,7 @@ describe('toStoredRecord', () => {
       'expireAt',
       'forgotten',
       'deniedUntil',
+      'failedGuesses',
     ]);
     const at = new Date('2026-10-18T00:00:00Z');
     const record = toStoredRecord({
