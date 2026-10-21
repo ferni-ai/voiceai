@@ -69,7 +69,7 @@ final class PaperScreensUITests: XCTestCase {
         for (link, title, line) in [("Your team", "Team", "The people I work with."),
                                     ("What Ferni remembers", "What Ferni remembers", "Here's what I keep about you. Change anything."),
                                     ("Help", "Help", "You're not alone in this.")] {
-            let row = app.buttons[link].firstMatch
+            let row = link == "What Ferni remembers" ? app.memoryLink : app.buttons[link].firstMatch
             for _ in 0..<3 where !row.isHittable { app.swipeUp() }
             row.tap()
             XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 10), title)

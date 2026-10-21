@@ -134,6 +134,8 @@ final class AppModel {
     let liveActivity = LiveActivityController()
     let push: PushStore
     var isShowingSettings = false
+    /// What Ferni remembers, opened from Home (award upgrade 7).
+    var isShowingMemory = false
     var isAskingConsent = false
     /// The sign-in sheet: "Already use Ferni? Sign in", or Talk when a real
     /// account was here before and isn't now.

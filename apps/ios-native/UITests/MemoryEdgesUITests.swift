@@ -9,7 +9,7 @@ final class MemoryEdgesUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FerniUITest", "settings", "-FerniSounds", "NO"] + (storeData ? ["-FerniStoreData", "YES"] : [])
         app.launch()
-        let link = app.buttons["What Ferni remembers"].firstMatch
+        let link = app.memoryLink
         XCTAssertTrue(link.waitForExistence(timeout: 20))
         for _ in 0..<3 where !link.isHittable { app.swipeUp() }
         link.tap()

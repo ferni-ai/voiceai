@@ -9,7 +9,7 @@ final class MemoryJournalUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-FerniUITest", "settings", "-FerniStoreData", "YES", "-FerniSounds", "NO"]
         app.launch()
-        let link = app.buttons["What Ferni remembers"].firstMatch
+        let link = app.memoryLink
         XCTAssertTrue(link.waitForExistence(timeout: 20))
         for _ in 0..<3 where !link.isHittable { app.swipeUp() }
         link.tap()
@@ -46,6 +46,33 @@ final class MemoryJournalUITests: XCTestCase {
         shot.name = "shot-memory-journal"
         shot.lifetime = .keepAlways
         add(shot)
+    }
+
+    /// Award upgrade 7: one tap from Home, and the people in your life first,
+    /// each under their own name, before the rest by week.
+    func testFromHomeThePeopleComeFirst() throws {
+        try XCTSkipIf(UIDevice.current.userInterfaceIdiom == .pad, "iPad reaches it from the sidebar")
+        let app = XCUIApplication.ferni(.home, extra: ["-FerniStoreData", "YES"])
+        let open = app.buttons["home.memory"]
+        XCTAssertTrue(open.waitForExistence(timeout: 20), "What Ferni remembers on Home")
+        XCTAssertEqual(open.label, "What Ferni remembers")
+        XCTAssertGreaterThanOrEqual(open.frame.height, 43.5)
+        open.tap()
+        let sister = app.staticTexts["Your sister Ana's birthday is Friday"]
+        XCTAssertTrue(sister.waitForExistence(timeout: 10))
+        func header(_ text: String) -> XCUIElement {
+            app.staticTexts.matching(NSPredicate(format: "label ==[c] %@", text)).firstMatch
+        }
+        XCTAssertTrue(header("Your mom").exists, "a section for your mom")
+        XCTAssertTrue(header("Your sister").exists, "and your sister")
+        XCTAssertLessThan(header("Your sister").frame.minY, header("Your mom").frame.minY,
+                          "most recently learned first: Ana's birthday today, the knee two days ago")
+        let week = header("This week")
+        XCTAssertTrue(week.exists)
+        XCTAssertLessThan(sister.frame.minY, week.frame.minY, "people before the weeks")
+        attachScreenshot("memory-people-first")
+        app.buttons["Done"].tap()
+        XCTAssertTrue(open.waitForExistence(timeout: 5), "back on Home")
     }
 
     /// Forget is on the row, not in a swipe, and asks first.
