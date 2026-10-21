@@ -25,6 +25,7 @@
  * @module services/scheduling/reminder-text-guard
  */
 
+import { consentBlocks } from '../../utils/consent-port.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ReminderDeliveryMethod, ScheduledReminder } from './reminder-scheduler.js';
 
@@ -85,13 +86,12 @@ async function consentRefusal(
   env: Record<string, string | undefined>
 ): Promise<string | null> {
   if (reminder.deliveryMethod !== 'call') return null;
-  const { consentBlocks, defaultConsentDeps } = await import('../messaging/consent.js');
   const to = reminder.deliveryAddress;
   const refused = await consentBlocks(
     to,
     'call',
     async (): Promise<boolean> => (await ownNumber?.(reminder.userId, to)) === true,
-    { ...defaultConsentDeps(), env }
+    env
   );
   if (refused) log.info({ reminderId: reminder.id, refused }, 'Reminder call held for the app');
   return refused;

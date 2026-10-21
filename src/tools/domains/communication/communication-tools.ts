@@ -24,7 +24,7 @@
  */
 
 import { llm } from '@livekit/agents';
-import { consentBlocks } from '../../../services/messaging/consent.js';
+import { consentBlocks } from '../../../utils/consent-port.js';
 import { z } from 'zod';
 import {
   guardedThirdPartySend,

@@ -50,7 +50,11 @@ const { deliverReminder, reminderFromDoc } = await import('../reminder-scheduler
 // What the job route and startup do: installs the owner's-number check this path asks.
 (await import('../../outreach/reminder-texts.js')).installReminderTexts();
 const { phoneHash } = await import('../../outreach/checkin-replies.js');
-const { writeOptOut } = await import('../../messaging/consent.js');
+const { consentBlocks, writeOptOut } = await import('../../messaging/consent.js');
+// The senders below L4 ask the port; register it as each process entry does, over the memory store.
+(await import('../../../utils/consent-port.js')).registerConsentCheck((phone, channel, allow) =>
+  consentBlocks(phone, channel, allow)
+);
 
 const PHONE = '+12025550133';
 const reminder = (deliveryMethod: 'call' | 'sms') =>
