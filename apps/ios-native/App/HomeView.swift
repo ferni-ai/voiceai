@@ -247,6 +247,7 @@ private struct RestingLine: View {
     var knownHere = false
     @Environment(\.openURL) private var openURL
     @Environment(\.dynamicTypeSize) private var typeSize
+    @Environment(\.horizontalSizeClass) private var widthClass
 
     var body: some View {
         VStack(spacing: FerniSpace.breath) {
@@ -274,7 +275,8 @@ private struct RestingLine: View {
         // room's gradient, and the audit failed the line on contrast in every
         // band though it reads 6.4:1 (design audit P1-10): a paper plate under it.
         // The failed message gets the plate at every size: on the bare room the
-        // audit failed it at 13.1:1 measured (critic M3, 2026-10-20).
+        // audit failed it at 13.1:1 measured (critic M3, 2026-10-20). So does
+        // every line on iPad (see plated).
         .padding(plated ? FerniSpace.pause : 0)
         .background {
             if plated {
@@ -285,6 +287,9 @@ private struct RestingLine: View {
 
     private var plated: Bool {
         if typeSize.isAccessibilitySize { return true }
+        // On iPad the line sits in the room's glow at every size: the audit failed
+        // the follow-up line there at 7.0:1 measured (award upgrade 2).
+        if widthClass == .regular { return true }
         if case .failed = call.phase { return true }
         return false
     }
@@ -299,7 +304,6 @@ private struct RestingLine: View {
             .foregroundStyle(FerniColor.textPrimary)
         Text(detail)
             .font(FerniType.bodyLarge)
-            .accessibilityIdentifier("home.detail")
             // Medium, not regular: in the evening band on iPad the audit failed
             // the regular line on contrast though its pixels measure 6.4:1
             // (#5c544a on #f2eee7); the fuller strokes pass in every band.
@@ -485,6 +489,12 @@ private struct TeamRow: View {
             // two: the audit grows the text and saw the row's names replaced
             // instead of growing ("Dynamic Type partially unsupported").
             TeamFlow(spacing: shelf ? FerniSpace.rest : FerniSpace.pause, lineSpacing: FerniSpace.pause) { faces(shown) }
+                // The shelf on iPad sits on paper: on the room's gradient the audit
+                // failed the names at 7.0:1 and 14.2:1 measured (award upgrade 2).
+                .padding(shelf ? FerniSpace.pause : 0)
+                .background {
+                    if shelf { RoundedRectangle(cornerRadius: FerniRadius.large).fill(FerniColor.background) }
+                }
             .sensoryFeedback(.selection, trigger: team.chosen)
         }
     }
@@ -506,7 +516,6 @@ private struct TeamRow: View {
                         .frame(minWidth: 44, minHeight: 44)
                     Text(persona.name)
                         .font(shelf ? FerniType.footnote : FerniType.caption)
-                        .accessibilityIdentifier("team.name.\(persona.id)")
                         .foregroundStyle(team.chosen == persona.id ? FerniColor.textPrimary : FerniColor.textSecondary)
                         .fixedSize()
                 }
