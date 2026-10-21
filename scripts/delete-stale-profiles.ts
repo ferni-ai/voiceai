@@ -24,6 +24,7 @@ import admin from 'firebase-admin';
 import { pathToFileURL } from 'node:url';
 import { getLogger } from '../src/utils/safe-logger.js';
 import { destructiveMode, refusalMessage } from './destructive-gate.js';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 const log = getLogger();
 
@@ -48,7 +49,7 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
     log.info({ projectId }, 'Firebase Admin initialized');
   }
 
-  const db = admin.firestore();
+  const db = getAdminFirestore();
   const profilesRef = db.collection('bogle_users');
   const snapshot = await profilesRef.get();
 

@@ -20,6 +20,7 @@
  */
 
 import { ALWAYS_KEEP, EVAL_PREFIX, selectEvalUsers } from './eval-users.js';
+import { getFirestoreDatabase } from '../../src/config/environment.js';
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -48,7 +49,7 @@ process.env.GCLOUD_PROJECT = project;
 process.env.FIREBASE_PROJECT_ID = project;
 
 const { Firestore } = await import('@google-cloud/firestore');
-const db = new Firestore({ projectId: project });
+const db = new Firestore({ projectId: project, databaseId: getFirestoreDatabase() });
 const refs = await db.collection('bogle_users').listDocuments();
 const ids = refs.map((r) => r.id).filter((id) => id.startsWith(EVAL_PREFIX));
 const selection = selectEvalUsers(ids, {

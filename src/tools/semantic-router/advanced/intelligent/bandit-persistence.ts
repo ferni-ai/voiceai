@@ -53,8 +53,8 @@ export interface BanditMetrics {
  */
 export async function createFirestorePersistence(): Promise<BanditPersistence | null> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     log.info('Creating Firestore persistence for bandit optimizer');
 
@@ -198,8 +198,8 @@ export async function saveUserPreferences(
   preferences: Partial<UserRoutingPreferences>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     await db
       .collection('bogle_users')
@@ -225,8 +225,8 @@ export async function saveUserPreferences(
  */
 export async function loadUserPreferences(userId: string): Promise<UserRoutingPreferences | null> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const doc = await db
       .collection('bogle_users')
@@ -303,8 +303,8 @@ export async function recordUserToolPreference(
  */
 export async function saveBanditMetrics(metrics: Partial<BanditMetrics>): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     await db
       .collection('system_cache')
@@ -328,8 +328,8 @@ export async function saveBanditMetrics(metrics: Partial<BanditMetrics>): Promis
  */
 export async function loadBanditMetrics(): Promise<BanditMetrics | null> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const doc = await db.collection('system_cache').doc('bandit_metrics').get();
 
@@ -356,8 +356,8 @@ export async function loadBanditMetrics(): Promise<BanditMetrics | null> {
  */
 export async function incrementBanditMetrics(selections: number, rewards: number): Promise<void> {
   try {
-    const { getFirestore, FieldValue } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { FieldValue } = await import('firebase-admin/firestore');
+    const db = (await import('../../../../utils/firebase-admin-app.js')).getAdminFirestore();
 
     await db
       .collection('system_cache')
@@ -406,8 +406,8 @@ export interface RoutingEvent {
  */
 export async function recordRoutingEvent(event: RoutingEvent): Promise<string | null> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const docRef = await db.collection('routing_events').add(
       cleanForFirestore({
@@ -431,8 +431,8 @@ export async function updateRoutingEventOutcome(
   outcome: { success: boolean; reward: number }
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     await db
       .collection('routing_events')

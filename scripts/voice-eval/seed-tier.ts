@@ -8,6 +8,7 @@
  * isn't voice-eval-* (eval-tier.ts).
  */
 import { seedTierRefusal } from './eval-tier.js';
+import { getFirestoreDatabase } from '../../src/config/environment.js';
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -27,7 +28,7 @@ const { Firestore } = await import('@google-cloud/firestore');
 const { createUserProfile } = await import('../../src/types/user-profile.js');
 const { createDefaultSubscription } = await import('../../src/types/subscription.js');
 
-const ref = new Firestore({ projectId: project }).collection('bogle_users').doc(uid);
+const ref = new Firestore({ projectId: project, databaseId: getFirestoreDatabase() }).collection('bogle_users').doc(uid);
 const existing = await ref.get();
 const base = existing.exists ? {} : createUserProfile(uid, 'Sam');
 const subscription = { ...createDefaultSubscription(), tier };
