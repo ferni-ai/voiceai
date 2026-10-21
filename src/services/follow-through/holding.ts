@@ -66,20 +66,36 @@ const SOURCE: Readonly<Record<string, HeldSource>> = {
   outreach_confirm: 'on-behalf',
 };
 
-/** 7 to 15 digits with phone punctuation between them; an ISO date is left alone. */
+/** 7 to 15 digits with phone punctuation between them. */
 const PHONE_LIKE = /\+?\d[\d\s().-]{5,}\d/g;
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+/** An ISO date, with a time after it or not: set aside so its digits never read as a phone number. */
+const DATE_TIME = /\d{4}-\d{2}-\d{2}(?:[T ]\d{1,2}:\d{2}(?::\d{2})?)?/g;
 const EMAIL_LIKE = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
 
-function withoutContactDetails(text: string): string {
-  return text.replace(EMAIL_LIKE, 'an email address').replace(PHONE_LIKE, (m) => {
+function withoutPhones(part: string): string {
+  return part.replace(PHONE_LIKE, (m) => {
     const digits = m.replace(/\D/g, '').length;
-    return digits >= 7 && digits <= 15 && !ISO_DATE.test(m) ? 'a number' : m;
+    return digits >= 7 && digits <= 15 ? 'a number' : m;
   });
 }
 
-/** An on-behalf item names someone else; the app says what it is, not who. */
-function onBehalfPhrase(tool: string): string {
+function withoutContactDetails(text: string): string {
+  const masked = text.replace(EMAIL_LIKE, 'an email address');
+  let out = '';
+  let last = 0;
+  for (const m of masked.matchAll(DATE_TIME)) {
+    out += withoutPhones(masked.slice(last, m.index)) + m[0];
+    last = m.index + m[0].length;
+  }
+  return out + withoutPhones(masked.slice(last));
+}
+
+/**
+ * An on-behalf item names someone else; the app says what it is, not who. A
+ * row that lost its action (actionOf drops one with no tool) still names no one.
+ */
+function onBehalfPhrase(tool: string | undefined): string {
+  if (!tool) return 'Something you asked me to do for you';
   return /call/i.test(tool) ? 'A call you asked me to make' : 'A message you asked me to send';
 }
 
@@ -90,7 +106,7 @@ export function toHeldItem(f: FollowUp, now: Date): HeldItem {
   return {
     id: f.id,
     kind: KIND[f.kind],
-    text: f.action ? onBehalfPhrase(f.action.tool) : withoutContactDetails(f.text),
+    text: onBehalf ? onBehalfPhrase(f.action?.tool) : withoutContactDetails(f.text),
     dueAt: f.dueAt,
     zone: f.zone,
     status: f.status === 'surfaced' ? 'surfaced' : 'open',

@@ -145,6 +145,17 @@ describe('toHeldItem', () => {
     expect(json).not.toMatch(/contact-|Linda|Marcus|555|contactId/);
   });
 
+  it('still names no one when an on-behalf row lost its action', () => {
+    const bare = followUp({
+      kind: 'promise',
+      text: 'Call Aunt Linda for you',
+      source: { store: 'outreach_confirm', ref: 'u-2' },
+    });
+    const item = toHeldItem(bare, NOW);
+    expect([item.text, item.source]).toEqual(['Something you asked me to do for you', 'on-behalf']);
+    expect(JSON.stringify(item)).not.toMatch(/Linda/);
+  });
+
   it('blanks phone numbers and email addresses in any text, but leaves times and dates', () => {
     const t = (text: string): string => toHeldItem(followUp({ text }), NOW).text;
 
@@ -152,5 +163,8 @@ describe('toHeldItem', () => {
     expect(t('email jo@example.com the form')).toBe('email an email address the form');
     expect(t('pick up 2 bags at 10:30')).toBe('pick up 2 bags at 10:30');
     expect(t('rent due 2026-11-01')).toBe('rent due 2026-11-01');
+    expect(t('dentist 2026-10-22 8:30')).toBe('dentist 2026-10-22 8:30');
+    expect(t('dentist 2026-10-22T08:30')).toBe('dentist 2026-10-22T08:30');
+    expect(t('call 415-555-0132 on 2026-10-22 9:15')).toBe('call a number on 2026-10-22 9:15');
   });
 });
