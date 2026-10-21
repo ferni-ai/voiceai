@@ -6,7 +6,7 @@
 // usage: scorecard.mjs [--days 14] [--out FILE] [--database ID]
 //   (default out: ~/Documents/voiceai-evidence/scorecard/scorecard.json)
 //   --database: the Firestore database holding the owner's records (default
-//   FIRESTORE_DATABASE, else '(default)', which is prod).
+//   '(default)', prod; FIRESTORE_DATABASE is ignored, see scorecardDatabase).
 //
 // Sources, all local except follow-through:
 // - call-reviews/<date>/calls.json (review-calls.mjs + judge-calls.mjs):
@@ -51,7 +51,7 @@ import {
 } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { documentsUrl } from './eval-database.mjs';
+import { documentsUrl, evalDatabase } from './eval-database.mjs';
 import { checkRun, parseChecks } from './recall-facts.mjs';
 
 const EVIDENCE = process.env.VOICE_EVIDENCE ?? join(homedir(), 'Documents/voiceai-evidence');
@@ -458,6 +458,16 @@ function evalRows(since) {
   return rows;
 }
 
+/**
+ * The database the owner's records are read from: prod ('(default)', via
+ * evalDatabase) unless --database names another. FIRESTORE_DATABASE is not read:
+ * a dev .env sets it, and the scorecard measures prod.
+ */
+export function scorecardDatabase(args, vars = process.env) {
+  const i = args.indexOf('--database');
+  return evalDatabase('prod', { override: i >= 0 ? args[i + 1] : undefined, vars });
+}
+
 /** The owner's ferni_commitments (outcome, dueBy only), read with the gcloud user's token. */
 function ownerPromises(database) {
   const token = execFileSync('gcloud', ['auth', 'print-access-token'], { encoding: 'utf8' }).trim();
@@ -558,7 +568,7 @@ function main() {
   const until = new Date().toISOString();
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
   const out = opt('--out', join(EVIDENCE, 'scorecard/scorecard.json'));
-  const database = opt('--database', process.env.FIRESTORE_DATABASE || '(default)');
+  const database = scorecardDatabase(args);
   const reviewed = reviewedRows(since);
   const evals = evalRows(since);
   let follow = { overall: null, byDate: {} };
