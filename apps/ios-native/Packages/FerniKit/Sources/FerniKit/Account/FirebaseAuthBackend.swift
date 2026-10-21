@@ -51,16 +51,35 @@ public struct FirebaseAuthBackend: AuthBackend {
         let anonymousToken = current.isAnonymous ? try? await current.getIDToken() : nil
         do {
             return SignInResult(user: Self.account(try await current.link(with: firebase).user), leftBehind: nil)
-        } catch let error as NSError where error.code == AuthErrorCode.credentialAlreadyInUse.rawValue {
-            // The credential already has a Ferni account: continue as that person.
-            // Apple's nonce and the texted code are single use, so Firebase hands back a fresh credential.
-            let updated = error.userInfo[AuthErrorUserInfoUpdatedCredentialKey] as? AuthCredential ?? firebase
+        } catch {
+            guard case .switchTo(let updated) = Self.resolveLink(error: error, original: firebase) else {
+                throw Self.signInError(error, phone: phone)
+            }
             let user = try await Self.signIn(with: updated, phone: phone)
             let leftBehind = anonymous.flatMap { $0 == user.uid ? nil : LeftBehindAccount(uid: $0, idToken: anonymousToken) }
             return SignInResult(user: user, leftBehind: leftBehind)
-        } catch {
-            throw Self.signInError(error, phone: phone)
         }
+    }
+
+    /// What a failed link means.
+    enum LinkResolution<Credential> {
+        /// The credential already has a Ferni account: sign in as that person
+        /// with this credential (a returning Apple user on a new phone).
+        case switchTo(Credential)
+        /// Anything else: shown as a sign-in error.
+        case rethrow
+    }
+
+    /// Firebase's "credential already in use" switches to that account. Apple's
+    /// nonce and the texted code are single use, so Firebase hands back a fresh
+    /// credential; without one (Google's tokens can be used again) it's the
+    /// original. Generic so the decision is tested without Firebase.
+    static func resolveLink<Credential>(error: Error, original: Credential) -> LinkResolution<Credential> {
+        let nsError = error as NSError
+        guard nsError.domain == AuthErrorDomain, nsError.code == AuthErrorCode.credentialAlreadyInUse.rawValue else {
+            return .rethrow
+        }
+        return .switchTo(nsError.userInfo[AuthErrorUserInfoUpdatedCredentialKey] as? Credential ?? original)
     }
 
     private static func signIn(with credential: AuthCredential, phone: Bool) async throws -> AccountUser {
