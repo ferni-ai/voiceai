@@ -150,7 +150,7 @@
 
     if (!pending[experimentId]) {
       pending[experimentId] = whenIdle().then(function () {
-        return fetchVariant(experimentId, userId, cache);
+        return fetchVariant(experimentId, userId, cache, consented);
       });
     }
     const variantId = await pending[experimentId];
@@ -163,7 +163,8 @@
     return variantId;
   }
 
-  async function fetchVariant(experimentId, userId, cache) {
+  // `consented` comes from getVariant: it decides whether the assignment is cached.
+  async function fetchVariant(experimentId, userId, cache, consented) {
     // Fetch from API
     try {
       const device =
@@ -202,8 +203,9 @@
 
       return data.variantId;
     } catch (error) {
+      // Fail soft: the visitor sees the control experience and the page keeps working.
       // eslint-disable-next-line no-console -- report failures in the browser console
-      console.error('[Experiments] Error getting variant:', error);
+      console.warn('[Experiments] Could not get variant, showing control:', experimentId, error);
       return null;
     }
   }
@@ -245,6 +247,8 @@
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ events: events }),
+      // Lets a flush started as the page unloads (conversion-tracking.js) finish.
+      keepalive: true,
     })
       .then(function (response) {
         if (!response.ok) {
@@ -286,9 +290,22 @@
 
   }
 
+  // A visitor's own engagement, outside any experiment (scroll depth, time on
+  // page): an `engagement` event under the anonymous id, which the batch route
+  // records with no experiment arm. Same consent gate as every other event.
+  function trackEngagement(goalId, value) {
+    if (!hasConsent()) return;
+    queueEvent('all', undefined, getUserId(), 'engagement', goalId, value);
+  }
+
   // ============================================================================
   // UTILITIES
   // ============================================================================
+
+  /** True when this visitor has an experiment assignment (kept only after consent). */
+  function inAnyExperiment() {
+    return Object.keys(getCache()).length > 0;
+  }
 
   function isInVariant(experimentId, variantId) {
     const cache = getCache();
@@ -326,6 +343,8 @@
     getVariant: getVariant,
     trackConversion: trackConversion,
     trackConversionForAll: trackConversionForAll,
+    trackEngagement: trackEngagement,
+    inAnyExperiment: inAnyExperiment,
     isInVariant: isInVariant,
     getCurrentVariant: getCurrentVariant,
     getUserId: getUserId,

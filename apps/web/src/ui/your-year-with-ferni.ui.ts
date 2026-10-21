@@ -6,7 +6,7 @@
  * Displays:
  * - Conversation frequency over time (heat map)
  * - Emotional journey timeline
- * - Team members unlocked
+ * - The team (TEAM_BY_NEED: everyone from the first call, nobody "unlocked")
  * - Dreams tracked & progress
  * - Commitments kept
  * - Milestones celebrated
@@ -25,6 +25,7 @@ import { tp } from '../i18n/plural.js';
 import { apiGet, getUserId } from '../utils/api.js';
 import { createLogger } from '../utils/logger.js';
 import { createEmptyState } from './components/empty-state.js';
+import { escapeHtml } from './trust-dashboard-data.js';
 
 const log = createLogger('YourYearWithFerni');
 
@@ -62,7 +63,6 @@ export interface EmotionalMoment {
 export interface TeamUnlock {
   personaId: string;
   personaName: string;
-  unlockedAt?: Date;
   primaryColor: string;
 }
 
@@ -101,11 +101,8 @@ export interface RelationshipGrowth {
 export interface YearStats {
   totalConversations: number;
   totalMinutes?: number;
-  longestStreak: number;
-  currentStreak: number;
   averageConversationsPerWeek: number;
   mostActiveMonth: string;
-  teamMembersUnlocked: number;
   dreamsTracked: number;
   commitmentsKept: number;
 }
@@ -238,7 +235,8 @@ export class YourYearWithFerni {
 
   private async loadYearData(userId: string): Promise<YearData | null | 'error'> {
     try {
-      const response = await apiGet<YearData>(`/api/year-in-review/${userId}`);
+      const tz = encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
+      const response = await apiGet<YearData>(`/api/year-in-review/${userId}?tz=${tz}`);
       if (response.ok && response.data) {
         // Parse date strings to Date objects for consistency
         const data = response.data;
@@ -249,10 +247,7 @@ export class YourYearWithFerni {
             ...m,
             date: new Date(m.date),
           })) ?? [],
-          teamUnlocks: data.teamUnlocks?.map((t) => ({
-            ...t,
-            unlockedAt: t.unlockedAt ? new Date(t.unlockedAt) : undefined,
-          })) ?? [],
+          teamUnlocks: data.teamUnlocks ?? [],
           dreams: data.dreams?.map((d) => ({
             ...d,
             mentionedAt: new Date(d.mentionedAt),
@@ -327,8 +322,6 @@ export class YourYearWithFerni {
           <!-- Stats Grid -->
           <section class="your-year-stats">
             ${this.renderStatCard(t('yourYearWithFerni.statConversations'), this.data.stats.totalConversations.toString(), t('yourYearWithFerni.statTotal'))}
-            ${this.renderStatCard(t('yourYearWithFerni.statCurrentStreak'), tp('yourYearWithFerni.streakDays', this.data.stats.currentStreak), t('yourYearWithFerni.statBestStreak', { count: this.data.stats.longestStreak }))}
-            ${this.renderStatCard(t('yourYearWithFerni.statTeamMembers'), this.data.stats.teamMembersUnlocked.toString(), t('yourYearWithFerni.statUnlocked'))}
             ${this.renderStatCard(t('yourYearWithFerni.statDreamsTracked'), this.data.stats.dreamsTracked.toString(), t('yourYearWithFerni.statGrowing'))}
           </section>
 
@@ -340,29 +333,29 @@ export class YourYearWithFerni {
             </div>
           </section>
 
-          <!-- Emotional Journey -->
-          <section class="your-year-section" aria-labelledby="milestones-title">
+          ${this.data.emotionalJourney.length === 0 ? '' : `<section class="your-year-section" aria-labelledby="milestones-title">
             <h3 id="milestones-title" class="your-year-section-title">${t('yourYearWithFerni.emotionalMilestones')}</h3>
             <div class="your-year-timeline" role="list" aria-label="${t('accessibility.emotionalMilestonesTimeline')}">
               ${this.renderTimeline()}
             </div>
-          </section>
+          </section>`}
 
-          <!-- Team Unlocks -->
+          <!-- The team (no streaks, no unlocks: Seth, 2026-10-11 TEAM_BY_NEED) -->
           <section class="your-year-section" aria-labelledby="team-title">
             <h3 id="team-title" class="your-year-section-title">${t('accessibility.yourTeam')}</h3>
-            <div class="your-year-team" role="list" aria-label="${t('accessibility.teamMembersUnlocked')}">
-              ${this.renderTeam()}
-            </div>
+            ${
+              this.data.teamUnlocks.length > 0
+                ? `<div class="your-year-team" role="list" aria-label="${t('accessibility.yourTeam')}">${this.renderTeam()}</div>`
+                : `<p class="your-year-team-empty">${t('yourYearWithFerni.teamUnavailable')}</p>`
+            }
           </section>
 
-          <!-- Dreams -->
-          <section class="your-year-section" aria-labelledby="dreams-title">
+          ${this.data.dreams.length === 0 ? '' : `<section class="your-year-section" aria-labelledby="dreams-title">
             <h3 id="dreams-title" class="your-year-section-title">${t('yourYearWithFerni.dreamsGuarding')}</h3>
             <div class="your-year-dreams" role="list" aria-label="${t('accessibility.yourTrackedDreams')}">
               ${this.renderDreams()}
             </div>
-          </section>
+          </section>`}
         </div>
       </div>
     `;
@@ -389,29 +382,20 @@ export class YourYearWithFerni {
 
   private renderHeatMap(): string {
     if (!this.data) return '';
-
-    // Group by week for display
-    const weeks: DayData[][] = [];
-    let currentWeek: DayData[] = [];
-
-    for (const day of this.data.conversationCounts.slice(-91)) {
-      // Last ~3 months
-      currentWeek.push(day);
-      if (currentWeek.length === 7) {
-        weeks.push(currentWeek);
-        currentWeek = [];
-      }
-    }
-    if (currentWeek.length > 0) weeks.push(currentWeek);
-
-    return weeks
+    // The last 13 weeks of calendar days in this zone, quiet days included (they were dropped)
+    const counts = new Map(this.data.conversationCounts.map((d) => [d.date, d.count]));
+    const now = new Date();
+    const days = Array.from({ length: 91 }, (_, i) =>
+      new Intl.DateTimeFormat('en-CA').format(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 90 + i, 12))
+    );
+    return Array.from({ length: 13 }, (_, w) => days.slice(w * 7, w * 7 + 7))
       .map(
         (week) => `
       <div class="heatmap-week">
         ${week
-          .map((day) => {
-            const intensity = Math.min(4, day.count);
-            return `<div class="heatmap-day" data-count="${day.count}" data-intensity="${intensity}" title="${tp('yourYearWithFerni.heatmapDayTitle', day.count, { date: day.date })}"></div>`;
+          .map((date) => {
+            const count = counts.get(date) ?? 0;
+            return `<div class="heatmap-day" data-count="${count}" data-intensity="${Math.min(4, count)}" title="${tp('yourYearWithFerni.heatmapDayTitle', count, { date })}"></div>`;
           })
           .join('')}
       </div>
@@ -431,8 +415,8 @@ export class YourYearWithFerni {
         <div class="timeline-dot" aria-hidden="true"></div>
         <div class="timeline-content">
           <div class="timeline-date">${formatDate(date, { month: 'short', day: 'numeric' })}</div>
-          <div class="timeline-emotion">${moment.emotion}</div>
-          ${moment.context ? `<div class="timeline-context">${moment.context}</div>` : ''}
+          <div class="timeline-emotion">${escapeHtml(moment.emotion)}</div>
+          ${moment.context ? `<div class="timeline-context">${escapeHtml(moment.context)}</div>` : ''}
         </div>
       </div>
     `;
@@ -480,7 +464,6 @@ export class YourYearWithFerni {
 
     return this.data.teamUnlocks
       .map((member) => {
-        const unlockDate = member.unlockedAt && new Date(member.unlockedAt);
         const personaId = member.personaId.toLowerCase();
         const gradient = personaGradients[personaId] ?? {
           light: member.primaryColor,
@@ -489,7 +472,6 @@ export class YourYearWithFerni {
         };
         const displayName =
           displayNames[personaId] ?? member.personaName.split('-')[0] ?? member.personaName;
-        const initial = displayName.charAt(0).toUpperCase();
 
         // Luxo-style SVG avatar with gradient and white eyes (NO pupils per brand CLAUDE.md)
         return `
@@ -517,7 +499,6 @@ export class YourYearWithFerni {
           </svg>
         </div>
         <div class="team-name">${displayName}</div>
-        ${unlockDate ? `<div class="team-unlocked">${t('yourYearWithFerni.unlockedOn', { date: formatDate(unlockDate, { month: 'short', year: 'numeric' }) })}</div>` : ''}
       </div>
     `;
       })
@@ -541,8 +522,8 @@ export class YourYearWithFerni {
       <div class="dream-item ${dream.status}" role="listitem">
         <div class="dream-icon" aria-hidden="true">${dream.status === 'achieved' ? achievedIcon : activeIcon}</div>
         <div class="dream-content">
-          <div class="dream-text">${dream.dream}</div>
-          <div class="dream-meta">${tp('yourYearWithFerni.dreamMeta', dream.mentionCount, { type: dream.type })}</div>
+          <div class="dream-text">${escapeHtml(dream.dream)}</div>
+          <div class="dream-meta">${tp('yourYearWithFerni.dreamMeta', dream.mentionCount, { type: escapeHtml(dream.type) })}</div>
         </div>
       </div>
     `
@@ -671,7 +652,7 @@ export class YourYearWithFerni {
         font-weight: var(--font-semibold, 600);
         letter-spacing: var(--tracking-widest, 0.1em);
         text-transform: uppercase;
-        color: var(--color-ferni, #4A6741);
+        color: var(--color-ferni-on-surface);
         margin-bottom: var(--space-2, 8px);
         display: block;
       }
@@ -708,15 +689,9 @@ export class YourYearWithFerni {
       /* Stats Grid */
       .your-year-stats {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: var(--space-4, 16px);
         margin-bottom: var(--space-6, 24px);
-      }
-
-      @media (max-width: 640px) {
-        .your-year-stats {
-          grid-template-columns: repeat(2, 1fr);
-        }
       }
 
       /* Stat Cards: Brand-compliant card style */
@@ -733,7 +708,7 @@ export class YourYearWithFerni {
         font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
         font-size: var(--text-xl, 1.5rem);
         font-weight: var(--font-bold, 700);
-        color: var(--color-ferni, #4A6741);
+        color: var(--color-ferni-on-surface);
         line-height: var(--leading-tight, 1.15);
       }
 
@@ -911,10 +886,11 @@ export class YourYearWithFerni {
         margin-bottom: var(--space-1, 4px);
       }
 
-      .team-unlocked {
+      .your-year-team-empty {
         font-family: var(--font-body, 'Inter', sans-serif);
-        font-size: 11px;
+        font-size: var(--text-sm, 0.875rem);
         color: var(--color-text-muted, #8A847C);
+        margin: 0;
       }
 
       /* Dreams */
@@ -947,7 +923,7 @@ export class YourYearWithFerni {
       .dream-icon {
         width: 24px;
         height: 24px;
-        color: var(--color-ferni, #4A6741);
+        color: var(--color-ferni-on-surface);
         flex-shrink: 0;
       }
 

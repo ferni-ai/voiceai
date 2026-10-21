@@ -36,7 +36,7 @@ import {
 } from '../voice-agent/phases/index.js';
 
 import { finops } from '../../services/observability/finops.js';
-
+import { classifyCallEnd, roomDisconnectEndReason } from '../../services/analytics/call-end-reason.js';
 import {
   cleanupSpeechCoordination,
   coordinatedSay,
@@ -61,7 +61,7 @@ import { getModelProvider } from '../model-provider/index.js';
 import { configureModelProvider } from '../../personas/bundles/model-provider-config.js';
 
 // Submodule imports
-import { finishCallTypeContexts, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
+import { finishCallTypeContexts, finishOnce, parseJobMetadata, setupCallTypeContexts } from './metadata-parser.js';
 import { evalLocalTime } from '../personas/eval-local-time.js';
 import { buildSessionPersona, loadCallerPrompt } from './persona-builder.js';
 import { createAgentSession } from './session-creator.js';
@@ -242,8 +242,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const parsed = parseJobMetadata(ctx);
     personaId = parsed.personaId;
     const { publisherId, callType, metadata } = parsed;
-    finishCallType = () =>
-      finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime, ctx.job.metadata);
+    finishCallType = finishOnce(ctx, () => // also on shutdown: the job exits 15 s after the room closes
+      finishCallTypeContexts(metadata, callType, sessionId, Date.now() - startTime, ctx.job.metadata));
 
     // Set up call type-specific contexts (inbound, on-behalf, proactive)
     await setupCallTypeContexts(
@@ -329,7 +329,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       { getConversationManager },
     ] = await moduleImportsPromise;
 
-    const { userId: identifiedUserId, userName, userAccent } = await identifyUser({
+    const { userId: identifiedUserId, userName, userAccent, verified } = await identifyUser({
       jobMetadata: ctx.job.metadata,
       room: ctx.room,
       sessionId,
@@ -388,8 +388,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       cleanupHandlers.push(stopPeriodicSync);
     }
 
-    // CRITICAL FIX: Set personaId on userData for TTS wrapper
-    userData.personaId = sessionPersona.id;
+    userData.personaId = sessionPersona.id; // the TTS wrapper reads it
+    userData.verifiedCaller = verified; // tools gate per-person allowances on it (verified-caller.ts)
 
     // Minimal sync work required before greeting (handoff + FinOps).
     const customData = services.userProfile?.customData as Record<string, unknown> | undefined;
@@ -791,7 +791,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         );
         try {
           const { endCall } = await import('../../services/analytics/call-quality-monitor.js');
-          endCall(sessionId, 'disconnect');
+          endCall(sessionId, classifyCallEnd(sessionEndReason));
         } catch {
           /* ignore */
         }
@@ -872,7 +872,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         // Unblock LiveKit job_proc close wait (runs after entrypoint returns).
         // Without this, empty-room exits hang forever on once(closeEvent).
         try {
-          if (reason !== 'room.disconnected' && reason !== 'job.shutdownCallback') {
+          if (!['room.disconnected', 'room.closed', 'job.shutdownCallback'].includes(reason)) {
             ctx.shutdown(reason);
           }
         } catch {
@@ -903,7 +903,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
       ctx.room.on('disconnected', (reason?: unknown) => {
         logDisconnectDiagnostics(String(reason || 'unknown'));
-        finish('room.disconnected');
+        finish(roomDisconnectEndReason(reason));
       });
 
       // connectionStateChanged often fires even when isConnected lags

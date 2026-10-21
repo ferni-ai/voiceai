@@ -3,6 +3,6 @@
   "tags": "blogPosts",
   "permalink": "/blog/{{ page.fileSlug }}/",
   "eleventyComputed": {
-    "ogImage": "{{ '/images/blog/' + (image or 'default-og.png') }}"
+    "ogImage": "{{ (site.url + '/images/blog/' + image) if image else 'https://ferni.ai/images/og-image.jpg' }}"
   }
 }

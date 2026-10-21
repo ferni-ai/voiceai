@@ -20,12 +20,18 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
     createLogger: (bindings: Record<string, unknown>) => {
       const logger = real.createLogger(bindings);
       if (bindings.module !== 'phone-goodbye') return logger;
-      return { ...logger, info: (o: unknown, msg?: string) => phoneLog(msg, o) };
+      const record = (o: unknown, msg?: string) => phoneLog(msg, o);
+      return { ...logger, info: record, warn: record };
     },
   };
 });
+import {
+  noteCrisisRisk,
+  resetCrisisCallRisk,
+  trackCrisisRead,
+} from '../../../services/safety/crisis-call-risk.js';
 import { PersonaVoiceAgent } from '../../personas/ferni-agent.js';
-import { attachPhoneHangUp, END_CALL } from '../phone-goodbye.js';
+import { attachPhoneHangUp, CRISIS_HOLD, END_CALL } from '../phone-goodbye.js';
 
 const ON = { PHONE_GOODBYE: 'on' };
 const phoneCaller = { kind: ParticipantKind.SIP };
@@ -73,7 +79,10 @@ async function callEndCall(
   return out.output[0]?.toolCallOutput?.output ?? '';
 }
 
-afterEach(() => phoneLog.mockReset());
+afterEach(() => {
+  phoneLog.mockReset();
+  resetCrisisCallRisk();
+});
 const attached = () => phoneLog.mock.calls.filter(([msg]) => msg === 'PHONE_GOODBYE_ATTACHED');
 
 describe('phone goodbye', () => {
@@ -91,7 +100,7 @@ describe('phone goodbye', () => {
     for (const value of ['off', 'false', '0', 'yes']) {
       phoneLog.mockReset();
       const a = agent();
-      const call = { roomName: 'r', participant: phoneCaller, onBehalf: false };
+      const call = { sessionId: 's-2', roomName: 'r', participant: phoneCaller, onBehalf: false };
       expect(await attachPhoneHangUp(a, { ...call, env: { PHONE_GOODBYE: value } })).toBe(false);
       expect(attached()).toEqual([]);
     }
@@ -102,6 +111,7 @@ describe('phone goodbye', () => {
     const events: string[] = [];
     const hangUp = async (room: string) => void events.push(`hung up ${room}`);
     const added = await attachPhoneHangUp(a, {
+      sessionId: 's-room-1',
       roomName: 'room-1',
       participant: phoneCaller,
       onBehalf: false,
@@ -119,6 +129,7 @@ describe('phone goodbye', () => {
     const events: string[] = [];
     const a = agent();
     await attachPhoneHangUp(a, {
+      sessionId: 's-room-2',
       roomName: 'room-2',
       participant: phoneCaller,
       onBehalf: false,
@@ -132,6 +143,7 @@ describe('phone goodbye', () => {
 
     const b = agent();
     await attachPhoneHangUp(b, {
+      sessionId: 's-room-3',
       roomName: 'room-3',
       participant: phoneCaller,
       onBehalf: false,
@@ -153,8 +165,79 @@ describe('phone goodbye', () => {
     for (const c of cases) {
       const a = agent(c.extra);
       const before = names(a);
-      expect(await attachPhoneHangUp(a, { roomName: 'r', ...c })).toBe(false);
+      expect(await attachPhoneHangUp(a, { sessionId: 's-r', roomName: 'r', ...c })).toBe(false);
       expect(names(a)).toEqual(before);
     }
+  });
+});
+
+describe('phone goodbye on a call with crisis risk', () => {
+  /** A phone caller's agent with endCall; `events` records playout and hang-up. */
+  async function phoneCall(sessionId: string) {
+    const a = agent();
+    const events: string[] = [];
+    await attachPhoneHangUp(a, {
+      sessionId,
+      roomName: `room-${sessionId}`,
+      participant: phoneCaller,
+      onBehalf: false,
+      env: ON,
+      hangUp: async (room) => void events.push(`hung up ${room}`),
+    });
+    return { a, events };
+  }
+  const held = () => phoneLog.mock.calls.filter(([msg]) => msg === 'END_CALL_HELD_CRISIS');
+
+  it('does not hang up once crisis risk is noted, and tells Ferni to stay', async () => {
+    const { a, events } = await phoneCall('s-crisis');
+    noteCrisisRisk('s-crisis');
+    expect(await callEndCall(a, events)).toBe(JSON.stringify(CRISIS_HOLD));
+    expect(events.some((e) => e.startsWith('hung up'))).toBe(false);
+    expect(held()).toEqual([
+      ['END_CALL_HELD_CRISIS', { sessionId: 's-crisis', tool: 'phone', stage: 'before_playout' }],
+    ]);
+  });
+
+  it('holds while a crisis read is still in flight, and hangs up once it reads clean', async () => {
+    const { a, events } = await phoneCall('s-reading');
+    let finish: (v: { risk: string }) => void = () => {};
+    const read = trackCrisisRead(
+      's-reading',
+      'turn',
+      new Promise<{ risk: string }>((resolve) => {
+        finish = resolve;
+      })
+    );
+    expect(await callEndCall(a, events)).toBe(JSON.stringify(CRISIS_HOLD));
+    expect(events.some((e) => e.startsWith('hung up'))).toBe(false);
+
+    finish({ risk: 'none' });
+    await read;
+    expect(await callEndCall(a, events)).toContain('The call has ended.');
+    expect(events).toEqual(['goodbye played', 'hung up room-s-reading']);
+  });
+
+  it('does not hang up when crisis risk is noted while the goodbye plays', async () => {
+    const { a, events } = await phoneCall('s-mid-goodbye');
+    const output = await callEndCall(a, events, async () => {
+      events.push('goodbye played');
+      noteCrisisRisk('s-mid-goodbye');
+    });
+    expect(output).toBe(JSON.stringify(CRISIS_HOLD));
+    expect(events).toEqual(['goodbye played']);
+    expect(held()).toEqual([
+      [
+        'END_CALL_HELD_CRISIS',
+        { sessionId: 's-mid-goodbye', tool: 'phone', stage: 'after_playout' },
+      ],
+    ]);
+  });
+
+  it('hangs up as before when the call has no risk, even if another call does', async () => {
+    noteCrisisRisk('s-other-call');
+    const { a, events } = await phoneCall('s-calm');
+    expect(await callEndCall(a, events)).toContain('The call has ended.');
+    expect(events).toEqual(['goodbye played', 'hung up room-s-calm']);
+    expect(held()).toEqual([]);
   });
 });
