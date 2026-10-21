@@ -37,6 +37,8 @@ const SERVER_FLAGS = [
   'PONDERING=on',
   // The whole team from the first call, introduced by need (Seth, 2026-10-20; the agent has it too).
   'TEAM_BY_NEED=on',
+  // The web server places the on-behalf calls the agent defers, so it runs the do-not-call check too.
+  'ON_BEHALF_DNC_CHECK=on',
 ];
 
 /** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */
