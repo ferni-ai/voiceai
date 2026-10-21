@@ -299,6 +299,7 @@ private struct RestingLine: View {
             .foregroundStyle(FerniColor.textPrimary)
         Text(detail)
             .font(FerniType.bodyLarge)
+            .accessibilityIdentifier("home.detail")
             // Medium, not regular: in the evening band on iPad the audit failed
             // the regular line on contrast though its pixels measure 6.4:1
             // (#5c544a on #f2eee7); the fuller strokes pass in every band.
@@ -427,6 +428,47 @@ enum TeamRowModel {
     }
 }
 
+/// Teammates in centred rows, wrapping when the next one doesn't fit.
+struct TeamFlow: Layout {
+    var spacing: CGFloat
+    var lineSpacing: CGFloat
+
+    /// Each row's subview indices and size, for a width.
+    func rows(_ sizes: [CGSize], width: CGFloat) -> [(items: [Int], size: CGSize)] {
+        var rows: [(items: [Int], size: CGSize)] = []
+        for (i, size) in sizes.enumerated() {
+            if let last = rows.last, last.size.width + spacing + size.width <= width {
+                rows[rows.count - 1].items.append(i)
+                rows[rows.count - 1].size = CGSize(width: last.size.width + spacing + size.width,
+                                                   height: max(last.size.height, size.height))
+            } else {
+                rows.append(([i], size))
+            }
+        }
+        return rows
+    }
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        let rows = rows(sizes, width: proposal.width ?? .infinity)
+        let height = rows.map(\.size.height).reduce(0, +) + lineSpacing * CGFloat(max(rows.count - 1, 0))
+        return CGSize(width: proposal.width ?? rows.map(\.size.width).max() ?? 0, height: height)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let sizes = subviews.map { $0.sizeThatFits(.unspecified) }
+        var y = bounds.minY
+        for row in rows(sizes, width: bounds.width) {
+            var x = bounds.midX - row.size.width / 2
+            for i in row.items {
+                subviews[i].place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(sizes[i]))
+                x += sizes[i].width + spacing
+            }
+            y += row.size.height + lineSpacing
+        }
+    }
+}
+
 /// Your corner: your team, small, each with their name under their face (design
 /// audit P1-2: no names, and Maya and Jordan look alike). Tap a teammate to
 /// choose who answers next; press and hold for who they are.
@@ -438,13 +480,11 @@ private struct TeamRow: View {
     var body: some View {
         let shown = TeamRowModel.shown(unlocked: team.unlocked)
         if !shown.isEmpty {
-            // One row while the names fit; at large text sizes, as many rows as they need.
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: shelf ? FerniSpace.rest : FerniSpace.pause) { faces(shown) }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 96), spacing: FerniSpace.pause)], spacing: FerniSpace.pause) {
-                    faces(shown)
-                }
-            }
+            // One row while the names fit; at large text sizes, as many rows as they
+            // need. One set of views that wraps, not ViewThatFits choosing between
+            // two: the audit grows the text and saw the row's names replaced
+            // instead of growing ("Dynamic Type partially unsupported").
+            TeamFlow(spacing: shelf ? FerniSpace.rest : FerniSpace.pause, lineSpacing: FerniSpace.pause) { faces(shown) }
             .sensoryFeedback(.selection, trigger: team.chosen)
         }
     }
@@ -466,6 +506,7 @@ private struct TeamRow: View {
                         .frame(minWidth: 44, minHeight: 44)
                     Text(persona.name)
                         .font(shelf ? FerniType.footnote : FerniType.caption)
+                        .accessibilityIdentifier("team.name.\(persona.id)")
                         .foregroundStyle(team.chosen == persona.id ? FerniColor.textPrimary : FerniColor.textSecondary)
                         .fixedSize()
                 }

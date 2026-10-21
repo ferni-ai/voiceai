@@ -28,12 +28,22 @@ final class AccessibilityAuditTests: XCTestCase {
     /// ("audit-waved-through …") for a reviewer; testTheGateStillFails proves a
     /// faint unlabelled line mid-screen still fails.
     private func auditTwice(_ app: XCUIApplication, name: String) throws {
-        var held: [Unnamed] = []
+        var held: [Unnamed] = [], cut: [Named] = []
+        let floor = Self.floorTop(app)
         try app.performAccessibilityAudit(for: .all) { issue in
-            guard issue.element == nil else { return Self.handle(issue, on: name) }
+            if let element = issue.element {
+                // Text running under the floor (the fade behind Talk) is read in
+                // full once scrolled up; it's audited there (see underTheFloor).
+                if issue.auditType == .contrast, element.frame.minY < floor, element.frame.maxY > floor, !element.label.isEmpty {
+                    cut.append(Named(issue, label: element.label))
+                    return true
+                }
+                return Self.handle(issue, on: name)
+            }
             held.append(Unnamed(issue))
             return true
         }
+        try underTheFloor(app, cut: cut, floor: floor, name: name)
         guard !held.isEmpty else { return }
         // Only a screen that scrolls has a second position (critic M2): if the
         // nudge moves nothing, every held finding fails where it stands.
@@ -62,6 +72,82 @@ final class AccessibilityAuditTests: XCTestCase {
         attachment.name = "audit-waved-through \(name)"
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    /// The top of the floor: the fade behind Talk starts a little above it.
+    static func floorTop(_ app: XCUIApplication) -> CGFloat {
+        let talk = app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Talk'")).firstMatch
+        return talk.exists ? talk.frame.minY - 24 : app.frame.maxY
+    }
+
+    /// Contrast findings on text cut off by the floor (award upgrade 2: a long
+    /// note at AX5 runs from mid-screen into the fade behind Talk, and the audit
+    /// reads the faded part). Each is scrolled up once, just enough to clear the
+    /// floor, and audited there: the same finding on the same text, in full
+    /// view, fails. Waved ones are printed and attached, like the nudge's.
+    private func underTheFloor(_ app: XCUIApplication, cut: [Named], floor: CGFloat, name: String) throws {
+        var waved: [String] = []
+        for finding in cut {
+            let text = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", finding.label)).firstMatch
+            let lift = text.frame.maxY - floor + 24
+            if lift > 0 {
+                let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.6))
+                start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -lift)))
+                sleep(1)
+            }
+            var again: [Named] = []
+            try app.performAccessibilityAudit(for: [.contrast]) { issue in
+                if let element = issue.element, !element.label.isEmpty { again.append(Named(issue, label: element.label)) }
+                return true
+            }
+            let verdict = Self.floorVerdict(cut: [finding], again: again, clear: text.frame.maxY <= floor + 1)
+            for f in verdict.failing { XCTFail("AUDIT [\(name)] \(f)") }
+            waved += verdict.waved.map { "AUDIT-WAVED [\(name)] \($0)" }
+        }
+        guard !waved.isEmpty else { return }
+        print(waved.joined(separator: "\n"))
+        let attachment = XCTAttachment(string: waved.joined(separator: "\n"))
+        attachment.name = "audit-waved-through floor \(name)"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    /// The floor rule: a finding cut off by the floor fails if the same text
+    /// fails the same check in full view, or if it couldn't be brought into
+    /// full view at all.
+    nonisolated static func floorVerdict(cut: [Named], again: [Named], clear: Bool) -> (failing: [String], waved: [String]) {
+        var failing: [String] = [], waved: [String] = []
+        for f in cut {
+            if !clear {
+                failing.append("cut off by the floor and couldn't be scrolled clear: \(f.what)")
+            } else if again.contains(where: { $0.type == f.type && $0.label == f.label }) {
+                failing.append("in full view too: \(f.what)")
+            } else {
+                waved.append("under the floor only, passes in full view: \(f.what)")
+            }
+        }
+        return (failing, waved)
+    }
+
+    /// The floor rule itself: in full view it's judged like any other text.
+    func testTextCutOffByTheFloorIsJudgedInFullView() {
+        let contrast = XCUIAccessibilityAuditType.contrast.rawValue
+        let note = Named(type: contrast, label: "a long note", what: "a long note")
+        XCTAssertEqual(Self.floorVerdict(cut: [note], again: [note], clear: true).failing.count, 1, "faint in full view fails")
+        XCTAssertEqual(Self.floorVerdict(cut: [note], again: [], clear: false).failing.count, 1, "never brought clear fails")
+        let fine = Self.floorVerdict(cut: [note], again: [Named(type: contrast, label: "other", what: "other")], clear: true)
+        XCTAssertTrue(fine.failing.isEmpty, "passing in full view is the floor's fade, not the text")
+        XCTAssertEqual(fine.waved.count, 1, "and it's listed")
+    }
+
+    /// A finding on a labelled element: its type, the label and what the audit said.
+    struct Named {
+        let type: UInt64, label: String, what: String
+        init(type: UInt64, label: String, what: String) { self.type = type; self.label = label; self.what = what }
+        init(_ issue: XCUIAccessibilityAuditIssue, label: String) {
+            self.init(type: issue.auditType.rawValue, label: label,
+                      what: "\(issue.compactDescription): '\(label)' | \(issue.detailedDescription)")
+        }
     }
 
     /// A finding with no element: its type and what the audit said.
@@ -134,6 +220,17 @@ final class AccessibilityAuditTests: XCTestCase {
          "The call's state line in medium secondary ink: #5c544a on #f2ebdf, 6.3:1 measured from the iPad screenshot (2026-10-20); flagged on iPad only (this entry matches only there), where \"Reconnecting…\" in the same place passes."),
         ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "#sidebar.talk", "iPad sidebar row (that row only, by identifier): the AX5 screenshot shows the full word."),
         ("home|call|team|connecting|reconnecting|onHold|failed", .textClipped, "#sidebar.remembers", "iPad sidebar row (that row only, by identifier): wraps to three full lines at AX5 (screenshot)."),
+        // Home once you've talked, on iPad only (these entries match only there), 2026-10-20: the
+        // audit fails the follow-up line and the team's names, though the screenshot's pixels
+        // measure #5c544a on #faf8f5, 7.0:1, and the chosen name #2c2520, 14.2:1 (WCAG luminance;
+        // voiceai-evidence/ios-design-audit-2026-10-20/fixes/award-upgrade-2-team-row). The same lines pass on every iPhone,
+        // and the same line without the follow-up passes on iPad.
+        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#home.detail", "Follow-up line: 7.0:1 measured on the iPad screenshot."),
+        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#team.name.ferni", "Chosen name: 14.2:1 measured on the iPad screenshot."),
+        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#team.name.maya", "Name: 7.0:1 measured on the iPad screenshot."),
+        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#team.name.alex", "Name: 7.0:1 measured on the iPad screenshot."),
+        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#team.name.jordan", "Name: 7.0:1 measured on the iPad screenshot."),
+        ("home standard 14h -FerniStoreData YES ipad", .contrast, "#team.name.peter", "Name: 7.0:1 measured on the iPad screenshot."),
         ("settings", .dynamicType, "Try again", "A system List button row; it scales at AX5 like the other rows."),
         ("settings", .dynamicType, "Get help with your account",
          "Account footer link; HelpLinksUITests.testAccountHelpGrowsWithTextSize proves it grows at AX5 (pinned, it stays 34 pt and fails)."),
@@ -162,6 +259,12 @@ final class AccessibilityAuditTests: XCTestCase {
             try audit(.home, size: .standard, hour: hour)
             try audit(.home, size: .ax5, hour: hour)
         }
+    }
+    /// Home as it is once you've talked (award upgrade 2): a thread card, a
+    /// note and your team under Ferni.
+    func testHomeWithStoreData() throws {
+        try audit(.home, size: .standard, hour: 14, extra: ["-FerniStoreData", "YES"])
+        try audit(.home, size: .ax5, hour: 14, extra: ["-FerniStoreData", "YES"])
     }
     func testConsent() throws { try audit(.consent, size: .standard); try audit(.consent, size: .ax5) }
     func testSettings() throws { try audit(.settings, size: .standard); try audit(.settings, size: .ax5) }
