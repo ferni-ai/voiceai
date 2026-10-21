@@ -342,7 +342,7 @@ extension View {
                 .overlay { if UITestScenario.auditFixture { AuditFixture() } }
                 .environment(\._accessibilityReduceMotion, UITestScenario.reduceMotion)
                 .environment(\._accessibilityReduceTransparency, UITestScenario.reduceTransparency)
-                .preferredColorScheme(UITestScenario.dark ? .dark : nil)
+                // -FerniDark is applied by NightInkScheme, the one place the scheme is chosen.
         } else {
             self
         }
