@@ -36,7 +36,7 @@ export const FLAG_MANIFEST = {
   ...FLAGS_ACTION_TO_BYPASS,
   // on: an emotional-arc proactive insight reaches the prompt once, not every third turn (commitment-follow-up-gate.ts)
   ARC_INSIGHT_ONCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
-  // on: a teammate's first line restates only the caller's words, else a plain hello; kept out of memory (arrival-grounding.ts)
+  // on: a teammate's first line names why the caller came in their words (never re-asks, never repeats an earlier arrival), else a plain hello; kept out of memory (arrival-grounding.ts, arrival-reason.ts)
   ARRIVAL_LINE_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_ASSERTED_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -48,6 +48,8 @@ export const FLAG_MANIFEST = {
   // on: a caller's voice create, update and delete go to their connected calendar, not only Ferni's list (#1749)
   CALENDAR_WRITE_TO_PROVIDER: { default: 'off', owner: 'tools', kind: 'experiment' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
+  // on: the per-turn crisis check waits at most 150 ms, then the turn goes on without it (better-than-human-builders.ts)
+  CALL_START_TRIM: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -84,6 +86,8 @@ export const FLAG_MANIFEST = {
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // a classifier-only imminent read the call plainly explains (two reads + a shared word) gets the soft check
+  CRISIS_GROUNDED_RELEASE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // a classifier-only crisis read of a bare "pass me to Nayan", with no risk on the call, gets the soft check-in
   CRISIS_TRANSFER_EVERYDAY: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -154,6 +158,8 @@ export const FLAG_MANIFEST = {
   FERNI_VOICE_EMOTION: { default: 'off', owner: 'voice', kind: 'config' },
   // unset: resting pace 1. A number, clamped to 0.85-1.2: Ferni's resting pace (same module)
   FERNI_VOICE_SPEED: { default: 'off', owner: 'voice', kind: 'config' },
+  // on: a first call's hello says who is calling, and "who are you?" gets a plain answer (greeting-direction.ts, first-call-rapport.ts)
+  FIRST_CALL_INTRO: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a reply's first clause goes to tts at a comma, not its sentence's end (agents/personas/first-clause-flush.ts)
   FIRST_CLAUSE_FLUSH: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -289,6 +295,8 @@ export const FLAG_MANIFEST = {
   // at most one check-in per commitment every 3 days, kept across calls (superhuman/commitment-checkin-cooldown.ts)
   PROACTIVE_COOLDOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: GET /api/promises, the Today panel's follow-through list (api/routes/promises.ts)
+  PROMISES_PANEL: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // character loads a short character sheet instead of the full prompt (prompt-loader.ts)
   PROMPT_MODE: { default: 'full', owner: 'voice', kind: 'config' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },

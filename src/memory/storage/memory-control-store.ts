@@ -10,6 +10,7 @@ import {
   firestoreForgetStore,
   forgottenTopicsOrNull,
   removeIndexCopies,
+  withoutDerivedCopies,
 } from '../recall/forget.js';
 import { RECALL_READS, type MemoryControlStore } from '../recall/memory-control.js';
 
@@ -68,6 +69,7 @@ export const firestoreMemoryControlStore: MemoryControlStore = {
         forgottenAt: at,
         correctedBy: right.id,
         syncedToSpanner: false,
+        ...withoutDerivedCopies(),
       });
     }
     await batch.commit();
