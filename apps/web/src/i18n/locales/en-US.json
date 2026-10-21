@@ -7180,7 +7180,8 @@
       "milestone": "Milestone",
       "default": "Connected"
     },
-    "tomorrow": "Tomorrow"
+    "tomorrow": "Tomorrow",
+    "strengthNotEnough": "Still getting to know them"
   },
   "valueCapture": {
     "youDidIt": "You Did It!",
@@ -8366,7 +8367,9 @@
     "keepConnecting": "Keep connecting with your people!",
     "less": "Less",
     "more": "More",
-    "basedOnActivity": "Based on Your Activity"
+    "basedOnActivity": "Based on Your Activity",
+    "notEnoughYet": "Not enough yet",
+    "strengthNotEnough": "We'll show this once you've caught up with a few people."
   },
   "calendarConflicts": {
     "syncConflicts": "Sync Conflicts",
@@ -9995,7 +9998,8 @@
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
     "agentLeft": "Ferni dropped off the line. Reconnect?",
-    "unknown": "Couldn't connect. Try again?"
+    "unknown": "Couldn't connect. Try again?",
+    "waitlisted": "You’re on the list. I’ll email you the moment your spot opens."
   },
   "ambientSounds": {
     "rain": {
@@ -11170,7 +11174,45 @@
     "maybeLater": "Maybe later",
     "close": "Close"
   },
+  "reportReply": {
+    "button": "Report",
+    "describe": "Report something {name} said",
+    "title": "Report a reply",
+    "whichReply": "Which reply?",
+    "whatsWrong": "What's wrong with it?",
+    "reasonHarmful": "Harmful or unsafe",
+    "reasonWrong": "Wrong or misleading",
+    "reasonInappropriate": "Inappropriate",
+    "reasonOther": "Something else",
+    "note": "Anything to add? (optional)",
+    "send": "Send",
+    "thanks": "Thanks — a person will look at this.",
+    "failed": "That didn't send. Please try again.",
+    "tooMany": "You've sent a lot of reports today. Please try again tomorrow."
+  },
   "panelShell": {
     "gettingReady": "One moment, I'm getting this ready for you"
+  },
+  "waitlistScreen": {
+    "title": "You’re on the list",
+    "position": "You’re #{position}, about {waves} waves away",
+    "positionNext": "You’re #{position}, in the very next wave",
+    "nextWave": "The next wave opens {date}.",
+    "inviteLabel": "Your invite link",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "share": "Share",
+    "inviteHelp": "Each friend who joins moves you up a few days.",
+    "friendsMovedYouUp": {
+      "one": "Your friends have already moved you up {count} day.",
+      "other": "Your friends have already moved you up {count} days."
+    },
+    "emailPromise": "I’ll email you the moment your spot opens.",
+    "inTitle": "You’re in",
+    "inMessage": "Your spot is open. Come in within a week to keep it.",
+    "badge": "Founding member · Wave {wave}",
+    "badgeNoWave": "Founding member",
+    "enter": "Come in",
+    "notNow": "Not now"
   }
 }

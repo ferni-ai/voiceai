@@ -12,9 +12,11 @@ import {
   callerTimeZoneOf,
   listenFirstEnabled,
   listeningCuesFor,
+  listeningLines,
   withoutSharingNotes,
+  type ListeningCues,
 } from './listen-first.js';
-import { listeningShapeFor } from './turn-shape.js';
+import { callerMove, REGISTER, type TurnShape } from './turn-shape.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -41,11 +43,29 @@ export function listeningNotes(
 export function listeningReply(
   said: string,
   chatCtx: llm.ChatContext,
-  session: object
+  session: object,
+  scriptFree = false
 ): string | null {
   const listening = listeningFor(chatCtx, session);
   if (!listening) return null;
-  const turn = listeningShapeFor(said, listening);
+  const turn = listeningShapeFor(said, listening, scriptFree);
   log.info({ move: turn.move, shape: turn.shape, extras: turn.extras }, 'TURN_SHAPE');
   return turn.reminder;
+}
+
+/**
+ * LISTEN_FIRST=on, caller low on energy (listen-first.ts): no second story, no
+ * stance, no rough self-correction to dress up a monologue; a few words, an
+ * easy question every other turn at most, or just company.
+ */
+export function listeningShapeFor(
+  userText: string,
+  cues: Omit<ListeningCues, 'aboutFerni'>,
+  scriptFree = false
+): TurnShape {
+  const move = callerMove(userText);
+  const lines = listeningLines({ ...cues, aboutFerni: move === 'about_ferni' });
+  // SCRIPT_FREE_REMINDER=on (script-free.ts): the lines about them, without the shared register.
+  const reminder = (scriptFree ? lines : [REGISTER, ...lines]).join(' ');
+  return { move, shape: 'one', reminder, extras: ['listen_first'] };
 }

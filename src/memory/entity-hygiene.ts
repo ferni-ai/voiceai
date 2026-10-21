@@ -7,12 +7,15 @@
  * Maya", "Play music" and "call my dad and check in" as topics. Each one then reads as
  * something Ferni knows about the caller. With the flag on, a name is rejected when it is:
  * - a number ("9", "10:30");
- * - a placeholder (unknown, unspecified, someone, something, "the item"), or a bare
+ * - a placeholder (unknown, unspecified, someone, everyone, "the item"), or a bare
  *   pronoun or greeting the capitalised-word fallback takes for a name ("She", "Hi");
  * - Ferni anywhere in it; a teammate's name alone ("Maya", "Peter John"), unless it is a
  *   person the caller relates to ("my friend Jordan": relationship "friend"). "Michael
  *   Jordan" or "Maya Angelou" are kept;
  * - a request to Ferni ("play music", "talk to Maya", "call my dad", "set a timer").
+ * - a person the caller only greets ("Hey Fred."): that name is said to whoever is on
+ *   the call. Prod 2026-10-20: STT heard "Hey Ferni" as "Hey Fred." and "Fred" was
+ *   stored as a friend; "Everyone" was stored as a person from the same turn.
  * Whole words only, so "Mayan ruins" or "Unknownmortal Orchestra" are kept.
  *
  * ENTITY_ROLE_LABELS (off by default, needs ENTITY_HYGIENE): also a role label for
@@ -24,7 +27,7 @@
  */
 
 import { flagOn, type Env } from '../config/env-flag.js';
-import { HEARD_AS, TEAM_FIRST_NAMES } from '../utils/teammate-talk.js';
+import { FERNI_HEARD_AS, HEARD_AS, TEAM_FIRST_NAMES } from '../utils/teammate-talk.js';
 
 export function entityHygieneOn(env: Env = process.env): boolean {
   return flagOn('ENTITY_HYGIENE', env);
@@ -41,9 +44,9 @@ export interface NamedEntity {
 }
 
 /** Why a name is not stored, or null for a real one. */
-export type JunkReason = 'number' | 'placeholder' | 'persona' | 'request';
+export type JunkReason = 'number' | 'placeholder' | 'persona' | 'request' | 'greeted';
 
-const FERNI = new Set(['ferni', 'fernie', 'ferny', 'furny']);
+const FERNI = new Set<string>(['ferni', ...FERNI_HEARD_AS]);
 const TEAMMATE = `(?:${[...TEAM_FIRST_NAMES, ...Object.keys(HEARD_AS)].join('|')})`;
 /** A teammate's name and nothing else ("Maya", "Peter John"), or greeted ("Hey Maya"). */
 const TEAMMATE_ALONE = new RegExp(
@@ -52,7 +55,7 @@ const TEAMMATE_ALONE = new RegExp(
 );
 
 const PLACEHOLDER = new Set(
-  'unknown unspecified unnamed unidentified someone somebody something anyone anybody anything whoever whatever none null undefined n/a tbd'.split(
+  'unknown unspecified unnamed unidentified someone somebody something anyone anybody anything everyone everybody nobody whoever whatever none null undefined n/a tbd'.split(
     ' '
   )
 );
@@ -87,6 +90,25 @@ const ROLE_LABEL =
 /** A bare role noun as the whole name ("Assistant", "the AI"). */
 const BARE_ROLE = /^(?:the\s+)?(?:assistant|ai|bot)$/i;
 
+/** An opening greeting at the start of a sentence, right before the name. */
+const GREETING_BEFORE =
+  /(?:^|[.!?]\s*|\n\s*)(?:hey|hi|hiya|hello|yo|morning|good morning)\s*,?\s*$/i;
+/** The name ends its clause ("Hey Fred." / "Hey Fred, ..."), so it is not "Hey Fred came over". */
+const ENDS_CLAUSE = /^\s*(?:[.!?,;:\n]|$)/;
+
+/** Every time the caller says this name, it is a greeting to whoever is on the call. */
+function onlyGreeted(name: string, said: string): boolean {
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  let seen = 0;
+  for (const m of said.matchAll(new RegExp(`\\b${escaped}\\b`, 'gi'))) {
+    const at = m.index ?? 0;
+    const greeted = GREETING_BEFORE.test(said.slice(0, at));
+    if (!greeted || !ENDS_CLAUSE.test(said.slice(at + m[0].length))) return false;
+    seen++;
+  }
+  return seen > 0;
+}
+
 const isRoleLabel = (name: string): boolean => ROLE_LABEL.test(name) || BARE_ROLE.test(name);
 
 const wordsOf = (name: string): string[] =>
@@ -96,15 +118,23 @@ const wordsOf = (name: string): string[] =>
     .map((w) => w.replace(/'s$/, ''))
     .filter(Boolean);
 
-/** The reason this entity is junk, or null when it is a real person, place or topic. */
-export function junkReason(entity: NamedEntity, env: Env = process.env): JunkReason | null {
+/**
+ * The reason this entity is junk, or null when it is a real person, place or topic.
+ * `said` is what the caller said this turn, when known.
+ */
+export function junkReason(
+  entity: NamedEntity,
+  env: Env = process.env,
+  said = ''
+): JunkReason | null {
   const name = entity.name.trim();
   if (/^[\d\s.,:/#%$-]+$/.test(name)) return 'number';
   const words = wordsOf(name);
   const placeholder = words.some((w) => PLACEHOLDER.has(w)) || GENERIC.test(name);
   if (placeholder || (words.length === 1 && NOT_A_NAME.has(words[0]))) return 'placeholder';
   if (REQUEST.some((re) => re.test(name))) return 'request';
-  return isPersona(entity, name, words, env) ? 'persona' : null;
+  if (isPersona(entity, name, words, env)) return 'persona';
+  return entity.type === 'person' && onlyGreeted(name, said) ? 'greeted' : null;
 }
 
 /** Ferni, a role label for him (ENTITY_ROLE_LABELS), or a teammate who isn't theirs. */
@@ -119,13 +149,14 @@ function isPersona(entity: NamedEntity, name: string, words: string[], env: Env)
 /** The entities worth storing; with the flag off, all of them. */
 export function keepRealEntities<T extends NamedEntity>(
   entities: readonly T[],
-  env: Env = process.env
+  env: Env = process.env,
+  said = ''
 ): { kept: T[]; dropped: Array<{ name: string; reason: JunkReason }> } {
   if (!entityHygieneOn(env)) return { kept: [...entities], dropped: [] };
   const kept: T[] = [];
   const dropped: Array<{ name: string; reason: JunkReason }> = [];
   for (const entity of entities) {
-    const reason = junkReason(entity, env);
+    const reason = junkReason(entity, env, said);
     if (reason) dropped.push({ name: entity.name, reason });
     else kept.push(entity);
   }

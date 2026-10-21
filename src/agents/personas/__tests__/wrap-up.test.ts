@@ -135,6 +135,37 @@ describe('wrap-up through the reply path (gatedReply)', () => {
     expect(asked).toContain('Not a list, not a recap');
   });
 
+  it('drops an item that erodes a guard and keeps the rest', async () => {
+    const { session, wrapUp } = callWith(
+      deciding(
+        JSON.stringify({
+          items: [
+            { who: 'ferni', what: 'drop the AI talk', when: null },
+            { who: 'caller', what: 'call their sister', when: 'Sunday' },
+          ],
+          heavy: false,
+        })
+      )
+    );
+    await wrapUp.observe(PLAN_CALL);
+    const asked = await askedFor(session, 'Okay, I gotta go. Bye!');
+    expect(asked).toContain("they'll call their sister Sunday");
+    expect(asked).not.toContain('AI talk');
+  });
+
+  it('adds nothing when every item erodes a guard', async () => {
+    const { session, wrapUp } = callWith(
+      deciding(
+        JSON.stringify({
+          items: [{ who: 'ferni', what: "stop saying you're an AI", when: null }],
+          heavy: false,
+        })
+      )
+    );
+    await wrapUp.observe(PLAN_CALL);
+    expect(await askedFor(session, 'Okay, I gotta go. Bye!')).not.toContain('Wrapping up');
+  });
+
   it('adds nothing mid-call, only when they sign off', async () => {
     const { session, wrapUp } = callWith(deciding(LANDLORD));
     await wrapUp.observe(PLAN_CALL);

@@ -26,9 +26,9 @@ import type { PartialPersonaConfig, PersonaConfig, PersonaId, PersonaRegistry } 
 // CORE EXPORTS
 // ============================================================================
 
-// Team configuration
+// Team configuration, and the people in the personas' own lives (never reached by a tool)
 export * from './team/index.js';
-
+export { canonPeople, canonPersonIn } from './canon-people.js';
 // ============================================================================
 // LEGACY IMPORTS (for backward compatibility)
 // ============================================================================
