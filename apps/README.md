@@ -10,7 +10,7 @@ Native desktop and mobile applications for Ferni Voice AI - your AI life coach.
 | Windows | Electron | Ready |
 | Linux | Electron | Ready |
 | iOS | Native Swift/SwiftUI | Ready |
-| Android | Native Kotlin/Compose | Ready |
+| Android | Trusted Web Activity over app.ferni.ai (`android-twa/`) | In progress (Play setup) |
 
 ## Structure
 
@@ -18,7 +18,7 @@ Native desktop and mobile applications for Ferni Voice AI - your AI life coach.
 apps/
 ├── electron/        # Desktop app (macOS, Windows, Linux)
 ├── ios-native/      # Native iOS app (Swift/SwiftUI)
-├── android-native/  # Native Android app (Kotlin/Compose)
+├── android-twa/     # Android app: the web app in a Trusted Web Activity
 ├── web/             # Web frontend (shared with Electron)
 ├── macos-menubar/   # macOS menu bar app
 └── README.md
@@ -42,7 +42,7 @@ npm run build:linux # Linux AppImage + DEB + RPM
 
 ```bash
 cd apps/ios-native
-open FerniVoice.xcodeproj
+open Ferni.xcodeproj
 # Select your device/simulator in Xcode
 # Press Cmd+R to run
 ```
@@ -52,38 +52,30 @@ open FerniVoice.xcodeproj
 - iOS 16+ deployment target
 - LiveKit Swift SDK (via Swift Package Manager)
 
-### Android (Native Kotlin/Compose)
+### Android (Trusted Web Activity)
 
 ```bash
-cd apps/android-native
-./gradlew assembleDebug    # Build debug APK
-./gradlew installDebug     # Install on connected device/emulator
+cd apps/android-twa
+./gradlew bundleRelease    # Play bundle (unsigned locally)
 ```
 
-Or open in Android Studio:
-1. Open `apps/android-native` folder
-2. Wait for Gradle sync
-3. Run on emulator or device
-
-**Requirements:**
-- Android Studio Hedgehog (2023.1.1)+
-- Kotlin 1.9.22
-- Min SDK 24 (Android 7.0)
-- Target SDK 34 (Android 14)
+The app wraps https://app.ferni.ai, so web changes reach Android without a new
+bundle. Signing and Play upload: `apps/android-twa/README.md`. The old native
+Kotlin app was removed; git history keeps it.
 
 ## Platform-Specific Features
 
-| Feature | Electron | iOS Native | Android Native |
-|---------|----------|------------|----------------|
-| WebRTC/LiveKit | Full | Native SDK | Native SDK |
-| Haptics | N/A | Native UIKit | Native Vibration |
-| System Tray | Yes | N/A | N/A |
-| Background Audio | Yes | AVAudioSession | Foreground Service |
-| Auto-update | electron-updater | App Store | Play Store |
-| Code Signing | Notarization | Apple | Keystore |
-| Error Tracking | Sentry | Sentry | Sentry |
-| Portrait Lock | N/A | Yes | Yes |
-| 7-Layer Avatar | Canvas | SwiftUI | Jetpack Compose |
+| Feature | Electron | iOS Native |
+|---------|----------|------------|
+| WebRTC/LiveKit | Full | Native SDK |
+| Haptics | N/A | Native UIKit |
+| System Tray | Yes | N/A |
+| Background Audio | Yes | AVAudioSession |
+| Auto-update | electron-updater | App Store |
+| Code Signing | Notarization | Apple |
+| Error Tracking | Sentry | Sentry |
+| Portrait Lock | N/A | Yes |
+| 7-Layer Avatar | Canvas | SwiftUI |
 
 ## Native App Architecture
 
@@ -106,28 +98,9 @@ FerniVoice/
     └── HapticManager.swift     # Haptic feedback
 ```
 
-### Android (apps/android-native/)
-
-```
-app/src/main/java/com/ferni/voice/
-├── models/
-│   ├── Persona.kt              # 6 personas with colors
-│   ├── VoiceState.kt           # State machine
-│   └── TranscriptMessage.kt    # Chat message model
-├── services/
-│   ├── LiveKitSession.kt       # LiveKit integration
-│   └── VoiceCallService.kt     # Foreground service
-├── ui/
-│   ├── theme/                  # Material3 theming
-│   ├── screens/                # Main screens
-│   └── components/             # Reusable UI
-└── util/
-    └── HapticFeedback.kt       # Haptic utilities
-```
-
 ## Backend Connection
 
-Both native apps connect to the same backend:
+The iOS app connects to the same backend as the web app (Android runs the web app itself):
 
 | Endpoint | Purpose |
 |----------|---------|
@@ -185,16 +158,8 @@ For CI/CD, the GitHub Actions workflow builds all platforms:
 
 ### iOS (Native)
 
-1. Open in Xcode: `open apps/ios-native/FerniVoice.xcodeproj`
+1. Open in Xcode: `open apps/ios-native/Ferni.xcodeproj`
 2. Select your signing team
 3. Archive: Product → Archive
 4. Distribute to App Store or TestFlight
 
-### Android (Native)
-
-1. Generate signing key:
-   ```bash
-   keytool -genkey -v -keystore ferni-release.keystore -alias ferni -keyalg RSA -keysize 2048 -validity 10000
-   ```
-2. Build release: `./gradlew bundleRelease`
-3. Upload to Google Play Console

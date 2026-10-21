@@ -97,6 +97,7 @@ import {
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
 import { showSignInGate } from './ui/sign-in-gate.ui.js';
+import { requireAccessForRestoredSession } from './ui/restored-session-access.js';
 // 🌱 Roadmap/Seed Economy - For streak rewards
 import { roadmapService } from './services/roadmap.service.js';
 
@@ -530,6 +531,7 @@ class VoiceAIApp {
         log.info('Dev server e2e bypass: continuing without a session');
       } else {
         log.info('User already authenticated', { uid: authState.uid?.slice(0, 8) });
+        void requireAccessForRestoredSession(); // a reload must not skip the waitlist; no wait on start
       }
 
       // Initialize visual storytelling service (fetches user's ambient preferences)
@@ -930,7 +932,7 @@ class VoiceAIApp {
       document.body.style.height = 'auto';
       appContent.innerHTML = `
         <div id="adminDashboard" style="min-height: 100vh; background: var(--color-background-surface, #0d0d1a); color: var(--color-text-primary, #fff); overflow-y: auto; padding-bottom: 2rem;"></div>
-        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: var(--color-ferni, #4a6741); text-decoration: none; font-size: 0.875rem; z-index: var(--z-dropdown);">
+        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: var(--color-ferni-on-surface); text-decoration: none; font-size: 0.875rem; z-index: var(--z-dropdown);">
           ← Back to App
         </a>
       `;

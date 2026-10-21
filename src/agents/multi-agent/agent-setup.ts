@@ -52,12 +52,6 @@ import {
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
 // External STT: Sonata (USE_SONATA_STT=true)
-// Pipeline switching — dynamic inference routing based on emotion and context
-import {
-  isPipelineSwitchingEnabled,
-  selectPipeline,
-  type PipelineSwitchContext,
-} from '../shared/performance/pipeline-switcher.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -150,6 +144,7 @@ import { initConversationSession } from '../integrations/conversation-session-in
 import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
+import { calendarDaysSince } from '../../utils/calendar-days.js';
 import { outboundCallerAwareness, outboundPartiesFor } from '../shared/outbound-opener.js';
 
 const log = getLogger();
@@ -372,7 +367,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
     const userProfile = outboundAwareness ? undefined : services.userProfile;
     if (userProfile) {
-      rememberCallerHistory(sessionId, callerHistory(userProfile)); // for the greeting
+      // Days since the last call count in the zone this call settled (phone-parity.ts)
+      const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
+      rememberCallerHistory(sessionId, callerHistory(userProfile, new Date(), callZone));
       const userAwareness: string[] = [];
       const sessionStartTime = new Date();
       const displayName = userProfile.preferredName || userProfile.name || userData?.userName;
@@ -399,12 +396,9 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           );
         }
 
-        // Last conversation time
+        // Last conversation, in calendar days where they live ("yesterday" is the calendar day)
         if (userProfile.lastContact) {
-          const lastContactDate = new Date(userProfile.lastContact);
-          const daysSince = Math.floor(
-            (sessionStartTime.getTime() - lastContactDate.getTime()) / (24 * 60 * 60 * 1000)
-          );
+          const daysSince = calendarDaysSince(userProfile.lastContact, sessionStartTime, callZone);
           userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
@@ -1612,7 +1606,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
     modelProvider.getPromptModules(),
     { stableBase }
   );
-
   const agent = new FerniAgent(agentInstructions, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
     // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
@@ -1629,6 +1622,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       userId,
       userName: userData.userName,
       personaId: persona.id,
+      sessionId, // its open loops and Ferni's promises (OPEN_LOOPS_IN_CONTEXT)
     });
     const nameLift = startNameLift(recall, createDataMessageSender(room)); // NAME_LIFT=on
     const onRecallTranscript = (event: unknown) => {
@@ -1995,24 +1989,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
             if (userData.lastEmotionAnalysis) {
               liveBackchannel?.updateState({ currentEmotion: userData.lastEmotionAnalysis });
             }
-          }
-
-          // Pipeline selection (informational — full routing is future work)
-          if (evt.isFinal && isPipelineSwitchingEnabled()) {
-            const switchCtx: PipelineSwitchContext = {
-              emotion: userData.lastEmotionAnalysis?.primary,
-              stressLevel: userData.lastEmotionAnalysis?.distressLevel,
-              wasInterrupted: userData.wasInterrupted,
-              turnCount: userData.turnCount ?? 0,
-              userTranscriptLength: evt.transcript?.length ?? 0,
-              isFirstResponse: (userData.turnCount ?? 0) === 0,
-              isQuestion: evt.transcript?.includes('?'),
-            };
-            const pipelineResult = selectPipeline(switchCtx);
-            diag.entry(
-              `🔀 [${persona.id}] Pipeline: ${pipelineResult.mode} ` +
-                `(${pipelineResult.reason}, confidence=${pipelineResult.confidence})`
-            );
           }
 
           // 🔍 DEBUG: Log every transcript event when DEBUG_GEMINI_TRANSCRIPTS=true

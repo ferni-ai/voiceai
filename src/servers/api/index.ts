@@ -6,6 +6,7 @@
 
 import '../../config/refuse-production-data.js'; // loads dotenv, then the prod-data guard
 import '../../instrument.js'; // error reporting; a no-op without SENTRY_DSN
+import '../../utils/token-key-fingerprint-boot.js'; // which token key (kid only)
 import http from 'http';
 import type { UrlWithParsedQuery } from 'url';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -30,8 +31,10 @@ import { bindVerifiedIdentity } from './request-identity.js';
 import { respondOnRejection } from './request-failure.js';
 import { bindBodyLimitResponse } from '../../api/bounded-body.js';
 import { fireAndForget } from '../../utils/safe-fire-and-forget.js';
+import { initializeVoiceRegistry } from '../../personas/voice-registry.js';
 import { runBackgroundServices } from './background-services.js';
 import { parseRawBody } from '../../api/helpers.js';
+import { handleAppConfigIos } from '../../api/app-config-ios.js';
 
 // Local routes
 import {
@@ -320,8 +323,7 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // LOCAL ROUTES (TypeScript modules)
   // ============================================================================
 
-  // Health routes
-  if (await handleHealthRoutes(req, res, pathname)) return;
+  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname))) return;
 
   // Token routes (LiveKit tokens, demo sessions)
   if (await handleTokenRoutes(req, res, pathname, parsedUrl)) return;
@@ -638,8 +640,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   }
 
   try {
-    // Migration routes
-    if (pathname.startsWith('/api/auth/migrat')) {
+    // Migration routes: device ids, and anonymous accounts (/api/identity/merge-anonymous)
+    if (pathname.startsWith('/api/auth/migrat') || pathname.startsWith('/api/identity/')) {
       const handled = await handleMigrationRoutes(req, res, pathname);
       if (handled) return;
     }
@@ -1487,7 +1489,6 @@ registerDDoSAlertCallback(async (details) => {
 // Start automatic DDoS monitoring
 const stopDDoSMonitoring = startDDoSMonitoring('ui-server', 30_000);
 
-// Start the server
 server.listen(PORT, '0.0.0.0', () => fireAndForget(startBackgroundServices, 'api-startup'));
 async function startBackgroundServices(): Promise<void> {
   log.info({ port: PORT, livekitUrl: LIVEKIT_URL, ddosProtection: true }, 'UI Server started');
@@ -1495,6 +1496,7 @@ async function startBackgroundServices(): Promise<void> {
   // Outreach reaches only verified phones; a forgotten topic closes its follow-ups.
   installUiServerPorts();
   startSpotifyAutoRefresh();
+  fireAndForget(initializeVoiceRegistry, 'voice-registry'); // bundle voices win over fallbacks
 
   // The /stream bridge attaches before any Firestore load is awaited: a cold
   // boot once spent ~40s in those loads with inbound calls unable to connect.
@@ -1550,7 +1552,6 @@ async function gracefulShutdown(): Promise<void> {
   // Stop accepting new connections
   server.close();
 
-  // Stop DDoS monitoring
   stopDDoSMonitoring();
 
   // Shutdown WebSocket servers first

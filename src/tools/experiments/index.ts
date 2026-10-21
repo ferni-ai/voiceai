@@ -13,7 +13,6 @@ export {
   getOutcomeTracker,
   initializeOutcomeTracker,
   resetOutcomeTracker,
-  isTrainingDataCollectionEnabled,
   type ToolOutcome,
   type AggregatedMetrics,
   type TrackerConfig,

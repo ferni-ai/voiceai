@@ -12,7 +12,7 @@ This directory contains all client applications and deployment targets. Each app
 | ------------------- | -------------------------------- | ----------- |
 | **Web**             | `web/`, `website/`               | Production  |
 | **iOS**             | `ios-native/`, `shared/`         | Production  |
-| **Android**         | `android-native/`                | Development |
+| **Android**         | `android-twa/`                   | Development |
 | **Desktop**         | `electron/`, `macos-menubar/`    | Development |
 | **Backend Workers** | `async/`, `intelligence-worker/` | Production  |
 | **Performance**     | `rust-audio/`, `rust-perf/`      | Production  |
@@ -34,7 +34,7 @@ This directory contains all client applications and deployment targets. Each app
 | App               | CLAUDE.md | Purpose                                                  |
 | ----------------- | --------- | -------------------------------------------------------- |
 | `ios-native/`     | ✅        | Full iOS app (SwiftUI, LiveKit, Watch, CarPlay, Widgets) |
-| `android-native/` | ✅        | Android app (Kotlin, Jetpack Compose)                    |
+| `android-twa/`    | README    | Android app: Trusted Web Activity over app.ferni.ai      |
 | `shared/`         | ✅        | Shared Swift Package for iOS/macOS                       |
 | `ios/`            | ✅        | Placeholder → points to `ios-native/`                    |
 
@@ -87,7 +87,7 @@ cd apps/web && pnpm dev     # Vite dev server on :3004
 
 ```bash
 cd apps/ios-native
-open FerniVoice.xcodeproj   # Xcode
+open Ferni.xcodeproj   # Xcode
 ```
 
 ### Electron Development

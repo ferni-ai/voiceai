@@ -42,8 +42,6 @@ type Ref = FirebaseFirestore.DocumentReference;
 
 /** Misses from this long ago are owned; older ones are left in the past. */
 const OWN_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
-/** One voice call: misses offered at its start stay in context for the call. */
-const SESSION_MS = 2 * 60 * 60 * 1000;
 
 function promisesOf(db: Db, userId: string): FirebaseFirestore.CollectionReference {
   return db.collection('bogle_users').doc(userId).collection('ferni_commitments');
@@ -204,6 +202,8 @@ async function verdictFor(
     .get();
   const status: unknown = reminder.exists ? reminder.data()?.status : undefined;
   if (status === 'delivered') return ['kept', 'reminder delivered'];
+  // Saved in the app with no text or push: it never reached them.
+  if (status === 'in_app_unnotified') return ['missed', 'reminder left in the app, no one told'];
   if (status === 'cancelled') return ['released', 'reminder cancelled'];
   if (status === undefined) return ['released', 'reminder deleted'];
   return ['missed', `reminder ${String(status)}`];
@@ -267,19 +267,19 @@ export async function sweepOverduePromises(
   return result;
 }
 
-const offeredMisses = new Map<string, { at: number; misses: FerniCommitment[] }>();
-
 /**
- * Recent misses Ferni hasn't owned yet. Each is offered in one conversation
- * only (marked ownOfferedAt), so she says sorry once, not every call.
+ * Recent misses Ferni hasn't owned yet. Only reads: a miss is offered in one
+ * call only because that call marks it (markMissesOffered) once Ferni has been
+ * shown it (open-loops-recall.ts), so she says sorry once, not every call.
+ *
+ * Reading used to mark, so a web view or the per-turn superhuman build, whose
+ * text no prompt reads, spent the one apology before any call could make it.
  */
 export async function getMissesToOwn(
   userId: string,
   now: Date = new Date()
 ): Promise<FerniCommitment[]> {
-  const cached = offeredMisses.get(userId);
-  if (cached && now.getTime() - cached.at < SESSION_MS) return cached.misses;
-  const misses = (await getAllCommitments(userId))
+  return (await getAllCommitments(userId))
     .filter(
       (c) =>
         c.outcome === 'missed' &&
@@ -289,21 +289,27 @@ export async function getMissesToOwn(
         now.getTime() - new Date(c.violatedAt).getTime() < OWN_WINDOW_MS
     )
     .slice(0, 2);
-  offeredMisses.set(userId, { at: now.getTime(), misses });
+}
+
+/** Ferni was shown these misses in a call: no later call offers them again. Never throws. */
+export async function markMissesOffered(
+  userId: string,
+  misses: readonly FerniCommitment[],
+  now: Date = new Date()
+): Promise<void> {
   const db = getFirestoreDb();
-  if (db && misses.length > 0) {
-    try {
-      await Promise.all(
-        misses.map(async (m) =>
-          promisesOf(db, userId).doc(m.id).update({ ownOfferedAt: now.toISOString() })
-        )
-      );
-    } catch (error) {
-      // Still own it this call; a later call may offer it again.
-      log.warn({ error: String(error), userId }, 'Could not mark missed promises as offered');
-    }
+  if (!db || misses.length === 0) return;
+  try {
+    await Promise.all(
+      misses.map(async (m) =>
+        promisesOf(db, userId).doc(m.id).update({ ownOfferedAt: now.toISOString() })
+      )
+    );
+    clearCommitmentCache(userId); // a read in the cache window must not offer them again
+  } catch (error) {
+    // Owned in this call either way; a later call may offer it again.
+    log.warn({ error: String(error), userId }, 'Could not mark missed promises as offered');
   }
-  return misses;
 }
 
 /** A context hint to own a missed promise, warmly and once. Empty when there are none. */
@@ -316,19 +322,25 @@ export function formatMissesForContext(misses: readonly FerniCommitment[]): stri
   ].join('\n');
 }
 
-/** Ferni's promises for the prompt: what's pending, what to avoid, and misses to own. */
-export async function buildPromiseContext(userId: string): Promise<string> {
+/**
+ * Ferni's promises for the prompt: what's pending, what to avoid, and misses
+ * to own, with those misses so a call that shows the text can mark them.
+ */
+export async function promiseContextFor(
+  userId: string
+): Promise<{ text: string; misses: FerniCommitment[] }> {
   const [pending, avoidance, misses] = await Promise.all([
     getPendingCommitments(userId),
     getAvoidanceTopics(userId),
     getMissesToOwn(userId),
   ]);
-  return [formatCommitmentsForContext(pending, avoidance), formatMissesForContext(misses)]
+  const text = [formatCommitmentsForContext(pending, avoidance), formatMissesForContext(misses)]
     .filter(Boolean)
     .join('\n');
+  return { text, misses };
 }
 
-/** Test seam: forget which misses were offered in this process. */
-export function resetOfferedMisses(): void {
-  offeredMisses.clear();
+/** Ferni's promises for the prompt (see promiseContextFor). Only reads. */
+export async function buildPromiseContext(userId: string): Promise<string> {
+  return (await promiseContextFor(userId)).text;
 }

@@ -954,7 +954,7 @@ function upcomingLabel(date: NonNullable<Person['upcomingDate']>): string {
 
 function renderPersonItem(person: Person): string {
   const initials = getInitials(person.name);
-  const strengthColor = getStrengthColor(person.strengthScore || 50);
+  const strengthColor = typeof person.strengthScore === 'number' ? getStrengthColor(person.strengthScore) : 'var(--color-border, transparent)'; // unscored: neutral, never an invented 50
   
   const relationship = person.relationship
     ? t(`addPerson.relationships.${person.relationship.toLowerCase()}`, person.relationship)
@@ -1266,10 +1266,10 @@ export async function openYourPeople(): Promise<void> {
   // Load data
   await loadPeopleData();
 
-  // Focus management - focus search input after render
+  // Desktop starts in search; on touch that would throw up the keyboard over the list
   setTimeout(() => {
-    const searchInput = panelContainer?.querySelector<HTMLInputElement>('.yp-search-input');
-    searchInput?.focus();
+    if (!window.matchMedia?.('(pointer: fine)').matches) return;
+    panelContainer?.querySelector<HTMLInputElement>('.yp-search-input')?.focus();
   }, DURATION.FAST);
 
   log.info('Opened Your People panel');
