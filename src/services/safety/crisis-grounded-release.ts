@@ -46,7 +46,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
-import { detectCrisis, type CrisisDetectionResult } from '../../agents/safety/crisis-guard.js';
+import { detectCrisis, type CrisisDetectionResult } from './crisis-guard.js';
 import { endorses } from './crisis-agreement.js';
 import { createGeminiAdjudicatorGenerate } from './crisis-adjudicator.js';
 import {
