@@ -16,18 +16,26 @@ import XCTest
 @MainActor
 final class ExpressionDistinctnessTests: XCTestCase {
     /// Mean absolute grey-level difference over the face below which two
-    /// expressions read as the same face (the audit's near-identical twins sit
-    /// at 0.0027-0.0055; concerned and uneasy were 0.0052 before P0 #1).
-    /// Below neutral and speaking's 0.0060: speaking is neutral plus the voice.
-    static let twinThreshold: Float = 0.0058
+    /// expressions read as the same face: the audit's own line, 0.01 (critic
+    /// M6; its near-identical twins sat at 0.0027-0.0055). Pairs between the
+    /// old 0.0058 and 0.01 are allowed below only with a reason.
+    static let twinThreshold: Float = 0.01
 
     /// Pairs still under the threshold, as found on 2026-10-20 before any fix.
     /// Fixing one makes `testTheKnownTwinsAreStillTwins` fail: remove it here.
     static let knownTwins: Set<Pair> = []
 
     /// Twins by design, each with why: a still frame can't tell them apart.
+    /// Measured 2026-10-20 (FERNI_AUDIT_PRINT=1 on testPrintNearest).
     static let allowedTwins: [Pair: String] = [
-        Pair("neutral", "speaking"): "speaking is neutral plus the voice's motion, which a still frame can't see",
+        Pair("neutral", "speaking"): "0.0047: speaking is neutral plus the voice's motion, which a still frame can't see",
+        Pair("caring", "tender"): "0.0070: one warmth face by name; caring plays its caringSettle animation, tender doesn't",
+        Pair("calm", "neutral"): "0.0084: calm is neutral at ease; it breathes (its calmBreathe animation), neutral doesn't",
+        Pair("listening", "nervous"): "0.0084: nervous carries its sweat glyph and nervousLook animation; the still render has neither",
+        Pair("absorbing", "listening"): "0.0092: absorbing is the tokens' listening family, a deeper listening by design",
+        Pair("content", "serene"): "0.0093: two settled faces a step apart (lids 0.162 vs 0.225 on the rig); serene is the goodbye's settle face",
+        Pair("confident", "encouraging"): "0.0097: steady and upbeat, cool vs coaching family; no motion tells them apart yet, the first to change if an audit flags it",
+        Pair("processing", "receptive"): "0.0097: processing is a thinking face; in a call it comes with the thinking dots and line",
     ]
 
     struct Pair: Hashable, CustomStringConvertible {
@@ -105,6 +113,16 @@ final class ExpressionDistinctnessTests: XCTestCase {
         }
         XCTAssertEqual(twins.map { "\(Pair($0.id, $0.other)) (\(String(format: "%.4f", $0.d)))" }, [],
                        "faces that render the same; tell them apart, don't list them")
+    }
+
+    /// The allowlist only holds pairs that need it: one that's grown apart past
+    /// the line is removed, so the list can't hide a new twin under an old reason.
+    func testEveryAllowedTwinIsStillUnderTheLine() throws {
+        let faces = try Self.faceCrops()
+        for pair in Self.allowedTwins.keys {
+            let a = try XCTUnwrap(faces[pair.a]), b = try XCTUnwrap(faces[pair.b])
+            XCTAssertLessThan(Self.difference(a, b), Self.twinThreshold, "\(pair) is past the line now: remove it from allowedTwins")
+        }
     }
 
     func testTheKnownTwinsAreStillTwins() throws {
