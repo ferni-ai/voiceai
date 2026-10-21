@@ -18,6 +18,7 @@
 
 import type { llm } from '@livekit/agents';
 
+import { callerNameKnown } from './caller-name-known.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 
@@ -90,7 +91,8 @@ export function firstCallNote(
   if (!isFirstCall(userData)) return '';
   if (LEAVING.test(callerWords)) return scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
   const said = agentLines(chatCtx);
-  const nameAsked = said.some((line) => NAME_ASKED.test(line));
+  const nameAsked =
+    said.some((line) => NAME_ASKED.test(line)) || callerNameKnown(chatCtx, userData, callerWords);
   const early = said.length <= NAME_SWAP_REPLIES;
   if (nameAsked || !early) return FIRST_CALL_NOTE;
   const speaker = typeof userData?.personaId === 'string' ? userData.personaId : 'ferni';
