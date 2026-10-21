@@ -10,8 +10,8 @@ apps/ios-native/
 ├── App/                  thin SwiftUI shell: FerniApp (AppModel), HomeView, SettingsView,
 │                         Info.plist (generated), entitlements, assets, privacy manifest
 ├── Packages/
-│   ├── FerniKit/         configuration, the account (Firebase, anonymous first), the
-│   │                     server API (Bearer ID token), team, plans
+│   ├── FerniKit/         configuration, the account (Firebase: anonymous first, then
+│   │                     Sign in with Apple), the server API (Bearer ID token), team, plans
 │   ├── FerniVoice/       a call: agent signals (lk.agent.state, speech_state),
 │   │                     expression mapping, and next the LiveKit session
 │   └── FerniDesign/      color/type/spacing tokens from design-system/tokens, window avatar

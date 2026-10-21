@@ -97,6 +97,7 @@ import {
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
 import { showSignInGate } from './ui/sign-in-gate.ui.js';
+import { revealApp, settleGateFirst } from './ui/gate-first.ui.js';
 import { requireAccessForRestoredSession } from './ui/restored-session-access.js';
 // 🌱 Roadmap/Seed Economy - For streak rewards
 import { roadmapService } from './services/roadmap.service.js';
@@ -523,6 +524,8 @@ class VoiceAIApp {
       // theme picker. Production builds set import.meta.env.DEV to false.
       const allowDevE2E =
         import.meta.env.DEV && new URLSearchParams(window.location.search).get('e2e') === '1';
+      // Gate-first paint (off by default): show #app now, or once the sign-in gate has faded in
+      settleGateFirst(authState.isAuthenticated, authState.isAuthenticated || allowDevE2E);
       if (!authState.isAuthenticated && !allowDevE2E) {
         log.info('User not authenticated, showing sign-in gate');
         await showSignInGate();
@@ -592,6 +595,7 @@ class VoiceAIApp {
     } catch (error) {
       log.error('Initialization failed:', error);
       messageUI.show(t('app.startupError'), 'error');
+      revealApp(); // never leave the gate-first placeholder over a failed start
     }
   }
 

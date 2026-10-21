@@ -2,7 +2,7 @@ import Foundation
 import XCTest
 @testable import FerniKit
 
-/// The account a fresh install talks with.
+/// The account a fresh install talks with, and the upgrade to Sign in with Apple.
 @MainActor
 final class AccountStoreTests: XCTestCase {
 
@@ -10,7 +10,10 @@ final class AccountStoreTests: XCTestCase {
     private final class FakeBackend: AuthBackend, @unchecked Sendable {
         var existing: AccountUser?
         var anonymousFailures = 0
+        var linkError: Error?
         private(set) var anonymousCalls = 0
+        private(set) var linked: [String] = []
+        private(set) var signOuts = 0
         private(set) var tokenRequests: [Bool] = []
         private var next = 0
 
@@ -26,11 +29,32 @@ final class AccountStoreTests: XCTestCase {
             tokenRequests.append(forceRefresh)
             return existing.map { "token-for-\($0.uid)" }
         }
+        func linkOrSignIn(apple: AppleCredential) async throws -> AccountUser {
+            if let linkError { throw linkError }
+            linked.append(apple.idToken)
+            existing = AccountUser(uid: existing?.uid ?? "apple", isAnonymous: false, providerIDs: ["apple.com"])
+            return existing!
+        }
+        func signOut() async throws {
+            signOuts += 1
+            existing = nil
+        }
     }
 
-    private func store(_ backend: FakeBackend?) -> AccountStore {
-        AccountStore(backend: backend, retryDelays: [.zero, .zero])
+    private final class Uploads: @unchecked Sendable { var codes: [String] = [] }
+
+    private func store(_ backend: FakeBackend?, uploads: Uploads = Uploads(), uploadFails: Bool = false) -> AccountStore {
+        AccountStore(
+            backend: backend,
+            uploadAppleCode: { code in
+                uploads.codes.append(code)
+                if uploadFails { throw FerniAPIError.status(404) }
+            },
+            retryDelays: [.zero, .zero]
+        )
     }
+
+    private let apple = AppleCredential(idToken: "apple-jwt", rawNonce: "n", authorizationCode: "code-1", fullName: nil)
 
     func testFirstLaunchSignsInAnonymouslyOnceEvenWhenAskedTwice() async {
         let backend = FakeBackend()
@@ -97,6 +121,72 @@ final class AccountStoreTests: XCTestCase {
         let token = await account.idToken()
         XCTAssertNil(token)
         guard case .unavailable = account.state else { return XCTFail("\(account.state)") }
+    }
+
+    func testAppleLinksTheSameAccountThenSendsTheCode() async {
+        let backend = FakeBackend()
+        let uploads = Uploads()
+        let account = store(backend, uploads: uploads)
+        await account.start()
+        let uid = account.user?.uid
+
+        await account.signInWithApple(apple)
+
+        XCTAssertEqual(backend.linked, ["apple-jwt"])
+        XCTAssertEqual(account.user?.uid, uid, "the conversations so far stay with the person")
+        XCTAssertEqual(account.user?.isSignedInWithApple, true)
+        XCTAssertEqual(uploads.codes, ["code-1"])
+        XCTAssertNil(account.notice)
+    }
+
+    func testAFailedAppleSignInKeepsTheAnonymousAccountAndSendsNothing() async {
+        let backend = FakeBackend()
+        backend.linkError = URLError(.timedOut)
+        let uploads = Uploads()
+        let account = store(backend, uploads: uploads)
+        await account.start()
+
+        await account.signInWithApple(apple)
+
+        XCTAssertEqual(account.user?.isAnonymous, true)
+        XCTAssertTrue(uploads.codes.isEmpty, "the server only gets a code for a linked Apple ID")
+        XCTAssertNotNil(account.notice)
+        XCTAssertFalse(account.isWorking)
+    }
+
+    /// The server route may not be deployed yet (#2004): sign-in still counts.
+    func testServerRefusingTheCodeDoesNotUndoTheSignIn() async {
+        let backend = FakeBackend()
+        let account = store(backend, uploadFails: true)
+        await account.start()
+
+        await account.signInWithApple(apple)
+
+        XCTAssertEqual(account.user?.isSignedInWithApple, true)
+        XCTAssertNil(account.notice)
+    }
+
+    func testSigningOutStartsAFreshAnonymousAccount() async {
+        let backend = FakeBackend()
+        let account = store(backend)
+        await account.start()
+        await account.signInWithApple(apple)
+
+        await account.signOut()
+
+        XCTAssertEqual(backend.signOuts, 1)
+        XCTAssertEqual(account.user?.isAnonymous, true)
+        XCTAssertEqual(account.user?.uid, "anon-2")
+    }
+
+    func testNonceHashIsSHA256OfTheRawValue() {
+        XCTAssertEqual(
+            AppleNonce.sha256("abc"),
+            "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        )
+        let a = AppleNonce(), b = AppleNonce()
+        XCTAssertEqual(a.raw.count, 32)
+        XCTAssertNotEqual(a.raw, b.raw)
     }
 
     func testFirebaseConfigForAnotherAppIsRefused() {
