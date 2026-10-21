@@ -29,6 +29,7 @@ const KIND_LABEL: Record<TextKind, string> = {
   message: 'something they asked you to text them',
   'morning-brief': 'their morning brief',
   'on-behalf': 'a text',
+  'call-result': 'how a call you made for them went',
 };
 
 export interface RecentTextsDeps {

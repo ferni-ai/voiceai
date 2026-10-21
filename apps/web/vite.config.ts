@@ -1,5 +1,6 @@
 import { basename, dirname, resolve } from 'path';
 import { defineConfig, loadEnv } from 'vite';
+import { assetLinksPlugin } from './scripts/asset-links';
 
 // Stub for Firebase when not configured (dev only)
 const firebaseStub = resolve(__dirname, 'src/stubs/firebase-stub.ts');
@@ -23,6 +24,8 @@ export default defineConfig(({ mode }) => {
   return {
     root: '.',
     publicDir: 'public',
+    // dist/.well-known/assetlinks.json for the Android app, from ANDROID_CERT_SHA256.
+    plugins: [assetLinksPlugin()],
     resolve: {
       // Allow .js imports to resolve to .ts files (Node-style ESM imports)
       extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],

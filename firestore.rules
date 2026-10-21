@@ -141,85 +141,99 @@ service cloud.firestore {
     
     // ============================================================================
     // OPTIMIZATION & ANALYTICS DATA
+    // Server-only. These hold other people's uids, session ids and message text
+    // (optimization_feedback.userMessage) and feed the optimizer, so no ordinary
+    // client reads or writes them. The server writes with the Admin SDK, which
+    // bypasses these rules; no first-party client uses the Firestore SDK.
     // ============================================================================
     
     match /optimization_feedback/{document=**} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() || isServiceAccount();
+      allow read: if isAdmin() || isServiceAccount();
+      allow write: if isServiceAccount();
     }
     
     match /optimization_recommendations/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin() || isServiceAccount();
       allow write: if isServiceAccount();
     }
     
     match /optimization_experiments/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin() || isServiceAccount();
       allow write: if isServiceAccount();
     }
     
     match /optimization_sessions/{document=**} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() || isServiceAccount();
+      allow read: if isAdmin() || isServiceAccount();
+      allow write: if isServiceAccount();
     }
     
     match /optimization_patterns/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin() || isServiceAccount();
       allow write: if isServiceAccount();
     }
     
     match /optimization_cycles/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin() || isServiceAccount();
       allow write: if isServiceAccount();
     }
     
     match /optimization_daily_summaries/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin() || isServiceAccount();
       allow write: if isServiceAccount();
     }
     
     match /optimization_weekly_reports/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin() || isServiceAccount();
       allow write: if isServiceAccount();
     }
     
     // ============================================================================
-    // TOOL USAGE ANALYTICS
+    // TOOL USAGE ANALYTICS (server-only, same reason as above)
     // ============================================================================
     
     match /tool_usage_stats/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin() || isServiceAccount();
       allow write: if isServiceAccount();
     }
     
     match /tool_usage_calls/{document=**} {
-      allow read: if isSignedIn();
+      allow read: if isAdmin() || isServiceAccount();
       allow write: if isServiceAccount();
     }
     
     // ============================================================================
-    // LEARNING SIGNALS
+    // LEARNING SIGNALS (server-only, same reason as above)
     // ============================================================================
 
     match /learning_signals/{document=**} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() || isServiceAccount();
+      allow read: if isAdmin() || isServiceAccount();
+      allow write: if isServiceAccount();
     }
 
     // ============================================================================
     // MARKETPLACE - Tools & Agents Registry
     // ============================================================================
 
+    // A client-created manifest is unverified and at most community trust.
+    // trustLevel picks the execution sandbox, so a client may not claim more.
+    function clientVerificationOk(data) {
+      return data.get('verification', {}).get('verified', false) == false &&
+        data.get('verification', {}).get('trustLevel', 'unverified') in ['unverified', 'community'];
+    }
+
     // Tool manifests - public read, publisher/admin write
     match /marketplace_tools/{toolId} {
       // Anyone can read verified tools
       allow read: if resource.data.verification.verified == true || isAdmin() || isServiceAccount();
-      // Publishers can only write their own tools
-      allow create: if isSignedIn() && request.resource.data.publisher.id == request.auth.uid;
-      allow update: if isSignedIn() && (
-        resource.data.publisher.id == request.auth.uid ||
-        isAdmin() ||
-        isServiceAccount()
+      // Publishers create their own tools, unverified. Verification and the
+      // publisher are set by the server/admins only: an owner update may not
+      // touch either, or a publisher could self-verify (which makes the doc
+      // public above) or hand the doc to someone else.
+      allow create: if isOwner(request.resource.data.publisher.id) &&
+        clientVerificationOk(request.resource.data);
+      allow update: if isAdmin() || isServiceAccount() || (
+        isOwner(resource.data.publisher.id) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verification', 'publisher'])
       );
       allow delete: if isAdmin();
     }
@@ -228,12 +242,15 @@ service cloud.firestore {
     match /marketplace_agents/{agentId} {
       // Anyone can read verified agents
       allow read: if resource.data.verification.verified == true || isAdmin() || isServiceAccount();
-      // Publishers can only write their own agents
-      allow create: if isSignedIn() && request.resource.data.publisher.id == request.auth.uid;
-      allow update: if isSignedIn() && (
-        resource.data.publisher.id == request.auth.uid ||
-        isAdmin() ||
-        isServiceAccount()
+      // Publishers create their own agents, unverified. Verification and the
+      // publisher are set by the server/admins only: an owner update may not
+      // touch either, or a publisher could self-verify (which makes the doc
+      // public above) or hand the doc to someone else.
+      allow create: if isOwner(request.resource.data.publisher.id) &&
+        clientVerificationOk(request.resource.data);
+      allow update: if isAdmin() || isServiceAccount() || (
+        isOwner(resource.data.publisher.id) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verification', 'publisher'])
       );
       allow delete: if isAdmin();
     }
@@ -247,8 +264,10 @@ service cloud.firestore {
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
       // Users can install items for themselves
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      // Users can update their own installations (enable/disable)
-      allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Users can update their own installations (enable/disable), but not
+      // move one onto someone else's account
+      allow update: if isOwner(resource.data.userId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['userId']);
       // Users can uninstall their own items
       allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
       // Service accounts can manage all installations
@@ -311,10 +330,13 @@ service cloud.firestore {
     match /marketplace_publishers/{publisherId} {
       // Public read for verified publishers
       allow read: if resource.data.verified == true || isAdmin() || isServiceAccount();
-      // Publishers can update their own profile
-      allow create: if isSignedIn() && publisherId == request.auth.uid;
-      allow update: if isSignedIn() && publisherId == request.auth.uid;
-      // Only admins can verify/delete publishers
+      // Publishers create and update their own profile, but `verified` is set
+      // by the server (Admin SDK) only
+      allow create: if isOwner(publisherId) &&
+        request.resource.data.get('verified', false) == false;
+      allow update: if isOwner(publisherId) &&
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['verified']);
+      // Only admins can delete publishers
       allow delete: if isAdmin();
     }
 
@@ -323,11 +345,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /developer_mcp_servers/{serverId} {
-      // Publishers can read/write their own MCP server registrations
+      // Publishers read their own MCP server registrations. No client writes: they go through
+      // /api/v2/developers, which validates them (URLs, configs) server-side.
       allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
       // Service accounts and admins have full access
       allow read, write: if isServiceAccount() || isAdmin();
     }
@@ -337,11 +357,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /developer_tools/{toolId} {
-      // Publishers can read/write their own custom tools
+      // Publishers read their own custom tools. No client writes: they go through
+      // /api/v2/developers, which validates them (URLs, configs) server-side.
       allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
       // Service accounts and admins have full access
       allow read, write: if isServiceAccount() || isAdmin();
     }
@@ -351,11 +369,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /developer_webhooks/{webhookId} {
-      // Publishers can read/write their own webhook subscriptions
+      // Publishers read their own webhook subscriptions. No client writes: they go through
+      // /api/v2/developers, which validates them (URLs, configs) server-side.
       allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
       // Service accounts and admins have full access
       allow read, write: if isServiceAccount() || isAdmin();
     }
@@ -374,11 +390,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /developer_activities/{activityId} {
-      // Publishers can read/write their own activities
+      // Publishers read their own activities. No client writes: they go through
+      // /api/v2/developers, which validates them (URLs, configs) server-side.
       allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
       // Service accounts and admins have full access
       allow read, write: if isServiceAccount() || isAdmin();
     }
@@ -388,11 +402,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /developer_workflows/{workflowId} {
-      // Publishers can read/write their own workflows
+      // Publishers read their own workflows. No client writes: they go through
+      // /api/v2/developers, which validates them (URLs, configs) server-side.
       allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
       // Service accounts and admins have full access
       allow read, write: if isServiceAccount() || isAdmin();
     }
@@ -411,11 +423,9 @@ service cloud.firestore {
     // ============================================================================
 
     match /developer_oauth_providers/{providerId} {
-      // Publishers can read/write their own OAuth providers
+      // Publishers read their own OAuth providers. No client writes: they go through
+      // /api/v2/developers, which validates them (URLs, configs) server-side.
       allow read: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.publisherId == request.auth.uid;
-      allow update: if isSignedIn() && resource.data.publisherId == request.auth.uid;
-      allow delete: if isSignedIn() && resource.data.publisherId == request.auth.uid;
       // Service accounts and admins have full access
       allow read, write: if isServiceAccount() || isAdmin();
     }

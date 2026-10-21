@@ -95,7 +95,6 @@ export const COMMON_DIFFICULT_NAMES: Record<string, string> = {
   genevieve: 'Zhen-vee-ev',
   renee: 'Ruh-nay',
   guillaume: 'Gee-yohm',
-  louis: 'Loo-ee',
 
   // ==========================================================================
   // German names

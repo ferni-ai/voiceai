@@ -34,7 +34,7 @@ import {
   type MomentRegions,
 } from './moment-regions.js';
 import { MOMENT_ICONS, getIcon } from './icons.js';
-import { isOverlayHostEnabled } from '../overlay/overlay-flag.js';
+import { isToastRegionEnabled } from '../overlay/toast-flag.js';
 import { dismissAllToasts, dismissToast, showToast } from '../overlay/toast-region.js';
 import { NOTICE_TONES, celebrationCopy } from './toast-copy.js';
 import type {
@@ -112,7 +112,7 @@ class MomentsManager {
       icon?: string;
     }
   ): string {
-    if (isOverlayHostEnabled()) {
+    if (isToastRegionEnabled()) {
       const type = options?.type ?? 'info';
       this.playHaptic(HAPTIC_MAP[`whisper:${type}`] ?? 'softTap');
       return showToast({ message, tone: type, duration: options?.duration });
@@ -223,7 +223,7 @@ class MomentsManager {
       duration?: number;
     }
   ): string {
-    if (isOverlayHostEnabled()) {
+    if (isToastRegionEnabled()) {
       const type = options?.type ?? 'info';
       this.playHaptic(HAPTIC_MAP[`notice:${type}`] ?? 'notification');
       return showToast({
@@ -361,7 +361,7 @@ class MomentsManager {
    * Show a celebration - milestone moment with visual flourish.
    */
   async celebrate(type: CelebrationType, data?: Omit<CelebrationConfig, 'type'>): Promise<void> {
-    if (isOverlayHostEnabled()) {
+    if (isToastRegionEnabled()) {
       this.emit('celebration:started', { type });
       // An achievement toast instead of the centred card over the call controls.
       const { title, subtitle } = celebrationCopy({ type, ...data });
