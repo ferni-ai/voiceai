@@ -126,6 +126,7 @@ struct RootView: View {
 struct TeamScreen: View {
     let team: TeamStore
     let talk: () -> Void
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
         List {
@@ -153,7 +154,12 @@ struct TeamScreen: View {
     }
 
     private func row(_ persona: Persona, here: Bool) -> some View {
-        HStack(spacing: FerniSpace.pause) {
+        // At accessibility sizes the face sits above the words: beside them on an
+        // SE the words had a 133 pt column, a word or two a line.
+        let layout = typeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: FerniSpace.breath))
+            : AnyLayout(HStackLayout(spacing: FerniSpace.pause))
+        return layout {
             AvatarPortrait(persona: WindowPersona(personaId: persona.id), present: here)
                 .frame(width: 56, height: 56)
             VStack(alignment: .leading, spacing: 2) {
