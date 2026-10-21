@@ -150,6 +150,15 @@ struct SignInView: View {
         // The words scroll under the button; they shouldn't show through around
         // it (at AX5 the audit read the divider through the glass), as on consent.
         .background(FerniColor.background.ignoresSafeArea(edges: .bottom))
+        // What scrolls under it fades in, not cut off mid-line (on an SE the hint
+        // under the field ran under it), as Home's floor does.
+        .background(alignment: .top) {
+            LinearGradient(colors: [FerniColor.background.opacity(0), FerniColor.background], startPoint: .top, endPoint: .bottom)
+                .frame(height: 24)
+                .offset(y: -24)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
         .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { buttonHeight = $0 }
     }
 
