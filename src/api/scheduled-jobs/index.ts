@@ -9,12 +9,17 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { handleCleanupOrphanedUploads } from '../jobs/cleanup-orphaned-uploads.js';
+import { usePersonFlagLookup } from '../../config/person-flag.js';
+import { flagForUser } from '../../services/platform/cohort-flags.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
 import { verifySchedulerRequest } from './scheduler-auth.js';
 import { runScheduledJob } from './job-run-guard.js';
 
 const log = createLogger({ module: 'ScheduledJobs' });
+
+// This server acts for many people: their own cohort flags, never process.env (person-flag.ts).
+usePersonFlagLookup(flagForUser);
 
 /** Every job route below; auth is checked only for these, so unknown paths still 404. */
 export const JOB_PATHS: ReadonlySet<string> = new Set([
