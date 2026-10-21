@@ -246,8 +246,6 @@ private struct RestingLine: View {
     /// Someone with an account on this phone before, signed out (design audit P2 #11).
     var knownHere = false
     @Environment(\.openURL) private var openURL
-    @Environment(\.dynamicTypeSize) private var typeSize
-    @Environment(\.horizontalSizeClass) private var widthClass
 
     var body: some View {
         VStack(spacing: FerniSpace.breath) {
@@ -271,27 +269,15 @@ private struct RestingLine: View {
             }
         }
         .multilineTextAlignment(.center)
-        // At accessibility sizes the words grow down over Ferni's glow and the
-        // room's gradient, and the audit failed the line on contrast in every
-        // band though it reads 6.4:1 (design audit P1-10): a paper plate under it.
-        // The failed message gets the plate at every size: on the bare room the
-        // audit failed it at 13.1:1 measured (critic M3, 2026-10-20). So does
-        // every line on iPad (see plated).
-        .padding(plated ? FerniSpace.pause : 0)
+        // On a paper plate at every size and hour (award upgrade 3: light you can
+        // feel, text on solid plates). Without it the audit failed the line on
+        // the room's glow and gradient though its pixels pass: at AX5 in every
+        // band (design audit P1-10, 6.4:1), the failed message at 13.1:1
+        // (critic M3), the follow-up line on iPad at 7.0:1 (award upgrade 2).
+        .padding(FerniSpace.pause)
         .background {
-            if plated {
-                RoundedRectangle(cornerRadius: FerniRadius.large).fill(FerniColor.background)
-            }
+            RoundedRectangle(cornerRadius: FerniRadius.large).fill(FerniColor.background)
         }
-    }
-
-    private var plated: Bool {
-        if typeSize.isAccessibilitySize { return true }
-        // On iPad the line sits in the room's glow at every size: the audit failed
-        // the follow-up line there at 7.0:1 measured (award upgrade 2).
-        if widthClass == .regular { return true }
-        if case .failed = call.phase { return true }
-        return false
     }
 
     private static func hour(at date: Date) -> Int {
@@ -489,12 +475,12 @@ private struct TeamRow: View {
             // two: the audit grows the text and saw the row's names replaced
             // instead of growing ("Dynamic Type partially unsupported").
             TeamFlow(spacing: shelf ? FerniSpace.rest : FerniSpace.pause, lineSpacing: FerniSpace.pause) { faces(shown) }
-                // The shelf on iPad sits on paper: on the room's gradient the audit
-                // failed the names at 7.0:1 and 14.2:1 measured (award upgrade 2).
-                .padding(shelf ? FerniSpace.pause : 0)
-                .background {
-                    if shelf { RoundedRectangle(cornerRadius: FerniRadius.large).fill(FerniColor.background) }
-                }
+                // On paper, as Home's words are (award upgrade 3): on the room's
+                // gradient the audit failed the names at 7.0:1 and 14.2:1 measured
+                // on iPad (award upgrade 2), and on an SE once the plated words
+                // pushed the row down.
+                .padding(FerniSpace.pause)
+                .background { RoundedRectangle(cornerRadius: FerniRadius.large).fill(FerniColor.background) }
             .sensoryFeedback(.selection, trigger: team.chosen)
         }
     }
