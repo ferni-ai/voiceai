@@ -13,7 +13,6 @@ import type { VoiceHumanizationCleanup } from './types.js';
 import { TOOL_HEALTH_CHECK_INTERVAL, MULTI_AGENT_MODE } from './constants.js';
 import { coordinatedSay } from '../../speech/coordination/index.js';
 import { outboundOpener, outboundPartiesFor } from '../shared/outbound-opener.js';
-import { isPipelineSwitchingEnabled, selectPipeline, type PipelineSwitchContext } from '../shared/performance/pipeline-switcher.js';
 import { computeDynamicVADDuration } from '../shared/performance/adaptive-timing.js';
 import { finops } from '../../services/observability/finops.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -461,19 +460,6 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     const evt = event as { transcript?: string; isFinal?: boolean };
     if (evt.isFinal) {
       userData.turnCount = ((userData.turnCount as number) || 0) + 1;
-      if (isPipelineSwitchingEnabled()) {
-        const switchCtx: PipelineSwitchContext = {
-          emotion: (userData.lastEmotionAnalysis as { primary?: string })?.primary,
-          stressLevel: (userData.lastEmotionAnalysis as { distressLevel?: number })?.distressLevel,
-          wasInterrupted: userData.wasInterrupted as boolean | undefined,
-          turnCount: (userData.turnCount as number) ?? 0,
-          userTranscriptLength: evt.transcript?.length ?? 0,
-          isFirstResponse: ((userData.turnCount as number) ?? 0) === 1,
-          isQuestion: evt.transcript?.includes('?'),
-        };
-        const pipelineResult = selectPipeline(switchCtx);
-        process.stderr.write(`🔀 [TURN ${userData.turnCount}] Pipeline: ${pipelineResult.mode} (${pipelineResult.reason}, confidence=${pipelineResult.confidence})\n`);
-      }
       const transcript = evt.transcript || '';
       process.stderr.write(`\n📝 [TURN ${userData.turnCount}] FINAL: "${transcript}"\n`);
       observeFinalTranscript({ transcript, userData, sessionId, crisisMode: crisisGuardMode });
