@@ -7,7 +7,7 @@
  * POST /api/jobs/calendar-triggers           (every 5 minutes)
  * POST /api/jobs/calendar-briefing           (every 15 minutes; MORNING_BRIEF texts)
  * POST /api/jobs/follow-through              (every 5 minutes; ?dryRun=true; FOLLOW_THROUGH_JOB)
- * POST /api/jobs/retry-pending-revocations  (every 15 minutes; Google revokes erasure queued)
+ * POST /api/jobs/retry-pending-revocations  (every 15 minutes; Google revokes and Twilio records erasure queued)
  *
  * @module api/scheduled-jobs/background-delivery-jobs
  */
@@ -209,11 +209,22 @@ export async function handleFollowThrough(
   await run(res, 'follow-through', async () => runFollowThroughJob({ dryRun: isDryRun(req) }));
 }
 
-/** Revokes Google couldn't take during an account erasure (identity/google-revocations). */
+/** Twilio records an account erasure left (platform/twilio-erasure); skipped with the flag off. */
+async function retryTwilioErasures(): Promise<Record<string, unknown>> {
+  const { flagOn } = await import('../../config/env-flag.js');
+  if (!flagOn('TWILIO_ERASE_ON_DELETE')) return { skipped: 'flag-off' };
+  const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
+  const db = getFirestoreDb();
+  if (!db) return { skipped: 'no-firestore' };
+  const { retryPendingTwilioErasures } = await import('../../services/platform/twilio-erasure.js');
+  return { ...(await retryPendingTwilioErasures(db)) };
+}
+
+/** Revokes Google couldn't take during an account erasure (identity/google-revocations), and Twilio records. */
 export async function handleRetryPendingRevocations(res: ServerResponse): Promise<void> {
   await run(res, 'retry-pending-revocations', async () => {
     const { retryPendingRevocations } =
       await import('../../services/identity/google-revocations.js');
-    return { ...(await retryPendingRevocations()) };
+    return { ...(await retryPendingRevocations()), twilio: await retryTwilioErasures() };
   });
 }
