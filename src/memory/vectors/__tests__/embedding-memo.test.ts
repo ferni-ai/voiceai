@@ -130,9 +130,9 @@ describe('VertexAIEmbeddings 429 backoff', () => {
     expect(f.fetch).toHaveBeenCalledTimes(4);
   });
 
-  it('does not retry other errors', async () => {
-    const f = predictFetch([503]);
-    await expect(vertex().embed('down')).rejects.toThrow(/503/);
+  it.each([400, 500, 503])('does not retry a %i', async (status) => {
+    const f = predictFetch([status]);
+    await expect(vertex().embed('down')).rejects.toThrow(new RegExp(String(status)));
     expect(f.fetch).toHaveBeenCalledTimes(1);
   });
 });
