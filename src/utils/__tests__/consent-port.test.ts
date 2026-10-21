@@ -6,8 +6,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const error = vi.hoisted(() => vi.fn());
+const warn = vi.hoisted(() => vi.fn());
 vi.mock('../safe-logger.js', () => ({
-  createLogger: () => ({ error, warn: vi.fn(), info: vi.fn(), debug: vi.fn() }),
+  createLogger: () => ({ error, warn, info: vi.fn(), debug: vi.fn() }),
 }));
 
 import { consentBlocks, consentCheckRegistered, registerConsentCheck } from '../consent-port.js';
@@ -18,6 +19,7 @@ const PHONE = '+12025550166';
 afterEach(() => {
   registerConsentCheck(undefined);
   error.mockClear();
+  warn.mockClear();
 });
 
 describe('consent port', () => {
@@ -38,7 +40,8 @@ describe('consent port', () => {
   it('flag on and nothing registered: a text or call refuses (fails closed)', async () => {
     expect(await consentBlocks(PHONE, 'sms', true, ON)).toBe('unverifiable');
     expect(await consentBlocks(PHONE, 'call', true, ON)).toBe('unverifiable');
-    expect(error).toHaveBeenCalledTimes(2);
+    expect(warn).toHaveBeenCalledTimes(2);
+    expect(error).not.toHaveBeenCalled();
   });
 
   it("flag on and nothing registered: someone who isn't the owner refuses", async () => {
@@ -51,5 +54,14 @@ describe('consent port', () => {
       { channel: 'call' },
       'Consent check not registered in this process; owner number allowed'
     );
+  });
+
+  it('registerMessagingConsent delegates to consent.ts, with the env passed through', async () => {
+    const consent = await import('../../services/messaging/consent.js');
+    consent.registerMessagingConsent();
+    // consent.ts refuses a number it can't read; flag off it allows everything.
+    expect(await consentBlocks('', 'sms', async () => true, ON)).toBe('unverifiable');
+    expect(await consentBlocks('', 'sms', async () => true, {})).toBeNull();
+    expect(error).not.toHaveBeenCalled();
   });
 });

@@ -50,6 +50,6 @@ export async function consentBlocks(
     log.error({ channel }, 'Consent check not registered in this process; owner number allowed');
     return null;
   }
-  log.error({ channel }, 'Consent check not registered in this process; not sending');
+  log.warn({ channel }, 'Consent check not registered in this process; not sending');
   return 'unverifiable';
 }
