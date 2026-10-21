@@ -122,8 +122,6 @@ export interface TurnReceiptOptions {
   /** The session's turn handling now (attachTurnReceipts reads LiveKit's activity). */
   handling?: () => TurnHandling;
   emit?: (receipt: TurnReceipt) => void;
-  /** Also told of every receipt (the call-quality reply SLO, turn-receipt-session.ts). */
-  onReceipt?: (receipt: TurnReceipt) => void;
   now?: () => number;
   env?: Record<string, string | undefined>;
 }
@@ -366,7 +364,6 @@ export class TurnReceiptRecorder {
   private emit(receipt: TurnReceipt): void {
     try {
       (this.opts.emit ?? logReceipt)(receipt);
-      this.opts.onReceipt?.(receipt);
     } catch (error) {
       log.warn({ error: String(error) }, 'turn receipt not emitted');
     }

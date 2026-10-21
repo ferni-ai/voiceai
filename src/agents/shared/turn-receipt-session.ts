@@ -82,14 +82,18 @@ interface EventSource {
 export function attachTurnReceipts(session: EventSource, opts: TurnReceiptOptions): () => void {
   const emit = opts.emit ?? logReceipt;
   const tokensOn = turnTokenReceiptEnabled(opts.env);
+  const sent = tokensOn ? withInputTokens(emit) : emit;
   const rec = new TurnReceiptRecorder({
     handling: () => ({
       turnDetection: turnDetectionInUse(session),
       interruptionMode: interruptionModeInUse(session),
     }),
-    onReceipt: noteReplyLatency,
     ...opts,
-    emit: tokensOn ? withInputTokens(emit) : emit,
+    // the call-quality reply SLO hears every receipt that was emitted
+    emit: (receipt) => {
+      sent(receipt);
+      noteReplyLatency(receipt);
+    },
   });
   recorders.set(session, rec);
   if (tokensOn) measuringTokens.add(session);
