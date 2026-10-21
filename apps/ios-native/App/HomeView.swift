@@ -64,7 +64,7 @@ struct HomeView: View {
                             }
                             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { restingHeight = $0 }
                             if call.phase == .ended {
-                                RememberCard(call: call, remembered: model.callRemembered)
+                                RememberCard(call: call, remembered: model.callRemembered, forgotten: model.memory.forgotten)
                                     .id(Self.rememberID)
                                     // Over the team row while it rises past it (award upgrade 8).
                                     .zIndex(1)

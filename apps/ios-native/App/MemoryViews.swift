@@ -9,6 +9,9 @@ import SwiftUI
 struct RememberCard: View {
     let call: CallSession
     let remembered: CallRemembered
+    /// MemoryStore.forgotten: a note forgotten in What Ferni remembers leaves
+    /// this card too (it was loaded once per call; critic L).
+    var forgotten = 0
     @State private var items: [CallRemembered.Item] = []
     @State private var editing: String?
     @State private var draft = ""
@@ -41,10 +44,10 @@ struct RememberCard: View {
                 // A goodbye with weight (award upgrade 8): the card rises out of
                 // where the captions were and settles, a soft spring with no
                 // bounce; under Reduce Motion it fades in where it rests.
-                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
+                .transition(Self.travels(reduceMotion: reduceMotion) ? .move(edge: .bottom).combined(with: .opacity) : .opacity)
             }
         }
-        .task(id: call.startedAt) { await load() }
+        .task(id: "\(call.startedAt?.timeIntervalSince1970 ?? 0)-\(forgotten)") { await load() }
     }
 
     /// Your words in ink, with one quiet way to change them (design audit P2
@@ -130,8 +133,14 @@ struct RememberCard: View {
     /// How the card arrives: a slow, unbouncy settle, or a plain fade under
     /// Reduce Motion.
     static func settle(reduceMotion: Bool) -> Animation {
-        reduceMotion ? .easeOut(duration: 0.25) : .spring(response: 0.6, dampingFraction: 0.9)
+        reduceMotion ? .easeOut(duration: 0.25) : .spring(settleSpring)
     }
+
+    /// The settle's spring: 0.6 s, nine tenths damped.
+    static let settleSpring = Spring(response: 0.6, dampingRatio: 0.9)
+
+    /// Whether the card travels up into place; under Reduce Motion it fades in where it rests.
+    static func travels(reduceMotion: Bool) -> Bool { !reduceMotion }
 
     private func load() async {
         guard let since = call.startedAt else { return }
