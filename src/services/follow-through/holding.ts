@@ -66,7 +66,7 @@ const SOURCE: Readonly<Record<string, HeldSource>> = {
   outreach_confirm: 'on-behalf',
 };
 
-/** 7 to 15 digits with phone punctuation between them. */
+/** A run of digits with phone punctuation between them (7+ digits are blanked). */
 const PHONE_LIKE = /\+?\d[\d\s().-]{5,}\d/g;
 /** A whole match that is only an ISO date (real month and day) is a date, not a number. */
 const DATE_ONLY = /^\d{4}-(?:0[1-9]|1[0-2])-(?:0[1-9]|[12]\d|3[01])$/;
@@ -83,11 +83,11 @@ function withoutContactDetails(text: string): string {
   return text
     .replace(EMAIL_LIKE, 'an email address')
     .replace(PHONE_LIKE, (m: string, offset: number, whole: string) => {
-      const digits = m.replace(/\D/g, '').length;
-      if (digits < 7 || digits > 15) return m;
       if (DATE_ONLY.test(m)) return m;
       if (DATE_HOUR.test(m) && whole[offset + m.length] === ':') return m;
-      return 'a number';
+      // Any other run of 7+ digits goes, however long: two numbers side by
+      // side, or a number next to a date, are blanked whole rather than shown.
+      return m.replace(/\D/g, '').length >= 7 ? 'a number' : m;
     });
 }
 

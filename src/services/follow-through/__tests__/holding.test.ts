@@ -169,5 +169,10 @@ describe('toHeldItem', () => {
     // A date-shaped run inside a longer number never splits it.
     expect(t('ring +44 2026-10-22 1234 now')).not.toMatch(/2026|1234/);
     expect(t('ring 4155-12-0132 77 today')).toBe('ring a number today');
+    // Over-long runs are never handed back: two numbers side by side, or a number by a date.
+    expect(t('dentist 2026-10-22 415-555-0132')).not.toMatch(/415|555|0132/);
+    expect(t('415 555 0132 2026-10-22')).not.toMatch(/415|555|0132/);
+    expect(t('call 415-555-0132 415-555-0199')).toBe('call a number');
+    expect(t('4155-55-0132')).toBe('a number');
   });
 });
