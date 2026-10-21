@@ -39,6 +39,12 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
+import { noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
+import {
+  callRiskBeforeTurn,
+  loneImminentGoodbye,
+} from '../../services/safety/crisis-lone-imminent.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import {
@@ -178,6 +184,7 @@ export function startCrisisGate(
   });
   const decision = decisionFor(detection);
   if (decision.action !== 'pass') {
+    noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
     log.info(
       { action: decision.action, source: 'patterns', indicators: detection.indicators },
       'CRISIS_GATE'
@@ -193,17 +200,32 @@ export function startCrisisGate(
   const adjudicatorMode = resolveCrisisAdjudicatorMode(env);
   const scope = agreementGate || adjudicatorMode !== 'off' ? sessionScope(userData) : undefined;
   const holdForReads = agreementGate || adjudicatorMode === 'live';
+  const call = sessionScope(userData);
+  // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
+  const transfer =
+    adjudicatorMode !== 'live' &&
+    transferRequestIsEveryday({ latest, earlier, companion }, pattern, call, env);
+  // Taken before this turn's own read starts (crisis-lone-imminent.ts).
+  const priorRisk = callRiskBeforeTurn(call, { latest, earlier, companion });
   const run = startCrisisClassifier(
     { latest, earlier, companion },
-    { pattern, env, generate, scope }
+    { pattern, env, generate, scope, call }
   );
   if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
+    // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
+    if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
+      log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
+      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
+    }
     const merged = applyClassifierVerdict(detection, verdict);
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
     if (RANK[stronger.action] <= RANK[decision.action]) return null;
+    // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
+    // one whoever it is about, gets the soft check-in once every other check below has run.
+    let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';
     if (scope && !holdForReads) {
       const reads = turnVerdicts(scope, { latest, earlier, companion });
       shadowAdjudication(reads, callTranscript(chatCtx), {
@@ -225,6 +247,10 @@ export function startCrisisGate(
         log.info({ action: outcome, source: 'agreement' }, 'CRISIS_GATE');
         return outcome === 'soft' ? { action: 'guide', guidance: SOFT_CRISIS_CHECK } : null;
       }
+      // Reads of this turn that agree on risk are never eased.
+      if (verdicts.filter((v) => v?.risk === 'crisis' || v?.risk === 'imminent').length >= 2) {
+        softTransfer = false;
+      }
       // Every read of the turn is in: a classifier-only crisis gets a fuller second read.
       const adjudicator = startCrisisAdjudicator(callTranscript(chatCtx), {
         pattern,
@@ -238,6 +264,11 @@ export function startCrisisGate(
         log.info({ action: 'guide', source: 'adjudicator' }, 'CRISIS_GATE');
         return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
       }
+    }
+    noteCrisisRisk(call); // CRISIS_TRANSFER_EVERYDAY: risk on this call, soft or not
+    if (softTransfer) {
+      log.info({ action: 'guide', source: 'transfer-request' }, 'CRISIS_GATE');
+      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },

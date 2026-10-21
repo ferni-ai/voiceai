@@ -13,12 +13,27 @@ import { createLogger } from '../utils/safe-logger.js';
 import { requireAuth } from './auth-middleware.js';
 import { sendError } from './helpers.js';
 import { buildRelationship } from './insights-relationship.js';
+import {
+  getCurrentChapter,
+  isChapterNameable,
+} from '../services/superhuman/life-chapter-signals.js';
 
 const log = createLogger({ module: 'insights-routes' });
 
 // ============================================================================
 // TYPES (matches frontend InsightData)
 // ============================================================================
+
+/** Every chapter type the narrative service writes; the UI tones its copy by type. */
+type ChapterKind =
+  | 'struggle'
+  | 'growth'
+  | 'triumph'
+  | 'transition'
+  | 'loss'
+  | 'discovery'
+  | 'connection'
+  | 'decision';
 
 interface InsightsResponse {
   presence?: {
@@ -36,7 +51,7 @@ interface InsightsResponse {
 
   chapter?: {
     title: string;
-    type: 'struggle' | 'growth' | 'triumph' | 'transition' | 'discovery';
+    type: ChapterKind;
     duration?: string;
     arcSummary?: string;
   };
@@ -214,9 +229,12 @@ async function handleGetInsights(
       }
     }
 
-    // Growth from chapters
-    if (chapters.length > 0) {
-      const growthChapters = chapters.filter((c) => c.type === 'growth' || c.type === 'discovery');
+    // Growth from chapters clear enough to name (two separate conversations, not one line)
+    const namedChapters = chapters.filter((c) => isChapterNameable(c));
+    if (namedChapters.length > 0) {
+      const growthChapters = namedChapters.filter(
+        (c) => c.type === 'growth' || c.type === 'discovery'
+      );
       if (growthChapters.length > 0) {
         const latestGrowth = growthChapters[0];
         if (latestGrowth.insightsGained && latestGrowth.insightsGained.length > 0) {
@@ -229,23 +247,20 @@ async function handleGetInsights(
       }
     }
 
-    // Current chapter
+    // Current chapter: only one clear enough to name and still current (it fades when quiet)
     let chapter: InsightsResponse['chapter'] = undefined;
-    const currentChapter = chapters.find((c) => !c.endDate);
+    const currentChapter = getCurrentChapter(chapters);
     if (currentChapter) {
       const daysInChapter = Math.floor(
         (Date.now() - currentChapter.startDate) / (1000 * 60 * 60 * 24)
       );
       chapter = {
         title: currentChapter.title,
-        type: currentChapter.type as InsightsResponse['chapter'] extends undefined
-          ? never
-          : NonNullable<InsightsResponse['chapter']>['type'],
+        type: currentChapter.type,
         duration: daysInChapter > 0 ? `${daysInChapter} days` : 'Just started',
-        arcSummary:
-          currentChapter.keyQuotes && currentChapter.keyQuotes.length > 0
-            ? `"${currentChapter.keyQuotes[0].slice(0, 100)}..."`
-            : undefined,
+        arcSummary: currentChapter.keyQuotes?.[0]
+          ? quoteOf(currentChapter.keyQuotes[0])
+          : undefined,
       };
     }
 
@@ -269,8 +284,10 @@ async function handleGetInsights(
       }));
     }
 
-    if (upcomingDates.length > 0) {
-      holding.upcomingDates = upcomingDates.slice(0, 2).map((d) => ({
+    // Only dates the user told us about: a calendar holiday is not something they shared
+    const sharedDates = upcomingDates.filter((d) => !d.date.id.startsWith('universal_'));
+    if (sharedDates.length > 0) {
+      holding.upcomingDates = sharedDates.slice(0, 2).map((d) => ({
         name: d.date.name,
         daysUntil: d.daysUntil,
       }));
@@ -327,4 +344,10 @@ async function handleGetInsights(
     res.end(JSON.stringify({ error: 'Failed to fetch insights' }));
     return true;
   }
+}
+
+/** A user's own words, trimmed to 100 characters (an ellipsis only when something was cut). */
+function quoteOf(text: string): string {
+  const trimmed = text.trim();
+  return trimmed.length > 100 ? `"${trimmed.slice(0, 100).trimEnd()}..."` : `"${trimmed}"`;
 }

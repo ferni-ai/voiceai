@@ -57,7 +57,8 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'growth_moments',
     'user_gifts',
     'user_contacts',
-    'profiles' // conversation and insight feedback, subcollections only
+    'profiles', // conversation and insight feedback, subcollections only
+    'feature_flag_overrides' // flags turned on for this person alone (cohort-flags.ts)
   ),
   // The app's per-person documents
   ...byId(
@@ -119,7 +120,8 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'game_analytics_events',
     'bth_production_events',
     'phone_mappings',
-    'feature_checkins' // texts sent to the person, with their replies
+    'feature_checkins', // texts sent to the person, with their replies
+    'relationship_memories' // {uid}_{persona}: shared moments and inside jokes, older agent
   ),
   ...byField('ownerId', 'share_links', 'share_invites', 'voice_households'),
   ...byField('toUserId', 'family_messages', 'family_shared_context'),
@@ -127,6 +129,8 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
   ...byField('odId', 'analytics_sessions'),
   ...byField('firebaseUid', 'user_profiles'), // access grants; the email-keyed ones too (erase-other-keys)
   ...byField('injection.userId', 'context_injection_outcomes'),
+  { collection: 'reply_reports', field: 'uid' }, // replies they reported, with their own words
+  { collection: 'reply_report_quota', doc: 'uid' },
 ];
 
 /**
