@@ -10,6 +10,7 @@
  * - The create/update schemas refuse stdio on their own, not only through the routes.
  */
 
+import dns from 'node:dns';
 import { Readable } from 'stream';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -296,6 +297,12 @@ describe('v2 developer MCP servers API refuses stdio', () => {
       command: null,
       args: null,
     });
+    // A public answer for mcp.example.com: the outbound guard resolves the host before it fetches
+    const lookupSpy = vi
+      .spyOn(dns.promises, 'lookup')
+      .mockImplementation((async () => [
+        { address: '93.184.215.14', family: 4 },
+      ]) as unknown as typeof dns.promises.lookup);
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
       .mockRejectedValue(new Error('unreachable in test'));
@@ -306,6 +313,7 @@ describe('v2 developer MCP servers API refuses stdio', () => {
     expect(out.status).toBe(200);
     expect(spawnMock).not.toHaveBeenCalled();
     fetchSpy.mockRestore();
+    lookupSpy.mockRestore();
   });
 
   it('refuses to list tools for a stored stdio server and never spawns', async () => {
