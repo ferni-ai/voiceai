@@ -144,6 +144,16 @@ final class AppModel {
     /// A line of Ferni's being reported.
     var reporting: Caption?
 
+    /// A full-height sheet or cover hides Ferni, so his avatar stops drawing:
+    /// Settings, What Ferni remembers (critic M-B), sign-in and the consent
+    /// question. More and Report open at half height and leave him in view.
+    var coversFerni: Bool { isShowingSettings || isShowingMemory || isSigningIn || isAskingConsent }
+
+    /// Any sheet over the room: the room is out of reach, so it's out of
+    /// VoiceOver's and the audit's too (the dimmed call behind More was read as
+    /// clipped, faint captions with no element; critic H-C).
+    var roomIsUnderASheet: Bool { coversFerni || isShowingCallMore || reporting != nil }
+
     /// The session a reported line belongs to: the room it was heard in.
     func reportSession(for caption: Caption) -> String { caption.room ?? call.roomName ?? "unknown" }
 
