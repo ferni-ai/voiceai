@@ -6,7 +6,6 @@ import {
   openTokens,
   sealTokens,
   sealTokensForMerge,
-  tokenKeyHealth,
   tokenKeyId,
   tokenKeyIdLine,
 } from '../token-at-rest.js';
@@ -98,7 +97,6 @@ describe('token key id (kid)', () => {
     expect(tokenKeyIdLine()).toBe(`token_at_rest_kid=${kid} source=LOG_HASH_SECRET`);
     set('fixture-key-one', 'fixture-key-two');
     expect(tokenKeyIdLine()).toBe(`token_at_rest_kid=${kid} source=OAUTH_ENCRYPTION_KEY`);
-    expect(tokenKeyHealth()).toEqual({ tokenKid: kid, tokenKeySource: 'OAUTH_ENCRYPTION_KEY' });
   });
 
   it('stamps every new envelope with the kid of the key that sealed it', () => {

@@ -9,6 +9,7 @@
  */
 import type { Firestore, Query } from '@google-cloud/firestore';
 import { queueFields, readEntry, type QueueEntry } from './queue.js';
+import { readSettings, SETTINGS_DOC, type WaitlistSettings } from './settings.js';
 
 export interface WaitlistStore {
   get: (id: string) => Promise<QueueEntry | null>;
@@ -21,6 +22,8 @@ export interface WaitlistStore {
   merge: (id: string, data: Record<string, unknown>) => Promise<void>;
   /** Once per referred person: +1 verified referral for the inviter, and their place recomputed. */
   creditReferral: (inviterId: string, referredId: string) => Promise<boolean>;
+  /** waitlist_settings/current, with defaults for anything missing. */
+  settings: () => Promise<WaitlistSettings>;
 }
 
 /** Firestore rejects undefined fields; drop them. */
@@ -65,6 +68,10 @@ export function firestoreWaitlistStore(db: Firestore): WaitlistStore {
         tx.set(col.doc(referredId), { referralCredited: true }, { merge: true });
         return true;
       });
+    },
+    async settings() {
+      const snap = await db.collection(SETTINGS_DOC.collection).doc(SETTINGS_DOC.id).get();
+      return readSettings(snap.data());
     },
   };
 }

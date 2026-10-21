@@ -1,0 +1,10 @@
+[
+  {"name": "event_ts", "type": "TIMESTAMP", "mode": "REQUIRED"},
+  {"name": "env", "type": "STRING"},
+  {"name": "user_hash", "type": "STRING"},
+  {"name": "item_hash", "type": "STRING"},
+  {"name": "item_kind", "type": "STRING"},
+  {"name": "outcome", "type": "STRING"},
+  {"name": "delay_hours", "type": "FLOAT64"},
+  {"name": "surfaced_via", "type": "STRING"}
+]
