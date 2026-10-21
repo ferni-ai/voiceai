@@ -67,6 +67,7 @@ enum UITestScenario: String {
         let notes: [(id: String, content: String, kind: String, daysAgo: Double)] = [
             ("m1", "Walk before work, three mornings a week", "goal", 0.2),
             ("m6", "Sister Ana's birthday is Friday", "fact", 0.2),
+            ("m9", "Mom's knee surgery went well", "fact", 2),
             ("m5", "Has a dog called Biscuit", "fact", 3),
             ("m3", "Strong coffee, no sugar", "preference", 5),
             ("m7", "Finished the garden this month", "fact", 12),

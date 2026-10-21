@@ -248,7 +248,19 @@ struct MemoryScreen: View {
                 // A journal, not a database: said to you, newest first, each note
                 // with when Ferni learned it and a Forget you can see (design
                 // audit P2 #6: third person, grouped by type, Forget in a swipe).
-                ForEach(MemoryJournal.sections(memory.notes, now: .now), id: \.period) { section in
+                // The people in your life first, each under their own name (award
+                // upgrade 7); then the rest, newest first.
+                let people = MemoryJournal.people(memory.notes)
+                ForEach(people, id: \.who) { person in
+                    Section {
+                        ForEach(person.notes) { note in NoteRow(note: note) { forgetting = note } }
+                    } header: {
+                        Text("Your \(person.who)").foregroundStyle(FerniColor.textSecondary)
+                    }
+                    .accessibilityIdentifier("memory.person.\(person.who)")
+                }
+                let theirs = Set(people.flatMap(\.notes).map(\.id))
+                ForEach(MemoryJournal.sections(memory.notes.filter { !theirs.contains($0.id) }, now: .now), id: \.period) { section in
                     Section {
                         ForEach(section.notes) { note in
                             // No swipe as well: it forgot without asking, and its hidden

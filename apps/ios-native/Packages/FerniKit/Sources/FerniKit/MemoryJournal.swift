@@ -35,6 +35,34 @@ public enum MemoryJournal {
         }
     }
 
+    /// The people in your life first (award upgrade 7): notes about one person
+    /// (your sister, your mom, your dog), grouped under them, most recently
+    /// learned first. "who" is the relation word, as the note names it.
+    public static func people(_ notes: [MemoryStore.Note]) -> [(who: String, notes: [MemoryStore.Note])] {
+        var groups: [String: [MemoryStore.Note]] = [:]
+        for note in notes { if let who = person(note.content) { groups[who, default: []].append(note) } }
+        func newest(_ n: [MemoryStore.Note]) -> Date { n.compactMap(\.learnedAt).max() ?? .distantPast }
+        return groups.map { (who: $0.key, notes: sections($0.value, now: .distantFuture).flatMap(\.notes)) }
+            .sorted { newest($0.notes) != newest($1.notes) ? newest($0.notes) > newest($1.notes) : $0.who < $1.who }
+    }
+
+    /// Who a note is about, when it leads with a person in your life: "Sister
+    /// Ana's birthday", "Mom's knee", "User's sister lives in Lisbon". Nil for
+    /// notes about you.
+    public static func person(_ note: String) -> String? {
+        var words = note.trimmingCharacters(in: .whitespaces).split(separator: " ").map(String.init)
+        if let first = words.first?.lowercased(), ["user's", "user’s", "your"].contains(first) {
+            words.removeFirst()
+        } else if words.count > 1, words[0].lowercased() == "the", ["user's", "user’s"].contains(words[1].lowercased()) {
+            words.removeFirst(2)
+        }
+        guard let word = words.first?.lowercased()
+            .replacingOccurrences(of: "’s", with: "").replacingOccurrences(of: "'s", with: "")
+            .trimmingCharacters(in: .punctuationCharacters),
+            family.contains(word), words.count > 1 else { return nil }
+        return word
+    }
+
     /// A note said to you. Only the shapes it's sure of change: a leading
     /// "User"/"The user", a leading third-person verb it knows, or a leading
     /// family word ("Sister Ana's birthday" → "Your sister Ana's birthday").

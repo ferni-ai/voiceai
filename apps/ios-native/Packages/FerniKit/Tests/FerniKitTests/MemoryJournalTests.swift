@@ -64,4 +64,22 @@ final class MemoryJournalTests: XCTestCase {
         XCTAssertEqual(MemoryJournal.sections([note("a", daysAgo: 40)], now: now, calendar: utc).map(\.period), [.earlier],
                        "only periods that have notes")
     }
+
+    /// Award upgrade 7: the people in your life first, each with their notes.
+    func testThePeopleInYourLifeComeFirst() {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        func note(_ text: String, daysAgo: Double) -> MemoryStore.Note {
+            MemoryStore.Note(id: text, content: text, kind: "fact", learnedAt: now.addingTimeInterval(-daysAgo * 86_400), canForget: true)
+        }
+        let notes = [note("Likes strong coffee", daysAgo: 0), note("Sister Ana's birthday is Friday", daysAgo: 3),
+                     note("Mom's knee surgery went well", daysAgo: 1), note("User's sister lives in Lisbon", daysAgo: 10),
+                     note("Has a dog called Biscuit", daysAgo: 2), note("Dog Biscuit hates baths", daysAgo: 5)]
+        let people = MemoryJournal.people(notes)
+        XCTAssertEqual(people.map(\.who), ["mom", "sister", "dog"], "most recently learned first")
+        XCTAssertEqual(people[1].notes.map(\.id), ["Sister Ana's birthday is Friday", "User's sister lives in Lisbon"])
+        XCTAssertNil(MemoryJournal.person("Likes strong coffee"), "about you, not a person")
+        XCTAssertNil(MemoryJournal.person("Has a dog called Biscuit"), "you have a dog: about you")
+        XCTAssertNil(MemoryJournal.person("Mom"), "a word alone isn't a note about her")
+        XCTAssertEqual(MemoryJournal.person("The user's brother Sam got his license"), "brother")
+    }
 }

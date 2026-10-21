@@ -61,3 +61,11 @@ extension XCTestCase {
         add(shot)
     }
 }
+
+extension XCUIApplication {
+    /// Settings' "What Ferni remembers" link, not Home's button of the same name
+    /// behind the Settings sheet (award upgrade 7).
+    var memoryLink: XCUIElement {
+        buttons.matching(NSPredicate(format: "label == 'What Ferni remembers' AND identifier != 'home.memory'")).firstMatch
+    }
+}
