@@ -107,6 +107,9 @@ struct CallCaptions: View {
         VStack(alignment: .leading, spacing: FerniSpace.breath) {
             let labelled = Self.labelled(lines)
             ForEach(lines) { line in
+              if line.joined, let id = line.personaID {
+                Joined(personaID: id)
+              } else {
                 let text = line.text.trimmingCharacters(in: .whitespacesAndNewlines)
                 let isFerni = line.speaker == .ferni
                 if labelled.contains(line.id), let id = line.personaID { Speaker(personaID: id) }
@@ -126,6 +129,7 @@ struct CallCaptions: View {
                         // Only Ferni's lines can be reported (critic M4).
                         if isFerni { Button("Report this reply") { report(line) } }
                     }
+              }
             }
             if let state = Self.state(call, name: name) {
                 HStack(spacing: FerniSpace.breath) {
@@ -154,7 +158,7 @@ struct CallCaptions: View {
     /// handoff, Maya's words looked exactly like Ferni's (design audit P1-3).
     /// A call with only Ferni stays as it was.
     static func labelled(_ lines: [Caption]) -> Set<String> {
-        let ours = lines.filter { $0.speaker == .ferni }
+        let ours = lines.filter { $0.speaker == .ferni && !$0.joined }
         let who = Set(ours.compactMap(\.personaID))
         guard who.count > 1 || who.contains(where: { $0 != PersonaRegistry.ferni.id }) else { return [] }
         var labelled: Set<String> = [], previous: String?
@@ -185,6 +189,28 @@ struct CallCaptions: View {
 }
 
 /// Whose words follow: a dot in the teammate's colour and their name.
+/// A teammate came in (award upgrade 4): her dot and "Maya joined", quiet
+/// and centred between the words, so the captions say when the voice changed.
+/// VoiceOver reads it in place among the captions; the handoff itself is
+/// announced once, by the avatar.
+private struct Joined: View {
+    let personaID: String
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Circle()
+                .fill(WindowPersona(personaId: personaID).primaryColor)
+                .frame(width: 8, height: 8)
+            Text("\(PersonaRegistry.get(personaID).name) joined")
+                .font(FerniType.caption)
+                .foregroundStyle(FerniColor.textSecondary)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("captions.joined.\(personaID)")
+    }
+}
+
 private struct Speaker: View {
     let personaID: String
 
