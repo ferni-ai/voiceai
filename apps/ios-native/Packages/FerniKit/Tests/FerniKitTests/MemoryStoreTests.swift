@@ -59,6 +59,7 @@ final class MemoryStoreTests: XCTestCase {
         XCTAssertFalse(memory.notes.contains(note))
         XCTAssertEqual(server.requests.last?.httpMethod, "DELETE")
         XCTAssertEqual(server.requests.last?.url?.path, "/api/cognitive/memories/m1")
+        XCTAssertEqual(memory.forgotten, 1, "the remember card looks again")
     }
 
     func testIfTheServerRefusesTheNoteComesBack() async throws {
@@ -70,6 +71,7 @@ final class MemoryStoreTests: XCTestCase {
         let forgotten = await memory.forget(note)
         XCTAssertFalse(forgotten)
         XCTAssertEqual(memory.notes.first, note)
+        XCTAssertEqual(memory.forgotten, 0, "nothing was forgotten")
     }
 
     func testAProfileNoteCantBeForgotten() async throws {

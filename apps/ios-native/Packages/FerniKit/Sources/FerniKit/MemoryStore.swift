@@ -20,6 +20,9 @@ public final class MemoryStore {
 
     public private(set) var notes: [Note] = []
     public private(set) var load: Load = .idle
+    /// Bumped by every forget the server accepts: what shows a note elsewhere
+    /// (the "I'll remember" card) looks again (critic L).
+    public private(set) var forgotten = 0
 
     private let api: FerniAPI
     /// Bumped on every reset: an answer requested for an earlier person is dropped.
@@ -68,6 +71,7 @@ public final class MemoryStore {
         do {
             let id = note.id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? note.id
             _ = try await api.data("/api/cognitive/memories/\(id)", method: "DELETE")
+            forgotten += 1
             return true
         } catch {
             if asked == generation { notes.insert(note, at: min(index, notes.count)) }
