@@ -1,5 +1,7 @@
 /**
- * Who a monetization request may act for, and who may read an organization.
+ * Who a monetization request may act for, and the handlers whose answer
+ * depends on who the caller is (organization reads, tip completion, partner
+ * feedback).
  *
  * The monetization router only runs optional auth, and the request-identity
  * door rewrites the query and headers but not the body. So a write acts for
@@ -13,6 +15,12 @@
  * @module api/monetization-access
  */
 import { b2bLicensing } from '../services/monetization/b2b-licensing.js';
+import { contextualPartnerships } from '../services/monetization/contextual-partnerships.js';
+import { tipJar } from '../services/monetization/tip-jar.js';
+import { verifyPayment } from '../services/stripe-payments.js';
+import { createLogger } from '../utils/safe-logger.js';
+
+const log = createLogger({ module: 'MonetizationAccess' });
 
 interface Ctx {
   method: string;
@@ -104,4 +112,61 @@ export async function getOrganization(ctx: Ctx): Promise<Answer> {
     roiEstimate: b2bLicensing.getROIEstimate(org),
     onboardingChecklist: b2bLicensing.getOnboardingChecklist(org),
   });
+}
+
+/**
+ * POST /api/monetization/tip/complete
+ *
+ * Confirms the caller's own tip only; a payment intent that belongs to someone
+ * else answers like one that doesn't exist. Intents with no owner still answer.
+ */
+export async function completeTip(ctx: Ctx): Promise<Answer> {
+  const { paymentIntentId } = (ctx.body ?? {}) as { paymentIntentId?: string };
+  if (!paymentIntentId) return json(400, { error: 'paymentIntentId is required' });
+
+  try {
+    const result = await verifyPayment(paymentIntentId);
+    if (result.userId && result.userId !== ctx.authUserId) {
+      return json(404, { error: 'Payment not found' });
+    }
+    if (!result.succeeded) {
+      return json(200, { success: false, message: 'Payment not yet completed' });
+    }
+    return json(200, { success: true, thankYouMessage: tipJar.getThankYou() });
+  } catch (error) {
+    log.error({ error: String(error) }, 'Failed to verify tip');
+    return json(500, { error: 'Failed to verify payment' });
+  }
+}
+
+/** `${uid}:${partnerId}` for each partner a person has rated, oldest first */
+const partnerVotes = new Set<string>();
+const MAX_PARTNER_VOTES = 50_000;
+
+/**
+ * POST /api/monetization/partners/feedback
+ *
+ * Feedback moves a partner's global quality score, and eight "not_helpful"
+ * votes deactivate it, so only a person's first vote on a partner counts;
+ * repeats are thanked, not applied.
+ */
+export async function recordPartnerFeedback(ctx: Ctx): Promise<Answer> {
+  const { partnerId, feedback } = (ctx.body ?? {}) as {
+    partnerId?: string;
+    feedback?: 'helpful' | 'not_helpful';
+  };
+  if (!partnerId || !feedback) {
+    return json(400, { error: 'partnerId and feedback are required' });
+  }
+
+  const vote = `${ctx.authUserId}:${partnerId}`;
+  if (!partnerVotes.has(vote)) {
+    partnerVotes.add(vote);
+    // bounded: forget the oldest vote rather than grow without limit
+    if (partnerVotes.size > MAX_PARTNER_VOTES) {
+      partnerVotes.delete(partnerVotes.values().next().value as string);
+    }
+    contextualPartnerships.updateQuality(partnerId, feedback);
+  }
+  return json(200, { success: true, message: 'Thank you for your feedback!' });
 }

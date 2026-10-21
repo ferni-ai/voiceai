@@ -34,10 +34,14 @@ import {
   createPaymentIntent,
   getUserMonetizationData,
   isStripeConfigured,
-  verifyPayment,
 } from '../services/stripe-payments.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { getOrganization, refuseUnverifiedWrite } from './monetization-access.js';
+import {
+  completeTip,
+  getOrganization,
+  recordPartnerFeedback,
+  refuseUnverifiedWrite,
+} from './monetization-access.js';
 import { handleMonetizationWebhook } from './monetization-webhook.js';
 
 // Initialize persistence on module load
@@ -150,62 +154,6 @@ async function createTip(ctx: RequestContext): Promise<ResponseContext> {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
       body: { error: String(error) },
-    };
-  }
-}
-
-/**
- * POST /api/monetization/tip/complete
- * Confirm tip payment succeeded
- *
- * SECURITY: verified caller only (refuseUnverifiedWrite), and only for their own
- * payment; someone else's answers like one that doesn't exist.
- */
-async function completeTip(ctx: RequestContext): Promise<ResponseContext> {
-  const { paymentIntentId } = ctx.body as { paymentIntentId?: string };
-
-  if (!paymentIntentId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'paymentIntentId is required' },
-    };
-  }
-
-  try {
-    const result = await verifyPayment(paymentIntentId);
-
-    if (result.userId && result.userId !== ctx.authUserId) {
-      return {
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-        body: { error: 'Payment not found' },
-      };
-    }
-
-    if (result.succeeded) {
-      const thankYou = tipJar.getThankYou();
-      return {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: {
-          success: true,
-          thankYouMessage: thankYou,
-        },
-      };
-    }
-
-    return {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: { success: false, message: 'Payment not yet completed' },
-    };
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to verify tip');
-    return {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Failed to verify payment' },
     };
   }
 }
@@ -624,49 +572,6 @@ async function recordPartnerClick(ctx: RequestContext): Promise<ResponseContext>
       referralId: referral.id,
       affiliateUrl: partner?.affiliateUrl || null,
     },
-  };
-}
-
-/** Partners each verified caller has already rated: one vote per person per partner */
-const partnerVotes = new Set<string>();
-const MAX_PARTNER_VOTES = 50_000;
-
-/**
- * POST /api/monetization/partners/feedback
- * Record feedback on a partner recommendation
- *
- * SECURITY: verified caller only (refuseUnverifiedWrite). Feedback moves a
- * partner's global quality score and eight "not_helpful" votes deactivate it, so
- * only a person's first vote on a partner counts; repeats are thanked, not applied.
- */
-async function recordPartnerFeedback(ctx: RequestContext): Promise<ResponseContext> {
-  const { partnerId, feedback } = ctx.body as {
-    partnerId?: string;
-    feedback?: 'helpful' | 'not_helpful';
-  };
-
-  if (!partnerId || !feedback) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'partnerId and feedback are required' },
-    };
-  }
-
-  const vote = `${ctx.authUserId}:${partnerId}`;
-  if (!partnerVotes.has(vote)) {
-    partnerVotes.add(vote);
-    // bounded: forget the oldest vote rather than grow without limit
-    if (partnerVotes.size > MAX_PARTNER_VOTES) {
-      partnerVotes.delete(partnerVotes.values().next().value as string);
-    }
-    contextualPartnerships.updateQuality(partnerId, feedback);
-  }
-
-  return {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-    body: { success: true, message: 'Thank you for your feedback!' },
   };
 }
 
