@@ -48,6 +48,8 @@ export const FLAG_MANIFEST = {
   // on: a caller's voice create, update and delete go to their connected calendar, not only Ferni's list (#1749)
   CALENDAR_WRITE_TO_PROVIDER: { default: 'off', owner: 'tools', kind: 'experiment' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
+  // on: the per-turn crisis check waits at most 150 ms, then the turn goes on without it (better-than-human-builders.ts)
+  CALL_START_TRIM: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
