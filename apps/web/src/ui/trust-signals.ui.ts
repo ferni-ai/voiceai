@@ -30,7 +30,7 @@ import {
 } from '../services/relationship-stage.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { showToast } from './overlay/toast-region.js';
 import { ICONS, SIGNAL_CONFIG, type TrustSignalType } from './trust-signals-config.js';
 
@@ -165,7 +165,7 @@ export function showTrustSignal(signal: Omit<TrustSignal, 'id' | 'timestamp'>): 
     return;
   }
 
-  if (isOverlayHostEnabled()) {
+  if (isToastRegionEnabled()) {
     showSignalToast(fullSignal, signalKey);
     log.info('Trust signal shown', { type: signal.type, title: signal.title });
     return;

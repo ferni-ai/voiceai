@@ -46,7 +46,14 @@ export type Env = Record<string, string | undefined>;
 
 /** What a text was: the after-call check-in, a follow-up (commitment, thread), a reminder the user set, a text the member got right away ("text me that"), or one sent for a member to someone else. */
 export type TextKind =
-  'checkin' | 'follow-up' | 'reminder' | 'message' | 'on-behalf' | 'morning-brief' | 'call-result';
+  | 'checkin'
+  | 'follow-up'
+  | 'reminder'
+  | 'message'
+  | 'on-behalf'
+  | 'morning-brief'
+  | 'call-result'
+  | 'opt-in';
 
 export interface CheckinRecord {
   userId: string;

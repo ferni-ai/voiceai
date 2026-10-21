@@ -35,7 +35,7 @@ export interface RelationshipStats {
   familyCount: number;
   friendCount: number;
   colleagueCount: number;
-  averageStrength: number | null; // null until a contact has a score: shown as a dash
+  averageStrength: number | null; // null until someone has a real interaction: "Not enough yet"
   upcomingDates: number;
   needsAttention: number;
 }
@@ -328,7 +328,7 @@ function injectStyles(): void {
       color: var(--color-text-primary, #2C2520);
       line-height: 1;
     }
-
+    .ri-stat-empty, .ri-chart-empty { font-size: var(--text-sm, 0.875rem); font-weight: 500; }
     .ri-stat-label {
       font-size: var(--text-xs, 0.75rem);
       color: var(--color-text-muted, #a89b8c);
@@ -744,7 +744,7 @@ function renderOverviewTab(): string {
         <div class="ri-stat-label">${t('relationshipInsights.upcomingDates')}</div>
       </div>
       <div class="ri-stat">
-        <div class="ri-stat-value">${stats.averageStrength === null ? '–' : `${stats.averageStrength}%`}</div>
+        <div class="ri-stat-value">${stats.averageStrength === null ? `<span class="ri-stat-empty">${t('relationshipInsights.notEnoughYet')}</span>` : `${stats.averageStrength}%`}</div>
         <div class="ri-stat-label">${t('relationshipInsights.avgStrength')}</div>
       </div>
     </div>
@@ -774,7 +774,7 @@ function renderOverviewTab(): string {
     <!-- Strength Distribution -->
     <div class="ri-strength-chart">
       <div class="ri-chart-title">${t('relationshipInsights.strength')}</div>
-      <div class="ri-chart-bars">
+      <div class="ri-chart-bars">${strengthDistribution.length === 0 ? `<p class="ri-chart-empty">${t('relationshipInsights.strengthNotEnough')}</p>` : ''}
         ${strengthDistribution
           .map(
             (item) => `

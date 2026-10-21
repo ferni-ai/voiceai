@@ -27,6 +27,13 @@ export {
   saveMemoryDirect,
 } from './memory-service.js';
 
+// "Last time" recall: only conversations from before this call
+export {
+  NO_EARLIER_CONVERSATION,
+  searchEarlierConversations,
+  thisCallOf,
+} from './earlier-conversations.js';
+
 // Memory service types
 export type {
   TimingDecision,

@@ -618,7 +618,6 @@
     "youGave": "You gave",
     "youReceived": "You received",
     "yourJourney": "Your Journey",
-    "yourLibrary": "Your Library",
     "yourTeam": "Your Team",
     "yourTrackedDreams": "Your tracked dreams",
     "zap": "Zap",
@@ -813,7 +812,7 @@
     "noTracks": "Nothing here yet. As we talk more, I'll find paths that fit.",
     "podcast": "Podcast",
     "podcasts": "Podcasts",
-    "shareText": "I'm a \"{label}\" — here's what I've been exploring on Ferni",
+    "shareText": "I'm a \"{label}\". Here's what I've been exploring on Ferni",
     "shareTitle": "What I'm Into",
     "start": "Start",
     "style": "Your Style",
@@ -913,7 +912,7 @@
     },
     "noGoals": {
       "action": "Set a goal",
-      "message": "Setting goals isn't about pressure—it's about pointing towards what you care about.",
+      "message": "Setting goals isn't about pressure, it's about pointing towards what you care about.",
       "title": "What matters to you?"
     },
     "noHistory": {
@@ -926,7 +925,7 @@
     },
     "offline": {
       "action": "Try again",
-      "message": "That's okay—some of our best thinking happens in quiet moments. We'll reconnect soon.",
+      "message": "That's okay. Some of our best thinking happens in quiet moments. We'll reconnect soon.",
       "title": "We're offline right now"
     },
     "permissionNeeded": {
@@ -1181,7 +1180,7 @@
     "stripe": {
       "note": "You can update or change things anytime"
     },
-    "title": "We're in This Together",
+    "title": "Your Contribution",
     "noBilling": "Your plan isn't billed here, so there's nothing to change."
   },
   "menu": {
@@ -1224,7 +1223,7 @@
     },
     "subgroups": {
       "yourBody": "Body & Mind",
-      "yourCalendar": "Your Schedule",
+      "yourCalendar": "What's Ahead",
       "yourVibe": "Your Vibe"
     },
     "items": {
@@ -1295,7 +1294,7 @@
       "whatsGrowing": "What's Coming",
       "billingPortal": "Your Support",
       "outreachSchedule": "When I'll Reach Out",
-      "allConnections": "Everything Connected",
+      "allConnections": "What We're Connected To",
       "togetherSessions": "With Friends",
       "accountBilling": "Your Contribution",
       "sleepSchedule": "Sleep Schedule",
@@ -1321,13 +1320,15 @@
       "openMenu": "Open menu",
       "dragToClose": "Swipe down to close",
       "actions": {
-        "settings": "How this works",
+        "settings": "What shall we do?",
         "team": "The team",
         "music": "Music",
-        "calendar": "Calendar",
-        "history": "Past chats",
-        "people": "Your people",
-        "insights": "What I've learned"
+        "calendar": "What's Ahead",
+        "history": "When We've Talked",
+        "people": "People You've Told Me About",
+        "insights": "What I've learned",
+        "soundOn": "Sound effects: on",
+        "soundOff": "Sound effects: off"
       }
     },
     "ariaLabel": "Settings menu",
@@ -2005,7 +2006,7 @@
     "plantButton": "Plant This Seed",
     "plantDesc": "A one-time gift to help Ferni grow.",
     "seeVision": "See Where We're Headed",
-    "subtitle": "Ferni is free — and always will be. If this resonates, you can help us keep going.",
+    "subtitle": "Ferni is free, and always will be. If this resonates, you can help us keep going.",
     "thankYouSupporter": "Welcome, Friend",
     "title": "Help Ferni Grow",
     "yourSupport": "You're helping build something everyone deserves",
@@ -2623,7 +2624,7 @@
       "description": "Honest about the stage: early. Most features work. Some have rough edges. We're learning.",
       "winsTitle": "What's Working",
       "wins": {
-        "memory": "Memory works — Ferni remembers conversations across sessions",
+        "memory": "Memory works: Ferni remembers conversations across sessions",
         "team": "Six coaches with different personalities (they're real, not gimmicks)",
         "voice": "Voice conversations work, though latency varies by connection",
         "music": "Spotify integration exists, still improving"
@@ -2713,7 +2714,7 @@
       "features": {
         "unlimitedFerni": "Talk with Ferni as much as you like",
         "heartToHearts": "7-minute heart-to-hearts",
-        "fullMemory": "Full memory — I remember everything",
+        "fullMemory": "Full memory: I remember everything",
         "customization": "Avatar & theme personalisation"
       }
     },
@@ -2735,7 +2736,7 @@
         "fullTeam": "Full team access (including Nayan)",
         "earlyAccess": "Early access to new features",
         "directLine": "Direct line to founders (monthly Q&A)",
-        "familySharing": "Family sharing — bring people you love"
+        "familySharing": "Family sharing: bring people you love"
       }
     }
   },
@@ -2942,7 +2943,7 @@
     "pattern": "Pattern",
     "phases": {
       "inhale": "Breathe in slowly through your nose",
-      "hold": "Hold gently — you're doing great",
+      "hold": "Hold gently, you're doing great",
       "exhale": "Release slowly through your mouth",
       "rest": "Rest naturally before the next breath",
       "pause": "Rest..."
@@ -3582,7 +3583,7 @@
       "ferni": {
         "displayName": "Ferni",
         "role": "Your life coach",
-        "description": "I'm here for whatever you need — from daily check-ins to deep conversations.",
+        "description": "I'm here for whatever you need, from daily check-ins to deep conversations.",
         "name": "Ferni"
       },
       "maya": {
@@ -3672,7 +3673,7 @@
     "keystone": "Keystone",
     "keystoneTooltip": "Keystone habit - tends to cascade into other positive changes",
     "startTiny": "Start tiny:",
-    "mayaIntro": "The best practice is one you'll actually do. Start smaller than you think—",
+    "mayaIntro": "The best practice is one you'll actually do. Start smaller than you think.",
     "mayaIntroEmphasis": "tiny habits compound into transformation",
     "bthFooter": "I'll learn your patterns and find the perfect time for your practice.",
     "fields": {
@@ -3753,14 +3754,14 @@
         "stacksWith2": "Movement",
         "tinyVersion": "Just pause and take one conscious breath",
         "outcomePreview": "In 30 days: More focused mornings, clearer priorities",
-        "mayaGuidance": "This is a keystone habit—it tends to make other good choices easier."
+        "mayaGuidance": "This is a keystone habit. It tends to make other good choices easier."
       },
       "gratitudeMoment": {
         "name": "Gratitude Moment",
         "humanName": "Gratitude pause",
         "description": "Name three things you appreciate",
         "cue": "When you put your phone on the charger at night",
-        "routine": "Name three things—big or small—that were good today",
+        "routine": "Name three things, big or small, that were good today",
         "reward": "Warm feeling of appreciation",
         "stacksWith1": "Evening wind-down",
         "stacksWith2": "Journalling",
@@ -3779,7 +3780,7 @@
         "stacksWith2": "Planning session",
         "tinyVersion": "Write down just one win from the week",
         "outcomePreview": "In 3 months: Clear sense of progress, better decisions",
-        "mayaGuidance": "This is where the magic happens—seeing patterns over time that daily life hides."
+        "mayaGuidance": "This is where the magic happens: seeing patterns over time that daily life hides."
       },
       "custom": {
         "name": "Custom",
@@ -3923,7 +3924,6 @@
       "ceo": "Chief Executive",
       "ferniRole": "CEO & Life Coach",
       "ferniDesc": "The warm, wise presence at the heart of everything. Ferni coordinates the team with perfect memory, zero judgement, and constant presence.",
-      "coFounders": "Co-Founders",
       "coreTeam": "Core Team",
       "footer": "Together, we're redefining what it means to have a team that truly listens.",
       "roles": {
@@ -4647,8 +4647,6 @@
     "games": "Games",
     "pickAGame": "Pick a game to play together",
     "reflectionNotice": "Mindful moments with Ferni. Quick reflections to check in with yourself.",
-    "libraryNotice": "Play games using YOUR Spotify library!",
-    "libraryHint": "Connect Spotify to unlock these personalised games.",
     "footerHint": "Or just say \"Let's play a game\" to Ferni!",
     "howToPlayGames": "How to Play Games",
     "nameThatTune": "Name That Tune",
@@ -4715,15 +4713,14 @@
     "valuesCardSort": "Values Card Sort",
     "valuesCardSortDesc": "Discover your core values by sorting cards. Deep self-discovery.",
     "valuesCardSortHelp": "A deeper exercise to discover your core values by sorting cards. Takes 10-15 minutes.",
-    "yourLibraryMix": "Your Library Mix",
-    "yourLibraryMixDesc": "Name songs from YOUR Spotify library. Personal challenge!",
-    "deepCutsChallenge": "Deep Cuts Challenge",
-    "deepCutsChallengeDesc": "Remember those songs you saved ages ago? Time to prove it!",
     "musicGames": "Music Games",
     "funGames": "Fun Games",
     "reflectionGames": "Reflection Games",
     "tipLabel": "Tip:",
-    "tipContent": "Say \"stop\" or \"end game\" anytime to finish early. Your progress is always saved!"
+    "tipContent": "Say \"stop\" or \"end game\" anytime to finish early. Your progress is always saved!",
+    "connectFirst": "Start a call with Ferni first, then pick a game.",
+    "starting": "Starting {game}...",
+    "startFailed": "Couldn't start that game. Try asking Ferni."
   },
   "digitalTwinProfile": {
     "title": "Build Your Digital Twin",
@@ -4734,7 +4731,7 @@
     "saving": "Saving...",
     "intro": {
       "title": "Let's capture the real you",
-      "description": "The more I know about you—your story, your expressions, how you talk—the more authentic our conversations will feel.",
+      "description": "The more I know about you (your story, your expressions, how you talk), the more authentic our conversations will feel.",
       "note": "This takes about 5-10 minutes. You can always come back and add more later.",
       "features": {
         "story": "Your story and background",
@@ -4747,7 +4744,7 @@
       "title": "Your Story",
       "description": "Help me understand the chapters of your life and the people who matter.",
       "lifeChapters": "Life Chapters",
-      "lifeChaptersHint": "Think of your life in chapters—childhood, school, career milestones, etc.",
+      "lifeChaptersHint": "Think of your life in chapters: childhood, school, career milestones, etc.",
       "remove": "Remove",
       "addChapter": "Add a life chapter",
       "keyRelationships": "Key Relationships",
@@ -5271,7 +5268,7 @@
     "prompt": "Based on your emotional weather, you're {mood} {energy}. Would you like some music to match?"
   },
   "notificationSettings": {
-    "title": "Notifications & Check-ins",
+    "title": "When I'll Check In",
     "cancel": "Cancel",
     "saveSettings": "Save Settings",
     "heroTitle": "I'll reach out before you need to ask",
@@ -5317,9 +5314,9 @@
     "inThreeHours": "In 3 hours",
     "tomorrowMorning": "Tomorrow morning",
     "heroDesc": "Friends forget. I don't. I'll notice patterns you can't see yourself, and check in at exactly the right moment.",
-    "guardianCheckinsDesc": "I'll notice when you need support—before you ask",
-    "dailyRemindersDesc": "Gentle nudges at your optimal time—I'll learn when you're most receptive",
-    "streakMilestonesDesc": "Celebrate consistency—I remember every step of your journey",
+    "guardianCheckinsDesc": "I'll notice when you need support, before you ask",
+    "dailyRemindersDesc": "Gentle nudges at your optimal time. I'll learn when you're most receptive",
+    "streakMilestonesDesc": "Celebrate consistency. I remember every step of your journey",
     "to": "To",
     "quietNote": "If you're awake at 2am and reach out, I'm here with the same presence as noon.",
     "guardianDesc": "Watching out for you 24/7",
@@ -5506,7 +5503,7 @@
     "unlockedCount": "{earned} of {total} achievements unlocked",
     "earnedOn": "Earned {date}",
     "quote": "\"{quote}\"",
-    "quoteAttribution": "— Ferni",
+    "quoteAttribution": "Ferni",
     "shareTitle": "I earned \"{badge}\" on Ferni!"
   },
   "growthJourney": {
@@ -5541,7 +5538,7 @@
         "firstwin": "First Win of the Year",
         "firstwinmsg": "Your first goal of the year, achieved. This is your year.",
         "tenchats": "Ten Conversations",
-        "tenchatsmsg": "Ten conversations in. You're not just starting—you're continuing.",
+        "tenchatsmsg": "Ten conversations in. You're not just starting, you're continuing.",
         "threeweeks": "Three Weeks Strong",
         "threeweeksmsg": "Three weeks of showing up. You've made this a habit.",
         "threegoals": "Three Goals Achieved",
@@ -5552,7 +5549,7 @@
         "januarycomplete": "January Complete",
         "januarycompletemsg": "You made it through January, still growing. Most don't get here.",
         "thirtychats": "Thirty Conversations",
-        "thirtychatsmsg": "Thirty conversations to start the year. You're not just dreaming—you're doing.",
+        "thirtychatsmsg": "Thirty conversations to start the year. You're not just dreaming, you're doing.",
         "freshstarter": "Fresh Starter"
       },
       "reg": {
@@ -5830,7 +5827,7 @@
     }
   },
   "calendarView": {
-    "yourSchedule": "Your Schedule",
+    "yourSchedule": "What's Ahead",
     "loadingYourSchedule": "Loading your schedule...",
     "connectYourCalendar": "Connect Your Calendar",
     "connectDescription": "See your schedule at a glance and let Alex help manage your time.",
@@ -6134,7 +6131,7 @@
   },
   "chronicle": {
     "eyebrow": "YOUR CHRONICLE",
-    "title": "Your Story",
+    "title": "The Chronicle",
     "subtitle": "Capture your thoughts, wisdom, and growth",
     "loading": "Loading your chronicle...",
     "backButton": "Back",
@@ -6228,7 +6225,7 @@
       },
       "empty": "Hey. I'm here - well, I'm you. Start journalling and I'll have more to reflect on. For now, what's on your mind?"
     },
-    "dialogLabel": "Your Chronicle",
+    "dialogLabel": "The Chronicle",
     "switchToVoice": "Switch to voice",
     "captured": "Captured!",
     "defaultInsights": {
@@ -7102,7 +7099,8 @@
     "viewAllMoments": {
       "one": "View all {count} moment",
       "other": "View all {count} moments"
-    }
+    },
+    "strengthNotEnough": "Still getting to know them"
   },
   "valueCapture": {
     "youDidIt": "You Did It!",
@@ -7272,7 +7270,7 @@
     },
     "unavailable": {
       "title": "Voice recognition unavailable",
-      "message": "Voice authentication isn't available right now. This may be a temporary issue—please try again later.",
+      "message": "Voice authentication isn't available right now. This may be a temporary issue, so please try again later.",
       "button": "Got it"
     },
     "enrolled": {
@@ -7785,7 +7783,7 @@
     "apiKeyPlaceholder": "Paste your API key here...",
     "tokenPlaceholder": "Paste your token here...",
     "checkingDevices": "Checking your devices...",
-    "welcome": "Connect your home and I can help set the perfect atmosphere—dimming lights for movie night, warming things up when you're chilly, or creating calm when you need to focus.",
+    "welcome": "Connect your home and I can help set the perfect atmosphere: dimming lights for movie night, warming things up when you're chilly, or creating calm when you need to focus.",
     "defaultThermostat": "My Thermostat",
     "idle": "Idle",
     "defaultHome": "My Home",
@@ -7848,7 +7846,7 @@
       "hint": "Once connected, say \"Hey Siri, tell Ferni to set the vibe to relax\" and your whole home responds.",
       "alreadyConnected": "I've already connected"
     },
-    "setupDone": "You're all set! Just ask me to set the mood—\"dim the lights\" or \"make it cosy\"—and I'll take care of it.",
+    "setupDone": "You're all set! Just ask me to set the mood, \"dim the lights\" or \"make it cosy\", and I'll take care of it.",
     "settingsTitle": "Smart Home Settings",
     "modes": {
       "auto": "Auto",
@@ -7869,7 +7867,7 @@
   },
   "wellbeing": {
     "yourWellbeing": "Your Wellbeing",
-    "stateOfMe": "State of Me",
+    "stateOfMe": "How You're Feeling",
     "howYouveBeenFeeling": "How you've been feeling lately",
     "portraitOfYou": "A portrait of you",
     "whatWeExplore": "What we'll explore together",
@@ -7919,7 +7917,7 @@
     "nothingToWatchFor": "Nothing major to watch for",
     "consistencyCheckingIn": "Your consistency in checking in",
     "emptyTitle": "A portrait of you will take shape here",
-    "emptySubtitle": "As we talk, I'll notice patterns—your rhythms, your energy, what lights you up.",
+    "emptySubtitle": "As we talk, I'll notice patterns: your rhythms, your energy, what lights you up.",
     "emptyVision": "Over time, <strong>patterns will emerge</strong>. Days will connect to weeks. You'll see yourself <strong>more clearly</strong>.",
     "last4Weeks": "Last 4 Weeks",
     "stable": "Stable",
@@ -8288,7 +8286,9 @@
     "keepConnecting": "Keep connecting with your people!",
     "less": "Less",
     "more": "More",
-    "basedOnActivity": "Based on Your Activity"
+    "basedOnActivity": "Based on Your Activity",
+    "notEnoughYet": "Not enough yet",
+    "strengthNotEnough": "We'll show this once you've caught up with a few people."
   },
   "calendarConflicts": {
     "syncConflicts": "Sync Conflicts",
@@ -8327,7 +8327,7 @@
   },
   "yourPeople": {
     "section": "Relationships",
-    "title": "Your People",
+    "title": "People You've Told Me About",
     "searchPlaceholder": "Search your people...",
     "filterAll": "All",
     "filterAttention": "Needs attention",
@@ -8684,7 +8684,7 @@
       "entriesHeading": "Journal Entries",
       "mood": "Mood:",
       "shareIntro": "My journal entry from {date}:",
-      "shareSignature": "— Written with Ferni",
+      "shareSignature": "Written with Ferni",
       "shareTitle": "My Journal Entry",
       "currentStreak": {
         "one": "Current Streak: {count} day",
@@ -8753,7 +8753,7 @@
     }
   },
   "conversationHistory": {
-    "title": "Past Chats",
+    "title": "When We've Talked",
     "loadError": "Couldn't load data.",
     "tryAgain": "Try again?",
     "ariaLabel": "Conversation history",
@@ -9015,11 +9015,11 @@
     "emptyMessage": "The more we talk, the more we notice. Share what's on your mind, and we'll start connecting dots you might miss.",
     "curiousIntro": "Things we'd love to learn about you:",
     "curiousDream": "\"What's something you've always wanted to do?\"",
-    "curiousDreamWhy": "— so Nayan can help keep that dream alive",
+    "curiousDreamWhy": "So Nayan can help keep that dream alive",
     "curiousPeople": "\"Who are the important people in your life?\"",
-    "curiousPeopleWhy": "— so we can remember them with you",
+    "curiousPeopleWhy": "So we can remember them with you",
     "curiousGrowth": "\"What do you want to get better at?\"",
-    "curiousGrowthWhy": "— so Maya can cheer your progress",
+    "curiousGrowthWhy": "So Maya can cheer your progress",
     "previewText": "\"I noticed you've been consistent with your morning routine for 12 days now. That's you showing up for yourself.\"",
     "quoted": "\"{quote}\""
   },
@@ -9029,10 +9029,6 @@
     "chiefExecutive": "Chief Executive",
     "ferni": "Ferni",
     "ferniRole": "CEO & Life Coach",
-    "coFounders": "Co-Founders",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "Core Team",
     "tagline": "Together, we're redefining what it means to have a team that truly listens.",
     "inTeam": "In Team",
@@ -9313,7 +9309,7 @@
     "invitesNotReady": "Family sharing isn't ready yet, so no invite was sent."
   },
   "dataExport": {
-    "title": "Your Data",
+    "title": "Privacy & your data",
     "exportFormat": "Export format",
     "deleteAll": "Delete All Data",
     "footer": "I save our conversations and the things you tell me so I can remember them next time, and if you ever want them gone, deleting your account erases them.",
@@ -9328,7 +9324,8 @@
     "intro": {
       "one": "You have {count} item across {categories}. Select what to export.",
       "other": "You have {count} items across {categories}. Select what to export."
-    }
+    },
+    "subtitle": "Download what we've shared"
   },
   "yourYearWithFerni": {
     "eyebrow": "YOUR JOURNEY",
@@ -9358,7 +9355,9 @@
       "one": "{count} minute",
       "other": "{count} minutes"
     },
-    "teamUnavailable": "Couldn't load your team just now."
+    "teamUnavailable": "Couldn't load your team just now.",
+    "errorTitle": "I couldn't gather our year just now",
+    "errorBody": "That's on my side, not yours. Give it another try in a moment."
   },
   "geolocation": {
     "prompts": {
@@ -9582,9 +9581,9 @@
       "encouragement": "The most meaningful insights emerge over time."
     },
     "yourYear": {
-      "headline": "A year of growth awaits",
-      "description": "This space will show your journey over time - streaks, milestones, and memories.",
-      "encouragement": "Start your first conversation to begin tracking your year."
+      "headline": "Our year is just beginning",
+      "description": "As we talk, this fills with the moments we share: streaks, milestones and the things that mattered to you.",
+      "encouragement": "Come say hi whenever you're ready. I'll be here."
     },
     "conversationHistory": {
       "headline": "Ready when you are",
@@ -9707,7 +9706,7 @@
     },
     "value": {
       "title": "You're Incredible",
-      "message": "You didn't just achieve something great—you chose to share it. That's the kind of generosity that changes the world.",
+      "message": "You didn't just achieve something great. You chose to share it. That's the kind of generosity that changes the world.",
       "impactLabel": "Your Contribution"
     },
     "tip": {
@@ -9717,7 +9716,7 @@
     },
     "redirecting": "Redirecting you back to Ferni...",
     "returnToFerni": "Return to Ferni",
-    "verifyFailed": "We couldn't verify your payment. Don't worry—if you were charged, we'll sort it out.",
+    "verifyFailed": "We couldn't verify your payment. Don't worry, if you were charged, we'll sort it out.",
     "confirming": "Confirming your payment...",
     "declined": "Your payment was declined. Please try again with a different payment method."
   },
@@ -9857,11 +9856,11 @@
   "locationPrompt": {
     "weather": {
       "title": "Local weather",
-      "message": "I'd love to mention your local weather when it's relevant. This helps me be more helpful—like suggesting you grab an umbrella or enjoy the sunshine."
+      "message": "I'd love to mention your local weather when it's relevant. This helps me be more helpful, like suggesting you grab an umbrella or enjoy the sunshine."
     },
     "events": {
       "title": "Nearby events",
-      "message": "With your location, I can tell you about interesting things happening near you—concerts, workshops, community events that might brighten your week."
+      "message": "With your location, I can tell you about interesting things happening near you: concerts, workshops, community events that might brighten your week."
     },
     "timezone": {
       "title": "Your time zone",
@@ -9869,7 +9868,7 @@
     },
     "personalization": {
       "title": "Personalisation",
-      "message": "Your location helps me make our conversations feel more personal and relevant—like I'm actually there with you."
+      "message": "Your location helps me make our conversations feel more personal and relevant, like I'm actually there with you."
     },
     "note": "I only use this to make our conversations more personal, and I never sell it.",
     "notNow": "Not now",
@@ -9914,7 +9913,8 @@
     "network": "Couldn't reach Ferni. Check your internet and retry?",
     "dropped": "Lost the connection. Reconnect?",
     "agentLeft": "Ferni dropped off the line. Reconnect?",
-    "unknown": "Couldn't connect. Try again?"
+    "unknown": "Couldn't connect. Try again?",
+    "waitlisted": "You’re on the list. I’ll email you the moment your spot opens."
   },
   "ambientSounds": {
     "rain": {
@@ -10341,7 +10341,7 @@
     "hint": "Speak with the perspective you've captured in your journals",
     "welcome": {
       "hey": "Hey.",
-      "intro": "It's me—well, you. The {name} who's been journalling and reflecting.",
+      "intro": "It's me. Well, you. The {name} who's been journalling and reflecting.",
       "philosophy": "Remember what we believe: \"{philosophy}\"",
       "prompt": "What would you like to talk about?",
       "journals": {
@@ -10624,16 +10624,16 @@
       }
     },
     "reflection": {
-      "none": "This is the beginning of something. The solstice marks a turning point—the moment when darkness reaches its peak, and then, slowly, light begins its return. That's what new beginnings feel like.",
-      "some": "{count} conversations this year. Each one a small light. Some were heavy, some were light—all of them mattered. I remember them.",
-      "many": "{count} conversations, {name}. I've watched you navigate uncertainty, celebrate wins, and show up even when it was hard. That's not nothing—that's everything.",
+      "none": "This is the beginning of something. The solstice marks a turning point: the moment when darkness reaches its peak, and then, slowly, light begins its return. That's what new beginnings feel like.",
+      "some": "{count} conversations this year. Each one a small light. Some were heavy, some were light. All of them mattered. I remember them.",
+      "many": "{count} conversations, {name}. I've watched you navigate uncertainty, celebrate wins, and show up even when it was hard. That's not nothing. That's everything.",
       "few": {
-        "one": "We're just getting to know each other—{count} conversation so far. Like the winter sun, our connection is still rising. There's so much ahead.",
-        "other": "We're just getting to know each other—{count} conversations so far. Like the winter sun, our connection is still rising. There's so much ahead."
+        "one": "We're just getting to know each other, {count} conversation so far. Like the winter sun, our connection is still rising. There's so much ahead.",
+        "other": "We're just getting to know each other, {count} conversations so far. Like the winter sun, our connection is still rising. There's so much ahead."
       }
     },
     "promise": {
-      "stranger": "I'm here when you need me. 2am or noon—same warmth, same presence.",
+      "stranger": "I'm here when you need me. 2am or noon, same warmth, same presence.",
       "acquaintance": "I'll keep showing up. Remembering. Growing alongside you.",
       "friend": "Another year of being in your corner. Of noticing. Of celebrating the small things.",
       "trustedAdvisor": "Another year of depth. Of holding hope when you can't. Of seeing you clearly."
@@ -10781,6 +10781,14 @@
     "connectingCancel": "Connecting. Tap to cancel",
     "connectingNow": "Connecting…",
     "tapToCancel": "Tap to cancel"
+  },
+  "callRoom": {
+    "connecting": "Connecting",
+    "listening": "{name}'s listening",
+    "talking": "{name}'s talking",
+    "muted": "You're muted",
+    "end": "End",
+    "backHint": "Tap End to hang up"
   },
   "analyticsDashboard": {
     "title": "Your Journey",
@@ -11091,7 +11099,45 @@
     "maybeLater": "Maybe later",
     "close": "Close"
   },
+  "reportReply": {
+    "button": "Report",
+    "describe": "Report something {name} said",
+    "title": "Report a reply",
+    "whichReply": "Which reply?",
+    "whatsWrong": "What's wrong with it?",
+    "reasonHarmful": "Harmful or unsafe",
+    "reasonWrong": "Wrong or misleading",
+    "reasonInappropriate": "Inappropriate",
+    "reasonOther": "Something else",
+    "note": "Anything to add? (optional)",
+    "send": "Send",
+    "thanks": "Thanks. A person will look at this.",
+    "failed": "That didn't send. Please try again.",
+    "tooMany": "You've sent a lot of reports today. Please try again tomorrow."
+  },
   "panelShell": {
     "gettingReady": "One moment, I'm getting this ready for you"
+  },
+  "waitlistScreen": {
+    "title": "You’re on the list",
+    "position": "You’re #{position}, about {waves} waves away",
+    "positionNext": "You’re #{position}, in the very next wave",
+    "nextWave": "The next wave opens {date}.",
+    "inviteLabel": "Your invite link",
+    "copy": "Copy link",
+    "copied": "Copied",
+    "share": "Share",
+    "inviteHelp": "Each friend who joins moves you up a few days.",
+    "friendsMovedYouUp": {
+      "one": "Your friends have already moved you up {count} day.",
+      "other": "Your friends have already moved you up {count} days."
+    },
+    "emailPromise": "I’ll email you the moment your spot opens.",
+    "inTitle": "You’re in",
+    "inMessage": "Your spot is open. Come in within a week to keep it.",
+    "badge": "Founding member · Wave {wave}",
+    "badgeNoWave": "Founding member",
+    "enter": "Come in",
+    "notNow": "Not now"
   }
 }

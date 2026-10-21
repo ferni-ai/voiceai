@@ -51,6 +51,7 @@ import {
   type QuietHoursUser,
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
+import { reportText } from './outreach-bq.js';
 
 const log = createLogger({ module: 'guarded-text' });
 /** Send locks (lockedSend), kept apart from the records so no query reads them. */
@@ -217,7 +218,7 @@ export async function sendGuardedText(
   const logCtx = { kind: t.kind, refId: t.refId };
   const skip = (reason: TextSkip): TextOutcome => {
     log.info({ ...logCtx, reason }, 'Text skipped');
-    return { sent: false, reason };
+    return reportText(t.userId, t.kind, { sent: false, reason });
   };
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
   const storedId = recordUserId(t.userId, deps.env);
@@ -267,10 +268,10 @@ export async function sendGuardedText(
   if (result === 'locked') return skip('recently-sent');
   if (!result.success) {
     log.warn({ ...logCtx, phoneLast4, error: redactNumbers(result.error) }, 'Text not sent');
-    return { sent: false, reason: 'send-failed' };
+    return reportText(t.userId, t.kind, { sent: false, reason: 'send-failed' });
   }
   log.info({ ...logCtx, phoneLast4 }, 'Text sent');
-  return { sent: true };
+  return reportText(t.userId, t.kind, { sent: true });
 }
 
 // ---------------------------------------------------------------------------
@@ -336,7 +337,7 @@ export async function sendOnBehalfText(
 ): Promise<OnBehalfOutcome> {
   const skip = (reason: Exclude<OnBehalfSkip, 'quiet-hours'>): OnBehalfOutcome => {
     log.info({ kind: 'on-behalf', refId: t.refId, reason }, 'Text skipped');
-    return { sent: false, reason };
+    return reportText(t.senderUserId, 'on-behalf', { sent: false, reason });
   };
   if (!phoneHashKey(deps.env)) return skip('no-hash-secret');
   const to = toE164(t.toPhone);
@@ -347,7 +348,7 @@ export async function sendOnBehalfText(
   if (isQuietAt(now, QUIET_WINDOW, zones)) {
     const until = quietEndsAt(now, QUIET_WINDOW, zones);
     log.info({ kind: 'on-behalf', refId: t.refId, reason: 'quiet-hours' }, 'Text skipped');
-    return { sent: false, reason: 'quiet-hours', until };
+    return reportText(t.senderUserId, 'on-behalf', { sent: false, reason: 'quiet-hours', until });
   }
   const [optedOut, toPhone] = await Promise.all([
     deps.store.isOptedOut(hash),
@@ -382,9 +383,9 @@ export async function sendOnBehalfText(
       { kind: 'on-behalf', refId: t.refId, error: redactNumbers(result.error) },
       'Text not sent'
     );
-    return { sent: false, reason: 'send-failed' };
+    return reportText(t.senderUserId, 'on-behalf', { sent: false, reason: 'send-failed' });
   }
-  return { sent: true };
+  return reportText(t.senderUserId, 'on-behalf', { sent: true });
 }
 
 /**

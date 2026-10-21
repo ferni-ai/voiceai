@@ -155,13 +155,9 @@ describe('caller text cannot make the patterns run away', () => {
     `${'I will '.repeat(1500)}`,
   ];
 
-  // The parser's first call loads its lexicon; time the patterns, not that.
-  beforeAll(() => {
-    judgeCommitment('send Mindy the photos');
-  });
-
-  it.each(pathological.map((s) => [s.slice(0, 24), s]))('%j... finishes in under 50 ms', (_, s) => {
-    let best = Infinity; // best of three: the work done, not a scheduler or GC pause
+  // best of three: the work done, not a scheduler or GC pause
+  const bestOfThree = (s: string): number => {
+    let best = Infinity;
     for (let run = 0; run < 3; run++) {
       const started = performance.now();
       judgeCommitment(s, { person: 'Mindy' });
@@ -169,8 +165,26 @@ describe('caller text cannot make the patterns run away', () => {
       toSecondPerson(s);
       best = Math.min(best, performance.now() - started);
     }
-    expect(best).toBeLessThan(50);
+    return best;
+  };
+
+  // The limit is relative to a short ordinary sentence timed on the same machine.
+  // A fixed 50 ms failed a loaded CI runner with coverage on (198 ms for linear
+  // work) and ejected PRs from the merge queue. Healthy, these inputs cost up to
+  // ~10x the short sentence; anything worse than linear costs over 200x more on
+  // the 300-character input than on this 21-character one.
+  let limit = 50;
+  beforeAll(() => {
+    judgeCommitment('send Mindy the photos'); // first call loads the lexicon
+    limit = Math.max(50, 30 * bestOfThree('send Mindy the photos'));
   });
+
+  it.each(pathological.map((s) => [s.slice(0, 24), s]))(
+    '%j... finishes within 30x a short sentence',
+    (_, s) => {
+      expect(bestOfThree(s)).toBeLessThan(limit);
+    }
+  );
 
   it('judges only the first MAX_CHARS characters', () => {
     expect(MAX_CHARS).toBe(300);

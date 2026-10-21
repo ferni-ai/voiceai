@@ -483,9 +483,8 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   // PERFORMANCE: profile the turn. A context-only run is the background build
   // behind a reply that has already started (turn-intelligence.ts): its timings
   // are not the reply's latency, so they must not warn as if they were.
-  // BACKGROUND_TURN_LATENCY_WARNINGS=on restores profiling it as the reply.
   const turnNumber = userData.turnCount || 1;
-  const timesReply = !contextOnly || process.env.BACKGROUND_TURN_LATENCY_WARNINGS === 'on';
+  const timesReply = !contextOnly;
   if (timesReply) startTurnProfiling(services.sessionId, turnNumber);
 
   // ================================================================

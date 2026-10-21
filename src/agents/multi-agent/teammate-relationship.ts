@@ -15,6 +15,7 @@
 import { flagOn } from '../../config/env-flag.js';
 import { toCanonical } from '../../personas/persona-ids.js';
 import { personaName } from '../personas/said-by.js';
+import { placeholderSummaryNote } from '../../services/session/placeholder-summary.js';
 
 interface ProfileCounts {
   humanizingState?: { perPersonaMeetingCounts?: Record<string, number> };
@@ -69,6 +70,8 @@ export function teammateRelationship(
  * caller's last call with the team, not with itself.
  */
 export function lastTalkedAbout(teammate: boolean, summary: string): string {
+  const unknown = placeholderSummaryNote(summary); // PLACEHOLDER_SUMMARY_UNKNOWN
+  if (unknown) return unknown;
   return teammate
     ? `Last time they called, they talked about: ${summary}`
     : `Last time you talked about: ${summary}`;

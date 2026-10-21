@@ -14,12 +14,17 @@ const CSS = `
    matters where the Popover API is missing; the top layer ignores it. */
 .ferni-toast-region {
   position: fixed; inset: auto; margin: 0; padding: 0; border: 0;
-  top: calc(max(env(safe-area-inset-top), 0.5rem) + 0.5rem); left: 1rem; right: 1rem; width: auto;
+  top: calc(max(env(safe-area-inset-top), 0.5rem) + 0.5rem);
+  left: calc(1rem + env(safe-area-inset-left, 0px)); right: calc(1rem + env(safe-area-inset-right, 0px)); width: auto;
   background: transparent; overflow: visible; pointer-events: none; z-index: var(--z-notification);
 }
 @media (min-width: 769px) {
   /* Top-right, under the settings trigger (24 + 44 + 8 px). */
-  .ferni-toast-region { top: 4.75rem; left: auto; right: 1.5rem; width: 22.5rem; }
+  /* A landscape phone's notch is on the side: stay clear of it. */
+  .ferni-toast-region {
+    top: calc(4.75rem + env(safe-area-inset-top, 0px)); left: auto;
+    right: calc(1.5rem + env(safe-area-inset-right, 0px)); width: 22.5rem;
+  }
 }
 .ferni-toast-region__list {
   display: flex; flex-direction: column; gap: 0.5rem; margin: 0; padding: 0; list-style: none;

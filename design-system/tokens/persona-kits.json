@@ -469,7 +469,7 @@
           "fallbackInitials": "JT"
         },
         "voiceId": {
-          "cartesia": "219ccddf-e83d-491f-ae44-5f4447d5a9ca",
+          "cartesia": "b2d14370-c56b-4bdd-a6a3-71abe1b6e345",
           "_note": "Centralized reference - source of truth is persona.manifest.json"
         }
       },

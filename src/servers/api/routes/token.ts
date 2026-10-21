@@ -36,6 +36,7 @@ import {
 
 // Developer Platform: marketplace registry for persona→publisher lookup
 import { getAgentAsync } from '../../../marketplace/registry.js';
+import { isSignedInAccount } from '../../../services/identity/verified-caller.js';
 
 const log = createLogger({ module: 'TokenRoutes' });
 
@@ -324,9 +325,9 @@ export async function handleTokenRoutes(
     // The caller's IANA time zone from the browser, so Ferni knows their local time.
     const timezoneParam = parsedUrl.searchParams.get('timezone');
     const timezone = isValidTimeZone(timezoneParam) ? timezoneParam : undefined;
-    // 🐛 FIX: Read firebase_uid from query params (frontend sends this!)
     const firebase_uid_param = parsedUrl.searchParams.get('firebase_uid');
     let verifiedEmail: string | undefined; // from the verified token, never the query string
+    let firebaseAccount = false; // a signed-in account, not an anonymous Firebase user
 
     if (!room || !username) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -377,6 +378,7 @@ export async function handleTokenRoutes(
         }
         firebaseUid = verified.uid;
         verifiedEmail = verified.emailVerified ? verified.email : undefined;
+        firebaseAccount = isSignedInAccount(verified.signInProvider); // verified-caller.ts
         log.debug({ firebaseUid: firebaseUid.substring(0, 8) }, 'Firebase auth via header');
       } catch (firebaseErr) {
         log.error({ error: String(firebaseErr) }, 'Firebase auth verification failed for /token');
@@ -391,7 +393,6 @@ export async function handleTokenRoutes(
       // A custom agent id must be the caller's own, else the call is with Ferni.
       const selectedPersona = await personaForCaller(requestedPersona, firebaseUid);
 
-      // 🧠 MEMORY AUDIT: Log identity chain for debugging memory issues
       log.info(
         {
           room,
@@ -404,14 +405,9 @@ export async function handleTokenRoutes(
         '🧠 [MEMORY-AUDIT] Token endpoint identity chain'
       );
 
-      // 🌍 INTERNATIONAL ACCENT SUPPORT
-      // Priority order:
-      // 1. Explicit accent parameter from frontend (user's saved preference)
-      // 2. User's saved accent preference from Firestore profile (if authenticated)
-      // 3. Geo-detected accent from IP/locale
-      // 4. Default to 'american'
-
-      // Load the signed-in user's saved accent and location from their profile
+      // Accent: the explicit parameter, then the saved profile preference, then geo, then 'american'
+      // Try to load user's saved accent AND location from profile if authenticated
+      // "Better than Human" - We remember your accent preference AND location
       let savedAccent: string | undefined;
       let savedLocation:
         | {
@@ -542,6 +538,7 @@ export async function handleTokenRoutes(
       const roomMetadata: RoomMetadata = {
         user_name: username,
         firebase_uid: firebaseUid || undefined,
+        firebase_account: firebaseAccount || undefined,
         user_email: verifiedEmail,
         device_id: device_id || undefined,
         persona_id: selectedPersona,

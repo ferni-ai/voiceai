@@ -1,0 +1,36 @@
+{
+  "fond": {
+    "ferni": [
+      "Here is Ferni. His glasses are on his head. Again.",
+      "Ferni is coming back. Listen for the humming. He means well.",
+      "Here is Ferni. He gets lost with the map open. A good man."
+    ],
+    "maya-santos": [
+      "Here is Maya. She runs, though she does not like running.",
+      "Maya is coming on. Ask about Compound and Interest, her cats.",
+      "Here is Maya. She calls her grandmother every Sunday. I like her."
+    ],
+    "jordan-taylor": [
+      "Here is Jordan. She plans even her free time. I find it funny.",
+      "Jordan is coming on. So much energy. Her dog Compass keeps up.",
+      "Here is Jordan. One good thing in her journal, every night."
+    ],
+    "peter-john": [
+      "Here is Peter. Three patterns a day, for forty years.",
+      "Peter is coming on. He talks fast when he is happy. Good.",
+      "Here is Peter. He tests a theory on himself first. Wise."
+    ],
+    "alex-chen": [
+      "Here is Alex. Ask about Peggy, the peace lily. She is dramatic.",
+      "Alex is coming on. His spices are alphabetized. I am not surprised.",
+      "Here is Alex. He hikes the redwoods with no phone. Good habit."
+    ]
+  },
+  "back": {
+    "ferni": "Ferni is too kind.",
+    "maya-santos": "Maya is kind.",
+    "jordan-taylor": "Jordan is very generous.",
+    "peter-john": "Peter exaggerates. A little.",
+    "alex-chen": "Alex is generous today."
+  }
+}

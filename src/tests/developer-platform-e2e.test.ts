@@ -51,9 +51,11 @@ describe('Developer Platform E2E', () => {
       const rulesPath = path.join(process.cwd(), 'firestore.rules');
       const rulesContent = fs.readFileSync(rulesPath, 'utf-8');
 
-      // Verify publisher ownership pattern is used
+      // Publishers read their own docs; writes are server-only (the API validates
+      // them), so no rule lets a client create one under its own publisherId.
+      // scripts/firestore-rules/__tests__/rules-lockdown.test.ts checks this per collection.
       expect(rulesContent).toContain('resource.data.publisherId == request.auth.uid');
-      expect(rulesContent).toContain('request.resource.data.publisherId == request.auth.uid');
+      expect(rulesContent).not.toContain('request.resource.data.publisherId == request.auth.uid');
     });
 
     it('should allow service account access', () => {

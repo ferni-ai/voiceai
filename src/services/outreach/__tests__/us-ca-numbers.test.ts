@@ -52,4 +52,20 @@ describe('toUsCaE164', () => {
     expect(toE164('+1 234 803 1234')).toBe('+12348031234');
     expect(toE164('234 803 1234')).toBe('+12348031234'); // no "+": a national number, as before
   });
+
+  it('a "+" dressed in brackets, spaces or invisible characters is still not +1', () => {
+    for (const n of [
+      '(+234) 803 1234',
+      '\u200B+234 803 1234', // zero-width space
+      '\uFEFF+234 803 1234', // BOM
+      ' \u2060 ( +234 803 1234', // word joiner, space, bracket
+      '[+44] 7911 123456',
+    ]) {
+      expect(toE164(n)).toBeNull();
+      expect(toUsCaE164(n)).toBeNull();
+    }
+    expect(toE164('(+1) 212 555 0100')).toBe('+12125550100');
+    expect(toE164('\u200B+1 212 555 0100')).toBe('+12125550100');
+    expect(toUsCaE164('\uFEFF(212) 555-0100')).toBe('+12125550100');
+  });
 });

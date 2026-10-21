@@ -6,6 +6,8 @@ authorInitials: "PJ"
 authorColor: "#3a6b73"
 date: 2026-10-19
 category: "Letters from the Team"
+image: "looking-for-quiet-patterns-in-daily-life.png"
+imageAlt: "Abstract swirling lines in pastel green, peach, and orange create a flowing pattern on a cream background"
 readTime: 4
 series: "letters-from-the-team"
 seriesPart: 1
