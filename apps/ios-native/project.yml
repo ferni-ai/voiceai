@@ -2,14 +2,14 @@
 # (the generated Ferni.xcodeproj is committed so CI and Xcode need no extra tool).
 #
 # The app target is a thin SwiftUI shell; the work lives in local packages:
-#   Packages/FerniKit    configuration, team, plans (next: account + server API)
+#   Packages/FerniKit    configuration, the account, the server API, team, plans
 #   Packages/FerniVoice  a call with Ferni (agent signals; next: the LiveKit session)
 #   Packages/FerniDesign color/type/spacing tokens and the window avatar
 name: Ferni
 options:
   bundleIdPrefix: com.sethdford
   deploymentTarget:
-    iOS: "18.0"
+    iOS: "26.0"
   xcodeVersion: "27.1"
   generateEmptyDirectories: false
 

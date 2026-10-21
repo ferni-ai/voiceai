@@ -25,6 +25,8 @@ latest-logs.txt
 .plaid-tokens.json
 .forms.env
 GoogleService-Info.plist
+# The iPhone app's Firebase config: bundle-restricted, not a secret, and CI builds need it.
+!apps/ios-native/App/GoogleService-Info.plist
 google-services.json
 
 # Local development data (contacts, etc.)

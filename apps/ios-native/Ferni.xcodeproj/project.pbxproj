@@ -10,6 +10,7 @@
 		04679B6431BF53D7077D2AB0 /* FerniVoice in Frameworks */ = {isa = PBXBuildFile; productRef = 76CF00479EBF92F01F2F2463 /* FerniVoice */; };
 		117123ACF45A5D57E6E0056D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */; };
 		27464AAE3E6286E2D651309D /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8C71781BAD997D314C08864 /* HomeView.swift */; };
+		31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */; };
 		3D35744BE349C5C980D7C2A6 /* FerniKit in Frameworks */ = {isa = PBXBuildFile; productRef = ED4AC2AA3060D84427234E43 /* FerniKit */; };
 		6F1A1895F228B47FE081346A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 0F086DF8C257F87FC0940C6A /* Assets.xcassets */; };
 		7B10CD5879B52B5C5F028B4F /* FerniApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 974DF185A4FA58E1F08FD688 /* FerniApp.swift */; };
@@ -28,6 +29,7 @@
 		B8C71781BAD997D314C08864 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		C5DE888F55AE5FD01208AD72 /* FerniDesign */ = {isa = PBXFileReference; lastKnownFileType = folder; name = FerniDesign; path = Packages/FerniDesign; sourceTree = SOURCE_ROOT; };
 		F0356DF8A0D911077889805D /* Ferni.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ferni.entitlements; sourceTree = "<group>"; };
+		F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -59,6 +61,7 @@
 				0F086DF8C257F87FC0940C6A /* Assets.xcassets */,
 				F0356DF8A0D911077889805D /* Ferni.entitlements */,
 				974DF185A4FA58E1F08FD688 /* FerniApp.swift */,
+				F5DA2EFBCED4FF730752F95D /* GoogleService-Info.plist */,
 				B8C71781BAD997D314C08864 /* HomeView.swift */,
 				5AD38D2B9D4B058185D7CF84 /* PrivacyInfo.xcprivacy */,
 				41E550D3CF186D8D463FF66E /* SettingsView.swift */,
@@ -154,6 +157,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6F1A1895F228B47FE081346A /* Assets.xcassets in Resources */,
+				31AE32DC86824C9E5E1DAFEB /* GoogleService-Info.plist in Resources */,
 				117123ACF45A5D57E6E0056D /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -246,7 +250,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -314,7 +318,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
