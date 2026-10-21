@@ -14,7 +14,6 @@ import {
   flagForUser,
   forgetAgentValues,
   inSample,
-  missingPrerequisites,
   forgetFlagCache,
   usersWithFlag,
   type FlagHolderStore,
@@ -182,12 +181,48 @@ describe('the switches a cohort may set', () => {
     'TEAM_VOICES',
     'FERNI_PERSONA_SLIP_GUARD',
     'DIRECTOR_PERSONA_AWARE',
+    'COACH_WINS',
+    'FRIEND_CELEBRATIONS',
+    'REVIVED_INTELLIGENCE',
+    'CALL_JOURNAL',
+    'FOLLOW_THROUGH_IMPORT',
+    'PONDERING',
+    'LIVE_SUMMARIES',
+    'PERSONA_VOICE',
   ])('a cohort can turn %s on for its members', async (flag) => {
     const s = store({ seth: [{ id: 'seth', enabled: true, flags: { [flag]: 'on' } }] });
     expect(await resolveCallerFlags('seth', s)).toEqual({ [flag]: 'on' });
     const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on' };
     expect(await applyCallerFlags('seth', { store: s, env })).toEqual([flag]);
     expect(env[flag]).toBe('on');
+  });
+});
+
+describe('flags with a mode, not a switch', () => {
+  it('a cohort can set TURN_LENGTH and TURN_TEXTURE to learned, and they reach the env', async () => {
+    const flags = { PERSONA_VOICE: 'on', TURN_LENGTH: 'learned', TURN_TEXTURE: 'learned' };
+    const s = store({ seth: [{ id: 'seth', enabled: true, flags }] });
+    const env: NodeJS.ProcessEnv = { COHORT_FLAGS: 'on' };
+    expect((await applyCallerFlags('seth', { store: s, env })).sort()).toEqual(
+      Object.keys(flags).sort()
+    );
+    expect(env).toMatchObject(flags);
+  });
+
+  it('drops a mode on a switch and a switch value on a mode', async () => {
+    const s = store(
+      { u: [{ id: 'c', enabled: true, flags: { TURN_LENGTH: 'on', CANDOR: 'learned' } }] },
+      { u: { TURN_TEXTURE: 'yes', PERSONA_VOICE: 'learned' } }
+    );
+    expect(await resolveCallerFlags('u', s)).toEqual({});
+  });
+
+  it("an override 'off' beats a cohort's learned", async () => {
+    const s = store(
+      { u: [{ id: 'c', enabled: true, flags: { TURN_LENGTH: 'learned' } }] },
+      { u: { TURN_LENGTH: 'off' } }
+    );
+    expect(await resolveCallerFlags('u', s)).toEqual({ TURN_LENGTH: 'off' });
   });
 });
 
@@ -444,24 +479,5 @@ describe('memory flags', () => {
     expect(await resolveCallerFlags('u', store({ u: [world] }))).toEqual({
       WORLD_FACTS_IN_CALL: 'on',
     });
-  });
-});
-
-describe('missingPrerequisites', () => {
-  it('names a memory switch turned on without what it builds on', () => {
-    expect(missingPrerequisites({ RECALL_EPISODES: 'on' })).toEqual([
-      'RECALL_EPISODES needs SEMANTIC_RECALL',
-    ]);
-    expect(missingPrerequisites({ WORLD_FACTS_IN_CALL: 'on' })).toEqual([
-      'WORLD_FACTS_IN_CALL needs WORLD_MODEL_TEMPORAL',
-    ]);
-    expect(
-      missingPrerequisites({
-        SEMANTIC_RECALL: 'on',
-        RECALL_EPISODES: 'on',
-        WORLD_MODEL_TEMPORAL: 'on',
-        WORLD_FACTS_IN_CALL: 'on',
-      })
-    ).toEqual([]);
   });
 });

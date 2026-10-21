@@ -1,0 +1,36 @@
+{
+  "fond": {
+    "ferni": [
+      "Here's Ferni. If he's looking for his glasses, they're on his head.",
+      "Ferni's coming back. Please don't give him a plant. I've seen the results.",
+      "Here's Ferni. He hums when he's thinking. He doesn't know he does it."
+    ],
+    "maya-santos": [
+      "Here's Maya. Up at quarter to six, and not a morning person.",
+      "Maya's coming on. She can overthink a two-minute decision. It's endearing.",
+      "Here's Maya. Her cats are Compound and Interest. Excellent naming."
+    ],
+    "jordan-taylor": [
+      "Here's Jordan. She schedules her free time. Finally, someone who understands.",
+      "Jordan's coming on. She'll have a plan before you finish the sentence.",
+      "Here's Jordan. Compass, her golden retriever, has better instincts than most people."
+    ],
+    "peter-john": [
+      "Here's Peter. Forty years of pattern journals. I respect the discipline.",
+      "Peter's coming on. He'll talk fast. Keep up, it's worth it.",
+      "Here's Peter. Red Sox fan. Pattern person. Good combination."
+    ],
+    "nayan-patel": [
+      "Here's Nayan. Long silences. He's still there. Don't hang up.",
+      "Nayan's coming on. Strong chai, early walks, no rush. The opposite of me.",
+      "Here's Nayan. His garden mostly feeds the neighbours. No spreadsheet required."
+    ]
+  },
+  "back": {
+    "ferni": "Ferni exaggerates. Mostly.",
+    "maya-santos": "Maya's too kind. Noted.",
+    "jordan-taylor": "Jordan exaggerates. Lovingly.",
+    "peter-john": "Peter's too kind. Noted.",
+    "nayan-patel": "Nayan is generous. Noted."
+  }
+}

@@ -1,12 +1,13 @@
 /**
- * The weekly memory consolidation must answer before the UI server's 30 s
- * socket idle timeout kills the request (2026-10-11: 3 of 3 attempts cut at
- * 30.0 s, Cloud Run 503). These tests pin the time budget and the resume.
+ * The weekly memory consolidation must answer before its socket times out
+ * (2026-10-11: 3 of 3 attempts cut at the old 30.0 s, Cloud Run 503). Job
+ * routes now get JOB_SOCKET_TIMEOUT_MS. These tests pin the time budget and
+ * the resume.
  */
 
 import { describe, expect, it, vi } from 'vitest';
 import type { ConsolidationResult, MemoryItem } from '../../../memory/index.js';
-import { DDOS_CONFIG } from '../../../utils/ddos-protection.js';
+import { JOB_SOCKET_TIMEOUT_MS } from '../../../api/scheduled-jobs/job-run-guard.js';
 import type { JobContext } from '../base-job.js';
 import {
   CONSOLIDATION_TIME_BUDGET_MS,
@@ -77,14 +78,35 @@ function makeDeps(all: ActiveUser[], initialCursor: UserCursor | null = null) {
   return { deps, consolidatedUsers, getClock: () => clock, getSaved: () => saved };
 }
 
-const OPTIONS = { minMemoriesForConsolidation: 20, maxMemoriesToProcess: 100, maxUsersPerRun: 50 };
+// A short budget keeps the resume tests small; the default is pinned below.
+const OPTIONS = {
+  minMemoriesForConsolidation: 20,
+  maxMemoriesToProcess: 100,
+  maxUsersPerRun: 50,
+  budgetMs: 15_000,
+};
 
 describe('runConsolidationBatch time budget', () => {
-  it('keeps its budget plus one slow user under the server socket timeout', () => {
-    expect(CONSOLIDATION_TIME_BUDGET_MS + 10_000).toBeLessThanOrEqual(DDOS_CONFIG.socketTimeout);
+  it('keeps its budget plus one slow user under the job socket timeout', () => {
+    expect(CONSOLIDATION_TIME_BUDGET_MS + 10_000).toBeLessThanOrEqual(JOB_SOCKET_TIMEOUT_MS);
   });
 
-  it('stops starting users once the budget is spent and returns before the socket timeout', async () => {
+  it('reaches most of a 50-user pass in one run on the default budget', async () => {
+    const { deps, consolidatedUsers, getClock } = makeDeps(makeUsers(50));
+
+    const result = await runConsolidationBatch(
+      { ...OPTIONS, budgetMs: undefined },
+      deps,
+      makeCtx()
+    );
+
+    // 6 s a user: users start at 0, 6, ..., 234 s; at 240 s the budget is spent.
+    expect(consolidatedUsers).toHaveLength(40);
+    expect(result.budgetExhausted).toBe(true);
+    expect(getClock()).toBeLessThan(JOB_SOCKET_TIMEOUT_MS);
+  });
+
+  it('stops starting users once the budget is spent and returns within one more user', async () => {
     const { deps, consolidatedUsers, getClock } = makeDeps(makeUsers(50));
 
     const result = await runConsolidationBatch(OPTIONS, deps, makeCtx());
@@ -94,7 +116,7 @@ describe('runConsolidationBatch time budget', () => {
     expect(result.usersVisited).toBe(3);
     expect(result.budgetExhausted).toBe(true);
     expect(result.passComplete).toBe(false);
-    expect(getClock()).toBeLessThan(DDOS_CONFIG.socketTimeout);
+    expect(getClock()).toBeLessThan(15_000 + 10_000);
   });
 
   it('saves a cursor at the last finished user and the next run resumes after it', async () => {

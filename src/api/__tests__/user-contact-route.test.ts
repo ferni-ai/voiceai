@@ -21,6 +21,8 @@ const h = vi.hoisted(() => ({
   userDoc: undefined as Record<string, unknown> | undefined,
 }));
 
+// Texts going on send a confirmation (opt-in-text.ts); not from this route test.
+vi.mock('../../services/outreach/opt-in-text.js', () => ({ confirmSmsOptIn: async () => 'sent' }));
 vi.mock('../auth-middleware.js', () => ({
   rateLimit: () => false,
   requireAuth: async () => ({ userId: 'user-1', authMethod: 'firebase', isAdmin: false }),
@@ -109,7 +111,7 @@ const call = (method: string, body?: unknown) =>
   hit(handleUserRoutes, '/api/user/contact', method, body);
 const setChannels = (allowedChannels: string[]) =>
   hit(handleOutreachRoutes, '/api/outreach/preferences', 'POST', {
-    preferences: { allowedChannels },
+    preferences: { allowedChannels, disclosureVersion: '2026-10-18' },
   });
 const storedChannels = () => consentFromPrefs(h.userDoc?.outreachPreferences).channels;
 
@@ -196,6 +198,9 @@ describe('POST /api/outreach/preferences (real route)', () => {
     expect(consentFromPrefs(h.userDoc?.outreachPreferences)).toEqual({
       enabled: true,
       channels: ['sms'],
+    });
+    expect(h.userDoc?.outreachPreferences).toMatchObject({
+      smsConsent: { disclosureVersion: '2026-10-18', source: 'web-settings', channel: 'sms' },
     });
   });
 

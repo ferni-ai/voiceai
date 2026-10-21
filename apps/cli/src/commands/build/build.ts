@@ -9,7 +9,7 @@
  *   npx tsx scripts/build.ts                 # Show help
  *   npx tsx scripts/build.ts frontend        # Build frontend
  *   npx tsx scripts/build.ts ios             # Build iOS app
- *   npx tsx scripts/build.ts android         # Build Android app
+ *   npx tsx scripts/build.ts android         # Build the Android Play bundle (TWA)
  *   npx tsx scripts/build.ts apps            # Build all native apps
  *   npx tsx scripts/build.ts store-assets    # Generate store marketing assets
  *   npx tsx scripts/build.ts sync            # Sync web assets to all platforms
@@ -141,16 +141,16 @@ async function buildIos(options: BuildOptions): Promise<boolean> {
 
   // Resolve Swift Package dependencies
   log.info('Resolving Swift Package dependencies...');
-  exec('xcodebuild -resolvePackageDependencies -project FerniVoice.xcodeproj -scheme FerniVoice', { cwd: iosDir });
+  exec('xcodebuild -resolvePackageDependencies -project Ferni.xcodeproj -scheme Ferni', { cwd: iosDir });
 
   // Build the app
   log.info('Building iOS app...');
-  exec('xcodebuild -project FerniVoice.xcodeproj -scheme FerniVoice -configuration Release -destination "generic/platform=iOS" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build', { cwd: iosDir });
+  exec('xcodebuild -project Ferni.xcodeproj -scheme Ferni -configuration Release -destination "generic/platform=iOS" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build', { cwd: iosDir });
 
   log.success('iOS native app built!');
   console.log(`
 Next steps:
-  Open in Xcode: open apps/ios-native/FerniVoice.xcodeproj
+  Open in Xcode: open apps/ios-native/Ferni.xcodeproj
   Run on simulator: Select device in Xcode and press Cmd+R
 `);
 
@@ -158,26 +158,25 @@ Next steps:
 }
 
 async function buildAndroid(options: BuildOptions): Promise<boolean> {
-  log.step('BUILDING ANDROID NATIVE APP');
+  log.step('BUILDING ANDROID APP (TRUSTED WEB ACTIVITY)');
 
-  const androidDir = join(PROJECT_ROOT, 'apps/android-native');
+  const androidDir = join(PROJECT_ROOT, 'apps/android-twa');
 
   if (!existsSync(androidDir)) {
-    log.error('Android native directory not found: apps/android-native');
+    log.error('Android app directory not found: apps/android-twa');
     return false;
   }
 
-  // Build the app
-  log.info('Building Android app...');
-  exec('./gradlew assembleRelease', { cwd: androidDir });
+  // Unsigned unless ANDROID_UPLOAD_KEYSTORE_PATH and the ANDROID_UPLOAD_* values are set
+  log.info('Building the Play bundle...');
+  exec('./gradlew bundleRelease', { cwd: androidDir });
 
-  log.success('Android native app built!');
+  log.success('Android bundle built!');
   console.log(`
-Output: apps/android-native/app/build/outputs/apk/release/
+Output: apps/android-twa/app/build/outputs/bundle/release/app-release.aab
 
-Next steps:
-  Open in Android Studio: open apps/android-native in Android Studio
-  Run on emulator: ./gradlew installDebug
+The app wraps https://app.ferni.ai, so web changes ship without a new bundle.
+See apps/android-twa/README.md for signing and Play upload.
 `);
 
   return true;
@@ -193,9 +192,9 @@ async function syncAll(options: BuildOptions): Promise<boolean> {
     await buildFrontend(options);
   }
 
-  // Note: iOS and Android native apps don't need web asset syncing
-  // They are fully native Swift/Kotlin apps that connect to the backend API
-  log.info('Native iOS and Android apps do not require web asset syncing');
+  // Note: the native iOS app doesn't need web asset syncing
+  // It is a fully native Swift app that connects to the backend API
+  log.info('The native iOS app does not require web asset syncing');
 
   log.success('All platforms synced!');
   return true;
@@ -294,7 +293,6 @@ async function buildAll(options: BuildOptions): Promise<boolean> {
   
   const skipFrontendOptions = { ...options, skipFrontend: true };
   success = await buildIos(skipFrontendOptions) && success;
-  success = await buildAndroid(skipFrontendOptions) && success;
 
   return success;
 }
@@ -314,7 +312,6 @@ ${colors.bold}Usage:${colors.reset}
 ${colors.bold}Commands:${colors.reset}
   ${colors.green}frontend${colors.reset}       Build frontend (Vite)
   ${colors.green}ios${colors.reset}            Build iOS app (macOS only)
-  ${colors.green}android${colors.reset}        Build Android app
   ${colors.green}apps${colors.reset}           Build all native apps
   ${colors.green}sync${colors.reset}           Sync web assets to all platforms
   ${colors.green}store-assets${colors.reset}   Generate app store marketing assets
@@ -369,10 +366,6 @@ ${colors.cyan}╚═════════════════════
 
     case 'ios':
       success = await buildIos(options);
-      break;
-
-    case 'android':
-      success = await buildAndroid(options);
       break;
 
     case 'apps':

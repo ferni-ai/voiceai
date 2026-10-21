@@ -23,6 +23,7 @@ import {
 } from '../utils/dom.js';
 import type { DeviceContext, VisualizationResult } from '../types.js';
 import { formatDate, formatRelativeTime, t } from '../../../i18n/index.js';
+import { contentIcon } from '../../icons/content-icons.js';
 
 // ============================================================================
 // TYPES
@@ -89,11 +90,11 @@ export interface ActionsTakenData {
  * Icons for care moment types
  */
 const CARE_TYPE_ICONS: Record<CareMomentType, string> = {
-  called_for_you: '📞',
-  messaged_for_you: '💬',
-  remembered: '💭',
-  protected_time: '📅',
-  kept_commitment: '✓',
+  called_for_you: contentIcon('phone', 20),
+  messaged_for_you: contentIcon('message', 20),
+  remembered: contentIcon('thought', 20),
+  protected_time: contentIcon('calendar', 20),
+  kept_commitment: contentIcon('check', 20),
 };
 
 // ============================================================================
@@ -305,8 +306,7 @@ function buildMobile(
 
       // Icon
       const icon = createElement('span', 'viz-care-card__icon');
-      setStyles(icon, { fontSize: '1.25rem' });
-      icon.textContent = CARE_TYPE_ICONS[moment.type];
+      icon.innerHTML = CARE_TYPE_ICONS[moment.type];
       card.appendChild(icon);
 
       // Content
@@ -443,10 +443,10 @@ function buildTablet(
   });
 
   const allStats = [
-    { value: data.summary.callsMade, label: t('visualizations.actionsTaken.callsMade'), icon: '📞' },
-    { value: data.summary.messagesSent, label: t('visualizations.actionsTaken.messagesSent'), icon: '💬' },
-    { value: data.summary.remindersKept, label: t('visualizations.actionsTaken.reminders'), icon: '🔔' },
-    { value: data.summary.commitmentsFulfilled, label: t('ferniKnows.commitments'), icon: '✓' },
+    { value: data.summary.callsMade, label: t('visualizations.actionsTaken.callsMade'), icon: contentIcon('phone', 24) },
+    { value: data.summary.messagesSent, label: t('visualizations.actionsTaken.messagesSent'), icon: contentIcon('message', 24) },
+    { value: data.summary.remindersKept, label: t('visualizations.actionsTaken.reminders'), icon: contentIcon('bell', 24) },
+    { value: data.summary.commitmentsFulfilled, label: t('ferniKnows.commitments'), icon: contentIcon('check', 24) },
   ];
 
   for (const stat of allStats) {
@@ -460,7 +460,7 @@ function buildTablet(
 
     const iconEl = createElement('div', 'viz-stat-card__icon');
     setStyles(iconEl, { fontSize: '1.5rem', marginBottom: 'var(--viz-space-micro)' });
-    iconEl.textContent = stat.icon;
+    iconEl.innerHTML = stat.icon;
 
     const valueEl = createElement('div', 'viz-stat-card__value');
     setStyles(valueEl, {
@@ -547,7 +547,7 @@ function buildTablet(
       // Icon
       const icon = createElement('span', 'viz-care-card__icon');
       setStyles(icon, { fontSize: '1.25rem', flexShrink: '0' });
-      icon.textContent = CARE_TYPE_ICONS[moment.type];
+      icon.innerHTML = CARE_TYPE_ICONS[moment.type];
       card.appendChild(icon);
 
       // Content

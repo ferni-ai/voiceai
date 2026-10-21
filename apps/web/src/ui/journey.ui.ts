@@ -37,6 +37,7 @@ import {
   getProgress,
   getTotalMilestonesCount,
 } from './ferni-milestones.ui.js';
+import { getCategoryIcon } from './ferni-milestone-icons.js';
 import { JOURNEY_ICONS } from './icons/journey-icons.js';
 import { injectJourneyStyles } from './journey/styles.js';
 import { shareJourneySummaryCard } from './milestone-card.ui.js';
@@ -103,10 +104,9 @@ function updateVoiceIdDisplay(): void {
 // ============================================================================
 
 interface TrustInsights {
-  trustScore: number;
   growthMoments: number;
   winsCelebrated: number;
-  boundariesRespected: number;
+  boundariesSet: number;
   sharedMoments: number;
   growthPatterns: Array<{ type: string; count: number }>;
   recentWins: Array<{ type: string; description: string }>;
@@ -684,10 +684,9 @@ async function loadTrustInsights(): Promise<void> {
  */
 function transformTrustData(data: TrustJourneyData): TrustInsights {
   return {
-    trustScore: data.summary.relationshipStrength,
     growthMoments: data.summary.growthMomentsNoticed,
     winsCelebrated: data.summary.winsCelebrated,
-    boundariesRespected: data.summary.boundariesRespected,
+    boundariesSet: data.summary.boundariesSet,
     sharedMoments: data.summary.sharedMomentsCount,
     growthPatterns: data.growth.patterns.slice(0, 5).map(p => ({
       type: formatGrowthType(p.type),
@@ -750,7 +749,7 @@ function renderTrustInsights(): void {
   const insightsBody = journeyModal.querySelector('.journey-insights-body');
   if (!insightsBody) return;
 
-  const { trustScore: _trustScore, growthMoments, winsCelebrated, boundariesRespected, sharedMoments, growthPatterns, recentWins, timeline } = trustInsightsData;
+  const { growthMoments, winsCelebrated, boundariesSet, sharedMoments, growthPatterns, recentWins, timeline } = trustInsightsData;
 
   // Check if we have any meaningful data
   const hasData = growthMoments > 0 || winsCelebrated > 0 || sharedMoments > 0 || growthPatterns.length > 0;
@@ -775,8 +774,8 @@ function renderTrustInsights(): void {
       </div>
       <div class="journey-trust-stat">
         <span class="journey-trust-stat__icon">${ICONS.shield}</span>
-        <span class="journey-trust-stat__value">${boundariesRespected}</span>
-        <span class="journey-trust-stat__label">${t('journey.boundariesHonored')}</span>
+        <span class="journey-trust-stat__value">${boundariesSet}</span>
+        <span class="journey-trust-stat__label">${t('journey.boundariesYouSet')}</span>
       </div>
       <div class="journey-trust-stat">
         <span class="journey-trust-stat__icon">${ICONS.messageHeart}</span>
@@ -1030,7 +1029,7 @@ function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], col
   }
 
   // Emoji/icon for the milestone type (or mystery for locked)
-  const milestoneEmoji = isCelebrated && milestone.emoji ? milestone.emoji : '✨';
+  const milestoneIcon = getCategoryIcon(milestone.category).replace(/width="24" height="24"/, 'width="28" height="28"');
 
   if (isCelebrated) {
     // Celebrated - full polaroid with details
@@ -1042,7 +1041,7 @@ function renderMilestoneCard(milestone: ReturnType<typeof getMilestones>[0], col
            aria-label="${escapeHtml(t(milestone.name))}">
         <div class="journey-polaroid__image">
           <div class="journey-polaroid__glow"></div>
-          <span class="journey-polaroid__emoji">${milestoneEmoji}</span>
+          <span class="journey-polaroid__emoji" aria-hidden="true">${milestoneIcon}</span>
         </div>
         <div class="journey-polaroid__caption">
           <span class="journey-polaroid__title">${escapeHtml(t(milestone.name))}</span>
@@ -1190,7 +1189,6 @@ async function animateOut(modal: HTMLElement): Promise<void> {
 
 // NOTE: Styles extracted to journey/styles.ts (~1,200 lines of CSS)
 // Import: injectJourneyStyles() from './journey/styles.js'
-
 
 // ============================================================================
 // GLOBAL EVENT LISTENER - For backwards compatibility
