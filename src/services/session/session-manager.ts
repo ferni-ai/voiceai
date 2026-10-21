@@ -163,6 +163,7 @@ import {
 
 // Persistence metrics for observability
 import { persistenceMetrics } from '../analytics/persistence-metrics.js';
+import { neverLowerSessionCount, withSessionsTogether } from './sessions-together-profile.js';
 
 // ============================================================================
 // SESSION STATE
@@ -290,7 +291,7 @@ export async function createSessionServices(
         '✨ Updated existing profile with name from onboarding'
       );
     }
-    return userProfile;
+    return withSessionsTogether(profileUserId, userProfile); // one count of sessions together
   };
 
   if (validatedUserId && !deferProfileLoad) {
@@ -1555,8 +1556,7 @@ export async function createSessionServices(
      * (like totalConversations increment, lastConversationSummary, etc.) were being ignored.
      */
     saveProfile: async () => {
-      // CRITICAL FIX: Use services.userProfile, not the closure variable!
-      // The closure variable is stale and doesn't include updates from endSession()
+      // CRITICAL FIX: services.userProfile, not the stale closure (it misses endSession updates)
       const profileToSave = services.userProfile;
       if (profileToSave && validatedUserId && !memoryHeld(sessionId)) {
         try {
@@ -1577,6 +1577,7 @@ export async function createSessionServices(
             })),
             sessionDurationMinutes: Math.floor(historyTracker.getDurationSeconds() / 60),
           });
+          neverLowerSessionCount(validatedUserId, updated); // the stored counter never shrinks
 
           const sessionWPM = getSessionWPMTracker(sessionId).getAverageWPM();
           if (sessionWPM > 0) {
