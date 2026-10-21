@@ -42,6 +42,9 @@ struct SignInView: View {
     /// What to type first, after a tap on the button with nothing to send yet.
     @State private var nudge: String?
     @State private var buttonHeight: CGFloat = 60
+    /// The sheet's height: under 700 pt (an SE), Ferni's face steps out.
+    @State private var scrollHeight: CGFloat = 1000
+    private var roomy: Bool { scrollHeight >= 700 }
     /// Which way they last tried, so a problem shows under that one.
     @State private var tried: Way?
 
@@ -57,9 +60,14 @@ struct SignInView: View {
             ScrollViewReader { scroller in
                 ScrollView {
                     VStack(spacing: FerniSpace.rest) {
-                        AvatarView(persona: .ferni, expression: .content, activity: .idle)
-                            .frame(width: 72, height: 72)
-                            .accessibilityHidden(true)
+                        // Ferni when there's room: on an SE the hint under the phone
+                        // field sat under the pinned button at the default size (critic
+                        // M-A); without him it's whole above it.
+                        if roomy {
+                            AvatarView(persona: .ferni, expression: .content, activity: .idle)
+                                .frame(width: 72, height: 72)
+                                .accessibilityHidden(true)
+                        }
                         VStack(spacing: FerniSpace.breath) {
                             Text("Welcome back")
                                 .font(FerniType.greeting)
@@ -96,6 +104,7 @@ struct SignInView: View {
                 }
                 // Room under the last row for the pinned button, at any text size.
                 .contentMargins(.bottom, (phoneShown ? buttonHeight : 0) + FerniSpace.rest, for: .scrollContent)
+                .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { scrollHeight = $0 }
                 .scrollBounceBehavior(.basedOnSize)
                 .scrollDismissesKeyboard(.interactively)
                 // A new problem is scrolled into view, never left under the
@@ -195,6 +204,7 @@ struct SignInView: View {
                      : "Ferni texted you a six-digit code.")
                     .font(FerniType.body)
                     .foregroundStyle(FerniColor.textSecondary)
+                    .accessibilityIdentifier("signIn.hint")
             }
         }
         if verification != nil {

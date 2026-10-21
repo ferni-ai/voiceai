@@ -20,6 +20,8 @@ struct HomeView: View {
     @State private var room = CGSize.zero
     /// The height Home can show without scrolling (between the bar and Talk).
     @State private var visibleHeight: CGFloat = 0
+    /// The resting line's height, for Ferni's size at accessibility sizes.
+    @State private var restingHeight: CGFloat = 0
     /// The keyboard is up (correcting what Ferni remembered).
     @State private var typing = false
 
@@ -33,6 +35,10 @@ struct HomeView: View {
             ScrollViewReader { scroller in
             ScrollView {
                 VStack(spacing: FerniSpace.rest) {
+                    #if DEBUG
+                    // A faint line across the floor, first in the content (test only).
+                    if UITestScenario.floorFixture { FloorFixture(below: max(visibleHeight - 30, 0)) }
+                    #endif
                     if beside {
                         HStack(alignment: .center, spacing: FerniSpace.silence) {
                             VStack(spacing: FerniSpace.rest) {
@@ -47,7 +53,7 @@ struct HomeView: View {
                         // At accessibility sizes Ferni steps back so the words fit: in a
                         // call, the captions; at home, the greeting above the pinned Talk
                         // (design audit P1-9: on an SE at AX5 it sat behind Talk).
-                        avatar(call: call, size: typeSize.isAccessibilitySize ? (inCall ? 120 : 140) : (inCall ? 240 : restSize))
+                        avatar(call: call, size: typeSize.isAccessibilitySize ? (inCall ? 120 : restSizeLarge) : (inCall ? 240 : restSize))
                             .padding(.top, inCall || typeSize.isAccessibilitySize ? FerniSpace.breath : FerniSpace.silence)
                         if inCall {
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
@@ -56,6 +62,7 @@ struct HomeView: View {
                                 RestingLine(call: call, home: model.homeLine.current, now: minute.date, chosen: model.team.chosen,
                                             knownHere: model.account.needsSignIn)
                             }
+                            .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { restingHeight = $0 }
                             if call.phase == .ended {
                                 RememberCard(call: call, remembered: model.callRemembered)
                                     .id(Self.rememberID)
@@ -206,6 +213,15 @@ struct HomeView: View {
 
     /// Ferni at rest: on a phone up to 280 pt; on iPad, sized to the room (design
     /// audit P1-14: a phone column, ~65% of the screen empty).
+    /// Ferni at rest at accessibility sizes: up to 140 pt, smaller when the
+    /// room is short, so his words sit whole above the floor at rest (critic
+    /// M-A: on an SE at AX5 "Whenever you're ready, I'm here." ran into the
+    /// fade behind Talk). Never under 44 pt.
+    private var restSizeLarge: CGFloat {
+        guard visibleHeight > 0, restingHeight > 0 else { return 140 }
+        return min(140, max(44, visibleHeight - restingHeight - FerniSpace.breath - FerniSpace.rest - FerniSpace.pause))
+    }
+
     private var restSize: CGFloat { Self.restSize(room: room, regular: widthClass == .regular) }
 
     /// On a phone, up to 280 pt as the room's height allows (award upgrade 2:
@@ -313,9 +329,11 @@ private struct RestingLine: View {
 
     @ViewBuilder private func greeting(_ headline: String, _ detail: String) -> some View {
         Text(headline)
+            .accessibilityIdentifier("home.headline")
             .font(FerniType.greeting)
             .foregroundStyle(FerniColor.textPrimary)
         Text(detail)
+            .accessibilityIdentifier("home.detail")
             .font(FerniType.bodyLarge)
             // Medium, not regular: in the evening band on iPad the audit failed
             // the regular line on contrast though its pixels measure 6.4:1
