@@ -894,6 +894,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Blocking. A PR may not switch a gate off in the lines it adds under
+      # .github/workflows/ and scripts/ci/ (continue-on-error, `|| true`, `if: false`,
+      # a required check's job deleted; scripts/ci/gate-files-guard.sh). From July to
+      # September every test step carried continue-on-error and CI hid 214 failures.
+      # PRs only: a PR whose Quality Gates failed can't join the merge queue, and a
+      # merge_group payload has no labels. The lead's ci-gate-change-ok label allows
+      # the change; labels are read live, so re-run this job after adding it.
+      - name: Gate files guard
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: scripts/ci/gate-files-guard.sh HEAD^1 HEAD
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
 
