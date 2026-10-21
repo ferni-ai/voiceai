@@ -68,6 +68,8 @@ export const FLAGS_ACTION_TO_BYPASS = {
   BARGE_IN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: pseudonymous call and outreach rows go to BigQuery ferni_events (analytics/bq-events.ts)
   BQ_EVENTS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: account deletion queues the BigQuery user_hash and the daily job deletes its rows (analytics/bq-erasure.ts)
+  BQ_ERASURE: { default: 'off', owner: 'platform', kind: 'experiment' },
   BRIEFED_HANDOFF: { default: 'off', owner: 'voice', kind: 'experiment' },
   BYPASS_TEAM_UNLOCKS: { default: 'off', owner: 'tools', kind: 'kill-switch' },
 } as const satisfies Record<string, FlagSpec>;

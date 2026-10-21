@@ -7,6 +7,7 @@
  */
 
 import type { ServerResponse } from 'http';
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
 
@@ -53,6 +54,11 @@ export async function handleTTLCleanup(res: ServerResponse): Promise<void> {
 
 /** Deletes erased accounts' BigQuery analytics rows (services/analytics/bq-erasure.ts). */
 export async function handleBqErasure(res: ServerResponse): Promise<void> {
+  if (!flagOn('BQ_ERASURE')) {
+    log.info('BigQuery erasure skipped: BQ_ERASURE is off');
+    sendJson(res, 200, { success: true, job: 'bq-erasure', skipped: 'BQ_ERASURE off' });
+    return;
+  }
   try {
     const { getFirestoreDb } = await import('../../services/superhuman/firestore-utils.js');
     const { runBqErasure } = await import('../../services/analytics/bq-erasure.js');
