@@ -192,8 +192,7 @@ export function targetFor(state: CallerState, turns: string[], askedLast: boolea
   const wantsAdvice = ASKS_ADVICE.test(said);
   // The turn shape's own read too ("How have you been?", "And you?"), so the two never disagree.
   // "So, what do you think?" has "do you" but asks his take on theirs, not about him.
-  const own =
-    (ABOUT_HIM.test(said) && !opinionAsk(said)) || callerMove(said) === 'about_ferni';
+  const own = (ABOUT_HIM.test(said) && !opinionAsk(said)) || callerMove(said) === 'about_ferni';
   const oneIfNoneLast: 0 | 1 = askedLast ? 0 : 1;
   switch (state) {
     case 'low': {

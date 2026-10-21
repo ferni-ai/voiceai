@@ -101,6 +101,8 @@ describe('his day is not injected for an opinion ask (FERNI_STATE + SELF_SHARE_W
 
   it('a tired caller asking his take gets no stories of his own (ATTUNE)', () => {
     expect(targetFor('low', ['Hey.', 'Tired.', SWEEP.alexNayan], false).ownStories).toBe(false);
-    expect(targetFor('low', ['Hey.', 'Tired.', 'Do you like hiking?'], false).ownStories).toBe(true);
+    expect(targetFor('low', ['Hey.', 'Tired.', 'Do you like hiking?'], false).ownStories).toBe(
+      true
+    );
   });
 });
