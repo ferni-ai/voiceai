@@ -49,7 +49,7 @@ vi.mock('../../../../config/assistant-actions-flag.js', () => ({
 
 import type { ToolContext } from '../../../registry/types.js';
 import { reminderTools } from '../reminders.js';
-import { ASK_WHEN, callerSaidTime } from '../reminder-time-heard.js';
+import { ASK_WHEN, callerCorrectsTime, callerSaidTime } from '../reminder-time-heard.js';
 
 // Tuesday 2026-10-20 14:40 in UTC.
 const NOW = new Date('2026-10-20T14:40:00Z');
@@ -220,4 +220,25 @@ describe('callerSaidTime', () => {
   ])('%s is not in "%s"', (when, said) => {
     expect(callerSaidTime(when, said)).toBe(false);
   });
+});
+
+describe('callerCorrectsTime', () => {
+  const latest = (text: string) => call(['user', text]).opts.ctx;
+
+  it.each([
+    ['Actually, make it 6.'],
+    ['No, 7 pm.'],
+    ['Not tomorrow, tonight.'],
+    ["Tomorrow's a little bit late. Dinner is tonight."],
+    ['Can you change it to Friday?'],
+  ])('"%s" changes the time', (said) => {
+    expect(callerCorrectsTime(latest(said))).toBe(true);
+  });
+
+  it.each([['And tomorrow at 9am.'], ['Also at noon, please.'], ['Remind me at 8 to stretch.']])(
+    '"%s" asks for another reminder',
+    (said) => {
+      expect(callerCorrectsTime(latest(said))).toBe(false);
+    }
+  );
 });

@@ -24,7 +24,6 @@
  */
 
 import { flagOn, type Env } from '../../../config/env-flag.js';
-import { isCorrection } from '../../../agents/personas/correction-repair.js';
 import { historyOf } from '../../handoff/handoff-consent.js';
 import { latestUserText } from '../../retrieval/turn-tool-retrieval.js';
 import { isOwnContextNote } from '../../utils/own-note.js';
@@ -176,26 +175,17 @@ const words = (s: string): string => timeWords(s).join(' ');
 
 /**
  * Words that change a time just given: "actually", "instead", "change/make/move
- * it", a reply opening "no", "tomorrow's too late", "dinner is tonight". Not a
- * bare "and tomorrow at 9", which asks for another reminder.
+ * it", a reply opening "no", "tomorrow's too late", "dinner is tonight", "not
+ * tomorrow, tonight". Not a bare "and tomorrow at 9", which asks for another reminder.
  */
 const CHANGES_TIME =
-  /\b(?:actually|instead|(?:change|make|move|push|switch) it|(?:too|a little(?: bit)?|a bit) (?:late|early)|(?:it'?s|is) (?:tonight|today|tomorrow|this (?:morning|afternoon|evening)))\b|^\s*(?:no|nope|nah)\b/i;
+  /\b(?:actually|instead|(?:change|make|move|push|switch) it|(?:too|a little(?: bit)?|a bit) (?:late|early)|(?:it'?s|is) (?:tonight|today|tomorrow|this (?:morning|afternoon|evening))|not (?:at )?[a-z0-9']+(?: [a-z0-9']+)?, [a-z0-9]+)\b|^\s*(?:no|nope|nah)\b/i;
 
-/** Ferni's last few lines in this call, oldest first. */
-function ferniLines(runCtx: unknown): string[] {
-  const items = historyOf(runCtx)?.items ?? [];
-  return items
-    .filter((i) => i.type === 'message' && i.role === 'assistant')
-    .map((i) => (i.type === 'message' ? (i.textContent ?? '') : ''))
-    .slice(-3);
-}
-
-/** Whether the caller's latest turn changes a time (correction-repair.ts covers "<this>, not <that>"). */
+/** Whether the caller's latest turn changes a time. */
 export function callerCorrectsTime(runCtx: unknown): boolean {
   const history = historyOf(runCtx);
   const said = history ? (latestUserText(history) ?? '') : '';
-  return CHANGES_TIME.test(said) || isCorrection(said, ferniLines(runCtx));
+  return CHANGES_TIME.test(said);
 }
 
 /**
