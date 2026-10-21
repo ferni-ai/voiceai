@@ -45,7 +45,7 @@
       .gate-first-paint__btn { display: flex; align-items: center; justify-content: center; gap: var(--space-sm, 0.5rem);
         width: 100%; min-height: 52px; padding: var(--space-md, 1rem) var(--space-lg, 1.618rem); border: none;
         border-radius: var(--radius-lg, 12px); font-size: 1rem; font-weight: 500; background: #fff; color: #1f1f1f;
-        opacity: 0.6; cursor: progress; }
+        cursor: progress; }
       .gate-first-paint__footer { margin-top: var(--space-xl, 2.618rem); font-size: 0.75rem; color: var(--color-text-muted); }
       .gate-first-paint__footer a { color: var(--color-text-secondary); text-decoration: underline; }
     </style>
@@ -159,13 +159,13 @@
     <a href="#main-content" class="skip-to-content" data-i18n="accessibility.skipToContent">Skip to main content</a>
 
     <!-- Gate-first paint: shown only when the head script adds html.gate-first; app.ts removes it once auth resolves -->
-    <div id="gateFirst" class="gate-first-paint" aria-busy="true" hidden>
+    <div id="gateFirst" class="gate-first-paint" role="dialog" aria-modal="true" aria-labelledby="gate-first-title" aria-busy="true" hidden>
       <div class="gate-first-paint__content">
         <img class="gate-first-paint__logo" src="/ferni-avatar.svg" alt="Ferni" width="100" height="100" />
         <div class="ai-companion-label-row sign-in-gate-ai-label">
           <span class="ai-companion-label"><span class="ai-companion-label-text" data-i18n="aiLabel.role.lifeCoach">Life coach</span></span>
         </div>
-        <h1 class="gate-first-paint__title" data-i18n="auth.welcome">Welcome to Ferni</h1>
+        <h1 id="gate-first-title" class="gate-first-paint__title" data-i18n="auth.welcome">Welcome to Ferni</h1>
         <p class="gate-first-paint__subtitle" data-i18n="auth.subtitle">Sign in to start your journey. Your conversations, memories, and progress will be saved across all your devices.</p>
         <button type="button" class="gate-first-paint__btn" disabled aria-busy="true">
           <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">

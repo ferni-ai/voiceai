@@ -80,6 +80,17 @@ describe('flag on, nobody signed in', () => {
     const button = placeholder()!.querySelector('button')!;
     expect(button.disabled).toBe(true); // no dead button that looks live
     expect(button.getAttribute('aria-busy')).toBe('true');
+    // Screen readers meet the same dialog the real gate is, named by its heading.
+    const copy = placeholder()!;
+    expect(copy.getAttribute('role')).toBe('dialog');
+    expect(copy.getAttribute('aria-modal')).toBe('true');
+    const label = document.getElementById(copy.getAttribute('aria-labelledby') ?? '');
+    expect(label?.tagName).toBe('H1');
+    expect(label?.textContent).toBe('Welcome to Ferni');
+    // Dimming the button with opacity took its text under 4.5:1 on the light page.
+    const buttonRule = criticalStyle.match(/\.gate-first-paint__btn\s*\{[^}]*\}/)?.[0] ?? '';
+    expect(buttonRule).toContain('color: #1f1f1f');
+    expect(buttonRule).not.toMatch(/opacity/);
 
     vi.advanceTimersByTime(20_000); // a slow boot: still the placeholder, never Home
     expect(homeVisible()).toBe(false);
