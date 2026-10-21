@@ -97,10 +97,12 @@ public struct FerniAPI: Sendable {
     }
 
     /// The URLError codes that mean the network is the problem (critic L4:
-    /// certificate errors and a cancelled request read as "offline").
+    /// certificate errors and a cancelled request read as "offline"). A failed
+    /// TLS handshake is the network's too: a captive portal or a weak signal,
+    /// not a bad certificate (critic round 2, L4).
     public static func isConnectivity(_ code: URLError.Code) -> Bool {
         [.notConnectedToInternet, .networkConnectionLost, .timedOut, .cannotFindHost, .cannotConnectToHost,
-         .dnsLookupFailed, .internationalRoamingOff, .dataNotAllowed, .callIsActive]
+         .dnsLookupFailed, .internationalRoamingOff, .dataNotAllowed, .callIsActive, .secureConnectionFailed]
             .contains(code)
     }
 

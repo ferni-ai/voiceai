@@ -17,7 +17,8 @@ final class FerniAPIErrorTests: XCTestCase {
     }
 
     func testConnectivityErrorsAreUnreachable() async {
-        for code in [URLError.Code.notConnectedToInternet, .timedOut, .networkConnectionLost, .cannotFindHost] {
+        // A failed TLS handshake (a captive portal, a weak signal) too (critic round 2, L4).
+        for code in [URLError.Code.notConnectedToInternet, .timedOut, .networkConnectionLost, .cannotFindHost, .secureConnectionFailed] {
             let error = await outcome(URLError(code))
             XCTAssertEqual(error as? FerniAPIError, .unreachable, "\(code)")
         }
@@ -30,7 +31,7 @@ final class FerniAPIErrorTests: XCTestCase {
 
     func testCertificateAndOtherErrorsAreGeneric() async {
         for error in [URLError(.serverCertificateUntrusted), URLError(.serverCertificateHasBadDate),
-                      URLError(.secureConnectionFailed), URLError(.badURL)] as [Error] {
+                      URLError(.badURL)] as [Error] {
             let result = await outcome(error)
             XCTAssertEqual(result as? FerniAPIError, .failed, "\(error)")
         }
