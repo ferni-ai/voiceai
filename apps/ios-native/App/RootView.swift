@@ -207,3 +207,37 @@ struct UpdateRequiredView: View {
         .interactiveDismissDisabled()
     }
 }
+
+/// Night Ink after 22:00 (award upgrade 3): the whole app goes dark from ten
+/// at night until five, unless Settings' "Dark at night" is off. The hour is
+/// checked every minute and whenever the app comes back.
+struct NightInkScheme: ViewModifier {
+    @AppStorage(NightInk.key) private var enabled = true
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var hour = NightInkScheme.hourNow
+
+    func body(content: Content) -> some View {
+        content
+            .preferredColorScheme(Self.scheme(hour: hour, enabled: enabled))
+            .task(id: scenePhase) {
+                while !Task.isCancelled {
+                    hour = Self.hourNow
+                    try? await Task.sleep(for: .seconds(60))
+                }
+            }
+    }
+
+    static var hourNow: Int { Calendar.current.component(.hour, from: HomeClock.time(.now)) }
+
+    static func scheme(hour: Int, enabled: Bool) -> ColorScheme? {
+        #if DEBUG
+        if UITestScenario.current != nil {
+            if UITestScenario.dark { return .dark }
+            // A UI test is dark at night only when it names its hour; the rest
+            // run whenever the suite does and expect the phone's own scheme.
+            guard UITestScenario.hour != nil else { return nil }
+        }
+        #endif
+        return NightInk.scheme(hour: hour, enabled: enabled)
+    }
+}

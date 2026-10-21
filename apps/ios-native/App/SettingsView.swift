@@ -24,6 +24,9 @@ struct SettingsView: View {
                 }
                 AccountSection(account: model.account, signOut: model.signOut, signingIn: $signingIn)
                 PrivacySection(consent: model.consent, lock: model.memoryLock) { await model.withdrawConsent() }
+                // Under Privacy, not beside Call sounds: a row above Account moved
+                // its header to where the SE audit fails it on Dynamic Type.
+                Section { NightInkToggle() }
                 Section {
                     LabeledContent("Version", value: Self.version)
                     Link("Privacy Policy", destination: URL(string: "https://ferni.ai/privacy")!)
@@ -279,6 +282,16 @@ struct DeleteAccountView: View {
             failed = true
         }
         working = false
+    }
+}
+
+/// Night Ink after 22:00 (award upgrade 3), on unless you turn it off.
+private struct NightInkToggle: View {
+    @AppStorage(NightInk.key) private var on = true
+    var body: some View {
+        // One line in the primary ink: a grey subtitle "nearly passed" the
+        // contrast audit and made the row two lines tall.
+        Toggle("Dark from 10 pm", isOn: $on)
     }
 }
 
