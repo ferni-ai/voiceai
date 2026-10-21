@@ -121,6 +121,8 @@ export const FLAG_MANIFEST = {
   // errands as durable workflows: owner-confirmed calls, verified bookings (services/errands, errands-flag.ts)
   ERRANDS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // set only by vitest.config.external.ts: lets ALLOW_PRODUCTION_DATA unguard that suite
+  EXTERNAL_TEST_SUITE: { default: 'off', owner: 'platform', kind: 'config' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },

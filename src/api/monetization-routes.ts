@@ -34,10 +34,14 @@ import {
   createPaymentIntent,
   getUserMonetizationData,
   isStripeConfigured,
-  verifyPayment,
 } from '../services/stripe-payments.js';
 import { createLogger } from '../utils/safe-logger.js';
-import { getOrganization, refuseUnverifiedWrite } from './monetization-access.js';
+import {
+  completeTip,
+  getOrganization,
+  recordPartnerFeedback,
+  refuseUnverifiedWrite,
+} from './monetization-access.js';
 import { handleMonetizationWebhook } from './monetization-webhook.js';
 
 // Initialize persistence on module load
@@ -150,51 +154,6 @@ async function createTip(ctx: RequestContext): Promise<ResponseContext> {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
       body: { error: String(error) },
-    };
-  }
-}
-
-/**
- * POST /api/monetization/tip/complete
- * Confirm tip payment succeeded
- */
-async function completeTip(ctx: RequestContext): Promise<ResponseContext> {
-  const { paymentIntentId } = ctx.body as { paymentIntentId?: string };
-
-  if (!paymentIntentId) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'paymentIntentId is required' },
-    };
-  }
-
-  try {
-    const result = await verifyPayment(paymentIntentId);
-
-    if (result.succeeded) {
-      const thankYou = tipJar.getThankYou();
-      return {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-        body: {
-          success: true,
-          thankYouMessage: thankYou,
-        },
-      };
-    }
-
-    return {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: { success: false, message: 'Payment not yet completed' },
-    };
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to verify tip');
-    return {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'Failed to verify payment' },
     };
   }
 }
@@ -524,6 +483,8 @@ async function createOrgInvite(ctx: RequestContext): Promise<ResponseContext> {
 /**
  * POST /api/monetization/partners/recommend
  * Get a contextual partner recommendation
+ *
+ * SECURITY: verified caller only (refuseUnverifiedWrite)
  */
 async function getPartnerRecommendation(ctx: RequestContext): Promise<ResponseContext> {
   const { message, conversationContext, excludePartnerIds } = ctx.body as {
@@ -611,33 +572,6 @@ async function recordPartnerClick(ctx: RequestContext): Promise<ResponseContext>
       referralId: referral.id,
       affiliateUrl: partner?.affiliateUrl || null,
     },
-  };
-}
-
-/**
- * POST /api/monetization/partners/feedback
- * Record feedback on a partner recommendation
- */
-async function recordPartnerFeedback(ctx: RequestContext): Promise<ResponseContext> {
-  const { partnerId, feedback } = ctx.body as {
-    partnerId?: string;
-    feedback?: 'helpful' | 'not_helpful';
-  };
-
-  if (!partnerId || !feedback) {
-    return {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-      body: { error: 'partnerId and feedback are required' },
-    };
-  }
-
-  contextualPartnerships.updateQuality(partnerId, feedback);
-
-  return {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-    body: { success: true, message: 'Thank you for your feedback!' },
   };
 }
 

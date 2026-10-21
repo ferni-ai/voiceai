@@ -10879,6 +10879,14 @@
     "connectingNow": "Connecting…",
     "tapToCancel": "Tap to cancel"
   },
+  "callRoom": {
+    "connecting": "Connecting",
+    "listening": "{name}'s listening",
+    "talking": "{name}'s talking",
+    "muted": "You're muted",
+    "end": "End",
+    "backHint": "Tap End to hang up"
+  },
   "analyticsDashboard": {
     "title": "Your Journey",
     "loading": "Loading your progress...",
