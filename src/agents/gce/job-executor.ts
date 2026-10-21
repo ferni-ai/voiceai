@@ -26,6 +26,8 @@ import '../voice-agent-entry/follow-through-import-register.js';
 import '../voice-agent-entry/returning-caller-register.js';
 // Which sessions may read their own texts with Ferni (readSMS refuses all until this loads).
 import '../voice-agent-entry/sms-owner-register.js';
+// A caller's own cohort flags for code that runs after their call (config/person-flag.ts).
+import '../person-flag-register.js';
 
 // ============================================================================
 // TYPES

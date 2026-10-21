@@ -13,7 +13,7 @@ import { asAnswer } from './answer-turn.js';
 import { listeningReply } from './listen-first-turn.js';
 import { callerTurnsOf } from './happy-exits.js';
 import { withPlayful } from './ferni-playful-turn.js';
-import { withCallTrouble, withSupportHold } from './turn-holds.js';
+import { withCallTrouble, withCrisisRisk, withSupportHold } from './turn-holds.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
@@ -27,6 +27,7 @@ import {
 import { TURN_STYLE_REMINDER } from './turn-style.js';
 import { burstLine } from './vocal-bursts.js';
 import { withHeavyMoment } from './heavy-turn.js';
+import { SCRIPT_FREE_BASE, scriptFreeShapeFor } from './script-free.js';
 
 const log = createLogger({ module: 'FerniAgent' });
 
@@ -40,11 +41,11 @@ export function styleFor(
   session: object,
   shape: boolean,
   state: { ownStory?: boolean; brief?: boolean } = {},
-  answering = false
+  { answering = false, plain = false }: { answering?: boolean; plain?: boolean } = {}
 ): { text: string; turn?: TurnShape } {
   const said = shape && turnShapeEnabled() ? latestUserText(chatCtx) : null;
-  if (!said) return { text: TURN_STYLE_REMINDER };
-  const listening = listeningReply(said, chatCtx, session);
+  if (!said) return { text: plain ? SCRIPT_FREE_BASE : TURN_STYLE_REMINDER };
+  const listening = listeningReply(said, chatCtx, session, plain);
   if (listening) return { text: listening };
   // Seeded per call and words: preemptive and final requests agree; another call may differ.
   const { signals, source } = signalsFor(session, said);
@@ -53,14 +54,8 @@ export function styleFor(
   const told = withRecent(withOwnStory(sig, said, state), said, chatCtx);
   const quiet = withQuiet(told, said, chatCtx);
   const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
-  const troubled = withCallTrouble(session, said, shaped, source);
-  const turn = turnShapeFor(said, rngFor(`${callSeed(session)}:${said}`), undefined, troubled);
-  // VOCAL_BURSTS=on: its own draw, so the shape drawn above is unchanged.
-  const burst = burstLine(
-    session,
-    shaped ?? regexSignals(said, callerMove(said)),
-    rngFor(`${callSeed(session)}:${said}:burst`)
-  );
+  const troubled = withCrisisRisk(session, said, withCallTrouble(session, said, shaped, source));
+  const { turn, burst } = shapeFor(session, said, troubled, shaped, plain);
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);
   log.info(
@@ -75,6 +70,24 @@ export function styleFor(
     'TURN_SHAPE'
   );
   return { text: burst ? `${turn.reminder} ${burst}` : turn.reminder, turn };
+}
+
+/**
+ * The turn shape (turn-shape.ts), then VOCAL_BURSTS=on's own draw, so the shape is
+ * the same either way. SCRIPT_FREE_REMINDER=on: no style in it and no burst (script-free.ts).
+ */
+function shapeFor(
+  session: object,
+  said: string,
+  signals: TurnSignals | undefined,
+  shaped: TurnSignals | undefined,
+  plain: boolean
+): { turn: TurnShape; burst: string } {
+  const rng = rngFor(`${callSeed(session)}:${said}`);
+  if (plain) return { turn: scriptFreeShapeFor(said, rng, signals), burst: '' };
+  const turn = turnShapeFor(said, rng, undefined, signals);
+  const seed = rngFor(`${callSeed(session)}:${said}:burst`);
+  return { turn, burst: burstLine(session, shaped ?? regexSignals(said, callerMove(said)), seed) };
 }
 
 /**

@@ -143,6 +143,12 @@ ENV VITE_MEMORY_VIEW=$VITE_MEMORY_VIEW
 # Apple sign-in on the web (apps/web/src/config/apple-web-signin-flag.ts); hidden unless "true".
 ARG VITE_APPLE_WEB_SIGNIN=""
 ENV VITE_APPLE_WEB_SIGNIN=$VITE_APPLE_WEB_SIGNIN
+# Goodbye ceremony and reconnect prompt (apps/web/src/config/call-wrap-up-flag.ts); off unless "true".
+ARG VITE_CALL_WRAP_UP=""
+ENV VITE_CALL_WRAP_UP=$VITE_CALL_WRAP_UP
+# Toast region (apps/web/src/ui/overlay/toast-flag.ts): on unless set to "off".
+ARG VITE_TOAST_REGION=""
+ENV VITE_TOAST_REGION=$VITE_TOAST_REGION
 RUN pnpm run build
 
 # ============================================================================

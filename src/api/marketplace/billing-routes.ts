@@ -33,7 +33,7 @@ import {
   parseRawBody,
   sendJson,
   getUserId,
-  getPublisher,
+  requirePublisher,
   getSubscriptionTier,
 } from './helpers.js';
 
@@ -149,11 +149,8 @@ export async function handleUsageRoutes(
 
   // GET /api/marketplace/billing/payouts - Get pending payouts (for publishers)
   if (pathname === '/api/marketplace/billing/payouts' && method === 'GET') {
-    const publisher = getPublisher(req);
-    if (!publisher) {
-      sendJson(res, 401, { error: 'Publisher authentication required' });
-      return true;
-    }
+    const publisher = await requirePublisher(req, res);
+    if (!publisher) return true;
 
     try {
       const payouts = getPendingPayouts(publisher.publisherId);

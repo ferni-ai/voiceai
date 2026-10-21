@@ -141,16 +141,16 @@ async function buildIos(options: BuildOptions): Promise<boolean> {
 
   // Resolve Swift Package dependencies
   log.info('Resolving Swift Package dependencies...');
-  exec('xcodebuild -resolvePackageDependencies -project FerniVoice.xcodeproj -scheme FerniVoice', { cwd: iosDir });
+  exec('xcodebuild -resolvePackageDependencies -project Ferni.xcodeproj -scheme Ferni', { cwd: iosDir });
 
   // Build the app
   log.info('Building iOS app...');
-  exec('xcodebuild -project FerniVoice.xcodeproj -scheme FerniVoice -configuration Release -destination "generic/platform=iOS" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build', { cwd: iosDir });
+  exec('xcodebuild -project Ferni.xcodeproj -scheme Ferni -configuration Release -destination "generic/platform=iOS" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build', { cwd: iosDir });
 
   log.success('iOS native app built!');
   console.log(`
 Next steps:
-  Open in Xcode: open apps/ios-native/FerniVoice.xcodeproj
+  Open in Xcode: open apps/ios-native/Ferni.xcodeproj
   Run on simulator: Select device in Xcode and press Cmd+R
 `);
 
@@ -192,9 +192,9 @@ async function syncAll(options: BuildOptions): Promise<boolean> {
     await buildFrontend(options);
   }
 
-  // Note: iOS and Android native apps don't need web asset syncing
-  // They are fully native Swift/Kotlin apps that connect to the backend API
-  log.info('Native iOS and Android apps do not require web asset syncing');
+  // Note: the native iOS app doesn't need web asset syncing
+  // It is a fully native Swift app that connects to the backend API
+  log.info('The native iOS app does not require web asset syncing');
 
   log.success('All platforms synced!');
   return true;
@@ -293,7 +293,6 @@ async function buildAll(options: BuildOptions): Promise<boolean> {
   
   const skipFrontendOptions = { ...options, skipFrontend: true };
   success = await buildIos(skipFrontendOptions) && success;
-  success = await buildAndroid(skipFrontendOptions) && success;
 
   return success;
 }
@@ -313,7 +312,6 @@ ${colors.bold}Usage:${colors.reset}
 ${colors.bold}Commands:${colors.reset}
   ${colors.green}frontend${colors.reset}       Build frontend (Vite)
   ${colors.green}ios${colors.reset}            Build iOS app (macOS only)
-  ${colors.green}android${colors.reset}        Build Android app
   ${colors.green}apps${colors.reset}           Build all native apps
   ${colors.green}sync${colors.reset}           Sync web assets to all platforms
   ${colors.green}store-assets${colors.reset}   Generate app store marketing assets
@@ -368,10 +366,6 @@ ${colors.cyan}╚═════════════════════
 
     case 'ios':
       success = await buildIos(options);
-      break;
-
-    case 'android':
-      success = await buildAndroid(options);
       break;
 
     case 'apps':

@@ -31,6 +31,7 @@ import {
   personToCall,
   type CallRecords,
 } from '../../services/outreach/call-status.js';
+import { wasInsightSurfaced } from '../../intelligence/index.js';
 import { commitmentKey, isAskableCommitment } from '../../utils/commitment-filters.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -183,6 +184,23 @@ export async function pickCommitmentFollowUp(
   };
 }
 
+/**
+ * ARC_INSIGHT_ONCE: an emotional-arc insight reaches the prompt once, not on every
+ * third turn. Arcs are picked from getActiveArcs with no surfaced check, so the same
+ * arc came back at turn 6, 12, 18... for a whole call (13 times in one, #2283).
+ */
+export function arcInsightOnceEnabled(env: NodeJS.ProcessEnv = process.env): boolean {
+  return env.ARC_INSIGHT_ONCE === 'on';
+}
+
+function arcAlreadyRaised(userId: string, insight: SurfacedInsight): boolean {
+  return (
+    insight.category === 'emotional_trajectory' &&
+    arcInsightOnceEnabled() &&
+    wasInsightSurfaced(userId, insight.id)
+  );
+}
+
 function logDecision(
   input: { userId: string; sessionId?: string },
   d: Pick<Decision, 'reason' | 'topicHash'>
@@ -224,6 +242,7 @@ export async function surfaceProactiveInsight(
   const due = !!insight && (start || (pause && insight.category !== 'late_night_support'));
   if (!insight || !due || insight.category !== 'commitment_reminder') {
     if (start) logDecision(input, { reason: insight ? 'other-insight' : 'none', topicHash: null });
+    if (due && arcAlreadyRaised(input.userId, insight)) return null;
     return due ? (insight ?? null) : null;
   }
 
