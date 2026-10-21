@@ -235,6 +235,8 @@ export const FLAG_MANIFEST = {
   LOG_CONTEXT_BUILDS: { default: 'off', owner: 'voice', kind: 'config' },
   LOG_FULL_RESPONSES: { default: 'off', owner: 'platform', kind: 'config' },
   LOG_PHONE_REDACTION: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  // the answer after a look-up hedges sooner and gets a short bridge line instead of dead air (lookup-bridge.ts)
+  LOOKUP_BRIDGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   MAYA_PROACTIVE_CHECKS: { default: 'off', owner: 'platform', kind: 'experiment' },
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },

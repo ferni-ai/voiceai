@@ -31,6 +31,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { createCachedDeclarationsLLM, sharedDeclarationCache } from './gemini-declarations.js';
 import { FastLaneLLM, fastLaneEnabled } from './fast-lane.js';
 import { HedgedLLM } from './hedged-llm.js';
+import { afterToolHedgeMs } from '../personas/lookup-bridge.js';
 import { installVertexKeepAlive } from './vertex-keepalive.js';
 import type {
   AgentSessionTurnDetection,
@@ -244,9 +245,12 @@ function cascadeThinkingLevel(model: string, env: Env): ThinkingLevel {
  * 2026-09-28 when the primary took 7.2 s; set CASCADE_LLM_BACKUP_MODEL to
  * hedge across model families instead.) CASCADE_LLM_HEDGE_MS=off disables.
  */
-export function buildCascadeHedge(
-  env: Env = process.env
-): { backup: CascadeLLMOptions; hedgeAfterMs: number } | null {
+export function buildCascadeHedge(env: Env = process.env): {
+  backup: CascadeLLMOptions;
+  hedgeAfterMs: number;
+  /** LOOKUP_BRIDGE: a shorter delay for the reply after a tool result (lookup-bridge.ts). */
+  afterToolHedgeMs?: number;
+} | null {
   const raw = env.CASCADE_LLM_HEDGE_MS ?? '1300';
   if (raw === 'off') return null;
   const hedgeAfterMs = Number(raw);
@@ -254,8 +258,10 @@ export function buildCascadeHedge(
   const model = env.CASCADE_LLM_BACKUP_MODEL || 'gemini-3.5-flash-lite';
   const primary = buildCascadeLLMOptions(env);
   if (model === primary.model) return null;
+  const afterTool = afterToolHedgeMs(env);
   return {
     hedgeAfterMs,
+    ...(afterTool !== undefined && { afterToolHedgeMs: afterTool }),
     backup: {
       ...primary,
       model,
@@ -378,6 +384,7 @@ export class CartesiaCascadeProvider implements ModelProvider {
         location: opts.location,
         backupModel: hedge?.backup.model ?? null,
         hedgeAfterMs: hedge?.hedgeAfterMs ?? null,
+        afterToolHedgeMs: hedge?.afterToolHedgeMs ?? null,
       },
       'Creating cascade Gemini text LLM'
     );
@@ -391,7 +398,8 @@ export class CartesiaCascadeProvider implements ModelProvider {
       ? new HedgedLLM(
           primary,
           gemini({ ...hedge.backup, temperature: config.temperature }),
-          hedge.hedgeAfterMs
+          hedge.hedgeAfterMs,
+          hedge.afterToolHedgeMs
         )
       : primary;
     const fast = buildFastLane(process.env, opts);
