@@ -120,7 +120,8 @@ public struct RoomLight: Equatable, Sendable {
 public enum WidgetMoment: Equatable, Sendable {
     case morning, afternoon, evening, night
 
-    /// Home's greeting hours (the app's Greeting): 5-12, 12-17, 17-22, then night.
+    /// The day's greeting hours: 5-12, 12-17, 17-22, then night. Home's
+    /// Greeting reads them from here, so the two can't drift.
     public init(hour: Int) {
         switch hour {
         case 5..<12: self = .morning

@@ -401,15 +401,17 @@ private struct NoteCard: View {
     }
 }
 
-/// Ferni's hello, by time of day. A first visit gets an introduction.
+/// Ferni's hello, by time of day. A first visit gets an introduction. The
+/// hours are WidgetMoment's, so the widget's hello turns over with Home's
+/// (critic L6: they were two copies of 5/12/17/22).
 enum Greeting {
     static func headline(hour: Int, firstVisit: Bool) -> String {
         if firstVisit { return String(localized: "Hi, I'm Ferni.") }
-        switch hour {
-        case 5..<12: return String(localized: "Good morning.")
-        case 12..<17: return String(localized: "Good afternoon.")
-        case 17..<22: return String(localized: "Good evening.")
-        default: return String(localized: "Up late? I'm here.")
+        switch WidgetMoment(hour: hour) {
+        case .morning: return String(localized: "Good morning.")
+        case .afternoon: return String(localized: "Good afternoon.")
+        case .evening: return String(localized: "Good evening.")
+        case .night: return String(localized: "Up late? I'm here.")
         }
     }
 }
