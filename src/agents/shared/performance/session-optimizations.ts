@@ -45,10 +45,10 @@ export async function prewarmUserEmbeddings(
 
   try {
     // Import dynamically to avoid circular deps
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
     const { embedBatchCached } = await import('../../../memory/embedding-cache.js');
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const textsToWarm: string[] = [];
 
     // 1. Get recent topics from extracted facts
