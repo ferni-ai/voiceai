@@ -11203,6 +11203,22 @@
   "panelShell": {
     "gettingReady": "One moment, I'm getting this ready for you"
   },
+  "promises": {
+    "title": "Promises",
+    "subtitle": "What I'm keeping an eye on, and what happened",
+    "done": "Done",
+    "released": "You let this go",
+    "expired": "Let go after a while",
+    "waitingOnYou": "Waiting for your yes",
+    "failed": "Didn't go through",
+    "texted": "I texted you about this",
+    "asked": "I asked you about this",
+    "whenever": "Whenever it fits",
+    "dueNow": "Due now",
+    "comingUp": "Coming up",
+    "loadFailed": "I couldn't load these just now.",
+    "none": "Nothing open right now."
+  },
   "waitlistScreen": {
     "title": "You’re on the list",
     "position": "You’re #{position}, about {waves} waves away",

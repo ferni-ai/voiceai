@@ -121,6 +121,8 @@ export const FLAG_MANIFEST = {
   // errands as durable workflows: owner-confirmed calls, verified bookings (services/errands, errands-flag.ts)
   ERRANDS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // set only by vitest.config.external.ts: lets ALLOW_PRODUCTION_DATA unguard that suite
+  EXTERNAL_TEST_SUITE: { default: 'off', owner: 'platform', kind: 'config' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -289,6 +291,8 @@ export const FLAG_MANIFEST = {
   // at most one check-in per commitment every 3 days, kept across calls (superhuman/commitment-checkin-cooldown.ts)
   PROACTIVE_COOLDOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: GET /api/promises, the Today panel's follow-through list (api/routes/promises.ts)
+  PROMISES_PANEL: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // character loads a short character sheet instead of the full prompt (prompt-loader.ts)
   PROMPT_MODE: { default: 'full', owner: 'voice', kind: 'config' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
