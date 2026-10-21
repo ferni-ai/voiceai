@@ -166,6 +166,8 @@ export const FLAG_MANIFEST = {
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
   // on: the opener asks about one follow_through row and the caller's answer closes it (follow-through-opener.ts)
   FOLLOW_THROUGH_OPENER: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: GET /api/follow-through/upcoming lists what Ferni's holding for the signed-in person (follow-through-upcoming-route.ts)
+  FOLLOW_THROUGH_UPCOMING: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
   FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: at call start, ask once about a date the caller told us (dates/recall.ts; needs DATES_THAT_MATTER)
