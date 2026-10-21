@@ -110,6 +110,32 @@ describe('/token identity comes from the verified token', () => {
     expect(dispatched().user_email).toBeUndefined();
   });
 
+  it('marks a signed-in Firebase account as one (firebase_account), for verified-caller.ts', async () => {
+    verifyFirebaseToken.mockResolvedValue({
+      uid: 'uid-123',
+      emailVerified: false,
+      signInProvider: 'google.com',
+      isAnonymous: false,
+      claims: {},
+    });
+    await requestToken('username=Sam');
+    expect(dispatched().firebase_account).toBe(true);
+  });
+
+  it.each([
+    ['an anonymous Firebase user', { signInProvider: 'anonymous', isAnonymous: true }],
+    ['a token with no sign-in provider', {}],
+  ])('never marks %s', async (_name, provider) => {
+    verifyFirebaseToken.mockResolvedValue({
+      uid: 'uid-123',
+      emailVerified: false,
+      claims: {},
+      ...provider,
+    });
+    await requestToken('username=Sam');
+    expect(dispatched().firebase_account).toBeUndefined();
+  });
+
   it('makes the participant identity the verified uid, keeping the username as the display name', async () => {
     await requestToken('username=phone_spoof');
     expect(createToken).toHaveBeenCalledWith(

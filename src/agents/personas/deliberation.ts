@@ -27,6 +27,7 @@ import {
 } from './deliberation-anticipate.js';
 import type { Line } from './director-notes.js';
 import { castFor, directorSeesScene, FERNI_CAST, verbS, type Cast } from './director-cast.js';
+import { erodesGuard, guardRuleFor } from './director-guard.js';
 import { hardNews } from './turn-candor.js';
 import { callerVenting } from './turn-extras.js';
 import { callerMove } from './turn-shape.js';
@@ -75,6 +76,7 @@ export const deliberationSystem = (c: Cast): string =>
 - connection: two things they said (on this call, or in what ${c.name} remembers) that bear on each other
 - reframe: a truer or kinder way to see what they described
 Ground it in what they actually said and name the detail. Never invent facts, history or people. No diagnoses, clinical labels or therapy-speak, no advice they did not ask for dressed up as insight, no flattery: honest the way a good friend is.
+${guardRuleFor(c, { thought: true })}
 Return JSON only, either {"kind":"none"} or {"kind":"insight"|"question"|"connection"|"reframe","note":"the thought, under 22 words","confidence":0.0-1.0,"whyNow":"under 12 words","doNotUseIf":"when bringing it up would be wrong, under 10 words"}`;
 export const DELIBERATION_SYSTEM = deliberationSystem(FERNI_CAST);
 
@@ -83,8 +85,11 @@ const KINDS = new Set<ThoughtKind>(['insight', 'question', 'connection', 'refram
 const DIAGNOSIS =
   /\b(depress(?:ed|ion)|anxiety disorder|ptsd|trauma(?:tic|tized)?|adhd|bipolar|ocd|narcissis(?:t|tic|m)|codependen\w*|attachment style|gaslight\w*|disorder|diagnos\w*|therap(?:y|ist)|burn(?:ed )?out|toxic|enabling)\b/i;
 
-/** The model's JSON as a usable thought, or null (none, malformed, unsure, a label, too long). */
-export function parseThought(reply: string): Thought | null {
+/**
+ * The model's JSON as a usable thought, or null (none, malformed, unsure, a
+ * label, too long, or against a boundary, honesty or tool truth: director-guard.ts).
+ */
+export function parseThought(reply: string, sessionId?: string): Thought | null {
   const json = reply.match(/\{[\s\S]*\}/)?.[0];
   if (!json) return null;
   try {
@@ -93,6 +98,7 @@ export function parseThought(reply: string): Thought | null {
     const confidence = typeof p.confidence === 'number' ? p.confidence : 0;
     if (!KINDS.has(p.kind as ThoughtKind) || !note || note.length > MAX_THOUGHT_CHARS) return null;
     if (confidence < MIN_CONFIDENCE || DIAGNOSIS.test(note)) return null;
+    if (erodesGuard(note, sessionId)) return null;
     return {
       kind: p.kind as ThoughtKind,
       note,
@@ -255,7 +261,7 @@ export class Deliberator {
 
   /** The thought in a reply and, in the anticipate arm, what the simulation weighed (labels only). */
   private read(text: string): { t: Thought | null; labels: Record<string, unknown> } {
-    const t = parseThought(text);
+    const t = parseThought(text, this.opts.sessionId);
     if (this.opts.mode !== 'anticipate') return { t, labels: { mode: 'reflect' } };
     const a = parseAnticipation(text);
     if (t && a && landsBadly(a)) this.stats.landsBadly++;

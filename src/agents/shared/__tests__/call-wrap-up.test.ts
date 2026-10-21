@@ -19,12 +19,18 @@ import {
   WRAP_UP_DESCRIPTION,
   wrapUpCall,
 } from '../call-wrap-up.js';
-import { END_CALL } from '../phone-goodbye.js';
+import { farewellSaid } from '../call-farewell.js';
+import { CRISIS_HOLD, END_CALL } from '../phone-goodbye.js';
 import { clearSessionClosing, isSessionClosing } from '../session-closing-tracker.js';
 import {
   resetFrontendSignal,
   initFrontendSignal,
 } from '../../../services/communication/frontend-signal.js';
+import {
+  noteCrisisRisk,
+  resetCrisisCallRisk,
+  trackCrisisRead,
+} from '../../../services/safety/crisis-call-risk.js';
 
 const ON = { CALL_WRAP_UP: 'on' };
 const appCaller = { kind: ParticipantKind.STANDARD };
@@ -34,6 +40,7 @@ const used: string[] = [];
 afterEach(() => {
   used.splice(0).forEach((id) => clearSessionClosing(id));
   resetFrontendSignal();
+  resetCrisisCallRisk();
 });
 
 let n = 0;
@@ -124,7 +131,8 @@ describe('call wrap-up (CALL_WRAP_UP)', () => {
     expect(names(a)).toEqual(['getWeather', END_CALL]);
     expect(a.toolCtx.functionTools[END_CALL]?.description).toBe(WRAP_UP_DESCRIPTION);
     expect(WRAP_UP_DESCRIPTION).toMatch(/ONLY after a mutual goodbye/);
-    expect(WRAP_UP_DESCRIPTION).toMatch(/never on a heavy or crisis call/);
+    expect(WRAP_UP_DESCRIPTION).toMatch(/never ends a call that has had a crisis moment/);
+    expect(WRAP_UP_DESCRIPTION).not.toMatch(/unless the caller/);
   });
 
   it('runs playout, closing, conversation_end, then deletes the room after the grace', async () => {
@@ -282,5 +290,67 @@ describe('call wrap-up (CALL_WRAP_UP)', () => {
       expect(added).toBe(false);
       expect(names(a)).toEqual(before);
     }
+  });
+});
+
+describe('call wrap-up on a call with crisis risk', () => {
+  it('ends nothing once crisis risk is noted, and tells Ferni to stay', async () => {
+    const c = await appCall();
+    noteCrisisRisk(c.id);
+    expect(await callEndCall(c.a, c.playout)).toBe(JSON.stringify(CRISIS_HOLD));
+    expect(c.events).toEqual([]); // no playout wait, no conversation_end
+    expect(isSessionClosing(c.id)).toBe(false);
+    expect(c.timers).toHaveLength(0); // no room delete scheduled
+  });
+
+  it('holds while a crisis read is still in flight, and ends the call once it reads clean', async () => {
+    const c = await appCall();
+    let finish: (v: { risk: string }) => void = () => {};
+    const read = trackCrisisRead(
+      c.id,
+      'turn',
+      new Promise<{ risk: string }>((resolve) => {
+        finish = resolve;
+      })
+    );
+    expect(await callEndCall(c.a, c.playout)).toBe(JSON.stringify(CRISIS_HOLD));
+    expect(isSessionClosing(c.id)).toBe(false);
+    expect(c.timers).toHaveLength(0);
+
+    finish({ risk: 'none' });
+    await read;
+    expect(await callEndCall(c.a, c.playout)).toBe('');
+    expect(isSessionClosing(c.id)).toBe(true);
+    expect(c.timers.map((t) => t.ms)).toEqual([REMOVAL_GRACE_MS]);
+  });
+
+  it('ends nothing when crisis risk is noted while the goodbye plays', async () => {
+    const c = await appCall();
+    const output = await callEndCall(c.a, async () => {
+      c.events.push('played');
+      noteCrisisRisk(c.id);
+    });
+    expect(output).toBe(JSON.stringify(CRISIS_HOLD));
+    expect(c.events).toEqual(['played']); // no conversation_end
+    expect(isSessionClosing(c.id)).toBe(false);
+    expect(farewellSaid(c.id)).toBe(false); // Ferni is not kept quiet
+    expect(c.timers).toHaveLength(0); // no room delete scheduled
+  });
+
+  it('does not delete the room when crisis risk is noted during the grace window', async () => {
+    const c = await appCall();
+    expect(await callEndCall(c.a, c.playout)).toBe('');
+    expect(c.timers.map((t) => t.ms)).toEqual([REMOVAL_GRACE_MS]);
+    noteCrisisRisk(c.id);
+    await c.runTimers();
+    expect(c.events.some((e) => e.startsWith('deleted'))).toBe(false);
+  });
+
+  it('ends the call as before when it has no risk, even if another call does', async () => {
+    noteCrisisRisk('another-call');
+    const c = await appCall();
+    expect(await callEndCall(c.a, c.playout)).toBe('');
+    expect(isSessionClosing(c.id)).toBe(true);
+    expect(c.events.some((e) => e.startsWith('conversation_end goodbye_complete'))).toBe(true);
   });
 });

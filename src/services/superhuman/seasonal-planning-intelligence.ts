@@ -18,6 +18,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
 import { dataOf, loadDoc, type LoadResult } from './load-state.js';
+import { thanksgivingDay } from '../../utils/us-holidays.js';
 
 const log = createLogger({ module: 'superhuman:seasonal-planning-intelligence' });
 
@@ -101,7 +102,6 @@ export interface SeasonalPlanningProfile {
 // ============================================================================
 
 const CULTURAL_DATES: CulturalDate[] = [
-  // Major US Holidays
   {
     date: '01-01',
     name: "New Year's Day",
@@ -119,7 +119,7 @@ const CULTURAL_DATES: CulturalDate[] = [
     moveable: false,
   },
   {
-    date: '11-28',
+    date: `11-${thanksgivingDay()}`, // the fourth Thursday this year
     name: 'Thanksgiving (US)',
     cultures: ['US'],
     planningAdvice: 'avoid',

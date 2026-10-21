@@ -32,7 +32,12 @@ export const ATTEMPTS = 2;
 export interface ImageModel {
   /** PNG/JPEG bytes of one image, or throws saying why there is none. */
   generate: (prompt: string) => Promise<Buffer>;
+  /** One sentence saying what the image shows, for its alt text. */
+  describe?: (png: Buffer) => Promise<string>;
 }
+
+/** The longest alt text kept; screen readers read all of it. */
+export const ALT_MAX = 140;
 
 export interface PostFacts {
   title: string;
@@ -93,18 +98,45 @@ export function postFacts(markdown: string): PostFacts {
 
 /**
  * Set `image: "<file>"`: replace the line if there is one, otherwise add it after
- * `category:` (where the January posts have it), or last. Nothing else changes.
+ * `category:` (where the January posts have it), or last. With `alt`, also set
+ * `imageAlt:` right after it (scripts/blog/hero-check.ts requires both). Nothing
+ * else changes.
  */
-export function setImage(markdown: string, file: string): string {
+export function setImage(markdown: string, file: string, alt?: string): string {
   const { lines, rest } = frontMatter(markdown);
   const line = `image: ${JSON.stringify(file)}`;
-  const at = lines.findIndex((l) => l.startsWith('image:'));
+  let at = lines.findIndex((l) => l.startsWith('image:'));
   if (at >= 0) lines[at] = line;
   else {
     const category = lines.findIndex((l) => l.startsWith('category:'));
-    lines.splice(category >= 0 ? category + 1 : lines.length, 0, line);
+    at = category >= 0 ? category + 1 : lines.length;
+    lines.splice(at, 0, line);
+  }
+  if (alt !== undefined) {
+    const altLine = `imageAlt: ${JSON.stringify(alt)}`;
+    const old = lines.findIndex((l) => l.startsWith('imageAlt:'));
+    if (old >= 0) lines[old] = altLine;
+    else lines.splice(at + 1, 0, altLine);
   }
   return `---\n${lines.join('\n')}\n---\n${rest}`;
+}
+
+/**
+ * Alt text for the hero: the model's own description of the image it drew, as one
+ * clean line of at most ALT_MAX characters. If it can't describe it, a plain line
+ * naming the post, so a post never ships without alt text.
+ */
+export async function heroAlt(model: ImageModel, png: Buffer, title: string): Promise<string> {
+  const fallback = clean(`Line drawing in sage and amber on cream for "${title}"`);
+  if (!model.describe) return fallback;
+  try {
+    const said = clean(await model.describe(png)).replace(/\.$/, '');
+    if (!said) return fallback;
+    return said.length <= ALT_MAX ? said : `${said.slice(0, ALT_MAX - 1).replace(/\s+\S*$/, '')}…`;
+  } catch (error) {
+    console.error(`Alt text: the model couldn't describe the image (${String(error)})`);
+    return fallback;
+  }
 }
 
 /**
@@ -146,6 +178,23 @@ export async function geminiImageModel(): Promise<ImageModel> {
       ].filter(Boolean);
       throw new Error(`${model} returned no image (${why.join('; ') || 'empty response'})`);
     },
+    async describe(png) {
+      const res = await client.models.generateContent({
+        model: process.env.BLOG_ALT_MODEL || 'gemini-3.5-flash',
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { inlineData: { mimeType: 'image/png', data: png.toString('base64') } },
+              {
+                text: 'Write alt text for this blog illustration: one plain sentence, under 20 words, saying what is drawn and in which colors. No "image of", no quotes.',
+              },
+            ],
+          },
+        ],
+      });
+      return res.text ?? '';
+    },
   };
 }
 
@@ -178,6 +227,7 @@ export interface HeroResult {
   status: 'written' | 'kept' | 'dry-run';
   prompt: string;
   imagePath?: string;
+  alt?: string;
 }
 
 export async function makeHeroImage(
@@ -195,8 +245,9 @@ export async function makeHeroImage(
   const imagePath = path.join(opts.root, IMAGE_DIR, file);
   const png = await toHeroPng(await generateWithRetry(opts.model, prompt));
   fs.writeFileSync(imagePath, png);
-  fs.writeFileSync(postPath, setImage(markdown, file));
-  return { status: 'written', prompt, imagePath };
+  const alt = await heroAlt(opts.model, png, facts.title);
+  fs.writeFileSync(postPath, setImage(markdown, file, alt));
+  return { status: 'written', prompt, imagePath, alt };
 }
 
 async function main(): Promise<void> {
@@ -222,7 +273,7 @@ async function main(): Promise<void> {
   if (result.status === 'dry-run') console.log(result.prompt);
   else if (result.status === 'kept')
     console.log(`${post} already has an image; --force replaces it.`);
-  else console.log(`Wrote ${result.imagePath} and set image: in ${post}`);
+  else console.log(`Wrote ${result.imagePath} and set image: and imageAlt: in ${post}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
