@@ -5,7 +5,7 @@
     "direction": "ltr"
   },
   "hero": {
-    "eyebrow": "Treffen Sie Ihren KI-Coach",
+    "eyebrow": "Lernen Sie Ferni kennen",
     "headline": "Besser als",
     "headlineAccent": "menschlich.",
     "subhead": "Endlich jemand, der wirklich zuhört.",
@@ -42,7 +42,7 @@
     "sectionTitle": "Das Team kennenlernen",
     "sectionSubtitle": "Sechs brillante Köpfe arbeiten für Sie zusammen",
     "ferni": {
-      "role": "Lebenscoach",
+      "role": "Freund & Begleiter",
       "bio": "Ihr Hauptansprechpartner. Stellt die Fragen, die Erkenntnisse freisetzen, feiert jeden Erfolg und verbindet Sie mit dem richtigen Spezialisten, wenn Sie ihn brauchen.",
       "sampleQuote": "Mir ist aufgefallen, dass Sie diese Woche dreimal 'gut' gesagt haben. Was ist wirklich los?"
     },
@@ -53,7 +53,7 @@
     },
     "peter": {
       "role": "Forschung & Entdeckung",
-      "bio": "Erkennt Muster, die niemand sonst sieht – in Ihren Ausgaben, Gewohnheiten und Ihrem Kalender. Verwandelt Daten in Erkenntnisse, die Verhalten wirklich verändern.",
+      "bio": "Hilft Ihnen, Muster in Ihrem Geld, Ihren Gewohnheiten und Ihrer Zeit zu erkennen – anhand dessen, was Sie teilen. Verwandelt Zahlen in Erkenntnisse, die Verhalten wirklich verändern.",
       "sampleQuote": "Sie verbringen 23 Stunden pro Monat mit Dingen, die Sie als unwichtig bezeichnet haben. Möchten Sie es sehen?"
     },
     "alex": {
