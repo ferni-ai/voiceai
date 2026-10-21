@@ -304,12 +304,14 @@ public enum AvatarExpression: String, CaseIterable, Codable, Sendable {
         AvatarExpression(rawValue: string) ?? aliases[string] ?? .neutral
     }
 
-    /// The web's ALIASES, one name space with it.
+    /// The web's ALIASES, one name space with it, except "waiting": the web
+    /// maps it to resting, whose z's say he's asleep while he's waiting on you;
+    /// here it's attentive, eyes open (critic L3).
     public static let aliases: [String: AvatarExpression] = [
         "accompanying": .supportive, "celebrating": .joyful, "challenging": .determined, "contemplative": .thinking,
         "curiousLean": .curious, "farewell": .warm, "growing": .proud, "holding": .compassionate,
         "holdingSpace": .compassionate, "insider": .playful, "noticing": .attentive, "realizing": .surprised,
         "receiving": .tender, "recognizing": .warm, "reconnecting": .happy, "remembering": .thinking,
-        "shifting": .neutral, "waiting": .resting,
+        "shifting": .neutral, "waiting": .attentive,
     ]
 }
