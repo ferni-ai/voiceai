@@ -59,6 +59,8 @@ struct HomeView: View {
                             if call.phase == .ended {
                                 RememberCard(call: call, remembered: model.callRemembered)
                                     .id(Self.rememberID)
+                                    // Over the team row while it rises past it (award upgrade 8).
+                                    .zIndex(1)
                                 NextStepsCard(call: call, steps: model.nextSteps)
                                 #if FERNI_PUSH
                                 NotificationAsk(push: model.push, uid: model.account.user?.uid)

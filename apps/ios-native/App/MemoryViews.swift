@@ -14,6 +14,7 @@ struct RememberCard: View {
     @State private var draft = ""
     @State private var problem: String?
     @FocusState private var writing: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         // A permanent zero-height anchor: .task on a view that renders nothing never runs.
@@ -37,7 +38,10 @@ struct RememberCard: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(FerniColor.surfaceRaised, in: RoundedRectangle(cornerRadius: FerniRadius.large))
                 .overlay(RoundedRectangle(cornerRadius: FerniRadius.large).stroke(FerniColor.border))
-                .transition(.opacity)
+                // A goodbye with weight (award upgrade 8): the card rises out of
+                // where the captions were and settles, a soft spring with no
+                // bounce; under Reduce Motion it fades in where it rests.
+                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
             }
         }
         .task(id: call.startedAt) { await load() }
@@ -123,11 +127,18 @@ struct RememberCard: View {
     }
 
     /// Facts are written as the call wraps up, so look once more a little later.
+    /// How the card arrives: a slow, unbouncy settle, or a plain fade under
+    /// Reduce Motion.
+    static func settle(reduceMotion: Bool) -> Animation {
+        reduceMotion ? .easeOut(duration: 0.25) : .spring(response: 0.6, dampingFraction: 0.9)
+    }
+
     private func load() async {
         guard let since = call.startedAt else { return }
         for attempt in 0..<2 {
             if attempt > 0 { try? await Task.sleep(for: .seconds(4)) }
-            items = await remembered.items(since: since)
+            let found = await remembered.items(since: since)
+            withAnimation(Self.settle(reduceMotion: reduceMotion)) { items = found }
             if !items.isEmpty { return }
         }
     }
