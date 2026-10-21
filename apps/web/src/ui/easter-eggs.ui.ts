@@ -21,9 +21,9 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { celebrationsUI } from './celebrations.ui.js';
 import { soundUI } from './sound.ui.js';
+import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { createShakeDetector } from './shake-detector.js';
 import { appState } from '../state/app.state.js';
-import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
 import { showToast } from './overlay/toast-region.js';
 
 // Track all setTimeout calls for proper cleanup
@@ -1116,7 +1116,7 @@ function showAchievementNotification(achievement: Achievement): void {
   notification.className = 'achievement-notification';
   const achievementName = t(achievement.nameKey);
   const achievementDesc = t(achievement.descriptionKey);
-  if (isOverlayHostEnabled()) {
+  if (isToastRegionEnabled()) {
     // The toast region: the top lane, clear of the call controls, queued.
     showToast({ kind: 'achievement', title: achievementName, message: achievementDesc });
     soundUI.play('success');

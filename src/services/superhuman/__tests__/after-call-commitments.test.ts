@@ -166,6 +166,47 @@ describe('recording', () => {
   });
 });
 
+describe('only commitments someone can act on', () => {
+  it('stores real plans, "call her tomorrow" and the run-on Tom line too, but not a goodbye', async () => {
+    const { sink, added } = memorySink();
+    const written = await recordCallerCommitments(
+      [
+        obs({ value: 'call her', source: { quote: "I'll call her tomorrow" } }),
+        obs({ value: 'goodbye', source: { quote: "I'll catch you later" } }),
+        obs({ value: 'send photos', source: { quote: "I'll send Mindy the photos" } }),
+        obs({ value: 'dentist', source: { quote: "I'll be at the dentist at 2" } }),
+        obs({
+          value: 'pay Tom',
+          source: { quote: "I owe Tom fifty bucks, I'll pay him back Friday" },
+        }),
+      ],
+      ctx,
+      { sink, forgotten: async () => [] }
+    );
+    // At most three per call (MAX_PER_CALL): the goodbye is out, the first three plans are in.
+    expect(written).toBe(3);
+    expect(added.map((d) => d.statement)).toEqual([
+      "I'll call her tomorrow",
+      "I'll send Mindy the photos",
+      "I'll be at the dentist at 2",
+    ]);
+    const { sink: tomSink, added: tom } = memorySink();
+    await recordCallerCommitments(
+      [
+        obs({
+          value: 'pay Tom',
+          source: { quote: "I owe Tom fifty bucks, I'll pay him back Friday" },
+        }),
+      ],
+      ctx,
+      { sink: tomSink, forgotten: async () => [] }
+    );
+    expect(tom.map((d) => d.statement)).toEqual([
+      "I owe Tom fifty bucks, I'll pay him back Friday",
+    ]);
+  });
+});
+
 describe('helpers', () => {
   it('sameCommitment matches rewordings, not different plans', () => {
     expect(sameCommitment("I'll call my sister Sunday", 'call sister on Sunday')).toBe(true);

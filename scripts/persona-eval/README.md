@@ -59,9 +59,50 @@ run takes about 1,000. The default model and judge are `gemini-3.5-flash`
 | **insight**      | Nine lines carry 2–3 facts about the caller. Each set has one fact the line invites and one it doesn't. The facts arrive as a memory-recall note built by the real `formatRecall`, placed where `memory-recall-hook.ts` puts it. The judge rates each reply natural, forced or none. The rate is the share rated natural; the forced share is in the JSON.                                                                                                                                                                                                                    | higher |
 | **copy**         | Deterministic, no LLM. This is the share of replies that contain any 4-word run that also appears in the instructions the model received: the system prompt plus the per-turn reminder. The recall note and the caller's words don't count. With `--exclude-canon`, runs from the speaking persona's own bible (the files canon-judge reads: character.md, biography, backstory) don't count either, so Maya naming her own cats is not a copy. Ferni's character.md also holds speech examples, so this leaves those out for him too. The report lists the most-copied runs. | lower  |
 
+### Model tells
+
+Deterministic, no LLM, scored on the same replies in both modes. Each is the
+share of replies showing one of the generic habits the model falls back on
+when nothing shapes the reply (they came back when SCRIPT_FREE_REMINDER took
+the shared style out: ending on a question went from 28% to 94%):
+
+| tell     | counts a reply that                                                                                       |
+| -------- | --------------------------------------------------------------------------------------------------------- |
+| question | ends on a question mark                                                                                   |
+| opener   | opens with Oh, Ugh, Yeah, Hmm, Wow, Ah or Well (stretched forms too: "Ohh", "Hmmm")                       |
+| checkin  | has a therapist check-in: how are you feeling / holding up, how does that make you feel, that sounds hard |
+| exclaim  | has an exclamation mark                                                                                   |
+
+Lower is better across the cast, and each tell gets an A/A floor and a verdict
+like the other metrics. Per persona a tell can be in character (Maya exclaims;
+Nayan should rarely ask), so per persona the report gives each tell, plus the
+share with any question mark, and the moves beyond that persona's floor as up
+or down, not better or worse. Tells are recomputed from saved replies, so an
+older baseline gets them too.
+
 Not replayed: audio and TTS, tools, the greeting, and the background
 turn-intelligence notes. Each test is one turn deep. Compare arms; don't read
 the absolute numbers as what happens on live calls.
+
+## Multi-turn: changes that act between turns
+
+The director, deliberation and recall act between turns, which one turn can't
+show. `--multi-turn` plays `fixtures/bar-conversations.json` instead: 12 calls
+of 4–5 fixed caller turns (good news, something hard, advice, small talk that
+turns personal, a person or plan that matters later, a call at 11 pm the
+caller's time), six with caller facts as the recall note. Each reply joins the
+chat, then the session goes speaking -> listening, so the real director and
+deliberator that `installDirectorNotes` (turn-observers.ts) installs run their
+real model calls as on a live session (the director keeps its 4 s budget), and
+the next turn's reminder carries their notes. Whatever director code the tree
+has is what runs, so an arm like DIRECTOR_SEES_SCENE needs only its flag.
+
+The last two replies of each call are scored as above; judges also see the
+caller's earlier words on the call. Insight is judged on calls with facts, a
+callback or a local time. Each scored reply records the notes and thought it
+was given; `transcripts` holds every turn. `--aa`, `--baseline` and `--reuse`
+work the same. Not replayed: the turn-intelligence note, where the deliberator
+reads memory on a call. An A/A run takes about 2,000 Gemini calls.
 
 ## The A/A rule
 

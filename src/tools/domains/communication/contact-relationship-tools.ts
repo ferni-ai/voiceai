@@ -22,6 +22,8 @@ import {
   getContactContext,
   getInteractionHistory,
   getInteractionStats,
+  daysSinceLastInteraction,
+  formatDaysAgo,
 } from '../../../services/contacts/contact-relationship-service.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { ToolDefinition, Tool, ToolContext } from '../../registry/types.js';
@@ -117,21 +119,16 @@ export function getContactRelationshipToolDefinitions(): ToolDefinition[] {
               return 'No contacts are flagged as needing attention right now.';
             }
 
-            const now = new Date();
             let response = `These contacts could use some attention:\n\n`;
 
             contacts.forEach((contact, i) => {
-              const daysSince = Math.floor(
-                (now.getTime() - contact.lastInteraction.getTime()) / (1000 * 60 * 60 * 24)
-              );
-              const timeStr =
-                daysSince === 0 ? 'today' : daysSince === 1 ? 'yesterday' : `${daysSince} days ago`;
+              const timeStr = formatDaysAgo(daysSinceLastInteraction(contact));
 
               response += `${i + 1}. ${contact.name}`;
               if (contact.relationship) {
                 response += ` (${contact.relationship})`;
               }
-              response += ` - last contact: ${timeStr}\n`;
+              response += timeStr ? ` - last contact: ${timeStr}\n` : `\n`;
 
               if (contact.pendingFollowUp && !contact.pendingFollowUp.completed) {
                 response += `   Pending: ${contact.pendingFollowUp.reason}\n`;
