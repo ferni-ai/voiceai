@@ -27,6 +27,7 @@ export interface FlagSpec {
 /** ACTION_CLAIM_GUARD .. BYPASS_TEAM_UNLOCKS */
 export const FLAGS_ACTION_TO_BYPASS = {
   ACTION_CLAIM_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  ACTION_CLAIM_PAST: { default: 'off', owner: 'tools', kind: 'experiment' },
   ACTION_CLAIM_STREAM: { default: 'off', owner: 'voice', kind: 'experiment' },
   AFTER_CALL_EXTRACTION: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // set by the job runner for its child processes
