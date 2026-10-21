@@ -39,8 +39,7 @@ struct SettingsView: View {
                 } header: {
                     SettingsHeader("At night")
                 } footer: {
-                    Text("From 10 pm to 5 am Ferni goes dark, even when your phone is in light mode.")
-                        .foregroundStyle(FerniColor.textSecondary)
+                    SettingsFooter("From 10 pm to 5 am Ferni goes dark, even when your phone is in light mode.")
                 }
                 // Last, on its own: not between Help and Privacy where a thumb
                 // lands looking for something else (design audit P2 #9).
@@ -77,9 +76,37 @@ struct SettingsView: View {
     private static var version: String { version() }
 }
 
+/// A section's footer in Ferni's secondary ink: the system footer's grey
+/// "nearly passed" the contrast audit (Help, More, Delete account; critic H-C).
+struct SettingsFooter: View {
+    let text: LocalizedStringKey
+    init(_ text: LocalizedStringKey) { self.text = text }
+    var body: some View {
+        Text(text)
+            .font(FerniType.footnote)
+            .foregroundStyle(FerniColor.textSecondary)
+    }
+}
+
+/// A row's icon and words, side by side. Not a Label: in a List the audit
+/// called a Label's words clipped at every size, AX5 included, though they
+/// showed whole ("Text 988" in Help and More, "Report something Ferni said";
+/// critic H-C). The symbol grows with the text.
+struct IconRow: View {
+    let title: LocalizedStringKey
+    let systemImage: String
+    init(_ title: LocalizedStringKey, systemImage: String) { self.title = title; self.systemImage = systemImage }
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: systemImage).accessibilityHidden(true)
+            Text(title)
+        }
+    }
+}
+
 /// A section title in Ferni's secondary text colour, which keeps 4.5:1 contrast
 /// on the grouped background in both appearances (the system default falls just short).
-private struct SettingsHeader: View {
+struct SettingsHeader: View {
     let title: LocalizedStringKey
     init(_ title: LocalizedStringKey) { self.title = title }
     // Its own font, not the list header's: the system header font stops
@@ -154,10 +181,12 @@ private struct AccountSection: View {
             case .signedIn(let user) where user.isSignedInWithApple:
                 LabeledContent("Signed in with Apple", value: user.email ?? "")
                 Button("Sign out", role: .destructive) { confirmingSignOut = true }
+                    .foregroundStyle(FerniColor.error)
                     .disabled(account.isWorking)
             case .signedIn(let user) where !user.isAnonymous:
                 LabeledContent("Signed in", value: user.email ?? (user.providerIDs.contains("phone") ? String(localized: "With your phone number") : ""))
                 Button("Sign out", role: .destructive) { confirmingSignOut = true }
+                    .foregroundStyle(FerniColor.error)
                     .disabled(account.isWorking)
             case .signedIn:
                 Text("Sign in so Ferni remembers you on all your devices. What you've shared so far comes with you, unless this Apple ID already has a Ferni account; then you'll continue there.")
@@ -202,6 +231,7 @@ private struct PrivacySection: View {
             if let agreement = consent.agreement, consent.hasAgreed {
                 LabeledContent("You agreed on", value: agreement.agreedAt.formatted(date: .abbreviated, time: .omitted))
                 Button("Withdraw", role: .destructive) { confirmingWithdraw = true }
+                    .foregroundStyle(FerniColor.error)
             } else {
                 Text("You haven't agreed to share your conversations yet. Ferni will ask before your next call.")
                     .foregroundStyle(FerniColor.textSecondary)
@@ -226,21 +256,21 @@ struct HelpView: View {
                 Text("Ferni is a friend, not a therapist. If you're struggling, people are ready to help right now.")
             }
             Section {
-                Link(destination: URL(string: "tel:988")!) { Label("Call 988", systemImage: "phone") }
-                Link(destination: URL(string: "sms:988")!) { Label("Text 988", systemImage: "message") }
+                Link(destination: URL(string: "tel:988")!) { IconRow("Call 988", systemImage: "phone") }
+                Link(destination: URL(string: "sms:988")!) { IconRow("Text 988", systemImage: "message") }
             } header: {
                 SettingsHeader("Suicide & Crisis Lifeline (US)")
             } footer: {
-                Text("Free and confidential, any time. If you're in danger, call 911.")
+                SettingsFooter("Free and confidential, any time. If you're in danger, call 911.")
             }
             Section {
                 Link(destination: URL(string: "https://findahelpline.com")!) {
-                    Label("Find a helpline outside the US", systemImage: "globe")
+                    IconRow("Find a helpline outside the US", systemImage: "globe")
                 }
             } header: {
                 SettingsHeader("Outside the US")
             } footer: {
-                Text("Free, confidential helplines in your country. If you're in danger, call your local emergency number.")
+                SettingsFooter("Free, confidential helplines in your country. If you're in danger, call your local emergency number.")
             }
         }
         .ferniPaper()
@@ -268,10 +298,13 @@ struct DeleteAccountView: View {
                 Text("It can't be undone.")
                     .foregroundStyle(FerniColor.error)
             } footer: {
-                Text("Signed in with Apple? Ferni's access to your Apple ID ends too.")
+                SettingsFooter("Signed in with Apple? Ferni's access to your Apple ID ends too.")
             }
             Section {
+                // Ferni's red, not the system's: that one "nearly passed" the
+                // contrast audit on the white row (critic H-C).
                 Button("Delete my account", role: .destructive) { confirming = true }
+                    .foregroundStyle(FerniColor.error)
                     .disabled(working)
                 if working { ProgressView() }
                 if failed {
