@@ -17,11 +17,18 @@ final class MemoryJournalUITests: XCTestCase {
         return app
     }
 
+    /// Scrolls the list until `element` is on screen: on an SE, with the search
+    /// row and the people first, Biscuit is below the fold.
+    private func scrollTo(_ element: XCUIElement, in app: XCUIApplication) {
+        for _ in 0..<5 where !(element.exists && element.isHittable) { app.collectionViews.firstMatch.swipeUp(velocity: .slow) }
+    }
+
     func testItReadsLikeAJournal() throws {
         let app = try openMemories()
         let biscuit = app.staticTexts["You have a dog called Biscuit"]
-        XCTAssertTrue(biscuit.waitForExistence(timeout: 10), "said to you, not \"Has a dog called Biscuit\"")
-        XCTAssertTrue(app.staticTexts["Your sister Ana's birthday is Friday"].exists)
+        XCTAssertTrue(app.staticTexts["Your sister Ana's birthday is Friday"].waitForExistence(timeout: 10))
+        scrollTo(biscuit, in: app)
+        XCTAssertTrue(biscuit.exists, "said to you, not \"Has a dog called Biscuit\"")
         XCTAssertFalse(app.staticTexts["Has a dog called Biscuit"].exists)
         // When, newest first; not the server's types.
         XCTAssertTrue(app.staticTexts["This week"].exists || app.staticTexts["THIS WEEK"].exists, "a This week section")
@@ -30,18 +37,11 @@ final class MemoryJournalUITests: XCTestCase {
         }
         let walk = app.staticTexts["Walk before work, three mornings a week"]
         XCTAssertLessThan(walk.frame.minY, biscuit.frame.minY, "today's note above one from three days ago")
-        // The visible Forget and the date line pass Apple's audit (contrast, size, labels).
-        // Rows sliding under the floating search bar (or the home indicator)
-        // fade into its edge effect; scrolled up they're read in full, so the
-        // audit's verdicts there aren't this screen's. The search field's own
-        // placeholder (an unnamed node: the finding goes when the search modifier
-        // is removed) is the system's.
-        let search = app.searchFields.firstMatch
-        let edge = (search.exists ? search.frame.minY : app.frame.maxY) - 80
-        try app.performAccessibilityAudit { issue in
-            guard let element = issue.element else { return search.exists && issue.auditType == .contrast }
-            return element.frame.maxY > edge
-        }
+        // Apple's audit of this screen is AccessibilityAuditTests.testMemoryJournal:
+        // by day, at night and at AX5, through the same edge and floor rules as
+        // every other screen. The handler here ignored every finding within 80 pt
+        // of the floating search bar and every unnamed contrast finding (critic
+        // H-C); the search is a row now, and that audit waves nothing of the kind.
         let shot = XCTAttachment(screenshot: app.screenshot())
         shot.name = "shot-memory-journal"
         shot.lifetime = .keepAlways
@@ -79,8 +79,12 @@ final class MemoryJournalUITests: XCTestCase {
     func testForgetIsInViewAndAsksFirst() throws {
         let app = try openMemories()
         let forget = app.buttons["Forget: You have a dog called Biscuit"]
-        XCTAssertTrue(forget.waitForExistence(timeout: 10), "a Forget on the row")
-        XCTAssertTrue(forget.isHittable, "in view, without a swipe")
+        _ = app.staticTexts["Your sister Ana's birthday is Friday"].waitForExistence(timeout: 10)
+        scrollTo(forget, in: app)
+        XCTAssertTrue(forget.exists, "a Forget on the row")
+        // On the row, not behind a swipe action. On an SE the floating search
+        // bar covered it (critic M-D): there, but not hittable.
+        XCTAssertTrue(forget.isHittable, "in view on the row")
         XCTAssertGreaterThanOrEqual(forget.frame.height, 44)
         forget.tap()
         let confirm = app.sheets.buttons["Forget"].exists ? app.sheets.buttons["Forget"] : app.buttons["Forget"].firstMatch
