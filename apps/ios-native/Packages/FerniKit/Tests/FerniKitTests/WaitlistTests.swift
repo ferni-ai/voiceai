@@ -113,6 +113,27 @@ final class WaitlistTests: XCTestCase {
         }
     }
 
+    /// Critic round 2, H1: POST /api/waitlist/join (main's
+    /// src/api/waitlist-queue-routes.ts) answers like /me; a 401 is a sign-in
+    /// without a verified email; anything else is a failure to say so.
+    func testJoiningTheList() async throws {
+        let sent = Box(), answer = Data(waiting.utf8)
+        let api = FerniAPI(baseURL: URL(string: "https://api.example.test")!, idToken: { _ in "t" }) { request in
+            sent.request = request
+            return (answer, HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!)
+        }
+        guard case .joined(let place) = await WaitlistStatus.join(api: api) else { return XCTFail("joined") }
+        XCTAssertEqual(place.position, 432)
+        XCTAssertEqual(sent.request?.httpMethod, "POST")
+        XCTAssertEqual(sent.request?.url?.path, "/api/waitlist/join")
+        let needsEmail = await WaitlistStatus.join(api: self.api(status: 401, body: #"{"error":"sign_in_required"}"#))
+        XCTAssertEqual(needsEmail, .needsEmail)
+        let failed = await WaitlistStatus.join(api: self.api(status: 400, body: #"{"error":"disposable_email"}"#))
+        XCTAssertEqual(failed, .failed)
+    }
+
+    private final class Box: @unchecked Sendable { var request: URLRequest? }
+
     func testAnAdmittedAccountGetsItsAnswer() async throws {
         let data = try await api(status: 200, body: #"{"token":"t"}"#).data("/token", readsWaitlist: true)
         XCTAssertEqual(String(decoding: data, as: UTF8.self), #"{"token":"t"}"#)

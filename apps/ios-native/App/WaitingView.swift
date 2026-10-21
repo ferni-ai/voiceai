@@ -15,30 +15,48 @@ struct WaitingView: View {
     let onComeIn: () -> Void
     /// Not on the list yet: sign in, which is how a person joins it.
     var onSignIn: () -> Void = {}
+    /// Signed in but not on the list: join it from here (critic H1).
+    var onJoin: () async -> WaitlistStatus.JoinOutcome = { .failed }
     @State private var copied = false
+    /// Where they stand after joining from here.
+    @State private var joined: WaitlistStatus?
+    @State private var working = false
+    @State private var problem: String?
+
+    /// Where they stand: as Talk found them, or as joining from here left them.
+    private var shown: WaitlistStatus { joined ?? place }
 
     var body: some View {
+        let place = shown
         let joining = place.needsToJoin(anonymous: anonymous)
+        // Signed in, so one tap joins; anonymous, signing in is the way.
+        let joinsHere = joining && !anonymous
         ScrollView {
             VStack(spacing: FerniSpace.rest) {
                 AvatarView(persona: .ferni, expression: place.isAdmitted ? .happy : .content, activity: .idle)
                     .frame(width: 120, height: 120)
                     .accessibilityHidden(true)
-                Text(place.isAdmitted ? "You’re in" : joining ? "Sign in to join the list" : "You’re on the list")
+                Text(place.isAdmitted ? "You’re in" : joinsHere ? "Join the list" : joining ? "Sign in to join the list" : "You’re on the list")
                     .font(FerniType.greeting)
                     .foregroundStyle(FerniColor.textPrimary)
                     .accessibilityAddTraits(.isHeader)
-                if place.isAdmitted { admitted } else if joining { join } else { waiting }
+                if place.isAdmitted { admitted } else if joinsHere { joinHere } else if joining { join } else { waiting }
+                if let problem {
+                    Text(problem)
+                        .font(FerniType.body)
+                        .foregroundStyle(FerniColor.textSecondary)
+                }
                 Button {
-                    place.isAdmitted ? onComeIn() : joining ? onSignIn() : onClose()
+                    if place.isAdmitted { onComeIn() } else if joinsHere { Task { await joinList() } } else if joining { onSignIn() } else { onClose() }
                 } label: {
-                    Text(place.isAdmitted ? "Come in" : joining ? "Sign in" : "Not now")
+                    Text(place.isAdmitted ? "Come in" : joinsHere ? "Join the list" : joining ? "Sign in" : "Not now")
                         .font(FerniType.button)
                         .frame(maxWidth: 420, minHeight: 56)
                 }
                 .ferniPrimaryGlass()
                 .buttonBorderShape(.capsule)
                 .tint(FerniColor.accent)
+                .disabled(working)
                 if joining {
                     Button("Not now", action: onClose)
                         .font(FerniType.button)
@@ -57,6 +75,24 @@ struct WaitingView: View {
         .accessibilityIdentifier("waiting")
     }
 
+    /// Signed in, not on the list: joining takes one tap (critic round 2, H1).
+    private var joinHere: some View {
+        Text("I’m letting people in a few at a time. Join and you’ll get your place in line.")
+            .font(FerniType.bodyLarge)
+            .foregroundStyle(FerniColor.textSecondary)
+    }
+
+    private func joinList() async {
+        working = true
+        problem = nil
+        switch await onJoin() {
+        case .joined(let status): withAnimation { joined = status }
+        case .needsEmail: problem = String(localized: "To join, sign in with Apple or Google, so I have an email for when your spot opens.")
+        case .failed: problem = String(localized: "Couldn’t add you just now. Try again?")
+        }
+        working = false
+    }
+
     /// Not on the list (anonymous, or not_joined): no place, no link and no email
     /// to write to, so no promise of one (critic H1). Signing in joins.
     private var join: some View {
@@ -66,7 +102,7 @@ struct WaitingView: View {
     }
 
     @ViewBuilder private var admitted: some View {
-        if let badge = place.badge {
+        if let badge = shown.badge {
             Text(badge)
                 .font(FerniType.headline)
                 .foregroundStyle(FerniColor.textPrimary)
@@ -80,17 +116,17 @@ struct WaitingView: View {
     }
 
     @ViewBuilder private var waiting: some View {
-        if let line = place.positionLine {
+        if let line = shown.positionLine {
             Text(line)
                 .font(FerniType.headline)
                 .foregroundStyle(FerniColor.textPrimary)
         }
-        if let line = place.nextWaveLine() {
+        if let line = shown.nextWaveLine() {
             Text(line)
                 .font(FerniType.bodyLarge)
                 .foregroundStyle(FerniColor.textSecondary)
         }
-        if let url = place.inviteURL {
+        if let url = shown.inviteURL {
             VStack(spacing: FerniSpace.pause) {
                 // One element for VoiceOver: a raw URL isn't something to read
                 // aloud, and Share and Copy link do the work (no text selection,
