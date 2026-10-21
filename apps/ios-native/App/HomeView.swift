@@ -34,8 +34,10 @@ struct HomeView: View {
                     Button {
                         model.isShowingSettings = true
                     } label: {
-                        Image(systemName: "person.crop.circle")
+                        Image(systemName: model.account.user?.isSignedInWithApple == true
+                              ? "person.crop.circle.fill" : "person.crop.circle")
                             .font(.title2)
+                            .frame(minWidth: 44, minHeight: 44)
                     }
                     .tint(FerniColor.accent)
                     .accessibilityLabel("Account and settings")
