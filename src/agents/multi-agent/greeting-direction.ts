@@ -427,8 +427,12 @@ export async function directedGreeting(
   )
     anniversary.mark();
   // One follow-up per call opener (opener-claim.ts): having asked, the greeting
-  // keeps the first recall note from asking about a thread too.
-  const topic = checkIn ?? ask?.text;
+  // keeps the first recall note from asking about a thread too. Asking about last
+  // call's topic counts: the director opens on it unprompted ("how is Pepper
+  // holding up with that cone?", dev 2026-10-21), and without a claim the recall
+  // note's OPENER_FOLLOW_UP line would have Ferni ask a second time.
+  const lastTopic = spoken.includes('?') ? history?.lastTopic : undefined;
+  const topic = checkIn ?? ask?.text ?? lastTopic;
   if (
     !unknown &&
     userData?.userId &&

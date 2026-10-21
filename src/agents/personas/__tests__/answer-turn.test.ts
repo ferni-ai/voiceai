@@ -72,6 +72,22 @@ describe('answersQuestion', () => {
     expect(answersQuestion(GREETING, 'Hey Ferni.')).toBe(false);
   });
 
+  it('does not read "it\'s me" after a return call\'s greeting as an answer (sweep 2026-10-21)', () => {
+    const asked = 'Hey Sam, did you end up sending that resume to Dana?';
+    for (const said of [
+      "Hey Ferni, it's me.",
+      "Hey Ferni, it's me again.",
+      "Hi, it's me!",
+      'It is just me.',
+      'Me again.',
+      "Hey, I'm back.",
+    ])
+      expect(answersQuestion(asked, said), said).toBe(false);
+    // Still answers: a hello in front of one, or "it's" about the thing asked.
+    for (const said of ['Hey Ferni, I did.', "It's done.", "It's sent, finally.", 'Hi, yes.'])
+      expect(answersQuestion(asked, said), said).toBe(true);
+  });
+
   it('does not read their own question or a change of topic as an answer', () => {
     for (const said of [
       'Can you play some music?',
