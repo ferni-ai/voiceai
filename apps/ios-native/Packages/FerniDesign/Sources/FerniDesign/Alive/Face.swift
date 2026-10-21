@@ -139,7 +139,28 @@ public struct Face: Equatable, Sendable {
     /// z's for sleep, a bead of sweat for nerves. No ? or ! (the web's rule is
     /// no emoji-like marks; Ferni's face carries confusion and surprise).
     static let glyphs: [String: String] = [
-        "sleepy": "z", "drowsy": "z", "resting": "z", "nervous": "sweat", "embarrassed": "sweat",
+        "sleepy": "z", "drowsy": "z", "resting": "z", "nervous": "sweat", "embarrassed": "sweat", "crying": "tears",
+    ]
+
+    /// The few faces tuned by hand, as values in one table rather than
+    /// conditions scattered through `of` (critic M6). Each says why.
+    struct Tuning {
+        /// The smile crease's cheek lift, overriding the tokens'.
+        var cheek: Double?
+        /// Lower lids lifted this much more.
+        var lowerLift = 0.0
+        /// The glare's share (1 = a full glare's tilt and lower lids; 0.5 = half).
+        var glare = 1.0
+    }
+
+    static let tuning: [String: Tuning] = [
+        // The everyday talking face: a cheek lift read smug and narrowed his range;
+        // speaking differs from neutral by voice (2026-10-20).
+        "speaking": Tuning(cheek: 0),
+        // Settled, soft eyes, the lower lids up a touch (it rendered as speaking).
+        "present": Tuning(lowerLift: 0.2),
+        // Steady, not fierce: half the glare, no lower-lid push (it rendered as determined).
+        "resolute": Tuning(glare: 0.5),
     ]
 
     /// The face for an expression id; neutral for an id the tokens don't have.
@@ -162,12 +183,12 @@ public struct Face: Equatable, Sendable {
         // tells apart four faces that rendered the same (expression audit twins).
         // Not on speaking, the everyday talking face: there the lift read smug and
         // narrowed his range (2026-10-20); speaking differs from neutral by voice.
-        let cheek = id == "speaking" ? 0 : clamp(e.smileCrease?.opacity ?? 0, 0, 1) * 0.5
+        let tuned = tuning[id] ?? Tuning()
+        let cheek = tuned.cheek ?? clamp(e.smileCrease?.opacity ?? 0, 0, 1) * 0.5
         // A glare pushes the lower lids up too, so frustration reads apart from focus
         // (expression audit P1 #8: focused and frustrated rendered the same).
-        // Present: settled, soft eyes, the lower lids up a touch (it rendered as speaking).
-        let soft = id == "present" ? 0.2 : 0
-        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100 + min(cheek, 0.2) + soft, 0, 0.6), worry ? 0.14 : glare && id != "resolute" ? 0.12 : 0)
+        let lower = happy ? 0 : max(clamp(bot * 0.5 / 100 + min(cheek, 0.2) + tuned.lowerLift, 0, 0.6),
+                                    worry ? 0.14 : glare && tuned.glare == 1 ? 0.12 : 0)
         let arch = happy ? clamp(-bot * 3 / 100, 0, 0.85) : cheek
         let sx = e.eyeWhite?.scaleX ?? 1, sy = e.eyeWhite?.scaleY ?? 1
 
@@ -200,9 +221,8 @@ public struct Face: Equatable, Sendable {
         let body = BodyTransform(e.body?.transform)
         f.gx = (e.eyesGroup?.translateX ?? 0) * 0.09
         f.gy = -(e.eyesGroup?.translateY ?? 0) * 0.09
-        // Resolute is steady, not fierce: half the glare (it rendered as determined).
         // Nervous lifts its inner corners a little, short of worry (it rendered as listening).
-        f.tilt = e.lidTop?.droop == true ? 0.5 : worry ? 0.45 : glare ? (id == "resolute" ? -0.3 : -0.6)
+        f.tilt = e.lidTop?.droop == true ? 0.5 : worry ? 0.45 : glare ? -0.6 * tuned.glare
             : nervous ? 0.3 : 0
         f.crease = clamp(e.smileCrease?.opacity ?? 0, 0, 1)
         f.halo = clamp(e.presenceRing.map { $0.opacity ?? 0.2 } ?? 0.2, 0, 1)
@@ -225,7 +245,7 @@ public struct Face: Equatable, Sendable {
         f.animation = e.animation
         // Sparkles only where the tokens give them, at their strength: every happy
         // and coaching face sparkled twice a second (expression audit P2 #3).
-        f.effect = e.sparkleGroup != nil ? "sparkle" : id == "crying" ? "tears" : glyphs[id] ?? familyEffect[e.family]
+        f.effect = e.sparkleGroup != nil ? "sparkle" : glyphs[id] ?? familyEffect[e.family]
         f.sparkle = e.sparkleGroup.map { $0.opacity ?? 1 } ?? 0
         // Hearts are for love and tenderness, not every warm face: four clumped
         // hearts on supportive (the face for someone struggling) read as cute at
