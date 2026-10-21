@@ -253,6 +253,26 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'contact_relationships',
 ];
 
+/**
+ * Top-level fields a store keeps although the secret filter drops their name, because
+ * there they are the person's data, not a credential (#2336). Only at a document's top
+ * level, and only where listed: the same name nested in a value, or a `key` in any other
+ * store, is still dropped, and a kept field holding a credential-looking value is too.
+ *
+ * - sessionId, in every store: the call a record came from. Where an exported store has
+ *   one it is the voice agent's call (room) id; it opens nothing without the person's
+ *   own sign-in, and no exported store keeps a sign-in session.
+ * - key, in dynamic_facts: the fact's attribute ("Biscuit | breed = golden retriever").
+ */
+const KEPT_IN_EVERY_STORE = ['sessionId'] as const;
+const KEPT_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  'bogle_users/{uid}/dynamic_facts': ['key'],
+};
+
+function keptFields(label: string): readonly string[] {
+  return [...KEPT_IN_EVERY_STORE, ...(KEPT_FIELDS[label] ?? [])];
+}
+
 function pick(data: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
   return Object.fromEntries(fields.filter((f) => f in data).map((f) => [f, data[f]]));
 }
@@ -312,13 +332,15 @@ export async function exportUserRecords(
   onPage?: (label: string, docs: number) => void
 ): Promise<Record<string, Plain>> {
   const reader = new BoundedReader(budget, await openExportDb(userId, firestore));
-  const plain = (doc: ReadDoc, fields?: readonly string[]): Plain =>
-    toPlain(fields ? pick(doc.data, fields) : doc.data, budget);
+  const plain = (store: Store, doc: ReadDoc): Plain => {
+    const fields = store.kind === 'collection' ? store.fields : undefined;
+    return toPlain(fields ? pick(doc.data, fields) : doc.data, budget, keptFields(store.label));
+  };
   const out: Record<string, Plain> = {};
   for (const store of storesFor(userId)) {
     if (store.kind === 'doc') {
       const doc = await reader.readDoc(store.path);
-      if (doc) out[store.label] = plain(doc);
+      if (doc) out[store.label] = plain(store, doc);
       continue;
     }
     const docs = await reader.readCollection(store.path, {
@@ -327,7 +349,7 @@ export async function exportUserRecords(
     });
     const rows = docs.map((d) => ({
       id: d.id,
-      ...(plain(d, store.fields) as Record<string, Plain>),
+      ...(plain(store, d) as Record<string, Plain>),
     }));
     if (rows.length > 0) out[store.label] = rows;
   }

@@ -4,7 +4,12 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { isSecretField, isSecretValue, MAX_FIELD_DEPTH, toPlain } from '../export-redaction.js';
-import { EXPORTED_STORES, KNOWN_USER_STORES, WITHHELD_STORES } from '../user-records-export.js';
+import {
+  EXPORTED_STORES,
+  exportUserRecords,
+  KNOWN_USER_STORES,
+  WITHHELD_STORES,
+} from '../user-records-export.js';
 
 // The shared setup fakes firestore; the value cleaner checks its real Timestamp class
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
@@ -174,6 +179,93 @@ describe('the value written to the file', () => {
     );
     expect(out).not.toContain('zz-secret');
     expect(out).toContain('milk');
+  });
+});
+
+/**
+ * Just what BoundedReader calls: doc(path).get(), and collection(path) with where, orderBy,
+ * startAfter, limit and get. Documents are keyed by full path; each store is one page.
+ */
+function storedDb(docs: Record<string, Record<string, unknown>>): FirebaseFirestore.Firestore {
+  const snap = (path: string) => ({
+    id: path.split('/').pop() ?? '',
+    exists: path in docs,
+    data: () => (path in docs ? structuredClone(docs[path]) : undefined),
+  });
+  const query = (path: string): Record<string, unknown> => ({
+    where: () => query(path),
+    orderBy: () => query(path),
+    startAfter: () => query(path),
+    limit: () => query(path),
+    get: async () => ({
+      docs: Object.keys(docs)
+        .filter((p) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
+        .map(snap),
+    }),
+  });
+  const db = { doc: (path: string) => ({ get: async () => snap(path) }), collection: query };
+  return db as unknown as FirebaseFirestore.Firestore;
+}
+
+describe('the records export keeps a fact whole (#2336)', () => {
+  const FACTS = 'bogle_users/{uid}/dynamic_facts';
+
+  it("keeps a fact's key and the session it came from", async () => {
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({
+        'bogle_users/u-1/dynamic_facts/f1': {
+          entityName: 'Biscuit',
+          key: 'breed',
+          value: 'golden retriever',
+          sessionId: 's-1',
+        },
+      })
+    );
+    expect(out[FACTS]).toEqual([
+      {
+        id: 'f1',
+        entityName: 'Biscuit',
+        key: 'breed',
+        value: 'golden retriever',
+        sessionId: 's-1',
+      },
+    ]);
+  });
+
+  it('still drops real secrets: nested, beside a fact, in other stores, or as the value', async () => {
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({
+        'bogle_users/u-1/dynamic_facts/f1': {
+          entityName: 'Biscuit',
+          key: 'breed',
+          value: 'golden retriever',
+          apiKey: 'zz-secret-1',
+          meta: { key: 'zz-secret-2', sessionId: 'zz-secret-3' },
+        },
+        // a kept name never vouches for its value: a credential is dropped whatever its key
+        'bogle_users/u-1/dynamic_facts/f2': { entityName: 'Biscuit', key: 'sk_live_zz-secret-4' },
+        // key is kept in dynamic_facts only
+        'bogle_users/u-1/conversations/c1': {
+          title: 'Call',
+          sessionId: 's-2',
+          key: 'zz-secret-5',
+          accessToken: 'zz-secret-6',
+          signature: 'zz-secret-7',
+        },
+      })
+    );
+    expect(JSON.stringify(out)).not.toMatch(/zz-secret/);
+    expect(out[FACTS]).toEqual([
+      { id: 'f1', entityName: 'Biscuit', key: 'breed', value: 'golden retriever', meta: {} },
+      { id: 'f2', entityName: 'Biscuit' },
+    ]);
+    expect(out['bogle_users/{uid}/conversations']).toEqual([
+      { id: 'c1', title: 'Call', sessionId: 's-2' },
+    ]);
   });
 });
 

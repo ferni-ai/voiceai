@@ -123,12 +123,21 @@ function isA<T>(type: unknown, value: unknown): value is T {
   return typeof type === 'function' && value instanceof type;
 }
 
+const NOTHING_SPARED: ReadonlySet<string> = new Set();
+
 /**
  * Firestore values as JSON, with secrets removed: timestamps become ISO strings,
  * references their paths, and a string holding JSON is filtered like any object and
- * kept as a string. Secret fields and secret-looking values are dropped.
+ * kept as a string. Secret fields and secret-looking values are dropped. `spared` names
+ * (normalised) skip the field-name filter on this object only, never on nested values,
+ * and their own values still go through the value filter.
  */
-function clean(value: unknown, meter: ParseMeter, depth = 0): Plain | typeof DROP {
+function clean(
+  value: unknown,
+  meter: ParseMeter,
+  depth = 0,
+  spared: ReadonlySet<string> = NOTHING_SPARED
+): Plain | typeof DROP {
   if (depth > MAX_FIELD_DEPTH) return DROP; // deeper than Firestore allows: crafted, not stored
   if (value === null || value === undefined) return null;
   if (isA<Timestamp>(Timestamp, value)) return value.toDate().toISOString();
@@ -140,18 +149,26 @@ function clean(value: unknown, meter: ParseMeter, depth = 0): Plain | typeof DRO
   }
   // Bytes: nothing a person reads, and the one shape a key name can't describe
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return DROP;
-  if (typeof value === 'object') {
-    // No prototype, so a stored "__proto__" key is an own field the filter sees, not a setter
-    const out = Object.create(null) as Record<string, Plain>;
-    for (const [k, v] of Object.entries(value)) {
-      if (isSecretField(k)) continue;
-      const kept = clean(v, meter, depth + 1);
-      if (kept !== DROP) out[k] = kept;
-    }
-    return out;
-  }
+  if (typeof value === 'object') return cleanFields(value, meter, depth, spared);
   if (typeof value === 'number' || typeof value === 'boolean') return value;
   return DROP; // functions, symbols, bigints: nothing a person stored
+}
+
+/** An object's fields, secret ones dropped unless spared; nested values get no spared names */
+function cleanFields(
+  value: object,
+  meter: ParseMeter,
+  depth: number,
+  spared: ReadonlySet<string>
+): Record<string, Plain> {
+  // No prototype, so a stored "__proto__" key is an own field the filter sees, not a setter
+  const out = Object.create(null) as Record<string, Plain>;
+  for (const [k, v] of Object.entries(value)) {
+    if (isSecretField(k) && !spared.has(normaliseKey(k))) continue;
+    const kept = clean(v, meter, depth + 1);
+    if (kept !== DROP) out[k] = kept;
+  }
+  return out;
 }
 
 function cleanString(value: string, meter: ParseMeter, depth: number): Plain | typeof DROP {
@@ -173,8 +190,18 @@ function cleanString(value: string, meter: ParseMeter, depth: number): Plain | t
   return kept === DROP ? DROP : JSON.stringify(kept);
 }
 
-/** A stored value as it goes into the export file, any JSON parsing charged to the meter */
-export function toPlain(value: unknown, meter: ParseMeter = UNMETERED): Plain {
-  const kept = clean(value, meter);
+/**
+ * A stored value as it goes into the export file, any JSON parsing charged to the meter.
+ * `keep` lists top-level fields of the value that stay although their name is on the
+ * secret list, for a store where that name is the person's data (#2336). Only the top
+ * level: the same name inside a nested map, an array or JSON kept as a string is still
+ * dropped, and a kept field holding a credential-looking value is dropped all the same.
+ */
+export function toPlain(
+  value: unknown,
+  meter: ParseMeter = UNMETERED,
+  keep: readonly string[] = []
+): Plain {
+  const kept = clean(value, meter, 0, new Set(keep.map(normaliseKey)));
   return kept === DROP ? null : kept;
 }
