@@ -16,6 +16,8 @@
  * fusion for ordering only. Entity and keyword results carry no calibrated
  * score (BM25 is unbounded, salience is not about the turn), and an entity's
  * text is only its name, so with the flag on they do not reach this path.
+ * Nor does associative recall: never reached before (nothing passed the
+ * search), and an activation strength is not a cosine either.
  *
  * MIN_TURN_MEMORY_COSINE comes from scripts/memory-eval/turn-memory-bench.ts
  * (recall-cases.json, text-embedding-005, 2026-10-21): at 0.55, 95% of the

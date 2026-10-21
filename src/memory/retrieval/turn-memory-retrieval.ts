@@ -36,11 +36,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { rerankHybridResults } from './cross-encoder.js';
-import {
-  hybridSearch,
-  type HybridSearchMetrics,
-  type HybridSearchResult,
-} from './hybrid-search.js';
+import { hybridSearch, type HybridSearchResult } from './hybrid-search.js';
 import {
   getHybridSearchTimeoutStats,
   recordHybridSearchOutcome,
@@ -356,8 +352,6 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     // 2.5. ASSOCIATIVE MEMORY (find naturally associated memories)
     // When user mentions something, find what a friend would naturally think of
     const associativeResults: HybridSearchResult[] = [];
-    // Never reached before TURN_MEMORY_RRF_SCALE (nothing passed the search),
-    // and its activation is not a cosine: the flag keeps it out.
     if (!rrfScale && rankedResults.length > 0) {
       try {
         const { getAssociativeMemory } = await import('../associative-memory.js');
