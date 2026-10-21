@@ -12,6 +12,7 @@
 
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
+import { flagOn } from '../../../config/env-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
@@ -29,6 +30,17 @@ const NO_GUESS =
   "If they asked about something live (a score, a price, opening hours, a travel time, a place nearby), say you couldn't find it rather than guess.";
 
 /**
+ * NO_INVENTED_INTERNALS=on: a failed search says so in a shape the model can't
+ * read as an answer, with what to say next. On #2223's call a "No results"
+ * was followed by two minutes of made-up backend (no-invented-internals.ts).
+ */
+const NO_FILL_IN =
+  "Tell them in your own words that it didn't work and offer another way; don't guess at why, or describe how your search works.";
+function searchFailed(status: 'no_results' | 'error', text: string): string {
+  return flagOn('NO_INVENTED_INTERNALS') ? `[status: ${status}] ${text} ${NO_FILL_IN}` : text;
+}
+
+/**
  * Search the web using DuckDuckGo Instant Answer API
  */
 export async function searchWeb(query: string): Promise<string> {
@@ -39,7 +51,7 @@ export async function searchWeb(query: string): Promise<string> {
     );
 
     if (!response.ok) {
-      return `I couldn't search for that right now.`;
+      return searchFailed('error', `I couldn't search for that right now.`);
     }
 
     const data = (await response.json()) as {
@@ -58,10 +70,10 @@ export async function searchWeb(query: string): Promise<string> {
       return data.RelatedTopics[0].Text.slice(0, 600);
     }
 
-    return `No results for "${query}". ${NO_GUESS}`;
+    return searchFailed('no_results', `No results for "${query}". ${NO_GUESS}`);
   } catch (error) {
     getLogger().warn(`Web search error: ${error}`);
-    return `The search didn't work just now. ${NO_GUESS}`;
+    return searchFailed('error', `The search didn't work just now. ${NO_GUESS}`);
   }
 }
 
