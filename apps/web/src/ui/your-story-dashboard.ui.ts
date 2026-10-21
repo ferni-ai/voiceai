@@ -20,7 +20,7 @@ import {
   injectVisualizationStyles,
   type YourStoryData,
 } from './visualizations/index.js';
-import { DURATION, EASING } from './visualizations/utils/dom.js';
+import { DURATION } from './visualizations/utils/dom.js';
 import {
   buildActionsTaken,
   injectActionsTakenStyles,
@@ -257,6 +257,7 @@ class YourStoryUI {
 
     const card = el('div', 'your-story__card');
     const content = el('div', 'your-story__content');
+    content.tabIndex = 0; // the loading skeleton can overflow and has nothing focusable in it
     card.appendChild(content);
 
     this.panel.appendChild(backdrop);

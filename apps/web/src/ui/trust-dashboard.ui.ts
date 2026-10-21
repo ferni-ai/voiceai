@@ -629,6 +629,7 @@ function addStyles(): void {
       padding: var(--space-4) var(--space-6) var(--space-4) var(--space-4);
       border-bottom: 1px solid var(--color-border);
       overflow-x: auto; scroll-snap-type: x proximity; scroll-padding-inline: var(--space-4);
+      -webkit-mask-image: linear-gradient(to right, black calc(100% - var(--space-6)), transparent); /* Safari < 15.4 */
       mask-image: linear-gradient(to right, black calc(100% - var(--space-6)), transparent);
     }
     

@@ -25,7 +25,8 @@ import { isVenmoChipInEnabled } from '../config/venmo-chip-in.js';
 import { isPaywallOn } from '../services/paywall.service.js';
 import { soundUI } from './sound.ui.js';
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
-import { createLogger } from '../utils/logger.js'; import { ANALYTICS_ICONS } from './icons/shared-icons.js';
+import { createLogger } from '../utils/logger.js';
+import { ANALYTICS_ICONS } from './icons/shared-icons.js';
 
 const log = createLogger('SettingsMenu');
 

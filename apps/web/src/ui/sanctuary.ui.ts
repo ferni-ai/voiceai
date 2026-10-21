@@ -747,7 +747,6 @@ class SanctuaryUI {
           class="sanctuary-practice-card sanctuary-practice-card--recommended"
           data-practice-id="${escapeHtml(practice.id)}"
           data-prompt="${escapeHtml(practice.prompt)}"
-          aria-label="${t('sanctuary.startPractice', { name: escapeHtml(practice.name) })}"
         >
           <div class="sanctuary-practice-icon" style="background: ${category.color}">
             ${category.icon}
@@ -798,7 +797,6 @@ class SanctuaryUI {
         class="sanctuary-practice-item"
         data-practice-id="${escapeHtml(practice.id)}"
         data-prompt="${escapeHtml(practice.prompt)}"
-        aria-label="${t('sanctuary.startPractice', { name: escapeHtml(practice.name) })}"
       >
         <div class="sanctuary-practice-item-content">
           <span class="sanctuary-practice-item-name">${escapeHtml(practice.name)}</span>
