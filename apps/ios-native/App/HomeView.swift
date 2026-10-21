@@ -133,7 +133,6 @@ struct HomeView: View {
                 RoomBackground(persona: WindowPersona(personaId: shownPersona(call)), date: HomeClock.time(minute.date))
             })
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
-            .accessibilityHidden(model.roomIsUnderASheet)
             // Trouble is announced wherever you are, including after the call view goes.
             .onChange(of: CallAnnouncement.text(phase: call.phase, onHold: call.isOnHold)) { _, line in
                 if let line { AccessibilityNotification.Announcement(line).post() }
