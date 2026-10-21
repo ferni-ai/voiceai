@@ -6,9 +6,11 @@
  * margin, the anchors or the embedding model.
  *
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 pnpm tsx scripts/memory-eval/recall-bench.ts [--json]
- *     [--min-hit 0.8] [--max-false-recall 0.1]
+ *     [--min-hit 0.8] [--max-false-recall 0.1] [--bq]
  *
  * Needs Google credentials (ADC). Exits 1 when a threshold given is missed.
+ * --bq also writes the three rates to ferni_events.eval_results (env dev), and
+ * exits 1 if that insert fails.
  * Prints the labelled turns only, never anything from a real caller.
  */
 import { readFileSync } from 'node:fs';
@@ -16,6 +18,7 @@ import { pathToFileURL } from 'node:url';
 import { ANCHORS, MIN_MARGIN } from '../../src/memory/recall/semantic-recall.js';
 import { embedForRetrieval } from '../../src/memory/vectors/retrieval-embeddings.js';
 import { scoreAt, sweepTable, type BenchCaller, type EmbeddedCaller } from './recall-bench-lib.js';
+import { newRunId, recallMetrics, reportIfBq } from '../lib/eval-results-bq.js';
 
 type Embed = (texts: string[], role: 'document' | 'query') => Promise<number[][]>;
 
@@ -69,6 +72,8 @@ async function main(args: string[]): Promise<number> {
   const failed =
     (minHit !== undefined && score.hitRate < minHit) ||
     (maxFalse !== undefined && score.falseRecallRate > maxFalse);
+  const report = { runId: newRunId('recall'), arm: 'min-margin', scenario: 'recall' };
+  await reportIfBq(args.includes('--bq'), [{ ...report, metrics: recallMetrics(score) }]);
   return failed ? 1 : 0;
 }
 
