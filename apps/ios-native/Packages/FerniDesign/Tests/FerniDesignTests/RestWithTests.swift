@@ -92,4 +92,28 @@ final class LookAwayTests: XCTestCase {
     func testReduceMotionKeepsTheLook() {
         XCTAssertLessThan(gaze(lookingAway: true, reduceMotion: true).x, -0.1)
     }
+
+    /// The head's pitch, as drawn, from 3 s to 15 s of listening: how far it swings.
+    private func pitchSwing(lookingAway: Bool) -> Float {
+        let rig = AliveRig(seed: 81)
+        rig.activity = .listening
+        rig.lookingAway = lookingAway
+        var t = 0.0, pitches: [Float] = []
+        while t < 15 {
+            t += 1.0 / 60
+            let u = rig.frame(at: t)
+            if t > 3 { pitches.append(u.lean.y) }
+        }
+        if ProcessInfo.processInfo.environment["FERNI_AUDIT_PRINT"] != nil { print("PITCHSWING \(lookingAway) \(pitches.max()! - pitches.min()!)") }
+        return pitches.max()! - pitches.min()!
+    }
+
+    /// Critic L: muted and looking away, he doesn't keep nodding along to
+    /// you; he only nods while he's watching you listen. Measured on the head's
+    /// pitch as drawn, not on a flag.
+    func testLookingAwayHeDoesntNod() {
+        let watching = pitchSwing(lookingAway: false), away = pitchSwing(lookingAway: true)
+        XCTAssertGreaterThan(watching, 0.02, "listening, he nods: \(watching)")
+        XCTAssertLessThan(away, watching * 0.25, "looking away, still: \(away) vs \(watching)")
+    }
 }

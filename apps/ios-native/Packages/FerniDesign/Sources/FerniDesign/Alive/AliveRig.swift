@@ -859,7 +859,9 @@ public final class AliveRig {
         self[.yaw].t = self[.gx].t * 0.32
         self[.roll].t += self[.gx].t * 0.05
         self[.pitch].t += self[.gy].t * 0.12
-        if activity == .listening {
+        // Listening, he leans in and nods along; muted and looking away he
+        // doesn't, the look is giving you the moment (critic L: he nodded on).
+        if activity == .listening, !lookingAway {
             self[.pitch].t -= 0.06
             if !still, time > nextNod { self[.pitch].v -= 1.3 * m; nextNod = time + rng.range(1.6, 3.0) }
         }
