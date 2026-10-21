@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { sendError } from '../../../helpers.js';
+import { accountProblem, linkProblem } from './publisher-link-rules.js';
 
 const log = getLogger().child({ module: 'developer-auth' });
 
@@ -178,12 +179,12 @@ export function callerFromDecodedToken(token: FirebaseDecodedToken): PublisherCa
  * A link made earlier from an unverified or empty email no longer works.
  */
 export async function resolvePublisher(caller: PublisherCaller): Promise<PublisherResolution> {
-  if (caller.anonymous || !caller.email || !caller.emailVerified) {
+  if (accountProblem(caller)) {
     return { ok: false, status: 403, error: RELINK_MESSAGE };
   }
   const record = await findPublisherByFirebaseUid(caller.uid);
   if (!record) return { ok: false, status: 403, error: 'Publisher account not found' };
-  if (!record.email || record.email.toLowerCase() !== caller.email.toLowerCase()) {
+  if (linkProblem(record.email, caller)) {
     log.warn({ firebaseUid: caller.uid, publisherId: record.id }, 'Publisher email mismatch');
     return { ok: false, status: 403, error: RELINK_MESSAGE };
   }

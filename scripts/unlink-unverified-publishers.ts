@@ -6,25 +6,27 @@
  * email without checking that the email was verified, and anonymous accounts
  * (no email) all linked to one shared publisher. The API now refuses those
  * links on every request; this script clears their `firebaseUid` so the owner
- * can re-link by signing in with a verified email.
+ * can re-link by signing in with a verified email. It also disables their
+ * developer API keys, which were minted through the same unsound link.
  *
  * Usage (dry run by default; see scripts/destructive-gate.ts):
  *   npx tsx scripts/unlink-unverified-publishers.ts
  *   npx tsx scripts/unlink-unverified-publishers.ts --apply --confirm-project=johnb-2025
  *
- * Prints publisher ids and the reason only, never emails.
+ * Prints publisher ids, key ids, reasons and counts only, never emails or keys.
  */
 
 import 'dotenv/config';
 import admin from 'firebase-admin';
 import { pathToFileURL } from 'node:url';
 import { destructiveMode } from './destructive-gate.js';
+import {
+  accountFromUser,
+  linkProblem,
+  type LinkedAccount,
+} from '../src/api/v1/developers/shared/publisher-link-rules.js';
 
-export interface LinkedAccount {
-  email?: string;
-  emailVerified: boolean;
-  anonymous: boolean;
-}
+export type { LinkedAccount };
 
 /** Why a publisher's link must be cleared, or null when it is sound. */
 export function unlinkReason(
@@ -32,26 +34,12 @@ export function unlinkReason(
   account: LinkedAccount | null
 ): string | null {
   if (!account) return 'linked account no longer exists';
-  if (account.anonymous) return 'linked account is anonymous';
-  if (!account.email) return 'linked account has no email';
-  if (!account.emailVerified) return 'linked account email is not verified';
-  if (
-    typeof publisherEmail !== 'string' ||
-    publisherEmail.toLowerCase() !== account.email.toLowerCase()
-  ) {
-    return 'linked account email differs from the publisher record';
-  }
-  return null;
+  return linkProblem(publisherEmail, account);
 }
 
 async function linkedAccount(uid: string): Promise<LinkedAccount | null> {
   try {
-    const user = await admin.auth().getUser(uid);
-    return {
-      email: user.email,
-      emailVerified: user.emailVerified === true,
-      anonymous: user.providerData.length === 0,
-    };
+    return accountFromUser(await admin.auth().getUser(uid));
   } catch {
     return null;
   }
@@ -87,14 +75,30 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
     if (reason) toUnlink.push({ id: doc.id, reason, ref: doc.ref });
   }
 
-  console.log(`${mode === 'dry-run' ? '[dry run] ' : ''}${toUnlink.length} publisher(s) to unlink`);
-  for (const p of toUnlink) console.log(`  - ${p.id}: ${p.reason}`);
+  const keys: Array<{ id: string; ref: admin.firestore.DocumentReference }> = [];
+  const prefix = mode === 'dry-run' ? '[dry run] ' : '';
+  console.log(`${prefix}${toUnlink.length} publisher(s) to unlink`);
+  for (const p of toUnlink) {
+    console.log(`  - ${p.id}: ${p.reason}`);
+    const snap = await db.collection('developer_api_keys').where('publisherId', '==', p.id).get();
+    for (const k of snap.docs) {
+      if (k.data().enabled === false) continue;
+      keys.push({ id: k.id, ref: k.ref });
+      console.log(`      key ${k.id}`);
+    }
+  }
+  console.log(`${prefix}${keys.length} API key(s) to disable`);
   if (mode === 'dry-run' || toUnlink.length === 0) return;
 
   for (const p of toUnlink) {
     await p.ref.update({ firebaseUid: admin.firestore.FieldValue.delete() });
   }
-  console.log(`Unlinked ${toUnlink.length} publisher(s) in ${projectId}`);
+  for (const k of keys) {
+    await k.ref.update({ enabled: false, revokedReason: 'publisher-unlinked' });
+  }
+  console.log(
+    `Unlinked ${toUnlink.length} publisher(s), disabled ${keys.length} key(s) in ${projectId}`
+  );
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
