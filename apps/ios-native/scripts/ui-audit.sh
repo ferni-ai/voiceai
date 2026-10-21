@@ -62,7 +62,8 @@ if [ "$status" -ne 0 ] && grep -q "failed to launch" "$out/ui-audit-$slug.log" \
   echo "::warning title=UI audit retried ($name)::The simulator failed to launch the test runner before any test ran; retrying once."
   run
 fi
-failures=$(grep -c "AUDIT \[" "$out/ui-audit-$slug.log" || true)
+# The harness proof (-FerniAuditFixture) plants its findings on purpose; they aren't counted.
+failures=$(grep "AUDIT \[" "$out/ui-audit-$slug.log" | grep -vc -- "-FerniAuditFixture" || true)
 if [ "$status" -ne 0 ]; then
   if [ "$mode" = report ]; then
     echo "::warning title=Accessibility audit ($name)::$failures audit findings; not gating yet. See the AUDIT lines in this step's log."
