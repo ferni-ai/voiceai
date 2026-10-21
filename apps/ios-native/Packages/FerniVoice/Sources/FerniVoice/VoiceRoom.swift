@@ -110,10 +110,17 @@ public struct CaptionBook: Sendable, Equatable {
     }
 
     /// A teammate came in: a "joined" line between the words before and after.
+    /// Two joins with nothing said between them are one line, the latest
+    /// (critic M-F: Maya, then Ferni straight back, left two lines).
     public mutating func join(_ personaID: String, room: String? = nil) {
         joins += 1
-        lines.append(Caption(id: "joined-\(joins)", speaker: .ferni, text: "", isFinal: true, room: room,
-                             personaID: personaID, joined: true))
+        let line = Caption(id: "joined-\(joins)", speaker: .ferni, text: "", isFinal: true, room: room,
+                           personaID: personaID, joined: true)
+        if let last = lines.indices.last, lines[last].joined {
+            lines[last] = line
+            return
+        }
+        lines.append(line)
         if lines.count > keep { lines.removeFirst(lines.count - keep) }
     }
 

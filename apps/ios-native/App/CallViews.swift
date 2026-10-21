@@ -78,21 +78,43 @@ struct NameChip: View {
     /// the middle of the stage (design audit P1-3: it said Maya ~2.5 s early,
     /// while Ferni was still in front).
     @State private var shown: String?
+    /// For a few seconds after a handoff at accessibility sizes, the chip says
+    /// "Maya joined" with her dot: there the captions keep their two lines for
+    /// words (critic M-F).
+    @State private var justJoined = false
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    static let joinedSeconds = 4.0
 
     var body: some View {
         let persona = PersonaRegistry.get(shown ?? personaID)
-        Text("\(persona.name) · \(persona.role)")
+        let marks = justJoined && typeSize.isAccessibilitySize
+        HStack(spacing: 6) {
+            if marks {
+                Circle()
+                    .fill(WindowPersona(personaId: persona.id).primaryColor)
+                    .frame(width: 8, height: 8)
+                    .accessibilityHidden(true)
+            }
+            Text(marks ? "\(persona.name) joined" : "\(persona.name) · \(persona.role)")
+        }
             .font(FerniType.caption)
             .foregroundStyle(FerniColor.textSecondary)
             .contentTransition(.opacity)
+            .accessibilityElement(children: .combine)
             .accessibilityAddTraits(.isHeader)
             .accessibilityIdentifier("call.nameChip")
             .task(id: personaID) {
+                let handoff = shown.map { $0 != personaID } ?? false
                 if let from = shown, from != personaID {
                     try? await Task.sleep(for: .seconds(AliveRig.handoffSeconds(from: WindowPersona(personaId: from))))
                     guard !Task.isCancelled else { return }
                 }
-                withAnimation(.easeOut(duration: 0.25)) { shown = personaID }
+                withAnimation(.easeOut(duration: 0.25)) { shown = personaID; justJoined = handoff }
+                guard handoff else { return }
+                try? await Task.sleep(for: .seconds(Self.joinedSeconds))
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeOut(duration: 0.25)) { justJoined = false }
             }
     }
 }
@@ -107,8 +129,7 @@ struct CallCaptions: View {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     var body: some View {
-        // Two lines at accessibility sizes: three no longer fit above the controls.
-        let lines = showWords ? Array(call.captions.lines.suffix(typeSize.isAccessibilitySize ? 2 : 3)) : []
+        let lines = showWords ? Self.shown(call.captions.lines, accessibilitySize: typeSize.isAccessibilitySize) : []
         VStack(alignment: .leading, spacing: FerniSpace.breath) {
             let labelled = Self.labelled(lines)
             ForEach(lines) { line in
@@ -157,6 +178,14 @@ struct CallCaptions: View {
     }
 
     private var name: String { PersonaRegistry.get(call.avatar.personaID).name }
+
+    /// The lines on screen: the last three, or two at accessibility sizes,
+    /// where three no longer fit above the controls. There a join doesn't take
+    /// one of the two (critic M-F): the name chip marks it and VoiceOver hears
+    /// it (AvatarDirector's "Maya joined." announcement).
+    static func shown(_ lines: [Caption], accessibilitySize: Bool) -> [Caption] {
+        accessibilitySize ? Array(lines.filter { !$0.joined }.suffix(2)) : Array(lines.suffix(3))
+    }
 
     /// Lines that start a run from one teammate get their name over them, once
     /// more than Ferni has spoken (or a teammate took the call): after a

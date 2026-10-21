@@ -466,9 +466,13 @@ public final class CallSession {
     private func handle(_ handoff: AgentSignals.Handoff?) {
         switch handoff {
         case .started(let id)?:
-            if let teammate = PersonaRegistry.known(serverID: id) { avatar.send(.handoffStarted(to: teammate.id)) }
+            // A handoff to whoever is already speaking is a repeat (the agent
+            // re-sends handoff_complete): no swap, no "joined" (critic M-F).
+            if let teammate = PersonaRegistry.known(serverID: id), teammate.id != personaID {
+                avatar.send(.handoffStarted(to: teammate.id))
+            }
         case .completed(let id)?:
-            guard let teammate = PersonaRegistry.known(serverID: id) else { return }
+            guard let teammate = PersonaRegistry.known(serverID: id), teammate.id != personaID else { return }
             personaID = teammate.id
             captions.join(teammate.id, room: roomName)
             avatar.send(.handoffCompleted(to: teammate.id, name: teammate.name))
