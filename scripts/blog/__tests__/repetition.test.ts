@@ -17,6 +17,12 @@ describe('repeatedPhrases', () => {
     ]);
   });
 
+  it('catches exactly 8 shared words', () => {
+    expect(repeatedPhrases('it takes around two seconds slower than we want', [EARLIER])).toEqual([
+      'takes around two seconds slower than we want',
+    ]);
+  });
+
   it('lets a 7-word overlap through', () => {
     expect(repeatedPhrases('a reply takes around two seconds slower today', [EARLIER])).toEqual([]);
   });
