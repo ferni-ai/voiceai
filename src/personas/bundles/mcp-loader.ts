@@ -31,7 +31,11 @@
  * }
  * ```
  *
+ * A stdio entry only connects when its id is in the first-party allowlist
+ * (first-party-stdio-mcp.ts); the allowlist, not this file, decides what runs.
+ *
  * API-registered servers are loaded from Firestore and merged with file-based config.
+ * They must use http/websocket; stored stdio entries are skipped.
  *
  * @module personas/bundles/mcp-loader
  */
@@ -47,6 +51,7 @@ import type { BundleMCPConfig, BundleMCPServer } from './types/commands.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { COLLECTIONS, type DeveloperMCPServer } from '../../types/developer-platform.js';
 import { decryptSensitive } from '../../services/privacy-crypto.js';
+import { findFirstPartyStdioServer } from './first-party-stdio-mcp.js';
 
 const log = getLogger();
 
@@ -70,7 +75,7 @@ export async function loadAPIRegisteredServers(
       return [];
     }
 
-    let query = db
+    const query = db
       .collection(COLLECTIONS.MCP_SERVERS)
       .where('publisherId', '==', publisherId)
       .where('enabled', '==', true)
@@ -164,12 +169,9 @@ async function convertApiServerToBundleServer(
 
     // Transport-specific config
     if (apiServer.transport === 'stdio') {
-      if (!apiServer.command) {
-        log.warn({ serverId: apiServer.id }, 'API MCP server missing command for stdio transport');
-        return null;
-      }
-      bundleServer.command = apiServer.command;
-      bundleServer.args = apiServer.args;
+      // Publisher config never starts a process on our servers.
+      log.warn({ serverId: apiServer.id }, 'Skipping API-registered stdio MCP server');
+      return null;
     } else if (apiServer.transport === 'http' || apiServer.transport === 'websocket') {
       if (!apiServer.endpoint) {
         log.warn({ serverId: apiServer.id }, 'API MCP server missing endpoint for http transport');
@@ -384,7 +386,8 @@ const activeConnections = new Map<string, MCPConnection>();
  * Connect to an MCP server using the Model Context Protocol SDK
  *
  * Supports:
- * - stdio: Spawns a child process running the MCP server
+ * - stdio: only first-party servers allowlisted in first-party-stdio-mcp.ts;
+ *   the process is built from the allowlist entry, never from `server`
  * - http/websocket: Connects via SSE transport
  */
 export async function connectToMCPServer(server: BundleMCPServer): Promise<MCPConnection> {
@@ -408,27 +411,19 @@ export async function connectToMCPServer(server: BundleMCPServer): Promise<MCPCo
     let transport: StdioClientTransport | SSEClientTransport;
 
     if (server.transport === 'stdio') {
-      // Create stdio transport for local process
-      if (!server.command) {
-        throw new Error('stdio transport requires command');
-      }
-
-      // Build env with only defined values
-      let envRecord: Record<string, string> | undefined = undefined;
-      if (server.env) {
-        envRecord = { ...server.env };
-        // Also include relevant process.env vars, filtering out undefined
-        for (const [key, value] of Object.entries(process.env)) {
-          if (value !== undefined && !(key in envRecord)) {
-            envRecord[key] = value;
-          }
-        }
+      // Only allowlisted first-party servers may start a process, and only the
+      // command/args/env checked into the repo, whatever the config says.
+      const firstParty = findFirstPartyStdioServer(server.id);
+      if (!firstParty) {
+        throw new Error(
+          `stdio MCP server '${server.id}' is not a first-party allowlisted server; use an https endpoint`
+        );
       }
 
       transport = new StdioClientTransport({
-        command: server.command,
-        args: server.args || [],
-        env: envRecord,
+        command: firstParty.command,
+        args: [...firstParty.args],
+        env: firstParty.env ? { ...firstParty.env } : undefined,
       });
     } else if (server.transport === 'http' || server.transport === 'websocket') {
       // Create SSE transport for HTTP/WebSocket
