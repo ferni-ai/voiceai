@@ -28,6 +28,21 @@ final class RoomTests: XCTestCase {
 /// Award upgrade 3: Night Ink from 22:00 to 05:00, on unless it's turned off;
 /// the room's late-night light starts with it.
 final class NightInkTests: XCTestCase {
+    /// Critic M-C: the hour's turn waits for a calm moment; your own choice doesn't.
+    func testTheTurnWaitsForACalmMoment() {
+        XCTAssertNil(NightInk.shown(current: nil, wanted: .dark, busy: true), "10 pm mid-call: still light")
+        XCTAssertEqual(NightInk.shown(current: nil, wanted: .dark, busy: false), .dark, "the call's over: dark")
+        XCTAssertEqual(NightInk.shown(current: .dark, wanted: nil, busy: true), .dark, "5 am with a sheet up: still dark")
+        XCTAssertNil(NightInk.shown(current: .dark, wanted: nil, busy: true, chosen: true), "Settings' switch applies at once")
+    }
+
+    func testTheNoteOnlyOnceAndOnlyWhenItsNightInksDoing() {
+        XCTAssertTrue(NightInk.notes(turnedTo: .dark, phoneIsDark: false, noted: false))
+        XCTAssertFalse(NightInk.notes(turnedTo: .dark, phoneIsDark: false, noted: true), "once")
+        XCTAssertFalse(NightInk.notes(turnedTo: .dark, phoneIsDark: true, noted: false), "the phone's dark anyway")
+        XCTAssertFalse(NightInk.notes(turnedTo: nil, phoneIsDark: false, noted: false), "morning")
+    }
+
     func testDarkFromTenAtNightUntilFive() {
         XCTAssertEqual((0..<24).filter { NightInk.isNight(hour: $0) }, [0, 1, 2, 3, 4, 22, 23])
         XCTAssertEqual(NightInk.scheme(hour: 22, enabled: true), .dark)
