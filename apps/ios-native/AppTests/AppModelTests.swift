@@ -13,6 +13,28 @@ final class AppModelTests: XCTestCase {
         return model
     }
 
+    /// Critic M-B: What Ferni remembers is a full-height sheet, so Ferni stops
+    /// drawing under it, as under Settings; More and Report leave him in view
+    /// but take the room out of reach.
+    func testWhatCoversFerniAndWhatTakesTheRoomAway() {
+        let model = model()
+        XCTAssertFalse(model.coversFerni)
+        XCTAssertFalse(model.roomIsUnderASheet)
+        for open in [\AppModel.isShowingSettings, \.isShowingMemory, \.isSigningIn, \.isAskingConsent] {
+            model[keyPath: open] = true
+            XCTAssertTrue(model.coversFerni, "\(open) covers Ferni")
+            XCTAssertTrue(model.roomIsUnderASheet)
+            model[keyPath: open] = false
+        }
+        model.isShowingCallMore = true
+        XCTAssertFalse(model.coversFerni, "More is half height")
+        XCTAssertTrue(model.roomIsUnderASheet)
+        model.isShowingCallMore = false
+        model.reporting = Caption(id: "ferni-1", speaker: .ferni, text: "That's huge!", isFinal: true)
+        XCTAssertFalse(model.coversFerni, "Report is half height")
+        XCTAssertTrue(model.roomIsUnderASheet)
+    }
+
     func testSiriOrControlCenterAsksForConsentFirst() {
         let model = model()
         model.talk(to: "ferni")

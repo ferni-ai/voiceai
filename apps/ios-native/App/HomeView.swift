@@ -133,6 +133,7 @@ struct HomeView: View {
                 RoomBackground(persona: WindowPersona(personaId: shownPersona(call)), date: HomeClock.time(minute.date))
             })
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
+            .accessibilityHidden(model.roomIsUnderASheet)
             // Trouble is announced wherever you are, including after the call view goes.
             .onChange(of: CallAnnouncement.text(phase: call.phase, onHold: call.isOnHold)) { _, line in
                 if let line { AccessibilityNotification.Announcement(line).post() }
@@ -258,10 +259,8 @@ struct HomeView: View {
     }
 
     private func avatar(call: CallSession, size: CGFloat) -> some View {
-        // The Settings page sheet and the consent cover hide Ferni; the
-        // smaller sheets (More, Report) leave him in view.
         CallAvatar(
-            call: call, covered: model.isShowingSettings || model.isAskingConsent,
+            call: call, covered: model.coversFerni,
             wake: model.wakeCount, doubleTake: model.doubleTakeCount,
             onCue: { model.feedback.play($0) }, personaID: shownPersona(call),
             roomHour: Calendar.current.component(.hour, from: HomeClock.time(.now))
