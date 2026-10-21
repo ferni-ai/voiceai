@@ -8,8 +8,8 @@
   "scope": "/",
   "id": "ferni-ai-coach",
   "display": "standalone",
-  "background_color": "#fafaf9",
-  "theme_color": "#fafaf9",
+  "background_color": "#faf8f5",
+  "theme_color": "#faf8f5",
   "categories": ["health", "lifestyle"],
   "prefer_related_applications": false,
   "icons": [
