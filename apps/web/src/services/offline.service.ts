@@ -7,23 +7,8 @@
  * - Offline data queue for syncing
  * - LocalStorage persistence for critical data
  *
- * Usage:
- * ```typescript
- * import { offlineService, isOffline, onOfflineChange } from './offline.service';
- *
- * // Check offline status
- * if (isOffline()) {
- *   showOfflineBanner();
- * }
- *
- * // Listen for changes
- * onOfflineChange((offline) => {
- *   updateUI(offline);
- * });
- *
- * // Queue data for sync when online
- * offlineService.queueForSync('api/endpoint', data);
- * ```
+ * Usage: isOffline() and onOfflineChange(cb) for the UI (ui/offline-banner.ui.ts);
+ * offlineService.queueForSync(url, data) sends once the connection is back.
  */
 
 import { createLogger } from '../utils/logger.js';
@@ -61,6 +46,8 @@ const MAX_QUEUE_SIZE = 100;
 const MAX_RETRIES = 3;
 const CONNECTIVITY_CHECK_TIMEOUT_MS = 4000;
 const CONNECTIVITY_RECHECK_INTERVAL_MS = 10_000;
+/** After the offline event, one probe can race the drop; look again this soon. */
+const QUICK_RECHECK_MS = 1_000;
 
 const offlineState: OfflineState = {
   isOffline: typeof navigator !== 'undefined' ? !navigator.onLine : false,
@@ -72,6 +59,7 @@ const offlineState: OfflineState = {
 const listeners: Set<OfflineChangeCallback> = new Set();
 let syncInProgress = false;
 let connectivityRecheckTimer: ReturnType<typeof setInterval> | null = null;
+let quickRecheckTimer: ReturnType<typeof setTimeout> | null = null;
 
 // ============================================================================
 // CORE FUNCTIONS
@@ -297,11 +285,7 @@ function handleOnline(): void {
   offlineState.lastOnline = Date.now();
 
   log.info('Connection restored');
-
-  // Stop periodic recheck since we're back online
   stopConnectivityRecheck();
-
-  // Notify listeners
   listeners.forEach((callback) => {
     try {
       callback(false);
@@ -309,11 +293,7 @@ function handleOnline(): void {
       log.error('Offline listener error', { error: String(error) });
     }
   });
-
-  // Dispatch event
   window.dispatchEvent(new CustomEvent('ferni:online'));
-
-  // Process sync queue
   void processSyncQueue();
 }
 
@@ -321,7 +301,7 @@ function handleOffline(): void {
   // navigator.onLine is unreliable — verify with a real network request
   // before telling the UI we're offline
   log.info('Browser reported offline, verifying with network request...');
-  void verifyConnectivity();
+  void verifyConnectivity(true);
 }
 
 /**
@@ -357,7 +337,7 @@ function setOffline(): void {
  * Verify actual connectivity with a lightweight network request.
  * navigator.onLine is unreliable on many platforms (macOS VPNs, proxies, etc.)
  */
-async function verifyConnectivity(): Promise<void> {
+async function verifyConnectivity(afterOfflineEvent = false): Promise<void> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), CONNECTIVITY_CHECK_TIMEOUT_MS);
@@ -377,7 +357,19 @@ async function verifyConnectivity(): Promise<void> {
       if (offlineState.isOffline) {
         handleOnline();
       }
-      stopConnectivityRecheck();
+      if (navigator.onLine) {
+        stopConnectivityRecheck();
+      } else {
+        // The browser still says offline, and a probe sent at the drop can still be
+        // answered (#2180): look again soon, then every 10s while they disagree.
+        startConnectivityRecheck();
+        if (afterOfflineEvent && !quickRecheckTimer) {
+          quickRecheckTimer = setTimeout(() => {
+            quickRecheckTimer = null;
+            void verifyConnectivity();
+          }, QUICK_RECHECK_MS);
+        }
+      }
     } else {
       setOffline();
     }
@@ -401,6 +393,10 @@ function stopConnectivityRecheck(): void {
   if (connectivityRecheckTimer) {
     clearInterval(connectivityRecheckTimer);
     connectivityRecheckTimer = null;
+  }
+  if (quickRecheckTimer) {
+    clearTimeout(quickRecheckTimer);
+    quickRecheckTimer = null;
   }
 }
 
