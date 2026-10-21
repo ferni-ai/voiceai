@@ -19,6 +19,8 @@ public struct AvatarView: View {
     let covered: Bool
     let onCue: ((KeyedCue) -> Void)?
     let reading: Bool
+    /// You're muted: he looks away (award upgrade 9).
+    let lookingAway: Bool
     /// The room's hour, for its light on Ferni (the app's clock; now if nil).
     let roomHour: Int?
     let wake: Int
@@ -59,8 +61,9 @@ public struct AvatarView: View {
         name: String = "Ferni", covered: Bool = false, wake: Int = 0, doubleTake: Int = 0, personSpeaking: Bool = false,
         micro: MicroBeat? = nil, moment: MomentBeat? = nil, rig: AliveRig? = nil,
         level: @escaping @Sendable () -> Float = { 0 },
-        reading: Bool = false, roomHour: Int? = nil, onCue: ((KeyedCue) -> Void)? = nil
+        reading: Bool = false, lookingAway: Bool = false, roomHour: Int? = nil, onCue: ((KeyedCue) -> Void)? = nil
     ) {
+        self.lookingAway = lookingAway
         self.roomHour = roomHour
         self.persona = persona
         self.expression = expression
@@ -227,6 +230,7 @@ public struct AvatarView: View {
         rig.voiceLevel = level()
         rig.reduceMotion = reduceMotion
         rig.reading = reading
+        rig.lookingAway = lookingAway
         let dark = colorScheme == .dark
         rig.dark = dark
         var u = rig.frame(at: date.timeIntervalSince(woke))

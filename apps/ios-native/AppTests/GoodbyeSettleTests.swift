@@ -10,3 +10,13 @@ final class GoodbyeSettleTests: XCTestCase {
         XCTAssertEqual(RememberCard.settle(reduceMotion: true), .easeOut(duration: 0.25), "no travel under Reduce Motion")
     }
 }
+
+/// Award upgrade 9: muted, Ferni looks away only while he'd be watching you.
+final class LookAwayWhileMutedTests: XCTestCase {
+    func testOnlyWhileHeWouldBeListening() {
+        XCTAssertTrue(CallAvatar.looksAway(muted: true, pose: .listening))
+        XCTAssertFalse(CallAvatar.looksAway(muted: false, pose: .listening))
+        XCTAssertFalse(CallAvatar.looksAway(muted: true, pose: .speaking), "he still looks at you to talk")
+        XCTAssertFalse(CallAvatar.looksAway(muted: true, pose: .thinking))
+    }
+}

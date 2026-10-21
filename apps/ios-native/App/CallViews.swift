@@ -39,6 +39,8 @@ struct CallAvatar: View {
             moment: avatar.moment,
             rig: rig,
             level: { [level = call.agentLevel] in level.level },
+            // Muted and waiting for you: he looks away until you're back (award upgrade 9).
+            lookingAway: Self.looksAway(muted: call.isMuted, pose: avatar.pose),
             roomHour: roomHour,
             onCue: onCue
         )
@@ -52,6 +54,9 @@ struct CallAvatar: View {
             }
         }
     }
+
+    /// Only while he'd otherwise be watching you: not while he talks or thinks.
+    static func looksAway(muted: Bool, pose: AvatarPose) -> Bool { muted && pose == .listening }
 
     static func activity(_ pose: AvatarPose) -> AvatarActivity {
         switch pose {

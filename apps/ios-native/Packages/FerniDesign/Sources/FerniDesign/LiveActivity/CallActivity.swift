@@ -55,9 +55,12 @@ public enum CallActivityState: String, Codable, Hashable, Sendable {
     /// counting under "Talk soon." until the activity went.
     public var showsDuration: Bool { hasControls }
 
-    /// From the caller's side, like the call screen's state line.
-    public func words(_ name: String) -> String {
-        switch self {
+    /// From the caller's side, like the call screen's state line. Muted in a
+    /// live call, it says so, as the call screen does: the Lock Screen said
+    /// "Ferni's listening" to a muted mic (award upgrade 9).
+    public func words(_ name: String, muted: Bool = false) -> String {
+        if muted, [.listening, .thinking, .speaking].contains(self) { return "You're muted" }
+        return switch self {
         case .calling: "Calling \(name)"
         case .arriving: "\(name)'s on the way"
         case .listening: "\(name)'s listening"

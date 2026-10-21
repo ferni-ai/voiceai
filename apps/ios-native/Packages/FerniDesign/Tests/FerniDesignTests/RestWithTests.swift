@@ -67,3 +67,29 @@ final class RestWithTests: XCTestCase {
         XCTAssertEqual(rig.guestPersona, .ferni)
     }
 }
+
+/// Award upgrade 9: while you're muted he looks down and aside, held, and
+/// back when you unmute; Reduce Motion keeps the look (a pose, not motion).
+@MainActor
+final class LookAwayTests: XCTestCase {
+    private func gaze(lookingAway: Bool, reduceMotion: Bool = false, seconds: Double = 2) -> SIMD2<Float> {
+        let rig = AliveRig(seed: 81)
+        rig.activity = .listening
+        rig.reduceMotion = reduceMotion
+        rig.lookingAway = lookingAway
+        var t = 0.0, u = rig.frame(at: 0)
+        while t < seconds { t += 1.0 / 60; u = rig.frame(at: t) }
+        return SIMD2(u.gaze.x, u.gaze.y)
+    }
+
+    func testMutedHeLooksDownAndAside() {
+        let away = gaze(lookingAway: true)
+        XCTAssertLessThan(away.x, -0.2, "aside: \(away)")
+        XCTAssertLessThan(away.y, -0.1, "and down: \(away)")
+        XCTAssertGreaterThan(gaze(lookingAway: false).x, -0.2, "unmuted, on you")
+    }
+
+    func testReduceMotionKeepsTheLook() {
+        XCTAssertLessThan(gaze(lookingAway: true, reduceMotion: true).x, -0.1)
+    }
+}
