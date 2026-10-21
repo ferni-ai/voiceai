@@ -35,6 +35,8 @@ const SERVER_FLAGS = [
   // The hourly pondering job (ponder-job.ts). On the web server it reads only the
   // friends-and-family cohort plus PONDERING_USERS, and only writes their pondering doc.
   'PONDERING=on',
+  // The whole team from the first call, introduced by need (Seth, 2026-10-20; the agent has it too).
+  'TEAM_BY_NEED=on',
 ];
 
 /** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */

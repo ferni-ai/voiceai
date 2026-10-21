@@ -25,6 +25,7 @@ const ENV = [
   'PONDERING=on',
   'PROACTIVE_CHANNELS=on',
   'SIP_TRUNK_ID=ST_AEE6NnKE84XP',
+  'TEAM_BY_NEED=on',
 ];
 
 const SECRETS = [
