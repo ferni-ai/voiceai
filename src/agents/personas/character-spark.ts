@@ -43,6 +43,9 @@ async function read(bundleDir: string, file: string): Promise<string | null> {
   return readFile(join(BUNDLES, bundleDir, file), 'utf8').catch(() => null);
 }
 
+/** A bundle file as text, or null (director-cast.ts reads the sheet and manifest with it). */
+export { read as readBundleFile };
+
 /** The sheet with the bundle's spark after it, when PERSONA_SPARK is on and it has one. */
 export async function withSpark(
   sheet: string | null,

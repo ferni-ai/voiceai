@@ -18,6 +18,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import crypto from 'crypto';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { safeOutboundFetch } from '../../../utils/outbound-url-guard.js';
 import { sendSuccess, sendError } from '../../helpers.js';
 import {
   requireApiKeyAuth,
@@ -540,7 +541,7 @@ async function handleTestWebhook(
     const startTime = Date.now();
 
     try {
-      const response = await fetch(webhook.url, {
+      const response = await safeOutboundFetch(webhook.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -551,6 +552,8 @@ async function handleTestWebhook(
       });
 
       const executionTimeMs = Date.now() - startTime;
+      // The body is never read or returned: a test reports reachability, not content.
+      await response.body?.cancel().catch(() => undefined);
 
       if (response.ok) {
         log.info({ webhookId, statusCode: response.status, executionTimeMs }, 'Test webhook sent');
@@ -562,18 +565,12 @@ async function handleTestWebhook(
           payload: testPayload,
         });
       } else {
-        const errorBody = await response.text().catch(() => '');
-
-        log.warn(
-          { webhookId, statusCode: response.status, error: errorBody },
-          'Test webhook failed'
-        );
+        log.warn({ webhookId, statusCode: response.status }, 'Test webhook failed');
 
         sendSuccess(res, {
           success: false,
           statusCode: response.status,
-          error: `HTTP ${response.status}: ${response.statusText}`,
-          responseBody: errorBody.slice(0, 500),
+          error: `HTTP ${response.status}`,
           executionTimeMs,
           payload: testPayload,
         });

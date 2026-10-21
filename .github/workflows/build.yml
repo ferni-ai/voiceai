@@ -30,7 +30,7 @@ jobs:
       pull-requests: read
     outputs:
       # 'false' on a PR or queue group that touches nothing the UI image or backend
-      # build can see: docs, or only apps/website, ios-native, android-native or
+      # build can see: docs, or only apps/website, ios-native or
       # macos-menubar (see ci.yml's setup job; CI_SCOPED_QUEUE=off scopes PRs only)
       code: ${{ steps.code.outputs.matched }}
     steps:
@@ -40,7 +40,7 @@ jobs:
       - id: code
         uses: ./.github/actions/pr-changes
         with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-twa|macos-menubar)/'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
   # ============================================================================

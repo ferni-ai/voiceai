@@ -14,13 +14,21 @@ vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => pathFirestore(docs),
 }));
-// The cohort store (cohort-flags.ts) reads the same in-memory Firestore.
+// The cohort store (cohort-flags.ts) and the opt-out stores (opt-outs.ts) read the same
+// in-memory Firestore; cohortReadFails breaks only the cohort collections.
 let cohortReadFails = false;
+const COHORT_COLLECTIONS = new Set(['feature_cohorts', 'feature_flag_overrides']);
 vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => {
-    if (cohortReadFails) throw new Error('firestore down');
-    return pathFirestore(docs);
+    const db = pathFirestore(docs);
+    return {
+      ...db,
+      collection: (name: string) => {
+        if (cohortReadFails && COHORT_COLLECTIONS.has(name)) throw new Error('firestore down');
+        return db.collection(name);
+      },
+    };
   },
 }));
 vi.mock('../../../workflows/scheduled-actions.js', () => ({
@@ -90,6 +98,8 @@ async function run(): Promise<{ status: string; channel?: string; sourceId?: str
 }
 
 beforeEach(() => {
+  // Phone-keyed opt-outs are read under this key; without it nothing is texted.
+  process.env.LOG_HASH_SECRET = 'test-hash-secret';
   docs.clear();
   texts.length = 0;
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -99,6 +109,7 @@ beforeEach(() => {
   process.env.OUTREACH_PONDERED_NOTES = 'on';
 });
 afterEach(() => {
+  delete process.env.LOG_HASH_SECRET;
   vi.useRealTimers();
   delete process.env.PROACTIVE_CHANNELS;
   delete process.env.PROACTIVE_CHANNELS_USERS;
@@ -198,6 +209,27 @@ describe('grounded check-ins', () => {
     vi.setSystemTime(new Date('2026-10-14T15:00:00Z'));
     seed([{ text: DEMO_Q, when: '2026-10-14', basis: 's1' }]);
     expect((await run()).status).toBe('idle');
+  });
+
+  // As logCrisisSignal writes it (human-transfer/index.ts), `daysAgo` days before the demo evening.
+  function crisisSignal(id: string, daysAgo: number, signals: Record<string, unknown>) {
+    const at = new Date(DEMO_EVENING.getTime() - daysAgo * 86_400_000).toISOString();
+    docs.set(`${U}/crisis_signals/${id}`, { timestamp: at, signals, sessionId: 'session-x' });
+  }
+
+  it('sends nothing within the quiet window after a crisis-level signal', async () => {
+    seed([{ text: DEMO_Q, when: '2026-10-14', basis: 's1' }]);
+    crisisSignal('c1', 2, { suicidalIdeation: true, severity: 8 });
+    expect((await run()).status).toBe('idle');
+    expect(notes()).toHaveLength(0);
+  });
+
+  it('a minor signal, or a crisis before the window, does not hold it back', async () => {
+    seed([{ text: DEMO_Q, when: '2026-10-14', basis: 's1' }]);
+    crisisSignal('m1', 1, { anxietyDisorder: true, severity: 3 });
+    crisisSignal('c-old', 20, { suicidalIdeation: true, severity: 8 });
+    expect(await run()).toMatchObject({ status: 'sent', channel: 'in_app' });
+    expect(notes()).toHaveLength(1);
   });
 
   it('sends nothing about what only Ferni said', async () => {

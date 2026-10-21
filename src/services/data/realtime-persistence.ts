@@ -18,7 +18,9 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { runBackground } from '../../utils/background-task.js';
+import { acceptsSpokenName, nameCaptureStrict } from '../../utils/caller-name.js';
 import { MAX_RETRIES, RETRY_DELAY_MS } from '../../config/resilience-config.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 
 const log = createLogger({ module: 'RealtimePersistence' });
 
@@ -85,7 +87,7 @@ export async function persistExtractedDetails(
   userId: string,
   details: Array<{ type: string; value: string }>
 ): Promise<void> {
-  if (!userId || userId === 'anonymous' || details.length === 0) {
+  if (!isMemberIdentity(userId) || details.length === 0) {
     return;
   }
 
@@ -122,7 +124,10 @@ export async function persistExtractedDetails(
 
     // CRITICAL FIX: If we extracted a user_name, also update profile.name!
     // This ensures the primary name field gets set, not just extractedDetails
-    const userNameDetail = newDetails.find((d) => d.type === 'user_name');
+    // NAME_CAPTURE_STRICT=on: only a word that can be a name (utils/caller-name.ts) reaches profile.name.
+    const userNameDetail = newDetails.find(
+      (d) => d.type === 'user_name' && (!nameCaptureStrict() || acceptsSpokenName(d.value))
+    );
 
     // Atomic update using a profile transformer
     // Type assertion needed because input type is more general than UserProfile's specific union
@@ -168,7 +173,7 @@ export async function persistExtractedDetails(
  * Persist social graph (people mentioned) to Firestore
  */
 export async function persistSocialGraph(userId: string): Promise<void> {
-  if (!userId || userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return;
   }
 
@@ -212,7 +217,7 @@ export async function saveRealtimeData(
   userId: string,
   extractedDetails?: Array<{ type: string; value: string }>
 ): Promise<void> {
-  if (!userId || userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return;
   }
 

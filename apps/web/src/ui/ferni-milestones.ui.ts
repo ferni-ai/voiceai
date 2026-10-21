@@ -23,7 +23,7 @@ import { celebrationsUI } from './celebrations.ui.js';
 import { ferniMoments } from './ferni-moments.ui.js';
 import * as placement from './milestone-placement.js';
 import { soundUI } from './sound.ui.js';
-import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { showToast } from './overlay/toast-region.js';
 import { getCategoryIcon } from './ferni-milestone-icons.js';
 
@@ -840,7 +840,7 @@ function processQueue(): void {
 
 async function showMilestoneCelebration(milestone: Milestone): Promise<void> {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const inToastRegion = isOverlayHostEnabled();
+  const inToastRegion = isToastRegionEnabled();
   if (inToastRegion) {
     // Shown (and announced) under Reduce Motion too; only the flourishes below are skipped.
     const message = t(milestone.message);

@@ -52,3 +52,12 @@ export type {
   EmotionIconName,
   QuizIconName,
 } from './shared-icons.js';
+
+export {
+  IDEA_ICONS,
+  IDEA_ICON_FALLBACK,
+  getIdeaIcon,
+  isIdeaIconName,
+  resolveIdeaIconName,
+} from './idea-icons.js';
+export type { IdeaIconName } from './idea-icons.js';

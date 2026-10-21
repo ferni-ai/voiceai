@@ -2,7 +2,9 @@
  * The phone part of Contact Settings (contact-settings.ui.ts): typed drafts,
  * E.164 checks, the markup under the phone input, and check-in channels. A new
  * number is stored only once its texted code checks out; texts and calls are
- * offered only for a verified number (the server enforces both).
+ * offered only for a verified number (the server enforces both). Turning
+ * texts on sends the disclosure version shown beside the box; the server keeps
+ * it as proof of consent and refuses texts without it.
  */
 
 import { t } from '../i18n/index.js';
@@ -25,6 +27,8 @@ export const PHONE_STYLES = `
       display: flex; flex-direction: column; gap: 0.5rem;
     }
     .contact-settings-channel { display: flex; align-items: center; gap: 0.5rem; font-size: 0.875rem; color: var(--color-text-primary); }
+    .contact-settings-disclosure { margin: 0 0 0.25rem 1.5rem; font-size: 0.8125rem; line-height: 1.45; color: var(--color-text-secondary); }
+    .contact-settings-disclosure a { color: var(--persona-text); text-decoration: underline; }
 `;
 
 export function escapeAttr(value: string): string {
@@ -82,6 +86,22 @@ export async function loadPhoneAndChannels(s: State): Promise<void> {
 
 const PHONE_CHANNELS = ['sms', 'call'];
 
+/** Matches CURRENT_SMS_DISCLOSURE in src/services/outreach/outreach-consent.ts. Bump both when the text changes. */
+export const SMS_DISCLOSURE_VERSION = '2026-10-18';
+const SMS_TERMS_URL = 'https://ferni.ai/sms-consent';
+
+/** What turning on texts or calls means, shown right under each box (carriers and the TCPA require it for texts). */
+function disclosureHtml(channel: string): string {
+  if (channel === 'call') {
+    return `<p class="contact-settings-disclosure" id="call-disclosure">${escapeAttr(t('contactSettings.callDisclosure', "Ferni will only call this number when you ask, or for check-ins you've turned on."))}</p>`;
+  }
+  const text = t(
+    'contactSettings.smsDisclosure',
+    'Turn on texts and Ferni will text this number with reminders and check-ins, up to 3 a day. Msg & data rates may apply. Reply STOP to cancel, HELP for help.'
+  );
+  return `<p class="contact-settings-disclosure" id="sms-disclosure">${escapeAttr(text)} <a href="${SMS_TERMS_URL}" target="_blank" rel="noopener">${escapeAttr(t('contactSettings.smsTerms', 'SMS terms'))}</a></p>`;
+}
+
 /** Under the phone input: the format hint, "Send me a code", the code field, or check-in channels. */
 export function phoneActionsHtml(s: State): string {
   const { e164, verified } = phoneStatus(s);
@@ -90,7 +110,7 @@ export function phoneActionsHtml(s: State): string {
   const showChannels = verified || s.channels.some((c) => PHONE_CHANNELS.includes(c));
   const box = (channel: string, label: string): string => {
     const on = s.channels.includes(channel);
-    return `<label class="contact-settings-channel"><input type="checkbox" data-channel="${channel}" ${on ? 'checked' : ''} ${!on && !verified ? 'disabled' : ''} /> ${label}</label>`;
+    return `<label class="contact-settings-channel"><input type="checkbox" data-channel="${channel}" aria-describedby="${channel}-disclosure" ${on ? 'checked' : ''} ${!on && !verified ? 'disabled' : ''} /> ${label}</label>${disclosureHtml(channel)}`;
   };
   return `
     ${invalid ? `<p class="contact-settings-field-error" role="alert">${t('contactSettings.errorPhoneFormat', "Hmm, that number doesn't look quite right. Mind adding the area code?")}</p>` : ''}
@@ -278,11 +298,18 @@ export async function toggleChannel(
   s.channels = next;
   s.error = undefined;
   const response = await apiPost('/api/outreach/preferences', {
-    preferences: { allowedChannels: next },
+    preferences: { allowedChannels: next, disclosureVersion: SMS_DISCLOSURE_VERSION },
   }).catch(() => null);
   if (!response?.ok) {
     s.channels = before;
-    s.error = t('contactSettings.errorChannels', "Couldn't save how I check in. Try again?");
+    // 409: refused, e.g. this page shows an older disclosure than the server's. A retry won't help; a reload will.
+    s.error =
+      response?.status === 409
+        ? t(
+            'contactSettings.errorChannelsRefresh',
+            "I couldn't turn that on just yet. Refresh the page and try again?"
+          )
+        : t('contactSettings.errorChannels', "Couldn't save how I check in. Try again?");
     rerender();
     return;
   }
