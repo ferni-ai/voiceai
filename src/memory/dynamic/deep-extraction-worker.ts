@@ -608,7 +608,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         batch.set(relRef, relDoc);
       }
 
-      // Store extraction metadata
+      // Extraction metadata: the transcript's length, never its text (spoken codes, #2385)
       const metaRef = db
         .collection('bogle_users')
         .doc(userId)
@@ -621,7 +621,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           jobId: job.jobId,
           sessionId: job.sessionId,
           turnNumber: job.turnNumber,
-          transcript: job.transcript.slice(0, 500),
+          transcriptChars: job.transcript.length,
           entityCount: payloads.entities.length,
           factCount: payloads.facts.length,
           relationshipCount: payloads.relationships.length,
