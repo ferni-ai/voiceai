@@ -79,6 +79,7 @@ interface Milestone {
   // Has this milestone been celebrated?
   celebrated: boolean;
   celebratedAt?: number;
+  outreachDone?: boolean; // the server answered sent or already-sent; until then it retries
   // Progress tracking (for multi-step milestones)
   progress?: number;
   target?: number;
@@ -453,7 +454,6 @@ export function initFerniMilestones(): void {
   // Load saved state
   loadState();
 
-  // Set up event listeners for tracking
   setupEventListeners();
 
   isInitialized = true;
@@ -518,6 +518,11 @@ function setupEventListeners(): void {
 // ============================================================================
 
 function trackConversationStart(): void {
+  // Email/SMS the server hasn't confirmed yet (e.g. it said not-reached on the call that crossed
+  // the threshold) gets another try, for a week; older ones are never re-sent from here
+  milestones
+    .filter((m) => m.celebrated && !m.outreachDone && Date.now() - (m.celebratedAt ?? 0) < 7 * 864e5)
+    .forEach(sendMilestoneOutreach);
   const now = new Date();
   const today = now.toISOString().split('T')[0] ?? '';
 
@@ -721,15 +726,12 @@ function checkAndCelebrate(milestoneId: MilestoneType): void {
   const milestone = milestones.find((m) => m.id === milestoneId);
   if (!milestone || milestone.celebrated) return;
 
-  // Mark as celebrated
   milestone.celebrated = true;
   milestone.celebratedAt = Date.now();
 
-  // Add to queue
   celebrationQueue.push(milestone);
   processQueue();
 
-  // Dispatch event for other systems
   window.dispatchEvent(
     new CustomEvent('ferni:milestone-celebrated', {
       detail: { milestone },
@@ -746,38 +748,29 @@ function checkAndCelebrate(milestoneId: MilestoneType): void {
   log.info('Milestone celebrated:', milestoneId);
 }
 
+const EMAIL_MILESTONES = new Set<string>(['first-hello', 'week-together', 'month-of-growth',
+  'three-month', 'six-month', 'one-year', 'streak-7', 'streak-30', 'hundred-conversations', 'fifty-talks']);
+
 /**
  * Send milestone celebration via email/SMS.
  * Better than human: we celebrate your growth across channels.
  */
 function sendMilestoneOutreach(milestone: Milestone): void {
   // Only send for significant milestones to avoid overwhelming users
-  const emailMilestones = [
-    'first-hello',
-    'week-together',
-    'month-of-growth',
-    'three-month',
-    'six-month',
-    'one-year',
-    'streak-7',
-    'streak-30',
-    'hundred-conversations',
-    'fifty-talks',
-  ];
+  if (!EMAIL_MILESTONES.has(milestone.id)) return;
 
-  if (!emailMilestones.includes(milestone.id)) return;
-
-  // Calculate days together from conversation history
-  const daysTogether = progress.conversationDays.length;
-
-  // Send asynchronously - don't block celebration
+  // The server checks the milestone against its own records, counts for itself and
+  // sends each one once per user, so this browser's local numbers are not sent
   outreachService
     .sendMilestoneCelebration({
       milestoneId: milestone.id,
-      milestoneName: milestone.name,
-      milestoneMessage: milestone.message,
-      daysTogether,
-      streak: progress.currentStreak,
+      milestoneName: t(milestone.name),
+      milestoneMessage: t(milestone.message),
+    })
+    .then((result) => {
+      if (!result.sent && result.reason !== 'already-sent') return; // retried next call
+      milestone.outreachDone = true;
+      saveState();
     })
     .catch((error) => {
       log.warn('Failed to send milestone outreach:', error);
@@ -812,8 +805,8 @@ function sendMilestoneNotification(milestone: Milestone): void {
   showNotification({
     id: `milestone-${milestone.id}-${Date.now()}`,
     type: 'streak_milestone',
-    title: milestone.name,
-    body: milestone.message,
+    title: t(milestone.name), // name and message are i18n keys, not copy
+    body: t(milestone.message),
     sound: true,
     data: { milestoneId: milestone.id },
   }).catch(() => {
@@ -1224,6 +1217,7 @@ function saveState(): void {
         id: m.id,
         celebrated: m.celebrated,
         celebratedAt: m.celebratedAt,
+        outreachDone: m.outreachDone,
         progress: m.progress,
       })),
       progress: {
@@ -1241,7 +1235,6 @@ function saveState(): void {
 }
 
 function loadState(): void {
-  // Initialize milestones from definitions
   milestones = MILESTONES.map((m) => ({ ...m }));
 
   try {
@@ -1249,19 +1242,18 @@ function loadState(): void {
     if (saved) {
       const data = JSON.parse(saved);
 
-      // Restore milestone states
       if (data.milestones) {
         for (const savedMilestone of data.milestones) {
           const milestone = milestones.find((m) => m.id === savedMilestone.id);
           if (milestone) {
             milestone.celebrated = savedMilestone.celebrated;
             milestone.celebratedAt = savedMilestone.celebratedAt;
+            milestone.outreachDone = savedMilestone.outreachDone;
             milestone.progress = savedMilestone.progress;
           }
         }
       }
 
-      // Restore progress
       if (data.progress) {
         progress = {
           ...progress,
@@ -1272,10 +1264,18 @@ function loadState(): void {
         };
       }
     }
+    // One-time: milestones celebrated before outreach was confirmed by the server count as
+    // sent, so the retry below only ever applies to ones celebrated after this point
+    if (!localStorage.getItem(OUTREACH_MIGRATION_KEY)) {
+      for (const m of milestones) if (m.celebrated) m.outreachDone = true;
+      localStorage.setItem(OUTREACH_MIGRATION_KEY, new Date().toISOString());
+      saveState();
+    }
   } catch {
     // Storage unavailable or corrupted
   }
 }
+const OUTREACH_MIGRATION_KEY = 'milestoneOutreachMigratedAt';
 
 // ============================================================================
 // PUBLIC API

@@ -7,6 +7,8 @@
  * so on 2026-10-11 every attempt was cut off at 30.0 s and Cloud Run returned
  * 503. Now a run stops starting new users once its time budget is spent,
  * returns, and saves a cursor so the next run carries on from that user.
+ * Job routes now lift that timeout for the run (api/scheduled-jobs/job-run-guard),
+ * so the budget is sized against Cloud Run's 300 s request timeout instead.
  *
  * @module tasks/scheduled/consolidation-batch
  */
@@ -16,11 +18,12 @@ import type { DocumentReference } from 'firebase-admin/firestore';
 import type { JobContext } from './base-job.js';
 
 /**
- * Stop starting new users after this long. It sits well under the 30 s socket
- * idle timeout so the user already in flight (up to ~10 s observed) can finish
- * and the response still goes out in time.
+ * Stop starting new users after this long. It sits well under the job socket
+ * timeout (290 s) so the user already in flight (up to ~10 s observed) can
+ * finish and the response still goes out in time. At 15 s, sized for the old
+ * 30 s cut-off, a weekly run reached 2 to 4 users.
  */
-export const CONSOLIDATION_TIME_BUDGET_MS = 15_000;
+export const CONSOLIDATION_TIME_BUDGET_MS = 240_000;
 
 const CURSOR_COLLECTION = 'scheduled_job_cursors';
 const CURSOR_DOC = 'memory-consolidation';
