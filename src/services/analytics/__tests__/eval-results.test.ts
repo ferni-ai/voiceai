@@ -12,7 +12,14 @@ vi.mock('google-auth-library', () => ({
 
 import { GoogleAuth } from 'google-auth-library';
 
-import { buildRow, insertRowsOrThrow, setBqTransportForTests, type BqTable } from '../bq-events.js';
+import {
+  buildRow,
+  emitEvent,
+  flushBqEvents,
+  insertRowsOrThrow,
+  setBqTransportForTests,
+  type BqTable,
+} from '../bq-events.js';
 import { BQ_ENUMS, FIELD_VALUE } from '../bq-fields.js';
 
 const ON = { BQ_EVENTS: 'on', DEPLOY_ENV: 'dev' };
@@ -30,6 +37,7 @@ describe('eval_results allowlists', () => {
       'pat@example.com',
       'recall-5551234567-a1b2c3',
       'recall-20261021-a1b2c3d',
+      'x-recall-20261021-a1b2c3',
       'recall-20261021-A1B2C3',
       'other-20261021-a1b2c3',
     ])
@@ -122,6 +130,24 @@ describe('insertRowsOrThrow', () => {
     } as never);
     await expect(insertRowsOrThrow('eval_results', [ROW], ON)).rejects.toThrow('rows rejected');
     expect(request).toHaveBeenCalledOnce();
+  });
+
+  it('throws on a string its allowlist would write as other; emitEvent still writes other', async () => {
+    setBqTransportForTests(capture);
+    for (const [row, field] of [
+      [{ ...ROW, metric: 'what the caller said' }, 'metric'],
+      [{ ...ROW, flags: ['SEMANTIC_RECALL', '+15551234567'] }, 'flags'],
+    ] as const) {
+      await expect(insertRowsOrThrow('eval_results', [ROW, row], ON)).rejects.toThrow(
+        `row refused (eval_results): ${field} is off its allowlist`
+      );
+    }
+    expect(sent).toHaveLength(0);
+    expect(emitEvent('eval_results', { ...ROW, metric: 'what the caller said' }, {}, ON)).toBe(
+      true
+    );
+    await flushBqEvents();
+    expect(sent[0]?.rows[0]).toMatchObject({ metric: 'other' });
   });
 
   it('sends nothing for no rows', async () => {

@@ -72,8 +72,8 @@ async function main(args: string[]): Promise<number> {
   const failed =
     (minHit !== undefined && score.hitRate < minHit) ||
     (maxFalse !== undefined && score.falseRecallRate > maxFalse);
-  const report = { runId: newRunId('recall'), arm: 'min-margin', scenario: 'recall' };
-  await reportIfBq(args.includes('--bq'), [{ ...report, metrics: recallMetrics(score) }]);
+  const report = () => ({ runId: newRunId('recall'), arm: 'min-margin', scenario: 'recall' });
+  await reportIfBq(args.includes('--bq'), () => [{ ...report(), metrics: recallMetrics(score) }]);
   return failed ? 1 : 0;
 }
 

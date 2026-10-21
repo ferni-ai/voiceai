@@ -410,18 +410,17 @@ async function main(): Promise<void> {
   console.log(
     `\nWritten: ${JSON.stringify(written)}\n\n${sections.join('\n\n')}\n\nReport: ${file}\nMemory: ${memoryOut}`
   );
-  const runId = newRunId('longmem');
   const scenario = casesFile ? 'longmem_cases' : 'longmem';
-  await reportIfBq(
-    argv.includes('--bq'),
-    arms.map((arm) => ({
+  await reportIfBq(argv.includes('--bq'), () => {
+    const runId = newRunId('longmem');
+    return arms.map((arm) => ({
       runId,
       arm,
       scenario,
       metrics: longmemMetrics(tally(results[arm])),
       flags: arm === 'on' ? ['SEMANTIC_RECALL'] : [],
-    }))
-  );
+    }));
+  });
 }
 
 // Exit explicitly: the memory modules leave timers and gRPC channels open, so

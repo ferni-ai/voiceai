@@ -5,9 +5,10 @@
  *
  * Unlike the product producers (emitEvent buffers, logs a failed insert and
  * drops it), this throws on any insert error, so a run that asked for --bq
- * exits non-zero rather than looking reported. Every string passes the
- * column allowlists in src/services/analytics/bq-fields.ts: a metric, scenario
- * or arm off its list, or a run id not shaped like one, is written as 'other'.
+ * exits non-zero rather than looking reported. Every string must already pass
+ * its column allowlist in src/services/analytics/bq-fields.ts: a metric,
+ * scenario or arm off its list, or a run id not shaped like one, fails the
+ * insert instead of being written as 'other'. A run's rows go in one insert.
  * Only numbers leave: never a caller line, a reply or a judge's text.
  *
  * @module scripts/lib/eval-results-bq
@@ -26,7 +27,7 @@ export interface EvalReport {
   runId: string;
   arm: string;
   scenario: string;
-  /** A short commit hash; the checkout's HEAD when left out. */
+  /** A short commit hash; the checkout's HEAD when left out (refused on a dirty tree). */
   agentVersion?: string;
   metrics: Readonly<Record<string, number>>;
   /** Flags the arm turned on (flag-manifest names). */
@@ -38,28 +39,35 @@ export function newRunId(bench: Bench, now: Date = new Date()): string {
   return `${bench}-${now.toISOString().slice(0, 10).replace(/-/g, '')}-${randomBytes(3).toString('hex')}`;
 }
 
-/** HEAD as a 12-character hash, or '' outside a git checkout (then written as 'other'). */
-export function gitVersion(): string {
-  try {
-    return execFileSync('git', ['rev-parse', '--short=12', 'HEAD'], { encoding: 'utf8' }).trim();
-  } catch {
-    return '';
-  }
+type Git = (args: string[]) => string;
+const git: Git = (args) => execFileSync('git', args, { encoding: 'utf8' });
+
+/**
+ * HEAD as a 12-character hash. Throws on a tree with uncommitted changes to tracked files:
+ * the hash would name code that is not what ran. (Untracked files, such as results, are fine.)
+ */
+export function gitVersion(run: Git = git): string {
+  if (run(['status', '--porcelain', '--untracked-files=no']).trim())
+    throw new Error('--bq: uncommitted changes, so agent_version would not say what ran');
+  return run(['rev-parse', '--short=12', 'HEAD']).trim();
 }
 
-/** One row per metric, sent now. Throws on a refused row or any insert error. */
-export async function reportEvalMetrics(report: EvalReport): Promise<number> {
-  const { runId, arm, scenario, metrics, flags = [] } = report;
-  const agentVersion = report.agentVersion ?? gitVersion();
-  const rows: Array<BqRow<'eval_results'>> = Object.entries(metrics).map(([metric, value]) => ({
-    run_id: runId,
-    scenario,
-    arm,
-    agent_version: agentVersion,
-    metric,
-    value,
-    flags,
-  }));
+/** One row per metric. */
+function rowsOf(report: EvalReport, agentVersion: string): Array<BqRow<'eval_results'>> {
+  const { runId, arm, scenario, flags = [] } = report;
+  return Object.entries(report.metrics).map(([metric, value]) => {
+    const row = { run_id: runId, scenario, arm, agent_version: agentVersion, metric, value };
+    return { ...row, flags };
+  });
+}
+
+/**
+ * Every report's rows in one insert, so a run lands whole or not at all. Throws on any
+ * value off its allowlist (nothing is written as 'other') and on any insert error.
+ */
+async function insertReports(reports: readonly EvalReport[]): Promise<number> {
+  let head: string | undefined;
+  const rows = reports.flatMap((r) => rowsOf(r, r.agentVersion ?? (head ??= gitVersion())));
   // The env argument only: this process's own env (and every module reading it) stays as it was.
   return insertRowsOrThrow('eval_results', rows, {
     ...process.env,
@@ -68,12 +76,24 @@ export async function reportEvalMetrics(report: EvalReport): Promise<number> {
   });
 }
 
-/** What a script calls after its results: nothing without --bq, else every report. Rows sent. */
-export async function reportIfBq(bq: boolean, reports: readonly EvalReport[]): Promise<number> {
+/** One report's rows, sent now. Throws on a value off its allowlist or any insert error. */
+export async function reportEvalMetrics(report: EvalReport): Promise<number> {
+  return insertReports([report]);
+}
+
+/**
+ * What a script calls after its results. Without --bq, `reports` is never called, so nothing
+ * is built or sent; with it, the run goes in one insert. Rows sent.
+ */
+export async function reportIfBq(
+  bq: boolean,
+  reports: () => readonly EvalReport[]
+): Promise<number> {
   if (!bq) return 0;
-  let sent = 0;
-  for (const report of reports) sent += await reportEvalMetrics(report);
-  console.log(`--bq: ${sent} eval_results rows sent (run ${reports[0]?.runId ?? 'none'})`);
+  const run = reports();
+  const sent = await insertReports(run);
+  // stderr, so a script's --json stdout stays JSON
+  console.error(`--bq: ${sent} eval_results rows sent (run ${run[0]?.runId ?? 'none'})`);
   return sent;
 }
 

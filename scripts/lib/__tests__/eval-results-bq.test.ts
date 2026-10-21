@@ -16,6 +16,8 @@ import { setBqTransportForTests, type BqTable } from '../../../src/services/anal
 import { FIELD_VALUE } from '../../../src/services/analytics/bq-fields.js';
 import {
   barReports,
+  gitVersion,
+  reportEvalMetrics,
   longmemMetrics,
   newRunId,
   recallMetrics,
@@ -60,6 +62,7 @@ beforeEach(() => {
     tables.push(table);
     rows.push(...sent);
   });
+  vi.spyOn(console, 'error').mockImplementation(() => undefined);
   vi.spyOn(console, 'log').mockImplementation(() => undefined);
 });
 afterEach(() => {
@@ -68,20 +71,27 @@ afterEach(() => {
 });
 
 describe('reportIfBq', () => {
-  it('without --bq sends nothing and never reaches the network', async () => {
-    await expect(reportIfBq(false, [REPORT])).resolves.toBe(0);
+  it('without --bq builds nothing, sends nothing and never reaches the network', async () => {
+    const reports = vi.fn(() => [REPORT]);
+    await expect(reportIfBq(false, reports)).resolves.toBe(0);
+    expect(reports).not.toHaveBeenCalled();
     expect(rows).toHaveLength(0);
     setBqTransportForTests(null);
-    await reportIfBq(false, [REPORT]);
+    await reportIfBq(false, reports);
     expect(vi.mocked(GoogleAuth)).not.toHaveBeenCalled();
   });
 
   it('with --bq sends exactly one eval_results row per metric, values as given, env dev', async () => {
     const n = Object.keys(METRICS).length;
-    await expect(reportIfBq(true, [REPORT])).resolves.toBe(n);
+    await expect(reportIfBq(true, () => [REPORT])).resolves.toBe(n);
     expect(rows).toHaveLength(n);
     expect(new Set(tables)).toEqual(new Set(['eval_results']));
     expect(rows.map((r) => [r.metric, r.value])).toEqual(Object.entries(METRICS));
+    // on stderr, so recall-bench --json --bq still prints only JSON on stdout
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringMatching(`--bq: ${n} eval_results rows`)
+    );
+    expect(console.log).not.toHaveBeenCalled();
     for (const r of rows) {
       expect(r).toMatchObject({
         env: 'dev',
@@ -99,7 +109,7 @@ describe('reportIfBq', () => {
     vi.stubEnv('DEPLOY_ENV', 'production');
     vi.stubEnv('BQ_EVENTS', 'off');
     try {
-      await reportIfBq(true, [REPORT]);
+      await reportIfBq(true, () => [REPORT]);
       expect(rows[0]?.env).toBe('dev');
       expect(process.env.DEPLOY_ENV).toBe('production');
       expect(process.env.BQ_EVENTS).toBe('off');
@@ -111,22 +121,51 @@ describe('reportIfBq', () => {
     );
   });
 
-  it('an off-list metric and a phone-shaped run id are written as other', async () => {
-    await reportIfBq(true, [
-      { ...REPORT, runId: 'recall-5551234567', metrics: { 'caller said hi': 1 } },
-    ]);
-    expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ run_id: 'other', metric: 'other', value: 1 });
-    expect(JSON.stringify(rows)).not.toMatch(/5551234567|caller said/);
+  it('throws, sending nothing, on any value its allowlist would write as other', async () => {
+    const bad: Array<[Partial<EvalReport>, string]> = [
+      [{ metrics: { ...METRICS, 'caller said hi': 1 } }, 'metric'],
+      [{ runId: 'recall-5551234567' }, 'run_id'],
+      [{ runId: 'x-recall-20261021-a1b2c3' }, 'run_id'],
+      [{ agentVersion: '' }, 'agent_version'], // what an empty git answer would give
+      [{ agentVersion: '5551234567' }, 'agent_version'],
+      [{ arm: 'Base' }, 'arm'],
+      [{ scenario: 'pat@example.com' }, 'scenario'],
+      [{ flags: ['SEMANTIC_RECALL', 'NOT_A_FLAG'] }, 'flags'],
+    ];
+    for (const [change, field] of bad) {
+      const message = new RegExp(`row refused \\(eval_results\\): ${field} is off its allowlist$`);
+      await expect(reportEvalMetrics({ ...REPORT, ...change }), field).rejects.toThrow(message);
+    }
+    expect(rows).toHaveLength(0);
+  });
+
+  it('a run goes in one insert: one bad report sends none of the others', async () => {
+    const other = { ...REPORT, scenario: 'longmem', metrics: { longmem_correct: 0.5 } };
+    await expect(reportIfBq(true, () => [REPORT, other])).resolves.toBe(15);
+    expect(tables).toEqual(['eval_results']);
+    expect(rows).toHaveLength(15);
+    rows = [];
+    tables = [];
+    await expect(reportIfBq(true, () => [REPORT, { ...other, arm: 'Bad' }])).rejects.toThrow(
+      /arm is off its allowlist/
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it('agent_version: HEAD on a clean tree, refused on uncommitted changes', () => {
+    const git = (dirty: string) => (args: string[]) =>
+      args[0] === 'status' ? dirty : 'abc123def456\n';
+    expect(gitVersion(git(''))).toBe('abc123def456');
+    expect(() => gitVersion(git(' M src/index.ts\n'))).toThrow(/uncommitted changes/);
   });
 
   it('throws when the insert answers with insertErrors, and on a transport error', async () => {
     setBqTransportForTests(async () => ({ insertErrors: [{ index: 0 }] }));
-    await expect(reportIfBq(true, [REPORT])).rejects.toThrow(/rows rejected/);
+    await expect(reportIfBq(true, () => [REPORT])).rejects.toThrow(/rows rejected/);
     setBqTransportForTests(async () => {
       throw new Error('403');
     });
-    await expect(reportIfBq(true, [REPORT])).rejects.toThrow('403');
+    await expect(reportIfBq(true, () => [REPORT])).rejects.toThrow('403');
   });
 
   it('a new run id has the shape the allowlist keeps', () => {
@@ -165,7 +204,7 @@ describe('what each script reports', () => {
     };
     const run: BarRun = {
       arm: 'voice',
-      sets: { PERSONA_VOICE: 'on', SOME_LEVEL: '3' },
+      sets: { DIRECTOR_PERSONA_AWARE: 'on', SOME_LEVEL: '3' },
       scored: {
         metrics: {
           distinctness: rate(6, 10),
@@ -183,8 +222,9 @@ describe('what each script reports', () => {
     };
     const reports = barReports(run, 'bar-20261021-abcdef');
     expect(reports.map((r) => r.scenario)).toEqual(['bar', 'ferni']);
-    expect(reports[0]?.flags).toEqual(['PERSONA_VOICE']);
-    await expect(reportIfBq(true, reports)).resolves.toBe(9);
+    expect(reports[0]?.flags).toEqual(['DIRECTOR_PERSONA_AWARE']);
+    const pinned = reports.map((r) => ({ ...r, agentVersion: 'abc123def456' })); // no git in tests
+    await expect(reportIfBq(true, () => pinned)).resolves.toBe(9);
     expect(rows.map((r) => [r.scenario, r.metric, r.value])).toEqual([
       ['bar', 'distinctness', 0.6],
       ['bar', 'copy_rate', 0.1],

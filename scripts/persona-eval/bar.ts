@@ -1046,7 +1046,7 @@ async function main(
   writeFileSync(join(dir, 'result.md'), md.join('\n'));
   if (!values.baseline) console.log(md.join('\n'));
   console.log(`-> ${dir}/result.json`);
-  await reportIfBq(values.bq, barReports(result));
+  await reportIfBq(values.bq, () => barReports(result));
   return { root, runs: nRuns, judges: JUDGES, baseline: values.baseline };
 }
 
