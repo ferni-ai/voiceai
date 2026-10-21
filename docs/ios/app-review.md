@@ -157,19 +157,38 @@ What's verified from Apple's own pages, and what isn't:
 No tracking and no tracking domains. Required-reason APIs: UserDefaults
 (CA92.1). The SDKs (Firebase, LiveKit, Sentry) ship their own manifests.
 
+## App Store accessibility labels
+
+What to declare in App Store Connect (Accessibility, iPhone and iPad), and
+what backs each claim. Declare only the "yes" rows until the device rows are
+checked.
+
+| Feature | Declare | Evidence |
+|---|---|---|
+| Larger Text | Yes | Every screen audited at AX5 on three devices; call controls stay pinned and reachable (CallControlsAtLargeTextTests). |
+| Dark Interface | Yes | Follows the phone's dark mode, and Night Ink from 10 pm (NightInkUITests); the night audits run in it. |
+| Sufficient Contrast | Yes | The contrast audit is clean on every screen; the few accepted findings were measured from pixels (AccessibilityAuditTests.accepted). |
+| Reduced Motion | Yes | Expression animations, bursts and stage moves don't play; feelings are held still (ExpressionAnimationTests, testReduceMotionAndTransparency, testConfusedStillReadsUnderReduceMotion). |
+| Captions | Yes | Every call has live captions of both sides, named per speaker, with "Maya joined" at a handoff. |
+| VoiceOver | After the device run | Every control is labelled (audit), the call's trouble is announced; complete a call, sign-in and Settings with VoiceOver on a device first. |
+| Voice Control | After the device run | Labels match the visible names; try "Tap Talk" and the call controls on a device first. |
+| Differentiate Without Color Alone | After review | Teammates have a name with their colour everywhere; check the call states. |
+| Audio Descriptions | No | No video. |
+
 ## Before submitting
 
 - [ ] PR #2038 (reports) and PR #2004 (Apple revoke) merged and deployed.
 - [ ] H4 decided: `TAP_INTERRUPT` on in production, or the gesture removed.
 - [ ] `POST /api/identity/merge-anonymous` live in production with IDENTITY_MERGE_ANON on, before any external TestFlight or App Store build. Signing in to an account someone already has merges this phone's anonymous calls into it; without the route the app signs them in and quietly leaves those calls behind ("Earlier calls on this phone stay separate").
 - [ ] A device run of `docs/ios/device-test-checklist.md` on an iPhone and an iPad.
-- [x] The accessibility audit lane (XCUITest `performAccessibilityAudit`, default size and AX5): gating in CI on iPhone 17 Pro Max (0 findings); reported on iPad Pro 13" (see the note below).
+- [x] The accessibility audit lane (XCUITest `performAccessibilityAudit`, default size and AX5): gating in CI on iPhone 17 Pro Max, iPad Pro 13" and iPhone SE (3rd generation), 0 findings on all three (2026-10-21).
+- [ ] App Store accessibility labels entered in App Store Connect, from the table below.
 
 ### Accessibility audit: known iPad findings
 
-`scripts/ui-audit.sh` runs the audit in CI. The iPhone is clean and gates the
-build (Home in all four RoomLight bands, both text sizes). The iPad step
-reports without gating. Re-run on 2026-10-20 on a dedicated simulator:
+`scripts/ui-audit.sh` runs the audit in CI and gates the build on all three
+lanes (Home in all four RoomLight bands, both text sizes, and Home after a
+call). History of the iPad findings, re-run on 2026-10-20:
 
 - **Fixed: the sidebar.** Over the system's glass sidebar the audit failed
   the contrast of every sidebar row (their pixels measure 19.7:1), naming
@@ -205,8 +224,9 @@ reports without gating. Re-run on 2026-10-20 on a dedicated simulator:
   reached 75 pt, not 85), but a touch counts when its area overlaps the
   circle, and fingertips reach 28-35 pt past it on the iPad simulator (under
   24 pt on iPhone). The test's 24 pt was an iPhone fingertip; it now taps
-  36 pt past the circle on iPad, still anchored to the 200 pt slot so a
-  wider circle fails it on both. To confirm on a device.
+  36 pt past the circle on iPad, reading the circle from Ferni's frame and
+  holding it to 0.35 of the largest slot, so a wider circle fails it on
+  both. To confirm on a device.
 
 Every other finding was fixed, or accepted per element with the measured
 contrast or a screenshot (`AccessibilityAuditTests.accepted`).
