@@ -271,7 +271,8 @@ export const FLAG_MANIFEST = {
   // Keep off: needs #1855, the privacy-page wording, and a legal read of the Maps terms for storing the place ID. #1760 merged with an unverified head.
   PLACES_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // read in patches/@livekit__agents@1.9.3.patch
+  // read in patches/@livekit__agents@1.9.3.patch: resumes a reply paused at playout launch or by
+  // leftover caller audio when nothing else will (PAUSE_RESUME_WATCHDOG, paused-lead-in.sdk.test.ts)
   PLAYOUT_LAUNCH_RESUME: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PONDERING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // late-night calls: a softer reply line and the LATE_NIGHT layer in attune.ts (porch-light.ts)
