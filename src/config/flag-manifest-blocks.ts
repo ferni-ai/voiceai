@@ -69,7 +69,7 @@ export const FLAGS_PUBSUB_TO_REQUIRE = {
   REQUIRE_FIX_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
 
-/** STYLE_PROFILE .. TOOL_REQUIRES_ENV */
+/** STYLE_PROFILE .. TTFW_METRIC */
 export const FLAGS_STYLE_TO_TOOL = {
   STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TAP_INTERRUPT: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -99,6 +99,8 @@ export const FLAGS_STYLE_TO_TOOL = {
   TOOL_LEAD_IN: { default: 'on', owner: 'voice', kind: 'config' },
   // a tool whose requiresEnv keys are unset is not registered (tools/registry/tool-availability.ts)
   TOOL_REQUIRES_ENV: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  // one "Time to first word" line per call: where a launch's wait goes (agents/shared/time-to-first-word.ts)
+  TTFW_METRIC: { default: 'off', owner: 'platform', kind: 'config' },
 } as const satisfies Record<string, FlagSpec>;
 
 /** USE_NATIVE_AUDIO .. VOICE_HUMANIZATION_DISABLED */
