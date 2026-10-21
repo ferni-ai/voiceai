@@ -14,6 +14,7 @@ import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.
 import { getLogger } from '../../utils/safe-logger.js';
 import type { MarketplaceId, UserId } from '../schema/types.js';
 import type { RevenueShare, UsageMetrics, UsageRecord } from './index.js';
+import { firestoreBackendFromEnv } from '../persistence/backend.js';
 
 const log = getLogger().child({ module: 'billing-persistence' });
 
@@ -382,11 +383,8 @@ let storeInstance: BillingStore | null = null;
 export async function getBillingStore(): Promise<BillingStore> {
   if (storeInstance) return storeInstance;
 
-  // Try Firestore first in production
-  const useFirestore =
-    process.env.NODE_ENV === 'production' ||
-    process.env.GCP_PROJECT_ID ||
-    process.env.FIREBASE_PROJECT_ID;
+  // In-memory under a test runner, whatever project id is set (see backend.ts).
+  const useFirestore = firestoreBackendFromEnv('USE_FIRESTORE_BILLING');
 
   if (useFirestore) {
     try {

@@ -33,5 +33,6 @@ final class AppModel {
         self.config = config
         account = AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
         api = account.api(baseURL: config.apiBaseURL)
+        account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
     }
 }

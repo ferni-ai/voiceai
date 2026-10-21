@@ -431,6 +431,54 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
+      # 2026-10-17: a --set-secrets entry named a secret with no enabled version.
+      # The new revision could not start and Cloud Run kept serving the old one
+      # for 3.5h. Check every secret before deploying, and name each bad one.
+      # Reads deploy/ui-server/secrets.txt exactly as the deploy step does.
+      - name: 🔐 Preflight - every mounted secret has an enabled version
+        id: preflight
+        if: steps.guard.outputs.deploy == 'true'
+        run: |
+          set -u
+          bad=()
+          declare -A seen=()
+          SECRETS=$(grep -v -e '^#' -e '^$' deploy/ui-server/secrets.txt | paste -sd, -)
+          IFS=',' read -ra entries <<< "$SECRETS"
+          for entry in "${entries[@]}"; do
+            ref=${entry#*=}
+            secret=${ref%%:*}
+            version=latest
+            if [[ "$ref" == *:* ]]; then version=${ref#*:}; fi
+            if [[ -n "${seen[$secret:$version]:-}" ]]; then continue; fi
+            seen[$secret:$version]=1
+
+            if out=$(gcloud secrets versions list "$secret" --filter=state:ENABLED --limit=1 --format='value(name)' 2>&1); then
+              if [[ -z "$out" ]]; then
+                bad+=("$secret: no ENABLED version")
+              elif [[ "$version" != latest ]]; then
+                state=$(gcloud secrets versions describe "$version" --secret="$secret" --format='value(state)' 2>&1)
+                if [[ "$state" != ENABLED ]]; then bad+=("$secret:$version: $state"); fi
+              fi
+            elif [[ "$out" == *PERMISSION_DENIED* ]]; then
+              # No secretmanager.versions.list: probe the exact version Cloud Run
+              # will mount. The payload goes to /dev/null and is never printed.
+              if ! err=$(gcloud secrets versions access "$version" --secret="$secret" 2>&1 >/dev/null); then
+                bad+=("$secret:$version: $(head -1 <<< "$err")")
+              fi
+            else
+              bad+=("$secret: $(head -1 <<< "$out")")
+            fi
+          done
+
+          if (( ${#bad[@]} > 0 )); then
+            for b in "${bad[@]}"; do echo "::error title=Secret preflight::$b"; done
+            echo "### ❌ Secret preflight failed" >> "$GITHUB_STEP_SUMMARY"
+            printf -- '- %s\n' "${bad[@]}" >> "$GITHUB_STEP_SUMMARY"
+            echo "Add or enable a version of each secret above, then re-run. Not deploying."
+            exit 1
+          fi
+          echo "✅ ${#seen[@]} secret references, each with an enabled version"
+
       - name: 🟢 Deploy GREEN revision (no traffic)
         if: steps.guard.outputs.deploy == 'true'
         id: deploy
@@ -572,6 +620,41 @@ jobs:
               --region=${{ env.GCP_REGION }} \
               --to-tags green=$TRAFFIC
           fi
+
+      # Runs after a failed deploy too, so the log says why the revision isn't live.
+      - name: ✅ Verify the new revision is Ready and serving
+        if: ${{ !cancelled() && steps.guard.outputs.deploy == 'true' && steps.preflight.outcome == 'success' }}
+        env:
+          EXPECTED: john-bogle-ui-${{ steps.meta.outputs.revision_suffix }}
+          TRAFFIC: ${{ inputs.traffic_percent || 100 }}
+          REGION: ${{ env.GCP_REGION }}
+        run: |
+          set -u
+          if ! rev=$(gcloud run revisions describe "$EXPECTED" --region="$REGION" --format=json); then
+            echo "::error title=Deploy not live::revision $EXPECTED was never created"
+            echo "### ❌ $EXPECTED was never created" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          svc=$(gcloud run services describe john-bogle-ui --region="$REGION" --format=json)
+          ready=$(jq -r '[.status.conditions[]? | select(.type == "Ready") | .status][0] // "Unknown"' <<< "$rev")
+          why=$(jq -r '[.status.conditions[]? | select(.type == "Ready") | (.message // .reason // "")][0] // ""' <<< "$rev")
+          serving=$(jq -r --arg r "$EXPECTED" '[.status.traffic[]? | select(.revisionName == $r) | (.percent // 0)] | add // 0' <<< "$svc")
+          echo "$EXPECTED: Ready=$ready, serving ${serving}% (expected ${TRAFFIC}%)"
+
+          fail=0
+          if [[ "$ready" != True ]]; then
+            echo "::error title=Deploy not live::$EXPECTED is not Ready ($ready): $why"
+            fail=1
+          fi
+          if [[ "$serving" != "$TRAFFIC" ]]; then
+            echo "::error title=Deploy not live::$EXPECTED serves ${serving}% of traffic, expected ${TRAFFIC}%; traffic did not move to it"
+            fail=1
+          fi
+          if (( fail )); then
+            echo "### ❌ $EXPECTED is not live: Ready=$ready, ${serving}% of traffic" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "### ✅ $EXPECTED is Ready and serving ${serving}%" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Rollback on failure
         if: always() && steps.guard.outputs.deploy == 'true' && steps.deploy.outcome == 'success' && (steps.health.outputs.healthy != 'true' || steps.smoke.outcome == 'failure' || steps.freeze.outcome == 'failure')
