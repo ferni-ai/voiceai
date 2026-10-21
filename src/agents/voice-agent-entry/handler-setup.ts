@@ -24,6 +24,7 @@ import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './pa
 import { noteCallerJoined } from './sip-caller.js';
 import { callerChecks } from './caller-recognition.js';
 import { setupFrontendPublisher } from './handler-frontend-publisher.js';
+import { sessionRecording } from '../shared/session-recording.js';
 
 /** Inputs for handler setup */
 export interface HandlerSetupInput {
@@ -197,7 +198,6 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
     }
   }
 
-  // MUSIC HANDLER
   const musicResult = await setupMusicHandler({
     room: ctx.room, services, sessionPersona, conversationManager, sessionId,
     userId: userData.userId as string,
@@ -205,12 +205,11 @@ export async function setupAllHandlers(input: HandlerSetupInput): Promise<Handle
   cleanupHandlers.push(musicResult.cleanup);
   process.stderr.write(`[voice-agent-entry] 🎵 Music handler initialized\n`);
 
-  // Connection type detection + noise cancellation
+  // Connection type + noise cancellation, then start; calls are never recorded (session-recording.ts)
   const { detectConnectionType, setupNoiseCancellation } = await import('../voice-agent/phases/index.js');
   const { isPhoneCall, isWebConnection } = detectConnectionType(ctx, participant);
   const { inputOptions } = await setupNoiseCancellation({ isPhoneCall });
-
-  await session.start({ agent, room: ctx.room, inputOptions });
+  await session.start({ agent, room: ctx.room, inputOptions, record: sessionRecording() });
   process.stderr.write(
     `[voice-agent-entry] Session started! (isPhone: ${isPhoneCall}, isWeb: ${isWebConnection})\n`
   );
