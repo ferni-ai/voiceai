@@ -1,0 +1,55 @@
+name: Blog Approval
+
+# ferni.ai posts publish only with the owner's approval. A drafted consumer
+# post that passes the brand gate, the live check and the editorial judge
+# (blog-drafts.yml) opens ready for review, labelled blog-needs-approval, with
+# auto-merge off. Adding the blog-approved label arms auto-merge, pinned to the
+# commit that was approved, when the person adding it is a repo admin. Anyone
+# else's blog-approved label is taken off again and arms nothing
+# (scripts/blog/approval.mjs). Developer posts don't wait for this.
+#
+# pull_request_target runs main's copy of the script, never the PR's code, so
+# the token it holds can't be reached from the PR. BLOG_PR_TOKEN arms
+# auto-merge for the same reason blog-drafts.yml uses it: a merge armed by
+# GITHUB_TOKEN wouldn't trigger the deploy.
+
+on:
+  pull_request_target:
+    types: [labeled]
+
+permissions: {}
+
+concurrency:
+  group: blog-approval-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  arm:
+    name: Arm auto-merge on the owner's approval
+    if: github.event.label.name == 'blog-approved'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout main's script
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          persist-credentials: false
+          sparse-checkout: scripts/blog
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Check the labeler and arm auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.BLOG_PR_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::No BLOG_PR_TOKEN secret, so auto-merge can't be armed (see blog-drafts.yml)."
+            exit 1
+          fi
+          node scripts/blog/approval.mjs "$GITHUB_EVENT_PATH" | tee -a "$GITHUB_STEP_SUMMARY"
