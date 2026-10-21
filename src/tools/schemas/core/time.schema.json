@@ -88,7 +88,7 @@
         },
         {
           "userSays": "Remind me tomorrow to send the report",
-          "output": "{\"fn\":\"scheduleReminder\",\"args\":{\"message\":\"send the report\",\"when\":\"tomorrow morning\"}}"
+          "output": "{\"fn\":\"scheduleReminder\",\"args\":{\"message\":\"send the report\",\"when\":\"tomorrow\"}}"
         }
       ],
       "tags": ["reminder", "scheduling", "productivity"]
