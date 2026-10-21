@@ -21,7 +21,7 @@ import { findContactByPhone, markContactResponded } from '../../contacts/optimal
 // Bidirectional engagement - route replies to the right agent
 import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/inbound-router.js';
 import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
-import { SMS_KEYWORD_REPLIES, smsKeyword } from './sms-keywords.js';
+import { inboundKeyword, SMS_KEYWORD_REPLIES } from '../../messaging/sms-keywords.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -337,8 +337,8 @@ export async function handleInboundSMSWebhook(
   // Replies to proactive check-ins: "less", "not now", "stop" (sms-replies.ts).
   const proactiveReply = await handleProactiveSmsReply(From, Body);
   if (proactiveReply) return { success: true, twiml: generateTwiML(proactiveReply) };
-  // STOP, START and HELP get one reply each (sms-keywords.ts).
-  const keyword = smsKeyword(Body);
+  // STOP (every revocation phrase), START and HELP get one reply each (messaging/sms-keywords.ts).
+  const keyword = inboundKeyword(Body)?.keyword;
   if (keyword === 'stop' || keyword === 'start') {
     log.info({ From, keyword }, 'SMS opt-out or opt-in keyword');
     await updateSmsOptStatus(From, keyword === 'start');

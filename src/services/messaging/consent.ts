@@ -18,10 +18,11 @@
  * STOP/START also updates them, so turning MESSAGING_PIPELINE off loses no
  * opt-out. M8 deletes the fallback once the old stores are retired.
  *
- * Reading is behind MESSAGING_PIPELINE (off by default). An inbound STOP is
- * written to consent/{phoneHash} even with it off, so no opt-out received
- * before arming is lost; nothing reads it then, and the old stores are only
- * mirrored with the flag on, so every sender behaves as before.
+ * An inbound STOP or START is written to consent/{phoneHash} and to
+ * feature_checkin_optouts with or without MESSAGING_PIPELINE, and the guarded
+ * sender reads both (outreach/text-consent.ts): honouring a revocation is the
+ * law, not a feature. consentBlocks (third-party consent, do-not-call) and the
+ * call_opt_outs mirror stay behind MESSAGING_PIPELINE (off by default).
  *
  * @module services/messaging/consent
  */
@@ -36,6 +37,7 @@ import {
   toE164,
   type Env,
 } from '../outreach/checkin-replies.js';
+import { inboundKeyword } from './sms-keywords.js';
 
 const log = createLogger({ module: 'messaging-consent' });
 
@@ -80,7 +82,8 @@ export const messagingPipelineOn = (env: Env = process.env): boolean =>
 
 const STATES: ReadonlySet<string> = new Set(['opted-in', 'opted-out']);
 
-function channelOf(raw: unknown): ChannelConsent {
+/** One channel of a consent/{phoneHash} doc; anything unrecognised is unknown. */
+export function channelOf(raw: unknown): ChannelConsent {
   const c = (raw ?? {}) as { state?: unknown; source?: unknown; at?: unknown };
   if (typeof c.state !== 'string' || !STATES.has(c.state)) return { state: 'unknown' };
   return {
@@ -159,48 +162,6 @@ export interface ConsentKeyword {
   channels: ConsentChannel[];
 }
 
-// Twilio's standard opt-out and opt-in words (the whole message).
-const OPT_OUT_WORDS: ReadonlySet<string> = new Set([
-  'stop',
-  'stopall',
-  'unsubscribe',
-  'cancel',
-  'end',
-  'quit',
-  'revoke',
-  'optout',
-]);
-const OPT_IN_WORDS: ReadonlySet<string> = new Set(['start', 'unstop']);
-// Asks not to be called, as the whole message: "stop calling", "please stop calling me",
-// "don't call me", "do not call". Never a substring, so "don't stop" is not one.
-const STOP_CALLING =
-  /^(please )?(stop calling|don'?t call|do not call)( me)?( again| anymore)?( please)?$/;
-
-/** Lower case, curly quotes straightened, punctuation gone, spaces collapsed: "Stop ." is "stop". */
-const normalize = (body: string): string =>
-  body
-    .toLowerCase()
-    .replace(/[\u2018\u2019]/g, "'")
-    .replace(/[^\p{L}\p{N}\s']/gu, ' ')
-    .replace(/'(?!\p{L})|(?<!\p{L})'/gu, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-/**
- * The whole message, any case and punctuation, is the keyword: STOP, STOPALL,
- * UNSUBSCRIBE, CANCEL, END, QUIT, REVOKE or OPTOUT opts out of texts; "stop
- * calling" and its kin out of texts and calls; START or UNSTOP back in to texts
- * (never calls: a do-not-call is undone only by the owner, for their own number).
- * Anything else is not a consent change here.
- */
-export function consentKeyword(body: string): ConsentKeyword | null {
-  const said = normalize(body);
-  if (OPT_OUT_WORDS.has(said)) return { state: 'opted-out', channels: ['sms'] };
-  if (STOP_CALLING.test(said)) return { state: 'opted-out', channels: ['sms', 'call'] };
-  if (OPT_IN_WORDS.has(said)) return { state: 'opted-in', channels: ['sms'] };
-  return null;
-}
-
 /** Runs one write; a failure is logged at error level (last four digits only), never thrown. */
 async function attempt(
   what: string,
@@ -216,15 +177,25 @@ async function attempt(
   }
 }
 
+/** What an inbound text changes (sms-keywords.ts, the one list), or null for anything else. */
+function consentChange(body: string): ConsentKeyword | null {
+  const said = inboundKeyword(body);
+  if (said?.keyword === 'stop') return { state: 'opted-out', channels: [...said.channels] };
+  if (said?.keyword === 'start') return { state: 'opted-in', channels: [...said.channels] };
+  return null;
+}
+
 /**
  * Every inbound text to Ferni's number passes through here (the Twilio
  * webhook route, after its signature check), so a STOP answers every kind of
- * text at once. A STOP must never be lost, so each store is written on its own
- * and one failure doesn't skip the rest: the do-not-call list first (it is what
- * call paths read today), then consent/{phoneHash} (always, flag or not), then
- * the old text opt-out. The old stores are mirrored only with MESSAGING_PIPELINE
- * on; off, they keep today's writers. Returns the change when consent was saved,
- * else null. Never throws.
+ * text at once. It is the one writer of an inbound STOP or START, to both text
+ * opt-out stores, flag or not: consent/{phoneHash} and feature_checkin_optouts,
+ * which the guarded sender and verification codes read (TCPA: a revocation
+ * stops every text). A STOP must never be lost, so each store is written on its
+ * own and one failure doesn't skip the rest: the do-not-call list first (it is
+ * what call paths read today; only with MESSAGING_PIPELINE on), then consent,
+ * then the old text opt-out. Returns the change when consent was saved, else
+ * null. Never throws.
  */
 export async function recordInboundSmsConsent(
   from: unknown,
@@ -232,14 +203,13 @@ export async function recordInboundSmsConsent(
   deps: ConsentDeps = defaultConsentDeps()
 ): Promise<ConsentKeyword | null> {
   if (typeof from !== 'string' || typeof body !== 'string') return null;
-  const keyword = consentKeyword(body);
+  const keyword = consentChange(body);
   const e164 = keyword ? toE164(from) : null;
   if (!keyword || !e164) return null;
   const phoneLast4 = last4(e164);
   const at = deps.now().toISOString();
-  const mirror = messagingPipelineOn(deps.env);
   // Keyed by number, so it needs no hash secret: written even when the rest can't be.
-  if (mirror && keyword.channels.includes('call')) {
+  if (messagingPipelineOn(deps.env) && keyword.channels.includes('call')) {
     await attempt('call_opt_outs', phoneLast4, async () =>
       deps.store.setLegacyCallOptOut(e164, at)
     );
@@ -252,12 +222,10 @@ export async function recordInboundSmsConsent(
   const saved = await attempt('consent', phoneLast4, async () =>
     writeConsent(hash, keyword.channels, keyword.state, 'inbound-sms', deps)
   );
-  if (mirror) {
-    const optedOut = keyword.state === 'opted-out';
-    await attempt('feature_checkin_optouts', phoneLast4, async () =>
-      deps.store.setLegacySmsOptOut(hash, optedOut, at)
-    );
-  }
+  const optedOut = keyword.state === 'opted-out';
+  await attempt('feature_checkin_optouts', phoneLast4, async () =>
+    deps.store.setLegacySmsOptOut(hash, optedOut, at)
+  );
   if (saved) log.info({ phoneLast4, ...keyword }, 'Consent updated by text');
   return saved ? keyword : null;
 }

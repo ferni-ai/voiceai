@@ -85,6 +85,7 @@ vi.mock('../services/outreach/guarded-text.js', async (importOriginal) => {
         legacySmsChannels: async () => undefined,
         forPhoneHash: async (h: string) => state.records.filter((r) => r.phoneHash === h),
         isOptedOut: async () => state.optedOut,
+        consentDoc: async () => undefined,
         // Atomic like Firestore's create(): a held lock can't be taken again.
         lock: async (id: string, at: string) => {
           if (state.locks.has(id)) return false;

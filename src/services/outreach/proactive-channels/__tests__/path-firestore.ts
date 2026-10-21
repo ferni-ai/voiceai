@@ -1,6 +1,6 @@
 /**
  * An in-memory Firestore keyed by document path, with nested subcollections:
- * doc get/set (with merge)/update, runTransaction (serialized; create), collection where (==, >=,
+ * doc get/set (with merge)/update/create/delete, collection add, runTransaction (serialized; create), collection where (==, >=,
  * <=, array-contains; dotted field paths), select, orderBy (asc/desc, or '__name__' for the document id),
  * startAfter/startAt/endAt(id), limit. Enough for the
  * proactive check-in run and the daily outreach run end to end.
@@ -12,6 +12,9 @@ const cmp = (a: unknown, b: unknown): number => {
   const [x, y] = [v(a), v(b)];
   return x === y ? 0 : x < y ? -1 : 1;
 };
+
+/** add() ids, unique across every handle. */
+let autoId = 0;
 
 /** One transaction queue per database, however many handles open it. */
 const queues = new WeakMap<Map<string, Json>, Promise<unknown>>();
@@ -55,6 +58,11 @@ export function pathFirestore(docs: Map<string, Json>) {
           opts?.merge ? deepMerge(docs.get(path) ?? {}, data) : structuredClone(data)
         ),
       update: async (patch: Json) => void docs.set(path, { ...docs.get(path), ...patch }),
+      create: async (data: Json) => {
+        if (docs.has(path)) throw Object.assign(new Error('ALREADY_EXISTS'), { code: 6 });
+        docs.set(path, structuredClone(data));
+      },
+      delete: async () => void docs.delete(path),
       collection: (name: string) => collectionRef(`${path}/${name}`),
     };
   }
@@ -106,7 +114,13 @@ export function pathFirestore(docs: Map<string, Json>) {
     };
   }
   function collectionRef(path: string): Json {
-    return { ...query(path, []), doc: (id: string) => docRef(`${path}/${id}`) };
+    const doc = (id: string) => docRef(`${path}/${id}`);
+    const add = async (data: Json) => {
+      const ref = doc(`auto${(autoId += 1)}`);
+      docs.set(ref.path as string, structuredClone(data));
+      return ref;
+    };
+    return { ...query(path, []), doc, add };
   }
   // Transactions run one at a time (Firestore's serializable guarantee for
   // overlapping read-then-write); create fails when the document exists.

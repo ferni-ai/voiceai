@@ -58,7 +58,8 @@ export interface CheckinDeps extends TextDeps {
 
 export interface CheckinOutcome {
   sent: boolean;
-  reason?: SkipReason | 'gate-off' | 'flag-off' | 'no-hash-secret' | 'send-failed';
+  reason?:
+    SkipReason | 'gate-off' | 'flag-off' | 'no-hash-secret' | 'consent-unknown' | 'send-failed';
 }
 
 /** Calls placed on someone's behalf, or with no known person, are not the member's own call. */

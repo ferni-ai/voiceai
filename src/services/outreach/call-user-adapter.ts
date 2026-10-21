@@ -24,6 +24,7 @@ import { userReach } from './user-reach.js';
 const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'quiet-hours': "it's quiet hours where you are",
   'opted-out': 'you replied STOP to my texts',
+  'consent-unknown': "I couldn't check your text settings just now",
   'sms-off': 'texts are turned off in your settings',
   'recently-sent': 'I just texted you',
   'no-verified-phone': "there's no verified phone number on your account",
@@ -50,7 +51,14 @@ export const callUserAdapter: CallUserPort = {
       return { sent: false, reason: HELD['quiet-hours'] };
     }
     const refId = `${Date.now()}`;
-    const t = { userId, body, kind: 'message' as const, refId, minGapMs: OWNER_TEXT_GAP_MS };
+    const t = {
+      userId,
+      body,
+      kind: 'message' as const,
+      refId,
+      minGapMs: OWNER_TEXT_GAP_MS,
+      askedNow,
+    };
     const outcome = await sendGuardedText(t);
     return outcome.sent ? { sent: true } : { sent: false, reason: HELD[outcome.reason] };
   },

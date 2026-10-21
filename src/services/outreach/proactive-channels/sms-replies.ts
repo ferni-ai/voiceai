@@ -5,8 +5,9 @@
  * - "less" (or "too much"): one step down normal → gentle → light.
  * - "not now" (or "later", "busy"): nothing for 12 hours, and the last
  *   check-in counts as declined, which backs off calls.
- * - "stop": proactive check-ins off. The webhook's own STOP handling still
- *   runs after this and sends the unsubscribe reply.
+ * - "stop" or any other opt-out (messaging/sms-keywords.ts, the one list):
+ *   proactive check-ins off. The webhook's own STOP handling still runs after
+ *   this and sends the unsubscribe reply.
  * - Anything else: the last text counts as answered, so texts don't back off.
  *
  * Returns the reply to text back, or undefined to let the webhook carry on.
@@ -17,6 +18,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { getFirebaseUserByPhone } from '../../identity/firebase-auth.js';
 import { getFirestoreDb } from '../../superhuman/firestore-utils.js';
+import { inboundKeyword } from '../../messaging/sms-keywords.js';
 import { frequencyOf } from './channel-policy.js';
 import { logId, LOG_COLLECTION, recentOutreach, type OutreachOutcome } from './outreach-log.js';
 import { isProactiveChannelsOn, isProactiveChannelsUser } from './proactive-tick.js';
@@ -31,7 +33,6 @@ const ANSWER_WINDOW_MS = 48 * HOUR_MS;
 
 const LESS = /^(less|less often|fewer|too much|too many|text less)[.!]*$/;
 const NOT_NOW = /^(not now|later|busy|not today|can'?t talk( right now)?)[.!]*$/;
-const STOP = /^(stop|unsubscribe|cancel|quit|end)[.!]*$/;
 
 async function setPrefs(userId: string, prefs: Record<string, unknown>): Promise<void> {
   const db = getFirestoreDb();
@@ -87,7 +88,7 @@ export async function handleProactiveSmsReply(
     if (!userId || !(await isProactiveChannelsUser(userId))) return undefined;
     const said = body.trim().toLowerCase().replace(/\s+/g, ' ');
 
-    if (STOP.test(said)) {
+    if (inboundKeyword(body)?.keyword === 'stop') {
       await setPrefs(userId, { proactiveFrequency: 'off' });
       log.info({ userId }, 'Proactive check-ins stopped by text');
       return undefined;
