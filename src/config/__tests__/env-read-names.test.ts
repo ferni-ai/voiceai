@@ -114,6 +114,21 @@ describe('env read names', () => {
     ).toEqual([]);
   });
 
+  // The file merges with git's union driver (.gitattributes), which keeps both sides'
+  // lines: it can leave two added names out of order or bring back a name the other
+  // side deleted. Only an exact match against the scan makes that safe.
+  // Skipped while regenerating: the import above still holds the old list.
+  it.skipIf(process.env.UPDATE_ENV_READ_NAMES === '1')(
+    'lists exactly the sorted names src/ reads, nothing stale',
+    () => {
+      const names = [...namesRead().keys()].sort();
+      expect(
+        [...ENV_READ_NAMES],
+        'Regenerate the list: UPDATE_ENV_READ_NAMES=1 pnpm vitest run src/config/__tests__/env-read-names.test.ts'
+      ).toEqual(names);
+    }
+  );
+
   it('has no duplicate names', () => {
     expect(new Set(ENV_READ_NAMES).size).toBe(ENV_READ_NAMES.length);
   });
