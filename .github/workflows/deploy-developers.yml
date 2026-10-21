@@ -48,9 +48,15 @@ jobs:
         run: npm run build
 
       # Checks the build in _site (links, the spec the explorer loads).
+      # Node 22 loads a bare directory argument as a module ("Cannot find
+      # module .../__tests__"), so name the files with a glob. A glob that
+      # matches nothing runs 0 tests and passes, so `ls` fails the step first
+      # when there is no test file.
       - name: Test the build
         working-directory: apps/website/developers-portal
-        run: node --test __tests__/
+        run: |
+          ls __tests__/*.test.js
+          node --test '__tests__/*.test.js'
 
       - name: Deploy to Firebase (ferni-developers)
         uses: FirebaseExtended/action-hosting-deploy@500ac625ca2dd40cbd15f7659af953801858032a # v0.11.0, the commit v0 points to
