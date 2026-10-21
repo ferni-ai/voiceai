@@ -620,6 +620,9 @@ final class CallSessionTests: XCTestCase {
         try? await Task.sleep(for: .milliseconds(100))
         XCTAssertEqual(session.captions.lines.map(\.joined), [true, false, false], "one join, at the real handoff")
         XCTAssertEqual(session.avatar.personaID, "maya")
+        // A repeated handoff_started for her would leave the stage waiting for
+        // a teammate who's already there, stuck in the arriving pose.
+        XCTAssertNotEqual(session.avatar.pose, .handoffArriving(to: "maya"), "no handoff left waiting")
     }
 
     /// Award upgrade 4: a handoff that doesn't land joins no one.
