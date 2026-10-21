@@ -38,15 +38,60 @@ public enum FerniFonts {
     /// large (34, like largeTitle), scaling with Dynamic Type (design audit
     /// P1-13: Settings, Team and Memory read as system screens). Call once at
     /// launch, after `register()`. Returns whether the face was there to use.
+    /// A text-size change while the app runs re-sets them, on the bars on
+    /// screen too: the appearance proxy only reaches bars made after it, and
+    /// the scaled font was fixed at launch (critic L2).
     @MainActor @discardableResult
     public static func useForNavigationTitles() -> Bool {
-        guard register(), let inline = UIFont(name: greetingName, size: 17), let large = UIFont(name: greetingName, size: 34) else {
-            return false
-        }
+        guard let titles = titles(for: nil) else { return false }
         let bar = UINavigationBar.appearance()
-        bar.titleTextAttributes = [.font: UIFontMetrics(forTextStyle: .headline).scaledFont(for: inline)]
-        bar.largeTitleTextAttributes = [.font: UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: large)]
+        bar.titleTextAttributes = titles.inline
+        bar.largeTitleTextAttributes = titles.large
+        if sizeObserver == nil {
+            sizeObserver = NotificationCenter.default.addObserver(
+                forName: UIContentSizeCategory.didChangeNotification, object: nil, queue: .main
+            ) { note in
+                let size = note.userInfo?[UIContentSizeCategory.newValueUserInfoKey] as? UIContentSizeCategory
+                // The application posts it; its scenes hold the bars on screen
+                // (UIApplication.shared isn't available to the widget's copy).
+                let app = note.object as? UIApplication
+                MainActor.assumeIsolated {
+                    let windows = app?.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows) ?? []
+                    retitle(size: size, windows: windows)
+                }
+            }
+        }
         return true
+    }
+
+    nonisolated(unsafe) private static var sizeObserver: NSObjectProtocol?
+
+    /// The title fonts at a text size (nil: the current one).
+    static func titles(for size: UIContentSizeCategory?)
+        -> (inline: [NSAttributedString.Key: Any], large: [NSAttributedString.Key: Any])? {
+        guard register(), let inline = UIFont(name: greetingName, size: 17), let large = UIFont(name: greetingName, size: 34) else {
+            return nil
+        }
+        let traits = size.map { UITraitCollection(preferredContentSizeCategory: $0) }
+        return ([.font: UIFontMetrics(forTextStyle: .headline).scaledFont(for: inline, compatibleWith: traits)],
+                [.font: UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: large, compatibleWith: traits)])
+    }
+
+    /// The proxy, and every navigation bar already in `windows`, at `size`.
+    @MainActor
+    static func retitle(size: UIContentSizeCategory?, windows: [UIWindow]) {
+        guard let titles = titles(for: size) else { return }
+        let proxy = UINavigationBar.appearance()
+        proxy.titleTextAttributes = titles.inline
+        proxy.largeTitleTextAttributes = titles.large
+        func walk(_ view: UIView) {
+            if let bar = view as? UINavigationBar {
+                bar.titleTextAttributes = titles.inline
+                bar.largeTitleTextAttributes = titles.large
+            }
+            view.subviews.forEach(walk)
+        }
+        windows.forEach(walk)
     }
 
     /// The brand face at `size`, scaling with Dynamic Type like `style`;
