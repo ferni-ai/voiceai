@@ -1,9 +1,14 @@
 import XCTest
 
 /// Design audit P2 #5: the account button stayed in the corner during a call.
-/// In a call it steps out; at home it's there.
+/// In a call it steps out; at home it's there. On iPad there's no account
+/// button: Settings is in the sidebar (RootView), so these run on iPhone.
 @MainActor
 final class AccountButtonUITests: XCTestCase {
+    override func setUpWithError() throws {
+        try XCTSkipIf(UIDevice.current.userInterfaceIdiom == .pad, "iPad reaches Settings from the sidebar")
+    }
+
     func testTheAccountButtonStepsOutDuringACall() {
         let app = XCUIApplication.ferni(.call)
         XCTAssertTrue(Screen.call.ready(in: app).waitForExistence(timeout: 20))
