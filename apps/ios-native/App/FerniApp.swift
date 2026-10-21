@@ -33,7 +33,7 @@ struct FerniApp: App {
         WindowGroup {
             RootView()
                 .environment(model)
-                .modifier(NightInkScheme())
+                .modifier(NightInkScheme(busy: model.call.isActive || model.roomIsUnderASheet))
                 .onOpenURL { model.open($0) }
                 // Spotlight and Shortcuts know the team as it is now.
                 .task(id: model.team.unlocked) { await model.teamSpotlight.sync(met: model.team.unlocked) }

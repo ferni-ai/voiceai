@@ -50,6 +50,9 @@ enum UITestScenario: String {
     static let storeData = flag("-FerniStoreData")
     /// Store screenshots: dark mode, whatever the simulator is set to.
     static let dark = flag("-FerniDark")
+    /// `-FerniNightNote`: show Night Ink's one-time note (every launch resets
+    /// it, so other tests at night would all see it).
+    static let nightNote = flag("-FerniNightNote")
     /// Store screenshots: the hour Home's greeting is written for.
     static let hour: Int? = value(after: "-FerniHour").flatMap(Int.init)
 

@@ -210,21 +210,82 @@ struct UpdateRequiredView: View {
 
 /// Night Ink after 22:00 (award upgrade 3): the whole app goes dark from ten
 /// at night until five, unless Settings' "Dark at night" is off. The hour is
-/// checked every minute and whenever the app comes back.
+/// checked every minute and whenever the app comes back. The turn waits while
+/// you're busy (a call, a sheet, the keyboard) and then crossfades slowly; the
+/// first time it turns dark a note says so, once (critic M-C).
 struct NightInkScheme: ViewModifier {
+    /// In a call or under a sheet (AppModel): the turn waits.
+    var busy = false
     @AppStorage(NightInk.key) private var enabled = true
+    @AppStorage(NightInk.notedKey) private var noted = false
     @Environment(\.scenePhase) private var scenePhase
     @State private var hour = NightInkScheme.hourNow
+    @State private var shown: ColorScheme?
+    @State private var decided = false
+    @State private var typing = false
+    @State private var note = false
 
     func body(content: Content) -> some View {
+        let wanted = Self.scheme(hour: hour, enabled: enabled)
         content
-            .preferredColorScheme(Self.scheme(hour: hour, enabled: enabled))
+            .preferredColorScheme(decided ? shown : wanted)
+            .overlay(alignment: .top) {
+                if note { NightInkNote { withAnimation { note = false } }.transition(.opacity) }
+            }
+            .onAppear {
+                // At launch nothing is under way: the hour's scheme, as it is.
+                shown = wanted
+                decided = true
+                noteIfFirst(wanted)
+            }
+            .onChange(of: wanted) { _, _ in turn() }
+            .onChange(of: busy || typing) { _, _ in turn() }
+            .onChange(of: enabled) { _, _ in turn(chosen: true) }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in typing = true }
+            .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardDidHideNotification)) { _ in typing = false }
             .task(id: scenePhase) {
                 while !Task.isCancelled {
                     hour = Self.hourNow
                     try? await Task.sleep(for: .seconds(60))
                 }
             }
+    }
+
+    /// Moves to the hour's scheme unless you're busy, crossfading slowly.
+    private func turn(chosen: Bool = false) {
+        let wanted = Self.scheme(hour: hour, enabled: enabled)
+        let next = NightInk.shown(current: shown, wanted: wanted, busy: busy || typing, chosen: chosen)
+        guard decided, next != shown else { return }
+        Self.crossfade(seconds: chosen ? 0.4 : 1.2) { shown = next }
+        noteIfFirst(next)
+    }
+
+    private func noteIfFirst(_ scheme: ColorScheme?) {
+        #if DEBUG
+        if UITestScenario.current != nil, !UITestScenario.nightNote { return }
+        #endif
+        let phoneIsDark = Self.window?.windowScene?.screen.traitCollection.userInterfaceStyle == .dark
+        guard NightInk.notes(turnedTo: scheme, phoneIsDark: phoneIsDark, noted: noted) else { return }
+        noted = true
+        withAnimation(.easeOut(duration: 0.4).delay(1.2)) { note = true }
+        AccessibilityNotification.Announcement(NightInkNote.text).post()
+    }
+
+    private static var window: UIWindow? {
+        UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.flatMap(\.windows).first(where: \.isKeyWindow)
+    }
+
+    /// The old look laid over the new as a picture and faded out: a crossfade
+    /// (a scheme change itself can't be animated).
+    @MainActor static func crossfade(seconds: Double, _ change: () -> Void) {
+        guard let window, let picture = window.snapshotView(afterScreenUpdates: false) else { change(); return }
+        picture.isUserInteractionEnabled = false
+        picture.accessibilityElementsHidden = true
+        window.addSubview(picture)
+        change()
+        UIView.animate(withDuration: seconds, delay: 0, options: [.curveEaseInOut]) {
+            picture.alpha = 0
+        } completion: { _ in picture.removeFromSuperview() }
     }
 
     static var hourNow: Int { Calendar.current.component(.hour, from: HomeClock.time(.now)) }
@@ -239,5 +300,33 @@ struct NightInkScheme: ViewModifier {
         }
         #endif
         return NightInk.scheme(hour: hour, enabled: enabled)
+    }
+}
+
+/// The first night (critic M-C): what happened and where to change it, once,
+/// gone by itself after a few seconds or at a tap.
+struct NightInkNote: View {
+    static let text = String(localized: "It’s late, so I’ve gone dark. You can change that in Settings.")
+    let dismiss: () -> Void
+
+    var body: some View {
+        Text(Self.text)
+            .font(FerniType.footnote)
+            .foregroundStyle(FerniColor.textPrimary)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, FerniSpace.rest)
+            .padding(.vertical, FerniSpace.breath)
+            .background(FerniColor.surfaceRaised, in: Capsule())
+            .overlay(Capsule().stroke(FerniColor.border))
+            .padding(.horizontal, FerniSpace.rest)
+            .padding(.top, FerniSpace.breath)
+            .onTapGesture(perform: dismiss)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityHint("Dismisses this note")
+            .accessibilityIdentifier("nightInk.note")
+            .task {
+                try? await Task.sleep(for: .seconds(6))
+                dismiss()
+            }
     }
 }

@@ -103,6 +103,23 @@ public enum NightInk {
     public static func scheme(hour: Int, enabled: Bool) -> ColorScheme? {
         enabled && isNight(hour: hour) ? .dark : nil
     }
+
+    /// The scheme to show. The hour's turn waits while you're in the middle of
+    /// something (a call, a sheet, sign-in, the keyboard), and comes at the next
+    /// calm moment: the room never flips under your thumb (critic M-C). Your own
+    /// choice in Settings ("Dark at night") applies at once.
+    public static func shown(current: ColorScheme?, wanted: ColorScheme?, busy: Bool, chosen: Bool = false) -> ColorScheme? {
+        busy && !chosen ? current : wanted
+    }
+
+    /// The one-time note ("It's late, so I've gone dark"): the first time Night
+    /// Ink itself turns the app dark, on a phone that's in light mode.
+    public static func notes(turnedTo scheme: ColorScheme?, phoneIsDark: Bool, noted: Bool) -> Bool {
+        scheme == .dark && !phoneIsDark && !noted
+    }
+
+    /// Whether the note has been shown.
+    public static let notedKey = "ferni.nightInk.noted"
 }
 
 /// How the room is lit at an hour of the day.
