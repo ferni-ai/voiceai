@@ -48,6 +48,8 @@ public struct RoomFade: View {
 
     /// How far the ceiling's fade hangs below what it sits under.
     static let ceilingFade: CGFloat = 32
+    /// The floor's fade: the padding above Talk.
+    static let floorFade = FerniSpace.rest
 
     public var body: some View {
         let light = RoomLight(hour: Calendar.current.component(.hour, from: date))
@@ -57,10 +59,16 @@ public struct RoomFade: View {
         }
         Group {
             if edge == .bottom {
-                room
-                    .mask(LinearGradient(stops: [.init(color: .clear, location: 0), .init(color: .black, location: 0.45)],
-                                         startPoint: .top, endPoint: .bottom))
-                    .ignoresSafeArea(edges: .bottom)
+                // Fading in over the top padding, solid from Talk's top edge down.
+                // Fading over a share of the whole height, it was still part
+                // clear behind Talk: on an SE the team's faces showed at its
+                // corners and the audit failed Talk's label (award upgrade 2).
+                VStack(spacing: 0) {
+                    room.mask(LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom))
+                        .frame(height: Self.floorFade)
+                    room
+                }
+                .ignoresSafeArea(edges: .bottom)
             } else {
                 // Solid behind what it sits under (the words stay on the room's
                 // paper), fading out just below it.
