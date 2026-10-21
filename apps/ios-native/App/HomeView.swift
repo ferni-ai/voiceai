@@ -155,7 +155,7 @@ struct HomeView: View {
             .sheet(isPresented: $model.isShowingCallMore) {
                 CallMoreSheet(
                     showCaptions: $model.showCaptions,
-                    lastReply: call.captions.lines.last { $0.speaker == .ferni }
+                    lastReply: call.captions.lines.last { $0.speaker == .ferni && !$0.joined }
                 ) { model.reporting = $0 }
             }
             .sheet(item: $model.reporting) { caption in

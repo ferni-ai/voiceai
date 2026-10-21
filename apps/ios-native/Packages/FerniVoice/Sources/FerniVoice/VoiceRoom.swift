@@ -62,10 +62,13 @@ public struct Caption: Identifiable, Sendable, Equatable {
     /// Who on the team said it (Ferni's side only): after a handoff, the
     /// captions say whose words they are (design audit P1-3).
     public var personaID: String?
+    /// Not words: a teammate came in ("Maya joined", award upgrade 4). Its
+    /// personaID is who; it's never copied or reported.
+    public var joined = false
 
     public init(
         id: String, speaker: CaptionChunk.Speaker, text: String, isFinal: Bool, at: Date = .now, room: String? = nil,
-        personaID: String? = nil
+        personaID: String? = nil, joined: Bool = false
     ) {
         self.id = id
         self.speaker = speaker
@@ -74,6 +77,7 @@ public struct Caption: Identifiable, Sendable, Equatable {
         self.at = at
         self.room = room
         self.personaID = personaID
+        self.joined = joined
     }
 }
 
@@ -83,6 +87,7 @@ public struct Caption: Identifiable, Sendable, Equatable {
 public struct CaptionBook: Sendable, Equatable {
     public private(set) var lines: [Caption] = []
     private var streamForSegment: [String: String] = [:]
+    private var joins = 0
     private let keep: Int
 
     public init(keep: Int = 6) { self.keep = keep }
@@ -102,6 +107,14 @@ public struct CaptionBook: Sendable, Equatable {
         }
         streamForSegment[id] = chunk.streamID
         if chunk.isFinal { streamForSegment[id] = nil }
+    }
+
+    /// A teammate came in: a "joined" line between the words before and after.
+    public mutating func join(_ personaID: String, room: String? = nil) {
+        joins += 1
+        lines.append(Caption(id: "joined-\(joins)", speaker: .ferni, text: "", isFinal: true, room: room,
+                             personaID: personaID, joined: true))
+        if lines.count > keep { lines.removeFirst(lines.count - keep) }
     }
 
     public mutating func clear() {

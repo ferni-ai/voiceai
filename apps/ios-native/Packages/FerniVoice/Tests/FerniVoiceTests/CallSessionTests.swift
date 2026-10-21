@@ -597,8 +597,23 @@ final class CallSessionTests: XCTestCase {
         room.send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"maya-santos","timestamp":2}"#.utf8)))
         await until(session.avatar.personaID == "maya")
         room.send(.caption(CaptionChunk(streamID: "s2", segmentID: "b", speaker: .ferni, text: "Hi! Which days?", isFinal: true)))
-        await until(session.captions.lines.count == 2)
-        XCTAssertEqual(session.captions.lines.map(\.personaID), ["ferni", "maya"])
+        await until(session.captions.lines.count == 3)
+        XCTAssertEqual(session.captions.lines.map(\.personaID), ["ferni", "maya", "maya"])
+        // Award upgrade 4: between them, "Maya joined".
+        XCTAssertEqual(session.captions.lines.map(\.joined), [false, true, false])
+    }
+
+    /// Award upgrade 4: a handoff that doesn't land joins no one.
+    func testAFailedOrUnknownHandoffJoinsNoOne() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        let room = rooms.made[0]
+        room.send(.data(Data(#"{"type":"handoff_complete","from":"ferni","target":"<b>x</b>","timestamp":2}"#.utf8)))
+        room.send(.data(Data(#"{"type":"handoff_failed","target":"maya-santos","timestamp":3}"#.utf8)))
+        room.send(.caption(CaptionChunk(streamID: "s1", segmentID: "a", speaker: .ferni, text: "Still me.", isFinal: true)))
+        await until(session.captions.lines.count == 1)
+        XCTAssertFalse(session.captions.lines.contains(where: \.joined))
     }
 
     /// An id the app doesn't know (or a lookalike) never changes who's on screen.
@@ -694,6 +709,20 @@ final class CallSessionTests: XCTestCase {
 }
 
 final class CaptionBookTests: XCTestCase {
+    /// Award upgrade 4: a join is its own line, in order, kept like words.
+    func testAJoinSitsBetweenTheWordsAndAgesOut() {
+        var book = CaptionBook(keep: 3)
+        book.apply(CaptionChunk(streamID: "s1", segmentID: "a", speaker: .ferni, text: "Let me bring her in.", isFinal: true))
+        book.join("maya")
+        book.apply(CaptionChunk(streamID: "s2", segmentID: "b", speaker: .ferni, text: "Hi!", isFinal: true))
+        XCTAssertEqual(book.lines.map(\.joined), [false, true, false])
+        XCTAssertEqual(book.lines[1].personaID, "maya")
+        book.join("peter")
+        book.join("maya")
+        XCTAssertEqual(book.lines.count, 3, "joins count toward the lines kept")
+        XCTAssertEqual(Set(book.lines.map(\.id)).count, 3, "each join is its own line")
+    }
+
     func testACorrectedSegmentReplacesItsText() {
         var book = CaptionBook()
         book.apply(CaptionChunk(streamID: "s1", segmentID: "a", speaker: .you, text: "I wanna", isFinal: false))
