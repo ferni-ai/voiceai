@@ -24,6 +24,7 @@ function deps(
   const store = {
     forPhoneHash: vi.fn(async (h: string) => existing.filter((r) => r.phoneHash === h)),
     isOptedOut: vi.fn(async () => opts.optedOut === true),
+    consentDoc: async () => undefined,
     userDoc: vi.fn(async () => opts.account),
     add: vi.fn(async (r: CheckinRecord) => {
       added.push(r);
@@ -130,6 +131,7 @@ describe('sendOnBehalfText', () => {
     const shared: StoredCheckin[] = [];
     const store = {
       isOptedOut: async () => false,
+      consentDoc: async () => undefined,
       forPhoneHash: async (h: string) => shared.filter((r) => r.phoneHash === h),
       add: async () => 'x',
       ...atomicLocks(),

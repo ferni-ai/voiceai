@@ -52,6 +52,8 @@ export const FLAGS_PUBSUB_TO_REQUIRE = {
   RECALL_PEOPLE: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_RARE_WORDS: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECALL_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with SEMANTIC_RECALL): facts are stored with their vectors, and recall finds older ones by meaning (stored-fact-vectors.ts)
+  RECALL_VECTOR_INDEX: { default: 'off', owner: 'memory', kind: 'experiment' },
   RECENT_CALL_RESTRAINT: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // shows "I'll remember" in the app after a fact is stored
   REMEMBER_MOMENT: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -60,6 +62,8 @@ export const FLAGS_PUBSUB_TO_REQUIRE = {
   REMINDER_SCHEDULER_IN_PROCESS: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: reminders go by text to the verified phone, via guarded-text (reminder-sms-flag.ts, reminder-reach.ts)
   REMINDER_SMS_DEFAULT: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: setReminder saves only a time the caller said, and a new time for the same thing moves it (reminder-time-heard.ts)
+  REMINDER_TIME_FROM_CALLER: { default: 'off', owner: 'tools', kind: 'experiment' },
   REPAIR_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   REQUIRE_FIX_OUTREACH_NAME: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -67,7 +71,7 @@ export const FLAGS_PUBSUB_TO_REQUIRE = {
   REQUIRE_FIX_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
 
-/** STYLE_PROFILE .. TOOL_REQUIRES_ENV */
+/** STYLE_PROFILE .. TTFW_METRIC */
 export const FLAGS_STYLE_TO_TOOL = {
   STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TAP_INTERRUPT: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -97,6 +101,8 @@ export const FLAGS_STYLE_TO_TOOL = {
   TOOL_LEAD_IN: { default: 'on', owner: 'voice', kind: 'config' },
   // a tool whose requiresEnv keys are unset is not registered (tools/registry/tool-availability.ts)
   TOOL_REQUIRES_ENV: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  // one "Time to first word" line per call: where a launch's wait goes (agents/shared/time-to-first-word.ts)
+  TTFW_METRIC: { default: 'off', owner: 'platform', kind: 'config' },
 } as const satisfies Record<string, FlagSpec>;
 
 /** USE_NATIVE_AUDIO .. VOICE_HUMANIZATION_DISABLED */

@@ -197,9 +197,7 @@ class SanctuaryUI {
     document.querySelectorAll('#sanctuary-styles').forEach((el) => el.remove());
   }
 
-  /**
-   * Set callback for when a practice is selected
-   */
+  /** Set callback for when a practice is selected */
   setOnPracticeSelected(callback: (practice: GuidedPractice) => void): void {
     this.onPracticeSelected = callback;
   }
@@ -749,7 +747,6 @@ class SanctuaryUI {
           class="sanctuary-practice-card sanctuary-practice-card--recommended"
           data-practice-id="${escapeHtml(practice.id)}"
           data-prompt="${escapeHtml(practice.prompt)}"
-          aria-label="${t('sanctuary.startPractice', { name: escapeHtml(practice.name) })}"
         >
           <div class="sanctuary-practice-icon" style="background: ${category.color}">
             ${category.icon}
@@ -800,7 +797,6 @@ class SanctuaryUI {
         class="sanctuary-practice-item"
         data-practice-id="${escapeHtml(practice.id)}"
         data-prompt="${escapeHtml(practice.prompt)}"
-        aria-label="${t('sanctuary.startPractice', { name: escapeHtml(practice.name) })}"
       >
         <div class="sanctuary-practice-item-content">
           <span class="sanctuary-practice-item-name">${escapeHtml(practice.name)}</span>
@@ -1213,7 +1209,7 @@ class SanctuaryUI {
 
       .sanctuary-insight-desc {
         font-size: 12px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-secondary); /* muted was 4.0:1 in midnight */
         line-height: 1.5;
         margin: 0;
       }
@@ -1249,7 +1245,7 @@ class SanctuaryUI {
         font-family: var(--font-body, 'Inter', sans-serif);
         font-size: 11px;
         font-style: normal;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-secondary); /* muted was 4.0:1 in midnight */
         margin-top: var(--space-sm, 8px);
       }
 
@@ -1283,6 +1279,7 @@ class SanctuaryUI {
         font-weight: 600;
         margin-bottom: var(--space-sm, 12px);
       }
+      [data-theme="midnight"] .sanctuary-recommended-badge { color: var(--color-text-primary); } /* 4.4:1 on its tint */
 
       .sanctuary-practice-card--recommended {
         display: flex;
@@ -1475,13 +1472,13 @@ class SanctuaryUI {
       .sanctuary-practice-item-desc {
         display: block;
         font-size: 12px;
-        color: var(--color-text-muted, #756a5e);
+        color: var(--color-text-secondary); /* muted was 4.0:1 in midnight */
         margin-top: var(--space-2xs, 2px);
       }
 
       .sanctuary-practice-item-duration {
         font-size: 11px;
-        color: var(--color-text-dimmed, #857a6e);
+        color: var(--color-text-secondary); /* dimmed was 3.9:1 in midnight */
         white-space: nowrap;
       }
 

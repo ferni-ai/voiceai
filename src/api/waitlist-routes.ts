@@ -28,7 +28,7 @@ import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { waitlistRateLimit } from './waitlist-rate-limits.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import { grantAccess, grantFoundingMember, waitlistGateOn } from './open-access.js';
-import { ADMIN_BYPASS_EMAILS, isAdmitted } from './admission.js';
+import { isAdminEmail, isAdmitted } from './admission.js';
 import {
   buildApprovalUrl,
   getApprovalSecret,
@@ -486,7 +486,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     // =========================================================================
     // ADMIN BYPASS - Founders/admins should NEVER be blocked
     // =========================================================================
-    if (ADMIN_BYPASS_EMAILS.includes(email)) {
+    if (isAdminEmail(email)) {
       log.info({ email: hashEmail(email) }, '👑 Admin bypass - auto-approved');
       sendJson(res, 200, {
         approved: true,
