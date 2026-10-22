@@ -40,6 +40,8 @@ export interface PersistenceConfig {
 
   /** Whether to use root collection (not under bogle_users) */
   useRootCollection?: boolean;
+  /** Checked at each sync: a held user's data is dropped, not written (MINOR_CARE, music learning) */
+  holdWrites?: (userId: string) => boolean;
 }
 
 export interface LoadOptions {
@@ -164,6 +166,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     syncIntervalMs = 5000,
     maxPendingChanges = 20,
     useRootCollection = false,
+    holdWrites,
   } = config;
 
   // In-memory cache
@@ -194,7 +197,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     const firestore = await getFirestore();
     if (!firestore) return;
 
-    const toFlush = Array.from(dirty);
+    const toFlush = Array.from(dirty).filter((userId) => !holdWrites?.(userId));
     dirty.clear();
 
     const docRefFor = (userId: string) =>
@@ -272,7 +275,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 
   // Flush a single user
   const flushUser = async (userId: string): Promise<void> => {
-    if (!dirty.has(userId)) return;
+    if (!dirty.has(userId) || holdWrites?.(userId)) return;
 
     const firestore = await getFirestore();
     if (!firestore) return;

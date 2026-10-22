@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   describeNeed,
+  databaseOf,
   diffIndexes,
   type IndexFile,
   type IndexNeed,
@@ -295,6 +296,19 @@ describe('diffIndexes (check-indexes.ts)', () => {
       notReady: [],
       undeclared: [],
     });
+  });
+
+  it('reads a ferni-dev listing the same way, and names its database', () => {
+    const dev = {
+      ...prodRow('reminders'),
+      name: prodRow('reminders').name.replace('(default)', 'ferni-dev'),
+    };
+    expect(diffIndexes(repo, [dev]).missing).toEqual(
+      diffIndexes(repo, [prodRow('reminders')]).missing
+    );
+    expect(databaseOf(dev)).toBe('ferni-dev');
+    expect(databaseOf(prodRow('reminders'))).toBe('(default)');
+    expect(databaseOf(repo[0])).toBeUndefined();
   });
 
   it('reports one still building, and counts prod-only ones apart', () => {

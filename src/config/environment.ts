@@ -51,6 +51,23 @@ export function getFirestoreDatabase(): string {
   return process.env.FIRESTORE_DATABASE || '(default)';
 }
 
+/**
+ * True when this process uses a Firestore database other than prod's '(default)'
+ * (the dev agent and PR previews). Prod workers read '(default)', so a process on
+ * another database must not hand them work: the Pub/Sub publishers and the graph
+ * writer check this and skip.
+ */
+export function isNonProdDatabase(): boolean {
+  return getFirestoreDatabase() !== '(default)';
+}
+
+/** isNonProdDatabase(), logging what the caller is skipping because of it. */
+export function skipOnNonProdDatabase(what: string): boolean {
+  if (!isNonProdDatabase()) return false;
+  getLogger().info({ skipped: what }, 'Skipped on a non-prod Firestore database');
+  return true;
+}
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
@@ -404,4 +421,6 @@ export default {
   isMusicEnabled,
   getGCPProjectId,
   getFirestoreDatabase,
+  isNonProdDatabase,
+  skipOnNonProdDatabase,
 };
