@@ -4865,66 +4865,66 @@
         }
       }
     },
-    "Interrupt": {
+    "Interrupt %@": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Interrupt"
+            "value": "Interrupt %@"
           }
         },
         "de": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Interrupt"
+            "value": "Interrupt %@"
           }
         },
         "en-GB": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Interrupt"
+            "value": "Interrupt %@"
           }
         },
         "es": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Interrupt"
+            "value": "Interrupt %@"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Interrupt"
+            "value": "Interrupt %@"
           }
         },
         "he": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Interrupt"
+            "value": "Interrupt %@"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Interrupt"
+            "value": "Interrupt %@"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Interrupt"
+            "value": "Interrupt %@"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Interrupt"
+            "value": "Interrupt %@"
           }
         },
         "zh-Hant": {
           "stringUnit": {
             "state": "needs_review",
-            "value": "Interrupt"
+            "value": "Interrupt %@"
           }
         }
       }
@@ -8385,70 +8385,6 @@
         }
       }
     },
-    "Tap to interrupt": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "انقر للمقاطعة"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tippen zum Unterbrechen"
-          }
-        },
-        "en-GB": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tap to interrupt"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Toca para interrumpir"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Touche pour interrompre"
-          }
-        },
-        "he": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "הקש כדי להפריע"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "タップして割り込む"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "탭해서 끼어들기"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "轻点以打断"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "輕點以打斷"
-          }
-        }
-      }
-    },
     "Team": {
       "localizations": {
         "ar": {
@@ -9277,6 +9213,70 @@
           "stringUnit": {
             "state": "needs_review",
             "value": "To talk with Ferni on this phone again, you'll sign in."
+          }
+        }
+      }
+    },
+    "Touch and hold to interrupt": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Touch and hold to interrupt"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Touch and hold to interrupt"
+          }
+        },
+        "en-GB": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Touch and hold to interrupt"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Touch and hold to interrupt"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Touch and hold to interrupt"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Touch and hold to interrupt"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Touch and hold to interrupt"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Touch and hold to interrupt"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Touch and hold to interrupt"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "needs_review",
+            "value": "Touch and hold to interrupt"
           }
         }
       }
