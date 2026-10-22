@@ -26,6 +26,7 @@ import { onCommitmentKeeperChange } from '../data-layer/hooks/superhuman-hooks.j
 import { onCommitmentMade, onCommitmentAtRisk } from '../outreach/superhuman-outreach-bridge.js';
 import { recordWinFromCommitment } from './wins.js';
 import { commitmentSentences, isNotOwnCommitment } from '../../utils/commitment-filters.js';
+import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'commitment-keeper' });
 
@@ -332,9 +333,10 @@ export function detectCommitment(
 // ============================================================================
 
 export async function saveCommitment(
-  commitment: Omit<Commitment, 'id'>,
+  input: Omit<Commitment, 'id'>,
   options?: { validateCalendar?: boolean; createCalendarBlocks?: boolean }
 ): Promise<{ commitment: Commitment; feasibility?: CommitmentFeasibility; notActionable?: true }> {
+  const commitment = redactCredentialsIn(input);
   const id = `commit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   const verdict = judgeCommitment(commitment.statement); // a sign-off or "call her" is never stored
   const fullCommitment: Commitment = {

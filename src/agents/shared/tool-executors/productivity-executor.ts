@@ -25,6 +25,7 @@ import {
   snoozeAlarm,
   updateGoal,
 } from './productivity-time-bridge.js';
+import { redactCredentials } from '../../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'ProductivityExecutor' });
 
@@ -790,9 +791,8 @@ async function execute(
     return getNotes(args, ctx); // For now, return all notes
   }
 
-  // Journal
   if (fnLower === 'addjournal') {
-    const entry = args.entry as string;
+    const entry = redactCredentials(args.entry as string);
     const mood = args.mood as string;
     log.info({ mood, userId: ctx.userId }, '📔 Journal entry');
 

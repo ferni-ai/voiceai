@@ -10,6 +10,7 @@
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore, toSafeDate } from '../../../utils/firestore-utils.js';
 import type { ToolExecutionContext } from './types.js';
+import { redactCredentials } from '../../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'LegacyFallbackExecutor' });
 
@@ -26,11 +27,10 @@ export async function executeLegacyFallback(
 
   // --- MEMORY TOOLS (With Embedding + Firestore for SUPERHUMAN recall) ---
   if (fnLower === 'rememberaboutuser') {
-    const fact = args.fact as string;
+    const fact = redactCredentials(args.fact as string);
     const category = (args.category as string) || 'personal';
     const importance = (args.importance as string) || 'medium';
     const emotionalContext = args.emotionalContext as string | undefined;
-
     if (!fact) {
       return 'Please specify what you want me to remember.';
     }
@@ -432,8 +432,8 @@ export async function executeLegacyFallback(
   }
 
   if (fnLower === 'updatememory') {
-    const oldFact = args.oldFact as string;
-    const newFact = args.newFact as string;
+    const oldFact = redactCredentials(args.oldFact as string);
+    const newFact = redactCredentials(args.newFact as string);
 
     if (!oldFact || !newFact) {
       return 'Please specify both the old memory and the updated information.';
