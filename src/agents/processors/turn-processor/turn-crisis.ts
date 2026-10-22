@@ -155,7 +155,10 @@ export function startTurnCrisis(
               return { crisis: patterns, soft: true };
             };
             // CRISIS_CLASSIFIER_ONLY_CHECKIN: a crisis read nothing else agrees with (crisis-classifier-only.ts).
-            const escalated = async (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> => {
+            const escalated = async (): Promise<{
+              crisis: CrisisDetectionResult;
+              soft: boolean;
+            }> => {
               if (softTransfer) return eased();
               const only =
                 crisis !== patterns &&
