@@ -31,7 +31,9 @@ import {
   groundedRelease,
 } from '../../../services/safety/crisis-grounded-release.js';
 import {
+  SCREEN_GENTLE_OFFER,
   screenAnswer,
+  screenIdeation,
   withScreenPositive,
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
@@ -100,7 +102,9 @@ export function startTurnCrisis(
     latest: userText,
     companion: userData?.lastAgentResponse,
   });
-  const patterns = screened === 'positive' ? withScreenPositive(found) : found;
+  const gentle = screened === 'positive' && !screenIdeation(found, userText);
+  const patterns = screened === 'positive' && !gentle ? withScreenPositive(found) : found;
+  if (gentle) noteCrisisRisk(options.sessionId); // a gentle 988 offer: risk on this call
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
   const pattern = shouldBlock ? 'block' : patterns.isCrisis ? 'crisis' : 'none';
   if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
@@ -131,6 +135,10 @@ export function startTurnCrisis(
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
+            // A gentle 988 offer (crisis-grounded-screen.ts), unless the classifier reads a plan.
+            if (gentle && verdict?.risk !== 'imminent') {
+              return { crisis: patterns, soft: true, guidance: SCREEN_GENTLE_OFFER };
+            }
             // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
             if (loneImminentGoodbye({ detection: patterns, verdict, ...input, priorRisk })) {
               log.info({ outcome: 'soft', source: 'lone_imminent_goodbye' }, 'CRISIS_AGREEMENT');
@@ -208,7 +216,11 @@ export function startTurnCrisis(
             log.info({ outcome: 'soft', source: 'adjudicator' }, 'CRISIS_AGREEMENT');
             return { crisis: patterns, soft: true };
           })
-        : Promise.resolve({ crisis: patterns, soft: false }));
+        : Promise.resolve({
+            crisis: patterns,
+            soft: gentle,
+            ...(gentle ? { guidance: SCREEN_GENTLE_OFFER } : {}),
+          }));
   return {
     patterns,
     shouldBlock,

@@ -10,7 +10,10 @@ import { EventEmitter } from 'node:events';
 import { ReadableStream } from 'node:stream/web';
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
+import {
+  crisisRiskThisCall,
+  resetCrisisCallRisk,
+} from '../../../services/safety/crisis-call-risk.js';
 import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
@@ -21,6 +24,7 @@ import {
   resetGroundedRelease,
 } from '../../../services/safety/crisis-grounded-release.js';
 import {
+  SCREEN_GENTLE_OFFER,
   SCREEN_QUESTION,
   askedScreen,
   screenAnswer,
@@ -110,11 +114,16 @@ async function gate(
   return (await run?.escalation) ?? run?.decision ?? { action: 'pass' };
 }
 
-function pipeline(session: string, turns: Array<[string, string]>, latest: string) {
+function pipeline(
+  session: string,
+  turns: Array<[string, string]>,
+  latest: string,
+  imminent = [DINNER]
+) {
   return startTurnCrisis(
     latest,
     { recentTranscripts: turns.map(([caller]) => caller), lastAgentResponse: turns.at(-1)?.[1] },
-    { sessionId: session, ...options(RELEASE) }
+    { sessionId: session, ...options(RELEASE, imminent) }
   ).summary();
 }
 
@@ -229,7 +238,7 @@ describe("the caller's answer", () => {
     }
   });
 
-  it('anything but a clear no takes the crisis path with 988, on both paths', async () => {
+  it("an unclear answer gets a gentle 988 offer in Ferni's own reply, on both paths", async () => {
     for (const answer of [
       "I don't know.",
       'Kind of.',
@@ -247,21 +256,55 @@ describe("the caller's answer", () => {
       'No, I meant it.',
       "No, I'm not okay.",
       'Nope, not good.',
-      'No, not anymore.',
       'No. After dinner I will try again.',
-      'Nah, I already wrote the note.',
     ]) {
       const session = await released();
       const [fromGate, fromPipeline] = await Promise.all([
         gate(session, after(ASKED), answer),
         pipeline(session, after(ASKED), answer),
       ]);
-      expect(fromGate.action, answer).toBe('guide');
-      expect(fromGate.action === 'guide' && fromGate.guidance, answer).toMatch(/988/);
+      expect(fromGate, answer).toEqual({ action: 'guide', guidance: SCREEN_GENTLE_OFFER });
+      expect(fromPipeline, answer).toMatchObject({ softCheck: true, isCrisis: false });
+      expect(fromPipeline.softGuidance, answer).toBe(SCREEN_GENTLE_OFFER);
+    }
+    expect(SCREEN_GENTLE_OFFER).toMatch(/988/);
+    expect(SCREEN_GENTLE_OFFER).toMatch(/Stay yourself/);
+    expect(SCREEN_GENTLE_OFFER).not.toMatch(/CRITICAL|lifeline right now/);
+  });
+
+  it('a gentle offer notes risk on the call even when only the pipeline sees the answer', async () => {
+    const session = await released();
+    resetCrisisCallRisk(); // forget the release turn's own reads
+    await pipeline(session, after(ASKED), 'Kind of.', []);
+    expect(crisisRiskThisCall(session)).toBe(true);
+  });
+
+  it('an answer with risk content of its own gets crisis guidance, never the script', async () => {
+    for (const answer of [
+      'No, not anymore.',
+      'Nah, I already wrote the note.',
+      'Yeah, I want to die.',
+    ]) {
+      const session = await released();
+      const [fromGate, fromPipeline] = await Promise.all([
+        gate(session, after(ASKED), answer),
+        pipeline(session, after(ASKED), answer),
+      ]);
+      expect(fromGate.action, answer).not.toBe('pass');
+      expect(fromGate, answer).not.toEqual({ action: 'guide', guidance: SCREEN_GENTLE_OFFER });
       expect(fromPipeline, answer).toMatchObject({ isCrisis: true });
-      expect(fromPipeline.indicators, answer).toContain('grounded_screen_positive');
       expect(fromPipeline.softCheck, answer).toBeUndefined();
     }
+  });
+
+  it('a plan or intent the classifier reads in the answer still gets the full crisis path', async () => {
+    const session = await released();
+    const answer = 'Kind of.';
+    const out = await gate(session, after(ASKED), answer, RELEASE, [DINNER, answer]);
+    expect(out.action).toBe('replace');
+    const fromPipeline = await pipeline(session, after(ASKED), answer, [DINNER, answer]);
+    expect(fromPipeline.softCheck).toBeUndefined();
+    expect(fromPipeline.isCrisis).toBe(true);
   });
 
   it('a no to a paraphrase or "you okay?" is not a clear no: the question is asked again', async () => {
@@ -317,8 +360,8 @@ describe("the caller's answer", () => {
 
   it('an answer that repeats the released line is still screened', async () => {
     const session = await released();
-    const out = await pipeline(session, after(ASKED), DINNER);
-    expect(out.indicators).toContain('grounded_screen_positive');
+    const out = await pipeline(session, after(ASKED), DINNER, []);
+    expect(out.softGuidance).toBe(SCREEN_GENTLE_OFFER);
   });
 
   it("the released turn's other path with drifted words is not taken as the answer", async () => {
@@ -334,8 +377,7 @@ describe("the caller's answer", () => {
     const session = await released();
     expect(await gate(session, after(ASKED), 'No.')).toEqual({ action: 'pass' });
     const fromPipeline = await pipeline(session, after(ASKED), 'No. I mean, kind of.');
-    expect(fromPipeline).toMatchObject({ isCrisis: true });
-    expect(fromPipeline.indicators).toContain('grounded_screen_positive');
+    expect(fromPipeline.softGuidance).toBe(SCREEN_GENTLE_OFFER);
   });
 
   it('anything unexpected while screening is positive', async () => {

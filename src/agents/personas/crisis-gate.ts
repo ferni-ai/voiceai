@@ -46,7 +46,9 @@ import {
   groundedRelease,
 } from '../../services/safety/crisis-grounded-release.js';
 import {
+  SCREEN_GENTLE_OFFER,
   screenAnswer,
+  screenIdeation,
   withScreenPositive,
   withScreenQuestion,
 } from '../../services/safety/crisis-grounded-screen.js';
@@ -160,6 +162,8 @@ function sessionScope(userData: unknown): string | undefined {
   );
 }
 
+const guide = (guidance: string): CrisisGateDecision => ({ action: 'guide', guidance });
+
 export function decisionFor(crisis: CrisisDetectionResult): CrisisGateDecision {
   if (guardFromDetection(crisis).shouldBlock && crisis.suggestedResponse) {
     return { action: 'replace', script: crisis.suggestedResponse };
@@ -197,11 +201,13 @@ export function startCrisisGate(
   const found = detectCrisis(latest, toGuardVoiceEmotion(voiceEmotion), {
     recentMessages: earlier,
   });
-  // The answer to a grounded release's direct question: anything but a clear no counts as a match.
+  // The answer to a grounded release's direct question: not a clear no is a gentle 988 offer,
+  // or crisis guidance when the answer carries risk content (crisis-grounded-screen.ts).
   const screen = screenAnswer(sessionScope(userData), { latest, companion });
-  const detection = screen === 'positive' ? withScreenPositive(found) : found;
+  const gentle = screen === 'positive' && !screenIdeation(found, latest);
+  const detection = screen === 'positive' && !gentle ? withScreenPositive(found) : found;
   const reask = screen === 'reask';
-  const decision = decisionFor(detection);
+  const decision = gentle ? guide(SCREEN_GENTLE_OFFER) : decisionFor(detection);
   if (decision.action !== 'pass') {
     noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
     log.info(

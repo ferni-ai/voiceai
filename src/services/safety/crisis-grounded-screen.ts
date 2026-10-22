@@ -162,6 +162,24 @@ export function screenAnswer(
   }
 }
 
+/**
+ * A positive screen with no crisis words of its own ("I don't know", "kind
+ * of", a laugh) gets this in Ferni's reply (Seth, 2026-10-22): a gentle 988
+ * offer inside the conversation, Ferni staying itself. Crisis guidance is for
+ * answers that carry risk content; the replacement script stays for a plan or
+ * intent the classifier reads.
+ */
+export const SCREEN_GENTLE_OFFER = `[SAFETY - GENTLE OFFER]
+You asked whether they were thinking about hurting themselves, and they didn't give a clear no.
+1. Stay yourself: warm and unhurried, and keep the conversation going; no alarm and no lecture
+2. Once, gently, say you're really glad they're talking with you, and that if things ever get heavy they can call or text 988, any time
+3. Don't push for details. If they say more, listen, stay with them, and take it seriously`;
+
+/** The answer carries risk content of its own: a pattern hit or a held word. */
+export function screenIdeation(found: CrisisDetectionResult, answer: string): boolean {
+  return found.severity > 0 || found.indicators.length > 0 || alwaysHold(answer);
+}
+
 /** A positive screen as a crisis reading: guidance with 988, never the replacement script. */
 export function withScreenPositive(detection: CrisisDetectionResult): CrisisDetectionResult {
   const merged = applyClassifierVerdict(detection, { risk: 'crisis', subject: 'self' });
