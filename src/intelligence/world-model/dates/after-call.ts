@@ -57,6 +57,13 @@ export interface DatesDeps {
   env?: Record<string, string | undefined>;
   /** Where the caller's cohort flags are read (cohort-flags.ts); Firestore by default. */
   cohorts?: CohortStore;
+  /**
+   * Whether this is the member's own call: never an unrecognised caller (anon:)
+   * or the third party on a call placed for someone (onbehalf:). The check lives
+   * above this layer (isMemberCall in services/outreach, isMemberIdentity once
+   * #2017 lands), so the register file passes it in. Without one, nothing runs.
+   */
+  isMember?: (userId: string) => boolean;
 }
 
 /** The call's dates, resolved against its date in the caller's timezone. */
@@ -76,7 +83,7 @@ export async function datesFromCall(
 
 /** The task body; exported so tests can run it with a fake model and store. */
 export async function extractDatesAfterCall(ctx: DatesCall, deps: DatesDeps = {}): Promise<void> {
-  if (!ctx.userId || ctx.userId === 'anonymous') return;
+  if (!(deps.isMember?.(ctx.userId ?? '') ?? false)) return;
   // DATES_THAT_MATTER as this caller's call had it: process.env may hold the next caller's.
   const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
   if (!datesThatMatterOn(env)) return;

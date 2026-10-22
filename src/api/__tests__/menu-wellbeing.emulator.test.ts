@@ -65,6 +65,7 @@ async function callEnds(uid: string, flag: 'on' | 'off'): Promise<void> {
     { userId: uid, sessionId: `s-${uid}`, startedAt: new Date(), turns: CALL },
     {
       env: { WELLBEING_AFTER_CALL: flag },
+      isMember: () => true, // a member's own call (the register passes isMemberCall)
       llm: async () => '{"mood":0.7,"energy":0.2,"worry":null}',
     }
   );

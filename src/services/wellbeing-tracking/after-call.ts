@@ -14,6 +14,10 @@
  *
  * @module services/wellbeing-tracking/after-call
  */
+import {
+  classifyEscalation,
+  detectCrisisSignals,
+} from '../human-transfer/escalation-classifier.js';
 import { envForCaller, type CohortStore } from '../platform/cohort-flags.js';
 import { callLLM } from '../llm-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -48,6 +52,13 @@ export interface WellbeingDeps {
   save?: (userId: string, snapshot: WellbeingSnapshot) => Promise<boolean>;
   env?: Record<string, string | undefined>;
   cohorts?: CohortStore;
+  /**
+   * Whether this is the member's own call: never an unrecognised caller (anon:)
+   * or the third party on a call placed for someone (onbehalf:). The check lives
+   * above this layer (isMemberCall in services/outreach, isMemberIdentity once
+   * #2017 lands), so the register file passes it in. Without one, nothing runs.
+   */
+  isMember?: (userId: string) => boolean;
 }
 
 export function wellbeingAfterCallOn(env: Record<string, string | undefined>): boolean {
@@ -78,6 +89,20 @@ A polite "good, you?" answering a greeting is not a mood. Most calls leave most 
 Respond with ONLY JSON: {"mood":null,"energy":null,"worry":null,"loneliness":null,"meaningfulness":null,"sleepQuality":null}`;
 }
 
+/**
+ * A call where any caller turn reaches the crisis tier of the human-transfer
+ * classifier (the 988/911 decision: crisis_immediate or crisis_support). Such a
+ * call is never scored: a mood number is no way to remember it.
+ */
+export function isCrisisCall(turns: WellbeingCall['turns']): boolean {
+  return turns.some(
+    (t) =>
+      t.role === 'user' &&
+      (t.content ?? '').trim() !== '' &&
+      classifyEscalation(detectCrisisSignals(t.content)).type.startsWith('crisis_')
+  );
+}
+
 /** The scored dimensions from the model's reply; values outside 0..1 or not numbers are dropped. */
 export function parseWellbeingReply(reply: string | null): Partial<WellbeingDimensions> {
   const json = reply?.match(/\{[\s\S]*\}/)?.[0];
@@ -101,11 +126,15 @@ export async function recordWellbeingAfterCall(
   ctx: WellbeingCall,
   deps: WellbeingDeps = {}
 ): Promise<void> {
-  if (!ctx.userId || ctx.userId === 'anonymous') return;
+  if (!(deps.isMember?.(ctx.userId ?? '') ?? false)) return;
   // This caller's flags: process.env may already hold the next caller's.
   const env = await envForCaller(ctx.userId, { env: deps.env, store: deps.cohorts });
   if (!wellbeingAfterCallOn(env)) return;
   if (!ctx.turns.some((t) => t.role === 'user' && (t.content ?? '').trim() !== '')) return;
+  if (isCrisisCall(ctx.turns)) {
+    log.info({ sessionId: ctx.sessionId }, 'WELLBEING_SKIPPED_CRISIS');
+    return;
+  }
 
   const llm =
     deps.llm ??
