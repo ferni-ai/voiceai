@@ -1,0 +1,99 @@
+[
+  {
+    "file": "agents/handlers/user-identification.ts",
+    "count": 1,
+    "category": "non-user-id",
+    "reason": "isRealName checks a spoken NAME against placeholder words ('guest', 'anonymous'), not a user id."
+  },
+  {
+    "file": "agents/personas/ferni-state.ts",
+    "count": 1,
+    "category": "non-user-id",
+    "reason": "The id is only a hash seed that picks one of Ferni's own life threads; nothing about the caller is read or stored, so it is not used as a user id."
+  },
+  {
+    "file": "agents/shared/tts-wrapper.ts",
+    "count": 1,
+    "category": "cache",
+    "reason": "Linguistic mirroring keeps an in-process engine per id for this call and stores nothing; a unique anon:/onbehalf: id keys its own engine, only the shared 'anonymous' id would mix callers."
+  },
+  {
+    "file": "agents/voice-agent-entry/caller-recognition.ts",
+    "count": 1,
+    "category": "inverse",
+    "reason": "startReturningCaller runs only for an anon: session (an unverified phone caller), so it wants a non-member id, never a member's (RETURNING_CALLER, #1909)."
+  },
+  {
+    "file": "agents/voice-agent/user-identification-handler.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "Compares identificationSource, the identification-source enum ('anonymous' | 'device' | 'phone' ...), not a user id."
+  },
+  {
+    "file": "api/account-routes.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "Compares a Firebase Auth providerId enum value ('anonymous' provider), not a user id."
+  },
+  {
+    "file": "api/identity-merge-routes.ts",
+    "count": 2,
+    "category": "enum",
+    "reason": "Compares the Firebase Auth signInProvider enum ('anonymous' provider) of the two tokens being merged (#2226), not a user id."
+  },
+  {
+    "file": "api/v1/developers/auth-routes.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "Refuses a token whose Firebase Auth sign_in_provider enum is 'anonymous' (#2236); compares the provider, not a user id."
+  },
+  {
+    "file": "api/v1/developers/shared/developer-auth.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "Records whether the verified token's Firebase Auth sign_in_provider enum is 'anonymous' (#2236/#2250); compares the provider, not a user id."
+  },
+  {
+    "file": "intelligence/context-builders/awareness/world-awareness.ts",
+    "count": 1,
+    "category": "cache",
+    "reason": "Notes a sports team in the in-process world cache for this call's id; nothing is written to Firestore, and a unique anon:/onbehalf: id only touches its own entry."
+  },
+  {
+    "file": "intelligence/world-model/dates/after-call.ts",
+    "count": 1,
+    "category": "pending",
+    "waitsOn": "fix/wellbeing-after-call-guards (no PR yet)",
+    "reason": "A real GATE (stores dates that matter after a call), left unconverted because the wellbeing after-call branch is changing this task. Convert it to isMemberIdentity once that branch merges; this entry then goes stale and fails."
+  },
+  {
+    "file": "services/identity/firebase-auth.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "Compares the decoded token's sign_in_provider enum value ('anonymous' provider), not a user id."
+  },
+  {
+    "file": "services/identity/identity-linking.ts",
+    "count": 2,
+    "category": "inverse",
+    "reason": "The opposite question: only a pre-sign-in device: or anon: id may be linked INTO a Firebase account, so it must require a non-account prefix, not refuse one. The second match compares the anon token's Firebase Auth signInProvider enum to 'anonymous' (#2226), not a user id."
+  },
+  {
+    "file": "services/identity/verified-caller.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "Compares the Firebase sign-in provider enum ('anonymous' provider), not a user id: an anonymous Firebase user never counts as verified."
+  },
+  {
+    "file": "services/world-awareness/session-integration.ts",
+    "count": 2,
+    "category": "cache",
+    "reason": "initWorldAwareness reads the caller's saved interests from Firestore (bogle_users/{id}/info_preferences) and warms the in-process world cache; cleanup clears that cache. An anon:/onbehalf: id has no saved doc, so the read returns nothing of anyone's, and strangers keep IP-located world context. Only the shared 'anonymous' id is refused."
+  },
+  {
+    "file": "tools/domains/awareness/current-context.ts",
+    "count": 1,
+    "category": "cache",
+    "reason": "Reads the in-process weather snapshot cached for this call's id; a unique anon:/onbehalf: id is safe and strangers still get the weather, only the shared 'anonymous' bucket would mix callers."
+  }
+]

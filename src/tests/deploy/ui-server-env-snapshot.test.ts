@@ -24,6 +24,7 @@ const ENV = [
   'JOURNAL_ONE_STORE=on',
   'JOURNAL_TRANSCRIBE_VERTEX=on',
   'MEMORY_VIEW=on',
+  'MORNING_BRIEF=on',
   'NODE_ENV=production',
   'ON_BEHALF_DNC_CHECK=on',
   'PONDERING=on',

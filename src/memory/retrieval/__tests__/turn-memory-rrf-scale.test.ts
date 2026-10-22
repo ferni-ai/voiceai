@@ -13,6 +13,7 @@ const store = vi.hoisted(() => ({
   entities: [] as Array<{ id: string; score: number; text: string }>,
   bm25Calls: 0,
   associativeCalls: 0,
+  rerankReverses: false,
 }));
 
 vi.mock('../semantic-memory-search.js', () => ({
@@ -35,8 +36,10 @@ vi.mock('../../entity-store/storage.js', () => ({
   searchEntities: async () => [],
 }));
 // Prod's rerank is an LLM call against a 50 ms budget; it passes order through here.
+// rerankReverses stands in for a reranker that reorders: the cap must still keep the best cosines.
 vi.mock('../cross-encoder.js', () => ({
-  rerankHybridResults: async (_q: string, results: unknown[]) => results,
+  rerankHybridResults: async (_q: string, results: unknown[]) =>
+    store.rerankReverses ? [...results].reverse() : results,
 }));
 vi.mock('../../associative-memory.js', () => ({
   getAssociativeMemory: () => ({
@@ -49,7 +52,12 @@ vi.mock('../../associative-memory.js', () => ({
 
 import type { HybridSearchResult } from '../hybrid-search.js';
 import { retrieveForTurn } from '../turn-memory-retrieval.js';
-import { MIN_TURN_MEMORY_COSINE, scaleTurnMemories } from '../turn-memory-scale.js';
+import {
+  MIN_TURN_MEMORY_COSINE,
+  capTurnMemories,
+  scaleTurnMemories,
+  turnMemoryMaxInject,
+} from '../turn-memory-scale.js';
 
 let session = 0;
 const turn = (transcript: string) =>
@@ -65,6 +73,7 @@ describe('per-turn memory search scale', () => {
     store.entities = [{ id: 'e-biscuit', score: 3.2, text: 'Biscuit' }];
     store.bm25Calls = 0;
     store.associativeCalls = 0;
+    store.rerankReverses = false;
   });
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -103,6 +112,53 @@ describe('per-turn memory search scale', () => {
     vi.stubEnv('TURN_MEMORY_RRF_SCALE', 'on');
     store.memories = [{ documentId: 'car', score: 0.47, text: 'needs an oil change' }];
     expect((await turn('yeah the weather has been fine I guess')).memories).toEqual([]);
+  });
+});
+
+describe('per-turn memory cap (TURN_MEMORY_MAX_INJECT)', () => {
+  // Six memories over the 0.55 floor, stored out of cosine order.
+  const SIX = [0.61, 0.93, 0.58, 0.77, 0.86, 0.69].map((score, i) => ({
+    documentId: `m${i}-${score}`,
+    score,
+    text: `memory ${i}`,
+  }));
+  const pup = () => turn("how's the pup doing, he was limping");
+  beforeEach(() => {
+    store.memories = [...SIX].sort((a, b) => b.score - a.score); // the store's contract: best first
+    store.entities = [];
+    store.rerankReverses = true; // the reranker hands them back worst first
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('flag on, default: six memories over the floor, exactly the three with the highest cosine reach the turn', async () => {
+    vi.stubEnv('TURN_MEMORY_RRF_SCALE', 'on');
+    vi.stubEnv('TURN_MEMORY_MAX_INJECT', '5');
+    expect((await pup()).memories).toHaveLength(5); // precondition: the cap, not the floor, is what binds
+    vi.stubEnv('TURN_MEMORY_MAX_INJECT', '');
+    const context = await pup();
+    expect(context.memories.map((m) => [m.id, m.relevance])).toEqual([
+      ['m1-0.93', 0.93],
+      ['m4-0.86', 0.86],
+      ['m3-0.77', 0.77],
+    ]);
+  });
+
+  it('flag on: TURN_MEMORY_MAX_INJECT=1 sends only the best memory', async () => {
+    vi.stubEnv('TURN_MEMORY_RRF_SCALE', 'on');
+    vi.stubEnv('TURN_MEMORY_MAX_INJECT', '1');
+    expect((await pup()).memories.map((m) => m.id)).toEqual(['m1-0.93']);
+  });
+
+  it('reads TURN_MEMORY_MAX_INJECT as 1-5, default 3', () => {
+    const max = (v?: string) => turnMemoryMaxInject({ TURN_MEMORY_MAX_INJECT: v });
+    expect([max(), max(''), max('abc'), max('2'), max('0'), max('-4'), max('9'), max('4.7')]).toEqual([3, 3, 3, 2, 1, 1, 5, 4]); // prettier-ignore
+  });
+
+  it('flag off: results pass through untouched, the caller keeps its own limit', () => {
+    const results = SIX.map((m) => ({ ...m, id: m.documentId }));
+    expect(capTurnMemories(results, false, 1)).toBe(results);
   });
 });
 

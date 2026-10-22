@@ -20,6 +20,7 @@ import {
   type ContactRelationship,
 } from './contact-relationship-service.js';
 import { fromSavedContact, samePerson } from './people-list.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'person-removal' });
 
@@ -31,7 +32,7 @@ function contactsDb(): Promise<Firestore> {
     ({ Firestore }) =>
       new Firestore({
         projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-        databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+        databaseId: getFirestoreDatabase(),
       })
   );
   return db;

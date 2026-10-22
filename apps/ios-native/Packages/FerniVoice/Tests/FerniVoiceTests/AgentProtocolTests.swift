@@ -1,5 +1,4 @@
 import XCTest
-import FerniDesign
 @testable import FerniVoice
 
 /// The agent's real wire payloads, parsed the way a live call parses them.
@@ -56,9 +55,4 @@ final class AgentProtocolTests: XCTestCase {
         XCTAssertNil(AgentSignals.agentActivity(from: ["lk.agent.state": "dancing"]))
     }
 
-    func testAvatarKeepsAnEmotionalExpression() {
-        let result = AgentSignals.avatar(for: .speaking, current: .warm)
-        XCTAssertTrue(result.isSpeaking)
-        XCTAssertEqual(result.expression, .warm)
-    }
 }

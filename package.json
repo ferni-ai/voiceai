@@ -383,6 +383,7 @@
     "flags:gen": "UPDATE_FLAG_INDEX=1 vitest run --config vitest.config.unit.ts src/config/__tests__/flag-index.test.ts",
     "flags:new": "npx tsx scripts/flags/new-flag.ts",
     "flags:dump": "npx tsx scripts/flags/dump.ts",
+    "flags:move": "npx tsx scripts/flags/move-to-files.ts",
     "flags:enable-all": "npx tsx apps/cli/src/commands/jobs/enable-all-flags.ts",
     "flags:report": "npx tsx apps/cli/src/commands/jobs/enable-all-flags.ts --report",
     "flags:reset": "npx tsx apps/cli/src/commands/jobs/enable-all-flags.ts --reset",
