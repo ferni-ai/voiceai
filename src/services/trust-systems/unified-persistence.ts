@@ -2,12 +2,10 @@
  * Unified Trust Profile Persistence
  *
  * > "We believe in making AI human, and the decisions we make will reflect that."
- *
  * This module ensures all trust profile data has a SINGLE source of truth
  * in Firestore. It prevents data drift between in-memory and persisted state.
  *
- * The Problem:
- * - Multiple systems maintain their own in-memory Maps
+ * The Problem: multiple systems maintain their own in-memory Maps
  * - Periodic sync can lead to stale/inconsistent data
  * - Server restarts lose recent changes
  *
@@ -23,6 +21,7 @@
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
 import { getFirestoreDatabase, getGCPProjectId } from '../../config/environment.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { userHeld } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 
@@ -357,7 +356,8 @@ async function flushUserChanges(userId: string): Promise<void> {
  */
 async function persistProfile(userId: string, profile: UnifiedTrustProfile): Promise<void> {
   try {
-    const firestore = await getFirestore();
+    // MINOR_CARE: every path (timer, write-through, session end) checks at write time
+    const firestore = userHeld(userId) ? null : await getFirestore();
     if (!firestore) return;
 
     await firestore

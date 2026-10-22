@@ -4,6 +4,9 @@ name: Website checks
 # the light and dark mode checks that Deploy Landing runs before a deploy
 # (apps/website/ferni-website/playwright.config.ts), then the screenshot
 # comparison of every page (e2e/website-visual.spec.ts), which runs only here.
+# The style-diff job compares every page's computed colours with the base
+# branch's build and audits the dark-mode stylesheets
+# (e2e/website-style-diff.spec.ts).
 #
 # Everything runs in the Playwright image the approved screenshots were taken
 # in, so Chromium and the fonts match them. Run it by hand on a branch with
@@ -25,6 +28,7 @@ on:
       - 'e2e/website-*.spec.ts'
       - 'e2e/night-ink-website.spec.ts'
       - 'e2e/built-site-server.ts'
+      - 'e2e/website-style-diff-report.ts'
       - 'e2e/__screenshots__/website-visual/**'
       - '.github/workflows/website-checks.yml'
   workflow_dispatch:
@@ -41,6 +45,8 @@ concurrency:
 
 permissions:
   contents: read
+  # The style-diff job reads the PR's labels.
+  pull-requests: read
 
 jobs:
   website:
@@ -106,3 +112,90 @@ jobs:
           name: website-screenshots
           path: e2e/__screenshots__/website-visual/
           retention-days: 14
+
+  # Report-only, except on a PR labelled theme:refactor, which must leave
+  # every light-mode computed colour unchanged. The label is read when the
+  # job runs, so after adding it, re-run the job.
+  style-diff:
+    name: Computed-style diff
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: mcr.microsoft.com/playwright:v1.64.1-noble
+      options: --ipc=host
+    env:
+      PLAYWRIGHT_VERSION: 1.64.1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # The PR's checkout is its merge with the base, so the base build is
+      # the base commit the merge was made with (origin/main on a dispatch).
+      - name: Checkout the base
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.base.sha || 'main' }}
+          path: _base
+
+      - name: Build the site
+        working-directory: apps/website/ferni-website
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build:prod
+
+      - name: Build the base site into _site-base
+        working-directory: _base/apps/website/ferni-website
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build:prod
+          mv _site "$GITHUB_WORKSPACE/apps/website/ferni-website/_site-base"
+
+      - name: Install Playwright
+        run: |
+          npm install --no-audit --no-fund --prefix "$RUNNER_TEMP/pw" "@playwright/test@$PLAYWRIGHT_VERSION"
+          mkdir -p node_modules/@playwright
+          ln -s "$RUNNER_TEMP/pw/node_modules/@playwright/test" node_modules/@playwright/test
+          echo "$RUNNER_TEMP/pw/node_modules/.bin" >> "$GITHUB_PATH"
+
+      # Writes the report and the job summary. A page that can't be read
+      # leaves this step red without failing the job.
+      - name: Compare computed styles with the base
+        continue-on-error: true
+        run: playwright test -c apps/website/ferni-website/playwright.style-diff.config.ts
+
+      - name: Upload the report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: website-style-diff
+          path: apps/website/ferni-website/style-diff-report/
+          retention-days: 14
+
+      - name: Require identical light mode on theme:refactor PRs
+        if: ${{ github.event_name == 'pull_request' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          LABELS_URL: ${{ github.api_url }}/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels
+        run: |
+          node --input-type=module -e '
+            import { existsSync, readFileSync } from "node:fs";
+            const response = await fetch(process.env.LABELS_URL, {
+              headers: { authorization: `Bearer ${process.env.GITHUB_TOKEN}`, accept: "application/vnd.github+json" },
+            });
+            if (!response.ok) throw new Error(`labels: HTTP ${response.status}`);
+            const labels = (await response.json()).map((label) => label.name);
+            if (!labels.includes("theme:refactor")) process.exit(0);
+            const reportPath = "apps/website/ferni-website/style-diff-report/report.json";
+            if (!existsSync(reportPath)) {
+              console.log("::error::theme:refactor PR has no style-diff report; the comparison step failed before writing it. See its log.");
+              process.exit(1);
+            }
+            const report = JSON.parse(readFileSync(reportPath, "utf8"));
+            const light = report.totals.light;
+            const unread = report.pages.unread.length;
+            if (light.differences > 0 || unread > 0) {
+              console.log(`::error::theme:refactor PR changes light mode: ${light.differences} element differences on ${light.pagesWithDifferences} pages, ${unread} pages unread. See the job summary.`);
+              process.exit(1);
+            }
+            console.log("Light mode is identical on every page.");
+          '

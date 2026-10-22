@@ -946,7 +946,7 @@ export async function loadAnalyticsFromFirestore(): Promise<void> {
     const app = admin.apps.length > 0 ? admin.apps[0] : admin.initializeApp();
     if (!app) return;
 
-    const firestore = admin.firestore();
+    const firestore = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
     const doc = await firestore.collection(ANALYTICS_COLLECTION).doc(ANALYTICS_DOC_ID).get();
 
     if (doc.exists) {
@@ -980,7 +980,7 @@ export async function persistAnalyticsToFirestore(): Promise<void> {
     const app = admin.apps.length > 0 ? admin.apps[0] : null;
     if (!app) return;
 
-    const firestore = admin.firestore();
+    const firestore = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
     const globalStats: Record<string, TransitionStats> = {};
     for (const [type, stats] of allStats.entries()) {
       globalStats[type] = stats;

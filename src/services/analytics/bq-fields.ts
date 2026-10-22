@@ -34,7 +34,7 @@ export const BQ_ENUMS = {
   ],
   reason: [
     ...['no-hash-secret', 'no-verified-phone', 'recently-sent', 'sms-off', 'opted-out'],
-    ...['send-failed', 'bad-number', 'quiet-hours'],
+    ...['send-failed', 'bad-number', 'quiet-hours', 'consent-unknown', 'paused'],
     ...['fallback_from_in_app', 'fallback_from_sms', 'fallback_from_voice_call'],
   ],
   // eval_results: what scripts/lib/eval-results-bq.ts maps each eval's results to

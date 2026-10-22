@@ -30,13 +30,9 @@ import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
 
-import { getSessionId } from '../../utils/tool-helpers.js';
+import { NO_GAME_SESSION, gameSessionKey, withBoard } from './game-session-key.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import {
-  broadcastGameEnded,
-  broadcastGameStarted,
-  broadcastGameState,
-} from './games-frontend.js';
+import { broadcastGameEnded, broadcastGameStarted, broadcastGameState } from './games-frontend.js';
 import { gameStateTools } from './game-state-tool.js';
 
 const log = getLogger();
@@ -93,8 +89,8 @@ Use when user says things like:
           execute: async ({ gameType, rounds }, run) => {
             try {
               const personaId = ctx.agentId || 'ferni';
-              const sessionId =
-                getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+              const sessionId = gameSessionKey(run, ctx);
+              if (!sessionId) return NO_GAME_SESSION;
               const gameEngine = getSessionGameEngine(sessionId, personaId);
 
               const config = rounds ? { rounds } : undefined;
@@ -142,8 +138,8 @@ Use when:
           }),
           execute: async ({ answer }, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId =
-              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId = gameSessionKey(run, ctx);
+            if (!sessionId) return NO_GAME_SESSION;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
@@ -198,8 +194,8 @@ Use when user says "hint", "help", "I don't know", or seems stuck.`,
           parameters: z.object({}),
           execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId =
-              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId = gameSessionKey(run, ctx);
+            if (!sessionId) return NO_GAME_SESSION;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
@@ -225,8 +221,8 @@ Use when user says "skip", "pass", "next", or wants to move on.`,
           parameters: z.object({}),
           execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId =
-              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId = gameSessionKey(run, ctx);
+            if (!sessionId) return NO_GAME_SESSION;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
@@ -257,8 +253,8 @@ Use when user says "stop", "quit", "end game", or wants to do something else.`,
           parameters: z.object({}),
           execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId =
-              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId = gameSessionKey(run, ctx);
+            if (!sessionId) return NO_GAME_SESSION;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
 
             if (!gameEngine.isGameActive()) {
@@ -295,8 +291,8 @@ Use when user asks "what's the score?", "what round?", "how am I doing?"`,
           parameters: z.object({}),
           execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId =
-              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId = gameSessionKey(run, ctx);
+            if (!sessionId) return NO_GAME_SESSION;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
             const state = gameEngine.getState();
 
@@ -327,8 +323,8 @@ Use when user asks "how many games have I played?", "what's my best score?"`,
           parameters: z.object({}),
           execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId =
-              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId = gameSessionKey(run, ctx);
+            if (!sessionId) return NO_GAME_SESSION;
             const gameEngine = getSessionGameEngine(sessionId, personaId);
             const history = gameEngine.getHistory();
 
@@ -460,8 +456,8 @@ Use when user says things like:
           execute: async ({ gameType, userGoesFirst, difficulty }, run) => {
             try {
               const personaId = ctx.agentId || 'ferni';
-              const sessionId =
-                getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+              const sessionId = gameSessionKey(run, ctx);
+              if (!sessionId) return NO_GAME_SESSION;
               const textGameEngine = getSessionTextGameEngine(sessionId, personaId);
 
               const config: Record<string, unknown> = {};
@@ -479,7 +475,7 @@ Use when user says things like:
                 unknown
               >);
 
-              return result.message;
+              return withBoard(result);
             } catch (error) {
               log.error({ error, gameType }, '🎲 Failed to start text game');
               return `I couldn't start that game right now. Want to try something else?`;
@@ -511,8 +507,8 @@ Use when:
           }),
           execute: async ({ move }, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId =
-              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId = gameSessionKey(run, ctx);
+            if (!sessionId) return NO_GAME_SESSION;
             const textGameEngine = getSessionTextGameEngine(sessionId, personaId);
 
             if (!textGameEngine.isGameActive()) {
@@ -537,7 +533,7 @@ Use when:
                 await broadcastGameEnded(sessionId, gameType, resultSummary);
               }
 
-              return result.message;
+              return withBoard(result);
             } catch (error) {
               log.error({ error }, '🎲 Failed to make text game move');
               return 'Something went wrong. Try your move again?';
@@ -559,8 +555,8 @@ Use when user asks "what does the board look like?", "where are the pieces?", "s
           parameters: z.object({}),
           execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId =
-              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId = gameSessionKey(run, ctx);
+            if (!sessionId) return NO_GAME_SESSION;
             const textGameEngine = getSessionTextGameEngine(sessionId, personaId);
 
             if (!textGameEngine.isGameActive()) {
@@ -585,8 +581,8 @@ Use when user says "stop", "quit", "I give up", "end game", or wants to do somet
           parameters: z.object({}),
           execute: async (_args, run) => {
             const personaId = ctx.agentId || 'ferni';
-            const sessionId =
-              getSessionId(run) || ctx.sessionId || `fallback-${personaId}-${Date.now()}`;
+            const sessionId = gameSessionKey(run, ctx);
+            if (!sessionId) return NO_GAME_SESSION;
             const textGameEngine = getSessionTextGameEngine(sessionId, personaId);
 
             if (!textGameEngine.isGameActive()) {

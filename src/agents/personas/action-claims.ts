@@ -164,7 +164,17 @@ const NOT_A_CLAIM =
 
 /** Ferni's own life, or an idiom: not an action in this call. */
 const NOT_AN_ACTION =
-  /^(?:and |but |so )?(?:when|after|before|because|since|as|once|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time|summer|winter|spring|fall|autumn)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time|in spirit|before|plenty of times|many times|a few times|so many times|too)\b|\bsend(?:ing)? (?:you )?(?:\w+ ){0,4}(?:hugs?|love|vibes|strength|thoughts|prayers|energy|luck|warmth|kindness|good wishes)\b|\bcall(?:ed|ing)? (?:it|that|this)\b(?! number)|\bcalling (?:you|them|him|her) out\b/;
+  /^(?:and |but |so )?(?:when|after|before|because|since|as|once|the time|back when) (?:i|we)\b|\b(?:yesterday|last (?:night|week|month|year|time|summer|winter|spring|fall|autumn)|ago|used to|back when|the other day|years|growing up|as a kid|that day|that night|this one time|in spirit|before|plenty of times|many times|a few times|so many times|too)\b|\bsend(?:ing)? (?:you )?(?:\w+ ){0,4}(?:hugs?|love|vibes|strength|thoughts|prayers|energy|luck|warmth|kindness|good wishes)\b|\bcall(?:ed|ing)? (?:it|that|this)\b(?! number)|\bcalling (?:you|them|him|her) out\b|\bfor my\b|\b(?:a lot of|lots of|plenty of|tons of|so many|a bunch of|dozens of|hundreds of)\b/;
+
+/**
+ * Before the verb in its clause: a hedge or supposition, so it may not have happened
+ * ("let's say I've booked it"). Only in the clause: "hopefully that works, I've booked it" reports.
+ */
+const HEDGED =
+  /\b(?:if|unless|whether|imagine|suppose|supposing|pretend|let's say|what if|in case|assuming|maybe|perhaps|probably|hopefully|i hope|i wish|by the time)\b/;
+/** Just before the verb: words for someone else to say ("tell them I've booked it", "say: done"). */
+const REPORTED =
+  /\b(?:(?:tell|telling|told|text|texting) (?:her|him|them|everyone|people|your \w+|the \w+)(?: that)?|(?:say|saying|says|said|write|writing)(?: that|\s*:)|something like)\W*$/;
 
 /** A capitalised word inside a clause is a name: read it as "her" (the patterns are lower case). */
 const names = (text: string): string =>
@@ -174,7 +184,8 @@ const names = (text: string): string =>
 const FIGURATIVE =
   /\bin (?:my|your|our) (?:heart|head|memory|mind|imagination|dreams)\b|\bin spirit\b|\binto the universe\b/;
 
-const unquoted = (text: string): string => text.replace(/"[^"]*"|“[^”]*”/g, ' '); // a message's words: never Ferni's claim
+// A message's words: never Ferni's claim. ‘…’ may hold apostrophes (‘I’ve booked it’).
+const unquoted = (text: string): string => text.replace(/"[^"]*"|“[^”]*”|‘.*?’(?![a-z])/gi, ' ');
 const flat = (text: string): string =>
   text
     .toLowerCase()
@@ -231,7 +242,17 @@ export function emergencyRemainder(sentence: string): string {
   return ended.charAt(0).toUpperCase() + ended.slice(1);
 }
 
-/** The kind of action one sentence claims was done or is under way, or null. */
+/**
+ * The kind of action one sentence claims was done or is under way, or null.
+ *
+ * Dev sweep 2026-10-21 (overlap-handoff): asked "What should I do first?",
+ * Jordan's planning reply was read as a booking and "It isn't booked yet,
+ * though. Should I go ahead and book it?" went out in its place. "We're
+ * booking the venue" is Ferni and the caller planning together, so "we" counts
+ * only when the action is done for the caller ("we've booked you a table").
+ * Words after a supposition ("if", "let's say"), a hedge ("maybe") or a cue to
+ * say them ("tell them") are not a report either.
+ */
 export function claimedAction(sentence: string): ActionKind | null {
   const text = normalize(sentence);
   if (FIGURATIVE.test(text)) return null;
@@ -241,10 +262,100 @@ export function claimedAction(sentence: string): ActionKind | null {
     const kind = ACTION_KINDS.find((k) => WHOLE[k].some((re) => re.test(whole)));
     if (kind) return kind;
   }
+  let from = 0;
   for (const raw of text.split(CLAUSES)) {
+    const start = text.indexOf(raw, from);
+    from = start + raw.length;
     const clause = raw.trim();
     if (!clause || NOT_A_CLAIM.test(clause) || NOT_AN_ACTION.test(clause)) continue;
-    const kind = ACTION_KINDS.find((k) => CLAIMS[k].some((re) => re.test(clause)));
+    const before = text.slice(0, start + raw.indexOf(clause));
+    /** A report: Ferni's own words, said as done, by "I" (or "we" doing it for the caller). */
+    const reports = (re: RegExp): boolean => {
+      const m = re.exec(clause);
+      if (!m) return false;
+      const lead = clause.slice(0, m.index);
+      if (HEDGED.test(lead) || REPORTED.test(before + lead)) return false;
+      return !/^we/.test(m[0]) || /\byour?\b/.test(m[0]);
+    };
+    const kind = ACTION_KINDS.find((k) => CLAIMS[k].some(reports));
+    if (kind) return kind;
+  }
+  return null;
+}
+
+/**
+ * A plain past report by Ferni of an action in the caller's world: "I booked it.", "I sent it.",
+ * "I called her.", "I set the reminder.", "I added it to your calendar." (ACTION_CLAIM_PAST).
+ * Plain past is also how Ferni tells his own life, so the guard asks this only when a tool of
+ * the kind was open and none ran (action-claim-guard.ts).
+ */
+const I_DID = '\\bi (?:already |also |just )?';
+const PAST: Record<ActionKind, RegExp[]> = {
+  // Not "called her out", "called him off", "called him a genius".
+  call: [
+    new RegExp(`${I_DID}(?:called|rang|phoned|dialed|dialled) ${DIALED}(?! (?:out|off|an?)\\b)`),
+  ],
+  send: [
+    new RegExp(
+      `${I_DID}(?:sent|texted|messaged|emailed) (?:it|that|this|the (?:text|message|email|note|invite|link)|${WHO})(?! back\\b)`
+    ),
+  ],
+  ride: [new RegExp(`${I_DID}(?:ordered|booked|called|got) you (?:an?|the) ${VEHICLE}`)],
+  schedule: [
+    new RegExp(
+      `${I_DID}(?:booked|scheduled|reserved) (?:it|that|this|you|your \\w+|the (?:\\w+ )?(?:table|appointment|reservation|meeting|room|slot|session))\\b(?! out\\b| to\\b)`
+    ),
+    new RegExp(
+      `${I_DID}(?:added|put) (?:it|that|this|the \\w+) (?:on|to|in|into) your (?:calendar|schedule|diary)\\b`
+    ),
+  ],
+  reminder: [
+    new RegExp(
+      `${I_DID}(?:set|added|created) (?:a|the|your|that|an) (?:\\w+ ){0,2}(?:reminder|timer|alarm)\\b`
+    ),
+  ],
+  save: [new RegExp(`${I_DID}(?:saved|stored|logged|noted) (?:it|that|this|those)\\b`)],
+};
+/** Ferni's own life anywhere in the sentence: "for my sister", "a friend of mine", "once". */
+const OWN_LIFE = /\b(?:my|myself|mine|once|usually|always|sometimes|whenever)\b/;
+/** A dated past: "in 2019", "back in June", "when we went to Paris". */
+const DATED =
+  /\b(?:in|since) (?:19|20)\d\d\b|\bback in\b|\bwhen (?:we|i) (?:went|were|was|lived|moved|visited)\b/;
+/** Taken back at the end: "I called her, but I did not." */
+const DENIED = /\bbut i (?:did not|didn't|have not|haven't|never did)\W*$/;
+/** Someone else's words just before the verb: "you said I called her", "they think I sent it". */
+const THEY_SAY =
+  /\b(?:you|they|she|he|we|people|someone|somebody) (?:said|say|says|think|thinks|thought|told me|claim|claims|claimed|mentioned|heard)(?: that)?\s*$/;
+/** Supposing it happened: "Say I booked it, then what?". */
+const SUPPOSE_PAST = /^(?:(?:so|okay|well) )?say\b|\bwhat if\b/;
+/** A habit in the claim's clause: "I set an alarm every night". */
+const HABIT = /\bevery (?:night|morning|day|week|year|time)\b/;
+
+/** The kind of action a plain past sentence reports Ferni did, or null (ACTION_CLAIM_PAST). */
+export function pastClaim(sentence: string): ActionKind | null {
+  const text = normalize(sentence);
+  if (FIGURATIVE.test(text) || OWN_LIFE.test(text) || NOT_AN_ACTION.test(text)) return null;
+  if (DATED.test(text) || DENIED.test(text)) return null;
+  let from = 0;
+  for (const raw of text.split(CLAUSES)) {
+    const start = text.indexOf(raw, from);
+    from = start + raw.length;
+    const clause = raw.trim();
+    if (!clause || NOT_A_CLAIM.test(clause) || HABIT.test(clause)) continue;
+    const before = text.slice(0, start + raw.indexOf(clause));
+    /** Unlike the claims above, a hedge anywhere before the verb counts: "if I booked it, ...". */
+    const reports = (re: RegExp): boolean => {
+      const m = re.exec(clause);
+      if (!m) return false;
+      const lead = before + clause.slice(0, m.index);
+      return (
+        !HEDGED.test(lead) &&
+        !REPORTED.test(lead) &&
+        !THEY_SAY.test(lead) &&
+        !SUPPOSE_PAST.test(lead)
+      );
+    };
+    const kind = ACTION_KINDS.find((k) => PAST[k].some(reports));
     if (kind) return kind;
   }
   return null;
