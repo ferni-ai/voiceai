@@ -65,6 +65,7 @@ import { commitmentInviteNote } from './commitment-invite.js';
 import { journalAskFor } from './journal-ask.js';
 import { callerTurnsOf, goodbyeNoteOn, happyExitNote, questionPaceNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
+import { callerSetsDepthNote } from './caller-sets-depth.js';
 import { goodNewsNote } from './good-news-bigger.js';
 import { supportHeld } from './turn-candor.js';
 import { regexSignals } from './turn-extras.js';
@@ -203,6 +204,8 @@ export function withTurnReminder(
     inviteFor(chatCtx, session, words, options.shape === false),
     // GOOD_NEWS_BIGGER=on: react, name it, one question about the moment; after the pace note.
     goodNewsNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
+    // CALLER_SETS_DEPTH=on: they played heavy news down; take their lead (caller-sets-depth.ts).
+    callerSetsDepthNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
     options.shape !== false ? (director?.hardRule?.() ?? '') : '',
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"

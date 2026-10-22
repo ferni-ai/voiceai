@@ -43,6 +43,8 @@ const LEGACY_FLAG_MANIFEST = {
   CALLER_ASSERTED_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_RECOGNITION: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // the caller decides how deep heavy news goes: a depth note, no deflection-labelling director notes
+  CALLER_SETS_DEPTH: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: a reply the caller didn't prompt ends on a caller turn, not the SDK's "." (caller-turn.ts)
   CALLER_TURN_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // shadow: log where a reply answers its own question for the caller, cut nothing; on: cut there (caller-voice-guard.ts)
