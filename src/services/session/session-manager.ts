@@ -163,6 +163,7 @@ import {
 
 // Persistence metrics for observability
 import { persistenceMetrics } from '../analytics/persistence-metrics.js';
+import { markCallStageSoon } from '../analytics/call-start-stages.js';
 
 // ============================================================================
 // SESSION STATE
@@ -290,6 +291,7 @@ export async function createSessionServices(
         '✨ Updated existing profile with name from onboarding'
       );
     }
+    markCallStageSoon(sessionId, 'profile_ready');
     return userProfile;
   };
 
@@ -311,7 +313,6 @@ export async function createSessionServices(
 
     // NON-BLOCKING: Background enrichment tasks (fire and forget)
     if (isReturningUser) {
-      // Load intelligence state in background
       // Use setTimeout(0) for compatibility with ESLint no-undef rule for setImmediate
       setTimeout(() => {
         try {
@@ -339,12 +340,10 @@ export async function createSessionServices(
           /* Non-critical */
         });
 
-      // Load cross-persona insights (background)
       loadCrossPersonaInsights(validatedUserId).catch(() => {
         /* Non-critical */
       });
 
-      // Load social graph (background)
       import('../social-graph/index.js')
         .then(async ({ loadGraphFromFirestore }) => loadGraphFromFirestore(validatedUserId))
         .catch(() => {
@@ -2298,8 +2297,8 @@ export async function createSessionServices(
         }
       }
 
-      // Flush unified trust persistence for this user
-      if (validatedUserId) {
+      // Flush unified trust persistence for this user (never a held caller under 18: MINOR_CARE)
+      if (validatedUserId && !memoryHeld(sessionId)) {
         try {
           await onSessionEndUnified(validatedUserId);
         } catch {

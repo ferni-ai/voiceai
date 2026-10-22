@@ -304,10 +304,12 @@ jobs:
       # `--changed` skips it whenever a PR adds or drops an env read; the PR then
       # failed only in the queue. It takes ~4 s and needs no native binding, so a PR
       # always runs it, before the Rust build. The list merges with git's union
-      # driver (.gitattributes), which this test makes safe.
+      # driver (.gitattributes), which this test makes safe. The flag barrel
+      # (src/config/flags/index.generated.ts) is the same shape: its test reads the
+      # flags/ directory as text, and the barrel merges with union too.
       - name: Check the env-name list
         if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
-        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts
         env:
           NODE_ENV: test
 
