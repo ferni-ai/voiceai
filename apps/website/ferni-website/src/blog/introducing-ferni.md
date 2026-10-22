@@ -1,6 +1,6 @@
 ---
-title: 'Introducing Ferni: Your AI Life Coach That Actually Listens'
-excerpt: "Today we're launching Ferni—six AI specialists who work together to help you grow. No app downloads, no complicated interfaces. Just talk."
+title: 'Introducing Ferni: A Friend Who Actually Listens'
+excerpt: "Today we're launching Ferni, a friend you can talk to any hour, with a small team who each bring something different. No complicated interfaces. Just talk."
 author: 'The Ferni Team'
 authorInitials: 'FE'
 authorColor: '#4a6741'
@@ -34,7 +34,7 @@ No commands. No keywords. No learning curve.
 
 Call our number, open the web app, or just start talking. Ferni understands natural conversation—because that's how humans actually communicate.
 
-And here's the thing that changes everything: **Ferni remembers**. Your goals, your preferences, your progress. Every conversation makes your AI team smarter and more helpful.
+And here's the part we care about most: **Ferni remembers**. Your goals, your preferences, your progress. Talk in the app while you're signed in, and every conversation helps the whole team know you a little better.
 
 ## Built on Trust
 
@@ -42,7 +42,7 @@ Your conversations are yours. Always.
 
 - Encrypted in transit and at rest
 - Never used for training
-- Delete anytime with one click
+- Delete your account any time, right in the app ([here's how](/delete-account/))
 
 We're not interested in your data. We're interested in your growth.
 
@@ -50,7 +50,7 @@ We're not interested in your data. We're interested in your growth.
 
 Ferni is free. Really free. Just [open the web app](https://app.ferni.ai) or call **1 (888) 598-3952**.
 
-No sign-up required. No credit card. Just a conversation.
+No credit card. Just a conversation. The phone line works without an account, though each call starts fresh for now. To have Ferni remember you, sign in to the app.
 
 We built this because we believe everyone deserves access to thoughtful guidance. The kind that used to require expensive coaches or just the right friend at the right moment.
 

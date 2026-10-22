@@ -64,6 +64,8 @@ const runs = [];
 // How well the agent heard the scripted caller, and whether it heard itself.
 const stt = { edits: 0, refWords: 0 };
 const echo = { phantomCallerCaptions: 0, selfInterruptions: 0, phantoms: [] };
+// Greetings that asked something, met by a hello, then answered by Ferni himself (B2).
+const ownOpener = { asked: 0, answeredByFerni: 0, replies: [] };
 const scenarioDir = join(dirname(fileURLToPath(import.meta.url)), 'scenarios');
 for (const file of process.argv.slice(2)) {
   const run = JSON.parse(readFileSync(file, 'utf8'));
@@ -76,6 +78,13 @@ for (const file of process.argv.slice(2)) {
     echo.phantomCallerCaptions += checks.echo.phantomCallerCaptions;
     echo.selfInterruptions += checks.echo.selfInterruptions;
     echo.phantoms.push(...checks.echo.phantoms);
+    if (checks.opener) {
+      ownOpener.asked++;
+      if (checks.opener.flagged) {
+        ownOpener.answeredByFerni++;
+        ownOpener.replies.push(`${checks.opener.asked} -> ${checks.opener.reply}`);
+      }
+    }
   }
   for (const r of run.results) if (typeof r.replyDelayMs === 'number') delays.push(r.replyDelayMs);
   for (const r of run.results) if (r.mode) overlaps.push(r);
@@ -193,6 +202,7 @@ const score = {
   // Word error rate of the agent's captions of the caller against the script.
   stt: { ...stt, wer: stt.refWords ? round(stt.edits / stt.refWords, 3) : null },
   echo,
+  ownOpener,
   // Phone runs (run.sh phone): background clips heard over the phone line.
   backgroundReach: runs.some((r) => r.agentRoom?.backgroundReach)
     ? runs.reduce(

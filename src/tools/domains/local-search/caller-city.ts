@@ -23,7 +23,7 @@ import { flagOn } from '../../../config/env-flag.js';
 import { isRequireFixMemoryEnabled } from '../../../config/require-fix-memory-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { nonAccountPrefixOf } from '../../../utils/synthetic-user.js';
-import type { ToolContext } from '../../registry/types.js';
+import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import {
   callerLocation,
   isUnspecifiedLocation,
@@ -56,6 +56,62 @@ export type SaveCityResult =
 export function placesLocationOn(env = process.env): boolean {
   return flagOn('PLACES_LOCATION', env);
 }
+
+/** PLACES_NEEDS_LOCATION: a business search with no known place asks instead of searching. */
+export function placesNeedsLocationOn(env = process.env): boolean {
+  return flagOn('PLACES_NEEDS_LOCATION', env);
+}
+
+/** Business searches that took the model's location as is ("nearby" or none): which calls search. */
+const SEARCHES_WITHOUT_A_PLACE: Record<string, (args: { action?: string }) => boolean> = {
+  findBusiness: () => true, // search, details, phone and call all run a Places text search
+  restaurant: (args) => args.action === 'search',
+};
+
+/**
+ * PLACES_NEEDS_LOCATION: a calendar-domain business search (SEARCHES_WITHOUT_A_PLACE)
+ * resolves the place as the local-search tools do, and with none runs no search and
+ * returns NEED_LOCATION_RESULT so Ferni asks. Any other tool, or the flag off: unchanged.
+ */
+export function askWhereFirst(def: ToolDefinition): ToolDefinition {
+  const applies = SEARCHES_WITHOUT_A_PLACE[def.id];
+  if (!applies) return def;
+  return {
+    ...def,
+    create: (ctx: ToolContext) => {
+      const tool = def.create(ctx) as {
+        execute: (args: { action?: string; location?: string }, opts: unknown) => unknown;
+      };
+      const execute = tool.execute.bind(tool);
+      tool.execute = async (args, opts) => {
+        if (!placesNeedsLocationOn() || !applies(args)) return execute(args, opts);
+        const location = await resolveSearchLocation(args.location, opts, ctx);
+        if (!location) {
+          log.info(
+            { tool: def.id, action: args.action },
+            '📍 No caller location: asking, not searching'
+          );
+          return NEED_LOCATION_RESULT;
+        }
+        return execute({ ...args, location }, opts);
+      };
+      return tool as Tool;
+    },
+  };
+}
+
+/**
+ * What a business search returns when nobody knows where the caller is: no
+ * search ran, so there is no place to name. Live (2026-10-21) a search for
+ * "tacos" with no location came back with a shop somewhere, and Ferni
+ * recommended it as "open right now".
+ */
+export const NEED_LOCATION_RESULT = JSON.stringify({
+  status: 'need_location',
+  instruction:
+    "No search was run: I don't know where the caller is. Don't name or recommend any place. " +
+    'Ask which city or neighborhood to look in, then search again with that location.',
+});
 
 /**
  * Remembering a city needs the caller's yes and a store that persists. Off

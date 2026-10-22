@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { dataOf, loadDoc, type LoadResult } from './load-state.js';
 import { thanksgivingDay } from '../../utils/us-holidays.js';
 
 const log = createLogger({ module: 'superhuman:seasonal-planning-intelligence' });
@@ -297,25 +298,10 @@ const SEASONAL_PATTERNS: SeasonalPattern[] = [
 
 const COLLECTION = 'seasonal_planning';
 
-async function loadSeasonalProfile(userId: string): Promise<SeasonalPlanningProfile | null> {
+async function loadSeasonalProfile(userId: string): Promise<LoadResult<SeasonalPlanningProfile>> {
   const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
-    if (doc.exists) {
-      return doc.data() as SeasonalPlanningProfile;
-    }
-    return null;
-  } catch (error) {
-    log.debug({ error, userId }, 'Failed to load seasonal planning profile');
-    return null;
-  }
+  const ref = db?.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile');
+  return loadDoc<SeasonalPlanningProfile>(ref, log);
 }
 
 async function saveSeasonalProfile(
@@ -352,7 +338,7 @@ export async function getRelevantCulturalDates(
   startDate: string,
   endDate: string
 ): Promise<CulturalDate[]> {
-  const profile = await loadSeasonalProfile(userId);
+  const profile = dataOf(await loadSeasonalProfile(userId));
   const cultures = profile?.culturalBackgrounds || ['US', 'Western'];
 
   const start = new Date(startDate);
@@ -413,7 +399,9 @@ export function getSeasonalPatterns(
  * Update user's cultural backgrounds
  */
 export async function updateCulturalBackgrounds(userId: string, cultures: string[]): Promise<void> {
-  const profile = (await loadSeasonalProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadSeasonalProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
   profile.culturalBackgrounds = cultures;
   await saveSeasonalProfile(userId, profile);
   log.info({ userId, cultures }, 'Updated cultural backgrounds');
@@ -426,7 +414,9 @@ export async function updatePersonalPatterns(
   userId: string,
   patterns: Partial<PersonalSeasonalPattern>
 ): Promise<void> {
-  const profile = (await loadSeasonalProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadSeasonalProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
   profile.personalPatterns = { ...profile.personalPatterns, ...patterns };
   await saveSeasonalProfile(userId, profile);
   log.info({ userId }, 'Updated personal seasonal patterns');
@@ -442,7 +432,9 @@ export async function recordEventOutcome(
   satisfactionScore: number,
   notes?: string
 ): Promise<void> {
-  const profile = (await loadSeasonalProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadSeasonalProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
   const eventDate = new Date(date);
 
   profile.eventHistory.push({
@@ -487,7 +479,7 @@ export async function suggestOptimalTiming(
   preferredMonths?: number[],
   avoidMonths?: number[]
 ): Promise<TimingRecommendation[]> {
-  const profile = await loadSeasonalProfile(userId);
+  const profile = dataOf(await loadSeasonalProfile(userId));
   const personalPatterns = profile?.personalPatterns || createDefaultPersonalPatterns();
 
   const recommendations: TimingRecommendation[] = [];
@@ -611,7 +603,7 @@ export async function checkDateConflicts(
   personalConflicts: string[];
   recommendation: 'clear' | 'caution' | 'avoid';
 }> {
-  const profile = await loadSeasonalProfile(userId);
+  const profile = dataOf(await loadSeasonalProfile(userId));
   const checkDate = new Date(date);
   const month = checkDate.getMonth() + 1;
 

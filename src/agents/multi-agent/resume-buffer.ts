@@ -17,6 +17,10 @@
  * LiveKit's false-interruption timeout drops from 2 s to 1 s
  * (interruption-config.ts), so the reply resumes ~1 s after the noise ends.
  *
+ * A pause that LiveKit never resumes at all, because the caller's end of speech
+ * came before it (a VAD frame left over from their last words), is resumed by
+ * the SDK patch's watchdog (PAUSE_RESUME_WATCHDOG; paused-lead-in.sdk.test.ts).
+ *
  * @module agents/multi-agent/resume-buffer
  */
 import { voice } from '@livekit/agents';
