@@ -11,6 +11,13 @@ import { expect, test, type Page } from '@playwright/test';
 
 import { keepOffProdApi, serveBuiltSite, type BuiltSite } from './built-site-server';
 import { installColourReader, type Rgba } from './computed-colour';
+import {
+  NIGHT,
+  NIGHT_CLASSES,
+  nightClasses,
+  serveNightContent,
+  waitForNight,
+} from './website-night';
 
 const PORT = 8767;
 const SITE = `http://127.0.0.1:${PORT}`;
@@ -146,6 +153,58 @@ async function lowContrastText(page: Page): Promise<LowContrast[]> {
   });
 }
 
+/**
+ * The text check skips gradient backgrounds, and the home page's night
+ * sections are gradients: every stop must stay dark under their light text.
+ */
+async function weakGradients(page: Page): Promise<string[]> {
+  await installColourReader(page);
+  return page.evaluate(() => {
+    const reader = window.ferniColour;
+    if (!reader) throw new Error('colour reader not installed');
+    const lum = ({ r, g, b }: Rgba): number => {
+      const [lr, lg, lb] = [r, g, b].map((v) => {
+        const s = v / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+    };
+    const found: string[] = [];
+    for (const selector of ['.two-am', '.stats-bar', '.memory-demo']) {
+      const el = document.querySelector(selector);
+      if (!el) {
+        found.push(`${selector} missing`);
+        continue;
+      }
+      const style = getComputedStyle(el);
+      const color = reader.read(style.color);
+      const stops = reader.stops(style.backgroundImage);
+      // Fail rather than pass silently if the colours can't be read
+      if (stops.length < 2) {
+        found.push(`${selector} unreadable: ${style.color} / ${style.backgroundImage}`);
+        continue;
+      }
+      const text = lum(color);
+      for (const stop of stops) {
+        // What shows through a see-through stop isn't known here
+        if (stop.a < 1) {
+          found.push(`${selector} has a translucent stop: ${style.backgroundImage}`);
+          continue;
+        }
+        const ratio = (Math.max(text, lum(stop)) + 0.05) / (Math.min(text, lum(stop)) + 0.05);
+        if (ratio < 4.5)
+          found.push(`${selector} stop rgb(${stop.r},${stop.g},${stop.b}) ${ratio.toFixed(2)}:1`);
+      }
+    }
+    return found;
+  });
+}
+
+/** Scroll reveals start hidden; show them so their text is measured. */
+const STILL_CSS =
+  '*{animation:none!important;transition:none!important}' +
+  '.reveal,[data-animate],[class*="fade"]{opacity:1!important;transform:none!important}';
+
 test.describe('ferni.ai in dark mode', () => {
   test.beforeAll(async () => {
     site = await serveBuiltSite(PORT);
@@ -164,63 +223,57 @@ test.describe('ferni.ai in dark mode', () => {
       await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
       const response = await page.goto(`${SITE}${path}`, { waitUntil: 'networkidle' });
       expect(response?.ok()).toBe(true);
-      // Scroll reveals start hidden; show them so their text is measured.
-      await page.addStyleTag({
-        content:
-          '*{animation:none!important;transition:none!important}' +
-          '.reveal,[data-animate],[class*="fade"]{opacity:1!important;transform:none!important}',
-      });
+      await page.addStyleTag({ content: STILL_CSS });
       await settle(page);
       expect(await lowContrastText(page)).toEqual([]);
     });
   }
 
-  // The text check above skips gradient backgrounds, and these night
-  // sections are gradients: every stop must stay dark under their light text.
   test('/ night sections keep a dark gradient', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
     await page.goto(`${SITE}/`, { waitUntil: 'networkidle' });
-    await installColourReader(page);
-    const weak = await page.evaluate(() => {
-      const reader = window.ferniColour;
-      if (!reader) throw new Error('colour reader not installed');
-      const lum = ({ r, g, b }: Rgba): number => {
-        const [lr, lg, lb] = [r, g, b].map((v) => {
-          const s = v / 255;
-          return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
-        });
-        return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
-      };
-      const found: string[] = [];
-      for (const selector of ['.two-am', '.stats-bar', '.memory-demo']) {
-        const el = document.querySelector(selector);
-        if (!el) {
-          found.push(`${selector} missing`);
-          continue;
-        }
-        const style = getComputedStyle(el);
-        const color = reader.read(style.color);
-        const stops = reader.stops(style.backgroundImage);
-        // Fail rather than pass silently if the colours can't be read
-        if (stops.length < 2) {
-          found.push(`${selector} unreadable: ${style.color} / ${style.backgroundImage}`);
-          continue;
-        }
-        const text = lum(color);
-        for (const stop of stops) {
-          // What shows through a see-through stop isn't known here
-          if (stop.a < 1) {
-            found.push(`${selector} has a translucent stop: ${style.backgroundImage}`);
-            continue;
-          }
-          const ratio = (Math.max(text, lum(stop)) + 0.05) / (Math.min(text, lum(stop)) + 0.05);
-          if (ratio < 4.5)
-            found.push(`${selector} stop rgb(${stop.r},${stop.g},${stop.b}) ${ratio.toFixed(2)}:1`);
-        }
-      }
-      return found;
+    expect(await weakGradients(page)).toEqual([]);
+  });
+
+  // At 02:00 the landing API says visualMode: 'dark' and the home page script
+  // turns night on (website-night.ts), on a dark system only. The light
+  // system case is in the screenshots (website-visual.spec.ts); here it is
+  // enough that night stays off there.
+  test.describe('at night', () => {
+    test.use({ timezoneId: 'UTC' });
+
+    test.beforeEach(async ({ context, page }) => {
+      await serveNightContent(context);
+      await page.clock.setFixedTime(NIGHT);
     });
-    expect(weak).toEqual([]);
+
+    async function openAtNight(page: Page, path: string, scheme: 'light' | 'dark') {
+      await page.emulateMedia({ colorScheme: scheme, reducedMotion: 'reduce' });
+      const response = await page.goto(`${SITE}${path}`, { waitUntil: 'networkidle' });
+      expect(response?.ok()).toBe(true);
+      await waitForNight(page);
+    }
+
+    for (const path of ['/', '/story/']) {
+      test(`${path} at night on a dark system has no text under 3:1`, async ({ page }) => {
+        await openAtNight(page, path, 'dark');
+        expect(await nightClasses(page)).toEqual(NIGHT_CLASSES);
+        await page.addStyleTag({ content: STILL_CSS });
+        await settle(page);
+        expect(await lowContrastText(page)).toEqual([]);
+      });
+
+      test(`${path} at night on a light system stays on paper`, async ({ page }) => {
+        await openAtNight(page, path, 'light');
+        expect(await nightClasses(page)).toEqual([]);
+      });
+    }
+
+    test('/ at night on a dark system keeps the night sections dark', async ({ page }) => {
+      await openAtNight(page, '/', 'dark');
+      expect(await nightClasses(page)).toEqual(NIGHT_CLASSES);
+      expect(await weakGradients(page)).toEqual([]);
+    });
   });
 
   // The checks above are only as good as the colour reader, so prove it reads
