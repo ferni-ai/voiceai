@@ -318,3 +318,42 @@ describe('the CLI and the previous night', () => {
     expect(spawnSync('node', [SCORECARD, join(root, '2026-10-22')]).status).toBe(2);
   });
 });
+
+describe('tool choice (offline metric from choice-score.mjs)', () => {
+  const capsT = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+  const at = (toolChoice, prev = null) => scoreNight([], capsT, prev, { toolChoice });
+  const verdict = (card) => card.capabilities['tool-choice'].verdict;
+
+  it('FAILs under the 78% floor, WARNs under 80%, PASSes above', () => {
+    expect(verdict(at({ rate: 0.736, n: 599, verdict: 'FAIL' }))).toBe('FAIL');
+    expect(verdict(at({ rate: 0.79, n: 600, verdict: 'PASS' }))).toBe('WARN');
+    expect(verdict(at({ rate: 0.82, n: 600, verdict: 'PASS' }))).toBe('PASS');
+  });
+
+  it('reads no file or an INVALID run (too many errored rows) as no data, never a PASS', () => {
+    expect(check(at(undefined), 'tool-choice', 'right-or-equivalent')).toMatchObject({
+      verdict: 'WARN',
+      reason: 'no data',
+    });
+    expect(verdict(at({ rate: 0.9, n: 550, verdict: 'INVALID' }))).toBe('WARN');
+  });
+
+  it('flags a drop of more than 2 points night over night as a regression', () => {
+    const prev = { capabilities: at({ rate: 0.85, n: 600, verdict: 'PASS' }).capabilities };
+    expect(at({ rate: 0.82, n: 600, verdict: 'PASS' }, prev).diff.regressions).toContain(
+      'tool-choice.right-or-equivalent: worse by 0.03 (max 0.02)'
+    );
+    expect(at({ rate: 0.84, n: 600, verdict: 'PASS' }, prev).diff.regressions).toEqual([]);
+  });
+
+  it('the CLI scores OUT/tool-choice.json beside the runs', () => {
+    const out = join(mkdtempSync(join(tmpdir(), 'nightly-')), '2026-10-22');
+    cpSync(join(HERE, 'fixtures', '2026-10-21'), out, { recursive: true });
+    writeFileSync(
+      join(out, 'tool-choice.json'),
+      JSON.stringify({ rate: 0.736, n: 599, verdict: 'FAIL' })
+    );
+    const r = spawnSync('node', [SCORECARD, out, '--prev', 'none'], { encoding: 'utf8' });
+    expect(r.stdout).toMatch(/^FAIL {1,}tool-choice$/m);
+  });
+});

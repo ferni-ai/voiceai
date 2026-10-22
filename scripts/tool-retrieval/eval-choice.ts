@@ -2,7 +2,7 @@
  * Tool-choice accuracy: does the production model call the right tool when it
  * gets the tool set a live turn would send?
  *
- * For each spoken test request (out/generated-test.json, never indexed), build
+ * For each spoken test request (fixtures/choice-test-v1.json, never indexed), build
  * the live turn's tool set (core + per-turn retrieval, src/tools/retrieval),
  * send it to the production model with Ferni's character prompt, and record
  * the tool it calls. When it calls findTools, run the lookup and the model's
@@ -18,8 +18,12 @@
  *
  * usage: [TOOL_SET=today|core] npx tsx scripts/tool-retrieval/eval-choice.ts <n> [seed] [label]
  * Writes scripts/tool-retrieval/out/choice-<label>.json and prints a summary.
+ * Score 2+ seeds (the same seeds for both builds) with choice-score.mjs: pooled rate, floor,
+ * paired diff. Its --out file, saved as <night>/tool-choice.json, is the nightly scorecard's
+ * tool-choice capability.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -153,13 +157,18 @@ const genai = new GoogleGenAI({
   location: 'global',
 });
 
+// The frozen, reviewed test set (synthetic requests, no user data): the same 2,375 rows as the
+// out/generated-test.json behind the September runs, in the same order, so seeds draw the same
+// requests. A changed file would silently move the metric, so it is pinned; add a v2 instead.
+const TEST_SET = 'scripts/tool-retrieval/fixtures/choice-test-v1.json';
+const TEST_SET_SHA256 = 'eaab17e8ce0487732e42713824d80f57caffed030785910ea5cf3dc2594d4f8b';
+const testSetText = readFileSync(TEST_SET, 'utf8');
+if (createHash('sha256').update(testSetText).digest('hex') !== TEST_SET_SHA256)
+  throw new Error(`${TEST_SET} changed: add a new version instead of editing it`);
 // Deterministic sample.
-const all = (
-  JSON.parse(readFileSync('scripts/tool-retrieval/out/generated-test.json', 'utf8')) as Array<{
-    query: string;
-    tool: string;
-  }>
-).filter((item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool));
+const all = (JSON.parse(testSetText) as Array<{ query: string; tool: string }>).filter(
+  (item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool)
+);
 let s = seed;
 const rand = (): number => (s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
 const sample = [...all].sort(() => rand() - 0.5).slice(0, n);
@@ -306,6 +315,7 @@ for (let i = 0; i < sample.length; i += CONCURRENCY) {
   process.stderr.write(`\r${rows.length}/${sample.length}`);
 }
 process.stderr.write('\n');
+mkdirSync('scripts/tool-retrieval/out', { recursive: true });
 writeFileSync(`scripts/tool-retrieval/out/choice-${label}.json`, JSON.stringify(rows, null, 1));
 
 const ok = rows.filter((r) => !r.error);
