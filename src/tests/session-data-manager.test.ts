@@ -116,6 +116,26 @@ describe('SessionDataManager', () => {
       expect(mockService.clearUserData).toHaveBeenCalledWith('user-1');
     });
 
+    it('passes options to services only when dropping without saving', async () => {
+      const manager = SessionDataManager.initializeSessionDataManager();
+      const clearUserData = vi.fn();
+      manager.registerService({
+        name: 'TestService',
+        clearUserData,
+        clearAllData: vi.fn(),
+        getStats: vi.fn().mockReturnValue({ users: 0, entries: 0 }),
+      });
+
+      // The cleanup handler always passes { save: !held }; not held must look like today's call.
+      manager.sessionStarted('session-1', 'user-1');
+      await manager.sessionEnded('user-1', { save: true });
+      expect(clearUserData).toHaveBeenLastCalledWith('user-1');
+
+      manager.sessionStarted('session-2', 'user-2');
+      await manager.sessionEnded('user-2', { save: false });
+      expect(clearUserData).toHaveBeenLastCalledWith('user-2', { save: false });
+    });
+
     it('should touch session to update activity time', () => {
       const manager = SessionDataManager.initializeSessionDataManager();
 
