@@ -27,9 +27,9 @@ export interface WrapUpWindow {
   /** The call carried on: nothing may close it now. */
   readonly continued: boolean;
   /** Reopen the call, once: stops listening, then runs onContinue. */
-  reopen(reason: ContinueReason): void;
+  reopen: (reason: ContinueReason) => void;
   /** Stop listening (the room is being closed). */
-  stop(): void;
+  stop: () => void;
 }
 
 export function openWrapUpWindow(opts: {

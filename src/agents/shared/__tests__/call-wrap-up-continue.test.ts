@@ -219,7 +219,10 @@ describe('wrap-up grace window (#2291)', () => {
     const c = await appCall();
     await c.toGraceWindow();
     // A read still in flight when the grace ends: no risk noted yet, so only the hold sees it.
-    void trackCrisisRead(c.id, 'turn', new Promise<{ risk: string }>(() => undefined));
+    const inFlight = new Promise<{ risk: string }>((resolve) => {
+      void resolve; // never settles
+    });
+    void trackCrisisRead(c.id, 'turn', inFlight);
     await c.runTimers();
     expect(c.events).toEqual([
       'conversation_end idle_after_goodbye',
