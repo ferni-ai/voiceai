@@ -216,6 +216,7 @@ class DirectedReply implements ReplyStream {
         comfortLevel: opts.comfortLevel ?? opts.turnContext?.comfortLevel,
         teamVoices: flagOn('TEAM_VOICES', opts.env),
         lightTouch: flagOn('FERNI_LIGHT_TOUCH', opts.env),
+        laughGate: opts.turnContext?.laughGate,
       },
     });
   }
@@ -414,6 +415,8 @@ class DirectedReply implements ReplyStream {
         ...engine.nonverbalCarry(),
       });
     }
+    // LAUGH_CAP: a laugh the Director voiced is one of the call's laughs.
+    if (engine.laughter && this.modes.laughter === 'live') opts.turnContext?.laughGate?.laughed();
     this.recordNonverbals(cancelled);
     if (opts.onPlan) opts.onPlan(summary, engine.plan);
     else log.info(summary, 'Speech director plan');

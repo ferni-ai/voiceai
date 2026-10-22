@@ -13,7 +13,7 @@
  * @module services/landing-intelligence/optimization-agent
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateJSON, generateText } from './gemini-client.js';
@@ -85,7 +85,7 @@ export interface AgentReport {
 export async function collectLandingMetrics(
   period: 'day' | 'week' | 'month' = 'week'
 ): Promise<LandingMetrics> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   const now = new Date();
   const periodMs = {
@@ -402,7 +402,7 @@ Suggested experiments: ${experiments.length}`,
 
 async function persistReport(report: AgentReport): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     await db
       .collection('landing_optimization_reports')
       .doc(report.id)

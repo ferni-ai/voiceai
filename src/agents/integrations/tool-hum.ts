@@ -6,7 +6,7 @@
  * been running for a beat with nobody speaking, he hums quietly; the moment he
  * starts talking, the caller speaks, or the result is in, the hum stops. At
  * most twice a call, never on two tool calls in a row, never when their voice
- * read heavy.
+ * read heavy or what they said lately was (presence-heavy.ts).
  *
  * TOOL_HUM=on turns it on (off until it has been listened to on dev).
  *
@@ -24,6 +24,8 @@
 import { voice, type llm } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
 import { synthHum } from './presence-sounds.js';
+import { stayQuietOn } from '../shared/call-farewell.js';
+import { presenceSilenceIsHeavy } from './presence-heavy.js';
 import { isHeavyMood } from './presence-watcher.js';
 import { voicedHumFor, voicedPresenceEnabled, type VoicedHum } from './voiced-presence.js';
 
@@ -46,6 +48,10 @@ export interface ToolHumDeps {
   stop: () => void;
   /** The caller's voice this turn (userData.voiceEmotion), if read. */
   mood: () => string | undefined;
+  /** What they said lately was heavy, or the call has crisis risk (presence-heavy.ts). */
+  serious?: () => boolean;
+  /** The call has said its goodbyes or is closing (call-farewell.ts). */
+  quiet?: () => boolean;
   setTimer?: (fn: () => void, ms: number) => unknown;
   clearTimer?: (handle: unknown) => void;
 }
@@ -84,7 +90,7 @@ export function createToolHumWatcher(deps: ToolHumDeps) {
     if (timer !== null) return;
     timer = setT(() => {
       timer = null;
-      if (!allowed() || isHeavyMood(deps.mood())) return;
+      if (!allowed() || isHeavyMood(deps.mood()) || deps.serious?.() || deps.quiet?.()) return;
       if (deps.play()) {
         hums++;
         hummedThisRun = true;
@@ -162,6 +168,8 @@ export function startToolHum(
     mood: () =>
       (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
         ?.primary,
+    serious: () => presenceSilenceIsHeavy(session),
+    quiet: () => stayQuietOn(session),
   });
 
   const onSpeech = (ev: voice.SpeechCreatedEvent) => {

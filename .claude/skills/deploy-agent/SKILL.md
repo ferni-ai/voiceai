@@ -44,12 +44,13 @@ live() { G=$(lk agent versions --project $P --config $C 2>/dev/null | awk -F'│
  && cp docker/Dockerfile.agent ./Dockerfile \
  && { lk agent deploy --project $P --config $C -y . > $LOG 2>&1; rm -f Dockerfile .build-sha; } \
  && ! grep -qE "error TS[0-9]{4}|^(#[0-9]+ )?ERROR:|[Bb]uild failed|✘ \[ERROR\]" $LOG \
- && ! grep "unable to deploy agent" $LOG | grep -qv "bufio.Scanner" \
+ && ! { grep "unable to deploy agent" $LOG | grep -v "bufio.Scanner" | grep -q .; } \
  && for i in $(seq 1 16); do live && break; sleep 15; done \
  && live \
  && echo DEPLOYED $(git rev-parse HEAD)
 ```
 - `unable to deploy agent: bufio.Scanner: token too long` at the end is harmless.
+- The check pipes into `grep -q .` instead of `grep -qv`: some greps (ugrep, which Claude Code shells use as `grep`) return 0 for `-qv` on empty input, so a clean deploy read as failed (2026-10-22, both dev and prod).
 - Any other `unable to deploy agent: …` (for example `stream error … INTERNAL_ERROR`)
   means the upload failed, even though `lk` exits 0. LiveKit's log lines aren't proof
   either way: after the harmless bufio message there's no "Completed deployment" line.

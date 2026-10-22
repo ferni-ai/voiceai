@@ -188,11 +188,12 @@ export async function listActiveUsersPage(
   limit: number,
   after: UserCursor | null
 ): Promise<ActiveUser[]> {
-  const { getFirestore, FieldPath } = await import('firebase-admin/firestore');
+  const { FieldPath } = await import('firebase-admin/firestore');
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  let query = getFirestore()
+  let query = getAdminFirestore()
     .collection('bogle_users')
     .where('lastContact', '>=', thirtyDaysAgo.toISOString())
     .orderBy('lastContact')
@@ -209,8 +210,8 @@ export async function listActiveUsersPage(
 /** Cursor persisted in Firestore so a new Cloud Run instance can resume. */
 export function createFirestoreCursorStore(): CursorStore {
   const docRef = async (): Promise<DocumentReference> => {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    return getFirestore().collection(CURSOR_COLLECTION).doc(CURSOR_DOC);
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    return getAdminFirestore().collection(CURSOR_COLLECTION).doc(CURSOR_DOC);
   };
   return {
     async load() {
