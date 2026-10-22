@@ -15,6 +15,7 @@
  */
 
 import { diag } from '../../../services/diagnostic-logger.js';
+import { flagOn } from '../../../config/env-flag.js';
 import type { ContextInjection } from '../types.js';
 import type { UserData } from '../../shared/types.js';
 import { getCachedInjection, setCachedInjection } from './cache.js';
@@ -371,7 +372,8 @@ export async function buildAmbientModeInjections(userId: string): Promise<Contex
  */
 export async function buildHumanTransferInjections(
   userText: string,
-  userId?: string
+  userId?: string,
+  sessionId?: string
 ): Promise<ContextInjection | null> {
   try {
     const { humanTransfer, buildTransferAwarenessContext, logCrisisSignal } =
@@ -380,7 +382,7 @@ export async function buildHumanTransferInjections(
     const signals = humanTransfer.detectCrisisSignals(userText);
 
     if (userId && signals.severity > 0) {
-      logCrisisSignal(userId, signals, userText).catch((err: Error) => {
+      logCrisisSignal(userId, signals, userText, sessionId).catch((err: Error) => {
         diag.debug('Crisis signal logging failed', { error: String(err) });
       });
     }
@@ -418,6 +420,22 @@ export async function buildHumanTransferInjections(
 // Priority: 85
 // ============================================================================
 
+/** How long a turn waits for the crisis check under CALL_START_TRIM. */
+export const CRISIS_READ_BUDGET_MS = 150;
+
+/** `work`'s result, or `fallback` after `ms`; the timer is cleared either way. */
+async function withinBudget<T>(work: Promise<T>, fallback: T, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const budget = new Promise<T>((resolve) => {
+    timer = setTimeout(() => resolve(fallback), ms);
+  });
+  try {
+    return await Promise.race([work, budget]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * Build crisis history context injection for users who had recent crisis.
  */
@@ -427,7 +445,12 @@ export async function buildCrisisHistoryInjection(
   try {
     const { hadRecentCrisis } = await import('../../../services/human-transfer/index.js');
 
-    const { hasCrisis, lastCrisis } = await hadRecentCrisis(userId, 7);
+    // CALL_START_TRIM: a slow read no longer holds the turn; it keeps loading and
+    // the next turn uses it (hadRecentCrisis keeps the answer for a minute).
+    const check = hadRecentCrisis(userId, 7);
+    const { hasCrisis, lastCrisis } = flagOn('CALL_START_TRIM')
+      ? await withinBudget(check, { hasCrisis: false }, CRISIS_READ_BUDGET_MS)
+      : await check;
 
     if (!hasCrisis || !lastCrisis) {
       return null;

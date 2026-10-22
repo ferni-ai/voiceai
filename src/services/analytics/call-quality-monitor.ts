@@ -16,6 +16,8 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import { SlackNotificationService } from '../slack-notifications.js';
 import { recordMetricValue } from '../predictive-alerting.js';
+import { logCallStartStages } from './call-start-stages.js';
+import { emitCallEnd, type CallSummary } from './bq-call-events.js';
 import { gateSmallSamples } from './call-quality-sample.js';
 
 const log = createLogger({ module: 'CallQualityMonitor' });
@@ -34,8 +36,7 @@ export interface CallQualityConfig {
   disconnectRateCritical: number;
   minCallsForRateAlerts: number; // rate and score alerts wait for this many calls
 
-  // Check intervals
-  qualityCheckIntervalMs: number;
+  qualityCheckIntervalMs: number; // how often quality is checked
 
   // Alert cooldown
   alertCooldownMs: number;
@@ -192,7 +193,6 @@ export function recordCallEvent(event: CallEvent): void {
   if (forward) return forward('recordCallEvent', [event]);
   let session = sessions.get(event.callId);
 
-  // Create session if needed
   if (!session) {
     session = {
       callId: event.callId,
@@ -229,6 +229,7 @@ export function recordCallEvent(event: CallEvent): void {
         };
         // Feed to predictive alerting (true first audio only)
         recordMetricValue('first_response_time', session.firstResponseTimeMs);
+        logCallStartStages(session);
       }
       break;
 
@@ -259,6 +260,7 @@ export function recordCallEvent(event: CallEvent): void {
     case 'call_end_natural':
     case 'call_end_disconnect':
     case 'call_end_error':
+      logCallStartStages(session); // a call that never spoke still gets its line
       session.endTime = event.timestamp;
       session.totalDurationMs = session.endTime - session.startTime;
       session.endReason =
@@ -276,14 +278,8 @@ export function recordCallEvent(event: CallEvent): void {
         completedSessions.splice(0, completedSessions.length - MAX_COMPLETED_SESSIONS);
       }
 
-      log.debug(
-        {
-          callId: session.callId,
-          duration: session.totalDurationMs,
-          endReason: session.endReason,
-        },
-        'Call completed'
-      );
+      log.debug({ callId: session.callId, endReason: session.endReason }, 'Call completed');
+      emitCallEnd(session, event.metadata?.summary as CallSummary | undefined);
       break;
   }
 }
@@ -316,6 +312,7 @@ export function markCallStage(callId: string, stage: string, atMs: number = Date
     session_start: session.stages?.session_start ?? 0,
     [stage]: getElapsedStageMs(session, atMs),
   };
+  if (stage === 'tts_first_frame') logCallStartStages(session);
 }
 
 /** Record the moment a user barge-in is detected while the agent is speaking. */
@@ -349,17 +346,17 @@ export function recordBargeInAgentStopped(callId: string, atMs: number = Date.no
 /** Convenience function to end a call */
 export function endCall(
   callId: string,
-  reason: 'natural' | 'disconnect' | 'error' = 'natural'
+  reason: 'natural' | 'disconnect' | 'error' = 'natural',
+  summary?: CallSummary
 ): void {
-  if (forward) return forward('endCall', [callId, reason]);
+  if (forward) return forward('endCall', summary ? [callId, reason, summary] : [callId, reason]);
   const type =
     reason === 'natural'
       ? 'call_end_natural'
       : reason === 'disconnect'
         ? 'call_end_disconnect'
         : 'call_end_error';
-
-  recordCallEvent({ callId, timestamp: Date.now(), type });
+  recordCallEvent({ callId, timestamp: Date.now(), type, metadata: summary && { summary } });
 }
 
 // --- Metrics calculation ---
@@ -404,7 +401,6 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
   const now = Date.now();
   const windowStart = now - windowMs;
 
-  // Get sessions in window
   const windowSessions = completedSessions.filter((s) => s.startTime >= windowStart);
   const activeSessions = Array.from(sessions.values());
 
@@ -477,7 +473,6 @@ export function calculateMetrics(windowMs: number = 60 * 60 * 1000): CallQuality
   const handoffSuccesses = windowSessions.reduce((a, b) => a + b.handoffSuccesses, 0);
   const handoffSuccessRate = handoffAttempts > 0 ? handoffSuccesses / handoffAttempts : 1;
 
-  // Calculate quality score (0-100)
   const qualityScore = calculateQualityScore({
     connectionSuccessRate,
     avgFirstResponseTimeMs,

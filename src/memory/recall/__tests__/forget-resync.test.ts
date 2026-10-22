@@ -1,3 +1,4 @@
+import { FieldValue } from '@google-cloud/firestore';
 import { describe, expect, it, vi } from 'vitest';
 
 const updates: Array<{ path: string; data: Record<string, unknown> }> = [];
@@ -33,7 +34,12 @@ describe('marking facts forgotten', () => {
     expect(updates).toEqual([
       {
         path: 'bogle_users/u1/dynamic_facts/f1',
-        data: { forgottenAt: '2026-01-07T00:00:00Z', syncedToSpanner: false },
+        // Its stored vector goes in the same write (RECALL_VECTOR_INDEX).
+        data: {
+          forgottenAt: '2026-01-07T00:00:00Z',
+          syncedToSpanner: false,
+          embedding: FieldValue.delete(),
+        },
       },
       { path: 'bogle_users/u1/extracted_facts/e1', data: { forgottenAt: '2026-01-07T00:00:00Z' } },
     ]);
@@ -49,6 +55,7 @@ describe('marking facts forgotten', () => {
     expect(updates[0]?.data).toEqual({
       forgottenAt: '2026-01-01T00:00:00Z',
       syncedToSpanner: false,
+      embedding: FieldValue.delete(),
     });
   });
 });

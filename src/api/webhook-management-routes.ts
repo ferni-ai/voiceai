@@ -15,6 +15,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
+import { readCappedText, safeOutboundFetch } from '../utils/outbound-url-guard.js';
 import { handleCorsPreflightIfNeeded, sendJSON, sendError, parseBody } from './helpers.js';
 import { requireAdmin } from './auth-middleware.js';
 import crypto from 'crypto';
@@ -368,7 +369,7 @@ async function deliverWebhook(
     logEntry.attempts = attempt;
 
     try {
-      const response = await fetch(webhook.url, {
+      const response = await safeOutboundFetch(webhook.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -387,7 +388,7 @@ async function deliverWebhook(
         return { success: true, statusCode: response.status };
       }
 
-      logEntry.responseBody = await response.text();
+      logEntry.responseBody = await readCappedText(response, 1000);
 
       // Retry on 5xx errors
       if (response.status >= 500 && attempt < maxRetries) {

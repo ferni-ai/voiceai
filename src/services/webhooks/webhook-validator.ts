@@ -2,13 +2,11 @@
  * Webhook URL Validator
  *
  * Validates and sanitizes webhook URLs for security.
- * Blocks private IPs except for known safe platforms (Home Assistant).
+ * Only public https destinations are accepted (utils/outbound-url-guard).
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { checkOutboundUrl } from '../../utils/outbound-url-guard.js';
 import type { PlatformValidation, UrlValidationResult, WebhookPlatform } from './types.js';
-
-const log = createLogger({ module: 'webhook-validator' });
 
 // ============================================================================
 // PLATFORM DETECTION PATTERNS
@@ -29,7 +27,7 @@ const PLATFORM_PATTERNS: PlatformValidation[] = [
   },
   {
     platform: 'home_assistant',
-    urlPattern: /^https?:\/\/.*\/(api\/webhook|api\/services)\//,
+    urlPattern: /^https:\/\/.*\/(api\/webhook|api\/services)\//,
     description: 'Home Assistant Webhooks',
   },
   {
@@ -40,126 +38,24 @@ const PLATFORM_PATTERNS: PlatformValidation[] = [
 ];
 
 // ============================================================================
-// PRIVATE IP DETECTION
-// ============================================================================
-
-/**
- * Check if hostname is a private/internal IP
- */
-function isPrivateHost(hostname: string): boolean {
-  // Localhost variations
-  if (
-    hostname === 'localhost' ||
-    hostname === '127.0.0.1' ||
-    hostname === '::1' ||
-    hostname.endsWith('.localhost')
-  ) {
-    return true;
-  }
-
-  // Private IP ranges (RFC 1918)
-  const ipv4Match = hostname.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
-  if (ipv4Match) {
-    const [, a, b] = ipv4Match.map(Number);
-
-    // 10.0.0.0 - 10.255.255.255
-    if (a === 10) return true;
-
-    // 172.16.0.0 - 172.31.255.255
-    if (a === 172 && b >= 16 && b <= 31) return true;
-
-    // 192.168.0.0 - 192.168.255.255
-    if (a === 192 && b === 168) return true;
-
-    // Link-local: 169.254.0.0 - 169.254.255.255
-    if (a === 169 && b === 254) return true;
-  }
-
-  // Internal domains
-  if (hostname.endsWith('.local') || hostname.endsWith('.internal') || hostname.endsWith('.lan')) {
-    return true;
-  }
-
-  return false;
-}
-
-/**
- * Check if URL is a Home Assistant instance
- */
-function isHomeAssistant(url: URL): boolean {
-  const pathname = url.pathname.toLowerCase();
-  return (
-    pathname.includes('/api/webhook') ||
-    pathname.includes('/api/services') ||
-    pathname.includes('/api/states')
-  );
-}
-
-// ============================================================================
 // URL VALIDATION
 // ============================================================================
 
 /**
- * Validate a webhook URL
+ * Validate a webhook URL. The server fetches it, so it must be a public https destination
+ * (see utils/outbound-url-guard). Private and LAN addresses are refused outright: the server
+ * runs in the cloud, where a home-network address was never reachable anyway.
  */
-export function validateWebhookUrl(
-  urlString: string,
-  options: { allowPrivateIps?: boolean } = {}
-): UrlValidationResult {
-  // Basic format check
-  if (!urlString || typeof urlString !== 'string') {
-    return { valid: false, error: 'URL is required' };
+export function validateWebhookUrl(urlString: string): UrlValidationResult {
+  const check = checkOutboundUrl(urlString);
+  if (!check.ok) {
+    return { valid: false, error: `Webhook URL not allowed: ${check.reason}` };
   }
 
-  const trimmedUrl = urlString.trim();
-
-  // Parse URL
-  let url: URL;
-  try {
-    url = new URL(trimmedUrl);
-  } catch {
-    return { valid: false, error: 'Invalid URL format' };
-  }
-
-  // Protocol check
-  if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-    return { valid: false, error: 'Only HTTP and HTTPS URLs are allowed' };
-  }
-
-  // Detect platform
-  let detectedPlatform: WebhookPlatform | undefined;
-  for (const pattern of PLATFORM_PATTERNS) {
-    if (pattern.urlPattern.test(trimmedUrl)) {
-      detectedPlatform = pattern.platform;
-      break;
-    }
-  }
-
-  // Private IP check (allow for Home Assistant)
-  const isPrivate = isPrivateHost(url.hostname);
-  if (isPrivate) {
-    // Home Assistant is allowed on local network
-    if (isHomeAssistant(url)) {
-      detectedPlatform = 'home_assistant';
-      log.debug({ url: trimmedUrl }, 'Allowing Home Assistant on local network');
-    } else if (!options.allowPrivateIps) {
-      return {
-        valid: false,
-        error: 'Private/local network URLs are not allowed (except Home Assistant)',
-      };
-    }
-  }
-
-  // HTTPS enforcement for non-local URLs
-  if (!isPrivate && url.protocol !== 'https:') {
-    return {
-      valid: false,
-      error: 'HTTPS is required for public URLs',
-    };
-  }
-
-  // Normalize URL
-  const normalizedUrl = url.toString();
+  const normalizedUrl = check.url.toString();
+  const detectedPlatform = PLATFORM_PATTERNS.find((p) =>
+    p.urlPattern.test(normalizedUrl)
+  )?.platform;
 
   return {
     valid: true,
@@ -171,11 +67,11 @@ export function validateWebhookUrl(
 /**
  * Validate multiple webhook URLs
  */
-export function validateWebhookUrls(
-  urls: string[],
-  options: { allowPrivateIps?: boolean } = {}
-): { valid: boolean; results: UrlValidationResult[] } {
-  const results = urls.map((url) => validateWebhookUrl(url, options));
+export function validateWebhookUrls(urls: string[]): {
+  valid: boolean;
+  results: UrlValidationResult[];
+} {
+  const results = urls.map((url) => validateWebhookUrl(url));
   const valid = results.every((r) => r.valid);
   return { valid, results };
 }
@@ -327,10 +223,7 @@ export interface WebhookValidationResult {
 /**
  * Validate complete webhook input
  */
-export function validateWebhookInput(
-  input: WebhookValidationInput,
-  options: { allowPrivateIps?: boolean } = {}
-): WebhookValidationResult {
+export function validateWebhookInput(input: WebhookValidationInput): WebhookValidationResult {
   const errors: string[] = [];
 
   // Validate name
@@ -340,7 +233,7 @@ export function validateWebhookInput(
   }
 
   // Validate URL
-  const urlResult = validateWebhookUrl(input.url, options);
+  const urlResult = validateWebhookUrl(input.url);
   if (!urlResult.valid) {
     errors.push(urlResult.error!);
   }
@@ -420,7 +313,7 @@ export function getPlatformInstructions(platform: WebhookPlatform): {
           '1. Create an automation in Home Assistant',
           '2. Use "Webhook" as the trigger type',
           '3. Note your webhook ID',
-          '4. URL format: http://YOUR_HA_IP:8123/api/webhook/YOUR_WEBHOOK_ID',
+          '4. URL format: https://YOUR_REMOTE_HA_URL/api/webhook/YOUR_WEBHOOK_ID (reachable over the internet)',
         ],
       };
 

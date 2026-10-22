@@ -16,7 +16,7 @@
   <title>{{seo.title}}</title>
 
   <!-- Favicon -->
-  <link rel="icon" type="image/svg+xml" href="{{favicon}}">
+  <link rel="icon" type="image/svg+xml" href="{{safeUrl favicon}}">
   <meta name="msapplication-TileColor" content="{{brand.primary}}">
 
   <!-- Open Graph / Social -->
@@ -35,10 +35,10 @@
   <style>
     {{#each brand.fonts.display.urls}}
     @font-face {
-      font-family: '{{../brand.fonts.display.family}}';
-      src: url('{{this.url}}') format('woff2');
-      font-weight: {{this.weight}};
-      font-style: {{#if this.style}}{{this.style}}{{else}}normal{{/if}};
+      font-family: '{{cssToken ../brand.fonts.display.family}}';
+      src: url('{{safeUrl this.url}}') format('woff2');
+      font-weight: {{cssToken this.weight}};
+      font-style: {{#if this.style}}{{cssToken this.style}}{{else}}normal{{/if}};
       font-display: swap;
     }
     {{/each}}
@@ -110,8 +110,8 @@
       --space-2xl: 4.236rem;
 
       /* Typography */
-      --font-display: {{#if brand.fonts.display.family}}'{{brand.fonts.display.family}}'{{else}}'Inter'{{/if}}, -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-body: {{#if brand.fonts.body.family}}'{{brand.fonts.body.family}}'{{else}}'Inter'{{/if}}, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-display: {{#if brand.fonts.display.family}}'{{cssToken brand.fonts.display.family}}'{{else}}'Inter'{{/if}}, -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-body: {{#if brand.fonts.body.family}}'{{cssToken brand.fonts.body.family}}'{{else}}'Inter'{{/if}}, -apple-system, BlinkMacSystemFont, sans-serif;
       --font-serif: 'Instrument Serif', Georgia, serif;
 
       /* Type scale */
@@ -1103,13 +1103,6 @@
         font-size: var(--text-2xl);
       }
     }
-
-    /* ========================================================================
-       CUSTOM CSS
-       ======================================================================== */
-    {{#if customCss}}
-    {{{customCss}}}
-    {{/if}}
   </style>
 </head>
 
@@ -1125,7 +1118,7 @@
   <header class="header" id="header">
     <div class="header-content">
       {{#if brand.logoUrl}}
-      <img src="{{brand.logoUrl}}" alt="Logo" height="30">
+      <img src="{{safeUrl brand.logoUrl}}" alt="Logo" height="30">
       {{else}}
       <div style="display:flex;align-items:center;gap:0.5rem;">
         <span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:var(--gradient-orb);color:#fff;font-size:0.7rem;font-weight:700;">{{agent.initials}}</span>
@@ -1258,7 +1251,7 @@
       <div class="footer-links">
         {{#if footer.links}}
         {{#each footer.links}}
-        <a href="{{this.href}}" class="footer-link">{{this.label}}</a>
+        <a href="{{safeUrl this.href}}" class="footer-link">{{this.label}}</a>
         {{/each}}
         {{else}}
         <a href="https://ferni.ai" class="footer-link">About Ferni</a>
@@ -1282,10 +1275,10 @@
       // CONFIG
       // ========================================
       const CONFIG = {
-        tokenServerUrl: '{{deployment.tokenEndpoint}}',
-        livekitUrl: '{{deployment.livekitUrl}}',
-        persona: '{{agent.id}}',
-        personaName: '{{agent.name}}',
+        tokenServerUrl: {{json deployment.tokenEndpoint}},
+        livekitUrl: {{json deployment.livekitUrl}},
+        persona: {{json agent.id}},
+        personaName: {{json agent.name}},
         waveformBars: 9,
       };
 
@@ -1757,11 +1750,5 @@
       console.log('✅ Agent page initialized');
     })();
   </script>
-
-  {{#if customJs}}
-  <script>
-    {{{customJs}}}
-  </script>
-  {{/if}}
 </body>
 </html>

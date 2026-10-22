@@ -16,12 +16,15 @@ import { chmodSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { jobs, running } from './workflow-jobs.js';
 
 const ROOT = join(__dirname, '..', '..', '..');
 const SCRIPT = join(ROOT, 'scripts/ci/deploy-forward-guard.sh');
+const FAST_PATH = join(ROOT, 'scripts/ci/queue-fast-path.sh');
 const FREEZE = join(ROOT, 'scripts/ci/deploy-freeze.sh');
 const CONFIRM = join(ROOT, 'scripts/ci/confirm-rollback-traffic.sh');
 const CHECKS = join(ROOT, 'scripts/ci/required-checks.sh');
+const VERDICT = join(ROOT, 'scripts/ci/queue-verdict.sh');
 
 const REQUIRED_CI = [
   'Lint & Type Check',
@@ -119,6 +122,9 @@ case "$method $path" in
     wf=\${path%/runs*}; wf=\${wf##*/}; q=\${path#*head_sha=}; q=\${q%%&*}
     cat "$QV_DIR/runs-$wf-$q" 2>/dev/null || true ;;
   "GET "*/git/commits/*) git rev-parse "\${path##*/}^{tree}" 2>/dev/null || notfound ;;
+  # Merge-queue verdict: head-<run>, parent-<sha>.
+  "GET "*/actions/runs/*) f="$QV_DIR/head-\${path##*/}"; [ -f "$f" ] && cat "$f" || notfound ;;
+  "GET "*/commits/*) f="$QV_DIR/parent-\${path##*/}"; [ -f "$f" ] && cat "$f" || notfound ;;
   *) echo "unexpected gh $method $path" >&2; exit 2 ;;
 esac
 `;
@@ -191,6 +197,50 @@ function freezeCmd(
   return { status: r.status, out: r.stdout + r.stderr };
 }
 
+/**
+ * Writes a merge-queue CI run (id 101) on `head`, built on `base`, into `d`.
+ * By default every required check passed (an unscoped run). basePushCi adds a
+ * green push CI run on main for the base: 'full' (unscoped) or 'scoped'.
+ */
+function queueRun(
+  d: string,
+  opts: {
+    head?: string;
+    base?: string;
+    ci?: Record<string, string>;
+    build?: string;
+    menu?: string;
+    basePushCi?: 'full' | 'scoped';
+  } = {}
+): string {
+  const head = opts.head ?? sha.c;
+  const base = opts.base ?? sha.b;
+  ciRun(d, '101', opts.ci);
+  writeFileSync(join(d, 'head-101'), `${head}\n`);
+  const other = (wf: string, id: string, job: string, c: string): void => {
+    if (c === 'missing') return;
+    writeFileSync(join(d, `runs-${wf}-${head}`), `${id}\n`);
+    writeFileSync(join(d, `jobs-${id}`), `${c}\t${job}\n`);
+  };
+  other('build.yml', '201', 'Build & Test', opts.build ?? 'success');
+  other('menu-e2e.yml', '301', 'Menu E2E', opts.menu ?? 'success');
+  writeFileSync(join(d, `parent-${head}`), `${base}\n`);
+  if (opts.basePushCi) {
+    writeFileSync(join(d, `runs-ci.yml-${base}`), '401\n');
+    ciRun(d, '401', opts.basePushCi === 'scoped' ? { 'Unit Tests': 'skipped' } : {});
+  }
+  return '101';
+}
+
+function verdict(d: string, run: string, live: string): { status: number | null; out: string } {
+  const r = spawnSync('bash', [VERDICT, run, live], {
+    cwd: repo,
+    encoding: 'utf8',
+    env: baseEnv(d),
+  });
+  return { status: r.status, out: r.stdout + r.stderr };
+}
+
 interface Run {
   status: number | null;
   deploy: string | undefined;
@@ -211,6 +261,8 @@ function guard(opts: {
   /** The triggering push CI run's job overrides; every required job passes by default. */
   ciJobs?: Record<string, string>;
   ciRunId?: string;
+  queueTested?: string;
+  queueRunId?: string;
 }): Run {
   const d = opts.freezeDir ?? freshDir();
   const ciRunId = opts.ciRunId ?? ciRun(d, '501', opts.ciJobs);
@@ -224,6 +276,8 @@ function guard(opts: {
     env: {
       ...baseEnv(d),
       CI_RUN_ID: ciRunId,
+      QUEUE_TESTED: opts.queueTested ?? '',
+      QUEUE_RUN_ID: opts.queueRunId ?? '',
       FAKE_FREEZE_ERROR: opts.freezeError ? '1' : '',
       DEPLOY_SHA: opts.deploy,
       EVENT: opts.event ?? 'workflow_run',
@@ -354,6 +408,243 @@ describe('forward-only deploy guard: manual dispatch', () => {
   });
 });
 
+describe('forward-only deploy guard: merge-queue fast path (push)', () => {
+  const push = { event: 'push' } as const;
+  const fast = (d: string, run: string, live: string, deploy: string): Run =>
+    guard({ ...push, freezeDir: d, queueTested: 'true', queueRunId: run, live, deploy });
+
+  it('an unscoped merge-queue run on this tree deploys right away', () => {
+    const d = freshDir();
+    expect(fast(d, queueRun(d, { base: sha.b }), sha.b, sha.c)).toMatchObject({
+      status: 0,
+      deploy: 'true',
+    });
+  });
+
+  it('a scoped merge-queue run (a required job skipped) does not deploy', () => {
+    const d = freshDir();
+    const r = fast(d, queueRun(d, { ci: { 'Integration Tests (2/3)': 'skipped' } }), sha.b, sha.c);
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toMatch(/Integration Tests \(2\/3\)' was skipped/);
+    expect(r.summary).toMatch(/push CI passes/);
+  });
+
+  it('a queue run on an untested base does not deploy', () => {
+    const d = freshDir();
+    // Built on a, which production doesn't serve (b) and push CI never passed on.
+    const r = fast(d, queueRun(d, { base: sha.a }), sha.b, sha.c);
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toMatch(/never tested/);
+  });
+
+  it('a queue run on a base whose push run was scoped does not deploy', () => {
+    const d = freshDir();
+    const r = fast(d, queueRun(d, { base: sha.a, basePushCi: 'scoped' }), sha.b, sha.c);
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toMatch(/no unscoped green push CI run/);
+  });
+
+  it('an admin merge or direct push (not queue-tested) is a no-op: push CI deploys it', () => {
+    for (const queueTested of ['false', '']) {
+      const r = guard({ ...push, queueTested, live: sha.b, deploy: sha.c });
+      expect(r).toMatchObject({ status: 0, deploy: 'false' });
+      expect(r.summary).toMatch(/merge-queue/);
+    }
+  });
+
+  it('QUEUE_TESTED gates on its own: a run that would count is ignored unless queue-tested found it', () => {
+    const d = freshDir();
+    const run = queueRun(d, { base: sha.b });
+    expect(fast(d, run, sha.b, sha.c).deploy).toBe('true'); // the run itself counts
+    const r = guard({
+      ...push,
+      freezeDir: d,
+      queueTested: 'false',
+      queueRunId: run,
+      live: sha.b,
+      deploy: sha.c,
+    });
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toMatch(/no successful merge-queue run tested this tree/);
+  });
+
+  it("a queue verdict that can't tell (unreadable run) is a no-op, never a deploy", () => {
+    const r = fast(freshDir(), '999', sha.b, sha.c);
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toMatch(/could not check merge-queue run 999/);
+  });
+
+  it("a service's first deploy waits for push CI on the push path", () => {
+    const d = freshDir();
+    const r = guard({
+      ...push,
+      freezeDir: d,
+      queueTested: 'true',
+      queueRunId: queueRun(d, { base: sha.b }),
+      service: 'missing',
+      deploy: sha.c,
+    });
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toMatch(/first deploy waits for push CI/);
+  });
+
+  it('the forward-only check holds on the fast path too', () => {
+    const d = freshDir();
+    const r = fast(d, queueRun(d, { head: sha.b, base: sha.a, basePushCi: 'full' }), sha.c, sha.b);
+    expect(r).toMatchObject({ status: 0, deploy: 'false' });
+    expect(r.summary).toMatch(/backwards/);
+  });
+
+  it('push CI passing later on a fast-pathed head deploys nothing again', () => {
+    expect(guard({ live: sha.c, deploy: sha.c })).toMatchObject({ status: 0, deploy: 'false' });
+  });
+});
+
+describe('queue verdict: may a merge-queue run stand in for full push CI?', () => {
+  it('counts an unscoped run built on the commit production serves', () => {
+    const d = freshDir();
+    const r = verdict(d, queueRun(d, { base: sha.b }), sha.b);
+    expect(r.status).toBe(0);
+    expect(r.out).toMatch(/built on production's/);
+  });
+
+  it('counts a run whose base had an unscoped green push run on main', () => {
+    const d = freshDir();
+    expect(verdict(d, queueRun(d, { base: sha.a, basePushCi: 'full' }), sha.b).status).toBe(0);
+  });
+
+  it('does not count a run whose base push run was scoped', () => {
+    const d = freshDir();
+    const r = verdict(d, queueRun(d, { base: sha.a, basePushCi: 'scoped' }), sha.b);
+    expect(r.status).toBe(3);
+    expect(r.out).toMatch(/never tested/);
+  });
+
+  it.each(REQUIRED_CI)('does not count a run where %s was skipped (scoped)', (job) => {
+    const d = freshDir();
+    const r = verdict(d, queueRun(d, { ci: { [job]: 'skipped' } }), sha.b);
+    expect(r.status).toBe(3);
+    expect(r.out).toContain(`'${job}' was skipped`);
+  });
+
+  it('does not count a run missing a required job', () => {
+    const d = freshDir();
+    expect(verdict(d, queueRun(d, { ci: { 'Security Scan': 'missing' } }), sha.b).out).toMatch(
+      /was missing/
+    );
+  });
+
+  it('requires Build & Test and Menu E2E on the same head', () => {
+    const d1 = freshDir();
+    const b = verdict(d1, queueRun(d1, { build: 'skipped' }), sha.b);
+    expect(b.status).toBe(3);
+    expect(b.out).toMatch(/Build & Test.*build\.yml/);
+    const d2 = freshDir();
+    expect(verdict(d2, queueRun(d2, { menu: 'missing' }), sha.b).out).toMatch(
+      /Menu E2E.*menu-e2e\.yml/
+    );
+  });
+
+  it('does not count a run built on an untested base', () => {
+    const d = freshDir();
+    const r = verdict(d, queueRun(d, { base: sha.a }), sha.b);
+    expect(r.status).toBe(3);
+    expect(r.out).toMatch(/base .* was never tested/);
+  });
+
+  it('cannot tell without a readable run', () => {
+    expect(verdict(freshDir(), '999', sha.b).status).toBe(1);
+    expect(verdict(freshDir(), '', sha.b).status).toBe(1);
+  });
+
+  it.each(['null', '', 'not-a-sha'])("cannot tell when the head's parent reads as %j", (parent) => {
+    const d = freshDir();
+    queueRun(d, { base: sha.b });
+    writeFileSync(join(d, `parent-${sha.c}`), `${parent}\n`);
+    const r = verdict(d, '101', sha.b);
+    expect(r.status).toBe(1);
+    expect(r.out).toMatch(/has no parent SHA/);
+  });
+
+  it('with production unknown (`-`), an untested base is left to the guard (exit 5)', () => {
+    const d1 = freshDir();
+    const r = verdict(d1, queueRun(d1, { base: sha.a }), '-');
+    expect(r.status).toBe(5);
+    expect(r.out).toMatch(/counts only if production serves/);
+    const d2 = freshDir();
+    expect(verdict(d2, queueRun(d2, { base: sha.a, basePushCi: 'full' }), '-').status).toBe(0);
+    const d3 = freshDir();
+    expect(verdict(d3, queueRun(d3, { ci: { 'Unit Tests': 'skipped' } }), '-').status).toBe(3);
+  });
+});
+
+/** Runs scripts/ci/queue-fast-path.sh the way deploy-production's queue-verdict job does. */
+function fastPath(
+  d: string,
+  opts: { queueTested: string; queueRunId: string; pushCi?: boolean }
+): { status: number | null; tested?: string; runId?: string; out: string } {
+  if (opts.pushCi ?? true) writeFileSync(join(d, `runs-ci.yml-${sha.c}`), '601\n');
+  const output = join(dir, `fast-${Math.random().toString(36).slice(2)}`);
+  writeFileSync(output, '');
+  const r = spawnSync('bash', [FAST_PATH], {
+    cwd: repo,
+    encoding: 'utf8',
+    env: {
+      ...baseEnv(d),
+      SHA: sha.c,
+      QUEUE_TESTED: opts.queueTested,
+      QUEUE_RUN_ID: opts.queueRunId,
+      GITHUB_OUTPUT: output,
+      GITHUB_STEP_SUMMARY: '/dev/null',
+    },
+  });
+  const out = readFileSync(output, 'utf8');
+  return {
+    status: r.status,
+    tested: /^tested=(\w+)$/m.exec(out)?.[1],
+    runId: /^run-id=(\d+)$/m.exec(out)?.[1],
+    out: r.stdout + r.stderr,
+  };
+}
+
+describe('queue-verdict job: only a push that may deploy reaches the deploy group', () => {
+  it('a fully tested queue run, with push CI on the commit, takes the fast path', () => {
+    const d = freshDir();
+    const r = fastPath(d, {
+      queueTested: 'true',
+      queueRunId: queueRun(d, { base: sha.a, basePushCi: 'full' }),
+    });
+    expect(r).toMatchObject({ status: 0, tested: 'true', runId: '101' });
+  });
+
+  it("a base with no push run yet is left to the guard, which knows production's commit", () => {
+    const d = freshDir();
+    const r = fastPath(d, { queueTested: 'true', queueRunId: queueRun(d, { base: sha.a }) });
+    expect(r).toMatchObject({ status: 0, tested: 'true' });
+  });
+
+  it('a commit with no push CI run of its own (docs only) never enters the group', () => {
+    const d = freshDir();
+    const run = queueRun(d, { base: sha.a, basePushCi: 'full' });
+    const r = fastPath(d, { queueTested: 'true', queueRunId: run, pushCi: false });
+    expect(r).toMatchObject({ status: 0, tested: 'false' });
+    expect(r.out).toMatch(/no push CI run/);
+  });
+
+  it.each([
+    ['not queue-tested (admin merge, direct push)', 'false', (_d: string) => '101'],
+    ['queue-tested left empty', '', (_d: string) => '101'],
+    ['a scoped queue run', 'true', (d: string) => queueRun(d, { ci: { 'Unit Tests': 'skipped' } })],
+    ['an unreadable queue run', 'true', (_d: string) => '999'],
+  ])('%s stays out of the group', (_name, queueTested, run) => {
+    const d = freshDir();
+    queueRun(d, { base: sha.a, basePushCi: 'full' });
+    const r = fastPath(d, { queueTested, queueRunId: run(d) });
+    expect(r).toMatchObject({ status: 0, tested: 'false' });
+    expect(r.runId).toBeUndefined();
+  });
+});
+
 describe('required checks: a push CI "success" must have run them', () => {
   const skippedSuite = {
     'Lint & Type Check': 'skipped',
@@ -461,12 +752,20 @@ describe('deploy freeze: a rollback holds until someone unfreezes', () => {
     expect(recheck.out).toContain('incident-response rollback');
   });
 
-  it('the merge-queue push path no-ops while frozen too', () => {
+  it('the merge-queue push path no-ops while frozen too, even with an unscoped queue run', () => {
     const f = freshDir();
     freezeCmd(f, ['set', 'rollback']);
-    expect(guard({ freezeDir: f, event: 'push', live: sha.b, deploy: sha.c })).toMatchObject({
-      deploy: 'false',
+    const run = queueRun(f, { base: sha.b });
+    const r = guard({
+      freezeDir: f,
+      event: 'push',
+      queueTested: 'true',
+      queueRunId: run,
+      live: sha.b,
+      deploy: sha.c,
     });
+    expect(r).toMatchObject({ deploy: 'false' });
+    expect(r.summary).toContain('frozen: rollback');
   });
 
   it('a plain manual run no-ops while frozen; allow_older still deploys', () => {
@@ -691,6 +990,67 @@ describe('deploy-production.yml wiring', () => {
     expect(text).toMatch(
       /TARGET: \$\{\{ steps\.rollback\.outputs\.revision \}\}[\s\S]*?confirm-rollback-traffic\.sh "\$TARGET"/
     );
+  });
+
+  const verdictJob = workflow.slice(
+    workflow.indexOf('\n  queue-verdict:'),
+    workflow.indexOf('\n  deploy-ui:')
+  );
+
+  it('a push to main runs the queue-verdict job, and its verdict reaches the guard', () => {
+    expect(workflow).toMatch(/\n {2}push:\n {4}branches: \[main\]\n/);
+    expect(verdictJob).toMatch(
+      /\n {4}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'\n/
+    );
+    expect(verdictJob).toMatch(/uses: \.\/\.github\/actions\/queue-tested/);
+    expect(verdictJob).toMatch(/run: bash scripts\/ci\/queue-fast-path\.sh/);
+    expect(verdictJob).toMatch(/tested: \$\{\{ steps\.verdict\.outputs\.tested \}\}/);
+    expect(job).toMatch(/\n {4}needs: queue-verdict\n/);
+    expect(steps[guardAt]).toMatch(
+      /QUEUE_TESTED: \$\{\{ needs\.queue-verdict\.outputs\.tested \}\}/
+    );
+    expect(steps[guardAt]).toMatch(
+      /QUEUE_RUN_ID: \$\{\{ needs\.queue-verdict\.outputs\.run-id \}\}/
+    );
+  });
+
+  it("a push run that isn't queue-tested never reaches a job in the deploy-production group", () => {
+    // Workflow level: a push run is never in the shared group (it falls to the
+    // per-run noop group), so no job of it inherits the group.
+    const top = /\nconcurrency:\n {2}group: (.*)\n/.exec(workflow)?.[1] ?? '';
+    expect(top).toContain("'deploy-production'");
+    // Only manual runs and push-CI workflow_runs take it; nothing keyed on a push event.
+    expect(top).not.toMatch(/github\.event_name (==|!=) 'push'/);
+    // Job level: the jobs a push can put in the group.
+    const body = workflow.slice(workflow.indexOf('\njobs:\n'));
+    const grouped = jobs('deploy-production.yml')
+      .map((j) => j.id)
+      .filter((id) => {
+        const text = body.slice(body.indexOf(`\n  ${id}:\n`) + 1).split(/\n {2}[\w-]+:\n/)[0];
+        return /\n {4}concurrency:\n {6}group: [^\n]*'deploy-production'/.test(text);
+      });
+    expect(grouped).toEqual(['deploy-ui']);
+    const tested = 'needs.queue-verdict.outputs.tested';
+    for (const id of grouped) {
+      expect(running('deploy-production.yml', 'push', { [tested]: 'true' }).has(id), id).toBe(true);
+      expect(running('deploy-production.yml', 'push', { [tested]: 'false' }).has(id), id).toBe(
+        false
+      );
+      expect(running('deploy-production.yml', 'push', { [tested]: '' }).has(id), id).toBe(false);
+      expect(
+        running('deploy-production.yml', 'push', { 'needs.queue-verdict.result': 'failure' }).has(
+          id
+        ),
+        id
+      ).toBe(false);
+    }
+    // The verdict job itself: no group, no cloud credentials, no install.
+    expect(running('deploy-production.yml', 'push').has('queue-verdict')).toBe(true);
+    expect(verdictJob).not.toMatch(/concurrency:|google-github-actions\/auth|secrets\.|pnpm/);
+  });
+
+  it('merge_group CI runs never deploy', () => {
+    expect(job).not.toMatch(/merge_group/);
   });
 
   it('the triggering push CI run reaches the guard', () => {

@@ -24,6 +24,7 @@
  *
  * @module agents/voice-agent-entry/caller-recognition
  */
+import { setVerifiedOwnerCheck } from '../../utils/minor-care.js';
 import {
   beginReturningCaller,
   returningCallerEnabled,
@@ -198,6 +199,8 @@ export function rememberDispatchIdentity(sessionId: string, source: string, meta
 export function sessionIsVerifiedOwner(sessionId: string): boolean {
   return callerRecognitionFor(sessionId)?.status === 'known' || namedByDispatch.has(sessionId);
 }
+// MINOR_CARE (minor-care.ts, a lower layer) asks this before holding a session's memory.
+setVerifiedOwnerCheck(sessionIsVerifiedOwner);
 
 /** A session known only by its phone number: only conversational tools are open. */
 export function phoneOnlyIdentity(sessionId: string | undefined): boolean {

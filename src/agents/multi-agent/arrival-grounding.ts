@@ -13,6 +13,8 @@
  *   director was given (their quoted words, the hour) is dropped for the plain hello;
  * - the teammate's first line is held out of the call's summary, fact extraction and
  *   conversation thread: it is the teammate speaking, never a record of the caller.
+ * The line names the caller's reason in their words, never re-asks it and never repeats an
+ * earlier arrival on the call: arrival-reason.ts.
  *
  * @module agents/multi-agent/arrival-grounding
  */

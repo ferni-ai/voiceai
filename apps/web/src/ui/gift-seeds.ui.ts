@@ -209,7 +209,7 @@ function renderModalContent(): void {
         <label class="gift-seeds-label">${t('giftSeeds.noteLabel', 'Add a note (optional)')}</label>
         <textarea 
           class="gift-seeds-textarea" 
-          placeholder="${t('giftSeeds.notePlaceholder', 'Thinking of you 💚')}"
+          placeholder="${t('giftSeeds.notePlaceholder', 'Thinking of you')}"
           maxlength="100"
           data-field="message"
         >${message}</textarea>

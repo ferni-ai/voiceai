@@ -9,11 +9,17 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { handleCleanupOrphanedUploads } from '../jobs/cleanup-orphaned-uploads.js';
+import { usePersonFlagLookup } from '../../config/person-flag.js';
+import { flagForUser } from '../../services/platform/cohort-flags.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { sendJson } from './helpers.js';
 import { verifySchedulerRequest } from './scheduler-auth.js';
+import { runScheduledJob } from './job-run-guard.js';
 
 const log = createLogger({ module: 'ScheduledJobs' });
+
+// This server acts for many people: their own cohort flags, never process.env (person-flag.ts).
+usePersonFlagLookup(flagForUser);
 
 /** Every job route below; auth is checked only for these, so unknown paths still 404. */
 export const JOB_PATHS: ReadonlySet<string> = new Set([
@@ -39,6 +45,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/cleanup-orphaned-uploads',
   '/api/jobs/ttl-cleanup',
   '/api/jobs/ttl-backfill',
+  '/api/jobs/bq-erasure',
   '/api/jobs/daily-admin-report',
   '/api/jobs/memory-consolidation',
   '/api/jobs/memory-decay',
@@ -109,7 +116,12 @@ import {
 } from './intelligence-jobs.js';
 
 // Maintenance handlers
-import { handleTTLCleanup, handleTTLBackfill, handleDailyAdminReport } from './maintenance-jobs.js';
+import {
+  handleBqErasure,
+  handleTTLCleanup,
+  handleTTLBackfill,
+  handleDailyAdminReport,
+} from './maintenance-jobs.js';
 
 import { handleDeliverReminders } from './reminder-jobs.js';
 import { handleReplyReportSummaryJob } from '../reply-reports/reply-report-summary.js';
@@ -184,6 +196,17 @@ export async function handleScheduledJobsRoutes(
     return true;
   }
 
+  await runScheduledJob(req, res, path.slice('/api/jobs/'.length), () =>
+    dispatchJob(req, res, path)
+  );
+  return true;
+}
+
+async function dispatchJob(
+  req: IncomingMessage,
+  res: ServerResponse,
+  path: string
+): Promise<boolean> {
   switch (path) {
     case '/api/jobs/process-background-tasks':
       await handleProcessBackgroundTasks(res);
@@ -271,6 +294,10 @@ export async function handleScheduledJobsRoutes(
 
     case '/api/jobs/ttl-backfill':
       await handleTTLBackfill(res);
+      return true;
+
+    case '/api/jobs/bq-erasure':
+      await handleBqErasure(res);
       return true;
 
     case '/api/jobs/daily-admin-report':

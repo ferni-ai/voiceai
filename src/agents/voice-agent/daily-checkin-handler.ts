@@ -16,6 +16,7 @@
 import { log } from '@livekit/agents';
 import { diag } from '../../services/diagnostic-logger.js';
 import { getDefaultModel } from '../../services/model-config.js';
+import { memoryHeld } from '../../utils/minor-care.js';
 
 // ============================================================================
 // TYPES
@@ -620,10 +621,8 @@ export async function processDailyCheckIn(
   ctx: DailyCheckInContext,
   sendDataMessage?: SendDataMessageFn
 ): Promise<boolean> {
-  // Must have a userId to record
-  if (!ctx.userId) {
-    return false;
-  }
+  // A userId to record to, and MINOR_CARE=on: never a held caller under 18 (minor-care.ts)
+  if (!ctx.userId || memoryHeld(ctx.sessionId)) return false;
 
   // Detect if this is a check-in
   const detection = detectDailyCheckIn(transcript, ctx);

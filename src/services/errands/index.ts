@@ -27,4 +27,13 @@ export {
   type ErrandPrefs,
 } from './policy.js';
 export type { StepContext, StepResult } from './draft.js';
-export type { EffectStatus, ErrandStore, NewErrand, OutboxEffect } from './ports.js';
+export type {
+  Claim,
+  EffectLease,
+  EffectOutbox,
+  EffectStatus,
+  ErrandStore,
+  NewErrand,
+  OutboxEffect,
+} from './ports.js';
+export { step, CURRENT_STEP_VERSION } from './step.js';
