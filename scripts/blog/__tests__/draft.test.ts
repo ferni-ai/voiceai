@@ -3,11 +3,20 @@ import matter from 'gray-matter';
 import { describe, expect, it, vi } from 'vitest';
 import { REQUIRED_FIELDS } from '../brand-gate.js';
 import { draftPost, isoWeek, type DraftDeps } from '../draft.js';
+import { existingPosts } from '../existing-posts.js';
 import type { GhRunner } from '../grounding.js';
 import { POST_TYPES } from '../post-types.js';
 
 const root = path.resolve(__dirname, '../../..');
 const TODAY = '2026-10-19';
+/**
+ * The real folders, as of the day before the fixture PRs. A post published
+ * later (a whats-new dated after them) would move the whats-new window past
+ * them and turn every whats-new case into 'nothing-to-draft'.
+ */
+const POSTS_BEFORE = '2026-10-14';
+const postsBeforeFixtures = (folder: string) =>
+  existingPosts(folder).filter((p) => p.date <= POSTS_BEFORE);
 
 // Read the real blog folders as they stood before the fixture PRs merged, so a
 // newly published post can't move whats-new's lookback window past them.
@@ -83,6 +92,7 @@ function deps(model: (prompt: string) => string, gh = fakeGh(), taken: string[] 
     today: TODAY,
     model: { generate },
     writeFile: (file, content) => writes.push({ file, content }),
+    listPosts: postsBeforeFixtures,
     // Never the real folder: a post published on TODAY would rename the draft (#2214).
     fileExists: (file) => taken.includes(path.basename(file)),
   };

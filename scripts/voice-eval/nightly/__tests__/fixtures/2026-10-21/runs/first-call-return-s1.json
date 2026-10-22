@@ -1,0 +1,7 @@
+{
+  "meta": { "scenario": "first-call-return", "label": "s1", "role": "test" },
+  "events": [
+    { "t": 8605, "who": "agent", "text": "cleanings" },
+    { "t": 51676, "who": "agent", "text": "dental Ava" }
+  ]
+}

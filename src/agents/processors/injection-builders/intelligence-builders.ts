@@ -19,6 +19,7 @@ import type {
   PersonaSpecificContextInput,
   PersonaContextBuilder,
 } from './types.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 // ============================================================================
 // PERSONA BUILDER CACHE (lazy-loaded)
@@ -205,7 +206,7 @@ export async function buildPersonaSpecificContextInjections(
   }
 
   const userId = services.userId || 'anonymous';
-  if (userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return [];
   }
 

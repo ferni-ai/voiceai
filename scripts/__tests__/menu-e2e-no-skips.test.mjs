@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { playwrightProblems, verdict, vitestProblems } from '../ci/menu-e2e-no-skips.mjs';
+import {
+  playwrightFlaky,
+  playwrightProblems,
+  verdict,
+  vitestProblems,
+} from '../ci/menu-e2e-no-skips.mjs';
 
 const vitestReport = (...statuses) => ({
   numTotalTests: statuses.length,
@@ -66,15 +71,21 @@ describe('menu gate no-skip guard: playwright', () => {
     ).toEqual([]);
   });
 
-  it('fails a skip, a failure and a flaky retry, naming the project', () => {
+  it('fails a skip and a failure, naming the project', () => {
     const problems = playwrightProblems(
-      playwrightReport(['desktop', 'skipped'], ['mobile', 'unexpected'], ['mobile', 'flaky'])
+      playwrightReport(['desktop', 'skipped'], ['mobile', 'unexpected'])
     );
     expect(problems).toEqual([
       'skipped: [desktop] panel-actions.spec.ts > spec 0',
       'unexpected: [mobile] panel-actions.spec.ts > spec 1',
-      'flaky: [mobile] panel-actions.spec.ts > spec 2',
     ]);
+  });
+
+  it('lets a flaky retry pass the gate but still reports it', () => {
+    const report = playwrightReport(['desktop', 'expected'], ['mobile', 'flaky']);
+    expect(playwrightProblems(report)).toEqual([]);
+    expect(playwrightFlaky(report)).toEqual(['[mobile] panel-actions.spec.ts > spec 1']);
+    expect(playwrightFlaky(playwrightReport(['desktop', 'expected']))).toEqual([]);
   });
 
   it('fails a run with no tests or with a global error', () => {

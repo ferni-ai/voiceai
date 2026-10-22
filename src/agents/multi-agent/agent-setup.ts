@@ -36,6 +36,7 @@ import { capToolsToLimit, getMaxTools, staticCoreToolsEnabled } from '../../conf
 
 // Model provider abstraction - centralizes all model-specific behavior
 import { getModelProvider, isUsingOpenAI } from '../model-provider/index.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 // Get the model provider (singleton)
 const modelProvider = getModelProvider();
@@ -141,7 +142,7 @@ import {
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
-import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
+import { callerHistory, firstTalkNote, rememberCallerHistory } from './greeting-direction.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
@@ -402,9 +403,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
-        userAwareness.push(
-          'This is your first conversation with them - be welcoming but not overwhelming.'
-        );
+        userAwareness.push(firstTalkNote(sessionId)); // or a returning caller's note
       }
 
       // Key relationship facts (if available)
@@ -1608,16 +1607,15 @@ Reference past context when relevant, but don't force it. Let the conversation f
   );
   const agent = new FerniAgent(agentInstructions, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
-    // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
-    // function-calling instructions. This can confuse the model and break tool calls.
-    // The model will greet naturally based on its system prompt.
+    // CRITICAL: skip FerniAgent's built-in greeting. Its generateReply() has no function-calling
+    // instructions, which can break tool calls; the model greets from its system prompt instead.
     skipGreeting: true,
     ...(callSession && { voice: { llm: llmModel, tts } }),
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
 
   // Memory recall, added as the user's words are transcribed (interims too), before the
   // SDK's preemptive generation; memory-recall-hook.ts says why. The name lift rides along.
-  if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
+  if (isMemberIdentity(userId) && memoryRecallMode() && sessionWithEvents.on) {
     const recall = createMemoryRecall({
       userId,
       userName: userData.userName,
@@ -1646,7 +1644,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   // What Ferni understands about the caller from earlier calls (THEORY_OF_MIND=on):
   // added like recall, in the transcript's tick, never waited on (mind-note-hook.ts).
-  if (userId && userId !== 'anonymous' && theoryOfMindMode() && sessionWithEvents.on) {
+  if (isMemberIdentity(userId) && theoryOfMindMode() && sessionWithEvents.on) {
     const mind = attachMindNote(
       sessionWithEvents as Parameters<typeof attachMindNote>[0],
       agent as unknown as RecallAgent,
