@@ -65,6 +65,16 @@ final class AccessibilityAuditTests: XCTestCase {
     /// the screen's edge is the edge's, and is judged scrolled up.
     nonisolated static let edge: CGFloat = 34
 
+    /// The home indicator's inset where it's measured against: 20 pt on iPad
+    /// (a footer there sat 13 pt past an iPhone's 34), 34 on an iPhone that
+    /// has one, none on a home-button iPhone (an SE: a sheet's last footer
+    /// ends at the screen's edge, 667 pt, and the 34 kept it out of view).
+    private func bottomInset(_ app: XCUIApplication) -> CGFloat {
+        if pad { return 20 }
+        let screen = app.windows.firstMatch.frame.size
+        return screen.height / max(screen.width, 1) < 1.9 ? 0 : Self.edge
+    }
+
     /// Contrast under the floor, and clipping across it or the screen's edge.
     nonisolated static func cutByTheFloor(_ type: XCUIAccessibilityAuditType, _ frame: CGRect, floor: CGFloat) -> Bool {
         switch type {
@@ -85,30 +95,64 @@ final class AccessibilityAuditTests: XCTestCase {
     /// unless the text grew to 1.8 times its default height (a fixed or capped
     /// font doesn't). "May be clipped" fails if the audit flags it again in full
     /// view. Never in full view fails. Waved ones are printed and attached.
-    private func proveAtAX5(_ app: XCUIApplication, asked: [Named], name: String) throws {
+    ///
+    /// Each proof starts on a fresh launch, before the AX5 audit's launch: the
+    /// audit's nudges leave a list scrolled, and a list drops the rows it
+    /// scrolled past (on an SE, Help's top rows were gone, and dragging back
+    /// to the top didn't bring them back). A text not there after a scroll
+    /// gets a fresh launch of its own.
+    private func proveAtAX5(launch: () -> XCUIApplication, asked: [Named], name: String) throws {
         var waved: [String] = []
-        let bottom = Self.floor(app).top - Self.edge, top = app.frame.minY + 100
+        var app = launch()
+        var scrolled = false
         for q in asked {
-            let text = app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", q.label)).firstMatch
+            func find() -> XCUIElement {
+                app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", q.label)).firstMatch
+            }
+            var text = find()
+            // Not there after a scroll: it may be above, dropped. Start over.
+            if !text.exists, scrolled {
+                app.terminate()
+                app = launch()
+                scrolled = false
+                text = find()
+            }
+            let bottom = Self.floor(app).top - bottomInset(app), top = app.frame.minY + 100
             func inView() -> Bool { text.exists && text.frame.minY >= top && text.frame.maxY <= bottom + 2 }
-            for _ in 0..<8 where !inView() {
-                // Up until it clears the bottom; down if a scroll carried it past the top.
-                let lift = !text.exists ? 240 : text.frame.minY < top
+            var above = false
+            for _ in 0..<12 where !inView() {
+                // Up until it clears the bottom; down if a scroll carried it past
+                // the top, also once the list has dropped it there (an SE's
+                // Report footer went past and was gone, 2026-10-22).
+                if text.exists { above = text.frame.minY < top }
+                let lift = !text.exists ? (above ? -240 : 240) : above
                     ? -min(top - text.frame.minY + 24, 240) : min(max(text.frame.maxY - bottom + 24, 60), 240)
                 let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
                 start.press(forDuration: 0.05, thenDragTo: start.withOffset(CGVector(dx: 0, dy: -lift)),
                             withVelocity: 300, thenHoldForDuration: 0.3)
+                scrolled = true
                 sleep(1)
             }
+            // Measured before the audit, which can scroll the list itself (an
+            // SE's Report footer was in full view, then gone after it).
+            let shown = inView(), height = text.exists ? text.frame.height : 0
+            let at = text.exists ? "\(text.frame)" : "not on screen"
+            let shot = XCTAttachment(screenshot: app.screenshot())
             var again: [Named] = []
             try app.performAccessibilityAudit(for: [.dynamicType, .textClipped]) { issue in
                 if let element = issue.element, !element.label.isEmpty { again.append(Named(issue, label: element.label)) }
                 return true
             }
-            let verdict = Self.ax5Verdict(asked: q, again: again, inView: inView(), height: text.exists ? text.frame.height : 0)
-            if let failing = verdict.failing { XCTFail("AUDIT [\(name)] \(failing) (at \(text.frame), full view \(top)–\(bottom))") }
+            let verdict = Self.ax5Verdict(asked: q, again: again, inView: shown, height: height)
+            if let failing = verdict.failing {
+                XCTFail("AUDIT [\(name)] \(failing) (at \(at), full view \(top)–\(bottom))")
+                shot.name = "ax5 \(name): \(q.label.prefix(40))"
+                shot.lifetime = .keepAlways
+                add(shot)
+            }
             if let ok = verdict.waved { waved.append("AUDIT-WAVED [\(name)] \(ok)") }
         }
+        app.terminate()
         guard !waved.isEmpty else { return }
         print(waved.joined(separator: "\n"))
         let attachment = XCTAttachment(string: waved.joined(separator: "\n"))
@@ -460,30 +504,35 @@ final class AccessibilityAuditTests: XCTestCase {
     private func auditPlace(_ place: String, scenario: String, size: TextSize, hour: Int? = nil, extra: [String] = [],
                             asking: Bool = false, answering asked: [Named] = [], large: Bool = false,
                             go: (XCUIApplication) -> XCUIElement) throws -> [Named] {
-        let app = XCUIApplication()
-        app.launchArguments = ["-FerniUITest", scenario, "-UIPreferredContentSizeCategoryName", size.rawValue,
-                               "-FerniReduceMotion", "NO", "-FerniReduceTransparency", "NO", "-FerniSounds", "NO"]
-            + (hour.map { ["-FerniHour", String($0)] } ?? []) + extra
-        app.launch()
-        let ready = go(app)
-        XCTAssertTrue(ready.waitForExistence(timeout: 20), "\(place) never appeared")
-        if large {
-            // Up to the large detent by the title bar. At half height the call
-            // shows dimmed above the sheet, and the audit reads its captions as
-            // faint, clipped text with no element (screenshot kept, 2026-10-21).
-            let top = ready.frame.minY
-            for _ in 0..<3 where ready.frame.minY > top - 100 {
-                ready.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
-                    .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.02)))
-                sleep(1)
+        func launch() -> XCUIApplication {
+            let app = XCUIApplication()
+            app.launchArguments = ["-FerniUITest", scenario, "-UIPreferredContentSizeCategoryName", size.rawValue,
+                                   "-FerniReduceMotion", "NO", "-FerniReduceTransparency", "NO", "-FerniSounds", "NO"]
+                + (hour.map { ["-FerniHour", String($0)] } ?? []) + extra
+            app.launch()
+            let ready = go(app)
+            XCTAssertTrue(ready.waitForExistence(timeout: 20), "\(place) never appeared")
+            if large {
+                // Up to the large detent by the title bar. At half height the call
+                // shows dimmed above the sheet, and the audit reads its captions as
+                // faint, clipped text with no element (screenshot kept, 2026-10-21).
+                let top = ready.frame.minY
+                for _ in 0..<3 where ready.frame.minY > top - 100 {
+                    ready.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+                        .press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.02)))
+                    sleep(1)
+                }
+                XCTAssertLessThan(ready.frame.minY, top - 100, "\(place): the sheet went up to its large detent")
             }
-            XCTAssertLessThan(ready.frame.minY, top - 100, "\(place): the sheet went up to its large detent")
+            sleep(1)
+            return app
         }
-        sleep(1)
         let name = "\(place) \(size)" + (hour.map { " \($0)h" } ?? "")
             + (UIDevice.current.userInterfaceIdiom == .pad ? " ipad" : "")
+        // The answers first, on launches of their own (see proveAtAX5).
+        if !asked.isEmpty { try proveAtAX5(launch: launch, asked: asked, name: name) }
+        let app = launch()
         let found = try XCTContext.runActivity(named: name) { _ in try auditTwice(app, name: name, asking: asking) }
-        if !asked.isEmpty { try proveAtAX5(app, asked: asked, name: name) }
         app.terminate()
         return found
     }
