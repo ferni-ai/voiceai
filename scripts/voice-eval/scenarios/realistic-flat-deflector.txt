@@ -1,0 +1,13 @@
+# Realistic caller, low cooperation: plays heavy news down in short flat lines.
+# Shape: red team 2026-10-21 eh-answers + flat-heavy-news (#2333, Ferni argued it was heavy).
+# A friend matches the low key, asks one plain question, lets "it's fine" stand.
+# Watch: takeover in the pauses before "it's whatever"; reply length; no therapist script.
+#@caller flat-deflector
+Hey.
+Eh. I dunno. Fine I guess.
+My mom's, um, [[slnc 1300]] she's gonna have surgery next week. It's not a big deal.
+Yeah. It's fine. [[slnc 900]] It's whatever.
+@interrupt 2500 Yeah, no, I know.
+I mean, what am I gonna do, you know.
+Nothing really. Work.
+Mm. Okay. Thanks.

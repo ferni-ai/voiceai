@@ -2,7 +2,15 @@
 # Run one scripted conversation against a LiveKit Cloud agent and score it.
 #
 # usage: scripts/voice-eval/run.sh [--persona <id>] [--echo] [--echo-gain-db N] [--echo-delay-ms N]
-#          [--echo-noise-db N] <dev|prod|local|phone> <scenario> [label] [user_id]
+#          [--echo-noise-db N] [--realistic] <dev|prod|local|phone> <scenario> [label] [user_id]
+#   --realistic: the caller talks like a person (caller-realism.mjs): ums, restarts, a varied
+#             rate, 400-1500 ms pauses mid-thought, in a Cartesia voice unless CALLER_VOICE is set.
+#             CALLER_REALISM=<persona> picks one from caller-personas.json (1 = everyday); a
+#             scenario's "#@caller <persona>" line turns it on for that scenario. Writes
+#             <scenario>-<label>.realism.json (realism-metrics.mjs: takeover, false-end, gap,
+#             barge-in stop). VOICE_EVAL_HUMAN_CLIPS=<dir> plays recorded takes from
+#             <dir>/manifest.json instead of TTS for the turns it lists (never call audio).
+#             EVAL_RENDER_ONLY=1 renders the caller's lines, prints their dir, and makes no call.
 #   --echo*:  speakerphone echo: the agent's own audio mixed into the caller's mic
 #             (defaults -18 dB, 120 ms, no noise; any --echo-* turns it on; env
 #             EVAL_ECHO=1 / EVAL_ECHO_*). See docs/testing/VOICE-EVAL-ECHO.md.
@@ -71,9 +79,9 @@
 set -euo pipefail
 HERE=${0:A:h}
 ROOT=${HERE:h:h}
-persona_opt=(); echo_on=(); echo_gain=(); echo_delay=(); echo_noise=()
+persona_opt=(); echo_on=(); echo_gain=(); echo_delay=(); echo_noise=(); realistic_on=()
 zparseopts -D -E -- -persona:=persona_opt -echo=echo_on -echo-gain-db:=echo_gain \
-  -echo-delay-ms:=echo_delay -echo-noise-db:=echo_noise
+  -echo-delay-ms:=echo_delay -echo-noise-db:=echo_noise -realistic=realistic_on
 persona=${persona_opt[2]:-${EVAL_PERSONA:-}}
 (( ${#echo_on} )) && export EVAL_ECHO=1
 (( ${#echo_gain} )) && export EVAL_ECHO_GAIN_DB=${echo_gain[-1]}
@@ -97,6 +105,18 @@ if [[ -n $persona && ! -f $ROOT/src/personas/bundles/$persona/persona.manifest.j
   print -u2 "run.sh: no persona bundle $ROOT/src/personas/bundles/$persona"
   exit 2
 fi
+realism=${CALLER_REALISM:-}
+(( ${#realistic_on} )) && realism=${realism:-everyday}
+[[ $realism == 1 ]] && realism=everyday
+realism_of() { print -r -- ${realism:-$(sed -n 's/^#@caller[[:space:]]*//p' $HERE/scenarios/$1.txt | head -1)}; }
+real_voice=
+for s in $scenario $seed; do
+  [[ -z $(realism_of $s) ]] || real_voice=$(node $HERE/caller-realism.mjs check $(realism_of $s)) || exit 2
+done
+if [[ -n ${VOICE_EVAL_HUMAN_CLIPS:-} && ! -f $VOICE_EVAL_HUMAN_CLIPS/manifest.json ]]; then
+  print -u2 "run.sh: no $VOICE_EVAL_HUMAN_CLIPS/manifest.json"
+  exit 2
+fi
 if [[ $env == phone && -n $persona ]]; then
   print -u2 "run.sh: --persona needs job metadata; phone calls always reach Ferni"
   exit 2
@@ -114,7 +134,8 @@ else
 fi
 firestore_db=$(node $HERE/eval-database.mjs $env)
 out=$HERE/out
-caller=${CALLER_VOICE:-say}
+caller=${CALLER_VOICE:-${real_voice:+cartesia:$real_voice}}
+caller=${caller:-say}
 if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} && -z ${EVAL_DRY_RUN:-} ]]; then
   export CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret=cartesia-api-key --project=johnb-2025 2>/dev/null)
 fi
@@ -124,7 +145,7 @@ fi
 # outbound call (eval-dispatch.ts).
 # Unsigned, every call is a new anonymous caller and EVAL_SEED proves nothing.
 # EVAL_DISPATCH_SECRET skips the lookup. The secret is never printed.
-if [[ $env != phone && -z ${EVAL_DRY_RUN:-} && -z ${EVAL_DISPATCH_SECRET:-} ]]; then
+if [[ $env != phone && -z ${EVAL_DRY_RUN:-}${EVAL_RENDER_ONLY:-} && -z ${EVAL_DISPATCH_SECRET:-} ]]; then
   dsecret=eval-dispatch-secret
   export EVAL_DISPATCH_SECRET=$(gcloud secrets versions access latest --secret=$dsecret --project=johnb-2025 2>/dev/null || true)
   if [[ -z $EVAL_DISPATCH_SECRET ]]; then
@@ -161,14 +182,14 @@ job_meta() {
 }
 
 if [[ -n ${EVAL_DRY_RUN:-} ]]; then
-  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"database\":\"$firestore_db\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"echo\":$echo_cfg,\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
+  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"database\":\"$firestore_db\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"realism\":\"$(realism_of $scenario)\",\"caller\":\"$caller\",\"echo\":$echo_cfg,\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
   exit 0
 fi
 
 # Writes $out/audio/<scenario>/turns.list: one PCM per scripted line.
 prepare_turns() {
-  local sc=$1 i=0 line mode at rest pcm
-  local adir=$out/audio/$sc${${caller:#say}:+/${caller//:/-}}
+  local sc=$1 i=0 line mode at rest pcm clip rp=$(realism_of $1) engine=${${caller%%:*}:#say}
+  local adir=$out/audio/$sc${${caller:#say}:+/${caller//:/-}}${rp:+/real-$rp}${VOICE_EVAL_HUMAN_CLIPS:+/human}
   mkdir -p $adir
   grep -v '^#' $HERE/scenarios/$sc.txt | grep -v '^[[:space:]]*$' | while IFS= read -r line; do
     i=$((i+1))
@@ -191,7 +212,13 @@ prepare_turns() {
       print -r -- "$adir/t$i.json::data::$at"
       continue
     fi
-    if [[ ! -s $pcm || $HERE/scenarios/$sc.txt -nt $pcm ]]; then
+    clip=
+    [[ -z ${VOICE_EVAL_HUMAN_CLIPS:-} ]] || clip=$(node $HERE/caller-realism.mjs clip $sc $i) || exit 2
+    if [[ -n $clip ]]; then
+      ffmpeg -loglevel error -y -i $clip -ac 1 -ar 48000 -f s16le $pcm
+    elif [[ ! -s $pcm || $HERE/scenarios/$sc.txt -nt $pcm || ( -n $rp && ( $HERE/caller-personas.json -nt $pcm || $HERE/caller-realism.mjs -nt $pcm ) ) ]]; then
+      # Seeded by scenario, turn and persona: a rerun renders the same line.
+      [[ -z $rp || $mode != turn ]] || line=$(node $HERE/caller-realism.mjs line $rp "$sc:$i:$rp" ${engine:-say} "$line")
       if [[ $caller == cartesia:* ]]; then
         node $HERE/caller-tts.mjs ${caller#cartesia:} $pcm "$line"
       else
@@ -203,6 +230,12 @@ prepare_turns() {
   done > $adir/turns.list
   print -r -- $adir
 }
+
+# EVAL_RENDER_ONLY=1: render the caller's lines, print the audio dir, and stop: no call.
+if [[ -n ${EVAL_RENDER_ONLY:-} ]]; then
+  prepare_turns $scenario
+  exit 0
+fi
 
 # One call as $uid: converse_call <scenario> <out.json> <role>
 converse_call() {
@@ -216,7 +249,7 @@ converse_call() {
     --agent $agent --job-metadata "$meta" --valid-for 20m 2>/dev/null \
     | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
   print -u2 "voice-eval: $role $sc as $uid in $room"
-  (cd $ROOT && VOICE_EVAL_META="{\"uid\":\"$uid\",\"env\":\"$env\",\"scenario\":\"$sc\",\"label\":\"$label\",\"room\":\"$room\",\"role\":\"$role\",\"seed\":\"$seed\",\"persona\":\"$persona\"}" \
+  (cd $ROOT && VOICE_EVAL_META="{\"uid\":\"$uid\",\"env\":\"$env\",\"scenario\":\"$sc\",\"label\":\"$label\",\"room\":\"$room\",\"role\":\"$role\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"realism\":\"$(realism_of $sc)\",\"audio\":\"$adir\"}" \
     node $HERE/converse.mjs $url "$tok" $file $turns)
 }
 
@@ -308,4 +341,7 @@ if [[ -n $seed ]]; then
 fi
 converse_call $scenario $json test
 node $HERE/score.mjs $json | tee ${json:r}.score.json
+if [[ -n $(realism_of $scenario) || -n ${VOICE_EVAL_HUMAN_CLIPS:-} ]]; then
+  node $HERE/realism-metrics.mjs $json > ${json:r}.realism.json
+fi
 node $HERE/mix.mjs $json >&2

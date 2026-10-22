@@ -1,0 +1,12 @@
+# Realistic caller, low cooperation: talks over Ferni, steps away, changes the subject.
+# Shape: call review 2026-10-22 (#2422): Maya repeated replies the caller had cut off.
+# "@interrupt <ms>" is spoken that long after Ferni starts his reply (converse.mjs).
+# Watch: bargeInStopMs; whether a cut-off reply is repeated or the new topic is taken.
+#@caller walk-away
+Hey, so I'm trying to figure out what to cook for six people on Saturday. Give me a few ideas and how hard each one is.
+@interrupt 1800 Oh wait, sorry, one of them's vegetarian.
+Okay. Walk me through the first one, start to finish.
+Oh, hang on, the dog's at the door. [[slnc 1500]] Okay, sorry. Where were we?
+Actually, never mind dinner. Did you see it's supposed to snow this weekend?
+@interrupt 1200 Eh, doesn't matter.
+Yeah. Okay, I gotta go. Later.
