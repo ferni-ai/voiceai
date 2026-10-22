@@ -178,14 +178,19 @@ jobs:
           LABELS_URL: ${{ github.api_url }}/repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/labels
         run: |
           node --input-type=module -e '
-            import { readFileSync } from "node:fs";
+            import { existsSync, readFileSync } from "node:fs";
             const response = await fetch(process.env.LABELS_URL, {
               headers: { authorization: `Bearer ${process.env.GITHUB_TOKEN}`, accept: "application/vnd.github+json" },
             });
             if (!response.ok) throw new Error(`labels: HTTP ${response.status}`);
             const labels = (await response.json()).map((label) => label.name);
             if (!labels.includes("theme:refactor")) process.exit(0);
-            const report = JSON.parse(readFileSync("apps/website/ferni-website/style-diff-report/report.json", "utf8"));
+            const reportPath = "apps/website/ferni-website/style-diff-report/report.json";
+            if (!existsSync(reportPath)) {
+              console.log("::error::theme:refactor PR has no style-diff report; the comparison step failed before writing it. See its log.");
+              process.exit(1);
+            }
+            const report = JSON.parse(readFileSync(reportPath, "utf8"));
             const light = report.totals.light;
             const unread = report.pages.unread.length;
             if (light.differences > 0 || unread > 0) {
