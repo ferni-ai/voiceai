@@ -14,6 +14,7 @@ import { purgeMusicLearning } from '../../audio/music-learning-persistence.js';
 import { purgeGameMemory } from '../../services/games/game-store.js';
 import { purgeUnifiedUser } from '../../services/trust-systems/unified-persistence.js';
 import { forgetLoadedUser } from '../../intelligence/predictive/persistence.js';
+import { purgeDeepUnderstandingUser } from '../../intelligence/deep-understanding/forget.js';
 import { getEngagementStore } from '../../services/engagement/engagement-store.js';
 import { clearUserThinking } from '../../services/trust-systems/between-session-thinking.js';
 import { clearAllUserTextures } from '../../services/trust-systems/conversation-texture.js';
@@ -58,6 +59,7 @@ export function purgeHeldUser(userId: string): void {
     ['curiosity memory', clearUserMentions],
     ['persona growth', clearAllUserGrowth],
     ['conversation texture', clearAllUserTextures],
+    ['deep understanding (ten systems)', purgeDeepUnderstandingUser],
     ['engagement profile cache', (u) => void forgetEngagement(u)],
   ];
   for (const [name, purge] of purges) {

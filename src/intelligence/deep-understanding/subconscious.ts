@@ -696,9 +696,7 @@ export function formatSubconsciousForPrompt(
   return lines.length > 0 ? lines.join('\n') : null;
 }
 
-/**
- * Get summary of subconscious profile
- */
+/** Get summary of subconscious profile */
 export function getSubconsciousSummary(userId: string): string | null {
   const profile = getSubconsciousProfile(userId);
 
@@ -735,9 +733,7 @@ export function getSubconsciousSummary(userId: string): string | null {
 // IMPORT/EXPORT (for persistence)
 // ============================================================================
 
-/**
- * Import a subconscious profile into memory (for persistence)
- */
+/** Import a subconscious profile into memory (for persistence) */
 export function importSubconsciousProfile(profile: SubconsciousProfile): void {
   profiles.set(profile.userId, profile);
 }
@@ -746,11 +742,14 @@ export function importSubconsciousProfile(profile: SubconsciousProfile): void {
 // RESET (for testing)
 // ============================================================================
 
-/**
- * Reset all subconscious goals state (for testing)
- */
+/** Reset all subconscious goals state (for testing) */
 export function resetSubconsciousGoals(): void {
   profiles.clear();
+}
+
+/** MINOR_CARE purge: this user's state, so nothing a held call taught it is written later */
+export function forgetSubconsciousUser(userId: string): void {
+  profiles.delete(userId);
 }
 
 // ============================================================================

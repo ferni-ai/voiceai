@@ -742,9 +742,7 @@ function updateFlowProfile(
 // PROMPT FORMATTING
 // ============================================================================
 
-/**
- * Format flow analysis for prompt injection
- */
+/** Format flow analysis for prompt injection */
 export function formatFlowForPrompt(analysis: FlowAnalysis): string {
   const lines = ['[CONVERSATIONAL FLOW]'];
 
@@ -782,9 +780,7 @@ export function formatFlowForPrompt(analysis: FlowAnalysis): string {
 // IMPORT/EXPORT (for persistence)
 // ============================================================================
 
-/**
- * Import a flow profile into memory (for persistence)
- */
+/** Import a flow profile into memory (for persistence) */
 export function importFlowProfile(profile: FlowProfile): void {
   userProfiles.set(profile.userId, profile);
 }
@@ -793,12 +789,15 @@ export function importFlowProfile(profile: FlowProfile): void {
 // RESET (for testing)
 // ============================================================================
 
-/**
- * Reset all conversational flow state (for testing)
- */
+/** Reset all conversational flow state (for testing) */
 export function resetConversationalFlow(): void {
   userProfiles.clear();
   sessionStates.clear();
+}
+
+/** MINOR_CARE purge: this user's state, so nothing a held call taught it is written later */
+export function forgetFlowUser(userId: string): void {
+  userProfiles.delete(userId);
 }
 
 // ============================================================================

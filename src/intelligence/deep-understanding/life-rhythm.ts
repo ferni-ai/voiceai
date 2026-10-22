@@ -627,9 +627,7 @@ export function addAnniversary(userId: string, anniversary: AnniversaryDate): vo
   }
 }
 
-/**
- * Format prediction for prompt injection
- */
+/** Format prediction for prompt injection */
 export function formatPredictionForPrompt(prediction: RhythmPrediction): string {
   const lines = ['[LIFE RHYTHM AWARENESS]'];
 
@@ -654,9 +652,7 @@ export function formatPredictionForPrompt(prediction: RhythmPrediction): string 
 // IMPORT/EXPORT (for persistence)
 // ============================================================================
 
-/**
- * Import a life rhythm profile into memory (for persistence)
- */
+/** Import a life rhythm profile into memory (for persistence) */
 export function importLifeRhythmProfile(profile: LifeRhythmProfile): void {
   userProfiles.set(profile.userId, profile);
 }
@@ -665,11 +661,14 @@ export function importLifeRhythmProfile(profile: LifeRhythmProfile): void {
 // RESET (for testing)
 // ============================================================================
 
-/**
- * Reset all life rhythm prediction state (for testing)
- */
+/** Reset all life rhythm prediction state (for testing) */
 export function resetLifeRhythmPrediction(): void {
   userProfiles.clear();
+}
+
+/** MINOR_CARE purge: this user's state, so nothing a held call taught it is written later */
+export function forgetLifeRhythmUser(userId: string): void {
+  userProfiles.delete(userId);
 }
 
 // ============================================================================
