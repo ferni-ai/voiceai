@@ -16,8 +16,12 @@
  * Except when Ferni asked who it is or whether they're there ("hey, who's this?",
  * caller-recognition.ts): then saying who it is IS the answer.
  *
+ * onlyPleasantries: the stricter reading for the caller's first words after Ferni's
+ * opener. They are a non-answer only when nothing is left once greetings, saying who
+ * it is and pleasantries ("pretty good", "how are you") are taken out.
+ *
  * sharedWords: what two lines have in common once names and small talk are set
- * aside, for "do the caller's words touch Ferni's question at all?".
+ * aside (greeting-claim.ts).
  *
  * @module agents/personas/caller-greeting
  */
@@ -41,11 +45,6 @@ const NOT_A_NAME = new Set(
 /** Ferni asked who it is, their name, or whether they're there: "it's me" answers that. */
 const ASKS_WHO_OR_IF_THERE =
   /\bwho(?:'s| is| am i| are you)\b|\bis (?:that|this|it) you\b|\b(?:are )?you (?:back|there|still there|here)\b|\bwhat(?:'s| is) your name\b|\bwhat should i call you\b/i;
-
-/** Ferni's question asks who it is, their name, or whether they're there. */
-export function asksWho(question: string): boolean {
-  return ASKS_WHO_OR_IF_THERE.test(question);
-}
 
 const PERSONA_NAMES = Object.values(DISPLAY_NAMES).map((n) => n.split(' ')[0].toLowerCase());
 
@@ -136,4 +135,47 @@ export function sharedWords(a: string, b: string, exclude: string[] = []): strin
     !SMALL_WORDS.has(w) && !GREETING_WORDS.has(w) && !isVocative(w) && !skip.has(stem(w));
   const inB = new Set([...contentWords(b)].filter(keep).map(stem));
   return [...contentWords(a)].filter((w) => keep(w) && inB.has(stem(w)));
+}
+
+/** Greetings, saying who it is and pleasantries, longest first: what a hello is made of. */
+const PLEASANTRY_PHRASES = [
+  "how's it going",
+  'how is it going',
+  'how are you',
+  "what's up",
+  'good morning',
+  'good afternoon',
+  'good evening',
+  'pretty good',
+  'not bad',
+  "i'm good",
+  'im good',
+  "it's me",
+  'it is me',
+  'this is me',
+  'me again',
+];
+const PLEASANTRY_WORDS = new Set('hi hey hello hiya yo oh good again there'.split(' '));
+const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The name Ferni's opener greets them by ("Hey Seth. Did you..."), or undefined. */
+export function addresseeOf(line: string): string | undefined {
+  return line.match(ADDRESSEE)?.[1];
+}
+
+/**
+ * True when `said` holds nothing but greetings, saying who it is (their own name:
+ * `callerName`) and pleasantries: "Hey Ferni, it's me.", "oh hi Ferni, it's Sam",
+ * "pretty good". Anything else left over ("not yet", "I did") and it is not.
+ */
+export function onlyPleasantries(said: string, callerName?: string): boolean {
+  let text = ` ${said.toLowerCase().replace(/’/g, "'")} `;
+  const name = callerName?.toLowerCase();
+  for (const phrase of [
+    ...(name ? [`it's ${name}`, `it is ${name}`, `this is ${name}`] : []),
+    ...PLEASANTRY_PHRASES,
+  ])
+    text = text.replace(new RegExp(`(?<![a-z'])${escape(phrase)}(?![a-z'])`, 'g'), ' ');
+  const left = text.match(/[a-z']+/g) ?? [];
+  return left.every((w) => PLEASANTRY_WORDS.has(w) || isVocative(w) || w === name);
 }

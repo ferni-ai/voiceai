@@ -180,25 +180,57 @@ describe('answersQuestion', () => {
     }
   });
 
-  it("on Ferni's opener, only words that touch its question answer it", () => {
-    const opened = call(['ferni', RESUME], ['caller', 'Yeah, I did.']);
-    const env = { [FLAG]: 'on' };
-    expect(ferniOpened(opened.items)).toBe(true);
-    expect(isAnswerTurn(opened.items, 'Yeah, I did.', env)).toBe(false);
-    // Shares only greeting words with "Hey Sam, ...": no answer, whatever its shape.
-    expect(isAnswerTurn(opened.items, 'Hey hey, guess what.', env)).toBe(false);
-    expect(isAnswerTurn(opened.items, 'Yeah, the resume went out.', env)).toBe(true);
-    // Their name or Ferni's is not touching it: "Sam here" after "Hey Sam, ...".
-    expect(isAnswerTurn(opened.items, 'Yeah, Sam here, Ferni.', env)).toBe(false);
-    // Later in the call the same "Yeah, I did." answers.
-    const later = call(
-      ['ferni', RESUME],
-      ['caller', 'Hey.'],
-      ['ferni', RESUME],
-      ['caller', 'Yeah, I did.']
-    );
+  // Final review of #2348: on the opener, a reply is no answer only when it holds nothing
+  // but greetings, saying who it is and pleasantries; anything else answers.
+  const OPENER = 'Hey Seth. Did you end up sending that resume to Dana?';
+  const onOpener = (said: string): boolean =>
+    isAnswerTurn(call(['ferni', OPENER], ['caller', said]).items, said, { [FLAG]: 'on' });
+
+  it("on Ferni's opener, anything besides a hello answers it", () => {
+    expect(ferniOpened(call(['ferni', OPENER], ['caller', 'Hi.']).items)).toBe(true);
+    for (const said of [
+      // The verifier's three, which a shared-word rule missed:
+      'yeah I sent it Tuesday',
+      'not yet, still editing it',
+      'Hey Ferni, yeah I sent it Tuesday',
+      'Yeah, I did.',
+      // Adversarial: a hello in front, or no word from the question.
+      'hey! not yet',
+      'Oh hi Ferni. Nope.',
+      'Good morning! Sent it last night.',
+      "Hey Seth here, haven't done it",
+      "It's me, and yes I did",
+      'Pretty good, I sent it Monday',
+      'Hey, finally did it.',
+      'Ugh, I forgot.',
+    ])
+      expect(onOpener(said), said).toBe(true);
+  });
+
+  it("on Ferni's opener, greetings, saying who it is and pleasantries alone are no answer", () => {
+    for (const said of [
+      "it's me",
+      "hey it's me",
+      'hi',
+      'hey Ferni',
+      "Hey Ferni, it's me.",
+      'pretty good',
+      // Adversarial:
+      "oh hi Ferni, it's Seth",
+      "Good evening Ferni, it's me again.",
+      'Hey Fernie! How are you?',
+      "Hi, this is Seth. How's it going?",
+      "Hey there, what's up?",
+      'Yo Ferni, not bad.',
+      "I'm good, how are you?",
+      'Hello hello, Seth.',
+    ])
+      expect(onOpener(said), said).toBe(false);
+    // Mid-call the same "Yeah, I did." answers too; mid-call "it's me" stays no answer.
+    const later = call(['ferni', OPENER], ['caller', 'Hey.'], ['ferni', OPENER]);
     expect(ferniOpened(later.items)).toBe(false);
-    expect(isAnswerTurn(later.items, 'Yeah, I did.', env)).toBe(true);
+    expect(isAnswerTurn(later.items, 'Yeah, I did.', { [FLAG]: 'on' })).toBe(true);
+    expect(isAnswerTurn(later.items, "It's me.", { [FLAG]: 'on' })).toBe(false);
   });
 
   it('does not read their own question or a change of topic as an answer', () => {

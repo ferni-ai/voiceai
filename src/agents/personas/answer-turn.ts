@@ -21,7 +21,7 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import type { TurnSignals } from './turn-extras.js';
-import { answersWho, asksWho, onlyGreets, sharedWords } from './caller-greeting.js';
+import { addresseeOf, answersWho, onlyGreets, onlyPleasantries } from './caller-greeting.js';
 
 export function answerTurnGuardEnabled(env: Env = process.env): boolean {
   return flagOn('DIRECTOR_ANSWER_TURN_GUARD', env);
@@ -75,14 +75,18 @@ const MAX_ANSWER_WORDS = 12;
 const MAX_SHORT_DECLARATIVE_WORDS = 6;
 
 /**
- * The caller's words answer the question in Ferni's line. When unsure, they don't:
- * taken for an answer, a hello got "take up their answer first" and the model made
+ * The caller's words answer the question in Ferni's line.
+ *
+ * Taken for an answer, a hello got "take up their answer first", and the model made
  * the answer up in the caller's voice (dev sweep 2026-10-21; replayed, 33/60 replies
- * vs 0/60 without that line), while a missed answer costs a little warmth. LLMs pair
- * questions with answers near chance, so this stays a rule, not a model call.
- * `opener`: Ferni's line opened the call. Then only words that touch the question
- * answer it, whatever their shape. Mid-call the short-declarative rule is as before:
- * "pretty good" after "how's the knee?" answers it.
+ * vs 0/60 without that line). So a hello is never an answer:
+ * - `opener` (Ferni's line opened the call): the caller's first words are no answer
+ *   only when nothing but greetings, saying who it is and pleasantries is in them
+ *   (caller-greeting.ts onlyPleasantries). Anything else is, unless it is their own
+ *   question or a change of topic: "yeah I sent it Tuesday", "not yet", "I did".
+ * - mid-call: as before, but a turn shaped only like a hello ("Hey Ferni, it's me.")
+ *   is none. "Pretty good" after "how's the knee?" answers it.
+ * When Ferni asked who it is or their name, saying who it is answers it.
  */
 export function answersQuestion(
   ferniLine: string,
@@ -92,14 +96,12 @@ export function answersQuestion(
   if (!endsOnQuestion(ferniLine)) return false;
   const words = said.toLowerCase().match(/[a-z']+/g) ?? [];
   if (words.length === 0 || words.every((w) => NOT_AN_ANSWER_WORDS.has(w))) return false;
-  // "Hey Ferni, it's me.": a hello, not an answer, unless he asked who it is (caller-greeting.ts).
   if (answersWho(said, ferniLine)) return true;
-  if (onlyGreets(said, ferniLine)) return false;
-  const touches = sharedWords(said, ferniLine).length > 0;
-  // Only on the opener: an answer to "what's your name?" is a name, wherever it comes.
-  if (opener && !touches && !asksWho(ferniLine)) return false;
+  if (opener ? onlyPleasantries(said, addresseeOf(ferniLine)) : onlyGreets(said, ferniLine))
+    return false;
   const answer = said.trim().replace(LEAD_IN, '');
   if (ASKS.test(answer) || CHANGES_TOPIC.test(answer)) return false;
+  if (opener) return true; // something besides a hello: an answer
   if (ANSWER_START.test(answer)) return words.length <= MAX_ANSWER_WORDS;
   // A repeat of the question's verb ("Tackled it.") is a short declarative.
   return words.length <= MAX_SHORT_DECLARATIVE_WORDS;
@@ -133,7 +135,7 @@ export function isAnswerTurn(
 
 /** Ferni's last line opened the call: no words from the caller come before it. */
 export function ferniOpened(items: ReadonlyArray<Item>): boolean {
-  const spoken = (item: Item) =>
+  const spoken = (item: Item): boolean =>
     item.type === 'message' && !item.textContent?.startsWith(TURN_CONTEXT_HEADER);
   let i = items.length - 1;
   while (i >= 0 && !(spoken(items[i]) && items[i].role === 'assistant')) i--;
