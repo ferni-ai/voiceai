@@ -1,9 +1,10 @@
 /** Which facts each post type is grounded in. */
 
 import { docSource, fetchMergedPrs, type GhRunner, type Source } from './grounding.js';
-import { citedPrNumbers, liveOnly, prFiles } from './live-check.js';
+import { liveOnly, prFiles } from './live-check.js';
 import { personaSources, type LetterPersona } from './team-letter.js';
 import type { PostType } from './post-types.js';
+import { trustedAuthor, type PrAuthor } from './untrusted-text.js';
 
 export interface SourceContext {
   root: string;
@@ -35,16 +36,50 @@ function prs(ctx: SourceContext, limit: number, kind: keyof typeof KINDS): Sourc
 export const DEVELOPER_PATHS =
   /^(?:apps\/website\/developers-portal\/(?!src\/blog\/)|src\/api\/v1\/developers\/)/;
 
-/** PRs the open whats-new drafts cite, so a second draft doesn't repeat a first still in review. */
+/**
+ * The drafter's own branch name (blog-drafts.yml), with the run id it adds when
+ * that day's branch already exists.
+ */
+const DRAFT_BRANCH = /^blog\/draft-whats-new-\d{4}-\d{2}-\d{2}(?:-\d+)?$/;
+
+interface OpenPr extends PrAuthor {
+  head: { ref: string; repo: { full_name: string } | null };
+  body: string | null;
+}
+
+/** The PRs the drafter's generated `### Sources` list names ("- PR #N: ..."), and nothing else. */
+export function sourcesListPrs(body: string): number[] {
+  const lines = body.split('\n');
+  const start = lines.findIndex((l) => l.trim() === '### Sources');
+  if (start < 0) return [];
+  const found: number[] = [];
+  for (const line of lines.slice(start + 1)) {
+    const m = /^- PR #(\d+): /.exec(line);
+    if (m) found.push(Number(m[1]));
+    else if (line.trim() !== '' || found.length > 0) break;
+  }
+  return found;
+}
+
+/**
+ * PRs the open whats-new drafts cite, so a second draft doesn't repeat a first
+ * still in review. A PR anyone can open must not hide real changes from the
+ * changelog, so only a draft from this repo (no fork), on the drafter's branch
+ * name, by an org member or collaborator (the drafter's token is one) counts,
+ * and only its generated Sources list is read.
+ */
 function openDraftCitations(ctx: SourceContext): number[] {
   const url = `repos/${ctx.repo}/pulls?state=open&per_page=100`;
-  const open = JSON.parse(ctx.gh(['api', url])) as Array<{
-    head: { ref: string };
-    body: string | null;
-  }>;
+  const open = JSON.parse(ctx.gh(['api', url])) as OpenPr[];
+  const trusted = new Map<string, boolean>();
   return open
-    .filter((pr) => pr.head.ref.startsWith('blog/draft-whats-new'))
-    .flatMap((pr) => citedPrNumbers(pr.body ?? ''));
+    .filter(
+      (pr) =>
+        pr.head.repo?.full_name === ctx.repo &&
+        DRAFT_BRANCH.test(pr.head.ref) &&
+        trustedAuthor(pr, ctx.repo, ctx.gh, trusted)
+    )
+    .flatMap((pr) => sourcesListPrs(pr.body ?? ''));
 }
 
 /**

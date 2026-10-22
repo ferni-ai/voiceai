@@ -425,23 +425,81 @@ describe('content gates', () => {
     expect(data.sources[0]).toMatch(/^PR #101: /);
   });
 
+  /** An open whats-new draft as the drafter opens it: this repo, its branch name, Seth's token. */
+  const openDraft = (over: Record<string, unknown> = {}, head: Record<string, unknown> = {}) => ({
+    number: 900,
+    user: { login: 'sethdford', type: 'User' },
+    author_association: 'OWNER',
+    head: {
+      ref: 'blog/draft-whats-new-2026-10-18',
+      repo: { full_name: 'ferni-ai/voiceai' },
+      ...head,
+    },
+    body: '### Editorial judge (x): PASS\n\n### Sources\n- PR #114: feat(sdk): in the open draft (url)\n\n_Drafted by x._',
+    ...over,
+  });
+  const dedupePrs = [
+    ...PRS,
+    pr(114, 'feat(sdk): in the open draft', '2026-10-16T10:00:00Z'),
+    pr(115, 'feat(api): new this week', '2026-10-16T09:00:00Z'),
+  ];
+  const withOpen = async (open: unknown[], roles: Record<string, string> = {}) => {
+    const { d } = deps(() => answer('x'), fakeGh(dedupePrs, {}, roles, open));
+    const result = await draftPost({ type: 'whats-new', since: '2026-10-01', dryRun: true }, d);
+    return labels(result.sources)
+      .map((l) => Number(/#(\d+)/.exec(l)![1]))
+      .sort((a, b) => a - b);
+  };
+
   it('whats-new leaves out PRs an earlier developer post or an open whats-new draft cites', async () => {
     injected.posts = [{ folder: 'developers-portal/src/blog', post: devPost([101]) }];
-    const prs = [
-      ...PRS,
-      pr(114, 'feat(sdk): in the open draft', '2026-10-16T10:00:00Z'),
-      pr(115, 'feat(api): new this week', '2026-10-16T09:00:00Z'),
-    ];
     const open = [
-      {
-        head: { ref: 'blog/draft-whats-new-2026-10-18' },
-        body: '### Sources\n- PR #114: feat(sdk)',
-      },
-      { head: { ref: 'blog/draft-mission-essay-2026-10-18' }, body: '- PR #115: not a changelog' },
+      openDraft(),
+      openDraft(
+        { number: 901, body: '### Sources\n- PR #115: x' },
+        { ref: 'blog/draft-mission-essay-2026-10-18' }
+      ),
     ];
-    const { d } = deps(() => answer('x'), fakeGh(prs, {}, {}, open));
-    const result = await draftPost({ type: 'whats-new', since: '2026-10-01', dryRun: true }, d);
-    expect(labels(result.sources)).toEqual(['PR #115: feat(api): new this week']);
+    expect(await withOpen(open)).toEqual([115]);
+    // The run id the workflow adds when that day's branch exists.
+    expect(
+      await withOpen([openDraft({}, { ref: 'blog/draft-whats-new-2026-10-18-18812345' })])
+    ).toEqual([115]);
+  });
+
+  it('ignores an open draft from a fork', async () => {
+    const fork = openDraft({}, { repo: { full_name: 'mallory/voiceai' } });
+    expect(await withOpen([fork])).toEqual([101, 114, 115]);
+    expect(await withOpen([openDraft({}, { repo: null })])).toEqual([101, 114, 115]);
+  });
+
+  it('ignores an open draft by someone outside the team', async () => {
+    const outsider = openDraft({
+      user: { login: 'mallory', type: 'User' },
+      author_association: 'NONE',
+    });
+    expect(await withOpen([outsider])).toEqual([101, 114, 115]);
+    expect(await withOpen([outsider], { mallory: 'write' })).toEqual([101, 115]);
+  });
+
+  it("ignores a branch that only starts like the drafter's", async () => {
+    for (const ref of [
+      'blog/draft-whats-new',
+      'blog/draft-whats-new-hide-114',
+      'blog/draft-whats-new-2026-10-18-x',
+    ])
+      expect(await withOpen([openDraft({}, { ref })]), ref).toEqual([101, 114, 115]);
+  });
+
+  it('reads citations only from the generated Sources list', async () => {
+    const body = [
+      'Closes PR #114 and https://github.com/ferni-ai/voiceai/pull/114',
+      '',
+      '### Sources',
+      '- PR #120: feat(sdk): something else (url)',
+      'PR #114 tucked in after the list',
+    ].join('\n');
+    expect(await withOpen([openDraft({ body })])).toEqual([101, 114, 115]);
   });
 
   it('whats-new takes only PRs that touch the developer portal or the developer API', async () => {
