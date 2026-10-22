@@ -59,6 +59,13 @@ const runModule = (code: string): unknown =>
 const PRINT =
   'console.log(JSON.stringify({ keys: Object.keys(FLAG_MANIFEST), manifest: FLAG_MANIFEST }));';
 
+/** Two inline legacy flags plus ROTATED_SEGMENT_FIX (the same-line comment) while it is legacy. */
+function parityNames(inline: string[]): string[] {
+  return [
+    ...new Set([...inline.slice(0, 2), ...inline.filter((n) => n === 'ROTATED_SEGMENT_FIX')]),
+  ];
+}
+
 /** The `{ [name]: spec }` fixtures flags:move froze, by file name. */
 function frozenMoves(dir: string): Array<[string, Record<string, unknown>]> {
   if (!existsSync(dir)) return [];
@@ -147,6 +154,15 @@ describe('flag manifest contract', () => {
     expect(JSON.stringify(bundled.manifest)).toBe(JSON.stringify(FLAG_MANIFEST));
   });
 
+  it('picks distinct parity names even when ROTATED_SEGMENT_FIX is among the first two', () => {
+    expect(parityNames(['ROTATED_SEGMENT_FIX', 'S', 'T'])).toEqual(['ROTATED_SEGMENT_FIX', 'S']);
+    expect(parityNames(['A', 'B', 'ROTATED_SEGMENT_FIX'])).toEqual([
+      'A',
+      'B',
+      'ROTATED_SEGMENT_FIX',
+    ]);
+  });
+
   // flags:move freezes each batch's specs from the legacy source before moving them.
   it('holds every moved flag to the spec frozen when it moved', () => {
     for (const [fixture, frozen] of frozenMoves(join(__dirname, 'fixtures'))) {
@@ -174,7 +190,7 @@ describe('flag manifest contract', () => {
     const inline = [
       ...readFileSync(join(CONFIG, 'flag-manifest.ts'), 'utf8').matchAll(LEGACY_ENTRY),
     ].map((m) => m[1]);
-    const names = [...inline.slice(0, 2), ...inline.filter((n) => n === 'ROTATED_SEGMENT_FIX')];
+    const names = parityNames(inline);
     if (names.length > 0) {
       execFileSync(
         join(REPO, 'node_modules', '.bin', 'tsx'),
@@ -189,6 +205,8 @@ describe('flag manifest contract', () => {
         ],
         { cwd: root, encoding: 'utf8' }
       );
+      // A move that silently did nothing must not pass on the flag files already there.
+      expect(existsSync(join(src, '__tests__', 'fixtures', 'flag-move-parity.json'))).toBe(true);
     }
     expect(fileNamesIn(join(src, 'flags')).length).toBeGreaterThanOrEqual(2);
 

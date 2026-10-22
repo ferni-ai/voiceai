@@ -61,6 +61,18 @@ function attached(text: string, file: string, node: ts.Node, sf: ts.SourceFile):
   };
 }
 
+/** Refuses an entry with a comment inside it: only comments above or after it move with it. */
+function noInnerComment(text: string, file: string, node: ts.Node, name: string): void {
+  if (/\/[/*]/.test(node.getText())) {
+    fail(
+      file,
+      text,
+      node.getStart(),
+      `${name} has a comment inside its entry; move it above the entry`
+    );
+  }
+}
+
 function readSpec(text: string, file: string, node: ts.Expression): Spec {
   const spec: Record<string, string> = {};
   if (ts.isObjectLiteralExpression(node)) {
@@ -114,6 +126,7 @@ export function parseLegacy(file: string, text: string): Registry {
         if (ts.isSpreadAssignment(p))
           out.spreads.push({ ...at, block, name: p.expression.getText(sf) });
         else if (ts.isPropertyAssignment(p)) {
+          noInnerComment(text, file, p, p.name.getText(sf));
           const spec = readSpec(text, file, p.initializer);
           out.entries.push({ ...at, name: p.name.getText(sf), spec, file, block });
         }
@@ -131,6 +144,7 @@ export function parseFlagFile(file: string, text: string): Entry {
   const literal = decl && literalOf(decl);
   if (stmts.length !== 1 || !decl || !literal)
     fail(file, text, 0, 'expected one `export const NAME = {...}`');
+  noInnerComment(text, file, stmts[0], decl.name.getText(sf));
   const [name, spec] = [decl.name.getText(sf), readSpec(text, file, literal)];
   return { ...attached(text, file, stmts[0], sf), name, spec, file, block: name };
 }

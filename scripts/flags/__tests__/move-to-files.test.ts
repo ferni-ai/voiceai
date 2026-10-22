@@ -1,9 +1,12 @@
+import { spawnSync } from 'node:child_process';
 import {
   existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
+  rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -103,6 +106,15 @@ describe('legacy-parse', () => {
     expect(() =>
       parseLegacy('x', "const L = { A: { default: 'off', owner: 'v', kind: 'k' },\n};\n")
     ).toThrow(/lines of its own/);
+  });
+
+  it('refuses a comment inside an entry, naming the flag', () => {
+    const multi =
+      "const L = {\n  A: {\n    default: 'off', // dropped today\n    owner: 'voice',\n    kind: 'experiment',\n  },\n};\n";
+    expect(() => parseLegacy('x', multi)).toThrow(/x:2: A has a comment inside its entry/);
+    const file =
+      "import type { FlagSpec } from '../flag-spec.js';\n\nexport const B = {\n  default: 'off' /* lost */,\n  owner: 'voice',\n  kind: 'experiment',\n} as const satisfies FlagSpec;\n";
+    expect(() => parseFlagFile('B.ts', file)).toThrow(/B has a comment inside its entry/);
   });
 
   it('reads every real legacy entry with the spec FLAG_MANIFEST holds', () => {
@@ -209,5 +221,45 @@ describe('flags:move', () => {
     ).rejects.toThrow(/by hand first:[\s\S]*\/\/ dangling/);
     expect(read(dangling, 'flag-manifest-blocks.ts')).toBe(before);
     expect(existsSync(join(dangling, 'src/config/flags/ZZ_KEEP.ts'))).toBe(false);
+    expect(
+      readdirSync(join(dangling, 'src/config')).includes('__tests__')
+        ? readdirSync(join(dangling, 'src/config/__tests__/fixtures'))
+        : []
+    ).toEqual([]);
+  });
+
+  it('refuses to overwrite an earlier batch fixture', async () => {
+    const root = fakeRoot();
+    const first = await moveToFiles({ root, file: 'flag-manifest.ts', names: ['MID'] });
+    const frozen = readFileSync(first.fixture, 'utf8');
+    await expect(
+      moveToFiles({ root, file: 'flag-manifest.ts', names: ['ROTATED_SEGMENT_FIX'] })
+    ).rejects.toThrow(/already exists: give this move its own --batch NAME/);
+    expect(readFileSync(first.fixture, 'utf8')).toBe(frozen);
+    expect(read(root, 'flag-manifest.ts')).toContain('ROTATED_SEGMENT_FIX');
+  });
+
+  it('leaves the batch fixture in place when a run fails after editing the legacy file', async () => {
+    const root = fakeRoot();
+    rmSync(join(root, 'src/config/flags'), { recursive: true }); // writing the flag file fails
+    await expect(moveToFiles({ root, file: 'flag-manifest.ts', names: ['MID'] })).rejects.toThrow();
+    expect(read(root, 'flag-manifest.ts')).not.toContain('  MID:');
+    const fixture = 'src/config/__tests__/fixtures/flag-move-flag-manifest-names.json';
+    expect(JSON.parse(readFileSync(join(root, fixture), 'utf8'))).toEqual({
+      MID: { default: 'off', owner: 'voice', kind: 'experiment' },
+    });
+  });
+
+  it('runs as a script through a symlinked path', () => {
+    const root = fakeRoot();
+    const link = join(mkdtempSync(join(tmpdir(), 'flags-link-')), 'move.ts');
+    symlinkSync(join(__dirname, '..', 'move-to-files.ts'), link);
+    const tsx = join(__dirname, '..', '..', '..', 'node_modules', '.bin', 'tsx');
+    const run = spawnSync(tsx, [link, '--file', 'flag-manifest.ts', '--names', 'MID'], {
+      cwd: root,
+      encoding: 'utf8',
+    });
+    expect(run.status, run.stderr).toBe(0);
+    expect(existsSync(join(root, 'src/config/flags/MID.ts'))).toBe(true);
   });
 });
