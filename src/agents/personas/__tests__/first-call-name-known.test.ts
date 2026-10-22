@@ -8,7 +8,7 @@ import { llm } from '@livekit/agents';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { accountName, callerNameKnown } from '../caller-name-known.js';
-import { FIRST_CALL_NOTE, NAME_SWAP_NOTE, firstCallNote } from '../first-call-rapport.js';
+import { FIRST_CALL_NOTE, NAME_SWAP_NOTE, WHO_NOTE, firstCallNote } from '../first-call-rapport.js';
 import { withTurnReminder } from '../turn-request.js';
 
 const ON = { FIRST_CALL_RAPPORT: 'on' };
@@ -94,6 +94,17 @@ describe('first-call note once the name is known', () => {
       );
     }
   );
+
+  // #1933's intro path (FIRST_CALL_INTRO): the demo room's "Visitor" is not a name either.
+  it('intro on: "Visitor" still counts as no name, a real one stops the swap', () => {
+    const INTRO = { ...ON, FIRST_CALL_INTRO: 'on' };
+    const visitor = firstCallNote(lateNight, firstCall({ userName: 'Visitor' }), LATE_WORDS, INTRO);
+    expect(visitor).toContain(WHO_NOTE);
+    expect(visitor).toContain(NAME_SWAP_NOTE);
+    const named = firstCallNote(lateNight, firstCall({ userName: 'Sam' }), LATE_WORDS, INTRO);
+    expect(named).toContain(WHO_NOTE);
+    expect(named).not.toMatch(SWAP);
+  });
 
   it('a teammate named in a greeting is not their name', () => {
     expect(callerNameKnown(lateNight, firstCall().userData, LATE_WORDS)).toBe(false);

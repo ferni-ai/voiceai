@@ -69,12 +69,16 @@ function callerLines(chatCtx: llm.ChatContext, callerWords: string): string[] {
   return callerWords ? [...said, callerWords] : said;
 }
 
+/** They gave their own name on this call ("I'm Jess"), this turn included. */
+export function nameSaidOnCall(chatCtx: llm.ChatContext, callerWords = ''): boolean {
+  return callerLines(chatCtx, callerWords).some((line) => extractCallerName(line) !== null);
+}
+
 /** The call has their name: from the account, or they said it on this call. */
 export function callerNameKnown(
   chatCtx: llm.ChatContext,
   userData: unknown,
   callerWords = ''
 ): boolean {
-  if (accountName(userData)) return true;
-  return callerLines(chatCtx, callerWords).some((line) => extractCallerName(line) !== null);
+  return accountName(userData) !== undefined || nameSaidOnCall(chatCtx, callerWords);
 }
