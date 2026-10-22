@@ -15,7 +15,8 @@
  *   - callerSetsDepthNote: when the caller's turn declines depth (DECLINES)
  *     and heavy news is in their last few turns (heavyNews), or they
  *     say outright they don't want to make a thing of it, the turn reminder
- *     gets DEPTH_NOTE. Never on a crisis-guided reply: crisis guidance wins.
+ *     gets DEPTH_NOTE. Never when the same turn carries distress ("I'm fine, I
+ *     just can't stop crying"), and never on a crisis-guided reply.
  *   - labelsDeflection: director notes that name the caller's deflection or
  *     use therapist steering ("shrugged it off", "downplaying", "hold space",
  *     "sit with the weight") are dropped (director-notes.ts parseNotes).
@@ -57,6 +58,13 @@ function heavyNews(turns: readonly string[]): boolean {
   return callerHeavyLately(turns) || turns.some((t) => LIFE_CHANGE.test(t));
 }
 
+/**
+ * Distress in the very turn that says "it's fine": then it isn't, and Ferni
+ * stays with them. callerHeavyLately reads most of it; these are what it misses.
+ */
+const DISTRESS =
+  /\b(?:alone|lonely|scared|afraid|terrified|crying|cried|tears|can'?t (?:sleep|cope|breathe|stop)|falling apart|overwhelm\w*|numb|empty|panic\w*|hurting|broken|not okay|not fine|struggling)\b/i;
+
 /** Turns of the caller's that heavy news may sit in, this one included. */
 const HEAVY_LOOKBACK = 4;
 
@@ -80,6 +88,8 @@ export function callerSetsDepthNote(
   env: Env = process.env
 ): string {
   if (opts.crisis || !said || !callerSetsDepthOn(env)) return '';
+  // "I'm fine, I just can't stop crying" is not fine: no note, Ferni stays with them.
+  if (callerHeavyLately([said]) || DISTRESS.test(said)) return '';
   const outright = DECLINES_OUTRIGHT.test(said);
   if (!outright && !(DECLINES.test(said) && heavyNews(callerTurns.slice(-HEAVY_LOOKBACK))))
     return '';

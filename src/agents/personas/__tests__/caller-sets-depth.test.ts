@@ -39,6 +39,15 @@ describe('callerSetsDepthNote', () => {
     expect(callerSetsDepthNote(turns[1], turns, { crisis: false }, ON)).toBe('');
   });
 
+  it.each([
+    "I'm fine, I just can't stop crying.",
+    "It's fine. I'm just so tired of everything.",
+    "I'm okay. I just feel really alone.",
+    "It's whatever, I'm scared though.",
+  ])('stays with them when "fine" comes with distress: %s', (said) => {
+    expect(callerSetsDepthNote(said, [DAD, said], { crisis: false }, ON)).toBe('');
+  });
+
   it('never rides a crisis-guided reply, and is off by default', () => {
     const turns = [DAD, "It's fine. It's whatever."];
     expect(callerSetsDepthNote(turns[1], turns, { crisis: true }, ON)).toBe('');
