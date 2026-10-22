@@ -20,6 +20,7 @@ vi.mock('../../src/utils/logger.js', async (importOriginal) => {
   };
 });
 
+import { clearMicroExpressionTimers } from '../../src/eq/capabilities/micro-expressions.js';
 import { handleDataMessage } from '../../src/app/data-message-handlers.js';
 import {
   PENDING_MOMENTS_KEY,
@@ -48,6 +49,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  // handleDataMessage can schedule follow-up micro-expressions; don't let one
+  // fire after this file's jsdom is torn down ("document is not defined").
+  clearMicroExpressionTimers();
   vi.unstubAllEnvs();
   vi.restoreAllMocks();
   localStorage.clear();

@@ -18,6 +18,7 @@ import admin from 'firebase-admin';
 import pino from 'pino';
 import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = pino({ name: 'voice-memory' });
 
@@ -104,17 +105,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
-      const projectId = getGCPProjectId();
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firebase not available for conversation memory');
