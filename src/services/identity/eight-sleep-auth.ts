@@ -21,6 +21,7 @@ import type {
   EightSleepTokenResponse,
   EightSleepResult,
 } from './eight-sleep-types.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'eight-sleep-auth' });
 
@@ -63,7 +64,7 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
     log.info('Eight Sleep OAuth Firestore initialized');
     return db;

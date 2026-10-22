@@ -10243,6 +10243,7 @@
       "one": "你獲得了 {count} 顆種子！"
     },
     "couldNotLoadMemories": "沒能載入我記得的內容。再試一次？",
+    "credentialNotKept": "Ferni 不會保存密碼或各種代碼，所以這條已刪除。",
     "memoryCorrected": "明白了，我會這樣記住。"
   },
   "trustSignals": {

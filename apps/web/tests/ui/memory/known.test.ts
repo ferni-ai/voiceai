@@ -114,6 +114,11 @@ describe('requests', () => {
     api.apiPost.mockResolvedValue({ ok: false, status: 500 });
     expect(await actOn({ kind: 'fact', id: 'f1' }, 'forget')).toBe('failed');
   });
+
+  it('reads a correction the server did not keep (a code or password) as not-kept, not done', async () => {
+    api.apiPost.mockResolvedValue({ ok: true, status: 200, data: { status: 'not-kept' } });
+    expect(await actOn({ kind: 'fact', id: 'f1' }, 'correct', '5512')).toBe('not-kept');
+  });
 });
 
 describe('memoryViewEnabled', () => {

@@ -162,3 +162,11 @@ export const FLAGS_SHORT_GOODBYE_TO_SMS = {
   // on: a text confirming opt-in when texts go on in settings, and the reminder job releases held texts (opt-in-text.ts)
   SMS_OPT_IN_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
+
+/** SPECIALIST_TOOLS .. SPECULATIVE_TTS */
+export const FLAGS_SPECIALIST_TO_SPECULATIVE = {
+  // a specialist gets its own specialty tools within the 64 cap (multi-agent/specialist-tool-sets.ts)
+  SPECIALIST_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
+  SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
+} as const satisfies Record<string, FlagSpec>;

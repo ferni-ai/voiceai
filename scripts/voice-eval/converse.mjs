@@ -19,6 +19,8 @@
 // agent" (reply voice and background sounds mixed, as a caller hears them). Its
 // audio counts only once the call is answered (sip.callStatus "active"), so
 // ringback is not taken for a greeting.
+// Echo (run.sh --echo, echo-mixer.mjs): the mic sends the caller plus the agent's own
+// audio, delayed and attenuated. .mic.wav stays the clean caller; .sent.wav was sent.
 import { writeFileSync, readFileSync } from 'node:fs';
 import {
   AudioFrame,
@@ -31,6 +33,7 @@ import {
   TrackPublishOptions,
   TrackSource,
 } from '@livekit/rtc-node';
+import { EchoMixer, echoConfigFromEnv } from './echo-mixer.mjs';
 
 const [url, token, outJson, ...turns] = process.argv.slice(2);
 if (!url || !token || !outJson || turns.length === 0) {
@@ -51,6 +54,9 @@ let mainVoiceLastAt = 0;
 let mainVoiceStartedAt = 0;
 const phone = process.env.VOICE_EVAL_PHONE === '1';
 const answered = (p) => p.attributes?.['sip.callStatus'] === 'active';
+const echoCfg = echoConfigFromEnv();
+const echo = echoCfg ? new EchoMixer(echoCfg) : null;
+const sentBufs = [];
 
 room.on(RoomEvent.TrackSubscribed, async (track, pub, participant) => {
   if (track.kind !== TrackKind.KIND_AUDIO) return;
@@ -63,6 +69,7 @@ room.on(RoomEvent.TrackSubscribed, async (track, pub, participant) => {
   for await (const frame of new AudioStream(track, { sampleRate: 24000, numChannels: 1 })) {
     if (phone && !answered(participant)) continue;
     const pcm = new Int16Array(frame.data.buffer, frame.data.byteOffset, frame.data.length);
+    if (echo) echo.push(track.sid, pcm, frame.sampleRate);
     if (rec.startT === null) rec.startT = now();
     rec.bufs.push(Buffer.from(pcm.buffer, pcm.byteOffset, pcm.byteLength));
     let peak = 0;
@@ -133,7 +140,9 @@ const pump = (async () => {
     }
     if (micStartT === null) micStartT = now();
     micBufs.push(Buffer.from(frame.buffer, frame.byteOffset, frame.byteLength));
-    await source.captureFrame(new AudioFrame(frame, 48000, 1, CHUNK));
+    const sent = echo ? echo.mix(frame) : frame;
+    if (echo) sentBufs.push(Buffer.from(sent.buffer, sent.byteOffset, sent.byteLength));
+    await source.captureFrame(new AudioFrame(sent, 48000, 1, CHUNK));
   }
 })();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -275,6 +284,8 @@ function wav(pcm, rate) {
 
 const micFile = outJson.replace(/\.json$/, '.mic.wav');
 writeFileSync(micFile, wav(Buffer.concat(micBufs), 48000));
+const sentFile = echo ? outJson.replace(/\.json$/, '.sent.wav') : null;
+if (echo) writeFileSync(sentFile, wav(Buffer.concat(sentBufs), 48000));
 const trackSummaries = [];
 for (const [sid, rec] of tracks) {
   const pcm = Buffer.concat(rec.bufs);
@@ -293,7 +304,7 @@ try {
 }
 writeFileSync(
   outJson,
-  JSON.stringify({ meta, wallT0: t0, results, events, data, userSpeech, tracks: trackSummaries, mic: { file: micFile, startT: micStartT } }, null, 2)
+  JSON.stringify({ meta, wallT0: t0, results, events, data, userSpeech, tracks: trackSummaries, mic: { file: micFile, startT: micStartT }, echo: echo ? { ...echoCfg, ...echo.stats, sentFile } : null }, null, 2)
 );
 console.log(JSON.stringify(results));
 process.exit(0);

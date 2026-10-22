@@ -21,6 +21,7 @@ import {
   FLAGS_HONEST_TO_IDENTITY,
   FLAGS_MOVE_TO_PHONE_AUDIO,
   FLAGS_SHORT_GOODBYE_TO_SMS,
+  FLAGS_SPECIALIST_TO_SPECULATIVE,
   type FlagSpec,
 } from './flag-manifest-entries.js';
 
@@ -117,6 +118,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on speaks the actor's line; shadow writes it without speaking; off skips it (speech/direction/director.ts)
   DIRECTED_SPEECH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   DIRECTOR_ANSWER_TURN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the director gives direction (subtext, the beat, the character's intention), never style notes
+  DIRECTOR_DIRECTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_ESCALATE: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_LOOK_BACK: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_NOTES: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -182,6 +185,8 @@ const LEGACY_FLAG_MANIFEST = {
   FOLLOW_THROUGH_UPCOMING: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
   FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: teasing only from the third call, never on a hard turn, dropped when it lands wrong (agents/personas/friend-tease.ts)
+  FRIEND_TEASE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: at call start, ask once about a date the caller told us (dates/recall.ts; needs DATES_THAT_MATTER)
   FRIEND_FOLLOWUPS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: a fact the caller corrects is kept with its words and the old fact retired; next call recalls it (friend-repair.ts)
@@ -356,12 +361,13 @@ const LEGACY_FLAG_MANIFEST = {
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: every reply says the 988 crisis line as "nine eight eight" (safety/crisis-line-speech.ts)
   SPEAK_988_DIGITS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
-  SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ...FLAGS_SPECIALIST_TO_SPECULATIVE,
   // off, shadow or live; the default is off under tests (speech/tts-gateway/director/gate.ts)
   SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
   // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
   SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a fact holding a code, password or PIN the caller said aloud is not stored (memory/spoken-credential.ts)
+  SPOKEN_CREDENTIAL_FILTER: { default: 'off', owner: 'memory', kind: 'experiment' },
   // streaks count days from the summaries subcollection (up to 400 reads per profile load)
   STREAK_FROM_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -396,7 +402,7 @@ const LEGACY_FLAG_MANIFEST = {
   TURN_KEEPER_SPOKE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_OPENING_SOUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_LENGTH: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on: per-turn memory search gates on the vector leg's cosine (0.55), not the RRF score no memory reaches (turn-memory-scale.ts)
+  // on: per-turn memory search gates on the vector leg's cosine (0.55), not the RRF score no memory reaches, and sends at most TURN_MEMORY_MAX_INJECT (default 3) memories a turn (turn-memory-scale.ts)
   TURN_MEMORY_RRF_SCALE: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_STYLE_REMINDER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
