@@ -37,6 +37,15 @@ const PAST_CLAIMS: Array<[string, ActionKind]> = [
   ['I saved it.', 'save'],
   ['I called you a cab.', 'ride'],
   ['I booked you an Uber.', 'ride'],
+  // Real claims next to the look-alikes below, so they cannot over-loosen.
+  ['Sure thing — I booked the table for 7, see you there.', 'schedule'],
+  ['Done, I called her.', 'call'],
+  ['I sent it to her just now.', 'send'],
+  ['Okay, I booked it for Friday.', 'schedule'],
+  ['I called him back.', 'call'],
+  ['I called her up.', 'call'],
+  ['As you said, I booked it.', 'schedule'],
+  ['I sent it to your brother.', 'send'],
 ];
 
 const LOOK_ALIKES: string[] = [
@@ -73,6 +82,50 @@ const LOOK_ALIKES: string[] = [
   "I didn't send it yet.",
   "I can't say I sent it, honestly.",
   'Should I book it?',
+  // Adversarial review, round 2: must stream untouched.
+  'I booked it for us last summer and loved it.',
+  'I called her out on that once.',
+  "I'd have booked it if you asked.",
+  'Yesterday I sent my brother a postcard.',
+  'Remember when I booked that cabin and it rained?',
+  'I never called her.',
+  "I don't think I sent it.",
+  'Back in college I texted him every day.',
+  'Do you want me to tell her I booked it?',
+  // "mine": Ferni's own people.
+  'I sent that joke to a friend of mine.',
+  'I booked it for a buddy of mine.',
+  'I called her, an old friend of mine.',
+  'I texted him for a coworker of mine.',
+  'I sent it to a cousin of mine, she loved it.',
+  'I reserved the room for a pal of mine.',
+  'I emailed her for a neighbor of mine.',
+  // Dated past: a year, "back in", "when we went".
+  'I booked it in 2019 when we went to Paris.',
+  'I booked the room in 2021.',
+  'I sent it in 2018 and never heard back.',
+  'I scheduled the session back in June.',
+  'Back in March I booked the room.',
+  'I booked that place when we went to Rome.',
+  'I called her when I was in college.',
+  // Call idioms: "called her out", "called it off", "called dibs".
+  'Honestly, I called her out on it.',
+  'I called him out for it.',
+  'Honestly, I called them out.',
+  'I called your landlord out on the rent.',
+  'I called him off.',
+  'I called dibs on the window seat.',
+  'I called it off.',
+  'I called him a genius.',
+  // Reported speech, and a later "but I did not".
+  'You said I called her, but I did not.',
+  'You think I sent it.',
+  'They said I booked it.',
+  'She said I called her.',
+  'He thinks I texted him.',
+  'You told me I booked it.',
+  'I called her, but I did not.',
+  'I booked it, but I didn’t.',
 ];
 
 describe('pastClaim', () => {
@@ -188,6 +241,25 @@ describe('the guard with ACTION_CLAIM_PAST on', () => {
   it('the tool ran earlier on the call: "yes, I sent it" stands', async () => {
     const items = [ASK, result('quickText', '"Sent."'), user('Did you send it?')];
     expect(await guarded(['Yes, I sent it. '], { items })).toBe('Yes, I sent it. ');
+  });
+
+  it.each(['Yes, I booked it.', 'Yes, I sent it.'])(
+    '%j is held when nothing ran on the call',
+    async (sentence) => {
+      const items = [ASK, user('Did you do it?')];
+      const text = await guarded([`${sentence} `], { items });
+      expect(text).not.toContain(sentence);
+      expect(text).toMatch(/\byet\b/);
+    }
+  );
+
+  it('the booking ran earlier on the call: "yes, I booked it" stands', async () => {
+    const items = [
+      ASK,
+      result('createCalendarEvent', '"Booked: lunch with Sam, Friday noon."'),
+      user('Did you book it?'),
+    ];
+    expect(await guarded(['Yes, I booked it. '], { items })).toBe('Yes, I booked it. ');
   });
 
   it('the tool failed earlier: the claim is held and says so', async () => {
