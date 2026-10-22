@@ -12,7 +12,7 @@ import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js'
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import { memoryHeld } from '../../../utils/minor-care.js';
-import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
+import { forgetDoneNote, forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -490,7 +490,7 @@ export const forgetMemoryDef: ToolDefinition = {
         );
 
         if (!confirmDeletion) {
-          return `Just to confirm - you'd like me to forget about "${whatToForget}"? Let me know and I'll remove it.`;
+          return `Just to confirm - you'd like me to forget about "${whatToForget}"?`;
         }
 
         const userData = toolCtx.userData as UserData;
@@ -511,8 +511,7 @@ export const forgetMemoryDef: ToolDefinition = {
           );
         }
 
-        // Return empty string - agent should continue naturally without reading any acknowledgment
-        return '';
+        return forgetDoneNote(forgot); // only what happened, never "forgotten" for hidden (forget.ts)
       },
     });
   },
