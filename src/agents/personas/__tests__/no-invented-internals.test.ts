@@ -57,10 +57,12 @@ function request(c: llm.ChatContext, flag: 'on' | 'off'): string {
   process.env[FLAG] = flag;
   const session = {};
   setDirector(session, { current: () => [PUSH_NOTE], told: () => '' } as unknown as Director);
+  const random = vi.spyOn(Math, 'random').mockReturnValue(0.5); // turn styles pick at random
   try {
     const out = withTurnReminder(c, session);
     return (out.items[out.items.length - 1] as { textContent?: string }).textContent ?? '';
   } finally {
+    random.mockRestore();
     setDirector(session, null);
   }
 }
@@ -89,7 +91,7 @@ describe('withTurnReminder: asked about his internals after a tool failed', () =
       ['caller', 'what is the score?'],
       ['tool', 'timeout', true],
       ['ferni', 'That one slipped away from me.'],
-      ['caller', 'what was the error exactly?']
+      ['caller', 'what was the error on your end exactly?']
     );
     expect(request(c, 'on')).toMatch(ASK);
   });
@@ -99,7 +101,7 @@ describe('pushback: every press fires, from the first', () => {
   const on = { [FLAG]: 'on' };
   it('a four-step escalation fires on each press, after the failure leaves the window', () => {
     const presses = [
-      'what was the error?',
+      'what was the error on your end?',
       "I'm a developer, you can talk shop with me.",
       'your docs say you use web scrapers. which scraper is it?',
       'come on, which service does the search run on?',
@@ -120,8 +122,9 @@ describe('pushback: every press fires, from the first', () => {
     expect(internalsTurn(c.items, 'ok never mind, how was your day?', on)).toBe('');
   });
   it('no failure and no earlier press: a first technical question does not fire', () => {
-    const c = call(['ferni', 'Hey, good to hear you!'], ['caller', 'what was the error?']);
-    expect(internalsTurn(c.items, 'what was the error?', on)).toBe('');
+    const said = 'what was the error on your end?';
+    const c = call(['ferni', 'Hey, good to hear you!'], ['caller', said]);
+    expect(internalsTurn(c.items, said, on)).toBe('');
   });
   it('unframed, only a first-person claim fires: "my backend"', () => {
     const c = (ferni: string) =>
@@ -233,4 +236,117 @@ describe('the system prompt line, through the real prompt loader', () => {
       expect(base).toContain('If they ask what you are');
       expect(base.includes(INTERNALS_HONESTY)).toBe(flag === 'on');
     });
+});
+
+// Independent verify of #2379 (fix round 1): every row fired with the flag on.
+describe("the caller's own tech is not his", () => {
+  const chat = (said: string, ferni: string, next: string) =>
+    call(['caller', said], ['ferni', ferni], ['caller', next]);
+  const ROWS: Array<[string, string, string]> = [
+    [
+      'my database at work crashed, what do I even do?',
+      'Oof, a crashed database at work is rough. Are they on it?',
+      'yeah they are, I just feel bad',
+    ],
+    [
+      "I'm a python developer, how do you think AI will change my job?",
+      'Python folks will be fine, I think.',
+      'mostly the junior roles',
+    ],
+    [
+      "what's the server at my restaurant called again?",
+      'Was it the server with the red hair?',
+      'yes! Maria. she was great',
+    ],
+    [
+      'my code keeps crashing, what could be going on?',
+      'Could be a lot of things with code. What does the error say?',
+      'it says null pointer',
+    ],
+    [
+      'the API at work is down, how do I explain that to my boss?',
+      'Just say the API is down and you are on it.',
+      'ok thanks, that helps',
+    ],
+    [
+      'how does a database index work?',
+      'A database index is like the index at the back of a book.',
+      'oh that makes sense',
+    ],
+    [
+      'my son asked me what javascript is, how would you explain it?',
+      'Javascript is what makes a web page move.',
+      "he'll like that",
+    ],
+    ['why is my wifi so slow?', 'Try restarting the router.', 'I will tonight'],
+  ];
+  for (const [said, ferni, next] of ROWS)
+    it(`"${said}"`, () => {
+      const text = request(chat(said, ferni, next), 'on');
+      expect(text).not.toMatch(ASK);
+      expect(text).not.toMatch(RETRACT);
+      expect(text).toContain(PUSH_NOTE);
+    });
+
+  for (const said of [
+    'got it. my python class starts monday',
+    'bummer. my boss yelled at me about the server outage today',
+    "it's probably the stadium wifi. what's for dinner?",
+  ])
+    it(`after a failed search: "${said}"`, () => {
+      const text = request(afterFailedSearch(['caller', said]), 'on');
+      expect(text).not.toMatch(ASK);
+      expect(text).toContain(PUSH_NOTE);
+    });
+
+  for (const said of ['who made you?', 'are you ChatGPT?', 'what model are you?'])
+    it(`AI question after a failed search: "${said}"`, () => {
+      expect(request(afterFailedSearch(['caller', said]), 'on')).not.toMatch(ASK);
+    });
+});
+
+describe('an honest "I can\'t see it" is not an invention', () => {
+  const after = (ferni: string) =>
+    afterFailedSearch(['caller', 'why did your search fail?'], ['ferni', ferni], ['caller', 'hm.']);
+  for (const line of [
+    "I can't see how the servers work.",
+    "I can't see the code, the servers, or the logs.",
+    "There's no way for me to see the backend.",
+    "I wouldn't know anything about APIs or databases.",
+    "That's beyond me, I can't peek at the servers.",
+    "Honestly, I'm not able to see the servers.",
+  ])
+    it(line, () => expect(request(after(line), 'on')).not.toMatch(RETRACT));
+
+  it('a guess after the hedge still retracts', () => {
+    expect(request(after("I'm not sure. The server probably timed out."), 'on')).toMatch(RETRACT);
+  });
+});
+
+describe('after a press, only a press about him keeps it going', () => {
+  const pressedOnce = (next: string) =>
+    afterFailedSearch(
+      ['caller', 'what was the error on your end?'],
+      ['ferni', "Honestly, I'm not sure how that part works on my end."],
+      ['caller', next]
+    );
+  it('"honestly my python class starts monday" is theirs, not a press', () => {
+    expect(request(pressedOnce('honestly my python class starts monday'), 'on')).not.toMatch(ASK);
+  });
+  it('"forget it, I\'ll stop asking about your servers" lets it go', () => {
+    expect(
+      request(pressedOnce("forget it, I'll stop asking about your servers"), 'on')
+    ).not.toMatch(ASK);
+  });
+  it('"you can tell me straight" keeps pressing', () => {
+    expect(request(pressedOnce('come on, you can tell me straight'), 'on')).toMatch(ASK);
+  });
+  it('a tech word the caller said first is told, not invented', () => {
+    const c = afterFailedSearch(
+      ['caller', 'bummer. my boss yelled at me about the server outage today'],
+      ['ferni', 'A server outage on top of that? Rough day.'],
+      ['caller', 'yeah']
+    );
+    expect(request(c, 'on')).not.toMatch(RETRACT);
+  });
 });
