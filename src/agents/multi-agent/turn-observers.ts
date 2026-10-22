@@ -324,7 +324,13 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
   // DIRECTOR_PERSONA_AWARE: after a handoff in one session, direct the persona on the call.
   const speakers = sceneSpeakers ?? (await speakerLog(session, cleanupFunctions));
   const { stageFor } = await import('../personas/director-scene.js');
-  const director = new Director({ sessionId, userName, writeNotes, speaking: speakers?.now });
+  const director = new Director({
+    sessionId,
+    userName,
+    writeNotes,
+    speaking: speakers?.now,
+    personaId: () => personaIdOf(session), // DIRECTOR_DIRECTS: directs from the persona's sheet
+  });
   setDirector(session, director);
   // The director sees Ferni's tool calls as they start and finish (director-tool-state.ts).
   const { directorSeesTools, watchToolsForDirector } =
@@ -456,7 +462,7 @@ async function installDeliberation(
       understandingOfLastTurn(session),
       memory,
       mind ?? '',
-      speakers ? (personaIdOf(session) ?? 'ferni') : undefined
+      personaIdOf(session) ?? 'ferni' // read with DIRECTOR_SEES_SCENE or DIRECTOR_DIRECTS on
     );
   };
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);

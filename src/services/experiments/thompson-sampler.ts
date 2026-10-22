@@ -10,7 +10,7 @@
  * @module services/experiments/thompson-sampler
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
@@ -209,7 +209,7 @@ export async function getBanditConfig(experimentId: string): Promise<BanditConfi
   }
 
   // Load from Firestore
-  const db = getFirestore();
+  const db = getAdminFirestore();
   const doc = await db.collection('bandit_configs').doc(experimentId).get();
 
   if (doc.exists) {
@@ -237,7 +237,7 @@ export async function updateBanditConfig(
   experimentId: string,
   updates: Partial<BanditConfig>
 ): Promise<BanditConfig> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   const current = await getBanditConfig(experimentId);
   const updated = { ...current, ...updates };
 
@@ -259,7 +259,7 @@ export async function getArmStats(experimentId: string): Promise<BanditArm[]> {
   }
 
   // Load from Firestore metrics
-  const db = getFirestore();
+  const db = getAdminFirestore();
   const metricsSnap = await db
     .collection('web_experiments')
     .doc(experimentId)

@@ -1,0 +1,14 @@
+{
+  "replyDelayMs": { "p50": 2454, "p90": 4274, "n": 9 },
+  "talkOver": {
+    "backchannels": 0,
+    "backchannelStoppedAgent": 0,
+    "interruptYieldedFast": 0,
+    "interrupts": 0,
+    "interruptYielded": 0,
+    "interruptStopMs": { "p50": null },
+    "notTalkingWhenOverlapped": 0
+  },
+  "replyTexts": ["", "", "", "", "", "", "", "", ""],
+  "ownOpener": { "asked": 1, "answeredByFerni": 0, "replies": [] }
+}

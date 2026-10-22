@@ -23,6 +23,7 @@ import type {
   CallType,
   OnBehalfCallRequest,
 } from '../../tools/domains/telephony/types.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 
 export interface OnBehalfDispatch {
   type: 'on_behalf_call';
@@ -256,7 +257,7 @@ export function parseOnBehalfDispatch(metadata: Record<string, unknown>): OnBeha
   const contact = asObject(metadata.contact);
   const callId = str(metadata.callId);
   const userId = str(requester.userId) || str(metadata.userId);
-  if (!callId || !userId || userId === 'unknown') return null;
+  if (!callId || !isMemberIdentity(userId)) return null;
 
   return buildOnBehalfDispatch({
     callId,
