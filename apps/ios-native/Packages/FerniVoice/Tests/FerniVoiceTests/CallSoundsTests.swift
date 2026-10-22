@@ -1,4 +1,5 @@
 import AVFAudio
+import LiveKit
 import XCTest
 @testable import FerniVoice
 
@@ -29,6 +30,30 @@ final class CallSoundsTests: XCTestCase {
 
         _ = sounds.engineWillRelease(engine)
         XCTAssertFalse(engine.attachedNodes.contains { $0 === player }, "gone with the engine")
+    }
+
+    /// Installed after LiveKit's own observers (the session's, then the
+    /// mixer's), and reached through them: linked the way LiveKit links its
+    /// chain, an engine handed to the first one ends with the sounds' player
+    /// on the main mixer, beside the mixer observer's own nodes.
+    func testTheSoundsComeAfterLiveKitsObserversAndAreReachedThroughThem() throws {
+        AudioManager.shared.audioSession.isAutomaticConfigurationEnabled = false
+        let sounds = CallSounds()
+        var chain = CallSounds.chain(sounds)
+        XCTAssertEqual(chain.count, 3)
+        XCTAssertTrue(chain[0] as AnyObject === AudioManager.shared.audioSession, "the session's first")
+        XCTAssertTrue(chain[1] as AnyObject === AudioManager.shared.mixer, "then the mixer's")
+        XCTAssertTrue(chain.last as AnyObject === sounds, "the sounds last")
+        defer { for i in chain.indices { chain[i].next = nil } }
+        for i in 0 ..< chain.count - 1 { chain[i].next = chain[i + 1] } // as AudioManager.buildEngineObserverChain
+
+        let engine = AVAudioEngine()
+        _ = chain[0].engineDidCreate(engine)
+        XCTAssertGreaterThan(engine.attachedNodes.count, 3, "the mixer observer attached its nodes")
+        _ = chain[0].engineWillStart(engine, isPlayoutEnabled: true, isRecordingEnabled: true)
+        XCTAssertTrue(sounds.isConnected(in: engine), "the sounds were reached and connected")
+        _ = chain[0].engineWillRelease(engine)
+        XCTAssertFalse(sounds.isConnected(in: engine))
     }
 
     func testNothingPlaysWithoutARunningEngine() throws {

@@ -12,7 +12,7 @@ let package = Package(
         .package(path: "../FerniKit"),
         .package(path: "../FerniDesign"),
         // Exact: the version the agent stack was verified against (#1764).
-        .package(url: "https://github.com/livekit/client-sdk-swift", exact: "2.12.1"),
+        .package(url: "https://github.com/livekit/client-sdk-swift", exact: "2.17.0"),
     ],
     targets: [
         .target(
