@@ -1875,8 +1875,8 @@ async function extractAndSaveHumanSignals(
       // PERSIST TO FIRESTORE ("Better Than Human" Memory)
       // ======================================================
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
         const userDoc = db.collection('bogle_users').doc(userId);
 
         // Get existing human memory
