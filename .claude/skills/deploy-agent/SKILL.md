@@ -95,3 +95,15 @@ lk agent rollback --project $P --config $C --version <id>
 ## After deploying
 Run `scripts/voice-eval/run.sh <dev|prod> long-day <label>` once (skill
 `voice-eval`) and look at the transcript before calling it done.
+
+## Before promoting dev to prod
+Sweep dev (skill `voice-eval`, serially), with the same scenarios as the last
+release's sweep. Then run the release check on dev:
+```bash
+node scripts/voice-eval/release-check.mjs dev <candidate-sha> <prod-sha> \
+  --candidate <this sweep's dir> --baseline <last release's sweep dir> | tee release-check.txt
+```
+Promote only on `RESULT_release_check=PASS` (exit 0). Paste the output into
+the release PR. A FAIL or INCONCLUSIVE result blocks the release. Fix the
+cause, or add scenarios or repeats and re-run. Don't swap in a hand-written
+canary. Details: `scripts/voice-eval/README.md`, "Checking a release".
