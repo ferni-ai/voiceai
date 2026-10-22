@@ -8,10 +8,9 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getAdminApp } from '../utils/firebase-admin-app.js';
+import { getAdminApp, getAdminFirestore } from '../utils/firebase-admin-app.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
-import { getFirestore } from 'firebase-admin/firestore';
 import {
   sendJSON,
   sendError,
@@ -143,7 +142,7 @@ async function listSites(
   }
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const sitesRef = db.collection('deployed-sites');
     const snapshot = await sitesRef
       .where('userId', '==', userId)
@@ -182,7 +181,7 @@ async function getSite(
   }
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const siteDoc = await db.collection('deployed-sites').doc(siteId).get();
 
     if (!siteDoc.exists) {
@@ -233,7 +232,7 @@ async function deploySite(
       return true;
     }
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     // Check subdomain availability if requested
     if (subdomain) {
@@ -345,7 +344,7 @@ async function deleteSite(
   }
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const siteDoc = await db.collection('deployed-sites').doc(siteId).get();
 
     if (!siteDoc.exists) {
@@ -420,7 +419,7 @@ async function checkSubdomain(
   }
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const existing = await db
       .collection('deployed-sites')
       .where('subdomain', '==', subdomain)
@@ -536,7 +535,7 @@ async function generateAndDeployPage(
       return true;
     }
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     // Check subdomain availability if requested
     if (subdomain) {
@@ -688,7 +687,7 @@ async function serveStaticSite(
 ): Promise<boolean> {
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     // First try to find by subdomain (URL path uses subdomain, not siteId)
     let siteDoc;
