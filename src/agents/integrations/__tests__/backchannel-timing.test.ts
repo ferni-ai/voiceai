@@ -16,6 +16,7 @@ import {
   jitterVolume,
 } from '../backchannel-timing.js';
 import { VOICED_TAKES } from '../../shared/reaction-clips.js';
+import { nextReplyMayLaugh } from '../../personas/laugh-ledger.js';
 
 const RATE = 16000;
 const FRAME = RATE / 100; // 10 ms
@@ -41,18 +42,13 @@ function call(timing: 'on' | 'off', random: () => number = () => 0) {
   const played: Array<{ text: string; at: number; pauseMs: number }> = [];
   let t = 0;
   let pauseFrom = 0;
-  const bc = initializeLiveBackchanneling(
-    `timing-${timing}-${++calls}`,
-    'ferni',
-    {} as never,
-    () => false,
-    {
-      playClip: (text) => (
-        played.push({ text, at: Date.now(), pauseMs: (t + 1) * 10 - pauseFrom }),
-        true
-      ),
-    }
-  );
+  const sessionId = `timing-${timing}-${++calls}`;
+  const bc = initializeLiveBackchanneling(sessionId, 'ferni', {} as never, () => false, {
+    playClip: (text) => (
+      played.push({ text, at: Date.now(), pauseMs: (t + 1) * 10 - pauseFrom }),
+      true
+    ),
+  });
   bc.onNewTurn();
   const run = (loud: boolean, ms: number): void => {
     if (!loud) pauseFrom = t * 10;
@@ -61,7 +57,8 @@ function call(timing: 'on' | 'off', random: () => number = () => 0) {
       bc.processAudioFrame(frame(loud, t));
     }
   };
-  return { played, run, say: (partial: string) => bc.updateState({ partialTranscript: partial }) };
+  const say = (partial: string): void => bc.updateState({ partialTranscript: partial });
+  return { played, run, say, sessionId };
 }
 
 afterEach(() => {
@@ -222,6 +219,29 @@ describe('inside the grave gate (#2413)', () => {
     }
     expect(c.played.length).toBeGreaterThanOrEqual(3);
     for (const p of c.played) expect(['Mm', 'Mhm', 'Mm-hmm']).toContain(p.text);
+  });
+});
+
+describe('laughs through the bag still count (LAUGH_CAP, #2433)', () => {
+  const JOKE = 'haha and then the dog ate the whole cake, it was hilarious.';
+
+  it('a caller laugh plays "Ha" once, the ledger counts it, and a second is denied', () => {
+    vi.stubEnv('BACKCHANNEL_CONTEXT', 'on');
+    vi.stubEnv('LAUGH_CAP', 'on');
+    const c = call('on');
+    expect(nextReplyMayLaugh(c.sessionId, JOKE, false)).toBe(true);
+    c.run(true, 3000);
+    c.say(JOKE);
+    c.run(false, 300);
+    expect(c.played.map((p) => p.text)).toEqual(['Ha']);
+    // counted: no laugh again before LAUGH_GAP replies have passed
+    expect(nextReplyMayLaugh(c.sessionId, JOKE, false)).toBe(false);
+    // a minute on (the bag would allow "Ha" again), still in the same turn: denied
+    c.run(true, 61_000);
+    c.say(JOKE);
+    c.run(false, 300);
+    expect(c.played.map((p) => p.text).filter((t) => t === 'Ha')).toEqual(['Ha']);
+    expect(c.played).toHaveLength(2);
   });
 });
 

@@ -1,5 +1,7 @@
-# A paid-only teammate (Nayan) tapped in the app by a friend-tier caller: the
-# agent should answer handoff_failed (rollbackTo) and nothing should switch.
+# Nayan tapped in the team bar by a caller with no subscription. TEAM_BY_NEED=on (dev and prod)
+# opens the whole team from the first call, so a pass is handoff_complete to nayan-patel and Nayan
+# answering; handoff_failed is the regression (it was the expected result before TEAM_BY_NEED).
 Hey Ferni, quick one.
 @data 6000 {"type":"handoff_request","target":"nayan-patel","timestamp":0,"attempt":1}
-Okay, never mind then. Thanks.
+Hi Nayan. Nothing big, I just wanted to meet you.
+Okay, back to Ferni please. Thanks.
