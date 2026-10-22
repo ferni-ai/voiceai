@@ -117,6 +117,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on speaks the actor's line; shadow writes it without speaking; off skips it (speech/direction/director.ts)
   DIRECTED_SPEECH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   DIRECTOR_ANSWER_TURN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the director gives direction (subtext, the beat, the character's intention), never style notes
+  DIRECTOR_DIRECTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_ESCALATE: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_LOOK_BACK: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_NOTES: { default: 'off', owner: 'voice', kind: 'experiment' },
