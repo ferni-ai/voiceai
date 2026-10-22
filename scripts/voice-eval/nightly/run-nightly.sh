@@ -9,8 +9,10 @@
 #   NIGHTLY_OUT         default ~/Documents/voiceai-evidence/nightly/<YYYY-MM-DD>
 #   NIGHTLY_ISSUE       tracking issue for the public comment, verdicts only (default 2407)
 #   NIGHTLY_CLEANUP_MIN_AGE_H  cleanup-users --min-age-hours (default 1)
+#   NIGHTLY_LANES       directory holding a.txt and b.txt (default lanes/ beside this script)
 # Exit: scorecard's 0 (nothing new) / 1 (new FAIL or regression) / 2 (harness or deploy
-# error), 3 when ferni-dev is claimed by someone else. Cleanup and the release run in a trap.
+# error), 3 when ferni-dev is claimed by someone else. On exit or a signal, a trap stops the
+# lanes (every run.sh under them), cleans up, reports, and only then releases the claim.
 set -uo pipefail
 ROOT=$(cd "$(dirname "$0")/../../.." && pwd)
 HERE=$ROOT/scripts/voice-eval/nightly EVAL=$ROOT/scripts/voice-eval
@@ -19,11 +21,10 @@ OUT=${NIGHTLY_OUT:-$HOME/Documents/voiceai-evidence/nightly/$DATE}
 DRY=${NIGHTLY_DRY_RUN:-0}
 P=ferni-dev CONF=$ROOT/livekit.toml DEV_AGENT=CA_siTDMHEba4Fg GCP=johnb-2025
 CLAIM=$HOME/.claude/coordination/claim.py BOARD=$HOME/.claude/coordination/board.md
-ISSUE=${NIGHTLY_ISSUE-2407}
-# claim.py names its owner by session id; a launchd run is its own "session"
-export CLAUDE_CODE_SESSION_ID=${CLAUDE_CODE_SESSION_ID:-nightly-sweep-$DATE}
-export CLAUDE_SESSION_NAME=${CLAUDE_SESSION_NAME:-nightly-sweep}
-RC=2 CLAIMED=0 LANES=0 STATUS=error REASON="harness error"
+ISSUE=${NIGHTLY_ISSUE-2407} LANES_DIR=${NIGHTLY_LANES:-$HERE/lanes}
+# claim.py names its owner by session id: the sweep always claims as itself, never as the caller
+export CLAUDE_CODE_SESSION_ID=nightly-sweep CLAUDE_SESSION_NAME=nightly-sweep
+RC=2 CLAIMED=0 LANES=0 STATUS=harness-error REASON="harness error" LANE_PIDS="" RENEW_PID=""
 cd "$ROOT" || exit 2
 
 say() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
@@ -36,13 +37,14 @@ step() {
   "$@"
 }
 trim() { local s=$1; s=${s#"${s%%[![:space:]]*}"}; printf '%s' "${s%"${s##*[![:space:]]}"}"; }
-iso_ago() { node -e 'console.log(new Date(Date.now() - process.argv[1] * 1000).toISOString())' "$1"; }
+# ISO time $1 seconds ago (negative: ahead). `--` so node takes "-120" as an argument, not an option.
+iso_ago() { node -e 'console.log(new Date(Date.now() - process.argv[1] * 1000).toISOString())' -- "$1"; }
 
 # Live rooms on dev (eval-* excluded unless $1 = all); fails when lk can't reach the project.
 live_rooms() {
   local json
   json=$(lk room list --project $P --json 2>/dev/null) || return 2
-  printf '%s' "$json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const r of (JSON.parse(s||"{}").rooms??[])) if((process.argv[1]==="all"||!r.name.startsWith("eval-"))&&(r.numParticipants??0)>0) console.log(r.name.replace(/[0-9]{6,}/g,"#"))})' "${1:-}"
+  printf '%s' "$json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{for(const r of (JSON.parse(s||"{}").rooms??[])) if((process.argv[1]==="all"||!r.name.startsWith("eval-"))&&(r.numParticipants??0)>0) console.log(r.name.replace(/[0-9]{6,}/g,"#"))})' -- "${1:-}"
 }
 # Wait up to 10 min for no live rooms (non-eval only unless $1 = all).
 wait_rooms() {
@@ -54,20 +56,42 @@ wait_rooms() {
   done
 }
 
-write_status() { # status reason: a night with no scorecard still leaves a report
+write_status() { # status reason: a night with no scorecard still leaves a report (HARNESS ERROR, ...)
+  local up; up=$(printf '%s' "$1" | tr 'a-z-' 'A-Z ')
   mkdir -p "$OUT"
   printf '{"status":"%s","date":"%s","reason":"%s"}\n' "$1" "$DATE" "$2" > "$OUT/scorecard.json"
-  printf '# Nightly capability sweep %s\n\n%s: %s\n' "$DATE" "$1" "$2" > "$OUT/REPORT.md"
-  printf '**%s**: %s (%s)\n' "$DATE" "$1" "$2" > "$OUT/COMMENT.md"
+  printf '# Nightly capability sweep %s\n\n%s: %s\n' "$DATE" "$up" "$2" > "$OUT/REPORT.md"
+  printf '**%s**: %s (%s)\n' "$DATE" "$up" "$2" > "$OUT/COMMENT.md"
 }
+# 0 claimed, 3 held by someone else, 2 claim.py itself failed (a harness error, not "busy")
 do_claim() {
-  python3 "$CLAIM" acquire $P --why "nightly capability sweep" --ttl 180 && CLAIMED=1
+  local err
+  err=$(python3 "$CLAIM" acquire $P --why "nightly capability sweep" --ttl 45 2>&1 >/dev/null) && { CLAIMED=1; return 0; }
+  log "claim.py: $err"
+  case $err in "HELD by "*) return 3 ;; *) return 2 ;; esac
+}
+# The claim has a 45 min TTL; this renews it every 10 min until finish stops it.
+renew_claim() {
+  while sleep 600; do python3 "$CLAIM" acquire $P --why "nightly capability sweep" --ttl 45 > /dev/null 2>&1; done
+}
+tree() { local c; echo "$1"; for c in $(pgrep -P "$1"); do tree "$c"; done; }
+# Stop background jobs and everything under them: freeze the tree (so nothing new starts),
+# TERM it, then KILL what is left, and wait. Used before cleanup and the claim release.
+stop_jobs() {
+  local all="" p
+  [ -n "$*" ] || return 0
+  # shellcheck disable=SC2086 # pid lists
+  for _ in 1 2 3; do for p in "$@"; do all="$all $(tree "$p")"; done; kill -STOP $all 2> /dev/null; done
+  # shellcheck disable=SC2086
+  { kill -TERM $all; kill -CONT $all; sleep 2; kill -KILL $all; } 2> /dev/null
+  for p in "$@"; do wait "$p" 2> /dev/null; done
 }
 
 # The deploy-agent skill's dev chain (.claude/skills/deploy-agent), fixed to ferni-dev.
 do_deploy() {
   local dlog=$OUT/deploy.log
-  [ "${ROOT#/Volumes/}" = "$ROOT" ] || { log "refusing to deploy from $ROOT (SSD checkout only)"; return 1; }
+  local want; want=$(cd "$HOME/Projects/voiceai" 2> /dev/null && pwd -P)
+  [ -n "$want" ] && [ "$(pwd -P)" = "$want" ] || { log "deploys run only from ~/Projects/voiceai, not $(pwd -P)"; return 1; }
   git fetch -q origin main && [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] \
     || { log "HEAD is not origin/main"; return 1; }
   wait_rooms all || { log "a dev room stayed live"; return 1; }
@@ -79,7 +103,7 @@ do_deploy() {
   }
   local rooms
   [ -z "$(git diff --name-only --diff-filter=U)" ] \
-    && [ -z "$(git status --porcelain --untracked-files=no)" ] \
+    && [ -z "$(git status --porcelain)" ] \
     && git merge-base --is-ancestor HEAD origin/main \
     && pnpm install --frozen-lockfile > /dev/null \
     && pnpm typecheck > /dev/null \
@@ -124,10 +148,13 @@ do_lanes() {
   LANES=1
   mkdir -p "$OUT/runlogs"
   T0=$(iso_ago 60)
-  lane "$HERE/lanes/a.txt" "$OUT/laneA.log" & local a=$!
-  lane "$HERE/lanes/b.txt" "$OUT/laneB.log" & local b=$!
-  wait $a $b
-  T1=$(iso_ago -120)
+  lane "$LANES_DIR/a.txt" "$OUT/laneA.log" &
+  LANE_PIDS=$!
+  lane "$LANES_DIR/b.txt" "$OUT/laneB.log" &
+  LANE_PIDS="$LANE_PIDS $!"
+  # shellcheck disable=SC2086
+  wait $LANE_PIDS
+  LANE_PIDS="" T1=$(iso_ago -120)
 }
 
 tonight() { # tonight's scored test runs in scripts/voice-eval/out
@@ -160,6 +187,7 @@ do_analyze() {
 do_scorecard() {
   node "$HERE/scorecard.mjs" "$OUT" >> "$OUT/scorecard.log" 2>&1
   RC=$?; STATUS=ok; REASON="scorecard exit $RC"
+  [ $RC = 2 ] && STATUS=harness-error REASON="scorecard exit 2 (see scorecard.log)"
 }
 
 # Erases the generated voice-eval users older than the min age in dev's database. While
@@ -180,32 +208,38 @@ do_cleanup() {
 do_report() {
   local verdicts
   # shellcheck disable=SC2016 # JS template literals, not shell
-  verdicts=$(node -e 'const c=require(process.argv[1]);const n={};for(const x of Object.values(c.capabilities??{}))n[x.verdict]=(n[x.verdict]??0)+1;console.log(c.status==="ok"?Object.entries(n).map(([k,v])=>`${v} ${k}`).join(", "):`${c.status}: ${c.reason}`)' "$OUT/scorecard.json" 2>/dev/null)
+  verdicts=$(node -e 'const c=require(process.argv[1]);const n={};for(const x of Object.values(c.capabilities??{}))n[x.verdict]=(n[x.verdict]??0)+1;const s=c.diff?.safetyFail??[];console.log((s.length?`SAFETY FAIL: ${s.join(", ")}; `:"")+(c.status==="ok"?Object.entries(n).map(([k,v])=>`${v} ${k}`).join(", "):`${c.status}: ${c.reason}`))' -- "$OUT/scorecard.json" 2>/dev/null)
   printf '%s | nightly-sweep | NOTE | %s nightly %s: %s, exit %s, %s | -\n' \
     "$(date -u +%FT%H:%MZ)" $P "$DATE" "${verdicts:-$STATUS: $REASON}" "$RC" "$OUT" >> "$BOARD"
-  [ -z "$ISSUE" ] || gh issue comment "$ISSUE" --repo ferni-ai/voiceai --body-file "$OUT/COMMENT.md" \
+  [ -z "$ISSUE" ] || [ ! -f "$OUT/COMMENT.md" ] || gh issue comment "$ISSUE" --repo ferni-ai/voiceai --body-file "$OUT/COMMENT.md" \
     > /dev/null || log "issue comment failed"
 }
 
 finish() {
+  trap '' INT TERM
+  # shellcheck disable=SC2086 # pid list
+  [ "$DRY" = 1 ] || stop_jobs $LANE_PIDS
   [ "$LANES" = 1 ] && step cleanup "cleanup-users.ts --env dev --min-age-hours ${NIGHTLY_CLEANUP_MIN_AGE_H:-1} (dry run only while dev uses (default))" do_cleanup
   [ "$STATUS" = ok ] || [ "$DRY" = 1 ] || write_status "$STATUS" "$REASON"
   step report "board.md line + gh issue comment ${ISSUE:-<unset: skipped>} --body-file $OUT/COMMENT.md" do_report
+  [ "$DRY" = 1 ] || stop_jobs $RENEW_PID
   [ "$CLAIMED" = 1 ] && step release "claim.py release $P" python3 "$CLAIM" release $P --note "nightly sweep $DATE: exit $RC"
   [ "$DRY" = 1 ] && RC=0
   exit "$RC"
 }
 trap finish EXIT
-trap 'exit 2' INT TERM
+trap 'REASON="interrupted by a signal"; exit 2' INT TERM
 
 [ "$DRY" = 1 ] && echo "DRY RUN: nothing below runs. OUT=$OUT TAG=$TAG"
 [ "$DRY" = 1 ] || mkdir -p "$OUT"
-MEMLIVE=voice-eval-memlive-mover-$(date -u +%Y%m%d%H%M%S)-$(od -An -N2 -tx1 /dev/urandom | tr -d ' \n')
-if ! step claim "claim.py acquire $P --why \"nightly capability sweep\" --ttl 180 (held: SKIPPED, exit 3)" do_claim; then
-  STATUS=skipped REASON="$P is claimed by another session" RC=3
-  exit 3
-fi
-[ "$DRY" = 1 ] && CLAIMED=1
+# local time, as run.sh and cleanup-users (eval-users.ts generatedAt) read it
+MEMLIVE=voice-eval-memlive-mover-$(date +%Y%m%d%H%M%S)-$(od -An -N2 -tx1 /dev/urandom | tr -d ' \n')
+step claim "claim.py acquire $P --ttl 45 as session nightly-sweep, renewed every 10 min (held: SKIPPED, exit 3)" do_claim
+case $? in
+  0) if [ "$DRY" = 1 ]; then CLAIMED=1; else renew_claim & RENEW_PID=$!; fi ;;
+  3) STATUS=skipped REASON="$P is claimed by another session" RC=3; exit 3 ;;
+  *) REASON="claim.py failed (see nightly.log)"; exit 2 ;;
+esac
 if [ "${NIGHTLY_DEPLOY:-1}" = 1 ]; then
   if ! step deploy "deploy-agent chain: origin/main $(git rev-parse --short=9 origin/main 2>/dev/null) -> lk agent deploy --project $P --config $CONF (fail closed)" do_deploy; then
     STATUS=deploy-failed REASON="deploy of origin/main to $P failed; nothing ran"
@@ -213,7 +247,7 @@ if [ "${NIGHTLY_DEPLOY:-1}" = 1 ]; then
   fi
 fi
 step lanes "lanes a + b in parallel, label $TAG<label>, memlive uid $MEMLIVE" do_lanes
-[ "$DRY" = 1 ] && { LANES=1; lane "$HERE/lanes/a.txt" /dev/null; lane "$HERE/lanes/b.txt" /dev/null; }
+[ "$DRY" = 1 ] && { LANES=1; lane "$LANES_DIR/a.txt" /dev/null; lane "$LANES_DIR/b.txt" /dev/null; }
 step judge "judge.mjs (JUDGE_K=2, GCP_PROJECT=$GCP) on tonight's runs, 4 at a time" do_judge
 step collect "copy scripts/voice-eval/out/*-$TAG*.json to $OUT/runs" do_collect
 step logs "gcloud logging read cloud-agents for agent $DEV_AGENT over the lanes' window + boot lines" do_logs \
