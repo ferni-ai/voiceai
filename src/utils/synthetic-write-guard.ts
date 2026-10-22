@@ -10,12 +10,16 @@
  * @google-cloud/firestore and firebase-admin alike; src/tests/gcp-test-guard.ts
  * uses the same layer).
  *
- * "In prod" means one thing: the document the write names is in project
- * PROD_FIRESTORE_PROJECT (johnb-2025), read from the write itself
- * (projects/<p>/databases/...). Not NODE_ENV, not GOOGLE_CLOUD_PROJECT, not
- * which agent is running. The ferni-dev agent writes to johnb-2025 too, so the
- * guard applies to it as well, on purpose: its harness users land in the same
- * stores. Writes to any other project, and every write while
+ * "In prod" means one thing: the document the write names is in prod's own
+ * database, project PROD_FIRESTORE_PROJECT (johnb-2025) AND database
+ * PROD_FIRESTORE_DATABASE ('(default)'), both read from the write itself
+ * (projects/<p>/databases/<d>/...; isProdFirestore in synthetic-user.ts). Not
+ * NODE_ENV, not GOOGLE_CLOUD_PROJECT, not FIRESTORE_DATABASE, not which agent
+ * is running. While the ferni-dev agent writes to (default), the guard applies
+ * to it as well, on purpose: its harness users land in prod's stores. The dev
+ * database (ferni-dev, same project) exists so dev and its harness users can
+ * write freely without touching real people's data, so writes to any other
+ * database in johnb-2025, to any other project, and every write while
  * FIRESTORE_EMULATOR_HOST is set, pass.
  *
  * There a write is synthetic when it is under bogle_users/{owner} or
@@ -34,7 +38,7 @@
  *   SyntheticWriteRefusedError (PERMISSION_DENIED, never retried) only when
  *   EVERY write in it is synthetic; a commit mixing in any other write is sent.
  *
- * Evals in production: run.sh calls an agent that writes here, and
+ * Evals in production: run.sh calls an agent that writes to (default), and
  * returning-caller runs (EVAL_SEED) need the seed call's memories, so
  * PROD_EVAL_WRITES=voice-eval on an agent lets `voice-eval-` owners (and no
  * other class) write. Those users are removed by running
@@ -53,7 +57,7 @@ import {
 } from '@google-cloud/firestore';
 import { createLogger } from './safe-logger.js';
 import {
-  PROD_FIRESTORE_PROJECT,
+  isProdFirestore,
   isSyntheticPhone,
   syntheticOwnerPrefix,
   type SyntheticOwnerPrefix,
@@ -96,10 +100,10 @@ interface WriteProto {
   currentDocument?: { exists?: boolean };
 }
 
-/** `projects/<p>/databases/<d>/documents/<path>` → [project, path segments] */
-function parseName(name: string): [string, string[]] | null {
-  const m = /^projects\/([^/]+)\/databases\/[^/]+\/documents\/(.+)$/.exec(name);
-  return m ? [m[1] as string, (m[2] as string).split('/')] : null;
+/** `projects/<p>/databases/<d>/documents/<path>` → [project, database, path segments] */
+function parseName(name: string): [string, string, string[]] | null {
+  const m = /^projects\/([^/]+)\/databases\/([^/]+)\/documents\/(.+)$/.exec(name);
+  return m ? [m[1] as string, m[2] as string, (m[3] as string).split('/')] : null;
 }
 
 /**
@@ -111,8 +115,8 @@ export function refusedOwner(write: WriteProto, env: Env = process.env): string 
   if (env.FIRESTORE_EMULATOR_HOST) return null;
   const name = write.update?.name ?? write.transform?.document;
   const parsed = name ? parseName(name) : null;
-  if (!parsed || parsed[0] !== PROD_FIRESTORE_PROJECT) return null;
-  const [, segs] = parsed;
+  if (!parsed || !isProdFirestore(parsed[0], parsed[1])) return null;
+  const [, , segs] = parsed;
 
   const candidates: unknown[] = [];
   if (USER_RECORD_ROOTS.has(segs[0] as string)) candidates.push(segs[1]);

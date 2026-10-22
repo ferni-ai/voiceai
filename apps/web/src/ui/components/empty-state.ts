@@ -164,6 +164,8 @@ const EMPTY_STATE_STYLES = `
     max-width: 320px;
   }
 
+  [data-theme="midnight"] .ferni-empty-state__encouragement { color: var(--color-text-primary); } /* accent on its tint was 4.4:1 */
+
   .ferni-empty-state__encouragement {
     font-family: var(--font-body, 'Inter', sans-serif);
     font-size: 0.8125rem;
@@ -210,6 +212,7 @@ const EMPTY_STATE_STYLES = `
 
     .ferni-empty-state__encouragement {
       background: var(--color-accent-subtle-dark, rgba(74, 103, 65, 0.15));
+      color: var(--color-text-primary); /* accent on this tint was 4.4:1 */
     }
   }
 
