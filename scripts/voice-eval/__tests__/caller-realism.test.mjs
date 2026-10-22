@@ -1,7 +1,9 @@
 // caller-realism.mjs: the line transform, the persona/scenario data, and the human-clip manifest.
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { callerDirective, clipFor, formatFor, loadPersonas, realizeLine } from '../caller-realism.mjs';
 
@@ -108,7 +110,7 @@ describe('clipFor', () => {
   writeFileSync(join(dir, 'manifest.json'), JSON.stringify({ 'long-day': { 2: 'takes/t2.wav', 3: 'takes/gone.wav', 4: '../escape.wav' } }));
 
   it('maps scenario + turn to the take, and nothing else', () => {
-    expect(clipFor(dir, 'long-day', 2)).toBe(join(dir, 'takes', 't2.wav'));
+    expect(clipFor(dir, 'long-day', 2)).toBe(join(realpathSync(dir), 'takes', 't2.wav'));
     expect(clipFor(dir, 'long-day', 1)).toBe('');
     expect(clipFor(dir, 'story', 2)).toBe('');
     expect(clipFor('', 'long-day', 2)).toBe('');
@@ -118,5 +120,33 @@ describe('clipFor', () => {
     expect(() => clipFor(dir, 'long-day', 3)).toThrow(/not on disk/);
     expect(() => clipFor(dir, 'long-day', 4)).toThrow(/outside/);
     expect(() => clipFor(join(dir, 'takes'), 'long-day', 2)).toThrow(/manifest/);
+  });
+
+  it('follows symlinks before deciding, needs a regular file, and allows "..odd" names', () => {
+    const outside = mkdtempSync(join(tmpdir(), 'outside-'));
+    writeFileSync(join(outside, 'secret.wav'), 'RIFF');
+    symlinkSync(join(outside, 'secret.wav'), join(dir, 'link.wav'));
+    symlinkSync(outside, join(dir, 'sub'));
+    writeFileSync(join(dir, '..odd.wav'), 'RIFF');
+    writeFileSync(join(dir, 'manifest.json'), JSON.stringify({ s: { 1: 'link.wav', 2: 'sub/secret.wav', 3: '..odd.wav', 4: '.', 5: 'takes' } }));
+    expect(() => clipFor(dir, 's', 1)).toThrow(/outside/);
+    expect(() => clipFor(dir, 's', 2)).toThrow(/outside/);
+    expect(clipFor(dir, 's', 3)).toBe(join(realpathSync(dir), '..odd.wav'));
+    expect(() => clipFor(dir, 's', 4)).toThrow(/not a file/);
+    expect(() => clipFor(dir, 's', 5)).toThrow(/not a file/);
+  });
+});
+
+describe('run.sh --realistic', () => {
+  const plan = (scenario) =>
+    JSON.parse(
+      execFileSync('zsh', [fileURLToPath(new URL('../run.sh', import.meta.url)), '--realistic', 'dev', scenario, 'x'], {
+        env: { ...process.env, EVAL_DRY_RUN: '1', CALLER_REALISM: '' },
+        encoding: 'utf8',
+      })
+    );
+  it("uses the scenario's own #@caller persona, else everyday", () => {
+    expect(plan('realistic-walk-away').realism).toBe('walk-away');
+    expect(plan('long-day').realism).toBe('everyday');
   });
 });

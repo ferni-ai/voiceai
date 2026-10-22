@@ -1,23 +1,12 @@
 #!/usr/bin/env node
-// Turn-taking under a realistic caller (caller-realism.mjs), measured on one run's audio timeline.
-//
-// usage:
-//   realism-metrics.mjs <run.json>          one call's metrics as JSON (run.sh writes <run>.realism.json)
-//   realism-metrics.mjs pauses <clip>...    the mid-turn pauses in rendered caller clips (.pcm 48 kHz or .wav)
-//   realism-metrics.mjs paired <A-dir> <B-dir> [--scenarios N]   build A vs B on these metrics (paired.mjs)
-//
-// Per call, from the caller's clips (where its pauses are) and Ferni's reply-voice track intervals:
-//   takeoverRate   of the caller's mid-turn pauses (silence of MIN_PAUSE_MS+ inside a scripted
-//                  turn), the share in which Ferni's voice started: he cut in while they were thinking
-//   falseEndRate   of the scripted turns with a pause, the share where Ferni's voice started any time
-//                  between the first pause and the caller's last word: the turn was ended early, even
-//                  when the reply landed after the caller had started again
-//   gapMs          p50/p90, caller's last word to Ferni's next voice (not talked over, ≤ ANSWER_WINDOW_MS)
-//   bargeInStopMs  p50/p90, onset of an @interrupt said while Ferni talked to the end of that voice stretch
-// Ferni's voice is his reply track. A stretch ≤ BACKCHANNEL_MAX_MS in a pause may be a clip or a reply
-// cut at once: counted apart (shortInPauses), not as a takeover. Gaps count every onset.
-// `values` ("rt:*") is pairedCompare's per-call input: concatenate realismValues(dir) with
-// sweepValues(dir) for a release check. No meta/events, so loadSweep skips the file.
+// Turn-taking under a realistic caller, from each turn's clip (its pauses, its last word) and Ferni's
+// reply-track voice. usage: realism-metrics.mjs <run.json> | pauses <clip>... | paired <A> <B> [--scenarios N]
+//   takeoverRate   share of mid-turn caller pauses (MIN_PAUSE_MS+) in which Ferni's voice started
+//   falseEndRate   share of paused turns where he started between the first pause and the last word
+//   gapMs          p50/p90 last word to his next voice; unanswered turns count as ANSWER_WINDOW_MS
+//   bargeInStopMs  p50/p90 from an @interrupt said while he talked to STOP_SILENCE_MS of his silence
+// A stretch ≤ BACKCHANNEL_MAX_MS in a pause may be a clip (shortInPauses). No agent voice: null, never 0.
+// `values` ("rt:*") is pairedCompare input, beside sweepValues; loadSweep skips it (no meta/events).
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { formatPaired, pairedCompare } from './paired.mjs';
@@ -28,14 +17,19 @@ import { pct } from './review-calls.mjs';
 export const MIN_PAUSE_MS = 400;
 export const BACKCHANNEL_MAX_MS = 600;
 export const ANSWER_WINDOW_MS = 15000;
+export const STOP_SILENCE_MS = 700; // converse.mjs: Ferni has stopped after 700 ms of silence
 
-/** Silences of MIN_PAUSE_MS+ between the phrases of one caller clip, [startMs, endMs] from its start. */
-export function clipPauses(pcm, rate = 48000) {
-  const ph = callerPhrases(pcm, rate, 0);
-  const out = [];
-  for (let i = 1; i < ph.length; i++) if (ph[i][0] - ph[i - 1][1] >= MIN_PAUSE_MS) out.push([ph[i - 1][1], ph[i][0]]);
-  return out;
-}
+/** Silences of MIN_PAUSE_MS+ between phrases ([startMs, endMs] from the clip's start). */
+const pausesOf = (ph) => ph.slice(1).map((p, i) => [ph[i][1], p[0]]).filter(([a, b]) => b - a >= MIN_PAUSE_MS);
+export const clipPauses = (pcm, rate = 48000) => pausesOf(callerPhrases(pcm, rate, 0));
+
+/** Voice stretches with gaps under STOP_SILENCE_MS joined: a breath is not a stop or a new start. */
+const joined = (voice) =>
+  [...voice].sort((a, b) => a[0] - b[0]).reduce((out, [s, e]) => {
+    if (out.length && s - out.at(-1)[1] < STOP_SILENCE_MS) out.at(-1)[1] = Math.max(out.at(-1)[1], e);
+    else out.push([s, e]);
+    return out;
+  }, []);
 
 export function readClip(file) {
   if (file.endsWith('.wav')) return readWavPcm(file);
@@ -46,16 +40,14 @@ export function readClip(file) {
 const rate = (n, d) => (d ? Math.round((n / d) * 1000) / 1000 : null);
 const dist = (xs) => ({ p50: pct(xs, 50), p90: pct(xs, 90), n: xs.length });
 
-/**
- * utterances: [{ start, end, mode: ''|'backchannel'|'interrupt', pauses: [[a, b] ms from start] }];
- * agentVoice: [[start, end]] Ferni's reply voice. All on the run clock.
- */
+/** utterances: [{ start, end, lastWord?, mode, pauses: [[a, b] from start] }]; agentVoice: [[s, e]]. Run clock. */
 export function realismOfTimeline(utterances, agentVoice) {
-  const voice = [...agentVoice].sort((a, b) => a[0] - b[0]);
+  const voice = joined(agentVoice);
+  const heard = voice.length > 0;
   const onsets = voice.filter(([s, e]) => e - s > BACKCHANNEL_MAX_MS).map(([s]) => s);
   const blips = voice.filter(([s, e]) => e - s <= BACKCHANNEL_MAX_MS).map(([s]) => s);
   const startsIn = (a, b, ts = onsets) => ts.some((t) => t >= a && t < b);
-  let [pauses, takeovers, pausedTurns, falseEnds, shortInPauses] = [0, 0, 0, 0, 0];
+  let [pauses, takeovers, pausedTurns, falseEnds, shortInPauses, unanswered] = [0, 0, 0, 0, 0, 0];
   const [gaps, stops] = [[], []];
   for (const u of utterances) {
     if (u.mode === 'interrupt') {
@@ -67,33 +59,39 @@ export function realismOfTimeline(utterances, agentVoice) {
     pauses += abs.length;
     takeovers += abs.filter(([a, b]) => startsIn(a, b)).length;
     shortInPauses += abs.filter(([a, b]) => startsIn(a, b, blips)).length;
+    // Windows end at the caller's last word, not the clip's end (a take's room tone).
+    const last = Math.min(u.end, u.lastWord ?? u.end);
+    const inPause = (t) => abs.some(([a, b]) => t >= a && t < b);
     if (abs.length) {
       pausedTurns++;
-      if (startsIn(abs[0][0], u.end)) falseEnds++;
+      // A short start after the caller resumed is a false start; a short one in a pause may be a clip.
+      if (startsIn(abs[0][0], last) || blips.some((t) => t >= abs[0][0] && t < last && !inPause(t))) falseEnds++;
     }
-    const talking = voice.some(([s, e]) => s < u.end && e > u.end);
-    const next = voice.find(([s]) => s >= u.end)?.[0];
-    if (!talking && next !== undefined && next - u.end <= ANSWER_WINDOW_MS) gaps.push(next - u.end);
+    if (!heard || voice.some(([s, e]) => s < last && e > last)) continue;
+    const next = voice.find(([s]) => s >= last)?.[0] ?? Infinity;
+    unanswered += next - last > ANSWER_WINDOW_MS; // counted at the window: skipping slow turns can't help
+    gaps.push(Math.min(next - last, ANSWER_WINDOW_MS));
   }
   return {
     pauses,
     takeovers,
-    takeoverRate: rate(takeovers, pauses),
+    takeoverRate: heard ? rate(takeovers, pauses) : null,
     pausedTurns,
     falseEnds,
-    falseEndRate: rate(falseEnds, pausedTurns),
-    gapMs: dist(gaps),
+    falseEndRate: heard ? rate(falseEnds, pausedTurns) : null,
+    gapMs: { ...dist(gaps), unanswered },
     bargeInStopMs: dist(stops),
     shortInPauses,
   };
 }
 
-/** The scripted utterances of a converse.mjs run, with each turn's pauses read from its clip. */
-export function utterancesOf(run, pausesOf) {
+/** The scripted utterances of a converse.mjs run; clipOf(turn) gives a turn's phrases from its clip. */
+export function utterancesOf(run, clipOf) {
   const spoken = (run.results ?? []).filter((r) => /\.pcm$/.test(r.turn ?? ''));
   return (run.userSpeech ?? []).map(([start, end], k) => {
     const r = spoken[k] ?? {};
-    return { start, end, mode: r.mode ?? '', pauses: r.mode || !r.turn ? [] : pausesOf(r.turn) };
+    const ph = r.mode || !r.turn ? [] : clipOf(r.turn);
+    return { start, end, lastWord: ph.length ? start + ph.at(-1)[1] : end, mode: r.mode ?? '', pauses: pausesOf(ph) };
   });
 }
 
@@ -103,7 +101,7 @@ export function realismOfRun(run) {
   const m = realismOfTimeline(
     utterancesOf(run, (turn) => {
       const { pcm, rate: hz } = readClip(join(dir, turn));
-      return clipPauses(pcm, hz);
+      return callerPhrases(pcm, hz, 0);
     }),
     callOf(run).agentVoice
   );
@@ -122,7 +120,9 @@ export function realismValues(dir) {
   return readdirSync(dir, { recursive: true })
     .map((p) => join(dir, p))
     .filter((p) => p.endsWith('.realism.json') && statSync(p).isFile())
-    .map((p) => JSON.parse(readFileSync(p, 'utf8')))
+    .map((p) => {
+      try { return JSON.parse(readFileSync(p, 'utf8')); } catch (e) { throw new Error(`realism-metrics: ${p}: ${e.message}`); }
+    })
     .map((r) => ({ scenario: r.scenario, values: r.values }));
 }
 

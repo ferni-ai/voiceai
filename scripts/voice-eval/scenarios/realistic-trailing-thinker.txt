@@ -1,8 +1,5 @@
-# Realistic caller, low cooperation: thinks out loud, pauses mid-sentence, trails off.
-# Shape: call review 2026-10-20 (#2289): "remind me next time I schedule..." was cut off
-# and a reminder set for a time the caller never gave. The pauses below sit where the
-# sentence is plainly unfinished; ending the turn in one is a false end.
-# Watch: takeoverRate, falseEndRate; whether Ferni asks when instead of guessing.
+# Low cooperation: thinks out loud; pauses sit where the sentence is plainly unfinished (#2289: cut
+# off, then a reminder at a time never given). Watch: takeoverRate, falseEndRate, asking when.
 #@caller trailing-thinker
 Hey Ferni. So I was gonna, [[slnc 1200]] I was gonna ask you something.
 Can you remind me, [[slnc 1400]] um, next time I book the dentist, to [[slnc 1000]] to ask about the night guard thing?

@@ -75,7 +75,7 @@
 set -euo pipefail
 HERE=${0:A:h}
 ROOT=${HERE:h:h}
-persona_opt=(); echo_on=(); echo_gain=(); echo_delay=(); echo_noise=(); realistic_on=()
+persona_opt=(); echo_on=(); echo_gain=(); echo_delay=(); echo_noise=(); realistic_on=(); real_voice=
 zparseopts -D -E -- -persona:=persona_opt -echo=echo_on -echo-gain-db:=echo_gain \
   -echo-delay-ms:=echo_delay -echo-noise-db:=echo_noise -realistic=realistic_on
 persona=${persona_opt[2]:-${EVAL_PERSONA:-}}
@@ -101,18 +101,15 @@ if [[ -n $persona && ! -f $ROOT/src/personas/bundles/$persona/persona.manifest.j
   print -u2 "run.sh: no persona bundle $ROOT/src/personas/bundles/$persona"
   exit 2
 fi
-realism=${CALLER_REALISM:-}
-(( ${#realistic_on} )) && realism=${realism:-everyday}
-[[ $realism == 1 ]] && realism=everyday
-realism_of() { print -r -- ${realism:-$(sed -n 's/^#@caller[[:space:]]*//p' $HERE/scenarios/$1.txt | head -1)}; }
-real_voice=
+# CALLER_REALISM=<persona> wins; then the scenario's "#@caller"; then everyday if asked for.
+realism=${CALLER_REALISM:-}; real_default=
+[[ $realism == 1 ]] && realism= && real_default=everyday
+(( ${#realistic_on} )) && real_default=everyday
+realism_of() { local own=$(sed -n 's/^#@caller[[:space:]]*//p' $HERE/scenarios/$1.txt | head -1); print -r -- ${realism:-${own:-$real_default}}; }
 for s in $scenario $seed; do
   [[ -z $(realism_of $s) ]] || real_voice=$(node $HERE/caller-realism.mjs check $(realism_of $s)) || exit 2
 done
-if [[ -n ${VOICE_EVAL_HUMAN_CLIPS:-} && ! -f $VOICE_EVAL_HUMAN_CLIPS/manifest.json ]]; then
-  print -u2 "run.sh: no $VOICE_EVAL_HUMAN_CLIPS/manifest.json"
-  exit 2
-fi
+[[ -z ${VOICE_EVAL_HUMAN_CLIPS:-} || -f $VOICE_EVAL_HUMAN_CLIPS/manifest.json ]] || { print -u2 "run.sh: no $VOICE_EVAL_HUMAN_CLIPS/manifest.json"; exit 2; }
 if [[ $env == phone && -n $persona ]]; then
   print -u2 "run.sh: --persona needs job metadata; phone calls always reach Ferni"
   exit 2
@@ -130,8 +127,7 @@ else
 fi
 firestore_db=$(node $HERE/eval-database.mjs $env)
 out=$HERE/out
-caller=${CALLER_VOICE:-${real_voice:+cartesia:$real_voice}}
-caller=${caller:-say}
+caller=${CALLER_VOICE:-${${real_voice:+cartesia:$real_voice}:-say}}
 if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} && -z ${EVAL_DRY_RUN:-} ]]; then
   export CARTESIA_API_KEY=$(gcloud secrets versions access latest --secret=cartesia-api-key --project=johnb-2025 2>/dev/null)
 fi
@@ -213,7 +209,6 @@ prepare_turns() {
     if [[ -n $clip ]]; then
       ffmpeg -loglevel error -y -i $clip -ac 1 -ar 48000 -f s16le $pcm
     elif [[ ! -s $pcm || $HERE/scenarios/$sc.txt -nt $pcm || ( -n $rp && ( $HERE/caller-personas.json -nt $pcm || $HERE/caller-realism.mjs -nt $pcm ) ) ]]; then
-      # Seeded by scenario, turn and persona: a rerun renders the same line.
       [[ -z $rp || $mode != turn ]] || line=$(node $HERE/caller-realism.mjs line $rp "$sc:$i:$rp" ${engine:-say} "$line")
       if [[ $caller == cartesia:* ]]; then
         node $HERE/caller-tts.mjs ${caller#cartesia:} $pcm "$line"
@@ -228,14 +223,11 @@ prepare_turns() {
 }
 
 # EVAL_RENDER_ONLY=1: render the caller's lines, print the audio dir, and stop: no call.
-if [[ -n ${EVAL_RENDER_ONLY:-} ]]; then
-  prepare_turns $scenario
-  exit 0
-fi
+[[ -z ${EVAL_RENDER_ONLY:-} ]] || { prepare_turns $scenario; exit 0; }
 
 # One call as $uid: converse_call <scenario> <out.json> <role>
 converse_call() {
-  local sc=$1 file=$2 role=$3 room tok turns meta
+  local sc=$1 file=$2 role=$3 room tok turns meta vmeta
   local adir
   adir=$(prepare_turns $sc)
   turns=(${(f)"$(<$adir/turns.list)"})
@@ -245,8 +237,11 @@ converse_call() {
     --agent $agent --job-metadata "$meta" --valid-for 20m 2>/dev/null \
     | grep -Eo 'eyJ[A-Za-z0-9._-]+' | head -1)
   print -u2 "voice-eval: $role $sc as $uid in $room"
-  (cd $ROOT && VOICE_EVAL_META="{\"uid\":\"$uid\",\"env\":\"$env\",\"scenario\":\"$sc\",\"label\":\"$label\",\"room\":\"$room\",\"role\":\"$role\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"realism\":\"$(realism_of $sc)\",\"audio\":\"$adir\"}" \
-    node $HERE/converse.mjs $url "$tok" $file $turns)
+  # converse.mjs's meta, via JSON.stringify: a path or label may need escaping.
+  vmeta=$(node -e 'const k = ["uid", "env", "scenario", "label", "room", "role", "seed", "persona", "realism", "audio"];
+    process.stdout.write(JSON.stringify(Object.fromEntries(k.map((x, i) => [x, process.argv[i + 1]]))))' \
+    "$uid" "$env" "$sc" "$label" "$room" "$role" "$seed" "$persona" "$(realism_of $sc)" "$adir")
+  (cd $ROOT && VOICE_EVAL_META=$vmeta node $HERE/converse.mjs $url "$tok" $file $turns)
 }
 
 # The dev phone number (a LiveKit number on ferni-dev, dispatch rule dev-phone) and
@@ -337,7 +332,7 @@ if [[ -n $seed ]]; then
 fi
 converse_call $scenario $json test
 node $HERE/score.mjs $json | tee ${json:r}.score.json
-if [[ -n $(realism_of $scenario) || -n ${VOICE_EVAL_HUMAN_CLIPS:-} ]]; then
-  node $HERE/realism-metrics.mjs $json > ${json:r}.realism.json
-fi
+# Written whole or not at all: a half-written sidecar would break a paired read of the dir.
+[[ -z $(realism_of $scenario)${VOICE_EVAL_HUMAN_CLIPS:-} ]] ||
+  { node $HERE/realism-metrics.mjs $json > ${json:r}.realism.tmp || exit 1; mv ${json:r}.realism.tmp ${json:r}.realism.json; }
 node $HERE/mix.mjs $json >&2

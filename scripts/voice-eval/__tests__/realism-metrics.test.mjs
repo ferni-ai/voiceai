@@ -49,7 +49,7 @@ describe('realismOfTimeline', () => {
       pausedTurns: 2,
       falseEnds: 2,
       falseEndRate: 1,
-      gapMs: { p50: 600, p90: 600, n: 2 },
+      gapMs: { p50: 600, p90: 600, n: 2, unanswered: 0 },
       bargeInStopMs: { p50: 2000, p90: 2000, n: 1 },
       shortInPauses: 1,
     });
@@ -59,19 +59,56 @@ describe('realismOfTimeline', () => {
     const patient = [[4600, 7000], [12300, 13000], [16200, 20000]];
     const m = realismOfTimeline(utterances, patient);
     expect([m.takeovers, m.falseEnds, m.takeoverRate, m.falseEndRate]).toEqual([0, 0, 0, 0]);
-    expect(m.gapMs).toEqual({ p50: 300, p90: 600, n: 3 }); // gaps 600, 300, 200
+    expect(m.gapMs).toEqual({ p50: 300, p90: 600, n: 3, unanswered: 0 }); // gaps 600, 300, 200
   });
 
   it('gap p50/p90 are nearest-rank over answered turns', () => {
     const us = [100, 200, 300, 400, 1000].map((g, k) => ({ start: k * 10000, end: k * 10000 + 2000, mode: '', pauses: [] }));
     // the 300 ms reply start ("Hey, you") still counts: gaps take every onset
     const vs = [100, 200, 300, 400, 1000].map((g, k) => [k * 10000 + 2000 + g, k * 10000 + 2000 + g + (k === 1 ? 300 : 3000)]);
-    expect(realismOfTimeline(us, vs).gapMs).toEqual({ p50: 300, p90: 1000, n: 5 });
+    expect(realismOfTimeline(us, vs).gapMs).toEqual({ p50: 300, p90: 1000, n: 5, unanswered: 0 });
   });
 
   it('no pauses and no interrupts give null rates, not zero', () => {
     const m = realismOfTimeline([{ start: 0, end: 1000, mode: '', pauses: [] }], []);
     expect([m.takeoverRate, m.falseEndRate, m.bargeInStopMs.p50]).toEqual([null, null, null]);
+  });
+});
+
+describe('review fixes (#2455)', () => {
+  const turn = (start, end, pauses = [], extra = {}) => ({ start, end, mode: '', pauses, ...extra });
+
+  it('no recorded agent voice gives null rates even when the caller paused', () => {
+    const m = realismOfTimeline([turn(0, 4000, [[1000, 2000]]), turn(8000, 12000, [[500, 1500]])], []);
+    expect([m.pauses, m.takeoverRate, m.falseEndRate]).toEqual([2, null, null]);
+  });
+
+  it('barge-in stop waits for 700 ms of silence, as converse.mjs does', () => {
+    // Ferni ignores the barge-in at 4000: a 450 ms breath at 4800, then talks on to 8000.
+    // A second interrupt lands inside the breath; he is still talking then too.
+    const us = [turn(0, 2000), { ...turn(4000, 4600), mode: 'interrupt' }, { ...turn(4900, 5100), mode: 'interrupt' }];
+    expect(realismOfTimeline(us, [[3000, 4800], [5250, 8000]]).bargeInStopMs).toEqual({ p50: 4000, p90: 4000, n: 2 }); // 4000 and 3100
+  });
+
+  it('a short false start after the caller resumed is a false end', () => {
+    const m = realismOfTimeline([turn(0, 4000, [[1000, 2000]])], [[2300, 2800], [4800, 7000]]);
+    expect([m.takeovers, m.falseEnds]).toEqual([0, 1]);
+  });
+
+  it('windows end at the caller last word, not at the end of the clip (room tone)', () => {
+    const m = realismOfTimeline([turn(0, 4500, [[1000, 1600]], { lastWord: 3000 })], [[3900, 7000]]);
+    expect([m.falseEnds, m.gapMs]).toEqual([0, { p50: 900, p90: 900, n: 1, unanswered: 0 }]);
+  });
+
+  it('an unanswered turn counts at the window, so skipping slow turns cannot lower p50', () => {
+    const m = realismOfTimeline([turn(0, 2000), turn(30000, 32000)], [[2500, 5000]]);
+    expect(m.gapMs).toEqual({ p50: 15000, p90: 15000, n: 2, unanswered: 1 });
+  });
+
+  it('realismValues names the sidecar it cannot read', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bad-'));
+    writeFileSync(join(dir, 'x-1.realism.json'), '{"scen');
+    expect(() => realismValues(dir)).toThrow(/x-1\.realism\.json/);
   });
 });
 
@@ -106,8 +143,8 @@ describe('a run on disk, through to paired.mjs', () => {
     expect(r.values).toEqual({
       'rt:takeover-rate': 1,
       'rt:false-end-rate': 1,
-      'rt:gap-p50-ms': null,
-      'rt:gap-p90-ms': null,
+      'rt:gap-p50-ms': 15000, // he took over, then never answered
+      'rt:gap-p90-ms': 15000,
       'rt:barge-in-stop-p50-ms': null,
     });
     expect(realismOfRun(writeRun(sweep('B'), 'trail', 'b1', 3100)).values['rt:gap-p50-ms']).toBe(300);

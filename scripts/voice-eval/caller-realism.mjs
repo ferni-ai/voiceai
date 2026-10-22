@@ -8,7 +8,7 @@
 //   caller-realism.mjs clip <scenario> <turn>          prints the human take for that turn, if any
 //     VOICE_EVAL_HUMAN_CLIPS=<dir> with <dir>/manifest.json: {"<scenario>": {"<turn>": "take.wav"}},
 //     turn = the scripted line's number (run.sh's t<turn>.pcm). Recorded takes only: never call audio.
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import { isAbsolute, join, relative, resolve } from 'node:path';
 import { rng } from './judge-stats.mjs';
 
@@ -96,10 +96,14 @@ export function clipFor(dir, scenario, turn) {
   if (!existsSync(manifest)) throw new Error(`caller-realism: no ${manifest}`);
   const rel = JSON.parse(readFileSync(manifest, 'utf8'))[scenario]?.[String(turn)];
   if (!rel) return '';
-  const file = resolve(dir, rel);
-  const inside = relative(resolve(dir), file);
-  if (inside.startsWith('..') || isAbsolute(inside)) throw new Error(`caller-realism: ${rel} is outside ${dir}`);
-  if (!existsSync(file)) throw new Error(`caller-realism: ${file} is in the manifest but not on disk`);
+  // Checked by name and again after symlinks; "..odd.wav" is a name, "../x" is not.
+  const root = realpathSync(dir);
+  const within = (p) => !/^\.\.(\/|$)/.test(relative(root, p)) && !isAbsolute(relative(root, p));
+  const lex = resolve(root, rel);
+  const file = within(lex) && existsSync(lex) ? realpathSync(lex) : lex;
+  if (!within(lex) || !within(file)) throw new Error(`caller-realism: ${rel} is outside ${dir}`);
+  if (!existsSync(file)) throw new Error(`caller-realism: ${lex} is in the manifest but not on disk`);
+  if (!statSync(file).isFile()) throw new Error(`caller-realism: ${rel} is not a file`);
   return file;
 }
 

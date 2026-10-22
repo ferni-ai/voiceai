@@ -1,7 +1,5 @@
-# Realistic caller, low cooperation: plays heavy news down in short flat lines.
-# Shape: red team 2026-10-21 eh-answers + flat-heavy-news (#2333, Ferni argued it was heavy).
-# A friend matches the low key, asks one plain question, lets "it's fine" stand.
-# Watch: takeover in the pauses before "it's whatever"; reply length; no therapist script.
+# Low cooperation: plays heavy news down in short flat lines (red team 2026-10-21, #2333). A friend
+# matches the low key and lets "it's fine" stand. Watch: takeovers, reply length, therapist script.
 #@caller flat-deflector
 Hey.
 Eh. I dunno. Fine I guess.
