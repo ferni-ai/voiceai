@@ -1,7 +1,7 @@
 /**
- * A crisis read that nothing else agrees with gets the soft check-in, not the
- * 988 guidance (CRISIS_CLASSIFIER_ONLY_CHECKIN = off | shadow | live, off by
- * default).
+ * A crisis read that only the classifier agrees with gets an independent
+ * second read before the 988 guidance (CRISIS_CLASSIFIER_ONLY_CHECKIN = off |
+ * shadow | live, off by default).
  *
  * Prod canary, 2026-10-22 (8981d4f03, CRISIS_AGREEMENT_GATE on): Ferni asked
  * about a long week, the caller said "The running, not so much. Once,
@@ -13,15 +13,20 @@
  *
  * Those two reads were not independent: both are the same model, at
  * temperature 0, on the same caller words (the reply gate and the turn
- * pipeline, or a preemptive and a final request). At everyday prevalence a
- * classifier on its own is right about real risk only a few times in a
- * hundred, so a severe response needs agreement from something that can
- * disagree with it. Without that, the turn gets the soft check
- * (SOFT_CRISIS_CHECK): Ferni stays in the conversation, checks in once if the
- * caller seems to be struggling, and offers 988 if they say anything about
- * hurting themselves.
+ * pipeline, or a preemptive and a final request). Two copies of one read are
+ * one read. At everyday prevalence a classifier on its own is right about
+ * real risk only a few times in a hundred, so the 988 guidance needs
+ * agreement from something that can disagree with it.
  *
- * Only when all of these hold:
+ * With the flag live, a turn whose only agreement is the classifier with
+ * itself goes to an independent second read before the guidance: the crisis
+ * adjudicator (crisis-adjudicator.ts: a different model, a counselor's
+ * escalate-or-check-in rubric, the call's recent lines by speaker), even with
+ * CRISIS_ADJUDICATOR off. Only its confident "checkin" with no caller risk
+ * quoted gives the soft check (SOFT_CRISIS_CHECK); escalate, low confidence,
+ * a timeout, an error or too little context keep the guidance.
+ *
+ * A turn reaches that read only when all of these hold:
  *   - the patterns found nothing at all in this turn (no indicator, no voice
  *     distress, no session escalation), and none in the caller's earlier lines;
  *   - the caller said at least three things before it this call, and the last
@@ -36,22 +41,33 @@
  *   - the caller's own words hold nothing from the agreement gate's broad risk
  *     list (hasRiskContent: means, plans, "tonight", goodbyes, other
  *     languages) and do not agree with Ferni's line;
- *   - Ferni's line did not raise safety (a check-in, 988, 911).
+ *   - Ferni's line did not raise safety (a check-in, 988, 911);
+ *   - the global adjudicator is not live (it has already read the turn).
  * Everything else keeps the crisis guidance exactly as before, as does any
  * error. A soft turn still counts as risk on the call, so the next crisis read
  * on the call is escalated as before: the check-in holds, and never drops.
  *
- * shadow logs what live would decide (CRISIS_CLASSIFIER_ONLY) and changes
- * nothing.
+ * shadow runs the second read off the reply path and logs what live would
+ * decide (CRISIS_CLASSIFIER_ONLY); the reply is unchanged.
  *
  * @module CrisisClassifierOnly
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  adjudicateCrisis,
+  createGeminiAdjudicatorGenerate,
+  normalizeTranscript,
+  resolveCrisisAdjudicatorTimeoutMs,
+  transcriptFrom,
+  type AdjudicatorLine,
+  type AdjudicatorResult,
+} from './crisis-adjudicator.js';
 import { endorses, hasRiskContent } from './crisis-agreement.js';
 import {
   turnVerdicts,
   type CrisisClassifierInput,
+  type CrisisGenerateFn,
   type CrisisVerdict,
 } from './crisis-classifier.js';
 import { detectCrisis, type CrisisDetectionResult } from './crisis-guard.js';
@@ -68,9 +84,12 @@ export function resolveClassifierOnlyCheckin(
   return raw === 'live' || raw === 'shadow' ? raw : 'off';
 }
 
-/** Why a classifier crisis read keeps the guidance, or 'checkin' when it gets the soft check. */
+/**
+ * Why a classifier crisis read keeps the guidance, or 'eligible' when only the
+ * classifier agrees with itself and the turn goes to the independent read.
+ */
 export type ClassifierOnlyWhy =
-  | 'checkin'
+  | 'eligible'
   | 'adjudicator_live'
   | 'pattern'
   | 'prior_risk'
@@ -118,7 +137,7 @@ const RECENT_LINES = 5;
 const patternsFound = (d: CrisisDetectionResult): boolean =>
   d.isCrisis || d.severity !== 0 || d.indicators.length > 0;
 
-/** The first reason this turn keeps the guidance, or 'checkin'. Throws on bad input. */
+/** The first reason this turn keeps the guidance, or 'eligible'. Throws on bad input. */
 function decide(args: ClassifierOnlyArgs): ClassifierOnlyWhy {
   const { detection, latest, companion, priorRisk } = args;
   if (args.adjudicatorLive) return 'adjudicator_live';
@@ -148,10 +167,10 @@ function decide(args: ClassifierOnlyArgs): ClassifierOnlyWhy {
   if (earlier.some((line) => patternsFound(detectCrisis(line)))) return 'earlier_pattern';
   if (earlier.length < MIN_EARLIER_LINES) return 'too_early';
   if (earlier.slice(-RECENT_LINES).some(hasRiskContent)) return 'risk_words';
-  return 'checkin';
+  return 'eligible';
 }
 
-/** Why this turn keeps the guidance, or 'checkin'. Fails closed: an error keeps it. */
+/** Why this turn keeps the guidance, or 'eligible'. Fails closed: an error keeps it. */
 export function classifierOnlyWhy(args: ClassifierOnlyArgs): ClassifierOnlyWhy {
   try {
     return decide(args);
@@ -160,11 +179,64 @@ export function classifierOnlyWhy(args: ClassifierOnlyArgs): ClassifierOnlyWhy {
   }
 }
 
+let defaultAdjudicate: CrisisGenerateFn | null = null;
+
+/** One turn's duplicate requests (preemptive and final) share one second read. In memory. */
+const RECENT_TTL_MS = 30_000;
+const RECENT_MAX = 32;
+const recentReads = new Map<string, { at: number; read: Promise<SecondRead> }>();
+
+interface SecondRead {
+  result: AdjudicatorResult;
+  latencyMs: number;
+}
+
+/** For tests: forget shared second reads. */
+export function resetClassifierOnlyReads(): void {
+  recentReads.clear();
+}
+
+/** The independent read of this turn. Never rejects: any failure escalates. */
+function secondRead(
+  lines: readonly AdjudicatorLine[],
+  scope: string | undefined,
+  generate: CrisisGenerateFn | undefined,
+  env: Record<string, string | undefined>
+): Promise<SecondRead> {
+  const now = Date.now();
+  const key = JSON.stringify([scope ?? '', normalizeTranscript(lines)]);
+  for (const [k, v] of recentReads) if (now - v.at > RECENT_TTL_MS) recentReads.delete(k);
+  const shared = recentReads.get(key)?.read;
+  if (shared) return shared;
+  const read = adjudicateCrisis(
+    lines,
+    generate ?? (defaultAdjudicate ??= createGeminiAdjudicatorGenerate()),
+    resolveCrisisAdjudicatorTimeoutMs(env)
+  )
+    .catch((): AdjudicatorResult => ({ decision: 'escalate', why: 'error' }))
+    .then((result) => ({ result, latencyMs: Date.now() - now }));
+  if (recentReads.size >= RECENT_MAX) {
+    const oldest = recentReads.keys().next().value;
+    if (oldest !== undefined) recentReads.delete(oldest);
+  }
+  recentReads.set(key, { at: now, read });
+  return read;
+}
+
+function logDecision(fields: Record<string, unknown>): void {
+  try {
+    log.info(fields, 'CRISIS_CLASSIFIER_ONLY');
+  } catch {
+    // Logging never changes the decision.
+  }
+}
+
 /**
  * For a turn whose classifier read is about to bring crisis guidance: true
- * when CRISIS_CLASSIFIER_ONLY_CHECKIN is live and nothing agrees with the
- * read, so the turn gets the soft check instead. Logs one CRISIS_CLASSIFIER_ONLY
- * line in shadow and live; does nothing when off. Never throws.
+ * when CRISIS_CLASSIFIER_ONLY_CHECKIN is live, only the classifier agrees with
+ * itself, and the independent second read says "checkin", so the turn gets the
+ * soft check instead. Logs one CRISIS_CLASSIFIER_ONLY line in shadow and live
+ * (shadow after its off-path second read); does nothing when off. Never throws.
  */
 export async function classifierOnlyCheckin(options: {
   detection: CrisisDetectionResult;
@@ -175,10 +247,15 @@ export async function classifierOnlyCheckin(options: {
   /** The turn's reads are kept under this scope (turnVerdicts); without it only this read counts. */
   scope?: string;
   adjudicatorLive?: boolean;
+  /** The call's recent lines by speaker; transcriptFrom(input) when absent. */
+  transcript?: readonly AdjudicatorLine[];
+  /** The second read's model call (the adjudicator's). */
+  adjudicate?: CrisisGenerateFn;
   env?: Record<string, string | undefined>;
   source: 'gate' | 'pipeline';
 }): Promise<boolean> {
-  const mode = resolveClassifierOnlyCheckin(options.env);
+  const env = options.env ?? process.env;
+  const mode = resolveClassifierOnlyCheckin(env);
   if (mode === 'off') return false;
   let why: ClassifierOnlyWhy = 'error';
   let reads = 0;
@@ -201,19 +278,35 @@ export async function classifierOnlyCheckin(options: {
   } catch {
     why = 'error';
   }
+  const base = { mode, source: options.source, reads };
+  if (why !== 'eligible') {
+    logDecision({ ...base, outcome: 'escalate', why });
+    return false;
+  }
+  let read: Promise<SecondRead>;
   try {
-    log.info(
-      {
-        mode,
-        source: options.source,
-        outcome: why === 'checkin' ? 'checkin' : 'escalate',
-        why,
-        reads,
-      },
-      'CRISIS_CLASSIFIER_ONLY'
+    read = secondRead(
+      options.transcript ?? transcriptFrom(options.input),
+      options.scope,
+      options.adjudicate,
+      env
     );
   } catch {
-    // Logging never changes the decision.
+    logDecision({ ...base, outcome: 'escalate', why: 'error' });
+    return false;
   }
-  return mode === 'live' && why === 'checkin';
+  const decided = read.then(({ result, latencyMs }) => {
+    const checkin = result.decision === 'checkin';
+    logDecision({
+      ...base,
+      outcome: checkin ? 'checkin' : 'escalate',
+      why: checkin ? 'second_read_checkin' : 'second_read_escalate',
+      secondRead: result.why,
+      secondReadMs: latencyMs,
+    });
+    return checkin;
+  });
+  // Shadow never holds the reply for the second read.
+  if (mode !== 'live') return false;
+  return decided.catch(() => false);
 }
