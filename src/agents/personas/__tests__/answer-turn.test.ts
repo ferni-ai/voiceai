@@ -233,6 +233,75 @@ describe('answersQuestion', () => {
     expect(isAnswerTurn(later.items, "It's me.", { [FLAG]: 'on' })).toBe(false);
   });
 
+  // #2414, from the #2348 final verifier: hellos that still read as answers.
+  it("on Ferni's opener, thanks, how they're doing and '<name> here' are no answer", () => {
+    for (const said of [
+      // The verifier's four:
+      'Good thanks.',
+      'Doing well, thanks',
+      'Hey Ferni, good morning to you too',
+      'Seth here',
+      // From the issue:
+      'doing good',
+      'not too bad',
+      "can't complain",
+      'good good',
+      'thanks',
+      'thank you',
+      'Doing great.',
+      'Doing alright.',
+      'Same old.',
+      'You too!',
+      "Hey it's Seth here",
+      "I'm well, thanks.",
+      'Same to you, Ferni.',
+      'Doing well, thanks for asking',
+      'Doing great, thank you so much',
+      // Adversarial:
+      "I'm doing well, thank you, how about you",
+      'Not too bad, thanks, and you',
+      'Cant complain, how are you doing',
+      'Same old same old.',
+      "Oh hi Ferni, it's Seth here. Thanks!",
+      'Great, thanks. Morning to you too, Fernie.',
+    ])
+      expect(onOpener(said), said).toBe(false);
+  });
+
+  it("on Ferni's opener, an answer behind thanks or a pleasantry still answers", () => {
+    for (const said of [
+      'thanks, I sent it',
+      'doing well, sent it Monday',
+      'good thanks, not yet',
+      "I'm well, Dana got it",
+      // Adversarial:
+      'Thank you, nope, not yet.',
+      'Seth here, I did send it',
+      'Not too bad, I finished it last night',
+      "Can't complain, Dana loved it",
+      'Doing great, it went out Friday',
+      'Same old, still editing it',
+    ])
+      expect(onOpener(said), said).toBe(true);
+    // Mid-call these stay answers, as on main: "Doing well." after "how's the knee?".
+    for (const said of ['Doing well.', 'Not too bad.', 'Good thanks.']) {
+      const midCall = call(
+        ['ferni', 'Hey Sam.'],
+        ['caller', 'Hey.'],
+        ['ferni', "How's the knee?"],
+        ['caller', said]
+      );
+      expect(isAnswerTurn(midCall.items, said, { [FLAG]: 'on' }), said).toBe(true);
+    }
+  });
+
+  it('with the flag off, none of them is an answer turn', () => {
+    for (const said of ['Good thanks.', 'Seth here', 'thanks, I sent it', 'I did.'])
+      expect(isAnswerTurn(call(['ferni', OPENER], ['caller', said]).items, said, {}), said).toBe(
+        false
+      );
+  });
+
   it('does not read their own question or a change of topic as an answer', () => {
     for (const said of [
       'Can you play some music?',

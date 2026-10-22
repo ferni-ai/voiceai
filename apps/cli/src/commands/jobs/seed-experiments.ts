@@ -9,7 +9,8 @@
  */
 
 import { getApps, initializeApp } from 'firebase-admin/app';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../../../../src/utils/firebase-admin-app.js';
 
 // Initialize Firebase
 if (getApps().length === 0) {
@@ -18,7 +19,7 @@ if (getApps().length === 0) {
   });
 }
 
-const db = getFirestore();
+const db = getAdminFirestore();
 
 // ============================================================================
 // EXPERIMENT DEFINITIONS

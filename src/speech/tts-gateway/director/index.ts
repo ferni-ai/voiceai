@@ -19,6 +19,7 @@ export { directorSessions, DirectorSessions } from './session-state.js';
 export { STABLE_EMOTIONS } from './emotion.js';
 export type {
   DirectorMode,
+  LaughGate,
   Lever,
   PauseKind,
   RustEvent,

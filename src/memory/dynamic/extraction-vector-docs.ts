@@ -14,6 +14,7 @@
  */
 
 import { sanitizeFirestoreDocId } from '../../utils/firestore-utils.js';
+import { withoutSpokenCredentials } from '../spoken-credential.js';
 import type { FallbackLogger } from '../../utils/safe-logger.js';
 import type { VectorDocument } from '../vector-store-interface.js';
 import type {
@@ -224,11 +225,15 @@ export interface SanitizedExtractionSlice {
 /**
  * Validate and normalize extraction items before any Firestore write.
  * Malformed LLM JSON is dropped with a debug log (same rules as vector docs).
+ * With SPOKEN_CREDENTIAL_FILTER on, a fact holding a credential is dropped too
+ * (memory/spoken-credential.ts), counted under `writer` (null: the caller that
+ * sanitizes the same result for Firestore counts it).
  */
 export function sanitizeExtractionResult(
   result: Pick<ExtractionResult, 'entities' | 'facts' | 'relationships'>,
   userId: string,
-  log: DebugLogger
+  log: DebugLogger,
+  writer: string | null = 'extraction'
 ): SanitizedExtractionSlice {
   const entities: ExtractedEntity[] = [];
   let droppedEntities = 0;
@@ -294,7 +299,7 @@ export function sanitizeExtractionResult(
 
   return {
     entities,
-    facts,
+    facts: withoutSpokenCredentials(facts, writer),
     relationships,
     dropped: {
       entities: droppedEntities,
@@ -311,7 +316,7 @@ export function buildExtractionVectorDocuments(
   timestamp: Date,
   log: DebugLogger
 ): VectorDocument[] {
-  const sanitized = sanitizeExtractionResult(result, userId, log);
+  const sanitized = sanitizeExtractionResult(result, userId, log, null);
   return [
     ...buildEntityDocs(userId, sanitized.entities, job, timestamp, log),
     ...buildFactDocs(userId, sanitized.facts, job, timestamp, log),
