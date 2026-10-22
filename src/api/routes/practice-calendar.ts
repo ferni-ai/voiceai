@@ -331,13 +331,14 @@ export async function handleGetPractices(
 
 import type { CalendarPractice } from '../../services/calendar/practice-calendar.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 async function storePractice(userId: string, practice: CalendarPractice): Promise<void> {
   try {
     const { Firestore } = await import('@google-cloud/firestore');
     const db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
 
     await db
@@ -357,7 +358,7 @@ async function getPractice(userId: string, practiceId: string): Promise<Calendar
     const { Firestore } = await import('@google-cloud/firestore');
     const db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
 
     const doc = await db
@@ -380,7 +381,7 @@ async function getAllPractices(userId: string): Promise<CalendarPractice[]> {
     const { Firestore } = await import('@google-cloud/firestore');
     const db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
 
     const snapshot = await db.collection('users').doc(userId).collection('practices').get();
