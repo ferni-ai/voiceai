@@ -283,6 +283,84 @@ export function claimedAction(sentence: string): ActionKind | null {
   return null;
 }
 
+/**
+ * A plain past report by Ferni of an action in the caller's world: "I booked it.", "I sent it.",
+ * "I called her.", "I set the reminder.", "I added it to your calendar." (ACTION_CLAIM_PAST).
+ * Plain past is also how Ferni tells his own life, so the guard asks this only when a tool of
+ * the kind was open and none ran (action-claim-guard.ts).
+ */
+const I_DID = '\\bi (?:already |also |just )?';
+const PAST: Record<ActionKind, RegExp[]> = {
+  // Not "called her out", "called him off", "called him a genius".
+  call: [
+    new RegExp(`${I_DID}(?:called|rang|phoned|dialed|dialled) ${DIALED}(?! (?:out|off|an?)\\b)`),
+  ],
+  send: [
+    new RegExp(
+      `${I_DID}(?:sent|texted|messaged|emailed) (?:it|that|this|the (?:text|message|email|note|invite|link)|${WHO})(?! back\\b)`
+    ),
+  ],
+  ride: [new RegExp(`${I_DID}(?:ordered|booked|called|got) you (?:an?|the) ${VEHICLE}`)],
+  schedule: [
+    new RegExp(
+      `${I_DID}(?:booked|scheduled|reserved) (?:it|that|this|you|your \\w+|the (?:\\w+ )?(?:table|appointment|reservation|meeting|room|slot|session))\\b(?! out\\b| to\\b)`
+    ),
+    new RegExp(
+      `${I_DID}(?:added|put) (?:it|that|this|the \\w+) (?:on|to|in|into) your (?:calendar|schedule|diary)\\b`
+    ),
+  ],
+  reminder: [
+    new RegExp(
+      `${I_DID}(?:set|added|created) (?:a|the|your|that|an) (?:\\w+ ){0,2}(?:reminder|timer|alarm)\\b`
+    ),
+  ],
+  save: [new RegExp(`${I_DID}(?:saved|stored|logged|noted) (?:it|that|this|those)\\b`)],
+};
+/** Ferni's own life anywhere in the sentence: "for my sister", "a friend of mine", "once". */
+const OWN_LIFE = /\b(?:my|myself|mine|once|usually|always|sometimes|whenever)\b/;
+/** A dated past: "in 2019", "back in June", "when we went to Paris". */
+const DATED =
+  /\b(?:in|since) (?:19|20)\d\d\b|\bback in\b|\bwhen (?:we|i) (?:went|were|was|lived|moved|visited)\b/;
+/** Taken back at the end: "I called her, but I did not." */
+const DENIED = /\bbut i (?:did not|didn't|have not|haven't|never did)\W*$/;
+/** Someone else's words just before the verb: "you said I called her", "they think I sent it". */
+const THEY_SAY =
+  /\b(?:you|they|she|he|we|people|someone|somebody) (?:said|say|says|think|thinks|thought|told me|claim|claims|claimed|mentioned|heard)(?: that)?\s*$/;
+/** Supposing it happened: "Say I booked it, then what?". */
+const SUPPOSE_PAST = /^(?:(?:so|okay|well) )?say\b|\bwhat if\b/;
+/** A habit in the claim's clause: "I set an alarm every night". */
+const HABIT = /\bevery (?:night|morning|day|week|year|time)\b/;
+
+/** The kind of action a plain past sentence reports Ferni did, or null (ACTION_CLAIM_PAST). */
+export function pastClaim(sentence: string): ActionKind | null {
+  const text = normalize(sentence);
+  if (FIGURATIVE.test(text) || OWN_LIFE.test(text) || NOT_AN_ACTION.test(text)) return null;
+  if (DATED.test(text) || DENIED.test(text)) return null;
+  let from = 0;
+  for (const raw of text.split(CLAUSES)) {
+    const start = text.indexOf(raw, from);
+    from = start + raw.length;
+    const clause = raw.trim();
+    if (!clause || NOT_A_CLAIM.test(clause) || HABIT.test(clause)) continue;
+    const before = text.slice(0, start + raw.indexOf(clause));
+    /** Unlike the claims above, a hedge anywhere before the verb counts: "if I booked it, ...". */
+    const reports = (re: RegExp): boolean => {
+      const m = re.exec(clause);
+      if (!m) return false;
+      const lead = before + clause.slice(0, m.index);
+      return (
+        !HEDGED.test(lead) &&
+        !REPORTED.test(lead) &&
+        !THEY_SAY.test(lead) &&
+        !SUPPOSE_PAST.test(lead)
+      );
+    };
+    const kind = ACTION_KINDS.find((k) => PAST[k].some(reports));
+    if (kind) return kind;
+  }
+  return null;
+}
+
 const ACK = 'okay|ok|alright|all right|sure|great|perfect|got it|you got it|yep|yes|yeah';
 const ON_IT = new RegExp(
   `^(?:${ACK}|i'm on it|on it|consider it done|will do|wish me luck|here goes|here we go|leave it (?:to|with) me)$`

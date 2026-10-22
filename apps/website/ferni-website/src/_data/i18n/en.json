@@ -6,7 +6,7 @@
   },
 
   "hero": {
-    "eyebrow": "Meet Your AI Coach",
+    "eyebrow": "Meet Ferni",
     "headline": "Better than",
     "headlineAccent": "human.",
     "subhead": "Finally, someone who actually listens.",
@@ -45,7 +45,7 @@
     "sectionTitle": "Meet the Team",
     "sectionSubtitle": "Six brilliant minds working together for you",
     "ferni": {
-      "role": "Life Coach",
+      "role": "Friend & Guide",
       "bio": "Your main point of contact. Asks the questions that unlock insight, celebrates every win, and connects you to the right specialist when you need them.",
       "sampleQuote": "I noticed you said 'fine' three times this week. What's actually going on?"
     },
@@ -56,7 +56,7 @@
     },
     "peter": {
       "role": "Research & Discovery",
-      "bio": "Spots patterns nobody else sees across your spending, habits, and calendar. Turns data into insights that actually change behavior.",
+      "bio": "Helps you spot patterns in your money, habits and time, from what you share. Turns numbers into insights that actually change behavior.",
       "sampleQuote": "You spend 23 hours a month on things you said don't matter to you. Want to see?"
     },
     "alex": {

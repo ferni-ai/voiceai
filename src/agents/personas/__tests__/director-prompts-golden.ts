@@ -1,10 +1,11 @@
 /**
  * The director's and the deliberator's built prompts (system + prompt) across
  * the flags that shape them, captured through the real Director and
- * Deliberator with an injected writer. director-sees-scene.test.ts compares
- * them with director-prompts.golden.json, captured from origin/main before
- * DIRECTOR_SEES_SCENE existed: with that flag unset or off, every prompt must
- * be byte-identical to what prod sends today.
+ * Deliberator with an injected writer. director-sees-scene.test.ts and
+ * director-directs.test.ts compare them with director-prompts.golden.json,
+ * what prod sends: with DIRECTOR_SEES_SCENE and DIRECTOR_DIRECTS unset or off,
+ * every prompt must be byte-identical to it, even when the persona on the call
+ * is handed to them.
  */
 import { vi } from 'vitest';
 
@@ -32,8 +33,15 @@ const WEIGHTY =
 
 export type Captured = Record<string, { system: string; prompt: string }>;
 
-/** Every prompt the director and the deliberator would send, under `extra` env on top of each combo. */
-export async function capturePrompts(extra: Record<string, string> = {}): Promise<Captured> {
+/**
+ * Every prompt the director and the deliberator would send, under `extra` env
+ * on top of each combo. `personaId` is handed to both as the persona on the
+ * call (DIRECTOR_DIRECTS reads it; nothing else may).
+ */
+export async function capturePrompts(
+  extra: Record<string, string> = {},
+  personaId?: string
+): Promise<Captured> {
   const out: Captured = {};
   for (const [combo, env] of Object.entries(GOLDEN_ENVS)) {
     for (const [k, v] of Object.entries({ ...env, ...extra })) vi.stubEnv(k, v);
@@ -47,6 +55,7 @@ export async function capturePrompts(extra: Record<string, string> = {}): Promis
           return 'NONE';
         },
         speaking: speaking ? () => speaking : undefined,
+        ...(personaId ? { personaId: () => personaId } : {}),
       });
       director.tools.started('c1', 'playMusic');
       await director.observe(DIRECTOR_CALL);
@@ -66,7 +75,8 @@ export async function capturePrompts(extra: Record<string, string> = {}): Promis
         ],
         null,
         'Mom moved in last month.',
-        '[HOW THEY ARE] Puts off hard talks until they are forced.'
+        '[HOW THEY ARE] Puts off hard talks until they are forced.',
+        ...(personaId ? [personaId] : [])
       );
       out[`deliberation.${combo}.${mode}`] = got;
     }

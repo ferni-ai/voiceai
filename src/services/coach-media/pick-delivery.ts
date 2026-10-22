@@ -72,6 +72,10 @@ const NOT_TEXTED: Record<TextSkip, string> = {
   'no-verified-phone':
     "There's no verified number on their account, so it can't be texted. Offer to put it in the app.",
   'recently-sent': 'A pick was just texted to them; offer the app for this one.',
+  'consent-unknown':
+    "Couldn't check their text settings just now, so it wasn't texted. Offer the app instead.",
+  paused:
+    'They recently sounded like they might want fewer texts, so it was not texted. Offer the app.',
   'no-hash-secret': "The text didn't go through. Offer to put it in the app.",
   'send-failed': "The text didn't go through. Offer to put it in the app.",
 };
