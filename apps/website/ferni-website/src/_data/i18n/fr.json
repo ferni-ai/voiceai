@@ -5,7 +5,7 @@
     "direction": "ltr"
   },
   "hero": {
-    "eyebrow": "Rencontrez Votre Coach IA",
+    "eyebrow": "Découvrez Ferni",
     "headline": "Mieux que",
     "headlineAccent": "l'humain.",
     "subhead": "Enfin, quelqu'un qui écoute vraiment.",
@@ -42,7 +42,7 @@
     "sectionTitle": "Rencontrez l'Équipe",
     "sectionSubtitle": "Six esprits brillants travaillant ensemble pour vous",
     "ferni": {
-      "role": "Coach de Vie",
+      "role": "Ami & Guide",
       "bio": "Votre point de contact principal. Pose les questions qui débloquent les insights, célèbre chaque victoire et vous connecte au bon spécialiste quand vous en avez besoin.",
       "sampleQuote": "J'ai remarqué que vous avez dit 'bien' trois fois cette semaine. Que se passe-t-il vraiment ?"
     },
@@ -53,7 +53,7 @@
     },
     "peter": {
       "role": "Recherche & Découverte",
-      "bio": "Repère des schémas que personne d'autre ne voit dans vos dépenses, habitudes et calendrier. Transforme les données en insights qui changent vraiment les comportements.",
+      "bio": "Vous aide à repérer des schémas dans votre argent, vos habitudes et votre temps, à partir de ce que vous partagez. Transforme les chiffres en idées qui changent vraiment les comportements.",
       "sampleQuote": "Vous passez 23 heures par mois sur des choses que vous dites sans importance. Voulez-vous voir ?"
     },
     "alex": {
