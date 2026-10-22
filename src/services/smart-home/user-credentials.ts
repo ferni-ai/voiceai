@@ -9,7 +9,7 @@
  * Sensitive fields: Hue username (API key), LIFX token, Sonos access/refresh tokens
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { encryptSensitive, decryptSensitive } from '../privacy-crypto.js';
 
@@ -165,7 +165,7 @@ export async function getUserSmartHomeCredentials(userId: string): Promise<Smart
   };
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const smartHomeRef = db.collection('bogle_users').doc(userId).collection('smart_home');
 
     // Load all credentials in parallel
@@ -220,7 +220,7 @@ export async function getCredential<K extends keyof SmartHomeCredentials>(
   type: K
 ): Promise<SmartHomeCredentials[K]> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const doc = await db
       .collection('bogle_users')
       .doc(userId)
@@ -265,7 +265,7 @@ export async function saveCredential<K extends keyof SmartHomeCredentials>(
   credentials: NonNullable<SmartHomeCredentials[K]>
 ): Promise<boolean> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const docId = type === 'homeKit' ? 'homekit' : type;
 
     // Encrypt sensitive fields before saving
@@ -327,7 +327,7 @@ export async function deleteCredential(
   type: keyof SmartHomeCredentials
 ): Promise<boolean> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const docId = type === 'homeKit' ? 'homekit' : type;
 
     await db.collection('bogle_users').doc(userId).collection('smart_home').doc(docId).delete();
@@ -359,7 +359,7 @@ export async function getSetupState(userId: string): Promise<SmartHomeSetupState
   };
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const doc = await db
       .collection('bogle_users')
       .doc(userId)
@@ -384,7 +384,7 @@ async function updateSetupState(
   connected: boolean
 ): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const stateRef = db
       .collection('bogle_users')
       .doc(userId)
@@ -414,7 +414,7 @@ async function updateSetupState(
  */
 export async function markSetupStarted(userId: string): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     await db.collection('bogle_users').doc(userId).collection('smart_home').doc('_setup_state').set(
       {
         setupStartedAt: new Date().toISOString(),
@@ -436,7 +436,7 @@ export async function markSetupAbandoned(userId: string): Promise<void> {
 
     // Only mark as abandoned if they started but didn't complete any
     if (state.setupStartedAt && state.completedIntegrations.length === 0) {
-      const db = getFirestore();
+      const db = getAdminFirestore();
       await db
         .collection('bogle_users')
         .doc(userId)

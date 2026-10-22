@@ -30,6 +30,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { loadLedger } from '../personas/life-ledger.js';
 import { pendingLifeUpdates } from '../personas/life-updates.js';
 import { firestoreRecallStore } from './memory-recall-hook.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'welcome-back' });
 
@@ -167,7 +168,7 @@ export async function loadWelcomeBack(
   } = {}
 ): Promise<WelcomeBackMaterial | undefined> {
   if (!welcomeBackEnabled(opts.env) || !isWelcomeBack(history)) return undefined;
-  if (!userId || userId === 'anonymous') return undefined;
+  if (!isMemberIdentity(userId)) return undefined;
   const sources = opts.sources ?? welcomeBackSources;
   const ms = opts.waitMs ?? WAIT_MS;
   const [followUps, lifeUpdate] = await Promise.all([

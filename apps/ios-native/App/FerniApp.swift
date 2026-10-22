@@ -25,6 +25,11 @@ struct FerniApp: App {
 @MainActor
 @Observable
 final class AppModel {
+    /// The avatar's feedback. Haptics arrive with the Core Haptics player.
+    private static func play(_ effect: AvatarEffect) {
+        if case .announce(let text) = effect { AccessibilityNotification.Announcement(text).post() }
+    }
+
     let config: FerniConfig
     let account: AccountStore
     let api: FerniAPI
@@ -39,7 +44,8 @@ final class AppModel {
         call = CallSession(
             fetchToken: CallTokens.fetcher(api: api),
             makeRoom: { LiveKitVoiceRoom() },
-            audio: SystemCallAudio()
+            audio: SystemCallAudio(),
+            avatar: AvatarModel(play: Self.play)
         )
     }
 }

@@ -27,8 +27,8 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
   if (firestoreDb) return firestoreDb;
 
   try {
-    const { getFirestore: getFs } = await import('firebase-admin/firestore');
-    firestoreDb = getFs();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    firestoreDb = getAdminFirestore();
     return firestoreDb;
   } catch (err) {
     log.warn({ error: String(err) }, 'Firestore not available, using in-memory cache only');
