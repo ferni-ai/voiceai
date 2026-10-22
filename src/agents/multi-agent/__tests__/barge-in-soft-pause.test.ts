@@ -175,25 +175,41 @@ describe('BARGE_IN_SOFT_PAUSE on', () => {
     expect(c.resume).not.toHaveBeenCalled();
   });
 
-  it('never pauses longer than window + grace, even if the caller never goes quiet', () => {
+  it('caller never goes quiet (steady room noise): resumes at the window end', () => {
     const c = call('on');
     c.talkOver();
-    const cap = SOFT_PAUSE_CONFIRM_MS + SOFT_PAUSE_STT_GRACE_MS;
-    vi.advanceTimersByTime(cap - 1);
+    vi.advanceTimersByTime(SOFT_PAUSE_CONFIRM_MS - 1);
     expect(c.resume).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(c.resume).toHaveBeenCalledTimes(1);
     expect(c.decisions).toEqual([
-      { outcome: 'resumed', why: 'no-words', after: 'cap', pausedMs: cap },
+      { outcome: 'resumed', why: 'no-words', after: 'window', pausedMs: SOFT_PAUSE_CONFIRM_MS },
     ]);
-    // ...and a quiet that comes just before the cap does not stretch it.
-    const d = call('on');
-    d.talkOver();
-    vi.advanceTimersByTime(cap - 100);
-    d.fp.onUserState({ newState: 'listening' });
-    vi.advanceTimersByTime(100);
-    expect(d.resume).toHaveBeenCalledTimes(1);
-    expect(d.decisions[0]).toMatchObject({ after: 'grace', pausedMs: cap });
+  });
+
+  it('a quiet just before the window still gets its full STT grace', () => {
+    const c = call('on');
+    c.talkOver();
+    vi.advanceTimersByTime(SOFT_PAUSE_CONFIRM_MS - 100);
+    c.fp.onUserState({ newState: 'listening' });
+    vi.advanceTimersByTime(SOFT_PAUSE_STT_GRACE_MS - 1);
+    expect(c.resume).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(c.resume).toHaveBeenCalledTimes(1);
+    expect(c.decisions[0]).toMatchObject({
+      after: 'grace',
+      pausedMs: SOFT_PAUSE_CONFIRM_MS - 100 + SOFT_PAUSE_STT_GRACE_MS,
+    });
+  });
+
+  it('caller talks straight through the window: words landing after the resume still cut', () => {
+    const c = call('on');
+    c.talkOver();
+    vi.advanceTimersByTime(SOFT_PAUSE_CONFIRM_MS);
+    expect(c.resume).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(1700 - SOFT_PAUSE_CONFIRM_MS); // 1700 ms into the pause
+    c.fp.onTranscript({ transcript: 'no wait listen', isFinal: false });
+    expect(c.interrupt).toHaveBeenCalledTimes(1);
   });
 
   it('resumes after a backchannel', () => {
@@ -289,10 +305,21 @@ describe('soft pause settings', () => {
       BARGE_IN_SOFT_PAUSE_STT_GRACE_MS: '300',
     });
     c.talkOver();
-    vi.advanceTimersByTime(1099);
+    vi.advanceTimersByTime(799);
     expect(c.resume).not.toHaveBeenCalled();
     vi.advanceTimersByTime(1);
     expect(c.resume).toHaveBeenCalledTimes(1);
+    const d = call('on', {
+      BARGE_IN_SOFT_PAUSE_CONFIRM_MS: '800',
+      BARGE_IN_SOFT_PAUSE_STT_GRACE_MS: '300',
+    });
+    d.talkOver();
+    vi.advanceTimersByTime(700);
+    d.fp.onUserState({ newState: 'listening' });
+    vi.advanceTimersByTime(299);
+    expect(d.resume).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(d.resume).toHaveBeenCalledTimes(1);
   });
 });
 

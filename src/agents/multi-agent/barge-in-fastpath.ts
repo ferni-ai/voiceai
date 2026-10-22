@@ -201,15 +201,20 @@ export function createBargeInFastPath(deps: {
     resumedAt = Date.now();
     soft.resume();
   };
-  /** Resume at the later of the window's end and the STT grace's end, capped at both summed. */
+  /**
+   * Resume at the window's end, or, if the caller went quiet, at the later of
+   * that and the STT grace's end (never past both summed). A caller who never
+   * goes quiet is usually steady room noise: don't hold Ferni silent past the
+   * window; a real interruption's late words still cut via the post-resume backstop.
+   */
   const scheduleResume = (): void => {
     if (!pending || !soft) return;
     if (pending.timer) clearTimer(pending.timer);
     const windowEnd = pending.at + soft.confirmMs;
     const cap = windowEnd + soft.graceMs;
     const { vadEndAt } = pending;
-    const graceEnd = vadEndAt === undefined ? cap : vadEndAt + soft.graceMs;
-    const after = vadEndAt === undefined ? 'cap' : graceEnd > windowEnd ? 'grace' : 'window';
+    const graceEnd = vadEndAt === undefined ? windowEnd : vadEndAt + soft.graceMs;
+    const after = graceEnd > windowEnd ? 'grace' : 'window';
     const ms = Math.min(cap, Math.max(windowEnd, graceEnd)) - Date.now();
     pending.timer = setTimer(
       () => decide('resumed', { why: pending?.heard, after }),
