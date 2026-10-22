@@ -197,6 +197,9 @@ describe('the allowlist and the always-hold list (crisis-release-words.ts)', () 
     ['hopelessness', 'I feel completely hopeless'],
     ['hurting, vanishing, stopping', 'I want it all to stop'],
     ['finality', 'Dinner is my last meal.'],
+    ['stockpiling', 'All thirty, for later tonight.'],
+    ['a veiled moment', 'Tonight is the night.'],
+    ['a veiled moment', "It's time. Dinner at seven."],
   ])('holds %s: "%s"', (_rule, line) => {
     expect(alwaysHold(line)).toBe(true);
   });

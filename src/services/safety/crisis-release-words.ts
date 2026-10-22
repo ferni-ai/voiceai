@@ -31,7 +31,7 @@ export const EVERYDAY = new Set(
     this that that's these those there here what what's when where which who how
     is am are was were be been do does did have has had will would can could should
     just still also too really very then now ok okay yeah yes yep sure oh um uh hey hi please
-    well actually again already soon later little bit lot some any more most all
+    well actually again already soon later little bit
     tonight today tomorrow tomorrow's tonight's yesterday morning afternoon evening night noon
     week weekend monday tuesday wednesday thursday friday saturday sunday
     o'clock pm half quarter past early late time minute minutes hour hours
@@ -60,6 +60,8 @@ export const ALWAYS_HOLD = new RegExp(
     String.raw`\b(?:hopeless\w*|worthless|pointless|give up|giving up|gave up|can'?t go on|cannot go on|waste of space|hate my life|nothing matters|no reason|tired of|life|live|living|lives)\b`,
     // hurting anyone, vanishing, wanting it to stop
     String.raw`\b(?:hurt\w*|harm\w*|vanish\w*|wasn'?t around|not around|be here|being here|it (?:all )?(?:to )?stop|make it stop)\b`,
+    // stockpiling, and veiled "the moment has come" phrases (round 2 probe)
+    String.raw`\b(?:pharmacy|prescriptions?|refills?|doses?|capsules?|stockpil\w*|the night|the day|the end|it'?s time|time to|other side|for later)\b`,
     // finality and exits
     String.raw`\b(?:goodbye|goodbyes|bye|farewell|forever|permanently|for good|last|final|gone|anymore|without me|miss me|better off|burden|no point|disappear|wake up|alive|letters?|sorry|forgive)\b`,
   ].join('|')
