@@ -8,49 +8,87 @@
 import { DocumentReference, Timestamp } from 'firebase-admin/firestore';
 
 /**
- * Fields never exported, at any depth: inside nested objects, arrays, and JSON kept as a
- * string. A key is normalised before it's matched (NFKC, lower case, every separator and
- * non-letter removed), so accessToken, access_token, access-token, ACCESS.TOKEN and
- * "access token" are one key. Long unambiguous terms match anywhere in that key; short
- * ones only as a whole word or as the whole key, so "footprint" is not "otp".
+ * What a credential is called: a denylist, not a pattern. A field is dropped by name, at
+ * any depth (nested maps, arrays, JSON kept as a string), when its normalised name (NFKC,
+ * lower case, every separator and non-letter removed, so accessToken, access_token,
+ * ACCESS-TOKEN and "access token" are one name) IS one of SECRET_NAMES or ENDS WITH one of
+ * SECRET_ENDINGS. Nothing is matched inside a name (#2366): a person's own words that
+ * merely contain one (favorite_cookie, salt_intake, hash_browns, endpoint_of_trip,
+ * refreshments) stay, and so does every session reference (sessionId, sessionIds,
+ * firstSessionId, session_id): the call a record came from, not a sign-in. A credential
+ * under any other name is still dropped by its value (isSecretValue).
  */
-const SECRET_KEY_PARTS = [
+const SECRET_ENDINGS = [
+  // tokens, with or without a prefix: accessToken, refresh_token, pushToken, twilioAuthToken
   'token',
+  // service and client secrets: clientSecret, mfaSecret, webhookSecret, livekitApiSecret
   'secret',
+  'secrets',
+  // passwords and password hashes
   'password',
+  'passwords',
+  'passwordhash',
   'passwd',
   'passcode',
-  'credential',
+  'passphrase',
+  // key material: apiKey, X-API-KEY, privateKey, signingKey
   'apikey',
+  'apikeys',
   'accesskey',
+  'secretkey',
   'privatekey',
   'signingkey',
+  'encryptionkey',
   'clientkey',
-  'oauth',
+  'sessionkey',
+  // stored credentials: webauthnCredential, googleCredentials
+  'credential',
+  'credentials',
+];
+/** Credentials only as the whole name: each is also an ordinary word inside other names */
+const SECRET_NAMES = new Set([
+  // key material, and a web-push subscription (its endpoint and keys.auth / keys.p256dh)
+  'key',
+  'keys',
+  'keysauth',
+  'keysp256dh',
   'p256dh',
+  'auth',
+  'endpoint',
+  'pushsubscription',
+  'passkey',
+  'webauthn',
+  // HTTP credentials and token bundles ({access, refresh})
   'authorization',
   'bearer',
   'jwt',
   'cookie',
-  'webauthn',
-  'passkey',
-  'pushsubscription',
-  'endpoint',
+  'cookies',
+  'sessioncookie',
+  'oauth',
+  'access',
   'refresh',
-  'sessionid',
-  'sessionkey',
-  'verificationcode',
-  'otpcode',
+  // PINs and one-time codes
+  'pin',
   'pincode',
-  'authcode',
+  'pinhash',
+  'otp',
+  'otpcode',
   'totp',
+  'code',
+  'authcode',
+  'authorizationcode',
+  'verificationcode',
   'recoverycode',
+  'recoverycodes',
   'backupcode',
-];
-/** Secret only as a whole word of the key (auth in authMethod, not in author) */
-const SECRET_WORDS = new Set(['auth', 'otp', 'pin', 'hash', 'salt', 'mfa']);
-/** Secret only as the entire key */
-const SECRET_KEYS = new Set(['keys', 'key', 'access', 'code', 'sig', 'signature', 'nonce']);
+  'backupcodes',
+  // signing and hashing material
+  'salt',
+  'nonce',
+  'sig',
+  'signature',
+]);
 
 function normaliseKey(key: string): string {
   return key
@@ -60,17 +98,8 @@ function normaliseKey(key: string): string {
 }
 
 export function isSecretField(key: string): boolean {
-  const whole = normaliseKey(key);
-  if (SECRET_KEYS.has(whole) || SECRET_KEY_PARTS.some((part) => whole.includes(part))) {
-    return true;
-  }
-  const words = key
-    .normalize('NFKC')
-    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
-    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
-    .toLowerCase()
-    .split(/[^a-z0-9]+/);
-  return words.some((w) => SECRET_WORDS.has(w));
+  const name = normaliseKey(key);
+  return SECRET_NAMES.has(name) || SECRET_ENDINGS.some((ending) => name.endsWith(ending));
 }
 
 /** Values that are credentials whatever their key says (bearer, JWT, Google, Stripe, push) */
@@ -129,20 +158,26 @@ function isA<T>(type: unknown, value: unknown): value is T {
   return typeof type === 'function' && value instanceof type;
 }
 
-const NOTHING_SPARED: ReadonlySet<string> = new Set();
+/** Names an object's fields are matched by, as stored: see clean() */
+interface FieldNames {
+  readonly spared: ReadonlySet<string>;
+  readonly maps: ReadonlySet<string>;
+}
+const NO_NAMES: FieldNames = { spared: new Set(), maps: new Set() };
 
 /**
  * Firestore values as JSON, with secrets removed: timestamps become ISO strings,
  * references their paths, and a string holding JSON is filtered like any object and
- * kept as a string. Secret fields and secret-looking values are dropped. `spared` names
+ * kept as a string. Secret fields and secret-looking values are dropped. `names.spared`
  * (exact, as stored) skip the field-name filter on this object only, never on nested values,
- * and their own values still go through the value filter.
+ * and their own values still go through the value filter. `names.maps` are this object's
+ * fields that are data maps: their own keys are spared the same way.
  */
 function clean(
   value: unknown,
   meter: ParseMeter,
   depth = 0,
-  spared: ReadonlySet<string> = NOTHING_SPARED
+  names: FieldNames = NO_NAMES
 ): Plain | typeof DROP {
   if (depth > MAX_FIELD_DEPTH) return DROP; // deeper than Firestore allows: crafted, not stored
   if (value === null || value === undefined) return null;
@@ -157,26 +192,35 @@ function clean(
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return DROP;
   // A stored vector (a fact's embedding): 768 numbers derived from text that is exported
   if (isVector(value)) return DROP;
-  if (typeof value === 'object') return cleanFields(value, meter, depth, spared);
+  if (typeof value === 'object') return cleanFields(value, meter, depth, names);
   if (typeof value === 'number' || typeof value === 'boolean') return value;
   return DROP; // functions, symbols, bigints: nothing a person stored
 }
 
-/** An object's fields, secret ones dropped unless spared; nested values get no spared names */
+/**
+ * An object's fields, secret ones dropped unless spared. Nested values get no spared names,
+ * except a data map's own keys (the map's values are still filtered as usual).
+ */
 function cleanFields(
   value: object,
   meter: ParseMeter,
   depth: number,
-  spared: ReadonlySet<string>
+  { spared, maps }: FieldNames
 ): Record<string, Plain> {
   // No prototype, so a stored "__proto__" key is an own field the filter sees, not a setter
   const out = Object.create(null) as Record<string, Plain>;
-  for (const [k, v] of Object.entries(value)) {
+  for (const [k, v] of Object.entries(value) as Array<[string, unknown]>) {
     if (isSecretField(k) && !spared.has(k)) continue;
-    const kept = clean(v, meter, depth + 1);
+    const kept = clean(v, meter, depth + 1, maps.has(k) ? dataMapNames(v) : NO_NAMES);
     if (kept !== DROP) out[k] = kept;
   }
   return out;
+}
+
+/** A data map's own keys are spared; what they hold is filtered as usual */
+function dataMapNames(map: unknown): FieldNames {
+  if (typeof map !== 'object' || map === null) return NO_NAMES;
+  return { spared: new Set(Object.keys(map)), maps: NO_NAMES.maps };
 }
 
 function cleanString(value: string, meter: ParseMeter, depth: number): Plain | typeof DROP {
@@ -201,16 +245,20 @@ function cleanString(value: string, meter: ParseMeter, depth: number): Plain | t
 /**
  * A stored value as it goes into the export file, any JSON parsing charged to the meter.
  * `keep` lists top-level fields of the value that stay although their name is on the
- * secret list, matched exactly as stored and never normalised (so `session_id` or `KEY`
- * is still dropped), for a store where that name is the person's data (#2336). Only the top
+ * secret list, matched exactly as stored and never normalised (so `KEY` is still
+ * dropped), for a store where that name is the person's data (#2336). Only the top
  * level: the same name inside a nested map, an array or JSON kept as a string is still
  * dropped, and a kept field holding a credential-looking value is dropped all the same.
+ * `dataMaps` lists top-level fields whose own keys are data, chosen by the person or the
+ * model (an entity's attributes: {pin: 'the blue one'}), so no key of theirs is dropped by
+ * name (#2366); their values still go through every filter.
  */
 export function toPlain(
   value: unknown,
   meter: ParseMeter = UNMETERED,
-  keep: readonly string[] = []
+  keep: readonly string[] = [],
+  dataMaps: readonly string[] = []
 ): Plain {
-  const kept = clean(value, meter, 0, new Set(keep));
+  const kept = clean(value, meter, 0, { spared: new Set(keep), maps: new Set(dataMaps) });
   return kept === DROP ? null : kept;
 }

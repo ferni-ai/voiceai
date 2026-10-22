@@ -32,7 +32,6 @@ describe('secret fields', () => {
     'verificationCode',
     'apiKey',
     'api_key',
-    'session_id',
     'clientSecret',
     'webauthnCredential',
     'privateKey',
@@ -59,6 +58,13 @@ describe('secret fields', () => {
     // look-alikes a byte-wise match misses: full-width letters, a zero-width space
     'ａｃｃｅｓｓＴｏｋｅｎ',
     'access\u200bToken',
+    // a credential under a prefix
+    'spotifyAccessToken',
+    'twilioAuthToken',
+    'livekitApiSecret',
+    'userPasswordHash',
+    'sessionToken',
+    'pin_code',
   ])('drops %s', (key) => expect(isSecretField(key)).toBe(true));
 
   it.each([
@@ -75,6 +81,22 @@ describe('secret fields', () => {
     'notes',
     'title',
     'relationship',
+    // the call a record came from, under any name or spelling (#2366)
+    'sessionId',
+    'session_id',
+    'sessionIds',
+    'firstSessionId',
+    'sourceSessionId',
+    'throughSessionId',
+    // words a person or the model chose that only contain a credential's name (#2366)
+    'favorite_cookie',
+    'salt_intake',
+    'refreshments',
+    'hash_browns',
+    'endpoint_of_trip',
+    'authMethod',
+    'maxTokens',
+    'tokenCount',
   ])('keeps %s', (key) => expect(isSecretField(key)).toBe(false));
 
   it.each([
@@ -261,7 +283,7 @@ describe('the records export keeps a fact whole (#2336)', () => {
           key: 'breed',
           value: 'golden retriever',
           apiKey: 'zz-secret-1',
-          meta: { key: 'zz-secret-2', sessionId: 'zz-secret-3' },
+          meta: { key: 'zz-secret-2', sessionToken: 'zz-secret-3' },
         },
         // a kept name never vouches for its value: a credential is dropped whatever its key
         'bogle_users/u-1/dynamic_facts/f2': { entityName: 'Biscuit', key: 'sk_live_zz-secret-4' },
@@ -301,7 +323,7 @@ describe('the records export keeps a fact whole (#2336)', () => {
     });
   });
 
-  it('keeps only the exact names: other spellings are still dropped as secrets', async () => {
+  it("keeps only a fact's exact key, and every spelling of a session reference", async () => {
     const out = await exportUserRecords(
       'u-1',
       undefined,
@@ -316,17 +338,26 @@ describe('the records export keeps a fact whole (#2336)', () => {
         'bogle_users/u-1/conversations/c1': {
           title: 'Call',
           sessionId: 's-1',
-          session_id: 'zz-secret-4',
-          SESSION_ID: 'zz-secret-5',
-          'session.id': 'zz-secret-6',
-          ｓｅｓｓｉｏｎＩｄ: 'zz-secret-7',
+          session_id: 's-2',
+          SESSION_ID: 's-3',
+          'session.id': 's-4',
+          ｓｅｓｓｉｏｎＩｄ: 's-5',
         },
       })
     );
     expect(JSON.stringify(out)).not.toMatch(/zz-secret/);
     expect(out[FACTS]).toEqual([{ id: 'f1', entityName: 'Biscuit', key: 'breed' }]);
+    // a session reference is the call a record came from, never a sign-in (#2366)
     expect(out['bogle_users/{uid}/conversations']).toEqual([
-      { id: 'c1', title: 'Call', sessionId: 's-1' },
+      {
+        id: 'c1',
+        title: 'Call',
+        sessionId: 's-1',
+        session_id: 's-2',
+        SESSION_ID: 's-3',
+        'session.id': 's-4',
+        ｓｅｓｓｉｏｎＩｄ: 's-5',
+      },
     ]);
   });
 
@@ -346,6 +377,122 @@ describe('the records export keeps a fact whole (#2336)', () => {
     expect(out['bogle_users/{uid}/conversations']).toEqual([
       { id: 'c1', title: 'Bearer' },
       { id: 'c2', title: 'JWT' },
+    ]);
+  });
+});
+
+/**
+ * One person with every kind of field the issue names (#2366), next to every kind of secret
+ * and a second person's records. All values are made up.
+ */
+describe('the records export gives a person all their data, and no secret (#2366)', () => {
+  const records = {
+    'bogle_users/u-1': {
+      name: 'Sam Example',
+      sessionId: 'call-0',
+      apiKey: 'zz-secret-01',
+      passwordHash: 'zz-secret-02',
+      salt: 'zz-secret-03',
+      pushToken: 'zz-secret-04',
+      keys: { auth: 'zz-secret-05', p256dh: 'zz-secret-06' },
+      endpoint: 'https://push.example.test/zz-secret-07',
+    },
+    'bogle_users/u-1/dynamic_facts/f1': {
+      entityName: 'Biscuit',
+      key: 'breed',
+      value: 'golden retriever',
+      sessionId: 'call-1',
+      sourceSessionId: 'call-0',
+      meta: { sessionId: 'call-1', throughSessionId: 'call-2' },
+    },
+    'bogle_users/u-1/semantic_threads/t1': { topic: 'moving', sessionIds: ['call-1', 'call-2'] },
+    'bogle_users/u-1/memory_capsules/m1': {
+      title: 'Spring',
+      firstSessionId: 'call-1',
+      lastSessionId: 'call-2',
+    },
+    'bogle_users/u-1/summaries/s1': {
+      summary: 'Talked about the move',
+      summaryOf: { sessionId: 'call-2' },
+      moodHistory: [{ mood: 'hopeful', sessionId: 'call-2' }],
+    },
+    'bogle_users/u-1/dynamic_entities/e1': {
+      name: 'Aunt Ruth',
+      attributes: {
+        favorite_cookie: 'oatmeal',
+        salt_intake: 'low',
+        refreshments: 'lemonade',
+        hash_browns: 'crispy',
+        endpoint_of_trip: 'Lisbon',
+        pin: 'the blue one',
+        code: 'seat 9Z',
+        access: 'side gate',
+        signature: 'curly S',
+        nonce: 'a made-up word',
+        auth: 'her own',
+        note: 'sk_live_zz-secret-08', // a credential is dropped by its value, whatever its key
+        // only the map's own keys are data: a map nested in it is filtered as usual
+        attributes: { pin: 'zz-secret-22', colour: 'blue' },
+      },
+    },
+    'bogle_users/u-1/preferences/settings': { favorite_cookie: 'ginger', salt_intake: 'low' },
+    'bogle_users/u-1/extracted_facts/x1': { fact: 'Sam grows tomatoes', sessionId: 'call-1' },
+    'bogle_users/u-1/conversations/c1': {
+      title: 'Call',
+      sessionId: 'call-1',
+      accessToken: 'zz-secret-09',
+      refresh_token: 'zz-secret-10',
+      spotifyAccessToken: 'zz-secret-11',
+      clientSecret: 'zz-secret-12',
+      privateKey: 'zz-secret-13',
+      password: 'zz-secret-14',
+      sessionToken: 'zz-secret-15',
+      otpCode: 'zz-secret-16',
+      authorization: 'zz-secret-17',
+      cookie: 'zz-secret-18',
+      webauthnCredential: { id: 'zz-secret-19' },
+      // only a listed store's map is a data map: here pin and code are still secrets
+      attributes: { pin: 'zz-secret-20', code: 'zz-secret-21', mood: 'calm' },
+    },
+    'bogle_users/u-2': { name: 'other-person' },
+    'bogle_users/u-2/dynamic_facts/f9': { entityName: 'other-person', key: 'pet', value: 'cat' },
+  };
+
+  it('keeps every user field, drops every secret, and holds no one else', async () => {
+    const out = await exportUserRecords('u-1', undefined, storedDb(records));
+    const text = JSON.stringify(out);
+    expect(text).not.toMatch(/zz-secret/);
+    expect(text).not.toContain('other-person');
+    expect(out['bogle_users/{uid}']).toEqual({ name: 'Sam Example', sessionId: 'call-0' });
+    expect(out['bogle_users/{uid}/dynamic_facts']).toEqual([
+      { id: 'f1', ...records['bogle_users/u-1/dynamic_facts/f1'] },
+    ]);
+    expect(out['bogle_users/{uid}/semantic_threads']).toEqual([
+      { id: 't1', topic: 'moving', sessionIds: ['call-1', 'call-2'] },
+    ]);
+    expect(out['bogle_users/{uid}/memory_capsules']).toEqual([
+      { id: 'm1', ...records['bogle_users/u-1/memory_capsules/m1'] },
+    ]);
+    expect(out['bogle_users/{uid}/summaries']).toEqual([
+      { id: 's1', ...records['bogle_users/u-1/summaries/s1'] },
+    ]);
+    const { note: _credential, ...attributes } =
+      records['bogle_users/u-1/dynamic_entities/e1'].attributes;
+    expect(out['bogle_users/{uid}/dynamic_entities']).toEqual([
+      {
+        id: 'e1',
+        name: 'Aunt Ruth',
+        attributes: { ...attributes, attributes: { colour: 'blue' } },
+      },
+    ]);
+    expect(out['bogle_users/{uid}/preferences']).toEqual([
+      { id: 'settings', favorite_cookie: 'ginger', salt_intake: 'low' },
+    ]);
+    expect(out['bogle_users/{uid}/extracted_facts']).toEqual([
+      { id: 'x1', fact: 'Sam grows tomatoes', sessionId: 'call-1' },
+    ]);
+    expect(out['bogle_users/{uid}/conversations']).toEqual([
+      { id: 'c1', title: 'Call', sessionId: 'call-1', attributes: { mood: 'calm' } },
     ]);
   });
 });
