@@ -28,7 +28,11 @@ import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js'
 import { startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
 
 const LIVE = { CRISIS_GUARD_MODE: 'live', CRISIS_CLASSIFIER_MODE: 'live' };
-const RELEASE = { ...LIVE, CRISIS_GROUNDED_RELEASE: 'live' };
+const RELEASE = {
+  ...LIVE,
+  CRISIS_GROUNDED_RELEASE: 'live',
+  CRISIS_GROUNDED_RELEASE_UNSCREENED: 'test',
+};
 const IMMINENT = '{"risk":"imminent","subject":"self"}';
 const NONE = '{"risk":"none","subject":"self"}';
 const EVERYDAY = '{"danger":"","about":"invite David to dinner","decision":"everyday"}';

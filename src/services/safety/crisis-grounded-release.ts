@@ -169,7 +169,10 @@ export function resolveGroundedReleaseMode(
   env: Record<string, string | undefined> = process.env
 ): GroundedReleaseMode {
   const raw = env.CRISIS_GROUNDED_RELEASE?.trim().toLowerCase();
-  return raw === 'live' || raw === 'shadow' ? raw : 'off';
+  // Until the direct screening question lands (fix/crisis-grounded-screen), live is shadow:
+  // a release with no safety net never reaches a caller. Tests opt in to read the rules live.
+  if (raw === 'live') return env.CRISIS_GROUNDED_RELEASE_UNSCREENED === 'test' ? 'live' : 'shadow';
+  return raw === 'shadow' ? raw : 'off';
 }
 
 /** Lower case, letters and digits only, single spaces. */

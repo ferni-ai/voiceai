@@ -44,6 +44,7 @@ const RELEASE = {
   CRISIS_GUARD_MODE: 'live',
   CRISIS_CLASSIFIER_MODE: 'live',
   CRISIS_GROUNDED_RELEASE: 'live',
+  CRISIS_GROUNDED_RELEASE_UNSCREENED: 'test',
 };
 const IMMINENT = '{"risk":"imminent","subject":"self"}';
 const NONE = '{"risk":"none","subject":"self"}';
