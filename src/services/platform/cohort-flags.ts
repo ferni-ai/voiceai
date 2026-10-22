@@ -30,6 +30,7 @@
  */
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 import {
   firestoreCohortStore,
   firestoreFlagHolders,
@@ -284,7 +285,7 @@ export async function envForCaller(
   const env = opts.env ?? process.env;
   const own: Record<string, string | undefined> = { ...env };
   for (const [k, v] of agentValues) own[k] = v;
-  if (!cohortFlagsEnabled(env) || !userId || userId === 'anonymous') return own;
+  if (!cohortFlagsEnabled(env) || !isMemberIdentity(userId)) return own;
   try {
     return { ...own, ...(await resolveCallerFlags(userId, opts.store)) };
   } catch (error) {
@@ -309,7 +310,7 @@ export async function applyCallerFlags(
     return [];
   }
   // The previous caller's flags go back to the agent's own even if this caller has none.
-  if (!userId || userId === 'anonymous') return applyFlags({}, env);
+  if (!isMemberIdentity(userId)) return applyFlags({}, env);
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const caller = await Promise.race([
