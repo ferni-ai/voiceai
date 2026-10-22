@@ -35,6 +35,8 @@
  * action that really happened are never changed. Text and tool calls keep
  * their order. ACTION_CLAIM_GUARD=off turns the guard off. Logs carry the kind
  * and the reason, never words.
+ * With ACTION_CLAIM_PAST=on (off by default), a plain past report ("I booked it.",
+ * "I sent it.") is held too, but only when a tool of its kind was open and none ran.
  *
  * Holding a sentence delays the first audio (dev A/B, increment 3: about
  * 0.2-0.5 s, a whole model chunk). With ACTION_CLAIM_STREAM=on (off by default,
@@ -55,6 +57,7 @@ import {
   bareOnIt,
   callActions,
   claimedAction,
+  pastClaim,
   kindsOfTool,
   type ActionKind,
 } from './action-claims.js';
@@ -86,6 +89,11 @@ type Chunk = llm.ChatChunk | string | object;
 
 export function actionClaimGuardEnabled(env: Env = process.env): boolean {
   return flagOn('ACTION_CLAIM_GUARD', env);
+}
+
+/** Also check plain past reports ("I booked it.") against the tools (action-claims.ts pastClaim). */
+export function actionClaimPastEnabled(env: Env = process.env): boolean {
+  return flagOn('ACTION_CLAIM_PAST', env);
 }
 
 /** Stream turns with no action in play (off: every turn holds, as before). */
@@ -258,6 +266,11 @@ async function checkActionClaims<T>(
     calling.has(kind) || ranThisTurn.has(kind) || (awaiting.has(kind) && !yesTurn)
       ? null // its tool runs in this reply, ran this turn, or this is the read-back
       : (missing(kind, calling) ?? 'promised');
+  /** Why a plain past report ("I sent it.") is false, or null: no tool open, or its latest run went out. */
+  const unrun = (kind: ActionKind, calling: ReadonlySet<ActionKind>): MissReason | null =>
+    !open.has(kind) || calling.has(kind) || done.has(kind)
+      ? null
+      : (missing(kind, calling) ?? 'uncalled');
   /**
    * What one sentence claims or promises, and why that is false (reason null: it may stand).
    * An emergency claim is judged first, so "I'll call 911 for you" never becomes an offer.
@@ -277,8 +290,16 @@ async function checkActionClaims<T>(
     const claimed = claimedAction(text) ?? (ahead('call') && bareOnIt(text) ? 'call' : null);
     // "I'll text him then": a promise only a tool call in this reply keeps (action-promises.ts).
     const promised = hold ? promisedAction(text) : null;
-    const kind = claimed ?? promised;
-    const reason = !kind ? null : claimed ? missing(kind, calling) : unkept(kind, calling);
+    // "I booked it.": only with its tool open and none run, in this reply or earlier on the call.
+    const past = !claimed && actionClaimPastEnabled(env) ? pastClaim(text) : null;
+    const kind = claimed ?? past ?? promised;
+    const reason = !kind
+      ? null
+      : claimed
+        ? missing(kind, calling)
+        : past
+          ? unrun(past, calling)
+          : unkept(kind, calling);
     return { kind, reason, claimed, promised };
   };
   /** A call claimed on the yes, before the call tool has said whether anything rang. */

@@ -69,6 +69,10 @@ describe('on-behalf dispatch contract', () => {
     const wire = buildOnBehalfDispatch(input) as unknown as Record<string, unknown>;
     expect(parseOnBehalfDispatch({ ...wire, callId: '' })).toBeNull();
     expect(parseOnBehalfDispatch({ ...wire, requester: { userId: 'unknown' } })).toBeNull();
+    // A call is placed for a member: never for a stranger's session id or a third party's.
+    for (const userId of ['anonymous', 'anon:3f2a', 'onbehalf:call-0']) {
+      expect(parseOnBehalfDispatch({ ...wire, requester: { userId } }), userId).toBeNull();
+    }
     expect(parseOnBehalfDispatch({ callId: 'x' })).toBeNull();
   });
 

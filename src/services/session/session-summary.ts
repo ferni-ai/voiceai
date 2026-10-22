@@ -449,8 +449,8 @@ function createEmptyContext(userId: string): ActiveUserContext {
 
 async function persistSummaryToFirestore(summary: VoiceSessionSummary): Promise<void> {
   try {
-    const admin = await import('firebase-admin');
-    const db = admin.default.firestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     await db
       .collection('bogle_users')
@@ -507,8 +507,8 @@ async function persistSummaryToFirestore(summary: VoiceSessionSummary): Promise<
 
 async function persistContextToFirestore(context: ActiveUserContext): Promise<void> {
   try {
-    const admin = await import('firebase-admin');
-    const db = admin.default.firestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     // Destructure out lastVoiceSession — never write undefined to Firestore
     // (it's stored separately in voice_sessions)
@@ -548,8 +548,8 @@ async function persistContextToFirestore(context: ActiveUserContext): Promise<vo
 
 async function loadLastSummaryFromFirestore(userId: string): Promise<VoiceSessionSummary | null> {
   try {
-    const admin = await import('firebase-admin');
-    const db = admin.default.firestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const snapshot = await db
       .collection('bogle_users')
@@ -588,8 +588,8 @@ async function loadLastSummaryFromFirestore(userId: string): Promise<VoiceSessio
 
 async function loadContextFromFirestore(userId: string): Promise<ActiveUserContext | null> {
   try {
-    const admin = await import('firebase-admin');
-    const db = admin.default.firestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const doc = await db
       .collection('bogle_users')
