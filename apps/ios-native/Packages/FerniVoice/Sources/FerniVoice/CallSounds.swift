@@ -36,10 +36,15 @@ public final class CallSounds: AudioEngineObserver, @unchecked Sendable {
     /// Adds these sounds after LiveKit's own observers (the session's and the
     /// mixer's, which keep doing what they did).
     public static func install(_ sounds: CallSounds) {
+        AudioManager.shared.set(engineObservers: chain(sounds))
+    }
+
+    /// LiveKit's default observers, in its order, then these sounds last.
+    static func chain(_ sounds: CallSounds) -> [any AudioEngineObserver] {
         #if os(iOS) || os(visionOS) || os(tvOS)
-        AudioManager.shared.set(engineObservers: [AudioManager.shared.audioSession, AudioManager.shared.mixer, sounds])
+        [AudioManager.shared.audioSession, AudioManager.shared.mixer, sounds]
         #else
-        AudioManager.shared.set(engineObservers: [AudioManager.shared.mixer, sounds])
+        [AudioManager.shared.mixer, sounds]
         #endif
     }
 
