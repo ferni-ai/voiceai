@@ -33,6 +33,8 @@ describe('junkReason', () => {
     [{ name: 'giving the item to Ferni', type: 'topic' }, 'persona'],
     [{ name: 'Hey Maya', type: 'person' }, 'persona'],
     [{ name: 'Ferni', type: 'person', relationship: 'friend' }, 'persona'],
+    [{ name: 'Fernie', type: 'person' }, 'persona'],
+    [{ name: 'Furny', type: 'person' }, 'persona'],
     [{ name: 'Maya', type: 'person' }, 'persona'],
     [{ name: 'Peter John', type: 'person' }, 'persona'],
     [{ name: 'Jordon', type: 'person' }, 'persona'],

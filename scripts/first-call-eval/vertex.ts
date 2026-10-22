@@ -32,9 +32,14 @@ function accessToken(): string {
   return token;
 }
 
+/** Calls per model through generate(), for a script's cost line. */
+export const callsByModel: Record<string, number> = {};
+
 export async function generate(opts: GenerateOptions): Promise<string> {
   const project = process.env.GOOGLE_CLOUD_PROJECT;
   if (!project) throw new Error('Set GOOGLE_CLOUD_PROJECT');
+  callsByModel[opts.model] = (callsByModel[opts.model] ?? 0) + 1;
+  if (!opts.model.startsWith('gemini')) return generateMaas(project, opts);
   const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/publishers/google/models/${opts.model}:generateContent`;
   const body = JSON.stringify({
     systemInstruction: { parts: [{ text: opts.system }] },
@@ -66,6 +71,48 @@ export async function generate(opts: GenerateOptions): Promise<string> {
       .map((p) => p.text ?? '')
       .join('')
       .trim();
+  }
+  return '';
+}
+
+/**
+ * A partner model on Vertex Model-as-a-Service (the OpenAI-compatible
+ * endpoint, e.g. openai/gpt-oss-120b-maas), same credential and retries.
+ * `json` and `thinkingLevel` are ignored: JSON mode garbled 87 of 144 gpt-oss
+ * answers on 2026-10-18, so callers parse the JSON out of the text.
+ */
+async function generateMaas(project: string, opts: GenerateOptions): Promise<string> {
+  const url = `https://aiplatform.googleapis.com/v1/projects/${project}/locations/global/endpoints/openapi/chat/completions`;
+  const body = JSON.stringify({
+    model: opts.model,
+    temperature: opts.temperature ?? 0.8,
+    max_tokens: opts.maxOutputTokens ?? 400,
+    messages: [
+      { role: 'system', content: opts.system },
+      ...opts.contents.map((c) => ({
+        role: c.role === 'model' ? 'assistant' : 'user',
+        content: c.parts.map((p) => p.text).join(''),
+      })),
+    ],
+  });
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${accessToken()}`, 'Content-Type': 'application/json' },
+      body,
+    }).catch(() => null);
+    if (!res || res.status === 429 || res.status >= 500) {
+      await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
+      continue;
+    }
+    type Body = {
+      choices?: Array<{ message?: { content?: string } }>;
+      error?: { message?: string };
+    };
+    const json = (await res.json()) as Body | Body[];
+    const error = Array.isArray(json) ? json[0]?.error : json.error;
+    if (error) throw new Error(`${opts.model}: ${error.message}`);
+    return Array.isArray(json) ? '' : String(json.choices?.[0]?.message?.content ?? '').trim();
   }
   return '';
 }

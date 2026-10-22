@@ -99,6 +99,8 @@ function createMockRequest(options: {
   req.headers = options.headers || {};
   req.url = options.url || '/';
   req.method = options.method || 'POST';
+  // A real request always has a socket; the job guard lifts its idle timeout.
+  Object.defineProperty(req, 'socket', { value: { setTimeout: vi.fn() } });
   return req;
 }
 
@@ -107,11 +109,16 @@ function createMockResponse(): ServerResponse & { _data: string; _statusCode: nu
   const res = {
     _data: '',
     _statusCode: 200,
+    headersSent: false,
+    writableEnded: false,
     writeHead: vi.fn(function (this: any, status: number) {
       this._statusCode = status;
+      this.headersSent = true;
     }),
     end: vi.fn(function (this: any, data?: string) {
       this._data = data || '';
+      this.headersSent = true;
+      this.writableEnded = true;
     }),
     setHeader: vi.fn(),
   };
@@ -124,6 +131,8 @@ describe('Scheduled Jobs Routes API', () => {
     // Handler behaviour is tested here; scheduler auth is tested below and in
     // scheduled-jobs/__tests__/scheduler-auth.test.ts.
     vi.stubEnv('SCHEDULED_JOBS_AUTH', 'off');
+    // The run lock is tested in scheduled-jobs/__tests__/job-run-guard.test.ts.
+    vi.stubEnv('SCHEDULED_JOB_LOCK', 'off');
   });
 
   describe('Scheduler auth', () => {

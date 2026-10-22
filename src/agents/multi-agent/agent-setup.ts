@@ -53,12 +53,6 @@ import {
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
 // External STT: Sonata (USE_SONATA_STT=true)
-// Pipeline switching — dynamic inference routing based on emotion and context
-import {
-  isPipelineSwitchingEnabled,
-  selectPipeline,
-  type PipelineSwitchContext,
-} from '../shared/performance/pipeline-switcher.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -1995,24 +1989,6 @@ Reference past context when relevant, but don't force it. Let the conversation f
             if (userData.lastEmotionAnalysis) {
               liveBackchannel?.updateState({ currentEmotion: userData.lastEmotionAnalysis });
             }
-          }
-
-          // Pipeline selection (informational — full routing is future work)
-          if (evt.isFinal && isPipelineSwitchingEnabled()) {
-            const switchCtx: PipelineSwitchContext = {
-              emotion: userData.lastEmotionAnalysis?.primary,
-              stressLevel: userData.lastEmotionAnalysis?.distressLevel,
-              wasInterrupted: userData.wasInterrupted,
-              turnCount: userData.turnCount ?? 0,
-              userTranscriptLength: evt.transcript?.length ?? 0,
-              isFirstResponse: (userData.turnCount ?? 0) === 0,
-              isQuestion: evt.transcript?.includes('?'),
-            };
-            const pipelineResult = selectPipeline(switchCtx);
-            diag.entry(
-              `🔀 [${persona.id}] Pipeline: ${pipelineResult.mode} ` +
-                `(${pipelineResult.reason}, confidence=${pipelineResult.confidence})`
-            );
           }
 
           // 🔍 DEBUG: Log every transcript event when DEBUG_GEMINI_TRANSCRIPTS=true

@@ -300,6 +300,19 @@ jobs:
       - name: CLI typecheck ratchet
         run: node scripts/ci/cli-typecheck-ratchet.mjs
 
+      # The env-name list test scans src/ as text, so no import edge reaches it and
+      # `--changed` skips it whenever a PR adds or drops an env read; the PR then
+      # failed only in the queue. It takes ~4 s and needs no native binding, so a PR
+      # always runs it, before the Rust build. The list merges with git's union
+      # driver (.gitattributes), which this test makes safe. The flag barrel
+      # (src/config/flags/index.generated.ts) is the same shape: its test reads the
+      # flags/ directory as text, and the barrel merges with union too.
+      - name: Check the env-name list
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts
+        env:
+          NODE_ENV: test
+
       # 60 call sites use the THROWING loadRustPerf() (tryLoadRustPerf is documented
       # "for availability checks, not for actual operations"), so the accelerator is
       # genuinely required — skipping those tests would hide coverage, not fix it.
@@ -822,7 +835,7 @@ jobs:
 
       - name: Check for secrets
         if: steps.scan-range.outcome == 'success' && steps.scan-range.outputs.commits != '0'
-        uses: trufflesecurity/trufflehog@b2b0a92070f206ab7b5a1105d82a7f2f48d92341 # v3.99.0
+        uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
         with:
           path: ./
           base: ${{ steps.scan-range.outputs.base }}
@@ -930,6 +943,11 @@ jobs:
       # Blocking ratchet: a new import edge breaking architecture-layers.ts fails. ~5 s; scoreboard in job summary.
       - name: Architecture gate
         run: pnpm quality:arch
+
+      # Blocking ratchet: a new Firestore client that ignores FIRESTORE_DATABASE (dev runs on
+      # ferni-dev, prod on '(default)') fails, and the allowlist may only shrink. ~10 s.
+      - name: Firestore database ratchet
+        run: pnpm tsx scripts/ci/firestore-database-ratchet.ts
 
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates

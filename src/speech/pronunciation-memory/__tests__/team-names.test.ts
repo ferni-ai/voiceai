@@ -40,20 +40,25 @@ function entryFor(word: string, dict: PronunciationDictItem[]): PronunciationDic
 }
 
 describe('pronunciationDictItems', () => {
-  it('writes every IPA entry in Cartesia notation: known symbols, one primary stress a word', () => {
+  it('writes every IPA entry in Cartesia notation: known symbols, one primary stress an entry', () => {
     for (const { text, pronunciation } of items.filter((i) => isIpa(i.pronunciation))) {
+      let primaries = 0;
       for (const word of pronunciation.split(' ')) {
         const m = /^<<(.+)>>$/.exec(word);
         expect(m, `${text}: ${word}`).not.toBeNull();
         const symbols = (m?.[1] ?? '').split('|');
         for (const s of symbols) expect(PHONEMES.has(s), `${text}: "${s}"`).toBe(true);
-        expect(
-          symbols.filter((s) => s === 'ˈ'),
-          text
-        ).toHaveLength(1);
+        primaries += symbols.filter((s) => s === 'ˈ').length;
         expect(symbols.at(-1), `${text} ends in a stress mark`).not.toMatch(/[ˈˌ]/);
       }
+      expect(primaries, text).toBe(1);
     }
+  });
+
+  it('says Nayan NAH-yahn: two words so ɑ+j does not glide into "NIGH", stress on the first', () => {
+    // One-word <<ˈ|n|ɑ|j|ɑ|n>> came out "n aɪ" in 23 of 24 takes (2026-10-20).
+    expect(TEAM_NAME_PRONUNCIATIONS.Nayan).toBe('<<ˈ|n|ɑ>> <<j|ɑ|n>>');
+    expect(entryFor("Nayan's", items)?.pronunciation).toBe('<<ˈ|n|ɑ>> <<j|ɑ|n>>');
   });
 
   it('keeps sounds-like spellings free of capital runs, which Sonic spells out as letters', () => {
@@ -77,7 +82,8 @@ describe('pronunciationDictItems', () => {
   });
 
   it('lets the IPA tables win over the sounds-like names', () => {
-    expect(entryFor('Nayan', items)?.pronunciation).toBe('<<ˈ|n|ə|j|ə|n>>');
+    expect(entryFor('Nayan', items)?.pronunciation).toBe(TEAM_NAME_PRONUNCIATIONS.Nayan);
+    expect(COMMON_DIFFICULT_NAMES.nayan).not.toBe(TEAM_NAME_PRONUNCIATIONS.Nayan);
     expect(entryFor('Siobhan', items)?.pronunciation).toBe(NAME_IPA.Siobhan);
     expect(COMMON_DIFFICULT_NAMES.siobhan).toBe('Shi-vawn');
     expect(entryFor('Niamh', items)?.pronunciation).toBe('Neev');

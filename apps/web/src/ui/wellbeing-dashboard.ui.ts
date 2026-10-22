@@ -753,7 +753,7 @@ const styles = `
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: inherit;
+    color: var(--color-text-secondary); /* each dimension's own hue was as low as 2.4:1; the icon keeps it */
     opacity: 0.9;
   }
   
@@ -1138,8 +1138,8 @@ const styles = `
 
   [data-theme="midnight"] .wellbeing-btn--secondary {
     background: transparent;
-    color: var(--color-accent-secondary);
-    border-color: var(--color-accent-secondary);
+    color: var(--color-text-primary); /* accent-secondary isn't defined: it fell back to 2.1:1 green */
+    border-color: var(--color-border-medium);
   }
 
   [data-theme="midnight"] .wellbeing-btn--secondary:hover {
@@ -1609,7 +1609,7 @@ function renderEmptyState(): string {
               border-color: ${dim.hex}30;
             ">
               <div class="wellbeing-empty__dimension-icon" style="color: ${dim.hex};">${dim.icon}</div>
-              <div class="wellbeing-empty__dimension-name" style="color: ${dim.hex};">${dim.name}</div>
+              <div class="wellbeing-empty__dimension-name">${dim.name}</div>
             </div>
           `
             )

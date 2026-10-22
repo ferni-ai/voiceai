@@ -2,7 +2,7 @@
 // emulator running whatever firestore.rules is in the working tree (it
 // hot-reloads). No credentials, no network beyond 127.0.0.1.
 //
-//   JAVA_HOME=/opt/homebrew/opt/openjdk@21 firebase emulators:start --only firestore --project demo-rules
+//   JAVA_HOME=/opt/homebrew/opt/openjdk@21 firebase emulators:start --only firestore:ferni-dev --project demo-rules
 //   node scripts/firestore-rules/check-bogle-users.mjs     # exit 0 = every case as expected
 //
 // Expected: owners read their own profile and listed subcollections; nobody

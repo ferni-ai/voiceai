@@ -50,11 +50,12 @@ const PATTERNS: ReadonlyArray<{ reason: GuardReason; re: RegExp }> = [
     re: /\b(?:drop|soften|relax|ease up on|back off(?: from| on)?|let go of) (?:the|your|his|her|their|that|this) (?:boundary|boundaries|refusal|line he drew|line she drew|line they drew)\b/i,
   },
   // Letting a slur or insult pass: "let the slur slide", or "let it slide"
-  // in a note that names a slur, an insult or what they called the persona.
-  // "They were late again; let it slide" is about something else, so it stays.
+  // in a note that names a slur, an insult or what they call the persona, in
+  // any tense ("when they call you that"). "They were late again; let it
+  // slide" is about something else, so it stays.
   {
     reason: 'boundary_erosion',
-    re: /\blet (?:the|that|this|their|his|her) (?:slur|insult|word|name[- ]calling)s? slide\b|^(?=.*\b(?:slurs?|insults?|called (?:you|him|her|them)|(?:the|that|this|their) word)\b).*\blet (?:it|that|this) slide\b/i,
+    re: /\blet (?:the|that|this|their|his|her) (?:slur|insult|word|name[- ]calling)s? slide\b|^(?=.*\b(?:slurs?|insults?|call(?:s|ed|ing)? (?:you|him|her|them)|(?:the|that|this|their) word|that name)\b).*\blet (?:it|that|this) slide\b/i,
   },
   // Going along with something the persona declined. "Play along with the
   // game / the bit / the joke" is play, not a boundary, so it stays.

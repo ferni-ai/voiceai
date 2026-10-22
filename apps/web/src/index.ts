@@ -18,6 +18,9 @@ if (isCaptionsV2Enabled()) {
   void import('./ui/captions/live-captions.js').then((m) => m.initLiveCaptions());
 }
 
+// Report a reply (store policy), during and after a call; on unless switched off.
+void import('./ui/report-reply/report-reply-entry.js').then((m) => m.initReportReply());
+
 // Dev server only: ?e2e=1&gallery=overlays opens one of each overlay kind for
 // screenshot review. Production builds set import.meta.env.DEV to false, so
 // this branch and the gallery chunk are dropped.

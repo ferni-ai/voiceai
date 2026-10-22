@@ -58,6 +58,32 @@ describe('statesUnder18: their own stated age or grade, nothing else', () => {
     "I'm still in middle school",
     'I go to middle school over on Pine',
     "I'm a high schooler",
+    // "I'm" + 10-17 ending its clause, no age question needed (a real call: "I'm only 14")
+    "I'm 14",
+    "I'm 14.",
+    'im only 13',
+    "I'm just 15",
+    "I'm only fourteen",
+    "I'm 12",
+    "I'm 16",
+    "I'm 15 now",
+    "I'm 16, so",
+    "I'm 13 and bored",
+    "I'm like 14",
+    "I said I'm 14",
+    "I told her I'm 14",
+    "I'm in high school right now",
+    "I'm in high school now, and I hate it",
+    "I'm in 8th grade and my mom is picking me up",
+    "I'm turning 18 next week",
+    // when unsure, the caller's own words: the exclusions stay narrow
+    "I'm in 8th grade and my kids at school are mean",
+    "I'm a sophomore, my parents' kids are loud",
+    "I'm 15 years old, was wondering",
+    "I'm 14 years old when I'm with my dad",
+    "I just said I'm 14",
+    "I already said I'm 14 years old",
+    "I literally said I'm 14",
   ])('flags %j', (said) => {
     expect(statesUnder18(said)).toBe(true);
   });
@@ -106,9 +132,37 @@ describe('statesUnder18: their own stated age or grade, nothing else', () => {
     "I'm 8.",
     "my pain? I'm 7",
     "I'm 9 though",
-    "I'm 12",
-    "I'm 16",
     'sixteen.',
+    "I'm 40",
+    // a unit or a noun after the number
+    "I'm 14 days sober",
+    "I'm 15 minutes away",
+    "I'm 16 and a half weeks pregnant",
+    "I'm 17 years into my marriage",
+    "I'm 14 for sure",
+    "I'm 15 in line",
+    "I'm 12 out of 20",
+    "I'm 14 on the list",
+    'I got a 14 for my score',
+    '16th of March',
+    // someone else's age or words, or a past age
+    'my 14 year old daughter',
+    'I have a 16 year old',
+    'when I was 15',
+    'my daughter is 14 years old',
+    "she said I'm 14 years old and stormed off",
+    "my mom goes I'm 14",
+    "he told me I'm 14",
+    '16 years old when I had her',
+    'Sixteen years old is when I started working',
+    "I'm 12 years old at heart",
+    "I feel 16 years old again",
+    // a parent at a school
+    "I'm in high school right now picking up my kid",
+    "I'm in high school now, waiting for my son",
+    "I'm in middle school pickup with my son",
+    "I'm a high school teacher",
+    "I'm a freshman in college",
     // school words that aren't their school
     'I go to high school football games',
     'I attend high school games',
@@ -125,9 +179,12 @@ describe('statesUnder18: their own stated age or grade, nothing else', () => {
     expect(statesUnder18(said)).toBe(false);
   });
 
-  it('a bare number answers an age question, not a pain scale', () => {
+  it('a bare number answers an age question, not a pain scale or an amount', () => {
     expect(statesUnder18("I'm 7", 'On a scale of one to ten, how bad is the pain?')).toBe(false);
     expect(statesUnder18('8.', 'How would you rate today, one to ten?')).toBe(false);
+    expect(statesUnder18("I'm 10.", 'On a scale of one to ten, how bad is it?')).toBe(false);
+    expect(statesUnder18("I'm 15.", 'How many minutes out are you?')).toBe(false);
+    expect(statesUnder18('16.')).toBe(false); // a lone number stays ask-gated
   });
 });
 

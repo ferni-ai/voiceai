@@ -26,6 +26,16 @@ vi.mock('../../utils/safe-logger.js', () => {
   };
 });
 
+// Admin is a verified Firebase token with the admin claim (real auth middleware)
+vi.mock('../../services/identity/firebase-auth.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/identity/firebase-auth.js')>()),
+  verifyFirebaseToken: vi.fn(async (token: string) =>
+    token === 'admin-token'
+      ? { uid: 'admin-123', claims: { admin: true }, isAnonymous: false, emailVerified: true }
+      : null
+  ),
+}));
+
 // Mock marketplace modules
 vi.mock('../../marketplace/index.js', () => ({
   getTool: vi.fn(),
@@ -49,9 +59,10 @@ vi.mock('../review-queue.js', () => ({
   getReviewQueue: vi.fn(() => Promise.resolve([])),
   assignReviewer: vi.fn(() => Promise.resolve()),
   getReviewHistory: vi.fn(() => Promise.resolve([])),
-  getSubmission: vi.fn(() => Promise.resolve(null)),
   submitReview: vi.fn(() => Promise.resolve()),
+  getOpenSubmission: vi.fn(() => Promise.resolve({ id: 'sub-1', contentHash: 'h' })),
 }));
+vi.mock('../review-content-hash.js', () => ({ matchesCurrentContent: () => true }));
 
 import { getAgent, getTool, listAgents, listTools } from '../../marketplace/index.js';
 import { moderateReview } from '../../marketplace/reviews/index.js';
@@ -115,7 +126,7 @@ describe('Marketplace Admin API', () => {
   });
 
   describe('Authentication', () => {
-    it('should reject requests without admin headers', async () => {
+    it('should reject requests without a verified admin', async () => {
       const req = createMockRequest('GET', '/api/admin/marketplace/queue');
       const res = createMockResponse();
 
@@ -123,16 +134,14 @@ describe('Marketplace Admin API', () => {
 
       expect(handled).toBe(true);
       expect(res._statusCode).toBe(401);
-      expect(JSON.parse(res._data).error).toMatch(/admin.*required/i);
     });
 
-    it('should accept requests with valid admin headers', async () => {
+    it('should accept requests from a verified admin', async () => {
       vi.mocked(listTools).mockReturnValue([]);
       vi.mocked(listAgents).mockReturnValue([]);
 
       const req = createMockRequest('GET', '/api/admin/marketplace/queue', undefined, {
-        'x-admin-id': 'admin-123',
-        'x-admin-role': 'admin',
+        authorization: 'Bearer admin-token',
       });
       const res = createMockResponse();
 
@@ -149,8 +158,7 @@ describe('Marketplace Admin API', () => {
       vi.mocked(listAgents).mockReturnValue([]);
 
       const req = createMockRequest('GET', '/api/admin/marketplace/queue', undefined, {
-        'x-admin-id': 'admin-123',
-        'x-admin-role': 'admin',
+        authorization: 'Bearer admin-token',
       });
       const res = createMockResponse();
 
@@ -167,8 +175,7 @@ describe('Marketplace Admin API', () => {
       vi.mocked(listAgents).mockReturnValue([]);
 
       const req = createMockRequest('GET', '/api/admin/marketplace/queue', undefined, {
-        'x-admin-id': 'admin-123',
-        'x-admin-role': 'admin',
+        authorization: 'Bearer admin-token',
       });
       const res = createMockResponse();
 
@@ -196,10 +203,9 @@ describe('Marketplace Admin API', () => {
       const req = createMockRequest(
         'POST',
         '/api/admin/marketplace/item/tool-1/approve',
-        { trustLevel: 'verified' },
+        { trustLevel: 'verified', submissionId: 'sub-1' },
         {
-          'x-admin-id': 'admin-123',
-          'x-admin-role': 'admin',
+          authorization: 'Bearer admin-token',
         }
       );
       const res = createMockResponse();
@@ -221,8 +227,7 @@ describe('Marketplace Admin API', () => {
         '/api/admin/marketplace/item/non-existent/approve',
         {},
         {
-          'x-admin-id': 'admin-123',
-          'x-admin-role': 'admin',
+          authorization: 'Bearer admin-token',
         }
       );
       const res = createMockResponse();
@@ -253,8 +258,7 @@ describe('Marketplace Admin API', () => {
         '/api/admin/marketplace/item/tool-1/reject',
         { reason: 'Does not meet quality standards' },
         {
-          'x-admin-id': 'admin-123',
-          'x-admin-role': 'admin',
+          authorization: 'Bearer admin-token',
         }
       );
       const res = createMockResponse();
@@ -281,8 +285,7 @@ describe('Marketplace Admin API', () => {
         '/api/admin/marketplace/reviews/review-1/moderate',
         { decision: 'approved', note: 'Legitimate review' },
         {
-          'x-admin-id': 'admin-123',
-          'x-admin-role': 'admin',
+          authorization: 'Bearer admin-token',
         }
       );
       const res = createMockResponse();
@@ -308,8 +311,7 @@ describe('Marketplace Admin API', () => {
         '/api/admin/marketplace/reviews/review-1/moderate',
         {}, // Missing decision
         {
-          'x-admin-id': 'admin-123',
-          'x-admin-role': 'admin',
+          authorization: 'Bearer admin-token',
         }
       );
       const res = createMockResponse();
@@ -336,8 +338,7 @@ describe('Marketplace Admin API', () => {
       ] as never);
 
       const req = createMockRequest('GET', '/api/admin/marketplace/stats', undefined, {
-        'x-admin-id': 'admin-123',
-        'x-admin-role': 'admin',
+        authorization: 'Bearer admin-token',
       });
       const res = createMockResponse();
 

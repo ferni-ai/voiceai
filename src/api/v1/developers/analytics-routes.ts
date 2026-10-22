@@ -11,7 +11,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, sendJSON, sendError } from '../../helpers.js';
-import { getPublisherFromToken, getFirestore } from './shared/developer-auth.js';
+import { requirePublisherFromToken, getFirestore } from './shared/developer-auth.js';
 
 const log = getLogger().child({ module: 'developers-analytics' });
 
@@ -368,11 +368,8 @@ export async function handleDeveloperAnalyticsRoutes(
   const method = req.method?.toUpperCase();
 
   // Authenticate
-  const publisherId = await getPublisherFromToken(req);
-  if (!publisherId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  const publisherId = await requirePublisherFromToken(req, res);
+  if (!publisherId) return true;
 
   // Parse period from query string
   const url = new URL(req.url || '', `http://${req.headers.host}`);

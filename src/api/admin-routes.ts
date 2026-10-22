@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { parse as parseUrl } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
+import { ownerEmail } from '../config/owner-email.js';
 import { requireAdmin } from './auth-middleware.js';
 
 const log = createLogger({ module: 'AdminAPI' });
@@ -219,6 +220,12 @@ async function handleGetVisitors(
 }
 
 async function handleTriggerReport(res: ServerResponse): Promise<void> {
+  const owner = ownerEmail();
+  if (!owner) {
+    log.warn('OWNER_EMAIL is not set; daily report not sent');
+    sendJson(res, 503, { success: false, error: 'OWNER_EMAIL not configured' });
+    return;
+  }
   try {
     const { generateDailyReport } = await import('../services/admin/daily-report.js');
     const { generateDailyReportHTML, generateDailyReportPlainText } =
@@ -247,8 +254,7 @@ async function handleTriggerReport(res: ServerResponse): Promise<void> {
     const plainText = generateDailyReportPlainText(reportData);
 
     const emailResult = await sendEmail({
-      to: 'seth.ford@gmail.com',
-      toName: 'Seth Ford',
+      to: owner,
       subject: `Ferni Daily Report - ${reportData.date} (Manual Trigger)`,
       body: plainText,
       html,

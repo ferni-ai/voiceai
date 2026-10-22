@@ -43,6 +43,7 @@ interface EncryptedTokenData {
 
 const tokenStore = createPersistenceStore<EncryptedTokenData>({
   collection: COLLECTION,
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // bogle_users/{uid}/google_calendar_tokens/data
   syncIntervalMs: 2000,

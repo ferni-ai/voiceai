@@ -36,6 +36,24 @@
     "reason": "Compares a Firebase Auth providerId enum value ('anonymous' provider), not a user id."
   },
   {
+    "file": "api/identity-merge-routes.ts",
+    "count": 2,
+    "category": "enum",
+    "reason": "Compares the Firebase Auth signInProvider enum ('anonymous' provider) of the two tokens being merged (#2226), not a user id."
+  },
+  {
+    "file": "api/v1/developers/auth-routes.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "Refuses a token whose Firebase Auth sign_in_provider enum is 'anonymous' (#2236); compares the provider, not a user id."
+  },
+  {
+    "file": "api/v1/developers/shared/developer-auth.ts",
+    "count": 1,
+    "category": "enum",
+    "reason": "Records whether the verified token's Firebase Auth sign_in_provider enum is 'anonymous' (#2236/#2250); compares the provider, not a user id."
+  },
+  {
     "file": "intelligence/context-builders/awareness/world-awareness.ts",
     "count": 1,
     "category": "cache",
@@ -56,9 +74,9 @@
   },
   {
     "file": "services/identity/identity-linking.ts",
-    "count": 1,
+    "count": 2,
     "category": "inverse",
-    "reason": "The opposite question: only a pre-sign-in device: or anon: id may be linked INTO a Firebase account, so it must require a non-account prefix, not refuse one."
+    "reason": "The opposite question: only a pre-sign-in device: or anon: id may be linked INTO a Firebase account, so it must require a non-account prefix, not refuse one. The second match compares the anon token's Firebase Auth signInProvider enum to 'anonymous' (#2226), not a user id."
   },
   {
     "file": "services/identity/verified-caller.ts",

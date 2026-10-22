@@ -39,6 +39,16 @@ export function lastTalkedAt(user: Record<string, unknown>): number | undefined 
   return toTime(user.lastContact) ?? toTime(user.lastConversationDate);
 }
 
+/**
+ * Conversations the user has had with Ferni: the profile counter
+ * (`totalConversations`, incremented by updateProfileFromSession for every
+ * call that wasn't silent). Undefined when the record has no usable count.
+ */
+export function conversationCountOf(user: Record<string, unknown>): number | undefined {
+  const n = user.totalConversations;
+  return typeof n === 'number' && Number.isInteger(n) && n >= 0 ? n : undefined;
+}
+
 export function engagementLevel(user: Record<string, unknown>, now = Date.now()): EngagementLevel {
   const last = lastTalkedAt(user);
   if (last === undefined) return 'silent';
