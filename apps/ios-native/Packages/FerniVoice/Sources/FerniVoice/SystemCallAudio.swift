@@ -4,7 +4,7 @@ import LiveKit
 import os
 
 /// AVAudioSession set up for a conversation: voice-chat processing (echo
-/// cancellation, voice-tuned gain), the speaker by default, and Bluetooth and
+/// cancellation, voice-tuned gain), the speaker by default, and Bluetooth headsets and
 /// AirPlay routes when connected. LiveKit's automatic setup would pick
 /// `.videoChat` for the speaker, so the app configures the session itself.
 ///
@@ -170,10 +170,9 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
     }
 
     private func configure() throws {
-        try session.setCategory(
-            .playAndRecord, mode: .voiceChat,
-            options: [.defaultToSpeaker, .allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
-        )
+        // Bluetooth in headset mode only (HFP): the mic and Ferni's voice on
+        // one link. A2DP is out (Seth, 2026-10-22).
+        try session.setCategory(.playAndRecord, mode: .voiceChat, options: Self.options)
         // Otherwise iOS silences every haptic while the mic records (B9).
         try session.setAllowHapticsAndSystemSoundsDuringRecording(true)
         // Automatic configuration is off, so the SDK never asks for a buffer.
@@ -186,6 +185,9 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
             log.error("IO buffer not set: \(error.localizedDescription, privacy: .public)")
         }
     }
+
+    /// The speaker by default, Bluetooth headsets and AirPlay.
+    static let options: AVAudioSession.CategoryOptions = [.defaultToSpeaker, .allowBluetoothHFP, .allowAirPlay]
 
     /// The IO buffer a call asks for, in seconds.
     static let ioBuffer: TimeInterval = 0.02
