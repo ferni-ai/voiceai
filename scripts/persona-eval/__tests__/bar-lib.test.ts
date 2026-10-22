@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   aaGap,
   armEnv,
+  barVerdict,
+  combineMetric,
   compareArms,
   comparePersonaTells,
   copiedNgrams,
@@ -14,6 +16,7 @@ import {
   humannessRate,
   lengthMatched,
   maskNames,
+  maxFloor,
   MIN_MATCHED,
   median,
   ngramSet,
@@ -33,8 +36,11 @@ import {
   verdictFor,
   words,
   zoneAtLocalHour,
+  type Cell,
   type Metrics,
+  type MetricVerdict,
   type Pair,
+  type Verdict,
 } from '../bar-lib.js';
 
 /** `n` pairs where the arm wins the first `wins`, at the given word counts. */
@@ -532,5 +538,179 @@ describe('model tells', () => {
     ).find((r) => r.tell === 'question');
     expect(wide?.floor).toBeCloseTo(19 / 30, 10);
     expect(wide?.move).toBe('noise');
+  });
+});
+
+describe('replicated runs, two judges', () => {
+  /** Cells for one metric: verdicts[run][judge], judges named g (Gemini) and o (gpt-oss). */
+  const cells = (verdicts: Verdict[][]): Cell[] =>
+    verdicts.flatMap((byJudge, r) =>
+      byJudge.map((verdict, j) => ({
+        run: r + 1,
+        judge: ['g', 'o'][j],
+        verdict,
+        delta: verdict === 'better' ? 0.1 : verdict === 'worse' ? -0.1 : 0,
+        floor: 0.05,
+      }))
+    );
+  const mv = (
+    metric: MetricVerdict['metric'],
+    verdict: MetricVerdict['verdict']
+  ): MetricVerdict => ({
+    metric,
+    verdict,
+    note: '',
+    cells: [],
+  });
+
+  it('takes the widest floor per metric over every A/A and the run-to-run spread', () => {
+    const f = (d: number, h: number) => ({
+      distinctness: d,
+      insight: 0.1,
+      copy: 0.02,
+      humanness: h,
+    });
+    const tells = (q: number) => ({ question: q, opener: 0.05, checkin: 0.02, exclaim: 0.02 });
+    expect(maxFloor([f(0.09, 0.0975), f(0.091, 0.0985), f(0.12, 0.05)])).toEqual({
+      distinctness: 0.12,
+      insight: 0.1,
+      copy: 0.02,
+      humanness: 0.0985,
+    });
+    expect(
+      maxFloor([
+        { ...f(0.1, 0.1), tells: tells(0.087) },
+        { ...f(0.1, 0.1), tells: tells(0.094) },
+      ]).tells?.question
+    ).toBe(0.094);
+    // A floor without tells (an old result) leaves the tells floor out rather than inventing one.
+    expect(maxFloor([{ ...f(0.1, 0.1), tells: tells(0.1) }, f(0.1, 0.1)]).tells).toBeUndefined();
+  });
+
+  it('calls a metric better only when both judges agree in every run', () => {
+    const m = combineMetric(
+      'humanness',
+      cells([
+        ['better', 'better'],
+        ['better', 'better'],
+      ])
+    );
+    expect(m.verdict).toBe('better');
+    expect(m.note).toBe(
+      'run 1: better (g +10.0/5.0 better, o +10.0/5.0 better); run 2: better (g +10.0/5.0 better, o +10.0/5.0 better)'
+    );
+  });
+
+  it('reads judges that disagree as noise, and says so', () => {
+    // M2c arm E, run 1: Gemini +9.80 over a 9.75 floor, gpt-oss -1.96.
+    const m = combineMetric(
+      'humanness',
+      cells([
+        ['better', 'noise'],
+        ['better', 'better'],
+      ])
+    );
+    expect(m.verdict).toBe('noise');
+    expect(m.note.split('; ')[0]).toBe(
+      'run 1: judges disagree (g +10.0/5.0 better, o +0.0/5.0 noise)'
+    );
+    expect(combineMetric('insight', cells([['better', 'worse']])).verdict).toBe('noise');
+  });
+
+  it('never passes a metric on one run when the other is noise', () => {
+    // M2c E insight: +13.5 over its floor in run 1, +1.8 in the replicate.
+    const m = combineMetric(
+      'insight',
+      cells([
+        ['better', 'better'],
+        ['noise', 'noise'],
+      ])
+    );
+    expect(m.verdict).toBe('noise');
+    expect(m.note.split('; ')[1]).toBe('run 2: noise (g +0.0/5.0 noise, o +0.0/5.0 noise)');
+  });
+
+  it('calls a metric worse when the judges agree it is worse in any one run', () => {
+    expect(
+      combineMetric(
+        'insight',
+        cells([
+          ['noise', 'noise'],
+          ['worse', 'worse'],
+        ])
+      ).verdict
+    ).toBe('worse');
+    expect(
+      combineMetric(
+        'insight',
+        cells([
+          ['noise', 'noise'],
+          ['worse', 'noise'],
+        ])
+      ).verdict
+    ).toBe('noise');
+  });
+
+  it('treats a missing floor or too few matched pairs as noise, not a gain', () => {
+    expect(combineMetric('humanness', cells([['no A/A', 'no A/A']])).verdict).toBe('noise');
+    expect(
+      combineMetric('humanness', cells([['insufficient matched pairs', 'better']])).verdict
+    ).toBe('noise');
+  });
+
+  it('passes only with a gain, insight not worse and no tell worse', () => {
+    const ok = [mv('humanness', 'better'), mv('insight', 'noise'), mv('tells: question', 'noise')];
+    expect(barVerdict(ok, 2, 2)).toEqual({
+      pass: true,
+      line: 'PASS: humanness better in all 2 runs with all 2 judges agreeing; insight and tells not worse',
+    });
+    expect(barVerdict([mv('humanness', 'noise'), mv('insight', 'better')], 2, 2)).toEqual({
+      pass: false,
+      line: 'NO PASS: neither distinctness nor humanness is better in every run with the judges agreeing',
+    });
+    expect(barVerdict([...ok.slice(0, 2), mv('tells: opener', 'worse')], 2, 2).line).toBe(
+      'NO PASS: tells: opener worse'
+    );
+    expect(barVerdict([ok[0], mv('insight', 'worse')], 2, 2).line).toBe('NO PASS: insight worse');
+    expect(barVerdict([ok[0]], 2, 2).line).toBe('NO PASS: no insight verdict');
+  });
+
+  it('never passes on one run or one judge, however good it looks', () => {
+    const ok = [mv('distinctness', 'better'), mv('insight', 'better')];
+    expect(barVerdict(ok, 1, 2)).toEqual({
+      pass: false,
+      line: 'NO PASS: 1 run (a pass needs --runs 2 or more)',
+    });
+    expect(barVerdict(ok, 2, 1).line).toBe(
+      'NO PASS: 1 judge (a pass needs a second judge from another family)'
+    );
+  });
+
+  it('reproduces the M2d verdict: E does not pass once both judges and both runs count', () => {
+    const metrics = [
+      combineMetric(
+        'distinctness',
+        cells([
+          ['noise', 'noise'],
+          ['noise', 'noise'],
+        ])
+      ),
+      combineMetric(
+        'humanness',
+        cells([
+          ['better', 'noise'],
+          ['noise', 'noise'],
+        ])
+      ),
+      combineMetric(
+        'insight',
+        cells([
+          ['better', 'noise'],
+          ['noise', 'noise'],
+        ])
+      ),
+      combineMetric('tells: question', cells([['noise'], ['noise']])),
+    ];
+    expect(barVerdict(metrics, 2, 2).pass).toBe(false);
   });
 });

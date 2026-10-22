@@ -15,13 +15,16 @@
 
 import { Firestore } from '@google-cloud/firestore';
 
+import { getFirestoreDatabase } from '../src/config/environment.js';
+
 // ============================================================================
 // CONFIGURATION
 // ============================================================================
 
 const TEST_USER_ID = process.argv[2] || 'test-user-dev';
 const GCP_PROJECT = process.env.GCP_PROJECT_ID || 'voiceai-426116';
-const FIRESTORE_DB = process.env.FIRESTORE_DATABASE || 'ferni-db';
+// FIRESTORE_DATABASE, else '(default)'. Set FIRESTORE_DATABASE=ferni-dev to seed dev.
+const FIRESTORE_DB = getFirestoreDatabase();
 
 // ============================================================================
 // MOCK DATA

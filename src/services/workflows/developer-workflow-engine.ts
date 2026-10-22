@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { readCappedText, safeOutboundFetch } from '../../utils/outbound-url-guard.js';
 import { COLLECTIONS, ID_PREFIXES, type WebhookEventType } from '../../types/developer-platform.js';
 import { dispatchWebhookEvent } from '../integrations/developer-webhook-dispatcher.js';
 import {
@@ -502,9 +503,7 @@ async function executeWebhook(node: WorkflowNode, context: ExecutionContext): Pr
   const method = config.method || 'POST';
 
   // Interpolate headers
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
   if (config.headers) {
     for (const [key, value] of Object.entries(config.headers)) {
       headers[key] = interpolate(value, context.execution.variables);
@@ -531,13 +530,13 @@ async function executeWebhook(node: WorkflowNode, context: ExecutionContext): Pr
 
   log.info({ url, method }, 'Executing webhook');
 
-  const response = await fetch(url, {
+  const response = await safeOutboundFetch(url, {
     method,
     headers,
     body: method !== 'GET' ? body : undefined,
   });
 
-  const responseText = await response.text();
+  const responseText = await readCappedText(response, 256 * 1024);
   let responseData: unknown;
 
   try {

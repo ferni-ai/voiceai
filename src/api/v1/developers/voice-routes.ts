@@ -10,7 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendJSON, sendError } from '../../helpers.js';
-import { getPublisherFromToken } from './shared/developer-auth.js';
+import { requirePublisherFromToken } from './shared/developer-auth.js';
 import { CARTESIA_API_VERSION, CARTESIA_MODEL } from '../../../config/voice-ids.js';
 import { isForbiddenCustomAgentVoiceId } from '../../../services/custom-agent/custom-agent-voice-policy.js';
 
@@ -276,11 +276,8 @@ export async function handleDeveloperVoicesRoutes(
   const method = req.method?.toUpperCase();
 
   // Authenticate
-  const publisherId = await getPublisherFromToken(req);
-  if (!publisherId) {
-    sendError(res, 'Authentication required', 401);
-    return true;
-  }
+  const publisherId = await requirePublisherFromToken(req, res);
+  if (!publisherId) return true;
 
   try {
     // GET /api/v1/developers/voices - List all voices

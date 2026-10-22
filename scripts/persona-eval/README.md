@@ -14,7 +14,7 @@ how personas answer "are you an AI?".
 ## Run it
 
 ```bash
-# 1. The baseline, run twice (A/A). This sets the noise floor for each metric.
+# 1. The baseline: 2 runs (--runs), each with its A/A twin. This sets the noise floor.
 GOOGLE_CLOUD_PROJECT=johnb-2025 npx tsx scripts/persona-eval/bar.ts \
   --arm base --flags /path/to/prod-persona-flags.json --aa --out /path/outside/repo
 
@@ -35,20 +35,28 @@ Options:
 - `--rounds`: distinctness judgments per reply. The default is 1.
 - `--out` (required): a directory outside the repo.
 - `--exclude-canon`: leave the speaking persona's own canon out of the copy check.
-- `--reuse`: re-score a saved `<out>/<arm>/result.json`. The same replies are judged
-  for humanness again (and the A/A pairwise with `--aa`), and the copy check is
-  redone. Nothing is regenerated, and distinctness and insight are kept as saved.
+- `--runs N` (default 2): independent runs; arm run i is judged against baseline run i.
+- `--judges a,b` (default `JUDGE_MODEL`, then `openai/gpt-oss-120b-maas`): each scores
+  every judged metric. Non-Gemini judges run on Vertex MaaS, without JSON mode.
+- `--reuse`: re-score saved runs without generating. Scores a judge already gave are
+  kept, missing judges score now, pairwise humanness is judged again.
 
-Each run writes `<out>/<arm>/result.json` (every reply, the reminder it was
-given, the copied n-grams, all scores) and `result.md`. Run one arm per process,
+Each run writes `<out>/<arm>/run<i>/result.json` (every reply, the reminder it was
+given, the copied n-grams, every judge's scores) and `result.md`; with a baseline,
+`<out>/<arm>/verdict.md` starts with `PASS` or `NO PASS: <reason>`. Run one arm per process,
 because repo modules can read flags at import time. The script points
 `FIRESTORE_EMULATOR_HOST` at a dead port. That way a module that opens Firestore
 fails instead of reading or writing `johnb-2025` data.
 
-Cost: one arm with a baseline takes about 600 Gemini calls (180 replies, 180
-distinctness judgments, 60 insight judgments, 180 pairwise judgments). An A/A
-run takes about 1,000. The default model and judge are `gemini-3.5-flash`
-(`CASCADE_LLM_MODEL`, `JUDGE_MODEL`).
+Cost: every judge scores every run and every pairwise comparison, so the
+default two runs and two judges cost about four times one of each. Multi-turn,
+an arm against a saved baseline takes about 2,200 counted calls (636 replies;
+per judge 480 distinctness and insight, 288 pairwise), plus about 550 director
+and deliberation calls; `verdict.md` ends with this process's count per model.
+gpt-oss on Vertex MaaS served about 11 calls a minute on johnb-2025 (2026-10-19),
+so its 768 take about an hour of wall clock whatever the pool size.
+The default model and first judge are `gemini-3.5-flash` (`CASCADE_LLM_MODEL`,
+`JUDGE_MODEL`).
 
 ## What it measures
 
@@ -102,7 +110,7 @@ caller's earlier words on the call. Insight is judged on calls with facts, a
 callback or a local time. Each scored reply records the notes and thought it
 was given; `transcripts` holds every turn. `--aa`, `--baseline` and `--reuse`
 work the same. Not replayed: the turn-intelligence note, where the deliberator
-reads memory on a call. An A/A run takes about 2,000 Gemini calls.
+reads memory on a call. A two-run baseline with `--aa` takes about 5,000 calls.
 
 ## The A/A rule
 
@@ -118,6 +126,13 @@ table reports `noise`. Run a fresh A/A whenever the model, the judge or the
 fixture changes. (Earlier same-config set-judge runs differed by 22 points,
 which is why each reply is judged on its own and the line set has at least 30
 lines.)
+
+**Pass rule** (2026-10-18: arm E cleared two floors by a hair, then failed with
+a second judge and a second run). Each judge's floor is the widest of every
+baseline run's A/A floor and the spread between baseline runs. A judged metric
+is better (worse) in a run only when every judge says so; it is better only when
+better in every run, worse when worse in any. `PASS` needs 2+ runs, 2+ judges,
+distinctness or humanness better, insight and every tell not worse.
 
 Pure logic (flag merging, judge parsing, Wilson intervals, the copy check, the
 floor and the verdicts) lives in `bar-lib.ts` and is tested in

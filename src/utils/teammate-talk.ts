@@ -33,6 +33,12 @@ import { flagOn, type Env } from '../config/env-flag.js';
 export const TEAM_FIRST_NAMES = ['ferni', 'peter', 'alex', 'maya', 'jordan', 'nayan'] as const;
 
 /**
+ * Spellings speech-to-text produces for "Ferni" itself ("this is Fernie, right?").
+ * Kept apart from HEARD_AS, which routes handoffs to a teammate's persona id.
+ */
+export const FERNI_HEARD_AS = ['fernie', 'ferny', 'furny'] as const;
+
+/**
  * Spellings speech-to-text produces for a teammate's first name, with the persona id.
  * None is a common English word or another assistant ("Alexa"), so a caller's own friend
  * is rarely taken for a teammate. A test keeps them equal to tools/handoff/teammate-names.ts.

@@ -23,6 +23,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { formatDate, t } from '../i18n/index.js';
 import { tp } from '../i18n/plural.js';
 import { apiGet, getUserId } from '../utils/api.js';
+import { createYourYearError } from './your-year-states.js';
 import { createLogger } from '../utils/logger.js';
 import { createEmptyState } from './components/empty-state.js';
 import { escapeHtml } from './trust-dashboard-data.js';
@@ -156,8 +157,8 @@ export class YourYearWithFerni {
     this.container = document.createElement('div');
     this.container.className = 'your-year-overlay';
     
-    const emptyState = failed ? document.createElement('p') : createEmptyState('your-year');
-    if (failed) Object.assign(emptyState, { className: 'your-year-error', textContent: t('common.error') });
+    const retry = (): void => { this.container?.remove(); this.container = null; this.isOpen = false; void this.open(getUserId()); };
+    const emptyState = failed ? createYourYearError(retry) : createEmptyState('your-year');
     this.container.innerHTML = `
       <div class="your-year-backdrop"></div>
       <div class="your-year-modal your-year-modal--empty" role="dialog" aria-modal="true" aria-labelledby="your-year-title">
@@ -586,14 +587,13 @@ export class YourYearWithFerni {
         min-height: 200px;
       }
 
+      /* No scale(0.9)/opacity 0 here: animateIn animates the modal, not this box (it stayed invisible) */
       .your-year-modal--empty .your-year-content {
-        background: var(--color-bg-elevated, #FFFFFF);
-        border: 1px solid var(--color-border-subtle, rgba(29, 27, 24, 0.06));
+        background: var(--color-background-elevated);
+        color: var(--color-text-primary);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-2xl, 24px);
-        box-shadow: var(--shadow-2xl, 0 25px 50px rgba(29, 27, 24, 0.12));
         overflow: hidden;
-        transform: scale(0.9);
-        opacity: 0;
       }
 
       /* Close button - Top right */
@@ -655,7 +655,7 @@ export class YourYearWithFerni {
         color: var(--color-ferni-on-surface);
         margin-bottom: var(--space-2, 8px);
         display: block;
-      }
+      } [data-theme="midnight"] .your-year-eyebrow { color: var(--color-text-secondary); } /* ferni green was 2.1:1 */
 
       /* Title: Plus Jakarta Sans, dark text */
       .your-year-title {

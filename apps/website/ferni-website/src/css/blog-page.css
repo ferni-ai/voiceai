@@ -758,6 +758,30 @@
   background: var(--color-bg-secondary);
 }
 
+/* The crisis line under every post (partials/crisis-line.njk): quiet, never hidden. */
+.blog-post__care {
+  margin-bottom: var(--space-8);
+  padding: var(--space-4) var(--space-6);
+  border-left: 3px solid var(--color-accent);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-elevated);
+}
+
+.blog-post__care p {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: var(--text-body-md);
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.blog-post__care a {
+  color: var(--color-accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .blog-post__share {
   display: flex;
   align-items: center;

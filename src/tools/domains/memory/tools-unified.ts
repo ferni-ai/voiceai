@@ -15,6 +15,11 @@ import { isTeammateTalk } from '../../../utils/teammate-talk.js';
 import { llm } from '@livekit/agents';
 import { z } from 'zod';
 import { getUnifiedMemoryService } from '../../../services/unified-memory-service.js';
+import {
+  NO_EARLIER_CONVERSATION,
+  searchEarlierConversations,
+  thisCallOf,
+} from '../../../services/memory/index.js';
 import { memoryHeld } from '../../../utils/minor-care.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
@@ -133,15 +138,11 @@ export const recallPreviousConversationUnifiedDef: ToolDefinition = {
           return `I don't have specific memories about "${query}" yet. Would you like to tell me more?`;
         }
 
-        // Use unified memory service
-        const result = await memoryService.search({
-          query,
-          userId,
-          limit: 5,
-          minScore: 0.35,
-        });
+        // Only conversations from before this call count as "last time"
+        const thisCall = thisCallOf(toolCtx.userData);
+        const found = await searchEarlierConversations({ query, userId, thisCall });
 
-        if (result) {
+        if (found.kind === 'found') {
           memoryService.recordFeedback({
             memoryId: `semantic_${Date.now()}`,
             userId,
@@ -149,8 +150,9 @@ export const recallPreviousConversationUnifiedDef: ToolDefinition = {
             context: { personaId: ctx.agentId },
           });
 
-          return `I found something relevant in my memory: ${result}`;
+          return `From a conversation before this call: ${found.text}`;
         }
+        if (found.kind === 'only_this_call') return NO_EARLIER_CONVERSATION;
 
         return `I don't have specific memories about "${query}" from our past conversations. Would you like to tell me more about it?`;
       },
