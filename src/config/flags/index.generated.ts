@@ -11,4 +11,6 @@
  *
  * @module config/flags/index.generated
  */
+export { BARGE_IN_SOFT_PAUSE } from './BARGE_IN_SOFT_PAUSE.js';
+export { BARGE_IN_SOFT_PAUSE_CONFIRM_MS } from './BARGE_IN_SOFT_PAUSE_CONFIRM_MS.js';
 export {};
