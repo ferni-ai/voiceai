@@ -151,6 +151,8 @@ module.exports = function (eleventyConfig) {
 
   // SEO files
   eleventyConfig.addPassthroughCopy('robots.txt');
+  // IndexNow key (public by design): blog-publish-check.yml submits new posts with it
+  eleventyConfig.addPassthroughCopy('indexnow-key.txt');
   eleventyConfig.addPassthroughCopy('sitemap.xml');
 
   // UCP agent profile (Shopify catalog search), served at /.well-known/ucp/agent-profile.json

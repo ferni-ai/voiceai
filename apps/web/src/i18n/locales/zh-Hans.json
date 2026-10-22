@@ -777,7 +777,7 @@
     "phoneLabel": "给我发短信或打电话",
     "emailLabel": "给我发送更新",
     "nameLabel": "我该怎么称呼你？",
-    "privacyNote": "我只会将此用于记录。绝无垃圾信息，绝不共享。",
+    "privacyNote": "我只会将此用于记录。绝无垃圾信息，绝不出售。",
     "quietHours": "免打扰时间",
     "dontCall": "不要来电",
     "until": "直到",
@@ -1284,7 +1284,7 @@
       "householdMembers": "家与家人",
       "familyCallers": "家人电话接入",
       "contactInfo": "保持联系",
-      "exportData": "带走你的故事",
+      "exportData": "隐私与你的数据",
       "shareFerni": "带上朋友",
       "supportFerni": "支持 Ferni",
       "takeTour": "带我四处看看",
@@ -1531,7 +1531,7 @@
         "title": "开口倾诉"
       },
       "welcome": {
-        "description": "你的专属 AI 生活教练团队。每位教练都带着独特的智慧，陪伴你的旅程。",
+        "description": "你的专属向导团队。每一位都有自己看待事物的方式。",
         "title": "欢迎来到 Ferni"
       }
     },
@@ -2408,7 +2408,7 @@
     "intro": "连接你的穿戴设备，让 Ferni 更好地了解你的健康状况与精力水平。",
     "loading": "加载中...",
     "privacy": {
-      "note": "你的健康数据将保持私密。我们仅会将汇总的感悟分享到你的教练对话中。"
+      "note": "Ferni 会保存你的健康数据，以便和你一起发现规律。我们绝不出售这些数据，删除账户即会将其清除。"
     },
     "providers": {
       "appleHealth": {
@@ -2883,6 +2883,9 @@
     "openConversations": "开启的对话",
     "onYourMind": "你心头的事",
     "thingsTracking": "你的团队正在为你留心的事情",
+    "trackedDone": "完成",
+    "trackedDismiss": "忽略",
+    "trackedUpdateFailed": "无法更新，请重试。",
     "quickConnections": "快速连接",
     "startWithAnyone": "与你团队中的任何人开始对话",
     "allCaughtUp": "都看完了！",
@@ -2948,7 +2951,7 @@
     "orUseEmail": "或使用电子邮件",
     "emailLabel": "电子邮件",
     "passwordLabel": "密码",
-    "privacyNote": "你的数据将始终保持私密。",
+    "privacyNote": "我们绝不出售你的数据。删除账户即会将其清除。",
     "loading": "请稍等片刻...",
     "welcomeBack": "欢迎回来！我都记得呢。",
     "somethingWentWrong": "出了点小问题",
@@ -2971,7 +2974,7 @@
     "waitlistMessage": "我们正在逐步推出 Ferni，以确保每个人都能获得最佳体验。一旦有空缺名额，我们会立即给你发送电子邮件。",
     "waitlistEmail": "我们会在 {email} 通知你",
     "tryDifferentAccount": "尝试其他账户",
-    "checkingAccess": "正在检查你的访问权限...",
+    "checkingAccess": "正在准备…",
     "checkingLabel": "请稍等片刻...",
     "signInError": "登录已取消或失败。请重试。",
     "verifyEmailTitle": "验证你的邮箱",
@@ -3429,7 +3432,7 @@
     "weeklyDigest": "每周摘要",
     "weeklyDigestDesc": "周日晚间预览你即将到来的一周",
     "viewSyncConflicts": "查看同步冲突",
-    "integrationsPrivacy": "集成功能会将你现有的日程同步到 Ferni。你的数据将保持私密。",
+    "integrationsPrivacy": "集成功能会将你现有的日程同步到 Ferni。我们绝不出售你的数据。",
     "tryAgain": "重试",
     "syncing": "正在同步……",
     "connectAppleCalendar": "连接 Apple Calendar",
@@ -3576,7 +3579,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "你的专属 AI 伴侣",
+        "role": "你的专属伴侣",
         "description": "无论你需要什么，我都在这里——从日常记录到深度对话。",
         "unlockHint": "一直陪伴在你身边",
         "unlockedMessage": "我们已经共同经历了许多。",
@@ -3647,11 +3650,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni —— 你的 AI 人生伴侣",
+      "title": "认识一下 Ferni",
       "message": "我一直在用 Ferni，它真的改变了我对待每一天的方式。快来加入我吧！{url}",
       "shortMessage": "来 Ferni 加入我吧！{url}",
-      "emailSubject": "你一定要试试 Ferni",
-      "emailBody": "嗨！我一直在用 Ferni —— 它是一个感觉真的很人性化的 AI 伴侣。我想你一定会喜欢的。{url}"
+      "emailSubject": "你一定要试试 Ferni"
     },
     "modal": {
       "title": "分享成长",
@@ -3968,7 +3970,6 @@
       "ceo": "首席执行官",
       "ferniRole": "CEO 兼人生教练",
       "ferniDesc": "温暖而睿智的存在，是一切的核心。Ferni 以完美的记忆、毫无评判的态度和时刻的陪伴，协调着整个团队。",
-      "coFounders": "联合创始人",
       "coreTeam": "核心团队",
       "footer": "携手并肩，我们正在重新定义什么是真正倾听你的团队。",
       "roles": {
@@ -4564,7 +4565,7 @@
     "title": "创建智能体页面",
     "nameLabel": "智能体名称",
     "namePlaceholder": "例如：Nate Holloway",
-    "nameHint": "你的 AI 智能体的全名",
+    "nameHint": "你的智能体的全名",
     "initialsLabel": "首字母",
     "initialsPlaceholder": "例如：JD",
     "initialsHint": "显示在头像上（2-3 个字符）",
@@ -4768,7 +4769,10 @@
     "funGames": "趣味游戏",
     "reflectionGames": "反思游戏",
     "tipLabel": "提示：",
-    "tipContent": "随时可以说“停止”或“结束游戏”来提前结束。你的进度会一直保存！"
+    "tipContent": "随时可以说“停止”或“结束游戏”来提前结束。你的进度会一直保存！",
+    "connectFirst": "先和 Ferni 开始通话，再选一个游戏。",
+    "starting": "正在开始{game}…",
+    "startFailed": "没能开始这个游戏。试试直接问 Ferni。"
   },
   "digitalTwinProfile": {
     "title": "打造你的数字分身",
@@ -7285,8 +7289,7 @@
       "description": "与你共同成长的专属声音日记",
       "feature1": "记录每日声音日记",
       "feature2": "与过去的自己对话",
-      "feature3": "追踪你一路走来的成长",
-      "feature4": "AI 生成的感悟"
+      "feature3": "追踪你一路走来的成长"
     },
     "fictional": {
       "name": "虚构角色",
@@ -9058,10 +9061,6 @@
     "chiefExecutive": "首席执行官",
     "ferni": "Ferni",
     "ferniRole": "CEO 兼生活教练",
-    "coFounders": "联合创始人",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "核心团队",
     "tagline": "在一起，我们正在重新定义什么是真正倾听你的团队。",
     "inTeam": "团队中",
@@ -9344,7 +9343,8 @@
     "title": "你的数据",
     "exportFormat": "导出格式",
     "deleteAll": "删除所有数据",
-    "footer": "你的数据属于你。我们尊重你的隐私。",
+    "footer": "我会保存我们的对话和你告诉我的事情，这样下次我还能记得；如果你哪天想让它们消失，注销账号就会把它们全部清除。",
+    "privacyPolicyLink": "阅读隐私政策",
     "deleteAccount": "注销我的账号",
     "confirmDeleteAll": "你确定要删除所有数据吗？此操作无法撤销。",
     "confirmDeleteAccount": "确定要注销你的 Ferni 账号吗？这会清除 Ferni 了解关于你的一切，并让你永久退出登录。此操作无法撤销。",
@@ -9500,7 +9500,14 @@
     "close": "关闭",
     "seeCost": "这次通话的费用",
     "feedbackQuestion": "这次聊得怎么样？",
-    "feedbackThanks": "谢谢，这很有帮助。"
+    "feedbackThanks": "谢谢，这很有帮助。",
+    "pushAskQuestion": "想让 Ferni 之后问问你这件事吗？",
+    "pushAskYes": "好的",
+    "pushAskNotNow": "先不用",
+    "pushAskDone": "好了。Ferni 的消息会发到这台设备。",
+    "pushAskLater": "没关系。之后可以在设置里更改。",
+    "pushAskHomeScreen": "要在这里收到 Ferni 的消息，请先把 Ferni 添加到主屏幕：轻点“分享”，再轻点“添加到主屏幕”。",
+    "pushAskGotIt": "知道了"
   },
   "moments": {
     "teamUnlockTitle": "认识 {name}",
@@ -9792,7 +9799,7 @@
     },
     "marketplace": {
       "headline": "找到懂你的人。",
-      "description": "在 Ferni 核心团队之外，还有一片由专业 AI 教练组成的花园在等待着你。ADHD 支持、戒瘾伴侣、睡眠专家、育儿指南——懂你特定旅程的专家们。",
+      "description": "在 Ferni 核心团队之外，还有一片由专业教练组成的花园在等待着你。ADHD 支持、戒瘾伴侣、睡眠专家、育儿指南——懂你特定旅程的专家们。",
       "superhuman1": "专业角色——应对特定生活挑战的教练",
       "superhuman2": "社区评分——真实的体验，真实的评价",
       "superhuman3": "免费与付费——适合各种预算的支持",
@@ -9800,7 +9807,7 @@
     },
     "developerPortal": {
       "headline": "创造有意义的事物。",
-      "description": "Ferni 技术正在开放。构建你自己的 AI 教练，创造专业的角色，并触及那些恰好需要你所提供帮助的人。驱动 Ferni 的平台，现在由你掌控。",
+      "description": "Ferni 技术正在开放。构建你自己的教练，创造专业的角色，并触及那些恰好需要你所提供帮助的人。驱动 Ferni 的平台，现在由你掌控。",
       "superhuman1": "完整的 API 文档——构建所需的一切",
       "superhuman2": "SDK 与库——TypeScript 优先的开发体验",
       "superhuman3": "角色构建器——用于创建教练的可视化工具",
@@ -9884,7 +9891,7 @@
       "title": "个性化体验",
       "message": "你的位置能让我们的对话感觉更亲近、更贴切——就像我真的陪在你身边一样。"
     },
-    "note": "这只是我们之间的小秘密——我只会用它来让我们的对话更贴心。",
+    "note": "我只会用它来让我们的对话更贴心，绝不出售。",
     "notNow": "暂不开启",
     "allow": "允许获取位置"
   },
@@ -10496,7 +10503,7 @@
   },
   "ferniAwakens": {
     "greeting": "你好。",
-    "subtext": "我是 Ferni，你的 AI 人生教练。"
+    "subtext": "我是 Ferni，你的专属向导。"
   },
   "serviceHealth": {
     "names": {
@@ -10506,7 +10513,7 @@
       "historicalFacts": "历史事实",
       "smartHome": "智能家居",
       "lighting": "照明",
-      "aiContext": "AI 上下文",
+      "aiContext": "记忆与上下文",
       "sleepHealth": "睡眠与健康数据",
       "other": "已连接的服务"
     },
@@ -10663,9 +10670,6 @@
     "patronShort": "赞助人",
     "founderAria": "{tier}。感谢你对我们的信任！点击进行管理。"
   },
-  "splash": {
-    "tagline": "你的 AI 团队已准备就绪"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "全部支持",
@@ -10798,7 +10802,7 @@
   },
   "entrance": {
     "helper": "你的专属向导",
-    "connectToTalk": "连线",
+    "connectToTalk": "和 Ferni 聊聊",
     "endTalk": "挂断",
     "connectingCancel": "正在连接。点按即可取消",
     "connectingNow": "正在连接…",
@@ -11126,5 +11130,21 @@
     "helper": "用手机相机扫一扫，或点按“打开 Venmo”。金额可以修改。",
     "maybeLater": "以后再说",
     "close": "关闭"
+  },
+  "reportReply": {
+    "button": "举报",
+    "describe": "举报{name}说的话",
+    "title": "举报回复",
+    "whichReply": "哪条回复？",
+    "whatsWrong": "有什么问题？",
+    "reasonHarmful": "有害或不安全",
+    "reasonWrong": "错误或误导",
+    "reasonInappropriate": "不恰当",
+    "reasonOther": "其他",
+    "note": "还有什么要补充的吗？（可选）",
+    "send": "发送",
+    "thanks": "谢谢，会有专人查看。",
+    "failed": "发送失败，请重试。",
+    "tooMany": "你今天已经提交了很多举报，请明天再试。"
   }
 }

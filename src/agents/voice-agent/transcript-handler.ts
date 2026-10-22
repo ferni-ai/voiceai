@@ -70,6 +70,7 @@ import { fireAndForget, safeFireAndForget } from '../../utils/safe-fire-and-forg
 import { trackConversationTurn } from '../integrations/speech-metrics-integration.js';
 import type { IntegrationResult as VoiceHumanizationIntegration } from '../integrations/voice-humanization-integration.js';
 import type { UserData } from '../shared/types.js';
+import { heldAfter, memoryHeld } from '../../utils/minor-care.js';
 import {
   analyzeTurnSignals,
   handleInterruption,
@@ -1285,11 +1286,13 @@ async function processFinalTranscript(
     autoOptimizer,
     agent,
   } = ctx;
+  // MINOR_CARE=on: a caller under 18 who isn't a verified owner: nothing below stores their words.
+  const held = heldAfter(sessionId, event.transcript, { userId }); // userId: the per-user flushes
+  const memoryUserId = held ? undefined : userId;
 
   // ===============================================
   // 🧠 WS1: VALIDATE SPECULATIVE CONTEXT
-  // Check if pre-computed context from partial transcript is still valid.
-  // If valid, store on userData for processTurn to use (skip expensive builders).
+  // Pre-computed context from the partial transcript, if still valid, goes on userData for processTurn.
   // ===============================================
   if (userId) {
     try {
@@ -1341,9 +1344,10 @@ async function processFinalTranscript(
         await import('../processors/tool-routing-integration.js');
       const { isFtisEnabled } = await import('../../config/tool-config.js');
 
-      if (isFtisEnabled() && userId) {
+      // FTIS runs tools straight from the transcript: never for a held caller (MINOR_CARE)
+      if (isFtisEnabled() && memoryUserId) {
         const ftisResult = await runFTISRouting(event.transcript, {
-          userId,
+          userId: memoryUserId,
           sessionId,
           personaId: sessionPersona?.id || 'ferni',
           userLocation: userData.userLocation as
@@ -1430,12 +1434,12 @@ async function processFinalTranscript(
   // Deep LLM extraction runs in background worker
   // ===============================================
   try {
-    if (!userId) {
+    if (!memoryUserId) {
       diag.debug('Skipping memory capture - no userId');
     } else {
       const { fastCapture, recordTurn } = await import('../../memory/dynamic/index.js');
       const captureResult = await fastCapture({
-        userId,
+        userId: memoryUserId,
         sessionId,
         turnNumber: 0, // Transcript handler doesn't track turn numbers
         transcript: event.transcript,
@@ -1443,7 +1447,7 @@ async function processFinalTranscript(
       });
 
       // 🧠 CRITICAL: Record to STM buffer for session context
-      recordTurn(sessionId, userId, captureResult, event.transcript, 0);
+      recordTurn(sessionId, memoryUserId, captureResult, event.transcript, 0);
 
       // Log capture results for debugging
       if (captureResult.mentionedEntities.length > 0 || captureResult.asyncJobId) {
@@ -1480,12 +1484,12 @@ async function processFinalTranscript(
   // 🧵 THREAD RECORDING: Record user message for cross-channel continuity
   // This enables seamless conversation flow: SMS → Voice → Push
   // ===============================================
-  if (userId && event.transcript) {
+  if (memoryUserId && event.transcript) {
     try {
       const { recordUserMessage } =
         await import('../../services/conversation-thread/thread-recorder.js');
       void recordUserMessage({
-        userId,
+        userId: memoryUserId,
         sessionId,
         personaId: sessionPersona.id as import('../../personas/types.js').PersonaId,
         threadId: userData.threadId,
@@ -1505,10 +1509,8 @@ async function processFinalTranscript(
   }
 
   // ===============================================
-  // 🔴 CRITICAL FIX: Record user turn for memory persistence
-  // This was MISSING - causing all user speech to be lost!
-  // Without this, learning engine gets no data, summaries are empty,
-  // and Ferni never remembers what users say.
+  // 🔴 CRITICAL FIX: Record user turn for memory persistence (it was missing: the
+  // learning engine got no data, summaries were empty, Ferni remembered nothing).
   // ===============================================
   // For on-behalf calls, also captures for superhuman analysis
   if (event.transcript) {
@@ -1554,12 +1556,14 @@ async function processFinalTranscript(
   // Process trial status for trial users
   processTrialStatus(userId, userData, services, session, conversationManager, sessionId);
 
-  // Run human listening pipeline
+  // Human listening: runs for a held caller too (session-only distress cues, nothing stored)
   processHumanListeningPipeline(event.transcript, userData, sessionId);
 
-  // 🌟 Better Than Human transcript processing
-  // Detects: first-time vulnerability, emotional contradictions, patterns, linguistic style
-  processBetterThanHumanTranscript(event.transcript, userData, sessionId, sessionPersona.id);
+  // 🌟 Better Than Human: first-time vulnerability, contradictions, patterns, linguistic style.
+  // It records each per user, so never for a held caller (MINOR_CARE).
+  if (!held) {
+    processBetterThanHumanTranscript(event.transcript, userData, sessionId, sessionPersona.id);
+  }
 
   // 🎵 Music Preference Extraction
   // Detects: "I love jazz", "I don't like country", "Taylor Swift is my favorite"
@@ -1579,13 +1583,13 @@ async function processFinalTranscript(
   // 🧠 General Preference Extraction
   // Detects: sports teams, stocks, news interests, avoid topics, locations, allergies
   // Learns preferences from natural conversation without explicit commands
-  if (userId && hasPreferenceContent(event.transcript)) {
+  if (memoryUserId && hasPreferenceContent(event.transcript)) {
     const extractedPrefs = extractPreferences(event.transcript);
     if (extractedPrefs.length > 0) {
       // Fire-and-forget: save each preference to the appropriate store
       for (const pref of extractedPrefs) {
         fireAndForget(async () => {
-          await saveExtractedPreference(userId, pref);
+          await saveExtractedPreference(memoryUserId, pref);
         }, 'preference-extraction');
       }
       diag.state('🧠 Extracted general preferences from conversation', {
@@ -1705,27 +1709,23 @@ async function processFinalTranscript(
         toolUpdaterLog.warn({ error }, 'Failed to process message for dynamic tool loading');
       });
   } else if (dynamicToolLoader && !isMidSessionToolUpdateSafe()) {
-    // 🔍 DIAGNOSTIC: Log when we skip mid-session updates for Gemini
-    // We still process the message for analytics, just don't update the agent
+    // 🔍 Gemini skips mid-session updates: still process the message for analytics, no agent update
     dynamicToolLoader.processMessage(event.transcript).catch(() => {});
-    // Note: Tools were registered at session start - they don't need mid-session updates
-    // Gemini should have all the tools it needs from registerInitialTools()
+    // Tools were registered at session start (registerInitialTools): no mid-session updates needed
   }
 
-  // Process voice identity
-  processVoiceIdentity(sessionId, event.transcript, userData);
+  processVoiceIdentity(sessionId, event.transcript, userData); // identity and verification
+  processDJSessionFlow(event.transcript, userData); // DJ session flow tracking
 
-  // Process DJ session flow tracking
-  processDJSessionFlow(event.transcript, userData);
-
-  // Collect feedback for tool optimization
-  processFeedbackCollection(event.transcript, userData, sessionId, sessionPersona, autoOptimizer);
+  // Collect feedback for tool optimization: it keeps their words, so never when held (MINOR_CARE)
+  if (!held) {
+    processFeedbackCollection(event.transcript, userData, sessionId, sessionPersona, autoOptimizer);
+  }
 
   // Process daily check-in (extracts weather and records to engagement system)
   processDailyCheckInTranscript(event.transcript, userData, sessionId, ctx.sendDataMessage);
 
-  // Detect team huddle requests
-  processTeamHuddleDetection(event.transcript, sessionPersona.id, ctx.sendDataMessage);
+  processTeamHuddleDetection(event.transcript, sessionPersona.id, ctx.sendDataMessage); // huddle asks
 
   // ===============================================
   // RESPONSE GENERATION - Clean Architecture (Jan 2026)
@@ -2030,8 +2030,8 @@ function processDailyCheckInTranscript(
   sessionId: string,
   sendDataMessage?: (type: string, payload: Record<string, unknown>) => Promise<void>
 ): void {
-  // Only process if we have a user ID
-  if (!userData.userId) {
+  // A user ID, and MINOR_CARE=on: not a held caller under 18 (it records their emotional weather)
+  if (!userData.userId || memoryHeld(sessionId)) {
     return;
   }
 

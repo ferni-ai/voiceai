@@ -3,6 +3,7 @@
  * their own documents, which the deleteAllData sweep never reached:
  * - push subscriptions (bogle_users/<uid>/push_subscriptions/data) and the
  *   push_endpoint_owners records naming them;
+ * - the native app's device tokens (push_devices records naming them);
  * - OAuth link states they started;
  * - apple_transaction_owners records naming them, replaced by tombstones that
  *   keep no raw uid (deleting them would free the purchase for a first claim).
@@ -156,6 +157,13 @@ async function seed(uid: string): Promise<string> {
     subscriptions: [{ endpoint: `https://push.example/${uid}`, userId: uid }],
   });
   fs.docs.set(`push_endpoint_owners/hash-${uid}`, { userId: uid, keysHash: 'k' });
+  for (const n of [1, 2]) {
+    fs.docs.set(`push_devices/device-${n}-${uid}`, {
+      userId: uid,
+      token: `token-${n}`,
+      updatedAt: `2026-10-18T12:0${n}:00.000Z`,
+    });
+  }
   fs.docs.set(`apple_transaction_owners/otx-${uid}`, { userId: uid, claimedAt: 'then' });
   return startLink(uid);
 }
@@ -187,6 +195,8 @@ for (const storeKind of ['memory', 'firestore'] as const) {
 
       expect(fs.docs.has('bogle_users/alice/push_subscriptions/data')).toBe(false);
       expect(fs.docs.has('push_endpoint_owners/hash-alice')).toBe(false);
+      expect(fs.docs.has('push_devices/device-1-alice')).toBe(false);
+      expect(fs.docs.has('push_devices/device-2-alice')).toBe(false);
       const tomb = fs.docs.get('apple_transaction_owners/otx-alice');
       expect(tomb?.userId).toBeNull(); // tombstoned, not freed for someone's first claim
       expect(tomb?.deletedAt).toEqual(expect.any(String));
@@ -195,6 +205,7 @@ for (const storeKind of ['memory', 'firestore'] as const) {
 
       expect(fs.docs.has('bogle_users/bob/push_subscriptions/data')).toBe(true);
       expect(fs.docs.has('push_endpoint_owners/hash-bob')).toBe(true);
+      expect(fs.docs.has('push_devices/device-1-bob')).toBe(true);
       expect(fs.docs.get('apple_transaction_owners/otx-bob')?.userId).toBe('bob');
       expect((await live(stateB))?.uid).toBe('bob');
 

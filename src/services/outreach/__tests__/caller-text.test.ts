@@ -27,7 +27,20 @@ describe('callerText', () => {
   it('caps the length', () => {
     const out = callerText('word '.repeat(200), 50);
     expect(out.length).toBeLessThanOrEqual(50);
-    expect(out.endsWith('…')).toBe(true);
+    expect(out.endsWith('...')).toBe(true);
+  });
+
+  it('is idempotent: a second pass (NFKC included) changes nothing', () => {
+    for (const text of [
+      'word '.repeat(200),
+      'ｃｈｕｒｃｈ … on Sunday',
+      'Tell him "hi"',
+      'x'.repeat(60),
+      `${'x'.repeat(48)} more words`, // cut right after a space
+    ]) {
+      const once = callerText(text, 50);
+      expect(callerText(once, 50)).toBe(once);
+    }
   });
 
   it('treats missing text as empty', () => {

@@ -236,12 +236,12 @@ export async function startup(): Promise<AppConfig> {
 
   // Start schedulers (synchronous, just sets up intervals)
   logger.info('Starting schedulers...');
-  // startup() runs inside voice-call processes. Due reminders are delivered by the
-  // deliver-reminders job (Cloud Scheduler → /api/jobs/deliver-reminders) from Firestore;
-  // this in-memory interval would double-send alongside the job. Local dev only.
+  // startup() runs inside voice-call processes; the deliver-reminders job (Cloud Scheduler)
+  // delivers due reminders, so this in-memory interval is local dev only (it would double-send).
   if (process.env.REMINDER_SCHEDULER_IN_PROCESS === 'on') {
     (await import('./services/outreach/reminder-texts.js')).installReminderTexts(); // guarded texts
-    startReminderScheduler(60000); // Check every minute
+    const { ownerReminderReach } = await import('./services/outreach/reminder-reach.js');
+    startReminderScheduler(60000, ownerReminderReach()); // the owner's flags, not the caller's
   }
   // The polling schedulers below ran inside every voice-call process (startup()
   // runs only there), each seeing only its own memory. Scheduled actions,

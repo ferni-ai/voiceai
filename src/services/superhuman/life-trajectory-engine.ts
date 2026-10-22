@@ -15,6 +15,7 @@
  * @module services/superhuman/life-trajectory-engine
  */
 
+import { commitmentsShown } from './commitment-forget.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { readCallSummaries } from '../../memory/storage/call-summaries.js';
@@ -296,9 +297,10 @@ async function gatherTrajectoryData(userId: string): Promise<TrajectoryData> {
       userRef.collection('moods').orderBy('timestamp', 'desc').limit(30).get(),
     ]);
 
+    const shown = await commitmentsShown(userId); // forget requests (commitment-forget.ts)
     return {
       dreams: dreamsSnap.docs.map((d) => d.data()),
-      commitments: commitmentsSnap.docs.map((d) => d.data()),
+      commitments: commitmentsSnap.docs.map((d) => d.data()).filter(shown),
       habits: habitsSnap.docs.map((d) => d.data()),
       relationships: relationshipsSnap.docs.map((d) => d.data()),
       values: valuesSnap.docs.map((d) => d.data()),
@@ -327,9 +329,7 @@ async function gatherTrajectoryData(userId: string): Promise<TrajectoryData> {
 // Synthesis Functions
 // ============================================================================
 
-/**
- * Synthesize the current life chapter
- */
+/** Synthesize the current life chapter */
 function synthesizeCurrentChapter(data: {
   conversations: FirestoreConversation[];
   milestones: FirestoreMilestone[];

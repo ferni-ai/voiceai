@@ -22,10 +22,12 @@
  *
  * @module memory/recall/forget
  */
+import { FieldValue } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { forgetTokens, isForgotten, storedTopic } from './session-recall.js';
 import { closeForgottenFollowUps } from './forget-follow-ups.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 export { isForgotten };
 
@@ -41,6 +43,8 @@ export type ForgetResult =
   | { kind: 'forgotten'; marked: number }
   | { kind: 'too-broad'; matched: number }
   | { kind: 'nothing' }
+  /** No member on this call (anonymous, anon:, onbehalf:), so nothing about them is stored. */
+  | { kind: 'not-saved' }
   | { kind: 'failed' };
 
 export interface StoredFactRef {
@@ -117,7 +121,7 @@ export async function forgetForCaller(
   topic: string,
   store: ForgetStore = firestoreForgetStore
 ): Promise<ForgetResult> {
-  if (!userId || userId === 'anonymous') return { kind: 'failed' };
+  if (!isMemberIdentity(userId)) return { kind: 'not-saved' };
   return forgetTopic(userId, topic, store).catch((error: unknown) => {
     log.warn({ error: String(error) }, 'Could not forget from stored memory');
     return { kind: 'failed' as const };
@@ -130,6 +134,7 @@ export function forgetProblem(result: Exclude<ForgetResult, { kind: 'forgotten' 
     return 'That covers a lot of what I know about you. Which part should I forget?';
   }
   if (result.kind === 'nothing') return 'What exactly should I forget?';
+  if (result.kind === 'not-saved') return "There's nothing saved about you here.";
   return "I couldn't remove that just now. Ask me again in a moment?";
 }
 
@@ -201,6 +206,14 @@ export async function removeIndexCopies(userId: string, factIds: string[]): Prom
   }
 }
 
+/**
+ * What a fact keeps that is derived from it, cleared in the same write that forgets or
+ * corrects it: its stored vector (RECALL_VECTOR_INDEX), which a vector search still matches.
+ */
+export const withoutDerivedCopies = (): { embedding: FieldValue } => ({
+  embedding: FieldValue.delete(),
+});
+
 /** bogle_users/{uid}/{dynamic_facts,extracted_facts}, and memory_state/forgotten. */
 export const firestoreForgetStore: ForgetStore = {
   async facts(userId) {
@@ -227,7 +240,10 @@ export const firestoreForgetStore: ForgetStore = {
       for (const r of refs.slice(i, i + 400)) {
         // A fact already copied to the graph store is picked up by the next
         // sync again (firestore-spanner-sync.ts), which removes the copy.
-        const resync = r.collection === 'dynamic_facts' ? { syncedToSpanner: false } : {};
+        const resync =
+          r.collection === 'dynamic_facts'
+            ? { syncedToSpanner: false, ...withoutDerivedCopies() }
+            : {};
         // Already forgotten (one by one, or an earlier topic): keep when.
         const when = typeof r.data.forgottenAt === 'string' ? r.data.forgottenAt : at;
         batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: when, ...resync });

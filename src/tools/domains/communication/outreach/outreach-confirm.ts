@@ -73,6 +73,8 @@ interface PendingAction {
   callId: string;
   createdSeq: number;
   expiresAt: number;
+  /** The owner's first name, lower-case, from the call's user data: a yes may address them. */
+  owner?: string[];
 }
 
 interface SessionLog {
@@ -145,6 +147,14 @@ const NOT_A_NAME = new Set([
     uncle cousin friend boss doctor her him them me us it that this there here`.split(/\s+/),
 ]);
 
+// Names that may address Ferni inside a yes: the personas (as in FILLERS) and STT mishearings of
+// "Ferni" (agents/personas/name-mishear.ts, plus "fred" and "freddie", taken as the name only
+// here: in other speech "Fred" is as likely a real person). Owner call 10-18: "Uh, go ahead, Fred."
+const FERNI_NAMES = new Set([
+  ...'ferni fern maya jordan peter alex nayan'.split(' '),
+  ...'freddy freddie fred fernie ferny furny'.split(' '),
+]);
+
 const words = (text: string): string[] =>
   text
     .toLowerCase()
@@ -153,11 +163,17 @@ const words = (text: string): string[] =>
 
 /**
  * A reply made only of yes phrases (and please/thanks); never with a "?" or "Sure, to Bob".
- * It may also address Ferni by one name, misheard or not, set off by a comma at its start or
- * end ("Uh, go ahead, Fred.", "Okay Sam, go ahead"); never a word in NOT_A_NAME or in `target`
- * (the person the action reaches: "Yes, Dad." may mean someone else).
+ * It may also carry one name set off by a comma at its start or end ("Uh, go ahead, Fred."),
+ * but only a name that leaves the action as read back: Ferni's (or a persona's) name or a
+ * mishearing of it, the owner's own first name (`owner`), or the person the action reaches
+ * (`target`: "Yes, go ahead, Mike." for a call to Mike restates it). Any other name voids the
+ * yes: with a call to Mike waiting, "Yes, go ahead, Bob." may mean Bob. Never a NOT_A_NAME word.
  */
-export function isClearYes(text: string, target: readonly string[] = []): boolean {
+export function isClearYes(
+  text: string,
+  target: readonly string[] = [],
+  owner: readonly string[] = []
+): boolean {
   // A question word is never a yes phrase, so "which one, yes" already fails below.
   if (text.includes('?')) return false;
   if (onlyYes(words(text))) return true;
@@ -169,10 +185,11 @@ export function isClearYes(text: string, target: readonly string[] = []): boolea
     [head[head.length - 1], [...head.slice(0, -1), ...parts.slice(1)].join(' ')],
   ];
   if (!/\s/.test(tail)) options.push([tail, parts.slice(0, -1).join(' ')]);
-  const isName = (w: string): boolean =>
-    /^[A-Z][a-z]+$/.test(w) &&
-    !NOT_A_NAME.has(w.toLowerCase()) &&
-    !target.includes(w.toLowerCase());
+  const isName = (w: string): boolean => {
+    const name = w.toLowerCase();
+    if (!/^[A-Z][a-z]+$/.test(w) || NOT_A_NAME.has(name)) return false;
+    return FERNI_NAMES.has(name) || target.includes(name) || owner.includes(name);
+  };
   return options.some(([name, rest]) => isName(name) && onlyYes(words(rest)));
 }
 
@@ -190,6 +207,14 @@ function onlyYes(said: string[]): boolean {
     w = w.slice(phrase.split(' ').length);
   }
   return sawYes;
+}
+
+/** The owner's first names, lower-case, from the tool run's user data (userName, name). */
+function ownerFirstNames(opts: unknown): string[] {
+  const data = (opts as { ctx?: { userData?: Record<string, unknown> } } | undefined)?.ctx
+    ?.userData;
+  const names = [data?.userName, data?.name].filter((n): n is string => typeof n === 'string');
+  return [...new Set(names.flatMap((n) => words(n).slice(0, 1)))];
 }
 
 export function isClearNo(text: string): boolean {
@@ -231,7 +256,7 @@ export function confirmationState(
   const target = ['contactQuery', 'contactName', 'friendName', 'recipientName'].flatMap((k) =>
     typeof pending.args[k] === 'string' ? words(pending.args[k]) : []
   );
-  return isClearYes(answer.join(' '), target) ? 'confirmed' : 'void';
+  return isClearYes(answer.join(' '), target, pending.owner) ? 'confirmed' : 'void';
 }
 
 /**
@@ -360,6 +385,7 @@ export function withOutreachConfirmation(def: ToolDefinition, spec: ConfirmSpec)
           callId,
           createdSeq: entry.seq,
           expiresAt: Date.now() + CONFIRM_WINDOW_MS,
+          owner: ownerFirstNames(opts),
         };
         openConfirmThread(entry.pending, {
           userId: ctx.userId,

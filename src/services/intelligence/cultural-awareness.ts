@@ -6,6 +6,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import { thanksgivingDay } from '../../utils/us-holidays.js';
 import { loadPersonaBehaviors } from '../persona/persona-behavior-manager.js';
 
 const _logger = getLogger().child({ service: 'CulturalAwareness' }); // Reserved for future debug logging
@@ -60,7 +61,7 @@ function getHolidays(year: number): Holiday[] {
     { name: 'Labor Day', date: new Date(year, 8, 2), type: 'major' },
     {
       name: 'Thanksgiving',
-      date: new Date(year, 10, 28),
+      date: new Date(year, 10, thanksgivingDay(year)),
       type: 'major',
       greetings: ['Happy Thanksgiving!', 'Hope you have a wonderful Thanksgiving!'],
     },

@@ -1,6 +1,5 @@
 /**
- * forget() is reachable from DELETE /api/cognitive/memories/:id and the
- * forgetThisAboutMe tool. The memory cache holds every loaded user's
+ * forget() is reachable from DELETE /api/cognitive/memories/:id. The memory cache holds every loaded user's
  * memories, so it must refuse to delete a memory the caller doesn't own.
  */
 

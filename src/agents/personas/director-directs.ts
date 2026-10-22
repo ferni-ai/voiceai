@@ -23,9 +23,9 @@
  * Off (the default), every prompt is byte-identical to before
  * (director-directs.test.ts compares them with a golden from origin/main).
  *
- * Ported from feat/director-sees-scene (#2164): the persona-framing idea of
- * director-cast.ts (name and pronouns per persona, read once from the bundle)
- * and scriptedNote() from director-scene.ts. Not ported: the SCENE block.
+ * The persona-framing idea comes from director-cast.ts (#2164); scriptedNote()
+ * is director-scene.ts's. With DIRECTOR_SEES_SCENE also on, the director's
+ * prompt carries the SCENE block too (director-notes.ts).
  *
  * @module agents/personas/director-directs
  */
@@ -36,6 +36,9 @@ import { getPersonaPronouns, type PersonaPronouns } from '../../personas/persona
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { CHARACTER_FILE, readBundleFile } from './character-spark.js';
 import { teamNote } from './director-persona.js';
+import type { Cast as SceneCast } from './director-cast.js';
+import { guardRuleFor } from './director-guard.js';
+import { scriptedNote } from './director-scene.js';
 
 export function directorDirects(env: Env = process.env): boolean {
   return flagOn('DIRECTOR_DIRECTS', env);
@@ -83,6 +86,9 @@ export async function castFor(personaId: string | undefined): Promise<Cast> {
   return cast;
 }
 
+/** director-guard.ts's rule takes director-cast.ts's Cast: name and pronouns are all it reads. */
+const guardCast = (c: Cast): SceneCast => ({ name: c.name, brief: '', p: c.p });
+
 const cares = (c: Cast): string => (c.p.subject === 'they' ? 'care' : 'cares');
 
 /** Who the character is, as their own sheet says it, for a prompt. */
@@ -104,6 +110,7 @@ export function directsSystem(c: Cast, opts: { tools?: boolean } = {}): string {
 - the action for the beat, as a verb with its reason: to reassure, to tease, to dig in, to celebrate, to let it land, to sit with it, to lighten it
 Give each note with its reason in under 20 words. Write the note itself, without naming which kind it is.`,
     `Play the character's intention. A real person doesn't end every reply on a question or open every one by reacting. For each beat, weigh what ${name}, being who ${p.subject} is, would actually do: when ${p.subject} wouldn't ask anything here, or would start straight with what ${p.subject} thinks, say so as ${p.possessive} intention and what ${p.subject} would do instead (say what ${p.subject} makes of it, tell a bit of ${p.possessive} own, leave room).`,
+    guardRuleFor(guardCast(c)), // director-guard.ts (#2266): no note erodes a boundary, honesty or tool truth
     `How ${name} sounds is ${p.possessive} craft, not yours: never comment on ${p.possessive} tone, words, fillers, energy or length, and never tell ${p.object} to drop, avoid, stop or tone down anything. Never write lines or quote words for ${p.object} to say.`,
     `${name} reads your notes only after the caller has spoken again, and what they say next comes first: direct the person and the scene, not a reply to one earlier line.`,
     `A friend, not a therapist: never direct ${p.object} to acknowledge, validate, support or ask about feelings. Pauses, short answers and unanswered questions are normal; never push on them. Don't pin a hidden motive or mood on the caller. When they ask something, the next reply answers it.`,
@@ -132,6 +139,7 @@ export function directsDeliberationSystem(c: Cast): string {
 - reframe: a truer or kinder way to see what they described, the way ${name} sees things
 Ground it in what they actually said and name the detail. Never invent facts, history or people. No diagnoses, clinical labels or therapy-speak, no advice they did not ask for dressed up as insight, no flattery: honest the way a good friend is. It is a thought, not a line: never words for ${p.object} to say.
 Return JSON only, either {"kind":"none"} or {"kind":"insight"|"question"|"connection"|"reframe","note":"the thought, under 22 words","confidence":0.0-1.0,"whyNow":"under 12 words","doNotUseIf":"when bringing it up would be wrong, under 10 words"}`,
+    guardRuleFor(guardCast(c), { thought: true }), // director-guard.ts (#2266)
   ]
     .filter(Boolean)
     .join('\n');
@@ -244,16 +252,6 @@ export function readsMind(note: string): boolean {
   return READS_MIND.some((re) => re.test(note));
 }
 
-const QUOTED = /["“]([^"“”]+)["”]|‘([^‘’]+)’/g;
-/** "Say: ...", "tell them: ...", "try saying ...". */
-const DIRECT_LINE = /\b(?:say|try saying|tell (?:them|him|her))\b(?: something like)?\s*[:—]\s*\S/i;
-
-/**
- * A note that is a line for the actor to say: "say" with a quote, a direct
- * "Say: ...", or a quoted span of 3+ words that the caller didn't say (a note
- * may quote the caller back to the actor; it may not script the reply).
- * From director-scene.ts on feat/director-sees-scene.
- */
 /**
  * A note written as a line of the call ("Riley: yes! They called me..."): the
  * model continuing the transcript, inventing what someone says. Smoke run
@@ -264,13 +262,35 @@ export function transcriptNote(note: string, names: readonly string[]): boolean 
   return label !== undefined && names.some((n) => n.toLowerCase() === label);
 }
 
-export function scriptedNote(note: string, callerSaid = ''): boolean {
-  if (DIRECT_LINE.test(note)) return true;
-  const spans = [...note.matchAll(QUOTED)].map((m) => (m[1] ?? m[2]).trim());
-  if (!spans.length) return false;
-  if (/\bsay\b/i.test(note)) return true;
-  const said = callerSaid.toLowerCase().replace(/\s+/g, ' ');
-  return spans.some(
-    (q) => q.split(/\s+/).length >= 3 && !said.includes(q.toLowerCase().replace(/[.,!?]+$/, ''))
+/** A note that is a line for the actor to say: director-scene.ts's check, shared with DIRECTOR_SEES_SCENE. */
+export { scriptedNote };
+
+/** parseNotes' DIRECTOR_DIRECTS options: guard on, and who speaks on the call (director-notes.ts). */
+export interface DirectsFilter {
+  directs?: boolean;
+  names?: readonly string[];
+}
+
+/**
+ * With `directs` on, a note the guard drops: it polices delivery, pins an
+ * unsaid feeling or motive on the caller, scripts a line or reads as a line of
+ * the call by one of `names`. Off, nothing is.
+ */
+export function misdirects(note: string, callerSaid: string, opts: DirectsFilter = {}): boolean {
+  if (!opts.directs) return false;
+  return (
+    policesDelivery(note) ||
+    readsMind(note) ||
+    scriptedNote(note, callerSaid) ||
+    transcriptNote(note, opts.names ?? [])
   );
+}
+
+/** The director's request for the persona on the call, as DIRECTOR_DIRECTS frames it. */
+export async function directsAsk(
+  personaId: string | undefined,
+  tools: boolean
+): Promise<{ system: string; speaking: string }> {
+  const cast = await castFor(personaId);
+  return { system: directsSystem(cast, { tools }), speaking: cast.name };
 }

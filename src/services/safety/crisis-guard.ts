@@ -249,6 +249,10 @@ export function detectCrisis(
   };
 }
 
+/** Where to turn when someone is in danger now; the action-claim guard reuses it (issue 1553). */
+export const IN_DANGER_NOW =
+  'please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.';
+
 /**
  * Get appropriate crisis response based on severity
  */
@@ -261,7 +265,7 @@ function getCrisisResponse(
   if (imminent && language !== 'es') {
     return `I'm really glad you told me. Your safety matters most right now.
 
-If you've taken something or you're in danger right now, please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.
+If you've taken something or you're in danger right now, ${IN_DANGER_NOW}
 
 I'm staying right here with you. Is anyone nearby who can be with you?`;
   }

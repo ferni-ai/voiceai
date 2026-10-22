@@ -101,9 +101,7 @@ class NotificationSettingsUI {
     this.createPanel();
   }
 
-  /**
-   * HMR Protection: Remove orphaned elements from previous instances
-   */
+  /** HMR Protection: Remove orphaned elements from previous instances */
   private cleanupOrphanedElements(): void {
     document.querySelectorAll('.notif-settings').forEach((el) => el.remove());
     document.querySelectorAll('.notif-settings-styles').forEach((el) => el.remove());
@@ -465,12 +463,10 @@ class NotificationSettingsUI {
           </div>
           <div class="notif-settings__row-text">
             <span class="notif-settings__label">${t('notificationSettings.smsMessages')}</span>
-            <span class="notif-settings__desc">${t('notificationSettings.smsDesc')}</span>
+            <span class="notif-settings__desc">${t('notificationSettings.smsSetUpDesc', 'Texts are turned on next to your number, where you can see what they include.')}</span>
           </div>
-          <label class="notif-settings__toggle">
-            <input type="checkbox" data-outreach="smsEnabled" ${this.outreachPrefs?.smsEnabled ? 'checked' : ''}>
-            <span class="notif-settings__toggle-track" aria-hidden="true"></span>
-          </label>
+          <!-- Texts go on only in Contact Settings, beside the disclosure (carriers require it). -->
+          <button type="button" class="notif-settings__upcoming-btn" data-action="open-contact-texts">${t('notificationSettings.smsSetUp', 'Set up texts')}</button>
         </div>
 
         <div class="notif-settings__capability-row">
@@ -715,6 +711,12 @@ class NotificationSettingsUI {
 
     this.panel.querySelector('[data-action="cancel"]')?.addEventListener('click', () => this.hide());
     this.panel.querySelector('[data-action="save"]')?.addEventListener('click', () => this.save());
+    this.panel
+      .querySelector('[data-action="open-contact-texts"]')
+      ?.addEventListener('click', () => {
+        this.hide();
+        void import('./lazy-screens.js').then((m) => m.openContactSettings());
+      });
 
     // Upcoming item actions
     this.panel.querySelectorAll('[data-action="reschedule"]').forEach((btn) => {
@@ -739,12 +741,8 @@ class NotificationSettingsUI {
 
   private handleOutreachChange(input: HTMLInputElement): void {
     if (!this.outreachPrefs) return;
-
     const pref = input.dataset.outreach as keyof OutreachPreferences;
-
-    if (input.type === 'checkbox') {
-      (this.outreachPrefs as unknown as Record<string, unknown>)[pref] = input.checked;
-    }
+    (this.outreachPrefs as unknown as Record<string, unknown>)[pref] = input.checked;
   }
 
   private handlePrefChange(input: HTMLInputElement): void {
@@ -1017,7 +1015,7 @@ class NotificationSettingsUI {
 
       .notif-settings__tab--active {
         background: var(--persona-primary, #4a6741);
-        color: white;
+        color: var(--persona-on-primary, #ffffff);
       }
 
       .notif-settings__tab--active:hover { background: var(--persona-secondary, #3d5a35); }
@@ -1863,7 +1861,7 @@ class NotificationSettingsUI {
       [data-theme="midnight"] .notif-settings__toggle-track { background: var(--color-background-tertiary, #2a241f); }
       [data-theme="midnight"] .notif-settings__time-field input { background: var(--color-background-secondary, #1e1a16); color: var(--color-text-primary, #faf6f0); }
       [data-theme="midnight"] .notif-settings__close { background: var(--color-background-tertiary, #2a241f); color: var(--color-text-secondary, #f0ebe4); }
-      [data-theme="midnight"] .notif-settings__tab { color: var(--color-text-secondary, #f0ebe4); }
+      [data-theme="midnight"] .notif-settings__tab:not(.notif-settings__tab--active) { color: var(--color-text-secondary, #f0ebe4); }
       [data-theme="midnight"] .notif-settings__tab:hover { background: var(--color-background-secondary, #1e1a16); }
       [data-theme="midnight"] .notif-settings__empty-tip { background: var(--color-background-secondary, #1e1a16); }
       [data-theme="midnight"] .notif-settings__upcoming-btn { background: var(--color-background-tertiary, #2a241f); }

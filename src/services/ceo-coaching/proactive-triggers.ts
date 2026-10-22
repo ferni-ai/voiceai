@@ -294,7 +294,7 @@ async function buildUserContextForOutreach(
     userId,
     name: userName,
     daysSinceSignup: 30, // Would come from user profile
-    conversationCount: 10, // Would come from session history
+    // conversationCount omitted: unknown here, so the writer is told no number
     engagementLevel: 'medium',
     primaryConcerns: recentTopics,
     recentTopics,

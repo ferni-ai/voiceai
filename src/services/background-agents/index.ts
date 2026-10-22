@@ -120,9 +120,4 @@ export {
   type ResearchRequest,
   type ResearchResult as ExecutorResearchResult,
   type ResearchFinding,
-  // Reservations (Jordan's domain)
-  executeReservationTask,
-  queueReservationTask,
-  type ReservationRequest,
-  type ReservationResult as ExecutorReservationResult,
 } from './executors/index.js';

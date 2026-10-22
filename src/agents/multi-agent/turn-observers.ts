@@ -303,22 +303,26 @@ export interface DirectorNotesInput {
 export async function installDirectorNotes(input: DirectorNotesInput): Promise<void> {
   const { session, sessionId, userName, agent, cleanupFunctions } = input;
   await installWrapUp(input);
+  // DIRECTOR_SEES_SCENE: both are framed for the persona speaking, each line labelled.
+  const { directorSeesScene } = await import('../personas/director-cast.js');
+  const seesScene = directorSeesScene();
+  const sceneSpeakers = seesScene ? await speakerLog(session, cleanupFunctions) : null;
   // The deliberator reads the call at the same moment the director does.
-  await installDeliberation(input);
+  await installDeliberation(input, sceneSpeakers);
   const { directorNotesEnabled, Director, setDirector, linesFromChat } =
     await import('../personas/director-notes.js');
   const { toldThisCallEnabled } = await import('../personas/told-this-call.js');
   const writeNotes = directorNotesEnabled();
   if (!writeNotes && !toldThisCallEnabled()) return;
   // DIRECTOR_PERSONA_AWARE: after a handoff in one session, direct the persona on the call.
-  const speakers = await speakerLog(session, cleanupFunctions);
+  const speakers = sceneSpeakers ?? (await speakerLog(session, cleanupFunctions));
+  const { stageFor } = await import('../personas/director-scene.js');
   const director = new Director({
     sessionId,
     userName,
     writeNotes,
     speaking: speakers?.now,
-    // DIRECTOR_DIRECTS: the director knows the persona on the call from its own sheet.
-    personaId: () => personaIdOf(session),
+    personaId: () => personaIdOf(session), // DIRECTOR_DIRECTS: directs from the persona's sheet
   });
   setDirector(session, director);
   // The director sees Ferni's tool calls as they start and finish (director-tool-state.ts).
@@ -333,7 +337,10 @@ export async function installDirectorNotes(input: DirectorNotesInput): Promise<v
     if (state === 'speaking') spoke = true;
     if (state !== 'listening' || !spoke) return;
     spoke = false;
-    void director.observe(linesFromChat(now(agent).chatCtx.items as never, speakers?.by));
+    const items = now(agent).chatCtx.items;
+    // DIRECTOR_SEES_SCENE=on: who is speaking, the caller, their own life and the world now.
+    const stage = seesScene ? stageFor(session, items, personaIdOf(session) ?? 'ferni') : undefined;
+    void director.observe(linesFromChat(items as never, speakers?.by), stage);
   };
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, directorHandler);
   cleanupFunctions.push(() => {
@@ -400,7 +407,8 @@ function personaIdOf(session: Session): string | undefined {
  */
 async function speakerLog(session: Session, cleanupFunctions: Cleanup): Promise<SpeakerLog | null> {
   const { directorPersonaAware, SpeakerLog } = await import('../personas/director-persona.js');
-  if (!directorPersonaAware()) return null;
+  const { directorSeesScene } = await import('../personas/director-cast.js');
+  if (!directorPersonaAware() && !directorSeesScene()) return null;
   const speakers = new SpeakerLog(() => personaIdOf(session));
   session.on(voice.AgentSessionEventTypes.ConversationItemAdded, speakers.onItemAdded);
   cleanupFunctions.push(() => {
@@ -414,7 +422,11 @@ async function speakerLog(session: Session, cleanupFunctions: Cleanup): Promise<
  * background (personas/deliberation.ts), with the turn's memory note
  * (turn-intelligence.ts); a DELIBERATION_SUMMARY (counts, tokens) at the end.
  */
-async function installDeliberation(input: DirectorNotesInput): Promise<void> {
+async function installDeliberation(
+  input: DirectorNotesInput,
+  /** DIRECTOR_SEES_SCENE=on: who said each line, for the deliberator framed for the speaker. */
+  speakers: SpeakerLog | null = null
+): Promise<void> {
   const { session, sessionId, userName, agent, cleanupFunctions } = input;
   const { deliberationEnabled, Deliberator, geminiThink, setDeliberator } =
     await import('../personas/deliberation.js');
@@ -439,11 +451,11 @@ async function installDeliberation(input: DirectorNotesInput): Promise<void> {
     const memory = note?.textContent?.slice(TURN_CONTEXT_HEADER.length) ?? '';
     const mind = items.find((i) => i.textContent?.startsWith(MIND_NOTE_HEADER))?.textContent;
     void deliberator.observe(
-      linesFromChat(items as never),
+      linesFromChat(items as never, speakers?.by),
       understandingOfLastTurn(session),
       memory,
       mind ?? '',
-      personaIdOf(session)
+      personaIdOf(session) ?? 'ferni' // read with DIRECTOR_SEES_SCENE or DIRECTOR_DIRECTS on
     );
   };
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);

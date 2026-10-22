@@ -1,5 +1,5 @@
 import { llm } from '@livekit/agents';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NEXT_TURN_WORDS, ROUGH_SHARE } from '../turn-length-table.generated.js';
 import { lengthLine, recentTurns, targetWords, textureLine } from '../turn-length.js';
 import { rngFor, turnShapeFor } from '../turn-shape.js';
@@ -13,6 +13,7 @@ beforeEach(() => {
   process.env.TURN_SHAPE = 'model';
 });
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const [k, v] of Object.entries(saved)) {
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
@@ -127,6 +128,9 @@ describe('live wiring (withTurnReminder)', () => {
 
   it('sizes the reply from the real conversation before it', () => {
     process.env.TURN_LENGTH = 'learned';
+    // Each fresh session seeds its draws from Math.random (callSeed), so pin it: unseeded,
+    // the two 300-call means landed under the 5-word gap about one run in six.
+    vi.spyOn(Math, 'random').mockImplementation(rngFor('live-wiring'));
     const long =
       'oh we did the same thing last summer and honestly it was the best part of the whole trip, the drive back along the water with nobody else on the road at all';
     const quiet = Array.from({ length: 300 }, () => target(call('ha', 'yeah')));

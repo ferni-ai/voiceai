@@ -167,6 +167,7 @@ import {
 // Redis cache for real-time state (emotional state, voice biomarkers)
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { buildProactiveOutreachPayload } from './proactive-outreach-message.js';
+import * as followUpGate from './commitment-follow-up-gate.js';
 
 // Phase 11: Voice-Memory Integration - record prosody signals with memories
 import {
@@ -482,9 +483,8 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
   // PERFORMANCE: profile the turn. A context-only run is the background build
   // behind a reply that has already started (turn-intelligence.ts): its timings
   // are not the reply's latency, so they must not warn as if they were.
-  // BACKGROUND_TURN_LATENCY_WARNINGS=on restores profiling it as the reply.
   const turnNumber = userData.turnCount || 1;
-  const timesReply = !contextOnly || process.env.BACKGROUND_TURN_LATENCY_WARNINGS === 'on';
+  const timesReply = !contextOnly;
   if (timesReply) startTurnProfiling(services.sessionId, turnNumber);
 
   // ================================================================
@@ -1929,30 +1929,29 @@ ${result.crisis.suggestedResponse}`,
     markTurnCheckpoint(services.sessionId, turnNumber, 'contextBuildComplete');
 
     // ================================================================
-    // 🧠 UNIFIED INTELLIGENCE: Inject proactive insight if ready
-    // Supports session_start (turn 1), natural_pause, and topic_relevant moments
+    // 🧠 UNIFIED INTELLIGENCE: Inject proactive insight if ready (turn 1, every 3rd turn).
+    // A commitment follow-up must pass commitment-follow-up-gate.ts first.
     // ================================================================
-    if (intelligence?.insightToSurface && services.userId) {
-      // Determine if this is an appropriate moment to surface
-      const isSessionStart = turnNumber === 1;
-      const isNaturalPause = turnNumber > 1 && turnNumber % 3 === 0; // Every 3rd turn as natural pause
-      const shouldSurface =
-        isSessionStart ||
-        (isNaturalPause && intelligence.insightToSurface.category !== 'late_night_support');
-
-      if (shouldSurface) {
-        turnCtx.addMessage({
-          role: 'system',
-          content: `[PROACTIVE INSIGHT - Consider sharing naturally]\n${intelligence.insightToSurface.message}${intelligence.insightToSurface.followUp ? `\nFollow-up: ${intelligence.insightToSurface.followUp}` : ''}`,
-        });
-        markProactiveInsightSurfaced(services.userId, intelligence.insightToSurface.id);
-        diag.session('💡 Proactive insight injected', {
-          category: intelligence.insightToSurface.category,
-          moment: isSessionStart ? 'session_start' : 'natural_pause',
-          turnNumber,
+    const insight = services.userId
+      ? await followUpGate.surfaceProactiveInsight({
           userId: services.userId,
-        });
-      }
+          sessionId: services.sessionId,
+          turnNumber,
+          insight: intelligence?.insightToSurface,
+          crisis: result.crisis,
+          distressLevel: result.emotional?.distressLevel,
+        })
+      : null;
+    if (insight && services.userId) {
+      turnCtx.addMessage({ role: 'system', content: followUpGate.promptFor(insight) });
+      markProactiveInsightSurfaced(services.userId, insight.id);
+      void followUpGate.noteFollowUpInjected(services.userId, insight.id);
+      diag.session('💡 Proactive insight injected', {
+        category: insight.category,
+        moment: turnNumber === 1 ? 'session_start' : 'natural_pause',
+        turnNumber,
+        userId: services.userId,
+      });
     }
 
     // ================================================================

@@ -30,6 +30,7 @@ import {
   type LedgerFact,
   type LedgerStore,
 } from '../personas/life-ledger.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'QuirkMemory' });
 
@@ -69,7 +70,7 @@ export async function rememberQuirks(
     );
   }
   const fact = quirkMemoryFact(events, new Date().toISOString());
-  if (!fact || !lifeLedgerEnabled(env) || !ctx.userId || ctx.userId === 'anonymous') return;
+  if (!fact || !lifeLedgerEnabled(env) || !isMemberIdentity(ctx.userId)) return;
   await store.save(ctx.userId, [fact]);
   log.info({ sessionId: ctx.sessionId, personaId: fact.personaId }, 'QUIRK_REMEMBERED');
 }

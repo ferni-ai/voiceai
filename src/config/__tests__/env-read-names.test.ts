@@ -1,12 +1,15 @@
 /**
  * The EFFECTIVE_SETTINGS report names every env var src/ reads. This test scans
- * src/ and fails when a read is missing from the generated list. Run it with
- * UPDATE_ENV_READ_NAMES=1 to rewrite the list after adding a read.
+ * src/ and fails when the generated list is not exactly those names. Run it with
+ * UPDATE_ENV_READ_NAMES=1 to rewrite the list after adding or dropping a read.
+ *
+ * It reads the generated file as text and never imports it: a bad union merge
+ * (.gitattributes) can leave the file unparseable, and an import would then stop
+ * this file loading, so the regenerate hint and the rewrite could not run.
  */
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { ENV_READ_NAMES } from '../env-read-names.generated.js';
 
 const SRC = join(__dirname, '..', '..');
 const GENERATED = join(__dirname, '..', 'env-read-names.generated.ts');
@@ -88,18 +91,25 @@ const HEADER = `/**
 export const ENV_READ_NAMES: readonly string[] = \`
 `;
 
+const TAIL = '\n`\n  .trim()\n  .split(/\\s+/);\n';
+const REGENERATE =
+  'Regenerate the list: UPDATE_ENV_READ_NAMES=1 pnpm vitest run src/config/__tests__/env-read-names.test.ts';
+const UNPARSEABLE = `The list is not in the generated shape (a bad merge?). ${REGENERATE}`;
+
+/**
+ * One name per line: a PR that adds a name then touches one line, so two flag PRs
+ * in the merge queue no longer collide on a reflowed paragraph.
+ */
 function generatedSource(names: string[]): string {
-  const lines: string[] = [];
-  let line = '';
-  for (const name of names) {
-    line = line ? `${line} ${name}` : name;
-    if (line.length > 96) {
-      lines.push(`  ${line}`);
-      line = '';
-    }
-  }
-  if (line) lines.push(`  ${line}`);
-  return `${HEADER}${lines.join('\n')}\n\`.trim().split(/\\s+/);\n`;
+  return `${HEADER}${names.map((name) => `  ${name}`).join('\n')}${TAIL}`;
+}
+
+/** The names in the generated file, or null when it is not the generator's shape. */
+function listedNames(): string[] | null {
+  const text = readFileSync(GENERATED, 'utf8');
+  if (!text.startsWith(HEADER) || !text.endsWith(TAIL)) return null;
+  const body = text.slice(HEADER.length, text.length - TAIL.length);
+  return body.includes('`') ? null : body.trim().split(/\s+/);
 }
 
 describe('env read names', () => {
@@ -111,15 +121,30 @@ describe('env read names', () => {
       return;
     }
     expect(reads.size).toBeGreaterThan(500); // the scanner still finds the reads
-    const listed = new Set(ENV_READ_NAMES);
-    const missing = [...reads].filter(([name]) => !listed.has(name));
+    const listed = listedNames();
+    expect(listed, UNPARSEABLE).not.toBeNull();
+    const known = new Set(listed);
+    const missing = [...reads].filter(([name]) => !known.has(name));
     expect(
       missing.map(([name, where]) => `${name} (${where})`),
-      'Regenerate the list: UPDATE_ENV_READ_NAMES=1 pnpm vitest run src/config/__tests__/env-read-names.test.ts'
+      REGENERATE
     ).toEqual([]);
   });
 
+  // The file merges with git's union driver (.gitattributes), which keeps both sides'
+  // lines: it can leave two added names out of order, bring back a name the other
+  // side deleted, or splice in an old-format tail. Only an exact match makes that safe.
+  it('is exactly what the generator writes: sorted, nothing stale', () => {
+    const names = [...namesRead().keys()].sort();
+    const listed = listedNames();
+    expect(listed, UNPARSEABLE).not.toBeNull();
+    expect(listed, REGENERATE).toEqual(names);
+    expect(readFileSync(GENERATED, 'utf8') === generatedSource(names), REGENERATE).toBe(true);
+  });
+
   it('has no duplicate names', () => {
-    expect(new Set(ENV_READ_NAMES).size).toBe(ENV_READ_NAMES.length);
+    const listed = listedNames();
+    expect(listed, UNPARSEABLE).not.toBeNull();
+    expect(new Set(listed).size).toBe(listed?.length);
   });
 });

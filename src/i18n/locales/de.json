@@ -349,7 +349,7 @@
         "activity": "Aktivitätsverfolgung"
       },
       "privacy": {
-        "note": "Ihre Gesundheitsdaten bleiben privat. Wir teilen nur aggregierte Erkenntnisse mit Ihren Coaching-Sitzungen."
+        "note": "Ferni speichert Ihre Gesundheitsdaten, um mit Ihnen Muster zu erkennen. Wir verkaufen sie nie, und wenn Sie Ihr Konto löschen, werden sie gelöscht."
       },
       "providers": {
         "apple_health": {

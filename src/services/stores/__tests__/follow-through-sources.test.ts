@@ -114,7 +114,9 @@ describe('follow-through sources', () => {
   });
 
   it('brings in threads from the last calls', async () => {
-    h.summaries = [{ id: 's1', data: { followUpItems: ['how the interview went', ' '] } }];
+    h.summaries = [
+      { id: 's1', data: { followUpItems: ['how the interview went', ' '], callerProvenance: 1 } },
+    ];
     const items = await createFollowUpSources(remindersDb([])).itemsFor('u1', NOW);
     expect(items).toEqual([
       {
@@ -133,7 +135,10 @@ describe('follow-through sources', () => {
     h.summaries = [
       {
         id: 's1',
-        data: { followUpItems: ['the ex-wife and the house', 'the marathon training plan'] },
+        data: {
+          followUpItems: ['the ex-wife and the house', 'the marathon training plan'],
+          callerProvenance: 1,
+        },
       },
     ];
     const items = await createFollowUpSources(remindersDb([])).itemsFor('u1', NOW);
@@ -143,7 +148,9 @@ describe('follow-through sources', () => {
   it('when the forget list cannot be read, imports reminders only', async () => {
     h.forgotten = null;
     h.commitments = [commitment('c1', 'I am going to apply for that job by Friday')];
-    h.summaries = [{ id: 's1', data: { followUpItems: ['how the interview went'] } }];
+    h.summaries = [
+      { id: 's1', data: { followUpItems: ['how the interview went'], callerProvenance: 1 } },
+    ];
     const db = remindersDb([
       {
         id: 'r1',
@@ -152,6 +159,66 @@ describe('follow-through sources', () => {
     ]);
     const items = await createFollowUpSources(db).itemsFor('u1', NOW);
     expect(items.map((i) => i.kind)).toEqual(['reminder']);
+  });
+
+  describe('summary threads: only what the caller raised', () => {
+    const threads = async () =>
+      (await createFollowUpSources(remindersDb([])).itemsFor('u1', NOW)).map((i) => [
+        i.text,
+        i.source.ref,
+      ]);
+
+    it('skips a summary that was never checked against the caller (no callerProvenance)', async () => {
+      h.summaries = [
+        { id: 'checked', data: { callerProvenance: 1, followUpItems: ['the marathon plan'] } },
+        { id: 'legacy', data: { followUpItems: ['the offer Ferni brought up'] } },
+        { id: 'other', data: { callerProvenance: 2, followUpItems: ['an unknown marker'] } },
+      ];
+      expect(await threads()).toEqual([['the marathon plan', 'checked:0']]);
+    });
+
+    it('drops items the assistant raised', async () => {
+      h.summaries = [
+        {
+          id: 's1',
+          data: {
+            callerProvenance: 1,
+            followUpItems: ['the marathon plan', 'the career offer'],
+            assistantRaisedItems: ['the career offer'],
+          },
+        },
+      ];
+      expect(await threads()).toEqual([['the marathon plan', 's1:0']]);
+    });
+
+    it('drops items the caller disputed', async () => {
+      h.summaries = [
+        {
+          id: 's1',
+          data: {
+            callerProvenance: 1,
+            followUpItems: ['the move to Denver', 'the marathon plan'],
+            disputedItems: ['the move to Denver'],
+          },
+        },
+      ];
+      expect(await threads()).toEqual([['the marathon plan', 's1:1']]);
+    });
+
+    it('keeps the stored index in the ref, so a thread id does not move when an earlier item goes', async () => {
+      h.summaries = [
+        {
+          id: 's1',
+          data: {
+            callerProvenance: 1,
+            followUpItems: ['the career offer', 'the move', 'the marathon plan'],
+            assistantRaisedItems: ['the career offer'],
+            disputedItems: ['the move'],
+          },
+        },
+      ];
+      expect(await threads()).toEqual([['the marathon plan', 's1:2']]);
+    });
   });
 
   it('one source failing does not lose the others', async () => {

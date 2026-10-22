@@ -29,6 +29,8 @@ export interface OutreachHistoryEntry {
 export const DEFAULT_HISTORY_LIMIT = 20;
 export const MAX_HISTORY_LIMIT = 50;
 
+// 'unknown' (attempts from before deliver-and-record) still shows as sent: it was recorded.
+type Status = OutreachHistoryEntry['status'];
 const STATUSES: ReadonlySet<string> = new Set(['pending', 'sent', 'delivered', 'failed']);
 const CHANNELS: Record<OutreachAttemptEntity['channel'], OutreachHistoryEntry['channel']> = {
   voice: 'call',
@@ -54,7 +56,7 @@ function toEntry(id: string, data: Partial<OutreachAttemptEntity>): OutreachHist
     channel: (data.channel && CHANNELS[data.channel]) || 'sms',
     sentAt: data.sentAt ?? '',
     // The attempt was recorded, so at least it was sent.
-    status: data.status && STATUSES.has(data.status) ? data.status : 'sent',
+    status: data.status && STATUSES.has(data.status) ? (data.status as Status) : 'sent',
     ...(message ? { message } : {}),
   };
 }

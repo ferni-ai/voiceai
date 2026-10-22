@@ -20,6 +20,7 @@ import { noteCallerJoined } from './sip-caller.js';
 import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
 import { injectUserAwareness } from './user-awareness-injection.js';
+import { identifyWithCallStartStages } from './call-start-identify.js';
 
 // Event cleanup registry for proper memory management
 import {
@@ -36,7 +37,7 @@ import {
 } from '../voice-agent/phases/index.js';
 
 import { finops } from '../../services/observability/finops.js';
-
+import { classifyCallEnd, roomDisconnectEndReason } from '../../services/analytics/call-end-reason.js';
 import {
   cleanupSpeechCoordination,
   coordinatedSay,
@@ -329,11 +330,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       { getConversationManager },
     ] = await moduleImportsPromise;
 
-    const { userId: identifiedUserId, userName, userAccent } = await identifyUser({
-      jobMetadata: ctx.job.metadata,
-      room: ctx.room,
-      sessionId,
-    });
+    const identified = await identifyWithCallStartStages(sessionId, markCallStageSafe, () =>
+      identifyUser({ jobMetadata: ctx.job.metadata, room: ctx.room, sessionId })
+    );
+    const { userId: identifiedUserId, userName, userAccent, verified } = identified;
     userId = identifiedUserId ?? null;
 
     updateSessionState(sessionId, { state: 'active' });
@@ -388,8 +388,8 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       cleanupHandlers.push(stopPeriodicSync);
     }
 
-    // CRITICAL FIX: Set personaId on userData for TTS wrapper
-    userData.personaId = sessionPersona.id;
+    userData.personaId = sessionPersona.id; // the TTS wrapper reads it
+    userData.verifiedCaller = verified; // tools gate per-person allowances on it (verified-caller.ts)
 
     // Minimal sync work required before greeting (handoff + FinOps).
     const customData = services.userProfile?.customData as Record<string, unknown> | undefined;
@@ -791,7 +791,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         );
         try {
           const { endCall } = await import('../../services/analytics/call-quality-monitor.js');
-          endCall(sessionId, 'disconnect');
+          endCall(sessionId, classifyCallEnd(sessionEndReason));
         } catch {
           /* ignore */
         }
@@ -872,7 +872,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         // Unblock LiveKit job_proc close wait (runs after entrypoint returns).
         // Without this, empty-room exits hang forever on once(closeEvent).
         try {
-          if (reason !== 'room.disconnected' && reason !== 'job.shutdownCallback') {
+          if (!['room.disconnected', 'room.closed', 'job.shutdownCallback'].includes(reason)) {
             ctx.shutdown(reason);
           }
         } catch {
@@ -903,7 +903,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
       ctx.room.on('disconnected', (reason?: unknown) => {
         logDisconnectDiagnostics(String(reason || 'unknown'));
-        finish('room.disconnected');
+        finish(roomDisconnectEndReason(reason));
       });
 
       // connectionStateChanged often fires even when isConnected lags

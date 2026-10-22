@@ -216,8 +216,8 @@ When `USE_OWNED_STACK=true`, the agent must **not** require `GOOGLE_API_KEY` or 
 
 ## 8. References
 
-- [HIGGS-RUST-REALTIME-GAPS.md](./HIGGS-RUST-REALTIME-GAPS.md) — What Higgs has; gaps for full loop, tools, context.
-- [HIGGS-INTEGRATION-STATUS.md](./HIGGS-INTEGRATION-STATUS.md) — generate_reply wired; Candle + Ollama.
+- HIGGS-RUST-REALTIME-GAPS.md (archived: `git show docs-archive-2026-10-18:docs/plans/HIGGS-RUST-REALTIME-GAPS.md`) — What Higgs has; gaps for full loop, tools, context.
+- HIGGS-INTEGRATION-STATUS.md (archived: `git show docs-archive-2026-10-18:docs/plans/HIGGS-INTEGRATION-STATUS.md`) — generate_reply wired; Candle + Ollama.
 - [HIGGS-BETTER-THAN-ALL-PLAN.md](./HIGGS-BETTER-THAN-ALL-PLAN.md) — Making Higgs best-in-class vs ChipChat, Kyutai, Gemini, OpenAI.
 - `src/agents/shared/generate-reply-gateway.ts` — Higgs full loop branch (transcript + context → Higgs generateReply).
 - `apps/rust-higgs-pipeline/src/llm/` — Candle and Ollama backends; prompt building.

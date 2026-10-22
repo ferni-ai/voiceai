@@ -3,7 +3,7 @@ import XCTest
 
 // MARK: - EmotionalHapticsEngine Tests
 
-#if os(iOS) || os(macOS)
+#if os(iOS) // EmotionalHapticsEngine.isEnabled and BetterThanHumanEngine.haptics are iOS only
 final class EmotionalHapticsEngineTests: XCTestCase {
 
     var engine: EmotionalHapticsEngine!
@@ -302,6 +302,7 @@ final class BreathSyncHapticsTests: XCTestCase {
 
     // MARK: - Breath Phase Updates
 
+    #if os(iOS) // the macOS BreathSyncHaptics is a stub whose phase never moves
     func testBreathPhaseUpdatesWhenRunning() {
         haptics.startSync()
 
@@ -316,6 +317,7 @@ final class BreathSyncHapticsTests: XCTestCase {
 
         wait(for: [expectation], timeout: 0.5)
     }
+    #endif
 
     func testBreathPhaseCyclesBetween0And1() {
         haptics.startSync()
@@ -335,7 +337,7 @@ final class BreathSyncHapticsTests: XCTestCase {
 
 // MARK: - End-to-End Integration Tests
 
-#if os(iOS) || os(macOS)
+#if os(iOS) // EmotionalHapticsEngine.isEnabled and BetterThanHumanEngine.haptics are iOS only
 final class BetterThanHumanHapticsIntegrationTests: XCTestCase {
 
     var engine: BetterThanHumanEngine!

@@ -67,8 +67,7 @@ describe('Ferni UCP agent profile', () => {
     ]);
     const late = edited(FIREBASE, (j) => {
       const rewrites = site(j).rewrites;
-      const at = rewrites.findIndex((r: { source: string }) => r.source.includes('.well-known'));
-      rewrites.push(rewrites.splice(at, 1)[0]);
+      rewrites.unshift({ source: '**', destination: '/index.html' });
     });
     expect(checkRewrite(late)).toEqual(['the rewrite must come before the 404 catch-all']);
   });

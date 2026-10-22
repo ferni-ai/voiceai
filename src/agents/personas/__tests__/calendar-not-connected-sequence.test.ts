@@ -83,7 +83,7 @@ describe('#1547 sequence with nothing connected (real tools, real guard)', () =>
       toolsWith('getCalendarToday', 'createCalendarEvent')
     );
     expect(text).not.toMatch(/on your calendar/);
-    expect(text).toContain("It isn't booked yet, though.");
+    expect(text).toContain("It isn't booked yet. Should I go ahead and book it?");
   });
 
   it("a create run in the same reply: the claim becomes the honest line, and the create says it is Ferni's list", async () => {

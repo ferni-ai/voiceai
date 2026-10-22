@@ -34,6 +34,7 @@ import {
   staticCoreToolsEnabled,
 } from '../../config/tool-config.js';
 import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
+import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import type { UserData } from './types.js';
@@ -145,10 +146,15 @@ export async function updateAgentTools(
     const limit =
       resolveInitialToolLimit(getMaxTools()) + Math.min(topicToolCount, resolveTopicToolHeadroom());
     const capped = capToolsToLimit({ ...newTools, ...existing, ...newTools }, limit);
+    // TOOLS_SAME_TURN: append-only calls keep to the same 64 + 24 as the rest,
+    // not APPEND_ONLY_TOOL_CAP (a dev call held 113 against a limit of 88).
+    const appendCap = sameTurnToolsEnabled()
+      ? resolveInitialToolLimit(getMaxTools()) + resolveTopicToolHeadroom()
+      : APPEND_ONLY_TOOL_CAP;
     const merged = staticCore
       ? appendOnly(existing, newTools)
       : appendOnlyToolsEnabled()
-        ? appendOnly(existing, capped)
+        ? appendOnly(existing, capped, appendCap)
         : capped;
 
     await target.updateTools(merged);
@@ -183,12 +189,13 @@ export async function updateAgentTools(
  */
 function appendOnly(
   existing: Record<string, unknown>,
-  picked: Record<string, unknown>
+  picked: Record<string, unknown>,
+  cap = APPEND_ONLY_TOOL_CAP
 ): Record<string, unknown> {
   const added = Object.keys(picked).filter((name) => !(name in existing));
   const merged: Record<string, unknown> = { ...existing };
   for (const name of added) merged[name] = picked[name];
-  let excess = Object.keys(merged).length - APPEND_ONLY_TOOL_CAP;
+  let excess = Object.keys(merged).length - cap;
   if (excess <= 0) return merged;
   excess += APPEND_ONLY_EVICT_BLOCK;
   for (const name of Object.keys(existing)) {

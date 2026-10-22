@@ -23,6 +23,7 @@ import {
   getCardDimensions,
   type CardData,
 } from '../../services/sharing/card-generator.js';
+import { sendSVG } from './share-svg-response.js';
 import { cleanForFirestore, getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { requireAuth } from '../auth-middleware.js';
@@ -169,14 +170,6 @@ function sendPNG(res: ServerResponse, buffer: Buffer): void {
 // ============================================================================
 // HELPERS
 // ============================================================================
-
-function sendSVG(res: ServerResponse, svg: string): void {
-  res.writeHead(200, {
-    'Content-Type': 'image/svg+xml',
-    'Cache-Control': 'public, max-age=86400', // 24 hours
-  });
-  res.end(svg);
-}
 
 function getBaseUrl(req: IncomingMessage): string {
   const host = req.headers.host || 'app.ferni.ai';

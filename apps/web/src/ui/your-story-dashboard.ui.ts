@@ -20,7 +20,7 @@ import {
   injectVisualizationStyles,
   type YourStoryData,
 } from './visualizations/index.js';
-import { DURATION, EASING } from './visualizations/utils/dom.js';
+import { DURATION } from './visualizations/utils/dom.js';
 import {
   buildActionsTaken,
   injectActionsTakenStyles,
@@ -257,6 +257,7 @@ class YourStoryUI {
 
     const card = el('div', 'your-story__card');
     const content = el('div', 'your-story__content');
+    content.tabIndex = 0; // the loading skeleton can overflow and has nothing focusable in it
     card.appendChild(content);
 
     this.panel.appendChild(backdrop);
@@ -331,13 +332,13 @@ class YourStoryUI {
     const stageInfo = el('div', 'your-story__stage-info');
     const stageName = el('span', 'your-story__stage-name');
     stageName.textContent = data.stage.name;
+    const progressPercent = Math.round(data.stage.progress * 100);
+    // The percentage rides with the tagline: drawn above the bar's right end, it sat on top of it
     const stageTagline = el('span', 'your-story__stage-tagline');
-    stageTagline.textContent = data.stage.tagline;
+    stageTagline.textContent = `${data.stage.tagline} · ${progressPercent}%`;
     stageInfo.appendChild(stageName);
     stageInfo.appendChild(stageTagline);
     const stageProgress = el('div', 'your-story__stage-progress');
-    // Add progress percentage as data attribute for CSS display
-    const progressPercent = Math.round(data.stage.progress * 100);
     stageProgress.setAttribute('data-progress', `${progressPercent}%`);
     const stageBar = el('div', 'your-story__stage-bar');
     stageBar.style.width = `${progressPercent}%`;
@@ -591,7 +592,7 @@ class YourStoryUI {
   private showActionsError(): void {
     const container = this.panel?.querySelector('#viz-actions-taken');
     if (!container) return;
-    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('yourStory.actionsError.message')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('yourStory.actionsError.retry')}</button></div>`;
+    container.innerHTML = `<div class="error-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('yourStory.actionsError.message')} <button type="button" style="color: var(--color-ferni-on-surface); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('yourStory.actionsError.retry')}</button></div>`;
     container.querySelector('button')?.addEventListener('click', () => {
       container.innerHTML = '<div class="loading-state" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">' + t('common.loading') + '</div>';
       void this.fetchActionsData();
@@ -850,11 +851,9 @@ class YourStoryUI {
         padding: 0.8125rem; /* MA: pause (13px) */
         font-family: var(--font-body, 'Inter', sans-serif);
         
-        /* visionOS glass morphism */
-        background: var(--glass-thin-background, rgba(255, 255, 255, 0.7));
-        backdrop-filter: var(--glass-blur, blur(16px));
-        -webkit-backdrop-filter: var(--glass-blur, blur(16px));
-        border: 1px solid var(--glass-thin-border, rgba(44, 37, 32, 0.08));
+        /* the old glass token was defined nowhere: its white fallback put light text on a light card in midnight */
+        background: var(--color-background-elevated);
+        border: 1px solid var(--color-border-subtle);
         border-radius: var(--radius-lg, 1rem);
         box-shadow: var(--shadow-sm, 0 2px 12px rgba(0, 0, 0, 0.04));
         
@@ -971,19 +970,7 @@ class YourStoryUI {
         );
         border-radius: 3px;
         overflow: visible;
-      }
-
-      /* Progress percentage indicator */
-      .your-story__stage-progress::after {
-        content: attr(data-progress);
-        position: absolute;
-        right: 0;
-        top: -1.25rem;
-        font-family: var(--font-body, 'Inter', sans-serif);
-        font-size: 0.625rem;
-        font-weight: 600;
-        color: var(--color-text-muted, #8a8279);
-        letter-spacing: 0.02em;
+        clip-path: inset(-8px -8px -8px 0); /* the shimmer slid out past the track's left end */
       }
 
       .your-story__stage-bar {

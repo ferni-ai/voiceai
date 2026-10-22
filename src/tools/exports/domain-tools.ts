@@ -137,6 +137,5 @@ export {
   createFerniMemoryTools,
   createJordanMemoryTools,
   createMayaMemoryTools,
-  createMemoryManagementTools,
   createPeterMemoryTools,
 } from '../domains/memory/persona-tools.js';

@@ -24,7 +24,9 @@ import {
   type OnBehalfDispatch,
 } from '../../services/outreach/on-behalf-dispatch.js';
 import { screenedCallerText } from '../../services/outreach/caller-text.js';
+import { relayedMessage } from '../../services/outreach/relayed-message.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
+import { noteCallRefinement } from '../../services/follow-through/index.js';
 import type { CallDisposition } from './call-control.js';
 
 const log = createLogger({ module: 'on-behalf-call-lifecycle' });
@@ -164,6 +166,8 @@ export function buildCallOutcome(
   }
 
   const quote = screenedCallerText(heard.slice(-2).join(' '), name, 200);
+  // What they asked to pass on, from their own words (the analysis may phrase it better below).
+  const message = relayedMessage(heard, call.requester.name, name);
   if (isCallFollowthroughEnabled()) {
     const how = classifyAnsweredCall(heard, durationSeconds);
     if (how === 'voicemail') {
@@ -192,6 +196,7 @@ export function buildCallOutcome(
         objectiveAchieved: false,
         outcome: `I reached ${name}, but they had to go before we really got to talk. They said: "${quote}"`,
         transcriptSummary: screenedCallerText(heard.join(' '), name, 600),
+        message,
       };
     }
   }
@@ -203,6 +208,7 @@ export function buildCallOutcome(
       objectiveAchieved: false,
       outcome: `I talked with ${name}. I couldn't put together a proper summary, but the last thing they said was: "${quote}"`,
       transcriptSummary: screenedCallerText(heard.join(' '), name, 600),
+      message,
     };
   }
 
@@ -222,6 +228,8 @@ export function buildCallOutcome(
     callbackRequired: insights.callbackRequested,
     callbackTime: screenedCallerText(insights.callbackDetails, name, 100) || undefined,
     actionItems: actionItems.length > 0 ? actionItems : undefined,
+    // Screened again once joined: clean pieces can join into a link, a number or an instruction.
+    message: screenedCallerText(clean(insights.messagesForUser).join(' '), name, 200) || message,
   };
 }
 
@@ -267,6 +275,9 @@ async function defaultPorts(): Promise<CallLifecyclePorts> {
 /** The report under way (or done) per callId, so every exit path waits for the one report. */
 const reports = new Map<string, Promise<CallOutcome | null>>();
 
+/** The fixed reason logged when a finished call's result is dropped for an unsigned dispatch. */
+export const UNSIGNED_RESULT_DROPPED = 'unsigned_dispatch';
+
 /**
  * Report the finished call to the requester. `trusted` says the dispatch was
  * signed by our server (verifyOnBehalfDispatch); a forged one never reports
@@ -286,9 +297,11 @@ export async function completeOnBehalfCall(
   // An unsigned dispatch names a callId someone else chose: touch nothing keyed
   // by it (another call's report guard or transcript), only this session.
   if (!trusted) {
+    // The result is dropped, not stored: the only place to keep it is under the
+    // user the dispatch names, and an unsigned dispatch can name anyone.
     log.warn(
-      { callId: call.callId, requesterUserId: call.requester.userId },
-      'Unsigned on-behalf dispatch; not reporting to the named requester'
+      { callId: call.callId, reason: UNSIGNED_RESULT_DROPPED },
+      'On-behalf call result dropped: unsigned dispatch'
     );
     const { cleanupOnBehalfCapture } =
       await import('../integrations/on-behalf-transcript-capture.js');
@@ -354,8 +367,7 @@ async function reportCall(
     // A voicemail is retried only when the words heard read as a recorded greeting
     // (or nothing was transcribed); anything a person might have said fails closed.
     const machine = heardAs === 'voicemail' || heard.length === 0;
-    const missed =
-      outcome.status === 'no_answer' || (outcome.status === 'voicemail' && machine);
+    const missed = outcome.status === 'no_answer' || (outcome.status === 'voicemail' && machine);
     const refused = heardAs === 'opted_out' || heardAs === 'declined';
     if (followthrough && missed && !refused && scheduleRetry) {
       const retryAt = await scheduleRetry(call);
@@ -369,6 +381,13 @@ async function reportCall(
         };
       }
     }
+    const refined =
+      disposition === 'wrong_number'
+        ? 'wrong-number'
+        : disposition === 'refused' || refused
+          ? 'declined'
+          : undefined;
+    if (refined) noteCallRefinement(call.callId, refined); // read by captureCallResult's PROMISE_OUTCOME
     await report(call.callId, outcome, request);
     log.info(
       { callId: call.callId, status: outcome.status, objectiveAchieved: outcome.objectiveAchieved },

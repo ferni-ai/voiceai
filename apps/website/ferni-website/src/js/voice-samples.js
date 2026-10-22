@@ -30,18 +30,16 @@
   // ═══════════════════════════════════════════════════════════════════════════
 
   const CONFIG = {
-    // TTS endpoint - uses real Cartesia AI voices!
-    // Falls back to browser TTS if API unavailable
+    // TTS endpoint - the personas' real voices (Cartesia). If it fails the sample
+    // stays quiet: there are no pre-recorded files, and the browser's own voice
+    // sounds nothing like the person it plays.
     ttsEndpoint: 'https://app.ferni.ai/api/landing/tts',
-
-    // Pre-recorded samples (mp3 files) - fallback if TTS fails
-    samplesPath: '/audio/samples/',
 
     // Whether to enable the feature
     enabled: true,
 
-    // Use browser TTS as fallback (last resort)
-    useBrowserTTS: true,
+    // Browser speech (macOS "Samantha" and the like). Off: it is not their voice.
+    useBrowserTTS: false,
 
     // Cache generated audio for session
     cacheAudio: true,
@@ -193,11 +191,7 @@
     // Get canonical persona ID for API
     const personaId = PERSONA_IDS[sample.persona] || 'ferni';
 
-    // Priority order:
-    // 1. Cached TTS audio (if already generated)
-    // 2. Real AI TTS via API
-    // 3. Pre-recorded samples
-    // 4. Browser TTS fallback
+    // Cached audio, else the real voice from the API, else nothing.
 
     // Check cache first
     const cacheKey = `${sampleId}-${personaId}`;
@@ -221,26 +215,11 @@
         }
       } catch (err) {
         // eslint-disable-next-line no-console -- report failures in the browser console
-        console.warn('AI TTS failed, trying fallback:', err.message);
+        console.warn('AI TTS failed:', err.message);
       }
     }
 
-    // Fall back to pre-recorded samples
-    const audioUrl = CONFIG.samplesPath + sampleId + '.mp3';
-    try {
-      const audio = new Audio(audioUrl);
-      state.currentlyPlaying.audio = audio;
-      audio.addEventListener('ended', () => stopAudio());
-      audio.addEventListener('error', () => {
-        // Last resort: browser TTS
-        playBrowserTTS(sample.response, buttonEl);
-      });
-
-      await audio.play();
-    } catch {
-      // Last resort: browser TTS
-      playBrowserTTS(sample.response, buttonEl);
-    }
+    playBrowserTTS(sample.response, buttonEl); // stops unless useBrowserTTS is on
   }
 
   /**

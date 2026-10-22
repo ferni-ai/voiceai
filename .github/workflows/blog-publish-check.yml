@@ -1,0 +1,143 @@
+name: Blog Publish Check
+
+# After each deploy of ferni.ai or developers.ferni.ai on main: the blog posts
+# changed since that workflow's last successful run must return 200 with their
+# title on the page within 5 minutes (both sites serve their 404 page with 200).
+# A post that isn't live fails the job and opens an issue labelled
+# blog-publish-failed (closed by a later check that finds it live). Once all
+# are live, their URLs go to IndexNow; Google no longer takes sitemap pings.
+
+on:
+  workflow_run:
+    workflows: [Deploy Firebase Hosting, Deploy Developers Portal]
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read # the deploy workflow's earlier runs
+  issues: write
+
+concurrency:
+  group: blog-publish-check-${{ github.event.workflow_run.workflow_id }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Blog posts live after ${{ github.event.workflow_run.name }}
+    # A cancelled deploy was replaced by a newer one, whose check covers it.
+    if: >-
+      github.event.workflow_run.conclusion != 'cancelled' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+      DEPLOY_NAME: ${{ github.event.workflow_run.name }}
+      DEPLOY_URL: ${{ github.event.workflow_run.html_url }}
+    steps:
+      - name: Checkout the deployed commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          sparse-checkout: |
+            scripts/blog
+            apps/website/ferni-website/src/blog
+            apps/website/developers-portal/src/blog
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+
+      - name: Find the posts this deploy published
+        id: posts
+        env:
+          WORKFLOW_ID: ${{ github.event.workflow_run.workflow_id }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+          CREATED: ${{ github.event.workflow_run.created_at }}
+        run: |
+          set -euo pipefail
+          read -r site folder < <(node --input-type=module -e \
+            "const m = await import('./scripts/blog/published-urls.mjs'); const s = m.siteForWorkflow(process.argv[1]); console.log(s ? s + ' ' + m.SITES[s].folder : '')" \
+            "$DEPLOY_NAME") || true
+          if [ -z "${site:-}" ]; then
+            echo "::error::No site for the workflow \"$DEPLOY_NAME\" (scripts/blog/published-urls.mjs)"
+            exit 1
+          fi
+          base=$(gh api "repos/$REPO/actions/workflows/$WORKFLOW_ID/runs?branch=main&status=success&per_page=30" \
+            --jq "[.workflow_runs[] | select(.id != $RUN_ID and .created_at < \"$CREATED\")][0].head_sha // empty")
+          if [ -z "$base" ]; then
+            base=$(gh api "repos/$REPO/commits/$HEAD_SHA" --jq '.parents[0].sha')
+          fi
+          # Blob listing, not the compare API, which stops at 300 files.
+          list() {
+            gh api "repos/$REPO/contents/${folder%/}?ref=$1" \
+              --jq '.[] | select(.type == "file") | "\(.path) \(.sha)"' | sort
+          }
+          list "$base" > "$RUNNER_TEMP/base.txt"
+          list "$HEAD_SHA" > "$RUNNER_TEMP/head.txt"
+          comm -13 "$RUNNER_TEMP/base.txt" "$RUNNER_TEMP/head.txt" | cut -d' ' -f1 > "$RUNNER_TEMP/changed.txt"
+          echo "Checking $site: $(wc -l < "$RUNNER_TEMP/changed.txt") changed file(s) in $folder since $base"
+          node scripts/blog/publish-check.mjs urls --site "$site" \
+            --files "$RUNNER_TEMP/changed.txt" --out "$RUNNER_TEMP/posts.json"
+          echo "site=$site" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq length "$RUNNER_TEMP/posts.json")" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for each post to be live
+        id: verify
+        if: steps.posts.outputs.count != '0'
+        run: |
+          node scripts/blog/publish-check.mjs verify --posts "$RUNNER_TEMP/posts.json" \
+            --out "$RUNNER_TEMP/results.json" --timeout 300 --interval 15
+
+      - name: Open or close blog-publish-failed issues
+        if: always() && steps.posts.outcome == 'success' && steps.posts.outputs.count != '0'
+        env:
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          results="$RUNNER_TEMP/results.json"
+          if [ ! -f "$results" ]; then
+            echo "::error::The live check wrote no results; see its log"
+            exit 1
+          fi
+          label=blog-publish-failed
+          gh api "repos/$REPO/labels/$label" > /dev/null 2>&1 ||
+            gh api -X POST "repos/$REPO/labels" -f name="$label" -f color=b60205 \
+              -f description='A merged blog post that is not live on its site' > /dev/null
+          gh issue list --repo "$REPO" --label "$label" --state open --limit 200 \
+            --json number,title > "$RUNNER_TEMP/open.json"
+          jq -c '.[]' "$results" | while read -r post; do
+            url=$(jq -r .url <<<"$post")
+            title="Blog post not live: $url"
+            issue=$(jq -r --arg t "$title" 'map(select(.title == $t))[0].number // empty' "$RUNNER_TEMP/open.json")
+            if [ "$(jq -r .ok <<<"$post")" = true ]; then
+              if [ -n "$issue" ]; then
+                gh issue close "$issue" --repo "$REPO" --comment "Live now: $url returned 200 with the post's title ([check]($RUN_URL))."
+              fi
+              continue
+            fi
+            {
+              echo "The blog post \`$(jq -r .file <<<"$post")\` (\"$(jq -r .title <<<"$post")\") merged, but $url is not live: $(jq -r .why <<<"$post")."
+              echo
+              echo "- Commit: $HEAD_SHA"
+              echo "- Deploy: [$DEPLOY_NAME]($DEPLOY_URL)"
+              echo "- Check: [Blog Publish Check]($RUN_URL)"
+              echo
+              echo "Check the deploy run first. This issue closes itself when a later check finds the post live."
+            } > "$RUNNER_TEMP/issue.md"
+            if [ -n "$issue" ]; then
+              gh issue comment "$issue" --repo "$REPO" --body-file "$RUNNER_TEMP/issue.md"
+            else
+              gh issue create --repo "$REPO" --title "$title" --label "$label" --body-file "$RUNNER_TEMP/issue.md"
+            fi
+          done
+
+      - name: Submit the new URLs to IndexNow
+        if: steps.posts.outputs.count != '0'
+        env:
+          SITE: ${{ steps.posts.outputs.site }}
+        run: node scripts/blog/publish-check.mjs indexnow --site "$SITE" --posts "$RUNNER_TEMP/posts.json"

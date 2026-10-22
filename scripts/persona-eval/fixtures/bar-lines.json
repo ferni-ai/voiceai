@@ -1,0 +1,140 @@
+{
+  "caller": "Riley",
+  "note": "The 30 caller lines of the 2026-10-18 distinctness harness (distinct.ts). Lines with `context` get a memory-recall note (formatRecall, as memory-recall-hook.ts adds it) built from these facts; the insight metric judges only those lines. Each set mixes one fact the line invites with one it does not.",
+  "lines": [
+    {
+      "text": "ugh. long day.",
+      "context": [
+        {
+          "entity": "user",
+          "key": "job",
+          "value": "ER nurse at St. Mary's, on night shifts this month",
+          "daysAgo": 6
+        },
+        { "entity": "user", "key": "hobby", "value": "learning to make sourdough", "daysAgo": 20 }
+      ]
+    },
+    {
+      "text": "I got the job!!",
+      "context": [
+        {
+          "entity": "user",
+          "key": "interviewed for",
+          "value": "a UX designer role at a bike company in Portland, final round was last Thursday",
+          "daysAgo": 5
+        },
+        { "entity": "user", "key": "lives with", "value": "a roommate named Theo", "daysAgo": 30 }
+      ]
+    },
+    {
+      "text": "my dog died this morning",
+      "context": [
+        {
+          "entity": "user",
+          "key": "dog",
+          "value": "Biscuit, a 14-year-old beagle who loved the beach",
+          "daysAgo": 40
+        },
+        {
+          "entity": "user",
+          "key": "favorite show",
+          "value": "The Great British Bake Off",
+          "daysAgo": 12
+        }
+      ]
+    },
+    { "text": "should I text my ex? be honest" },
+    { "text": "I can't sleep again" },
+    { "text": "what should I do this weekend" },
+    { "text": "I spent way too much money this month" },
+    {
+      "text": "my mom keeps calling me about the wedding plans",
+      "context": [
+        {
+          "entity": "user",
+          "key": "getting married to",
+          "value": "Sam, in June, a small ceremony at a lake cabin",
+          "daysAgo": 14
+        },
+        { "entity": "user", "key": "commute", "value": "takes the train to work", "daysAgo": 25 }
+      ]
+    },
+    { "text": "I think I'm kind of bad at my job" },
+    { "text": "tell me something interesting" },
+    {
+      "text": "my sister is pregnant!",
+      "context": [
+        {
+          "entity": "Dana",
+          "key": "relationship",
+          "value": "Riley's older sister, has been trying for a baby for two years",
+          "daysAgo": 60
+        },
+        { "entity": "user", "key": "plant", "value": "keeps killing basil plants", "daysAgo": 9 }
+      ]
+    },
+    {
+      "text": "I finally ran a 5k",
+      "context": [
+        {
+          "entity": "user",
+          "key": "goal",
+          "value": "started couch-to-5k in the spring after knee surgery",
+          "daysAgo": 45
+        },
+        { "entity": "user", "key": "coffee", "value": "drinks oat milk lattes", "daysAgo": 15 }
+      ]
+    },
+    { "text": "work was fine I guess" },
+    {
+      "text": "I'm so nervous about the presentation tomorrow",
+      "context": [
+        {
+          "entity": "user",
+          "key": "presentation",
+          "value": "pitching the new budget to the board, first time presenting to them",
+          "daysAgo": 3
+        },
+        { "entity": "user", "key": "car", "value": "drives an old green Subaru", "daysAgo": 50 }
+      ]
+    },
+    { "text": "do you think I should get a dog" },
+    { "text": "my friend didn't invite me to her birthday" },
+    { "text": "I just got back from the grocery store" },
+    {
+      "text": "we closed on the house today",
+      "context": [
+        {
+          "entity": "user",
+          "key": "house hunting",
+          "value": "lost two bidding wars before an offer was accepted on a little brick house with a yard",
+          "daysAgo": 21
+        },
+        { "entity": "user", "key": "music", "value": "into old Motown records", "daysAgo": 35 }
+      ]
+    },
+    { "text": "I've been feeling kind of lonely lately" },
+    { "text": "what are you up to" },
+    { "text": "my boss yelled at me in front of everyone" },
+    { "text": "I'm thinking about quitting and going back to school" },
+    { "text": "lol my cat just knocked my coffee over" },
+    {
+      "text": "my grandpa is in the hospital",
+      "context": [
+        {
+          "entity": "Grandpa Joe",
+          "key": "relationship",
+          "value": "Riley's grandfather, taught Riley to fish on Lake Erie every summer",
+          "daysAgo": 70
+        },
+        { "entity": "user", "key": "phone", "value": "just got a new phone", "daysAgo": 8 }
+      ]
+    },
+    { "text": "I made pasta from scratch tonight" },
+    { "text": "I can't decide between two job offers" },
+    { "text": "it's raining and I'm stuck inside" },
+    { "text": "I got a parking ticket" },
+    { "text": "my kid said her first word today" },
+    { "text": "how do you deal with stress" }
+  ]
+}

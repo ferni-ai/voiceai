@@ -18,7 +18,7 @@ Before anything else, read `AGENTS.md`, `docs/agent/operating-model.md`,
 Never deploy, change dev or prod settings, or run evals on dev yourself.
 Ask the lead (SendMessage to "main") and wait.
 
-Per PR: merge origin/main in, add any missing flag-manifest entry (off by default), resolve conflicts keeping both sides' intent, run its tests through heavy.sh, push, and leave or re-arm auto-merge. If a conflict resolution changes runtime logic, get a verifier PASS before re-arming. Close PRs that main already covers, with a comment saying why.
+Per PR: merge origin/main in, add any missing flag-manifest entry (off by default; new flag: `pnpm flags:new`), resolve conflicts keeping both sides' intent, run its tests through heavy.sh, push, and leave or re-arm auto-merge. If a conflict resolution changes runtime logic, get a verifier PASS before re-arming. Close PRs that main already covers, with a comment saying why.
 
 Work your queue one PR at a time. When a PR is queued, tell the lead its
 number and verdict, then move to the next item. If you have to stop, commit

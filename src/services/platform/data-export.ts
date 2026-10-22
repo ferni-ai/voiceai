@@ -678,9 +678,7 @@ class DataExportService {
     }
   }
 
-  // ============================================================================
   // COUNT HELPERS
-  // ============================================================================
 
   private async getProfileItemCount(userId: string): Promise<number> {
     try {
@@ -756,9 +754,7 @@ class DataExportService {
     }
   }
 
-  // ============================================================================
   // DELETE ALL DATA
-  // ============================================================================
 
   /**
    * Delete all user data (GDPR right to erasure).
@@ -769,6 +765,15 @@ class DataExportService {
     const step = erasureSteps(deletionResults, userId, log);
 
     try {
+      // 0. Google grants first, while their tokens can be read: revoke, or queue the revoke when
+      // Google is down. Not caught: a failed read must stop the erasure (unknown token state).
+      const { forgetGmailSendGrant } = await import('../identity/gmail-send-as-user.js');
+      const { disconnectGoogleCalendar } =
+        await import('../identity/google-calendar-disconnect.js');
+      await forgetGmailSendGrant(userId);
+      await disconnectGoogleCalendar(userId, { queueIfUnreachable: true });
+      deletionResults['gmail_send_grant'] = deletionResults['google_calendar_grant'] = true;
+
       // 1. Delete engagement data
       try {
         const store = await getEngagementStore();
@@ -778,12 +783,6 @@ class DataExportService {
         log.warn({ error: String(e), userId }, 'Failed to delete engagement data');
         deletionResults['engagement'] = false;
       }
-
-      // 1b. Revoke the Gmail "send as me" grant at Google while its token can still be read
-      await step('gmail_send_grant', 'Failed to revoke the Gmail send grant', async () => {
-        const { forgetGmailSendGrant } = await import('../identity/gmail-send-as-user.js');
-        await forgetGmailSendGrant(userId);
-      });
 
       // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed
       const { eraseUserRecord } = await import('./erase-user-record.js');
@@ -875,9 +874,7 @@ class DataExportService {
     }
   }
 
-  // ============================================================================
   // HELPERS
-  // ============================================================================
 
   /**
    * Convert category name to JSON key.

@@ -49,16 +49,20 @@ export function lastAgentWordsIn(
  * @param speaker - the persona answering
  * @param callerWords - what the caller said since the agent last spoke
  * @param lastAgentWords - what the agent said just before that
+ * @param scriptFree - SCRIPT_FREE_REMINDER=on: no quoted offer
  */
 export function chiefOfStaffNote(
   speaker: string,
   callerWords: string,
-  lastAgentWords = ''
+  lastAgentWords = '',
+  scriptFree = false
 ): string {
   if (!alexChiefOfStaffEnabled() || isChiefOfStaff(speaker)) return '';
+  // SCRIPT_FREE_REMINDER=on (agents/personas/script-free.ts): no quoted offer to repeat.
+  const like = scriptFree ? ',' : ', like "Want me to grab Alex? He keeps your schedule.",';
   const rule =
     "Alex is the caller's chief of staff: their todos, goals, calendar, schedule and agenda are his. " +
-    'When they ask about any of those, offer him in a few words, like "Want me to grab Alex? He keeps your schedule.", ' +
+    `When they ask about any of those, offer him in a few words${like} ` +
     "and hand off once they say yes; don't plan it with them yourself, unless they'd rather not. " +
     'A quick one-off reminder or timer, you set yourself.';
   if (!PLANNING_NEED.test(callerWords.toLowerCase()) || offeredJustNow(lastAgentWords)) return rule;

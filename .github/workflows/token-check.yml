@@ -16,7 +16,7 @@ on:
       - 'design-system/lib/**'
       - 'design-system/dist/**'
       - 'apps/web/src/config/**'
-      - 'apps/ios-native/Ferni/Resources/expressions.json'
+      - 'apps/ios-native/Packages/FerniDesign/Sources/FerniDesign/Resources/expressions.json'
       - 'apps/website/ferni-website/tailwind.config.generated.js'
       - 'apps/web/public/design-system/**'
       - 'apps/website/ferni-website/css/**'

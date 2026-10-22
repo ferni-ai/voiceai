@@ -86,7 +86,6 @@ export {
   createMayaMemoryTools,
   createJordanMemoryTools,
   createAlexMemoryTools,
-  createMemoryManagementTools,
 } from './persona-tools.js';
 
 export default getToolDefinitions;

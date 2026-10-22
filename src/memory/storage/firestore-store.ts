@@ -3,8 +3,6 @@
  *
  * Production-grade persistent storage using Google Cloud Firestore.
  *
- * Requires: npm install @google-cloud/firestore
- *
  * Environment:
  * - GOOGLE_CLOUD_PROJECT: Your GCP project ID
  * - GOOGLE_APPLICATION_CREDENTIALS: Path to service account JSON
@@ -19,7 +17,9 @@ import type {
   FinancialGoal,
 } from '../../types/user-profile.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { withoutProfileTokenFields } from '../../utils/token-at-rest.js';
 import { conversationDaysFor } from './conversation-days.js';
+import { forgetCallStartReads, readUserRootOnce } from '../../utils/call-start-reads.js';
 import { queryProfileByLinkedIdentifier } from './firestore-linked-identifier.js';
 import {
   isValidUserProfile,
@@ -199,9 +199,7 @@ export class FirestoreStore extends MemoryStore {
 
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
-      const [doc, days] = await Promise.all([docRef.get(), conversationDaysFor(docRef)]);
-
-      const data = doc.exists ? doc.data() : undefined;
+      const [data, days] = await readUserRootOnce(userId, docRef, conversationDaysFor);
       if (!data) return null;
 
       const hydrated = Object.assign(this.hydrateData(data), days && { conversationDays: days });
@@ -231,10 +229,12 @@ export class FirestoreStore extends MemoryStore {
 
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(profile.id);
-      const { conversationDays: _days, ...stored } = profile; // read on every load, never stored
+      // conversationDays is derived on load; token fields are written only by profile-token-field.
+      const { conversationDays: _days, ...stored } = withoutProfileTokenFields(profile);
       const serialized = this.serializeForFirestore(stored);
 
       await docRef.set(cleanForFirestore(serialized), { merge: true });
+      forgetCallStartReads(profile.id); // later call-start readers see this write
       getLogger().debug(`Saved profile: ${profile.id}`);
     } catch (error) {
       getLogger().error(`saveProfile error: ${error}`);
@@ -248,6 +248,7 @@ export class FirestoreStore extends MemoryStore {
     try {
       const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
       await docRef.delete();
+      forgetCallStartReads(userId);
       return true;
     } catch (error) {
       getLogger().error(`deleteProfile error: ${error}`);
@@ -553,13 +554,11 @@ export class FirestoreStore extends MemoryStore {
     const { createIfMissing = false, maxRetries = 3 } = options;
 
     try {
-      // Import Firestore for transaction support
       const { Firestore } = await import('@google-cloud/firestore');
       const db = this.db as unknown as InstanceType<typeof Firestore>;
 
       const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
 
-      // Run transaction
       const result = await db.runTransaction(
         async (transaction) => {
           const doc = await transaction.get(docRef);
@@ -585,7 +584,6 @@ export class FirestoreStore extends MemoryStore {
             currentProfile = createUserProfile(userId);
           }
 
-          // Apply the update
           const updatedProfile = await updater(currentProfile);
 
           // Ensure updatedAt is set
@@ -600,6 +598,7 @@ export class FirestoreStore extends MemoryStore {
         },
         { maxAttempts: maxRetries }
       );
+      forgetCallStartReads(userId);
 
       if (result) {
         getLogger().debug(`Atomic update completed for profile: ${userId}`);

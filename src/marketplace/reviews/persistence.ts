@@ -13,6 +13,7 @@ import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.
 import { getLogger } from '../../utils/safe-logger.js';
 import type { MarketplaceId, UserId } from '../schema/types.js';
 import type { Review, ReviewStats, ReviewVote } from './types.js';
+import { firestoreBackendFromEnv } from '../persistence/backend.js';
 
 const log = getLogger().child({ module: 'reviews-persistence' });
 
@@ -424,11 +425,8 @@ let storeInstance: ReviewsStore | null = null;
 export async function getReviewsStore(): Promise<ReviewsStore> {
   if (storeInstance) return storeInstance;
 
-  const useFirestore =
-    process.env.NODE_ENV === 'production' ||
-    process.env.USE_FIRESTORE_REVIEWS === 'true' ||
-    process.env.GCP_PROJECT_ID ||
-    process.env.FIREBASE_PROJECT_ID;
+  // In-memory under a test runner, whatever project id is set (see backend.ts).
+  const useFirestore = firestoreBackendFromEnv('USE_FIRESTORE_REVIEWS');
 
   if (useFirestore) {
     try {

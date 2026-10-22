@@ -18,7 +18,7 @@ import { z } from 'zod';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { createDomainExport } from '../../registry/loader.js';
 import type { ToolContext, ToolDefinition } from '../../registry/types.js';
-
+import { askWhereFirst } from '../local-search/caller-city.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
 
 /**
@@ -610,7 +610,7 @@ const calendarTools: ToolDefinition[] = [
   ...getPlacesToolDefinitions(),
   ...getContactsToolDefinitions(),
   ...smartCalendarTools,
-];
+].map(askWhereFirst); // PLACES_NEEDS_LOCATION: findBusiness, restaurant search (caller-city.ts)
 
 // ============================================================================
 // EXPORTS

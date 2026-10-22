@@ -19,6 +19,7 @@ import {
   handleCorsPreflightIfNeeded,
   getUserId,
 } from './helpers.js';
+import { refuseAnonymousPublisher, siteHeaders, type SiteKind } from './sites-sandbox.js';
 import {
   generateAgentPage,
   generatePreviewSnippet,
@@ -56,6 +57,8 @@ interface DeployedSite {
   tier: 'free' | 'premium';
   status: 'active' | 'pending' | 'error';
   files: Record<string, string>;
+  /** Set by the server at deploy time; missing or unknown is served sandboxed. */
+  kind?: SiteKind;
   createdAt: string;
   updatedAt: string;
   analytics?: {
@@ -219,6 +222,7 @@ async function deploySite(
     sendError(res, 'Unauthorized', 401);
     return true;
   }
+  if (await refuseAnonymousPublisher(req, res)) return true;
 
   try {
     const body = await parseBody<DeployRequest>(req);
@@ -291,6 +295,7 @@ async function deploySite(
       tier,
       status: 'active',
       files,
+      kind: 'uploaded',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       analytics: {
@@ -519,6 +524,7 @@ async function generateAndDeployPage(
     sendError(res, 'Unauthorized', 401);
     return true;
   }
+  if (await refuseAnonymousPublisher(req, res)) return true;
 
   try {
     ensureFirebaseInitialized();
@@ -555,8 +561,11 @@ async function generateAndDeployPage(
       }
     }
 
-    // Generate the page
-    const generated = await generateAgentPage(config);
+    // Our endpoints only: the page runs on the app origin and sends the
+    // visitor's device id to the token endpoint.
+    const environment =
+      config.deployment?.environment === 'development' ? 'development' : 'production';
+    const generated = await generateAgentPage({ ...config, deployment: { environment } });
 
     // Generate site ID
     const siteId = `site_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -579,6 +588,7 @@ async function generateAndDeployPage(
       files: {
         'index.html': generated.html,
       },
+      kind: 'generated',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       analytics: {
@@ -727,7 +737,7 @@ async function serveStaticSite(
       // File not found - try index.html for SPA routing
       const indexContent = site.files['index.html'];
       if (indexContent) {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.writeHead(200, { ...siteHeaders(site.kind), 'Content-Type': 'text/html' });
         res.end(indexContent);
       } else {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -779,29 +789,11 @@ async function serveStaticSite(
       )
       .catch((err: unknown) => log.warn({ err, siteId }, 'Failed to update analytics'));
 
-    // Permissive CSP for landing pages - allows LiveKit and inline scripts
     const isDev = process.env.NODE_ENV === 'development';
-    const connectSrc = isDev
-      ? "connect-src 'self' http://localhost:* ws://localhost:* https://*.livekit.cloud wss://*.livekit.cloud https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://api.cartesia.ai https://cdn.jsdelivr.net"
-      : "connect-src 'self' https://*.livekit.cloud wss://*.livekit.cloud https://*.firebaseio.com https://*.googleapis.com https://api.stripe.com https://api.cartesia.ai https://cdn.jsdelivr.net";
-
-    const landingPageCSP = [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://apis.google.com https://js.stripe.com",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "font-src 'self' https://fonts.gstatic.com https://constellation-static.web.vanguard.com data:",
-      "img-src 'self' data: https: blob:",
-      connectSrc,
-      "media-src 'self' blob: https:",
-      "object-src 'none'",
-      "frame-ancestors 'self'",
-      "base-uri 'self'",
-    ].join('; ');
-
     res.writeHead(200, {
+      ...siteHeaders(site.kind),
       'Content-Type': contentType,
       'Cache-Control': isDev ? 'no-cache, no-store' : 'public, max-age=300, s-maxage=60',
-      'Content-Security-Policy': landingPageCSP,
     });
     res.end(content);
     return true;

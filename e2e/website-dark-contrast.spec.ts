@@ -37,6 +37,7 @@ const PAGES = [
   '/team/',
   '/terms/',
   '/use-cases/',
+  '/what-ferni-is/',
 ];
 
 let site: BuiltSite | undefined;

@@ -50,6 +50,14 @@ for (const [zone, codes] of Object.entries(ZONES)) {
   for (const code of codes.split(' ')) BY_AREA_CODE.set(code, zone);
 }
 
+/** Zones outside the US and Canada (their own regions): Puerto Rico and the US Virgin Islands. */
+const NOT_US_CA = new Set(['America/Puerto_Rico']);
+
+/** The US and Canadian area codes in this table. */
+export function usCaAreaCodes(): string[] {
+  return [...BY_AREA_CODE].filter(([, zone]) => !NOT_US_CA.has(zone)).map(([code]) => code);
+}
+
 /** Time zone of a North American (+1) phone number's area code, if known. */
 export function timezoneFromPhone(phone: string | undefined): string | undefined {
   const digits = (phone ?? '').replace(/\D/g, '');

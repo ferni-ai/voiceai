@@ -120,9 +120,8 @@ async function savedContactInfo(userId: string): Promise<UserContactInfo | undef
     const store = await getProfileStore();
     const profile = await store.getProfile(userId);
     if (profile?.contactInfo) {
+      // Preferences only: the saved phone and email are never read back.
       const info: UserContactInfo = {
-        phone: profile.contactInfo.phone,
-        email: profile.contactInfo.email,
         preferredMethod: profile.contactInfo
           .preferredContactMethod as UserContactInfo['preferredMethod'],
         timezone: profile.contactInfo.timezone,
