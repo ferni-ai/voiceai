@@ -19,9 +19,30 @@ operating model's Review section; the reviewer is never the author.
 | Agent config | Env secrets on the LiveKit agent. Behaviour changes ship **behind a flag, off by default**. | `lk agent update-secrets` |
 | UI server | Cloud Run `john-bogle-ui`, deployed by GitHub Actions on a merge-queue merge to `main` (or once push CI passes) | `.github/workflows/deploy-production.yml` |
 | Quality bar | `docs/DEFINITION-OF-CLEAN.md`, enforced by the ratchet | `apps/cli/src/commands/quality/ratchet.ts` |
+| Firestore | Project `johnb-2025`, two databases: `(default)` is **prod**, `ferni-dev` is **dev** (`FIRESTORE_DATABASE=ferni-dev`). Both read the same rules and index files; diff the live rules before a prod deploy (below). | `firebase.json`, `firestore.rules`, `firestore.indexes.json` |
 
 Docs elsewhere that mention GCE, Gemini Live, OpenAI Realtime, a JSON
 function-call workaround or Sonata are describing retired setups.
+
+### Firestore rules and indexes, per database
+
+`firebase.json` has one `firestore` entry per database, so every deploy names
+its database. Deploy to dev first, then check it:
+
+```bash
+firebase deploy --only firestore:ferni-dev --dry-run    # compiles rules, reads indexes, changes nothing
+firebase deploy --only firestore:ferni-dev              # dev rules + indexes
+scripts/firestore-rules/diff-live.sh johnb-2025 firestore.rules ferni-dev
+npx tsx scripts/firestore/check-indexes.ts --database ferni-dev
+```
+
+Prod is `firebase deploy --only 'firestore:(default)'`, and a hook asks for
+`PDLC_PROD_RULES="<why, how tested>"` first. Run `diff-live.sh` (no database
+argument) before it: prod's live rules can lag `firestore.rules`. Never run a bare
+`firebase deploy --only firestore`: it deploys both databases. The emulator reads
+rules only when `--only` names one entry, so start it with
+`firebase emulators:start --only firestore:ferni-dev` (plain `--only firestore`
+starts with no rules: every read and write allowed).
 
 ## How work ships (one small chunk at a time)
 

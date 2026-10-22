@@ -37,6 +37,8 @@ const SERVER_FLAGS = [
   'PONDERING=on',
   // The whole team from the first call, introduced by need (Seth, 2026-10-20; the agent has it too).
   'TEAM_BY_NEED=on',
+  // The web server places the on-behalf calls the agent defers, so it runs the do-not-call check too.
+  'ON_BEHALF_DNC_CHECK=on',
 ];
 
 /** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */
@@ -45,6 +47,18 @@ const PROACTIVE_USERS_SECRET = 'PROACTIVE_CHANNELS_USERS=proactive-channels-user
 describe('web-server flags survive a deploy', () => {
   it.each(SERVER_FLAGS)('the production workflow sets %s', (flag) => {
     expect(workflowEnv()).toContain(flag);
+  });
+
+  it('GET /api/promises has a slot in the workflow, off until a reviewed PR turns it on', () => {
+    expect(workflowEnv()).toContain('PROMISES_PANEL=off');
+  });
+
+  it('the Promises build flag reaches both web builds', () => {
+    expect(firebase).toMatch(/VITE_PROMISES_PANEL: \$\{\{ vars\.VITE_PROMISES_PANEL \}\}/);
+    expect(workflow).toMatch(
+      /--build-arg VITE_PROMISES_PANEL="\$\{\{ vars\.VITE_PROMISES_PANEL \}\}"/
+    );
+    expect(dockerfile).toMatch(/ARG VITE_PROMISES_PANEL=""\nENV VITE_PROMISES_PANEL=\$VITE_PROMISES_PANEL/);
   });
 
   it('sends app email through the ferni.ai Workspace, switchable back by repo variable', () => {
