@@ -1,17 +1,11 @@
 /**
  * Ferni doesn't know how he's built, and says so instead of making it up.
  *
- * Prod call 2026-10-19 (#2223): both searchWeb calls came back "No results",
- * the caller pressed for the cause, and over two minutes Ferni described a
- * "Python layer", "web scrapers", "a JSON payload sent to a private backend"
- * and "a custom API gateway", none of it true, with director notes ("Answer
- * their specific question about the backend service") pushing him further.
- *
- * NO_INVENTED_INTERNALS=on (off by default): INTERNALS_HONESTY in the system
- * prompt (ai-honesty.ts); ASK_NOTE on a press about his errors or systems
- * after a tool failed, RETRACT_NOTE after a reply that named internals no
- * tool result mentioned (turn-request.ts), and on either turn no director
- * note pushing the technical question. "Are you an AI?" stays ai-honesty.ts's.
+ * #2223: after two empty searches, a pressed Ferni invented a "Python layer",
+ * "web scrapers" and "a custom API gateway". NO_INVENTED_INTERNALS=on adds
+ * INTERNALS_HONESTY to the prompt (ai-honesty.ts), ASK_NOTE on a press after a
+ * failed tool, RETRACT_NOTE after a reply naming internals nothing told him,
+ * and drops director notes pushing the technical question (turn-request.ts).
  *
  * @module agents/personas/no-invented-internals
  */
@@ -69,29 +63,13 @@ type Item = Partial<Record<'type' | 'role' | 'textContent' | 'output', string>> 
   isError?: boolean;
 };
 const isUser = (i: Item): boolean => i.type === 'message' && i.role === 'user';
-
-/** Items since the caller's third-last message: the last few turns. */
-function recent(items: readonly Item[]): Item[] {
-  let seen = 0;
-  for (let i = items.length - 1; i >= 0; i--) {
-    if (isUser(items[i]) && ++seen === 3) return items.slice(i);
-  }
-  return [...items];
-}
+const isFailure = (i: Item): boolean =>
+  i.type === 'function_call_output' && (i.isError === true || FAILED.test(i.output ?? ''));
 
 /** Caller turns since the last failed tool result (Infinity: none failed). */
 function turnsSinceFailure(items: readonly Item[]): number {
-  let turns = 0;
-  for (let i = items.length - 1; i >= 0; i--) {
-    const item = items[i];
-    if (isUser(item)) turns++;
-    else if (
-      item.type === 'function_call_output' &&
-      (item.isError || FAILED.test(item.output ?? ''))
-    )
-      return turns;
-  }
-  return Infinity;
+  const at = items.map(isFailure).lastIndexOf(true);
+  return at < 0 ? Infinity : items.slice(at).filter(isUser).length;
 }
 
 const outputs = (items: readonly Item[]): Item[] =>
@@ -129,11 +107,9 @@ export function inventedTerm(items: readonly Item[], framed = true): string | un
 export type InternalsTurn = 'ask' | 'retract' | '';
 
 /**
- * With the flag on, which kind of turn this is. 'ask' fires on the first
- * press after a failure (pushback compounds: don't wait for an invention) and
- * on every press after it. Both need a technical frame, so "our server was
- * great" about dinner never fires: a tool failed in the last few turns, or the
- * caller asked about internals in them; unframed, only "my backend" does.
+ * 'ask' from the first press after a failure (pushback compounds) until they
+ * let it go; both need a technical frame (a failure or a press in the last
+ * three caller turns), so "our server was great" never fires.
  */
 export function internalsTurn(
   items: readonly Item[],
@@ -141,11 +117,9 @@ export function internalsTurn(
   env: Env = process.env
 ): InternalsTurn {
   if (!noInventedInternalsEnabled(env) || !said) return '';
-  const window = recent(items);
   const failed = turnsSinceFailure(items) <= 3;
-  // Before Ferni's last line: what they asked before this turn.
-  const before = window.slice(0, Math.max(0, window.map((i) => i.role).lastIndexOf('assistant')));
-  const askedBefore = before.some((i) => isUser(i) && asksAboutInternals(i.textContent ?? ''));
+  const lines = items.filter(isUser).map((i) => i.textContent ?? '');
+  const askedBefore = lines.slice(-3, -1).some(asksAboutInternals);
   const pressed = failed || askedBefore;
   // Within 3 turns of a failure or after a press, a line said to him with a technical or
   // pressing cue presses too ("I'm in tech, give it to me plain"); "my python class" doesn't.
