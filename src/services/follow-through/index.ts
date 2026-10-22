@@ -47,3 +47,12 @@ export {
 } from './promise-outcomes.js';
 export { releaseForgotten } from './release-forgotten.js';
 export { closeFromSource } from './close-from-source.js';
+export {
+  toHeldItem,
+  whatFerniHolds,
+  MAX_HELD,
+  type HeldItem,
+  type HeldKind,
+  type HeldSource,
+  type HoldingView,
+} from './holding.js';

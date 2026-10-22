@@ -66,8 +66,8 @@ async function getEligibleUsers(
   config: DeepAnalysisJobConfig
 ): Promise<Array<{ userId: string; conversationCount: number }>> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const eligible: Array<{ userId: string; conversationCount: number }> = [];
 
@@ -131,8 +131,8 @@ async function getEligibleUsers(
  */
 async function buildAnalysisInput(userId: string): Promise<DeepAnalysisInput | null> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     // Get user profile
     const userDoc = await db.collection('bogle_users').doc(userId).get();

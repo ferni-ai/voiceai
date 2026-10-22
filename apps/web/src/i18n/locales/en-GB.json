@@ -5945,7 +5945,8 @@
     "meetingsToday": {
       "one": "{count} meeting today",
       "other": "{count} meetings today"
-    }
+    },
+    "weekRegion": "This week, day by day"
   },
   "storyArcs": {
     "firstLaunch": {
@@ -8772,7 +8773,8 @@
     "messageCount": {
       "one": "{count} message",
       "other": "{count} messages"
-    }
+    },
+    "sessionsRegion": "Our past conversations"
   },
   "outreachPrefs": {
     "eyebrow": "Stay in touch",
@@ -10221,6 +10223,7 @@
       "other": "You earned {count} seeds!"
     },
     "couldNotLoadMemories": "Couldn't load what I remember. Try again?",
+    "credentialNotKept": "Ferni doesn't keep codes or passwords, so that one is gone.",
     "memoryCorrected": "Got it. I'll remember it that way."
   },
   "trustSignals": {
@@ -10702,7 +10705,8 @@
     "comingSoon": "More options coming soon.",
     "status": {
       "active": "Active"
-    }
+    },
+    "itemsRegion": "Things you can choose"
   },
   "capabilityCard": {
     "betterThanHuman": "Better than Human"

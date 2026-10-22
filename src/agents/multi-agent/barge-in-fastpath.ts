@@ -16,8 +16,13 @@
  * an echo guard: words that are mostly Ferni's own, picked up by a
  * speakerphone mic, don't count.)
  *
+ * BARGE_IN_SOFT_PAUSE=on pauses Ferni there instead and cuts the reply only
+ * once words or the barge-in model confirm it (barge-in-soft-pause.ts).
+ *
  * @module agents/multi-agent/barge-in-fastpath
  */
+
+import type { SoftPause } from './barge-in-soft-pause.js';
 
 /** Words that on their own signal "go on", not "stop". */
 const BACKCHANNEL_WORDS = new Set([
@@ -71,6 +76,16 @@ export const MIN_INTERRUPT_WORDS = 3;
  * (<= 0.87 s reported); at 700 ms a 0.45 s "uh-huh" fired (dev, 2026-09-30).
  */
 export const SUSTAINED_SPEECH_MS = 950;
+/**
+ * Words that confirm a soft pause: one real word (not a backchannel, not
+ * Ferni's echo). Three would rarely arrive inside the confirmation window.
+ */
+export const SOFT_PAUSE_CONFIRM_WORDS = 1;
+/** After a soft pause resumes, the transcript backstop needs only two words this long. */
+export const POST_RESUME_BACKSTOP_MS = 1500;
+export const POST_RESUME_MIN_WORDS = 2;
+/** A paused output still held this long past window + grace is resumed regardless. */
+export const SOFT_PAUSE_WATCHDOG_EXTRA_MS = 1000;
 
 export function words(text: string): string[] {
   return text
@@ -134,14 +149,19 @@ export interface BargeInFastPath {
   onUserState(event: unknown): void;
   /** Text as it is spoken (captions), for the echo guard. */
   onSpokenText(chunk: string): void;
+  /** The barge-in model's verdict on an overlap (BARGE_IN_DECISION). */
+  onOverlapDecision(event: unknown): void;
 }
 
 export function createBargeInFastPath(deps: {
-  interrupt: () => void;
+  /** Cut the reply; false (or a throw) when it could not be cut. */
+  interrupt: () => boolean | void;
   log?: (fields: Record<string, unknown>) => void;
   sustainedSpeechMs?: number;
   setTimer?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
   clearTimer?: (t: ReturnType<typeof setTimeout>) => void;
+  /** BARGE_IN_SOFT_PAUSE=on: sustained speech pauses Ferni until confirmed. */
+  softPause?: SoftPause;
 }): BargeInFastPath {
   const setTimer = deps.setTimer ?? setTimeout;
   const clearTimer = deps.clearTimer ?? clearTimeout;
@@ -150,6 +170,15 @@ export function createBargeInFastPath(deps: {
   let spokenText = '';
   let firedThisReply = false;
   let timer: ReturnType<typeof setTimeout> | undefined;
+  const soft = deps.softPause;
+  let pausedThisReply = false;
+  /** Ferni's audio is paused by us (until resumed, or the cut reply ends). */
+  let outputHeld = false;
+  let pending:
+    | { at: number; heard: string; timer?: ReturnType<typeof setTimeout>; vadEndAt?: number }
+    | undefined;
+  let resumedAt: number | undefined;
+  let watchdog: ReturnType<typeof setTimeout> | undefined;
   const stopTimer = (): void => {
     if (timer) clearTimer(timer);
     timer = undefined;
@@ -161,13 +190,105 @@ export function createBargeInFastPath(deps: {
     deps.log?.(fields);
     deps.interrupt();
   };
+  /** Give Ferni's audio back. A throw is logged, never let into a timer or LiveKit's emit. */
+  const release = (): void => {
+    outputHeld = false;
+    if (watchdog) clearTimer(watchdog);
+    watchdog = undefined;
+    try {
+      soft?.resume();
+    } catch (error) {
+      soft?.log?.({ event: 'resume-failed', error: String(error) });
+    }
+  };
+  const tryInterrupt = (): boolean => {
+    try {
+      return deps.interrupt() !== false;
+    } catch {
+      return false;
+    }
+  };
+  const decide = (outcome: 'interrupted' | 'resumed', fields: Record<string, unknown>): void => {
+    if (!pending || !soft) return;
+    if (pending.timer) clearTimer(pending.timer);
+    const pausedMs = Date.now() - pending.at;
+    pending = undefined;
+    if (outcome === 'interrupted') {
+      firedThisReply = true;
+      // The output stays paused until the cut reply ends (releaseOutput).
+      if (tryInterrupt()) {
+        soft.log?.({ outcome, ...fields, pausedMs });
+        return;
+      }
+      // An uninterruptible reply would otherwise stay paused, and "speaking", for good.
+      soft.log?.({ outcome: 'resumed', why: 'cut-failed', confirmedBy: fields.why, pausedMs });
+      release();
+      return;
+    }
+    soft.log?.({ outcome, ...fields, pausedMs });
+    resumedAt = Date.now();
+    release();
+  };
+  /**
+   * Resume at the window's end, or, if the caller went quiet, at the later of
+   * that and the STT grace's end (never past both summed). A caller who never
+   * goes quiet is usually steady room noise: don't hold Ferni silent past the
+   * window; a real interruption's late words still cut via the post-resume backstop.
+   */
+  const scheduleResume = (): void => {
+    if (!pending || !soft) return;
+    if (pending.timer) clearTimer(pending.timer);
+    const windowEnd = pending.at + soft.confirmMs;
+    const cap = windowEnd + soft.graceMs;
+    const { vadEndAt } = pending;
+    const graceEnd = vadEndAt === undefined ? windowEnd : vadEndAt + soft.graceMs;
+    const after = graceEnd > windowEnd ? 'grace' : 'window';
+    const ms = Math.min(cap, Math.max(windowEnd, graceEnd)) - Date.now();
+    pending.timer = setTimer(
+      () => decide('resumed', { why: pending?.heard, after }),
+      Math.max(0, ms)
+    );
+  };
+  const tryPause = (): boolean => {
+    try {
+      return soft?.pause() === true;
+    } catch (error) {
+      soft?.log?.({ event: 'pause-failed', error: String(error) });
+      return false; // the fast path cuts the reply, as without the flag
+    }
+  };
+  const softPause = (): boolean => {
+    if (!soft || !tryPause()) return false;
+    pausedThisReply = true;
+    outputHeld = true;
+    const at = Date.now();
+    pending = { at, heard: 'no-words' };
+    scheduleResume();
+    if (watchdog) clearTimer(watchdog);
+    watchdog = setTimer(
+      () => {
+        watchdog = undefined;
+        if (!outputHeld) return;
+        if (pending?.timer) clearTimer(pending.timer);
+        pending = undefined;
+        soft.log?.({ outcome: 'resumed', why: 'watchdog', pausedMs: Date.now() - at });
+        release();
+      },
+      soft.confirmMs + soft.graceMs + SOFT_PAUSE_WATCHDOG_EXTRA_MS
+    );
+    return true;
+  };
   const armIfOverlapping = (): void => {
-    if (!agentSpeaking || !callerSpeaking || timer || firedThisReply) return;
+    if (!agentSpeaking || !callerSpeaking || timer || firedThisReply || pausedThisReply) return;
     const ms = deps.sustainedSpeechMs ?? SUSTAINED_SPEECH_MS;
     timer = setTimer(() => {
       timer = undefined;
-      if (agentSpeaking && callerSpeaking) fire({ reason: 'sustained-speech', ms });
+      if (agentSpeaking && callerSpeaking && !softPause()) fire({ reason: 'sustained-speech', ms });
     }, ms);
+  };
+  const releaseOutput = (): void => {
+    if (pending) decide('resumed', { why: pending.heard, after: 'agent-stopped' });
+    if (outputHeld) release();
   };
   return {
     onAgentState(event) {
@@ -175,13 +296,23 @@ export function createBargeInFastPath(deps: {
       if (state === 'speaking' && !agentSpeaking) {
         spokenText = '';
         firedThisReply = false;
+        pausedThisReply = false;
+        resumedAt = undefined;
       }
       agentSpeaking = state === 'speaking';
       if (agentSpeaking) armIfOverlapping();
-      else stopTimer();
+      else {
+        stopTimer();
+        releaseOutput();
+      }
     },
     onUserState(event) {
       callerSpeaking = (event as { newState?: string })?.newState === 'speaking';
+      if (pending) {
+        // Quiet: wait out the STT grace for words still on their way.
+        pending.vadEndAt = callerSpeaking ? undefined : Date.now();
+        scheduleResume();
+      }
       if (callerSpeaking) armIfOverlapping();
       else stopTimer();
     },
@@ -189,11 +320,29 @@ export function createBargeInFastPath(deps: {
       // Keep the recent tail: enough to recognize an echo, bounded in size.
       spokenText = (spokenText + ' ' + chunk).slice(-600);
     },
+    onOverlapDecision(event) {
+      if ((event as { isInterruption?: boolean })?.isInterruption === true)
+        decide('interrupted', { why: 'model' });
+    },
     onTranscript(event) {
       if (firedThisReply) return;
       const transcript = (event as { transcript?: string })?.transcript ?? '';
-      if (!shouldInterrupt({ transcript, agentSpeaking, spokenText })) return;
-      fire({ reason: 'transcript', transcript, words: words(transcript).length });
+      if (pending) {
+        const ws = words(transcript);
+        const confirm = { transcript, agentSpeaking: true, spokenText };
+        if (shouldInterrupt({ ...confirm, minWords: SOFT_PAUSE_CONFIRM_WORDS })) {
+          decide('interrupted', { why: 'words', words: ws.length });
+        } else if (ws.length > 0) {
+          pending.heard = isBackchannel(ws) ? 'backchannel' : 'echo';
+        }
+        return;
+      }
+      const justResumed =
+        resumedAt !== undefined && Date.now() - resumedAt < POST_RESUME_BACKSTOP_MS;
+      const minWords = justResumed ? POST_RESUME_MIN_WORDS : MIN_INTERRUPT_WORDS;
+      if (!shouldInterrupt({ transcript, agentSpeaking, spokenText, minWords })) return;
+      const extra = justResumed ? { minWords } : {};
+      fire({ reason: 'transcript', transcript, words: words(transcript).length, ...extra });
     },
   };
 }

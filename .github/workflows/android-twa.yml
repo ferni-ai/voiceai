@@ -177,8 +177,10 @@ jobs:
 
           apksigner="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner -type f | sort -V | tail -1)"
           "$apksigner" verify bundle/ferni-universal.apk
+          # Newer apksigner prefixes the line ("Signer (minSdkVersion=...): certificate
+          # SHA-256 digest: <hex>"), so take the 64 hex digits, not a field.
           signed="$("$apksigner" verify --print-certs bundle/ferni-universal.apk \
-            | awk -F': ' '/SHA-256 digest/ { print toupper($2); exit }')"
+            | sed -n 's/.*SHA-256 digest: *\([0-9a-fA-F]\{64\}\).*/\1/p' | head -1 | tr 'a-f' 'A-F')"
           listed="$(printf '%s' "$ANDROID_CERT_SHA256" | tr -d ' :' | tr ',' '\n' | tr 'a-f' 'A-F')"
           if [ -z "$signed" ] || ! printf '%s\n' "$listed" | grep -qx "$signed"; then
             echo "::error::The APK's certificate ($signed) is not in vars.ANDROID_CERT_SHA256, so assetlinks.json won't list it and the app would open with a browser bar. Add the upload key's SHA-256 (scripts/android/make-upload-key.sh prints it)."

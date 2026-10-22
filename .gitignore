@@ -227,3 +227,7 @@ apps/shared/build/
 # Python bytecode
 __pycache__/
 *.py[cod]
+
+# Website computed-style diff (e2e/website-style-diff.spec.ts)
+apps/website/ferni-website/_site-base/
+apps/website/ferni-website/style-diff-report/

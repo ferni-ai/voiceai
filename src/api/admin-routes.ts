@@ -10,6 +10,7 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { parse as parseUrl } from 'url';
 import { createLogger } from '../utils/safe-logger.js';
+import { ownerEmail } from '../config/owner-email.js';
 import { requireAdmin } from './auth-middleware.js';
 
 const log = createLogger({ module: 'AdminAPI' });
@@ -98,10 +99,10 @@ async function handleGetCallers(
   query: Record<string, string | string[] | undefined>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
     const { getAdminApp } = await import('../utils/firebase-admin-app.js');
     getAdminApp();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
     const startDate = new Date();
@@ -147,10 +148,10 @@ async function handleGetVisitors(
   query: Record<string, string | string[] | undefined>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
     const { getAdminApp } = await import('../utils/firebase-admin-app.js');
     getAdminApp();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
     const startDate = new Date();
@@ -219,6 +220,12 @@ async function handleGetVisitors(
 }
 
 async function handleTriggerReport(res: ServerResponse): Promise<void> {
+  const owner = ownerEmail();
+  if (!owner) {
+    log.warn('OWNER_EMAIL is not set; daily report not sent');
+    sendJson(res, 503, { success: false, error: 'OWNER_EMAIL not configured' });
+    return;
+  }
   try {
     const { generateDailyReport } = await import('../services/admin/daily-report.js');
     const { generateDailyReportHTML, generateDailyReportPlainText } =
@@ -247,8 +254,7 @@ async function handleTriggerReport(res: ServerResponse): Promise<void> {
     const plainText = generateDailyReportPlainText(reportData);
 
     const emailResult = await sendEmail({
-      to: 'seth.ford@gmail.com',
-      toName: 'Seth Ford',
+      to: owner,
       subject: `Ferni Daily Report - ${reportData.date} (Manual Trigger)`,
       body: plainText,
       html,

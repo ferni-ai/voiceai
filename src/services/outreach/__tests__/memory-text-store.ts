@@ -37,6 +37,7 @@ function memoryDeps(send?: GuardedText.TextDeps['send']): GuardedText.TextDeps {
     env: { ...process.env, ...ENV },
     store: {
       isOptedOut: async (h: string) => optedOut.has(h),
+      consentDoc: async () => undefined,
       forPhoneHash: async (h: string) => sent.filter((r) => r.phoneHash === h),
       forUser: async (u: string) => sent.filter((r) => r.userId === u),
       userDoc: async () => undefined,

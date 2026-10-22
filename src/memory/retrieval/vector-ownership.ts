@@ -6,11 +6,18 @@
  * @module memory/retrieval/vector-ownership
  */
 
-/** A real owner id: not missing, empty, or the shared placeholder "anonymous". */
+import { PLACEHOLDER_IDS } from '../../utils/synthetic-user.js';
+
+/**
+ * A real owner id: not missing, empty, or a placeholder ('anonymous',
+ * 'shared', 'default', 'unknown', any case), which would be everyone's. An
+ * anon:/onbehalf: id is kept: it only matches documents under that same
+ * unique id, so it can never see a member's memories.
+ */
 export function ownerId(userId: unknown): string | undefined {
-  return typeof userId === 'string' && userId.trim() !== '' && userId !== 'anonymous'
-    ? userId
-    : undefined;
+  if (typeof userId !== 'string') return undefined;
+  const id = userId.trim();
+  return id !== '' && !PLACEHOLDER_IDS.has(id.toLowerCase()) ? userId : undefined;
 }
 
 /**
