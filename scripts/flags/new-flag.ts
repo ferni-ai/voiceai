@@ -54,15 +54,23 @@ export function flagFileSource(flag: NewFlag): string {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => `// ${line}\n`)
-    .join('');
+    .map((line) => `// ${line}`);
+  return flagFileText(flag.name, flag, note);
+}
+
+/** A flag file: the comment lines verbatim above the export (flags:move uses this too). */
+export function flagFileText(
+  name: string,
+  spec: Omit<NewFlag, 'name'>,
+  comments: string[]
+): string {
   return (
     "import type { FlagSpec } from '../flag-spec.js';\n\n" +
-    note +
-    `export const ${flag.name} = {\n` +
-    `  default: '${flag.default}',\n` +
-    `  owner: '${flag.owner}',\n` +
-    `  kind: '${flag.kind}',\n` +
+    comments.map((line) => `${line}\n`).join('') +
+    `export const ${name} = {\n` +
+    `  default: '${spec.default}',\n` +
+    `  owner: '${spec.owner}',\n` +
+    `  kind: '${spec.kind}',\n` +
     '} as const satisfies FlagSpec;\n'
   );
 }
