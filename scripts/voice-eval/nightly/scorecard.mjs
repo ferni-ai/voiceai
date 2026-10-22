@@ -11,9 +11,9 @@
 // numbers only: COMMENT.md is posted to a public issue).
 // Exit: 0 nothing newly FAIL and no regression; 1 a new FAIL or a regression
 // (only then does someone investigate); 2 harness error (no scored runs, bad input).
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { checkRun, parseChecks } from '../recall-facts.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -301,7 +301,9 @@ function main(argv) {
   return diff.exit;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Compare real paths: node resolves symlinks (/var -> /private/var) in import.meta.url, and a
+// mismatch here would skip main() and exit 0, a silent PASS.
+if (process.argv[1] && import.meta.url === pathToFileURL(realpathSync(process.argv[1])).href) {
   try {
     process.exit(main(process.argv.slice(2)));
   } catch (e) {
