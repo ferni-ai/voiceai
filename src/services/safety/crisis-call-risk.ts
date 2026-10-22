@@ -59,9 +59,19 @@ const turnOf = (latest: string): string =>
 type RiskListener = (sessionId: string, turn: string | undefined) => void;
 const listeners = new Set<RiskListener>();
 
-/** Hear of every risk noted on any call (crisis-lone-imminent.ts drops its snapshots). */
-export function onCrisisRiskNoted(listener: RiskListener): void {
+/**
+ * Hear of every risk noted on any call (crisis-lone-imminent.ts drops its
+ * snapshots). Returns a function that stops listening (call-wrap-up.ts listens
+ * only while a call is ending).
+ */
+export function onCrisisRiskNoted(listener: RiskListener): () => void {
   listeners.add(listener);
+  return () => void listeners.delete(listener);
+}
+
+/** For tests: how many listeners are attached. */
+export function crisisRiskListenerCount(): number {
+  return listeners.size;
 }
 
 /**
