@@ -110,3 +110,8 @@ export function namesNoAccount(userId: string | undefined | null): boolean {
 export function isPersonAccountId(userId: string | undefined | null): boolean {
   return !namesNoAccount(userId) && !isSyntheticUserId((userId as string).trim());
 }
+
+/** Calls placed on someone's behalf, or with no known person, are not the member's own call. */
+export function isMemberCall(userId: string): boolean {
+  return !namesNoAccount(userId);
+}

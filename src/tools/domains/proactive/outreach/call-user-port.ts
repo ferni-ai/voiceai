@@ -26,7 +26,21 @@ export interface CallUserResult {
 export interface TextOwnerResult {
   sent: boolean;
   reason?: string;
+  /** Not sent until Ferni says this out loud and they agree (no texting consent yet). */
+  disclose?: string;
 }
+
+export interface TextOwnerOptions {
+  askedNow: boolean;
+  /** The user asked for this text on the call (not Ferni reaching out). */
+  requested?: boolean;
+  /** The live call: its own transcript proves the disclosure was spoken and agreed to. */
+  sessionId?: string;
+}
+
+/** What a texting tool tells Ferni when the text waits on the disclosure (TextOwnerResult.disclose). */
+export const disclosureFirst = (line: string): string =>
+  `Not sent yet. Say this to them first, word for word: "${line}" If they say yes, send it again. If they don't, don't.`;
 
 export interface CallUserPort {
   /** The verified phone on the account, or undefined; never the model-written profile phone */
@@ -37,7 +51,7 @@ export interface CallUserPort {
    * Text the owner at the verified phone through the guarded sender (STOP, texts off,
    * quiet hours unless they just asked for it). Not installed: nothing is sent.
    */
-  textOwner?(userId: string, body: string, opts: { askedNow: boolean }): Promise<TextOwnerResult>;
+  textOwner?(userId: string, body: string, opts: TextOwnerOptions): Promise<TextOwnerResult>;
   /** Ring that phone with the message, through calling hours and quiet hours */
   call(request: CallUserRequest): Promise<CallUserResult>;
 }

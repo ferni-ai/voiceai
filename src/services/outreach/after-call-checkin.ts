@@ -14,7 +14,7 @@
  * @module services/outreach/after-call-checkin
  */
 import { createLogger } from '../../utils/safe-logger.js';
-import { isMemberIdentity } from '../identity/member-identity.js';
+import { isMemberCall } from '../../utils/synthetic-user.js';
 import { cohortFlagsEnabled, resolveCallerFlags } from '../platform/cohort-flags.js';
 import type { AfterCallContext } from '../session/after-call-tasks.js';
 import {
@@ -48,6 +48,7 @@ export type SkipReason =
   | 'recently-sent'
   | 'no-verified-phone'
   | 'sms-off'
+  | 'no-consent'
   | 'opted-out';
 export type CheckinDecision = { send: true; phone: string } | { send: false; reason: SkipReason };
 
@@ -62,10 +63,7 @@ export interface CheckinOutcome {
   reason?: SkipReason | 'gate-off' | 'flag-off' | TextSkip;
 }
 
-/** Calls placed on someone's behalf, or with no known person, are not the member's own call. */
-export function isMemberCall(userId: string): boolean {
-  return isMemberIdentity(userId);
-}
+export { isMemberCall } from '../../utils/synthetic-user.js';
 
 /** The skip reasons that need no reads: whose call it was and how long it ran. */
 export function callerSkipReason(userId: string, userTurns: number): SkipReason | null {

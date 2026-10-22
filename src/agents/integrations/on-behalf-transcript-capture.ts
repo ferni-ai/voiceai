@@ -23,6 +23,7 @@ import {
 import { getOutboundCallContext } from '../../intelligence/context-builders/external/outbound-call-context.js';
 import { createRepeatTurnGuard } from '../../services/session/turn-dedupe.js';
 import { noteFarEndSpoke, noteFerniSpoke } from '../outbound-call/silent-line.js';
+import { setConsentRefused } from '../../services/outreach/voice-consent-ledger.js';
 
 const log = createLogger({ module: 'on-behalf-transcript-capture' });
 
@@ -44,8 +45,9 @@ export function initializeOnBehalfCapture(sessionId: string): boolean {
     return false;
   }
 
-  // Store the mapping
+  // Store the mapping. Someone else's "yes" here never consents for the owner.
   sessionCallMap.set(sessionId, callContext.callId);
+  setConsentRefused(sessionId, true);
 
   log.info(
     { sessionId, callId: callContext.callId, recipientName: callContext.recipientName },
@@ -101,6 +103,7 @@ export function cleanupOnBehalfCapture(sessionId: string): void {
 
   if (callId) {
     sessionCallMap.delete(sessionId);
+    setConsentRefused(sessionId, false);
     log.debug({ sessionId, callId }, 'Cleaned up on-behalf capture');
   }
 }

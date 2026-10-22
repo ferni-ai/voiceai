@@ -134,6 +134,39 @@ describe('sendGuardedText', () => {
   });
 });
 
+describe('consent given on a call covers only texts they ask for', () => {
+  const voice = { scope: 'requested', source: 'voice', grantedAt: ago(1), revokedAt: null };
+  const withDoc = (outreachPreferences: Record<string, unknown>) => {
+    const made = deps();
+    vi.mocked(made.d.store.userDoc).mockResolvedValue({ outreachPreferences });
+    return made;
+  };
+
+  it('a text they asked for goes, even with calls-only settings', async () => {
+    const { d } = withDoc({ channels: ['voice_call'], smsConsent: voice });
+    expect(await sendGuardedText(followUp({ kind: 'message', requested: true }), d)).toEqual({
+      sent: true,
+    });
+  });
+
+  it('a proactive check-in or follow-up does not', async () => {
+    const cases = [
+      [{ smsConsent: voice }, 'no-consent'],
+      [{ channels: ['voice_call'], smsConsent: voice }, 'sms-off'],
+    ] as const;
+    for (const [prefs, reason] of cases) {
+      const { d } = withDoc(prefs);
+      expect(await sendGuardedText(followUp(), d)).toEqual({ sent: false, reason });
+      expect(d.send).not.toHaveBeenCalled();
+    }
+  });
+
+  it('texts turned on in settings still cover proactive texts', async () => {
+    const { d } = withDoc({ channels: ['sms'], smsConsent: { ...voice, scope: 'all' } });
+    expect(await sendGuardedText(followUp(), d)).toEqual({ sent: true });
+  });
+});
+
 describe('lastSentAt', () => {
   it('counts records from before kinds existed as check-ins', () => {
     const old = record({ sentAt: ago(2) });

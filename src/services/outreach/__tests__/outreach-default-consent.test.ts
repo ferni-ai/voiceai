@@ -64,6 +64,11 @@ vi.mock('../intelligent-onboarding-arc.js', () => ({
 vi.mock('../llm-content-generator.js', () => ({ generatePersonalizedContent: vi.fn() }));
 const confirmSmsOptIn = vi.hoisted(() => vi.fn(async () => 'sent'));
 vi.mock('../opt-in-text.js', () => ({ confirmSmsOptIn }));
+// Consent history is appended with arrayUnion; seen here as the entries it would add.
+vi.mock('firebase-admin/firestore', async (orig) => ({
+  ...(await orig<object>()),
+  FieldValue: { arrayUnion: (...entries: unknown[]) => ({ arrayUnion: entries }) },
+}));
 
 const consent = await import('../outreach-consent.js');
 const { deliver } = await import('../unified-delivery.js');
@@ -149,9 +154,12 @@ describe('outreach consent mapping', () => {
         disclosureVersion: '2026-10-18',
         source: 'web-settings',
         channel,
+        scope: 'all',
         revokedAt: null,
       });
     }
+    // Each grant is appended to the history too, never only overwritten.
+    expect(granted.smsConsentHistory).toEqual({ arrayUnion: [granted.smsConsent] });
 
     users = [user('u1', { outreachPreferences: { channels: ['sms', 'voice_call'] } })];
     await consent.writeOutreachConsent('u1', { channels: ['voice_call'] }, how);
@@ -175,6 +183,7 @@ describe('outreach consent mapping', () => {
       disclosureVersion: consent.CURRENT_SMS_DISCLOSURE,
       source: 'web-settings',
       channel: 'sms',
+      scope: 'all',
       revokedAt: null,
     });
     vi.stubEnv('SMS_OPT_IN_CONFIRM', 'off');
@@ -200,6 +209,51 @@ describe('outreach consent mapping', () => {
     users = [user('u1', { outreachPreferences: { channels: [] } })];
     await consent.writeOutreachConsent('u1', { channels: ['sms'] }); // not from settings
     expect(confirmSmsOptIn).toHaveBeenCalledTimes(1);
+  });
+
+  it('consent given on a call is recorded as covering only texts they ask for, and appended', async () => {
+    const proof = { sessionId: 'call-1', nonce: 'n-1' };
+    await consent.recordVoiceSmsConsent('u1', proof, new Date('2026-10-18T15:00:00Z'));
+    const smsConsent = {
+      grantedAt: '2026-10-18T15:00:00.000Z',
+      disclosureVersion: consent.CURRENT_VOICE_DISCLOSURE,
+      source: 'voice',
+      channel: 'sms',
+      scope: 'requested',
+      revokedAt: null,
+      ...proof,
+    };
+    expect(setCalls[0].value).toEqual({
+      outreachPreferences: { smsConsent, smsConsentHistory: { arrayUnion: [smsConsent] } },
+    });
+    expect(consent.hasSmsConsent({ smsConsent })).toBe(true);
+    expect(consent.hasSmsConsent({ smsConsent: { grantedAt: 'x', revokedAt: 'y' } })).toBe(false);
+    expect(consent.hasSmsConsent({ channels: ['sms'] })).toBe(true);
+    expect(consent.hasSmsConsent(undefined)).toBe(false);
+  });
+
+  it('a settings save without texts revokes consent given on a call, and appends the revocation', async () => {
+    const voice = { grantedAt: 'g', scope: 'requested', source: 'voice', revokedAt: null };
+    users = [user('u1', { outreachPreferences: { channels: [], smsConsent: voice } })];
+    await consent.writeOutreachConsent(
+      'u1',
+      { channels: ['voice_call'] },
+      { source: 'web-settings' }
+    );
+    const prefs = (setCalls[0].value as { outreachPreferences: Record<string, unknown> })
+      .outreachPreferences;
+    expect(prefs.smsConsent).toEqual({ revokedAt: expect.stringMatching(/^\d{4}-/) });
+    expect(prefs.smsConsentHistory).toEqual({
+      arrayUnion: [{ revokedAt: expect.any(String), source: 'web-settings' }],
+    });
+    // Already revoked, or never given: nothing to revoke.
+    users = [
+      user('u1', {
+        outreachPreferences: { channels: [], smsConsent: { ...voice, revokedAt: 'r' } },
+      }),
+    ];
+    await consent.writeOutreachConsent('u1', { channels: [] }, { source: 'web-settings' });
+    expect(setCalls[1].value).not.toHaveProperty('outreachPreferences.smsConsent');
   });
 
   it('fails loudly when the opt-out cannot be saved', async () => {

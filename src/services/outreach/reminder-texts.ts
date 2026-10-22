@@ -120,7 +120,9 @@ export async function guardReminderText(
     const now = deps.text.now();
     const morning = quietHoursEnd(now, r.timezone);
     if (morning) return holdUntil(r, morning);
-    const t = { userId: r.userId, body: reminderText(r), kind: 'reminder' as const };
+    // Only a reminder the user's own "remind me" tool made is a text they asked for.
+    const requested = r.requestedByUser === true;
+    const t = { userId: r.userId, body: reminderText(r), kind: 'reminder' as const, requested };
     const outcome = await deps.sendOwn(
       { ...t, refId: r.id, minGapMs: REMINDER_TEXT_GAP_MS },
       deps.text

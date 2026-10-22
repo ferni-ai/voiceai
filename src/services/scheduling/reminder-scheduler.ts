@@ -93,10 +93,9 @@ export interface ScheduledReminder {
   attempts: number;
   lastAttempt?: Date;
   error?: string;
-
-  // Metadata
   createdAt: Date;
   createdBy: string; // Which persona created it (alex-chen, maya-santos, ferni, etc.)
+  requestedByUser?: true; // Only the user's own "remind me" tool sets it: a text they asked for
   /** Persona ID for voice/formatting - defaults to createdBy if not set */
   personaId?: string;
 }
@@ -146,6 +145,7 @@ export async function createReminder(params: {
   sourceIdentityId?: string;
   sourceIdentityName?: string;
   sourceRelationship?: string;
+  requestedByUser?: true;
 }): Promise<ScheduledReminder> {
   const reminder: ScheduledReminder = {
     id: `reminder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -158,11 +158,9 @@ export async function createReminder(params: {
     deliveryMethod: params.deliveryMethod,
     deliveryAddress: params.deliveryAddress,
     addressSource: params.addressSource,
-    // Contact tracking for ML
     contactId: params.contactId,
     contactName: params.contactName,
     isDirectToContact: params.isDirectToContact,
-    // Family coordination
     sourceIdentityId: params.sourceIdentityId,
     sourceIdentityName: params.sourceIdentityName,
     sourceRelationship: params.sourceRelationship,
@@ -171,12 +169,11 @@ export async function createReminder(params: {
     createdAt: new Date(),
     createdBy: params.createdBy || 'alex',
     personaId: params.personaId,
+    requestedByUser: params.requestedByUser,
   };
 
-  // Store in memory map
   reminderStore.set(reminder.id, reminder);
 
-  // Persist to Firestore for cross-session durability
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
     const db = getFirestoreDb();
@@ -361,6 +358,7 @@ export function reminderFromDoc(id: string, data: Record<string, unknown>): Sche
     createdAt: new Date((data.createdAt as string) ?? Date.now()),
     createdBy: str(data.createdBy) || 'ferni',
     personaId: str(data.personaId),
+    requestedByUser: data.requestedByUser === true ? true : undefined,
   };
 }
 

@@ -69,6 +69,8 @@ const NOT_TEXTED: Record<TextSkip, string> = {
     "They've turned Ferni's texts off (STOP), so it can't be texted. Offer the app instead.",
   'sms-off':
     "They've turned texts off in their settings, so it can't be texted. Offer the app instead.",
+  'no-consent':
+    "They've only okayed texts they ask for, so it can't be texted. Offer the app instead.",
   'no-verified-phone':
     "There's no verified number on their account, so it can't be texted. Offer to put it in the app.",
   'recently-sent': 'A pick was just texted to them; offer the app for this one.',

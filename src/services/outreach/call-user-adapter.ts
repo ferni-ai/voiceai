@@ -17,6 +17,8 @@ import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
 import { scheduleProactiveCall } from './conversational-calls.js';
 import { sendGuardedText, type TextSkip } from './guarded-text.js';
+import { readSmsConsent, recordVoiceSmsConsent, VOICE_SMS_DISCLOSURE } from './outreach-consent.js';
+import { requestDisclosure, takeAgreedDisclosure } from './voice-consent-ledger.js';
 import { escapeXml } from './twilio-ssml.js';
 import { userReach } from './user-reach.js';
 
@@ -27,6 +29,7 @@ const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'consent-unknown': "I couldn't check your text settings just now",
   paused: 'you sounded like you might want fewer texts, so I held off',
   'sms-off': 'texts are turned off in your settings',
+  'no-consent': "you've only okayed texts you ask me for",
   'recently-sent': 'I just texted you',
   'no-verified-phone': "there's no verified phone number on your account",
   'no-hash-secret': "texting isn't set up here",
@@ -46,10 +49,23 @@ export const callUserAdapter: CallUserPort = {
     const user = await getFirebaseUser(userId);
     return user?.emailVerified ? (user.email ?? undefined) : undefined;
   },
-  textOwner: async (userId, body, { askedNow }) => {
+  textOwner: async (userId, body, { askedNow, requested = false, sessionId }) => {
     const zone = userTimeZone({ userId });
     if (!askedNow && isValidTimeZone(zone) && isQuietHour(new Date(), zone)) {
       return { sent: false, reason: HELD['quiet-hours'] };
+    }
+    // Asked for with no consent on record: consent only once this call's ledger shows Ferni
+    // spoke the disclosure and they said yes (voice-consent-ledger.ts); never on the model's word.
+    if (requested && !(await readSmsConsent(userId))) {
+      const noConsent = { sent: false, reason: 'texts need your okay on a call or in the app' };
+      if (!sessionId) return noConsent;
+      const nonce = takeAgreedDisclosure(sessionId, userId);
+      if (!nonce) {
+        // Null off the member's own call (an on-behalf call, a caller with no account).
+        if (!requestDisclosure(sessionId, userId)) return noConsent;
+        return { sent: false, reason: 'no texting consent yet', disclose: VOICE_SMS_DISCLOSURE };
+      }
+      await recordVoiceSmsConsent(userId, { sessionId, nonce });
     }
     const refId = `${Date.now()}`;
     const t = {
@@ -59,6 +75,7 @@ export const callUserAdapter: CallUserPort = {
       refId,
       minGapMs: OWNER_TEXT_GAP_MS,
       askedNow,
+      requested,
     };
     const outcome = await sendGuardedText(t);
     return outcome.sent ? { sent: true } : { sent: false, reason: HELD[outcome.reason] };

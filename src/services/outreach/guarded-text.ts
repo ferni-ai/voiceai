@@ -53,6 +53,9 @@ import {
 import { timezoneFromPhone } from './area-code-timezones.js';
 import { reportText } from './outreach-bq.js';
 import { readConsentDoc, smsConsentRefusal, type TextConsentReaders } from './text-consent.js';
+import { consentSkip } from './sms-consent-scope.js';
+
+export { consentSkip, smsTurnedOff } from './sms-consent-scope.js';
 
 const log = createLogger({ module: 'guarded-text' });
 /** Send locks (lockedSend), kept apart from the records so no query reads them. */
@@ -91,6 +94,8 @@ export interface GuardedText {
   readonly minGapMs: number;
   /** The owner asked for it in the call just now: an unreadable consent record doesn't hold it (text-consent.ts). */
   readonly askedNow?: boolean;
+  /** The member asked for it ("text me that", their own reminder): consent given on a call covers it. */
+  readonly requested?: boolean;
 }
 
 export type TextSkip =
@@ -98,6 +103,7 @@ export type TextSkip =
   | 'no-verified-phone'
   | 'recently-sent'
   | 'sms-off'
+  | 'no-consent'
   | 'opted-out'
   | 'consent-unknown'
   | 'paused'
@@ -147,16 +153,6 @@ export async function isOwnVerifiedPhone(
   const doc = userId.startsWith('sponsored_') ? undefined : await deps.store.userDoc(userId);
   const own = await resolveCheckinPhone(userId, doc, deps);
   return own !== undefined && own === toE164(phone);
-}
-
-/** The member explicitly turned texts off, in outreach settings or by a STOP to the webhook. */
-export function smsTurnedOff(
-  userDoc: Record<string, unknown> | undefined,
-  legacyChannels: unknown
-): boolean {
-  const prefs = (userDoc?.outreachPreferences ?? {}) as { enabled?: unknown; channels?: unknown };
-  const withoutSms = (c: unknown): boolean => Array.isArray(c) && !c.includes('sms');
-  return prefs.enabled === false || withoutSms(prefs.channels) || withoutSms(legacyChannels);
 }
 
 /** Twilio errors can quote the number (21211: "The 'To' number +1555... is not valid"). */
@@ -239,7 +235,8 @@ export async function sendGuardedText(
   if (sentWithin(lastSentAt(records, t.kind), now, t.minGapMs)) return skip('recently-sent');
   const phone = await resolveCheckinPhone(t.userId, userDoc, deps);
   if (!phone) return skip('no-verified-phone');
-  if (smsTurnedOff(userDoc, legacyChannels)) return skip('sms-off');
+  const noConsent = consentSkip(userDoc, legacyChannels, t.requested === true);
+  if (noConsent) return skip(noConsent);
 
   const hash = phoneHash(phone, deps.env);
   if (!hash) return skip('no-verified-phone');
@@ -305,7 +302,7 @@ export interface OnBehalfText {
 }
 
 export type OnBehalfSkip =
-  Exclude<TextSkip, 'no-verified-phone' | 'sms-off'> | 'bad-number' | 'quiet-hours';
+  Exclude<TextSkip, 'no-verified-phone' | 'sms-off' | 'no-consent'> | 'bad-number' | 'quiet-hours';
 export type OnBehalfOutcome =
   | { sent: true }
   | { sent: false; reason: Exclude<OnBehalfSkip, 'quiet-hours'> }

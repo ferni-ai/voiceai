@@ -9,6 +9,7 @@
  * @module OutreachConsent
  */
 
+import { FieldValue } from 'firebase-admin/firestore';
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../superhuman/firestore-utils.js';
@@ -132,13 +133,16 @@ const PROOFS = [
 /**
  * Proof of what the user agreed to and when, for each phone channel this change
  * turns on (a fresh record, clearing any old revokedAt) or off (revokedAt only;
- * the merge keeps the original grant). Carriers and the TCPA ask for this record.
+ * the merge keeps the original grant). `active`: channels with an unrevoked record
+ * outside the list (consent given on a call), which a save without them revokes too.
+ * Carriers and the TCPA ask for this record.
  */
 export function consentProofs(
   before: DeliveryChannel[],
   after: DeliveryChannel[],
   how: ConsentContext,
-  now: Date = new Date()
+  now: Date = new Date(),
+  active: DeliveryChannel[] = []
 ): Record<string, unknown> {
   const at = now.toISOString();
   const out: Record<string, unknown> = {};
@@ -151,9 +155,10 @@ export function consentProofs(
         disclosureVersion: typeof how.disclosureVersion === 'string' ? how.disclosureVersion : null,
         source: how.source ?? 'unspecified',
         channel,
+        scope: 'all',
         revokedAt: null,
       };
-    } else if (was && !is) {
+    } else if ((was || active.includes(delivery)) && !is) {
       out[field] = { revokedAt: at };
     }
   }
@@ -173,6 +178,66 @@ export function smsDisclosureRefusal(
   if (!requested?.includes('sms') || current.includes('sms')) return null;
   if (disclosureVersion === CURRENT_SMS_DISCLOSURE) return null;
   return "I've updated what texts from me include. Refresh the page to see it, then turn texts on again.";
+}
+
+/** What Ferni says on a call before the first text a user asks for (no consent on record yet). */
+export const VOICE_SMS_DISCLOSURE =
+  "Sure. Just so you know, I'll text this number, msg and data rates may apply, and you can reply STOP anytime.";
+export const CURRENT_VOICE_DISCLOSURE = '2026-10-18';
+
+/** True when texts may go to this user: texts on in settings, or an unrevoked consent record. */
+export function hasSmsConsent(prefs: unknown): boolean {
+  const c = (prefs as { smsConsent?: { grantedAt?: unknown; revokedAt?: unknown } } | undefined)
+    ?.smsConsent;
+  const recorded = typeof c?.grantedAt === 'string' && !c.revokedAt;
+  return recorded || consentFromPrefs(prefs).channels.includes('sms');
+}
+
+/** Whether `userId` has consented to texts (hasSmsConsent on their stored preferences). */
+export async function readSmsConsent(userId: string): Promise<boolean> {
+  const doc = await getFirestoreDb()?.collection('bogle_users').doc(userId).get();
+  return hasSmsConsent(doc?.exists ? doc.data()?.outreachPreferences : undefined);
+}
+
+/**
+ * Consent given on a call after VOICE_SMS_DISCLOSURE. It covers only texts the user
+ * asks for (scope 'requested'); check-ins and follow-ups still need texts on in settings.
+ */
+export async function recordVoiceSmsConsent(
+  userId: string,
+  proof: { sessionId: string; nonce: string },
+  now = new Date()
+): Promise<void> {
+  const db = getFirestoreDb();
+  if (!db) throw new Error('Firestore not available');
+  const smsConsent = {
+    grantedAt: now.toISOString(),
+    disclosureVersion: CURRENT_VOICE_DISCLOSURE,
+    source: 'voice',
+    channel: 'sms',
+    scope: 'requested',
+    revokedAt: null,
+    ...proof,
+  };
+  const smsConsentHistory = appendHistory(smsConsent);
+  await db
+    .collection('bogle_users')
+    .doc(userId)
+    .set({ outreachPreferences: { smsConsent, smsConsentHistory } }, { merge: true });
+  log.info({ userId }, 'Voice SMS consent recorded');
+}
+
+/** Consent history only grows: each grant or revocation is appended, never rewritten. */
+const appendHistory = (entry: object): unknown => FieldValue.arrayUnion(entry);
+
+/** Channels whose stored consent record is granted and not revoked. */
+function activeRecords(prefs: unknown): DeliveryChannel[] {
+  const p = (prefs ?? {}) as Record<
+    string,
+    { grantedAt?: unknown; revokedAt?: unknown } | undefined
+  >;
+  const live = (r?: { grantedAt?: unknown; revokedAt?: unknown }) => !!r?.grantedAt && !r.revokedAt;
+  return PROOFS.filter(([, , field]) => live(p[field])).map(([delivery]) => delivery);
 }
 
 export async function readOutreachConsent(userId: string): Promise<OutreachConsent> {
@@ -200,9 +265,17 @@ export async function writeOutreachConsent(
   if (chosen) {
     const channels = OPT_IN_CHANNELS.filter((c) => chosen.includes(c));
     const doc = await ref.get();
-    const before = consentFromPrefs(doc.exists ? doc.data()?.outreachPreferences : undefined);
+    const prior = doc.exists ? doc.data()?.outreachPreferences : undefined;
+    const before = consentFromPrefs(prior);
     outreachPreferences.channels = channels;
-    Object.assign(outreachPreferences, consentProofs(before.channels, channels, how));
+    const proofs = consentProofs(before.channels, channels, how, new Date(), activeRecords(prior));
+    for (const [field, proof] of Object.entries(proofs)) {
+      outreachPreferences[field] = proof;
+      outreachPreferences[`${field}History`] = appendHistory({
+        ...(proof as object),
+        source: how.source ?? 'unspecified',
+      });
+    }
   }
   if (patch.proactiveFrequency) outreachPreferences.proactiveFrequency = patch.proactiveFrequency;
   if (patch.quietHours) outreachPreferences.quietHours = { enabled: true, ...patch.quietHours };

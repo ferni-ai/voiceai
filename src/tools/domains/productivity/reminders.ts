@@ -173,6 +173,7 @@ const setReminderDef: ToolDefinition = {
             deliveryAddress: address,
             addressSource,
             createdBy: ctx.agentId || 'ferni',
+            requestedByUser: true, // they asked: "remind me"; consent given on a call covers it
             personaId: ctx.agentId,
           });
           // Ferni just said "I'll remind you": the delivery job keeps or misses it.
