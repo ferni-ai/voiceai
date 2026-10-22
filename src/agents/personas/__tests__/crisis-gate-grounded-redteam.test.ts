@@ -19,14 +19,23 @@ import {
 } from '../../../services/safety/crisis-grounded-release.js';
 const CSSRS_EVERYDAY =
   '{"wish_dead":"none","ideation":"none","method":"none","intent":"none","plan_time":"none","everyday":true}';
+/**
+ * Both reads fooled, worst case: each answers "everyday" in its own prompt's
+ * format, and the first names the flagged line itself as what it is about, so
+ * whatever event the line holds counts as named.
+ */
 const fooled =
   (danger: string): CrisisGenerateFn =>
-  async (prompt) =>
-    prompt === GROUNDED_RELEASE_CSSRS_PROMPT
-      ? danger.includes('everyday')
+  async (prompt, content) => {
+    const fooledRead = danger.includes('everyday');
+    if (prompt === GROUNDED_RELEASE_CSSRS_PROMPT)
+      return fooledRead
         ? CSSRS_EVERYDAY
-        : '{"wish_dead":"none","ideation":"none","method":"none","intent":"doing it","plan_time":"none","everyday":false}'
-      : danger;
+        : '{"wish_dead":"none","ideation":"none","method":"none","intent":"doing it","plan_time":"none","everyday":false}';
+    if (!fooledRead) return danger;
+    const lines = JSON.parse(content) as Array<{ text: string }>;
+    return JSON.stringify({ danger: '', about: lines.at(-1)?.text ?? '', decision: 'everyday' });
+  };
 import { detectCrisis } from '../../../services/safety/crisis-guard.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
@@ -275,7 +284,8 @@ async function pipeline(turns: Array<[string, string]>, latest: string, session:
 }
 
 /** Benign lines the release must still ease (the 2026-10-20 dinner false alarm among them). */
-const MUST_RELEASE = ['b4', 'b5', 'b6', 'b8', 'b17', 'b18', 'b19'];
+// b5 and b17 are held on purpose: "family" and "finish" are not everyday words.
+const MUST_RELEASE = ['b4', 'b6', 'b8', 'b18', 'b19'];
 
 describe('the adversarial red team, with both reads fooled', () => {
   it.each(cases.filter((c) => c.kind === 'risky').map((c) => [c.id, c] as const))(

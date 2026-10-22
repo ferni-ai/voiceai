@@ -20,14 +20,23 @@ import {
 } from '../../../services/safety/crisis-grounded-release.js';
 const CSSRS_EVERYDAY =
   '{"wish_dead":"none","ideation":"none","method":"none","intent":"none","plan_time":"none","everyday":true}';
+/**
+ * Both reads fooled, worst case: each answers "everyday" in its own prompt's
+ * format, and the first names the flagged line itself as what it is about, so
+ * whatever event the line holds counts as named.
+ */
 const fooled =
   (danger: string): CrisisGenerateFn =>
-  async (prompt) =>
-    prompt === GROUNDED_RELEASE_CSSRS_PROMPT
-      ? danger.includes('everyday')
+  async (prompt, content) => {
+    const fooledRead = danger.includes('everyday');
+    if (prompt === GROUNDED_RELEASE_CSSRS_PROMPT)
+      return fooledRead
         ? CSSRS_EVERYDAY
-        : '{"wish_dead":"none","ideation":"none","method":"none","intent":"doing it","plan_time":"none","everyday":false}'
-      : danger;
+        : '{"wish_dead":"none","ideation":"none","method":"none","intent":"doing it","plan_time":"none","everyday":false}';
+    if (!fooledRead) return danger;
+    const lines = JSON.parse(content) as Array<{ text: string }>;
+    return JSON.stringify({ danger: '', about: lines.at(-1)?.text ?? '', decision: 'everyday' });
+  };
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
 import { startCrisisGate } from '../crisis-gate.js';
 
@@ -76,7 +85,9 @@ async function turn(
   );
   const out = (await g?.escalation) ?? g?.decision ?? { action: 'pass' };
   // let tracked reads settle
-  await new Promise((r) => setTimeout(r, 5));
+  await new Promise((r) => {
+    setTimeout(r, 5);
+  });
   return { action: out.action, readsCalled: reads[0].mock.calls.length };
 }
 const D: [string, string] = ['I have dinner with my family tonight.', 'Have fun at dinner!'];
@@ -155,12 +166,12 @@ describe('multi-turn', () => {
   });
   it('E: one release per call: a second everyday imminent read keeps the script', async () => {
     const s = 'mt-E';
-    const first = 'Dinner with my family is tonight.';
+    const first = 'Dinner is tonight at seven.';
     const t1 = await turn(s, [D], first, IMMINENT, EVERYDAY);
     const t2 = await turn(
       s,
       [D, [first, 'Oh nice!']],
-      'Can you text my family about dinner?',
+      'Can you book a table for dinner?',
       IMMINENT,
       EVERYDAY
     );

@@ -25,17 +25,16 @@
  *   - the caller said something before this turn, no earlier caller line
  *     matches a pattern, and the line is at most MAX_WORDS words;
  *   - no held word anywhere in the call, de-leeted (crisis-release-words.ts
- *     ALWAYS_HOLD), and every word of the line other than what the caller
- *     already named is everyday (EVERYDAY, an allowlist), plain English
- *     letters only;
- *   - the flagged line names something the caller said earlier: a content
- *     word in common with an earlier caller line (never Ferni's) that is not a
- *     time word, a vague word or a name anywhere in the call (sharedAnchors);
+ *     ALWAYS_HOLD), and EVERY word of the line is everyday or an everyday
+ *     event (EVERYDAY, EVENTS: an allowlist with no exemptions), plain letters;
+ *   - an event in the line (dinner, the game) is one the caller already named,
+ *     and the first read's "about" names that same event (eventTopics);
  *   - both reads find no danger and call the line everyday.
  * The code's own rules hold even when both reads are wrong
  * (crisis-gate-grounded-release.test.ts drives the lead's 71 risky lines with
- * both reads fooled). Round 1 used a deny list; the lead's adversarial verify
- * released 27 of 71 new risky lines through it, hence the allowlist.
+ * both reads fooled). Round 1's deny list released 27 of 71 new risky lines;
+ * round 2's allowlist exempted any word the caller said earlier, and 39 of 88
+ * rode in on those words; hence no exemptions at all.
  * Anything else, any error, timeout or unparsed reply, keeps the script.
  *
  * shadow: decides and logs off the escalation path; the script is unchanged.
@@ -56,7 +55,7 @@ import {
 } from './crisis-call-risk.js';
 import type { CrisisGenerateFn, CrisisVerdict } from './crisis-classifier.js';
 import { SAFETY_TALK } from './crisis-lone-imminent.js';
-import { alwaysHold, onlyEveryday } from './crisis-release-words.js';
+import { allEveryday, alwaysHold, eventTopics, wordsOf } from './crisis-release-words.js';
 
 const log = createLogger({ module: 'CrisisGroundedRelease' });
 
@@ -119,12 +118,11 @@ If unsure about any item, fill it. Return JSON only: {"wish_dead":"...","ideatio
 
 const CSSRS_ITEMS = ['wish_dead', 'ideation', 'method', 'intent', 'plan_time'] as const;
 
-/** A C-SSRS read: everyday only when every item is "none" and the line is anchored. */
+/** A C-SSRS read: everyday only when every item is "none" and the line names an earlier event. */
 export function parseCssrsRead(
   reply: string,
   callerLines: readonly string[],
-  latest: string,
-  names: ReadonlySet<string> = namesIn([...callerLines, latest])
+  latest: string
 ): ReadWhy {
   const json = typeof reply === 'string' ? reply.match(/\{[\s\S]*\}/)?.[0] : undefined;
   if (!json) return 'unparsed';
@@ -136,7 +134,7 @@ export function parseCssrsRead(
       if (value.trim() && value.trim().toLowerCase() !== 'none') return 'danger_quoted';
     }
     if (parsed.everyday !== true) return parsed.everyday === false ? 'flag' : 'unparsed';
-    return sharedAnchors(latest, callerLines, names).size > 0 ? 'everyday' : 'not_named';
+    return eventTopics(latest, callerLines).size > 0 ? 'everyday' : 'not_named';
   } catch {
     return 'unparsed';
   }
@@ -153,10 +151,13 @@ const READERS = [
  * touch", a soft check-in). Not a plain reply: one warm check-in in Ferni's
  * voice, and 988 as soon as the caller says anything heavy.
  */
+/** Room for the C-SSRS read's six fields: a cut-off reply fails to parse and holds. */
+const GROUNDED_READ_MAX_TOKENS = 256;
+
 export const GROUNDED_LIGHT_TOUCH = `[SAFETY - LIGHT TOUCH]
 A safety read flagged the caller's last words, and the conversation shows they were most likely everyday talk.
 1. Answer what they said the way you normally would, in your own voice
-2. Once in this reply, add a short, warm, natural check-in on how they are doing ("and hey, how are you doing tonight, really?"). Keep it light and do not mention safety, crisis lines or hotlines
+2. Once in this reply, ask them directly and gently, in your own words, whether they are okay and safe ("and hey, you doing okay tonight? like, really okay, safe?"). One short question, warm, no lecture, and do not mention crisis lines or hotlines unless step 3 applies
 3. If they say anything about hurting themselves, not wanting to be here, or anyone being in danger, take it seriously and offer the 988 Suicide & Crisis Lifeline: they can call or text 988`;
 
 export function resolveGroundedReleaseMode(
@@ -208,7 +209,7 @@ export function groundedReleaseEligible(args: {
     const { latest, earlier, companion } = linesOf(input);
     if (!latest || loose(latest).split(' ').length > MAX_WORDS || endorses(latest)) return false;
     if (companion && SAFETY_TALK.test(loose(companion))) return false;
-    // The anchor must come from the caller's own earlier words, so a first turn is never read.
+    // The event must come from the caller's own earlier words, so a first turn is never read.
     if (earlier.length === 0) return false;
     // Held anywhere in the call (crisis-release-words.ts), or a pattern hit on any earlier line.
     if ([latest, ...earlier].some(alwaysHold)) return false;
@@ -217,86 +218,25 @@ export function groundedReleaseEligible(args: {
       return scored.severity > 0 || scored.indicators.length > 0;
     });
     if (patternEarlier) return false;
-    // The allowlist: every word other than what the caller already named is everyday.
-    const anchors = sharedAnchors(latest, earlier, namesIn([...earlier, companion, latest]));
-    return anchors.size > 0 && onlyEveryday(latest, anchors);
+    // The allowlist, no exemptions, and an everyday event the caller already named.
+    return allEveryday(latest) && eventTopics(latest, earlier).size > 0;
   } catch {
     return false;
   }
 }
 
 /**
- * Words that cannot anchor a line to an everyday matter: function words, time
- * words ("tonight" is what the classifier misreads), and vague ones.
- */
-const NOT_ANCHORS = new Set(
-  (
-    'about after again also always another anything anyone anymore around back been before being ' +
-    'better could didn doesn done down each else even ever every everyone everything ferni fine ' +
-    'from going gone gonna good have having here into just know last later least like little long ' +
-    'make many maybe more most much need never next nothing okay only other over really ready ' +
-    'right said same should since some someone something soon still sure take than thank thanks ' +
-    'that their them then there these they thing things think this those time today tomorrow ' +
-    'tonight told until very wait want well were what when where which while will with without ' +
-    'would yeah your yours'
-  ).split(' ')
-);
-
-/** Each sentence's words, raw, with their position in the sentence. */
-function* sentenceWords(line: string): Generator<{ raw: string; word: string; first: boolean }> {
-  for (const sentence of String(line ?? '').split(/[.!?]+/)) {
-    const raws = sentence.trim().split(/\s+/).filter(Boolean);
-    for (let i = 0; i < raws.length; i++) {
-      yield { raw: raws[i], word: loose(raws[i]).replace(/'.*$/, ''), first: i === 0 };
-    }
-  }
-}
-
-/**
- * Names in the call: words capitalized after a sentence's first word in any
- * line. A name written once ("dinner with David") is a name everywhere, so a
- * lower-cased "david" in another line cannot anchor either.
- */
-export function namesIn(lines: readonly string[]): Set<string> {
-  const names = new Set<string>();
-  for (const line of lines) {
-    for (const { raw, word, first } of sentenceWords(line)) {
-      if (!first && /^[A-Z]/.test(raw) && word) names.add(word);
-    }
-  }
-  return names;
-}
-
-/**
- * Content words of the caller's line that can anchor it: four letters or more,
- * not in NOT_ANCHORS, and not a name (capitalized after the first word of a
- * sentence here, or anywhere in `names`): "Make sure David knows" must not
- * anchor to "invite David".
- */
-export function anchorWords(line: string, names: ReadonlySet<string> = new Set()): Set<string> {
-  const out = new Set<string>();
-  for (const { raw, word, first } of sentenceWords(line)) {
-    if (word.length < 4 || NOT_ANCHORS.has(word) || names.has(word)) continue;
-    if (!first && /^[A-Z]/.test(raw)) continue;
-    out.add(word);
-  }
-  return out;
-}
-
-/**
  * One read's verdict: everyday only with no danger quoted, the matter named,
- * and the flagged line itself naming something the caller said earlier (an
- * anchor word in common, checked here, not taken from the model). Only the
+ * and that matter one of the line's own everyday events the caller already
+ * named (eventTopics: checked here, not taken from the model). Only the
  * caller's own lines count, never Ferni's: Ferni asking "how was work?" must
- * not anchor "I'm checking out of work". "It's tonight" after dinner plans
- * names nothing; "Dinner is tonight" names the dinner. A read's quote is often
- * the flagged line itself, so it is not matched. `names` are the call's names.
+ * not make "I'm checking out of work" an event. "It's tonight" after dinner
+ * plans names nothing; "Dinner is tonight" names the dinner.
  */
 export function parseGroundedRead(
   reply: string,
   callerLines: readonly string[],
-  latest: string,
-  names: ReadonlySet<string> = namesIn([...callerLines, latest])
+  latest: string
 ): ReadWhy {
   const json = typeof reply === 'string' ? reply.match(/\{[\s\S]*\}/)?.[0] : undefined;
   if (!json) return 'unparsed';
@@ -308,26 +248,19 @@ export function parseGroundedRead(
     if (danger.trim()) return 'danger_quoted';
     if (decision === 'flag') return 'flag';
     if (loose(about).split(' ').filter(Boolean).length < MIN_QUOTE_WORDS) return 'quote_missing';
-    return sharedAnchors(latest, callerLines, names).size > 0 ? 'everyday' : 'not_named';
+    return namesTopic(about, latest, callerLines) ? 'everyday' : 'not_named';
   } catch {
     return 'unparsed';
   }
 }
 
-/** The flagged line's anchor words that the caller's earlier lines also say. */
-export function sharedAnchors(
-  latest: string,
-  callerLines: readonly string[],
-  names: ReadonlySet<string>
-): Set<string> {
-  const said = new Set(
-    callerLines.flatMap((line) =>
-      loose(line)
-        .split(' ')
-        .map((w) => w.replace(/'.*$/, ''))
-    )
-  );
-  return new Set([...anchorWords(latest, names)].filter((w) => said.has(w)));
+/**
+ * The read named the event the line is about: a word of its `about` is one of
+ * the line's event topics (crisis-release-words.ts eventTopics).
+ */
+function namesTopic(about: string, latest: string, callerLines: readonly string[]): boolean {
+  const topics = eventTopics(latest, callerLines);
+  return (wordsOf(about) ?? loose(about).split(' ')).some((w) => topics.has(w.replace(/'s$/, '')));
 }
 
 /** The call as both reads see it: earlier caller lines, Ferni's last line, the flagged one. */
@@ -347,7 +280,6 @@ async function readOnce(
   transcript: string,
   callerLines: readonly string[],
   latest: string,
-  names: ReadonlySet<string>,
   timeoutMs: number
 ): Promise<ReadWhy> {
   const controller = new globalThis.AbortController();
@@ -363,7 +295,7 @@ async function readOnce(
       generate(reader.prompt, transcript, controller.signal),
       timeout,
     ]);
-    return reply === null ? 'timeout' : reader.parse(reply, callerLines, latest, names);
+    return reply === null ? 'timeout' : reader.parse(reply, callerLines, latest);
   } catch {
     return 'error';
   } finally {
@@ -377,12 +309,11 @@ export async function readGrounded(
   generates: readonly CrisisGenerateFn[],
   timeoutMs = DEFAULT_GROUNDED_RELEASE_TIMEOUT_MS
 ): Promise<{ release: boolean; reads: ReadWhy[] }> {
-  const { latest, earlier, companion } = linesOf(input);
-  const names = namesIn([...earlier, companion, latest]);
+  const { latest, earlier } = linesOf(input);
   const transcript = groundedTranscript(input);
   const reads = await Promise.all(
     generates.map((g, i) =>
-      readOnce(g, READERS[i % READERS.length], transcript, earlier, latest, names, timeoutMs)
+      readOnce(g, READERS[i % READERS.length], transcript, earlier, latest, timeoutMs)
     )
   );
   return { release: reads.length > 0 && reads.every((r) => r === 'everyday'), reads };
@@ -427,7 +358,7 @@ export function groundedRelease(
       const generates =
         args.generates ??
         (defaultGenerates ??= DEFAULT_GROUNDED_RELEASE_MODELS.map((m) =>
-          createGeminiAdjudicatorGenerate(m)
+          createGeminiAdjudicatorGenerate(m, GROUNDED_READ_MAX_TOKENS)
         ));
       run = readGrounded(args.input, generates, timeoutFrom(env))
         .then(({ release, reads }) => {

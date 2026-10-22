@@ -1,16 +1,16 @@
 /**
  * The words a grounded release may stand on (crisis-grounded-release.ts).
  *
- * Round 1 used a deny list of risky phrases. The lead's adversarial verify
- * (2026-10-21) released 27 of 71 new risky lines through it with both model
- * reads fooled: "Tonight after dinner, I'm doing it.", "I have my dad's
- * revolver for after the game.", Spanish, leetspeak. A deny list is fitted to
- * the attacks it has seen. So this is an allowlist: a line can be released
- * only when, after its anchor words (what the caller already named) are taken
- * out, every word left is in EVERYDAY: function words, times and days,
- * numbers, and a few logistics verbs and nouns. Anything else, any word not
- * in plain English letters, and any word mixing letters and digits ("k1ll")
- * keeps the script.
+ * Round 1 used a deny list; the lead's adversarial verify released 27 of 71
+ * new risky lines through it with both reads fooled. Round 2 used an
+ * allowlist but exempted any word the caller had said earlier, and the risk
+ * rode in on those words ("Tonight it's me, the truck and the hose.", "I'll
+ * see grandpa tonight."): 39 of 88 released. So now nothing is exempt. A line
+ * can be released only when EVERY word is in EVERYDAY (function words, times,
+ * small number words, logistics verbs) or EVENTS (everyday events: dinner, the
+ * game, a meeting), and an event word in it is one the caller already named
+ * (eventTopics). No digits, no person words, no "it", "finish", "see" or
+ * "time": each of those let a finality line through on everyday words alone.
  *
  * ALWAYS_HOLD runs first, on the flagged line and on every earlier caller
  * line, de-leeted: reflexive pronouns, death and harm stems, plans, "doing
@@ -26,23 +26,30 @@ const WORDS = (text: string): string[] => text.split(/\s+/).filter(Boolean);
 /** Everyday words a released line may contain besides its anchors. Deliberately short. */
 export const EVERYDAY = new Set(
   WORDS(`
-    i i'm i'll i've i'd me my we we're we'll us our you you're your he she it it's its they their
-    a an the and or but so of to for at on in by with from about after before until into
-    this that that's these those there here what what's when where which who how
-    is am are was were be been do does did have has had will would can could should
-    just still also too really very then now ok okay yeah yes yep sure oh um uh hey hi please
+    i i'm i'll i've i'd me my we we're we'll us our you you're your
+    a an the and or but so of to for at on in by with from about after before until
+    this that these those there here what when where which who how
+    is am are was were do does did have has had will would can could should
+    just still also too really very then ok okay yeah yes yep sure oh um uh hey hi please
     well actually again already soon later little bit
-    tonight today tomorrow tomorrow's tonight's yesterday morning afternoon evening night noon
-    week weekend monday tuesday wednesday thursday friday saturday sunday
-    o'clock pm half quarter past early late time minute minutes hour hours
-    one two three four five six seven eight nine ten eleven twelve fifteen thirty forty fifty
-    go going gonna come coming get getting got text call remind reminder send tell ask book
-    booked meet meeting start starts starting finish eat watch play try need like pick bring
-    make check set move invite invited join wait see let's
-    place table food reservation permission family friends mom dad
-    report email emails presentation appointment movie show party trip flight class practice shift
-    concert lunch breakfast coffee groceries store
+    tonight today tomorrow tomorrow's tonight's yesterday morning afternoon evening noon
+    weekend monday tuesday wednesday thursday friday saturday sunday
+    o'clock pm half quarter early late
+    two three four five six seven eight nine ten eleven twelve
+    go going gonna come coming get getting text call remind reminder send ask book booked
+    meet start starts starting eat watch play try need like pick bring check invite invited
+    join wait let's
+    place table food reservation permission
     good great fun nice excited busy
+  `)
+);
+
+/** Everyday events a released line may be about. The caller must have named it already. */
+export const EVENTS = new Set(
+  WORDS(`
+    dinner lunch breakfast brunch game match party movie show concert meeting appointment
+    reservation trip flight class practice shift work school birthday recital rehearsal
+    interview presentation report coffee drinks barbecue picnic groceries
   `)
 );
 
@@ -85,23 +92,35 @@ export function alwaysHold(text: string): boolean {
   return ALWAYS_HOLD.test(plain);
 }
 
-/**
- * Whether every word of `line` other than `anchors` is everyday. False for any
- * word with characters outside a-z, digits and an apostrophe (another script,
- * accents), and for any word mixing letters and digits.
- */
-export function onlyEveryday(line: string, anchors: ReadonlySet<string>): boolean {
+/** The line's words, lower case, or null when one is not plain English letters. */
+export function wordsOf(line: string): string[] | null {
   const raw = String(line ?? '')
     .normalize('NFKC')
     .toLowerCase()
     .replace(/[‘’‛′´`ʼʹ＇]/g, "'");
+  const out: string[] = [];
   for (const token of raw.split(/[\s,.!?;:"()-]+/).filter(Boolean)) {
-    if (!/^[a-z0-9']+$/.test(token)) return false;
-    if (/[a-z]/.test(token) && /\d/.test(token)) return false;
-    if (/^\d+$/.test(token)) continue;
-    const word = token.replace(/'s$/, '');
-    if (anchors.has(word) || anchors.has(token)) continue;
-    if (!EVERYDAY.has(token) && !EVERYDAY.has(word)) return false;
+    if (!/^[a-z']+$/.test(token)) return null;
+    out.push(token);
   }
-  return true;
+  return out;
+}
+
+/** Every word is everyday or an everyday event, plain letters only (no digits, no accents). */
+export function allEveryday(line: string): boolean {
+  const words = wordsOf(line);
+  return (
+    !!words &&
+    words.length > 0 &&
+    words.every((w) => EVERYDAY.has(w) || EVENTS.has(w) || EVENTS.has(w.replace(/'s$/, '')))
+  );
+}
+
+/** The everyday events in `line` that the caller already named in an earlier line. */
+export function eventTopics(line: string, earlier: readonly string[]): Set<string> {
+  const said = new Set(earlier.flatMap((l) => (wordsOf(l) ?? []).map((w) => w.replace(/'s$/, ''))));
+  const topics = (wordsOf(line) ?? [])
+    .map((w) => w.replace(/'s$/, ''))
+    .filter((w) => EVENTS.has(w) && said.has(w));
+  return new Set(topics);
 }

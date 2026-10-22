@@ -9,7 +9,6 @@ import {
 import type { CrisisGenerateFn, CrisisVerdict } from '../crisis-classifier.js';
 import { detectCrisis } from '../crisis-guard.js';
 import {
-  anchorWords,
   groundedRelease,
   groundedReleaseEligible,
   MAX_RELEASES_PER_CALL,
@@ -20,7 +19,7 @@ import {
   resetGroundedRelease,
   resolveGroundedReleaseMode,
 } from '../crisis-grounded-release.js';
-import { alwaysHold, onlyEveryday } from '../crisis-release-words.js';
+import { allEveryday, alwaysHold, eventTopics } from '../crisis-release-words.js';
 
 const CSSRS_EVERYDAY =
   '{"wish_dead":"none","ideation":"none","method":"none","intent":"none","plan_time":"none","everyday":true}';
@@ -48,18 +47,23 @@ describe('resolveGroundedReleaseMode', () => {
   });
 });
 
-describe('anchorWords', () => {
-  it('keeps content words, drops time words, vague words and names', () => {
-    expect([...anchorWords('Dinner is tonight.')]).toEqual(['dinner']);
-    expect([...anchorWords("I've decided. It's tonight.")]).toEqual(['decided']);
-    expect(anchorWords('Make sure David knows').has('david')).toBe(false);
-    expect(anchorWords("I've got everything I need to do it.").size).toBe(0);
+describe('eventTopics', () => {
+  it('is the everyday events in the line that the caller already named', () => {
+    expect([...eventTopics('Dinner is tonight.', ['I forgot to invite David to dinner.'])]).toEqual(
+      ['dinner']
+    );
+    expect(eventTopics("I've decided. It's tonight.", ['dinner at seven']).size).toBe(0);
+    expect(eventTopics('The game is tonight.', ['Dinner is at seven.']).size).toBe(0);
+    expect(
+      eventTopics('Tonight it is me, the truck and the hose.', ['I need a hose for the truck.'])
+        .size
+    ).toBe(0);
   });
 });
 
 describe('parseGroundedRead', () => {
   const sources = DINNER.earlier;
-  it('is everyday only with no danger, a named matter and an anchor in an earlier line', () => {
+  it('is everyday only with no danger and a named matter the caller already raised', () => {
     expect(parseGroundedRead(EVERYDAY, sources, DINNER.latest)).toBe('everyday');
   });
   it('keeps the script for danger, a flag, or a line that names nothing earlier', () => {
@@ -110,6 +114,25 @@ describe('groundedReleaseEligible', () => {
       expect(groundedReleaseEligible({ ...base, input: { ...DINNER, latest } })).toBe(false);
     }
   });
+  it('holds when an earlier line names means, even if the flagged line is plain', () => {
+    const input = {
+      latest: 'Tonight after dinner.',
+      earlier: ['I bought a rope for after dinner tonight.'],
+    };
+    expect(groundedReleaseEligible({ ...base, input })).toBe(false);
+    // The same flagged line after a plain earlier line is read.
+    const plain = { ...input, earlier: ['Dinner is at my place tonight.'] };
+    expect(groundedReleaseEligible({ ...base, input: plain })).toBe(true);
+  });
+  it('needs an everyday event the caller already named, not everyday words alone', () => {
+    const earlier = ['Dinner is at my place tonight.'];
+    for (const latest of ['Tonight at seven.', 'The game is tonight.', 'Okay, see you then.']) {
+      expect(groundedReleaseEligible({ ...base, input: { latest, earlier } })).toBe(false);
+    }
+    expect(
+      groundedReleaseEligible({ ...base, input: { latest: 'Dinner is at seven.', earlier } })
+    ).toBe(true);
+  });
   it('stops after MAX_RELEASES_PER_CALL releases on one call', () => {
     for (let i = 0; i < MAX_RELEASES_PER_CALL; i++) explainCrisisTurn('c', `turn ${i}`);
     expect(groundedReleaseEligible(base)).toBe(false);
@@ -126,7 +149,7 @@ describe('readGrounded', () => {
     expect((await readGrounded(DINNER, [])).release).toBe(false);
   });
   it('a slow read times out and keeps the script', async () => {
-    const slow: CrisisGenerateFn = () => new Promise(() => undefined);
+    const slow: CrisisGenerateFn = async () => new Promise<string>(() => {});
     const out = await readGrounded(DINNER, [async () => EVERYDAY, slow], 20);
     expect(out).toEqual({ release: false, reads: ['everyday', 'timeout'] });
   });
@@ -212,12 +235,18 @@ describe('the allowlist and the always-hold list (crisis-release-words.ts)', () 
       expect(alwaysHold(line)).toBe(false);
   });
 
-  it('lets only everyday words stand beside the anchors', () => {
-    const anchors = new Set(['dinner']);
-    expect(onlyEveryday("Tomorrow's a little bit late. Dinner is tonight.", anchors)).toBe(true);
-    expect(onlyEveryday('Dinner is at the bridge tonight.', anchors)).toBe(false);
-    expect(onlyEveryday('Después de la cena, dinner.', anchors)).toBe(false);
-    expect(onlyEveryday('dinner is 2nite', anchors)).toBe(false);
+  it('releases only lines made entirely of everyday words and events', () => {
+    expect(allEveryday("Tomorrow's a little bit late. Dinner is tonight.")).toBe(true);
+    for (const line of [
+      'Dinner is at the bridge tonight.',
+      'Después de la cena, dinner.',
+      'dinner is 2nite',
+      "I'll see grandpa after dinner tonight.",
+      'Dinner tonight, then that is it for me.',
+      '90 of them after dinner.',
+      'Tonight after dinner I will be with mom.',
+    ])
+      expect(allEveryday(line)).toBe(false);
   });
 
   it('an earlier line any pattern catches makes the turn ineligible, even with no held word', () => {

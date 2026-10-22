@@ -335,6 +335,12 @@ describe('the turn pipeline', () => {
     expect(await turn.softCheck()).toBe(true);
     expect((await turn.resolve()).isCrisis).toBe(false);
     expect(gate).toEqual({ action: 'guide', guidance: GROUNDED_LIGHT_TOUCH });
+    // One text on both paths: the pipeline's soft check carries the gate's light touch.
+    expect(await turn.summary()).toMatchObject({
+      softCheck: true,
+      softGuidance: GROUNDED_LIGHT_TOUCH,
+      isCrisis: false,
+    });
     expect(reads[0]).toHaveBeenCalledTimes(1);
     expect(reads[1]).toHaveBeenCalledTimes(1);
   });
@@ -351,6 +357,7 @@ describe('the turn pipeline', () => {
       }
     );
     expect(await turn.softCheck()).toBe(false);
+    expect((await turn.summary()).softGuidance).toBeUndefined();
     expect((await turn.resolve()).isCrisis).toBe(true);
   });
 });
