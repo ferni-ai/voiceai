@@ -140,6 +140,7 @@ public final class AliveRig {
     /// A hand-keyed moment (arrival, a big win, goodbye).
     public func play(_ moment: KeyedMoment) {
         record(.keyed(moment))
+        stir()
         keyed = (moment, time, 0)
         if moment == .goodbye { farewell = (time + moment.end / 60 * tempo, nil) }
     }
@@ -230,7 +231,10 @@ public final class AliveRig {
         (bodyTo, glowTo, colourT) = (c.body, c.glow, animated ? 0 : 1)
     }
 
-    func flash(_ id: String, seconds: Double) { overlay = (id, time + seconds * tempo) }
+    func flash(_ id: String, seconds: Double) {
+        stir()
+        overlay = (id, time + seconds * tempo)
+    }
 
     /// A choreographed moment from the design system's sequences (the
     /// prototype's playSequence), at the persona's tempo. One plays at a time:
@@ -312,6 +316,7 @@ public final class AliveRig {
     public func micro(_ m: MicroExpression) {
         record(.micro(m))
         guard !still, let flash = m.flash else { return }
+        stir()
         // Recognition and interest are the eyes widening for an instant, as on
         // the web (micro-recognition: 1.2 tall, 1.1 wide; micro-interest: 1.12
         // tall, a touch up). Their faces are the listening face he already
@@ -403,6 +408,7 @@ public final class AliveRig {
         let len = simd_length(point)
         let p = len > 1 ? point / len : point
         quietSince = time
+        stir()
         if fly != nil { fly = nil; fireflyDone = true; sneezeStart = nil; sneezeStage = 0; squashHold = nil }
         pokeTimes = pokeTimes.filter { time - $0 < 10 } + [time]
         quickTaps = quickTaps.filter { time - $0 < 1.4 } + [time]
@@ -444,6 +450,7 @@ public final class AliveRig {
     /// they cross when it's close to his face (the prototype's stepFinger).
     public func fingerHeld(at point: SIMD2<Double>?) {
         guard !still else { return }
+        stir()
         fingerDown = true
         if let point { finger = point }
     }
@@ -460,6 +467,7 @@ public final class AliveRig {
     public func doubleTake() {
         record(.doubleTake)
         guard !still, doubleTakeStart == nil, handoff == nil, keyed == nil else { return }
+        stir()
         doubleTakeStart = time
         // Away is where he was looking, or a side glance if that was at them.
         doubleTakeAway = simd_length(gazeTarget) > 0.3 ? gazeTarget : SIMD2(rng.unit() < 0.5 ? -0.5 : 0.5, 0.15)
@@ -763,8 +771,61 @@ public final class AliveRig {
         u.fly = fireflyLight()
         u.tear = stepTears(face, dt: dt)
         stepParticles(face, dt: dt)
+        if moving { lastMoving = time }
         return u
     }
+
+    // MARK: Pace (how fast the view draws him)
+
+    /// How far ahead a blink, saccade or nod counts as in flight: a frame at
+    /// 30 fps sees it coming in time for the clock to speed up before it starts.
+    static let paceLookahead = 0.15
+    /// A spring slower than this (units a second) and nearer its target than
+    /// `settledDistance` is at rest: breath, bob and the eyes' slow drift stay
+    /// under both; a saccade, a nod or a micro-expression is far over.
+    static let settledSpeed = 0.08, settledDistance = 0.02
+    /// How long everything stays at rest before the rig counts as settled, so
+    /// the rate doesn't flicker between frames.
+    static let settleHold = 0.25
+    private var lastMoving = -Double.infinity
+
+    /// Something quick is in flight or about to start: a keyed moment, a
+    /// sequence, a blink, a saccade, a nod, a micro-expression, the double
+    /// take, a spin, a sneeze or the family table. These are 45-120 ms
+    /// events (or keyed at 60 fps) that a 30 fps clock skips frames of.
+    public var fastMotion: Bool {
+        guard !still else { return false }
+        let soon = time + Self.paceLookahead
+        if keyed != nil || handoff != nil || farewell != nil || doubleTakeStart != nil || spinStart != nil || sneezeStart != nil {
+            return true
+        }
+        if !tracks.isEmpty || sequenceBeats.contains(where: { $0.at <= soon }) { return true }
+        if blinking || nextBlink <= soon { return true }
+        if listeningMicros.contains(where: { $0.at <= soon }) { return true }
+        if !blinksOnly, nextSaccade <= soon { return true }
+        if activity == .listening, !lookingAway, nextNod <= soon { return true }
+        if guestPersona != nil, g.nextBlink <= soon || time - g.blinkAt < 0.15 { return true }
+        return false
+    }
+
+    /// Every spring, particle and fade has been at rest for `settleHold`.
+    public var settled: Bool { still || (!moving && time - lastMoving >= Self.settleHold) }
+
+    /// A blink is closing or opening, or queued.
+    var blinking: Bool { blinkSeg != nil || !blinkPlan.isEmpty }
+
+    /// Something is visibly moving this frame.
+    private var moving: Bool {
+        if still { return false }
+        let spring = { (r: RigSpring) in abs(r.v) > Self.settledSpeed || abs(r.x - r.t) > Self.settledDistance }
+        if s.contains(where: spring) { return true }
+        if guestPersona != nil, [g.x, g.y, g.s, g.sq, g.gx, g.gy, g.arch].contains(where: spring) { return true }
+        return colourT < 1 || fly != nil || tearA > 0.01 || sparks.contains { $0.kind != .firefly }
+    }
+
+    /// Something is about to change (a new face, a new activity, a request):
+    /// it counts as moving until the springs say otherwise.
+    public func stir() { lastMoving = time }
 
     func faceID() -> String {
         if let overlay, time < overlay.until { return overlay.id }

@@ -1,19 +1,19 @@
 import XCTest
 @testable import FerniDesign
 
-/// Critic M11 (motion spec §6.10): Ferni draws at the display's rate only
-/// while speaking, 30 fps otherwise or when throttled, and not at all when
-/// the app isn't active or a sheet covers him.
+/// Critic M11 (motion spec §6.10): the clock runs at the pace's rate (the
+/// display's own at the top) and not at all when the app isn't active or a
+/// sheet covers him.
 final class AvatarScheduleTests: XCTestCase {
-    func testOnlySpeakingRunsAtTheDisplayRate() {
-        XCTAssertNil(AvatarView.schedule(speaking: true, throttled: false, covered: false, active: true).interval)
-        XCTAssertEqual(AvatarView.schedule(speaking: false, throttled: false, covered: false, active: true).interval, 1.0 / 30)
-        XCTAssertEqual(AvatarView.schedule(speaking: true, throttled: true, covered: false, active: true).interval, 1.0 / 30)
+    func testTheClockRunsAtThePacesRate() {
+        XCTAssertNil(AvatarView.schedule(hz: 120, covered: false, active: true).interval, "the display's own rate")
+        XCTAssertEqual(AvatarView.schedule(hz: 60, covered: false, active: true).interval ?? 0, 0.9 / 60, accuracy: 1e-9)
+        XCTAssertEqual(AvatarView.schedule(hz: 30, covered: false, active: true).interval ?? 0, 0.9 / 30, accuracy: 1e-9)
     }
 
     func testCoveredOrInactiveDrawsNothing() {
-        XCTAssertTrue(AvatarView.schedule(speaking: false, throttled: false, covered: true, active: true).paused, "under a sheet")
-        XCTAssertTrue(AvatarView.schedule(speaking: false, throttled: false, covered: false, active: false).paused)
-        XCTAssertFalse(AvatarView.schedule(speaking: false, throttled: false, covered: false, active: true).paused)
+        XCTAssertTrue(AvatarView.schedule(hz: 120, covered: true, active: true).paused, "under a sheet")
+        XCTAssertTrue(AvatarView.schedule(hz: 30, covered: false, active: false).paused)
+        XCTAssertFalse(AvatarView.schedule(hz: 30, covered: false, active: true).paused)
     }
 }

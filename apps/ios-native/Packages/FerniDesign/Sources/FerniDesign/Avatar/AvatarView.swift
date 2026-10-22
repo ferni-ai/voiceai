@@ -6,10 +6,11 @@ import SwiftUI
 ///
 /// The view takes a square slot in the layout; the Metal canvas extends past
 /// it (headroom for hops, the ring and the corner teammate) so Ferni is never
-/// clipped. Display rate (120 Hz on ProMotion) only while speaking; 30 fps
-/// otherwise and always in Low Power Mode or when the device is hot; paused
-/// when the app isn't active or something covers Ferni (`covered`). Reduce Motion scales motion to 35% and skips
-/// the big moments.
+/// clipped. The display's rate (120 Hz on ProMotion) while he speaks or
+/// anything quick moves, never below 60 in a call, 30 only at home and at
+/// rest, at most 60 in Low Power Mode or when the device is hot (`FramePace`);
+/// paused when the app isn't active or something covers Ferni (`covered`).
+/// Reduce Motion scales motion to 35% and skips the big moments.
 public struct AvatarView: View {
     let persona: WindowPersona
     let expression: AvatarExpression
@@ -42,6 +43,8 @@ public struct AvatarView: View {
     @State private var arrivedThisCall = false
     /// The activity the last onChange handled (callJustEnded).
     @State private var seenActivity = AvatarActivity.idle
+    /// Frames a second (`FramePace`), from the rig after each frame.
+    @State private var hz = FramePace.rest
     @GestureState private var holding = false
 
     /// Canvas size and Ferni's place in it, in slot widths.
@@ -89,10 +92,7 @@ public struct AvatarView: View {
                     let side = min(geo.size.width, geo.size.height)
                     if let renderer = AliveRenderer.shared {
                         let throttled = lowPower || hot
-                        let clock = Self.schedule(
-                            speaking: activity == .speaking, throttled: throttled,
-                            covered: covered, active: scenePhase == .active
-                        )
+                        let clock = Self.schedule(hz: hz, covered: covered, active: scenePhase == .active)
                         TimelineView(.animation(minimumInterval: clock.interval, paused: clock.paused)) { timeline in
                             let u = frame(at: timeline.date)
                             let w = side * Self.canvas.width, h = side * Self.canvas.height, r = side * Self.radius
@@ -126,6 +126,7 @@ public struct AvatarView: View {
             .simultaneousGesture(hold, including: activity == .idle ? .all : .none)
             .onChange(of: holding) { _, now in
                 if !now { rig.fingerLifted() }
+                repace()
             }
             .accessibilityElement()
             .accessibilityLabel(name)
@@ -134,6 +135,7 @@ public struct AvatarView: View {
                 seenActivity = activity
                 if activity == .idle { rig.rest(with: persona, animated: false) } else { rig.show(persona, animated: false) }
                 if let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
+                repace()
             }
             .onChange(of: persona) { _, next in
                 // In a call a new teammate arrives at the family table; at home
@@ -148,6 +150,7 @@ public struct AvatarView: View {
                 } else {
                     rig.handOff(to: next)
                 }
+                repace()
             }
             .onChange(of: activity) { previous, next in
                 seenActivity = next
@@ -169,31 +172,41 @@ public struct AvatarView: View {
                     // goodbye is over (the rig holds it till then).
                     rig.rest(with: persona)
                 }
+                rig.stir()
+                repace()
             }
             // Back after a long time away: he wakes where he is, as on opening the app.
             .onChange(of: wake) { _, _ in
                 if activity == .idle, let moment = Self.launchMoment(reduceMotion: reduceMotion) { rig.play(moment) }
+                repace()
             }
             // Back after a few seconds away: a glance, a look away, the snap back.
             .onChange(of: doubleTake) { _, _ in
                 if activity == .idle { rig.doubleTake() }
+                repace()
             }
             // A micro-expression from the call (the agent's humanization signals).
             .onChange(of: micro) { _, next in
                 if let next { rig.micro(next.expression) }
+                repace()
             }
             // A choreographed moment from the call (a breakthrough, a small win).
             .onChange(of: moment) { _, next in
                 if let next { rig.play(sequence: next.id) }
+                repace()
             }
             .onChange(of: expression) { _, next in
                 if Self.winPlays(next, reduceMotion: reduceMotion, personSpeaking: personSpeaking) { rig.play(.win) }
+                rig.stir()
+                repace()
             }
             .onReceive(NotificationCenter.default.publisher(for: .NSProcessInfoPowerStateDidChange)) { _ in
                 lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
+                repace()
             }
             .onReceive(NotificationCenter.default.publisher(for: ProcessInfo.thermalStateDidChangeNotification)) { _ in
                 hot = ProcessInfo.processInfo.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue
+                repace()
             }
     }
 
@@ -207,12 +220,27 @@ public struct AvatarView: View {
             .onChanged { value in
                 guard case .second(true, let drag) = value else { return }
                 rig.fingerHeld(at: drag.flatMap { point(at: $0.location) })
+                repace()
             }
     }
 
     /// A tap at `location` in the slot.
     private func touch(at location: CGPoint) {
         if let p = point(at: location) { rig.poke(at: p) }
+        repace()
+    }
+
+    /// The rate for now, at once (outside a view update: after a handler).
+    private func repace() {
+        hz = Self.pace(activity: activity, rig: rig, throttled: lowPower || hot)
+    }
+
+    /// The rate for `activity` and the rig as of its last frame or request.
+    static func pace(activity: AvatarActivity, rig: AliveRig, throttled: Bool) -> Int {
+        FramePace.rate(
+            inCall: FramePace.inCall(activity), speaking: activity == .speaking,
+            fastMotion: rig.fastMotion, settled: rig.settled, lowPower: throttled
+        )
     }
 
     /// A point in the slot as Ferni radii from his centre (y up).
@@ -234,6 +262,10 @@ public struct AvatarView: View {
         let dark = colorScheme == .dark
         rig.dark = dark
         var u = rig.frame(at: date.timeIntervalSince(woke))
+        // The next frame's rate, from what this one left moving (set after the
+        // view update, as the cues are).
+        let next = Self.pace(activity: activity, rig: rig, throttled: lowPower || hot)
+        if next != hz { Task { @MainActor in hz = next } }
         // After the frame, never during it: the app's handlers may change state.
         if let onCue, !rig.cues.isEmpty {
             let cues = rig.cues
@@ -288,9 +320,9 @@ public struct AvatarView: View {
         throttled ? 1.5 : min(max(display, 1), 3)
     }
 
-    /// Frame interval (nil = the display's rate) and whether the clock is paused.
-    static func schedule(speaking: Bool, throttled: Bool, covered: Bool, active: Bool) -> (interval: Double?, paused: Bool) {
-        (speaking && !throttled ? nil : 1.0 / 30, covered || !active)
+    /// Frame interval for `hz` (nil = the display's rate) and whether the clock is paused.
+    static func schedule(hz: Int, covered: Bool, active: Bool) -> (interval: Double?, paused: Bool) {
+        (FramePace.interval(for: hz), covered || !active)
     }
 
     static func words(for activity: AvatarActivity, name: String) -> String {
