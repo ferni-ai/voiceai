@@ -378,8 +378,8 @@ export function logAuditEvent(event: Omit<AuditEvent, 'timestamp'>): void {
 
 async function persistAuditEvent(event: AuditEvent): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
     await db.collection('marketplace_audit_log').add(event);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to persist audit event');

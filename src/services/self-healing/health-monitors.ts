@@ -254,14 +254,14 @@ async function checkFirestore(): Promise<HealthCheckResult> {
   try {
     // Dynamic import to avoid loading Firebase unless needed
     const { initializeApp, getApps } = await import('firebase-admin/app');
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
 
     // Initialize if not already
     if (getApps().length === 0) {
       initializeApp();
     }
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     // Simple read operation to verify connectivity
     const testRef = db.collection('_health_check').doc('test');

@@ -21,6 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import type { Insight, InsightType } from '../types.js';
+import { getFirestoreDatabase } from '../../../config/environment.js';
 
 const log = createLogger({ module: 'InsightStore' });
 
@@ -49,7 +50,7 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
     const { Firestore } = await import('@google-cloud/firestore');
     firestoreInstance = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
     return firestoreInstance;
   } catch (error) {

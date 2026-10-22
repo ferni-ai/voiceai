@@ -22,6 +22,7 @@
  */
 
 import { flagOn } from '../../config/env-flag.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { LIFE_THREADS, type LifeThread } from './ferni-life-threads.js';
 import { priorCallsOf } from './personal-beats.js';
 
@@ -154,7 +155,7 @@ function hash(key: string): number {
  * two asks are always five calls apart.
  */
 export function helpCall(userId: string | undefined, priorCalls: number | undefined): boolean {
-  if (!userId || userId === 'anonymous') return false;
+  if (!isMemberIdentity(userId)) return false;
   if (priorCalls === undefined || priorCalls < FRIEND_AFTER_CALLS) return false;
   return priorCalls % CALLS_PER_ASK === hash(userId) % CALLS_PER_ASK;
 }
