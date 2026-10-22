@@ -69,6 +69,13 @@ export interface HybridSearchOptions {
   skipBM25?: boolean;
   /** Skip vector search (BM25 only) */
   skipVector?: boolean;
+  /**
+   * Fuse whatever legs have finished by this many ms and drop the rest. Prod
+   * 2026-10-18..21: in all 8 per-turn timeouts the vector leg (query embed +
+   * KNN, 1.3-2.6 s) was the late one while BM25 had answered, and the turn got
+   * no memories at all. Unset: wait for every leg.
+   */
+  legDeadlineMs?: number;
 }
 
 /**
@@ -76,8 +83,13 @@ export interface HybridSearchOptions {
  */
 export interface HybridSearchResult {
   id: string;
-  /** Combined score from RRF */
+  /**
+   * Combined score from RRF: weight / (60 + rank) summed over sources, so at
+   * most about 0.016 per source. It orders results; it is not a 0-1 relevance.
+   */
   score: number;
+  /** Each source's own score before fusion (vector: cosine similarity, 0-1). */
+  legScores?: Record<string, number>;
   /** Result text/content */
   text: string;
   /** Result type (memory, entity, etc.) */
@@ -146,6 +158,7 @@ export async function hybridSearch(
     minSources = 1,
     skipBM25 = false,
     skipVector = false,
+    legDeadlineMs,
   } = options;
 
   const metrics: HybridSearchMetrics = {
@@ -325,7 +338,17 @@ export async function hybridSearch(
   // The three searches are independent: run them together. One after
   // another they took ~280 ms against a 245 ms limit, so retrieval timed out
   // on 103 of 103 dev turns. Merge in a fixed order for stable fusion.
-  await Promise.all([bm25ListsRun, vectorListsRun, entityListsRun]);
+  const legs = { bm25: bm25ListsRun, vector: vectorListsRun, entity: entityListsRun };
+  const late = new Set(Object.keys(legs));
+  for (const [name, leg] of Object.entries(legs)) {
+    const finished = (): boolean => late.delete(name);
+    leg.then(finished, finished);
+  }
+  const allLegs = Promise.all(Object.values(legs));
+  if (legDeadlineMs === undefined) await allLegs;
+  else if (!(await settlesWithin(allLegs, legDeadlineMs))) {
+    log.info({ userId, legDeadlineMs, dropped: [...late] }, 'HYBRID_LEG_DROPPED');
+  }
   for (const lists of [bm25Lists, vectorLists, entityLists]) {
     for (const [source, list] of lists) rankedLists.set(source, list);
   }
@@ -340,6 +363,13 @@ export async function hybridSearch(
     entity_exact: 1.0, // Exact entity matches get highest weight
     entity_search: 0.3, // Entity search results get lower weight
   };
+
+  // Each source's own score, which fusion replaces with a rank score.
+  const legScores = new Map<string, Record<string, number>>();
+  for (const [source, list] of rankedLists) {
+    for (const item of list)
+      legScores.set(item.id, { ...legScores.get(item.id), [source]: item.score });
+  }
 
   const fusedResults = reciprocalRankFusion(rankedLists, {
     k: 60,
@@ -357,6 +387,7 @@ export async function hybridSearch(
   const results: HybridSearchResult[] = fusedResults.map((f) => ({
     ...f.data,
     score: f.fusedScore,
+    legScores: legScores.get(f.id),
     sources: f.sources,
     scoreBreakdown: Object.fromEntries(
       Object.entries(f.sourceContributions).map(([source, { rrfScore }]) => [
@@ -437,3 +468,16 @@ export async function vectorOnlySearch(
 // ============================================================================
 // EXPORTS (types are exported inline above)
 // ============================================================================
+
+/** Whether `promise` settles within `ms`; it keeps running either way. */
+async function settlesWithin(promise: Promise<unknown>, ms: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const deadline = new Promise<boolean>((resolve) => {
+    timer = setTimeout(() => resolve(false), ms);
+  });
+  try {
+    return await Promise.race([promise.then(() => true), deadline]);
+  } finally {
+    clearTimeout(timer);
+  }
+}

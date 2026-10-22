@@ -143,6 +143,9 @@ const FOLLOW_UP_TEXT: Record<string, PromiseOutcome> = {
   forgotten: { outcome: 'cancelled', reason: 'forgotten' },
   'recently-sent': held('rate-gap'),
   'opted-out': failed('opted-out'),
+  // Unreadable consent or a possible opt-out: the sender retries on its next run.
+  'consent-unknown': held('store-error'),
+  paused: held('awaiting-yes'),
   'no-verified-phone': failed('no-verified-phone'),
   'send-failed': failed('send-failed'),
   'sms-off': failed('flag-off'),

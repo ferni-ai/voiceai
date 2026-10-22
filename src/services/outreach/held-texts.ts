@@ -62,7 +62,9 @@ export async function holdText(
   log.info({ kind: t.kind, refId: t.refId, reason, releaseAt }, 'Text held');
 }
 
-/** Sends the held texts that are due. A gap skip waits for the next run; any other skip ends it. */
+const RETRY: ReadonlySet<string> = new Set(['recently-sent', 'consent-unknown', 'paused']);
+
+/** Sends the held texts that are due. A gap, consent-unknown or pause waits; any other skip ends it. */
 export async function releaseHeldTexts(
   store: HeldTextStore = firestoreHeldTexts,
   deps: TextDeps = defaultTextDeps(),
@@ -79,7 +81,8 @@ export async function releaseHeldTexts(
       continue;
     }
     const outcome = await send(held.text, deps); // eslint-disable-line no-await-in-loop
-    if (!outcome.sent && outcome.reason === 'recently-sent') {
+    // A gap, an unreadable consent record or a pause: try again on a later run.
+    if (!outcome.sent && RETRY.has(outcome.reason)) {
       out.waiting++;
       continue;
     }
