@@ -230,37 +230,37 @@ describe('MemoryManagement', () => {
       expect(shouldSurfaceMemory(lowPriority, 7)).toBe(false);
     });
 
-    // Note: Medium and low priority have random chance, so we test the conditions
+    // Medium and low priority surface on a random draw. The draw is pinned on
+    // each side of the rate: sampling 100 real draws and bounding the count
+    // fails on its own now and then (low: P(count <= 2) is about 0.2%), and it
+    // ejected a merge-queue group. Pinning checks the same rule on every run.
+    function surfacesAtDraw(memory: ProactiveMemory, turn: number, draw: number): boolean {
+      const random = vi.spyOn(Math, 'random').mockReturnValue(draw);
+      try {
+        return shouldSurfaceMemory(memory, turn);
+      } finally {
+        random.mockRestore();
+      }
+    }
+
     it('should have chance to surface medium priority at turn 5+', () => {
       const mediumPriority = createMemory('medium');
 
-      // Run multiple times - at least some should return true (20% chance)
-      let surfacedCount = 0;
-      for (let i = 0; i < 100; i++) {
-        if (shouldSurfaceMemory(mediumPriority, 10)) {
-          surfacedCount++;
-        }
-      }
-
-      // Should be roughly 20% (between 5% and 40% for statistical validity)
-      expect(surfacedCount).toBeGreaterThan(5);
-      expect(surfacedCount).toBeLessThan(40);
+      // 20% chance: a draw under 0.2 surfaces, a draw at 0.2 does not.
+      expect(surfacesAtDraw(mediumPriority, 10, 0.19)).toBe(true);
+      expect(surfacesAtDraw(mediumPriority, 10, 0.2)).toBe(false);
+      expect(surfacesAtDraw(mediumPriority, 5, 0)).toBe(true);
     });
 
     it('should have chance to surface low priority at turn 8+', () => {
       const lowPriority = createMemory('low');
 
-      // Run multiple times - at least some should return true (10% chance)
-      let surfacedCount = 0;
-      for (let i = 0; i < 100; i++) {
-        if (shouldSurfaceMemory(lowPriority, 15)) {
-          surfacedCount++;
-        }
-      }
-
-      // Should be roughly 10% (between 2% and 25% for statistical validity)
-      expect(surfacedCount).toBeGreaterThan(2);
-      expect(surfacedCount).toBeLessThan(25);
+      // 10% chance: a draw under 0.1 surfaces, a draw at 0.1 does not.
+      expect(surfacesAtDraw(lowPriority, 15, 0.09)).toBe(true);
+      expect(surfacesAtDraw(lowPriority, 15, 0.1)).toBe(false);
+      expect(surfacesAtDraw(lowPriority, 8, 0)).toBe(true);
+      // Still gated by turn: even the luckiest draw cannot surface it at turn 7.
+      expect(surfacesAtDraw(lowPriority, 7, 0)).toBe(false);
     });
   });
 });

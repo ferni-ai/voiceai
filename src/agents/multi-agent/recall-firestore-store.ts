@@ -5,12 +5,12 @@
  * @module agents/multi-agent/recall-firestore-store
  */
 
-import type { RecallStore } from '../../memory/recall/session-recall.js';
+import type { VectorRecallStore } from '../../memory/recall/stored-fact-vectors.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
-/** Reads the collections the live pipeline writes. Plain queries: no composite index needed. */
-export const firestoreRecallStore: RecallStore = {
+/** Reads the collections the live pipeline writes. Plain queries, but for nearest (a vector index). */
+export const firestoreRecallStore: VectorRecallStore = {
   // Null when unreadable: the snapshot then fails closed (session-recall.ts).
   forgotten: async (userId) => forgottenTopicsOrNull(userId),
   async facts(userId) {
@@ -21,6 +21,24 @@ export const firestoreRecallStore: RecallStore = {
     // facts (2,024 for one test user). Facts without a date fall back to it.
     const newest = await facts.orderBy('extractedAt', 'desc').limit(300).get();
     const snap = newest.docs.length > 0 ? newest : await facts.limit(300).get();
+    return snap.docs.map((d) => d.data());
+  },
+  // RECALL_VECTOR_INDEX: the stored facts nearest a turn's meaning, however old.
+  async nearest(userId, queryVector, k) {
+    const db = getFirestoreDb();
+    if (!db) return [];
+    const snap = await db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('dynamic_facts')
+      .findNearest({
+        vectorField: 'embedding',
+        queryVector,
+        limit: k,
+        distanceMeasure: 'COSINE',
+        distanceResultField: '_d',
+      })
+      .get();
     return snap.docs.map((d) => d.data());
   },
   async summaries(userId) {

@@ -2,7 +2,7 @@
  * Prove account deletion erases a user's Firestore record, end to end, against
  * the Firestore emulator (never a real project).
  *
- *   JAVA_HOME=/opt/homebrew/opt/openjdk@21 firebase emulators:start --only firestore \
+ *   JAVA_HOME=/opt/homebrew/opt/openjdk@21 firebase emulators:start --only firestore:ferni-dev \
  *     --project demo-gdpr   # port 8792 via a firebase.json {"emulators":{"firestore":{"port":8792}}}
  *   npx tsx scripts/gdpr/verify-erasure.ts            # the prod UI env (no GOOGLE_CLOUD_PROJECT)
  *   npx tsx scripts/gdpr/verify-erasure.ts with-gcp   # with GOOGLE_CLOUD_PROJECT set
