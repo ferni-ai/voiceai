@@ -137,6 +137,8 @@ import {
   processActiveListeningPartial,
 } from './active-listening-handler.js';
 import { getUserResponseGapMs } from './user-response-gap.js';
+import { handleRejectedTranscript, installSpeechTracker } from './rejected-transcript-policy.js';
+import { flagOn } from '../../config/env-flag.js';
 
 // ============================================================================
 // TYPES
@@ -285,6 +287,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     sendDataMessage,
     agent,
   } = ctx;
+  if (flagOn('REJECTED_TRANSCRIPT_KEEPS_SPEECH')) installSpeechTracker(session);
 
   const handler = (event: TranscriptEvent): void => {
     // ===============================================
@@ -715,34 +718,13 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         // The SDK auto-responds based on VAD (voice activity detection), independent of
         // this handler. When we detect a garbage transcript (foreign chars, echo, noise),
         // the LLM may have already started generating a response based on the audio.
-        //
-        // RACE CONDITION FIX (Feb 2026 v2): Single interrupt is often too late.
-        // Gemini's VAD starts generation BEFORE our transcript handler runs, so by the
-        // time we call interrupt(), TTS may have already received and queued audio frames.
-        // We use a double-interrupt strategy with a small delay to catch late-arriving chunks.
-        if (session) {
-          try {
-            session.interrupt();
-            diag.state('🛡️ Interrupted pending LLM response for rejected transcript', {
-              reason: validation.reason,
-            });
-
-            // Second interrupt after a brief delay to catch any TTS chunks that
-            // were in-flight during the first interrupt
-            setTimeout(() => {
-              try {
-                session.interrupt();
-                diag.debug('🛡️ Follow-up interrupt for rejected transcript');
-              } catch {
-                // Non-critical - first interrupt likely handled it
-              }
-            }, 100);
-          } catch (interruptErr) {
-            diag.debug('⚠️ Interrupt failed for rejected transcript', {
-              error: String(interruptErr),
-            });
-          }
-        }
+        // REJECTED_TRANSCRIPT_KEEPS_SPEECH spares a reply that began before the caller spoke.
+        handleRejectedTranscript(session, validation.reason, {
+          keepsSpeechFlag: flagOn('REJECTED_TRANSCRIPT_KEEPS_SPEECH'),
+          isAgentSpeaking: isAgentCurrentlySpeaking,
+          agentSpeechStartedAt: userData.lastAgentSpeechStartTime,
+          userSpeechStartedAt: userData.userSpeakingStartTime,
+        });
 
         // Don't process this as a user turn - it's noise/echo
         return;
