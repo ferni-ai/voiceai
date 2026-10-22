@@ -206,11 +206,12 @@ function main(argv) {
     console.log(
       `## Provenance: Cloud Logging cloud-agents, agent ${agent}, project ${GCP} (logs in ${logs})`
     );
-    for (const p of prov
-      .flat()
-      .filter((x) => x && x.status !== 'ok')
-      .slice(0, 12))
-      console.log(`${p.status.padEnd(8)} ${p.call}: ${p.commits.join(', ')}`);
+    ['candidate', 'baseline'].forEach((side, i) => {
+      const bad = (prov[i] ?? []).filter((x) => x.status !== 'ok');
+      for (const p of bad.slice(0, 6))
+        console.log(`${side} ${p.status.padEnd(8)} ${p.call}: ${p.commits.join(', ')}`);
+      if (bad.length > 6) console.log(`${side} ... ${bad.length - 6} more not ok`);
+    });
   }
 
   console.log('\n## Candidate gate');
