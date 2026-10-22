@@ -125,6 +125,32 @@
     ) !important;
   }
 
+  /* Night mode (body.theme--dark, from js/landing-intelligence.js) colours
+     these with --color-text-inverse and --color-bg-secondary, which are
+     light on a light OS but Night Ink here, and its body:not(.theme--dark)
+     guards stop applying. Keep the daytime dark-mode colours. */
+  :root:root body.theme--dark :is(.use-case__title, .feature__title, .two-am__ferni-says) {
+    color: var(--color-text-primary) !important;
+  }
+
+  :root:root body.theme--dark :is(.use-case__description, .feature__description) {
+    color: var(--color-text-secondary) !important;
+    opacity: 1 !important;
+  }
+
+  :root:root body.theme--dark .story__card-highlight {
+    color: var(--color-accent) !important;
+  }
+
+  /* background-image, not background: the shorthand would reset the clip */
+  :root:root body.theme--dark .stat__value {
+    background-image: linear-gradient(
+      var(--color-text-primary),
+      var(--color-text-primary)
+    ) !important;
+    filter: drop-shadow(var(--shadow-glow-white)) !important;
+  }
+
   /* Hero accent ("What's new?"): the gradient text from story-brand.css is
      dark sage, about 2.7:1 on the dark hero. Keep the gradient, in light sage. */
   :root:root .hero__headline-accent {

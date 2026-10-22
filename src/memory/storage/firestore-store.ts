@@ -195,33 +195,27 @@ export class FirestoreStore extends MemoryStore {
   // ============================================================================
 
   async getProfile(userId: string): Promise<UserProfile | null> {
-    const db = await this.ensureInitialized();
-
+    await this.ensureInitialized();
     try {
-      const docRef = db.collection(this.USERS_COLLECTION).doc(userId);
-      const [data, days] = await readUserRootOnce(userId, docRef, conversationDaysFor);
-      if (!data) return null;
-
-      const hydrated = Object.assign(this.hydrateData(data), days && { conversationDays: days });
-      if (!isValidUserProfile(hydrated)) {
-        // FIX: Enhanced logging with data sample for debugging data corruption
-        getLogger().error(
-          {
-            userId,
-            hasId: !!hydrated?.id,
-            hasName: !!hydrated?.name,
-            hasCreatedAt: !!hydrated?.createdAt,
-            dataKeys: Object.keys(hydrated || {}),
-          },
-          'Invalid user profile data from Firestore - potential data corruption'
-        );
-        return null;
-      }
-      return hydrated;
+      return await this.getProfileStrict(userId);
     } catch (error) {
       getLogger().error(`getProfile error: ${error}`);
       return null;
     }
+  }
+
+  /** A failed read, or a stored doc that isn't a valid profile, throws; null only when no doc. */
+  override async getProfileStrict(userId: string): Promise<UserProfile | null> {
+    const docRef = (await this.ensureInitialized()).collection(this.USERS_COLLECTION).doc(userId);
+    const [data, days] = await readUserRootOnce(userId, docRef, conversationDaysFor);
+    if (!data) return null;
+    const hydrated = Object.assign(this.hydrateData(data), days && { conversationDays: days });
+    if (isValidUserProfile(hydrated)) return hydrated;
+    const { id, name, createdAt } = hydrated ?? {};
+    const sample = { userId, hasId: !!id, hasName: !!name, hasCreatedAt: !!createdAt };
+    const dataKeys = Object.keys(hydrated || {});
+    getLogger().error({ ...sample, dataKeys }, 'Invalid user profile data from Firestore');
+    throw new Error(`stored profile for ${userId} is not a valid profile`);
   }
 
   async saveProfile(profile: UserProfile): Promise<void> {

@@ -13,6 +13,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { MAX_RETRIES } from '../../config/resilience-config.js';
 import { flagOn } from '../../config/env-flag.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 /** Why scheduleOutreach refused: sends to other people later wait for the founder's opt-in. */
 export const SCHEDULING_PAUSED =
@@ -97,7 +98,7 @@ async function initializeFirestore(): Promise<FirebaseFirestore.Firestore | null
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
     return db;
   } catch (error) {

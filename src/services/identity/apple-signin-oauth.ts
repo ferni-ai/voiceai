@@ -22,6 +22,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'AppleSignInOAuth' });
 
@@ -140,7 +141,7 @@ async function getFirestore() {
     const { Firestore } = await import('@google-cloud/firestore');
     return new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
   } catch {
     return null;
