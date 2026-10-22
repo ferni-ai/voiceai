@@ -62,6 +62,7 @@ function deps(
     ...atomicLocks(),
     sponsoredPhone: vi.fn(async (): Promise<string | undefined> => '+15559990000'),
     isOptedOut: vi.fn(async (h: string) => optedOut.includes(h)),
+    consentDoc: async () => undefined,
     userDoc: vi.fn(async (): Promise<Record<string, unknown> | undefined> => undefined),
     legacySmsChannels: vi.fn(async (): Promise<unknown> => undefined),
   };

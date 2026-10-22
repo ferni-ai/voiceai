@@ -118,6 +118,12 @@ const UNMETERED: ParseMeter = {
   limits: { maxJsonStringBytes: 64 * 1024 },
 };
 
+/** A Firestore VectorValue from any copy of the SDK (firebase-admin's or our own). */
+function isVector(value: unknown): boolean {
+  const v = value as { constructor?: { name?: string }; toArray?: unknown };
+  return v.constructor?.name === 'VectorValue' && typeof v.toArray === 'function';
+}
+
 /** instanceof that tolerates a stubbed module (the shared test setup fakes firestore) */
 function isA<T>(type: unknown, value: unknown): value is T {
   return typeof type === 'function' && value instanceof type;
@@ -140,6 +146,8 @@ function clean(value: unknown, meter: ParseMeter, depth = 0): Plain | typeof DRO
   }
   // Bytes: nothing a person reads, and the one shape a key name can't describe
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) return DROP;
+  // A stored vector (a fact's embedding): 768 numbers derived from text that is exported
+  if (isVector(value)) return DROP;
   if (typeof value === 'object') {
     // No prototype, so a stored "__proto__" key is an own field the filter sees, not a setter
     const out = Object.create(null) as Record<string, Plain>;
