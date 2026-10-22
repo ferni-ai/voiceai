@@ -317,6 +317,9 @@ struct FloorFixture: View {
             Text(verbatim: "faint words under the floor, two lines of them so they cross it")
                 .font(.body)
                 .foregroundStyle(Color(white: 0.93))
+                // Two lines on every screen: on an iPad's width it was one line,
+                // which sat whole above the floor, and the rule wasn't tested.
+                .frame(maxWidth: 260)
         }
         .allowsHitTesting(false)
     }
