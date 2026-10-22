@@ -38,6 +38,7 @@ import { getPrewarmGreetingPolicy, planFactoryPrewarm } from './prewarm-greeting
 import { attachCallWrapUp } from '../shared/call-wrap-up.js';
 import { isOnBehalfCall } from '../shared/outbound-opener.js';
 import { roomOutputOptions } from './room-output-options.js';
+import { markCallStageSoon } from '../../services/analytics/call-start-stages.js';
 import { registerSessionEndedSignal } from './session-ended-signal.js';
 import { sessionRecording } from '../shared/session-recording.js';
 
@@ -164,6 +165,7 @@ export function createPersonaAgentFactory(factoryConfig: PersonaAgentFactoryConf
       phoneCaller: isPhoneParticipant(context.userParticipant),
     });
     mark('setup_persona_agent_done');
+    if (!context.isHandoff) markCallStageSoon(sessionId, 'context_built');
     // Ferni ends the call after a mutual goodbye: phone callers with PHONE_GOODBYE
     // (phone-goodbye.ts), app callers with CALL_WRAP_UP (call-wrap-up.ts).
     await attachCallWrapUp(agentSetup.agent, {

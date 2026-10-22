@@ -20,6 +20,7 @@ import { noteCallerJoined } from './sip-caller.js';
 import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
 import { injectUserAwareness } from './user-awareness-injection.js';
+import { identifyWithCallStartStages } from './call-start-identify.js';
 
 // Event cleanup registry for proper memory management
 import {
@@ -329,11 +330,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
       { getConversationManager },
     ] = await moduleImportsPromise;
 
-    const { userId: identifiedUserId, userName, userAccent, verified } = await identifyUser({
-      jobMetadata: ctx.job.metadata,
-      room: ctx.room,
-      sessionId,
-    });
+    const identified = await identifyWithCallStartStages(sessionId, markCallStageSafe, () =>
+      identifyUser({ jobMetadata: ctx.job.metadata, room: ctx.room, sessionId })
+    );
+    const { userId: identifiedUserId, userName, userAccent, verified } = identified;
     userId = identifiedUserId ?? null;
 
     updateSessionState(sessionId, { state: 'active' });

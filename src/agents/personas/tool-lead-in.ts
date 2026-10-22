@@ -28,6 +28,7 @@ import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
+import { afterBridge, EXTRA_LOOKUP_TOOLS, lookupBridgeOn } from './lookup-bridge.js';
 
 /** No "Oh"/"Ooh": the opener gate trims those, and "Oh… Oh, it's sunny" doubles. */
 export const LEAD_INS = [
@@ -147,13 +148,15 @@ type LeadIn = 'lookup' | 'action' | 'none';
  * What one chunk decides: undefined while nothing has been said or called yet,
  * otherwise which line, if any, goes ahead of it.
  */
-function leadInBefore(chunk: Chunk, asked: boolean): LeadIn | undefined {
+function leadInBefore(chunk: Chunk, asked: boolean, extra: boolean): LeadIn | undefined {
   if (typeof chunk === 'string') return chunk.trim() ? 'none' : undefined;
   const delta = (chunk as llm.ChatChunk | undefined)?.delta;
   if (delta?.content?.trim()) return 'none';
   const first = delta?.toolCalls?.[0];
   if (!first) return undefined;
-  if (LOOKUP_TOOLS.has(first.name)) return 'lookup';
+  if (LOOKUP_TOOLS.has(first.name) || (extra && EXTRA_LOOKUP_TOOLS.has(first.name))) {
+    return 'lookup';
+  }
   return asked && ACTION_TOOLS.has(first.name) ? 'action' : 'none';
 }
 
@@ -186,7 +189,11 @@ function afterLeadIn(text: string, beforeCall: boolean): string | undefined {
  * is untouched; only the request changes. The action acks ("Sure.") land in
  * history the same way, just ahead of the timer call, so they are cut too.
  */
-export function withoutPastLeadIns(chatCtx: llm.ChatContext): llm.ChatContext {
+export function withoutPastLeadIns(
+  chatCtx: llm.ChatContext,
+  env: Record<string, string | undefined> = process.env
+): llm.ChatContext {
+  const bridges = lookupBridgeOn(env);
   const items = chatCtx.items;
   let lastUser = -1;
   for (let i = items.length - 1; i >= 0 && lastUser < 0; i--) {
@@ -196,7 +203,11 @@ export function withoutPastLeadIns(chatCtx: llm.ChatContext): llm.ChatContext {
   let changed = false;
   const kept = items.flatMap((item, i) => {
     if (i > lastUser || item.type !== 'message' || item.role !== 'assistant') return [item];
-    const rest = afterLeadIn(item.textContent ?? '', items[i + 1]?.type === 'function_call');
+    const text = item.textContent ?? '';
+    // LOOKUP_BRIDGE: "Okay, got it." opening an answer after a tool result (lookup-bridge.ts).
+    const rest =
+      afterLeadIn(text, items[i + 1]?.type === 'function_call') ??
+      (bridges ? afterBridge(text, items[i - 1]?.type === 'function_call_output') : undefined);
     if (rest === undefined) return [item];
     changed = true;
     if (!rest) return [];
@@ -226,12 +237,13 @@ export function withToolLeadIn(
 ): ReadableStream<Chunk> {
   if (env.TOOL_LEAD_IN === 'off' || !isFirstReplyOfTurn(request)) return input;
   const asked = env.TOOL_ACK !== 'off' && mayNeedTool(callerWords(request));
+  const extra = lookupBridgeOn(env);
   let decided = false;
   return new ReadableStream<Chunk>({
     async start(controller) {
       try {
         for await (const chunk of input as unknown as AsyncIterable<Chunk>) {
-          const leadIn = decided ? undefined : leadInBefore(chunk, asked);
+          const leadIn = decided ? undefined : leadInBefore(chunk, asked, extra);
           if (leadIn !== undefined) decided = true;
           if (leadIn === 'lookup' || leadIn === 'action') {
             const { id } = chunk as llm.ChatChunk;
