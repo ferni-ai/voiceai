@@ -15,13 +15,9 @@
  * of the call, with different prompts (an everyday-or-danger read, and a
  * C-SSRS-structured read of ideation, method, intent, plan and timeframe),
  * must both find nothing. The turn then gets GROUNDED_LIGHT_TOUCH instead of
- * the script: Ferni answers in its own voice and asks one direct screening
- * question (SCREEN_QUESTION). On the caller's next turn, anything but a clear
- * no takes the crisis path with 988 (screenPositive). Round 3 released 40 of
- * 40 new risky lines built only from allowed words with both reads fooled
- * ("After dinner I'll try again."): word rules cannot prove a release safe,
- * so the direct question is the safety net (Seth, 2026-10-22: "Ask directly,
- * gently"). Only when every one of these holds:
+ * the script: Ferni answers in its own voice and adds one warm check-in, and
+ * offers 988 the moment the caller says anything heavy. Only when every one of
+ * these holds:
  *   - the classifier alone read the turn imminent: the patterns found nothing;
  *   - nothing on the call found risk before this turn, and no turn on this
  *     call was released before (MAX_RELEASES_PER_CALL = 1);
@@ -60,7 +56,6 @@ import {
 import type { CrisisGenerateFn, CrisisVerdict } from './crisis-classifier.js';
 import { SAFETY_TALK } from './crisis-lone-imminent.js';
 import { allEveryday, alwaysHold, eventTopics, wordsOf } from './crisis-release-words.js';
-import { SCREEN_QUESTION, noteScreenAsked, resetGroundedScreen } from './crisis-grounded-screen.js';
 
 const log = createLogger({ module: 'CrisisGroundedRelease' });
 
@@ -151,19 +146,19 @@ const READERS = [
   { prompt: GROUNDED_RELEASE_CSSRS_PROMPT, parse: parseCssrsRead },
 ] as const;
 
+/**
+ * What a released turn gets in place of the script (Seth, 2026-10-21: "light
+ * touch", a soft check-in). Not a plain reply: one warm check-in in Ferni's
+ * voice, and 988 as soon as the caller says anything heavy.
+ */
 /** Room for the C-SSRS read's six fields: a cut-off reply fails to parse and holds. */
 const GROUNDED_READ_MAX_TOKENS = 256;
 
-/**
- * What a released turn gets in place of the script: Ferni's normal answer and
- * the direct question, once (MAX_RELEASES_PER_CALL). No hint that the words
- * were probably everyday, which would bias how the question is asked.
- */
-export const GROUNDED_LIGHT_TOUCH = `[SAFETY - DIRECT CHECK]
-A safety screen flagged the caller's last words.
-1. Answer what they said the way you normally would, in your own voice, briefly
-2. Then, in this same reply, ask this exact question, gently and warmly: "${SCREEN_QUESTION}" You must ask it. Do not change it to "are you okay", do not skip it, and add no lecture and no hotline
-3. If they answer anything other than a clear no, or say anything about hurting themselves, not wanting to be here, or anyone being in danger, take it seriously and offer the 988 Suicide & Crisis Lifeline: they can call or text 988`;
+export const GROUNDED_LIGHT_TOUCH = `[SAFETY - LIGHT TOUCH]
+A safety read flagged the caller's last words, and the conversation shows they were most likely everyday talk.
+1. Answer what they said the way you normally would, in your own voice
+2. Once in this reply, ask them directly and gently, in your own words, whether they are okay and safe ("and hey, you doing okay tonight? like, really okay, safe?"). One short question, warm, no lecture, and do not mention crisis lines or hotlines unless step 3 applies
+3. If they say anything about hurting themselves, not wanting to be here, or anyone being in danger, take it seriously and offer the 988 Suicide & Crisis Lifeline: they can call or text 988`;
 
 export function resolveGroundedReleaseMode(
   env: Record<string, string | undefined> = process.env
@@ -334,7 +329,6 @@ const recent = new Map<string, { at: number; run: Promise<boolean> }>();
 /** For tests. */
 export function resetGroundedRelease(): void {
   recent.clear();
-  resetGroundedScreen();
 }
 
 /**
@@ -368,10 +362,7 @@ export function groundedRelease(
         ));
       run = readGrounded(args.input, generates, timeoutFrom(env))
         .then(({ release, reads }) => {
-          if (release && mode === 'live') {
-            explainCrisisTurn(args.call, args.input.latest);
-            if (args.call) noteScreenAsked(args.call, args.input);
-          }
+          if (release && mode === 'live') explainCrisisTurn(args.call, args.input.latest);
           const stats = { mode, source: args.source, release, reads };
           log.info({ ...stats, latencyMs: Date.now() - startedAt }, 'CRISIS_GROUNDED_RELEASE');
           return release && mode === 'live';
