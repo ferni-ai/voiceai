@@ -24,6 +24,10 @@
  * Only when all of these hold:
  *   - the patterns found nothing at all in this turn (no indicator, no voice
  *     distress, no session escalation), and none in the caller's earlier lines;
+ *   - the caller said at least three things before it this call, and the last
+ *     five (what the classifier saw) hold nothing from the broad risk list: a
+ *     call that opens with the read keeps the guidance (crisis-lone-imminent.ts
+ *     makes the same call for goodbyes);
  *   - nothing on this call found risk before this turn (callRiskBeforeTurn:
  *     a pattern match, a classifier read that was not none or gave no verdict,
  *     a read in flight). An unknown call counts as risk;
@@ -45,7 +49,11 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { endorses, hasRiskContent } from './crisis-agreement.js';
-import { turnVerdicts, type CrisisClassifierInput, type CrisisVerdict } from './crisis-classifier.js';
+import {
+  turnVerdicts,
+  type CrisisClassifierInput,
+  type CrisisVerdict,
+} from './crisis-classifier.js';
 import { detectCrisis, type CrisisDetectionResult } from './crisis-guard.js';
 import { SAFETY_TALK } from './crisis-lone-imminent.js';
 
@@ -74,6 +82,7 @@ export type ClassifierOnlyWhy =
   | 'endorses'
   | 'safety_talk'
   | 'earlier_pattern'
+  | 'too_early'
   | 'error';
 
 export interface ClassifierOnlyArgs {
@@ -101,6 +110,11 @@ const normalized = (text: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
+/** Earlier caller lines a call needs before a read can be eased. */
+const MIN_EARLIER_LINES = 3;
+/** The earlier lines the classifier sees (crisis-classifier.ts), checked for risk words. */
+const RECENT_LINES = 5;
+
 const patternsFound = (d: CrisisDetectionResult): boolean =>
   d.isCrisis || d.severity !== 0 || d.indicators.length > 0;
 
@@ -125,10 +139,15 @@ function decide(args: ClassifierOnlyArgs): ClassifierOnlyWhy {
   if (endorses(latest)) return 'endorses';
   if (companion !== undefined && typeof companion !== 'string') return 'safety_talk';
   if (companion !== undefined && SAFETY_TALK.test(normalized(companion))) return 'safety_talk';
-  const earlier: readonly unknown[] = args.earlier ?? [];
-  if (earlier.some((line) => typeof line !== 'string' || patternsFound(detectCrisis(line)))) {
-    return 'earlier_pattern';
-  }
+  const given: readonly unknown[] = args.earlier ?? [];
+  if (given.some((line) => typeof line !== 'string')) return 'earlier_pattern';
+  const own = latest.trim();
+  const earlier = (given as readonly string[])
+    .map((line) => line.trim())
+    .filter((line) => line !== '' && line !== own);
+  if (earlier.some((line) => patternsFound(detectCrisis(line)))) return 'earlier_pattern';
+  if (earlier.length < MIN_EARLIER_LINES) return 'too_early';
+  if (earlier.slice(-RECENT_LINES).some(hasRiskContent)) return 'risk_words';
   return 'checkin';
 }
 
