@@ -163,7 +163,10 @@ describe('classifierOnlyCheckin', () => {
         const { secondReadMs: _ms, ...rest } = c[0] as Record<string, unknown>;
         return rest;
       });
-  const settle = () => new Promise((r) => setTimeout(r, 0));
+  const settle = () =>
+    new Promise<void>((r) => {
+      setTimeout(r, 0);
+    });
 
   it('off: never eases, never asks the second read, logs nothing', async () => {
     const adjudicate = adjudicator(SAYS.checkin);
@@ -218,7 +221,10 @@ describe('classifierOnlyCheckin', () => {
     expect(await run('live', { adjudicate: failing })).toBe(false);
     expect(logged().at(-1)).toMatchObject({ secondRead: 'error' });
     resetClassifierOnlyReads();
-    const hanging: CrisisGenerateFn = () => new Promise(() => undefined);
+    const hanging: CrisisGenerateFn = () =>
+      new Promise<string>(() => {
+        // never settles
+      });
     expect(
       await run('live', {
         adjudicate: hanging,
