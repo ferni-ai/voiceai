@@ -355,11 +355,24 @@ export async function logCrisisSignal(
         },
         // Store truncated transcript for context (privacy-conscious)
         transcriptSnippet: transcript ? transcript.slice(0, 200) : null,
-        sessionId,
+        // Firestore rejects an undefined field, which dropped every signal logged without one
+        ...(sessionId ? { sessionId } : {}),
       });
+    forgetRecentCrisis(userId); // the next turn's check-in sees this signal
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to log crisis signal');
   }
+}
+
+/** The crisis_signals query, crisis-level events only; throws when Firestore does. */
+async function queryCrisisHistory(userId: string, limitDays: number): Promise<CrisisEventRecord[]> {
+  const db = getFirestoreDb();
+  if (!db) return [];
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - limitDays);
+
+  return crisisLevelSignalsSince(db, userId, cutoffDate);
 }
 
 /**
@@ -377,35 +390,51 @@ export async function getCrisisHistory(
   limitDays: number = 30
 ): Promise<CrisisEventRecord[]> {
   try {
-    const db = getFirestoreDb();
-    if (!db) return [];
-
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - limitDays);
-
-    return await crisisLevelSignalsSince(db, userId, cutoffDate);
+    return await queryCrisisHistory(userId, limitDays);
   } catch (error) {
     log.error({ error: String(error), userId }, 'Failed to get crisis history');
     return [];
   }
 }
 
+type RecentCrisis = { hasCrisis: boolean; lastCrisis?: CrisisEventRecord };
+
+/**
+ * The crisis check-in runs every turn; the answer is kept for a minute so a
+ * call queries crisis_signals about once a minute instead of once a turn.
+ * logCrisisSignal (the live crisis writer) drops it, and a failed query is
+ * not kept, so the next turn asks again.
+ */
+const RECENT_CRISIS_TTL_MS = 60_000;
+const recentCrisis = new Map<string, { at: number; result: Promise<RecentCrisis> }>();
+
+/** Drop the kept crisis answers for a user. */
+export function forgetRecentCrisis(userId: string): void {
+  for (const key of recentCrisis.keys()) if (key.startsWith(`${userId}|`)) recentCrisis.delete(key);
+}
+
 /**
  * Check if user had recent crisis (for proactive check-in)
  * BETTER-THAN-HUMAN: Remember past crises and check in
  */
-export async function hadRecentCrisis(
-  userId: string,
-  withinDays: number = 7
-): Promise<{ hasCrisis: boolean; lastCrisis?: CrisisEventRecord }> {
-  const history = await getCrisisHistory(userId, withinDays);
-  if (history.length === 0) {
-    return { hasCrisis: false };
-  }
-  return {
-    hasCrisis: true,
-    lastCrisis: history[0],
-  };
+export function hadRecentCrisis(userId: string, withinDays = 7): Promise<RecentCrisis> {
+  const key = `${userId}|${withinDays}`;
+  const now = Date.now();
+  const kept = recentCrisis.get(key);
+  if (kept && now - kept.at < RECENT_CRISIS_TTL_MS) return kept.result;
+
+  for (const [k, v] of recentCrisis) if (now - v.at >= RECENT_CRISIS_TTL_MS) recentCrisis.delete(k);
+  const result = queryCrisisHistory(userId, withinDays).then(
+    (history): RecentCrisis =>
+      history.length === 0 ? { hasCrisis: false } : { hasCrisis: true, lastCrisis: history[0] },
+    (error: unknown): RecentCrisis => {
+      log.error({ error: String(error), userId }, 'Failed to get crisis history');
+      if (recentCrisis.get(key)?.result === result) recentCrisis.delete(key);
+      return { hasCrisis: false };
+    }
+  );
+  recentCrisis.set(key, { at: now, result });
+  return result;
 }
 
 export default humanTransfer;

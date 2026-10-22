@@ -14,8 +14,8 @@ import {
 import { getPersonaPronouns } from '../../../personas/persona-pronouns.js';
 
 type Phrases = {
-  getGoodbyePhrase(from: string, to: string): string | null;
-  getGreetingPhrase(to: string, from: string, request: object): string | null;
+  getGoodbyePhrase(agent: object, request: object): string | null;
+  getGreetingPhrase(to: string, from: string, firstLine?: string): string | null;
 };
 
 const newOrchestrator = (): Phrases =>
@@ -35,10 +35,11 @@ describe('handoff banter in a multi-agent call', () => {
     expect(goodbye, 'there is banter for this pair').toBeTruthy();
     expect(greeting, 'there is banter for this pair').toBeTruthy();
 
-    expect(orchestrator.getGoodbyePhrase('ferni', 'maya-santos')).not.toMatch(
+    const ferni = { personaId: 'ferni', session: {} };
+    expect(orchestrator.getGoodbyePhrase(ferni, { targetPersonaId: 'maya-santos' })).not.toMatch(
       /^Let me hand you off to/
     );
-    expect(orchestrator.getGreetingPhrase('maya-santos', 'ferni', {})).not.toBe("Hey! What's up?");
+    expect(orchestrator.getGreetingPhrase('maya-santos', 'ferni')).not.toBe("Hey! What's up?");
   });
 });
 

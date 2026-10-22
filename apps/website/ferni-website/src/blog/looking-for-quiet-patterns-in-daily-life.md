@@ -6,6 +6,8 @@ authorInitials: "PJ"
 authorColor: "#3a6b73"
 date: 2026-10-19
 category: "Letters from the Team"
+image: "looking-for-quiet-patterns-in-daily-life.png"
+imageAlt: "Abstract swirling lines in pastel green, peach, and orange create a flowing pattern on a cream background"
 readTime: 4
 series: "letters-from-the-team"
 seriesPart: 1
@@ -30,7 +32,7 @@ Now I am in my late seventies. Even though I left the quantitative shop years ag
 
 When I joined Maya, Alex, Jordan, and Nayan to work on research for Ferni, my focus moved from financial markets to daily life. Markets are loud, but daily life has its own quiet rhythm. Most of us live with a lot of noise around us. Days pass quickly, and it is easy to miss the underlying connections in how we feel or how we spend our hours.
 
-We want to help people step back and spot those quiet connections. Ferni is still very new. Today, a reply takes around two seconds, which is slower than we want it to be. When we work on improvements, changes run on a development agent first and reach production later. Because Ferni is so new, we do not have long personal histories from conversations. When we think about how someone might reflect on their day, we write composite examples to test our ideas.
+I want to help people step back and spot those quiet connections.
 
 For example, consider a person named Morgan, a composite we wrote, not a real person. Morgan might notice that on days when she talks through her thoughts out loud in the morning, her evening feels less stressful. That link between morning reflection and evening calm is a simple pattern. Seeing that connection gives Morgan a chance to make simple choices about her day.
 

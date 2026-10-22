@@ -341,7 +341,7 @@ export async function buildContextInjections(
         behavioralFallback,
         'buildIntegratedContext'
       ),
-      buildHumanTransferInjections(userText, services.userId),
+      buildHumanTransferInjections(userText, services.userId, services.sessionId),
       buildCrisisHistoryInjection(services.userId || 'unknown'),
       buildToolHistoryInjection(builderInput),
     ]);

@@ -18,14 +18,27 @@ import {
   FLAG_KINDS,
   FLAG_OWNERS,
   FLAGS_ACTION_TO_BYPASS,
+  FLAGS_HONEST_TO_IDENTITY,
   FLAGS_MOVE_TO_PHONE_AUDIO,
+  FLAGS_SHORT_GOODBYE_TO_SMS,
   type FlagSpec,
 } from './flag-manifest-entries.js';
 
+import {
+  FLAGS_DISABLE_TO_EOT,
+  FLAGS_PUBSUB_TO_REQUIRE,
+  FLAGS_STYLE_TO_TOOL,
+  FLAGS_USE_TO_VOICE,
+} from './flag-manifest-blocks.js';
+import { assembleManifest } from './flag-assembly.js';
+import * as FLAG_FILES from './flags/index.generated.js';
 export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
-export const FLAG_MANIFEST = {
+
+const LEGACY_FLAG_MANIFEST = {
   ...FLAGS_ACTION_TO_BYPASS,
-  // on: a teammate's first line restates only the caller's words, else a plain hello; kept out of memory (arrival-grounding.ts)
+  // on: an emotional-arc proactive insight reaches the prompt once, not every third turn (commitment-follow-up-gate.ts)
+  ARC_INSIGHT_ONCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // on: a teammate's first line names why the caller came in their words (never re-asks, never repeats an earlier arrival), else a plain hello; kept out of memory (arrival-grounding.ts, arrival-reason.ts)
   ARRIVAL_LINE_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_ASSERTED_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -37,6 +50,8 @@ export const FLAG_MANIFEST = {
   // on: a caller's voice create, update and delete go to their connected calendar, not only Ferni's list (#1749)
   CALENDAR_WRITE_TO_PROVIDER: { default: 'off', owner: 'tools', kind: 'experiment' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
+  // on: the per-turn crisis check waits at most 150 ms, then the turn goes on without it (better-than-human-builders.ts)
+  CALL_START_TRIM: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -65,7 +80,6 @@ export const FLAG_MANIFEST = {
   COMMITMENT_INVITE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // adds what Ferni and the caller both know to the first recall note
   COMMON_GROUND: { default: 'off', owner: 'memory', kind: 'experiment' },
-  CONDITIONAL_BUILDERS: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // The user's own "in memory" mark on a contact (services/contacts/in-memory.ts)
   CONTACT_IN_MEMORY: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CONTEXT_PACKET: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -75,6 +89,8 @@ export const FLAG_MANIFEST = {
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // a classifier-only imminent read the call plainly explains (two reads + a shared word) gets the soft check
+  CRISIS_GROUNDED_RELEASE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // a classifier-only crisis read of a bare "pass me to Nayan", with no risk on the call, gets the soft check-in
   CRISIS_TRANSFER_EVERYDAY: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -107,34 +123,13 @@ export const FLAG_MANIFEST = {
   // director + deliberator framed for the persona speaking, with a SCENE block (director-scene.ts)
   DIRECTOR_SEES_SCENE: { default: 'off', owner: 'voice', kind: 'experiment' },
   DIRECTOR_TOOL_STATE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  DISABLE_BATCHED_SUMMARIZATION: { default: 'off', owner: 'platform', kind: 'config' },
   DISABLE_BUILDER_PRIORITIZATION: { default: 'off', owner: 'intelligence', kind: 'config' },
-  DISABLE_DYNAMIC_STRATEGY: { default: 'off', owner: 'tools', kind: 'config' },
-  DISABLE_INTERRUPT_TRANSFORM: { default: 'off', owner: 'voice', kind: 'config' },
-  DISABLE_LINGUISTIC_MIRRORING: { default: 'off', owner: 'voice', kind: 'config' },
-  DISABLE_NOISE_FILTER: { default: 'off', owner: 'voice', kind: 'config' },
-  DISABLE_ONNX_CLASSIFIER: { default: 'off', owner: 'tools', kind: 'config' },
-  DISABLE_PROSODY_ROUTING: { default: 'off', owner: 'tools', kind: 'config' },
-  DISABLE_RUST_ACCELERATOR: { default: 'off', owner: 'memory', kind: 'config' },
-  DISABLE_USER_SEGMENTATION: { default: 'off', owner: 'tools', kind: 'config' },
-  DISABLE_VAD: { default: 'off', owner: 'voice', kind: 'config' },
-  DISPUTE_DENIED_FACTS: { default: 'off', owner: 'memory', kind: 'experiment' },
-  // Ferni rests calm and lifts on bright words (director/emotion-lift.ts)
-  EMAIL_PROVIDER: { default: 'sendgrid', owner: 'platform', kind: 'config' },
-  EMOTION_LIFT: { default: 'off', owner: 'voice', kind: 'experiment' },
-  ENABLE_EMBEDDING_WORKER: { default: 'off', owner: 'platform', kind: 'experiment' },
-  ENABLE_INTELLIGENT_ROUTING: { default: 'on', owner: 'tools', kind: 'kill-switch' },
-  ENABLE_PROFILING: { default: 'off', owner: 'voice', kind: 'config' },
-  ENDPOINT_FAST_FINISHED: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on: extracted entities that are numbers, placeholders, the team or requests to Ferni are not stored (memory/entity-hygiene.ts)
-  ENTITY_HYGIENE: { default: 'off', owner: 'memory', kind: 'experiment' },
-  // with ENTITY_HYGIENE: role labels for Ferni ("Assistant", "user's interlocutor") are not stored (entity-hygiene.ts)
-  ENTITY_ROLE_LABELS: { default: 'off', owner: 'memory', kind: 'experiment' },
-  // late turn-1 words join that turn instead of opening a new one
-  EOT_CONTINUED_MERGE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ...FLAGS_DISABLE_TO_EOT,
   // errands as durable workflows: owner-confirmed calls, verified bookings (services/errands, errands-flag.ts)
   ERRANDS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // set only by vitest.config.external.ts: lets ALLOW_PRODUCTION_DATA unguard that suite
+  EXTERNAL_TEST_SUITE: { default: 'off', owner: 'platform', kind: 'config' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -142,6 +137,8 @@ export const FLAG_MANIFEST = {
   FAMILY_CHECKIN_CALLS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // agent: a family member's "stop calling" withdraws their consent; server: refuses do-not-call numbers
   FAMILY_CHECKIN_STOP: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // a handoff says one fond, canon line about the teammate (multi-agent/family-table.ts)
+  FAMILY_TABLE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on (with FERNI_THREADS): now and then he asks the caller a small hand with his thread (ferni-asks-help.ts)
   FERNI_ASKS_HELP: { default: 'off', owner: 'voice', kind: 'experiment' },
   // never on when NODE_ENV=production
@@ -164,6 +161,10 @@ export const FLAG_MANIFEST = {
   FERNI_VOICE_EMOTION: { default: 'off', owner: 'voice', kind: 'config' },
   // unset: resting pace 1. A number, clamped to 0.85-1.2: Ferni's resting pace (same module)
   FERNI_VOICE_SPEED: { default: 'off', owner: 'voice', kind: 'config' },
+  // report | refuse | off: a client bound to another database than FIRESTORE_DATABASE (utils/firestore-db-pin.ts)
+  FIRESTORE_DB_PIN: { default: 'report', owner: 'platform', kind: 'kill-switch' },
+  // on: a first call's hello says who is calling, and "who are you?" gets a plain answer (greeting-direction.ts, first-call-rapport.ts)
+  FIRST_CALL_INTRO: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a reply's first clause goes to tts at a comma, not its sentence's end (agents/personas/first-clause-flush.ts)
   FIRST_CLAUSE_FLUSH: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -176,21 +177,24 @@ export const FLAG_MANIFEST = {
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
   // on: the opener asks about one follow_through row and the caller's answer closes it (follow-through-opener.ts)
   FOLLOW_THROUGH_OPENER: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: GET /api/follow-through/upcoming lists what Ferni's holding for the signed-in person (follow-through-upcoming-route.ts)
+  FOLLOW_THROUGH_UPCOMING: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
   FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: at call start, ask once about a date the caller told us (dates/recall.ts; needs DATES_THAT_MATTER)
   FRIEND_FOLLOWUPS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: a fact the caller corrects is kept with its words and the old fact retired; next call recalls it (friend-repair.ts)
   FRIEND_REPAIR: { default: 'off', owner: 'memory', kind: 'experiment' },
-  FTIS_COLLECT_TRAINING_DATA: { default: 'off', owner: 'tools', kind: 'experiment' },
   FTIS_ENABLED: { default: 'off', owner: 'platform', kind: 'config' },
-  FTIS_ONLY_MODE: { default: 'off', owner: 'tools', kind: 'experiment' },
-  FTIS_PRIMARY: { default: 'off', owner: 'tools', kind: 'experiment' },
   GAME_STATE: { default: 'off', owner: 'platform', kind: 'experiment' },
   // read by the @google/genai SDK itself (getEnv), not by src/
   GOOGLE_GENAI_USE_VERTEXAI: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a goodbye (or "hang up") ends the call after Ferni's goodbye plays, app and phone; never on crisis risk (call-farewell.ts)
+  GOODBYE_ENDS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
   GOOD_NEWS_BIGGER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // off: a process on a non-prod Firestore database (dev) skips Spanner graph writes; the graph is prod's (spanner-graph/client.ts)
+  GRAPH_WRITES_ON_DEV_DB: { default: 'off', owner: 'memory', kind: 'config' },
   GREETING_WIRE_AFTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GTM_AUTO_PUBLISH: { default: 'off', owner: 'platform', kind: 'experiment' },
   GTM_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
@@ -209,14 +213,16 @@ export const FLAG_MANIFEST = {
   HANDOFF_TALK_THROUGH: { default: 'off', owner: 'voice', kind: 'experiment' },
   HAPPY_EXITS: { default: 'off', owner: 'voice', kind: 'experiment' },
   HEADS_UP_TEXT: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
-  HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ...FLAGS_HONEST_TO_IDENTITY,
   INSIDE_JOKES: { default: 'off', owner: 'memory', kind: 'experiment' },
   INTELLIGENCE_PUBSUB_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on: the voice agent publishes intelligence events; nothing consumes intelligence_queue (intelligence-publisher.ts)
   INTELLIGENCE_QUEUE: { default: 'off', owner: 'platform', kind: 'experiment' },
   INTERRUPT_TRACE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   IN_PROCESS_SCHEDULERS: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  // on for a person (cohort flag, read per person): pushes that reach their browser also reach
+  // their iPhone over APNs (services/ios-push.ts); needs the APNS_* secrets
+  IOS_PUSH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // every journal surface reads and writes bogle_users/{uid}/journal (old twin arrays merged in)
   JOURNAL_ONE_STORE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // voice journal speech-to-text through Gemini on Vertex when Deepgram and Whisper have no key
@@ -233,6 +239,8 @@ export const FLAG_MANIFEST = {
   // the look-up rule rides the two replies after a live-data question (turn-shape.ts)
   LIVE_DATA_CARRYOVER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   LIVE_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: calls record audio and transcript to LiveKit Cloud, for debugging; never on when NODE_ENV=production (session-recording.ts)
+  LK_SESSION_RECORDING: { default: 'off', owner: 'voice', kind: 'config' },
   // the cascade's prompt-cache settings in one switch (llm-context-cache-flag.ts)
   LLM_CONTEXT_CACHE: { default: 'off', owner: 'voice', kind: 'experiment' },
   LLM_DYNAMIC_CONTENT_ENABLED: { default: 'on', owner: 'platform', kind: 'config' },
@@ -242,6 +250,8 @@ export const FLAG_MANIFEST = {
   LOG_CONTEXT_BUILDS: { default: 'off', owner: 'voice', kind: 'config' },
   LOG_FULL_RESPONSES: { default: 'off', owner: 'platform', kind: 'config' },
   LOG_PHONE_REDACTION: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  // the answer after a look-up hedges sooner and gets a short bridge line instead of dead air (lookup-bridge.ts)
+  LOOKUP_BRIDGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   MAYA_PROACTIVE_CHECKS: { default: 'off', owner: 'platform', kind: 'experiment' },
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -260,22 +270,28 @@ export const FLAG_MANIFEST = {
   // (patches/@livekit__agents@1.9.3.patch), and save tools refuse them (tools/utils/own-note.ts)
   MID_CALL_NOTE_FRAME: { default: 'off', owner: 'voice', kind: 'experiment' },
   // Alex's 8am text brief, with MORNING_BRIEF_USERS (services/outreach/morning-brief/brief-job.ts)
+  // on: mirroring keeps English: "nah" only for a standalone no, no clause-final contractions (conversation/superhuman/mirroring-grammar.ts)
+  MIRROR_GRAMMAR_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   MORNING_BRIEF: { default: 'off', owner: 'outreach', kind: 'experiment' },
   MORNING_BRIEF_COMMITMENTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the caller can name the tune Ferni whistles, or ask him to stop (personas/named-tune-note.ts)
   NAMED_TUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
+  // on: a caller who says they're under 18 (and isn't a verified owner): nothing personal stored, a care note (minor-care.ts)
+  MINOR_CARE: { default: 'off', owner: 'memory', kind: 'experiment' },
   PHONE_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_PARITY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VERIFY: { default: 'off', owner: 'voice', kind: 'experiment' },
   PHONE_VOICE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  PIPELINE_SWITCHING: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a placeholder last summary is told as unknown, not as a topic (services/session/placeholder-summary.ts)
   PLACEHOLDER_SUMMARY_UNKNOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   // Keep off: needs #1855, the privacy-page wording, and a legal read of the Maps terms for storing the place ID. #1760 merged with an unverified head.
   PLACES_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // findBusiness with no known caller location asks where they are instead of searching (local-search/caller-city.ts)
+  PLACES_NEEDS_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // read in patches/@livekit__agents@1.9.3.patch
+  // read in patches/@livekit__agents@1.9.3.patch: resumes a reply paused at playout launch or by
+  // leftover caller audio when nothing else will (PAUSE_RESUME_WATCHDOG, paused-lead-in.sdk.test.ts)
   PLAYOUT_LAUNCH_RESUME: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PONDERING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // late-night calls: a softer reply line and the LATE_NIGHT layer in attune.ts (porch-light.ts)
@@ -293,35 +309,12 @@ export const FLAG_MANIFEST = {
   // at most one check-in per commitment every 3 days, kept across calls (superhuman/commitment-checkin-cooldown.ts)
   PROACTIVE_COOLDOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: GET /api/promises, the Today panel's follow-through list (api/routes/promises.ts)
+  PROMISES_PANEL: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // character loads a short character sheet instead of the full prompt (prompt-loader.ts)
   PROMPT_MODE: { default: 'full', owner: 'voice', kind: 'config' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
-  PUBSUB_ENABLED: { default: 'off', owner: 'voice', kind: 'config' },
-  // no question right after a reply that ended on one (question-pace.ts)
-  QUESTION_PACE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  QUIET_CALLER: { default: 'off', owner: 'voice', kind: 'experiment' },
-  QUIET_HOURS_UNIFIED: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  QUIRK_AWARENESS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // direct: reaction clips play on this track, as VOICED_PRESENCE requires (direct-clip-track.ts)
-  REACTION_SIDETRACK: { default: 'off', owner: 'voice', kind: 'experiment' },
-  RECALL_BRIDGE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  RECALL_EPISODES: { default: 'off', owner: 'memory', kind: 'experiment' },
-  RECALL_PEOPLE: { default: 'off', owner: 'memory', kind: 'experiment' },
-  RECALL_RARE_WORDS: { default: 'off', owner: 'memory', kind: 'experiment' },
-  RECALL_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
-  RECENT_CALL_RESTRAINT: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // shows "I'll remember" in the app after a fact is stored
-  REMEMBER_MOMENT: { default: 'off', owner: 'memory', kind: 'experiment' },
-  // on: a reminder saved to the app's inbox also gets a push (reminder-reach.ts)
-  REMINDER_IN_APP_PUSH: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  REMINDER_SCHEDULER_IN_PROCESS: { default: 'off', owner: 'platform', kind: 'experiment' },
-  // on: reminders go by text to the verified phone, via guarded-text (reminder-sms-flag.ts, reminder-reach.ts)
-  REMINDER_SMS_DEFAULT: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  REPAIR_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  REQUIRE_FIX_OUTREACH: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  REQUIRE_FIX_OUTREACH_NAME: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  // read as 'true', not 'on' (adaptive echo window)
-  REQUIRE_FIX_VOICE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ...FLAGS_PUBSUB_TO_REQUIRE,
   RESUME_AFTER_DROP: { default: 'off', owner: 'voice', kind: 'experiment' },
   // unverified phone callers: hashed number → first name + one-line summary, 30 days (returning-caller.ts)
   RETURNING_CALLER: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -330,9 +323,13 @@ export const FLAG_MANIFEST = {
   ROTATED_SEGMENT_FIX: { default: 'off', owner: 'voice', kind: 'experiment' }, // 1.9.3 patch, #2566
   ROUNDTABLE_VOICE: { default: 'off', owner: 'voice', kind: 'config' },
   SAVED_INTERESTS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // off: scheduled jobs skip the run-once Firestore lock (job-run-guard.ts)
+  SCHEDULED_JOB_LOCK: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   SCHEDULED_JOBS_AUTH: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // on: the scheduled-outreach job may text, call or email a member's contacts (founder opt-in); off holds them
   SCHEDULED_OUTREACH_THIRD_PARTY: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: the per-turn reminder drops the shared style lines and quoted examples (agents/personas/script-free.ts)
+  SCRIPT_FREE_REMINDER: { default: 'off', owner: 'voice', kind: 'experiment' },
   SEEDS_SERVER_LEDGER: { default: 'off', owner: 'platform', kind: 'experiment' },
   // on (with FERNI_STATE): his own day only when asked, never on his first reply (self-share-asked.ts)
   SELF_SHARE_WHEN_ASKED: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -352,19 +349,10 @@ export const FLAG_MANIFEST = {
   SESSION_CONTINUITY_WRITE: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: tell the caller's app when the agent session ends without them (session-ended-signal.ts)
   SESSION_ENDED_SIGNAL: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // once the caller said bye, Ferni's goodbye is one or two short sentences (short-goodbye.ts)
-  SHORT_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // a call with no caller turn is not counted in the profile (services/session/silent-call.ts)
-  SILENT_CALL_SKIP_PROFILE: { default: 'off', owner: 'memory', kind: 'experiment' },
-  SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
-  SKIP_GEMINI_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
-  SKIP_PERSONA_INDEXING: { default: 'off', owner: 'platform', kind: 'config' },
-  // anything but 'false' skips the full generateReply prewarm, the quick path (generate-reply-gateway.ts)
-  SKIP_PREWARM_GENERATEREPLY: { default: 'true', owner: 'platform', kind: 'config' },
-  SKIP_TWILIO_VALIDATION: { default: 'off', owner: 'platform', kind: 'config' },
+  ...FLAGS_SHORT_GOODBYE_TO_SMS,
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // on: every reply says the 988 crisis line as "nine eight eight" (safety/crisis-line-speech.ts)
+  SPEAK_988_DIGITS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
   SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
   // off, shadow or live; the default is off under tests (speech/tts-gateway/director/gate.ts)
@@ -379,34 +367,7 @@ export const FLAG_MANIFEST = {
   // read in patches/@livekit__agents@1.9.3.patch: an STT attempt resets the retry count
   // only after 60 s up (1.9.x resets after timeoutMs, 10 s)
   STT_RETRY_MIN_UPTIME: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  STYLE_PROFILE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  TAP_INTERRUPT: { default: 'off', owner: 'voice', kind: 'experiment' },
-  TEAMMATE_IDENTITY_NOTE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // on: talk to a teammate is not stored as the caller's life (utils/teammate-talk.ts, #1507)
-  TEAMMATE_TALK_FILTER: { default: 'off', owner: 'memory', kind: 'experiment' },
-  // off: teammates unlock with conversations and streaks; on: every teammate is on every team (team-by-need-flag.ts)
-  TEAM_BY_NEED: { default: 'off', owner: 'tools', kind: 'experiment' },
-  TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
-  THEORY_OF_MIND: { default: 'off', owner: 'memory', kind: 'experiment' },
-  THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // a call or text read back and waiting for the owner's yes is kept as a follow-up (outreach/confirm-thread.ts)
-  THREADS_PENDING_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
-  TOLD_THIS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // topic tools go to the agent on the call now, and a handed-to agent gets the call's
-  // loaded domains (voice-agent/deferred-tool-update.ts)
-  TOOLS_FOLLOW_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
-  // a turn's topic tools go into that turn's own request, and a call starts from a
-  // lean always-on set and stays within 64 + 24 tools (config/same-turn-tools-config.ts)
-  TOOLS_SAME_TURN: { default: 'off', owner: 'tools', kind: 'experiment' },
-  // callUser places a real call to the verified phone; off keeps the honest stub
-  TOOLS_REAL_CALL_USER: { default: 'off', owner: 'tools', kind: 'experiment' },
-  TOOL_ACK: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  TOOL_CORE_STATIC: { default: 'off', owner: 'tools', kind: 'experiment' },
-  TOOL_EMPTY_RESULT_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
-  TOOL_HUM: { default: 'off', owner: 'voice', kind: 'experiment' },
-  TOOL_LEAD_IN: { default: 'on', owner: 'voice', kind: 'config' },
-  // a tool whose requiresEnv keys are unset is not registered (tools/registry/tool-availability.ts)
-  TOOL_REQUIRES_ENV: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  ...FLAGS_STYLE_TO_TOOL,
   // hourly pool shared by anonymous journal transcriptions (api/journal-transcribe-limits.ts)
   TRANSCRIBE_ANON_MAX_PER_HOUR: { default: '200', owner: 'memory', kind: 'config' },
   // on: the nightly job deletes transcripts past TRANSCRIPT_RETENTION_DAYS. Off: kept for the
@@ -432,40 +393,17 @@ export const FLAG_MANIFEST = {
   TURN_KEEPER_SPOKE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_OPENING_SOUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_LENGTH: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: per-turn memory search gates on the vector leg's cosine (0.55), not the RRF score no memory reaches (turn-memory-scale.ts)
+  TURN_MEMORY_RRF_SCALE: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_STYLE_REMINDER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a turn_input_tokens line per turn, the model's input in four parts (turn-input-tokens.ts)
+  TURN_TOKEN_RECEIPT: { default: 'off', owner: 'voice', kind: 'config' },
   UI_EVENTS_OVER_CALL: { default: 'off', owner: 'platform', kind: 'experiment' },
   UNFINISHED_TURN_HOLD: { default: 'on', owner: 'voice', kind: 'config' },
-  USE_FIRESTORE_BILLING: { default: 'off', owner: 'billing', kind: 'experiment' },
-  USE_FIRESTORE_MARKETPLACE: { default: 'off', owner: 'billing', kind: 'experiment' },
-  USE_FIRESTORE_REVIEWS: { default: 'off', owner: 'billing', kind: 'experiment' },
   USE_GENERATED_TOOL_DOCS: { default: 'off', owner: 'voice', kind: 'config' },
-  USE_NATIVE_AUDIO: { default: 'on', owner: 'platform', kind: 'kill-switch' },
-  USE_PRE_STT_PROCESSING: { default: 'on', owner: 'platform', kind: 'kill-switch' },
-  // SERVICE_MODE=remote also turns it on
-  USE_RUNTIME: { default: 'off', owner: 'platform', kind: 'experiment' },
-  USE_SMART_CONTEXT_ROUTING: { default: 'off', owner: 'voice', kind: 'experiment' },
-  USE_SONATA_STT: { default: 'off', owner: 'voice', kind: 'experiment' },
-  USE_TOOL_GATEWAY: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  USE_TTS_GATEWAY: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // readers disagree: on in memory and Gemini config, off in Gemini Live and Gemma
-  USE_VERTEX_AI: { default: 'on', owner: 'platform', kind: 'kill-switch' },
-  // on: per-person allowances (web search's hour) follow the verified-caller signal, an allowlist,
-  // not the user id's shape (identity/verified-caller.ts)
-  VERIFIED_CALLER_ALLOWANCE: { default: 'off', owner: 'platform', kind: 'experiment' },
-  VERTEX_KEEPALIVE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  VITEST: { default: 'off', owner: 'tools', kind: 'experiment' },
-  VOCAL_BURSTS: { default: 'off', owner: 'voice', kind: 'experiment' },
-  VOICED_PRESENCE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  VOICEMAIL_DETECT: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // the reply's pace, loudness and tone answer the caller's mood (director/attune.ts)
-  VOICE_ATTUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // clone and voice-upload routes answer 403 until a consent design exists (api/custom-agent/voice-routes.ts)
-  VOICE_CLONE_CREATION: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // local voice-eval workers only: lets an eval set Ferni's state clock
-  VOICE_EVAL_CLOCK: { default: 'off', owner: 'voice', kind: 'config' },
-  VOICE_HUMANIZATION_DISABLED: { default: 'off', owner: 'platform', kind: 'kill-switch' },
+  ...FLAGS_USE_TO_VOICE,
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // which voice pipeline runs; anything unrecognised is the Cartesia cascade (model-provider-config.ts)
   VOICE_PIPELINE: { default: 'cartesia-cascade', owner: 'voice', kind: 'config' },
@@ -497,4 +435,6 @@ export const FLAG_MANIFEST = {
   // the goodbye closes the loop on what the call decided
   WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
+// New flags go in src/config/flags/<NAME>.ts: pnpm flags:new (flag-assembly.ts sorts the keys).
+export const FLAG_MANIFEST = assembleManifest(LEGACY_FLAG_MANIFEST, FLAG_FILES);
 export type FlagName = keyof typeof FLAG_MANIFEST;

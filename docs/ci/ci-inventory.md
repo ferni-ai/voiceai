@@ -53,8 +53,8 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 | Property | Value |
 |----------|-------|
-| Trigger | Push to main, manual |
-| Runner | ubuntu-latest |
+| Trigger | push to main whose tree the merge queue tested; CI success on a push to main (workflow_run); manual |
+| Runner | ubuntu-24.04, one job |
 | Duration | ~15 min |
 
 ### deploy-firebase.yml

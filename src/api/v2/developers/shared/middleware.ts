@@ -10,10 +10,11 @@
 import type { IncomingMessage, ServerResponse } from 'http';
 import { sendError, sendJSON, getCorsHeaders } from '../../../helpers.js';
 import {
-  getPublisherFromToken,
+  resolvePublisherForToken,
   verifyFirebaseToken,
   getFirestore,
 } from '../../../v1/developers/shared/developer-auth.js';
+import { apiKeyLinkHolds, KEY_REVOKED_MESSAGE } from './api-key-link.js';
 import { rateLimiter } from '../../../../services/rate-limiter.js';
 import { getLogger } from '../../../../utils/safe-logger.js';
 
@@ -117,15 +118,15 @@ export async function requirePublisherAuth(
       return null;
     }
 
-    // Get publisher ID from Firebase UID
-    const publisherId = await getPublisherFromToken(req);
-    if (!publisherId) {
-      sendError(res, 'Publisher account not found', 403);
+    // The publisher linked to this uid, re-checked against the verified email
+    const resolved = await resolvePublisherForToken(decodedToken);
+    if (!resolved.ok) {
+      sendError(res, resolved.error, resolved.status);
       return null;
     }
 
     const authContext: AuthContext = {
-      publisherId,
+      publisherId: resolved.publisher.id,
       firebaseUid: decodedToken.uid,
       email: decodedToken.email,
     };
@@ -168,8 +169,8 @@ export async function optionalPublisherAuth(
 /**
  * Authenticate via API key instead of Firebase token
  *
- * For server-to-server calls where Firebase isn't practical.
- * API keys are stored in the publishers collection.
+ * For server-to-server calls where Firebase isn't practical. Keys live in
+ * developer_api_keys and stop working once the publisher link is gone.
  */
 export async function requireApiKeyAuth(
   req: AuthenticatedRequest,
@@ -209,8 +210,9 @@ export async function requireApiKeyAuth(
     const keyDoc = keysSnapshot.docs[0];
     const keyData = keyDoc.data();
 
-    if (!keyData) {
-      sendError(res, 'Invalid API key data', 401);
+    if (!keyData || !(await apiKeyLinkHolds(db, keyData))) {
+      log.warn({ keyId: keyDoc.id }, 'API key refused: bad data or publisher link gone');
+      sendError(res, keyData ? KEY_REVOKED_MESSAGE : 'Invalid API key data', 401);
       return null;
     }
 
@@ -226,9 +228,7 @@ export async function requireApiKeyAuth(
     db.collection('developer_api_keys')
       .doc(keyDoc.id)
       .update({ lastUsedAt: new Date() })
-      .catch(() => {
-        // Ignore update failures
-      });
+      .catch(() => undefined); // best effort
 
     return authContext;
   } catch (error) {

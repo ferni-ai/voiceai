@@ -10,15 +10,15 @@
  */
 
 // --- ORCHESTRATION (context builder + formatter) ---
-
 export * from './superhuman-service.js';
 
 // --- VALIDATION (benchmark tests + runner) ---
-
 export * from './validation/index.js';
 
-// --- RE-EXPORTS ---
+// --- FORGET REQUESTS over stored commitments (every reader applies them) ---
+export * from './commitment-forget.js';
 
+// --- RE-EXPORTS ---
 // Commitment Keeper
 export {
   buildCommitmentContext,

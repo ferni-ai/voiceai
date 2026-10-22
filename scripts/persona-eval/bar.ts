@@ -40,11 +40,12 @@
  * the background notes. So this measures WORDS, one turn deep; compare arms,
  * don't read the absolute numbers as live.
  *
+ * --bq writes each run's rates to ferni_events.eval_results (env dev); a failed insert exits 1.
  * Safety: FIRESTORE_EMULATOR_HOST points at a dead port, so a repo module that
  * opens Firestore fails instead of reaching GOOGLE_CLOUD_PROJECT's data. One
  * arm per process: repo modules can read flags at import time.
  */
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
@@ -53,11 +54,16 @@ import { EventEmitter } from 'node:events';
 
 import {
   armEnv,
+  barVerdict,
+  combineMetric,
   compareArms,
+  comparePersonaTells,
   compareTable,
   copiedNgrams,
   copyStats,
+  JUDGED_METRICS,
   maskNames,
+  maxFloor,
   median,
   metricsTable,
   ngramSet,
@@ -70,30 +76,38 @@ import {
   parsePick,
   parseSets,
   parseUse,
+  personaTellsCompareTable,
+  personaTellsTable,
   rate,
   scoredTurns,
   shuffled,
+  tellsOf,
+  TELL_KEYS,
   words,
   zoneAtLocalHour,
+  type Cell,
   type Conversation,
   type Floor,
   type Humanness,
   type Metrics,
   type Pair,
+  type PersonaTellRow,
   type Rate,
+  type Row,
+  type Tells,
 } from './bar-lib.js';
 import { bible } from './canon-judge.js';
+import { callsByModel } from '../first-call-eval/vertex.js';
+import { barReports, reportIfBq } from '../lib/eval-results-bq.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MODEL = process.env.CASCADE_LLM_MODEL ?? 'gemini-3.5-flash';
 const JUDGE_MODEL = process.env.JUDGE_MODEL ?? 'gemini-3.5-flash';
+// Another family than the generator's, so the bar can't rest on one model grading its own habits.
+const SECOND_JUDGE = process.env.SECOND_JUDGE_MODEL ?? 'openai/gpt-oss-120b-maas';
 const PERSONAS = [
-  'ferni',
-  'alex-chen',
-  'peter-john',
-  'maya-santos',
-  'jordan-taylor',
-  'nayan-patel',
+  ...['ferni', 'alex-chen', 'peter-john'],
+  ...['maya-santos', 'jordan-taylor', 'nayan-patel'],
 ];
 const NAMES = PERSONAS.map((p) => p.split('-')[0]);
 
@@ -176,10 +190,18 @@ interface Generated {
 interface Scored {
   metrics: Metrics;
   forced: Rate;
-  perPersona: Record<string, { distinctness: Rate; medianWords: number }>;
+  perPersona: Record<string, { distinctness: Rate; medianWords: number; tells?: Tells }>;
   confusion: Record<string, Record<string, number>>;
   judgeFailures: number;
   emptyReplies: number;
+}
+
+/** One judge's view of a run: its scores, its A/A twin's, and the run against the baseline. */
+interface Judged {
+  scored: Scored;
+  aa?: { scored: Scored; humanness: Humanness; pairs: Pair[] };
+  humanness?: Humanness & { vs: string; judgeFailures: number; pairs: Pair[] };
+  comparison?: Row[];
 }
 
 interface Result {
@@ -213,6 +235,12 @@ interface Result {
     observers?: Observers;
   };
   comparison?: ReturnType<typeof compareArms>;
+  /** Per persona, each tell vs the baseline (a direction, not a verdict). */
+  personaTells?: PersonaTellRow[];
+  /** Every judge's scores; `scored`, `aa`, `humanness` and `comparison` above are the first judge's. */
+  judges?: Record<string, Judged>;
+  /** Run 2 on: this run against run 1, per judge (the run-to-run spread of a baseline's floor). */
+  spread?: Record<string, Humanness>;
 }
 
 const POOL = 8;
@@ -239,6 +267,90 @@ const pctCi = (r: Rate): string =>
   `${r.k}/${r.n} = ${(100 * r.p).toFixed(1)}% [${(100 * r.lo).toFixed(1)}%, ${(100 * r.hi).toFixed(1)}%]`;
 const aaHumanRate = (h: Humanness | Rate): Rate => ('overall' in h ? humannessRate(h) : h);
 
+const load = (dir: string): Result =>
+  JSON.parse(readFileSync(join(dir, 'result.json'), 'utf8')) as Result;
+/** Run i's directory: <root>/run<i>, or <root> itself for a result saved before --runs. */
+const runDir = (root: string, i: number): string =>
+  i === 1 && !existsSync(join(root, 'run1')) && existsSync(join(root, 'result.json'))
+    ? root
+    : join(root, `run${i}`);
+/** A judge's saved scores of a run and its A/A twin; a result from before --judges holds its one judge's. */
+function savedScores(r: Result | null, j: string): { run?: Scored; aa?: Scored } {
+  if (r?.judges) return { run: r.judges[j]?.scored, aa: r.judges[j]?.aa?.scored };
+  return r?.judgeModel === j ? { run: r.scored, aa: r.aa?.scored } : {};
+}
+/** A run's (or its A/A twin's) metrics under judge j: distinctness and insight from j, copy and tells from the run. */
+function judgedMetrics(r: Result, j: string, twin = false): Metrics {
+  const own = twin ? r.aa?.scored : r.scored;
+  const by = twin ? savedScores(r, j).aa : savedScores(r, j).run;
+  if (!own || !by)
+    throw new Error(
+      `${r.arm}: no ${j} scores${twin ? ' for its A/A twin' : ''}: re-score it with --reuse`
+    );
+  return { ...own.metrics, distinctness: by.metrics.distinctness, insight: by.metrics.insight };
+}
+/** Baseline runs 1..n as saved, tells recomputed (older results lack them), every judge's scores present. */
+function baselineRuns(root: string, n: number, judges: readonly string[]): Result[] {
+  return Array.from({ length: n }, (_, k) => {
+    const dir = runDir(root, k + 1);
+    if (!existsSync(join(dir, 'result.json')))
+      throw new Error(`--baseline has no run ${k + 1} (${dir}): run it with --runs ${n}`);
+    const b = load(dir);
+    b.scored = withTells(b.replies, b.scored);
+    if (b.aa) b.aa.scored = withTells(b.aa.replies, b.aa.scored);
+    for (const j of judges) judgedMetrics(b, j);
+    return b;
+  });
+}
+/**
+ * The floor an arm must beat under judge j: the widest of every baseline run's
+ * A/A floor and the spread between baseline runs (run k against run 1, saved
+ * by the baseline's --runs). Null when a baseline run has no A/A.
+ */
+function replicatedFloor(bases: readonly Result[], j: string): Floor | null {
+  const twinRate = (b: Result): Rate | null => {
+    const t = b.judges?.[j]?.aa ?? (b.judgeModel === j ? b.aa : undefined);
+    return b.aa && t ? aaHumanRate(t.humanness) : null;
+  };
+  if (bases.some((b) => !twinRate(b))) return null;
+  const within = bases.map((b) =>
+    noiseFloor(judgedMetrics(b, j), judgedMetrics(b, j, true), twinRate(b)!)
+  );
+  const spread = bases.slice(1).map((b, k) => {
+    const h = b.spread?.[j];
+    if (!h)
+      throw new Error(
+        `baseline run ${k + 2} has no ${j} spread against run 1: re-score it with --reuse --aa --runs ${bases.length}`
+      );
+    return noiseFloor(judgedMetrics(bases[0], j), judgedMetrics(b, j), humannessRate(h));
+  });
+  return maxFloor([...within, ...spread]);
+}
+
+/**
+ * The tells, overall and per persona, recomputed from the replies. They are
+ * deterministic, so a result saved before the metric existed gets them too.
+ */
+function withTells(rs: Replies, scored: Scored): Scored {
+  const of = (ps: string[]): Tells =>
+    tellsOf(
+      Object.values(rs).flatMap((byPersona) =>
+        ps.map((p) => byPersona[p]?.reply ?? '').filter(Boolean)
+      )
+    );
+  return {
+    ...scored,
+    metrics: { ...scored.metrics, tells: of(PERSONAS) },
+    perPersona: Object.fromEntries(
+      PERSONAS.map((p) => [p, { ...scored.perPersona[p], tells: of([p]) }])
+    ),
+  };
+}
+const personaTellsOf = (s: Scored): Record<string, Tells> =>
+  Object.fromEntries(
+    Object.entries(s.perPersona).flatMap(([p, v]) => (v.tells ? [[p, v.tells]] : []))
+  );
+
 /** SSML a listener never sees as text; [laughter]-style sounds stay. */
 const untagged = (t: string): string =>
   t
@@ -246,7 +358,10 @@ const untagged = (t: string): string =>
     .replace(/\s+/g, ' ')
     .trim();
 
-async function main(): Promise<void> {
+/** Run `i` of an arm; what the verdict over all runs needs. */
+async function main(
+  i: number
+): Promise<{ root: string; runs: number; judges: string[]; baseline?: string }> {
   const { values } = parseArgs({
     options: {
       arm: { type: 'string' },
@@ -257,10 +372,16 @@ async function main(): Promise<void> {
       out: { type: 'string' },
       baseline: { type: 'string' },
       aa: { type: 'boolean', default: false },
+      bq: { type: 'boolean', default: false },
       rounds: { type: 'string', default: '1' },
       // Re-score <out>/<arm>/result.json: same replies, judged again (humanness) and the copy
       // check redone. Nothing is regenerated, and distinctness and insight are kept as saved.
       reuse: { type: 'boolean', default: false },
+      // Independent replicates (with --aa, each with its own A/A twin); arm run i is judged
+      // against baseline run i, and a pass needs every run, so at least 2.
+      runs: { type: 'string', default: '2' },
+      // Each judge scores every judged metric; a verdict needs them all to agree.
+      judges: { type: 'string', default: `${JUDGE_MODEL},${SECOND_JUDGE}` },
       // Leave the speaking persona's own canon (its bible, as canon-judge reads it) out of the
       // copy check, so naming its own cats is not "reading the script".
       'exclude-canon': { type: 'boolean', default: false },
@@ -273,6 +394,10 @@ async function main(): Promise<void> {
     throw new Error('--arm, --flags and --out are required');
   const arm = values.arm;
   const rounds = Number(values.rounds);
+  const nRuns = Number(values.runs);
+  if (!Number.isInteger(nRuns) || nRuns < 1) throw new Error('--runs must be a whole number >= 1');
+  const JUDGES = [...new Set(values.judges.split(',').map((j) => j.trim()))].filter(Boolean);
+  const PRIMARY = JUDGES[0];
   const sets = parseSets(values.set ?? []);
   const flagsFile = resolve(values.flags);
   const multi = values['multi-turn'];
@@ -538,7 +663,7 @@ async function main(): Promise<void> {
       ? `Earlier on this call the caller said:\n${line.earlier.map((t) => `- "${t}"`).join('\n')}\n\n`
       : '';
 
-  async function score(label: string, rs: Replies): Promise<Scored> {
+  async function score(label: string, rs: Replies, judgeModel: string): Promise<Scored> {
     let judgeFailures = 0;
     const confusion: Record<string, Record<string, number>> = {};
     const hits: Record<string, number> = {};
@@ -557,7 +682,7 @@ async function main(): Promise<void> {
             .map((q, i) => `${String.fromCharCode(65 + i)}: ${DESCRIPTIONS[q]}`)
             .join('\n');
           const raw = await generate({
-            model: JUDGE_MODEL,
+            model: judgeModel,
             system:
               'You identify which companion said a spoken reply. Use only voice, word choice, rhythm and personality, not topic expertise.',
             contents: [
@@ -602,7 +727,7 @@ async function main(): Promise<void> {
             ? 'something the speaker remembers, knows or heard earlier on this call'
             : 'something the speaker remembers';
           const raw = await generate({
-            model: JUDGE_MODEL,
+            model: judgeModel,
             system:
               'You judge whether a friend on a phone call used what they remember about the caller.',
             contents: [
@@ -642,7 +767,7 @@ async function main(): Promise<void> {
     const sum = (o: Record<string, number>): number => Object.values(o).reduce((a, b) => a + b, 0);
     const lengths = (ps: string[]): number[] =>
       filled.filter((f) => ps.includes(f.p)).map((f) => words(untagged(f.r.reply)).length);
-    return {
+    return withTells(rs, {
       metrics: {
         distinctness: rate(sum(hits), sum(tries)),
         insight: rate(natural, insightN),
@@ -659,7 +784,7 @@ async function main(): Promise<void> {
       confusion,
       judgeFailures,
       emptyReplies,
-    };
+    });
   }
 
   /**
@@ -669,7 +794,8 @@ async function main(): Promise<void> {
   async function pairwise(
     a: Replies,
     b: Replies,
-    seed: string
+    seed: string,
+    judgeModel: string
   ): Promise<Humanness & { judgeFailures: number; pairs: Pair[] }> {
     const pairs: Pair[] = [];
     let judgeFailures = 0;
@@ -682,7 +808,7 @@ async function main(): Promise<void> {
             const aFirst = shuffled([true, false], `${seed}:${line.key}:${p}`)[0];
             const [r1, r2] = aFirst ? [ra, rb] : [rb, ra];
             const raw = await generate({
-              model: JUDGE_MODEL,
+              model: judgeModel,
               system: 'You judge spoken replies on a phone call between friends.',
               contents: [
                 {
@@ -721,10 +847,9 @@ async function main(): Promise<void> {
   }
 
   // ------------------------------------------------------------ run
-  const dir = join(resolve(values.out), arm);
-  const prior = values.reuse
-    ? (JSON.parse(readFileSync(join(dir, 'result.json'), 'utf8')) as Result)
-    : null;
+  const root = join(resolve(values.out), arm);
+  const dir = runDir(root, i);
+  const prior = values.reuse ? load(dir) : null;
   /** Saved scores with the copy check redone on the saved replies (cheap, no LLM). */
   const recopied = (rs: Replies, scored: Scored): Scored => {
     for (const byPersona of Object.values(rs))
@@ -735,15 +860,15 @@ async function main(): Promise<void> {
         .filter((r) => r.reply)
         .map((r) => r.copied)
     );
-    return { ...scored, metrics: { ...scored.metrics, copy: copyStats(copied) } };
+    return withTells(rs, { ...scored, metrics: { ...scored.metrics, copy: copyStats(copied) } });
   };
   if (prior && (prior.arm !== arm || JSON.stringify(prior.sets) !== JSON.stringify(sets)))
     throw new Error(`--reuse: ${dir}/result.json is arm ${prior.arm} with other overrides`);
-  const run1 = prior ? null : await replies('run1');
+  const run1 = prior ? null : await replies(`run${i}`);
   const result: Result = prior
     ? {
         ...prior,
-        judgeModel: JUDGE_MODEL,
+        judgeModel: PRIMARY,
         rescoredAt: new Date().toISOString(),
         scored: recopied(prior.replies, prior.scored),
       }
@@ -753,7 +878,7 @@ async function main(): Promise<void> {
         flagsFile,
         linesFile,
         model: MODEL,
-        judgeModel: JUDGE_MODEL,
+        judgeModel: PRIMARY,
         rounds,
         at: new Date().toISOString(),
         scored: undefined as unknown as Scored,
@@ -765,9 +890,16 @@ async function main(): Promise<void> {
   result.copyExcludesCanon = values['exclude-canon'];
   delete result.humanness;
   delete result.comparison;
-  if (!prior) result.scored = await score('run1', result.replies);
+  // Scores a judge already gave these replies are kept; the other judges score them now.
+  result.judges = {};
+  for (const j of JUDGES)
+    result.judges[j] = {
+      scored: savedScores(prior, j).run ?? (await score(`run${i}`, result.replies, j)),
+    };
+  const judged = result.judges;
+  result.scored = prior ? recopied(result.replies, judged[PRIMARY].scored) : judged[PRIMARY].scored;
   const md: string[] = [
-    `# Persona eval bar: ${arm}`,
+    `# Persona eval bar: ${arm}, run ${i} of ${nRuns}`,
     '',
     `Overrides: ${
       Object.keys(sets).length
@@ -779,15 +911,34 @@ async function main(): Promise<void> {
       (multi
         ? `${CALLS.length} scripted calls x ${PERSONAS.length} personas, the last 2 replies of each scored (${LINES.length} per persona), insight judged on ${LINES.filter((l) => l.insight).length}. `
         : `${LINES.length} lines x ${PERSONAS.length} personas, ${LINES.filter((l) => l.context).length} lines with caller context. `) +
-      `Model ${MODEL}, judge ${JUDGE_MODEL}. Judge failures ${result.scored.judgeFailures}, empty replies ${result.scored.emptyReplies}.`,
+      `Model ${MODEL}, judges ${JUDGES.join(', ')} (tables: ${PRIMARY}). Judge failures ${JUDGES.map((j) => judged[j].scored.judgeFailures).join(' / ')}, empty replies ${result.scored.emptyReplies}.`,
     '',
+    ...JUDGES.slice(1).flatMap((j) => [
+      `${j}: distinctness ${pctCi(judged[j].scored.metrics.distinctness)}, insight ${pctCi(judged[j].scored.metrics.insight)}.`,
+      '',
+    ]),
   ];
 
   if (values.aa) {
-    const run2 = prior?.aa ? null : await replies('run2');
+    const run2 = prior?.aa ? null : await replies(`run${i}-aa`);
     const replies2 = prior?.aa ? prior.aa.replies : (run2?.replies ?? {});
-    const scored2 = prior?.aa ? recopied(replies2, prior.aa.scored) : await score('run2', replies2);
-    const h = await pairwise(replies2, result.replies, `${arm}:aa`);
+    for (const j of JUDGES) {
+      const s2 = savedScores(prior, j).aa ?? (await score(`run${i}-aa`, replies2, j));
+      const hj = await pairwise(replies2, result.replies, `${arm}:aa`, j);
+      judged[j].aa = { scored: s2, humanness: humannessOf(hj.pairs), pairs: hj.pairs };
+    }
+    const twin = judged[PRIMARY].aa!;
+    const scored2 = prior?.aa ? recopied(replies2, twin.scored) : twin.scored;
+    const h = { ...twin.humanness, pairs: twin.pairs };
+    if (i > 1) {
+      // Run to run: this run against run 1 as an A/A pair, for the floor a baseline sets.
+      const first = load(runDir(root, 1)).replies;
+      result.spread = {};
+      for (const j of JUDGES)
+        result.spread[j] = humannessOf(
+          (await pairwise(result.replies, first, `${arm}:run${i}:vs:run1`, j)).pairs
+        );
+    }
     const gap = aaGap(result.scored.metrics, scored2.metrics, humannessRate(h));
     const floor = noiseFloor(result.scored.metrics, scored2.metrics, humannessRate(h));
     result.aa = {
@@ -811,44 +962,57 @@ async function main(): Promise<void> {
       '',
       '| metric | A/A gap | sampling gap (when larger) | floor |',
       '|---|---|---|---|',
-      ...(Object.keys(floor) as Array<keyof Floor>).map(
-        (k) =>
-          `| ${k} | ${(100 * gap[k]).toFixed(1)} pts | ${floor[k] > gap[k] ? `${(100 * floor[k]).toFixed(1)} pts` : '-'} | ${(100 * floor[k]).toFixed(1)} pts |`
+      ...floorRows(gap, floor).map(
+        ([k, g, f]) =>
+          `| ${k} | ${(100 * g).toFixed(1)} pts | ${f > g ? `${(100 * f).toFixed(1)} pts` : '-'} | ${(100 * f).toFixed(1)} pts |`
       ),
       ''
     );
   } else md.push(metricsTable(arm, result.scored.metrics), '');
 
   if (values.baseline) {
-    const baseResult = JSON.parse(
-      readFileSync(join(resolve(values.baseline), 'result.json'), 'utf8')
-    ) as Result;
+    const bases = baselineRuns(resolve(values.baseline), nRuns, JUDGES);
+    const baseResult = bases[i - 1];
     if ((baseResult.mode ?? 'single-turn') !== (result.mode ?? 'single-turn'))
       throw new Error(
         `--baseline ${baseResult.arm} is ${baseResult.mode ?? 'single-turn'}, this run is not`
       );
-    const h = await pairwise(result.replies, baseResult.replies, `${arm}:vs:${baseResult.arm}`);
-    result.humanness = { vs: baseResult.arm, ...h };
-    result.comparison = compareArms(
-      baseResult.scored.metrics,
-      result.scored.metrics,
-      h,
-      // Recomputed from the saved A/A runs, so a baseline keeps up with the floor rule.
-      baseResult.aa
-        ? noiseFloor(
-            baseResult.scored.metrics,
-            baseResult.aa.scored.metrics,
-            aaHumanRate(baseResult.aa.humanness)
-          )
-        : null
+    for (const j of JUDGES) {
+      const h = await pairwise(
+        result.replies,
+        baseResult.replies,
+        `${arm}:vs:${baseResult.arm}`,
+        j
+      );
+      // Recomputed from the saved baseline runs, so a baseline keeps up with the floor rule.
+      const rows = compareArms(
+        judgedMetrics(baseResult, j),
+        judgedMetrics(result, j),
+        h,
+        replicatedFloor(bases, j)
+      );
+      Object.assign(judged[j], { humanness: { vs: baseResult.arm, ...h }, comparison: rows });
+      md.push(
+        `## ${arm} run ${i} vs ${baseResult.arm} run ${i}, judged by ${j}`,
+        '',
+        `Humanness, ${arm} preferred: all pairs ${pctCi(h.overall)}; length-matched pairs (word counts within 1.5x) ${pctCi(h.matched)}. ` +
+          `The verdict uses the length-matched pairs when there are at least 30 (judge failures ${h.judgeFailures}).`,
+        '',
+        compareTable(rows),
+        ''
+      );
+    }
+    result.humanness = judged[PRIMARY].humanness;
+    result.comparison = judged[PRIMARY].comparison;
+    result.personaTells = comparePersonaTells(
+      personaTellsOf(baseResult.scored),
+      personaTellsOf(result.scored),
+      baseResult.aa ? personaTellsOf(baseResult.aa.scored) : undefined
     );
     md.push(
-      `## ${arm} vs ${baseResult.arm}`,
+      `### Tells per persona that moved beyond their floor (the persona's A/A gap or the sampling gap at n≈${LINES.length}; a direction, not a verdict: a tell can be in character)`,
       '',
-      `Humanness, ${arm} preferred: all pairs ${pctCi(h.overall)}; length-matched pairs (word counts within 1.5x) ${pctCi(h.matched)}. ` +
-        `The verdict uses the length-matched pairs when there are at least 30 (judge failures ${h.judgeFailures}).`,
-      '',
-      compareTable(result.comparison),
+      personaTellsCompareTable(result.personaTells),
       ''
     );
   }
@@ -870,14 +1034,31 @@ async function main(): Promise<void> {
       const s = result.scored.perPersona[p];
       return `| ${p} | ${s.distinctness.k}/${s.distinctness.n} | ${s.medianWords} |`;
     }),
+    '',
+    "## Tells per persona (run 1; share of that persona's replies)",
+    '',
+    personaTellsTable(personaTellsOf(result.scored)),
     ''
   );
 
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, 'result.json'), JSON.stringify(result, null, 2));
   writeFileSync(join(dir, 'result.md'), md.join('\n'));
-  console.log(md.join('\n'));
+  if (!values.baseline) console.log(md.join('\n'));
   console.log(`-> ${dir}/result.json`);
+  await reportIfBq(values.bq, () => barReports(result));
+  return { root, runs: nRuns, judges: JUDGES, baseline: values.baseline };
+}
+
+/** The floor table's rows: each metric, then each tell, as [name, A/A gap, floor]. */
+function floorRows(gap: Floor, floor: Floor): Array<[string, number, number]> {
+  const base = (['distinctness', 'insight', 'copy', 'humanness'] as const).map(
+    (k): [string, number, number] => [k, gap[k], floor[k]]
+  );
+  const tells = TELL_KEYS.flatMap((k): Array<[string, number, number]> =>
+    gap.tells && floor.tells ? [[`tells: ${k}`, gap.tells[k], floor.tells[k]]] : []
+  );
+  return [...base, ...tells];
 }
 
 /** Multi-turn: what the director and deliberation did, and what the scored replies were given. */
@@ -895,8 +1076,54 @@ function observersLine(r: Result): string {
   );
 }
 
+/** The verdict over an arm's saved runs (no model calls); copy and tells are judge-free, one cell per run. */
+function report(root: string, n: number, judges: readonly string[]): void {
+  const runs = Array.from({ length: n }, (_, k) => load(runDir(root, k + 1)));
+  const cellsOf = (metric: Row['metric']): Cell[] =>
+    runs.flatMap((r, k) =>
+      ((JUDGED_METRICS as readonly string[]).includes(metric)
+        ? judges
+        : judges.slice(0, 1)
+      ).flatMap((j) => {
+        const row = r.judges?.[j]?.comparison?.find((x) => x.metric === metric);
+        return row ? [{ run: k + 1, judge: j, ...row }] : [];
+      })
+    );
+  const metrics = (runs[0].comparison ?? []).map((r) => combineMetric(r.metric, cellsOf(r.metric)));
+  const verdict = barVerdict(metrics, n, judges.length);
+  const md = [
+    `# ${verdict.line}`,
+    '',
+    `${runs[0].arm} against ${runs[0].humanness?.vs}, ${n} run(s) (arm run i vs baseline run i), judges ${judges.join(', ')}. ` +
+      'A judged metric is better (worse) in a run only when every judge says so beyond its own floor (the widest of every baseline A/A floor and the spread between baseline runs); ' +
+      'better only when better in every run, worse when worse in any. Copy and tells need no judge.',
+    '',
+    '| metric | verdict | per run, per judge: arm minus baseline / floor (points), verdict |',
+    '|---|---|---|',
+    ...metrics.map((m) => `| ${m.metric} | ${m.verdict} | ${m.note} |`),
+    '',
+    `Model calls in this process: ${Object.entries(callsByModel)
+      .map(([k, v]) => `${k} ${v}`)
+      .join(', ')} (the director's and deliberation's own calls not counted).`,
+  ];
+  const out = { ...verdict, runs: n, judges, metrics, calls: callsByModel };
+  writeFileSync(join(root, 'verdict.json'), JSON.stringify(out, null, 2));
+  writeFileSync(join(root, 'verdict.md'), md.join('\n'));
+  console.log(md.join('\n'));
+  console.log(`-> ${root}/verdict.md`);
+}
+
+/** Each run in turn (one arm per process), then the verdict over all of them. */
+async function replicated(): Promise<void> {
+  let i = 0;
+  let last: Awaited<ReturnType<typeof main>>;
+  do last = await main(++i);
+  while (i < last.runs);
+  if (last.baseline) report(last.root, last.runs, last.judges);
+}
+
 // Repo imports (config watchers, stores) keep handles open, so exit explicitly.
-main()
+replicated()
   .then(() => process.exit(0))
   .catch((e: unknown) => {
     console.error(e);

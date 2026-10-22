@@ -182,8 +182,8 @@ async function addTask(args: Record<string, unknown>, ctx: ToolExecutionContext)
   }
 
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const taskId = `task_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const task: Task = {
@@ -224,8 +224,8 @@ async function getTasks(args: Record<string, unknown>, ctx: ToolExecutionContext
   }
 
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     let query = db.collection('bogle_users').doc(ctx.userId).collection('tasks');
 
@@ -282,8 +282,8 @@ async function completeTask(
   }
 
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     // Find task by name (fuzzy match)
     const snapshot = await db
@@ -371,8 +371,8 @@ async function addGoal(args: Record<string, unknown>, ctx: ToolExecutionContext)
   }
 
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const goalId = `goal_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const goal: Goal = {
@@ -412,8 +412,8 @@ async function getGoals(args: Record<string, unknown>, ctx: ToolExecutionContext
   }
 
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     let query = db.collection('bogle_users').doc(ctx.userId).collection('goals');
 
@@ -474,8 +474,8 @@ async function scheduleReminder(
   }
 
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     // Parse "when" to a date (simple parsing)
     const scheduledFor = new Date();
@@ -576,8 +576,8 @@ async function setTimer(args: Record<string, unknown>, ctx: ToolExecutionContext
   // But we can store the intent and the app could poll or use push notifications
   if (ctx.userId) {
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
 
       const timerId = `timer_${Date.now()}`;
       const endsAt = new Date(Date.now() + seconds * 1000);
@@ -632,8 +632,8 @@ async function addNote(args: Record<string, unknown>, ctx: ToolExecutionContext)
   }
 
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const noteId = `note_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -671,8 +671,8 @@ async function getNotes(
   }
 
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const snapshot = await db
       .collection('bogle_users')
@@ -751,9 +751,9 @@ async function execute(
 
     if (!ctx.userId) return "I couldn't save that alarm, I don't know whose it is.";
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
+      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
       const alarmId = `alarm_${Date.now()}`;
-      await getFirestore()
+      await getAdminFirestore()
         .collection('bogle_users')
         .doc(ctx.userId)
         .collection('alarms')
@@ -802,8 +802,8 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         await db
           .collection('bogle_users')
@@ -833,8 +833,8 @@ async function execute(
     }
 
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
 
       const snapshot = await db
         .collection('bogle_users')

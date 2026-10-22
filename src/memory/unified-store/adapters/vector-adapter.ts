@@ -17,6 +17,7 @@ import type {
   StoreHealth,
   MemoryType,
 } from '../types.js';
+import { getFirestoreDatabase } from '../../../config/environment.js';
 
 const log = createLogger({ module: 'VectorAdapter' });
 
@@ -93,7 +94,7 @@ export class VectorAdapter implements VectorStoreAdapter {
   constructor(config?: VectorAdapterConfig) {
     this.config = {
       projectId: config?.projectId || process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: config?.databaseId || process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: config?.databaseId || getFirestoreDatabase(),
       collectionName: config?.collectionName || this.VECTOR_COLLECTION,
       embeddingDimension: config?.embeddingDimension || 1536,
     };

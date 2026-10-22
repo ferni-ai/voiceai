@@ -12,15 +12,19 @@ export interface FakeEngagementFirestore {
   docs: Map<string, Json>;
   /** Writes to a path this matches throw, as an unavailable Firestore would. */
   failWrites: { match: RegExp | null };
+  /** Reads of a document path this matches throw, as a timed-out Firestore would. */
+  failReads: { match: RegExp | null };
 }
 
 export function createFakeEngagementFirestore(): FakeEngagementFirestore {
   const docs = new Map<string, Json>();
   const failWrites: FakeEngagementFirestore['failWrites'] = { match: null };
+  const failReads: FakeEngagementFirestore['failReads'] = { match: null };
 
   const docRef = (path: string) => ({
     collection: (name: string) => query(`${path}/${name}`, []),
     get: async () => {
+      if (failReads.match?.test(path)) throw new Error('4 DEADLINE_EXCEEDED: fake timeout');
       const data = docs.get(path);
       return {
         id: path.split('/').pop(),
@@ -67,5 +71,5 @@ export function createFakeEngagementFirestore(): FakeEngagementFirestore {
     },
   });
 
-  return { db: { collection: (name: string) => query(name, []) }, docs, failWrites };
+  return { db: { collection: (name: string) => query(name, []) }, docs, failWrites, failReads };
 }

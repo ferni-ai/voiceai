@@ -18,6 +18,7 @@
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { getAgent, getTool } from '../marketplace/index.js';
 import type { AgentManifest, ToolManifest } from '../marketplace/schema/types.js';
+import { manifestContentHash, matchesCurrentContent } from './review-content-hash.js';
 import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { getLogger } from '../utils/safe-logger.js';
 import {
@@ -38,7 +39,8 @@ export type ReviewStatus =
   | 'in_review' // Assigned to reviewer, being evaluated
   | 'approved' // Approved and published
   | 'rejected' // Rejected, not published
-  | 'changes_requested'; // Needs changes from publisher
+  | 'changes_requested' // Needs changes from publisher
+  | 'superseded'; // Content changed; replaced by a newer submission
 
 export type ReviewDecision = 'approved' | 'rejected' | 'changes_requested';
 
@@ -57,6 +59,9 @@ export interface ReviewSubmission {
   /** Review state */
   status: ReviewStatus;
   version: number; // Track resubmissions
+
+  /** Hash of the manifest content this submission asks to have reviewed */
+  contentHash?: string;
 
   /** Timestamps */
   submittedAt: Date;
@@ -110,7 +115,7 @@ export interface ReviewQueueOptions {
 const COLLECTION = 'marketplace_review_submissions';
 
 function getDb(): Firestore {
-  return getFirestore();
+  return getFirestore(process.env.FIRESTORE_DATABASE || '(default)');
 }
 
 /**
@@ -130,6 +135,7 @@ function docToSubmission(doc: FirebaseFirestore.DocumentSnapshot): ReviewSubmiss
     publisherName: data.publisherName as string,
     status: data.status as ReviewStatus,
     version: data.version as number,
+    contentHash: data.contentHash as string | undefined,
     submittedAt: (data.submittedAt as FirebaseFirestore.Timestamp).toDate(),
     assignedAt: data.assignedAt
       ? (data.assignedAt as FirebaseFirestore.Timestamp).toDate()
@@ -153,6 +159,22 @@ function docToSubmission(doc: FirebaseFirestore.DocumentSnapshot): ReviewSubmiss
       };
     }),
   };
+}
+
+const OPEN_STATUSES: readonly ReviewStatus[] = ['pending_review', 'in_review'];
+
+/** The item's open (pending or in-review) submission document, if any. */
+async function findOpenSubmissionDoc(
+  itemId: string
+): Promise<FirebaseFirestore.QueryDocumentSnapshot | null> {
+  const snapshot = await getDb().collection(COLLECTION).where('itemId', '==', itemId).get();
+  return snapshot.docs.find((d) => OPEN_STATUSES.includes(d.data().status as ReviewStatus)) ?? null;
+}
+
+/** The item's open submission, if any. */
+export async function getOpenSubmission(itemId: string): Promise<ReviewSubmission | null> {
+  const doc = await findOpenSubmissionDoc(itemId);
+  return doc ? docToSubmission(doc) : null;
 }
 
 // ============================================================================
@@ -343,13 +365,16 @@ export async function submitForReview(
   let previousVersions: ReviewSubmission['previousVersions'] = [];
 
   if (!existingQuery.empty) {
-    const existing = docToSubmission(existingQuery.docs[0])!;
+    const all = existingQuery.docs.map((d) => docToSubmission(d)!);
+    const existing = all.reduce((a, b) => (b.version > a.version ? b : a));
+    version = existing.version + 1;
 
-    // If already approved, this is a new version
-    if (existing.status === 'approved') {
-      version = existing.version + 1;
-    } else if (existing.status === 'in_review' || existing.status === 'pending_review') {
-      throw new Error('Item is already under review');
+    // Changed content replaces any open submission, so a reviewer can never
+    // decide on content that is no longer the item's
+    for (const doc of existingQuery.docs) {
+      if (OPEN_STATUSES.includes(doc.data().status as ReviewStatus)) {
+        await doc.ref.update(cleanForFirestore({ status: 'superseded', supersededAt: new Date() }));
+      }
     }
 
     // Archive previous version
@@ -377,6 +402,7 @@ export async function submitForReview(
     publisherName: manifest.publisher.name,
     status: 'pending_review',
     version,
+    contentHash: manifestContentHash(manifest),
     submittedAt: new Date(),
     automatedChecks,
     previousVersions,
@@ -480,16 +506,11 @@ export async function assignReviewer(
   reviewerId: string,
   reviewerName: string
 ): Promise<ReviewSubmission> {
-  const db = getDb();
-
-  // Find submission
-  const querySnapshot = await db.collection(COLLECTION).where('itemId', '==', itemId).get();
-
-  if (querySnapshot.empty) {
+  // Find the open submission
+  const doc = await findOpenSubmissionDoc(itemId);
+  if (!doc) {
     throw new Error(`No submission found for item: ${itemId}`);
   }
-
-  const doc = querySnapshot.docs[0];
   const submission = docToSubmission(doc)!;
 
   // Update status and assignment
@@ -532,21 +553,22 @@ export async function submitReview(
   decision: ReviewDecision,
   feedback: string
 ): Promise<ReviewSubmission> {
-  const db = getDb();
-
-  // Find submission
-  const querySnapshot = await db.collection(COLLECTION).where('itemId', '==', itemId).get();
-
-  if (querySnapshot.empty) {
+  // Find the open submission
+  const doc = await findOpenSubmissionDoc(itemId);
+  if (!doc) {
     throw new Error(`No submission found for item: ${itemId}`);
   }
-
-  const doc = querySnapshot.docs[0];
   const submission = docToSubmission(doc)!;
 
   // Verify reviewer is assigned
   if (submission.assignedTo !== reviewerId) {
     throw new Error('Reviewer not assigned to this submission');
+  }
+
+  // Approval is only for the content that was submitted
+  const current = submission.itemType === 'tool' ? getTool(itemId) : getAgent(itemId);
+  if (decision === 'approved' && !matchesCurrentContent(submission, current)) {
+    throw new Error('Item content changed since it was submitted for review');
   }
 
   // Update submission
@@ -577,21 +599,6 @@ export async function submitReview(
 }
 
 /**
- * Request changes from the publisher
- *
- * @param itemId - Item being reviewed
- * @param reviewerId - ID of the reviewer
- * @param feedback - What needs to be changed
- */
-export async function requestChanges(
-  itemId: string,
-  reviewerId: string,
-  feedback: string
-): Promise<ReviewSubmission> {
-  return submitReview(itemId, reviewerId, 'changes_requested', feedback);
-}
-
-/**
  * Get review history for an item
  *
  * @param itemId - Item ID
@@ -615,15 +622,6 @@ export async function getReviewHistory(itemId: string): Promise<ReviewSubmission
   }
 
   return history;
-}
-
-/**
- * Get a single submission by ID
- */
-export async function getSubmission(submissionId: string): Promise<ReviewSubmission | null> {
-  const db = getDb();
-  const doc = await db.collection(COLLECTION).doc(submissionId).get();
-  return docToSubmission(doc);
 }
 
 // ============================================================================

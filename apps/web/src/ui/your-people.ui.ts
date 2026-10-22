@@ -840,7 +840,7 @@ function renderNudges(): string {
         ${ICONS.sparkles} ${t('yourPeople.ferniSuggests')}
       </div>
       ${visibleNudges.map(nudge => `
-        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0" aria-label="${t('yourPeople.contactAria', { name: escapeHtml(nudge.contactName), reason: escapeHtml(nudge.reason) })}">
+        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0">
           <div class="yp-nudge-avatar" aria-hidden="true">${getInitials(nudge.contactName)}</div>
           <div class="yp-nudge-content">
             <div class="yp-nudge-name">${escapeHtml(nudge.contactName)}</div>
@@ -954,7 +954,7 @@ function upcomingLabel(date: NonNullable<Person['upcomingDate']>): string {
 
 function renderPersonItem(person: Person): string {
   const initials = getInitials(person.name);
-  const strengthColor = getStrengthColor(person.strengthScore || 50);
+  const strengthColor = typeof person.strengthScore === 'number' ? getStrengthColor(person.strengthScore) : 'var(--color-border, transparent)'; // unscored: neutral, never an invented 50
   
   const relationship = person.relationship
     ? t(`addPerson.relationships.${person.relationship.toLowerCase()}`, person.relationship)
@@ -968,14 +968,8 @@ function renderPersonItem(person: Person): string {
   const trendIcon = person.strengthTrend === 'growing' ? ICONS.trendUp :
                     person.strengthTrend === 'fading' ? ICONS.trendDown : '';
 
-  const metaText = [
-    relationship,
-    lastContactText,
-    person.upcomingDate ? tp('yourPeople.upcomingIn', person.upcomingDate.daysUntil, { label: upcomingLabel(person.upcomingDate) }) : ''
-  ].filter(Boolean).join('. ');
-
   return `
-    <div class="yp-person" data-contact-id="${person.contactId}" role="button" tabindex="0" aria-label="${t('yourPeople.viewAria', { name: escapeHtml(person.name), details: metaText })}">
+    <div class="yp-person" data-contact-id="${person.contactId}" role="button" tabindex="0">
       <div class="yp-person-avatar" aria-hidden="true">${initials}</div>
       <div class="yp-person-info">
         <div class="yp-person-name">
@@ -1266,10 +1260,10 @@ export async function openYourPeople(): Promise<void> {
   // Load data
   await loadPeopleData();
 
-  // Focus management - focus search input after render
+  // Desktop starts in search; on touch that would throw up the keyboard over the list
   setTimeout(() => {
-    const searchInput = panelContainer?.querySelector<HTMLInputElement>('.yp-search-input');
-    searchInput?.focus();
+    if (!window.matchMedia?.('(pointer: fine)').matches) return;
+    panelContainer?.querySelector<HTMLInputElement>('.yp-search-input')?.focus();
   }, DURATION.FAST);
 
   log.info('Opened Your People panel');

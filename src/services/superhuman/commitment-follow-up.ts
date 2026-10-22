@@ -18,6 +18,7 @@ import {
   needsContext,
   toSecondPerson,
 } from '../../utils/commitment-quality.js';
+import { commitmentsShown } from './commitment-forget.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -179,12 +180,12 @@ export const firestoreCommitmentStore: CommitmentStore = {
     const col = commitments(userId);
     if (!col) return [];
     // status + createdAt desc has an index (firestore.indexes.json).
-    const snap = await col
-      .where('status', '==', 'active')
-      .orderBy('createdAt', 'desc')
-      .limit(50)
-      .get();
-    return snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+    const [snap, shown] = await Promise.all([
+      col.where('status', '==', 'active').orderBy('createdAt', 'desc').limit(50).get(),
+      commitmentsShown(userId),
+    ]);
+    // Never one they asked Ferni to forget (commitment-forget.ts).
+    return snap.docs.filter((d) => shown(d.data())).map((d) => ({ id: d.id, data: d.data() }));
   },
   async markFollowedUp(userId, c, now) {
     const col = commitments(userId);

@@ -268,6 +268,8 @@ describe('a profile zone reaches a call only through phone-parity.ts', () => {
     'tasks/scheduled/calendar-briefing-job.ts': 'a scheduled job for the account',
     'api/user-routes.ts': "the signed-in account's own settings",
     'api/gdpr-routes.ts': "the signed-in account's own data export",
+    'api/insights-relationship.ts': "the signed-in account's own time-together count, in its zone",
+    'api/milestone-outreach-route.ts': "the signed-in account's own milestone count, in its zone",
   };
   const READS_ACCOUNT_ZONE =
     /contactInfo\??\.timezone|'contactInfo\.timezone'|[cC]ontact\??\.timezone|getUserContactInfo\([^)]*\)\)\??\.timezone/;

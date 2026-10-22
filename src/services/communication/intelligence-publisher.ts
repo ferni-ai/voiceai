@@ -14,6 +14,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { safeFireAndForget } from '../../utils/safe-fire-and-forget.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { flagOn } from '../../config/env-flag.js';
+import { skipOnNonProdDatabase } from '../../config/environment.js';
 import { Timestamp } from 'firebase-admin/firestore';
 
 // ============================================================================
@@ -121,6 +122,9 @@ let pubsubTopic: unknown = null;
 
 async function getPubSubTopic(): Promise<unknown> {
   if (!PUBSUB_ENABLED) return null;
+  // The intelligence worker reads prod's (default) database: dev events would be
+  // processed against real people's data.
+  if (skipOnNonProdDatabase('intelligence-events publish')) return null;
 
   if (!pubsubClient) {
     const { PubSub } = await import('@google-cloud/pubsub');

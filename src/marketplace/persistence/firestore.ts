@@ -24,6 +24,7 @@ import type {
   UserId,
 } from '../schema/types.js';
 import { InMemoryMarketplaceStore } from './in-memory.js';
+import { firestoreBackendFromEnv } from './backend.js';
 
 const log = getLogger().child({ module: 'marketplace-firestore' });
 
@@ -109,6 +110,7 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
 
     try {
       const admin = (await import('firebase-admin')).default;
+      const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
 
       if (admin.apps.length === 0) {
         admin.initializeApp({
@@ -116,7 +118,7 @@ class FirestoreMarketplaceStore implements MarketplaceStore {
         });
       }
 
-      this.db = admin.firestore();
+      this.db = getAdminFirestore();
       this.initialized = true;
       log.info('Firestore marketplace store initialized');
     } catch (error) {
@@ -403,12 +405,8 @@ let storeInstance: MarketplaceStore | null = null;
 export async function getMarketplaceStore(): Promise<MarketplaceStore> {
   if (storeInstance) return storeInstance;
 
-  // Try Firestore first in production
-  const useFirestore =
-    process.env.NODE_ENV === 'production' ||
-    process.env.USE_FIRESTORE_MARKETPLACE === 'true' ||
-    process.env.GCP_PROJECT_ID ||
-    process.env.FIREBASE_PROJECT_ID;
+  // In-memory under a test runner, whatever project id is set (see backend.ts).
+  const useFirestore = firestoreBackendFromEnv('USE_FIRESTORE_MARKETPLACE');
 
   if (useFirestore) {
     try {
