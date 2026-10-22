@@ -15,13 +15,14 @@
  * conversation_summaries exactly as before. Background jobs only: never call
  * it per turn.
  *
+ * LIVE_SUMMARIES is the person's own (personFlagOn): a cohort can set it for
+ * them, and these readers run on the UI server or after a call, where
+ * process.env is not theirs.
+ *
  * @module memory/storage/call-summaries
  */
 import { Timestamp, type DocumentData, type Firestore } from 'firebase-admin/firestore';
-
-export function isLiveSummariesOn(env: Record<string, string | undefined> = process.env): boolean {
-  return env.LIVE_SUMMARIES === 'on';
-}
+import { personFlagOn } from '../../config/person-flag.js';
 
 /** The subset of a Firestore document the readers use. */
 export interface SummaryDoc {
@@ -104,7 +105,7 @@ export async function readCallSummaries(
         .get()
     ).docs,
   });
-  if (!isLiveSummariesOn(env)) return legacy();
+  if (!(await personFlagOn(userId, 'LIVE_SUMMARIES', env))) return legacy();
 
   const live = await user
     .collection('summaries')

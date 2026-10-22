@@ -87,9 +87,7 @@ let dismissedSignals: Set<string> = new Set();
 // INITIALIZATION
 // ============================================================================
 
-/**
- * Initialize the trust signals UI.
- */
+/** Initialize the trust signals UI. */
 export function initTrustSignals(customConfig?: Partial<TrustSignalsConfig>): void {
   if (isInitialized) return;
 
@@ -119,6 +117,7 @@ function cleanupOrphanedElements(): void {
 function createContainer(): void {
   container = document.createElement('div');
   container.className = 'trust-signals-container';
+  container.setAttribute('role', 'status'); // aria-label is not allowed on a plain div
   container.setAttribute('aria-live', 'polite');
   container.setAttribute('aria-label', t('trustSignals.ariaLabel'));
   document.body.appendChild(container);

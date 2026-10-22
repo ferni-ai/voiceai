@@ -13,7 +13,7 @@ import { asAnswer } from './answer-turn.js';
 import { listeningReply } from './listen-first-turn.js';
 import { callerTurnsOf } from './happy-exits.js';
 import { withPlayful } from './ferni-playful-turn.js';
-import { withCallTrouble, withSupportHold } from './turn-holds.js';
+import { withCallTrouble, withCrisisRisk, withSupportHold } from './turn-holds.js';
 import { isQuietCaller, presentAck, quietCallerEnabled } from './quiet-caller.js';
 import { modelSignals, PLAIN_SIGNALS, regexSignals, type TurnSignals } from './turn-extras.js';
 import { lengthLearned, recentTurns, textureLearned } from './turn-length.js';
@@ -54,7 +54,7 @@ export function styleFor(
   const told = withRecent(withOwnStory(sig, said, state), said, chatCtx);
   const quiet = withQuiet(told, said, chatCtx);
   const shaped = withHeavyMoment(withPlayful(session, said, quiet), chatCtx);
-  const troubled = withCallTrouble(session, said, shaped, source);
+  const troubled = withCrisisRisk(session, said, withCallTrouble(session, said, shaped, source));
   const { turn, burst } = shapeFor(session, said, troubled, shaped, plain);
   // At the moment the reply is asked for: what live mode would have had (shadow too).
   const understood = understandingStatusFor(session, said);

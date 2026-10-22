@@ -5,6 +5,7 @@
 import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  callerAsksToHangUp,
   callerSaysGoodbye,
   clearFarewell,
   farewellSaid,
@@ -17,6 +18,7 @@ import {
   watchFarewell,
 } from '../call-farewell.js';
 import { clearSessionClosing, markSessionClosing } from '../session-closing-tracker.js';
+import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 
 const ON = { CALL_WRAP_UP: 'on' };
 const used: string[] = [];
@@ -31,6 +33,7 @@ afterEach(() => {
     clearFarewell(id);
     clearSessionClosing(id);
   });
+  resetCrisisCallRisk();
 });
 
 describe('callerSaysGoodbye', () => {
@@ -50,6 +53,13 @@ describe('callerSaysGoodbye', () => {
     'Catch you later!',
     'Take care, bye.',
     'I’ll let you go now',
+    // What callers said on 2026-10-19 prod calls that never ended
+    "All right, frame. I'll talk to you later.",
+    'Yeah, I got to go. Sorry. See you, bro.',
+    'Hey, Bernie, hang up the phone. Yeah, hang up right now.',
+    'I said hang up now. You need to hang up. You hang up.',
+    'you can hang up now',
+    'okay, end the call',
   ])('"%s" is a goodbye', (text) => {
     expect(callerSaysGoodbye(text)).toBe(true);
   });
@@ -66,8 +76,26 @@ describe('callerSaysGoodbye', () => {
     'byelaws are boring',
     'bye?',
     '',
+    "don't hang up",
+    'did you hang up',
+    'wait, why did you hang up on me',
+    "I'm going to hang up the laundry",
+    'I hung up on my boss today',
+    "come on, you got to go, it's your sister's wedding",
+    'you gotta go',
   ])('"%s" is not a goodbye', (text) => {
     expect(callerSaysGoodbye(text)).toBe(false);
+  });
+});
+
+describe('callerAsksToHangUp', () => {
+  it('is an explicit ask to end the call, not any goodbye', () => {
+    expect(callerAsksToHangUp('Yeah, hang up right now.')).toBe(true);
+    expect(callerAsksToHangUp('I said hang up now. You need to hang up.')).toBe(true);
+    expect(callerAsksToHangUp('okay, you can end the call')).toBe(true);
+    expect(callerAsksToHangUp('okay bye')).toBe(false);
+    expect(callerAsksToHangUp("please don't hang up")).toBe(false);
+    expect(callerAsksToHangUp('can you hang up?')).toBe(false);
   });
 });
 
@@ -132,7 +160,7 @@ describe('stayQuiet', () => {
 });
 
 /** A fake session plus a manual clock for the idle timer. */
-function call() {
+function call(opts: { crisis?: () => boolean } = {}) {
   const session = new EventEmitter();
   const sessionId = newId();
   const timers = new Map<number, { fn: () => void; ms: number }>();
@@ -146,6 +174,7 @@ function call() {
       return next;
     },
     clearTimer: (h) => void timers.delete(h as number),
+    ...(opts.crisis && { crisis: opts.crisis }),
   });
   const say = (role: 'user' | 'assistant', text: string) =>
     session.emit('conversation_item_added', { item: { type: 'message', role, textContent: text } });
@@ -170,7 +199,7 @@ function call() {
 }
 
 describe('watchFarewell', () => {
-  it('a caller goodbye then Ferni goodbye is a farewell; 10 s of quiet ends the call', () => {
+  it('a caller goodbye then Ferni goodbye is a farewell; a few seconds of quiet ends the call', () => {
     const c = call();
     c.say('user', 'okay, bye!');
     expect(farewellSaid(c.sessionId)).toBe(false);
@@ -183,7 +212,7 @@ describe('watchFarewell', () => {
     expect(c.timers.size).toBe(0); // still speaking
     c.agent('listening');
     expect([...c.timers.values()].map((t) => t.ms)).toEqual([IDLE_AFTER_GOODBYE_MS]);
-    expect(IDLE_AFTER_GOODBYE_MS).toBe(10_000);
+    expect(IDLE_AFTER_GOODBYE_MS).toBe(4_000);
     c.fire();
     expect(c.idle()).toBe(1);
   });
@@ -231,6 +260,82 @@ describe('watchFarewell', () => {
     c.say('assistant', 'Bye!');
     c.agent('listening');
     markSessionClosing(c.sessionId);
+    c.fire();
+    expect(c.idle()).toBe(0);
+  });
+
+  it('Ferni said goodbye first, then the caller: that is a farewell too', () => {
+    // 2026-10-19 prod: "See you, bro." -> Ferni's goodbye -> "All right, bye." -> nothing ended it
+    const c = call();
+    c.say('user', "it's getting late here, man");
+    c.agent('speaking');
+    c.say('assistant', 'No worries. Go get some rest and we will catch up later. Take care, man.');
+    c.agent('listening');
+    c.say('user', 'All right, bye.');
+    expect(farewellSaid(c.sessionId)).toBe(true);
+    c.fire();
+    expect(c.idle()).toBe(1);
+  });
+
+  it('an explicit "hang up" ends the call after Ferni\'s reply even if he did not say goodbye', () => {
+    const c = call();
+    c.say('user', 'Hey, hang up the phone. Yeah, hang up right now.');
+    c.agent('speaking');
+    c.say('assistant', "Well, I'm still here. I didn't hang up.");
+    expect(c.timers.size).toBe(0); // not while he is still speaking
+    c.agent('listening');
+    expect([...c.timers.values()].map((t) => t.ms)).toEqual([IDLE_AFTER_GOODBYE_MS]);
+    c.fire();
+    expect(c.idle()).toBe(1);
+  });
+
+  it('"wait" during the goodbye window keeps the call, even after a hang-up ask', () => {
+    const c = call();
+    c.say('user', 'okay hang up now');
+    c.say('assistant', 'Okay, bye!');
+    c.agent('listening');
+    c.say('user', 'wait, actually one more thing');
+    expect(farewellSaid(c.sessionId)).toBe(false);
+    expect(c.timers.size).toBe(0);
+    c.fire();
+    expect(c.idle()).toBe(0);
+  });
+
+  it('Ferni carrying on after the goodbyes (a question) clears the farewell', () => {
+    const c = call();
+    c.say('user', 'bye');
+    c.say('assistant', 'Bye!');
+    c.agent('speaking');
+    c.say('assistant', 'Oh, before you go, did you ever call your mom?');
+    c.agent('listening');
+    expect(farewellSaid(c.sessionId)).toBe(false);
+    expect(c.timers.size).toBe(0);
+  });
+
+  it('never ends a call with crisis risk on it, whatever was said', () => {
+    const c = call();
+    noteCrisisRisk(c.sessionId);
+    c.say('user', 'okay, bye');
+    c.say('assistant', 'Bye. I am here whenever you need me.');
+    c.agent('listening');
+    c.fire();
+    expect(c.idle()).toBe(0);
+
+    const h = call({ crisis: () => true });
+    h.say('user', 'hang up now');
+    h.say('assistant', 'Okay.');
+    h.agent('listening');
+    h.fire();
+    expect(h.idle()).toBe(0);
+  });
+
+  it('a "bye" inside a sentence never arms the end', () => {
+    const c = call();
+    c.say('user', 'I have to say bye to my sister before she flies out, she leaves at six');
+    c.say('assistant', 'That is a big send-off. Take care of yourself today.');
+    c.agent('listening');
+    expect(farewellSaid(c.sessionId)).toBe(false);
+    expect(c.timers.size).toBe(0);
     c.fire();
     expect(c.idle()).toBe(0);
   });

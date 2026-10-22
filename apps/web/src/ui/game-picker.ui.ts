@@ -11,6 +11,7 @@ import { asModalDialog } from '../utils/accessibility.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
 import { toast } from './whisper.ui.js';
+import { contentIcon } from './icons/content-icons.js';
 
 const log = createLogger('GamePicker');
 
@@ -250,7 +251,7 @@ class GamePickerUI {
     const gameDesc = t(game.descriptionKey);
 
     return `
-      <button aria-label="${gameName.replace(/"/g, '&quot;')}" class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
+      <button class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
         <div class="game-card__icon">${game.icon}</div>
         <div class="game-card__info">
           <h3 class="game-card__name">${gameName}</h3>
@@ -348,7 +349,7 @@ class GamePickerUI {
             ${t('gamePicker.howToPlayGames')}
           </h2>
 
-          <h3 class="game-help-category">🎵 ${t('gamePicker.musicGames')}</h3>
+          <h3 class="game-help-category">${contentIcon('music', 16)} ${t('gamePicker.musicGames')}</h3>
           <section class="game-help-section">
             <h3><span class="game-help-section__icon">${ICONS.music}</span> ${t('gamePicker.nameThatTune')}</h3>
             <p>${t('gamePicker.nameThatTuneHelp')}</p>
@@ -372,7 +373,7 @@ class GamePickerUI {
             <h3><span class="game-help-section__icon">${ICONS.palmtree}</span> ${t('gamePicker.desertIslandDiscs')}</h3>
             <p>${t('gamePicker.desertIslandDiscsHelp')}</p>
           </section>
-          <h3 class="game-help-category">🎮 ${t('gamePicker.funGames')}</h3>
+          <h3 class="game-help-category">${contentIcon('gamepad', 16)} ${t('gamePicker.funGames')}</h3>
           <section class="game-help-section">
             <h3><span class="game-help-section__icon">${ICONS.grid}</span> ${t('gamePicker.ticTacToe')}</h3>
             <p>${t('gamePicker.ticTacToeHelp')}</p>

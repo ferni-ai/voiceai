@@ -11130,5 +11130,21 @@
     "helper": "スマホのカメラで読み取るか、「Venmoを開く」をタップしてください。金額は変更できます。",
     "maybeLater": "また今度",
     "close": "閉じる"
+  },
+  "reportReply": {
+    "button": "報告",
+    "describe": "{name}の発言を報告",
+    "title": "返答を報告",
+    "whichReply": "どの返答ですか？",
+    "whatsWrong": "何が問題ですか？",
+    "reasonHarmful": "有害または危険",
+    "reasonWrong": "誤りまたは誤解を招く",
+    "reasonInappropriate": "不適切",
+    "reasonOther": "その他",
+    "note": "補足があれば入力してください（任意）",
+    "send": "送信",
+    "thanks": "ありがとうございます。担当者が確認します。",
+    "failed": "送信できませんでした。もう一度お試しください。",
+    "tooMany": "今日はすでに多くの報告が送信されています。明日もう一度お試しください。"
   }
 }

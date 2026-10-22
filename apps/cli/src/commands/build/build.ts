@@ -141,16 +141,16 @@ async function buildIos(options: BuildOptions): Promise<boolean> {
 
   // Resolve Swift Package dependencies
   log.info('Resolving Swift Package dependencies...');
-  exec('xcodebuild -resolvePackageDependencies -project FerniVoice.xcodeproj -scheme FerniVoice', { cwd: iosDir });
+  exec('xcodebuild -resolvePackageDependencies -project Ferni.xcodeproj -scheme Ferni', { cwd: iosDir });
 
   // Build the app
   log.info('Building iOS app...');
-  exec('xcodebuild -project FerniVoice.xcodeproj -scheme FerniVoice -configuration Release -destination "generic/platform=iOS" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build', { cwd: iosDir });
+  exec('xcodebuild -project Ferni.xcodeproj -scheme Ferni -configuration Release -destination "generic/platform=iOS" CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build', { cwd: iosDir });
 
   log.success('iOS native app built!');
   console.log(`
 Next steps:
-  Open in Xcode: open apps/ios-native/FerniVoice.xcodeproj
+  Open in Xcode: open apps/ios-native/Ferni.xcodeproj
   Run on simulator: Select device in Xcode and press Cmd+R
 `);
 
