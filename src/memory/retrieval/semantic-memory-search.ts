@@ -55,6 +55,8 @@ export interface SemanticSearchOptions {
   sourceTypes?: MemorySourceType[];
   /** Include embedding in results (for debugging) */
   includeEmbedding?: boolean;
+  /** Include when each memory was saved, as an ISO string (TURN_MEMORY_RERANK) */
+  includeTimestamp?: boolean;
 }
 
 export interface SemanticSearchResult {
@@ -70,6 +72,8 @@ export interface SemanticSearchResult {
   sourceId?: string;
   /** Additional metadata */
   metadata?: Record<string, unknown>;
+  /** When the memory was saved (ISO), with includeTimestamp and a stored metadata.timestamp */
+  timestamp?: string;
 }
 
 export interface SemanticSearchMetrics {
@@ -158,6 +162,7 @@ export async function searchMemories(
         documentId: r.document.id,
         sourceId: r.document.metadata.sourceId as string | undefined,
         metadata: options.includeEmbedding ? r.document.metadata : undefined,
+        ...(options.includeTimestamp && { timestamp: isoTimestamp(r.document.metadata.timestamp) }),
       }));
 
     metrics.resultCount = results.length;
@@ -181,6 +186,13 @@ export async function searchMemories(
     log.warn({ error: String(error), userId }, 'Semantic memory search failed');
     return { results: [], metrics };
   }
+}
+
+/** A stored timestamp (Date, Firestore Timestamp, ISO string or ms) as ISO, or undefined. */
+function isoTimestamp(value: unknown): string | undefined {
+  const v = value as { toDate?: () => Date } | Date | string | number | undefined;
+  const date = typeof v === 'object' && v && 'toDate' in v && v.toDate ? v.toDate() : v ? new Date(v as Date) : undefined; // prettier-ignore
+  return date && !Number.isNaN(date.getTime()) ? date.toISOString() : undefined;
 }
 
 /**
