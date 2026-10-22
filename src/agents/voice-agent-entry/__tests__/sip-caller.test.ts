@@ -354,4 +354,23 @@ describe('noteCallerJoined', () => {
     expect(isPhoneListener('call-s')).toBe(true);
     expect(isPhoneListener('app-s')).toBe(false);
   });
+
+  it("tells the room's time-to-first-word watch who the caller is (TTFW_METRIC)", async () => {
+    const { registerTtfwRoom, unregisterTtfwRoom } = await import(
+      '../../shared/time-to-first-word-caller.js'
+    );
+    const room = fakeRoom();
+    const bindCaller = vi.fn();
+    registerTtfwRoom(room, { bindCaller });
+    const caller = sipCaller();
+    try {
+      await noteCallerJoined({ participant: caller, room, sessionId: 'call-t', env: {} });
+      expect(bindCaller).toHaveBeenCalledWith('call-t', caller);
+      // A room nobody is measuring is left alone.
+      await noteCallerJoined({ participant: caller, room: fakeRoom(), sessionId: 'call-u', env: {} });
+      expect(bindCaller).toHaveBeenCalledTimes(1);
+    } finally {
+      unregisterTtfwRoom(room);
+    }
+  });
 });

@@ -27,6 +27,7 @@ import {
 } from './music-user-learning.js';
 
 import { cleanForFirestore } from '../utils/firestore-utils.js';
+import { userHeld } from '../utils/minor-care.js';
 import {
   exportUserMusicMemories,
   importUserMusicMemories,
@@ -158,6 +159,7 @@ function getProfilePersistence(): PersistenceStore<PersistedTransitionProfile> {
       collection: 'music_learning',
       documentId: 'profile',
       syncIntervalMs: 10000, // Sync every 10 seconds
+      holdWrites: userHeld, // MINOR_CARE: a held caller under 18's music learning is never written
     });
   }
   return profilePersistence;
@@ -169,6 +171,7 @@ function getMemoryPersistence(): PersistenceStore<PersistedMusicMemories> {
       collection: 'music_learning',
       documentId: 'memories',
       syncIntervalMs: 15000, // Sync every 15 seconds (less frequent)
+      holdWrites: userHeld,
     });
   }
   return memoryPersistence;

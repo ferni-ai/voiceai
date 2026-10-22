@@ -15,6 +15,8 @@
 
 import { getApp, getApps, initializeApp, type App } from 'firebase-admin/app';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { getFirestoreDatabase } from '../config/environment.js';
+import { installFirestoreDbPin } from './firestore-db-pin.js';
 import { installSyntheticWriteGuard } from './synthetic-write-guard.js';
 
 const DEFAULT_APP_NAME = '[DEFAULT]';
@@ -36,12 +38,17 @@ export function resolveFirebaseProjectId(env: NodeJS.ProcessEnv = process.env): 
  */
 export function getAdminApp(): App {
   installSyntheticWriteGuard();
+  installFirestoreDbPin();
   if (getApps().some((app) => app.name === DEFAULT_APP_NAME)) return getApp();
   const projectId = resolveFirebaseProjectId();
   return projectId ? initializeApp({ projectId }) : initializeApp();
 }
 
-/** Firestore on the default firebase-admin app. */
+/**
+ * Firestore on the default firebase-admin app, bound to the process's database
+ * ('(default)' unless FIRESTORE_DATABASE names another). firebase-admin caches one
+ * instance per database id, and getFirestore(app, '(default)') is getFirestore(app).
+ */
 export function getAdminFirestore(): Firestore {
-  return getFirestore(getAdminApp());
+  return getFirestore(getAdminApp(), getFirestoreDatabase());
 }
