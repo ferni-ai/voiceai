@@ -18,7 +18,6 @@ vi.mock('../../../../config/gemini-config.js', async (importOriginal) => ({
 }));
 
 import { createSearchTools } from '../search.js';
-import { NOT_FOUND } from '../web-search.js';
 
 async function dispatch(tool: unknown, args: Record<string, unknown>): Promise<string> {
   const dist = dirname(createRequire(import.meta.url).resolve('@livekit/agents'));
@@ -109,17 +108,6 @@ describe('searchWeb backend', () => {
       sources: ['Reuters'],
     });
     expect(out).not.toMatch(/https?:|—|\.\.\./);
-  }, 30_000);
-
-  it('WEB_SEARCH=on, nothing found: shaped as a failure only with NO_INVENTED_INTERNALS=on', async () => {
-    vi.stubEnv('WEB_SEARCH', 'on');
-    vi.stubGlobal('fetch', vi.fn());
-    generateContent.mockResolvedValue({ text: '', candidates: [] });
-    const off = JSON.parse(await dispatch(createSearchTools().searchWeb, { query: 'q one' }));
-    expect(off).toBe(NOT_FOUND);
-    vi.stubEnv('NO_INVENTED_INTERNALS', 'on');
-    const on = JSON.parse(await dispatch(createSearchTools().searchWeb, { query: 'q two' }));
-    expect(on).toMatch(/^\[status: no_results\] The search found nothing useful/);
   }, 30_000);
 
   it('offers the same tools with the flag on and off', () => {

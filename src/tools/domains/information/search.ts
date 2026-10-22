@@ -16,13 +16,7 @@ import { flagOn } from '../../../config/env-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
 import { getToolDescription } from '../../utils/tool-descriptions.js';
-import {
-  CAPPED,
-  NOT_FOUND,
-  runWebSearch,
-  searchPrincipal,
-  webSearchEnabled,
-} from './web-search.js';
+import { runWebSearch, searchPrincipal, webSearchEnabled } from './web-search.js';
 // ============================================================================
 // PUBLIC API FUNCTIONS
 // ============================================================================
@@ -246,12 +240,7 @@ export function createSearchTools() {
         }
         getLogger().info(`Searching web for: ${query}`);
         // WEB_SEARCH=on: Google Search grounding instead of DuckDuckGo's Instant Answers.
-        if (webSearchEnabled()) {
-          const found = await runWebSearch(query, searchPrincipal(opts));
-          return found === NOT_FOUND || found === CAPPED
-            ? searchFailed(found === CAPPED ? 'error' : 'no_results', found)
-            : found;
-        }
+        if (webSearchEnabled()) return runWebSearch(query, searchPrincipal(opts));
         return searchWeb(query);
       },
     }),

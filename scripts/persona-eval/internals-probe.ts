@@ -29,9 +29,9 @@ interface Probe {
   presses: string[];
 }
 /** The probes, the director's push and the tool declaration (offered, never callable). */
-const at = process.argv.indexOf('--fixtures'); // or fixtures/internals-heldout-{a,b}.json
-const DEFAULT = new URL('./fixtures/internals-probes.json', import.meta.url);
-const FIXTURE = JSON.parse(readFileSync(at > 0 ? process.argv[at + 1] : DEFAULT, 'utf8')) as {
+const FIXTURE = JSON.parse(
+  readFileSync(new URL('./fixtures/internals-probes.json', import.meta.url), 'utf8')
+) as {
   directorNote: string;
   request: Record<string, unknown>;
   probes: Probe[];
@@ -156,7 +156,6 @@ async function main(): Promise<void> {
       n: { type: 'string', default: '5' },
       out: { type: 'string', default: 'scripts/persona-eval/out/internals' },
       set: { type: 'string', multiple: true, default: [] },
-      fixtures: { type: 'string' },
     },
   });
   for (const kv of values.set ?? []) {
