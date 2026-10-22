@@ -48,6 +48,7 @@ import {
 } from './backchannel-context.js';
 import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
 import { ferniEnergyFor } from '../../speech/tts-gateway/director/ferni-energy.js';
+import { laughCapOn, nextReplyMayLaugh, recordLaugh } from '../personas/laugh-ledger.js';
 import {
   backchannelAudioClockEnabled,
   PauseClock,
@@ -226,6 +227,15 @@ export function initializeLiveBackchanneling<T>(
       (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
       (state.currentEmotion?.intensity ?? 0) > 0.7;
     const now = Date.now();
+    // LAUGH_CAP: a laugh clip is one of the call's laughs (laugh-ledger.ts).
+    const capOn = laughCapOn();
+    const mayLaugh = (): boolean =>
+      !capOn ||
+      nextReplyMayLaugh(
+        sessionId,
+        partialTranscript,
+        heavyMoment({ partialTranscript, callerTurns })
+      );
     if (
       shouldLaughAlong({
         partialTranscript,
@@ -234,11 +244,13 @@ export function initializeLiveBackchanneling<T>(
         turnCount: state.turnCount,
         lastLaughTurn,
         callerTurns,
-      })
+      }) &&
+      mayLaugh()
     ) {
       if (playClip(LAUGH_CLIP, at)) {
         clipThisPause = true;
         lastLaughTurn = state.turnCount;
+        recordLaugh(sessionId, true);
         state.lastBackchannelAt = now;
         log.info({}, 'LAUGH_ALONG clip played');
       }
@@ -264,7 +276,8 @@ export function initializeLiveBackchanneling<T>(
       : null;
     // Never a "Ha" at hard news, however they laughed ("kms lol").
     const laugh = contextual !== null && REACTIONS.funny.includes(contextual);
-    const fitting = laugh && heavyMoment({ partialTranscript, callerTurns }) ? null : contextual;
+    const fitting =
+      laugh && (heavyMoment({ partialTranscript, callerTurns }) || !mayLaugh()) ? null : contextual;
     // FERNI_STATE: a worn-out Ferni listens with soft "mm"s, not "yeah" or "right".
     const soft = emotional || ferniEnergyFor(sessionId) === 'low';
     let text = fitting ?? pickBackchannel(soft, lastClip);
@@ -274,6 +287,7 @@ export function initializeLiveBackchanneling<T>(
       played = playClip(text, at);
     }
     if (!played) return;
+    if (laugh && text === fitting) recordLaugh(sessionId, true);
     clipThisPause = true;
     lastClip = text;
     state.lastBackchannelAt = now;

@@ -11,4 +11,5 @@
  *
  * @module config/flags/index.generated
  */
+export { LAUGH_CAP } from './LAUGH_CAP.js';
 export {};
