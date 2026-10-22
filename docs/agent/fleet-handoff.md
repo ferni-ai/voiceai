@@ -124,7 +124,7 @@ Each lane maps to an agent in `.claude/agents/`.
 
 ### backlog (`ferni-backlog`)
 - **The queued-but-stuck PRs** #671, #631, #684, #720, #788, #1043, #674.
-  - Add the missing flag-manifest entries.
+  - Add the missing flag-manifest entries (new flag: `pnpm flags:new`).
   - Merge main into each.
   - #674's cli-guards failure may be environmental.
   - #997 folds into #674.

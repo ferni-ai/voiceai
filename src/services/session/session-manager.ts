@@ -2297,8 +2297,8 @@ export async function createSessionServices(
         }
       }
 
-      // Flush unified trust persistence for this user
-      if (validatedUserId) {
+      // Flush unified trust persistence for this user (never a held caller under 18: MINOR_CARE)
+      if (validatedUserId && !memoryHeld(sessionId)) {
         try {
           await onSessionEndUnified(validatedUserId);
         } catch {
