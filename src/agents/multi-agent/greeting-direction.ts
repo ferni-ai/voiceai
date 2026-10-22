@@ -402,10 +402,8 @@ export async function directedGreeting(
   if (introAs) log.info({ sessionId, personaId }, 'First call: the hello says who is calling');
   // Nothing still ahead, and nothing from before on a same-day return (greeting-not-yet.ts).
   const hold = notYet.openingRestraint(history, userData?.callerTimezone);
-  const { win, checkIn } =
-    unknown || hold.sameDay
-      ? {}
-      : openingThread(openWin, hold.allows(openCheckIn) ? openCheckIn : undefined);
+  const dueCheckIn = hold.allows(openCheckIn) ? openCheckIn : undefined;
+  const { win, checkIn } = unknown || hold.sameDay ? {} : openingThread(openWin, dueCheckIn);
   // One thread per call: a win or what they said they'd do comes before a pondered ask.
   const ask = win || checkIn || !hold.allows(pondered?.text) ? undefined : pondered;
   // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
