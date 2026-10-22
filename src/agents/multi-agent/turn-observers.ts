@@ -271,11 +271,18 @@ export async function installTurnListeners(
   if (detachPauseHold) input.cleanupFunctions.push(detachPauseHold);
   const retrieval = await installToolRetrieval(input);
   const understanding = await installTurnUnderstanding(input.session, input.cleanupFunctions);
-  if (!retrieval && !understanding) return null;
+  const { installInternalsIntent } = await import('../personas/internals-intent.js'); // #2379
+  const intent = installInternalsIntent(
+    input.session,
+    () => now(input.agent) as never,
+    input.cleanupFunctions
+  );
+  if (!retrieval && !understanding && !intent) return null;
   return {
     onTranscript(transcript, isFinal) {
       retrieval?.onTranscript(transcript, isFinal);
       understanding?.onTranscript(transcript, isFinal);
+      intent?.onTranscript(transcript, isFinal);
     },
   };
 }

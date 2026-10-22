@@ -107,17 +107,22 @@ export type InternalsTurn = 'ask' | 'retract' | '';
 export function internalsTurn(
   items: readonly Item[],
   said: string,
-  env: Env = process.env
+  env: Env = process.env,
+  /** internals-intent.ts: the classifier read these words as a press (after a failure only). */
+  intent = false
 ): InternalsTurn {
   if (!noInventedInternalsEnabled(env) || !said) return '';
   const failed = turnsSinceFailure(items) <= 2;
   const lines = items.filter(isUser).map((i) => i.textContent ?? '');
   const askedBefore = lines.slice(-3, -1).some(asksAboutInternals);
-  const pressed = failed || askedBefore;
+  // "Who made you?" stays ai-honesty.ts's, whatever the classifier says.
+  const intended =
+    intent && turnsSinceFailure(items) <= 3 && !(AI_IDENTITY.test(said) && !TECH.test(said));
+  const pressed = failed || askedBefore || intended;
   // After a press, "you can be straight with me" keeps pressing; "my python class" doesn't.
   const keepsOn =
     askedBefore && /\b(?:you|your)\b/i.test(said) && (TECH.test(said) || PRESS.test(said));
-  const asked = !MOVES_ON.test(said) && (asksAboutInternals(said) || keepsOn);
+  const asked = !MOVES_ON.test(said) && (asksAboutInternals(said) || keepsOn || intended);
   if (inventedTerm(items, pressed || asked)) return 'retract';
   return asked && pressed ? 'ask' : '';
 }
