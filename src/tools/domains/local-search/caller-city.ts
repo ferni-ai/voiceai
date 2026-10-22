@@ -22,7 +22,6 @@
 import { flagOn } from '../../../config/env-flag.js';
 import { isRequireFixMemoryEnabled } from '../../../config/require-fix-memory-flag.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { nonAccountPrefixOf } from '../../../utils/synthetic-user.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
 import {
   callerLocation,
@@ -30,6 +29,7 @@ import {
   resolveCallerLocation,
 } from '../../shared/caller-location.js';
 import { getUserPreferences, updateUserPreferences } from '../information/preferences/storage.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 import { findCityByName } from './places-locality.js';
 
 const log = getLogger();
@@ -38,14 +38,6 @@ const MAX_CHARS = 40;
 const MAX_WORDS = 4;
 /** Letters and the punctuation place names use. No digits: those mean a street, a postcode or coordinates. */
 const CITY_CHARS = /^[\p{L}\p{M} .'’-]+$/u;
-/**
- * Ids that name no one: the fast-path shared ctx, the placeholder handler-setup
- * gives a call with no user, and the ids of unknown or on-behalf callers
- * (nonAccountPrefixOf in utils/synthetic-user.ts). Only a member's
- * own id is reused on a later call, so only that one can be remembered.
- */
-const NO_CALLER_IDS = new Set(['shared', 'anonymous', 'default', 'unknown']);
-
 /** `name` is what was saved, in the caller's own words ("Philly, PA"), so the caller can hear and correct it. */
 export type SaveCityResult =
   | { status: 'saved'; name: string }
@@ -136,14 +128,13 @@ export function cityOnly(value: string | undefined): string | undefined {
  * The caller on this call: only the call's own userData.userId. A fast-path
  * tool's ctx is shared, and handler-setup gives a call with no user the
  * placeholder 'anonymous'; neither names a caller, so neither is read or written.
+ * Nor does an unknown or on-behalf caller's id (isMemberIdentity): only a
+ * member's own id is reused on a later call, so only that one can be remembered.
  */
 export function callerUserId(opts: unknown): string | undefined {
   const id = (opts as { ctx?: { userData?: { userId?: unknown } } } | undefined)?.ctx?.userData
     ?.userId;
-  if (typeof id !== 'string') return undefined;
-  const trimmed = id.trim();
-  if (!trimmed || NO_CALLER_IDS.has(trimmed.toLowerCase())) return undefined;
-  return nonAccountPrefixOf(trimmed) ? undefined : trimmed;
+  return typeof id === 'string' && isMemberIdentity(id) ? id.trim() : undefined;
 }
 
 /** "Philadelphia, PA" for the caller's saved city; undefined when none is saved or the read fails. */

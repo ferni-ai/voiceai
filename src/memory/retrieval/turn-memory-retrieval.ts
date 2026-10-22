@@ -42,7 +42,7 @@ import {
   recordHybridSearchOutcome,
   runHybridSearchWithTimeout,
 } from './hybrid-search-timeout-stats.js';
-import { scaleTurnMemories, turnMemoryRrfScaleOn } from './turn-memory-scale.js';
+import { capTurnMemories, scaleTurnMemories, turnMemoryRrfScaleOn } from './turn-memory-scale.js';
 
 const log = createLogger({ module: 'TurnMemoryRetrieval' });
 
@@ -406,7 +406,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     metrics.dedupedResultCount = dedupedResults.length;
 
     // 5. CONVERT TO TURN FORMAT
-    const memories: RetrievedMemoryForTurn[] = dedupedResults
+    const memories: RetrievedMemoryForTurn[] = capTurnMemories(dedupedResults, rrfScale)
       .slice(0, config.maxMemories)
       .map((result) => {
         const memory: RetrievedMemoryForTurn = {
