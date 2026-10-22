@@ -13,7 +13,7 @@
  * PERSISTENCE: Aggregated metrics are persisted to Firestore.
  */
 
-import admin from 'firebase-admin';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 
@@ -24,9 +24,9 @@ import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.
 const METRICS_COLLECTION = 'humanization_metrics';
 const SESSION_ANALYTICS_COLLECTION = 'humanization_session_analytics';
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): FirebaseFirestore.Firestore | null {
   try {
-    return admin.firestore();
+    return getAdminFirestore();
   } catch {
     return null;
   }

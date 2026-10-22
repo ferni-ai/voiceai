@@ -5,7 +5,7 @@
  * past its first exchanges and nothing heavy is going on (their voice didn't
  * read sad, anxious, scared or angry this turn). At most once a call, and not
  * every time it could: a friend whistles now and then, not on cue. The moment
- * the caller speaks, the whistle stops.
+ * the caller speaks, or he starts his reply, the whistle stops.
  *
  * PRESENCE_SOUNDS=on turns it on (off until it has been listened to on dev).
  *
@@ -105,6 +105,9 @@ export function createPresenceWatcher(deps: PresenceDeps, timing: PresenceTiming
     onAgentState(state: string): void {
       if (agent === 'speaking' && state !== 'speaking') turns++;
       agent = state;
+      // He's talking again: the hum or whistle doesn't run into his reply.
+      if (state === 'speaking' && playing) deps.stop();
+      if (state === 'speaking') playing = false;
       arm();
     },
     onUserState(state: string): void {

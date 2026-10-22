@@ -23,8 +23,6 @@
 
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-intelligence.js';
-import { splitSaidBy } from './said-by.js';
 import {
   directorAddress,
   directorEscalates,
@@ -46,6 +44,7 @@ import {
 } from './director-cast.js';
 import { formatScene, scriptedNote, type Stage } from './director-scene.js';
 import { erodesGuard, guardRuleFor } from './director-guard.js';
+import { directorDirects, directsAsk, misdirects, type DirectsFilter } from './director-directs.js';
 
 const log = createLogger({ module: 'DirectorNotes' });
 
@@ -224,7 +223,7 @@ export function parseNotes(
   call?: Line[],
   speaking?: string,
   /** DIRECTOR_SEES_SCENE=on: also drop notes that script a line (director-scene.ts). */
-  opts: { scripted?: boolean; sessionId?: string } = {}
+  opts: { scripted?: boolean; sessionId?: string } & DirectsFilter = {}
 ): string[] {
   if (!reply) return [];
   const said = call ? contentWords(call.map((l) => l.text).join(' ')) : null;
@@ -241,6 +240,7 @@ export function parseNotes(
     .filter((l) => !directorSeesTools() || !CAPABILITY_DENIAL.test(l))
     .filter((l) => speaking === undefined || !claimsIdentity(l))
     .filter((l) => !opts.scripted || !scriptedNote(l, callerSaid(call)))
+    .filter((l) => !misdirects(l, callerSaid(call), opts)) // DIRECTOR_DIRECTS=on (director-directs.ts)
     .filter((l) => !said || [...contentWords(l)].some((w) => said.has(w)))
     .map((l) => (l.length > 160 ? `${l.slice(0, 157)}...` : l));
   return notes.slice(0, 2);
@@ -267,6 +267,7 @@ export class Director {
   /** DIRECTOR_ESCALATE=on: what the notes have raised, and the rule a repeat earned. */
   private readonly history = new NoteHistory();
   private rule = '';
+  private critiqued = 0;
 
   constructor(
     private readonly opts: {
@@ -278,6 +279,8 @@ export class Director {
       writeNotes?: boolean;
       /** The persona on the call now (DIRECTOR_PERSONA_AWARE); unset, the director directs Ferni. */
       speaking?: () => string;
+      /** The persona id on the call now; read only with DIRECTOR_DIRECTS on (director-directs.ts). */
+      personaId?: () => string | undefined;
     }
   ) {}
 
@@ -289,6 +292,7 @@ export class Director {
     const gen = ++this.generation;
     this.notes = []; // last turn's notes are stale now
     this.rule = '';
+    this.critiqued = 0;
     const speaking = this.opts.speaking?.();
     this.toldRecord = toldThisCallEnabled()
       ? toldThisCall(lines, this.opts.userName, speaking)
@@ -298,11 +302,15 @@ export class Director {
     const seesTools = directorSeesTools();
     const started = Date.now();
     const system = directorSystem();
+    const directs = directorDirects();
     const framed = stage && directorSeesScene() ? stage : undefined;
     const work = (async () => {
       try {
-        const asked = framed
-          ? await this.framed(lines, framed, seesTools)
+        const recast = directs
+          ? this.directing(lines, framed, seesTools)
+          : framed && this.framed(lines, framed, seesTools);
+        const asked = recast
+          ? await recast
           : {
               system:
                 (speaking ? `${system}\n${speakerNote(speaking)}\n${teamNote(speaking)}` : system) +
@@ -328,10 +336,17 @@ export class Director {
           );
           return;
         }
+        const names = [this.opts.userName || 'Them', asked.speaking ?? 'Ferni'];
+        const guard = { scripted: !!framed, sessionId: this.opts.sessionId };
         this.notes = parseNotes(reply, lines.slice(-12), asked.speaking, {
-          scripted: !!framed,
-          sessionId: this.opts.sessionId,
+          ...guard,
+          directs,
+          names,
         });
+        // DIRECTOR_DIRECTS: how many notes its guard dropped as style policing or a scripted line.
+        this.critiqued = directs
+          ? parseNotes(reply, lines.slice(-12), asked.speaking, guard).length - this.notes.length
+          : 0;
         const escalated = this.escalate();
         log.info(
           {
@@ -339,6 +354,7 @@ export class Director {
             ms: Date.now() - started,
             notes: this.notes,
             escalated,
+            ...(directs ? { critiqued: this.critiqued } : {}),
           },
           'DIRECTOR_NOTES'
         );
@@ -348,6 +364,29 @@ export class Director {
       }
     })();
     return work;
+  }
+
+  /**
+   * DIRECTOR_DIRECTS=on: direction for the persona on the call, from its own
+   * sheet (director-directs.ts), with the scene when DIRECTOR_SEES_SCENE is on
+   * too. DIRECTOR_ESCALATE's Ferni-only address is not added.
+   */
+  private async directing(
+    lines: Line[],
+    stage: Stage | undefined,
+    seesTools: boolean
+  ): Promise<{ system: string; prompt: string; speaking: string }> {
+    const personaId = stage?.personaId ?? this.opts.personaId?.();
+    const { system, speaking } = await directsAsk(personaId, seesTools);
+    const tools = seesTools ? this.tools.lines() : [];
+    const scene = stage ? formatScene(stage.scene, speaking) : '';
+    const prompt = buildDirectorPrompt(lines, this.opts.userName, speaking, tools, scene);
+    return { system, prompt, speaking };
+  }
+
+  /** DIRECTOR_DIRECTS=on: notes the last run wrote that the guard dropped (policing or scripting). */
+  droppedAsCritique(): number {
+    return this.critiqued;
   }
 
   /** DIRECTOR_SEES_SCENE=on: the request framed for the persona speaking, with the scene. */
@@ -451,31 +490,5 @@ export function getDirector(session: object | undefined): Director | undefined {
   return session ? directors.get(session) : undefined;
 }
 
-/**
- * The spoken conversation in a chat context: user and assistant messages,
- * markup removed. The per-turn context note is a user message too, but nobody
- * said it: the director once reported "Stevie Wonder from personality
- * expression" as part of the call.
- */
-export function linesFromChat(
-  items: ReadonlyArray<{ id?: string; type?: string; role?: string; textContent?: string }>,
-  by?: (item: { id?: string }) => string | undefined
-): Line[] {
-  const lines: Line[] = [];
-  for (const item of items) {
-    if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
-    if (item.textContent?.startsWith(TURN_CONTEXT_HEADER)) continue;
-    const said = (item.textContent ?? '')
-      .replace(/<[^>]+>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
-    // A reply carried over at a handoff is marked "(Ferni said:) " (persona-swap.ts).
-    const marked = item.role === 'assistant' ? splitSaidBy(said) : undefined;
-    const text = marked?.text ?? said;
-    if (!text) continue;
-    const name = item.role === 'assistant' ? (by?.(item) ?? marked?.name) : undefined;
-    if (name) lines.push({ speaker: 'ferni', text, by: name });
-    else lines.push({ speaker: item.role === 'user' ? 'user' : 'ferni', text });
-  }
-  return lines;
-}
+/** The spoken conversation in a chat context (director-lines.ts). */
+export { linesFromChat } from './director-lines.js';

@@ -12,7 +12,7 @@
  * @module services/experiments/auto-optimizer
  */
 
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
@@ -463,7 +463,7 @@ async function shipWinner(
   await completeWebExperiment(experimentId, winnerId, confidence);
 
   // 2. Log the shipment
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   await db.collection('experiment_shipments').add(
     removeUndefined({
       experimentId,
@@ -484,7 +484,7 @@ async function shipWinner(
  * Mark an experiment for manual review
  */
 async function markForReview(experimentId: string, decision: WinnerDecision): Promise<void> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   await db
     .collection('web_experiments')
     .doc(experimentId)
@@ -504,7 +504,7 @@ async function markForReview(experimentId: string, decision: WinnerDecision): Pr
  * Update the variant library with a new default
  */
 async function updateVariantLibraryDefault(experimentId: string, winnerId: string): Promise<void> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   await db
     .collection('variant_library')
     .doc(experimentId)

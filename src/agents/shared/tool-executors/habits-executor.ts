@@ -119,8 +119,8 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const habitId = `habit_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         await db
@@ -171,8 +171,8 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         // Find the habit
         let habitRef;
@@ -244,8 +244,8 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const snapshot = await db
           .collection('bogle_users')
@@ -295,8 +295,8 @@ async function execute(
 
     if (ctx.userId && name) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const snapshot = await db
           .collection('bogle_users')
@@ -363,8 +363,8 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const snapshot = await db
           .collection('bogle_users')
@@ -409,8 +409,8 @@ async function execute(
 
     if (ctx.userId) {
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
 
         const snapshot = await db
           .collection('bogle_users')

@@ -39,6 +39,9 @@ const SERVER_FLAGS = [
   'TEAM_BY_NEED=on',
   // The web server places the on-behalf calls the agent defers, so it runs the do-not-call check too.
   'ON_BEHALF_DNC_CHECK=on',
+  // Alex's 8am text brief: the job runs, but sends only to people whose own flag is on
+  // (feature_flag_overrides; Seth only, 2026-10-19). MORNING_BRIEF_COMMITMENTS stays off.
+  'MORNING_BRIEF=on',
 ];
 
 /** Proactive check-ins go to the uids in this secret; the repo is public, so never inline. */

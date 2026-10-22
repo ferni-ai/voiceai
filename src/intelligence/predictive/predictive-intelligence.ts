@@ -190,7 +190,7 @@ export class PredictiveIntelligenceService {
   private firestore: Firestore;
 
   constructor(firestore?: Firestore) {
-    this.firestore = firestore || new Firestore();
+    this.firestore = firestore || new Firestore({ databaseId: process.env.FIRESTORE_DATABASE || '(default)' });
   }
 
   // ==========================================================================
