@@ -46,6 +46,10 @@ import {
 } from '../../services/safety/crisis-grounded-release.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import {
+  classifierOnlyCheckin,
+  resolveClassifierOnlyCheckin,
+} from '../../services/safety/crisis-classifier-only.js';
+import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
 } from '../../services/safety/crisis-lone-imminent.js';
@@ -285,6 +289,24 @@ export function startCrisisGate(
     noteCrisisRisk(call); // CRISIS_TRANSFER_EVERYDAY: risk on this call, soft or not
     if (softTransfer) {
       log.info({ action: 'guide', source: 'transfer-request' }, 'CRISIS_GATE');
+      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
+    }
+    // CRISIS_CLASSIFIER_ONLY_CHECKIN: a crisis read nothing else agrees with (crisis-classifier-only.ts).
+    if (
+      stronger.action === 'guide' &&
+      resolveClassifierOnlyCheckin(env) !== 'off' &&
+      (await classifierOnlyCheckin({
+        detection,
+        verdict,
+        input,
+        priorRisk,
+        scope,
+        adjudicatorLive: adjudicatorMode === 'live',
+        env,
+        source: 'gate',
+      }))
+    ) {
+      log.info({ action: 'guide', source: 'classifier_only' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
     log.info(
