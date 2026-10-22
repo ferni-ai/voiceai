@@ -23,15 +23,13 @@ const log = createLogger({ module: 'SessionDataManager' });
 // TYPES
 // ============================================================================
 
-/**
- * Interface for services that cache user data
- */
+/** Interface for services that cache user data */
 export interface SessionDataService {
   /** Unique name for this service */
   name: string;
 
-  /** Clear all cached data for a specific user */
-  clearUserData: (userId: string) => void | Promise<void>;
+  /** Clear all cached data for a specific user; { save: false }: drop it without saving (MINOR_CARE) */
+  clearUserData: (userId: string, options?: { save?: boolean }) => void | Promise<void>;
 
   /** Clear ALL cached data (for shutdown) */
   clearAllData: () => void | Promise<void>;
@@ -154,11 +152,11 @@ class SessionDataManagerImpl {
     }
   }
 
-  /**
-   * Clean up ALL cached data for a user.
-   * Call this when a voice session disconnects.
-   */
-  async sessionEnded(userId: string): Promise<{ cleaned: string[]; errors: string[] }> {
+  /** Clean up ALL cached data for a user when a voice session disconnects. */
+  async sessionEnded(
+    userId: string,
+    options: { save?: boolean } = {}
+  ): Promise<{ cleaned: string[]; errors: string[] }> {
     const results = { cleaned: [] as string[], errors: [] as string[] };
 
     if (this.isShuttingDown) {
@@ -169,10 +167,12 @@ class SessionDataManagerImpl {
     const session = this.sessions.get(userId);
     const startTime = Date.now();
 
-    // Clean up all registered services
+    // Clean up all registered services; options go through only to drop without saving
     for (const [name, service] of this.services) {
       try {
-        await service.clearUserData(userId);
+        await (options.save === false
+          ? service.clearUserData(userId, options)
+          : service.clearUserData(userId));
         results.cleaned.push(name);
       } catch (error) {
         results.errors.push(name);
