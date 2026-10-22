@@ -13,6 +13,7 @@ import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
 import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { returningCallerGreeting } from '../../services/identity/returning-caller.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import type { UserProfile } from '../../types/user-profile.js';
@@ -275,6 +276,8 @@ export function greetingFacts(
   return facts;
 }
 
+export { firstTalkNote } from '../../services/identity/returning-caller.js';
+
 /** Agent setup knows the profile, the greeting needs it: handed over per session. */
 const pendingHistory = new Map<string, CallerHistory>();
 
@@ -392,8 +395,10 @@ export async function directedGreeting(
       stranger.isStrangerCall(userData, history),
       firstMeeting(personaId, userData, history), // FIRST_CALL_INTRO: the name to give
     ]);
-  // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
-  const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
+  // An unrecognised phone caller: a name given on that number before (RETURNING_CALLER), or ask.
+  const unknown =
+    returningCallerGreeting(sessionId) ??
+    unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
   const firstCall = isNew && !unknown; // never greeted as an old friend
   const stage = firstCall ? ('stranger' as const) : ('friend' as const);
   const scripted = generateWarmGreeting(personaId, { ...ctx, relationshipStage: stage });

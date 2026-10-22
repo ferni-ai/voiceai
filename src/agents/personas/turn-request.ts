@@ -47,7 +47,11 @@ import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
-import { nameCorrectionNote } from './name-correction.js';
+import {
+  inReturningCallerFlow,
+  returningCallerTurnNote,
+} from '../../services/identity/returning-caller.js';
+import { lastAgentLine, nameCorrectionNote, statedName } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
@@ -118,6 +122,7 @@ export function withTurnReminder(
   // SCRIPT_FREE_REMINDER=on: no shared style or quoted lines; never on a crisis turn (script-free.ts).
   const crisis = options.shape === false;
   const plain = !crisis && scriptFreeOn();
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
   // Nothing steers back to a locked teammate the caller didn't just name.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0;
@@ -157,7 +162,7 @@ export function withTurnReminder(
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session, process.env, words),
     // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
-    quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
+    quirkTurnNote(sessionId, chatCtx, words),
     // NAMED_TUNE=on: they noticed the whistle (name it?), or asked him to stop (named-tune-note.ts).
     tuneTurnNote(session, words, options.shape === false, sessionIsVerifiedOwner),
     state.note,
@@ -174,8 +179,12 @@ export function withTurnReminder(
       priorCalls: priorCallsOf((session as { userData?: unknown }).userData),
       careful: options.shape === false,
     }),
-    // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
-    firstCallNote(chatCtx, session, words, process.env, plain),
+    // FIRST_CALL_RAPPORT=on: a new caller's first call; RETURNING_CALLER=on: not for one who may
+    // have called before; "forget me", or the topic hint once they confirm (returning-caller.ts)
+    inReturningCallerFlow(sessionId) ? '' : firstCallNote(chatCtx, session, words, process.env, plain),
+    returningCallerTurnNote(sessionId, words, lastAgentLine(chatCtx), (w, a) =>
+      statedName(w, undefined, a)
+    ),
     // ROOM_GUESTS=on: someone else is in the room on the same mic (room-guests.ts)
     roomGuestsNote(session, words, process.env, plain),
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's

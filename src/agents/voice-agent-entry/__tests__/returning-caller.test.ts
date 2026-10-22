@@ -13,7 +13,15 @@ const h = vi.hoisted(() => {
     set: async (d: Record<string, unknown>) => void docs.set(`${c}/${id}`, d),
     delete: async () => void docs.delete(`${c}/${id}`),
   });
-  const db = { collection: (c: string) => ({ doc: (id: string) => doc(c, id) }) };
+  const db = {
+    collection: (c: string) => ({ doc: (id: string) => doc(c, id) }),
+    runTransaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> =>
+      fn({
+        get: async (ref: ReturnType<typeof doc>) => ref.get(),
+        set: (ref: ReturnType<typeof doc>, d: Record<string, unknown>) => void ref.set(d),
+        delete: (ref: ReturnType<typeof doc>) => void ref.delete(),
+      }),
+  };
   const logged: unknown[][] = [];
   const recorder = (): Record<string, unknown> => {
     const rec = (...args: unknown[]): void => void logged.push(args);
