@@ -35,7 +35,7 @@ let db: FirebaseFirestore.Firestore | null = null;
 function getDb(): FirebaseFirestore.Firestore | null {
   if (!db) {
     try {
-      db = getFirestore();
+      db = getFirestore(process.env.FIRESTORE_DATABASE || '(default)');
     } catch {
       // Firestore not available
       return null;

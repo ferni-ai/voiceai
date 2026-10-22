@@ -123,7 +123,8 @@ export async function loadKnown(): Promise<KnownView | null> {
   return res.data;
 }
 
-export type ActOutcome = 'done' | 'gone' | 'failed';
+/** 'not-kept': a code or password typed as the fix; the fact was forgotten instead. */
+export type ActOutcome = 'done' | 'not-kept' | 'gone' | 'failed';
 
 /** Forget, reject or correct one item. 'gone': it was already gone. */
 export async function actOn(
@@ -132,10 +133,10 @@ export async function actOn(
   value?: string
 ): Promise<ActOutcome> {
   // Ids are [A-Za-z0-9_-] (the server refuses anything else), so no encoding is needed.
-  const res = await apiPost(`/api/memories/known/${item.kind}/${item.id}`, {
+  const res = await apiPost<{ status?: string }>(`/api/memories/known/${item.kind}/${item.id}`, {
     action,
     ...(value !== undefined && { value }),
   });
-  if (res.ok) return 'done';
+  if (res.ok) return res.data?.status === 'not-kept' ? 'not-kept' : 'done';
   return res.status === 404 ? 'gone' : 'failed';
 }

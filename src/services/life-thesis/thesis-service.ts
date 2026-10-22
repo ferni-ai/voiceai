@@ -6,7 +6,7 @@
  * when you're struggling.
  */
 
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onLifeThesisComponentChange } from '../data-layer/hooks/wisdom-hooks.js';
@@ -51,7 +51,7 @@ export async function saveThesis(
     domainData?: Record<string, unknown>;
   }
 ): Promise<LifeThesis> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const thesesRef = db.collection('bogle_users').doc(userId).collection('life_theses');
 
   const now = new Date();
@@ -112,7 +112,7 @@ export async function saveThesis(
  * Get a specific thesis by ID.
  */
 export async function getThesis(userId: string, thesisId: string): Promise<LifeThesis | null> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const doc = await db
     .collection('bogle_users')
     .doc(userId)
@@ -143,7 +143,7 @@ export async function getThesesByDomain(
   userId: string,
   domain: ThesisDomain
 ): Promise<LifeThesis[]> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const snapshot = await db
     .collection('bogle_users')
     .doc(userId)
@@ -172,7 +172,7 @@ export async function getThesesByDomain(
  * Get all theses for a user.
  */
 export async function getAllTheses(userId: string): Promise<LifeThesis[]> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const snapshot = await db
     .collection('bogle_users')
     .doc(userId)
@@ -209,7 +209,7 @@ export async function updateThesis(
     trigger?: 'scheduled_review' | 'struggle_moment' | 'milestone' | 'change_in_circumstances';
   }
 ): Promise<LifeThesis | null> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const thesisRef = db
     .collection('bogle_users')
     .doc(userId)

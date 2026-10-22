@@ -6025,7 +6025,8 @@
     "minutesShort": "{minutes}m",
     "hoursMinutesShort": "{hours}h {minutes}m",
     "percentChange": "{change}%",
-    "moreEvents": "+{count} more"
+    "moreEvents": "+{count} more",
+    "weekRegion": "This week, day by day"
   },
   "storyArcs": {
     "firstLaunch": {
@@ -8855,7 +8856,8 @@
     },
     "durationMinutes": "{minutes}m",
     "durationHoursMinutes": "{hours}h {minutes}m",
-    "durationHours": "{hours}h"
+    "durationHours": "{hours}h",
+    "sessionsRegion": "Our past conversations"
   },
   "outreachPrefs": {
     "eyebrow": "Stay in touch",
@@ -10317,6 +10319,7 @@
     "deletingAccount": "Deleting your account...",
     "accountDeleted": "Your account is deleted. Take care.",
     "couldNotLoadMemories": "Couldn't load what I remember. Try again?",
+    "credentialNotKept": "Ferni doesn't keep codes or passwords, so that one is gone.",
     "memoryCorrected": "Got it. I'll remember it that way."
   },
   "trustSignals": {
@@ -10798,7 +10801,8 @@
     "comingSoon": "More options coming soon.",
     "status": {
       "active": "Active"
-    }
+    },
+    "itemsRegion": "Things you can choose"
   },
   "capabilityCard": {
     "betterThanHuman": "Better than Human"

@@ -54,6 +54,7 @@ vi.mock('../guarded-text.js', async (importOriginal) => {
     env: guard.env,
     store: {
       isOptedOut: async () => guard.optedOut,
+      consentDoc: async () => undefined,
       forPhoneHash: async (h: string) => guard.sent.filter((r) => r.phoneHash === h),
       userDoc: async () => guard.account,
       add: async (r: CheckinRecord) => {

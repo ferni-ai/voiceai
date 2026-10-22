@@ -13,7 +13,7 @@
  * @module services/platform/erase-user-record
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { ensureFirebaseAdmin } from '../identity/firebase-auth.js';
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -220,5 +220,5 @@ async function gatherKeys(
 
 function defaultDb(): Db {
   if (!ensureFirebaseAdmin()) throw new Error('Firebase Admin is not initialized');
-  return getFirestore();
+  return getAdminFirestore();
 }
