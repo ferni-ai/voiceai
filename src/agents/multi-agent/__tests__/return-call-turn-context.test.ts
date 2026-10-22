@@ -76,7 +76,7 @@ function turnTwo(note: string): llm.ChatContext {
 }
 
 describe('the reply to "it\'s me" after a greeting that asked a thread', () => {
-  it('carries no OPENER_FOLLOW_UP line: the greeting already asked', async () => {
+  it('carries no OPENER_FOLLOW_UP_LINE: the greeting already asked', async () => {
     const note = await greetAndRecall('u-claim');
     expect(note).toContain(THREAD); // the thread is still there to know about
     expect(note).not.toContain(OPENER_FOLLOW_UP_LINE);
@@ -108,9 +108,9 @@ describe('the reply to "it\'s me" after a greeting that asked a thread', () => {
 
 describe("the greeting's claim on last call's topic (greeting-claim.ts)", () => {
   const TOPIC = 'Sam decided to send a resume to Dana at Figma by Thursday';
-  async function greets(line: string, userId: string): Promise<string | undefined> {
+  async function greets(line: string, userId: string, topic = TOPIC): Promise<string | undefined> {
     actorLine = line;
-    rememberCallerHistory(`s-${userId}`, { calls: 2, lastTopic: TOPIC });
+    rememberCallerHistory(`s-${userId}`, { calls: 2, lastTopic: topic });
     await directedGreeting(`s-${userId}`, 'ferni', { userId, userName: 'Sam' });
     return takeOpenerClaim(userId);
   }
@@ -126,6 +126,12 @@ describe("the greeting's claim on last call's topic (greeting-claim.ts)", () => 
       "Hey Sam, it's Ferni. How are things today?",
     ])
       expect(await greets(line, `c-${line.length}`), line).toBeUndefined();
+    // Their name anywhere in the line, not only after "Hey".
+    expect(await greets('How are you holding up, Sam?', 'c-name')).toBeUndefined();
+    // A persona's name: "Maya" in both the line and the topic is not the topic.
+    const maya = 'Sam wants to talk to Maya about the budget';
+    expect(await greets('Did you get to talk to Maya today?', 'c-maya', maya)).toBeUndefined();
+    expect(await greets('Did you sort out the budget?', 'c-budget', maya)).toBe('greeting');
   });
 
   it('does not claim a line that asks nothing, or when no thread line could follow', async () => {

@@ -38,9 +38,14 @@ const NOT_A_NAME = new Set(
     ' '
   )
 );
-/** Ferni asked who it is, or whether they're there: "it's me" answers that. */
+/** Ferni asked who it is, their name, or whether they're there: "it's me" answers that. */
 const ASKS_WHO_OR_IF_THERE =
-  /\bwho(?:'s| is| am i| are you)\b|\bis (?:that|this|it) you\b|\b(?:are )?you (?:back|there|still there|here)\b/i;
+  /\bwho(?:'s| is| am i| are you)\b|\bis (?:that|this|it) you\b|\b(?:are )?you (?:back|there|still there|here)\b|\bwhat(?:'s| is) your name\b|\bwhat should i call you\b/i;
+
+/** Ferni's question asks who it is, their name, or whether they're there. */
+export function asksWho(question: string): boolean {
+  return ASKS_WHO_OR_IF_THERE.test(question);
+}
 
 const PERSONA_NAMES = Object.values(DISPLAY_NAMES).map((n) => n.split(' ')[0].toLowerCase());
 

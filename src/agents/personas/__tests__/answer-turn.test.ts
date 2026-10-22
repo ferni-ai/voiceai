@@ -133,6 +133,53 @@ describe('answersQuestion', () => {
     }
   });
 
+  it('mid-call, a short reply still answers as on main ("pretty good" after "how\'s the knee?")', () => {
+    const replies = [
+      'Pretty good.',
+      "It's fine.",
+      'Not bad.',
+      'Fine.',
+      'Great.',
+      'Better.',
+      'Still sore.',
+      'Could be worse.',
+      'It went well.',
+    ];
+    const env = { [FLAG]: 'on' };
+    for (const asked of ["How's the knee?", 'How was the trip?'])
+      for (const said of replies) {
+        const midCall = call(
+          ['ferni', 'Hey Sam.'],
+          ['caller', 'Hey.'],
+          ['ferni', asked],
+          ['caller', said]
+        );
+        expect(answersQuestion(asked, said), `${asked} ${said}`).toBe(true);
+        expect(isAnswerTurn(midCall.items, said, env), `${asked} ${said}`).toBe(true);
+      }
+    // Only Ferni's opener needs the words to touch its question.
+    const opened = call(['ferni', 'Hey Sam, how was the trip?'], ['caller', 'Pretty good.']);
+    expect(isAnswerTurn(opened.items, 'Pretty good.', env)).toBe(false);
+  });
+
+  it('reads a name as the answer to "what\'s your name?", on the opener or mid-call', () => {
+    const env = { [FLAG]: 'on' };
+    const asked = "Hey there, what's your name?";
+    for (const said of ['Seth.', "It's Seth.", "I'm Seth."]) {
+      expect(answersQuestion(asked, said), said).toBe(true);
+      expect(answersQuestion(asked, said, { opener: true }), said).toBe(true);
+      const opened = call(['ferni', asked], ['caller', said]);
+      expect(isAnswerTurn(opened.items, said, env), said).toBe(true);
+      const midCall = call(
+        ['ferni', 'Hey.'],
+        ['caller', 'Hi.'],
+        ['ferni', asked],
+        ['caller', said]
+      );
+      expect(isAnswerTurn(midCall.items, said, env), said).toBe(true);
+    }
+  });
+
   it("on Ferni's opener, only words that touch its question answer it", () => {
     const opened = call(['ferni', RESUME], ['caller', 'Yeah, I did.']);
     const env = { [FLAG]: 'on' };

@@ -21,7 +21,7 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import type { TurnSignals } from './turn-extras.js';
-import { answersWho, onlyGreets, sharedWords } from './caller-greeting.js';
+import { answersWho, asksWho, onlyGreets, sharedWords } from './caller-greeting.js';
 
 export function answerTurnGuardEnabled(env: Env = process.env): boolean {
   return flagOn('DIRECTOR_ANSWER_TURN_GUARD', env);
@@ -81,7 +81,8 @@ const MAX_SHORT_DECLARATIVE_WORDS = 6;
  * vs 0/60 without that line), while a missed answer costs a little warmth. LLMs pair
  * questions with answers near chance, so this stays a rule, not a model call.
  * `opener`: Ferni's line opened the call. Then only words that touch the question
- * answer it, whatever their shape.
+ * answer it, whatever their shape. Mid-call the short-declarative rule is as before:
+ * "pretty good" after "how's the knee?" answers it.
  */
 export function answersQuestion(
   ferniLine: string,
@@ -95,12 +96,13 @@ export function answersQuestion(
   if (answersWho(said, ferniLine)) return true;
   if (onlyGreets(said, ferniLine)) return false;
   const touches = sharedWords(said, ferniLine).length > 0;
-  if (opener && !touches) return false;
+  // Only on the opener: an answer to "what's your name?" is a name, wherever it comes.
+  if (opener && !touches && !asksWho(ferniLine)) return false;
   const answer = said.trim().replace(LEAD_IN, '');
   if (ASKS.test(answer) || CHANGES_TOPIC.test(answer)) return false;
   if (ANSWER_START.test(answer)) return words.length <= MAX_ANSWER_WORDS;
-  // A short line that repeats the question's words ("Tackled it.") answers it.
-  return touches && words.length <= MAX_SHORT_DECLARATIVE_WORDS;
+  // A repeat of the question's verb ("Tackled it.") is a short declarative.
+  return words.length <= MAX_SHORT_DECLARATIVE_WORDS;
 }
 
 interface Item {
