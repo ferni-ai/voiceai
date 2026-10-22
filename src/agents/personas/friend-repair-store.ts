@@ -11,7 +11,6 @@ import { withoutDerivedCopies } from '../../memory/recall/forget.js';
 import { firestoreSupersessionStore } from '../../memory/storage/supersession-store.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import type { RepairRecord, RepairStore } from './friend-repair.js';
-import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 /** Marks a correction kept by FRIEND_REPAIR among the caller's corrections. */
 export const REPAIR_SOURCE = 'friend-repair';
@@ -42,8 +41,7 @@ export function toRecord(data: Record<string, unknown>): RepairRecord | null {
 
 export const firestoreRepairStore: RepairStore = {
   facts: async (userId) => firestoreSupersessionStore.facts(userId),
-  async add(userId, repair) {
-    const r = redactCredentialsIn(repair); // what the caller said, without a code or password
+  async add(userId, r) {
     const doc = user(userId)?.collection('corrections').doc();
     if (!doc) throw new Error('Firestore unavailable: correction not kept');
     // user-corrections.ts's fields (its context builder reads them too), then the provenance.

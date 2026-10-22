@@ -13,7 +13,6 @@ import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { memoryHeld } from '../../../utils/minor-care.js'; // MINOR_CARE=on: no writes
 import { createLogger } from '../../../utils/safe-logger.js';
 import type { DomainExecutor, ToolExecutionContext } from './types.js';
-import { redactCredentials } from '../../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'MemoryExecutor' });
 
@@ -78,7 +77,7 @@ async function execute(
 
   // --- REMEMBER ABOUT USER ---
   if (fnLower === 'rememberaboutuser') {
-    const fact = redactCredentials(args.fact as string);
+    const fact = args.fact as string;
     const category = (args.category as string) || 'personal';
     const importance = (args.importance as string) || 'medium';
     const emotionalContext = args.emotionalContext as string | undefined;
@@ -361,8 +360,9 @@ async function execute(
 
   // --- UPDATE MEMORY ---
   if (fnLower === 'updatememory') {
-    const oldFact = redactCredentials(args.oldFact as string);
-    const newFact = redactCredentials(args.newFact as string);
+    const oldFact = args.oldFact as string;
+    const newFact = args.newFact as string;
+
     if (!oldFact || !newFact) {
       return 'Please specify both the old memory and the updated information.';
     }

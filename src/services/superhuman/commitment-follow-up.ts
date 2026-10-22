@@ -19,7 +19,6 @@ import {
   toSecondPerson,
 } from '../../utils/commitment-quality.js';
 import { commitmentsShown } from './commitment-forget.js';
-import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'CommitmentFollowUp' });
 
@@ -287,7 +286,7 @@ export async function rememberGoodbyePlan(
   const doc = goodbyePlanDoc(userId, plan, now);
   if (!doc) return false;
   try {
-    await write(userId, redactCredentialsIn(doc));
+    await write(userId, doc);
     log.info({ userId }, 'Goodbye plan kept for the next call');
     return true;
   } catch (error) {

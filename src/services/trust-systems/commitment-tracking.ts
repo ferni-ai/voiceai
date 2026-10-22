@@ -27,7 +27,6 @@ import { indexCommitment, deindexCommitment } from '../data-layer/integrations/i
 import { settleAwaitingAnswers, type FollowUpAnswer } from './commitment-follow-through.js';
 import { followUpAllowed } from '../coach-media/feedback.js';
 import { commitmentSentences } from '../../utils/commitment-filters.js';
-import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -403,9 +402,10 @@ function calculateFollowUpDate(type: CommitmentType): Date {
 
 const COLLECTION = 'bogle_users';
 
-/** Save a new commitment, without a credential the caller said in it (#2385). */
-export async function saveCommitment(input: Commitment): Promise<void> {
-  const commitment = redactCredentialsIn(input);
+/**
+ * Save a new commitment
+ */
+export async function saveCommitment(commitment: Commitment): Promise<void> {
   try {
     const db = await getFirestoreDb();
     if (!db) {

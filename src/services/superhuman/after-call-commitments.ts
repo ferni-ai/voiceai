@@ -29,7 +29,6 @@ import { getFirestoreDb } from './firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isTeammateTalk } from '../../utils/teammate-talk.js';
 import { isActionableCommitment } from '../../utils/commitment-quality.js';
-import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'AfterCallCommitments' });
 
@@ -244,7 +243,7 @@ export async function recordCallerCommitments(
       const text = `${String(doc.statement)} ${String(doc.summary)}`;
       if (isForgotten(text, forgotten)) continue;
       if (open.some((o) => sameCommitment(o, String(doc.statement)))) continue;
-      await sink.add(ctx.userId, redactCredentialsIn(doc));
+      await sink.add(ctx.userId, doc);
       written++;
     }
     log.info(

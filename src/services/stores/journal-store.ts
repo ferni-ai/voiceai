@@ -21,7 +21,6 @@ import {
   type NewJournalEntry,
   type StoredJournalEntry,
 } from '../journal/journal-ports.js';
-import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 /** The most entries one read returns. */
 export const JOURNAL_READ_LIMIT = 500;
@@ -42,12 +41,7 @@ export async function addJournalEntry(
 ): Promise<StoredJournalEntry> {
   const id = entry.id ?? `journal_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   const createdAt = entry.createdAt ?? new Date();
-  const stored: StoredJournalEntry = {
-    ...redactCredentialsIn(entry),
-    id,
-    createdAt,
-    updatedAt: createdAt,
-  };
+  const stored: StoredJournalEntry = { ...entry, id, createdAt, updatedAt: createdAt };
   const doc: Record<string, unknown> = { ...stored };
   delete doc.id;
   await journalCollection(uid).doc(id).set(cleanForFirestore(doc));

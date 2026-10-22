@@ -25,7 +25,6 @@ import {
 import { getFirestoreDb, cleanForFirestore } from '../superhuman/firestore-utils.js';
 import * as oneStore from './journal-ports.js';
 import { journalStreaks } from './streaks.js';
-import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'JournalService' });
 
@@ -207,8 +206,9 @@ class JournalService {
   ): Promise<UnifiedJournalEntry> {
     const id = `journal_${Date.now()}_${Math.random().toString(36).substring(7)}`;
     const now = new Date();
+
     const fullEntry: UnifiedJournalEntry = {
-      ...redactCredentialsIn(entry),
+      ...entry,
       id,
       userId,
       createdAt: now,
