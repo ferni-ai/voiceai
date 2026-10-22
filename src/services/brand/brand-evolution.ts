@@ -7,7 +7,7 @@
  * @module @ferni/brand/brand-evolution
  */
 
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getWebExperiments, type WebExperiment } from '../experiments/web-experiments.js';
@@ -18,6 +18,7 @@ import type {
   ExperimentPattern,
   ValidationResult,
 } from './types.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'BrandEvolution' });
 
@@ -211,7 +212,7 @@ function findMetaPatterns(patterns: ExperimentPattern[]): ExperimentPattern[] {
  */
 export async function evolveBrandRules(learnings: ExperimentPattern[]): Promise<BrandRuleChange[]> {
   const changes: BrandRuleChange[] = [];
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   for (const learning of learnings) {
     // Only apply high-confidence learnings
@@ -268,7 +269,7 @@ export async function recordFailedApproach(
   reason: string,
   experimentId: string
 ): Promise<void> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   try {
     await db
@@ -301,7 +302,7 @@ export async function recordFailedApproach(
  * Calculate brand health metrics
  */
 export async function calculateBrandHealth(): Promise<BrandHealthMetrics> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   try {
     // Get validation history (last 30 days)
@@ -390,7 +391,7 @@ export async function logValidation(
   result: ValidationResult,
   context?: { persona?: string; channel?: string }
 ): Promise<void> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   try {
     await db.collection('brand_validations').add(
@@ -439,7 +440,7 @@ export async function runDailyEvolution(): Promise<{
  * Get recent rule changes
  */
 export async function getRecentRuleChanges(days = 30): Promise<BrandRuleChange[]> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   try {
     const since = new Date();

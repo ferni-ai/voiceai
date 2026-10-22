@@ -1,0 +1,13 @@
+{
+  "replyDelayMs": { "p50": 3219, "p90": 3910, "n": 9 },
+  "talkOver": {
+    "backchannels": 0,
+    "backchannelStoppedAgent": 0,
+    "interruptYieldedFast": 0,
+    "interrupts": 0,
+    "interruptYielded": 0,
+    "interruptStopMs": { "p50": null },
+    "notTalkingWhenOverlapped": 0
+  },
+  "replyTexts": ["", "", "", "", "", "", "", "", "", "", ""]
+}

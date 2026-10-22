@@ -10223,6 +10223,7 @@
       "other": "You earned {count} seeds!"
     },
     "couldNotLoadMemories": "Couldn't load what I remember. Try again?",
+    "credentialNotKept": "Ferni doesn't keep codes or passwords, so that one is gone.",
     "memoryCorrected": "Got it. I'll remember it that way."
   },
   "trustSignals": {

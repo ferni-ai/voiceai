@@ -75,6 +75,9 @@ async function act(
       { store: firestoreActionStore }
     );
     if (result.kind === 'done') sendJSON(res, { success: true, ...result });
+    // 200 as /remembered answers it: the fact is gone, as asked
+    else if (result.kind === 'not-kept')
+      sendJSON(res, { success: true, status: 'not-kept', reason: result.reason });
     else if (result.kind === 'not-found') sendError(res, API_ERRORS.MEMORY_NOT_FOUND, 404);
     else sendError(res, result.reason, 400);
   } catch (err) {

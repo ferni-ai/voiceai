@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { loadDoc, type LoadResult } from './load-state.js';
 import { getValuesAlignment, getBlindSpots } from './semantic-intelligence/self-awareness.js';
 
 const log = createLogger({ module: 'superhuman:planning-coordination' });
@@ -132,25 +133,10 @@ const COLLECTION = 'planning_coordination';
 
 async function loadCoordinationProfile(
   userId: string
-): Promise<PlanningCoordinationProfile | null> {
+): Promise<LoadResult<PlanningCoordinationProfile>> {
   const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
-    if (doc.exists) {
-      return doc.data() as PlanningCoordinationProfile;
-    }
-    return null;
-  } catch (error) {
-    log.debug({ error, userId }, 'Failed to load planning coordination profile');
-    return null;
-  }
+  const ref = db?.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile');
+  return loadDoc<PlanningCoordinationProfile>(ref, log);
 }
 
 async function saveCoordinationProfile(
@@ -889,7 +875,9 @@ async function cacheAssessment(
   budget: number,
   result: PlanningReadinessAssessment
 ): Promise<void> {
-  const profile = (await loadCoordinationProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadCoordinationProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   // Keep only last 5 assessments
   profile.recentAssessments = [

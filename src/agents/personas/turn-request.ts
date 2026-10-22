@@ -47,7 +47,11 @@ import { repairNoteFor } from './repair-check.js';
 import { ferniStateTurn } from './ferni-state.js';
 import { listeningNotes } from './listen-first-turn.js';
 import { firstCallNote, isFirstCall } from './first-call-rapport.js';
-import { nameCorrectionNote } from './name-correction.js';
+import {
+  inReturningCallerFlow,
+  returningCallerTurnNote,
+} from '../../services/identity/returning-caller.js';
+import { lastAgentLine, nameCorrectionNote, statedName } from './name-correction.js';
 import { beatNote, priorCallsOf } from './personal-beats.js';
 import { porchLightNote } from './porch-light.js';
 import { roomGuestsNote } from './room-guests.js';
@@ -57,8 +61,8 @@ import {
 } from '../../intelligence/world-model/temporal/in-call-load.js';
 import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { quirkTurnNote } from './quirk-note.js';
+import { friendNotes } from './friend-tease.js';
 import { tuneTurnNote } from './named-tune-note.js';
-import { honestFriendNote } from './honest-friend.js';
 import {
   internalsNote,
   internalsTurn,
@@ -124,6 +128,7 @@ export function withTurnReminder(
   // SCRIPT_FREE_REMINDER=on: no shared style or quoted lines; never on a crisis turn (script-free.ts).
   const crisis = options.shape === false;
   const plain = !crisis && scriptFreeOn();
+  const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
   // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
   const internals = crisis ? '' : internalsTurn(chatCtx.items, words);
   // Nothing steers back to a locked teammate the caller didn't just name, or into his internals.
@@ -165,13 +170,13 @@ export function withTurnReminder(
     // The game on this call, if any (GAME_STATE=on): turn, score, what's been used.
     gameTurnNote(session, process.env, words),
     // A snore, whistle or laugh he did that isn't in his words (QUIRK_AWARENESS=on).
-    quirkTurnNote(sessionIdOf((session as { userData?: unknown }).userData), chatCtx, words),
+    quirkTurnNote(sessionId, chatCtx, words),
     // NAMED_TUNE=on: they noticed the whistle (name it?), or asked him to stop (named-tune-note.ts).
     tuneTurnNote(session, words, options.shape === false, sessionIsVerifiedOwner),
     state.note,
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     porchLightNote(chatCtx, session, { careful: options.shape === false }),
-    // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts); none with crisis guidance.
+    // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts), never with crisis guidance; shadow only logs.
     minorCareNote(sessionIdOf((session as { userData?: unknown }).userData), words, {
       careful: options.shape === false,
       asked: lastFerniLine(chatCtx.items),
@@ -182,8 +187,12 @@ export function withTurnReminder(
       priorCalls: priorCallsOf((session as { userData?: unknown }).userData),
       careful: options.shape === false,
     }),
-    // FIRST_CALL_RAPPORT=on: a new caller's first call (names, a reason to come back)
-    firstCallNote(chatCtx, session, words, process.env, plain),
+    // FIRST_CALL_RAPPORT=on: a new caller's first call; RETURNING_CALLER=on: not for one who may
+    // have called before; "forget me", or the topic hint once they confirm (returning-caller.ts)
+    inReturningCallerFlow(sessionId) ? '' : firstCallNote(chatCtx, session, words, process.env, plain),
+    returningCallerTurnNote(sessionId, words, lastAgentLine(chatCtx), (w, a) =>
+      statedName(w, undefined, a)
+    ),
     // ROOM_GUESTS=on: someone else is in the room on the same mic (room-guests.ts)
     roomGuestsNote(session, words, process.env, plain),
     // NAME_CORRECTION=on: the name they gave for themselves wins over the account's
@@ -194,8 +203,8 @@ export function withTurnReminder(
     teamByNeedNote(view.currentAgentId ?? 'ferni', words, agentWordsIn(chatCtx.items)),
     // ALEX_CHIEF_OF_STAFF=on: todos, goals, calendar and agenda go to Alex (chief-of-staff-note.ts)
     chiefOfStaffNote(view.currentAgentId ?? 'ferni', words, lastAgentWordsIn(chatCtx.items), plain),
-    // HONEST_FRIEND=on: no caving, no flattery, glad they have people; none with crisis guidance.
-    honestFriendNote(chatCtx, words, { careful: options.shape === false }),
+    // HONEST_FRIEND=on (no caving or flattery), FRIEND_TEASE=on (teasing earned); not in crisis.
+    ...friendNotes(chatCtx, session, words, options.shape === false),
     // NO_INVENTED_INTERNALS=on: "I don't know how that part works" is the whole answer.
     internalsNote(internals),
     // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.

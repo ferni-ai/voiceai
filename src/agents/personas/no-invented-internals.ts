@@ -29,7 +29,7 @@ const TECH =
   /\b(?:python|javascript|typescript|scrap(?:er|ers|ing)|api(?:s| gateway)?|json|payloads?|back[- ]?ends?|servers?|databases?|end ?points?|model weights|microservices?|http|sql|status codes?|search index|source code|codebase)\b/i;
 /** Asking how it works or what broke, in words a caller uses. */
 const ASKS_HOW =
-  /\b(?:what|which|where|why|how|is|are|was|did|does|tell me|explain|describe|walk me through|need|want|give me|show me|spell out)\b[^.?!]*\b(?:errors?|bugs?|glitch\w*|crash\w*|code|systems?|urls?|links?|service|software|architecture|stack|infrastructure|under the hood|behind the scenes|under there|plumbing|logs?|internet|wi-?fi|built|programmed|connected|hooked up|technical(?:ly)?|tech|went wrong|going on|happen\w*|hold ?up|broke\w*|down|failed|fail|(?:does|do|did)(?:n'?t| not)? (?:it|you|that|this)? ?work)\b/i;
+  /\b(?:what|which|where|why|how|is|are|was|did|does|tell me|explain|describe|walk me through|need|want|give me|show me|spell out)\b[^.?!]*\b(?:errors?|bugs?|glitch\w*|crash\w*|code|systems?|urls?|links?|service|software|architecture|stack|infrastructure|under the hood|behind the scenes|under there|plumbing|logs?|internet|wi-?fi|built|programmed|connected|hooked up|technical(?:ly)?|tech|went wrong|going on|hold ?up|broke\w*|down|failed|fail|(?:does|do|did)(?:n'?t| not)? (?:it|you|that|this)? ?work)\b/i;
 /** "Are you an AI / a bot / real?" and "is that your programming?": ai-honesty.ts's path. */
 const AI_IDENTITY =
   /\b(?:are you|is this|is that|am i talking to)\b[^.?!]*\b(?:an? ai|a bot|a robot|a machine|a program|a chatbot|real|human|a person|your programming|just code)\b|\bwho (?:made|built|created|programmed) you\b|\bwhat (?:model|ai)\b|\bchat ?gpt\b/i;
@@ -39,20 +39,13 @@ const FAILED =
 /** Letting it go: "never mind", "no worries", "anyway". */
 const MOVES_ON =
   /\b(?:never ?mind|forget (?:it|about it)|no worries|no big deal|it'?s fine|that'?s fine|anyway|anyways|moving on|let'?s (?:talk|move|change))\b/i;
-/** About Ferni: "your", "you run on", his search by name, or "it"/"that" with nothing of the caller's. */
+/** About Ferni: "your", "you run on", "Ferni" or his search by name; "how does that work?" is not. */
 const YOU =
   /\b(?:your|yours|yourself)\b|\byou(?:'re| are)? (?:\w+ly )?(?:use|using|run|running|built|made|work|working|connect\w*|hit|send|query|go through)\b|\b(?:ferni|search\w*|look ?ups?|the tool)\b/i;
-const DEICTIC = /\b(?:it|that|this|there)\b/i;
-const CALLERS_OWN = /\b(?:my|mine|our|i|i'?m|i'?ve|me)\b/i;
-const aboutFerni = (t: string): boolean => YOU.test(t) || (DEICTIC.test(t) && !CALLERS_OWN.test(t));
-/** Said to him: "you", "Ferni", or "tell me", "give it to me", "walk me through"... */
-const ADDRESSED =
-  /\b(?:you|your|yours|yourself|ferni)\b|\b(?:tell me|explain|give (?:it to )?me|walk me through|be straight|lay it out|spell (?:it )?out|break it down)\b/i;
-/** Something technical or pressing in it, or a credential ("I'm in tech", "I teach CS"). */
-const CUE = new RegExp(
-  String.raw`${TECH.source}|\bhow (?:do|does|did) (?:you|it|that|this|your [\w ]{1,20}) work\b|\bwhy\b[^.?!]*\bfail\w*|\b(?:what happened|under the hood|behind the scenes|put together|plain|straight|technical|specific|details|guess|theory|architecture)\b|\bi'?m (?:an? )?(?:\w+ )?(?:engineer|developer|programmer|coder|data scientist)\b|\bi'?m (?:also )?in (?:tech|software|cybersecurity|security)\b|\bi (?:teach|studied|study|work in|manage|do)\b[^.?!]{0,30}\b(?:computer|cs|software|dev\w*|engineering|tech|cybersecurity|security)\b|\bi'?ve (?:worked in|been coding|been programming)\b|\bi (?:write|build) (?:software|code|apps)\b`,
-  'i'
-);
+const aboutFerni = (t: string): boolean => YOU.test(t);
+/** Keeping on at him after a first press: "you can be straight with me", "your best guess". */
+const PRESS =
+  /\b(?:technical|specific|straight|details|guess|plain|honest(?:ly)?|truth|talk shop|everything)\b/i;
 /** "My backend", "my Python layer": a claim about himself whatever the frame. */
 const MY_TECH = new RegExp(String.raw`\bmy (?:[\w-]+ ){0,2}${TECH.source}`, 'i');
 /** Director notes that would push him into the technical question. */
@@ -67,7 +60,7 @@ const isFailure = (i: Item): boolean =>
   i.type === 'function_call_output' && (i.isError === true || FAILED.test(i.output ?? ''));
 
 /** Caller turns since the last failed tool result (Infinity: none failed). */
-function turnsSinceFailure(items: readonly Item[]): number {
+export function turnsSinceFailure(items: readonly Item[]): number {
   const at = items.map(isFailure).lastIndexOf(true);
   return at < 0 ? Infinity : items.slice(at).filter(isUser).length;
 }
@@ -107,9 +100,9 @@ export function inventedTerm(items: readonly Item[], framed = true): string | un
 export type InternalsTurn = 'ask' | 'retract' | '';
 
 /**
- * 'ask' from the first press after a failure (pushback compounds) until they
- * let it go; both need a technical frame (a failure or a press in the last
- * three caller turns), so "our server was great" never fires.
+ * 'ask' from the first press about him after a failure (pushback compounds)
+ * until they let it go; both need a technical frame (a failure or a press in
+ * the last few caller turns), so "our server was great" never fires.
  */
 export function internalsTurn(
   items: readonly Item[],
@@ -117,15 +110,14 @@ export function internalsTurn(
   env: Env = process.env
 ): InternalsTurn {
   if (!noInventedInternalsEnabled(env) || !said) return '';
-  const failed = turnsSinceFailure(items) <= 3;
+  const failed = turnsSinceFailure(items) <= 2;
   const lines = items.filter(isUser).map((i) => i.textContent ?? '');
   const askedBefore = lines.slice(-3, -1).some(asksAboutInternals);
   const pressed = failed || askedBefore;
-  // Within 3 turns of a failure or after a press, a line said to him with a technical or
-  // pressing cue presses too ("I'm in tech, give it to me plain"); "my python class" doesn't.
-  const aimed =
-    ADDRESSED.test(said) && CUE.test(said) && !(AI_IDENTITY.test(said) && !TECH.test(said));
-  const asked = !MOVES_ON.test(said) && (asksAboutInternals(said) || (pressed && aimed));
+  // After a press, "you can be straight with me" keeps pressing; "my python class" doesn't.
+  const keepsOn =
+    askedBefore && /\b(?:you|your)\b/i.test(said) && (TECH.test(said) || PRESS.test(said));
+  const asked = !MOVES_ON.test(said) && (asksAboutInternals(said) || keepsOn);
   if (inventedTerm(items, pressed || asked)) return 'retract';
   return asked && pressed ? 'ask' : '';
 }

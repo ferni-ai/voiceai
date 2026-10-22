@@ -10,6 +10,8 @@ const profiles = new Map<string, Record<string, unknown>>();
 vi.mock('../../../memory/profile-store.js', () => ({
   getProfileStore: async () => ({
     getProfile: async (userId: string) => profiles.get(userId) ?? { userId, personaMemories: {} },
+    getProfileStrict: async (userId: string) =>
+      profiles.get(userId) ?? { userId, personaMemories: {} },
     saveProfile: async (p: Record<string, unknown>) => {
       profiles.set(p.userId as string, p);
     },

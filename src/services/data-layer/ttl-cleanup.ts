@@ -229,10 +229,11 @@ export async function runTTLCleanup(options?: {
   try {
     // Get Firestore instance
     const admin = (await import('firebase-admin')).default;
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
     if (admin.apps.length === 0) {
       admin.initializeApp();
     }
-    const db = admin.firestore();
+    const db = getAdminFirestore();
 
     // Filter collections if specified
     const configs = options?.collections
@@ -329,10 +330,11 @@ export async function runUserDataCleanup(userId: string): Promise<CleanupReport>
 
   try {
     const admin = (await import('firebase-admin')).default;
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
     if (admin.apps.length === 0) {
       admin.initializeApp();
     }
-    const db = admin.firestore();
+    const db = getAdminFirestore();
 
     // Collections that store user data
     const userCollections = [

@@ -10,6 +10,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { keepOffProdApi, serveBuiltSite, type BuiltSite } from './built-site-server';
+import { installColourReader, type Rgba } from './computed-colour';
 
 const PORT = 8767;
 const SITE = `http://127.0.0.1:${PORT}`;
@@ -69,19 +70,11 @@ interface LowContrast {
 
 /** Text whose own color against its stacked solid backgrounds is under 3:1. */
 async function lowContrastText(page: Page): Promise<LowContrast[]> {
+  await installColourReader(page);
   return page.evaluate(() => {
-    interface Rgba {
-      r: number;
-      g: number;
-      b: number;
-      a: number;
-    }
-    const parse = (value: string): Rgba | null => {
-      const parts = value.match(/[\d.]+/g);
-      if (!parts || parts.length < 3) return null;
-      const [r, g, b, a] = parts.map(Number);
-      return { r, g, b, a: parts.length > 3 ? a : 1 };
-    };
+    const reader = window.ferniColour;
+    if (!reader) throw new Error('colour reader not installed');
+    const parse = (value: string): Rgba => reader.read(value);
     const channel = (v: number): number => {
       const s = v / 255;
       return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
@@ -127,7 +120,7 @@ async function lowContrastText(page: Page): Promise<LowContrast[]> {
         const style = getComputedStyle(node);
         if (style.backgroundImage !== 'none') painted = true;
         const bg = parse(style.backgroundColor);
-        if (bg && bg.a > 0) {
+        if (bg.a > 0) {
           layers.push(bg);
           if (bg.a >= 1) break;
         }
@@ -137,7 +130,6 @@ async function lowContrastText(page: Page): Promise<LowContrast[]> {
       for (let i = layers.length - 1; i >= 0; i--) bg = over(layers[i], bg);
 
       const raw = parse(getComputedStyle(el).color);
-      if (!raw) continue;
       const fg = raw.a < 1 ? over(raw, bg) : raw;
       const ratio = (Math.max(lum(fg), lum(bg)) + 0.05) / (Math.min(lum(fg), lum(bg)) + 0.05);
       if (ratio < 3) {
@@ -188,18 +180,17 @@ test.describe('ferni.ai in dark mode', () => {
   test('/ night sections keep a dark gradient', async ({ page }) => {
     await page.emulateMedia({ colorScheme: 'dark', reducedMotion: 'reduce' });
     await page.goto(`${SITE}/`, { waitUntil: 'networkidle' });
+    await installColourReader(page);
     const weak = await page.evaluate(() => {
-      const lum = (rgb: number[]): number => {
-        const [r, g, b] = rgb.map((v) => {
+      const reader = window.ferniColour;
+      if (!reader) throw new Error('colour reader not installed');
+      const lum = ({ r, g, b }: Rgba): number => {
+        const [lr, lg, lb] = [r, g, b].map((v) => {
           const s = v / 255;
           return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
         });
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
       };
-      const rgbs = (value: string): number[][] =>
-        [...value.matchAll(/rgba?\(([^)]+)\)/g)].map((m) =>
-          m[1].split(',').slice(0, 3).map(Number)
-        );
       const found: string[] = [];
       for (const selector of ['.two-am', '.stats-bar', '.memory-demo']) {
         const el = document.querySelector(selector);
@@ -208,22 +199,74 @@ test.describe('ferni.ai in dark mode', () => {
           continue;
         }
         const style = getComputedStyle(el);
-        const [color] = rgbs(style.color);
-        const stops = rgbs(style.backgroundImage);
+        const color = reader.read(style.color);
+        const stops = reader.stops(style.backgroundImage);
         // Fail rather than pass silently if the colours can't be read
-        if (!color || stops.length < 2) {
+        if (stops.length < 2) {
           found.push(`${selector} unreadable: ${style.color} / ${style.backgroundImage}`);
           continue;
         }
         const text = lum(color);
         for (const stop of stops) {
+          // What shows through a see-through stop isn't known here
+          if (stop.a < 1) {
+            found.push(`${selector} has a translucent stop: ${style.backgroundImage}`);
+            continue;
+          }
           const ratio = (Math.max(text, lum(stop)) + 0.05) / (Math.min(text, lum(stop)) + 0.05);
           if (ratio < 4.5)
-            found.push(`${selector} stop rgb(${stop.join(',')}) ${ratio.toFixed(2)}:1`);
+            found.push(`${selector} stop rgb(${stop.r},${stop.g},${stop.b}) ${ratio.toFixed(2)}:1`);
         }
       }
       return found;
     });
     expect(weak).toEqual([]);
+  });
+
+  // The checks above are only as good as the colour reader, so prove it reads
+  // every format Chromium computes and refuses what it can't read.
+  test('reads computed colours in any CSS format', async ({ page }) => {
+    await page.setContent(
+      '<p id="rgb" style="color: rgb(20, 17, 14)">a</p>' +
+        '<p id="rgba" style="color: rgba(255, 0, 0, 0.5)">a</p>' +
+        '<p id="srgb" style="color: color(srgb 1 1 1)">a</p>' +
+        '<p id="oklch" style="color: oklch(0.628 0.2577 29.23)">a</p>' +
+        '<p id="mix" style="color: color-mix(in srgb, #ff0000 50%, #0000ff)">a</p>' +
+        '<p id="grad" style="background-image: linear-gradient(oklch(0.628 0.2577 29.23), color-mix(in oklch, #0000ff 100%, white))">a</p>'
+    );
+    await installColourReader(page);
+    const read = await page.evaluate(() => {
+      const reader = window.ferniColour;
+      if (!reader) throw new Error('colour reader not installed');
+      const color = (id: string): string => getComputedStyle(document.getElementById(id)!).color;
+      let bogus = '';
+      try {
+        reader.read('not-a-colour');
+      } catch (error) {
+        bogus = String(error);
+      }
+      return {
+        computed: ['srgb', 'oklch', 'mix'].map(color),
+        colours: ['rgb', 'rgba', 'srgb', 'oklch', 'mix'].map((id) => reader.read(color(id))),
+        stops: reader.stops(getComputedStyle(document.getElementById('grad')!).backgroundImage),
+        bogus,
+      };
+    });
+    // The modern formats really are what reaches the reader
+    expect(read.computed.some((value) => value.startsWith('rgb'))).toBe(false);
+    const near = (got: Rgba, want: Rgba): void => {
+      for (const key of ['r', 'g', 'b'] as const)
+        expect(Math.abs(got[key] - want[key])).toBeLessThanOrEqual(1);
+      expect(got.a).toBeCloseTo(want.a, 2);
+    };
+    near(read.colours[0], { r: 20, g: 17, b: 14, a: 1 });
+    near(read.colours[1], { r: 255, g: 0, b: 0, a: 128 / 255 });
+    near(read.colours[2], { r: 255, g: 255, b: 255, a: 1 });
+    near(read.colours[3], { r: 255, g: 0, b: 0, a: 1 });
+    near(read.colours[4], { r: 128, g: 0, b: 128, a: 1 });
+    expect(read.stops).toHaveLength(2);
+    near(read.stops[0], { r: 255, g: 0, b: 0, a: 1 });
+    near(read.stops[1], { r: 0, g: 0, b: 255, a: 1 });
+    expect(read.bogus).toContain('unreadable colour "not-a-colour"');
   });
 });

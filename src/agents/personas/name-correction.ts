@@ -150,7 +150,7 @@ async function persistPreferredName(userId: string, name: string): Promise<void>
   await getFirestoreStore().atomicProfileUpdate(userId, (p) => ({ ...p, preferredName: name }));
 }
 
-function lastAgentLine(chatCtx: llm.ChatContext): string {
+export function lastAgentLine(chatCtx: llm.ChatContext): string {
   for (let i = chatCtx.items.length - 1; i >= 0; i--) {
     const item = chatCtx.items[i];
     if (item.type === 'message' && item.role === 'assistant') return item.textContent ?? '';

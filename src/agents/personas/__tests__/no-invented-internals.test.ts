@@ -356,15 +356,10 @@ describe('after a press, only a press about him keeps it going', () => {
   });
 });
 
-// Fix round 2: inside 3 turns of a failure, a line said to him with a cue presses.
+// After a failure, a press about him fires; ordinary lines never do (#2379 verify rows).
 describe('presses said to him after a failure, and ordinary lines that are not', () => {
   const on = { [FLAG]: 'on' };
-  for (const said of [
-    "I'm in tech too, give it to me plain.",
-    "I teach computer science, so you won't lose me if you get into it.",
-    "I'm a software engineer, so don't sugarcoat it, Ferni.",
-    'come on, what do you run on? python? something else?',
-  ])
+  for (const said of ['come on, what do you run on? python? something else?'])
     it(`presses: "${said}"`, () => {
       const c = afterFailedSearch(
         ['caller', 'why did your search fail?'],
@@ -374,8 +369,8 @@ describe('presses said to him after a failure, and ordinary lines that are not',
       expect(internalsTurn(c.items, said, on)).toBe('ask');
     });
 
-  it('more than 3 turns after the failure, a cue said to him is just chat', () => {
-    const said = "I'm in tech too, so give it to me plain: is AI coming for my job?";
+  it('long after the failure, with no press since, even a question about him does not fire', () => {
+    const said = 'what was the error on your end?';
     const c = afterFailedSearch(
       ['caller', 'ok'],
       ['ferni', 'Sure.'],
@@ -418,6 +413,37 @@ describe('presses said to him after a failure, and ordinary lines that are not',
     'fine, tell me a joke',
     "ok, what's the weather tomorrow then?",
     "alright, I'll check ESPN later. how's your day going?",
+    // Round-2 verify probes (v2379b): ordinary asks with cue words, after a failed search.
+    'tell me straight, should I take the job?',
+    'be honest, do I sound tired?',
+    'walk me through making risotto',
+    'what happened with my reminder?',
+    'how do you remember all this?',
+    'give it to me plain, is this a scam?',
+    "I'm an engineer, what do you think of my plan?",
+    'be straight with me, am I overreacting?',
+    "what's your theory on why my plants keep dying?",
+    'tell me what happened in the news today',
+    'break it down for me, how do I ask for a raise?',
+    "I'm a software developer and I'm burned out, what should I do?",
+    'spell it out for me, what should I say to her?',
+    "guess what, you won't believe it, I got the job!",
+    'I work in tech, can you help me write a cover letter?',
+    'tell me something specific I can do tonight to relax',
+    'what do you think happened between my parents?',
+    'give me the details, what time does the farmers market open?',
+    'you know what happened at work today? my boss quit',
+    'I study computer science, do you think I should switch majors?',
+    'tell me plainly, does this dress look okay?',
+    'how does that work, splitting the bill evenly?',
+    'what happened to your voice, you sound different',
+    'how did you know that about me?',
+    'walk me through the plan for tomorrow',
+    "explain it to me like I'm five: how do vaccines work?",
+    'you said something about tech earlier, what was it?',
+    'how does your memory work?',
+    'why does it keep failing? my sourdough I mean',
+    'tell me the details of my dentist appointment',
   ])
     it(`does not press: "${said}"`, () => {
       expect(internalsTurn(afterFailedSearch(['caller', said]).items, said, on)).toBe('');
