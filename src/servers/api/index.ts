@@ -640,8 +640,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   }
 
   try {
-    // Migration routes
-    if (pathname.startsWith('/api/auth/migrat')) {
+    // Migration routes: device ids, and anonymous accounts (/api/identity/merge-anonymous)
+    if (pathname.startsWith('/api/auth/migrat') || pathname.startsWith('/api/identity/')) {
       const handled = await handleMigrationRoutes(req, res, pathname);
       if (handled) return;
     }

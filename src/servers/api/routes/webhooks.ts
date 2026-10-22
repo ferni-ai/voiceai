@@ -19,10 +19,10 @@ import {
   updateWebhook,
   validateSiriToken,
   validateWebhookInput,
+  validateWebhookUrl,
   type WebhookPlatform,
 } from '../../../services/webhooks/index.js';
 import { requireAuth } from '../../../api/auth-middleware.js';
-import { checkOutboundUrl } from '../../../utils/outbound-url-guard.js';
 import { setCorsHeaders, handleCorsPreflightRequest } from '../../shared/cors.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { handleTwilioCallStatus } from './twilio-call-status.js';
@@ -235,11 +235,6 @@ export async function handleWebhookRoutes(
       sendError(res, 400, validation.errors.join(', '));
       return true;
     }
-    const createCheck = checkOutboundUrl(validation.normalized!.url);
-    if (!createCheck.ok) {
-      sendError(res, 400, `Webhook URL not allowed: ${createCheck.reason}`);
-      return true;
-    }
 
     // Create webhook
     const result = await createWebhook(userId, {
@@ -306,12 +301,12 @@ export async function handleWebhookRoutes(
 
     // The same URL rules as create: an update must not be a way around them.
     if (body.url !== undefined) {
-      const urlCheck = checkOutboundUrl(body.url);
-      if (!urlCheck.ok) {
-        sendError(res, 400, `Webhook URL not allowed: ${urlCheck.reason}`);
+      const urlCheck = validateWebhookUrl(body.url);
+      if (!urlCheck.valid) {
+        sendError(res, 400, urlCheck.error || 'Invalid webhook URL');
         return true;
       }
-      body.url = urlCheck.url.toString();
+      body.url = urlCheck.normalizedUrl;
     }
 
     const result = await updateWebhook(userId, {

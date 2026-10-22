@@ -10,20 +10,23 @@ import { FLAG_MANIFEST } from '../../config/flag-manifest.js';
 
 export const OTHER = 'other';
 
+// persona-ids.ts ALL_CANONICAL_IDS (a test keeps them equal; importing it here would load
+// the persona module into every process that writes a row)
+const PERSONAS = [
+  ...['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'],
+  ...['joel-dickson', 'peter-lynch', 'john-bogle'],
+] as const;
+
 export const BQ_ENUMS = {
   event_type: ['call_end', 'send', 'hold', 'skip', 'fail'],
   env: ['prod', 'dev', 'unknown'],
   end_reason: ['natural', 'disconnect', 'error'],
-  // persona-ids.ts ALL_CANONICAL_IDS (a test keeps them equal; importing it here would load
-  // the persona module into every process that writes a row)
-  persona: [
-    ...['ferni', 'peter-john', 'alex-chen', 'maya-santos', 'jordan-taylor', 'nayan-patel'],
-    ...['joel-dickson', 'peter-lynch', 'john-bogle'],
-  ],
+  persona: PERSONAS,
   channel: ['in_app', 'sms', 'voice_call'],
   kind: [
     ...['promise', 'follow_up', 'planned_checkin', 'hard_news', 'world_due', 'reminder'],
     ...['checkin', 'follow-up', 'message', 'on-behalf', 'morning-brief', 'call-result'],
+    ...['opt-in', 'proactive', 'coach-media'],
   ],
   outcome: [
     ...['pending', 'sent', 'replied', 'ignored', 'failed'],
@@ -31,9 +34,17 @@ export const BQ_ENUMS = {
   ],
   reason: [
     ...['no-hash-secret', 'no-verified-phone', 'recently-sent', 'sms-off', 'opted-out'],
-    ...['send-failed', 'bad-number', 'quiet-hours'],
+    ...['send-failed', 'bad-number', 'quiet-hours', 'consent-unknown', 'paused'],
     ...['fallback_from_in_app', 'fallback_from_sms', 'fallback_from_voice_call'],
   ],
+  // eval_results: what scripts/lib/eval-results-bq.ts maps each eval's results to
+  metric: [
+    ...['distinctness', 'insight_natural', 'copy_rate', 'humanness_win', 'humanness_matched_win'],
+    ...['tell_question', 'tell_opener', 'tell_checkin', 'tell_exclaim'],
+    ...['recall_hit', 'recall_false', 'recall_precision', 'longmem_correct', 'longmem_evidence'],
+  ],
+  // a bench, or the persona a per-persona row is about
+  scenario: [...['bar', 'bar_multi_turn', 'recall', 'longmem', 'longmem_cases'], ...PERSONAS],
 } as const;
 export type BqEnum<F extends keyof typeof BQ_ENUMS> = (typeof BQ_ENUMS)[F][number];
 
@@ -70,8 +81,8 @@ export const FIELD_VALUE: Record<string, (v: string) => string> = {
   // no producer yet: nothing allowed until one adds its list
   item_kind: () => OTHER,
   surfaced_via: () => OTHER,
-  run_id: () => OTHER,
-  scenario: () => OTHER,
-  arm: () => OTHER,
-  metric: () => OTHER,
+  // the bench, the run's day and 6 random hex: no room for a phone number or an email
+  run_id: (v) => (/^(bar|recall|longmem|live)-\d{8}-[a-f0-9]{6}$/.test(v) ? v : OTHER),
+  // an eval arm's name as its script was given it (bar's --arm, longmem's off and on)
+  arm: (v) => (/^[a-z][a-z0-9_-]{0,31}$/.test(v) ? v : OTHER),
 };

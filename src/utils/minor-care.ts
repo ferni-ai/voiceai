@@ -7,15 +7,17 @@
  * said they were 16 also gave personal details, and the memory tools kept
  * them. Product call: don't save, gentle care.
  *
- * "Sounds under 18" is read conservatively and only from the caller's own
- * words this call: a stated age under 18 ("I'm 16 years old", "I just turned
+ * "Sounds under 18" is read only from the caller's own words this call: a
+ * stated age under 18 ("I'm 16 years old", "I'm only 14", "I just turned
  * fifteen", "16." answering "how old are you?") or a school grade they're in
  * ("I'm in 10th grade", "I'm in high school"). Never from their voice or
- * vocabulary, someone else's age ("my son is 16"), the past ("I was 16"), a
- * number with a unit ("I'll be 10 minutes late"), a bare number nobody asked
- * about as an age ("I'm 8" on a pain scale), a school event ("I go to high
- * school games") or a joke ("lol I feel like I'm 12"). A false positive holds
- * an adult's memory for the whole call, so ambiguity reads as adult.
+ * vocabulary, someone else's age or words ("my son is 16", "she said I'm 14"),
+ * the past ("I was 16", "16 years old when I had her"), a number with a unit
+ * ("I'm 14 days sober"), a low bare number nobody asked about as an age ("I'm
+ * 8" on a pain scale), a parent at a school ("I'm in high school now, waiting
+ * for my son") or a joke ("lol I feel like I'm 12"). The cost is asymmetric:
+ * a false hold costs an adult one call's memory, a miss stores a child's
+ * details, so "I'm" plus 10-17 ending its clause ("I'm 14.") counts.
  *
  * memoryHeld(sessionId) is the one check every writer asks: flag on, the
  * caller sounds under 18, and the session is not a verified account owner's
@@ -27,6 +29,7 @@
  */
 import { flagOn } from '../config/env-flag.js';
 import { createLogger } from './safe-logger.js';
+import { PLACEHOLDER_IDS } from './synthetic-user.js';
 
 const log = createLogger({ module: 'minor-care' });
 
@@ -52,13 +55,25 @@ const WORD_AGES: Record<string, number> = {
   eighteen: 18,
 };
 const AGE = `(\\d{1,2}|${Object.keys(WORD_AGES).join('|')})`;
+/** "I'm 12 years old at heart": the one thing that undoes an explicit "I'm N years old". */
+const AT_HEART = String.raw`(?!\s+at heart\b)`;
+/** Without "I'm", a past age: "16 years old when I had her", "Sixteen years old is when I started". */
+const NOT_PAST = String.raw`(?![\s,]+(?:when i|is when|was when|at heart)\b)`;
 /** What may follow a stated age: the end, a pause, "years old", or a joining word. Not a unit ("16 minutes"). */
-const AFTER_AGE = String.raw`(?=\s*(?:$|[.,!?;:]|years?\s+old\b|yrs?\s+old\b|y\/?o\b|and\b|but\b|so\b|now\b|actually\b|though\b))`;
+const AFTER_AGE = String.raw`(?=\s*(?:$|[.,!?;:]|(?:years?|yrs?)\s+old\b${AT_HEART}|y\/?o\b|and\b|but\b|so\b|now\b|actually\b|though\b))`;
 /** A unit after the number: "10 minutes late", "12 days sober", "15 years sober", "16 percent". */
 const UNIT = String.raw`(?:min(?:ute)?s?|h(?:ou)?rs?|days?|weeks?|wks?|months?|(?:years?|yrs?)(?!\s*old)|sec(?:ond)?s?|percent|per\s*cent|%|miles?|mi|km|kilomet(?:er|re)s?|met(?:er|re)s?|feet|foot|ft|inch(?:es)?|pounds?|lbs?|kilos?|kgs?|dollars?|bucks|cents?|points?|pts|times|pages?|steps|reps|laps|o'?clock|[ap]\.?m\b\.?|degrees?|people|sober|more|less|late|early|out\s+of|of|grand|hundred|thousand|k)\b`;
 const NO_UNIT = String.raw`(?!\s*-?\s*${UNIT})`;
 /** "I'm", not "I feel like I'm" or "as if I'm" (a joke or a comparison). */
 const ME = String.raw`(?<!\blike\s)(?<!\bas if\s)(?<!\bas though\s)\b(?:i'm|im|i am)\s+(?:only\s+|just\s+)?`;
+/**
+ * A stated age that is someone else's words: only a clear third-party subject right before
+ * said/says/goes/told me ("she said I'm 14", "my mom goes I'm 14"). "I (just) said I'm 14" or an
+ * unclear subject counts as the caller's own words.
+ */
+const NOT_REPORTED = String.raw`(?<!\b(?:she|he|they|(?:the|this|that|my|his|her|their|our|your|some|a|an)\s+[a-z']+)\s+(?:said|says|goes|told me|tells me)[,:]?\s+(?:that\s+)?["“”']?)`;
+/** "I'm" in an age rule: the caller's own, unless clearly reported. */
+const ME_AGE = `${NOT_REPORTED}${ME}`;
 /** The start of what they said, after a filler: "um, 16 years old", "yeah, junior in high school". */
 const LEAD = String.raw`(?:^|[.!?]\s+)(?:(?:um+|uh+|er+|well|oh|yeah|yes|yep|so|i mean)[,\s]+)*`;
 /** Words that make a bare "I'm 16" about age: on their own, "I'm 8" is as likely a 1-10 answer or a golf score. */
@@ -69,12 +84,19 @@ const LAUGH = /\b(?:lol+|lmf?ao|rofl|ha(?:ha)+h?|he(?:he)+|jk|just kidding)\b|�
 const ASKED_AGE = /\b(?:how old|your age|what age|age are you)\b/i;
 
 /** "I'm 16", "im 14, so": an age only with age words or as the answer to "how old are you?". */
-const AGE_NOW = new RegExp(`${ME}${AGE}${AFTER_AGE}`, 'gi');
-/** "16 years old." at the start, "I'm a 15 year old girl": always an age, theirs. */
-const YEARS_OLD = new RegExp(
-  String.raw`(?:${LEAD}|${ME}a\s+)${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b`,
+const AGE_NOW = new RegExp(`${ME_AGE}${AGE}${AFTER_AGE}`, 'gi');
+/** "16 years old." at the start: their age, unless a past tense follows. */
+const YEARS_OLD = new RegExp(String.raw`${LEAD}${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b${NOT_PAST}`, 'gi');
+/** "I'm a 15 year old girl": always their age. */
+const A_YEARS_OLD = new RegExp(
+  String.raw`${ME_AGE}a\s+${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b${AT_HEART}`,
   'gi'
 );
+/** "I'm 14", "im only 13.", "I'm just fifteen, so": a present age that ends its clause (10-17 only). */
+const CLAUSE_END = String.raw`(?=\s*(?:$|[.,!?;:]|(?:so|but|now)\b|and\b(?!\s+a\s+half\b)))`;
+const AGE_ENDS = new RegExp(`${ME_AGE}(?:like\\s+)?${AGE}${CLAUSE_END}`, 'gi');
+/** Ferni asked for a rating or an amount: "I'm 10." then answers that, not an age. */
+const ASKED_AMOUNT = /\b(?:scale|one to ten|1 to 10|1-10|rate|rating|out of (?:ten|10)|how (?:many|much|far|long|soon))\b/i;
 /** "16." or "Sixteen." and nothing else, answering "how old are you?". */
 const BARE_ANSWER = new RegExp(
   String.raw`^\s*(?:(?:um+|uh+|er+|well|oh|so|yeah|i'm|im|i am|just|only|almost)[,\s]+)*${AGE}\s*[.!]*\s*$`,
@@ -83,7 +105,7 @@ const BARE_ANSWER = new RegExp(
 /** "I just turned 15": the age they are now. */
 const TURNED = new RegExp(String.raw`\bi(?: just)? turned\s+${AGE}${AFTER_AGE}`, 'gi');
 /** "I'm turning 18 next month", "I turn 16 in May": a year older soon, so younger now. */
-const TURNING = new RegExp(String.raw`(?:${ME}turning|\bi turn)\s+${AGE}\b${NO_UNIT}`, 'gi');
+const TURNING = new RegExp(String.raw`(?:${ME_AGE}turning|\bi turn)\s+${AGE}\b${NO_UNIT}`, 'gi');
 /** "I'll be 16 in March": only with a when (or age words), not "I'll be 10" (minutes, at the door). */
 const WILL_BE = new RegExp(
   String.raw`\bi(?:'ll| will) be\s+${AGE}\b${NO_UNIT}(?=\s*(?:in (?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|next (?:week|month|year)|this (?:year|month|week|summer|fall|spring|winter)|on my (?:birthday|b-?day)|soon\b))`,
@@ -94,7 +116,9 @@ const WILL_BE = new RegExp(
 const WILL_BE_LOOSE = new RegExp(String.raw`\bi(?:'ll| will) be\s+${AGE}\b${NO_UNIT}`, 'gi');
 
 /** "I'm in high school" as the whole thing they said, not "high school football games" or "pickup". */
-const AFTER_PRED = String.raw`(?=\s*(?:$|[.,!?;:)]|(?:and|but|so|now|right now|this year|still|too|though|actually|at|over|in|near|with|here|yet)\b))`;
+const AFTER_PRED = String.raw`(?=\s*(?:$|[.,!?;:)]|(?:and|but|so|at|over|in|near|with|here)\b|(?:right now|now|this year|still|too|though|actually|yet)\s*(?:$|[.,!?;:)]|(?:and|but|so)\b)))`;
+/** "in high school (right) now, waiting for my son": a parent at the school, only when it follows directly. */
+const NOT_PARENT = String.raw`(?![\s,]*(?:(?:right\s+)?now[\s,]+)?(?:picking up|pick up|dropping off|drop off|waiting for|waiting on)\s+(?:my|our)\s+(?:kids?|sons?|daughters?|child|children)\b)`;
 const GRADE_WORDS =
   'first|second|third|fourth|fifth|sixth|seventh|eighth|ninth|tenth|eleventh|twelfth';
 const ORDINAL = String.raw`(?:(?:[1-9]|1[0-2])(?:st|nd|rd|th)|${GRADE_WORDS})`;
@@ -106,12 +130,12 @@ const GRADE = new RegExp(
 const SCHOOL = String.raw`(?:high|middle|junior high|elementary|grade)\s+school`;
 /** "I'm (still) in high school", "I go to middle school", "I'm a high schooler". */
 const IN_SCHOOL = new RegExp(
-  String.raw`(?:${ME}(?:still\s+)?in\s+|\bi\s+(?:go to|attend)\s+)${SCHOOL}\b${AFTER_PRED}|${ME}a\s+(?:high|middle)\s+schooler\b`,
+  String.raw`(?:${ME}(?:still\s+)?in\s+|\bi\s+(?:go to|attend)\s+)${SCHOOL}\b${NOT_PARENT}${AFTER_PRED}|${ME}a\s+(?:high|middle)\s+schooler\b`,
   'i'
 );
 /** "I'm a sophomore in high school", or just "Sophomore in high school." as an answer. */
 const SCHOOL_YEAR = new RegExp(
-  String.raw`(?:${ME}a\s+|${LEAD}(?:a\s+)?)(?:freshman|sophomore|junior|senior)\s+(?:in|at)\s+${SCHOOL}\b${AFTER_PRED}`,
+  String.raw`(?:${ME}a\s+|${LEAD}(?:a\s+)?)(?:freshman|sophomore|junior|senior)\s+(?:in|at)\s+${SCHOOL}\b${AFTER_PRED}|${ME}a\s+(?:freshman|sophomore)\b${CLAUSE_END}`,
   'i'
 );
 
@@ -119,10 +143,10 @@ function ageOf(word: string): number {
   return WORD_AGES[word.toLowerCase()] ?? Number(word);
 }
 
-function anyAge(re: RegExp, text: string, under: number): boolean {
+function anyAge(re: RegExp, text: string, under: number, from = 6): boolean {
   for (const m of text.matchAll(re)) {
     const age = ageOf(m[1] ?? '');
-    if (age >= 6 && age < under) return true;
+    if (age >= from && age < under) return true;
   }
   return false;
 }
@@ -154,7 +178,10 @@ export function statesUnder18(text: string, asked?: string): boolean {
   if (LAUGH.test(t)) return false;
   const aboutAge = askedAboutAge(asked) || AGE_WORDS.test(t);
   return (
+    // A miss stores a child's details; a false hold costs an adult one call's memory.
+    (!ASKED_AMOUNT.test(asked ?? '') && anyAge(AGE_ENDS, t, 18, 10)) ||
     anyAge(YEARS_OLD, t, 18) ||
+    anyAge(A_YEARS_OLD, t, 18) ||
     anyAge(TURNED, t, 18) ||
     anyAge(TURNING, t, 19) ||
     anyAge(WILL_BE, t, 19) ||
@@ -176,6 +203,8 @@ const MAX_SESSIONS = 500;
 /** Longer than any call plus its after-call work: a session this idle can't still be writing. */
 const IDLE_MS = 6 * 60 * 60 * 1000;
 let ownerCheck: (sessionId: string) => boolean = () => false;
+/** userId -> the held session it was heard on, for the writers keyed by user (per-user flush timers). */
+const heldUsers = new Map<string, string>();
 
 function touch(sessionId: string): void {
   likely.delete(sessionId);
@@ -200,6 +229,8 @@ interface HeardOptions {
   /** Ferni's previous line, so a bare "16." can answer "how old are you?". */
   asked?: string;
   env?: Env;
+  /** The caller's userId: once the session is held, userHeld(userId) is true too. */
+  userId?: string;
 }
 
 /** Read the caller's words for this session; true once they have sounded under 18. Flag off: nothing. */
@@ -239,7 +270,25 @@ export function heldAfter(
 ): boolean {
   if (!minorCareOn(options.env)) return false;
   noteCallerWords(sessionId, said, options);
-  return memoryHeld(sessionId, options.env);
+  const held = memoryHeld(sessionId, options.env);
+  if (held && sessionId && !sharedId(options.userId)) heldUsers.set(options.userId!, sessionId);
+  return held;
+}
+
+/**
+ * The per-user writers' check, at write time (a flush timer's tick): this user's held session is
+ * still in use (within IDLE_MS), the flag is on and it isn't a verified owner's. Never refreshes
+ * the session, so a timer can't keep a hold alive.
+ */
+export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
+  const sessionId = userId && !sharedId(userId) ? heldUsers.get(userId) : undefined;
+  if (!userId || !sessionId || !minorCareOn(env)) return false;
+  const used = likely.get(sessionId);
+  if (used === undefined || Date.now() - used > IDLE_MS) {
+    heldUsers.delete(userId);
+    return false;
+  }
+  return !ownerCheck(sessionId);
 }
 
 export const MINOR_CARE_NOTE =
@@ -260,8 +309,17 @@ export function minorCareNote(
   return noteCallerWords(sessionId, said, options) ? MINOR_CARE_NOTE : '';
 }
 
+/**
+ * A placeholder or shared id ('anonymous', 'default', 'unknown', blank): one bucket for many
+ * people, so never held, bound or purged. A per-device id (anon:<id>) is one caller's: held.
+ */
+export function sharedId(userId: string | undefined): boolean {
+  return !userId?.trim() || PLACEHOLDER_IDS.has(userId.trim().toLowerCase());
+}
+
 /** Tests only. */
 export function resetMinorCare(): void {
   likely.clear();
+  heldUsers.clear();
   ownerCheck = () => false;
 }

@@ -61,7 +61,7 @@ import {
 import { withAnnouncedCheckLog } from './announced-check.js';
 import { withCallerVoiceGuard } from './caller-voice-guard.js';
 import { CRISIS_TALK } from './emergency-claim.js';
-import { honestLine, type MissReason } from './honest-line.js';
+import { honestLine, inPlace, type MissReason } from './honest-line.js';
 import { emergencyCheck, emergencyCorrection } from './emergency-correction.js';
 import { clauseSafeFor, FirstClauseFlush, firstClauseFlushEnabled } from './first-clause-flush.js';
 import { plain, spokenOf, type Item } from './spoken-words.js';
@@ -299,8 +299,16 @@ async function checkActionClaims<T>(
       const correctEmergency = emergencyCorrection(); // the emergency line, once per reply
       let lineLast = false; // the last thing out was an honest line
       // `text` is the held sentence, kept until the reply shows whether the claim came true.
+      // `afterWords`: something was already said before the claim this reply.
       let deferred:
-        { kind: ActionKind; reason: MissReason; text?: string; offer?: string } | undefined;
+        | {
+            kind: ActionKind;
+            reason: MissReason;
+            text?: string;
+            offer?: string;
+            afterWords: boolean;
+          }
+        | undefined;
       // Held sentences that follow an uncalled claim, released in order once the claim resolves.
       const queued: string[] = [];
       let early: ActionKind | undefined; // a call claimed ahead of its tool's result
@@ -357,7 +365,13 @@ async function checkActionClaims<T>(
         if (reason === 'failed' || reason === 'elsewhere' || (waits && hold)) {
           // An unkept promise is asked as an offer instead ("Want me to text him?").
           const offer = reason === 'promised' ? offerFor(whole) : undefined;
-          deferred = { kind, reason, text: hold ? text : undefined, offer };
+          deferred = {
+            kind,
+            reason,
+            text: hold ? text : undefined,
+            offer,
+            afterWords: last !== '',
+          };
           return;
         }
         said = true;
@@ -431,7 +445,11 @@ async function checkActionClaims<T>(
         }
         if (pending && !told(pending)) flush(pending);
         if (deferred && !said && !calling.has(deferred.kind)) {
-          emit(deferred.offer ?? honestLine(deferred.kind, deferred.reason, open.has('reminder')));
+          const line =
+            deferred.offer ?? honestLine(deferred.kind, deferred.reason, open.has('reminder'));
+          // The held words after the claim go with its line, unless a call claimed early speaks next.
+          const after = early ? [] : queued.splice(0);
+          for (const text of inPlace(line, deferred.afterWords, after)) emit(text);
         }
         // A yes the reply never acted on: nothing rang, so ask again.
         if (early && !said && !calling.has(early)) emit(honestLine(early, 'awaiting', false));

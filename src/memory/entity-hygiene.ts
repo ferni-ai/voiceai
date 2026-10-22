@@ -27,7 +27,7 @@
  */
 
 import { flagOn, type Env } from '../config/env-flag.js';
-import { HEARD_AS, TEAM_FIRST_NAMES } from '../utils/teammate-talk.js';
+import { FERNI_HEARD_AS, HEARD_AS, TEAM_FIRST_NAMES } from '../utils/teammate-talk.js';
 
 export function entityHygieneOn(env: Env = process.env): boolean {
   return flagOn('ENTITY_HYGIENE', env);
@@ -46,7 +46,7 @@ export interface NamedEntity {
 /** Why a name is not stored, or null for a real one. */
 export type JunkReason = 'number' | 'placeholder' | 'persona' | 'request' | 'greeted';
 
-const FERNI = new Set(['ferni', 'fernie', 'ferny', 'furny']);
+const FERNI = new Set<string>(['ferni', ...FERNI_HEARD_AS]);
 const TEAMMATE = `(?:${[...TEAM_FIRST_NAMES, ...Object.keys(HEARD_AS)].join('|')})`;
 /** A teammate's name and nothing else ("Maya", "Peter John"), or greeted ("Hey Maya"). */
 const TEAMMATE_ALONE = new RegExp(

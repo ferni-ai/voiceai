@@ -13,6 +13,7 @@ import {
   isBlockedIp,
   OutboundUrlBlockedError,
   readCappedText,
+  guardedStreamFetch,
   safeOutboundFetch,
 } from '../outbound-url-guard.js';
 
@@ -108,6 +109,13 @@ describe('checkOutboundUrl: literal destinations', () => {
   });
 });
 
+describe('isBlockedIp: IPv4 embedded in IPv6', () => {
+  it('blocks IPv4-translated and local-use NAT64 addresses', () => {
+    expect(isBlockedIp('::ffff:0:7f00:1')).toBe(true);
+    expect(isBlockedIp('64:ff9b:1::a00:7')).toBe(true);
+  });
+});
+
 describe('assertSafeOutboundUrl: DNS answers', () => {
   it('refuses a public-looking name that resolves to a private address', async () => {
     resolveTo({ 'internal-alias.example.com': '10.0.0.7' });
@@ -168,6 +176,29 @@ describe('safeOutboundFetch: redirects', () => {
     vi.stubGlobal('fetch', fetchSpy);
     await expect(safeOutboundFetch('https://[::1]/')).rejects.toThrow(OutboundUrlBlockedError);
     expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('guardedStreamFetch', () => {
+  it('refuses a name that resolves to a private address without fetching', async () => {
+    resolveTo({ 'mcp.example.com': '192.168.1.4' });
+    const fetchSpy = vi.fn();
+    vi.stubGlobal('fetch', fetchSpy);
+    await expect(guardedStreamFetch('https://mcp.example.com/sse')).rejects.toThrow(
+      OutboundUrlBlockedError
+    );
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it('adds no timeout, refuses redirects and connects through the guarded agent', async () => {
+    resolveTo({ 'mcp.example.com': PUBLIC_V4 });
+    const fetchSpy = vi.fn(async (_url: unknown, _init?: RequestInit) => new Response('ok'));
+    vi.stubGlobal('fetch', fetchSpy);
+    await guardedStreamFetch(new URL('https://mcp.example.com/sse'), { method: 'GET' });
+    const init = fetchSpy.mock.calls[0]?.[1] as RequestInit & { dispatcher?: unknown };
+    expect(init).toMatchObject({ method: 'GET', redirect: 'error' });
+    expect(init.signal).toBeUndefined();
+    expect(init.dispatcher).toBe(getGuardedAgent());
   });
 });
 

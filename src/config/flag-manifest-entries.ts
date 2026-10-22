@@ -68,8 +68,20 @@ export const FLAGS_ACTION_TO_BYPASS = {
   BARGE_IN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: pseudonymous call and outreach rows go to BigQuery ferni_events (analytics/bq-events.ts)
   BQ_EVENTS: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: account deletion queues the BigQuery user_hash and the daily job deletes its rows (analytics/bq-erasure.ts)
+  BQ_ERASURE: { default: 'off', owner: 'platform', kind: 'experiment' },
   BRIEFED_HANDOFF: { default: 'off', owner: 'voice', kind: 'experiment' },
   BYPASS_TEAM_UNLOCKS: { default: 'off', owner: 'tools', kind: 'kill-switch' },
+} as const satisfies Record<string, FlagSpec>;
+
+/** HONEST_FRIEND .. IDENTITY_MERGE_ANON */
+export const FLAGS_HONEST_TO_IDENTITY = {
+  HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: once the hour or part of day has come up, the turn's "Right now" line drops the clock (hour-once.ts)
+  HOUR_ONCE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: POST /api/identity/merge-anonymous moves an anonymous account's data into the signed-in one
+  IDENTITY_MERGE_ANON: { default: 'off', owner: 'platform', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
 
 /** MOVE_OUTCOMES .. PHONE_AUDIO_MODE */
@@ -130,4 +142,22 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   PERSIST_AGENT_PROFILES: { default: 'off', owner: 'memory', kind: 'experiment' },
   PERSONA_MOOD_NOT_CALLERS: { default: 'on', owner: 'memory', kind: 'kill-switch' },
   PHONE_AUDIO_MODE: { default: 'off', owner: 'voice', kind: 'experiment' },
+} as const satisfies Record<string, FlagSpec>;
+
+/** SHORT_GOODBYE .. SMS_OPT_IN_CONFIRM */
+export const FLAGS_SHORT_GOODBYE_TO_SMS = {
+  // once the caller said bye, Ferni's goodbye is one or two short sentences (short-goodbye.ts)
+  SHORT_GOODBYE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  SILENCE_REMARK_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // a call with no caller turn is not counted in the profile (services/session/silent-call.ts)
+  SILENT_CALL_SKIP_PROFILE: { default: 'off', owner: 'memory', kind: 'experiment' },
+  SILENT_LINE_HANGUP: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  SKIP_CONVERSATIONAL_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
+  SKIP_GEMINI_PREWARM: { default: 'off', owner: 'voice', kind: 'config' },
+  SKIP_PERSONA_INDEXING: { default: 'off', owner: 'platform', kind: 'config' },
+  // anything but 'false' skips the full generateReply prewarm, the quick path (generate-reply-gateway.ts)
+  SKIP_PREWARM_GENERATEREPLY: { default: 'true', owner: 'platform', kind: 'config' },
+  SKIP_TWILIO_VALIDATION: { default: 'off', owner: 'platform', kind: 'config' },
+  // on: a text confirming opt-in when texts go on in settings, and the reminder job releases held texts (opt-in-text.ts)
+  SMS_OPT_IN_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;

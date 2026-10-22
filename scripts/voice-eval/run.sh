@@ -27,8 +27,11 @@
 #     Reuses a fixed user and everything it has piled up across past runs.
 # The user id must start with "voice-eval-": code that skips synthetic
 # callers keys on it (src/services/outreach/automated-scheduler.ts).
-# Both agents write to production Firestore (johnb-2025), which refuses every
-# harness user's writes (src/utils/synthetic-write-guard.ts). An agent started
+# Both agents write to Firestore in johnb-2025, which refuses every harness
+# user's writes (src/utils/synthetic-write-guard.ts). Prod uses the '(default)'
+# database; dev moves to 'ferni-dev' at cutover. eval-database.mjs decides which
+# one this run's env uses (EVAL_DEV_DATABASE switches dev until cutover); EVAL_TIER
+# writes there, and the dry-run plan prints it as "database". An agent started
 # with PROD_EVAL_WRITES=voice-eval lets voice-eval- users through; without it
 # the call still runs but nothing is remembered, so EVAL_SEED proves nothing.
 # Eval users are removed by cleanup-users.ts (older than 24 h).
@@ -98,6 +101,7 @@ elif [[ $env == local ]]; then
 else
   project=ferni-dev; agent=voice-agent-lkcloud; url=wss://dev-8sm1ba0z.livekit.cloud
 fi
+firestore_db=$(node $HERE/eval-database.mjs $env)
 out=$HERE/out
 caller=${CALLER_VOICE:-say}
 if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} && -z ${EVAL_DRY_RUN:-} ]]; then
@@ -146,7 +150,7 @@ job_meta() {
 }
 
 if [[ -n ${EVAL_DRY_RUN:-} ]]; then
-  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
+  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"database\":\"$firestore_db\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
   exit 0
 fi
 
@@ -284,7 +288,7 @@ fi
 # profile before the call (seed-tier.ts). partner opens the whole team, so handoffs to
 # every teammate can be proven without a bypass secret on the agent.
 if [[ -n ${EVAL_TIER:-} ]]; then
-  (cd $ROOT && npx tsx $HERE/seed-tier.ts --project ${EVAL_FIRESTORE_PROJECT:-johnb-2025} --uid $uid --tier $EVAL_TIER)
+  (cd $ROOT && npx tsx $HERE/seed-tier.ts --project ${EVAL_FIRESTORE_PROJECT:-johnb-2025} --database $firestore_db --uid $uid --tier $EVAL_TIER)
 fi
 
 if [[ -n $seed ]]; then

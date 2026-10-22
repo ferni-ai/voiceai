@@ -366,7 +366,7 @@ export class AgentOrchestrator {
 
     // BRIEFED_HANDOFF: the teammate's brief and first line, written while the goodbye plays
     const briefing = briefedHandoffs()
-      ? briefingFor(currentAgent, request, callerTimeZoneFor(this.sessionId))
+      ? briefingFor(currentAgent, request, callerTimeZoneFor(this.sessionId), this.sessionId)
       : null;
     // HANDOFF_TALK_THROUGH: the caller may talk through the goodbye (handoff-talk-through.ts)
     const talk = isSwappable(currentAgent) ? talkThroughFor(currentAgent, this.sessionId) : null;

@@ -8,7 +8,7 @@
  *
  * Rows are buffered and sent with tabledata.insertAll via google-auth-library (already a
  * dependency). Nothing blocks a call or a request; a failed batch is logged (rate-limited)
- * and dropped.
+ * and dropped. insertRowsOrThrow (evals) sends at once and throws instead.
  *
  * @module services/analytics/bq-events
  */
@@ -81,7 +81,9 @@ const INSERT_SCOPE = 'https://www.googleapis.com/auth/bigquery.insertdata';
 const INSERT_URL = (table: string) =>
   `https://bigquery.googleapis.com/bigquery/v2/projects/johnb-2025/datasets/ferni_events/tables/${table}/insertAll`;
 
-export type BqTransport = (table: BqTable, rows: Record<string, unknown>[]) => Promise<void>;
+/** What insertAll answers; a fake transport may return insertErrors as the API does. */
+type InsertReply = void | { insertErrors?: unknown[] };
+export type BqTransport = (table: BqTable, rows: Record<string, unknown>[]) => Promise<InsertReply>;
 
 const buffer = new Map<BqTable, Record<string, unknown>[]>();
 let buffered = 0;
@@ -270,6 +272,47 @@ export async function flushBqEvents(timeoutMs = 10_000): Promise<void> {
     }
   });
   await Promise.race([Promise.all(sends), sleep(timeoutMs, undefined, { ref: false })]);
+}
+
+/** The first STRING field whose value its allowlist would rewrite (to 'other'), if any. */
+function offList(
+  table: BqTable,
+  row: Record<string, unknown>,
+  out: Record<string, unknown>
+): string | undefined {
+  const schema: Record<string, Col> = BQ_TABLES[table];
+  return Object.keys(row).find((f) => {
+    const [v, o] = [row[f], out[f]];
+    if (!schema[f]?.startsWith('STRING') || v === null || v === undefined) return false;
+    return Array.isArray(v) ? v.some((x, i) => (o as unknown[])[i] !== x) : o !== v;
+  });
+}
+
+/**
+ * Sends rows now, unbuffered, for a caller that must not lose them (an eval run). Unlike
+ * emitEvent it throws: when BQ_EVENTS is off, on a refused row, on a string its allowlist
+ * would write as 'other' (emitEvent writes it), a transport error or insertErrors. Nothing
+ * is sent unless every row passes. Returns the number of rows sent.
+ */
+export async function insertRowsOrThrow<K extends BqTable>(
+  table: K,
+  rows: ReadonlyArray<BqRow<K>>,
+  env: Env = process.env
+): Promise<number> {
+  if (!flagOn('BQ_EVENTS', env)) throw new Error('BQ_EVENTS is off: nothing sent');
+  if (rows.length === 0) return 0;
+  const built = rows.map((r) => buildRow(table, r as Record<string, unknown>, {}, env));
+  const json = built.map((b, i) => {
+    if ('refused' in b) throw new Error(`row refused (${table}): ${b.refused}`);
+    const field = offList(table, rows[i] as Record<string, unknown>, b.row);
+    if (field) throw new Error(`row refused (${table}): ${field} is off its allowlist`);
+    return b.row;
+  });
+  const reply = await (transport ?? insertAll)(table, json);
+  const errors = reply?.insertErrors?.length ?? 0;
+  if (errors)
+    throw Object.assign(new Error(`${errors} rows rejected (${table})`), { name: 'InsertErrors' });
+  return json.length;
 }
 
 function drain(): Array<[BqTable, Record<string, unknown>[]]> {

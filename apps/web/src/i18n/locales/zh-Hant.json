@@ -11130,5 +11130,21 @@
     "helper": "用手機相機掃描，或點按「開啟 Venmo」。金額可以修改。",
     "maybeLater": "以後再說",
     "close": "關閉"
+  },
+  "reportReply": {
+    "button": "檢舉",
+    "describe": "檢舉{name}說的話",
+    "title": "檢舉回覆",
+    "whichReply": "哪則回覆？",
+    "whatsWrong": "有什麼問題？",
+    "reasonHarmful": "有害或不安全",
+    "reasonWrong": "錯誤或具誤導性",
+    "reasonInappropriate": "不恰當",
+    "reasonOther": "其他",
+    "note": "還有要補充的嗎？（選填）",
+    "send": "傳送",
+    "thanks": "謝謝，會有專人查看。",
+    "failed": "傳送失敗，請再試一次。",
+    "tooMany": "你今天已經送出很多檢舉，請明天再試。"
   }
 }

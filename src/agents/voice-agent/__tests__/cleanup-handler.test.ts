@@ -34,7 +34,15 @@ describe('cleanup-handler', { timeout: CLEANUP_BUDGET_MS + 10_000 }, () => {
   it('marks session closing at start and clears on completion', async () => {
     expect(isSessionClosing(sessionId)).toBe(false);
 
-    const endSession = vi.fn().mockResolvedValue(undefined);
+    // Held open so the test can look at the tracker mid-cleanup without guessing
+    // how long cleanup takes (it is about 1 s on CI and 3-8 s on a loaded Mac).
+    let finishEndSession!: () => void;
+    const endSession = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          finishEndSession = resolve;
+        })
+    );
     const ctx: CleanupContext = {
       sessionId,
       services: {
@@ -48,9 +56,19 @@ describe('cleanup-handler', { timeout: CLEANUP_BUDGET_MS + 10_000 }, () => {
 
     const p = handleSessionCleanup(ctx, CLEANUP_BUDGET_MS);
 
-    // Shortly after start, session should be marked closing
-    await new Promise((r) => setTimeout(r, 50));
+    // Marked before cleanup's first await, so nothing (a handoff, a reply) can
+    // start on a call that is shutting down. A 50 ms sleep used to stand in for
+    // "shortly after": on CI the event loop was busy loading modules, the timer
+    // fired after cleanup had already finished, and the test failed on many PRs.
     expect(isSessionClosing(sessionId)).toBe(true);
+
+    // Still marked while cleanup is in the middle of its work.
+    await vi.waitFor(() => expect(endSession).toHaveBeenCalled(), {
+      timeout: CLEANUP_BUDGET_MS,
+      interval: 20,
+    });
+    expect(isSessionClosing(sessionId)).toBe(true);
+    finishEndSession();
 
     await p;
 

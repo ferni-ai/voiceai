@@ -390,6 +390,105 @@ function humannessRow(h: Humanness, floor: Floor | null): Row {
   };
 }
 
+// ---------------------------------------------------------------- replicated runs, two judges
+
+/** The metrics a judge model scores: each needs a second judge from another family to agree. */
+export const JUDGED_METRICS = ['distinctness', 'humanness', 'insight'] as const;
+
+/**
+ * Per metric, the widest of several floors (each baseline run's A/A floor and
+ * the spread between runs): one A/A pair in one run underestimates run-to-run variance.
+ */
+export function maxFloor(floors: readonly Floor[]): Floor {
+  const top = (f: (x: Floor) => number): number => Math.max(...floors.map(f));
+  const withTells = floors.every((f) => f.tells);
+  return {
+    distinctness: top((f) => f.distinctness),
+    insight: top((f) => f.insight),
+    copy: top((f) => f.copy),
+    humanness: top((f) => f.humanness),
+    ...(withTells ? { tells: perTell((k) => top((f) => f.tells![k])) } : {}),
+  };
+}
+
+/** One judge's verdict on one metric in one run (arm run i against baseline run i). */
+export interface Cell {
+  run: number;
+  judge: string;
+  verdict: Verdict;
+  delta: number;
+  floor: number | null;
+}
+export interface MetricVerdict {
+  metric: Row['metric'];
+  verdict: 'better' | 'worse' | 'noise';
+  /** Per run, e.g. "run 1: judges disagree (gemini +9.8/9.8 better, gpt-oss -2.0/9.8 noise)". */
+  note: string;
+  cells: Cell[];
+}
+
+/**
+ * A metric over runs and judges. A run is better (worse) only when every judge
+ * says so beyond its own floor, else noise. The metric is better only when
+ * every run is, and worse when any run is: no pass on one lucky draw.
+ */
+export function combineMetric(metric: Row['metric'], cells: readonly Cell[]): MetricVerdict {
+  const runs = [...new Set(cells.map((c) => c.run))].sort((a, b) => a - b);
+  const byRun = runs.map((run) => {
+    const cs = cells.filter((c) => c.run === run);
+    const all = (v: Verdict): boolean => cs.every((c) => c.verdict === v);
+    const v = all('better') ? 'better' : all('worse') ? 'worse' : 'noise';
+    const split = v === 'noise' && cs.some((c) => c.verdict === 'better' || c.verdict === 'worse');
+    // Each judge's arm-minus-baseline gap / its floor, in points, then its verdict.
+    const each = cs.map(
+      (c) =>
+        `${cs.length > 1 ? `${c.judge} ` : ''}${c.delta >= 0 ? '+' : ''}${(100 * c.delta).toFixed(1)}/${c.floor === null ? '-' : (100 * c.floor).toFixed(1)} ${c.verdict}`
+    );
+    return { run, v, text: `${split ? 'judges disagree' : v} (${each.join(', ')})` };
+  });
+  const verdict =
+    byRun.length && byRun.every((r) => r.v === 'better')
+      ? 'better'
+      : byRun.some((r) => r.v === 'worse')
+        ? 'worse'
+        : 'noise';
+  return {
+    metric,
+    verdict,
+    note: byRun.map((r) => `run ${r.run}: ${r.text}`).join('; '),
+    cells: [...cells],
+  };
+}
+
+/**
+ * The bar's summary line. PASS needs two runs and two judges, distinctness or
+ * humanness better (combineMetric), insight not worse, and no tell worse.
+ */
+export function barVerdict(
+  metrics: readonly MetricVerdict[],
+  runs: number,
+  judges: number
+): { pass: boolean; line: string } {
+  const reasons: string[] = [];
+  if (runs < 2) reasons.push(`${runs} run (a pass needs --runs 2 or more)`);
+  if (judges < 2) reasons.push(`${judges} judge (a pass needs a second judge from another family)`);
+  const of = (m: string): MetricVerdict | undefined => metrics.find((x) => x.metric === m);
+  const gains = (['distinctness', 'humanness'] as const).filter((m) => of(m)?.verdict === 'better');
+  if (!gains.length)
+    reasons.push(
+      'neither distinctness nor humanness is better in every run with the judges agreeing'
+    );
+  if (!of('insight')) reasons.push('no insight verdict');
+  else if (of('insight')!.verdict === 'worse') reasons.push('insight worse');
+  for (const m of metrics)
+    if (m.metric.startsWith('tells: ') && m.verdict === 'worse') reasons.push(`${m.metric} worse`);
+  if (reasons.length) return { pass: false, line: `NO PASS: ${reasons.join('; ')}` };
+  return {
+    pass: true,
+    line: `PASS: ${gains.join(' and ')} better in all ${runs} runs with all ${judges} judges agreeing; insight and tells not worse`,
+  };
+}
+
 // ---------------------------------------------------------------- model tells
 
 /**
