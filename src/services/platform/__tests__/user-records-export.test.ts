@@ -3,7 +3,14 @@
  * reviewed it) and the secret-field filter (whole words, so ordinary fields survive).
  */
 import { describe, expect, it, vi } from 'vitest';
-import { isSecretField, isSecretValue, MAX_FIELD_DEPTH, toPlain } from '../export-redaction.js';
+import { PROFILE_TOKEN_FIELDS } from '../../../utils/token-at-rest.js';
+import {
+  isSecretDataMapKey,
+  isSecretField,
+  isSecretValue,
+  MAX_FIELD_DEPTH,
+  toPlain,
+} from '../export-redaction.js';
 import {
   EXPORTED_STORES,
   exportUserRecords,
@@ -65,6 +72,18 @@ describe('secret fields', () => {
     'userPasswordHash',
     'sessionToken',
     'pin_code',
+    // plurals and compounds, word by word (#2366 review)
+    'linkedInTokens',
+    'biometricTokens',
+    'fcmTokens',
+    'fcm2Token',
+    'backupCodes',
+    'recovery_codes',
+    'pushSubscriptions',
+    'apiKeys',
+    'userPasswords',
+    'sessionCookies',
+    ...PROFILE_TOKEN_FIELDS,
   ])('drops %s', (key) => expect(isSecretField(key)).toBe(true));
 
   it.each([
@@ -95,9 +114,31 @@ describe('secret fields', () => {
     'hash_browns',
     'endpoint_of_trip',
     'authMethod',
+    'contentHash',
+    // the keep-list: names a credential word would otherwise drop, each spelling
+    'favoriteCookie',
+    'saltIntake',
+    'hashBrowns',
     'maxTokens',
+    'max_tokens',
     'tokenCount',
+    'token_count',
+    'SESSION_ID',
+    'session.id',
   ])('keeps %s', (key) => expect(isSecretField(key)).toBe(false));
+
+  it.each(['pin', 'code', 'key', 'salt', 'hash', 'auth', 'nonce', 'mfa', 'signature', 'access'])(
+    'keeps %s as a data-map key, though it is dropped as a field',
+    (key) => {
+      expect(isSecretField(key)).toBe(true);
+      expect(isSecretDataMapKey(key)).toBe(false);
+    }
+  );
+
+  it.each(['bankToken', 'apiKey', 'password', 'verificationCode', 'linkedInTokens'])(
+    'drops %s even as a data-map key',
+    (key) => expect(isSecretDataMapKey(key)).toBe(true)
+  );
 
   it.each([
     'Bearer abc.def',
@@ -396,6 +437,17 @@ describe('the records export gives a person all their data, and no secret (#2366
       pushToken: 'zz-secret-04',
       keys: { auth: 'zz-secret-05', p256dh: 'zz-secret-06' },
       endpoint: 'https://push.example.test/zz-secret-07',
+      // the profile's token maps, sealed or not, and device tokens (#2366 review)
+      linkedInTokens: { encrypted: 'zz-secret-23' },
+      biometricTokens: { oura: { access_token: 'zz-secret-24' } },
+      fcmTokens: ['zz-secret-25'],
+      // a sealed envelope under an innocent name, at any depth
+      integrations: { calendar: { encrypted: 'zz-secret-26', keyId: 'k1' }, theme: 'dark' },
+    },
+    'users/u-1': {
+      displayName: 'Sam',
+      fcmTokens: ['zz-secret-27'],
+      pushSubscriptions: ['zz-secret-28'],
     },
     'bogle_users/u-1/dynamic_facts/f1': {
       entityName: 'Biscuit',
@@ -433,6 +485,9 @@ describe('the records export gives a person all their data, and no secret (#2366
         note: 'sk_live_zz-secret-08', // a credential is dropped by its value, whatever its key
         // only the map's own keys are data: a map nested in it is filtered as usual
         attributes: { pin: 'zz-secret-22', colour: 'blue' },
+        // a credential's name is still one in a data map
+        bankToken: 'zz-secret-29',
+        verificationCode: 'zz-secret-30',
       },
     },
     'bogle_users/u-1/preferences/settings': { favorite_cookie: 'ginger', salt_intake: 'low' },
@@ -463,7 +518,12 @@ describe('the records export gives a person all their data, and no secret (#2366
     const text = JSON.stringify(out);
     expect(text).not.toMatch(/zz-secret/);
     expect(text).not.toContain('other-person');
-    expect(out['bogle_users/{uid}']).toEqual({ name: 'Sam Example', sessionId: 'call-0' });
+    expect(out['bogle_users/{uid}']).toEqual({
+      name: 'Sam Example',
+      sessionId: 'call-0',
+      integrations: { theme: 'dark' },
+    });
+    expect(out['users/{uid}']).toEqual({ displayName: 'Sam' });
     expect(out['bogle_users/{uid}/dynamic_facts']).toEqual([
       { id: 'f1', ...records['bogle_users/u-1/dynamic_facts/f1'] },
     ]);
@@ -476,8 +536,12 @@ describe('the records export gives a person all their data, and no secret (#2366
     expect(out['bogle_users/{uid}/summaries']).toEqual([
       { id: 's1', ...records['bogle_users/u-1/summaries/s1'] },
     ]);
-    const { note: _credential, ...attributes } =
-      records['bogle_users/u-1/dynamic_entities/e1'].attributes;
+    const {
+      note: _credential,
+      bankToken: _token,
+      verificationCode: _code,
+      ...attributes
+    } = records['bogle_users/u-1/dynamic_entities/e1'].attributes;
     expect(out['bogle_users/{uid}/dynamic_entities']).toEqual([
       {
         id: 'e1',

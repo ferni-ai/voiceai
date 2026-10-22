@@ -273,9 +273,13 @@ const KEPT_FIELDS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
- * Top-level fields that are maps keyed by the person's or the model's own words, so a key
- * like "pin", "code" or "access" there is data, never a credential's name (#2366). Their
- * values still go through the value filter.
+ * Top-level fields that are maps keyed by the person's or the model's own words, so a short
+ * key like "pin", "code" or "access" there is data (#2366). A credential's name (bankToken,
+ * apiKey) is still dropped there, and the values still go through the value filter.
+ *
+ * The profile docs (bogle_users/{uid}, users/{uid}) are exported whole, filtered by name and
+ * value, not projected to a field allowlist: UserProfile has ~600 fields and hundreds of
+ * writers, too many to list here (#2366).
  *
  * - attributes, in dynamic_entities: whatever the model heard about the person or thing
  *   ({role: 'manager', pin: 'the blue one'}), written by deep-extraction-worker.ts.
