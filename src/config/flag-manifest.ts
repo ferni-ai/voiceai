@@ -30,9 +30,11 @@ import {
   FLAGS_STYLE_TO_TOOL,
   FLAGS_USE_TO_VOICE,
 } from './flag-manifest-blocks.js';
+import { assembleManifest } from './flag-assembly.js';
+import * as FLAG_FILES from './flags/index.generated.js';
 export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
 
-export const FLAG_MANIFEST = {
+const LEGACY_FLAG_MANIFEST = {
   ...FLAGS_ACTION_TO_BYPASS,
   // on: an emotional-arc proactive insight reaches the prompt once, not every third turn (commitment-follow-up-gate.ts)
   ARC_INSIGHT_ONCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -158,6 +160,8 @@ export const FLAG_MANIFEST = {
   FERNI_VOICE_EMOTION: { default: 'off', owner: 'voice', kind: 'config' },
   // unset: resting pace 1. A number, clamped to 0.85-1.2: Ferni's resting pace (same module)
   FERNI_VOICE_SPEED: { default: 'off', owner: 'voice', kind: 'config' },
+  // report | refuse | off: a client bound to another database than FIRESTORE_DATABASE (utils/firestore-db-pin.ts)
+  FIRESTORE_DB_PIN: { default: 'report', owner: 'platform', kind: 'kill-switch' },
   // on: a first call's hello says who is calling, and "who are you?" gets a plain answer (greeting-direction.ts, first-call-rapport.ts)
   FIRST_CALL_INTRO: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -245,6 +249,8 @@ export const FLAG_MANIFEST = {
   LOG_CONTEXT_BUILDS: { default: 'off', owner: 'voice', kind: 'config' },
   LOG_FULL_RESPONSES: { default: 'off', owner: 'platform', kind: 'config' },
   LOG_PHONE_REDACTION: { default: 'on', owner: 'platform', kind: 'kill-switch' },
+  // the answer after a look-up hedges sooner and gets a short bridge line instead of dead air (lookup-bridge.ts)
+  LOOKUP_BRIDGE: { default: 'off', owner: 'voice', kind: 'experiment' },
   MAYA_PROACTIVE_CHECKS: { default: 'off', owner: 'platform', kind: 'experiment' },
   MEMORY_DIAGNOSTICS: { default: 'off', owner: 'platform', kind: 'config' },
   MEMORY_RECALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
@@ -428,4 +434,6 @@ export const FLAG_MANIFEST = {
   // the goodbye closes the loop on what the call decided
   WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
+// New flags go in src/config/flags/<NAME>.ts: pnpm flags:new (flag-assembly.ts sorts the keys).
+export const FLAG_MANIFEST = assembleManifest(LEGACY_FLAG_MANIFEST, FLAG_FILES);
 export type FlagName = keyof typeof FLAG_MANIFEST;
