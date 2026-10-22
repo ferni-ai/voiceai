@@ -12,6 +12,10 @@ import { FIRST_CALL_NOTE, NAME_SWAP_NOTE, WHO_NOTE, firstCallNote } from '../fir
 import { withTurnReminder } from '../turn-request.js';
 
 const ON = { FIRST_CALL_RAPPORT: 'on' };
+// A member on a first call: the signed canary caller (prod canary 2026-10-21, same bug).
+// Since #2029 isFirstCall is member-only, so an anon:<uuid> caller (the morning sweep) gets no
+// first-call note at all; see the last test in this block.
+const MEMBER = 'voice-eval-first-call-seed-20261021070248-ca96';
 const ANON = 'anon:906ab27b-fc51-48bd-8a51-b25c781ab6b4';
 const SWAP = /swap names|what should i call you|ask theirs/i;
 
@@ -23,7 +27,7 @@ function chat(...lines: Array<['agent' | 'user', string]>): llm.ChatContext {
 }
 
 const firstCall = (extra: Record<string, unknown> = {}) => ({
-  userData: { userId: ANON, isReturningUser: false, ...extra },
+  userData: { userId: MEMBER, isReturningUser: false, ...extra },
 });
 
 // late-night-energy-cs02 on prod, the reply that said "I'm Ferni, by the way, what should I call you?"
@@ -108,6 +112,11 @@ describe('first-call note once the name is known', () => {
 
   it('a teammate named in a greeting is not their name', () => {
     expect(callerNameKnown(lateNight, firstCall().userData, LATE_WORDS)).toBe(false);
+  });
+
+  it('an anon: caller is not a member, so no first-call note and no swap (#2029)', () => {
+    const anon = { userData: { userId: ANON, isReturningUser: false, userName: 'Sam' } };
+    expect(firstCallNote(lateNight, anon, LATE_WORDS, ON)).toBe('');
   });
 
   it('accountName prefers the preferred name', () => {
