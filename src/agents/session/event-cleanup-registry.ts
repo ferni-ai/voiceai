@@ -77,6 +77,15 @@ function getRegistry(sessionId: string): SessionCleanupState {
 }
 
 /**
+ * Mark a session's registry as in use, so the orphan sweep leaves a live call
+ * alone. Does nothing for a session with no registry.
+ */
+export function touchSessionRegistry(sessionId: string): void {
+  const registry = sessionRegistries.get(sessionId);
+  if (registry) registry.lastAccessedAt = Date.now();
+}
+
+/**
  * Register a cleanup handler for a session.
  * Returns a deregistration function.
  */

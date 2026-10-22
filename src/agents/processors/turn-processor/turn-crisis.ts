@@ -25,6 +25,7 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import { noteCrisisReplyForCall } from '../../safety/crisis-reply-record.js';
 import {
   groundedPriorRisk,
   groundedRelease,
@@ -114,7 +115,7 @@ export function startTurnCrisis(
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
   let settled: Promise<{ crisis: CrisisDetectionResult; soft: boolean }> | null = null;
   const settle = (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> =>
-    (settled ??=
+    (settled ??= (
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
             // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
@@ -193,7 +194,12 @@ export function startTurnCrisis(
             log.info({ outcome: 'soft', source: 'adjudicator' }, 'CRISIS_AGREEMENT');
             return { crisis: patterns, soft: true };
           })
-        : Promise.resolve({ crisis: patterns, soft: false }));
+        : Promise.resolve({ crisis: patterns, soft: false })
+    ).then((s) => {
+      // This turn's reply carries crisis handling: noted for the next turn's adjudicator.
+      if (s.soft || s.crisis.isCrisis) noteCrisisReplyForCall(call, userText);
+      return s;
+    }));
   return {
     patterns,
     shouldBlock,

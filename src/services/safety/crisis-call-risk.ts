@@ -15,6 +15,9 @@
  * question: is there risk on this call that no grounded release explained?
  * crisisRiskThisCall never forgets a release; only unexplainedCrisisRisk does.
  *
+ * Also per call: which caller turns got a reply with crisis handling
+ * (noteCrisisReply), so the adjudicator never softens the turn answering one.
+ *
  * @module CrisisCallRisk
  */
 
@@ -136,6 +139,61 @@ export function crisisRiskThisCall(sessionId: string, latest?: string, now = Dat
   return [...reads.keys()].some((t) => t !== turn);
 }
 
+/**
+ * Per call: the caller turns whose reply carried crisis handling (guidance, the
+ * script or the soft check), noted by the reply gate and the turn pipeline.
+ * The adjudicator never softens the turn that answers one (crisis-adjudicator.ts).
+ * Least recently noted first; dropped when the call ends (clearCrisisReplies,
+ * run by the session cleanup registry), after 6 hours, or past CRISIS_REPLY_CALLS_MAX.
+ */
+const replied = new Map<string, { at: number; turns: Set<string> }>();
+const REPLIED_TURNS_MAX = 64;
+export const CRISIS_REPLY_CALLS_MAX = 2000;
+
+/**
+ * This turn's reply carries crisis guidance, the crisis script or the soft
+ * check. True when the call had no record yet (its caller registers the clear).
+ */
+export function noteCrisisReply(
+  sessionId: string | undefined,
+  latest: string,
+  now = Date.now()
+): boolean {
+  if (!sessionId || !latest.trim()) return false;
+  for (const [id, v] of replied) {
+    if (now - v.at <= TTL_MS) break;
+    replied.delete(id);
+  }
+  const held = replied.get(sessionId);
+  const turns = held?.turns ?? new Set<string>();
+  if (turns.size >= REPLIED_TURNS_MAX) turns.delete(turns.values().next().value ?? '');
+  turns.add(turnOf(latest));
+  replied.delete(sessionId);
+  replied.set(sessionId, { at: now, turns });
+  while (replied.size > CRISIS_REPLY_CALLS_MAX) {
+    const oldest = replied.keys().next().value;
+    if (oldest === undefined) break;
+    replied.delete(oldest);
+  }
+  return !held;
+}
+
+/**
+ * Forget the call's crisis replies, and only those: noted risk (crisisRiskThisCall)
+ * gates live behaviour and keeps its 6 hours. Run by the session cleanup
+ * registry, whose orphan sweep can fire on a call still live after 2 hours;
+ * losing this record then only means the adjudicator asks the model.
+ */
+export function clearCrisisReplies(sessionId: string): void {
+  replied.delete(sessionId);
+}
+
+/** Whether the reply to these caller words carried crisis handling on this call. */
+export function crisisReplyOnTurn(sessionId: string, latest: string, now = Date.now()): boolean {
+  const v = replied.get(sessionId);
+  return !!v && now - v.at <= TTL_MS && v.turns.has(turnOf(latest));
+}
+
 /** A grounded release explained this turn's risk: unexplainedCrisisRisk stops counting it. */
 export function explainCrisisTurn(sessionId: string | undefined, latest: string): void {
   if (sessionId) notesOf(sessionId).explained.add(turnOf(latest));
@@ -171,5 +229,6 @@ export function unexplainedCrisisRisk(
 export function resetCrisisCallRisk(): void {
   risky.clear();
   pending.clear();
+  replied.clear();
   notes.clear();
 }
