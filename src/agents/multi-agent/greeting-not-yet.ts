@@ -37,6 +37,8 @@ export function localYmd(at: number, timeZone?: string): string {
   }).format(new Date(at));
 }
 
+const DAY = 86_400_000;
+
 function addDays(ymd: string, days: number): string {
   const d = new Date(`${ymd}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -44,32 +46,66 @@ function addDays(ymd: string, days: number): string {
 }
 
 const WEEKDAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-const ISO_DATE = /\b(\d{4}-\d{2}-\d{2})\b/g;
+const ISO_DATE = /\b(week of )?(\d{4}-\d{2}-\d{2})\b/gi;
 const NAMED_DAY =
-  /\b(last |past |this past )?(sunday|monday|tuesday|wednesday|thursday|friday|saturday|tomorrow|tonight|later today|next week|next month)\b/gi;
+  /\b(last |past |this past )?(sunday|monday|tuesday|wednesday|thursday|friday|saturday|tomorrow|tonight|later today|next week|this weekend|next weekend|next month)\b/gi;
+/** Said with a weekday that is today, these make it today's, not next week's. */
+const SAME_DAY_WORDS = /\b(today|this morning|this afternoon|tonight|later)\b/i;
+const SPAN = /\bfor (\d+|two|three|four|five|six|seven|ten|fourteen) days\b/i;
+const NUMBERS: Record<string, number> = {
+  two: 2,
+  three: 3,
+  four: 4,
+  five: 5,
+  six: 6,
+  seven: 7,
+  ten: 10,
+  fourteen: 14,
+};
 
-/** The day a named day falls on, read from the day it was said. */
-function dayNamed(word: string, saidOn: string): string {
+const weekdayOf = (ymd: string): number => new Date(`${ymd}T12:00:00Z`).getUTCDay();
+/** The Sunday that ends the Monday-to-Sunday week holding this day. */
+const weekEnd = (ymd: string): string => addDays(ymd, (7 - weekdayOf(ymd)) % 7);
+
+/**
+ * The last day of what a named day refers to, read from the day it was said.
+ * A bare weekday said on that weekday ("interview on Monday", on a Monday)
+ * means next week's, unless the line says today; "this Monday" on a Monday is
+ * ambiguous and is read the same way, the safe side. "Next week" and "the
+ * weekend" run to their last day, so a trip is not over halfway through.
+ */
+function dayNamed(word: string, saidOn: string, text: string): string {
   if (word === 'tomorrow') return addDays(saidOn, 1);
   if (word === 'tonight' || word === 'later today') return saidOn;
-  if (word === 'next week') return addDays(saidOn, 7);
+  if (word === 'next week') return weekEnd(addDays(saidOn, 7));
+  if (word === 'this weekend') return weekEnd(saidOn);
+  if (word === 'next weekend') return weekEnd(addDays(saidOn, 7));
   if (word === 'next month') return addDays(saidOn, 28);
-  const from = new Date(`${saidOn}T12:00:00Z`).getUTCDay();
-  return addDays(saidOn, (WEEKDAYS.indexOf(word) - from + 7) % 7);
+  const ahead = (WEEKDAYS.indexOf(word) - weekdayOf(saidOn) + 7) % 7;
+  return addDays(saidOn, ahead === 0 && !SAME_DAY_WORDS.test(text) ? 7 : ahead);
+}
+
+/** Extra days a stated span ("for three days") adds after the day it starts. */
+function spanDays(text: string): number {
+  const n = SPAN.exec(text)?.[1]?.toLowerCase();
+  if (!n) return 0;
+  return Math.max(0, (NUMBERS[n] ?? Number(n)) - 1);
 }
 
 /**
- * True when the text names a day from today on. Absolute dates decide when
- * there are any; otherwise, read from the day it was said, "tomorrow",
- * "tonight", "next week" or a weekday ("interview on Monday") that has not
- * come round yet. "Last Monday" is behind them.
+ * True when the text names a day from today on, or a span that has not ended.
+ * Absolute dates decide when there are any ("the week of" one runs six more
+ * days); otherwise, read from the day it was said, "tomorrow", "tonight",
+ * "next week", "this weekend" or a weekday ("interview on Monday") that has
+ * not come round yet. "Last Monday" is behind them.
  */
 export function namesDayAhead(text: string, today: string, saidOn?: string): boolean {
-  const dates = [...text.matchAll(ISO_DATE)].map((m) => m[1]);
-  if (dates.length > 0) return dates.some((ymd) => ymd >= today);
+  const extra = spanDays(text);
+  const dates = [...text.matchAll(ISO_DATE)];
+  if (dates.length > 0) return dates.some((m) => addDays(m[2], m[1] ? 6 : extra) >= today);
   if (!saidOn) return false;
   return [...text.matchAll(NAMED_DAY)].some(
-    (m) => !m[1] && dayNamed(m[2].toLowerCase(), saidOn) >= today
+    (m) => !m[1] && addDays(dayNamed(m[2].toLowerCase(), saidOn, text), extra) >= today
   );
 }
 
@@ -79,9 +115,15 @@ export function commitmentAhead(
   now: number,
   timeZone?: string
 ): boolean {
-  if (c.targetDate !== undefined && c.targetDate > now) return true;
+  const today = localYmd(now, timeZone);
+  // Day-granular: a date stored as midnight UTC is that calendar day; due today is not past yet.
+  const target = c.targetDate;
+  if (target !== undefined) {
+    const due = target % DAY === 0 ? localYmd(target) : localYmd(target, timeZone);
+    if (target > now || due >= today) return true;
+  }
   const saidOn = Number.isFinite(c.createdAt) ? localYmd(c.createdAt, timeZone) : undefined;
-  return namesDayAhead(c.statement, localYmd(now, timeZone), saidOn);
+  return namesDayAhead(c.statement, today, saidOn);
 }
 
 export interface OpeningRestraint {

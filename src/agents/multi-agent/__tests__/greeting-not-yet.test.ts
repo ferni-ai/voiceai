@@ -152,6 +152,13 @@ describe('namesDayAhead', () => {
     ['flights next week', '2026-10-20', true],
     ['the interview on Monday 2026-10-19', TODAY, false], // an absolute date decides
     ['Mondays are the worst', TODAY, false],
+    ['interview on Wednesday', TODAY, true], // said on a Wednesday: next Wednesday
+    ['interview Wednesday, later today', '2026-10-14', false], // said "today": that day
+    ['the wedding this weekend', '2026-10-15', false], // that weekend ended Sunday 10-18
+    ['the wedding this weekend', '2026-10-20', true], // runs to Sunday 10-25
+    ['in Lisbon for three days from 2026-10-19', undefined, true], // 10-19 to 10-21
+    ['in Lisbon for two days from 2026-10-19', undefined, false], // ended 10-20
+    ['the conference the week of 2026-10-19', undefined, true], // runs to 10-25
     ['Pepper and the cone', TODAY, false],
   ])('%s (said %s) → %s', (text, saidOn, ahead) => {
     expect(namesDayAhead(text, TODAY, saidOn)).toBe(ahead);
@@ -176,7 +183,7 @@ describe('the day is the caller’s', () => {
     ).toBe(true);
     expect(
       commitmentAhead(
-        { ...base, statement: 'finish the deck', targetDate: NOW.getTime() - 1 },
+        { ...base, statement: 'finish the deck', targetDate: NOW.getTime() - DAY },
         NOW.getTime()
       )
     ).toBe(false);
