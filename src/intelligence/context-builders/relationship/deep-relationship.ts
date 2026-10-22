@@ -34,6 +34,7 @@ import { BuilderCategory } from '../core/categories.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { EdgeCache } from '../../../services/cache/edge-cache.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { redactCredentialsIn } from '../../../memory/credential-redaction.js';
 
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
@@ -461,13 +462,10 @@ async function markMilestoneCelebrated(userId: string, milestoneKey: string): Pr
 // SHARED MOMENT RECORDING (Call from turn handler)
 // ============================================================================
 
-/**
- * Record a shared moment (joke, phrase, callback moment)
- * Call this when detecting significant moments
- */
+/** Record a shared moment (joke, phrase, callback); what they said loses any credential */
 async function recordSharedMomentInternal(
   userId: string,
-  moment: {
+  said: {
     type: 'phrase' | 'running_gag' | 'callback_moment';
     content: string;
     whatTheySaid: string;
@@ -475,10 +473,10 @@ async function recordSharedMomentInternal(
     significance?: 'life_changing' | 'meaningful' | 'warm' | 'fun';
   }
 ): Promise<void> {
+  const moment = redactCredentialsIn(said);
   try {
     const db = await getFirestoreDb();
     if (!db) return;
-
     const momentId = `moment_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     await db

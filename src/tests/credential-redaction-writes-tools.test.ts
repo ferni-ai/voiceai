@@ -6,10 +6,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const written = vi.hoisted(() => [] as unknown[]);
+const reads = vi.hoisted(() => ({ exists: true }));
 const fakeDb = vi.hoisted(() => {
   const record = async (doc: unknown) => {
     written.push(doc);
-    return { id: 'doc-1' };
+    return { id: 'doc-1', update: record };
   };
   const node: Record<string, unknown> = {};
   Object.assign(node, {
@@ -23,7 +24,12 @@ const fakeDb = vi.hoisted(() => {
     set: record,
     add: record,
     update: record,
-    get: async () => ({ empty: true, exists: true, docs: [], data: () => ({}) }),
+    get: async () => ({ empty: true, exists: reads.exists, docs: [], data: () => ({}) }),
+    runTransaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+      fn({
+        set: (_ref: unknown, doc: unknown) => written.push(doc),
+        get: async () => ({ exists: false }),
+      }),
     batch: () => ({
       set: (_ref: unknown, doc: unknown) => written.push(doc),
       update: (_ref: unknown, doc: unknown) => written.push(doc),
@@ -37,6 +43,7 @@ const fakeFirestore = vi.hoisted(() => {
     static increment = () => new FieldValue();
     static serverTimestamp = () => new FieldValue();
     static delete = () => new FieldValue();
+    static vector = (v: number[]) => v;
   }
   class Timestamp {
     static fromDate = (d: Date) => d;
@@ -100,6 +107,19 @@ import { executeLegacyFallback } from '../agents/shared/tool-executors/legacy-fa
 import { firestoreRepairStore } from '../agents/personas/friend-repair-store.js';
 import { getJournalService } from '../services/journal/index.js';
 import { saveCommitment as keepCommitment } from '../services/superhuman/commitment-keeper.js';
+import { settleAwaitingAnswers } from '../services/trust-systems/commitment-follow-through.js';
+import { createOpenLoop } from '../services/superhuman/semantic-intelligence/open-loops.js';
+import { getConversationHistoryService } from '../services/stores/conversation-history.js';
+import {
+  recordCorrection,
+  recordImplicitPreference,
+} from '../services/superhuman/user-corrections.js';
+import { recordSharedMoment as recordJoke } from '../services/superhuman/inside-joke-memory.js';
+import { recordSharedMoment } from '../intelligence/context-builders/relationship/deep-relationship.js';
+import { startStoryCapture } from '../services/superhuman/event-story-capture.js';
+import { FirestoreVectorStore } from '../memory/firestore-vector-store/core.js';
+import { withoutCredentials } from '../memory/firestore-vector-store/helpers.js';
+import { createErrandStore } from '../services/stores/errand-store.js';
 import type { ToolExecutionContext } from '../agents/shared/tool-executors/types.js';
 
 const SECRETS = ['4821', 'hunter2', '4111', '078-05-1120'];
@@ -119,6 +139,7 @@ const log = { debug: () => undefined };
 
 beforeEach(() => {
   written.length = 0;
+  reads.exists = true;
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -237,5 +258,89 @@ describe('every tool, commitment and journal writer stores no credential', () =>
     } as never);
     expect(stored()).not.toContain('hunter2');
     expect(stored()).toContain('[redacted]');
+  });
+});
+
+describe('the writers the #2425 review found store no credential', () => {
+  it('the answer to a commitment follow-up', async () => {
+    await settleAwaitingAnswers('user-1', `yes I did it, ${SAID}`, [
+      {
+        id: 'c1',
+        content: 'change the door code',
+        awaitingAnswer: true,
+        followUpAskedAt: new Date(),
+      },
+    ]);
+    expectNoSecret();
+  });
+
+  it('an open loop', async () => {
+    await createOpenLoop('user-1', {
+      type: 'intention',
+      content: SAID,
+      context: SAID,
+    } as never);
+    expectNoSecret();
+  });
+
+  it('a conversation session from the web app', async () => {
+    await getConversationHistoryService().recordSession('user-1', {
+      personaId: 'ferni',
+      duration: 5,
+      highlights: [SAID],
+      transcript: SAID,
+    } as never);
+    expectNoSecret();
+  });
+
+  it('a correction and an implicit preference', async () => {
+    await recordCorrection('user-1', {
+      whatFerniSaid: 'your door code is 1234',
+      whatUserCorrected: SAID,
+      correctInformation: SAID,
+    });
+    await recordImplicitPreference('user-1', {
+      preference: 'prefers texts',
+      evidence: [SAID],
+      confidence: 0.4,
+    } as never);
+    expectNoSecret();
+  });
+
+  it('a shared moment, both writers', async () => {
+    await recordJoke('user-1', 'inside_joke' as never, SAID, SAID, ['door'], SAID);
+    await recordSharedMoment('user-1', { type: 'phrase', content: SAID, whatTheySaid: SAID });
+    expectNoSecret();
+  });
+
+  it('an event story', async () => {
+    reads.exists = false; // no stored profile yet
+    await startStoryCapture('user-1', `party where ${SAID}`, 'party', '2026-10-22');
+    expectNoSecret();
+  });
+
+  it('a vector document, with an embedding of the old text dropped', async () => {
+    const doc = {
+      id: 'v1',
+      text: SAID,
+      embedding: [0.5],
+      metadata: { source: 'memory', note: SAID },
+    };
+    const clean = withoutCredentials(doc);
+    expect(clean.embedding).toBeUndefined();
+    expect(JSON.stringify(clean)).not.toContain('4821');
+    const store = new FirestoreVectorStore();
+    Object.assign(store as object, { _initialized: true, db: fakeDb, useFallback: false });
+    await store.addDocument(doc);
+    expectNoSecret();
+  });
+
+  it('an errand goal', async () => {
+    await createErrandStore(fakeDb as never, () => 'e1').create(
+      { userId: 'user-1', goal: SAID, constraints: {} } as never,
+      new Date(),
+      1
+    );
+    expectNoSecret();
   });
 });

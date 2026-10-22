@@ -133,6 +133,7 @@ import { recordSessionEngagement } from '../../personas/shared/personality-ab-te
 
 // FIX AUDIT: Import proper types for event handlers instead of using `any`
 import type { HandoffEventPayload } from '../shared/handoff/types.js';
+import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 // 🧠 DEEP SIGNAL EXTRACTION: LLM-powered extraction at session end
 
@@ -1836,9 +1837,8 @@ async function extractAndSaveHumanSignals(
     } catch (llmSetupErr) {
       diag.warn('Failed to set up LLM caller, using regex fallback', { error: String(llmSetupErr) });
     }
-
-    // Extract signals from the conversation using LLM (with regex fallback)
-    const extractedSignals = await extractor.extractSignals(
+    // Extract signals (LLM, regex fallback); quotes of the caller lose any credential (#2385)
+    const extractedSignals = redactCredentialsIn(await extractor.extractSignals(
       turns.map((t) => ({
         role: t.role as 'user' | 'assistant',
         content: t.content,
@@ -1847,7 +1847,7 @@ async function extractAndSaveHumanSignals(
         userId,
         personaId,
       }
-    );
+    ));
 
     // Check if any signals were extracted
     const hasSignals = extractedSignals && Object.values(extractedSignals).some((arr) => Array.isArray(arr) && arr.length > 0);

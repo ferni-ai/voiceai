@@ -16,6 +16,7 @@ import {
   onImplicitPreferenceChange,
 } from '../data-layer/hooks/learning-hooks.js';
 import type { UserCorrectionEntity, ImplicitPreferenceEntity } from '../data-layer/types.js';
+import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 const log = getLogger().child({ module: 'user-corrections' });
 
@@ -189,18 +190,17 @@ export function categorizeCorrection(
   return 'other';
 }
 
-/**
- * Record a user correction
- */
+/** Record a user correction, without a credential the caller said in it (#2385) */
 export async function recordCorrection(
   userId: string,
-  correction: {
+  said: {
     whatFerniSaid: string;
     whatUserCorrected: string;
     correctInformation: string;
     personaId?: string;
   }
 ): Promise<string> {
+  const correction = redactCredentialsIn(said);
   try {
     const db = getFirestore();
     const category = categorizeCorrection(correction.whatFerniSaid, correction.whatUserCorrected);
@@ -349,17 +349,15 @@ export async function searchCorrections(userId: string, query: string): Promise<
 // IMPLICIT PREFERENCES
 // ============================================================================
 
-/**
- * Record an implicit preference (inferred from behavior)
- */
+/** Record an implicit preference (inferred from behavior), its evidence without credentials */
 export async function recordImplicitPreference(
   userId: string,
-  preference: Omit<ImplicitPreferenceEntity, 'firstObserved' | 'lastConfirmed' | 'contradicted'>
+  observed: Omit<ImplicitPreferenceEntity, 'firstObserved' | 'lastConfirmed' | 'contradicted'>
 ): Promise<string> {
+  const preference = redactCredentialsIn(observed);
   try {
     const db = getFirestore();
     const now = new Date().toISOString();
-
     // Check if this preference already exists
     const existing = await db
       .collection(`bogle_users/${userId}/implicit_preferences`)

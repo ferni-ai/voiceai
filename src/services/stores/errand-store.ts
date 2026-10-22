@@ -39,6 +39,7 @@ import {
 } from '../errands/index.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'errand-store' });
 
@@ -237,7 +238,7 @@ export function createErrandStore(db: Firestore, makeId: () => string = newId): 
     async create(n, now, stepVersion) {
       const at = now.toISOString();
       const e: Errand = {
-        ...n,
+        ...redactCredentialsIn(n),
         ...{ id: makeId(), state: 'planning', step: 'find', stepVersion, revision: 0 },
         ...{ nextWakeAt: null, candidates: [], pending: null, queue: [], asks: 0, approvals: [] },
         ...{ createdAt: at, updatedAt: at },

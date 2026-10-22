@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'superhuman:event-story-capture' });
 
@@ -204,7 +205,6 @@ async function loadEventStoryProfile(userId: string): Promise<EventStoryProfile 
 async function saveEventStoryProfile(userId: string, profile: EventStoryProfile): Promise<void> {
   const db = getFirestoreDb();
   if (!db) return;
-
   try {
     await db
       .collection('bogle_users')
@@ -212,7 +212,7 @@ async function saveEventStoryProfile(userId: string, profile: EventStoryProfile)
       .collection(COLLECTION)
       .doc('profile')
       .set({
-        ...profile,
+        ...redactCredentialsIn(profile),
         lastUpdated: new Date().toISOString(),
       });
     log.debug({ userId }, 'Saved event story profile');

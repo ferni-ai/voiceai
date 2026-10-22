@@ -22,6 +22,7 @@ import {
   isCoachingFollowUp,
   recordFollowUpAsked,
 } from '../coach-media/feedback.js';
+import { redactCredentials } from '../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'CommitmentFollowThrough' });
 
@@ -194,7 +195,9 @@ export async function settleAwaitingAnswers(
       awaitingAnswer: false,
       followUpOutcome: outcome,
       followUpAnsweredAt: at,
-      ...(outcome === 'unanswered' ? {} : { followUpAnswer: userText.slice(0, 200) }),
+      ...(outcome === 'unanswered'
+        ? {}
+        : { followUpAnswer: redactCredentials(userText).slice(0, 200) }),
       followUpReception: RECEPTION[outcome],
       status: outcome === 'done' ? 'completed' : 'paused',
       lastMentioned: at,
