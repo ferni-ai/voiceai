@@ -11,9 +11,10 @@
  *
  * @module services/seeds/payment-bonuses
  */
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { type Firestore } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { applySeeds, type SeedResult } from './ledger.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'SeedPaymentBonuses' });
 
@@ -82,7 +83,7 @@ export async function awardContributionSeeds(
   const seeds = contributionSeeds(amountCents);
   if (seeds <= 0) return null;
 
-  const result = await applySeeds(db ?? getFirestore(), uid, {
+  const result = await applySeeds(db ?? getAdminFirestore(), uid, {
     delta: seeds,
     reason: 'contribution',
     key: `stripe:${intent.id}`,
@@ -114,7 +115,7 @@ export async function awardFoundingSeeds(
   const seeds = foundingSeeds(amountCents);
   if (seeds <= 0) return null;
 
-  const result = await applySeeds(db ?? getFirestore(), uid, {
+  const result = await applySeeds(db ?? getAdminFirestore(), uid, {
     delta: seeds,
     reason: 'subscription',
     key: `stripe-sub:${subscriptionId}:founding`,

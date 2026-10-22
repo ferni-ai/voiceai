@@ -38,7 +38,9 @@ function oneClip(transcript: string, cached: (text: string) => boolean = () => t
   return played;
 }
 
-const BAD_NEWS = 'so my dad passed away last week and';
+const BAD_NEWS = 'so I missed my flight this morning and';
+/** Hard news (isHeavyMoment): soft "mm"s only, no reaction (presence-heavy.ts callIsGrave). */
+const GRAVE = 'so my dad passed away last week and';
 
 describe('live backchannels that fit what the caller says', () => {
   afterEach(() => {
@@ -60,6 +62,13 @@ describe('live backchannels that fit what the caller says', () => {
     vi.stubEnv('BACKCHANNELS', 'on');
     vi.stubEnv('BACKCHANNEL_CONTEXT', 'on');
     expect(oneClip(BAD_NEWS)).toEqual(['Oh no']);
+  });
+
+  it('on hard news, only a soft "mm", never "Oh no" or a neutral "Yeah"', () => {
+    vi.stubEnv('BACKCHANNELS', 'on');
+    vi.stubEnv('BACKCHANNEL_CONTEXT', 'on');
+    expect(oneClip(GRAVE)).toEqual(['Mm']);
+    expect(pickContextualBackchannel).not.toHaveBeenCalled();
   });
 
   it('falls back to the neutral pick when the fitting clip is not cached', () => {

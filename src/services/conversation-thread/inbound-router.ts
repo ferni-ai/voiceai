@@ -220,7 +220,9 @@ function detectIntentRoute(content: string): { agentId: PersonaId; confidence: n
 export async function handleInboundSMS(
   userId: string,
   fromPhone: string,
-  body: string
+  body: string,
+  /** It might mean "stop texting" (sms-keywords.ts): Ferni should ask, not assume. */
+  possibleOptOut = false
 ): Promise<{
   routeDecision: InboundRouteDecision;
   shouldInitiateCall: boolean;
@@ -246,6 +248,7 @@ export async function handleInboundSMS(
     timestamp: new Date(),
     metadata: {
       sentiment: detectSentiment(body),
+      ...(possibleOptOut && { possibleOptOut }),
     },
   });
 

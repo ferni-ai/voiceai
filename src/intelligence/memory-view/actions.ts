@@ -33,7 +33,9 @@ export type KnownAction = 'forget' | 'wrong' | 'correct';
 export type ActionResult =
   | { kind: 'done'; replacedBy?: string }
   | { kind: 'not-found' }
-  | { kind: 'invalid'; reason: string };
+  | { kind: 'invalid'; reason: string }
+  /** The correction was a code or password (memory-control.ts): the fact is forgotten, nothing kept. */
+  | { kind: 'not-kept'; reason: 'credential' };
 
 export interface ActionStore {
   /** Forget one fact; its words (entity, key, value) when it was the caller's, else null. */

@@ -18,7 +18,7 @@ import {
   type AgentReport,
   type AutomationConfig,
 } from '../services/landing-intelligence/optimization-agent.js';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 import { parseBody } from './helpers.js';
 import {
   createWebExperiment,
@@ -124,7 +124,7 @@ export async function handleLandingOptimizationRoutes(
       const url = new URL(req.url || '', 'http://localhost');
       const limit = parseInt(url.searchParams.get('limit') || '10', 10);
 
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const reportsRef = db.collection('landing_optimization_reports');
       const reportsQuery = reportsRef.orderBy('generatedAt', 'desc').limit(limit);
       const snapshot = await reportsQuery.get();
@@ -148,7 +148,7 @@ export async function handleLandingOptimizationRoutes(
         return true;
       }
 
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const reportDoc = await db.collection('landing_optimization_reports').doc(reportId).get();
 
       if (!reportDoc.exists) {
@@ -188,7 +188,7 @@ export async function handleLandingOptimizationRoutes(
       const persona = url.searchParams.get('persona');
       const type = url.searchParams.get('type');
 
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const reportsRef = db.collection('landing_optimization_reports');
       const latestReport = await reportsRef.orderBy('generatedAt', 'desc').limit(1).get();
 
@@ -218,7 +218,7 @@ export async function handleLandingOptimizationRoutes(
     // GET /api/landing/optimization/experiments - Get suggested experiments
     // ============================================================================
     if (pathname === '/api/landing/optimization/experiments' && method === 'GET') {
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const reportsRef = db.collection('landing_optimization_reports');
       const latestReport = await reportsRef.orderBy('generatedAt', 'desc').limit(1).get();
 
@@ -257,7 +257,7 @@ export async function handleLandingOptimizationRoutes(
         }>(req);
 
         // Get the suggested experiment from the latest report
-        const db = getFirestore();
+        const db = getAdminFirestore();
         const reportsRef = db.collection('landing_optimization_reports');
         const latestReport = await reportsRef.orderBy('generatedAt', 'desc').limit(1).get();
 

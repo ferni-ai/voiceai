@@ -22,6 +22,7 @@ import { isHeavyMood } from '../integrations/presence-watcher.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { priorCallsOf } from './personal-beats.js';
 import { callerVenting } from './turn-extras.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 /** How long after a whistle the caller can still bring it up, or answer the naming question. */
 export const ASK_WINDOW_MS = 3 * 60_000;
@@ -110,7 +111,7 @@ export function namedTuneNote(
 function readyCall(turn: TuneTurn, store: TuneStore, env: Env): CallTune | null {
   if (!namedTuneEnabled(env) || !turn.sessionId) return null;
   const { userId } = turn;
-  if (!turn.verified || turn.memoryHeld || !userId || userId === 'anonymous') return null;
+  if (!turn.verified || turn.memoryHeld || !isMemberIdentity(userId)) return null;
   const call = callTune(turn.sessionId);
   loadCallerTune(call, userId, store);
   return call.state === 'ready' ? call : null;

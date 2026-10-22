@@ -111,7 +111,7 @@ async function getFirestore(): Promise<FirestoreType | null> {
       }
     }
 
-    firestoreInstance = admin.firestore();
+    firestoreInstance = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     log.info('Firestore initialized for semantic intelligence persistence');
     return firestoreInstance;
   } catch (error) {

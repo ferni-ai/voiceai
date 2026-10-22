@@ -27,6 +27,8 @@ export interface Cue {
   urgency: CueUrgency;
   /** Longest acceptable line, in characters. */
   maxChars?: number;
+  /** A line this returns true for is unusable (a first call's hello that implies a shared past). */
+  rejectIf?: (line: string) => boolean;
 }
 
 /** How long the actor may take before the understudy speaks. */
@@ -61,6 +63,7 @@ export function acceptLine(
   for (const term of cue.mustInclude ?? []) {
     if (!line.toLowerCase().includes(term.toLowerCase())) return null;
   }
+  if (cue.rejectIf?.(line)) return null;
   const normalized = line.toLowerCase();
   if (recentLines.some((r) => r.trim().toLowerCase() === normalized)) return null;
   return line;

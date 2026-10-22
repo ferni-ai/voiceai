@@ -118,7 +118,7 @@ class BatchWriteManager {
     if (!this.firestorePromise) {
       this.firestorePromise = (async () => {
         try {
-          const { getFirestore: getFS } = await import('firebase-admin/firestore');
+          const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
           const { initializeApp, getApps, cert } = await import('firebase-admin/app');
 
           if (getApps().length === 0) {
@@ -130,7 +130,7 @@ class BatchWriteManager {
             }
           }
 
-          this.firestore = getFS();
+          this.firestore = getAdminFirestore();
           return this.firestore;
         } catch (error) {
           log.warn({ error: String(error) }, 'Failed to initialize Firestore for batch writes');

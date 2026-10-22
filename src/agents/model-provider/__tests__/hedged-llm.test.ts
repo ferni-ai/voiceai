@@ -64,9 +64,12 @@ class FakeLLM extends llm.LLM {
   }
 }
 
-async function reply(model: HedgedLLM): Promise<{ text: string; ids: Set<string> }> {
+async function reply(
+  model: HedgedLLM,
+  chatCtx: llm.ChatContext = new llm.ChatContext()
+): Promise<{ text: string; ids: Set<string> }> {
   const stream = model.chat({
-    chatCtx: new llm.ChatContext(),
+    chatCtx,
     connOptions: { maxRetry: 0, retryIntervalMs: 0, timeoutMs: 5000 },
   });
   let text = '';
@@ -191,5 +194,53 @@ describe('HedgedLLM', () => {
     await sleep(100); // the closed primary has ended without a word
     expect(primary.closed).toBe(true);
     expect(backup.calls).toBe(0);
+  });
+});
+
+describe('HedgedLLM after a tool result (LOOKUP_BRIDGE)', () => {
+  /** The request for the answer after a look-up: the caller, the call, its output. */
+  function afterTool(): llm.ChatContext {
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'user', content: 'Who won the Dodgers game?' });
+    ctx.insert([
+      llm.FunctionCall.create({ callId: 'c1', name: 'getSports', args: '{}' }),
+      llm.FunctionCallOutput.create({
+        callId: 'c1',
+        name: 'getSports',
+        output: '5-3',
+        isError: false,
+      }),
+    ]);
+    return ctx;
+  }
+  function callerTurn(): llm.ChatContext {
+    const ctx = llm.ChatContext.empty();
+    ctx.addMessage({ role: 'user', content: 'How was your day?' });
+    return ctx;
+  }
+  const models = () => ({
+    primary: new FakeLLM('primary', { chunks: [{ afterMs: 250, content: 'Primary.' }] }),
+    backup: new FakeLLM('backup', { chunks: [{ afterMs: 10, content: 'Backup.' }] }),
+  });
+
+  it('starts the backup at the shorter delay for the reply after a tool result', async () => {
+    const before = models();
+    expect(
+      (await reply(new HedgedLLM(before.primary, before.backup, 1000), afterTool())).text
+    ).toBe('Primary.');
+    expect(before.backup.calls).toBe(0);
+    const after = models();
+    const started = Date.now();
+    const out = await reply(new HedgedLLM(after.primary, after.backup, 1000, 30), afterTool());
+    expect(out.text).toBe('Backup.');
+    expect(after.backup.calls).toBe(1);
+    expect(Date.now() - started).toBeLessThan(200);
+  });
+
+  it('keeps the usual delay for a reply to the caller', async () => {
+    const m = models();
+    const out = await reply(new HedgedLLM(m.primary, m.backup, 1000, 30), callerTurn());
+    expect(out.text).toBe('Primary.');
+    expect(m.backup.calls).toBe(0);
   });
 });
