@@ -11,13 +11,20 @@ import Foundation
 /// - In a call and at rest: never below 60.
 /// - At home and at rest: 30.
 /// - Low Power Mode or a hot device: at most 60.
+/// - At a turn's end the top rate holds `speechHold` after he stops speaking,
+///   or until he settles, whichever is later: the rate doesn't step down at
+///   the moment the face changes to listening.
 enum FramePace {
     static let fastest = 120, inCallFloor = 60, rest = 30, throttledCap = 60
+    static let speechHold = 1.5
 
-    /// Frames a second for this moment.
-    static func rate(inCall: Bool, speaking: Bool, fastMotion: Bool, settled: Bool, lowPower: Bool) -> Int {
+    /// Frames a second for this moment. `sinceSpeechEnd`: seconds since he
+    /// last stopped speaking (nil if he hasn't this call).
+    static func rate(inCall: Bool, speaking: Bool, fastMotion: Bool, settled: Bool, lowPower: Bool,
+                     sinceSpeechEnd: Double? = nil) -> Int {
         let cap = lowPower ? throttledCap : fastest
-        if speaking || fastMotion || !settled { return cap }
+        let justSpoke = sinceSpeechEnd.map { $0 < speechHold } ?? false
+        if speaking || justSpoke || fastMotion || !settled { return cap }
         return min(cap, inCall ? inCallFloor : rest)
     }
 

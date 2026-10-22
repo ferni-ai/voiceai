@@ -45,6 +45,8 @@ public struct AvatarView: View {
     @State private var seenActivity = AvatarActivity.idle
     /// Frames a second (`FramePace`), from the rig after each frame.
     @State private var hz = FramePace.rest
+    /// When he last stopped speaking (the turn-end hold, `FramePace.speechHold`).
+    @State private var speechEnded: Date?
     @GestureState private var holding = false
 
     /// Canvas size and Ferni's place in it, in slot widths.
@@ -154,6 +156,8 @@ public struct AvatarView: View {
             }
             .onChange(of: activity) { previous, next in
                 seenActivity = next
+                if previous == .speaking { speechEnded = .now }
+                if next == .speaking || !FramePace.inCall(next) { speechEnded = nil }
                 if next == .arriving, previous == .idle { arrivingSince = .now }
                 let waited = arrivingSince.map { Date.now.timeIntervalSince($0) } ?? 0
                 let plan = Self.joinPlan(from: previous, to: next, waited: waited, reduceMotion: reduceMotion, arrived: arrivedThisCall)
@@ -232,14 +236,16 @@ public struct AvatarView: View {
 
     /// The rate for now, at once (outside a view update: after a handler).
     private func repace() {
-        hz = Self.pace(activity: activity, rig: rig, throttled: lowPower || hot)
+        hz = Self.pace(activity: activity, rig: rig, throttled: lowPower || hot, sinceSpeechEnd: sinceSpeechEnd(at: .now))
     }
 
+    private func sinceSpeechEnd(at date: Date) -> Double? { speechEnded.map { date.timeIntervalSince($0) } }
+
     /// The rate for `activity` and the rig as of its last frame or request.
-    static func pace(activity: AvatarActivity, rig: AliveRig, throttled: Bool) -> Int {
+    static func pace(activity: AvatarActivity, rig: AliveRig, throttled: Bool, sinceSpeechEnd: Double? = nil) -> Int {
         FramePace.rate(
             inCall: FramePace.inCall(activity), speaking: activity == .speaking,
-            fastMotion: rig.fastMotion, settled: rig.settled, lowPower: throttled
+            fastMotion: rig.fastMotion, settled: rig.settled, lowPower: throttled, sinceSpeechEnd: sinceSpeechEnd
         )
     }
 
@@ -264,7 +270,7 @@ public struct AvatarView: View {
         var u = rig.frame(at: date.timeIntervalSince(woke))
         // The next frame's rate, from what this one left moving (set after the
         // view update, as the cues are).
-        let next = Self.pace(activity: activity, rig: rig, throttled: lowPower || hot)
+        let next = Self.pace(activity: activity, rig: rig, throttled: lowPower || hot, sinceSpeechEnd: sinceSpeechEnd(at: date))
         if next != hz { Task { @MainActor in hz = next } }
         // After the frame, never during it: the app's handlers may change state.
         if let onCue, !rig.cues.isEmpty {

@@ -49,6 +49,48 @@ final class FramePaceTests: XCTestCase {
         XCTAssertEqual(rate(inCall: false, settled: false, lowPower: true), 60)
     }
 
+    // MARK: Turn end (no visible step down as the face changes to listening)
+
+    func testTheTopRateHoldsAfterSpeechEnds() {
+        func r(_ since: Double?, settled: Bool = true, lowPower: Bool = false) -> Int {
+            FramePace.rate(inCall: true, speaking: false, fastMotion: false, settled: settled, lowPower: lowPower, sinceSpeechEnd: since)
+        }
+        XCTAssertEqual(r(0), 120, "the moment he stops")
+        XCTAssertEqual(r(1.4), 120, "within the hold")
+        XCTAssertEqual(r(1.5), 60, "the hold is over and he's settled")
+        XCTAssertEqual(r(1.6, settled: false), 120, "or until he settles, whichever is later")
+        XCTAssertEqual(r(nil), 60, "no recent speech")
+        XCTAssertEqual(r(0.5, lowPower: true), 60, "Low Power still caps it")
+    }
+
+    /// He speaks for 3 s, the face turns to listening: every frame of the
+    /// next 1.5 s draws at the top rate, and only then does it come down.
+    func testTurnEndHasNoStepAtTheFaceChange() {
+        let rig = AliveRig(persona: .ferni, seed: 13)
+        rig.activity = .speaking
+        var t = 0.0, hz = FramePace.fastest
+        while t < 3 {
+            t += 1.0 / Double(hz)
+            rig.voiceLevel = Float(0.3 + 0.3 * sin(t * 9))
+            _ = rig.frame(at: t)
+            hz = AvatarView.pace(activity: .speaking, rig: rig, throttled: false)
+        }
+        rig.activity = .listening
+        rig.voiceLevel = 0
+        rig.stir()
+        let ended = t
+        var during: Set<Int> = [], cameDown = false
+        while t < ended + 10 {
+            hz = AvatarView.pace(activity: .listening, rig: rig, throttled: false, sinceSpeechEnd: t - ended)
+            if t - ended < FramePace.speechHold { during.insert(hz) }
+            if hz == 60 { cameDown = true; XCTAssertGreaterThanOrEqual(t - ended, FramePace.speechHold) }
+            t += 1.0 / Double(hz)
+            _ = rig.frame(at: t)
+        }
+        XCTAssertEqual(during, [120], "the hold")
+        XCTAssertTrue(cameDown, "and it does come down to the call's floor once he settles")
+    }
+
     func testOnlyHomeAndErrorAreOutsideACall() {
         XCTAssertFalse(FramePace.inCall(.idle))
         XCTAssertFalse(FramePace.inCall(.error))
