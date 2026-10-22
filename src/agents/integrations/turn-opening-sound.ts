@@ -32,6 +32,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 
+import { backchannelBeforeTurnEnd, backchannelTimingEnabled } from './backchannel-timing.js';
+
 const log = createLogger({ module: 'TurnOpeningSound' });
 
 export const TURN_OPENING = {
@@ -202,6 +204,9 @@ export function attachTurnOpeningSound(
       // The reply's audio exists already; its playback is about to start.
       if (replyAudioSince(userStartedAt)) return;
       if (early) {
+        // BACKCHANNEL_TIMING: one sound per turn edge, never "Mm-hm" then "Mm".
+        const justBackchanneled = backchannelBeforeTurnEnd(thinkingAt, clips.lastPlayedAt());
+        if (backchannelTimingEnabled() && justBackchanneled) return;
         playEarly(thinkingAt, skipTurn);
         return;
       }

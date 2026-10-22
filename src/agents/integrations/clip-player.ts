@@ -32,6 +32,7 @@ import { quirkAwarenessEnabled, recordQuirk } from '../../services/session/quirk
 import { withBackchannelSignal } from './backchannel-signal.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { avatarListenSignalsEnabled } from '../realtime/listen-turn-signals.js';
+import { backchannelTimingEnabled, timedLivePlay } from './backchannel-timing.js';
 
 const log = createLogger({ module: 'ClipPlayer' });
 
@@ -212,12 +213,12 @@ export async function startBackchannelClips(
     getClip,
     personaId,
   });
-  const playClip = (text: string, opts?: { pauseStartedAt?: number }): boolean => {
+  const playAt = (volume: () => number) => (text: string, opts?: { pauseStartedAt?: number }) => {
     const pcm = getClip(text, personaId());
     if (pcm === null) return false;
     const played = direct
-      ? !player.playing && direct.play(pcm, BACKCHANNEL_VOLUME, text, opts?.pauseStartedAt)
-      : player.play(pcm, BACKCHANNEL_VOLUME);
+      ? !player.playing && direct.play(pcm, volume(), text, opts?.pauseStartedAt)
+      : player.play(pcm, volume());
     if (!played) return false;
     lastPlayedAt = Date.now();
     recordQuirk(sessionIdOf(session), {
@@ -227,13 +228,16 @@ export async function startBackchannelClips(
     });
     return true;
   };
+  const playClip = playAt(() => BACKCHANNEL_VOLUME);
   const cancelFresh = (): boolean => direct?.cancelIfFresh() ?? false;
   const wireDelayMs = (): number =>
     direct ? (direct.lastWireMs ?? 60) : process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650;
   // Live backchannels and laughs (not the turn-opening "Mm") tell the avatar they played.
   // VOICED_PRESENCE varies the live picks; the signal wraps the variation so
   // its kind follows the requested clip (a laugh take still signals 'laugh').
-  const variedPlayClip = voiced?.vary(playClip) ?? playClip;
+  const variedPlayClip = backchannelTimingEnabled()
+    ? timedLivePlay(playAt, BACKCHANNEL_VOLUME, (p) => voiced?.vary(p) ?? p)
+    : (voiced?.vary(playClip) ?? playClip);
   const livePlayClip = avatarListenSignalsEnabled()
     ? withBackchannelSignal(variedPlayClip, createDataMessageSender(room), wireDelayMs)
     : variedPlayClip;

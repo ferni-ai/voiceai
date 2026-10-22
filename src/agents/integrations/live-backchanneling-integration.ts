@@ -33,8 +33,10 @@ import {
   decideBackchannel,
   heavyMoment,
   LAUGH_CLIP,
+  NEUTRAL_BACKCHANNELS,
   pickBackchannel,
   shouldLaughAlong,
+  SOFT_BACKCHANNELS,
 } from './backchannel-policy.js';
 import {
   forgetCallerTurns,
@@ -53,6 +55,12 @@ import {
   PauseClock,
   STALE_FRAME_MS,
 } from './backchannel-pause-clock.js';
+import {
+  backchannelPauseMs,
+  backchannelTimingEnabled,
+  createBackchannelBag,
+} from './backchannel-timing.js';
+import { isHeavyMood } from './presence-watcher.js';
 
 const log = getLogger().child({ module: 'LiveBackchannelingIntegration' });
 
@@ -186,6 +194,10 @@ export function initializeLiveBackchanneling<T>(
   let clipThisPause = false;
   // BACKCHANNEL_AUDIO_CLOCK=on: pauses timed on the audio, not on when we read it.
   const clock = cfg.playClip && backchannelAudioClockEnabled() ? new PauseClock() : null;
+  // BACKCHANNEL_TIMING=on: wait longer unless they ended a sentence, and vary the takes.
+  const bag = cfg.playClip && backchannelTimingEnabled() ? createBackchannelBag() : null;
+  const minPauseMs = (): number =>
+    bag ? backchannelPauseMs(state.partialTranscript ?? '') : CLIP_PAUSE_MIN_MS;
   const pause = clock
     ? {
         speaking: () => clock.userSpeaking(),
@@ -215,7 +227,7 @@ export function initializeLiveBackchanneling<T>(
       decidedThisPause = false;
       return;
     }
-    if (decidedThisPause || pause.ms() < CLIP_PAUSE_MIN_MS) return;
+    if (decidedThisPause || pause.ms() < minPauseMs()) return;
     // Behind real time: they may already be talking again. A fresher frame decides.
     if (clock && clock.lagMs() > STALE_FRAME_MS) return;
     decidedThisPause = true;
@@ -267,13 +279,22 @@ export function initializeLiveBackchanneling<T>(
     const fitting = laugh && heavyMoment({ partialTranscript, callerTurns }) ? null : contextual;
     // FERNI_STATE: a worn-out Ferni listens with soft "mm"s, not "yeah" or "right".
     const soft = emotional || ferniEnergyFor(sessionId) === 'low';
-    let text = fitting ?? pickBackchannel(soft, lastClip);
-    let played = playClip(text, at);
-    if (!played && fitting !== null) {
-      text = pickBackchannel(soft, lastClip);
-      played = playClip(text, at);
+    let text: string | null;
+    if (bag) {
+      // No happy "Mmhm!" take into a heavy moment: plain clips only.
+      const takes = !soft && !isHeavyMood(state.currentEmotion?.primary);
+      const tokens = soft ? SOFT_BACKCHANNELS : NEUTRAL_BACKCHANNELS;
+      text = bag.play(fitting, tokens, takes, (t) => playClip(t, at));
+    } else {
+      text = fitting ?? pickBackchannel(soft, lastClip);
+      let played = playClip(text, at);
+      if (!played && fitting !== null) {
+        text = pickBackchannel(soft, lastClip);
+        played = playClip(text, at);
+      }
+      if (!played) text = null;
     }
-    if (!played) return;
+    if (text === null) return;
     clipThisPause = true;
     lastClip = text;
     state.lastBackchannelAt = now;
