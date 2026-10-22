@@ -12,8 +12,10 @@ switched on or off by a server flag. The only build-time exclusion is
 (`FERNI_PUSH` is unset), and the APNs entitlement is not in the build, so
 the feature is absent, not dormant.
 
-Open item for the lead (critic H4): tap-to-interrupt sends `user_interrupt`,
-and the voice agent acts on it only when `TAP_INTERRUPT` is on in production.
+Open item for the lead (critic H4): interrupting Ferni (a half-second hold
+on him while he talks, or VoiceOver's "Interrupt Ferni"; a tap is only a
+touch since 2026-10-22) sends `user_interrupt`, and the voice agent acts on
+it only when `TAP_INTERRUPT` is on in production.
 Either turn it on before submission or remove the gesture. Otherwise the
 app shows a control whose effect depends on a server flag.
 
@@ -165,9 +167,9 @@ checked.
 
 | Feature | Declare | Evidence |
 |---|---|---|
-| Larger Text | Yes | Every screen audited at AX5 on three devices; call controls stay pinned and reachable (CallControlsAtLargeTextTests). |
-| Dark Interface | Yes | Follows the phone's dark mode, and Night Ink from 10 pm (NightInkUITests); the night audits run in it. |
-| Sufficient Contrast | Yes | The contrast audit is clean on every screen; the few accepted findings were measured from pixels (AccessibilityAuditTests.accepted). |
+| Larger Text | Yes | Audited at AX5 on three devices (AccessibilityAuditTests): Home, consent, sign-in (with and without phone sign-in), Settings, the team, the call and its states, the waitlist, and (critic H-C, 2026-10-21) the "I'll remember" card, Help, the call's More and Report sheets, Delete account, and What Ferni remembers, from Home and from Settings. A default-size "can't change the font size" or "may be clipped" finding is answered at AX5: the text is scrolled into full view and must have grown 1.8 times, or not be flagged there. Call controls stay pinned and reachable (CallControlsAtLargeTextTests). |
+| Dark Interface | Yes | Follows the phone's dark mode, and Night Ink from 10 pm to 5 am (NightInkUITests). At 23:00, in Night Ink, the audit runs on consent, Settings, the call, sign-in, the team, the "I'll remember" card, Help, More, Report, Delete account and What Ferni remembers (critic H-B). |
+| Sufficient Contrast | Yes | The contrast audit passes on each of the screens above, by day and at 23:00. Accepted findings are listed one element at a time with the measured contrast or a screenshot (AccessibilityAuditTests.accepted); the system toolbar buttons (Done, Cancel, Send) are accepted only for Dynamic Type, since they show the Large Content Viewer instead of growing. |
 | Reduced Motion | Yes | Expression animations, bursts and stage moves don't play; feelings are held still (ExpressionAnimationTests, testReduceMotionAndTransparency, testConfusedStillReadsUnderReduceMotion). |
 | Captions | Yes | Every call has live captions of both sides, named per speaker, with "Maya joined" at a handoff. |
 | VoiceOver | After the device run | Every control is labelled (audit), the call's trouble is announced; complete a call, sign-in and Settings with VoiceOver on a device first. |
@@ -178,10 +180,10 @@ checked.
 ## Before submitting
 
 - [ ] PR #2038 (reports) and PR #2004 (Apple revoke) merged and deployed.
-- [ ] H4 decided: `TAP_INTERRUPT` on in production, or the gesture removed.
+- [ ] H4 decided: `TAP_INTERRUPT` on in production, or the gesture removed. The gesture is now a half-second hold while Ferni talks (a tap is only a touch; Seth, 2026-10-22), and VoiceOver has "Interrupt Ferni"; both still send `user_interrupt`.
 - [ ] `POST /api/identity/merge-anonymous` live in production with IDENTITY_MERGE_ANON on, before any external TestFlight or App Store build. Signing in to an account someone already has merges this phone's anonymous calls into it; without the route the app signs them in and quietly leaves those calls behind ("Earlier calls on this phone stay separate").
 - [ ] A device run of `docs/ios/device-test-checklist.md` on an iPhone and an iPad.
-- [x] The accessibility audit lane (XCUITest `performAccessibilityAudit`, default size and AX5): gating in CI on iPhone 17 Pro Max, iPad Pro 13" and iPhone SE (3rd generation), 0 findings on all three (2026-10-21).
+- [ ] The accessibility audit lane (XCUITest `performAccessibilityAudit`, default size, AX5 and 23:00): gating in CI on iPhone 17 Pro Max, iPad Pro 13" and iPhone SE (3rd generation). Tick this only with a linked green run of all three lanes (critic H-A: it was ticked "0 findings on all three" while the SE's Settings audit was red). Local run of all three at b3f2e7c979 (2026-10-22), not a CI link: Pro Max 95 run, 4 skipped, 0 failed; iPad 95 run, 16 skipped, 0 failed; SE 53 run, 0 failed.
 - [ ] App Store accessibility labels entered in App Store Connect, from the table below.
 
 ### Accessibility audit: known iPad findings
