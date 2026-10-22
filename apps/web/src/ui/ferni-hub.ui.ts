@@ -18,7 +18,7 @@ import { DURATION, EASING } from '../config/animation-constants.js';
 import { soundUI } from './sound.ui.js';
 import { asModalDialog } from '../utils/accessibility.js';
 import { fetchHubData, type BackgroundResult, type HubLoad, type OpenThread, type TrackedItem } from './ferni-hub-data.js';
-import { bindHubProblem, renderHubEmpty, renderHubProblem } from './ferni-hub-states.js'; import { escapeHtml } from './trust-dashboard-data.js'; import { bindTrackedActions, trackedActionsHtml } from './ferni-hub-tracked.js';
+import { bindHubProblem, renderHubEmpty, renderHubProblem } from './ferni-hub-states.js'; import { escapeHtml } from './trust-dashboard-data.js'; import { mountPromisesSection } from './hub-promises.ui.js'; import { bindTrackedActions, trackedActionsHtml } from './ferni-hub-tracked.js';
 import {
   PERSONA_ICONS,
   SECTION_ICONS,
@@ -160,8 +160,8 @@ function renderContent({ state, data }: HubLoad): void {
 
   content.innerHTML = sections.join('');
 
-  // Add event listeners to cards
   attachCardListeners();
+  void mountPromisesSection(content); // PROMISES_PANEL: what Ferni is keeping an eye on (hub-promises.ui.ts)
 }
 
 function renderWhileYouWereAway(results: BackgroundResult[]): string {

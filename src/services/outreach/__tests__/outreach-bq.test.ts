@@ -36,6 +36,7 @@ function deps(
     ...atomicLocks(),
     sponsoredPhone: vi.fn(async () => undefined),
     isOptedOut: vi.fn(async () => false),
+    consentDoc: async () => undefined,
     userDoc: vi.fn(async () => undefined),
     legacySmsChannels: vi.fn(async () => undefined),
   } as unknown as TextStore;

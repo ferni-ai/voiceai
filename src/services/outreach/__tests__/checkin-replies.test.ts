@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import {
   firestoreReplyStore,
-  isOptOut,
   matchCheckin,
   phoneHash,
   recordCheckinReply,
@@ -104,93 +103,16 @@ describe('phoneHash', () => {
   });
 });
 
-describe('isOptOut', () => {
-  it.each([
-    'STOP',
-    'stop.',
-    'Unsubscribe',
-    'please cancel',
-    'stop please',
-    'STOP STOP',
-    'END',
-    'quit',
-    'StopAll',
-    'Stop texting me',
-    "please don't text me again",
-    'no more texts thanks',
-    'I want to unsubscribe from these, they are a bit much',
-  ])('treats %j as an opt-out', (body) => expect(isOptOut(body)).toBe(true));
-
-  it.each([
-    'that was unstoppable',
-    'felt real',
-    'endless fun',
-    'stopped by later',
-    'in the end it felt real',
-    'please cancel my dentist thing tomorrow',
-    'it felt like you really knew me',
-  ])('does not treat %j as an opt-out', (body) => expect(isOptOut(body)).toBe(false));
-
-  it('reads an iOS curly apostrophe like a straight one', () => {
-    expect(isOptOut('please don’t text me again')).toBe(true);
-    expect(isOptOut('don‘t text me')).toBe(true);
-  });
-});
-
-describe('opt-outs from replies', () => {
-  it('records a STOP from a phone that never got a check-in', async () => {
-    const { d, replies, optOuts } = deps({}, [stored({ sentAt: ago(100) })]);
-    expect(await recordCheckinReply('+15551234567', 'STOP', undefined, d)).toBeNull();
-    expect(optOuts).toEqual([{ hash: HASH, via: 'reply' }]);
-    expect(replies).toEqual([]);
-  });
-
-  it('a STOP from a 10-digit international number never opts out the US look-alike', async () => {
-    const { d, optOuts } = deps();
-    await recordCheckinReply('+4930123456', 'STOP', undefined, d);
-    expect(optOuts).toHaveLength(1);
-    expect(optOuts[0]?.hash).not.toBe(phoneHash('+14930123456', ENV));
-  });
-
-  it('ignores a STOP from a number it cannot normalize', async () => {
-    const { d, optOuts } = deps();
-    expect(await recordCheckinReply('442079460958', 'STOP', undefined, d)).toBeNull();
-    expect(optOuts).toEqual([]);
-  });
-
-  it('records the opt-out even when saving the reply fails', async () => {
-    const { d, optOuts } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
-    d.store.addReply = vi.fn(async () => {
-      throw new Error('boom');
-    });
-    expect(await recordCheckinReply('+15551234567', 'stop', undefined, d)).toBeNull();
-    expect(optOuts).toEqual([{ hash: HASH, via: 'reply' }]);
-  });
-
-  it('still saves the reply when the opt-out write fails', async () => {
-    const { d, replies } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
-    d.store.addOptOut = vi.fn(async () => {
-      throw new Error('boom');
-    });
-    expect(await recordCheckinReply('+15551234567', 'STOP', undefined, d)).toBe('c9');
-    expect(replies).toEqual([{ id: 'c9', body: 'STOP' }]);
-  });
-
-  it('does not record "unstoppable" as an opt-out', async () => {
+describe('opt-outs are not written here (messaging/consent.ts is the one writer)', () => {
+  it('a STOP or START that answers a check-in is kept as its reply, and touches no opt-out', async () => {
     const { d, replies, optOuts } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
-    expect(await recordCheckinReply('+15551234567', 'honestly unstoppable', undefined, d)).toBe(
-      'c9'
-    );
+    expect(await recordCheckinReply('+15551234567', 'STOP', undefined, d)).toBe('c9');
+    expect(await recordCheckinReply('+15551234567', 'START', undefined, d)).toBe('c9');
+    expect(replies).toEqual([
+      { id: 'c9', body: 'STOP' },
+      { id: 'c9', body: 'START' },
+    ]);
     expect(optOuts).toEqual([]);
-    expect(replies).toHaveLength(1);
-  });
-
-  it('START lifts an opt-out, and an ordinary reply leaves it alone', async () => {
-    const { d, optOuts } = deps({}, [stored({ id: 'c9', sentAt: ago(3) })]);
-    await recordCheckinReply('+15551234567', 'in the end it felt real', undefined, d);
-    expect(optOuts).toEqual([]);
-    await recordCheckinReply('+15551234567', 'Start', undefined, d);
-    expect(optOuts).toEqual([{ hash: HASH, via: 'removed' }]);
   });
 });
 
@@ -202,7 +124,6 @@ describe('replies', () => {
     expect(await recordCheckinReply('+15551234567', 'ok', undefined, other.d)).toBeNull();
     const none = deps({ env: {} }, [stored({ id: 'c9' })]);
     expect(await recordCheckinReply('+15551234567', 'STOP', undefined, none.d)).toBeNull();
-    expect(none.optOuts).toEqual([]);
   });
 
   it('matches the latest check-in sent to that phone within 72 hours', () => {

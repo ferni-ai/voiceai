@@ -22,6 +22,7 @@ import {
   hashApiKey,
   extractKeyPrefix,
 } from './publisher-auth-crypto.js';
+import { getFirestoreDatabase } from '../config/environment.js';
 
 const log = getLogger().child({ module: 'publisher-auth' });
 
@@ -123,7 +124,7 @@ async function getFirestore(): Promise<Firestore> {
 
       const config: FirestoreConfig = {
         projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-        databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+        databaseId: getFirestoreDatabase(),
       };
 
       db = new Firestore(config) as unknown as Firestore;

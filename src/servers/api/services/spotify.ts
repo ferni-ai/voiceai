@@ -35,6 +35,7 @@ const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
 // plaintext shape until the encrypt-integration-tokens migration has run.
 const tokenStore = createPersistenceStore<Record<string, unknown>>({
   collection: 'spotify_tokens',
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'main',
   useRootCollection: true,
   syncIntervalMs: 1000, // Quick sync for token updates
