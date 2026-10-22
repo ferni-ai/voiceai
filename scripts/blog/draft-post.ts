@@ -70,7 +70,7 @@ switch (result.status) {
     console.log(`\n${result.sources.length} sources. Dry run: no model called, nothing written.`);
     break;
   case 'nothing-to-draft':
-    console.log(`No merged PRs to write a ${result.type} post from. Nothing written.`);
+    console.log(`Nothing to write a ${result.type} post about. Nothing written.`);
     break;
   case 'written':
     console.log(writtenSummary(result.title ?? '', result.path ?? ''));

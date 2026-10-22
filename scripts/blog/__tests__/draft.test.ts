@@ -1,8 +1,9 @@
 import * as path from 'node:path';
 import matter from 'gray-matter';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { REQUIRED_FIELDS } from '../brand-gate.js';
 import { draftPost, isoWeek, type DraftDeps } from '../draft.js';
+import type { ExistingPost } from '../existing-posts.js';
 import type { GhRunner } from '../grounding.js';
 import { POST_TYPES } from '../post-types.js';
 
@@ -12,12 +13,20 @@ const TODAY = '2026-10-19';
 // Read the real blog folders as they stood before the fixture PRs merged, so a
 // newly published post can't move whats-new's lookback window past them.
 const POSTS_AS_OF = '2026-10-14';
+// Posts a test adds in front of the real ones, by folder suffix.
+const injected = vi.hoisted(() => ({ posts: [] as Array<{ folder: string; post: ExistingPost }> }));
 vi.mock('../existing-posts.js', async (importActual) => {
   const actual = await importActual<typeof import('../existing-posts.js')>();
   return {
     ...actual,
-    existingPosts: (dir: string) => actual.existingPosts(dir).filter((p) => p.date <= POSTS_AS_OF),
+    existingPosts: (dir: string) => [
+      ...injected.posts.filter((p) => dir.endsWith(p.folder)).map((p) => p.post),
+      ...actual.existingPosts(dir).filter((p) => p.date <= POSTS_AS_OF),
+    ],
   };
+});
+beforeEach(() => {
+  injected.posts = [];
 });
 
 const pr = (
@@ -50,26 +59,34 @@ const PRS = [
   pr(99, 'feat(old): merged before the window', '2025-12-01T00:00:00Z'),
 ];
 
-/** Every PR touches only the web app unless `files` says otherwise. */
-const WEB_FILES = [{ filename: 'apps/web/src/ui/memory.ts', status: 'modified', patch: '+x' }];
+/** Every PR touches only the developer portal (deployed on merge) unless `files` says otherwise. */
+const WEB_FILES = [
+  {
+    filename: 'apps/website/developers-portal/src/pages/sdk/memory.njk',
+    status: 'modified',
+    patch: '+x',
+  },
+];
 /** Repo permission by login; anyone not listed has only read, as on a public repo. */
 const fakeGh = (
   prs = PRS,
   files: Record<number, unknown[]> = {},
-  roles: Record<string, string> = {}
+  roles: Record<string, string> = {},
+  open: unknown[] = []
 ): GhRunner =>
   vi.fn((args: string[]) => {
     const login = /collaborators\/([^/]+)\/permission/.exec(args[1])?.[1];
     if (login) return JSON.stringify({ permission: roles[login] ?? 'read' });
+    if (args[1].includes('state=open')) return JSON.stringify(open);
     const n = /pulls\/(\d+)\/files/.exec(args[1])?.[1];
     return JSON.stringify(n ? (files[Number(n)] ?? WEB_FILES) : prs);
   });
 
 /** A body long enough for every type's length band, with no number, dash or forbidden word. */
-const BODY = Array.from(
+const BODY = `${Array.from(
   { length: 48 },
   () => 'We kept working on this part of Ferni with care and patience.'
-).join(' ');
+).join(' ')} It landed in [#101](https://github.com/ferni-ai/voiceai/pull/101).`;
 const answer = (title: string, body = BODY) =>
   JSON.stringify({ title, excerpt: 'A short, honest note.', body });
 
@@ -141,10 +158,12 @@ describe('grounding', () => {
     ]);
     for (const n of [99, 102, 103, 104]) expect(result.prompt).not.toContain(`PR #${n}`);
     expect(result.prompt).not.toContain('hidden note');
-    const [args] = (gh as ReturnType<typeof vi.fn>).mock.calls[0] as [string[]];
-    expect(args[0]).toBe('api');
-    expect(args[1]).toMatch(/^repos\/ferni-ai\/voiceai\/pulls\?state=closed/);
-    expect(args).not.toContain('graphql');
+    const calls = (gh as ReturnType<typeof vi.fn>).mock.calls.map(([a]) => a as string[]);
+    for (const args of calls) expect(args[0]).toBe('api');
+    expect(calls.some((a) => /^repos\/ferni-ai\/voiceai\/pulls\?state=closed/.test(a[1]))).toBe(
+      true
+    );
+    expect(calls.flat()).not.toContain('graphql');
   });
 
   it('leaves out PRs that are flagged off or not deployed yet', async () => {
@@ -158,9 +177,11 @@ describe('grounding', () => {
       pr(108, 'feat(agent): an older greeting', '2026-10-10T08:00:00Z'),
       pr(109, 'feat(web): a new switch', '2026-10-16T07:00:00Z'),
     ];
-    const agent = [{ filename: 'src/agents/greeting.ts', status: 'modified', patch: '+x' }];
+    const agent = [
+      { filename: 'src/api/v1/developers/greeting-routes.ts', status: 'modified', patch: '+x' },
+    ];
     const manifest = [
-      { filename: 'apps/web/src/ui/x.ts', status: 'added', patch: '+x' },
+      { filename: 'apps/website/developers-portal/src/js/x.js', status: 'added', patch: '+x' },
       {
         filename: 'src/config/flag-manifest.ts',
         status: 'modified',
@@ -358,5 +379,181 @@ describe('a failed model call', () => {
     await expect(draftPost({ type: 'whats-new' }, d)).rejects.toThrow('403 permission denied');
     expect(generate).toHaveBeenCalledTimes(1);
     expect(writes).toHaveLength(0);
+  });
+});
+
+describe('content gates', () => {
+  const devPost = (cited: number[]): ExistingPost => ({
+    slug: 'whats-new-2026-10-18',
+    title: "What's New",
+    date: '2026-10-18',
+    body: 'An earlier changelog.',
+    cited,
+  });
+  const labels = (sources: Array<{ label: string }>) => sources.map((s) => s.label);
+
+  it('rejects a draft that repeats 8 words of a recent post, and says so on the retry', async () => {
+    const line = 'A reply from Ferni takes around two seconds today, slower than we want.';
+    injected.posts = [
+      {
+        folder: 'ferni-website/src/blog',
+        post: { slug: 'x', title: 'X', date: '2026-10-18', body: `Honestly? ${line}`, cited: [] },
+      },
+    ];
+    const { d, writes, generate } = deps(() => answer('On waiting', `${BODY} ${line}`));
+    const result = await draftPost({ type: 'mission-essay' }, d);
+
+    expect(result.status).toBe('rejected');
+    expect(result.issues.map((i) => i.rule)).toEqual(['repeat-phrase']);
+    expect(result.issues[0].message).toContain('a reply from ferni takes around two seconds today');
+    expect(generate.mock.calls[1][0]).toContain('[repeat-phrase]');
+    expect(writes).toHaveLength(0);
+  });
+
+  it('lists only the PRs the post mentions as its sources', async () => {
+    const prs = [...PRS, pr(114, 'feat(sdk): a second change', '2026-10-16T10:00:00Z')];
+    const { d, writes } = deps(() => answer('Two changes, one told'), fakeGh(prs));
+    const result = await draftPost({ type: 'whats-new' }, d);
+
+    expect(result.status, JSON.stringify(result.issues)).toBe('written');
+    expect(result.prompt).toContain('PR #114');
+    expect(labels(result.sources)).toEqual([
+      'PR #101: feat(memory): let a caller see and forget facts',
+    ]);
+    const { data } = matter(writes[0].content);
+    expect(data.sources).toHaveLength(1);
+    expect(data.sources[0]).toMatch(/^PR #101: /);
+  });
+
+  /** An open whats-new draft as the drafter opens it: this repo, its branch name, Seth's token. */
+  const openDraft = (over: Record<string, unknown> = {}, head: Record<string, unknown> = {}) => ({
+    number: 900,
+    user: { login: 'sethdford', type: 'User' },
+    author_association: 'OWNER',
+    head: {
+      ref: 'blog/draft-whats-new-2026-10-18',
+      repo: { full_name: 'ferni-ai/voiceai' },
+      ...head,
+    },
+    body: '### Editorial judge (x): PASS\n\n### Sources\n- PR #114: feat(sdk): in the open draft (url)\n\n_Drafted by x._',
+    ...over,
+  });
+  const dedupePrs = [
+    ...PRS,
+    pr(114, 'feat(sdk): in the open draft', '2026-10-16T10:00:00Z'),
+    pr(115, 'feat(api): new this week', '2026-10-16T09:00:00Z'),
+  ];
+  const withOpen = async (open: unknown[], roles: Record<string, string> = {}) => {
+    const { d } = deps(() => answer('x'), fakeGh(dedupePrs, {}, roles, open));
+    const result = await draftPost({ type: 'whats-new', since: '2026-10-01', dryRun: true }, d);
+    return labels(result.sources)
+      .map((l) => Number(/#(\d+)/.exec(l)![1]))
+      .sort((a, b) => a - b);
+  };
+
+  it('whats-new leaves out PRs an earlier developer post or an open whats-new draft cites', async () => {
+    injected.posts = [{ folder: 'developers-portal/src/blog', post: devPost([101]) }];
+    const open = [
+      openDraft(),
+      openDraft(
+        { number: 901, body: '### Sources\n- PR #115: x' },
+        { ref: 'blog/draft-mission-essay-2026-10-18' }
+      ),
+    ];
+    expect(await withOpen(open)).toEqual([115]);
+    // The run id the workflow adds when that day's branch exists.
+    expect(
+      await withOpen([openDraft({}, { ref: 'blog/draft-whats-new-2026-10-18-18812345' })])
+    ).toEqual([115]);
+  });
+
+  it('ignores an open draft from a fork', async () => {
+    const fork = openDraft({}, { repo: { full_name: 'mallory/voiceai' } });
+    expect(await withOpen([fork])).toEqual([101, 114, 115]);
+    expect(await withOpen([openDraft({}, { repo: null })])).toEqual([101, 114, 115]);
+  });
+
+  it('ignores an open draft by someone outside the team', async () => {
+    const outsider = openDraft({
+      user: { login: 'mallory', type: 'User' },
+      author_association: 'NONE',
+    });
+    expect(await withOpen([outsider])).toEqual([101, 114, 115]);
+    expect(await withOpen([outsider], { mallory: 'write' })).toEqual([101, 115]);
+  });
+
+  it("ignores a branch that only starts like the drafter's", async () => {
+    for (const ref of [
+      'blog/draft-whats-new',
+      'blog/draft-whats-new-hide-114',
+      'blog/draft-whats-new-2026-10-18-x',
+    ])
+      expect(await withOpen([openDraft({}, { ref })]), ref).toEqual([101, 114, 115]);
+  });
+
+  it('reads citations only from the generated Sources list', async () => {
+    const body = [
+      'Closes PR #114 and https://github.com/ferni-ai/voiceai/pull/114',
+      '',
+      '### Sources',
+      '- PR #120: feat(sdk): something else (url)',
+      'PR #114 tucked in after the list',
+    ].join('\n');
+    expect(await withOpen([openDraft({ body })])).toEqual([101, 114, 115]);
+  });
+
+  it('whats-new takes only PRs that touch the developer portal or the developer API', async () => {
+    const prs = [
+      ...PRS,
+      pr(116, 'feat(web): a consumer app change', '2026-10-16T10:00:00Z'),
+      pr(117, 'docs(blog): a hand-edited dev post', '2026-10-16T09:00:00Z'),
+      pr(118, 'feat(api): developer webhooks', '2026-10-01T09:00:00Z'),
+    ];
+    const files = {
+      116: [{ filename: 'apps/web/src/ui/back.ts', status: 'modified', patch: '+x' }],
+      117: [{ filename: 'apps/website/developers-portal/src/blog/a.md', status: 'modified' }],
+      118: [{ filename: 'src/api/v1/developers/webhooks-routes.ts', status: 'modified' }],
+    };
+    const { d } = deps(() => answer('x'), fakeGh(prs, files));
+    const result = await draftPost({ type: 'whats-new', since: '2026-09-30', dryRun: true }, d);
+    expect(labels(result.sources)).toEqual([
+      'PR #101: feat(memory): let a caller see and forget facts',
+      'PR #118: feat(api): developer webhooks',
+    ]);
+    const none = deps(() => answer('x'), fakeGh(prs.slice(5, 7), files));
+    const empty = await draftPost({ type: 'whats-new', since: '2026-09-30' }, none.d);
+    expect(empty.status).toBe('nothing-to-draft');
+    expect(none.generate).not.toHaveBeenCalled();
+  });
+
+  it('writes nothing when the model skips', async () => {
+    const { d, writes } = deps(() => JSON.stringify({ skip: true }));
+    const result = await draftPost({ type: 'how-ferni-works' }, d);
+    expect(result.status).toBe('nothing-to-draft');
+    expect(writes).toHaveLength(0);
+  });
+
+  it('gives consumer posts the house facts as constraints, never as facts, and letters none', async () => {
+    const prompt = async (type: string) =>
+      (await draftPost({ type, persona: 'peter', dryRun: true }, deps(() => '').d)).prompt;
+    const works = await prompt('how-ferni-works');
+    const constraints = works.slice(works.indexOf('TRUE TODAY'), works.indexOf('ANSWER FORMAT'));
+    expect(constraints).toContain('around two seconds');
+    const facts = works.slice(works.indexOf('\nFACTS\n'));
+    expect(facts).not.toMatch(/two seconds|1176|development agent/);
+    for (const type of ['team-letter', 'whats-new']) {
+      const p = await prompt(type);
+      expect(p, type).not.toMatch(/TRUE TODAY|two seconds|development agent/);
+    }
+  });
+
+  it('gives each type its purpose', async () => {
+    const brief = (id: string) => POST_TYPES[id].brief;
+    expect(brief('how-ferni-works')).toMatch(/ONE feature a person can see or hear/);
+    expect(brief('how-ferni-works')).toMatch(/the moment someone notices it/);
+    expect(brief('team-letter')).toMatch(/ONE scene from their biography/);
+    expect(brief('team-letter')).toMatch(/inviting the reader to call them on Ferni/);
+    expect(brief('whats-new')).toMatch(/the SDK, the developer API and the developer portal/);
+    expect(brief('whats-new')).toMatch(/none was covered by an earlier post/);
   });
 });

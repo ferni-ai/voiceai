@@ -32,9 +32,9 @@ const SPECS: Record<string, Spec> = {
     'developer',
     "What's New",
     [300, 900],
-    `A "what's new" post for developers building on Ferni, covering the merged pull requests in the facts.
-Group related changes under a few plain headings. For each change, say what changed and why it matters to a developer, and link its PR as [#N](url).
-Leave out changes a developer wouldn't notice (CI, refactors, docs) unless they explain something bigger.
+    `A "what's new" post for developers building on Ferni: the SDK, the developer API and the developer portal. Every pull request in the facts changed one of those, and none was covered by an earlier post.
+Group related changes under a few plain headings. For each change, say in a full sentence with a subject ("We added...", "The API now...") what changed and why it matters to a developer, and link its PR as [#N](url).
+Leave out a change a developer wouldn't notice. If none of them would, answer {"skip": true}.
 Merged is not the same as live in production: say "merged" or "landed", never "now available".`,
   ],
   'building-in-public': [
@@ -59,8 +59,10 @@ No statistics unless they appear word for word in the facts. Any example person 
     'consumer',
     'Product',
     [500, 1000],
-    `A plain-language "how Ferni works" post about one or two features.
-Only describe features that a merged pull request in the facts shows us building; link each PR as [#N](url). The capabilities excerpt is what we're aiming for, not what ships: never present it as done.
+    `A plain-language "how Ferni works" post about ONE feature a person can see or hear, on a call, in the app or on the site.
+Pick the one merged pull request in the facts that changed what people see or hear, and tell it through the moment someone notices it: what they see or hear, then why we cared enough to build it. Link that PR as [#N](url).
+Skip plumbing, policy, pricing and fixes nobody would notice. If no PR in the facts changed what a person sees or hears, answer {"skip": true}.
+The capabilities excerpt is what we're aiming for, not what ships: never present it as done.
 We can't tell from here what's live for everyone, so phrase it as "we've been building" or "we've been working on", never "you can now" or "available today".`,
   ],
   'team-letter': [
@@ -68,8 +70,9 @@ We can't tell from here what's live for everyone, so phrase it as "we've been bu
     'Letters from the Team',
     [500, 1000],
     `A letter written in the voice of the character named in the facts, to the people who talk to them.
-Use only that character's life details from their biography; never invent a new relative, place or event. Write it in first person, warm and specific, about one idea they care about.
-The character is a character: the letter must not claim they are a real person or that they have met real people who use Ferni.`,
+Tell ONE scene from their biography in detail: one place, one moment, what they noticed and what it taught them. Use at most three life details from the biography, never recite it, and never invent a new relative, place or event.
+End by inviting the reader to call them on Ferni and try the idea together. First person, warm and specific.
+The character is a character: the letter must not claim they are a real person or that they have met real people who use Ferni, and it says nothing about how Ferni is built, how fast it replies or how many people use it.`,
     'letters-from-the-team',
   ],
 };

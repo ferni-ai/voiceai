@@ -104,19 +104,17 @@ export function docSource(
 }
 
 /**
- * What's true about Ferni today, from PR #1176's audit of the blog. Every
- * consumer draft gets it so the model can't fill a gap with an invented user.
+ * What's true about Ferni today, from PR #1176's audit of the blog. They are
+ * constraints, not material: fed in as facts, the model wrote them into every
+ * post word for word (the 2026-10-21 review), so the prompt says never to
+ * contradict them and not to mention them unless the post is about them.
+ * Consumer posts only, and never a character's letter.
  */
-export const HOUSE_FACTS: Source = {
-  label: 'PR #1176: fix(website): stop presenting invented stories and stats as real in the blog',
-  url: 'https://github.com/ferni-ai/voiceai/pull/1176',
-  text: [
-    'Ferni is new and has essentially no users yet. There are no user stories, quotes, testimonials or usage numbers to share.',
-    'Example people in a post are composites we wrote, and the post must say so.',
-    'A reply from Ferni takes around two seconds today, slower than we want.',
-    'Changes run on a development agent first and reach production later.',
-  ].join('\n'),
-};
+export const HOUSE_CONSTRAINTS = [
+  'Ferni is new and has very few users. There are no user stories, quotes, testimonials or usage numbers, so never invent one.',
+  'A reply from Ferni takes around two seconds today, slower than we want.',
+  'Changes run on a development agent first and reach production later.',
+];
 
 /** The pack as the model reads it: numbered, each with its source. */
 export function renderPack(sources: Source[]): string {

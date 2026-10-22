@@ -9,19 +9,22 @@
  * against the draft's grounding. --live fetches every PR the post links to or
  * lists in `sources` (needs `gh`) and fails the post if any is not merged or
  * not live (live-check.ts); without --meta, numbers are then checked against
- * those PRs and the house facts. With neither, the number rule is skipped.
+ * those PRs. With neither, the number rule is skipped.
  *
  * A failing post prints its rule codes and counts only, since the workflow's
  * log is public (log-safe.ts); --details adds the text each finding quotes.
  */
 
 import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { parseArgs } from 'node:util';
 import { checkPost, type GateIssue } from './brand-gate.js';
 import { forbiddenTerms } from './brand-terms.js';
-import { HOUSE_FACTS, renderPack, runGh, type Source } from './grounding.js';
+import { existingPosts } from './existing-posts.js';
+import { renderPack, runGh, type Source } from './grounding.js';
 import { citedPrNumbers, notLiveReason, offFlags, type LiveContext } from './live-check.js';
 import { issueDetails, ruleCounts } from './log-safe.js';
+import { RECENT_POSTS } from './repetition.js';
 import { unsafeOutput } from './untrusted-text.js';
 
 const { values, positionals } = parseArgs({
@@ -79,9 +82,16 @@ const ctx: LiveContext = {
 const live = values.live ? liveCheck(markdown, ctx) : undefined;
 const sourceText = values.meta
   ? (JSON.parse(fs.readFileSync(values.meta, 'utf-8')) as { sourceText: string }).sourceText
-  : live && renderPack([...live.sources, HOUSE_FACTS]);
+  : live && renderPack(live.sources);
+// The latest posts beside it, itself left out, for the repeated-phrase rule.
+const slug = path.basename(file, '.md');
+const recentBodies = existingPosts(path.dirname(file))
+  .filter((p) => p.slug !== slug)
+  .slice(0, RECENT_POSTS)
+  .map((p) => p.body);
+const terms = forbiddenTerms(process.cwd(), audience);
 const issues = [
-  ...checkPost(markdown, { terms: forbiddenTerms(process.cwd(), audience), sourceText }),
+  ...checkPost(markdown, { terms, sourceText, recentBodies }),
   ...unsafeOutput(markdown),
   ...(live?.issues ?? []),
 ];

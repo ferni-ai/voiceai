@@ -6,10 +6,20 @@
 import matter from 'gray-matter';
 import { findTerm } from '../../apps/cli/src/commands/quality/check-brand-compliance.js';
 import { RETIRED_STACK } from './brand-terms.js';
+import { mentionedPrs, repeatedPhrases } from './repetition.js';
 
 type Rule = 'front-matter' | 'em-dash' | 'ellipsis' | 'forbidden-word' | 'retired-stack';
 export interface GateIssue {
-  rule: Rule | 'real-claim' | 'number' | 'length' | 'not-live' | 'unsafe-link' | 'unsafe-html';
+  rule:
+    | Rule
+    | 'real-claim'
+    | 'number'
+    | 'length'
+    | 'not-live'
+    | 'unsafe-link'
+    | 'unsafe-html'
+    | 'repeat-phrase'
+    | 'uncited-source';
   message: string;
 }
 
@@ -18,6 +28,8 @@ export interface GateOptions {
   /** The grounding pack's text. Without it the number rule is skipped. */
   sourceText?: string;
   words?: { min: number; max: number };
+  /** The bodies of the latest posts in the same blog (repetition.ts). */
+  recentBodies?: string[];
 }
 
 export const REQUIRED_FIELDS =
@@ -73,6 +85,19 @@ function numberIssues(text: string, sourceText: string, postYear: string): GateI
   return issues;
 }
 
+/** A PR in `sources` that the body never mentions is a source the post didn't use. */
+function uncitedIssues(data: Record<string, unknown>, body: string): GateIssue[] {
+  const mentioned = mentionedPrs(body);
+  const listed = Array.isArray(data.sources) ? data.sources.map(String) : [];
+  return listed.flatMap((s) => {
+    const n = Number(/\bPR #(\d+)\b/.exec(s)?.[1]);
+    if (!n || mentioned.has(n)) return [];
+    return [
+      { rule: 'uncited-source', message: `lists PR #${n} as a source but never mentions it` },
+    ];
+  });
+}
+
 function frontMatterIssues(data: Record<string, unknown>): GateIssue[] {
   return REQUIRED_FIELDS.filter((f) => {
     const v = data[f];
@@ -111,7 +136,15 @@ export function checkPost(markdown: string, opts: GateOptions): GateIssue[] {
   }
   const { data, content: body } = parsed;
   const text = prose(String(data.title ?? ''), String(data.excerpt ?? ''), body);
-  const issues = [...frontMatterIssues(data), ...textIssues(text, opts.terms)];
+  const issues = [
+    ...frontMatterIssues(data),
+    ...textIssues(text, opts.terms),
+    ...uncitedIssues(data, body),
+  ];
+  for (const phrase of repeatedPhrases(body, opts.recentBodies ?? [])) {
+    const message = `repeats "${phrase}" from a recent post; say it differently or leave it out`;
+    issues.push({ rule: 'repeat-phrase', message });
+  }
 
   if (opts.sourceText !== undefined) {
     const date = data.date instanceof Date ? data.date.toISOString() : String(data.date ?? '');
