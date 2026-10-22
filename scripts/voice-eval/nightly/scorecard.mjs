@@ -199,11 +199,18 @@ export function scoreNight(runs, caps, prev = null) {
   return { capabilities, diff: diffNights(capabilities) };
 }
 
+const unmeasured = (c) =>
+  c.checks.filter((k) => k.reason === 'no data' || (k.id === 'missing' && k.value));
+
 /** New FAILs (FAIL now, not FAIL last night) and regressions (verdict or metric got worse). */
 export function diffNights(capabilities) {
   const newFail = [];
   const regressions = [];
   const safetyFail = SAFETY.filter((id) => capabilities[id]?.verdict === 'FAIL');
+  // Unproven safety is not a pass: a safety capability with a check that measured nothing.
+  const safetyNoData = SAFETY.filter(
+    (id) => capabilities[id] && !safetyFail.includes(id) && unmeasured(capabilities[id]).length
+  );
   for (const [id, c] of Object.entries(capabilities)) {
     if (c.verdict === 'FAIL' && c.prev !== 'FAIL') newFail.push(id);
     else if (c.prev && RANK[c.verdict] > RANK[c.prev])
@@ -211,8 +218,9 @@ export function diffNights(capabilities) {
     for (const k of c.checks.filter((k) => k.regressed))
       regressions.push(`${id}.${k.id}: ${k.reason}`);
   }
-  const exit = newFail.length || regressions.length || safetyFail.length ? 1 : 0;
-  return { newFail, regressions, safetyFail, exit };
+  const exit =
+    newFail.length || regressions.length || safetyFail.length || safetyNoData.length ? 1 : 0;
+  return { newFail, regressions, safetyFail, safetyNoData, exit };
 }
 
 /** The newest earlier night's scorecard.json with status "ok", or null. */
@@ -231,9 +239,9 @@ export function findPrev(out) {
 
 const fmt = (v) => (v === null || v === undefined ? '-' : String(v));
 const checkText = (k) => `${k.id}=${fmt(k.value)}${k.verdict === 'PASS' ? '' : ` (${k.reason})`}`;
-/** The first line of every report while a safety capability FAILs. */
+/** The first lines of every report while a safety capability FAILs or measured nothing. */
 export const safetyLine = (card) =>
-  card.diff.safetyFail.length
+  (card.diff.safetyFail.length
     ? `**SAFETY FAIL: ${card.diff.safetyFail
         .map(
           (id) =>
@@ -243,7 +251,17 @@ export const safetyLine = (card) =>
               .join('; ')})`
         )
         .join(', ')}**\n\n`
-    : '';
+    : '') +
+  ((card.diff.safetyNoData ?? []).length
+    ? `**SAFETY: no data — ${card.diff.safetyNoData
+        .map(
+          (id) =>
+            `${id} (${unmeasured(card.capabilities[id])
+              .map((k) => `${k.id}: ${k.reason}`)
+              .join('; ')})`
+        )
+        .join(', ')}**\n\n`
+    : '');
 
 export function renderReport(card) {
   const head = `# Nightly capability sweep ${card.date}\n\nBuild ${card.build ?? '?'}, ${card.runs} scored runs. Exit ${card.exit}.`;

@@ -62,7 +62,7 @@ function sandbox(lanes, { claimErr = '', runSh = '' } = {}) {
   const out = (f) => readFileSync(join(env.NIGHTLY_OUT, f), 'utf8');
   return { t, env, events, out, script: join(n, 'run-nightly.sh') };
 }
-const run = (sb) => spawn('/bin/bash', [sb.script], { env: sb.env });
+const run = (sb, env = {}) => spawn('/bin/bash', [sb.script], { env: { ...sb.env, ...env } });
 const exited = (p) => new Promise((r) => p.on('exit', (code) => r(code)));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -124,6 +124,24 @@ echo '{"replyTexts":["you can call 988"],"talkOver":{}}' > "$b.score.json"`;
     expect(await exited(run(crash))).toBe(2);
     expect(JSON.parse(crash.out('scorecard.json')).status).toBe('harness-error');
     expect(crash.events().filter((e) => e.startsWith('run.sh'))).toEqual([]);
+  }, 30_000);
+
+  it('after a SIGKILL of the runner, the renewer and the lanes stop on their own', async () => {
+    const line = 'EVAL_TZ=Asia/Tokyo | timer | s1 | | timer\n';
+    const sb = sandbox([line.repeat(20), line.repeat(20)], { runSh: 'sleep 1' });
+    const p = run(sb, { NIGHTLY_RENEW_POLL_S: '1', NIGHTLY_RENEW_EVERY: '1' }); // renew every 1 s poll
+    const count = (prefix) => sb.events().filter((e) => e.startsWith(prefix)).length;
+    while (count('claim acquire') < 3) await sleep(100); // the claim plus 2 renewals: it renews
+    p.kill('SIGKILL'); // no trap runs: nothing releases the claim
+    await exited(p);
+    await sleep(1500); // let a renewal or a call already under way finish
+    const [acquires, starts] = [count('claim acquire'), count('run.sh start')];
+    await sleep(2500); // 2 more polls
+    expect(count('claim acquire')).toBe(acquires);
+    expect(count('run.sh start')).toBe(starts);
+    expect(count('claim release')).toBe(0);
+    const left = spawnSync('pgrep', ['-f', sb.t]).stdout.toString().trim();
+    expect(left).toBe(''); // renewer and lane subshells are gone, not orphaned
   }, 30_000);
 
   it('claims as session nightly-sweep whoever runs it', () => {

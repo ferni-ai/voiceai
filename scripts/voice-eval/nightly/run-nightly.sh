@@ -24,7 +24,7 @@ CLAIM=$HOME/.claude/coordination/claim.py BOARD=$HOME/.claude/coordination/board
 ISSUE=${NIGHTLY_ISSUE-2407} LANES_DIR=${NIGHTLY_LANES:-$HERE/lanes}
 # claim.py names its owner by session id: the sweep always claims as itself, never as the caller
 export CLAUDE_CODE_SESSION_ID=nightly-sweep CLAUDE_SESSION_NAME=nightly-sweep
-RC=2 CLAIMED=0 LANES=0 STATUS=harness-error REASON="harness error" LANE_PIDS="" RENEW_PID=""
+RC=2 CLAIMED=0 LANES=0 STATUS=harness-error REASON="harness error" LANE_PIDS="" RENEW_PID="" RUNNER=$$
 cd "$ROOT" || exit 2
 
 say() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
@@ -71,8 +71,13 @@ do_claim() {
   case $err in "HELD by "*) return 3 ;; *) return 2 ;; esac
 }
 # The claim has a 45 min TTL; this renews it every 10 min until finish stops it.
-renew_claim() {
-  while sleep 600; do python3 "$CLAIM" acquire $P --why "nightly capability sweep" --ttl 45 > /dev/null 2>&1; done
+renew_claim() { # polls every 60 s, renews every 10th poll, and quits once the runner is gone
+  local n=0
+  while sleep "${NIGHTLY_RENEW_POLL_S:-60}"; do
+    kill -0 "$RUNNER" 2> /dev/null || exit 0 # runner SIGKILLed: the claim lapses within its TTL
+    n=$((n + 1)); [ $((n % ${NIGHTLY_RENEW_EVERY:-10})) = 0 ] || continue
+    python3 "$CLAIM" acquire $P --why "nightly capability sweep" --ttl 45 > /dev/null 2>&1
+  done
 }
 tree() { local c; echo "$1"; for c in $(pgrep -P "$1"); do tree "$c"; done; }
 # Stop background jobs and everything under them: freeze the tree (so nothing new starts),
@@ -131,6 +136,7 @@ lane() {
       printf 'PLAN %-9s [%s] run.sh dev %s %s %s  (%s)\n' "$name" "$envs" "$sc" "$TAG$label" "$uid" "$(trim "${cap:-}")"
       continue
     fi
+    kill -0 "$RUNNER" 2> /dev/null || exit 0 # no new call once the runner is gone
     wait_rooms || { say "SKIP $sc $label (non-eval room live > 10 min)" >> "$llog"; continue; }
     say "START $sc $label env=[$envs]" >> "$llog"
     (
