@@ -137,7 +137,7 @@ import {
   processActiveListeningPartial,
 } from './active-listening-handler.js';
 import { getUserResponseGapMs } from './user-response-gap.js';
-import { handleRejectedTranscript } from './rejected-transcript-policy.js';
+import { handleRejectedTranscript, installSpeechTracker } from './rejected-transcript-policy.js';
 import { flagOn } from '../../config/env-flag.js';
 
 // ============================================================================
@@ -287,6 +287,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
     sendDataMessage,
     agent,
   } = ctx;
+  if (flagOn('REJECTED_TRANSCRIPT_KEEPS_SPEECH')) installSpeechTracker(session);
 
   const handler = (event: TranscriptEvent): void => {
     // ===============================================
