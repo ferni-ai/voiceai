@@ -63,6 +63,8 @@ interface UserSocialGraph {
 const userGraphs = new Map<string, UserSocialGraph>();
 /** Users whose stored graph has been read into `userGraphs` since it was last released. */
 const loadedFromFirestore = new Set<string>();
+/** Users whose last graph read errored: the stored graph is unread, so it is never saved over. */
+const graphReadFailed = new Set<string>();
 
 // Common relationship aliases
 const RELATIONSHIP_ALIASES: Record<string, string[]> = {
@@ -846,7 +848,7 @@ export function clearSocialGraph(userId: string): void {
 export async function ensureGraphLoaded(userId: string): Promise<void> {
   if (loadedFromFirestore.has(userId)) return;
   await loadGraphFromFirestore(userId);
-  loadedFromFirestore.add(userId);
+  if (!graphReadFailed.has(userId)) loadedFromFirestore.add(userId);
 }
 
 /**
@@ -890,13 +892,15 @@ export function serializeGraph(graph: UserSocialGraph): object {
   };
 }
 
-/**
- * Persist graph to Firestore
- */
+/** Persist graph to Firestore, unless the user's stored graph failed to read (graphReadFailed). */
 export async function persistGraphToFirestore(
   userId: string,
   graph: UserSocialGraph
 ): Promise<boolean> {
+  if (graphReadFailed.has(userId)) {
+    log.warn({ userId }, 'Social graph read failed; not saving over it');
+    return false;
+  }
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
     const db = getFirestoreDb();
@@ -974,9 +978,7 @@ export async function persistGraphToFirestore(
   }
 }
 
-/**
- * Load graph from Firestore
- */
+/** Load graph from Firestore; a read error holds back saves until a later read succeeds. */
 export async function loadGraphFromFirestore(userId: string): Promise<void> {
   try {
     const { getFirestoreDb } = await import('../superhuman/firestore-utils.js');
@@ -989,13 +991,10 @@ export async function loadGraphFromFirestore(userId: string): Promise<void> {
       .collection('social_graph')
       .doc('current')
       .get();
-
-    if (!doc.exists) return;
-
-    const data = doc.data();
+    graphReadFailed.delete(userId);
+    const data = doc.exists ? doc.data() : undefined;
     if (!data) return;
 
-    // Reconstruct the graph
     const graph: UserSocialGraph = {
       userId,
       people: new Map(),
@@ -1004,7 +1003,6 @@ export async function loadGraphFromFirestore(userId: string): Promise<void> {
       lastAnalysis: new Date(data.lastAnalysis || 0),
     };
 
-    // Reconstruct people
     for (const personData of data.people || []) {
       const person: Person = {
         ...personData,
@@ -1015,7 +1013,6 @@ export async function loadGraphFromFirestore(userId: string): Promise<void> {
       graph.people.set(person.id, person);
     }
 
-    // Reconstruct mentions
     graph.mentions = (data.mentions || []).map((m: Record<string, unknown>) => ({
       ...m,
       timestamp: new Date(m.timestamp as string),
@@ -1024,6 +1021,7 @@ export async function loadGraphFromFirestore(userId: string): Promise<void> {
     userGraphs.set(userId, graph);
     log.info({ userId, peopleCount: graph.people.size }, 'Social graph loaded from Firestore');
   } catch (error) {
+    graphReadFailed.add(userId);
     log.error({ userId, error: String(error) }, 'Failed to load social graph from Firestore');
   }
 }
@@ -1058,6 +1056,7 @@ export function clearAllSocialGraphs(): void {
   const count = userGraphs.size;
   userGraphs.clear();
   loadedFromFirestore.clear();
+  graphReadFailed.clear();
   log.info({ count }, 'All social graphs cleared from memory');
 }
 

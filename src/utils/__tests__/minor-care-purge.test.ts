@@ -150,12 +150,18 @@ describe('placeholder ids and other users', () => {
 describe('purge: every store drops the user and their loaded markers', () => {
   it('predictive and music: loaded markers cleared, so the next session reloads', async () => {
     const who = caller();
-    markUserLoaded(who.userId);
+    markUserLoaded(who.userId, 'markov');
     await ensureProfileLoaded(who.userId);
-    expect([isUserLoaded(who.userId), isMusicLearningLoaded(who.userId)]).toEqual([true, true]);
+    expect([isUserLoaded(who.userId, 'markov'), isMusicLearningLoaded(who.userId)]).toEqual([
+      true,
+      true,
+    ]);
     who.hold();
     purgeHeldUser(who.userId);
-    expect([isUserLoaded(who.userId), isMusicLearningLoaded(who.userId)]).toEqual([false, false]);
+    expect([isUserLoaded(who.userId, 'markov'), isMusicLearningLoaded(who.userId)]).toEqual([
+      false,
+      false,
+    ]);
   });
 
   it('game: after a purge, memory cached without a reload is never written', async () => {

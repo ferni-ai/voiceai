@@ -32,7 +32,7 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
   if (firestoreDb) return firestoreDb;
 
   try {
-    const { getFirestore: getFs } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
     const { initializeApp, getApps, cert } = await import('firebase-admin/app');
 
     // Initialize Firebase Admin if not already done
@@ -50,7 +50,7 @@ async function getFirestore(): Promise<FirebaseFirestore.Firestore | null> {
       }
     }
 
-    firestoreDb = getFs();
+    firestoreDb = getAdminFirestore();
     log.info('Firestore initialized for GTM storage');
     return firestoreDb;
   } catch (e) {

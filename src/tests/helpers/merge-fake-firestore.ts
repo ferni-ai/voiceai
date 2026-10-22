@@ -15,6 +15,8 @@ export interface MergeFakeState {
   writes: Array<{ path: string; op: 'set' | 'update' | 'delete'; data?: Json }>;
   /** Paths whose writes throw UNAVAILABLE (code 14), to test per-doc failure handling. */
   failWrites: Set<string>;
+  /** Paths whose doc reads throw UNAVAILABLE (code 14), to test read-failure handling. */
+  failReads?: Set<string>;
   /** Write count per path, served as the snapshot's updateTime. */
   versions: Map<string, number>;
   /** Runs before every write (e.g. to simulate a token refresh racing the migration). */
@@ -103,7 +105,12 @@ export function createMergeFakeFirestore(state: MergeFakeState) {
     return {
       path,
       id: path.split('/').pop() ?? '',
-      get: async () => snapshot(path),
+      get: async () => {
+        if (state.failReads?.has(path)) {
+          throw Object.assign(new Error('simulated read failure'), { code: 14 });
+        }
+        return snapshot(path);
+      },
       set: async (data, opts) => {
         guard(path);
         const base = opts?.merge ? (state.docs.get(path) ?? {}) : {};

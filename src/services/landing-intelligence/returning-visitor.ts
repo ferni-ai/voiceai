@@ -7,7 +7,7 @@
  * @module services/landing-intelligence/returning-visitor
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generateJSON } from './gemini-client.js';
@@ -116,7 +116,7 @@ export function recordVisitorSession(session: VisitorSession): void {
 }
 
 async function persistSession(session: VisitorSession): Promise<void> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   // Update visitor profile
   const visitorRef = db.collection('landing_visitors').doc(session.visitorId);
@@ -194,7 +194,7 @@ export async function getReturningVisitorContext(
   visitorId: string
 ): Promise<ReturningVisitorContext | null> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const visitorDoc = await db.collection('landing_visitors').doc(visitorId).get();
 
     if (!visitorDoc.exists) {

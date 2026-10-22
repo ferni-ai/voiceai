@@ -633,7 +633,7 @@ export function getReinforcementDataForPersistence(
  * Load reinforcement state from Firestore (async, called on first access)
  */
 export async function loadReinforcementFromFirestore(userId: string): Promise<void> {
-  if (isUserLoaded(userId)) return;
+  if (isUserLoaded(userId, 'reinforcement')) return;
 
   try {
     const data = await loadReinforcementState(userId);
@@ -677,10 +677,10 @@ export async function loadReinforcementFromFirestore(userId: string): Promise<vo
         'Loaded reinforcement state from Firestore'
       );
     }
-    markUserLoaded(userId);
+    markUserLoaded(userId, 'reinforcement');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to load reinforcement state');
-    markUserLoaded(userId);
+    markUserLoaded(userId, 'reinforcement');
   }
 }
 

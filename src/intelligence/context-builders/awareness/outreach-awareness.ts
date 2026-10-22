@@ -22,6 +22,7 @@ import {
 } from '../../../services/contacts/outreach-nudges.js';
 import { inMemoryContext } from '../../../services/contacts/in-memory.js';
 import { listInMemoryPeople } from '../../../services/contacts/in-memory-people.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:outreach-awareness' });
 
@@ -44,7 +45,7 @@ export const outreachAwarenessBuilder: ContextBuilder = {
   async build(input: ContextBuilderInput): Promise<ContextInjection[]> {
     const userId = input.services?.userId || 'anonymous';
 
-    if (userId === 'anonymous') {
+    if (!isMemberIdentity(userId)) {
       return [];
     }
 
