@@ -232,6 +232,14 @@ export function returningCallerAwareness(sessionId: string): string | null {
   return inReturningCallerFlow(sessionId) ? UNKNOWN_CALLER_NOTE : null;
 }
 
+/** A caller with no past conversations: new, or maybe one who called before (RETURNING_CALLER). */
+export function firstTalkNote(sessionId: string): string {
+  return (
+    returningCallerAwareness(sessionId) ??
+    'This is your first conversation with them - be welcoming but not overwhelming.'
+  );
+}
+
 /** The greeting's direction, the same with or without a record. */
 export function returningCallerGreeting(sessionId: string): string | null {
   return inReturningCallerFlow(sessionId) ? UNKNOWN_CALLER_GREETING : null;

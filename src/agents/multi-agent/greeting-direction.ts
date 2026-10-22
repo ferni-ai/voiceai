@@ -14,10 +14,7 @@ import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
 import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
-import {
-  returningCallerAwareness,
-  returningCallerGreeting,
-} from '../../services/identity/returning-caller.js';
+import { returningCallerGreeting } from '../../services/identity/returning-caller.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import type { UserProfile } from '../../types/user-profile.js';
@@ -35,6 +32,7 @@ import {
 import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
+import * as stranger from './first-call-stranger.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -59,17 +57,22 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
  * The hello's direction for this persona. Never the playful one after a heavy
  * last call (what they talked about reads as heavy-moment.ts does) or when
  * welcome-back held back a tender thread: a tease is no way to pick that up.
+ * A first call (`last.firstCall`) gets the stranger's hello (first-call-stranger.ts);
  * `introAs` is set on a first call (FIRST_CALL_INTRO).
  */
 export function greetingDirection(
   personaId: string,
   env: Env = process.env,
-  last: { topic?: string; tender?: boolean } = {},
+  last: { topic?: string; tender?: boolean; firstCall?: boolean } = {},
   introAs?: string
 ): string {
   const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
   const careful = last.tender === true || isHeavyMoment([last.topic]);
-  const base = playful && !careful ? PLAYFUL_GREETING_DIRECTION : GREETING_DIRECTION;
+  const base = last.firstCall
+    ? stranger.STRANGER_GREETING_DIRECTION
+    : playful && !careful
+      ? PLAYFUL_GREETING_DIRECTION
+      : GREETING_DIRECTION;
   return introAs ? withFirstCallIntro(base, introAs) : base;
 }
 
@@ -277,13 +280,7 @@ export function greetingFacts(
   return facts;
 }
 
-/** A caller with no past conversations: new, or maybe one who called before (RETURNING_CALLER). */
-export function firstTalkNote(sessionId: string): string {
-  return (
-    returningCallerAwareness(sessionId) ??
-    'This is your first conversation with them - be welcoming but not overwhelming.'
-  );
-}
+export { firstTalkNote } from '../../services/identity/returning-caller.js';
 
 /** Agent setup knows the profile, the greeting needs it: handed over per session. */
 const pendingHistory = new Map<string, CallerHistory>();
@@ -368,11 +365,7 @@ export async function directedGreeting(
   // A returning caller's greeting can pick up from last time (agent-setup hands it over).
   const history = takeCallerHistory(sessionId);
   const hour = callerHour(new Date(), userData?.callerTimezone);
-  const ctx = {
-    hour: hour ?? 12,
-    isReturningUser: history !== undefined,
-    relationshipStage: 'friend' as const, // Default for multi-agent
-  };
+  const ctx = { hour: hour ?? 12, isReturningUser: history !== undefined };
   const { directedText } = await import('../../speech/direction/index.js');
   const partOfDay = hour === null ? '' : partOfDayFor(hour);
   // A call Ferni placed to its own user (callType proactive_outreach).
@@ -395,22 +388,25 @@ export async function directedGreeting(
     });
     return calmGreeting(directed.text);
   }
-  const scripted = generateWarmGreeting(personaId, ctx);
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome, anniversary, firstCall] = await Promise.all([
-    checkInFor(userData?.userId),
-    winFor(userData?.userId),
-    ponderFor(userData?.userId, history),
-    loadWelcomeBack(userData?.userId, personaId, history),
-    anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
-    firstMeeting(personaId, userData, history), // FIRST_CALL_INTRO: the name to give
-  ]);
-  // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts), or check
-  // the name someone on that number gave before (RETURNING_CALLER, returning-caller.ts).
+  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, introName] =
+    await Promise.all([
+      checkInFor(userData?.userId),
+      winFor(userData?.userId),
+      ponderFor(userData?.userId, history),
+      loadWelcomeBack(userData?.userId, personaId, history),
+      anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
+      stranger.isStrangerCall(userData, history),
+      firstMeeting(personaId, userData, history), // FIRST_CALL_INTRO: the name to give
+    ]);
+  // An unrecognised phone caller: a name given on that number before (RETURNING_CALLER), or ask.
   const unknown =
     returningCallerGreeting(sessionId) ??
     unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
-  const introAs = unknown ? undefined : firstCall;
+  const firstCall = isNew && !unknown; // never greeted as an old friend
+  const stage = firstCall ? ('stranger' as const) : ('friend' as const);
+  const scripted = generateWarmGreeting(personaId, { ...ctx, relationshipStage: stage });
+  const introAs = unknown ? undefined : introName;
   if (introAs) log.info({ sessionId, personaId }, 'First call: the hello says who is calling');
   const { win, checkIn } = unknown ? {} : openingThread(openWin, openCheckIn);
   // One thread per call: a win or what they said they'd do comes before a pondered ask.
@@ -425,7 +421,7 @@ export async function directedGreeting(
     greetingDirection(
       personaId,
       process.env,
-      { topic: history?.lastTopic, tender: back?.heldBack },
+      { topic: history?.lastTopic, tender: back?.heldBack, firstCall },
       introAs
     ) +
     (win ? WIN_DIRECTION : '') +
@@ -437,20 +433,24 @@ export async function directedGreeting(
   const directed = await directedText(sessionId, {
     moment: 'greeting',
     direction,
-    facts: welcomeBackFacts(
-      greetingFacts(
-        partOfDay,
-        userData?.userName,
-        history,
-        checkIn,
-        unknown ? undefined : ask?.text,
-        win?.text
+    facts: {
+      ...welcomeBackFacts(
+        greetingFacts(
+          partOfDay,
+          userData?.userName,
+          history,
+          checkIn,
+          unknown ? undefined : ask?.text,
+          win?.text
+        ),
+        back
       ),
-      back
-    ),
+      ...(firstCall ? stranger.FIRST_CALL_FACTS : {}),
+    },
     fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
     urgency: 'now',
     maxChars: 140,
+    rejectIf: firstCall ? stranger.impliesSharedPast : undefined,
   });
   const spoken = unknown ? directed.text : afterAsking(directed, scripted, ask);
   if (

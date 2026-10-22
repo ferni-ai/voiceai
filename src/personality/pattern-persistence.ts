@@ -11,10 +11,11 @@
  * @module personality/pattern-persistence
  */
 
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { type Firestore } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
 import type { EmotionalDataPoint, EmotionalPattern, GrowthMoment } from './emotional-patterns.js';
+import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'PatternPersistence' });
 
@@ -41,7 +42,7 @@ function getDb(): Firestore | null {
   if (db) return db;
 
   try {
-    db = getFirestore();
+    db = getAdminFirestore();
     return db;
   } catch (error) {
     log.warn({ error }, 'Firestore not available - using in-memory storage');
