@@ -1,31 +1,70 @@
+import Foundation
 import LiveKit
+import os
 import XCTest
 @testable import FerniVoice
 
-/// The real adapter against LiveKit's real audio manager: under the system's
-/// call service the engine stays off until the system hands over the session
-/// (LiveKit 2.12.1 README, "Integration with CallKit").
+/// The real adapter: under the system's call service the engine stays off
+/// until the system hands over the session (LiveKit 2.12.1 README,
+/// "Integration with CallKit"), stays on for every room of that call, and goes
+/// off when the call ends or the system takes the audio back.
+@MainActor
 final class SystemCallAudioTests: XCTestCase {
+    /// Every availability the adapter set, in order.
+    final class Engine: @unchecked Sendable {
+        private let states = OSAllocatedUnfairLock(initialState: [String]())
+        var all: [String] { states.withLock { $0 } }
+        var now: String? { all.last }
+        func record(_ availability: AudioEngineAvailability) {
+            let state = availability.isInputAvailable && availability.isOutputAvailable ? "on"
+                : !availability.isInputAvailable && !availability.isOutputAvailable ? "off" : "partial"
+            states.withLock { $0.append(state) }
+        }
+    }
+
     private var engine: (input: Bool, output: Bool) {
         let availability = AudioManager.shared.engineAvailability
         return (availability.isInputAvailable, availability.isOutputAvailable)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         try? AudioManager.shared.setEngineAvailability(.default)
-        super.tearDown()
+        try await super.tearDown()
     }
 
-    func testTheEngineWaitsForTheSystemToActivateTheSession() {
-        let audio = SystemCallAudio(systemManagesCalls: true)
-        XCTAssertTrue(engine == (false, false), "off before any call")
+    private func recorded(_ engine: Engine) -> SystemCallAudio {
+        SystemCallAudio(systemManagesCalls: true, engine: { engine.record($0) })
+    }
+
+    /// Critic C1: never before the system's go, for the first call or the next.
+    func testTheEngineWaitsForTheSystemToActivateTheSession() throws {
+        let engine = Engine()
+        let audio = recorded(engine)
+        XCTAssertEqual(engine.now, "off", "off before any call")
+        try audio.activate(systemOwned: true)
+        XCTAssertEqual(engine.all, ["off"], "a system-owned room doesn't start it before the system does")
         audio.systemAudio(active: true)
-        XCTAssertTrue(engine == (true, true), "on once the system activates")
+        XCTAssertEqual(engine.now, "on", "on once the system activates")
         audio.systemAudio(active: false)
-        XCTAssertTrue(engine == (false, false), "off when the system takes it back")
+        XCTAssertEqual(engine.now, "off", "off when the system takes it back")
         audio.systemAudio(active: true)
-        audio.deactivate(systemOwned: true)
-        XCTAssertTrue(engine == (false, false), "off again, ready for the next call")
+        audio.callEnded()
+        XCTAssertEqual(engine.now, "off", "off when the call ends, ready for the next")
+        try audio.activate(systemOwned: true)
+        XCTAssertEqual(engine.now, "off", "and the next call waits for the system again")
+    }
+
+    /// The P0 (2026-10-21): leaving a room mid-call turned the engine off, and
+    /// the next system-owned room never turned it back on.
+    func testBetweenRoomsOfOneCallTheEngineStaysAvailable() throws {
+        let engine = Engine()
+        let audio = recorded(engine)
+        audio.systemAudio(active: true)
+        try audio.activate(systemOwned: true)
+        audio.deactivate(systemOwned: true) // a dropped room, or Ferni didn't join
+        XCTAssertEqual(engine.now, "on", "not off between rooms")
+        try audio.activate(systemOwned: true) // the next room of the same call
+        XCTAssertEqual(engine.now, "on", "on for the next room")
     }
 
     func testWithoutTheSystemTheEngineIsLeftAlone() {
@@ -33,5 +72,115 @@ final class SystemCallAudioTests: XCTestCase {
         withExtendedLifetime(SystemCallAudio(systemManagesCalls: false)) {
             XCTAssertTrue(engine == (true, true))
         }
+    }
+
+    // MARK: - Through a whole call
+
+    /// The adapter as the session uses it, with a microphone that says yes.
+    final class Audio: CallAudio, @unchecked Sendable {
+        let real: SystemCallAudio
+        let interruptions: AsyncStream<AudioInterruption>
+        init(_ real: SystemCallAudio) {
+            self.real = real
+            interruptions = AsyncStream { _ in }
+        }
+        func requestMicrophone() async -> Bool { true }
+        func activate(systemOwned: Bool) throws { try real.activate(systemOwned: systemOwned) }
+        func deactivate(systemOwned: Bool) { real.deactivate(systemOwned: systemOwned) }
+        func systemAudio(active: Bool) { real.systemAudio(active: active) }
+        func callEnded() { real.callEnded() }
+    }
+
+    private let lifecycle = CallLifecycleTests.FakeLifecycle()
+    private let rooms = CallSessionTests.Rooms()
+    private let tokens = CallSessionTests.Tokens()
+
+    private func call(_ engine: Engine) -> CallSession {
+        let rooms = rooms, tokens = tokens
+        return CallSession(
+            fetchToken: { _ in
+                tokens.requests.append("ferni")
+                return CallToken(token: "t", url: "wss://x", room: "r", agentDispatched: tokens.dispatched)
+            },
+            makeRoom: {
+                let room = rooms.next()
+                rooms.made.append(room)
+                return room
+            },
+            audio: Audio(recorded(engine)),
+            lifecycle: lifecycle,
+            agentTimeout: .seconds(5),
+            arrivingAfter: .milliseconds(50),
+            defaults: UserDefaults(suiteName: "system-audio-\(UUID().uuidString)")!
+        )
+    }
+
+    private func until(_ condition: @autoclosure () -> Bool, file: StaticString = #filePath, line: UInt = #line) async {
+        let deadline = ContinuousClock.now + .seconds(10)
+        while !condition(), ContinuousClock.now < deadline { try? await Task.sleep(for: .milliseconds(10)) }
+        XCTAssertTrue(condition(), "timed out", file: file, line: line)
+    }
+
+    /// 1. A drop mid-call and a rejoin: the voice comes back in the new room.
+    func testAfterARejoinTheEngineIsOn() async {
+        let engine = Engine()
+        let session = call(engine)
+        session.start()
+        lifecycle.ask.yield(.audio(active: true)) // the system activates, once
+        await until(session.phase == .live)
+        XCTAssertEqual(engine.now, "on")
+
+        rooms.made[0].send(.disconnected(byUs: false))
+        await until(rooms.made.count == 2 && session.phase == .live)
+        XCTAssertEqual(engine.now, "on", "after the rejoin: \(engine.all)")
+    }
+
+    /// 2. Ferni didn't join the first room; the second room's call has a voice.
+    func testAfterARetryTheEngineIsOn() async {
+        let engine = Engine()
+        tokens.dispatched = false // the first room: Ferni missing, at once
+        let tokens = tokens
+        var first = true
+        rooms.next = {
+            defer { first = false; tokens.dispatched = true }
+            return CallSessionTests.FakeRoom(agentOnConnect: first ? nil : [:])
+        }
+        let session = call(engine)
+        session.start()
+        lifecycle.ask.yield(.audio(active: true))
+        await until(session.phase == .live)
+        XCTAssertEqual(rooms.made.count, 2, "attempt 2")
+        XCTAssertEqual(engine.now, "on", "in attempt 2's room: \(engine.all)")
+    }
+
+    /// 3. The call ends: off, ready for the next. The system taking the audio: off.
+    func testEndingOrLosingTheSystemAudioTurnsItOff() async {
+        let engine = Engine()
+        let session = call(engine)
+        session.start()
+        lifecycle.ask.yield(.audio(active: true))
+        await until(session.phase == .live)
+        lifecycle.ask.yield(.audio(active: false))
+        await until(engine.now == "off")
+        lifecycle.ask.yield(.audio(active: true))
+        await until(engine.now == "on")
+        await session.end()
+        XCTAssertEqual(engine.now, "off", "ended: \(engine.all)")
+    }
+
+    /// 3b. A call that fails (the rejoin room never gets Ferni): off as well.
+    func testAFailedCallTurnsItOff() async {
+        let engine = Engine()
+        let session = call(engine)
+        session.start()
+        lifecycle.ask.yield(.audio(active: true))
+        await until(session.phase == .live)
+        XCTAssertEqual(engine.now, "on")
+
+        tokens.dispatched = false // the rejoin room: Ferni missing, at once
+        rooms.next = { CallSessionTests.FakeRoom(agentOnConnect: nil) }
+        rooms.made[0].send(.disconnected(byUs: false))
+        await until(session.phase == .failed(.connectionLost))
+        XCTAssertEqual(engine.now, "off", "failed: \(engine.all)")
     }
 }
