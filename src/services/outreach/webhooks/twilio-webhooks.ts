@@ -21,7 +21,8 @@ import { findContactByPhone, markContactResponded } from '../../contacts/optimal
 // Bidirectional engagement - route replies to the right agent
 import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/inbound-router.js';
 import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
-import { SMS_KEYWORD_REPLIES, smsKeyword } from './sms-keywords.js';
+import { isMemberIdentity } from '../../identity/member-identity.js';
+import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -337,13 +338,13 @@ export async function handleInboundSMSWebhook(
   // Replies to proactive check-ins: "less", "not now", "stop" (sms-replies.ts).
   const proactiveReply = await handleProactiveSmsReply(From, Body);
   if (proactiveReply) return { success: true, twiml: generateTwiML(proactiveReply) };
-  // STOP, START and HELP get one reply each (sms-keywords.ts).
-  const keyword = smsKeyword(Body);
-  if (keyword === 'stop' || keyword === 'start') {
-    log.info({ From, keyword }, 'SMS opt-out or opt-in keyword');
-    await updateSmsOptStatus(From, keyword === 'start');
+  // Opt-out/in, HELP (messaging/sms-keywords.ts): one confirmation at most, Twilio's for its keywords.
+  const said = inboundKeyword(Body); // the route records consent; a maybe reaches Ferni, flagged
+  if (said?.kind === 'opt-out' || said?.kind === 'opt-in' || said?.kind === 'help') {
+    if (said.kind !== 'help') await updateSmsOptStatus(From, said.kind === 'opt-in');
+    const reply = keywordReply(said);
+    return { success: true, ...(reply !== undefined && { twiml: generateTwiML(reply) }) };
   }
-  if (keyword) return { success: true, twiml: generateTwiML(SMS_KEYWORD_REPLIES[keyword]) };
 
   // Collect media URLs
   const mediaUrls: string[] = [];
@@ -406,9 +407,7 @@ export async function handleInboundSMSWebhook(
       calculateEngagement(Body) === 'high' ? 9 : calculateEngagement(Body) === 'medium' ? 6 : 3,
   });
 
-  if (userId !== 'unknown') {
-    log.info({ userId, from: From }, 'SMS response attributed to user');
-  }
+  if (isMemberIdentity(userId)) log.info({ userId, from: From }, 'SMS response attributed to user');
 
   // =========================================================================
   // ML TIMING LEARNING - Check if this is a response from a known contact
@@ -446,9 +445,9 @@ export async function handleInboundSMSWebhook(
   // =========================================================================
   // BIDIRECTIONAL ROUTING - Route to appropriate agent
   // =========================================================================
-  if (userId !== 'unknown') {
+  if (isMemberIdentity(userId)) {
     try {
-      const routeResult = await routeInboundSMS(userId, From, Body);
+      const routeResult = await routeInboundSMS(userId, From, Body, said?.kind === 'maybe-opt-out');
 
       log.info(
         {

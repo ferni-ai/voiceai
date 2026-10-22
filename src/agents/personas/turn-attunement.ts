@@ -121,8 +121,21 @@ const DISTRACTED =
 const EXCITED =
   /\b(?:guess what|i did it|i got (?:it|the|in)|can'?t believe (?:it|i)|so (?:happy|excited)|best (?:thing|day|news)|amazing|proposed|said yes|we got|i have news|obsessed)\b/i;
 const PLAYFUL = /\b(?:if you were|rate my|bet you|nemesis|plotting|career highlight)\b/i;
+// "beat" only as "I'm beat", never "we beat the other team".
 const TIRED =
-  /\b(?:tired|wiped|fried|exhausted|beat|drained|worn out|can'?t sleep|long day|double shift|so sleepy|knackered)\b/i;
+  /\b(?:tired|wiped|fried|exhausted|(?:i'?m|i am|feel(?:ing)?|so|totally|just) beat|drained|worn out|can'?t sleep|long day|double shift|so sleepy|knackered)\b/i;
+// Worn down rather than tired: keeps a long-day caller gentle while it lasts.
+const WEARY =
+  /\b(?:just a lot|a lot going on|swamped|slammed|overwhelm\w*|(?:don'?t|do not) (?:even )?know where to start|rough (?:day|week|night|couple of days))\b/i;
+// Tiredness they hear in Ferni ("you sound a little tired") is not theirs.
+const ABOUT_HIS_ENERGY =
+  /\byou(?:'re| are| sound| seem| look)(?: \w+){0,3}? (?:tired|wiped|fried|exhausted|beat|drained|worn out|sleepy)\b/gi;
+// Upbeat now: good news, "guess what", excitement. Whole words; a negation just
+// before ("not that excited", "didn't go well") cancels it.
+const UPBEAT =
+  /\b(?:guess (?:what|how|who|where)|good news|great news|best news|excited|exciting|thrilled|stoked|can'?t wait|looking forward|went (?:really |so |super )?(?:well|great|amazing|awesome)|(?:really|so|super) (?:well|great|good|happy)|amazing|fantastic|wonderful|nailed it|crushed it|killed it|yay|woo+(?:hoo+)?|hooray)\b/gi;
+const NEGATED =
+  /\b(?:not|never|no|nothing|hardly|barely|without|\w+n['’]t|dont|didnt|doesnt|isnt|wasnt|wont|cant|couldnt|wouldnt|aint)(?:\s+\w+){0,2}\s*$/i;
 const ASKS_ADVICE =
   /\b(?:what (?:would|should|do) (?:you|i)|should i|what do you think|any (?:idea|advice|tips?)|how (?:do|should|long do) i|help me)\b/i;
 const ABOUT_HIM =
@@ -153,9 +166,10 @@ function confident(voice: VoiceCue | undefined): VoiceCue | undefined {
 /**
  * The caller's state from their recent turns: laughing or happy news now,
  * then hurting (sad, venting, held for a few turns as a friend would), then
- * how they are talking now (hurried, distracted, playful), then low energy from their words,
- * their short answers or a flat voice. The voice only ever breaks a tie with
- * neutral; it never overrides what they said.
+ * how they are talking now (hurried, distracted, playful), then upbeat now
+ * (it outranks any earlier low), then low energy from their words (held only
+ * until a turn that isn't low), their short answers or a flat voice. The voice
+ * only ever breaks a tie with neutral; it never overrides what they said.
  */
 export function readCaller(turns: string[], voice?: VoiceCue): CallerState {
   return fromWords(turns) ?? fromVoice(voice) ?? 'neutral';
@@ -173,8 +187,46 @@ function fromWords(turns: string[]): CallerState | undefined {
   if (HURRIED.test(now)) return 'hurried';
   if (DISTRACTED.test(now)) return 'distracted';
   if (PLAYFUL.test(now)) return 'playful';
+  return energyFromWords(turns);
+}
+
+/** Upbeat or low energy, when nothing above fits. */
+function energyFromWords(turns: string[]): CallerState | undefined {
+  // Good news or excitement now outranks any low read from before (prod canary
+  // 2026-10-21: "I'm actually excited... Mexico City", "guess how Monday went"
+  // read low for up to four turns after a "long day").
+  const said = turns[turns.length - 1] ?? '';
+  if (upbeat(said) && !saysLow(said)) return 'excited';
   const short = turns.length >= 2 && median(turns.slice(-3).map(words)) <= 5;
-  return TIRED.test(recent) || short ? 'low' : undefined;
+  return lowFromWords(turns.slice(-4)) || short ? 'low' : undefined;
+}
+
+/** Low energy in their own words ("long day", "wiped"), not tiredness they hear in Ferni. */
+function saysLow(turn: string): boolean {
+  const theirs = turn.replace(ABOUT_HIS_ENERGY, ' ');
+  return TIRED.test(theirs) || WEARY.test(theirs);
+}
+
+/** Upbeat in this turn, whole words, not negated ("not that excited"). */
+function upbeat(turn: string): boolean {
+  for (const m of turn.matchAll(UPBEAT)) {
+    if (!NEGATED.test(turn.slice(0, m.index))) return true;
+  }
+  return false;
+}
+
+/**
+ * Low from words decays: the latest low-energy words hold only while every
+ * turn since is short or low too. One full turn that isn't low (or one upbeat
+ * one) ends it, as a friend's read moves on when the caller picks up.
+ */
+function lowFromWords(recent: string[]): boolean {
+  for (let i = recent.length - 1; i >= 0; i--) {
+    const turn = recent[i];
+    if (saysLow(turn)) return true;
+    if (upbeat(turn) || words(turn) > 5) return false;
+  }
+  return false;
 }
 
 function fromVoice(voice: VoiceCue | undefined): CallerState | undefined {

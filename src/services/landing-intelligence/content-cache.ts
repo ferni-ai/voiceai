@@ -16,6 +16,7 @@ import { Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 import { generatePersonalizedHero } from './ai-interactions.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // FIRESTORE INSTANCE (lazy initialization)
@@ -28,7 +29,7 @@ function getDb(): Firestore | null {
   if (initialized) return db;
 
   try {
-    db = new Firestore();
+    db = new Firestore({ databaseId: getFirestoreDatabase() });
     initialized = true;
     log.debug('Landing content cache Firestore initialized');
     return db;

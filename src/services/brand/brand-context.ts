@@ -7,7 +7,7 @@
  * @module @ferni/brand/brand-context
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { PERSONA_VOICES } from './persona-voices.js';
 import type {
@@ -402,7 +402,7 @@ export async function loadBrandContext(): Promise<BrandContext> {
  */
 async function loadBrandLearnings(): Promise<BrandLearnings> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     // Load all brand learnings in parallel (3x faster)
     const [patternsSnap, failedSnap, prefsSnap] = await Promise.all([

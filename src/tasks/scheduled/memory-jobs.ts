@@ -51,8 +51,8 @@ const log = getLogger();
  */
 async function getActiveUserIds(limit = 500): Promise<string[]> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     // Get users from bogle_users collection that have had activity
     const thirtyDaysAgo = new Date();
@@ -82,8 +82,8 @@ async function getActiveUserIds(limit = 500): Promise<string[]> {
  */
 async function getUserMemories(userId: string): Promise<MemoryItem[]> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
     const memories: MemoryItem[] = [];
 
     const userRef = db.collection('bogle_users').doc(userId);

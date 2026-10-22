@@ -16,7 +16,7 @@
  * to be coordinated with Ferni's vibe system.
  */
 
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'homekit-bridge' });
@@ -121,7 +121,7 @@ function getCommandsPath(userId: string) {
  * Called when iOS app starts or HomeKit changes are detected
  */
 export async function syncHomeKitState(userId: string, home: HomeKitHome): Promise<void> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const batch = db.batch();
 
   // Save home config
@@ -176,7 +176,7 @@ export async function updateDeviceState(
   deviceId: string,
   state: Partial<HomeKitDeviceState>
 ): Promise<void> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const deviceRef = db.doc(`${getDevicesPath(userId)}/${deviceId}`);
 
   await deviceRef.set(
@@ -197,7 +197,7 @@ export async function updateDeviceState(
  * Get all HomeKit devices for a user
  */
 export async function getDevices(userId: string): Promise<HomeKitDevice[]> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const snapshot = await db.collection(getDevicesPath(userId)).get();
 
   return snapshot.docs.map((doc) => doc.data() as HomeKitDevice);
@@ -226,7 +226,7 @@ export async function getDevicesByRoom(userId: string, room: string): Promise<Ho
  * Get available scenes
  */
 export async function getScenes(userId: string): Promise<HomeKitScene[]> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const doc = await db.doc(`${getHomeKitPath(userId)}/scenes`).get();
 
   if (!doc.exists) return [];
@@ -238,7 +238,7 @@ export async function getScenes(userId: string): Promise<HomeKitScene[]> {
  * Check if HomeKit is connected
  */
 export async function isHomeKitConnected(userId: string): Promise<boolean> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const doc = await db.doc(`${getHomeKitPath(userId)}/config`).get();
   return doc.exists;
 }
@@ -253,7 +253,7 @@ export async function getHomeKitStatus(userId: string): Promise<{
   sceneCount: number;
   lastSync?: string;
 }> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const configDoc = await db.doc(`${getHomeKitPath(userId)}/config`).get();
 
   if (!configDoc.exists) {
@@ -292,7 +292,7 @@ export async function queueDeviceCommand(
   deviceId: string,
   changes: Partial<HomeKitDeviceState>
 ): Promise<string> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const commandRef = db.collection(getCommandsPath(userId)).doc();
 
   const command: HomeKitCommand = {
@@ -315,7 +315,7 @@ export async function queueDeviceCommand(
  * Queue a scene activation command
  */
 export async function queueSceneCommand(userId: string, sceneId: string): Promise<string> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const commandRef = db.collection(getCommandsPath(userId)).doc();
 
   const command: HomeKitCommand = {
@@ -337,7 +337,7 @@ export async function queueSceneCommand(userId: string, sceneId: string): Promis
  * Get pending commands (iOS app polls this)
  */
 export async function getPendingCommands(userId: string): Promise<HomeKitCommand[]> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const snapshot = await db
     .collection(getCommandsPath(userId))
     .where('status', '==', 'pending')
@@ -358,7 +358,7 @@ export async function updateCommandStatus(
   result?: unknown,
   error?: string
 ): Promise<void> {
-  const db = getFirestore();
+  const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
   const commandRef = db.doc(`${getCommandsPath(userId)}/${commandId}`);
 
   await commandRef.update({

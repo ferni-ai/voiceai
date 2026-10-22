@@ -23,6 +23,7 @@
 import type { llm } from '@livekit/agents';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
 import { leavingNow } from '../shared/call-farewell.js';
 
@@ -69,12 +70,7 @@ export function firstCallIntroEnabled(env: Env = process.env): boolean {
 /** A known account on its first conversation. */
 export function isFirstCall(userData: unknown): boolean {
   const u = userData as { isReturningUser?: unknown; userId?: unknown } | undefined;
-  return (
-    u?.isReturningUser === false &&
-    typeof u.userId === 'string' &&
-    u.userId !== '' &&
-    u.userId !== 'anonymous'
-  );
+  return u?.isReturningUser === false && isMemberIdentity(u.userId as string | undefined);
 }
 
 /** The account already has a name for them: no need to ask for one. */
