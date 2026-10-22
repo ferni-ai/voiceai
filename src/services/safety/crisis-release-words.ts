@@ -62,7 +62,9 @@ export const ALWAYS_HOLD = new RegExp(
     // plans, decisions, "it" as the act
     String.raw`\b(?:plan|plans|planned|planning|decided|doing it|do it|did it|through with it|end it|ending it|all of them|the whole|everything in)\b`,
     // means
-    String.raw`\b(?:pills?|meds|medication|medicine|tablets?|insulin|bottle|xanax|tylenol|gun|guns|revolver|pistol|rifle|shotgun|firearm|bullets?|rope|cord|noose|knife|knives|razors?|blades?|bridge|tracks|train|roof|rooftop|ledge|cliff|overpass|top floor|garage|ocean|lake|river|charcoal|bleach|antifreeze|exhaust|car on|engine running)\b`,
+    String.raw`\b(?:pills?|meds|medication|medicine|tablets?|insulin|bottle|xanax|tylenol|gun|guns|revolver|pistol|rifle|shotgun|firearm|bullets?|rope|cord|noose|knife|knives|razors?|blades?|bridge|tracks|train|roof|rooftop|ledge|cliff|overpass|top floor|garage|ocean|lake|river|charcoal|bleach|antifreeze|exhaust|car on|engine running|ambien|oxy\w*|glock\w*|gauge)\b`,
+    // the r3 earlier-line misses: a note, ending things, leaving, giving things away
+    String.raw`\b(?:the note|end things|ending things|never wake|ctb|dip out|dipping out|check(?:ing|ed)? out|(?:sold|sell|selling|gave|give|giving) away my|ir de este mundo)\b`,
     // hopelessness and life itself (never everyday logistics)
     String.raw`\b(?:hopeless\w*|worthless|pointless|give up|giving up|gave up|can'?t go on|cannot go on|waste of space|hate my life|nothing matters|no reason|tired of|life|live|living|lives)\b`,
     // hurting anyone, vanishing, wanting it to stop

@@ -124,6 +124,31 @@ describe('groundedReleaseEligible', () => {
     const plain = { ...input, earlier: ['Dinner is at my place tonight.'] };
     expect(groundedReleaseEligible({ ...base, input: plain })).toBe(true);
   });
+  it('holds the earlier-line terms round 3 found both lists missed', () => {
+    for (const said of [
+      'I still have the ambien from last spring.',
+      'There is oxycodone in the cabinet.',
+      'My dad keeps a glock in the closet.',
+      'The twelve gauge is in the truck.',
+      'I already wrote the note.',
+      'I want to end things.',
+      'I hope I never wake up.',
+      'Thinking about ctb tonight.',
+      'Gonna dip out for good.',
+      "I'm checking out early.",
+      'I gave away my guitar and my books.',
+      'Me quiero ir de este mundo.',
+    ]) {
+      const input = { latest: 'Dinner is at seven.', earlier: ['Dinner is at my place.', said] };
+      expect(groundedReleaseEligible({ ...base, input }), said).toBe(false);
+    }
+  });
+  it('never reads a line with digits, even one otherwise all everyday words', () => {
+    const earlier = ['Dinner is at my place tonight.'];
+    for (const latest of ['Dinner is at 7.', 'Dinner at 7 tonight.', 'Dinner is at seven 2.']) {
+      expect(groundedReleaseEligible({ ...base, input: { latest, earlier } }), latest).toBe(false);
+    }
+  });
   it('needs an everyday event the caller already named, not everyday words alone', () => {
     const earlier = ['Dinner is at my place tonight.'];
     for (const latest of ['Tonight at seven.', 'The game is tonight.', 'Okay, see you then.']) {

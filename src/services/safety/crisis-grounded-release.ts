@@ -15,9 +15,13 @@
  * of the call, with different prompts (an everyday-or-danger read, and a
  * C-SSRS-structured read of ideation, method, intent, plan and timeframe),
  * must both find nothing. The turn then gets GROUNDED_LIGHT_TOUCH instead of
- * the script: Ferni answers in its own voice and adds one warm check-in, and
- * offers 988 the moment the caller says anything heavy. Only when every one of
- * these holds:
+ * the script: Ferni answers in its own voice and asks one direct screening
+ * question (SCREEN_QUESTION). On the caller's next turn, anything but a clear
+ * no takes the crisis path with 988 (screenPositive). Round 3 released 40 of
+ * 40 new risky lines built only from allowed words with both reads fooled
+ * ("After dinner I'll try again."): word rules cannot prove a release safe,
+ * so the direct question is the safety net (Seth, 2026-10-22: "Ask directly,
+ * gently"). Only when every one of these holds:
  *   - the classifier alone read the turn imminent: the patterns found nothing;
  *   - nothing on the call found risk before this turn, and no turn on this
  *     call was released before (MAX_RELEASES_PER_CALL = 1);
@@ -45,7 +49,11 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
-import { detectCrisis, type CrisisDetectionResult } from './crisis-guard.js';
+import {
+  applyClassifierVerdict,
+  detectCrisis,
+  type CrisisDetectionResult,
+} from './crisis-guard.js';
 import { endorses } from './crisis-agreement.js';
 import { createGeminiAdjudicatorGenerate } from './crisis-adjudicator.js';
 import {
@@ -55,7 +63,7 @@ import {
 } from './crisis-call-risk.js';
 import type { CrisisGenerateFn, CrisisVerdict } from './crisis-classifier.js';
 import { SAFETY_TALK } from './crisis-lone-imminent.js';
-import { allEveryday, alwaysHold, eventTopics, wordsOf } from './crisis-release-words.js';
+import { EVENTS, allEveryday, alwaysHold, eventTopics, wordsOf } from './crisis-release-words.js';
 
 const log = createLogger({ module: 'CrisisGroundedRelease' });
 
@@ -146,19 +154,27 @@ const READERS = [
   { prompt: GROUNDED_RELEASE_CSSRS_PROMPT, parse: parseCssrsRead },
 ] as const;
 
-/**
- * What a released turn gets in place of the script (Seth, 2026-10-21: "light
- * touch", a soft check-in). Not a plain reply: one warm check-in in Ferni's
- * voice, and 988 as soon as the caller says anything heavy.
- */
 /** Room for the C-SSRS read's six fields: a cut-off reply fails to parse and holds. */
 const GROUNDED_READ_MAX_TOKENS = 256;
 
-export const GROUNDED_LIGHT_TOUCH = `[SAFETY - LIGHT TOUCH]
-A safety read flagged the caller's last words, and the conversation shows they were most likely everyday talk.
-1. Answer what they said the way you normally would, in your own voice
-2. Once in this reply, ask them directly and gently, in your own words, whether they are okay and safe ("and hey, you doing okay tonight? like, really okay, safe?"). One short question, warm, no lecture, and do not mention crisis lines or hotlines unless step 3 applies
-3. If they say anything about hurting themselves, not wanting to be here, or anyone being in danger, take it seriously and offer the 988 Suicide & Crisis Lifeline: they can call or text 988`;
+/**
+ * The screening question every release carries, asked the way clinicians
+ * screen: directly, about suicide and self-harm by name. Asking does not raise
+ * risk; a false alarm costs one caring question.
+ */
+export const SCREEN_QUESTION =
+  "can I ask you something, and it's okay either way: when you said that, were you thinking about hurting yourself, or about ending your life?";
+
+/**
+ * What a released turn gets in place of the script: Ferni's normal answer and
+ * the direct question, once (MAX_RELEASES_PER_CALL). No hint that the words
+ * were probably everyday, which would bias how the question is asked.
+ */
+export const GROUNDED_LIGHT_TOUCH = `[SAFETY - DIRECT CHECK]
+A safety screen flagged the caller's last words.
+1. Answer what they said the way you normally would, in your own voice, briefly
+2. Then, in this same reply, ask this exact question, gently and warmly: "${SCREEN_QUESTION}" You must ask it. Do not change it to "are you okay", do not skip it, and add no lecture and no hotline
+3. If they answer anything other than a clear no, or say anything about hurting themselves, not wanting to be here, or anyone being in danger, take it seriously and offer the 988 Suicide & Crisis Lifeline: they can call or text 988`;
 
 export function resolveGroundedReleaseMode(
   env: Record<string, string | undefined> = process.env
@@ -326,9 +342,84 @@ const RECENT_TTL_MS = 30_000;
 const RECENT_MAX = 32;
 const recent = new Map<string, { at: number; run: Promise<boolean> }>();
 
+/**
+ * Per call: the released turn whose reply asked SCREEN_QUESTION, and the
+ * caller's answer once it comes. In memory, for SCREEN_TTL_MS.
+ */
+const SCREEN_TTL_MS = 6 * 60 * 60 * 1000;
+const SCREEN_MAX = 512;
+const screens = new Map<
+  string,
+  { at: number; asked: string; answer?: { turn: string; positive: boolean } }
+>();
+
 /** For tests. */
 export function resetGroundedRelease(): void {
   recent.clear();
+  screens.clear();
+}
+
+/** A clear no, alone or with plain reassurance: "No.", "haha no, not at all, I'm good". */
+const NO_START =
+  /^(?:(?:oh|um|uh|ha|haha|hah|lol|god|gosh|whoa|wow|hey|what|man|dude)\s+)*(?:no|nope|nah|never|no way|hell no|god no|of course not|absolutely not|definitely not|not at all|not even close)\b/;
+const NO_TAIL = new Set(
+  `no nope nah never way hell god of course absolutely definitely not at all even close oh um uh ha haha
+   hah lol gosh whoa wow hey man dude i i'm im am was it that this just only talking about meant mean
+   said fine good okay ok great totally promise thanks thank you for asking the a an my our to and so
+   excited happy`.split(/\s+/)
+);
+
+/** The caller's answer is a clear no: a no first, then only reassurance or the event. */
+function clearNo(answer: string): boolean {
+  const words = wordsOf(answer);
+  if (!words || words.length === 0 || alwaysHold(answer)) return false;
+  const scored = detectCrisis(answer);
+  if (scored.severity > 0 || scored.indicators.length > 0) return false;
+  if (!NO_START.test(words.join(' '))) return false;
+  return words.every((w) => NO_TAIL.has(w) || EVENTS.has(w.replace(/'s$/, '')));
+}
+
+function noteScreenAsked(call: string, latest: string, now = Date.now()): void {
+  for (const [id, s] of screens) if (now - s.at > SCREEN_TTL_MS) screens.delete(id);
+  if (screens.size >= SCREEN_MAX) {
+    const oldest = screens.keys().next().value;
+    if (oldest !== undefined) screens.delete(oldest);
+  }
+  screens.set(call, { at: now, asked: loose(latest) });
+}
+
+/**
+ * The caller's first turn after a release, unless it is a clear no to a
+ * question Ferni actually asked (its line raised safety): a positive screen,
+ * which takes the crisis path with 988. Both paths of that turn get the same
+ * answer; later turns are judged as usual. True on anything unexpected.
+ */
+export function screenPositive(
+  call: string | undefined,
+  input: { latest: string; companion?: string }
+): boolean {
+  try {
+    const screen = call ? screens.get(call) : undefined;
+    if (!screen || Date.now() - screen.at > SCREEN_TTL_MS) return false;
+    const turn = loose(String(input.latest ?? ''));
+    if (!turn || turn === screen.asked) return false;
+    if (screen.answer) return screen.answer.turn === turn && screen.answer.positive;
+    const asked = SAFETY_TALK.test(loose(stripSSML(String(input.companion ?? ''))));
+    const positive = !(asked && clearNo(input.latest));
+    screen.answer = { turn, positive };
+    log.info({ positive, asked }, 'CRISIS_GROUNDED_SCREEN');
+    return positive;
+  } catch {
+    return true;
+  }
+}
+
+/** A positive screen as a crisis reading: guidance with 988, never the replacement script. */
+export function withScreenPositive(detection: CrisisDetectionResult): CrisisDetectionResult {
+  const merged = applyClassifierVerdict(detection, { risk: 'crisis', subject: 'self' });
+  return merged.indicators.includes('grounded_screen_positive')
+    ? merged
+    : { ...merged, indicators: [...merged.indicators, 'grounded_screen_positive'] };
 }
 
 /**
@@ -362,7 +453,10 @@ export function groundedRelease(
         ));
       run = readGrounded(args.input, generates, timeoutFrom(env))
         .then(({ release, reads }) => {
-          if (release && mode === 'live') explainCrisisTurn(args.call, args.input.latest);
+          if (release && mode === 'live') {
+            explainCrisisTurn(args.call, args.input.latest);
+            if (args.call) noteScreenAsked(args.call, args.input.latest);
+          }
           const stats = { mode, source: args.source, release, reads };
           log.info({ ...stats, latencyMs: Date.now() - startedAt }, 'CRISIS_GROUNDED_RELEASE');
           return release && mode === 'live';

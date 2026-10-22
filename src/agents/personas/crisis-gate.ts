@@ -44,6 +44,8 @@ import {
   GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
   groundedRelease,
+  screenPositive,
+  withScreenPositive,
 } from '../../services/safety/crisis-grounded-release.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import {
@@ -187,9 +189,12 @@ export function startCrisisGate(
 
   const voiceEmotion = (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)
     ?.voiceEmotion;
-  const detection = detectCrisis(latest, toGuardVoiceEmotion(voiceEmotion), {
+  const found = detectCrisis(latest, toGuardVoiceEmotion(voiceEmotion), {
     recentMessages: earlier,
   });
+  // The answer to a grounded release's direct question: anything but a clear no counts as a match.
+  const screened = screenPositive(sessionScope(userData), { latest, companion });
+  const detection = screened ? withScreenPositive(found) : found;
   const decision = decisionFor(detection);
   if (decision.action !== 'pass') {
     noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
