@@ -11,7 +11,7 @@
  */
 
 import { generateAgentPage, type AgentPageConfig } from '../src/services/page-generator/index.js';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 import { initializeApp, getApps } from 'firebase-admin/app';
 
 // Parse CLI arguments
@@ -107,7 +107,7 @@ async function deploy() {
   let deployed = false;
   if (!isDryRun) {
     try {
-      const db = getFirestore();
+      const db = getAdminFirestore();
 
       const siteData = {
         userId: 'system',
