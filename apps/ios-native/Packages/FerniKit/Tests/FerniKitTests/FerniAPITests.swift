@@ -74,14 +74,15 @@ final class FerniAPITests: XCTestCase {
     }
 
     func testJSONBodyIsSentWithItsContentType() async throws {
-        struct Body: Encodable, Sendable { let note = "hi" }
         let server = Server([200])
-        _ = try await api(server, Tokens()).data("/api/thing", method: "POST", json: Body())
+        let upload = AppleAuthorizationUpload.uploader(api: api(server, Tokens()))
+        try await upload("apple-code")
 
         let request = try XCTUnwrap(server.requests.first)
         XCTAssertEqual(request.httpMethod, "POST")
+        XCTAssertEqual(request.url?.path, "/api/account/apple-authorization")
         XCTAssertEqual(request.value(forHTTPHeaderField: "Content-Type"), "application/json")
         let body = try JSONSerialization.jsonObject(with: try XCTUnwrap(request.httpBody)) as? [String: String]
-        XCTAssertEqual(body, ["note": "hi"])
+        XCTAssertEqual(body, ["authorizationCode": "apple-code", "client": "native"])
     }
 }

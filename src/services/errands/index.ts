@@ -36,3 +36,4 @@ export type {
   NewErrand,
   OutboxEffect,
 } from './ports.js';
+export { step, CURRENT_STEP_VERSION } from './step.js';

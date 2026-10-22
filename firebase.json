@@ -1,8 +1,16 @@
 {
-  "firestore": {
-    "indexes": "firestore.indexes.json",
-    "rules": "firestore.rules"
-  },
+  "firestore": [
+    {
+      "database": "(default)",
+      "indexes": "firestore.indexes.json",
+      "rules": "firestore.rules"
+    },
+    {
+      "database": "ferni-dev",
+      "indexes": "firestore.indexes.json",
+      "rules": "firestore.rules"
+    }
+  ],
   "emulators": {
     "auth": {
       "host": "127.0.0.1",
@@ -15,4 +23,3 @@
     "ui": false
   }
 }
-

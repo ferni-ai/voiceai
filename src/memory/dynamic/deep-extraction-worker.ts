@@ -17,6 +17,7 @@ import type {
 import { getFirestoreVectorStore } from '../firestore-vector-store/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { buildExtractionFirestoreWritePayloads, factDocId } from './extraction-firestore-docs.js';
+import { withFactEmbeddings } from './fact-embeddings.js';
 import { buildExtractionVectorDocuments } from './extraction-vector-docs.js';
 import {
   recordExtractionDrop,
@@ -560,7 +561,6 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
     job: DeepExtractionJob
   ): Promise<void> {
     try {
-      // Import entity store dynamically
       const { getFirestoreDb } = await import('../../utils/firestore-utils.js');
       const db = getFirestoreDb();
       if (!db) return;
@@ -593,7 +593,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         batch.set(entityRef, entityDoc);
       }
 
-      for (const factDoc of payloads.facts) {
+      for (const factDoc of await withFactEmbeddings(payloads.facts)) {
         // Same fact, same document: re-extraction refreshes it (newest date, latest confidence).
         const id = factDocId(
           String(factDoc.entityName ?? ''),
@@ -608,7 +608,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
         batch.set(relRef, relDoc);
       }
 
-      // Store extraction metadata
+      // Extraction metadata: the transcript's length, never its text (spoken codes, #2385)
       const metaRef = db
         .collection('bogle_users')
         .doc(userId)
@@ -621,7 +621,7 @@ Return refined extraction as JSON with: entities, facts, relationships arrays:`;
           jobId: job.jobId,
           sessionId: job.sessionId,
           turnNumber: job.turnNumber,
-          transcript: job.transcript.slice(0, 500),
+          transcriptChars: job.transcript.length,
           entityCount: payloads.entities.length,
           factCount: payloads.facts.length,
           relationshipCount: payloads.relationships.length,

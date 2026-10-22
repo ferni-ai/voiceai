@@ -5,7 +5,12 @@
  * encryption exists, memory is not perfect (callers can see, correct and
  * forget facts), "free forever" sat next to a waitlist, micro-expressions and
  * breath sync were never built, and the latency and count figures were not
- * product measurements. A phrase may stay only on an ALLOWED line, with a reason.
+ * product measurements. The 2026-10-21 owner decision (fix the copy, don't build
+ * the capability) added: clinical credentials and distress or burnout prediction
+ * nobody measured (#1454), voice identification and voice copies, which are off in
+ * prod (#1457), Google Calendar and bank data, which aren't configured (#1446),
+ * and recall shown as a real interaction (#1455). A phrase may stay only on an
+ * ALLOWED line, with a reason.
  *
  * Usage: pnpm tsx scripts/website/site-claims.ts   (exits 1 on a hit)
  */
@@ -30,6 +35,20 @@ export const BANNED: ReadonlyArray<{ id: string; pattern: RegExp }> = [
   { id: 'gdpr compliant', pattern: /\bGDPR compliant\b/i },
   { id: 'sso saml', pattern: /\bSSO\/SAML\b/ },
   { id: 'data residency', pattern: /\bdata residency\b/i },
+  { id: 'created by clinicians', pattern: /\bcreated by mental health professionals\b/i },
+  { id: 'professionals and technologists', pattern: /\bprofessionals[.,]?\s+(?:and\s+)?technologists\b/i },
+  { id: 'mental health wisdom', pattern: /\blifetime of mental health wisdom\b/i },
+  { id: 'built by healers', pattern: /\bbuilt by a family of healers\b/i },
+  { id: 'predicts distress', pattern: /\b(?:predicts|detects) distress\b|\bdistress signals from voice\b/i },
+  {
+    id: 'predicts burnout',
+    pattern: /\bbefore you (?:crash|hit the wall)\b|\bwarns? (?:you )?before burnout\b|\bburnout prevention\b/i,
+  },
+  { id: 'voice identification', pattern: /\bspeaker identification\b|\bvoice recognition\b/i },
+  { id: 'messages in your voice', pattern: /\byour words, your voice\b/i },
+  { id: 'knows your calendar', pattern: /\b(?:I|we) know your calendar\b|\bmanages your calendar\b/i },
+  { id: 'spending patterns', pattern: /\bspending patterns\b|\bacross your spending\b/i },
+  { id: 'perfect recall', pattern: /\bperfect recall\b/i },
 ];
 
 /** File (relative to SITE_SRC) and phrase id that may stay, with the reason. */
@@ -43,6 +62,11 @@ export const ALLOWED: ReadonlyArray<{ file: string; id: string; reason: string }
     file: 'preview/pixar-polish.njk',
     id: 'micro-expressions',
     reason: 'Internal design preview of the web orb animation, not product copy.',
+  },
+  {
+    file: 'blog/how-ai-helped-design-its-own-brain.md',
+    id: 'perfect recall',
+    reason: 'Names "perfect recall of irrelevant things" as a failure mode; it does not claim it.',
   },
 ];
 

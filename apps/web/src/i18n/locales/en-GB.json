@@ -5945,7 +5945,8 @@
     "meetingsToday": {
       "one": "{count} meeting today",
       "other": "{count} meetings today"
-    }
+    },
+    "weekRegion": "This week, day by day"
   },
   "storyArcs": {
     "firstLaunch": {
@@ -8772,7 +8773,8 @@
     "messageCount": {
       "one": "{count} message",
       "other": "{count} messages"
-    }
+    },
+    "sessionsRegion": "Our past conversations"
   },
   "outreachPrefs": {
     "eyebrow": "Stay in touch",
@@ -10702,7 +10704,8 @@
     "comingSoon": "More options coming soon.",
     "status": {
       "active": "Active"
-    }
+    },
+    "itemsRegion": "Things you can choose"
   },
   "capabilityCard": {
     "betterThanHuman": "Better than Human"
@@ -10778,6 +10781,14 @@
     "connectingCancel": "Connecting. Tap to cancel",
     "connectingNow": "Connecting…",
     "tapToCancel": "Tap to cancel"
+  },
+  "callRoom": {
+    "connecting": "Connecting",
+    "listening": "{name}'s listening",
+    "talking": "{name}'s talking",
+    "muted": "You're muted",
+    "end": "End",
+    "backHint": "Tap End to hang up"
   },
   "analyticsDashboard": {
     "title": "Your Journey",

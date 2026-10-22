@@ -13,9 +13,9 @@
  *
  * Not behind a flag. A PR is left out when its title or body says the change
  * is behind a flag, off by default, not wired or dev-only, when it names a
- * flag that src/config/flag-manifest*.ts has off (or shadow) by default, or
- * when its diff adds an off-by-default manifest entry or touches a web
- * `*-flag.ts` file.
+ * flag the manifest (src/config/flags/*.ts and src/config/flag-manifest*.ts)
+ * has off (or shadow) by default, or when its diff adds an off-by-default
+ * manifest entry or touches a web `*-flag.ts` file.
  */
 
 import * as fs from 'node:fs';
@@ -31,9 +31,12 @@ const DAY = 86_400_000;
  */
 export const DEPLOYED_ON_MERGE = /^apps\/(?:web|website\/(?:ferni-website|developers-portal))\//;
 
-const MANIFESTS = ['src/config/flag-manifest.ts', 'src/config/flag-manifest-entries.ts'];
-const MANIFEST_FILE = /^src\/config\/flag-manifest[\w-]*\.ts$/;
+const CONFIG_DIR = 'src/config';
+const LEGACY_MANIFEST = /^flag-manifest[\w-]*\.ts$/;
+const FLAG_FILE = /^([A-Z][A-Z0-9_]*)\.ts$/;
+const MANIFEST_FILE = /^src\/config\/(?:flag-manifest[\w-]*|flags\/[A-Z][A-Z0-9_]*)\.ts$/;
 const OFF_ENTRY = /^\s*([A-Z][A-Z0-9_]*): \{ default: '(?:off|shadow)'/gm;
+const OFF_DEFAULT = /^\s*default: '(?:off|shadow)'/m;
 const WEB_FLAG_FILE = /(?:^|\/)[\w.-]+-flag\.ts$/;
 
 /** What a PR's title or body says when its change ships switched off. */
@@ -70,13 +73,24 @@ export interface LiveContext {
   today: string;
 }
 
-/** Flags the manifest has off (or shadow) by default. */
+const listDir = (dir: string): string[] => (fs.existsSync(dir) ? fs.readdirSync(dir) : []);
+
+/**
+ * Flags the manifest has off (or shadow) by default: every flags/<NAME>.ts file and
+ * every entry line in the legacy flag-manifest*.ts files.
+ */
 export function offFlags(root: string): Set<string> {
   const names = new Set<string>();
-  for (const file of MANIFESTS) {
-    const full = path.join(root, file);
-    if (!fs.existsSync(full)) continue;
-    for (const m of fs.readFileSync(full, 'utf-8').matchAll(OFF_ENTRY)) names.add(m[1]);
+  const config = path.join(root, CONFIG_DIR);
+  for (const file of listDir(config).filter((f) => LEGACY_MANIFEST.test(f))) {
+    for (const m of fs.readFileSync(path.join(config, file), 'utf-8').matchAll(OFF_ENTRY)) {
+      names.add(m[1]);
+    }
+  }
+  const flags = path.join(config, 'flags');
+  for (const file of listDir(flags)) {
+    const name = FLAG_FILE.exec(file)?.[1];
+    if (name && OFF_DEFAULT.test(fs.readFileSync(path.join(flags, file), 'utf-8'))) names.add(name);
   }
   return names;
 }
