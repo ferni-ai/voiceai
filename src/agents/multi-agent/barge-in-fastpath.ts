@@ -81,6 +81,9 @@ export const SUSTAINED_SPEECH_MS = 950;
  * Ferni's echo). Three would rarely arrive inside the confirmation window.
  */
 export const SOFT_PAUSE_CONFIRM_WORDS = 1;
+/** After a soft pause resumes, the transcript backstop needs only two words this long. */
+export const POST_RESUME_BACKSTOP_MS = 1500;
+export const POST_RESUME_MIN_WORDS = 2;
 
 export function words(text: string): string[] {
   return text
@@ -168,7 +171,10 @@ export function createBargeInFastPath(deps: {
   let pausedThisReply = false;
   /** Ferni's audio is paused by us (until resumed, or the cut reply ends). */
   let outputHeld = false;
-  let pending: { at: number; heard: string; timer: ReturnType<typeof setTimeout> } | undefined;
+  let pending:
+    | { at: number; heard: string; timer?: ReturnType<typeof setTimeout>; vadEndAt?: number }
+    | undefined;
+  let resumedAt: number | undefined;
   const stopTimer = (): void => {
     if (timer) clearTimer(timer);
     timer = undefined;
@@ -182,7 +188,7 @@ export function createBargeInFastPath(deps: {
   };
   const decide = (outcome: 'interrupted' | 'resumed', fields: Record<string, unknown>): void => {
     if (!pending || !soft) return;
-    clearTimer(pending.timer);
+    if (pending.timer) clearTimer(pending.timer);
     const pausedMs = Date.now() - pending.at;
     pending = undefined;
     soft.log?.({ outcome, ...fields, pausedMs });
@@ -192,20 +198,30 @@ export function createBargeInFastPath(deps: {
       return;
     }
     outputHeld = false;
+    resumedAt = Date.now();
     soft.resume();
+  };
+  /** Resume at the later of the window's end and the STT grace's end, capped at both summed. */
+  const scheduleResume = (): void => {
+    if (!pending || !soft) return;
+    if (pending.timer) clearTimer(pending.timer);
+    const windowEnd = pending.at + soft.confirmMs;
+    const cap = windowEnd + soft.graceMs;
+    const { vadEndAt } = pending;
+    const graceEnd = vadEndAt === undefined ? cap : vadEndAt + soft.graceMs;
+    const after = vadEndAt === undefined ? 'cap' : graceEnd > windowEnd ? 'grace' : 'window';
+    const ms = Math.min(cap, Math.max(windowEnd, graceEnd)) - Date.now();
+    pending.timer = setTimer(
+      () => decide('resumed', { why: pending?.heard, after }),
+      Math.max(0, ms)
+    );
   };
   const softPause = (): boolean => {
     if (!soft || !soft.pause()) return false;
     pausedThisReply = true;
     outputHeld = true;
-    pending = {
-      at: Date.now(),
-      heard: 'no-words',
-      timer: setTimer(
-        () => decide('resumed', { why: pending?.heard, after: 'window' }),
-        soft.confirmMs
-      ),
-    };
+    pending = { at: Date.now(), heard: 'no-words' };
+    scheduleResume();
     return true;
   };
   const armIfOverlapping = (): void => {
@@ -228,6 +244,7 @@ export function createBargeInFastPath(deps: {
         spokenText = '';
         firedThisReply = false;
         pausedThisReply = false;
+        resumedAt = undefined;
       }
       agentSpeaking = state === 'speaking';
       if (agentSpeaking) armIfOverlapping();
@@ -238,11 +255,13 @@ export function createBargeInFastPath(deps: {
     },
     onUserState(event) {
       callerSpeaking = (event as { newState?: string })?.newState === 'speaking';
-      if (callerSpeaking) armIfOverlapping();
-      else {
-        stopTimer();
-        if (pending) decide('resumed', { why: pending.heard, after: 'caller-stopped' });
+      if (pending) {
+        // Quiet: wait out the STT grace for words still on their way.
+        pending.vadEndAt = callerSpeaking ? undefined : Date.now();
+        scheduleResume();
       }
+      if (callerSpeaking) armIfOverlapping();
+      else stopTimer();
     },
     onSpokenText(chunk) {
       // Keep the recent tail: enough to recognize an echo, bounded in size.
@@ -265,8 +284,12 @@ export function createBargeInFastPath(deps: {
         }
         return;
       }
-      if (!shouldInterrupt({ transcript, agentSpeaking, spokenText })) return;
-      fire({ reason: 'transcript', transcript, words: words(transcript).length });
+      const justResumed =
+        resumedAt !== undefined && Date.now() - resumedAt < POST_RESUME_BACKSTOP_MS;
+      const minWords = justResumed ? POST_RESUME_MIN_WORDS : MIN_INTERRUPT_WORDS;
+      if (!shouldInterrupt({ transcript, agentSpeaking, spokenText, minWords })) return;
+      const extra = justResumed ? { minWords } : {};
+      fire({ reason: 'transcript', transcript, words: words(transcript).length, ...extra });
     },
   };
 }

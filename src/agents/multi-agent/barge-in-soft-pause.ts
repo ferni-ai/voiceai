@@ -12,8 +12,12 @@
  * fast path stops Ferni's audio at once and then decides:
  * - a real word that is neither a backchannel nor Ferni's own echo, or the
  *   barge-in model's isInterruption, cuts the reply as before;
- * - nothing within BARGE_IN_SOFT_PAUSE_CONFIRM_MS (1200 ms), or the caller
- *   going quiet first, resumes the reply where it paused.
+ * - nothing within BARGE_IN_SOFT_PAUSE_CONFIRM_MS (1200 ms) resumes the
+ *   reply where it paused. A short "hold on" can end before Ink-2 sends its
+ *   words, so once the caller goes quiet the pause waits a further
+ *   BARGE_IN_SOFT_PAUSE_STT_GRACE_MS (700 ms) for them: it resumes at the later
+ *   of the window's end and that grace's end, never past window + grace.
+ *   For POST_RESUME_BACKSTOP_MS after a resume, two real words cut the reply.
  *
  * The pause is the one LiveKit uses for its own false interruptions: the
  * session's audio output pause()/resume(). The room output clears its queued
@@ -32,6 +36,8 @@ const log = getLogger();
 
 /** How long a soft pause waits for proof before Ferni goes on. */
 export const SOFT_PAUSE_CONFIRM_MS = 1200;
+/** After the caller goes quiet, how long a soft pause waits for words still in STT. */
+export const SOFT_PAUSE_STT_GRACE_MS = 700;
 
 export interface SoftPause {
   /** Pause Ferni's audio; false when the output can't pause (then the fast path interrupts). */
@@ -39,6 +45,7 @@ export interface SoftPause {
   /** Play on from where the pause stopped. */
   resume: () => void;
   confirmMs: number;
+  graceMs: number;
   /** One line per decision: BARGE_IN_SOFT_PAUSE {outcome, why, pausedMs}. */
   log?: (fields: Record<string, unknown>) => void;
 }
@@ -50,13 +57,18 @@ export function softPauseConfirmMs(env: Env = process.env): number {
   return Number.isInteger(ms) && ms >= 200 && ms <= 5000 ? ms : SOFT_PAUSE_CONFIRM_MS;
 }
 
+export function softPauseGraceMs(env: Env = process.env): number {
+  const ms = Number(env.BARGE_IN_SOFT_PAUSE_STT_GRACE_MS);
+  return Number.isInteger(ms) && ms >= 200 && ms <= 2000 ? ms : SOFT_PAUSE_STT_GRACE_MS;
+}
+
 /** The soft pause when BARGE_IN_SOFT_PAUSE=on, else undefined (the fast path interrupts). */
 export function softPauseFromEnv(
   env: Env,
-  io: Omit<SoftPause, 'confirmMs'>
+  io: Omit<SoftPause, 'confirmMs' | 'graceMs'>
 ): SoftPause | undefined {
   if (env.BARGE_IN_SOFT_PAUSE !== 'on') return undefined;
-  return { ...io, confirmMs: softPauseConfirmMs(env) };
+  return { ...io, confirmMs: softPauseConfirmMs(env), graceMs: softPauseGraceMs(env) };
 }
 
 type Handler = (...args: unknown[]) => void;
