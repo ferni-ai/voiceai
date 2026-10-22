@@ -591,10 +591,10 @@ const LOOP_TYPE_LABELS: Partial<Record<OpenLoopType, string>> = {
 };
 
 /**
- * Format open loops for LLM context injection.
+ * Format open loops for LLM context injection: these loops, or the user's due ones.
  */
-export async function formatOpenLoopsContext(userId: string): Promise<string> {
-  const loops = await getLoopsReadyForFollowUp(userId);
+export async function formatOpenLoopsContext(userId: string, due?: OpenLoop[]): Promise<string> {
+  const loops = due ?? (await getLoopsReadyForFollowUp(userId));
   if (loops.length === 0) return '';
 
   const sections: string[] = [];

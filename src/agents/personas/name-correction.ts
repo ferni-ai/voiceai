@@ -31,6 +31,11 @@ import type { llm } from '@livekit/agents';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { runBackground } from '../../utils/background-task.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  acceptsSpokenName,
+  extractCallerName,
+  nameCaptureStrict,
+} from '../../utils/caller-name.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { guestsPresent } from './room-guests.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
@@ -79,10 +84,14 @@ const escaped = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\
 const mentions = (text: string, name: string, suffix = ''): boolean =>
   new RegExp(`(?:^|[^\\p{L}])${escaped(name)}${suffix}(?![\\p{L}])`, 'iu').test(text);
 
+/** NAME_CAPTURE_STRICT=on: the shared check (utils/caller-name.ts: its stopwords and the team roster). */
+const notAName = (name: string): boolean =>
+  nameCaptureStrict() ? !acceptsSpokenName(name) : NOT_NAMES.has(name.toLowerCase());
+
 function firstName(words: string, cue: RegExp, current: string | undefined): string | null {
   for (const m of words.matchAll(cue)) {
     const name = m[1];
-    if (!CAPITALISED.test(name) || NOT_NAMES.has(name.toLowerCase())) continue;
+    if (!CAPITALISED.test(name) || notAName(name)) continue;
     if (possessiveAfter(words, (m.index ?? 0) + m[0].length)) continue;
     if (current && mentions(words, current, "['’]s")) return null;
     if (FOR_SOMEONE_ELSE.test(words)) return null;
@@ -91,12 +100,18 @@ function firstName(words: string, cue: RegExp, current: string | undefined): str
   return null;
 }
 
+/** NAME_CAPTURE_STRICT=on: the shared extractor, and never while naming the account holder ("I'm Jess, Sam's wife"). */
+const strictOwnName = (words: string, current: string | undefined): string | null =>
+  current && mentions(words, current, "['’]s") ? null : extractCallerName(words);
+
 /**
  * The name the caller just gave as their own, or null. `current` is the name
  * Ferni has for them; `agentLast` is Ferni's last line (for "it's Jess").
  */
 export function statedName(words: string, current?: string, agentLast = ''): string | null {
-  const own = firstName(words, SELF_CUE, current);
+  const own = nameCaptureStrict()
+    ? strictOwnName(words, current)
+    : firstName(words, SELF_CUE, current);
   if (own) return own;
   const usedName = !!current && mentions(agentLast, current);
   const askedName = /\b(your name|call you|who(?:'s| is) this|who am i talking to)\b/i.test(

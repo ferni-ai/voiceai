@@ -45,6 +45,7 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   PERSONA_ID: 'config',
   PETER_JOHN_VOICE_ID: 'config',
   PORT: 'config',
+  POST_TTS_ENHANCEMENT_ENABLED: 'unread',
   PROMPT_MODE: 'behavior',
   REACTION_SIDETRACK: 'behavior',
   SENDGRID_API_KEY: 'secret',
@@ -65,5 +66,6 @@ export const ENV_CLASSIFICATION: Readonly<Record<string, EnvClass>> = {
   TWILIO_PHONE_NUMBER: 'secret',
   USE_FTIS: 'unread',
   USE_KYUTAI_STT: 'unread',
+  USE_OPENAI_REALTIME: 'unread',
   VOICE_PIPELINE: 'behavior',
 };

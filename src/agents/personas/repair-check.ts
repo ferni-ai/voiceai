@@ -159,11 +159,16 @@ export function mishearCue(latest: string, call: CallText, previous = ''): Mishe
   return null;
 }
 
-/** The note for the reply model: check only if it doesn't fit, in a few words. */
-export function repairNote(cue: MishearCue): string {
+/**
+ * The note for the reply model: check only if it doesn't fit, in a few words.
+ * `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): what was heard, but no line to say.
+ */
+export function repairNote(cue: MishearCue, scriptFree = false): string {
+  const check = scriptFree ? '' : ` ("Sorry, did you say ${quoted(cue.heard)}?")`;
+  const ask = scriptFree ? '' : ', the way a friend would ("Sorry, you what?")';
   return cue.kind === 'name'
-    ? `Speech-to-text heard "${quoted(cue.heard)}", a name nobody has said on this call, and it often mishears names. If it doesn't fit what you were talking about, check it in a few words before building on it ("Sorry, did you say ${quoted(cue.heard)}?"); if it clearly fits, just carry on. If you're not sure, check before acting on any other note about ${quoted(cue.heard)} above (such as saying a teammate isn't available).`
-    : `Speech-to-text heard "${quoted(cue.heard)}", which doesn't quite parse, so it may have misheard them. If you can't tell what they meant, say so in a few words and ask, the way a friend would ("Sorry, you what?"), instead of guessing; if the meaning is clear, just answer it.`;
+    ? `Speech-to-text heard "${quoted(cue.heard)}", a name nobody has said on this call, and it often mishears names. If it doesn't fit what you were talking about, check it in a few words before building on it${check}; if it clearly fits, just carry on. If you're not sure, check before acting on any other note about ${quoted(cue.heard)} above (such as saying a teammate isn't available).`
+    : `Speech-to-text heard "${quoted(cue.heard)}", which doesn't quite parse, so it may have misheard them. If you can't tell what they meant, say so in a few words and ask${ask}, instead of guessing; if the meaning is clear, just answer it.`;
 }
 
 interface MessageView {
@@ -236,7 +241,8 @@ function linesOf(chatCtx: llm.ChatContext): CallLines {
 export function repairNoteFor(
   chatCtx: llm.ChatContext,
   session: object,
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  scriptFree = false
 ): string {
   if (!repairModeEnabled(env)) return '';
   const started = performance.now();
@@ -252,7 +258,7 @@ export function repairNoteFor(
   // The kind and cost only: logs never carry the caller's words.
   const ms = Math.round((performance.now() - started) * 100) / 100;
   log.info({ kind: cue.kind, ms }, 'REPAIR_CHECK');
-  const note = 'options' in cue ? unclearNote(cue) : repairNote(cue);
+  const note = 'options' in cue ? unclearNote(cue) : repairNote(cue, scriptFree);
   // Last in the reminder (turn-request.ts), so it can say what wins over the shape line.
   return `${note} Checking like this is fine even where a line above says no question.`;
 }

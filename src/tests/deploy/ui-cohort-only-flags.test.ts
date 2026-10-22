@@ -7,24 +7,11 @@
  * user, and a person's own 'off' can't undo it (ponderedNotesOn,
  * pondered-triggers.ts).
  */
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-
-const ROOT = join(__dirname, '..', '..', '..');
-const workflow = readFileSync(join(ROOT, '.github/workflows/deploy-production.yml'), 'utf8');
+import { uiServerEnv as workflowEnv } from './ui-deploy-env.js';
 
 /** Grounded check-ins from the nightly pondering pass (Seth's `seth` cohort, 2026-10-18). */
 const COHORT_ONLY_FLAGS = ['OUTREACH_PONDERED_NOTES'];
-
-/** The `--set-env-vars` value of the workflow's john-bogle-ui deploy, split on its `::` delimiter. */
-function workflowEnv(): string[] {
-  const start = workflow.search(/run deploy john-bogle-ui\b/);
-  expect(start).toBeGreaterThan(-1);
-  const m = /--set-env-vars "\^::\^([^"]*)"/.exec(workflow.slice(start));
-  expect(m).not.toBeNull();
-  return m![1].split('::');
-}
 
 describe('cohort-only web-server flags', () => {
   it('the web server reads cohort flags', () => {

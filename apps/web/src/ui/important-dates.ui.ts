@@ -662,7 +662,7 @@ function renderDateList(): string {
     
     return `
       <div class="id-date-item">
-        <div class="id-date-icon">${typeInfo?.icon ?? '📅'}</div>
+        <div class="id-date-icon">${typeInfo.icon}</div>
         <div class="id-date-info">
           <div class="id-date-label">${date.label || typeInfo?.label || 'Date'}</div>
           <div class="id-date-meta">

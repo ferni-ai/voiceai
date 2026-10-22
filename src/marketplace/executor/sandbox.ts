@@ -15,8 +15,6 @@
  * - docker: Container isolation (future)
  */
 
-/* global AbortController */
-
 import { getLogger } from '../../utils/safe-logger.js';
 import { checkAndIncrementQuota, recordUsage } from '../billing/index.js';
 import { getInstallation, getTool, hasPermission, recordExecution } from '../registry.js';
@@ -490,7 +488,8 @@ export async function executeMarketplaceTool(
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
     const durationMs = Date.now() - startTime;
-    const isTimeout = err.name === 'AbortError';
+    // AbortSignal.timeout() rejects with TimeoutError; a caller's own abort is AbortError
+    const isTimeout = err.name === 'AbortError' || err.name === 'TimeoutError';
 
     log.error({ toolId, error: err.message, isTimeout }, 'Marketplace tool execution failed');
 

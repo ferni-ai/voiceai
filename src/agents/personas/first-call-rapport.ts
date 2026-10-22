@@ -13,12 +13,18 @@
  * (session-init-handler.ts sets isReturningUser from the profile). Anonymous
  * phone callers are left alone: they may be people Ferni can't place yet.
  *
+ * FIRST_CALL_INTRO=on adds WHO_NOTE: on four synthetic first calls (dev,
+ * 2026-10-18) "What is this, exactly?" got a 70-word pitch for the team and
+ * "So, who are you?" got a scene from his morning instead of an answer.
+ *
  * @module agents/personas/first-call-rapport
  */
 
 import type { llm } from '@livekit/agents';
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { getPersonaDisplayName } from '../../personas/voice-registry.js';
+import { leavingNow } from '../shared/call-farewell.js';
 
 /** The base note on every reply of a first call. */
 export const FIRST_CALL_NOTE =
@@ -28,20 +34,36 @@ export const FIRST_CALL_NOTE =
 export const NAME_SWAP_NOTE =
   "If you don't know their name yet, swap names at the next easy moment, the way people do on a first call: yours, then theirs, in one short line (\"I'm Ferni, by the way. What should I call you?\"). Not while they're in the middle of something hard.";
 
+/** NAME_SWAP_NOTE in the speaking persona's name, nothing quoted (SCRIPT_FREE_REMINDER, script-free.ts). */
+export const nameSwapPlain = (name: string): string =>
+  `If you don't know their name yet, swap names at the next easy moment, the way people do on a first call: say you're ${name}, then ask theirs, in one short line. Not while they're in the middle of something hard.`;
+
 /** When the caller is wrapping up. */
 export const FIRST_GOODBYE_NOTE =
   'They\'re heading off. Keep the goodbye to one or two short sentences, by name if you know it, and name one specific thing they told you that you\'d like to hear about next time ("tell me how the interview goes"). No question, and no pitch for the app.';
 
+/** FIRST_GOODBYE_NOTE without its quoted example (SCRIPT_FREE_REMINDER). */
+export const FIRST_GOODBYE_PLAIN = FIRST_GOODBYE_NOTE.replace(
+  ' ("tell me how the interview goes")',
+  ''
+);
+
+/** FIRST_CALL_INTRO=on: a plain answer to "what is this?" or "who are you?". */
+export const WHO_NOTE =
+  "If they ask what this is or who you are, answer plainly in one sentence: your name, and that you're someone they can call to talk things through. No team, no list of what you can do, no scene from your day. Then turn back to them and what they were saying.";
+
 /** Replies (the greeting counts as the first) during which a name swap may be suggested. */
 const NAME_SWAP_REPLIES = 4;
 
-const LEAVING =
-  /\b(gotta go|got to go|(have|need) to (go|run|head out|get going)|should (go|get going|let you go)|talk (to you )?(soon|later)|good ?bye|bye|catch you later|heading out|signing off)\b/i;
 const NAME_ASKED =
   /\b(your name|what should i call you|who am i talking to|didn'?t (catch|get) your name)\b/i;
 
 export function firstCallRapportEnabled(env: Env = process.env): boolean {
   return flagOn('FIRST_CALL_RAPPORT', env);
+}
+
+export function firstCallIntroEnabled(env: Env = process.env): boolean {
+  return flagOn('FIRST_CALL_INTRO', env);
 }
 
 /** A known account on its first conversation. */
@@ -55,6 +77,20 @@ export function isFirstCall(userData: unknown): boolean {
   );
 }
 
+/** The account already has a name for them: no need to ask for one. */
+function nameKnown(userData: unknown): boolean {
+  const u = userData as
+    | {
+        userName?: unknown;
+        services?: { userProfile?: { name?: unknown; preferredName?: unknown } | null };
+      }
+    | undefined;
+  const profile = u?.services?.userProfile;
+  return [u?.userName, profile?.preferredName, profile?.name].some(
+    (n) => typeof n === 'string' && n.trim() !== ''
+  );
+}
+
 /** What Ferni has said so far on this call. */
 function agentLines(chatCtx: llm.ChatContext): string[] {
   return chatCtx.items.flatMap((item) =>
@@ -62,18 +98,33 @@ function agentLines(chatCtx: llm.ChatContext): string[] {
   );
 }
 
-/** The first-call note for this reply, or '' (flag off, not a first call, no caller words). */
+/**
+ * The first-call note for this reply, or '' (flags off, not a first call, no caller words).
+ * `scriptFree` (SCRIPT_FREE_REMINDER, script-free.ts): nothing quoted, and the name
+ * swap in the speaking persona's own name.
+ */
 export function firstCallNote(
   chatCtx: llm.ChatContext,
   session: object,
   callerWords: string,
-  env: Env = process.env
+  env: Env = process.env,
+  scriptFree = false
 ): string {
-  if (!callerWords || !firstCallRapportEnabled(env)) return '';
-  if (!isFirstCall((session as { userData?: unknown }).userData)) return '';
-  if (LEAVING.test(callerWords)) return FIRST_GOODBYE_NOTE;
+  const rapport = firstCallRapportEnabled(env);
+  const who = firstCallIntroEnabled(env) ? WHO_NOTE : '';
+  if (!callerWords || (!rapport && !who)) return '';
+  const { userData } = session as { userData?: { personaId?: unknown } };
+  if (!isFirstCall(userData)) return '';
+  if (!rapport) return who;
+  if (leavingNow(callerWords)) return scriptFree ? FIRST_GOODBYE_PLAIN : FIRST_GOODBYE_NOTE;
   const said = agentLines(chatCtx);
   const nameAsked = said.some((line) => NAME_ASKED.test(line));
   const early = said.length <= NAME_SWAP_REPLIES;
-  return !nameAsked && early ? `${FIRST_CALL_NOTE} ${NAME_SWAP_NOTE}` : FIRST_CALL_NOTE;
+  let swap = '';
+  if (!nameAsked && early && !nameKnown(userData)) {
+    const speaker = typeof userData?.personaId === 'string' ? userData.personaId : 'ferni';
+    const name = getPersonaDisplayName(speaker).split(/\s+/)[0];
+    swap = scriptFree ? nameSwapPlain(name) : NAME_SWAP_NOTE;
+  }
+  return [FIRST_CALL_NOTE, who, swap].filter(Boolean).join(' ');
 }

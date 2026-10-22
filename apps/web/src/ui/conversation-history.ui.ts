@@ -172,7 +172,7 @@ class ConversationHistoryUI {
       <div class="history__backdrop"></div>
       <div class="history__card">
         ${this.renderHeader()}
-        <div class="history__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('conversationHistory.loadError')} <button type="button" style="color: var(--color-ferni-on-surface); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('conversationHistory.tryAgain')}</button></div>
+        <div class="history__error" role="alert" style="display: flex; flex-direction: column; align-items: center; gap: var(--space-3, 12px); text-align: center; padding: var(--space-8, 32px); color: var(--color-text-secondary);"><p style="margin: 0;">${t('conversationHistory.loadError')}</p><button type="button" style="min-height: 44px; padding: 0 var(--space-5, 20px); color: var(--color-text-primary); background: none; border: 1px solid var(--color-border-medium); border-radius: var(--radius-full); font: inherit; cursor: pointer;">${t('conversationHistory.tryAgain')}</button></div>
       </div>
     `;
     this.panel.querySelector('.history__close')?.addEventListener('click', () => this.hide());
@@ -274,7 +274,7 @@ class ConversationHistoryUI {
           </div>
         ` : ''}
 
-        <div class="history__sessions">
+        <div class="history__sessions" tabindex="0" role="region" aria-label="${t('conversationHistory.sessionsRegion')}">
           ${data.sessions.length > 0 
             ? data.sessions.map((s, i) => this.renderSession(s, i, data.favoritePersona)).join('')
             : this.renderEmptyState()

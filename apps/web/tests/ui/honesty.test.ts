@@ -153,6 +153,7 @@ describe('Music sources', () => {
 
 describe('a failed request shows an honest error, never stand-in content', () => {
   it('Sanctuary: Ferni says the reply failed instead of a canned answer', async () => {
+    vi.stubEnv('VITE_SANCTUARY_CHAT', 'true'); // the chat step is off by default (sanctuary-chat-flag.ts)
     const { startPractice, close } = await import('../../src/ui/practice-experience.ui.js');
     startPractice({ id: 'something-new', name: 'Something new', description: '', category: 'test' });
     document.querySelector<HTMLElement>('#nav-next')?.click(); // intro -> chat
@@ -172,6 +173,7 @@ describe('a failed request shows an honest error, never stand-in content', () =>
       expect(document.body.textContent).not.toContain(t(`practiceExperience.fallback.default.option${n}`));
     }
     close();
+    vi.unstubAllEnvs();
   });
 
   it('Knowledge Quiz: no generic questions when the quiz fails to load', async () => {

@@ -330,15 +330,13 @@ grep -E "(padding|margin|gap):\s*[0-9]+px" css/styles.css | grep -v "var("
 
 ## Appendix: Archived Documents
 
-The following documents have been consolidated into this playbook and moved to `_archive/`:
+The following documents have been consolidated into this playbook. They were removed from `_archive/` on 2026-10-18; read them in git history:
 
 | Document | Now Lives In |
 |----------|--------------|
 | `APPLE-DESIGN-ANALYSIS.md` | Sections 1-3 (Philosophy, Hierarchy, Copy) |
 | `BUILD-REFACTOR-PLAN.md` | Section 7 (Technical Architecture) |
 | `DESIGN-AUDIT.md` | Section 6 (Implementation Checklist) |
-
-These files are kept for historical reference only. **Do not edit them.**
 
 ---
 

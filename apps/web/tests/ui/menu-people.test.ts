@@ -124,6 +124,23 @@ describe("menu: People You've Told Me About", () => {
     expect(document.querySelector('[aria-busy="true"]')).toBeNull();
   });
 
+  // 2026-10-18 UI audit: search took focus on phones too, throwing up the keyboard over the list
+  it.each([
+    ['desktop (fine pointer) starts in search', true, true],
+    ['touch never autofocuses search', false, false],
+  ])('%s', async (_label, fine, focused) => {
+    const matchMedia = vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query: string) => ({ matches: fine && query === '(pointer: fine)', media: query }) as MediaQueryList
+    );
+    serve(async () => json({ contacts: [person('Rosa', 'family')] }));
+    await openYourPeople();
+    await new Promise((r) => setTimeout(r, 400)); // the focus waits out the entrance
+    const search = document.querySelector('.yp-search-input');
+    expect(search).not.toBeNull();
+    expect(document.activeElement === search).toBe(focused);
+    matchMedia.mockRestore();
+  });
+
   it('closing and reopening at once keeps the new panel (the old close timer used to remove it)', async () => {
     vi.useFakeTimers();
     serve(async () => json({ contacts: [person('Rosa', 'family')] }));

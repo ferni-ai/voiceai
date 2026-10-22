@@ -19,6 +19,7 @@ import {
   registerDevice,
   unregisterDevice,
 } from '../../../services/push-devices.js';
+import { recipientTag } from '../../../services/ios-push.js';
 import { getPushNotificationsService } from '../../../services/push-notifications.js';
 import { isAllowedWebPushEndpoint } from '../../../services/web-push-endpoint.js';
 import { isWebPushDeliverable } from '../../../services/web-push-loader.js';
@@ -81,7 +82,8 @@ async function handleDevices(req: IncomingMessage, res: ServerResponse): Promise
         { userId: auth.userId, environment: parsed.device.environment },
         'Push device registered'
       );
-      sendJSON(res, { success: true });
+      // The app keeps its tag and drops a push whose `r` names someone else (ios-push.ts).
+      sendJSON(res, { success: true, recipientTag: recipientTag(auth.userId) });
     } catch (err) {
       log.error({ error: String(err), userId: auth.userId }, 'Failed to register push device');
       sendError(res, 'Failed to register device', 500);

@@ -8,6 +8,7 @@
  */
 
 import type { Commitment } from './commitment-keeper.js';
+import { commitmentsShown } from './commitment-forget.js';
 import { getFirestoreDb, recordDegradation } from './firestore-utils.js';
 
 /** How long a process may serve a user's commitments without reading the store. */
@@ -53,20 +54,26 @@ export async function loadActiveCommitmentsOrThrow(userId: string): Promise<Comm
     throw new Error('Firestore unavailable');
   }
 
-  const snapshot = await db
-    .collection('bogle_users')
-    .doc(userId)
-    .collection('commitments')
-    .where('status', '==', 'active')
-    .orderBy('createdAt', 'desc')
-    .limit(50)
-    .get();
+  const [snapshot, shown] = await Promise.all([
+    db
+      .collection('bogle_users')
+      .doc(userId)
+      .collection('commitments')
+      .where('status', '==', 'active')
+      .orderBy('createdAt', 'desc')
+      .limit(50)
+      .get(),
+    commitmentsShown(userId),
+  ]);
 
-  // An after-call commitment is saved with .add(), so its id is only the document's.
-  const commitments = snapshot.docs.map((doc) => {
-    const data = doc.data() as Commitment;
-    return { ...data, id: doc.id ?? data.id };
-  });
+  // Never one they asked Ferni to forget (commitment-forget.ts). An after-call commitment
+  // is saved with .add(), so its id is only the document's.
+  const commitments = snapshot.docs
+    .filter((doc) => shown(doc.data()))
+    .map((doc) => {
+      const data = doc.data() as Commitment;
+      return { ...data, id: doc.id ?? data.id };
+    });
   commitmentCache.set(userId, commitments);
   return commitments;
 }

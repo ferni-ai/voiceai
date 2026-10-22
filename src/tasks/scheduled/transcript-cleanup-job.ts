@@ -116,8 +116,8 @@ export class TranscriptCleanupJob extends ScheduledJob<
     let usersProcessed = 0;
 
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
 
       // Calculate cutoff dates
       const now = new Date();

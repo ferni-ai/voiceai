@@ -22,6 +22,7 @@ import type {
   RelationshipStage,
   SharedMoment,
 } from './types.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'RelationshipPersistence' });
 
@@ -41,7 +42,7 @@ function getFirestoreDb(): Firestore | null {
   }
 
   try {
-    db = new Firestore();
+    db = new Firestore({ databaseId: getFirestoreDatabase() });
     initialized = true;
     log.debug('Relationship persistence Firestore initialized');
     return db;

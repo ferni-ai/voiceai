@@ -9,7 +9,16 @@
  * Only a name that addresses Ferni is changed: a greeting ("Hey Fern"), a
  * vocative closing a clause ("today, Fern?"), or the whole utterance
  * ("Fern?"). "My friend Freddy", "Freddy Mercury", "I saw a fern" and
- * "Fernando" stay as they are. A name STT got right is never touched. Wrapping the STT stream fixes every reader at
+ * "Fernando called" stay as they are. A name STT got right is never touched.
+ *
+ * Prod call 2026-10-20: "Hey Ferni" came through as "Hey Fred." (confidence 0);
+ * Ferni answered "Fred is a new one" and memory stored a person called Fred.
+ * Other prod calls heard "Hey Bernie" and "thanks, Bernie" said to Ferni. Real
+ * names among the mishearings (Fred, Bernie, Ernie, Fanny, Fernando) are changed
+ * only as a vocative, so "my friend Fred" and "Bernie Sanders" stay. Everyday
+ * words (funny, ferry, fairy) are changed only straight after an opening
+ * greeting and ending the clause ("Hey, funny."): "that's funny", "Funny." and
+ * "Okay, funny." stay. Wrapping the STT stream fixes every reader at
  * once: the SDK builds the committed user message (LLM, director) and
  * user_input_transcribed (memory, observers) from these events.
  * NAME_MISHEAR_NORMALIZE=on turns it on.
@@ -31,7 +40,24 @@ import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'NameMishear' });
 
-const MISHEARD = /\b(freddy|fernie|ferny|furny|fern)\b/gi;
+/** Heard for "Ferni" and changed in a greeting, a vocative or a transfer (asksForFerni). */
+const TRANSFERABLE = ['freddy', 'fernie', 'ferny', 'furny', 'fern'];
+/** Also names STT hears for "Ferni": changed only as a greeting or vocative. */
+const VOCATIVE_ONLY = [
+  ...['fred', 'freddie', 'ferney', 'fernee', 'furni', 'furney'],
+  ...['fernando', 'bernie', 'ernie', 'fanny'],
+];
+/** Everyday words STT hears for "Ferni": changed only in "Hey, funny." (HAILED). */
+const WORDS = ['funny', 'ferry', 'fairy'];
+const MISHEARD = new RegExp(
+  `\\b(${[...TRANSFERABLE, ...VOCATIVE_ONLY, ...WORDS].join('|')})\\b`,
+  'gi'
+);
+const kindOf = (word: string): 'transferable' | 'vocative' | 'word' => {
+  const w = word.toLowerCase();
+  if (TRANSFERABLE.includes(w)) return 'transferable';
+  return WORDS.includes(w) ? 'word' : 'vocative';
+};
 /** The name ends its clause: punctuation or the end of the utterance follows. */
 const CLOSES = /^\s*(?:[.!?,;:]|$)/;
 /** "Hey Fern how are you": what follows is said to the one greeted. */
@@ -40,6 +66,8 @@ const SAID_TO =
 /** A greeting that opens a sentence, right before the name. */
 const GREETING =
   /(?:^|[.!?]\s*)(?:hey|hi|hiya|hello|yo|thanks|thank you|morning|good morning|night|good night|bye|goodbye|okay|ok)\s*,?\s*$/i;
+/** An opening greeting right before the word, at the start of a sentence ("Hey, funny."). */
+const HAILED = /(?:^|[.!?]\s*)(?:hey|hi|hiya|hello|yo)\s*,?\s*$/i;
 /** "with my buddy, Freddy." names someone else ("How's your day, Fern?" doesn't). */
 const APPOSITIVE =
   /\b(?:friend|buddy|pal|brother|sister|cousin|son|daughter|dad|father|mom|mother|uncle|aunt|boss|coworker|colleague|neighbou?r|guy|husband|wife|partner|boyfriend|girlfriend|kid|dog|cat)s?\s*,\s*$/i;
@@ -79,9 +107,12 @@ function fixName(text: string, scope: NameFixScope): { text: string; fixed: stri
   const fixed: string[] = [];
   const out = text.replace(MISHEARD, (word, _w: string, at: number) => {
     const [before, after] = [text.slice(0, at), text.slice(at + word.length)];
+    const kind = kindOf(word);
     const ferni =
-      (scope.vocatives && addressesFerni(before, after)) ||
-      (scope.transfers && asksForFerni(before, after));
+      kind === 'word'
+        ? scope.vocatives && HAILED.test(before) && CLOSES.test(after)
+        : (scope.vocatives && addressesFerni(before, after)) ||
+          (kind === 'transferable' && scope.transfers && asksForFerni(before, after));
     if (!ferni) return word;
     fixed.push(`${word}→Ferni`);
     return 'Ferni';

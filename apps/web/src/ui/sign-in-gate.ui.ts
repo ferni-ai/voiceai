@@ -27,6 +27,7 @@ import { createAppleIcon, createGoogleIcon } from './sign-in-provider-icons.js';
 import { tryFirstButtons } from './try-first.ui.js';
 import { t } from '../i18n/index.js';
 import { createAiRoleLabelRow } from './ai-role-label.ui.js';
+import { celebrateAdmissionOnce, showWaitingInGate } from './waiting-screen.ui.js';
 
 const log = createLogger('SignInGate');
 // app.ferni.ai serves the app for every path, so the legal pages are on the marketing site.
@@ -47,7 +48,7 @@ const STYLES = `
   position: fixed;
   inset: 0;
   z-index: var(--z-system);
-  background: var(--color-bg-primary, #0a0a0f);
+  background: var(--color-background-primary, #14110e);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -76,7 +77,7 @@ const STYLES = `
   width: 100px;
   height: 100px;
   margin: 0 auto var(--space-lg, 1.618rem);
-  border-radius: var(--radius-xl, 18px);
+  border-radius: var(--radius-full, 50%); /* round, like the avatar everywhere else */
   background: transparent;
   display: flex;
   align-items: center;
@@ -88,7 +89,7 @@ const STYLES = `
 .sign-in-gate-logo img {
   width: 100%;
   height: 100%;
-  border-radius: var(--radius-lg, 12px);
+  border-radius: var(--radius-full, 50%);
   object-fit: cover;
 }
 
@@ -312,9 +313,7 @@ function showCheckingState(): void {
   }
 }
 
-/**
- * Create the waitlist icon SVG (clock/hourglass icon).
- */
+/** The waitlist notice's icon: a clock. */
 function createWaitlistIcon(): SVGSVGElement {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('width', '64');
@@ -342,9 +341,6 @@ function createWaitlistIcon(): SVGSVGElement {
   return svg;
 }
 
-/**
- * Transform the UI to show the waitlist pending state.
- */
 type AccessNotice = Exclude<AccessOutcome, { kind: 'approved' }>;
 
 const NOTICE_COPY: Record<AccessNotice['kind'], { title: string; message: string }> = {
@@ -640,14 +636,17 @@ export async function showSignInGate(): Promise<void> {
     if (state.isAuthenticated) {
       const runCheck = (): void => {
         showCheckingState();
-        void checkAccess().then((outcome) => {
+        void checkAccess().then(async (outcome) => {
           log.info('Access check', { outcome: outcome.kind });
           if (outcome.kind !== 'approved') {
             // Stay on the gate and keep listening: they may sign in with another account
+            const content = overlayEl?.querySelector('.sign-in-gate-content');
+            if (outcome.kind === 'waitlisted' && content && (await showWaitingInGate(content, runCheck, handleSignOutAndRetry, TITLE_ID))) return; // prettier-ignore
             showAccessNotice(outcome, runCheck);
             return;
           }
           hideSignInGate();
+          void celebrateAdmissionOnce(); // first sign-in after their spot opened
           unsubscribe();
           resolveSignIn?.();
           resolveSignIn = null;

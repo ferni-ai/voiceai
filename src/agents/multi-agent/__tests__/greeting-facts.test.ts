@@ -30,7 +30,7 @@ describe('callerHistory', () => {
       )
     ).toEqual({
       calls: 7,
-      daysSince: 2,
+      daysSince: 3, // Oct 1 to Oct 4 on the calendar (70 hours used to floor to 2)
       lastTopic: 'Talked about the job interview on Thursday.',
     });
   });

@@ -3969,7 +3969,6 @@
       "ceo": "代表",
       "ferniRole": "CEO兼ライフコーチ",
       "ferniDesc": "すべての中心にある、温かく賢い存在。Ferniは完璧な思い出、偏見のない心、そして常に寄り添う姿勢でチームをまとめます。",
-      "coFounders": "共同創業者",
       "coreTeam": "コアチーム",
       "footer": "私たちは共に、本当に耳を傾けてくれるチームを持つことの意味を再定義しています。",
       "roles": {
@@ -4770,7 +4769,10 @@
     "funGames": "楽しいゲーム",
     "reflectionGames": "振り返りゲーム",
     "tipLabel": "ヒント：",
-    "tipContent": "途中でやめたいときは、いつでも「ストップ」や「ゲームを終了して」と言ってね。進捗はいつでも保存されているよ！"
+    "tipContent": "途中でやめたいときは、いつでも「ストップ」や「ゲームを終了して」と言ってね。進捗はいつでも保存されているよ！",
+    "connectFirst": "まずFerniと通話を始めてから、ゲームを選んでね。",
+    "starting": "{game}を始めています…",
+    "startFailed": "ゲームを始められませんでした。Ferniに頼んでみてね。"
   },
   "digitalTwinProfile": {
     "title": "デジタルツインを作ろう",
@@ -9059,10 +9061,6 @@
     "chiefExecutive": "最高経営責任者",
     "ferni": "Ferni",
     "ferniRole": "CEO 兼 ライフコーチ",
-    "coFounders": "共同創業者",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "コアチーム",
     "tagline": "私たちは力を合わせて、「心から耳を傾けてくれるチーム」のあり方を新しく定義していきます。",
     "inTeam": "チームに参加中",
@@ -11132,5 +11130,21 @@
     "helper": "スマホのカメラで読み取るか、「Venmoを開く」をタップしてください。金額は変更できます。",
     "maybeLater": "また今度",
     "close": "閉じる"
+  },
+  "reportReply": {
+    "button": "報告",
+    "describe": "{name}の発言を報告",
+    "title": "返答を報告",
+    "whichReply": "どの返答ですか？",
+    "whatsWrong": "何が問題ですか？",
+    "reasonHarmful": "有害または危険",
+    "reasonWrong": "誤りまたは誤解を招く",
+    "reasonInappropriate": "不適切",
+    "reasonOther": "その他",
+    "note": "補足があれば入力してください（任意）",
+    "send": "送信",
+    "thanks": "ありがとうございます。担当者が確認します。",
+    "failed": "送信できませんでした。もう一度お試しください。",
+    "tooMany": "今日はすでに多くの報告が送信されています。明日もう一度お試しください。"
   }
 }

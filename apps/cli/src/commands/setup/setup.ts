@@ -208,7 +208,7 @@ To run with a specific persona:
 
 /**
  * App Icons Setup
- * Generates icons for iOS and Android from brand assets
+ * Generates icons for iOS from brand assets
  */
 async function setupIcons(options: SetupOptions): Promise<boolean> {
   log.step('APP ICONS SETUP');
@@ -586,12 +586,10 @@ ${colors.bold}Platforms:${colors.reset}
   1. macOS - Requires Apple Developer account ($99/year)
   2. Windows - Requires code signing certificate ($139-475/year)
   3. iOS - Requires Apple Developer account ($99/year)
-  4. Android - Free (self-signed keystore)
 
 ${colors.bold}Documentation:${colors.reset}
   See apps/CODE_SIGNING.md for detailed instructions.
 
-${colors.bold}Quick Setup for Android:${colors.reset}
 `);
 
   // The Android app is a Trusted Web Activity (apps/android-twa). Its upload key
