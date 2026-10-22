@@ -36,7 +36,7 @@ export const FLAG_MANIFEST = {
   ...FLAGS_ACTION_TO_BYPASS,
   // on: an emotional-arc proactive insight reaches the prompt once, not every third turn (commitment-follow-up-gate.ts)
   ARC_INSIGHT_ONCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
-  // on: a teammate's first line restates only the caller's words, else a plain hello; kept out of memory (arrival-grounding.ts)
+  // on: a teammate's first line names why the caller came in their words (never re-asks, never repeats an earlier arrival), else a plain hello; kept out of memory (arrival-grounding.ts, arrival-reason.ts)
   ARRIVAL_LINE_GROUNDED: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALLER_ASSERTED_MEMORY: { default: 'off', owner: 'memory', kind: 'experiment' },
   CALLER_CITY_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -48,6 +48,8 @@ export const FLAG_MANIFEST = {
   // on: a caller's voice create, update and delete go to their connected calendar, not only Ferni's list (#1749)
   CALENDAR_WRITE_TO_PROVIDER: { default: 'off', owner: 'tools', kind: 'experiment' },
   CALL_CPU_PROFILE: { default: 'off', owner: 'platform', kind: 'config' },
+  // on: the per-turn crisis check waits at most 150 ms, then the turn goes on without it (better-than-human-builders.ts)
+  CALL_START_TRIM: { default: 'off', owner: 'voice', kind: 'experiment' },
   CALL_FOLLOWTHROUGH: { default: 'off', owner: 'outreach', kind: 'experiment' },
   CALL_HOURS_GUARD: { default: 'off', owner: 'platform', kind: 'experiment' },
   CALL_JOURNAL: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -84,6 +86,8 @@ export const FLAG_MANIFEST = {
   CRISIS_AGREEMENT_GATE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // crisis classifier: everyday call business (call requests, goodbyes, meta talk) reads none
   CRISIS_CLASSIFIER_EVERYDAY_RULES: { default: 'off', owner: 'intelligence', kind: 'experiment' },
+  // a classifier-only imminent read the call plainly explains (two reads + a shared word) gets the soft check
+  CRISIS_GROUNDED_RELEASE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // a classifier-only crisis read of a bare "pass me to Nayan", with no risk on the call, gets the soft check-in
   CRISIS_TRANSFER_EVERYDAY: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   CURIOUS_DETAIL: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -121,6 +125,8 @@ export const FLAG_MANIFEST = {
   // errands as durable workflows: owner-confirmed calls, verified bookings (services/errands, errands-flag.ts)
   ERRANDS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   EVALOPS_FIRESTORE_ENABLED: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // set only by vitest.config.external.ts: lets ALLOW_PRODUCTION_DATA unguard that suite
+  EXTERNAL_TEST_SUITE: { default: 'off', owner: 'platform', kind: 'config' },
   EXTRACTION_CONTEXT: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SUPERSESSION: { default: 'off', owner: 'memory', kind: 'experiment' },
   FACT_SWEEP: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -152,6 +158,8 @@ export const FLAG_MANIFEST = {
   FERNI_VOICE_EMOTION: { default: 'off', owner: 'voice', kind: 'config' },
   // unset: resting pace 1. A number, clamped to 0.85-1.2: Ferni's resting pace (same module)
   FERNI_VOICE_SPEED: { default: 'off', owner: 'voice', kind: 'config' },
+  // on: a first call's hello says who is calling, and "who are you?" gets a plain answer (greeting-direction.ts, first-call-rapport.ts)
+  FIRST_CALL_INTRO: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a reply's first clause goes to tts at a comma, not its sentence's end (agents/personas/first-clause-flush.ts)
   FIRST_CLAUSE_FLUSH: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -164,6 +172,8 @@ export const FLAG_MANIFEST = {
   FOLLOW_THROUGH_JOB: { default: 'off', owner: 'outreach', kind: 'kill-switch' },
   // on: the opener asks about one follow_through row and the caller's answer closes it (follow-through-opener.ts)
   FOLLOW_THROUGH_OPENER: { default: 'off', owner: 'outreach', kind: 'experiment' },
+  // on: GET /api/follow-through/upcoming lists what Ferni's holding for the signed-in person (follow-through-upcoming-route.ts)
+  FOLLOW_THROUGH_UPCOMING: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
   FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: at call start, ask once about a date the caller told us (dates/recall.ts; needs DATES_THAT_MATTER)
@@ -178,6 +188,8 @@ export const FLAG_MANIFEST = {
   GOODBYE_ENDS_CALL: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: good news gets a react, name it, ask about the moment note (agents/personas/good-news-bigger.ts)
   GOOD_NEWS_BIGGER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // off: a process on a non-prod Firestore database (dev) skips Spanner graph writes; the graph is prod's (spanner-graph/client.ts)
+  GRAPH_WRITES_ON_DEV_DB: { default: 'off', owner: 'memory', kind: 'config' },
   GREETING_WIRE_AFTER: { default: 'off', owner: 'voice', kind: 'experiment' },
   GTM_AUTO_PUBLISH: { default: 'off', owner: 'platform', kind: 'experiment' },
   GTM_ENABLED: { default: 'on', owner: 'platform', kind: 'kill-switch' },
@@ -268,8 +280,11 @@ export const FLAG_MANIFEST = {
   PLACEHOLDER_SUMMARY_UNKNOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   // Keep off: needs #1855, the privacy-page wording, and a legal read of the Maps terms for storing the place ID. #1760 merged with an unverified head.
   PLACES_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // findBusiness with no known caller location asks where they are instead of searching (local-search/caller-city.ts)
+  PLACES_NEEDS_LOCATION: { default: 'off', owner: 'tools', kind: 'experiment' },
   PLAYOUT_DRIFT_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // read in patches/@livekit__agents@1.9.3.patch
+  // read in patches/@livekit__agents@1.9.3.patch: resumes a reply paused at playout launch or by
+  // leftover caller audio when nothing else will (PAUSE_RESUME_WATCHDOG, paused-lead-in.sdk.test.ts)
   PLAYOUT_LAUNCH_RESUME: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   PONDERING: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // late-night calls: a softer reply line and the LATE_NIGHT layer in attune.ts (porch-light.ts)
@@ -287,6 +302,8 @@ export const FLAG_MANIFEST = {
   // at most one check-in per commitment every 3 days, kept across calls (superhuman/commitment-checkin-cooldown.ts)
   PROACTIVE_COOLDOWN: { default: 'off', owner: 'memory', kind: 'experiment' },
   PROACTIVE_REASON_OPENER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: GET /api/promises, the Today panel's follow-through list (api/routes/promises.ts)
+  PROMISES_PANEL: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // character loads a short character sheet instead of the full prompt (prompt-loader.ts)
   PROMPT_MODE: { default: 'full', owner: 'voice', kind: 'config' },
   PROMPT_STABLE_PREFIX: { default: 'off', owner: 'voice', kind: 'experiment' },
@@ -369,6 +386,8 @@ export const FLAG_MANIFEST = {
   TURN_KEEPER_SPOKE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_OPENING_SOUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_LENGTH: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: per-turn memory search gates on the vector leg's cosine (0.55), not the RRF score no memory reaches (turn-memory-scale.ts)
+  TURN_MEMORY_RRF_SCALE: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_STYLE_REMINDER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },

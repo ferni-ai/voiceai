@@ -3,7 +3,7 @@
  * checked against the Firestore emulator running the repo's firestore.rules.
  * Skips unless FIRESTORE_EMULATOR_HOST is set.
  *
- *   firebase emulators:exec --only firestore --project demo-test \
+ *   firebase emulators:exec --only firestore:ferni-dev --project demo-test \
  *     "pnpm vitest run -c vitest.config.unit.ts scripts/firestore-rules/__tests__/rules-lockdown.emulator.test.ts"
  *
  * Talks to the emulator's REST API with unsigned ID tokens (the emulator accepts

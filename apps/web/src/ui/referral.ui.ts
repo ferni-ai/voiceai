@@ -483,7 +483,7 @@ function injectStyles(): void {
     }
 
     .referral-link-url {
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-primary); /* persona green was 2.1:1 in midnight */
       font-weight: 500;
       font-family: var(--font-mono, monospace);
     }

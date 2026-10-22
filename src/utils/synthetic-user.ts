@@ -31,6 +31,17 @@
 /** The production Firestore project, where synthetic owners must not be written. */
 export const PROD_FIRESTORE_PROJECT = 'johnb-2025';
 
+/**
+ * Prod's database inside PROD_FIRESTORE_PROJECT. Other databases in the project
+ * (ferni-dev) are not prod: harness users may write there.
+ */
+export const PROD_FIRESTORE_DATABASE = '(default)';
+
+/** Whether a project + database pair is prod's data. The one place that decides. */
+export function isProdFirestore(project: string, database: string): boolean {
+  return project === PROD_FIRESTORE_PROJECT && database === PROD_FIRESTORE_DATABASE;
+}
+
 /** Harness owner id prefixes the write guard and the purge act on. An allowlist. */
 export const SYNTHETIC_OWNER_PREFIXES = [
   'voice-eval-',
