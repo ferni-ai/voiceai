@@ -41,6 +41,7 @@ import {
 } from '../../services/safety/crisis-classifier.js';
 import { noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
 import {
+  GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
   groundedRelease,
 } from '../../services/safety/crisis-grounded-release.js';
@@ -233,7 +234,7 @@ export function startCrisisGate(
       await groundedRelease({ ...grounded, detection, verdict, generates: options.groundedReads })
     ) {
       log.info({ action: 'guide', source: 'grounded_release' }, 'CRISIS_GATE');
-      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
+      return { action: 'guide', guidance: GROUNDED_LIGHT_TOUCH };
     }
     const merged = applyClassifierVerdict(detection, verdict);
     if (merged === detection) return null;

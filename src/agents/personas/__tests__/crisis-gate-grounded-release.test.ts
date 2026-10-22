@@ -8,7 +8,6 @@
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { SOFT_CRISIS_CHECK } from '../../../services/safety/crisis-agreement.js';
 import {
   crisisRiskThisCall,
   noteCrisisRisk,
@@ -19,7 +18,11 @@ import {
   resetCrisisClassifierCache,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
-import { resetGroundedRelease } from '../../../services/safety/crisis-grounded-release.js';
+import {
+  GROUNDED_LIGHT_TOUCH,
+  GROUNDED_RELEASE_CSSRS_PROMPT,
+  resetGroundedRelease,
+} from '../../../services/safety/crisis-grounded-release.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
@@ -76,13 +79,19 @@ async function gateDecision(
   return (await gate?.escalation) ?? gate?.decision ?? { action: 'pass' };
 }
 
-const read = (reply: string) => vi.fn<CrisisGenerateFn>(async () => reply);
+const CSSRS_EVERYDAY =
+  '{"wish_dead":"none","ideation":"none","method":"none","intent":"none","plan_time":"none","everyday":true}';
+/** A read that gives `reply` to the everyday prompt, and the matching answer to the C-SSRS one. */
+const read = (reply: string) =>
+  vi.fn<CrisisGenerateFn>(async (prompt) =>
+    prompt === GROUNDED_RELEASE_CSSRS_PROMPT && reply === EVERYDAY ? CSSRS_EVERYDAY : reply
+  );
 
 describe('the 2026-10-20 dinner turn, through the reply gate', () => {
   it('gets the soft check with the release live and both reads everyday', async () => {
     const reads = [read(EVERYDAY), read(EVERYDAY)];
     const out = await gateDecision([[OPENER, REMINDER]], DINNER, { env: RELEASE, reads });
-    expect(out).toEqual({ action: 'guide', guidance: SOFT_CRISIS_CHECK });
+    expect(out).toEqual({ action: 'guide', guidance: GROUNDED_LIGHT_TOUCH });
     // Each read saw the call: the opener, Ferni's line and the flagged line.
     const seen = JSON.parse(reads[0].mock.calls[0][1]) as Array<{ speaker: string; text: string }>;
     expect(seen.map((l) => l.speaker)).toEqual(['caller', 'ferni', 'caller']);
@@ -285,7 +294,7 @@ describe('call risk around a release', () => {
     expect(reads[0]).not.toHaveBeenCalled();
   });
 
-  it('a released turn stops counting for the next release, never for the farewell guards', async () => {
+  it('one release per call: the next imminent read keeps the script, and the farewell guards still see risk', async () => {
     const session = `call-${++calls}`;
     const reads = [read(EVERYDAY), read(EVERYDAY)];
     await gateDecision([[OPENER, REMINDER]], DINNER, { env: RELEASE, reads, session });
@@ -300,7 +309,7 @@ describe('call risk around a release', () => {
       next,
       { env: RELEASE, reads, session }
     );
-    expect(out).toEqual({ action: 'guide', guidance: SOFT_CRISIS_CHECK });
+    expect(out.action).toBe('replace');
   });
 });
 
@@ -325,7 +334,7 @@ describe('the turn pipeline', () => {
     });
     expect(await turn.softCheck()).toBe(true);
     expect((await turn.resolve()).isCrisis).toBe(false);
-    expect(gate).toEqual({ action: 'guide', guidance: SOFT_CRISIS_CHECK });
+    expect(gate).toEqual({ action: 'guide', guidance: GROUNDED_LIGHT_TOUCH });
     expect(reads[0]).toHaveBeenCalledTimes(1);
     expect(reads[1]).toHaveBeenCalledTimes(1);
   });

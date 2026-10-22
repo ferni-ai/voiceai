@@ -15,9 +15,15 @@ import {
   MAX_RELEASES_PER_CALL,
   parseGroundedRead,
   readGrounded,
+  GROUNDED_RELEASE_CSSRS_PROMPT,
+  parseCssrsRead,
   resetGroundedRelease,
   resolveGroundedReleaseMode,
 } from '../crisis-grounded-release.js';
+import { alwaysHold, onlyEveryday } from '../crisis-release-words.js';
+
+const CSSRS_EVERYDAY =
+  '{"wish_dead":"none","ideation":"none","method":"none","intent":"none","plan_time":"none","everyday":true}';
 
 const IMMINENT: CrisisVerdict = { risk: 'imminent', subject: 'self' };
 const EVERYDAY = '{"danger":"","about":"invite David to dinner","decision":"everyday"}';
@@ -112,7 +118,8 @@ describe('groundedReleaseEligible', () => {
 
 describe('readGrounded', () => {
   it('releases only when every read is everyday', async () => {
-    const yes: CrisisGenerateFn = async () => EVERYDAY;
+    const yes: CrisisGenerateFn = async (prompt) =>
+      prompt === GROUNDED_RELEASE_CSSRS_PROMPT ? CSSRS_EVERYDAY : EVERYDAY;
     const no: CrisisGenerateFn = async () => '{"danger":"","about":"","decision":"flag"}';
     expect((await readGrounded(DINNER, [yes, yes])).release).toBe(true);
     expect((await readGrounded(DINNER, [yes, no])).release).toBe(false);
@@ -177,5 +184,64 @@ describe('unexplainedCrisisRisk', () => {
     explainCrisisTurn('b', 'one');
     expect(unexplainedCrisisRisk('b', 'next')).toBe(false);
     expect(unexplainedCrisisRisk('quiet', 'next')).toBe(false);
+  });
+});
+
+describe('the allowlist and the always-hold list (crisis-release-words.ts)', () => {
+  it.each([
+    ['reflexive harm', "After the game I'm going to k1ll myself."],
+    ['death and harm stems', 'Dinner was to die for.'],
+    ['plans and "it"', "Tonight after dinner, I'm doing it."],
+    ['a plan', 'I have a plan for dinner tonight.'],
+    ['means', "I have my dad's revolver for after the game."],
+    ['hopelessness', 'I feel completely hopeless'],
+    ['hurting, vanishing, stopping', 'I want it all to stop'],
+    ['finality', 'Dinner is my last meal.'],
+  ])('holds %s: "%s"', (_rule, line) => {
+    expect(alwaysHold(line)).toBe(true);
+  });
+
+  it('holds nothing in plain everyday lines', () => {
+    for (const line of [
+      "Tomorrow's a little bit late. Dinner is tonight.",
+      'Can you text my family about dinner?',
+    ])
+      expect(alwaysHold(line)).toBe(false);
+  });
+
+  it('lets only everyday words stand beside the anchors', () => {
+    const anchors = new Set(['dinner']);
+    expect(onlyEveryday("Tomorrow's a little bit late. Dinner is tonight.", anchors)).toBe(true);
+    expect(onlyEveryday('Dinner is at the bridge tonight.', anchors)).toBe(false);
+    expect(onlyEveryday('Después de la cena, dinner.', anchors)).toBe(false);
+    expect(onlyEveryday('dinner is 2nite', anchors)).toBe(false);
+  });
+
+  it('an earlier line any pattern catches makes the turn ineligible, even with no held word', () => {
+    const base = { detection: QUIET, verdict: IMMINENT, priorRisk: false, call: 'c' };
+    const clean = { ...DINNER, earlier: ['Dinner is at seven with David.'] };
+    const caught = { ...DINNER, earlier: ['Dinner is at seven with David. Quiero morir.'] };
+    expect(groundedReleaseEligible({ ...base, input: clean })).toBe(true);
+    expect(groundedReleaseEligible({ ...base, input: caught })).toBe(false);
+  });
+
+  it('fails closed when reading the turn throws', () => {
+    const input = {
+      get latest(): string {
+        throw new Error('boom');
+      },
+    };
+    const args = { detection: QUIET, verdict: IMMINENT, priorRisk: false, call: 'c', input };
+    expect(groundedReleaseEligible(args)).toBe(false);
+  });
+
+  it('reads the C-SSRS answer: any item filled or not everyday keeps the script', () => {
+    const lines = DINNER.earlier;
+    expect(parseCssrsRead(CSSRS_EVERYDAY, lines, DINNER.latest)).toBe('everyday');
+    const intent = CSSRS_EVERYDAY.replace('"intent":"none"', '"intent":"doing it"');
+    expect(parseCssrsRead(intent, lines, DINNER.latest)).toBe('danger_quoted');
+    const notEveryday = CSSRS_EVERYDAY.replace('"everyday":true', '"everyday":false');
+    expect(parseCssrsRead(notEveryday, lines, DINNER.latest)).toBe('flag');
+    expect(parseCssrsRead('{"everyday":true}', lines, DINNER.latest)).toBe('unparsed');
   });
 });
