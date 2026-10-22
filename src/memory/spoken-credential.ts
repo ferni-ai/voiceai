@@ -25,6 +25,7 @@
 
 import { flagOn, type Env } from '../config/env-flag.js';
 import { createLogger, type FallbackLogger } from '../utils/safe-logger.js';
+import { spokenDigits } from './spoken-digits.js';
 
 export type CredentialCategory =
   | 'access-code'
@@ -455,10 +456,14 @@ function restAround(
 function identifierCategory(
   keyPhrase: string,
   value: string,
-  valueWords: readonly string[]
+  said: readonly string[]
 ): CredentialCategory | null {
-  const shaped = shapedSecrets(value)[0];
+  let valueWords = said;
+  // "four one one one ...": number words read as digits ("4111...")
+  const spoken = spokenDigits(value).text;
+  const shaped = shapedSecrets(spoken)[0];
   if (shaped !== undefined) return shaped.category;
+  if (spoken !== value) valueWords = words(spoken);
   const aside = APPOSITIVE.exec(value)?.[1]?.toLowerCase() ?? '';
   if (aside && !DESCRIBES.has(aside) && !FILLER.has(aside)) return 'password';
   for (const r of IDENTIFIER_RULES) {

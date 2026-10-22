@@ -16,6 +16,7 @@ import {
   VOCABULARY,
   type Span,
 } from './spoken-credential.js';
+import { spokenDigits } from './spoken-digits.js';
 
 const { words, stripped, CREDENTIAL_WORDS, SET_TO, DIGIT_WORDS, TEENS, TENS } = VOCABULARY;
 
@@ -199,11 +200,16 @@ function secretSpan(
 
 /** The text with every credential the predicate finds replaced by `[redacted]`. Ignores the flag. */
 function redactText(text: string): string {
-  // Shaped secrets first, so a card number can't stretch a phrase around it
-  const shaped = shapedSecrets(text);
-  const base = shaped.length > 0 ? replaceSpans(text, shaped) : text;
+  // Number words as digits ("four one one one ..."), then shaped secrets masked in place
+  // (same length, so offsets hold), so a card number can't stretch a phrase around it
+  const spoken = spokenDigits(text);
+  const shaped = shapedSecrets(spoken.text);
+  const base = shaped.reduce(
+    (t, s) => t.slice(0, s.start) + '#'.repeat(s.end - s.start) + t.slice(s.end),
+    spoken.text
+  );
   const toks = tokens(base);
-  const spans: Span[] = [];
+  const spans: Span[] = [...shaped];
   for (let i = 0; i < toks.length; i++) {
     if (!startsKey(toks, i)) continue;
     let k = i + 1;
@@ -230,7 +236,11 @@ function redactText(text: string): string {
     if (span !== null) spans.push(span);
     i = found.hit;
   }
-  return spans.length > 0 ? replaceSpans(base, spans) : base;
+  if (spans.length === 0) return text;
+  return replaceSpans(
+    text,
+    spans.map((s) => spoken.original(s.start, s.end))
+  );
 }
 
 /**
