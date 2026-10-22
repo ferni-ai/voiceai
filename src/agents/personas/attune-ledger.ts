@@ -10,14 +10,16 @@
  *   - every cue has a source, a turn and an expiry, so the read can say why;
  *   - only cues about the caller count: not Ferni ("are you tired?"), not a
  *     third party ("my mom sounds exhausted"), not negated, not hypothetical;
- *   - an explicit positive (good news, a teaser, "I'm great") wins on its turn
- *     and clears every earlier cue;
- *   - entering low takes two independent cues (two turns, or words plus a flat
- *     voice); staying low takes one live cue, and a long engaged turn clears
- *     the weak ones (keywords, short answers);
- *   - a short answer is a cue only for a caller who normally talks: the stored
- *     per-caller median when there is one, else this call's own median after
- *     three turns, else a population prior;
+ *   - an explicit positive (good news, a teaser, "I'm good") wins on its turn
+ *     and clears every earlier cue; a positive word over a complaint ("oh
+ *     great, another Monday") is sarcasm: mixed, never upbeat;
+ *   - an explicit self-report ("I'm exhausted", "didn't sleep much", "rough
+ *     week") is strong and enters low on its own; weak cues (a keyword like
+ *     "long day", a short answer, a flat voice) need two independent ones;
+ *     staying low takes one live cue, and a long engaged turn clears weak ones;
+ *   - shortness alone is never a cue: a short answer only reinforces a live
+ *     content cue, and only as a drop against the caller's own baseline (the
+ *     stored per-caller median, else this call's median after three turns);
  *   - the voice is an arousal and conflict signal only, with no valence weight
  *     until it is calibrated on human audio: it can confirm low words, and when
  *     it disagrees with the words the read is "mixed" (ask, don't assume). It
@@ -27,6 +29,7 @@
  * @module agents/personas/attune-ledger
  */
 
+/** text: an explicit self-report (strong); keyword, length, prosody: weak. */
 export type CueSource = 'text' | 'keyword' | 'length' | 'prosody';
 
 export interface Cue {
@@ -52,27 +55,47 @@ export interface LedgerVoice {
 
 /** Turns each source keeps counting after its own (explicit words last longest). */
 const TTL: Record<CueSource, number> = { text: 3, keyword: 2, length: 2, prosody: 0 };
-/** A typical caller's median words per turn, until this caller has a baseline. */
-const PRIOR_BASELINE = 12;
-/** Below this baseline a caller is habitually terse: short answers say nothing. */
+/** Below this baseline a caller is habitually terse: a short answer is no drop. */
 const TALKER = 8;
 
-const LOW_WORDS =
-  /\b(?:tired|wiped|exhausted|(?:i'?m|so|totally|just|feel(?:ing)?) (?:beat|fried)|drained|worn (?:out|down)|knackered|sleepy|long day|rough(?! draft| idea| sketch| estimate)|(?:hard|bad) (?:day|week|night)|just a lot|swamped|slammed|overwhelm\w*|(?:don'?t|do not) (?:even )?know where to start|can'?t sleep|(?:didn'?t|haven'?t|barely) slept?(?: much)?|didn'?t sleep|no sleep|double shift|(?:nothing|not much) left in the tank|running on empty|feel(?:s|ing)? (?:heavy|low|down|flat|blah)|not (?:doing |feeling )?(?:so |too |that )?(?:great|good|well))\b/gi;
+const STATE =
+  '(?:tired|exhausted|wiped(?: out)?|beat|fried|drained|worn (?:out|down)|knackered|sleepy|overwhelmed|down|low|flat|blah|heavy|miserable|awful|terrible|crappy|stressed(?: out)?|burn(?:ed|t) out)(?! (?:for|to|with|on|here|there|the)\\b)';
+// Strong: the caller says how they are ("I'm exhausted", "feeling really down"),
+// a bare state as its own sentence ("Wiped.", "Just tired I think."), or a hard
+// event about themselves (lost sleep, a rough week, things going wrong, piled on).
+const STRONG = new RegExp(
+  `\\b(?:i'?m|i am|i feel|i'?ve been|feeling|feel)(?: (?:so|really|just|totally|pretty|very|completely|kind of|kinda|honestly))* ${STATE}\\b` +
+    `|(?:^|[.!?…]\\s*)(?:(?:mm|yeah|just|so|totally|honestly|kind of|kinda|pretty|really),? )*(?:tired|exhausted|wiped(?: out)?|beat|fried|drained|knackered|burn(?:ed|t) out)\\b` +
+    "|\\b(?:(?:didn'?t|haven'?t|barely|hardly) slept?|didn'?t (?:get )?(?:much )?sleep|no sleep|can'?t sleep|up all night|(?:was|been) up (?:like )?\\w+ times" +
+    "|(?:rough|hard|bad|terrible|awful|brutal) (?:day|week|night|month|couple of days)|it'?s been rough" +
+    "|everything'?s? (?:is )?going wrong|nothing'?s? (?:is )?(?:working out|going right)|keeps? piling|piling (?:\\w+ )?on me" +
+    '|(?:nothing|not much) left in the tank|running on empty|not (?:doing|feeling) (?:so |too |that )?(?:great|good|well))\\b',
+  'gi'
+);
+// Weak: an event or keyword ("long day", "swamped") or a bare state word mid-sentence.
+const WEAK = new RegExp(
+  "\\b(?:long (?:day|week|shift|night)|double shift|swamped|slammed|just a lot|(?:don'?t|do not) (?:even )?know where to start|killing me" +
+    '|tired|exhausted|wiped|drained|worn out|knackered|sleepy|overwhelmed|stressed|burn(?:ed|t) out)\\b',
+  'gi'
+);
+/** A short turn that trails off ("yeah… I don't know", "Mm. I guess."). */
+const RESIGNED =
+  /\b(?:i (?:don'?t|do not) know|dunno|whatever|meh|i guess|(?:not much|nothing) to say)\b/i;
 const UP_WORDS =
-  /\b(?:good news|great news|best news|excited|exciting|thrilled|stoked|can'?t wait|looking forward|went (?:really |so |super )?(?:well|great|amazing|awesome)|(?:really|so|super) (?:well|great|good|happy)|amazing|fantastic|wonderful|nailed it|crushed it|killed it|yay|woo+(?:hoo+)?|hooray|i'?m (?:great|doing great|doing (?:really )?well|so happy|happy|pumped)|feel(?:ing)? (?:great|amazing|fantastic))\b/gi;
+  /\b(?:good news|great news|best news|excited|exciting|thrilled|stoked|can'?t wait|looking forward|went (?:really |so |super )?(?:well|great|amazing|awesome)|(?:really|so|super) (?:well|great|good|happy)|amazing|fantastic|wonderful|nailed it|crushed it|killed it|yay|woo+(?:hoo+)?|hooray|i'?m (?:good|doing good|great|doing great|doing (?:really )?well|so happy|happy|pumped)|feel(?:ing)? (?:great|amazing|fantastic))\b/gi;
 /** A bid: they are about to tell news. "Guess how Monday went" asks for a guess, not condolence. */
 const TEASER =
   /\b(?:guess (?:what|how|who|where)|you'?ll never (?:believe|guess)|wait (?:till|until) you hear|so get this|i have news|you won'?t believe)\b/i;
-/** A soft opener ("ok so", "so...", "anyway"): not low, however short. */
+/** Sarcasm: a positive interjection over a complaint ("yay, more meetings", "love that for me"). */
+const SARCASM = /\b(?:love that for me|just what i needed|thrilled,? truly)\b/i;
+const INTERJECTION =
+  /\b(?:great|fantastic|perfect|wonderful|awesome|lovely|yay|super|terrific|brilliant)\b/i;
+const COMPLAINT =
+  /\b(?:again|another (?:monday|meeting|bill|one)|more (?:meetings|work|emails|bills|traffic|of this)|broke(?:n)? down|crashed|cancel+ed)\b/i;
 const OPENER = /^(?:ok(?:ay)?|so|well|alright|anyway|right)\b[\s,.…-]*(?:so\b)?[\s,.…-]*$/i;
 const GREETING = /^(?:hi|hey|hello|yo|morning|evening|hiya)\b|\bit'?s me\b/i;
 /** "I'm Jess, by the way": an introduction, not a short answer. */
 const SELF_ID = /\b(?:[Ii]'?m|[Tt]his is|[Mm]y name is) [A-Z]\w*/;
-/** A short turn that trails off in resignation ("yeah… I don't know"). */
-const RESIGNED = /\b(?:i (?:don'?t|do not) know|dunno|whatever|meh)\b/i;
-const EXPLICIT_FRAME =
-  /\b(?:i'?m|i am|i feel|feeling|i'?ve been|i was|it'?s been|been|today was|today'?s been|my day (?:was|has been)|had an?)(?:\s+\w+){0,3}\s*$/i;
 
 /** Clause boundaries: affect is read inside the clause it appears in. */
 const BOUNDARY = /[.!?;:,—]|\b(?:but|and|though)\b/gi;
@@ -80,7 +103,7 @@ const NEGATED =
   /\b(?:not|never|no|hardly|barely|without|\w+n['’]t|dont|didnt|isnt|wasnt|aint|too \w+ to(?: be)?)(?:\s+\w+){0,3}\s*$/i;
 const ABOUT_SOMEONE_ELSE =
   /\b(?:you|you'?re|your|ferni|fern|he|she|they|he'?s|she'?s|they'?re|him|her|them)\b|\bmy (?:\w+ ){1,2}(?:is|was|seems|sounds|looks|has been|'s)\b/i;
-const HYPOTHETICAL = /\b(?:if|would|might|could|imagine|pretend)\b/i;
+const HYPOTHETICAL = /\b(?:if|would|i'?d|might|could|imagine|pretend)\b/i;
 const SELF = /\b(?:i|i'?m|i'?ve|me|myself)\b/i;
 
 const words = (t: string): number => t.split(/\s+/).filter(Boolean).length;
@@ -110,27 +133,31 @@ function firstOwn(text: string, re: RegExp): RegExpMatchArray | undefined {
   return undefined;
 }
 
-/** The caller's usual words per turn: stored across calls, else this call's own, else a prior. */
-export function baselineWords(prior: string[], stored?: number): number {
+/** The caller's own usual words per turn: stored across calls, else this call's after 3 turns. */
+export function baselineWords(prior: string[], stored?: number): number | undefined {
   if (stored !== undefined && stored > 0) return stored;
-  return prior.length >= 3 ? median(prior.map(words)) : PRIOR_BASELINE;
+  return prior.length >= 3 ? median(prior.map(words)) : undefined;
 }
 
 interface TurnRead {
+  /** Content cues: what they said about themselves. */
   low: Cue[];
   /** An explicit positive or a teaser about the caller: wins this turn. */
   up?: string;
-  /** A long turn with nothing low in it: weak low cues stop counting. */
+  /** A positive word over a complaint: mixed, never upbeat. */
+  sarcastic: boolean;
+  /** A drop against their own baseline: reinforces a live content cue, never alone. */
+  short: boolean;
+  /** A long turn with nothing low in it: weak cues stop counting. */
   engaged: boolean;
 }
 
-/** The low words in this turn that are about the caller, and whether the turn trails off. */
+/** The strongest low words in this turn that are about the caller. */
 function lowWords(text: string): { hit?: RegExpMatchArray; source?: CueSource; why?: string } {
-  const hit = firstOwn(text, LOW_WORDS);
-  if (hit) {
-    const explicit = EXPLICIT_FRAME.test(clauseBefore(text, hit.index ?? 0));
-    return { hit, source: explicit ? 'text' : 'keyword', why: hit[0] };
-  }
+  const strong = firstOwn(text, STRONG);
+  if (strong) return { hit: strong, source: 'text', why: strong[0].trim() };
+  const weak = firstOwn(text, WEAK);
+  if (weak) return { hit: weak, source: 'keyword', why: weak[0] };
   if (words(text) <= 6 && RESIGNED.test(text)) return { source: 'keyword', why: 'trails off' };
   return {};
 }
@@ -141,38 +168,47 @@ function upbeatNow(text: string, low?: RegExpMatchArray): string | undefined {
   return hits.find((m) => m && (!low || (m.index ?? 0) > (low.index ?? 0)))?.[0];
 }
 
-/** A short answer from a caller who normally talks; not a greeting, introduction or bid. */
-function shortAnswer(text: string, baseline: number): boolean {
+/** A short answer that drops against the caller's own baseline; not a greeting, intro or bid. */
+function dropsShort(text: string, baseline: number | undefined): boolean {
   const n = words(text);
-  if (baseline < TALKER || n > 5) return false;
+  if (baseline === undefined || baseline < TALKER || n > 5 || n > baseline / 2) return false;
   // A question, an opener, or a remark about Ferni ("you sound tired") is engagement, not low.
-  const aboutOther = [...text.matchAll(LOW_WORDS)].length > 0;
+  const aboutOther = [...text.matchAll(WEAK)].length > 0;
   const bid = OPENER.test(text.trim()) || text.includes('?') || aboutOther;
   return !bid && !(GREETING.test(text.trim()) && n <= 3) && !SELF_ID.test(text);
 }
 
 /** What one caller turn says about their energy. */
-export function readTurn(text: string, turn: number, baseline: number): TurnRead {
-  const cue = (source: CueSource, why: string): Cue => ({
-    valence: source === 'length' ? -0.3 : -1,
-    arousal: -0.5,
-    source,
-    turn,
-    expires: turn + TTL[source],
-    why,
-  });
+export function readTurn(text: string, turn: number, baseline: number | undefined): TurnRead {
   const own = lowWords(text);
-  const up = upbeatNow(text, own.hit);
-  if (up) return { low: [], up, engaged: false };
-  if (own.source && own.why) return { low: [cue(own.source, own.why)], engaged: false };
-  if (shortAnswer(text, baseline))
-    return { low: [cue('length', `${words(text)} words, usually ${baseline}`)], engaged: false };
-  return { low: [], engaged: words(text) >= Math.max(8, 0.75 * baseline) };
+  const sarcastic = SARCASM.test(text) || (INTERJECTION.test(text) && COMPLAINT.test(text));
+  const up = sarcastic ? undefined : upbeatNow(text, own.hit);
+  const none = { low: [], sarcastic, short: false, engaged: false };
+  if (up) return { ...none, up };
+  if (sarcastic) return none;
+  const low: Cue[] =
+    own.source && own.why
+      ? [
+          {
+            valence: -1,
+            arousal: -0.5,
+            source: own.source,
+            turn,
+            expires: turn + TTL[own.source],
+            why: own.why,
+          },
+        ]
+      : [];
+  const engaged = low.length === 0 && words(text) >= Math.max(8, 0.75 * (baseline ?? 0));
+  return { ...none, low, short: dropsShort(text, baseline), engaged };
 }
 
-/** Independent low evidence: one per turn, plus the voice as a separate witness. */
+/** Independent low evidence: one per turn (two for an explicit self-report), plus the voice. */
 function independent(cues: Cue[]): number {
-  return new Set(cues.map((c) => (c.source === 'prosody' ? 'prosody' : c.turn))).size;
+  const keys = cues.flatMap((c) =>
+    c.source === 'prosody' ? ['prosody'] : c.source === 'text' ? [c.turn, `${c.turn}!`] : [c.turn]
+  );
+  return new Set(keys).size;
 }
 
 function confidentArousal(voice: LedgerVoice | undefined): number | undefined {
@@ -183,6 +219,21 @@ export interface LedgerRead {
   state: LedgerState;
   /** The live cues behind the read, for the log ("low because of X at turn 3"). */
   cues: Cue[];
+}
+
+/** One turn into the ledger: the cues live after it. */
+function step(cues: Cue[], read: TurnRead, t: number, baseline: number | undefined): Cue[] {
+  if (read.up) return [];
+  let next = read.engaged ? cues.filter((c) => c.source === 'text') : cues;
+  next = [...next, ...read.low].filter((c) => c.expires >= t);
+  if (read.short && next.some((c) => c.source === 'text' || c.source === 'keyword')) {
+    const why = `short, usually ${baseline} words`;
+    next = [
+      ...next,
+      { valence: -0.3, arousal: -0.5, source: 'length', turn: t, expires: t + TTL.length, why },
+    ];
+  }
+  return next;
 }
 
 /**
@@ -196,20 +247,16 @@ export function ledgerRead(
 ): LedgerRead {
   let cues: Cue[] = [];
   let low = false;
-  let read: TurnRead = { low: [], engaged: false };
+  let read: TurnRead = { low: [], sarcastic: false, short: false, engaged: false };
   turns.forEach((text, t) => {
-    read = readTurn(text, t, baselineWords(turns.slice(0, t), storedBaseline));
-    if (read.up) {
-      cues = [];
-      low = false;
-      return;
-    }
-    if (read.engaged) cues = cues.filter((c) => c.source === 'text');
-    cues = [...cues, ...read.low].filter((c) => c.expires >= t);
+    const baseline = baselineWords(turns.slice(0, t), storedBaseline);
+    read = readTurn(text, t, baseline);
+    cues = step(cues, read, t, baseline);
     low = low ? cues.length > 0 : independent(cues) >= 2;
   });
   const now = turns.length - 1;
   const arousal = confidentArousal(voice);
+  if (read.sarcastic && !low) return { state: 'mixed', cues };
   if (arousal !== undefined && arousal >= 0.45 && cues.length > 0) return { state: 'mixed', cues };
   if (read.up)
     return { state: arousal !== undefined && arousal <= -0.35 ? 'mixed' : 'excited', cues };

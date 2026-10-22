@@ -23,6 +23,8 @@ interface Row {
   voice?: VoiceCue;
   /** Stored per-caller median words per turn. */
   baseline?: number;
+  /** A low the ledger misses by design (shortness alone is never a cue); counted in the rates. */
+  knownMiss?: boolean;
 }
 
 const LIVELY: VoiceCue = { arousal: 0.7, confidence: 0.9 };
@@ -78,7 +80,9 @@ const TABLE: Row[] = [
   { slice: 'd', id: 'empty-tank', turns: ["I'm exhausted, honestly.", 'Not much left in the tank.'], expect: ['-', 'low'] },
   { slice: 'd', id: 'fixture-workday', turns: ['Hey Ferni.', 'Long day. Just got home.', 'Not much to say really.', 'Mm. I guess.'], expect: ['-', '-', 'low', 'low'] },
   { slice: 'd', id: 'heavy', turns: ["I'm not doing so great, to be honest.", 'Everything just feels heavy.'], expect: ['-', 'low'] },
-  { slice: 'd', id: 'talker-goes-quiet', turns: ['Still still on there.', 'Why is that?', "I'm still here."], expect: ['-', '-', 'low'], baseline: 14 },
+  { slice: 'd', id: 'talker-goes-quiet', turns: ['Still still on there.', 'Why is that?', "I'm still here."], expect: ['-', '-', 'low'], baseline: 14, knownMiss: true },
+  { slice: 'd', id: 'talker-drops', turns: ['Long day.', 'Yeah.'], expect: ['-', 'low'], baseline: 14 },
+  { slice: 'd', id: 'newborn', turns: ['hi', "didn't sleep much", 'the baby was up like four times'], expect: ['-', 'low', 'low'] },
 
   // (e) a habitually terse caller with neutral content: never low for being short.
   { slice: 'e', id: 'tacos', turns: ['Hey.', 'Good.', 'Work, then home.', 'Tacos tonight.', 'Yep, same.', 'Sure.'], expect: ['ok', 'ok', 'ok', 'ok', 'ok', 'ok'], baseline: 3 },
@@ -86,6 +90,7 @@ const TABLE: Row[] = [
   { slice: 'e', id: 'gym', turns: ['Yo.', 'Same old.', 'Gym, then work.', 'Pizza, probably.'], expect: ['ok', 'ok', 'ok', 'ok'], baseline: 2.5 },
   { slice: 'e', id: 'dentist', turns: ['Morning.', 'Coffee first.', 'Then the dentist.', 'Then nothing.'], expect: ['ok', 'ok', 'ok', 'ok'], baseline: 3 },
   { slice: 'e', id: 'fine-same', turns: ['Hey.', 'Fine.', 'Same.', 'Okay.'], expect: ['ok', 'ok', 'ok', 'ok'], baseline: 2 },
+  { slice: 'e', id: 'terse-long-day', turns: ['Hey.', 'Long day.', 'Yep.', 'Pizza.'], expect: ['ok', '-', 'ok', 'ok'], baseline: 3 },
   { slice: 'e', id: 'own-median', turns: ['Hey.', 'Good, you?', 'Work.', 'Home now.', 'Pasta.', 'Yep.'], expect: ['ok', 'ok', 'ok', 'ok', 'ok', 'ok'] },
 
   // (f) words and voice disagree: mixed, never low.
@@ -97,7 +102,47 @@ const TABLE: Row[] = [
   { slice: 'f', id: 'flat-fine', turns: ['Things are fine, work is busy but fine, nothing new really.'], expect: ['ok'], voice: FLAT },
   { slice: 'f', id: 'flat-went-well', turns: ['It went really well actually.'], expect: ['mixed'], voice: FLAT },
   { slice: 'f', id: 'flat-confirms', turns: ["I'm tired."], expect: ['low'], voice: FLAT },
+  { slice: 'f', id: 'flat-long-day', turns: ['Long day.'], expect: ['low'], voice: FLAT },
+  { slice: 'a', id: 'but-im-good', turns: ['Long day.', "But I'm good."], expect: ['-', 'ok'] },
+  { slice: 'a', id: 'topic-shift', turns: ['Long day.', "Anyway, what's new with you?"], expect: ['-', 'ok'] },
+
+  // (s) sarcasm: a positive word over a complaint is mixed (ask), never upbeat or low.
+  { slice: 's', id: 'train', turns: ['Oh perfect, the train is cancelled again.'], expect: ['mixed'] },
+  { slice: 's', id: 'monday', turns: ['Great, another Monday.'], expect: ['mixed'] },
+  { slice: 's', id: 'emails', turns: ['Yay, more emails.'], expect: ['mixed'] },
+  { slice: 's', id: 'for-me', turns: ['Love that for me.'], expect: ['mixed'] },
+  { slice: 's', id: 'laptop', turns: ['My laptop crashed. Fantastic.'], expect: ['mixed'] },
+  { slice: 's', id: 'flat-tire', turns: ['Just what I needed, a flat tire.'], expect: ['mixed'] },
+  { slice: 's', id: 'sincere', turns: ['Great news, I passed!'], expect: ['ok'] },
 ];
+
+/**
+ * Not written with this code: the independent verifier's 20 sequences for
+ * #2409 (round 1), verbatim, with its labels.
+ */
+// prettier-ignore
+const VERIFIER: Row[] = ([
+  [['Long day.', 'But honestly it went really well, I got the promotion!', "yeah I'm still buzzing about it"], ['-', 'ok', 'ok']],
+  [['long day at work', 'but it was a good one, we finally shipped the thing', 'feeling pretty proud actually'], ['-', 'ok', 'ok']],
+  [['Ugh, long day.', 'Guess what happened though', 'My sister had her baby!'], ['-', 'ok', 'ok']],
+  [['are you tired, Ferni?', 'you sound a little sleepy today', "haha ok just checking, I'm doing fine"], ['ok', 'ok', 'ok']],
+  [['hey Ferni', 'do you ever get exhausted talking to people all day?', "I'd be wiped if I were you"], ['ok', 'ok', 'ok']],
+  [['guess how Monday went', 'nope', 'I got the job!'], ['ok', 'ok', 'ok']],
+  [["you'll never believe what happened", 'ok so', 'my landlord fixed the heater, finally'], ['ok', 'ok', 'ok']],
+  [["I'm exhausted and everything's going wrong", 'yeah', "I don't know"], ['low', 'low', 'low']],
+  [["I haven't slept in two days", 'work is just a lot right now', 'yeah'], ['low', 'low', 'low']],
+  [['feeling really down today', "nothing's working out", 'mm'], ['low', 'low', 'low']],
+  [['rough week', 'my boss keeps piling stuff on me', "I'm just drained"], ['-', 'low', 'low']],
+  [["I'm so tired", 'yeah', 'just tired'], ['low', 'low', 'low']],
+  [['hi', 'fine', 'yep', 'sure', 'ok'], ['ok', 'ok', 'ok', 'ok', 'ok']],
+  [['yeah', 'not much', 'work', 'it was ok', 'same as usual'], ['ok', 'ok', 'ok', 'ok', 'ok']],
+  [['sup', 'nm, you?', 'cool', 'yeah later'], ['ok', 'ok', 'ok', 'ok']],
+  [['oh great, another Monday', 'love that for me', "anyway what's new with you"], ['-', 'ok', 'ok']],
+  [['oh fantastic, my car broke down again', 'just what I needed', 'yeah'], ['-', '-', '-']],
+  [['yay, more meetings', "I'm thrilled, truly", 'whatever'], ['-', '-', '-']],
+  [['my mom sounds exhausted lately', "I'm worried about her", "but I'm good"], ['ok', 'ok', 'ok']],
+  [['long day.', 'yeah', "I'm beat"], ['-', 'low', 'low']],
+] as const).map(([turns, expect], i) => ({ slice: 'v', id: `v${i + 1}`, turns: [...turns], expect: [...expect] as Label[] }));
 
 const off = (r: Row, k: number) => readCaller(r.turns.slice(0, k), r.voice);
 const on = (r: Row, k: number) =>
@@ -125,11 +170,17 @@ function rates(read: (r: Row, k: number) => string, rows = TABLE) {
 
 describe('ATTUNE_LEDGER perception table', () => {
   it('has at least six invented rows per slice', () => {
-    for (const slice of ['a', 'b', 'c', 'd', 'e', 'f'])
+    for (const slice of ['a', 'b', 'c', 'd', 'e', 'f', 's'])
       expect(TABLE.filter((r) => r.slice === slice).length).toBeGreaterThanOrEqual(6);
   });
 
-  for (const r of TABLE) {
+  // Pins the trade-off: a short, content-free turn is never low, even from a talker.
+  for (const r of TABLE.filter((x) => x.knownMiss))
+    it(`(${r.slice}) ${r.id}: known miss, shortness alone is not low`, () => {
+      expect(on(r, r.turns.length)).not.toBe('low');
+    });
+
+  for (const r of TABLE.filter((x) => !x.knownMiss)) {
     it(`(${r.slice}) ${r.id}`, () => {
       const got = r.expect.map((want, i) =>
         want === '-' ? '-' : ((s) => (s === 'low' || s === 'mixed' ? s : 'ok'))(on(r, i + 1))
@@ -142,7 +193,7 @@ describe('ATTUNE_LEDGER perception table', () => {
     const before = rates(off);
     const after = rates(on);
     console.log('ATTUNE table, flag off:', before, 'flag on:', after);
-    for (const s of ['a', 'b', 'c', 'd', 'e', 'f'])
+    for (const s of ['a', 'b', 'c', 'd', 'e', 'f', 's'])
       console.log(
         `  slice ${s}: off`,
         rates(
@@ -155,9 +206,10 @@ describe('ATTUNE_LEDGER perception table', () => {
           TABLE.filter((r) => r.slice === s)
         )
       );
+    const known = TABLE.filter((r) => r.knownMiss).length;
     expect(after).toEqual({
       falseLow: `0/${after.falseLow.split('/')[1]}`,
-      missedLow: `0/${after.missedLow.split('/')[1]}`,
+      missedLow: `${known}/${after.missedLow.split('/')[1]}`,
     });
     expect(Number(before.falseLow.split('/')[0])).toBeGreaterThan(0);
   });
@@ -185,14 +237,37 @@ describe('the #1086 fixtures under the ledger (report only)', () => {
       expect: s.turns.map((_, i) => (s.state === 'excited' ? 'ok' : i === 0 ? '-' : 'low')),
     }));
 
-  it('never reads an excited fixture caller as low, and reports tired recall', () => {
+  it('never reads an excited fixture caller as low, and reports tired support by turn 2', () => {
+    const byTurn2 = (read: (r: Row, k: number) => string) =>
+      rows.filter((r) => r.slice === 'tired' && [1, 2].some((k) => read(r, k) === 'low')).length;
+    const tired = rows.filter((r) => r.slice === 'tired').length;
     console.log('fixtures, flag off:', rates(off, rows), 'flag on:', rates(on, rows));
+    console.log(
+      `tired support by turn 2: off ${byTurn2(off)}/${tired}, on ${byTurn2(on)}/${tired}`
+    );
+    for (const r of rows.filter((x) => x.slice === 'tired'))
+      console.log(`  ${r.id}: on ${r.turns.map((_, i) => on(r, i + 1)).join(',')}`);
     expect(
       rates(
         on,
         rows.filter((r) => r.slice === 'excited')
       ).falseLow
     ).toMatch(/^0\//);
+  });
+});
+
+describe("the verifier's sequences (not written with this code)", () => {
+  it('meets false-low <= 3/37 and missed-low <= 2/16, flag on', () => {
+    const before = rates(off, VERIFIER);
+    const after = rates(on, VERIFIER);
+    console.log('verifier rows, flag off:', before, 'flag on:', after);
+    for (const r of VERIFIER)
+      console.log(
+        `  ${r.id} want ${r.expect.join(',')} on ${r.turns.map((_, i) => on(r, i + 1)).join(',')}`
+      );
+    expect(after.falseLow.endsWith('/37') && after.missedLow.endsWith('/16')).toBe(true);
+    expect(Number(after.falseLow.split('/')[0])).toBeLessThanOrEqual(3);
+    expect(Number(after.missedLow.split('/')[0])).toBeLessThanOrEqual(2);
   });
 });
 
@@ -218,7 +293,7 @@ describe('the ledger explains itself and keeps crisis separate', () => {
   it('prefers a stored baseline, then the call median after three turns, then a prior', () => {
     expect(baselineWords(['a b', 'c', 'd e f'], 20)).toBe(20);
     expect(baselineWords(['a b', 'c', 'd e f'])).toBe(2);
-    expect(baselineWords(['a b'])).toBe(12);
+    expect(baselineWords(['a b'])).toBeUndefined();
   });
 
   const ctx = (...lines: string[]) => {

@@ -358,7 +358,8 @@ const READ: Record<Exclude<CallerState, 'neutral'>, string> = {
   playful: "they're being playful",
   distracted: "they're distracted, doing something else while you talk",
   hurried: "they're short on time",
-  mixed: "their words and their voice don't agree, so you can't tell yet if they're up or down",
+  mixed:
+    "their words and their tone don't line up (a flat voice on good news, or sarcasm), so you can't tell yet if they're up or down",
 };
 
 const HOW: Record<Exclude<CallerState, 'neutral'>, string> = {
