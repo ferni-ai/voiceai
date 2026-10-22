@@ -258,7 +258,7 @@ export const describeNeed = (n: IndexNeed): string =>
 /** A listed index: firestore.indexes.json entry, or one row of `gcloud firestore indexes composite list`. */
 export interface ListedIndex {
   collectionGroup?: string;
-  /** gcloud: projects/<p>/databases/(default)/collectionGroups/<cg>/indexes/<id> */
+  /** gcloud: projects/<p>/databases/<db>/collectionGroups/<cg>/indexes/<id>, db '(default)' or 'ferni-dev' */
   name?: string;
   queryScope: string;
   fields: Array<IndexField & { vectorConfig?: unknown }>;
@@ -267,6 +267,10 @@ export interface ListedIndex {
 
 const groupOf = (i: ListedIndex): string =>
   i.collectionGroup ?? /collectionGroups\/([^/]+)\//.exec(i.name ?? '')?.[1] ?? '?';
+
+/** The database a gcloud row lives in; undefined for a firestore.indexes.json entry. */
+export const databaseOf = (i: ListedIndex): string | undefined =>
+  /\/databases\/([^/]+)\//.exec(i.name ?? '')?.[1];
 
 /** Identity of an index; Firestore appends `__name__`, so it is left out. */
 export function indexKey(i: ListedIndex): string {

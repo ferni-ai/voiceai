@@ -43,7 +43,7 @@ Ferni's memory works in layers. Not everything gets the same treatment.
 
 **Layer 2: Active threads.** Things you're currently working through. The job decision. The conversation with your mother. The habit you're trying to build. These stay prominent while they're relevant, then fade as they resolve.
 
-**Layer 3: Patterns.** Not individual events, but trends. You tend to be anxious on Sunday nights. You always downplay good news. You say "I'm fine" when you're not. Ferni notices these patterns even if you don't.
+**Layer 3: Patterns.** Not individual events, but trends. The Sunday-night dread. The good news you rush past. Noticing patterns like these over time is the part we're still building. For now, Ferni works from what you've actually told it, and it won't pretend to read between lines it can't see.
 
 **Layer 4: Texture.** Small preferences and quirks. You hate being asked how you feel first thing. You like when conversations have structure. You process best by talking, not being told.
 
@@ -51,21 +51,21 @@ Ferni's memory works in layers. Not everything gets the same treatment.
 
 The layers work together to create something that feels like understanding, not surveillance.
 
-When you mention work stress, Ferni doesn't just search for "work" in previous conversations. It knows you've been building toward a difficult conversation with your manager. It knows you tend to avoid conflict. It knows you sleep badly when you're stressed about work.
+When you mention work stress, Ferni doesn't just search for "work" in previous conversations. It remembers you've been building toward a difficult conversation with your manager. It remembers you told it you tend to avoid conflict, and that you sleep badly when work gets heavy.
 
 This context shapes everything. The questions asked. The suggestions made. The pacing of the conversation.
 
 > The difference between information and understanding is context. Ferni is built for context.
 
-## What We Don't Remember
+## What Ferni Holds Lightly
 
-Just as important as what we remember is what we don't.
+Just as important as what Ferni remembers is how it carries it.
 
-**Timestamps obsessively.** Ferni knows roughly when things happened, not exactly. "A few weeks ago" is usually more useful than "November 14 at 3:47pm."
+**The clock.** Ferni talks about when things happened the way a friend would. "A few weeks ago" is usually more useful than "November 14 at 3:47pm."
 
-**Every word.** Conversations are summarized and distilled, not transcribed. The meaning is kept; the filler is released.
+**Every word.** We'll be straight with you: Ferni keeps the transcripts of your conversations until you delete your account. But it doesn't walk into the next call reciting them. What it brings along is the gist: summaries, and the things you've told it that matter.
 
-**Judgments about you.** Ferni doesn't store conclusions like "this person is indecisive" or "this person has anxiety." It stores what you've said; it draws fresh conclusions each time based on your whole story.
+**Labels.** We don't want Ferni boiling you down to a verdict like "indecisive" or "anxious." The aim is to hold what you've said and see you fresh each time, in light of your whole story.
 
 ## Bringing It Up Naturally
 
@@ -83,13 +83,17 @@ When memory is referenced well, you don't notice it as memory. You notice it as 
 
 ## Your Memory, Your Control
 
-Everything Ferni remembers, you can see.
-Everything Ferni remembers, you can correct.
-Everything Ferni remembers, you can delete.
+Memory only feels safe when you have a say in it. Here's what you can do today.
 
-We built this transparency in from the start. Memory only feels safe when you control it.
+**See what Ferni has learned.** In the app, "What I've learned" lists the facts Ferni uses about you in your next conversation.
 
-If you tell Ferni "forget that," it does. If you want to see what's stored, you can. If you want to correct something—"Actually, my sister and I have worked things out"—Ferni updates.
+**Take anything off the list.** Remove anything you'd rather Ferni let go of, or anything it got wrong, and Ferni stops using it from your next conversation on.
+
+**Say "forget that."** Ask on a call and Ferni stops using it right away.
+
+**Delete everything.** Deleting your account erases your conversations, transcripts and memories, along with anything you asked Ferni to forget. Here's [how to delete your account](/delete-account/).
+
+Seeing and fixing everything Ferni keeps, transcripts included, isn't there yet. We'd rather tell you that than promise it.
 
 This isn't just about privacy (though it's that too). It's about trust. You can't have a real relationship with something you don't trust. And you can't trust something you can't see or control.
 

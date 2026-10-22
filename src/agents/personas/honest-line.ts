@@ -59,6 +59,22 @@ const INSTEAD: Record<ActionKind, string> = {
 };
 const REMIND = ' Want me to remind you to do it?';
 
+/**
+ * A held claim's line read naturally where the claim was, with the words held
+ * after it: "though" only after words it can set itself against, and the
+ * yes/no question last unless the reply already ends on a question. Dev sweep
+ * 2026-10-21: "It isn't booked yet, though. Should I go ahead and book it? I'd
+ * start by asking her..." opened a reply, contrasting with nothing and asking
+ * mid-thought.
+ */
+export function inPlace(line: string, afterWords: boolean, rest: readonly string[]): string[] {
+  const parts = /^(.*?[.!])\s+([^.!?]+\?)$/.exec(line);
+  if (!parts) return [line, ...rest];
+  const statement = afterWords ? parts[1] : parts[1].replace(/,? though([.!])$/, '$1');
+  const asks = rest.length === 0 || /\?\W*$/.test(rest[rest.length - 1]);
+  return asks ? [statement, parts[2], ...rest] : [statement, ...rest, parts[2]];
+}
+
 /** What Ferni says in place of a claim, and what he can do instead. */
 export function honestLine(
   kind: ActionKind,

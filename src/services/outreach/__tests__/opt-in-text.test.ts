@@ -85,4 +85,14 @@ describe('releaseHeldTexts', () => {
     expect(send).toHaveBeenCalledTimes(2); // never the stale one
     expect(removed.sort()).toEqual(['due', 'stale']);
   });
+
+  it.each(['consent-unknown', 'paused'] as const)(
+    'keeps a held text the guarded sender refused for %s, for a later run',
+    async (reason) => {
+      const { s, removed } = store([{ id: 'h', text, releaseAt: at(0), reason: 'quiet-hours' }]);
+      const send = vi.fn(async () => ({ sent: false as const, reason }));
+      expect(await releaseHeldTexts(s, deps, send)).toEqual({ sent: 0, dropped: 0, waiting: 1 });
+      expect(removed).toEqual([]);
+    }
+  );
 });

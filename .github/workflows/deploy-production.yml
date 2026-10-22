@@ -406,6 +406,7 @@ jobs:
             --build-arg VITE_MEMORY_VIEW="${{ vars.VITE_MEMORY_VIEW }}" \
             --build-arg VITE_APPLE_WEB_SIGNIN="${{ vars.VITE_APPLE_WEB_SIGNIN }}" \
             --build-arg VITE_CALL_WRAP_UP="${{ vars.VITE_CALL_WRAP_UP }}" \
+            --build-arg VITE_PROMISES_PANEL="${{ vars.VITE_PROMISES_PANEL }}" \
             --build-arg VITE_TOAST_REGION="${{ vars.VITE_TOAST_REGION }}" \
             .
 
