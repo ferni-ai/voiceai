@@ -123,6 +123,30 @@ describe('GET /api/wellbeing/dashboard', () => {
     expect(loadProfile).not.toHaveBeenCalledWith('someone-else', expect.anything());
   });
 
+  it("a stale saved profile from the old detector doesn't hide newer calls", async () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    const at = (daysAgo: number, id: string, dimensions: WellbeingSnapshot['dimensions']) => ({
+      ...snapshot(dimensions),
+      id,
+      timestamp: new Date(Date.now() - daysAgo * DAY),
+    });
+    const stale = at(60, 'wb_old', { mood: 0.2, sleepQuality: 0.3 });
+    loadProfile.mockResolvedValue(profileWith(stale));
+    loadSnapshots.mockResolvedValue([at(1, 'wb_a', { mood: 0.8 }), at(3, 'wb_b', { mood: 0.8 })]);
+
+    const { body } = await get('/api/wellbeing/dashboard');
+
+    const state = body.currentState as Record<string, unknown>;
+    expect(state.mood as number).toBeGreaterThan(0.79);
+    const fields = state.fields as Record<string, Record<string, unknown> | null>;
+    expect(fields.mood).toMatchObject({ observations: 3, direction: 'rising' });
+    // Sleep came up only on the old profile: shown with its own date, not "now"
+    expect(Date.parse(String(fields.sleep?.asOf))).toBeLessThan(Date.now() - 59 * DAY);
+    // Never talked about: no number, no info, so the panel can say so
+    expect(state.energy).toBeNull();
+    expect(fields.energy).toBeNull();
+  });
+
   it("the web's has-data check accepts the server's real output in both cases", async () => {
     loadProfile.mockResolvedValue(null);
     loadSnapshots.mockResolvedValue([]);
