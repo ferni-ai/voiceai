@@ -248,7 +248,11 @@ private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
     }
 
     func setMicrophone(enabled: Bool) async throws {}
-    func send(_ data: Data) async throws {}
+    func send(_ data: Data) async throws {
+        if String(decoding: data, as: UTF8.self).contains(#""type":"user_interrupt""#) {
+            await MainActor.run { UITestScenario.Counters.shared.interrupts += 1 }
+        }
+    }
     func disconnect() async { continuation.finish() }
 }
 
@@ -278,6 +282,7 @@ extension UITestScenario {
     @MainActor @Observable final class Counters {
         static let shared = Counters()
         var touches = 0
+        var interrupts = 0
         var notices = 0
         var startles = 0
         var foley = 0
@@ -337,6 +342,12 @@ struct UITestEnvironmentProbe: View {
             .accessibilityIdentifier("uitest.touches")
             .accessibilityLabel(Text(verbatim: "Test touches"))
             .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.touches)"))
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityElement()
+            .accessibilityIdentifier("uitest.interrupts")
+            .accessibilityLabel(Text(verbatim: "Test interrupts"))
+            .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.interrupts)"))
         Color.clear
             .frame(width: 1, height: 1)
             .accessibilityElement()

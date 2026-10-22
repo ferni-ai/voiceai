@@ -3,8 +3,9 @@ import FerniKit
 import FerniVoice
 import SwiftUI
 
-/// Ferni's face. While Ferni talks, a tap (or VoiceOver's "Interrupt") asks
-/// Ferni to stop; that is the avatar's only gesture.
+/// Ferni's face. In a call a tap is a touch (its haptic), never an
+/// interruption: holding a finger on him while he talks (or VoiceOver's
+/// "Interrupt") asks him to stop. A stray tap used to cut him off.
 struct CallAvatar: View {
     let call: CallSession
     /// A sheet or cover hides Ferni, so the avatar stops drawing.
@@ -45,14 +46,32 @@ struct CallAvatar: View {
             onCue: onCue
         )
         // AvatarView's own shape (Ferni, not his whole square) is the hit area
-        // for this tap too; an outer shape here would replace it.
-        .onTapGesture { if speaking { Task { await call.interrupt() } } }
-        .accessibilityHint(speaking ? "Tap to interrupt" : "")
+        // for these too; an outer shape here would replace it. At rest
+        // AvatarView's own touch and hold apply instead.
+        .gesture(
+            LongPressGesture(minimumDuration: Self.interruptAfter)
+                .onEnded { _ in if speaking { Task { await call.interrupt() } } }
+                .exclusively(before: TapGesture().onEnded { touched() }),
+            including: avatar.pose == .idle ? .none : .all
+        )
+        .accessibilityHint(speaking ? "Touch and hold to interrupt" : "")
         .accessibilityActions {
             if speaking {
-                Button("Interrupt") { Task { await call.interrupt() } }
+                Button("Interrupt \(PersonaRegistry.get(shown).name)") { Task { await call.interrupt() } }
             }
         }
+    }
+
+    /// How long a finger stays on him before it interrupts.
+    static let interruptAfter = 0.5
+
+    @State private var lastTouch: ContinuousClock.Instant?
+
+    /// A tap in a call: the touch's haptic, at most one every 2 s (as at rest).
+    private func touched() {
+        if let last = lastTouch, ContinuousClock.now - last < .seconds(2) { return }
+        lastTouch = .now
+        onCue?(.touch)
     }
 
     /// Only while he'd otherwise be watching you: not while he talks or thinks.

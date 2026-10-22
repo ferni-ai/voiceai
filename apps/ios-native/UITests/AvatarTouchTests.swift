@@ -110,16 +110,30 @@ final class AvatarTouchTests: XCTestCase {
         XCTAssertEqual(touches(app), "0", "frame \(f) tapped \(beside) iPad \(iPad)")
     }
 
-    /// In a call a tap on Ferni is the call's (interrupt while he speaks), never a touch.
-    func testInACallTappingFerniIsNotATouch() {
+    /// In a call a tap on Ferni is a touch and never cuts him off; a finger
+    /// held on him while he talks interrupts him (Seth, 2026-10-22: a stray
+    /// tap used to stop him mid-sentence).
+    func testInACallATapIsATouchAndOnlyAHoldInterrupts() {
         let app = XCUIApplication.ferni(.call)
         XCTAssertTrue(Screen.call.ready(in: app).waitForExistence(timeout: 20))
         let avatar = ferni(app)
-        XCTAssertTrue(avatar.exists)
+        XCTAssertTrue(avatar.waitForValue("Ferni is speaking", timeout: 10), "he's talking: \(avatar.value ?? "")")
+        XCTAssertEqual(interrupts(app), "0")
+
         avatar.tap()
         sleep(1)
-        XCTAssertEqual(touches(app), "0")
+        XCTAssertEqual(interrupts(app), "0", "a tap doesn't interrupt")
+        XCTAssertEqual(touches(app), "1", "a tap is a touch")
+
+        avatar.press(forDuration: 0.8)
+        XCTAssertTrue(app.descendants(matching: .any)["uitest.interrupts"].firstMatch
+            .waitForValue("1", timeout: 5), "a hold interrupts: \(interrupts(app))")
+        XCTAssertEqual(touches(app), "1", "and isn't a touch as well")
         XCTAssertTrue(app.buttons["End call"].exists, "still in the call")
+    }
+
+    private func interrupts(_ app: XCUIApplication) -> String {
+        app.descendants(matching: .any)["uitest.interrupts"].firstMatch.value as? String ?? "missing"
     }
 }
 
