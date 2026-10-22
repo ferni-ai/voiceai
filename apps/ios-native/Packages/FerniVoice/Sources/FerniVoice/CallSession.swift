@@ -159,6 +159,7 @@ public final class CallSession {
         callTask?.cancel()
         callTask = nil
         await leaveRoom()
+        audio.callEnded()
         phase = .ended
         avatar.send(.ended)
         isOnHold = false
@@ -411,7 +412,7 @@ public final class CallSession {
             try? await Task.sleep(for: .milliseconds(50))
         }
         guard agentHere else { return Task.isCancelled ? .cancelled : .ferniMissing }
-        log.info("Attempt \(attempt): Ferni joined at \(self.secondsSinceStart, privacy: .public) s")
+        log.info("Attempt \(attempt): Ferni joined at \(self.secondsSinceStart, privacy: .public) s; \(self.audio.engineState, privacy: .public)")
         return .joined
     }
 
@@ -435,6 +436,7 @@ public final class CallSession {
         lastCallWasGood = false
         liveSince = nil
         waitlist = place
+        audio.callEnded()
         phase = .idle
         avatar.send(.ended)
         isOnHold = false
@@ -450,6 +452,7 @@ public final class CallSession {
     private func fail(_ problem: CallProblem) {
         lastCallWasGood = false
         liveSince = nil
+        audio.callEnded()
         phase = .failed(problem)
         avatar.send(.failed)
         isOnHold = false
