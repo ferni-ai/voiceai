@@ -13,9 +13,6 @@ const cmp = (a: unknown, b: unknown): number => {
   return x === y ? 0 : x < y ? -1 : 1;
 };
 
-/** add() ids, unique across every handle. */
-let autoId = 0;
-
 /** One transaction queue per database, however many handles open it. */
 const queues = new WeakMap<Map<string, Json>, Promise<unknown>>();
 
@@ -36,6 +33,9 @@ const fieldOf = (doc: Json | undefined, f: string): unknown =>
   doc && f in doc
     ? doc[f]
     : f.split('.').reduce<unknown>((v, k) => (isMap(v) ? v[k] : undefined), doc);
+
+/** add() ids, unique across every handle and run. */
+let autoIds = 0;
 
 export function pathFirestore(docs: Map<string, Json>) {
   const snap = (path: string) => {
@@ -58,8 +58,11 @@ export function pathFirestore(docs: Map<string, Json>) {
           opts?.merge ? deepMerge(docs.get(path) ?? {}, data) : structuredClone(data)
         ),
       update: async (patch: Json) => void docs.set(path, { ...docs.get(path), ...patch }),
+      // The guarded sender's send locks (guarded-text.ts lock/unlock).
       create: async (data: Json) => {
-        if (docs.has(path)) throw Object.assign(new Error('ALREADY_EXISTS'), { code: 6 });
+        if (docs.has(path)) {
+          throw Object.assign(new Error('6 ALREADY_EXISTS: Document already exists'), { code: 6 });
+        }
         docs.set(path, structuredClone(data));
       },
       delete: async () => void docs.delete(path),
@@ -114,13 +117,15 @@ export function pathFirestore(docs: Map<string, Json>) {
     };
   }
   function collectionRef(path: string): Json {
-    const doc = (id: string) => docRef(`${path}/${id}`);
-    const add = async (data: Json) => {
-      const ref = doc(`auto${(autoId += 1)}`);
-      docs.set(ref.path as string, structuredClone(data));
-      return ref;
+    return {
+      ...query(path, []),
+      doc: (id: string) => docRef(`${path}/${id}`),
+      add: async (data: Json) => {
+        const id = `auto-${++autoIds}`;
+        docs.set(`${path}/${id}`, structuredClone(data));
+        return docRef(`${path}/${id}`);
+      },
     };
-    return { ...query(path, []), doc, add };
   }
   // Transactions run one at a time (Firestore's serializable guarantee for
   // overlapping read-then-write); create fails when the document exists.
