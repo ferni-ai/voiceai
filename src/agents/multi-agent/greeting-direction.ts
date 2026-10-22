@@ -8,8 +8,7 @@
 import { coachFollowThroughMode } from '../../services/superhuman/commitment-follow-up.js';
 import { markWinSurfaced, winForOpener, type Win } from '../../services/superhuman/wins.js';
 import { checkInsWithCalls } from '../../services/outreach/call-status.js';
-import { contentWords } from '../../memory/recall/session-recall.js';
-import { claimOpenerFollowUp } from '../../memory/recall/opener-claim.js';
+import { claimIfAsked, lineAsks } from './greeting-claim.js';
 import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
 import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
@@ -173,11 +172,7 @@ async function ponderFor(
   return found && { text: found.text, mark: async () => markSurfaced(db, userId, found.item) };
 }
 
-/** True when the spoken line is about the item: they share a real word. */
-export function lineAsks(line: string, item: string): boolean {
-  const said = contentWords(line);
-  return [...contentWords(item)].some((w) => said.has(w));
-}
+export { lineAsks } from './greeting-claim.js';
 
 /** The "time of day" fact for an hour of the day (0-23). */
 export function partOfDayFor(hour: number): string {
@@ -455,18 +450,11 @@ export async function directedGreeting(
     lineSaysAnniversary(spoken, anniversary)
   )
     anniversary.mark();
-  // One follow-up per call opener (opener-claim.ts): having asked, the greeting
-  // keeps the first recall note from asking about a thread too.
-  const topic = checkIn ?? ask?.text;
-  if (
-    !unknown &&
-    userData?.userId &&
-    directed.source === 'actor' &&
-    topic &&
-    spoken === directed.text &&
-    lineAsks(spoken, topic)
-  ) {
-    claimOpenerFollowUp(userData.userId, 'greeting');
+  // One follow-up per call opener: having asked, the greeting keeps the first
+  // recall note from asking about a thread too (greeting-claim.ts).
+  if (!unknown && userData?.userId && directed.source === 'actor' && spoken === directed.text) {
+    const threads = { checkIn, pondered: ask?.text, lastTopic: history?.lastTopic };
+    claimIfAsked(userData.userId, spoken, { ...threads, userName: userData.userName });
   }
   return calmGreeting(spoken);
 }
