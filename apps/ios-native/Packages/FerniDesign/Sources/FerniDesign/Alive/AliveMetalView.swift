@@ -1,52 +1,98 @@
-import MetalKit
+import Metal
 import os
+import QuartzCore
 import SwiftUI
 
-/// The Metal canvas for one frame of Ferni. Paused: it draws only when SwiftUI
-/// hands it new uniforms from the TimelineView clock (one clock, motion spec §6.10).
+/// The Metal canvas for Ferni, and THE avatar clock (motion spec §6.10, red
+/// team item 3). A CAMetalDisplayLink on the canvas's layer asks for each
+/// frame with the moment it will reach the glass; the frame's motion is
+/// computed for that moment (`FrameClock`), drawn into the link's drawable,
+/// and the pace that frame leaves (`FramePace`) goes straight back to the
+/// link's preferred frame rate, with no SwiftUI round trip. This is the one
+/// file allowed a CAMetalDisplayLink (scripts/check-motion-rules.sh).
 struct AliveMetalView: UIViewRepresentable {
     let renderer: AliveRenderer
-    let uniforms: AliveUniforms
     /// Ferni's radius and offset below the canvas centre, as fractions of the canvas width.
     let radius: Float
     let below: Float
     /// Pixels per point (lower when throttled).
     let scale: CGFloat
-    /// The rate the clock is asking for (`FramePace`), for the pacing measurements.
-    var targetHz = FramePace.fastest
+    /// Host time Ferni woke at: frame times count from here.
+    let origin: Double
+    /// The app isn't active or something covers Ferni: no frames at all.
+    let paused: Bool
+    /// Changes when something asks for a new rate at once (a request, a touch).
+    var kick = 0
+    /// This frame's uniforms, `seconds` after he woke, on screen at the date.
+    let frame: @MainActor (_ seconds: Double, _ date: Date) -> AliveUniforms
+    /// Frames a second after a frame on screen at the date (`FramePace`).
+    let pace: @MainActor (_ date: Date) -> Int
 
-    func makeCoordinator() -> Coordinator { Coordinator(renderer: renderer) }
+    func makeCoordinator() -> Coordinator { Coordinator(renderer: renderer, origin: origin) }
 
-    func makeUIView(context: Context) -> MTKView {
-        let view = MTKView(frame: .zero, device: renderer.device)
-        view.isPaused = true
-        view.enableSetNeedsDisplay = false
-        view.framebufferOnly = true
-        view.colorPixelFormat = AliveRenderer.pixelFormat
+    func makeUIView(context: Context) -> Canvas {
+        let view = Canvas()
+        let layer = view.metalLayer
+        layer.device = renderer.device
+        layer.pixelFormat = AliveRenderer.pixelFormat
+        layer.framebufferOnly = true
+        layer.isOpaque = false
         view.isOpaque = false
-        view.layer.isOpaque = false
         view.backgroundColor = .clear
-        view.clearColor = MTLClearColor(red: 0, green: 0, blue: 0, alpha: 0)
-        view.delegate = context.coordinator
         view.isUserInteractionEnabled = false
+        view.onWindow = { [weak coordinator = context.coordinator] in coordinator?.updatePause() }
+        context.coordinator.attach(to: view)
         return view
     }
 
-    func updateUIView(_ view: MTKView, context: Context) {
-        if view.contentScaleFactor != scale { view.contentScaleFactor = scale }
-        context.coordinator.uniforms = uniforms
-        context.coordinator.radius = radius
-        context.coordinator.below = below
-        context.coordinator.targetHz = targetHz
-        view.draw()
+    func updateUIView(_ view: Canvas, context: Context) {
+        if view.contentScaleFactor != scale {
+            view.contentScaleFactor = scale
+            view.setNeedsLayout()
+        }
+        let c = context.coordinator
+        c.frame = frame
+        c.pace = pace
+        c.radius = radius
+        c.below = below
+        c.paused = paused
+        c.updatePause()
+        c.apply(pace(.now))
+    }
+
+    static func dismantleUIView(_ view: Canvas, coordinator: Coordinator) { coordinator.stop() }
+
+    /// A view whose layer is the Metal layer the link draws into.
+    final class Canvas: UIView {
+        override class var layerClass: AnyClass { CAMetalLayer.self }
+        /// Always a CAMetalLayer (`layerClass`).
+        var metalLayer: CAMetalLayer { layer as! CAMetalLayer }
+        var onWindow: (() -> Void)?
+
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            let s = contentScaleFactor
+            metalLayer.drawableSize = CGSize(width: bounds.width * s, height: bounds.height * s)
+        }
+
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            onWindow?()
+        }
     }
 
     @MainActor
-    final class Coordinator: NSObject, MTKViewDelegate {
+    final class Coordinator: NSObject, @preconcurrency CAMetalDisplayLinkDelegate {
         let renderer: AliveRenderer
-        var uniforms = AliveUniforms()
+        var frame: (@MainActor (Double, Date) -> AliveUniforms)?
+        var pace: (@MainActor (Date) -> Int)?
         var radius: Float = 0.18, below: Float = 0
-        var targetHz = FramePace.fastest
+        var paused = false
+        /// The rate the link is asking for now.
+        private(set) var hz = FramePace.rest
+        private var clock: FrameClock
+        private var link: CAMetalDisplayLink?
+        private weak var view: Canvas?
         private var meter = FrameMeter()
         private let log = Logger(subsystem: "com.sethdford.ferni", category: "avatar")
         /// Each draw as an interval in Instruments (Points of Interest: avatar).
@@ -54,53 +100,96 @@ struct AliveMetalView: UIViewRepresentable {
         /// When each frame really reached the glass (debug builds).
         private let presented = OSAllocatedUnfairLock(initialState: PresentStats())
 
-        init(renderer: AliveRenderer) { self.renderer = renderer }
+        init(renderer: AliveRenderer, origin: Double) {
+            self.renderer = renderer
+            clock = FrameClock(origin: origin)
+        }
 
-        func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+        func attach(to view: Canvas) {
+            self.view = view
+            let link = CAMetalDisplayLink(metalLayer: view.metalLayer)
+            link.delegate = self
+            link.preferredFrameRateRange = FramePace.range(for: hz)
+            link.isPaused = true
+            link.add(to: .main, forMode: .common)
+            self.link = link
+        }
 
-        func draw(in view: MTKView) {
-            let size = view.drawableSize
-            guard size.width > 0, let pass = view.currentRenderPassDescriptor, let drawable = view.currentDrawable,
-                  let buffer = renderer.queue.makeCommandBuffer() else { return }
-            let signpost = signposter.beginInterval("avatar draw", id: signposter.makeSignpostID(), "\(self.targetHz) Hz")
+        func stop() {
+            link?.invalidate()
+            link = nil
+        }
+
+        /// Frames only while wanted and on screen.
+        func updatePause() {
+            let off = paused || view?.window == nil
+            if link?.isPaused != off { link?.isPaused = off }
+        }
+
+        /// The rate, straight to the link (only when it changes).
+        func apply(_ next: Int) {
+            guard next != hz else { return }
+            hz = next
+            link?.preferredFrameRateRange = FramePace.range(for: next)
+        }
+
+        func metalDisplayLink(_ link: CAMetalDisplayLink, needsUpdate update: CAMetalDisplayLink.Update) {
+            guard let frame else { return }
+            let target = update.targetPresentationTimestamp
+            let date = FrameClock.date(presentingAt: target, hostNow: CACurrentMediaTime(), wallNow: .now)
+            var u = frame(clock.seconds(presentingAt: target), date)
+            draw(&u, into: update.drawable)
+            if let pace { apply(pace(date)) }
+        }
+
+        private func draw(_ uniforms: inout AliveUniforms, into drawable: CAMetalDrawable) {
+            let texture = drawable.texture
+            guard texture.width > 0, let buffer = renderer.queue.makeCommandBuffer() else { return }
+            let signpost = signposter.beginInterval("avatar draw", id: signposter.makeSignpostID(), "\(self.hz) Hz")
             defer { signposter.endInterval("avatar draw", signpost) }
+            let pass = MTLRenderPassDescriptor()
+            pass.colorAttachments[0].texture = texture
+            pass.colorAttachments[0].storeAction = .store
+            let w = Float(texture.width), h = Float(texture.height)
+            uniforms.frame(size: SIMD2(w, h), radius: radius * w, below: below * w)
+            renderer.encode(uniforms, pass: pass, into: buffer)
             #if DEBUG && !targetEnvironment(simulator)
-            // The period this frame is due in: the clock's rate, at most the
+            // The period this frame is due in: the link's rate, at most the
             // screen's. (The simulator's Metal has no presented handler.)
-            let screenMax = view.window?.windowScene?.screen.maximumFramesPerSecond ?? FramePace.fastest
-            let expected = 1 / Double(max(1, min(targetHz, screenMax)))
+            let screenMax = view?.window?.windowScene?.screen.maximumFramesPerSecond ?? FramePace.fastest
+            let expected = 1 / Double(max(1, min(hz, screenMax)))
             drawable.addPresentedHandler { [presented] shown in
                 presented.withLock { $0.presented(at: shown.presentedTime, expected: expected) }
             }
             #endif
-            var u = uniforms
-            let w = Float(size.width), h = Float(size.height)
-            u.frame(size: SIMD2(w, h), radius: radius * w, below: below * w)
-            renderer.encode(u, pass: pass, into: buffer)
             buffer.present(drawable)
             buffer.commit()
-            // Every 5 s: the real draw rate and what shaped it (device test evidence).
-            if let fps = meter.tick(at: CACurrentMediaTime()) {
-                let info = ProcessInfo.processInfo
+            report(drawable: texture)
+        }
+
+        /// Every 5 s: the real draw rate and what shaped it (device test evidence).
+        private func report(drawable texture: MTLTexture) {
+            guard let fps = meter.tick(at: CACurrentMediaTime()) else { return }
+            let info = ProcessInfo.processInfo
+            log.notice("""
+            avatar fps=\(fps, format: .fixed(precision: 1), privacy: .public) \
+            target=\(self.hz, privacy: .public)Hz \
+            scale=\(Double(self.view?.contentScaleFactor ?? 0), format: .fixed(precision: 1), privacy: .public) \
+            drawable=\(texture.width, privacy: .public)x\(texture.height, privacy: .public) \
+            thermal=\(FrameMeter.words(info.thermalState), privacy: .public) \
+            lowPower=\(info.isLowPowerModeEnabled, privacy: .public)
+            """)
+            #if DEBUG
+            if let s = presented.withLock({ $0.report() }) {
                 log.notice("""
-                avatar fps=\(fps, format: .fixed(precision: 1), privacy: .public) \
-                scale=\(Double(view.contentScaleFactor), format: .fixed(precision: 1), privacy: .public) \
-                drawable=\(Int(size.width), privacy: .public)x\(Int(size.height), privacy: .public) \
-                thermal=\(FrameMeter.words(info.thermalState), privacy: .public) \
-                lowPower=\(info.isLowPowerModeEnabled, privacy: .public)
+                avatar presented target=\(self.hz, privacy: .public)Hz \
+                p50=\(s.p50 * 1000, format: .fixed(precision: 2), privacy: .public)ms \
+                p99=\(s.p99 * 1000, format: .fixed(precision: 2), privacy: .public)ms \
+                hitch=\(s.hitchMsPerSecond, format: .fixed(precision: 2), privacy: .public)ms/s \
+                frames=\(s.frames, privacy: .public)
                 """)
-                #if DEBUG
-                if let s = presented.withLock({ $0.report() }) {
-                    log.notice("""
-                    avatar presented target=\(self.targetHz, privacy: .public)Hz \
-                    p50=\(s.p50 * 1000, format: .fixed(precision: 2), privacy: .public)ms \
-                    p99=\(s.p99 * 1000, format: .fixed(precision: 2), privacy: .public)ms \
-                    hitch=\(s.hitchMsPerSecond, format: .fixed(precision: 2), privacy: .public)ms/s \
-                    frames=\(s.frames, privacy: .public)
-                    """)
-                }
-                #endif
             }
+            #endif
         }
     }
 }

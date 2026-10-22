@@ -1,8 +1,10 @@
+import QuartzCore
 import SwiftUI
 
 /// Ferni, live: the GPU-rendered body from the owner's alive prototype
-/// (`AliveShader`), moved by `AliveRig` on a single TimelineView clock
-/// (ios-motion-spec §6.10).
+/// (`AliveShader`), moved by `AliveRig` on one clock (ios-motion-spec §6.10):
+/// the Metal canvas's own display link, which asks for each frame with the
+/// moment it will reach the glass (`AliveMetalView`).
 ///
 /// The view takes a square slot in the layout; the Metal canvas extends past
 /// it (headroom for hops, the ring and the corner teammate) so Ferni is never
@@ -35,7 +37,10 @@ public struct AvatarView: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
     @State private var rig: AliveRig
-    @State private var woke = Date()
+    /// Host time (CACurrentMediaTime) Ferni woke at: the rig's time counts from here.
+    @State private var woke = CACurrentMediaTime()
+    /// What the particle overlay draws, from the rig after each frame.
+    @State private var feed = ParticleFeed()
     @State private var lowPower = ProcessInfo.processInfo.isLowPowerModeEnabled
     @State private var hot = ProcessInfo.processInfo.thermalState.rawValue >= ProcessInfo.ThermalState.serious.rawValue
     @State private var slot = CGSize.zero
@@ -43,8 +48,9 @@ public struct AvatarView: View {
     @State private var arrivedThisCall = false
     /// The activity the last onChange handled (callJustEnded).
     @State private var seenActivity = AvatarActivity.idle
-    /// Frames a second (`FramePace`), from the rig after each frame.
-    @State private var hz = FramePace.rest
+    /// Bumped when something asks for a new rate at once (a request, a touch);
+    /// the canvas re-reads the pace. Every frame re-reads it too.
+    @State private var kick = 0
     /// When he last stopped speaking (the turn-end hold, `FramePace.speechHold`).
     @State private var speechEnded: Date?
     @GestureState private var holding = false
@@ -94,23 +100,20 @@ public struct AvatarView: View {
                     let side = min(geo.size.width, geo.size.height)
                     if let renderer = AliveRenderer.shared {
                         let throttled = lowPower || hot
-                        let clock = Self.schedule(hz: hz, covered: covered, active: scenePhase == .active)
-                        TimelineView(.animation(minimumInterval: clock.interval, paused: clock.paused)) { timeline in
-                            let u = frame(at: timeline.date)
-                            let w = side * Self.canvas.width, h = side * Self.canvas.height, r = side * Self.radius
-                            ZStack {
-                                AliveMetalView(
-                                    renderer: renderer, uniforms: u,
-                                    radius: Float(Self.radius / Self.canvas.width), below: Float(Self.lift / Self.canvas.width),
-                                    scale: Self.renderScale(display: displayScale, throttled: throttled),
-                                    targetHz: hz
-                                )
-                                AliveParticles(
-                                    particles: rig.particles,
-                                    centre: CGPoint(x: w / 2 + CGFloat(u.pos.x) * r, y: h / 2 + side * Self.lift - CGFloat(u.pos.y) * r),
-                                    radius: r
-                                )
-                            }
+                        // Read here, in the view update, and carried into the frames.
+                        let look = FrameLook(dark: colorScheme == .dark, reduceMotion: reduceMotion)
+                        ZStack {
+                            AliveMetalView(
+                                renderer: renderer,
+                                radius: Float(Self.radius / Self.canvas.width), below: Float(Self.lift / Self.canvas.width),
+                                scale: Self.renderScale(display: displayScale, throttled: throttled),
+                                origin: woke, paused: Self.paused(covered: covered, active: scenePhase == .active), kick: kick,
+                                frame: { seconds, date in frame(at: seconds, date: date, look: look) },
+                                pace: { date in
+                                    Self.pace(activity: activity, rig: rig, throttled: lowPower || hot, sinceSpeechEnd: sinceSpeechEnd(at: date))
+                                }
+                            )
+                            ParticleLayer(feed: feed, side: side)
                         }
                         .frame(width: side * Self.canvas.width, height: side * Self.canvas.height)
                         .position(x: geo.size.width / 2, y: geo.size.height / 2 - side * Self.lift)
@@ -236,9 +239,7 @@ public struct AvatarView: View {
     }
 
     /// The rate for now, at once (outside a view update: after a handler).
-    private func repace() {
-        hz = Self.pace(activity: activity, rig: rig, throttled: lowPower || hot, sinceSpeechEnd: sinceSpeechEnd(at: .now))
-    }
+    private func repace() { kick &+= 1 }
 
     private func sinceSpeechEnd(at date: Date) -> Double? { speechEnded.map { date.timeIntervalSince($0) } }
 
@@ -258,21 +259,19 @@ public struct AvatarView: View {
         return SIMD2((location.x - slot.width / 2) / r, (slot.height / 2 - location.y) / r)
     }
 
-    /// One frame: this moment's inputs into the rig, out come the uniforms.
-    private func frame(at date: Date) -> AliveUniforms {
+    /// One frame, `seconds` after he woke and on screen at `date`: this
+    /// moment's inputs into the rig, out come the uniforms.
+    private func frame(at seconds: Double, date: Date, look: FrameLook) -> AliveUniforms {
         rig.activity = activity
         rig.expression = expression.rawValue
         rig.voiceLevel = level()
-        rig.reduceMotion = reduceMotion
+        rig.reduceMotion = look.reduceMotion
         rig.reading = reading
         rig.lookingAway = lookingAway
-        let dark = colorScheme == .dark
+        let dark = look.dark
         rig.dark = dark
-        var u = rig.frame(at: date.timeIntervalSince(woke))
-        // The next frame's rate, from what this one left moving (set after the
-        // view update, as the cues are).
-        let next = Self.pace(activity: activity, rig: rig, throttled: lowPower || hot, sinceSpeechEnd: sinceSpeechEnd(at: date))
-        if next != hz { Task { @MainActor in hz = next } }
+        var u = rig.frame(at: seconds)
+        feed.show(rig.particles, at: u.pos)
         // After the frame, never during it: the app's handlers may change state.
         if let onCue, !rig.cues.isEmpty {
             let cues = rig.cues
@@ -327,10 +326,8 @@ public struct AvatarView: View {
         throttled ? 1.5 : min(max(display, 1), 3)
     }
 
-    /// Frame interval for `hz` (nil = the display's rate) and whether the clock is paused.
-    static func schedule(hz: Int, covered: Bool, active: Bool) -> (interval: Double?, paused: Bool) {
-        (FramePace.interval(for: hz), covered || !active)
-    }
+    /// The clock stops when the app isn't active or something covers Ferni.
+    static func paused(covered: Bool, active: Bool) -> Bool { covered || !active }
 
     static func words(for activity: AvatarActivity, name: String) -> String {
         switch activity {
@@ -348,4 +345,39 @@ public struct AvatarView: View {
 /// What Ferni is doing, as the avatar shows it.
 public enum AvatarActivity: Equatable, Sendable {
     case idle, arriving, listening, thinking, speaking, reconnecting, error
+}
+
+/// The environment a frame needs, read in the view update.
+struct FrameLook: Equatable {
+    let dark: Bool, reduceMotion: Bool
+}
+
+/// The particles (and where Ferni is) after the last frame, for the overlay.
+/// Only the overlay reads it, so a frame with particles redraws only them.
+@MainActor @Observable
+final class ParticleFeed {
+    private(set) var particles: [AliveRig.Particle] = []
+    private(set) var pos = SIMD2<Float>.zero
+
+    /// Writes only what changed: no particles, no invalidation.
+    func show(_ next: [AliveRig.Particle], at position: SIMD4<Float>) {
+        if particles != next { particles = next }
+        let p = SIMD2(position.x, position.y)
+        if !next.isEmpty, pos != p { pos = p }
+    }
+}
+
+/// The particle overlay, in the canvas's frame (the Metal canvas extends past the slot).
+private struct ParticleLayer: View {
+    let feed: ParticleFeed
+    let side: CGFloat
+
+    var body: some View {
+        let w = side * AvatarView.canvas.width, h = side * AvatarView.canvas.height, r = side * AvatarView.radius
+        AliveParticles(
+            particles: feed.particles,
+            centre: CGPoint(x: w / 2 + CGFloat(feed.pos.x) * r, y: h / 2 + side * AvatarView.lift - CGFloat(feed.pos.y) * r),
+            radius: r
+        )
+    }
 }

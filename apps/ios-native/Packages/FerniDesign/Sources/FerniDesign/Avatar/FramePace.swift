@@ -1,4 +1,5 @@
 import Foundation
+import QuartzCore
 
 /// How often Ferni draws (avatar red team 2026-10-22: the springs were good,
 /// the rate policy wasn't). At the old 30 fps whenever he wasn't speaking,
@@ -28,15 +29,41 @@ enum FramePace {
         return min(cap, inCall ? inCallFloor : rest)
     }
 
-    /// The TimelineView's minimum interval for a rate: nil (the display's own
-    /// rate) at the top, otherwise a little under the period so a frame that
-    /// arrives a hair early isn't held a whole refresh longer.
-    static func interval(for hz: Int) -> Double? {
-        hz >= fastest ? nil : 0.9 / Double(hz)
+    /// The display link's range for a rate: exactly that rate, except at the
+    /// top, where the system may come down as far as the call's floor rather
+    /// than miss a frame (a 60 Hz screen simply runs at 60).
+    static func range(for hz: Int) -> CAFrameRateRange {
+        let f = Float(hz)
+        return CAFrameRateRange(minimum: min(f, Float(inCallFloor)), maximum: f, preferred: f)
     }
 
     /// Whether Ferni is in a call (anything but at home or the error screen).
     static func inCall(_ activity: AvatarActivity) -> Bool {
         activity != .idle && activity != .error
+    }
+}
+
+/// The avatar clock's time: each frame's motion is computed for the moment
+/// it will reach the glass (the display link's target presentation time, in
+/// host seconds, CACurrentMediaTime), not for when the callback happens to run.
+struct FrameClock: Sendable {
+    /// Host time Ferni woke at.
+    let origin: Double
+    private var last: Double?
+
+    init(origin: Double) { self.origin = origin }
+
+    /// Seconds since he woke for a frame presented at host time `target`.
+    /// Never earlier than the last frame's: the rig's springs only step forward.
+    mutating func seconds(presentingAt target: Double) -> Double {
+        let t = max(target - origin, last ?? -.infinity)
+        last = t
+        return t
+    }
+
+    /// The wall-clock moment a frame presented at host time `target` is on
+    /// screen, given now on both clocks (the room's hour, the turn-end hold).
+    static func date(presentingAt target: Double, hostNow: Double, wallNow: Date) -> Date {
+        wallNow.addingTimeInterval(target - hostNow)
     }
 }
