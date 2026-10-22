@@ -223,7 +223,7 @@
       },
       "phoneCall": {
         "question": "How does the phone calling work?",
-        "answer": "Simply call 1 (484) 481-3081 from any phone. No app needed, no sign-up required. Ferni will recognize your number and remember your previous conversations automatically."
+        "answer": "Simply call 1 (484) 481-3081 from any phone. No app needed, no sign-up required. For now, each phone call starts fresh. To have Ferni remember you from one conversation to the next, talk in the app while you're signed in."
       },
       "privacy": {
         "question": "Is my conversation private?",
