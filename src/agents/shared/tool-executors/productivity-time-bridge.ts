@@ -20,8 +20,8 @@ export async function updateGoal(
   if (!title && progress === undefined) return 'Which goal should I update, and how is it going?';
 
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
     const snapshot = await db
       .collection('bogle_users')
       .doc(ctx.userId)

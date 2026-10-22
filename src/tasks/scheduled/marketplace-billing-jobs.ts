@@ -361,8 +361,8 @@ export async function runQuarterlyCleanup(): Promise<{
 async function getActiveMarketplaceUsers(): Promise<string[]> {
   // Query Firestore for users with marketplace installations
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
     const snapshot = await db.collection('marketplace_installations').get();
     const userIds = new Set<string>();
     snapshot.forEach((doc) => {
@@ -396,8 +396,8 @@ async function sendQuotaWarning(warning: QuotaWarning): Promise<void> {
 async function getPublisherStripeAccount(publisherId: string): Promise<string | null> {
   // Look up from marketplace_publishers collection in Firestore
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
     const doc = await db.collection('marketplace_publishers').doc(publisherId).get();
     if (!doc.exists) return null;
     const data = doc.data() as { stripeConnectAccountId?: string } | undefined;

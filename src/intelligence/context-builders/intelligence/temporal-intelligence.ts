@@ -36,8 +36,8 @@ import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 // Use dynamic import for Firestore to avoid hard dependency
 async function getFirestoreDb(): Promise<FirebaseFirestore.Firestore | null> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    return getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    return getAdminFirestore();
   } catch {
     return null;
   }

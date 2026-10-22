@@ -1,0 +1,8 @@
+{
+  "meta": { "scenario": "late-night-energy", "label": "s1", "role": "test" },
+  "events": [
+    { "t": 11560, "who": "agent", "text": "late" },
+    { "t": 42559, "who": "agent", "text": "late" },
+    { "t": 73890, "who": "agent", "text": "late" }
+  ]
+}

@@ -38,7 +38,7 @@ const COMPLETIONS_COLLECTION = 'habit_completions';
 
 function getFirestore(): Firestore | null {
   try {
-    return getDefaultFirestore();
+    return getDefaultFirestore(process.env.FIRESTORE_DATABASE || '(default)');
   } catch {
     return null;
   }

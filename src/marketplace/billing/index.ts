@@ -340,8 +340,8 @@ export async function checkAndIncrementQuota(
     }
 
     // Use Firestore transaction for atomic check-and-increment
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
     const docRef = db.collection('marketplace_monthly_usage').doc(key);
 
     const result = await db.runTransaction(async (transaction) => {

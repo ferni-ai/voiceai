@@ -29,6 +29,9 @@ EVAL_DRY_RUN=1 ./run.sh dev playful x    # print the plan only
 - Output lands in `out/<scenario>-<label>.json` plus wav files and `.score.json`.
 - Don't run while someone is on a dev call. Never deploy mid-run.
 
+- Speakerphone echo (Ferni cut off by his own voice): `./run.sh --echo dev long-day <label>`,
+  then `echo-report.mjs`; see `docs/testing/VOICE-EVAL-ECHO.md`.
+
 ## Score
 ```bash
 node score.mjs out/*-<label>.json > pooled.json   # pooled over the runs
