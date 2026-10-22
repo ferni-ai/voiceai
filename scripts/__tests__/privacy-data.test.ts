@@ -53,7 +53,7 @@ const KNOWN_PROVIDERS: Record<string, string | null> = {
   Twilio: 'Twilio',
   SendGrid: 'SendGrid',
   'Google Analytics': 'Google Analytics',
-  Sentry: null,
+  Sentry: 'Sentry',
   Stripe: null,
   ElevenLabs: null,
   Deepgram: null,
@@ -86,6 +86,16 @@ describe('privacy data file', () => {
 
     expect(listed.filter((p) => !used.has(p))).toEqual([]);
     expect([...used].filter((p) => !listed.includes(p))).toEqual([]);
+  });
+
+  // The home page says the policy names every provider. The prod web server sends
+  // error reports to Sentry once SENTRY_DSN is mounted (deploy/ui-server/secrets.txt).
+  it('lists Sentry while the web server mounts SENTRY_DSN', () => {
+    const { data } = load();
+    const secrets = readFileSync(join(__dirname, '..', '..', 'deploy', 'ui-server', 'secrets.txt'), 'utf8'); // prettier-ignore
+    if (!/^SENTRY_DSN=/m.test(secrets)) return;
+    expect(data.processors.map((p) => p.name)).toContain('Sentry');
+    expect(data.dataTypes.filter((d) => d.processors.includes('Sentry')).length).toBeGreaterThan(0);
   });
 
   it('every row says why and for how long', () => {

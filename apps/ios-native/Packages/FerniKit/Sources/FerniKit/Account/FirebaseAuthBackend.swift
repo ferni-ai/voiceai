@@ -21,6 +21,27 @@ public struct FirebaseAuthBackend: AuthBackend {
         return try await user.getIDTokenResult(forcingRefresh: forceRefresh).token
     }
 
+    public func linkOrSignIn(apple: AppleCredential) async throws -> AccountUser {
+        let credential = OAuthProvider.appleCredential(
+            withIDToken: apple.idToken, rawNonce: apple.rawNonce, fullName: apple.fullName
+        )
+        guard let user = Auth.auth().currentUser else {
+            return Self.account(try await Auth.auth().signIn(with: credential).user)
+        }
+        do {
+            return Self.account(try await user.link(with: credential).user)
+        } catch let error as NSError where error.code == AuthErrorCode.credentialAlreadyInUse.rawValue {
+            // This Apple ID already has a Ferni account: continue as that person.
+            // Apple's nonce is single use, so Firebase hands back a fresh credential.
+            let updated = error.userInfo[AuthErrorUserInfoUpdatedCredentialKey] as? AuthCredential ?? credential
+            return Self.account(try await Auth.auth().signIn(with: updated).user)
+        }
+    }
+
+    public func signOut() async throws {
+        try Auth.auth().signOut()
+    }
+
     private static func account(_ user: User) -> AccountUser {
         AccountUser(
             uid: user.uid,

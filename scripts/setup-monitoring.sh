@@ -13,7 +13,7 @@ PROJECT_ID="${GCP_PROJECT:-johnb-2025}"
 REGION="us-central1"
 AGENT_URL="voiceai-agent-1031920444452.us-central1.run.app"
 UI_URL="john-bogle-ui-1031920444452.us-central1.run.app"
-NOTIFICATION_EMAIL="${ALERT_EMAIL:-seth.ford@gmail.com}"
+NOTIFICATION_EMAIL="${ALERT_EMAIL:-${OWNER_EMAIL:-admin@ferni.ai}}"
 SLACK_WEBHOOK="${SLACK_WEBHOOK_URL:-}"
 BUDGET_AMOUNT="${BUDGET_AMOUNT:-50}"
 

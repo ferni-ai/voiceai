@@ -31,6 +31,7 @@
  *
  * @module memory/recall/forget
  */
+import { FieldValue } from '@google-cloud/firestore';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
@@ -252,6 +253,14 @@ export async function removeIndexCopies(userId: string, factIds: string[]): Prom
   }
 }
 
+/**
+ * What a fact keeps that is derived from it, cleared in the same write that forgets or
+ * corrects it: its stored vector (RECALL_VECTOR_INDEX), which a vector search still matches.
+ */
+export const withoutDerivedCopies = (): { embedding: FieldValue } => ({
+  embedding: FieldValue.delete(),
+});
+
 /** bogle_users/{uid}/{dynamic_facts,extracted_facts}, and memory_state/forgotten. */
 export const firestoreForgetStore: ForgetStore = {
   async facts(userId) {
@@ -278,7 +287,10 @@ export const firestoreForgetStore: ForgetStore = {
       for (const r of refs.slice(i, i + 400)) {
         // A fact already copied to the graph store is picked up by the next
         // sync again (firestore-spanner-sync.ts), which removes the copy.
-        const resync = r.collection === 'dynamic_facts' ? { syncedToSpanner: false } : {};
+        const resync =
+          r.collection === 'dynamic_facts'
+            ? { syncedToSpanner: false, ...withoutDerivedCopies() }
+            : {};
         // Already forgotten (one by one, or an earlier topic): keep when.
         const when = typeof r.data.forgottenAt === 'string' ? r.data.forgottenAt : at;
         batch.update(user.collection(r.collection).doc(r.id), { forgottenAt: when, ...resync });

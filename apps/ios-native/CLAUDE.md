@@ -10,10 +10,10 @@ apps/ios-native/
 ├── App/                  thin SwiftUI shell: FerniApp (AppModel), HomeView, SettingsView,
 │                         Info.plist (generated), entitlements, assets, privacy manifest
 ├── Packages/
-│   ├── FerniKit/         configuration, the account (Firebase, anonymous first), the
-│   │                     server API (Bearer ID token), team, plans
-│   ├── FerniVoice/       a call: agent signals (lk.agent.state, speech_state),
-│   │                     expression mapping, and next the LiveKit session
+│   ├── FerniKit/         configuration, the account (Firebase: anonymous first, then
+│   │                     Sign in with Apple), the server API (Bearer ID token), team, plans
+│   ├── FerniVoice/       a call: CallSession (token, join, wait ≤10 s for Ferni, one
+│   │                     retry, captions, mute, rejoin), agent signals, expressions
 │   └── FerniDesign/      color/type/spacing tokens from design-system/tokens, window avatar
 ├── project.yml           XcodeGen spec; Ferni.xcodeproj is generated AND committed
 └── Ferni.storekit        StoreKit test configuration (plans are off: PaidPlans.isOffered)

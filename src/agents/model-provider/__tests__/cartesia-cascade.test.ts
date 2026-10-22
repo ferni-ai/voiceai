@@ -83,6 +83,11 @@ describe('buildCascadeHedge', () => {
     });
   });
 
+  it('gives the reply after a tool result a 500 ms hedge only under LOOKUP_BRIDGE', () => {
+    expect(buildCascadeHedge({})?.afterToolHedgeMs).toBeUndefined();
+    expect(buildCascadeHedge({ LOOKUP_BRIDGE: 'on' })?.afterToolHedgeMs).toBe(500);
+  });
+
   it('can be turned off, and never hedges a model with itself', () => {
     expect(buildCascadeHedge({ CASCADE_LLM_HEDGE_MS: 'off' })).toBeNull();
     expect(buildCascadeHedge({ CASCADE_LLM_BACKUP_MODEL: 'gemini-3.5-flash' })).toBeNull();

@@ -1276,10 +1276,9 @@ html.theme-transitioning *::after {
 
 /* ---- DARK THEME CIRCADIAN OVERRIDES ---- */
 
-[data-theme="midnight"][data-circadian="lateNight"],
-[data-theme="midnight"][data-circadian="deepNight"] {
-  --color-background-primary: color-mix(in oklch, var(--color-background-primary) 98%, #1a1612 2%);
-}
+/* No late-night background override: defining --color-background-primary from
+   itself is a cycle, which erased the token (and --color-bg-primary) in the dark
+   theme from midnight to dawn, so the sign-in gate fell back to near-black. */
 
 [data-theme="midnight"][data-relationship-stage="deep-partnership"] {
   --persona-glow: rgba(107, 143, 94, 0.2);

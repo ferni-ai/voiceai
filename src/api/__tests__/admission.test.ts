@@ -69,6 +69,16 @@ describe('isAdmitted', () => {
     expect(s.calls).toBe(2);
   });
 
+  // A made-up address: the real one is the OWNER_EMAIL secret, never in this repo.
+  it('admits the owner by OWNER_EMAIL (Gmail dots folded), and no one by it while unset', async () => {
+    const env = { ...ON, OWNER_EMAIL: 'pat.example@gmail.com' } as NodeJS.ProcessEnv;
+    const s = store();
+    expect(await isAdmitted({ uid: 'o', email: 'patexample@gmail.com' }, { env, store: s })).toEqual({ admitted: true, reason: 'admin' }); // prettier-ignore
+    expect(s.calls).toBe(0);
+    forgetAdmissionCache();
+    expect(await isAdmitted({ uid: 'o', email: 'patexample@gmail.com' }, { env: ON, store: store() })).toEqual({ admitted: false, reason: 'not-admitted' }); // prettier-ignore
+  });
+
   it('one passing rule admits even when another lookup fails', async () => {
     const s = store({ waitlistStatus: async () => { throw new Error('down'); }, inCohort: async () => true }); // prettier-ignore
     expect(await isAdmitted({ uid: 'u', email: 'a@b.test' }, { env: ON, store: s })).toEqual({ admitted: true, reason: 'friends-and-family' }); // prettier-ignore
