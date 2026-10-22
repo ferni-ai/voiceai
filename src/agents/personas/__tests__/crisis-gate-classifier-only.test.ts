@@ -227,7 +227,10 @@ describe('the 2026-10-22 false alarms', () => {
     });
     resetClassifierOnlyReads();
     // Never answers: the adjudicator's own timeout (1.2 s by default) escalates.
-    const hanging: CrisisGenerateFn = () => new Promise(() => undefined);
+    const hanging: CrisisGenerateFn = () =>
+      new Promise<string>(() => {
+        // never settles
+      });
     const heard = await turn(DEV_LONG_ARC, 'live', [CRISIS, CRISIS], { adjudicate: hanging });
     expect(heard).toMatchObject({ gate: 'guide-988', pipeline: 'guide-988' });
   });
