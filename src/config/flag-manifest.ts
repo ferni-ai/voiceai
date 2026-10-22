@@ -404,6 +404,8 @@ const LEGACY_FLAG_MANIFEST = {
   USE_GENERATED_TOOL_DOCS: { default: 'off', owner: 'voice', kind: 'config' },
   ...FLAGS_USE_TO_VOICE,
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // on: the tic-tac-toe tools stay through every tool cap, so the board engine plays (voice-tictactoe.ts)
+  VOICE_TICTACTOE: { default: 'off', owner: 'tools', kind: 'experiment' },
   // which voice pipeline runs; anything unrecognised is the Cartesia cascade (model-provider-config.ts)
   VOICE_PIPELINE: { default: 'cartesia-cascade', owner: 'voice', kind: 'config' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
