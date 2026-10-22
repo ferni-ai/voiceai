@@ -30,9 +30,13 @@ import {
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { sessionIsVerifiedOwner } from '../voice-agent-entry/caller-recognition.js';
 import { createTurnKeeper } from './turn-keeper.js';
-import { followThroughOpenerEnabled, followThroughReplyListeners } from './follow-through-opener.js';
+import {
+  followThroughOpenerEnabled,
+  followThroughReplyListeners,
+} from './follow-through-opener.js';
 import { hasGuests, roomGuestsEnabled } from '../personas/room-guests.js';
 import { installNeverSilent } from './never-silent-install.js';
+import { installSelfVoiceGate, logSelfVoiceShadow } from './self-voice-gate/session-gate.js';
 import { installFinishedTurnEndpointing, installUnfinishedTurnHold } from './unfinished-turn.js';
 import { endpointingDelays } from '../shared/turn-patience.js';
 import {
@@ -95,7 +99,10 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
           log.warn({ sessionId, error: String(error) }, 'barge-in fast path: interrupt failed');
         }
       },
-      log: (fields) => log.info({ sessionId, ...fields }, 'BARGE_IN_FASTPATH'),
+      log: (fields) => {
+        log.info({ sessionId, ...fields }, 'BARGE_IN_FASTPATH');
+        logSelfVoiceShadow(session, 'fastpath'); // SELF_VOICE_GATE=shadow: was it Ferni's echo?
+      },
     });
     setBargeInFastPath(session, bargeIn);
     sessionWithEvents.on('user_input_transcribed', bargeIn.onTranscript);
@@ -168,6 +175,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Say something human when a reply fails instead of going silent (never-silent.ts).
   installNeverSilent(input);
+  // SELF_VOICE_GATE=shadow logs how much of each barge-in was Ferni's own voice (session-gate.ts).
+  installSelfVoiceGate(input);
 
   // Don't answer half a sentence (unfinished-turn.ts; UNFINISHED_TURN_HOLD=off). When
   // LiveKit's end-of-turn model decides alone (TURN_DETECTOR_SOLE=on), it stands down:

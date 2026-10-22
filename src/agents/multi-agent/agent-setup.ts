@@ -76,6 +76,7 @@ import {
   type EssentialToolSetInput,
 } from './essential-tool-set.js';
 import { attachSessionEventLog } from './session-event-log.js';
+import { micFrameTap } from './self-voice-gate/session-gate.js';
 import { buildEmergencyToolset } from './emergency-toolset.js';
 import { warmupHandoffToolsForSession } from '../../tools/handoff/session-cache.js';
 import {
@@ -1886,9 +1887,8 @@ Reference past context when relevant, but don't force it. Let the conversation f
             audioProcessorStarted = true;
 
             const audioStream = new AudioStream(track, { sampleRate: 16000, numChannels: 1 });
-            // processAudioStream runs once per session and cancels a second
-            // stream (FerniAgent.sttNode may already be feeding it); the
-            // backchannel detector must keep getting frames either way.
+            // processAudioStream runs once per session and cancels a second stream (FerniAgent's
+            // sttNode may feed it); the backchannel and self-voice taps must keep getting frames.
             let processorOpen = true;
             const processorStream = new ReadableStream<import('@livekit/rtc-node').AudioFrame>({
               async start(controller) {
@@ -1897,7 +1897,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
                     import('@livekit/rtc-node').AudioFrame
                   >) {
                     if (audioProcessingCancelled) break;
-                    liveBackchannel?.processAudioFrame(frame);
+                    micFrameTap(session, frame, liveBackchannel);
                     if (processorOpen) controller.enqueue(frame);
                   }
                   if (processorOpen) controller.close();

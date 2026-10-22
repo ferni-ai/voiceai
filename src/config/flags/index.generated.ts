@@ -11,4 +11,5 @@
  *
  * @module config/flags/index.generated
  */
+export { SELF_VOICE_GATE } from './SELF_VOICE_GATE.js';
 export {};
