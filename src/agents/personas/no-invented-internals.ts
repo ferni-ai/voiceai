@@ -47,13 +47,18 @@ const MOVES_ON =
   /\b(?:never ?mind|forget (?:it|about it)|no worries|no big deal|it'?s fine|that'?s fine|anyway|anyways|moving on|let'?s (?:talk|move|change))\b/i;
 /** About Ferni: "your", "you run on", his search by name, or "it"/"that" with nothing of the caller's. */
 const YOU =
-  /\b(?:your|yours|yourself)\b|\byou(?:'re| are)? (?:\w+ly )?(?:use|using|run|running|built|made|work|working|connect\w*|hit|send|query|go through)\b|\b(?:search\w*|look ?ups?|the tool)\b/i;
+  /\b(?:your|yours|yourself)\b|\byou(?:'re| are)? (?:\w+ly )?(?:use|using|run|running|built|made|work|working|connect\w*|hit|send|query|go through)\b|\b(?:ferni|search\w*|look ?ups?|the tool)\b/i;
 const DEICTIC = /\b(?:it|that|this|there)\b/i;
 const CALLERS_OWN = /\b(?:my|mine|our|i|i'?m|i'?ve|me)\b/i;
 const aboutFerni = (t: string): boolean => YOU.test(t) || (DEICTIC.test(t) && !CALLERS_OWN.test(t));
-/** Keeping on at him after a first press: "you can be straight with me", "your best guess". */
-const PRESS =
-  /\b(?:technical|specific|straight|details|guess|plain|honest(?:ly)?|truth|talk shop|everything)\b/i;
+/** Said to him: "you", "Ferni", or "tell me", "give it to me", "walk me through"... */
+const ADDRESSED =
+  /\b(?:you|your|yours|yourself|ferni)\b|\b(?:tell me|explain|give (?:it to )?me|walk me through|be straight|lay it out|spell (?:it )?out|break it down)\b/i;
+/** Something technical or pressing in it, or a credential ("I'm in tech", "I teach CS"). */
+const CUE = new RegExp(
+  String.raw`${TECH.source}|\bhow (?:do|does|did) (?:you|it|that|this|your [\w ]{1,20}) work\b|\bwhy\b[^.?!]*\bfail\w*|\b(?:what happened|under the hood|behind the scenes|put together|plain|straight|technical|specific|details|guess|theory|architecture)\b|\bi'?m (?:an? )?(?:\w+ )?(?:engineer|developer|programmer|coder|data scientist)\b|\bi'?m (?:also )?in (?:tech|software|cybersecurity|security)\b|\bi (?:teach|studied|study|work in|manage|do)\b[^.?!]{0,30}\b(?:computer|cs|software|dev\w*|engineering|tech|cybersecurity|security)\b|\bi'?ve (?:worked in|been coding|been programming)\b|\bi (?:write|build) (?:software|code|apps)\b`,
+  'i'
+);
 /** "My backend", "my Python layer": a claim about himself whatever the frame. */
 const MY_TECH = new RegExp(String.raw`\bmy (?:[\w-]+ ){0,2}${TECH.source}`, 'i');
 /** Director notes that would push him into the technical question. */
@@ -72,6 +77,21 @@ function recent(items: readonly Item[]): Item[] {
     if (isUser(items[i]) && ++seen === 3) return items.slice(i);
   }
   return [...items];
+}
+
+/** Caller turns since the last failed tool result (Infinity: none failed). */
+function turnsSinceFailure(items: readonly Item[]): number {
+  let turns = 0;
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i];
+    if (isUser(item)) turns++;
+    else if (
+      item.type === 'function_call_output' &&
+      (item.isError || FAILED.test(item.output ?? ''))
+    )
+      return turns;
+  }
+  return Infinity;
 }
 
 const outputs = (items: readonly Item[]): Item[] =>
@@ -122,15 +142,16 @@ export function internalsTurn(
 ): InternalsTurn {
   if (!noInventedInternalsEnabled(env) || !said) return '';
   const window = recent(items);
-  const failed = outputs(window).some((o) => o.isError || FAILED.test(o.output ?? ''));
+  const failed = turnsSinceFailure(items) <= 3;
   // Before Ferni's last line: what they asked before this turn.
   const before = window.slice(0, Math.max(0, window.map((i) => i.role).lastIndexOf('assistant')));
   const askedBefore = before.some((i) => isUser(i) && asksAboutInternals(i.textContent ?? ''));
   const pressed = failed || askedBefore;
-  // After a press, "you can be straight with me" keeps pressing; "my python class" doesn't.
-  const keepsOn =
-    askedBefore && /\b(?:you|your)\b/i.test(said) && (TECH.test(said) || PRESS.test(said));
-  const asked = !MOVES_ON.test(said) && (asksAboutInternals(said) || keepsOn);
+  // Within 3 turns of a failure or after a press, a line said to him with a technical or
+  // pressing cue presses too ("I'm in tech, give it to me plain"); "my python class" doesn't.
+  const aimed =
+    ADDRESSED.test(said) && CUE.test(said) && !(AI_IDENTITY.test(said) && !TECH.test(said));
+  const asked = !MOVES_ON.test(said) && (asksAboutInternals(said) || (pressed && aimed));
   if (inventedTerm(items, pressed || asked)) return 'retract';
   return asked && pressed ? 'ask' : '';
 }

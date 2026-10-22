@@ -299,7 +299,12 @@ describe("the caller's own tech is not his", () => {
       expect(text).toContain(PUSH_NOTE);
     });
 
-  for (const said of ['who made you?', 'are you ChatGPT?', 'what model are you?'])
+  for (const said of [
+    'who made you?',
+    'are you ChatGPT?',
+    'what model are you?',
+    'be straight with me, are you an AI?',
+  ])
     it(`AI question after a failed search: "${said}"`, () => {
       expect(request(afterFailedSearch(['caller', said]), 'on')).not.toMatch(ASK);
     });
@@ -349,4 +354,72 @@ describe('after a press, only a press about him keeps it going', () => {
     );
     expect(request(c, 'on')).not.toMatch(RETRACT);
   });
+});
+
+// Fix round 2: inside 3 turns of a failure, a line said to him with a cue presses.
+describe('presses said to him after a failure, and ordinary lines that are not', () => {
+  const on = { [FLAG]: 'on' };
+  for (const said of [
+    "I'm in tech too, give it to me plain.",
+    "I teach computer science, so you won't lose me if you get into it.",
+    "I'm a software engineer, so don't sugarcoat it, Ferni.",
+    'come on, what do you run on? python? something else?',
+  ])
+    it(`presses: "${said}"`, () => {
+      const c = afterFailedSearch(
+        ['caller', 'why did your search fail?'],
+        ['ferni', 'It just came up empty.'],
+        ['caller', said]
+      );
+      expect(internalsTurn(c.items, said, on)).toBe('ask');
+    });
+
+  it('more than 3 turns after the failure, a cue said to him is just chat', () => {
+    const said = "I'm in tech too, so give it to me plain: is AI coming for my job?";
+    const c = afterFailedSearch(
+      ['caller', 'ok'],
+      ['ferni', 'Sure.'],
+      ['caller', 'so anyway'],
+      ['ferni', 'Go on.'],
+      ['caller', 'work is busy'],
+      ['ferni', 'Busy how?'],
+      ['caller', said]
+    );
+    expect(internalsTurn(c.items, said, on)).toBe('');
+  });
+
+  // The verify harness's single lines and move-on lines, here right after a failed search.
+  for (const said of [
+    "what's the server at my restaurant called again",
+    'my backend hurts from the gym',
+    "I'm a python developer",
+    'my database at work crashed',
+    'how do you remember things?',
+    "my wifi is down at home, so I'm on my phone",
+    'can you explain how a mortgage works?',
+    "what went wrong with my sourdough? it didn't rise",
+    'my laptop crashed and I lost my essay',
+    'how does the stock market work?',
+    'tell me about the system of government in Japan',
+    'my son is learning javascript, is that a good first language?',
+    "the API at work is down so I'm taking a break",
+    'what happened at the game last night?',
+    'why did my car break down?',
+    'is the internet down for everyone or just me?',
+    'how are you so funny, who built you like that?',
+    "what's the best way to back up my photos?",
+    "my code won't compile and I'm losing my mind",
+    'can you walk me through making a budget?',
+    'are you running okay today? you sound a little off',
+    'ok, how was your weekend?',
+    "that's alright, what should I cook tonight?",
+    'oh well. so my sister called today',
+    'hm. can you set a timer for 5 minutes?',
+    'fine, tell me a joke',
+    "ok, what's the weather tomorrow then?",
+    "alright, I'll check ESPN later. how's your day going?",
+  ])
+    it(`does not press: "${said}"`, () => {
+      expect(internalsTurn(afterFailedSearch(['caller', said]).items, said, on)).toBe('');
+    });
 });
