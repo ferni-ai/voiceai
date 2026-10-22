@@ -1,13 +1,7 @@
 #!/usr/bin/env node
-// Realistic caller: rewrite a scripted line the way people actually talk, before TTS.
-//
-// Cooperative lines in clean TTS are why eval numbers run high (Sim2Real 76.0 vs 92.9; see
-// "Synthetic callers are too nice" in the memory/affect/evaluation report). A persona from
-// caller-personas.json adds ums, restarts, trailing off, a varied rate, and mid-turn pauses of
-// 400-1500 ms placed mid-thought, which a good turn detector should NOT take as the end of the turn.
-// Pauses are [[slnc N]]: `say` reads it as silence, caller-tts.mjs splices real silence in.
-// Off unless run.sh is given --realistic, CALLER_REALISM=<persona>, or a "#@caller <persona>" line.
-//
+// Realistic caller (README "Realistic callers"): rewrite a scripted line the way people talk, before
+// TTS, per a caller-personas.json persona. Pauses are [[slnc N]]: `say` reads it as silence,
+// caller-tts.mjs splices real silence in.
 // usage:
 //   caller-realism.mjs check <persona>                 prints the default Cartesia voice; exit 2 if unknown
 //   caller-realism.mjs line <persona> <seed> <say|cartesia> <text...>   prints the line to render

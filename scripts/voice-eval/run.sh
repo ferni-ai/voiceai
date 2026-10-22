@@ -3,14 +3,10 @@
 #
 # usage: scripts/voice-eval/run.sh [--persona <id>] [--echo] [--echo-gain-db N] [--echo-delay-ms N]
 #          [--echo-noise-db N] [--realistic] <dev|prod|local|phone> <scenario> [label] [user_id]
-#   --realistic: the caller talks like a person (caller-realism.mjs): ums, restarts, a varied
-#             rate, 400-1500 ms pauses mid-thought, in a Cartesia voice unless CALLER_VOICE is set.
-#             CALLER_REALISM=<persona> picks one from caller-personas.json (1 = everyday); a
-#             scenario's "#@caller <persona>" line turns it on for that scenario. Writes
-#             <scenario>-<label>.realism.json (realism-metrics.mjs: takeover, false-end, gap,
-#             barge-in stop). VOICE_EVAL_HUMAN_CLIPS=<dir> plays recorded takes from
-#             <dir>/manifest.json instead of TTS for the turns it lists (never call audio).
-#             EVAL_RENDER_ONLY=1 renders the caller's lines, prints their dir, and makes no call.
+#   --realistic: a caller that talks like a person (README "Realistic callers"), Cartesia voice
+#             unless CALLER_VOICE is set; also CALLER_REALISM=<persona> or "#@caller <persona>".
+#             Writes <scenario>-<label>.realism.json. VOICE_EVAL_HUMAN_CLIPS=<dir>: recorded takes
+#             from <dir>/manifest.json (caller-realism.mjs). EVAL_RENDER_ONLY=1: render, no call.
 #   --echo*:  speakerphone echo: the agent's own audio mixed into the caller's mic
 #             (defaults -18 dB, 120 ms, no noise; any --echo-* turns it on; env
 #             EVAL_ECHO=1 / EVAL_ECHO_*). See docs/testing/VOICE-EVAL-ECHO.md.

@@ -12,17 +12,12 @@
 //   falseEndRate   of the scripted turns with a pause, the share where Ferni's voice started any time
 //                  between the first pause and the caller's last word: the turn was ended early, even
 //                  when the reply landed after the caller had started again
-//   gapMs          p50/p90 from the caller's last word to Ferni's next voice (turns he wasn't already
-//                  talking over, answered within ANSWER_WINDOW_MS)
-//   bargeInStopMs  p50/p90 from the onset of an @interrupt line, said while Ferni was talking, to the
-//                  end of that stretch of his voice (his audio stopping)
-// Ferni's voice is his reply track (background tracks carry backchannel clips). A stretch of
-// BACKCHANNEL_MAX_MS or less inside a pause could be a clip wired to that track or a reply cut at
-// once, so it is counted apart (shortInPauses), not as a takeover. Gaps count every onset.
-//
-// `values` in the output is the per-call shape paired.mjs's pairedCompare takes ({ metric: number|null },
-// metric ids "rt:*"): realismValues(dir) concatenates with sweepValues(dir) for a release check.
-// The file has no meta/events, so predicates/call.mjs's loadSweep skips it.
+//   gapMs          p50/p90, caller's last word to Ferni's next voice (not talked over, ≤ ANSWER_WINDOW_MS)
+//   bargeInStopMs  p50/p90, onset of an @interrupt said while Ferni talked to the end of that voice stretch
+// Ferni's voice is his reply track. A stretch ≤ BACKCHANNEL_MAX_MS in a pause may be a clip or a reply
+// cut at once: counted apart (shortInPauses), not as a takeover. Gaps count every onset.
+// `values` ("rt:*") is pairedCompare's per-call input: concatenate realismValues(dir) with
+// sweepValues(dir) for a release check. No meta/events, so loadSweep skips the file.
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { formatPaired, pairedCompare } from './paired.mjs';
