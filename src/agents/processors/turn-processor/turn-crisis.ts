@@ -172,6 +172,7 @@ export function startTurnCrisis(
                   scope,
                   env,
                   adjudicatorLive: adjudicatorMode === 'live',
+                  adjudicate: options.adjudicate,
                   source: 'pipeline',
                 }));
               if (!only) return { crisis, soft: false };

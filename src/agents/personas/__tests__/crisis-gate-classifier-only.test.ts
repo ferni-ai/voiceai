@@ -6,8 +6,11 @@
  * stand. Through the real reply gate and turn pipeline, with prod's crisis
  * flags:
  *   - CRISIS_CLASSIFIER_ONLY_CHECKIN off or shadow: the 988 guidance, as today;
- *   - live: the soft check-in, in the gate and the pipeline alike;
- *   - every turn with independent support keeps exactly what it had.
+ *   - live: the independent second read (the adjudicator) decides; its
+ *     confident checkin gives the soft check-in in the gate and the pipeline,
+ *     and escalate, a timeout or an error keep the 988 guidance;
+ *   - every turn with independent support keeps exactly what it had, even
+ *     when the second read would wrongly say checkin.
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it } from 'vitest';
@@ -18,6 +21,7 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
+import { resetClassifierOnlyReads } from '../../../services/safety/crisis-classifier-only.js';
 import { crisisSummary, startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { startCrisisGate } from '../crisis-gate.js';
 
@@ -32,6 +36,9 @@ const CRISIS = '{"risk":"crisis","subject":"self"}';
 const IMMINENT = '{"risk":"imminent","subject":"self"}';
 const THIRD = '{"risk":"crisis","subject":"third_party"}';
 const NONE = '{"risk":"none","subject":"self"}';
+/** The adjudicator's replies. */
+const CHECKIN = '{"caller_risk":"","decision":"checkin","confidence":"high"}';
+const ESCALATE = '{"caller_risk":"so tired","decision":"escalate","confidence":"high"}';
 
 interface Call {
   earlier: string[];
@@ -84,6 +91,7 @@ beforeEach(() => {
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
   resetCallRiskSnapshots();
+  resetClassifierOnlyReads();
 });
 
 function request(call: Call): llm.ChatContext {
@@ -107,8 +115,10 @@ async function turn(
   call: Call,
   mode: string | undefined,
   reads: [gate: string, pipeline: string] = [CRISIS, CRISIS],
-  opts: { session?: string | null; earlierRisk?: boolean } = {}
+  opts: { session?: string | null; earlierRisk?: boolean; adjudicate?: CrisisGenerateFn } = {}
 ): Promise<{ gate: Heard; pipeline: Heard; modelCalls: number }> {
+  // Unless a test says otherwise, the second read says checkin: the worst case for a must-not.
+  const adjudicate = opts.adjudicate ?? (async () => CHECKIN);
   const env = mode === undefined ? PROD : { ...PROD, CRISIS_CLASSIFIER_ONLY_CHECKIN: mode };
   const session = opts.session === null ? undefined : (opts.session ?? `call-${++calls}`);
   let modelCalls = 0;
@@ -127,12 +137,17 @@ async function turn(
       {
         env,
         generate: generate(CRISIS),
+        adjudicate,
       }
     );
     await gate?.escalation;
   }
   const userData = session ? { services: { sessionId: session } } : {};
-  const gate = startCrisisGate(request(call), userData, { env, generate: generate(reads[0]) });
+  const gate = startCrisisGate(request(call), userData, {
+    env,
+    generate: generate(reads[0]),
+    adjudicate,
+  });
   const pipeline = startTurnCrisis(
     call.latest,
     // The pipeline keeps the last ten caller lines, this one included (transcript-handler.ts).
@@ -140,7 +155,7 @@ async function turn(
       recentTranscripts: [...PIPELINE_ONLY, ...call.earlier, call.latest],
       lastAgentResponse: call.companion,
     },
-    { sessionId: session, env, generate: generate(reads[1]) }
+    { sessionId: session, env, generate: generate(reads[1]), adjudicate }
   );
   const [decision, crisis, soft] = await Promise.all([
     gate?.escalation ? gate.escalation.then((d) => d ?? gate.decision) : gate?.decision,
@@ -185,8 +200,36 @@ describe('the 2026-10-22 false alarms', () => {
     });
   });
 
-  it.each(FALSE_ALARMS)('%s: live gives the soft check-in in both paths', async (_n, call) => {
-    expect(await turn(call, 'live')).toEqual({ gate: 'soft', pipeline: 'soft', modelCalls: 2 });
+  it.each(FALSE_ALARMS)(
+    '%s: live, the second read says checkin: the soft check-in in both paths',
+    async (_n, call) => {
+      expect(await turn(call, 'live')).toEqual({ gate: 'soft', pipeline: 'soft', modelCalls: 2 });
+    }
+  );
+
+  it.each(FALSE_ALARMS)(
+    '%s: live, the second read says escalate: the 988 guidance stays',
+    async (_n, call) => {
+      const heard = await turn(call, 'live', [CRISIS, CRISIS], {
+        adjudicate: async () => ESCALATE,
+      });
+      expect(heard).toEqual({ gate: 'guide-988', pipeline: 'guide-988', modelCalls: 2 });
+    }
+  );
+
+  it('live, the second read fails or never answers: the 988 guidance stays', async () => {
+    const failing: CrisisGenerateFn = async () => {
+      throw new Error('vertex down');
+    };
+    expect(await turn(PROD_FT, 'live', [CRISIS, CRISIS], { adjudicate: failing })).toMatchObject({
+      gate: 'guide-988',
+      pipeline: 'guide-988',
+    });
+    resetClassifierOnlyReads();
+    // Never answers: the adjudicator's own timeout (1.2 s by default) escalates.
+    const hanging: CrisisGenerateFn = () => new Promise(() => undefined);
+    const heard = await turn(DEV_LONG_ARC, 'live', [CRISIS, CRISIS], { adjudicate: hanging });
+    expect(heard).toMatchObject({ gate: 'guide-988', pipeline: 'guide-988' });
   });
 });
 
@@ -257,7 +300,7 @@ describe('turns with independent support keep exactly what they had (live === of
     const gate = startCrisisGate(
       request(PROD_FT),
       { services: { sessionId: session } },
-      { env, generate: fast }
+      { env, generate: fast, adjudicate: async () => CHECKIN }
     );
     startTurnCrisis(
       PROD_FT.latest,
@@ -265,7 +308,7 @@ describe('turns with independent support keep exactly what they had (live === of
         recentTranscripts: [...PIPELINE_ONLY, ...PROD_FT.earlier],
         lastAgentResponse: PROD_FT.companion,
       },
-      { sessionId: session, env, generate: slow }
+      { sessionId: session, env, generate: slow, adjudicate: async () => CHECKIN }
     );
     const decision = await gate?.escalation;
     expect(decision?.action).toBe('guide');

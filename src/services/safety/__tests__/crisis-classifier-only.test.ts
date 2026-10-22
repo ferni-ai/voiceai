@@ -1,8 +1,10 @@
 /**
  * CRISIS_CLASSIFIER_ONLY_CHECKIN: each reason a classifier crisis read keeps
- * its guidance, the one shape that gets the check-in, and the modes: off does
- * nothing, shadow logs and changes nothing, live eases only 'checkin', and any
- * error keeps the guidance.
+ * its guidance, the one shape that goes to the independent second read (the
+ * crisis adjudicator), and the modes: off does nothing, shadow logs and
+ * changes nothing, live eases only on the second read's confident "checkin",
+ * and anything else (escalate, low confidence, risk quoted, timeout, error)
+ * keeps the guidance.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,15 +17,30 @@ vi.mock('../../../utils/safe-logger.js', () => {
 import {
   classifierOnlyCheckin,
   classifierOnlyWhy,
+  resetClassifierOnlyReads,
   resolveClassifierOnlyCheckin,
   type ClassifierOnlyArgs,
 } from '../crisis-classifier-only.js';
-import { resetCrisisClassifierCache, type CrisisVerdict } from '../crisis-classifier.js';
+import {
+  resetCrisisClassifierCache,
+  type CrisisGenerateFn,
+  type CrisisVerdict,
+} from '../crisis-classifier.js';
 import { detectCrisis } from '../crisis-guard.js';
 
 const CRISIS: CrisisVerdict = { risk: 'crisis', subject: 'self' };
 const IMMINENT: CrisisVerdict = { risk: 'imminent', subject: 'self' };
 const NONE: CrisisVerdict = { risk: 'none', subject: 'self' };
+
+/** The adjudicator's replies. */
+const SAYS = {
+  checkin: '{"caller_risk":"","decision":"checkin","confidence":"high"}',
+  escalate: '{"caller_risk":"not so much","decision":"escalate","confidence":"high"}',
+  lowConfidence: '{"caller_risk":"","decision":"checkin","confidence":"low"}',
+  riskQuoted: '{"caller_risk":"once, maybe","decision":"checkin","confidence":"high"}',
+  garbage: 'sure!',
+};
+const adjudicator = (reply: string): CrisisGenerateFn => vi.fn(async () => reply);
 
 /** The 2026-10-22 prod canary turn: three quiet lines, a question about the week. */
 const EARLIER = [
@@ -51,12 +68,13 @@ function args(over: Partial<ClassifierOnlyArgs> = {}): ClassifierOnlyArgs {
 beforeEach(() => {
   info.mockClear();
   resetCrisisClassifierCache();
+  resetClassifierOnlyReads();
 });
 
 describe('classifierOnlyWhy', () => {
-  it('eases the prod canary turn: two reads of one classifier, nothing else', () => {
-    expect(classifierOnlyWhy(args())).toBe('checkin');
-    expect(classifierOnlyWhy(args({ verdicts: [CRISIS] }))).toBe('checkin');
+  it('sends the prod canary turn to the second read: two reads of one classifier, nothing else', () => {
+    expect(classifierOnlyWhy(args())).toBe('eligible');
+    expect(classifierOnlyWhy(args({ verdicts: [CRISIS] }))).toBe('eligible');
   });
 
   it.each<[string, Partial<ClassifierOnlyArgs>, string]>([
@@ -99,8 +117,10 @@ describe('classifierOnlyWhy', () => {
   });
 
   it('fails closed on input it cannot read', () => {
-    expect(classifierOnlyWhy(args({ latest: undefined as unknown as string }))).not.toBe('checkin');
-    expect(classifierOnlyWhy(args({ earlier: [42 as unknown as string] }))).not.toBe('checkin');
+    expect(classifierOnlyWhy(args({ latest: undefined as unknown as string }))).not.toBe(
+      'eligible'
+    );
+    expect(classifierOnlyWhy(args({ earlier: [42 as unknown as string] }))).not.toBe('eligible');
     const throwing = {
       get isCrisis(): boolean {
         throw new Error('boom');
@@ -132,36 +152,107 @@ describe('classifierOnlyCheckin', () => {
       input: { latest: LATEST, earlier: EARLIER, companion: COMPANION },
       priorRisk: false,
       env: mode === undefined ? {} : { CRISIS_CLASSIFIER_ONLY_CHECKIN: mode },
+      adjudicate: adjudicator(SAYS.checkin),
       source: 'gate',
       ...over,
     });
-  const logged = () => info.mock.calls.filter((c) => c[1] === 'CRISIS_CLASSIFIER_ONLY');
+  const logged = () =>
+    info.mock.calls
+      .filter((c) => c[1] === 'CRISIS_CLASSIFIER_ONLY')
+      .map((c) => {
+        const { secondReadMs: _ms, ...rest } = c[0] as Record<string, unknown>;
+        return rest;
+      });
+  const settle = () => new Promise((r) => setTimeout(r, 0));
 
-  it('off: never eases and logs nothing', async () => {
-    expect(await run(undefined)).toBe(false);
-    expect(await run('off')).toBe(false);
+  it('off: never eases, never asks the second read, logs nothing', async () => {
+    const adjudicate = adjudicator(SAYS.checkin);
+    expect(await run(undefined, { adjudicate })).toBe(false);
+    expect(await run('off', { adjudicate })).toBe(false);
+    expect(adjudicate).not.toHaveBeenCalled();
     expect(logged()).toHaveLength(0);
   });
 
-  it('shadow: logs what live would do and never eases', async () => {
+  it('shadow: runs the second read off the reply path, logs what live would do, never eases', async () => {
     expect(await run('shadow')).toBe(false);
     expect(await run('shadow', { priorRisk: true })).toBe(false);
-    expect(logged().map((c) => c[0])).toEqual([
-      { mode: 'shadow', source: 'gate', outcome: 'checkin', why: 'checkin', reads: 1 },
-      { mode: 'shadow', source: 'gate', outcome: 'escalate', why: 'prior_risk', reads: 1 },
-    ]);
+    await settle();
+    expect(logged()).toEqual(
+      expect.arrayContaining([
+        { mode: 'shadow', source: 'gate', reads: 1, outcome: 'escalate', why: 'prior_risk' },
+        {
+          mode: 'shadow',
+          source: 'gate',
+          reads: 1,
+          outcome: 'checkin',
+          why: 'second_read_checkin',
+          secondRead: 'model',
+        },
+      ])
+    );
   });
 
-  it('live: eases only a turn nothing else agrees with', async () => {
+  it("live: eases only on the second read's confident checkin", async () => {
     expect(await run('live')).toBe(true);
-    expect(await run('live', { verdict: IMMINENT })).toBe(false);
-    expect(await run('live', { verdict: null })).toBe(false);
-    expect(logged().map((c) => c[0].why)).toEqual(['checkin', 'imminent', 'missing_read']);
+    expect(logged().at(-1)).toMatchObject({ outcome: 'checkin', why: 'second_read_checkin' });
+  });
+
+  it.each([
+    ['escalate', SAYS.escalate, 'model'],
+    ['low confidence', SAYS.lowConfidence, 'low_confidence'],
+    ['caller risk quoted', SAYS.riskQuoted, 'risk_quoted'],
+    ['an unparsed reply', SAYS.garbage, 'unparsed'],
+  ])('live: the second read says %s, the guidance stays', async (_n, reply, secondRead) => {
+    expect(await run('live', { adjudicate: adjudicator(reply) })).toBe(false);
+    expect(logged().at(-1)).toMatchObject({
+      outcome: 'escalate',
+      why: 'second_read_escalate',
+      secondRead,
+    });
+  });
+
+  it('live: a second read that fails or times out keeps the guidance', async () => {
+    const failing: CrisisGenerateFn = async () => {
+      throw new Error('vertex down');
+    };
+    expect(await run('live', { adjudicate: failing })).toBe(false);
+    expect(logged().at(-1)).toMatchObject({ secondRead: 'error' });
+    resetClassifierOnlyReads();
+    const hanging: CrisisGenerateFn = () => new Promise(() => undefined);
+    expect(
+      await run('live', {
+        adjudicate: hanging,
+        env: { CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live', CRISIS_ADJUDICATOR_TIMEOUT_MS: '20' },
+      })
+    ).toBe(false);
+    expect(logged().at(-1)).toMatchObject({ secondRead: 'timeout' });
+  });
+
+  it('live: too little call for the second read to judge keeps the guidance', async () => {
+    const transcript = [{ speaker: 'caller' as const, text: LATEST }];
+    expect(await run('live', { transcript })).toBe(false);
+    expect(logged().at(-1)).toMatchObject({ secondRead: 'no_context' });
+  });
+
+  it('live: a turn with independent support never reaches the second read', async () => {
+    const adjudicate = adjudicator(SAYS.checkin);
+    expect(await run('live', { verdict: IMMINENT, adjudicate })).toBe(false);
+    expect(await run('live', { verdict: null, adjudicate })).toBe(false);
+    expect(await run('live', { priorRisk: true, adjudicate })).toBe(false);
+    expect(adjudicate).not.toHaveBeenCalled();
+    expect(logged().map((c) => c.why)).toEqual(['imminent', 'missing_read', 'prior_risk']);
   });
 
   it("live: weighs every read of the turn under the call's scope", async () => {
     // No read was kept under this scope, so the lookup finds none: a missing read keeps the guidance.
     expect(await run('live', { scope: 'call-with-no-reads' })).toBe(false);
-    expect(logged().at(-1)?.[0]).toMatchObject({ why: 'missing_read', reads: 0 });
+    expect(logged().at(-1)).toMatchObject({ why: 'missing_read', reads: 0 });
+  });
+
+  it("shares one second read between a turn's duplicate requests", async () => {
+    const adjudicate = adjudicator(SAYS.checkin);
+    expect(await run('live', { adjudicate, scope: undefined })).toBe(true);
+    expect(await run('live', { adjudicate, scope: undefined })).toBe(true);
+    expect(adjudicate).toHaveBeenCalledTimes(1);
   });
 });

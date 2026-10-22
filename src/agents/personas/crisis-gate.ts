@@ -302,6 +302,8 @@ export function startCrisisGate(
         priorRisk,
         scope,
         adjudicatorLive: adjudicatorMode === 'live',
+        transcript: callTranscript(chatCtx),
+        adjudicate: options.adjudicate,
         env,
         source: 'gate',
       }))
