@@ -19,7 +19,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import admin from 'firebase-admin';
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
@@ -28,7 +28,7 @@ import { rateLimit, requireAdmin } from './auth-middleware.js';
 import { waitlistRateLimit } from './waitlist-rate-limits.js';
 import { handleCorsPreflightIfNeeded, parseBody } from './helpers.js';
 import { grantAccess, grantFoundingMember, waitlistGateOn } from './open-access.js';
-import { ADMIN_BYPASS_EMAILS, isAdmitted } from './admission.js';
+import { isAdminEmail, isAdmitted } from './admission.js';
 import {
   buildApprovalUrl,
   getApprovalSecret,
@@ -257,7 +257,7 @@ async function handleSignup(req: IncomingMessage, res: ServerResponse): Promise<
 
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // Filter out undefined values - Firestore rejects undefined
     const signup: WaitlistSignup = {
@@ -333,7 +333,7 @@ async function handleFeatureVote(req: IncomingMessage, res: ServerResponse): Pro
 
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // Increment vote count atomically (using feature stats collection)
     const featureRef = db.collection('roadmap_feature_stats').doc(featureId);
@@ -409,7 +409,7 @@ async function handleGetVotes(res: ServerResponse, featureId: string): Promise<b
 
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     const doc = await db.collection('roadmap_feature_stats').doc(featureId).get();
     const votes = doc.exists ? doc.data()?.votes || 0 : 0;
@@ -456,7 +456,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
   try {
     ensureFirebaseInitialized();
     const auth = admin.auth();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // Verify Firebase token
     const decodedToken = await auth.verifyIdToken(idToken);
@@ -486,7 +486,7 @@ async function handleCheckAccess(req: IncomingMessage, res: ServerResponse): Pro
     // =========================================================================
     // ADMIN BYPASS - Founders/admins should NEVER be blocked
     // =========================================================================
-    if (ADMIN_BYPASS_EMAILS.includes(email)) {
+    if (isAdminEmail(email)) {
       log.info({ email: hashEmail(email) }, '👑 Admin bypass - auto-approved');
       sendJson(res, 200, {
         approved: true,
@@ -842,7 +842,7 @@ async function approveUserAndGrantAccess(
   approvedBy: string
 ): Promise<{ success: boolean; phone?: string; error?: string }> {
   ensureFirebaseInitialized();
-  const db = getFirestore();
+  const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
   // Find the waitlist entry
   const docId = Buffer.from(email.toLowerCase().trim()).toString('base64').replace(/[/+=]/g, '_');
@@ -1545,7 +1545,7 @@ function generateApprovalResultPage(
 async function handleAdminList(req: IncomingMessage, res: ServerResponse): Promise<boolean> {
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     const url = new URL(req.url || '/', `http://${req.headers.host}`);
     const limit = Math.min(parseInt(url.searchParams.get('limit') || '50', 10), 250);
@@ -1605,7 +1605,7 @@ async function handleAdminList(req: IncomingMessage, res: ServerResponse): Promi
 async function handleAdminStats(res: ServerResponse): Promise<boolean> {
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // Get total count
     const countSnapshot = await db.collection('waitlist').count().get();
@@ -1677,7 +1677,7 @@ async function handleAdminStats(res: ServerResponse): Promise<boolean> {
 async function handleAdminExport(res: ServerResponse): Promise<boolean> {
   try {
     ensureFirebaseInitialized();
-    const db = getFirestore();
+    const db = (await import('../utils/firebase-admin-app.js')).getAdminFirestore();
 
     const snapshot = await db.collection('waitlist').orderBy('timestamp', 'desc').get();
 

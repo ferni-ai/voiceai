@@ -113,7 +113,7 @@ let db: FirebaseFirestore.Firestore | null = null;
 function getDb(): FirebaseFirestore.Firestore {
   if (!db) {
     try {
-      db = getFirestore();
+      db = getFirestore(process.env.FIRESTORE_DATABASE || '(default)');
     } catch (error) {
       log.warn({ error }, 'Firestore not initialized, using memory-only mode');
       throw new Error('Firestore not available');

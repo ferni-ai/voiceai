@@ -5,6 +5,7 @@
  * or neither. Writes outside a batch apply at once, so a non-atomic correction
  * would show here as half a write.
  */
+import { FieldValue } from '@google-cloud/firestore';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const removed: string[] = [];
@@ -20,6 +21,14 @@ vi.mock('../../retrieval/semantic-memory-search.js', () => ({
 }));
 
 type Data = Record<string, unknown>;
+/** An update as Firestore applies it: FieldValue.delete() removes the field. */
+function patched(prev: Data | undefined, patch: Data): Data {
+  const out = { ...prev, ...patch };
+  for (const [k, v] of Object.entries(patch)) {
+    if (v instanceof FieldValue && v.isEqual(FieldValue.delete())) delete out[k];
+  }
+  return out;
+}
 const db = vi.hoisted(() => ({
   docs: new Map<string, Record<string, unknown>>(),
   failCommit: false,
@@ -35,7 +44,7 @@ function docRef(path: string) {
       data: () => db.docs.get(path),
     }),
     update: async (patch: Data) => {
-      db.docs.set(path, { ...db.docs.get(path), ...patch });
+      db.docs.set(path, patched(db.docs.get(path), patch));
     },
     create: async (data: Data) => {
       if (db.docs.has(path)) throw new Error('exists');
@@ -90,7 +99,7 @@ vi.mock('../../../utils/firestore-utils.js', () => ({
       const ops: Array<() => void> = [];
       return {
         update: (ref: { path: string }, patch: Data) =>
-          ops.push(() => db.docs.set(ref.path, { ...db.docs.get(ref.path), ...patch })),
+          ops.push(() => db.docs.set(ref.path, patched(db.docs.get(ref.path), patch))),
         create: (ref: { path: string }, data: Data) =>
           ops.push(() => {
             if (db.docs.has(ref.path)) throw new Error('exists');
@@ -135,6 +144,22 @@ describe('forgetting a fact in the app', () => {
       syncedToSpanner: false, // the next graph sync removes the copy it made
     });
     expect(removed).toEqual(['conversation:fact_dog', 'semantic:fact_fact_u1_dog']);
+  });
+});
+
+describe('a stored vector (RECALL_VECTOR_INDEX)', () => {
+  it('is deleted in the write that forgets or corrects the fact, so a vector search misses it', async () => {
+    const withVector = { ...dog, embedding: FieldValue.vector([0.1, 0.2]) };
+    db.docs.set(`${FACTS}/dog`, { ...withVector });
+    expect(await forgetRemembered('u1', 'dog', store)).toBe(true);
+    expect(db.docs.get(`${FACTS}/dog`)).not.toHaveProperty('embedding');
+    expect(db.docs.get(`${FACTS}/dog`)).toHaveProperty('forgottenAt');
+
+    db.docs.set(`${FACTS}/dog`, { ...withVector });
+    const result = await correctRemembered('u1', 'dog', 'labradoodle', store);
+    expect(result.kind).toBe('corrected');
+    expect(db.docs.get(`${FACTS}/dog`)).not.toHaveProperty('embedding');
+    expect(db.docs.get(`${FACTS}/dog`)).toHaveProperty('correctedBy');
   });
 });
 

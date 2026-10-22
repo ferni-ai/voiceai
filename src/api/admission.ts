@@ -4,7 +4,7 @@
  * isn't a web-only screen that a reload or a direct API call walks past.
  *
  * Admitted, any one of:
- *  - an admin address (ADMIN_BYPASS_EMAILS);
+ *  - an admin address (ADMIN_BYPASS_EMAILS) or the owner's (OWNER_EMAIL);
  *  - a waitlist entry that is approved / admitted / joined;
  *  - an active subscription (user_profiles, or legacy bogle_users), which
  *    open access gave everyone who signed in since 2026-10-03;
@@ -24,16 +24,25 @@ import { waitlistGateOn } from './open-access.js';
 import { getFirestoreDb } from '../utils/firestore-utils.js';
 import { isCohortMember } from '../services/platform/cohort-membership.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { isOwnerEmail } from '../config/owner-email.js';
 
 const log = createLogger({ module: 'Admission' });
 
-/** Founders/admins: never blocked. Exact strings (Gmail dots are not folded). */
-export const ADMIN_BYPASS_EMAILS: readonly string[] = [
-  'noreply@ferni.ai',
-  'sethford@gmail.com',
-  'seth.ford@gmail.com',
-  'admin@ferni.ai',
-];
+/**
+ * Admin addresses: never blocked. Exact strings. The owner's own address is not
+ * here: it comes from OWNER_EMAIL (a secret; this repo is public), see isAdminEmail.
+ */
+export const ADMIN_BYPASS_EMAILS: readonly string[] = ['noreply@ferni.ai', 'admin@ferni.ai'];
+
+/** An admin address, or the owner's (OWNER_EMAIL, Gmail dots folded). False for no email. */
+export function isAdminEmail(
+  email: string | undefined,
+  env: NodeJS.ProcessEnv = process.env
+): boolean {
+  if (!email) return false;
+  return ADMIN_BYPASS_EMAILS.includes(email) || isOwnerEmail(email, env);
+}
+
 export const ADMISSION_COHORT = 'friends-and-family';
 export const ADMISSION_CACHE_TTL_MS = 60_000;
 const ADMITTED_STATUSES = new Set(['approved', 'admitted', 'joined']);
@@ -118,7 +127,7 @@ export async function isAdmitted(who: Who, opts: AdmissionOptions = {}): Promise
   const env = opts.env ?? process.env;
   if (!waitlistGateOn(env)) return { admitted: true, reason: 'gate-off' };
   const email = who.email?.toLowerCase().trim() || undefined;
-  if (email && ADMIN_BYPASS_EMAILS.includes(email)) return { admitted: true, reason: 'admin' };
+  if (isAdminEmail(email, env)) return { admitted: true, reason: 'admin' };
 
   const now = (opts.now ?? Date.now)();
   const key = `${who.uid}|${email ?? ''}`;

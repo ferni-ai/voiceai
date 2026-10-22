@@ -274,7 +274,7 @@ class ConversationHistoryUI {
           </div>
         ` : ''}
 
-        <div class="history__sessions">
+        <div class="history__sessions" tabindex="0" role="region" aria-label="${t('conversationHistory.sessionsRegion')}">
           ${data.sessions.length > 0 
             ? data.sessions.map((s, i) => this.renderSession(s, i, data.favoritePersona)).join('')
             : this.renderEmptyState()

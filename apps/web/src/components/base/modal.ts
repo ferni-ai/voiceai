@@ -139,7 +139,7 @@ export class Modal extends BaseComponent {
               </button>
             ` : ''}
           </header>
-          <div class="ferni-modal__content">
+          <div class="ferni-modal__content" tabindex="0" role="region" aria-labelledby="modal-title">
             ${content}
           </div>
         </div>

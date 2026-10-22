@@ -65,7 +65,10 @@ vi.mock('../../services/user-preferences-store.js', () => ({
 }));
 const saveCommitment = vi.fn(async (_c: { id: string; content: string }) => undefined);
 vi.mock('../../services/trust-systems/commitment-tracking.js', () => ({ saveCommitment }));
-vi.mock('../../services/communication-service.js', () => ({ sendSMS: vi.fn(async () => 'SM1') }));
+// The guarded sender's STOP and gap checks have their own tests (pick-delivery-guard.test.ts).
+vi.mock('../../services/outreach/guarded-text.js', () => ({
+  sendGuardedText: vi.fn(async () => ({ sent: true })),
+}));
 vi.mock('../../services/outreach/user-reach.js', () => ({
   userReach: async () => ({ phone: '+14155550134' }),
 }));
