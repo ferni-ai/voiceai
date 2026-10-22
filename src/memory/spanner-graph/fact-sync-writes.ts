@@ -12,11 +12,12 @@
  * @module memory/spanner-graph/fact-sync-writes
  */
 import { getDatabase, isSpannerReady } from './client.js';
+import { graphWriteSkipped } from './graph-write-gate.js';
 import type { GraphFact } from './schema.js';
 
 /** Upserts the fact and waits for its semantic-index copy. false when the graph write fails. */
 export async function insertSyncedFact(fact: Omit<GraphFact, 'createdAt'>): Promise<boolean> {
-  if (!isSpannerReady()) return false;
+  if (!isSpannerReady() || graphWriteSkipped('insertSyncedFact')) return false;
   const domain = fact.domain || 'general';
   try {
     await getDatabase().runTransactionAsync(async (transaction) => {
@@ -59,7 +60,7 @@ export async function insertSyncedFact(fact: Omit<GraphFact, 'createdAt'>): Prom
  * Throws unless all are confirmed gone, so the sync never marks it done.
  */
 export async function deleteFact(userId: string, factId: string): Promise<void> {
-  if (!isSpannerReady()) throw new Error('Spanner not ready');
+  if (!isSpannerReady() || graphWriteSkipped('deleteFact')) throw new Error('Spanner not ready');
   await getDatabase().runTransactionAsync(async (transaction) => {
     await transaction.runUpdate({
       sql: 'DELETE FROM entity_facts WHERE user_id = @userId AND fact_id = @factId',

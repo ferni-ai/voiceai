@@ -1,6 +1,6 @@
 {
   "_about": "One source for the privacy policy's 'Your data at a glance' table, its provider table, and /privacy/data.json. scripts/__tests__/privacy-data.test.ts checks that every provider named in privacy.njk is listed here, and every provider here handles at least one kind of data.",
-  "lastReviewed": "2026-10-18",
+  "lastReviewed": "2026-10-21",
   "processors": [
     {
       "name": "Google Cloud",
@@ -41,6 +41,11 @@
       "name": "SendGrid",
       "does": "Email delivery",
       "data": "Email address, name, email content"
+    },
+    {
+      "name": "Sentry",
+      "does": "Error reports from our servers, with personal details removed",
+      "data": "What failed and where in our code, with personal details removed"
     },
     {
       "name": "Google Analytics",
@@ -111,6 +116,13 @@
       "why": "Security and fixing problems",
       "kept": "30 days",
       "processors": ["Google Cloud"]
+    },
+    {
+      "type": "Error reports",
+      "detail": "What failed and where in our code. Account details are left out, and emails, phone numbers and what you said are removed from the report",
+      "why": "To find and fix bugs",
+      "kept": "Up to 90 days, then Sentry deletes them",
+      "processors": ["Sentry"]
     }
   ]
 }

@@ -27,7 +27,6 @@
  * @module services/pubsub/pubsub-client
  */
 
-// Note: @google-cloud/pubsub must be installed: npm install @google-cloud/pubsub
 // Types are provided inline to avoid build errors when package isn't installed
 type PubSub = {
   topic: (name: string) => Topic;
@@ -52,6 +51,7 @@ type Message = {
   nack: () => void;
 };
 import { createLogger } from '../../utils/safe-logger.js';
+import { skipOnNonProdDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'PubSubClient' });
 
@@ -197,7 +197,7 @@ class PubSubClient {
       ackDeadlineSeconds: config.ackDeadlineSeconds ?? 60, // 1 minute
       maxConcurrent: config.maxConcurrent ?? 10,
     };
-
+    if (this.config.enabled && skipOnNonProdDatabase('Pub/Sub')) this.config.enabled = false;
     // Client is initialized lazily in initialize()
   }
 

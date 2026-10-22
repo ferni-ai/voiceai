@@ -20,6 +20,8 @@ import {
 } from '../../services/identity/returning-caller.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
+import type { UserProfile } from '../../types/user-profile.js';
+import { firstCallFallback, firstMeeting, withFirstCallIntro } from './first-call-greeting.js';
 import { callerHour } from '../shared/time-context.js';
 import {
   callerRecognitionFor,
@@ -57,15 +59,18 @@ export const PLAYFUL_GREETING_DIRECTION = GREETING_DIRECTION.replace(
  * The hello's direction for this persona. Never the playful one after a heavy
  * last call (what they talked about reads as heavy-moment.ts does) or when
  * welcome-back held back a tender thread: a tease is no way to pick that up.
+ * `introAs` is set on a first call (FIRST_CALL_INTRO).
  */
 export function greetingDirection(
   personaId: string,
   env: Env = process.env,
-  last: { topic?: string; tender?: boolean } = {}
+  last: { topic?: string; tender?: boolean } = {},
+  introAs?: string
 ): string {
   const playful = personaId === 'ferni' && flagOn('FERNI_PLAYFUL', env);
   const careful = last.tender === true || isHeavyMoment([last.topic]);
-  return playful && !careful ? PLAYFUL_GREETING_DIRECTION : GREETING_DIRECTION;
+  const base = playful && !careful ? PLAYFUL_GREETING_DIRECTION : GREETING_DIRECTION;
+  return introAs ? withFirstCallIntro(base, introAs) : base;
 }
 
 /**
@@ -344,11 +349,20 @@ export function proactiveFallback(userName: string | undefined): string {
   return `Hey${userName ? ` ${userName}` : ''}, it's Ferni, just calling to check in.`;
 }
 
+export interface GreetingUserData {
+  callerTimezone?: string;
+  userName?: string;
+  userId?: string;
+  isReturningUser?: unknown;
+  /** The session's services: their profile may still be loading (deferred-profile.ts). */
+  services?: { userProfile: UserProfile | null };
+}
+
 /** The director's hello for this caller and hour, with the scripted greeting as understudy. */
 export async function directedGreeting(
   sessionId: string,
   personaId: string,
-  userData: { callerTimezone?: string; userName?: string; userId?: string } | undefined
+  userData: GreetingUserData | undefined
 ): Promise<string> {
   const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
   // A returning caller's greeting can pick up from last time (agent-setup hands it over).
@@ -383,18 +397,21 @@ export async function directedGreeting(
   }
   const scripted = generateWarmGreeting(personaId, ctx);
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome, anniversary] = await Promise.all([
+  const [openCheckIn, openWin, pondered, welcome, anniversary, firstCall] = await Promise.all([
     checkInFor(userData?.userId),
     winFor(userData?.userId),
     ponderFor(userData?.userId, history),
     loadWelcomeBack(userData?.userId, personaId, history),
     anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
+    firstMeeting(personaId, userData, history), // FIRST_CALL_INTRO: the name to give
   ]);
   // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts), or check
   // the name someone on that number gave before (RETURNING_CALLER, returning-caller.ts).
   const unknown =
     returningCallerGreeting(sessionId) ??
     unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
+  const introAs = unknown ? undefined : firstCall;
+  if (introAs) log.info({ sessionId, personaId }, 'First call: the hello says who is calling');
   const { win, checkIn } = unknown ? {} : openingThread(openWin, openCheckIn);
   // One thread per call: a win or what they said they'd do comes before a pondered ask.
   const ask = win || checkIn ? undefined : pondered;
@@ -405,10 +422,12 @@ export async function directedGreeting(
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
   const direction =
-    greetingDirection(personaId, process.env, {
-      topic: history?.lastTopic,
-      tender: back?.heldBack,
-    }) +
+    greetingDirection(
+      personaId,
+      process.env,
+      { topic: history?.lastTopic, tender: back?.heldBack },
+      introAs
+    ) +
     (win ? WIN_DIRECTION : '') +
     (checkIn ? CHECK_IN_DIRECTION : '') +
     (ask && !unknown ? PONDER_DIRECTION : '') +
@@ -429,7 +448,7 @@ export async function directedGreeting(
       ),
       back
     ),
-    fallback: scripted,
+    fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
     urgency: 'now',
     maxChars: 140,
   });
