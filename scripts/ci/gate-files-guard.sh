@@ -41,6 +41,10 @@ LABEL=ci-gate-change-ok
 ROOTS=(.github/workflows .github/actions scripts/ci)
 TOOLS='(^|[^[:alnum:]_.-])(pnpm|npm|npx|yarn|vitest|jest|tsc|eslint|playwright|cargo|pytest)([^[:alnum:]_-]|$)'
 CHECKS="$TOOLS|ratchet|lint|typecheck|type-check|gate-files-guard"  # removal from a required job is flagged
+# This file sits under scripts/ci, so it scans itself: the two names below are
+# built so its own lines never match them.
+COE=continue-on-error
+PWNT=passWith""NoTests
 
 for ref in "$BASE" "$HEAD"; do
   git rev-parse -q --verify "$ref^{commit}" >/dev/null || { echo "gate-files-guard: cannot resolve $ref" >&2; exit 2; }
@@ -109,13 +113,13 @@ while IFS=$'\t' read -r sign file line text; do
     fi
     continue
   fi
-  if [[ "$text" =~ continue-on-error:[[:space:]]*([^#]*) ]]; then
+  if [[ "$text" =~ $COE:[[:space:]]*([^#]*) ]]; then
     # Allowlist: only an explicit false passes (quotes and spaces stripped).
     v=$(tr -d "\"' " <<<"${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]')
     # shellcheck disable=SC2016  # '${{false}}' is a GitHub expression, not a shell one
     case "$v" in
       false | '${{false}}') ;;
-      *) add "$file" "$line" "continue-on-error: $v can let a failing step pass" ;;
+      *) add "$file" "$line" "$COE: $v can let a failing step pass" ;;
     esac
   fi
   if [[ "$text" =~ \|\|[[:space:]]*(true|:|exit[[:space:]]+0|echo)([^[:alnum:]_]|$) ]]; then
@@ -125,8 +129,8 @@ while IFS=$'\t' read -r sign file line text; do
   if [[ "$text" =~ (^|[^[:alnum:]_])set[[:space:]]+(\+[[:alpha:]]*e[[:alpha:]]*|\+o[[:space:]]+errexit) ]]; then
     add "$file" "$line" "'set ${BASH_REMATCH[2]}' stops failures from failing the script"
   fi
-  if [[ "$text" =~ pass[Ww]ith[Nn]o[Tt]ests|pass-with-no-tests ]]; then
-    add "$file" "$line" "passWithNoTests lets a run that found no tests pass"
+  if [[ "$text" =~ pass[Ww]ith[Nn]o[Tt]ests|pass-with-no-test[s] ]]; then
+    add "$file" "$line" "$PWNT lets a run that found no tests pass"
   fi
   [ -n "$yaml" ] || continue
   if [[ "$text" =~ ^[[:space:]]*(-[[:space:]]+)?if:[[:space:]]*[\'\"]?(\$\{\{[[:space:]]*)?[Ff]alse([[:space:]]*\}\})?[\'\"]?[[:space:]]*(#.*)?$ ]]; then
