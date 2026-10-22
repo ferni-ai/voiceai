@@ -134,9 +134,14 @@ export function metric(check, runs, caps, extra = {}) {
       return { value: s.length ? value : null, n: s.length };
     }
     case 'toolChoiceRate': {
-      // INVALID (too many errored rows) measured a biased subset: no data, so WARN.
+      // Only a choice-score.mjs summary with a finite rate and a PASS/FAIL verdict measured
+      // anything; INVALID, a raw row array or a malformed file is no data (WARN), never a PASS.
+      // The value is the worse of the scored-rows rate and the errors-counted-wrong worst case.
       const t = extra.toolChoice;
-      return { value: t && t.verdict !== 'INVALID' ? round(t.rate) : null, n: t?.n ?? 0 };
+      const ok =
+        t && !Array.isArray(t) && Number.isFinite(t.rate) && ['PASS', 'FAIL'].includes(t.verdict);
+      const value = ok ? Math.min(t.rate, Number.isFinite(t.worst) ? t.worst : t.rate) : null;
+      return { value: round(value), n: ok && Number.isFinite(t.n) ? t.n : 0 };
     }
     default:
       throw new Error(`unknown metric ${check.metric}`);
@@ -215,6 +220,9 @@ export function diffNights(capabilities) {
     if (c.verdict === 'FAIL' && c.prev !== 'FAIL') newFail.push(id);
     else if (c.prev && RANK[c.verdict] > RANK[c.prev])
       regressions.push(`${id}: ${c.prev} -> ${c.verdict}`);
+    // A FAIL that now measures nothing hasn't been fixed: a broken harness must not read as better.
+    else if (c.prev === 'FAIL' && c.checks.some((k) => k.reason === 'no data'))
+      regressions.push(`${id}: FAIL -> no data`);
     for (const k of c.checks.filter((k) => k.regressed))
       regressions.push(`${id}.${k.id}: ${k.reason}`);
   }

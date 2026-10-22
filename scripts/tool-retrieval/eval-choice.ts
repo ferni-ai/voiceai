@@ -22,8 +22,7 @@
  * paired diff. Its --out file, saved as <night>/tool-choice.json, is the nightly scorecard's
  * tool-choice capability.
  */
-import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -46,6 +45,7 @@ import { capToolsToLimit, getEssentialTools } from '../../src/config/tool-config
 import { DEFAULT_ESSENTIAL_DOMAINS } from '../../src/tools/dynamic-loader/index.js';
 import { updateAgentTools } from '../../src/agents/shared/tool-updater.js';
 import { staticCoreCallTools } from '../../src/agents/shared/static-core-tools.js';
+import { loadTestSet } from './test-set.mjs';
 
 const [nArg, seedArg, label = 'live'] = process.argv.slice(2);
 const n = Number(nArg || 100);
@@ -157,16 +157,10 @@ const genai = new GoogleGenAI({
   location: 'global',
 });
 
-// The frozen, reviewed test set (synthetic requests, no user data): the same 2,375 rows as the
-// out/generated-test.json behind the September runs, in the same order, so seeds draw the same
-// requests. A changed file would silently move the metric, so it is pinned; add a v2 instead.
-const TEST_SET = 'scripts/tool-retrieval/fixtures/choice-test-v1.json';
-const TEST_SET_SHA256 = 'eaab17e8ce0487732e42713824d80f57caffed030785910ea5cf3dc2594d4f8b';
-const testSetText = readFileSync(TEST_SET, 'utf8');
-if (createHash('sha256').update(testSetText).digest('hex') !== TEST_SET_SHA256)
-  throw new Error(`${TEST_SET} changed: add a new version instead of editing it`);
+// The frozen, reviewed test set (test-set.mjs): the same 2,375 rows as the out/generated-test.json
+// behind the September runs, in the same order, so seeds draw the same requests.
 // Deterministic sample.
-const all = (JSON.parse(testSetText) as Array<{ query: string; tool: string }>).filter(
+const all = (loadTestSet() as Array<{ query: string; tool: string }>).filter(
   (item) => process.env.EVAL_LABELS !== 'head' || HEAD.has(item.tool)
 );
 let s = seed;
@@ -188,6 +182,8 @@ interface Row {
   afterFindMs?: number;
   /** A different tool than the label that does the user's job about as well (judged). */
   sufficient?: boolean;
+  /** The judge failed, so sufficient is false: an unjudged miss still counts as a miss. */
+  judgeError?: boolean;
   error?: string;
 }
 
@@ -201,7 +197,7 @@ The intended tool was ${gold}: ${describe(gold)}
 The assistant called ${got}: ${describe(got)}
 Would ${got} serve this user's request about as well as the intended tool? Be strict: a loosely related tool does not count. Answer JSON {"verdict":"yes"|"no"}`;
   const r = await genai.models.generateContent({
-    model: 'gemini-3.5-flash',
+    model: process.env.CHOICE_JUDGE_MODEL || 'gemini-3.5-flash',
     contents: [{ role: 'user', parts: [{ text: prompt }] }],
     config: {
       responseMimeType: 'application/json',
@@ -300,7 +296,12 @@ async function run(item: { query: string; tool: string }): Promise<Row> {
       );
     }
     if (row.final && row.final !== item.tool && row.final !== FIND_TOOLS) {
-      row.sufficient = await judge(item.query, item.tool, row.final);
+      // The choice is already known to be a miss; a judge failure (429, bad JSON) must not turn it
+      // into an errored row, which choice-score drops: only misses would vanish and the rate rise.
+      row.sufficient = await judge(item.query, item.tool, row.final).catch(() => {
+        row.judgeError = true;
+        return false;
+      });
     }
   } catch (error) {
     row.error = String(error).slice(0, 200);

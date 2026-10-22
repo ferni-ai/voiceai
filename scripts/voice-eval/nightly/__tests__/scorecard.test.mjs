@@ -357,3 +357,35 @@ describe('tool choice (offline metric from choice-score.mjs)', () => {
     expect(r.stdout).toMatch(/^FAIL {1,}tool-choice$/m);
   });
 });
+
+describe('tool choice input that is not a choice-score summary (review #2454)', () => {
+  const capsT = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+  const reason = (toolChoice) =>
+    check(scoreNight([], capsT, null, { toolChoice }), 'tool-choice', 'right-or-equivalent');
+  it.each([
+    ['a raw choice-*.json row array', [{ query: 'q', label: 'setTimer', final: 'setTimer' }]],
+    ['a FAIL with no rate', { verdict: 'FAIL', n: 599 }],
+    ['a rate that is a string', { rate: '73.6%', verdict: 'FAIL', n: 599 }],
+    ['an unknown verdict', { rate: 0.9, verdict: 'invalid', n: 599 }],
+    ['no verdict', { rate: 0.9, n: 599 }],
+  ])('reads %s as no data, never PASS', (_, toolChoice) => {
+    expect(reason(toolChoice)).toMatchObject({ verdict: 'WARN', reason: 'no data' });
+  });
+  it('reads a choice-score FAIL from its worst case even when the scored-rows rate clears the floor', () => {
+    expect(reason({ rate: 0.7806, worst: 0.765, verdict: 'FAIL', n: 588 }).verdict).toBe('FAIL');
+  });
+});
+
+describe('a FAIL that turns into no data', () => {
+  it('is a regression, not an improvement', () => {
+    const caps1 = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+    const prev = {
+      capabilities: scoreNight([], caps1, null, {
+        toolChoice: { rate: 0.7, n: 600, verdict: 'FAIL' },
+      }).capabilities,
+    };
+    const card = scoreNight([], caps1, prev, { toolChoice: undefined });
+    expect(card.diff.regressions).toContain('tool-choice: FAIL -> no data');
+    expect(card.diff.exit).toBe(1);
+  });
+});
