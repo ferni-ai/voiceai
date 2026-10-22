@@ -125,3 +125,19 @@ jobs:
         audience: https://app.ferni.ai/api/jobs/retry-pending-revocations
     retryConfig:
       retryCount: 0
+
+  - name: waitlist-wave
+    description: Let the next waitlist wave in, Mon and Thu (WAITLIST_WAVES)
+    schedule: "0 17 * * 1,4"
+    timeZone: Etc/UTC
+    httpTarget:
+      uri: https://app.ferni.ai/api/jobs/waitlist-wave
+      httpMethod: POST
+      headers:
+        Content-Type: application/json
+        X-CloudScheduler: "true"
+      oidcToken:
+        serviceAccountEmail: scheduler-invoker@johnb-2025.iam.gserviceaccount.com
+        audience: https://app.ferni.ai/api/jobs/waitlist-wave
+    retryConfig:
+      retryCount: 1

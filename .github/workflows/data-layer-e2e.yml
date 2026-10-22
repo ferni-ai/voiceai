@@ -17,6 +17,7 @@ on:
       - 'src/api/outreach*.ts'
       - 'src/services/outreach/outreach-history*.ts'
       - 'src/api/__tests__/menu-*.emulator.test.ts'
+      - 'src/services/waitlist/**'
       - 'src/services/platform/erase-user-record.ts'
       - 'src/services/platform/user-stores.ts'
       - 'src/services/platform/erase-other-keys.ts'
@@ -44,6 +45,7 @@ on:
       - 'src/api/outreach*.ts'
       - 'src/services/outreach/outreach-history*.ts'
       - 'src/api/__tests__/menu-*.emulator.test.ts'
+      - 'src/services/waitlist/**'
       - 'src/services/platform/erase-user-record.ts'
       - 'src/services/platform/user-stores.ts'
       - 'src/services/platform/erase-other-keys.ts'
@@ -136,6 +138,16 @@ jobs:
           NODE_ENV: test
           GOOGLE_API_KEY: ''
           SKIP_EMBEDDING: 'true'
+
+      # Waitlist waves: overlapping runs, the per-person transaction, members (services/waitlist).
+      # Runs even when an earlier suite failed (the seed ledger suite is red on main), so it's always read.
+      - name: Run Waitlist Wave Tests
+        if: ${{ !cancelled() }}
+        run: |
+          pnpm vitest run src/services/waitlist/__tests__/wave-store.emulator.test.ts --reporter=verbose
+        env:
+          FIRESTORE_EMULATOR_HOST: localhost:8080
+          NODE_ENV: test
 
       - name: Run Account Deletion Tests
         run: |

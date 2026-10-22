@@ -58,6 +58,7 @@ export const JOB_PATHS: ReadonlySet<string> = new Set([
   '/api/jobs/calendar-briefing',
   '/api/jobs/follow-through',
   '/api/jobs/retry-pending-revocations',
+  '/api/jobs/waitlist-wave',
   '/api/jobs/deep-analysis',
   '/api/jobs/pondering',
   '/api/jobs/knowledge-graph-insights',
@@ -133,6 +134,7 @@ import {
   handleFollowThrough,
   handleRetryPendingRevocations,
 } from './background-delivery-jobs.js';
+import { handleWaitlistWave } from './waitlist-jobs.js';
 
 // Memory maintenance handlers
 import {
@@ -346,6 +348,10 @@ async function dispatchJob(
 
     case '/api/jobs/retry-pending-revocations':
       await handleRetryPendingRevocations(res);
+      return true;
+
+    case '/api/jobs/waitlist-wave':
+      await handleWaitlistWave(req, res);
       return true;
 
     case '/api/jobs/deep-analysis':
