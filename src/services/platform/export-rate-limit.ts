@@ -9,7 +9,7 @@
  * @module services/platform/export-rate-limit
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { ExportLimitError } from './bounded-reader.js';
 
@@ -43,7 +43,7 @@ export async function claimExport(
 ): Promise<() => Promise<void>> {
   if (!uid || uid.includes('/')) throw new ExportLimitError('rate');
   if (runningHere >= EXPORT_RATE.maxConcurrentPerProcess) throw new ExportLimitError('busy');
-  const db = firestore ?? getFirestore();
+  const db = firestore ?? getAdminFirestore();
   const ref = db.collection(COLLECTION).doc(uid);
   const outcome = await db.runTransaction(async (tx) => {
     const now = Date.now();

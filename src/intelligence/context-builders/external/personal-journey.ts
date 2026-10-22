@@ -32,6 +32,7 @@ import {
   type ContextBuilderInput,
   type ContextInjection,
 } from '../index.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'PersonalJourneyBuilder' });
 
@@ -225,7 +226,7 @@ async function buildPersonalJourneyContext(
   const userId = services?.userId || 'anonymous';
 
   // Skip for anonymous users
-  if (userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return injections;
   }
 

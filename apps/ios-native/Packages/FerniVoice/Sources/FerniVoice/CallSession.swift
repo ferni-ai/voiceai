@@ -25,9 +25,9 @@ public final class CallSession {
 
     public private(set) var phase: Phase = .idle
     public private(set) var agentActivity: AgentSignals.AgentActivity?
-    public private(set) var isFerniSpeaking = false
     public private(set) var isUserSpeaking = false
-    public private(set) var expression: AvatarExpression = .neutral
+    /// Ferni's face for this call: pose, expression and the feedback they ask for.
+    public let avatar: AvatarModel
     public private(set) var isMuted = false
     public private(set) var captions = CaptionBook()
     public private(set) var personaID = "ferni"
@@ -48,8 +48,10 @@ public final class CallSession {
         fetchToken: @escaping FetchToken,
         makeRoom: @escaping @Sendable () -> any VoiceRoom,
         audio: any CallAudio,
+        avatar: AvatarModel = AvatarModel(),
         agentTimeout: Duration = .seconds(10)
     ) {
+        self.avatar = avatar
         self.fetchToken = fetchToken
         self.makeRoom = makeRoom
         self.audio = audio
@@ -70,6 +72,7 @@ public final class CallSession {
     public func start(personaID: String = "ferni") {
         guard !isActive else { return }
         self.personaID = personaID
+        avatar.send(.connectTapped)
         callTask = Task { await run(rejoining: false) }
     }
 
@@ -79,6 +82,7 @@ public final class CallSession {
         callTask = nil
         await leaveRoom()
         phase = .ended
+        avatar.send(.ended)
     }
 
     public func toggleMute() async {
@@ -106,6 +110,7 @@ public final class CallSession {
             switch await join() {
             case .joined:
                 if !Task.isCancelled { phase = .live }
+                if rejoining { avatar.send(.reconnected) }
                 return
             case .ferniMissing:
                 log.error("Ferni didn't join (attempt \(attempt))")
@@ -162,13 +167,12 @@ public final class CallSession {
         await leaving?.disconnect()
         audio.deactivate()
         agentActivity = nil
-        isFerniSpeaking = false
         isUserSpeaking = false
-        expression = .neutral
     }
 
     private func fail(_ problem: CallProblem) {
         phase = .failed(problem)
+        avatar.send(.failed)
     }
 
     // MARK: - Events
@@ -178,6 +182,7 @@ public final class CallSession {
         switch event {
         case .agentJoined(let attributes):
             agentHere = true
+            avatar.send(.agentJoined)
             apply(attributes)
         case .agentAttributes(let attributes):
             apply(attributes)
@@ -192,17 +197,23 @@ public final class CallSession {
             case .ended?, .paused?: isUserSpeaking = false
             case nil: break
             }
-            if let result = ExpressionEventMapper.shared.processMessage(json) { expression = result.expression }
+            if let result = ExpressionEventMapper.shared.processMessage(json) {
+                let hold = RemoteDuration.seconds(result.hold ?? result.duration)
+                avatar.send(.expression(result.expression, hold: hold))
+            }
         case .caption(let chunk):
             captions.apply(chunk)
         case .reconnecting:
             if phase == .live { phase = .reconnecting }
+            avatar.send(.reconnecting)
         case .reconnected:
             if phase == .reconnecting { phase = .live }
+            avatar.send(.reconnected)
         case .disconnected(let byUs):
             guard !byUs, phase == .live || phase == .reconnecting else { return }
             // The network or server dropped the call: rejoin once with a fresh room.
             room = nil
+            avatar.send(.reconnecting)
             callTask = Task {
                 await leaveRoom()
                 await run(rejoining: true)
@@ -213,9 +224,7 @@ public final class CallSession {
     private func apply(_ attributes: [String: String]) {
         guard let activity = AgentSignals.agentActivity(from: attributes) else { return }
         agentActivity = activity
-        let face = AgentSignals.avatar(for: activity, current: expression)
-        isFerniSpeaking = face.isSpeaking
-        expression = face.expression
+        avatar.send(.agentState(activity))
     }
 
     private func handle(_ interruption: AudioInterruption) async {

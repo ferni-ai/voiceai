@@ -21,6 +21,7 @@ import { getGCPProjectId } from '../../config/environment.js';
 import { removeUndefined, cleanForFirestore, toSafeDate, toSafeDateOptional } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { normalizePhoneNumber, isValidPhoneNumber } from './user-identification.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = getLogger().child({ module: 'SponsoredIdentity' });
 
@@ -181,16 +182,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
-      const projectId = getGCPProjectId();
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firebase not available for sponsored identities');
