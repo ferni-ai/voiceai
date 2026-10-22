@@ -118,6 +118,23 @@ describe('the value written to the file', () => {
     expect(out.text).toBe('plain');
   });
 
+  it("leaves a fact's stored vector out, and keeps the fact", async () => {
+    const { FieldValue } = await import('@google-cloud/firestore');
+    const embedding = FieldValue.vector(Array.from({ length: 768 }, () => 0.5));
+    const fact = {
+      entityName: 'Biscuit',
+      factType: 'attribute',
+      value: 'golden retriever',
+      embedding,
+    };
+    expect(toPlain(fact)).toEqual({
+      entityName: 'Biscuit',
+      factType: 'attribute',
+      value: 'golden retriever',
+    });
+    expect(toPlain({ scores: [0.5, 0.25] })).toEqual({ scores: [0.5, 0.25] });
+  });
+
   it('writes a Firestore timestamp as an ISO string', async () => {
     const { Timestamp } = await import('firebase-admin/firestore');
     expect(toPlain({ at: Timestamp.fromMillis(0) })).toEqual({ at: '1970-01-01T00:00:00.000Z' });
@@ -266,6 +283,22 @@ describe('the records export keeps a fact whole (#2336)', () => {
     expect(out['bogle_users/{uid}/conversations']).toEqual([
       { id: 'c1', title: 'Call', sessionId: 's-2' },
     ]);
+  });
+
+  it('keeps a fact key and session id but still leaves its vector out (#2332 + #2336)', async () => {
+    const { FieldValue } = await import('@google-cloud/firestore');
+    const embedding = FieldValue.vector(Array.from({ length: 768 }, () => 0.5));
+    const keep = ['sessionId', 'key'];
+    const fact = { entityName: 'Biscuit', key: 'breed', sessionId: 's-1', embedding };
+    expect(toPlain(fact, undefined, keep)).toEqual({
+      entityName: 'Biscuit',
+      key: 'breed',
+      sessionId: 's-1',
+    });
+    // a kept name never vouches for a vector under it
+    expect(toPlain({ entityName: 'Biscuit', key: embedding }, undefined, keep)).toEqual({
+      entityName: 'Biscuit',
+    });
   });
 
   it('keeps only the exact names: other spellings are still dropped as secrets', async () => {
