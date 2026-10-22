@@ -1,6 +1,6 @@
 // caller-realism.mjs: the line transform, the persona/scenario data, and the human-clip manifest.
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -140,12 +140,13 @@ describe('clipFor', () => {
 describe('run.sh --realistic', () => {
   const plan = (scenario) =>
     JSON.parse(
-      execFileSync('zsh', [fileURLToPath(new URL('../run.sh', import.meta.url)), '--realistic', 'dev', scenario, 'x'], {
+      execFileSync('/bin/zsh', [fileURLToPath(new URL('../run.sh', import.meta.url)), '--realistic', 'dev', scenario, 'x'], {
         env: { ...process.env, EVAL_DRY_RUN: '1', CALLER_REALISM: '' },
         encoding: 'utf8',
       })
     );
-  it("uses the scenario's own #@caller persona, else everyday", () => {
+  // CI's ubuntu runner has no zsh (teammate-eval.test.ts skips the same way).
+  it.skipIf(!existsSync('/bin/zsh'))("uses the scenario's own #@caller persona, else everyday", () => {
     expect(plan('realistic-walk-away').realism).toBe('walk-away');
     expect(plan('long-day').realism).toBe('everyday');
   });

@@ -24,9 +24,9 @@ caught bugs it missed. So gate on deterministic predicates (`predicates/`), and 
 ## Realistic callers
 
 Cooperative scripted callers in clean TTS made every number so far. `run.sh --realistic` (options in
-its header) adds ums, restarts, trailing off, a varied rate and 400–1500 ms mid-thought pauses
-(`caller-realism.mjs`, `caller-personas.json`); `realistic-*` scenarios are low-cooperation callers
-(#2333, #2289, #2422). Each run writes `<run>.realism.json`: takeover rate, false-end rate, gap and
-barge-in stop p50/p90 (definitions in `realism-metrics.mjs`). Its `values` (`rt:*`) are
-`pairedCompare` input: `realism-metrics.mjs paired <A> <B>`, or concatenate `realismValues(dir)`
-with `sweepValues(dir)` in a release check.
+its header) adds ums, restarts, a varied rate and 400–1500 ms mid-thought pauses (`caller-realism.mjs`,
+`caller-personas.json`); `realistic-*` scenarios are low-cooperation callers (#2333, #2289, #2422).
+Each run writes `<run>.realism.json`: takeover and false-end rates, gap and barge-in stop p50/p90
+(see `realism-metrics.mjs`). An unanswered turn counts as 15 s, so a short call's gap p90 mostly says
+whether any turn went unanswered: read `rt:unanswered-rate` beside it. `values` (`rt:*`) are
+`pairedCompare` input: `realism-metrics.mjs paired <A> <B>`, or add `realismValues(dir)` to `sweepValues(dir)`.

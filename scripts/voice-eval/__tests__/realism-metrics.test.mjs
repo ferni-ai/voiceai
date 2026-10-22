@@ -146,6 +146,7 @@ describe('a run on disk, through to paired.mjs', () => {
       'rt:gap-p50-ms': 15000, // he took over, then never answered
       'rt:gap-p90-ms': 15000,
       'rt:barge-in-stop-p50-ms': null,
+      'rt:unanswered-rate': 1,
     });
     expect(realismOfRun(writeRun(sweep('B'), 'trail', 'b1', 3100)).values['rt:gap-p50-ms']).toBe(300);
   });

@@ -111,6 +111,7 @@ export function realismOfRun(run) {
     'rt:gap-p50-ms': m.gapMs.p50,
     'rt:gap-p90-ms': m.gapMs.p90,
     'rt:barge-in-stop-p50-ms': m.bargeInStopMs.p50,
+    'rt:unanswered-rate': rate(m.gapMs.unanswered, m.gapMs.n), // on its own: one 15 s turn is a 5-turn call's p90
   };
   return { schema: 'voice-eval-realism/1', scenario: run.meta.scenario, label: run.meta.label, persona: run.meta.realism ?? '', ...m, values };
 }
