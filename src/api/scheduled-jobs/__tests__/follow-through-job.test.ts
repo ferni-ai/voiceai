@@ -65,6 +65,7 @@ function textWorld(clock: { now: Date }) {
     },
     sponsoredPhone: async () => undefined,
     isOptedOut: async () => false,
+    consentDoc: async () => undefined,
     userDoc: async () => undefined,
     legacySmsChannels: async () => undefined,
   };
