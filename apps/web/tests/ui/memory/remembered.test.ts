@@ -13,7 +13,11 @@ vi.mock('../../../src/ui/memory/ferni-knows.ui.js', () => ({
 }));
 vi.mock('../../../src/ui/memory/memory-correction.ui.js', () => ({ openCorrectionModal: vi.fn() }));
 
-import { correctionRequest, toKnowledgeItem } from '../../../src/ui/memory/remembered.js';
+import {
+  correctionRequest,
+  doneToast,
+  toKnowledgeItem,
+} from '../../../src/ui/memory/remembered.js';
 
 const at = '2026-10-05T18:00:00Z';
 
@@ -87,5 +91,13 @@ describe('correctionRequest', () => {
       correctionRequest(s('partial', 'breed: golden retriever'), 'breed: golden retriever')
     ).toBeNull();
     expect(correctionRequest(s('misattributed', ''), 'breed: golden retriever')).toBeNull();
+  });
+});
+
+describe('doneToast', () => {
+  it('says a code or password was not kept, and otherwise what was done', () => {
+    expect(doneToast('PATCH', { status: 'not-kept' })).toBe('app.credentialNotKept');
+    expect(doneToast('PATCH', {})).toBe('app.memoryCorrected');
+    expect(doneToast('DELETE')).toBe('app.memoryRemoved');
   });
 });

@@ -28,6 +28,11 @@ import {
 import type { Line } from './director-notes.js';
 import { castFor, directorSeesScene, FERNI_CAST, verbS, type Cast } from './director-cast.js';
 import { erodesGuard, guardRuleFor } from './director-guard.js';
+import {
+  castFor as castFromSheet,
+  directorDirects,
+  directsDeliberationSystem,
+} from './director-directs.js';
 import { hardNews } from './turn-candor.js';
 import { callerVenting } from './turn-extras.js';
 import { callerMove } from './turn-shape.js';
@@ -154,7 +159,7 @@ export function buildDeliberationPrompt(
   memory: string,
   userName?: string,
   mind = '',
-  /** DIRECTOR_SEES_SCENE=on: the persona speaking; each of their lines is labelled with who said it. */
+  /** DIRECTOR_SEES_SCENE or DIRECTOR_DIRECTS on: the persona speaking; each of their lines is labelled with who said it. */
   speaking?: string
 ): string {
   const who = userName || 'Them';
@@ -216,7 +221,7 @@ export class Deliberator {
     understanding: Understanding | null,
     memory = '',
     mind = '',
-    /** DIRECTOR_SEES_SCENE=on: the persona on the call, whose thoughts these are. */
+    /** DIRECTOR_SEES_SCENE or DIRECTOR_DIRECTS on: the persona on the call, whose thoughts these are. */
     personaId?: string
   ): Promise<void> {
     this.turn++;
@@ -238,13 +243,19 @@ export class Deliberator {
     const ready = this.turn - this.lastOfferedTurn >= SPACING_TURNS - 1;
     if (this.running || this.thought || !ready || this.turn <= this.heldUntil) return;
     if (this.stats.runs >= MAX_RUNS || !carriesWeight(lastCallerTurn(lines), understanding)) return;
-    return this.deliberate(
-      (cast) => ({
+    return this.deliberate(async (cast) => {
+      // DIRECTOR_DIRECTS=on: the persona's own thought, framed from its sheet
+      // (director-directs.ts). The anticipate arm keeps its own instructions.
+      if (directorDirects() && this.opts.mode !== 'anticipate') {
+        const own = await castFromSheet(personaId);
+        const prompt = this.promptFor(lines, memory, mind, own.name);
+        return { system: directsDeliberationSystem(own), prompt };
+      }
+      return {
         system: this.systemFor(cast),
         prompt: this.promptFor(lines, memory, mind, cast?.name),
-      }),
-      personaId
-    );
+      };
+    }, personaId);
   }
 
   /** How they tend to be (theory of mind) only informs the anticipate arm. */
@@ -269,7 +280,7 @@ export class Deliberator {
   }
 
   private async deliberate(
-    request: (cast?: Cast) => { system: string; prompt: string },
+    request: (cast?: Cast) => Promise<{ system: string; prompt: string }>,
     personaId?: string
   ): Promise<void> {
     this.running = true;
@@ -285,7 +296,7 @@ export class Deliberator {
       aborted.catch(() => undefined);
       // DIRECTOR_SEES_SCENE=on: framed for the persona on the call (director-cast.ts).
       const framed = personaId !== undefined && directorSeesScene();
-      const { system, prompt } = request(framed ? await castFor(personaId) : undefined);
+      const { system, prompt } = await request(framed ? await castFor(personaId) : undefined);
       const { text, usage } = await Promise.race([
         this.opts.think(system, prompt, controller.signal),
         aborted,

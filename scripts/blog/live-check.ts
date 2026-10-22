@@ -1,5 +1,5 @@
 /**
- * Is it live? Posts publish with no person reviewing them, so a post may only
+ * Is it live? Developer posts publish with no person reviewing them, so a post may only
  * cite a merged PR whose change people can use today. Two rules, both
  * conservative: when in doubt a PR is left out.
  *
@@ -93,6 +93,32 @@ export function offFlags(root: string): Set<string> {
     if (name && OFF_DEFAULT.test(fs.readFileSync(path.join(flags, file), 'utf-8'))) names.add(name);
   }
   return names;
+}
+
+/** The legacy flag-manifest*.ts files, as text. */
+function manifestTexts(root: string): string[] {
+  const config = path.join(root, CONFIG_DIR);
+  return listDir(config)
+    .filter((f) => LEGACY_MANIFEST.test(f))
+    .map((f) => fs.readFileSync(path.join(config, f), 'utf-8'));
+}
+
+/**
+ * Each off-by-default flag, with the comment right above it when there is one
+ * (legacy manifest entries); a flags/<NAME>.ts flag by its name.
+ */
+export function offFlagNotes(root: string): string[] {
+  const notes = new Map<string, string>();
+  for (const text of manifestTexts(root)) {
+    const lines = text.split('\n');
+    lines.forEach((line, i) => {
+      const name = new RegExp(OFF_ENTRY.source).exec(line)?.[1];
+      const note = /^\s*\/\/ ?(.*)$/.exec(lines[i - 1] ?? '')?.[1];
+      if (name) notes.set(name, note ? `${name}: ${note.trim()}` : name);
+    });
+  }
+  for (const name of offFlags(root)) if (!notes.has(name)) notes.set(name, name);
+  return [...notes.values()].sort();
 }
 
 const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

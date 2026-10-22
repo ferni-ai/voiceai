@@ -406,10 +406,10 @@ export async function getUnsummarizedConversations(
 
     return snapshot.docs
       .map((doc) => ({
-        userId: (doc.ref.parent.parent as { id?: string } | null)?.id || 'unknown',
+        userId: (doc.ref.parent.parent as { id?: string } | null)?.id,
         conversationId: doc.id,
       }))
-      .filter((item) => item.userId !== 'unknown');
+      .filter((item): item is { userId: string; conversationId: string } => !!item.userId);
   } catch (error) {
     log.error({ error: String(error) }, 'Failed to get unsummarized conversations');
     return [];
