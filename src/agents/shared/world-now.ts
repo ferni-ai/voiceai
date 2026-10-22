@@ -20,6 +20,7 @@
  */
 
 import { cachedHomeWeather } from '../../services/world-awareness/index.js';
+import { HOUR_SAID, leaveTheHourOut, type CallTalk } from './hour-once.js';
 import { FERNI_HOME_TIME_ZONE, localClockEnabled } from './local-clock.js';
 import { callerHour, isValidTimeZone, partOfDay } from './time-context.js';
 
@@ -87,6 +88,8 @@ export interface RightNowInputs {
   ferniClock?: boolean;
   /** The weather report for the home the caller saved, if cached. */
   homeWeather?: string;
+  /** HOUR_ONCE=on and the hour already came up: the day without the clock (hour-once.ts). */
+  hourSaid?: boolean;
 }
 
 /** The line itself: ~25-40 tokens. Pure: the clock and zone are inputs. */
@@ -95,12 +98,14 @@ export function rightNowLine(p: RightNowInputs): string {
   const tz = zone ?? 'UTC';
   const day = fmt(p.now, tz, { weekday: 'long', month: 'short', day: 'numeric' });
   const time = fmt(p.now, tz, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-  const parts = [
-    zone
-      ? `Right now for the caller: ${day}, ${time}, ${partOfDay(callerHour(p.now, zone) ?? 12)}.`
-      : `Right now: ${day}, ${time}; the caller's local time is unknown, so ask before assuming it.`,
-  ];
-  if (p.ferniClock) {
+  const parts = p.hourSaid
+    ? [`Right now${zone ? ' for the caller' : ''}: ${day}. ${HOUR_SAID}`]
+    : [
+        zone
+          ? `Right now for the caller: ${day}, ${time}, ${partOfDay(callerHour(p.now, zone) ?? 12)}.`
+          : `Right now: ${day}, ${time}; the caller's local time is unknown, so ask before assuming it.`,
+      ];
+  if (p.ferniClock && !p.hourSaid) {
     const mine = fmt(p.now, FERNI_HOME_TIME_ZONE, { hour: 'numeric', minute: '2-digit' });
     parts.push(`For you: ${mine} mountain.`);
   }
@@ -138,8 +143,11 @@ export function callerZoneOf(session: object): string | undefined {
   return (session as SessionView).userData?.callerTimezone;
 }
 
-/** The turn reminder's line; '' when WORLD_NOW is off. No I/O: the weather is read from the cache. */
-export function worldNowNote(session: object, now: Date = new Date()): string {
+/**
+ * The turn reminder's line; '' when WORLD_NOW is off. No I/O: the weather is read from the cache.
+ * `talk` (the chat so far and the caller's words) lets HOUR_ONCE leave the hour out.
+ */
+export function worldNowNote(session: object, now: Date = new Date(), talk?: CallTalk): string {
   if (!worldNowEnabled()) return '';
   const userId = (session as SessionView).userData?.services?.userId;
   return rightNowLine({
@@ -147,5 +155,6 @@ export function worldNowNote(session: object, now: Date = new Date()): string {
     callerZone: callerZoneOf(session),
     ferniClock: localClockEnabled(),
     homeWeather: userId ? cachedHomeWeather(userId) : undefined,
+    hourSaid: leaveTheHourOut(talk),
   });
 }

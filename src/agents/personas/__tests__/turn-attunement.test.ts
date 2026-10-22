@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+
 import { llm } from '@livekit/agents';
 import { afterEach, describe, expect, it } from 'vitest';
 
@@ -253,5 +255,133 @@ describe('on the live request path (withTurnReminder)', () => {
         if (convo === askedAboutHim) expect(request).toMatch(LEARNED_LENGTH);
       }
     }
+  });
+});
+
+/**
+ * Prod canary 2026-10-21 (ATTUNE=on, ee11522d9): 32 turns in 8 of 17 calls read
+ * "low", upbeat callers included. Replaying these exact caller lines through
+ * readCaller reproduces every one from the words alone; the voice was never
+ * consulted on them (it only breaks a tie when the words say nothing).
+ */
+const FIRST_CALL = [
+  'Hi. Um, so I just downloaded this, not totally sure how it works.',
+  "I'm Jess, by the way.",
+  "Long day. I'm a dental hygienist and today was back to back cleanings.",
+  "My daughter Ava has a soccer tournament on Saturday, so I'm the snack mom this week.",
+  "The thing I'm actually excited about is I'm learning Spanish. We're going to Mexico City in the spring.",
+  'Okay, I should get dinner going. This was nice.',
+];
+const RECALL = [
+  "Hey Ferni, it's me again.",
+  'So, guess how Monday went.',
+  'It went really well actually.',
+];
+
+describe('upbeat callers are not read as low (prod canary 2026-10-21)', () => {
+  it('reads the upbeat canary lines as not low', () => {
+    expect(readCaller(FIRST_CALL.slice(0, 5))).toBe('excited');
+    expect(readCaller(RECALL.slice(0, 2))).not.toBe('low');
+    expect(readCaller(RECALL)).not.toBe('low');
+    expect(
+      readCaller([...RECALL.slice(0, 2), `${RECALL[2]} They want me back for a final round.`])
+    ).not.toBe('low');
+  });
+
+  it('gives an upbeat canary call no gentle line on the live path (ATTUNE=on)', () => {
+    const c = call(
+      FIRST_CALL[2],
+      'Back-to-back cleanings sound like a test of endurance.',
+      FIRST_CALL[4]
+    );
+    expect(attunementNote(c, {}, { env: { ATTUNE: 'on' } })).toBe('');
+    const recall = call(RECALL[0], 'Oh, hey again.', RECALL[1]);
+    expect(attunementNote(recall, {}, { env: { ATTUNE: 'on' } })).toBe('');
+  });
+
+  it('still reads a tired caller as low', () => {
+    expect(readCaller(["Hey Ferni, it's been kind of a long day."])).toBe('low');
+    expect(readCaller(['Hey.', 'Long day. Just got home.'])).toBe('low');
+    expect(
+      readCaller(['Hey.', 'Did errands all day. Wiped.', 'Groceries, the bank. The usual.'])
+    ).toBe('low');
+    // The canary's long-day caller: weary words keep it gentle after the long-day turn.
+    const longDay = [
+      "Hey Ferni, it's been kind of a long day.",
+      'Work was just a lot. My manager moved a big deadline up to Friday.',
+      "Yeah, honestly, I don't even know where to start with it.",
+    ];
+    expect(readCaller(longDay.slice(0, 2))).toBe('low');
+    expect(readCaller(longDay)).toBe('low');
+    // Negated or tired-and-excited is not upbeat.
+    expect(readCaller(['Hey.', 'Not that excited, honestly.'])).toBe('low');
+    expect(readCaller(['Hey.', "Didn't go well."])).toBe('low');
+    expect(readCaller(["I'm too tired to be excited about anything right now, honestly."])).toBe(
+      'low'
+    );
+    // Word boundaries: "unexciting" is not "exciting".
+    expect(readCaller(['Hey.', 'Long day.', 'Pretty unexciting, honestly.'])).toBe('low');
+  });
+
+  it('recovers on the turn an upbeat line follows a low one', () => {
+    const tired = ['Hey.', 'Long day. Just got home.'];
+    expect(readCaller(tired)).toBe('low');
+    expect(readCaller([...tired, "Oh, but I'm actually really excited about this weekend."])).toBe(
+      'excited'
+    );
+    expect(readCaller([...tired, 'But guess how my interview went.'])).toBe('excited');
+    expect(readCaller([...tired, 'It went really well, actually.'])).toBe('excited');
+  });
+
+  it('lets a low read from words decay once a later turn is not low', () => {
+    expect(readCaller(FIRST_CALL.slice(0, 3))).toBe('low');
+    expect(readCaller(FIRST_CALL.slice(0, 4))).not.toBe('low');
+    expect(readCaller(FIRST_CALL)).not.toBe('low');
+  });
+
+  it('does not read low from tiredness the caller hears in Ferni, or "beat" as a verb', () => {
+    const late = [
+      'Hey Ferni, you still up?',
+      "Lisbon for a few days. I keep going back and forth on whether it's too far for that short.",
+      'Huh, okay. You sound a little tired actually.',
+    ];
+    expect(readCaller(late)).not.toBe('low');
+    expect(
+      readCaller(['We beat the other team last night, my brother scored twice in the second half.'])
+    ).not.toBe('low');
+    expect(readCaller(["I'm beat. Just got home."])).toBe('low');
+  });
+
+  it('never lets a flat voice turn upbeat words low', () => {
+    const flat = { arousal: -0.6, confidence: 0.9 };
+    expect(readCaller(['So, guess how Monday went.'], flat)).not.toBe('low');
+  });
+});
+
+describe('the #1086 scenarios (scripts/voice-eval/attunement/fixtures)', () => {
+  const fixtures = ['scenarios.json', 'heldout.json'].flatMap(
+    (f) =>
+      (
+        JSON.parse(
+          readFileSync(
+            new URL(`../../../../scripts/voice-eval/attunement/fixtures/${f}`, import.meta.url),
+            'utf8'
+          )
+        ) as { scenarios: Array<{ id: string; state: string; turns: string[] }> }
+      ).scenarios
+  );
+
+  it('still reads every tired caller as low from the second turn on', () => {
+    const tired = fixtures.filter((s) => s.state === 'tired');
+    expect(tired.length).toBeGreaterThanOrEqual(10);
+    for (const s of tired)
+      for (let k = 2; k <= s.turns.length; k++)
+        expect([s.id, k, readCaller(s.turns.slice(0, k))]).toEqual([s.id, k, 'low']);
+  });
+
+  it('never reads an excited caller as low', () => {
+    for (const s of fixtures.filter((x) => x.state === 'excited'))
+      for (let k = 1; k <= s.turns.length; k++)
+        expect([s.id, k, readCaller(s.turns.slice(0, k))]).not.toEqual([s.id, k, 'low']);
   });
 });

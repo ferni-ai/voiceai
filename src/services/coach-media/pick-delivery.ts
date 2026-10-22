@@ -7,8 +7,10 @@
  * - A text goes only to the verified number on the account (userReach), only
  *   because they asked for it, at most MAX_TEXTS_PER_CALL per call and
  *   TEXTS_PER_USER_PER_DAY a day (the tool also turns away test accounts and a
- *   speaker who isn't the owner, as the outbound confirm gate does). The app
- *   copy goes to the in-app inbox (saveInAppMessage) either way.
+ *   speaker who isn't the owner, as the outbound confirm gate does). It goes
+ *   through the guarded sender (guarded-text.ts, kind 'coach-media'), so a STOP
+ *   or texts turned off in settings stop it and it is recorded like every other
+ *   Ferni text. The app copy goes to the in-app inbox (saveInAppMessage) either way.
  * - Every send links the pick's answer card (answer-card.ts), the page at
  *   /a/:id that shows its sources and Google's search suggestions, which the
  *   grounding terms ask be shown. Without a saved card nothing is sent.
@@ -24,8 +26,8 @@
 
 import { createAnswerCard } from '../approvals/answer-cards.js';
 import { isApprovalsPageEnabled } from '../approvals/flag.js';
-import { sendSMS } from '../communication-service.js';
 import { callerText } from '../outreach/caller-text.js';
+import { sendGuardedText, type TextSkip } from '../outreach/guarded-text.js';
 import { saveInAppMessage } from '../outreach/unified-delivery.js';
 import { userReach } from '../outreach/user-reach.js';
 import { saveCommitment } from '../trust-systems/commitment-tracking.js';
@@ -55,6 +57,24 @@ export const MAX_TEXTS_PER_CALL = 2;
 /** Texts per user per day, across calls. */
 export const TEXTS_PER_USER_PER_DAY = 3;
 export const FOLLOW_UP_DAYS = 3;
+/**
+ * The guarded sender's gap between two pick texts to one person or phone: long
+ * enough to stop a double send, shorter than finding and agreeing to a second pick.
+ */
+export const PICK_TEXT_GAP_MS = 30_000;
+
+/** What to tell the model when the guarded sender didn't send the pick. */
+const NOT_TEXTED: Record<TextSkip, string> = {
+  'opted-out':
+    "They've turned Ferni's texts off (STOP), so it can't be texted. Offer the app instead.",
+  'sms-off':
+    "They've turned texts off in their settings, so it can't be texted. Offer the app instead.",
+  'no-verified-phone':
+    "There's no verified number on their account, so it can't be texted. Offer to put it in the app.",
+  'recently-sent': 'A pick was just texted to them; offer the app for this one.',
+  'no-hash-secret': "The text didn't go through. Offer to put it in the app.",
+  'send-failed': "The text didn't go through. Offer to put it in the app.",
+};
 
 const lastPicks = new WeakMap<object, SentPick>();
 const sends = new WeakMap<object, Record<'text' | 'app', number>>();
@@ -220,12 +240,19 @@ export async function deliverPick(
   };
 
   if (phone) {
-    try {
-      await sendSMS(phone, smsBody(c, link, card.url));
-    } catch (error) {
-      release();
+    const texted = await sendGuardedText({
+      userId,
+      body: smsBody(c, link, card.url),
+      kind: 'coach-media',
+      refId: sent.pickId ?? card.id,
+      minGapMs: PICK_TEXT_GAP_MS,
+    }).catch((error: unknown) => {
       log.warn({ error: String(error) }, 'coach-media: text failed');
-      return "The text didn't go through. Offer to put it in the app.";
+      return { sent: false as const, reason: 'send-failed' as const };
+    });
+    if (!texted.sent) {
+      release();
+      return NOT_TEXTED[texted.reason];
     }
     // The card copy saved with a text counts against the app cap too.
     if (counts.app < MAX_TEXTS_PER_CALL) {

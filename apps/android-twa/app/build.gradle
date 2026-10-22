@@ -28,13 +28,13 @@ def twaManifest = [
     launchUrl: '/', // The start path for the TWA. Must be relative to the domain.
     name: 'Ferni', // The application name.
     launcherName: 'Ferni', // The name shown on the Android Launcher.
-    themeColor: '#4A6741', // The color used for the status bar.
-    themeColorDark: '#4A6741', // The color used for the dark status bar.
-    navigationColor: '#F5F1E8', // The color used for the navigation bar.
-    navigationColorDark: '#1C1917', // The color used for the dark navbar.
-    navigationDividerColor: '#F5F1E8', // The navbar divider color.
-    navigationDividerColorDark: '#1C1917', // The dark navbar divider color.
-    backgroundColor: '#F5F1E8', // The color used for the splash screen background.
+    themeColor: '#FAF8F5', // The color used for the status bar: the page's own light background.
+    themeColorDark: '#14110E', // The color used for the dark status bar: the page's dark background.
+    navigationColor: '#FAF8F5', // The color used for the navigation bar.
+    navigationColorDark: '#14110E', // The color used for the dark navbar.
+    navigationDividerColor: '#FAF8F5', // The navbar divider color.
+    navigationDividerColorDark: '#14110E', // The dark navbar divider color.
+    backgroundColor: '#FAF8F5', // Light splash background; res/values-night/colors.xml has the dark one.
     enableNotifications: true, // Set to true to enable notification delegation.
     // Every shortcut must include the following fields:
     // - name: String that will show up in the shortcut.

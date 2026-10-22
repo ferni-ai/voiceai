@@ -40,6 +40,10 @@ import {
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { crisisRiskThisCall, noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import {
+  groundedPriorRisk,
+  groundedRelease,
+} from '../../services/safety/crisis-grounded-release.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import {
   callRiskBeforeTurn,
@@ -162,6 +166,8 @@ export interface CrisisGateOptions {
   generate?: CrisisGenerateFn;
   /** The adjudicator's model call. */
   adjudicate?: CrisisGenerateFn;
+  /** The grounded release's model calls (crisis-grounded-release.ts). */
+  groundedReads?: readonly CrisisGenerateFn[];
 }
 
 /**
@@ -208,6 +214,7 @@ export function startCrisisGate(
     transferRequestIsEveryday({ latest, earlier, companion }, pattern, call, env);
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, { latest, earlier, companion });
+  const groundedPrior = groundedPriorRisk(call, latest);
   const run = startCrisisClassifier(
     { latest, earlier, companion },
     { pattern, env, generate, scope, call }
@@ -218,6 +225,15 @@ export function startCrisisGate(
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
       log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
+      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
+    }
+    // CRISIS_GROUNDED_RELEASE: an imminent read the call plainly explains gets the soft check.
+    const input = { latest, earlier, companion };
+    const grounded = { input, priorRisk: groundedPrior, call, env, source: 'gate' as const };
+    if (
+      await groundedRelease({ ...grounded, detection, verdict, generates: options.groundedReads })
+    ) {
+      log.info({ action: 'guide', source: 'grounded_release' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
     const merged = applyClassifierVerdict(detection, verdict);

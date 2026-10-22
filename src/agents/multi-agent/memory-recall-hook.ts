@@ -33,8 +33,14 @@ import {
   threadsForTurn,
   type RecallFact,
   type RecallSnapshot,
-  type RecallStore,
 } from '../../memory/recall/session-recall.js';
+import {
+  createStoredVectors,
+  factItems,
+  factText,
+  recallVectorIndexEnabled,
+  type VectorRecallStore,
+} from '../../memory/recall/stored-fact-vectors.js';
 import { jokesForTurn } from '../../memory/recall/inside-jokes-recall.js';
 import {
   createSemanticIndex,
@@ -102,7 +108,7 @@ export interface MemoryRecallDeps {
    * whoever is speaking "this is your life".
    */
   personaId?: string;
-  store?: RecallStore;
+  store?: VectorRecallStore;
   /** What Ferni told this caller about himself on earlier calls (life-ledger.ts). */
   ledgerStore?: LedgerStore;
   /** What has happened in his life since (life-updates.ts, LIFE_MOVES_ON). */
@@ -126,6 +132,9 @@ export interface MemoryRecallDeps {
   /** RECALL_PEOPLE=on (people.ts; env when not given); WORLD_MODEL_SNAPSHOT turns it off. */
   people?: boolean;
   embed?: RetrievalEmbedder;
+  /** RECALL_VECTOR_INDEX=on (needs semantic; env when not given), and the model of stored vectors. */
+  vectorIndex?: boolean;
+  embeddingModel?: Promise<string>;
   /** OPENER_FOLLOW_UP=on (opener.ts); read from the environment when not given. */
   opener?: boolean;
   /** RECALL_BRIDGE=on; read from the environment when not given. */
@@ -170,12 +179,6 @@ const ASKS_ABOUT_YOU = /\byou(?:'re|r|rself)?\b/i;
 const FOLLOW_UPS_KEPT = 12;
 const TOLD_KEPT = 40;
 
-/** A fact as one line to embed: "Biscuit breed: golden retriever". */
-function factText(f: RecallFact, userName?: string): string {
-  const subject = /^(speaker|user|me)$/i.test(f.entity) ? userName || 'they' : f.entity;
-  return `${subject} ${f.key.replace(/_/g, ' ')}: ${f.value}`;
-}
-
 export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const loops =
     deps.loops ?? (deps.sessionId ? callLoopsRecallFor(deps.userId, deps.sessionId) : undefined);
@@ -204,6 +207,11 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   let checkInOffered = false;
   let lastPick: RecallPick | null = null;
   const semanticOn = deps.semantic ?? semanticRecallEnabled();
+  // RECALL_VECTOR_INDEX: stored fact vectors, and older facts found by meaning.
+  const stored =
+    semanticOn && (deps.vectorIndex ?? recallVectorIndexEnabled())
+      ? createStoredVectors(deps.store ?? firestoreRecallStore, deps.userId, deps.embeddingModel)
+      : undefined;
   // Key points of earlier calls' summaries; loaded apart so the snapshot never waits.
   const summaryRecall =
     (deps.summaries ?? summaryRecallEnabled())
@@ -243,7 +251,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
   const followThrough = deps.followThrough ?? followThroughOpenerFor(deps.userId);
   const loaded = Promise.all([
     loadRecallSnapshot(
-      deps.store ?? firestoreRecallStore,
+      stored?.store ?? deps.store ?? firestoreRecallStore,
       deps.userId,
       semanticOn ? FOLLOW_UPS_KEPT : MAX_FOLLOW_UPS
     ),
@@ -273,12 +281,12 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
     for (const t of s.followUps.slice(MAX_FOLLOW_UPS)) laterFollowUps.set(`thread:${t}`, t);
     for (const f of told.slice(RECALL_LIMIT)) laterTold.set(`told:${f.fact}`, f);
     const items = [
-      ...s.facts.map((f) => ({ id: factId(f), text: factText(f, deps.userName) })),
+      ...factItems(s.facts, deps.userName, stored),
       ...[...laterFollowUps].map(([id, text]) => ({ id, text })),
       ...[...laterTold].map(([id, f]) => ({ id, text: f.fact })),
     ];
     // The snapshot is usable at once; the index joins when it is embedded.
-    const idx = (index = createSemanticIndex(items, deps.embed));
+    const idx = (index = createSemanticIndex(items, deps.embed, stored?.nearest));
     void idx.ready.then(() =>
       log.info({ items: items.length, ms: Date.now() - started }, 'Recall index ready')
     );
@@ -345,7 +353,7 @@ export function createMemoryRecall(deps: MemoryRecallDeps): MemoryRecall {
       const ranked =
         budget > 0
           ? recallForTurn(
-              world.pool(snapshot),
+              world.pool(stored?.pool(snapshot) ?? snapshot),
               text,
               surfaced,
               budget,
