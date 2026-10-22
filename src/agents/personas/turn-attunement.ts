@@ -37,6 +37,7 @@ import type { llm } from '@livekit/agents';
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
+import { ledgerRead } from './attune-ledger.js';
 import { hardNews } from './turn-candor.js';
 import { callerLaughed } from './turn-extras.js';
 import { lengthLearned } from './turn-length.js';
@@ -63,8 +64,27 @@ export function attunedLengthOn(env: Env = process.env): boolean {
   return env.ATTUNE_LENGTH === 'on' && !lengthLearned(env);
 }
 
+/**
+ * ATTUNE_LEDGER=on (off by default): the low/upbeat read comes from the evidence
+ * ledger (attune-ledger.ts) instead of the sticky label, and the reply policy
+ * mirrors upbeat callers, steadies low ones and asks when words and voice
+ * disagree ('mixed'). Off: ATTUNE is exactly as before.
+ */
+export function attuneLedgerOn(env: Env = process.env): boolean {
+  return env.ATTUNE_LEDGER === 'on';
+}
+
+/** 'mixed': words and voice disagree, only with ATTUNE_LEDGER. */
 export type CallerState =
-  'low' | 'sad' | 'venting' | 'excited' | 'playful' | 'distracted' | 'hurried' | 'neutral';
+  | 'low'
+  | 'sad'
+  | 'venting'
+  | 'excited'
+  | 'playful'
+  | 'distracted'
+  | 'hurried'
+  | 'mixed'
+  | 'neutral';
 
 /**
  * ATTUNE=on attunes only the state where the judge's win replicated offline:
@@ -80,6 +100,8 @@ export type CallerState =
  * alone (#1377) before turning it on anywhere.
  */
 const ON_STATES: ReadonlySet<CallerState> = new Set(['low']);
+/** With the ledger: steady the low, mirror the upbeat, ask when unsure (research move 7). */
+const LEDGER_STATES: ReadonlySet<CallerState> = new Set(['low', 'excited', 'mixed']);
 
 /** What the caller's voice says, when the reading is confident enough to lean on. */
 export interface VoiceCue {
@@ -170,12 +192,27 @@ function confident(voice: VoiceCue | undefined): VoiceCue | undefined {
  * (it outranks any earlier low), then low energy from their words (held only
  * until a turn that isn't low), their short answers or a flat voice. The voice
  * only ever breaks a tie with neutral; it never overrides what they said.
+ * With `ledger` (ATTUNE_LEDGER) low, upbeat and mixed come from the evidence
+ * ledger instead, and the voice never sets a state by itself.
  */
-export function readCaller(turns: string[], voice?: VoiceCue): CallerState {
+export function readCaller(
+  turns: string[],
+  voice?: VoiceCue,
+  ledger?: { baselineWords?: number }
+): CallerState {
+  if (ledger) {
+    const energy = ledgerRead(turns, voice, ledger.baselineWords).state;
+    return statesFromWords(turns) ?? energy ?? 'neutral';
+  }
   return fromWords(turns) ?? fromVoice(voice) ?? 'neutral';
 }
 
 function fromWords(turns: string[]): CallerState | undefined {
+  return statesFromWords(turns) ?? energyFromWords(turns);
+}
+
+/** Every state but energy: laughing, happy news, hurting, hurried, distracted, playful. */
+function statesFromWords(turns: string[]): CallerState | undefined {
   const now = turns.slice(-2).join(' ');
   const recent = turns.slice(-4).join(' ');
   const excited = EXCITED.test(now) || (now.match(/!/g) ?? []).length >= 2;
@@ -187,7 +224,7 @@ function fromWords(turns: string[]): CallerState | undefined {
   if (HURRIED.test(now)) return 'hurried';
   if (DISTRACTED.test(now)) return 'distracted';
   if (PLAYFUL.test(now)) return 'playful';
-  return energyFromWords(turns);
+  return undefined;
 }
 
 /** Upbeat or low energy, when nothing above fits. */
@@ -299,6 +336,15 @@ export function targetFor(state: CallerState, turns: string[], askedLast: boolea
       };
     case 'playful':
       return { state, maxWords: 25, questions: 1, advice: false, ownStories: true, pace: 'brisk' };
+    case 'mixed':
+      return {
+        state,
+        maxWords: null,
+        questions: 1,
+        advice: false,
+        ownStories: false,
+        pace: 'match',
+      };
     default:
       return { state, maxWords: null, questions: 1, advice: true, ownStories: true, pace: 'match' };
   }
@@ -312,6 +358,7 @@ const READ: Record<Exclude<CallerState, 'neutral'>, string> = {
   playful: "they're being playful",
   distracted: "they're distracted, doing something else while you talk",
   hurried: "they're short on time",
+  mixed: "their words and their voice don't agree, so you can't tell yet if they're up or down",
 };
 
 const HOW: Record<Exclude<CallerState, 'neutral'>, string> = {
@@ -322,6 +369,15 @@ const HOW: Record<Exclude<CallerState, 'neutral'>, string> = {
   playful: 'play along, quick and light',
   distracted: 'easy to half-hear, nothing that needs an answer',
   hurried: 'get to the point and let them go warmly',
+  mixed:
+    "don't assume either way: ask lightly how it really was (long day good or long day bad?), no sympathy yet",
+};
+
+/** The ledger's reply policy: one empathy move at most, and take an upbeat caller's bid. */
+const LEDGER_HOW: Partial<Record<CallerState, string>> = {
+  low: 'steady and unhurried: at most one short line that shows you heard them, then leave them room',
+  excited:
+    'match their energy and take the bid: if they tease news, guess or ask, no sympathy, nothing about yourself',
 };
 
 const NO_ORDERS =
@@ -350,10 +406,16 @@ function talkParts(t: AttuneTarget, withLength: boolean): string[] {
  * Anything that sizes the reply (the cap, "in a sentence", the caller's word
  * count) only with `withLength` (ATTUNE_LENGTH, off): TURN_LENGTH owns length.
  */
-export function attunementLine(t: AttuneTarget, turns: string[], withLength = false): string {
+export function attunementLine(
+  t: AttuneTarget,
+  turns: string[],
+  withLength = false,
+  ledger = false
+): string {
   if (t.state === 'neutral') return '';
   const cap = withLength && t.maxWords !== null;
-  const parts = [cap ? `at most ${t.maxWords} words` : '', HOW[t.state]];
+  const how = (ledger && LEDGER_HOW[t.state]) || HOW[t.state];
+  const parts = [cap ? `at most ${t.maxWords} words` : '', how];
   parts.push(...talkParts(t, withLength));
   // Told to give no advice, replies still gave orders: "Go on, get those socks
   // off" to a tired caller (qwen 1/5). Taking care of them reads as a command.
@@ -385,18 +447,26 @@ export function attunementNote(
   const turns = callerTurns(chatCtx.items);
   if (turns.length === 0) return '';
   const { userData } = session as { userData?: { voiceEmotion?: VoiceCue } };
-  const state = readCaller(turns, userData?.voiceEmotion);
   const env = options.env ?? process.env;
-  if (env.ATTUNE !== 'all' && !ON_STATES.has(state)) return '';
+  const ledger = attuneLedgerOn(env);
+  const state = readCaller(turns, userData?.voiceEmotion, ledger ? {} : undefined);
+  if (env.ATTUNE !== 'all' && !(ledger ? LEDGER_STATES : ON_STATES).has(state)) return '';
   const target = targetFor(state, turns, ferniAskedLast(chatCtx.items));
   const withLength = attunedLengthOn(env);
   const said = turns[turns.length - 1];
   // Preemptive and final requests for one turn log once.
   if (lastSaid.get(session) !== said) {
     lastSaid.set(session, said);
-    log.info({ ...target, lengthCapped: withLength, callerWords: words(said) }, 'ATTUNE');
+    const why = ledger
+      ? {
+          evidence: ledgerRead(turns, userData?.voiceEmotion).cues.map(
+            (c) => `${c.source}:${c.why}@${c.turn}`
+          ),
+        }
+      : {};
+    log.info({ ...target, lengthCapped: withLength, callerWords: words(said), ...why }, 'ATTUNE');
   }
-  return attunementLine(target, turns, withLength);
+  return attunementLine(target, turns, withLength, ledger);
 }
 
 function ferniAskedLast(items: readonly unknown[]): boolean {

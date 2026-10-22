@@ -11,4 +11,5 @@
  *
  * @module config/flags/index.generated
  */
+export { ATTUNE_LEDGER } from './ATTUNE_LEDGER.js';
 export {};
