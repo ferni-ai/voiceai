@@ -31,6 +31,10 @@ import {
 } from '../../../services/safety/crisis-grounded-release.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import {
+  classifierOnlyCheckin,
+  resolveClassifierOnlyCheckin,
+} from '../../../services/safety/crisis-classifier-only.js';
+import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
 } from '../../../services/safety/crisis-lone-imminent.js';
@@ -150,9 +154,28 @@ export function startTurnCrisis(
               log.info({ outcome: 'soft', source: 'transfer-request' }, 'CRISIS_AGREEMENT');
               return { crisis: patterns, soft: true };
             };
-            if (!scope || crisis === patterns) {
-              return softTransfer ? eased() : { crisis, soft: false };
-            }
+            // CRISIS_CLASSIFIER_ONLY_CHECKIN: a crisis read nothing else agrees with (crisis-classifier-only.ts).
+            const escalated = async (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> => {
+              if (softTransfer) return eased();
+              const only =
+                crisis !== patterns &&
+                !guardFromDetection(crisis).shouldBlock &&
+                resolveClassifierOnlyCheckin(env) !== 'off' &&
+                (await classifierOnlyCheckin({
+                  detection: patterns,
+                  verdict,
+                  input,
+                  priorRisk,
+                  scope,
+                  env,
+                  adjudicatorLive: adjudicatorMode === 'live',
+                  source: 'pipeline',
+                }));
+              if (!only) return { crisis, soft: false };
+              log.info({ outcome: 'soft', source: 'classifier_only' }, 'CRISIS_AGREEMENT');
+              return { crisis: patterns, soft: true };
+            };
+            if (!scope || crisis === patterns) return escalated();
             if (!holdForReads) {
               shadowAdjudication(turnVerdicts(scope, input), transcriptFrom(input), {
                 pattern,
@@ -161,7 +184,7 @@ export function startTurnCrisis(
                 source: 'pipeline',
                 generate: options.adjudicate,
               });
-              return softTransfer ? eased() : { crisis, soft: false };
+              return escalated();
             }
             // Fail closed: a failed lookup counts as a missing read, which escalates.
             const verdicts = await turnVerdicts(scope, input).catch(() => [null]);
@@ -187,9 +210,7 @@ export function startTurnCrisis(
               source: 'pipeline',
               scope,
             });
-            if (!(await adjudicatedCheckin(adjudicator))) {
-              return softTransfer ? eased() : { crisis, soft: false };
-            }
+            if (!(await adjudicatedCheckin(adjudicator))) return escalated();
             log.info({ outcome: 'soft', source: 'adjudicator' }, 'CRISIS_AGREEMENT');
             return { crisis: patterns, soft: true };
           })
