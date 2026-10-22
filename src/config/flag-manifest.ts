@@ -392,7 +392,7 @@ const LEGACY_FLAG_MANIFEST = {
   TURN_KEEPER_SPOKE: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_OPENING_SOUND: { default: 'off', owner: 'voice', kind: 'experiment' },
   TURN_LENGTH: { default: 'off', owner: 'voice', kind: 'experiment' },
-  // on: per-turn memory search gates on the vector leg's cosine (0.55), not the RRF score no memory reaches (turn-memory-scale.ts)
+  // on: per-turn memory search gates on the vector leg's cosine (0.55), not the RRF score no memory reaches, and sends at most TURN_MEMORY_MAX_INJECT (default 3) memories a turn (turn-memory-scale.ts)
   TURN_MEMORY_RRF_SCALE: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_STYLE_REMINDER: { default: 'on', owner: 'voice', kind: 'kill-switch' },
