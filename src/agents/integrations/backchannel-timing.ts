@@ -4,7 +4,8 @@
  * On 60 real prod calls (sounds audit, 2026-10-22) 145 of 467 backchannels
  * (31%) were cut a median 78 ms in because the caller carried on, 30% repeated
  * the same clip inside 60 s, and 36 backchannels were followed within 1.5 s by
- * the turn-opening clip ("Mm" then "Mm-hm").
+ * the turn-opening clip ("Mm" then "Mm-hm"; turn-opening-sound.ts now skips
+ * the opener after any clip in the last 2.5 s, unflagged).
  *
  * When: the clip waited 220 ms of pause whatever the caller had just said. A
  * cut clip's caller resumed at a pause of 240 / 311 / 402 ms (p10 / p50 / p90).
@@ -33,7 +34,7 @@
 import { VOICED_TAKES } from '../shared/reaction-clips.js';
 import { REACTION_VARIANTS } from './voiced-presence.js';
 
-/** BACKCHANNEL_TIMING=on: the timing, variation and turn-edge rules above. */
+/** BACKCHANNEL_TIMING=on: the timing and variation rules above. */
 export function backchannelTimingEnabled(
   env: Record<string, string | undefined> = process.env
 ): boolean {
@@ -51,8 +52,6 @@ export const BACKCHANNEL_TIMING = {
   maxTokenShare: 0.4,
   /** Gain jitter per play, +- dB. */
   gainJitterDb: 2,
-  /** No turn-opening clip when a backchannel played this soon before the turn ended. */
-  openerAfterBackchannelMs: 2500,
 } as const;
 
 const SENTENCE_END = /[.!?]["')\]]*\s*$/;
@@ -68,11 +67,6 @@ export function backchannelPauseMs(partialTranscript: string): number {
 export function jitterVolume(volume: number, random: () => number = Math.random): number {
   const db = (random() * 2 - 1) * BACKCHANNEL_TIMING.gainJitterDb;
   return volume * 10 ** (db / 20);
-}
-
-/** Whether the opening clip should stay off: a backchannel played just before the turn ended. */
-export function backchannelBeforeTurnEnd(turnEndedAt: number, lastClipAt: number): boolean {
-  return lastClipAt > 0 && turnEndedAt - lastClipAt < BACKCHANNEL_TIMING.openerAfterBackchannelMs;
 }
 
 function shuffled<T>(items: readonly T[], random: () => number): T[] {

@@ -31,8 +31,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-
-import { backchannelBeforeTurnEnd, backchannelTimingEnabled } from './backchannel-timing.js';
+import { callIsGrave, sessionIsGrave } from './presence-heavy.js';
 
 const log = createLogger({ module: 'TurnOpeningSound' });
 
@@ -70,23 +69,29 @@ const HARD =
 /**
  * Early mode's clip for these words, or null: none for a laugh (a laugh-along
  * answers that), a short turn ("okay", "how are you?") or a repeat of the last
- * clip. Clips are the persona's cached backchannels (conversational-audio-cache.ts).
+ * clip. On a grave moment (`heavy`, callIsGrave in presence-heavy.ts) only "Mm".
+ * Clips are the persona's cached backchannels (conversational-audio-cache.ts).
  */
-export function earlyOpeningClip(transcript: string, lastClip: string | null): string | null {
+export function earlyOpeningClip(
+  transcript: string,
+  lastClip: string | null,
+  heavy = false
+): string | null {
   const words = transcript.trim().split(/\s+/).filter(Boolean);
   if (words.length < 3 || LAUGH.test(transcript)) return null;
   const question = /\?\s*$/.test(transcript.trim());
-  const options = GRIEF.test(transcript)
-    ? ['Mm']
-    : GOOD.test(transcript)
-      ? ['Oh', 'Whoa']
-      : HARD.test(transcript)
-        ? ['Oof', 'Mm']
-        : question
-          ? words.length > 4
-            ? ['Hmm']
-            : []
-          : ['Mm', 'Yeah'];
+  const options =
+    heavy || GRIEF.test(transcript)
+      ? ['Mm']
+      : GOOD.test(transcript)
+        ? ['Oh', 'Whoa']
+        : HARD.test(transcript)
+          ? ['Oof', 'Mm']
+          : question
+            ? words.length > 4
+              ? ['Hmm']
+              : []
+            : ['Mm', 'Yeah'];
   return options.find((clip) => clip !== lastClip) ?? null;
 }
 
@@ -115,6 +120,8 @@ export interface TurnOpeningMoment {
   /** Whether the previous turn got an opening sound. */
   playedLastTurn: boolean;
   sinceLastClipMs: number;
+  /** Hard news lately or crisis risk (callIsGrave, presence-heavy.ts): "Mm" or nothing. */
+  heavy?: boolean;
 }
 
 /** The clip text to play, or null. */
@@ -126,7 +133,9 @@ export function turnOpeningClip(
   if (m.sinceLastClipMs < TURN_OPENING.afterBackchannelMs) return null;
   if (random() >= TURN_OPENING.probability) return null;
   // Thinking about a question sounds like "hmm"; taking in news, "mm".
-  return /\?\s*$/.test(m.transcript.trim()) ? 'Hmm' : 'Mm';
+  const question = /\?\s*$/.test(m.transcript.trim());
+  if (question && m.heavy) return null;
+  return question ? 'Hmm' : 'Mm';
 }
 
 interface SessionEvents {
@@ -162,6 +171,9 @@ export function attachTurnOpeningSound(
     if (timer) clearTimeout(timer);
     timer = null;
   };
+  // Hard news in this turn or the last few, or crisis risk on the call (presence-heavy.ts).
+  const heavy = (): boolean =>
+    sessionIsGrave(session) || callIsGrave(undefined, [lastUserTranscript()]);
   // The agent goes "thinking" on ink's early end-of-turn, which is often only a
   // pause: if the caller carries on, the "Mm" would land on top of them.
   const onUserState = (ev: unknown): void => {
@@ -173,7 +185,9 @@ export function attachTurnOpeningSound(
   const playEarly = (thinkingAt: number, skipTurn: boolean): void => {
     // Words already at TTS mean audio in ~120 ms: a clip would only delay it.
     if (!early || skipTurn || early.replyTextSince(userStartedAt)) return;
-    const text = earlyOpeningClip(lastUserTranscript(), lastClip);
+    // Not right after a backchannel either: "mm-hm ... Mm".
+    if (Date.now() - clips.lastPlayedAt() < TURN_OPENING.afterBackchannelMs) return;
+    const text = earlyOpeningClip(lastUserTranscript(), lastClip, heavy());
     playedLastTurn = text !== null && clips.playClip(text);
     if (!playedLastTurn || text === null) return;
     lastClip = text;
@@ -204,9 +218,6 @@ export function attachTurnOpeningSound(
       // The reply's audio exists already; its playback is about to start.
       if (replyAudioSince(userStartedAt)) return;
       if (early) {
-        // BACKCHANNEL_TIMING: one sound per turn edge, never "Mm-hm" then "Mm".
-        const justBackchanneled = backchannelBeforeTurnEnd(thinkingAt, clips.lastPlayedAt());
-        if (backchannelTimingEnabled() && justBackchanneled) return;
         playEarly(thinkingAt, skipTurn);
         return;
       }
@@ -214,6 +225,7 @@ export function attachTurnOpeningSound(
         transcript: lastUserTranscript(),
         playedLastTurn,
         sinceLastClipMs: Date.now() - clips.lastPlayedAt(),
+        heavy: heavy(),
       });
       playedLastTurn = text !== null && clips.playClip(text);
       if (playedLastTurn) log.info({ text }, 'turn opening clip played');

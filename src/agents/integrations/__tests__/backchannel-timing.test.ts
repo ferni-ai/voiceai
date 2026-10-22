@@ -1,7 +1,7 @@
 /**
  * BACKCHANNEL_TIMING: a live "mm-hm" waits longer unless the caller just ended
  * a sentence, never repeats a take inside 60 s or lets one token run the call,
- * and is not followed by a turn-opening "Mm". Driven through the real live
+ * and is still not followed by a turn-opening "Mm". Driven through the real live
  * backchanneling and turn-opening modules on fake timers.
  */
 import { EventEmitter } from 'node:events';
@@ -211,6 +211,20 @@ describe('variation across a call', () => {
   });
 });
 
+describe('inside the grave gate (#2413)', () => {
+  it('hard news: only the plain soft clips, never Yeah, Right or a voiced take', () => {
+    let seed = 11;
+    const c = call('on', () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 0.5);
+    for (let i = 0; i < 40 && c.played.length < 6; i++) {
+      c.run(true, 8000);
+      c.say('My dad died last week and I keep thinking about him.');
+      c.run(false, 300);
+    }
+    expect(c.played.length).toBeGreaterThanOrEqual(3);
+    for (const p of c.played) expect(['Mm', 'Mhm', 'Mm-hmm']).toContain(p.text);
+  });
+});
+
 describe('one sound per turn edge', () => {
   /** Early-mode opener; a backchannel played `bcBeforeMs` before the turn ended. */
   function edge(timing: 'on' | 'off', bcBeforeMs: number): string[] {
@@ -231,15 +245,13 @@ describe('one sound per turn edge', () => {
     return played;
   }
 
-  it('a backchannel 1 s before the turn ended means no opener', () => {
+  // The opener's own check (turn-opening-sound.ts, #2413) holds with the flag either way.
+  it('a backchannel 1 s before the turn ended means no opener, flag on or off', () => {
     expect(edge('on', 1000)).toEqual([]);
+    expect(edge('off', 1000)).toEqual([]);
   });
 
   it('one 3 s before still gets its opener', () => {
     expect(edge('on', 3000)).toEqual(['Oof']);
-  });
-
-  it('flag off is unchanged: the opener follows the backchannel', () => {
-    expect(edge('off', 1000)).toEqual(['Oof']);
   });
 });
