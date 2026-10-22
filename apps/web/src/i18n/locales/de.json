@@ -3969,7 +3969,6 @@
       "subtitle": "Freunde, die dich wirklich verstehen.",
       "ceo": "CEO",
       "ferniDesc": "Die warme, weise Präsenz im Herzen von allem. Ferni koordiniert das Team mit einem perfekten Gedächtnis, ganz ohne Vorurteile und ist immer für dich da.",
-      "coFounders": "Co-Gründer*innen",
       "coreTeam": "Kernteam",
       "footer": "Zusammen definieren wir neu, was es bedeutet, ein Team zu haben, das wirklich zuhört.",
       "roles": {
@@ -4770,7 +4769,10 @@
     "funGames": "Spaßige Spiele",
     "reflectionGames": "Reflexionsspiele",
     "tipLabel": "Tipp:",
-    "tipContent": "Sag jederzeit „Stopp“ oder „Spiel beenden“, um früher aufzuhören. Dein Fortschritt wird immer gespeichert!"
+    "tipContent": "Sag jederzeit „Stopp“ oder „Spiel beenden“, um früher aufzuhören. Dein Fortschritt wird immer gespeichert!",
+    "connectFirst": "Starte zuerst ein Gespräch mit Ferni und wähle dann ein Spiel.",
+    "starting": "{game} startet …",
+    "startFailed": "Das Spiel konnte nicht starten. Frag einfach Ferni."
   },
   "digitalTwinProfile": {
     "title": "Erstelle deinen digitalen Zwilling",
@@ -9058,10 +9060,6 @@
     "friendsUnderstand": "Freunde, die dich wirklich verstehen.",
     "chiefExecutive": "Geschäftsführung",
     "ferni": "Ferni",
-    "coFounders": "Mitgründer",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "Kernteam",
     "tagline": "Zusammen definieren wir neu, was es bedeutet, ein Team zu haben, das wirklich zuhört.",
     "inTeam": "Im Team",
@@ -11132,5 +11130,21 @@
     "helper": "Scanne ihn mit der Kamera deines Handys oder tippe auf Venmo öffnen. Den Betrag kannst du ändern.",
     "maybeLater": "Vielleicht später",
     "close": "Schließen"
+  },
+  "reportReply": {
+    "button": "Melden",
+    "describe": "Etwas melden, das {name} gesagt hat",
+    "title": "Antwort melden",
+    "whichReply": "Welche Antwort?",
+    "whatsWrong": "Was stimmt damit nicht?",
+    "reasonHarmful": "Schädlich oder gefährlich",
+    "reasonWrong": "Falsch oder irreführend",
+    "reasonInappropriate": "Unangemessen",
+    "reasonOther": "Etwas anderes",
+    "note": "Möchtest du etwas ergänzen? (optional)",
+    "send": "Senden",
+    "thanks": "Danke – ein Mensch sieht sich das an.",
+    "failed": "Das wurde nicht gesendet. Bitte versuch es noch einmal.",
+    "tooMany": "Du hast heute schon viele Meldungen gesendet. Bitte versuch es morgen wieder."
   }
 }

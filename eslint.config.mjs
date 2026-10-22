@@ -35,7 +35,6 @@ export default [
       '*.config.mjs',
       'apps/web/**',
       'design-system/**',
-      'apps/archive/**',
       'apps/async/**',
       'apps/figma-plugin/**',
       'apps/intelligence-worker/**',

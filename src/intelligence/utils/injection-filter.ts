@@ -241,7 +241,7 @@ export function filterInjections(
   options: FilterOptions = {}
 ): ContextInjection[] {
   // Bypass filter if requested
-  if (options.bypassFilter || process.env.BYPASS_INJECTION_FILTER === 'true') {
+  if (options.bypassFilter) {
     return injections;
   }
 

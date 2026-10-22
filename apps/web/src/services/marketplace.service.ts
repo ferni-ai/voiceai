@@ -7,7 +7,6 @@
  *
  * MARKETPLACE SOURCES:
  * - 'proxy': Backend proxy at /api/marketplace/* (recommended for private repos)
- * - 'local': Local files at /voiceai-agents/* (for development)
  * - 'github': Direct GitHub URLs (public repos only)
  *
  * CONFIGURATION:
@@ -274,25 +273,16 @@ export interface PersonaManifest {
  *
  * Options:
  * - 'proxy': Use backend proxy at /api/marketplace/* (recommended for private repos)
- * - 'local': Use local files at /voiceai-agents/* (for development)
  * - 'github': Direct GitHub raw URLs (only works for public repos)
  *
- * PRODUCTION BEHAVIOR:
- * - Development: Uses 'local' files for fast iteration
- * - Production: Uses 'proxy' for secure API access
+ * Every environment uses 'proxy'. Dev used to read /voiceai-agents/registry.json
+ * straight from the public folder, which skipped the server's isKnownId filter,
+ * so dev listed 15 friends who can't join and prod listed none.
  */
-type MarketplaceSource = 'proxy' | 'local' | 'github';
+type MarketplaceSource = 'proxy' | 'github';
 
-/**
- * Get the appropriate marketplace source based on environment.
- * Development uses local files (from public/voiceai-agents/), production uses the proxy.
- */
+/** The same source in dev and prod, so what you see in dev is what ships. */
 function getMarketplaceSource(): MarketplaceSource {
-  // Development: use local files from public folder (no UI server dependency)
-  // Production: use proxy to backend API
-  if (import.meta.env?.DEV) {
-    return 'local';
-  }
   return 'proxy';
 }
 
@@ -303,10 +293,6 @@ const MARKETPLACE_URLS = {
   proxy: {
     registry: '/api/marketplace/registry',
     manifest: (agentId: string) => `/api/marketplace/agents/${agentId}/manifest`,
-  },
-  local: {
-    registry: '/voiceai-agents/registry.json',
-    manifest: (agentId: string) => `/voiceai-agents/agents/${agentId}/persona.manifest.json`,
   },
   github: {
     registry: 'https://raw.githubusercontent.com/sethdford/voiceai-agents/main/registry.json',

@@ -301,3 +301,75 @@ describe('firestoreAtomically: check and record in one transaction', () => {
     expect(d.send).toHaveBeenCalledTimes(1);
   });
 });
+
+describe('number abuse: several accounts at one number ceiling', () => {
+  /** Fills the number's hour (5 sends, a minute apart) so every later request hits its ceiling. */
+  async function crowded() {
+    const made = deps();
+    const alert = vi.fn();
+    made.d.alert = alert;
+    for (let i = 0; i < 5; i++) {
+      await ask(made.d, `filler-${i}`, N);
+      made.advance(61_000);
+    }
+    logged.all.length = 0;
+    return { ...made, alert };
+  }
+  const contention = () => logged.all.filter(([, msg]) => msg === 'verify_phone_number_contention');
+
+  it('three distinct accounts at the ceiling raise one alert, with the last four only', async () => {
+    const { d, alert, advance } = await crowded();
+    for (const who of ['x', 'y', 'z']) {
+      expect(await ask(d, who, N)).toEqual({ sent: false, reason: 'quiet' }); // refusals unchanged
+      advance(61_000);
+    }
+    expect(alert).toHaveBeenCalledTimes(1);
+    expect(alert).toHaveBeenCalledWith({
+      phoneLast4: '0100',
+      distinctAccounts: 3,
+      windowMs: 3_600_000,
+    });
+    expect(contention()).toHaveLength(1);
+    expect(JSON.stringify(logged.all)).not.toContain('2125550100');
+  });
+
+  it('two accounts raise none, and one account repeating counts once', async () => {
+    const { d, alert, advance } = await crowded();
+    for (const who of ['x', 'y', 'x', 'y', 'x']) {
+      await ask(d, who, N);
+      advance(61_000);
+    }
+    expect(alert).not.toHaveBeenCalled();
+    expect(contention()).toHaveLength(0);
+  });
+
+  it('stored requesters are hashes, never uids', async () => {
+    const { d, store, advance } = await crowded();
+    await ask(d, 'uid-secret-1', N);
+    advance(61_000);
+    const stored = JSON.stringify(
+      [...store.entries()].filter(([k]) => k.startsWith('contention:'))
+    );
+    expect(stored).not.toContain('uid-secret-1');
+    expect(stored).toMatch(/[0-9a-f]{16}\|/);
+  });
+
+  it('one alert per number per hour, then again after the hour', async () => {
+    const { d, alert, advance } = await crowded();
+    for (const who of ['a', 'b', 'c', 'd', 'e']) {
+      await ask(d, who, N);
+      advance(61_000);
+    }
+    expect(alert).toHaveBeenCalledTimes(1); // 4th and 5th accounts don't alert again
+    advance(60 * 60 * 1000);
+    for (let i = 0; i < 5; i++) {
+      await ask(d, `filler2-${i}`, N);
+      advance(61_000);
+    }
+    for (const who of ['f', 'g', 'h']) {
+      await ask(d, who, N);
+      advance(61_000);
+    }
+    expect(alert).toHaveBeenCalledTimes(2);
+  });
+});

@@ -56,8 +56,11 @@ const ASKED = /\?|\b(?:you think|do you know|any idea|tell me)\b/i;
 const UNKNOWABLE =
   /\b(?:why (?:is|did|does|would|won'?t|hasn'?t) (?:she|he|they)|is (?:she|he|they) (?:mad|upset|ignoring|lying|into|over)|(?:does|did) (?:she|he|they) (?:like|love|hate|mean|want)|what (?:is|was|'s) (?:she|he|they) thinking|(?:going to|gonna) (?:close|jump|go up|go down|crash|win|happen)|tomorrow|next (?:week|month|year)|will i (?:get|win|make)|do you think i'?ll)\b/i;
 
-const CANDOR =
+export const CANDOR =
   "Be honest the way a good friend is: if something they said is wrong, or a plan looks like a real mistake, say so kindly and say why, once, then let them decide; if you don't know something, say \"I don't know\" rather than guessing. Don't disagree for the sake of it and don't lecture.";
+/** CANDOR with nothing quoted to repeat (SCRIPT_FREE_REMINDER=on, script-free.ts). */
+export const CANDOR_PLAIN =
+  "Be honest the way a good friend is: if something they said is wrong, or a plan looks like a real mistake, say so kindly and say why, once, then let them decide; if you don't know something, say so rather than guessing. Don't disagree for the sake of it and don't lecture.";
 const CANDOR_YES =
   'They want you to agree. Give your honest view: if it is a good call, say so and why; if you have doubts, name the one that matters, kindly and plainly, and leave the choice with them. Being on their side is not the same as saying yes.';
 const CANDOR_UNKNOWABLE =

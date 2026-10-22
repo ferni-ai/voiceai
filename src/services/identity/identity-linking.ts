@@ -18,6 +18,7 @@
 
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import type { VerifiedToken } from './firebase-auth.js';
 import { markMigrated, migratedToOf, migrationIncomplete } from './migration-flag.js';
 
 const log = createLogger({ module: 'identity-linking' });
@@ -50,19 +51,56 @@ export async function linkIdentity(
   sourceUserId: string,
   targetFirebaseUid: string
 ): Promise<LinkingResult> {
-  const result: LinkingResult = {
-    success: false,
-    sourceId: sourceUserId,
-    targetId: targetFirebaseUid,
-    migratedCollections: [],
-    errors: [],
-  };
+  return linkSource(sourceUserId, targetFirebaseUid, false);
+}
+
+/**
+ * Link a Firebase anonymous account (bogle_users/<anonUid>, no prefix) into the
+ * account the user just signed in to, as linkIdentity does for device: ids.
+ *
+ * A raw uid is accepted here only because the caller verified the anonymous
+ * account's own ID token: pass that verified token, never a uid from a request
+ * body. Any other sign-in provider is refused. A source with no data is still
+ * claimed, so a replay reads as already merged.
+ */
+export async function linkVerifiedAnonymousIdentity(
+  anonToken: Pick<VerifiedToken, 'uid' | 'signInProvider'>,
+  targetFirebaseUid: string
+): Promise<LinkingResult> {
+  if (anonToken.signInProvider !== 'anonymous') {
+    return {
+      ...emptyResult(anonToken.uid, targetFirebaseUid),
+      errors: ['Source is not anonymous'],
+    };
+  }
+  const result = await linkSource(anonToken.uid, targetFirebaseUid, true);
+  const db = getFirestoreDb();
+  if (result.success && result.migratedCollections.length === 0 && db) {
+    await markMigrated(db, anonToken.uid, targetFirebaseUid, true);
+  }
+  return result;
+}
+
+const emptyResult = (sourceId: string, targetId: string): LinkingResult => ({
+  success: false,
+  sourceId,
+  targetId,
+  migratedCollections: [],
+  errors: [],
+});
+
+/** A prefixed id keeps its prefix in logs; a raw uid shows 8 characters. */
+const shortId = (id: string): string => id.substring(0, id.includes(':') ? 20 : 8);
+
+async function linkSource(
+  sourceUserId: string,
+  targetFirebaseUid: string,
+  verifiedAnonymous: boolean
+): Promise<LinkingResult> {
+  const result = emptyResult(sourceUserId, targetFirebaseUid);
 
   log.info(
-    {
-      sourceUserId: sourceUserId.substring(0, 20),
-      targetFirebaseUid: targetFirebaseUid.substring(0, 8),
-    },
+    { sourceUserId: shortId(sourceUserId), targetFirebaseUid: targetFirebaseUid.substring(0, 8) },
     '🔗 Starting identity linking'
   );
 
@@ -78,8 +116,9 @@ export async function linkIdentity(
     return result;
   }
 
-  // Don't link if source doesn't look like a device/anonymous ID
-  if (!sourceUserId.startsWith('device:') && !sourceUserId.startsWith('anon:')) {
+  // Don't link if source doesn't look like a device/anonymous ID, unless its token was verified
+  const prefixed = sourceUserId.startsWith('device:') || sourceUserId.startsWith('anon:');
+  if (!prefixed && !verifiedAnonymous) {
     result.errors.push('Source is not a device or anonymous ID');
     return result;
   }
@@ -92,7 +131,7 @@ export async function linkIdentity(
     const sourceDoc = await sourceRef.get();
     const subcollections = await sourceRef.listCollections();
     if (!sourceDoc.exists && subcollections.length === 0) {
-      log.debug({ sourceUserId }, 'Source profile does not exist, nothing to migrate');
+      log.debug({ sourceUserId: shortId(sourceUserId) }, 'Source has no data, nothing to migrate');
       result.success = true;
       return result;
     }
@@ -145,7 +184,7 @@ export async function linkIdentity(
     await markMigrated(db, sourceUserId, targetFirebaseUid, result.success);
     log.info(
       {
-        sourceUserId: sourceUserId.substring(0, 20),
+        sourceUserId: shortId(sourceUserId),
         targetFirebaseUid: targetFirebaseUid.substring(0, 8),
         collections: result.migratedCollections,
         errors: result.errors,
@@ -156,7 +195,11 @@ export async function linkIdentity(
     return result;
   } catch (error) {
     result.errors.push(`Linking failed: ${String(error)}`);
-    log.error({ error: String(error), sourceUserId, targetFirebaseUid }, 'Identity linking failed');
+    const ids = {
+      sourceUserId: shortId(sourceUserId),
+      targetFirebaseUid: shortId(targetFirebaseUid),
+    };
+    log.error({ error: String(error), ...ids }, 'Identity linking failed');
     return result;
   }
 }
@@ -280,5 +323,6 @@ export async function autoLinkOnAuth(
 
 export default {
   linkIdentity,
+  linkVerifiedAnonymousIdentity,
   autoLinkOnAuth,
 };

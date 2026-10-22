@@ -33,6 +33,8 @@ name: Blog Drafts
 # Weekly: one developer post (whats-new) and one consumer post, rotating by ISO
 # week number through building-in-public, mission-essay, how-ferni-works and
 # team-letter. Manual: pick one type, or "weekly" for the same pair.
+# A weekly run that fails opens (or updates) one issue labelled
+# blog-weekly-failed, and the next weekly run that succeeds closes it.
 #
 # Token: the PR steps need the BLOG_PR_TOKEN secret, a fine-grained token for
 # ferni-ai/voiceai with Contents and Pull requests read and write (a machine
@@ -271,3 +273,71 @@ jobs:
       - name: Nothing to draft
         if: steps.draft.outputs.status == 'nothing-to-draft'
         run: echo "No merged PRs to write a $TYPE post from; no PR opened." | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # The weekly run (Mondays, or a manual "weekly") keeps one issue labelled
+  # blog-weekly-failed: opened (or commented on) when a job fails, saying which
+  # step failed and which draft PRs are waiting on a person, and closed by the
+  # next run that succeeds. It never retries a draft: a draft that failed a
+  # gate must not publish without a person.
+  weekly-status:
+    name: Weekly status issue
+    needs: [plan, draft]
+    if: >-
+      always() &&
+      (github.event_name == 'schedule' || github.event.inputs.type == 'weekly')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read # this run's jobs and steps
+      issues: write
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PLAN: ${{ needs.plan.result }}
+      DRAFT: ${{ needs.draft.result }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Open, update or close the blog-weekly-failed issue
+        run: |
+          set -euo pipefail
+          label=blog-weekly-failed
+          gh api "repos/$REPO/labels/$label" > /dev/null 2>&1 ||
+            gh api -X POST "repos/$REPO/labels" -f name="$label" -f color=b60205 \
+              -f description='The weekly blog run failed; closes on the next good run' > /dev/null
+          issue=$(gh issue list --repo "$REPO" --label "$label" --state open --limit 1 \
+            --json number --jq '.[0].number // empty')
+          day=$(date -u +%F)
+
+          if [ "$PLAN" = success ] && [ "$DRAFT" = success ]; then
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --repo "$REPO" --comment "The weekly run on $day succeeded ([run]($RUN_URL)), so closing this."
+            fi
+            echo "Weekly run succeeded" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          {
+            echo "The weekly blog run on $day failed ([run]($RUN_URL)). Choose post types: $PLAN; drafts: $DRAFT."
+            echo
+            echo "### What failed"
+            gh api "repos/$REPO/actions/runs/$GITHUB_RUN_ID/jobs?per_page=50" --jq '
+              .jobs[] | select(.conclusion == "failure")
+              | "- [\(.name)](\(.html_url)): \([.steps[] | select(.conclusion == "failure") | .name] | join(", "))"'
+            echo
+            echo "### Drafts waiting on a person"
+            drafts=$(gh pr list --repo "$REPO" --label blog-draft --state open \
+              --json number,title --jq '.[] | "- #\(.number) \(.title)"')
+            echo "${drafts:-None open.}"
+            echo
+            echo "A draft that failed the brand gate or the live check is a draft PR without auto-merge; it publishes only if a person fixes and merges it. This issue closes itself on the next weekly run that succeeds."
+          } > "$RUNNER_TEMP/issue.md"
+
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --repo "$REPO" --body-file "$RUNNER_TEMP/issue.md"
+            echo "Commented on #$issue" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            url=$(gh issue create --repo "$REPO" --title "Weekly blog run failed" --label "$label" \
+              --body-file "$RUNNER_TEMP/issue.md")
+            echo "Opened $url" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi

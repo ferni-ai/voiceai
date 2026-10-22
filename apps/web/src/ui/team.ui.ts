@@ -826,11 +826,11 @@ async function loadDynamicAgents(): Promise<void> {
 }
 
 /**
- * Load and render installed marketplace agents
- * Only shows marketplace agents if the full core team is unlocked
+ * Load and render installed marketplace agents: only while the marketplace is visible
+ * (none have a deployable bundle; TEAM_BY_NEED unlocks the full team for everyone)
  */
 function loadInstalledMarketplaceAgents(): void {
-  if (!rosterContainer) return;
+  if (!rosterContainer || !isPanelVisible('marketplace')) return;
 
   const installed = marketplaceService.getInstalledAgents();
 
@@ -937,7 +937,7 @@ function attachMarketplaceAgentListeners(
   // FUTURE: Implement handoff.service.ts support for marketplace agents
   const cleanup = addListener(element, 'click', (e) => {
     e.stopPropagation();
-
+    if (!isPanelVisible('marketplace')) return; // hidden panel: an old tile must not open it
     log.debug('Clicked marketplace agent:', name);
 
     // Visual feedback - FIX BUG: Use DURATION constant instead of hardcoded value

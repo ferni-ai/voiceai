@@ -140,9 +140,18 @@ ARG VITE_CAPTIONS_HEARD=""
 ENV VITE_CAPTIONS_V2=$VITE_CAPTIONS_V2 VITE_CAPTIONS_BREATH=$VITE_CAPTIONS_BREATH VITE_CAPTIONS_HEARD=$VITE_CAPTIONS_HEARD
 ARG VITE_MEMORY_VIEW=""
 ENV VITE_MEMORY_VIEW=$VITE_MEMORY_VIEW
+# Promises in the Your Day hub (apps/web/src/ui/hub-promises.ui.ts); off unless set to "true".
+ARG VITE_PROMISES_PANEL=""
+ENV VITE_PROMISES_PANEL=$VITE_PROMISES_PANEL
 # Apple sign-in on the web (apps/web/src/config/apple-web-signin-flag.ts); hidden unless "true".
 ARG VITE_APPLE_WEB_SIGNIN=""
 ENV VITE_APPLE_WEB_SIGNIN=$VITE_APPLE_WEB_SIGNIN
+# Goodbye ceremony and reconnect prompt (apps/web/src/config/call-wrap-up-flag.ts); off unless "true".
+ARG VITE_CALL_WRAP_UP=""
+ENV VITE_CALL_WRAP_UP=$VITE_CALL_WRAP_UP
+# Toast region (apps/web/src/ui/overlay/toast-flag.ts): on unless set to "off".
+ARG VITE_TOAST_REGION=""
+ENV VITE_TOAST_REGION=$VITE_TOAST_REGION
 RUN pnpm run build
 
 # ============================================================================

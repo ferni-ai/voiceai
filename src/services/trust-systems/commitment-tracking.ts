@@ -472,9 +472,7 @@ function fromDoc(doc: FirebaseFirestore.QueryDocumentSnapshot): Commitment | nul
   } as Commitment;
 }
 
-/**
- * Get user's active commitments
- */
+/** Get user's active commitments, none about a topic they asked Ferni to forget. */
 export async function getActiveCommitments(userId: string): Promise<Commitment[]> {
   try {
     const db = await getFirestoreDb();
@@ -491,7 +489,9 @@ export async function getActiveCommitments(userId: string): Promise<Commitment[]
       .limit(20)
       .get();
 
-    return snapshot.docs.flatMap((doc) => fromDoc(doc) ?? []);
+    // Lazy: the superhuman barrel is large. Forget requests: commitment-forget.ts.
+    const shown = await (await import('../superhuman/index.js')).commitmentsShown(userId);
+    return snapshot.docs.flatMap((doc) => (shown(doc.data()) ? (fromDoc(doc) ?? []) : []));
   } catch (err) {
     log.error({ error: String(err), userId }, 'Failed to get commitments');
     return [];

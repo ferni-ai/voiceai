@@ -10,7 +10,8 @@ import { initializeLogger, llm, voice } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { actionInPlay, honestLine, withActionClaimCheck } from '../action-claim-guard.js';
+import { actionInPlay, withActionClaimCheck } from '../action-claim-guard.js';
+import { honestLine } from '../honest-line.js';
 import {
   bareOnIt,
   callActions,

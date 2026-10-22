@@ -14,6 +14,8 @@
  */
 
 import { Firestore, FieldValue } from '@google-cloud/firestore';
+import { getFirestoreDatabase } from '../config/environment.js';
+import { installFirestoreDbPin } from './firestore-db-pin.js';
 import { createLogger } from './safe-logger.js';
 import { installSyntheticWriteGuard } from './synthetic-write-guard.js';
 
@@ -102,7 +104,12 @@ export function getFirestoreDb(): Firestore | null {
 
   try {
     installSyntheticWriteGuard();
-    db = new Firestore();
+    installFirestoreDbPin();
+    // Firestore rejects a document with an undefined field anywhere in it, so one
+    // optional value left unset failed the whole write (crisis signals in prod).
+    // The persistence client sets the same option. databaseId: '(default)' unless
+    // FIRESTORE_DATABASE names another (dev runs on its own database).
+    db = new Firestore({ ignoreUndefinedProperties: true, databaseId: getFirestoreDatabase() });
     initialized = true;
     initializationError = null;
     log.debug('Firestore initialized');

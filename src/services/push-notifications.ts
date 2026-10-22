@@ -14,6 +14,7 @@ import { createPersistenceStore, type PersistenceStore } from './persistence/ind
 import { cleanForFirestore } from '../utils/firestore-utils.js';
 import { loadWebPush } from './web-push-loader.js';
 import { claimEndpoint, getEndpointOwner, releaseEndpoint } from './push-endpoint-owners.js';
+import { sendIosPush } from './ios-push.js';
 import {
   RITUAL_REMINDER_MESSAGES,
   STREAK_MILESTONE_MESSAGES,
@@ -134,6 +135,7 @@ class PushNotificationsBackendService {
     // Initialize persistence stores
     this.subscriptionStore = createPersistenceStore<UserSubscriptionsData>({
       collection: 'push_subscriptions',
+      holdWrites: () => false, // MINOR_CARE opt-out: a device endpoint
       syncIntervalMs: 10000, // Sync every 10 seconds
       maxPendingChanges: 50,
     });
@@ -251,9 +253,11 @@ class PushNotificationsBackendService {
   async sendNotification(userId: string, payload: PushNotificationPayload): Promise<boolean> {
     await this.initialize();
     const userSubs = await this.loadSubscriptions(userId);
+    // Their iPhone too, over APNs, while IOS_PUSH is on for them (ios-push.ts). Never throws.
+    const iphone = sendIosPush(userId, payload);
     if (userSubs.length === 0) {
       getLogger().debug({ userId }, 'No subscriptions for user');
-      return false;
+      return iphone;
     }
 
     const template = NOTIFICATION_TEMPLATES[payload.type] || NOTIFICATION_TEMPLATES.general;
@@ -276,8 +280,7 @@ class PushNotificationsBackendService {
           sent = true;
         }
       } catch (error) {
-        // Never the endpoint or the error object: web-push's error carries the
-        // endpoint, and whoever holds an endpoint (with its keys) can push to it.
+        // Never the endpoint or error object: web-push's error carries the endpoint (pushable)
         const statusCode = (error as { statusCode?: unknown } | null)?.statusCode;
         getLogger().warn(
           { userId, platform: sub.platform, statusCode },
@@ -291,7 +294,7 @@ class PushNotificationsBackendService {
       }
     }
 
-    return sent;
+    return (await iphone) || sent;
   }
 
   /**
@@ -508,23 +511,26 @@ class PushNotificationsBackendService {
     );
   }
 
+  /**
+   * FCM, to this subscription's token only (its owner was checked by the caller),
+   * never to another registry that doesn't know a token moved. Throws when
+   * nothing was delivered, so sendNotification() reports "not sent"; an FCM
+   * "unregistered" or "invalid token" answer carries statusCode 410 so the
+   * subscription is dropped.
+   */
   private async sendNativePush(
     subscription: PushSubscription,
     payload: PushNotificationPayload
   ): Promise<void> {
-    // Use the FCM push notification service from outreach/delivery
-    try {
-      const { sendPushNotification, isPushNotificationsAvailable } =
-        await import('./outreach/delivery/push-notifications.js');
+    const { sendPushNotification, isPushNotificationsAvailable } =
+      await import('./outreach/delivery/push-notifications.js');
 
-      if (!isPushNotificationsAvailable()) {
-        getLogger().warn('FCM not initialized - skipping native push');
-        return;
-      }
+    if (!isPushNotificationsAvailable()) {
+      throw new Error('FCM not initialized; native push not sent');
+    }
 
-      // To this subscription's token only (its owner was checked by the caller), never
-      // to the outreach module's in-memory registry, which doesn't know a token moved.
-      const notification = {
+    const result = await sendPushNotification(
+      {
         userId: subscription.userId,
         outreachId: `push-${Date.now()}`,
         personaId: payload.personaId || 'ferni',
@@ -532,24 +538,22 @@ class PushNotificationsBackendService {
         body: payload.body,
         priority: 'high' as const,
         data: payload.data as Record<string, string> | undefined,
-      };
-      const result = await sendPushNotification(notification, subscription.endpoint);
+      },
+      subscription.endpoint
+    );
 
-      const success = result.some((r) => r.success);
-      if (!success) {
-        getLogger().warn(
-          { userId: subscription.userId, errors: result.map((r) => r.error) },
-          'Native push delivery failed'
-        );
-      } else {
-        getLogger().info(
-          { userId: subscription.userId, platform: subscription.platform },
-          '📱 Native push notification sent via FCM'
-        );
-      }
-    } catch (error) {
-      getLogger().error({ error, userId: subscription.userId }, 'Failed to send native push');
+    if (!result.some((r) => r.success)) {
+      const gone = result.some(
+        (r) => r.failureReason === 'unregistered' || r.failureReason === 'invalid_token'
+      );
+      throw Object.assign(new Error('Native push delivery failed'), {
+        statusCode: gone ? 410 : undefined,
+      });
     }
+    getLogger().info(
+      { userId: subscription.userId, platform: subscription.platform },
+      'Native push notification sent via FCM'
+    );
   }
 
   private isSubscriptionExpired(error: unknown): boolean {

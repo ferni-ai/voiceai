@@ -22,3 +22,8 @@ export async function embedForRetrieval(texts: string[], role: RetrievalRole): P
   }
   return provider.embedBatch(texts);
 }
+
+/** The model embedForRetrieval uses, stored with each vector so one from another model is never compared. */
+export function retrievalModel(): string {
+  return getEmbeddingProvider().model;
+}

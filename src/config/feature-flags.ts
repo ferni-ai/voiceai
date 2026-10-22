@@ -273,7 +273,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
      */
     embeddingWorkerIntegration: process.env.ENABLE_EMBEDDING_WORKER === 'true',
     /** Batch summarization in SummarizationWorker */
-    batchedSummarization: process.env.DISABLE_BATCHED_SUMMARIZATION !== 'true', // Enabled by default
+    batchedSummarization: true,
     /** Pre-STT audio processing (Rust: AGC, noise suppression, bandwidth extension) */
     preSTTAudioProcessing: process.env.USE_PRE_STT_PROCESSING !== 'false', // Enabled by default
   },

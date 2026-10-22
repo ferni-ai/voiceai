@@ -104,11 +104,11 @@ describe('Ferni Care dashboard: Connected services tab', () => {
     expect(text()).not.toMatch(/coming soon/i);
   });
 
-  it('opens Everything Connected from the tab', async () => {
+  it('opens What We\'re Connected To from the tab', async () => {
     mockApiGet.mockResolvedValue({ ok: true, status: 200, data: { providers: [] } });
     await openConnectionsTab();
     await vi.waitFor(() => expect(document.querySelector('[data-action="open-connections"]')).not.toBeNull());
-    expect(text()).toContain('Everything Connected');
+    expect(text()).toContain("What We're Connected To");
     document.querySelector<HTMLElement>('[data-action="open-connections"]')?.click();
 
     expect(mockOpenEverythingConnected).toHaveBeenCalledTimes(1);

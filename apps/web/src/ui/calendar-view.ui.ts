@@ -303,9 +303,7 @@ class CalendarViewUI {
   private isLoadingPracticeView = false;
   private practiceViewTried = false; // one automatic load per open, so a failure can't loop
 
-  /**
-   * Initialize the calendar view
-   */
+  /** Initialize the calendar view */
   initialize(): void {
     if (this.panel) return;
 
@@ -316,9 +314,7 @@ class CalendarViewUI {
     this.createPanel();
   }
 
-  /**
-   * Set callbacks
-   */
+  /** Set callbacks */
   setCallbacks(callbacks: CalendarViewCallbacks): void {
     this.callbacks = callbacks;
   }
@@ -738,7 +734,7 @@ class CalendarViewUI {
         </div>
 
         <!-- Week Strip with Daily Insights -->
-        <div class="calendar-view__practice-week">
+        <div class="calendar-view__practice-week" tabindex="0" role="region" aria-label="${t('calendarView.weekRegion')}">
           ${weekDays.map(day => `
             <div class="calendar-view__practice-day ${day.isToday ? 'calendar-view__practice-day--today' : ''}" data-date="${day.date}">
               <div class="calendar-view__practice-day-name">${day.shortName}</div>
@@ -749,7 +745,7 @@ class CalendarViewUI {
                 ${day.hasReminder ? `<span class="calendar-view__practice-indicator calendar-view__practice-indicator--reminder" title="${t('calendarView.reminder')}"></span>` : ''}
                 ${day.hasHabit ? `<span class="calendar-view__practice-indicator calendar-view__practice-indicator--habit" title="${t('calendarView.habit')}"></span>` : ''}
               </div>
-              <div class="calendar-view__practice-day-insight">${day.insight}</div>
+              <div class="calendar-view__practice-day-insight">${this.escapeHtml(day.insight ?? '')}</div>
             </div>
           `).join('')}
         </div>
@@ -789,8 +785,8 @@ class CalendarViewUI {
                     <span class="calendar-view__practice-intention-text">${this.escapeHtml(intention.text)}</span>
                     ${intention.insight ? `
                       <div class="calendar-view__practice-intention-insight">
-                        <span class="calendar-view__practice-insight-persona">${intention.insightPersona}</span>
-                        ${intention.insight}
+                        <span class="calendar-view__practice-insight-persona">${this.escapeHtml(intention.insightPersona ?? '')}</span>
+                        ${this.escapeHtml(intention.insight)}
                       </div>
                     ` : ''}
                   </div>
@@ -806,7 +802,7 @@ class CalendarViewUI {
                 <div class="calendar-view__practice-persona-dot" style="background: var(--color-maya, #a67a6a)"></div>
                 <span>${t('calendarView.mayaNotices')}</span>
               </div>
-              <p class="calendar-view__practice-whisper-text">"${mayaNotices}"</p>
+              <p class="calendar-view__practice-whisper-text">"${this.escapeHtml(mayaNotices)}"</p>
             </div>
           ` : ''}
         </div>
@@ -842,10 +838,10 @@ class CalendarViewUI {
             ${apiData.crossPersonaInsights.slice(0, 2).map(insight => `
               <div class="calendar-view__practice-whisper">
                 <div class="calendar-view__practice-whisper-persona">
-                  <div class="calendar-view__practice-persona-dot" style="background: var(--color-${insight.persona}, var(--color-ferni))"></div>
-                  <span>${t(insight.type === 'notice' ? 'calendarView.personaNotices' : insight.type === 'celebrate' ? 'calendarView.personaCelebrates' : 'calendarView.personaSuggests', { persona: insight.persona.charAt(0).toUpperCase() + insight.persona.slice(1) })}</span>
+                  <div class="calendar-view__practice-persona-dot" style="background: var(--color-${/^[a-z]+$/.test(insight.persona) ? insight.persona : 'ferni'}, var(--color-ferni))"></div>
+                  <span>${this.escapeHtml(t(insight.type === 'notice' ? 'calendarView.personaNotices' : insight.type === 'celebrate' ? 'calendarView.personaCelebrates' : 'calendarView.personaSuggests', { persona: insight.persona.charAt(0).toUpperCase() + insight.persona.slice(1) }))}</span>
                 </div>
-                <p class="calendar-view__practice-whisper-text">"${insight.message}"</p>
+                <p class="calendar-view__practice-whisper-text">"${this.escapeHtml(insight.message)}"</p>
               </div>
             `).join('')}
           </div>
@@ -1652,9 +1648,9 @@ class CalendarViewUI {
     return str.slice(0, maxLength - 1) + '...';
   }
 
-  private escapeHtml(text: string): string {
+  private escapeHtml(text: unknown): string {
     const div = document.createElement('div');
-    div.textContent = text;
+    div.textContent = String(text ?? '');
     // Quotes too: this also goes into attributes
     return div.innerHTML.replace(/"/g, '&quot;');
   }
@@ -2547,6 +2543,9 @@ class CalendarViewUI {
         color: color-mix(in srgb, var(--color-jordan, #c4856a) 70%, black);
         font-weight: var(--font-weight-bold, 700);
       }
+      /* the darkened jordan was 2.2:1 on midnight's card */
+      [data-theme="midnight"] .calendar-view__practice-day--today .calendar-view__practice-day-name,
+      [data-theme="midnight"] .calendar-view__practice-day--today .calendar-view__practice-day-num { color: var(--color-text-primary); }
 
       .calendar-view__practice-day-indicators {
         display: flex;
@@ -3329,7 +3328,7 @@ class CalendarViewUI {
 
       [data-theme="midnight"] .calendar-view__tab--active {
         background: var(--color-alex-tint, rgba(90, 107, 138, 0.2));
-        color: var(--color-alex-light, #8a9bb8);
+        color: var(--color-text-primary); /* alex-light was 3.7:1 */
       }
 
       [data-theme="midnight"] .calendar-view__summary {

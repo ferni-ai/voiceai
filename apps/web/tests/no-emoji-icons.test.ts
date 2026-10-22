@@ -22,7 +22,6 @@ const UI = join(__dirname, '../src/ui');
 const REPO = join(__dirname, '../../..');
 const EMOJI = /\p{Extended_Pictographic}/gu;
 
-const PENDING = 'icon-as-emoji sweep, second PR: convert to the src/ui/icons set';
 const DEV_ONLY = 'developer-only panel, never shown to users';
 
 /** path relative to src/ui -> exact emoji count still allowed, and why. */
@@ -43,21 +42,6 @@ const ALLOWANCES: Record<string, { count: number; reason: string }> = {
     count: 2,
     reason: 'typographic trend arrows (text, not icons)',
   },
-  'activity.ui.ts': { count: 2, reason: PENDING },
-  'digital-twin-profile.ui.ts': { count: 12, reason: PENDING },
-  'founders-journey.ui.ts': { count: 1, reason: PENDING },
-  'game-picker.ui.ts': { count: 2, reason: PENDING },
-  'gift-seeds.ui.ts': { count: 1, reason: PENDING },
-  'group-conversation.ui.ts': { count: 1, reason: PENDING },
-  'important-dates.ui.ts': { count: 1, reason: PENDING },
-  'insights-view.ui.ts': { count: 1, reason: PENDING },
-  'journey.ui.ts': { count: 1, reason: PENDING },
-  'now-playing.ui.ts': { count: 1, reason: PENDING },
-  'ritual-builder.ui.ts': { count: 1, reason: PENDING },
-  'roleplay-mode.ui.ts': { count: 6, reason: PENDING },
-  'sleep-settings.ui.ts': { count: 8, reason: PENDING },
-  'teaser-preview.ui.ts': { count: 9, reason: PENDING },
-  'visualizations/builders/actions-taken.ts': { count: 7, reason: PENDING },
 };
 
 /** Server data the web client renders; their `icon:` fields must be names. */
@@ -65,6 +49,7 @@ const SERVER_UI_DATA = [
   'src/services/workflows/templates/template-library.ts',
   'src/services/workflows/workflow-engine.ts',
   'src/tools/domains/routines/index.ts',
+  'src/services/games/game-insights.ts',
 ];
 
 function uiSources(dir: string = UI): string[] {

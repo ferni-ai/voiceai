@@ -23,6 +23,10 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// The old per-surface toasts: the kill-switch path of src/ui/overlay/toast-flag.ts.
+beforeEach(() => vi.stubEnv('VITE_TOAST_REGION', 'off'));
+afterEach(() => vi.unstubAllEnvs());
+
 describe('easter-egg achievement card placement', () => {
   it('anchors top-right below the status island, inside the safe area, never at the bottom', async () => {
     const eggs = await import('../../src/ui/easter-eggs.ui.js');

@@ -26,6 +26,7 @@ import { isPaywallOn } from '../services/paywall.service.js';
 import { soundUI } from './sound.ui.js';
 import { getLocale, setLocale, SUPPORTED_LOCALES, t, type SupportedLocale } from '../i18n/index.js';
 import { createLogger } from '../utils/logger.js';
+import { ANALYTICS_ICONS } from './icons/shared-icons.js';
 
 const log = createLogger('SettingsMenu');
 
@@ -230,8 +231,8 @@ const ICONS = {
   signOut:
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
   help: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><circle cx="12" cy="17" r=".5" fill="currentColor"/></svg>',
-  commands:
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="m4 17 6-6-6-6"/><path d="M12 19h8"/></svg>',
+  commands: ANALYTICS_ICONS.sunrise, // The Sanctuary: calm, not a terminal prompt
+  outreach: ANALYTICS_ICONS.messageCircle, // When I'll Reach Out: not the calendar What's Ahead uses
 
   // Roadmap features (keeping these for backward compatibility)
   fingerprint:
@@ -644,7 +645,7 @@ class SettingsMenuUI {
             ${this.renderMenuItem('ritual', ICONS.ritual, t('menu.items.createPractice'))}
             ${this.renderMenuItem('calendar-settings', ICONS.calendar, t('menu.items.whatsAhead'))}
             ${this.renderMenuItem('notifications', ICONS.bell, t('menu.items.notifications'))}
-            ${this.renderMenuItem('outreach-schedule', ICONS.calendar, t('menu.items.outreachSchedule'))}
+            ${this.renderMenuItem('outreach-schedule', ICONS.outreach, t('menu.items.outreachSchedule'))}
           `
           )}
 
@@ -916,7 +917,7 @@ class SettingsMenuUI {
         label: t('menu.items.whatsAhead'),
       },
       notifications: { icon: ICONS.bell, label: t('menu.items.notifications') },
-      'outreach-schedule': { icon: ICONS.calendar, label: t('menu.items.outreachSchedule') },
+      'outreach-schedule': { icon: ICONS.outreach, label: t('menu.items.outreachSchedule') },
       theme: { icon: ICONS.theme, label: t('menu.items.toggleTheme') },
       'support-ferni': { icon: ICONS.heart, label: t('menu.items.supportFerniExpanded') },
       'voice-enrollment': { icon: ICONS.fingerprint, label: t('menu.items.voiceId') },

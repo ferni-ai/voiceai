@@ -29,6 +29,7 @@ vi.mock('../shared/developer-auth.js', () => {
   });
   return {
     getPublisherFromToken: async () => 'pub_1',
+    requirePublisherFromToken: async () => 'pub_1',
     getFirestore: async () => ({ collection: () => ({ doc }) }),
   };
 });
