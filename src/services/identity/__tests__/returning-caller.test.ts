@@ -11,10 +11,10 @@ import {
   registerMinorSignal,
   RETURNING_CALLER_FIELDS,
   returningCallerFor,
-  safeSummary,
   toStoredRecord,
   type ReturningCallerStore,
 } from '../returning-caller.js';
+import { safeSummary } from '../returning-caller-summary.js';
 import { phoneHash } from '../../outreach/checkin-replies.js';
 
 const ENV = { LOG_HASH_SECRET: 'test-secret', RETURNING_CALLER: 'on' };
@@ -41,6 +41,9 @@ describe('toStoredRecord', () => {
       'lastCallAt',
       'callCount',
       'expireAt',
+      'forgotten',
+      'deniedUntil',
+      'failedGuesses',
     ]);
     const at = new Date('2026-10-18T00:00:00Z');
     const record = toStoredRecord({
@@ -100,6 +103,11 @@ describe('beginReturningCaller', () => {
   const storeWith = (data: Record<string, unknown> | null): ReturningCallerStore => ({
     get: async () => data,
     set: async () => undefined,
+    setUnlessForgotten: async () => true,
+    erasurePending: async () => false,
+    markErasure: async () => undefined,
+    clearErasure: async () => undefined,
+    markDenied: async () => undefined,
   });
 
   it('ignores a record past its expiry that TTL has not removed yet', async () => {
@@ -121,7 +129,16 @@ describe('beginReturningCaller', () => {
       ok: async () => null,
     };
     for (const [id, get] of Object.entries(reads)) {
-      const store = { get, set: async (_h: string, d: unknown) => void sets.push(d) };
+      const set = async (_h: string, d: unknown): Promise<void> => void sets.push(d);
+      const store: ReturningCallerStore = {
+        get,
+        set,
+        setUnlessForgotten: async (h, d) => (await set(h, d), true),
+        erasurePending: async () => false,
+        markErasure: async () => undefined,
+        clearErasure: async () => undefined,
+        markDenied: async () => undefined,
+      };
       await beginReturningCaller(id, '+15551234567', store, ENV);
       expect(await recordReturningCall({ sessionId: id, firstName: 'Dana' }, store, ENV)).toBe(
         id === 'ok'

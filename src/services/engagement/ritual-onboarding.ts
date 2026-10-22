@@ -14,7 +14,7 @@
  * PERSISTENCE: Onboarding state is persisted to Firestore to survive restarts.
  */
 
-import admin from 'firebase-admin';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -25,9 +25,9 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const ONBOARDING_COLLECTION = 'ritual_onboarding';
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): FirebaseFirestore.Firestore | null {
   try {
-    return admin.firestore();
+    return getAdminFirestore();
   } catch {
     return null;
   }

@@ -13,6 +13,7 @@ import { isPonderingOn } from '../../intelligence/pondering/pondering.js';
 import { markSurfaced } from '../../intelligence/pondering/pondering-reader.js';
 import { ponderingForOpener } from '../../intelligence/pondering/pondering-opener.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { returningCallerGreeting } from '../../services/identity/returning-caller.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import type { UserProfile } from '../../types/user-profile.js';
@@ -29,6 +30,7 @@ import {
 } from './friendship-anniversary.js';
 import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
 import * as notYet from './greeting-not-yet.js';
 import * as stranger from './first-call-stranger.js';
@@ -116,7 +118,7 @@ async function inTime<T>(work: Promise<T>): Promise<T | undefined> {
 
 /** The commitment to open on, or undefined (flag off, none open, or too slow). */
 async function checkInFor(userId: string | undefined, zone?: string): Promise<string | undefined> {
-  if (!userId || userId === 'anonymous' || !coachFollowThroughMode()) return undefined;
+  if (!isMemberIdentity(userId) || !coachFollowThroughMode()) return undefined;
   // Never one about a call Ferni hasn't completed (held, failed or unheard) or one not yet due.
   const open = await inTime(checkInsWithCalls(userId));
   return open?.find((c) => !c.callNote && !notYet.commitmentAhead(c, Date.now(), zone))?.statement;
@@ -124,7 +126,7 @@ async function checkInFor(userId: string | undefined, zone?: string): Promise<st
 
 /** A win not yet named, or undefined (COACH_WINS off, none, or too slow). */
 async function winFor(userId: string | undefined): Promise<Win | undefined> {
-  if (!userId || userId === 'anonymous') return undefined;
+  if (!isMemberIdentity(userId)) return undefined;
   return inTime(winForOpener(userId));
 }
 
@@ -157,7 +159,7 @@ async function ponderFor(
   userId: string | undefined,
   history: CallerHistory | undefined
 ): Promise<PonderAsk | undefined> {
-  if (!userId || userId === 'anonymous' || !isPonderingOn()) return undefined;
+  if (!isMemberIdentity(userId) || !isPonderingOn()) return undefined;
   if (history && history.calls < 2) return undefined;
   const db = getFirestoreDb();
   if (!db) return undefined;
@@ -276,6 +278,8 @@ export function greetingFacts(
   return facts;
 }
 
+export { firstTalkNote } from '../../services/identity/returning-caller.js';
+
 /** Agent setup knows the profile, the greeting needs it: handed over per session. */
 const pendingHistory = new Map<string, CallerHistory>();
 
@@ -393,8 +397,10 @@ export async function directedGreeting(
       stranger.isStrangerCall(userData, history),
       firstMeeting(personaId, userData, history), // FIRST_CALL_INTRO: the name to give
     ]);
-  // A phone caller Ferni hasn't recognised: ask who it is (caller-recognition.ts).
-  const unknown = unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
+  // An unrecognised phone caller: a name given on that number before (RETURNING_CALLER), or ask.
+  const unknown =
+    returningCallerGreeting(sessionId) ??
+    unrecognisedCallerGreeting(callerRecognitionFor(sessionId));
   const firstCall = isNew && !unknown; // never greeted as an old friend
   const stage = firstCall ? ('stranger' as const) : ('friend' as const);
   const scripted = generateWarmGreeting(personaId, { ...ctx, relationshipStage: stage });
