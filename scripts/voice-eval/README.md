@@ -24,27 +24,29 @@ caught bugs it missed. So gate on deterministic predicates (`predicates/`), and 
 ## Checking a release
 
 `release-check.mjs` runs steps 2 and 3 against an env that already runs the candidate, and decides.
-It deploys nothing and makes no calls: it reads the sweep run files and the agent's Cloud Logging
-lines (`logName` `cloud-agents`, project `johnb-2025`; `lk agent logs` misses calls on other replicas).
+It deploys nothing and calls nobody: it reads the sweep run files and the agent's Cloud Logging
+lines (`cloud-agents`, project `johnb-2025`; `lk agent logs` misses other replicas).
 
 ```bash
 node scripts/voice-eval/release-check.mjs dev <candidate-sha> <baseline-sha> \
-  --candidate <candidate-sweep-dir> --baseline <baseline-sweep-dir> | tee release-check.txt
+  --candidate <candidate-sweep-dir> --baseline <baseline-sweep-dir> --out release-check.txt
 ```
 
-- **Self-test.** Each gating predicate must fail a known-bad call (`predicates/canaries.mjs`) first.
-  A gate that can't go red exits 2.
-- **Provenance.** Each call's room is matched to the workers that served it and their boot
-  `EFFECTIVE_SETTINGS` commit. Any candidate call that isn't proven to be on the candidate commit
-  makes the result INCONCLUSIVE. A baseline from before `.build-sha` (2026-10-22) logs `unknown`,
-  which is only a NOTE.
-- **Safety.** One candidate call with `crisis-line-non-crisis` is a FAIL.
-- **Primary metrics**, fixed before the sweep: `gate` (the share of calls passing every gating
-  predicate) and `replyGapMedMs` (each call's median REPLY gap). Each is paired, candidate minus
-  baseline, with a 95% CI from scenario resamples. A metric PASSes when its CI stays inside the margin
-  (gate no more than 0.10 worse, gap no more than 300 ms slower). It FAILs when the CI shows it is worse,
-  and it is INCONCLUSIVE otherwise or under 10 shared scenarios. All other rows are reported only.
-- **Exit codes.** 0 is PASS and means you may promote. 1 is FAIL. 3 is INCONCLUSIVE (add scenarios
-  or repeats; don't promote on it). 2 is a harness error. `--offline` skips the logs, so the most
-  it can return is INCONCLUSIVE. `--dry-run` prints the log queries and stops. `--logs DIR` keeps
-  or reuses the fetched logs.
+Use `--out`, not `| tee`: the file ends with the result and the exit code, and a pipe would hide
+the exit code and drop errors.
+
+- **Self-test:** each gating predicate must fail a known-bad call, loaded through `loadSweep`.
+- **Provenance:** each call's room maps to its workers and the commit on each worker's last boot
+  `EFFECTIVE_SETTINGS` before the call. Every candidate call must be on the candidate commit, and
+  the baseline needs log lines too. A baseline from before `.build-sha` (2026-10-22) logs
+  `"commit":"unknown"`: that is INCONCLUSIVE unless you pass `--allow-unstamped-baseline` (a NOTE).
+- **Coverage:** the candidate must run every baseline scenario. Unreadable run files are listed.
+  Either one is INCONCLUSIVE.
+- **Gates:** a gating predicate's hit on any candidate call is a FAIL, shared scenario or not.
+- **Primary metrics**, fixed before the sweep: `gate` (share of calls passing every gate, margin
+  0.10) and `replyGapMedMs` (median REPLY gap per call, margin 300 ms), paired with a 95% CI from
+  scenario resamples. PASS when the CI stays inside the margin (a NOTE if it is worse but inside),
+  FAIL when the CI shows it worse, INCONCLUSIVE otherwise or under 10 shared scenarios.
+- **Exit:** 0 PASS (may promote), 1 FAIL, 3 INCONCLUSIVE (add scenarios or repeats), 2 harness
+  error, 4 `--dry-run` (prints the log queries; nothing checked). `--offline` skips the logs, so it
+  can't PASS. `--logs DIR` caches the logs, keyed by query.

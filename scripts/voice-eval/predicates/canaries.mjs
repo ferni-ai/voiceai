@@ -1,7 +1,11 @@
 // One known-bad call per gating predicate. release-check.mjs runs each predicate on its canary
 // before gating and refuses to gate if one no longer fires: a check that can't go red proves
 // nothing. The lines paraphrase the 2026-10-21 transcripts the predicates cite.
-import { callOf } from './call.mjs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { gateSweep } from '../gate.mjs';
+import { loadSweep } from './call.mjs';
 import { PREDICATES } from './index.mjs';
 
 /** A run file from 'a: ' / 'u: ' lines, 4 s apart; agent lines before the first caller line are
@@ -29,43 +33,44 @@ export function runFromLines(
   };
 }
 
-const CANARIES = {
-  'self-answer': [
-    'a: Hey Sam, did you end up sending that resume?',
-    "u: Hey Ferni, it's me.",
-    'a: Yeah, I sent it over. Felt good to finally hit send.',
-  ],
-  'shared-past-first-call': [
-    'a: Hey Sam, burning the midnight oil again?',
-    'u: Hi.',
-    'a: What is on your mind?',
-  ],
-  'forbidden-phrase': ['a: Hey Sam.', 'u: Hi.', 'a: Hey. Talk to me.,'],
-  'name-ask-known': [
-    'a: Morning, Sam.',
-    'u: Morning.',
-    "a: I'm Ferni, by the way. What should I call you?",
-  ],
-  'crisis-line-non-crisis': [
-    'a: Hey Sam.',
-    "u: Can you text my sister that I'll be late?",
-    'a: You can call or text 988 any time.',
-  ],
-  'dead-air': [
-    'a: Hey Sam.',
-    'u: Anything big in the news today?',
-    'u: Hello? Anything big in the news?',
-    'a: Sorry, here it is.',
-  ],
-};
+// Lines are ' | '-separated: 'a: ' is Ferni, 'u: ' the caller.
+const CANARIES = Object.fromEntries(
+  Object.entries({
+    'self-answer':
+      "a: Hey Sam, did you end up sending that resume? | u: Hey Ferni, it's me. | a: Yeah, I sent it over. Felt good to finally hit send.",
+    'shared-past-first-call':
+      'a: Hey Sam, burning the midnight oil again? | u: Hi. | a: What is on your mind?',
+    'forbidden-phrase': 'a: Hey Sam. | u: Hi. | a: Hey. Talk to me.,',
+    'name-ask-known':
+      "a: Morning, Sam. | u: Morning. | a: I'm Ferni, by the way. What should I call you?",
+    'crisis-line-non-crisis':
+      "a: Hey Sam. | u: Can you text my sister that I'll be late? | a: You can call or text 988 any time.",
+    'dead-air':
+      'a: Hey Sam. | u: Anything big in the news today? | u: Hello? Anything big in the news? | a: Sorry, here it is.',
+  }).map(([id, lines]) => [id, lines.split(' | ')])
+);
 const GAPS = { 'dead-air': { 1: 12000 } };
 
-/** Gating predicates whose canary no longer draws a hit: [] means every gate can go red. */
+/** Gating predicates whose canary no longer draws a hit: [] means every gate can go red. The
+ *  canaries go through the real path (run files in a temp dir, loadSweep, gateSweep), so a
+ *  loader that drops calls or a sweep-level guard can't make a gate look alive. */
 export function deadGates() {
-  return PREDICATES.filter((p) => p.gating).flatMap((p) => {
+  const gating = PREDICATES.filter((p) => p.gating);
+  const dir = mkdtempSync(join(tmpdir(), 'canaries-'));
+  gating.forEach((p, i) => {
+    if (!CANARIES[p.id]) return;
+    const run = runFromLines(CANARIES[p.id], {
+      gaps: GAPS[p.id],
+      scenario: `canary-${p.id}`,
+      uid: `voice-eval-canary-${p.id}`,
+    });
+    writeFileSync(join(dir, `canary-${p.id}.json`), JSON.stringify({ ...run, wallT0: i + 1 }));
+  });
+  const { rows } = gateSweep(loadSweep(dir));
+  rmSync(dir, { recursive: true, force: true });
+  return gating.flatMap((p) => {
     if (!CANARIES[p.id]) return [`${p.id}: no canary`];
-    const call = callOf(runFromLines(CANARIES[p.id], { gaps: GAPS[p.id] }));
-    Object.assign(call, { priorCalls: 0, risk: false });
-    return p.check(call, [call]).length ? [] : [`${p.id}: its canary no longer fails`];
+    const row = rows.find((r) => r.call.scenario === `canary-${p.id}`);
+    return row?.hits[p.id].length ? [] : [`${p.id}: its canary no longer fails`];
   });
 }
