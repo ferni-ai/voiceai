@@ -163,7 +163,7 @@ export function withTurnReminder(
     state.note,
     // PORCH_LIGHT=on: softer and simpler on a call started in the caller's small hours.
     porchLightNote(chatCtx, session, { careful: options.shape === false }),
-    // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts); none with crisis guidance.
+    // MINOR_CARE=on: a caller who sounds under 18 (minor-care.ts), never with crisis guidance; shadow only logs.
     minorCareNote(sessionIdOf((session as { userData?: unknown }).userData), words, {
       careful: options.shape === false,
       asked: lastFerniLine(chatCtx.items),
