@@ -7,7 +7,7 @@
 // score.ownOpener is what score.mjs records after #2348, computed by #2348's
 // ownOpenerAnswer on the raw runs (it flags the 3 B2 calls).
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -303,6 +303,14 @@ describe('the CLI and the previous night', () => {
     expect(readFileSync(join(root, '2026-10-21', 'REPORT.md'), 'utf8')).toMatch(
       /runs\/timer-s1\.score\.json/
     );
+  });
+
+  it('runs (and exits 2 on an empty night) when called through a symlinked path', () => {
+    // node resolves symlinks in import.meta.url; a naive main check skipped main() and exited 0
+    const link = join(root, 'linked-scorecard.mjs');
+    symlinkSync(SCORECARD, link);
+    mkdirSync(join(root, '2026-10-24', 'runs'), { recursive: true });
+    expect(spawnSync('node', [link, join(root, '2026-10-24')]).status).toBe(2);
   });
 
   it('exits 2 when there is nothing to score', () => {
