@@ -317,6 +317,37 @@ describe('Twilio erasure on account delete (TWILIO_ERASE_ON_DELETE)', () => {
     expect(docs.get(pendingPath(ME))?.attempts).toBe(1);
   });
 
+  it('on: a doc whose phone no longer decrypts (key rotated) is kept, backed off and reported, never dropped', async () => {
+    vi.stubEnv('TWILIO_ERASE_ON_DELETE', 'on');
+    const tw = fakeTwilio(seed());
+    const { db, docs } = fakeFirestore();
+    // sealed under a key that is no longer on the ring
+    const sealed = JSON.stringify({
+      encrypted: true,
+      iv: '00'.repeat(16),
+      authTag: '00'.repeat(16),
+      data: 'ff',
+    });
+    const DAY = 24 * 60 * 60_000;
+    const now = Date.now();
+    docs.set(pendingPath(ME), {
+      encrypted: sealed,
+      createdAt: now - 8 * DAY,
+      attempts: 2,
+      nextAttemptAt: 0,
+    });
+    const report = await retryPendingTwilioErasures(db, {
+      now,
+      deps: { client: tw.client, ferniNumbers: [FERNI] },
+    });
+    expect(report).toMatchObject({ due: 1, undecryptable: 1, retrying: 1, done: 0 });
+    expect(docs.get(pendingPath(ME))).toMatchObject({ encrypted: sealed, attempts: 3 });
+    expect(Number(docs.get(pendingPath(ME))?.nextAttemptAt)).toBeGreaterThan(now);
+    expect(tw.requests).toEqual([]);
+    expect(logged).toContainEqual([{ undecryptable: 1 }, 'TWILIO_ERASURE_UNDECRYPTABLE']);
+    expect(logged).toContainEqual([{ attempts: 3 }, 'TWILIO_ERASURE_OVERDUE']);
+  });
+
   it('on: a queue write that fails is logged and the account erasure still succeeds', async () => {
     vi.stubEnv('TWILIO_ERASE_ON_DELETE', 'on');
     const { db } = fakeFirestore();
