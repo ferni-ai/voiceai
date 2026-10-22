@@ -11,4 +11,5 @@
  *
  * @module config/flags/index.generated
  */
+export { PROMPT_HONEST_ACTIONS } from './PROMPT_HONEST_ACTIONS.js';
 export {};
