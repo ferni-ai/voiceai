@@ -42,7 +42,10 @@ describe('resolveGroundedReleaseMode', () => {
   it('is off unless shadow or live', () => {
     expect(resolveGroundedReleaseMode({})).toBe('off');
     expect(resolveGroundedReleaseMode({ CRISIS_GROUNDED_RELEASE: 'on' })).toBe('off');
-    expect(resolveGroundedReleaseMode({ CRISIS_GROUNDED_RELEASE: ' Live ' })).toBe('live');
+    const live = { CRISIS_GROUNDED_RELEASE: ' Live ', CRISIS_GROUNDED_RELEASE_UNSCREENED: 'test' };
+    expect(resolveGroundedReleaseMode(live)).toBe('live');
+    // No live release without the direct screen: unscreened live is shadow.
+    expect(resolveGroundedReleaseMode({ CRISIS_GROUNDED_RELEASE: 'live' })).toBe('shadow');
     expect(resolveGroundedReleaseMode({ CRISIS_GROUNDED_RELEASE: 'shadow' })).toBe('shadow');
   });
 });
@@ -185,7 +188,7 @@ describe('groundedRelease', () => {
   it('live: releases and explains the turn for later turns', async () => {
     noteCrisisRisk('live-call', Date.now(), 'tomorrow s a little bit late dinner is tonight');
     const generates = [vi.fn<CrisisGenerateFn>(async () => EVERYDAY)];
-    const env = { CRISIS_GROUNDED_RELEASE: 'live' };
+    const env = { CRISIS_GROUNDED_RELEASE: 'live', CRISIS_GROUNDED_RELEASE_UNSCREENED: 'test' };
     const run = { ...args, call: 'live-call', env, generates, source: 'gate' as const };
     expect(await groundedRelease(run)).toBe(true);
     expect(unexplainedCrisisRisk('live-call', 'a later line')).toBe(false);
@@ -215,7 +218,7 @@ describe('groundedRelease', () => {
         throw new Error('boom');
       },
     ];
-    const env = { CRISIS_GROUNDED_RELEASE: 'live' };
+    const env = { CRISIS_GROUNDED_RELEASE: 'live', CRISIS_GROUNDED_RELEASE_UNSCREENED: 'test' };
     const run = { ...args, call: 'err-call', env, generates, source: 'gate' as const };
     await expect(groundedRelease(run)).resolves.toBe(false);
   });
