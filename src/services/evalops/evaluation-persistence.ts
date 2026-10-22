@@ -8,12 +8,13 @@
  * - Optional: works even when Firebase isn't configured (dev/local)
  * - Queryable: admin dashboard/API can fetch recent/flagged evaluations
  */
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 
 import { createLogger } from '../../utils/safe-logger.js';
 
 import type { ResponseEvaluation } from './types.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'EvalOpsPersistence' });
 
@@ -25,7 +26,7 @@ export async function persistEvaluation(evaluation: ResponseEvaluation): Promise
   if (!isFirestoreEnabled()) return;
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const ref = db.collection('evalops_evaluations').doc(evaluation.id);
 
     await ref.set(
@@ -49,7 +50,7 @@ export async function fetchRecentEvaluations(
   if (!isFirestoreEnabled()) return [];
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     // Start with collection, then apply filters (which returns Query)
     const collection = db.collection('evalops_evaluations');

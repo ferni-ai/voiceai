@@ -1,7 +1,11 @@
 #!/bin/zsh
 # Run one scripted conversation against a LiveKit Cloud agent and score it.
 #
-# usage: scripts/voice-eval/run.sh [--persona <id>] <dev|prod|local|phone> <scenario> [label] [user_id]
+# usage: scripts/voice-eval/run.sh [--persona <id>] [--echo] [--echo-gain-db N] [--echo-delay-ms N]
+#          [--echo-noise-db N] <dev|prod|local|phone> <scenario> [label] [user_id]
+#   --echo*:  speakerphone echo: the agent's own audio mixed into the caller's mic
+#             (defaults -18 dB, 120 ms, no noise; any --echo-* turns it on; env
+#             EVAL_ECHO=1 / EVAL_ECHO_*). See docs/testing/VOICE-EVAL-ECHO.md.
 #   --persona: start the call as that teammate (maya-santos, alex-chen, peter-john,
 #             jordan-taylor, nayan-patel, ...) instead of Ferni: sent as persona_id in
 #             the job metadata, which the agent reads to pick its persona. Also
@@ -27,8 +31,11 @@
 #     Reuses a fixed user and everything it has piled up across past runs.
 # The user id must start with "voice-eval-": code that skips synthetic
 # callers keys on it (src/services/outreach/automated-scheduler.ts).
-# Both agents write to production Firestore (johnb-2025), which refuses every
-# harness user's writes (src/utils/synthetic-write-guard.ts). An agent started
+# Both agents write to Firestore in johnb-2025, which refuses every harness
+# user's writes (src/utils/synthetic-write-guard.ts). Prod uses the '(default)'
+# database; dev moves to 'ferni-dev' at cutover. eval-database.mjs decides which
+# one this run's env uses (EVAL_DEV_DATABASE switches dev until cutover); EVAL_TIER
+# writes there, and the dry-run plan prints it as "database". An agent started
 # with PROD_EVAL_WRITES=voice-eval lets voice-eval- users through; without it
 # the call still runs but nothing is remembered, so EVAL_SEED proves nothing.
 # Eval users are removed by cleanup-users.ts (older than 24 h).
@@ -64,9 +71,16 @@
 set -euo pipefail
 HERE=${0:A:h}
 ROOT=${HERE:h:h}
-persona_opt=()
-zparseopts -D -E -- -persona:=persona_opt
+persona_opt=(); echo_on=(); echo_gain=(); echo_delay=(); echo_noise=()
+zparseopts -D -E -- -persona:=persona_opt -echo=echo_on -echo-gain-db:=echo_gain \
+  -echo-delay-ms:=echo_delay -echo-noise-db:=echo_noise
 persona=${persona_opt[2]:-${EVAL_PERSONA:-}}
+(( ${#echo_on} )) && export EVAL_ECHO=1
+(( ${#echo_gain} )) && export EVAL_ECHO_GAIN_DB=${echo_gain[-1]}
+(( ${#echo_delay} )) && export EVAL_ECHO_DELAY_MS=${echo_delay[-1]}
+(( ${#echo_noise} )) && export EVAL_ECHO_NOISE_DB=${echo_noise[-1]}
+# Checked before any call: a bad value exits 2 here. "null" when echo is off.
+echo_cfg=$(node $HERE/echo-mixer.mjs --config) || exit 2
 env=$1; scenario=$2; label=${3:-$(date +%H%M%S)}
 seed=${EVAL_SEED:-}
 uid=${4:-${EVAL_UID:-voice-eval-$scenario-$(date +%Y%m%d%H%M%S)-$(od -An -N2 -tx1 /dev/urandom | tr -d ' \n')}}
@@ -98,6 +112,7 @@ elif [[ $env == local ]]; then
 else
   project=ferni-dev; agent=voice-agent-lkcloud; url=wss://dev-8sm1ba0z.livekit.cloud
 fi
+firestore_db=$(node $HERE/eval-database.mjs $env)
 out=$HERE/out
 caller=${CALLER_VOICE:-say}
 if [[ $caller == cartesia:* && -z ${CARTESIA_API_KEY:-} && -z ${EVAL_DRY_RUN:-} ]]; then
@@ -146,7 +161,7 @@ job_meta() {
 }
 
 if [[ -n ${EVAL_DRY_RUN:-} ]]; then
-  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
+  print -r -- "{\"env\":\"$env\",\"scenario\":\"$scenario\",\"label\":\"$label\",\"uid\":\"$uid\",\"database\":\"$firestore_db\",\"seed\":\"$seed\",\"persona\":\"$persona\",\"echo\":$echo_cfg,\"metadata\":$(job_meta),\"room\":\"eval-$scenario-$label-$stamp\",\"json\":\"$json\"}"
   exit 0
 fi
 
@@ -284,7 +299,7 @@ fi
 # profile before the call (seed-tier.ts). partner opens the whole team, so handoffs to
 # every teammate can be proven without a bypass secret on the agent.
 if [[ -n ${EVAL_TIER:-} ]]; then
-  (cd $ROOT && npx tsx $HERE/seed-tier.ts --project ${EVAL_FIRESTORE_PROJECT:-johnb-2025} --uid $uid --tier $EVAL_TIER)
+  (cd $ROOT && npx tsx $HERE/seed-tier.ts --project ${EVAL_FIRESTORE_PROJECT:-johnb-2025} --database $firestore_db --uid $uid --tier $EVAL_TIER)
 fi
 
 if [[ -n $seed ]]; then

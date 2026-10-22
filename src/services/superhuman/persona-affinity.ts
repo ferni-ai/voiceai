@@ -7,7 +7,7 @@
  * @module services/superhuman/persona-affinity
  */
 
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { getRedisCache } from '../../memory/redis-cache.js';
 import {
@@ -83,7 +83,7 @@ export async function updateAffinityAfterSession(
   }
 ): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const redis = getRedisCache();
     const { personaId, duration, topics, sentiment, userEngagement } = sessionData;
 
@@ -189,7 +189,7 @@ export async function updateAffinityAfterSession(
  */
 export async function getAllAffinities(userId: string): Promise<PersonaAffinity[]> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const snapshot = await db
       .collection(`bogle_users/${userId}/persona_affinities`)
       .orderBy('affinityScore', 'desc')
@@ -213,7 +213,7 @@ export async function getAffinity(
   personaId: string
 ): Promise<PersonaAffinity | null> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const doc = await db.doc(`bogle_users/${userId}/persona_affinities/${personaId}`).get();
     if (!doc.exists) return null;
     return { id: doc.id, ...doc.data() } as PersonaAffinity;
@@ -241,7 +241,7 @@ export async function recordHandoff(
   }
 ): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const key = `${handoff.fromPersona}_to_${handoff.toPersona}`;
     const prefRef = db.doc(`bogle_users/${userId}/handoff_preferences/${key}`);
     const prefDoc = await prefRef.get();
@@ -292,7 +292,7 @@ export async function getHandoffPreferences(
   userId: string
 ): Promise<Array<HandoffPreferenceEntity & { id: string }>> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const snapshot = await db.collection(`bogle_users/${userId}/handoff_preferences`).get();
     return snapshot.docs.map((doc) => ({
       id: doc.id,
@@ -316,7 +316,7 @@ export async function recordInteraction(
   interaction: Omit<PersonaInteractionHistoryEntity, 'date'>
 ): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const interactionData: PersonaInteractionHistoryEntity = {
       ...interaction,
       date: new Date().toISOString(),
@@ -345,7 +345,7 @@ export async function getRecentInteractions(
   limit = 10
 ): Promise<PersonaInteraction[]> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const snapshot = await db
       .collection(`bogle_users/${userId}/persona_interactions`)
       .where('personaId', '==', personaId)

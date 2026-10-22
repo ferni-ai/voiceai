@@ -252,6 +252,7 @@ export async function openMemoryView(): Promise<void> {
     act: (item, action, value) =>
       void actOn(item, action, value).then(async (outcome) => {
         if (outcome === 'done') toast.success(t(DONE_TOAST[action]));
+        else if (outcome === 'not-kept') toast.success(t('app.credentialNotKept'));
         else toast.error(t(outcome === 'gone' ? 'app.memoryNotFound' : 'app.couldNotRemoveMemory'));
         if (!dialog.isConnected) return;
         // The row is gone or changed: keep the current list until the server's answer replaces it.

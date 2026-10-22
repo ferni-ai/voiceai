@@ -840,7 +840,7 @@ function renderNudges(): string {
         ${ICONS.sparkles} ${t('yourPeople.ferniSuggests')}
       </div>
       ${visibleNudges.map(nudge => `
-        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0" aria-label="${t('yourPeople.contactAria', { name: escapeHtml(nudge.contactName), reason: escapeHtml(nudge.reason) })}">
+        <div class="yp-nudge" data-contact-id="${nudge.contactId}" role="button" tabindex="0">
           <div class="yp-nudge-avatar" aria-hidden="true">${getInitials(nudge.contactName)}</div>
           <div class="yp-nudge-content">
             <div class="yp-nudge-name">${escapeHtml(nudge.contactName)}</div>
@@ -968,14 +968,8 @@ function renderPersonItem(person: Person): string {
   const trendIcon = person.strengthTrend === 'growing' ? ICONS.trendUp :
                     person.strengthTrend === 'fading' ? ICONS.trendDown : '';
 
-  const metaText = [
-    relationship,
-    lastContactText,
-    person.upcomingDate ? tp('yourPeople.upcomingIn', person.upcomingDate.daysUntil, { label: upcomingLabel(person.upcomingDate) }) : ''
-  ].filter(Boolean).join('. ');
-
   return `
-    <div class="yp-person" data-contact-id="${person.contactId}" role="button" tabindex="0" aria-label="${t('yourPeople.viewAria', { name: escapeHtml(person.name), details: metaText })}">
+    <div class="yp-person" data-contact-id="${person.contactId}" role="button" tabindex="0">
       <div class="yp-person-avatar" aria-hidden="true">${initials}</div>
       <div class="yp-person-info">
         <div class="yp-person-name">

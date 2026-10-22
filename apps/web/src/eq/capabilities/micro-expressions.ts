@@ -20,7 +20,9 @@ import type { MicroExpression, MicroExpressionTriggerContent } from '../types.js
 import { getAvatarSoul } from '../utils/avatar-soul-loader.js';
 
 const log = createLogger('MicroExpressions');
-const { trackedTimeout } = createTimeoutTracker();
+const { trackedTimeout, clearAll: clearMicroExpressionTimers } = createTimeoutTracker();
+/** Cancel pending timers (HMR dispose, test teardown) so none fires into a torn-down DOM. */
+export { clearMicroExpressionTimers };
 
 // ============================================================================
 // TIMING ENFORCEMENT
@@ -322,6 +324,9 @@ export type MicroExpressionType = keyof typeof MICRO_EXPRESSIONS;
 export function playMicroExpression(type: MicroExpressionType): void {
   const micro = MICRO_EXPRESSIONS[type];
   if (!micro) return;
+
+  // No DOM (SSR, or a late timer after teardown): nothing to flash, and it would throw
+  if (typeof document === 'undefined') return;
 
   // Probability check
   if (Math.random() > micro.probability) return;

@@ -4,7 +4,12 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 import { isSecretField, isSecretValue, MAX_FIELD_DEPTH, toPlain } from '../export-redaction.js';
-import { EXPORTED_STORES, KNOWN_USER_STORES, WITHHELD_STORES } from '../user-records-export.js';
+import {
+  EXPORTED_STORES,
+  exportUserRecords,
+  KNOWN_USER_STORES,
+  WITHHELD_STORES,
+} from '../user-records-export.js';
 
 // The shared setup fakes firestore; the value cleaner checks its real Timestamp class
 vi.mock('firebase-admin/firestore', async () => vi.importActual('firebase-admin/firestore'));
@@ -113,6 +118,23 @@ describe('the value written to the file', () => {
     expect(out.text).toBe('plain');
   });
 
+  it("leaves a fact's stored vector out, and keeps the fact", async () => {
+    const { FieldValue } = await import('@google-cloud/firestore');
+    const embedding = FieldValue.vector(Array.from({ length: 768 }, () => 0.5));
+    const fact = {
+      entityName: 'Biscuit',
+      factType: 'attribute',
+      value: 'golden retriever',
+      embedding,
+    };
+    expect(toPlain(fact)).toEqual({
+      entityName: 'Biscuit',
+      factType: 'attribute',
+      value: 'golden retriever',
+    });
+    expect(toPlain({ scores: [0.5, 0.25] })).toEqual({ scores: [0.5, 0.25] });
+  });
+
   it('writes a Firestore timestamp as an ISO string', async () => {
     const { Timestamp } = await import('firebase-admin/firestore');
     expect(toPlain({ at: Timestamp.fromMillis(0) })).toEqual({ at: '1970-01-01T00:00:00.000Z' });
@@ -174,6 +196,157 @@ describe('the value written to the file', () => {
     );
     expect(out).not.toContain('zz-secret');
     expect(out).toContain('milk');
+  });
+});
+
+/**
+ * Just what BoundedReader calls: doc(path).get(), and collection(path) with where, orderBy,
+ * startAfter, limit and get. Documents are keyed by full path; each store is one page.
+ */
+function storedDb(docs: Record<string, Record<string, unknown>>): FirebaseFirestore.Firestore {
+  const snap = (path: string) => ({
+    id: path.split('/').pop() ?? '',
+    exists: path in docs,
+    data: () => (path in docs ? structuredClone(docs[path]) : undefined),
+  });
+  const query = (path: string): Record<string, unknown> => ({
+    where: () => query(path),
+    orderBy: () => query(path),
+    startAfter: () => query(path),
+    limit: () => query(path),
+    get: async () => ({
+      docs: Object.keys(docs)
+        .filter((p) => p.startsWith(`${path}/`) && !p.slice(path.length + 1).includes('/'))
+        .map(snap),
+    }),
+  });
+  const db = { doc: (path: string) => ({ get: async () => snap(path) }), collection: query };
+  return db as unknown as FirebaseFirestore.Firestore;
+}
+
+describe('the records export keeps a fact whole (#2336)', () => {
+  const FACTS = 'bogle_users/{uid}/dynamic_facts';
+
+  it("keeps a fact's key and the session it came from", async () => {
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({
+        'bogle_users/u-1/dynamic_facts/f1': {
+          entityName: 'Biscuit',
+          key: 'breed',
+          value: 'golden retriever',
+          sessionId: 's-1',
+        },
+      })
+    );
+    expect(out[FACTS]).toEqual([
+      {
+        id: 'f1',
+        entityName: 'Biscuit',
+        key: 'breed',
+        value: 'golden retriever',
+        sessionId: 's-1',
+      },
+    ]);
+  });
+
+  it('still drops real secrets: nested, beside a fact, in other stores, or as the value', async () => {
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({
+        'bogle_users/u-1/dynamic_facts/f1': {
+          entityName: 'Biscuit',
+          key: 'breed',
+          value: 'golden retriever',
+          apiKey: 'zz-secret-1',
+          meta: { key: 'zz-secret-2', sessionId: 'zz-secret-3' },
+        },
+        // a kept name never vouches for its value: a credential is dropped whatever its key
+        'bogle_users/u-1/dynamic_facts/f2': { entityName: 'Biscuit', key: 'sk_live_zz-secret-4' },
+        // key is kept in dynamic_facts only
+        'bogle_users/u-1/conversations/c1': {
+          title: 'Call',
+          sessionId: 's-2',
+          key: 'zz-secret-5',
+          accessToken: 'zz-secret-6',
+          signature: 'zz-secret-7',
+        },
+      })
+    );
+    expect(JSON.stringify(out)).not.toMatch(/zz-secret/);
+    expect(out[FACTS]).toEqual([
+      { id: 'f1', entityName: 'Biscuit', key: 'breed', value: 'golden retriever', meta: {} },
+      { id: 'f2', entityName: 'Biscuit' },
+    ]);
+    expect(out['bogle_users/{uid}/conversations']).toEqual([
+      { id: 'c1', title: 'Call', sessionId: 's-2' },
+    ]);
+  });
+
+  it('keeps a fact key and session id but still leaves its vector out (#2332 + #2336)', async () => {
+    const { FieldValue } = await import('@google-cloud/firestore');
+    const embedding = FieldValue.vector(Array.from({ length: 768 }, () => 0.5));
+    const keep = ['sessionId', 'key'];
+    const fact = { entityName: 'Biscuit', key: 'breed', sessionId: 's-1', embedding };
+    expect(toPlain(fact, undefined, keep)).toEqual({
+      entityName: 'Biscuit',
+      key: 'breed',
+      sessionId: 's-1',
+    });
+    // a kept name never vouches for a vector under it
+    expect(toPlain({ entityName: 'Biscuit', key: embedding }, undefined, keep)).toEqual({
+      entityName: 'Biscuit',
+    });
+  });
+
+  it('keeps only the exact names: other spellings are still dropped as secrets', async () => {
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({
+        'bogle_users/u-1/dynamic_facts/f1': {
+          entityName: 'Biscuit',
+          key: 'breed',
+          Key: 'zz-secret-1',
+          _key: 'zz-secret-2',
+          KEY: 'zz-secret-3',
+        },
+        'bogle_users/u-1/conversations/c1': {
+          title: 'Call',
+          sessionId: 's-1',
+          session_id: 'zz-secret-4',
+          SESSION_ID: 'zz-secret-5',
+          'session.id': 'zz-secret-6',
+          ｓｅｓｓｉｏｎＩｄ: 'zz-secret-7',
+        },
+      })
+    );
+    expect(JSON.stringify(out)).not.toMatch(/zz-secret/);
+    expect(out[FACTS]).toEqual([{ id: 'f1', entityName: 'Biscuit', key: 'breed' }]);
+    expect(out['bogle_users/{uid}/conversations']).toEqual([
+      { id: 'c1', title: 'Call', sessionId: 's-1' },
+    ]);
+  });
+
+  it('drops a kept sessionId whose value is a credential', async () => {
+    const out = await exportUserRecords(
+      'u-1',
+      undefined,
+      storedDb({
+        'bogle_users/u-1/conversations/c1': { title: 'Bearer', sessionId: 'Bearer zz-secret-1' },
+        'bogle_users/u-1/conversations/c2': {
+          title: 'JWT',
+          sessionId: 'eyJhbGciOiJIUzI1.eyJzdWIiOiIxMjM0.zz-secret-2',
+        },
+      })
+    );
+    expect(JSON.stringify(out)).not.toMatch(/zz-secret/);
+    expect(out['bogle_users/{uid}/conversations']).toEqual([
+      { id: 'c1', title: 'Bearer' },
+      { id: 'c2', title: 'JWT' },
+    ]);
   });
 });
 

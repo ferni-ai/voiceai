@@ -213,7 +213,7 @@ async function persistCrashAnalytics(event: CrashEvent): Promise<void> {
     const app = admin.apps.length > 0 ? admin.apps[0] : admin.initializeApp();
     if (!app) return;
 
-    const firestore = admin.firestore();
+    const firestore = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const instanceId = process.env.GCE_INSTANCE || 'voiceai-agent';
     const docRef = firestore.collection('crash_analytics').doc();
 
