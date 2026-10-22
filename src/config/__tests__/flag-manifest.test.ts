@@ -62,7 +62,7 @@ describe('flag manifest', () => {
     const missing = [...reads].filter(([name]) => !(name in FLAG_MANIFEST));
     expect(
       missing.map(([name, where]) => `${name} (${where})`),
-      'Add these to src/config/flag-manifest.ts with their default, owner and kind'
+      'Add each to the manifest with its default, owner and kind. New flag: pnpm flags:new NAME --default off --owner <owner> --kind experiment'
     ).toEqual([]);
   });
 

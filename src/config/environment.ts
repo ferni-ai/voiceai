@@ -45,10 +45,15 @@ export function getGCPProjectId(): string | undefined {
 }
 
 /**
- * Get the Firestore database ID (defaults to '(default)')
+ * The Firestore database every client in this process binds to: FIRESTORE_DATABASE,
+ * or '(default)' when unset or empty. Production runs on '(default)'; dev sets
+ * 'ferni-dev'. getFirestoreDb() and getAdminFirestore() bind to it, and the database
+ * pin (utils/firestore-db-pin.ts) reports any client bound elsewhere.
  */
-export function getFirestoreDatabase(): string {
-  return process.env.FIRESTORE_DATABASE || '(default)';
+export function getFirestoreDatabase(
+  env: Readonly<Record<string, string | undefined>> = process.env
+): string {
+  return env.FIRESTORE_DATABASE || '(default)';
 }
 
 /**
