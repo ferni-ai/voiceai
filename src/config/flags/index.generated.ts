@@ -11,4 +11,5 @@
  *
  * @module config/flags/index.generated
  */
+export { REJECTED_TRANSCRIPT_KEEPS_SPEECH } from './REJECTED_TRANSCRIPT_KEEPS_SPEECH.js';
 export {};
