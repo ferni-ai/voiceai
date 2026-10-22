@@ -20,6 +20,7 @@
 
 import { llm, type APIConnectOptions } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
+import { callerTurn } from './fast-lane.js';
 import { forwardPrewarm } from './forward-prewarm.js';
 
 const log = createLogger({ module: 'HedgedLLM' });
@@ -35,10 +36,16 @@ export class HedgedLLM extends llm.LLM {
   /** Inner models whose prewarm failure was already logged. */
   private readonly prewarmWarned = new WeakSet<object>();
 
+  /**
+   * @param afterToolHedgeMs the hedge delay for the reply after a tool result
+   *   (LOOKUP_BRIDGE, see lookup-bridge.ts); unset uses hedgeAfterMs. That reply
+   *   only starts once the lead-in has been spoken, so every ms of it is silence.
+   */
   constructor(
     readonly primary: llm.LLM,
     readonly backup: llm.LLM,
-    readonly hedgeAfterMs: number
+    readonly hedgeAfterMs: number,
+    readonly afterToolHedgeMs?: number
   ) {
     super();
     // A failed stream reports on its model's 'error' event and then just ends;
@@ -140,11 +147,20 @@ class HedgedLLMStream extends llm.LLMStream {
     }
   }
 
+  /** The hedge delay for this request: a shorter one after a tool result, when set. */
+  private hedgeMs(): number {
+    const { afterToolHedgeMs, hedgeAfterMs } = this.hedged;
+    if (afterToolHedgeMs === undefined) return hedgeAfterMs;
+    const items = this.opts.chatCtx.items as Parameters<typeof callerTurn>[0];
+    return callerTurn(items) === null ? afterToolHedgeMs : hedgeAfterMs;
+  }
+
   private async race(): Promise<void> {
     const startedAt = Date.now();
+    const hedgeMs = this.hedgeMs();
     let timer: NodeJS.Timeout | undefined;
     const hedgeSignal = new Promise<Step>((resolve) => {
-      timer = setTimeout(() => resolve({ kind: 'hedge' }), this.hedged.hedgeAfterMs);
+      timer = setTimeout(() => resolve({ kind: 'hedge' }), hedgeMs);
     });
     let racing: Candidate[] = [this.start('primary')];
     let backupStarted = false;
@@ -162,7 +178,7 @@ class HedgedLLMStream extends llm.LLMStream {
         if (step.kind === 'hedge') {
           backupStarted = true;
           racing.push(this.start('backup'));
-          log.info({ afterMs: Date.now() - startedAt }, 'primary slow, started backup');
+          log.info({ afterMs: Date.now() - startedAt, hedgeMs }, 'primary slow, started backup');
           continue;
         }
         if (step.kind === 'chunk' && !isCommittingChunk(step.chunk)) {

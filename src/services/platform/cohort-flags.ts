@@ -49,6 +49,9 @@ export const COHORT_FLAGS = [
   'RECALL_PEOPLE',
   'RECALL_EPISODES',
   'RECALL_RARE_WORDS',
+  // Recall hook build, after applyCallerFlags. The fact writer may read the next caller's
+  // value, which only decides whether a fact is stored with its vector (fact-embeddings.ts).
+  'RECALL_VECTOR_INDEX',
   'FACT_SUPERSESSION',
   'EXTRACTION_CONTEXT',
   'OPENER_FOLLOW_UP',
@@ -67,8 +70,7 @@ export const COHORT_FLAGS = [
   // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.
   'FOLLOW_THROUGH_OPENER',
   'OUTREACH_PONDERED_NOTES',
-  // Read once the agent is set up, on a turn or at a handoff: after applyCallerFlags
-  // (docs/runbooks/cohort-rollout.md has the read sites).
+  // Read at setup, a turn or a handoff, after applyCallerFlags (docs/runbooks/cohort-rollout.md).
   'CALL_WRAP_UP',
   'WRAP_UP',
   'SHORT_GOODBYE',
@@ -84,6 +86,7 @@ export const COHORT_FLAGS = [
   'FRIEND_FOLLOWUPS',
   'INSIDE_JOKES',
   'OPEN_LOOPS_IN_CONTEXT',
+  'FIRST_CALL_INTRO', // read at the hello and each turn (greeting-direction, first-call-rapport)
   // Read on each turn and each quiet-window sound, never at boot (named-tune-note.ts, tune-state.ts).
   'NAMED_TUNE',
   // Persona flags, read at agent build, a handoff, a turn or a TTS reply, never cached
@@ -143,6 +146,7 @@ export function cohortFlagValues(flag: string): readonly string[] {
  */
 export const COHORT_FLAG_NEEDS: Partial<Record<CohortFlag, CohortFlag[]>> = {
   RECALL_EPISODES: ['SEMANTIC_RECALL'],
+  RECALL_VECTOR_INDEX: ['SEMANTIC_RECALL'],
   WORLD_FACTS_IN_CALL: ['WORLD_MODEL_TEMPORAL'],
   FOLLOW_THROUGH_TEXTS: ['FOLLOW_THROUGH_IMPORT'], // texts send follow-ups the import wrote
   OUTREACH_PONDERED_NOTES: ['PONDERING'], // notes send what pondering wrote

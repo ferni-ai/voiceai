@@ -29,6 +29,7 @@
  */
 import { flagOn } from '../config/env-flag.js';
 import { createLogger } from './safe-logger.js';
+import { PLACEHOLDER_IDS } from './synthetic-user.js';
 
 const log = createLogger({ module: 'minor-care' });
 
@@ -202,6 +203,8 @@ const MAX_SESSIONS = 500;
 /** Longer than any call plus its after-call work: a session this idle can't still be writing. */
 const IDLE_MS = 6 * 60 * 60 * 1000;
 let ownerCheck: (sessionId: string) => boolean = () => false;
+/** userId -> the held session it was heard on, for the writers keyed by user (per-user flush timers). */
+const heldUsers = new Map<string, string>();
 
 function touch(sessionId: string): void {
   likely.delete(sessionId);
@@ -226,6 +229,8 @@ interface HeardOptions {
   /** Ferni's previous line, so a bare "16." can answer "how old are you?". */
   asked?: string;
   env?: Env;
+  /** The caller's userId: once the session is held, userHeld(userId) is true too. */
+  userId?: string;
 }
 
 /** Read the caller's words for this session; true once they have sounded under 18. Flag off: nothing. */
@@ -265,7 +270,25 @@ export function heldAfter(
 ): boolean {
   if (!minorCareOn(options.env)) return false;
   noteCallerWords(sessionId, said, options);
-  return memoryHeld(sessionId, options.env);
+  const held = memoryHeld(sessionId, options.env);
+  if (held && sessionId && !sharedId(options.userId)) heldUsers.set(options.userId!, sessionId);
+  return held;
+}
+
+/**
+ * The per-user writers' check, at write time (a flush timer's tick): this user's held session is
+ * still in use (within IDLE_MS), the flag is on and it isn't a verified owner's. Never refreshes
+ * the session, so a timer can't keep a hold alive.
+ */
+export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
+  const sessionId = userId && !sharedId(userId) ? heldUsers.get(userId) : undefined;
+  if (!userId || !sessionId || !minorCareOn(env)) return false;
+  const used = likely.get(sessionId);
+  if (used === undefined || Date.now() - used > IDLE_MS) {
+    heldUsers.delete(userId);
+    return false;
+  }
+  return !ownerCheck(sessionId);
 }
 
 export const MINOR_CARE_NOTE =
@@ -286,8 +309,17 @@ export function minorCareNote(
   return noteCallerWords(sessionId, said, options) ? MINOR_CARE_NOTE : '';
 }
 
+/**
+ * A placeholder or shared id ('anonymous', 'default', 'unknown', blank): one bucket for many
+ * people, so never held, bound or purged. A per-device id (anon:<id>) is one caller's: held.
+ */
+export function sharedId(userId: string | undefined): boolean {
+  return !userId?.trim() || PLACEHOLDER_IDS.has(userId.trim().toLowerCase());
+}
+
 /** Tests only. */
 export function resetMinorCare(): void {
   likely.clear();
+  heldUsers.clear();
   ownerCheck = () => false;
 }
