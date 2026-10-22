@@ -112,6 +112,83 @@ final class SystemCallAudioTests: XCTestCase {
         }
     }
 
+    // MARK: - When the session changes under the call
+
+    private func post(_ name: Notification.Name, _ info: [AnyHashable: Any] = [:], to center: NotificationCenter) {
+        center.post(name: name, object: nil, userInfo: info)
+    }
+
+    private func route(_ reason: AVAudioSession.RouteChangeReason) -> [AnyHashable: Any] {
+        [AVAudioSessionRouteChangeReasonKey: reason.rawValue]
+    }
+
+    /// AirPods in or out mid-call: the call's settings again. Not for the
+    /// category change that setting them posts (it would loop), not at rest.
+    func testADeviceComingOrGoingSetsTheSessionUpAgain() throws {
+        let session = Session(), center = NotificationCenter()
+        let audio = SystemCallAudio(systemManagesCalls: false, engine: { _ in }, session: session, notifications: center)
+        try audio.activate(systemOwned: false)
+        XCTAssertEqual(session.configured, 1)
+        post(AVAudioSession.routeChangeNotification, route(.newDeviceAvailable), to: center)
+        XCTAssertEqual(session.configured, 2, "a device arrived")
+        post(AVAudioSession.routeChangeNotification, route(.oldDeviceUnavailable), to: center)
+        XCTAssertEqual(session.configured, 3, "a device went")
+        XCTAssertEqual(session.ioBuffer, 0.02)
+        post(AVAudioSession.routeChangeNotification, route(.categoryChange), to: center)
+        XCTAssertEqual(session.configured, 3, "its own category change")
+        audio.deactivate(systemOwned: false)
+        post(AVAudioSession.routeChangeNotification, route(.newDeviceAvailable), to: center)
+        XCTAssertEqual(session.configured, 3, "at rest the session is left alone")
+    }
+
+    /// After a phone call or Siri, the call's settings again, and the session
+    /// still hears that the interruption ended.
+    func testAnInterruptionsEndSetsTheSessionUpAgain() async throws {
+        let session = Session(), center = NotificationCenter()
+        let audio = SystemCallAudio(systemManagesCalls: true, engine: { _ in }, session: session, notifications: center)
+        var heard = audio.interruptions.makeAsyncIterator()
+        let ended: [AnyHashable: Any] = [AVAudioSessionInterruptionTypeKey: AVAudioSession.InterruptionType.ended.rawValue]
+        post(AVAudioSession.interruptionNotification, ended, to: center)
+        XCTAssertEqual(session.configured, 0, "at rest the session is left alone")
+        audio.systemAudio(active: true)
+        XCTAssertEqual(session.configured, 1)
+        post(AVAudioSession.interruptionNotification, ended, to: center)
+        XCTAssertEqual(session.configured, 2, "in a call")
+        _ = await heard.next()
+        let second = await heard.next()
+        XCTAssertEqual(second, .ended(shouldResume: false))
+    }
+
+    /// The media services restarted: the settings come back, and the engine
+    /// follows the call as always (on only with the call's session active).
+    func testAfterAMediaServicesResetTheEngineFollowsTheCall() throws {
+        let reset = AVAudioSession.mediaServicesWereResetNotification
+        let engine = Engine(), session = Session(), center = NotificationCenter()
+        let audio = SystemCallAudio(systemManagesCalls: true, engine: { engine.record($0) }, session: session, notifications: center)
+        try audio.activate(systemOwned: true)
+        post(reset, to: center)
+        XCTAssertEqual(engine.now, "off", "before the system's go (C1)")
+        XCTAssertEqual(session.configured, 1, "not set up for a call the system hasn't started")
+        audio.systemAudio(active: true)
+        post(reset, to: center)
+        XCTAssertEqual(engine.now, "on", "in the call")
+        XCTAssertEqual(session.configured, 3)
+        audio.callEnded()
+        post(reset, to: center)
+        XCTAssertEqual(engine.now, "off", "after the call")
+
+        let own = Engine(), ownSession = Session(), ownCenter = NotificationCenter()
+        let app = SystemCallAudio(systemManagesCalls: false, engine: { own.record($0) }, session: ownSession, notifications: ownCenter)
+        try app.activate(systemOwned: false)
+        post(reset, to: ownCenter)
+        XCTAssertEqual(ownSession.configured, 2)
+        XCTAssertEqual(ownSession.active, [true, true], "active again")
+        XCTAssertEqual(own.now, "on")
+        app.deactivate(systemOwned: false)
+        post(reset, to: ownCenter)
+        XCTAssertEqual(ownSession.active, [true, true, false], "at rest it stays inactive")
+    }
+
     // MARK: - Through a whole call
 
     /// The adapter as the session uses it, with a microphone that says yes.
