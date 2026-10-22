@@ -10243,6 +10243,7 @@
       "one": "タネを{count}個獲得しました！"
     },
     "couldNotLoadMemories": "覚えていることを読み込めませんでした。もう一度試しますか？",
+    "credentialNotKept": "Ferniはコードやパスワードを保存しないので、これは削除しました。",
     "memoryCorrected": "わかりました。そのように覚えておきます。"
   },
   "trustSignals": {
