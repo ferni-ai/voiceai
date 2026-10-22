@@ -53,6 +53,12 @@ vi.mock('firebase-admin', () => ({
 }));
 
 // Mock feature flags config
+// The module reaches Firestore through getAdminFirestore(); it serves the same fake.
+vi.mock('../../../../utils/firebase-admin-app.js', async () => {
+  const admin = (await import('firebase-admin')).default;
+  return { getAdminFirestore: () => admin.firestore() };
+});
+
 vi.mock('../../../../config/feature-flags.js', () => ({
   isLifeCoachDomainEnabled: vi.fn((domain: string) => {
     return domain !== 'disabled-domain';

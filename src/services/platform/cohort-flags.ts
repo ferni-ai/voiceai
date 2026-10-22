@@ -30,6 +30,7 @@
  */
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 import {
   firestoreCohortStore,
   firestoreFlagHolders,
@@ -106,6 +107,7 @@ export const COHORT_FLAGS = [
   'TURN_TEXTURE',
   // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
   'ALEX_CHIEF_OF_STAFF',
+  'SPECIALIST_TOOLS', // read at each agent build (multi-agent/specialist-tool-sets.ts)
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
@@ -283,7 +285,7 @@ export async function envForCaller(
   const env = opts.env ?? process.env;
   const own: Record<string, string | undefined> = { ...env };
   for (const [k, v] of agentValues) own[k] = v;
-  if (!cohortFlagsEnabled(env) || !userId || userId === 'anonymous') return own;
+  if (!cohortFlagsEnabled(env) || !isMemberIdentity(userId)) return own;
   try {
     return { ...own, ...(await resolveCallerFlags(userId, opts.store)) };
   } catch (error) {
@@ -308,7 +310,7 @@ export async function applyCallerFlags(
     return [];
   }
   // The previous caller's flags go back to the agent's own even if this caller has none.
-  if (!userId || userId === 'anonymous') return applyFlags({}, env);
+  if (!isMemberIdentity(userId)) return applyFlags({}, env);
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const caller = await Promise.race([

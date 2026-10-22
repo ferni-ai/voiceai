@@ -1,0 +1,473 @@
+[
+  {
+    "file": "bh-01-s1.json",
+    "scenario": "bh-01",
+    "reply_gaps": [3121, 3003, 3414, 2144],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": ["🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅", "Handoff brief ready"]
+  },
+  {
+    "file": "bh-05-s1.json",
+    "scenario": "bh-05",
+    "reply_gaps": [2910, 3278, 2119, 2166],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": ["🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅", "Handoff brief ready"]
+  },
+  {
+    "file": "bh-09-s1.json",
+    "scenario": "bh-09",
+    "reply_gaps": [2939, 2846, 4120, 1691],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": ["🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅", "Handoff brief ready"]
+  },
+  {
+    "file": "bh-13-s1.json",
+    "scenario": "bh-13",
+    "reply_gaps": [3089, 3085, 3387, 2142],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": ["🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅", "Handoff brief ready"]
+  },
+  {
+    "file": "bh-17-s1.json",
+    "scenario": "bh-17",
+    "reply_gaps": [3293, 3244, 3090, 2673],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": ["🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅", "Handoff brief ready"]
+  },
+  {
+    "file": "bh-20-s2.json",
+    "scenario": "bh-20",
+    "reply_gaps": [3438, 3031, 3273, 1004, 1591],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": ["🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅", "Handoff brief ready"]
+  },
+  {
+    "file": "candor-wrong-s1.json",
+    "scenario": "candor-wrong",
+    "reply_gaps": [1332, 3979, 3156, 3139, 1459, 2152],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "crisis-relay-s1.json",
+    "scenario": "crisis-relay",
+    "reply_gaps": [1302, 4008, 3018, 2993, 2295],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "crisis-relay-s2.json",
+    "scenario": "crisis-relay",
+    "reply_gaps": [1306, 4324, 2924, 3080, 2151],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "depth-unstated-s1.json",
+    "scenario": "depth-unstated",
+    "reply_gaps": [3233, 2946, 2896, 1306, 1085, 3001, 2630],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "facts-recall-s1.json",
+    "scenario": "facts-recall",
+    "reply_gaps": [3060, 1598, 1308, 3028, 3949, 2916],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "facts-recall-s1.seed.json",
+    "scenario": "facts-seed",
+    "reply_gaps": [2854, 2920, 2906, 4246, 3078, 2194],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "facts-recall-s2.json",
+    "scenario": "facts-recall",
+    "reply_gaps": [2936, 1327, 1303, 2854, 3321, 2144],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "facts-recall-s2.seed.json",
+    "scenario": "facts-seed",
+    "reply_gaps": [2855, 2884, 2925, 4229, 3010, 2144],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "facts-recall-s3.json",
+    "scenario": "facts-recall",
+    "reply_gaps": [1457, 1925, 1304, 3040, 3300, 2161],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "facts-recall-s3.seed.json",
+    "scenario": "facts-seed",
+    "reply_gaps": [2853, 2851, 2943, 3653, 2980, 2136],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "first-call-return-s1.json",
+    "scenario": "first-call-return",
+    "reply_gaps": [2887, 2958, 3466, 2966, 2188],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "first-call-return-s1.seed.json",
+    "scenario": "first-call-seed",
+    "reply_gaps": [1307, 1008, 2942, 1307, 2954, 2132],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "follow-through-s1.json",
+    "scenario": "follow-through",
+    "reply_gaps": [1133, 2807, 3015, 2938, 2853],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "follow-through-s1.seed.json",
+    "scenario": "follow-through-seed",
+    "reply_gaps": [2952, 2976, 3021, 2359],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "follow-through-s2.json",
+    "scenario": "follow-through",
+    "reply_gaps": [1163, 2786, 2863, 2131, 2144],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "follow-through-s2.seed.json",
+    "scenario": "follow-through-seed",
+    "reply_gaps": [2995, 2874, 3229, 2140],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "follow-through-s3.json",
+    "scenario": "follow-through",
+    "reply_gaps": [1140, 2951, 2928, 2797, 2905],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "follow-through-s3.seed.json",
+    "scenario": "follow-through-seed",
+    "reply_gaps": [3004, 3015, 3014, 2138],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "good-news-job-s1.json",
+    "scenario": "good-news-job",
+    "reply_gaps": [2979, 2960, 2878, 2905, 2936],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "handoff-by-name-s1.json",
+    "scenario": "handoff-by-name",
+    "reply_gaps": [1012, 3189, 3042, 2870, 3374, 2141],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": [
+      "🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅",
+      "Handoff brief ready",
+      "🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅",
+      "Handoff brief ready",
+      "🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅",
+      "Handoff brief ready"
+    ]
+  },
+  {
+    "file": "handoff-every-teammate-s1.json",
+    "scenario": "handoff-every-teammate",
+    "reply_gaps": [1303, 1199, 3693, 3436, 2645, 3601, 10610],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": [
+      "🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅",
+      "Handoff brief ready",
+      "🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅",
+      "Handoff brief ready",
+      "🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅",
+      "Handoff brief ready",
+      "🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅",
+      "Handoff brief ready",
+      "🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅",
+      "Handoff brief ready",
+      "🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅",
+      "Handoff brief ready"
+    ]
+  },
+  {
+    "file": "handoff-nayan-tap-s1.json",
+    "scenario": "handoff-nayan-tap",
+    "reply_gaps": [3054, 2169],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": ["🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅", "Handoff brief ready"]
+  },
+  {
+    "file": "hard-ground-s1.json",
+    "scenario": "hard-ground",
+    "reply_gaps": [2940, 3076, 1203, 3394, 2937, 2133],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "hard-ground-s2.json",
+    "scenario": "hard-ground",
+    "reply_gaps": [3088, 3014, 1300, 3780, 2864, 2142],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "hard-news-s1.json",
+    "scenario": "hard-news",
+    "reply_gaps": [3622, 1047, 804, 3700, 2161],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "invented-past-s1.json",
+    "scenario": "invented-past",
+    "reply_gaps": [877, 3021, 3026, 2135],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "invented-past-s1.seed.json",
+    "scenario": "action-claim",
+    "reply_gaps": [1208, 3234, 1372, 1132, 3862, 3402],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "journal-remember-s1.json",
+    "scenario": "journal-remember",
+    "reply_gaps": [1125, 4227, 3133, 2971, 2168],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "late-night-energy-s1.json",
+    "scenario": "late-night-energy",
+    "reply_gaps": [1123, 3165, 1307, 3202, 2152],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "late-night-energy-s2.json",
+    "scenario": "late-night-energy",
+    "reply_gaps": [1068, 2935, 1303, 3204, 2153],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "long-day-s1.json",
+    "scenario": "long-day",
+    "reply_gaps": [2869, 2914, 2995, 2138],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "lookups-s1.json",
+    "scenario": "lookups",
+    "reply_gaps": [1249, 4825, 3110, 3214, 1458],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "memlive-mover-1-sweep.json",
+    "scenario": "memlive-mover-1",
+    "reply_gaps": [1305, 2899, 3022, 2224],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "memlive-mover-2-sweep.json",
+    "scenario": "memlive-mover-2",
+    "reply_gaps": [3039, 3430, 2947, 3295],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "memlive-mover-quiz-sweep.json",
+    "scenario": "memlive-mover-quiz",
+    "reply_gaps": [1330, 2908, 3956, 3250, 1834, 1916, 3262, 1746, 2151],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "memory-recall-s1.json",
+    "scenario": "memory-recall",
+    "reply_gaps": [1084, 1402, 1682, 3198, 1411, 2145],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "memory-recall-s1.seed.json",
+    "scenario": "memory-seed",
+    "reply_gaps": [3083, 3406, 1694, 1174, 3558, 3114, 2138],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "music-call-ends-s1.json",
+    "scenario": "music-call-ends",
+    "reply_gaps": [1349, 2293],
+    "tool_errors": 0,
+    "l50": ["None: Turn processing failed | Error: Turn processing hard timeout"],
+    "handoff_lines": []
+  },
+  {
+    "file": "music-control-s1.json",
+    "scenario": "music-control",
+    "reply_gaps": [2838, 1362],
+    "tool_errors": 0,
+    "l50": ["None: Turn processing failed | Error: Turn processing hard timeout"],
+    "handoff_lines": []
+  },
+  {
+    "file": "overlap-handoff-s1.json",
+    "scenario": "overlap-handoff",
+    "reply_gaps": [1305, 3526, 1868, 1579, 3620, 1664, 2260, 10263],
+    "tool_errors": 0,
+    "l50": [
+      "None: Turn processing failed | Error: Turn processing hard timeout",
+      "None: Turn processing failed | Error: Turn processing hard timeout"
+    ],
+    "handoff_lines": ["🎭 [HANDOFF] ✅✅✅ HANDOFF COMPLETE ✅✅✅", "Handoff brief ready"]
+  },
+  {
+    "file": "overlap-reply-start-s1.json",
+    "scenario": "overlap-reply-start",
+    "reply_gaps": [2938, 1435, 2166, 1364, 1395, 3425, 3063, 3081, 897, 3568, 1758],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "play-bit-recall-s1.json",
+    "scenario": "play-bit-recall",
+    "reply_gaps": [3533, 3010, 3456, 2188],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "play-bit-recall-s1.seed.json",
+    "scenario": "play-bit-seed",
+    "reply_gaps": [1045, 2895, 3520, 2146],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "play-roleplay-s1.json",
+    "scenario": "play-roleplay",
+    "reply_gaps": [2116, 3070, 1876, 1309],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "play-twenty-questions-s1.json",
+    "scenario": "play-twenty-questions",
+    "reply_gaps": [4543, 3291, 3006, 4364, 2654, 2614, 3247],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "sweep-crisis-bye-s1.json",
+    "scenario": "sweep-crisis-bye",
+    "reply_gaps": [1197, 2867, 3076, 2146],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "sweep-crisis-bye-s2.json",
+    "scenario": "sweep-crisis-bye",
+    "reply_gaps": [1330, 2821, 3247, 2151],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "sweep-crisis-real-s1.json",
+    "scenario": "sweep-crisis-real",
+    "reply_gaps": [1044, 1302, 2139, 2137],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "talk-over-s1.json",
+    "scenario": "talk-over",
+    "reply_gaps": [1040, 1154, 3272, 2144],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  },
+  {
+    "file": "timer-s1.json",
+    "scenario": "timer",
+    "reply_gaps": [1046, 3025, 1359, 1302],
+    "tool_errors": 0,
+    "l50": [],
+    "handoff_lines": []
+  }
+]

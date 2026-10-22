@@ -26,7 +26,7 @@
  */
 
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { Firestore } from 'firebase-admin/firestore';
 
 // ============================================================================
 // CONFIGURATION
@@ -354,7 +354,7 @@ async function getFirestoreDb(): Promise<Firestore> {
     const projectId = process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025';
     initializeApp({ projectId });
   }
-  return getFirestore();
+  return (await import('../../../../../src/utils/firebase-admin-app.js')).getAdminFirestore();
 }
 
 // ============================================================================

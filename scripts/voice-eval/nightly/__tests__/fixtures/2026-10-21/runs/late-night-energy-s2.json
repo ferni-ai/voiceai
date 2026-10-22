@@ -1,0 +1,4 @@
+{
+  "meta": { "scenario": "late-night-energy", "label": "s2", "role": "test" },
+  "events": [{ "t": 5541, "who": "agent", "text": "late" }]
+}

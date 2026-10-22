@@ -49,6 +49,7 @@ import type {
   MemoryInsights,
   MoodIntelligence,
 } from './types.js';
+import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:maya-coaching-insights' });
 
@@ -190,7 +191,7 @@ async function buildMayaCoachingInsightsContext(
   if (!isMaya) return injections;
 
   const userId = services?.userId || 'anonymous';
-  if (userId === 'anonymous') return injections;
+  if (!isMemberIdentity(userId)) return injections;
 
   const turnCount = userData?.turnCount ?? 0;
   const sessionId = services?.sessionId || userId;
