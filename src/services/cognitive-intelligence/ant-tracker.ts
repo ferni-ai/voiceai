@@ -9,8 +9,7 @@
  * @module ANTTracker
  */
 
-import admin from 'firebase-admin';
-import { getGCPProjectId } from '../../config/environment.js';
+import type admin from 'firebase-admin';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CognitiveDistortion, DistortionDetection } from './distortion-detector.js';
