@@ -96,20 +96,25 @@ export function tapClipSource(session: object, source: unknown, env: Env = proce
 export function installSelfVoiceGate(input: LiveCallBehaviorsInput, env: Env = process.env): void {
   if (selfVoiceGateMode(env) === 'off') return;
   const { session, sessionId, sessionEventHandlers } = input;
-  const state = ensureState(session, sessionId);
-  const onClear = (): void => logSelfVoiceShadow(session, 'output-cleared');
-  const tapRoom = (): void => {
-    try {
-      const output = session.output.audio as unknown as Queued | undefined;
-      tapAudioSource(chainAudioSource(output), state.room, { now, onClear });
-    } catch (error) {
-      log.warn({ sessionId, error: String(error) }, 'self-voice room tap failed');
+  // Shadow must never break call setup: a failure here only loses the shadow logs.
+  try {
+    const state = ensureState(session, sessionId);
+    const onClear = (): void => logSelfVoiceShadow(session, 'output-cleared');
+    const tapRoom = (): void => {
+      try {
+        const output = session.output.audio as unknown as Queued | undefined;
+        tapAudioSource(chainAudioSource(output), state.room, { now, onClear });
+      } catch (error) {
+        log.warn({ sessionId, error: String(error) }, 'self-voice room tap failed');
+      }
+    };
+    tapRoom();
+    const events = input.sessionWithEvents as { on: (event: string, h: () => void) => void };
+    for (const event of ['speech_created', 'agent_state_changed', 'user_state_changed']) {
+      events.on(event, tapRoom);
+      sessionEventHandlers.push({ event, handler: tapRoom });
     }
-  };
-  tapRoom();
-  const events = input.sessionWithEvents as { on: (event: string, h: () => void) => void };
-  for (const event of ['speech_created', 'agent_state_changed', 'user_state_changed']) {
-    events.on(event, tapRoom);
-    sessionEventHandlers.push({ event, handler: tapRoom });
+  } catch (error) {
+    log.warn({ sessionId, error: String(error) }, 'self-voice gate install failed');
   }
 }

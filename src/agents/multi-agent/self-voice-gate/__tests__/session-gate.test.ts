@@ -84,6 +84,18 @@ describe('self-voice gate on a call', () => {
     expect(shadowLines()).toHaveLength(0);
   });
 
+  it('shadow never breaks call setup: a failing install only logs', () => {
+    const { on, input } = fakeCall();
+    on.mockImplementation(() => {
+      throw new Error('emitter gone');
+    });
+    expect(() => installSelfVoiceGate(input, SHADOW)).not.toThrow();
+    expect(log.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ sessionId: 'call-1' }),
+      'self-voice gate install failed'
+    );
+  });
+
   it('shadow taps the room output found down the chain, and re-taps a replaced one', () => {
     const { room, session, on, input } = fakeCall();
     installSelfVoiceGate(input, SHADOW);
