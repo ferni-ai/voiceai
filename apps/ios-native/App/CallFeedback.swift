@@ -1,6 +1,7 @@
 import AVFAudio
 import FerniDesign
 import FerniVoice
+import os
 import SwiftUI
 
 /// Plays what the avatar's state machine asks for: one haptic per moment,
@@ -12,6 +13,7 @@ final class CallFeedback {
     private var director = EarconDirector()
     private var players: [String: AVAudioPlayer] = [:]
     private let started = ContinuousClock.now
+    private let log = Logger(subsystem: "com.sethdford.ferni", category: "call")
     /// Who's speaking right now; set once the call exists.
     var isSomeoneSpeaking: () -> (agent: Bool, user: Bool) = { (false, false) }
     /// No call (Home at rest): the only time foley plays.
@@ -19,12 +21,19 @@ final class CallFeedback {
     var reduceMotion: () -> Bool = { UIAccessibility.isReduceMotionEnabled }
     /// Where foley goes (system sounds; a test listens instead).
     var playFoley: (Foley) -> Void
+    /// Where a call's sounds go: into the call's own audio engine, so the echo
+    /// canceller removes them and voice processing doesn't duck them (a test
+    /// listens instead). False when it couldn't play.
+    var playInCall: (URL) -> Bool
     private var lastFoley: ContinuousClock.Instant?
 
-    init() {
+    init(sounds: CallSounds? = nil) {
         let player = FoleyPlayer()
         playFoley = { player.play($0) }
+        playInCall = { sounds?.play($0, volume: Self.volume) ?? false }
     }
+
+    static let volume: Float = 0.6
 
     static let soundsKey = "ferni.earcons"
 
@@ -41,7 +50,13 @@ final class CallFeedback {
             let speaking = isSomeoneSpeaking()
             guard director.allow(earcon, now: ContinuousClock.now - started,
                                  agentSpeaking: speaking.agent, userSpeaking: speaking.user) else { return }
-            player(for: earcon.fileName)?.play()
+            if isAtRest() {
+                player(for: earcon.fileName)?.play()
+            } else if let url = Bundle.main.url(forResource: earcon.fileName, withExtension: "mp3"), !playInCall(url) {
+                // Never a player of its own in a call: the mic would hear it
+                // as someone speaking. Better no sound than a false barge-in.
+                log.notice("Call sound \(earcon.fileName, privacy: .public) skipped: the call's audio isn't running")
+            }
         }
     }
 
@@ -89,7 +104,7 @@ final class CallFeedback {
         soundsOn && !reduceMotion && atRest && (sinceLast.map { $0 >= .milliseconds(500) } ?? true)
     }
 
-    /// One prepared player per sound, on the call's own audio session.
+    /// One prepared player per sound, at rest (no call).
     private func player(for name: String) -> AVAudioPlayer? {
         if let player = players[name] { return player }
         guard let url = Bundle.main.url(forResource: name, withExtension: "mp3"),
