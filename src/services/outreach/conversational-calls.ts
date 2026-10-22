@@ -17,6 +17,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { isCallHoursGuardOn } from './call-hours-guard.js';
 import { holdForCallHours } from './deferred-calls.js';
+import { placeLiveAgentCall, ringsWithLiveAgent } from './live-agent-call.js';
 import { callQuietHours } from './quiet-hours.js';
 import { toTwilioSsml } from './twilio-ssml.js';
 
@@ -242,10 +243,9 @@ async function initiateCall(
   }
 ): Promise<CallResult> {
   try {
-    // Update status
     await updateCallStatus(call.id, 'in_progress', { lastAttemptAt: new Date().toISOString() });
+    if (ringsWithLiveAgent(call)) return placeLiveAgentCall(call, updateCallStatus);
 
-    // Check if Twilio is configured
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;
     const twilioPhone = process.env.TWILIO_PHONE_NUMBER;
