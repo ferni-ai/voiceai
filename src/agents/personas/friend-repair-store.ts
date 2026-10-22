@@ -7,6 +7,7 @@
  */
 import type { DocumentReference } from 'firebase-admin/firestore';
 
+import { withoutDerivedCopies } from '../../memory/recall/forget.js';
 import { firestoreSupersessionStore } from '../../memory/storage/supersession-store.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import type { RepairRecord, RepairStore } from './friend-repair.js';
@@ -65,7 +66,8 @@ export const firestoreRepairStore: RepairStore = {
     if (!facts || !db) throw new Error('Firestore unavailable: facts not retired');
     const batch = db.batch();
     for (const id of factIds) {
-      batch.update(facts.doc(id), { supersededAt: at, supersededBy: by, correctedAt: at });
+      const retired = { supersededAt: at, supersededBy: by, correctedAt: at };
+      batch.update(facts.doc(id), { ...retired, ...withoutDerivedCopies() });
     }
     await batch.commit();
   },

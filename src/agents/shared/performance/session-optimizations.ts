@@ -45,10 +45,10 @@ export async function prewarmUserEmbeddings(
 
   try {
     // Import dynamically to avoid circular deps
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
     const { embedBatchCached } = await import('../../../memory/embedding-cache.js');
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const textsToWarm: string[] = [];
 
     // 1. Get recent topics from extracted facts
@@ -68,31 +68,11 @@ export async function prewarmUserEmbeddings(
       }
     }
 
-    // 2. Get recent conversation summaries
-    const summariesSnapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('conversation_summaries')
-      .orderBy('timestamp', 'desc')
-      .limit(5)
-      .get();
+    // No conversation_summaries read: nothing on the live path writes that
+    // store (call-summaries.ts) and prod had 0 docs in it on 2026-10-18, so the
+    // read cost every returning caller a query for no text.
 
-    for (const doc of summariesSnapshot.docs) {
-      const data = doc.data();
-      if (data.summary && typeof data.summary === 'string') {
-        textsToWarm.push(data.summary);
-      }
-      // Also warm key topics from summaries
-      if (Array.isArray(data.topics)) {
-        for (const topic of data.topics.slice(0, 3)) {
-          if (typeof topic === 'string') {
-            textsToWarm.push(topic);
-          }
-        }
-      }
-    }
-
-    // 3. Warm embeddings in batch (with timeout)
+    // 2. Warm embeddings in batch (with timeout)
     if (textsToWarm.length > 0) {
       const uniqueTexts = [...new Set(textsToWarm)].slice(0, maxPhrases!);
 

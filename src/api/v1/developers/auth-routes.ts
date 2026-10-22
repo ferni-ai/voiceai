@@ -18,6 +18,7 @@ import {
 } from '../../publisher-auth.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import { RELINK_MESSAGE } from './shared/developer-auth.js';
+import { getFirestoreDatabase } from '../../../config/environment.js';
 
 const log = getLogger().child({ module: 'developers-auth' });
 
@@ -149,7 +150,7 @@ async function getFirestore(): Promise<Firestore> {
   const { Firestore } = await import('@google-cloud/firestore');
   db = new Firestore({
     projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-    databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    databaseId: getFirestoreDatabase(),
   }) as unknown as Firestore;
 
   return db;

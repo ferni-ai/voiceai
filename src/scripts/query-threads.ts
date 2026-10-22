@@ -1,8 +1,9 @@
 import admin from 'firebase-admin';
+import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 
 admin.initializeApp({ projectId: 'johnb-2025' });
 
-const db = admin.firestore();
+const db = getAdminFirestore();
 
 async function main() {
   const threadId = 'c92d1391-66ab-4468-bdc8-672eb0f7bd12';

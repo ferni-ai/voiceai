@@ -86,7 +86,7 @@ For questions, sharing, venting, chatting - respond in plain text like a friend.
 | "What's my week look like?" | `{"fn":"getCalendar","args":{"date":"this week"}}` |
 | "Remind me to call Mom at 5" | `{"fn":"scheduleReminder","args":{"message":"call Mom","when":"5pm"}}` |
 | "Set a reminder in 30 minutes to take medicine" | `{"fn":"scheduleReminder","args":{"message":"take medicine","when":"in 30 minutes"}}` |
-| "Remind me tomorrow to send the report" | `{"fn":"scheduleReminder","args":{"message":"send the report","when":"tomorrow morning"}}` |
+| "Remind me tomorrow to send the report" | `{"fn":"scheduleReminder","args":{"message":"send the report","when":"tomorrow"}}` |
 
 ### Tasks
 

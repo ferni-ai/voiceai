@@ -22,16 +22,16 @@ import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 // Firestore helpers for marketplace data
 async function savePurchase(purchase: MarketplacePurchase): Promise<void> {
-  const { getFirestore } = await import('firebase-admin/firestore');
-  const db = getFirestore();
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  const db = getAdminFirestore();
   await db.collection('marketplace_purchases').doc(purchase.id).set(cleanForFirestore(purchase));
 }
 
 async function getPurchaseByPaymentIntent(
   paymentIntentId: string
 ): Promise<MarketplacePurchase | null> {
-  const { getFirestore } = await import('firebase-admin/firestore');
-  const db = getFirestore();
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  const db = getAdminFirestore();
   const snapshot = await db
     .collection('marketplace_purchases')
     .where('stripePaymentIntentId', '==', paymentIntentId)
@@ -42,8 +42,8 @@ async function getPurchaseByPaymentIntent(
 }
 
 async function savePayout(payout: PublisherPayout): Promise<void> {
-  const { getFirestore } = await import('firebase-admin/firestore');
-  const db = getFirestore();
+  const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+  const db = getAdminFirestore();
   await db.collection('marketplace_payouts').doc(payout.id).set(cleanForFirestore(payout));
 }
 

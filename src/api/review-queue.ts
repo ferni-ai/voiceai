@@ -115,7 +115,7 @@ export interface ReviewQueueOptions {
 const COLLECTION = 'marketplace_review_submissions';
 
 function getDb(): Firestore {
-  return getFirestore();
+  return getFirestore(process.env.FIRESTORE_DATABASE || '(default)');
 }
 
 /**
