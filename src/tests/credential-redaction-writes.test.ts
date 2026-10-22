@@ -288,6 +288,22 @@ describe('every memory writer stores no credential', () => {
     await createMention('user-1', { entityId: 'e1', context: SAID, transcript: SAID } as never);
     expectNoSecret();
   });
+
+  it('entity and mention fields set after the spread (topics, aliases, facts) are redacted too', async () => {
+    await createEntity('user-1', {
+      name: 'Sam',
+      type: 'person',
+      topics: ['the door code is 4821'],
+      aliases: ['my password is hunter2'],
+    } as never);
+    await createMention('user-1', {
+      entityId: 'e1',
+      topics: ['card 4111 1111 1111 1111'],
+      facts: ['the door code is 4821'],
+    } as never);
+    expectNoSecret();
+  });
+
   it('a summary from the summarization worker', async () => {
     const worker = new SummarizationWorker();
     const run = worker as unknown as { summarizeConversation: (job: unknown) => Promise<unknown> };
