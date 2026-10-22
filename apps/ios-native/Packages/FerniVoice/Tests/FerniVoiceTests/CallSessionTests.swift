@@ -321,6 +321,13 @@ final class CaptionBookTests: XCTestCase {
         XCTAssertEqual(book.lines.first?.isFinal, true)
     }
 
+    func testAnEmptyEndMarkerIsNotALine() {
+        var book = CaptionBook()
+        book.apply(CaptionChunk(streamID: "s1", segmentID: "a", speaker: .you, text: "", isFinal: true))
+        book.apply(CaptionChunk(streamID: "s2", segmentID: "b", speaker: .you, text: "  ", isFinal: false))
+        XCTAssertTrue(book.lines.isEmpty)
+    }
+
     func testOnlyTheLastFewLinesAreKept() {
         var book = CaptionBook(keep: 2)
         for i in 0..<5 {

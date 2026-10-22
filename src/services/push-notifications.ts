@@ -135,6 +135,7 @@ class PushNotificationsBackendService {
     // Initialize persistence stores
     this.subscriptionStore = createPersistenceStore<UserSubscriptionsData>({
       collection: 'push_subscriptions',
+      holdWrites: () => false, // MINOR_CARE opt-out: a device endpoint
       syncIntervalMs: 10000, // Sync every 10 seconds
       maxPendingChanges: 50,
     });
@@ -279,8 +280,7 @@ class PushNotificationsBackendService {
           sent = true;
         }
       } catch (error) {
-        // Never the endpoint or the error object: web-push's error carries the
-        // endpoint, and whoever holds an endpoint (with its keys) can push to it.
+        // Never the endpoint or error object: web-push's error carries the endpoint (pushable)
         const statusCode = (error as { statusCode?: unknown } | null)?.statusCode;
         getLogger().warn(
           { userId, platform: sub.platform, statusCode },
