@@ -102,7 +102,8 @@ public struct AvatarView: View {
                                 AliveMetalView(
                                     renderer: renderer, uniforms: u,
                                     radius: Float(Self.radius / Self.canvas.width), below: Float(Self.lift / Self.canvas.width),
-                                    scale: Self.renderScale(display: displayScale, throttled: throttled)
+                                    scale: Self.renderScale(display: displayScale, throttled: throttled),
+                                    targetHz: hz
                                 )
                                 AliveParticles(
                                     particles: rig.particles,
