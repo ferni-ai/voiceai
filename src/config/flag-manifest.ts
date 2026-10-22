@@ -21,6 +21,7 @@ import {
   FLAGS_HONEST_TO_IDENTITY,
   FLAGS_MOVE_TO_PHONE_AUDIO,
   FLAGS_SHORT_GOODBYE_TO_SMS,
+  FLAGS_SPECIALIST_TO_SPECULATIVE,
   type FlagSpec,
 } from './flag-manifest-entries.js';
 
@@ -356,8 +357,7 @@ const LEGACY_FLAG_MANIFEST = {
   SONATA_STT_ENABLE_VAD: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   // on: every reply says the 988 crisis line as "nine eight eight" (safety/crisis-line-speech.ts)
   SPEAK_988_DIGITS: { default: 'on', owner: 'voice', kind: 'kill-switch' },
-  // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
-  SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
+  ...FLAGS_SPECIALIST_TO_SPECULATIVE,
   // off, shadow or live; the default is off under tests (speech/tts-gateway/director/gate.ts)
   SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
   // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)

@@ -106,6 +106,7 @@ export const COHORT_FLAGS = [
   'TURN_TEXTURE',
   // Read per call at agent build, a handoff, a turn and an unlock check (alex-chief-of-staff-flag.ts).
   'ALEX_CHIEF_OF_STAFF',
+  'SPECIALIST_TOOLS', // read at each agent build (multi-agent/specialist-tool-sets.ts)
   // Read after the call, through envForCaller, never process.env as applied.
   'DATES_THAT_MATTER',
   'PROACTIVE_CHANNELS',
