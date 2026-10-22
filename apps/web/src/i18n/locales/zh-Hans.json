@@ -10243,6 +10243,7 @@
       "one": "你获得了 {count} 颗种子！"
     },
     "couldNotLoadMemories": "没能加载我记得的内容。再试一次？",
+    "credentialNotKept": "Ferni 不会保存密码或各种代码，所以这条已删除。",
     "memoryCorrected": "明白了，我会这样记住。"
   },
   "trustSignals": {

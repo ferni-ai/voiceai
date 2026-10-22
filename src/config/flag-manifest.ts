@@ -364,6 +364,8 @@ const LEGACY_FLAG_MANIFEST = {
   SPEECH_DIRECTOR: { default: 'shadow', owner: 'voice', kind: 'experiment' },
   // opt-in lever, read as SPEECH_DIRECTOR_<LEVER> from gate.ts (not a literal read)
   SPEECH_DIRECTOR_LAUGHTER: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: a fact holding a code, password or PIN the caller said aloud is not stored (memory/spoken-credential.ts)
+  SPOKEN_CREDENTIAL_FILTER: { default: 'off', owner: 'memory', kind: 'experiment' },
   // streaks count days from the summaries subcollection (up to 400 reads per profile load)
   STREAK_FROM_SUMMARIES: { default: 'off', owner: 'memory', kind: 'experiment' },
   STREAMING_TTS_OVERLAP: { default: 'on', owner: 'voice', kind: 'kill-switch' },

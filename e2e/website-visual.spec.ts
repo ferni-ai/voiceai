@@ -24,6 +24,13 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { keepOffProdApi } from './built-site-server';
+import {
+  NIGHT,
+  NIGHT_CLASSES,
+  nightClasses,
+  serveNightContent,
+  waitForNight,
+} from './website-night';
 
 /** Served once for all workers by the config's webServer. */
 const SITE = 'http://127.0.0.1:8770';
@@ -73,6 +80,9 @@ const OVERLAYS = [
   '.ai-hover-insight',
 ];
 
+/** Pages that load js/landing-intelligence.js, which can switch to night. */
+const NIGHT_PAGES = ['/', '/story/'];
+
 /** Media whose frame depends on when the picture is taken. */
 const MASKED = ['video', 'iframe', 'canvas'];
 
@@ -87,8 +97,7 @@ const FAMILIES = ['Inter', 'Plus Jakarta Sans'];
  * Same random numbers and empty storage on every load, and a clock that
  * never moves, so no timer swaps copy, rotates cards or opens a banner.
  */
-async function freeze(page: Page): Promise<void> {
-  const time = new Date('2026-06-15T10:00:00Z');
+async function freeze(page: Page, time = new Date('2026-06-15T10:00:00Z')): Promise<void> {
   await page.clock.install({ time });
   await page.clock.pauseAt(time);
   await page.addInitScript(() => {
@@ -138,6 +147,26 @@ async function settle(page: Page): Promise<void> {
   await page.waitForLoadState('networkidle');
 }
 
+/** The page's first `screens` screens, compared with the approved image. */
+async function snap(
+  page: Page,
+  name: string,
+  viewport: { width: number; height: number },
+  screens: number
+): Promise<void> {
+  const height = await page.evaluate(() => document.documentElement.scrollHeight);
+  await expect(page).toHaveScreenshot(name, {
+    fullPage: true,
+    clip: {
+      x: 0,
+      y: 0,
+      width: viewport.width,
+      height: Math.min(height, viewport.height * screens),
+    },
+    mask: MASKED.map((selector) => page.locator(selector)),
+  });
+}
+
 const slug = (path: string): string => path.replaceAll('/', '') || 'home';
 
 test.beforeAll(async ({ browser }) => {
@@ -165,17 +194,40 @@ for (const [device, { viewport, screens }] of Object.entries(VIEWPORTS)) {
           const response = await page.goto(`${SITE}${path}`, { waitUntil: 'networkidle' });
           expect(response?.ok()).toBe(true);
           await settle(page);
-          const height = await page.evaluate(() => document.documentElement.scrollHeight);
-          await expect(page).toHaveScreenshot(`${slug(path)}-${device}-${colorScheme}.png`, {
-            fullPage: true,
-            clip: {
-              x: 0,
-              y: 0,
-              width: viewport.width,
-              height: Math.min(height, viewport.height * screens),
-            },
-            mask: MASKED.map((selector) => page.locator(selector)),
-          });
+          await snap(page, `${slug(path)}-${device}-${colorScheme}.png`, viewport, screens);
+        });
+      }
+    });
+  }
+}
+
+// At 02:00 the landing API says visualMode: 'dark' and the home page script
+// turns night on (website-night.ts). On a dark system that is the night
+// look; on a light one the page must stay on paper, which these images show.
+for (const [device, { viewport, screens }] of Object.entries(VIEWPORTS)) {
+  for (const colorScheme of ['light', 'dark'] as const) {
+    test.describe(`${device} ${colorScheme} at night`, () => {
+      test.use({ viewport, colorScheme });
+
+      test.beforeEach(async ({ context, page }) => {
+        await keepOffProdApi(context);
+        await context.route(/googletagmanager\.com|google-analytics\.com/, (route) =>
+          route.abort()
+        );
+        await serveNightContent(context);
+        await freeze(page, NIGHT);
+      });
+
+      for (const path of NIGHT_PAGES) {
+        test(`${path} at night looks as approved`, async ({ page }) => {
+          const response = await page.goto(`${SITE}${path}`, { waitUntil: 'networkidle' });
+          expect(response?.ok()).toBe(true);
+          // The script starts on a 50 ms timer, which the paused clock holds.
+          await page.clock.runFor(100);
+          await waitForNight(page);
+          expect(await nightClasses(page)).toEqual(colorScheme === 'dark' ? NIGHT_CLASSES : []);
+          await settle(page);
+          await snap(page, `${slug(path)}-${device}-night-${colorScheme}.png`, viewport, screens);
         });
       }
     });
