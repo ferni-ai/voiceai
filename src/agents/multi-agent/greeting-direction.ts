@@ -32,6 +32,11 @@ import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
+import {
+  letterOfferDirection,
+  letterToOffer,
+  lineOffersLetter,
+} from '../../tools/domains/engagement/future-letters.js';
 import * as stranger from './first-call-stranger.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
@@ -385,7 +390,7 @@ export async function directedGreeting(
     return calmGreeting(directed.text);
   }
   // Not gated on history: the profile behind it can still be loading.
-  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, introName] =
+  const [openCheckIn, openWin, pondered, welcome, anniversary, isNew, introName, letter] =
     await Promise.all([
       checkInFor(userData?.userId),
       winFor(userData?.userId),
@@ -394,6 +399,16 @@ export async function directedGreeting(
       anniversaryFor(userData?.userId, history, userData?.callerTimezone), // FRIEND_CELEBRATIONS
       stranger.isStrangerCall(userData, history),
       firstMeeting(personaId, userData, history), // FIRST_CALL_INTRO: the name to give
+      userData?.userId // FUTURE_LETTER_OPENER: Jordan only, owner only
+        ? inTime(
+            letterToOffer({
+              userId: userData.userId,
+              sessionId,
+              personaId,
+              zone: userData.callerTimezone,
+            })
+          )
+        : undefined,
     ]);
   // An unrecognised phone caller: a name given on that number before (RETURNING_CALLER), or ask.
   const unknown =
@@ -425,6 +440,7 @@ export async function directedGreeting(
     (ask && !unknown ? PONDER_DIRECTION : '') +
     (back?.direction ?? '') +
     (anniversary && !unknown ? anniversaryDirection(anniversary) : '') +
+    (letter && !unknown ? letterOfferDirection(letter) : '') +
     (unknown ? ` ${unknown}` : '');
   const directed = await directedText(sessionId, {
     moment: 'greeting',
@@ -456,6 +472,7 @@ export async function directedGreeting(
     lineSaysAnniversary(spoken, anniversary)
   )
     anniversary.mark();
+  if (letter && !unknown && directed.source === 'actor' && lineOffersLetter(spoken)) letter.mark();
   // One follow-up per call opener: having asked, the greeting keeps the first
   // recall note from asking about a thread too (greeting-claim.ts).
   if (!unknown && userData?.userId && directed.source === 'actor' && spoken === directed.text) {

@@ -1632,7 +1632,7 @@
       "file": "src/tools/domains/dreams/index.ts"
     },
     "futureSelfLetter": {
-      "description": "Write a letter to your future self. Jordan seals it and delivers it at the specified time. Creates anticipation and a powerful moment when delivered.",
+      "description": "Write a letter to your future self. seal keeps it until its date; from then on, deliver reads it back (check-pending lists the dates). Only promise what the reply says.",
       "file": "src/tools/domains/engagement/life-planning-games.ts"
     },
     "gatherConstraints": {
