@@ -1,23 +1,50 @@
 /*
- * Tap target size: gives small controls a 44px touch target on touch screens.
+ * Tap target size: gives small controls a 48px touch target on touch screens.
  *
- * WCAG 2.5.5 and Apple's HIG both ask for 44x44px. The 2026-10-12 visual hunt
- * measured these under it at 390px: confirm-modal buttons 37px tall,
- * onboarding buttons 40px, the avatar's journey indicator 40x40, personalize
- * category chips 18px and Your People filter chips 28px.
+ * Material asks for 48x48dp, and the Android app wraps this web app (TWA), so
+ * the floor is 48 (design-system/tokens/responsive.json touchTargets.primary
+ * .mobile), above the 44 of WCAG 2.5.5 and Apple's HIG. The 2026-10-20 mobile
+ * web audit measured 69 controls under 48, the worst 14px tall: "Delete my
+ * account", "Support Ferni", Terms / Privacy Policy, the offline retry, export
+ * checkboxes, "Add to Roster", "Use This", Memory Lane tabs, every close
+ * button and the menu button.
  *
- * Buttons and chips grow to at least 44x44px. The journey indicator is a
- * badge on the avatar, so it keeps its size and gets an invisible 44px hit
- * area instead. Desktop sizes are unchanged. tests/tap-target-size.test.ts
- * keeps each selector here matched to a component that still exists.
+ * Three ways, picked so dense rows and text links keep their look:
+ *  1. Buttons grow to at least 48x48. !important because component styles are
+ *     injected after this sheet, several with their own 44px minimum.
+ *  2. Badges, the round menu button, card actions and link-styled buttons keep
+ *     their size and get an invisible 48px hit box (::after) instead.
+ *  3. Links inside a sentence get vertical padding, which an inline box paints
+ *     and hit-tests but leaves out of the line height, so the text never moves.
+ *
+ * Desktop sizes are unchanged. tests/tap-target-size.test.ts checks each size
+ * and keeps every selector here matched to a component that still exists.
  */
 @media (pointer: coarse) {
+  /* 1. Buttons grow. */
   .confirm-modal-btn,
   .onboarding__btn,
   .personalize-category-btn,
-  .yp-filter {
-    min-width: 44px;
-    min-height: 44px;
+  .yp-filter,
+  .memory-lane-modal__tab,
+  .data-export__format-btn,
+  .data-export__btn,
+  .settings-menu__section-header,
+  .call-status__btn,
+  .waiting-screen__btn,
+  .moment-milestone__button,
+  .ferni-hub-problem-action,
+  .after-call-close,
+  .data-export__close,
+  .ferni-hub-close,
+  .ferni-modal__close,
+  .memory-lane-modal__close,
+  .moment-milestone__close,
+  .personalize-close,
+  .your-story__close,
+  .theme-language-settings__close {
+    min-width: 48px !important;
+    min-height: 48px !important;
   }
 
   /* The category row is a flex child of the modal and shrinks below its chips,
@@ -26,13 +53,67 @@
     flex-shrink: 0;
   }
 
-  .unified-indicator::after {
+  /* The export checkbox is drawn at 20px; its label is the whole row, and a tap
+     anywhere on it toggles the box, so the row carries the 48px target. */
+  .data-export__category {
+    min-height: 48px;
+  }
+
+  /* 2. Same look, larger hit box. These were static, so relative moves nothing
+     and only anchors the box (the journey indicator and menu button are
+     already positioned). */
+  .settings-menu__close,
+  .team-member-card__action,
+  .personalize-item-action,
+  .after-call-support,
+  .data-export__delete-account,
+  .offline-banner__retry {
+    position: relative;
+  }
+
+  .unified-indicator::after,
+  .mobile-menu-trigger::after,
+  .settings-menu__close::after,
+  .team-member-card__action::after,
+  .personalize-item-action::after,
+  .after-call-support::after,
+  .data-export__delete-account::after,
+  .offline-banner__retry::after {
     content: '';
     position: absolute;
     top: 50%;
     left: 50%;
-    width: max(100%, 44px);
-    height: max(100%, 44px);
+    width: max(100%, 48px);
+    height: max(100%, 48px);
     transform: translate(-50%, -50%);
+  }
+
+  /* The offline banner hugs the top of the screen, where a centred box would
+     hang off it: start the retry's box at the banner's top padding edge. */
+  .offline-banner__retry::after {
+    top: calc(-1 * var(--space-sm, 8px));
+    transform: translateX(-50%);
+  }
+
+  /* "Delete my account" ends the export modal, which clips at its edge. */
+  .data-export__delete-account {
+    margin-bottom: var(--space-3, 12px);
+  }
+
+  /* "Support Ferni" ends the after-call card, which clips at its edge. */
+  .after-call-support {
+    margin-bottom: var(--space-1, 4px);
+  }
+
+  /* 3. Links in a sentence: (48px - 1em) / 2 above and below reaches 48px for
+     any font size, and the matching negative inline margin keeps the words
+     where they were while widening a short word like "Terms". Relative puts
+     the padding above the words around it, which would otherwise take the
+     tap. */
+  .sign-in-gate-footer a,
+  .data-export__privacy-link {
+    position: relative;
+    padding: calc((48px - 1em) / 2) var(--space-2, 8px);
+    margin: 0 calc(-1 * var(--space-2, 8px));
   }
 }

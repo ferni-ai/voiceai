@@ -81,6 +81,8 @@ jobs:
           VITE_CAPTIONS_HEARD: ${{ vars.VITE_CAPTIONS_HEARD }}
           # What Ferni Knows (apps/web/src/ui/memory/known.ts); off unless exactly "true".
           VITE_MEMORY_VIEW: ${{ vars.VITE_MEMORY_VIEW }}
+          # Promises in the Your Day hub (apps/web/src/ui/hub-promises.ui.ts); off unless exactly "true".
+          VITE_PROMISES_PANEL: ${{ vars.VITE_PROMISES_PANEL }}
           # Toast region (apps/web/src/ui/overlay/toast-flag.ts): ON unless "off". Kill switch:
           # set the repo variable VITE_TOAST_REGION=off and re-run this workflow.
           VITE_TOAST_REGION: ${{ vars.VITE_TOAST_REGION }}
