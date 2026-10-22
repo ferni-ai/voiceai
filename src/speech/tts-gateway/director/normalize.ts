@@ -27,6 +27,8 @@
  *   Sonic reads all-caps letter by letter. Fail safe: only words on an explicit
  *   emphasis list; every other caps token (FDIC, AAPL, HIIT, VIII) is kept.
  *
+ * - SPOKEN_CONTRACTIONS=on: "It is a lot" → "It's a lot" (spoken-contractions.ts).
+ *
  * Nothing inside [...] or <...> markup, or a <spell> element, is touched.
  *
  * @module speech/tts-gateway/director/normalize
@@ -34,6 +36,7 @@
 
 import { rewriteAsteriskSpans } from '../stage-directions.js';
 import { writeBareDates } from './bare-dates.js';
+import { contractForSpeech, spokenContractionsEnabled } from './spoken-contractions.js';
 
 export interface NormalizeResult {
   text: string;
@@ -177,6 +180,9 @@ const RULES: readonly Rule[] = [
     hit();
     return tidy(out, t);
   },
+  // SPOKEN_CONTRACTIONS=on: "That is a massive shift" → "That's a massive shift" (#2334).
+  // Before the caps rule, so a stressed "I am NOT" is left as written.
+  (t, hit) => (spokenContractionsEnabled() ? contractForSpeech(t, hit) : t),
   // Shouted emphasis: lowercase it so Sonic says the word, not its letters.
   (t, hit) =>
     t.replace(CAPS_WORD, (word: string, at: number, all: string) => {
