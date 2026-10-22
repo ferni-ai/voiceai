@@ -45,6 +45,7 @@ import {
   groundedRelease,
 } from '../../services/safety/crisis-grounded-release.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
+import { unmarkCrisisTurn } from '../../services/safety/crisis-turn-mark.js';
 import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
@@ -403,6 +404,8 @@ export async function gatedReply(
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => turnOpenedSince(session, askedAt);
   const gate = startCrisisGate(chatCtx, session.userData, options);
+  // Only a live gate's pass clears the turn for transfer aliases; no gate: unknown (fail closed).
+  if (!gate) unmarkCrisisTurn(session.userData);
   signalCrisisDecision(session, gate?.decision.action);
   gate?.escalation
     ?.then((decision) => signalCrisisDecision(session, decision?.action))
