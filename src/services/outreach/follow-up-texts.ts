@@ -111,7 +111,11 @@ async function record(
   return store.save(next.data, f.updatedAt);
 }
 
-/** Their follow-ups due at or before now, oldest first. */
+/**
+ * Their follow-ups due at or before now, oldest first. A follow-up imported
+ * from a reminder is left out: the reminder job (reminder-delivery-job.ts)
+ * already texts it, once, with the same words, so texting it here sent it twice.
+ */
 async function dueFor(
   store: FollowUpTextDeps['store'],
   userId: string,
@@ -119,7 +123,7 @@ async function dueFor(
 ): Promise<FollowUp[]> {
   const at = now.toISOString();
   return (await store.live(userId))
-    .filter((f) => f.dueAt !== null && f.dueAt <= at)
+    .filter((f) => f.dueAt !== null && f.dueAt <= at && f.source.store !== 'reminders')
     .sort((a, b) => (a.dueAt ?? '').localeCompare(b.dueAt ?? ''));
 }
 

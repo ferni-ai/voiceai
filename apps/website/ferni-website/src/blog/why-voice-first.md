@@ -1,5 +1,5 @@
 ---
-title: 'Why Voice-First Changes Everything About AI Coaching'
+title: 'Why We Built Ferni Around Your Voice'
 excerpt: "Typing is for tasks. Talking is for thinking. Here's why we built Ferni around your voice, not your keyboard."
 author: 'The Ferni Team'
 authorInitials: 'FE'
@@ -17,15 +17,15 @@ When you type, you edit. You backspace. You second-guess. But when you talk? Tho
 
 That's why Ferni is voice-first.
 
-## The Therapy Effect
+## Talking Is How We Think
 
-There's a reason therapists don't hand you a keyboard. Speaking activates different parts of your brain than writing. When you vocalize your thoughts:
+There's a reason you call a friend instead of texting when something's really on your mind. Saying it out loud to someone who's listening feels different. When you talk it through:
 
-- You process emotions more naturally
-- You make connections you'd miss while typing
-- You're more honest—there's no time to craft the "right" answer
+- You hear what you actually feel, sometimes for the first time
+- One thought leads to the next, and you notice connections you'd have typed right past
+- You stop polishing. There's no time to craft the "right" answer, so the real one comes out
 
-Ferni is designed for this kind of thinking out loud. No typing. Just a natural conversation.
+Ferni is made for this kind of thinking out loud. No typing. Just a conversation, like the ones you'd have with a good friend.
 
 ## Response Time Matters
 
@@ -41,7 +41,9 @@ Want to call Ferni while driving? Walking the dog? Lying in bed at 2am?
 
 Just dial **1 (888) 598-3952**.
 
-No app download. No login. No screen time. Just pick up your phone and talk. We recognize your number and remember everything from previous calls.
+No app download. No login. No screen time. Just pick up your phone and talk.
+
+One honest note: for now, each phone call starts fresh. If you'd like Ferni to remember you from one conversation to the next, talk in the app while you're signed in.
 
 ## The Future of Personal AI
 

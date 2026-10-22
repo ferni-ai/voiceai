@@ -7,6 +7,7 @@
  */
 
 import { vertexChunks, vertexInstances, vertexVectors } from './vertex-chunks.js';
+import { EmbeddingMemo, postWithBackoff } from './embedding-memo.js';
 import {
   getCircuitBreaker,
   getRedisCircuitBreakerAsync,
@@ -371,6 +372,7 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
   private projectId: string;
   private location: string;
   private accessToken: string | (() => Promise<string>);
+  private readonly memo = new EmbeddingMemo();
 
   constructor(config: {
     model?: string;
@@ -439,36 +441,34 @@ export class VertexAIEmbeddings extends EmbeddingProvider {
     }
 
     try {
-      const token = await this.getToken();
       const url = `https://${this.location}-aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/${this.location}/publishers/google/models/${this._model}:predict`;
-
-      const validResults: number[][] = [];
-
-      for (const chunk of vertexChunks(validTexts, this._model)) {
-        const body = JSON.stringify({
-          instances: vertexInstances(chunk, taskType),
-          parameters: { autoTruncate: true },
-        });
-        const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
-        let response = await fetch(url, { method: 'POST', headers, body });
-        // 429 is the per-minute quota (dev, 2026-10-10: one per eval run): back off twice.
-        for (let wait = 500; response.status === 429 && wait <= 1000; wait *= 2) {
-          await new Promise<void>((resolve) => {
-            setTimeout(resolve, wait);
-          });
-          response = await fetch(url, { method: 'POST', headers, body });
+      // Same text, model and task type: one request per process (embedding-memo.ts).
+      const validResults = await this.memo.embed(
+        this._model,
+        taskType,
+        validTexts,
+        async (missing) => {
+          const token = await this.getToken();
+          const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+          const vectors: number[][] = [];
+          for (const chunk of vertexChunks(missing, this._model)) {
+            const body = JSON.stringify({
+              instances: vertexInstances(chunk, taskType),
+              parameters: { autoTruncate: true },
+            });
+            const response = await postWithBackoff(url, { method: 'POST', headers, body });
+            if (!response.ok) {
+              const error = await response.text();
+              throw new Error(`Vertex AI API error: ${response.status} - ${error}`);
+            }
+            const data = (await response.json()) as {
+              predictions: Array<{ embeddings: { values: number[] } }>;
+            };
+            vectors.push(...vertexVectors(data, chunk.length));
+          }
+          return vectors;
         }
-        if (!response.ok) {
-          const error = await response.text();
-          throw new Error(`Vertex AI API error: ${response.status} - ${error}`);
-        }
-
-        const data = (await response.json()) as {
-          predictions: Array<{ embeddings: { values: number[] } }>;
-        };
-
-        validResults.push(...vertexVectors(data, chunk.length));
-      }
+      );
 
       // Map results back to original indices, empty arrays for empty texts
       const results: number[][] = texts.map(() => []);

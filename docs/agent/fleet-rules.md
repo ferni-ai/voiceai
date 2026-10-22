@@ -48,8 +48,8 @@ and a session crashed.
   verifier PASS on its current head. If the permission system refuses that
   call, don't retry it: tell the lead, who queues it.
 - Files over 500 lines may not grow (the quality ratchet).
-  `pnpm quality:arch` must pass. New behaviour is behind a flag in
-  `src/config/flag-manifest.ts`, off by default.
+  `pnpm quality:arch` must pass. New behaviour is behind a flag, off by
+  default. New flag: `pnpm flags:new` (one file in `src/config/flags/`).
 
 ## Every PR body answers the six questions
 
