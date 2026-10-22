@@ -61,6 +61,11 @@ const PROJECT_ROOT =
 // Load .env file from project root
 dotenvConfig({ path: join(PROJECT_ROOT, '.env'), quiet: true });
 const GCP_PROJECT = 'johnb-2025';
+/** The Firestore database the console links open; the console spells (default) as -default-. */
+const FIRESTORE_CONSOLE_DB = (process.env.FIRESTORE_DATABASE || '(default)').replace(
+  '(default)',
+  '-default-'
+);
 const GCP_REGION = 'us-central1';
 
 // Cloud Run services. The voice agent is a LiveKit Cloud agent (LIVEKIT_AGENTS), not Cloud Run.
@@ -2109,7 +2114,7 @@ async function handleDb(args: string[]): Promise<void> {
     }
     console.log();
     log.info(
-      `View in console: https://console.cloud.google.com/firestore/databases/-default-/data?project=${GCP_PROJECT}`
+      `View in console: https://console.cloud.google.com/firestore/databases/${FIRESTORE_CONSOLE_DB}/data?project=${GCP_PROJECT}`
     );
   }
 
@@ -2146,7 +2151,7 @@ async function handleDb(args: string[]): Promise<void> {
     log.info('Interactive query mode not yet implemented.');
     log.step('Use Firebase console for queries:');
     console.log(
-      `\n  ${colors.cyan}https://console.cloud.google.com/firestore/databases/-default-/data?project=${GCP_PROJECT}${colors.reset}\n`
+      `\n  ${colors.cyan}https://console.cloud.google.com/firestore/databases/${FIRESTORE_CONSOLE_DB}/data?project=${GCP_PROJECT}${colors.reset}\n`
     );
   }
 }

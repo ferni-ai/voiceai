@@ -241,6 +241,20 @@ export function callerAsksToHangUp(text: string): boolean {
   return endsWith(text, HANG_UPS);
 }
 
+/**
+ * Leaving, which the goodbye words miss: "I should probably head out". Only at
+ * the end of a clause or before "now"/"soon": "I need to go back to the
+ * hospital after work tonight" and "I have to run errands all weekend" are
+ * plans mid-story, not a goodbye (first calls, dev 2026-10-18).
+ */
+export const LEAVING =
+  /\bi (?:should|need to|have to|gotta|better) (?:probably |really |just )?(?:go|get going|head (?:out|off)|let you go|get back|run|hop off)(?=\s*(?:$|[.,!?;:]|(?:now|soon|right now|for now|in a (?:bit|minute|sec|second|few))\b))/i;
+
+/** They are ending the call: a goodbye on its own (callerSaysGoodbye), or leaving. */
+export function leavingNow(said: string): boolean {
+  return callerSaysGoodbye(said) || LEAVING.test(said);
+}
+
 const FERNI_GOODBYE =
   /\b(?:bye|goodbye|good ?night|take care|talk (?:to you )?(?:soon|later|tomorrow)|see you (?:soon|later|tomorrow|next time|then|around)|catch you later|have (?:a|an) (?:good|great|nice|lovely|wonderful|fun) (?:one|night|day|evening|weekend|time|dinner|trip)|go (?:enjoy|have fun))\b/i;
 

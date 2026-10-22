@@ -300,6 +300,19 @@ jobs:
       - name: CLI typecheck ratchet
         run: node scripts/ci/cli-typecheck-ratchet.mjs
 
+      # The env-name list test scans src/ as text, so no import edge reaches it and
+      # `--changed` skips it whenever a PR adds or drops an env read; the PR then
+      # failed only in the queue. It takes ~4 s and needs no native binding, so a PR
+      # always runs it, before the Rust build. The list merges with git's union
+      # driver (.gitattributes), which this test makes safe. The flag barrel
+      # (src/config/flags/index.generated.ts) is the same shape: its test reads the
+      # flags/ directory as text, and the barrel merges with union too.
+      - name: Check the env-name list
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts
+        env:
+          NODE_ENV: test
+
       # 60 call sites use the THROWING loadRustPerf() (tryLoadRustPerf is documented
       # "for availability checks, not for actual operations"), so the accelerator is
       # genuinely required — skipping those tests would hide coverage, not fix it.

@@ -5665,6 +5665,49 @@ img[loading='lazy']:not([data-src]) {
   font-weight: 600;
 }
 
+/* Sample chats on the page are examples, so they say so where you read them (#1455). */
+.example-note {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--color-text-primary);
+  opacity: 0.85;
+}
+
+.section__header .example-note {
+  font-size: var(--text-sm);
+}
+
+.two-am__bubble .example-note {
+  color: var(--color-natural-ink);
+}
+
+/* Same colour as the phone's "Online" line, which is checked for contrast on the dark screen. */
+.showcase__app .example-note,
+.assistant-phone .example-note {
+  color: var(--color-dark-accent, var(--color-moss-light));
+  opacity: 1;
+  text-align: center;
+}
+
+/* Ferni is not a clinician; this line stays visible, not folded into an FAQ (#1454). */
+.care-note {
+  max-width: 650px;
+  margin: var(--space-5) auto 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+.care-note a {
+  color: inherit;
+  text-decoration: underline;
+}
+
 /* Proof Table Animations */
 .proof-table__row {
   transition:

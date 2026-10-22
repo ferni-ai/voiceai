@@ -28,7 +28,6 @@
   "scripts/validate-memory-e2e.ts": 1,
   "scripts/verify-semantic-index.ts": 1,
   "scripts/voice-eval/cleanup-users.ts": 1,
-  "scripts/voice-eval/seed-tier.ts": 1,
   "src/agents/shared/performance/batch-firestore.ts": 1,
   "src/agents/shared/performance/session-optimizations.ts": 1,
   "src/agents/shared/shutdown-handler.ts": 1,

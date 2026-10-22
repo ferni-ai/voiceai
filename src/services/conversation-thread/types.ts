@@ -47,6 +47,8 @@ export interface ThreadMessage {
     outreachId?: string;
     /** If this triggered a channel switch */
     triggeredChannelSwitch?: boolean;
+    /** It might mean "stop texting me" ("please cancel"): ask before texting again. */
+    possibleOptOut?: boolean;
   };
 }
 
