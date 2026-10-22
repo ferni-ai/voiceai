@@ -96,10 +96,13 @@ An open PR that edited `flag-manifest*.ts` before main moved those flags: run
 `pnpm flags:migrate` in its clean checkout (`--onto origin/main` is the default). It
 merges main, puts the registry back to main's layout, and re-applies only what the PR
 changed per flag (added, removed, spec or comment), as `flags/NAME.ts` or an AST splice
-where main still has the entry. If main changed the same flag differently it stops
-before touching anything and prints both versions. It ends with a per-name check
-(`OK` / `MISMATCH` / `DRIFT`) and commits the merge only when every line is `OK`; paste
-that check in the PR. Exit 0 merged, 1 finish by hand (merge left open), 2 conflict.
+where main still has the entry, and re-freezes the `flag-move-*.json` fixtures of the
+flags it changed. If main changed the same flag differently, or the PR changed anything
+in a registry file besides flag entries, it stops before touching anything and prints
+what it found. It ends with a per-name check (`OK` / `MISMATCH` / `DRIFT`) and commits
+the merge only when every line is `OK`; paste that check in the PR. Exit 0 merged, 1
+finish by hand (merge left open; `git merge --abort` undoes it), 2 stopped (nothing
+touched).
 
 ### Using Flags
 
