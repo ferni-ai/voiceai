@@ -185,6 +185,8 @@ const LEGACY_FLAG_MANIFEST = {
   FOLLOW_THROUGH_UPCOMING: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the greeting may say once that it's been three months, a year, since the first call (friendship-anniversary.ts)
   FRIEND_CELEBRATIONS: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on: teasing only from the third call, never on a hard turn, dropped when it lands wrong (agents/personas/friend-tease.ts)
+  FRIEND_TEASE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: at call start, ask once about a date the caller told us (dates/recall.ts; needs DATES_THAT_MATTER)
   FRIEND_FOLLOWUPS: { default: 'off', owner: 'memory', kind: 'experiment' },
   // on: a fact the caller corrects is kept with its words and the old fact retired; next call recalls it (friend-repair.ts)
