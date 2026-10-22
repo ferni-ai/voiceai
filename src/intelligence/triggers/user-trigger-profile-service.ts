@@ -92,7 +92,7 @@ export class UserTriggerProfileService {
 
     try {
       if (this.config.enablePersistence) {
-        this.db = new Firestore();
+        this.db = new Firestore({ databaseId: process.env.FIRESTORE_DATABASE || '(default)' });
         log.debug('Trigger profile Firestore initialized');
       }
     } catch (error) {

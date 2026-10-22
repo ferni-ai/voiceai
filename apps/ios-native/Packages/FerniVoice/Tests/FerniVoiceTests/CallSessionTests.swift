@@ -183,14 +183,14 @@ final class CallSessionTests: XCTestCase {
         session.start()
         await until(session.phase == .live)
 
+        XCTAssertEqual(session.avatar.pose, .listening, "the first turn shows at once")
         rooms.made[0].send(.agentAttributes(["lk.agent.state": "speaking"]))
-        await until(session.isFerniSpeaking)
-        XCTAssertEqual(session.expression, .speaking)
+        await until(session.avatar.pose == .speaking) // after the 150 ms settle
+        XCTAssertEqual(session.avatar.expression, .speaking)
 
         rooms.made[0].send(.agentAttributes(["lk.agent.state": "thinking"]))
-        await until(session.agentActivity == .thinking)
-        XCTAssertFalse(session.isFerniSpeaking)
-        XCTAssertEqual(session.expression, .thinking)
+        await until(session.avatar.pose == .thinking)
+        XCTAssertEqual(session.avatar.expression, .thinking)
     }
 
     func testSpeechStateAndExpressionMessagesAreRead() async {
@@ -201,9 +201,22 @@ final class CallSessionTests: XCTestCase {
         rooms.made[0].send(.data(Data(#"{"type":"speech_state","innerType":"speech_start"}"#.utf8)))
         await until(session.isUserSpeaking)
         rooms.made[0].send(.data(Data(#"{"type":"expression_update","expression":"warm"}"#.utf8)))
-        await until(session.expression == .warm)
+        await until(session.avatar.expression == .warm)
         rooms.made[0].send(.data(Data(#"{"type":"speech_state","innerType":"speech_end"}"#.utf8)))
         await until(!session.isUserSpeaking)
+    }
+
+    /// Untrusted numbers in a packet never crash the app (security review).
+    func testHugeOrNegativeExpressionTimesAreClampedNotFatal() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        rooms.made[0].send(.data(Data(#"{"type":"expression_update","expression":"warm","duration":9223372036854775807}"#.utf8)))
+        await until(session.avatar.expression == .warm)
+        rooms.made[0].send(.data(Data(#"{"type":"expression_update","expression":"curious","hold":-5,"duration":1e308}"#.utf8)))
+        await until(session.avatar.expression == .curious || session.avatar.expression == .listening)
+        XCTAssertEqual(session.phase, .live)
     }
 
     func testCaptionsAssembleFromTheTranscriptStream() async {
@@ -282,6 +295,7 @@ final class CallSessionTests: XCTestCase {
 
         await until(session.phase == .ended)
         XCTAssertEqual(rooms.made[0].disconnects, 1)
+        XCTAssertEqual(session.avatar.pose, .departing)
     }
 
     func testEndingWhileConnectingLeavesAndStaysEnded() async {
@@ -368,5 +382,18 @@ final class CallTokenTests: XCTestCase {
         XCTAssertTrue(query["room"]?.hasPrefix("ios-") == true)
         XCTAssertEqual(query["username"], "User", "a placeholder Ferni won't greet you by")
         XCTAssertEqual(query["timezone"], TimeZone.current.identifier)
+    }
+}
+
+final class RemoteDurationTests: XCTestCase {
+    func testAnythingAPacketSendsBecomesASafeDuration() {
+        XCTAssertNil(RemoteDuration.seconds(nil))
+        XCTAssertNil(RemoteDuration.seconds(.nan))
+        XCTAssertEqual(RemoteDuration.seconds(.infinity), .seconds(60))
+        XCTAssertEqual(RemoteDuration.seconds(-.infinity), .zero)
+        XCTAssertEqual(RemoteDuration.seconds(1e308), .seconds(60))
+        XCTAssertEqual(RemoteDuration.seconds(Double(Int.max)), .seconds(60))
+        XCTAssertEqual(RemoteDuration.seconds(-5), .zero)
+        XCTAssertEqual(RemoteDuration.seconds(1.5), .milliseconds(1500))
     }
 }

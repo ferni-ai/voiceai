@@ -23,6 +23,7 @@ import {
   initializeVoicePatterns,
   saveVoicePatterns,
 } from './voice-pattern-learning.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'VoicePatternSession' });
 
@@ -36,14 +37,13 @@ export function voicePatternEngineEnabled(
 }
 
 /**
- * Only an identified user's patterns load and save: anonymous callers share
- * ids like "anonymous" or "default", and saving under those would mix every
- * stranger's habits into one record.
+ * Only an identified member's patterns load and save: placeholder ids would
+ * mix every stranger's habits into one record, and an anon: caller or the
+ * third party on a call placed for a member (onbehalf:) is not the member.
+ * A device: id is a member, but its voice is not tied to a person yet.
  */
 export function isIdentifiedUser(userId: string | undefined): userId is string {
-  if (!userId) return false;
-  if (['anonymous', 'default', 'unknown'].includes(userId)) return false;
-  return !userId.startsWith('anon:') && !userId.startsWith('device:');
+  return isMemberIdentity(userId) && !userId.trim().toLowerCase().startsWith('device:');
 }
 
 /** Start the session's engine once; an identified user's saved patterns load first. */

@@ -10341,6 +10341,7 @@
       "other": "Tu as gagné {count} graines !"
     },
     "couldNotLoadMemories": "Je n'ai pas pu charger ce dont je me souviens. On réessaie ?",
+    "credentialNotKept": "Ferni ne garde ni codes ni mots de passe, alors celui-ci a été effacé.",
     "memoryCorrected": "Compris. Je m'en souviendrai comme ça."
   },
   "trustSignals": {
