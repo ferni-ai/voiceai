@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Nightly capability sweep at 07:00 UTC. A template, installed by the lead after merge:
+    cp scripts/voice-eval/nightly/com.ferni.nightly-sweep.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.ferni.nightly-sweep.plist
+  launchd uses local time: it fires at 02:00 and 03:00 and runs only in the hour that is 07 UTC.
+  From the SSD checkout ~/Projects/voiceai: refuses a dirty tree, moves it to origin/main first.
+  Log: ~/Library/Logs/ferni-nightly-sweep.log; evidence: ~/Documents/voiceai-evidence/nightly/<date>/.
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.ferni.nightly-sweep</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/zsh</string>
+    <string>-lc</string>
+    <string>[ "$(date -u +%H)" = 07 ] || exit 0; exec &gt;&gt; "$HOME/Library/Logs/ferni-nightly-sweep.log" 2&gt;&amp;1; cd "$HOME/Projects/voiceai" &amp;&amp; git fetch -q origin main &amp;&amp; [ -z "$(git status --porcelain --untracked-files=no)" ] &amp;&amp; git checkout -q --detach origin/main &amp;&amp; exec scripts/voice-eval/nightly/run-nightly.sh</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+    <key>NIGHTLY_ISSUE</key>
+    <string>2407</string>
+  </dict>
+  <key>StartCalendarInterval</key>
+  <array>
+    <dict><key>Hour</key><integer>2</integer><key>Minute</key><integer>0</integer></dict>
+    <dict><key>Hour</key><integer>3</integer><key>Minute</key><integer>0</integer></dict>
+  </array>
+  <key>RunAtLoad</key>
+  <false/>
+</dict>
+</plist>
