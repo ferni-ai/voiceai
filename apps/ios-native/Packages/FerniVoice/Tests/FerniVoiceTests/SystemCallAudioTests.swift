@@ -1,3 +1,4 @@
+import AVFAudio
 import Foundation
 import LiveKit
 import os
@@ -34,6 +35,43 @@ final class SystemCallAudioTests: XCTestCase {
 
     private func recorded(_ engine: Engine) -> SystemCallAudio {
         SystemCallAudio(systemManagesCalls: true, engine: { engine.record($0) })
+    }
+
+    /// Everything the adapter asked of the audio session, last value wins.
+    final class Session: AudioSessionSettings, @unchecked Sendable {
+        var category: AVAudioSession.Category?
+        var mode: AVAudioSession.Mode?
+        var options: AVAudioSession.CategoryOptions = []
+        var configured = 0
+        var ioBuffer: TimeInterval?
+        var active: [Bool] = []
+        func setCategory(_ category: AVAudioSession.Category, mode: AVAudioSession.Mode,
+                         options: AVAudioSession.CategoryOptions) throws {
+            self.category = category; self.mode = mode; self.options = options
+            configured += 1
+        }
+        func setAllowHapticsAndSystemSoundsDuringRecording(_ inValue: Bool) throws {}
+        func setPreferredIOBufferDuration(_ duration: TimeInterval) throws { ioBuffer = duration }
+        func setActive(_ active: Bool, options: AVAudioSession.SetActiveOptions) throws { self.active.append(active) }
+    }
+
+    /// The SDK's automatic setup is off, so the call asks for a 20 ms buffer
+    /// itself, whoever activates the session (LiveKit's mixer stutters on the
+    /// larger buffers iOS can pick on its own).
+    func testEveryCallAsksForA20MillisecondBuffer() throws {
+        for systemOwned in [false, true] {
+            let session = Session()
+            let audio = SystemCallAudio(systemManagesCalls: systemOwned, engine: { _ in }, session: session)
+            XCTAssertNil(session.ioBuffer, "nothing asked before a call")
+            try audio.activate(systemOwned: systemOwned)
+            XCTAssertEqual(session.ioBuffer, 0.02, "system owned: \(systemOwned)")
+            XCTAssertEqual(session.category, .playAndRecord)
+            XCTAssertEqual(session.mode, .voiceChat)
+        }
+        let session = Session()
+        let audio = SystemCallAudio(systemManagesCalls: true, engine: { _ in }, session: session)
+        audio.systemAudio(active: true)
+        XCTAssertEqual(session.ioBuffer, 0.02, "when the system hands over the session")
     }
 
     /// Critic C1: never before the system's go, for the first call or the next.
