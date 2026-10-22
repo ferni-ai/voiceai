@@ -58,6 +58,7 @@ const COLLECTION = 'admin_activity_log';
 export async function initializeActivityLog(): Promise<boolean> {
   try {
     const admin = (await import('firebase-admin')).default;
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
 
     if (admin.apps.length === 0) {
       try {
@@ -70,7 +71,7 @@ export async function initializeActivityLog(): Promise<boolean> {
       }
     }
 
-    firestoreClient = admin.firestore();
+    firestoreClient = getAdminFirestore();
     firestoreAvailable = true;
     log.info('Admin activity log initialized with Firestore');
     return true;

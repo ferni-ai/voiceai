@@ -110,6 +110,8 @@ const LEGACY_FLAG_MANIFEST = {
   DELIBERATION: { default: 'off', owner: 'voice', kind: 'experiment' },
   DEMO_CALL_CAP: { default: 'off', owner: 'voice', kind: 'experiment' },
   DEMO_RATE_LIMIT_SHARED: { default: 'off', owner: 'platform', kind: 'experiment' },
+  // on: a device word or generated handle sent as the display name ("iphone", "guest-ab12cd") is not the caller's name (#2061)
+  DEVICE_NAME_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },
   DEV_TELEMETRY: { default: 'off', owner: 'voice', kind: 'config' },
   DEV_TELEMETRY_VERBOSE: { default: 'off', owner: 'voice', kind: 'config' },
   // on speaks the actor's line; shadow writes it without speaking; off skips it (speech/direction/director.ts)
@@ -404,6 +406,8 @@ const LEGACY_FLAG_MANIFEST = {
   USE_GENERATED_TOOL_DOCS: { default: 'off', owner: 'voice', kind: 'config' },
   ...FLAGS_USE_TO_VOICE,
   VOICE_PATTERN_ENGINE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
+  // on: the tic-tac-toe tools stay through every tool cap, so the board engine plays (voice-tictactoe.ts)
+  VOICE_TICTACTOE: { default: 'off', owner: 'tools', kind: 'experiment' },
   // which voice pipeline runs; anything unrecognised is the Cartesia cascade (model-provider-config.ts)
   VOICE_PIPELINE: { default: 'cartesia-cascade', owner: 'voice', kind: 'config' },
   WAITLIST_GATE: { default: 'off', owner: 'platform', kind: 'kill-switch' },
