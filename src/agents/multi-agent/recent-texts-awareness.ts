@@ -31,6 +31,8 @@ const KIND_LABEL: Record<TextKind, string> = {
   'on-behalf': 'a text',
   'call-result': 'how a call you made for them went',
   'opt-in': 'a note confirming they turned texts on',
+  proactive: 'a note checking in on them',
+  'coach-media': 'something to read, watch or listen to',
 };
 
 export interface RecentTextsDeps {

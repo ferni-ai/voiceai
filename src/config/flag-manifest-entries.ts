@@ -27,6 +27,7 @@ export interface FlagSpec {
 /** ACTION_CLAIM_GUARD .. BYPASS_TEAM_UNLOCKS */
 export const FLAGS_ACTION_TO_BYPASS = {
   ACTION_CLAIM_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  ACTION_CLAIM_PAST: { default: 'off', owner: 'tools', kind: 'experiment' },
   ACTION_CLAIM_STREAM: { default: 'off', owner: 'voice', kind: 'experiment' },
   AFTER_CALL_EXTRACTION: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // set by the job runner for its child processes
@@ -77,6 +78,8 @@ export const FLAGS_ACTION_TO_BYPASS = {
 /** HONEST_FRIEND .. IDENTITY_MERGE_ANON */
 export const FLAGS_HONEST_TO_IDENTITY = {
   HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: once the hour or part of day has come up, the turn's "Right now" line drops the clock (hour-once.ts)
+  HOUR_ONCE: { default: 'off', owner: 'voice', kind: 'experiment' },
   HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: POST /api/identity/merge-anonymous moves an anonymous account's data into the signed-in one
   IDENTITY_MERGE_ANON: { default: 'off', owner: 'platform', kind: 'experiment' },

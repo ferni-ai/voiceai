@@ -1,11 +1,9 @@
 /**
  * Calendar Reminders Service
- *
  * Proactively reminds users about upcoming calendar events:
  * - Morning digest of today's schedule
  * - Pre-event reminders (1 hour, 15 minutes)
  * - Smart contextual reminders ("Your interview is tomorrow - get rest!")
- *
  * Integrates with Google Calendar OAuth and proactive outreach.
  *
  * PERSISTENCE: Calendar events and reminder logs are persisted to Firestore.
@@ -34,6 +32,8 @@ export interface CalendarEvent {
   attendees?: string[];
   reminders: EventReminder[];
   source: 'google' | 'manual' | 'scheduled';
+  cancelled?: boolean; // either flag stops the event's reminders
+  remindersDisabled?: boolean;
 }
 
 export interface EventReminder {
@@ -62,9 +62,11 @@ interface PersistedEvent extends Omit<CalendarEvent, 'startTime' | 'endTime' | '
   reminders: Array<Omit<EventReminder, 'sentAt'> & { sentAt?: string }>;
 }
 
+type EventFlags = Pick<CalendarEvent, 'id' | 'cancelled' | 'remindersDisabled'>;
 interface UserCalendarData {
   events: PersistedEvent[];
   remindersSent: string[]; // Array of reminder IDs that have been sent
+  eventFlags?: Record<string, EventFlags>; // a map, so a merge write updates one event's flags
 }
 
 function serializeEvent(event: CalendarEvent): PersistedEvent {
@@ -105,6 +107,11 @@ function getPersistence(): PersistenceStore<UserCalendarData> {
   if (!persistence) {
     persistence = createPersistenceStore<UserCalendarData>({
       collection: 'calendar_reminders',
+      // MINOR_CARE, held: sent reminders and cancellations persist, never event content
+      whenHeld: ({ remindersSent, eventFlags }: UserCalendarData) => ({
+        remindersSent,
+        eventFlags,
+      }),
       documentId: 'data',
       syncIntervalMs: 5000,
     });
@@ -112,9 +119,7 @@ function getPersistence(): PersistenceStore<UserCalendarData> {
   return persistence;
 }
 
-/**
- * Load user calendar data from persistence
- */
+/** Load user calendar data from persistence */
 async function ensureUserLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
@@ -122,7 +127,11 @@ async function ensureUserLoaded(userId: string): Promise<void> {
     const data = await getPersistence().load(userId);
     if (data) {
       if (data.events) {
-        eventStore.set(userId, data.events.map(deserializeEvent));
+        const flags = data.eventFlags ?? {};
+        eventStore.set(
+          userId,
+          data.events.map((e) => ({ ...deserializeEvent(e), ...flags[e.id] }))
+        );
       }
       if (data.remindersSent) {
         reminderSentLog.set(userId, new Set(data.remindersSent));
@@ -136,9 +145,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
   }
 }
 
-/**
- * Persist user calendar data
- */
+/** Persist user calendar data */
 function persistUserData(userId: string): void {
   const events = eventStore.get(userId) || [];
   const sentLog = reminderSentLog.get(userId) || new Set();
@@ -146,20 +153,22 @@ function persistUserData(userId: string): void {
   getPersistence().set(cleanForFirestore(userId), {
     events: events.map(serializeEvent),
     remindersSent: Array.from(sentLog),
+    eventFlags: Object.fromEntries(
+      events.map(({ id, cancelled = false, remindersDisabled = false }) => [
+        id,
+        { id, cancelled, remindersDisabled },
+      ])
+    ),
   });
 }
 
-/**
- * Flush calendar reminder persistence
- */
+/** Flush calendar reminder persistence */
 export async function flushCalendarPersistence(): Promise<void> {
   await getPersistence().flush();
   getLogger().info('Calendar reminder persistence flushed');
 }
 
-/**
- * Shutdown calendar reminders service
- */
+/** Shutdown calendar reminders service */
 export async function shutdownCalendarReminders(): Promise<void> {
   await flushCalendarPersistence();
   // Clear state for clean restart
@@ -173,9 +182,7 @@ export async function shutdownCalendarReminders(): Promise<void> {
 // EVENT MANAGEMENT
 // ============================================================================
 
-/**
- * Add or update a calendar event
- */
+/** Add or update a calendar event */
 export async function upsertEvent(event: CalendarEvent): Promise<CalendarEvent> {
   await ensureUserLoaded(event.userId);
 
@@ -204,9 +211,7 @@ export async function upsertEvent(event: CalendarEvent): Promise<CalendarEvent> 
   return event;
 }
 
-/**
- * Get default reminders based on event type
- */
+/** Get default reminders based on event type */
 function getDefaultReminders(event: CalendarEvent): EventReminder[] {
   const reminders: EventReminder[] = [];
   const title = event.title.toLowerCase();
@@ -252,9 +257,7 @@ function getDefaultReminders(event: CalendarEvent): EventReminder[] {
   return reminders;
 }
 
-/**
- * Get events for a user on a specific date
- */
+/** Get events for a user on a specific date */
 export function getEventsForDate(userId: string, date: Date): CalendarEvent[] {
   const events = eventStore.get(userId) || [];
   const startOfDay = new Date(date);
@@ -265,9 +268,7 @@ export function getEventsForDate(userId: string, date: Date): CalendarEvent[] {
   return events.filter((e) => e.startTime >= startOfDay && e.startTime <= endOfDay);
 }
 
-/**
- * Get upcoming events within hours
- */
+/** Get upcoming events within hours */
 export function getUpcomingEvents(userId: string, withinHours = 24): CalendarEvent[] {
   const events = eventStore.get(userId) || [];
   const now = new Date();
@@ -282,9 +283,7 @@ export function getUpcomingEvents(userId: string, withinHours = 24): CalendarEve
 // REMINDER GENERATION
 // ============================================================================
 
-/**
- * Generate morning digest message
- */
+/** Generate morning digest message */
 export function generateMorningDigest(userId: string): CalendarDigest | null {
   const today = new Date();
   const events = getEventsForDate(userId, today);
@@ -428,6 +427,7 @@ export async function checkAndSendReminders(): Promise<{
 
     // Check event reminders
     for (const event of events) {
+      if (event.cancelled || event.remindersDisabled) continue;
       for (const reminder of event.reminders) {
         if (reminder.sent) continue;
         if (sentLog.has(reminder.id)) continue;

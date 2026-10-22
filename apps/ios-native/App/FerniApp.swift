@@ -1,4 +1,5 @@
 import FerniKit
+import FerniVoice
 import SwiftUI
 
 @main
@@ -19,19 +20,32 @@ struct FerniApp: App {
     }
 }
 
-/// App-wide state the screens share: the account and the server API as that
-/// account. The call arrives with the next PR.
+/// App-wide state the screens share: the account, the server API as that
+/// account, and the call.
 @MainActor
 @Observable
 final class AppModel {
+    /// The avatar's feedback. Haptics arrive with the Core Haptics player.
+    private static func play(_ effect: AvatarEffect) {
+        if case .announce(let text) = effect { AccessibilityNotification.Announcement(text).post() }
+    }
+
     let config: FerniConfig
     let account: AccountStore
     let api: FerniAPI
+    let call: CallSession
     var isShowingSettings = false
 
     init(config: FerniConfig = .fromBundle(), firebaseReady: Bool) {
         self.config = config
         account = AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
         api = account.api(baseURL: config.apiBaseURL)
+        account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
+        call = CallSession(
+            fetchToken: CallTokens.fetcher(api: api),
+            makeRoom: { LiveKitVoiceRoom() },
+            audio: SystemCallAudio(),
+            avatar: AvatarModel(play: Self.play)
+        )
     }
 }

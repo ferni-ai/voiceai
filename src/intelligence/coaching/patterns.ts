@@ -13,7 +13,7 @@
  * The goal: Help users see patterns they can't see themselves.
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
@@ -193,7 +193,7 @@ const patternsCache = new Map<string, UserPattern[]>();
  * Record a pattern observation
  */
 export async function recordPattern(observation: PatternObservation): Promise<void> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   if (!db) return;
 
   const { userId, patternType, pattern, context, triggerText } = observation;
@@ -267,7 +267,7 @@ export async function getUserPatterns(userId: string): Promise<UserPattern[]> {
     return patternsCache.get(userId)!;
   }
 
-  const db = getFirestore();
+  const db = getAdminFirestore();
   if (!db) return [];
 
   try {
@@ -341,7 +341,7 @@ export async function markPatternSurfaced(
   patternId: string,
   reaction?: 'resonated' | 'dismissed' | 'explored'
 ): Promise<void> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   if (!db) return;
 
   try {
