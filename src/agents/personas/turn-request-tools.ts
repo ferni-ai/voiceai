@@ -111,3 +111,16 @@ function hasToolCalls(chunk: unknown): boolean {
   const delta = (chunk as { delta?: { toolCalls?: Array<{ type?: string }> } } | null)?.delta;
   return delta?.toolCalls?.some((call) => call.type === 'function_call') ?? false;
 }
+
+/**
+ * TOOL_CORE_STATIC: tools findTools added to the agent mid-reply go into the
+ * reply's own tool context, which the SDK runs the reply's next step against.
+ */
+export function withPinnedTools(toolCtx: llm.ToolContext, agent: object | undefined): void {
+  const own = (agent as { toolCtx?: llm.ToolContext } | undefined)?.toolCtx?.functionTools;
+  if (!own) return;
+  const added = Object.entries(own)
+    .filter(([name]) => !(name in toolCtx.functionTools))
+    .map(([, tool]) => tool);
+  if (added.length > 0) toolCtx.updateTools([...toolCtx.tools, ...added]);
+}

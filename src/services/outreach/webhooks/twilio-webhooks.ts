@@ -21,6 +21,7 @@ import { findContactByPhone, markContactResponded } from '../../contacts/optimal
 // Bidirectional engagement - route replies to the right agent
 import { handleInboundSMS as routeInboundSMS } from '../../conversation-thread/inbound-router.js';
 import { handleProactiveSmsReply } from '../proactive-channels/sms-replies.js';
+import { inboundKeyword, keywordReply } from '../../messaging/sms-keywords.js';
 
 const log = getLogger().child({ module: 'twilio-webhooks' });
 
@@ -336,31 +337,12 @@ export async function handleInboundSMSWebhook(
   // Replies to proactive check-ins: "less", "not now", "stop" (sms-replies.ts).
   const proactiveReply = await handleProactiveSmsReply(From, Body);
   if (proactiveReply) return { success: true, twiml: generateTwiML(proactiveReply) };
-  // Check for opt-out
-  const optOutKeywords = ['stop', 'unsubscribe', 'cancel', 'quit', 'end'];
-  const normalizedBody = Body.toLowerCase().trim();
-
-  if (optOutKeywords.includes(normalizedBody)) {
-    log.info({ From }, '🚫 User opted out via SMS');
-    // Update user preferences to disable SMS outreach
-    await updateSmsOptStatus(From, false);
-    return {
-      success: true,
-      twiml: generateTwiML(
-        "You've been unsubscribed from Ferni messages. Reply START to resubscribe."
-      ),
-    };
-  }
-
-  // Check for opt-in
-  if (normalizedBody === 'start') {
-    log.info({ From }, '✅ User opted back in via SMS');
-    // Update user preferences to enable SMS outreach
-    await updateSmsOptStatus(From, true);
-    return {
-      success: true,
-      twiml: generateTwiML("Welcome back! You'll receive messages from Ferni again. 🌱"),
-    };
+  // Opt-out/in, HELP (messaging/sms-keywords.ts): one confirmation at most, Twilio's for its keywords.
+  const said = inboundKeyword(Body); // the route records consent; a maybe reaches Ferni, flagged
+  if (said?.kind === 'opt-out' || said?.kind === 'opt-in' || said?.kind === 'help') {
+    if (said.kind !== 'help') await updateSmsOptStatus(From, said.kind === 'opt-in');
+    const reply = keywordReply(said);
+    return { success: true, ...(reply !== undefined && { twiml: generateTwiML(reply) }) };
   }
 
   // Collect media URLs
@@ -466,7 +448,7 @@ export async function handleInboundSMSWebhook(
   // =========================================================================
   if (userId !== 'unknown') {
     try {
-      const routeResult = await routeInboundSMS(userId, From, Body);
+      const routeResult = await routeInboundSMS(userId, From, Body, said?.kind === 'maybe-opt-out');
 
       log.info(
         {

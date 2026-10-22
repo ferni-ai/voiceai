@@ -106,10 +106,35 @@ describe('showCallNotice', () => {
     expect(notices()).toHaveLength(0);
   });
 
-  it('sits right under the call controls', () => {
+  it('sits right under the call controls in reading order', () => {
     showCallNotice(connectFailure('network'), { onRetry: vi.fn() });
     expect(document.querySelector('.controls-row')?.nextElementSibling?.id).toBe(
       'callStatusNotice'
     );
+  });
+
+  // 2026-10-18 UI audit: in the column, the notice pushed the three buttons under
+  // the controls off a 1280x800 screen (the page doesn't scroll). It floats now.
+  it('floats just above the controls instead of pushing the column down', () => {
+    const controls = document.querySelector<HTMLElement>('.controls-row')!;
+    controls.getBoundingClientRect = () => ({ top: 587, bottom: 639, height: 52, width: 400, left: 0, right: 400, x: 0, y: 587 }) as DOMRect;
+    Object.assign(window, { innerHeight: 800 });
+    showCallNotice(connectFailure('server_error'), { onRetry: vi.fn() });
+
+    const notice = document.getElementById('callStatusNotice')!;
+    // 800 - 587 + 16 px gap: its bottom edge sits just above Connect
+    expect(notice.style.getPropertyValue('--call-card-bottom')).toBe('229px');
+    const css = document.getElementById('call-status-styles')?.textContent ?? '';
+    const rule = css.match(/\.call-status\s*\{([^}]*)\}/)?.[1] ?? '';
+    expect(rule).toMatch(/position:\s*fixed/);
+    expect(rule).not.toMatch(/margin-top/);
+  });
+
+  it('stops following the viewport once cleared', () => {
+    const remove = vi.spyOn(window, 'removeEventListener');
+    showCallNotice(connectFailure('server_error'), { onRetry: vi.fn() });
+    clearCallNotice();
+    expect(remove).toHaveBeenCalledWith('resize', expect.any(Function));
+    remove.mockRestore();
   });
 });

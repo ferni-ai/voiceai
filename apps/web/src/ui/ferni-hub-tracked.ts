@@ -23,7 +23,7 @@ const STYLE = `
     border-radius: var(--radius-full); border: 1px solid var(--color-border);
     background: transparent; color: var(--color-text-muted);
   }
-  .ferni-hub-tracked-action:hover { color: var(--color-ferni); border-color: var(--color-ferni); }
+  .ferni-hub-tracked-action:hover { color: var(--color-ferni-on-surface); border-color: var(--color-ferni); }
   .ferni-hub-tracked-action:disabled { opacity: 0.5; cursor: default; }
 `;
 

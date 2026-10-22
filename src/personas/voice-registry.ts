@@ -74,8 +74,13 @@ const voiceRegistry = new Map<string, VoiceEntry>();
 // NOTE: Alias resolution is now handled by persona-ids.ts (SINGLE SOURCE OF TRUTH)
 // The aliasToCanonical map has been removed - use toCanonical() instead
 
-// Initialization state
+// Initialization state. `initialized` is true once any voices are registered,
+// fallbacks included; `bundlesLoaded` only once the bundles' voices are. A
+// getVoiceId before boot registers fallbacks, and that used to stop the real
+// init (it returned on `initialized`), so prod ran on fallbacks only.
 let initialized = false;
+let bundlesLoaded = false;
+let loading: Promise<void> | null = null;
 
 // ============================================================================
 // INITIALIZATION
@@ -89,11 +94,18 @@ let initialized = false;
  * This function only maps canonical persona IDs to their voice IDs.
  */
 export async function initializeVoiceRegistry(): Promise<void> {
-  if (initialized) {
+  if (bundlesLoaded) {
     logger.debug('Voice registry already initialized');
     return;
   }
+  loading ??= loadBundleVoices().finally(() => {
+    loading = null;
+  });
+  return loading;
+}
 
+/** Register every bundle's voice, over any fallback for the same persona. */
+async function loadBundleVoices(): Promise<void> {
   try {
     // Dynamic import to avoid circular dependency
     const { discoverAndLoadBundles } = await import('./bundles/index.js');
@@ -115,6 +127,7 @@ export async function initializeVoiceRegistry(): Promise<void> {
     }
 
     initialized = true;
+    bundlesLoaded = true;
 
     logger.info(
       {
@@ -325,6 +338,7 @@ export function isVoiceRegistryInitialized(): boolean {
 export function resetVoiceRegistry(): void {
   voiceRegistry.clear();
   initialized = false;
+  bundlesLoaded = false;
 }
 
 // ============================================================================

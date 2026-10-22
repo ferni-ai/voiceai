@@ -333,7 +333,7 @@ function addStyles(): void {
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--color-ferni, #4a6741);
+      color: var(--color-ferni-on-surface);
     }
 
     .wywa-icon svg {

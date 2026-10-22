@@ -91,3 +91,13 @@ describe('notification settings quiet hours', () => {
     expect(document.querySelector<HTMLInputElement>('#quiet-start')?.disabled).toBe(false);
   });
 });
+
+describe('notification settings texts row', () => {
+  it('has no texts switch (never pre-checked); it sends people to the disclosure instead', async () => {
+    await openPanel();
+    expect(document.querySelector('[data-outreach="smsEnabled"]')).toBeNull();
+    expect(document.querySelector('[data-action="open-contact-texts"]')?.textContent).toContain(
+      'Set up texts'
+    );
+  });
+});

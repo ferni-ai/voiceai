@@ -156,12 +156,6 @@ export interface AgentPageConfig {
     /** Custom disclaimer text */
     disclaimer?: string;
   };
-
-  /** Additional custom CSS to inject */
-  customCss?: string;
-
-  /** Additional custom JS to inject */
-  customJs?: string;
 }
 
 /**
@@ -222,8 +216,6 @@ export interface TemplateContext {
   };
   favicon: string; // Data URI
   personaCss: string; // Generated CSS block
-  customCss?: string;
-  customJs?: string;
 }
 
 // =============================================================================
@@ -292,12 +284,6 @@ export interface MultiAdvisorPageConfig {
 
   /** SEO metadata */
   seo?: SEOConfig;
-
-  /** Additional custom CSS */
-  customCss?: string;
-
-  /** Additional custom JS */
-  customJs?: string;
 }
 
 /**
@@ -345,6 +331,4 @@ export interface MultiAdvisorTemplateContext {
     twitterCard: string;
   };
   favicon: string;
-  customCss?: string;
-  customJs?: string;
 }

@@ -2,8 +2,8 @@
  * DIRECTOR_DIRECTS: the director gives direction to the persona on the call
  * (subtext, what bears on it, what the character wants, the beat), knows that
  * persona from its own sheet, and never polices delivery or scripts a line.
- * Off, every prompt is the one prod sends today (the golden was captured from
- * origin/main before this flag).
+ * Off, every prompt is the one prod sends today (director-prompts.golden.json,
+ * shared with DIRECTOR_SEES_SCENE).
  */
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -21,6 +21,7 @@ import { buildDeliberationPrompt, Deliberator, type ThinkFn } from '../deliberat
 import {
   castFor,
   directorDirects,
+  directsDeliberationSystem,
   directsSystem,
   policesDelivery,
   scriptedNote,
@@ -28,10 +29,10 @@ import {
   transcriptNote,
 } from '../director-directs.js';
 import { Director, getDirector, parseNotes, type Line } from '../director-notes.js';
-import { capturePrompts, type Captured } from './director-directs-golden.js';
+import { capturePrompts, type Captured } from './director-prompts-golden.js';
 
 const GOLDEN = JSON.parse(
-  readFileSync(new URL('./director-directs.golden.json', import.meta.url), 'utf8')
+  readFileSync(new URL('./director-prompts.golden.json', import.meta.url), 'utf8')
 ) as Captured;
 
 afterEach(() => {
@@ -128,6 +129,42 @@ describe('the director directs the persona on the call', () => {
     expect(s).toContain("when he wouldn't ask anything here");
     expect(s).toContain('Never write lines or quote words for him to say.');
     expect(s).not.toMatch(/habit of Nayan's to drop/);
+  });
+
+  it("keeps main's guard rule (#2266) in the director's and the deliberator's prompts", () => {
+    const cast: Parameters<typeof directsSystem>[0] = {
+      name: 'Nayan',
+      p: { subject: 'he', object: 'him', possessive: 'his' },
+      sheet: '',
+    };
+    expect(directsSystem(cast)).toContain('Never suggest Nayan drop or soften a boundary');
+    expect(directsSystem(cast)).toContain('honest that he is an AI');
+    expect(directsDeliberationSystem(cast)).toContain('Never suggest Nayan drop or soften');
+    expect(directsDeliberationSystem(cast)).toContain('Your thought is private');
+  });
+
+  it('with DIRECTOR_SEES_SCENE on too, directs from the sheet and adds the scene', async () => {
+    vi.stubEnv('DIRECTOR_DIRECTS', 'on');
+    vi.stubEnv('DIRECTOR_SEES_SCENE', 'on');
+    let asked = { system: '', prompt: '' };
+    const director = new Director({
+      sessionId: 's',
+      userName: 'Sam',
+      writer: async (system, prompt) => {
+        asked = { system, prompt };
+        return 'NONE';
+      },
+      personaId: () => 'nayan-patel',
+    });
+    await director.observe(CALL, { personaId: 'nayan-patel', scene: { caller: 'sister Ana' } });
+    expect(asked.system).toContain('You direct Nayan');
+    expect(asked.prompt).toContain('SCENE (background for your direction');
+    expect(asked.prompt).toContain('sister Ana');
+    expect(asked.prompt).toContain('Nayan: Lisbon. That is a big yes.');
+    vi.stubEnv('DIRECTOR_SEES_SCENE', 'off');
+    await director.observe(CALL, { personaId: 'nayan-patel', scene: { caller: 'sister Ana' } });
+    expect(asked.system).toContain('You direct Nayan');
+    expect(asked.prompt).not.toContain('SCENE');
   });
 });
 

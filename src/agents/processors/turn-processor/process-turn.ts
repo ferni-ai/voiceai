@@ -238,7 +238,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       async () => {
         try {
           const { recordCallerCorrection } = await import('./caller-correction.js');
-          await recordCallerCorrection(uid, userText, prevFerni, personaId);
+          await recordCallerCorrection(uid, userText, prevFerni, personaId, services.sessionId);
         } catch {
           // Non-blocking
         }

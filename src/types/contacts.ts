@@ -114,13 +114,14 @@ export interface EnhancedContact {
   sensitiveTopics: string[]; // Things to avoid mentioning
 
   // Communication Patterns
-  lastContactDate: Date;
+  /** Undefined until a real interaction is recorded. */
+  lastContactDate?: Date;
   lastContactMethod: ChannelType | null;
   avgResponseTimeHours?: number;
   preferredTimes?: string[]; // "mornings", "weekends"
 
   // Relationship Health
-  strengthScore: number; // 0-100
+  strengthScore?: number; // 0-100, undefined until there is a real interaction
   sentiment: RelationshipSentiment;
   needsAttention: boolean; // Flagged for outreach
 

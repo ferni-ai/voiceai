@@ -17,6 +17,30 @@
       ]
     },
     {
+      "collectionGroup": "errands",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "state", "order": "ASCENDING" },
+        { "fieldPath": "nextWakeAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "effects",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "notBefore", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "effects",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "leaseUntil", "order": "ASCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "pre_briefings",
       "queryScope": "COLLECTION",
       "fields": [
@@ -317,6 +341,20 @@
         }
       ]
     },
+    {
+      "collectionGroup": "dynamic_facts",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "__name__", "order": "ASCENDING" },
+        {
+          "fieldPath": "embedding",
+          "vectorConfig": {
+            "dimension": 768,
+            "flat": {}
+          }
+        }
+      ]
+    },
 
     {
       "collectionGroup": "sponsored_identities",
@@ -513,6 +551,15 @@
       "fields": [
         { "fieldPath": "source", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "waitlist",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "inQueue", "order": "ASCENDING" },
+        { "fieldPath": "laneRank", "order": "ASCENDING" },
+        { "fieldPath": "priorityKey", "order": "ASCENDING" }
       ]
     },
 

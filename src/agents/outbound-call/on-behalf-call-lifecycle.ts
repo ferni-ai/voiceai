@@ -24,6 +24,7 @@ import {
   type OnBehalfDispatch,
 } from '../../services/outreach/on-behalf-dispatch.js';
 import { screenedCallerText } from '../../services/outreach/caller-text.js';
+import { relayedMessage } from '../../services/outreach/relayed-message.js';
 import { isCallFollowthroughEnabled } from '../../services/outreach/call-retry.js';
 import { noteCallRefinement } from '../../services/follow-through/index.js';
 import type { CallDisposition } from './call-control.js';
@@ -165,6 +166,8 @@ export function buildCallOutcome(
   }
 
   const quote = screenedCallerText(heard.slice(-2).join(' '), name, 200);
+  // What they asked to pass on, from their own words (the analysis may phrase it better below).
+  const message = relayedMessage(heard, call.requester.name, name);
   if (isCallFollowthroughEnabled()) {
     const how = classifyAnsweredCall(heard, durationSeconds);
     if (how === 'voicemail') {
@@ -193,6 +196,7 @@ export function buildCallOutcome(
         objectiveAchieved: false,
         outcome: `I reached ${name}, but they had to go before we really got to talk. They said: "${quote}"`,
         transcriptSummary: screenedCallerText(heard.join(' '), name, 600),
+        message,
       };
     }
   }
@@ -204,6 +208,7 @@ export function buildCallOutcome(
       objectiveAchieved: false,
       outcome: `I talked with ${name}. I couldn't put together a proper summary, but the last thing they said was: "${quote}"`,
       transcriptSummary: screenedCallerText(heard.join(' '), name, 600),
+      message,
     };
   }
 
@@ -223,6 +228,8 @@ export function buildCallOutcome(
     callbackRequired: insights.callbackRequested,
     callbackTime: screenedCallerText(insights.callbackDetails, name, 100) || undefined,
     actionItems: actionItems.length > 0 ? actionItems : undefined,
+    // Screened again once joined: clean pieces can join into a link, a number or an instruction.
+    message: screenedCallerText(clean(insights.messagesForUser).join(' '), name, 200) || message,
   };
 }
 

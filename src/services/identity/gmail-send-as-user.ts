@@ -25,6 +25,7 @@
 import { createPersistenceStore } from '../persistence/index.js';
 import { encryptData, decryptData } from '../../utils/token-encryption.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { queueGoogleRevocation, revokeGoogleToken } from './google-revocations.js';
 import {
   googleCalendarClientId,
   googleCalendarClientSecret,
@@ -49,6 +50,7 @@ interface GmailSendTokens {
 
 const store = createPersistenceStore<{ encrypted: string; updated_at: number }>({
   collection: 'gmail_send_tokens',
+  holdWrites: () => false, // MINOR_CARE opt-out: credentials, not the caller's words
   documentId: 'data',
   useRootCollection: false, // bogle_users/{uid}/gmail_send_tokens/data
   syncIntervalMs: 2000,
@@ -73,8 +75,9 @@ export function buildGmailSendAuthUrl(state: string): string {
   return url.toString();
 }
 
-async function loadTokens(userId: string): Promise<GmailSendTokens | null> {
-  const doc = await store.load(userId, { fresh: true });
+/** `strict` throws when Firestore can't be read, instead of answering "not connected". */
+async function loadTokens(userId: string, strict = false): Promise<GmailSendTokens | null> {
+  const doc = await store.load(userId, { fresh: true, strict });
   return doc?.encrypted ? decryptData<GmailSendTokens>(doc.encrypted) : null;
 }
 
@@ -167,23 +170,17 @@ export async function disconnectGmailSend(userId: string): Promise<void> {
 }
 
 /**
- * Account erasure: revoke the grant at Google (best effort), then delete it.
- * Returns whether there was a grant. Runs before the record is erased, while the
- * token can still be read.
+ * Account erasure: revoke the grant at Google, then delete it. Returns whether
+ * there was a grant. Runs before the record is erased, while the token can
+ * still be read. A failed read throws (never erase on an unknown token state);
+ * a revoke Google couldn't take is queued (google-revocations.ts), and a
+ * failed queue write throws too.
  */
 export async function forgetGmailSendGrant(userId: string): Promise<boolean> {
-  const tokens = await loadTokens(userId);
+  const tokens = await loadTokens(userId, true);
   if (!tokens) return false;
-  try {
-    const revoke = await fetch('https://oauth2.googleapis.com/revoke', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ token: tokens.refresh_token || tokens.access_token }),
-    });
-    if (!revoke.ok) log.warn({ status: revoke.status }, 'Gmail send revoke refused');
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Gmail send revoke failed');
-  }
+  const token = tokens.refresh_token || tokens.access_token;
+  if ((await revokeGoogleToken(token)) === 'unreachable') await queueGoogleRevocation(token);
   await store.delete(userId);
   return true;
 }

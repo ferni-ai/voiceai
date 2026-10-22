@@ -1,41 +1,45 @@
 /**
- * Feature flags per caller, LaunchDarkly-style: cohorts ("friends and
- * family") and per-person overrides, kept in Firestore and applied when a
- * call starts.
+ * Feature flags per caller, LaunchDarkly-style: cohorts ("friends and family") and per-person
+ * overrides, kept in Firestore and applied when a call starts.
  *
- * Behaviour switches here are env flags (SEMANTIC_RECALL=on, RECALL_PEOPLE=on,
- * ...), read where they are used, and set on the whole agent, so a feature
- * was either off for everyone or on for everyone. A cohort turns a set of
- * them on for its members only: the people who know Ferni best get the best
- * version first, and prod's defaults stay where they are.
+ * Behaviour switches here are env flags (SEMANTIC_RECALL=on, RECALL_PEOPLE=on, ...), read where
+ * they are used, and set on the whole agent, so a feature was either off for everyone or on for
+ * everyone. A cohort turns a set of them on for its members only: the people who know Ferni best
+ * get the best version first, and prod's defaults stay where they are.
  *
- * At call start, once the caller is known, their flags (every enabled cohort
- * they belong to, then their own overrides) are written into process.env, so
- * every existing check sees them unchanged. That is only safe while a worker
- * process serves one call at a time (AGENT_MAX_JOBS_PER_WORKER=1, the
- * default, or a process per call); otherwise nothing is applied. The next
- * call's start puts the previous caller's flags back to the agent's own
- * values first. After-call work that is still running when the next call
- * starts sees the next caller's flags, so it reads them with envForCaller.
+ * At call start, once the caller is known, their flags (every enabled cohort they belong to, then
+ * their own overrides) are written into process.env, so every existing check sees them unchanged.
+ * That is only safe while a worker process serves one call at a time (AGENT_MAX_JOBS_PER_WORKER=1,
+ * the default, or a process per call); otherwise nothing is applied. The next call's start puts the
+ * previous caller's flags back to the agent's own values first. After-call work that is still
+ * running when the next call starts sees the next caller's flags, so it reads them with
+ * envForCaller.
  *
- * A cohort can also take a sample of every known caller (percent, 1 to 100):
- * the same callers stay in it from call to call, and a bigger percent keeps
- * everyone already in. So a feature can go to a named cohort first, then 5%,
- * then 25%, before the agent's own flag goes on for everyone.
+ * A cohort can also take a sample of every known caller (percent, 1 to 100): the same callers stay
+ * in it from call to call, and a bigger percent keeps everyone already in. So a feature can go to a
+ * named cohort first, then 5%, then 25%, before the agent's own flag goes on for everyone.
  *
- * Only flags in COHORT_FLAGS can be set this way: behaviour switches, never
- * infrastructure or secrets. Reading cohorts never holds a call up for more
- * than READ_TIMEOUT_MS. Off unless COHORT_FLAGS=on.
+ * Only flags in COHORT_FLAGS can be set this way: behaviour switches, never infrastructure or
+ * secrets. Reading cohorts never holds a call up for more than READ_TIMEOUT_MS. Off unless
+ * COHORT_FLAGS=on.
  *
- * Servers that act for many users in one process (the UI server's scheduled
- * jobs) must never write process.env; they ask per person instead, with
- * flagForUser and usersWithFlag below.
+ * Servers that act for many users in one process (the UI server's scheduled jobs) must never
+ * write process.env; they ask per person instead, with flagForUser and usersWithFlag below.
  *
  * @module services/platform/cohort-flags
  */
 import { createHash } from 'node:crypto';
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import {
+  firestoreCohortStore,
+  firestoreFlagHolders,
+  type Cohort,
+  type CohortStore,
+  type FlagHolderStore,
+} from './cohort-firestore.js';
+
+export { firestoreCohortStore, firestoreFlagHolders };
+export type { Cohort, CohortStore, FlagHolderStore };
 
 const log = createLogger({ module: 'cohort-flags' });
 
@@ -45,10 +49,13 @@ export const COHORT_FLAGS = [
   'RECALL_PEOPLE',
   'RECALL_EPISODES',
   'RECALL_RARE_WORDS',
+  // Recall hook build, after applyCallerFlags. The fact writer may read the next caller's
+  // value, which only decides whether a fact is stored with its vector (fact-embeddings.ts).
+  'RECALL_VECTOR_INDEX',
   'FACT_SUPERSESSION',
   'EXTRACTION_CONTEXT',
   'OPENER_FOLLOW_UP',
-  'LIVE_SUMMARIES',
+  'LIVE_SUMMARIES', // asked per person: readCallSummaries (call-summaries.ts) via personFlagOn
   'COACH_FOLLOW_THROUGH',
   'LIFE_MOVES_ON',
   'CANDOR',
@@ -58,18 +65,19 @@ export const COHORT_FLAGS = [
   // Read when the call session is built, after applyCallerFlags (in-call-load.ts).
   'WORLD_FACTS_IN_CALL',
   'POST_CALL_CHECKIN',
+  'IOS_PUSH', // per person by the web server's push service: flagForUser (services/ios-push.ts)
   'FOLLOW_THROUGH_TEXTS',
   // Read when the recall hook and live-call behaviors are built, after applyCallerFlags.
   'FOLLOW_THROUGH_OPENER',
   'OUTREACH_PONDERED_NOTES',
-  // Read once the agent is set up, on a turn or at a handoff: after applyCallerFlags
-  // (docs/runbooks/cohort-rollout.md has the read sites).
+  // Read at setup, a turn or a handoff, after applyCallerFlags (docs/runbooks/cohort-rollout.md).
   'CALL_WRAP_UP',
   'WRAP_UP',
   'SHORT_GOODBYE',
   'PHONE_GOODBYE',
   'HAPPY_EXITS',
   'HANDOFF_TALK_THROUGH',
+  'FAMILY_TABLE',
   // Read once the greeting's handlers are wired (greeting-wiring.ts), after applyCallerFlags.
   'HANDOFF_FIRST_FIX',
   'NAME_CORRECTION',
@@ -77,6 +85,8 @@ export const COHORT_FLAGS = [
   'BARGE_IN_ACK_WORDS',
   'FRIEND_FOLLOWUPS',
   'INSIDE_JOKES',
+  'OPEN_LOOPS_IN_CONTEXT',
+  'FIRST_CALL_INTRO', // read at the hello and each turn (greeting-direction, first-call-rapport)
   // Read on each turn and each quiet-window sound, never at boot (named-tune-note.ts, tune-state.ts).
   'NAMED_TUNE',
   // Persona flags, read at agent build, a handoff, a turn or a TTS reply, never cached
@@ -102,11 +112,18 @@ export const COHORT_FLAGS = [
   'WEEKLY_PREDICTION',
   // callUser reads it each time it runs (telephony/index.ts), so one person can have real calls.
   'TOOLS_REAL_CALL_USER',
-  // Read by the UI server's calendar-briefing job, never in a call: usersWithFlag
-  // (services/outreach/morning-brief/brief-job.ts).
-  'MORNING_BRIEF',
-  // Read per person on the web server (flagForUser): outreach pushes and the after-call ask (web-push-flag.ts).
-  'WEB_PUSH_DELIVERY',
+  'COACH_WINS', // greeting (winFor); wins.ts records a win via personFlagOn on any server
+  'FRIEND_CELEBRATIONS', // greeting: anniversaryFor (friendship-anniversary.ts)
+  'REVIVED_INTELLIGENCE', // turn hook built at setup, then each turn (revived-intelligence.ts)
+  'CALL_JOURNAL', // tool build + per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on
+  'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
+  'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
+  'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
+  // The UI server's deliver-reminders job reads both per person, through flagForUser
+  // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
+  'REMINDER_SMS_DEFAULT',
+  'REMINDER_IN_APP_PUSH',
+  'WEB_PUSH_DELIVERY', // web server, per person (flagForUser): pushes, after-call ask
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
@@ -129,7 +146,10 @@ export function cohortFlagValues(flag: string): readonly string[] {
  */
 export const COHORT_FLAG_NEEDS: Partial<Record<CohortFlag, CohortFlag[]>> = {
   RECALL_EPISODES: ['SEMANTIC_RECALL'],
+  RECALL_VECTOR_INDEX: ['SEMANTIC_RECALL'],
   WORLD_FACTS_IN_CALL: ['WORLD_MODEL_TEMPORAL'],
+  FOLLOW_THROUGH_TEXTS: ['FOLLOW_THROUGH_IMPORT'], // texts send follow-ups the import wrote
+  OUTREACH_PONDERED_NOTES: ['PONDERING'], // notes send what pondering wrote
 };
 
 /** Flags set on whose prerequisites are not: "RECALL_EPISODES needs SEMANTIC_RECALL". */
@@ -154,23 +174,6 @@ export function oneCallPerProcess(env: Record<string, string | undefined> = proc
   if (env.AGENT_JOB_EXECUTOR === 'process') return true;
   const raw = env.AGENT_MAX_JOBS_PER_WORKER;
   return raw === undefined || raw.trim() === '' || Number(raw) === 1;
-}
-
-export interface Cohort {
-  id: string;
-  enabled: boolean;
-  flags: Record<string, string>;
-  /** Also every caller whose sample bucket falls under this (1 to 100); members are always in. */
-  percent?: number;
-}
-
-export interface CohortStore {
-  /** Cohorts the caller is a member of. */
-  cohortsFor: (userId: string) => Promise<Cohort[]>;
-  /** The caller's own overrides. */
-  overridesFor: (userId: string) => Promise<Record<string, string>>;
-  /** Cohorts that take a percent of all callers. */
-  sampledCohorts?: () => Promise<Cohort[]>;
 }
 
 /**
@@ -335,51 +338,6 @@ export async function applyCallerFlags(
   }
 }
 
-function toCohort(id: string, x: Record<string, unknown>): Cohort {
-  return {
-    id,
-    enabled: x.enabled !== false,
-    flags:
-      typeof x.flags === 'object' && x.flags !== null ? (x.flags as Record<string, string>) : {},
-    ...(typeof x.percent === 'number' && { percent: x.percent }),
-  };
-}
-
-/**
- * feature_cohorts/{id}: { name, enabled, members: [uid], flags, percent? };
- * feature_flag_overrides/{uid}: { flags }.
- */
-export const firestoreCohortStore: CohortStore = {
-  async cohortsFor(userId) {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    const snap = await db
-      .collection('feature_cohorts')
-      .where('members', 'array-contains', userId)
-      .get();
-    return snap.docs.map((d) => toCohort(d.id, d.data()));
-  },
-  async sampledCohorts() {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    const snap = await db.collection('feature_cohorts').where('percent', '>=', 1).get();
-    return snap.docs.map((d) => toCohort(d.id, d.data()));
-  },
-  async overridesFor(userId) {
-    const db = getFirestoreDb();
-    if (!db) return {};
-    const doc = await db.collection('feature_flag_overrides').doc(userId).get();
-    const flags = doc.exists ? doc.data()?.flags : undefined;
-    return flags && typeof flags === 'object' ? (flags as Record<string, string>) : {};
-  },
-};
-
-/** Finds who might have a flag on, without reading every user. */
-export interface FlagHolderStore {
-  /** Members of cohorts setting `flag` to 'on', and users whose own override sets it 'on'. */
-  candidatesFor: (flag: CohortFlag) => Promise<string[]>;
-}
-
 /** How long a per-user or per-flag read is reused. The scheduled jobs run every minute. */
 export const FLAG_CACHE_TTL_MS = 60_000;
 /**
@@ -476,21 +434,3 @@ export async function usersWithFlag(flag: string, opts: FlagLookupOptions = {}):
     return cached && now - cached.at < FLAG_STALE_MAX_MS ? cached.users : [];
   }
 }
-
-export const firestoreFlagHolders: FlagHolderStore = {
-  async candidatesFor(flag) {
-    const db = getFirestoreDb();
-    if (!db) return [];
-    // `flag` is from COHORT_FLAGS, so the field path is one of ours.
-    const [cohorts, overrides] = await Promise.all([
-      db.collection('feature_cohorts').where(`flags.${flag}`, '==', 'on').get(),
-      db.collection('feature_flag_overrides').where(`flags.${flag}`, '==', 'on').get(),
-    ]);
-    const members = cohorts.docs.flatMap((d) => {
-      const x = d.data();
-      if (x.enabled === false || !Array.isArray(x.members)) return [];
-      return (x.members as unknown[]).filter((m): m is string => typeof m === 'string');
-    });
-    return [...members, ...overrides.docs.map((d) => d.id)];
-  },
-};

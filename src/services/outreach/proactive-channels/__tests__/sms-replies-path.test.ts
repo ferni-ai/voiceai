@@ -16,6 +16,11 @@ vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => pathFirestore(docs),
 }));
+// The opt-out stores (opt-outs.ts) import the canonical module.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
 vi.mock('../../../identity/firebase-auth.js', () => ({
   getFirebaseUserByPhone: vi.fn(async (e164: string) => (e164 === PHONE ? { uid: SETH } : null)),
 }));
@@ -50,6 +55,8 @@ const prefs = () =>
 const logOf = (id: string) => docs.get(`bogle_users/${SETH}/proactive_outreach_log/${id}`);
 
 beforeEach(() => {
+  // Phone-keyed opt-outs are read under this key; without it nothing is texted.
+  process.env.LOG_HASH_SECRET = 'test-hash-secret';
   docs.clear();
   routed.mockClear();
   vi.useFakeTimers({ toFake: ['Date'] });
@@ -66,6 +73,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
+  delete process.env.LOG_HASH_SECRET;
   vi.useRealTimers();
   delete process.env.PROACTIVE_CHANNELS;
   delete process.env.PROACTIVE_CHANNELS_USERS;
@@ -94,10 +102,20 @@ describe('replies to a proactive text', () => {
     expect(logOf('promise:p1')).toMatchObject({ outcome: 'declined' });
   });
 
-  it('"stop" turns proactive check-ins off and still gets the unsubscribe reply', async () => {
+  it('"stop" turns proactive check-ins off; Twilio sends the one confirmation, the app none', async () => {
     const res = await inbound('STOP');
     expect(prefs().proactiveFrequency).toBe('off');
-    expect(res.twiml).toContain('unsubscribed');
+    expect(res.twiml).toBeUndefined();
+  });
+
+  it('"Stop." (not a Twilio keyword) gets exactly one app confirmation; HELP is left to Twilio', async () => {
+    const stop = await inbound('Stop.');
+    expect(stop.twiml).toContain(
+      'You&apos;re unsubscribed from Ferni texts. Reply START to resubscribe.'
+    );
+    expect(stop.twiml?.match(/<Message>/g)).toHaveLength(1);
+    expect((await inbound(' HELP ')).twiml).toBeUndefined();
+    expect(routed).not.toHaveBeenCalled();
   });
 
   it('any other answer counts as a reply and goes on to the conversation', async () => {

@@ -126,6 +126,7 @@ export function formatPhoneForDisplay(phone: string): string {
 export interface IdentificationSource {
   type: 'phone' | 'web_auth' | 'firebase' | 'device' | 'anonymous' | 'sponsored';
   identifier: string;
+  verified?: boolean; // the server verified the account: Priority 1 and 2 only (verified-caller.ts)
   metadata?: Record<string, string>;
 }
 
@@ -349,13 +350,12 @@ export async function identifyFromMetadata(
       isNew: !profile,
       isReturning: profile ? profile.totalConversations > 0 : false,
       profile,
-      source: { type: 'web_auth', identifier: explicitUserId },
+      source: { type: 'web_auth', identifier: explicitUserId, verified: true },
       linkedIdentifiers: profile ? getLinkedIdentifiers(profile) : [],
     };
   }
 
-  // Priority 2: Firebase UID (primary identifier for web users)
-  // This is the cryptographically secure Firebase User ID
+  // Priority 2: Firebase UID, verified by /token (primary identifier for web users)
   const firebaseUid = metadata.firebase_uid || metadata.firebaseUid;
   if (firebaseUid && typeof firebaseUid === 'string') {
     const store = getStore();
@@ -432,7 +432,7 @@ export async function identifyFromMetadata(
       isNew: !profile,
       isReturning: profile ? profile.totalConversations > 0 : false,
       profile,
-      source: { type: 'firebase', identifier: firebaseUid },
+      source: { type: 'firebase', identifier: firebaseUid, verified: true },
       linkedIdentifiers: profile ? getLinkedIdentifiers(profile) : [],
     };
   }

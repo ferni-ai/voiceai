@@ -1276,10 +1276,9 @@ html.theme-transitioning *::after {
 
 /* ---- DARK THEME CIRCADIAN OVERRIDES ---- */
 
-[data-theme="midnight"][data-circadian="lateNight"],
-[data-theme="midnight"][data-circadian="deepNight"] {
-  --color-background-primary: color-mix(in oklch, var(--color-background-primary) 98%, #1a1612 2%);
-}
+/* No late-night background override: defining --color-background-primary from
+   itself is a cycle, which erased the token (and --color-bg-primary) in the dark
+   theme from midnight to dawn, so the sign-in gate fell back to near-black. */
 
 [data-theme="midnight"][data-relationship-stage="deep-partnership"] {
   --persona-glow: rgba(107, 143, 94, 0.2);
@@ -1940,6 +1939,21 @@ html.theme-transitioning *::after {
   .entrance-roster .team-member {
     opacity: 1;
     animation: none !important;
+  }
+
+  /* The .app-loaded entrance rules start the controls and roster avatars at
+     opacity 0 and let the animation reveal them. With the animation off here,
+     the plain selectors above lose to those .app-loaded rules on specificity,
+     so the Connect button stayed invisible. Match them selector for selector. */
+  .app-loaded .entrance-avatar,
+  .app-loaded .entrance-name,
+  .app-loaded .entrance-subtitle,
+  .app-loaded .entrance-roster,
+  .app-loaded .entrance-waveform,
+  .app-loaded .entrance-controls,
+  .app-loaded .entrance-helper,
+  .app-loaded .entrance-roster .team-member {
+    opacity: 1;
   }
 
   .error-shake,
@@ -5775,6 +5789,37 @@ body {
     0 0 0 3px var(--color-bg-primary),
     0 0 0 5px var(--persona-primary),
     0 0 0 1px rgba(255, 255, 255, 0.05) inset;
+}
+
+/* ========================================================================
+       END CALL - calm and outlined, with a soft warm tint
+       Ending a call must not look like starting one, so this is never the
+       filled persona Connect pill. Theme tokens only; no alarm red.
+       ======================================================================== */
+#disconnectBtn.btn-end-call {
+  background: var(--color-semantic-error-tint);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-semantic-error-glow);
+  box-shadow: none;
+}
+
+#disconnectBtn.btn-end-call:hover:not(:disabled),
+#disconnectBtn.btn-end-call:focus-visible {
+  background: var(--color-semantic-error-glow);
+  border-color: var(--color-semantic-error);
+  color: var(--color-text-primary);
+}
+
+#disconnectBtn.btn-end-call:focus-visible {
+  outline: 2px solid var(--color-semantic-error);
+  outline-offset: 3px;
+}
+
+/* The wrap-up "Goodbye" keeps its golden fill (set with !important below), so
+   its text pairs with that fill instead of the outlined end-call text. */
+#disconnectBtn.btn-end-call.btn-wrap-up {
+  color: var(--color-nayan-on-primary);
+  border-color: transparent;
 }
 
 /* ========================================================================

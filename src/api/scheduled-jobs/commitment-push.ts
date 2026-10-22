@@ -12,9 +12,11 @@ import {
   dueForPush,
   firestoreCommitmentStore,
   toOpenCommitment,
+  youSaidYoud,
   type CommitmentStore,
   type OpenCommitment,
 } from '../../services/superhuman/commitment-follow-up.js';
+import { commitmentsShown } from '../../services/superhuman/commitment-forget.js';
 import { proactiveUserIds } from '../../services/outreach/proactive-channels/proactive-tick.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -42,9 +44,9 @@ export function pickDuePerUser(rows: DueCommitment[], now: number): DueCommitmen
   return [...byUser.values()];
 }
 
-/** The push text: their own words, and a question a friend would ask. */
+/** The push text: what they said they'd do, and a question a friend would ask. */
 export function pushMessage(c: OpenCommitment): string {
-  return `How did it go? Last time you said: "${c.statement}"`;
+  return `Last time you said ${youSaidYoud(c)}. How did it go?`;
 }
 
 async function scanDue(now: number): Promise<DueCommitment[]> {
@@ -56,11 +58,17 @@ async function scanDue(now: number): Promise<DueCommitment[]> {
     .orderBy('createdAt', 'desc')
     .limit(SCAN_LIMIT)
     .get();
+  // Each person's forget requests (commitment-forget.ts), read once per person in the scan.
+  const users = [...new Set(snap.docs.map((d) => d.ref.parent.parent?.id ?? ''))];
+  const shown = new Map(
+    await Promise.all(users.map(async (u) => [u, await commitmentsShown(u)] as const))
+  );
   const rows: DueCommitment[] = [];
   for (const doc of snap.docs) {
     const userId = doc.ref.parent.parent?.id;
+    if (!userId || !shown.get(userId)?.(doc.data())) continue;
     const commitment = toOpenCommitment(doc.id, doc.data());
-    if (userId && commitment) rows.push({ userId, commitment });
+    if (commitment) rows.push({ userId, commitment });
   }
   return pickDuePerUser(rows, now);
 }

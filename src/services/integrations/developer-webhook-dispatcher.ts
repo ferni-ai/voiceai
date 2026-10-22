@@ -19,6 +19,7 @@
 
 import crypto from 'crypto';
 import { getLogger } from '../../utils/safe-logger.js';
+import { readCappedText, safeOutboundFetch } from '../../utils/outbound-url-guard.js';
 import {
   MAX_RETRIES,
   RETRY_DELAY_MS,
@@ -306,10 +307,7 @@ async function attemptDelivery(
   const signature = signPayload(webhook.secret, payload);
 
   try {
-    const controller = new globalThis.AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-    const response = await fetch(webhook.url, {
+    const response = await safeOutboundFetch(webhook.url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -319,10 +317,8 @@ async function attemptDelivery(
         'User-Agent': 'Ferni-Webhooks/1.0',
       },
       body: JSON.stringify(payload),
-      signal: controller.signal,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT),
     });
-
-    clearTimeout(timeoutId);
 
     const executionTimeMs = Date.now() - startTime;
 
@@ -342,7 +338,7 @@ async function attemptDelivery(
     }
 
     // Non-2xx response
-    const errorBody = await response.text().catch(() => '');
+    const errorBody = await readCappedText(response, 200).catch(() => '');
 
     return {
       webhookId: webhook.id,
@@ -356,7 +352,7 @@ async function attemptDelivery(
     const err = error instanceof Error ? error : new Error(String(error));
     const executionTimeMs = Date.now() - startTime;
 
-    const errorMessage = err.name === 'AbortError' ? 'Request timeout' : err.message;
+    const errorMessage = err.name === 'TimeoutError' ? 'Request timeout' : err.message;
 
     return {
       webhookId: webhook.id,

@@ -1,0 +1,20 @@
+[
+  {"name": "event_ts", "type": "TIMESTAMP", "mode": "REQUIRED"},
+  {"name": "env", "type": "STRING"},
+  {"name": "event_type", "type": "STRING", "mode": "REQUIRED"},
+  {"name": "user_hash", "type": "STRING"},
+  {"name": "session_hash", "type": "STRING"},
+  {"name": "agent_version", "type": "STRING"},
+  {"name": "persona", "type": "STRING"},
+  {"name": "model", "type": "STRING"},
+  {"name": "duration_ms", "type": "INT64"},
+  {"name": "end_reason", "type": "STRING"},
+  {"name": "turns", "type": "INT64"},
+  {"name": "first_response_ms", "type": "INT64"},
+  {"name": "p50_turn_ms", "type": "INT64"},
+  {"name": "p90_turn_ms", "type": "INT64"},
+  {"name": "interruptions", "type": "INT64"},
+  {"name": "handoffs", "type": "INT64"},
+  {"name": "quality_score", "type": "FLOAT64"},
+  {"name": "flags", "type": "STRING", "mode": "REPEATED"}
+]

@@ -7,8 +7,10 @@ name: Android app (TWA)
 #   always produces an UNSIGNED bundle.
 # - sign: main only (push or dispatch), inside the protected android-signing
 #   environment, which holds the ANDROID_UPLOAD_* secrets
-#   (scripts/android/make-upload-key.sh). Signs the built bundle with jarsigner;
-#   no repository code runs next to the key.
+#   (scripts/android/make-upload-key.sh). Signs the built bundle with jarsigner,
+#   builds a universal APK with bundletool (pinned by SHA-256) for installing on
+#   a device, and fails if vars.ANDROID_CERT_SHA256 doesn't list the key, since
+#   then the app opens with a browser bar. No repository code runs next to the key.
 # - play-internal: dispatch from main with "upload_to_play" ticked, inside the
 #   protected play-release environment.
 
@@ -52,7 +54,7 @@ jobs:
 
       # Before any ./gradlew: the wrapper jar must match a published Gradle release.
       - name: Validate the Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v6
+        uses: gradle/actions/wrapper-validation@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v6
@@ -61,12 +63,12 @@ jobs:
           java-version: '17'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v4
+        uses: android-actions/setup-android@be39fa834029ff78f1a44aa3bb0819b8fc2bd8fd # v4.0.4
         with:
           packages: 'platforms;android-36 build-tools;36.0.0'
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
         with:
           validate-wrappers: true
 
@@ -143,11 +145,56 @@ jobs:
           keytool -printcert -jarfile bundle/app-release.aab | grep -E 'SHA256:' | sed 's/^/Upload key /'
           echo "- signed with the upload key" >> "$GITHUB_STEP_SUMMARY"
 
+      # A universal APK signed with the same key, for installing on a device
+      # before Play has the app. It also proves the website trusts this key:
+      # Chrome opens the app full screen only when the signing certificate is in
+      # https://app.ferni.ai/.well-known/assetlinks.json, which is built from
+      # vars.ANDROID_CERT_SHA256.
+      - name: Universal APK, and check assetlinks lists its key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          ANDROID_UPLOAD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_UPLOAD_KEY_ALIAS }}
+          ANDROID_UPLOAD_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEY_PASSWORD }}
+          ANDROID_CERT_SHA256: ${{ vars.ANDROID_CERT_SHA256 }}
+          BUNDLETOOL_URL: https://github.com/google/bundletool/releases/download/1.18.3/bundletool-all-1.18.3.jar
+          BUNDLETOOL_SHA256: a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29
+        run: |
+          set -euo pipefail
+          work="$RUNNER_TEMP/apk"
+          (umask 077 && mkdir -p "$work")
+          trap 'rm -rf "$work"' EXIT
+          curl -fsSL -o "$work/bundletool.jar" "$BUNDLETOOL_URL"
+          echo "$BUNDLETOOL_SHA256  $work/bundletool.jar" | sha256sum -c -
+          (umask 077 && printf '%s' "$KEYSTORE_B64" | base64 --decode > "$work/upload.p12" \
+            && printf '%s' "$ANDROID_UPLOAD_KEYSTORE_PASSWORD" > "$work/store.pw" \
+            && printf '%s' "$ANDROID_UPLOAD_KEY_PASSWORD" > "$work/key.pw")
+          java -jar "$work/bundletool.jar" build-apks --mode=universal \
+            --bundle=bundle/app-release.aab --output="$work/ferni.apks" \
+            --ks="$work/upload.p12" --ks-pass="file:$work/store.pw" \
+            --ks-key-alias="$KEY_ALIAS" --key-pass="file:$work/key.pw"
+          unzip -p "$work/ferni.apks" universal.apk > bundle/ferni-universal.apk
+
+          apksigner="$(find "$ANDROID_HOME/build-tools" -maxdepth 2 -name apksigner -type f | sort -V | tail -1)"
+          "$apksigner" verify bundle/ferni-universal.apk
+          # Newer apksigner prefixes the line ("Signer (minSdkVersion=...): certificate
+          # SHA-256 digest: <hex>"), so take the 64 hex digits, not a field.
+          signed="$("$apksigner" verify --print-certs bundle/ferni-universal.apk \
+            | sed -n 's/.*SHA-256 digest: *\([0-9a-fA-F]\{64\}\).*/\1/p' | head -1 | tr 'a-f' 'A-F')"
+          listed="$(printf '%s' "$ANDROID_CERT_SHA256" | tr -d ' :' | tr ',' '\n' | tr 'a-f' 'A-F')"
+          if [ -z "$signed" ] || ! printf '%s\n' "$listed" | grep -qx "$signed"; then
+            echo "::error::The APK's certificate ($signed) is not in vars.ANDROID_CERT_SHA256, so assetlinks.json won't list it and the app would open with a browser bar. Add the upload key's SHA-256 (scripts/android/make-upload-key.sh prints it)."
+            exit 1
+          fi
+          echo "- universal APK signed by $signed, which assetlinks lists" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload signed bundle
         uses: actions/upload-artifact@v7
         with:
           name: ferni-android-${{ github.run_number }}-signed
-          path: bundle/app-release.aab
+          path: |
+            bundle/app-release.aab
+            bundle/ferni-universal.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -176,7 +223,7 @@ jobs:
           path: bundle
 
       - name: Upload to the internal track
-        uses: r0adkll/upload-google-play@v1
+        uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ai.ferni.app

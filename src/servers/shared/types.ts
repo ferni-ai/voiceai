@@ -132,6 +132,8 @@ export interface RoomMetadata {
   persona_id: string;
   device_id?: string;
   firebase_uid?: string;
+  /** true: /token verified a signed-in (not anonymous) Firebase account for firebase_uid */
+  firebase_account?: boolean;
   user_name?: string;
   user_email?: string;
   is_demo?: boolean;

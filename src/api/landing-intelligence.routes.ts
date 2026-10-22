@@ -40,9 +40,13 @@ import { getQuickOptimization } from '../services/landing-intelligence/orchestra
 import { generateVisitorId } from '../services/landing-intelligence/returning-visitor.js';
 import { createLogger } from '../utils/safe-logger.js';
 import { parseBody } from './helpers.js';
-import { requireAdmin } from './auth-middleware.js';
+import { rateLimit, requireAdmin } from './auth-middleware.js';
+import { handleTrackBatch } from './v1/public/experiments.js';
 import { generatePersonaVoice } from '../services/voice/voice-call.js';
 import { getVoiceId, getPersonaDisplayName } from '../personas/voice-registry.js';
+
+/** Experiment batches one IP may send a minute: a visitor flushes about every 5 s, so a few share a NAT. */
+const LANDING_BATCHES_PER_IP_PER_MINUTE = 120;
 
 const log = createLogger({ module: 'LandingIntelligenceHandler' });
 
@@ -532,24 +536,18 @@ export async function handleLandingIntelligenceRoutes(
 
     // ============================================================================
     // POST /api/landing/experiments/track/batch - Batch track experiment events
+    // The ferni.ai site's experiments.js flushes here. It used to log and reply OK,
+    // storing nothing; it now records through app.ferni.ai's batch path.
     // ============================================================================
     if (pathname === '/api/landing/experiments/track/batch' && method === 'POST') {
-      const { events } = await parseBody<{
-        events: Array<{
-          experimentId: string;
-          variantId: string;
-          userId: string;
-          eventType: string;
-          goalId?: string;
-          value?: number;
-        }>;
-      }>(req);
-
-      // Log events for analytics (stored in Firestore via analytics system)
-      log.info({ eventCount: events?.length || 0 }, 'Received experiment events batch');
-
-      // Just acknowledge for now - analytics system handles storage
-      sendJSON(res, { success: true, received: events?.length || 0 });
+      // Per IP as well: anonymous visitor ids are minted by the browser, so the
+      // per-visitor limit inside handleTrackBatch alone could be dodged.
+      const limited = rateLimit(req, res, {
+        maxRequests: LANDING_BATCHES_PER_IP_PER_MINUTE,
+        windowMs: 60_000,
+        keyPrefix: 'landing-experiments',
+      });
+      if (!limited) await handleTrackBatch(req, res);
       return true;
     }
 

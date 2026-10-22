@@ -14,6 +14,11 @@ vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => pathFirestore(docs),
 }));
+// The opt-out stores (opt-outs.ts) import the canonical module.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
 // commitment-follow-up.ts reads Firestore through the utils module.
 vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -28,8 +33,14 @@ vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
 vi.mock('../../../identity/firebase-auth.js', () => ({
   getFirebaseUser: vi.fn(async () => ({ phoneNumber: '+15555550123' })),
 }));
-vi.mock('../../../communication-service.js', () => ({
-  sendSMS: vi.fn(async (_to: string, body: string) => void texts.push(body)),
+// Proactive texts go through the guarded sender; Twilio is stubbed at its transport.
+vi.mock('../../delivery/sms-delivery.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isSMSDeliveryAvailable: () => true,
+  sendSMS: vi.fn(async ({ body }: { to: string; body: string }) => {
+    texts.push(body);
+    return { success: true, messageSid: 'SM1' };
+  }),
 }));
 vi.mock('../../../llm/llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
 
@@ -56,6 +67,8 @@ async function runHandler(): Promise<void> {
 const logOf = (id: string) => docs.get(`bogle_users/${SETH}/proactive_outreach_log/${id}`);
 
 beforeEach(() => {
+  // Phone-keyed opt-outs are read under this key; without it nothing is texted.
+  process.env.LOG_HASH_SECRET = 'test-hash-secret';
   docs.clear();
   texts.length = 0;
   forgetFlagCache();
@@ -70,6 +83,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
+  delete process.env.LOG_HASH_SECRET;
   vi.useRealTimers();
   delete process.env.PROACTIVE_CHANNELS;
   delete process.env.PROACTIVE_CHANNELS_USERS;
@@ -96,6 +110,14 @@ describe('a reminder that did not reach them', () => {
     expect(logOf('reminder:r1')).toMatchObject({ kind: 'reminder', channel: 'sms' });
     await runHandler();
     expect(texts).toHaveLength(1);
+  });
+
+  it('one left in the app with nobody told counts as not reaching them', async () => {
+    seedReminder('inbox', { status: 'in_app_unnotified' });
+    await runHandler();
+    expect(texts).toEqual([
+      "Hey, it's Ferni. I was meant to remind you earlier: call the pharmacy. Sorry that slipped. Did it happen?",
+    ]);
   });
 
   it('not after 12 hours, not for delivered ones, not for reminders to a contact', async () => {
@@ -141,7 +163,7 @@ describe('what they said they would do (COACH_FOLLOW_THROUGH)', () => {
     seedCommitment();
     await runHandler();
     expect(texts).toEqual([
-      'Hey, it\'s Ferni. Last time you said: "I will send the resume to Dana by Thursday". How did it go?',
+      "Hey, it's Ferni. Last time you said you'd send the resume to Dana by Thursday. How did it go?",
     ]);
     expect(docs.get(`bogle_users/${SETH}/commitments/c1`)).toMatchObject({
       followUpCount: 1,

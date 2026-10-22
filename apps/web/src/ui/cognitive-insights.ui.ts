@@ -204,7 +204,7 @@ class CognitiveInsightsUI {
     if (!this.panel) return;
     const content = this.panel.querySelector('#cognitive-content');
     if (content) {
-      content.innerHTML = `<div class="cognitive-insights__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('cognitive.loadError')} <button type="button" style="color: var(--color-ferni); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('cognitive.tryAgain')}</button></div>`;
+      content.innerHTML = `<div class="cognitive-insights__error" style="text-align: center; padding: var(--space-8, 32px); color: var(--color-text-muted, #9a8f85);">${t('cognitive.loadError')} <button type="button" style="color: var(--color-ferni-on-surface); background: none; border: none; cursor: pointer; text-decoration: underline;">${t('cognitive.tryAgain')}</button></div>`;
       const retryBtn = content.querySelector('button');
       if (retryBtn && onRetry) {
         retryBtn.addEventListener('click', onRetry);

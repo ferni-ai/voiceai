@@ -25,6 +25,8 @@ export interface DraftDeps {
   today: string;
   model?: DraftModel;
   writeFile?: (file: string, content: string) => void;
+  /** Whether a post file already exists; defaults to the real folder. */
+  fileExists?: (file: string) => boolean;
 }
 
 export interface DraftOptions {
@@ -128,10 +130,14 @@ async function attempt(
 }
 
 /** `<slug>.md` in the folder, or `<slug>-2.md` and on if that's taken. */
-function freePath(folder: string, title: string): string {
+function freePath(
+  folder: string,
+  title: string,
+  exists: (file: string) => boolean = fs.existsSync
+): string {
   const slug = slugify(title);
   let file = path.join(folder, `${slug}.md`);
-  for (let i = 2; fs.existsSync(file); i++) file = path.join(folder, `${slug}-${i}.md`);
+  for (let i = 2; exists(file); i++) file = path.join(folder, `${slug}-${i}.md`);
   return file;
 }
 
@@ -182,7 +188,8 @@ export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<Dr
     if (draft && markdown && issues.length === 0) {
       const file = freePath(
         folder,
-        type.id === 'whats-new' ? `whats-new-${deps.today}` : draft.title
+        type.id === 'whats-new' ? `whats-new-${deps.today}` : draft.title,
+        deps.fileExists
       );
       (deps.writeFile ?? fs.writeFileSync)(file, markdown);
       return { ...result, status: 'written', path: file, title: draft.title, markdown };

@@ -5,11 +5,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const db = vi.hoisted(() => ({ current: null as unknown }));
+const logged = vi.hoisted(() => ({ error: [] as Array<[Record<string, unknown>, string]> }));
+vi.mock('../../../utils/safe-logger.js', () => {
+  const logger = {
+    debug: () => undefined,
+    info: () => undefined,
+    warn: () => undefined,
+    error: (ctx: Record<string, unknown>, msg: string) => logged.error.push([ctx, msg]),
+  };
+  return { createLogger: () => logger, getLogger: () => ({ ...logger, child: () => logger }) };
+});
 vi.mock('../../../utils/firestore-utils.js', () => ({ getFirestoreDb: () => db.current }));
 
 import {
   consentBlocks,
-  consentKeyword,
   firestoreConsentStore,
   readConsent,
   recordInboundSmsConsent,
@@ -19,6 +28,7 @@ import {
   type ConsentStore,
 } from '../consent.js';
 import { phoneHash } from '../../outreach/checkin-replies.js';
+import { memoryConsentStore } from './memory-consent.js';
 
 const PHONE = '+12025550143';
 const ON = { MESSAGING_PIPELINE: 'on', LOG_HASH_SECRET: 'test-secret' };
@@ -26,49 +36,12 @@ const OFF = { LOG_HASH_SECRET: 'test-secret' };
 const HASH = phoneHash(PHONE, ON) as string;
 const NOW = new Date('2026-10-18T15:00:00Z');
 
-function memoryStore() {
-  const docs = new Map<string, Record<string, unknown>>();
-  const legacySms = new Set<string>();
-  const legacyCall = new Set<string>();
-  const store: ConsentStore = {
-    read: async (h) => docs.get(h),
-    apply: async (h, change) => {
-      docs.set(h, change(docs.get(h)));
-    },
-    legacySmsOptOut: async (h) => legacySms.has(h),
-    setLegacySmsOptOut: async (h, out) => {
-      if (out) legacySms.add(h);
-      else legacySms.delete(h);
-    },
-    legacyCallOptOut: async (p) => legacyCall.has(p),
-    setLegacyCallOptOut: async (p) => {
-      legacyCall.add(p);
-    },
-  };
-  return { store, docs, legacySms, legacyCall };
-}
+const memoryStore = memoryConsentStore;
 
 const depsWith = (store: ConsentStore, env: Record<string, string> = ON): ConsentDeps => ({
   env,
   store,
   now: () => NOW,
-});
-
-describe('consentKeyword: the whole message is the keyword', () => {
-  it.each(['STOP', 'stop.', 'Revoke', 'CANCEL', ' unsubscribe ', 'Quit!'])(
-    '%s opts out of texts only',
-    (body) => expect(consentKeyword(body)).toEqual({ state: 'opted-out', channels: ['sms'] })
-  );
-  it.each(['stop calling', 'Stop calling me.'])('%s opts out of texts and calls', (body) =>
-    expect(consentKeyword(body)).toEqual({ state: 'opted-out', channels: ['sms', 'call'] })
-  );
-  it.each(['START', 'unstop'])('%s opts back in to texts', (body) =>
-    expect(consentKeyword(body)).toEqual({ state: 'opted-in', channels: ['sms'] })
-  );
-  it.each(['please stop', 'unstoppable', 'stop by later?', 'started', 'end'])(
-    '%s is not a consent change',
-    (body) => expect(consentKeyword(body)).toBeNull()
-  );
 });
 
 describe('recordInboundSmsConsent', () => {
@@ -101,10 +74,145 @@ describe('recordInboundSmsConsent', () => {
     expect(m.legacySms.has(HASH)).toBe(false);
   });
 
-  it('with MESSAGING_PIPELINE off, writes nothing anywhere (today)', async () => {
+  it('flag off: "stop calling" still reaches every store, do-not-call included (the law, not a feature)', async () => {
     const m = memoryStore();
-    expect(await recordInboundSmsConsent(PHONE, 'STOP', depsWith(m.store, OFF))).toBeNull();
+    await recordInboundSmsConsent(PHONE, 'stop calling', depsWith(m.store, OFF));
+    expect(m.docs.get(HASH)).toMatchObject({
+      sms: { state: 'opted-out' },
+      call: { state: 'opted-out' },
+    });
+    expect(m.legacySms.has(HASH)).toBe(true);
+    expect(m.legacyCall.has(PHONE)).toBe(true);
+  });
+
+  it('a possible opt-out only pauses texts for 7 days; "keep texting me" lifts it', async () => {
+    const m = memoryStore();
+    const deps = depsWith(m.store, OFF);
+    expect(await recordInboundSmsConsent(PHONE, 'please cancel', deps)).toBeNull();
+    expect(m.docs.get(HASH)?.smsPause).toEqual({
+      at: NOW.toISOString(),
+      until: new Date(NOW.getTime() + 7 * 24 * 3_600_000).toISOString(),
+      source: 'inbound-sms',
+    });
+    expect(m.docs.get(HASH)?.sms).toBeUndefined();
+    expect(m.legacySms.size).toBe(0);
+    await recordInboundSmsConsent(PHONE, 'keep texting me', deps);
+    expect(m.docs.get(HASH)?.smsPause).toBeUndefined();
+  });
+
+  it('an ordinary message that only sounds like one ("cancel my 3pm") writes nothing', async () => {
+    const m = memoryStore();
+    for (const body of ['cancel my 3pm', "don't stop", 'end of day works']) {
+      // eslint-disable-next-line no-await-in-loop
+      expect(await recordInboundSmsConsent(PHONE, body, depsWith(m.store, OFF))).toBeNull();
+    }
     expect(m.docs.size + m.legacySms.size + m.legacyCall.size).toBe(0);
+  });
+
+  it('flag off: START and UNSTOP clear both text stores', async () => {
+    for (const optIn of ['START', 'unstop']) {
+      const m = memoryStore();
+      const deps = depsWith(m.store, OFF);
+      // eslint-disable-next-line no-await-in-loop
+      await recordInboundSmsConsent(PHONE, 'revoke', deps);
+      expect(m.legacySms.has(HASH)).toBe(true);
+      // eslint-disable-next-line no-await-in-loop
+      await recordInboundSmsConsent(PHONE, optIn, deps);
+      expect(m.legacySms.has(HASH)).toBe(false);
+      expect((m.docs.get(HASH)?.sms as { state: string }).state).toBe('opted-in');
+    }
+  });
+
+  it('HELP changes nothing', async () => {
+    const m = memoryStore();
+    expect(await recordInboundSmsConsent(PHONE, 'HELP', depsWith(m.store))).toBeNull();
+    expect(m.docs.size + m.legacySms.size).toBe(0);
+  });
+
+  it('writes both channels in one transaction, with the key version', async () => {
+    const m = memoryStore();
+    const apply = vi.spyOn(m.store, 'apply');
+    await recordInboundSmsConsent(PHONE, 'stop calling', depsWith(m.store));
+    expect(apply).toHaveBeenCalledOnce();
+    expect(m.docs.get(HASH)?.keyVersion).toMatch(/^after-call-checkin\/phone\/v1:[0-9a-f]{8}$/);
+  });
+
+  it('the do-not-call entry is written before consent', async () => {
+    const m = memoryStore();
+    const order: string[] = [];
+    const store: ConsentStore = {
+      ...m.store,
+      setLegacyCallOptOut: async (...a) => (
+        order.push('call_opt_outs'),
+        m.store.setLegacyCallOptOut(...a)
+      ),
+      apply: async (...a) => (order.push('consent'), m.store.apply(...a)),
+      setLegacySmsOptOut: async (...a) => (
+        order.push('feature_checkin_optouts'),
+        m.store.setLegacySmsOptOut(...a)
+      ),
+    };
+    await recordInboundSmsConsent(PHONE, 'stop calling', depsWith(store));
+    expect(order).toEqual(['call_opt_outs', 'consent', 'feature_checkin_optouts']);
+  });
+
+  describe('a STOP is never lost to one failed write', () => {
+    const fail = async (): Promise<never> => Promise.reject(new Error('unavailable'));
+    beforeEach(() => {
+      logged.error.length = 0;
+    });
+
+    it('consent write fails: both old stores still get it, logged at error level', async () => {
+      const m = memoryStore();
+      const store = { ...m.store, apply: fail };
+      expect(await recordInboundSmsConsent(PHONE, 'stop calling', depsWith(store))).toBeNull();
+      expect(m.legacyCall.has(PHONE)).toBe(true);
+      expect(m.legacySms.has(HASH)).toBe(true);
+      expect(logged.error).toEqual([
+        [expect.objectContaining({ phoneLast4: '0143' }), 'Opt-out not saved: consent'],
+      ]);
+    });
+
+    it('do-not-call write fails: consent and the text opt-out are still written', async () => {
+      const m = memoryStore();
+      const store = { ...m.store, setLegacyCallOptOut: fail };
+      await recordInboundSmsConsent(PHONE, 'stop calling', depsWith(store));
+      expect(m.docs.get(HASH)).toMatchObject({ call: { state: 'opted-out' } });
+      expect(m.legacySms.has(HASH)).toBe(true);
+      expect(logged.error.map(([, msg]) => msg)).toEqual(['Opt-out not saved: call_opt_outs']);
+    });
+
+    it('text opt-out mirror fails: consent is still saved and reported', async () => {
+      const m = memoryStore();
+      const store = { ...m.store, setLegacySmsOptOut: fail };
+      expect(await recordInboundSmsConsent(PHONE, 'STOP', depsWith(store))).not.toBeNull();
+      expect(m.docs.get(HASH)).toMatchObject({ sms: { state: 'opted-out' } });
+      expect(logged.error.map(([, msg]) => msg)).toEqual([
+        'Opt-out not saved: feature_checkin_optouts',
+      ]);
+    });
+
+    it('no hash secret: "stop calling" still reaches the do-not-call list (keyed by number)', async () => {
+      const m = memoryStore();
+      await recordInboundSmsConsent(
+        PHONE,
+        'stop calling',
+        depsWith(m.store, { MESSAGING_PIPELINE: 'on' })
+      );
+      expect(m.legacyCall.has(PHONE)).toBe(true);
+      expect(m.docs.size).toBe(0);
+      expect(logged.error.map(([, msg]) => msg)).toEqual([
+        'Opt-out recognised but not saved: no LOG_HASH_SECRET',
+      ]);
+    });
+
+    it('no hash secret: an error with the last four digits only, never the number', async () => {
+      const m = memoryStore();
+      await recordInboundSmsConsent(PHONE, 'STOP', depsWith(m.store, { MESSAGING_PIPELINE: 'on' }));
+      expect(logged.error).toHaveLength(1);
+      expect(logged.error[0][0]).toMatchObject({ phoneLast4: '0143' });
+      expect(JSON.stringify(logged.error)).not.toContain('5550143');
+    });
   });
 
   it('an ordinary reply changes nothing', async () => {
@@ -142,7 +250,7 @@ describe('consentBlocks', () => {
     const m = memoryStore();
     const deps = depsWith(m.store);
     expect(await consentBlocks(PHONE, 'sms', owner, deps)).toBeNull();
-    expect(await consentBlocks(PHONE, 'sms', stranger, deps)).toBe('no-consent');
+    expect(await consentBlocks(PHONE, 'sms', stranger, deps)).toBe('needs-consent');
     await writeOptIn(HASH, 'sms', 'inbound-sms', deps);
     expect(await consentBlocks(PHONE, 'sms', stranger, deps)).toBeNull();
   });

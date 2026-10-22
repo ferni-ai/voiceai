@@ -7,6 +7,9 @@ name: Blog Drafts
 #   queue lands it once CI is green, and the merge to main deploys the site.
 # - It fails either: the PR opens as a draft labelled blog-draft, auto-merge is
 #   not armed, and the job fails. It publishes only if a person fixes and merges it.
+# Consumer posts also get a hero image from scripts/blog/hero-image.ts (Gemini
+# image generation, "Nano Banana", on Vertex AI); a consumer post without one
+# opens as a draft and is not armed, so a post never publishes imageless.
 # A draft the drafter rejects itself (brand gate failed twice) is not written and
 # fails the job.
 # This log is public: a rejected draft or a failed gate prints rule codes,
@@ -30,6 +33,8 @@ name: Blog Drafts
 # Weekly: one developer post (whats-new) and one consumer post, rotating by ISO
 # week number through building-in-public, mission-essay, how-ferni-works and
 # team-letter. Manual: pick one type, or "weekly" for the same pair.
+# A weekly run that fails opens (or updates) one issue labelled
+# blog-weekly-failed, and the next weekly run that succeeds closes it.
 #
 # Token: the PR steps need the BLOG_PR_TOKEN secret, a fine-grained token for
 # ferni-ai/voiceai with Contents and Pull requests read and write (a machine
@@ -99,6 +104,12 @@ jobs:
       fail-fast: false
       matrix:
         type: ${{ fromJSON(needs.plan.outputs.types) }}
+    # Job-level permissions replace the workflow's, so restate them; id-token
+    # lets the job sign in to Google Cloud keylessly (below).
+    permissions:
+      contents: write
+      pull-requests: write
+      id-token: write
     env:
       TYPE: ${{ matrix.type }}
       GH_TOKEN: ${{ github.token }}
@@ -111,19 +122,22 @@ jobs:
       - name: Setup Node.js and pnpm
         uses: ./.github/actions/setup-node-pnpm
 
-      # GOOGLE_API_KEY is the Gemini API key the AI review jobs use. The
-      # service account is a fallback for Vertex AI; it has no Vertex role yet.
+      # Keyless (workload identity federation) as ferni-ci-blog, which has only
+      # roles/aiplatform.user in johnb-2025. The provider accepts only this
+      # workflow on refs/heads/main, so it fails on a branch or fork run.
+      # GOOGLE_API_KEY is the Gemini API key the drafter uses for text.
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v3
+        uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          workload_identity_provider: projects/1031920444452/locations/global/workloadIdentityPools/github-pool/providers/ferni-voiceai-blog-drafts
+          service_account: ferni-ci-blog@johnb-2025.iam.gserviceaccount.com
 
       # Exits 1 when the draft still fails the brand gate after one retry.
       - name: Draft the post
         id: draft
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || secrets.GOOGLE_API_KEY }}
-          GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT_ID }}
+          GOOGLE_CLOUD_PROJECT: johnb-2025
           GOOGLE_CLOUD_LOCATION: global
         run: |
           META="$RUNNER_TEMP/draft-meta.json"
@@ -141,6 +155,29 @@ jobs:
           DRAFT: ${{ steps.draft.outputs.path }}
         run: pnpm tsx scripts/blog/check-post.ts "$DRAFT" --meta "$RUNNER_TEMP/draft-meta.json" --live
 
+      # Consumer posts only: the developer portal has no hero images. Vertex AI
+      # through the keyless credentials above. No Gemini API key is passed:
+      # image models need a billed project, and that key isn't known to have
+      # one. gemini-3-pro-image is served from the global location. A failure
+      # doesn't stop the PR: the PR step opens it as an unarmed draft, says
+      # the image is missing in the PR body and the job summary, and fails the job.
+      - name: Hero image
+        id: hero
+        if: steps.draft.outputs.status == 'written' && !contains(steps.draft.outputs.path, '/developers-portal/')
+        continue-on-error: true
+        env:
+          DRAFT: ${{ steps.draft.outputs.path }}
+          GOOGLE_CLOUD_PROJECT: johnb-2025
+          GOOGLE_CLOUD_LOCATION: global
+        run: |
+          if pnpm tsx scripts/blog/hero-image.ts "$DRAFT" 2> "$RUNNER_TEMP/hero.err"; then exit 0; fi
+          cat "$RUNNER_TEMP/hero.err" >&2
+          reason=$(grep -m1 '^Hero image failed:' "$RUNNER_TEMP/hero.err" | cut -c1-400 || true)
+          echo "reason=${reason:-hero-image.ts exited non-zero, see the log}" >> "$GITHUB_OUTPUT"
+          echo "::error::No hero image for $DRAFT. ${reason}"
+          echo "**No hero image** for \`$DRAFT\`: ${reason:-see the log}" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+
       # REST for the branch, the file and the PR; `gh pr merge --auto` (GraphQL)
       # arms auto-merge. The repo uses a merge queue, so no merge method flag.
       - name: Open the PR
@@ -148,7 +185,9 @@ jobs:
         env:
           DRAFT: ${{ steps.draft.outputs.path }}
           REPO: ${{ github.repository }}
-          PASSED: ${{ steps.gate.outcome == 'success' }}
+          HERO: ${{ steps.hero.outcome }}
+          HERO_REASON: ${{ steps.hero.outputs.reason }}
+          PASSED: ${{ steps.gate.outcome == 'success' && steps.hero.outcome != 'failure' }}
           HAS_PR_TOKEN: ${{ secrets.BLOG_PR_TOKEN != '' }}
           GH_TOKEN: ${{ secrets.BLOG_PR_TOKEN || github.token }}
         run: |
@@ -173,6 +212,13 @@ jobs:
           gh api -X PUT "repos/$REPO/contents/$file" -f branch="$branch" \
             -f message="docs(blog): draft $TYPE post for $day" \
             -F content=@"$RUNNER_TEMP/content.b64" > /dev/null
+          image="apps/website/ferni-website/images/blog/$(basename "$file" .md).png"
+          if [ "$HERO" = success ]; then
+            base64 -w0 "$image" > "$RUNNER_TEMP/image.b64"
+            gh api -X PUT "repos/$REPO/contents/$image" -f branch="$branch" \
+              -f message="docs(blog): hero image for the $TYPE post for $day" \
+              -F content=@"$RUNNER_TEMP/image.b64" > /dev/null
+          fi
 
           compare="$GITHUB_SERVER_URL/$REPO/compare/main...$branch?expand=1"
           if [ "$HAS_PR_TOKEN" != true ]; then
@@ -187,10 +233,16 @@ jobs:
             if [ "$PASSED" = true ]; then
               echo "It passed the brand gate and the live check, so auto-merge is armed and it publishes once CI is green. No one reviews it first. To stop it, disable auto-merge or close this PR."
             else
-              echo "**It failed the brand gate or the live check**, so this PR is a draft and auto-merge is off. The [run log]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID) has the rule codes only; run \`pnpm tsx scripts/blog/check-post.ts $file --live --details\` locally for the details. Fix the post, mark the PR ready and merge it, or close it."
+              echo "**It failed the brand gate, the live check or the hero image**, so this PR is a draft and auto-merge is off. The [run log]($GITHUB_SERVER_URL/$REPO/actions/runs/$GITHUB_RUN_ID) has the rule codes only; run \`pnpm tsx scripts/blog/check-post.ts $file --live --details\` locally for the details. Fix the post, mark the PR ready and merge it, or close it."
             fi
             echo
-            echo "The brand gate: no forbidden words, em dashes, ellipses, retired-stack names, unlabelled composites or numbers missing from the sources. The live check: every source and every cited PR is merged, not behind an off-by-default flag, and touches only the web app or website or was merged at least 7 days ago. Consumer posts have no hero image yet."
+            echo "The brand gate: no forbidden words, em dashes, ellipses, retired-stack names, unlabelled composites or numbers missing from the sources. The live check: every source and every cited PR is merged, not behind an off-by-default flag, and touches only the web app or website or was merged at least 7 days ago."
+            echo
+            case "$HERO" in
+              success) echo "**Hero image:** \`$image\`, generated by Gemini (Nano Banana) from the title and excerpt with the brand illustration template. It should be on-palette line art on cream, no text, no faces, no logos. To replace it: \`pnpm tsx scripts/blog/hero-image.ts $file --force\` and push." ;;
+              failure) echo "**No hero image: generation failed.** ${HERO_REASON} Make one with \`pnpm tsx scripts/blog/hero-image.ts $file\` (needs GOOGLE_CLOUD_PROJECT and Google credentials with Vertex AI access, or a billed GEMINI_API_KEY) and push it here, then mark the PR ready." ;;
+              *) echo "Developer posts have no hero image." ;;
+            esac
             echo
             echo "### Sources"
             jq -r '.sources[] | "- " + .' "$META"
@@ -211,7 +263,7 @@ jobs:
           gh api -X POST "repos/$REPO/issues/$pr/labels" -f "labels[]=$label" > /dev/null
 
           if [ "$PASSED" != true ]; then
-            echo "::error::The $TYPE draft failed the brand gate or the live check. Opened #$pr as a draft, not armed."
+            echo "::error::The $TYPE draft failed the brand gate, the live check or the hero image. Opened #$pr as a draft, not armed."
             echo "Opened #$pr from $branch as a draft: it failed a gate, so it won't publish" >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
@@ -221,3 +273,71 @@ jobs:
       - name: Nothing to draft
         if: steps.draft.outputs.status == 'nothing-to-draft'
         run: echo "No merged PRs to write a $TYPE post from; no PR opened." | tee -a "$GITHUB_STEP_SUMMARY"
+
+  # The weekly run (Mondays, or a manual "weekly") keeps one issue labelled
+  # blog-weekly-failed: opened (or commented on) when a job fails, saying which
+  # step failed and which draft PRs are waiting on a person, and closed by the
+  # next run that succeeds. It never retries a draft: a draft that failed a
+  # gate must not publish without a person.
+  weekly-status:
+    name: Weekly status issue
+    needs: [plan, draft]
+    if: >-
+      always() &&
+      (github.event_name == 'schedule' || github.event.inputs.type == 'weekly')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read # this run's jobs and steps
+      issues: write
+      pull-requests: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      PLAN: ${{ needs.plan.result }}
+      DRAFT: ${{ needs.draft.result }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Open, update or close the blog-weekly-failed issue
+        run: |
+          set -euo pipefail
+          label=blog-weekly-failed
+          gh api "repos/$REPO/labels/$label" > /dev/null 2>&1 ||
+            gh api -X POST "repos/$REPO/labels" -f name="$label" -f color=b60205 \
+              -f description='The weekly blog run failed; closes on the next good run' > /dev/null
+          issue=$(gh issue list --repo "$REPO" --label "$label" --state open --limit 1 \
+            --json number --jq '.[0].number // empty')
+          day=$(date -u +%F)
+
+          if [ "$PLAN" = success ] && [ "$DRAFT" = success ]; then
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --repo "$REPO" --comment "The weekly run on $day succeeded ([run]($RUN_URL)), so closing this."
+            fi
+            echo "Weekly run succeeded" | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          {
+            echo "The weekly blog run on $day failed ([run]($RUN_URL)). Choose post types: $PLAN; drafts: $DRAFT."
+            echo
+            echo "### What failed"
+            gh api "repos/$REPO/actions/runs/$GITHUB_RUN_ID/jobs?per_page=50" --jq '
+              .jobs[] | select(.conclusion == "failure")
+              | "- [\(.name)](\(.html_url)): \([.steps[] | select(.conclusion == "failure") | .name] | join(", "))"'
+            echo
+            echo "### Drafts waiting on a person"
+            drafts=$(gh pr list --repo "$REPO" --label blog-draft --state open \
+              --json number,title --jq '.[] | "- #\(.number) \(.title)"')
+            echo "${drafts:-None open.}"
+            echo
+            echo "A draft that failed the brand gate or the live check is a draft PR without auto-merge; it publishes only if a person fixes and merges it. This issue closes itself on the next weekly run that succeeds."
+          } > "$RUNNER_TEMP/issue.md"
+
+          if [ -n "$issue" ]; then
+            gh issue comment "$issue" --repo "$REPO" --body-file "$RUNNER_TEMP/issue.md"
+            echo "Commented on #$issue" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            url=$(gh issue create --repo "$REPO" --title "Weekly blog run failed" --label "$label" \
+              --body-file "$RUNNER_TEMP/issue.md")
+            echo "Opened $url" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi

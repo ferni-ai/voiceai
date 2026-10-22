@@ -1,0 +1,128 @@
+{
+  "_about": "One source for the privacy policy's 'Your data at a glance' table, its provider table, and /privacy/data.json. scripts/__tests__/privacy-data.test.ts checks that every provider named in privacy.njk is listed here, and every provider here handles at least one kind of data.",
+  "lastReviewed": "2026-10-21",
+  "processors": [
+    {
+      "name": "Google Cloud",
+      "does": "Hosts Ferni and stores what we keep, encrypted at rest (AES-256) and in transit (TLS)",
+      "data": "Everything we keep"
+    },
+    {
+      "name": "Google (Gemini)",
+      "does": "Understanding you and writing Ferni's replies; summaries, memory notes and memory search",
+      "data": "Conversation text, things you've told Ferni, voice notes you ask Ferni to transcribe"
+    },
+    {
+      "name": "Anthropic (Claude)",
+      "does": "Background work such as summaries, memory notes and messages Ferni drafts for you",
+      "data": "Conversation text, things you've told Ferni"
+    },
+    {
+      "name": "OpenAI",
+      "does": "Backup when our main model is unavailable",
+      "data": "Conversation text, only when it's used as the backup"
+    },
+    {
+      "name": "LiveKit",
+      "does": "Carries the audio of live calls and runs Ferni's voice service",
+      "data": "Call audio while you talk, conversation text"
+    },
+    {
+      "name": "Cartesia",
+      "does": "Turns your voice into text and Ferni's replies into speech",
+      "data": "Your voice during calls, the text of Ferni's replies"
+    },
+    {
+      "name": "Twilio",
+      "does": "Text messages and phone calls",
+      "data": "Phone number, message content, phone call audio"
+    },
+    {
+      "name": "SendGrid",
+      "does": "Email delivery",
+      "data": "Email address, name, email content"
+    },
+    {
+      "name": "Sentry",
+      "does": "Error reports from our servers, with personal details removed",
+      "data": "What failed and where in our code, with personal details removed"
+    },
+    {
+      "name": "Google Analytics",
+      "does": "Website analytics, only if you accept analytics cookies",
+      "data": "How the website is used, never your conversations"
+    }
+  ],
+  "dataTypes": [
+    {
+      "type": "Account details",
+      "detail": "Email, phone number, name, optional photo",
+      "why": "So you can sign in and Ferni can reach you",
+      "kept": "Until you delete your account",
+      "processors": ["Google Cloud", "Twilio", "SendGrid"]
+    },
+    {
+      "type": "Conversations and memories",
+      "detail": "Transcripts, summaries, things you've told Ferni, and the search index built from them",
+      "why": "So Ferni can remember you next time",
+      "kept": "Until you delete your account",
+      "processors": ["Google Cloud", "Google (Gemini)", "Anthropic (Claude)", "OpenAI", "LiveKit"]
+    },
+    {
+      "type": "Your voice on calls",
+      "detail": "What you say, and Ferni's spoken replies",
+      "why": "So Ferni can hear you and answer out loud",
+      "kept": "We don't record calls. Your words are turned into text as you speak, and the text is kept with your conversations",
+      "processors": ["LiveKit", "Cartesia", "Twilio"]
+    },
+    {
+      "type": "Voice notes you save",
+      "detail": "",
+      "why": "So you can come back to them",
+      "kept": "Until you delete them or your account",
+      "processors": ["Google Cloud", "Google (Gemini)"]
+    },
+    {
+      "type": "Things you ask Ferni to forget",
+      "detail": "",
+      "why": "Your choice",
+      "kept": "Ferni stops using them right away; they're erased when you delete your account",
+      "processors": ["Google Cloud"]
+    },
+    {
+      "type": "Google Calendar and Gmail access",
+      "detail": "Only if you connect them",
+      "why": "To show your calendar and send email you ask Ferni to send",
+      "kept": "Until you disconnect them or delete your account",
+      "processors": ["Google Cloud"]
+    },
+    {
+      "type": "Usage analytics",
+      "detail": "Counts and timings under a scrambled ID, never what you said",
+      "why": "To see what works and what's slow",
+      "kept": "Deleted after 400 days. Deleting your account doesn't erase them yet",
+      "processors": ["Google Cloud"]
+    },
+    {
+      "type": "Website analytics",
+      "detail": "Only if you accept analytics cookies",
+      "why": "To improve the website",
+      "kept": "Up to 14 months, the longest Google Analytics allows",
+      "processors": ["Google Analytics"]
+    },
+    {
+      "type": "Server logs",
+      "detail": "IP address, times, pages and errors",
+      "why": "Security and fixing problems",
+      "kept": "30 days",
+      "processors": ["Google Cloud"]
+    },
+    {
+      "type": "Error reports",
+      "detail": "What failed and where in our code. Account details are left out, and emails, phone numbers and what you said are removed from the report",
+      "why": "To find and fix bugs",
+      "kept": "Up to 90 days, then Sentry deletes them",
+      "processors": ["Sentry"]
+    }
+  ]
+}

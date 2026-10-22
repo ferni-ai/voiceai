@@ -56,6 +56,28 @@ describe('runMorningBriefs', () => {
     expect(sendPush).not.toHaveBeenCalled();
   });
 
+  // Prod turns MORNING_BRIEF on for the whole web server (#2233), so the server flag must
+  // never mean "everyone": only the env list and people whose own cohort or override is on.
+  it('with MORNING_BRIEF on, sends to no one who is neither listed nor flagged', async () => {
+    const { deps, sendText, sendPush } = fakeDeps({}, { MORNING_BRIEF_USERS: '' });
+    const { recipients, report } = await runMorningBriefs(deps, EIGHT_AM);
+    expect(recipients).toEqual([]);
+    expect(report.checked).toBe(0);
+    expect(sendText).not.toHaveBeenCalled();
+    expect(sendPush).not.toHaveBeenCalled();
+  });
+
+  it('with MORNING_BRIEF on and no env list, sends only to people whose own flag is on', async () => {
+    const { deps, sendText } = fakeDeps(
+      { cohortUsers: async () => [SETH] },
+      { MORNING_BRIEF_USERS: '' }
+    );
+    const { recipients } = await runMorningBriefs(deps, EIGHT_AM);
+    expect(recipients).toEqual([SETH]);
+    expect(sendText).toHaveBeenCalledTimes(1);
+    expect(sendText.mock.calls[0][0].userId).toBe(SETH);
+  });
+
   it('texts a listed user once at 8am their time, as a morning-brief from Alex', async () => {
     const { deps, sendText, sendPush } = fakeDeps();
     const { recipients, report } = await runMorningBriefs(deps, EIGHT_AM);

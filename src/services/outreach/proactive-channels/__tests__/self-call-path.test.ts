@@ -19,6 +19,11 @@ vi.mock('../../../superhuman/firestore-utils.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   getFirestoreDb: () => pathFirestore(docs),
 }));
+// The opt-out stores (opt-outs.ts) import the canonical module.
+vi.mock('../../../../utils/firestore-utils.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  getFirestoreDb: () => pathFirestore(docs),
+}));
 vi.mock('../../../workflows/scheduled-actions.js', () => ({
   deliverDueScheduledActions: vi.fn(async () => ({ due: 0, delivered: 0 })),
 }));
@@ -28,8 +33,14 @@ vi.mock('../../../data-layer/hooks/superhuman-hooks.js', () => ({
 vi.mock('../../../identity/firebase-auth.js', () => ({
   getFirebaseUser: vi.fn(async () => ({ phoneNumber: '+15555550123' })),
 }));
-vi.mock('../../../communication-service.js', () => ({
-  sendSMS: vi.fn(async (_to: string, body: string) => void texts.push(body)),
+// Proactive texts go through the guarded sender; Twilio is stubbed at its transport.
+vi.mock('../../delivery/sms-delivery.js', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  isSMSDeliveryAvailable: () => true,
+  sendSMS: vi.fn(async ({ body }: { to: string; body: string }) => {
+    texts.push(body);
+    return { success: true, messageSid: 'SM1' };
+  }),
 }));
 vi.mock('../../../llm/llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }));
 vi.mock('livekit-server-sdk', () => ({
@@ -85,6 +96,8 @@ const notes = () =>
   [...docs.keys()].filter((p) => p.startsWith(`bogle_users/${SETH}/pending_messages/`));
 
 beforeEach(() => {
+  // Phone-keyed opt-outs are read under this key; without it nothing is texted.
+  process.env.LOG_HASH_SECRET = 'test-hash-secret';
   docs.clear();
   texts.length = 0;
   dispatches.length = 0;
@@ -108,6 +121,7 @@ beforeEach(() => {
   });
 });
 afterEach(() => {
+  delete process.env.LOG_HASH_SECRET;
   vi.useRealTimers();
   for (const k of [
     'PROACTIVE_CHANNELS',

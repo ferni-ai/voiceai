@@ -721,7 +721,7 @@ class CalendarConflictsUI {
       }
 
       .calendar-conflicts__version--ferni .calendar-conflicts__version-label {
-        color: var(--color-ferni, #4a6741);
+        color: var(--color-ferni-on-surface);
       }
 
       .calendar-conflicts__event-title {

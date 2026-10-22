@@ -340,3 +340,43 @@ describe('commitment follow-up gate', () => {
     expect(out).toBe(insight);
   });
 });
+
+// #2283: the same arc came back at turn 6, 12, 18... for a whole call.
+describe('an emotional-arc insight (ARC_INSIGHT_ONCE)', () => {
+  const arc = {
+    id: 'arc_work_stress',
+    category: 'emotional_trajectory',
+    message: "I've been noticing your work stress has been quite intense lately.",
+  };
+  const atTurn = (turnNumber: number, insight: typeof arc = arc) =>
+    surfaceProactiveInsight({ userId: USER, turnNumber, insight }, deps());
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('on: reaches the prompt once, then is dropped on later pauses', async () => {
+    vi.stubEnv('ARC_INSIGHT_ONCE', 'on');
+    expect(await atTurn(6)).toBe(arc);
+    markInsightSurfaced(USER, arc.id);
+    expect(await atTurn(12)).toBeNull();
+    expect(await atTurn(18)).toBeNull();
+  });
+
+  it('on: a different arc, or another kind of insight, still comes through', async () => {
+    vi.stubEnv('ARC_INSIGHT_ONCE', 'on');
+    markInsightSurfaced(USER, arc.id);
+    const other = { ...arc, id: 'arc_sleep' };
+    expect(await atTurn(12, other)).toBe(other);
+    const dream = { ...arc, category: 'dream_keeper' };
+    expect(await atTurn(12, dream)).toBe(dream);
+  });
+
+  it('off (default): the surfaced arc comes back on every pause, as before', async () => {
+    markInsightSurfaced(USER, arc.id);
+    expect(await atTurn(12)).toBe(arc);
+    vi.stubEnv('ARC_INSIGHT_ONCE', 'off');
+    expect(await atTurn(18)).toBe(arc);
+    expect(await atTurn(19)).toBeNull();
+  });
+});

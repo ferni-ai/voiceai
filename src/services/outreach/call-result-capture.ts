@@ -12,6 +12,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { onCallResultChange, onFollowUpActionChange } from '../data-layer/hooks/misc-hooks.js';
+import { callResultDetails, callResultTextOn, tellOwnerIfOn } from './call-result-text.js';
 import { logCallResultOutcome } from '../follow-through/index.js';
 import type { CallOutcome, OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 
@@ -74,7 +75,6 @@ async function storeCallResult(result: StoredCallResult): Promise<void> {
         .doc(result.callId)
         .set(cleanForFirestore(result));
 
-      // Semantic indexing
       void onCallResultChange(
         result.userId,
         result.callId,
@@ -355,7 +355,6 @@ async function createFollowUpActions(
             .doc(action.id)
             .set(cleanForFirestore(action));
 
-          // Semantic indexing
           void onFollowUpActionChange(
             userId,
             action.id,
@@ -442,9 +441,8 @@ export async function captureCallResult(
       await notifyOriginalSession(request.originalSessionId, callId, outcome);
     }
 
-    // 5. Send push notification (reaches user even if disconnected)
-    // This is sent regardless - push notifications work even if they're in-app
-    await sendCallResultPushNotification(request, outcome, callId);
+    // 5. Push (reaches them even if disconnected), unless CALL_RESULT_TEXT texts them below
+    if (!callResultTextOn()) await sendCallResultPushNotification(request, outcome, callId);
 
     // 6. Send email notification (tangible record of the call)
     await sendCallResultEmail(request, outcome, callId);
@@ -457,6 +455,7 @@ export async function captureCallResult(
 
     // 9. Store in unified background results (for "While You Were Away")
     await storeInUnifiedResults(request, outcome, callId);
+    await tellOwnerIfOn({ request, outcome, callId, live: injectedToActive });
 
     log.info(
       { callId, userId: request.userId },
@@ -882,7 +881,7 @@ async function storeInUnifiedResults(
       sessionId: request.originalSessionId,
       contactName,
       contactId: request.resolvedContact?.id,
-      details: outcome.transcriptSummary,
+      details: callResultDetails(contactName, outcome),
       actionItems: outcome.actionItems,
       requiresCallback: outcome.callbackRequired || false,
       callbackTime: outcome.callbackTime,
@@ -892,6 +891,7 @@ async function storeInUnifiedResults(
         phoneNumber: request.resolvedContact?.phone,
         status: outcome.status,
       },
+      skipPush: callResultTextOn(),
     });
 
     log.debug({ callId }, 'Call result stored in unified background results');

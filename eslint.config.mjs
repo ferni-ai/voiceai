@@ -35,7 +35,6 @@ export default [
       '*.config.mjs',
       'apps/web/**',
       'design-system/**',
-      'apps/android-native/**',
       'apps/async/**',
       'apps/figma-plugin/**',
       'apps/intelligence-worker/**',
