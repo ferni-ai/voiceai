@@ -16,7 +16,7 @@
  * - Surfaces insights via proactive notifications
  */
 
-import admin from 'firebase-admin';
+import type admin from 'firebase-admin';
 
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
 import { getLogger } from '../../utils/safe-logger.js';
