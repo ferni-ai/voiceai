@@ -27,7 +27,7 @@ import type {
   VectorStoreHealth,
 } from './types.js';
 import { DEFAULT_COLLECTION_NAME, DEFAULT_EMBEDDING_DIMENSION } from './types.js';
-import { extractEmbedding, filteredQuery, keepCandidate } from './helpers.js';
+import { extractEmbedding, filteredQuery, keepCandidate, withoutCredentials } from './helpers.js';
 import { ownerId } from '../retrieval/vector-ownership.js';
 import { FallbackCache } from './fallback-cache.js';
 import { RecoveryManager, migrateCacheToFirestore } from './recovery.js';
@@ -269,10 +269,9 @@ export class FirestoreVectorStore implements VectorStoreContract {
     await this.initialize();
   }
 
-  /**
-   * Add a document to the vector store.
-   */
-  async addDocument(doc: VectorDocument): Promise<void> {
+  /** Add a document to the vector store, without a credential in its text (#2385). */
+  async addDocument(said: VectorDocument): Promise<void> {
+    const doc = withoutCredentials(said);
     await this.ensureInitialized();
 
     let { embedding } = doc;

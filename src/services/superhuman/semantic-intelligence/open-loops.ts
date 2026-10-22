@@ -17,6 +17,7 @@ import { createInsight } from './insight-broker.js';
 import { onCoachingInsightChange } from '../../data-layer/hooks/coaching-hooks.js';
 
 import { expireStoredLoop, isLoopLive, shouldExpireLoop } from './open-loop-expiry.js';
+import { redactCredentials } from '../../../memory/credential-redaction.js';
 const log = createLogger({ module: 'open-loops' });
 
 // ============================================================================
@@ -126,7 +127,6 @@ export async function createOpenLoop(
 ): Promise<OpenLoop> {
   const now = new Date();
   const id = `loop_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
   const window = CONFIG.FOLLOW_UP_WINDOWS[loop.type];
   const afterHours = loop.followUpAfterHours ?? window.after;
   const beforeHours = loop.followUpBeforeHours ?? window.before;
@@ -135,8 +135,8 @@ export async function createOpenLoop(
     id,
     userId,
     type: loop.type,
-    content: loop.content,
-    context: loop.context,
+    content: redactCredentials(loop.content),
+    context: redactCredentials(loop.context),
     created: now,
     followUpAfter: new Date(now.getTime() + afterHours * 60 * 60 * 1000),
     followUpBefore: new Date(now.getTime() + beforeHours * 60 * 60 * 1000),
