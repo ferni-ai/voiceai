@@ -46,8 +46,9 @@ import {
   groundedRelease,
 } from '../../services/safety/crisis-grounded-release.js';
 import {
-  screenPositive,
+  screenAnswer,
   withScreenPositive,
+  withScreenQuestion,
 } from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import {
@@ -95,6 +96,8 @@ export interface CrisisGateTurn {
   decision: CrisisGateDecision;
   /** A stronger decision from the classifier, or null; absent when it cannot escalate. */
   escalation: Promise<CrisisGateDecision | null> | null;
+  /** The caller went quiet after a release: this reply asks the direct question again. */
+  reask?: boolean;
 }
 
 type Chunk = llm.ChatChunk | string | object;
@@ -195,8 +198,9 @@ export function startCrisisGate(
     recentMessages: earlier,
   });
   // The answer to a grounded release's direct question: anything but a clear no counts as a match.
-  const screened = screenPositive(sessionScope(userData), { latest, companion });
-  const detection = screened ? withScreenPositive(found) : found;
+  const screen = screenAnswer(sessionScope(userData), { latest, companion });
+  const detection = screen === 'positive' ? withScreenPositive(found) : found;
+  const reask = screen === 'reask';
   const decision = decisionFor(detection);
   if (decision.action !== 'pass') {
     noteCrisisRisk(sessionScope(userData)); // risk on this call (crisis-call-risk.ts)
@@ -227,7 +231,9 @@ export function startCrisisGate(
     { latest, earlier, companion },
     { pattern, env, generate, scope, call }
   );
-  if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
+  if (run?.mode !== 'live' || decision.action === 'replace') {
+    return { decision, escalation: null, reask };
+  }
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
@@ -301,7 +307,7 @@ export function startCrisisGate(
     );
     return stronger;
   });
-  return { decision, escalation };
+  return { decision, escalation, reask };
 }
 
 /** A reply stream that speaks one fixed text. */
@@ -459,16 +465,22 @@ export async function gatedReply(
     const call = sessionScope(session.userData);
     return call && crisisRiskThisCall(call) ? led : withLookupBridge(led, chatCtx, session, env);
   };
-  const reply = await ask(ctx);
+  // A grounded release, or a re-ask after it: code says the direct question, last (crisis-grounded-screen.ts).
+  const asking = (
+    s: ReadableStream<Chunk> | null,
+    on = gate?.reask
+  ): ReadableStream<Chunk> | null => (s && on ? withScreenQuestion(s) : s);
+  const reply = asking(await ask(ctx));
   if (!reply || !gate?.escalation) return reply;
   return holdUntilCleared(reply, gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
-    return ask(
+    const guided = await ask(
       withTurnStyleReminder(plain(), decision.guidance),
       burst === undefined ? undefined : false,
       true
     );
+    return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });
 }

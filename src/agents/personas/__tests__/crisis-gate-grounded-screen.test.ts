@@ -1,10 +1,13 @@
 /**
  * #2354 round 3: with both reads fooled, 40 of 40 risky lines built only from
  * allowed words released ("After dinner I'll try again."). So every release
- * asks one direct screening question (SCREEN_QUESTION), and the caller's next
- * turn takes the crisis path with 988 unless it is a clear no to a question
- * Ferni actually asked. Through the real reply gate and turn pipeline.
+ * ends with one direct screening question that code appends (SCREEN_QUESTION),
+ * and the caller's next turn takes the crisis path with 988 unless it is a
+ * clear no to that question as Ferni said it, in full and last. Through the
+ * real reply gate and turn pipeline.
  */
+import { EventEmitter } from 'node:events';
+import { ReadableStream } from 'node:stream/web';
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
@@ -17,10 +20,14 @@ import {
   GROUNDED_RELEASE_CSSRS_PROMPT,
   resetGroundedRelease,
 } from '../../../services/safety/crisis-grounded-release.js';
-import { SCREEN_QUESTION } from '../../../services/safety/crisis-grounded-screen.js';
+import {
+  SCREEN_QUESTION,
+  askedScreen,
+  screenAnswer,
+} from '../../../services/safety/crisis-grounded-screen.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
-import { startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
+import { gatedReply, startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
 
 const RELEASE = {
   CRISIS_GUARD_MODE: 'live',
@@ -36,7 +43,7 @@ const CSSRS_EVERYDAY =
 const OPENER = 'I forgot to invite David to dinner. Remind me next time.';
 const REMINDER = "I've set that reminder for tomorrow morning.";
 const DINNER = "Tomorrow's a little bit late. Dinner is tonight.";
-const ASKED = `Oh, tonight, got it, I'll nudge you this afternoon. And ${SCREEN_QUESTION}`;
+const ASKED = `Oh, tonight, got it, I'll nudge you this afternoon. ${SCREEN_QUESTION}`;
 const NOT_ASKED = "Oh, tonight, got it, I'll nudge you this afternoon.";
 
 /** Both reads fooled: everyday on every prompt. */
@@ -72,21 +79,34 @@ function request(turns: Array<[string, string]>, latest: string): llm.ChatContex
   return ctx;
 }
 
+const options = (env: Record<string, string>, imminent = [DINNER]) => ({
+  env,
+  generate: classifier(imminent),
+  groundedReads: fooled(),
+});
+
+function gateTurn(
+  session: string,
+  turns: Array<[string, string]>,
+  latest: string,
+  env: Record<string, string> = RELEASE,
+  imminent = [DINNER]
+) {
+  return startCrisisGate(
+    request(turns, latest),
+    { services: { sessionId: session } },
+    options(env, imminent)
+  );
+}
+
 async function gate(
   session: string,
   turns: Array<[string, string]>,
   latest: string,
-  env: Record<string, string> = RELEASE
+  env: Record<string, string> = RELEASE,
+  imminent = [DINNER]
 ): Promise<CrisisGateDecision> {
-  const run = startCrisisGate(
-    request(turns, latest),
-    { services: { sessionId: session } },
-    {
-      env,
-      generate: classifier([DINNER]),
-      groundedReads: fooled(),
-    }
-  );
+  const run = gateTurn(session, turns, latest, env, imminent);
   return (await run?.escalation) ?? run?.decision ?? { action: 'pass' };
 }
 
@@ -94,13 +114,37 @@ function pipeline(session: string, turns: Array<[string, string]>, latest: strin
   return startTurnCrisis(
     latest,
     { recentTranscripts: turns.map(([caller]) => caller), lastAgentResponse: turns.at(-1)?.[1] },
-    {
-      sessionId: session,
-      env: RELEASE,
-      generate: classifier([DINNER]),
-      groundedReads: fooled(),
-    }
+    { sessionId: session, ...options(RELEASE) }
   ).summary();
+}
+
+/** What the reply gate actually speaks, with a model that says `text`. */
+async function spoken(
+  session: string,
+  turns: Array<[string, string]>,
+  latest: string,
+  text: string
+): Promise<string> {
+  const model = async () =>
+    new ReadableStream<unknown>({
+      start(controller) {
+        controller.enqueue(text);
+        controller.close();
+      },
+    });
+  const callSession = Object.assign(new EventEmitter(), {
+    userData: { services: { sessionId: session } },
+  });
+  const reply = await gatedReply(
+    request(turns, latest),
+    callSession,
+    model as never,
+    { wrap: (stream: ReadableStream<unknown>) => stream } as never,
+    options(RELEASE)
+  );
+  const said: unknown[] = [];
+  for await (const chunk of reply as unknown as AsyncIterable<unknown>) said.push(chunk);
+  return said.join('');
 }
 
 /** A call released on the dinner line; returns its id. */
@@ -111,18 +155,34 @@ async function released(env: Record<string, string> = RELEASE): Promise<string> 
   return session;
 }
 
-describe('every release asks the direct question', () => {
-  it('the light touch carries the exact question and no escape', () => {
-    expect(GROUNDED_LIGHT_TOUCH).toContain(SCREEN_QUESTION);
-    expect(SCREEN_QUESTION).toMatch(/hurting yourself/);
-    expect(SCREEN_QUESTION).toMatch(/ending your life/);
-    expect(GROUNDED_LIGHT_TOUCH).toMatch(/You must ask it/);
-    expect(GROUNDED_LIGHT_TOUCH).not.toMatch(
-      /most likely everyday|in your own words|okay and safe/
-    );
+const after = (ferni: string): Array<[string, string]> => [
+  [OPENER, REMINDER],
+  [DINNER, ferni],
+];
+
+describe('every release ends with the direct question, said by code', () => {
+  it('the reply model is told the question is added, and not to ask its own', () => {
+    expect(GROUNDED_LIGHT_TOUCH).toMatch(/added right after your reply/);
+    expect(GROUNDED_LIGHT_TOUCH).toMatch(/End without a question of your own/);
+    expect(GROUNDED_LIGHT_TOUCH).not.toMatch(/most likely everyday|in your own words/);
+    expect(SCREEN_QUESTION).toMatch(/hurting yourself, or about ending your life\?$/);
   });
 
-  it('both paths of the released turn inject it', async () => {
+  it('the released reply ends with SCREEN_QUESTION verbatim, whatever the model said', async () => {
+    const session = `screen-${++calls}`;
+    const text = await spoken(session, [[OPENER, REMINDER]], DINNER, 'Oh, tonight! Have fun.');
+    expect(text.startsWith('Oh, tonight! Have fun.')).toBe(true);
+    expect(text.endsWith(SCREEN_QUESTION)).toBe(true);
+    expect(askedScreen(text)).toBe(true);
+  });
+
+  it('a reply on a call with no release gets no question', async () => {
+    const session = `screen-${++calls}`;
+    const text = await spoken(session, [[OPENER, REMINDER]], 'Dinner is at seven.', 'Nice!');
+    expect(text).toBe('Nice!');
+  });
+
+  it('both paths of the released turn release; the pipeline carries the guidance', async () => {
     const session = `screen-${++calls}`;
     const [fromGate, fromPipeline] = await Promise.all([
       gate(session, [[OPENER, REMINDER]], DINNER),
@@ -130,20 +190,31 @@ describe('every release asks the direct question', () => {
     ]);
     expect(fromGate).toEqual({ action: 'guide', guidance: GROUNDED_LIGHT_TOUCH });
     expect(fromPipeline).toMatchObject({ softCheck: true, isCrisis: false });
-    expect(fromPipeline.softGuidance).toContain(SCREEN_QUESTION);
+    expect(fromPipeline.softGuidance).toBe(GROUNDED_LIGHT_TOUCH);
+  });
+});
+
+describe('asked means the exact question, in full, and last', () => {
+  it('a paraphrase, a softened "you okay?", a cut-off or a later question is not asked', () => {
+    expect(askedScreen(ASKED)).toBe(true);
+    for (const line of [
+      'Hey, were you thinking about hurting yourself?',
+      'When you said that, were you thinking about ending your life?',
+      'Hey, you doing okay? Like, really okay, safe?',
+      `${SCREEN_QUESTION.slice(0, 60)}`,
+      `${SCREEN_QUESTION} Should I still nudge you this afternoon?`,
+    ]) {
+      expect(askedScreen(line), line).toBe(false);
+    }
   });
 });
 
 describe("the caller's answer", () => {
-  const after = (ferni: string): Array<[string, string]> => [
-    [OPENER, REMINDER],
-    [DINNER, ferni],
-  ];
-
-  it('a clear no to the asked question: judged as usual, no crisis', async () => {
+  it('a clear no: judged as usual, no crisis', async () => {
     for (const answer of [
       'No.',
       'Nope.',
+      'Nope, just dinner.',
       "Haha no, not at all, I'm good.",
       'Oh god no, I just meant the dinner.',
       'No no, totally fine, thanks for asking.',
@@ -162,12 +233,21 @@ describe("the caller's answer", () => {
     for (const answer of [
       "I don't know.",
       'Kind of.',
+      'Nope, kind of.',
       'Yeah.',
       'Not really.',
       'No, but sometimes.',
       'Maybe.',
       'Haha.',
       'What?',
+      'No?',
+      "No... I'm fine.",
+      "No… I'm fine.",
+      'Um, no.',
+      'No, I meant it.',
+      "No, I'm not okay.",
+      'Nope, not good.',
+      'No, not anymore.',
       'No. After dinner I will try again.',
       'Nah, I already wrote the note.',
     ]) {
@@ -178,16 +258,52 @@ describe("the caller's answer", () => {
       ]);
       expect(fromGate.action, answer).toBe('guide');
       expect(fromGate.action === 'guide' && fromGate.guidance, answer).toMatch(/988/);
-      expect(fromGate).not.toEqual({ action: 'guide', guidance: GROUNDED_LIGHT_TOUCH });
       expect(fromPipeline, answer).toMatchObject({ isCrisis: true });
       expect(fromPipeline.indicators, answer).toContain('grounded_screen_positive');
       expect(fromPipeline.softCheck, answer).toBeUndefined();
     }
   });
 
-  it('a no when Ferni never asked is not a clear no: crisis path', async () => {
+  it('a no to a paraphrase or "you okay?" is not a clear no: the question is asked again', async () => {
+    for (const ferni of [
+      'Oh, tonight, got it. Hey, you doing okay? Like, really okay, safe?',
+      'Oh, tonight, got it. Were you thinking about hurting yourself?',
+    ]) {
+      const session = await released();
+      const turn = gateTurn(session, after(ferni), 'No.');
+      expect(turn?.reask, ferni).toBe(true);
+      expect(turn?.decision, ferni).toEqual({ action: 'pass' });
+    }
+  });
+
+  it('after silence, Ferni asks again once (code-appended); then anything unclear is positive', async () => {
     const session = await released();
-    const out = await gate(session, after(NOT_ASKED), 'No.');
+    // Ferni filled the silence; the caller's next words are not an answer to the question.
+    const quiet = after(NOT_ASKED);
+    const again = await spoken(session, quiet, 'Sorry, got distracted.', 'No worries!');
+    expect(again.endsWith(SCREEN_QUESTION)).toBe(true);
+    const reasked: Array<[string, string]> = [...quiet, ['Sorry, got distracted.', again]];
+    const out = await gate(session, reasked, 'Hmm.');
+    expect(out.action).toBe('guide');
+    expect(out.action === 'guide' && out.guidance).toMatch(/988/);
+  });
+
+  it('after silence and the second ask, a clear no closes the screen', async () => {
+    const session = await released();
+    const quiet = after(NOT_ASKED);
+    expect(gateTurn(session, quiet, 'Sorry, got distracted.')?.reask).toBe(true);
+    const reasked: Array<[string, string]> = [...quiet, ['Sorry, got distracted.', ASKED]];
+    expect(await gate(session, reasked, 'No.')).toEqual({ action: 'pass' });
+    const later: Array<[string, string]> = [...reasked, ['No.', 'Okay! So, dessert?']];
+    expect(await gate(session, later, 'Pie, obviously.')).toEqual({ action: 'pass' });
+  });
+
+  it('the question is asked again only once: a second silence is positive', async () => {
+    const session = await released();
+    const quiet = after(NOT_ASKED);
+    expect(gateTurn(session, quiet, 'Sorry, got distracted.')?.reask).toBe(true);
+    const still: Array<[string, string]> = [...quiet, ['Sorry, got distracted.', 'Ha, all good.']];
+    const out = await gate(session, still, 'Pie, obviously.');
     expect(out.action).toBe('guide');
     expect(out.action === 'guide' && out.guidance).toMatch(/988/);
   });
@@ -195,43 +311,8 @@ describe("the caller's answer", () => {
   it('only the first answer is screened; later turns are judged as usual', async () => {
     const session = await released();
     await gate(session, after(ASKED), 'No.');
-    // A later line comes after Ferni's reply to the answer, well past SAME_TURN_MS.
-    vi.useFakeTimers({ toFake: ['Date'] });
-    try {
-      vi.setSystemTime(Date.now() + 11_000);
-      const later = await gate(
-        session,
-        [...after(ASKED), ['No.', 'Okay! So, dessert?']],
-        'Pie, obviously.'
-      );
-      expect(later).toEqual({ action: 'pass' });
-    } finally {
-      vi.useRealTimers();
-    }
-  });
-
-  it('a no that takes itself back, or a negated state, is not a clear no', async () => {
-    for (const answer of [
-      'No, I meant it.',
-      "No, I'm not okay.",
-      'Nope, not good.',
-      'No... I was.',
-      'No, not anymore.',
-      'Never mind.',
-    ]) {
-      const session = await released();
-      const out = await gate(session, after(ASKED), answer);
-      expect(out.action, answer).toBe('guide');
-      expect(out.action === 'guide' && out.guidance, answer).toMatch(/988/);
-    }
-  });
-
-  it('a bare no to a softened "you okay?" means not okay: crisis path', async () => {
-    const session = await released();
-    const softened = 'Oh, tonight, got it. Hey, you doing okay? Like, really okay, safe?';
-    const out = await gate(session, after(softened), 'No.');
-    expect(out.action).toBe('guide');
-    expect(out.action === 'guide' && out.guidance).toMatch(/988/);
+    const later: Array<[string, string]> = [...after(ASKED), ['No.', 'Okay! So, dessert?']];
+    expect(await gate(session, later, 'Pie, obviously.')).toEqual({ action: 'pass' });
   });
 
   it('an answer that repeats the released line is still screened', async () => {
@@ -242,42 +323,48 @@ describe("the caller's answer", () => {
 
   it("the released turn's other path with drifted words is not taken as the answer", async () => {
     const session = await released();
-    // The pipeline saw the released turn with different words; same Ferni line before it.
     const drifted = await pipeline(session, [[OPENER, REMINDER]], 'Dinner is tonight.');
     expect(drifted.indicators).not.toContain('grounded_screen_positive');
-    // The real answer is still screened.
-    const answer = await pipeline(session, after(ASKED), 'Kind of.');
-    expect(answer.indicators).toContain('grounded_screen_positive');
+    // It used up nothing: a silence after it still gets the one re-ask.
+    const quiet = { latest: 'Sorry, got distracted.', companion: NOT_ASKED };
+    expect(screenAnswer(session, quiet)).toBe('reask');
   });
 
   it("the turn's two paths with different words fail closed", async () => {
     const session = await released();
-    const fromGate = await gate(session, after(ASKED), 'No.');
-    expect(fromGate).toEqual({ action: 'pass' });
+    expect(await gate(session, after(ASKED), 'No.')).toEqual({ action: 'pass' });
     const fromPipeline = await pipeline(session, after(ASKED), 'No. I mean, kind of.');
     expect(fromPipeline).toMatchObject({ isCrisis: true });
     expect(fromPipeline.indicators).toContain('grounded_screen_positive');
   });
 
-  it('no screen when the release was only in shadow', async () => {
-    const env = { ...RELEASE, CRISIS_GROUNDED_RELEASE: 'shadow' };
-    const session = await released(env);
-    const out = await gate(session, after(NOT_ASKED), 'Pie, obviously.', env);
-    expect(out).toEqual({ action: 'pass' });
+  it('anything unexpected while screening is positive', async () => {
+    const session = await released();
+    const broken = {
+      get latest(): string {
+        throw new Error('boom');
+      },
+    };
+    expect(screenAnswer(session, broken)).toBe('positive');
+  });
+
+  it('no screen when the release was only in shadow, or the reply gate is not live', async () => {
+    for (const env of [
+      { ...RELEASE, CRISIS_GROUNDED_RELEASE: 'shadow' },
+      { ...RELEASE, CRISIS_GUARD_MODE: 'shadow' },
+    ]) {
+      const session = `screen-${++calls}`;
+      await gate(session, [[OPENER, REMINDER]], DINNER, env);
+      const answer = { latest: 'Pie, obviously.', companion: NOT_ASKED };
+      expect(screenAnswer(session, answer)).toBe('none');
+    }
   });
 
   it('the question is asked once per call: a second flagged line keeps the script', async () => {
     const session = await released();
     await gate(session, after(ASKED), 'No.');
     const turns: Array<[string, string]> = [...after(ASKED), ['No.', 'Okay! Enjoy the dinner.']];
-    const run = startCrisisGate(
-      request(turns, 'Dinner is at seven.'),
-      {
-        services: { sessionId: session },
-      },
-      { env: RELEASE, generate: classifier(['Dinner is at seven.']), groundedReads: fooled() }
-    );
-    const out = (await run?.escalation) ?? run?.decision;
-    expect(out?.action).toBe('replace');
+    const out = await gate(session, turns, 'Dinner is at seven.', RELEASE, ['Dinner is at seven.']);
+    expect(out.action).toBe('replace');
   });
 });

@@ -60,7 +60,7 @@ import {
 import type { CrisisGenerateFn, CrisisVerdict } from './crisis-classifier.js';
 import { SAFETY_TALK } from './crisis-lone-imminent.js';
 import { allEveryday, alwaysHold, eventTopics, wordsOf } from './crisis-release-words.js';
-import { SCREEN_QUESTION, noteScreenAsked, resetGroundedScreen } from './crisis-grounded-screen.js';
+import { noteScreenAsked, resetGroundedScreen } from './crisis-grounded-screen.js';
 
 const log = createLogger({ module: 'CrisisGroundedRelease' });
 
@@ -155,23 +155,24 @@ const READERS = [
 const GROUNDED_READ_MAX_TOKENS = 256;
 
 /**
- * What a released turn gets in place of the script: Ferni's normal answer and
- * the direct question, once (MAX_RELEASES_PER_CALL). No hint that the words
- * were probably everyday, which would bias how the question is asked.
+ * What a released turn's reply model is told. The direct question itself is
+ * not left to the model: the reply gate appends SCREEN_QUESTION as the last
+ * sentence (crisis-gate.ts, withScreenQuestion). No hint that the words were
+ * probably everyday, which would bias the reply.
  */
 export const GROUNDED_LIGHT_TOUCH = `[SAFETY - DIRECT CHECK]
-A safety screen flagged the caller's last words.
+A safety screen flagged the caller's last words. One gentle, direct question about their safety is added right after your reply.
 1. Answer what they said the way you normally would, in your own voice, briefly
-2. Then, in this same reply, ask this exact question, gently and warmly: "${SCREEN_QUESTION}" You must ask it. Do not change it to "are you okay", do not skip it, and add no lecture and no hotline
-3. If they answer anything other than a clear no, or say anything about hurting themselves, not wanting to be here, or anyone being in danger, take it seriously and offer the 988 Suicide & Crisis Lifeline: they can call or text 988`;
+2. End without a question of your own, and add no check-in, no lecture and no hotline: the added question is the check-in`;
 
 export function resolveGroundedReleaseMode(
   env: Record<string, string | undefined> = process.env
 ): GroundedReleaseMode {
   const raw = env.CRISIS_GROUNDED_RELEASE?.trim().toLowerCase();
-  // Until the direct screening question lands (fix/crisis-grounded-screen), live is shadow:
-  // a release with no safety net never reaches a caller. Tests opt in to read the rules live.
-  if (raw === 'live') return env.CRISIS_GROUNDED_RELEASE_UNSCREENED === 'test' ? 'live' : 'shadow';
+  // Live only where the reply gate is live: it appends the direct question (crisis-gate.ts).
+  // Anywhere else a release would carry no question, so it is shadow.
+  const guard = env.CRISIS_GUARD_MODE?.trim().toLowerCase();
+  if (raw === 'live') return guard === 'off' || guard === 'shadow' ? 'shadow' : 'live';
   return raw === 'shadow' ? raw : 'off';
 }
 
