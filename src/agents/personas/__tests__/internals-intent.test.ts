@@ -151,7 +151,10 @@ describe('installInternalsIntent', () => {
   it('is null with the flag off', () => {
     process.env[FLAG] = 'off';
     expect(
-      installInternalsIntent(session(), () => ({ chatCtx: { items: [] } }), [], yes)
+      installInternalsIntent(
+        { session: session(), agent: () => ({ chatCtx: { items: [] } }), cleanupFunctions: [] },
+        yes
+      )
     ).toBeNull();
   });
 
@@ -160,7 +163,10 @@ describe('installInternalsIntent', () => {
     const ask = vi.fn(yes);
     const s = session();
     let ctx = call(false);
-    const observer = installInternalsIntent(s, () => ({ chatCtx: ctx }), [], ask);
+    const observer = installInternalsIntent(
+      { session: s, agent: () => ({ chatCtx: ctx }), cleanupFunctions: [] },
+      ask
+    );
     observer?.onTranscript(PRESS, true);
     expect(ask).not.toHaveBeenCalled();
     ctx = call(true);

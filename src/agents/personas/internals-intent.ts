@@ -125,14 +125,20 @@ type Items = { chatCtx: { items: unknown[] } };
  * caller turns of a failed tool. Null when NO_INVENTED_INTERNALS is off.
  */
 export function installInternalsIntent(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  session: voice.AgentSession<any>,
-  agent: () => Items,
-  cleanupFunctions: Array<() => void>,
+  input: {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    session: voice.AgentSession<any>;
+    /** The agent, or a getter for the one on the call now (it follows handoffs). */
+    agent: unknown;
+    cleanupFunctions: Array<() => void>;
+  },
   /** The model call (TURN_UNDERSTANDING_MODEL, gemini-3.5-flash-lite by default); injectable for tests. */
   ask: UnderstandFn = geminiUnderstand()
 ): { onTranscript(transcript: string, isFinal: boolean): void } | null {
   if (!noInventedInternalsEnabled()) return null;
+  const { session, cleanupFunctions } = input;
+  const agent = (): Items =>
+    (typeof input.agent === 'function' ? (input.agent as () => Items)() : input.agent) as Items;
   const intent = new InternalsIntent(ask);
   setInternalsIntent(session, intent);
   const finals: string[] = [];
