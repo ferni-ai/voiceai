@@ -160,6 +160,8 @@ const LEGACY_FLAG_MANIFEST = {
   FERNI_VOICE_EMOTION: { default: 'off', owner: 'voice', kind: 'config' },
   // unset: resting pace 1. A number, clamped to 0.85-1.2: Ferni's resting pace (same module)
   FERNI_VOICE_SPEED: { default: 'off', owner: 'voice', kind: 'config' },
+  // report | refuse | off: a client bound to another database than FIRESTORE_DATABASE (utils/firestore-db-pin.ts)
+  FIRESTORE_DB_PIN: { default: 'report', owner: 'platform', kind: 'kill-switch' },
   // on: a first call's hello says who is calling, and "who are you?" gets a plain answer (greeting-direction.ts, first-call-rapport.ts)
   FIRST_CALL_INTRO: { default: 'off', owner: 'voice', kind: 'experiment' },
   FIRST_CALL_RAPPORT: { default: 'off', owner: 'voice', kind: 'experiment' },
