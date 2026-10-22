@@ -1,0 +1,5 @@
+# Lane map for the files that gate merges: CI workflows and the scripts they run.
+# It requests the owner's review on any PR touching them; it blocks a merge
+# only if "require review from code owners" is turned on (an owner's call).
+/.github/workflows/ @sethdford
+/scripts/ci/ @sethdford
