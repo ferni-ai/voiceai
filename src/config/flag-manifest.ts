@@ -30,9 +30,11 @@ import {
   FLAGS_STYLE_TO_TOOL,
   FLAGS_USE_TO_VOICE,
 } from './flag-manifest-blocks.js';
+import { assembleManifest } from './flag-assembly.js';
+import * as FLAG_FILES from './flags/index.generated.js';
 export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
 
-export const FLAG_MANIFEST = {
+const LEGACY_FLAG_MANIFEST = {
   ...FLAGS_ACTION_TO_BYPASS,
   // on: an emotional-arc proactive insight reaches the prompt once, not every third turn (commitment-follow-up-gate.ts)
   ARC_INSIGHT_ONCE: { default: 'off', owner: 'intelligence', kind: 'experiment' },
@@ -428,4 +430,6 @@ export const FLAG_MANIFEST = {
   // the goodbye closes the loop on what the call decided
   WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
+// New flags go in src/config/flags/<NAME>.ts: pnpm flags:new (flag-assembly.ts sorts the keys).
+export const FLAG_MANIFEST = assembleManifest(LEGACY_FLAG_MANIFEST, FLAG_FILES);
 export type FlagName = keyof typeof FLAG_MANIFEST;
