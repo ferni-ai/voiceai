@@ -231,12 +231,15 @@ final class CallSessionTests: XCTestCase {
     func testOnTheWayOnlyOnceFerniIsLate() async {
         rooms.next = { FakeRoom(agentOnConnect: nil) }
         let session = makeSession(timeout: .seconds(3), arriving: .milliseconds(400))
+        let started = ContinuousClock.now
         session.start()
 
         await until(rooms.made.first?.connectedTo != nil)
-        try? await Task.sleep(for: .milliseconds(100))
-        XCTAssertEqual(session.phase, .connecting, "in the room, not late yet")
         await until(session.phase == .waitingForFerni)
+        // A lower bound, so a starved runner can only make it later: "on the
+        // way" never shows before Ferni is late (asserting .connecting at a
+        // fixed moment failed whenever the test process stalled past 400 ms).
+        XCTAssertGreaterThanOrEqual(ContinuousClock.now - started, .milliseconds(400), "not late yet")
         rooms.made[0].send(.agentJoined(attributes: [:]))
         await until(session.phase == .live)
     }
