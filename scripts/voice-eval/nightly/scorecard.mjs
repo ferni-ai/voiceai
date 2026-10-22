@@ -19,6 +19,8 @@ import { checkRun, parseChecks } from '../recall-facts.mjs';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SCENARIOS = join(HERE, '..', 'scenarios');
 export const RANK = { PASS: 0, WARN: 1, FAIL: 2 };
+// Safety beats everything: these exit 1 for as long as they FAIL, and always list first.
+export const SAFETY = ['crisis-real', 'crisis-false-alarm'];
 const worst = (vs) => vs.reduce((a, v) => (RANK[v] > RANK[a] ? v : a), 'PASS');
 const readJson = (f) => (existsSync(f) ? JSON.parse(readFileSync(f, 'utf8')) : null);
 const round = (x) => (x === null ? null : Math.round(x * 1000) / 1000);
@@ -47,8 +49,11 @@ export function loadNight(out) {
     });
 }
 
-const replyHit = (r, re) => (r.score?.replyTexts ?? []).some((t) => re.test(t));
-const rows = (rs) => rs.map((r) => r.summary).filter(Boolean);
+const replyHit = (r, re) => r.score.replyTexts.some((t) => re.test(t));
+// A run without replyTexts, or an analyze row with only `error` (no job matched), measured
+// nothing: it is left out, so a night of them reads as no data, never as 0.
+const texted = (rs) => rs.filter((r) => Array.isArray(r.score?.replyTexts));
+const rows = (rs) => rs.map((r) => r.summary).filter((s) => s && !s.error);
 
 /** A metric over a set of runs: { value, n } (value null = nothing measured it). */
 export function metric(check, runs, caps) {
@@ -56,12 +61,13 @@ export function metric(check, runs, caps) {
     check.pattern &&
     new RegExp(check.pattern === 'crisis' ? caps.crisisPattern : check.pattern, 'i');
   const benign = (caps.benignL50 ?? []).map((p) => new RegExp(p));
-  const n = runs.length;
+  const t = texted(runs);
+  const n = t.length;
   switch (check.metric) {
     case 'callsMatching':
-      return { value: n ? runs.filter((r) => replyHit(r, re)).length : null, n };
+      return { value: n ? t.filter((r) => replyHit(r, re)).length : null, n };
     case 'callsNotMatching':
-      return { value: n ? runs.filter((r) => !replyHit(r, re)).length : null, n };
+      return { value: n ? t.filter((r) => !replyHit(r, re)).length : null, n };
     case 'ownOpener': {
       const o = runs.map((r) => r.score?.ownOpener).filter(Boolean);
       const value = o.length ? sum(o.map((x) => x.answeredByFerni)) : null;
@@ -155,7 +161,10 @@ export function judgeCheck(check, value, prevValue) {
 /** The night's scorecard; prev is the previous night's scorecard.json or null. */
 export function scoreNight(runs, caps, prev = null) {
   const capabilities = {};
-  for (const [id, cap] of Object.entries(caps.capabilities)) {
+  const rank = (id) => (SAFETY.includes(id) ? SAFETY.indexOf(id) : SAFETY.length);
+  const ids = Object.keys(caps.capabilities).sort((a, b) => rank(a) - rank(b));
+  for (const id of ids) {
+    const cap = caps.capabilities[id];
     const mine = runs.filter((r) => cap.scenarios.includes(r.scenario));
     const missing = cap.scenarios.filter((s) => !mine.some((r) => r.scenario === s));
     const checks = [];
@@ -194,6 +203,7 @@ export function scoreNight(runs, caps, prev = null) {
 export function diffNights(capabilities) {
   const newFail = [];
   const regressions = [];
+  const safetyFail = SAFETY.filter((id) => capabilities[id]?.verdict === 'FAIL');
   for (const [id, c] of Object.entries(capabilities)) {
     if (c.verdict === 'FAIL' && c.prev !== 'FAIL') newFail.push(id);
     else if (c.prev && RANK[c.verdict] > RANK[c.prev])
@@ -201,7 +211,8 @@ export function diffNights(capabilities) {
     for (const k of c.checks.filter((k) => k.regressed))
       regressions.push(`${id}.${k.id}: ${k.reason}`);
   }
-  return { newFail, regressions, exit: newFail.length || regressions.length ? 1 : 0 };
+  const exit = newFail.length || regressions.length || safetyFail.length ? 1 : 0;
+  return { newFail, regressions, safetyFail, exit };
 }
 
 /** The newest earlier night's scorecard.json with status "ok", or null. */
@@ -220,6 +231,19 @@ export function findPrev(out) {
 
 const fmt = (v) => (v === null || v === undefined ? '-' : String(v));
 const checkText = (k) => `${k.id}=${fmt(k.value)}${k.verdict === 'PASS' ? '' : ` (${k.reason})`}`;
+/** The first line of every report while a safety capability FAILs. */
+export const safetyLine = (card) =>
+  card.diff.safetyFail.length
+    ? `**SAFETY FAIL: ${card.diff.safetyFail
+        .map(
+          (id) =>
+            `${id} (${card.capabilities[id].checks
+              .filter((k) => k.verdict === 'FAIL')
+              .map(checkText)
+              .join('; ')})`
+        )
+        .join(', ')}**\n\n`
+    : '';
 
 export function renderReport(card) {
   const head = `# Nightly capability sweep ${card.date}\n\nBuild ${card.build ?? '?'}, ${card.runs} scored runs. Exit ${card.exit}.`;
@@ -231,7 +255,7 @@ export function renderReport(card) {
     ([id, c]) =>
       `| ${id} | ${c.verdict} | ${fmt(c.prev)} | ${c.checks.map(checkText).join('; ')} | ${c.runs.map((b) => `[${b}](runs/${b}.score.json)`).join(' ')} |`
   );
-  return `${head}${diff}\n\n| Capability | Verdict | Last night | Checks | Runs |\n|---|---|---|---|---|\n${table.join('\n')}\n`;
+  return `${safetyLine(card)}${head}${diff}\n\n| Capability | Verdict | Last night | Checks | Runs |\n|---|---|---|---|---|\n${table.join('\n')}\n`;
 }
 
 /** For the public tracking issue: verdicts and numbers only, no run names. */
@@ -240,7 +264,7 @@ export function renderComment(card) {
     ([id, c]) =>
       `| ${id} | ${c.verdict}${c.prev && c.prev !== c.verdict ? ` (was ${c.prev})` : ''} | ${c.checks.map(checkText).join('; ')} |`
   );
-  return `**${card.date}** build \`${card.build ?? '?'}\`: ${card.runs} runs, exit ${card.exit}\n\n| Capability | Verdict | Numbers |\n|---|---|---|\n${lines.join('\n')}\n`;
+  return `${safetyLine(card)}**${card.date}** build \`${card.build ?? '?'}\`: ${card.runs} runs, exit ${card.exit}\n\n| Capability | Verdict | Numbers |\n|---|---|---|\n${lines.join('\n')}\n`;
 }
 
 function main(argv) {
