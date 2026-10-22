@@ -101,9 +101,7 @@ class NotificationSettingsUI {
     this.createPanel();
   }
 
-  /**
-   * HMR Protection: Remove orphaned elements from previous instances
-   */
+  /** HMR Protection: Remove orphaned elements from previous instances */
   private cleanupOrphanedElements(): void {
     document.querySelectorAll('.notif-settings').forEach((el) => el.remove());
     document.querySelectorAll('.notif-settings-styles').forEach((el) => el.remove());

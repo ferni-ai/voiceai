@@ -133,6 +133,8 @@ If you're reading this and it's late and you're carrying something:
 
 Not to solve it. Not to fix you. Just to listen while you figure out what you need to say.
 
+And if it's heavier than talking it through can hold, please reach for people trained for exactly this moment. In the US, you can call or text [988](tel:988), any hour. If you're somewhere else, [find a line near you](https://findahelpline.com/). Ferni isn't emergency help, and you deserve the real thing.
+
 ---
 
 *This concludes our Building in Public series. Thank you for reading.*

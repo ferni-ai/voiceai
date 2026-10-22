@@ -15,7 +15,7 @@
  * @module api/routes/synced-items
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { ensureFirebaseAdmin } from '../../services/identity/firebase-auth.js';
 import { USER_RECORDS_COLLECTION } from '../../services/platform/erase-user-record.js';
@@ -43,7 +43,7 @@ interface StoredItem {
 const isIso = (v: unknown): v is string => typeof v === 'string' && !Number.isNaN(Date.parse(v));
 
 function collectionFor(uid: string, kind: string) {
-  return getFirestore()
+  return getAdminFirestore()
     .collection(USER_RECORDS_COLLECTION)
     .doc(uid)
     .collection(SYNCED_KINDS[kind] as string);

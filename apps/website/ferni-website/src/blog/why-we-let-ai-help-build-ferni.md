@@ -61,4 +61,4 @@ We could have quietly used AI in our development process and marketed Ferni as a
 
 ---
 
-If you want to see what all this building produces, try talking to Ferni. Web at [app.ferni.ai](https://app.ferni.ai), or call [(888) 598-3952](tel:+18885983952). Free to try. No signup required.
+If you want to see what all this building produces, try talking to Ferni. Web at [app.ferni.ai](https://app.ferni.ai), or call [(888) 598-3952](tel:+18885983952). Free to try. The phone line works without an account; to have Ferni remember you, sign in on the web.

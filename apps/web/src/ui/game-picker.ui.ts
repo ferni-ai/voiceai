@@ -251,7 +251,7 @@ class GamePickerUI {
     const gameDesc = t(game.descriptionKey);
 
     return `
-      <button aria-label="${gameName.replace(/"/g, '&quot;')}" class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
+      <button class="game-card" data-game="${game.id}" data-category="${game.category}" style="animation-delay: ${index * 50}ms">
         <div class="game-card__icon">${game.icon}</div>
         <div class="game-card__info">
           <h3 class="game-card__name">${gameName}</h3>
