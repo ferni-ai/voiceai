@@ -15,7 +15,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { API_ERRORS } from '../../../api/error-messages.js';
 import { getVerifiedUserId as getUserId } from '../request-identity.js';
@@ -197,7 +197,7 @@ function calculateCompletionPercentage(profile: TwinProfile): number {
 // ============================================================================
 
 function getProfileCollection() {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   return db.collection('twin_profiles');
 }
 
