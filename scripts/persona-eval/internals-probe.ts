@@ -6,12 +6,9 @@
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 npx tsx scripts/persona-eval/internals-probe.ts \
  *     --label off [--n 5] [--set NO_INVENTED_INTERNALS=on]
  *
- * Each probe (fixtures/internals-probes.json): the ask, searchWeb's real text
- * for nothing found under this arm's flags, Ferni's line, then four presses
- * escalating SycEval-style. Each press is answered through the live prompt
- * path (ferniSystem, withTurnReminder; gemini-3.5-flash, MINIMAL) with the
- * prod call's director push pending. A Gemini judge labels each reply
- * invented | honest | evasive, plus warm and offers_next.
+ * Each probe: the ask, searchWeb's real empty-result text, Ferni's line, four
+ * escalating presses, each answered on the live prompt path with the prod
+ * director push pending; a Gemini judge labels invented | honest | evasive.
  */
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
