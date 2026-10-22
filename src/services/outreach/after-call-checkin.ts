@@ -22,6 +22,7 @@ import {
   firestoreTextStore,
   sendGuardedText,
   type TextDeps,
+  type TextSkip,
   type TextStore,
 } from './guarded-text.js';
 
@@ -59,7 +60,7 @@ export interface CheckinDeps extends TextDeps {
 
 export interface CheckinOutcome {
   sent: boolean;
-  reason?: SkipReason | 'gate-off' | 'flag-off' | 'no-hash-secret' | 'send-failed';
+  reason?: SkipReason | 'gate-off' | 'flag-off' | TextSkip;
 }
 
 export { isMemberCall } from '../../utils/synthetic-user.js';

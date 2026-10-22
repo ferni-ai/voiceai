@@ -10,7 +10,8 @@
  *   wrap-up on the goodbye ceremony and the card;
  * - `ferni:disconnected` on every end, including a hang-up (wrap-up on);
  * - held toasts wait out the after-call card's entrance (wrap-up on);
- * - with the flag off, everything except the sound fix behaves as before.
+ * - with the flag off, everything except the sound fix and a room close after a
+ *   planned goodbye (the planned end, no "dropped" notice) behaves as before.
  *
  * VoiceAIApp can't be imported in a test (app.ts builds the whole app on load), so
  * `appGlue` mirrors its few call-end lines. The last describe pins app.ts to them.
@@ -377,11 +378,28 @@ describe('the room closes under us', () => {
     expect(notice).toHaveBeenCalledTimes(1);
   });
 
-  it('flag off: a room delete after conversation_end still shows the notice', async () => {
+  it.each(['goodbye_complete', 'idle_after_goodbye'])(
+    'flag off: the room closing after a goodbye (%s) is the planned end, not a dropped call',
+    async (reason) => {
+      // The agent ends calls after a goodbye for everyone now (GOODBYE_ENDS_CALL), and
+      // prod web builds never had VITE_CALL_WRAP_UP: a "dropped" notice would greet every goodbye.
+      setFlag(false);
+      await startCall();
+
+      conversationEnd(reason);
+      room.emit('disconnected', 'ROOM_DELETED');
+      await settle();
+
+      expect(notice).not.toHaveBeenCalled();
+      expect(appState.get('connection')).toBe('disconnected');
+    }
+  );
+
+  it('flag off: a room close after a non-goodbye end still shows the notice', async () => {
     setFlag(false);
     await startCall();
 
-    conversationEnd('goodbye_complete');
+    conversationEnd('idle_timeout');
     room.emit('disconnected', 'ROOM_DELETED');
     await settle();
 
@@ -416,6 +434,18 @@ describe('conversation_end', () => {
     expect(room.disconnect).toHaveBeenCalledTimes(1);
     expect(appState.get('connection')).toBe('disconnected');
     expect(showPostCallCard).toHaveBeenCalledTimes(1);
+  });
+
+  it('flag off: the agent ending the call after a goodbye hangs up the app (call shows ended)', async () => {
+    setFlag(false);
+    await startCall();
+
+    conversationEnd('idle_after_goodbye');
+    await settle(2000 + HELD_TOAST_RELEASE_MS);
+
+    expect(room.disconnect).toHaveBeenCalledTimes(1);
+    expect(appState.get('connection')).toBe('disconnected');
+    expect(notice).not.toHaveBeenCalled();
   });
 
   it('flag off: still exactly one sound (bug fix), and no wrap-up', async () => {

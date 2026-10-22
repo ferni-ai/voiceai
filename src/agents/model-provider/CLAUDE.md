@@ -145,7 +145,7 @@ export function getModelProvider(): ModelProvider {
 
 | Variable | Default | Effect |
 |----------|---------|--------|
-| `USE_OPENAI_REALTIME` | `false` | Use OpenAI Realtime API |
+| `VOICE_PIPELINE` | unset (Cartesia cascade) | `openai-realtime`, `gemini-live` or `gemini-native-audio` pick another pipeline (`config/model-provider-config.ts`) |
 
 ## Migration Notes
 
@@ -153,7 +153,7 @@ When migrating from direct env var checks:
 
 **Before:**
 ```typescript
-if (process.env.USE_OPENAI_REALTIME === 'true') {
+if (process.env.VOICE_PIPELINE === 'openai-realtime') {
   return null; // skip JSON prompts
 }
 ```

@@ -30,6 +30,12 @@ import { asksToRepeat, NO_REPEAT_YET } from '../../utils/honest-schedule.js';
 import { withOutreachConfirmation } from '../communication/outreach/outreach-confirm.js';
 import { WHERE_TO_ADD_NUMBER } from '../../shared/where-to-add-number.js';
 import { reminderConfirm } from '../communication/outreach/outreach-confirm-specs.js';
+import {
+  earlierReminderFor,
+  holdUnsaidReminderTime,
+  rememberReminderSet,
+  reminderTimeFromCallerOn,
+} from './reminder-time-heard.js';
 
 const log = getLogger();
 
@@ -61,6 +67,13 @@ async function textAddress(userId: string, askedForText: boolean): Promise<strin
   }
 }
 
+const SET_REMINDER_TEXT = `Set a reminder for the user. Supports natural language times like "in 30 minutes", "tomorrow at 2pm", "next Monday morning". The reminder will be delivered via the specified method (defaults to voice message in the next conversation).`;
+const CALLER_TIME_TEXT =
+  'Use only a time the caller said. If they did not say when, leave "when" out and ask them. If they correct the time of a reminder you just set, call this again with the same message and the new time: it moves that reminder.';
+const WHEN_TEXT =
+  'When to send the reminder in natural language (e.g., "in 30 minutes", "tomorrow at 2pm", "next Monday")';
+const WHEN_HEARD_TEXT = "in the caller's own words. Leave out if they didn't say when.";
+
 /**
  * Natural language reminder tool
  * "Remind me to call mom tomorrow at 2pm"
@@ -74,19 +87,19 @@ const setReminderDef: ToolDefinition = {
   tags: ['reminders', 'notifications', 'scheduling'],
 
   create: (ctx: ToolContext): Tool => {
+    // REMINDER_TIME_FROM_CALLER: `when` is the caller's own words, or left out (#2289).
+    const heard = reminderTimeFromCallerOn();
     return llm.tool({
-      description: `Set a reminder for the user. Supports natural language times like "in 30 minutes", "tomorrow at 2pm", "next Monday morning". The reminder will be delivered via the specified method (defaults to voice message in the next conversation).`,
+      description: heard ? `${SET_REMINDER_TEXT} ${CALLER_TIME_TEXT}` : SET_REMINDER_TEXT,
       parameters: z.object({
         message: z
           .string()
           .describe(
             'What to remind the user about (e.g., "call mom", "take medication", "check the oven")'
           ),
-        when: z
-          .string()
-          .describe(
-            'When to send the reminder in natural language (e.g., "in 30 minutes", "tomorrow at 2pm", "next Monday")'
-          ),
+        when: heard
+          ? z.string().optional().describe(`${WHEN_TEXT}, ${WHEN_HEARD_TEXT}`)
+          : z.string().describe(WHEN_TEXT),
         deliveryMethod: z
           .enum(['sms', 'email', 'voice_message'])
           .optional()
@@ -98,10 +111,16 @@ const setReminderDef: ToolDefinition = {
           .optional()
           .describe('Phone number or email for delivery. Only needed for sms/email.'),
       }),
-      execute: async (params) => {
-        const { message, when, deliveryMethod = 'voice_message', deliveryAddress } = params;
+      execute: async (params, opts?: { ctx?: unknown }) => {
+        const { message, when: asked, deliveryMethod = 'voice_message', deliveryAddress } = params;
+        log.info({ userId: ctx.userId, message, when: asked, deliveryMethod }, 'Setting reminder');
 
-        log.info({ userId: ctx.userId, message, when, deliveryMethod }, 'Setting reminder');
+        const unsaid = holdUnsaidReminderTime(asked, opts?.ctx);
+        if (unsaid) {
+          log.info({ userId: ctx.userId, when: asked }, 'Reminder time not said by caller');
+          return unsaid;
+        }
+        const when = asked ?? '';
 
         // Parse the natural language time
         const zone = userTimeZone(ctx);
@@ -160,14 +179,26 @@ const setReminderDef: ToolDefinition = {
           // Ferni just said "I'll remind you": the delivery job keeps or misses it.
           await recordReminderPromise(ctx.userId, reminder);
 
+          // A new time for a reminder set earlier in this call moves it (cancelling
+          // also removes its calendar item and releases its promise).
+          const earlier = earlierReminderFor(message, opts?.ctx);
+          const moved =
+            earlier && earlier.id !== reminder.id && (await cancelReminder(earlier.id))
+              ? ` It replaces the one for ${formatStoredLocalTime(earlier.scheduledFor, zone)}, which is cancelled.`
+              : '';
+          rememberReminderSet(opts?.ctx, { id: reminder.id, message, scheduledFor });
+
           // Read back exactly what was stored: the user's local time, one
           // occurrence, and where it lands (a voice reminder is an app message).
+          // With texts on, the delivery job texts an app reminder to their verified number.
           const how =
-            method === 'voice_message'
-              ? 'as a message in the Ferni app'
-              : method === 'sms'
-                ? 'by text'
-                : 'by email';
+            method === 'voice_message' && isReminderSmsDefaultOn() && !keptInApp
+              ? "by text, or in the Ferni app if I can't text you"
+              : method === 'voice_message'
+                ? 'as a message in the Ferni app'
+                : method === 'sms'
+                  ? 'by text'
+                  : 'by email';
 
           log.info(
             { reminderId: reminder.id, scheduledFor: scheduledFor.toISOString() },
@@ -175,7 +206,7 @@ const setReminderDef: ToolDefinition = {
           );
 
           const repeat = asksToRepeat(message, when) ? NO_REPEAT_YET : '';
-          return `Saved: ${formatStoredLocalTime(scheduledFor, zone)}, one reminder to "${message}", sent ${how}.${keptInApp}${repeat}`;
+          return `Saved: ${formatStoredLocalTime(scheduledFor, zone)}, one reminder to "${message}", sent ${how}.${moved}${keptInApp}${repeat}`;
         } catch (error) {
           log.error({ error: String(error), userId: ctx.userId }, 'Failed to create reminder');
           return "I couldn't set that reminder. Let me try again in a moment.";

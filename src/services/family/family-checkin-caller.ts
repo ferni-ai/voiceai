@@ -285,7 +285,8 @@ async function initiateViaLiveKitSip(
   const sponsorName = params.context.sponsorName; // the agent opens as "<sponsor>'s AI friend"
 
   try {
-    const { RoomServiceClient, SipClient } = await import('livekit-server-sdk');
+    const { RoomServiceClient, SipClient, AgentDispatchClient } =
+      await import('livekit-server-sdk');
 
     const livekitUrl = process.env.LIVEKIT_URL!;
     const livekitApiKey = process.env.LIVEKIT_API_KEY!;
@@ -312,9 +313,7 @@ async function initiateViaLiveKitSip(
         openingLine,
       }),
     });
-
     // 2. Dispatch the family check-in agent to the room
-    const { AgentDispatchClient } = await import('livekit-server-sdk');
     const agentDispatch = new AgentDispatchClient(livekitUrl, livekitApiKey, livekitApiSecret);
     const agentName = process.env.AGENT_NAME || 'voice-agent';
 
@@ -340,7 +339,6 @@ async function initiateViaLiveKitSip(
 
     // 3. Initiate the SIP call to the family member's phone
     const sipClient = new SipClient(livekitUrl, livekitApiKey, livekitApiSecret);
-
     // Normalize phone number to E.164
     const cleanPhone = schedule.phoneNumber.replace(/\D/g, '');
     const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
@@ -350,6 +348,8 @@ async function initiateViaLiveKitSip(
       participantName: schedule.familyMemberName,
       playDialtone: false, // Agent should speak first
       hidePhoneNumber: false,
+      ringingTimeout: 45, // the trunk default gave up before voicemail could answer
+      maxCallDuration: schedule.maxDurationMinutes * 60,
     });
 
     log.info(

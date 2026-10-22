@@ -27,7 +27,6 @@ const ENV_KEYS = [
   'CASCADE_STT_KEYTERMS',
   'CASCADE_TURN_DETECTION',
   'VOICE_PIPELINE',
-  'USE_OPENAI_REALTIME',
 ];
 afterEach(() => {
   for (const k of ENV_KEYS) delete process.env[k];
@@ -82,6 +81,11 @@ describe('buildCascadeHedge', () => {
       location: 'global',
       vertexai: true,
     });
+  });
+
+  it('gives the reply after a tool result a 500 ms hedge only under LOOKUP_BRIDGE', () => {
+    expect(buildCascadeHedge({})?.afterToolHedgeMs).toBeUndefined();
+    expect(buildCascadeHedge({ LOOKUP_BRIDGE: 'on' })?.afterToolHedgeMs).toBe(500);
   });
 
   it('can be turned off, and never hedges a model with itself', () => {
@@ -198,11 +202,6 @@ describe('config-layer provider id agrees with the factory', () => {
   it('selects OpenAI Realtime with VOICE_PIPELINE=openai-realtime', () => {
     process.env.VOICE_PIPELINE = 'openai-realtime';
     expect(configProviderId()).toBe('openai-realtime');
-  });
-
-  it('no longer reads USE_OPENAI_REALTIME (prod and dev set it; both run the cascade)', () => {
-    process.env.USE_OPENAI_REALTIME = 'true';
-    expect(configProviderId()).toBe('cartesia-cascade');
   });
 
   it('agrees with the factory for every pipeline value', () => {

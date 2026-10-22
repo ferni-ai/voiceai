@@ -267,3 +267,40 @@ describe('Memory Jobs Integration', () => {
     expect(new TC().name).toBe('TranscriptCleanupJob');
   });
 });
+
+describe('TRANSCRIPT_CLEANUP gate (the privacy policy keeps history for the life of the account)', () => {
+  const ownDoc = (id: string, data: Record<string, unknown>) => ({
+    ...createMockDoc(id, data),
+    ref: {
+      ...createMockDoc(id, data).ref,
+      parent: { parent: { id: 'uid_a', parent: { id: 'bogle_users' } } },
+    },
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const old = new Date(Date.now() - 200 * 86_400_000);
+    mockConversationsDocs = [ownDoc('conv_old', { startedAt: old })];
+    mockGroupSessionsDocs = [];
+    mockSummariesDocs = [];
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('off by default: deletes nothing and says it is off', async () => {
+    const result = await new TranscriptCleanupJob().run({ dryRun: false });
+    expect(result.enabled).toBe(false);
+    expect(result.transcriptsDeleted).toBe(0);
+    expect(mockBatchCommit).not.toHaveBeenCalled();
+  });
+
+  it('on: deletes a returned conversation of a person', async () => {
+    vi.stubEnv('TRANSCRIPT_CLEANUP', 'on');
+    const result = await new TranscriptCleanupJob().run({ dryRun: false });
+    expect(result.enabled).toBe(true);
+    expect(result.transcriptsDeleted).toBe(1);
+    expect(mockBatchCommit).toHaveBeenCalledTimes(1);
+  });
+});

@@ -121,7 +121,7 @@ const styles = `
   .capability-card__icon svg {
     width: 20px;
     height: 20px;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
   }
   
   .capability-card__content {
@@ -174,7 +174,7 @@ const styles = `
   .capability-card__voice-trigger svg {
     width: 14px;
     height: 14px;
-    color: var(--color-ferni, #4a6741);
+    color: var(--color-ferni-on-surface);
     flex-shrink: 0;
   }
   

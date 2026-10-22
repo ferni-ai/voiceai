@@ -19,6 +19,7 @@ vi.mock('@/services/offline.service.js', () => ({
 }));
 
 import { OVERLAY_HOST_STORAGE_KEY } from '@/ui/overlay/overlay-flag.js';
+import { TOAST_REGION_STORAGE_KEY } from '@/ui/overlay/toast-flag.js';
 import {
   BACK_ONLINE_MS,
   WEAK_AFTER_MS,
@@ -46,6 +47,8 @@ const goOffline = (value: boolean): void => {
 
 function setFlag(on: boolean): void {
   localStorage.setItem(OVERLAY_HOST_STORAGE_KEY, on ? 'true' : 'false');
+  // Off means the old corner pill too: the toast-region kill switch (toast-flag.ts)
+  localStorage.setItem(TOAST_REGION_STORAGE_KEY, on ? 'on' : 'off');
 }
 
 beforeEach(() => {

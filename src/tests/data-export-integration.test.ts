@@ -57,7 +57,10 @@ vi.mock('../services/engagement/engagement-store.js', () => ({
   getEngagementStore: vi.fn(() => Promise.resolve(mockEngagementStore)),
 }));
 
-vi.mock('../utils/safe-logger.js', () => ({
+// The real module's exports stay (createLogger runs at import time in modules the deletion path
+// now loads, #2088); only getLogger is replaced, so the warnings and successes are asserted.
+vi.mock('../utils/safe-logger.js', async (orig) => ({
+  ...(await orig<typeof import('../utils/safe-logger.js')>()),
   getLogger: vi.fn(() => mockLogger),
 }));
 

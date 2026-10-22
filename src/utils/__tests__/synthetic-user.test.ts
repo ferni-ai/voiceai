@@ -12,12 +12,12 @@ describe('isPersonAccountId', () => {
   });
 
   it('rejects anon: and onbehalf: session ids', () => {
-    for (const id of ['anon:3f2a', 'anon:eval-7', 'onbehalf:call-1', ' anon:3f2a'])
+    for (const id of ['anon:3f2a', 'anon:eval-7', 'onbehalf:call-1', ' anon:3f2a', 'ANON:3f2a'])
       expect(isPersonAccountId(id), id).toBe(false);
   });
 
   it('rejects test harness ids and placeholders', () => {
-    for (const id of ['voice-eval-sam', 'e2e-memtest-1', 'device:debug-3', 'anonymous', 'shared'])
+    for (const id of ['voice-eval-sam', 'e2e-memtest-1', 'device:debug-3', 'anonymous', 'Shared'])
       expect(isPersonAccountId(id), id).toBe(false);
     for (const id of ['', '   ', undefined, null]) expect(isPersonAccountId(id)).toBe(false);
   });

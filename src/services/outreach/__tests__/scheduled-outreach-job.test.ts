@@ -29,6 +29,14 @@ const guard = {
 vi.mock('../../superhuman/firestore-utils.js', () => ({
   getFirestoreDb: () => fakeFirestore(rows),
 }));
+// The log lines only; the outcome mapping is the real one.
+const logPromiseOutcome = vi.fn();
+const logPromiseJobRun = vi.fn();
+vi.mock('../../follow-through/promise-outcomes.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../follow-through/promise-outcomes.js')>()),
+  logPromiseOutcome,
+  logPromiseJobRun,
+}));
 vi.mock('../delivery/sms-delivery.js', () => ({ sendSMS }));
 vi.mock('../delivery/email-delivery.js', () => ({ sendEmail: vi.fn() }));
 vi.mock('../../voice/voice-call.js', () => ({ callWithPersonaVoice: vi.fn() }));
@@ -46,6 +54,7 @@ vi.mock('../guarded-text.js', async (importOriginal) => {
     env: guard.env,
     store: {
       isOptedOut: async () => guard.optedOut,
+      consentDoc: async () => undefined,
       forPhoneHash: async (h: string) => guard.sent.filter((r) => r.phoneHash === h),
       userDoc: async () => guard.account,
       add: async (r: CheckinRecord) => {
@@ -315,5 +324,101 @@ describe('a held item released later', () => {
     const recent = outreachFromRow(outreach('o1', 60));
     await executeScheduledOutreach({ ...recent, heldAt: new Date() });
     expect(sendSMS).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('PROMISE_OUTCOME / PROMISE_JOB_RUN lines', () => {
+  const outcome = (id: string) =>
+    logPromiseOutcome.mock.calls.find((c) => (c[2] as { id: string }).id === id)?.slice(0, 2);
+
+  it('a sent text is done; a missed one failed missed-window; one line per job run', async () => {
+    rows = [outreach('o1', 1), outreach('o2', 5 * 60)];
+    await executeDueScheduledOutreach({ now: NOW });
+
+    expect(outcome('o1')).toEqual(['scheduled-outreach', { outcome: 'done' }]);
+    expect(outcome('o2')).toEqual([
+      'scheduled-outreach',
+      { outcome: 'failed', reason: 'missed-window' },
+    ]);
+    expect(logPromiseOutcome.mock.calls[0][2]).toEqual({ userId: 'u1', id: expect.any(String) });
+    expect(logPromiseJobRun).toHaveBeenCalledTimes(1);
+    expect(logPromiseJobRun).toHaveBeenCalledWith('scheduled-outreach', {
+      due: 2,
+      done: 1,
+      failed: 0,
+      held: 0,
+      missed: 1,
+    });
+  });
+
+  it('logs a run with nothing due, so a stopped job shows as absence', async () => {
+    await executeDueScheduledOutreach({ now: NOW });
+    expect(logPromiseJobRun).toHaveBeenCalledWith('scheduled-outreach', {
+      due: 0,
+      done: 0,
+      failed: 0,
+      held: 0,
+      missed: 0,
+    });
+  });
+
+  it('a STOP is failed opted-out, never cancelled (cancelled is a person saying stop)', async () => {
+    rows = [outreach('o1', 1)];
+    guard.optedOut = true;
+    await executeDueScheduledOutreach({ now: NOW });
+    expect(outcome('o1')).toEqual([
+      'scheduled-outreach',
+      { outcome: 'failed', reason: 'opted-out' },
+    ]);
+    expect(logPromiseJobRun).toHaveBeenCalledWith(
+      'scheduled-outreach',
+      expect.objectContaining({ failed: 1 })
+    );
+  });
+
+  it('held for approval is held awaiting-approval', async () => {
+    vi.stubEnv('SCHEDULED_OUTREACH_THIRD_PARTY', 'off');
+    rows = [outreach('o1', 1)];
+    await executeDueScheduledOutreach({ now: NOW });
+    expect(outcome('o1')).toEqual([
+      'scheduled-outreach',
+      { outcome: 'held', reason: 'awaiting-approval' },
+    ]);
+    expect(logPromiseJobRun).toHaveBeenCalledWith(
+      'scheduled-outreach',
+      expect.objectContaining({ held: 1 })
+    );
+  });
+
+  it('quiet hours is held quiet-hours', async () => {
+    rows = [outreach('o1', 1)];
+    rows[0].data.target = { ...(rows[0].data.target as object), resolvedPhone: '+15555550123' };
+    guard.account = { contactInfo: { timezone: 'Asia/Tokyo' } };
+    await executeDueScheduledOutreach({ now: NOW });
+    expect(outcome('o1')).toEqual([
+      'scheduled-outreach',
+      { outcome: 'held', reason: 'quiet-hours' },
+    ]);
+  });
+
+  it('expired while held is failed awaiting-approval, though the document says cancelled', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(NOW);
+    const stale = outreachFromRow(outreach('o1', 30 * 60));
+    expect(await executeScheduledOutreach({ ...stale, heldAt: new Date() })).toBe(
+      'expired-while-held'
+    );
+    vi.useRealTimers();
+    expect(outcome('o1')).toEqual([
+      'scheduled-outreach',
+      { outcome: 'failed', reason: 'awaiting-approval' },
+    ]);
+  });
+
+  it('never logs the message, the name or the number', async () => {
+    rows = [outreach('o1', 1)];
+    await executeDueScheduledOutreach({ now: NOW });
+    const logged = JSON.stringify([logPromiseOutcome.mock.calls, logPromiseJobRun.mock.calls]);
+    expect(logged).not.toMatch(/Mom|Happy birthday|5550123/);
   });
 });

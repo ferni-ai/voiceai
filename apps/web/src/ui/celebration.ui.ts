@@ -15,7 +15,7 @@ import { getGlowController } from '../services/glow-controller.service.js';
 import { getHapticsService } from '../services/haptics.service.js';
 import { createLogger } from '../utils/logger.js';
 import { createTimeoutTracker } from '../utils/tracked-timeout.js';
-import { isOverlayHostEnabled } from './overlay/overlay-flag.js';
+import { isToastRegionEnabled } from './overlay/toast-flag.js';
 import { showToast } from './overlay/toast-region.js';
 import { CELEBRATION_PRESETS, type CelebrationConfig } from './celebration-presets.js';
 
@@ -210,7 +210,7 @@ export class CelebrationUI {
   // ==========================================================================
 
   private async showVisuals(config: CelebrationConfig): Promise<void> {
-    if (isOverlayHostEnabled()) {
+    if (isToastRegionEnabled()) {
       // An achievement toast; no centred card or confetti over the call controls.
       const title = config.title ?? '';
       if (!title && !config.subtitle) return; // sound, haptic and glow carry it

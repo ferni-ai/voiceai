@@ -17,6 +17,7 @@ import {
   type Publisher,
 } from '../../publisher-auth.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { RELINK_MESSAGE } from './shared/developer-auth.js';
 
 const log = getLogger().child({ module: 'developers-auth' });
 
@@ -27,6 +28,7 @@ const log = getLogger().child({ module: 'developers-auth' });
 interface FirebaseDecodedToken {
   uid: string;
   email?: string;
+  email_verified?: boolean;
   name?: string;
   picture?: string;
   firebase?: {
@@ -196,6 +198,37 @@ async function findPublisherByFirebaseUid(firebaseUid: string): Promise<Publishe
   };
 }
 
+class PublisherLinkConflict extends Error {
+  constructor() {
+    super('Publisher is linked to another account');
+  }
+}
+
+class PublisherRelinkRequired extends Error {
+  constructor() {
+    super(RELINK_MESSAGE);
+  }
+}
+
+function sameEmail(a: string | undefined, b: string | undefined): boolean {
+  return !!a && !!b && a.toLowerCase() === b.toLowerCase();
+}
+
+/**
+ * Who may hold a publisher account: a signed-in, non-anonymous user whose
+ * email Firebase has verified. Linking matches publishers by email, so an
+ * unverified or missing email would let one account claim another's.
+ */
+function publisherIdentityError(token: FirebaseDecodedToken): string | null {
+  if (token.firebase?.sign_in_provider === 'anonymous') {
+    return 'Sign in with an account to use the developer console';
+  }
+  if (!token.email || token.email_verified !== true) {
+    return 'A verified email address is required';
+  }
+  return null;
+}
+
 /**
  * Link Firebase UID to existing or new publisher
  */
@@ -206,9 +239,10 @@ async function linkFirebaseToPublisher(
 ): Promise<{ publisher: Publisher; isNew: boolean; apiKey?: string }> {
   const db = await getFirestore();
 
-  // Check if already linked
+  // Check if already linked (and still by this verified email)
   const existing = await findPublisherByFirebaseUid(firebaseUid);
   if (existing) {
+    if (!sameEmail(existing.email, email)) throw new PublisherRelinkRequired();
     return { publisher: existing, isNew: false };
   }
 
@@ -219,6 +253,11 @@ async function linkFirebaseToPublisher(
   if (!emailSnapshot.empty) {
     // Link Firebase UID to existing publisher
     const doc = emailSnapshot.docs[0];
+    const linkedUid = doc.data()?.firebaseUid;
+    if (typeof linkedUid === 'string' && linkedUid && linkedUid !== firebaseUid) {
+      // Never re-point a publisher that already belongs to another account
+      throw new PublisherLinkConflict();
+    }
     // Use set with merge to update existing document
     await (
       db.collection('publishers').doc(doc.id) as unknown as {
@@ -314,13 +353,32 @@ export async function handleDeveloperAuthRoutes(
         return true;
       }
 
+      const identityError = publisherIdentityError(decodedToken);
+      if (identityError) {
+        sendError(res, identityError, 403);
+        return true;
+      }
+
       const firebaseUid = decodedToken.uid;
-      const email = decodedToken.email || '';
+      const email = decodedToken.email as string;
       const name = decodedToken.name || email.split('@')[0] || 'Developer';
       const authProvider = decodedToken.firebase?.sign_in_provider || 'unknown';
 
       // Link/create publisher
-      const { publisher, isNew, apiKey } = await linkFirebaseToPublisher(firebaseUid, email, name);
+      let linked: Awaited<ReturnType<typeof linkFirebaseToPublisher>>;
+      try {
+        linked = await linkFirebaseToPublisher(firebaseUid, email, name);
+      } catch (error) {
+        if (error instanceof PublisherRelinkRequired) {
+          sendError(res, RELINK_MESSAGE, 403);
+          return true;
+        }
+        if (!(error instanceof PublisherLinkConflict)) throw error;
+        log.warn({ firebaseUid }, 'Refused to re-link a publisher owned by another account');
+        sendError(res, 'This email is already linked to another account', 409);
+        return true;
+      }
+      const { publisher, isNew, apiKey } = linked;
 
       // Get API keys
       const keys = await listApiKeys(publisher.id);
@@ -374,10 +432,20 @@ export async function handleDeveloperAuthRoutes(
         return true;
       }
 
+      if (publisherIdentityError(decodedToken)) {
+        sendError(res, RELINK_MESSAGE, 403);
+        return true;
+      }
+
       // Find publisher
       const publisher = await findPublisherByFirebaseUid(decodedToken.uid);
       if (!publisher) {
         sendError(res, 'Publisher not found. Please sign in first.', 404);
+        return true;
+      }
+      // A link made from another (or an unverified) email no longer works
+      if (!sameEmail(publisher.email, decodedToken.email)) {
+        sendError(res, RELINK_MESSAGE, 403);
         return true;
       }
 

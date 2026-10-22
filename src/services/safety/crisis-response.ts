@@ -450,7 +450,7 @@ function formatResourceForVoice(resource: CrisisResource): string {
  * Format phone number for natural voice reading
  */
 function formatPhoneForVoice(phone: string): string {
-  // 988 stays as "nine eighty-eight"
+  // Written as 988; crisis-line-speech.ts makes TTS say it as "nine eight eight"
   if (phone === '988') {
     return '988';
   }

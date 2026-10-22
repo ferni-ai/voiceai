@@ -13,8 +13,8 @@
  *
  * @module services/identity/unverified-user-id
  */
+import { PLACEHOLDER_IDS } from '../../utils/synthetic-user.js';
 
-const PLACEHOLDER_IDS = new Set(['anonymous', 'default', 'unknown', 'shared']);
 const UNVERIFIED_PREFIXES = ['anon:', 'device:', 'phone:'] as const;
 
 /** True for a missing id, a placeholder, or an anon:, device: or phone: id. */

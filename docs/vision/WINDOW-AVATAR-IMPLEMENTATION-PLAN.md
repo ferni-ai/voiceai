@@ -340,9 +340,11 @@ struct ConversationView: View {
 
 ## Phase 3: Android Implementation
 
+> The native Android app (`apps/android-native`) was removed in #2158, so this phase no longer applies; git history keeps the files it names.
+
 ### Create Compose Component
 
-**File:** `apps/android-native/app/src/main/java/ai/ferni/ui/avatar/FerniWindowAvatar.kt`
+**File:** `apps/archive/android-native/app/src/main/java/ai/ferni/ui/avatar/FerniWindowAvatar.kt`
 
 ```kotlin
 package ai.ferni.ui.avatar

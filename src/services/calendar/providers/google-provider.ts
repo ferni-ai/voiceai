@@ -8,6 +8,10 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import {
+  googleCalendarClientId,
+  isGoogleCalendarOAuthConfigured,
+} from '../../../config/google-calendar-oauth-env.js';
 import type { CalendarProviderAdapter, CalendarEvent, CalendarProvider } from '../types.js';
 import {
   isOAuthConfigured,
@@ -16,9 +20,9 @@ import {
   createEvent as createGoogleEvent,
   updateEvent as updateGoogleEvent,
   deleteEvent as deleteGoogleEvent,
-  deleteUserTokens,
   type CalendarEvent as GoogleCalendarEvent,
 } from '../../identity/google-calendar-oauth.js';
+import { disconnectGoogleCalendar } from '../../identity/google-calendar-disconnect.js';
 
 const log = getLogger();
 
@@ -95,7 +99,7 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
     // Use the service check which can be mocked in tests
     return (
       isOAuthConfigured() ||
-      !!(process.env.GOOGLE_CALENDAR_CLIENT_ID && process.env.GOOGLE_CALENDAR_CLIENT_SECRET)
+      isGoogleCalendarOAuthConfigured()
     );
   }
 
@@ -117,7 +121,7 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
    * Get Google OAuth authorization URL
    */
   getAuthUrl(userId: string, redirectUri: string): string {
-    const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID;
+    const clientId = googleCalendarClientId();
     if (!clientId) {
       throw new Error('GOOGLE_CALENDAR_CLIENT_ID not configured');
     }
@@ -154,7 +158,7 @@ export class GoogleCalendarProvider implements CalendarProviderAdapter {
    * Disconnect user's Google Calendar
    */
   async disconnect(userId: string): Promise<void> {
-    await deleteUserTokens(userId);
+    await disconnectGoogleCalendar(userId);
     log.info({ userId }, 'Disconnected Google Calendar');
   }
 

@@ -30,15 +30,10 @@ import { isProactiveCall } from './greeting-direction.js';
 import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 import { talkThroughFor, type TalkThrough } from './handoff-talk-through.js';
-import {
-  arrivalLine,
-  briefedHandoffs,
-  briefingFor,
-  departureLine,
-  withBrief,
-} from './handoff-brief.js';
+import { holdOutOfMemory } from './arrival-grounding.js';
+import { briefedHandoffs, briefingFor, withBrief } from './handoff-brief.js';
+import { familyArrival, familyDeparture } from './family-table.js';
 export { calmGreeting } from './greeting-direction.js';
-
 // Predictive handoff - pre-briefings for specialist personas
 import { getPreBriefing, markBriefingUsed } from '../../services/automation/predictive-handoff.js';
 import type { PreBriefing } from '../../services/automation/predictive-handoff.js';
@@ -371,7 +366,7 @@ export class AgentOrchestrator {
 
     // BRIEFED_HANDOFF: the teammate's brief and first line, written while the goodbye plays
     const briefing = briefedHandoffs()
-      ? briefingFor(currentAgent, request, callerTimeZoneFor(this.sessionId))
+      ? briefingFor(currentAgent, request, callerTimeZoneFor(this.sessionId), this.sessionId)
       : null;
     // HANDOFF_TALK_THROUGH: the caller may talk through the goodbye (handoff-talk-through.ts)
     const talk = isSwappable(currentAgent) ? talkThroughFor(currentAgent, this.sessionId) : null;
@@ -381,7 +376,7 @@ export class AgentOrchestrator {
         { from: previousPersonaId, to: request.targetPersonaId },
         '🎭 [HANDOFF STEP 1/5] Starting goodbye speech...'
       );
-      await this.agentSaysGoodbye(currentAgent, request.targetPersonaId, talk);
+      await this.agentSaysGoodbye(currentAgent, request, talk);
       log.info(
         { from: previousPersonaId, durationMs: Date.now() - step1Start },
         '🎭 [HANDOFF STEP 1/5] ✅ Goodbye complete'
@@ -759,10 +754,11 @@ export class AgentOrchestrator {
    */
   private async agentSaysGoodbye(
     agent: PersonaAgent,
-    targetPersonaId: string,
+    request: HandoffRequest,
     talk: TalkThrough | null = null
   ): Promise<void> {
-    const goodbye = this.getGoodbyePhrase(agent.personaId, targetPersonaId);
+    const { targetPersonaId } = request;
+    const goodbye = this.getGoodbyePhrase(agent, request);
     const displayName = getPersonaDisplayName(targetPersonaId);
     const textToSpeak = goodbye || `Let me get ${displayName} for you.`;
 
@@ -821,12 +817,11 @@ export class AgentOrchestrator {
   private async agentGreets(
     agent: PersonaAgent,
     previousPersonaId: string,
-    request: HandoffRequest,
+    _request: HandoffRequest,
     firstLine?: string
   ): Promise<void> {
-    const greeting =
-      firstLine ?? this.getGreetingPhrase(agent.personaId, previousPersonaId, request);
-    const textToSpeak = greeting || "Hey! What's up?";
+    const greeting = this.getGreetingPhrase(agent.personaId, previousPersonaId, firstLine);
+    const textToSpeak = holdOutOfMemory(this.sessionId, greeting || "Hey! What's up?"); // ARRIVAL_LINE_GROUNDED
 
     log.info(
       {
@@ -929,18 +924,18 @@ export class AgentOrchestrator {
     return speakingTimeMs + breakTimeMs + buffer;
   }
 
-  /** The departing persona's last line (handoff-brief.ts). */
-  private getGoodbyePhrase(fromPersonaId: string, toPersonaId: string): string | null {
-    return departureLine(fromPersonaId, toPersonaId);
+  /** The departing persona's last line (handoff-brief.ts; FAMILY_TABLE: family-table.ts). */
+  private getGoodbyePhrase(agent: PersonaAgent, request: HandoffRequest): string | null {
+    return familyDeparture(agent, request, this.sessionId);
   }
 
-  /** The arriving teammate's first line (handoff-brief.ts). */
+  /** The arriving teammate's first line: the briefed one or banter, after any word back. */
   private getGreetingPhrase(
     toPersonaId: string,
     fromPersonaId: string,
-    _request: HandoffRequest
-  ): string | null {
-    return arrivalLine(toPersonaId, fromPersonaId);
+    firstLine?: string
+  ): string {
+    return familyArrival(toPersonaId, fromPersonaId, this.sessionId, firstLine);
   }
 }
 

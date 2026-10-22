@@ -21,6 +21,7 @@ import type { VoiceEmotionResult } from '../../speech/audio-prosody.js';
 import type { VoiceEmotionModulation } from '../../speech/emotion-matching.js';
 import type { ConversationStateManager } from '../../services/conversation-state.js';
 import type { MoodState } from '../../intelligence/context-builders/personas/persona-mood.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 // ============================================================================
 // STATE TYPES
@@ -524,9 +525,7 @@ export class SessionStateManager {
 
     // Track advice for counterfactual memory (fire-and-forget, non-blocking)
     const { userId } = this.state.user;
-    if (userId && userId !== 'anonymous') {
-      void this.trackAdviceIfPresent(response, userId);
-    }
+    if (isMemberIdentity(userId)) void this.trackAdviceIfPresent(response, userId);
   }
 
   /**

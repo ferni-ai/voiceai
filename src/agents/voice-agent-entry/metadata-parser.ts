@@ -206,7 +206,8 @@ export async function setupCallTypeContexts(
         // from an unsigned dispatch (it must not put a name in Ferni's mouth).
         userName: call?.requester.name || (trusted && requesterNameOf(metadata)) || 'the user',
         originalSessionId: call?.requester.originalSessionId || '',
-        requesterUserId: call?.requester.userId,
+        // Where answered-by writes (and a voicemail reports): only a signed requester.
+        requesterUserId: trusted ? call?.requester.userId : undefined,
         kind: 'on_behalf' as const,
       };
       setOutboundCallContext(roomNameForContext, outboundContext);

@@ -24,7 +24,7 @@ const rememberCallerCityDef: ToolDefinition = {
     return llm.tool({
       description:
         'Remember the caller\'s city for "near me" searches, until they ask you to forget it. Offer first ("Want me to remember you\'re in Philly for next time?"). ' +
-        'Call this only after they say yes. City or region only: never a street, postcode or coordinates.',
+        'Call this only after they say yes. City or region only, never a street, postcode or coordinates. The name is checked with Places, and the caller\'s own words are what is kept.',
       parameters: z.object({
         city: z.string().describe('The city or town, e.g. "Philadelphia"'),
         region: z.string().optional().describe('The state or region, e.g. "PA"'),
@@ -40,11 +40,14 @@ const rememberCallerCityDef: ToolDefinition = {
         if (!userId) return "I can't save a city on this call.";
 
         const result = await saveCallerCity(userId, city, region);
-        if (result === 'not-a-city') {
-          return "That needs to be just a city or town name, with no street or number. Say the city, and the state if you like.";
+        if (result.status === 'not-a-city') {
+          return "I couldn't find a city by that name. Which city is it in?";
         }
-        if (result === 'failed') return "I couldn't save that just now. Let's try again later.";
-        return "Saved. I'll use that city for 'near me' searches until they ask me to forget it.";
+        if (result.status === 'lookup-failed') {
+          return "I couldn't check that place just now. Let's try again in a moment.";
+        }
+        if (result.status === 'failed') return "I couldn't save that just now. Let's try again later.";
+        return `Saved ${result.name}. Say it back to the caller so they can correct it. I'll use that city for 'near me' searches until they ask me to forget it.`;
       },
     });
   },

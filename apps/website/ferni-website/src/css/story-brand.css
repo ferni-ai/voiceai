@@ -802,6 +802,54 @@ button {
   text-decoration: underline;
 }
 
+/* "What Ferni is": the quiet line under the hero buttons, the page itself,
+   and its links in the FAQ and sign-up modal. --color-accent is forest green
+   in light mode and light sage in dark, so links read in both. */
+.hero__note,
+.waitlist-modal__note--honest {
+  font-family: var(--font-body);
+  font-size: var(--text-body-sm, var(--text-sm));
+  color: var(--color-text-muted);
+  margin: 0 auto;
+}
+
+.hero__note a,
+.waitlist-modal__note--honest a,
+.faq-page__answer a,
+.faq-item__answer a,
+.what-ferni-is .story-page__text a {
+  color: var(--color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hero__note a,
+.faq-page__answer a {
+  white-space: nowrap;
+}
+
+.story-page__hero.what-ferni-is__hero {
+  min-height: auto;
+  padding-bottom: var(--space-12, 48px);
+}
+
+.what-ferni-is__hero .story-page__text {
+  max-width: 640px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.story-page__section.what-ferni-is__section {
+  padding-top: var(--space-10, 40px);
+  padding-bottom: var(--space-10, 40px);
+}
+
+.what-ferni-is__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3, 12px) var(--space-6, 24px);
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
@@ -5615,6 +5663,49 @@ img[loading='lazy']:not([data-src]) {
 .proof__disclaimer strong {
   color: var(--color-ferni-green);
   font-weight: 600;
+}
+
+/* Sample chats on the page are examples, so they say so where you read them (#1455). */
+.example-note {
+  margin: var(--space-2) 0 0;
+  font-family: var(--font-body);
+  font-size: var(--text-xs);
+  font-style: italic;
+  color: var(--color-text-primary);
+  opacity: 0.85;
+}
+
+.section__header .example-note {
+  font-size: var(--text-sm);
+}
+
+.two-am__bubble .example-note {
+  color: var(--color-natural-ink);
+}
+
+/* Same colour as the phone's "Online" line, which is checked for contrast on the dark screen. */
+.showcase__app .example-note,
+.assistant-phone .example-note {
+  color: var(--color-dark-accent, var(--color-moss-light));
+  opacity: 1;
+  text-align: center;
+}
+
+/* Ferni is not a clinician; this line stays visible, not folded into an FAQ (#1454). */
+.care-note {
+  max-width: 650px;
+  margin: var(--space-5) auto 0;
+  text-align: center;
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  font-weight: 500;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+.care-note a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 /* Proof Table Animations */

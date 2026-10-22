@@ -627,8 +627,9 @@ export class RelationshipEngine {
   // ============================================================================
 
   private updateTrajectoryAnalysis(): void {
-    const recent = this.memory.emotionalTrajectory.recentSessions.slice(-5);
-    if (recent.length < 3) {
+    // Last 3 sessions vs the 3 before: an empty older window read as 0 ("improving" at n=3)
+    const recent = this.memory.emotionalTrajectory.recentSessions.slice(-6);
+    if (recent.length < 6) {
       this.memory.emotionalTrajectory.trendDirection = 'stable';
       this.memory.emotionalTrajectory.trendConfidence = 0.3;
       return;
@@ -644,8 +645,7 @@ export class RelationshipEngine {
 
     const scores = recent.map((s) => moodScores[s.mood]);
     const avgRecent = scores.slice(-3).reduce((a, b) => a + b, 0) / 3;
-    const avgOlder =
-      scores.slice(0, -3).reduce((a, b) => a + b, 0) / Math.max(1, scores.length - 3);
+    const avgOlder = scores.slice(0, 3).reduce((a, b) => a + b, 0) / 3;
 
     const diff = avgRecent - avgOlder;
 
@@ -660,7 +660,7 @@ export class RelationshipEngine {
       this.memory.emotionalTrajectory.trendDirection = variance > 0.5 ? 'variable' : 'stable';
     }
 
-    this.memory.emotionalTrajectory.trendConfidence = Math.min(1, recent.length / 5);
+    this.memory.emotionalTrajectory.trendConfidence = Math.min(1, recent.length / 6);
   }
 
   // ============================================================================

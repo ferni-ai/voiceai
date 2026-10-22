@@ -23,6 +23,9 @@ vi.mock('livekit-server-sdk', () => ({
 const { setupCallTypeContexts } = await import('../../voice-agent-entry/metadata-parser.js');
 const { AgentOrchestrator } = await import('../orchestrator.js');
 const { isScreeningCall } = await import('../../shared/line-screen.js');
+const { signDispatch } = await import('../../../services/outreach/on-behalf-dispatch.js');
+
+const SECRET = 'voicemail-screen-test-secret';
 
 const DOUG_VOICEMAIL =
   "Hi Doug, it's Ferni, Seth's AI friend. Seth asked me to check in, no need to call back, I'll try again another time.";
@@ -46,7 +49,10 @@ const phone = (callStatus: string) => ({
 
 /** The real orchestrator with a stub agent whose session is a fake AgentSession. */
 async function placeCall(sessionId: string) {
-  await setupCallTypeContexts(dispatch, 'on_behalf_call', sessionId, `room-${sessionId}`);
+  // Signed, as our server places it: only a signed dispatch names whose call record this is.
+  const raw = JSON.stringify(signDispatch(dispatch, SECRET));
+  const metadata = JSON.parse(raw) as Record<string, unknown>;
+  await setupCallTypeContexts(metadata, 'on_behalf_call', sessionId, `room-${sessionId}`, raw);
   const room = Object.assign(new EventEmitter(), { name: `room-${sessionId}` });
   const session = Object.assign(new EventEmitter(), {
     say: vi.fn(() => ({ waitForPlayout: async () => undefined })),
@@ -73,9 +79,11 @@ async function placeCall(sessionId: string) {
 beforeEach(() => {
   vi.clearAllMocks();
   process.env.VOICEMAIL_DETECT = 'on';
+  vi.stubEnv('DISPATCH_SIGNING_SECRET', SECRET);
 });
 afterEach(() => {
   delete process.env.VOICEMAIL_DETECT;
+  vi.unstubAllEnvs();
 });
 
 describe('a call answered by voicemail', () => {

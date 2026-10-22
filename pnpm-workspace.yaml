@@ -13,6 +13,16 @@ packages:
 # pnpm settings live here, not in package.json: pnpm 11+ (and Dependabot)
 # ignores the package.json "pnpm" field and would drop every override.
 
+# The CI audit (ci.yml, Security Scan) fails on any high or critical advisory
+# except these: no fixed version exists yet (2026-10-18). Drop a line once
+# `pnpm audit --audit-level=high` shows a patched version for it.
+auditConfig:
+  ignoreGhsas:
+    # node-forge <=1.4.0 via firebase-admin: RSA PKCS#1 v1.5 signature verification
+    - GHSA-86w9-cpqp-85rv
+    # braces <=3.0.3 via typescript-eslint's globby (lint only): stack-exhaustion DoS
+    - GHSA-vfj7-8cjw-p6xm
+
 overrides:
   '@livekit/agents': '1.9.3'
   '@livekit/agents-plugin-cartesia': '1.9.3'

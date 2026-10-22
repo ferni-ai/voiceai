@@ -1,0 +1,31 @@
+---
+permalink: /blog/feed.xml
+eleventyExcludeFromCollections: true
+---
+{#- Atom feed of the developer blog (collections.blogPosts: src/blog/*.md). Lives outside src/blog so blog.json's layout doesn't wrap it. Post URLs drop the trailing slash, as firebase.json serves them. -#}
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+  <title>Ferni Developer Blog</title>
+  <subtitle>{{ site.description }}</subtitle>
+  <link href="{{ site.url }}/blog/feed.xml" rel="self" type="application/atom+xml"/>
+  <link href="{{ site.url }}/blog" rel="alternate" type="text/html"/>
+  <id>{{ site.url }}/blog</id>
+  <updated>{{ (collections.blogPosts | last).date | date('iso') }}</updated>
+  <author><name>The Ferni Team</name></author>
+  {%- for post in collections.blogPosts | reverse %}{% if loop.index0 < 30 %}
+  {%- set postUrl = site.url + (post.url | replace(r/\/$/, "")) %}
+  <entry>
+    <title>{{ post.data.title }}</title>
+    <link href="{{ postUrl }}" rel="alternate" type="text/html"/>
+    <id>{{ postUrl }}</id>
+    <published>{{ post.date | date('iso') }}</published>
+    <updated>{{ post.date | date('iso') }}</updated>
+    <author><name>{{ post.data.author or "The Ferni Team" }}</name></author>
+    {%- if post.data.category %}
+    <category term="{{ post.data.category }}"/>
+    {%- endif %}
+    <summary>{{ post.data.excerpt or post.data.description }}</summary>
+    <content type="html">{{ post.content }}</content>
+  </entry>
+  {%- endif %}{% endfor %}
+</feed>

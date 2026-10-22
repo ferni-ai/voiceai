@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main]
     paths:
       - 'src/**'
       - 'apps/**'
@@ -23,18 +23,35 @@ on:
       - '.github/workflows/**'
       - '.github/actions/**'
       - '**/Dockerfile*'
+      # Shapes the UI image's build context. Prod web deploys start from this
+      # push run's verdict (deploy-production.yml), so it must run on it.
+      - '.dockerignore'
       - 'cloudbuild*.yaml'
       - 'infra/**'
+      # The web server's env and secrets (deploy/ui-server/). A flag flip that
+      # edits only these must still get a push run, or nothing deploys it.
+      - 'deploy/**'
   pull_request:
     branches: [main, develop]
     # No path filter on PRs: branch protection requires these checks, so a PR
     # they skip can never merge (docs, .claude/, dependabot.yml PRs all stuck).
     # PR runs are the fast checks only: Lint & Type Check, Frontend Quality, Unit
-    # Tests, Security Scan. Integration Tests, Quality Gates, Build and the other
+    # Tests, Security Scan, Quality Gates. Integration Tests, Build and the other
     # slow jobs skip on pull_request (a skipped job still reports its check), so PR
-    # runs stop starving the merge queue for runners. The queue runs everything.
+    # runs stop starving the merge queue for runners. The queue runs the required
+    # checks only. AGI Feature Tests, Build, Code Quality Metrics, Validation, E2E
+    # Validation and Dependency Check are required by nothing: they run on every push
+    # to main, even when queue-tested skips the required suite, and nightly; and
+    # nightly-health.yml opens a main-red issue when the push run fails
+    # (src/tests/deploy/merge-queue-jobs.test.ts).
   # The merge queue tests each PR on top of main and whatever is queued ahead of it.
   merge_group:
+  # Once a night the whole suite runs on main, whatever changed. The queue and pushes
+  # skip jobs a change can't reach (setup's code/node scoping), which is right only if
+  # the exclude patterns are right; this catches it when they aren't. A failure opens a
+  # ci-health issue (nightly-health.yml).
+  schedule:
+    - cron: '41 6 * * *'
 
 # A new push to a PR supersedes its running checks. Merge-queue entries and pushes to
 # main always finish: cancelling one drops the queue entry or main's only verdict.
@@ -90,7 +107,7 @@ jobs:
       # markdown outside the code trees (persona bundles load src/**/*.md at runtime)
       code: ${{ steps.code.outputs.matched }}
       # 'false' also when a PR touches only apps that aren't the Node app (website,
-      # ios-native, android-native, macos-menubar): none is in the UI image, ESLint
+      # ios-native, android-twa, macos-menubar): none is in the UI image, ESLint
       # ignores apps/**, and none has .ts, so the test, lint and build jobs can't
       # see the change. Security and Quality Gates (brand scans the website) stay on
       # `code`. The merge queue is scoped the same way unless CI_SCOPED_QUEUE=off.
@@ -118,7 +135,7 @@ jobs:
         id: node
         uses: ./.github/actions/pr-changes
         with:
-          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-native|macos-menubar)/'
+          exclude: '^docs/|^scripts/voice-eval/|^[^/]+\.md$|^\.(github|claude)/.+\.md$|^apps/(website|ios-native|android-twa|macos-menubar)/'
           merge-group: ${{ vars.CI_SCOPED_QUEUE != 'off' }}
 
       - name: Did the merge queue already test this tree?
@@ -237,8 +254,12 @@ jobs:
     needs: setup
     if: needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true'
     steps:
+      # Two commits on a pull request: GitHub's merge commit and its first parent, the
+      # base, which the affected-tests step below diffs against.
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
@@ -278,6 +299,19 @@ jobs:
       # Its error count may only go down (baseline: apps/cli/tsc-error-baseline.json).
       - name: CLI typecheck ratchet
         run: node scripts/ci/cli-typecheck-ratchet.mjs
+
+      # The env-name list test scans src/ as text, so no import edge reaches it and
+      # `--changed` skips it whenever a PR adds or drops an env read; the PR then
+      # failed only in the queue. It takes ~4 s and needs no native binding, so a PR
+      # always runs it, before the Rust build. The list merges with git's union
+      # driver (.gitattributes), which this test makes safe. The flag barrel
+      # (src/config/flags/index.generated.ts) is the same shape: its test reads the
+      # flags/ directory as text, and the barrel merges with union too.
+      - name: Check the env-name list
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts
+        env:
+          NODE_ENV: test
 
       # 60 call sites use the THROWING loadRustPerf() (tryLoadRustPerf is documented
       # "for availability checks, not for actual operations"), so the accelerator is
@@ -339,14 +373,30 @@ jobs:
           pnpm install
           pnpm exec napi build --platform
 
+      # A pull request runs only the tests whose imports reach a changed file, without
+      # coverage: the full coverage run was 19 of CI's ~47 runner-minutes per PR push
+      # while PR jobs waited ~30 min for a runner (2026-10-18). vitest.config.unit.ts
+      # lists the files no import reaches (setup, lockfile, runtime data); a change to
+      # one runs everything. The merge queue always runs the whole suite with coverage,
+      # so this changes how early a PR hears, never what reaches main. The
+      # `ci:full-tests` label runs the whole suite on a PR.
+      - name: Run unit tests affected by this pull request
+        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        run: pnpm exec vitest run --config vitest.config.unit.ts --changed HEAD^1 --passWithNoTests
+        env:
+          NODE_ENV: test
+          NODE_OPTIONS: '--max-old-space-size=8192'
+
       - name: Run unit tests with coverage
+        id: full-unit
+        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
         run: pnpm test:unit:coverage -- --reporter=verbose
         env:
           NODE_ENV: test
 
       - name: Upload unit coverage
         uses: codecov/codecov-action@v7
-        if: always()
+        if: always() && steps.full-unit.outcome != 'skipped'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage/lcov.info
@@ -607,7 +657,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 20
     needs: setup
-    if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
+    if: github.event_name == 'push' || github.event_name == 'schedule'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -638,17 +688,17 @@ jobs:
         if: steps.nm-cache.outputs.cache-hit != 'true'
         run: pnpm install --no-frozen-lockfile
 
+      # Blocking. Both ran with continue-on-error, so the job was green whatever
+      # they did; main passes both (93 and 6 tests, 2026-10-18).
       - name: Run AGI Feature Unit Tests
         run: pnpm test:agi-features -- --reporter=verbose
         env:
           NODE_ENV: test
-        continue-on-error: true
 
       - name: Run AGI Actions API E2E Tests
         run: pnpm test:agi-actions-api -- --reporter=verbose
         env:
           NODE_ENV: test
-        continue-on-error: true
 
   # ============================================================================
   # BUILD
@@ -658,7 +708,9 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: [setup, lint, test-unit, test-integration, test-agi-features]
-    if: github.event_name != 'pull_request'
+    # After a queue merge the Node suite skips on the push (queue-tested), so a
+    # skipped need must not skip the build; a failed one still does
+    if: ${{ !cancelled() && !failure() && (github.event_name == 'push' || github.event_name == 'schedule') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -752,40 +804,45 @@ jobs:
 
       - name: Run pnpm audit
         if: needs.setup.outputs.code != 'false'
-        run: pnpm audit --audit-level=high || echo "⚠️ Security vulnerabilities found - review required"
+        # Fails on a new high or critical advisory. Known ones with no fix yet are
+        # listed (with why) under auditConfig.ignoreGhsas in pnpm-workspace.yaml.
+        # A registry outage passes rather than blocking every PR.
+        run: pnpm audit --audit-level=high --ignore-registry-errors
 
       # trufflehog is pinned to an immutable commit SHA, not @main: a mutable ref
       # means this job runs whatever is on that branch at run time, and this
       # particular action is handed the whole repo specifically to find secrets in
       # it — the worst thing to leave floating. Bump the SHA deliberately.
-      # On a PR, scan the diff. On a push to main, scan the WHOLE repo: this repo
-      # pushes directly to main (14 commits landed that way on 2026-09-25), so the
-      # PR-only form meant trufflehog had never once scanned main. A secret
-      # committed straight to main was never looked at.
-      - name: Check for secrets (PR diff)
-        if: github.event_name == 'pull_request'
-        uses: trufflesecurity/trufflehog@b2b0a92070f206ab7b5a1105d82a7f2f48d92341 # v3.99.0
-        with:
-          path: ./
-          base: ${{ github.event.pull_request.base.sha }}
-          head: ${{ github.event.pull_request.head.sha }}
-          extra_args: --only-verified
+      # A PR scans its own commits, a merge-queue group every PR in it (from main,
+      # as #2215 scopes the queue). secret-scan-range.sh fetches just that history
+      # and fails unless the range is complete. Pushes to main are scanned by
+      # secret-scan-main.yml (full tree plus the pushed commits): it has no paths
+      # filter and nothing cancels it, while this workflow's push runs can be both.
+      # Until 2026-10-19 the one-commit checkout had no base, so every scan here
+      # logged "unable to resolve commit", read 0 bytes, and passed.
+      - name: Commits to scan for secrets
+        if: github.event_name == 'pull_request' || github.event_name == 'merge_group'
+        id: scan-range
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          MG_BASE_REF: ${{ github.event.merge_group.base_ref }}
+          MG_HEAD: ${{ github.event.merge_group.head_sha }}
+        run: bash scripts/ci/secret-scan-range.sh
 
-      - name: Check for secrets (merge queue diff)
-        if: github.event_name == 'merge_group'
-        uses: trufflesecurity/trufflehog@b2b0a92070f206ab7b5a1105d82a7f2f48d92341 # v3.99.0
+      - name: Check for secrets
+        if: steps.scan-range.outcome == 'success' && steps.scan-range.outputs.commits != '0'
+        uses: trufflesecurity/trufflehog@e76dff8a7e57d6df0c60ad8cbf5d5cba505a8fc9 # v3.99.2
         with:
           path: ./
-          base: ${{ github.event.merge_group.base_sha }}
-          head: ${{ github.event.merge_group.head_sha }}
-          extra_args: --only-verified
-
-      - name: Check for secrets (full repo, push)
-        if: github.event_name == 'push'
-        uses: trufflesecurity/trufflehog@b2b0a92070f206ab7b5a1105d82a7f2f48d92341 # v3.99.0
-        with:
-          path: ./
-          extra_args: --only-verified
+          base: ${{ steps.scan-range.outputs.base }}
+          head: ${{ steps.scan-range.outputs.head }}
+          # Fail on a live secret and on one whose check couldn't finish; a key that
+          # fails its check (unverified) is reported in the log but doesn't fail.
+          extra_args: --results=verified,unknown
 
   # ============================================================================
   # CODE QUALITY METRICS (using unified audit CLI)
@@ -795,7 +852,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
+    if: github.event_name == 'push' || github.event_name == 'schedule'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -840,7 +897,10 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: github.event_name != 'pull_request' && needs.setup.outputs.code != 'false'
+    # Runs on pull_request too. Skipped there, it first ran in the merge queue, so
+    # one PR that grew a 713-line file to 723 failed 15 of 15 merge groups and
+    # knocked out every PR queued with it (2026-10-18). Its three steps are cheap.
+    if: needs.setup.outputs.code != 'false'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -884,6 +944,11 @@ jobs:
       - name: Architecture gate
         run: pnpm quality:arch
 
+      # Blocking ratchet: a new Firestore client that ignores FIRESTORE_DATABASE (dev runs on
+      # ferni-dev, prod on '(default)') fails, and the allowlist may only shrink. ~10 s.
+      - name: Firestore database ratchet
+        run: pnpm tsx scripts/ci/firestore-database-ratchet.ts
+
       - name: Run CI Quality Gates
         run: pnpm ci:quality-gates
 
@@ -895,7 +960,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 15
     needs: setup
-    if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
+    if: github.event_name == 'push' || github.event_name == 'schedule'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -942,7 +1007,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 30
     needs: setup
-    if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
+    if: github.event_name == 'push' || github.event_name == 'schedule'
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -1172,7 +1237,7 @@ jobs:
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
     timeout-minutes: 10
     needs: setup
-    if: github.event_name != 'pull_request' && needs.setup.outputs.node != 'false'
+    if: github.event_name == 'push' || github.event_name == 'schedule'
     steps:
       - name: Checkout
         uses: actions/checkout@v7

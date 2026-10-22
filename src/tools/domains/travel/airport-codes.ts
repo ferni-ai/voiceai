@@ -35,24 +35,50 @@ const AIRPORT_CODES: Record<string, string[]> = {
  */
 const AMBIGUOUS_PLACES = new Set(['rio', 'portland', 'springfield', 'santiago', 'cambridge']);
 
+const US = ['usa', 'us', 'united states'];
+
+/**
+ * The state or country a "City, Qualifier" must name to resolve. A qualifier
+ * outside this list (Paris, Texas) is asked about rather than guessed.
+ */
+const QUALIFIERS: Record<string, string[]> = {
+  'new york': ['ny', 'new york', ...US],
+  'los angeles': ['ca', 'california', ...US],
+  chicago: ['il', 'illinois', ...US],
+  'san francisco': ['ca', 'california', ...US],
+  miami: ['fl', 'florida', ...US],
+  boston: ['ma', 'massachusetts', ...US],
+  seattle: ['wa', 'washington', ...US],
+  denver: ['co', 'colorado', ...US],
+  atlanta: ['ga', 'georgia', ...US],
+  dallas: ['tx', 'texas', ...US],
+  london: ['uk', 'england', 'united kingdom', 'gb'],
+  paris: ['france', 'fr'],
+  tokyo: ['japan', 'jp'],
+  sydney: ['nsw', 'australia', 'au'],
+};
+
 /** An airport code for a city or a three-letter code; null when the place is ambiguous or unknown. */
 export function findAirportCode(place: string): string | null {
   const trimmed = place.trim();
   const lower = trimmed.toLowerCase();
 
-  // "Paris, Texas" names a qualified place the table does not cover.
-  if (trimmed.includes(',') || AMBIGUOUS_PLACES.has(lower)) return null;
+  if (AMBIGUOUS_PLACES.has(lower)) return null;
+
+  if (lower.includes(',')) {
+    const [cityPart, ...qualifier] = lower.split(',');
+    const city = cityPart.trim();
+    if (!QUALIFIERS[city]?.includes(qualifier.join(',').trim())) return null;
+    return AIRPORT_CODES[city][0];
+  }
 
   if (/^[a-z]{3}$/i.test(trimmed)) {
     return trimmed.toUpperCase();
   }
 
-  for (const [cityName, codes] of Object.entries(AIRPORT_CODES)) {
-    if (new RegExp(`\\b${cityName}\\b`).test(lower)) {
-      return codes[0];
-    }
-  }
-  return null;
+  // Exact city names only: "Paris Texas" or "Montparis" is asked about, not guessed.
+  const codes = AIRPORT_CODES[lower];
+  return codes ? codes[0] : null;
 }
 
 export function unknownAirportText(place: string): string {

@@ -19,8 +19,11 @@ vi.mock('../../config/gemini-config.js', async (importOriginal) => ({
   getGeminiClient: async () => ({ models: { generateContent } }),
 }));
 
-const sendSMS = vi.fn(async () => 'SM1');
-vi.mock('../../services/communication-service.js', () => ({ sendSMS }));
+// The pick goes through the guarded sender (its guards: pick-delivery-guard.test.ts).
+const sendGuardedText = vi.fn(async (_t: { userId: string; body: string; kind: string }) => ({
+  sent: true as const,
+}));
+vi.mock('../../services/outreach/guarded-text.js', () => ({ sendGuardedText }));
 vi.mock('../../services/outreach/user-reach.js', () => ({
   userReach: async () => ({ phone: '+14155550134' }),
 }));
@@ -44,7 +47,8 @@ async function firstAgentTools(coachMedia: string): Promise<Record<string, unkno
   const { capToolsToLimit, getMaxTools } = await import('../../config/tool-config.js');
   const { tools } = await buildEssentialToolSet({
     personaId: 'ferni',
-    userId: 'test-user',
+    // Shaped like a real uid: test-* owners are harness users, and outreach refuses them
+    userId: 'coachMediaWiringUser1',
     services: { userProfile: profile } as never,
   });
   return capToolsToLimit(tools, resolveInitialToolLimit(getMaxTools())) as Record<string, unknown>;
@@ -256,11 +260,14 @@ describe('findCoachingResources on the live path', () => {
     vi.stubEnv('APPROVALS_PAGE', 'on');
     const sent = await dispatch(session, toolCtx, { action: 'send_text' }, 'coachingPick');
     expect(sent).toContain('Texted it');
-    expect(sendSMS).toHaveBeenCalledWith(
-      '+14155550134',
-      expect.stringMatching(
-        /https:\/\/www\.youtube\.com\/watch\?v=vid1\w* Why I picked it: https:\/\/app\.example\/a\/c{43}$/
-      )
+    expect(sendGuardedText).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'coachMediaWiringUser1',
+        kind: 'coach-media',
+        body: expect.stringMatching(
+          /https:\/\/www\.youtube\.com\/watch\?v=vid1\w* Why I picked it: https:\/\/app\.example\/a\/c{43}$/
+        ),
+      })
     );
     // Another call has no pick to send.
     const other = { userData: {}, currentAgent: agent };
@@ -268,6 +275,6 @@ describe('findCoachingResources on the live path', () => {
     expect(await dispatch(other, toolCtx, { action: 'send_text' }, 'coachingPick')).toContain(
       'no checked pick'
     );
-    expect(sendSMS).toHaveBeenCalledTimes(1);
+    expect(sendGuardedText).toHaveBeenCalledTimes(1);
   }, 60_000);
 });

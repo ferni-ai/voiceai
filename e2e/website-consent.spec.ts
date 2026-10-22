@@ -111,10 +111,9 @@ test.describe('ferni.ai consent and content', () => {
     const before = hits.length;
     await page.goto(`${SITE}/about/`, { waitUntil: 'load' });
     await expect.poll(() => hits.length).toBeGreaterThan(before);
-    // Leaving / fires the exit beacon at the prod API; it is answered here, not sent.
-    await expect
-      .poll(() => prodCalls.some((url) => url.includes('/experiments/track/batch')))
-      .toBe(true);
+    // Leaving / records exit events through the site's own experiments API, not
+    // a beacon to app.ferni.ai (that one had no visitor id and got a 400).
+    expect(prodCalls.filter((url) => url.includes('/experiments/track/batch'))).toEqual([]);
     await expect(page.locator('#cookieBanner.is-visible')).toHaveCount(0);
   });
 

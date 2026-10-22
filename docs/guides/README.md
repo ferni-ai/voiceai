@@ -9,7 +9,7 @@ Welcome to the Ferni AI documentation. This guide will help you understand, deve
 | **Get started as a new developer** | [Onboarding Guide](../ONBOARDING.md)                        |
 | Set up locally                     | [Local Setup Guide](guides/local-setup.md)                  |
 | Understand coding standards        | [.cursorrules](../.cursorrules) / [CLAUDE.md](../CLAUDE.md) |
-| Deploy to production               | [Deployment Guide](deployment/)                             |
+| Deploy to production               | [Deploy runbook](../runbooks/deploy.md)                     |
 | Create a new agent                 | [Agent Management](guides/AGENT-MANAGEMENT.md)              |
 | Create a new tool                  | [Tool Guide](../src/tools/CLAUDE.md)                        |
 | Understand the architecture        | [Architecture Overview](architecture/)                      |
@@ -50,7 +50,7 @@ These files define coding standards for both humans and AI assistants:
 | ------------------------------------------------------------ | ----------------------------- |
 | [Local Setup](guides/local-setup.md)                         | Development environment setup |
 | [Environment Variables](deployment/environment-variables.md) | Configuration reference       |
-| [Quick Deploy](deployment/QUICK-DEPLOY.md)                   | Fast deployment guide         |
+| [Deploy runbook](../runbooks/deploy.md)                      | Deploy and roll back          |
 
 ### Architecture
 
@@ -94,7 +94,6 @@ These files define coding standards for both humans and AI assistants:
 
 | Document                                                     | Description           |
 | ------------------------------------------------------------ | --------------------- |
-| [Production Deployment](deployment/PRODUCTION-DEPLOYMENT.md) | Production setup      |
 | [Google Cloud](deployment/google-cloud-deployment.md)        | GCP deployment        |
 | [Environment Variables](deployment/environment-variables.md) | Config reference      |
 | [GitHub Secrets](deployment/GITHUB-SECRETS-SETUP.md)         | CI/CD secrets         |

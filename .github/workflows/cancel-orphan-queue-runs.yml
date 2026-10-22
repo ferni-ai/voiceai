@@ -1,0 +1,43 @@
+name: Cancel Orphan Queue Runs
+
+# A merge-queue rebuild deletes the old gh-readonly-queue refs but leaves their
+# runs holding runners (2026-10-18: 9 of 10 running queue CI runs were orphans).
+# Every 10 minutes this cancels runs whose ref is gone
+# (scripts/ci/cancel-orphan-queue-runs.sh). Live queue runs are never touched.
+on:
+  schedule:
+    - cron: '4,14,24,34,44,54 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'List only'
+        type: boolean
+        default: false
+
+concurrency:
+  group: cancel-orphan-queue-runs
+  cancel-in-progress: false
+
+permissions:
+  actions: write
+  contents: read
+
+jobs:
+  sweep:
+    name: Cancel orphan merge-queue runs
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci
+      - name: Cancel runs whose queue ref is gone
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run == true }}
+        run: |
+          if [ "$DRY_RUN" = true ]; then
+            scripts/ci/cancel-orphan-queue-runs.sh --dry-run
+          else
+            scripts/ci/cancel-orphan-queue-runs.sh
+          fi

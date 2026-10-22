@@ -41,6 +41,7 @@ function deps(existing: StoredCheckin[] = [], opts: { optedOut?: boolean } = {})
     ...atomicLocks(),
     sponsoredPhone: vi.fn(async () => undefined),
     isOptedOut: vi.fn(async () => opts.optedOut === true),
+    consentDoc: async () => undefined,
     userDoc: vi.fn(async () => undefined),
     legacySmsChannels: vi.fn(async () => undefined),
     addReply: vi.fn(async () => undefined),

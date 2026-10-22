@@ -452,10 +452,8 @@ export async function loadPendingOutreach(): Promise<void> {
     const db = getFirestoreDb();
     if (!db) return;
 
-    const snapshot = await db
-      .collectionGroup('scheduled_outreach')
-      .where('status', '==', 'pending')
-      .get();
+    const { queryPendingOutreach } = await import('./pending-outreach-query.js');
+    const { snapshot, capped } = await queryPendingOutreach(db); // bounded: runs every cold boot
 
     // Filtered here: a collection-group query on `source` would need a new index.
     const docs = snapshot.docs.filter((d) => d.data().source === PROACTIVE_OUTREACH_SOURCE);
@@ -471,7 +469,7 @@ export async function loadPendingOutreach(): Promise<void> {
     }
 
     const skipped = snapshot.size - docs.length;
-    log.info({ count: docs.length, skipped }, '📥 Loaded pending outreach from Firestore');
+    log.info({ count: docs.length, skipped, capped }, '📥 Loaded pending outreach from Firestore');
   } catch (error) {
     log.warn({ error: String(error) }, 'Failed to load pending outreach');
   }

@@ -131,6 +131,21 @@ async function fetchStoryHeader(userId: string): Promise<StoryHeader> {
   }
 }
 
+/**
+ * When "One Week Together" was reached, or undefined. Dated seven days after the first
+ * conversation (a session count let three calls in one afternoon pass), and only once the
+ * user has come back at least once: elapsed days alone are not a week together.
+ */
+export function oneWeekTogetherAt(
+  firstAt: number | undefined,
+  totalSessions: number,
+  now = Date.now()
+): number | undefined {
+  if (firstAt === undefined || totalSessions < 2) return undefined;
+  const weekAt = firstAt + 7 * 24 * 60 * 60 * 1000;
+  return weekAt <= now ? weekAt : undefined;
+}
+
 async function fetchRelationshipProgress(userId: string): Promise<RelationshipProgress> {
   try {
     const { loadRelationshipArcData, getCurrentStage } = await arcStorage();
@@ -159,13 +174,10 @@ async function fetchRelationshipProgress(userId: string): Promise<RelationshipPr
       trusted_advisor: 100,
     };
 
-    // Dated from the first conversation. "One Week Together" means seven days since it, not
-    // a session count (it used to be "3 sessions", which could all be on one afternoon).
     const firstAt =
       arcData?.firstMeeting?.timestamp ??
       (arcData && arcData.totalSessions > 0 ? arcData.firstSessionDate : undefined);
-    const weekAt = firstAt === undefined ? undefined : firstAt + 7 * 24 * 60 * 60 * 1000;
-    const weekDoneAt = weekAt !== undefined && weekAt <= Date.now() ? weekAt : undefined;
+    const weekDoneAt = oneWeekTogetherAt(firstAt, arcData?.totalSessions ?? 0);
     const milestones = [
       {
         id: 'first_hello',

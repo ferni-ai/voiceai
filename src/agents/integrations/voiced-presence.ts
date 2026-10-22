@@ -20,6 +20,8 @@ import type { DirectClipTrack } from './direct-clip-track.js';
 import { createPresenceWatcher, isHeavyMood, presenceSoundsEnabled } from './presence-watcher.js';
 import { presenceClipName, presenceClipPickers, type ClipPicker } from './presence-clips.js';
 import type { HumPlayer } from './tool-hum.js';
+import { recordedWhistleId, takeTuneId, tuneAudio, tuneKind } from './presence-tune.js';
+import { namedTuneFor, presenceSoundsHeld, tunePlayed } from '../../services/session/tune-state.js';
 
 export { voicedPresenceEnabled };
 
@@ -98,6 +100,7 @@ type PlayClip = (text: string, opts?: { pauseStartedAt?: number }) => boolean;
 type CallerData = {
   voiceEmotion?: { primary?: string };
   callerTimezone?: string;
+  services?: { sessionId?: string };
 };
 
 export interface VoicedPresenceOptions {
@@ -142,7 +145,9 @@ function shared(opts: VoicedPresenceOptions, direct: VoicedTrack) {
     return true;
   };
   const mood = (): string | undefined => caller()?.voiceEmotion?.primary;
-  return { session, direct, picker, rng, caller, play, mood, mixerBusy: opts.mixerBusy };
+  const getTake = (text: string): ArrayBuffer | null => opts.getClip(text, opts.personaId());
+  const env = opts.env ?? process.env; // NAMED_TUNE
+  return { session, direct, picker, rng, caller, play, mood, getTake, env, busy: opts.mixerBusy };
 }
 type Voiced = ReturnType<typeof shared>;
 
@@ -166,20 +171,35 @@ function toolHum(v: Voiced): VoicedHum {
 function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () => void {
   let yawned = false;
   let endsAt = 0;
+  const sessionId = (): string | undefined => v.caller()?.services?.sessionId;
   /** A recorded whistle on the direct track; false if none is ready or a clip is playing. */
   const whistle = (): boolean => {
     const pcm = whistles?.next();
-    if (!pcm || v.mixerBusy()) return false;
+    if (!pcm || v.busy()) return false;
     if (!v.direct.play(pcm, IDLE_VOLUME, RECORDED + (presenceClipName(pcm) ?? 'unknown')))
       return false;
     endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
+    const id = recordedWhistleId(pcm);
+    if (id) tunePlayed(sessionId(), id, 'whistle', v.env); // NAMED_TUNE
+    return true;
+  };
+  /** NAMED_TUNE: the tune this caller named, if it can play. */
+  const named = (): boolean => {
+    const id = namedTuneFor(sessionId(), v.env);
+    const tune = id ? tuneAudio(id, v.getTake) : null;
+    if (!id || !tune || v.busy() || !v.direct.play(tune.pcm, IDLE_VOLUME, tune.label)) return false;
+    endsAt = Date.now() + tune.pcm.byteLength / 48;
+    tunePlayed(sessionId(), id, tuneKind(id), v.env);
     return true;
   };
   const watcher = createPresenceWatcher({
     play: () => {
+      // NAMED_TUNE: they asked him to stop whistling and humming.
+      if (presenceSoundsHeld(sessionId(), v.env)) return false;
       // Never the profile's own zone: a phone caller gets one only as its verified owner (phone-parity.ts).
       const tz = v.caller()?.callerTimezone;
       const category = idleCategory(callerHour(now(), tz), yawned, v.rng);
+      if (category !== 'morning-yawn' && named()) return true;
       // The morning yawn keeps its slot; otherwise, sometimes one of Seth's whistles
       if (whistles && category !== 'morning-yawn' && v.rng() < WHISTLE_SHARE && whistle())
         return true;
@@ -187,6 +207,7 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
       const take = pick ?? v.picker.take('thinking-hum');
       if (!take || !v.play(take, IDLE_VOLUME)) return false;
       if (take.category === 'morning-yawn') yawned = true;
+      else tunePlayed(sessionId(), takeTuneId(take.category, take.index), 'hum', v.env);
       endsAt = Date.now() + take.pcm.byteLength / 48; // 24 kHz s16le
       return true;
     },

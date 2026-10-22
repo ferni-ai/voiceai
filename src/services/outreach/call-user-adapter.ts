@@ -11,6 +11,7 @@ import {
   type CallUserPort,
 } from '../../tools/domains/proactive/outreach/call-user-port.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
+import { setEngagementReachPort } from '../engagement/engagement-reach-port.js';
 import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import { isQuietHour } from '../follow-through/index.js';
@@ -25,6 +26,8 @@ import { userReach } from './user-reach.js';
 const HELD: Record<TextSkip | 'quiet-hours', string> = {
   'quiet-hours': "it's quiet hours where you are",
   'opted-out': 'you replied STOP to my texts',
+  'consent-unknown': "I couldn't check your text settings just now",
+  paused: 'you sounded like you might want fewer texts, so I held off',
   'sms-off': 'texts are turned off in your settings',
   'no-consent': "you've only okayed texts you ask me for",
   'recently-sent': 'I just texted you',
@@ -71,6 +74,7 @@ export const callUserAdapter: CallUserPort = {
       kind: 'message' as const,
       refId,
       minGapMs: OWNER_TEXT_GAP_MS,
+      askedNow,
       requested,
     };
     const outcome = await sendGuardedText(t);
@@ -90,4 +94,9 @@ export const callUserAdapter: CallUserPort = {
 /** Install the adapter; safe to call on every call. */
 export function installCallUserPort(): void {
   setCallUserPort(callUserAdapter);
+  // Maya's notifications (services/engagement) reach only the same verified phone and email.
+  setEngagementReachPort({
+    verifiedPhone: callUserAdapter.verifiedPhone,
+    verifiedEmail: async (userId) => (await callUserAdapter.verifiedEmail?.(userId)) ?? undefined,
+  });
 }

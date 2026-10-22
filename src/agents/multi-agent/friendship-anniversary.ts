@@ -19,6 +19,7 @@ import { daysBetween } from '../../intelligence/world-model/dates/timex.js';
 import { callMomentFor } from '../../intelligence/world-model/extraction/extraction-prompt.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'friendship-anniversary' });
 
@@ -138,7 +139,7 @@ export async function anniversaryFor(
   timezone: string | undefined,
   deps: { store?: AnniversaryStore; now?: Date; env?: Record<string, string | undefined> } = {}
 ): Promise<AnniversaryAsk | undefined> {
-  if (!userId || userId === 'anonymous' || !friendCelebrationsOn(deps.env)) return undefined;
+  if (!isMemberIdentity(userId) || !friendCelebrationsOn(deps.env)) return undefined;
   if (!history?.firstContact || history.calls < MIN_CALLS) return undefined;
   const zone = timezone ?? 'UTC';
   const now = deps.now ?? new Date();

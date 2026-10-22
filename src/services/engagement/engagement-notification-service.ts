@@ -1,11 +1,9 @@
 /**
  * Maya Notification Service
- *
  * Connects Maya's proactive coaching system to actual notification delivery.
  * Bridges the gap between:
  * - Maya's proactive opportunity detection
  * - The reminder scheduler's delivery capabilities (SMS, email, etc.)
- *
  * Features:
  * - Scheduled habit reminders
  * - Streak-at-risk alerts
@@ -29,6 +27,7 @@ import { getProductivityStore } from '../stores/productivity-store.js';
 import { getGamificationStore } from './gamification-store.js';
 import { isUserBusy, getNextOutreachWindow } from '../scheduling/calendar-busy-detection.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { verifiedAddressFor } from './engagement-reach-port.js';
 
 // ============================================================================
 // TYPES
@@ -135,6 +134,8 @@ class MayaNotificationService extends EventEmitter {
     // Initialize persistence store
     this.persistenceStore = createPersistenceStore<MayaNotificationData>({
       collection: 'maya_notifications',
+      // MINOR_CARE, held: only notification preferences and opt-outs persist
+      whenHeld: (d: MayaNotificationData) => ({ preferences: d.preferences }),
       syncIntervalMs: 15000, // Sync every 15 seconds
       maxPendingChanges: 30,
     });
@@ -310,15 +311,13 @@ class MayaNotificationService extends EventEmitter {
       return null;
     }
 
-    // Get user's contact info
-    const store = await getProfileStore();
+    const store = await getProfileStore(); // for the timezone only
     const profile = await store.getProfile(request.userId);
 
-    const deliveryAddress =
-      prefs.preferredMethod === 'sms' ? profile?.contactInfo?.phone : profile?.contactInfo?.email;
+    const deliveryAddress = await verifiedAddressFor(request.userId, prefs.preferredMethod); // verified
 
     if (!deliveryAddress) {
-      getLogger().warn({ userId: request.userId }, 'No contact info for Maya notification');
+      getLogger().warn({ userId: request.userId }, 'No verified phone or email for Maya notification');
       return null;
     }
 
@@ -347,6 +346,7 @@ class MayaNotificationService extends EventEmitter {
       timezone: profile?.contactInfo?.timezone || 'Etc/UTC',
       deliveryMethod: prefs.preferredMethod,
       deliveryAddress,
+      addressSource: 'verified-own', // so its text always takes the guarded sender
       createdBy: 'maya',
     });
 

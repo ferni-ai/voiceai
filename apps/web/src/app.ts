@@ -40,8 +40,10 @@ import {
   openPersonalize,
   openReferral,
   openRitualBuilder,
+  openSanctuary,
   openSupportFerni,
   openYourPeople,
+  openYourYear,
   showAppleHealthSettings,
   showConversationMemory,
   showEightSleepSettings,
@@ -95,6 +97,8 @@ import {
 } from './services/index.js';
 import { detectAndSyncTimezone } from './services/timezone.service.js';
 import { showSignInGate } from './ui/sign-in-gate.ui.js';
+import { revealApp, settleGateFirst } from './ui/gate-first.ui.js';
+import { requireAccessForRestoredSession } from './ui/restored-session-access.js';
 // 🌱 Roadmap/Seed Economy - For streak rewards
 import { roadmapService } from './services/roadmap.service.js';
 
@@ -520,6 +524,8 @@ class VoiceAIApp {
       // theme picker. Production builds set import.meta.env.DEV to false.
       const allowDevE2E =
         import.meta.env.DEV && new URLSearchParams(window.location.search).get('e2e') === '1';
+      // Gate-first paint (off by default): show #app now, or once the sign-in gate has faded in
+      settleGateFirst(authState.isAuthenticated, authState.isAuthenticated || allowDevE2E);
       if (!authState.isAuthenticated && !allowDevE2E) {
         log.info('User not authenticated, showing sign-in gate');
         await showSignInGate();
@@ -528,6 +534,7 @@ class VoiceAIApp {
         log.info('Dev server e2e bypass: continuing without a session');
       } else {
         log.info('User already authenticated', { uid: authState.uid?.slice(0, 8) });
+        void requireAccessForRestoredSession(); // a reload must not skip the waitlist; no wait on start
       }
 
       // Initialize visual storytelling service (fetches user's ambient preferences)
@@ -588,6 +595,7 @@ class VoiceAIApp {
     } catch (error) {
       log.error('Initialization failed:', error);
       messageUI.show(t('app.startupError'), 'error');
+      revealApp(); // never leave the gate-first placeholder over a failed start
     }
   }
 
@@ -928,7 +936,7 @@ class VoiceAIApp {
       document.body.style.height = 'auto';
       appContent.innerHTML = `
         <div id="adminDashboard" style="min-height: 100vh; background: var(--color-background-surface, #0d0d1a); color: var(--color-text-primary, #fff); overflow-y: auto; padding-bottom: 2rem;"></div>
-        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: var(--color-ferni, #4a6741); text-decoration: none; font-size: 0.875rem; z-index: var(--z-dropdown);">
+        <a href="/" style="position: fixed; top: 1rem; left: 1rem; color: var(--color-ferni-on-surface); text-decoration: none; font-size: 0.875rem; z-index: var(--z-dropdown);">
           ← Back to App
         </a>
       `;
@@ -1843,7 +1851,7 @@ class VoiceAIApp {
         onAnalyticsClick: () => void showAnalyticsDashboard(),
         onCognitiveClick: () => void showCognitiveInsights(),
         onRitualBuilderClick: () => void openRitualBuilder(),
-        onCommandsClick: () => void getSanctuaryUI().open(),
+        onCommandsClick: () => void openSanctuary(),
         onPredictionTrackerClick: () => void showPredictionTracker(),
         onExportDataClick: () => void showDataExport(),
         onOnboardingClick: () => getOnboardingUI().start(),
@@ -1880,19 +1888,7 @@ class VoiceAIApp {
         onYourStoryClick: () => void showYourStoryDashboard(),
         onActivityClick: () => showActivity(),
         onYourYearClick: () => {
-          // Open "Your Year with Ferni" visualization
-          log.debug('YourYear callback triggered, starting import');
-          import('./ui/your-year-with-ferni.ui.js')
-            .then(({ openYourYearWithFerni }) => {
-              log.debug('YourYear module loaded, opening');
-              return openYourYearWithFerni();
-            })
-            .then(() => {
-              log.debug('YourYear opened successfully');
-            })
-            .catch((err) => {
-              log.error({ error: String(err) }, 'YourYear error');
-            });
+          openYourYear().catch((err) => log.error({ error: String(err) }, 'YourYear error'));
         },
         onFutureInsightsClick: () => void openFutureInsights(),
         onDeepInsightsClick: () => {
@@ -1944,7 +1940,7 @@ class VoiceAIApp {
         onGiftsClick: () => void openYourPeople(), // Gifts now integrated into relationship cards
         // Warm menu callbacks
         onTogetherSessionsClick: () => void showGroupCoaching(), // Combines group coaching + team huddles
-        onAllConnectionsClick: () => openEverythingConnected(), // Connected Life: all integrations
+        onAllConnectionsClick: () => void openEverythingConnected(), // Connected Life: all integrations
         // New feature callbacks
         onMemoryLaneClick: () => void openMemoryLane(),
         onPatternInsightsClick: () => {

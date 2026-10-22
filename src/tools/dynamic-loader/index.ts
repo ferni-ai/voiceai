@@ -29,7 +29,7 @@ import { DOMAIN_PRIORITY, DEFAULT_ESSENTIAL_DOMAINS } from './topic-mappings.js'
 import { TOPIC_PATTERNS } from './topic-patterns.js';
 import { predictionTopicPatterns } from './prediction-topics.js';
 import { flagOn } from '../../config/env-flag.js';
-import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
+import { LEAN_LOADER_DOMAINS, sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { SAME_TURN_TOPIC_PATTERNS } from './same-turn-topics.js';
 
 // Re-export types
@@ -55,7 +55,10 @@ export class DynamicToolLoader {
 
   constructor(config: Partial<DynamicLoaderConfig> = {}) {
     this.config = {
-      essentialDomains: DEFAULT_ESSENTIAL_DOMAINS,
+      // TOOLS_SAME_TURN: the other essential domains load by topic (same-turn-tools-config.ts)
+      essentialDomains: sameTurnToolsEnabled()
+        ? (LEAN_LOADER_DOMAINS as ToolDomain[])
+        : DEFAULT_ESSENTIAL_DOMAINS,
       unloadAfterMs: 5 * 60 * 1000, // 5 minutes
       maxLoadedDomains: 10, // counts the essential domains: see types.ts
       enableAutoUnload: true,

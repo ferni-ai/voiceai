@@ -777,7 +777,7 @@
     "phoneLabel": "M'envoyer un message ou m'appeler",
     "emailLabel": "M'envoyer des nouvelles",
     "nameLabel": "Comment dois-je t'appeler ?",
-    "privacyNote": "Je l'utiliserai uniquement pour les check-ins. Jamais de spam, jamais partagé.",
+    "privacyNote": "Je l'utiliserai uniquement pour les check-ins. Jamais de spam, jamais vendu.",
     "quietHours": "Heures de tranquillité",
     "dontCall": "Ne pas appeler",
     "until": "jusqu'à",
@@ -1287,7 +1287,7 @@
       "householdMembers": "Foyer & famille",
       "familyCallers": "Accès téléphone famille",
       "contactInfo": "Rester en contact",
-      "exportData": "Emporter ton histoire",
+      "exportData": "Confidentialité et tes données",
       "shareFerni": "Faire découvrir Ferni",
       "supportFerni": "Soutenir Ferni",
       "takeTour": "Me faire visiter",
@@ -1540,7 +1540,7 @@
         "title": "Parle tout simplement"
       },
       "welcome": {
-        "description": "Ton équipe personnelle de coachs de vie IA. Chacun apporte sa propre sagesse pour t'accompagner dans ton parcours.",
+        "description": "Ton équipe personnelle de guides. Chacun apporte sa propre façon de voir les choses.",
         "title": "Bienvenue sur Ferni"
       }
     },
@@ -2427,7 +2427,7 @@
     "intro": "Connecte tes objets connectés pour donner à Ferni du contexte sur ta santé et ton niveau d'énergie.",
     "loading": "Chargement...",
     "privacy": {
-      "note": "Tes données de santé restent privées. Nous partageons uniquement une synthèse de tes déclics lors de tes sessions de coaching."
+      "note": "Ferni enregistre tes données de santé pour repérer des tendances avec toi. Nous ne les vendons jamais, et supprimer ton compte les efface."
     },
     "providers": {
       "appleHealth": {
@@ -2902,6 +2902,9 @@
     "openConversations": "Conversations en cours",
     "onYourMind": "Dans tes pensées",
     "thingsTracking": "Ce que ton équipe garde en mémoire pour toi",
+    "trackedDone": "Fait",
+    "trackedDismiss": "Ignorer",
+    "trackedUpdateFailed": "Impossible de mettre à jour. Réessayer ?",
     "quickConnections": "Connexions rapides",
     "startWithAnyone": "Lance une conversation avec un membre de ton équipe",
     "allCaughtUp": "Tu es à jour !",
@@ -2967,7 +2970,7 @@
     "orUseEmail": "ou utilise ton e-mail",
     "emailLabel": "E-mail",
     "passwordLabel": "Mot de passe",
-    "privacyNote": "Tes données restent privées. Toujours.",
+    "privacyNote": "Nous ne vendons jamais tes données. Supprimer ton compte les efface.",
     "loading": "Un petit instant...",
     "welcomeBack": "Bon retour ! Je me souviens de tout.",
     "somethingWentWrong": "Une petite erreur est survenue",
@@ -2990,7 +2993,7 @@
     "waitlistMessage": "Nous déployons Ferni progressivement pour offrir la meilleure expérience possible. Nous t'enverrons un e-mail dès qu'une place se libérera.",
     "waitlistEmail": "Nous t'avertirons à l'adresse {email}",
     "tryDifferentAccount": "Essayer un autre compte",
-    "checkingAccess": "Vérification de tes accès...",
+    "checkingAccess": "On prépare tout…",
     "checkingLabel": "Un petit instant...",
     "signInError": "La connexion a été annulée ou a échoué. Réessaie.",
     "verifyEmailTitle": "Vérifie ton adresse e-mail",
@@ -3451,7 +3454,7 @@
     "weeklyDigest": "Récapitulatif hebdomadaire",
     "weeklyDigestDesc": "Aperçu de ta semaine à venir le dimanche soir",
     "viewSyncConflicts": "Voir les conflits de synchronisation",
-    "integrationsPrivacy": "Les intégrations synchronisent tes événements existants dans Ferni. Tes données restent privées.",
+    "integrationsPrivacy": "Les intégrations synchronisent tes événements existants dans Ferni. Nous ne vendons jamais tes données.",
     "tryAgain": "Réessayer",
     "syncing": "Synchronisation...",
     "connectAppleCalendar": "Connecter Apple Calendar",
@@ -3599,7 +3602,7 @@
     "members": {
       "ferni": {
         "displayName": "Ferni",
-        "role": "Ton compagnon IA personnel",
+        "role": "Ton compagnon personnel",
         "description": "Je suis là pour tout ce dont tu as besoin — des check-ins quotidiens aux conversations profondes.",
         "unlockHint": "Toujours à tes côtés",
         "unlockedMessage": "On a déjà traversé pas mal de choses ensemble.",
@@ -3670,11 +3673,10 @@
   },
   "referral": {
     "share": {
-      "title": "Ferni — Ton compagnon de vie IA",
+      "title": "Découvre Ferni",
       "message": "J'utilise Ferni et ça a vraiment changé ma façon d'aborder mes journées. Rejoins-moi ! {url}",
       "shortMessage": "Rejoins-moi sur Ferni ! {url}",
-      "emailSubject": "Tu devrais essayer Ferni",
-      "emailBody": "Salut ! J'utilise Ferni — c'est un compagnon IA qui a l'air vraiment humain. Je me suis dit que ça te plairait. {url}"
+      "emailSubject": "Tu devrais essayer Ferni"
     },
     "modal": {
       "title": "Partage la croissance",
@@ -3993,7 +3995,6 @@
       "ceo": "Direction générale",
       "ferniRole": "CEO & Coach de vie",
       "ferniDesc": "Une présence chaleureuse et sage au cœur de tout. Ferni coordonne l'équipe avec une mémoire parfaite, sans aucun jugement et une présence constante.",
-      "coFounders": "Co-fondateurs",
       "coreTeam": "Équipe principale",
       "footer": "Ensemble, nous redéfinissons ce que signifie avoir une équipe qui t'écoute vraiment.",
       "roles": {
@@ -4595,7 +4596,7 @@
     "title": "Créer une page d'agent",
     "nameLabel": "Nom de l'agent",
     "namePlaceholder": "ex. : Nate Holloway",
-    "nameHint": "Le nom complet de ton agent IA",
+    "nameHint": "Le nom complet de ton agent",
     "initialsLabel": "Initiales",
     "initialsPlaceholder": "ex. : JD",
     "initialsHint": "Affichées sur l'avatar (2 à 3 caractères)",
@@ -4800,7 +4801,10 @@
     "reflectionGames": "Jeux de réflexion",
     "tipLabel": "Astuce :",
     "tipContent": "Dis « stop » ou « arrête le jeu » à tout moment pour finir plus tôt. Ta progression est toujours sauvegardée !",
-    "fortuneCookie": "Biscuit de la fortune"
+    "fortuneCookie": "Biscuit de la fortune",
+    "connectFirst": "Lance d'abord un appel avec Ferni, puis choisis un jeu.",
+    "starting": "Lancement de {game}…",
+    "startFailed": "Impossible de lancer ce jeu. Demande à Ferni."
   },
   "digitalTwinProfile": {
     "title": "Crée ton double digital",
@@ -7332,8 +7336,7 @@
       "description": "Ton journal vocal personnel qui grandit avec toi",
       "feature1": "Enregistrement de journaux vocaux quotidiens",
       "feature2": "Discussions avec ton toi du passé",
-      "feature3": "Suivi de ton évolution au fil du temps",
-      "feature4": "Déclics générés par l'IA"
+      "feature3": "Suivi de ton évolution au fil du temps"
     },
     "fictional": {
       "name": "Fictif",
@@ -9128,10 +9131,6 @@
     "chiefExecutive": "Direction générale",
     "ferni": "Ferni",
     "ferniRole": "CEO & Coach de vie",
-    "coFounders": "Co-fondateurs",
-    "claude": "Claude",
-    "gemini": "Gemini",
-    "gpt": "GPT",
     "coreTeam": "Équipe principale",
     "tagline": "Ensemble, nous redéfinissons ce que signifie avoir une équipe qui t'écoute vraiment.",
     "inTeam": "Dans l'équipe",
@@ -9417,7 +9416,8 @@
     "title": "Tes données",
     "exportFormat": "Format d'export",
     "deleteAll": "Supprimer toutes les données",
-    "footer": "Tes données t'appartiennent. Nous respectons ta vie privée.",
+    "footer": "Je garde nos conversations et ce que tu me racontes pour m'en souvenir la prochaine fois, et si un jour tu veux que tout disparaisse, supprimer ton compte efface tout.",
+    "privacyPolicyLink": "Lire la politique de confidentialité",
     "deleteAccount": "Supprimer mon compte",
     "confirmDeleteAll": "Veux-tu vraiment supprimer toutes tes données ? Cette action est irréversible.",
     "confirmDeleteAccount": "Supprimer ton compte Ferni ? Cela effacera tout ce que Ferni sait sur toi et te déconnectera définitivement. C'est irréversible.",
@@ -9581,7 +9581,14 @@
     "close": "Fermer",
     "seeCost": "Ce qu'a coûté cet appel",
     "feedbackQuestion": "Comment c'était ?",
-    "feedbackThanks": "Merci, ça m'aide."
+    "feedbackThanks": "Merci, ça m'aide.",
+    "pushAskQuestion": "Tu veux que Ferni prenne de tes nouvelles à ce sujet ?",
+    "pushAskYes": "Oui, volontiers",
+    "pushAskNotNow": "Pas maintenant",
+    "pushAskDone": "C'est fait. Les mots de Ferni arriveront sur cet appareil.",
+    "pushAskLater": "Pas de souci. Tu pourras changer ça dans les Réglages.",
+    "pushAskHomeScreen": "Pour recevoir les mots de Ferni ici, ajoute Ferni à ton écran d'accueil : touche Partager, puis Sur l'écran d'accueil.",
+    "pushAskGotIt": "Compris"
   },
   "moments": {
     "teamUnlockTitle": "Fais la connaissance de {name}",
@@ -9875,7 +9882,7 @@
     },
     "marketplace": {
       "headline": "Trouve tes alliés.",
-      "description": "Au-delà de l'équipe principale de Ferni, tout un jardin de coaches IA spécialisés t'attend. Soutien TDAH, compagnons de sobriété, spécialistes du sommeil, guides parentaux : des experts qui comprennent ton parcours spécifique.",
+      "description": "Au-delà de l'équipe principale de Ferni, tout un jardin de coaches spécialisés t'attend. Soutien TDAH, compagnons de sobriété, spécialistes du sommeil, guides parentaux : des experts qui comprennent ton parcours spécifique.",
       "superhuman1": "Personas spécialisés : des coaches pour les défis spécifiques de la vie",
       "superhuman2": "Évaluations de la communauté : de vraies expériences, de vrais avis",
       "superhuman3": "Gratuit et premium : un soutien pour tous les budgets",
@@ -9883,7 +9890,7 @@
     },
     "developerPortal": {
       "headline": "Crée ce qui compte.",
-      "description": "La technologie de Ferni s'ouvre à tous. Crée tes propres coaches IA, conçois des personas spécialisés et touche les personnes qui ont exactement besoin de ce que tu proposes. La plateforme qui propulse Ferni est désormais la tienne.",
+      "description": "La technologie de Ferni s'ouvre à tous. Crée tes propres coaches, conçois des personas spécialisés et touche les personnes qui ont exactement besoin de ce que tu proposes. La plateforme qui propulse Ferni est désormais la tienne.",
       "superhuman1": "Documentation API complète : tout ce dont tu as besoin pour créer",
       "superhuman2": "SDK et bibliothèques : développement axé sur TypeScript",
       "superhuman3": "Créateur de persona : des outils visuels pour concevoir des coaches",
@@ -9971,7 +9978,7 @@
       "title": "Personnalisation",
       "message": "Ta localisation m'aide à rendre nos conversations plus personnelles et pertinentes — comme si j'étais vraiment là avec toi."
     },
-    "note": "Ça reste entre nous — je l'utilise uniquement pour rendre nos conversations plus personnelles.",
+    "note": "Je l'utilise uniquement pour rendre nos conversations plus personnelles, et je ne le vends jamais.",
     "notNow": "Pas maintenant",
     "allow": "Autoriser la localisation"
   },
@@ -10602,7 +10609,7 @@
   },
   "ferniAwakens": {
     "greeting": "Bonjour.",
-    "subtext": "Je suis Ferni, ton coach de vie IA."
+    "subtext": "Je suis Ferni, ton guide personnel."
   },
   "serviceHealth": {
     "names": {
@@ -10612,7 +10619,7 @@
       "historicalFacts": "Faits historiques",
       "smartHome": "Maison connectée",
       "lighting": "Éclairage",
-      "aiContext": "Contexte de l'IA",
+      "aiContext": "Mémoire et contexte",
       "sleepHealth": "Données de sommeil et de santé",
       "other": "Un service connecté"
     },
@@ -10778,9 +10785,6 @@
     "patronShort": "Mécène",
     "founderAria": "{tier}. Merci de croire en nous ! Clique pour gérer."
   },
-  "splash": {
-    "tagline": "Ton équipe d'IA est prête"
-  },
   "lifeCoachingHub": {
     "tabs": {
       "all": "Tous les soutiens",
@@ -10918,7 +10922,7 @@
   },
   "entrance": {
     "helper": "Ton guide personnel",
-    "connectToTalk": "Discuter",
+    "connectToTalk": "Parler à Ferni",
     "endTalk": "Raccrocher",
     "connectingCancel": "Connexion en cours. Touchez pour annuler",
     "connectingNow": "Connexion…",
@@ -11251,5 +11255,21 @@
     "helper": "Scanne-le avec l'appareil photo de ton téléphone ou touche Ouvrir Venmo. Tu peux changer le montant.",
     "maybeLater": "Plus tard",
     "close": "Fermer"
+  },
+  "reportReply": {
+    "button": "Signaler",
+    "describe": "Signaler quelque chose que {name} a dit",
+    "title": "Signaler une réponse",
+    "whichReply": "Quelle réponse ?",
+    "whatsWrong": "Quel est le problème ?",
+    "reasonHarmful": "Nuisible ou dangereuse",
+    "reasonWrong": "Fausse ou trompeuse",
+    "reasonInappropriate": "Inappropriée",
+    "reasonOther": "Autre chose",
+    "note": "Quelque chose à ajouter ? (facultatif)",
+    "send": "Envoyer",
+    "thanks": "Merci. Une personne va examiner cela.",
+    "failed": "L'envoi a échoué. Réessaie.",
+    "tooMany": "Tu as envoyé beaucoup de signalements aujourd'hui. Réessaie demain."
   }
 }

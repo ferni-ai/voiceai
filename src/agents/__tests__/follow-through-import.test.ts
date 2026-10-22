@@ -125,7 +125,8 @@ describe('follow-through import after a call (FOLLOW_THROUGH_IMPORT)', () => {
 
     const made = followUps('owner-1');
     expect(made.map((f) => [f.kind, f.text, f.status, f.userId]).sort()).toEqual([
-      ['commitment', 'I am going to ask my sister about the trip', 'open', 'owner-1'],
+      // The stored line with its lead-in off (toOpenCommitment).
+      ['commitment', 'ask my sister about the trip', 'open', 'owner-1'],
       ['reminder', 'Call the dentist', 'open', 'owner-1'],
     ]);
     expect(made.every((f) => f.zone === 'America/Denver')).toBe(true);
@@ -188,5 +189,28 @@ describe('follow-through import after a call (FOLLOW_THROUGH_IMPORT)', () => {
     );
     expect(r).toEqual({ imported: false, reason: 'no-zone' });
     expect(followUps('owner-1')).toHaveLength(0);
+  });
+});
+
+describe('FOLLOW_THROUGH_IMPORT from the caller’s cohort, the agent’s own flag off', () => {
+  const env = { COHORT_FLAGS: 'on' }; // the agent: FOLLOW_THROUGH_IMPORT unset
+  const cohorts = {
+    cohortsFor: async (u: string) =>
+      u === 'owner-1'
+        ? [{ id: 'seth', enabled: true, flags: { FOLLOW_THROUGH_IMPORT: 'on' } }]
+        : [],
+    overridesFor: async () => ({}),
+  };
+  const deps = { env, cohorts, verifiedOwner: () => true };
+
+  it('imports for the cohort member only', async () => {
+    delete process.env.FOLLOW_THROUGH_IMPORT;
+    const member = await importFollowUpsAfterCall(call('owner-1', 's-cohort'), deps);
+    const other = await importFollowUpsAfterCall(call('sponsor-1', 's-other'), deps);
+
+    expect(member.imported).toBe(true);
+    expect(followUps('owner-1').length).toBeGreaterThan(0);
+    expect(other).toEqual({ imported: false, reason: 'flag-off' });
+    expect(followUps('sponsor-1')).toHaveLength(0);
   });
 });

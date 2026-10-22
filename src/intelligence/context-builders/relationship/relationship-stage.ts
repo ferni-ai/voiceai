@@ -24,6 +24,7 @@ import {
 import { createLogger } from '../../../utils/safe-logger.js';
 import {
   getRelationshipEngine,
+  type MilestoneType,
   type RelationshipContext,
   type RelationshipStage,
 } from '../../relationship/index.js';
@@ -147,13 +148,14 @@ function formatRelationshipContext(ctx: RelationshipContext): string {
 }
 
 /**
- * Format pending milestone for celebration
+ * Format pending milestone for celebration (the first one not yet acknowledged)
  */
-function formatMilestoneContext(ctx: RelationshipContext): string | null {
-  const pendingMilestones = ctx.pendingMilestones.filter((m) => m.reached && !m.acknowledged);
-  if (pendingMilestones.length === 0) return null;
+function formatMilestoneContext(
+  ctx: RelationshipContext
+): { type: MilestoneType; text: string } | null {
+  const milestone = ctx.pendingMilestones.find((m) => m.reached && !m.acknowledged);
+  if (!milestone) return null;
 
-  const milestone = pendingMilestones[0];
   const milestoneMessages: Record<string, string> = {
     session_10: 'This is your 10th conversation! Consider acknowledging this milestone.',
     session_25: '25 conversations together - a significant relationship has developed.',
@@ -172,10 +174,7 @@ function formatMilestoneContext(ctx: RelationshipContext): string | null {
   };
 
   const message = milestoneMessages[milestone.type];
-  if (message) {
-    return `[MILESTONE TO CELEBRATE: ${message}]`;
-  }
-  return null;
+  return message ? { type: milestone.type, text: `[MILESTONE TO CELEBRATE: ${message}]` } : null;
 }
 
 // ============================================================================
@@ -220,15 +219,17 @@ async function buildRelationshipStageContext(
       );
     }
 
-    // Milestone context (high priority if present)
-    const milestoneContent = formatMilestoneContext(ctx);
-    if (milestoneContent) {
+    // Milestone context (high priority if present). It is handed to the agent once and
+    // then acknowledged; without this, "This is your 10th conversation!" came back every turn.
+    const milestone = formatMilestoneContext(ctx);
+    if (milestone) {
       injections.push(
-        createHighInjection('relationship-milestone', milestoneContent, {
+        createHighInjection('relationship-milestone', milestone.text, {
           category: 'celebration',
           confidence: 0.95,
         })
       );
+      engine.acknowledgeMilestone(milestone.type);
     }
 
     log.debug(

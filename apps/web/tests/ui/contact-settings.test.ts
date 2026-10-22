@@ -582,6 +582,42 @@ describe('Contact Settings UI', () => {
       expect(dialog?.getAttribute('role')).toBe('dialog');
     });
 
+    it('is named by its heading (aria-labelledby resolves)', async () => {
+      await openContactSettings();
+      const dialog = findModalDialog();
+      const id = dialog?.getAttribute('aria-labelledby');
+      expect(id).toBeTruthy();
+      const heading = document.getElementById(id as string);
+      expect(heading?.tagName).toBe('H2');
+      expect(heading?.textContent?.trim()).toBeTruthy();
+    });
+
+    it('starts on the first field with a mouse and keyboard, and keeps it through the load', async () => {
+      const matchMedia = vi.spyOn(window, 'matchMedia').mockImplementation(
+        (query: string) => ({ matches: query === '(pointer: fine)', media: query }) as MediaQueryList
+      );
+      await openContactSettings(); // resolves after the load re-renders the form
+      expect(document.activeElement?.id).toBe('phone-input');
+      matchMedia.mockRestore();
+    });
+
+    it('does not pop the keyboard on touch', async () => {
+      const matchMedia = vi.spyOn(window, 'matchMedia').mockImplementation(
+        (query: string) => ({ matches: false, media: query }) as MediaQueryList
+      );
+      await openContactSettings();
+      expect(document.activeElement?.tagName).not.toBe('INPUT');
+      matchMedia.mockRestore();
+    });
+
+    it('keeps Save and Later in view: the footer is sticky inside the scrolling card', async () => {
+      await openContactSettings();
+      const css = [...document.querySelectorAll('style')].map((el) => el.textContent ?? '').join('\n');
+      const rule = css.match(/\.contact-settings-actions\s*\{([^}]*)\}/)?.[1] ?? '';
+      expect(rule).toMatch(/position:\s*sticky/);
+      expect(rule).toMatch(/bottom:\s*0/);
+    });
+
     it('should have labeled inputs', async () => {
       await openContactSettings();
       await new Promise((r) => setTimeout(r, 100));

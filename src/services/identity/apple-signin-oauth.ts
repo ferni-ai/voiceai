@@ -21,6 +21,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { openTokens, sealTokens } from '../../utils/token-at-rest.js';
 
 const log = createLogger({ module: 'AppleSignInOAuth' });
 
@@ -317,7 +318,7 @@ async function saveTokens(userId: string, tokens: AppleTokens): Promise<void> {
 
   const docRef = db.collection('apple_calendar_tokens').doc(cleanForFirestore(userId));
   await docRef.set({
-    ...tokens,
+    ...sealTokens(tokens),
     updatedAt: new Date().toISOString(),
   });
 
@@ -340,7 +341,7 @@ export async function getTokens(userId: string): Promise<AppleTokens | null> {
     return null;
   }
 
-  return doc.data() as AppleTokens;
+  return openTokens<AppleTokens>(doc.data(), 'apple_calendar_tokens');
 }
 
 /**

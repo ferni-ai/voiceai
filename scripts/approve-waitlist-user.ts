@@ -394,7 +394,7 @@ async function sendEmail(email: string, name: string): Promise<boolean> {
       },
       body: JSON.stringify({
         personalizations: [{ to: [{ email, name }] }],
-        from: { email: process.env.SENDGRID_FROM_EMAIL || 'seth.ford@gmail.com', name: 'Ferni' },
+        from: { email: process.env.SENDGRID_FROM_EMAIL || 'noreply@ferni.ai', name: 'Ferni' },
         reply_to: { email: 'hello@ferni.ai', name: 'Ferni' },
         subject: generateEmailSubject(name),
         content: [

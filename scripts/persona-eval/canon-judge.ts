@@ -91,8 +91,9 @@ export function callsIn(file: string, json: unknown): Call[] {
   return [];
 }
 
-function bible(persona: string): string {
-  const root = `src/personas/bundles/${persona}`;
+/** A persona's bible: its identity files and dynamic backstory. `repo` is the checkout root. */
+export function bible(persona: string, repo = '.'): string {
+  const root = join(repo, 'src/personas/bundles', persona);
   const parts: string[] = [];
   for (const f of [
     'identity/character.md',

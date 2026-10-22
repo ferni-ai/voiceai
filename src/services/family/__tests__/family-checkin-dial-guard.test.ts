@@ -93,4 +93,13 @@ describe('a family check-in call', () => {
     expect((await initiateCheckinCall(schedule('seth-uid', '8015550100'))).success).toBe(true);
     expect(sip.createSipParticipant.mock.calls[0][1]).toBe('+18015550100');
   });
+
+  it('rings long enough for voicemail to answer, and caps the call at its length', async () => {
+    await initiateCheckinCall(schedule('seth-uid', '8015550100'));
+    // A missed call with no message on 2026-10-18: the trunk default gave up first
+    expect(sip.createSipParticipant.mock.calls[0][3]).toMatchObject({
+      ringingTimeout: 45,
+      maxCallDuration: 10 * 60,
+    });
+  });
 });

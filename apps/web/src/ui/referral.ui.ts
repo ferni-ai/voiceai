@@ -16,17 +16,13 @@
  */
 
 import { t } from '../i18n/index.js';
+import { tp } from '../i18n/plural.js';
 import { DURATION, EASING, safeAnimate } from '../config/animation-constants.js';
 import { createLogger } from '../utils/logger.js';
 import { soundUI } from './sound.ui.js';
 import { toast } from './whisper.ui.js';
 import { injectDraftStyles, readDraft, renderDraftField, withLink } from './referral-draft.js';
-import {
-  getReferralUrl,
-  loadGarden,
-  REFERRAL_SIGNUP_REWARD,
-  type GardenData,
-} from '../services/referral.service.js';
+import { getReferralUrl, loadGarden, type GardenData } from '../services/referral.service.js';
 
 const log = createLogger('ReferralUI');
 
@@ -122,7 +118,6 @@ function createModal(garden: GardenData): void {
   modal.setAttribute('role', 'dialog');
   modal.setAttribute('aria-label', t('accessibility.shareFerniWithFriend'));
 
-  const totalSeeds = garden.totalEarnedFromReferrals;
   const shortUrl = garden.referralUrl.replace('https://', '').replace('http://', '');
 
   modal.innerHTML = `
@@ -136,15 +131,6 @@ function createModal(garden: GardenData): void {
         <span class="referral-icon">${ICONS.heart}</span>
         <h2 class="referral-title">${t('referral.title', 'Share the Growth')}</h2>
         <p class="referral-subtitle">${t('referral.subtitle', 'Know someone who could use a friend like this?')}</p>
-      </div>
-
-      <!-- Seeds Bonus Banner -->
-      <div class="referral-bonus">
-        <span class="referral-bonus-icon"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 20h10"/><path d="M10 20c5.5-2.5.8-6.4 3-10"/><path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z"/><path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z"/></svg></span>
-        <div class="referral-bonus-text">
-          <strong>${t('referral.bonusAmount', { seeds: REFERRAL_SIGNUP_REWARD }, "You'll both get {seeds} seeds")}</strong>
-          <span>${t('referral.bonusWhen', 'when they join!')}</span>
-        </div>
       </div>
 
       ${renderDraftField()}
@@ -174,16 +160,10 @@ function createModal(garden: GardenData): void {
         </button>
       </div>
 
-      <!-- Garden Stats (if they have referrals) -->
-      ${garden.totalReferrals > 0 || totalSeeds > 0 ? `
-        <div class="referral-garden">
-          <span class="referral-garden-title">${t('referral.garden.title', 'Your garden:')}</span>
-          <span class="referral-garden-stats">${t('referral.garden.friendsGrowing', { count: garden.totalReferrals }, '{count} friends growing')}</span>
-          ${totalSeeds > 0 ? `<span class="referral-garden-earned">${t('referral.garden.earned', { seeds: totalSeeds }, "You've earned {seeds} seeds from sharing")}</span>` : ''}
-        </div>
-      ` : `
-        <p class="referral-note">${t('referral.garden.empty', 'Seeds grow when shared. Start your garden today.')}</p>
-      `}
+      <!-- Friends who joined (no seeds: Seth, 2026-10-17 "cut seeds") -->
+      ${garden.totalReferrals > 0 ? `
+        <p class="referral-joined">${tp('referral.friendsJoined', garden.totalReferrals)}</p>
+      ` : ''}
     </div>
   `;
 
@@ -271,7 +251,7 @@ function handleSMSShare(): void {
 }
 
 /**
- * Track share events for analytics and potential bonus seeds
+ * Track share events for analytics
  */
 function trackShare(method: 'native' | 'copy' | 'email' | 'sms'): void {
   document.dispatchEvent(
@@ -480,54 +460,12 @@ function injectStyles(): void {
       height: 18px;
     }
 
-    .referral-note {
+    .referral-joined {
       font-size: var(--text-xs, 0.75rem);
       color: var(--color-text-muted, #a89b8c);
       margin: 0;
     }
 
-    /* Seeds Bonus Banner */
-    .referral-bonus {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: var(--space-3, 12px);
-      background: linear-gradient(135deg, var(--persona-tint, rgba(74, 103, 65, 0.1)), var(--persona-glow, rgba(74, 103, 65, 0.05)));
-      border: 1px solid var(--persona-primary, #4a6741);
-      border-radius: var(--radius-lg, 12px);
-      padding: var(--space-3, 12px) var(--space-4, 16px);
-      margin-bottom: var(--space-4, 16px);
-    }
-
-    .referral-bonus-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--persona-primary, #4a6741);
-    }
-    
-    .referral-bonus-icon svg {
-      width: 24px;
-      height: 24px;
-    }
-
-    .referral-bonus-text {
-      display: flex;
-      flex-direction: column;
-      text-align: left;
-    }
-
-    .referral-bonus-text strong {
-      color: var(--persona-primary, #4a6741);
-      font-size: var(--text-sm, 0.875rem);
-    }
-
-    .referral-bonus-text span {
-      color: var(--color-text-muted, #a89b8c);
-      font-size: var(--text-xs, 0.75rem);
-    }
-
-    /* Referral Link Display */
     .referral-link-container {
       display: flex;
       align-items: center;
@@ -545,33 +483,9 @@ function injectStyles(): void {
     }
 
     .referral-link-url {
-      color: var(--persona-primary, #4a6741);
+      color: var(--color-text-primary); /* persona green was 2.1:1 in midnight */
       font-weight: 500;
       font-family: var(--font-mono, monospace);
-    }
-
-    /* Garden Stats */
-    .referral-garden {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-1, 4px);
-      padding-top: var(--space-3, 12px);
-      border-top: 1px solid var(--color-border, rgba(0, 0, 0, 0.08));
-      font-size: var(--text-xs, 0.75rem);
-    }
-
-    .referral-garden-title {
-      color: var(--color-text-muted, #a89b8c);
-    }
-
-    .referral-garden-stats {
-      color: var(--color-text-primary, #2c2520);
-      font-weight: 500;
-    }
-
-    .referral-garden-earned {
-      color: var(--persona-primary, #4a6741);
     }
 
     /* Toast */

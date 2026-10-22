@@ -31,15 +31,4 @@ describe('initializeTeamHandlers', () => {
     expect(start).toHaveBeenCalledTimes(1);
     expect(warn).not.toHaveBeenCalled();
   });
-
-  it('ignores USE_NEW_TEAM_HANDLERS', async () => {
-    process.env.USE_NEW_TEAM_HANDLERS = 'true';
-    try {
-      await initializeTeamHandlers();
-    } finally {
-      delete process.env.USE_NEW_TEAM_HANDLERS;
-    }
-    expect(start).toHaveBeenCalledTimes(1);
-    expect(warn).not.toHaveBeenCalled();
-  });
 });

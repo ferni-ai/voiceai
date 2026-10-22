@@ -72,8 +72,6 @@ describe('firstTurnDeferEnabled', () => {
 
   it('is on only on the cascade path: the realtime models skip llmNode and CrisisGate', () => {
     expect(firstTurnDeferEnabled({ ...ON, VOICE_PIPELINE: 'cartesia-cascade' })).toBe(true);
-    // USE_OPENAI_REALTIME no longer selects a pipeline; VOICE_PIPELINE does.
-    expect(firstTurnDeferEnabled({ ...ON, USE_OPENAI_REALTIME: 'true' })).toBe(true);
     expect(firstTurnDeferEnabled({ ...ON, VOICE_PIPELINE: 'openai-realtime' })).toBe(false);
     expect(firstTurnDeferEnabled({ ...ON, VOICE_PIPELINE: 'gemini-live' })).toBe(false);
     expect(firstTurnDeferEnabled({ ...ON, VOICE_PIPELINE: 'gemini-native-audio' })).toBe(false);

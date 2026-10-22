@@ -61,6 +61,11 @@ const PROJECT_ROOT =
 // Load .env file from project root
 dotenvConfig({ path: join(PROJECT_ROOT, '.env'), quiet: true });
 const GCP_PROJECT = 'johnb-2025';
+/** The Firestore database the console links open; the console spells (default) as -default-. */
+const FIRESTORE_CONSOLE_DB = (process.env.FIRESTORE_DATABASE || '(default)').replace(
+  '(default)',
+  '-default-'
+);
 const GCP_REGION = 'us-central1';
 
 // Cloud Run services. The voice agent is a LiveKit Cloud agent (LIVEKIT_AGENTS), not Cloud Run.
@@ -596,7 +601,7 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['list', 'search', 'show', 'groups', 'needing-attention'],
     examples: [
       'ferni contacts list',
-      'ferni contacts search "mom"',
+      'ferni contacts search "Sam"',
       'ferni contacts show "Jordan"',
       'ferni contacts needing-attention',
     ],
@@ -609,7 +614,7 @@ const COMMANDS: Record<string, CliCommand> = {
     subcommands: ['call', 'message', 'reminder', 'list', 'cancel'],
     examples: [
       'ferni schedule call "Jordan" "tomorrow 3pm" --reason "birthday"',
-      'ferni schedule message "mom" "8am" --message "Good morning!"',
+      'ferni schedule message "Sam" "8am" --message "Good morning!"',
       'ferni schedule reminder "Take vitamins" "every day 9am"',
       'ferni schedule list',
     ],
@@ -637,7 +642,7 @@ const COMMANDS: Record<string, CliCommand> = {
       'ferni family checkin',
       'ferni family status',
       'ferni family summary',
-      'ferni family message "mom" "Hi!"',
+      'ferni family message "Sam" "Hi!"',
     ],
   },
   brain: {
@@ -763,7 +768,7 @@ const COMMANDS: Record<string, CliCommand> = {
     examples: [
       'ferni call "Jordan"',
       'ferni call +14845551234 --reason "checking in"',
-      'ferni call mom --message "Hi mom!"',
+      'ferni call Sam --message "Hi Sam!"',
     ],
   },
   calls: {
@@ -2109,7 +2114,7 @@ async function handleDb(args: string[]): Promise<void> {
     }
     console.log();
     log.info(
-      `View in console: https://console.cloud.google.com/firestore/databases/-default-/data?project=${GCP_PROJECT}`
+      `View in console: https://console.cloud.google.com/firestore/databases/${FIRESTORE_CONSOLE_DB}/data?project=${GCP_PROJECT}`
     );
   }
 
@@ -2146,7 +2151,7 @@ async function handleDb(args: string[]): Promise<void> {
     log.info('Interactive query mode not yet implemented.');
     log.step('Use Firebase console for queries:');
     console.log(
-      `\n  ${colors.cyan}https://console.cloud.google.com/firestore/databases/-default-/data?project=${GCP_PROJECT}${colors.reset}\n`
+      `\n  ${colors.cyan}https://console.cloud.google.com/firestore/databases/${FIRESTORE_CONSOLE_DB}/data?project=${GCP_PROJECT}${colors.reset}\n`
     );
   }
 }
@@ -5011,9 +5016,6 @@ async function handleCalls(args: string[]): Promise<void> {
     console.log(`  ${colors.cyan}ferni calls test <phone>${colors.reset}     - Test outbound call`);
     console.log(`  ${colors.cyan}ferni calls status <id>${colors.reset}      - Check call status`);
     console.log(
-      `  ${colors.cyan}ferni calls family <name>${colors.reset}    - Call family member (mom, edison, annette)`
-    );
-    console.log(
       `  ${colors.cyan}ferni calls invite <email>${colors.reset}   - Send Ferni invite call`
     );
     console.log(
@@ -5040,30 +5042,6 @@ async function handleCalls(args: string[]): Promise<void> {
     }
     console.log(`${colors.cyan}Checking call status...${colors.reset}\n`);
     runArgv(argv`npx tsx ${scriptsDir}/check-call-status.ts --call=${callId}`);
-  }
-
-  if (subcommand === 'family') {
-    const member = args[1]?.toLowerCase();
-    if (!member) {
-      log.error('Family member required. Usage: ferni calls family mom');
-      return;
-    }
-
-    const familyScripts: Record<string, string> = {
-      mom: 'call-mom-betty.ts',
-      betty: 'call-mom-betty.ts',
-      edison: 'call-edison.ts',
-      annette: 'call-annette.ts',
-    };
-
-    const script = familyScripts[member];
-    if (!script) {
-      log.error(`Unknown family member: ${member}. Available: mom, edison, annette`);
-      return;
-    }
-
-    console.log(`${colors.cyan}Calling ${member}...${colors.reset}\n`);
-    spawnSync('sh', ['-c', `npx tsx ${scriptsDir}/${script}`], { stdio: 'inherit' });
   }
 
   if (subcommand === 'invite') {

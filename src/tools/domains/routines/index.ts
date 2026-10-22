@@ -192,7 +192,7 @@ async function createRoutineFromVoice(
       variables: {},
       category: 'custom',
       tags: ['voice-created'],
-      icon: '✨',
+      icon: 'sparkles',
       isTemplate: false,
     });
 

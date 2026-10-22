@@ -1,0 +1,55 @@
+name: Required Check Backfill
+
+# A check made required after a PR's last push never runs on it, so an armed PR
+# sits BLOCKED with all green and never enters the queue (2026-10-18: "Menu E2E"
+# went required and stranded every older armed PR). This updates those branches,
+# a few per run (scripts/ci/required-check-backfill.sh).
+#
+# Token: the branch update must come from CI_BOT_TOKEN (or BLOG_PR_TOKEN, the
+# same fine-grained Contents + Pull requests write token). A merge pushed with
+# GITHUB_TOKEN starts no workflows, so the PR would lose every check instead of
+# gaining one; without either secret the job fails rather than doing that.
+on:
+  schedule:
+    - cron: '23,53 * * * *'
+  workflow_dispatch:
+    inputs:
+      max:
+        description: 'Update at most this many PRs'
+        default: '5'
+      dry_run:
+        description: 'List only'
+        type: boolean
+        default: false
+
+concurrency:
+  group: required-check-backfill
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    name: Backfill missing required checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/ci
+      - name: Update armed PRs that are missing a required check
+        env:
+          GH_TOKEN: ${{ secrets.CI_BOT_TOKEN || secrets.BLOG_PR_TOKEN }}
+          MAX: ${{ inputs.max || '5' }}
+          DRY_RUN: ${{ inputs.dry_run == true }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::No CI_BOT_TOKEN or BLOG_PR_TOKEN secret (see the workflow header)."
+            exit 1
+          fi
+          if [ "$DRY_RUN" = true ]; then
+            scripts/ci/required-check-backfill.sh --dry-run
+          else
+            scripts/ci/required-check-backfill.sh
+          fi

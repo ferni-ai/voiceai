@@ -96,7 +96,7 @@ const trackCommitmentDef: ToolDefinition = {
 
         try {
           const importanceToWeight = { low: 0.3, medium: 0.6, high: 0.9 };
-          const { commitment } = await saveCommitment({
+          const { commitment, notActionable } = await saveCommitment({
             userId: ctx.userId,
             type: type as CommitmentType,
             statement: summary,
@@ -113,7 +113,7 @@ const trackCommitmentDef: ToolDefinition = {
             followUpCount: 0,
             topic: context,
           });
-
+          if (notActionable) return 'Not tracked: that is a goodbye or a pleasantry.';
           let response = `**Got it. I'll remember this.** ✓\n\n`;
           response += `**Commitment:** ${summary}\n`;
           response += `**Type:** ${type}\n`;

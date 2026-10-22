@@ -26,12 +26,51 @@ import { getLogger } from '../../utils/safe-logger.js';
 import {
   parseBody,
   sendJson,
-  getPublisher,
+  requirePublisher,
   validateToolManifest,
   validateAgentManifest,
+  type PublisherSession,
 } from './helpers.js';
 
 const log = getLogger().child({ module: 'marketplace-publisher-routes' });
+
+/**
+ * Overwrite the fields a publisher may not choose: who published the item
+ * (from their verified record) and its review state. Only the admin review
+ * paths mark an item verified; any publisher write starts it unreviewed.
+ */
+function stampServerFields(
+  manifest: ToolManifest | AgentManifest,
+  publisher: PublisherSession
+): void {
+  manifest.publisher = {
+    ...manifest.publisher,
+    id: publisher.publisherId,
+    name: publisher.publisherName,
+    email: publisher.email,
+    verified: publisher.verified,
+  };
+  const trustLevel: TrustLevel = publisher.verified ? 'community' : 'unverified';
+  const signature = manifest.verification?.signature;
+  manifest.verification = { trustLevel, verified: false, ...(signature ? { signature } : {}) };
+}
+
+/**
+ * Whether another publisher owns this id in EITHER store. Tools and agents
+ * share an id space here: owning tool X must not let a publisher write agent X.
+ */
+function ownedByAnother(id: string, publisherId: string): boolean {
+  return [getTool(id), getAgent(id)].some((item) => item && item.publisher.id !== publisherId);
+}
+
+function register(
+  type: 'tool' | 'agent',
+  manifest: ToolManifest | AgentManifest
+): { success: boolean; error?: string; validationErrors?: string[] } {
+  return type === 'tool'
+    ? registerTool(manifest as ToolManifest)
+    : registerAgent(manifest as AgentManifest);
+}
 
 /**
  * Handle publisher routes
@@ -47,11 +86,8 @@ export async function handlePublisherRoutes(
 
   // POST /api/marketplace/publisher/submit - Submit a new tool/agent
   if (pathname === '/api/marketplace/publisher/submit' && method === 'POST') {
-    const publisher = getPublisher(req);
-    if (!publisher) {
-      sendJson(res, 401, { error: 'Publisher authentication required' });
-      return true;
-    }
+    const publisher = await requirePublisher(req, res);
+    if (!publisher) return true;
 
     try {
       const body = await parseBody<{
@@ -78,17 +114,21 @@ export async function handlePublisherRoutes(
         return true;
       }
 
-      const trustLevel: TrustLevel = publisher.verified ? 'community' : 'unverified';
-      body.manifest.verification = {
-        ...body.manifest.verification,
-        trustLevel,
-        verified: false,
-      };
+      // An id already taken by another publisher is theirs, not a new submission
+      if (ownedByAnother(body.manifest.id, publisher.publisherId)) {
+        sendJson(res, 403, { success: false, error: 'Not authorized to update this item' });
+        return true;
+      }
 
-      if (body.type === 'tool') {
-        registerTool(body.manifest as ToolManifest);
-      } else {
-        registerAgent(body.manifest as AgentManifest);
+      stampServerFields(body.manifest, publisher);
+      const registered = register(body.type, body.manifest);
+      if (!registered.success) {
+        sendJson(res, 400, {
+          success: false,
+          error: registered.error,
+          validationErrors: registered.validationErrors,
+        });
+        return true;
       }
 
       const submission = await submitForReview(publisher.publisherId, body.manifest.id, body.type);
@@ -118,11 +158,8 @@ export async function handlePublisherRoutes(
 
   // GET /api/marketplace/publisher/items - List publisher's items
   if (pathname === '/api/marketplace/publisher/items' && method === 'GET') {
-    const publisher = getPublisher(req);
-    if (!publisher) {
-      sendJson(res, 401, { error: 'Publisher authentication required' });
-      return true;
-    }
+    const publisher = await requirePublisher(req, res);
+    if (!publisher) return true;
 
     try {
       const tools = listTools().filter((t) => t.publisher.id === publisher.publisherId);
@@ -149,11 +186,8 @@ export async function handlePublisherRoutes(
 
   // GET /api/marketplace/publisher/profile - Get publisher profile
   if (pathname === '/api/marketplace/publisher/profile' && method === 'GET') {
-    const publisher = getPublisher(req);
-    if (!publisher) {
-      sendJson(res, 401, { error: 'Publisher authentication required' });
-      return true;
-    }
+    const publisher = await requirePublisher(req, res);
+    if (!publisher) return true;
 
     try {
       const tools = listTools().filter((t) => t.publisher.id === publisher.publisherId);
@@ -181,11 +215,8 @@ export async function handlePublisherRoutes(
 
   // GET /api/marketplace/publisher/:id/analytics - Get item analytics
   if (pathname.match(/^\/api\/marketplace\/publisher\/[^/]+\/analytics$/) && method === 'GET') {
-    const publisher = getPublisher(req);
-    if (!publisher) {
-      sendJson(res, 401, { error: 'Publisher authentication required' });
-      return true;
-    }
+    const publisher = await requirePublisher(req, res);
+    if (!publisher) return true;
 
     const itemId = pathname.split('/')[4];
 
@@ -257,11 +288,8 @@ export async function handlePublisherRoutes(
 
   // PUT /api/marketplace/publisher/:id - Update submission
   if (pathname.match(/^\/api\/marketplace\/publisher\/[^/]+$/) && method === 'PUT') {
-    const publisher = getPublisher(req);
-    if (!publisher) {
-      sendJson(res, 401, { error: 'Publisher authentication required' });
-      return true;
-    }
+    const publisher = await requirePublisher(req, res);
+    if (!publisher) return true;
 
     const itemId = pathname.split('/')[4];
 
@@ -277,7 +305,7 @@ export async function handlePublisherRoutes(
         return true;
       }
 
-      if (existing.publisher.id !== publisher.publisherId) {
+      if (ownedByAnother(itemId, publisher.publisherId)) {
         sendJson(res, 403, { success: false, error: 'Not authorized to update this item' });
         return true;
       }
@@ -296,16 +324,29 @@ export async function handlePublisherRoutes(
         return true;
       }
 
-      if (body.type === 'tool') {
-        registerTool(body.manifest as ToolManifest);
-      } else {
-        registerAgent(body.manifest as AgentManifest);
+      if (body.manifest.id !== itemId) {
+        sendJson(res, 400, { success: false, error: 'Manifest id does not match the item' });
+        return true;
       }
+
+      stampServerFields(body.manifest, publisher);
+      const registered = register(body.type, body.manifest);
+      if (!registered.success) {
+        sendJson(res, 400, {
+          success: false,
+          error: registered.error,
+          validationErrors: registered.validationErrors,
+        });
+        return true;
+      }
+
+      // New content is unreviewed: a fresh submission replaces any open one
+      await submitForReview(publisher.publisherId, itemId, body.type);
 
       sendJson(res, 200, {
         success: true,
         itemId,
-        status: existing.verification.verified ? 'approved' : 'pending_review',
+        status: 'pending_review',
       });
       return true;
     } catch (error) {
@@ -317,11 +358,8 @@ export async function handlePublisherRoutes(
 
   // DELETE /api/marketplace/publisher/:id - Delete submission
   if (pathname.match(/^\/api\/marketplace\/publisher\/[^/]+$/) && method === 'DELETE') {
-    const publisher = getPublisher(req);
-    if (!publisher) {
-      sendJson(res, 401, { error: 'Publisher authentication required' });
-      return true;
-    }
+    const publisher = await requirePublisher(req, res);
+    if (!publisher) return true;
 
     const itemId = pathname.split('/')[4];
 
@@ -355,11 +393,8 @@ export async function handlePublisherRoutes(
 
   // GET /api/marketplace/review/status/:id - Check review status
   if (pathname.match(/^\/api\/marketplace\/review\/status\/[^/]+$/) && method === 'GET') {
-    const publisher = getPublisher(req);
-    if (!publisher) {
-      sendJson(res, 401, { error: 'Publisher authentication required' });
-      return true;
-    }
+    const publisher = await requirePublisher(req, res);
+    if (!publisher) return true;
 
     const itemId = pathname.split('/')[5];
 

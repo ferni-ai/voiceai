@@ -16,7 +16,7 @@ import { PassThrough } from 'stream';
 import type { IncomingMessage, ServerResponse } from 'http';
 
 const data = vi.hoisted(() => ({
-  deleteUserTokens: vi.fn(),
+  disconnectGoogleCalendar: vi.fn(),
   updateSelectedCalendars: vi.fn(),
   resolveConflict: vi.fn(),
   autoResolveConflicts: vi.fn(),
@@ -29,7 +29,9 @@ const data = vi.hoisted(() => ({
 
 vi.mock('../../services/identity/google-calendar-oauth.js', () => ({
   isCalendarConfigured: vi.fn(() => true),
-  deleteUserTokens: data.deleteUserTokens,
+}));
+vi.mock('../../services/identity/google-calendar-disconnect.js', () => ({
+  disconnectGoogleCalendar: data.disconnectGoogleCalendar,
 }));
 vi.mock('../../services/calendar/webhooks/google-webhook.js', () => ({
   stopAllUserChannels: vi.fn(),
@@ -132,7 +134,7 @@ const WRITES = [
     method: 'POST',
     path: '/api/calendar/disconnect',
     body: {},
-    spy: data.deleteUserTokens,
+    spy: data.disconnectGoogleCalendar,
   },
   {
     name: 'calendar selection (selection handler)',
@@ -194,7 +196,7 @@ function calledFor(userId: string): boolean {
 describe('calendar writes act only on the verified caller', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    data.deleteUserTokens.mockResolvedValue(undefined);
+    data.disconnectGoogleCalendar.mockResolvedValue({ revoked: true });
     data.updateSelectedCalendars.mockResolvedValue({ success: true, calendars: [] });
     data.resolveConflict.mockResolvedValue({ success: true });
     data.autoResolveConflicts.mockResolvedValue({ resolved: 0 });
@@ -255,7 +257,14 @@ describe('calendar writes act only on the verified caller', () => {
     );
 
     expect(status).toBe(200);
-    expect(data.deleteUserTokens).toHaveBeenCalledWith('bob');
+    expect(data.disconnectGoogleCalendar).toHaveBeenCalledWith('bob');
+  });
+
+  it('a disconnect that fails answers 500, not success', async () => {
+    data.disconnectGoogleCalendar.mockRejectedValueOnce(new Error('read failed'));
+    const { status, body } = await call('POST', '/api/calendar/disconnect', {}, 'alice');
+    expect(status).toBe(500);
+    expect(body.success).not.toBe(true);
   });
 
   it('the Outlook callback no longer takes the user from ?state=', async () => {

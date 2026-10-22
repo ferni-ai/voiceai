@@ -1,6 +1,6 @@
 /**
- * setReminder picks a channel it can actually reach: a text when the user's
- * phone is on file, otherwise the app. It used to default to SMS and refuse
+ * setReminder picks a channel it can actually reach: a text when the account
+ * has a verified phone, otherwise the app. It used to default to SMS and refuse
  * ("I need your phone number") for anyone without a phone on file.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -58,6 +58,7 @@ vi.mock('../../personas/voice-registry.js', () => ({
 }));
 
 import { createCommunicationTools } from '../domains/communication/communication-tools.js';
+import { setCallUserPort } from '../domains/proactive/outreach/call-user-port.js';
 
 type SetReminder = {
   execute: (args: Record<string, unknown>, opts: { ctx: unknown }) => Promise<string>;
@@ -66,7 +67,10 @@ const setReminder = () =>
   (createCommunicationTools() as unknown as { setReminder: SetReminder }).setReminder;
 
 describe('setReminder channel choice', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    setCallUserPort(undefined);
+  });
 
   it('reminds in the app when no phone is on file', async () => {
     const reply = await setReminder().execute(
@@ -80,17 +84,18 @@ describe('setReminder channel choice', () => {
     expect(reply).not.toMatch(/phone number/);
   });
 
-  it("texts when the user's phone is on file", async () => {
+  it("texts when the account's verified phone is on file (#2198: never the model-written profile)", async () => {
+    setCallUserPort({ verifiedPhone: async () => '555-123-4567', call: vi.fn() });
     await setReminder().execute(
       { message: 'call mom', when: 'tomorrow at 9am' },
-      {
-        ctx: {
-          userData: { userId: 'u1', userProfile: { contactInfo: { phone: '555-123-4567' } } },
-        },
-      }
+      { ctx: { userData: { userId: 'u1' } } }
     );
     expect(mockCreateReminder).toHaveBeenCalledWith(
-      expect.objectContaining({ deliveryMethod: 'sms', deliveryAddress: '+15551234567' })
+      expect.objectContaining({
+        deliveryMethod: 'sms',
+        deliveryAddress: '+15551234567',
+        addressSource: 'verified-own',
+      })
     );
   });
 

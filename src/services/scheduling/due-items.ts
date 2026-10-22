@@ -32,6 +32,8 @@ export interface ClaimResult {
   due: number;
   claimed: DueItem[];
   late: number;
+  /** The items marked late (none on a dry run), so a job can report each one. */
+  lateItems: DueItem[];
   /** Claimed by another run first. */
   skipped: number;
 }
@@ -67,7 +69,13 @@ export async function claimDueItems(db: Firestore, opts: ClaimOptions): Promise<
     .limit(opts.limit ?? 50)
     .get();
 
-  const result: ClaimResult = { due: snapshot.size, claimed: [], late: 0, skipped: 0 };
+  const result: ClaimResult = {
+    due: snapshot.size,
+    claimed: [],
+    late: 0,
+    lateItems: [],
+    skipped: 0,
+  };
   for (const doc of snapshot.docs) {
     const owner = doc.ref.parent.parent?.id;
     if (!owner) continue; // not under bogle_users/{uid}
@@ -98,8 +106,10 @@ export async function claimDueItems(db: Firestore, opts: ClaimOptions): Promise<
       return late ? 'late' : 'claimed';
     });
     if (outcome === 'skipped') result.skipped++;
-    else if (outcome === 'late') result.late++;
-    else result.claimed.push(item);
+    else if (outcome === 'late') {
+      result.late++;
+      result.lateItems.push(item);
+    } else result.claimed.push(item);
   }
   return result;
 }

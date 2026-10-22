@@ -23,6 +23,12 @@ vi.mock('../auth-middleware.js', async (importOriginal) => ({
   requireAuth,
 }));
 
+// The panel's channel switches are also saved to messagingPrefs (messaging-prefs-route.test.ts).
+const writePrefs = vi.fn(async () => undefined);
+vi.mock('../../services/messaging/prefs.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../services/messaging/prefs.js')>()),
+  writePrefs,
+}));
 vi.mock('../../services/identity/firebase-auth.js', () => ({ getFirebaseUser: async () => fb }));
 vi.mock('../../services/superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
 
@@ -105,6 +111,30 @@ describe('outreach consent routes', () => {
       expect.objectContaining({ channels: ['sms'] }),
       how
     );
+    expect(writePrefs).toHaveBeenCalledWith(
+      'u1',
+      { channels: { sms: true, email: false } },
+      'panel'
+    );
+  });
+
+  it('refuses turning texts on without the current disclosure version, and saves nothing', async () => {
+    for (const disclosureVersion of [undefined, '2025-01-01']) {
+      const res = await call('POST', '/preferences', {
+        preferences: { allowedChannels: ['sms'], disclosureVersion },
+      });
+      expect(res.status).toBe(409);
+      expect(((await res.json()) as { error: string }).error).toMatch(/refresh the page/i);
+    }
+    expect(writeOutreachConsent).not.toHaveBeenCalled();
+    // Calls alone, and texts already on, don't need it.
+    expect(
+      (await call('POST', '/preferences', { preferences: { allowedChannels: ['call'] } })).status
+    ).toBe(200);
+    readOutreachConsent.mockResolvedValueOnce({ enabled: true, channels: ['sms'] });
+    expect(
+      (await call('POST', '/preferences', { preferences: { allowedChannels: ['sms'] } })).status
+    ).toBe(200);
   });
 
   it('refuses turning texts on without the current disclosure version, and saves nothing', async () => {

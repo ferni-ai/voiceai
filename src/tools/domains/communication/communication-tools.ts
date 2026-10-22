@@ -59,6 +59,7 @@ const CARTESIA_API_KEY = process.env.CARTESIA_API_KEY || '';
 // Import voice registry for consistent voice ID resolution
 import { getVoiceId } from '../../../personas/voice-registry.js';
 import { getToolDescription } from '../../utils/tool-descriptions.js';
+import { getCallUserPort } from '../proactive/outreach/call-user-port.js';
 // Get Alex's voice ID from the registry (single source of truth)
 const getAlexVoiceId = () => getVoiceId('alex-chen');
 
@@ -310,6 +311,8 @@ async function scheduleReminderReal(params: {
   when: string;
   deliveryMethod?: ReminderDeliveryMethod;
   contact?: string;
+  /** 'verified-own': contact is the account's verified phone or email (guarded delivery). */
+  addressSource?: 'verified-own';
   timezone?: string;
 }): Promise<string> {
   const scheduledFor = parseNaturalTime(params.when, params.timezone ?? userTimeZone(params));
@@ -325,7 +328,7 @@ async function scheduleReminderReal(params: {
     params.deliveryMethod !== 'in_app'
   ) {
     if (!params.contact) {
-      return `I need your ${params.deliveryMethod === 'email' ? 'email address' : 'phone number'} to send that reminder. What should I use?`;
+      return `I can't ${params.deliveryMethod === 'email' ? 'email' : 'text'} you that one: there's no verified ${params.deliveryMethod === 'email' ? 'email address' : 'phone number'} on your account. I can remind you in the Ferni app instead.`;
     }
   }
 
@@ -359,6 +362,7 @@ async function scheduleReminderReal(params: {
       timezone: params.timezone ?? userTimeZone(params) ?? 'Etc/UTC',
       deliveryMethod,
       deliveryAddress,
+      addressSource: params.addressSource,
       createdBy: 'alex',
     });
     const promises =
@@ -563,30 +567,24 @@ export function createCommunicationTools() {
           .describe(
             'How to deliver: in_app, sms, email, call, or voice_message. Leave out unless the user asked for one: it texts them if their phone is on file, otherwise reminds them in the app.'
           ),
-        contact: z.string().optional().describe('Phone number or email for delivery'),
       }),
-      execute: async ({ message, when, deliveryMethod, contact }, { ctx }) => {
-        const userData = ctx?.userData as
-          | { userId?: string; userProfile?: { contactInfo?: { phone?: string; email?: string } } }
-          | undefined;
-        const userId = userData?.userId || 'unknown';
-
-        // Try to get contact from user profile if not provided
-        let contactToUse = contact;
-        if (!contactToUse && userData?.userProfile?.contactInfo) {
-          if (deliveryMethod === 'email') {
-            contactToUse = userData.userProfile.contactInfo.email;
-          } else {
-            contactToUse = userData.userProfile.contactInfo.phone;
-          }
-        }
-
+      execute: async ({ message, when, deliveryMethod }, { ctx }) => {
+        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId || 'unknown';
+        // Only the account's verified phone or email (call-user port): never a number the
+        // model passes, never the model-written profile.contactInfo.
+        const port = getCallUserPort();
+        const contact =
+          deliveryMethod === 'email'
+            ? await port?.verifiedEmail?.(userId)
+            : await port?.verifiedPhone(userId);
+        const addressSource = contact ? ('verified-own' as const) : undefined;
         return scheduleReminderReal({
           userId,
           message,
           when,
           deliveryMethod,
-          contact: contactToUse,
+          contact,
+          addressSource,
         });
       },
     }),
@@ -801,10 +799,9 @@ export function createCommunicationTools() {
           minute: '2-digit',
         });
 
-        const userData = ctx?.userData as
-          { userId?: string; userProfile?: { contactInfo?: { phone?: string } } } | undefined;
-        const userId = userData?.userId || 'unknown';
-        const userPhone = userData?.userProfile?.contactInfo?.phone;
+        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId || 'unknown';
+        // The verified phone only, never the model-written profile.contactInfo.phone.
+        const userPhone = await getCallUserPort()?.verifiedPhone(userId);
 
         if (userPhone) {
           const reminderTime = new Date(scheduledTime.getTime() - 15 * 60000); // 15 min before
@@ -814,6 +811,7 @@ export function createCommunicationTools() {
             scheduledFor: reminderTime,
             deliveryMethod: 'sms',
             deliveryAddress: userPhone,
+            addressSource: 'verified-own',
             createdBy: 'alex',
           });
           // "I'll remind you 15 minutes before!" is a promise: the delivery job keeps or misses it.

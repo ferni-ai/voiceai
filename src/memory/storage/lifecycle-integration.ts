@@ -19,6 +19,7 @@ import { getMemoryConsolidator, type ConsolidatedMemory } from '../memory-consol
 import { getMemoryDecayManager } from '../memory-decay.js';
 import { getMemoryGraph, type MemoryLink } from '../memory-graph.js';
 import { getProtectionEngine } from '../operations/protection-engine.js';
+import { memoryReadFailed } from './memory-read-error.js';
 
 const log = createLogger({ module: 'LifecycleIntegration' });
 
@@ -67,9 +68,7 @@ export interface StoredMemoryDocument {
 // STORAGE OPERATIONS
 // ============================================================================
 
-/**
- * Get all memories for a user from Firestore
- */
+/** A user's memories. A failed read throws MemoryReadError; it never returns []. */
 export async function getUserMemories(userId: string): Promise<MemoryItem[]> {
   const db = getFirestoreDb();
   if (!db) {
@@ -98,8 +97,8 @@ export async function getUserMemories(userId: string): Promise<MemoryItem[]> {
     log.debug({ userId, count: memories.length }, 'Loaded user memories');
     return memories;
   } catch (error) {
-    log.error({ error: String(error), userId }, 'Failed to load user memories');
-    return [];
+    // Never return [] here: a failed read must not pass for "no memories".
+    throw memoryReadFailed(error, userId);
   }
 }
 

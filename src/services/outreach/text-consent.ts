@@ -1,41 +1,78 @@
 /**
- * Whose consent covers a text to a member (sendGuardedText): texts turned off
- * in settings or by STOP, and consent given on a call, which covers only texts
- * the member asked for (outreach-consent.ts recordVoiceSmsConsent).
+ * The guarded sender's STOP check (guarded-text.ts): may this phone be texted?
+ *
+ * An inbound STOP, REVOKE or OPT OUT is recorded in two stores, keyed by the
+ * same phoneHash: consent/{phoneHash} (messaging/consent.ts) and the older
+ * feature_checkin_optouts. Both are read on every send, and a stop in EITHER
+ * refuses: an "opted-in" in one never outweighs an opt-out in the other. Until
+ * 2026-10-21 only the old store was read here, so a "revoke" or "opt out"
+ * (written to consent/ only) did not stop check-ins, reminders, the brief or
+ * texts to third parties. Honouring a revocation is the law (TCPA), so no
+ * feature flag gates it. The one switch that skips it is ON_BEHALF_TEXT_GUARD=off,
+ * the rollback-only kill switch that makes textOnBehalf bypass sendOnBehalfText
+ * (and so every guard) for third-party texts.
+ *
+ * A possible opt-out ("please cancel", sms-keywords.ts) pauses texts to that
+ * phone for up to 7 days (consent/{hash}.smsPause): every text is refused
+ * ('paused') except one the owner asked for just now.
+ *
+ * Fails closed. If a store can't be read within CONSENT_READ_TIMEOUT_MS, the
+ * text is not sent, with one exception: a text the owner asked for just now in
+ * a call ("text me that", askedNow) to their own verified number may go when
+ * the old store was read and has no STOP. They are on the line asking for it,
+ * which is fresh consent for that one text, and a STOP already in the old store
+ * still refuses it. A proactive text or one to someone else never goes on an
+ * unread record.
  *
  * @module services/outreach/text-consent
  */
+import { withTimeout } from '../../utils/async.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { channelOf, firestoreConsentStore, smsPaused } from '../messaging/consent.js';
 
-/** The member explicitly turned texts off, in outreach settings or by a STOP to the webhook. */
-export function smsTurnedOff(
-  userDoc: Record<string, unknown> | undefined,
-  legacyChannels: unknown
-): boolean {
-  const prefs = (userDoc?.outreachPreferences ?? {}) as { enabled?: unknown; channels?: unknown };
-  return prefs.enabled === false || withoutSms(prefs.channels) || withoutSms(legacyChannels);
+const log = createLogger({ module: 'text-consent' });
+
+/** A Firestore point read takes milliseconds; past this, the record counts as unread. */
+export const CONSENT_READ_TIMEOUT_MS = 3000;
+
+export interface TextConsentReaders {
+  /** feature_checkin_optouts/{hash} exists: a STOP on record in the old store. */
+  isOptedOut: (hash: string) => Promise<boolean>;
+  /** consent/{hash}, or undefined when there is none. */
+  consentDoc: (hash: string) => Promise<Record<string, unknown> | undefined>;
 }
-const withoutSms = (c: unknown): boolean => Array.isArray(c) && !c.includes('sms');
+
+/** consent/{hash} from Firestore (guarded-text's store). */
+export const readConsentDoc = async (hash: string): Promise<Record<string, unknown> | undefined> =>
+  firestoreConsentStore.read(hash);
+
+/** Why a text was refused: an opt-out on record, a record that couldn't be read, or a pause. */
+export type ConsentRefusal = 'opted-out' | 'consent-unknown' | 'paused';
 
 /**
- * Why consent doesn't cover this text, or null. Consent given on a call (scope
- * 'requested') covers only texts the member asked for, even with texts off in
- * settings; any other text needs texts on (or never set) in settings.
+ * Null when `hash` may be texted, else why not. `askedNow`: the owner asked
+ * for this text in the call (see the module comment). Never throws.
  */
-export function consentSkip(
-  userDoc: Record<string, unknown> | undefined,
-  legacyChannels: unknown,
-  requested: boolean
-): 'sms-off' | 'no-consent' | null {
-  const prefs = (userDoc?.outreachPreferences ?? {}) as {
-    enabled?: unknown;
-    channels?: unknown;
-    smsConsent?: { scope?: unknown; revokedAt?: unknown };
-  };
-  const voiceOnly = prefs.smsConsent?.scope === 'requested' && !prefs.smsConsent.revokedAt;
-  if (voiceOnly && requested) {
-    return prefs.enabled === false || withoutSms(legacyChannels) ? 'sms-off' : null;
+export async function smsConsentRefusal(
+  hash: string,
+  readers: TextConsentReaders,
+  askedNow: boolean,
+  now: Date,
+  timeoutMs: number = CONSENT_READ_TIMEOUT_MS
+): Promise<ConsentRefusal | null> {
+  const [old, current] = await Promise.allSettled([
+    withTimeout(readers.isOptedOut(hash), timeoutMs, 'feature_checkin_optouts read'),
+    withTimeout(readers.consentDoc(hash), timeoutMs, 'consent read'),
+  ]);
+  const oldStop = old.status === 'fulfilled' && old.value;
+  const stop =
+    current.status === 'fulfilled' && channelOf(current.value?.sms).state === 'opted-out';
+  if (oldStop || stop) return 'opted-out';
+  if (old.status === 'fulfilled' && current.status === 'fulfilled') {
+    return smsPaused(current.value, now) && !askedNow ? 'paused' : null;
   }
-  if (smsTurnedOff(userDoc, legacyChannels)) return 'sms-off';
-  const webSms = Array.isArray(prefs.channels) && prefs.channels.includes('sms');
-  return voiceOnly && !webSms ? 'no-consent' : null;
+  const unread = [old, current].flatMap((r) => (r.status === 'rejected' ? [String(r.reason)] : []));
+  const allowed = askedNow && old.status === 'fulfilled';
+  log.warn({ error: unread.join('; '), askedNow, sending: allowed }, 'Text opt-out not readable');
+  return allowed ? null : 'consent-unknown';
 }

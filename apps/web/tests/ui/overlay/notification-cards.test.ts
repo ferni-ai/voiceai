@@ -7,6 +7,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { TOAST_REGION_STORAGE_KEY } from '../../../src/ui/overlay/toast-flag';
 
 vi.mock('@/services/modal-coordinator.service.js', () => ({
   modalCoordinator: { hasMinimumConversations: () => true, isConversationActive: () => false },
@@ -106,7 +107,8 @@ describe('toast region: cards', () => {
 });
 
 describe('NotificationsUI', () => {
-  it('keeps its own card when the flag is off', () => {
+  it('keeps its own card with the toast kill switch set', () => {
+    localStorage.setItem(TOAST_REGION_STORAGE_KEY, 'off'); // the kill switch: old per-surface toasts
     new NotificationsUI().show({
       id: 'n1',
       type: 'ritual_reminder',

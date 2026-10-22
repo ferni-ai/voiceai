@@ -22,7 +22,11 @@ const clockTime = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/, 'local time as YYYY-MM-DDTHH:MM');
 
+// Per the OpenAPI spec (FareSearchResponseModel, ItineraryModel, LegModel,
+// SegmentModel): carrier, duration and the segment carrier names may be null.
 const segmentSchema = z.object({
+  marketing_carrier_code: z.string().nullish(),
+  operating_carrier_name: z.string().nullish(),
   departure_airport: z.string(),
   arrival_airport: z.string(),
   departure_time_local: clockTime,
@@ -30,20 +34,21 @@ const segmentSchema = z.object({
 });
 
 const itinerarySchema = z.object({
-  ignav_id: z.string().optional(),
+  ignav_id: z.string(),
   price: z.object({ amount: z.number(), currency: z.string() }),
   outbound: z.object({
-    carrier: z.string(),
-    duration_minutes: z.number(),
+    carrier: z.string().nullish(),
+    duration_minutes: z.number().int().nullish(),
     segments: z.array(segmentSchema).min(1),
   }),
 });
 
-const searchResponseSchema = z.object({
-  itineraries: z.array(itinerarySchema),
-});
-
 type Itinerary = z.infer<typeof itinerarySchema>;
+
+// Each itinerary is parsed on its own, so one malformed option drops only itself.
+const searchResponseSchema = z.object({
+  itineraries: z.array(z.unknown()),
+});
 
 /** 401 and 403 are a refused key; 402 is billing that has stopped the account. */
 function refusedStatus(status: number): boolean {
@@ -62,16 +67,27 @@ function durationLabel(minutes: number): string {
   return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
 }
 
-function toFlightResult(itinerary: Itinerary, index: number, query: FlightQuery): FlightResult {
-  const { segments } = itinerary.outbound;
+/** The carrier the caller hears: the leg's carrier, else the first segment's. */
+function airlineName(itinerary: Itinerary): string {
+  const [first] = itinerary.outbound.segments;
+  return (
+    itinerary.outbound.carrier ??
+    first.operating_carrier_name ??
+    first.marketing_carrier_code ??
+    'Unknown'
+  );
+}
+
+function toFlightResult(itinerary: Itinerary, query: FlightQuery): FlightResult {
+  const { segments, duration_minutes: minutes } = itinerary.outbound;
   return {
-    id: itinerary.ignav_id ?? `ignav-${index}`,
-    airline: itinerary.outbound.carrier,
+    id: itinerary.ignav_id,
+    airline: airlineName(itinerary),
     price: itinerary.price.amount,
     currency: itinerary.price.currency,
     departureTime: clockLabel(segments[0].departure_time_local),
     arrivalTime: clockLabel(segments[segments.length - 1].arrival_time_local),
-    duration: durationLabel(itinerary.outbound.duration_minutes),
+    duration: minutes == null ? 'N/A' : durationLabel(minutes),
     stops: segments.length - 1,
     bookingUrl: `https://www.google.com/flights?q=${query.origin}+to+${query.destination}`,
   };
@@ -113,18 +129,25 @@ export class IgnavFlightProvider {
         };
       }
 
-      const parsed = searchResponseSchema.safeParse(await response.json());
-      if (!parsed.success) {
-        getLogger().warn(
-          { issues: parsed.error.issues.length },
-          'Ignav reply had an unexpected shape'
-        );
+      const envelope = searchResponseSchema.safeParse(await response.json());
+      if (!envelope.success) {
+        getLogger().warn('Ignav reply had no itineraries list');
         return { status: 'unavailable', reason: 'provider-error' };
       }
 
-      const results = parsed.data.itineraries
+      const parsed = envelope.data.itineraries.map((item) => itinerarySchema.safeParse(item));
+      const usable = parsed.flatMap((item) => (item.success ? [item.data] : []));
+      const dropped = parsed.length - usable.length;
+      if (dropped > 0) {
+        getLogger().warn({ dropped }, 'Ignav reply had itineraries with an unexpected shape');
+      }
+      if (parsed.length > 0 && usable.length === 0) {
+        return { status: 'unavailable', reason: 'provider-error' };
+      }
+
+      const results = usable
         .filter((itinerary) => itinerary.price.amount > 0)
-        .map((itinerary, index) => toFlightResult(itinerary, index, query))
+        .map((itinerary) => toFlightResult(itinerary, query))
         .sort((a, b) => a.price - b.price)
         .slice(0, TOP_RESULTS);
       return { status: 'live', results };

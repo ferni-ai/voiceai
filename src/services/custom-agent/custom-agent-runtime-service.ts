@@ -11,6 +11,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { getCustomAgent, getActiveCustomAgents } from './custom-agent-persistence-service.js';
 import type { CustomAgent as ApiCustomAgent } from '../../types/custom-agent-api.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { runtimeVoiceId } from './custom-agent-voice-policy.js';
 import type {
   PersonaConfig,
   VoiceConfig,
@@ -280,9 +281,8 @@ function getAgentTypeDescription(type: string): string {
  */
 function buildVoiceConfig(agent: ApiCustomAgent): VoiceConfig {
   const settings = agent.voice.settings || {};
-
   return {
-    voiceId: agent.voice.voiceId || '',
+    voiceId: runtimeVoiceId(agent.id, agent.voice), // never a retired clone or a persona's voice
     provider: 'cartesia',
     defaultRate: settings.speed || 0,
     description: `Custom voice for ${agent.name}`,

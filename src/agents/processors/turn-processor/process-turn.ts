@@ -238,7 +238,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
       async () => {
         try {
           const { recordCallerCorrection } = await import('./caller-correction.js');
-          await recordCallerCorrection(uid, userText, prevFerni, personaId);
+          await recordCallerCorrection(uid, userText, prevFerni, personaId, services.sessionId);
         } catch {
           // Non-blocking
         }
@@ -734,11 +734,11 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
 
   if (ftisRoutingPromise) {
     const ftisResult = await ftisRoutingPromise;
-    // Never bypass the LLM on a crisis turn: the bypass result carries no crisis.
+    // Never bypass the LLM on a crisis or soft check-in turn: the bypass result carries neither.
     if (
       ftisResult.bypassLLM &&
       ftisResult.toolResult &&
-      !hasCrisisSignal(await turnCrisis.resolve())
+      (await turnCrisis.bypassAllowed())
     ) {
       diag.state('🧠 FTIS: Direct tool execution complete', {
         tool: ftisResult.toolResult.toolId,
@@ -807,7 +807,7 @@ export async function processTurn(ctx: TurnContext): Promise<TurnProcessorResult
   if (semanticRoutingPromise) {
     const routedCrisis = await turnCrisis.resolve();
     const shortCircuitResult = await checkSemanticShortCircuit(semanticRoutingPromise, {
-      crisisDetected: routedCrisis.isCrisis,
+      crisisDetected: !(await turnCrisis.bypassAllowed()), // a crisis or a soft check-in
       crisisSeverity: routedCrisis.severity,
       analysisResult,
       ctx,

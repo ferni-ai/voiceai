@@ -18,6 +18,7 @@ import { withAlwaysOnTools } from '../../multi-agent/everyday-basics.js';
 import { DEFAULT_INITIAL_TOOL_LIMIT } from '../../multi-agent/initial-tools.js';
 import { updateAgentTools } from '../../shared/tool-updater.js';
 import { wireCallToolLoader } from '../../voice-agent/deferred-tool-update.js';
+import { rememberDispatchIdentity } from '../../voice-agent-entry/caller-recognition.js';
 import { preloadTopicDomains } from '../same-turn-tools.js';
 import { toolsForTurn } from '../turn-request.js';
 
@@ -46,10 +47,19 @@ export async function startCall(userId: string) {
   await updateAgentTools(agent as never, loader.getCurrentTools(), {
     domains: loader.getLoadedDomains(),
   });
-  const session = { userData: {}, on: vi.fn(), off: vi.fn() };
+  // A signed-in owner: a caller who isn't one loses the tools that reach other people.
+  rememberDispatchIdentity(ctx.sessionId, 'firebase', '{}');
+  const userData = { userId, services: { sessionId: ctx.sessionId } };
+  const session = { userData, on: vi.fn(), off: vi.fn() };
   wireCallToolLoader(session as never, agent as never, loader, log as never);
   await preloadTopicDomains(); // wireCallToolLoader started it; wait for it here
-  return { agent, session, loader, initialCount: Object.keys(initial).length };
+  return {
+    agent,
+    session,
+    loader,
+    initialNames: Object.keys(initial),
+    initialCount: Object.keys(initial).length,
+  };
 }
 
 export type Call = Awaited<ReturnType<typeof startCall>>;

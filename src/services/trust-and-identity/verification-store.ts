@@ -9,6 +9,7 @@
  * @module VerificationStore
  */
 
+import { randomInt, timingSafeEqual } from 'node:crypto';
 import { getFirestore, type Firestore } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
@@ -92,6 +93,13 @@ registerInterval(
 // CORE FUNCTIONS
 // ============================================================================
 
+/** Constant-time comparison of two codes (a length mismatch is simply false). */
+function sameCode(stored: string, provided: string): boolean {
+  const a = Buffer.from(stored);
+  const b = Buffer.from(provided);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
 /**
  * Create a new verification code for a user
  */
@@ -99,8 +107,8 @@ export async function createVerificationCode(
   userId: string,
   phone: string
 ): Promise<{ code: string; expiresAt: Date }> {
-  // Generate 6-digit code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  // A 6-digit code from the CSPRNG (Math.random is guessable).
+  const code = randomInt(100000, 1000000).toString();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + CODE_EXPIRY_MS);
 
@@ -188,9 +196,10 @@ export async function verifyCode(
     return { valid: false, reason: 'not_found' };
   }
 
-  // Already verified
+  // A code is single-use: one already used (or from before codes were consumed) is gone.
   if (storedCode.verified) {
-    return { valid: true, reason: 'success', phone: storedCode.phone };
+    await deleteVerificationCode(userId);
+    return { valid: false, reason: 'not_found' };
   }
 
   // Expired
@@ -208,31 +217,11 @@ export async function verifyCode(
   // Increment attempts
   storedCode.attempts++;
 
-  // Check code
-  if (storedCode.code === providedCode) {
-    // Success! Mark as verified
-    storedCode.verified = true;
-    storedCode.verifiedAt = new Date();
-
-    // Update in store
-    if (db) {
-      try {
-        const docRef = db.collection(COLLECTION_NAME).doc(userId);
-        await docRef.update(
-          cleanForFirestore({
-            verified: true,
-            verifiedAt: storedCode.verifiedAt,
-            attempts: storedCode.attempts,
-          })
-        );
-      } catch (error) {
-        log.warn({ error, userId }, 'Failed to update Firestore - updating in-memory');
-        inMemoryStore.set(userId, storedCode);
-      }
-    } else {
-      inMemoryStore.set(userId, storedCode);
-    }
-
+  // Right code: consumed on the spot, so it can never confirm twice. A delete that fails
+  // throws (the confirm fails closed) rather than leaving a reusable code behind.
+  if (sameCode(storedCode.code, providedCode)) {
+    if (db) await db.collection(COLLECTION_NAME).doc(userId).delete();
+    inMemoryStore.delete(userId);
     log.info({ userId, phone: storedCode.phone.slice(-4) }, '✅ Verification code validated');
     return { valid: true, reason: 'success', phone: storedCode.phone };
   }
