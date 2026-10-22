@@ -50,6 +50,7 @@ import {
 } from './metrics.js';
 import { detectProactiveCoachingInsights } from './opportunities.js';
 import type { HabitInsights, MemoryInsights, MoodInsights, UserInsightBriefing } from './types.js';
+import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:peter-research-insights' });
 
@@ -256,7 +257,7 @@ async function buildPeterResearchInsightsContext(
   }
 
   const userId = services?.userId || 'anonymous';
-  if (userId === 'anonymous') {
+  if (!isMemberIdentity(userId)) {
     return injections;
   }
 

@@ -71,6 +71,16 @@ export abstract class MemoryStore {
   abstract getProfile(userId: string): Promise<UserProfile | null>;
 
   /**
+   * Like getProfile, but a failed read throws: null means the user has no
+   * profile. Use it before saving over what was read, so a read error is never
+   * mistaken for a new user. Stores whose getProfile already throws on a
+   * failed read (or cannot fail, like the in-memory store) inherit this.
+   */
+  async getProfileStrict(userId: string): Promise<UserProfile | null> {
+    return this.getProfile(userId);
+  }
+
+  /**
    * Save/update a user profile
    */
   abstract saveProfile(profile: UserProfile): Promise<void>;
