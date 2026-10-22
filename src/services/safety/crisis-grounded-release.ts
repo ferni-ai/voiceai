@@ -49,11 +49,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
-import {
-  applyClassifierVerdict,
-  detectCrisis,
-  type CrisisDetectionResult,
-} from './crisis-guard.js';
+import { detectCrisis, type CrisisDetectionResult } from './crisis-guard.js';
 import { endorses } from './crisis-agreement.js';
 import { createGeminiAdjudicatorGenerate } from './crisis-adjudicator.js';
 import {
@@ -63,7 +59,8 @@ import {
 } from './crisis-call-risk.js';
 import type { CrisisGenerateFn, CrisisVerdict } from './crisis-classifier.js';
 import { SAFETY_TALK } from './crisis-lone-imminent.js';
-import { EVENTS, allEveryday, alwaysHold, eventTopics, wordsOf } from './crisis-release-words.js';
+import { allEveryday, alwaysHold, eventTopics, wordsOf } from './crisis-release-words.js';
+import { SCREEN_QUESTION, noteScreenAsked, resetGroundedScreen } from './crisis-grounded-screen.js';
 
 const log = createLogger({ module: 'CrisisGroundedRelease' });
 
@@ -156,14 +153,6 @@ const READERS = [
 
 /** Room for the C-SSRS read's six fields: a cut-off reply fails to parse and holds. */
 const GROUNDED_READ_MAX_TOKENS = 256;
-
-/**
- * The screening question every release carries, asked the way clinicians
- * screen: directly, about suicide and self-harm by name. Asking does not raise
- * risk; a false alarm costs one caring question.
- */
-export const SCREEN_QUESTION =
-  "can I ask you something, and it's okay either way: when you said that, were you thinking about hurting yourself, or about ending your life?";
 
 /**
  * What a released turn gets in place of the script: Ferni's normal answer and
@@ -342,84 +331,10 @@ const RECENT_TTL_MS = 30_000;
 const RECENT_MAX = 32;
 const recent = new Map<string, { at: number; run: Promise<boolean> }>();
 
-/**
- * Per call: the released turn whose reply asked SCREEN_QUESTION, and the
- * caller's answer once it comes. In memory, for SCREEN_TTL_MS.
- */
-const SCREEN_TTL_MS = 6 * 60 * 60 * 1000;
-const SCREEN_MAX = 512;
-const screens = new Map<
-  string,
-  { at: number; asked: string; answer?: { turn: string; positive: boolean } }
->();
-
 /** For tests. */
 export function resetGroundedRelease(): void {
   recent.clear();
-  screens.clear();
-}
-
-/** A clear no, alone or with plain reassurance: "No.", "haha no, not at all, I'm good". */
-const NO_START =
-  /^(?:(?:oh|um|uh|ha|haha|hah|lol|god|gosh|whoa|wow|hey|what|man|dude)\s+)*(?:no|nope|nah|never|no way|hell no|god no|of course not|absolutely not|definitely not|not at all|not even close)\b/;
-const NO_TAIL = new Set(
-  `no nope nah never way hell god of course absolutely definitely not at all even close oh um uh ha haha
-   hah lol gosh whoa wow hey man dude i i'm im am was it that this just only talking about meant mean
-   said fine good okay ok great totally promise thanks thank you for asking the a an my our to and so
-   excited happy`.split(/\s+/)
-);
-
-/** The caller's answer is a clear no: a no first, then only reassurance or the event. */
-function clearNo(answer: string): boolean {
-  const words = wordsOf(answer);
-  if (!words || words.length === 0 || alwaysHold(answer)) return false;
-  const scored = detectCrisis(answer);
-  if (scored.severity > 0 || scored.indicators.length > 0) return false;
-  if (!NO_START.test(words.join(' '))) return false;
-  return words.every((w) => NO_TAIL.has(w) || EVENTS.has(w.replace(/'s$/, '')));
-}
-
-function noteScreenAsked(call: string, latest: string, now = Date.now()): void {
-  for (const [id, s] of screens) if (now - s.at > SCREEN_TTL_MS) screens.delete(id);
-  if (screens.size >= SCREEN_MAX) {
-    const oldest = screens.keys().next().value;
-    if (oldest !== undefined) screens.delete(oldest);
-  }
-  screens.set(call, { at: now, asked: loose(latest) });
-}
-
-/**
- * The caller's first turn after a release, unless it is a clear no to a
- * question Ferni actually asked (its line raised safety): a positive screen,
- * which takes the crisis path with 988. Both paths of that turn get the same
- * answer; later turns are judged as usual. True on anything unexpected.
- */
-export function screenPositive(
-  call: string | undefined,
-  input: { latest: string; companion?: string }
-): boolean {
-  try {
-    const screen = call ? screens.get(call) : undefined;
-    if (!screen || Date.now() - screen.at > SCREEN_TTL_MS) return false;
-    const turn = loose(String(input.latest ?? ''));
-    if (!turn || turn === screen.asked) return false;
-    if (screen.answer) return screen.answer.turn === turn && screen.answer.positive;
-    const asked = SAFETY_TALK.test(loose(stripSSML(String(input.companion ?? ''))));
-    const positive = !(asked && clearNo(input.latest));
-    screen.answer = { turn, positive };
-    log.info({ positive, asked }, 'CRISIS_GROUNDED_SCREEN');
-    return positive;
-  } catch {
-    return true;
-  }
-}
-
-/** A positive screen as a crisis reading: guidance with 988, never the replacement script. */
-export function withScreenPositive(detection: CrisisDetectionResult): CrisisDetectionResult {
-  const merged = applyClassifierVerdict(detection, { risk: 'crisis', subject: 'self' });
-  return merged.indicators.includes('grounded_screen_positive')
-    ? merged
-    : { ...merged, indicators: [...merged.indicators, 'grounded_screen_positive'] };
+  resetGroundedScreen();
 }
 
 /**

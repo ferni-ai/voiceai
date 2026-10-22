@@ -15,9 +15,9 @@ import {
 import {
   GROUNDED_LIGHT_TOUCH,
   GROUNDED_RELEASE_CSSRS_PROMPT,
-  SCREEN_QUESTION,
   resetGroundedRelease,
 } from '../../../services/safety/crisis-grounded-release.js';
+import { SCREEN_QUESTION } from '../../../services/safety/crisis-grounded-screen.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
@@ -195,12 +195,58 @@ describe("the caller's answer", () => {
   it('only the first answer is screened; later turns are judged as usual', async () => {
     const session = await released();
     await gate(session, after(ASKED), 'No.');
-    const later = await gate(
-      session,
-      [...after(ASKED), ['No.', 'Okay! So, dessert?']],
-      'Pie, obviously.'
-    );
-    expect(later).toEqual({ action: 'pass' });
+    // A later line comes after Ferni's reply to the answer, well past SAME_TURN_MS.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(Date.now() + 11_000);
+      const later = await gate(
+        session,
+        [...after(ASKED), ['No.', 'Okay! So, dessert?']],
+        'Pie, obviously.'
+      );
+      expect(later).toEqual({ action: 'pass' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('a no that takes itself back, or a negated state, is not a clear no', async () => {
+    for (const answer of [
+      'No, I meant it.',
+      "No, I'm not okay.",
+      'Nope, not good.',
+      'No... I was.',
+      'No, not anymore.',
+      'Never mind.',
+    ]) {
+      const session = await released();
+      const out = await gate(session, after(ASKED), answer);
+      expect(out.action, answer).toBe('guide');
+      expect(out.action === 'guide' && out.guidance, answer).toMatch(/988/);
+    }
+  });
+
+  it('a bare no to a softened "you okay?" means not okay: crisis path', async () => {
+    const session = await released();
+    const softened = 'Oh, tonight, got it. Hey, you doing okay? Like, really okay, safe?';
+    const out = await gate(session, after(softened), 'No.');
+    expect(out.action).toBe('guide');
+    expect(out.action === 'guide' && out.guidance).toMatch(/988/);
+  });
+
+  it('an answer that repeats the released line is still screened', async () => {
+    const session = await released();
+    const out = await pipeline(session, after(ASKED), DINNER);
+    expect(out.indicators).toContain('grounded_screen_positive');
+  });
+
+  it("the turn's two paths with different words fail closed", async () => {
+    const session = await released();
+    const fromGate = await gate(session, after(ASKED), 'No.');
+    expect(fromGate).toEqual({ action: 'pass' });
+    const fromPipeline = await pipeline(session, after(ASKED), 'No. I mean, kind of.');
+    expect(fromPipeline).toMatchObject({ isCrisis: true });
+    expect(fromPipeline.indicators).toContain('grounded_screen_positive');
   });
 
   it('no screen when the release was only in shadow', async () => {

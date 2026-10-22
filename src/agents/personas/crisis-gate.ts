@@ -44,9 +44,11 @@ import {
   GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
   groundedRelease,
+} from '../../services/safety/crisis-grounded-release.js';
+import {
   screenPositive,
   withScreenPositive,
-} from '../../services/safety/crisis-grounded-release.js';
+} from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import {
   callRiskBeforeTurn,
