@@ -354,7 +354,10 @@ final class AppModel {
         )
         account.uploadAppleCode = AppleAuthorizationUpload.uploader(api: api)
         account.mergeLeftBehind = AnonymousMerge.merger(api: api)
-        let feedback = CallFeedback()
+        // The call's sounds play inside LiveKit's engine (in the echo reference).
+        let sounds = CallSounds()
+        CallSounds.install(sounds)
+        let feedback = CallFeedback(sounds: sounds)
         self.feedback = feedback
         let level = AudioLevelMeter()
         let avatar = AvatarModel(play: { [feedback] in feedback.play($0) })
