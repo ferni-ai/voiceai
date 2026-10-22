@@ -110,7 +110,7 @@ import {
   processUserResponseForResonance,
 } from '../../integrations/better-than-human-integration.js';
 
-import { crisisSummary, hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
+import { hasCrisisSignal, startTurnCrisis } from './turn-crisis.js';
 
 import { fastCapture } from '../../../memory/dynamic/index.js';
 import { triggerAutoSave } from '../../../services/realtime-persistence.js';
@@ -1482,7 +1482,7 @@ If they're just conversing, respond naturally without a tool call.`,
     }
   }
 
-  const finalCrisis = await turnCrisis.resolve();
+  const finalCrisis = await turnCrisis.summary();
 
   // DEV TELEMETRY: Complete trace
   trace?.complete();
@@ -1509,7 +1509,7 @@ If they're just conversing, respond naturally without a tool call.`,
     easterEgg,
     valueCapture: valueCaptureResult,
     advancedHumanization,
-    crisis: crisisSummary(finalCrisis, await turnCrisis.softCheck()),
+    crisis: finalCrisis,
     trustContext: trustContextSummary,
     semanticRouting,
     resonanceCheck,
