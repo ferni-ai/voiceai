@@ -16,7 +16,7 @@ import * as prettier from 'prettier';
 import ts from 'typescript';
 import { writeFlagBarrel } from '../../src/config/__tests__/flag-barrel.js';
 import { commentsOf, parseLegacy, type Entry } from './legacy-parse.js';
-import { flagFileText } from './new-flag.js';
+import { flagFileText, isMain } from './new-flag.js';
 
 const MANIFEST = 'flag-manifest.ts';
 export const configDir = (root: string): string => join(root, 'src', 'config');
@@ -143,8 +143,28 @@ export async function moveToFiles(o: MoveOptions): Promise<{ moved: string[]; fi
   const frozen = Object.fromEntries(
     [...chosen].sort((a, b) => (a.name < b.name ? -1 : 1)).map((e) => [e.name, e.spec])
   );
-  // editLegacy checks everything before it writes, so a refusal leaves no flag file behind.
-  await editLegacy(o.root, o.file, new Map(chosen.map((e) => [e.name, null])));
+  const batch =
+    o.batch ??
+    `${o.file.replace(/\.ts$/, '')}-${o.names ? 'names' : (o.range ?? ['A', 'Z']).join('-')}`;
+  const fixture = join(config, '__tests__', 'fixtures', `flag-move-${batch}.json`);
+  if (existsSync(fixture)) {
+    throw new Error(`${fixture} already exists: give this move its own --batch NAME`);
+  }
+  // The fixture goes first, so a run that fails part-way still leaves the specs it froze.
+  mkdirSync(join(fixture, '..'), { recursive: true });
+  await writeFormatted(fixture, JSON.stringify(frozen, null, 2));
+  const manifestPath = join(config, MANIFEST);
+  const before = [readFileSync(join(config, o.file), 'utf8'), readFileSync(manifestPath, 'utf8')];
+  try {
+    // editLegacy checks everything before it writes, so a refusal leaves no flag file behind.
+    await editLegacy(o.root, o.file, new Map(chosen.map((e) => [e.name, null])));
+  } catch (error) {
+    const untouched = [join(config, o.file), manifestPath].every(
+      (p, i) => existsSync(p) && readFileSync(p, 'utf8') === before[i]
+    );
+    if (untouched) rmSync(fixture); // refused before writing anything: leave no trace
+    throw error;
+  }
   for (const e of chosen) {
     await writeFormatted(
       join(config, 'flags', `${e.name}.ts`),
@@ -152,17 +172,10 @@ export async function moveToFiles(o: MoveOptions): Promise<{ moved: string[]; fi
     );
   }
   writeFlagBarrel(join(config, 'flags'));
-
-  const batch =
-    o.batch ??
-    `${o.file.replace(/\.ts$/, '')}-${o.names ? 'names' : (o.range ?? ['A', 'Z']).join('-')}`;
-  const fixture = join(config, '__tests__', 'fixtures', `flag-move-${batch}.json`);
-  mkdirSync(join(fixture, '..'), { recursive: true });
-  await writeFormatted(fixture, JSON.stringify(frozen, null, 2));
   return { moved: chosen.map((e) => e.name), fixture };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const { values } = parseArgs({
     options: {
       file: { type: 'string' },

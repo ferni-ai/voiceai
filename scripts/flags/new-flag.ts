@@ -6,8 +6,9 @@
  * say what "on" does and where it is read.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { FLAG_KINDS, FLAG_OWNERS } from '../../src/config/flag-spec.js';
 
@@ -91,7 +92,11 @@ export function writeNewFlag(root: string, flag: NewFlag): string {
   return file;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/** True when the module at url is the script node was started with, through any symlink. */
+export const isMain = (url: string): boolean =>
+  !!process.argv[1] && realpathSync(fileURLToPath(url)) === realpathSync(process.argv[1]);
+
+if (isMain(import.meta.url)) {
   try {
     const file = writeNewFlag(process.cwd(), parseNewFlag(process.argv.slice(2)));
     console.log(`Wrote ${file}`);
