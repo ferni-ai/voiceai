@@ -417,8 +417,8 @@ async function getDb(): Promise<Firestore | null> {
 
 async function initializeDb(): Promise<Firestore | null> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    db = getFirestore() as unknown as Firestore;
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    db = getAdminFirestore() as unknown as Firestore;
     return db;
   } catch {
     log.debug('Firestore not available');

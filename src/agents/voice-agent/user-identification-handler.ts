@@ -34,6 +34,7 @@ import {
 } from '../voice-agent-entry/caller-recognition.js';
 import { flagOn } from '../../config/env-flag.js';
 import { isVerifiedIdentification } from '../../services/identity/verified-caller.js';
+import { deviceNameGuardEnabled, isDeviceOrHandleName } from './device-name-guard.js';
 
 // ============================================================================
 // TYPES
@@ -76,6 +77,8 @@ function isRealName(name: string | undefined): boolean {
   if (/^[a-f0-9-]{36}$/i.test(name)) return false;
   // Filter out "anonymous", "guest", etc.
   if (/^(anonymous|guest|visitor|unknown)$/i.test(name)) return false;
+  // "iphone", "guest-ab12cd", "Seth's iPhone": a device or a handle, not a name (#2061)
+  if (deviceNameGuardEnabled() && isDeviceOrHandleName(name)) return false;
   return true;
 }
 

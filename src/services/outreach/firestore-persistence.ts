@@ -133,7 +133,7 @@ export async function initializeFirestore(): Promise<boolean> {
       }
     }
 
-    const db = admin.firestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
 
     // FIX: Verify connection actually works by testing a simple operation
     try {

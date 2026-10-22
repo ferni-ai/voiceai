@@ -16,6 +16,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { dataOf, loadDoc, type LoadResult } from './load-state.js';
 
 const log = createLogger({ module: 'superhuman:event-pattern-memory' });
 
@@ -159,25 +160,10 @@ const DEFAULT_EMOTIONAL_PATTERN: EmotionalPattern = {
 
 const COLLECTION = 'event_pattern_memory';
 
-async function loadEventPatternProfile(userId: string): Promise<EventPatternProfile | null> {
+async function loadEventPatternProfile(userId: string): Promise<LoadResult<EventPatternProfile>> {
   const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
-    if (doc.exists) {
-      return doc.data() as EventPatternProfile;
-    }
-    return null;
-  } catch (error) {
-    log.debug({ error, userId }, 'Failed to load event pattern profile');
-    return null;
-  }
+  const ref = db?.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile');
+  return loadDoc<EventPatternProfile>(ref, log);
 }
 
 async function saveEventPatternProfile(
@@ -211,7 +197,9 @@ async function saveEventPatternProfile(
  * Record an event outcome for pattern learning
  */
 export async function recordEventOutcome(userId: string, outcome: EventOutcome): Promise<void> {
-  const profile = (await loadEventPatternProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadEventPatternProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   // Add to event history
   profile.eventHistory.push(outcome);
@@ -243,7 +231,9 @@ export async function recordGuestConflict(
   person2: string,
   reason: string
 ): Promise<void> {
-  const profile = (await loadEventPatternProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadEventPatternProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   // Check if conflict already exists
   const existing = profile.guestDynamics.conflictPairs.find(
@@ -268,7 +258,9 @@ export async function recordRegrettedOmission(
   event: string,
   reason: string
 ): Promise<void> {
-  const profile = (await loadEventPatternProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadEventPatternProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   profile.guestDynamics.regrettedOmissions.push({ name, event, reason });
   await saveEventPatternProfile(userId, profile);
@@ -282,7 +274,9 @@ export async function recordVendorExperience(
   userId: string,
   vendor: VendorPreference
 ): Promise<void> {
-  const profile = (await loadEventPatternProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadEventPatternProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
   updateVendorPreference(profile, vendor);
   await saveEventPatternProfile(userId, profile);
   log.info(
@@ -303,7 +297,7 @@ export async function getEventPatternInsights(
   emotionalPrepTips: string[];
   vendorRecommendations: string[];
 }> {
-  const profile = await loadEventPatternProfile(userId);
+  const profile = dataOf(await loadEventPatternProfile(userId));
 
   if (!profile || profile.eventHistory.length === 0) {
     return {

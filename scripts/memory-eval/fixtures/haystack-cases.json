@@ -1,0 +1,885 @@
+{
+  "about": "Haystack padding for the per-turn memory bench (haystack-bench.ts). recall-cases.json gives each caller 12-18 memories; this pads the store to hundreds with synthetic distractors so a fixed cosine floor is tested where it will live. near: same people, pets and places as the caller's real memories, factually different (a different ailment, city, day or teacher); never labelled as about a turn. generic: everyday memories on topics no labelled turn mentions, with {name} filled in. updates: an older fact and the newer one that supersedes it; a turn about it expects the newer one, so sending the older one is a wrong memory. backchannels: turns where the right answer is to send nothing. Every value here is invented.",
+  "seed": 20261022,
+  "nearShare": 0.4,
+  "backchannels": [
+    "mm-hm",
+    "yeah",
+    "okay so",
+    "mm-hm, yeah, okay so anyway",
+    "yeah yeah, totally",
+    "right, right, okay",
+    "haha yeah for sure",
+    "okay so um, where was I",
+    "oh wow, really?",
+    "uh huh, go on",
+    "sure, sure, makes sense",
+    "hmm, I guess so, yeah"
+  ],
+  "generic": [
+    {
+      "t": "{name} errand: {errand} on {day}",
+      "errand": [
+        "dropped off the dry cleaning",
+        "picked up a package at the post office",
+        "got a haircut",
+        "bought new shower curtains",
+        "picked up batteries at the hardware store",
+        "dropped off a donation at Goodwill",
+        "deposited a check at the bank",
+        "returned a lamp to the store",
+        "got a spare key cut",
+        "picked up a prescription refill",
+        "dropped a parcel at the UPS store",
+        "bought stamps",
+        "picked up a rug from the cleaners",
+        "got the bike chain fixed",
+        "returned a jacket that didn't fit",
+        "picked up photo prints",
+        "dropped off a jury duty form",
+        "bought a birthday gift for a coworker"
+      ],
+      "day": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    },
+    {
+      "t": "{name} chore: {chore} on {day}",
+      "chore": [
+        "cleaned out the hall closet",
+        "did three loads of laundry",
+        "organized the spice rack",
+        "descaled the coffee maker",
+        "replaced a smoke detector battery",
+        "washed the windows",
+        "vacuumed under the couch",
+        "sorted the junk drawer",
+        "defrosted the freezer",
+        "wiped down the baseboards",
+        "scrubbed the grout in the shower",
+        "cleaned out the fridge",
+        "raked the side yard",
+        "washed the car mats",
+        "flipped the mattress"
+      ],
+      "day": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    },
+    {
+      "t": "{name} purchase: bought {thing} {where}",
+      "thing": [
+        "a new rain jacket",
+        "a pair of slippers",
+        "a phone case",
+        "a desk lamp",
+        "a set of mixing bowls",
+        "a new backpack",
+        "wool socks",
+        "a cast iron pan",
+        "a bath mat",
+        "a travel mug",
+        "a new umbrella",
+        "a shoe rack",
+        "a set of bed sheets",
+        "a houseplant mister",
+        "a bluetooth speaker",
+        "a new wallet"
+      ],
+      "where": ["online", "at Target", "at a thrift store", "on sale", "at the mall"]
+    },
+    {
+      "t": "{name} tech: {tech} {when}",
+      "tech": [
+        "phone screen cracked",
+        "laptop battery started dying",
+        "updated the router firmware",
+        "switched to a new email app",
+        "printer started jamming",
+        "lost the TV remote",
+        "set up a password manager",
+        "earbuds stopped charging"
+      ],
+      "when": ["last week", "over the weekend", "a few days ago"]
+    },
+    {
+      "t": "{name} pastime: {p} {when}",
+      "p": [
+        "did a jigsaw puzzle",
+        "listened to a true-crime podcast",
+        "played chess online",
+        "did the crossword",
+        "went to a farmers market",
+        "tried a new coffee shop",
+        "went to a flea market",
+        "played cards with friends",
+        "watched a stand-up special",
+        "went to a used bookstore",
+        "built a model airplane",
+        "went to a minor league hockey game"
+      ],
+      "when": [
+        "last weekend",
+        "on Tuesday",
+        "yesterday evening",
+        "on Sunday afternoon",
+        "after dinner",
+        "on a day off",
+        "on Thursday night",
+        "early Saturday"
+      ]
+    },
+    {
+      "t": "{name} preference: {pref}",
+      "pref": [
+        "likes oat milk in coffee",
+        "prefers aisle seats",
+        "hates cilantro",
+        "always sets two alarms",
+        "drinks green tea at night",
+        "keeps the thermostat at 68",
+        "likes sparkling water more than soda",
+        "prefers paper maps",
+        "can't stand loud restaurants",
+        "likes to shower at night",
+        "keeps a paper calendar",
+        "always runs late in the morning"
+      ]
+    },
+    {
+      "t": "{name} plan: {plan} {when}",
+      "plan": [
+        "clean the garage",
+        "reorganize the bookshelf",
+        "get the bike tuned up",
+        "call the insurance company",
+        "donate old clothes",
+        "schedule a flu shot",
+        "renew the passport",
+        "frame some old photos",
+        "file the tax paperwork",
+        "replace the bathroom faucet",
+        "buy a new mattress",
+        "set up a home office",
+        "sell the old couch",
+        "paint the front door",
+        "get a will drawn up"
+      ],
+      "when": [
+        "this weekend",
+        "next week",
+        "before the end of the month",
+        "sometime soon",
+        "after the holidays",
+        "next month"
+      ]
+    },
+    {
+      "t": "{friend} relation: {name}'s {rel} who {trait}",
+      "friend": ["Kenji", "Bea", "Omar", "Hannah", "Luis", "Grace", "Felix", "Nora"],
+      "rel": ["college roommate", "old coworker", "cousin from Ohio", "friend from high school"],
+      "trait": [
+        "just had a baby",
+        "moved to Portland",
+        "started a bakery",
+        "is learning to fly planes",
+        "got a new job in Seattle"
+      ]
+    },
+    {
+      "t": "{name} weekend: {act} with {who}",
+      "act": [
+        "went bowling",
+        "saw a comedy show",
+        "went to a street fair",
+        "went thrift shopping",
+        "tried an escape room",
+        "went mini golfing"
+      ],
+      "who": ["Kenji", "Bea", "Omar", "Hannah", "an old friend", "some coworkers"]
+    },
+    {
+      "t": "{name} home repair: {fix} {when}",
+      "fix": [
+        "the kitchen faucet started dripping",
+        "a hallway lightbulb burned out",
+        "the dryer started squeaking",
+        "the garbage disposal jammed",
+        "the shower drain clogged",
+        "the front door lock got sticky"
+      ],
+      "when": ["last week", "on Monday", "over the weekend", "yesterday"]
+    },
+    {
+      "t": "{name} subscription: {verb} {sub}",
+      "verb": ["signed up for", "cancelled", "paused"],
+      "sub": [
+        "a meal kit",
+        "a streaming service",
+        "a magazine",
+        "a coffee subscription",
+        "extra cloud storage"
+      ]
+    }
+  ],
+  "callers": {
+    "Sam": {
+      "updates": {
+        "items": [
+          ["sam-gym-old", "Sam routine: gym membership at Crunch on Colfax, goes before work"],
+          [
+            "sam-gym-new",
+            "Sam routine: cancelled the Crunch membership, now climbs at a bouldering gym after work"
+          ],
+          ["sam-team-old", "Sam job: on the payments team, reports to Karen"],
+          ["sam-team-new", "Sam job: moved to the fraud team in the reorg, now reports to Dev"],
+          ["sam-apt-old", "Sam home: renting a one-bedroom in Capitol Hill, lease up in December"],
+          [
+            "sam-apt-new",
+            "Sam home: signed a lease on a two-bedroom in Highland, moving on the 1st"
+          ]
+        ],
+        "turns": [
+          ["the bouldering wall wrecked my forearms", ["sam-gym-new"]],
+          ["I'm heading to the gym after this", ["sam-gym-new"]],
+          ["my new manager Dev wants a one-on-one", ["sam-team-new", "job"]],
+          ["the fraud team standup ran long again", ["sam-team-new", "job"]],
+          ["the movers are booked for the first", ["sam-apt-new"]],
+          ["my new place in Highland has a balcony", ["sam-apt-new", "denver"]]
+        ]
+      },
+      "near": [
+        {
+          "t": "Biscuit health: {ail}, vet on {day}",
+          "ail": [
+            "an ear infection",
+            "itchy paws from the new rug",
+            "a cracked molar",
+            "an upset stomach after eating a sock",
+            "a torn dewclaw",
+            "a bee sting on his nose",
+            "kennel cough",
+            "a hot spot on his hip",
+            "limping after a hike",
+            "a sore shoulder after fetch"
+          ],
+          "day": ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+        },
+        {
+          "t": "Biscuit {facet}",
+          "facet": [
+            "breed: labrador mix from the shelter",
+            "routine: doggy daycare on Wednesdays",
+            "routine: walks at six before Sam's standup",
+            "food: switched to salmon kibble",
+            "habit: steals socks from the laundry",
+            "habit: barks at the mail carrier",
+            "routine: groomed every six weeks",
+            "food: allergic to chicken",
+            "toy: obsessed with a squeaky hedgehog",
+            "habit: sleeps on Sam's bed"
+          ]
+        },
+        {
+          "t": "Sam travel plan: needs to book {thing} to {city} for {event}",
+          "thing": ["flights", "a train", "a rental car", "a hotel"],
+          "city": ["Madrid", "Seattle", "Boston", "Chicago", "Mexico City"],
+          "event": [
+            "a conference",
+            "his college reunion",
+            "a friend's bachelor party",
+            "a work offsite"
+          ]
+        },
+        {
+          "t": "{rel} event: {evt} in {city} in {month}",
+          "rel": ["cousin", "best friend", "coworker", "brother-in-law"],
+          "evt": ["getting married", "turning forty", "graduating", "throwing a housewarming"],
+          "city": ["Chicago", "Barcelona", "San Diego", "Toronto"],
+          "month": ["March", "May", "August", "October"]
+        },
+        {
+          "t": "manager decision: {dec}",
+          "dec": [
+            "moved the team offsite to Thursday",
+            "approved Sam's vacation for July",
+            "cancelled the Friday demo",
+            "pushed the launch to next quarter",
+            "asked Sam to lead the hiring panel",
+            "moved standup to 9:30",
+            "put Sam on call next week",
+            "froze hiring until spring"
+          ]
+        },
+        {
+          "t": "{who} relation: Sam's coworker who {trait}",
+          "who": ["Marcus", "Jen", "Tomas", "Aisha", "Ravi"],
+          "trait": [
+            "always brings snacks",
+            "sits next to him",
+            "is training for a triathlon",
+            "covers for him on call",
+            "just went on parental leave"
+          ]
+        },
+        {
+          "t": "Sam hobby: {hobby} on {day}s",
+          "hobby": [
+            "a woodworking class",
+            "a salsa class",
+            "pickup basketball",
+            "board game night",
+            "a sketching group",
+            "trivia night"
+          ],
+          "day": ["Monday", "Tuesday", "Wednesday", "Friday", "Saturday", "Sunday"]
+        },
+        {
+          "t": "{rel} health: {cond}",
+          "rel": ["dad", "aunt", "grandma", "uncle"],
+          "cond": [
+            "recovering from shoulder surgery",
+            "getting a hip replacement in the spring",
+            "on new heart medication",
+            "home after a short hospital stay",
+            "starting physical therapy for her back"
+          ]
+        },
+        {
+          "t": "Sam home: {home}",
+          "home": [
+            "grew up in Omaha",
+            "thinking about buying a condo in Golden",
+            "landlord is raising the rent",
+            "building's elevator is broken again",
+            "has a roommate named Alex",
+            "wants to move somewhere with a yard"
+          ]
+        },
+        {
+          "t": "Sam goal: {goal} in {season}",
+          "goal": [
+            "run a 10K",
+            "bike a century ride",
+            "hike a fourteener",
+            "swim a mile",
+            "do a sprint triathlon"
+          ],
+          "season": ["spring", "summer", "the fall", "winter"]
+        },
+        {
+          "t": "Sam appointment: {appt} on {day}",
+          "appt": [
+            "eye doctor",
+            "physical therapy",
+            "dermatologist",
+            "allergist",
+            "car inspection"
+          ],
+          "day": ["Monday", "Tuesday", "Thursday", "Friday", "Saturday"]
+        },
+        {
+          "t": "car maintenance: {m}",
+          "m": [
+            "needs new wiper blades",
+            "tire pressure light keeps coming on",
+            "check engine light came on",
+            "due for a tire rotation",
+            "windshield has a chip",
+            "brakes are squeaking",
+            "battery died at the grocery store"
+          ]
+        },
+        {
+          "t": "Sam favorite food: {f}",
+          "f": [
+            "tacos al pastor",
+            "pho",
+            "sourdough pizza",
+            "pad see ew",
+            "green chile stew",
+            "dan dan noodles",
+            "bibimbap",
+            "fish and chips"
+          ]
+        },
+        {
+          "t": "Ferni has been reading {b}",
+          "b": [
+            "a novel about a lighthouse keeper",
+            "a cookbook from Oaxaca",
+            "short stories about trains",
+            "poems by Mary Oliver",
+            "a biography of a jazz drummer",
+            "a field guide to mushrooms"
+          ]
+        },
+        {
+          "t": "Sam health: {h}",
+          "h": [
+            "getting headaches at his desk",
+            "started taking magnesium",
+            "pulled a hamstring",
+            "has a lingering cough",
+            "allergies are bad this month",
+            "trying to drink less coffee"
+          ]
+        },
+        {
+          "t": "Sam hobby: learning {inst}, stuck on {thing}",
+          "inst": ["piano", "ukulele", "drums", "harmonica"],
+          "thing": ["scales", "keeping time", "reading sheet music", "his left hand"]
+        },
+        {
+          "t": "Ask how {thing} went",
+          "thing": [
+            "the hiring panel",
+            "the eye doctor visit",
+            "trivia night",
+            "the bachelor party planning",
+            "the salsa class",
+            "the conference talk"
+          ]
+        }
+      ]
+    },
+    "Maria": {
+      "updates": {
+        "items": [
+          ["maria-shift-old", "Maria schedule: works day shifts Monday to Thursday"],
+          ["maria-shift-new", "Maria schedule: switched to three twelve-hour weekend shifts"],
+          ["maria-car-old", "Maria car: drives a red minivan"],
+          ["maria-car-new", "Maria car: traded the minivan for a used Subaru Outback"],
+          ["lucia-teacher-old", "Lucia school: her teacher is Mrs. Alvarez"],
+          ["lucia-teacher-new", "Lucia school: moved to Mr. Chen's class after the first week"]
+        ],
+        "turns": [
+          ["this weekend's twelve-hour shifts are going to wreck me", ["maria-shift-new"]],
+          ["I'm working Saturday and Sunday again", ["maria-shift-new"]],
+          ["the Subaru handled the rain great", ["maria-car-new"]],
+          ["what am I driving these days, I keep forgetting", ["maria-car-new"]],
+          ["Lucia loves her new teacher", ["lucia-teacher-new", "daughter"]],
+          ["Mr. Chen sent home a note about reading time", ["lucia-teacher-new"]]
+        ]
+      },
+      "near": [
+        {
+          "t": "Lucia {facet}",
+          "facet": [
+            "worry: picky eater, only eats pasta",
+            "worry: afraid of the dark",
+            "habit: sings in the bath",
+            "relation: best friends with a girl named Ana",
+            "activity: started swim lessons on Saturdays",
+            "activity: loves drawing horses",
+            "health: had her tonsils out last year",
+            "habit: wakes up at 5:30 every day",
+            "worry: scared of dogs",
+            "activity: wants to do ballet"
+          ]
+        },
+        {
+          "t": "Diego {facet}",
+          "facet": [
+            "relation: Maria's husband, grew up in El Paso",
+            "job: thinking about switching to day shifts",
+            "hobby: plays soccer on Sundays",
+            "health: hurt his back lifting a patient",
+            "habit: makes pancakes on his days off",
+            "plan: wants to go back to school for his NP",
+            "relation: his mom lives with them half the year"
+          ]
+        },
+        {
+          "t": "Maria hobby: growing {plant} in {where}",
+          "plant": [
+            "basil",
+            "strawberries",
+            "zucchini",
+            "lavender",
+            "cucumbers",
+            "herbs",
+            "cilantro",
+            "marigolds",
+            "green beans",
+            "sunflowers"
+          ],
+          "where": [
+            "pots on the porch",
+            "the community garden",
+            "a raised bed",
+            "the kitchen window",
+            "hanging baskets",
+            "a greenhouse kit"
+          ]
+        },
+        {
+          "t": "Maria job: {job}",
+          "job": [
+            "picking up extra shifts in the ER",
+            "precepting a new grad nurse",
+            "got a certification in wound care",
+            "her unit is short-staffed again",
+            "thinking about a job at the clinic",
+            "union meeting next Wednesday",
+            "renewing her nursing license",
+            "charting is taking forever with the new system",
+            "floated to the cardiac unit last week",
+            "got a thank-you card from a patient",
+            "mandatory overtime twice this month",
+            "annual review in May"
+          ]
+        },
+        {
+          "t": "{rel} health: {cond}",
+          "rel": ["mom", "uncle", "abuela", "father-in-law", "aunt", "godmother"],
+          "cond": [
+            "diabetes, checking sugars daily",
+            "recovering from a fall",
+            "cataract surgery in the spring",
+            "moved in with Maria's sister",
+            "starting dialysis",
+            "high blood pressure",
+            "pneumonia last winter"
+          ]
+        },
+        {
+          "t": "Maria routine: {routine} on {day}",
+          "routine": [
+            "swimming laps",
+            "a walk with Rosa",
+            "meal prep",
+            "Zumba",
+            "church with her parents",
+            "a long bath",
+            "a spin class",
+            "the farmers market",
+            "a call with her sister",
+            "laundry"
+          ],
+          "day": [
+            "Monday mornings",
+            "Wednesday nights",
+            "Friday afternoons",
+            "Saturday mornings",
+            "Sunday evenings",
+            "Tuesday afternoons"
+          ]
+        },
+        {
+          "t": "Maria event: {event} on {date}",
+          "event": [
+            "Lucia's birthday party",
+            "her parents' fortieth anniversary",
+            "Rosa's wedding",
+            "a nursing school reunion",
+            "Diego's graduation",
+            "Carmen's baby shower",
+            "a cousin's quinceañera",
+            "the hospital gala"
+          ],
+          "date": [
+            "March 3",
+            "April 20",
+            "August 9",
+            "September 15",
+            "October 30",
+            "January 18",
+            "May 5",
+            "November 22"
+          ]
+        },
+        {
+          "t": "Maria money: {m}",
+          "m": [
+            "saving for Lucia's college fund",
+            "car payment due on the 15th",
+            "trying to build an emergency fund",
+            "refinancing the mortgage",
+            "got a tax refund in April",
+            "paying off a medical bill",
+            "saving for a family trip to Mexico",
+            "switched to a cheaper phone plan",
+            "Diego's student loans",
+            "opened a high-yield savings account"
+          ]
+        },
+        {
+          "t": "{who} relation: Maria's {rel}",
+          "who": ["Carmen", "Sofia", "Elena", "Paula", "Isabel", "Marta", "Gloria", "Teresa"],
+          "rel": [
+            "sister in Austin",
+            "coworker on the night shift",
+            "neighbor from her old apartment",
+            "cousin who just had twins",
+            "friend from church",
+            "old roommate from nursing school"
+          ]
+        },
+        {
+          "t": "Ferni {f}",
+          "f": [
+            "grew up with a parrot named Chico",
+            "can't cook anything but eggs",
+            "once tried to grow a bonsai",
+            "is terrible at remembering birthdays",
+            "loves gardening shows"
+          ]
+        },
+        {
+          "t": "Ask how {thing} went",
+          "thing": [
+            "Lucia's swim lesson",
+            "the union meeting",
+            "the visit with her mom",
+            "the weekend in San Antonio",
+            "the wound care exam",
+            "Diego's back appointment",
+            "the cardiac float shift",
+            "Rosa's job hunt",
+            "the farmers market",
+            "Lucia's dentist visit"
+          ]
+        },
+        {
+          "t": "Maria plan: thinking about {plan} {when}",
+          "plan": [
+            "a trip to Puerto Vallarta",
+            "repainting Lucia's room",
+            "a weekend in San Antonio",
+            "visiting her cousin in Phoenix",
+            "buying a second car",
+            "redoing the kitchen floor",
+            "taking a pottery class"
+          ],
+          "when": ["this summer", "next year", "after the holidays"]
+        },
+        {
+          "t": "Maria travel: {trip} in {month}",
+          "trip": [
+            "drove to Galveston",
+            "flew to Phoenix for a wedding",
+            "camped at Big Bend",
+            "visited her parents in El Paso",
+            "took Lucia to the zoo in Houston"
+          ],
+          "month": ["January", "March", "April", "July", "September", "December"]
+        },
+        {
+          "t": "Lucia activity: {act} on {day}",
+          "act": [
+            "soccer practice",
+            "art class",
+            "a playdate with Ana",
+            "library story time",
+            "a dance class",
+            "swim lessons"
+          ],
+          "day": ["Mondays", "Tuesdays", "Thursdays", "Fridays", "Saturdays"]
+        }
+      ]
+    },
+    "James": {
+      "updates": {
+        "items": [
+          ["james-doctor-old", "James health: sees Dr. Patel for his blood pressure"],
+          ["james-doctor-new", "James health: Dr. Patel retired, now sees Dr. Okafor"],
+          ["rusty-food-old", "Rusty diet: eats dry kibble twice a day"],
+          ["rusty-food-new", "Rusty diet: vet switched him to soft senior food for his teeth"],
+          ["toby-pos-old", "Toby baseball: plays shortstop"],
+          ["toby-pos-new", "Toby baseball: coach moved him to catcher this season"]
+        ],
+        "turns": [
+          ["my new doctor wants to see me in a month", ["james-doctor-new", "heart"]],
+          ["Dr. Okafor says my numbers look better", ["james-doctor-new", "heart"]],
+          ["Rusty finally likes the soft food", ["rusty-food-new", "dog"]],
+          ["what does the dog eat now, I forget", ["rusty-food-new", "dog"]],
+          ["Toby looked good behind the plate", ["toby-pos-new", "grandson"]],
+          ["what position is my grandson playing these days", ["toby-pos-new", "grandson"]]
+        ]
+      },
+      "near": [
+        {
+          "t": "Ellen {facet}",
+          "facet": [
+            "memory: loved to bake rhubarb pie",
+            "memory: taught third grade for thirty years",
+            "memory: they met at a dance in 1968",
+            "memory: she kept a rose garden",
+            "memory: she always did the crossword in pen",
+            "memory: they honeymooned at Niagara Falls",
+            "memory: she volunteered at the library",
+            "memory: she hated thunderstorms",
+            "memory: her favorite song was Moon River",
+            "memory: she grew up in Sandusky"
+          ]
+        },
+        {
+          "t": "{who} relation: James's {rel}",
+          "who": ["Karen", "Mike", "Lily", "Ben", "Dottie", "Ruth", "Carl", "Annie"],
+          "rel": [
+            "daughter in Toledo",
+            "son who works in Detroit",
+            "granddaughter in college",
+            "neighbor who checks on him",
+            "sister-in-law in Florida",
+            "nephew who sells insurance",
+            "old neighbor from Dearborn"
+          ]
+        },
+        {
+          "t": "Toby {facet}",
+          "facet": [
+            "activity: also plays basketball in winter",
+            "school: struggling with math",
+            "habit: wants to be a pilot",
+            "activity: joined the Boy Scouts",
+            "health: broke his wrist last summer",
+            "relation: his sister Emma does gymnastics",
+            "school: won the science fair",
+            "habit: plays video games all weekend",
+            "activity: learning to ride a dirt bike",
+            "relation: his dad coaches his team"
+          ]
+        },
+        {
+          "t": "James job: {job}",
+          "job": [
+            "worked as a union steward at the plant",
+            "did a stint in the Army before the plant",
+            "trained apprentices in his last ten years",
+            "drove a delivery truck one summer"
+          ]
+        },
+        {
+          "t": "James health: {h}",
+          "h": [
+            "has a cataract in his left eye",
+            "knees ache when it rains",
+            "started physical therapy for his shoulder",
+            "takes a baby aspirin every morning",
+            "had a hernia repaired last year",
+            "hearing is getting worse",
+            "cholesterol is a little high",
+            "sleeps poorly since the surgery",
+            "needs new hearing aids",
+            "takes vitamin D in the winter"
+          ]
+        },
+        {
+          "t": "James routine: {r} on {day}",
+          "r": [
+            "coffee with the guys at the diner",
+            "bowling league",
+            "mows the lawn",
+            "calls his daughter",
+            "goes to the VFW hall",
+            "walks at the mall",
+            "drives to the hardware store",
+            "plays cribbage with Hal",
+            "visits Ellen's grave",
+            "waters the tomatoes"
+          ],
+          "day": [
+            "Mondays",
+            "Tuesdays",
+            "Wednesdays",
+            "Thursdays",
+            "Fridays",
+            "Sundays",
+            "Saturdays"
+          ]
+        },
+        {
+          "t": "James memory: {m}",
+          "m": [
+            "used to hunt deer with his father in Michigan",
+            "drove to the Grand Canyon in 1985",
+            "grew up on a dairy farm",
+            "saw the Tigers win the '68 series",
+            "used to camp at Lake Huron with Ellen",
+            "built a treehouse for his kids",
+            "first car was a 1955 Chevy",
+            "worked a summer on a Great Lakes freighter",
+            "sang in the church choir as a boy",
+            "coached his son's little league team"
+          ]
+        },
+        {
+          "t": "{who} relation: James's {rel}, {status}",
+          "who": ["Frank", "Hal", "Gene", "Stan", "Earl", "Leo"],
+          "rel": ["old friend from the plant", "cousin", "army buddy", "fishing buddy"],
+          "status": [
+            "moved to a nursing home",
+            "calls every Sunday",
+            "lives in Arizona now",
+            "lost his wife last year",
+            "just had a stroke",
+            "still works part-time"
+          ]
+        },
+        {
+          "t": "Ask how {thing} went",
+          "thing": [
+            "the eye appointment",
+            "the bowling league",
+            "the birdhouse",
+            "the call with his daughter",
+            "the VFW dinner",
+            "the physical therapy",
+            "the hearing test",
+            "the cribbage game",
+            "the visit to Ellen's grave",
+            "Karen's trip"
+          ]
+        },
+        {
+          "t": "Ferni's {who} {did}",
+          "who": ["grandpa", "uncle", "mom", "aunt"],
+          "did": [
+            "taught him to fish",
+            "fixed old radios",
+            "loved crossword puzzles",
+            "kept bees",
+            "played the banjo",
+            "raised chickens"
+          ]
+        },
+        {
+          "t": "{pet} relation: {facet}",
+          "pet": ["Rusty"],
+          "facet": [
+            "James's beagle, scared of thunder",
+            "James's beagle, loves car rides",
+            "James's beagle, adopted from a shelter in 2014",
+            "James's beagle, has a bad hip",
+            "James's beagle, howls at sirens",
+            "James's beagle, afraid of the vacuum",
+            "James's beagle, gets carsick",
+            "James's beagle, sleeps by the woodstove"
+          ]
+        },
+        {
+          "t": "James hobby: {verb} {obj} in the garage",
+          "verb": ["building", "restoring", "refinishing", "painting"],
+          "obj": [
+            "a birdhouse",
+            "an old bicycle",
+            "a bookshelf for Toby",
+            "an oak table",
+            "a step stool",
+            "a cedar chest",
+            "a picnic table",
+            "a toolbox"
+          ]
+        },
+        {
+          "t": "Toby {sport}: {event}",
+          "sport": ["basketball", "soccer"],
+          "event": [
+            "team lost in the first round",
+            "practice moved to Thursdays",
+            "got a new coach",
+            "made the travel team"
+          ]
+        }
+      ]
+    }
+  }
+}
