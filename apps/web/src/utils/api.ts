@@ -35,7 +35,7 @@
  */
 
 import { getAuthToken, getFirebaseUid, initAuth } from '../services/firebase-auth.service.js';
-import { fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
+import { dedupeInFlight, fetchWithRetry, isOffline, type FetchRetryOptions } from './fetch-retry.js';
 import { createLogger } from './logger.js';
 import { IDENTITY_KEYS } from '../config/storage-keys.js';
 import { getLocale } from '../i18n/index.js';
@@ -242,11 +242,9 @@ export async function apiGet<T = unknown>(
     // Get async headers with Firebase auth token
     const headers = await getApiHeadersAsync(false);
 
-    // Use fetchWithRetry for self-healing
-    const result = await fetchWithRetry<T>(
-      url.toString(),
-      { method: 'GET', headers },
-      { ...DEFAULT_RETRY_OPTIONS, ...retryOptions }
+    // Self-healing retries; an identical GET already in flight is shared, not repeated
+    const result = await dedupeInFlight(`${url.toString()} ${JSON.stringify(retryOptions ?? {})}`, () =>
+      fetchWithRetry<T>(url.toString(), { method: 'GET', headers }, { ...DEFAULT_RETRY_OPTIONS, ...retryOptions })
     );
 
     if (result.error) {

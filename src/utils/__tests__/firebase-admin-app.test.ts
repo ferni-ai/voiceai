@@ -13,7 +13,12 @@ import { getAdminApp, getAdminFirestore, resolveFirebaseProjectId } from '../fir
 vi.unmock('firebase-admin/app');
 vi.unmock('firebase-admin/firestore');
 
-const PROJECT_ENV = ['GCP_PROJECT_ID', 'GOOGLE_CLOUD_PROJECT', 'FIREBASE_PROJECT_ID'] as const;
+const PROJECT_ENV = [
+  'GCP_PROJECT_ID',
+  'GOOGLE_CLOUD_PROJECT',
+  'FIREBASE_PROJECT_ID',
+  'FIRESTORE_DATABASE',
+] as const;
 
 async function deleteAllApps(): Promise<void> {
   await Promise.all(getApps().map((app) => deleteApp(app)));
@@ -106,5 +111,18 @@ describe('getAdminApp', () => {
     expect(getApps().map((a) => a.name)).toEqual(['[DEFAULT]']);
     expect(db).toBe(getFirestore(getAdminApp()));
     expect(db).toBe(getAdminFirestore());
+  });
+
+  it("getAdminFirestore binds '(default)' when FIRESTORE_DATABASE is unset", () => {
+    delete process.env.FIRESTORE_DATABASE;
+    expect(getAdminFirestore().databaseId).toBe('(default)');
+  });
+
+  it('getAdminFirestore binds the database FIRESTORE_DATABASE names', () => {
+    process.env.FIRESTORE_DATABASE = 'ferni-dev';
+    const db = getAdminFirestore();
+    expect(db.databaseId).toBe('ferni-dev');
+    expect(db).toBe(getFirestore(getAdminApp(), 'ferni-dev'));
+    expect(db).not.toBe(getFirestore(getAdminApp()));
   });
 });

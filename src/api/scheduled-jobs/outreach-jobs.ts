@@ -60,8 +60,8 @@ export async function handleEvaluateThinkingOfYou(res: ServerResponse): Promise<
   try {
     log.info('Evaluating thinking-of-you outreach (Cloud Scheduler)');
 
-    const admin = await import('firebase-admin');
-    const db = admin.default.firestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const usersSnap = await db
       .collection('bogle_users')
@@ -110,8 +110,8 @@ export async function handleRunPredictiveAnalysis(res: ServerResponse): Promise<
 
     const { runPredictiveAnalysis } = await import('../../services/predictive-insights/index.js');
 
-    const admin = await import('firebase-admin');
-    const db = admin.default.firestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -176,8 +176,8 @@ export async function handleResetWeeklyCounters(res: ServerResponse): Promise<vo
   try {
     log.info('Resetting weekly outreach counters (Cloud Scheduler)');
 
-    const admin = await import('firebase-admin');
-    const db = admin.default.firestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const statesSnap = await db.collectionGroup('outreach_state').get();
 

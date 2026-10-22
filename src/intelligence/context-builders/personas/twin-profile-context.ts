@@ -8,7 +8,7 @@
  * @module intelligence/context-builders/twin-profile-context
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import {
   registerContextBuilder,
@@ -80,7 +80,7 @@ async function getTwinProfile(userId: string): Promise<TwinProfile | null> {
   }
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const doc = await db.collection('twin_profiles').doc(userId).get();
 
     if (!doc.exists) {

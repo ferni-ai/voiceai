@@ -7,7 +7,7 @@
  * @module HouseholdRoutes
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../utils/firebase-admin-app.js';
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { cleanForFirestore } from '../utils/firestore-utils.js';
@@ -103,7 +103,7 @@ export async function handleHouseholdRoutes(
     // SECURITY: Use authenticated userId, ignore URL param to prevent unauthorized access
     const { userId } = auth;
     try {
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const doc = await db.collection('households').doc(userId).get();
 
       if (!doc.exists) {
@@ -145,7 +145,7 @@ export async function handleHouseholdRoutes(
         return true;
       }
 
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const household: Partial<Household> = {
         userId,
         updatedAt: new Date(),
@@ -188,7 +188,7 @@ export async function handleHouseholdRoutes(
         return true;
       }
 
-      const db = getFirestore();
+      const db = getAdminFirestore();
       await db
         .collection('households')
         .doc(userId)
@@ -231,7 +231,7 @@ export async function handleHouseholdRoutes(
         return true;
       }
 
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const docRef = db.collection('households').doc(userId);
       const doc = await docRef.get();
 
@@ -270,7 +270,7 @@ export async function handleHouseholdRoutes(
     const { userId } = auth;
     const memberId = removeMemberMatch[2];
     try {
-      const db = getFirestore();
+      const db = getAdminFirestore();
       const docRef = db.collection('households').doc(userId);
       const doc = await docRef.get();
 
