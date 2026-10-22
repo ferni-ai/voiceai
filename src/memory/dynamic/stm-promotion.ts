@@ -28,6 +28,7 @@ import {
   type TurnMemory,
   type VoiceEmotionSnapshot,
 } from './stm-buffer.js';
+import { redactCredentials } from '../credential-redaction.js';
 
 const log = createLogger({ module: 'STMPromotion' });
 
@@ -402,13 +403,12 @@ async function doPromoteSessionToFirestore(
             break;
           }
         }
-
         entitiesToPromote.push({
           name: entity.name,
           type: entity.type || 'person',
           mentionCount: entity.mentionCount,
           importance,
-          lastContext,
+          lastContext: lastContext ? redactCredentials(lastContext) : lastContext,
           sessionId,
           promotedAt: timestamp,
         });

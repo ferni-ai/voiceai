@@ -32,6 +32,7 @@ import {
   recordCacheHit,
   recordCacheMiss,
 } from './entity-cache.js';
+import { redactCredentialsIn } from '../credential-redaction.js';
 
 const log = createLogger({ module: 'entity-store:storage' });
 
@@ -84,9 +85,8 @@ async function getEntitiesRef(userId: string) {
 export async function createEntity(userId: string, entity: Omit<Entity, 'id'>): Promise<Entity> {
   const ref = await getEntitiesRef(userId);
   const docRef = ref.doc();
-
   const fullEntity: Entity = {
-    ...entity,
+    ...redactCredentialsIn(entity),
     id: docRef.id,
     userId,
     createdAt: new Date(),
@@ -162,7 +162,7 @@ export async function updateEntity(
   if (!existing.exists) return null;
 
   const updateData = {
-    ...updates,
+    ...redactCredentialsIn(updates),
     updatedAt: new Date(),
   };
 
@@ -392,7 +392,7 @@ export async function createMention(
   const docRef = ref.doc();
 
   const fullMention: Mention = {
-    ...mention,
+    ...redactCredentialsIn(mention),
     id: docRef.id,
     userId,
     timestamp: mention.timestamp || new Date(),

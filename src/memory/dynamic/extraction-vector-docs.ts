@@ -15,6 +15,7 @@
 
 import { sanitizeFirestoreDocId } from '../../utils/firestore-utils.js';
 import { withoutSpokenCredentials } from '../spoken-credential.js';
+import { redactCredentials, withoutCredentialAttributes } from '../credential-redaction.js';
 import type { FallbackLogger } from '../../utils/safe-logger.js';
 import type { VectorDocument } from '../vector-store-interface.js';
 import type {
@@ -251,7 +252,7 @@ export function sanitizeExtractionResult(
     entities.push({
       name: entity.name.trim(),
       type: entity.type ?? 'thing',
-      attributes,
+      attributes: withoutCredentialAttributes(attributes) as Record<string, string>,
       confidence: confidenceNumber(entity.confidence),
     });
   }
@@ -271,7 +272,7 @@ export function sanitizeExtractionResult(
       entityName: fact.entityName.trim(),
       factType: fact.factType ?? 'attribute',
       key: fact.key.trim(),
-      value: String(fact.value),
+      value: redactCredentials(String(fact.value)),
       confidence: confidenceNumber(fact.confidence),
       temporalContext: fact.temporalContext,
     });

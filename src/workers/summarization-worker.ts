@@ -20,6 +20,7 @@ import { LocalWorker, type WorkerConfig } from './base-worker.js';
 import { AsyncEvents, type EventPayload } from '../services/async-events/index.js';
 import { removeUndefined } from '../utils/firestore-utils.js';
 import { createLogger } from '../utils/safe-logger.js';
+import { redactCredentialsIn } from '../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'SummarizationWorker' });
 
@@ -284,7 +285,6 @@ export class SummarizationWorker extends LocalWorker {
       }));
       const result = await summarizeConversation(job.userId, typedTurns as never);
 
-      // Save to Firestore
       const summaryText = (result as { text?: string }).text || '';
       if (summaryText) {
         try {
@@ -297,7 +297,7 @@ export class SummarizationWorker extends LocalWorker {
             .collection('conversation_summaries')
             .doc(job.conversationId || `conv_${Date.now()}`)
             .set(
-              removeUndefined({
+              removeUndefined(redactCredentialsIn({
                 summary: summaryText,
                 topics: (result as { topics?: string[] }).topics || [],
                 emotionalHighlights:
@@ -306,7 +306,7 @@ export class SummarizationWorker extends LocalWorker {
                 turnCount: turns.length,
                 createdAt: new Date(),
                 embedding: (result as { embedding?: number[] }).embedding || null,
-              })
+              }))
             );
         } catch (saveError) {
           log.warn({ error: String(saveError) }, 'Failed to save summary to Firestore');
@@ -392,7 +392,7 @@ export class SummarizationWorker extends LocalWorker {
 
             batch.set(
               docRef,
-              removeUndefined({
+              removeUndefined(redactCredentialsIn({
                 topic: consolidated.topic,
                 consolidatedContent: consolidated.consolidatedContent,
                 sourceMemoryIds: consolidated.sourceMemoryIds,
@@ -401,7 +401,7 @@ export class SummarizationWorker extends LocalWorker {
                 emotionalSignature: consolidated.emotionalSignature,
                 themes: consolidated.themes,
                 evolution: consolidated.evolution,
-              })
+              }))
             );
           }
 

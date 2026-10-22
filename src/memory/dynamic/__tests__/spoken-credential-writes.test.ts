@@ -229,7 +229,11 @@ describe('SPOKEN_CREDENTIAL_FILTER on', () => {
   });
 });
 
-describe('SPOKEN_CREDENTIAL_FILTER off (the default)', () => {
+describe('SPOKEN_CREDENTIAL_FILTER off (the kill switch)', () => {
+  beforeEach(() => {
+    vi.stubEnv('SPOKEN_CREDENTIAL_FILTER', 'off');
+  });
+
   it('deep extraction writes every fact, as on main', async () => {
     const { firestore, vector } = await extractAndPersist();
     expect(firestore.sort()).toEqual([...ALL_VALUES].sort());

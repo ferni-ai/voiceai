@@ -22,6 +22,7 @@ import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.
 import { getLogger } from '../../utils/safe-logger.js';
 import { recordFallback, recordSuccess } from '../observability/firestore-monitor.js';
 import { fallbackCallSummary } from './call-summary-fallback.js';
+import { redactCredentials } from '../../memory/credential-redaction.js';
 
 const log = getLogger().child({ module: 'realtime-memory' });
 
@@ -196,10 +197,9 @@ export async function persistTurn(
       .collection('conversations')
       .doc(conversationId);
 
-    // Add turn document
     const turnData = removeUndefined({
       role: turn.role,
-      content: turn.content,
+      content: redactCredentials(turn.content),
       timestamp: turn.timestamp || new Date(),
       ...(turn.metadata && { metadata: turn.metadata }),
     });
@@ -439,7 +439,7 @@ export async function markSummarized(
       .update(
         cleanForFirestore({
           summarized: true,
-          summary,
+          summary: redactCredentials(summary),
           summarizedAt: new Date(),
         })
       );
@@ -449,7 +449,7 @@ export async function markSummarized(
       await firestore
         .collection('bogle_users')
         .doc(userId)
-        .update(cleanForFirestore({ lastConversationSummary: summary, lastContact: new Date() }));
+        .update(cleanForFirestore({ lastConversationSummary: redactCredentials(summary), lastContact: new Date() }));
     }
 
     log.info(
