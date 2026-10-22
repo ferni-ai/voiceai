@@ -15,6 +15,7 @@ import { listTokenUsers } from '../identity/google-calendar-token-store.js';
 import { getWorkflowEngine } from './workflow-engine.js';
 import { getActiveWorkflows, type Workflow } from '../stores/workflow-store.js';
 import type { CalendarEvent } from '../calendar/types.js';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'calendar-trigger-worker' });
 
@@ -132,7 +133,7 @@ async function getUsersWithCalendarConnected(): Promise<string[]> {
     const { Firestore } = await import('@google-cloud/firestore');
     const db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
     });
 
     // Users with Google Calendar tokens in the encrypted per-user store (the

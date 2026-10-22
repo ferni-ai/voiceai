@@ -26,6 +26,7 @@ import {
   getNaturalGreeting,
   type AuthContext,
 } from './natural-auth.js';
+import { isMemberIdentity } from './member-identity.js';
 
 // ============================================================================
 // STORE ACCESS - Use global services store if available, otherwise fallback
@@ -858,9 +859,8 @@ export async function identifyWithNaturalAuth(
   );
 
   // Check if we have a returning user
-  const store = getStore();
-  const profile =
-    authContext.userId !== 'unknown' ? await store.getProfile(authContext.userId) : null;
+  const { userId: authUserId } = authContext;
+  const profile = isMemberIdentity(authUserId) ? await getStore().getProfile(authUserId) : null;
 
   return {
     identification: {

@@ -4,7 +4,6 @@
  * This file is auto-generated from tool schemas. Do not edit directly.
  * Edit schema files in `src/tools/schemas/` and run `pnpm tools:generate`.
  *
- * Generated: 2026-10-22T12:04:22.305Z
  * Schemas: 14 files, 45 tools
  */
 

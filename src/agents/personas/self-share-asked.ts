@@ -25,6 +25,7 @@
 
 import { flagOn } from '../../config/env-flag.js';
 import { DAY_DETAILS, dayDetailFor } from './ferni-self-share.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 export function selfShareWhenAskedOn(
   env: Record<string, string | undefined> = process.env
@@ -88,7 +89,7 @@ export function pickDetail(
 /** userId → the detail ids of each of their calls, oldest first (this call's list is last). */
 const byCaller = new Map<string, string[][]>();
 
-const knownCaller = (userId?: string): userId is string => !!userId && userId !== 'anonymous';
+const knownCaller = (userId?: string): userId is string => isMemberIdentity(userId);
 
 /**
  * Start a call's record: the list this call's detail ids go in, and the ids

@@ -10,6 +10,7 @@
 import admin from 'firebase-admin';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = getLogger();
 
@@ -42,7 +43,7 @@ function getFirestore(): admin.firestore.Firestore | null {
       }
     }
 
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     log.info('✅ Firestore initialized for game analytics');
     return firestoreInstance;
   } catch (error) {
