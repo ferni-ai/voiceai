@@ -135,6 +135,8 @@ export interface TeamStatusSummary {
 // In-memory cache for fast access
 const userInsightsCache = new Map<string, CrossPersonaInsight[]>();
 const loadedUsers = new Set<string>();
+/** Users whose last read errored: their stored insights are unread, so never saved over. */
+const insightsReadFailed = new Set<string>();
 
 /**
  * Get insights for a user (from cache or load from Firestore)
@@ -146,15 +148,13 @@ function getInsightsForUser(userId: string): CrossPersonaInsight[] {
   return userInsightsCache.get(userId)!;
 }
 
-/**
- * Load insights from Firestore for a user
- */
+/** Load insights from Firestore for a user; a read error is retried on the next load. */
 async function loadInsightsFromPersistence(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
   try {
     const store = getInsightsPersistence();
-    const data = await store.load(userId);
+    const data = await store.load(userId, { strict: true });
 
     if (data?.insights && Array.isArray(data.insights)) {
       // Filter out expired insights during load
@@ -165,33 +165,23 @@ async function loadInsightsFromPersistence(userId: string): Promise<void> {
     }
 
     loadedUsers.add(userId);
+    insightsReadFailed.delete(userId);
   } catch (error) {
+    insightsReadFailed.add(userId);
     log.warn({ error: String(error), userId }, 'Failed to load insights from persistence');
-    loadedUsers.add(userId); // Don't retry on failure
   }
 }
 
-/**
- * Persist insights to Firestore
- */
+/** Persist insights to Firestore (batched), unless the user's stored insights failed to read. */
 function persistInsights(userId: string): void {
+  if (insightsReadFailed.has(userId)) {
+    log.warn({ userId }, 'Insights read failed; not saving over them');
+    return;
+  }
   const insights = userInsightsCache.get(userId) || [];
   const store = getInsightsPersistence();
 
   store.set(cleanForFirestore(userId), {
-    insights,
-    lastScannedAt: Date.now(),
-  });
-}
-
-/**
- * Persist insights immediately (for critical updates)
- */
-async function persistInsightsImmediate(userId: string): Promise<void> {
-  const insights = userInsightsCache.get(userId) || [];
-  const store = getInsightsPersistence();
-
-  await store.setImmediate(userId, {
     insights,
     lastScannedAt: Date.now(),
   });
