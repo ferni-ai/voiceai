@@ -11,7 +11,7 @@
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 import { verifyFirebaseToken, isVerifiedToken } from '../../../services/identity/firebase-auth.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 import { createManagedInterval, type ManagedInterval } from '../../../utils/managed-interval.js';
@@ -94,7 +94,7 @@ async function parseBody(req: IncomingMessage): Promise<Record<string, unknown>>
 }
 
 function getSmartHomeCollection() {
-  return getFirestore().collection('bogle_users');
+  return getAdminFirestore().collection('bogle_users');
 }
 
 async function getCredentials<T>(userId: string, integration: string): Promise<T | null> {
@@ -682,7 +682,7 @@ async function handleHomeKitStatus(
     }
 
     // Get device/scene counts from the synced data
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const devicesSnapshot = await db
       .collection('bogle_users')
       .doc(userId)
@@ -770,7 +770,7 @@ async function handleHomeKitSync(req: IncomingMessage, res: ServerResponse): Pro
       return;
     }
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const homekitRef = db.collection('bogle_users').doc(userId).collection('homekit');
 
     // Save config
@@ -836,7 +836,7 @@ async function handleHomeKitCommands(
   }
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const commandsRef = db
       .collection('bogle_users')
       .doc(userId)
@@ -897,7 +897,7 @@ async function handleHomeKitCommandComplete(
       return;
     }
 
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const commandRef = db
       .collection('bogle_users')
       .doc(userId)
@@ -951,7 +951,7 @@ async function handleHomeKitDisconnect(
     await deleteCredentials(userId, 'homekit');
 
     // Also delete devices and scenes
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const devicesRef = db
       .collection('bogle_users')
       .doc(userId)

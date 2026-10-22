@@ -40,7 +40,7 @@ describe('COHORT_FLAGS', () => {
         'FOLLOW_THROUGH_OPENER', 'NAMED_TUNE', 'GOOD_NEWS_BIGGER', 'ALEX_CHIEF_OF_STAFF',
         'WEB_PUSH_DELIVERY', 'PERSONA_VOICE', 'TURN_LENGTH', 'TURN_TEXTURE',
         'REMINDER_SMS_DEFAULT', 'REMINDER_IN_APP_PUSH', 'FAMILY_TABLE', 'OPEN_LOOPS_IN_CONTEXT',
-        'IOS_PUSH', 'FIRST_CALL_INTRO',
+        'IOS_PUSH', 'FIRST_CALL_INTRO', 'RECALL_VECTOR_INDEX', 'SPECIALIST_TOOLS',
       ].sort() // prettier-ignore
     );
   });
@@ -73,6 +73,9 @@ describe('missingPrerequisites', () => {
   it('names a memory switch turned on without what it builds on', () => {
     expect(missingPrerequisites({ RECALL_EPISODES: 'on' })).toEqual([
       'RECALL_EPISODES needs SEMANTIC_RECALL',
+    ]);
+    expect(missingPrerequisites({ RECALL_VECTOR_INDEX: 'on' })).toEqual([
+      'RECALL_VECTOR_INDEX needs SEMANTIC_RECALL',
     ]);
     expect(missingPrerequisites({ WORLD_FACTS_IN_CALL: 'on' })).toEqual([
       'WORLD_FACTS_IN_CALL needs WORLD_MODEL_TEMPORAL',

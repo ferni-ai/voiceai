@@ -67,7 +67,7 @@ import { cleanupIntelligenceSession } from '../integrations/unified-intelligence
 import { endMemorySession } from '../../intelligence/memory-intelligence/turn-processor-integration.js';
 
 // Capability learning - track which capabilities resonated
-import { finalizeSessionLearning } from '../../intelligence/capability-learning.js';
+import { discardSessionLearning, finalizeSessionLearning } from '../../intelligence/capability-learning.js';
 import { clearSession as clearHumeSession } from '../../services/emotion-analysis/hume.js';
 
 // FIX AUDIT: Import seed economy from service layer (clean architecture)
@@ -391,10 +391,15 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     });
   }
 
-  // Emit async event for background processing
+  // MINOR_CARE=on: for a caller under 18 who isn't a verified owner, every writer that PERSISTS
+  // gets memoryUserId (undefined). The raw userId stays only for in-memory clears, presence and
+  // outreach suppression, billing (trial time), seeds and the in-memory A/B and cognitive tallies.
+  const held = memoryHeld(sessionId);
+  const memoryUserId = held ? undefined : userId;
+  // Async event for background processing (the trust and predictions workers persist on it)
   emitConversationEnd({
     sessionId,
-    userId: userId || 'anonymous',
+    userId: memoryUserId || 'anonymous',
     personaId: sessionPersona?.id || 'ferni',
     turnCount: finalConvState?.flow.turnCount || userData?.turnCount || 0,
     durationMs: sessionDurationMs,
@@ -433,8 +438,6 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   // ================================================================
   // GROUP 2: PARALLEL DATA PERSISTENCE (independent, can run together)
   // ================================================================
-  // MINOR_CARE=on: nothing personal kept for a caller under 18 who isn't a verified owner.
-  const memoryUserId = memoryHeld(sessionId) ? undefined : userId;
   const persistenceGroup = await Promise.allSettled([
     // HUMAN SIGNAL EXTRACTION - extract "Better Than Human" signals from conversation
     // (birthdays, emotional tells, values, fears, growth markers, inside jokes), from historyTracker turns
@@ -450,14 +453,13 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Cognitive session
     cleanupCognitiveSession(userId, sessionPersona.id, sessionId, services),
 
-    // Trust profiles
-    userId ? cleanupTrustProfiles(userId) : Promise.resolve(),
+    // Trust profiles (boundaries, inside jokes, journaling, media preferences...)
+    memoryUserId ? cleanupTrustProfiles(memoryUserId) : Promise.resolve(),
 
     // Deep understanding profiles
     memoryUserId ? cleanupDeepUnderstandingProfiles(memoryUserId, sessionId) : Promise.resolve(),
 
-    // Relationship memory - persist relationship state at session end
-    // Core Principle #2: "Every interaction is part of an ongoing relationship"
+    // Relationship memory at session end (Core Principle #2: an ongoing relationship)
     memoryUserId ? cleanupRelationshipMemory(memoryUserId, sessionPersona.id, sessionId) : Promise.resolve(),
 
     // STM → Firestore promotion (L1 → L2): frequently-mentioned entities from the in-memory buffer
@@ -489,7 +491,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       : Promise.resolve(),
 
     // Capability learning - track which capabilities resonated for collective learning
-    userId ? cleanupCapabilityLearning(userId, sessionId) : Promise.resolve(),
+    userId ? cleanupCapabilityLearning(userId, sessionId, held) : Promise.resolve(),
 
     // WIRED (Jan 2026): Personality A/B Testing engagement recording
     userId
@@ -540,6 +542,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
 
     // Humanization state persistence
     (async () => {
+      if (held) return; // MINOR_CARE: comfort state and humanization data are about the caller
       const saveResult = await saveHumanizationState(userId || 'anonymous', sessionId);
       if (saveResult.saved) {
         diag.session('🎭 Humanization state persisted', { items: saveResult.items });
@@ -549,7 +552,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     // Naturalness Engine - persist learned voice patterns for next session
     (async () => {
       try {
-        await persistNaturalnessData(sessionId);
+        if (!held) await persistNaturalnessData(sessionId); // their voice patterns: MINOR_CARE
         diag.session('🌊 Voice patterns persisted');
       } catch (naturalnessErr) {
         diag.warn('Voice pattern persistence failed (non-fatal)', {
@@ -647,23 +650,22 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       : Promise.resolve(),
 
     // Relationship Arc - track session for stage progression (Better Than Human)
-    userId
+    memoryUserId
       ? (async () => {
           const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
-          await incrementSessionStats(userId, turnCount);
-          diag.session('💕 Relationship arc session recorded', { userId, turnCount });
+          await incrementSessionStats(memoryUserId, turnCount);
+          diag.session('💕 Relationship arc session recorded', { userId: memoryUserId, turnCount });
         })()
       : Promise.resolve(),
 
-    // 🎵 MUSIC LEARNING: Persist Thompson Sampling profiles and music memories
-    // This ensures per-user transition preferences survive server restarts
-    userId
+    // 🎵 MUSIC LEARNING: Persist Thompson Sampling profiles and music memories across restarts
+    memoryUserId
       ? (async () => {
           try {
             const { flushMusicLearning } =
               await import('../../audio/music-learning-persistence.js');
-            await flushMusicLearning(userId);
-            diag.session('🎵 Music learning persisted', { userId });
+            await flushMusicLearning(memoryUserId);
+            diag.session('🎵 Music learning persisted', { userId: memoryUserId });
           } catch (musicErr) {
             diag.warn('Music learning persistence failed (non-fatal)', {
               error: String(musicErr),
@@ -672,8 +674,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         })()
       : Promise.resolve(),
 
-    // 🧠 MEMORY ENHANCEMENT: Persist all memory enhancement systems
-    // Tonal Memory, Between-Session Thinking, Curiosity Memory, Persona Growth
+    // 🧠 MEMORY ENHANCEMENT: tonal, between-session thinking, curiosity, persona growth
     memoryUserId
       ? (async () => {
           try {
@@ -800,7 +801,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         })()
       : Promise.resolve(),
 
-    // Session Lifecycle - clear presence, update persona affinity, suppress outreach
+    // Session Lifecycle - clear presence, suppress outreach, persona affinity (held: onSessionEnd skips it)
     userId
       ? (async () => {
           const turnCount = finalConvState?.flow.turnCount || userData?.turnCount || 0;
@@ -844,8 +845,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
         })()
       : Promise.resolve(),
 
-    // 📱 SESSION SUMMARY: Store for Voice ↔ App sync (Better Than Human)
-    // This enables the app to show insights from this conversation
+    // 📱 SESSION SUMMARY: Voice ↔ App sync, so the app shows this conversation's insights
     memoryUserId
       ? (async () => {
           try {
@@ -1190,7 +1190,7 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
     (async () => {
       const { cleanupPredictiveIntelligence } =
         await import('../integrations/predictive-intelligence-integration.js');
-      cleanupPredictiveIntelligence(sessionId, userId);
+      cleanupPredictiveIntelligence(sessionId, memoryUserId); // ML/superhuman/embedding flush
     })(),
 
     // Humanization analytics
@@ -1308,16 +1308,15 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
       cleanupInjectionTracker(sessionId);
     })(),
 
-    // Smart Context Routing feedback aggregation (Phase 2 BTH Communication Overhaul)
-    // Aggregates injection effectiveness feedback from this session to Firestore
+    // Smart Context Routing: this session's injection effectiveness to Firestore (Phase 2 BTH)
     (async () => {
-      if (userId && process.env.USE_SMART_CONTEXT_ROUTING === 'true') {
+      if (memoryUserId && process.env.USE_SMART_CONTEXT_ROUTING === 'true') {
         try {
           const aggregator = getFeedbackAggregator();
           // Get last user text to detect mode (or default to 'unknown')
           const mode = detectConversationMode('', 0, false);
-          await aggregator.aggregateFromTracker(sessionId, userId, mode);
-          diag.session('🧠 Smart routing feedback aggregated', { sessionId, userId });
+          await aggregator.aggregateFromTracker(sessionId, memoryUserId, mode);
+          diag.session('🧠 Smart routing feedback aggregated', { sessionId, userId: memoryUserId });
         } catch (err) {
           diag.debug('Smart routing feedback aggregation failed (non-fatal)', {
             error: String(err),
@@ -1362,13 +1361,13 @@ async function executeSessionCleanup(ctx: CleanupContext, cleanupStart: number):
   // ================================================================
   // GROUP 5: SESSION DATA MANAGER CLEANUP (clears all user caches)
   // ================================================================
-  // This is CRITICAL for preventing memory leaks - cleans up ALL
-  // stateful services that cache user data (ProductivityStore,
-  // PersonaMemories, OutreachIntelligence, TopicTracking, etc.)
+  // CRITICAL for memory leaks: clears ALL stateful services that cache user data
+  // (ProductivityStore, PersonaMemories, OutreachIntelligence, TopicTracking, etc.)
   if (userId) {
     try {
       const { getSessionDataManager } = await import('../../services/session-data-manager.js');
-      const cleanupResult = await getSessionDataManager().sessionEnded(userId);
+      // MINOR_CARE: held, caches are dropped unsaved (persona memories save before clearing)
+      const cleanupResult = await getSessionDataManager().sessionEnded(userId, { save: !held });
       diag.session('🧹 SessionDataManager cleanup', {
         cleaned: cleanupResult.cleaned.length,
         errors: cleanupResult.errors.length,
@@ -1657,10 +1656,11 @@ async function cleanupDeepUnderstandingProfiles(userId: string, sessionId: strin
   }
 }
 
-async function cleanupCapabilityLearning(userId: string, sessionId: string): Promise<void> {
+async function cleanupCapabilityLearning(userId: string, sessionId: string, held: boolean): Promise<void> {
   try {
     const sessionKey = `${userId}-${sessionId}`;
-    await finalizeSessionLearning(sessionKey, userId);
+    if (held) discardSessionLearning(sessionKey); // MINOR_CARE: tracking cleared, never aggregated
+    else await finalizeSessionLearning(sessionKey, userId);
     diag.session('📚 Capability learning finalized', { userId, sessionId });
   } catch (capErr) {
     diag.warn('Capability learning cleanup failed (non-fatal)', { error: String(capErr) });
@@ -1875,8 +1875,8 @@ async function extractAndSaveHumanSignals(
       // PERSIST TO FIRESTORE ("Better Than Human" Memory)
       // ======================================================
       try {
-        const { getFirestore } = await import('firebase-admin/firestore');
-        const db = getFirestore();
+        const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+        const db = getAdminFirestore();
         const userDoc = db.collection('bogle_users').doc(userId);
 
         // Get existing human memory

@@ -119,7 +119,7 @@ export async function initializeAnalytics(): Promise<boolean> {
       }
     }
 
-    firestoreClient = admin.firestore();
+    firestoreClient = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     firestoreAvailable = true;
     log.info('✅ Analytics initialized with Firestore');
     return true;

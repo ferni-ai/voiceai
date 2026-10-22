@@ -10,12 +10,16 @@
  * @google-cloud/firestore and firebase-admin alike; src/tests/gcp-test-guard.ts
  * uses the same layer).
  *
- * "In prod" means one thing: the document the write names is in project
- * PROD_FIRESTORE_PROJECT (johnb-2025), read from the write itself
- * (projects/<p>/databases/...). Not NODE_ENV, not GOOGLE_CLOUD_PROJECT, not
- * which agent is running. The ferni-dev agent writes to johnb-2025 too, so the
- * guard applies to it as well, on purpose: its harness users land in the same
- * stores. Writes to any other project, and every write while
+ * "In prod" means one thing: the document the write names is in prod's own
+ * database, project PROD_FIRESTORE_PROJECT (johnb-2025) AND database
+ * PROD_FIRESTORE_DATABASE ('(default)'), both read from the write itself
+ * (projects/<p>/databases/<d>/...; isProdFirestore in synthetic-user.ts). Not
+ * NODE_ENV, not GOOGLE_CLOUD_PROJECT, not FIRESTORE_DATABASE, not which agent
+ * is running. While the ferni-dev agent writes to (default), the guard applies
+ * to it as well, on purpose: its harness users land in prod's stores. The dev
+ * database (ferni-dev, same project) exists so dev and its harness users can
+ * write freely without touching real people's data, so writes to any other
+ * database in johnb-2025, to any other project, and every write while
  * FIRESTORE_EMULATOR_HOST is set, pass.
  *
  * There a write is synthetic when it is under bogle_users/{owner} or
@@ -34,7 +38,7 @@
  *   SyntheticWriteRefusedError (PERMISSION_DENIED, never retried) only when
  *   EVERY write in it is synthetic; a commit mixing in any other write is sent.
  *
- * Evals in production: run.sh calls an agent that writes here, and
+ * Evals in production: run.sh calls an agent that writes to (default), and
  * returning-caller runs (EVAL_SEED) need the seed call's memories, so
  * PROD_EVAL_WRITES=voice-eval on an agent lets `voice-eval-` owners (and no
  * other class) write. Those users are removed by running
@@ -47,10 +51,13 @@
  */
 
 import { createRequire } from 'node:module';
-import { Firestore as ImportedFirestore } from '@google-cloud/firestore';
+import {
+  Firestore as ImportedFirestore,
+  WriteBatch as ImportedWriteBatch,
+} from '@google-cloud/firestore';
 import { createLogger } from './safe-logger.js';
 import {
-  PROD_FIRESTORE_PROJECT,
+  isProdFirestore,
   isSyntheticPhone,
   syntheticOwnerPrefix,
   type SyntheticOwnerPrefix,
@@ -93,10 +100,10 @@ interface WriteProto {
   currentDocument?: { exists?: boolean };
 }
 
-/** `projects/<p>/databases/<d>/documents/<path>` → [project, path segments] */
-function parseName(name: string): [string, string[]] | null {
-  const m = /^projects\/([^/]+)\/databases\/[^/]+\/documents\/(.+)$/.exec(name);
-  return m ? [m[1] as string, (m[2] as string).split('/')] : null;
+/** `projects/<p>/databases/<d>/documents/<path>` → [project, database, path segments] */
+function parseName(name: string): [string, string, string[]] | null {
+  const m = /^projects\/([^/]+)\/databases\/([^/]+)\/documents\/(.+)$/.exec(name);
+  return m ? [m[1] as string, m[2] as string, (m[3] as string).split('/')] : null;
 }
 
 /**
@@ -108,8 +115,8 @@ export function refusedOwner(write: WriteProto, env: Env = process.env): string 
   if (env.FIRESTORE_EMULATOR_HOST) return null;
   const name = write.update?.name ?? write.transform?.document;
   const parsed = name ? parseName(name) : null;
-  if (!parsed || parsed[0] !== PROD_FIRESTORE_PROJECT) return null;
-  const [, segs] = parsed;
+  if (!parsed || !isProdFirestore(parsed[0], parsed[1])) return null;
+  const [, , segs] = parsed;
 
   const candidates: unknown[] = [];
   if (USER_RECORD_ROOTS.has(segs[0] as string)) candidates.push(segs[1]);
@@ -131,14 +138,28 @@ export function refusedOwner(write: WriteProto, env: Env = process.env): string 
   return null;
 }
 
-type FirestoreClass = { prototype: Record<string | symbol, unknown> };
+export type FirestoreClass = { prototype: Record<string | symbol, unknown> };
+
+/** A copy of @google-cloud/firestore: its client class and, when found, its WriteBatch. */
+export interface FirestoreModule {
+  Firestore: FirestoreClass;
+  WriteBatch?: FirestoreClass;
+}
 
 /**
- * Every copy of the client class: the one this module imports (the bundled copy
+ * Every copy of the client package: the one this module imports (the bundled copy
  * when the agent is bundled), plus the app's and firebase-admin's own requires.
+ * The database pin (firestore-db-pin.ts) patches the same set.
  */
-function realFirestoreClasses(): FirestoreClass[] {
-  const classes = new Set<FirestoreClass>([ImportedFirestore as unknown as FirestoreClass]);
+export function realFirestoreModules(): FirestoreModule[] {
+  const modules = new Map<FirestoreClass, FirestoreModule>();
+  const imported: FirestoreModule = { Firestore: ImportedFirestore as unknown as FirestoreClass };
+  try {
+    imported.WriteBatch = ImportedWriteBatch as unknown as FirestoreClass;
+  } catch {
+    // A test's mock of the package without WriteBatch: there is no real one to patch.
+  }
+  modules.set(imported.Firestore, imported);
   try {
     const fromHere = createRequire(import.meta.url);
     const resolvers = [fromHere];
@@ -148,12 +169,18 @@ function realFirestoreClasses(): FirestoreClass[] {
       // firebase-admin isn't installed here; the app's copy is the only one.
     }
     for (const req of resolvers) {
-      classes.add((req('@google-cloud/firestore') as { Firestore: FirestoreClass }).Firestore);
+      const sdk = req('@google-cloud/firestore') as FirestoreModule;
+      modules.set(sdk.Firestore, { Firestore: sdk.Firestore, WriteBatch: sdk.WriteBatch });
     }
   } catch {
     // No node_modules to resolve from (a bundle): the imported copy is the one in use.
   }
-  return [...classes];
+  return [...modules.values()];
+}
+
+/** The client class of every copy (realFirestoreModules). */
+export function realFirestoreClasses(): FirestoreClass[] {
+  return realFirestoreModules().map((m) => m.Firestore);
 }
 
 const warned = new Set<string>();

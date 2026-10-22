@@ -27,8 +27,8 @@ const log = getLogger();
  */
 async function getKnowledgeGraphUsers(limit = 100): Promise<string[]> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     // Get users who have been active recently
     const sevenDaysAgo = new Date();

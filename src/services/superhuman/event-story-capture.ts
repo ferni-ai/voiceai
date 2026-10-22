@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { dataOf, loadDoc, type LoadResult } from './load-state.js';
 import { redactCredentialsIn } from '../../memory/credential-redaction.js';
 
 const log = createLogger({ module: 'superhuman:event-story-capture' });
@@ -181,25 +182,10 @@ const DEFAULT_CAPTURE_PROMPTS: StoryCapturePrompts = {
 
 const COLLECTION = 'event_stories';
 
-async function loadEventStoryProfile(userId: string): Promise<EventStoryProfile | null> {
+async function loadEventStoryProfile(userId: string): Promise<LoadResult<EventStoryProfile>> {
   const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
-    if (doc.exists) {
-      return doc.data() as EventStoryProfile;
-    }
-    return null;
-  } catch (error) {
-    log.debug({ error, userId }, 'Failed to load event story profile');
-    return null;
-  }
+  const ref = db?.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile');
+  return loadDoc<EventStoryProfile>(ref, log);
 }
 
 async function saveEventStoryProfile(userId: string, profile: EventStoryProfile): Promise<void> {
@@ -234,7 +220,9 @@ export async function startStoryCapture(
   eventType: string,
   eventDate: string
 ): Promise<EventStory> {
-  const profile = (await loadEventStoryProfile(userId)) || createDefaultProfile(userId);
+  // A failed read still returns the result, but saving a default would wipe the stored doc.
+  const loaded = await loadEventStoryProfile(userId);
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   const id = `story_${eventDate}_${Date.now()}`;
   const now = new Date().toISOString();
@@ -279,7 +267,7 @@ export async function startStoryCapture(
   };
 
   profile.stories.push(story);
-  await saveEventStoryProfile(userId, profile);
+  if (loaded.status !== 'error') await saveEventStoryProfile(userId, profile);
 
   log.info({ userId, eventName, eventDate }, 'Started story capture for event');
   return story;
@@ -293,7 +281,7 @@ export async function updateEventStory(
   storyId: string,
   updates: Partial<Omit<EventStory, 'id' | 'capturedAt'>>
 ): Promise<EventStory | null> {
-  const profile = await loadEventStoryProfile(userId);
+  const profile = dataOf(await loadEventStoryProfile(userId));
   if (!profile) return null;
 
   const storyIdx = profile.stories.findIndex((s) => s.id === storyId);
@@ -337,7 +325,7 @@ export async function addMeaningfulMoment(
         context?: string;
       }
 ): Promise<void> {
-  const profile = await loadEventStoryProfile(userId);
+  const profile = dataOf(await loadEventStoryProfile(userId));
   if (!profile) return;
 
   const storyIdx = profile.stories.findIndex((s) => s.id === storyId);
@@ -388,7 +376,7 @@ export async function addGratitudeNote(
   to: string,
   note: string
 ): Promise<void> {
-  const profile = await loadEventStoryProfile(userId);
+  const profile = dataOf(await loadEventStoryProfile(userId));
   if (!profile) return;
 
   const storyIdx = profile.stories.findIndex((s) => s.id === storyId);
@@ -441,7 +429,7 @@ export function getStoryCapturePrompts(
  * Get an event story by ID
  */
 export async function getEventStory(userId: string, storyId: string): Promise<EventStory | null> {
-  const profile = await loadEventStoryProfile(userId);
+  const profile = dataOf(await loadEventStoryProfile(userId));
   if (!profile) return null;
 
   return profile.stories.find((s) => s.id === storyId) || null;
@@ -454,7 +442,7 @@ export async function findEventStory(
   userId: string,
   eventName: string
 ): Promise<EventStory | null> {
-  const profile = await loadEventStoryProfile(userId);
+  const profile = dataOf(await loadEventStoryProfile(userId));
   if (!profile) return null;
 
   return (
@@ -466,7 +454,7 @@ export async function findEventStory(
  * Get all stories for a user
  */
 export async function getAllEventStories(userId: string): Promise<EventStory[]> {
-  const profile = await loadEventStoryProfile(userId);
+  const profile = dataOf(await loadEventStoryProfile(userId));
   return profile?.stories || [];
 }
 
@@ -539,7 +527,7 @@ export async function getStoriesWithUpcomingAnniversaries(
   userId: string,
   withinDays: number = 30
 ): Promise<Array<{ story: EventStory; daysUntil: number; anniversaryNumber: number }>> {
-  const profile = await loadEventStoryProfile(userId);
+  const profile = dataOf(await loadEventStoryProfile(userId));
   if (!profile) return [];
 
   const now = new Date();

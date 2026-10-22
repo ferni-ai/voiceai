@@ -9,7 +9,7 @@
  * @module services/superhuman/user-corrections
  */
 
-import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   onUserCorrectionChange,
@@ -202,7 +202,7 @@ export async function recordCorrection(
 ): Promise<string> {
   const correction = redactCredentialsIn(said);
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const category = categorizeCorrection(correction.whatFerniSaid, correction.whatUserCorrected);
 
     const correctionData: UserCorrectionEntity = {
@@ -272,7 +272,7 @@ export async function getCorrections(
   }
 ): Promise<UserCorrection[]> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     let query = db.collection(`bogle_users/${userId}/corrections`).orderBy('timestamp', 'desc');
 
     if (options?.category) {
@@ -328,7 +328,7 @@ export async function getCorrectionPatterns(userId: string): Promise<CorrectionP
  */
 export async function searchCorrections(userId: string, query: string): Promise<UserCorrection[]> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     // Simple keyword search - in production, use semantic search
     const corrections = await getCorrections(userId, { limit: 100 });
 
@@ -356,7 +356,7 @@ export async function recordImplicitPreference(
 ): Promise<string> {
   const preference = redactCredentialsIn(observed);
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     const now = new Date().toISOString();
     // Check if this preference already exists
     const existing = await db
@@ -414,7 +414,7 @@ export async function getImplicitPreferences(
   }
 ): Promise<Array<ImplicitPreferenceEntity & { id: string }>> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     let query = db
       .collection(`bogle_users/${userId}/implicit_preferences`)
       .orderBy('confidence', 'desc');
@@ -445,7 +445,7 @@ export async function getImplicitPreferences(
  */
 export async function contradictPreference(userId: string, preferenceId: string): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     await db.doc(`bogle_users/${userId}/implicit_preferences/${preferenceId}`).update({
       contradicted: true,
     });

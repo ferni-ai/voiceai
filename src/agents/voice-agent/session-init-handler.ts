@@ -420,7 +420,7 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
             if (admin.apps.length === 0) {
               admin.initializeApp();
             }
-            const db = admin.firestore();
+            const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
 
             // Cast to the expected interface - firebase-admin Firestore is compatible
             interface FirestoreInterface {

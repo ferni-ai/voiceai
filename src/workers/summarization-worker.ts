@@ -288,8 +288,8 @@ export class SummarizationWorker extends LocalWorker {
       const summaryText = (result as { text?: string }).text || '';
       if (summaryText) {
         try {
-          const { getFirestore } = await import('firebase-admin/firestore');
-          const db = getFirestore();
+          const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
+          const db = getAdminFirestore();
 
           await db
             .collection('bogle_users')
@@ -379,8 +379,8 @@ export class SummarizationWorker extends LocalWorker {
       // 3. Save consolidated memories to Firestore
       if (result.consolidated.length > 0) {
         try {
-          const { getFirestore } = await import('firebase-admin/firestore');
-          const db = getFirestore();
+          const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
+          const db = getAdminFirestore();
           const batch = db.batch();
 
           for (const consolidated of result.consolidated) {
