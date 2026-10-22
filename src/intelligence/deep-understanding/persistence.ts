@@ -270,7 +270,7 @@ async function loadSystemProfile<T>(userId: string, systemName: string): Promise
     const data = doc.data() as FirestoreDoc;
     return JSON.parse(data.data) as T;
   } catch (error) {
-    // Not a new user: what is stored stays unread, so it must not be saved over (saveSystemProfile).
+    // Not a new user: the stored profile is unread, so saveSystemProfile must not write over it.
     failedReads.add(key);
     log.warn({ error, userId, systemName }, 'Failed to load deep understanding profile');
     return null;
