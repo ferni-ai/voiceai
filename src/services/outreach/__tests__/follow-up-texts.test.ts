@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { FollowUp } from '../../follow-through/index.js';
-import { followUp } from '../../follow-through/__tests__/fixtures.js';
+import { followUp as fixture } from '../../follow-through/__tests__/fixtures.js';
 import { storedTopic } from '../../../memory/recall/session-recall.js';
 import {
   FOLLOW_UP_GAP_MS,
@@ -26,6 +26,13 @@ beforeEach(() => {
 });
 
 const NOW = new Date('2026-10-13T16:10:00Z'); // 12:10 in New York; the fixture is due at 12:00
+
+/**
+ * A follow-up this job texts: one the caller asked for on a call (from a call
+ * summary). Reminder-store imports are the reminder job's to text (below).
+ */
+const followUp = (over: Partial<FollowUp> = {}): FollowUp =>
+  fixture({ source: { store: 'summaries', ref: 's1:0' }, ...over });
 
 /** An in-memory store with the real one's live() and compare-and-set save(). */
 function deps(
@@ -73,6 +80,25 @@ describe('sendDueFollowUpTexts', () => {
     expect(report.sent).toBe(1);
     expect(saved[0]).toMatchObject({ status: 'surfaced', surfaced: [{ via: 'text' }] });
     expect(d.store.save).toHaveBeenCalledWith(saved[0], followUp().updatedAt);
+  });
+
+  it('leaves a follow-up imported from a reminder to the reminder job, which texts it once', async () => {
+    const imported = fixture({ source: { store: 'reminders', ref: 'r1' } });
+    const { d, saved } = deps([imported, followUp({ id: 'f2', text: 'water the plants' })]);
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).toHaveBeenCalledTimes(1);
+    expect(d.sendText).toHaveBeenCalledWith(expect.objectContaining({ refId: 'f2' }));
+    expect(saved.map((f) => f.id)).toEqual(['f2']); // the reminder's copy is neither claimed nor expired
+    expect(report.sent).toBe(1);
+  });
+
+  it('does not expire a reminder import long past due either: the reminder job owns it', async () => {
+    const stale = fixture({ dueAt: '2026-10-01T16:00:00.000Z' });
+    const { d, saved } = deps([stale]);
+    const report = await sendDueFollowUpTexts(d, { now: NOW });
+    expect(d.sendText).not.toHaveBeenCalled();
+    expect(saved).toEqual([]);
+    expect(report.expired).toBe(0);
   });
 
   it('sends nothing to someone whose FOLLOW_THROUGH_TEXTS is off', async () => {

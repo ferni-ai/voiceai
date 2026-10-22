@@ -151,7 +151,7 @@ export function withTurnReminder(
   const turnNotes = [
     // Who is speaking (teammate-identity.ts); WORLD_NOW=on: the caller's time now (world-now.ts).
     teammateIdentityNote(view.currentAgentId, process.env, plain),
-    worldNowNote(session),
+    worldNowNote(session, new Date(), { items: chatCtx.items, words }), // HOUR_ONCE: hour-once.ts
     director?.told(keep) ?? '',
     teamStatusNote(view, words),
     // "Naya" in the transcript is Nayan (teammate-names.ts)
