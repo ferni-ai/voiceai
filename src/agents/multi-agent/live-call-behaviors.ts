@@ -97,8 +97,10 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
         noteBargeIn(session, 'fastpath');
         try {
           session.interrupt();
+          return true;
         } catch (error) {
           log.warn({ sessionId, error: String(error) }, 'barge-in fast path: interrupt failed');
+          return false;
         }
       },
       log: (fields) => log.info({ sessionId, ...fields }, 'BARGE_IN_FASTPATH'),

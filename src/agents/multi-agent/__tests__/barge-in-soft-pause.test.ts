@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createBargeInFastPath,
   POST_RESUME_BACKSTOP_MS,
+  SOFT_PAUSE_WATCHDOG_EXTRA_MS,
   SUSTAINED_SPEECH_MS,
 } from '../barge-in-fastpath.js';
 import { installLiveCallBehaviors } from '../live-call-behaviors.js';
@@ -275,6 +276,69 @@ describe('BARGE_IN_SOFT_PAUSE on', () => {
     expect(c.interrupt).toHaveBeenCalledTimes(1);
   });
 
+  it('a cut that fails after a confirmed pause resumes Ferni instead of leaving him paused', () => {
+    for (const fail of [
+      () => false,
+      () => {
+        throw new Error('does not allow interruptions');
+      },
+    ]) {
+      const c = call('on');
+      c.interrupt.mockImplementation(fail);
+      c.talkOver();
+      vi.advanceTimersByTime(300);
+      expect(() => c.fp.onTranscript({ transcript: 'Wait', isFinal: false })).not.toThrow();
+      expect(c.interrupt).toHaveBeenCalledTimes(1);
+      expect(c.resume).toHaveBeenCalledTimes(1);
+      expect(c.decisions).toEqual([
+        { outcome: 'resumed', why: 'cut-failed', confirmedBy: 'words', pausedMs: 300 },
+      ]);
+    }
+  });
+
+  it('a pause that throws falls back to the plain cut, without escaping', () => {
+    const c = call('on');
+    c.pause.mockImplementation(() => {
+      throw new Error('output gone');
+    });
+    expect(() => c.talkOver()).not.toThrow();
+    expect(c.interrupt).toHaveBeenCalledTimes(1);
+    expect(c.resume).not.toHaveBeenCalled();
+  });
+
+  it('a resume that throws is logged and does not escape the timer', () => {
+    const c = call('on');
+    c.resume.mockImplementation(() => {
+      throw new Error('output gone');
+    });
+    c.talkOver();
+    expect(() => vi.advanceTimersByTime(SOFT_PAUSE_CONFIRM_MS)).not.toThrow();
+    expect(c.resume).toHaveBeenCalledTimes(1);
+    expect(c.interrupt).not.toHaveBeenCalled();
+    expect(c.decisions).toContainEqual({ event: 'resume-failed', error: 'Error: output gone' });
+  });
+
+  it('the watchdog resumes an output still held long after the pause', () => {
+    const c = call('on');
+    c.talkOver();
+    c.fp.onTranscript({ transcript: 'Wait', isFinal: false }); // cut, but the reply never ends
+    expect(c.interrupt).toHaveBeenCalledTimes(1);
+    const watchdogMs =
+      SOFT_PAUSE_CONFIRM_MS + SOFT_PAUSE_STT_GRACE_MS + SOFT_PAUSE_WATCHDOG_EXTRA_MS;
+    vi.advanceTimersByTime(watchdogMs - 1);
+    expect(c.resume).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(c.resume).toHaveBeenCalledTimes(1);
+    expect(c.decisions.at(-1)).toEqual({
+      outcome: 'resumed',
+      why: 'watchdog',
+      pausedMs: watchdogMs,
+    });
+    // A reply that ended normally leaves nothing for it to do.
+    c.fp.onAgentState({ newState: 'listening' });
+    expect(c.resume).toHaveBeenCalledTimes(1);
+  });
+
   it('cuts the reply as before when the output cannot pause', () => {
     const c = call('on');
     c.pause.mockReturnValue(false);
@@ -352,7 +416,7 @@ class RoomOutput extends voice.AudioOutput {
 const frame = (): AudioFrame => new AudioFrame(new Int16Array(240), 24000, 1, 240);
 
 /** installLiveCallBehaviors on a fake session that keeps its handlers. */
-function liveCall(flag: string) {
+function liveCall(flag: string, currentSpeech: unknown = { allowInterruptions: true }) {
   for (const f of ['INTERRUPT_TRACE', 'TURN_KEEPER']) vi.stubEnv(f, 'off');
   vi.stubEnv('BARGE_IN_SOFT_PAUSE', flag);
   const handlers = new Map<string, Array<(ev: unknown) => void>>();
@@ -362,6 +426,7 @@ function liveCall(flag: string) {
       handlers.set(event, [...(handlers.get(event) ?? []), h]),
     interrupt: vi.fn(),
     output: { audio: room as voice.AudioOutput },
+    _activity: { currentSpeech },
   };
   installLiveCallBehaviors({
     session: session as never,
@@ -400,6 +465,17 @@ describe('a live call', () => {
     expect(c.session.interrupt).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(0);
     expect(c.room.played).toEqual([...sent, sent[1], sent[2]]);
+  });
+
+  it("flag on: a reply that can't be interrupted (or can't be told) is not paused", () => {
+    for (const speech of [{ allowInterruptions: false }, null]) {
+      const c = liveCall('on', speech);
+      c.emit('agent_state_changed', { newState: 'speaking' });
+      c.emit('user_state_changed', { newState: 'speaking' });
+      vi.advanceTimersByTime(SUSTAINED_SPEECH_MS + SOFT_PAUSE_CONFIRM_MS + SOFT_PAUSE_STT_GRACE_MS);
+      expect(c.room.calls).toEqual([]);
+      expect(c.session.interrupt).toHaveBeenCalledTimes(1); // as today
+    }
   });
 
   it('flag off: no verdict hook, no resume buffer, sustained speech cuts as before', () => {

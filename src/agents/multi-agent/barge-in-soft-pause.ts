@@ -74,6 +74,20 @@ export function softPauseFromEnv(
 type Handler = (...args: unknown[]) => void;
 
 /**
+ * LiveKit's current reply can be cut. A reply said with allowInterruptions:
+ * false (greetings, handoff hellos and goodbyes) can't: session.interrupt()
+ * throws, so a soft pause on it would never end. Unknown counts as no.
+ */
+export function currentReplyInterruptible(session: unknown): boolean {
+  const speech = (
+    session as {
+      _activity?: { currentSpeech?: { allowInterruptions?: boolean; interrupted?: boolean } };
+    }
+  )?._activity?.currentSpeech;
+  return speech?.allowInterruptions === true && speech.interrupted !== true;
+}
+
+/**
  * The soft pause for a live call, on its session's audio output, or undefined
  * with the flag off. Keeps a resume buffer in front of the room output (as
  * NEVER_SILENT=on does; the room sets its output after this runs).
@@ -87,7 +101,7 @@ export function liveCallSoftPause(
   const soft = softPauseFromEnv(env, {
     pause: () => {
       const audio = output.output.audio;
-      if (!audio?.canPause) return false;
+      if (!audio?.canPause || !currentReplyInterruptible(session)) return false;
       audio.pause();
       return true;
     },

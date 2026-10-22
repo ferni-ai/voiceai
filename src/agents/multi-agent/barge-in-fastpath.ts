@@ -84,6 +84,8 @@ export const SOFT_PAUSE_CONFIRM_WORDS = 1;
 /** After a soft pause resumes, the transcript backstop needs only two words this long. */
 export const POST_RESUME_BACKSTOP_MS = 1500;
 export const POST_RESUME_MIN_WORDS = 2;
+/** A paused output still held this long past window + grace is resumed regardless. */
+export const SOFT_PAUSE_WATCHDOG_EXTRA_MS = 1000;
 
 export function words(text: string): string[] {
   return text
@@ -152,7 +154,8 @@ export interface BargeInFastPath {
 }
 
 export function createBargeInFastPath(deps: {
-  interrupt: () => void;
+  /** Cut the reply; false (or a throw) when it could not be cut. */
+  interrupt: () => boolean | void;
   log?: (fields: Record<string, unknown>) => void;
   sustainedSpeechMs?: number;
   setTimer?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>;
@@ -175,6 +178,7 @@ export function createBargeInFastPath(deps: {
     | { at: number; heard: string; timer?: ReturnType<typeof setTimeout>; vadEndAt?: number }
     | undefined;
   let resumedAt: number | undefined;
+  let watchdog: ReturnType<typeof setTimeout> | undefined;
   const stopTimer = (): void => {
     if (timer) clearTimer(timer);
     timer = undefined;
@@ -186,20 +190,44 @@ export function createBargeInFastPath(deps: {
     deps.log?.(fields);
     deps.interrupt();
   };
+  /** Give Ferni's audio back. A throw is logged, never let into a timer or LiveKit's emit. */
+  const release = (): void => {
+    outputHeld = false;
+    if (watchdog) clearTimer(watchdog);
+    watchdog = undefined;
+    try {
+      soft?.resume();
+    } catch (error) {
+      soft?.log?.({ event: 'resume-failed', error: String(error) });
+    }
+  };
+  const tryInterrupt = (): boolean => {
+    try {
+      return deps.interrupt() !== false;
+    } catch {
+      return false;
+    }
+  };
   const decide = (outcome: 'interrupted' | 'resumed', fields: Record<string, unknown>): void => {
     if (!pending || !soft) return;
     if (pending.timer) clearTimer(pending.timer);
     const pausedMs = Date.now() - pending.at;
     pending = undefined;
-    soft.log?.({ outcome, ...fields, pausedMs });
     if (outcome === 'interrupted') {
       firedThisReply = true;
-      deps.interrupt(); // the output stays paused until the cut reply ends
+      // The output stays paused until the cut reply ends (releaseOutput).
+      if (tryInterrupt()) {
+        soft.log?.({ outcome, ...fields, pausedMs });
+        return;
+      }
+      // An uninterruptible reply would otherwise stay paused, and "speaking", for good.
+      soft.log?.({ outcome: 'resumed', why: 'cut-failed', confirmedBy: fields.why, pausedMs });
+      release();
       return;
     }
-    outputHeld = false;
+    soft.log?.({ outcome, ...fields, pausedMs });
     resumedAt = Date.now();
-    soft.resume();
+    release();
   };
   /**
    * Resume at the window's end, or, if the caller went quiet, at the later of
@@ -221,12 +249,33 @@ export function createBargeInFastPath(deps: {
       Math.max(0, ms)
     );
   };
+  const tryPause = (): boolean => {
+    try {
+      return soft?.pause() === true;
+    } catch (error) {
+      soft?.log?.({ event: 'pause-failed', error: String(error) });
+      return false; // the fast path cuts the reply, as without the flag
+    }
+  };
   const softPause = (): boolean => {
-    if (!soft || !soft.pause()) return false;
+    if (!soft || !tryPause()) return false;
     pausedThisReply = true;
     outputHeld = true;
-    pending = { at: Date.now(), heard: 'no-words' };
+    const at = Date.now();
+    pending = { at, heard: 'no-words' };
     scheduleResume();
+    if (watchdog) clearTimer(watchdog);
+    watchdog = setTimer(
+      () => {
+        watchdog = undefined;
+        if (!outputHeld) return;
+        if (pending?.timer) clearTimer(pending.timer);
+        pending = undefined;
+        soft.log?.({ outcome: 'resumed', why: 'watchdog', pausedMs: Date.now() - at });
+        release();
+      },
+      soft.confirmMs + soft.graceMs + SOFT_PAUSE_WATCHDOG_EXTRA_MS
+    );
     return true;
   };
   const armIfOverlapping = (): void => {
@@ -239,8 +288,7 @@ export function createBargeInFastPath(deps: {
   };
   const releaseOutput = (): void => {
     if (pending) decide('resumed', { why: pending.heard, after: 'agent-stopped' });
-    if (outputHeld) soft?.resume();
-    outputHeld = false;
+    if (outputHeld) release();
   };
   return {
     onAgentState(event) {
