@@ -25,6 +25,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import { onVoiceRecognitionChange } from '../data-layer/hooks/better-than-human-hooks.js';
 import type { EnrollmentSample, VoiceProfile } from './voice-enrollment.js';
 import type { EmbeddingMethod } from './voice-match-trust.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 /** One voice-index entry: enough to identify a speaker without loading samples. */
 export interface VoiceIndexEntry {
@@ -66,24 +67,7 @@ function getFirestoreInstance(): Firestore | null {
 
   try {
     // Check if Firebase is already initialized
-    if (admin.apps.length === 0) {
-      // Try to initialize with default credentials or project ID
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-        log.info({ projectId }, 'Firebase initialized for voice profiles');
-      } else {
-        // Try default credentials
-        admin.initializeApp();
-        log.info('Firebase initialized with default credentials');
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firebase not available for voice profiles - using in-memory storage');
