@@ -17,7 +17,7 @@ import { parseArgs } from 'node:util';
 import { writeFlagBarrel } from '../../src/config/__tests__/flag-barrel.js';
 import { commentsOf, parseFlagFile, parseLegacy, type Entry } from './legacy-parse.js';
 import { configDir, editLegacy, writeFormatted } from './move-to-files.js';
-import { flagFileText } from './new-flag.js';
+import { flagFileText, isMain } from './new-flag.js';
 
 const REGISTRY = /^src\/config\/(flag-manifest[\w-]*\.ts|flags\/[A-Z][A-Z0-9_]*\.ts)$/;
 
@@ -236,7 +236,7 @@ export async function migrateBranch(o: MigrateOptions): Promise<number> {
   return 0;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMain(import.meta.url)) {
   const { values } = parseArgs({
     options: { onto: { type: 'string' }, 'no-commit': { type: 'boolean' } },
   });
