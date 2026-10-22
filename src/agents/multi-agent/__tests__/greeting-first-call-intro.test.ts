@@ -1,8 +1,9 @@
 /**
  * FIRST_CALL_INTRO on the hello: a known account's first call says who is
  * calling ("Hi Sam, it's Ferni."), and still does with FERNI_PLAYFUL on.
- * Off, a returning caller, or a profile that turns out to be returning: the
- * old direction, which forbids an intro.
+ * Off, a returning caller, or a profile that turns out to be returning: no
+ * intro. A first call's hello is the stranger's, never the friend's
+ * (first-call-stranger.ts), with the flag on or off.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,8 +16,9 @@ vi.mock('../../../services/superhuman/wins.js', () => ({
   markWinSurfaced: vi.fn(async () => undefined),
 }));
 
-const { directedGreeting, rememberCallerHistory, GREETING_DIRECTION, PLAYFUL_GREETING_DIRECTION } =
+const { directedGreeting, rememberCallerHistory, GREETING_DIRECTION } =
   await import('../greeting-direction.js');
+const { STRANGER_GREETING_DIRECTION } = await import('../first-call-stranger.js');
 const { firstCallIntroDirection } = await import('../first-call-greeting.js');
 const { trackDeferredProfileLoad } = await import('../../../services/session/deferred-profile.js');
 
@@ -30,9 +32,9 @@ afterEach(() => {
 });
 
 describe('the first-call hello (FIRST_CALL_INTRO)', () => {
-  it('off: the old direction, which forbids an intro', async () => {
+  it("off: the stranger's direction, which forbids an intro", async () => {
     await directedGreeting('fci-off', 'ferni', newUser);
-    expect(lastRequest().direction).toBe(GREETING_DIRECTION);
+    expect(lastRequest().direction).toBe(STRANGER_GREETING_DIRECTION);
     expect(lastRequest().direction).toContain('or introduce yourself');
   });
 
@@ -49,16 +51,16 @@ describe('the first-call hello (FIRST_CALL_INTRO)', () => {
     expect(direction).not.toMatch(/—|\.\.\.|…/);
   });
 
-  it('composes with FERNI_PLAYFUL: the playful hello, with the name first', async () => {
+  it("with FERNI_PLAYFUL: still the stranger's hello, no tease, the name first", async () => {
     vi.stubEnv('FIRST_CALL_INTRO', 'on');
     vi.stubEnv('FERNI_PLAYFUL', 'on');
     await directedGreeting('fci-playful', 'ferni', newUser);
     const { direction } = lastRequest();
-    expect(direction).toContain('warm and a little playful');
+    expect(direction).not.toContain('a little playful');
     expect(direction).not.toContain('or introduce yourself');
     expect(direction).toMatch(/Your name comes first; anything playful comes after it/);
     expect(direction).toBe(
-      PLAYFUL_GREETING_DIRECTION.replace(' or introduce yourself', '') +
+      STRANGER_GREETING_DIRECTION.replace(' or introduce yourself', '') +
         firstCallIntroDirection('Ferni')
     );
   });

@@ -312,8 +312,8 @@ const recentTurnsBlockBuilder: BlockBuilder = {
   ttlMs: 0,
   build: async (request: ContextRequest): Promise<string> => {
     try {
-      const { getFirestore } = await import('firebase-admin/firestore');
-      const db = getFirestore();
+      const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+      const db = getAdminFirestore();
 
       const turnsSnapshot = await db
         .collection('sessions')

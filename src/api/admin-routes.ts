@@ -99,10 +99,10 @@ async function handleGetCallers(
   query: Record<string, string | string[] | undefined>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
     const { getAdminApp } = await import('../utils/firebase-admin-app.js');
     getAdminApp();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
     const startDate = new Date();
@@ -148,10 +148,10 @@ async function handleGetVisitors(
   query: Record<string, string | string[] | undefined>
 ): Promise<void> {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
+    const { getAdminFirestore } = await import('../utils/firebase-admin-app.js');
     const { getAdminApp } = await import('../utils/firebase-admin-app.js');
     getAdminApp();
-    const db = getFirestore();
+    const db = getAdminFirestore();
 
     const daysBack = parseInt(query.days as string) || 7;
     const startDate = new Date();

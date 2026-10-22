@@ -25,10 +25,15 @@
  * Crisis handling is untouched: the note is never added to a crisis reply,
  * and nothing here reads or changes crisis code.
  *
+ * MINOR_CARE=shadow runs the same detection and logs it once per session (with
+ * whether the session is a verified owner's), but holds nothing and adds no
+ * note: a way to measure detection on real calls before holds go live.
+ *
  * @module utils/minor-care
  */
-import { flagOn } from '../config/env-flag.js';
+import { flagModeOf, flagOn } from '../config/env-flag.js';
 import { createLogger } from './safe-logger.js';
+import { PLACEHOLDER_IDS } from './synthetic-user.js';
 
 const log = createLogger({ module: 'minor-care' });
 
@@ -85,7 +90,10 @@ const ASKED_AGE = /\b(?:how old|your age|what age|age are you)\b/i;
 /** "I'm 16", "im 14, so": an age only with age words or as the answer to "how old are you?". */
 const AGE_NOW = new RegExp(`${ME_AGE}${AGE}${AFTER_AGE}`, 'gi');
 /** "16 years old." at the start: their age, unless a past tense follows. */
-const YEARS_OLD = new RegExp(String.raw`${LEAD}${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b${NOT_PAST}`, 'gi');
+const YEARS_OLD = new RegExp(
+  String.raw`${LEAD}${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b${NOT_PAST}`,
+  'gi'
+);
 /** "I'm a 15 year old girl": always their age. */
 const A_YEARS_OLD = new RegExp(
   String.raw`${ME_AGE}a\s+${AGE}[\s-]*(?:years?|yrs?)[\s-]*old\b${AT_HEART}`,
@@ -95,7 +103,8 @@ const A_YEARS_OLD = new RegExp(
 const CLAUSE_END = String.raw`(?=\s*(?:$|[.,!?;:]|(?:so|but|now)\b|and\b(?!\s+a\s+half\b)))`;
 const AGE_ENDS = new RegExp(`${ME_AGE}(?:like\\s+)?${AGE}${CLAUSE_END}`, 'gi');
 /** Ferni asked for a rating or an amount: "I'm 10." then answers that, not an age. */
-const ASKED_AMOUNT = /\b(?:scale|one to ten|1 to 10|1-10|rate|rating|out of (?:ten|10)|how (?:many|much|far|long|soon))\b/i;
+const ASKED_AMOUNT =
+  /\b(?:scale|one to ten|1 to 10|1-10|rate|rating|out of (?:ten|10)|how (?:many|much|far|long|soon))\b/i;
 /** "16." or "Sixteen." and nothing else, answering "how old are you?". */
 const BARE_ANSWER = new RegExp(
   String.raw`^\s*(?:(?:um+|uh+|er+|well|oh|so|yeah|i'm|im|i am|just|only|almost)[,\s]+)*${AGE}\s*[.!]*\s*$`,
@@ -202,6 +211,8 @@ const MAX_SESSIONS = 500;
 /** Longer than any call plus its after-call work: a session this idle can't still be writing. */
 const IDLE_MS = 6 * 60 * 60 * 1000;
 let ownerCheck: (sessionId: string) => boolean = () => false;
+/** userId -> the held session it was heard on, for the writers keyed by user (per-user flush timers). */
+const heldUsers = new Map<string, string>();
 
 function touch(sessionId: string): void {
   likely.delete(sessionId);
@@ -226,6 +237,8 @@ interface HeardOptions {
   /** Ferni's previous line, so a bare "16." can answer "how old are you?". */
   asked?: string;
   env?: Env;
+  /** The caller's userId: once the session is held, userHeld(userId) is true too. */
+  userId?: string;
 }
 
 /** Read the caller's words for this session; true once they have sounded under 18. Flag off: nothing. */
@@ -265,7 +278,25 @@ export function heldAfter(
 ): boolean {
   if (!minorCareOn(options.env)) return false;
   noteCallerWords(sessionId, said, options);
-  return memoryHeld(sessionId, options.env);
+  const held = memoryHeld(sessionId, options.env);
+  if (held && sessionId && !sharedId(options.userId)) heldUsers.set(options.userId!, sessionId);
+  return held;
+}
+
+/**
+ * The per-user writers' check, at write time (a flush timer's tick): this user's held session is
+ * still in use (within IDLE_MS), the flag is on and it isn't a verified owner's. Never refreshes
+ * the session, so a timer can't keep a hold alive.
+ */
+export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
+  const sessionId = userId && !sharedId(userId) ? heldUsers.get(userId) : undefined;
+  if (!userId || !sessionId || !minorCareOn(env)) return false;
+  const used = likely.get(sessionId);
+  if (used === undefined || Date.now() - used > IDLE_MS) {
+    heldUsers.delete(userId);
+    return false;
+  }
+  return !ownerCheck(sessionId);
 }
 
 export const MINOR_CARE_NOTE =
@@ -281,13 +312,38 @@ export function minorCareNote(
   said: string,
   options: HeardOptions & { careful?: boolean } = {}
 ): string {
+  if (flagModeOf('MINOR_CARE', options.env) === 'shadow') {
+    shadowNote(sessionId, said, options.asked);
+    return '';
+  }
   if (options.careful || !minorCareOn(options.env)) return '';
   if (sessionId && ownerCheck(sessionId)) return '';
   return noteCallerWords(sessionId, said, options) ? MINOR_CARE_NOTE : '';
 }
 
+/**
+ * A placeholder or shared id ('anonymous', 'default', 'unknown', blank): one bucket for many
+ * people, so never held, bound or purged. A per-device id (anon:<id>) is one caller's: held.
+ */
+export function sharedId(userId: string | undefined): boolean {
+  return !userId?.trim() || PLACEHOLDER_IDS.has(userId.trim().toLowerCase());
+}
+
+/** Shadow sessions already logged, oldest first, bounded like `likely`. */
+const shadowLogged = new Set<string>();
+
+/** MINOR_CARE=shadow: log a detection once per session; never hold, never note. */
+function shadowNote(sessionId: string | undefined, said: string, asked: string | undefined): void {
+  if (!sessionId || shadowLogged.has(sessionId) || !statesUnder18(said, asked)) return;
+  shadowLogged.add(sessionId);
+  if (shadowLogged.size > MAX_SESSIONS) shadowLogged.delete(shadowLogged.values().next().value!);
+  log.info({ sessionId, verifiedOwner: ownerCheck(sessionId) }, 'MINOR_CARE shadow: likely minor');
+}
+
 /** Tests only. */
 export function resetMinorCare(): void {
+  shadowLogged.clear();
   likely.clear();
+  heldUsers.clear();
   ownerCheck = () => false;
 }

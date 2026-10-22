@@ -39,7 +39,7 @@ import {
   turnVerdicts,
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
-import { noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import { crisisRiskThisCall, noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
 import {
   groundedPriorRisk,
   groundedRelease,
@@ -73,6 +73,7 @@ import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
 import { firstNameOf, withNameGate, type HistoryItem } from './name-gate.js';
 import { withoutPastLeadIns, withToolLeadIn } from './tool-lead-in.js';
+import { withLookupBridge } from './lookup-bridge.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
 import { burstAllowed } from './vocal-bursts.js';
@@ -398,7 +399,7 @@ export async function gatedReply(
   options: CrisisGateOptions = {}
 ): Promise<ReadableStream<Chunk> | null> {
   const { env = process.env } = options;
-  const chatCtx = withoutPastLeadIns(request);
+  const chatCtx = withoutPastLeadIns(request, env);
   const askedAt = Date.now();
   // A turn-opening clip played after this request began: the reply follows it.
   const openedBySound = (): boolean => turnOpenedSince(session, askedAt);
@@ -444,7 +445,11 @@ export async function gatedReply(
       env,
     });
     // COMMITMENT_INVITE: on the invite turn, no step named for them (commitment-invite-reply.ts).
-    return withToolLeadIn(withInviteReplyCheck(trimmed, session), chatCtx, session, env);
+    const led = withToolLeadIn(withInviteReplyCheck(trimmed, session), chatCtx, session, env);
+    // LOOKUP_BRIDGE: no dead air before the answer to a look-up (lookup-bridge.ts); never on
+    // a call with crisis risk noted, as THINK_ALOUD stays out of those (#2265).
+    const call = sessionScope(session.userData);
+    return call && crisisRiskThisCall(call) ? led : withLookupBridge(led, chatCtx, session, env);
   };
   const reply = await ask(ctx);
   if (!reply || !gate?.escalation) return reply;
