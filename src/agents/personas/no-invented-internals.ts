@@ -11,6 +11,7 @@
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { lastFerniLine } from './answer-turn.js';
 
 export function noInventedInternalsEnabled(env: Env = process.env): boolean {
@@ -55,13 +56,22 @@ const PUSHES_ANSWER =
 type Item = Partial<Record<'type' | 'role' | 'textContent' | 'output', string>> & {
   isError?: boolean;
 };
-const isUser = (i: Item): boolean => i.type === 'message' && i.role === 'user';
+/** A caller line: a user message that isn't a per-turn context note (turn-request.ts callerWords). */
+const isUser = (i: Item): boolean =>
+  i.type === 'message' &&
+  i.role === 'user' &&
+  !(i.textContent ?? '').startsWith(TURN_CONTEXT_HEADER);
+export const callerLines = (items: readonly Item[]): string[] =>
+  items.filter(isUser).map((i) => i.textContent ?? '');
 const isFailure = (i: Item): boolean =>
   i.type === 'function_call_output' && (i.isError === true || FAILED.test(i.output ?? ''));
 
 /** Caller turns since the last failed tool result (Infinity: none failed). */
+export const lastFailureAt = (items: readonly Item[]): number =>
+  items.map(isFailure).lastIndexOf(true);
+
 export function turnsSinceFailure(items: readonly Item[]): number {
-  const at = items.map(isFailure).lastIndexOf(true);
+  const at = lastFailureAt(items);
   return at < 0 ? Infinity : items.slice(at).filter(isUser).length;
 }
 
@@ -113,7 +123,7 @@ export function internalsTurn(
 ): InternalsTurn {
   if (!noInventedInternalsEnabled(env) || !said) return '';
   const failed = turnsSinceFailure(items) <= 2;
-  const lines = items.filter(isUser).map((i) => i.textContent ?? '');
+  const lines = callerLines(items);
   const askedBefore = lines.slice(-3, -1).some(asksAboutInternals);
   // "Who made you?" stays ai-honesty.ts's, whatever the classifier says.
   const intended =

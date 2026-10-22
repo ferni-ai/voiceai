@@ -85,7 +85,13 @@ describe('InternalsIntent', () => {
     const threw = new InternalsIntent(async () => Promise.reject(new Error('down')));
     await threw.observe(PRESS);
     expect(threw.yesFor(PRESS)).toBe(false);
-    const hung = new InternalsIntent(() => new Promise<string>(() => undefined), 20);
+    const hung = new InternalsIntent(
+      () =>
+        new Promise<string>(() => {
+          // never settles
+        }),
+      20
+    );
     await hung.observe(PRESS);
     expect(hung.yesFor(PRESS)).toBe(false);
   });
@@ -97,14 +103,113 @@ describe('InternalsIntent', () => {
       return '{"internals": true}';
     });
     await Promise.all([
-      intent.observe("I'm in"),
-      intent.observe("I'm in tech"),
+      intent.observe("I'm in tech", [], { final: false }),
+      intent.observe("I'm in tech too give", [], { final: false }),
       intent.observe(PRESS),
     ]);
-    expect(seen[0]).toBe("i'm in");
+    expect(seen[0]).toBe("i'm in tech");
     expect(seen.at(-1)).toBe("i'm in tech too give it to me plain");
     expect(seen.length).toBeLessThanOrEqual(2);
     expect(intent.yesFor(PRESS)).toBe(true);
+  });
+
+  it('an answer covers its words and one more, not two', async () => {
+    const intent = new InternalsIntent(yes);
+    await intent.observe('why did your search', [], { final: false });
+    expect(intent.yesFor('why did your search fail')).toBe(true);
+    expect(intent.yesFor('why did your search fail today')).toBe(false);
+    expect(intent.yesFor('why did my search fail')).toBe(false);
+  });
+
+  it('debounces interims: 3 words first, then only when more than one word changed', async () => {
+    const intent = new InternalsIntent(yes);
+    const said = async (t: string, final = false) => intent.observe(t, [], { final });
+    await said('why did');
+    expect(intent.calls).toBe(0);
+    await said('why did your');
+    await said('why did your search');
+    expect(intent.calls).toBe(1);
+    await said('why did your search fail on');
+    expect(intent.calls).toBe(2);
+    await said('why did your search fail on', true); // final, already asked
+    expect(intent.calls).toBe(2);
+    await said('why?', true); // a short final is still asked
+    expect(intent.calls).toBe(3);
+  });
+
+  it('caps calls at 4 per caller turn (the last kept for the final words) and 12 per failure window', async () => {
+    const intent = new InternalsIntent(no);
+    const lines = (k: number) =>
+      Array.from({ length: 6 }, (_, i) => `line ${k} ${'word '.repeat(2 * i + 3)}`);
+    const turn = async (k: number, window: number) => {
+      for (const l of lines(k)) await intent.observe(l, [], { final: false, window });
+      await intent.observe(`final ${k} words here`, [], { final: true, window });
+    };
+    for (const l of lines(0)) await intent.observe(l, [], { final: false, window: 7 });
+    expect(intent.calls).toBe(3); // the 4th is kept for the final words
+    await intent.observe('final 0 words here', [], { final: true, window: 7 });
+    expect(intent.calls).toBe(4);
+    await intent.observe('one more final', [], { final: true, window: 7 });
+    expect(intent.calls).toBe(4);
+    for (let t = 1; t <= 3; t++) {
+      intent.newTurn();
+      await turn(t, 7);
+    }
+    expect(intent.calls).toBe(12);
+    intent.newTurn();
+    await intent.observe('a new failure here now', [], { final: false, window: 9 });
+    expect(intent.calls).toBe(13);
+  });
+});
+
+describe('what reaches the model', () => {
+  it('caller lines only, never a context note, and at most 600 characters', async () => {
+    const { TURN_CONTEXT_HEADER } = await import('../../multi-agent/turn-context-header.js');
+    process.env[FLAG] = 'on';
+    const inputs: string[] = [];
+    const note = `${TURN_CONTEXT_HEADER} ${'private context '.repeat(150)}`;
+    const callId = 'ctx1';
+    const ctx = new llm.ChatContext([
+      llm.ChatMessage.create({ role: 'user', content: 'x'.repeat(500) }),
+      llm.ChatMessage.create({ role: 'user', content: note }),
+      llm.FunctionCall.create({ callId, name: 'searchWeb', args: '{}' }),
+      llm.FunctionCallOutput.create({
+        callId,
+        name: 'searchWeb',
+        output: 'No results',
+        isError: false,
+      }),
+      llm.ChatMessage.create({ role: 'user', content: note }),
+    ]);
+    const observer = installInternalsIntent(
+      {
+        session: { on: vi.fn(), off: vi.fn() } as never,
+        agent: () => ({ chatCtx: ctx }),
+        cleanupFunctions: [],
+      },
+      async (_s, input) => {
+        inputs.push(input);
+        return '{"internals": false}';
+      }
+    );
+    observer?.onTranscript('why did your search fail?', true);
+    await vi.waitFor(() => expect(inputs).toHaveLength(1));
+    expect(inputs[0]).not.toContain('private context');
+    expect(inputs[0].length).toBeLessThanOrEqual(600);
+    expect(JSON.parse(inputs[0]).NOW).toBe('why did your search fail');
+  });
+
+  it('context notes are not caller turns: the window counts caller lines', async () => {
+    const { TURN_CONTEXT_HEADER } = await import('../../multi-agent/turn-context-header.js');
+    const { turnsSinceFailure } = await import('../no-invented-internals.js');
+    const c = call(
+      true,
+      'one',
+      `${TURN_CONTEXT_HEADER} note`,
+      'two',
+      `${TURN_CONTEXT_HEADER} note`
+    );
+    expect(turnsSinceFailure(c.items as never)).toBe(2);
   });
 });
 

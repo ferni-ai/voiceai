@@ -19,7 +19,12 @@
 import { voice } from '@livekit/agents';
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { noInventedInternalsEnabled, turnsSinceFailure } from './no-invented-internals.js';
+import {
+  callerLines,
+  lastFailureAt,
+  noInventedInternalsEnabled,
+  turnsSinceFailure,
+} from './no-invented-internals.js';
 import { geminiUnderstand, type UnderstandFn } from './turn-understanding.js';
 
 const log = createLogger({ module: 'InternalsIntent' });
@@ -39,14 +44,51 @@ export function parseIntent(reply: string): boolean {
 }
 
 const TIMEOUT_MS = 1500;
-const norm = (t: string): string => (t.toLowerCase().match(/[a-z0-9']+/g) ?? []).join(' ');
+/** An interim is worth a call from 3 words, and only when more than one word changed since the last. */
+const MIN_INTERIM_WORDS = 3;
+const MAX_CALLS_PER_TURN = 4;
+const MAX_CALLS_PER_WINDOW = 12;
+const MAX_INPUT_CHARS = 600;
+const words = (t: string): string[] => t.toLowerCase().match(/[a-z0-9']+/g) ?? [];
+const isPrefix = (a: string[], b: string[]): boolean =>
+  a.length <= b.length && a.every((w, i) => b[i] === w);
+/** Words that differ between two readings of a turn: all but the shared start. */
+function changed(a: string[], b: string[]): number {
+  let same = 0;
+  while (same < Math.min(a.length, b.length) && a[same] === b[same]) same++;
+  return Math.max(a.length, b.length) - same;
+}
+
+/** The model input: caller lines only, NOW last, under MAX_INPUT_CHARS (the oldest lines go first). */
+export function intentInput(earlier: string[], now: string): string {
+  const n = now.slice(-400);
+  let e = earlier.slice(-3).map((l) => l.slice(-150));
+  let input = JSON.stringify({ EARLIER: e, NOW: n });
+  while (input.length > MAX_INPUT_CHARS && e.length) {
+    e = e.slice(1);
+    input = JSON.stringify({ EARLIER: e, NOW: n });
+  }
+  return input;
+}
+
+interface Pending {
+  w: string[];
+  earlier: string[];
+  final: boolean;
+}
 
 /** One call's classifier: feed it the turn as it is spoken, read the answer for the final words. */
 export class InternalsIntent {
-  private latest: { text: string; yes: boolean } | null = null;
+  private latest: { w: string[]; yes: boolean } | null = null;
+  private asked: string[] | null = null;
   private running: Promise<void> | null = null;
-  private pending: { text: string; earlier: string[] } | null = null;
+  private pending: Pending | null = null;
   private turn = 0;
+  private turnCalls = 0;
+  private window: unknown;
+  private windowCalls = 0;
+  /** Model calls made, for the eval's calls-per-turn count. */
+  calls = 0;
 
   constructor(
     private readonly ask: UnderstandFn,
@@ -54,45 +96,83 @@ export class InternalsIntent {
     private readonly now: () => number = Date.now
   ) {}
 
-  /** The caller's turn so far; earlier caller lines for context. Returns when this text is classified. */
-  async observe(text: string, earlier: string[] = []): Promise<void> {
-    const t = norm(text);
-    if (!t || t === this.latest?.text) return;
-    this.pending = { text: t, earlier };
-    while (this.running) await this.running;
-    const next = this.pending;
-    this.pending = null;
-    if (!next || next.text === this.latest?.text) return;
-    this.running = this.run(next.text, next.earlier);
+  /**
+   * The caller's turn so far, earlier caller lines, whether these are the final
+   * words, and which failure's window this is. Resolves once nothing is queued.
+   */
+  async observe(
+    text: string,
+    earlier: string[] = [],
+    opts: { final?: boolean; window?: unknown } = {}
+  ): Promise<void> {
+    if (opts.window !== undefined && opts.window !== this.window) {
+      this.window = opts.window;
+      this.windowCalls = 0;
+    }
+    this.pending = { w: words(text), earlier, final: opts.final ?? true };
+    this.running ??= this.drain().finally(() => {
+      this.running = null;
+    });
     await this.running;
-    this.running = null;
   }
 
-  /** True only when the answer for exactly these words was yes. */
+  /** An answer covers these words: it read all of them, or all but the last one. */
+  private covers(w: string[]): boolean {
+    const a = this.latest?.w;
+    return !!a && a.length > 0 && isPrefix(a, w) && w.length - a.length <= 1;
+  }
+
+  /** The answer for these words was yes; false when none covers them yet. */
   yesFor(text: string): boolean {
-    return this.latest?.text === norm(text) && this.latest.yes;
+    return this.covers(words(text)) && this.latest?.yes === true;
   }
 
   newTurn(): void {
     this.turn++;
     this.latest = null;
+    this.asked = null;
     this.pending = null;
+    this.turnCalls = 0;
   }
 
-  private async run(text: string, earlier: string[]): Promise<void> {
+  /** Worth a call: under the caps, and not already asked for (all but a last word). */
+  private wanted({ w, final }: Pending): boolean {
+    // The last call of a turn is kept for its final words.
+    const turnCap = final ? MAX_CALLS_PER_TURN : MAX_CALLS_PER_TURN - 1;
+    if (this.turnCalls >= turnCap || this.windowCalls >= MAX_CALLS_PER_WINDOW) return false;
+    if (w.length === 0) return false;
+    const asked = this.asked ?? [];
+    if (final) return !(isPrefix(asked, w) && asked.length > 0 && w.length - asked.length <= 1);
+    return w.length >= MIN_INTERIM_WORDS && changed(asked, w) > 1;
+  }
+
+  private async drain(): Promise<void> {
+    while (this.pending) {
+      const next = this.pending;
+      this.pending = null;
+      if (!this.wanted(next)) continue;
+      this.turnCalls++;
+      this.windowCalls++;
+      this.calls++;
+      this.asked = next.w;
+      await this.run(next.w, next.earlier);
+    }
+  }
+
+  private async run(w: string[], earlier: string[]): Promise<void> {
     const turn = this.turn;
     const started = this.now();
     const controller = new globalThis.AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-    const aborted = new Promise<string>((resolve) =>
-      controller.signal.addEventListener('abort', () => resolve(''), { once: true })
-    );
+    const aborted = new Promise<string>((resolve) => {
+      controller.signal.addEventListener('abort', () => resolve(''), { once: true });
+    });
     try {
-      const input = JSON.stringify({ EARLIER: earlier.slice(-3), NOW: text });
+      const input = intentInput(earlier, w.join(' '));
       const yes = parseIntent(
         await Promise.race([this.ask(INTENT_PROMPT, input, controller.signal), aborted])
       );
-      if (turn === this.turn) this.latest = { text, yes };
+      if (turn === this.turn) this.latest = { w, yes };
       // Counts only, never words.
       log.info(
         { ms: this.now() - started, yes, timedOut: controller.signal.aborted },
@@ -159,10 +239,9 @@ export function installInternalsIntent(
       if (turnsSinceFailure(items) > 2) return;
       const turn = [...finals, transcript].join(' ');
       if (isFinal) finals.push(transcript);
-      const earlier = items
-        .filter((i) => i.type === 'message' && i.role === 'user')
-        .map((i) => i.textContent ?? '');
-      void intent.observe(turn, earlier);
+      // Caller lines only: never the per-turn context notes.
+      const window = lastFailureAt(items);
+      void intent.observe(turn, callerLines(items), { final: isFinal, window });
     },
   };
 }
