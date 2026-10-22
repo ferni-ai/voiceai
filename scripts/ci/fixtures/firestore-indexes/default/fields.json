@@ -1,0 +1,783 @@
+[
+  {
+    "indexConfig": {
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "*",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "*",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "*"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "connected",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "connected",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "connected"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "connected",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/calendar_providers/fields/connected"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "createdAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "createdAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "createdAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "createdAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/conversation_summaries/fields/createdAt"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "startedAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "startedAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "startedAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "startedAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/conversations/fields/startedAt"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*"
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/forecast_archive/fields/expires_at",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*"
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/function_executions/fields/expires_at",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expiration",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expiration",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expiration"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expiration",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/google_watch_channels/fields/expiration"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "id",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "id",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "id"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "id",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/google_watch_channels/fields/id"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "startedAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "startedAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "startedAt"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "startedAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/group_sessions/fields/startedAt"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*"
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/insights/fields/ttl_date",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "expirationDateTime",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expirationDateTime",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "expirationDateTime"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "expirationDateTime",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/outlook_subscriptions/fields/expirationDateTime"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "id",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "id",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "id"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "id",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/outlook_subscriptions/fields/id"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "subscriptionId",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "subscriptionId",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "subscriptionId"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "subscriptionId",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/outlook_subscriptions/fields/subscriptionId"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "updatedAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "updatedAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "updatedAt",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "updatedAt",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/report_summaries/fields/updatedAt"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "status",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "status",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "status"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "status",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/scheduled_actions/fields/status"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "id",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "id",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "id"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "id",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/scheduled_calls/fields/id"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "twilioSid",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "twilioSid",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "twilioSid"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "twilioSid",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/scheduled_calls/fields/twilioSid"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "status",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "status",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "arrayConfig": "CONTAINS",
+              "fieldPath": "status"
+            }
+          ],
+          "queryScope": "COLLECTION",
+          "state": "READY"
+        },
+        {
+          "fields": [
+            {
+              "fieldPath": "status",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/scheduled_outreach/fields/status"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "created_at",
+              "order": "DESCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/support_requests/fields/created_at"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*",
+      "indexes": [
+        {
+          "fields": [
+            {
+              "fieldPath": "status",
+              "order": "ASCENDING"
+            }
+          ],
+          "queryScope": "COLLECTION_GROUP",
+          "state": "READY"
+        }
+      ]
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/support_requests/fields/status"
+  },
+  {
+    "indexConfig": {
+      "ancestorField": "projects/johnb-2025/databases/(default)/collectionGroups/__default__/fields/*"
+    },
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/system_cache/fields/expires_at",
+    "ttlConfig": {
+      "state": "ACTIVE"
+    }
+  }
+]

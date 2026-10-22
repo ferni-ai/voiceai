@@ -1,0 +1,4475 @@
+[
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite_score",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/leads/indexes/CICAgNiav8AI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "clientId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "engagementId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "snapshotAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/impact_snapshots/indexes/CICAgJim18AI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/reputation_requests/indexes/CICAgOjXh8EI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/voice_calls/indexes/CICAgJj7z8EI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgLiT6MEI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgNjpgcII",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "stage",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "owner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "risk_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pipeline/indexes/CICAgLjRycII",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "subscribedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/subscribers/indexes/CICAgJjF9sII",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "analyzed_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/conversation_analysis/indexes/CICAgJiUpsMI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "category",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "priority",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/insights/indexes/CICAgPig2cMI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "function_name",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "completed_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/function_executions/indexes/CICAgNi47sMI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/sms_queue/indexes/CICAgLix9MYI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "processed_for_reengagement",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgLjyusgI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "user_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "metric",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "predicted_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/forecast_archive/indexes/CICAgLiTpskI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "email",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "sent",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/nurture_sequences/indexes/CICAgLjRh8oI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "industry",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "evaluated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/recommendation_outcomes/indexes/CICAgNi4o8sI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "generated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/daily_briefs/indexes/CICAgLjyrNEI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "stage",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pipeline/indexes/CICAgNjaxNEI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "referrer_client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/referrals/indexes/CICAgPifq9II",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "stage",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pipeline/indexes/CICAgJiUsdII",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "generated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/roi_reports/indexes/CICAgLixqtcI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "industry",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "city",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/tool_results/indexes/CICAgPjgiNoI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/decision_queue/indexes/CICAgPjChIAJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "metadata.userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/vectors/indexes/CICAgNiav4AJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "analyzed_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/conversation_analysis/indexes/CICAgITszIAJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "strength",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/entity_correlations/indexes/CICAgJim14AJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "importance",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/unified_memories/indexes/CICAgLjy8IAJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "selfRegistered",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/sponsored_identities/indexes/CICAgOjXh4EJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "owner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "stage",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "risk_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pipeline/indexes/CICAgPi9lIEJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "severity",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/blockers/indexes/CICAgNiroIEJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastUpdatedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/threads/indexes/CICAgJj7z4EJ",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "detectedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/unspoken_needs/indexes/CICAgLiT6IEJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "publisherId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/developer_mcp_servers/indexes/CICAgNjpgYIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "outcome_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ai_decision_log/indexes/CICAgPj-pYIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "actedUpon",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "priority",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/predictions/indexes/CICAgLjRyYIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "promoted_to_lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/prospects/indexes/CICAgITO7YIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "isActive",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/habits/indexes/CICAgJjF9oIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "processed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgLiIkYMJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "trigger",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "active",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/sequences/indexes/CICAgOj3mIMJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scheduleId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "callStartedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/family_checkin_calls/indexes/CICAgJiUpoMJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "outcome",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "dueBy",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ferni_commitments/indexes/CICAgPiftYMJ",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entityName",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "confidence",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/dynamic_facts/indexes/CICAgPig2YMJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sponsorUserId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/sponsored_identities/indexes/CICAgNi47oMJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updated_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pipeline/indexes/CICAgNirhYUJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/report_chunks/indexes/CICAgLiTzYUJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/experiments/indexes/CICAgLix9IYJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "current_phase",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "health.score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/clients/indexes/CICAgJjUgIcJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgITsgYgJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastDetected",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/unsaid_topics/indexes/CICAgLjyuogJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgNja0ogJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "read",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pending_messages/indexes/CICAgLiTpokJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "health.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/clients/indexes/CICAgOi39IkJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ceo_blockers/indexes/CICAgLjRh4oJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "isActive",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "nextScheduledCall",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/family_checkin_schedules/indexes/CICAgNjp84oJ",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "publisherId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/mcp_servers/indexes/CICAgPigl4sJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "auto_published",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "published_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/content_metrics/indexes/CICAgNi4o4sJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/automation_queue/indexes/CICAgJiUzYsJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updatedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/recommendation_tracking/indexes/CICAgLixvo4J",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/voice_calls/indexes/CICAgPi9ipAJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/scheduled_outreach/indexes/CICAgOi3kJAJ",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/callback_queue/indexes/CICAgNirtJAJ",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ceo_decisions/indexes/CICAgLiT_JAJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "clientId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "engagementId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/impact_snapshots/indexes/CICAgITsmpEJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/generated_hypotheses/indexes/CICAgLjyrJEJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/campaigns/indexes/CICAgNjaxJEJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "emailed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "generated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/daily_briefs/indexes/CICAgLiIjZIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/content_chunks/indexes/CICAgPifq5IJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "contactName",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "occurredAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/conflict_records/indexes/CICAgJiUsZIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/reminders/indexes/CICAgPigw5IJ",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastInteraction",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/contact_relationships/indexes/CICAgNi4-ZIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "contactName",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "occurredAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/apology_records/indexes/CICAgLjRnZMJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "processed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgJjFqZMJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "expires_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/proposals/indexes/CICAgPj-05MJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "inQueue",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "laneRank",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "priorityKey",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/waitlist/indexes/CICAgNjp5ZMJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "generated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/daily_briefs/indexes/CICAgOi3pZQJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "sent_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/email_analytics/indexes/CICAgJjUlJYJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "baseline_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "milestone_days",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/impact_reports/indexes/CICAgLixqpcJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "payment_status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "dunning_step",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/billing/indexes/CICAgLiTsZgJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/review_responses/indexes/CICAgNir3pgJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/coaching_sessions/indexes/CICAgOi36pgJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "metric",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "resolved",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "detected_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/metric_anomalies/indexes/CICAgLjywZkJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "nurture.opted_out",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "nurture.next_action_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/leads/indexes/CICAgPjgiJoJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/attribution_events/indexes/CICAgJiU25oJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "triggered_by",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/eval_runs/indexes/CICAgNjpr5sJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "dismissed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/proactive_insights/indexes/CICAgLix4JsJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "engagement.status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/prospects/indexes/CICAgOi3z5wJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "expires_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/proposals/indexes/CICAgLixxZ8J",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "syncedToSpanner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "extractedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/dynamic_relationships/indexes/CICAgPjChIAK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/outreach_triggers/indexes/CICAgNiav4AK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "agentId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "startedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/roleplay_sessions/indexes/CICAgITszIAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "state",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "nextWakeAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/errands/indexes/CICAgJim14AK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "category",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/gratitude/indexes/CICAgLjy8IAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "archived",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/memories/indexes/CICAgOjXh4EK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "metadata.userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/memory_vectors/indexes/CICAgPi9lIEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "category",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/wins/indexes/CICAgNiroIEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "leaseUntil",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/effects/indexes/CICAgJj7z4EK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "topics",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "importance",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/unified_memories/indexes/CICAgLix04EK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/commitments/indexes/CICAgLiT6IEK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/goals/indexes/CICAgNjpgYIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/decisions/indexes/CICAgPj-pYIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastActivityAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/conversation_threads/indexes/CICAgLjRyYIK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "personaId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/history/indexes/CICAgITO7YIK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "notBefore",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/effects/indexes/CICAgJjF9oIK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sentiment",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/journal/indexes/CICAgLiIkYMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "health.churn_risk",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "health.score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/clients/indexes/CICAgOj3mIMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "dueAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/follow_through/indexes/CICAgJiUpoMK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/unified_memories/indexes/CICAgPiftYMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "dueDate",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/commitments/indexes/CICAgPig2YMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "targetPersona",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "used",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "expiresAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pre_briefings/indexes/CICAgNi47oMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/voice_calls/indexes/CICAgLjy1YQK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "msa_code",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "detected_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/chain_expansion_alerts/indexes/CICAgNirhYUK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "contactName",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "occurredAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/silence_records/indexes/CICAgOi3voUK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "source",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/waitlist/indexes/CICAgLiTzYUK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/correlation_observations/indexes/CICAgLix9IYK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "archived",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ideas/indexes/CICAgJjUgIcK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/booking_requests/indexes/CICAgITsgYgK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/commitments/indexes/CICAgLjyuogK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/notifications/indexes/CICAgNja0ogK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "publisherId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/developer_webhooks/indexes/CICAgLiTpokK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "fromIdentityId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/family_messages/indexes/CICAgNiryokK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sponsorBriefed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "callStartedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/proactive_checkin_calls/indexes/CICAgPi97okK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sponsorBriefed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "callStartedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/family_checkin_calls/indexes/CICAgOi39IkK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "expiresAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pending_actions/indexes/CICAgLjRh4oK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgISuoIoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "purpose",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/prompt_experiments/indexes/CICAgJjFvYoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/memory_vectors/indexes/CICAgNjp84oK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "toUserId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/family_messages/indexes/CICAgPigl4sK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "agentId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "startedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/coaching_sessions/indexes/CICAgNi4o4sK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "templateId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/outreach_feedback/indexes/CICAgJiUzYsK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/open_loops/indexes/CICAgPif34sK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "agentId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/task_sessions/indexes/CICAgOi3040K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ai_email_log/indexes/CICAgLixvo4K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "domain",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ai_decision_log/indexes/CICAgPi9ipAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "syncedToSpanner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "extractedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/dynamic_facts/indexes/CICAgOi3kJAK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lastMentioned",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "importance",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/dynamic_entities/indexes/CICAgNirtJAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/dynamic_facts/indexes/CICAgJiH2JAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/commitments/indexes/CICAgLiT_JAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastMentioned",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/entities/indexes/CICAgITsmpEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "endTime",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "startTime",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/focus_sessions/indexes/CICAgLjyrJEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "toUserId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "delivered",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/family_shared_context/indexes/CICAgNjaxJEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "contactName",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "occurredAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/communication_events/indexes/CICAgLiIjZIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastActivityAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/conversation_threads/indexes/CICAgPifq5IK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "trigger.type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/workflows/indexes/CICAgJiUsZIK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "syncedToSpanner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "extractedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/dynamic_entities/indexes/CICAgPigw5IK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "goalId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "recordedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/goal_progress/indexes/CICAgNi4-ZIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "dueDate",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/commitments/indexes/CICAgLjRnZMK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/consent/indexes/CICAgJjFqZMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/leads/indexes/CICAgITOu5MK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "insight_batch_date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/insights/indexes/CICAgPj-05MK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/commitments/indexes/CICAgNjp5ZMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "arrayConfig": "CONTAINS",
+        "fieldPath": "topics"
+      },
+      {
+        "fieldPath": "importance",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/unified_memories/indexes/CICAgOi3pZQK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/scheduled_outreach/indexes/CICAgJjUlJYK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sessionId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "promptedAtMs",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/conversationFeedback/indexes/CICAgLixqpcK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "summarized",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "endedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/conversations/indexes/CICAgLiTsZgK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/scheduled_actions/indexes/CICAgNir3pgK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/vectors/indexes/CICAgOi36pgK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "analyzed_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/conversation_analysis/indexes/CICAgLjywZkK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "sent_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/content_log/indexes/CICAgPjgiJoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/blockers/indexes/CICAgJiU25oK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "occurrences",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/userPatterns/indexes/CICAgNjpr5sK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "order",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/priorities/indexes/CICAgLix4JsK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "prospect_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ai_email_log/indexes/CICAgOi3z5wK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "clientId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "snapshotAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/impact_snapshots/indexes/CICAgLixxZ8K",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "research.dossier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/prospects/indexes/CICAgJiUpsMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgLiTpskK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/support_requests/indexes/CICAgNi4o8sK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pipeline/indexes/CICAgLjyrNEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "tool",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/tool_results/indexes/CICAgPifq9IK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "msa_code",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "detected_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/chain_expansion_alerts/indexes/CICAgNiav4AL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sent",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "unsubscribed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "sendAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/nurture_sequences/indexes/CICAgITszIAL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduled_time",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/booking_requests/indexes/CICAgJim14AL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/proposals/indexes/CICAgLjy8IAL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/content_suggestions/indexes/CICAgOjXh4EL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/deferred_calls/indexes/CICAgNiroIEL",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/semantic_router_corrections/indexes/CICAgJj7z4EL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "reportId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "capturedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/data_snapshots/indexes/CICAgLiT6IEL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "clientId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "daysSinceBaseline",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/impact_snapshots/indexes/CICAgNjpgYIL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "referrer_client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/referrals/indexes/CICAgPj-pYIL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "channels.email.marketing.granted",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/consent/indexes/CICAgLjRyYIL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/drafts/indexes/CICAgJjF9oIL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "order",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ceo_priorities/indexes/CICAgJiUpoML",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/content_suggestions/indexes/CICAgPiftYML",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "dimension",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "confidence",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/communication_preferences/indexes/CICAgPig2YML",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "surfacedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/memory_intelligence_records/indexes/CICAgNi47oML",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/reports/indexes/CICAgNirhYUL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "discovery.source",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/prospects/indexes/CICAgLix9IYL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/voice_calls/indexes/CICAgJjUgIcL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "published_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/content_log/indexes/CICAgLjyuogL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "reportType",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/ai_eval_log/indexes/CICAgLiTpokL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/prospects/indexes/CICAgOi39IkL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "expires_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/decision_queue/indexes/CICAgLjRh4oL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "stage",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pipeline/indexes/CICAgNjp84oL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "resolved",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/metric_anomalies/indexes/CICAgNi4o4sL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "auto_sent",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/proposals/indexes/CICAgJiUzYsL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "baseline_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "milestone_days",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/impact_snapshots/indexes/CICAgOi3kJAL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "chatHistory",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/reports/indexes/CICAgNirtJAL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "processed_for_pipeline",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgLiT_JAL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgITsmpEL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "toUserId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/family_messages/indexes/CICAgLjyrJEL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "user_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/impact_baselines/indexes/CICAgNjaxJEL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/leads/indexes/CICAgLiIjZIL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "meeting_date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/meeting_preps/indexes/CICAgPifq5IL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "snapshot_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/competitor_snapshots/indexes/CICAgJiUsZIL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "industry",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "refreshed_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/local_market_pages/indexes/CICAgPigw5IL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.intent_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/leads/indexes/CICAgNi4-ZIL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/impact_snapshots/indexes/CICAgLjRnZML",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/insights/indexes/CICAgNjp5ZML",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "source",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgOi3pZQL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "agent",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/prompt_experiments/indexes/CICAgLixqpcL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "generated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/proposals/indexes/CICAgLiTsZgL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/voice_calls/indexes/CICAgLjywZkL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "owner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/pipeline/indexes/CICAgPjgiJoL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.predictive_scored_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/leads/indexes/CICAgJiU25oL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgNjpr5sL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/leads/indexes/CICAgLix4JsL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/ferni-dev/collectionGroups/signals/indexes/CICAgLixxZ8L",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  }
+]

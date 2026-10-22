@@ -1,0 +1,4456 @@
+[
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/outreach_triggers/indexes/CICAgISc1sII",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/semantic_router_corrections/indexes/CICAgOjPvMwI",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/scheduled_outreach/indexes/CICAgLjxrc0I",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "reportType",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/ai_eval_log/indexes/CICAgOiPyoAJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "surfacedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/memory_intelligence_records/indexes/CICAgJjW2oEJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "contactName",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "occurredAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/silence_records/indexes/CICAgISc1oIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/blockers/indexes/CICAgNjb9YIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/decisions/indexes/CICAgPj_-IIJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "engagement.status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/prospects/indexes/CICAgNjZj4MJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "source",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/waitlist/indexes/CICAgJjngIQJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "selfRegistered",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/sponsored_identities/indexes/CICAgNi5sYcJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/insights/indexes/CICAgJjtgYoJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/ceo_blockers/indexes/CICAgNjbv4oJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "toUserId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "delivered",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/family_shared_context/indexes/CICAgPjS6IsJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "trigger.type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/workflows/indexes/CICAgOjPvIwJ",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "severity",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/blockers/indexes/CICAgLjxrY0J",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "triggered_by",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/eval_runs/indexes/CICAgJiNzo0J",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/correlation_observations/indexes/CICAgPiD0o8J",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/coaching_sessions/indexes/CICAgNib5I8J",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/prospects/indexes/CICAgPjinZAJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "importance",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/unified_memories/indexes/CICAgPiSj5IJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/unified_memories/indexes/CICAgISciZMJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/generated_hypotheses/indexes/CICAgNiGjJQJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "promoted_to_lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/prospects/indexes/CICAgPiQ6ZUJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgJj0mZcJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "baseline_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "milestone_days",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/impact_snapshots/indexes/CICAgJj1_5gJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "archived",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/ideas/indexes/CICAgJinm5kJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "order",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/ceo_priorities/indexes/CICAgLizv5kJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "category",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "priority",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/insights/indexes/CICAgJjt5ZsJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "toUserId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/family_messages/indexes/CICAgLiqiZwJ",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "syncedToSpanner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "extractedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/dynamic_relationships/indexes/CICAgOjPxp0J",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "syncedToSpanner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "extractedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/dynamic_facts/indexes/CICAgPi_750J",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "snapshot_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/competitor_snapshots/indexes/CICAgJinvJ4J",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/attribution_events/indexes/CICAgLizkYAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "tool",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/tool_results/indexes/CICAgJinpoAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/sms_queue/indexes/CICAgOiPyoAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "topics",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "importance",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/unified_memories/indexes/CICAgPiD2YAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/decision_queue/indexes/CICAgJjN34AK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "processed_for_pipeline",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgNib7oAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/ai_email_log/indexes/CICAgNj6toEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/automation_queue/indexes/CICAgPiBu4EK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgLix04EK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sponsorUserId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/sponsored_identities/indexes/CICAgJjW2oEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "templateId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/outreach_feedback/indexes/CICAgJiM8IEK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/review_responses/indexes/CICAgISu94EK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "stage",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pipeline/indexes/CICAgLjK_oEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "contactName",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "occurredAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/communication_events/indexes/CICAgNiEl4IK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/content_chunks/indexes/CICAgJiWxIIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "publisherId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/developer_webhooks/indexes/CICAgOjP0YIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/vectors/indexes/CICAgISc1oIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/experiments/indexes/CICAgLio34IK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "owner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pipeline/indexes/CICAgJi064IK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "syncedToSpanner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "extractedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/dynamic_entities/indexes/CICAgNjb9YIK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/commitments/indexes/CICAgPj_-IIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduled_time",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/booking_requests/indexes/CICAgPj9hoMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/report_chunks/indexes/CICAgNjZj4MK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastInteraction",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/contact_relationships/indexes/CICAgPihqIMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "fromIdentityId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/family_messages/indexes/CICAgLiJwIMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "actedUpon",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "priority",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/predictions/indexes/CICAgISe5IMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sponsorBriefed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "callStartedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/proactive_checkin_calls/indexes/CICAgJjngIQK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/proposals/indexes/CICAgPiQjoQK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "targetPersona",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "used",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "expiresAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pre_briefings/indexes/CICAgLjzpIQK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite_score",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/leads/indexes/CICAgNiEsoQK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "stage",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pipeline/indexes/CICAgITs84QK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "clientId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "engagementId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/impact_snapshots/indexes/CICAgJiNpIUK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "auto_published",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "published_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/content_metrics/indexes/CICAgPiStIUK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "health.churn_risk",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "health.score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/clients/indexes/CICAgNi6i4YK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "generated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/proposals/indexes/CICAgISuyoYK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgJj0zoYK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/reminders/indexes/CICAgITc4IYK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "trigger",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "active",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/sequences/indexes/CICAgNjrm4cK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/callback_queue/indexes/CICAgNi5sYcK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.predictive_scored_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/leads/indexes/CICAgJjNuocK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "referrer_client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/referrals/indexes/CICAgJjH44cK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "dismissed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/proactive_insights/indexes/CICAgLiJ-YcK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/reputation_requests/indexes/CICAgOiPhYgK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "subscribedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/subscribers/indexes/CICAgJitkogK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "agent",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/prompt_experiments/indexes/CICAgNibo4gK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "metric",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "resolved",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "detected_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/metric_anomalies/indexes/CICAgPi_rIgK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "function_name",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "completed_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/function_executions/indexes/CICAgPiQxIgK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgJinzYgK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/voice_calls/indexes/CICAgLiz64gK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updated_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pipeline/indexes/CICAgLjKs4kK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/content_suggestions/indexes/CICAgITuvIkK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "prospect_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/ai_email_log/indexes/CICAgPjB1IkK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "msa_code",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "detected_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/chain_expansion_alerts/indexes/CICAgNj63YkK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "processed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgJj164kK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "meeting_date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/meeting_preps/indexes/CICAgPji-4kK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/goals/indexes/CICAgJjtgYoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "state",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "nextWakeAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/errands/indexes/CICAgOjPm4oK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "completed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "order",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/priorities/indexes/CICAgIScnYoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "clientId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "snapshotAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/impact_snapshots/indexes/CICAgJj0pIoK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "arrayConfig": "CONTAINS",
+        "fieldPath": "topics"
+      },
+      {
+        "fieldPath": "importance",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/unified_memories/indexes/CICAgPj_tooK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "goalId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "recordedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/goal_progress/indexes/CICAgNjbv4oK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/leads/indexes/CICAgNi6wYoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/memory_vectors/indexes/CICAgNjE7IoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/open_loops/indexes/CICAgLiJiosK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scheduleId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "callStartedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/family_checkin_calls/indexes/CICAgISerosK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pipeline/indexes/CICAgNjr0YsK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "strength",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/entity_correlations/indexes/CICAgPjS6IsK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "emailed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "generated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/daily_briefs/indexes/CICAgJjN8IsK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "analyzed_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/conversation_analysis/indexes/CICAgIScuIwK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "category",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/wins/indexes/CICAgOjPvIwK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "publisherId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/developer_mcp_servers/indexes/CICAgLjzzowK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "sent_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/email_analytics/indexes/CICAgNiE2YwK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "domain",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/ai_decision_log/indexes/CICAgPiQ_YwK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "expiresAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pending_actions/indexes/CICAgLjxrY0K",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "current_phase",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "health.score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/clients/indexes/CICAgNjZxY0K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "sent_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/content_log/indexes/CICAgJiNzo0K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "research.dossier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/prospects/indexes/CICAgPiS3o0K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastActivityAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/conversation_threads/indexes/CICAgPjB440K",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "clientId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "daysSinceBaseline",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/impact_snapshots/indexes/CICAgISuhY4K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "isActive",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "nextScheduledCall",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/family_checkin_schedules/indexes/CICAgJiduI4K",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/leads/indexes/CICAgPjiwo4K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "leaseUntil",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/effects/indexes/CICAgPjQ744K",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/voice_calls/indexes/CICAgLiznI8K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updatedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/recommendation_tracking/indexes/CICAgPjgoY8K",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "stage",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "owner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "risk_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pipeline/indexes/CICAgJinqI8K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "dueDate",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/commitments/indexes/CICAgPiD0o8K",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "user_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "metric",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "predicted_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/forecast_archive/indexes/CICAgJjN1Y8K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "clientId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "engagementId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "snapshotAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/impact_snapshots/indexes/CICAgNib5I8K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "reportId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "capturedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/data_snapshots/indexes/CICAgJj1jZAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "generated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/roi_reports/indexes/CICAgPjinZAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "health.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/clients/indexes/CICAgPjBoJAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/content_suggestions/indexes/CICAgNj6qZAK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "outcome",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "dueBy",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/ferni_commitments/indexes/CICAgJjWwZAK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "processed_for_reengagement",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgJithJEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/voice_calls/indexes/CICAgOiPnpEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/campaigns/indexes/CICAgPi_sJEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "outcome_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/ai_decision_log/indexes/CICAgNibuZEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lead_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/booking_requests/indexes/CICAgJin0ZEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "channels.email.marketing.granted",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/consent/indexes/CICAgPjg35EK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "published_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/content_log/indexes/CICAgLiz9ZEK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/commitments/indexes/CICAgPiSj5IK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/impact_snapshots/indexes/CICAgPj9kZIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "owner",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "stage",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "risk_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pipeline/indexes/CICAgNjrppIK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/scheduled_actions/indexes/CICAgLiJ1JIK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/deferred_calls/indexes/CICAgISe8pIK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "archived",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/memories/indexes/CICAgLiq-5IK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/voice_calls/indexes/CICAgLjohJMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/commitments/indexes/CICAgISciZMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "email",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "sent",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/nurture_sequences/indexes/CICAgJiWkpMK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastUpdatedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/threads/indexes/CICAgNjbq5MK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scheduledFor",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/scheduled_outreach/indexes/CICAgNjE8JMK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/commitments/indexes/CICAgNiGjJQK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "expires_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/proposals/indexes/CICAgPiSqpQK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "purpose",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/prompt_experiments/indexes/CICAgJiNspQK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/drafts/indexes/CICAgNjZvpQK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "notBefore",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/effects/indexes/CICAgJi2-JQK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.intent_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/leads/indexes/CICAgLiooZUK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "payment_status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "dunning_step",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/billing/indexes/CICAgITsr5UK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/reports/indexes/CICAgNiEzpUK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "dueAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/follow_through/indexes/CICAgLjz0pUK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "read",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pending_messages/indexes/CICAgJjn5JUK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgPiQ6ZUK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "chatHistory",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/reports/indexes/CICAgNibgJYK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "processed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgLizyJYK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "metadata.userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/memory_vectors/indexes/CICAgLiJ45YK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "baseline_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "milestone_days",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/impact_reports/indexes/CICAgJjH95YK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "auto_sent",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/proposals/indexes/CICAgJj0mZcK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/support_requests/indexes/CICAgISunpcK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sponsorBriefed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "callStartedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/family_checkin_calls/indexes/CICAgJjtr5cK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastMentioned",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/entities/indexes/CICAgITctJcK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "updated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/consent/indexes/CICAgPji2JcK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "referrer_client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/referrals/indexes/CICAgNi675cK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "stage",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/pipeline/indexes/CICAgLjKr5gK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.tier",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite_score",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/leads/indexes/CICAgPiS4JgK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "source",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgJj1_5gK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "discovery.source",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "scoring.composite",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/prospects/indexes/CICAgPiQkpkK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "category",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/gratitude/indexes/CICAgJinm5kK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "summarized",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "endedAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/conversations/indexes/CICAgLizv5kK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "started_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/voice_calls/indexes/CICAgNib15kK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "msa_code",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "detected_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/chain_expansion_alerts/indexes/CICAgPi_2pkK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "generated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/daily_briefs/indexes/CICAgOiP45kK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "insight_batch_date",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/insights/indexes/CICAgJit9pkK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgJjHhZoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "occurrences",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/userPatterns/indexes/CICAgLiJnpoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "user_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/impact_baselines/indexes/CICAgNjrzZoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "expires_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/proposals/indexes/CICAgJjN7JoK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "personaId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/history/indexes/CICAgPjS_JoK",
+    "queryScope": "COLLECTION_GROUP",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgNi6lZsK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "contactName",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "occurredAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/conflict_records/indexes/CICAgNi7xJsK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/notifications/indexes/CICAgJj00psK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "analyzed_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/conversation_analysis/indexes/CICAgISu1JsK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sentiment",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/journal/indexes/CICAgJjt5ZsK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "toUserId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/family_messages/indexes/CICAgISc-5sK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "dueDate",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/commitments/indexes/CICAgLiqiZwK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/ceo_decisions/indexes/CICAgLjxu5wK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "industry",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "evaluated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/recommendation_outcomes/indexes/CICAgNjZ05wK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sessionId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "promptedAtMs",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/conversationFeedback/indexes/CICAgPjB95wK",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "endTime",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "startTime",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/focus_sessions/indexes/CICAgOjPxp0K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "generated_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/daily_briefs/indexes/CICAgLioy50K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "analyzed_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/conversation_analysis/indexes/CICAgJjm350K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "metadata.userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "embedding",
+        "vectorConfig": {
+          "dimension": 768,
+          "flat": {}
+        }
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/vectors/indexes/CICAgPi_750K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgLizhp4K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "sent",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "unsubscribed",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "sendAt",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/nurture_sequences/indexes/CICAgPjgtZ4K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "client_id",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "resolved",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/metric_anomalies/indexes/CICAgJinvJ4K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entity_type",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "timestamp",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/signals/indexes/CICAgJjNy54K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "publisherId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/mcp_servers/indexes/CICAgPiDzp4K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "industry",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "refreshed_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/local_market_pages/indexes/CICAgNib8p4K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "industry",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "city",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "created_at",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/tool_results/indexes/CICAgNj6op8K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "nurture.opted_out",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "nurture.next_action_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/leads/indexes/CICAgPiBrZ8K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "inQueue",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "laneRank",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "priorityKey",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/waitlist/indexes/CICAgJidwp8K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "dimension",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "confidence",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/communication_preferences/indexes/CICAgJjWzJ8K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "expires_at",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "ASCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/decision_queue/indexes/CICAgISu458K",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "agentId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "startedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/coaching_sessions/indexes/CICAgISc1oIL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "entityName",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "confidence",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/dynamic_facts/indexes/CICAgNjb9YIL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "detectedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/unspoken_needs/indexes/CICAgPj_-IIL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "contactName",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "occurredAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/apology_records/indexes/CICAgJjtgYoL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "agentId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "startedAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/roleplay_sessions/indexes/CICAgNjbv4oL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "lastMentioned",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "importance",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/dynamic_entities/indexes/CICAgOjPvIwL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "isActive",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/habits/indexes/CICAgLjxrY0L",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastActivityAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/conversation_threads/indexes/CICAgPiSj5IL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "agentId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "userId",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "createdAt",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/task_sessions/indexes/CICAgJinm5kL",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  },
+  {
+    "density": "SPARSE_ALL",
+    "fields": [
+      {
+        "fieldPath": "status",
+        "order": "ASCENDING"
+      },
+      {
+        "fieldPath": "lastDetected",
+        "order": "DESCENDING"
+      },
+      {
+        "fieldPath": "__name__",
+        "order": "DESCENDING"
+      }
+    ],
+    "name": "projects/johnb-2025/databases/(default)/collectionGroups/unsaid_topics/indexes/CICAgOjPxp0L",
+    "queryScope": "COLLECTION",
+    "state": "READY"
+  }
+]
