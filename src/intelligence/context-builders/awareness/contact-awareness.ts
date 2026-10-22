@@ -13,6 +13,7 @@ import {
   getRelationshipInsights,
   getContactsNeedingAttention,
 } from '../../../services/contacts/contact-relationship-service.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
 import { daysSinceLastInteraction } from '../../../services/contacts/last-interaction.js';
 
 const log = createLogger({ module: 'context:contact-awareness' });
@@ -32,7 +33,7 @@ export const contactAwarenessBuilder: ContextBuilder = {
     }
 
     const userId = input.services?.userId || 'anonymous';
-    if (userId === 'anonymous') {
+    if (!isMemberIdentity(userId)) {
       return [];
     }
 

@@ -13,7 +13,7 @@
  * @module services/feedback/conversation-feedback-store
  */
 
-import { FieldValue, getFirestore } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 
 import { deepRemoveUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -25,6 +25,7 @@ import type {
   FeedbackReactionInput,
   UserFeedbackStats,
 } from './types.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'ConversationFeedbackStore' });
 
@@ -53,7 +54,7 @@ export async function createFeedbackPrompt(
   if (!sessionId) return { ok: false, reason: 'sessionId required' };
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const feedbackId = `fb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
     const feedbackDoc: Omit<ConversationFeedback, 'promptedAt'> & {
@@ -103,7 +104,7 @@ export async function recordFeedbackReaction(
   if (!userId) return { ok: false, reason: 'userId required' };
 
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const ref = db.collection('profiles').doc(userId).collection(COLLECTION_PATH).doc(feedbackId);
 
     const doc = await ref.get();
@@ -161,7 +162,7 @@ export async function getRecentFeedback(
   limit = 50
 ): Promise<ConversationFeedback[]> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const snapshot = await db
       .collection('profiles')
       .doc(userId)
@@ -192,7 +193,7 @@ export async function getSessionFeedback(
   sessionId: string
 ): Promise<ConversationFeedback[]> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const snapshot = await db
       .collection('profiles')
       .doc(userId)
@@ -224,7 +225,7 @@ export async function getPersonaFeedback(
   limit = 100
 ): Promise<ConversationFeedback[]> {
   try {
-    const db = getFirestore();
+    const db = getAdminFirestore();
     const snapshot = await db
       .collection('profiles')
       .doc(userId)

@@ -11,7 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'TrustAnalytics' });
@@ -155,7 +155,7 @@ export function trackEvent(event: Omit<TrustEvent, 'id' | 'timestamp'>): TrustEv
  */
 async function persistEvent(event: TrustEvent): Promise<void> {
   try {
-    const db = getFirestore();
+    const db = (await import('../../utils/firebase-admin-app.js')).getAdminFirestore();
     await db.collection('trust_analytics').add(
       removeUndefined({
         ...event,

@@ -47,6 +47,7 @@ import {
   REACTIONS,
 } from './backchannel-context.js';
 import { backchannelsEnabled } from '../../config/voice-humanization-flags.js';
+import { callIsGrave } from './presence-heavy.js';
 import { ferniEnergyFor } from '../../speech/tts-gateway/director/ferni-energy.js';
 import {
   backchannelAudioClockEnabled,
@@ -225,11 +226,15 @@ export function initializeLiveBackchanneling<T>(
     const emotional =
       (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
       (state.currentEmotion?.intensity ?? 0) > 0.7;
+    // Hard news lately or crisis risk: only soft "mm"s, further apart (presence-heavy.ts).
+    // (The partial is usually callerTurns' last already; read alone so the window keeps 3 turns.)
+    const heavy =
+      callIsGrave(sessionId, callerTurns) || callIsGrave(undefined, [partialTranscript]);
     const now = Date.now();
     if (
       shouldLaughAlong({
         partialTranscript,
-        emotional,
+        emotional: emotional || heavy,
         agentSpeaking,
         turnCount: state.turnCount,
         lastLaughTurn,
@@ -252,6 +257,7 @@ export function initializeLiveBackchanneling<T>(
       agentSpeaking,
       partialTranscript: state.partialTranscript ?? '',
       emotional,
+      heavy,
     });
     if (!decision.play) {
       log.debug({ reason: decision.reason }, 'backchannel skipped');
@@ -259,14 +265,15 @@ export function initializeLiveBackchanneling<T>(
     }
     // BACKCHANNEL_CONTEXT=on: react to what they're saying ("oh no", "whoa").
     // Nothing fits, or that clip isn't cached for this persona: the neutral pick.
-    const contextual = backchannelContextEnabled()
-      ? pickContextualBackchannel(partialTranscript, emotional, lastClip)
-      : null;
+    const contextual =
+      backchannelContextEnabled() && !heavy
+        ? pickContextualBackchannel(partialTranscript, emotional, lastClip)
+        : null;
     // Never a "Ha" at hard news, however they laughed ("kms lol").
     const laugh = contextual !== null && REACTIONS.funny.includes(contextual);
     const fitting = laugh && heavyMoment({ partialTranscript, callerTurns }) ? null : contextual;
     // FERNI_STATE: a worn-out Ferni listens with soft "mm"s, not "yeah" or "right".
-    const soft = emotional || ferniEnergyFor(sessionId) === 'low';
+    const soft = emotional || heavy || ferniEnergyFor(sessionId) === 'low';
     let text = fitting ?? pickBackchannel(soft, lastClip);
     let played = playClip(text, at);
     if (!played && fitting !== null) {
@@ -345,7 +352,8 @@ export function initializeLiveBackchanneling<T>(
       timeSinceLastBackchannel: Date.now() - state.lastBackchannelAt,
       isEmotionalMoment:
         (state.currentEmotion?.distressLevel ?? 0) > 0.4 ||
-        (state.currentEmotion?.intensity ?? 0) > 0.7,
+        (state.currentEmotion?.intensity ?? 0) > 0.7 ||
+        callIsGrave(sessionId, recentCallerTurns(heard)),
     };
 
     // Check if we should emit
