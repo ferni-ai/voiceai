@@ -240,6 +240,16 @@ describe("the caller's answer", () => {
     expect(out.indicators).toContain('grounded_screen_positive');
   });
 
+  it("the released turn's other path with drifted words is not taken as the answer", async () => {
+    const session = await released();
+    // The pipeline saw the released turn with different words; same Ferni line before it.
+    const drifted = await pipeline(session, [[OPENER, REMINDER]], 'Dinner is tonight.');
+    expect(drifted.indicators).not.toContain('grounded_screen_positive');
+    // The real answer is still screened.
+    const answer = await pipeline(session, after(ASKED), 'Kind of.');
+    expect(answer.indicators).toContain('grounded_screen_positive');
+  });
+
   it("the turn's two paths with different words fail closed", async () => {
     const session = await released();
     const fromGate = await gate(session, after(ASKED), 'No.');

@@ -370,7 +370,7 @@ export function groundedRelease(
         .then(({ release, reads }) => {
           if (release && mode === 'live') {
             explainCrisisTurn(args.call, args.input.latest);
-            if (args.call) noteScreenAsked(args.call, args.input.latest);
+            if (args.call) noteScreenAsked(args.call, args.input);
           }
           const stats = { mode, source: args.source, release, reads };
           log.info({ ...stats, latencyMs: Date.now() - startedAt }, 'CRISIS_GROUNDED_RELEASE');

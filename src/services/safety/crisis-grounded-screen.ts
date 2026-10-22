@@ -51,6 +51,8 @@ const screens = new Map<
   {
     at: number;
     asked: string;
+    /** Ferni's line before the released turn: a path with it is that turn, not an answer. */
+    before: string;
     answer?: { turn: string; companion: string; at: number; positive: boolean };
   }
 >();
@@ -82,13 +84,18 @@ const askedScreen = (companion: string | undefined): boolean => {
 /** Both paths of one turn land well inside this; a later turn's line comes after Ferni's reply. */
 const SAME_TURN_MS = 10_000;
 
-export function noteScreenAsked(call: string, latest: string, now = Date.now()): void {
+export function noteScreenAsked(
+  call: string,
+  released: { latest: string; companion?: string },
+  now = Date.now()
+): void {
   for (const [id, s] of screens) if (now - s.at > SCREEN_TTL_MS) screens.delete(id);
   if (screens.size >= SCREEN_MAX) {
     const oldest = screens.keys().next().value;
     if (oldest !== undefined) screens.delete(oldest);
   }
-  screens.set(call, { at: now, asked: loose(latest) });
+  const before = loose(stripSSML(String(released.companion ?? '')));
+  screens.set(call, { at: now, asked: loose(released.latest), before });
 }
 
 /**
@@ -107,8 +114,11 @@ export function screenPositive(
     if (!screen || now - screen.at > SCREEN_TTL_MS) return false;
     const turn = loose(String(input.latest ?? ''));
     // The released turn's own other path (its Ferni line never asked); a repeat that answers is screened.
-    if (!turn || (turn === screen.asked && !askedScreen(input.companion))) return false;
     const companion = loose(stripSSML(String(input.companion ?? '')));
+    // The released turn itself, on its other path, even with drifted words: never an answer.
+    // A line that answers the question is screened, even one repeating the released words.
+    const releasedTurn = turn === screen.asked || (companion !== '' && companion === screen.before);
+    if (!turn || (releasedTurn && !askedScreen(input.companion))) return false;
     const fresh = (): boolean => !(askedScreen(input.companion) && clearNo(input.latest));
     const kept = screen.answer;
     if (kept) {
