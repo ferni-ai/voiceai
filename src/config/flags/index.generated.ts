@@ -34,4 +34,5 @@ export { SESSION_OWN_VOICE } from './SESSION_OWN_VOICE.js';
 export { SLOW_TURN_SOUND } from './SLOW_TURN_SOUND.js';
 export { SPOKEN_PUNCTUATION_NORMALIZE } from './SPOKEN_PUNCTUATION_NORMALIZE.js';
 export { TOOL_ACK_WIDE } from './TOOL_ACK_WIDE.js';
+export { TURN_METRICS_BQ } from './TURN_METRICS_BQ.js';
 export {};
