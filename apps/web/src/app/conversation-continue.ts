@@ -12,6 +12,11 @@
  * `ferni:conversation-continue` so the call machine (call/call-machine.ts) can
  * move from `ending` back to `listening`.
  *
+ * While the caller is still talking (interim transcripts), the agent sends
+ * `conversation_hold`: the hang-up moves to `disconnectDelay` after the latest
+ * hold, never later than MAX_END_HOLD_MS after `conversation_end`. A hold never
+ * reopens the call; it only gives the caller's words time to land.
+ *
  * data-message-handlers.ts schedules its hang-up through scheduleEndDisconnect
  * so this module can cancel it.
  *
@@ -27,6 +32,16 @@ const log = createLogger('ConversationContinue');
 
 /** Window event: the agent took back its goodbye; `detail.reason` says why. */
 export const CONVERSATION_CONTINUE_EVENT = 'ferni:conversation-continue';
+
+/** The caller is still talking after `conversation_end`: hold the hang-up. */
+export interface ConversationHoldEvent {
+  readonly type: 'conversation_hold';
+  readonly reason: 'caller_speaking';
+  readonly timestamp: number;
+}
+
+/** The longest a goodbye's hang-up is held after `conversation_end`. */
+export const MAX_END_HOLD_MS = 8_000;
 
 /** The agent reopened the call after `conversation_end`. */
 export interface ConversationContinueEvent {
@@ -45,27 +60,62 @@ export function isConversationContinueMessage(data: unknown): data is Conversati
 }
 
 /** The hang-up scheduled by the latest `conversation_end`, until it runs or is cancelled. */
-let pendingDisconnect: ReturnType<typeof setTimeout> | null = null;
+let pending: { disconnect: () => void; delay: number; endedAt: number } | null = null;
+let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+
+function fire(): void {
+  const due = pending;
+  pending = null;
+  pendingTimer = null;
+  due?.disconnect();
+}
 
 /** Hang up after `delay` ms, unless cancelEndDisconnect runs first. Replaces any pending one. */
 export function scheduleEndDisconnect(disconnect: () => void, delay: number): void {
   cancelEndDisconnect();
-  pendingDisconnect = setTimeout(() => {
-    pendingDisconnect = null;
-    disconnect();
-  }, delay);
+  pending = { disconnect, delay, endedAt: Date.now() };
+  pendingTimer = setTimeout(fire, delay);
+}
+
+/**
+ * The caller is still talking: move the pending hang-up to `delay` after now,
+ * capped at MAX_END_HOLD_MS after it was scheduled. Returns whether one was pending.
+ */
+export function holdEndDisconnect(): boolean {
+  if (pending === null) return false;
+  if (pendingTimer !== null) clearTimeout(pendingTimer);
+  const now = Date.now();
+  const at = Math.min(now + pending.delay, pending.endedAt + MAX_END_HOLD_MS);
+  pendingTimer = setTimeout(fire, Math.max(0, at - now));
+  return true;
 }
 
 /** Cancel the pending hang-up. Returns whether one was pending. */
 export function cancelEndDisconnect(): boolean {
-  if (pendingDisconnect === null) return false;
-  clearTimeout(pendingDisconnect);
-  pendingDisconnect = null;
+  if (pending === null) return false;
+  if (pendingTimer !== null) clearTimeout(pendingTimer);
+  pending = null;
+  pendingTimer = null;
   return true;
 }
 
-/** For the data-message dispatcher: handles `message` if it is `conversation_continue`. */
+export function isConversationHoldMessage(data: unknown): data is ConversationHoldEvent {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    (data as Record<string, unknown>)['type'] === 'conversation_hold'
+  );
+}
+
+/**
+ * For the data-message dispatcher: handles `message` if it is
+ * `conversation_continue` or `conversation_hold`.
+ */
 export function routeConversationContinue(message: unknown): boolean {
+  if (isConversationHoldMessage(message)) {
+    log.info('Goodbye hang-up held: the caller is still talking', { held: holdEndDisconnect() });
+    return true;
+  }
   if (!isConversationContinueMessage(message)) return false;
   handleConversationContinue(message);
   return true;
