@@ -1,6 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { voice } from '@livekit/agents';
-import { alertInstructions, createCallAlertSpeaker, MAX_ALERT_ATTEMPTS } from '../call-alerts.js';
+import {
+  alertInstructions,
+  ANSWER_START_MS,
+  createCallAlertSpeaker,
+  HEARD_AFTER_MS,
+  MAX_ALERT_ATTEMPTS,
+} from '../call-alerts.js';
 
 /** A LiveKit SpeechHandle as the speaker sees it. */
 function fakeHandle() {
@@ -59,10 +65,10 @@ const timer = {
   context: { label: 'pasta' },
 };
 
-const tick = () =>
-  new Promise<void>((r) => {
-    setTimeout(r, 0);
-  });
+/** Lets pending timers and promise callbacks run, `ms` of fake time on. */
+const tick = async (ms = 0) => {
+  await vi.advanceTimersByTimeAsync(ms);
+};
 
 function speaker(s: ReturnType<typeof fakeSession>) {
   const logs: Array<{ msg: string; fields: Record<string, unknown> }> = [];
@@ -70,7 +76,32 @@ function speaker(s: ReturnType<typeof fakeSession>) {
   return { speak, logs, msgs: () => logs.map((l) => l.msg) };
 }
 
+/** The caller talks over the alert's reply; their turn cuts it. */
+function callerCuts(s: ReturnType<typeof fakeSession>, i: number) {
+  s.setUser('speaking');
+  s.handles[i].finish(true);
+  s.setUser('listening');
+}
+
+/** Ferni answers the caller: thinking, then speaking, then done. */
+async function ferniAnswers(s: ReturnType<typeof fakeSession>) {
+  s.setAgent('thinking');
+  await tick(1400); // LiveKit's turn hooks run before the answer exists
+  s._activity.currentSpeech = {};
+  s.setAgent('speaking');
+  await tick(2000);
+  s.setAgent('listening');
+  await tick();
+}
+
 describe('call alerts', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('waits for a pause, then has Ferni say it', async () => {
     const s = fakeSession();
     const { speak } = speaker(s);
@@ -83,6 +114,7 @@ describe('call alerts', () => {
       instructions: expect.stringContaining('(pasta) just went off'),
     });
     s.play();
+    await tick(HEARD_AFTER_MS);
     await done;
   });
 
@@ -92,14 +124,14 @@ describe('call alerts', () => {
     s.userState = 'speaking';
     const { speak } = speaker(s);
     void speak(timer);
-    await tick();
+    await tick(5000);
     expect(s.generateReply).not.toHaveBeenCalled();
     s.setUser('listening');
     await tick();
     expect(s.generateReply).toHaveBeenCalledTimes(1);
   });
 
-  it('logs CALL_ALERT_SPOKEN when its audio starts, not when it is asked for', async () => {
+  it('logs CALL_ALERT_SPOKEN once its audio has played a while, not when it is asked for', async () => {
     const s = fakeSession();
     s.agentState = 'listening';
     const { speak, msgs } = speaker(s);
@@ -109,37 +141,60 @@ describe('call alerts', () => {
     s.setAgent('thinking');
     s._activity.currentSpeech = {}; // another reply is what plays
     s.setAgent('speaking');
-    await tick();
+    await tick(HEARD_AFTER_MS);
     expect(msgs()).toEqual([]);
+    s.setAgent('listening');
     s.play();
+    await tick(HEARD_AFTER_MS - 100);
+    expect(msgs()).toEqual([]); // its first audio alone is not "heard"
+    await tick(100);
     await done;
     expect(msgs()).toEqual(['CALL_ALERT_SPOKEN']);
   });
 
-  it('a reply cut before any audio is asked for again at the next pause (#2507)', async () => {
+  it('a reply cut before it is heard is said again after Ferni answers the caller (#2507)', async () => {
     const s = fakeSession();
     s.agentState = 'listening';
     const { speak, msgs, logs } = speaker(s);
     const done = speak(timer);
     await tick();
-    // The caller spoke: LiveKit paused the alert's reply at launch, then their turn cut it.
-    s.setUser('speaking');
-    s.handles[0].finish(true);
-    s.setAgent('thinking'); // Ferni answers the caller
+    s.play(); // its first audio...
+    await tick(40);
+    callerCuts(s, 0); // ...then the caller's turn cuts it
     await tick();
     expect(msgs()).toEqual(['CALL_ALERT_RETRY']);
-    expect(logs[0].fields).toMatchObject({ reason: 'cut_before_audio', attempt: 1 });
-    expect(s.generateReply).toHaveBeenCalledTimes(1); // not over the caller, not over the answer
-    s.setUser('listening');
-    s.setAgent('speaking');
-    await tick();
-    expect(s.generateReply).toHaveBeenCalledTimes(1);
-    s.setAgent('listening');
-    await tick();
+    expect(logs[0].fields).toMatchObject({ reason: 'cut_before_heard', attempt: 1 });
+    // Both sides read "listening" while the turn hooks run: not a pause to speak into.
+    await ferniAnswers(s);
     expect(s.generateReply).toHaveBeenCalledTimes(2);
     s.play();
+    await tick(HEARD_AFTER_MS);
     await done;
     expect(msgs()).toEqual(['CALL_ALERT_RETRY', 'CALL_ALERT_SPOKEN']);
+  });
+
+  it('the retry does not go ahead of the answer during the turn hooks', async () => {
+    const s = fakeSession();
+    s.agentState = 'listening';
+    const { speak } = speaker(s);
+    void speak(timer);
+    await tick();
+    callerCuts(s, 0);
+    await tick(1400); // quiet on both sides, the answer not started yet
+    expect(s.generateReply).toHaveBeenCalledTimes(1);
+  });
+
+  it('with no answer to wait for, the retry comes after ANSWER_START_MS', async () => {
+    const s = fakeSession();
+    s.agentState = 'listening';
+    const { speak } = speaker(s);
+    void speak(timer);
+    await tick();
+    callerCuts(s, 0);
+    await tick(ANSWER_START_MS - 100);
+    expect(s.generateReply).toHaveBeenCalledTimes(1);
+    await tick(100);
+    expect(s.generateReply).toHaveBeenCalledTimes(2);
   });
 
   it(`gives up after ${MAX_ALERT_ATTEMPTS} cut replies and logs CALL_ALERT_DROPPED`, async () => {
@@ -150,12 +205,14 @@ describe('call alerts', () => {
     for (let i = 0; i < MAX_ALERT_ATTEMPTS; i++) {
       // eslint-disable-next-line no-await-in-loop -- one attempt at a time
       await tick();
-      s.handles[i].finish(true);
+      callerCuts(s, i);
+      // eslint-disable-next-line no-await-in-loop -- one attempt at a time
+      await ferniAnswers(s);
     }
     await done;
     expect(s.generateReply).toHaveBeenCalledTimes(MAX_ALERT_ATTEMPTS);
     expect(msgs()).toEqual(['CALL_ALERT_RETRY', 'CALL_ALERT_DROPPED']);
-    expect(logs[1].fields).toMatchObject({ reason: 'cut_before_audio', type: 'timer_complete' });
+    expect(logs[1].fields).toMatchObject({ reason: 'cut_before_heard', type: 'timer_complete' });
   });
 
   it('logs CALL_ALERT_DROPPED when the reply cannot be asked for', async () => {
@@ -177,9 +234,10 @@ describe('call alerts', () => {
     const done = speak(timer);
     await tick();
     s.play();
-    s.handles[0].finish(true);
+    await tick(HEARD_AFTER_MS);
+    callerCuts(s, 0);
     await done;
-    await tick();
+    await tick(ANSWER_START_MS);
     expect(s.generateReply).toHaveBeenCalledTimes(1);
     expect(msgs()).toEqual(['CALL_ALERT_SPOKEN']);
   });

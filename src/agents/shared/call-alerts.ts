@@ -8,17 +8,18 @@
  * old handler read canned text ("Timer's up for pasta!") with session.say,
  * whenever the timer fired.
  *
- * The reply it asks for can be cut before a word of it plays (#2507, dev
- * 2026-10-22: CALL_ALERT_SPOKEN, REPLY_RESUME 132 ms on, and no TTS ever
- * carried the timer). Caller audio just after the request pauses the reply at
- * launch, and the caller's committed turn cuts it: agent_activity.js interrupts
- * the queued and paused speeches on a user turn (call-alert-resume.sdk.test.ts
- * reproduces it). CALL_ALERT_SPOKEN was logged before the request, so the log
- * said the timer was announced.
+ * Dev, 2026-10-22 (#2507): the alert's reply was heard, but not as a timer.
+ * It ends on Ferni's turn, so its caller turn is "(They haven't said anything
+ * since your last words.)" (caller-turn.ts); the fast lane routed on that note
+ * and the fast model answered it: "Oh, sorry, I didn't mean to ramble on
+ * there". The caller's next turn then cut it (agent_activity.js interrupts the
+ * current, queued and paused speeches on a user turn). CALL_ALERT_SPOKEN had
+ * been logged before the request was even made.
  * So the speaker keeps the reply's SpeechHandle: CALL_ALERT_SPOKEN is logged
- * when its audio starts playing; a reply cut before that is asked for once
- * more at the next pause (MAX_ALERT_ATTEMPTS), and an alert that still isn't
- * heard is logged as CALL_ALERT_DROPPED with the reason.
+ * once HEARD_AFTER_MS of it has played; a reply cut before that is asked for
+ * once more after Ferni answers the caller (MAX_ALERT_ATTEMPTS), and an alert
+ * that still isn't heard is logged as CALL_ALERT_DROPPED with the reason.
+ * Such a reply ends on Ferni's turn, so it stays on the main model (fast-lane.ts).
  *
  * @module agents/shared/call-alerts
  */
@@ -31,8 +32,12 @@ const log = createLogger({ module: 'CallAlerts' });
 
 /** Longest an alert waits for a pause before speaking anyway. */
 export const QUIET_WAIT_MS = 20_000;
-/** Times an alert's reply is asked for: once, and once more if it was cut before any audio. */
+/** Times an alert's reply is asked for: once, and once more if it was cut before it was heard. */
 export const MAX_ALERT_ATTEMPTS = 2;
+/** Playout before an alert counts as heard; one cut sooner is asked for again. */
+export const HEARD_AFTER_MS = 600;
+/** After a cut, how long the retry waits for Ferni's answer to the caller to start. */
+export const ANSWER_START_MS = 5000;
 
 /** The parts of LiveKit's SpeechHandle the speaker watches. */
 export interface AlertSpeech {
@@ -73,6 +78,40 @@ export function waitUntilQuiet(session: AlertSession, maxMs = QUIET_WAIT_MS): Pr
   });
 }
 
+/**
+ * After a caller turn cut the alert: resolves once a reply that starts after now has
+ * finished (speaking, then listening), or when none starts within `startMs`, or after
+ * `maxMs`. LiveKit runs the turn hooks (~1.4 s on dev) before the answer exists, and
+ * both read "listening", so a pause alone would put the retry ahead of the answer.
+ */
+export async function waitForAnswer(
+  session: AlertSession,
+  startMs = ANSWER_START_MS,
+  maxMs = QUIET_WAIT_MS
+): Promise<void> {
+  return new Promise((resolve) => {
+    let started = session.agentState === 'speaking';
+    const onState = (ev: unknown): void => {
+      const state = (ev as { newState?: string })?.newState;
+      if (state === 'speaking') {
+        started = true;
+        clearTimeout(noStart);
+      } else if (state === 'listening' && started) done();
+    };
+    const done = (): void => {
+      clearTimeout(noStart);
+      clearTimeout(cap);
+      session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+      resolve();
+    };
+    const noStart = setTimeout(() => {
+      if (!started) done();
+    }, startMs);
+    const cap = setTimeout(done, maxMs);
+    session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+  });
+}
+
 /** What Ferni is asked to say for a callback: the facts, not the words. */
 export function alertInstructions(cb: VoiceCallback): string {
   const label = typeof cb.context?.label === 'string' ? cb.context.label : '';
@@ -90,17 +129,20 @@ const isSpeech = (h: unknown): h is AlertSpeech =>
 type Outcome = 'played' | 'requested' | 'cut' | { failed: string };
 
 /**
- * Ask for the alert's reply and settle when its audio starts playing ('played'), or when
- * it ends without any ('cut'). A reply that finished uninterrupted counts as played.
+ * Ask for the alert's reply and settle once it has played HEARD_AFTER_MS ('played'), or
+ * when it ends sooner ('cut'). A reply that finished uninterrupted counts as played.
  */
 async function sayOnce(session: AlertSession, cb: VoiceCallback): Promise<Outcome> {
   return new Promise((resolve) => {
     let handle: unknown;
+    let heard: ReturnType<typeof setTimeout> | undefined;
     const onState = (ev: unknown): void => {
-      if ((ev as { newState?: string })?.newState !== 'speaking') return;
-      if (handle !== undefined && session._activity?.currentSpeech === handle) settle('played');
+      if ((ev as { newState?: string })?.newState !== 'speaking' || heard) return;
+      if (handle !== undefined && session._activity?.currentSpeech === handle)
+        heard = setTimeout(() => settle('played'), HEARD_AFTER_MS);
     };
     const settle = (outcome: Outcome): void => {
+      clearTimeout(heard);
       session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
       resolve(outcome);
     };
@@ -126,6 +168,7 @@ export function createCallAlertSpeaker(
   opts: {
     sessionId?: string;
     quietWaitMs?: number;
+    answerStartMs?: number;
     /** CALL_ALERT_SPOKEN / CALL_ALERT_RETRY / CALL_ALERT_DROPPED lines; the module log by default. */
     log?: (msg: string, fields: Record<string, unknown>) => void;
   } = {}
@@ -136,7 +179,9 @@ export function createCallAlertSpeaker(
       msg === 'CALL_ALERT_DROPPED' ? log.warn(fields, msg) : log.info(fields, msg));
   return async (cb) => {
     for (let attempt = 1; attempt <= MAX_ALERT_ATTEMPTS; attempt++) {
-      // A retry waits too: the caller who cut the first one is answered first.
+      // A retry waits for the answer to the caller who cut the first one, then a pause.
+      // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
+      if (attempt > 1) await waitForAnswer(session, opts.answerStartMs, opts.quietWaitMs);
       // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
       await waitUntilQuiet(session, opts.quietWaitMs);
       // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
@@ -153,8 +198,8 @@ export function createCallAlertSpeaker(
         });
       }
       if (attempt < MAX_ALERT_ATTEMPTS)
-        say('CALL_ALERT_RETRY', { ...fields, reason: 'cut_before_audio' });
-      else say('CALL_ALERT_DROPPED', { ...fields, reason: 'cut_before_audio' });
+        say('CALL_ALERT_RETRY', { ...fields, reason: 'cut_before_heard' });
+      else say('CALL_ALERT_DROPPED', { ...fields, reason: 'cut_before_heard' });
     }
   };
 }

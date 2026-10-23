@@ -1,43 +1,60 @@
 /**
- * A finished timer is announced even when the caller talks or a paused reply
- * resumes around it (#2507), on a real LiveKit AgentSession with the prod
- * output chain (resume buffer over a room-like sink, NEVER_SILENT=on).
+ * A finished timer is announced (#2507), on a real LiveKit AgentSession with
+ * the prod output chain (resume buffer over a room-like sink, NEVER_SILENT=on),
+ * the real fast lane (CASCADE_FAST_LANE) and the caller-turn note that Ferni's
+ * llmNode adds to a reply nobody prompted (caller-turn.ts, ferni-agent.ts).
  *
- * Dev nightly sweep, 2026-10-22: CALL_ALERT_SPOKEN at 0 ms, REPLY_RESUME at
- * 132 ms, and the next TTS (789 ms) was Ferni answering the caller ("Oh,
- * sorry, I didn't mean to ramble on there"); no TTS ever carried the timer.
- * The alert's reply had been asked for at a pause; the caller then spoke, the
- * SDK paused that reply before its first audio (REPLY_RESUME paused), and
- * the committed caller turn cut it (agent_activity.js: interruptQueuedSpeeches
- * and cancelSpeechPause on a user turn). Nothing asked for it again.
+ * Dev nightly sweep, 2026-10-22: the alert's own reply went to the fast lane
+ * on "(They haven't said anything since your last words.)" and the fast model
+ * answered that note ("Oh, sorry, I didn't mean to ramble on there"). The
+ * timer was never mentioned. The caller's next turn then cut that reply.
+ *
+ * The models here answer the way the real ones did: the fast model answers the
+ * last caller turn and ignores the instructions; the main model follows them.
  */
 import { DEFAULT_API_CONNECT_OPTIONS, initializeLogger, llm, tts, voice } from '@livekit/agents';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
+import { FastLaneLLM } from '../../model-provider/fast-lane.js';
 import { PacedTTS, RoomLikeAudioOutput } from '../../multi-agent/__tests__/fake-room-audio.js';
 import { interruptionOverrides } from '../../multi-agent/interruption-config.js';
 import { installNeverSilent } from '../../multi-agent/never-silent-install.js';
+import { NO_NEW_WORDS_NOTE, withCallerTurn } from '../../personas/caller-turn.js';
 import { createCallAlertSpeaker } from '../call-alerts.js';
 
 const TEA = 'Green tea likes cooler water, around eighty degrees, or it turns bitter.';
-const SORRY = "Oh, sorry, I didn't mean to ramble on there.";
+const NOTE_REPLY = "Oh, sorry, I didn't mean to ramble on there.";
 const ALERT = 'Your tea timer just went off.';
 const INTERJECTION = 'Ha, you really know your tea.'; // words, not a backchannel
+const ANSWER = 'Guilty, I could talk about tea all day.';
 
-/** The alert's reply when its instructions are in the request, else the chat. */
+const messages = (ctx: llm.ChatContext) =>
+  ctx.items.filter((i) => i.type === 'message') as llm.ChatMessage[];
+const lastUser = (ctx: llm.ChatContext) =>
+  messages(ctx)
+    .filter((m) => m.role === 'user')
+    .pop()?.textContent ?? '';
+
+/** Follows the instructions in the system prompt; else answers the chat. */
+const mainModel = (ctx: llm.ChatContext): string =>
+  messages(ctx).some((m) => m.role === 'system' && (m.textContent ?? '').includes('just went off'))
+    ? ALERT
+    : TEA;
+/** Answers the last caller turn and nothing else (dev's fast model on the note). */
+const fastModel = (ctx: llm.ChatContext): string =>
+  lastUser(ctx) === NO_NEW_WORDS_NOTE ? NOTE_REPLY : lastUser(ctx) === INTERJECTION ? ANSWER : TEA;
+
 class ScriptLLM extends llm.LLM {
+  constructor(
+    private readonly name: string,
+    private readonly answer: (ctx: llm.ChatContext) => string
+  ) {
+    super();
+  }
   label(): string {
-    return 'script';
+    return this.name;
   }
   chat(p: Parameters<llm.LLM['chat']>[0]): llm.LLMStream {
-    const items = p.chatCtx.items.filter((i) => i.type === 'message') as llm.ChatMessage[];
-    const system = items.filter((m) => m.role === 'system').map((m) => m.textContent ?? '');
-    const lastUser = items.filter((m) => m.role === 'user').pop()?.textContent ?? '';
-    const text = system.join('\n').includes('just went off')
-      ? ALERT
-      : lastUser === INTERJECTION
-        ? SORRY
-        : TEA;
-    return new ScriptStream(this, text, {
+    return new ScriptStream(this, this.answer(p.chatCtx), {
       chatCtx: p.chatCtx,
       toolCtx: p.toolCtx,
       connOptions: { ...DEFAULT_API_CONNECT_OPTIONS, maxRetry: 0 },
@@ -57,6 +74,17 @@ class ScriptStream extends llm.LLMStream {
     this.queue.put({ id: 'r', delta: { role: 'assistant', content: this.text } });
   }
 }
+
+/** Ferni's llmNode as far as this needs: the note on an unprompted reply, a slow turn hook. */
+class FerniLike extends voice.Agent {
+  async onUserTurnCompleted(): Promise<void> {
+    await sleep(1400); // dev: the caller's answer exists ~1.4 s after the commit
+  }
+  async llmNode(...[ctx, ...rest]: Parameters<voice.Agent['llmNode']>) {
+    return super.llmNode(withCallerTurn(ctx, { CALLER_TURN_NOTE: 'on' }), ...rest);
+  }
+}
+
 const sleep = (ms: number) =>
   new Promise<void>((r) => {
     setTimeout(r, ms);
@@ -94,7 +122,7 @@ async function call() {
   // so the session looks busy and the retry waits out QUIET_WAIT_MS.
   const env = { NEVER_SILENT: 'on', PLAYOUT_DRIFT_GUARD: 'on' };
   const session = new voice.AgentSession({
-    llm: new ScriptLLM(),
+    llm: new FastLaneLLM(new ScriptLLM('fast', fastModel), new ScriptLLM('main', mainModel)),
     tts: new PacedTTS() as tts.TTS,
     turnHandling: { interruption: interruptionOverrides(env) },
   } as never);
@@ -103,7 +131,7 @@ async function call() {
   sessions.push(session);
   session.output.audio = out;
   session.on(voice.AgentSessionEventTypes.Error, () => undefined);
-  await session.start({ agent: new voice.Agent({ instructions: 'test' }) });
+  await session.start({ agent: new FerniLike({ instructions: 'test' }) });
   installNeverSilent(
     {
       session,
@@ -145,32 +173,57 @@ async function call() {
       stoppedSpeakingAt: undefined,
     });
   };
-  return { session, out, said, logs, speak, callerSpeaks };
+  /** A first turn: the caller asks, Ferni answers on the main model, the answer plays out. */
+  const teaTurn = async () => {
+    session.generateReply({ userInput: 'How hot should the water be?' });
+    await until(() => said.includes(TEA) && session.agentState === 'listening', 10_000);
+  };
+  return { session, out, said, logs, speak, callerSpeaks, teaTurn };
 }
 
-describe('a call alert around the caller and a resumed reply (real AgentSession)', () => {
+describe('a call alert on a live call (real AgentSession, fast lane on)', () => {
   beforeAll(() => initializeLogger({ pretty: false, level: 'silent' }));
   afterEach(async () => {
     outputs.splice(0).forEach((o) => o.close());
     await Promise.all(sessions.splice(0).map((s) => s.close().catch(() => undefined)));
   });
 
-  it('the dev sequence: the caller speaks just after the alert is asked for; it is still said', async () => {
+  it('the chat ends on Ferni: the alert reply is about the timer, not the turn note', async () => {
     const c = await call();
-    c.session.generateReply({ userInput: 'How hot should the water be?' });
-    await sleep(300 + TEA.length * 70 + 1500); // the tea reply plays out
-    const alert = c.speak(timer); // quiet: asked for at once
+    await c.teaTurn();
+    await c.speak(timer);
+    await until(() => c.said.length >= 2, 5000);
+    expect(c.said).toEqual([TEA, ALERT]);
+    expect(c.logs).toEqual(['CALL_ALERT_SPOKEN']);
+  }, 30_000);
+
+  it('cut by the caller before it is heard: said again after Ferni answers them', async () => {
+    const c = await call();
+    await c.teaTurn();
+    const alert = c.speak(timer);
     await sleep(130);
     await c.callerSpeaks(400, INTERJECTION); // pauses the alert's reply, then cuts it
     await alert;
-    await until(() => c.said.includes(ALERT), 20_000);
-    expect(c.said).toContain(SORRY); // the caller is answered first
-    expect(c.said).toContain(ALERT);
-    expect(c.said.indexOf(ALERT)).toBeGreaterThan(c.said.indexOf(SORRY));
+    await until(() => c.said.includes(ALERT), 10_000);
+    expect(c.said).toEqual([TEA, ANSWER, ALERT]);
     expect(c.logs).toEqual(['CALL_ALERT_RETRY', 'CALL_ALERT_SPOKEN']);
   }, 30_000);
 
-  it('an alert asked for while a reply is paused for noise is said, and the reply resumes whole', async () => {
+  it('cut just after its first audio: not counted as heard, said again', async () => {
+    const c = await call();
+    await c.teaTurn();
+    const alert = c.speak(timer);
+    await until(() => c.session.agentState === 'speaking', 3000);
+    await sleep(40);
+    await c.callerSpeaks(400, INTERJECTION);
+    await alert;
+    // The cut reply is recorded with its text, though about 40 ms of it played.
+    await until(() => c.said.length >= 4, 10_000);
+    expect(c.said.slice(-2)).toEqual([ANSWER, ALERT]);
+    expect(c.logs).toEqual(['CALL_ALERT_RETRY', 'CALL_ALERT_SPOKEN']);
+  }, 30_000);
+
+  it('asked for while a reply is paused for noise: said, and the reply resumes whole', async () => {
     const c = await call();
     c.session.generateReply({ userInput: 'How hot should the water be?' });
     await sleep(300 + 800);
