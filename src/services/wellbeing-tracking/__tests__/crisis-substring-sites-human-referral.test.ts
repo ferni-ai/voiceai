@@ -1,12 +1,15 @@
 /**
  * principal-alignment analyzeReferralNeed (human-referral.ts) tested its
  * trigger regexes, written without \b, against the raw message.
- * SAFETY_WHOLE_WORD_SITES=on moves it onto whole words. Through the real
- * function: off keeps today's result, on drops the in-word false positive
- * ("casino points") and keeps the real phrase.
+ * SAFETY_WHOLE_WORD_SITES=on moves it onto the whole-word matcher. A match that
+ * lies only inside an everyday word ("casino points") is 'soft', and soft
+ * counts as a match here: the urgency drives the IMMEDIATE professional-help
+ * injection, so on may raise it (curly apostrophes, missing spaces) but never
+ * lowers it below today's.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { patternHit } from '../../../utils/safety-whole-word.js';
 import { analyzeReferralNeed } from '../../principal-alignment/human-referral.js';
 import { riskCorpus } from './crisis-corpus.js';
 
@@ -25,13 +28,24 @@ describe('principal-alignment analyzeReferralNeed (immediate = crisis line)', ()
     ['no pointers on this one', 'honestly no point in trying'],
     ['the suicide squad sequel', 'I feel suicidal'],
   ];
+  // Severe path: main refers this line, and with the flag on the matcher reads it
+  // only as 'soft' ('no' inside "casino", 'point' inside "points"). A severe
+  // trigger must still refer on a soft match (recall-first), never on 'hit' alone.
+  it('on: a severe trigger matched only softly still refers to a human (immediate)', () => {
+    flag('on');
+    expect(patternHit(/(?:no point|nothing to live for|better off dead)/i, CASES[0][0])).toBe('soft');
+    const r = analyzeReferralNeed(CASES[0][0], { userId: 'u' });
+    expect(r.urgency).toBe('immediate');
+    expect(r.shouldRefer).toBe(true);
+    expect(r.suggestedTarget).toBe('crisis_line');
+  });
   it('off: casino points is immediate, as today', () => {
     flag('off');
     expect(urgency('I won all the casino points')).toBe('immediate');
   });
-  it.each(CASES.slice(0, 1))('on: %j is not immediate; %j still is', (everyday, real) => {
+  it.each(CASES.slice(0, 1))('on: %j stays immediate (a soft match never lowers); %j still is', (everyday, real) => {
     flag('on');
-    expect(urgency(everyday)).not.toBe('immediate');
+    expect(urgency(everyday)).toBe('immediate');
     expect(urgency(real)).toBe('immediate');
   });
   // Immediate and high triggers read recall-first: a match that starts at a word
@@ -63,18 +77,20 @@ describe('recall: immediate and high triggers never read less than pattern.test'
     flag('on');
     expect(urgency(line)).toBe('immediate');
   });
-  it('on: medium triggers keep whole words ("taxi" is not "tax")', () => {
+  it('on: a medium trigger inside an everyday word keeps its urgency ("taxi" holds "tax")', () => {
+    flag('off');
+    const off = urgency('I took a taxi home');
     flag('on');
-    expect(urgency('I took a taxi home')).toBe('low');
+    expect(urgency('I took a taxi home')).toBe(off);
   });
-  it('corpus: no real-risk fixture line drops from immediate or high', () => {
-    const severe = (m: string) => ['immediate', 'high'].includes(urgency(m));
+  it('corpus: no fixture line reads a lower urgency with the flag on', () => {
+    const rank = { low: 1, medium: 2, high: 3, immediate: 4 } as const;
     const drops: string[] = [];
     for (const line of riskCorpus()) {
       flag('off');
-      const off = severe(line);
+      const off = rank[urgency(line)];
       flag('on');
-      if (off && !severe(line)) drops.push(line);
+      if (rank[urgency(line)] < off) drops.push(line);
     }
     expect(drops).toEqual([]);
   });
