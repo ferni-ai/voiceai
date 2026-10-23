@@ -78,7 +78,10 @@ export async function claimRoom(
   }
 }
 
-/** Read-only: does `uid` hold `roomName`? 'unclaimed' when nobody does, or the claim expired. */
+/**
+ * Read-only: does `uid` hold `roomName`? 'unclaimed' when nobody does, or the claim
+ * expired, even the caller's own: a stale claim verifies nothing (roomVerified: false).
+ */
 export async function roomClaimHolder(
   db: Firestore,
   roomName: string,
@@ -87,6 +90,6 @@ export async function roomClaimHolder(
 ): Promise<'mine' | 'theirs' | 'unclaimed'> {
   const ref = db.collection(ROOM_CLAIMS).doc(Buffer.from(roomName).toString('base64url'));
   const claim = (await ref.get()).data() as RoomClaim | undefined;
-  if (claim?.uid === uid) return 'mine';
-  return claim && claim.expiresAtMs > now ? 'theirs' : 'unclaimed';
+  if (!claim || !(claim.expiresAtMs > now)) return 'unclaimed';
+  return claim.uid === uid ? 'mine' : 'theirs';
 }

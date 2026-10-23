@@ -10,6 +10,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import type { Firestore } from '@google-cloud/firestore';
 import { roomClaimHolder } from '../../servers/api/routes/token-room-claim.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { errorClass } from '../../utils/error-class.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { rateLimit, requireAuth } from '../auth-middleware.js';
 import { BodyTooLargeError } from '../bounded-body.js';
@@ -116,7 +117,9 @@ export async function handleCallTelemetryRoutes(
   try {
     await store(res, deps, db, caller.userId, body);
   } catch (error) {
-    log.error({ error: String(error) }, 'Could not store call telemetry');
+    // Class and code only: a write error can quote the document, and so the note
+    const code = (error as { code?: unknown } | null)?.code;
+    log.error({ error: errorClass(error), code }, 'Could not store call telemetry');
     sendError(res, 'Could not store call telemetry', 500);
   }
   return true;
