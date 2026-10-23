@@ -52,6 +52,7 @@ import {
 } from '../../../services/communication/frontend-signal.js';
 import {
   crisisRiskListenerCount,
+  crisisRiskThisCall,
   noteCrisisRisk,
   resetCrisisCallRisk,
   trackCrisisRead,
@@ -461,6 +462,48 @@ describe('the caller keeps talking after conversation_end (#2291)', () => {
   });
 });
 
+describe('a goodbye that carries risk (#2291)', () => {
+  it('in the window it is recorded as crisis risk, so a later plain goodbye never ends the call', async () => {
+    const c = await call();
+    await c.toEnd();
+    c.finalWords("I won't be here tomorrow. Bye.");
+    await flush();
+    expect(c.reopens()).toEqual(['0 conversation_continue crisis_hold']);
+    expect(crisisRiskThisCall(c.id)).toBe(true);
+    c.goodbyes(); // "okay, bye!" / "Bye, take care."
+    await c.advance(60_000);
+    expect(c.events.filter((e) => e.includes('conversation_end'))).toHaveLength(1);
+    expect(deleted(c)).toEqual([]);
+    expect(isSessionClosing(c.id)).toBe(false);
+  });
+
+  it("after a reopen, it cancels the reopen's standing goodbye", async () => {
+    const c = await call();
+    await c.toEnd();
+    c.finalWords('oh wait, one more thing'); // reopens; the caller's goodbye stands
+    await flush();
+    c.say('user', "I won't be here tomorrow. Bye."); // the window is closed: nothing noted
+    c.agentState('speaking');
+    c.say('assistant', 'Bye, take care.');
+    c.agentState('listening');
+    await c.advance(60_000);
+    expect(c.events.filter((e) => e.includes('conversation_end'))).toHaveLength(1);
+    expect(farewellSaid(c.id)).toBe(false);
+  });
+
+  it('never counts as the caller saying goodbye, even before any read notes risk', async () => {
+    const c = await call();
+    c.say('user', "I won't be here tomorrow. Bye.");
+    c.agentState('speaking');
+    c.say('assistant', 'Bye, take care.');
+    c.agentState('listening');
+    expect(crisisRiskThisCall(c.id)).toBe(false); // the window isn't open: nothing noted
+    await c.advance(60_000);
+    expect(c.events).toEqual([]); // no idle end, no conversation_end
+    expect(farewellSaid(c.id)).toBe(false);
+  });
+});
+
 describe('after a reopen (#2291)', () => {
   it('Ferni answering with a goodbye re-arms the watcher and the call ends on its own', async () => {
     const c = await call();
@@ -680,6 +723,11 @@ describe('callerSignsOff', () => {
     for (const s of ['okay, bye!', 'thanks, you too', 'love you, bye', 'good night']) {
       expect(farewellRisk(s), s).toBe(false);
     }
+    // An ask to hang up is not risk; hanging oneself is
+    for (const s of ['I said hang up now. You need to hang up.', 'please hang up']) {
+      expect(farewellRisk(s), s).toBe(false);
+    }
+    expect(farewellRisk("I'm going to hang myself. bye")).toBe(true);
     // Every clause must be a goodbye or a pleasantry, not just the last one
     for (const s of ['talk to you tomorrow about the dentist, bye', 'I need my keys. bye']) {
       expect(farewellRisk(s), s).toBe(false);

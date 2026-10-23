@@ -382,7 +382,10 @@ export function watchFarewell(
   };
 
   const onCaller = (text: string): void => {
-    callerSaidBye = callerSaysGoodbye(text);
+    // A goodbye carrying risk ("I won't be here tomorrow. Bye.") is never one: it carries on
+    const risky = farewellRisk(text);
+    callerSaidBye = !risky && callerSaysGoodbye(text);
+    if (risky) reopened.delete(sessionId); // nor does an earlier reopen's goodbye stand
     if (isSessionClosing(sessionId)) return;
     if (callerSaidBye) {
       hangUpAsked = hangUpAsked || callerAsksToHangUp(text);

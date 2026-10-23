@@ -30,9 +30,12 @@ const FAREWELL_SHAPE = new RegExp(
   'i'
 );
 
-/** The goodbye words themselves, which hasRiskContent counts as risk on their own. */
+/**
+ * The goodbye words themselves, and an ask to hang up, which hasRiskContent
+ * counts as risk on their own ("bye", "hang"). "hang myself" stays risk.
+ */
 const GOODBYE_WORDS =
-  /\b(?:good ?bye|bye(?: bye)?|farewell|take care|love you|good ?night|night|see (?:you|ya)(?: later| soon)?)\b/gi;
+  /\b(?:good ?bye|bye(?: bye)?|farewell|take care|love you|good ?night|night|see (?:you|ya)(?: later| soon)?|hang up)\b/gi;
 
 export function farewellRisk(text: string): boolean {
   const line = text.replace(/[’‘]/g, "'");

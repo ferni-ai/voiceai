@@ -6,7 +6,8 @@
  * - a final caller line reopens it unless it is a sign-off (callerSignsOff:
  *   only goodbyes and "thanks", "you too", "love you", with no risk in it).
  *   A line with risk beyond its goodbye (farewell-risk.ts: "I won't be here
- *   tomorrow. Bye.") reopens it as a crisis hold;
+ *   tomorrow. Bye.") is recorded as crisis risk on the call and reopens it as a
+ *   crisis hold, so no later goodbye ends it;
  * - interim transcripts HOLD the app's hang-up (`conversation_hold`,
  *   `caller_speaking`), looked at no more than every HOLD_RESEND_MS; a look
  *   that reads a sign-off sends nothing. A hold never reopens the call;
@@ -20,7 +21,11 @@
  *
  * @module agents/shared/wrap-up-window
  */
-import { onCrisisRiskNoted } from '../../services/safety/crisis-call-risk.js';
+import {
+  crisisTurnOf,
+  noteCrisisRisk,
+  onCrisisRiskNoted,
+} from '../../services/safety/crisis-call-risk.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { callerSignsOff } from './call-farewell.js';
 import { awaitTurnReads, type CallerWatch } from './caller-activity.js';
@@ -115,7 +120,11 @@ export function openWrapUpWindow(opts: {
       opts.caller.onWords(({ text, final }) => {
         if (final) {
           if (callerSignsOff(text)) return; // the turn's read still holds the end (reads)
-          return win.reopen(farewellRisk(text) ? 'crisis_hold' : 'caller_spoke');
+          if (!farewellRisk(text)) return win.reopen('caller_spoke');
+          // Record it, so no later goodbye can end this call (crisisRiskThisCall, for its TTL);
+          // noting it reopens the call as a crisis hold (the listener above)
+          noteCrisisRisk(sessionId, Date.now(), crisisTurnOf(text));
+          return win.reopen('crisis_hold');
         }
         if (now() - lastLook < HOLD_RESEND_MS) return;
         lastLook = now();

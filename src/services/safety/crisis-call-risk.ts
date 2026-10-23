@@ -55,6 +55,9 @@ const turnOf = (latest: string): string =>
     .replace(/[^a-z0-9]+/g, ' ')
     .trim();
 
+/** The turn key noteCrisisRisk takes for these caller words (as trackCrisisRead keys them). */
+export const crisisTurnOf = turnOf;
+
 /** Told of every risk noted: the call, and the caller words whose read noted it, when known. */
 type RiskListener = (sessionId: string, turn: string | undefined) => void;
 const listeners = new Set<RiskListener>();
