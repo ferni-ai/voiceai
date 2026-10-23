@@ -44,6 +44,7 @@ import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
 import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.js';
 import { shouldSkipProfileForSilentCall } from './silent-call.js';
 import { validateUserId } from './validation.js';
+import { loadSessionProfile } from './load-session-profile.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
@@ -259,38 +260,7 @@ export async function createSessionServices(
   const validatedUserId = validateUserId(userId);
 
   const loadProfileForSession = async (profileUserId: string): Promise<UserProfile | null> => {
-    // ⚡ PERFORMANCE: Use Redis-backed profile cache for faster session start
-    // Cache hit: ~5-20ms vs Firestore: ~100-500ms
-    const { getProfileWithCache, cacheProfile, invalidateProfile } =
-      await import('../data-layer/profile-cache.js');
-
-    // BLOCKING: Load profile with cache-through pattern (Redis → Firestore)
-    userProfile = await getProfileWithCache(profileUserId, async (uid) => {
-      return global.store.getProfile(uid);
-    });
-
-    const warnUnsaved = (e: unknown) => getLogger().warn({ error: String(e) }, 'Profile not saved');
-    if (!userProfile) {
-      const { createUserProfile } = await import('../../types/user-profile.js');
-      // CRITICAL: Pass userName from onboarding so Ferni remembers their name!
-      userProfile = createUserProfile(profileUserId, userName);
-      // Never fatal: a refused write (synthetic-write-guard) must not end the call
-      await global.store.saveProfile(userProfile).catch(warnUnsaved);
-      void cacheProfile(profileUserId, userProfile);
-      getLogger().info(
-        { userId: profileUserId, name: userName || '(none)' },
-        '🆕 Created new user profile with name from onboarding'
-      );
-    } else if (!userProfile.name && userName) {
-      // Existing profile without a name, but we now have one - update it!
-      userProfile.name = userName;
-      await global.store.saveProfile(userProfile).catch(warnUnsaved);
-      void invalidateProfile(profileUserId);
-      getLogger().info(
-        { userId: profileUserId, name: userName },
-        '✨ Updated existing profile with name from onboarding'
-      );
-    }
+    userProfile = await loadSessionProfile(global.store, profileUserId, userName);
     markCallStageSoon(sessionId, 'profile_ready');
     return userProfile;
   };

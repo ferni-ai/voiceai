@@ -6,6 +6,11 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
+import {
+  InvalidStoredProfileError,
+  repairedProfile,
+  unsavedStandIn,
+} from './profile-read-failure.js';
 import type {
   UserProfile,
   ConversationSummary,
@@ -115,10 +120,30 @@ export abstract class MemoryStore {
   }
 
   /**
-   * Get or create a user profile
+   * For a caller about to save what it read. null only when there is no profile; a stored doc
+   * that isn't a valid profile comes back repaired (defaults under its fields); a failed read
+   * throws, so it is never mistaken for a new user.
+   */
+  async getProfileForWrite(userId: string): Promise<UserProfile | null> {
+    try {
+      return await this.getProfileStrict(userId);
+    } catch (error) {
+      if (error instanceof InvalidStoredProfileError) return repairedProfile(error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get or create a user profile. A failed read creates nothing: it answers an unsaved stand-in
+   * (profile-read-failure.ts) that every backend refuses to save.
    */
   async getOrCreateProfile(userId: string, name?: string): Promise<UserProfile> {
-    const existing = await this.getProfile(userId);
+    let existing: UserProfile | null;
+    try {
+      existing = await this.getProfileForWrite(userId);
+    } catch (error) {
+      return unsavedStandIn(userId, name, error);
+    }
     if (existing) {
       return existing;
     }
