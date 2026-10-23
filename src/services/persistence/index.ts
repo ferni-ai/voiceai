@@ -56,7 +56,7 @@ export interface LoadOptions {
 export interface PersistenceStore<T> {
   /** Get data for a user */
   get: (userId: string) => Promise<T | null>;
-  /** Set data for a user (queued for batch write); dropped while the user's last load failed */
+  /** Set data for a user (queued for batch write). The read guard doesn't apply here yet */
   set: (userId: string, data: T, options?: WriteOptions) => void;
   /** Set data and write immediately; rejects (ReadFailedWriteError) while the last load failed */
   setImmediate: (userId: string, data: T, options?: WriteOptions) => Promise<void>;
@@ -321,14 +321,12 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     const gen = guard.begin(userId);
     try {
       const doc = await refFor(firestore, userId).get();
-      guard.settle(userId, gen, true);
-
-      if (!doc.exists) {
+      const data = doc.exists ? (timestampsToDates(doc.data()) as T) : undefined;
+      guard.settle(userId, gen, true); // a read counts as good only once its data converted
+      if (data === undefined) {
         cache.delete(userId);
         return null;
       }
-
-      const data = timestampsToDates(doc.data()) as T;
       cache.set(userId, data);
       return data;
     } catch (error) {
@@ -350,12 +348,11 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       return load(userId);
     },
 
-    set: (userId: string, data: T, options?: WriteOptions) => {
+    set: (userId: string, data: T) => {
       if (isShutdown) {
         log.warn({ collection, userId }, 'Attempted to set data after shutdown');
         return;
       }
-      if (guard.refuses(userId, options)) return; // not cached: the next get() reads again
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);

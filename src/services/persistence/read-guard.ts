@@ -3,8 +3,9 @@
  *
  * A non-strict PersistenceStore.load answers null on a read error, the same as "no doc", so a
  * consumer holds defaults ([], 0) and its next write merge-puts them over the stored values.
- * The guard marks a key whose latest load failed; until a load succeeds, writes built on a read
- * are refused (setImmediate rejects with ReadFailedWriteError; set() drops with a warning).
+ * The guard marks a key whose latest load failed; until a load succeeds, setImmediate rejects
+ * with ReadFailedWriteError. (set() is not guarded yet: ten consumers remember a failed load as
+ * loaded and never reload, so refusing their set() would drop every later write.)
  *
  * - Only the most recently started load sets or clears the mark, so a slow failing load can't
  *   mark a key after a newer one succeeded, and a slow success can't clear a newer failure.

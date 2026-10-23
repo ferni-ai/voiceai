@@ -51,6 +51,7 @@ const { createPersistenceStore, flushAllStores } = await import('../index.js');
 const { ReadFailedWriteError, loadOrThrow } = await import('../read-guard.js');
 const { getUserTips, saveTip } = await import('../../monetization/persistence.js');
 const { tipJar } = await import('../../monetization/tip-jar.js');
+const { recordPayment } = await import('../../billing/stripe-payments.js');
 const { valueCapture } = await import('../../monetization/value-capture.js');
 const calendarTokens = await import('../../identity/google-calendar-token-store.js');
 const { handleMonetizationWebhook } = await import('../../../api/monetization-webhook.js');
@@ -138,18 +139,26 @@ describe('PersistenceStore after a failed load', () => {
     state.docs.set(PATH, { samples: ['a', 'b', 'c'] });
   });
 
-  it('a non-strict load fails: setImmediate rejects, set() drops, nothing is written', async () => {
+  it('a non-strict load fails: setImmediate rejects and nothing is written', async () => {
     failed.add(PATH);
     expect(await store.load('u1')).toBeNull();
     expect(store.readFailed('u1')).toBe(true);
     await expect(store.setImmediate('u1', { samples: ['new'] })).rejects.toBeInstanceOf(
       ReadFailedWriteError
     );
-    store.set('u1', { samples: ['new'] });
-    await store.flush();
 
     expect(writesTo(PATH)).toEqual([]);
     expect(state.docs.get(PATH)).toEqual({ samples: ['a', 'b', 'c'] });
+  });
+
+  it('a doc that reads but fails to convert counts as a failed read, not a good one', async () => {
+    state.docs.set(PATH, { samples: ['a'], broken: () => 'not cloneable' }); // data() throws
+    expect(await store.load('u1')).toBeNull();
+    expect(store.readFailed('u1')).toBe(true);
+    await expect(store.setImmediate('u1', { samples: ['new'] })).rejects.toBeInstanceOf(
+      ReadFailedWriteError
+    );
+    expect(writesTo(PATH)).toEqual([]);
   });
 
   it('a strict load fails: the write is refused the same way', async () => {
@@ -394,6 +403,27 @@ describe('Stripe webhook for a tip while the ledger read fails', () => {
     const monetization = fake.profiles.get(user)?.monetization as Record<string, unknown>;
     expect(monetization).toMatchObject({ totalValueContributionsCents: 500, valueEventCount: 1 });
     expect(valueCapture.getStats().contributionCount - statsBefore.contributionCount).toBe(1);
+  });
+});
+
+describe('recordPayment remembers the payment intents it counted', () => {
+  const pay = (id: string) =>
+    recordPayment({ userId: 'payer', type: 'tip', amountCents: 100, paymentIntentId: id });
+
+  it('an older intent replayed after a newer one is still not counted again', async () => {
+    await pay('pi_1');
+    await pay('pi_2');
+    const after = await pay('pi_1'); // Stripe retries an older event
+    expect(after).toMatchObject({ tipCount: 2, totalTipsCents: 200 });
+  });
+
+  it('keeps the newest 200 ids, not an unbounded list', async () => {
+    for (let i = 0; i <= 200; i++) await pay(`pi_${i}`);
+    const ids = (fake.profiles.get('payer')?.monetization as { recordedPaymentIds: string[] })
+      .recordedPaymentIds;
+    expect(ids).toHaveLength(200);
+    expect(ids[0]).toBe('pi_1');
+    expect(ids.at(-1)).toBe('pi_200');
   });
 });
 
