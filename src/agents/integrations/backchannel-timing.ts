@@ -23,15 +23,17 @@
  * a week flagged on to see which.
  *
  * Which: a shuffled bag per token (Mm, Mhm, Mm-hmm, Yeah, Right) holding its
- * plain clip, and for Mm-hmm its voiced takes unless the moment is soft. A
- * take never plays twice inside 60 s, a token never twice running, and a
- * token over 40% of the call so far waits unless it is the least used (so
- * the soft trio cannot stall). Each play gets +-2 dB of gain.
+ * plain clip and its judged takes (BACKCHANNEL_TAKES, in the voice on the
+ * call): the soft takes always, the bright ones and Mm-hmm's voiced takes
+ * unless the moment is soft. A take never plays twice inside 60 s (a take
+ * not rendered yet is skipped for the next fresh one), a token never twice
+ * running, and a token over 40% of the call so far waits unless it is the
+ * least used (so the soft trio cannot stall). Each play gets +-2 dB of gain.
  *
  * @module agents/integrations/backchannel-timing
  */
 
-import { VOICED_TAKES } from '../shared/reaction-clips.js';
+import { BACKCHANNEL_TAKES, VOICED_TAKES } from '../shared/reaction-clips.js';
 import { REACTION_VARIANTS } from './voiced-presence.js';
 
 /** BACKCHANNEL_TIMING=on: the timing and variation rules above. */
@@ -97,9 +99,12 @@ export function timedLivePlay(
   return (text, opts) => (REACTION_VARIANTS[text] === 'mmhm' ? plain : varied)(text, opts);
 }
 
-/** A token's clips: the plain render, plus (Mm-hmm only, when `takes`) the voiced mm-hm takes. */
+/** A token's clips: the plain render and its soft takes, plus (when `takes`) its bright and voiced takes. */
 function clipsFor(token: string, takes: boolean): readonly string[] {
-  return takes && token === 'Mm-hmm' ? [token, ...VOICED_TAKES.mmhm] : [token];
+  const soft = [token, ...(BACKCHANNEL_TAKES.soft[token] ?? [])];
+  if (!takes) return soft;
+  const voiced = token === 'Mm-hmm' ? VOICED_TAKES.mmhm : [];
+  return [...soft, ...(BACKCHANNEL_TAKES.bright[token] ?? []), ...voiced];
 }
 
 export interface BackchannelBag {
@@ -134,13 +139,13 @@ export function createBackchannelBag(random: () => number = Math.random): Backch
     const deck = decks.get(token) ?? [];
     if (deck.includes(clip)) deck.splice(deck.indexOf(clip), 1);
   };
-  /** The token's next fresh clip from its shuffled deck (refilled when empty). */
-  const draw = (token: string, takes: boolean, now: number): string | undefined => {
+  /** The token's fresh clips, in its shuffled deck's order (refilled when empty). */
+  const draw = (token: string, takes: boolean, now: number): string[] => {
     const all = clipsFor(token, takes);
     let deck = decks.get(token)?.filter((c) => all.includes(c));
     if (deck === undefined || deck.length === 0) deck = shuffled(all, random);
     decks.set(token, deck);
-    return deck.find((c) => fresh(c, now));
+    return deck.filter((c) => fresh(c, now));
   };
   return {
     play(first, tokens, takes, play, now = Date.now()) {
@@ -154,8 +159,8 @@ export function createBackchannelBag(random: () => number = Math.random): Backch
         if (token === lastToken && tokens.length > 1) continue;
         const share = (used(token) + 1) / (total + 1);
         if (share > BACKCHANNEL_TIMING.maxTokenShare && used(token) > least) continue;
-        const clip = draw(token, takes, now);
-        if (clip !== undefined && play(clip)) {
+        for (const clip of draw(token, takes, now)) {
+          if (!play(clip)) continue;
           record(token, clip, now);
           return clip;
         }
