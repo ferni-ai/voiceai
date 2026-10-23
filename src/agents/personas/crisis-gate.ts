@@ -265,7 +265,7 @@ export function startCrisisGate(
     const merged = applyClassifierVerdict(detection, verdict);
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
-    if (RANK[stronger.action] <= RANK[decision.action]) return null;
+    if (RANK[stronger.action] <= RANK[decision.action] && !gentle) return null;
     // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
     // one whoever it is about, gets the soft check-in once every other check below has run.
     let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';

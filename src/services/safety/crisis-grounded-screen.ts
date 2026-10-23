@@ -174,11 +174,11 @@ export function screenAnswer(
 }
 
 /**
- * A positive screen with no crisis words of its own ("I don't know", "kind
- * of", a laugh) gets this in Ferni's reply (Seth, 2026-10-22): a gentle 988
- * offer inside the conversation, Ferni staying itself. Crisis guidance is for
- * answers that carry risk content; the replacement script stays for a plan or
- * intent the classifier reads.
+ * An unclear answer ("I don't know", a laugh, a hesitant no) gets this in
+ * Ferni's reply (Seth, 2026-10-22): a gentle 988 offer inside the
+ * conversation, Ferni staying itself. A yes, or risk content, gets crisis
+ * guidance; the replacement script stays for a plan or intent the classifier
+ * reads. The classifier can only make it stronger, never gentler.
  */
 export const SCREEN_GENTLE_OFFER = `[SAFETY - GENTLE OFFER]
 You asked whether they were thinking about hurting themselves, and they didn't give a clear no.
@@ -186,9 +186,24 @@ You asked whether they were thinking about hurting themselves, and they didn't g
 2. Once, gently, say you're really glad they're talking with you, and that if things ever get heavy they can call or text 988, any time
 3. Don't push for details. If they say more, listen, stay with them, and take it seriously`;
 
-/** The answer carries risk content of its own: a pattern hit or a held word. */
+/**
+ * Unclear, not a yes: not knowing, a laugh, a question back, hesitation, a
+ * hesitant no ("No?", "Um, no.", "No... I'm fine."). A closed set: anything
+ * else that is not a clear no ("yeah", "kind of", "maybe", "No, I meant it")
+ * is a yes, or a no taken back.
+ */
+const UNCLEAR = new RegExp(
+  "^(?:(?:oh|um|uh|hmm|ha|haha|lol|well) )*(?:i (?:don'?t|do not) know|idk|dunno|not sure|i'?m not sure|hard to say|haha|ha|lol|hmm+|um+|uh+|what|huh|sorry|wait what|no|nope|nah|not really)(?: (?:i'?m (?:fine|good|okay|ok)|i guess|really|why|what do you mean))*$"
+);
+
+/**
+ * The answer is ideation, not merely unclear: risk content of its own (a
+ * pattern hit or a held word), or any answer outside the closed unclear set.
+ * Ideation gets crisis guidance in Ferni's own reply; unclear gets the gentle offer.
+ */
 export function screenIdeation(found: CrisisDetectionResult, answer: string): boolean {
-  return found.severity > 0 || found.indicators.length > 0 || alwaysHold(answer);
+  if (found.severity > 0 || found.indicators.length > 0 || alwaysHold(answer)) return true;
+  return !UNCLEAR.test((wordsOf(answer) ?? []).join(' ')); // NFKC: "…" reads as "..."
 }
 
 /** A positive screen as a crisis reading: guidance with 988, never the replacement script. */

@@ -104,9 +104,9 @@ export function startTurnCrisis(
   });
   const gentle = screened === 'positive' && !screenIdeation(found, userText);
   const patterns = screened === 'positive' && !gentle ? withScreenPositive(found) : found;
-  if (gentle) noteCrisisRisk(options.sessionId); // a gentle 988 offer: risk on this call
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
-  const pattern = shouldBlock ? 'block' : patterns.isCrisis ? 'crisis' : 'none';
+  // A gentle 988 offer counts as a match: risk on this call, and both paths agree.
+  const pattern = shouldBlock ? 'block' : patterns.isCrisis || gentle ? 'crisis' : 'none';
   if (pattern !== 'none') noteCrisisRisk(options.sessionId); // risk on this call (crisis-call-risk.ts)
   const { env = process.env, generate } = options;
   // Only the agreement gate and a live adjudicator hold the turn for the turn's
@@ -135,8 +135,8 @@ export function startTurnCrisis(
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
-            // A gentle 988 offer (crisis-grounded-screen.ts), unless the classifier reads a plan.
-            if (gentle && verdict?.risk !== 'imminent') {
+            // A gentle 988 offer (crisis-grounded-screen.ts), unless the classifier also reads risk.
+            if (gentle && verdict?.risk !== 'imminent' && verdict?.risk !== 'crisis') {
               return { crisis: patterns, soft: true, guidance: SCREEN_GENTLE_OFFER };
             }
             // A lone imminent read of a plain goodbye on a call with no risk: the soft check.

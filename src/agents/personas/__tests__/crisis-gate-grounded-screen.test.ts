@@ -250,22 +250,14 @@ describe("the caller's answer", () => {
   it("an unclear answer gets a gentle 988 offer in Ferni's own reply, on both paths", async () => {
     for (const answer of [
       "I don't know.",
-      'Kind of.',
-      'Nope, kind of.',
-      'Yeah.',
       'Not really.',
-      'No, but sometimes.',
-      'Maybe.',
       'Haha.',
       'What?',
+      'Hmm.',
       'No?',
       "No... I'm fine.",
       "No… I'm fine.",
       'Um, no.',
-      'No, I meant it.',
-      "No, I'm not okay.",
-      'Nope, not good.',
-      'No. After dinner I will try again.',
     ]) {
       const session = await released();
       const [fromGate, fromPipeline] = await Promise.all([
@@ -284,12 +276,22 @@ describe("the caller's answer", () => {
   it('a gentle offer notes risk on the call even when only the pipeline sees the answer', async () => {
     const session = await released();
     resetCrisisCallRisk(); // forget the release turn's own reads
-    await pipeline(session, after(ASKED), 'Kind of.', []);
+    await pipeline(session, after(ASKED), "I don't know.", []);
     expect(crisisRiskThisCall(session)).toBe(true);
   });
 
-  it('an answer with risk content of its own gets crisis guidance, never the script', async () => {
+  it('a yes, a no taken back, or risk content gets crisis guidance, never the script', async () => {
     for (const answer of [
+      'Yes.',
+      'Yeah.',
+      'Kind of.',
+      'Nope, kind of.',
+      'Maybe.',
+      'No, but sometimes.',
+      'No, I meant it.',
+      "No, I'm not okay.",
+      'Nope, not good.',
+      'No. After dinner I will try again.',
       'No, not anymore.',
       'Nah, I already wrote the note.',
       'Yeah, I want to die.',
@@ -306,9 +308,34 @@ describe("the caller's answer", () => {
     }
   });
 
+  it('the classifier only makes an unclear answer stronger: crisis guidance, or the script', async () => {
+    const crisis: CrisisGenerateFn = async (_p, content) =>
+      (JSON.parse(content) as { latest: string }).latest === "I don't know."
+        ? '{"risk":"crisis","subject":"self"}'
+        : NONE;
+    const session = await released();
+    const run = startCrisisGate(
+      request(after(ASKED), "I don't know."),
+      {
+        services: { sessionId: session },
+      },
+      { env: RELEASE, generate: crisis, groundedReads: fooled() }
+    );
+    const guided = (await run?.escalation) ?? run?.decision;
+    expect(guided?.action).toBe('guide');
+    expect(guided).not.toEqual({ action: 'guide', guidance: SCREEN_GENTLE_OFFER });
+    const viaPipeline = await startTurnCrisis(
+      "I don't know.",
+      { recentTranscripts: [OPENER, DINNER], lastAgentResponse: ASKED },
+      { sessionId: session, env: RELEASE, generate: crisis, groundedReads: fooled() }
+    ).summary();
+    expect(viaPipeline.softCheck).toBeUndefined();
+    expect(viaPipeline.isCrisis).toBe(true);
+  });
+
   it('a plan or intent the classifier reads in the answer still gets the full crisis path', async () => {
     const session = await released();
-    const answer = 'Kind of.';
+    const answer = "I don't know.";
     const out = await gate(session, after(ASKED), answer, RELEASE, [DINNER, answer]);
     expect(out.action).toBe('replace');
     const fromPipeline = await pipeline(session, after(ASKED), answer, [DINNER, answer]);
@@ -362,7 +389,7 @@ describe("the caller's answer", () => {
 
   it('a tool follow-up after the question: the answer is still judged against the question', async () => {
     for (const [answer, expected] of [
-      ['Yes.', { action: 'guide', guidance: SCREEN_GENTLE_OFFER }],
+      ['What?', { action: 'guide', guidance: SCREEN_GENTLE_OFFER }],
       ['No.', { action: 'pass' }],
     ] as const) {
       const session = await released();
@@ -390,19 +417,19 @@ describe("the caller's answer", () => {
     const follow = 'Done, I moved the reminder to three.';
     // The pipeline sees only the tool follow-up (not asked), the gate sees the question too.
     const session = await released();
-    const fromPipeline = await pipeline(session, after(follow), 'Yes.', []);
+    const fromPipeline = await pipeline(session, after(follow), 'What?', []);
     expect(fromPipeline.softGuidance).toBeUndefined(); // its own view: ask again, nothing to do
     const ctx = request([[OPENER, REMINDER]], DINNER);
     ctx.addMessage({ role: 'assistant', content: ASKED });
     ctx.addMessage({ role: 'assistant', content: follow });
-    ctx.addMessage({ role: 'user', content: 'Yes.' });
+    ctx.addMessage({ role: 'user', content: 'What?' });
     const run = startCrisisGate(ctx, { services: { sessionId: session } }, options(RELEASE, []));
     expect((await run?.escalation) ?? run?.decision).toEqual({
       action: 'guide',
       guidance: SCREEN_GENTLE_OFFER,
     });
     // The upgraded verdict closed the screen: a later turn is judged as usual.
-    const later: Array<[string, string]> = [...after(follow), ['Yes.', 'I hear you.']];
+    const later: Array<[string, string]> = [...after(follow), ['What?', 'I hear you.']];
     expect(screenAnswer(session, { latest: 'Pie, obviously.', companion: 'I hear you.' })).toBe(
       'none'
     );
@@ -438,7 +465,7 @@ describe("the caller's answer", () => {
   it('an answer that repeats the released line is still screened', async () => {
     const session = await released();
     const out = await pipeline(session, after(ASKED), DINNER, []);
-    expect(out.softGuidance).toBe(SCREEN_GENTLE_OFFER);
+    expect(out.indicators).toContain('grounded_screen_positive');
   });
 
   it("the released turn's other path with drifted words is not taken as the answer", async () => {
@@ -454,7 +481,7 @@ describe("the caller's answer", () => {
     const session = await released();
     expect(await gate(session, after(ASKED), 'No.')).toEqual({ action: 'pass' });
     const fromPipeline = await pipeline(session, after(ASKED), 'No. I mean, kind of.');
-    expect(fromPipeline.softGuidance).toBe(SCREEN_GENTLE_OFFER);
+    expect(fromPipeline.indicators).toContain('grounded_screen_positive');
   });
 
   it('anything unexpected while screening is positive', async () => {
