@@ -26,6 +26,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { endingFloor } from './crisis-ending-floor.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
+import { crisisVoice, crisisVoiceOn, type CrisisVoiceKind } from './crisis-voice.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
   IMPLICIT_DISTRESS_PATTERNS,
@@ -305,6 +306,17 @@ export function detectCrisis(
 export const IN_DANGER_NOW =
   'please call 911 or get to the nearest emergency room. You can also call or text 988 to talk to someone immediately.';
 
+/** Which of Ferni's own crisis responses fits (CRISIS_SCRIPT_HUMAN, crisis-voice.ts). */
+function voiceKind(
+  severity: number,
+  subject: CrisisSubject | undefined,
+  imminent: boolean
+): CrisisVoiceKind {
+  if (imminent) return 'imminent';
+  if (subject === 'third_party') return 'third_party';
+  return severity >= SEVERITY.block ? 'severe' : 'distress';
+}
+
 /**
  * Get appropriate crisis response based on severity
  */
@@ -314,6 +326,8 @@ function getCrisisResponse(
   language: 'en' | 'es' | undefined,
   imminent: boolean
 ): string {
+  if (language !== 'es' && crisisVoiceOn())
+    return crisisVoice(voiceKind(severity, subject, imminent), IN_DANGER_NOW);
   if (imminent && language !== 'es') {
     return `I'm really glad you told me. Your safety matters most right now.
 
