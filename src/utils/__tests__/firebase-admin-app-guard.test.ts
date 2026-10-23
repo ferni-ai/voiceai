@@ -31,7 +31,6 @@ const NOT_YET_MIGRATED = new Set([
   'src/marketplace/reviews/persistence.ts',
   'src/scripts/query-threads.ts',
   'src/services/admin-activity.ts',
-  'src/services/admin/admin-activity.ts',
   'src/services/admin/daily-report.ts',
   'src/services/analytics/user-analytics.ts',
   'src/services/billing/subscription-metrics.ts',
