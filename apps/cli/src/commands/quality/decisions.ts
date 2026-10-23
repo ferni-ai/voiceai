@@ -5,20 +5,22 @@
  * The 2026-10-23 code-health audit (voiceai-evidence/code-health-2026-10-23/ddd.md §2)
  * found these decisions computed in several places each, with different thresholds
  * and vocabularies: 12 crisis deciders, 4 voice resolvers, 14 quiet-hours predicates,
- * 7 forget checkers, 3 tool caps. The decision gate
- * (apps/cli/src/commands/quality/decision-gate.ts) counts fingerprint hits outside each
- * owner, per file, against decision-baseline.generated.json: today's hits are
- * grandfathered, a new one fails.
+ * 7 forget checkers, 3 tool caps. The decision gate (decision-gate.ts, beside this file)
+ * counts fingerprint lines outside each owner in the files a change touches, at the change
+ * and at its merge base, and fails when a file gains one. Code owners review this file:
+ * moving an owner or widening a fingerprint changes the rule for every PR.
  *
  * Every owner is PROVISIONAL: today's best existing module, not the target. When the
  * target owner lands (ddd.md §5: `judgment/risk`, `identity.voiceFor`, `agency.tooling`,
  * `platform/telephony`), move `owner` and `ownerPaths` here in the same PR.
  *
- * A fingerprint hit is a line of production code under src/ (tests and comment-only
- * lines excluded) that matches `pattern`, in a file outside `ownerPaths` (and, when
- * `onlyIn` is set, only in files whose text matches it).
+ * A fingerprint hit is a line of production code under src/ (tests and comments excluded)
+ * that matches `pattern`, in a file outside `ownerPaths`; with `onlyIn`, only in files whose
+ * text matches it; with `in: 'word-lists'`, only inside a regex literal or a string that is
+ * an element of an array literal (a word list), not in prose or prompts. Patterns must not
+ * use the g or y flag (RegExp.test would keep state between lines; the registry test fails).
  *
- * @module docs/architecture/decisions
+ * @module quality/decisions
  */
 
 export interface Fingerprint {
@@ -27,6 +29,8 @@ export interface Fingerprint {
   readonly pattern: RegExp;
   /** Only files whose whole text matches this count (e.g. Twilio, not Anthropic, messages.create). */
   readonly onlyIn?: RegExp;
+  /** 'word-lists': match only regex literals and quoted strings inside array literals. */
+  readonly in?: 'word-lists';
 }
 
 export interface DomainDecision {
@@ -46,10 +50,20 @@ export const DECISIONS: readonly DomainDecision[] = [
     id: 'crisis-risk',
     question: 'Is this turn a crisis, and how acute?',
     owner: { module: 'src/services/safety/crisis-guard.ts', fn: 'detectCrisis', provisional: true },
-    ownerPaths: ['src/services/safety/'],
+    ownerPaths: [
+      'src/services/safety/',
+      'src/agents/safety/',
+      'src/agents/personas/crisis-gate.ts',
+      'src/agents/processors/turn-processor/turn-crisis.ts',
+      'src/tools/domains/crisis/',
+      'src/services/human-transfer/crisis-signals.ts',
+      'src/intelligence/context-builders/safety/',
+    ],
     target: 'judgment/risk assessRisk(TurnFacts): RiskAssessment (ddd.md 2.1, S3)',
     fingerprints: [
-      { name: 'crisis vocabulary', pattern: /suicid|self[- ]?harm|\b988\b|kill(?:ing)? (?:my|him|her)self/i },
+      // A word list or regex that recognises crisis language: a second detector. Copy that
+      // mentions 988 or suicide (prompts, replies) is not a decider and doesn't count.
+      { name: 'crisis word list', pattern: /suicid|self[- ]?harm|kill(?:ing)? (?:my|him|her)self/i, in: 'word-lists' },
     ],
   },
   {
@@ -64,10 +78,11 @@ export const DECISIONS: readonly DomainDecision[] = [
     id: 'spoken-reply',
     question: 'What did Ferni actually say?',
     owner: { module: 'src/agents/voice-agent/agent-reply-recorder.ts', fn: 'recordCommittedAgentReply', provisional: true },
-    ownerPaths: ['src/agents/voice-agent/agent-reply-recorder.ts', 'src/agents/voice-agent/assistant-transcript.ts'],
+    ownerPaths: ['src/agents/voice-agent/agent-reply-recorder.ts', 'src/agents/multi-agent/assistant-transcript.ts'],
     target: 'expression emits SpokenReply; memory and relationship consume it (ddd.md 2.4, S2)',
     fingerprints: [
-      { name: 'assistant turn written', pattern: /role:\s*['"]assistant['"]/ },
+      // A value, not a type: `role: 'assistant' | 'user'` declares a shape and doesn't count.
+      { name: 'assistant turn written', pattern: /role:\s*['"]assistant['"](?!\s*\|)/ },
       { name: 'last reply assigned', pattern: /\blastAgentResponse\s*=(?!=)/ },
     ],
   },
@@ -110,7 +125,12 @@ export const DECISIONS: readonly DomainDecision[] = [
     ownerPaths: ['src/services/messaging/'],
     target: 'messaging/policy decide(intent, ctx), wired behind every sender (ddd.md 2.7, P11)',
     fingerprints: [
-      { name: 'quiet window', pattern: /(?:function|const|let)\s+\w*[Qq]uiet\w*\s*[=(]|\bQUIET_[A-Z_]+\s*[=:]/ },
+      // A quiet-hours or quiet-window definition; `quiet` alone (silence, idle) doesn't count,
+      // and neither does a flag name (QUIET_HOURS_UNIFIED: { default ... }).
+      {
+        name: 'quiet window',
+        pattern: /(?:function|const|let)\s+\w*[Qq]uiet\w*(?:Hours?|Window)\w*\s*[=(]|\bQUIET_(?:HOURS?|WINDOW)\w*\s*(?:=|:\s*\d)/,
+      },
     ],
   },
   {

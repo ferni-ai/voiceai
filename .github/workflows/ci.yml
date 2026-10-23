@@ -945,6 +945,11 @@ jobs:
       - name: Architecture gate
         run: pnpm quality:arch
 
+      # Blocking: a file this PR touches gains a crisis word list, voice resolver, quiet-hours
+      # rule, tool cap, forget checker or Twilio sender outside its owner (decisions.ts). ~3 s.
+      - name: Decision gate
+        run: pnpm quality:decisions
+
       # Blocking ratchet: a new Firestore client that ignores FIRESTORE_DATABASE (dev runs on
       # ferni-dev, prod on '(default)') fails, and the allowlist may only shrink. ~10 s.
       - name: Firestore database ratchet
