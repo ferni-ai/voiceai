@@ -60,3 +60,50 @@ describe('real ids are untouched', () => {
     expect(callerIdFor('anon:a1b2c3', 'session-AJ_a-1761200000000')).toBe('anon:a1b2c3');
   });
 });
+
+describe('all four predicates agree on every spelling (one normalisation, synthetic-user.ts)', () => {
+  const disguises: Array<[string, (id: string) => string]> = [
+    ['as is', (id) => id],
+    ['upper case, padded', (id) => ` ${id.toUpperCase()} `],
+    ['zero-width space first', (id) => `​${id}`],
+    ['zero-width space inside', (id) => `${id.slice(0, 2)}​${id.slice(2)}`],
+    ['BOM', (id) => `﻿${id}`],
+    ['NBSP padding', (id) => ` ${id} `],
+    [
+      'full-width',
+      (id) => id.replace(/[!-~]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0xfee0)),
+    ],
+  ];
+  type Kind = 'placeholder' | 'minted' | 'member';
+  const bases: Array<[string, Kind]> = [
+    ['unknown', 'placeholder'],
+    ['anonymous', 'placeholder'],
+    ['anon', 'placeholder'],
+    ['anon:', 'placeholder'],
+    ['onbehalf:', 'placeholder'],
+    ['anon:a1b2c3', 'minted'],
+    ['uid-abc123', 'member'],
+  ];
+  const expected: Record<
+    Kind,
+    { shared: boolean; noAccount: boolean; member: boolean; replaced: boolean }
+  > = {
+    placeholder: { shared: true, noAccount: true, member: false, replaced: true },
+    minted: { shared: false, noAccount: true, member: false, replaced: false },
+    member: { shared: false, noAccount: false, member: true, replaced: false },
+  };
+  const rows = bases.flatMap(([base, kind]) =>
+    disguises.map(([how, disguise]) => [`${base} (${how})`, disguise(base), kind] as const)
+  );
+
+  it.each(rows)('%s', (_label, id, kind) => {
+    const session = `session-AJ_tbl${Math.random().toString(36).slice(2, 8)}-${Date.now()}`;
+    expect({
+      shared: isSharedPlaceholderId(id),
+      noAccount: namesNoAccount(id),
+      member: isMemberIdentity(id),
+      // treated as no id: it gets the same anon: id the session gives a caller with none
+      replaced: callerIdFor(id, session) === callerIdFor(undefined, session),
+    }).toEqual(expected[kind]);
+  });
+});

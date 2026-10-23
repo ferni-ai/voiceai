@@ -20,11 +20,7 @@
  */
 import { isMemberIdentity } from './member-identity.js';
 import { newAnonymousId } from './anonymous-session-id.js';
-import {
-  isSharedPlaceholderId,
-  nonAccountPrefixOf,
-  PLACEHOLDER_IDS,
-} from '../../utils/synthetic-user.js';
+import { comparableId, nonAccountPrefixOf, PLACEHOLDER_IDS } from '../../utils/synthetic-user.js';
 
 /** `session-${ctx.job.id}-${Date.now()}` (voice-agent-entry/index.ts): server-minted only. */
 const SERVER_SESSION_ID = /^session-([A-Za-z0-9_]+)-(\d{13})$/;
@@ -49,10 +45,12 @@ const bySessionObject = new WeakMap<object, string>();
 
 /** Whether `id` is usable as given: a member, or a minted anon:/onbehalf: id with a body. */
 function usable(id: string): boolean {
-  // Same answer as isSharedPlaceholderId, disguises (zero-width, full-width) and bare anon: included
-  if (isSharedPlaceholderId(id) || SHARED_IDS.has(id.toLowerCase())) return false;
-  const prefix = nonAccountPrefixOf(id.toLowerCase());
-  if (prefix !== undefined) return id.length > prefix.length;
+  // One normalisation (synthetic-user.ts), so this agrees with isSharedPlaceholderId and
+  // isMemberIdentity on every spelling: zero-width, full-width, bare anon:.
+  const c = comparableId(id);
+  if (SHARED_IDS.has(c)) return false;
+  const prefix = nonAccountPrefixOf(c);
+  if (prefix !== undefined) return c.length > prefix.length;
   return isMemberIdentity(id);
 }
 
