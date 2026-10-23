@@ -97,7 +97,9 @@ pnpm ops:secrets-parity --dev-project ferni-dev --dev-config $R/livekit.toml \
   `scripts/ops/secrets-parity-allowlist.json`, a voice id or flag it couldn't
   compare, or a boot older than the latest secret change). Voice ids can't be
   compared until both agents run a build with #2590 (voice ids in the boot log). A key that belongs
-  on one agent only goes under `onlyOn` in the allowlist, with a reason.
+  on one agent only goes under `onlyOn` in the allowlist, with a reason. A flag
+  being tried on dev first goes under `onlyOn.dev` with an `until` date (at most
+  30 days out); past that date the check fails until it ships or is removed.
 - Paste its summary into the release PR and explain every listed key. A
   differing `*_VOICE_ID` is a wrong voice in prod: fix it before promoting.
   Voice ids and flags can't be allowlisted.

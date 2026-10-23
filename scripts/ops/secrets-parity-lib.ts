@@ -79,7 +79,12 @@ export interface BootResult {
   readonly at: number | null;
   /** A boot with other settings started after the chosen one and never finished logging. */
   readonly partialNewer: boolean;
+  /** Another boot with other settings logged alongside the chosen one (a rolling restart). */
+  readonly concurrent: boolean;
 }
+
+/** Boots with different settings this close together are a restart still rolling out. */
+const ROLLING_MS = 120_000;
 
 /**
  * Collects `EFFECTIVE_SETTINGS {...}` boot lines from a log stream, sealing each value as it
@@ -146,7 +151,20 @@ export class BootCollector {
     const partialNewer = this.boots.some(
       (b) => b.done === null && b.id !== chosen?.id && b.first > (chosen?.first ?? 0)
     );
-    return { commit: chosen?.commit ?? null, values, at: chosen?.at ?? null, partialNewer };
+    const concurrent = this.boots.some(
+      (b) =>
+        chosen !== undefined &&
+        b.id !== chosen.id &&
+        ((b.first < (chosen.done ?? 0) && chosen.first < (b.done ?? Infinity)) ||
+          (b.at !== null && chosen.at !== null && Math.abs(b.at - chosen.at) < ROLLING_MS))
+    );
+    return {
+      commit: chosen?.commit ?? null,
+      values,
+      at: chosen?.at ?? null,
+      partialNewer,
+      concurrent,
+    };
   }
 
   private sealOne(name: string, value: string): Sealed {
@@ -171,6 +189,14 @@ export function snapshotOf(label: string, secrets: Secrets, boot: BootResult): S
   const problems: string[] = [];
   if (boot.commit === null) problems.push('no complete boot settings found in the log');
   if (boot.partialNewer) problems.push('a newer boot is only partly logged; read the log again');
+  if (boot.concurrent) {
+    problems.push(
+      'two boots with different settings logged at once (rolling restart?); read again once it settles'
+    );
+  }
+  if (secrets.names.length > 0 && secrets.newest === null) {
+    problems.push('lk gave no updatedAt for the secrets, so boot freshness was not checked');
+  }
   if (boot.commit !== null && boot.at === null) problems.push('boot time unknown');
   if (boot.at !== null && secrets.newest !== null && boot.at < secrets.newest) {
     problems.push('the boot read is older than the latest secret change');
@@ -184,15 +210,18 @@ export function snapshotOf(label: string, secrets: Secrets, boot: BootResult): S
   };
 }
 
-type Entry = { readonly pattern: string; readonly reason: string };
+type Entry = { readonly pattern: string; readonly reason: string; readonly until?: number };
 
 /**
  * `keys`: not compared by value (expected to differ, or hidden from the boot log).
- * `onlyOn`: may be set on that agent alone. Neither can cover a voice id or a flag.
+ * `onlyOn`: may be set on that agent alone. A voice id is never allowed. A flag is allowed only
+ * under `onlyOn.dev` (a dev-first experiment) with an `until` date at most 30 days away.
+ * `expired`: entries past their `until` date; they allow nothing and fail the check.
  */
 export interface Allowlist {
   readonly keys: readonly Entry[];
   readonly onlyOn: { readonly dev: readonly Entry[]; readonly prod: readonly Entry[] };
+  readonly expired: readonly string[];
 }
 
 function matches(pattern: string, name: string): boolean {
@@ -201,13 +230,21 @@ function matches(pattern: string, name: string): boolean {
   return name === pattern;
 }
 
+const DAY = 86_400_000;
+const MAX_UNTIL_DAYS = 30;
+
 /**
- * Reads `{"keys": {PATTERN: reason}, "onlyOn": {"dev": {...}, "prod": {...}}}` (patterns `NAME`,
- * `PREFIX_*`, `*_SUFFIX`). Refuses an entry without a reason or one that covers a voice id or a
- * flag among `names` (pass the flag manifest plus every key seen).
+ * Reads `{"keys": {PATTERN: reason}, "onlyOn": {"dev": {...}, "prod": {...}}}`. A value is a
+ * reason, or `{"reason": "...", "until": "YYYY-MM-DD"}` (required for a flag under onlyOn.dev).
+ * Patterns: `NAME`, `PREFIX_*`, `*_SUFFIX`. `names` = the flag manifest plus every key seen.
  */
-export function parseAllowlist(json: string, names: Iterable<string>, isFlag: IsFlag): Allowlist {
-  type File = { keys?: Record<string, string>; onlyOn?: Record<string, Record<string, string>> };
+export function parseAllowlist(
+  json: string,
+  names: Iterable<string>,
+  isFlag: IsFlag,
+  now = Date.now()
+): Allowlist {
+  type File = { keys?: Record<string, unknown>; onlyOn?: Record<string, Record<string, unknown>> };
   let file: File;
   try {
     file = JSON.parse(json) as File;
@@ -215,24 +252,52 @@ export function parseAllowlist(json: string, names: Iterable<string>, isFlag: Is
     throw new Error('allowlist is not valid JSON');
   }
   const probes = [...names, 'ANY_PERSONA_VOICE_ID'];
-  const entries = (map: Record<string, string> = {}): Entry[] =>
-    Object.entries(map).map(([pattern, reason]) => {
-      if (!reason?.trim()) throw new Error(`allowlist: ${pattern} has no reason`);
-      const hit = probes.find((n) => matches(pattern, n) && (VOICE_ID.test(n) || isFlag(n)));
-      if (hit)
+  const expired: string[] = [];
+  const entries = (section: 'keys' | 'dev' | 'prod', map: Record<string, unknown> = {}): Entry[] =>
+    Object.entries(map).flatMap(([pattern, value]) => {
+      const raw = (typeof value === 'string' ? { reason: value } : (value ?? {})) as Record<
+        string,
+        unknown
+      >;
+      const reason = typeof raw.reason === 'string' ? raw.reason.trim() : '';
+      if (!reason) throw new Error(`allowlist: ${pattern} has no reason`);
+      const until =
+        raw.until === undefined ? undefined : Date.parse(`${String(raw.until)}T00:00:00Z`);
+      if (until !== undefined && Number.isNaN(until))
+        throw new Error(`allowlist: ${pattern} until must be YYYY-MM-DD`);
+      const hit = (test: (n: string) => boolean) =>
+        probes.find((n) => matches(pattern, n) && test(n));
+      const voice = hit((n) => VOICE_ID.test(n));
+      const flag = hit(isFlag);
+      if (voice || (flag && section !== 'dev')) {
         throw new Error(
-          `allowlist: ${pattern} covers ${hit}; voice ids and flags must be compared`
+          `allowlist: ${pattern} covers ${voice ?? flag}; voice ids and flags must be compared`
         );
-      return { pattern, reason };
+      }
+      if (flag && until === undefined) {
+        throw new Error(
+          `allowlist: ${pattern} covers the flag ${flag}; give it an until date (YYYY-MM-DD)`
+        );
+      }
+      if (until !== undefined && until > now + MAX_UNTIL_DAYS * DAY) {
+        throw new Error(`allowlist: ${pattern} until is more than ${MAX_UNTIL_DAYS} days away`);
+      }
+      if (until !== undefined && until + DAY <= now) {
+        expired.push(pattern);
+        return [];
+      }
+      return [{ pattern, reason, ...(until !== undefined ? { until } : {}) }];
     });
-  return {
-    keys: entries(file.keys),
-    onlyOn: { dev: entries(file.onlyOn?.dev), prod: entries(file.onlyOn?.prod) },
+  const keys = entries('keys', file.keys);
+  const onlyOn = {
+    dev: entries('dev', file.onlyOn?.dev),
+    prod: entries('prod', file.onlyOn?.prod),
   };
+  return { keys, onlyOn, expired };
 }
 
 export type Status =
-  'only-dev' | 'only-prod' | 'presence' | 'differs' | 'not-comparable' | 'unread';
+  'only-dev' | 'only-prod' | 'presence' | 'differs' | 'not-comparable' | 'unread' | 'expired';
 
 export interface Row {
   readonly name: string;
@@ -275,7 +340,11 @@ export function compare(dev: Snapshot, prod: Snapshot, allow: Allowlist, isFlag:
           : status === 'differs' || status === 'not-comparable'
             ? allow.keys
             : [];
-    const allowlisted = !guarded && listed(pool, name);
+    // A flag passes only as a dated onlyOn.dev entry; a voice id never does.
+    const dated = status === 'only-dev' && isFlag(name) && !VOICE_ID.test(name);
+    const allowlisted = dated
+      ? pool.some((e) => matches(e.pattern, name) && e.until !== undefined)
+      : !guarded && listed(pool, name);
     const d = dev.values.get(name);
     const p = prod.values.get(name);
     const states =
@@ -284,10 +353,18 @@ export function compare(dev: Snapshot, prod: Snapshot, allow: Allowlist, isFlag:
         : null;
     rows.push({ name, status, allowlisted, guarded, ...(states ? { states } : {}) });
   }
+  for (const name of allow.expired)
+    rows.push({ name, status: 'expired', allowlisted: false, guarded: false });
   return rows;
 }
 
-const DRIFT: ReadonlySet<Status> = new Set(['only-dev', 'only-prod', 'presence', 'differs']);
+const DRIFT: ReadonlySet<Status> = new Set([
+  'only-dev',
+  'only-prod',
+  'presence',
+  'differs',
+  'expired',
+]);
 
 /** 0 clean, 1 drift, 2 something couldn't be compared or a boot can't be trusted. */
 export function exitCode(rows: readonly Row[], dev: Snapshot, prod: Snapshot): 0 | 1 | 2 {
@@ -303,6 +380,7 @@ const TITLE: Record<Status, string> = {
   differs: 'Values differ',
   'not-comparable': 'Cannot compare (value hidden in the boot log), not allowlisted',
   unread: 'Set on both, read by neither build (voice ids and flags here fail the check)',
+  expired: 'Allowlist entries past their until date (remove them, or extend with a reason)',
 };
 
 /** The report: names, counts and flag words only. Safe to paste into a PR. */
