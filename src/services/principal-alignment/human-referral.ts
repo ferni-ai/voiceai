@@ -464,8 +464,10 @@ export function analyzeReferralNeed(
   let bestMatch: (typeof REFERRAL_TRIGGERS)[0] | null = null;
   let maxConfidence = 0;
 
+  // Check all triggers
   for (const trigger of REFERRAL_TRIGGERS) {
     if (trigger.pattern.test(userMessage)) {
+      // Update urgency if higher
       if (urgencyValue(trigger.urgency) > urgencyValue(highestUrgency)) {
         highestUrgency = trigger.urgency;
       }
@@ -478,7 +480,6 @@ export function analyzeReferralNeed(
     }
   }
 
-  // If no match found
   if (!bestMatch) {
     return {
       shouldRefer: false,
@@ -499,8 +500,7 @@ export function analyzeReferralNeed(
 
   const shouldRefer = maxConfidence >= 0.5;
 
-  // An immediate match always carries the crisis line (988), before the best match's own
-  // resources: a 0.9 abuse, self-harm or eating trigger outranks a 0.85 crisis trigger.
+  // An immediate match carries the crisis line (988) first, then the best match's resources.
   const crisis = highestUrgency === 'immediate' ? REFERRAL_RESOURCES.crisis_line : [];
   const resources = [...new Set([...crisis, ...(REFERRAL_RESOURCES[bestMatch.target] || [])])];
   const framings = REFERRAL_FRAMINGS[bestMatch.reason] || [];
