@@ -24,6 +24,7 @@ import { flagOn } from './env-flag.js';
 import { isChiefOfStaffTool } from './alex-chief-of-staff-flag.js';
 import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
 import { llmContextCacheEnabled } from './llm-context-cache-flag.js';
+import { isPrivacyTool, PRIVACY_TOOLS } from './privacy-tools.js';
 import {
   isLeanAlwaysOnTool,
   LEAN_ALWAYS_ON_TOOLS,
@@ -32,10 +33,6 @@ import {
 import { isVoiceTicTacToeTool } from './voice-tictactoe.js';
 
 const log = createLogger({ module: 'ToolConfig' });
-
-// ============================================================================
-// TYPES
-// ============================================================================
 
 export interface ToolConfiguration {
   /**
@@ -347,6 +344,7 @@ export const STATIC_CORE_TOOLS: readonly string[] = [
   'recallFromMemory',
   'rememberImportantFact',
   'recallPreviousConversation',
+  ...PRIVACY_TOOLS, // forget and correct a memory (privacy-tools.ts)
   'playMusic',
   'musicControl',
   'quickTimer',
@@ -396,6 +394,7 @@ export function isEssentialTool(toolName: string): boolean {
     : config.essentialTools.includes(toolName);
   return (
     listed ||
+    isPrivacyTool(toolName) || // forgetMemory, updateMemory: never capped out
     (CALL_JOURNAL_TOOLS.includes(toolName) && callJournalToolsOn()) ||
     isVoiceTicTacToeTool(toolName) ||
     isChiefOfStaffTool(toolName) || // ALEX_CHIEF_OF_STAFF=on (multi-agent/chief-of-staff-tools.ts)

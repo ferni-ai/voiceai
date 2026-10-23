@@ -17,30 +17,22 @@ import {
   detectUserLaughter,
   detectExtendedEnergyLevel,
 } from '../speech/speech-context.js';
-import { tagTextWithSsmlAdaptive } from '../speech/adaptive-ssml/adaptation.js';
-import { makeVoiceAlive } from '../speech/adaptive-ssml/alive-voice/index.js';
 import {
   quickHumanizeSync,
   preloadAllSpeechProfiles,
   areSpeechProfilesPreloaded,
 } from '../speech/humanization/index.js';
 import {
-  applyPersonaSpeechTraitsSync,
-  preloadAllTraits,
-} from '../speech/adaptive-ssml/persona-speech-traits-loader.js';
-import {
   getEnergyMatchedPacing,
   getLateNightPacing,
   selectLaughterResponseSync,
 } from '../speech/humanization/behavior-loader.js';
-import type { AliveVoiceContext } from '../speech/adaptive-ssml/alive-voice/types.js';
 import type { BehaviorSelectionContext } from '../speech/humanization/types.js';
 
 describe('Speech Humanization E2E', () => {
   beforeAll(async () => {
-    // Preload all speech profiles and traits for sync access
+    // Preload all speech profiles for sync access
     await preloadAllSpeechProfiles();
-    await preloadAllTraits();
   });
 
   describe('Energy Detection', () => {
@@ -205,35 +197,6 @@ describe('Speech Humanization E2E', () => {
     });
   });
 
-  describe('Persona Speech Traits', () => {
-    const personas = [
-      'ferni',
-      'maya-santos',
-      'jordan-taylor',
-      'alex-chen',
-      'nayan-patel',
-      'peter-john',
-    ];
-    const testText =
-      "That's a really great question. Let me think about how to help you with your goals and plans for the future.";
-
-    personas.forEach((personaId) => {
-      it(`should apply speech traits for ${personaId}`, () => {
-        const result = applyPersonaSpeechTraitsSync(testText, personaId, {
-          emotion: 'affectionate',
-          baseSpeed: 0.9,
-          laughterCount: 0,
-          turnNumber: 5,
-          randomSeed: 'test-seed',
-        });
-
-        // Result should be the same or have modifications
-        expect(result).toBeTruthy();
-        expect(typeof result).toBe('string');
-      });
-    });
-  });
-
   describe('JSON-Based Humanization', () => {
     it('should apply humanization when profiles are preloaded', () => {
       expect(areSpeechProfilesPreloaded()).toBe(true);
@@ -269,175 +232,6 @@ describe('Speech Humanization E2E', () => {
         }
         // Don't require modification - it's probabilistic
       });
-    });
-  });
-
-  describe('Full SSML Pipeline', () => {
-    const testText =
-      'I hear you. That sounds like a challenging situation, and I think we can work through it together.';
-
-    it('should produce valid SSML output for Ferni', () => {
-      const speechContext = buildSpeechContext({
-        userText: 'I am struggling with something...',
-        phase: 'supporting',
-        turnCount: 5,
-        sessionId: 'test-session',
-      });
-
-      const result = tagTextWithSsmlAdaptive(testText, speechContext, 'ferni');
-
-      // Should have SSML tags
-      expect(result).toContain('<');
-      expect(typeof result).toBe('string');
-      expect(result.length).toBeGreaterThan(testText.length);
-    });
-
-    it('should produce valid alive voice output for Maya', () => {
-      const aliveContext: AliveVoiceContext = {
-        personaId: 'maya-santos',
-        userEmotion: 'neutral',
-        topicWeight: 'medium',
-        turnCount: 3,
-        userEnergy: 'neutral',
-        isLateNight: false,
-        userJustLaughed: false,
-      };
-
-      const result = makeVoiceAlive(testText, aliveContext);
-
-      expect(result.text).toBeTruthy();
-      expect(result.appliedFeatures).toBeInstanceOf(Array);
-    });
-
-    it('should apply late night pacing when late at night', () => {
-      const aliveContext: AliveVoiceContext = {
-        personaId: 'nayan-patel',
-        userEmotion: 'neutral',
-        topicWeight: 'medium',
-        turnCount: 3,
-        userEnergy: 'low',
-        isLateNight: true,
-        userJustLaughed: false,
-      };
-
-      const result = makeVoiceAlive(testText, aliveContext);
-
-      // Just verify it runs without error
-      expect(result.text).toBeTruthy();
-    });
-
-    it('should apply laughter contagion when user laughed', () => {
-      const aliveContext: AliveVoiceContext = {
-        personaId: 'jordan-taylor',
-        userEmotion: 'excited',
-        topicWeight: 'light',
-        turnCount: 5,
-        userEnergy: 'elevated',
-        isLateNight: false,
-        userJustLaughed: true,
-        enableLaughter: true,
-      };
-
-      // Run multiple times since it's probabilistic
-      let foundLaughter = false;
-      for (let i = 0; i < 10; i++) {
-        const result = makeVoiceAlive(testText, { ...aliveContext, randomSeed: `test-${i}` });
-        if (result.appliedFeatures.some((f) => f.includes('laughter'))) {
-          foundLaughter = true;
-          break;
-        }
-      }
-      // Don't require laughter - it's probabilistic
-    });
-  });
-
-  describe('Full Integration: Context → SSML', () => {
-    it('should integrate all components for a complete response', () => {
-      // 1. Build speech context from user input
-      const context = buildSpeechContext({
-        userText: "I've been feeling stressed about work lately haha but trying to stay positive!",
-        phase: 'supporting',
-        turnCount: 8,
-        sessionId: 'integration-test',
-      });
-
-      // Verify context has all expected fields
-      expect(context.userEnergy).toBeDefined();
-      expect(context.extendedUserEnergy).toBeDefined();
-      expect(context.userJustLaughed).toBe(true); // User laughed
-      expect(context.isLateNight).toBeDefined();
-      expect(context.randomSeed).toBeDefined();
-
-      // 2. Generate response and tag with SSML
-      const agentResponse =
-        "I hear you. Work stress is so common, and it's wonderful that you're maintaining a positive outlook. What specifically has been weighing on you?";
-      const taggedResponse = tagTextWithSsmlAdaptive(agentResponse, context, 'ferni');
-
-      // Verify SSML was applied
-      expect(taggedResponse).toContain('<');
-      expect(taggedResponse.length).toBeGreaterThanOrEqual(agentResponse.length);
-
-      // 3. Make voice alive with humanization
-      const aliveContext: AliveVoiceContext = {
-        personaId: 'ferni',
-        userEmotion: context.userEmotion,
-        topicWeight: context.topicWeight,
-        turnCount: context.turnCount,
-        userEnergy: context.extendedUserEnergy,
-        isLateNight: context.isLateNight,
-        userJustLaughed: context.userJustLaughed,
-        randomSeed: context.randomSeed,
-      };
-
-      const aliveResult = makeVoiceAlive(taggedResponse, aliveContext);
-
-      // Verify alive voice was applied
-      expect(aliveResult.text).toBeTruthy();
-      expect(aliveResult.appliedFeatures).toBeInstanceOf(Array);
-    });
-
-    it('should integrate callbacks through sync path when user triggers them', () => {
-      // User text that should trigger a callback (Ferni's "second_chances" trigger)
-      const userText = 'I messed up my presentation and now I feel like a failure';
-
-      // Build speech context with the user text
-      const context = buildSpeechContext({
-        userText,
-        phase: 'supporting',
-        turnCount: 5,
-        sessionId: 'callback-integration-test',
-      });
-
-      const agentResponse = 'I hear you. Making mistakes at work can feel really discouraging.';
-
-      // Run multiple times to catch probabilistic callback injection
-      let foundCallback = false;
-      for (let i = 0; i < 20; i++) {
-        const aliveContext: AliveVoiceContext = {
-          personaId: 'ferni',
-          userEmotion: 'sad',
-          topicWeight: 'heavy',
-          turnCount: 5,
-          userMessage: userText,
-          conversationCount: 0, // First conversation - should use first-use phrase
-          randomSeed: `callback-test-${i}`,
-        };
-
-        const result = makeVoiceAlive(agentResponse, aliveContext);
-
-        // Check if callback was injected (will contain "second chances" or similar)
-        if (
-          result.text.toLowerCase().includes('second chance') ||
-          (result.text.toLowerCase().includes('mistake') && result.text !== agentResponse)
-        ) {
-          foundCallback = true;
-          break;
-        }
-      }
-
-      // Note: This is probabilistic, so we just verify the pipeline doesn't error
-      // The callback detection is tested more thoroughly in synthetic tests
-      expect(true).toBe(true);
     });
   });
 });

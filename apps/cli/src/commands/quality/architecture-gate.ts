@@ -20,6 +20,7 @@ import { dirname, join, relative, resolve } from 'path';
 import ts from 'typescript';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { CONTEXTS, LAYER_MAP, type Context, type Layer } from './architecture-layers.js';
+import { kernelDuplicateGate } from './kernel-duplicates.js';
 
 export const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'architecture-baseline.generated.json');
 const RUNTIME_RULES = ['upward', 'core-to-platform', 'context-internal'] as const;
@@ -280,6 +281,8 @@ function main(args: string[]): void {
   const board = scoreboard(graph.files, graph.edges, now);
   const write = (b: Baseline): void => writeFileSync(BASELINE, JSON.stringify(b, null, 1) + '\n');
   say(`${board}\n\nScanned ${graph.files.length} files, ${graph.edges.length} imports in ${Date.now() - started} ms.`);
+  const isKernel = (f: string): boolean => placementOf(f)?.layer === 'L2';
+  const kernelFailed = kernelDuplicateGate(process.cwd(), graph.files, isKernel, args, say);
   if (args.includes('--init')) return write(toBaseline(now));
   if (!existsSync(BASELINE)) throw new Error(`No baseline at ${BASELINE}: run with --init`);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Architecture gate\n\n${board}\n`);
@@ -294,6 +297,7 @@ function main(args: string[]): void {
     say('\nLayer map: apps/cli/src/commands/quality/architecture-layers.ts. Moved files on purpose? Run with --init; review sees the baseline diff.');
     process.exit(1);
   }
+  if (kernelFailed) process.exit(1);
   const msg = args.includes('--update') ? `${fixed} fixed edge(s) removed from the baseline.` : `${fixed} baseline edge(s) fixed: run \`pnpm quality:arch --update\` to lock that in.`;
   say(`\n✅ No new architecture violations.${fixed > 0 ? ` ${msg}` : ''}`);
   if (fixed > 0 && process.env.GITHUB_ACTIONS) say(`::notice title=Architecture gate::${msg}`);

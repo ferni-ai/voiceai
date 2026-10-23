@@ -100,6 +100,22 @@ describe('the gate: a yes naming someone else sends nothing', () => {
     expect(call.send).toHaveBeenCalledTimes(sends);
   });
 
+  it.each([
+    ['Yes, go ahead, Bob.', 0],
+    ['Yes, go ahead, Seth.', 1],
+  ])('with OUTREACH_SERVER_CONFIRM on, %s → %i sends', async (yes, sends) => {
+    vi.stubEnv('OUTREACH_SERVER_CONFIRM', 'on');
+    try {
+      const call = gatedCall({ userName: 'Seth Ford' });
+      expect(await call.call('c1')).toContain('NOT SENT YET');
+      call.caller(yes);
+      await call.call('c2');
+      expect(call.send).toHaveBeenCalledTimes(sends);
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   it("the owner's name counts only when the call's user data gives it", async () => {
     const call = gatedCall();
     await call.call('c1');

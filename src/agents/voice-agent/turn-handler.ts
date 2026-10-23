@@ -570,7 +570,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
 
   try {
     // Import the turn processor (cached after first load)
-    const { processTurn, injectTurnContext, getCelebrationEvents } =
+    const { processTurn, injectTurnContext, getCelebrationEvents, addSafetyNote } =
       await import('../processors/index.js');
 
     // Build turn context - cast userData to UserData for processor compatibility
@@ -1348,15 +1348,15 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
         indicators: result.crisis.indicators,
       });
 
-      turnCtx.addMessage({
-        role: 'system',
-        content: `[CRITICAL SAFETY OVERRIDE]
+      addSafetyNote(
+        turnCtx,
+        `[CRITICAL SAFETY OVERRIDE]
 The user appears to be in crisis. You MUST respond with the following crisis response.
 Do NOT deviate from this response. User safety is the absolute priority.
 
 REQUIRED RESPONSE:
-${result.crisis.suggestedResponse}`,
-      });
+${result.crisis.suggestedResponse}`
+      );
 
       try {
         await sendDataMessage('crisis_detected', {
@@ -1380,7 +1380,7 @@ ${result.crisis.suggestedResponse}`,
     } else if (result.crisis?.softCheck) {
       result.context.injections.unshift({
         category: 'safety_soft_check',
-        content: SOFT_CRISIS_CHECK,
+        content: result.crisis.softGuidance ?? SOFT_CRISIS_CHECK,
         priority: 100,
       });
     }
