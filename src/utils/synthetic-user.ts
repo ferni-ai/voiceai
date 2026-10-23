@@ -87,7 +87,8 @@ export const PLACEHOLDER_IDS: ReadonlySet<string> = new Set([
 /**
  * Whether this id is one of the buckets everyone without an id falls into:
  * missing, blank, or a placeholder. Narrower than namesNoAccount: an anon: or
- * onbehalf: id is minted per call, so it is nobody's account but never shared.
+ * onbehalf: id is minted per call, so it is nobody's account and no two calls
+ * get the same one.
  */
 export function isSharedPlaceholderId(userId: string | undefined | null): boolean {
   if (typeof userId !== 'string') return true;
