@@ -167,6 +167,7 @@ import {
 // Redis cache for real-time state (emotional state, voice biomarkers)
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { buildProactiveOutreachPayload } from './proactive-outreach-message.js';
+import { joinRetrieved } from './retrieval-join.js';
 import * as followUpGate from './commitment-follow-up-gate.js';
 
 // Phase 11: Voice-Memory Integration - record prosody signals with memories
@@ -888,13 +889,9 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // Memory injections are added with high priority so LLM can use them
     // ================================================================
     if (memoryRetrievalResult && memoryRetrievalResult.injections.length > 0) {
-      for (const memoryInjection of memoryRetrievalResult.injections) {
-        result.context.injections.push({
-          category: memoryInjection.category || 'memory',
-          content: memoryInjection.content,
-          priority: 80, // High priority - memory is important context
-        });
-      }
+      // RETRIEVAL_FILTERED=on: they join before the dedup and crisis filter (retrieval-join.ts)
+      const turn = { userText, emotionalIntensity: result.emotional?.intensity };
+      joinRetrieved(result.context, memoryRetrievalResult.injections, turn);
 
       diag.state('🧠 Memory retrieval injected', {
         memoriesRetrieved: memoryRetrievalResult.memoryContext?.memories.length || 0,
