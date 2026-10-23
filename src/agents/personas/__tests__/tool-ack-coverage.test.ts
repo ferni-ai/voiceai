@@ -80,6 +80,11 @@ describe('TOOL_ACK_WIDE tool coverage', () => {
     ).toBe('');
   });
 
+  it('flag on: no "On it." after hard news either; Ferni goes straight to the read-back', async () => {
+    expect(await spokenBefore('callOnBehalf', 'My mom died. Call my sister.', ON)).toBe('');
+    expect(await spokenBefore('saveContact', 'Add the funeral home as a contact.', ON)).toBe('');
+  });
+
   it('flag on: a call the model makes unasked (no request in the words) gets nothing', async () => {
     expect(await spokenBefore('callOnBehalf', 'I miss her so much lately.', ON)).toBe('');
   });

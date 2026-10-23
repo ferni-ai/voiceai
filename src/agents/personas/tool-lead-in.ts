@@ -24,11 +24,12 @@
  * TOOL_ACK_WIDE=on covers the tools the dead-air audit found uncovered (real
  * prod, 2026-10-15 to 10-22: covered tool turns had a 1.5 s median gap,
  * uncovered ones ~3.1 s; callOnBehalf alone was 16 of 110 gaps over 2.5 s).
- * marketData and the contact look-ups get a lead-in, only when the caller asked
- * and never on a grave call ("Let me pull that up." after "my brother passed
- * away" is the worst sound Ferni can make). Calls and contact changes
- * get "On it." only, when the caller asked: callOnBehalf first reads the number back
- * for a yes, so no word that sounds done ("Okay." / "Yep.") goes ahead of it.
+ * marketData and the contact look-ups get a lead-in and calls and contact
+ * changes get "On it." only, both only when the caller asked: callOnBehalf
+ * first reads the number back for a yes, so no word that sounds done ("Okay." /
+ * "Yep.") goes ahead of it. Neither on a grave call: "Let me pull that up." or
+ * a chirpy "On it." after "my mom died" is the opposite of human; Ferni goes
+ * straight to the read-back.
  *
  * @module agents/personas/tool-lead-in
  */
@@ -287,9 +288,9 @@ export function withToolLeadIn(
   const extra = lookupBridgeOn(env);
   const wide = flagOn('TOOL_ACK_WIDE', env);
   // The caller's words now and the call's last few turns (this turn may not be in history yet).
-  const grave = (): boolean =>
-    sessionIsGrave(session) || callIsGrave(undefined, [callerWords(request)]);
-  const wider = { lookups: wide && asked && !grave(), actions: wide };
+  // This turn's words too: they may not be in the session history yet.
+  const grave = wide && (sessionIsGrave(session) || callIsGrave(undefined, [callerWords(request)]));
+  const wider = { lookups: wide && asked && !grave, actions: wide && !grave };
   let decided = false;
   return new ReadableStream<Chunk>({
     async start(controller) {
