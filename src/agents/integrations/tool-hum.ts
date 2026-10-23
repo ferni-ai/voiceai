@@ -138,12 +138,14 @@ export interface HumPlayer {
 /**
  * Wire the tool hum to a session's clip track. Returns the cleanup; a no-op
  * unless TOOL_HUM=on. VOICED_PRESENCE=on: a voiced take on its track, or nothing.
+ * `onPlayed` hears each hum that starts, and whether it is the voiced take (sound-signal.ts).
  */
 export function startToolHum(
   session: voice.AgentSession,
   player: HumPlayer,
   env: Record<string, string | undefined> = process.env,
-  voiced: () => VoicedHum | undefined = () => voicedHumFor(session)
+  voiced: () => VoicedHum | undefined = () => voicedHumFor(session),
+  onPlayed: (voicedTake: boolean) => void = () => {}
 ): () => void {
   if (!toolHumEnabled(env)) return () => {};
   let humEndsAt = 0;
@@ -158,6 +160,7 @@ export function startToolHum(
       if (!pcm || !out.play(pcm, TOOL_HUM_VOLUME)) return false;
       humEndsAt = Date.now() + pcm.byteLength / PCM_BYTES_PER_MS;
       log.info({ voiced: Boolean(hum) }, 'TOOL_HUM');
+      onPlayed(Boolean(hum));
       return true;
     },
     // Only stop our own hum, never a backchannel that started after it ended.
