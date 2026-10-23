@@ -31,41 +31,45 @@ import { basePathOf, diffAgainstBase, listAtBase, readAtBase, resolveBase, type 
 export interface DeadCode {
   /** files nothing reaches */
   files: string[];
-  /** file → unused exports + unused exported types */
-  exports: Record<string, number>;
+  /** file → names of its unused exports, and `type:Name` for unused exported types */
+  exports: Record<string, string[]>;
 }
 
-interface KnipIssue {
-  file: string;
-  files?: unknown[];
-  exports?: unknown[];
-  types?: unknown[];
-}
+type Mode = 'default' | 'production';
+const isNamed = (l: unknown): boolean => Array.isArray(l) && l.every((e) => typeof (e as { name?: unknown })?.name === 'string');
 
-/** Reads knip's JSON reporter output; throws when its shape is not what this gate understands. */
-export function fromKnip(report: unknown): DeadCode {
+/**
+ * Reads knip's JSON reporter output; throws when its shape is not what this gate understands.
+ * Every issue must carry `files`, and in default mode `exports` and `types`, as lists of
+ * `{ name }`: a missing list must not read as "no dead code".
+ */
+export function fromKnip(report: unknown, mode: Mode): DeadCode {
   const issues = (report as { issues?: unknown } | null)?.issues;
   if (!Array.isArray(issues)) throw new Error('knip report has no issues array: did the knip version or reporter change?');
   const files: string[] = [];
-  const exports: Record<string, number> = {};
+  const exports: Record<string, string[]> = {};
   for (const raw of issues) {
-    const issue = raw as KnipIssue;
-    const lists = [issue.files, issue.exports, issue.types];
-    if (typeof issue.file !== 'string' || lists.some((l) => l !== undefined && !Array.isArray(l))) {
+    const issue = raw as { file?: unknown; files?: unknown; exports?: unknown; types?: unknown };
+    const lists = mode === 'default' ? [issue.files, issue.exports, issue.types] : [issue.files];
+    if (typeof issue.file !== 'string' || !lists.every(isNamed)) {
       throw new Error(`knip issue has an unexpected shape: ${JSON.stringify(raw).slice(0, 200)}`);
     }
-    if ((issue.files?.length ?? 0) > 0) files.push(issue.file);
-    const n = (issue.exports?.length ?? 0) + (issue.types?.length ?? 0);
-    if (n > 0) exports[issue.file] = (exports[issue.file] ?? 0) + n;
+    if ((issue.files as unknown[]).length > 0) files.push(issue.file);
+    const names = [
+      ...((issue.exports as Array<{ name: string }> | undefined) ?? []).map((e) => e.name),
+      ...((issue.types as Array<{ name: string }> | undefined) ?? []).map((e) => `type:${e.name}`),
+    ];
+    if (names.length > 0) exports[issue.file] = [...(exports[issue.file] ?? []), ...names];
   }
   return { files: [...new Set(files)].sort(), exports };
 }
 
-const totalExports = (d: DeadCode): number => Object.values(d.exports).reduce((a, b) => a + b, 0);
+const totalExports = (d: DeadCode): number => Object.values(d.exports).reduce((a, b) => a + b.length, 0);
 
 /**
  * Guards against a gate that passes because knip saw nothing: an emptied project, a changed
- * config or a reporter that stopped listing exports all look like "no dead code".
+ * config or a reporter that stopped listing exports all look like "no dead code". Run on the
+ * default-mode pair only; the production pair is report-only and never blocks.
  */
 export function emptinessProblem(head: DeadCode, base: DeadCode): string | null {
   if (head.files.length === 0 && totalExports(head) === 0) {
@@ -77,20 +81,40 @@ export function emptinessProblem(head: DeadCode, base: DeadCode): string | null 
   return null;
 }
 
-/** Dead code this change adds, compared with the base (moved files matched to their old path). */
-export function added(head: DeadCode, base: DeadCode, toBase: (headPath: string) => string | null): string[] {
+/**
+ * Dead code this change adds, compared with the base. A moved file is matched to its old
+ * path (`toBase`). An unused export is matched by name: it is old if its file's base version
+ * had it, or if a file the change touched (`touched`: base path → head path, null when
+ * deleted) lost an unused export of that name, as a split or an extraction does.
+ */
+export function added(
+  head: DeadCode,
+  base: DeadCode,
+  toBase: (headPath: string) => string | null,
+  touched: Map<string, string | null>
+): string[] {
   const wasUnused = new Set(base.files);
   const out: string[] = [];
   for (const f of head.files) {
     const old = toBase(f);
     if (old === null || !wasUnused.has(old)) out.push(`${f}: unused file (nothing imports it from an entry point)`);
   }
+  const moved = new Map<string, number>(); // name → unused exports the touched files gave up
+  for (const [g, h] of touched) {
+    const still = new Set(h === null ? [] : (head.exports[h] ?? []));
+    for (const name of base.exports[g] ?? []) if (!still.has(name)) moved.set(name, (moved.get(name) ?? 0) + 1);
+  }
   const unusedNow = new Set(head.files);
-  for (const [f, n] of Object.entries(head.exports)) {
+  for (const [f, names] of Object.entries(head.exports)) {
     if (unusedNow.has(f)) continue; // reported as a file
     const old = toBase(f);
-    const before = old === null ? 0 : (base.exports[old] ?? 0);
-    if (n > before) out.push(`${f}: unused exports ${before} → ${n}`);
+    const before = new Set(old === null ? [] : (base.exports[old] ?? []));
+    for (const name of names) {
+      if (before.has(name)) continue;
+      const left = moved.get(name) ?? 0;
+      if (left > 0) moved.set(name, left - 1);
+      else out.push(`${f}: unused export ${name}`);
+    }
   }
   return out;
 }
@@ -149,35 +173,41 @@ async function main(): Promise<void> {
   const diff: BaseDiff = diffAgainstBase(base, TREES, root);
   const baseDir = baseCheckout(base, root);
   try {
-    const [headAll, baseAll, headProd, baseProd] = (await Promise.all([
-      knip(root, false),
-      knip(baseDir, false),
-      knip(root, true),
-      knip(baseDir, true),
-    ])).map(fromKnip) as [DeadCode, DeadCode, DeadCode, DeadCode];
+    const [hA, bA, hP, bP] = await Promise.all([knip(root, false), knip(baseDir, false), knip(root, true), knip(baseDir, true)]);
+    const [headAll, baseAll] = [fromKnip(hA, 'default'), fromKnip(bA, 'default')];
+    const [headProd, baseProd] = [fromKnip(hP, 'production'), fromKnip(bP, 'production')];
     const toBase = (p: string): string | null => basePathOf(diff, p);
+    const touched = new Map<string, string | null>([
+      ...diff.changed.flatMap((h): Array<[string, string]> => {
+        const b = toBase(h);
+        return b === null ? [] : [[b, h]];
+      }),
+      ...diff.deleted.map((b): [string, null] => [b, null]),
+    ]);
     say(
       `Dead code (knip), base ${base.slice(0, 9)}, ${Date.now() - started} ms:\n` +
         `  here: ${headAll.files.length} unused files, ${totalExports(headAll)} unused exports; production mode ${headProd.files.length} unused files\n` +
         `  base: ${baseAll.files.length} unused files, ${totalExports(baseAll)} unused exports; production mode ${baseProd.files.length} unused files`
     );
-    const empty = emptinessProblem(headAll, baseAll) ?? emptinessProblem(headProd, baseProd);
+    const empty = emptinessProblem(headAll, baseAll); // the report-only production pair never blocks
     if (empty) {
       say(`\n❌ ${empty}`);
-      process.exit(1);
+      process.exitCode = 1;
+      return; // through finally, so the base checkout is removed
     }
-    const prodOnly = added({ files: headProd.files, exports: {} }, { files: baseProd.files, exports: {} }, toBase);
+    const prodOnly = added({ files: headProd.files, exports: {} }, { files: baseProd.files, exports: {} }, toBase, new Map());
     for (const p of prodOnly) {
       const note = `${p.split(':')[0]}: no production entry point reaches it (only tests or tooling, if anything)`;
       say(`  ⚠️  ${note}`);
       if (process.env.GITHUB_ACTIONS) say(`::warning title=Dead code (production mode)::${note}`);
     }
-    const worse = added(headAll, baseAll, toBase);
+    const worse = added(headAll, baseAll, toBase, touched);
     if (worse.length > 0) {
       say(`\n❌ ${worse.length} piece(s) of dead code added by this change:\n${worse.slice(0, 60).map((w) => `  - ${w}`).join('\n')}`);
       if (worse.length > 60) say(`  … and ${worse.length - 60} more`);
-      say('\nDelete it, or use it. Loaded by path at runtime? Add its glob to "entry" in knip.json (owners review it). `pnpm exec knip` shows details.');
-      process.exit(1);
+      say('\nDelete it, or use it. Loaded by path at runtime? Add its glob to "entry" in knip.json (code owners are asked to review it). `pnpm exec knip` shows details.');
+      process.exitCode = 1;
+      return;
     }
     say('\n✅ No dead code added.');
   } finally {
