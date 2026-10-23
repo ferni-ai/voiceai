@@ -1,8 +1,8 @@
 /**
  * The input every registered context builder gets: the turn's input with the
  * caller's profile and this call's userData as filtered views
- * (memory/recall/prompt-view.ts, FORGET_EVERY_READER). The builder runners
- * (index.ts, tiered-execution.ts) make one per turn; ContextBuilder.build
+ * (memory/recall/prompt-view.ts, FORGET_EVERY_READER). The builder runner
+ * (index.ts buildConversationContext) makes one per turn; ContextBuilder.build
  * takes only a PromptInput, so no runner can hand a builder the raw session.
  * Flag off: the input itself.
  *
