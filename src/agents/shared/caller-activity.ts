@@ -45,6 +45,8 @@ type SetTimer = (fn: () => void, ms: number) => unknown;
 export interface CallerWords {
   text: string;
   final: boolean;
+  /** The turn's conversation item (it follows the turn's STT finals, sometimes by seconds). */
+  item?: boolean;
 }
 
 export interface CallerWatch {
@@ -81,7 +83,7 @@ export function watchCaller(agentSession: object): CallerWatch {
   const onItem = ({ item }: { item?: { role?: string; textContent?: string } }): void => {
     if (item?.role !== 'user' || !item.textContent) return;
     interim = '';
-    emit({ text: item.textContent, final: true });
+    emit({ text: item.textContent, final: true, item: true });
   };
   const onUser = (ev: { newState?: string }): void => {
     speaking = ev.newState === 'speaking';
@@ -111,6 +113,12 @@ export function watchCaller(agentSession: object): CallerWatch {
 export interface TurnReads {
   /** A final caller line heard since start whose crisis read hasn't settled (bounded). */
   pending: () => boolean;
+  /**
+   * The latest final line's read: still `waiting`, `settled` (it started and
+   * finished; risk it found is noted by crisis-call-risk.ts), or `timed_out`
+   * (no settled read within TURN_READ_WAIT_MS).
+   */
+  outcome: () => 'idle' | 'waiting' | 'settled' | 'timed_out';
   stop: () => void;
 }
 
@@ -126,32 +134,40 @@ export function awaitTurnReads(opts: {
   onReadStart?: () => void;
 }): TurnReads {
   const { sessionId } = opts;
-  let waiting = false;
+  let state: ReturnType<TurnReads['outcome']> = 'idle';
   let readSeen = false;
   let turn = 0;
+  const check = (): void => {
+    if (state === 'waiting' && readSeen && !crisisReadInFlight(sessionId)) state = 'settled';
+  };
   const offWords = opts.caller?.onWords(({ final }) => {
     if (!final) return;
-    waiting = true;
+    state = 'waiting';
     readSeen = false;
     const mine = ++turn;
     opts.setTimer(() => {
-      if (mine === turn) waiting = false;
+      check();
+      if (mine === turn && state === 'waiting') state = 'timed_out';
     }, TURN_READ_WAIT_MS);
   });
   const offRead = onCrisisReadStarted((id) => {
-    if (id !== sessionId || !waiting) return;
+    if (id !== sessionId || state !== 'waiting') return;
     readSeen = true;
     opts.onReadStart?.();
   });
   return {
     pending: () => {
-      if (waiting && readSeen && !crisisReadInFlight(sessionId)) waiting = false;
-      return waiting;
+      check();
+      return state === 'waiting';
+    },
+    outcome: () => {
+      check();
+      return state;
     },
     stop: () => {
       offWords?.();
       offRead();
-      waiting = false;
+      state = 'idle';
     },
   };
 }
