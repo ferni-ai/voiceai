@@ -41,6 +41,12 @@ vi.mock('../../../utils/firestore-utils.js', async (importOriginal) => ({
 vi.mock('../../../services/identity/firebase-auth.js', () => ({
   ensureFirebaseAdmin: () => false,
 }));
+// FORGET_EVERY_READER's stored topics, without Firestore: null is "can't be read"
+const stored = vi.hoisted(() => ({ topics: [] as string[] | null }));
+vi.mock('../../recall/forget-topics-source.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../recall/forget-topics-source.js')>()),
+  topicsWithin: async () => stored.topics,
+}));
 
 import {
   CALLER_ASSERTED,
@@ -74,6 +80,7 @@ function memoryStore() {
 afterEach(() => {
   vi.unstubAllEnvs();
   fs.docs.clear();
+  stored.topics = [];
 });
 
 describe('rememberToRecall', () => {
@@ -181,6 +188,53 @@ describe('forgetting a remembered fact', () => {
       'u1'
     );
     expect(snapshot.facts).toEqual([]);
+  });
+});
+
+describe('FORGET_EVERY_READER', () => {
+  const FORGET_ON = { ...ON, FORGET_EVERY_READER: 'on' };
+  const NOOP_FORGET: ForgetStore = {
+    facts: async () => [],
+    markForgotten: async () => {},
+    addTopic: async () => {},
+    topics: async () => [],
+  };
+  const vector = (texts: string[]) => texts.map(() => new Array<number>(FACT_VECTOR_DIMENSION).fill(0.1)); // prettier-ignore
+
+  it('a topic forgotten while the fact was being embedded keeps it out of recall', async () => {
+    const { facts, store } = memoryStore();
+    // forgetTopic marks the documents that exist; this one doesn't yet
+    const embed = vi.fn(async (texts: string[]) => {
+      await forgetTopic('u-forget-1', 'my sister Dana', NOOP_FORGET);
+      return vector(texts);
+    });
+    const embedding = { enabled: true, embed, model: async () => 'm' };
+    const r = { fact: DANA, memoryId: 'm' };
+    expect(await rememberToRecall('u-forget-1', r, { store, env: FORGET_ON, embedding })).toBe(false); // prettier-ignore
+    expect(embed).toHaveBeenCalled();
+    expect(facts.size).toBe(0);
+  });
+
+  it('a stored forgotten topic keeps it out; another fact is still written', async () => {
+    stored.topics = ['dana'];
+    const { facts, store } = memoryStore();
+    expect(await rememberToRecall('u-forget-2', { fact: DANA }, { store, env: FORGET_ON })).toBe(false); // prettier-ignore
+    expect(await rememberToRecall('u-forget-2', { fact: 'I ran 5k today' }, { store, env: FORGET_ON })).toBe(true); // prettier-ignore
+    expect([...facts.values()]).toEqual([expect.objectContaining({ value: 'I ran 5k today' })]);
+  });
+
+  it('fails closed when the forgotten topics cannot be read', async () => {
+    stored.topics = null;
+    const { facts, store } = memoryStore();
+    expect(await rememberToRecall('u-forget-3', { fact: DANA }, { store, env: FORGET_ON })).toBe(false); // prettier-ignore
+    expect(facts.size).toBe(0);
+  });
+
+  it('off: a forgotten topic changes nothing here (recall filters it when read)', async () => {
+    stored.topics = ['dana'];
+    const { facts, store } = memoryStore();
+    expect(await rememberToRecall('u-forget-4', { fact: DANA }, { store, env: ON })).toBe(true);
+    expect(facts.size).toBe(1);
   });
 });
 

@@ -83,7 +83,6 @@ export { RelationalMemoryToken } from './knowledge-graph/index.js';
 
 // Stubs for backward compatibility (removed in Jan 2026 cleanup)
 export * from './cognitive-memory.js';
-export * from './cognitive-persistence.js';
 export * from './learned-memories.js';
 
 export * from './human-listening-memory.js';

@@ -17,6 +17,15 @@
  *    room, as the phone path does. The session then ends on #1077's path.
  * It runs once per call; a second call does nothing.
  *
+ * Until the room closes, crisis risk on the call or the caller saying more
+ * than a goodbye reopens it (wrap-up-window.ts, #2291): the app is sent
+ * `conversation_continue`, which cancels its disconnect, and the call is no
+ * longer closing, so Ferni may speak and the farewell watcher arms again. So
+ * does a crisis hold just before the room would be deleted. While the caller
+ * is still talking, the app holds its hang-up (`conversation_hold`), and the
+ * room is not deleted while they are mid-utterance or a crisis read is in
+ * flight (holdWhileBusy, caller-activity.ts), on a phone call too.
+ *
  * Saying goodbye ends every call, app or phone, whatever the model does:
  * GOODBYE_ENDS_CALL (default on, a kill switch). The farewell watcher
  * (call-farewell.ts) sees the goodbyes, or the caller asking Ferni to hang
@@ -27,7 +36,7 @@
  * used it, after three "hang up"s). It never ends a call with crisis risk.
  *
  * Phone callers keep PHONE_GOODBYE's own endCall. Their idle end hangs up the
- * line straight away: there is no app to leave on its own. With CALL_WRAP_UP
+ * line once the caller is quiet: there is no app to leave on its own. With CALL_WRAP_UP
  * on, Ferni also stays quiet after the goodbyes (stayQuiet, call-farewell.ts).
  *
  * @module agents/shared/call-wrap-up
@@ -47,9 +56,20 @@ import {
   holdEndCallForCrisis,
   type HangUp,
 } from './phone-goodbye.js';
-import { clearFarewell, markFarewell, watchFarewell } from './call-farewell.js';
+import { clearFarewell, markFarewell, reopenFarewell, watchFarewell } from './call-farewell.js';
+import { holdWhileBusy, waitForQuiet, watchCaller, type CallerWatch } from './caller-activity.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
-import { isSessionClosing, markSessionClosing } from './session-closing-tracker.js';
+import {
+  clearSessionClosing,
+  isSessionClosing,
+  markSessionClosing,
+} from './session-closing-tracker.js';
+import {
+  openWrapUpWindow,
+  type ContinueReason,
+  type HoldReason,
+  type WrapUpWindow,
+} from './wrap-up-window.js';
 
 const log = createLogger({ module: 'call-wrap-up' });
 
@@ -68,8 +88,13 @@ export const WRAP_UP_DESCRIPTION =
   'when they might have more to say. It never ends a call that has had a crisis moment: the ' +
   'caller ends that one. Your goodbye finishes playing before the call closes.';
 
-/** The app's goodbye sound before it disconnects. */
-export const DISCONNECT_DELAY_MS = 800;
+/**
+ * How long the app keeps its goodbye on screen before it disconnects. Long
+ * enough for a crisis read of the caller's last words (transcription plus up
+ * to ~1.5 s of classifier) to land and send `conversation_continue` first
+ * (#2291; was 800 ms).
+ */
+export const DISCONNECT_DELAY_MS = 2_500;
 /** How long the app gets to leave on its own before the room is closed. */
 export const REMOVAL_GRACE_MS = 5_000;
 
@@ -84,6 +109,10 @@ export interface WrapUpCall {
   hangUp?: HangUp;
   graceMs?: number;
   setTimer?: (fn: () => void, ms: number) => unknown;
+  /** The caller's words and voice activity, watched while the call ends (attachCallWrapUp). */
+  caller?: CallerWatch;
+  /** The clock for spacing `conversation_hold`s (tests). */
+  now?: () => number;
 }
 
 /** Calls whose wrap-up has started and not yet closed the room. */
@@ -92,7 +121,8 @@ const wrapping = new Set<string>();
 /**
  * Ends the call: playout, closing, `conversation_end`, then the room after a
  * grace period. Returns false, doing nothing, when the call is already ending,
- * or ending nothing when crisis risk appeared while the goodbye played.
+ * or ending nothing when crisis risk appeared while the goodbye played or the
+ * call reopened while `conversation_end` went out.
  */
 export async function wrapUpCall(
   call: WrapUpCall,
@@ -118,6 +148,19 @@ export async function wrapUpCall(
   }
   markSessionClosing(sessionId);
   const signal = call.signal ?? sendFrontendSignal;
+  const graceMs = call.graceMs ?? REMOVAL_GRACE_MS;
+  const app = graceMs > 0; // a phone call has no app to tell; its grace is 0
+  const setTimer = call.setTimer ?? ((fn: () => void, ms: number) => setTimeout(fn, ms));
+  // From here until the room closes, crisis risk or the caller carrying on reopens the call
+  const win = openWrapUpWindow({
+    sessionId,
+    caller: call.caller,
+    callerInRoom: call.callerInRoom,
+    setTimer,
+    now: call.now,
+    onContinue: (why) => carryOn(call, app ? signal : undefined, why),
+    ...(app && { onHold: (why: HoldReason) => holdAppEnd(sessionId, signal, why) }),
+  });
   const sent = await signal(
     'conversation_end',
     { reason, disconnectDelay: DISCONNECT_DELAY_MS, timestamp: Date.now() },
@@ -127,22 +170,72 @@ export async function wrapUpCall(
     return false;
   });
   log.info({ sessionId, reason, sent }, 'CALL_WRAP_UP conversation_end');
-  const setTimer = call.setTimer ?? ((fn: () => void, ms: number) => setTimeout(fn, ms));
-  setTimer(() => void closeRoomIfStillThere(call, reason), call.graceMs ?? REMOVAL_GRACE_MS);
+  if (win.continued) return false; // reopened while the signal went out: ending nothing
+  setTimer(() => void closeRoomIfStillThere(call, reason, win, setTimer), graceMs);
   return true;
 }
 
-async function closeRoomIfStillThere(call: WrapUpCall, reason: WrapUpReason): Promise<void> {
+/**
+ * Reopen a call whose wrap-up began: the app cancels its disconnect, Ferni may
+ * speak again, and the farewell watcher (and a later wrap-up) can arm again.
+ */
+function carryOn(
+  call: WrapUpCall,
+  signal: typeof sendFrontendSignal | undefined,
+  reason: ContinueReason
+): void {
+  const { sessionId } = call;
+  clearSessionClosing(sessionId);
+  reopenFarewell(sessionId);
+  wrapping.delete(sessionId);
+  log.warn({ sessionId, reason }, 'CALL_WRAP_UP continued');
+  void signal?.('conversation_continue', { reason, timestamp: Date.now() }, sessionId).catch(
+    (error: unknown) =>
+      log.error({ sessionId, error: String(error) }, 'CALL_WRAP_UP conversation_continue failed')
+  );
+}
+
+/** The caller is still talking: the app holds its hang-up (it never reopens the call). */
+function holdAppEnd(
+  sessionId: string,
+  signal: typeof sendFrontendSignal,
+  reason: HoldReason
+): void {
+  log.info({ sessionId, reason }, 'CALL_WRAP_UP conversation_hold');
+  void signal('conversation_hold', { reason, timestamp: Date.now() }, sessionId).catch(
+    (error: unknown) =>
+      log.warn({ sessionId, error: String(error) }, 'CALL_WRAP_UP conversation_hold failed')
+  );
+}
+
+async function closeRoomIfStillThere(
+  call: WrapUpCall,
+  reason: WrapUpReason,
+  win: WrapUpWindow,
+  setTimer: (fn: () => void, ms: number) => unknown
+): Promise<void> {
   const { sessionId, roomName } = call;
+  // Not while the caller is mid-utterance or a crisis read of their words is due or in flight
+  const done = (): boolean => win.continued || !call.callerInRoom();
+  const busy = (): boolean => (call.caller?.busy() ?? false) || win.readPending();
+  await holdWhileBusy({ sessionId, busy, done, setTimer });
+  if (win.continued) return; // the call carried on; a later wrap-up owns the room
   try {
-    if (!call.callerInRoom()) return;
-    if (holdEndCallForCrisis(sessionId, 'app', 'before_delete')) return;
+    if (!call.callerInRoom()) {
+      win.tearDown(); // the app left on its own
+      return;
+    }
+    if (holdEndCallForCrisis(sessionId, 'app', 'before_delete')) {
+      win.reopen('crisis_hold');
+      return;
+    }
+    win.tearDown();
     await (call.hangUp ?? deleteRoom)(roomName);
     log.info({ sessionId, roomName, reason }, 'CALL_WRAP_UP room deleted; caller was still in it');
   } catch (error) {
     log.error({ sessionId, roomName, error: String(error) }, 'CALL_WRAP_UP room not deleted');
   } finally {
-    wrapping.delete(sessionId);
+    if (!win.continued) wrapping.delete(sessionId);
   }
 }
 
@@ -188,6 +281,7 @@ export async function attachCallWrapUp(
     /** The call's AgentSession, watched for the goodbyes. */
     session?: object;
     clearTimer?: (handle: unknown) => void;
+    now?: () => number;
   }
 ): Promise<boolean> {
   const roomName = call.room.name ?? '';
@@ -201,6 +295,7 @@ export async function attachCallWrapUp(
     callerInRoom: () => (call.room.remoteParticipants?.size ?? 0) > 0,
     hangUp: call.hangUp,
     setTimer: call.setTimer,
+    now: call.now,
     ...(phone && { graceMs: 0 }),
   };
   // A short quiet window after the goodbyes ends the call (call-farewell.ts)
@@ -219,7 +314,19 @@ export async function attachCallWrapUp(
         ),
     });
   }
-  if (phone) return attachPhoneHangUp(agent, { ...call, roomName });
+  // After the farewell watcher, so a reopening line reaches it while the call is still closing
+  if (call.session) wrap.caller = watchCaller(call.session);
+  if (phone) {
+    // PHONE_GOODBYE's endCall hangs up only after a short quiet with no crisis read due
+    const holdFirst = async (): Promise<'quiet' | 'talking' | 'risk'> =>
+      waitForQuiet({
+        sessionId: call.sessionId,
+        caller: wrap.caller,
+        gone: () => !wrap.callerInRoom(),
+        setTimer: call.setTimer ?? ((fn: () => void, ms: number) => setTimeout(fn, ms)),
+      });
+    return attachPhoneHangUp(agent, { ...call, roomName, holdFirst });
+  }
   if (!wrapUp) return false;
   return addEndCallTool(agent, () => createWrapUpTool(wrap));
 }

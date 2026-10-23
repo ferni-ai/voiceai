@@ -196,7 +196,8 @@ describe('phone calls after the goodbyes', () => {
     const c = await appCall({ PHONE_GOODBYE: 'on', GOODBYE_ENDS_CALL: 'off' }, SIP);
     expect(c.added).toBe(true);
     goodbyes(c.session);
-    expect(c.session.listenerCount(voice.AgentSessionEventTypes.ConversationItemAdded)).toBe(0);
+    // Only the caller watch, which holds PHONE_GOODBYE's hang-up while they talk (#2291)
+    expect(c.session.listenerCount(voice.AgentSessionEventTypes.ConversationItemAdded)).toBe(1);
     expect(c.timers.size).toBe(0);
     expect(stayQuietOn(c.session, { CALL_WRAP_UP: 'on' })).toBe(false);
     expect(blocked(c.sessionId)).toBe(false);

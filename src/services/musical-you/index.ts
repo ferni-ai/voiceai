@@ -468,6 +468,3 @@ export {
 
 // Music preferences
 export * from './preferences.js';
-
-// Music telemetry
-export * from './telemetry.js';

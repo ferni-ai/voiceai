@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ignoredFiles, lowered, regressions } from '../lint-coverage-ratchet.js';
+import { ignoredFiles, lowered, regressions, staleSuppressions } from '../lint-coverage-ratchet.js';
 
 describe('lint-coverage ratchet', () => {
   it('fails a file whose error count grew', () => {
@@ -25,6 +25,14 @@ describe('lint-coverage ratchet', () => {
 
   it('never raises a baseline in --update', () => {
     expect(lowered({ 'src/a.ts': 2 }, { 'src/a.ts': 9 })).toEqual({ 'src/a.ts': 2 });
+  });
+
+  it('fails when eslint-suppressions.json holds suppressions nothing needs any more', () => {
+    // ESLint exits 2 with this on stderr once a suppressed violation is fixed; until the file is
+    // pruned, the next new violation in that file would slip in under the old count.
+    const stderr = 'There are suppressions left that do not occur anymore. Consider re-running the command with `--prune-suppressions`.';
+    expect(staleSuppressions(stderr)[0]).toContain('--prune-suppressions');
+    expect(staleSuppressions('')).toEqual([]);
   });
 
   it('reports files ESLint skipped, since a skipped file reads as clean', () => {

@@ -16,6 +16,10 @@
  * (forget.ts: forgottenAt, its vector removed) is never written over or
  * re-embedded. Forgetting needs nothing more: forgetTopic and the app's forget
  * button mark dynamic_facts, and account erasure deletes the collection.
+ * With FORGET_EVERY_READER on, a fact about a topic the caller has asked to
+ * forget is not written: forgetTopic marks only the documents that exist, so
+ * one forgotten while this fact was being embedded would land unmarked and
+ * reach the call's vector recall (forget-every-reader.ts; fails closed).
  *
  * Firestore: storage/remembered-fact-store.ts, handed in by the agent process
  * (agents/remembered-fact-store-register.ts); until it is, nothing is written.
@@ -25,6 +29,7 @@
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { forgottenCheck } from '../recall/forget-every-reader.js';
 import { credentialCategory, logCredentialDrops } from '../spoken-credential.js';
 import { factDocId } from './extraction-firestore-docs.js';
 import { withFactEmbeddings, type FactEmbeddingDeps } from './fact-embeddings.js';
@@ -116,6 +121,12 @@ export async function rememberToRecall(
     if (!doc) return false;
     const [data] = await withFactEmbeddings([doc.data], deps.embedding);
     const store = deps.store ?? registered;
+    // Checked after the embedding: a forget during it marked nothing for this fact
+    const forgotten = await forgottenCheck(userId, 'remember-to-recall', deps.env);
+    if (forgotten?.(String(doc.data.value))) {
+      log.info('Remembered fact is about a forgotten topic: not written for recall');
+      return false;
+    }
     if (!store) {
       log.warn('REMEMBER_TO_RECALL is on but no fact store is registered');
       return false;

@@ -108,7 +108,7 @@ export function initializeTranscriptCapture(
     duration: 0,
     capturedAt: new Date().toISOString(),
   });
-  log.debug({ callId, contactName }, 'Initialized transcript capture');
+  log.debug({ callId, hasContactName: Boolean(contactName) }, 'Initialized transcript capture');
 }
 
 /** Add a turn to the transcript */

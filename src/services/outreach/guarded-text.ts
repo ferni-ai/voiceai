@@ -21,15 +21,10 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirebaseUser } from '../identity/firebase-auth.js';
 import {
-  ALREADY_EXISTS,
-  CHECKINS,
-  checkinDb,
-  firestoreReplyStore,
   last4,
   phoneHash,
   phoneHashKey,
   toE164,
-  toStoredCheckin,
   type CheckinRecord,
   type Env,
   type ReplyStore,
@@ -37,6 +32,7 @@ import {
   type TextKind,
 } from './checkin-replies.js';
 import type { SMSDeliveryResult, SMSMessage } from './delivery/sms-delivery.js';
+import { firestoreTextStore, sendSms } from './guarded-text-store.js';
 import { resolveVerifiedPhone } from './user-reach.js';
 import { userTimeZone } from '../../utils/caller-time-zone.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
@@ -52,11 +48,15 @@ import {
 } from './quiet-hours.js';
 import { timezoneFromPhone } from './area-code-timezones.js';
 import { reportText } from './outreach-bq.js';
-import { readConsentDoc, smsConsentRefusal, type TextConsentReaders } from './text-consent.js';
+import {
+  consentBlocks,
+  defaultConsentDeps,
+  type ConsentBlock,
+  type ConsentDeps,
+} from '../messaging/consent.js';
+import { smsConsentRefusal, type TextConsentReaders } from './text-consent.js';
 
 const log = createLogger({ module: 'guarded-text' });
-/** Send locks (lockedSend), kept apart from the records so no query reads them. */
-const TEXT_LOCKS = 'feature_checkin_locks';
 
 export interface TextStore extends Pick<ReplyStore, 'forPhoneHash'>, TextConsentReaders {
   forUser: (userId: string) => Promise<StoredCheckin[]>;
@@ -79,7 +79,12 @@ export interface TextDeps {
   authPhone: (uid: string) => Promise<string | undefined>;
   send: (message: SMSMessage) => Promise<SMSDeliveryResult>;
   now: () => Date;
+  /** consent/{phoneHash} (MESSAGING_PIPELINE); by default Firestore, under `env`. */
+  consent?: ConsentDeps;
 }
+
+const consentOf = (deps: TextDeps): ConsentDeps =>
+  deps.consent ?? { ...defaultConsentDeps(), env: deps.env };
 
 export interface GuardedText {
   readonly userId: string;
@@ -248,6 +253,9 @@ export async function sendGuardedText(
     deps.store.forPhoneHash(hash),
   ]);
   if (refusal) return skip(refusal);
+  // The member's own verified number: unknown consent is fine, an opt-out is not.
+  const consent = await consentBlocks(phone, 'sms', true, consentOf(deps));
+  if (consent) return skip(consent === 'opted-out' ? 'opted-out' : 'send-failed');
   // Per phone too: two accounts can share a number.
   if (sentWithin(lastSentAt(toPhone, t.kind), now, t.minGapMs)) return skip('recently-sent');
 
@@ -305,7 +313,10 @@ export interface OnBehalfText {
 }
 
 export type OnBehalfSkip =
-  Exclude<TextSkip, 'no-verified-phone' | 'sms-off'> | 'bad-number' | 'quiet-hours';
+  | Exclude<TextSkip, 'no-verified-phone' | 'sms-off'>
+  | 'bad-number'
+  | 'needs-consent'
+  | 'quiet-hours';
 export type OnBehalfOutcome =
   | { sent: true }
   | { sent: false; reason: Exclude<OnBehalfSkip, 'quiet-hours'> }
@@ -355,6 +366,8 @@ export async function sendOnBehalfText(
     deps.store.forPhoneHash(hash),
   ]);
   if (refusal) return skip(refusal);
+  const consent = await onBehalfConsent(t, deps);
+  if (consent) return skip(consent);
   if (sentWithin(lastSentAt(toPhone, 'on-behalf'), now, ON_BEHALF_GAP_MS))
     return skip('recently-sent');
 
@@ -389,6 +402,25 @@ export async function sendOnBehalfText(
 }
 
 /**
+ * MESSAGING_PIPELINE: someone else must have opted in themselves (texted START);
+ * the member's own number needs only no opt-out.
+ */
+async function onBehalfConsent(
+  t: OnBehalfText,
+  deps: TextDeps
+): Promise<'opted-out' | 'needs-consent' | 'send-failed' | null> {
+  const ownNumber = async (): Promise<boolean> =>
+    isOwnVerifiedPhone(t.senderUserId, t.toPhone, deps);
+  const block: ConsentBlock | null = await consentBlocks(
+    t.toPhone,
+    'sms',
+    ownNumber,
+    consentOf(deps)
+  );
+  return block === 'unverifiable' ? 'send-failed' : block;
+}
+
+/**
  * Every text to someone other than the member goes through here: the guards
  * above, or with ON_BEHALF_TEXT_GUARD=off the plain send it replaced.
  */
@@ -397,6 +429,8 @@ export async function textOnBehalf(
   deps: TextDeps = defaultTextDeps()
 ): Promise<OnBehalfOutcome> {
   if (onBehalfGuardOn(deps.env)) return sendOnBehalfText(t, deps);
+  const consent = await onBehalfConsent(t, deps);
+  if (consent) return { sent: false, reason: consent };
   const result = await deps.send({
     to: t.toPhone,
     body: t.body,
@@ -411,6 +445,7 @@ export async function textOnBehalf(
 export function onBehalfNotSent(name: string, reason: OnBehalfSkip): string {
   const why: Record<OnBehalfSkip, string> = {
     'opted-out': "that number replied STOP to our texts, so I can't text it",
+    'needs-consent': "they haven't said yes to texts from me yet",
     'consent-unknown': "I couldn't check whether that number asked us to stop texting, so I didn't",
     paused: 'they recently sounded like they might want fewer texts, so texts to them are on hold',
     'quiet-hours': "it's late where they are (9pm to 8am their time). Nothing is queued",
@@ -422,72 +457,7 @@ export function onBehalfNotSent(name: string, reason: OnBehalfSkip): string {
   return `The text to ${name} was NOT sent: ${why[reason]}.`;
 }
 
-export const firestoreTextStore: TextStore = {
-  ...firestoreReplyStore,
-  consentDoc: readConsentDoc,
-  async forUser(userId) {
-    // userId equality only; the gap window is filtered in memory to avoid a composite index.
-    const snap = await checkinDb().collection(CHECKINS).where('userId', '==', userId).get();
-    return snap.docs.map((d) => toStoredCheckin(d.id, d.data()));
-  },
-  async add(record) {
-    return (await checkinDb().collection(CHECKINS).add(record)).id;
-  },
-  async lock(id, at) {
-    try {
-      await checkinDb().collection(TEXT_LOCKS).doc(id).create({ at });
-      return true;
-    } catch (error) {
-      if ((error as { code?: unknown }).code === ALREADY_EXISTS) return false;
-      throw error;
-    }
-  },
-  async lockedAt(id) {
-    const doc = await checkinDb().collection(TEXT_LOCKS).doc(id).get();
-    const at: unknown = doc.exists ? doc.data()?.at : undefined;
-    return typeof at === 'string' ? at : undefined;
-  },
-  async unlock(id) {
-    await checkinDb().collection(TEXT_LOCKS).doc(id).delete();
-  },
-  async userDoc(userId) {
-    const doc = await checkinDb().collection('bogle_users').doc(userId).get();
-    return doc.exists ? (doc.data() as Record<string, unknown>) : undefined;
-  },
-  async legacySmsChannels(userId) {
-    const doc = await checkinDb().collection('outreach_profiles').doc(userId).get();
-    const state = (doc.exists ? doc.data()?.state : undefined) as
-      { allowedChannels?: unknown } | undefined;
-    return state?.allowedChannels;
-  },
-  async sponsoredPhone(userId) {
-    const doc = await checkinDb().collection('sponsored_identities').doc(userId).get();
-    const phone: unknown = doc.exists ? doc.data()?.phoneNumber : undefined;
-    return typeof phone === 'string' ? phone : undefined;
-  },
-};
-
-/** sendSMS reports "not initialized" until delivery is set up, which the voice agent never does itself. */
-async function sendSms(message: SMSMessage): Promise<SMSDeliveryResult> {
-  const sms = await import('./delivery/sms-delivery.js');
-  const {
-    TWILIO_ACCOUNT_SID: sid,
-    TWILIO_AUTH_TOKEN: token,
-    TWILIO_PHONE_NUMBER: from,
-  } = process.env;
-  if (!sms.isSMSDeliveryAvailable() && sid && token && from) {
-    try {
-      sms.initializeSMSDelivery({
-        twilioAccountSid: sid,
-        twilioAuthToken: token,
-        twilioPhoneNumber: from,
-      });
-    } catch (error) {
-      log.warn({ error: String(error) }, 'SMS delivery could not be set up');
-    }
-  }
-  return sms.sendSMS(message);
-}
+export { firestoreTextStore };
 
 export function defaultTextDeps(): TextDeps {
   return {

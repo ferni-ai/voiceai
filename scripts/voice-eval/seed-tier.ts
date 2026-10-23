@@ -2,12 +2,13 @@
  * Give one voice-eval user a subscription tier before its call (run.sh EVAL_TIER).
  *
  *   npx tsx scripts/voice-eval/seed-tier.ts --project johnb-2025 --uid voice-eval-x --tier partner
- *     [--database ferni-dev]   (default '(default)'; run.sh passes eval-database.mjs's pick)
+ *     --env dev | --database ferni-dev   (one is required; run.sh passes eval-database.mjs's pick)
  *
  * Writes a whole valid profile (createUserProfile) when the user has none, so the
  * agent loads it instead of replacing it with a new free one. Refuses any uid that
  * isn't voice-eval-* (eval-tier.ts).
  */
+import { databaseFromArgs } from './eval-database.mjs';
 import { seedTierRefusal } from './eval-tier.js';
 
 function arg(name: string): string | undefined {
@@ -18,8 +19,14 @@ function arg(name: string): string | undefined {
 const project = arg('--project');
 const uid = arg('--uid') ?? '';
 const tier = arg('--tier') ?? '';
-const database = arg('--database') ?? '(default)';
-const refusal = project ? seedTierRefusal(uid, tier) : '--project is required';
+// No silent default: a write with no database named would land in prod's '(default)'.
+let database = '';
+let refusal = project ? seedTierRefusal(uid, tier) : '--project is required';
+try {
+  database = databaseFromArgs(process.argv);
+} catch (e) {
+  refusal ??= (e as Error).message;
+}
 if (refusal) {
   console.error(`seed-tier: ${refusal}`);
   process.exit(2);
