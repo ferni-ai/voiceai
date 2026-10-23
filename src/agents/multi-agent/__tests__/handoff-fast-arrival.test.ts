@@ -19,6 +19,8 @@ const GOODBYE_MS = 300;
 
 /** When each persona's agent was created, from the handoff's start. */
 let created: Record<string, number>;
+/** Each persona's release(), to see what was let go. */
+let releases: Record<string, ReturnType<typeof vi.fn>>;
 let handoffAt = 0;
 let windowDuringGoodbye: number | undefined;
 
@@ -30,6 +32,7 @@ function config() {
     sessionId: 'fast-arrival-test',
     createPersonaAgent: vi.fn(async (personaId: string) => {
       created[personaId] = Date.now() - handoffAt;
+      releases[personaId] = vi.fn(async () => undefined);
       return {
         id: `${personaId}-${Object.keys(created).length}`,
         personaId,
@@ -41,7 +44,7 @@ function config() {
         interrupt: vi.fn(),
         // A persona on the call's one session (persona-swap.ts isSwappable)
         agent: {},
-        release: vi.fn(),
+        release: releases[personaId],
         ownsSession: personaId === 'ferni',
       } as never;
     }),
@@ -50,6 +53,7 @@ function config() {
 
 beforeEach(() => {
   created = {};
+  releases = {};
   windowDuringGoodbye = undefined;
   vi.spyOn(
     AgentOrchestrator.prototype as unknown as { estimateSpeechDuration: (t: string) => number },
@@ -106,5 +110,24 @@ describe('a single-session handoff', () => {
     expect(await handOffToMaya()).toBe(true);
     expect(created['maya-santos']).toBeGreaterThanOrEqual(GOODBYE_MS - 5);
     expect(windowDuringGoodbye).toBeUndefined();
+  });
+
+  it('lets go of the early teammate when the goodbye fails, so it cannot listen on the call', async () => {
+    vi.stubEnv('HANDOFF_FAST_ARRIVAL', 'on');
+    vi.spyOn(
+      AgentOrchestrator.prototype as unknown as { agentSaysGoodbye: () => Promise<void> },
+      'agentSaysGoodbye'
+    ).mockRejectedValue(new Error('goodbye failed'));
+    const orchestrator = createAgentOrchestrator(config());
+    await orchestrator.start('ferni');
+    handoffAt = Date.now();
+    const result = await orchestrator.handoff({ targetPersonaId: 'maya-santos', reason: 'test' });
+    await vi.waitFor(() => expect(releases['maya-santos']).toHaveBeenCalled());
+    expect(result.success).toBe(false);
+    const agents = (orchestrator as unknown as { agents: Map<string, { personaId: string }> })
+      .agents;
+    expect([...agents.values()].map((a) => a.personaId)).toEqual(['ferni']);
+    expect(orchestrator.getCurrentPersonaId()).toBe('ferni');
+    expect(releases.ferni).not.toHaveBeenCalled();
   });
 });

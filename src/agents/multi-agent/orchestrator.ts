@@ -508,6 +508,14 @@ export class AgentOrchestrator {
       };
     } catch (error) {
       talk?.abandon();
+      // HANDOFF_FAST_ARRIVAL: a teammate set up early that never came on must stop listening
+      void early
+        ?.then(async ({ newAgent }) => {
+          if (this.activeAgentId === newAgent.id) return;
+          this.agents.delete(newAgent.id);
+          await (newAgent as { release?: () => Promise<void> }).release?.();
+        })
+        .catch(() => undefined);
       const durationMs = Date.now() - startTime;
       log.error(
         {
