@@ -43,6 +43,7 @@ import {
 } from '../../safety/crisis-guard.js';
 import { toGuardVoiceEmotion, type ProsodyEmotionLike } from '../../safety/crisis-shadow.js';
 import type { CrisisDetection } from '../types.js';
+import { goodbyeTurn } from '../../shared/goodbye-turn.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'TurnCrisis' });
@@ -114,7 +115,8 @@ export function startTurnCrisis(
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);
-  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
+  const goodbye = goodbyeTurn(input, call); // crisis-goodbye-rules.ts, only on a goodbye turn
+  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call, goodbye });
   type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
   let settled: Promise<Settled> | null = null;
   const settle = (): Promise<Settled> =>

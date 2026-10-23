@@ -124,13 +124,14 @@ import { CRISIS_GOODBYE_RULES, resolveCrisisGoodbyeRules } from './crisis-goodby
  * agreeing with Ferni's gloomy lines ("same here") lost crisis reads.
  */
 export function crisisClassifierPrompt(
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  turn: { goodbye?: boolean } = {}
 ): string {
   const everyday = resolveCrisisEverydayRules(env);
   const rules = [
     everyday || resolveCrisisAgreementGate(env) ? CRISIS_ATTRIBUTION_RULES : '',
     everyday ? CRISIS_EVERYDAY_RULES : '',
-    resolveCrisisGoodbyeRules(env) ? CRISIS_GOODBYE_RULES : '',
+    everyday && turn.goodbye && resolveCrisisGoodbyeRules(env) ? CRISIS_GOODBYE_RULES : '',
   ].join('');
   return rules
     ? CRISIS_CLASSIFIER_PROMPT.replace('\n\nReturn JSON only', `\n${rules}\n\nReturn JSON only`)
@@ -272,6 +273,8 @@ export interface StartCrisisClassifierOptions {
   scope?: string;
   /** The call's session id, always when known: its reads are tracked (crisis-call-risk.ts). */
   call?: string;
+  /** A goodbye turn (goodbye-turn.ts): the goodbye rules may apply (crisis-goodbye-rules.ts). */
+  goodbye?: boolean;
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
@@ -427,7 +430,7 @@ export function startCrisisClassifier(
   // Key on what the model sees: the turn pipeline's history ends with the
   // latest message and the chat context's does not, which made them miss.
   const normalized = normalizeInput(input);
-  const prompt = crisisClassifierPrompt(env);
+  const prompt = crisisClassifierPrompt(env, { goodbye: options.goodbye });
   const key = JSON.stringify([
     normalized.latest,
     normalized.earlier,
@@ -447,7 +450,8 @@ export function startCrisisClassifier(
   const read = (p: string): Promise<CrisisVerdict | null> =>
     classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
-  const plain = needsPlainRead(normalized.latest, env);
+  // A read with the goodbye rules always has the plain read beside it (crisis-goodbye-rules.ts).
+  const plain = needsPlainRead(normalized.latest, env) || prompt.includes(CRISIS_GOODBYE_RULES);
   const reads = plain
     ? Promise.all([
         read(prompt),

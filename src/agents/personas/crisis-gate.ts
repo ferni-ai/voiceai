@@ -78,6 +78,7 @@ import { withLookupBridge } from './lookup-bridge.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
 import { burstAllowed } from './vocal-bursts.js';
+import { goodbyeTurn } from '../shared/goodbye-turn.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -218,7 +219,7 @@ export function startCrisisGate(
   const groundedPrior = groundedPriorRisk(call, latest);
   const run = startCrisisClassifier(
     { latest, earlier, companion },
-    { pattern, env, generate, scope, call }
+    { pattern, env, generate, scope, call, goodbye: goodbyeTurn({ latest, companion }, call) }
   );
   if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
 
