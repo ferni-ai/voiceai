@@ -35,6 +35,7 @@ vi.mock('../persistence/index.js', () => ({
     const docs = new Map<string, unknown>();
     return {
       load: async (id: string) => docs.get(id) ?? null,
+      readFailed: () => false,
       set: (id: string, d: unknown) => void docs.set(id, d),
       setImmediate: async (id: string, d: unknown) => void docs.set(id, d),
       delete: async (id: string) => void docs.delete(id),

@@ -6,8 +6,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 const add = vi.hoisted(() => vi.fn(async (_doc: Record<string, unknown>) => ({ id: 'q1' })));
-vi.mock('firebase-admin', () => ({
-  default: { firestore: () => ({ collection: () => ({ add }) }) },
+vi.mock('../../../utils/firebase-admin-app.js', () => ({
+  getAdminFirestore: () => ({ collection: () => ({ add }) }),
 }));
 vi.mock('../../../memory/profile-store.js', () => ({ getProfileStore: async () => ({}) }));
 

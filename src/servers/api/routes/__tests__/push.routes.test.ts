@@ -19,6 +19,7 @@ vi.mock('../../../../services/persistence/index.js', () => ({
     return {
       get: async (id: string) => docs.get(id) ?? null,
       load: async (id: string) => docs.get(id) ?? null,
+      readFailed: () => false,
       set: (id: string, data: unknown) => void docs.set(id, data),
       setImmediate: async (id: string, data: unknown) => void docs.set(id, data),
       delete: async (id: string) => void docs.delete(id),
