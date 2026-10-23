@@ -62,6 +62,10 @@ public final class MemoryStore {
             .prefix(limit))
     }
 
+    /// Something was forgotten somewhere else (the "I'll remember" card): every
+    /// place that shows what Ferni remembers looks again, as after a forget here.
+    public func forgotElsewhere() { forgotten += 1 }
+
     /// Forgets a note; it disappears at once and comes back if the server refuses.
     @discardableResult
     public func forget(_ note: Note) async -> Bool {

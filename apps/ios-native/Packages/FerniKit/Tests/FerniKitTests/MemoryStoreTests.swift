@@ -109,4 +109,13 @@ final class MemoryStoreTests: XCTestCase {
         await memory.refresh()
         XCTAssertTrue(memory.notes.isEmpty)
     }
+
+    /// A forget on the "I'll remember" card counts like one here: what shows
+    /// memories elsewhere (Home's line, the card) looks again.
+    func testAForgetElsewhereCountsAsAForget() {
+        let memory = store(Server())
+        XCTAssertEqual(memory.forgotten, 0)
+        memory.forgotElsewhere()
+        XCTAssertEqual(memory.forgotten, 1)
+    }
 }

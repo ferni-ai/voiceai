@@ -83,6 +83,14 @@ struct FerniApp: App {
                         if old == .active { model.wentAway(now: .now) }
                     }
                 }
+                // Forgotten anywhere: Home's follow-up and note are asked for again,
+                // so nothing forgotten stays on screen (trust panel R14).
+                .onChange(of: model.memory.forgotten) { _, _ in
+                    #if DEBUG
+                    UITestScenario.Counters.shared.forgetRefreshes += 1
+                    #endif
+                    Task { await model.homeLine.refresh() }
+                }
                 .onChange(of: model.account.user?.uid, initial: true) { old, uid in
                     model.accountChanged(from: old, to: uid)
                 }
@@ -107,7 +115,7 @@ final class AppModel {
     let memory: MemoryStore
     let minimumBuild: MinimumBuild
     let callRemembered: CallRemembered
-    let memoryLock = MemoryLock()
+    let memoryLock: MemoryLock
     let homeLine: HomeLineStore
     let nextSteps: NextSteps
     let teamSpotlight = TeamSpotlight()
@@ -347,6 +355,11 @@ final class AppModel {
         api = account.api(baseURL: config.apiBaseURL)
         #endif
         team = TeamStore(api: api)
+        #if DEBUG
+        memoryLock = UITestScenario.memoryLock() ?? MemoryLock()
+        #else
+        memoryLock = MemoryLock()
+        #endif
         memory = MemoryStore(api: api)
         callRemembered = CallRemembered(api: api)
         nextSteps = NextSteps(api: api)
