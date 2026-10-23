@@ -421,13 +421,14 @@ describe.skipIf(SKIP_E2E)('Semantic Data Layer E2E (Firestore Emulator)', () => 
     });
 
     it('should run cleanup without errors', async () => {
-      const { runTTLCleanup } = await import('../../services/data-layer/ttl-cleanup.js');
+      const { runTTLCleanup, TTL_CONFIGS } =
+        await import('../../services/data-layer/ttl-cleanup.js');
 
-      // Completes with a report even when nothing has expired
+      // Counts every collection on the emulator, even when nothing has expired
       const report = await runTTLCleanup({ dryRun: true });
       expect(report.results.filter((r) => r.errors > 0)).toEqual([]);
       expect(report.totalErrors).toBe(0);
-      expect(Array.isArray(report.results)).toBe(true);
+      expect(report.results).toHaveLength(TTL_CONFIGS.length);
     });
   });
 
