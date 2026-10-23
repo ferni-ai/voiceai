@@ -265,7 +265,7 @@ jobs:
         # [1, 2, 3, 4] on a full run, [1] on a pull request that runs only the
         # affected tests. The condition is FULL_SUITE's below and must stay the same
         # (merge-queue-jobs.test.ts pins it, and the Unit Tests gate checks the count).
-        shard: ${{ fromJSON((github.event_name != 'pull_request') && '[1, 2, 3, 4]' || '[1]') }}
+        shard: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests')) && '[1, 2, 3, 4]' || '[1]') }}
     env:
       # 'true' when this run tests the whole suite: every event but a pull request,
       # and a pull request labelled ci:full-tests.
