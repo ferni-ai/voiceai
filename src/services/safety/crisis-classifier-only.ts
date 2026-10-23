@@ -3,74 +3,49 @@
  * second read before the 988 guidance (CRISIS_CLASSIFIER_ONLY_CHECKIN = off |
  * shadow | live, off by default).
  *
- * Prod canary, 2026-10-22 (8981d4f03, CRISIS_AGREEMENT_GATE on): Ferni asked
- * about a long week, the caller said "The running, not so much. Once,
- * maybe.", and the reply offered the 988 line. No pattern matched. Two
- * classifier reads of the turn both said crisis, so the agreement gate let
- * them stand, and the reply gate regenerated the reply with crisis guidance
- * (CRISIS_GATE action guide, source classifier). Dev the same day: the same
- * line, and "I'm just so tired. like bone tired." on another call.
+ * Prod canary, 2026-10-22 (8981d4f03): "The running, not so much. Once,
+ * maybe." brought the 988 line. No pattern matched; two classifier reads said
+ * crisis and the agreement gate let them stand. They were one model at
+ * temperature 0 on the same words (the reply gate's read and the pipeline's):
+ * one read, not agreement.
  *
- * Those two reads were not independent: both are the same model, at
- * temperature 0, on the same caller words (the reply gate and the turn
- * pipeline, or a preemptive and a final request). Two copies of one read are
- * one read. At everyday prevalence a classifier on its own is right about
- * real risk only a few times in a hundred, so the 988 guidance needs
- * agreement from something that can disagree with it.
+ * Such a turn goes to the crisis adjudicator (a different model, a counselor's
+ * escalate-or-check-in rubric, the call by speaker), even with
+ * CRISIS_ADJUDICATOR off: one read per turn, started by the reply gate from
+ * its transcript and shared with the pipeline, which never reads on its own.
+ * Only its confident "checkin" with no caller risk quoted gives the soft check
+ * (SOFT_CRISIS_CHECK), and only if, once it is back, every read of the turn
+ * still allows it and none is in flight. Anything else keeps the guidance.
+ * Live is held with CRISIS_ADJUDICATOR=live (adjudicatorCheckinsMayChangeReplies).
  *
- * Such a turn goes to the crisis adjudicator (crisis-adjudicator.ts: a
- * different model, a counselor's escalate-or-check-in rubric, the call's
- * recent lines by speaker), even with CRISIS_ADJUDICATOR off. One read per
- * turn, started by the reply gate from its fuller transcript and shared with
- * the turn pipeline, keyed by call and caller words; the pipeline never reads
- * on its own. Only its confident "checkin" with no caller risk quoted gives
- * the soft check (SOFT_CRISIS_CHECK). Escalate, low confidence, a timeout
- * (CRISIS_CLASSIFIER_ONLY_TIMEOUT_MS, 1200 ms by default), an error, too
- * little context, or no shared read keep the guidance.
- *
- * Live is held exactly as CRISIS_ADJUDICATOR=live is: until a replay lifts the
- * adjudicator's hold (crisis-adjudicator.ts adjudicatorCheckinsMayChangeReplies),
- * CRISIS_CLASSIFIER_ONLY_CHECKIN=live runs as shadow and logs liveHeld.
- *
- * A turn reaches the second read only when all of these hold:
- *   - the patterns found nothing at all in this turn (no indicator, no voice
- *     distress, no session escalation), and none in the caller's earlier lines;
- *   - the caller said at least three things before it this call, and the last
- *     five (what the classifier saw) hold nothing from the broad risk list or
- *     the escalate-only words: a call that opens with the read keeps the
- *     guidance (crisis-lone-imminent.ts makes the same call for goodbyes);
- *   - nothing on this call found risk before this turn (callRiskBeforeTurn:
- *     a pattern match, a classifier read that was not none or gave no verdict,
- *     a read in flight). An unknown call counts as risk;
- *   - every read of this turn, from both paths, arrived (with no call to
- *     gather them under, a read counts as missing), none was imminent, at
- *     least one was crisis, and every crisis read is about the caller;
- *   - the caller's own words hold nothing from the agreement gate's broad risk
- *     list (hasRiskContent) or the escalate-only words
- *     (crisis-classifier-only-text.ts), and do not agree with Ferni's line;
- *   - Ferni's line did not raise safety (a check-in, 988, 911);
- *   - the global adjudicator is not live (it has already read the turn).
- * Everything else keeps the crisis guidance exactly as before, as does any
- * error. A soft turn still counts as risk on the call, so the next crisis read
- * on the call is escalated as before: the check-in holds, and never drops.
- *
- * shadow never touches the reply: everything after the mode check, including
- * the wait for the other path's read, runs off the reply path, and the result
- * is logged (CRISIS_CLASSIFIER_ONLY).
+ * A turn reaches the second read only when: the patterns found nothing now or
+ * earlier; nothing on the call found risk before (callRiskBeforeTurn); the
+ * turn's reads are gathered under a scope (CRISIS_AGREEMENT_GATE or
+ * CRISIS_ADJUDICATOR on), all arrived, none imminent, every crisis read about
+ * the caller; the caller never said they are under 18; the caller's words and
+ * last five lines hold no broad risk word (hasRiskContent) and no escalate-only
+ * word (crisis-classifier-only-text.ts); no agreement with Ferni's line and no
+ * safety talk in it; at least three earlier caller lines; and the adjudicator
+ * is not live. A soft turn still counts as risk on the call. Shadow never
+ * touches the reply: everything after the mode check runs off the reply path
+ * and is logged (CRISIS_CLASSIFIER_ONLY).
  *
  * @module CrisisClassifierOnly
  */
 
+import { statesUnder18 } from '../../utils/minor-care.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   adjudicateCrisis,
   adjudicatorCheckinsMayChangeReplies,
+  resolveCrisisAdjudicatorMode,
   createGeminiAdjudicatorGenerate,
   transcriptFrom,
   type AdjudicatorLine,
   type AdjudicatorResult,
 } from './crisis-adjudicator.js';
-import { endorses, hasRiskContent } from './crisis-agreement.js';
+import { endorses, hasRiskContent, SOFT_CRISIS_CHECK } from './crisis-agreement.js';
+import { turnReadInFlight } from './crisis-call-risk.js';
 import {
   resolveCrisisClassifierTimeoutMs,
   turnVerdicts,
@@ -121,6 +96,7 @@ export type ClassifierOnlyWhy =
   | 'safety_talk'
   | 'earlier_pattern'
   | 'too_early'
+  | 'minor'
   | 'error';
 
 export interface ClassifierOnlyArgs {
@@ -162,6 +138,8 @@ function wordsAndCall(args: ClassifierOnlyArgs): ClassifierOnlyWhy {
   if (args.adjudicatorLive) return 'adjudicator_live';
   if (patternsFound(detection)) return 'pattern';
   if (priorRisk !== false) return 'prior_risk';
+  // A caller who said they are under 18 keeps the guidance, whatever MINOR_CARE says.
+  if ([latest, ...(args.earlier ?? [])].some((line) => statesUnder18(line))) return 'minor';
   if (hasRiskContent(latest)) return 'risk_words';
   if (hasEscalateOnlyWords(latest)) return 'escalate_words';
   if (endorses(latest)) return 'endorses';
@@ -347,7 +325,7 @@ const args = (o: ClassifierOnlyOptions): Omit<ClassifierOnlyArgs, 'verdicts'> =>
  * it, so it overlaps the wait for that read. Live only; the final decision
  * still checks every read. Never throws.
  */
-export function prestartClassifierOnly(options: ClassifierOnlyOptions): void {
+function prestartClassifierOnly(options: ClassifierOnlyOptions): void {
   try {
     const env = options.env ?? process.env;
     if (resolveClassifierOnlyCheckin(env) !== 'live' || !options.call) return;
@@ -402,10 +380,21 @@ async function decideTurn(
   if (!second) {
     return { ...base, checkin: false, outcome: 'escalate', why: 'no_shared_read' };
   }
-  const checkin = second.result.decision === 'checkin';
+  let checkin = second.result.decision === 'checkin';
+  let late: ClassifierOnlyWhy | undefined;
+  if (checkin) {
+    // A read of this turn may have started or finished while the second read was out
+    // (2026-10-22 verify: the pipeline's imminent read 60 ms after the gate's crisis read).
+    const again = scope ? await turnVerdicts(scope, input).catch(() => [null]) : [null];
+    const now = classifierOnlyWhy({ ...args(options), verdicts: again });
+    late =
+      now !== 'eligible' ? now : turnReadInFlight(call, input.latest) ? 'missing_read' : undefined;
+    if (late) checkin = false;
+  }
   return {
     ...base,
     checkin,
+    ...(late ? { late } : {}),
     outcome: checkin ? 'checkin' : 'escalate',
     why: checkin ? 'second_read_checkin' : 'second_read_escalate',
     secondRead: second.result.why,
@@ -436,4 +425,59 @@ export async function classifierOnlyCheckin(options: ClassifierOnlyOptions): Pro
   // Shadow never holds the reply, not even for the other path's read.
   if (mode !== 'live') return false;
   return decided.catch(() => false);
+}
+
+/** What the reply gate knew about this turn when its classifier read started. */
+export interface GateTurn {
+  detection: CrisisDetectionResult;
+  latest: string;
+  earlier: readonly string[];
+  companion?: string;
+  /** callRiskBeforeTurn, taken before this turn's read started. */
+  priorRisk: boolean;
+  scope?: string;
+  call?: string;
+}
+
+/**
+ * The reply gate's escalation with this path applied: when the flag is off it
+ * is the very same promise. Otherwise a crisis guide from the classifier (the
+ * patterns passed) may become SOFT_CRISIS_CHECK, and in live the gate's own
+ * crisis read starts the shared second read at once. Never rejects more than
+ * the escalation does.
+ */
+export function withClassifierOnly<D extends { action: string; guidance?: string }>(
+  escalation: Promise<D | null>,
+  run: { verdict: Promise<CrisisVerdict | null> },
+  turn: GateTurn,
+  transcript: () => readonly AdjudicatorLine[],
+  options: { env?: Env; adjudicate?: CrisisGenerateFn }
+): Promise<D | { action: 'guide'; guidance: string } | null> {
+  const env = options.env ?? process.env;
+  const mode = resolveClassifierOnlyCheckin(env);
+  if (mode === 'off') return escalation;
+  const { latest, earlier, companion } = turn;
+  const base = {
+    ...turn,
+    input: { latest, earlier, companion },
+    adjudicate: options.adjudicate,
+    adjudicatorLive: resolveCrisisAdjudicatorMode(env) === 'live',
+    env,
+    source: 'gate' as const,
+  };
+  if (mode === 'live') {
+    run.verdict
+      .then((verdict) => prestartClassifierOnly({ ...base, verdict, transcript: transcript() }))
+      .catch(() => undefined);
+  }
+  return escalation.then(async (decision) => {
+    // Only a crisis guide the classifier brought; every soft path already chose SOFT_CRISIS_CHECK.
+    if (decision?.action !== 'guide' || decision.guidance === SOFT_CRISIS_CHECK) return decision;
+    const verdict = await run.verdict.catch(() => null);
+    if (!(await classifierOnlyCheckin({ ...base, verdict, transcript: transcript() }))) {
+      return decision;
+    }
+    log.info({ action: 'guide', source: 'classifier_only' }, 'CRISIS_GATE');
+    return { action: 'guide' as const, guidance: SOFT_CRISIS_CHECK };
+  });
 }

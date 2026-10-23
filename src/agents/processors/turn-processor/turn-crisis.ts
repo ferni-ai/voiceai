@@ -103,10 +103,9 @@ export function startTurnCrisis(
   // other reads; a shadow adjudicator runs beside it and never delays it.
   const agreementGate = resolveCrisisAgreementGate(env);
   const adjudicatorMode = resolveCrisisAdjudicatorMode(env);
-  // CRISIS_CLASSIFIER_ONLY_CHECKIN also gathers the turn's reads (crisis-classifier-only.ts).
-  const onlyMode = resolveClassifierOnlyCheckin(env);
-  const gather = agreementGate || adjudicatorMode !== 'off' || onlyMode !== 'off';
-  const scope = gather ? options.sessionId || undefined : undefined;
+  const scope =
+    agreementGate || adjudicatorMode !== 'off' ? options.sessionId || undefined : undefined;
+  const onlyMode = resolveClassifierOnlyCheckin(env); // crisis-classifier-only.ts
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const input = {
     latest: userText,

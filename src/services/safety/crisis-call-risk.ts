@@ -136,6 +136,18 @@ export function crisisRiskThisCall(sessionId: string, latest?: string, now = Dat
   return [...reads.keys()].some((t) => t !== turn);
 }
 
+/**
+ * Whether a read of these caller words (or a longer or shorter line holding
+ * them) is still in flight on this call: a read that started late may be the
+ * one that sees imminent risk (crisis-classifier-only.ts re-checks with it).
+ */
+export function turnReadInFlight(sessionId: string, latest: string): boolean {
+  const reads = pending.get(sessionId);
+  const turn = turnOf(latest);
+  if (!reads || !turn) return false;
+  return [...reads.keys()].some((t) => t === turn || t.includes(turn) || turn.includes(t));
+}
+
 /** A grounded release explained this turn's risk: unexplainedCrisisRisk stops counting it. */
 export function explainCrisisTurn(sessionId: string | undefined, latest: string): void {
   if (sessionId) notesOf(sessionId).explained.add(turnOf(latest));

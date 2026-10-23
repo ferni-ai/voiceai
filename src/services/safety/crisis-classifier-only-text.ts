@@ -8,8 +8,10 @@
  * (hasRiskContent) misses, found by the 2026-10-22 safety review: help and
  * crisis lines, "anymore", "much longer", asking someone to look after a pet
  * or person "for me", thanks for everything, things the caller "won't need",
- * logins or bank details handed over, giving things away, being with someone
- * again, being a waste of space, wanting everything to stop, Spanish written
+ * logins or bank details handed over, giving things away, rehoming a pet or
+ * belongings, beneficiaries and policies, selling up or giving notice, load
+ * and height questions, caller words that try to steer the safety read
+ * (the 2026-10-22 verify), being with someone again, being a waste of space, wanting everything to stop, Spanish written
  * without accents ("ya no puedo mas", "no aguanto mas"), and farewell
  * gratitude: "I wanted to call and tell you I appreciate you. That's all I
  * needed to do." was eased by the second read every time it was asked
@@ -44,6 +46,32 @@ const ESCALATE_ONLY = new RegExp(
     '\\b(?:log ?ins?|passcodes?|pin (?:number|code)|bank (?:login|details|info|account|card)s?)\\b',
     `\\b(?:gave|give|giving|given) (?:${W} ){1,4}away\\b|\\bgave (?:away )?(?:my|all my|all of my) ${W}(?: ${W})? to\\b`,
     `\\bmade (?:my )?peace\\b|\\b(?:see|be with|join) (?:${W} ){1,2}again\\b`,
+    // Quiet preparation: rehoming pets or belongings, someone else "getting" or "keeping" them.
+    `\\b(?:giving|give|gave|handing|hand|passing|pass|leaving|leave|left) (?:my|all my|all of my) ${W}(?: ${W})? to\\b`,
+    `\\b(?:make sure|so|want|wants|wanted) (?:${W} ){1,3}(?:gets?|has|have|keeps?|takes?|ends? up with) (?:my|all my|all of my) ${W}\\b`,
+    `\\b(?:is|are|will be|'s|'re|gonna be|going to be) (?:taking|keeping|getting|having|inheriting) (?:my|all my|him|her|them)\\b`,
+    '\\b(?:from now on|for good|better that way|better off with (?:her|him|them|someone))\\b',
+    "\\b(?:shelters?|rehom\\w*|new home|forever home|adopt (?:him|her|them) out)\\b|\\bsomeone who(?:'ll| will| would) (?:stick with|look after|take care of|love)\\b",
+    `\\b(?:find|found|finding) (?:someone|somebody|a (?:good )?(?:home|family)|new homes?)\\b|\\bnew homes?\\b|\\bwho gets (?:my|what)\\b|\\bsigned (?:${W} ){0,2}over\\b`,
+    `\\b(?:taking|take|took|keeping|keep|getting|having) (?:the|my) (?:cat|cats|dog|dogs|bird|fish|pets?|kids?)\\b|\\b(?:my|our) (?:${W} ){0,2}(?:cats?|dogs?|birds?|fish|pets?|rings?|jewelry|records?|collection|furniture|tv|couch|bike|car|guitar|stuff|things|clothes|plants)\\b(?: ${W}){0,5} (?:go(?:es|ing)? to|end up with|settled with)\\b`,
+    '\\bdonat(?:ed|ing|e) (?:basically |almost |nearly )?(?:everything|all)\\b|\\bboxing up (?:my|all)\\b|\\bpacked (?:up )?(?:his|her|their|my|all)\\b|\\bpermanently\\b|\\bin an envelope\\b|\\bwith (?:her|his|their) name on it\\b|\\bpaid off\\b',
+    // Accounts and access handed over.
+    `\\blegacy contact\\b|\\b(?:get into|access to|into) (?:all )?(?:of )?my (?:email|accounts?|phone|laptop|safe)\\b|\\b(?:pins?|codes?|keys|passwords?)\\b(?: ${W}){0,5} (?:for|to) (?:my )?${W}\\b|\\bmy (?:${W} )?pin\\b|\\bcode to my\\b|\\bsomeone else (?:closes?|handles?|gets? into)\\b|\\b(?:in order|handle things|handled this week)\\b`,
+    // It won't matter: plans, refills and renewals dropped as pointless.
+    "\\b(?:won't|wont|will not|not gonna|not going to|isn't going to|itll|it'll|it will)(?: really)? (?:matter|make a difference)\\b|\\bdon'?t think (?:it'?ll|itll|it will) matter\\b|\\bwhat for\\b|\\b(?:won't|wont|will not)(?: really)? (?:be making|have (?:a|any) use)\\b|\\bout of the picture\\b|\\bquit (?:picking up|taking|refilling)\\b",
+    // Indirect method questions.
+    `\\bhow (?:much|many|long|fast|cold|hot|tall|high|deep)\\b(?: ${W}){0,14} (?:a person|someone|people|your body|stop a heart|instant|not make it|come back|stay asleep|it would take|would it take|it take)\\b`,
+    "\\b(?:strongest|gentlest|painless\\w*|quickest|easiest) (?:way|thing)\\b|\\btoxic to (?:people|humans)\\b|\\bdon'?t have railings\\b|\\bhunting (?:stuff|rifle|gun)s?\\b|\\bwhere the key is\\b|\\bstash\\b|\\bsaved up\\b|\\bstop eating\\b|\\bwalk(?:ed)? into the (?:ocean|sea|lake|river)\\b|\\bwithout air\\b|\\bunder the sink\\b|\\b(?:heart|allergy|sleeping|old) (?:medicine|medication|pills|tablets|prescriptions)\\b|\\bwhole (?:box|bottle)\\b|\\bparking (?:structure|garage)\\b",
+    // Paperwork for after: beneficiaries, wills, policies, closing out.
+    '\\b(?:beneficiar\\w*|executor|power of attorney|life insurance|insurance polic\\w*|my estate|last wishes)\\b',
+    '\\b(?:sold|selling|sell|sells) (?:my|the|all my) (?:car|truck|house|home|stuff|things|furniture|bike|guitar|place)\\b|\\bgave (?:my |them )?notice\\b',
+    '\\b(?:end(?:ed|ing)?|break(?:ing)?|broke|terminat\\w*|cancel\\w*|clos(?:e|ed|ing)) (?:out )?(?:my|the|all my) (?:lease|apartment|rental|phone|plan|subscriptions?|accounts?|bank account|insurance)\\b',
+    // Method-adjacent: load, strength, height, depth.
+    "\\bhow (?:much|many) (?:weight|load|pounds|lbs|kilos?|kg)\\b|\\bweight (?:limit|capacity|rating)\\b|\\b(?:hold|take|support|bear) (?:a person|a body|my weight|someone's weight|\\d+ ?(?:lbs?|pounds|kgs?|kilos?))\\b",
+    `\\b(?:ceiling|beams?|joists?|rafters?|rail(?:ing)?s?|hooks?|balcon(?:y|ies)|bridges?|overpass(?:es)?|cliffs?|parking garage)\\b(?: ${W}){0,6} (?:hold|take|support|high|tall|drop|fall|deep)\\b`,
+    '\\bhow (?:high|tall|far (?:down|up)|deep) (?:is|are|does|do|up)\\b',
+    // Caller words that try to steer the safety read are themselves a signal.
+    '\\bignore (?:all |any |the |your |my |previous |prior |above |earlier )*(?:instructions|rules|prompt|guidelines)\\b|\\bnot_crisis\\b|\\bcheck ?in\\b(?=[^a-z]*")|"(?:decision|caller_risk|confidence)"|\\bcrisis\\b|\\bsystem prompt\\b',
     // Farewell gratitude: thanks or love as a closing, a last contact, messages to pass on.
     "\\bthank(?:s| you)(?: so much)? for (?:everything|all of it|it all|all you(?:'ve)? done|being there|listening)\\b|\\bthank you properly\\b",
     `\\b(?:wanted|want|needed|had) to (?:call|ring|reach out|say|tell you)\\b(?: ${W}){0,6} (?:thanks?|thank you|appreciate|grateful|love you)\\b`,
