@@ -16,6 +16,7 @@ import {
 import { FLAG_MANIFEST } from '../flag-manifest.js';
 import type { FlagSpec } from '../flag-spec.js';
 
+const KILL_SWITCH: FlagSpec = { default: 'on', owner: 'voice', kind: 'kill-switch' };
 const exp = (extra: Partial<FlagSpec> = {}): FlagSpec => ({
   default: 'off',
   owner: 'voice',
@@ -78,9 +79,7 @@ describe('flag lifecycle: warnings (never failures)', () => {
   });
 
   it('holds kill-switches and config flags to nothing', () => {
-    expect(
-      lifecycleWarnings('X', { default: 'on', owner: 'voice', kind: 'kill-switch' }, '2099-01-01')
-    ).toEqual([]);
+    expect(lifecycleWarnings('X', KILL_SWITCH, '2099-01-01')).toEqual([]);
   });
 
   it("prefers the flag's own spec to the backfill, and gives backfilled ones issue 'TBD'", () => {
@@ -111,8 +110,6 @@ describe('flag lifecycle: the hard rule for a spec a PR adds or edits', () => {
   });
 
   it('does not apply to kill-switches and config flags', () => {
-    expect(
-      specProblems('X', { default: 'on', owner: 'voice', kind: 'kill-switch' }, '2026-10-23')
-    ).toEqual([]);
+    expect(specProblems('X', KILL_SWITCH, '2026-10-23')).toEqual([]);
   });
 });

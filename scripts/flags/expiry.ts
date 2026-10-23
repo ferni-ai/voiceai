@@ -19,7 +19,6 @@ import {
   resolveBase,
 } from '../../apps/cli/src/commands/quality/merge-base.js';
 import { isoDay, lifecycleWarnings, specProblems } from '../../src/config/flag-lifecycle.js';
-import type { FlagSpec } from '../../src/config/flag-spec.js';
 import { isMain } from './new-flag.js';
 import { parseFlagFile, parseLegacy, type Spec } from './legacy-parse.js';
 
@@ -102,7 +101,7 @@ function main(args: string[]): void {
   const today = process.env.FLAG_EXPIRY_TODAY ?? isoDay(new Date());
   const head = specsOf(headTexts(root));
   const warnings = [...head].flatMap(([name, spec]) =>
-    lifecycleWarnings(name, spec as unknown as FlagSpec, today).map((w) => ({
+    lifecycleWarnings(name, spec, today).map((w) => ({
       owner: spec.owner,
       w,
     }))

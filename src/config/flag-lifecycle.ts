@@ -18,7 +18,6 @@
  * @module config/flag-lifecycle
  */
 import { FLAG_EXPIRY_BACKFILL } from './flag-lifecycle-backfill.generated.js';
-import type { FlagSpec } from './flag-spec.js';
 
 /** A tracking issue not filed yet. Warned about from ISSUE_TBD_UNTIL; who files them is the lead's call. */
 export const ISSUE_TBD = 'TBD';
@@ -28,6 +27,14 @@ export const MISSING_EXPIRES_GRACE = '2026-12-01';
 /** pnpm flags:new gives a new experiment this long. */
 export const DEFAULT_EXPERIMENT_DAYS = 90;
 
+/** The fields this module reads: a FlagSpec, or a spec parsed from a registry file's text. */
+interface LifecycleFields {
+  kind: string;
+  expires?: string;
+  issue?: string;
+  context?: string;
+}
+
 interface FlagLifecycle {
   expires?: string;
   issue?: string;
@@ -36,7 +43,7 @@ interface FlagLifecycle {
   source: 'spec' | 'backfill' | 'none';
 }
 
-export function flagLifecycle(name: string, spec: FlagSpec): FlagLifecycle {
+export function flagLifecycle(name: string, spec: LifecycleFields): FlagLifecycle {
   if (spec.expires)
     return { expires: spec.expires, issue: spec.issue, context: spec.context, source: 'spec' };
   const back = FLAG_EXPIRY_BACKFILL[name];
@@ -57,7 +64,7 @@ const isDay = (s: string): boolean =>
   /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s)) && isoDay(new Date(s)) === s;
 
 /** Warnings for an experiment on `today` (YYYY-MM-DD): annotations and nightly issues, never a failure. */
-export function lifecycleWarnings(name: string, spec: FlagSpec, today: string): string[] {
+export function lifecycleWarnings(name: string, spec: LifecycleFields, today: string): string[] {
   if (spec.kind !== 'experiment') return [];
   const life = flagLifecycle(name, spec);
   const out: string[] = [];
@@ -84,7 +91,11 @@ export function lifecycleWarnings(name: string, spec: FlagSpec, today: string): 
  * The hard rule, for a spec a PR adds or edits: an experiment must carry its own valid
  * `expires` after `today`, and an issue. Empty when the spec may land.
  */
-export function specProblems(name: string, spec: Partial<FlagSpec>, today: string): string[] {
+export function specProblems(
+  name: string,
+  spec: Partial<LifecycleFields>,
+  today: string
+): string[] {
   if (spec.kind !== 'experiment') return [];
   const out: string[] = [];
   if (!spec.expires)
