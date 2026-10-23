@@ -151,6 +151,19 @@ function crisisGate(i: Intent, ctx: PolicyCtx): Decision | null {
   return isProactive(i) ? drop('crisis-quiet') : hold('crisis-quiet', new Date(ends));
 }
 
+/**
+ * 4b. A Focus they put Ferni in: what Ferni starts holds until the Focus ends (or its cap), by
+ * text, push or call. A reminder they timed goes unless they said not to; a reply, a code they
+ * asked for and anything in the app always go.
+ */
+function focusGate(i: Intent, ctx: PolicyCtx): Decision | null {
+  const f = ctx.focus;
+  if (!f || i.recipient !== 'owner' || ctx.now.getTime() >= f.capUntil.getTime()) return null;
+  if (i.channel === 'in_app' || i.kind === 'reply' || userCode(i)) return null;
+  const held = ownerTimed(i) ? !f.remindersThrough : isProactive(i);
+  return held ? hold('focus-hold', f.capUntil) : null;
+}
+
 /** 5. Quiet hours and their windows; a time the owner chose, a user's code and a live reply go. */
 function timeGate(i: Intent, ctx: PolicyCtx): Decision | null {
   if (i.channel === 'in_app' || i.kind === 'reply' || ownerTimed(i) || userCode(i)) return null;
@@ -281,6 +294,7 @@ export const GATES: ReadonlyArray<readonly [string, Gate]> = [
   ['consent', consentGate],
   ['texts-off', textsOffGate],
   ['crisis', crisisGate],
+  ['focus', focusGate],
   ['quiet-hours', timeGate],
   ['dedupe', dedupeGate],
   ['gap', gapGate],

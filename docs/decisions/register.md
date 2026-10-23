@@ -21,25 +21,29 @@ runs. On a pull request that job runs only tests whose imports reach a changed
 file, and these rules read Swift, CSS and JSON as text, so a PR that breaks
 one hears about it in the queue rather than at PR time.
 
-## D1. Eyelid caps take the page colour
+## D1. Eyelid caps are white (ivory in dark mode)
 
-- **Decision:** the avatar's lids are filled with the page background colour,
-  never a shade of the face. The light lid dropping over the eyes is the "cap"
-  that carries the expression.
-- **Decided:** Seth, 2026-10-11 (restored in #995).
-- **Why:** a face-coloured lid cuts a crescent out of the avatar and the
-  expression disappears. On 2026-10-20 the iOS avatar copied a dead web CSS
-  rule that used a face shade and lost the caps.
+- **Decision:** the avatar's lid caps are pure white #FFFFFF in light mode
+  and warm ivory #E6DFD4 in dark mode. They are never the page or room
+  colour, and never a shade of the face. The caps are domes over the top and
+  bottom of the head, as on the web, and the light lid dropping over the eyes
+  carries the expression.
+- **Decided:** Seth, 2026-10-23 (web #2550). This replaces the 2026-10-11
+  call (#995) that the caps take the page colour.
+- **Why:** a page-coloured cap vanishes in dark mode (the 10-23 device build
+  read as transparent), and a face-coloured lid cuts a crescent out of the
+  avatar so the expression disappears (the iOS regression of 2026-10-20).
+  Seth found pure white too bright in dark mode, hence ivory.
 - **Enforcement:**
-  - web: existing test `apps/web/tests/ui/avatar-motion/lid-colour.test.ts`
-    (PR #2464): `inline-styles.css` fills `.lid-top`/`.lid-bottom` with
-    `var(--color-background-primary`, and no other stylesheet sets a lid fill.
-  - iOS window avatar: rule `lid-caps-ios-window`. The `WindowMask` lid fill
-    in `FerniWindowAvatar.swift` resolves to `FerniColor.background`.
-  - iOS Alive shader: pending `lid-caps-ios-alive`. `AliveShader.swift` is on
-    the iOS landing train, not on main, and still draws the caps "in a darker
-    shade of the face". The fix rides the train; turn the to-do into a rule
-    when it lands.
+  - web: existing test `apps/web/tests/ui/avatar-motion/lid-colour.test.ts`:
+    `inline-styles.css` fills `.lid-top`/`.lid-bottom` with `#ffffff`, the
+    midnight theme with an ivory in a set luminance band (0.6 to 0.95), the
+    lid paths are white without a stylesheet, and the injected expression
+    styles set no lid fill.
+  - iOS: pending `lid-caps-ios-alive`. On main the canvas avatar clips its
+    lids and draws no caps. The white and ivory domes ride the iOS landing
+    train in the Alive renderer (`AliveShader.swift`); turn the to-do into a
+    rule when they land.
 - **Scope:** web, iOS.
 
 ## D2. No "AI" in user-facing labels, and no on-screen AI notice
