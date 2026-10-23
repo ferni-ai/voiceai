@@ -9,7 +9,7 @@
  *
  * - Only the most recently started load sets or clears the mark, so a slow failing load can't
  *   mark a key after a newer one succeeded, and a slow success can't clear a newer failure.
- * - The mark affects only setImmediate here: get()/load() and their cache behave as before.
+ * - While marked, a cached copy isn't authoritative: get()/load() reload it, with backoff.
  * - A write that doesn't depend on a read (a new OAuth grant replacing tokens, keys merged into
  *   a map) passes `{ safeWithoutRead: true }` and is never refused.
  *
@@ -36,6 +36,9 @@ export interface WriteOptions {
   safeWithoutRead?: boolean;
 }
 
+const RETRY_BASE_MS = 1_000;
+const RETRY_MAX_MS = 60_000;
+
 export function readGuard(collection: string, now: () => number = () => Date.now()) {
   let generation = 0;
   const latest = new Map<string, number>(); // key -> generation of the latest load started
@@ -56,6 +59,13 @@ export function readGuard(collection: string, now: () => number = () => Date.now
     },
     failed(key: string): boolean {
       return marks.has(key);
+    },
+    /** Marked, and the backoff since the last failed load has passed: read again, not the cache. */
+    reloadDue(key: string): boolean {
+      const mark = marks.get(key);
+      if (!mark) return false;
+      const wait = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** (mark.failures - 1));
+      return now() - mark.at >= wait;
     },
     /** True when this write must not happen (logged). */
     refuses(key: string, options?: WriteOptions): boolean {

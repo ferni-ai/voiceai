@@ -309,7 +309,8 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   // Load from Firestore
   const load = async (userId: string, options?: LoadOptions): Promise<T | null> => {
     // Check cache first
-    if (cache.has(userId) && (!options?.fresh || dirty.has(userId))) {
+    const cached = cache.has(userId) && (!options?.fresh || dirty.has(userId));
+    if (cached && !guard.reloadDue(userId)) {
       return cache.get(userId)!;
     }
 
@@ -341,7 +342,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 
   const store: PersistenceStore<T> = {
     get: async (userId: string) => {
-      if (cache.has(userId)) {
+      if (cache.has(userId) && !guard.reloadDue(userId)) {
         return cache.get(userId)!;
       }
       return load(userId);
