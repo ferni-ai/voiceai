@@ -25,6 +25,8 @@ const log = createLogger({ module: 'forget-topics' });
 export const TOPICS_TTL_MS = 15_000;
 /** A reader waits this long for a read, then falls back. */
 export const READ_TIMEOUT_MS = 300;
+/** A read still pending after this has hung: it counts as failed, so the next reader reads again. */
+export const READ_HANG_MS = 5_000;
 export const BACKOFF_MIN_MS = 1_000;
 export const BACKOFF_MAX_MS = 60_000;
 /** Last-known topics older than this, and not read during this call, are not a source. */
@@ -89,7 +91,12 @@ export function readTopics(userId: string, force = false): Promise<string[] | nu
   }
   const gen = forgetGeneration(userId);
   stats.reads++;
-  const read = forgottenTopicsOrNull(userId).then((topics) => {
+  let hung: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    hung = setTimeout(() => resolve(null), READ_HANG_MS);
+  });
+  const read = Promise.race([forgottenTopicsOrNull(userId), late]).then((topics) => {
+    clearTimeout(hung);
     if (topics) {
       Object.assign(e, { topics, at: Date.now(), gen, failedAt: undefined, backoffMs: undefined });
     } else {
@@ -110,6 +117,11 @@ export function readTopics(userId: string, force = false): Promise<string[] | nu
 /** A call for the caller starts now (agent setup): topics read from here on stay a source. */
 export function markCallStart(userId: string, now = Date.now()): void {
   callStarts.set(userId, now);
+}
+
+/** The call is over (its persona's teardown): its reads are no longer this call's. */
+export function endCallMark(userId: string, started?: number): void {
+  if (started === undefined || callStarts.get(userId) === started) callStarts.delete(userId);
 }
 
 /** The caller's known names (lower case): people and pets in their memory; replaces the last set. */

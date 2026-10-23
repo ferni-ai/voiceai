@@ -37,7 +37,8 @@ export function foldText(text: string): string {
  */
 export function foldedWords(text: string): Array<{ word: string; plain: boolean }> {
   const joined = foldCase(text).replace(/(\d)[\s().-]+(?=\d)/g, '$1');
-  const words = joined.match(/[A-Za-z0-9][A-Za-z0-9']*/g) ?? [];
+  // Any script: Unicode letters and digits, lower-cased by locale-free toLowerCase.
+  const words = joined.match(/[\p{L}\p{N}][\p{L}\p{N}']*/gu) ?? [];
   return words.map((w) => {
     const word = w.toLowerCase().replace(/'s$/, '').replace(/'/g, '');
     return { word, plain: /^[A-Z]/.test(w) || word.length <= 4 };

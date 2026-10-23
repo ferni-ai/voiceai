@@ -80,11 +80,16 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
             .limit(100)
             .get();
 
+      // Never quote a commitment about a topic they asked Ferni to forget (commitment-forget.ts).
+      const { commitmentsShown } = await import('../../services/superhuman/commitment-forget.js');
+      const shownFor = new Map<string, Awaited<ReturnType<typeof commitmentsShown>>>();
       for (const doc of commitmentsSnap.docs) {
         try {
           const commitment = doc.data();
           const userId = doc.ref.parent.parent?.id;
           if (!userId) continue;
+          if (!shownFor.has(userId)) shownFor.set(userId, await commitmentsShown(userId));
+          if (!shownFor.get(userId)?.(commitment)) continue;
 
           const { getOutreachOrchestrator } =
             await import('../../services/outreach/outreach-orchestrator.js');
@@ -156,7 +161,7 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
         try {
           const milestones = await getMilestonesToCelebrate(userDoc.id);
 
-          for (const milestone of milestones.slice(0, 1)) {
+          for (const milestone of await celebratable(userDoc.id, milestones.slice(0, 1))) {
             const { getOutreachOrchestrator } =
               await import('../../services/outreach/outreach-orchestrator.js');
             const orchestrator = getOutreachOrchestrator();
@@ -203,6 +208,16 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
       timestamp: new Date().toISOString(),
     });
   }
+}
+
+/** FORGET_EVERY_READER: the milestones not about a forgotten topic (none when unreadable). */
+async function celebratable<M extends { label: string; celebrationSuggestion: string }>(
+  userId: string,
+  milestones: M[]
+): Promise<M[]> {
+  const { forgottenCheck } = await import('../../memory/index.js');
+  const forgotten = await forgottenCheck(userId, 'celebration');
+  return milestones.filter((m) => !forgotten?.(`${m.label} ${m.celebrationSuggestion}`));
 }
 
 /**

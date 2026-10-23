@@ -12,6 +12,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
+import { insightMessage } from './insight-messages.js';
 
 const log = createLogger({ module: 'insight-action-bridge' });
 
@@ -453,32 +454,6 @@ export async function isOnCooldown(
 }
 
 /**
- * Generate message content based on template and insight data
- */
-function generateMessageFromTemplate(template: string, insight: SuperhumanInsight): string {
-  // Template-based message generation with fallbacks
-  const messages: Record<string, string> = {
-    burnout_prevention: `Hey, I've been thinking about you. It seems like you've been carrying a lot lately. How are you really doing?`,
-    relationship_reconnect: `I noticed it's been a while since you mentioned ${insight.data?.relationshipName || 'that important person'}. Just wanted to check in - want to reconnect with them?`,
-    dream_revival: `Remember when you talked about ${insight.data?.dreamDescription || 'that dream of yours'}? I've been thinking about it. Still calling to you?`,
-    commitment_reminder: `Just checking in on those things you said you'd do. How's it going? ${insight.overdueCommitments?.[0] ? `(Like: ${insight.overdueCommitments[0]})` : ''}`,
-    habit_streak_rescue: `Hey! Your ${insight.habitName || 'habit'} streak is at ${insight.habitStreak || 'a great number'} days! Let's keep it going today.`,
-    mood_support: `I've noticed things might feel heavier lately. I'm here whenever you want to talk.`,
-    crisis_support: `I'm here. Whatever you're going through, you don't have to face it alone. Want to talk?`,
-    pattern_celebration: `Something cool I noticed: ${insight.patternDetected || 'a positive pattern forming'}. You're doing great!`,
-    milestone_reminder: `${insight.milestoneName || 'An important date'} is coming up in ${insight.daysUntilMilestone || 'a few'} days. Want to plan something special?`,
-    seasonal_reflection: `As the season shifts, I've been thinking about how things are going for you. A good time to reflect?`,
-    stress_support: `I could hear you might be carrying some stress. Take a breath. I'm here if you need me.`,
-    values_reflection: `I've noticed something that might be worth reflecting on - your recent actions vs what matters most to you. Want to explore that?`,
-    narrative_celebration: `You've reached a real milestone in your journey. That's worth celebrating!`,
-    predictive_support: `I have a feeling the next few days might be challenging. Just wanted you to know I'm here if you need support.`,
-    family_reminder: `It's been a bit since you connected with family. Might be a good time to reach out?`,
-  };
-
-  return messages[template] || `Hey, just thinking about you. How are things?`;
-}
-
-/**
  * Execute an action - integrates with actual outreach/notification systems
  */
 export async function executeAction(
@@ -508,7 +483,7 @@ export async function executeAction(
         const { getOutreachOrchestrator } = await import('../outreach/outreach-orchestrator.js');
         const orchestrator = getOutreachOrchestrator();
 
-        const message = generateMessageFromTemplate(rule.action.template || 'default', insight);
+        const message = await insightMessage(rule.action.template || 'default', insight);
 
         let sent = false;
 
@@ -572,7 +547,7 @@ export async function executeAction(
         const { getOutreachOrchestrator } = await import('../outreach/outreach-orchestrator.js');
         const orchestrator = getOutreachOrchestrator();
 
-        const message = generateMessageFromTemplate(rule.action.template || 'default', insight);
+        const message = await insightMessage(rule.action.template || 'default', insight);
 
         const result = await orchestrator.sendPushNotification(userId, message, {
           trigger: `notification_${rule.id}`,

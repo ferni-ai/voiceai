@@ -338,7 +338,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
-      forgotten.prefetchForgotten(services.userId), // FORGET_EVERY_READER: read it alongside
+      forgotten.prefetchForgotten(services.userId, forPersona), // FORGET_EVERY_READER
     ]);
     mark('load_prompts_done');
 

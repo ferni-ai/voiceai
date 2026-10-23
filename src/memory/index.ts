@@ -1283,7 +1283,7 @@ export default {
   rehydrateConversationEmbeddings,
 };
 export { forgottenInProcess, forgottenTopicsOrNull } from './recall/forget.js';
-export { keepRemembered, profileForCaller } from './recall/forget-every-reader.js';
+export { forgottenCheck, keepRemembered, profileForCaller } from './recall/forget-every-reader.js';
 export * from './recall/prompt-view.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';

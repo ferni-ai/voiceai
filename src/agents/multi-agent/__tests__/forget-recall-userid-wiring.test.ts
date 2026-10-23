@@ -7,7 +7,15 @@
 import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const spy = vi.hoisted(() => ({ sent: [] as unknown[][] }));
+const spy = vi.hoisted(() => ({ sent: [] as unknown[][], ended: [] as unknown[] }));
+
+vi.mock('../../../memory/recall/forget-every-reader.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  // The teardown agent setup hands the prefetch: the call mark ends with the persona.
+  prefetchForgotten: vi.fn((userId: unknown, teardown?: (fn: () => void) => void) => {
+    teardown?.(() => spy.ended.push(userId));
+  }),
+}));
 
 vi.mock('../memory-recall-hook.js', async (importOriginal) => ({
   ...(await importOriginal<Record<string, unknown>>()),
@@ -61,13 +69,14 @@ describe('setupPersonaAgent → the recall listener', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     spy.sent.length = 0;
+    spy.ended.length = 0;
   });
 
   it('passes the caller id to sendRecall on every transcript, note or not', async () => {
     vi.stubEnv('THEORY_OF_MIND', 'off');
     vi.stubEnv('TURN_INTELLIGENCE', 'off');
     const callSession = Object.assign(new EventEmitter(), { say: () => undefined });
-    await setupPersonaAgent({
+    const setup = await setupPersonaAgent({
       persona: { id: 'ferni', name: 'Ferni', displayName: 'Ferni' },
       ctx: {},
       room: {
@@ -89,5 +98,8 @@ describe('setupPersonaAgent → the recall listener', () => {
     expect(spy.sent[0]![3]).toBeNull(); // no note this turn
     expect(spy.sent[0]![4]).toBe('hi there'); // said (PREEMPT_STABLE_CONTEXT)
     expect(spy.sent[0]![5]).toBe('member-recall-wiring');
+    expect(spy.ended).toEqual([]);
+    await setup.cleanup(); // the persona's teardown ends the call mark
+    expect(spy.ended).toEqual(['member-recall-wiring']);
   }, 60_000);
 });

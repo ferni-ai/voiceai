@@ -118,9 +118,9 @@ afterEach(() => {
 
 describe('commitmentsShown', () => {
   it('reads every field that says who or what', () => {
-    expect(forgetText({ statement: 'call your sister', person: 'Mindy', quote: 'q', x: 'no' })).toBe(
-      'call your sister q Mindy'
-    );
+    expect(
+      forgetText({ statement: 'call your sister', person: 'Mindy', quote: 'q', x: 'no' })
+    ).toBe('call your sister q Mindy');
   });
 
   it('hides a forgotten topic or person, shows the rest, and shows nothing blind', async () => {
@@ -160,5 +160,20 @@ describe.each(Object.entries(READERS))('%s', (_name, read) => {
     h.forgotten = [];
     expect((await read(uid)).length).toBeGreaterThan(0);
     expect((await read(uid)).some((s) => /sister/i.test(s))).toBe(true);
+  });
+});
+
+describe('a forget list that never loads', () => {
+  it('shows nothing, within the bound, instead of holding the reader', async () => {
+    vi.useFakeTimers();
+    try {
+      const { commitmentsShown, SHOWN_TIMEOUT_MS } = await import('../commitment-forget.js');
+      const pending = commitmentsShown('member-hang', () => new Promise(() => undefined));
+      await vi.advanceTimersByTimeAsync(SHOWN_TIMEOUT_MS);
+      const shown = await pending;
+      expect(shown({ statement: 'send the resume to Dana' })).toBe(false); // closed
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

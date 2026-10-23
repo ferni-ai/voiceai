@@ -39,6 +39,9 @@ export function forgetText(d: Record<string, unknown>): string {
 
 export type ForgottenLoader = (userId: string) => Promise<string[] | null>;
 
+/** A forget list not loaded by then counts as unreadable: nothing is shown, nothing waits on it. */
+export const SHOWN_TIMEOUT_MS = 3_000;
+
 /**
  * Which of this person's stored commitments may be shown: none about a topic
  * they asked Ferni to forget, and none at all when that list can't be read.
@@ -48,7 +51,12 @@ export async function commitmentsShown(
   userId: string,
   forgotten: ForgottenLoader = forgottenTopicsOrNull
 ): Promise<(d: Record<string, unknown>) => boolean> {
-  const topics = await forgotten(userId).catch(() => null);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), SHOWN_TIMEOUT_MS);
+  });
+  const topics = await Promise.race([forgotten(userId).catch(() => null), late]);
+  clearTimeout(timer);
   if (topics === null) return () => false;
   return (d) => !isForgotten(forgetText(d), topics);
 }
