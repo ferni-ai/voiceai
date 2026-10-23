@@ -12,9 +12,15 @@
  * Some tools are never removed, whatever a manifest says: handoffs and team
  * tools (a persona must always be able to pass the caller on), every tool in
  * the crisis, trauma-support, human-transfer, presence and sobriety domains,
- * the privacy controls (forget and correct a memory), softTeamIntro and
- * endCall. A manifest that forbids one gets a warning (once per persona per
- * process) and that entry is not applied.
+ * five wellbeing-support tools outside them, the privacy controls (forget and
+ * correct a memory), softTeamIntro and endCall. A manifest that forbids one
+ * gets a warning (once per persona per process) and that entry is not applied.
+ *
+ * Protection is decided by name (PROTECTED_TOOL_NAMES), not by what the tool
+ * registry has loaded: the forbidden list is worked out once, at call start,
+ * when the crisis domain is not loaded yet. A protected-domain tool the list
+ * doesn't name yet is protected once registered, and the orchestrator checks
+ * again where it applies forceExclude (tool-orchestrator.ts).
  *
  * No manifest has an allow-list today (`domains`, `required` and `optional`
  * add tools, they don't restrict), so there is none to apply.
@@ -48,12 +54,62 @@ const NEVER_FORBIDDEN = new Set([
  */
 const PROTECTED_DOMAINS = new Set([...SAFETY_DOMAINS, 'sobriety']);
 
-/** Whether no persona policy may remove this tool. */
+/**
+ * Protected by name, known before the registry loads anything: every tool whose
+ * primary domain is in PROTECTED_DOMAINS (persona-tool-policy-protection.test.ts
+ * fails when the registry and this list differ), and wellbeing support outside
+ * them. Not protected: habitCheckIn (a habit-streak report) and
+ * checkInOnWellbeing (a survey of how someone feels about their finances).
+ */
+export const PROTECTED_TOOL_NAMES: ReadonlySet<string> = new Set([
+  // crisis
+  'createSafetyPlan',
+  'deEscalateAnxiety',
+  'findFinancialAssistance',
+  'findSafeResources',
+  'guideGroundingExercise',
+  'provideCrisisResources',
+  'supportRecoveryJourney',
+  'trackSobrietyMilestone',
+  // trauma-support
+  'groundingForTrauma',
+  'postTraumaticGrowth',
+  'selfCompassionTrauma',
+  'somaticSupport',
+  'traumaResponses',
+  'triggerAwareness',
+  'windowOfTolerance',
+  // human-transfer
+  'connectToHumanExpert',
+  'evaluateHumanTransfer',
+  'quickCrisisResources',
+  // presence
+  'breatheWithMe',
+  'groundingExercise',
+  'naturePrescription',
+  'noticeThisMoment',
+  'protectPresence',
+  // sobriety
+  'cravingSupport',
+  'soberSocializing',
+  'sobrietyCheckin',
+  'sobrietyGrief',
+  // wellbeing support: emotional support, a safe space, postpartum mental
+  // health, a wellness check, and medication doses due
+  'createSafeSpace',
+  'emotionalSupport',
+  'medicationCheckIn',
+  'postpartumCheckin',
+  'wellnessCheckin',
+]);
+
+/** Whether no persona policy may remove this tool. Names match exactly. */
 export function isProtectedTool(name: string): boolean {
   return (
     NEVER_FORBIDDEN.has(name) ||
+    PROTECTED_TOOL_NAMES.has(name) ||
     isTeammateTool(name) ||
-    PROTECTED_DOMAINS.has(toolRegistry.get(name)?.domain ?? '')
+    PROTECTED_DOMAINS.has(toolRegistry.get(name)?.domain ?? '') // a tool not named above yet
   );
 }
 
