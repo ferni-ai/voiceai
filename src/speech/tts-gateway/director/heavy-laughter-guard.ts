@@ -12,6 +12,10 @@
  * [laughter], and a written laugh opening the reply ("Haha, oh no.") goes
  * too. Otherwise the text passes through exactly as before.
  *
+ * LAUGH_CAP (agents/personas/laugh-ledger.ts, the turn's `laughGate`): a
+ * reply the call's ledger says may not laugh loses its laugh cues the same
+ * way, and a laugh that does reach the voice is recorded there.
+ *
  * Runs in every Director mode but off, shadow included: it is a harm fix, not
  * a plan. A cue split across chunks ("[laugh" + "s]") is held until it
  * closes; never throws (a text-stream error cancels the reply).
@@ -28,7 +32,7 @@ import {
   recentCallerTurns,
 } from '../../adaptive-ssml/heavy-moment.js';
 import type { RawCues } from './raw-cues.js';
-import type { TurnContext } from './types.js';
+import type { LaughGate, TurnContext } from './types.js';
 
 const log = createLogger({ module: 'HeavyLaughterGuard' });
 
@@ -44,7 +48,7 @@ const OPEN_TAIL = /[[*(][^\]*)]{0,24}$/;
 
 export interface GuardOptions {
   sessionId?: string;
-  turnContext?: Pick<TurnContext, 'userRequest' | 'turnNumber'>;
+  turnContext?: Pick<TurnContext, 'userRequest' | 'turnNumber' | 'laughGate'>;
 }
 
 /** Whether this reply answers a heavy moment: the caller's turn noted, then their last two read. */
@@ -68,9 +72,26 @@ export function withoutLeadingLaugh(text: string): string {
   return m[1] + rest.charAt(0).toUpperCase() + rest.slice(1);
 }
 
+/** LAUGH_CAP: whether the ledger lets this reply laugh, counting the reply; true if it fails. */
+function capMayLaugh(gate: LaughGate, opts: GuardOptions): boolean {
+  const said = opts.turnContext?.userRequest;
+  try {
+    return gate.beginReply(said, `${opts.turnContext?.turnNumber ?? ''}|${said}`);
+  } catch (err) {
+    log.warn({ err: String(err), sessionId: opts.sessionId }, 'laugh ledger failed');
+    return true;
+  }
+}
+
+/** Whether `text`, the reply so far, has a laugh in it: a cue anywhere or a written one opening it. */
+function laughIn(text: string): boolean {
+  return text.search(LAUGH_CUE) >= 0 || (FIRST_WORD.test(text) && LEADING_LAUGH.test(text));
+}
+
 /**
  * The reply's raw text stream, seen by `cues` (raw-cues.ts) as before; on a
- * heavy moment with every laugh cue taken out first.
+ * heavy moment, or a reply LAUGH_CAP keeps from laughing, with every laugh cue
+ * taken out first.
  */
 export function laughterGuard(opts: GuardOptions, cues: RawCues): TransformStream<string, string> {
   let heavy = false;
@@ -79,6 +100,10 @@ export function laughterGuard(opts: GuardOptions, cues: RawCues): TransformStrea
   } catch (err) {
     log.warn({ err: String(err), sessionId: opts.sessionId }, 'heavy-moment check failed');
   }
+  // Decided at the first words: an opening clip plays only before any reach the voice.
+  const gate = opts.turnContext?.laughGate;
+  let strip: boolean | undefined = gate ? undefined : heavy;
+  let seen: string | null = gate ? '' : null;
   let held = '';
   let opening = true;
   const pass = (text: string, controller: TransformStreamDefaultController<string>): void => {
@@ -87,7 +112,15 @@ export function laughterGuard(opts: GuardOptions, cues: RawCues): TransformStrea
   };
   return new TransformStream<string, string>({
     transform(chunk, controller) {
-      if (!heavy) return pass(chunk, controller);
+      // The ledger first: a heavy reply is still counted, and holds the laughs after it.
+      strip ??= (gate !== undefined && !capMayLaugh(gate, opts)) || heavy;
+      if (!strip) {
+        if (seen !== null && laughIn((seen += chunk))) {
+          seen = null;
+          gate?.laughed();
+        }
+        return pass(chunk, controller);
+      }
       let text = held + chunk;
       if (opening) {
         held = text;

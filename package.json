@@ -384,6 +384,7 @@
     "flags:new": "npx tsx scripts/flags/new-flag.ts",
     "flags:dump": "npx tsx scripts/flags/dump.ts",
     "flags:move": "npx tsx scripts/flags/move-to-files.ts",
+    "flags:migrate": "npx tsx scripts/flags/migrate-branch.ts",
     "flags:enable-all": "npx tsx apps/cli/src/commands/jobs/enable-all-flags.ts",
     "flags:report": "npx tsx apps/cli/src/commands/jobs/enable-all-flags.ts --report",
     "flags:reset": "npx tsx apps/cli/src/commands/jobs/enable-all-flags.ts --reset",

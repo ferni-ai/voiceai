@@ -94,6 +94,36 @@ describe('self-answer', () => {
   });
 });
 
+describe("self-answer: a state report to its own how's-your-evening ask (dev 1cf4bd64b facts-recall)", () => {
+  const evening = (reply, said = "Hey Ferni, it's me again.") =>
+    call(["a: Hey Sam, how's your evening going?", `u: ${said}`, `a: ${reply}`], { priorCalls: 1 });
+  it.each([
+    'Pretty good, just winding down.', // m1: the old ANSWER list had no "pretty good"
+    "My evening's been quiet, just winding down.", // m3
+    'Not bad, just winding down. Long day?',
+    "Just winding down, honestly. It's been a slow one.",
+  ])('flags %j', (reply) => {
+    expect(hits('self-answer', evening(reply))).toHaveLength(1);
+  });
+  it('passes "Pretty good! How about you?" when the CALLER asked first', () => {
+    expect(hits('self-answer', evening('Pretty good! How about you?', "Hey Ferni! How's yours?"))).toEqual([]); // prettier-ignore
+  });
+  it('passes a reply that turns to the caller', () => {
+    expect(hits('self-answer', evening('Good to hear your voice. So, how was it?'))).toEqual([]);
+  });
+  it('passes "not bad" when the ask was not about their day', () => {
+    const c = call(
+      [
+        'a: Hey Sam, did you end up mailing that application?',
+        "u: Hey Ferni, it's me again.",
+        'a: Not bad timing, I was just thinking about that.',
+      ],
+      { priorCalls: 1 }
+    );
+    expect(hits('self-answer', c)).toEqual([]);
+  });
+});
+
 describe('shared-past-first-call', () => {
   it('flags "again?" to a first-time caller (prod 374dfd00b, 5 of 16)', () => {
     expect(
