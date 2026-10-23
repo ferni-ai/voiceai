@@ -136,11 +136,6 @@ import { getContextManager, removeContextManager } from '../../context/index.js'
 import {
   buildSpeechContext,
   getSessionWPMTracker,
-  tagAdvice,
-  tagStory,
-  tagSupportResponse,
-  tagTextWithSsmlAdaptive,
-  tagWrapUp,
 } from '../../speech/index.js';
 
 // Local imports
@@ -1067,31 +1062,6 @@ export async function createSessionServices(
         personaSpeech,
         personaEnergy,
       });
-    },
-
-    tagWithSsml: (text: string) => {
-      const speechContext = services.getSpeechContext(text);
-      const state = stateMachine.getState();
-      const textLower = text.toLowerCase();
-
-      const storyPatterns =
-        /\b(i remember|back in|when i was|years ago|one time|there was|let me tell you|i'll never forget|i once|my father|back at the firm|in 1987|in 2008)\b/i;
-      const isStory = storyPatterns.test(textLower);
-
-      if (isStory) {
-        return tagStory(text, speechContext, personaId);
-      }
-
-      switch (state.phase) {
-        case 'supporting':
-          return tagSupportResponse(text, speechContext, personaId);
-        case 'advising':
-          return tagAdvice(text, speechContext, personaId);
-        case 'wrapping_up':
-          return tagWrapUp(text, speechContext, personaId);
-        default:
-          return tagTextWithSsmlAdaptive(text, speechContext, personaId);
-      }
     },
 
     // ========================================================================
