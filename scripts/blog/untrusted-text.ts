@@ -1,5 +1,5 @@
 /**
- * Input hardening. Posts publish with no person reviewing them and the repo is
+ * Input hardening. Developer posts publish with no person reviewing them and the repo is
  * public, so text the drafter didn't write is data, never instructions:
  * - Only PRs by org members or collaborators are read (`trustedAuthor`).
  * - PR titles and bodies lose every URL, all HTML and template tags before
