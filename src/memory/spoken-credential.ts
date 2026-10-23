@@ -37,7 +37,8 @@ export type CredentialCategory =
   | 'security-answer'
   | 'one-time-code'
   | 'combination'
-  | 'id-number';
+  | 'id-number'
+  | 'api-key';
 
 export function spokenCredentialFilterOn(env: Env = process.env): boolean {
   return flagOn('SPOKEN_CREDENTIAL_FILTER', env);
