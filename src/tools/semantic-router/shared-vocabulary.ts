@@ -11,7 +11,7 @@
  *
  * @module tools/semantic-router/shared-vocabulary
  */
-import { saysPhrase } from '../../utils/safety-whole-word.js';
+import { saysRiskPhrase } from '../../utils/safety-whole-word.js';
 
 // ============================================================================
 // RELATIONSHIP VOCABULARY
@@ -601,9 +601,9 @@ export function detectEmotionalState(text: string): {
   const normalized = text.toLowerCase();
 
   // Check crisis first (highest priority)
-  // Crisis terms: substring, or whole words with EARLY_WARNING_STT_FORMS=on
+  // Crisis terms: substring, or recall-first with SAFETY_WHOLE_WORD_SITES=on
   for (const term of EMOTIONAL_VOCABULARY.crisis.terms) {
-    if (saysPhrase(normalized, term.toLowerCase())) {
+    if (saysRiskPhrase(normalized, term.toLowerCase())) {
       return {
         found: true,
         type: 'crisis',

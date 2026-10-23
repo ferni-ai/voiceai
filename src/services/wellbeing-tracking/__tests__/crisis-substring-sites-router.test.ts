@@ -9,6 +9,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { detectEmotionalState } from '../../../tools/semantic-router/shared-vocabulary.js';
+import { riskCorpus } from './crisis-corpus.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -22,9 +23,14 @@ describe('semantic-router detectEmotionalState (crisis valence, critical)', () =
   const type = (m: string) => detectEmotionalState(m)?.type;
   const CASES: Case[] = [
     ['I actually did send it Wednesday', 'I just want to end it'],
-    ['I want to diet before summer', 'I want to die'],
-    ['I cant go online right now', 'i cant go on'],
   ];
+  // Crisis terms read recall-first: a phrase that starts at a word edge counts
+  // however the word ends, so these stay crisis (accepted false positives).
+  const REOPENED = ['I want to diet before summer', 'I cant go online right now'];
+  it.each(REOPENED)('on: %j stays crisis, as with the flag off', (line) => {
+    flag('on');
+    expect(type(line)).toBe('crisis');
+  });
   it.each(CASES)('off: %j is crisis, as today', (everyday) => {
     flag('off');
     expect(type(everyday)).toBe('crisis');
@@ -50,5 +56,28 @@ describe('shadow and the flag split', () => {
   it('the STT forms flag alone leaves every site as it is', () => {
     vi.stubEnv('EARLY_WARNING_STT_FORMS', 'on');
     expect(detectEmotionalState('I actually did send it')?.type).toBe('crisis');
+  });
+});
+
+describe('recall: crisis terms never read less risk than the substring check', () => {
+  it.each([
+    'my suicidality is back',
+    'I am a self-harmer',
+    'it was self-harmful',
+    'I have been thinking about selfharm',
+    "I'm not suicidal or anything, but I did write out my final wishes and passwords",
+  ])('on: %j is crisis', (line) => {
+    flag('on');
+    expect(detectEmotionalState(line)?.type).toBe('crisis');
+  });
+  it('corpus: no real-risk fixture line that is crisis off drops below crisis on', () => {
+    const drops: string[] = [];
+    for (const line of riskCorpus()) {
+      flag('off');
+      const off = detectEmotionalState(line)?.type === 'crisis';
+      flag('on');
+      if (off && detectEmotionalState(line)?.type !== 'crisis') drops.push(line);
+    }
+    expect(drops).toEqual([]);
   });
 });
