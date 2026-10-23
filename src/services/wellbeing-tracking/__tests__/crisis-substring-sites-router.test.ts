@@ -1,15 +1,19 @@
 /**
  * semantic-router detectEmotionalState (shared-vocabulary.ts) matched crisis
  * terms as bare substrings. With SAFETY_WHOLE_WORD_SITES=on it reads them
- * through phraseHit (#2645): a hit is crisis, as before, and STT spellings and
- * suffixed forms now count too; a term found only inside a listed everyday
- * word ("send it", "diet", "online") is 'soft' and steps down to sad
- * (negative, medium urgency). It is never dropped. The router's context boost
- * (matcher.ts) is tested in crisis-context-boost-whole-word.test.ts.
+ * through saysRiskPhrase (#2645): STT spellings and suffixed forms now count
+ * too, and a term found only inside a listed everyday word ("send it", "diet",
+ * "online") is 'soft', which still counts as crisis. A crisis reading drives
+ * analyzeHolisticContext's overallUrgency 'critical' and sentiment 'crisis', so
+ * the flag never reads lower than main. The router's context boost (matcher.ts)
+ * is tested in crisis-context-boost-whole-word.test.ts.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { detectEmotionalState } from '../../../tools/semantic-router/shared-vocabulary.js';
+import {
+  analyzeHolisticContext,
+  detectEmotionalState,
+} from '../../../tools/semantic-router/shared-vocabulary.js';
 import { riskCorpus } from './crisis-corpus.js';
 
 afterEach(() => {
@@ -29,15 +33,25 @@ const SOFT = [
   "i'll send it all to my sister before i go",
 ];
 
-describe('detectEmotionalState: a soft crisis term steps down to sad, never dropped', () => {
+describe('detectEmotionalState: a soft crisis term stays crisis, as with the flag off', () => {
   it.each(SOFT)('off: %j is crisis, as today', (line) => {
     flag('off');
     expect(read(line)).toBe('crisis|critical');
   });
-  it.each(SOFT)('on: %j is sad (negative, medium)', (line) => {
+  it.each(SOFT)('on: %j is crisis (a soft match never lowers)', (line) => {
     flag('on');
-    expect(read(line)).toBe('sad|medium');
-    expect(detectEmotionalState(line)?.valence).toBe('negative');
+    expect(read(line)).toBe('crisis|critical');
+    expect(detectEmotionalState(line)?.valence).toBe('crisis');
+  });
+  it.each(SOFT)('on: analyzeHolisticContext(%j) reads as with the flag off', (line) => {
+    flag('off');
+    const off = analyzeHolisticContext(line);
+    flag('on');
+    const on = analyzeHolisticContext(line);
+    expect(on.overallUrgency).toBe('critical');
+    expect(on.sentiment).toBe('crisis');
+    expect([on.overallUrgency, on.sentiment]).toEqual([off.overallUrgency, off.sentiment]);
+    expect([...on.domainBoosts]).toEqual([...off.domainBoosts]);
   });
   it('on: a hit anywhere in the line wins over a soft match', () => {
     flag('on');
@@ -72,16 +86,14 @@ describe('detectEmotionalState: real crisis lines stay crisis', () => {
 });
 
 describe('corpus: every real-risk line', () => {
-  it('on: a line that is crisis off is crisis or (soft) sad on, never lower', () => {
+  it('on: a line that is crisis off is crisis on', () => {
     const lowered: string[] = [];
     for (const line of riskCorpus()) {
       flag('off');
       const off = read(line);
       flag('on');
       const on = read(line);
-      if (off === 'crisis|critical' && on !== 'crisis|critical' && on !== 'sad|medium') {
-        lowered.push(`${line}: ${on}`);
-      }
+      if (off === 'crisis|critical' && on !== 'crisis|critical') lowered.push(`${line}: ${on}`);
     }
     expect(lowered).toEqual([]);
   });

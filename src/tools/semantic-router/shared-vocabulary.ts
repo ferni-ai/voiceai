@@ -11,7 +11,7 @@
  *
  * @module tools/semantic-router/shared-vocabulary
  */
-import { phraseHit } from '../../utils/safety-whole-word.js';
+import { saysRiskPhrase } from '../../utils/safety-whole-word.js';
 
 // ============================================================================
 // RELATIONSHIP VOCABULARY
@@ -600,15 +600,19 @@ export function detectEmotionalState(text: string): {
 } | null {
   const normalized = text.toLowerCase();
 
-  // Crisis first. SAFETY_WHOLE_WORD_SITES=on: a term found only inside an everyday
-  // word ("send it", 'soft') steps down to sad (negative, medium), never dropped.
-  const crisis = EMOTIONAL_VOCABULARY.crisis.terms.map((t) =>
-    phraseHit(normalized, t.toLowerCase())
-  );
-  const top = crisis.includes('hit') ? 'crisis' : crisis.includes('soft') ? 'sad' : null;
-  if (top) {
-    const { weight, valence, urgency, boostDomains } = EMOTIONAL_VOCABULARY[top];
-    return { found: true, type: top, weight, valence, urgency, boostDomains };
+  // Check crisis first (highest priority)
+  // Crisis terms: substring, or recall-first with SAFETY_WHOLE_WORD_SITES=on
+  for (const term of EMOTIONAL_VOCABULARY.crisis.terms) {
+    if (saysRiskPhrase(normalized, term.toLowerCase())) {
+      return {
+        found: true,
+        type: 'crisis',
+        weight: EMOTIONAL_VOCABULARY.crisis.weight,
+        valence: EMOTIONAL_VOCABULARY.crisis.valence,
+        urgency: EMOTIONAL_VOCABULARY.crisis.urgency,
+        boostDomains: EMOTIONAL_VOCABULARY.crisis.boostDomains,
+      };
+    }
   }
 
   // Check other emotions - use word boundary matching to prevent false positives
