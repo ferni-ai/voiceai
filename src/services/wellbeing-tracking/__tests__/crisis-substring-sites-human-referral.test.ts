@@ -66,6 +66,12 @@ describe('principal-alignment analyzeReferralNeed (immediate = crisis line)', ()
     flag('on');
     expect(urgency('I don’t want to live')).toBe('immediate');
   });
+  it('shadow: decides as off where on differs', () => {
+    flag('shadow');
+    expect(urgency('I don’t want to live')).toBe('low');
+    const r = analyzeReferralNeed('I don’t want to live', { userId: 'u' });
+    expect(r.shouldRefer).toBe(false);
+  });
 });
 
 describe('recall: immediate and high triggers never read less than pattern.test', () => {
