@@ -36,19 +36,22 @@ const FAREWELL_SHAPE = new RegExp(
     String.raw`\b(?:nothing|none of (?:this|it)) matters?\b|\bdoes(?:n'?t| not) matter anymore\b`,
     String.raw`\b(?:go|gonna|going to|about to|finally) do it\b`,
     String.raw`\btake care of (?:\w+ ){1,3}for me\b`,
+    String.raw`\bit'?s (?:all )?over for me\b`,
   ].join('|'),
   'i'
 );
 
 /**
- * Words that also turn up in ordinary goodbyes ("love you forever, bye", "friends
- * for life! bye", "okay, it's time. bye", "bye! never."). They are no evidence
- * of risk, so they never escalate: taken out before hasRiskContent runs. A line
- * that has them besides its goodbye is still no clean sign-off, so it waits for
- * the turn's crisis read (Rule 1, wrap-up-window.ts), and a clean read ends it.
+ * Benign clauses that carry a hold-only word ("forever", "for life", "over")
+ * and turn up in ordinary goodbyes. Only these WHOLE clauses are taken out
+ * before hasRiskContent runs; every other hold-only word stays in the text for
+ * the risk check ("I'm leaving forever. bye", "it's over for me. bye"). "never"
+ * and "it's time" are not risk words to hasRiskContent, so "bye! never." and
+ * "okay, it's time. bye" need no entry. A line with any of them besides its
+ * goodbye is still no clean sign-off: it waits for the turn's crisis read
+ * (Rule 1, wrap-up-window.ts), and a clean read ends it.
  */
-const HOLD_ONLY_WORDS =
-  /\b(?:never(?: again)?|or not|no more|forever|for good|for life|it'?s (?:all )?over|it'?s time)\b/gi;
+const BENIGN_CLAUSES = new Set(['love you forever', 'friends for life', "the game's over"]);
 
 /** The goodbye words themselves, which hasRiskContent counts as risk on their own ("bye"). */
 const GOODBYE_WORDS =
@@ -136,12 +139,15 @@ export function stripWarmSymbols(text: string): string {
  * clause in another script never looks like a pleasantry; an empty clause is
  * not one either.
  */
-function goodbyeClause(clause: string): boolean {
-  const plain = fold(clause)
+const plainOf = (clause: string): string =>
+  fold(clause)
     .toLowerCase()
     .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+
+function goodbyeClause(clause: string): boolean {
+  const plain = plainOf(clause);
   return !!plain && (HANG_UP_CLAUSE.test(plain) || pleasantryClause(plain));
 }
 
@@ -149,7 +155,7 @@ const clausesOf = (line: string): string[] => line.split(/[.!?,;:、，。！？
 
 function withoutGoodbyeClauses(line: string): string {
   return clausesOf(line)
-    .filter((clause) => !goodbyeClause(clause))
+    .filter((clause) => !goodbyeClause(clause) && !BENIGN_CLAUSES.has(plainOf(clause)))
     .join(' ');
 }
 
@@ -174,7 +180,6 @@ export function farewellRisk(text: string): boolean {
   if (FAREWELL_SHAPE.test(fold(line))) return true;
   const rest = withoutGoodbyeClauses(warm)
     .replace(GOODBYE_WORDS, ' ')
-    .replace(HOLD_ONLY_WORDS, ' ')
     .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
     .trim();
   if (!rest) return false;

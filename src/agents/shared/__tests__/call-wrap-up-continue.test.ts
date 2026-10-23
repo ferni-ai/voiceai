@@ -707,6 +707,10 @@ describe('a clean sign-off only when every clause is a goodbye (#2523)', () => {
     'take care of mom for me. bye',
     'this is my last call. bye',
     "last time we'll talk, bye",
+    // a hold-only word outside its benign clause is still seen by the risk check
+    "I'm leaving forever. bye",
+    "it's over for me. bye",
+    'I want it over for good. bye',
   ])('"%s" stays open as a crisis hold, even on a clean read', async (line) => {
     const c = await lineThenFerniBye(line, 'none');
     expect(c.reopens()).toEqual(['1000 conversation_continue crisis_hold']);
