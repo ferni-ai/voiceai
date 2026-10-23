@@ -17,7 +17,7 @@
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
-import { writeIdentityDiagnostics, writeParticipantReady } from './startup-log.js';
+import { errorText, writeIdentityDiagnostics, writeParticipantReady } from './startup-log.js';
 import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
 import { injectUserAwareness } from './user-awareness-injection.js';
@@ -182,7 +182,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
   void import('../../tools/dynamic-loader/index.js')
     .then(({ ensureEssentialDomainsLoaded }) => ensureEssentialDomainsLoaded())
     .catch((error: unknown) =>
-      process.stderr.write(`[voice-agent-entry] Essential tool preload failed: ${String(error)}\n`)
+      process.stderr.write(`[voice-agent-entry] Essential tool preload failed: ${errorText(error)}\n`)
     );
 
   // Warm the directed-speech actor now so the greeting cue, a few seconds
@@ -470,7 +470,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
               }
             }
           } catch (calErr) {
-            process.stderr.write(`[voice-agent-entry] 📅 Calendar fetch failed (non-critical): ${String(calErr)}\n`);
+            process.stderr.write(`[voice-agent-entry] 📅 Calendar fetch failed (non-critical): ${errorText(calErr)}\n`);
           }
         })();
       }
@@ -487,7 +487,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
             cleanupHandlers.push(() => cleanupVoiceVerification(sessionId));
           }
         } catch (voiceVerifyErr) {
-          process.stderr.write(`[voice-agent-entry] ⚠️ Voice verification setup failed (non-fatal): ${String(voiceVerifyErr)}\n`);
+          process.stderr.write(`[voice-agent-entry] ⚠️ Voice verification setup failed (non-fatal): ${errorText(voiceVerifyErr)}\n`);
         }
       }
 
@@ -520,10 +520,10 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
               userData.threadId = threadInit.threadId;
               cleanupHandlers.push(() => { cleanupThreadRecording(sessionId); });
             } catch (threadRecordErr) {
-              process.stderr.write(`[voice-agent-entry] 🧵 Thread recording init failed (non-critical): ${String(threadRecordErr)}\n`);
+              process.stderr.write(`[voice-agent-entry] 🧵 Thread recording init failed (non-critical): ${errorText(threadRecordErr)}\n`);
             }
           } catch (threadErr) {
-            process.stderr.write(`[voice-agent-entry] 🧵 Thread context fetch failed (non-critical): ${String(threadErr)}\n`);
+            process.stderr.write(`[voice-agent-entry] 🧵 Thread context fetch failed (non-critical): ${errorText(threadErr)}\n`);
           }
         })();
       }
@@ -567,7 +567,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     if (shouldUseMultiAgentEarlyPath) {
       void runPostInitEnrichment().catch((enrichErr: unknown) => {
         process.stderr.write(
-          `[voice-agent-entry] ⚠️ Deferred post-init enrichment failed (non-fatal): ${String(enrichErr)}\n`
+          `[voice-agent-entry] ⚠️ Deferred post-init enrichment failed (non-fatal): ${errorText(enrichErr)}\n`
         );
       });
     } else {
@@ -1000,7 +1000,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
     const errObj = error instanceof Error ? error : new Error(String(error));
     e2e.captureError('SESSION', errObj, { jobId, roomName, phase: currentPhase });
     await finishCallType?.().catch(() => undefined);
-    process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${error}\n`);
+    process.stderr.write(`[voice-agent-entry] ERROR in phase ${currentPhase}: ${errorText(error)}\n`);
 
     recordCrash('uncaught_exception', errObj, sessionId, { roomName, connectionState: currentPhase });
 
