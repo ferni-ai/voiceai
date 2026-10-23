@@ -6,7 +6,7 @@
  * and anything else (escalate, low confidence, risk quoted, timeout, error)
  * keeps the guidance.
  */
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const info = vi.hoisted(() => vi.fn());
 vi.mock('../../../utils/safe-logger.js', () => {
@@ -14,15 +14,19 @@ vi.mock('../../../utils/safe-logger.js', () => {
   return { createLogger: () => logger, default: logger, logger };
 });
 
+import { allowCrisisAdjudicatorLiveForTests } from '../crisis-adjudicator.js';
 import {
+  CLASSIFIER_ONLY_CHECK,
   classifierOnlyCheckin,
   classifierOnlyWhy,
   resetClassifierOnlyReads,
   resolveClassifierOnlyCheckin,
   type ClassifierOnlyArgs,
 } from '../crisis-classifier-only.js';
+import { hasEscalateOnlyWords } from '../crisis-classifier-only-text.js';
 import {
   resetCrisisClassifierCache,
+  startCrisisClassifier,
   type CrisisGenerateFn,
   type CrisisVerdict,
 } from '../crisis-classifier.js';
@@ -65,10 +69,13 @@ function args(over: Partial<ClassifierOnlyArgs> = {}): ClassifierOnlyArgs {
   };
 }
 
+afterEach(() => allowCrisisAdjudicatorLiveForTests(false));
 beforeEach(() => {
   info.mockClear();
   resetCrisisClassifierCache();
   resetClassifierOnlyReads();
+  // Live tests lift the adjudicator's hold explicitly; 'live is held' below keeps it.
+  allowCrisisAdjudicatorLiveForTests(true);
 });
 
 describe('classifierOnlyWhy', () => {
@@ -139,23 +146,50 @@ describe('resolveClassifierOnlyCheckin', () => {
     );
     expect(resolveClassifierOnlyCheckin({ CRISIS_CLASSIFIER_ONLY_CHECKIN: 'LIVE' })).toBe('live');
   });
+
+  it("live is held to shadow until the adjudicator's hold is lifted (one hold for both)", () => {
+    allowCrisisAdjudicatorLiveForTests(false);
+    expect(resolveClassifierOnlyCheckin({ CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live' })).toBe('shadow');
+  });
 });
 
 describe('classifierOnlyCheckin', () => {
-  const run = (
+  const INPUT = { latest: LATEST, earlier: EARLIER, companion: COMPANION };
+  let calls = 0;
+  /** A call whose turn has these classifier reads gathered under its scope. */
+  async function callWith(...reads: string[]): Promise<string> {
+    const call = `call-${++calls}`;
+    resetCrisisClassifierCache(); // identical input on another call would share a run
+    const env = { CRISIS_CLASSIFIER_MODE: 'live' };
+    const runs = reads.map((reply, i) =>
+      startCrisisClassifier(
+        { ...INPUT, earlier: [...EARLIER.slice(i)] },
+        { pattern: 'none', env, generate: async () => reply, scope: call, call }
+      )
+    );
+    await Promise.all(runs.map((r) => r?.verdict));
+    return call;
+  }
+  const J = (v: CrisisVerdict) => JSON.stringify(v);
+  const run = async (
     mode: string | undefined,
-    over: Partial<Parameters<typeof classifierOnlyCheckin>[0]> = {}
-  ) =>
-    classifierOnlyCheckin({
+    over: Partial<Parameters<typeof classifierOnlyCheckin>[0]> = {},
+    reads: string[] = [J(CRISIS), J(CRISIS)]
+  ) => {
+    const call = await callWith(...reads);
+    return classifierOnlyCheckin({
       detection: detectCrisis(LATEST),
       verdict: CRISIS,
-      input: { latest: LATEST, earlier: EARLIER, companion: COMPANION },
+      input: INPUT,
       priorRisk: false,
+      scope: call,
+      call,
       env: mode === undefined ? {} : { CRISIS_CLASSIFIER_ONLY_CHECKIN: mode },
       adjudicate: adjudicator(SAYS.checkin),
       source: 'gate',
       ...over,
     });
+  };
   const logged = () =>
     info.mock.calls
       .filter((c) => c[1] === 'CRISIS_CLASSIFIER_ONLY')
@@ -176,23 +210,30 @@ describe('classifierOnlyCheckin', () => {
     expect(logged()).toHaveLength(0);
   });
 
-  it('shadow: runs the second read off the reply path, logs what live would do, never eases', async () => {
+  it('shadow: decides off the reply path, logs what live would do, never eases', async () => {
     expect(await run('shadow')).toBe(false);
     expect(await run('shadow', { priorRisk: true })).toBe(false);
     await settle();
     expect(logged()).toEqual(
       expect.arrayContaining([
-        { mode: 'shadow', source: 'gate', reads: 1, outcome: 'escalate', why: 'prior_risk' },
+        { mode: 'shadow', source: 'gate', reads: 2, outcome: 'escalate', why: 'prior_risk' },
         {
           mode: 'shadow',
           source: 'gate',
-          reads: 1,
+          reads: 2,
           outcome: 'checkin',
           why: 'second_read_checkin',
           secondRead: 'model',
         },
       ])
     );
+  });
+
+  it('live while held: behaves as shadow, says so, never eases', async () => {
+    allowCrisisAdjudicatorLiveForTests(false);
+    expect(await run('live')).toBe(false);
+    await settle();
+    expect(logged().at(-1)).toMatchObject({ mode: 'shadow', liveHeld: true, outcome: 'checkin' });
   });
 
   it("live: eases only on the second read's confident checkin", async () => {
@@ -220,17 +261,12 @@ describe('classifierOnlyCheckin', () => {
     };
     expect(await run('live', { adjudicate: failing })).toBe(false);
     expect(logged().at(-1)).toMatchObject({ secondRead: 'error' });
-    resetClassifierOnlyReads();
     const hanging: CrisisGenerateFn = () =>
       new Promise<string>(() => {
         // never settles
       });
-    expect(
-      await run('live', {
-        adjudicate: hanging,
-        env: { CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live', CRISIS_ADJUDICATOR_TIMEOUT_MS: '20' },
-      })
-    ).toBe(false);
+    const env = { CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live', CRISIS_CLASSIFIER_ONLY_TIMEOUT_MS: '20' };
+    expect(await run('live', { adjudicate: hanging, env })).toBe(false);
     expect(logged().at(-1)).toMatchObject({ secondRead: 'timeout' });
   });
 
@@ -242,23 +278,107 @@ describe('classifierOnlyCheckin', () => {
 
   it('live: a turn with independent support never reaches the second read', async () => {
     const adjudicate = adjudicator(SAYS.checkin);
-    expect(await run('live', { verdict: IMMINENT, adjudicate })).toBe(false);
-    expect(await run('live', { verdict: null, adjudicate })).toBe(false);
+    expect(await run('live', { adjudicate }, [J(CRISIS), J(IMMINENT)])).toBe(false);
+    expect(await run('live', { adjudicate }, [J(CRISIS), 'not json'])).toBe(false);
     expect(await run('live', { priorRisk: true, adjudicate })).toBe(false);
     expect(adjudicate).not.toHaveBeenCalled();
     expect(logged().map((c) => c.why)).toEqual(['imminent', 'missing_read', 'prior_risk']);
   });
 
-  it("live: weighs every read of the turn under the call's scope", async () => {
-    // No read was kept under this scope, so the lookup finds none: a missing read keeps the guidance.
-    expect(await run('live', { scope: 'call-with-no-reads' })).toBe(false);
+  it('live: with no scope to gather the reads under, a read counts as missing', async () => {
+    const adjudicate = adjudicator(SAYS.checkin);
+    expect(await run('live', { scope: undefined, adjudicate })).toBe(false);
+    expect(adjudicate).not.toHaveBeenCalled();
     expect(logged().at(-1)).toMatchObject({ why: 'missing_read', reads: 0 });
   });
 
   it("shares one second read between a turn's duplicate requests", async () => {
     const adjudicate = adjudicator(SAYS.checkin);
-    expect(await run('live', { adjudicate, scope: undefined })).toBe(true);
-    expect(await run('live', { adjudicate, scope: undefined })).toBe(true);
+    const call = await callWith(J(CRISIS));
+    const ask = () =>
+      classifierOnlyCheckin({
+        detection: detectCrisis(LATEST),
+        verdict: CRISIS,
+        input: INPUT,
+        priorRisk: false,
+        scope: call,
+        call,
+        env: { CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live' },
+        adjudicate,
+        source: 'gate',
+      });
+    expect(await ask()).toBe(true);
+    expect(await ask()).toBe(true);
     expect(adjudicate).toHaveBeenCalledTimes(1);
+  });
+
+  it('the pipeline never reads on its own: with no gate read it escalates', async () => {
+    const adjudicate = adjudicator(SAYS.checkin);
+    const env = {
+      CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live',
+      CRISIS_CLASSIFIER_ONLY_TIMEOUT_MS: '10',
+      CRISIS_CLASSIFIER_TIMEOUT_MS: '10',
+    };
+    expect(await run('live', { source: 'pipeline', adjudicate, env })).toBe(false);
+    expect(adjudicate).not.toHaveBeenCalled();
+    expect(logged().at(-1)).toMatchObject({ why: 'no_shared_read' });
+  });
+
+  it('the eased guidance asks one direct check-in question and keeps 988', () => {
+    expect(CLASSIFIER_ONLY_CHECK).toMatch(/ask one gentle, direct question/);
+    expect(CLASSIFIER_ONLY_CHECK).toMatch(/988/);
+    expect(CLASSIFIER_ONLY_CHECK).not.toMatch(/if it fits/);
+  });
+});
+
+describe('escalate-only words (they can only keep the guidance)', () => {
+  /** The 2026-10-22 safety review's 20 real-risk phrasings: none may reach the second read. */
+  const REVIEW = [
+    "thanks for everything ferni, you've been a real friend",
+    'can you make sure someone takes care of max for me',
+    "I won't be a problem much longer",
+    'nothing matters anymore',
+    "I don't want to do this anymore",
+    "who would even notice if I wasn't here",
+    "I've made my peace with it",
+    "I'm a waste of space",
+    'I just want everything to stop',
+    "there's no reason to keep going",
+    'can you call 988 for me',
+    'I keep thinking about the pills in the cabinet',
+    'I gave my guitar to my brother today',
+    'I wrote down my bank login for my sister',
+    'ya no puedo mas, estoy cansado de todo',
+    'no aguanto mas',
+    'I just want to see my mom again',
+    "I'm not gonna be around for that",
+    "I won't need it after this week",
+    'this is the last time we will talk',
+  ];
+  it.each(REVIEW)('%j never reaches the second read', (latest) => {
+    expect(classifierOnlyWhy(args({ latest, detection: detectCrisis(latest) }))).not.toBe(
+      'eligible'
+    );
+  });
+
+  it.each([
+    'ya no puedo más',
+    'my therapist moved our session',
+    'call the crisis line',
+    'can you feed the cat for me',
+    'I gave all my records away',
+  ])('%j is an escalate-only phrase', (text) => {
+    expect(hasEscalateOnlyWords(text)).toBe(true);
+  });
+
+  it('keeps the 2026-10-22 canary line and its call eligible', () => {
+    expect(hasEscalateOnlyWords(LATEST)).toBe(false);
+    for (const line of EARLIER) expect(hasEscalateOnlyWords(line)).toBe(false);
+  });
+
+  it('an escalate-only word in a recent earlier line keeps the guidance', () => {
+    expect(classifierOnlyWhy(args({ earlier: [...EARLIER, 'I gave my bike away.'] }))).toBe(
+      'escalate_words'
+    );
   });
 });

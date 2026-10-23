@@ -46,7 +46,9 @@ import {
 } from '../../services/safety/crisis-grounded-release.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import {
+  CLASSIFIER_ONLY_CHECK,
   classifierOnlyCheckin,
+  prestartClassifierOnly,
   resolveClassifierOnlyCheckin,
 } from '../../services/safety/crisis-classifier-only.js';
 import {
@@ -209,7 +211,10 @@ export function startCrisisGate(
   // reads; a shadow adjudicator runs beside it and never delays the 988 line.
   const agreementGate = resolveCrisisAgreementGate(env);
   const adjudicatorMode = resolveCrisisAdjudicatorMode(env);
-  const scope = agreementGate || adjudicatorMode !== 'off' ? sessionScope(userData) : undefined;
+  // CRISIS_CLASSIFIER_ONLY_CHECKIN also gathers the turn's reads (crisis-classifier-only.ts).
+  const onlyMode = resolveClassifierOnlyCheckin(env);
+  const gather = agreementGate || adjudicatorMode !== 'off' || onlyMode !== 'off';
+  const scope = gather ? sessionScope(userData) : undefined;
   const holdForReads = agreementGate || adjudicatorMode === 'live';
   const call = sessionScope(userData);
   // CRISIS_TRANSFER_EVERYDAY: decided before this turn's own read starts (crisis-transfer-request.ts).
@@ -226,13 +231,19 @@ export function startCrisisGate(
   if (run?.mode !== 'live' || decision.action === 'replace') return { decision, escalation: null };
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
+    const input = { latest, earlier, companion };
+    const only = () => ({
+      ...{ detection, verdict, input, priorRisk, scope, call, env, source: 'gate' as const },
+      ...{ transcript: callTranscript(chatCtx), adjudicate: options.adjudicate },
+      adjudicatorLive: adjudicatorMode === 'live',
+    });
+    if (onlyMode === 'live') prestartClassifierOnly(only()); // overlaps the wait for other reads
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
     if (loneImminentGoodbye({ detection, verdict, latest, earlier, companion, priorRisk })) {
       log.info({ action: 'guide', source: 'lone_imminent_goodbye' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
     // CRISIS_GROUNDED_RELEASE: an imminent read the call plainly explains gets the soft check.
-    const input = { latest, earlier, companion };
     const grounded = { input, priorRisk: groundedPrior, call, env, source: 'gate' as const };
     if (
       await groundedRelease({ ...grounded, detection, verdict, generates: options.groundedReads })
@@ -294,22 +305,11 @@ export function startCrisisGate(
     // CRISIS_CLASSIFIER_ONLY_CHECKIN: a crisis read nothing else agrees with (crisis-classifier-only.ts).
     if (
       stronger.action === 'guide' &&
-      resolveClassifierOnlyCheckin(env) !== 'off' &&
-      (await classifierOnlyCheckin({
-        detection,
-        verdict,
-        input,
-        priorRisk,
-        scope,
-        adjudicatorLive: adjudicatorMode === 'live',
-        transcript: callTranscript(chatCtx),
-        adjudicate: options.adjudicate,
-        env,
-        source: 'gate',
-      }))
+      onlyMode !== 'off' &&
+      (await classifierOnlyCheckin(only()))
     ) {
       log.info({ action: 'guide', source: 'classifier_only' }, 'CRISIS_GATE');
-      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
+      return { action: 'guide', guidance: CLASSIFIER_ONLY_CHECK };
     }
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },

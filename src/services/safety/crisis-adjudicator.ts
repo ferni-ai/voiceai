@@ -84,11 +84,22 @@ export function allowCrisisAdjudicatorLiveForTests(allowed: boolean): void {
   liveAllowed = allowed;
 }
 
+/**
+ * Whether an adjudicator "checkin" may change what the caller hears. One hold
+ * for every path that asks it: CRISIS_ADJUDICATOR=live and
+ * CRISIS_CLASSIFIER_ONLY_CHECKIN=live (crisis-classifier-only.ts) both run as
+ * shadow while it is held. Lifting it is a code change made on a replay's
+ * evidence, never a side effect of a flag.
+ */
+export function adjudicatorCheckinsMayChangeReplies(): boolean {
+  return liveAllowed;
+}
+
 export function resolveCrisisAdjudicatorMode(
   env: Record<string, string | undefined> = process.env
 ): CrisisAdjudicatorMode {
   const raw = env.CRISIS_ADJUDICATOR?.trim().toLowerCase();
-  if (raw === 'live') return liveAllowed ? 'live' : 'shadow';
+  if (raw === 'live') return adjudicatorCheckinsMayChangeReplies() ? 'live' : 'shadow';
   return raw === 'shadow' ? raw : 'off';
 }
 

@@ -13,7 +13,8 @@
  *     when the second read would wrongly say checkin.
  */
 import { llm } from '@livekit/agents';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { allowCrisisAdjudicatorLiveForTests } from '../../../services/safety/crisis-adjudicator.js';
 import { SOFT_CRISIS_CHECK } from '../../../services/safety/crisis-agreement.js';
 import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
@@ -21,7 +22,10 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
-import { resetClassifierOnlyReads } from '../../../services/safety/crisis-classifier-only.js';
+import {
+  CLASSIFIER_ONLY_CHECK,
+  resetClassifierOnlyReads,
+} from '../../../services/safety/crisis-classifier-only.js';
 import { crisisSummary, startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { startCrisisGate } from '../crisis-gate.js';
 
@@ -92,7 +96,10 @@ beforeEach(() => {
   resetCrisisCallRisk();
   resetCallRiskSnapshots();
   resetClassifierOnlyReads();
+  // Live tests lift the adjudicator's hold explicitly; the hold tests put it back.
+  allowCrisisAdjudicatorLiveForTests(true);
 });
+afterEach(() => allowCrisisAdjudicatorLiveForTests(false));
 
 function request(call: Call): llm.ChatContext {
   const ctx = llm.ChatContext.empty();
@@ -103,7 +110,7 @@ function request(call: Call): llm.ChatContext {
   return ctx;
 }
 
-type Heard = 'replace' | 'guide-988' | 'soft' | 'pass';
+type Heard = 'replace' | 'guide-988' | 'soft' | 'soft-other' | 'pass';
 
 /**
  * One caller turn through both paths on one call, as prod runs them: the reply
@@ -115,11 +122,18 @@ async function turn(
   call: Call,
   mode: string | undefined,
   reads: [gate: string, pipeline: string] = [CRISIS, CRISIS],
-  opts: { session?: string | null; earlierRisk?: boolean; adjudicate?: CrisisGenerateFn } = {}
+  opts: {
+    session?: string | null;
+    earlierRisk?: boolean;
+    adjudicate?: CrisisGenerateFn;
+    env?: Record<string, string>;
+    gate?: false;
+  } = {}
 ): Promise<{ gate: Heard; pipeline: Heard; modelCalls: number }> {
   // Unless a test says otherwise, the second read says checkin: the worst case for a must-not.
   const adjudicate = opts.adjudicate ?? (async () => CHECKIN);
-  const env = mode === undefined ? PROD : { ...PROD, CRISIS_CLASSIFIER_ONLY_CHECKIN: mode };
+  const base = opts.env ?? PROD;
+  const env = mode === undefined ? base : { ...base, CRISIS_CLASSIFIER_ONLY_CHECKIN: mode };
   const session = opts.session === null ? undefined : (opts.session ?? `call-${++calls}`);
   let modelCalls = 0;
   const generate =
@@ -143,11 +157,10 @@ async function turn(
     await gate?.escalation;
   }
   const userData = session ? { services: { sessionId: session } } : {};
-  const gate = startCrisisGate(request(call), userData, {
-    env,
-    generate: generate(reads[0]),
-    adjudicate,
-  });
+  const gate =
+    opts.gate === false
+      ? null
+      : startCrisisGate(request(call), userData, { env, generate: generate(reads[0]), adjudicate });
   const pipeline = startTurnCrisis(
     call.latest,
     // The pipeline keeps the last ten caller lines, this one included (transcript-handler.ts).
@@ -157,18 +170,19 @@ async function turn(
     },
     { sessionId: session, env, generate: generate(reads[1]), adjudicate }
   );
-  const [decision, crisis, soft] = await Promise.all([
+  const [decision, crisis, soft, guidance] = await Promise.all([
     gate?.escalation ? gate.escalation.then((d) => d ?? gate.decision) : gate?.decision,
     pipeline.resolve(),
     pipeline.softCheck(),
+    pipeline.softGuidance(),
   ]);
-  const summary = crisisSummary(crisis, soft);
+  const summary = crisisSummary(crisis, soft, guidance);
   const gateHeard: Heard =
     !decision || decision.action === 'pass'
       ? 'pass'
       : decision.action === 'replace'
         ? 'replace'
-        : decision.guidance === SOFT_CRISIS_CHECK
+        : decision.guidance === CLASSIFIER_ONLY_CHECK || decision.guidance === SOFT_CRISIS_CHECK
           ? 'soft'
           : decision.guidance.includes('988')
             ? 'guide-988'
@@ -177,9 +191,11 @@ async function turn(
     ? 'replace'
     : summary.isCrisis
       ? 'guide-988'
-      : summary.softCheck
+      : summary.softCheck && summary.softGuidance === CLASSIFIER_ONLY_CHECK
         ? 'soft'
-        : 'pass';
+        : summary.softCheck
+          ? 'soft-other'
+          : 'pass';
   return { gate: gateHeard, pipeline: pipelineHeard, modelCalls };
 }
 
@@ -336,5 +352,155 @@ describe('after a check-in, the next crisis read on the call escalates', () => {
       latest: 'I mean, it is what it is.',
     };
     expect((await turn(next, 'live', [CRISIS, CRISIS], { session })).gate).toBe('guide-988');
+  });
+});
+
+describe('the 2026-10-22 safety review probes', () => {
+  const LINE = 'The running, not so much.';
+  const CALL: Call = { ...PROD_FT, latest: LINE };
+  const SLOW =
+    (read: string, ms: number): CrisisGenerateFn =>
+    async () => {
+      await new Promise<void>((r) => {
+        setTimeout(r, ms);
+      });
+      return read;
+    };
+
+  it("P1: shadow never holds the reply, even for the other path's read", async () => {
+    // Agreement gate off, adjudicator shadow: nothing holds the gate for the pipeline's read.
+    const env = { ...PROD, CRISIS_AGREEMENT_GATE: 'off', CRISIS_ADJUDICATOR: 'shadow' };
+    const timed = async (mode: string) => {
+      resetCrisisClassifierCache();
+      resetCrisisCallRisk();
+      resetCallRiskSnapshots();
+      resetClassifierOnlyReads();
+      const session = `p1-${mode}-${++calls}`;
+      const t0 = Date.now();
+      const gate = startCrisisGate(
+        request(CALL),
+        { services: { sessionId: session } },
+        {
+          env: { ...env, CRISIS_CLASSIFIER_ONLY_CHECKIN: mode },
+          generate: async () => CRISIS,
+          adjudicate: async () => CHECKIN,
+        }
+      );
+      const pipe = startTurnCrisis(
+        LINE,
+        {
+          recentTranscripts: [...PIPELINE_ONLY, ...CALL.earlier, LINE],
+          lastAgentResponse: CALL.companion,
+        },
+        {
+          sessionId: session,
+          env: { ...env, CRISIS_CLASSIFIER_ONLY_CHECKIN: mode },
+          generate: SLOW(CRISIS, 600),
+          adjudicate: async () => CHECKIN,
+        }
+      );
+      const decision = await gate?.escalation;
+      const ms = Date.now() - t0;
+      await pipe.resolve();
+      return { ms, decision };
+    };
+    const off = await timed('off');
+    const shadow = await timed('shadow');
+    expect(off.ms).toBeLessThan(300);
+    expect(shadow.ms).toBeLessThan(off.ms + 150);
+    expect(shadow.decision).toEqual(off.decision);
+  });
+
+  it("P2: one second read per turn, from the reply gate's fuller transcript, shared with the pipeline", async () => {
+    const seen: string[] = [];
+    // The pipeline alone holds "Morning."; a read built from its transcript would escalate.
+    const adjudicate: CrisisGenerateFn = async (_p, content) => {
+      seen.push(content);
+      return content.includes('Morning.') ? ESCALATE : CHECKIN;
+    };
+    const heard = await turn(CALL, 'live', [CRISIS, CRISIS], { adjudicate });
+    expect(seen).toHaveLength(1);
+    expect(seen[0]).toContain(CALL.companion);
+    expect(seen[0]).not.toContain('Morning.');
+    expect(heard).toMatchObject({ gate: 'soft', pipeline: 'soft' });
+  });
+
+  it("P2: the pipeline never eases without the gate's shared read (crisis_response stays)", async () => {
+    const env = {
+      ...PROD,
+      CRISIS_CLASSIFIER_ONLY_TIMEOUT_MS: '20',
+      CRISIS_CLASSIFIER_TIMEOUT_MS: '20',
+    };
+    const heard = await turn(CALL, 'live', [CRISIS, CRISIS], { env, gate: false });
+    expect(heard.pipeline).toBe('guide-988');
+  });
+
+  it('P3: CRISIS_ADJUDICATOR=live is held, and the new flag cannot route around the hold', async () => {
+    allowCrisisAdjudicatorLiveForTests(false);
+    const env = { ...PROD, CRISIS_ADJUDICATOR: 'live' };
+    expect(await turn(CALL, 'live', [CRISIS, CRISIS], { env })).toMatchObject({
+      gate: 'guide-988',
+      pipeline: 'guide-988',
+    });
+    expect(await turn(CALL, 'live', [CRISIS, CRISIS])).toMatchObject({
+      gate: 'guide-988',
+      pipeline: 'guide-988',
+    });
+  });
+
+  it("P6: agreement gate off, the pipeline's imminent read keeps the gate from easing", async () => {
+    const env = { ...PROD, CRISIS_AGREEMENT_GATE: 'off' };
+    const off = await turn(CALL, undefined, [CRISIS, IMMINENT], { env });
+    const live = await turn(CALL, 'live', [CRISIS, IMMINENT], { env });
+    expect(off.gate).toBe('guide-988');
+    expect(live.gate).toBe('guide-988');
+  });
+
+  it('P6: with no call to gather reads under, live keeps the 988 guidance', async () => {
+    expect((await turn(CALL, 'live', [CRISIS, CRISIS], { session: null })).gate).toBe('guide-988');
+  });
+
+  it('live starts the second read early, overlapping the wait for the other read', async () => {
+    // Gate read at once, pipeline read 600 ms, second read 500 ms: in sequence ~1100 ms.
+    const session = `early-${++calls}`;
+    const t0 = Date.now();
+    const gate = startCrisisGate(
+      request(CALL),
+      { services: { sessionId: session } },
+      {
+        env: { ...PROD, CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live' },
+        generate: async () => CRISIS,
+        adjudicate: SLOW(CHECKIN, 500),
+      }
+    );
+    startTurnCrisis(
+      LINE,
+      {
+        recentTranscripts: [...PIPELINE_ONLY, ...CALL.earlier, LINE],
+        lastAgentResponse: CALL.companion,
+      },
+      {
+        sessionId: session,
+        env: { ...PROD, CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live' },
+        generate: SLOW(CRISIS, 600),
+      }
+    );
+    expect(await gate?.escalation).toEqual({ action: 'guide', guidance: CLASSIFIER_ONLY_CHECK });
+    expect(Date.now() - t0).toBeLessThan(900);
+  });
+
+  it('other soft paths keep SOFT_CRISIS_CHECK; this path brings the direct check-in', async () => {
+    expect(CLASSIFIER_ONLY_CHECK).not.toBe(SOFT_CRISIS_CHECK);
+    const session = `guidance-${++calls}`;
+    const gate = startCrisisGate(
+      request(CALL),
+      { services: { sessionId: session } },
+      {
+        env: { ...PROD, CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live' },
+        generate: async () => CRISIS,
+        adjudicate: async () => CHECKIN,
+      }
+    );
+    expect(await gate?.escalation).toEqual({ action: 'guide', guidance: CLASSIFIER_ONLY_CHECK });
   });
 });
