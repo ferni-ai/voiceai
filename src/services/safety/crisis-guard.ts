@@ -33,7 +33,7 @@ import {
   PLAN_OR_MEANS_PATTERNS,
   SESSION_CONTEXT_PATTERNS,
 } from './crisis-patterns.js';
-import { thirdPartyRisk } from './crisis-third-party.js';
+import { keepsOwnSession, thirdPartyRisk } from './crisis-third-party.js';
 
 const log = createLogger({ module: 'CrisisGuard' });
 
@@ -221,9 +221,9 @@ function scoreText(text: string): TextScore {
   }
 
   const contextHit = SESSION_CONTEXT_PATTERNS.some((p) => p.test(text));
-  // A worry about someone else beside the caller's own softened tier words was the caller's own
-  // turn before #2528, and still counts as one in a later turn's session check.
-  const sessionSeverity = subject === 'self' ? severity : tierSoft ? selfSeverity : 0;
+  // A worry about someone else beside the caller's own softened tier words (any softened words in
+  // live, THIRD_PARTY_SELF_HARM) still counts as the caller's own in a later turn's session check.
+  const sessionSeverity = subject === 'self' || tierSoft || keepsOwnSession() ? selfSeverity : 0;
   const found = { severity, indicators, subject, language, implicitHits, contextHit };
   return { ...found, softSelf, sessionSeverity };
 }

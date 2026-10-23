@@ -10,7 +10,8 @@
  * 911 if they are in immediate danger, and ask how the caller is holding up. It only raises:
  * the caller's own words still decide when they are about the caller.
  *
- * Off and shadow read exactly as main. Shadow logs, once per turn from the turn pipeline
+ * In live, a turn read as third party also keeps the caller's own words for later turns' session
+ * check (keepsOwnSession), so the read never lowers a session. Off and shadow read exactly as main. Shadow logs, once per turn from the turn pipeline
  * (turn-crisis.ts), when the live read of that turn would differ; no caller words are logged.
  *
  * @module CrisisThirdParty
@@ -18,7 +19,14 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisDetectionResult } from './crisis-guard.js';
-import { THIRD_PARTY_PATTERNS, THIRD_PARTY_SELF_HARM_PATTERNS } from './crisis-patterns.js';
+import { JOKE_MARKERS } from './crisis-modifiers.js';
+import {
+  THIRD_PARTY_PATTERNS,
+  THIRD_PARTY_SELF_HARM_FRAMED,
+  THIRD_PARTY_SELF_HARM_PATTERNS,
+  THIRD_PARTY_SELF_HARM_VETOES,
+  THIRD_PARTY_WORRY_FRAME,
+} from './crisis-patterns.js';
 
 const log = createLogger({ module: 'CrisisThirdParty' });
 
@@ -34,18 +42,37 @@ export function resolveThirdPartySelfHarm(env: Env = process.env): ThirdPartySel
 /** Set only while shadow takes the live read of a turn. */
 let forced: ThirdPartySelfHarmMode | undefined;
 
-/** The #2635 forms alone, whatever the flag says. */
+const live = (): boolean => (forced ?? resolveThirdPartySelfHarm()) === 'live';
+
+/**
+ * The #2635 forms alone, whatever the flag says: a form that says it on its own, or a modal with
+ * a worry frame, and no veto anywhere in the message (a death, fiction, a warning, a joke).
+ */
 export function thirdPartySelfHarm(text: string): boolean {
-  return THIRD_PARTY_SELF_HARM_PATTERNS.some((p) => p.test(text));
+  const said =
+    THIRD_PARTY_SELF_HARM_PATTERNS.some((p) => p.test(text)) ||
+    (THIRD_PARTY_SELF_HARM_FRAMED.test(text) && THIRD_PARTY_WORRY_FRAME.test(text));
+  return (
+    said && !JOKE_MARKERS.test(text) && !THIRD_PARTY_SELF_HARM_VETOES.some((p) => p.test(text))
+  );
 }
 
 /** Someone the caller knows is at risk, in normalized text. The #2635 forms count only in live. */
 export function thirdPartyRisk(text: string): boolean {
   if (THIRD_PARTY_PATTERNS.some((p) => p.test(text))) return true;
-  return (forced ?? resolveThirdPartySelfHarm()) === 'live' && thirdPartySelfHarm(text);
+  return live() && thirdPartySelfHarm(text);
 }
 
-const reading = (c: CrisisDetectionResult) => ({
+/**
+ * Live only: a turn read as a worry about someone else still counts the caller's own words in a
+ * later turn's session check, so the third-party read adds to the session and never zeroes it.
+ */
+export function keepsOwnSession(): boolean {
+  return live();
+}
+
+type Reading = Pick<CrisisDetectionResult, 'isCrisis' | 'subject' | 'severity'>;
+const reading = (c: CrisisDetectionResult): Reading => ({
   isCrisis: c.isCrisis,
   subject: c.subject,
   severity: c.severity,

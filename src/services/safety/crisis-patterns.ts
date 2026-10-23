@@ -420,17 +420,21 @@ export const THIRD_PARTY_PATTERNS = [
   /\b(he|she)('s| is) (ready to (die|go\b(?! (to|for|out|home|shopping|back|on|in|get|see|now|with)\b))|done with life)/,
 ];
 
-/** Someone else, as the object of the act ("hurt himself"). */
-const OTHER_SELF = '(himself|herself|themselves|themself)';
+/** Someone else, as the object of the act ("hurt himself", "kill him self"). */
+const OTHER_SELF = '(him ?self|her ?self|them ?selves|them ?self)';
 /** Someone the caller names ("my wife", "our oldest son"). */
 const NAMED_OTHER =
   '((my|our|his|her|their) (\\w+ )?(friend|sister|brother|mom|mother|dad|father|son|daughter|kid|child|wife|husband|partner|boyfriend|girlfriend|fianc[eé]e?|cousin|roommate|coworker|classmate|student|grandma|grandpa|aunt|uncle|niece|nephew|teen|teenager|patient|client|neighbor))';
-/** Everyday accidents and effort right after the act ("kill himself laughing", "hurt herself on those stairs"). */
+/**
+ * Everyday words right after the act: any activity ("kill himself laughing", "hurt herself
+ * skiing"), a named thing to fall off, a place of effort, a task, or an idiom.
+ */
 const OTHER_IDIOM =
-  "(?! (laughing|studying|cramming|training|showing off|doing (that|this|stunts)|working (two|three|double|extra|overtime|so hard|like that)|trying to (make|please|keep up with)|at (work|the gym|practice)|in (the gym|minecraft|fortnite|roblox|(the|a|that) game)|(falling|tripping|slipping|crashing|riding) |on (that|the|this|those|these|his|her|their|a|an) (bike|skateboard|scooter|trampoline|stairs|steps|ice|ladder|horse|treadmill|motorcycle|ramp|curb|thing)|if (he|she|they) keeps? (lifting|running|training|working out|playing|climbing|riding|skating|jumping|showing off|doing that))\\b)";
+  '(?! ((?!(morning|evening|something|anything|nothing)\\b)\\w+ing\\b|on (that|the|this|those|these|his|her|their|a|an) (\\w+ )?(bike|skateboard|scooter|trampoline|stairs|steps|ice|ladder|horse|treadmill|motorcycle|ramp|curb|knee|thing)|at (work|the gym|practice|school)|over (\\w+ )?(homework|spreadsheet|assignment|report|meeting|exams?|tests?|project|essay|paper|deadline|code)|in (the foot|minecraft|fortnite|roblox|(the|a|that) game)|out to dry)\\b)';
 /** Recovery and money senses of "take/end a life" ("taking his life back", "his life savings"). */
 const LIFE_IDIOM =
   '(?! (back|savings|story|insurance|seriously|for granted|forward|to the next level|into (his|her|their) own hands|in (a|another) (new |different )?direction|as an?)\\b)';
+const HARM = 'kill|hurt|harm|unalive|hang|shoot';
 const otherAct = (harm: string, life: string, whose = '(his|her|their)'): string =>
   `((${harm}) ${OTHER_SELF}\\b${OTHER_IDIOM}|(${life}) ${whose} (own )?life\\b${LIFE_IDIOM})`;
 /**
@@ -439,26 +443,47 @@ const otherAct = (harm: string, life: string, whose = '(his|her|their)'): string
  */
 const otherSubjectAct = (how: string, harm: string, life: string): string =>
   `(he${how} ${otherAct(harm, life, '(his|their)')}|she${how} ${otherAct(harm, life, '(her|their)')}|they${how} ${otherAct(harm, life, 'their')}|${NAMED_OTHER}${how} ${otherAct(harm, life)})`;
+const MODAL =
+  "('ll|'d| would| will| might| may| could|'s going to| is going to|'re going to| are going to|'s about to| is about to|'re about to| are about to)( really| actually| seriously)?";
 
 /**
- * THIRD_PARTY_SELF_HARM (#2635, crisis-third-party.ts): someone else's self-harm said with a
- * modal, as a report, or bare. "he keeps saying he'll hurt himself", "kill himself" and "end their
- * life" scored 0 at every crisis site. Read beside THIRD_PARTY_PATTERNS and only ever as
- * third-party risk; "would" counts only when someone reported it ("he said he'd kill himself", not
- * "he'd kill himself if he saw this mess"), and the past ("he hurt himself playing soccer") never.
+ * THIRD_PARTY_SELF_HARM (#2635, crisis-third-party.ts): someone else's self-harm, which scored 0
+ * at every crisis site ("he keeps saying he'll hurt himself", "kill himself", "end their life").
+ * Only ever read as third-party risk. A modal on its own ("he'll hurt himself") is a warning as
+ * often as a worry, so it counts only beside THIRD_PARTY_WORRY_FRAME or as the whole message.
  */
+export const THIRD_PARTY_SELF_HARM_FRAMED = new RegExp(
+  `\\b${otherSubjectAct(MODAL, HARM, 'end|take')}`
+);
+/** Someone reported it, or the caller worries about it: what makes a modal a worry. */
+export const THIRD_PARTY_WORRY_FRAME =
+  /\b(said|says|saying|keeps? (saying|talking|telling|texting|posting|joking|threatening|mentioning)|told (me|us|everyone|someone|people)|tells (me|us|everyone|people)|texted|texts me|wrote|posted|messaged|threaten\w*|swore|swears|warned|scared|afraid|worried|terrified|frightened|freaking out|concerned|i think|i'?m not sure|i don'?t know if)\b/;
+/** Forms that say it on their own: a "what if", "about killing himself", a stated wish, bare. */
 export const THIRD_PARTY_SELF_HARM_PATTERNS = [
+  new RegExp(`\\bwhat if ${otherSubjectAct('', 'kills|hurts|harms|hangs|shoots', 'ends|takes')}`),
   new RegExp(
-    `\\b${otherSubjectAct("('ll| will| might| may| could|'s going to| is going to|'re going to| are going to|'s about to| is about to|'re about to| are about to)( really| actually| seriously)?", 'kill|hurt|harm', 'end|take')}`
+    `\\b(saying|says|said|mention(s|ed|ing)?|jok(es|ed|ing)|post(s|ed|ing)|writ(es|ing)|wrote|text(s|ed|ing)) (\\w+ ){0,2}about ${otherAct('killing|hurting|harming|unaliving|hanging|shooting', 'ending|taking')}`
   ),
   new RegExp(
-    `\\b(said|says|saying|told (me|us|him|her|them|everyone)|tells (me|us|everyone)|threaten(s|ed|ing)|texted( me)?|wrote|posted|swore|warned( me| us)?)( that)? ${otherSubjectAct("('d| would)", 'kill|hurt|harm', 'end|take')}`
+    `\\b${otherSubjectAct('( wants?| wanted| is planning| plans| threaten(s|ed)?| is threatening) to', 'unalive|hang|shoot', 'end|take')}`
   ),
-  new RegExp(`\\b(what if|in case|before) ${otherSubjectAct('', 'kills|hurts|harms', 'ends|takes')}`),
+  new RegExp(`^${otherSubjectAct(MODAL, HARM, 'end|take')}\\s*[.!?]*$`),
   new RegExp(
-    `\\b(saying|says|said|mention(s|ed|ing)?|jok(es|ed|ing)|post(s|ed|ing)|writ(es|ing)|wrote|text(s|ed|ing)) (\\w+ ){0,2}about ${otherAct('killing|hurting|harming', 'ending|taking')}`
+    `^(to )?${otherAct(`${HARM}|kills|hurts|harms|killing|hurting|harming`, 'end|take|ending|taking')}\\s*[.!?]*$`
   ),
-  new RegExp(
-    `^(to )?${otherAct('kill|hurt|harm|kills|hurts|harms|killing|hurting|harming', 'end|take|ending|taking')}\\s*[.!?]*$`
-  ),
+];
+/**
+ * Anywhere in the message, these send no third-party worry: a death or a past attempt that is
+ * over ("…and then he did", "the funeral was tuesday", "i miss him"), help already in place,
+ * fiction, or a trivial condition ("if the eagles
+ * lost again", "if he sees this mess"). Joking is checked with JOKE_MARKERS (crisis-modifiers.ts).
+ */
+export const THIRD_PARTY_SELF_HARM_VETOES = [
+  /\b(and|then|later|but|until)\b[^.!?]{0,40}\b((he|she|they)( \w+)? )?(did|went through with it|actually did it)\b(?! (you|i|we|he|she|they)\b)|\blike (his|her|their|my|our) \w+ did\b/,
+  /\b(died|dies|dead|death|passed( away)?|funeral|memorial|burial|buried|obituary|grave|wake|rip)\b|\b(he|she|they)('s| is| was|'re| are| were) gone\b/,
+  /\bmiss(ing)? (him|her|them)\b|\bgri(ef|ev\w*)\b|\bmourn\w*|\banniversary\b|\blost (him|her|them|my \w+)\b|\blast (message|text|words|call)\b|\b(i )?found (him|her|them)\b/,
+  /\b(wish i had|wish i'?d|should have|should'?ve|if only i)\b|\b(killed|hanged|shot) (him ?self|her ?self|them ?selves)\b|\b(took|ended) (his|her|their) (own )?life\b|\b(died by|committed) suicide\b/,
+  /\b(got|getting) (him|her|them) (help|to the (hospital|er))\b|\b(he|she|they)('s| is| are) (okay|ok|safe|fine|alive) now\b/,
+  /\b(in|from|on) (the|a|that|this) (movie|film|show|series|episode|book|novel|story|chapter|song|game|scene|finale)\b|\b(character|plot|lyrics?|narrator|protagonist|villain|actor|actress)\b|\bthe song\b|\bquot(e|es|ed|ing)\b|\bseason (one|two|three|\d+)\b/,
+  /\bif (the \w+|they|we|he|she|i|you|his \w+|her \w+)( \w+)? (lost|lose|loses|won|win|wins|fail(s|ed)?|ate|eats?|sees?|saw|finds? out)\b(?! (his|her|their|my|the) (job|house|home|kids|custody|license|case|family|wife|husband|business)\b)|\bif (i|we|you)('?m|'?re| am| are| was| were) late\b|\bif (he|she|they|i) (has|had|have) to (sit|watch|listen|eat|hear|go)\b|\bif (he|she|they) keeps? \w+ing\b/,
 ];

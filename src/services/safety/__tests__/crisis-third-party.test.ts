@@ -31,6 +31,7 @@ import {
   thirdPartyRisk,
   thirdPartySelfHarm,
 } from '../crisis-third-party.js';
+import { BENIGN_FRAMED, BEREAVED, SESSIONS } from './fixtures/third-party-self-harm.js';
 
 /** Missed by every crisis site on main (#2635). */
 const MISSED_ON_MAIN = [
@@ -60,6 +61,11 @@ const MISSED_ON_MAIN = [
   "I'm scared my wife might kill herself",
   'she keeps posting about hurting herself',
   'he keeps joking about killing himself',
+  "my dad said he'll take his own life",
+  'he wants to unalive himself',
+  'my son might kill him self',
+  'my girlfriend threatened to take her own life',
+  "she says she's going to hang herself",
 ];
 /** Third-party lines main already guides, which must stay third party. */
 const CAUGHT_ON_MAIN = [
@@ -111,10 +117,28 @@ const BENIGN = [
 ];
 const ALREADY_THIRD_PARTY_ON_MAIN = BENIGN.slice(-3);
 
-const FIXTURES = [...CRISIS_TEST_BLIND, ...CRISIS_HELDOUT, ...CRISIS_RELAY, ...CRISIS_CONTEXTUAL].map(
-  (c) => c.text
-);
-const ALL = [...MISSED_ON_MAIN, ...CAUGHT_ON_MAIN, ...BENIGN, ...FIXTURES];
+const FIXTURES = [
+  ...CRISIS_TEST_BLIND,
+  ...CRISIS_HELDOUT,
+  ...CRISIS_RELAY,
+  ...CRISIS_CONTEXTUAL,
+].map((c) => c.text);
+const ALL = [
+  ...MISSED_ON_MAIN,
+  ...CAUGHT_ON_MAIN,
+  ...BENIGN,
+  ...BENIGN_FRAMED,
+  ...BEREAVED,
+  ...FIXTURES,
+];
+const offRead = <T>(fn: () => T): T => {
+  vi.stubEnv('THIRD_PARTY_SELF_HARM', 'off');
+  try {
+    return fn();
+  } finally {
+    vi.stubEnv('THIRD_PARTY_SELF_HARM', 'live');
+  }
+};
 
 const read = (text: string) => JSON.stringify(detectCrisis(text));
 const thirdParty = (text: string) => {
@@ -168,12 +192,43 @@ describe('THIRD_PARTY_SELF_HARM=live', () => {
   it('never lowers a read: every fixture line is at least what off gives it', () => {
     for (const text of ALL) {
       const live = detectCrisis(text);
-      vi.stubEnv('THIRD_PARTY_SELF_HARM', 'off');
-      const off = detectCrisis(text);
-      vi.stubEnv('THIRD_PARTY_SELF_HARM', 'live');
+      const off = offRead(() => detectCrisis(text));
       expect(live.severity, text).toBeGreaterThanOrEqual(off.severity);
       if (off.isCrisis) expect(live.subject, text).toBe(off.subject);
     }
+  });
+
+  it(`a bereaved caller never gets "988 for them": ${BEREAVED.length} lines read exactly as off`, () => {
+    expect(BEREAVED.length).toBeGreaterThanOrEqual(40);
+    const changed = BEREAVED.filter((t) => read(t) !== offRead(() => read(t)));
+    expect(changed).toEqual([]);
+  });
+
+  it('warnings, trivial conditions, fiction and jokes around the act read exactly as off', () => {
+    const changed = BENIGN_FRAMED.filter((t) => read(t) !== offRead(() => read(t)));
+    expect(changed).toEqual([]);
+  });
+
+  it.each(SESSIONS)(
+    'a third-party turn never lowers the session read (earlier %j, now %j)',
+    (earlier, now) => {
+      const live = detectCrisis(now, undefined, { recentMessages: earlier });
+      const off = offRead(() => detectCrisis(now, undefined, { recentMessages: earlier }));
+      expect(live.severity).toBeGreaterThanOrEqual(off.severity);
+      expect(live.isCrisis || !off.isCrisis).toBe(true);
+    }
+  );
+
+  it("the eval lead's three-turn session still escalates as on main", () => {
+    const c = detectCrisis('soon none of this will matter', undefined, {
+      recentMessages: [
+        "he said he'd kill himself and i would never kill myself",
+        "i can't do this anymore",
+      ],
+    });
+    expect(c.isCrisis).toBe(true);
+    expect(c.subject).toBe('self');
+    expect(c.indicators).toContain('session_escalation');
   });
 });
 
@@ -190,6 +245,20 @@ describe.each(['off', 'shadow'])('THIRD_PARTY_SELF_HARM=%s reads as main', (mode
     for (const text of ALL.map(normalize)) {
       expect(thirdPartyRisk(text), text).toBe(THIRD_PARTY_PATTERNS.some((p) => p.test(text)));
     }
+  });
+
+  it('a session the third-party worry kept from escalating on main still does not', () => {
+    const earlier = [
+      'my brother wants to kill himself and i would never kill myself',
+      "i can't do this anymore",
+    ];
+    expect(
+      detectCrisis('soon none of this will matter', undefined, { recentMessages: earlier }).isCrisis
+    ).toBe(false);
+    vi.stubEnv('THIRD_PARTY_SELF_HARM', 'live');
+    expect(
+      detectCrisis('soon none of this will matter', undefined, { recentMessages: earlier }).isCrisis
+    ).toBe(true);
   });
 
   it('every read is byte-identical to the flag unset', () => {
@@ -219,15 +288,18 @@ describe('shadowThirdPartySelfHarm', () => {
 
   it('in shadow, logs a turn whose live read differs, without changing it or the next read', () => {
     vi.stubEnv('THIRD_PARTY_SELF_HARM', 'shadow');
-    const used = turn("he keeps saying he'll hurt himself");
+    const used = turn("he keeps saying he'll hurt himself ZQXSENTINEL");
     expect(used.isCrisis).toBe(false);
-    expect(info).toHaveBeenCalledTimes(1);
-    expect(info.mock.calls[0][0]).toEqual({
-      was: { isCrisis: false, subject: undefined, severity: 0 },
-      live: { isCrisis: true, subject: 'third_party', severity: 0.75 },
-    });
-    expect(info.mock.calls[0][1]).toBe('THIRD_PARTY_SELF_HARM_SHADOW');
-    expect(JSON.stringify(info.mock.calls)).not.toContain('himself');
+    expect(info.mock.calls).toStrictEqual([
+      [
+        {
+          was: { isCrisis: false, subject: undefined, severity: 0 },
+          live: { isCrisis: true, subject: 'third_party', severity: 0.75 },
+        },
+        'THIRD_PARTY_SELF_HARM_SHADOW',
+      ],
+    ]);
+    expect(JSON.stringify(info.mock.calls)).not.toMatch(/ZQXSENTINEL|himself/);
     expect(detectCrisis("he keeps saying he'll hurt himself").isCrisis).toBe(false);
   });
 

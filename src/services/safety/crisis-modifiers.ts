@@ -7,7 +7,7 @@
  */
 
 /** Explicit language softened by a joke. Still a crisis; not a scripted takeover. */
-const JOKE_MARKERS =
+export const JOKE_MARKERS =
   /\b(lol+|lmao+|lmfao|rofl|haha+|hehe|jk|just kidding)\b|[\u{1F602}\u{1F923}\u{1F480}\u{1F605}]/u;
 
 /** A negator governing the matched phrase: "I don't want to die", "I'm not going to...". */

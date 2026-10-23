@@ -47,10 +47,10 @@ beforeEach(() => {
 });
 afterEach(() => vi.unstubAllEnvs());
 
-async function settle(text: string) {
+async function settle(text: string, earlier: string[] = EARLIER) {
   const pipe = startTurnCrisis(
     text,
-    { recentTranscripts: [...EARLIER, text], lastAgentResponse: COMPANION },
+    { recentTranscripts: [...earlier, text], lastAgentResponse: COMPANION },
     { sessionId: `tp-${++n}`, env: { CRISIS_CLASSIFIER_MODE: 'live' }, generate: noRead }
   );
   const [summary, bypass] = await Promise.all([pipe.summary(), pipe.bypassAllowed()]);
@@ -69,21 +69,53 @@ describe('turn pipeline, THIRD_PARTY_SELF_HARM', () => {
     expect(buildCrisisGuidance(summary as never)).toContain('on the person');
   });
 
-  it.each(['off', 'shadow'])('%s: every turn settles exactly as with the flag unset', async (mode) => {
-    const unset = [];
-    for (const text of LINES) unset.push(JSON.stringify(await settle(text)));
-    vi.stubEnv('THIRD_PARTY_SELF_HARM', mode);
-    const got = [];
-    for (const text of LINES) got.push(JSON.stringify(await settle(text)));
-    expect(got).toEqual(unset);
-    expect(JSON.parse(got[0]).summary.isCrisis).toBe(false);
-  });
+  it.each(['off', 'shadow'])(
+    '%s: every turn settles exactly as with the flag unset',
+    async (mode) => {
+      const unset = [];
+      for (const text of LINES) unset.push(JSON.stringify(await settle(text)));
+      vi.stubEnv('THIRD_PARTY_SELF_HARM', mode);
+      const got = [];
+      for (const text of LINES) got.push(JSON.stringify(await settle(text)));
+      expect(got).toEqual(unset);
+      expect(JSON.parse(got[0]).summary.isCrisis).toBe(false);
+    }
+  );
 
   it('shadow: logs only the turns live would change, once each', async () => {
     vi.stubEnv('THIRD_PARTY_SELF_HARM', 'shadow');
     for (const text of LINES) await settle(text);
     expect(info).toHaveBeenCalledTimes(2);
     expect(info.mock.calls.every((c) => c[1] === 'THIRD_PARTY_SELF_HARM_SHADOW')).toBe(true);
+  });
+
+  it('shadow: the log holds the two reads and nothing the caller said', async () => {
+    vi.stubEnv('THIRD_PARTY_SELF_HARM', 'shadow');
+    await settle("he keeps saying he'll hurt himself ZQXSENTINEL", ['earlier ZQXPRIOR']);
+    expect(info.mock.calls).toStrictEqual([
+      [
+        {
+          was: { isCrisis: false, subject: undefined, severity: 0 },
+          live: { isCrisis: true, subject: 'third_party', severity: 0.75 },
+        },
+        'THIRD_PARTY_SELF_HARM_SHADOW',
+      ],
+    ]);
+    expect(JSON.stringify(info.mock.calls)).not.toMatch(/ZQX|himself|earlier/);
+  });
+
+  it("live: a third-party turn never lowers a later turn's session read", async () => {
+    const earlier = [
+      "he said he'd kill himself and i would never kill myself",
+      "i can't do this anymore",
+    ];
+    const unset = await settle('soon none of this will matter', earlier);
+    expect(unset.summary.isCrisis).toBe(true);
+    vi.stubEnv('THIRD_PARTY_SELF_HARM', 'live');
+    const live = await settle('soon none of this will matter', earlier);
+    expect(live.summary.isCrisis).toBe(true);
+    expect(live.summary.subject).toBe('self');
+    expect(live.summary.severity).toBeGreaterThanOrEqual(unset.summary.severity);
   });
 
   it.each(['off', 'live'])('%s: logs nothing', async (mode) => {
