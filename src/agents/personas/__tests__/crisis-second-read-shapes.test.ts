@@ -53,6 +53,10 @@ interface Shape {
   history: 'full' | 'empty' | 'stale';
   /** Base reads find risk only where this is in what they read (a model that needs context). */
   ctx?: string;
+  /** Lines only the pipeline's history holds (a chat context trimmed shorter). */
+  pipeExtra?: string[];
+  /** #2666 round 1: another call with the same gate view, without pipeExtra, reads first. */
+  twin?: boolean;
 }
 
 const SHAPES: Shape[] = [];
@@ -103,6 +107,41 @@ for (const ctx of [undefined, 'kill herself']) {
     }
   );
 }
+// #2666 round 1. A turn whose words end like an earlier turn's, after the same Ferni line, within
+// 30 s: the earlier turn's fill decision must not carry over. And a call whose gate view matches
+// another call's must not reuse that call's run, nor its decision about its own pipeline.
+const CHECK = 'Are you okay?';
+const BROTHER = 'my brother says he wants to end his life.';
+const NEW_SHAPES: Shape[] = [];
+for (const [said, last] of [
+  ['yeah ok', 'ok'],
+  ['yeah', 'yeah'],
+  ['no', 'no'],
+]) {
+  for (const history of ['empty', 'stale', 'full'] as const) {
+    const turns: Turn[] = [
+      ['hey', CHECK],
+      [said, 'Good to hear. What are you up to?'],
+      ['not much', CHECK],
+    ];
+    NEW_SHAPES.push({
+      name: `stale-turn ${said}/${last} ${history}`,
+      turns,
+      burst: [BROTHER, last],
+      history,
+    });
+  }
+}
+NEW_SHAPES.push({
+  name: 'cross-call',
+  turns: PUNS,
+  burst: ['should i drive over tonight'],
+  history: 'full',
+  ctx: 'kill herself',
+  pipeExtra: [FRIEND],
+  twin: true,
+});
+
 // A clean turn the base read misses: the fill must still reach the caller.
 const DOG: Shape = {
   name: 'dog',
@@ -155,18 +194,38 @@ async function heard(
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
   resetCallRiskSnapshots();
+  // Risk only in the turn's own words: its lines, or any run of them joined.
+  const finals = new Set<string>();
+  for (let a = 0; a < shape.burst.length; a++) {
+    for (let b = a + 1; b <= shape.burst.length; b++) finals.add(shape.burst.slice(a, b).join(' '));
+  }
   const generate: CrisisGenerateFn = async (prompt, content) => {
     const seen = JSON.parse(content) as { latest: string; earlier: string[] };
-    if (!shape.burst.some((line) => seen.latest.includes(line.replace(/\.$/, ''))))
-      return j('none');
+    if (!finals.has(seen.latest)) return j('none');
     if (V3.test(prompt)) return v3;
     const visible = [seen.latest, ...seen.earlier].join(' ');
     return shape.ctx && !visible.includes(shape.ctx) ? j('none') : base;
   };
+  if (shape.twin) await call({ ...shape, pipeExtra: undefined }, env, generate, gateFirst);
+  return call(shape, env, generate, gateFirst);
+}
+
+/**
+ * One call through to the turn's last line. Each caller line is one final transcript: the
+ * call's turnCount, which the gate (session userData) and the pipeline (its copy) both read.
+ */
+async function call(
+  shape: Shape,
+  env: Record<string, string>,
+  generate: CrisisGenerateFn,
+  gateFirst: boolean
+): Promise<Heard> {
   const sessionId = `shape-${++calls}`;
-  const userData = { services: { sessionId } };
+  const userData = { services: { sessionId }, turnCount: 0 };
   const prior = shape.turns.map(([caller]) => caller);
+  const extra = shape.pipeExtra ?? [];
   for (let i = 0; i < shape.turns.length; i++) {
+    userData.turnCount = i + 1;
     const gate = startCrisisGate(request(shape.turns.slice(0, i), [prior[i]]), userData, {
       env,
       generate,
@@ -175,23 +234,29 @@ async function heard(
     const lastAgentResponse = shape.turns[i - 1]?.[1];
     const pipe = startTurnCrisis(
       prior[i],
-      { recentTranscripts: recent, lastAgentResponse },
+      { recentTranscripts: recent, lastAgentResponse, turnCount: i + 1 },
       { sessionId, env, generate }
     );
     await Promise.all([gate?.escalation, pipe.summary()]);
   }
+  userData.turnCount = prior.length + shape.burst.length;
+  const turnCount = userData.turnCount;
   const last = shape.burst.at(-1) ?? '';
   const recentTranscripts =
     shape.history === 'empty'
       ? []
       : shape.history === 'stale'
-        ? [...prior, last]
-        : [...prior, ...shape.burst];
+        ? [...prior, ...extra, last]
+        : [...prior, ...extra, ...shape.burst];
   const lastAgentResponse = shape.turns.at(-1)?.[1];
   const runGate = () =>
     startCrisisGate(request(shape.turns, shape.burst), userData, { env, generate });
   const runPipe = () =>
-    startTurnCrisis(last, { recentTranscripts, lastAgentResponse }, { sessionId, env, generate });
+    startTurnCrisis(
+      last,
+      { recentTranscripts, lastAgentResponse, turnCount },
+      { sessionId, env, generate }
+    );
   let gate: ReturnType<typeof runGate>;
   let pipe: ReturnType<typeof runPipe>;
   if (gateFirst) {
@@ -233,7 +298,7 @@ beforeEach(() => {
 });
 
 describe('the second read is never weaker than off, in any shape or order', () => {
-  for (const shape of SHAPES) {
+  for (const shape of [...SHAPES, ...NEW_SHAPES]) {
     for (const gateFirst of [true, false]) {
       const order = gateFirst ? 'gate then pipeline' : 'pipeline then gate';
       it(`${shape.name}, ${order}`, async () => {

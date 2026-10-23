@@ -43,7 +43,8 @@ const turn = {
 };
 
 let calls = 0;
-const path = (p: 'gate' | 'pipeline') => ({ path: p, thirdParty: false });
+/** A path's options on the call's turn 4: the turn count both paths read from the session. */
+const path = (p: 'gate' | 'pipeline', count = 4) => ({ path: p, count, thirdParty: false });
 
 /** The gate's read of the turn, with the pipeline reading the same words right after it. */
 async function run(env: Record<string, string>, generate: CrisisGenerateFn) {

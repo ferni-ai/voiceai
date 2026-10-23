@@ -1,141 +1,118 @@
 /**
  * One turn's second read (CRISIS_CLASSIFIER_SECOND_READ), shared by the reply gate and the turn
- * pipeline. The gate reads its chat context; the pipeline reads recentTranscripts, which can be a
- * shorter window, stale, or empty (#2615). Each deciding from its own lines let the pipeline fill
- * a turn the gate read as a worry about someone else, replacing that guidance with the caller's
- * 988 script (#2587: 98 of 11,712 rows). So the gate decides once per turn whether v3 may fill;
- * the pipeline fills only where the gate decided fill and read every line the pipeline reads (no
- * decision yet: no fill); and a fill about the caller stands only once the other path has noted
- * the turn (the gate waits for the pipeline, bounded) and no read of it is about someone else.
- * Per call, in memory, for 30 seconds.
+ * pipeline, whose lines for a turn differ (a shorter window, stale, or empty: #2615, #2587). The
+ * gate decides once per turn whether v3 may fill; the pipeline fills only where the gate decided
+ * fill for the same turn (no decision yet: no fill); a fill about the caller stands only once the
+ * other path has noted the turn (the gate waits, bounded) and no read of it is about someone else
+ * or failed. A turn is the call's turnCount, which both paths read (one per final transcript),
+ * never the caller's words: those matched an earlier turn that ended alike (#2666 round 1). A
+ * turn's notes expire when the call's next turn is noted. No turn count: no notes, no fill.
  *
  * @module CrisisSecondReadTurn
  */
 
-import { crisisTurnOf } from './crisis-call-risk.js';
-import type { CrisisClassifierInput } from './crisis-classifier.js';
-
 export type SecondReadPath = 'gate' | 'pipeline';
 
-/** One path's view of a turn: what its classifier read sees. */
-export type SecondReadView = CrisisClassifierInput;
-
-/** The caller's latest words and Ferni's line before them, letters and digits only. */
-const turnOf = (view: SecondReadView) => ({
-  text: crisisTurnOf(view.latest),
-  companion: crisisTurnOf(view.companion ?? ''),
-});
-
-interface TurnNote extends ReturnType<typeof turnOf> {
+interface TurnNote {
   path: SecondReadPath;
-  at: number;
-  /** Every line this path read, the same way: what the gate's decision covers. */
-  lines: string[];
   /** The gate's decision: v3 may fill this turn. */
   fill: boolean;
-  /** This path's patterns or base read are about someone else. Never rejects. */
+  /** This path's patterns or base read are about someone else, or the read failed. */
   thirdParty: Promise<boolean>;
 }
 
-const TTL_MS = 30_000;
 const MAX_CALLS = 64;
-const MAX_NOTES = 32;
-const notes = new Map<string, TurnNote[]>();
+/** Per call, its latest turn's notes only; the least recently noted call goes first. */
+const turns = new Map<string, { turn: number; notes: TurnNote[] }>();
 const waiters = new Map<string, Set<() => void>>();
 
-const linesOf = (view: SecondReadView): string[] =>
-  [view.latest, ...view.earlier].map(crisisTurnOf).filter(Boolean);
+/** The turn count, when it is one: a positive integer. */
+export const turnOf = (count: unknown): number | undefined =>
+  typeof count === 'number' && Number.isSafeInteger(count) && count > 0 ? count : undefined;
 
-function notesOf(call: string, now = Date.now()): TurnNote[] {
-  const kept = (notes.get(call) ?? []).filter((n) => now - n.at <= TTL_MS);
-  if (kept.length) notes.set(call, kept);
-  else notes.delete(call);
-  return kept;
-}
+/** A path's second-read options: its user data's turn count, and its patterns' subject. */
+export const secondReadOf = (path: SecondReadPath, userData: unknown, subject?: string) => ({
+  path,
+  count: (userData as { turnCount?: unknown } | undefined)?.turnCount,
+  thirdParty: subject === 'third_party',
+});
 
-/** One turn on both paths: the gate's joined lines end with the pipeline's last line. */
-const gateEndsWith = (gate: string, pipeline: string): boolean =>
-  !!pipeline && (gate === pipeline || gate.endsWith(` ${pipeline}`));
+const notesOf = (call: string | undefined, turn: number | undefined): TurnNote[] | undefined => {
+  const kept = call === undefined ? undefined : turns.get(call);
+  return kept?.turn === turn ? kept?.notes : undefined;
+};
 
 export function noteSecondReadTurn(
   call: string | undefined,
+  turn: number | undefined,
   path: SecondReadPath,
-  view: SecondReadView,
   fill: boolean,
   thirdParty: Promise<boolean>
 ): void {
-  if (!call) return;
-  const kept = notesOf(call);
-  if (!notes.has(call) && notes.size >= MAX_CALLS) notes.delete(notes.keys().next().value ?? '');
-  const note = { ...turnOf(view), path, at: Date.now(), lines: linesOf(view), fill };
-  notes.delete(call); // most recently noted call last
-  notes.set(
-    call,
-    [...kept, { ...note, thirdParty: thirdParty.catch(() => true) }].slice(-MAX_NOTES)
-  );
+  if (!call || turn === undefined) return;
+  const kept = turns.get(call);
+  if (kept && kept.turn > turn) return; // that turn is over
+  if (!kept && turns.size >= MAX_CALLS) turns.delete(turns.keys().next().value ?? '');
+  const notes = kept && kept.turn === turn ? kept.notes : []; // a new turn: the last one expires
+  notes.push({ path, fill, thirdParty: thirdParty.catch(() => true) });
+  turns.delete(call);
+  turns.set(call, { turn, notes });
   for (const check of [...(waiters.get(call) ?? [])]) check();
 }
 
-/** The pipeline: the gate decided fill, having read every line the pipeline reads. */
-export function gateDecidedFill(call: string | undefined, view: SecondReadView): boolean {
-  const { text, companion } = turnOf(view);
-  const lines = linesOf(view);
-  const gate = (call ? notesOf(call) : []).filter(
-    (n) => n.path === 'gate' && n.companion === companion && gateEndsWith(n.text, text)
-  );
-  // No gate decision yet, or any gate read of the turn that said no: no fill.
-  return (
-    gate.length > 0 &&
-    gate.every((n) => n.fill && lines.every((line) => n.lines.some((seen) => seen.includes(line))))
-  );
+/** The pipeline: the gate decided this turn may be filled, and no gate read of it said no. */
+export function gateDecidedFill(call: string | undefined, turn: number | undefined): boolean {
+  const gate = (notesOf(call, turn) ?? []).filter((n) => n.path === 'gate');
+  return gate.length > 0 && gate.every((n) => n.fill);
 }
 
 /**
  * Whether a fill about the caller may stand on this path: the other path has noted the turn (the
- * gate waits up to waitMs for the pipeline), and no read of the turn is about someone else.
+ * gate waits up to waitMs for the pipeline; the call moving to its next turn ends the wait), and
+ * no read of the turn is about someone else or failed.
  */
 export async function selfFillStands(
   call: string | undefined,
+  turn: number | undefined,
   path: SecondReadPath,
-  view: SecondReadView,
   waitMs: number
 ): Promise<boolean> {
-  if (!call) return false;
-  const { text, companion } = turnOf(view);
-  const noted = (): boolean =>
-    notesOf(call).some(
-      (n) =>
-        n.path !== path &&
-        n.companion === companion &&
-        (path === 'gate' ? gateEndsWith(text, n.text) : gateEndsWith(n.text, text))
-    );
+  if (!call || turn === undefined) return false;
+  // The turn's notes once the other path is among them; false once the turn has ended.
+  const noted = (): TurnNote[] | false | undefined => {
+    if ((turns.get(call)?.turn ?? 0) > turn) return false;
+    const notes = notesOf(call, turn);
+    return notes?.some((n) => n.path !== path) ? notes : undefined;
+  };
   const set = waiters.get(call) ?? new Set<() => void>();
-  const found =
-    noted() ||
-    (await new Promise<boolean>((resolve) => {
-      const done = (seen: boolean): void => {
+  const notes =
+    noted() ??
+    (await new Promise<TurnNote[] | false>((resolve) => {
+      const done = (seen: TurnNote[] | false): void => {
         clearTimeout(timer);
         set.delete(check);
         if (!set.size) waiters.delete(call);
         resolve(seen);
       };
-      const check = (): void => void (noted() && done(true));
+      const check = (): void => {
+        const seen = noted();
+        if (seen !== undefined) done(seen);
+      };
       const timer = setTimeout(() => done(false), waitMs);
       waiters.set(call, set.add(check));
     }));
-  // Any note of the same turn, either way round: a wider match only drops more fills.
-  const turn = notesOf(call).filter(
-    (n) =>
-      n.companion === companion &&
-      !!text &&
-      !!n.text &&
-      (n.text.includes(text) || text.includes(n.text))
-  );
-  return found && !(await Promise.all(turn.map((n) => n.thirdParty))).some(Boolean);
+  if (!notes) return false;
+  // Every read of the turn, a note that arrives while these settle included.
+  for (let read = 0; read < notes.length;) {
+    const batch = notes.slice(read);
+    read += batch.length;
+    if ((await Promise.all(batch.map((n) => n.thirdParty))).some(Boolean)) return false;
+  }
+  return true;
 }
 
 /** For tests: forget every turn. */
 export function resetSecondReadTurns(): void {
-  notes.clear();
+  turns.clear();
   waiters.clear();
 }

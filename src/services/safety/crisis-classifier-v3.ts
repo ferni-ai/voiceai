@@ -31,8 +31,8 @@ import {
   gateDecidedFill,
   noteSecondReadTurn,
   selfFillStands,
+  turnOf,
   type SecondReadPath,
-  type SecondReadView,
 } from './crisis-second-read-turn.js';
 
 const log = createLogger({ module: 'CrisisClassifierV3' });
@@ -63,6 +63,15 @@ export function resolveCrisisSecondRead(
 ): CrisisSecondReadMode {
   const raw = env.CRISIS_CLASSIFIER_SECOND_READ?.trim().toLowerCase();
   return raw === 'on' || raw === 'shadow' ? raw : 'off';
+}
+
+/** How long a read that found nothing waits for v3: 150 ms unless set, 0 to 300 (#2666). */
+export function resolveCrisisSecondReadGraceMs(
+  env: Record<string, string | undefined> = process.env
+): number {
+  const raw = env.CRISIS_SECOND_READ_GRACE_MS?.trim();
+  const ms = raw ? Number(raw) : Number.NaN;
+  return Number.isFinite(ms) ? Math.min(300, Math.max(0, ms)) : 150;
 }
 
 /**
@@ -116,10 +125,10 @@ async function kept(
 }
 
 /**
- * The turn's read with the second read applied. On: the base read, or the second where the base
- * read found nothing and the decision is fill; a turn v3 may not fill never waits for it. A fill
- * about the caller stands only where selfFillStands resolves true (missing or failing: dropped). Shadow: the base alone. Either way one CRISIS_CLASSIFIER_SECOND_READ record logs
- * both risks once both settle. No caller words are logged. A second read that throws is no read.
+ * The turn's read with the second read applied. On: the base read, or v3 where the base read found
+ * nothing, the decision is fill and v3 settles within the grace (CRISIS_SECOND_READ_GRACE_MS) after
+ * it; a fill about the caller then waits for selfFillStands (missing, failing or false: dropped).
+ * Shadow: the base alone. One record logs both risks once both settle, never caller words.
  */
 export function withSecondRead(
   base: Promise<CrisisVerdict | null>,
@@ -132,15 +141,26 @@ export function withSecondRead(
   if (mode === 'off') return base;
   const startedAt = Date.now();
   const { pattern, fill } = decision;
-  const second = safely(() => read(withPromptV3(prompt)), null);
+  // v3 as it stands within the grace after the base read: no turn waits longer (#2666 round 1).
+  let ready: { extra: CrisisVerdict | null } | undefined;
+  const second = safely(() => read(withPromptV3(prompt)), null).then((extra) => {
+    ready = { extra };
+    return extra;
+  });
+  const graceMs = resolveCrisisSecondReadGraceMs(env);
+  // The grace starts once the base read has found nothing.
+  const grace = (): Promise<unknown> =>
+    new Promise((settle) => {
+      setTimeout(settle, graceMs).unref();
+    });
   const reads =
     mode === 'shadow' || !fill
       ? base
-      : base.then((first) =>
-          first && first.risk !== 'none'
-            ? first
-            : second.then((extra) => kept(first, extra, decision.selfFillStands))
-        );
+      : base.then(async (first) => {
+          if (first && first.risk !== 'none') return first;
+          if (!ready) await Promise.race([second, grace()]);
+          return ready ? kept(first, ready.extra, decision.selfFillStands) : first;
+        });
   void Promise.all([base, second, reads])
     .then(([first, extra, final]) => {
       log.info(
@@ -162,44 +182,50 @@ export function withSecondRead(
 
 /**
  * The second read for one path's run (crisis-second-read-turn.ts): its part of the run cache key
- * (a run is shared only within one fill decision), its note of the turn (with the run's base
- * read, when it makes one), and the read applied. The gate decides from the lines it read; the
- * pipeline reads that decision, never its own history. No path (a roundtable turn): no fill.
+ * (a run is shared only within one call, turn and fill decision), its note of the turn (with the
+ * run's base read, when it makes one), and the read applied. The gate decides from the lines it
+ * read; the pipeline reads that decision, never its own history. No path (a roundtable turn) or
+ * no turn count: no fill.
  */
 export function secondReadRun(
   turn: {
     call?: string;
     path?: SecondReadPath;
+    /** The call's turn count, which the gate and the pipeline both read. */
+    count?: unknown;
     pattern: PatternOutcome;
     /** The patterns read a worry about someone else. */
     thirdParty?: boolean;
-    view: SecondReadView;
+    /** What the classifier sees: the gate's decision is over these lines. */
+    lines: readonly string[];
     /** How long a gate's fill about the caller waits for the pipeline to note the turn. */
     waitMs: number;
   },
   env: Record<string, string | undefined> = process.env
 ) {
   const mode = resolveCrisisSecondRead(env);
-  const { call, path, pattern, view } = turn;
-  const lines = [view.latest, ...view.earlier];
+  const { call, path, pattern, lines } = turn;
+  const at = turnOf(turn.count);
   const fill =
     mode !== 'off' &&
     pattern === 'none' &&
+    at !== undefined &&
     (path === 'gate'
       ? mayFill({ pattern, lines })
-      : path === 'pipeline' && gateDecidedFill(call, view));
+      : path === 'pipeline' && gateDecidedFill(call, at));
+  // A read that failed (null: a timeout or an error) counts as one about someone else.
   const about = (v: CrisisVerdict | null) =>
-    !!v && v.risk !== 'none' && v.subject === 'third_party';
+    v === null || (v.risk !== 'none' && v.subject === 'third_party');
   const note = (base?: Promise<CrisisVerdict | null>): void => {
     if (mode === 'off' || !path) return;
     const own = turn.thirdParty === true;
     const thirdParty = base ? base.then((v) => own || about(v)) : Promise.resolve(own);
-    noteSecondReadTurn(call, path, view, fill, thirdParty);
+    noteSecondReadTurn(call, at, path, fill, thirdParty);
   };
   const stands = () =>
-    path ? selfFillStands(call, path, view, turn.waitMs) : Promise.resolve(false);
+    path ? selfFillStands(call, at, path, turn.waitMs) : Promise.resolve(false);
   return {
-    key: mode === 'off' ? 'off' : `second:${pattern}:${fill}`,
+    key: mode === 'off' ? 'off' : `second:${call ?? ''}:${at ?? ''}:${pattern}:${fill}`,
     note,
     apply(
       base: Promise<CrisisVerdict | null>,

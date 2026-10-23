@@ -272,8 +272,8 @@ export interface StartCrisisClassifierOptions {
   scope?: string;
   /** The call's session id, always when known: its reads are tracked (crisis-call-risk.ts). */
   call?: string;
-  /** Which path reads, and whether its patterns read someone else (crisis-second-read-turn.ts). */
-  secondRead?: { path: SecondReadPath; thirdParty: boolean };
+  /** Which path reads, the call's turn count, and whether its patterns read someone else. */
+  secondRead?: { path: SecondReadPath; count?: unknown; thirdParty: boolean };
 }
 
 let defaultGenerate: CrisisGenerateFn | null = null;
@@ -434,7 +434,8 @@ export function startCrisisClassifier(
   // CRISIS_CLASSIFIER_SECOND_READ: v3 may fill a read that found nothing (crisis-classifier-v3.ts).
   const waitMs = resolveCrisisClassifierTimeoutMs(env);
   const { call, pattern, secondRead } = options;
-  const second = secondReadRun({ call, pattern, ...secondRead, view: normalized, waitMs }, env);
+  const lines = [normalized.latest, ...normalized.earlier];
+  const second = secondReadRun({ call, pattern, ...secondRead, lines, waitMs }, env);
   const key = JSON.stringify([
     normalized.latest,
     normalized.earlier,
