@@ -33,7 +33,7 @@ function resolveInverse(tokens, inverse, file) {
 
 /**
  * Resolved roles in emit order: [{ label, ownsLight, roles: [{ name, light, dark, inverse }] }].
- * Persona roles have `dark: undefined` when the persona has no dark value;
+ * `dark` is undefined for a light-only role (and a persona with no dark value);
  * `inverse` ({ light, dark }) is set only on roles with an inverse context.
  */
 export function themeRoleGroups(semantic, colors, spacing = {}) {
@@ -47,7 +47,7 @@ export function themeRoleGroups(semantic, colors, spacing = {}) {
         roles: Object.entries(roles).map(([name, ref]) => ({
           name: `${prefix}${name}`,
           light: resolveRef(tokens, ref.light, file),
-          dark: resolveRef(tokens, ref.dark, file),
+          dark: ref.dark === undefined ? undefined : resolveRef(tokens, ref.dark, file),
           inverse: resolveInverse(tokens, ref.inverse, file),
         })),
       };

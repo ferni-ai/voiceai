@@ -132,10 +132,8 @@ export async function saveTokens(userId: string, tokens: OAuthTokens): Promise<v
   // Encrypt and persist
   try {
     const encrypted = encryptData(tokensWithTimestamp);
-    await tokenStore.setImmediate(userId, {
-      encrypted,
-      updated_at: Date.now(),
-    });
+    const grant = { encrypted, updated_at: Date.now() };
+    await tokenStore.setImmediate(userId, grant, { safeWithoutRead: true }); // a new grant
     log.info({ userId: userId.substring(0, 8) }, 'Saved Spotify OAuth tokens');
   } catch (err) {
     log.error(

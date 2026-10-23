@@ -5,7 +5,7 @@
 // usage: review-calls.mjs [--env prod|dev|both] [--since ISO] [--until ISO] [--out DIR]
 //                         [--database ID]
 // Opt-in flags are read from each env's Firestore database (eval-database.mjs:
-// prod '(default)', dev EVAL_DEV_DATABASE); --database forces one for every env.
+// prod '(default)', dev 'ferni-dev' or EVAL_DEV_DATABASE); --database forces one for every env.
 //
 // Only these callers are ever reviewed: Seth (REVIEW_OWNER_UID), eval accounts
 // (uid starts with voice-eval-) and anyone whose bogle_users doc has
