@@ -19,6 +19,7 @@ import {
   classifierOnlyCheckin,
   classifierOnlyWhy,
   resetClassifierOnlyReads,
+  withClassifierOnly,
   resolveClassifierOnlyCheckin,
   type ClassifierOnlyArgs,
 } from '../crisis-classifier-only.js';
@@ -696,5 +697,40 @@ describe('quiet preparation and indirect method (crisis-eligible-v1): never ease
     expect(classifierOnlyWhy(args({ latest, detection: detectCrisis(latest) }))).not.toBe(
       'eligible'
     );
+  });
+});
+
+describe('withClassifierOnly (the reply gate wrapper)', () => {
+  const turn = {
+    detection: detectCrisis(LATEST),
+    latest: LATEST,
+    earlier: EARLIER,
+    companion: COMPANION,
+    priorRisk: false,
+    scope: 'wrap-call',
+    call: 'wrap-call',
+  };
+  const run = { verdict: Promise.resolve(CRISIS) };
+  const transcript = () => [{ speaker: 'caller' as const, text: LATEST }];
+
+  it('off: hands back the very same promise', () => {
+    const escalation = Promise.resolve(null);
+    expect(withClassifierOnly(escalation, run, turn, transcript, { env: {} })).toBe(escalation);
+  });
+
+  it.each([
+    ['a soft check', { action: 'guide', guidance: 'SOFT' }],
+    [
+      'a grounded light touch',
+      { action: 'guide', guidance: '[SAFETY - LIGHT TOUCH] stay with them' },
+    ],
+    ['the script', { action: 'replace', script: '988' }],
+  ])('live: %s is handed back untouched', async (_n, decision) => {
+    const adjudicate = adjudicator(SAYS.checkin);
+    const out = await withClassifierOnly(Promise.resolve(decision), run, turn, transcript, {
+      env: { CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live' },
+      adjudicate,
+    });
+    expect(out).toBe(decision);
   });
 });

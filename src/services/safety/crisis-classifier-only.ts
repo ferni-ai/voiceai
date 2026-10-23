@@ -427,6 +427,9 @@ export async function classifierOnlyCheckin(options: ClassifierOnlyOptions): Pro
   return decided.catch(() => false);
 }
 
+/** buildCrisisGuidance's first line (crisis-guard.ts). */
+const CRISIS_GUIDANCE_HEADER = '[CRITICAL - USER SAFETY]';
+
 /** What the reply gate knew about this turn when its classifier read started. */
 export interface GateTurn {
   detection: CrisisDetectionResult;
@@ -471,8 +474,11 @@ export function withClassifierOnly<D extends { action: string; guidance?: string
       .catch(() => undefined);
   }
   return escalation.then(async (decision) => {
-    // Only a crisis guide the classifier brought; every soft path already chose SOFT_CRISIS_CHECK.
-    if (decision?.action !== 'guide' || decision.guidance === SOFT_CRISIS_CHECK) return decision;
+    // Only the crisis guidance the classifier brought (buildCrisisGuidance); any other guide,
+    // soft or new, is left alone, and a changed header only ever keeps the guidance.
+    if (decision?.action !== 'guide' || !decision.guidance?.startsWith(CRISIS_GUIDANCE_HEADER)) {
+      return decision;
+    }
     const verdict = await run.verdict.catch(() => null);
     if (!(await classifierOnlyCheckin({ ...base, verdict, transcript: transcript() }))) {
       return decision;
