@@ -111,7 +111,7 @@ async function createEventWithPersistence(
   };
 
   stores.events.set(id, event);
-  saveCaller(userId);
+  saveCaller(userId, stores);
   getLogger().info({ eventId: id, name, type, date }, '🎉 Event created');
 
   return event;
@@ -341,7 +341,7 @@ export function createEventPlanningTools() {
 
         event.guestCount = event.guests.length + event.guests.filter((g) => g.plusOne).length;
         stores.events.set(event.id, event);
-        saveCaller(userId);
+        saveCaller(userId, stores);
 
         const plusOnes = guests.filter((g) => g.plusOne).length;
         let response = `✅ Added ${added} guest${added > 1 ? 's' : ''} to "${event.name}"`;
@@ -508,7 +508,7 @@ export function createEventPlanningTools() {
         task.completed = true;
         if (notes) task.notes = notes;
         stores.events.set(event.id, event);
-        saveCaller(userId);
+        saveCaller(userId, stores);
 
         const remaining = event.checklist.filter((c) => !c.completed).length;
 
@@ -545,7 +545,7 @@ export function createEventPlanningTools() {
 
         event.spent += amount;
         stores.events.set(event.id, event);
-        saveCaller(userId);
+        saveCaller(userId, stores);
 
         const remaining = event.budget - event.spent;
         const percentUsed = Math.round((event.spent / event.budget) * 100);
@@ -658,7 +658,7 @@ export function createEventPlanningTools() {
         };
 
         stores.majorPurchases.set(id, purchase);
-        saveCaller(userId);
+        saveCaller(userId, stores);
         getLogger().info({ purchaseId: id, type, name, budget }, '🛒 Major purchase plan created');
 
         const bestTimes = BEST_TIMES_TO_BUY[type] || BEST_TIMES_TO_BUY.appliances;
@@ -751,7 +751,7 @@ export function createEventPlanningTools() {
         };
 
         stores.vacations.set(id, vacation);
-        saveCaller(userId);
+        saveCaller(userId, stores);
         getLogger().info({ vacationId: id, name, destination, budget }, '✈️ Vacation plan created');
 
         let response = `✈️ **Vacation Plan: ${name}**\n\n`;
@@ -856,7 +856,7 @@ export function createEventPlanningTools() {
         };
 
         stores.annualPlans.set(id, plan);
-        saveCaller(userId);
+        saveCaller(userId, stores);
         getLogger().info({ year, goalsCount: plan.goals.length }, '📆 Annual plan created');
 
         let response = `📆 **${year} Annual Plan**\n\n`;

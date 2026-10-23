@@ -8,7 +8,7 @@
 import { createPersistenceStore, type PersistenceStore } from '../../services/persistence/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
-import { isRealUserId } from '../registry/user-id-guard.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import type {
   Event,
   MajorPurchase,
@@ -123,15 +123,17 @@ export function deserializeAnnualPlan(data: PersistedAnnualPlan): AnnualPlan {
 }
 
 // ============================================================================
-// IN-MEMORY STORAGE (one set of maps per user)
+// PER-CALL STORAGE
 // ============================================================================
 
 /**
  * One user's events, purchases, vacations and annual plans.
  *
- * PRIVACY: these are kept per user. The worker process is long-lived and
- * serves call after call, so maps shared at module level would hand one
- * caller's plans to the next caller and save them into the next caller's doc.
+ * PRIVACY: read fresh from that user's own doc on every call and never kept
+ * at module level. The worker process is long-lived and serves call after
+ * call, so maps shared across calls handed one caller's plans to the next
+ * and saved them into the next caller's doc; a per-user cache would also
+ * save a stale copy over another worker's newer write.
  */
 export interface EventPlanningStores {
   events: Map<string, Event>;
@@ -149,53 +151,65 @@ function emptyStores(): EventPlanningStores {
   };
 }
 
-const storesByUser = new Map<string, EventPlanningStores>();
-export const loadedUsers = new Set<string>();
-
-/** This user's maps, created empty the first time. */
-export function storesFor(userId: string): EventPlanningStores {
-  let stores = storesByUser.get(userId);
-  if (!stores) {
-    stores = emptyStores();
-    storesByUser.set(userId, stores);
+function storesFromData(data: UserEventPlanningData | null): EventPlanningStores {
+  const stores = emptyStores();
+  for (const event of data?.events ?? []) stores.events.set(event.id, deserializeEvent(event));
+  for (const purchase of data?.majorPurchases ?? []) {
+    stores.majorPurchases.set(purchase.id, deserializePurchase(purchase));
+  }
+  for (const vacation of data?.vacations ?? []) {
+    stores.vacations.set(vacation.id, deserializeVacation(vacation));
+  }
+  for (const plan of data?.annualPlans ?? []) {
+    stores.annualPlans.set(plan.id, deserializeAnnualPlan(plan));
   }
   return stores;
 }
 
-/** Test-only: forget every user's maps. */
-export function resetEventPlanningStoresForTests(): void {
-  storesByUser.clear();
-  loadedUsers.clear();
-}
-
 /**
- * The caller on this tool call: LiveKit's `opts.ctx.userData.userId`, or a
- * `userId` passed directly by an older caller. A missing or placeholder id
- * ('default', 'anonymous', ...) names nobody, so it gets no saved plans.
+ * The caller on this tool call: only the call's own `opts.ctx.userData.userId`,
+ * and only a member's own id (the store/read rule, as in caller-city.ts).
+ * Placeholders, anon: callers and on-behalf third parties get no saved plans.
+ * A `userId` anywhere else (args, `opts.userId`) is never read: the model
+ * could choose it.
  */
 export function eventPlanningCaller(opts: unknown): string | undefined {
-  const o = opts as { ctx?: { userData?: { userId?: unknown } }; userId?: unknown } | undefined;
-  const id = o?.ctx?.userData?.userId ?? o?.userId;
-  return isRealUserId(id) ? id : undefined;
+  const id = (opts as { ctx?: { userData?: { userId?: unknown } } } | undefined)?.ctx?.userData
+    ?.userId;
+  return typeof id === 'string' && isMemberIdentity(id.trim()) ? id.trim() : undefined;
 }
 
 /**
- * The caller's id and maps, loaded from Firestore. A caller with no identity
- * gets fresh empty maps that nothing keeps or saves, so no two such callers
- * share a bucket.
+ * The caller's id and plans, read fresh and strict from their doc. A caller
+ * who isn't a member, or whose read failed, gets empty maps and no id, so
+ * nothing is kept and nothing is saved over their stored plans.
  */
 export async function loadCaller(
   opts: unknown
 ): Promise<{ userId: string | undefined; stores: EventPlanningStores }> {
   const userId = eventPlanningCaller(opts);
   if (!userId) return { userId, stores: emptyStores() };
-  await ensureUserLoaded(userId);
-  return { userId, stores: storesFor(userId) };
+  try {
+    const data = await getPersistence().load(userId, { fresh: true, strict: true });
+    return { userId, stores: storesFromData(data) };
+  } catch (error) {
+    getLogger().warn(
+      { error: String(error), userId },
+      'Event planning read failed; not saving over stored plans'
+    );
+    return { userId: undefined, stores: emptyStores() };
+  }
 }
 
-/** Save the caller's plans; a caller with no identity has nothing saved. */
-export function saveCaller(userId: string | undefined): void {
-  if (userId) persistEventPlanningData(userId);
+/** Save the caller's plans to their own doc; no id (not a member, or a failed read) saves nothing. */
+export function saveCaller(userId: string | undefined, stores: EventPlanningStores): void {
+  if (!userId) return;
+  getPersistence().set(userId, {
+    events: Array.from(stores.events.values()).map(serializeEvent),
+    majorPurchases: Array.from(stores.majorPurchases.values()).map(serializePurchase),
+    vacations: Array.from(stores.vacations.values()).map(serializeVacation),
+    annualPlans: Array.from(stores.annualPlans.values()).map(serializeAnnualPlan),
+  });
 }
 
 // ============================================================================
@@ -213,51 +227,6 @@ export function getPersistence(): PersistenceStore<UserEventPlanningData> {
     });
   }
   return persistence;
-}
-
-/**
- * Load user's event planning data from persistence into that user's maps
- */
-export async function ensureUserLoaded(userId: string): Promise<void> {
-  if (loadedUsers.has(userId)) return;
-
-  try {
-    const data = await getPersistence().load(userId);
-    if (data) {
-      const stores = storesFor(userId);
-      for (const event of data.events || []) {
-        stores.events.set(event.id, deserializeEvent(event));
-      }
-      for (const purchase of data.majorPurchases || []) {
-        stores.majorPurchases.set(purchase.id, deserializePurchase(purchase));
-      }
-      for (const vacation of data.vacations || []) {
-        stores.vacations.set(vacation.id, deserializeVacation(vacation));
-      }
-      for (const plan of data.annualPlans || []) {
-        stores.annualPlans.set(plan.id, deserializeAnnualPlan(plan));
-      }
-    }
-    loadedUsers.add(userId);
-    getLogger().debug({ userId }, 'Loaded event planning data from persistence');
-  } catch (error) {
-    getLogger().warn({ error, userId }, 'Failed to load event planning data');
-    loadedUsers.add(userId);
-  }
-}
-
-/**
- * Persist this user's event planning data, and only this user's
- */
-export function persistEventPlanningData(userId: string): void {
-  const stores = storesFor(userId);
-  const data: UserEventPlanningData = {
-    events: Array.from(stores.events.values()).map(serializeEvent),
-    majorPurchases: Array.from(stores.majorPurchases.values()).map(serializePurchase),
-    vacations: Array.from(stores.vacations.values()).map(serializeVacation),
-    annualPlans: Array.from(stores.annualPlans.values()).map(serializeAnnualPlan),
-  };
-  getPersistence().set(userId, data);
 }
 
 /**

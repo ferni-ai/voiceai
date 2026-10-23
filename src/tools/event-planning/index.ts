@@ -10,14 +10,7 @@ export type * from './types.js';
 // Export storage and helpers
 export type { EventPlanningStores } from './storage.js';
 export {
-  storesFor,
-  eventPlanningCaller,
-  loadCaller,
-  saveCaller,
-  loadedUsers,
   getPersistence,
-  ensureUserLoaded,
-  persistEventPlanningData,
   flushEventPlanningPersistence,
   serializeEvent,
   deserializeEvent,

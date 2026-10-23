@@ -11,29 +11,38 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // One fake Firestore doc per user, so the tests can read exactly what each save wrote.
 const docs = vi.hoisted(() => new Map<string, unknown>());
+// Users whose next read errors, the way the real store does: strict throws, non-strict answers null.
+const failNextRead = vi.hoisted(() => new Set<string>());
 
-vi.mock('../../../services/persistence/index.js', () => ({
-  createPersistenceStore: () => ({
-    load: vi.fn(async (userId: string) =>
-      docs.has(userId) ? structuredClone(docs.get(userId)) : null
-    ),
-    set: vi.fn((userId: string, data: unknown) => docs.set(userId, structuredClone(data))),
-    flush: vi.fn().mockResolvedValue(undefined),
-  }),
-}));
+// Like the real store, a load answers from this worker's cache unless asked for a fresh read.
+const cache = vi.hoisted(() => new Map<string, unknown>());
+vi.mock('../../../services/persistence/index.js', () => {
+  return {
+    createPersistenceStore: () => ({
+      load: vi.fn(async (userId: string, options?: { strict?: boolean; fresh?: boolean }) => {
+        if (failNextRead.delete(userId)) {
+          if (options?.strict) throw new Error('firestore unavailable');
+          return null;
+        }
+        if (cache.has(userId) && !options?.fresh) return structuredClone(cache.get(userId));
+        const doc = docs.has(userId) ? structuredClone(docs.get(userId)) : null;
+        if (doc) cache.set(userId, doc);
+        return doc;
+      }),
+      set: vi.fn((userId: string, data: unknown) => {
+        cache.set(userId, structuredClone(data));
+        docs.set(userId, structuredClone(data));
+      }),
+      flush: vi.fn().mockResolvedValue(undefined),
+    }),
+  };
+});
 
-import { createEventPlanningTools } from '../../domains/life-planning/event-planning.js';
-import {
-  ensureUserLoaded,
-  persistEventPlanningData,
-  resetEventPlanningStoresForTests,
-  storesFor,
-} from '../storage.js';
 import type { UserEventPlanningData } from '../types.js';
 
 type Execute = (args: Record<string, unknown>, opts: unknown) => Promise<string>;
 
-const tools = createEventPlanningTools() as unknown as Record<string, { execute: Execute }>;
+let tools: Record<string, { execute: Execute }>;
 
 /** LiveKit's tool options: the caller is the call's own userData.userId. */
 function as(userId: string | undefined) {
@@ -52,13 +61,37 @@ function savedDoc(userId: string): UserEventPlanningData | undefined {
   return docs.get(userId) as UserEventPlanningData | undefined;
 }
 
+function storedEvent(id: string, name: string) {
+  return {
+    id,
+    name,
+    type: 'birthday',
+    date: '2030-12-15T00:00:00.000Z',
+    guestCount: 1,
+    budget: 1,
+    spent: 0,
+    status: 'planning',
+    checklist: [],
+    guests: [],
+    vendors: [],
+    notes: '',
+    createdAt: '2026-01-01T00:00:00.000Z',
+  };
+}
+
 const A = 'user-alice';
 const B = 'user-bob';
 const A_EVENT = 'Alice Secret Surprise Party';
+const PARTY = { type: 'other', date: 'May 1, 2030', guestCount: 5, budget: 100 };
 
-beforeEach(() => {
+// A fresh module per test: nothing a previous test cached survives, as in a new worker.
+beforeEach(async () => {
   docs.clear();
-  resetEventPlanningStoresForTests();
+  cache.clear();
+  failNextRead.clear();
+  vi.resetModules();
+  const mod = await import('../../domains/life-planning/event-planning.js');
+  tools = mod.createEventPlanningTools() as unknown as Record<string, { execute: Execute }>;
 });
 
 describe('event planning keeps each caller to their own plans', () => {
@@ -171,51 +204,74 @@ describe('event planning keeps each caller to their own plans', () => {
     expect(savedDoc(A)?.events.map((e) => e.name)).toEqual([A_EVENT]);
   });
 
-  it('still honours a caller id passed directly as context.userId', async () => {
+  it('ignores a userId that arrives as context.userId (the model could choose it)', async () => {
+    await tools.createEvent.execute({ name: 'Chosen by args', ...PARTY }, { userId: A });
     await tools.createEvent.execute(
+      { name: 'Chosen by args', ...PARTY, userId: A },
       {
-        name: 'Direct caller event',
-        type: 'other',
-        date: 'May 1, 2030',
-        guestCount: 5,
-        budget: 100,
-      },
-      { userId: A }
+        userId: A,
+      }
     );
-    expect(savedDoc(A)?.events.map((e) => e.name)).toEqual(['Direct caller event']);
+    expect(docs.size).toBe(0);
+  });
+
+  it.each(['anon:x', 'onbehalf:x', 'Default', ' anonymous', 'default', 'anonymous', ''])(
+    'saves nothing for a caller who is not a member (%j)',
+    async (id) => {
+      await run('createEvent', { name: 'Third party plan', ...PARTY }, id);
+      expect(docs.size).toBe(0);
+      expect(await run('getEventSummary', {}, id)).not.toContain('Third party plan');
+    }
+  );
+
+  it("trims a member's id before keying their doc", async () => {
+    await run('createEvent', { name: 'Padded id party', ...PARTY }, ` ${A} `);
+    expect([...docs.keys()]).toEqual([A]);
   });
 });
 
-describe('storage persists one user at a time', () => {
-  it("persisting B after loading A's doc writes none of A's items", async () => {
+describe('a failed or stale read never overwrites saved plans', () => {
+  it("a failed read leaves the member's saved events in place", async () => {
     docs.set(A, {
-      events: [
-        {
-          id: 'event_1',
-          name: A_EVENT,
-          type: 'birthday',
-          date: '2030-12-15T00:00:00.000Z',
-          guestCount: 1,
-          budget: 1,
-          spent: 0,
-          status: 'planning',
-          checklist: [],
-          guests: [],
-          vendors: [],
-          notes: '',
-          createdAt: '2026-01-01T00:00:00.000Z',
-        },
-      ],
+      events: [storedEvent('event_1', A_EVENT)],
       majorPurchases: [],
       vacations: [],
       annualPlans: [],
     });
-    await ensureUserLoaded(A);
-    await ensureUserLoaded(B);
-    expect(storesFor(A).events.size).toBe(1);
-    expect(storesFor(B).events.size).toBe(0);
 
-    persistEventPlanningData(B);
-    expect(savedDoc(B)).toEqual({ events: [], majorPurchases: [], vacations: [], annualPlans: [] });
+    failNextRead.add(A);
+    await run('createEvent', { name: 'During the outage', ...PARTY }, A);
+    expect(savedDoc(A)?.events.map((e) => e.name)).toEqual([A_EVENT]);
+
+    // The next call reads again and still finds the saved event.
+    expect(await run('getEventSummary', { eventId: 'event_1' }, A)).toContain(A_EVENT);
+  });
+
+  it("reads fresh each call, so another worker's newer save is kept", async () => {
+    await run('createEvent', { name: 'First party', ...PARTY }, A);
+    // Another worker adds an event to A's doc.
+    const doc = savedDoc(A)!;
+    docs.set(A, {
+      ...doc,
+      events: [...doc.events, storedEvent('event_other', 'Other worker party')],
+    });
+
+    await run('planMajorPurchase', { type: 'car', name: 'Alice car', budget: 30000 }, A);
+    expect(savedDoc(A)?.events.map((e) => e.name)).toContain('Other worker party');
+  });
+});
+
+describe('the module exports no per-user storage internals', () => {
+  it('index does not re-export the raw storage helpers', async () => {
+    const index = await import('../index.js');
+    for (const name of [
+      'storesFor',
+      'loadedUsers',
+      'ensureUserLoaded',
+      'persistEventPlanningData',
+      'events',
+    ]) {
+      expect(index).not.toHaveProperty(name);
+    }
   });
 });
