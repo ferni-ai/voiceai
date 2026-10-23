@@ -41,8 +41,9 @@ import {
   farewellSaid,
   IDLE_AFTER_GOODBYE_MS,
 } from '../call-farewell.js';
-import { HOLD_MAX_MS } from '../caller-activity.js';
-import { CRISIS_HOLD, END_CALL } from '../phone-goodbye.js';
+import { HOLD_MAX_MS, PHONE_QUIET_MS, TURN_READ_WAIT_MS } from '../caller-activity.js';
+import { farewellRisk } from '../farewell-risk.js';
+import { CRISIS_HOLD, END_CALL, STILL_TALKING } from '../phone-goodbye.js';
 import { clearSessionClosing, isSessionClosing } from '../session-closing-tracker.js';
 import { AFTER_END_WATCH_MS } from '../wrap-up-window.js';
 import {
@@ -356,7 +357,8 @@ describe('the caller keeps talking after conversation_end (#2291)', () => {
     c.finalWords("actually, I don't think I'll be here tomorrow");
     await flush();
     expect(c.appConnected).toBe(true);
-    expect(c.reopens()).toEqual(['3400 conversation_continue caller_spoke']);
+    // Risk beyond a goodbye in the line itself: a crisis hold before any read lands
+    expect(c.reopens()).toEqual(['3400 conversation_continue crisis_hold']);
     expect(isSessionClosing(c.id)).toBe(false);
   });
 
@@ -424,10 +426,38 @@ describe('the caller keeps talking after conversation_end (#2291)', () => {
   it('holds are sent at most every 500 ms', async () => {
     const c = await call();
     await c.toEnd();
-    c.interim('so');
-    c.interim('so I');
-    c.interim('so I was');
+    c.interim('I');
+    c.interim('I was');
+    c.interim('I was going');
     expect(c.events.filter((e) => e.includes('conversation_hold'))).toHaveLength(1);
+    await c.advance(500);
+    c.interim('I was going to');
+    expect(c.events.filter((e) => e.includes('conversation_hold'))).toHaveLength(2);
+  });
+
+  it("after a sign-off, the turn's crisis read starting holds the app, and the room waits for it", async () => {
+    const c = await call({ appStays: true });
+    await c.toEnd();
+    await c.advance(4_500);
+    c.finalWords('thanks, you too'); // a sign-off: no reopen
+    await c.advance(300); // end of turn; the read starts
+    const settle = read(c.id, 'thanks, you too');
+    expect(c.events.at(-1)).toBe('4800 conversation_hold checking');
+    await c.advance(1_000); // past the 5 s grace: the room waits on the read
+    expect(deleted(c)).toEqual([]);
+    await settle('none');
+    await c.advance(250);
+    expect(deleted(c)).toEqual(['6000 delete started', `6000 deleted ${c.roomName}`]); // next re-check
+    expect(c.reopens()).toEqual([]);
+  });
+
+  it('after a sign-off whose read never starts, the room waits TURN_READ_WAIT_MS at most', async () => {
+    const c = await call({ appStays: true });
+    await c.toEnd();
+    await c.advance(4_500);
+    c.finalWords('okay, bye!');
+    await c.advance(TURN_READ_WAIT_MS + 500);
+    expect(deleted(c)[0]).toBe(`${4_500 + TURN_READ_WAIT_MS} delete started`);
   });
 });
 
@@ -535,8 +565,28 @@ describe('phone calls hold the room delete (#2291)', () => {
     await c.advance(IDLE_AFTER_GOODBYE_MS + 1_000);
     expect(c.events.some((e) => e.includes('delete'))).toBe(false);
     c.finalWords('okay so bye then');
+    await c.advance(300); // end of turn: the line's crisis read starts
+    const settle = read(c.id, 'okay so bye then');
     await c.advance(500);
+    expect(deleted(c)).toEqual([]); // not while the read is in flight
+    await settle('none');
+    await c.advance(250);
     expect(c.events.some((e) => e.includes(`deleted ${c.roomName}`))).toBe(true);
+  });
+
+  it('a crisis read that starts after the final line (the real order) holds the phone call', async () => {
+    const c = await call({ phone: true });
+    c.goodbyes();
+    c.interim("I won't be");
+    await c.advance(IDLE_AFTER_GOODBYE_MS + 1_000);
+    c.finalWords('okay. bye.'); // a sign-off, so only the read can hold it
+    await c.advance(300);
+    const settle = read(c.id, 'okay. bye.');
+    await c.advance(800);
+    await settle('high');
+    await c.advance(HOLD_MAX_MS);
+    expect(deleted(c)).toEqual([]);
+    expect(isSessionClosing(c.id)).toBe(false);
   });
 
   it('a calm phone goodbye still hangs up straight away', async () => {
@@ -546,33 +596,97 @@ describe('phone calls hold the room delete (#2291)', () => {
     expect(c.events.some((e) => e.includes(`deleted ${c.roomName}`))).toBe(true);
   });
 
-  it("PHONE_GOODBYE's endCall waits on a crisis read and then holds the call", async () => {
+  it("PHONE_GOODBYE's endCall: a calm goodbye hangs up after PHONE_QUIET_MS of quiet", async () => {
     const c = await call({ phone: true, env: { PHONE_GOODBYE: 'on' } });
-    const endCall = c.a.toolCtx.functionTools[END_CALL];
-    let finish: (v: { risk: string }) => void = () => {};
-    c.interim('I just'); // mid-utterance when the goodbye finished
-    const run = endCall?.execute({}, {
-      ctx: { waitForPlayout: async () => undefined },
-    } as never) as Promise<unknown>;
+    const run = endCallNow(c);
     await flush();
-    void trackCrisisRead(
-      c.id,
-      'cannot do this',
-      new Promise<{ risk: string }>((r) => {
-        finish = r;
-      })
-    );
-    c.finalWords('I just cannot do this');
+    await c.advance(PHONE_QUIET_MS - 250);
+    expect(deleted(c)).toEqual([]);
+    await c.advance(250);
+    expect(await run).toBe('The call has ended.');
+    expect(deleted(c)).toEqual([`${PHONE_QUIET_MS} delete started`, expect.any(String)]);
+  });
+
+  it("PHONE_GOODBYE's endCall: the caller saying more keeps the call open", async () => {
+    const c = await call({ phone: true, env: { PHONE_GOODBYE: 'on' } });
+    const run = endCallNow(c);
+    await flush();
     await c.advance(1_000);
-    finish({ risk: 'high' });
+    c.interim('oh wait, actually');
+    await c.advance(250);
+    expect(await run).toBe(STILL_TALKING);
+    expect(deleted(c)).toEqual([]);
+
+    const sigh = await call({ phone: true, env: { PHONE_GOODBYE: 'on' } });
+    sigh.interim('wait, I'); // already talking as the goodbye finished
+    expect(await endCallNow(sigh)).toBe(STILL_TALKING);
+  });
+
+  it("PHONE_GOODBYE's endCall: a sign-off's crisis read starting late still holds the call", async () => {
+    const c = await call({ phone: true, env: { PHONE_GOODBYE: 'on' } });
+    const run = endCallNow(c);
     await flush();
-    await c.advance(HOLD_MAX_MS);
+    await c.advance(500);
+    c.finalWords('bye.'); // a sign-off
+    await c.advance(300); // end of turn, then the read starts
+    const settle = read(c.id, 'bye.');
+    await c.advance(1_500);
+    expect(deleted(c)).toEqual([]);
+    await settle('high');
+    await c.advance(250);
     expect(await run).toEqual(CRISIS_HOLD);
-    expect(c.events.some((e) => e.includes('delete'))).toBe(false);
+    expect(deleted(c)).toEqual([]);
   });
 });
 
+/** PHONE_GOODBYE's endCall, run as the tool after Ferni's goodbye has played. */
+function endCallNow(c: { a: PersonaVoiceAgent }): Promise<unknown> {
+  const endCall = c.a.toolCtx.functionTools[END_CALL];
+  return endCall?.execute({}, {
+    ctx: { waitForPlayout: async () => undefined },
+  } as never) as Promise<unknown>;
+}
+
+const deleted = (c: { events: string[] }) => c.events.filter((e) => e.includes('delete'));
+
+/** A crisis read of the caller's words, started now and settled by hand. */
+function read(id: string, words: string) {
+  let finish: (v: { risk: string }) => void = () => {};
+  const p = trackCrisisRead(
+    id,
+    words,
+    new Promise<{ risk: string }>((r) => {
+      finish = r;
+    })
+  );
+  return async (risk: string) => {
+    finish({ risk });
+    await p;
+    await flush();
+  };
+}
+
 describe('callerSignsOff', () => {
+  it('a line with risk beyond its goodbye is never a sign-off', () => {
+    for (const s of [
+      "I'm going to kill myself tonight. Goodbye.",
+      "I won't be here tomorrow. Bye.",
+      'tell my mom I love her. bye',
+      "I'm sorry for everything. goodbye",
+    ]) {
+      expect(callerSignsOff(s), s).toBe(false);
+      expect(farewellRisk(s), s).toBe(true);
+    }
+    for (const s of ['okay, bye!', 'thanks, you too', 'love you, bye', 'good night']) {
+      expect(farewellRisk(s), s).toBe(false);
+    }
+    // Every clause must be a goodbye or a pleasantry, not just the last one
+    for (const s of ['talk to you tomorrow about the dentist, bye', 'I need my keys. bye']) {
+      expect(farewellRisk(s), s).toBe(false);
+      expect(callerSignsOff(s), s).toBe(false);
+    }
+  });
+
   it('goodbyes and goodbye pleasantries sign off; anything more does not', () => {
     for (const s of [
       'bye',

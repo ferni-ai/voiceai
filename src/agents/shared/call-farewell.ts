@@ -35,6 +35,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { isSessionClosing } from './session-closing-tracker.js';
+import { farewellRisk } from './farewell-risk.js';
 
 const log = createLogger({ module: 'call-farewell' });
 
@@ -251,18 +252,36 @@ export function callerSaysGoodbye(text: string): boolean {
 }
 
 /** Pleasantries that fit a goodbye on their own: "thanks", "you too", "love you", "night". */
-const SIGN_OFFS = new Set([...AFTERWORDS, 'same to you', 'you as well', 'night', 'bye']);
+const SIGN_OFFS = new Set([
+  ...AFTERWORDS,
+  ...[
+    'same to you',
+    'you as well',
+    'night',
+    'all right',
+    'yeah',
+    'yep',
+    'cool',
+    'great',
+    'perfect',
+  ],
+]);
 
 /**
- * The caller is signing off: a goodbye, or only pleasantries that fit one
- * ("thanks", "thank you", "you too", "love you", "same to you", "night").
- * After `conversation_end` these never reopen the call (wrap-up-window.ts).
+ * The caller is signing off: EVERY clause is a goodbye or a pleasantry that
+ * fits one ("thanks", "thank you", "you too", "love you", "same to you",
+ * "night"), and nothing in the line carries risk (farewell-risk.ts). "I won't
+ * be here tomorrow. Bye." ends on a goodbye, but it is not a sign-off. After
+ * `conversation_end` only a sign-off leaves the call ending (wrap-up-window.ts).
  */
 export function callerSignsOff(text: string): boolean {
-  if (callerSaysGoodbye(text)) return true;
-  if (text.trim().endsWith('?')) return false;
+  if (text.length > MAX_CALLER_CHARS || text.trim().endsWith('?')) return false;
   const parts = clauseWords(text);
-  return parts.length > 0 && parts.every((words) => onlyPhrases(words, 0, SIGN_OFFS));
+  return (
+    parts.length > 0 &&
+    parts.every((words) => closingClause(words, CLOSERS) || onlyPhrases(words, 0, SIGN_OFFS)) &&
+    !farewellRisk(text)
+  );
 }
 
 /** The caller asks Ferni to end the call: "hang up now", "you can end the call". */
