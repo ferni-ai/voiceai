@@ -38,6 +38,10 @@ import {
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import {
+  resolveClassifierOnlyCheckin,
+  shadowClassifierOnly,
+} from '../../../services/safety/crisis-classifier-only.js';
+import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
 } from '../../../services/safety/crisis-lone-imminent.js';
@@ -131,7 +135,7 @@ export function startTurnCrisis(
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
   type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
   let settled: Promise<Settled> | null = null;
-  const settle = (): Promise<Settled> =>
+  const settleTurn = (): Promise<Settled> =>
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
@@ -221,6 +225,21 @@ export function startTurnCrisis(
             soft: gentle,
             ...(gentle ? { guidance: SCREEN_GENTLE_OFFER } : {}),
           }));
+  // CRISIS_CLASSIFIER_ONLY_CHECKIN=shadow: once the turn settles, log only (crisis-classifier-only.ts).
+  const shadowOn = resolveClassifierOnlyCheckin(env) === 'shadow';
+  const shadowTurn = { detection: patterns, ...input, priorRisk, scope };
+  const settle = (): Promise<Settled> => {
+    const first = settled === null;
+    const turn = settleTurn();
+    if (first && shadowOn) {
+      shadowClassifierOnly(
+        turn.then((s) => !s.soft && s.crisis !== patterns),
+        shadowTurn,
+        env
+      );
+    }
+    return turn;
+  };
   return {
     patterns,
     shouldBlock,

@@ -125,7 +125,7 @@ export async function saveTokens(
 
   // Persist to Firestore (write-through)
   try {
-    await tokenStore.setImmediate('global', sealTokensForMerge(data));
+    await tokenStore.setImmediate('global', sealTokensForMerge(data), { safeWithoutRead: true });
     log.info('Saved Spotify tokens to Firestore');
   } catch (err) {
     log.warn({ error: (err as Error).message }, 'Could not save Spotify tokens to Firestore');
