@@ -345,8 +345,9 @@ export async function startTurnSounds(input: TurnSoundsInput) {
           {
             ...clips,
             // LAUGH_CAP: the reply a clip opens must not open with a laugh too (laugh-ledger.ts).
+            // openerClip: the same clip, reported as 'opener' (CLIENT_SIGNALS_V2, sound-signal.ts).
             playClip: (text) => {
-              const played = clips.playClip(text);
+              const played = clips.openerClip(text);
               if (played) noteTurnOpened(sessionId);
               return played;
             },
