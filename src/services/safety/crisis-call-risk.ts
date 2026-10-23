@@ -81,6 +81,14 @@ export function onCrisisReadStarted(listener: (sessionId: string) => void): () =
   return () => void readListeners.delete(listener);
 }
 
+/** A classifier read of these caller words (or words holding them) is in flight on this call. */
+export function turnReadInFlight(sessionId: string, latest: string): boolean {
+  const reads = pending.get(sessionId);
+  const turn = turnOf(latest);
+  if (!reads || !turn) return false;
+  return [...reads.keys()].some((t) => t === turn || t.includes(turn) || turn.includes(t));
+}
+
 /** A classifier read of this call's caller words is still in flight. */
 export function crisisReadInFlight(sessionId: string): boolean {
   return pending.has(sessionId);

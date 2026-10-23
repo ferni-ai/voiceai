@@ -42,6 +42,10 @@ import {
   shadowClassifierOnly,
 } from '../../../services/safety/crisis-classifier-only.js';
 import {
+  easingCheckin,
+  resolveEasingMode,
+} from '../../../services/safety/crisis-classifier-only-live.js';
+import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
 } from '../../../services/safety/crisis-lone-imminent.js';
@@ -228,6 +232,23 @@ export function startTurnCrisis(
   // CRISIS_CLASSIFIER_ONLY_CHECKIN=shadow: once the turn settles, log only (crisis-classifier-only.ts).
   const shadowOn = resolveClassifierOnlyCheckin(env) === 'shadow';
   const shadowTurn = { detection: patterns, ...input, priorRisk, scope };
+  // CRISIS_CLASSIFIER_ONLY_CHECKIN=live: the turn's shared easing read (crisis-classifier-only-live.ts).
+  const easingOn = resolveEasingMode(env) !== 'off';
+  let eased: Promise<Settled> | null = null;
+  const easing = {
+    transcript: () => transcriptFrom(input),
+    generate: options.adjudicate,
+    env,
+    source: 'pipeline' as const,
+  };
+  const easeTurn = (turn: Promise<Settled>): Promise<Settled> =>
+    turn.then(async (s) => {
+      const crisisGuide =
+        !s.soft && s.crisis !== patterns && !guardFromDetection(s.crisis).shouldBlock;
+      if (!crisisGuide || !(await easingCheckin({ ...shadowTurn, call }, easing))) return s;
+      log.info({ outcome: 'soft', source: 'classifier_only' }, 'CRISIS_AGREEMENT');
+      return { crisis: patterns, soft: true };
+    });
   const settle = (): Promise<Settled> => {
     const first = settled === null;
     const turn = settleTurn();
@@ -238,7 +259,7 @@ export function startTurnCrisis(
         env
       );
     }
-    return turn;
+    return easingOn ? (eased ??= easeTurn(turn)) : turn;
   };
   return {
     patterns,
