@@ -31,6 +31,7 @@ import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 import { talkThroughFor, type TalkThrough } from './handoff-talk-through.js';
 import { holdOutOfMemory } from './arrival-grounding.js';
+import { warmIncomingPersona } from '../model-provider/handoff-cache-warm.js';
 import { briefedHandoffs, briefingFor, withBrief } from './handoff-brief.js';
 import { familyArrival, familyDeparture } from './family-table.js';
 export { calmGreeting } from './greeting-direction.js';
@@ -447,10 +448,10 @@ export class AgentOrchestrator {
         '🎭 [HANDOFF STEP 3/5] ✅ New agent spawned'
       );
 
-      // STEP 4: Switch active agent
-      const step4Start = Date.now();
+      const step4Start = Date.now(); // STEP 4: Switch active agent
       log.info({ newAgentId: newAgent.id }, '🎭 [HANDOFF STEP 4/5] Setting new agent as active...');
       this.setActiveAgent(newAgent.id);
+      void warmIncomingPersona(newAgent.session); // HANDOFF_CACHE_WARM, never waited on
       log.info(
         { activeAgentId: this.activeAgentId, durationMs: Date.now() - step4Start },
         '🎭 [HANDOFF STEP 4/5] ✅ Active agent switched'
@@ -491,7 +492,6 @@ export class AgentOrchestrator {
         `🎭 Handoff complete: ${previousPersonaId} → ${request.targetPersonaId} (${durationMs}ms)`
       );
 
-      // Notify callback
       this.onHandoffComplete?.(previousPersonaId, request.targetPersonaId);
 
       // 🧠 PREDICTIVE HANDOFF: Mark pre-briefing as used (non-blocking)
