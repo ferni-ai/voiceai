@@ -42,6 +42,7 @@ import {
   recordHybridSearchOutcome,
   runHybridSearchWithTimeout,
 } from './hybrid-search-timeout-stats.js';
+import { logTurnMemory } from './turn-memory-log.js';
 import { gateTurnMemories, turnMemoryRerankOn } from './turn-memory-rerank.js';
 import { capTurnMemories, turnMemoryRrfScaleOn } from './turn-memory-scale.js';
 
@@ -293,6 +294,16 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
   };
 
   const { userId, sessionId, transcript, turnNumber, surfacedMemoryIds } = input;
+  const logTurn = (candidates: HybridSearchResult[], injected: number, judged: boolean): void =>
+    logTurnMemory({
+      turnNumber,
+      candidates,
+      injected,
+      rrfScale: turnMemoryRrfScaleOn(),
+      rerank: turnMemoryRerankOn(),
+      judged,
+      latencyMs: Date.now() - startTime,
+    });
 
   // Skip retrieval for very short transcripts (likely just acknowledgments)
   if (transcript.length < 10) {
@@ -318,6 +329,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     const hybridResults = await gateTurnMemories(searched.results, transcript, rrfScale, metrics);
 
     if (hybridResults.length === 0) {
+      logTurn(searched.results, 0, metrics.rerankingApplied);
       return {
         memories: [],
         hasProactiveSuggestion: false,
@@ -441,23 +453,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     }
 
     metrics.totalTimeMs = Date.now() - startTime;
-
-    log.debug(
-      {
-        userId,
-        sessionId,
-        turnNumber,
-        rawResults: metrics.rawResultCount,
-        filteredResults: metrics.filteredResultCount,
-        dedupedResults: metrics.dedupedResultCount,
-        returnedMemories: memories.length,
-        totalMs: metrics.totalTimeMs,
-        hybridMs: metrics.hybridSearchMs,
-        rerankMs: metrics.rerankMs,
-        rerankingApplied: metrics.rerankingApplied,
-      },
-      '🧠 Turn memory retrieval complete'
-    );
+    logTurn(searched.results, memories.length, metrics.rerankingApplied);
 
     return {
       memories,
