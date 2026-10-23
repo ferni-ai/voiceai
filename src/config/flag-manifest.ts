@@ -284,6 +284,9 @@ const LEGACY_FLAG_MANIFEST = {
   MORNING_BRIEF_COMMITMENTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the caller can name the tune Ferni whistles, or ask him to stop (personas/named-tune-note.ts)
   NAMED_TUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the caller's yes sends the read-back from the server, and sibling call or text tools
+  // share one read-back (tools/domains/communication/outreach/outreach-confirm-family.ts)
+  OUTREACH_SERVER_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
   // on: a caller who says they're under 18 (and isn't a verified owner): nothing personal stored, a care note (minor-care.ts)
   MINOR_CARE: { default: 'off', owner: 'memory', kind: 'experiment' },
