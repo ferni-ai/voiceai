@@ -18,7 +18,7 @@ describe('CALL_PLACED_HONEST_REPLY=on', () => {
 
   it('the live agent ringing: the persona is on that call, but not in this one', () => {
     expect(callPlacedReply({ status: 'initiated', live: true })).toBe(CALLING_LIVE);
-    expect(CALLING_LIVE).toMatch(/I'll be on that call myself/);
+    expect(CALLING_LIVE).toMatch(/on that call yourself, live/);
   });
 
   it('a Twilio message: says it is an automated voice, not the persona live', () => {

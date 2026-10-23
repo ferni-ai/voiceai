@@ -14,10 +14,10 @@ import { flagOn } from '../../../../config/env-flag.js';
 import type { CallUserResult } from './call-user-port.js';
 
 export const CALLING_LIVE =
-  "Ringing your phone now, and I'll be on that call myself. (That call is separate from this one: you can't hear it or tell whether they picked up, so don't say it connected.)";
+  "Their phone is ringing now, and you'll be on that call yourself, live, as a separate call. You can't hear it or tell whether they picked up, so don't say it connected; just tell them you're calling now.";
 
 export const CALLING_VOICE_MESSAGE =
-  "Ringing your phone now with a recorded message. (An automated phone voice reads your message: it is not you live and not your voice. You also can't tell whether they picked up, so don't say it connected or call it your voice.)";
+  "Their phone is ringing now with a recorded message: an automated phone voice reads your words, so it is not you live and not your voice. You can't tell whether they picked up, so don't say it connected or call it your voice; tell them a voice message is on its way to their phone.";
 
 export const CALLING_LATER =
   "It's outside your calling hours right now, so I'll call you once they open.";
