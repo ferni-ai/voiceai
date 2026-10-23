@@ -39,15 +39,6 @@ final class LidCapTests: XCTestCase {
 
     static func opaque(_ r: Render, _ x: Int, _ y: Int) -> Bool { r.bytes[(y * r.w + x) * 4 + 3] == 255 }
 
-    /// How many levels (of 255, the largest channel) an opaque pixel sits from
-    /// its theme's cap colour (Seth 2026-10-23; the web, #2550): pure white in
-    /// light mode, warm ivory #E6DFD4 in dark. The bytes are BGRA.
-    static func levelsFromCap(_ r: Render, _ x: Int, _ y: Int) -> Double {
-        let cap = r.u.res.w > 0.5 ? [212.0, 223, 230] : [255.0, 255, 255]
-        let i = (y * r.w + x) * 4
-        return (0..<3).map { abs(Double(r.bytes[i + $0]) - cap[$0]) }.max() ?? 0
-    }
-
     /// Is pixel (x, y) within an eye's ellipse, grown by `grow`? The eyes sit at
     /// ±0.36 (plus gaze) on the surface, 0.2 × 0.255 body radii, magnified by
     /// the perspective of the surface they sit on (about 1.2).
@@ -59,7 +50,8 @@ final class LidCapTests: XCTestCase {
         let c = cos(Double(u.lean.x)), s = sin(Double(u.lean.x))
         for (side, gaze, size) in [(-1.0, SIMD2(u.gaze.x, u.gaze.y), SIMD2(u.eyes.x, u.eyes.y)),
                                     (1.0, SIMD2(u.gaze.z, u.gaze.w), SIMD2(u.eyes.z, u.eyes.w))] {
-            let lx = (side * 0.36 + Double(gaze.x) * 0.15) * scale * k, ly = (0.05 + Double(gaze.y) * 0.13) * scale * k
+            let spacing = u.caps.w > 0 ? Double(u.caps.w) : 0.36   // a persona's own (persona acting)
+            let lx = (side * spacing + Double(gaze.x) * 0.15) * scale * k, ly = (0.05 + Double(gaze.y) * 0.13) * scale * k
             // The pixel, as a local offset from this eye's centre (screen y runs down).
             let wx = (Double(x) - cx) / radius, wy = (cy - Double(y)) / radius
             let px = c * wx - s * wy - lx, py = s * wx + c * wy - ly
@@ -185,51 +177,8 @@ final class LidCapTests: XCTestCase {
     /// highlights measured far above this (2026-10-20).
     static let strokeLimit = 0.04
 
-    /// The lid caps are the web's: as deep as its overlay's edges, in the
-    /// solid white (light and dark), on a round orb. The orb keeps its
-    /// outline (the cap replaces the face's colour, never its alpha), and the
-    /// lid's edge is a visible step.
-    func testTheCapsAreAsDeepAsTheWebsOnARoundOrb() throws {
-        guard let renderer = AliveRenderer.shared else { throw XCTSkip("no Metal device") }
-        for dark in [false, true] {
-            for (id, bottom) in [("sleepy", true), ("drowsy", true), ("exhausted", false), ("happy", false)] {
-                let r = try Self.render(id, dark: dark)
-                let mode = dark ? "dark" : "light"
-                var flat = r.u
-                flat.caps = .zero
-                let round: Render = (try XCTUnwrap(renderer.image(flat, width: r.w, height: r.h)), r.w, r.h, flat)
-                // The outline: every pixel's alpha as without the lids.
-                let moved = zip(stride(from: 3, to: r.bytes.count, by: 4).map { r.bytes[$0] }, stride(from: 3, to: round.bytes.count, by: 4).map { round.bytes[$0] })
-                    .map { abs(Int($0) - Int($1)) }.max() ?? 0
-                XCTAssertLessThanOrEqual(moved, 2, "\(id): the lids change the outline by \(moved) alpha levels")
-                // Down the middle: the lid is where the face differs from without it.
-                let x = r.w / 2, face = Face.of(id)
-                let solid = (0..<r.h).filter { r.bytes[($0 * r.w + x) * 4 + 3] == 255 }
-                let first = try XCTUnwrap(solid.first, id), last = try XCTUnwrap(solid.last, id)
-                func lidded(_ y: Int) -> Bool { abs(Self.luma(round, x, y) - Self.luma(r, x, y)) > 0.01 }
-                let lidEnd = try XCTUnwrap((first...last).first { !lidded($0) }, "\(id) \(mode): no lid at the top")
-                let scale = Double(r.u.bg0.w), px = Double(r.u.fill.w) * scale * Double(r.u.body.w) * 5 / (25 - scale * scale).squareRoot()
-                let box = AliveShader.lidBox, web = (1 - (box - box * face.capTop)) * px
-                XCTAssertEqual(Double(lidEnd - first), web, accuracy: 4, "\(id) \(mode): the lid comes \(lidEnd - first) px down; the web's \(Int(web))")
-                // The lid is the theme's cap colour; the face beside its edge is not.
-                let capLevels = dark ? 4.0 : 3.0
-                let off = Self.levelsFromCap(r, x, max(first, lidEnd - 5))
-                XCTAssertLessThanOrEqual(off, capLevels, "\(id) \(mode): the lid is \(off) levels from the cap colour")
-                let lid = Self.luma(r, x, lidEnd - 5), body = Self.luma(r, x, lidEnd + 5)
-                XCTAssertGreaterThan(abs(body - lid), Self.lidStep, "\(id) \(mode): lid \(lid) against body \(body) at its edge")
-                if bottom {
-                    let lidStart = try XCTUnwrap((first...last).reversed().first { !lidded($0) }, id)
-                    let webBottom = (1 - (box - box * face.capBottom)) * px
-                    XCTAssertEqual(Double(last - lidStart), webBottom, accuracy: 4, "\(id) \(mode): the bottom lid comes \(last - lidStart) px up")
-                    let offBottom = Self.levelsFromCap(r, x, min(last, lidStart + 5))
-                    XCTAssertLessThanOrEqual(offBottom, capLevels, "\(id) \(mode): the bottom lid is \(offBottom) levels from the cap colour")
-                }
-            }
-        }
-    }
-
-    /// The lid against the face beside its edge (luma).
-    static let lidStep = 0.03
+    // The caps no longer reach down from the orb's top to the web's depth: they
+    // stay inside the eyes (design panel, 2026-10-23; CrescentCapTests).
 
     /// A face with no cap keeps its round top: the cap's edge at rest sits on
     /// the orb's outline, and drawing it anyway shaved a flat top (listening,
@@ -256,28 +205,12 @@ final class LidCapTests: XCTestCase {
         XCTAssertTrue(AliveShader.source.contains("const float B = 1.0;"), "the shader uses it")
     }
 
-    /// Every lid and cap edge is blended, not stair-stepped: crossing one,
+    /// Every lid edge is blended, not stair-stepped: crossing one,
     /// at least two pixels sit between the two sides.
-    func testEveryLidAndCapEdgeIsBlended() throws {
+    func testEveryLidEdgeIsBlended() throws {
         guard AliveRenderer.shared != nil else { throw XCTSkip("no Metal device") }
-        // The caps, top and bottom, down the middle of sleepy: how far each pixel
-        // is from without the lid (the dither cancels), between lid and face.
-        guard let renderer = AliveRenderer.shared else { return }
-        let sleepy = try Self.render("sleepy")
-        var flat = sleepy.u
-        flat.caps = .zero
-        let round: Render = (try XCTUnwrap(renderer.image(flat, width: sleepy.w, height: sleepy.h)), sleepy.w, sleepy.h, flat)
-        let x = sleepy.w / 2
-        let shade = (0..<sleepy.h).map { abs(Self.luma(round, x, $0) - Self.luma(sleepy, x, $0)) }
-        let solid = (0..<sleepy.h).filter { sleepy.bytes[($0 * sleepy.w + x) * 4 + 3] == 255 }
-        let first = try XCTUnwrap(solid.first), last = try XCTUnwrap(solid.last)
-        for (name, rows) in [("top", Array(first...(first + (last - first) / 2))), ("bottom", Array(((first + last) / 2...last).reversed()))] {
-            let lid = shade[rows[3]], edge = try XCTUnwrap(rows.firstIndex { shade[$0] < lid / 2 }, name)
-            let around = rows[max(0, edge - 4)...min(rows.count - 1, edge + 4)].map { shade[$0] }
-            let blended = around.filter { $0 > 0.1 * lid && $0 < 0.9 * lid }.count
-            XCTAssertGreaterThanOrEqual(blended, 2, "the \(name) lid's edge: \(around.map { String(format: "%.3f", $0) })")
-        }
-        // The lid cut on an eye white: wise's lifted lower lid (a flat bottom), and
+        // (The caps' own edges sat on the body down the middle; they stay inside the
+        // eyes now, CrescentCapTests.) The lid cut on an eye white: wise's lifted lower lid (a flat bottom), and
         // sleepy's top lid, down the middle of the left eye.
         for (id, edge) in [("wise", "bottom"), ("sleepy", "top")] {
             let r = try Self.render(id)

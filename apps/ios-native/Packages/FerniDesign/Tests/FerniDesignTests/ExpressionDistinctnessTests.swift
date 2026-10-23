@@ -21,9 +21,23 @@ final class ExpressionDistinctnessTests: XCTestCase {
     /// old 0.0058 and 0.01 are allowed below only with a reason.
     static let twinThreshold: Float = 0.01
 
-    /// Pairs still under the threshold, as found on 2026-10-20 before any fix.
-    /// Fixing one makes `testTheKnownTwinsAreStillTwins` fail: remove it here.
-    static let knownTwins: Set<Pair> = []
+    /// Pairs still under the threshold, waiting on a fix. Fixing one makes
+    /// `testTheKnownTwinsAreStillTwins` fail: remove it here. (The 2026-10-20
+    /// set was all fixed.) 2026-10-23: with the caps kept inside the eyes (the
+    /// design panel's crescent fix, CrescentCapTests), these lost the shallow
+    /// cap over the orb's top that was all that told them apart (it's what grew
+    /// three of them apart on 2026-10-22, below). They want a difference of their
+    /// own in the eyes; carrying half the cap's depth into the lids did not do it
+    /// (absorbing/listening went from 0.0066 to 0.0033) and broke the wink, yawn
+    /// and curious faces. Open for design.
+    static let knownTwins: Set<Pair> = [
+        Pair("absorbing", "listening"),      // 0.0066
+        Pair("processing", "receptive"),     // 0.0073
+        Pair("confident", "encouraging"),    // 0.0085
+        Pair("present", "receptive"),        // 0.0092
+        Pair("calm", "present"),             // 0.0096
+        Pair("amused", "winking"),           // 0.0100 (just under)
+    ]
 
     /// Twins by design, each with why: a still frame can't tell them apart.
     /// Measured 2026-10-20 (FERNI_AUDIT_PRINT=1 on testPrintNearest). With the

@@ -955,13 +955,25 @@ public final class AliveRig {
         return expression
     }
 
+    /// The orb is moving between teammates: a handoff is under way, or its
+    /// stage hasn't settled home yet (the middle, full size; still moving, it
+    /// overshoots home by about 4% and comes back).
+    var travelling: Bool {
+        handoff != nil || [Ch.stageX, .stageY, .stageS].contains { c in
+            abs(self[c].x - (c == .stageS ? 1 : 0)) > 0.01 || abs(self[c].v) > 0.05
+        }
+    }
+
     private func apply(_ f: Face, m: Double) {
         self[.topL].t = f.left.top + shape.lidDrop; self[.topR].t = f.right.top + shape.lidDrop
         self[.botL].t = f.left.bot; self[.botR].t = f.right.bot
         self[.archL].t = f.left.arch; self[.archR].t = f.right.arch
         self[.sxL].t = f.left.sx; self[.syL].t = f.left.sy; self[.sxR].t = f.right.sx; self[.syR].t = f.right.sy
         self[.tilt].t = f.tilt; self[.crease].t = f.crease; self[.halo].t = f.halo; self[.blush].t = f.blush
-        self[.capT].t = f.capTop; self[.capB].t = f.capBottom
+        // No caps while the orb travels between teammates (the handoff's roll and shrink, until
+        // it is home again): over a moving, shrinking orb they read as a cap and a strap
+        // (design panel, 2026-10-23). They fade on their own springs and come back after.
+        self[.capT].t = travelling ? 0 : f.capTop; self[.capB].t = travelling ? 0 : f.capBottom
         self[.capPitch].t = clamp(f.gy, -0.7, 0.7) * max(m, 0.5) * 0.12
         // The head's tilt is a pose, not motion: Reduce Motion keeps it (at 35%
         // confused read as neutral, expression audit P1 #7).
