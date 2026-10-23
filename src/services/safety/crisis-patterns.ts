@@ -14,6 +14,37 @@ interface TaggedPattern {
 }
 
 /**
+ * #2697 building blocks. Each form must end its clause (or run on with "and", "now"...):
+ * "i have the rope right here" counts, "the rope right here for the tent" does not.
+ */
+const MEANS = String.raw`(?:pills|meds|tablets|gun|pistol|rope|noose|razor|blades?)`;
+const WHERE = String.raw`(?:right here|in my hands?|in front of me)(?: (?:right here|in my hands?|in front of me|right now))?`;
+const PILLS_TAKEN = String.raw`(?:them|these|those|all of (?:them|these|those|the pills|my pills)|(?:all )?(?:the|my) (?:pills|meds|tablets)|the (?:whole|entire) bottle|everything|a (?:bottle|handful)(?: of (?:pills|meds|tablets|them|sleeping pills|painkillers))?)`;
+const CLAUSE_END = String.raw`(?= *(?:$|[.!?,;]|and\b|but\b|now\b|right now\b|ready\b|loaded\b|it'?s\b|already\b|just now\b))`;
+const SELF_HARM_DONE = String.raw`(?:bleeding|blood everywhere|overdos\w*|took (?:all )?(?:the|my) (?:pills|meds)|took them all|swallowed (?:them|the|all|my)|(?:pills|meds) are (?:working|kicking in)|noose|the rope (?:held|is around)|cut my wrists?)`;
+const DID_IT = String.raw`\bi (?:just |finally |actually |already )?(?:did it|went through with it)\b`;
+
+/** "i have the pills right here", "got the gun in my hand", "the razor is right here". */
+const IMMINENT_MEANS_IN_HAND = new RegExp(
+  String.raw`(?:\b(?:i|i'?ve|i'?m|i have|i got)\b|(?:^|[.!?,] ?)got\b)[^.!?]{0,25}\b${MEANS}\b[^.!?]{0,30}\b${WHERE}\b${CLAUSE_END}` +
+    String.raw`|\b${MEANS}\b[^.!?]{0,30}\bin my hands?\b${CLAUSE_END}` +
+    String.raw`|\b(?:my|the|these|all the) ${MEANS} (?:are|is) ${WHERE}\b${CLAUSE_END}`
+);
+/** "i'm taking them now", "i'm about to take them all now". */
+const IMMINENT_TAKING_NOW = new RegExp(
+  String.raw`\b(?:i'?m|i am) (?:taking|swallowing|downing) ${PILLS_TAKEN}(?: all)? (?:now|right now)\b${CLAUSE_END}` +
+    String.raw`|\b(?:i'?m )?(?:going to|about to) (?:take|swallow) ${PILLS_TAKEN}(?: all)? (?:now|right now)\b${CLAUSE_END}`
+);
+/** "i already took them", "i swallowed a handful of pills", "just took them all". */
+const IMMINENT_TOOK = new RegExp(
+  String.raw`(?:\bi(?:'ve| have)? |^|[.!?,] ?)(?:(?:already|just) )?(?:took|swallowed|downed|taken) ${PILLS_TAKEN}(?: all)?\b${CLAUSE_END}`
+);
+/** "i did it" / "i went through with it" beside an overdose or self-harm already done. */
+const IMMINENT_DID_IT = new RegExp(
+  String.raw`\b${SELF_HARM_DONE}[\s\S]{0,60}${DID_IT}|${DID_IT}[\s\S]{0,60}\b${SELF_HARM_DONE}`
+);
+
+/**
  * Explicit crisis indicators - immediate red flags.
  *
  * Only language that is unambiguous about current risk belongs here: a match
@@ -122,6 +153,13 @@ export const EXPLICIT_CRISIS_PATTERNS: TaggedPattern[] = [
     tag: 'suicidal',
     imminent: true,
   },
+  // #2697: means in hand, or taking or having taken them now, said plainly with no ideation
+  // words ("i have the pills right here and i'm taking them now"). Recall first: medication
+  // talk that ends the same way ("i'm taking my pills now") reads the same; that is accepted.
+  { re: IMMINENT_MEANS_IN_HAND, tag: 'suicidal', imminent: true },
+  { re: IMMINENT_TAKING_NOW, tag: 'suicidal', imminent: true },
+  { re: IMMINENT_TOOK, tag: 'suicidal', imminent: true },
+  { re: IMMINENT_DID_IT, tag: 'suicidal', imminent: true },
   {
     re: /\bengine running\b[^.!?]{0,50}\bgarage\b|\bgarage\b[^.!?]{0,50}\bengine running\b/,
     tag: 'suicidal',
