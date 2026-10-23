@@ -44,7 +44,7 @@ import { MAX_HUMANIZING_UPDATES, SUMMARIZE_TIMEOUT_MS } from './constants.js';
 import { trackDeferredProfileLoad, trackJsonReply, withTimeout } from './utils.js';
 import { shouldSkipProfileForSilentCall } from './silent-call.js';
 import { validateUserId } from './validation.js';
-import { loadSessionProfile } from './load-session-profile.js';
+import { loadSessionProfile, savable } from './load-session-profile.js';
 
 // Real-time memory - persist turns as they happen, never lose data
 import * as realtimeMemory from '../memory/realtime-memory.js';
@@ -661,9 +661,9 @@ export async function createSessionServices(
     const autoSaveCallback = async (uid: string) => {
       const startTime = Date.now();
       try {
-        if (services.userProfile && !memoryHeld(sessionId)) {
-          // Export current intelligence state
-          const updatedProfile = applyIntelligenceToProfile(services.userProfile, uid);
+        const current = savable(services.userProfile); // a stand-in (failed read) never saves
+        if (current && !memoryHeld(sessionId)) {
+          const updatedProfile = applyIntelligenceToProfile(current, uid); // + intelligence state
           services.userProfile = updatedProfile;
 
           // Save to store
@@ -1519,7 +1519,7 @@ export async function createSessionServices(
     saveProfile: async () => {
       // CRITICAL FIX: Use services.userProfile, not the closure variable!
       // The closure variable is stale and doesn't include updates from endSession()
-      const profileToSave = services.userProfile;
+      const profileToSave = savable(services.userProfile); // never a stand-in (failed read)
       if (profileToSave && validatedUserId && !memoryHeld(sessionId)) {
         try {
           const history = historyTracker.getSessionHistory();

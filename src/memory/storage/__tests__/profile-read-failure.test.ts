@@ -75,6 +75,15 @@ describe('getOrCreateProfile after a failed read', () => {
     expect(state.docs.get(PATH)).toMatchObject({ totalConversations: 41, familyMembers: [{}] });
   });
 
+  it('a programming error is rethrown, not taken for a failed read', async () => {
+    const memory = new InMemoryStore();
+    memory.getProfileStrict = async () => {
+      throw new TypeError("Cannot read properties of undefined (reading 'collection')");
+    };
+    await expect(memory.getOrCreateProfile('u1')).rejects.toBeInstanceOf(TypeError);
+    expect(await memory.getProfile('u1')).toBeNull();
+  });
+
   it('every backend refuses the stand-in, the in-memory store too', async () => {
     failNextReads(Infinity);
     const standIn = await store.getOrCreateProfile('u1');

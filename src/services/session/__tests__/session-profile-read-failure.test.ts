@@ -13,7 +13,13 @@ import {
   type MergeFakeState,
 } from '../../../tests/helpers/merge-fake-firestore.js';
 
-const h = vi.hoisted(() => ({ store: null as unknown, cached: [] as unknown[] }));
+const h = vi.hoisted(() => ({
+  store: null as unknown,
+  cached: [] as unknown[],
+  autoSave: null as null | ((uid: string) => Promise<void>),
+  autoSaveErrors: [] as unknown[],
+  outreach: [] as unknown[],
+}));
 vi.mock('../../data-layer/profile-cache.js', () => ({
   getProfileWithCache: async (uid: string, load: (u: string) => Promise<unknown>) => load(uid),
   cacheProfile: async (_uid: string, p: unknown) => void h.cached.push(p),
@@ -22,11 +28,44 @@ vi.mock('../../data-layer/profile-cache.js', () => ({
 vi.mock('../../global-services.js', () => ({
   getGlobalServices: async () => ({ store: h.store }),
 }));
+// The 30 s auto-save timer, captured so a test can run one tick.
+vi.mock('../../intelligence-persistence.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  startAutoSave: (_uid: string, cb: (uid: string) => Promise<void>) => void (h.autoSave = cb),
+}));
+vi.mock('../../analytics/persistence-metrics.js', async (importOriginal) => {
+  const actual = await importOriginal<{ persistenceMetrics: Record<string, unknown> }>();
+  const metrics = Object.assign(Object.create(actual.persistenceMetrics as object), {
+    recordAutoSave: (_s: string, _ms: number, error?: string) =>
+      void (error && h.autoSaveErrors.push(error)),
+  });
+  return { ...actual, persistenceMetrics: metrics };
+});
+// A teardown step that runs after the profile save in endSession.
+vi.mock('../../outreach/session-integration.js', () => ({
+  analyzeSessionForOutreach: async (input: unknown) => {
+    h.outreach.push(input);
+    return { commitmentsFound: 0, triggersCreated: 0 };
+  },
+}));
+vi.mock('../../../memory/index.js', async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  summarizeWithLLM: async (sessionId: string) => ({
+    id: `sum-${sessionId}`,
+    sessionId,
+    timestamp: new Date(),
+    duration: 10,
+    turnCount: 1,
+    mainTopics: [],
+    keyPoints: [],
+    emotionalArc: '',
+  }),
+}));
 
 const { FirestoreStore } = await import('../../../memory/storage/firestore-store.js');
 const { resetCallStartReads } = await import('../../../utils/call-start-reads.js');
-const { isUnsavedProfile, UnsavedProfileError } =
-  await import('../../../memory/storage/profile-read-failure.js');
+const { isUnsavedProfile } = await import('../../../memory/storage/profile-read-failure.js');
+const { getHistoryTracker } = await import('../../../memory/index.js');
 const { loadSessionProfile } = await import('../load-session-profile.js');
 const { createSessionServices } = await import('../session-manager.js');
 
@@ -47,6 +86,9 @@ const profileWrites = () => state.writes.filter((w) => w.path === PATH);
 beforeEach(() => {
   resetCallStartReads();
   h.cached = [];
+  h.autoSave = null;
+  h.autoSaveErrors = [];
+  h.outreach = [];
   state = newMergeFakeState();
   state.failReads = new Set();
   store = new FirestoreStore({ projectId: 'test-project' });
@@ -79,6 +121,16 @@ describe('loadSessionProfile', () => {
     expect(h.cached).toHaveLength(1);
   });
 
+  it('a programming error (TypeError) is rethrown, not taken for a failed read', async () => {
+    const broken = {
+      getProfileForWrite: async () => {
+        throw new TypeError('store.getProfileForWrite is not a function');
+      },
+      saveProfile: async () => undefined,
+    };
+    await expect(loadSessionProfile(broken, UID, 'Dana')).rejects.toBeInstanceOf(TypeError);
+  });
+
   it('a returning member loads as stored, with no write', async () => {
     const profile = await loadSessionProfile(store, UID, 'Dana');
     expect(profile.totalConversations).toBe(41);
@@ -87,17 +139,38 @@ describe('loadSessionProfile', () => {
 });
 
 describe('createSessionServices after a failed profile read', () => {
-  it('the call runs; its end-of-call save is refused like any failed save, nothing reset', async () => {
+  async function standInSession(sessionId: string) {
     state.failReads?.add(PATH);
     const services = await createSessionServices({
-      sessionId: 'sess-read-failure',
+      sessionId,
       userId: UID,
       deferProfileLoad: false,
     });
-    expect(services.userProfile?.id).toBe(UID);
+    expect(isUnsavedProfile(services.userProfile)).toBe(true);
+    return services;
+  }
 
-    await expect(services.saveProfile()).rejects.toBeInstanceOf(UnsavedProfileError);
+  it('saveProfile skips the stand-in without throwing; nothing is written', async () => {
+    const services = await standInSession('sess-read-failure');
+    await services.saveProfile();
     expect(profileWrites()).toEqual([]);
     expect(state.docs.get(PATH)).toMatchObject({ totalConversations: 41 });
+  });
+
+  it('endSession skips the profile save but finishes teardown (outreach analysis runs)', async () => {
+    const services = await standInSession('sess-read-failure-end');
+    getHistoryTracker('sess-read-failure-end', UID).addUserTurn("I'll call my sister Tuesday.");
+    await services.endSession();
+
+    expect(profileWrites()).toEqual([]);
+    expect(h.outreach).toHaveLength(1);
+  });
+
+  it('auto-save neither writes nor records a failure for a stand-in', async () => {
+    await standInSession('sess-read-failure-autosave');
+    await h.autoSave?.(UID);
+    expect(h.autoSave).not.toBeNull();
+    expect(profileWrites()).toEqual([]);
+    expect(h.autoSaveErrors).toEqual([]);
   });
 });

@@ -73,6 +73,24 @@ export function invalidStoredProfile(userId: string, stored: unknown): InvalidSt
   return error;
 }
 
+const READ_FAILURE_NAMES = new Set([
+  'InvalidStoredProfileError',
+  'MemoryReadError',
+  'TimeoutError',
+]);
+const READ_FAILURE_TEXT = /timed? ?out|deadline|unavailable|initiali[sz]|ECONN|socket|network/i;
+
+/**
+ * A read that failed (Firestore/gRPC or IO code, timeout, store not initialized, invalid stored
+ * doc), as opposed to a programming error (TypeError, a missing method) that must surface.
+ */
+export function isProfileReadFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const code = (error as { code?: unknown }).code;
+  if (typeof code === 'number' || (typeof code === 'string' && code !== '')) return true;
+  return READ_FAILURE_NAMES.has(error.name) || READ_FAILURE_TEXT.test(error.message);
+}
+
 export function isUnsavedProfile(profile: unknown): boolean {
   return Boolean(profile && (profile as Record<symbol, unknown>)[UNSAVED]);
 }

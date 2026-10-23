@@ -10,7 +10,11 @@
  */
 
 import type { MemoryStore } from '../../memory/storage/store.js';
-import { unsavedStandIn } from '../../memory/storage/profile-read-failure.js';
+import {
+  isProfileReadFailure,
+  isUnsavedProfile,
+  unsavedStandIn,
+} from '../../memory/storage/profile-read-failure.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { getLogger } from '../../utils/safe-logger.js';
 
@@ -27,6 +31,7 @@ export async function loadSessionProfile(
   try {
     profile = await getProfileWithCache(userId, (uid) => store.getProfileForWrite(uid));
   } catch (error) {
+    if (!isProfileReadFailure(error)) throw error; // a bug (e.g. a missing method), not a failed read
     return unsavedStandIn(userId, userName, error);
   }
 
@@ -53,4 +58,9 @@ export async function loadSessionProfile(
     );
   }
   return profile;
+}
+
+/** The profile, unless it is a stand-in after a failed read: that one is never saved. */
+export function savable<P>(profile: P | null | undefined): P | undefined {
+  return profile && !isUnsavedProfile(profile) ? profile : undefined;
 }

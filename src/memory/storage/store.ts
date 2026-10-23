@@ -8,6 +8,7 @@
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   InvalidStoredProfileError,
+  isProfileReadFailure,
   repairedProfile,
   unsavedStandIn,
 } from './profile-read-failure.js';
@@ -142,6 +143,7 @@ export abstract class MemoryStore {
     try {
       existing = await this.getProfileForWrite(userId);
     } catch (error) {
+      if (!isProfileReadFailure(error)) throw error; // a bug, not a failed read
       return unsavedStandIn(userId, name, error);
     }
     if (existing) {
