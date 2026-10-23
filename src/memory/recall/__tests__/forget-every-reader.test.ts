@@ -41,6 +41,7 @@ import { hybridSearch } from '../../retrieval/hybrid-search.js';
 import { UnifiedMemoryStoreFacade } from '../../unified-store/facade.js';
 import { callerHistory, greetingFacts } from '../../../agents/multi-agent/greeting-direction.js';
 import { sendRecall } from '../../../agents/personas/context-packet/turn-packet.js';
+import { dropForgottenNotes } from '../../../agents/multi-agent/recall-note.js';
 import {
   injectUserAwareness,
   rememberedProfile,
@@ -191,9 +192,54 @@ describe.each([
       { id: 'user_1', textContent: 'Biscuit did it again' }, // the caller's words, never touched
     ]);
     await primeStore(user);
-    sendRecall(agent as never, {}, { lastPick: () => null } as never, null, user);
+    sendRecall(agent as never, {}, { lastPick: () => null } as never, null, 'again', user);
     if (on) expect(ids()).toEqual(['recall_2', 'user_1']);
     else expect(ids()).toEqual(['recall_1', 'recall_2', 'user_1']);
+  });
+});
+
+describe('dropForgottenNotes and PREEMPT_STABLE_CONTEXT', () => {
+  const SAID = 'tell me about it';
+  /** A chat with a preemptive reply in flight for SAID (LiveKit's AgentActivity, as read). */
+  function inFlight() {
+    const { agent, ids } = chat([
+      { id: 'recall_1', textContent: '[WHAT YOU REMEMBER] their dog Biscuit chews things' },
+      { id: 'user_1', textContent: SAID },
+    ]);
+    const activity = {
+      _preemptiveGeneration: { info: { newTranscript: SAID }, createdAt: Date.now() } as object,
+      _preemptiveGenerationCount: 1,
+      onPreemptiveGeneration: vi.fn((info: object) => {
+        activity._preemptiveGeneration = { info, createdAt: Date.now() };
+      }),
+    };
+    Object.assign(agent, { _agentActivity: activity });
+    return { agent, ids, restart: activity.onPreemptiveGeneration };
+  }
+  const aboutBiscuit = (text: string) => /biscuit/i.test(text);
+
+  it('on: the note comes out at once and the preemptive reply starts again without it', () => {
+    vi.stubEnv('PREEMPT_STABLE_CONTEXT', 'on');
+    const { agent, ids, restart } = inFlight();
+    expect(dropForgottenNotes(agent as never, aboutBiscuit, SAID)).toBe(1);
+    expect(ids()).toEqual(['user_1']);
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
+  it('defer: never held for the reply that read the note; out at once', () => {
+    vi.stubEnv('PREEMPT_STABLE_CONTEXT', 'defer');
+    const { agent, ids, restart } = inFlight();
+    dropForgottenNotes(agent as never, aboutBiscuit, SAID);
+    expect(ids()).toEqual(['user_1']); // the commit sees a changed context and drops that reply
+    expect(restart).not.toHaveBeenCalled();
+  });
+
+  it('nothing forgotten in the chat: no write and no restart', () => {
+    vi.stubEnv('PREEMPT_STABLE_CONTEXT', 'on');
+    const { agent, ids, restart } = inFlight();
+    expect(dropForgottenNotes(agent as never, () => false, SAID)).toBe(0);
+    expect(ids()).toEqual(['recall_1', 'user_1']);
+    expect(restart).not.toHaveBeenCalled();
   });
 });
 
