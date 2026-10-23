@@ -87,6 +87,7 @@ describe('setupPersonaAgent → the recall listener', () => {
     callSession.emit('user_input_transcribed', { transcript: 'hi there', isFinal: true });
     expect(spy.sent).toHaveLength(1);
     expect(spy.sent[0]![3]).toBeNull(); // no note this turn
-    expect(spy.sent[0]![4]).toBe('member-recall-wiring');
+    expect(spy.sent[0]![4]).toBe('hi there'); // said (PREEMPT_STABLE_CONTEXT)
+    expect(spy.sent[0]![5]).toBe('member-recall-wiring');
   }, 60_000);
 });

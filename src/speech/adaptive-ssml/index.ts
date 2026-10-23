@@ -16,16 +16,6 @@
 export type { CognitiveSsmlOptions } from './types.js';
 
 // ============================================================================
-// CORE ADAPTATION
-// ============================================================================
-
-export {
-  tagTextWithSsmlAdaptive,
-  tagTextWithSsmlSuperhuman,
-  type ExtendedSpeechContext,
-} from './adaptation.js';
-
-// ============================================================================
 // EMOTION ADAPTATION
 // ============================================================================
 
@@ -49,27 +39,6 @@ export {
 } from './nonverbal-sounds.js';
 
 // ============================================================================
-// ALIVE VOICE - Makes Agents Come Alive
-// ============================================================================
-
-export {
-  NONVERBAL_CONFIG,
-  PERSONA_FINGERPRINTS,
-  addOpeningSound,
-  applyDynamicPauses,
-  applyEmotionArcs,
-  applyPersonaFingerprint,
-  applySpeedVariation,
-  getNonverbal,
-  isNonverbalSupported,
-  makeVoiceAlive,
-  type AliveVoiceContext,
-  type AliveVoiceResult,
-  type NonverbalType,
-  type PersonaFingerprint,
-} from './alive-voice.js';
-
-// ============================================================================
 // CONTEXTUAL LAUGHTER - Smart Laugh Timing
 // ============================================================================
 
@@ -86,22 +55,6 @@ export {
 } from './contextual-laughter.js';
 
 // ============================================================================
-// PERSONA SPEECH TRAITS - Detailed Persona-Specific Patterns
-// ============================================================================
-
-export {
-  applyPersonaSpeechTraitsSync,
-  clearTraitRegistry,
-  getPersonaTraitsSync,
-  getPersonasWithSpeechTraits,
-  hasCustomSpeechTraits,
-  preloadAllTraits,
-  type PersonaSpeechTraitConfig,
-  type SpeechTraitContext,
-  type SpeechTraitProcessor,
-} from './persona-speech-traits-loader.js';
-
-// ============================================================================
 // AUDIO SMOOTHING
 // ============================================================================
 
@@ -111,28 +64,6 @@ export {
   removeAudioSmoothing,
   type AudioSmoothingOptions,
 } from './audio-smoothing.js';
-
-// ============================================================================
-// SPECIALIZED TAGGERS
-// ============================================================================
-
-export {
-  tagAdvice,
-  tagGreeting,
-  tagStory,
-  tagSupportResponse,
-  tagWrapUp,
-} from './specialized-taggers.js';
-
-// ============================================================================
-// COGNITIVE-AWARE SSML
-// ============================================================================
-
-export {
-  clearCognitiveSpeechState,
-  getCognitiveSpeechStats,
-  tagTextWithCognitiveSsml,
-} from './cognitive-ssml.js';
 
 // ============================================================================
 // DYNAMIC SPEED CONTROL
@@ -192,17 +123,3 @@ export {
   type StressAdaptation,
   type StressReading,
 } from './stress-adaptation.js';
-
-// ============================================================================
-// DEFAULT EXPORT
-// ============================================================================
-
-export default {
-  tagTextWithSsmlAdaptive: (await import('./adaptation.js')).tagTextWithSsmlAdaptive,
-  tagTextWithCognitiveSsml: (await import('./cognitive-ssml.js')).tagTextWithCognitiveSsml,
-  tagGreeting: (await import('./specialized-taggers.js')).tagGreeting,
-  tagSupportResponse: (await import('./specialized-taggers.js')).tagSupportResponse,
-  tagAdvice: (await import('./specialized-taggers.js')).tagAdvice,
-  tagStory: (await import('./specialized-taggers.js')).tagStory,
-  tagWrapUp: (await import('./specialized-taggers.js')).tagWrapUp,
-};
