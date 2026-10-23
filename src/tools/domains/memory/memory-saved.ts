@@ -24,6 +24,9 @@ import { flagOn } from '../../../config/env-flag.js';
 import { isSensitiveThread } from '../../../memory/index.js';
 import { memoryHeld, userHeld } from '../../../utils/minor-care.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { type MemorySavedSend, memorySavedSender } from './memory-saved-sender.js';
+
+export { type MemorySavedSend, setMemorySavedSender } from './memory-saved-sender.js';
 
 const log = getLogger();
 
@@ -63,20 +66,6 @@ export interface SavedMemory {
   category?: string;
 }
 
-/** Publish to the call's room; false when nothing was delivered. */
-export type MemorySavedSend = (
-  sessionId: string,
-  type: string,
-  payload: Record<string, unknown>
-) => Promise<boolean>;
-
-let sender: MemorySavedSend | null = null;
-
-/** Called by the session layer once a room can be reached; null unplugs (tests). */
-export function setMemorySavedSender(next: MemorySavedSend | null): void {
-  sender = next;
-}
-
 /**
  * Tell the client a memory was stored. Call only after the store succeeded.
  * Never throws; resolves true only when the message was sent.
@@ -84,7 +73,7 @@ export function setMemorySavedSender(next: MemorySavedSend | null): void {
 export async function announceMemorySaved(
   saved: SavedMemory,
   env: Record<string, string | undefined> = process.env,
-  via: MemorySavedSend | null = sender
+  via: MemorySavedSend | null = memorySavedSender()
 ): Promise<boolean> {
   if (!via || !flagOn('CLIENT_SIGNALS_V2', env) || !saved.sessionId) return false;
   if (memoryHeld(saved.sessionId, env) || userHeld(saved.userId, env)) return false;

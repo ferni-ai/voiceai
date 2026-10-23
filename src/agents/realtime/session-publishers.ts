@@ -1,7 +1,7 @@
 import { createSessionBindings } from '../../utils/session-bindings.js';
 import { FrontendPublisher, type PublisherConfig, type RoomRef } from './frontend-publisher.js';
 import { wireRememberMoment } from './remember-moment-ports.js';
-import { setMemorySavedSender } from '../../tools/domains/memory/memory-saved.js';
+import { setMemorySavedSender } from '../../tools/domains/memory/memory-saved-sender.js';
 
 const publishers = createSessionBindings<FrontendPublisher>();
 
