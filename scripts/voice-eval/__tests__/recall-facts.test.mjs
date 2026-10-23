@@ -79,6 +79,19 @@ describe('recall-facts', () => {
     const text = readFileSync(new URL('../scenarios/facts-recall.txt', import.meta.url), 'utf8');
     expect(parseChecks(text).filter((c) => c.kind === 'fact')).toHaveLength(4);
   });
+
+  it('facts-recall can measure recall: its caller names no fact, and the seed interview is already over', () => {
+    const read = (name) => readFileSync(new URL(`../scenarios/${name}.txt`, import.meta.url), 'utf8');
+    const said = (text) => text.split('\n').filter((l) => l.trim() && !l.startsWith('#'));
+    const recall = read('facts-recall');
+    for (const fact of parseChecks(recall).filter((c) => c.kind === 'fact')) {
+      expect(said(recall).filter((l) => fact.re.test(l))).toEqual([]);
+    }
+    // 1cf4bd64b A/B: the seed set the interview "on Monday" and recall asked how it went minutes later.
+    const interview = said(read('facts-seed')).find((l) => /\binterview\b/i.test(l));
+    expect(interview).toMatch(/\b(?:had|today|yesterday)\b/i);
+    expect(interview).not.toMatch(/\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|tomorrow|next)\b/i);
+  });
 });
 
 describe('recall-facts.mjs --json over a glob', () => {
