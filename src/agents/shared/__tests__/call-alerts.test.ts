@@ -25,10 +25,16 @@ function fakeHandle() {
 function fakeSession() {
   const listeners = new Map<string, Set<(ev: unknown) => void>>();
   const handles: Array<ReturnType<typeof fakeHandle>> = [];
+  const closing = new AbortController();
   const s = {
     agentState: 'speaking',
     userState: 'listening',
-    _activity: { currentSpeech: undefined as unknown },
+    _activity: {
+      currentSpeech: undefined as unknown,
+      endpointingOpts: { maxDelay: 0 },
+    },
+    _closingSignal: closing.signal,
+    close: () => closing.abort(),
     handles,
     generateReply: vi.fn(() => {
       const h = fakeHandle();
@@ -251,6 +257,110 @@ describe('call alerts', () => {
     s.handles[0].finish(false);
     await done;
     expect(msgs()).toEqual(['CALL_ALERT_SPOKEN']);
+  });
+
+  it('counts playout, not time since the first frame: a pause for the caller stops the clock', async () => {
+    const s = fakeSession();
+    s.agentState = 'listening';
+    const { speak, msgs } = speaker(s);
+    const done = speak(timer);
+    await tick();
+    s.play();
+    await tick(300);
+    s.setAgent('listening'); // paused for the caller's voice
+    await tick(1000);
+    expect(msgs()).toEqual([]);
+    s.setAgent('speaking'); // resumed
+    await tick(HEARD_AFTER_MS - 300 - 1);
+    expect(msgs()).toEqual([]);
+    await tick(1);
+    await done;
+    expect(msgs()).toEqual(['CALL_ALERT_SPOKEN']);
+  });
+
+  it.each([
+    ['460 ms played, then the caller talks 400 ms', 460, 400],
+    ['the caller starts 100 ms in and talks 900 ms', 100, 900],
+  ])('%s, then their turn cuts it: said again', async (_n, playMs, talkMs) => {
+    const s = fakeSession();
+    s.agentState = 'listening';
+    const { speak, msgs } = speaker(s);
+    const done = speak(timer);
+    await tick();
+    s.play();
+    await tick(playMs);
+    s.setAgent('listening'); // LiveKit pauses Ferni for the caller's voice
+    s.setUser('speaking');
+    await tick(talkMs);
+    s.setUser('listening');
+    s.handles[0].finish(true); // their turn commits and cuts the alert
+    await tick();
+    expect(msgs()).toEqual(['CALL_ALERT_RETRY']);
+    await ferniAnswers(s);
+    expect(s.generateReply).toHaveBeenCalledTimes(2);
+    s.play();
+    await tick(HEARD_AFTER_MS);
+    await done;
+    expect(msgs()).toEqual(['CALL_ALERT_RETRY', 'CALL_ALERT_SPOKEN']);
+  });
+
+  it("waits LiveKit's endpointing delay after the caller stops, so their turn can commit first", async () => {
+    const s = fakeSession();
+    s._activity.endpointingOpts.maxDelay = 1500;
+    s.agentState = 'listening';
+    s.userState = 'speaking';
+    const { speak } = speaker(s);
+    void speak(timer);
+    await tick();
+    s.setUser('listening');
+    await tick(1499);
+    expect(s.generateReply).not.toHaveBeenCalled();
+    await tick(1);
+    expect(s.generateReply).toHaveBeenCalledTimes(1);
+  });
+
+  it('the caller talking again during the retry wait: the retry waits for their turn too', async () => {
+    const s = fakeSession();
+    s._activity.endpointingOpts.maxDelay = 1500;
+    s.agentState = 'listening';
+    const { speak, msgs } = speaker(s);
+    const done = speak(timer);
+    await tick();
+    callerCuts(s, 0);
+    s.setAgent('thinking');
+    await tick(1400);
+    s._activity.currentSpeech = {};
+    s.setAgent('speaking'); // Ferni answers...
+    await tick(300);
+    s.setAgent('listening'); // ...and the caller's voice pauses that answer
+    s.setUser('speaking');
+    await tick(600);
+    s.setUser('listening'); // VAD end; their turn is not committed yet
+    await tick(1000);
+    expect(s.generateReply).toHaveBeenCalledTimes(1); // not into the commit
+    s.setAgent('thinking'); // the commit: Ferni answers again
+    await tick(1400);
+    s.setAgent('speaking');
+    await tick(2000);
+    s.setAgent('listening');
+    await tick();
+    expect(s.generateReply).toHaveBeenCalledTimes(2);
+    s.play();
+    await tick(HEARD_AFTER_MS);
+    await done;
+    expect(msgs()).toEqual(['CALL_ALERT_RETRY', 'CALL_ALERT_SPOKEN']);
+  });
+
+  it('the call ends while it waits: CALL_ALERT_DROPPED call_ended, nothing asked for', async () => {
+    const s = fakeSession();
+    const { speak, msgs, logs } = speaker(s);
+    const done = speak(timer); // Ferni is talking: it waits
+    await tick(300);
+    s.close();
+    await done;
+    expect(s.generateReply).not.toHaveBeenCalled();
+    expect(msgs()).toEqual(['CALL_ALERT_DROPPED']);
+    expect(logs[0].fields).toMatchObject({ reason: 'call_ended' });
   });
 
   it('gives Ferni the facts, not canned words', () => {

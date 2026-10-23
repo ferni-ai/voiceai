@@ -19,6 +19,10 @@
  * once HEARD_AFTER_MS of it has played; a reply cut before that is asked for
  * once more after Ferni answers the caller (MAX_ALERT_ATTEMPTS), and an alert
  * that still isn't heard is logged as CALL_ALERT_DROPPED with the reason.
+ * Heard means HEARD_AFTER_MS of playout: a pause for the caller's voice stops
+ * the count. Each attempt also waits LiveKit's endpointing delay after the
+ * caller last stopped, so a turn of theirs still to be committed can't cut it,
+ * and a call that ends meanwhile drops it (call_ended) without asking for it.
  * Such a reply ends on Ferni's turn, so it stays on the main model (fast-lane.ts).
  *
  * @module agents/shared/call-alerts
@@ -51,48 +55,80 @@ export interface AlertSession {
   on: (event: string, fn: (ev: unknown) => void) => unknown;
   off: (event: string, fn: (ev: unknown) => void) => unknown;
   generateReply: (options: { instructions: string }) => AlertSpeech | unknown;
-  /** LiveKit's live activity: its current speech is the one whose audio is playing. */
-  readonly _activity?: { readonly currentSpeech?: unknown };
+  /** LiveKit's live activity: its current speech is the one playing; its endpointing delays. */
+  readonly _activity?: {
+    readonly currentSpeech?: unknown;
+    readonly endpointingOpts?: { readonly maxDelay?: number };
+  };
+  /** Aborted when the call starts to close, and stays aborted. */
+  readonly _closingSignal?: AbortSignal;
 }
 
 const isQuiet = (s: AlertSession): boolean =>
   s.agentState === 'listening' && s.userState !== 'speaking';
+const callEnded = (s: AlertSession): boolean => s._closingSignal?.aborted === true;
+const newState = (ev: unknown): string | undefined => (ev as { newState?: string })?.newState;
 
-/** Resolves once neither side is talking, or after `maxMs`. */
-export function waitUntilQuiet(session: AlertSession, maxMs = QUIET_WAIT_MS): Promise<void> {
-  if (isQuiet(session)) return Promise.resolve();
+/**
+ * The longest LiveKit may take to commit a caller's turn after they stop: its
+ * resolved endpointing maxDelay for this call (0 when unknown).
+ */
+const commitDelayMs = (s: AlertSession): number => s._activity?.endpointingOpts?.maxDelay ?? 0;
+
+/**
+ * Resolves once neither side is talking and the caller stopped at least `settleMs`
+ * before (`callerStoppedAt()`), so a turn of theirs still to be committed has been;
+ * or after `maxMs`, or when the call ends.
+ */
+export async function waitUntilQuiet(
+  session: AlertSession,
+  maxMs = QUIET_WAIT_MS,
+  settleMs = 0,
+  callerStoppedAt: () => number = () => -Infinity
+): Promise<void> {
+  const left = (): number => settleMs - (Date.now() - callerStoppedAt());
+  if (callEnded(session) || (isQuiet(session) && left() <= 0)) return;
   return new Promise((resolve) => {
+    let recheck: ReturnType<typeof setTimeout> | undefined;
     const check = (): void => {
+      clearTimeout(recheck);
       if (!isQuiet(session)) return;
-      done();
+      if (left() <= 0) done();
+      else recheck = setTimeout(check, left());
     };
     const done = (): void => {
       clearTimeout(timer);
+      clearTimeout(recheck);
       session.off(voice.AgentSessionEventTypes.AgentStateChanged, check);
       session.off(voice.AgentSessionEventTypes.UserStateChanged, check);
+      session._closingSignal?.removeEventListener('abort', done);
       resolve();
     };
     const timer = setTimeout(done, maxMs);
     session.on(voice.AgentSessionEventTypes.AgentStateChanged, check);
     session.on(voice.AgentSessionEventTypes.UserStateChanged, check);
+    session._closingSignal?.addEventListener('abort', done);
+    check();
   });
 }
 
 /**
  * After a caller turn cut the alert: resolves once a reply that starts after now has
  * finished (speaking, then listening), or when none starts within `startMs`, or after
- * `maxMs`. LiveKit runs the turn hooks (~1.4 s on dev) before the answer exists, and
- * both read "listening", so a pause alone would put the retry ahead of the answer.
+ * `maxMs`, or when the call ends. LiveKit runs the turn hooks (~1.4 s on dev) before
+ * the answer exists, and both read "listening", so a pause alone would put the retry
+ * ahead of the answer.
  */
 export async function waitForAnswer(
   session: AlertSession,
   startMs = ANSWER_START_MS,
   maxMs = QUIET_WAIT_MS
 ): Promise<void> {
+  if (callEnded(session)) return;
   return new Promise((resolve) => {
     let started = session.agentState === 'speaking';
     const onState = (ev: unknown): void => {
-      const state = (ev as { newState?: string })?.newState;
+      const state = newState(ev);
       if (state === 'speaking') {
         started = true;
         clearTimeout(noStart);
@@ -102,6 +138,7 @@ export async function waitForAnswer(
       clearTimeout(noStart);
       clearTimeout(cap);
       session.off(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+      session._closingSignal?.removeEventListener('abort', done);
       resolve();
     };
     const noStart = setTimeout(() => {
@@ -109,6 +146,7 @@ export async function waitForAnswer(
     }, startMs);
     const cap = setTimeout(done, maxMs);
     session.on(voice.AgentSessionEventTypes.AgentStateChanged, onState);
+    session._closingSignal?.addEventListener('abort', done);
   });
 }
 
@@ -129,17 +167,28 @@ const isSpeech = (h: unknown): h is AlertSpeech =>
 type Outcome = 'played' | 'requested' | 'cut' | { failed: string };
 
 /**
- * Ask for the alert's reply and settle once it has played HEARD_AFTER_MS ('played'), or
- * when it ends sooner ('cut'). A reply that finished uninterrupted counts as played.
+ * Ask for the alert's reply and settle once HEARD_AFTER_MS of it has played ('played'),
+ * or when it ends sooner ('cut'). Playout is the time LiveKit has it 'speaking': a pause
+ * for the caller's voice (speaking -> listening) stops the count, a resume restarts it.
+ * A reply that finished uninterrupted counts as played.
  */
 async function sayOnce(session: AlertSession, cb: VoiceCallback): Promise<Outcome> {
   return new Promise((resolve) => {
     let handle: unknown;
+    let playedMs = 0;
+    let since: number | undefined;
     let heard: ReturnType<typeof setTimeout> | undefined;
     const onState = (ev: unknown): void => {
-      if ((ev as { newState?: string })?.newState !== 'speaking' || heard) return;
-      if (handle !== undefined && session._activity?.currentSpeech === handle)
-        heard = setTimeout(() => settle('played'), HEARD_AFTER_MS);
+      const playing = newState(ev) === 'speaking';
+      if (playing && since === undefined && handle !== undefined) {
+        if (session._activity?.currentSpeech !== handle) return;
+        since = Date.now();
+        heard = setTimeout(() => settle('played'), HEARD_AFTER_MS - playedMs);
+      } else if (!playing && since !== undefined) {
+        playedMs += Date.now() - since;
+        since = undefined;
+        clearTimeout(heard);
+      }
     };
     const settle = (outcome: Outcome): void => {
       clearTimeout(heard);
@@ -178,28 +227,46 @@ export function createCallAlertSpeaker(
     ((msg, fields) =>
       msg === 'CALL_ALERT_DROPPED' ? log.warn(fields, msg) : log.info(fields, msg));
   return async (cb) => {
-    for (let attempt = 1; attempt <= MAX_ALERT_ATTEMPTS; attempt++) {
-      // A retry waits for the answer to the caller who cut the first one, then a pause.
-      // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
-      if (attempt > 1) await waitForAnswer(session, opts.answerStartMs, opts.quietWaitMs);
-      // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
-      await waitUntilQuiet(session, opts.quietWaitMs);
-      // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
-      const outcome = await sayOnce(session, cb);
-      const fields = { sessionId: opts.sessionId, type: cb.type, attempt };
-      if (outcome === 'played') return say('CALL_ALERT_SPOKEN', fields);
-      if (outcome === 'requested')
-        return say('CALL_ALERT_SPOKEN', { ...fields, unconfirmed: true });
-      if (outcome !== 'cut') {
-        return say('CALL_ALERT_DROPPED', {
-          ...fields,
-          reason: 'reply_failed',
-          error: outcome.failed,
-        });
+    // When the caller last stopped talking: a turn of theirs may still be committed (and
+    // would cut the alert) until LiveKit's endpointing delay has passed since.
+    let callerStoppedAt = -Infinity;
+    const onUser = (ev: unknown): void => {
+      if (newState(ev) === 'listening') callerStoppedAt = Date.now();
+    };
+    session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
+    try {
+      for (let attempt = 1; attempt <= MAX_ALERT_ATTEMPTS; attempt++) {
+        const fields = { sessionId: opts.sessionId, type: cb.type, attempt };
+        // A retry waits for the answer to the caller who cut the first one, then a pause.
+        // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
+        if (attempt > 1) await waitForAnswer(session, opts.answerStartMs, opts.quietWaitMs);
+        // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
+        await waitUntilQuiet(
+          session,
+          opts.quietWaitMs,
+          commitDelayMs(session),
+          () => callerStoppedAt
+        );
+        if (callEnded(session))
+          return say('CALL_ALERT_DROPPED', { ...fields, reason: 'call_ended' });
+        // eslint-disable-next-line no-await-in-loop -- one attempt at a time, by design
+        const outcome = await sayOnce(session, cb);
+        if (outcome === 'played') return say('CALL_ALERT_SPOKEN', fields);
+        if (outcome === 'requested')
+          return say('CALL_ALERT_SPOKEN', { ...fields, unconfirmed: true });
+        if (outcome !== 'cut') {
+          return say('CALL_ALERT_DROPPED', {
+            ...fields,
+            reason: 'reply_failed',
+            error: outcome.failed,
+          });
+        }
+        if (attempt < MAX_ALERT_ATTEMPTS)
+          say('CALL_ALERT_RETRY', { ...fields, reason: 'cut_before_heard' });
+        else say('CALL_ALERT_DROPPED', { ...fields, reason: 'cut_before_heard' });
       }
-      if (attempt < MAX_ALERT_ATTEMPTS)
-        say('CALL_ALERT_RETRY', { ...fields, reason: 'cut_before_heard' });
-      else say('CALL_ALERT_DROPPED', { ...fields, reason: 'cut_before_heard' });
+    } finally {
+      session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser);
     }
   };
 }
