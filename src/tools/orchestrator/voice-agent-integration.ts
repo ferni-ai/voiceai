@@ -24,6 +24,7 @@
 
 import { getLogger } from '../../utils/safe-logger.js';
 import { toolOrchestrator, type ToolSelectionContext } from './tool-orchestrator.js';
+import { withoutForbiddenTools, withPersonaToolPolicy } from './persona-tool-policy.js';
 import { buildAgentTools, buildEssentialTools } from '../builder.js';
 import { buildHandoffTools } from '../handoff/handoff-factory.js';
 import { autoRegisterAllDomains } from '../registry/loader.js';
@@ -242,12 +243,13 @@ export function isOrchestratorInitialized(): boolean {
 // MAIN API
 // ============================================================================
 
-/**
- * Get tools for a voice agent session
- *
- * This is the main integration point - replaces buildAgentTools + buildEssentialTools
- */
+/** Get tools for a voice agent session, with the persona's tool policy (persona-tool-policy.ts) */
 export async function getToolsForAgent(options: GetToolsForAgentOptions): Promise<GetToolsResult> {
+  return selectToolsForAgent({ ...options, persona: await withPersonaToolPolicy(options.persona) });
+}
+
+/** This is the main integration point - replaces buildAgentTools + buildEssentialTools */
+async function selectToolsForAgent(options: GetToolsForAgentOptions): Promise<GetToolsResult> {
   const startTime = Date.now();
 
   // =========================================================================
@@ -280,13 +282,8 @@ export async function getToolsForAgent(options: GetToolsForAgentOptions): Promis
 
     // Add handoff tools (handled separately due to unlock logic)
     const handoffTools = await getHandoffToolsForAgent(options);
-    const allTools = { ...result.tools, ...handoffTools };
-
-    // Apply forbidden filter
-    const forbiddenTools = options.persona.tools?.forbidden || [];
-    for (const forbidden of forbiddenTools) {
-      delete allTools[forbidden];
-    }
+    const merged = { ...result.tools, ...handoffTools };
+    const allTools = withoutForbiddenTools(merged, options.persona.tools?.forbidden);
 
     const elapsed = Date.now() - startTime;
 
@@ -438,13 +435,8 @@ async function getLegacyTools(options: GetToolsForAgentOptions): Promise<GetTool
     buildEssentialTools({ userId: options.userId }),
   ]);
 
-  const allTools = { ...essentialTools, ...personaTools };
-
-  // Filter forbidden
-  const forbiddenTools = options.persona.tools?.forbidden || [];
-  for (const forbidden of forbiddenTools) {
-    delete allTools[forbidden];
-  }
+  const merged = { ...essentialTools, ...personaTools };
+  const allTools = withoutForbiddenTools(merged, options.persona.tools?.forbidden);
 
   const elapsed = Date.now() - startTime;
 
@@ -542,7 +534,7 @@ async function getEssentialToolsCached(): Promise<Record<string, Tool>> {
  */
 async function getToolsFastPath(options: GetToolsForAgentOptions): Promise<GetToolsResult> {
   const startTime = Date.now();
-  const allTools: Record<string, Tool> = {};
+  const found: Record<string, Tool> = {};
 
   log.info(
     { personaId: options.persona.id, sessionId: options.sessionId },
@@ -558,7 +550,7 @@ async function getToolsFastPath(options: GetToolsForAgentOptions): Promise<GetTo
       if (hasHandoffToolsCache(options.sessionId)) {
         const cachedHandoffTools = getCachedHandoffTools(options.sessionId, options.persona.id);
         if (cachedHandoffTools && Object.keys(cachedHandoffTools).length > 0) {
-          Object.assign(allTools, cachedHandoffTools);
+          Object.assign(found, cachedHandoffTools);
           log.debug(
             { toolCount: Object.keys(cachedHandoffTools).length },
             '⚡ Loaded handoff tools from session cache'
@@ -568,15 +560,16 @@ async function getToolsFastPath(options: GetToolsForAgentOptions): Promise<GetTo
     }
 
     // 2. BUILD HANDOFF TOOLS IF NOT CACHED
-    if (Object.keys(allTools).length === 0) {
+    if (Object.keys(found).length === 0) {
       const handoffTools = await getHandoffToolsForAgent(options);
-      Object.assign(allTools, handoffTools);
+      Object.assign(found, handoffTools);
       log.debug({ toolCount: Object.keys(handoffTools).length }, '🔄 Built handoff tools fresh');
     }
 
     // 3. ADD ESSENTIAL TOOLS (music, weather, etc.)
     const essentialTools = await getEssentialToolsCached();
-    Object.assign(allTools, essentialTools);
+    Object.assign(found, essentialTools);
+    const allTools = withoutForbiddenTools(found, options.persona.tools?.forbidden);
 
     const elapsed = Date.now() - startTime;
 

@@ -14,6 +14,7 @@
  */
 
 import fs from 'fs';
+import { roleUtilities } from './lib/tailwind-roles.js';
 import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -27,6 +28,7 @@ const PROJECT_ROOT = path.dirname(__dirname);
 
 const CONFIG = {
   sourceColors: path.join(__dirname, 'tokens/colors.json'),
+  sourceSemantic: path.join(__dirname, 'tokens/semantic-colors.json'),
   sourceSpacing: path.join(__dirname, 'tokens/spacing.json'),
   sourceTypography: path.join(__dirname, 'tokens/typography.json'),
   sourceAnimation: path.join(__dirname, 'tokens/animation.json'),
@@ -56,7 +58,7 @@ function generateColors(colors) {
       DEFAULT: 'var(--color-bg-primary)',
       cream: 'var(--color-bg-elevated)',
       sand: 'var(--color-bg-secondary)',
-      warm: 'var(--color-bg-glass)',
+      warm: 'var(--color-bg-tertiary)',
     },
     // Ink/Text colors
     ink: {
@@ -72,12 +74,6 @@ function generateColors(colors) {
       pressed: 'var(--color-accent-pressed)',
       glow: 'var(--color-accent-glow)',
       subtle: 'var(--color-accent-subtle)',
-    },
-    // Border colors
-    border: {
-      subtle: 'var(--color-border-subtle)',
-      medium: 'var(--color-border-medium)',
-      strong: 'var(--color-border-strong)',
     },
     // Semantic colors
     success: {
@@ -212,6 +208,7 @@ function build() {
 
   // Load sources
   const colors = loadJson(CONFIG.sourceColors);
+  const semantic = loadJson(CONFIG.sourceSemantic);
   const spacing = loadJson(CONFIG.sourceSpacing);
   const typography = loadJson(CONFIG.sourceTypography);
   const animation = loadJson(CONFIG.sourceAnimation);
@@ -219,6 +216,8 @@ function build() {
   // Generate config object - using CSS variable references
   const config = {
     colors: generateColors(colors),
+    // Theme roles: bg-surface-*, text-primary/secondary/muted, border-subtle/strong
+    ...roleUtilities(semantic),
     spacing: generateSpacing(spacing),
     borderRadius: generateBorderRadius(spacing),
     fontFamily: generateFontFamily(typography),
@@ -240,9 +239,8 @@ function build() {
     ' * IMPORTANT: This file uses CSS variable references (not hardcoded hex values)',
     ' * so colors automatically update when design-tokens.css is regenerated.',
     ' * ',
-    ' * Import this in your tailwind.config.js:',
-    ' *   const generated = require(\'./tailwind.config.generated.js\');',
-    ' *   module.exports = { theme: { extend: generated } };',
+    ' * tailwind.config.js imports the colour keys (colors, backgroundColor,',
+    ' * textColor, borderColor) into theme.extend. The other keys are not wired in.',
     ' */',
     '',
     'module.exports = ' + JSON.stringify(config, null, 2) + ';',
