@@ -14,6 +14,8 @@ import { handleDataMessage } from '../../src/app/data-message-handlers.js';
 import {
   cancelEndDisconnect,
   CONVERSATION_CONTINUE_EVENT,
+  holdEndDisconnect,
+  MAX_END_HOLD_MS,
   scheduleEndDisconnect,
 } from '../../src/app/conversation-continue.js';
 import { CALL_WRAP_UP_STORAGE_KEY } from '../../src/config/call-wrap-up-flag.js';
@@ -45,6 +47,36 @@ describe('scheduleEndDisconnect / cancelEndDisconnect', () => {
     expect(cancelEndDisconnect()).toBe(true);
     vi.advanceTimersByTime(10_000);
     expect(cancelled).not.toHaveBeenCalled();
+  });
+});
+
+describe('holdEndDisconnect', () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => {
+    cancelEndDisconnect();
+    vi.useRealTimers();
+  });
+
+  it('moves the hang-up to the delay after the latest hold, capped 8 s after the end', () => {
+    const ran = vi.fn();
+    expect(holdEndDisconnect()).toBe(false); // nothing to hold
+    scheduleEndDisconnect(ran, 2500);
+    vi.advanceTimersByTime(2000);
+    expect(holdEndDisconnect()).toBe(true); // due at 4500 now
+    vi.advanceTimersByTime(2499);
+    expect(ran).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(ran).toHaveBeenCalledTimes(1);
+
+    const capped = vi.fn();
+    scheduleEndDisconnect(capped, 2500);
+    for (let t = 0; t < 10_000; t += 1000) {
+      holdEndDisconnect();
+      vi.advanceTimersByTime(1000);
+      if (t + 1000 < MAX_END_HOLD_MS) expect(capped).not.toHaveBeenCalled();
+    }
+    expect(capped).toHaveBeenCalledTimes(1);
+    expect(MAX_END_HOLD_MS).toBe(8000);
   });
 });
 
@@ -90,6 +122,17 @@ describe('conversation_continue after conversation_end', () => {
     deliver({ type: 'conversation_continue', reason: 'crisis_hold' });
     vi.advanceTimersByTime(10_000);
     expect(disconnects).not.toHaveBeenCalled();
+  });
+
+  it('conversation_hold keeps the call up while the caller talks, then it still hangs up', () => {
+    deliver({ type: 'conversation_end', reason: 'goodbye_complete', disconnectDelay: 2500 });
+    vi.advanceTimersByTime(2000);
+    deliver({ type: 'conversation_hold', reason: 'caller_speaking' });
+    vi.advanceTimersByTime(2000); // 4 s after the end: past the plain 2.5 s
+    expect(disconnects).not.toHaveBeenCalled();
+    expect(continues).not.toHaveBeenCalled(); // a hold never reopens the call
+    vi.advanceTimersByTime(500);
+    expect(disconnects).toHaveBeenCalledTimes(1);
   });
 
   it('a later goodbye on the same call still hangs up', () => {

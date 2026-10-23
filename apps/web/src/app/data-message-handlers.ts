@@ -267,7 +267,7 @@ export function handleDataMessage(message: DataMessage): void {
     handleConversationEnd(message);
     return;
   }
-  if (routeConversationContinue(message)) return; // the agent took back its goodbye (#2291)
+  if (routeConversationContinue(message)) return; // goodbye held or taken back (#2291)
 
   // Handle other message types
   switch (message.type) {
