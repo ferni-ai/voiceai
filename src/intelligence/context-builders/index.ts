@@ -25,6 +25,7 @@
 import { createHash } from 'crypto';
 import { createLogger } from '../../utils/safe-logger.js';
 import { DISTRESS } from '../distress-levels.js';
+import { promptInput } from './core/prompt-input.js';
 
 // Import types for local use in this module
 import type {
@@ -59,7 +60,6 @@ interface ContextOutputCacheEntry {
   accessedAt: number;
   inputHash: string;
 }
-
 const CONTEXT_OUTPUT_CACHE_CONFIG = {
   /** Maximum entries in the cache */
   maxEntries: 100,
@@ -801,10 +801,10 @@ export function getConditionalLoadingConfig(): ConditionalLoadingConfig {
  * - Basic emotional context injection
  */
 export async function buildConversationContext(
-  input: ContextBuilderInput
+  rawInput: ContextBuilderInput
 ): Promise<ContextInjection[]> {
-  // Check cache first (5-minute TTL)
-  const cached = getCachedContextOutput(input);
+  const input = await promptInput(rawInput); // builders read memory through filtered views
+  const cached = getCachedContextOutput(input); // 5-minute TTL
   if (cached) {
     return cached;
   }

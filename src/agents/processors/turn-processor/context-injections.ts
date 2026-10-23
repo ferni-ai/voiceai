@@ -19,6 +19,7 @@ import type {
   TurnContext,
 } from '../types.js';
 import type { ContextInjectionsResult } from './types.js';
+import { promptText, promptViews } from '../../../memory/index.js';
 import { responseStyleHints } from './response-style-hints.js';
 
 import { diag } from '../../../services/diagnostic-logger.js';
@@ -103,7 +104,8 @@ export async function buildContextInjections(
   bundleRuntimeContext: BundleRuntimeContext | undefined,
   conversationDynamics: ConversationDynamicsResult
 ): Promise<ContextInjectionsResult> {
-  const { services, userData, persona, bundleRuntime, userText } = ctx;
+  const { services: rawServices, userData: rawUserData, persona, bundleRuntime, userText } = ctx;
+  const { services, userData, check } = await promptViews(rawServices, rawUserData); // filtered views
   const { analysis, currentTopic } = analysisResult;
 
   const injections: ContextInjection[] = [];
@@ -116,7 +118,6 @@ export async function buildContextInjections(
       priority: 100,
     });
   }
-
   // 2. BEHAVIORAL CONTEXT SYSTEM (replaces legacy context builders)
   const buildIntegratedContext = await getBehavioralContextBuilder();
 
@@ -1125,7 +1126,7 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
 
   // 14. Conversation state summary
   if (userData.conversationState) {
-    const convSummary = userData.conversationState.getSummaryForLLM();
+    const convSummary = promptText(userData.conversationState.getSummaryForLLM(), check);
     if (convSummary) {
       injections.push({
         category: 'conversation_state',
@@ -1226,7 +1227,6 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
   if (budget.missed.length > 0) {
     diag.info('⏱️ Context builders missed their budget', { builders: budget.missed });
   }
-
   return {
     injections,
     trustContextSummary,

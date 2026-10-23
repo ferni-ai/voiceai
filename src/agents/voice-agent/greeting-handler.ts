@@ -16,6 +16,7 @@
 
 import { log, type voice } from '@livekit/agents';
 import { isMusicEnabled } from '../../config/environment.js';
+import { promptServices, type PromptView } from '../../memory/index.js';
 import {
   getPersonaMemories,
   normalizePersonaId,
@@ -71,7 +72,6 @@ export interface GreetingContext {
   /** Claimed demo conversation (if user came from landing page demo) */
   claimedDemoConversation?: ClaimedDemoConversation;
 }
-
 /**
  * Data from a claimed demo session.
  * "Better than human" - We remember our first conversation.
@@ -114,7 +114,7 @@ export interface GreetingResult {
 export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<GreetingResult> {
   const {
     sessionPersona,
-    services,
+    services: rawServices,
     userData,
     sessionId,
     userId,
@@ -125,7 +125,8 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     session,
     tagGreeting,
   } = ctx;
-
+  // FORGET_EVERY_READER: the greeting reads the caller's memory through a filtered view
+  const services = await promptServices(rawServices);
   diag.session('Step 8: Generating greeting');
   const greetingStart = Date.now();
 
@@ -146,7 +147,6 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
   } catch {
     // Non-fatal - warm greeting is optional
   }
-
   // ===============================================
   // FIRST TASTE TRIAL: Use special welcome for first-time trial users
   // ===============================================
@@ -350,7 +350,7 @@ export async function generateAndSpeakGreeting(ctx: GreetingContext): Promise<Gr
     }
 
     // Track greeting usage to prevent repetition across sessions
-    trackGreetingUsage(services, greeting);
+    trackGreetingUsage(rawServices, greeting); // a writer: the real profile
   } catch (e) {
     diag.error('Greeting failed', { error: String(e) });
   }
@@ -538,7 +538,7 @@ async function loadPersonaMemories(
  */
 async function generateBundleGreeting(
   bundleRuntime: BundleRuntimeEngine,
-  services: SessionServices,
+  services: PromptView<SessionServices>, // read through the forget view
   userData: UserData,
   isReturningUser: boolean,
   sessionPersona: PersonaConfig,
@@ -599,7 +599,7 @@ async function generateBundleGreeting(
  * Generate standard greeting without bundle runtime
  */
 async function generateStandardGreeting(
-  services: SessionServices,
+  services: PromptView<SessionServices>, // read through the forget view
   userData: UserData,
   isReturningUser: boolean,
   sessionPersona: PersonaConfig,
@@ -668,7 +668,7 @@ async function generateStandardGreeting(
  * Generate greeting with full context (used by bundle runtime fallback)
  */
 async function generateGreetingWithContext(
-  services: SessionServices,
+  services: PromptView<SessionServices>, // read through the forget view
   userData: UserData,
   isReturningUser: boolean,
   sessionPersona: PersonaConfig,

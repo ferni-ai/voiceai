@@ -4,7 +4,7 @@
  * The REAL builder runs; only the LinkedIn service's I/O is mocked.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ContextBuilderInput } from '../../core/types.js';
+import type { PromptInput as ContextBuilderInput } from '../../core/types.js';
 
 const li = vi.hoisted(() => ({
   hasLinkedInConnected: vi.fn(() => false),

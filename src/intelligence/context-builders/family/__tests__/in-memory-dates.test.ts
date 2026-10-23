@@ -8,7 +8,7 @@
  * profile and the people list are mocked.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ContextBuilderInput } from '../../core/types.js';
+import type { PromptInput as ContextBuilderInput } from '../../core/types.js';
 
 interface Doc {
   data: () => Record<string, unknown>;

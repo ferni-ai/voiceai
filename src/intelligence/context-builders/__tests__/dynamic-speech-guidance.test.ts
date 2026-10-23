@@ -13,7 +13,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ContextBuilderInput } from '../index.js';
+import type { PromptInput as ContextBuilderInput } from '../core/types.js';
 import {
   clearPhraseHistory,
   dynamicSpeechGuidanceBuilder,
@@ -23,24 +23,25 @@ import {
 } from '../humanization/dynamic-speech-guidance.js';
 
 describe('dynamic-speech-guidance context builder', () => {
-  const createMockInput = (overrides: Partial<ContextBuilderInput> = {}): ContextBuilderInput => ({
-    persona: { id: 'ferni', name: 'Ferni', roleType: 'companion' } as any,
-    analysis: {
-      emotion: {
-        primary: 'neutral',
-        intensity: 0.5,
-        distressLevel: 0,
-      },
-    } as any,
-    userData: {
-      isReturningUser: false,
-      turnCount: 5,
-    } as any,
-    userText: 'Hello',
-    services: {} as any,
-    userProfile: null,
-    ...overrides,
-  });
+  const createMockInput = (overrides: Partial<ContextBuilderInput> = {}): ContextBuilderInput =>
+    ({
+      persona: { id: 'ferni', name: 'Ferni', roleType: 'companion' } as any,
+      analysis: {
+        emotion: {
+          primary: 'neutral',
+          intensity: 0.5,
+          distressLevel: 0,
+        },
+      } as any,
+      userData: {
+        isReturningUser: false,
+        turnCount: 5,
+      } as any,
+      userText: 'Hello',
+      services: {} as any,
+      userProfile: null,
+      ...overrides,
+    }) as ContextBuilderInput;
 
   // Helper to find injection by source prefix
   const findBySource = (

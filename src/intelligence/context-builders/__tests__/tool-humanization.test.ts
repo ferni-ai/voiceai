@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { toolHumanizationBuilder } from '../humanization/tool-humanization.js';
-import type { ContextBuilderInput } from '../index.js';
+import type { PromptInput as ContextBuilderInput } from '../core/types.js';
 
 // Mock the cognitive-tool-interpretation module
 vi.mock('../../../tools/intelligence/cognitive-tool-interpretation.js', () => ({
@@ -36,24 +36,25 @@ vi.mock('../../../tools/intelligence/cognitive-tool-interpretation.js', () => ({
 }));
 
 describe('tool-humanization context builder', () => {
-  const createMockInput = (overrides: Partial<ContextBuilderInput> = {}): ContextBuilderInput => ({
-    persona: { id: 'ferni', name: 'Ferni', roleType: 'companion' } as any,
-    analysis: {
-      emotion: {
-        primary: 'neutral',
-        intensity: 0.5,
-        distressLevel: 0,
-      },
-    } as any,
-    userData: {
-      isReturningUser: false,
-      turnCount: 5,
-    } as any,
-    userText: 'Hello',
-    services: {} as any,
-    userProfile: null,
-    ...overrides,
-  });
+  const createMockInput = (overrides: Partial<ContextBuilderInput> = {}): ContextBuilderInput =>
+    ({
+      persona: { id: 'ferni', name: 'Ferni', roleType: 'companion' } as any,
+      analysis: {
+        emotion: {
+          primary: 'neutral',
+          intensity: 0.5,
+          distressLevel: 0,
+        },
+      } as any,
+      userData: {
+        isReturningUser: false,
+        turnCount: 5,
+      } as any,
+      userText: 'Hello',
+      services: {} as any,
+      userProfile: null,
+      ...overrides,
+    }) as ContextBuilderInput;
 
   describe('basic functionality', () => {
     it('should return injections for tool humanization', async () => {

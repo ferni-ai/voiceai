@@ -1272,7 +1272,6 @@ export async function shutdownMemorySystem(): Promise<void> {
 
   getLogger().info('Memory system shut down');
 }
-
 export default {
   initializeMemorySystem,
   shutdownMemorySystem,
@@ -1285,6 +1284,7 @@ export default {
 };
 export { forgottenInProcess, forgottenTopicsOrNull } from './recall/forget.js';
 export { keepRemembered, profileForCaller } from './recall/forget-every-reader.js';
+export * from './recall/prompt-view.js';
 export { CALLER_PROVENANCE, contentWords, forgetTokens } from './recall/session-recall.js';
 export { isForgotten, undisputed, type RecallFact } from './recall/session-recall.js';
 export { peopleOf } from './recall/people.js';

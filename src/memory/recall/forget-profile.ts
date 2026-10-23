@@ -54,33 +54,47 @@ function allText(value: unknown, depth = 0): string {
     .join(' ');
 }
 
+/** A literal object; class instances (a state manager, a Date, a Firestore Timestamp) pass whole. */
 function isPlainObject(v: unknown): v is Record<string, unknown> {
-  if (!v || typeof v !== 'object' || Array.isArray(v) || v instanceof Date) return false;
-  return typeof (v as { toDate?: unknown }).toDate !== 'function'; // a Firestore Timestamp passes
+  if (!v || typeof v !== 'object') return false;
+  const proto: unknown = Object.getPrototypeOf(v);
+  return proto === Object.prototype || proto === null;
 }
 
-/** The value with what is about a forgotten topic left out; undefined when all of it is. */
-function scrub(value: unknown, forgotten: ForgottenCheck, depth: number): unknown {
+/**
+ * The value with what is about a forgotten topic left out; undefined when all
+ * of it is. Unchanged values come back as the same reference, so a reader
+ * that writes into them still writes into the real object.
+ */
+export function scrub(value: unknown, forgotten: ForgottenCheck, depth = 1): unknown {
   if (typeof value === 'string') return forgotten(value) ? undefined : value;
   if (depth >= MAX_DEPTH) return value;
   if (Array.isArray(value)) {
-    return value.filter((item) => !forgotten(allText(item)));
+    const kept = value.filter((item) => !forgotten(allText(item)));
+    return kept.length === value.length ? value : kept;
   }
   if (!isPlainObject(value)) return value;
-  const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(value)) {
-    const kept = scrub(v, forgotten, depth + 1);
-    if (kept !== undefined) out[k] = kept;
-  }
-  return out;
+  return scrubFields(value, forgotten, new Set(), depth + 1);
 }
 
-/** The profile, filtered by `forgotten` (see the module doc); a new object. */
-export function scrubProfile<P extends object>(profile: P, forgotten: ForgottenCheck): P {
+/** Every field of `obj` scrubbed but those in `pass`; `obj` itself when nothing changed. */
+export function scrubFields<T extends object>(
+  obj: T,
+  forgotten: ForgottenCheck,
+  pass: ReadonlySet<string>,
+  depth = 1
+): T {
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(profile)) {
-    const kept = PROFILE_PASS_THROUGH.has(k) ? v : scrub(v, forgotten, 1);
+  let changed = false;
+  for (const [k, v] of Object.entries(obj)) {
+    const kept = pass.has(k) ? v : scrub(v, forgotten, depth);
+    if (kept !== v) changed = true;
     if (kept !== undefined) out[k] = kept;
   }
-  return out as P;
+  return changed ? (out as T) : obj;
+}
+
+/** The profile, filtered by `forgotten` (see the module doc); the same object when nothing is. */
+export function scrubProfile<P extends object>(profile: P, forgotten: ForgottenCheck): P {
+  return scrubFields(profile, forgotten, PROFILE_PASS_THROUGH);
 }
