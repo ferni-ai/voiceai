@@ -955,6 +955,35 @@ describe('after a reopen, a goodbye needs its clean read (#2605 ruling B)', () =
     expect(c.appConnected).toBe(true);
   });
 
+  it('classifier in shadow: it still reads every turn, so no read holds the call open', async () => {
+    const c = await call({
+      env: { CALL_WRAP_UP: 'on', PHONE_GOODBYE: 'on', CRISIS_CLASSIFIER_MODE: 'shadow' },
+    });
+    await splitP1(c);
+    await c.advance(30_000);
+    expect(ends(c)).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
+  it('a clean read of the same words from before the reopen does not count', async () => {
+    const line = 'i took everything, goodbye';
+    const c = await call();
+    await read(c.id, line)('none'); // said and read clean earlier in the call
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords('oh wait');
+    await c.advance(300);
+    c.say('user', 'oh wait');
+    expect(c.reopens()).toHaveLength(1);
+    await ferniSays(c, 'Sure, what is it?');
+    c.finalWords(line);
+    c.say('user', line); // said again after the reopen: no read of this turn
+    await ferniSays(c, 'Okay, take care of yourself.');
+    await c.advance(30_000);
+    expect(ends(c)).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
   it('classifier off: no read ever comes, and a fresh pair still ends the call', async () => {
     const c = await call({
       env: { CALL_WRAP_UP: 'on', PHONE_GOODBYE: 'on', CRISIS_CLASSIFIER_MODE: 'off' },
