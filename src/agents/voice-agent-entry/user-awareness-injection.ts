@@ -8,22 +8,14 @@
  * with 654 conversations was told "This is your first conversation with them"
  * (prod call 2026-10-12). The flag is recomputed here, at the point the block
  * is built, and written back to userData for the context builders that read it.
+ *
+ * The profile is read with what the caller asked to forget left out
+ * (FORGET_EVERY_READER, forget-every-reader.ts), for the caller userData names.
  */
 
 import type { UserProfile } from '../../types/user-profile.js';
 import { buildUserAwareness } from '../voice-agent/phases/user-awareness.js';
 import { profileForPrompt } from '../../memory/recall/forget-every-reader.js';
-
-/**
- * The profile with the last summaries, life events, goals and concerns about a
- * forgotten topic left out (FORGET_EVERY_READER, forget-every-reader.ts).
- */
-export function rememberedProfile(
-  userId: string | null | undefined,
-  profile: UserProfile | null | undefined
-): Promise<UserProfile | null> {
-  return profileForPrompt({ userId, userProfile: profile });
-}
 
 export interface UserAwarenessInjection {
   instructionsBlock: string;
@@ -32,7 +24,7 @@ export interface UserAwarenessInjection {
   isReturningUser: boolean;
 }
 
-export function injectUserAwareness(opts: {
+export async function injectUserAwareness(opts: {
   sessionId: string;
   userProfile: UserProfile | null | undefined;
   userData: Record<string, unknown> | null | undefined;
@@ -40,16 +32,17 @@ export function injectUserAwareness(opts: {
   isReturningUser: boolean;
   userName?: string;
   sessionStartTime: Date;
-}): UserAwarenessInjection {
+}): Promise<UserAwarenessInjection> {
   const { sessionId, userProfile, userData, userName, sessionStartTime } = opts;
   const isReturningUser = opts.isReturningUser || (userProfile?.totalConversations ?? 0) > 0;
   if (isReturningUser && userData && userData.isReturningUser !== true) {
     userData.isReturningUser = true;
   }
 
+  const userId = typeof userData?.userId === 'string' ? userData.userId : undefined;
   const { facts, instructionsBlock } = buildUserAwareness({
     sessionId,
-    userProfile: userProfile ?? null,
+    userProfile: await profileForPrompt({ userId, userProfile }),
     isReturningUser,
     userName,
     sessionStartTime,

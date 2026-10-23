@@ -14,9 +14,12 @@
  * store (forget-topics-source.ts: one shared read, a last-known fallback,
  * fail closed only with no source) and those forgotten in this process.
  *
- * The match is the shared one (isForgotten), with one tightening: a name in
- * a topic ("Mark") must appear in the memory as that whole word, so
- * forgetting Mark no longer hides "marked" (isForgotten stems memory words).
+ * The match is the shared one (isForgotten), with a topic's capitalized
+ * words read in lower case (so they stem: "Divorce" catches "divorced")
+ * unless they are names the caller's memory knows (rememberFactNames, from
+ * recall's facts). A known name must appear whole, or as its plural or
+ * possessive: forgetting Mark keeps "marked". With no known names, every
+ * word stems: erring toward leaving a memory out.
  *
  * @module memory/recall/forget-every-reader
  */
@@ -25,7 +28,14 @@ import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
 import { foldedWords } from './forget-tokens.js';
 import { scrubProfile } from './forget-profile.js';
-import { readTopics, topicsNow, topicsWithin } from './forget-topics-source.js';
+import {
+  knownNames,
+  markCallStart,
+  readTopics,
+  rememberNames,
+  topicsNow,
+  topicsWithin,
+} from './forget-topics-source.js';
 import { isForgotten } from './session-recall.js';
 
 export function forgetEveryReaderEnabled(env: Env = process.env): boolean {
@@ -36,45 +46,50 @@ export function forgetEveryReaderEnabled(env: Env = process.env): boolean {
 export type ForgottenCheck = (text: string) => boolean;
 
 /**
- * The likely names in a stored topic, folded as memory words are: its
- * capitalized words but the first ("Divorce papers": the capital is the
- * sentence's), unless the topic is that one word ("Mark").
+ * A stored topic as the matcher reads it: every capitalized word in lower
+ * case unless it is a name the caller's memory knows (`names`), so "Divorce
+ * Papers" stems like "divorce papers" and "Divorce" catches "divorced",
+ * while a known "Mark" stays a name.
  */
-function namesOf(topic: string): string[] {
-  const words = topic.match(/\S+/g) ?? [];
-  return words
-    .filter((w, i) => /^\p{Lu}/u.test(w) && (i > 0 || words.length === 1))
-    .flatMap((w) => foldedWords(w).map((f) => f.word));
+function asMatched(topic: string, names: ReadonlySet<string>): { topic: string; kept: string[] } {
+  const kept: string[] = [];
+  const words = (topic.match(/\S+/g) ?? []).map((w) => {
+    if (!/^\p{Lu}/u.test(w)) return w;
+    const folded = foldedWords(w).map((f) => f.word);
+    if (folded.length > 0 && folded.every((f) => names.has(f))) {
+      kept.push(...folded);
+      return w;
+    }
+    return w.toLowerCase();
+  });
+  return { topic: words.join(' '), kept };
 }
 
 /**
- * A topic of several words whose first is capitalized, with that word in
- * lower case: the shared matcher reads a capital as a name and won't stem it,
- * so "Divorce papers" missed "divorcing ... papers".
+ * isForgotten, with a known name required as a whole word of the text, or
+ * its plural or possessive ("the Biscuits", "Mark's"), never another
+ * inflection: forgetting Mark keeps "marked".
  */
-function sentenceCase(topic: string): string | undefined {
-  const words = topic.match(/\S+/g) ?? [];
-  if (words.length < 2 || !/^\p{Lu}/u.test(words[0]!)) return undefined;
-  return [words[0]!.toLowerCase(), ...words.slice(1)].join(' ');
-}
-
-/** isForgotten, with every likely name in the topic required as a whole word of the text. */
-export function aboutForgotten(text: string, topics: readonly string[]): boolean {
+export function aboutForgotten(
+  text: string,
+  topics: readonly string[],
+  names: ReadonlySet<string> = new Set()
+): boolean {
   let whole: Set<string> | undefined;
   return topics.some((t) => {
-    const lower = sentenceCase(t);
-    if (!isForgotten(text, [t]) && !(lower && isForgotten(text, [lower]))) return false;
-    const names = namesOf(t);
-    if (names.length === 0) return true;
+    const { topic, kept } = asMatched(t, names);
+    if (!isForgotten(text, [topic])) return false;
+    if (kept.length === 0) return true;
     whole ??= new Set(foldedWords(text).map((f) => f.word));
-    return names.every((n) => whole!.has(n));
+    return kept.every((n) => whole!.has(n) || whole!.has(`${n}s`) || whole!.has(`${n}es`));
   });
 }
 
 function checkFor(userId: string, stored: string[] | null): ForgottenCheck {
   if (stored === null) return () => true; // no source at all: fail closed
   const topics = [...new Set([...stored, ...forgottenInProcess(userId)])];
-  return (text) => aboutForgotten(text, topics);
+  const names = knownNames(userId);
+  return (text) => aboutForgotten(text, topics, names);
 }
 
 /**
@@ -107,7 +122,28 @@ export function forgottenCheckNow(
 
 /** Start the shared read early (agent setup, beside the prompt loads); never throws. */
 export function prefetchForgotten(userId: string | null | undefined, env: Env = process.env): void {
-  if (forgetEveryReaderEnabled(env) && isMemberIdentity(userId)) void readTopics(userId);
+  if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return;
+  markCallStart(userId);
+  void readTopics(userId);
+}
+
+/**
+ * The names in the caller's facts (recall-firestore-store.ts), for the
+ * matcher: the capitalized words of each fact's entity. Flag off: nothing.
+ */
+export function rememberFactNames(
+  userId: string,
+  facts: ReadonlyArray<Record<string, unknown>>,
+  env: Env = process.env
+): void {
+  if (!forgetEveryReaderEnabled(env)) return;
+  const words = facts.flatMap((f) =>
+    [f.entityName, f.entity].flatMap((v) => (typeof v === 'string' ? (v.match(/\S+/g) ?? []) : []))
+  );
+  rememberNames(
+    userId,
+    words.filter((w) => /^\p{Lu}/u.test(w)).flatMap((w) => foldedWords(w).map((f) => f.word))
+  );
 }
 
 /**
