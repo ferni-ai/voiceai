@@ -12,18 +12,6 @@
 
 import type { UserProfile } from '../../types/user-profile.js';
 import { buildUserAwareness } from '../voice-agent/phases/user-awareness.js';
-import { profileForPrompt } from '../../memory/recall/forget-every-reader.js';
-
-/**
- * The profile with the last summaries, life events, goals and concerns about a
- * forgotten topic left out (FORGET_EVERY_READER, forget-every-reader.ts).
- */
-export function rememberedProfile(
-  userId: string | null | undefined,
-  profile: UserProfile | null | undefined
-): Promise<UserProfile | null> {
-  return profileForPrompt({ userId, userProfile: profile });
-}
 
 export interface UserAwarenessInjection {
   instructionsBlock: string;

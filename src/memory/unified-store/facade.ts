@@ -13,7 +13,6 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { v4 as uuidv4 } from 'uuid';
 import { embed } from '../embeddings.js';
-import { keepRemembered } from '../recall/forget-every-reader.js';
 import { cacheRecentWrite } from '../retrieval/index.js';
 import type {
   UnifiedMemoryStore,
@@ -358,9 +357,10 @@ export class UnifiedMemoryStoreFacade implements UnifiedMemoryStore {
       }
     }
 
-    const kept = await keepRemembered(query.userId, allResults); // FORGET_EVERY_READER
-    let boostedResults = this.applyContextualBoosting(kept, query);
+    // Apply contextual boosting
+    let boostedResults = this.applyContextualBoosting(allResults, query);
 
+    // Sort by final score
     boostedResults.sort((a, b) => b.score - a.score);
 
     // Apply limit

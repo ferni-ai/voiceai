@@ -8,7 +8,6 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { keepRemembered } from '../recall/forget-every-reader.js';
 import { resolvePerson } from './entity-resolver.js';
 import { createMention, recordMention, hasEntityStore } from './storage.js';
 import type {
@@ -1005,7 +1004,8 @@ export async function checkProactiveSurfacing(
       { userId, turnNumber: options.turnNumber, opportunitiesFound: opportunities.length },
       'Proactive surfacing check complete'
     );
-    return await keepRemembered(userId, opportunities); // FORGET_EVERY_READER
+
+    return opportunities;
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Proactive surfacing check failed');
     return [];

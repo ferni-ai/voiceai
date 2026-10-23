@@ -33,7 +33,6 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { searchEntitiesBM25, type BM25SearchResult } from './bm25-search.js';
 import { searchMemories, type SemanticSearchResult } from './semantic-memory-search.js';
-import { forgottenCheck, remembered } from '../recall/forget-every-reader.js';
 import {
   fuseSearchResults,
   reciprocalRankFusion,
@@ -344,7 +343,6 @@ export async function hybridSearch(
   // another they took ~280 ms against a 245 ms limit, so retrieval timed out
   // on 103 of 103 dev turns. Merge in a fixed order for stable fusion.
   const legs = { bm25: bm25ListsRun, vector: vectorListsRun, entity: entityListsRun };
-  const forgottenRun = forgottenCheck(userId); // FORGET_EVERY_READER: the keyword legs too
   const late = new Set(Object.keys(legs));
   for (const [name, leg] of Object.entries(legs)) {
     const finished = (): boolean => late.delete(name);
@@ -355,9 +353,8 @@ export async function hybridSearch(
   else if (!(await settlesWithin(allLegs, legDeadlineMs))) {
     log.info({ userId, legDeadlineMs, dropped: [...late] }, 'HYBRID_LEG_DROPPED');
   }
-  const forgotten = await forgottenRun;
   for (const lists of [bm25Lists, vectorLists, entityLists]) {
-    for (const [source, list] of lists) rankedLists.set(source, remembered(list, forgotten));
+    for (const [source, list] of lists) rankedLists.set(source, list);
   }
 
   // 4. RECIPROCAL RANK FUSION

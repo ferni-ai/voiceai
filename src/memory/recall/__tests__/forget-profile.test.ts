@@ -16,7 +16,6 @@ vi.mock('../forget.js', async (original) => ({
 import { createUserProfile } from '../../../types/user-profile.js';
 import { resetForgetTopicsSource } from '../forget-topics-source.js';
 import { PROFILE_PASS_THROUGH, profileForCaller } from '../forget-every-reader.js';
-import { recallFromMemoryDef } from '../../../tools/domains/memory/tools.js';
 
 let seq = 0;
 let user = '';
@@ -103,31 +102,6 @@ describe('profileForCaller: an allowlist', () => {
     vi.stubEnv('FORGET_EVERY_READER', 'off');
     const input = profileFullOfBiscuit();
     expect(await profileForCaller(user, input)).toBe(input);
-  });
-});
-
-describe('recallFromMemory (legacy tool)', () => {
-  type Execute = (args: { topic: string }, opts: unknown) => Promise<string>;
-  const recall = (userData: Record<string, unknown>) =>
-    (
-      recallFromMemoryDef.create({ agentId: 'ferni' } as never) as unknown as { execute: Execute }
-    ).execute({ topic: 'anything' }, { ctx: { userData } });
-
-  it('reads the filtered profile: the summary and topics about it are gone', async () => {
-    const profile = {
-      totalConversations: 4,
-      relationshipStage: 'old_friend',
-      goals: [],
-      preferredTopics: ['Biscuit walks', 'gardening'],
-      lastConversationSummary: 'Biscuit chewed the couch',
-    };
-    const reply = await recall({ userId: user, services: { userProfile: profile } });
-    expect(reply).toBe("I recall you've been interested in: gardening");
-  });
-
-  it("filters this call's key moments too", async () => {
-    const reply = await recall({ userId: user, keyMoments: ['Biscuit chewed it', 'went hiking'] });
-    expect(reply).toBe('From our conversation today: went hiking');
   });
 });
 
