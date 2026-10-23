@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 /**
  * Lead verified (REPORT-ONLY): was the exact code a PR merges independently verified?
- * VERIFIED by (i) a `lead-verify` status = success from an allowed author; (ii) an allowed
- * author's comment or review `RESULT_verifier=PASS sha=<40 hex>` naming the head exactly
- * (post-lead-verify.sh posts both); or (iii) carry-forward: the head merges a verified
- * SHA with a commit on main, and `git merge-tree --write-tree` of the two is clean with
- * exactly the head's tree (chains up to MAX_DEPTH). A FAIL on the same or a later SHA,
- * posted after the PASS, overrides it. Prose verdicts are reported as unbound and never
- * verify; prose FAILs still block. CI runs this from the base branch, never the PR.
+ * VERIFIED by (i) a `lead-verify` status = success from ferni-verifier[bot] (the primary,
+ * tamper-proof evidence); (ii) an allowed author's never-edited PR comment with a line
+ * starting `RESULT_verifier=PASS sha=<40 hex>` equal to the head, outside quotes and code
+ * fences (post-lead-verify.sh posts both); or (iii) carry-forward: the head merges a
+ * verified SHA with a commit on main, and `git merge-tree --write-tree` of the two is
+ * clean with exactly the head's tree (chains up to MAX_DEPTH).
+ * Fails closed: any FAIL (status, comment, review or inline comment; any author, any SHA,
+ * edited or not, quoted or not) blocks every PASS posted at or before it. Prose PASSes,
+ * reviews and auto-merge text never verify. CI runs this from main, never the PR's copy.
  *   node --experimental-strip-types scripts/ci/lead-verified.ts <pr>...
- * Env: PR_NUMBER + PR_HEAD or QUEUE_REF; REPO, LEAD_VERIFIED_AUTHORS, MAIN_REF,
+ * Env: PR_NUMBER (+ PR_HEAD) or QUEUE_REF; REPO, LEAD_VERIFIED_AUTHORS, MAIN_REF,
  * LEAD_VERIFIED_ENFORCE=1. Docs: docs/ci/ci-inventory.md.
  */
 import { execFileSync, spawnSync } from 'child_process';
@@ -17,18 +19,26 @@ import { appendFileSync } from 'fs';
 import { pathToFileURL } from 'url';
 
 export const STATUS_CONTEXT = 'lead-verify';
-export const DEFAULT_AUTHORS = ['sethdford', 'ferni-agent[bot]'];
+/** The dedicated verifier app; implementers' identities never count. */
+export const DEFAULT_AUTHORS = ['ferni-verifier[bot]'];
 export const MAX_DEPTH = 5;
 
-const BOUND = /\bRESULT_verifier=(PASS|FAIL)\s+sha=([0-9a-fA-F]{40})\b/g;
+const BOUND_PASS = /^ {0,3}RESULT_verifier=PASS\s+sha=([0-9a-fA-F]{40})\b/;
 const PROSE_PASS =
   /RESULT_verifier=PASS\b|\b(?:Verifier|Verdict):[\s*]*PASS\b|\b[Ii]ndependent(?:ly)?\s+(?:re-?)?verif\w*\b[^\n]*\bPASS\b/;
-const PROSE_FAIL =
-  /RESULT_verifier=FAIL\b|\b(?:Verifier|Verdict):[\s*]*FAIL(?:ED)?\b|\bFAILED\s+verif/;
+const FAIL =
+  /RESULT_verifier\s*[=:]\s*[*_`]*FAIL|\b(?:verdict|verifier)\s*[:=][\s*_`]*FAIL(?:ED)?\b|\bverification\s+FAILED\b|\bFAILED\s+(?:independent\s+)?verif|\bFAIL(?:ED)?\b[\s:*]+[0-9a-f]{9,40}\b/i;
 const SHA_TOKEN = /\b[0-9a-fA-F]{9,40}\b/g;
 
 export type Commit = { sha: string; parents: string[] };
-export type Comment = { author: string; createdAt: string; body: string };
+/** kind: 'issue' (PR conversation; the only kind that can PASS), 'review' or 'inline'. */
+export type Comment = {
+  author: string;
+  createdAt: string;
+  updatedAt?: string;
+  body: string;
+  kind?: 'issue' | 'review' | 'inline';
+};
 export type Status = {
   sha: string;
   context: string;
@@ -51,24 +61,40 @@ export type Git = {
   diffPaths(treeA: string, treeB: string): string[];
 };
 export type Result = { verdict: 'VERIFIED' | 'NOT_VERIFIED'; reason: string };
-/** sha: 40 hex (status, bound marker) or a 9+ hex prefix (prose FAIL). */
-type Event = { sha: string; kind: 'pass' | 'fail'; at: number; by: string; what?: string };
+/** A PASS names one full SHA; a FAIL blocks whatever it names. */
+type Event = { kind: 'pass' | 'fail'; sha: string; at: number; by: string; what: string };
 type Check = { ok: boolean; reason: string };
 
 const short = (sha: string) => sha.slice(0, 9);
 const no = (reason: string): Check => ({ ok: false, reason });
 
-type Bound = { kind: 'pass' | 'fail'; sha: string };
-type Markers = { bound: Bound[]; pass: boolean; fail: boolean; shas: string[] };
+/**
+ * Lines outside fenced code. Quotes (`> ...`), indented code and mid-sentence mentions
+ * never match anyway: BOUND_PASS must start the line with at most 3 spaces.
+ */
+export function visibleLines(body: string): string[] {
+  const out: string[] = [];
+  let fence = '';
+  for (const line of body.split(/\r?\n/)) {
+    const f = /^\s*(`{3,}|~{3,})/.exec(line)?.[1] ?? '';
+    if (fence) {
+      if (f[0] === fence[0] && f.length >= fence.length) fence = '';
+    } else if (f) fence = f;
+    else out.push(line);
+  }
+  return out;
+}
+
+type Markers = { passShas: string[]; prosePass: boolean; fail: boolean; shas: string[] };
 export function markers(body: string): Markers {
-  const bound = [...body.matchAll(BOUND)].map((m) => ({
-    kind: m[1] === 'PASS' ? ('pass' as const) : ('fail' as const),
-    sha: m[2].toLowerCase(),
-  }));
+  const passShas = visibleLines(body).flatMap((l) => {
+    const m = BOUND_PASS.exec(l);
+    return m ? [m[1].toLowerCase()] : [];
+  });
   return {
-    bound,
-    pass: PROSE_PASS.test(body),
-    fail: PROSE_FAIL.test(body),
+    passShas,
+    prosePass: PROSE_PASS.test(body),
+    fail: FAIL.test(body),
     shas: [...new Set((body.match(SHA_TOKEN) ?? []).map((s) => s.toLowerCase()))],
   };
 }
@@ -83,37 +109,42 @@ function evidence(pr: PullRequest, allowed: Set<string>, notes: string[]): Event
   const events: Event[] = [];
   for (const s of pr.statuses) {
     if (s.context !== STATUS_CONTEXT) continue;
-    const kind = s.state === 'success' ? 'pass' : /^(failure|error)$/.test(s.state) ? 'fail' : null;
-    if (!kind) continue;
-    if (!allowed.has(s.creator.toLowerCase())) {
-      notes.push(`ignored ${STATUS_CONTEXT} status by ${s.creator} (author not allowed)`);
-      continue;
-    }
-    const [sha, at] = [s.sha.toLowerCase(), Date.parse(s.createdAt)];
-    events.push({ sha, kind, at, by: s.creator, what: `${STATUS_CONTEXT} status` });
+    const [sha, at, by] = [s.sha.toLowerCase(), Date.parse(s.createdAt), s.creator];
+    // Blocking needs no trust: a failure status from anyone counts.
+    if (/^(failure|error)$/.test(s.state)) events.push({ kind: 'fail', sha, at, by, what: '' });
+    if (s.state !== 'success') continue;
+    if (allowed.has(by.toLowerCase()))
+      events.push({ kind: 'pass', sha, at, by, what: `${STATUS_CONTEXT} status` });
+    else notes.push(`ignored ${STATUS_CONTEXT} status by ${by} (author not allowed)`);
   }
   for (const c of pr.comments) {
     const m = markers(c.body);
-    if (!m.bound.length && !m.pass && !m.fail) continue;
-    if (!allowed.has(c.author.toLowerCase())) {
-      notes.push(`ignored verdict comment by ${c.author} (author not allowed)`);
+    const edited = c.updatedAt !== undefined && c.updatedAt !== c.createdAt;
+    // A FAIL counts from any author, at its latest time (an unreadable time blocks too).
+    const at = Math.max(Date.parse(c.createdAt), Date.parse(c.updatedAt ?? c.createdAt));
+    if (m.fail) {
+      events.push({ kind: 'fail', sha: m.shas[0] ?? 'any', at, by: c.author, what: '' });
       continue;
     }
-    const at = Date.parse(c.createdAt);
-    for (const b of m.bound) events.push({ ...b, at, by: c.author });
-    if (m.bound.length) continue;
-    // Prose names a SHA loosely: a FAIL still counts (it can only block), a PASS never does.
-    if (m.fail) for (const sha of m.shas) events.push({ sha, kind: 'fail', at, by: c.author });
-    else if (m.shas.length)
+    const who = `${c.author}${edited ? ' (edited)' : ''}`;
+    if (m.passShas.length === 0) {
+      if (m.prosePass) notes.push(`unbound PASS by ${who} (legacy, not counted)`);
+      continue;
+    }
+    if (edited || (c.kind ?? 'issue') !== 'issue' || !allowed.has(c.author.toLowerCase())) {
       notes.push(
-        `unbound PASS by ${c.author} on ${m.shas.map(short).join('/')} (legacy, not counted)`
+        `PASS ${c.kind === 'review' ? 'review' : 'comment'} by ${who} not counted (edited, review or not allowed)`
       );
+      continue;
+    }
+    for (const sha of m.passShas)
+      events.push({ kind: 'pass', sha, at, by: c.author, what: 'PASS comment' });
   }
   return events;
 }
 
-/** Evaluate a PR's head. `git` is needed only for carry-forward (iii). */
 type Opts = { authors?: string[]; maxDepth?: number };
+/** Evaluate a PR's head. `git` is needed only for carry-forward (iii). */
 export function evaluate(pr: PullRequest, git: Git | null, opts: Opts = {}): Result {
   const head = pr.headSha.toLowerCase();
   const allowed = new Set((opts.authors ?? DEFAULT_AUTHORS).map((a) => a.toLowerCase()));
@@ -122,40 +153,20 @@ export function evaluate(pr: PullRequest, git: Git | null, opts: Opts = {}): Res
   const parentsOf = new Map(
     pr.commits.map((c) => [c.sha.toLowerCase(), c.parents.map((p) => p.toLowerCase())])
   );
+  const newest = (on: (e: Event) => boolean) => events.filter(on).sort((a, b) => b.at - a.at)[0];
+  // The FAIL that blocks the most: an unreadable time first, else the newest.
+  const fails = events.filter((e) => e.kind === 'fail');
+  const fail = fails.find((e) => Number.isNaN(e.at)) ?? newest((e) => e.kind === 'fail');
 
-  const ancestors = (sha: string): Set<string> => {
-    const seen = new Set<string>();
-    for (const todo = [sha]; todo.length;) {
-      const s = todo.pop() as string;
-      if (seen.has(s)) continue;
-      seen.add(s);
-      todo.push(...(parentsOf.get(s) ?? []));
-    }
-    return seen;
-  };
-  const headAncestors = ancestors(head);
-  // Commits from `sha` up to the head: a FAIL on one is on "the same or a later SHA".
-  const laterOrSame = (sha: string) =>
-    [...headAncestors].filter((x) => x === sha || ancestors(x).has(sha));
-  // Only a FAIL may name a SHA by prefix; every PASS event carries the full SHA.
-  const names = (e: Event, sha: string) =>
-    e.kind === 'pass' ? e.sha === sha : sha.startsWith(e.sha);
-  const newest = (kind: Event['kind'], on: (e: Event) => boolean) =>
-    events.filter((e) => e.kind === kind && on(e)).sort((a, b) => b.at - a.at)[0];
-
-  /** Rules (i) and (ii), with the FAIL override. */
+  /** Rules (i) and (ii): a PASS on exactly this SHA, with no FAIL at or after it. */
   const direct = (sha: string): Check => {
-    const pass = newest('pass', (e) => names(e, sha));
-    if (!pass) return no(`no ${STATUS_CONTEXT} status or verifier PASS names ${short(sha)}`);
-    const scope = laterOrSame(sha);
-    const fail = newest('fail', (e) => scope.some((x) => names(e, x)));
+    const pass = newest((e) => e.kind === 'pass' && e.sha === sha);
+    if (!pass) return no(`no ${STATUS_CONTEXT} status or bound PASS names ${short(sha)}`);
     // A same-second or unreadable (NaN) FAIL time counts as later: doubt goes to FAIL.
     if (fail && !(fail.at < pass.at)) {
-      return no(
-        `FAIL by ${fail.by} on ${short(fail.sha)} was posted after the PASS on ${short(sha)}`
-      );
+      return no(`FAIL by ${fail.by} (${short(fail.sha)}) at or after the PASS on ${short(sha)}`);
     }
-    return { ok: true, reason: `${pass.what ?? 'PASS comment'} by ${pass.by} on ${short(sha)}` };
+    return { ok: true, reason: `${pass.what} by ${pass.by} on ${short(sha)}` };
   };
 
   /** Rule (iii): a pure merge of a verified commit and a commit on main. */
@@ -235,17 +246,20 @@ export function gitOps(cwd: string, mainRef = 'origin/main'): Git {
   };
 }
 
-/** GitHub REST payloads for one PR; statuses is keyed by SHA (the head and its parents). */
-export type RawPull = Record<'pull' | 'commits' | 'comments' | 'reviews' | 'statuses', any>;
+/** GitHub REST payloads for one PR; statuses is keyed by SHA (every PR commit). */
+export type RawPull = Record<
+  'pull' | 'commits' | 'comments' | 'reviews' | 'inline' | 'statuses',
+  any
+>;
 
 /**
- * Map REST payloads to evidence. Only comments, reviews and statuses count. The
- * auto-merge (arm) text is ignored: whoever arms writes it, so it proves nothing.
+ * Map REST payloads to evidence: PR comments, reviews, inline review comments and
+ * statuses. The auto-merge (arm) text is ignored: whoever arms writes it.
  */
 export function toPullRequest(number: number, raw: RawPull): PullRequest {
-  const comment = (login: unknown, at: unknown, body: unknown): Comment => ({
-    ...{ author: String(login ?? ''), createdAt: String(at ?? '') },
-    body: String(body ?? ''),
+  const comment = (kind: Comment['kind'], c: any, at: unknown): Comment => ({
+    ...{ kind, author: String(c.user?.login ?? ''), createdAt: String(at ?? '') },
+    ...{ updatedAt: c.updated_at ?? undefined, body: String(c.body ?? '') },
   });
   return {
     number,
@@ -255,8 +269,9 @@ export function toPullRequest(number: number, raw: RawPull): PullRequest {
       parents: c.parents.map((p: any) => p.sha),
     })),
     comments: [
-      ...raw.comments.map((c: any) => comment(c.user?.login, c.created_at, c.body)),
-      ...raw.reviews.map((r: any) => comment(r.user?.login, r.submitted_at, r.body)),
+      ...raw.comments.map((c: any) => comment('issue', c, c.created_at)),
+      ...raw.reviews.map((r: any) => comment('review', r, r.submitted_at)),
+      ...(raw.inline ?? []).map((c: any) => comment('inline', c, c.created_at)),
     ],
     statuses: Object.entries(raw.statuses as Record<string, any[]>).flatMap(([sha, list]) =>
       list.map((s) => ({
@@ -271,23 +286,24 @@ const gh = (args: string[]): any =>
   JSON.parse(execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
 const pages = (path: string): any[] => gh(['api', '--paginate', '--slurp', path]).flat();
 
-/** Escapes text for one markdown table cell: backslashes first, then pipes. */
+/** Escape a reason for a markdown table cell: backslashes first, then pipes. */
 export function tableCell(text: string): string {
   return text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
 }
 
 function loadPull(repo: string, n: number): PullRequest {
-  const api = `repos/${repo}`;
-  const pull = gh(['api', `${api}/pulls/${n}`]);
-  const commits = pages(`${api}/pulls/${n}/commits?per_page=100`);
-  const parents = commits.find((c) => c.sha === pull.head.sha)?.parents ?? [];
+  const api = `repos/${repo}/pulls/${n}`;
+  const pull = gh(['api', api]);
+  const commits = pages(`${api}/commits?per_page=100`);
+  // Every PR commit: a carry-forward chain can reach back to any of them.
   const statuses: Record<string, any[]> = {};
-  for (const sha of [pull.head.sha, ...parents.map((p: any) => p.sha)]) {
-    statuses[sha] = pages(`${api}/commits/${sha}/statuses?per_page=100`);
+  for (const sha of new Set([pull.head.sha, ...commits.map((c) => c.sha)])) {
+    statuses[sha] = pages(`repos/${repo}/commits/${sha}/statuses?per_page=100`);
   }
-  const comments = pages(`${api}/issues/${n}/comments?per_page=100`);
-  const reviews = pages(`${api}/pulls/${n}/reviews?per_page=100`);
-  return toPullRequest(n, { pull, commits, comments, reviews, statuses });
+  const comments = pages(`repos/${repo}/issues/${n}/comments?per_page=100`);
+  const reviews = pages(`${api}/reviews?per_page=100`);
+  const inline = pages(`${api}/comments?per_page=100`);
+  return toPullRequest(n, { pull, commits, comments, reviews, inline, statuses });
 }
 
 function main(): void {
@@ -300,7 +316,7 @@ function main(): void {
 
   // The PR number and the head SHA under test arrive as data; no PR code runs.
   const prs: { n: number; sha?: string }[] = process.argv.slice(2).map((a) => ({ n: Number(a) }));
-  if (env.PR_NUMBER) prs.push({ n: Number(env.PR_NUMBER), sha: env.PR_HEAD });
+  if (env.PR_NUMBER) prs.push({ n: Number(env.PR_NUMBER), sha: env.PR_HEAD || undefined });
   const queued = env.QUEUE_REF ? parseQueueRef(env.QUEUE_REF) : null;
   if (queued) prs.push({ n: queued.pr, sha: queued.sha });
   else if (env.QUEUE_REF) say('warning', `no PR number in merge-group ref ${env.QUEUE_REF}`);
