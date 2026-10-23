@@ -1,3 +1,4 @@
+import Synchronization
 import XCTest
 @testable import FerniVoice
 
@@ -35,5 +36,21 @@ final class AudioLevelTests: XCTestCase {
         sine(amplitude: 0.5).withUnsafeBufferPointer { meter.feed($0) }
         meter.reset()
         XCTAssertEqual(meter.level, 0)
+    }
+
+    /// The first audible buffer after arming runs the action once; silence
+    /// and later buffers don't (tap to first word on the device).
+    func testTheFirstSoundIsReportedOnce() {
+        let meter = AudioLevelMeter()
+        let heard = Mutex(0)
+        meter.onFirstSound { heard.withLock { $0 += 1 } }
+        Array(repeating: Float(0), count: 480).withUnsafeBufferPointer { meter.feed($0) }
+        XCTAssertEqual(heard.withLock { $0 }, 0, "silence isn't a sound")
+        sine(amplitude: 0.5).withUnsafeBufferPointer { meter.feed($0) }
+        sine(amplitude: 0.5).withUnsafeBufferPointer { meter.feed($0) }
+        XCTAssertEqual(heard.withLock { $0 }, 1, "once")
+        meter.onFirstSound { heard.withLock { $0 += 10 } }
+        sine(amplitude: 0.5).withUnsafeBufferPointer { meter.feed($0) }
+        XCTAssertEqual(heard.withLock { $0 }, 11, "armed again, for the next call")
     }
 }
