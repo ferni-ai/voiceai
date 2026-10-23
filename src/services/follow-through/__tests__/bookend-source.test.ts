@@ -81,12 +81,13 @@ describe('bookendSourceItems', () => {
     expect(itemsFor(facts)).toEqual([]);
   });
 
-  it('leaves out a deadline, a day to confirm, a closed fact, and anything already past', () => {
+  it('leaves out a deadline, a day to confirm, a closed or yearly fact, and anything past', () => {
     const [timed] = factsFrom(mention({}));
     const facts: BookendDateFact[] = [
       { ...timed, id: 'deadline', kind: 'deadline' },
       { ...timed, id: 'unsure', needsConfirmation: true },
       { ...timed, id: 'closed', validTo: TUE_10_ET.toISOString() },
+      { ...timed, id: 'yearly', recurrence: 'yearly' },
     ];
     expect(itemsFor(facts)).toEqual([]);
     expect(itemsFor([timed], new Date('2026-10-20T19:00:00.000Z'))).toEqual([]);
