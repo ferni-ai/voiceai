@@ -24,7 +24,7 @@ import { flagOn } from './env-flag.js';
 import { isChiefOfStaffTool } from './alex-chief-of-staff-flag.js';
 import { COACH_LOCAL_TOOLS, isCoachLocalEnabled } from './coach-local-flag.js';
 import { llmContextCacheEnabled } from './llm-context-cache-flag.js';
-import { isPrivacyTool } from './privacy-tools.js';
+import { isPrivacyTool, PRIVACY_TOOLS } from './privacy-tools.js';
 import {
   isLeanAlwaysOnTool,
   LEAN_ALWAYS_ON_TOOLS,
@@ -344,6 +344,7 @@ export const STATIC_CORE_TOOLS: readonly string[] = [
   'recallFromMemory',
   'rememberImportantFact',
   'recallPreviousConversation',
+  ...PRIVACY_TOOLS, // forget and correct a memory (privacy-tools.ts)
   'playMusic',
   'musicControl',
   'quickTimer',

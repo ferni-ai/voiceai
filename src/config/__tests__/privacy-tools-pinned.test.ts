@@ -51,4 +51,20 @@ describe('privacy tools survive every tool cap', () => {
     expect(capped.length).toBeLessThan(Object.keys(all).length);
     for (const name of PRIVACY) expect(capped).toContain(name);
   }, 60_000);
+
+  it('are in the TOOL_CORE_STATIC set, so a static-core call keeps them', async () => {
+    vi.resetModules();
+    const { staticCoreTools } = await import('../../agents/shared/static-core-tools.js');
+    const { isStaticCoreTool } = await import('../tool-config.js');
+    const have = crowdedTools();
+    const core = Object.keys(
+      await staticCoreTools(have, { userId: 'u1' } as never, async () => ({}))
+    );
+
+    expect(core).not.toContain('fillerTool0');
+    for (const name of PRIVACY) {
+      expect(isStaticCoreTool(name)).toBe(true);
+      expect(core).toContain(name);
+    }
+  });
 });
