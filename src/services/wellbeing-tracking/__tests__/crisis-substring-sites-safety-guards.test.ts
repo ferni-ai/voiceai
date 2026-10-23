@@ -4,8 +4,10 @@
  * through phraseHit (#2645): a hit is crisis (988, immediate referral), as
  * before, and STT spellings and suffixed forms now count too. A crisis
  * indicator found only inside a listed everyday word ('soft': "send it all",
- * "skill myself") is urgent: it keeps the 988 offer, never drops to check_in.
- * Concerning indicators count a soft match as a match.
+ * "skill myself") is still crisis: with the flag on, the guards level is never
+ * lower than main's for any input, because a consumer such as the anger tool
+ * returns the crisis response only for 'crisis'. Concerning indicators count a
+ * soft match as a match too.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -53,11 +55,11 @@ describe('life-coaching assessSafety (crisis = immediate referral + 988)', () =>
     flag('off');
     expect(assessSafety(line).level).toBe('crisis');
   });
-  it.each(SOFT)('on: %j is urgent and keeps the 988 offer', (line) => {
+  it.each(SOFT)('on: %j is still crisis, with the 988 resources', (line) => {
     flag('on');
     const a = assessSafety(line);
-    expect(a.level).toBe('urgent');
-    expect(a.recommendedAction).toBe('resources');
+    expect(a.level).toBe('crisis');
+    expect(a.recommendedAction).toBe('immediate_referral');
     expect(a.resources).toContainEqual(CRISIS_RESOURCES.general);
   });
   it('on: a hit anywhere in the line still wins: crisis', () => {
@@ -68,9 +70,9 @@ describe('life-coaching assessSafety (crisis = immediate referral + 988)', () =>
     flag('off');
     expect(assessSafety(everyday).level).toBe('crisis');
   });
-  it.each(CASES)('on: %j is not crisis; %j still is', (everyday, real) => {
+  it.each(CASES)('on: %j stays crisis (soft never lowers the tier); %j too', (everyday, real) => {
     flag('on');
-    expect(assessSafety(everyday).level).not.toBe('crisis');
+    expect(assessSafety(everyday).level).toBe('crisis');
     expect(assessSafety(real).level).toBe('crisis');
   });
   it('on: the STT spelling "i cant go on" becomes crisis', () => {
@@ -167,7 +169,7 @@ describe('recall: crisis indicators never read less risk than the substring chec
     flag('on');
     expect(assessSafety(line).level).toBe('crisis');
   });
-  it('corpus: crisis off is crisis or (soft) urgent on; nothing else reads lower', () => {
+  it('corpus: the guards level on is never below off (main) for any risk line', () => {
     const rank = { safe: 0, concerning: 1, urgent: 2, crisis: 3 } as const;
     const drops: string[] = [];
     for (const line of riskCorpus()) {
@@ -175,8 +177,7 @@ describe('recall: crisis indicators never read less risk than the substring chec
       const off = assessSafety(line).level;
       flag('on');
       const on = assessSafety(line).level;
-      const floor = off === 'crisis' ? 'urgent' : off;
-      if (rank[on] < rank[floor]) drops.push(`${line}: ${off} -> ${on}`);
+      if (rank[on] < rank[off]) drops.push(`${line}: ${off} -> ${on}`);
     }
     expect(drops).toEqual([]);
   });
