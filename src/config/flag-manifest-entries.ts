@@ -64,6 +64,9 @@ export const FLAGS_ACTION_TO_BYPASS = {
   BACKCHANNEL_AUDIO_CLOCK: { default: 'off', owner: 'voice', kind: 'experiment' },
   BACKCHANNEL_CLIPS: { default: 'on', owner: 'voice', kind: 'config' },
   BACKCHANNEL_CONTEXT: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: live backchannels wait 260 ms after a sentence end / 390 ms otherwise and vary
+  // their takes (backchannel-timing.ts)
+  BACKCHANNEL_TIMING: { default: 'off', owner: 'voice', kind: 'experiment' },
   BARGE_IN_ACK_WORDS: { default: 'off', owner: 'voice', kind: 'experiment' },
   BARGE_IN_FASTPATH: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   BARGE_IN_GUARD: { default: 'off', owner: 'voice', kind: 'experiment' },

@@ -35,6 +35,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { isSessionClosing } from './session-closing-tracker.js';
+import { farewellRisk, stripWarmSymbols } from './farewell-risk.js';
 
 const log = createLogger({ module: 'call-farewell' });
 
@@ -45,6 +46,8 @@ const log = createLogger({ module: 'call-farewell' });
 export const IDLE_AFTER_GOODBYE_MS = 4_000;
 
 const farewells = new Set<string>();
+/** Calls reopened after both goodbyes (call-wrap-up.ts): Ferni's next goodbye ends them again. */
+const reopened = new Set<string>();
 const sessionIds = new WeakMap<object, string>();
 
 export function markFarewell(
@@ -62,6 +65,18 @@ export function farewellSaid(sessionId: string): boolean {
 
 export function clearFarewell(sessionId: string): void {
   farewells.delete(sessionId);
+}
+
+/**
+ * The call reopened after both goodbyes (wrap-up-window.ts). The farewell is
+ * cleared, but the caller's goodbye stands: if Ferni's next reply is a goodbye
+ * the watcher arms again and the call ends on its own (the line that reopened
+ * it, "you're the best", may be answered with one); if Ferni's next reply
+ * carries on, a fresh pair of goodbyes is needed.
+ */
+export function reopenFarewell(sessionId: string): void {
+  farewells.delete(sessionId);
+  reopened.add(sessionId);
 }
 
 /** With CALL_WRAP_UP on, both sides have said goodbye on this call. */
@@ -207,7 +222,14 @@ function closingClause(words: readonly string[], closers: ReadonlySet<string>): 
 }
 
 function clauseWords(text: string): string[][] {
-  let t = text.toLowerCase().replace(/[’]/g, "'");
+  // Accents folded ("adiós" is "adios"); only warm symbols dropped ("bye 🙂", "bye :)").
+  // Any other emoji stays a word no goodbye matches ("bye 😢"); letters of any script
+  // stay, so a line in another script never matches a goodbye here.
+  let t = stripWarmSymbols(text)
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .replace(/[’]/g, "'");
   if (t.length > MAX_CALLER_CHARS) {
     // Keep the end, where a goodbye is, and drop the word the cut landed in.
     t = t.slice(-MAX_CALLER_CHARS);
@@ -234,6 +256,44 @@ function endsWith(text: string, closers: ReadonlySet<string>): boolean {
 /** The caller is ending the call: their turn ends on a goodbye or a "hang up". */
 export function callerSaysGoodbye(text: string): boolean {
   return endsWith(text, CLOSERS);
+}
+
+/** Pleasantries that fit a goodbye on their own: "thanks", "you too", "love you", "night". */
+const SIGN_OFFS = new Set([
+  ...AFTERWORDS,
+  ...[
+    'same to you',
+    'you as well',
+    'night',
+    'all right',
+    'yeah',
+    'yep',
+    'cool',
+    'great',
+    'perfect',
+    // Goodnights, a day done, and Spanish ("adiós" is accent-folded, clauseWords)
+    ...expand(['sleep'], ['well', 'tight']),
+    'sweet dreams',
+    ...expand(["i'm", 'im', 'i am'], ['done for'], ['today', 'tonight', 'the day', 'now']),
+    ...['gracias', 'muchas gracias', 'adios', 'ciao', 'cheers'],
+  ],
+]);
+
+/**
+ * The caller is signing off: EVERY clause is a goodbye or a pleasantry that
+ * fits one ("thanks", "thank you", "you too", "love you", "same to you",
+ * "night"), and nothing in the line carries risk (farewell-risk.ts). "I won't
+ * be here tomorrow. Bye." ends on a goodbye, but it is not a sign-off. After
+ * `conversation_end` only a sign-off leaves the call ending (wrap-up-window.ts).
+ */
+export function callerSignsOff(text: string): boolean {
+  if (text.length > MAX_CALLER_CHARS || text.trim().endsWith('?')) return false;
+  const parts = clauseWords(text);
+  return (
+    parts.length > 0 &&
+    parts.every((words) => closingClause(words, CLOSERS) || onlyPhrases(words, 0, SIGN_OFFS)) &&
+    !farewellRisk(text)
+  );
 }
 
 /** The caller asks Ferni to end the call: "hang up now", "you can end the call". */
@@ -334,7 +394,10 @@ export function watchFarewell(
   };
 
   const onCaller = (text: string): void => {
-    callerSaidBye = callerSaysGoodbye(text);
+    // A goodbye carrying risk ("I won't be here tomorrow. Bye.") is never one: it carries on
+    const risky = farewellRisk(text);
+    callerSaidBye = !risky && callerSaysGoodbye(text);
+    if (risky) reopened.delete(sessionId); // nor does an earlier reopen's goodbye stand
     if (isSessionClosing(sessionId)) return;
     if (callerSaidBye) {
       hangUpAsked = hangUpAsked || callerAsksToHangUp(text);
@@ -350,7 +413,9 @@ export function watchFarewell(
   };
   const onFerni = (text: string): void => {
     ferniSaidBye = ferniSaysGoodbye(text);
-    if (callerSaidBye && ferniSaidBye) {
+    // After a reopen the caller's goodbye stands until Ferni's next reply
+    const callerBye = callerSaidBye || reopened.delete(sessionId);
+    if (callerBye && ferniSaidBye) {
       markFarewell(sessionId, 'goodbyes');
       arm();
     } else if (!ferniSaidBye && !hangUpAsked && farewellSaid(sessionId)) {
@@ -376,6 +441,7 @@ export function watchFarewell(
   const stop = (): void => {
     cancel();
     clearFarewell(sessionId);
+    reopened.delete(sessionId);
     sessionIds.delete(agentSession);
     session.off(EV.ConversationItemAdded, onItem);
     session.off(EV.AgentStateChanged, onAgent);

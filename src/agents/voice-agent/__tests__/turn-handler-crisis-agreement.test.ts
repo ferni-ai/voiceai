@@ -222,7 +222,7 @@ describe('turn handler: grounded release (CRISIS_GROUNDED_RELEASE)', () => {
   it('a released imminent read injects the light touch, not the generic soft check', async () => {
     const turn = await runTurn(
       'Dinner is tonight.',
-      dinner({ ...LIVE, CRISIS_GROUNDED_RELEASE: 'live', CRISIS_GROUNDED_RELEASE_UNSCREENED: 'test' })
+      dinner({ ...LIVE, CRISIS_GROUNDED_RELEASE: 'live' })
     );
     expect(turn.soft.map((i) => i.content)).toEqual([GROUNDED_LIGHT_TOUCH]);
     expect(turn.crisis).toEqual([]);

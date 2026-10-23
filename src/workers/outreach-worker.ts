@@ -28,6 +28,7 @@
 import '../utils/log-redaction-install.js'; // mask phone numbers in all logs, first
 import { createLogger } from '../utils/safe-logger.js';
 import { getPubSubClient } from '../services/pubsub/pubsub-client.js';
+import { registerMessagingConsent } from '../services/messaging/consent.js';
 import type { OutreachTriggerPayload } from '../services/outreach/trigger-publisher.js';
 // cleanForFirestore removed - not used in this worker
 
@@ -434,6 +435,7 @@ export function getWorkerHealth(): { status: 'healthy' | 'unhealthy'; details: s
 
 async function main(): Promise<void> {
   log.info('Outreach Worker starting...');
+  registerMessagingConsent(); // the senders below L4 ask it (utils/consent-port.ts)
 
   try {
     const result = await processPendingTriggers({

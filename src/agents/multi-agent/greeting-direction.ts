@@ -16,6 +16,7 @@ import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import { returningCallerGreeting } from '../../services/identity/returning-caller.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
+import { getDisplayName, isKnownId } from '../../personas/persona-ids.js';
 import type { UserProfile } from '../../types/user-profile.js';
 import { firstCallFallback, firstMeeting, withFirstCallIntro } from './first-call-greeting.js';
 import { callerHour } from '../shared/time-context.js';
@@ -340,8 +341,10 @@ export async function isProactiveCall(sessionId: string): Promise<boolean> {
 }
 
 /** The understudy for a proactive call: says Ferni called, never guesses why. */
-export function proactiveFallback(userName: string | undefined): string {
-  return `Hey${userName ? ` ${userName}` : ''}, it's Ferni, just calling to check in.`;
+export function proactiveFallback(userName: string | undefined, personaId = 'ferni'): string {
+  // Whoever placed the call: "call me" can ring with Alex (live-agent-call.ts), not just Ferni.
+  const caller = isKnownId(personaId) ? getDisplayName(personaId) : 'Ferni';
+  return `Hey${userName ? ` ${userName}` : ''}, it's ${caller}, just calling to check in.`;
 }
 
 export interface GreetingUserData {
@@ -380,7 +383,7 @@ export async function directedGreeting(
         ...greetingFacts(partOfDay, userData?.userName, history),
         ...proactiveReasonFacts(proactive),
       },
-      fallback: proactiveFallback(userData?.userName),
+      fallback: proactiveFallback(userData?.userName, personaId),
       urgency: 'now',
       maxChars: 180,
     });
