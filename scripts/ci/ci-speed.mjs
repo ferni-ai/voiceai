@@ -15,6 +15,7 @@
  * CI runs only (ci.yml): it holds every required check but Menu E2E and Build & Test.
  */
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const MIN = 60_000;
@@ -27,16 +28,53 @@ export function quantile(values, q) {
 }
 
 /**
- * Minutes a CI run spent waiting for runners: Setup's wait, plus how long the
- * last job behind Setup waited after Setup finished (every job but Build needs
- * only Setup). Null until those jobs have started.
+ * Name patterns of the workflow's jobs that need more than Setup (Build, the
+ * "Unit Tests" gate behind its shards). They start when the jobs they need end,
+ * so their start says nothing about runners. A matrix name matches every leg.
  */
-export function runnerWait(run, jobs) {
+export function notBehindSetupOnly(workflow) {
+  const body = workflow.slice(workflow.indexOf('\njobs:\n') + 7);
+  const parts = body.split(/^ {2}([A-Za-z0-9_-]+):\n/m);
+  const out = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    const t = parts[i + 1];
+    const name = /^ {4}name: (.*)$/m.exec(t)?.[1].replace(/^'(.*)'$/, '$1') ?? parts[i];
+    const inline = /^ {4}needs: \[?([^\]\n]*)\]?$/m.exec(t)?.[1];
+    const listed = /^ {4}needs:\n((?: {6}- .*\n)+)/m.exec(t)?.[1];
+    const needs = (inline ?? listed ?? '').split(/[\s,]+/).filter((n) => /^[A-Za-z0-9_]/.test(n));
+    if (!needs.some((n) => n !== 'setup')) continue;
+    const literal = name
+      .split(/\$\{\{.*?\}\}/)
+      .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    out.push(new RegExp(`^${literal.join('.+')}$`));
+  }
+  return out;
+}
+
+let ciJobsNotBehindSetup;
+function ciDefault() {
+  if (!ciJobsNotBehindSetup) {
+    try {
+      const file = new URL('../../.github/workflows/ci.yml', import.meta.url);
+      ciJobsNotBehindSetup = notBehindSetupOnly(readFileSync(file, 'utf8'));
+    } catch {
+      ciJobsNotBehindSetup = [/^Build$/, /^Unit Tests$/];
+    }
+  }
+  return ciJobsNotBehindSetup;
+}
+
+/**
+ * Minutes a CI run spent waiting for runners: Setup's wait, plus how long the
+ * last job behind Setup waited after Setup finished. Jobs that need more than
+ * Setup (`exclude`, read from ci.yml) don't count. Null until those jobs have started.
+ */
+export function runnerWait(run, jobs, exclude = ciDefault()) {
   const setup = jobs.find((j) => /^Setup\b/.test(j.name ?? ''));
   const t = (x) => Date.parse(x ?? '');
   if (!setup || !Number.isFinite(t(setup.started_at)) || !Number.isFinite(t(setup.completed_at))) return null;
   const behind = jobs
-    .filter((j) => j !== setup && j.name !== 'Build' && j.conclusion !== 'skipped')
+    .filter((j) => j !== setup && j.conclusion !== 'skipped' && !exclude.some((re) => re.test(j.name ?? '')))
     .map((j) => t(j.started_at))
     .filter(Number.isFinite);
   if (behind.length === 0) return null;
