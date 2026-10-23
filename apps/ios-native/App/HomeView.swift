@@ -68,10 +68,15 @@ struct HomeView: View {
                                     .id(Self.rememberID)
                                     // Over the team row while it rises past it (award upgrade 8).
                                     .zIndex(1)
-                                NextStepsCard(call: call, steps: model.nextSteps)
-                                #if FERNI_PUSH
-                                NotificationAsk(push: model.push, uid: model.account.user?.uid)
-                                #endif
+                                // One slot with the ask: hidden, its zero-height anchor
+                                // adds no gap to Home (it pushed the team row under
+                                // the floor when push came on, 2026-10-22).
+                                VStack(spacing: 0) {
+                                    NextStepsCard(call: call, steps: model.nextSteps)
+                                    #if FERNI_PUSH
+                                    NotificationAsk(push: model.push, uid: model.account.user?.uid)
+                                    #endif
+                                }
                             }
                             if call.phase == .idle, let note = model.homeLine.current?.note {
                                 NoteCard(note: note) { model.talk(aboutNote: note) }
