@@ -8,6 +8,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { analyzeReferralNeed } from '../../principal-alignment/human-referral.js';
+import { riskCorpus } from './crisis-corpus.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -28,10 +29,17 @@ describe('principal-alignment analyzeReferralNeed (immediate = crisis line)', ()
     flag('off');
     expect(urgency('I won all the casino points')).toBe('immediate');
   });
-  it.each(CASES.slice(0, 2))('on: %j is not immediate; %j still is', (everyday, real) => {
+  it.each(CASES.slice(0, 1))('on: %j is not immediate; %j still is', (everyday, real) => {
     flag('on');
     expect(urgency(everyday)).not.toBe('immediate');
     expect(urgency(real)).toBe('immediate');
+  });
+  // Immediate and high triggers read recall-first: a match that starts at a word
+  // edge counts however the word ends, so this stays immediate (accepted false positive).
+  it('on: "no pointers on this one" stays immediate, as with the flag off', () => {
+    flag('on');
+    expect(urgency(CASES[1][0])).toBe('immediate');
+    expect(urgency(CASES[1][1])).toBe('immediate');
   });
   it('on: a whole-word everyday use still fires (an accepted false positive)', () => {
     flag('on');
@@ -43,5 +51,31 @@ describe('principal-alignment analyzeReferralNeed (immediate = crisis line)', ()
     expect(urgency('I don’t want to live')).toBe('low');
     flag('on');
     expect(urgency('I don’t want to live')).toBe('immediate');
+  });
+});
+
+describe('recall: immediate and high triggers never read less than pattern.test', () => {
+  const urgency = (m: string) => analyzeReferralNeed(m, { userId: 'u' }).urgency;
+  it.each([
+    'my suicidality is back',
+    "I'm not suicidal or anything, but I did write out my final wishes and passwords",
+  ])('on: %j is immediate', (line) => {
+    flag('on');
+    expect(urgency(line)).toBe('immediate');
+  });
+  it('on: medium triggers keep whole words ("taxi" is not "tax")', () => {
+    flag('on');
+    expect(urgency('I took a taxi home')).toBe('low');
+  });
+  it('corpus: no real-risk fixture line drops from immediate or high', () => {
+    const severe = (m: string) => ['immediate', 'high'].includes(urgency(m));
+    const drops: string[] = [];
+    for (const line of riskCorpus()) {
+      flag('off');
+      const off = severe(line);
+      flag('on');
+      if (off && !severe(line)) drops.push(line);
+    }
+    expect(drops).toEqual([]);
   });
 });
