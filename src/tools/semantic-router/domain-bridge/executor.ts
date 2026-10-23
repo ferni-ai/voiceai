@@ -13,8 +13,21 @@ import type { ServiceRegistry } from '../../registry/types.js';
 import type { ToolExecutionContext, ToolExecutionResult } from '../types.js';
 import type { ToolMapping } from './types.js';
 import { generateFallbackResponse } from './fallbacks.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
+import { newAnonymousId } from '../../../services/identity/anonymous-session-id.js';
+import { nonAccountPrefixOf } from '../../../utils/synthetic-user.js';
 
 const log = createLogger({ module: 'domain-bridge' });
+
+/**
+ * The caller a routed tool runs as. A member, or a per-call anon:/onbehalf: id, is kept. A
+ * missing id or a placeholder (`unknown`, `anonymous`, ...) gets a fresh anon: id for this call:
+ * the tools key data by it, and a placeholder is one bucket every id-less caller shares.
+ */
+function routedCaller(userId: string | undefined): string {
+  const id = userId?.trim();
+  return id && (isMemberIdentity(id) || nonAccountPrefixOf(id)) ? id : newAnonymousId();
+}
 
 /**
  * Execute a domain tool via the semantic router bridge.
@@ -105,9 +118,9 @@ export async function executeDomainTool(
       getOptional: () => undefined,
     };
 
-    // Create tool instance with context
+    const userId = routedCaller(context.userId);
     const toolInstance = domainTool.create({
-      userId: context.userId,
+      userId,
       agentId: context.personaId || 'ferni',
       agentDisplayName: context.personaId || 'Ferni',
       services: (context.services as ServiceRegistry | undefined) ?? emptyServices,
@@ -117,9 +130,14 @@ export async function executeDomainTool(
     // The tool instance is a Vercel AI SDK tool with an execute function
     if (toolInstance && typeof toolInstance.execute === 'function') {
       const startTime = performance.now();
-      const result = await toolInstance.execute(transformedArgs, {
-        // AbortSignal (optional)
-      });
+      // PRIVACY: LiveKit's tool options carry the caller in ctx.userData.userId. Called with `{}`,
+      // tools that read it there fell back to 'default', one bucket for every routed caller
+      // (same shape as calendar/index.ts routedContext).
+      const opts = {
+        ctx: { userData: { userId } },
+        toolCallId: `semantic:${mapping.domainToolId}`,
+      };
+      const result: unknown = await toolInstance.execute(transformedArgs, opts);
       const durationMs = Math.round(performance.now() - startTime);
 
       // Telemetry: Track which layer handled this tool call
