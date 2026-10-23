@@ -19,8 +19,8 @@ import {
   callMovingToPhone,
   MOVED_GOODBYE,
   RINGING_HAND_OVER,
+  TRYING_PHONE,
 } from '../../../tools/domains/proactive/outreach/call-me-moves-to-phone.js';
-import { CALLING_LIVE } from '../../../tools/domains/proactive/outreach/call-placed-reply.js';
 import type { CallUserPort } from '../../../tools/domains/proactive/outreach/call-user-port.js';
 
 const used: string[] = [];
@@ -123,10 +123,10 @@ describe('an answered "call me" ends the app call', () => {
     expect(isSessionClosing(c.id)).toBe(false);
   });
 
-  it('a phone caller gets no ender: the live line, and nothing ends', async () => {
+  it('a phone caller gets no ender: the trying-your-phone line, and nothing ends', async () => {
     const c = await call({ phone: true });
     expect(await callMovingToPhone(answeredPort, request, { session: c.session })).toBe(
-      CALLING_LIVE
+      TRYING_PHONE
     );
     await new Promise((r) => {
       setTimeout(r, 10);

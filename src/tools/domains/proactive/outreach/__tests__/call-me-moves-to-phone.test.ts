@@ -5,11 +5,12 @@
  * Ferni conversations at once; and a dial that failed at once had already been
  * announced as "calling you now".
  *
- * On: nothing is said until LiveKit has taken the dial; answered ends the app
+ * On: the reply comes at once (no dead air waiting on the dial) and only says
+ * Ferni is trying their phone, never that it connected; answered ends the app
  * call (its ender), and the phone agent gets a reference to the app call's
  * conversation (an id; never its text, which would sit in LiveKit's dispatch
- * metadata);
- * unanswered or failed keeps it open and says so. Off: unchanged.
+ * metadata); unanswered or failed, early or late, keeps it open and Ferni
+ * corrects itself at the next pause. Off: unchanged.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,13 +19,11 @@ import type { ToolContext } from '../../../../registry/types.js';
 import { registerVoiceCallbackHandler } from '../../../simple-utilities/voice-callbacks.js';
 import type { VoiceCallback } from '../../../simple-utilities/voice-callbacks.js';
 import {
-  DIAL_ACCEPT_MS,
-  DIAL_FAILED,
   MOVED_GOODBYE,
   RINGING_HAND_OVER,
   setPhoneMoveEnd,
+  TRYING_PHONE,
 } from '../call-me-moves-to-phone.js';
-import { CALLING_LIVE } from '../call-placed-reply.js';
 import {
   setCallUserPort,
   type CallUserRequest,
@@ -109,19 +108,36 @@ function appCall() {
   return { session, end };
 }
 
+/** The reply as it stands once pending promises settle, with no time passing. */
+async function replyAtOnce(reply: Promise<string>): Promise<string | undefined> {
+  let said: string | undefined;
+  void reply.then((r) => (said = r));
+  await vi.advanceTimersByTimeAsync(0);
+  return said;
+}
+
+/** What the reply lets Ferni claim: trying their phone, never that it connected or rings. */
+function honestInProgress(reply: string | undefined): void {
+  expect(reply).toMatch(/trying their phone/);
+  expect(reply).toMatch(/never say it connected or that it's ringing/);
+  expect(reply).not.toMatch(/phone is ringing|calling you now|it connected\./i);
+}
+
 describe('CALL_ME_MOVES_TO_PHONE=on', () => {
-  it('answered: says "pick up" only once the dial is taken, hands over a reference, then ends the app call', async () => {
+  it('replies at once while the dial is still pending: no dead air waiting on the phone', async () => {
+    const { session } = appCall();
+    portReturning({ success: true, status: 'initiated', live: true, dial: pendingDial().dial });
+    const reply = await replyAtOnce(ask(session)); // the dial never settles here
+    expect(reply).toBe(RINGING_HAND_OVER);
+    honestInProgress(reply);
+  });
+
+  it('answered: hands over a reference, then ends the app call', async () => {
     const { session, end } = appCall();
     const { dial, settle } = pendingDial();
     portReturning({ success: true, status: 'initiated', live: true, dial });
 
-    let reply: string | undefined;
-    void ask(session).then((r) => (reply = r));
-    await vi.advanceTimersByTimeAsync(DIAL_ACCEPT_MS - 1);
-    expect(reply).toBeUndefined(); // not a word about the call before LiveKit took the dial
-    await vi.advanceTimersByTimeAsync(1);
-    expect(reply).toBe(RINGING_HAND_OVER);
-
+    expect(await replyAtOnce(ask(session))).toBe(RINGING_HAND_OVER);
     expect(requests[0].handover).toEqual({ conversationId: CONVERSATION });
     // The reference only: nothing the caller said leaves this call
     expect(JSON.stringify(requests[0])).not.toContain(SAID);
@@ -138,9 +154,7 @@ describe('CALL_ME_MOVES_TO_PHONE=on', () => {
     const { dial, settle } = pendingDial();
     portReturning({ success: true, status: 'initiated', live: true, dial });
 
-    const reply = ask(session);
-    await vi.advanceTimersByTimeAsync(DIAL_ACCEPT_MS);
-    expect(await reply).toBe(RINGING_HAND_OVER);
+    expect(await replyAtOnce(ask(session))).toBe(RINGING_HAND_OVER);
     settle('no_answer');
     await vi.waitFor(() => expect(spoken).toHaveLength(1));
     expect(spoken[0]).toMatchObject({ type: 'call_outcome', userId: USER, session });
@@ -148,7 +162,7 @@ describe('CALL_ME_MOVES_TO_PHONE=on', () => {
     expect(end).not.toHaveBeenCalled();
   });
 
-  it('a dial that fails at once (no SIP trunk) is never announced: the honest line, nothing ends', async () => {
+  it('a dial that fails at once (no SIP trunk): the in-progress line, then the correction at the next pause', async () => {
     const { session, end } = appCall();
     portReturning({
       success: true,
@@ -157,22 +171,20 @@ describe('CALL_ME_MOVES_TO_PHONE=on', () => {
       dial: Promise.resolve('failed'),
     });
 
-    const reply = await ask(session);
-    expect(reply).toBe(DIAL_FAILED);
-    expect(reply).toMatch(/couldn't get through/);
-    expect(reply).not.toMatch(/ringing now/);
-    await vi.advanceTimersByTimeAsync(DIAL_ACCEPT_MS);
+    const reply = await replyAtOnce(ask(session));
+    honestInProgress(reply);
+    await vi.waitFor(() => expect(spoken).toHaveLength(1));
+    expect(spoken[0]).toMatchObject({ type: 'call_outcome', session });
+    expect(spoken[0].message).toMatch(/couldn't get through/);
     expect(end).not.toHaveBeenCalled();
-    expect(spoken).toEqual([]);
   });
 
   it('a dial that fails after ringing is said at the next pause, and nothing ends', async () => {
     const { session, end } = appCall();
     const { dial, settle } = pendingDial();
     portReturning({ success: true, status: 'initiated', live: true, dial });
-    const reply = ask(session);
-    await vi.advanceTimersByTimeAsync(DIAL_ACCEPT_MS);
-    await reply;
+    await replyAtOnce(ask(session));
+    await vi.advanceTimersByTimeAsync(20_000);
     settle('failed');
     await vi.waitFor(() => expect(spoken).toHaveLength(1));
     expect(spoken[0].message).toMatch(/couldn't get through/);
@@ -182,19 +194,18 @@ describe('CALL_ME_MOVES_TO_PHONE=on', () => {
   it('memory held for this call (no conversation persisted): the call still moves, with no reference', async () => {
     const { session } = appCall();
     portReturning({ success: true, status: 'initiated', live: true, dial: pendingDial().dial });
-    const reply = ask(session, { userId: USER, services: {} });
-    await vi.advanceTimersByTimeAsync(DIAL_ACCEPT_MS);
-    expect(await reply).toBe(RINGING_HAND_OVER);
+    const reply = await replyAtOnce(ask(session, { userId: USER, services: {} }));
+    expect(reply).toBe(RINGING_HAND_OVER);
     expect(requests[0].handover).toEqual({ conversationId: undefined });
   });
 
-  it('a call with no ender (a phone caller): the honest live line, no reference, nothing ends', async () => {
+  it('a call with no ender (a phone caller): the honest in-progress line, no reference, nothing ends', async () => {
     const session = appSession();
     const { dial, settle } = pendingDial();
     portReturning({ success: true, status: 'initiated', live: true, dial });
-    const reply = ask(session);
-    await vi.advanceTimersByTimeAsync(DIAL_ACCEPT_MS);
-    expect(await reply).toBe(CALLING_LIVE);
+    const reply = await replyAtOnce(ask(session));
+    expect(reply).toBe(TRYING_PHONE);
+    honestInProgress(reply);
     expect(requests[0].handover).toEqual({ conversationId: undefined });
     settle('answered');
     await vi.advanceTimersByTimeAsync(0);
@@ -214,7 +225,7 @@ describe('CALL_ME_MOVES_TO_PHONE off (the default)', () => {
       { userId: USER, phoneNumber: PHONE, message: 'Calling like you asked.', personaId: 'ferni' },
     ]);
     settle('answered');
-    await vi.advanceTimersByTimeAsync(DIAL_ACCEPT_MS);
+    await vi.advanceTimersByTimeAsync(0);
     expect(end).not.toHaveBeenCalled();
     expect(spoken).toEqual([]);
   });

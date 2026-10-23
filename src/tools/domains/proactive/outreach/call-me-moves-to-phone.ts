@@ -7,43 +7,44 @@
  * app call stayed open: two Ferni conversations at once. On an earlier try
  * the dial failed at once (no such SIP trunk) after Ferni had already said
  * "calling you now". A friend on a video call who's asked to ring your phone
- * says "pick up", and hangs up the video once you do. So, with the flag:
- * - nothing is said about the call until LiveKit has taken the dial: one that
- *   fails within DIAL_ACCEPT_MS is reported as not placed;
- * - while it rings, Ferni says to pick up and it will hang up here;
+ * says "sure, trying your phone now, pick up", at once, and hangs up the video
+ * once you do. So, with the flag:
+ * - callUser replies at once, without waiting on the dial (no dead air): Ferni
+ *   says it is trying their phone and will hang up here once they pick up,
+ *   and never that the call connected or is ringing;
  * - answered: a short goodbye here, then this call ends on the goodbye path
  *   (the ender call-wrap-up.ts registers), and the phone agent carries on
  *   from this call's last turns. The signed dispatch carries only a reference
  *   (this call's conversation id); the phone agent reads the turns from the
  *   caller's own memory store (resume-after-drop.ts). No conversation text
  *   goes into dispatch metadata, which LiveKit stores and logs can echo;
- * - not answered, or the dial failed: this call stays open, and Ferni says so
- *   at the next pause (voice-callbacks.ts).
+ * - not answered, or the dial failed, early or late: this call stays open,
+ *   and Ferni corrects itself at the next pause (voice-callbacks.ts).
  * A call with no ender (a phone caller, a call placed on someone's behalf)
- * gets the honest dial and outcome lines but nothing ends.
+ * gets the same honest lines but nothing ends.
  *
  * @module tools/domains/proactive/outreach/call-me-moves-to-phone
  */
 import { flagOn } from '../../../../config/env-flag.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { triggerVoiceCallback } from '../../simple-utilities/voice-callbacks.js';
-import { CALLING_LIVE, callPlacedReply } from './call-placed-reply.js';
+import { callPlacedReply } from './call-placed-reply.js';
 import type { CallUserPort, CallUserRequest, DialOutcome } from './call-user-port.js';
 
 const log = createLogger({ module: 'CallMeMovesToPhone' });
-
-/** A dial still pending this long was taken: no trunk, room or dispatch error came back. */
-export const DIAL_ACCEPT_MS = 3_000;
 
 export function callMeMovesToPhone(): boolean {
   return flagOn('CALL_ME_MOVES_TO_PHONE');
 }
 
-export const RINGING_HAND_OVER =
-  "Their phone is ringing now, and you'll be on it yourself, live. Tell them in a few words to pick up and you'll hang up here. Don't say it connected.";
+/** The dial's outcome isn't known yet: if it fails, Ferni is told at the next pause. */
+const NOT_YET =
+  "It may not go through, so never say it connected or that it's ringing; if it fails you'll hear and can tell them.";
 
-export const DIAL_FAILED =
-  "The call didn't go through, so their phone is not ringing. Tell them plainly you couldn't get through to their phone, and carry on here.";
+export const RINGING_HAND_OVER = `You're trying their phone now, and you'll be on that call yourself, live. Tell them in a few words you're trying their phone, to pick up, and you'll hang up here. ${NOT_YET}`;
+
+/** No app call to hand over (a phone caller): the same honest line, nothing ends here. */
+export const TRYING_PHONE = `You're trying their phone now, as a separate call with you on it, live. Tell them in a few words you're trying their phone. ${NOT_YET}`;
 
 /** Said in the app call once they answer the phone, just before it ends. */
 export const MOVED_GOODBYE = "There you are. I'll hang up here.";
@@ -105,8 +106,8 @@ async function afterDial(
 }
 
 /**
- * callUser with CALL_ME_MOVES_TO_PHONE on: the reply once LiveKit has taken
- * the dial (or the honest failure), with the hand-over armed for the answer.
+ * callUser with CALL_ME_MOVES_TO_PHONE on: the honest in-progress reply at
+ * once, with the hand-over armed for the answer and the correction for a failure.
  */
 export async function callMovingToPhone(
   port: CallUserPort,
@@ -122,21 +123,12 @@ export async function callMovingToPhone(
   }
   const dial = result.dial;
   if (!dial) return callPlacedReply(result); // Twilio, or held for calling hours
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const taken = new Promise<'ringing'>((resolve) => {
-    timer = setTimeout(() => resolve('ringing'), DIAL_ACCEPT_MS);
-  });
-  const early = await Promise.race([dial, taken]);
-  clearTimeout(timer);
-  if (early !== 'ringing' && early !== 'answered') {
-    log.info({ userId: request.userId, outcome: early }, 'CALL_ME_MOVES_TO_PHONE dial not taken');
-    return DIAL_FAILED;
-  }
+  // Not awaited: the reply never waits on the dial, and its outcome is said when it comes
   const call = { userId: request.userId, session, end };
   void dial
     .then((outcome) => afterDial(outcome, call))
     .catch((error: unknown) =>
       log.warn({ userId: request.userId, error: String(error) }, 'CALL_ME_MOVES_TO_PHONE failed')
     );
-  return end ? RINGING_HAND_OVER : CALLING_LIVE;
+  return end ? RINGING_HAND_OVER : TRYING_PHONE;
 }
