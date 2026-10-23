@@ -28,6 +28,8 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ContextBuilder, ContextBuilderInput, ContextInjection } from './core/types.js';
+import type { PromptInput } from './core/types.js';
+import { promptInput } from './core/prompt-input.js';
 import { BuilderCategory } from './core/categories.js';
 
 /**
@@ -171,7 +173,7 @@ export interface TieredExecutionResult {
  */
 async function executeBuilderWithTimeout(
   builder: ContextBuilder,
-  input: ContextBuilderInput,
+  input: PromptInput,
   timeoutMs: number
 ): Promise<{ injections: ContextInjection[]; durationMs: number; timedOut: boolean }> {
   const startTime = Date.now();
@@ -216,10 +218,11 @@ async function executeBuilderWithTimeout(
  * @returns Injections and execution metrics
  */
 export async function executeTieredBuilders(
-  input: ContextBuilderInput,
+  rawInput: ContextBuilderInput,
   turnStartTime?: number
 ): Promise<TieredExecutionResult> {
   const startTime = Date.now();
+  const input = await promptInput(rawInput); // builders read memory through filtered views
   const absoluteStartTime = turnStartTime || startTime;
 
   // Get all registered builders and classify by tier
@@ -414,7 +417,6 @@ export async function executeTieredBuilders(
       '⚠️ Context building exceeded budget'
     );
   }
-
   return {
     injections: allInjections,
     metrics: {
@@ -427,7 +429,6 @@ export async function executeTieredBuilders(
     },
   };
 }
-
 // ============================================================================
 // FAST PATH FOR SIMPLE TURNS
 // ============================================================================
@@ -444,9 +445,10 @@ export async function executeTieredBuilders(
  * @returns Minimal injections for fast response
  */
 export async function executeFastPathBuilders(
-  input: ContextBuilderInput
+  rawInput: ContextBuilderInput
 ): Promise<TieredExecutionResult> {
   const startTime = Date.now();
+  const input = await promptInput(rawInput); // builders read memory through filtered views
 
   // Only run critical builders
   const allBuilders = getRegisteredBuilders();
@@ -477,7 +479,6 @@ export async function executeFastPathBuilders(
       }
     }
   }
-
   return {
     injections: allInjections,
     metrics: {
@@ -490,7 +491,6 @@ export async function executeFastPathBuilders(
     },
   };
 }
-
 // ============================================================================
 // EXPORTS
 // ============================================================================

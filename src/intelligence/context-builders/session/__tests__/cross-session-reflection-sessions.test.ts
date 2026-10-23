@@ -12,7 +12,7 @@ vi.mock('../../index.js', () => ({
 
 import { crossSessionReflectionBuilder } from '../cross-session-reflection.js';
 
-import type { ContextBuilderInput } from '../../index.js';
+import type { PromptInput as ContextBuilderInput } from '../../core/types.js';
 import type { ReflectionMoment } from '../../../cross-session-reflection.js';
 import type { UserProfile } from '../../../../types/user-profile.js';
 

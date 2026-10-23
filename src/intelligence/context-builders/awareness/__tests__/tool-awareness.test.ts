@@ -17,7 +17,7 @@ vi.mock('../../../../utils/safe-logger.js', () => {
 });
 
 import { toolCapabilitiesBuilder } from '../tool-awareness.js';
-import type { ContextBuilderInput } from '../../core/types.js';
+import type { PromptInput as ContextBuilderInput } from '../../core/types.js';
 
 const input = (personaId: string, availableToolNames?: string[]): ContextBuilderInput =>
   ({

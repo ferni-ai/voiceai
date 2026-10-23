@@ -8,7 +8,7 @@
  * The REAL builders run; only Firestore and the trigger profile are mocked.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ContextBuilderInput } from '../../core/types.js';
+import type { PromptInput as ContextBuilderInput } from '../../core/types.js';
 
 interface Doc {
   data: () => Record<string, unknown>;

@@ -323,9 +323,20 @@ export interface ContextBuilder {
   category?: BuilderCategory;
   /** Dependencies - other builders that must run first */
   dependsOn?: string[];
-  /** The build function */
-  build: (input: ContextBuilderInput) => Promise<ContextInjection[]>;
+  /**
+   * The build function. It gets a PromptInput: the caller's profile and this
+   * call's userData as filtered views (prompt-input.ts), never the raw session.
+   */
+  build: (input: PromptInput) => Promise<ContextInjection[]>;
 }
+
+declare const PROMPT_INPUT: unique symbol;
+/**
+ * A builder's input with what the caller asked to forget filtered out of every
+ * memory read (FORGET_EVERY_READER). Only promptInput() makes one, so a builder
+ * can't be handed the raw profile.
+ */
+export type PromptInput = ContextBuilderInput & { readonly [PROMPT_INPUT]: true };
 
 export interface ContextBuilderMetrics {
   name: string;

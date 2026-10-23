@@ -43,7 +43,10 @@ export function forgetEveryReaderEnabled(env: Env = process.env): boolean {
 }
 
 /** True when a text is about something the caller asked to forget. */
-export type ForgottenCheck = (text: string) => boolean;
+export type ForgottenCheck = ((text: string) => boolean) & {
+  /** Same topics and names, same answers: a key for caching what a check filtered. */
+  readonly signature?: string;
+};
 
 /**
  * A stored topic as the matcher reads it: every capitalized word in lower
@@ -86,10 +89,11 @@ export function aboutForgotten(
 }
 
 function checkFor(userId: string, stored: string[] | null): ForgottenCheck {
-  if (stored === null) return () => true; // no source at all: fail closed
-  const topics = [...new Set([...stored, ...forgottenInProcess(userId)])];
+  if (stored === null) return Object.assign(() => true, { signature: 'closed' }); // no source
+  const topics = [...new Set([...stored, ...forgottenInProcess(userId)])].sort();
   const names = knownNames(userId);
-  return (text) => aboutForgotten(text, topics, names);
+  const signature = `${topics.join('\u0000')}\u0001${[...names].sort().join(',')}`;
+  return Object.assign((text: string) => aboutForgotten(text, topics, names), { signature });
 }
 
 /**

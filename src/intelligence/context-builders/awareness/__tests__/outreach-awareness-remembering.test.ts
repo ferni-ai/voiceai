@@ -6,7 +6,7 @@
  * The REAL builder runs; only the nudge data is mocked.
  */
 import { describe, expect, it, vi } from 'vitest';
-import type { ContextBuilderInput } from '../../core/types.js';
+import type { PromptInput as ContextBuilderInput } from '../../core/types.js';
 
 vi.mock('../../../../services/contacts/outreach-nudges.js', () => ({
   buildNudgeContext: async () => ({
