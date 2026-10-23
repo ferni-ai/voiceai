@@ -6,7 +6,7 @@
  */
 
 import type { VectorRecallStore } from '../../memory/recall/stored-fact-vectors.js';
-import { rememberCallerNames, snapshotTopics } from '../../memory/recall/forget-every-reader.js';
+import { learnCallerNames, snapshotTopics } from '../../memory/recall/forget-every-reader.js';
 import { firestoreCallerNames } from '../personas/life-ledger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
@@ -21,11 +21,11 @@ export const firestoreRecallStore: VectorRecallStore = {
     const facts = db.collection('bogle_users').doc(userId).collection('dynamic_facts');
     // Newest first: an unordered limit loaded an arbitrary 300 of a user's
     // facts (2,024 for one test user). Facts without a date fall back to it.
-    // FORGET_EVERY_READER: the people and pets, whose names the forget matcher keeps whole.
-    const people = firestoreCallerNames(userId).catch(() => [] as string[]);
+    // FORGET_EVERY_READER only: the people and pets, whose names the forget matcher keeps whole.
+    const names = learnCallerNames(userId, firestoreCallerNames);
     const newest = await facts.orderBy('extractedAt', 'desc').limit(300).get();
     const snap = newest.docs.length > 0 ? newest : await facts.limit(300).get();
-    rememberCallerNames(userId, await people);
+    await names;
     return snap.docs.map((d) => d.data());
   },
   // RECALL_VECTOR_INDEX: the stored facts nearest a turn's meaning, however old.

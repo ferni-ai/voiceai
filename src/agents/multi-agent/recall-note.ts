@@ -106,7 +106,7 @@ export function dropForgottenNotes(
 
 /** Agents recall has written to, per caller (FORGET_EVERY_READER): a forget clears each at once. */
 const written = new Map<string, Set<WeakRef<RecallAgent>>>();
-const MAX_CALLERS = 1000;
+export const MAX_WATCHED_CALLERS = 1000;
 let watching = false;
 
 /**
@@ -129,5 +129,5 @@ export function watchForgets(agent: RecallAgent, userId: string): void {
   refs.add(new WeakRef(agent));
   written.delete(userId); // newest last, so the oldest caller goes first
   written.set(userId, refs);
-  if (written.size > MAX_CALLERS) written.delete(written.keys().next().value as string);
+  if (written.size > MAX_WATCHED_CALLERS) written.delete(written.keys().next().value as string);
 }
