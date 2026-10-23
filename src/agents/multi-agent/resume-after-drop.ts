@@ -161,21 +161,40 @@ export const MOVED_NOTE =
   'They asked you to ring their phone and picked up, and that app call has ended. Carry on the ' +
   'same conversation here; never act as if you are starting cold.';
 
+/** The moved-from call's turns are read only while its last one is this recent. */
+export const MOVED_WINDOW_MS = 5 * 60_000;
+/** How many of the moved-from call's turns go into the phone call's history. */
+export const MOVED_TURNS = 6;
+
 /**
- * A "call me" from the app (CALL_ME_MOVES_TO_PHONE): that call's last turns,
- * from the signed dispatch, go into this phone call's history. True if any did.
+ * A "call me" from the app (CALL_ME_MOVES_TO_PHONE): the signed dispatch names
+ * that call's conversation (ids only); its last turns are read from the
+ * caller's own memory store and go into this phone call's history. Returns
+ * whether this call was moved from the app (it then is never read as a drop),
+ * and how many turns went back.
  */
 export async function restoreMovedTurns(
   sessionId: string,
-  agent: HistoryAgent | undefined
-): Promise<boolean> {
+  agent: HistoryAgent | undefined,
+  now: number = Date.now()
+): Promise<{ moved: boolean; turns: number }> {
   const { getProactiveSessionContext } =
     await import('../../intelligence/context-builders/external/proactive-session-context.js');
-  const turns = getProactiveSessionContext(sessionId)?.recentTurns;
-  if (!agent || !turns?.length) return false;
-  await restoreTurns(agent, turns, MOVED_NOTE);
-  log.info({ sessionId, turns: turns.length }, 'CALL_ME_MOVES_TO_PHONE turns restored');
-  return true;
+  const from = getProactiveSessionContext(sessionId)?.movedFrom;
+  if (!from) return { moved: false, turns: 0 };
+  const read = getConversationTurns(from.userId, from.conversationId, MAX_TURNS_READ);
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<ConversationTurn[]>((resolve) => {
+    timer = setTimeout(() => resolve([]), LOOKUP_WAIT_MS);
+  });
+  const all = (await Promise.race([read, late])).filter((t) => t.content?.trim());
+  clearTimeout(timer);
+  const last = all.at(-1);
+  const fresh = !!last && now - new Date(last.timestamp).getTime() <= MOVED_WINDOW_MS;
+  const turns = fresh ? all.slice(-MOVED_TURNS) : [];
+  if (agent && turns.length) await restoreTurns(agent, turns, MOVED_NOTE);
+  log.info({ sessionId, turns: turns.length }, 'CALL_ME_MOVES_TO_PHONE moved call');
+  return { moved: true, turns: turns.length };
 }
 
 const lastBy = (call: DroppedCall, role: ConversationTurn['role']): string | undefined =>
@@ -212,9 +231,9 @@ export async function greetingOrResume(
   userData: GreetingUserData
 ): Promise<string> {
   // The app call it moved from isn't a drop: no "sorry, I dropped"
-  const moved = await restoreMovedTurns(sessionId, agent.agent).catch((error: unknown) => {
+  const { moved } = await restoreMovedTurns(sessionId, agent.agent).catch((error: unknown) => {
     log.warn({ error: String(error), sessionId }, 'Moved-call turns not restored');
-    return false;
+    return { moved: false };
   });
   if (moved) lookups.delete(sessionId);
   const call = await takeDroppedCall(sessionId);

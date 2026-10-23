@@ -75,8 +75,8 @@ export const callUserAdapter: CallUserPort = {
         reason: 'user_requested_call',
       });
     if (!handover) return place();
-    // CALL_ME_MOVES_TO_PHONE: the turns ride the dispatch; the live dial comes back
-    const move: PhoneMove = { turns: handover.turns };
+    // CALL_ME_MOVES_TO_PHONE: the app call's id rides the dispatch; the live dial comes back
+    const move: PhoneMove = { conversationId: handover.conversationId };
     const result = await movingToPhone(userId, move, place);
     return move.dial ? { ...result, dial: move.dial } : result;
   },

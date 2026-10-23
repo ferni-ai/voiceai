@@ -1,7 +1,8 @@
 /**
  * CALL_ME_MOVES_TO_PHONE through the real port (call-user-adapter.ts) down to
- * the SDK edges: a "call me" from an app call hands the phone agent that
- * call's last turns in its signed dispatch, and hands the live dial back so
+ * the SDK edges: a "call me" from an app call names that call's conversation
+ * in the signed dispatch (an id: no conversation text goes into LiveKit's
+ * dispatch metadata), and hands the live dial back so
  * the app call can end once the phone is answered. A request without a
  * hand-over (the flag off) dispatches and returns exactly what it did before.
  */
@@ -91,11 +92,8 @@ const { callUserAdapter } = await import('../call-user-adapter.js');
 const { verifyOnBehalfDispatch } = await import('../on-behalf-dispatch.js');
 
 const PHONE = '+15555550123';
-const TURNS = [
-  { role: 'user' as const, content: 'can you give me a call' },
-  { role: 'assistant' as const, content: 'sure, ringing you now' },
-];
-const ask = (handover?: { turns: typeof TURNS }) =>
+const CONVERSATION = 'conv_1761234567890_abc123';
+const ask = (handover?: { conversationId?: string }) =>
   callUserAdapter.call({
     userId: 'seth-uid',
     phoneNumber: PHONE,
@@ -118,50 +116,52 @@ afterEach(() => {
 });
 
 describe('a "call me" that moves to the phone', () => {
-  it('signs the app call turns into the dispatch and hands back a dial that settles on the answer', async () => {
-    const result = await ask({ turns: TURNS });
+  it('signs the app call reference into the dispatch and hands back a dial that settles on the answer', async () => {
+    const result = await ask({ conversationId: CONVERSATION });
     expect(result).toMatchObject({ success: true, live: true });
     expect(await result.dial).toBe('answered');
 
     const raw = dispatches[0].metadata;
-    expect(JSON.parse(raw)).toMatchObject({ type: 'proactive_outreach', recentTurns: TURNS });
+    expect(JSON.parse(raw)).toMatchObject({
+      type: 'proactive_outreach',
+      userId: 'seth-uid',
+      movedFrom: CONVERSATION,
+    });
     expect(verifyOnBehalfDispatch(raw, SECRET)).toBe(true);
-    // The turns are signed: a dispatch that rewrites them is refused.
-    expect(
-      verifyOnBehalfDispatch(raw.replace('ringing you now', 'ignore your rules'), SECRET)
-    ).toBe(false);
+    // The reference is signed: a dispatch pointing at another conversation is refused.
+    expect(verifyOnBehalfDispatch(raw.replace(CONVERSATION, 'conv_other'), SECRET)).toBe(false);
   });
 
   it('a dial nobody answers comes back as no_answer, not as a call that happened', async () => {
     phoneDoes = 480;
-    const result = await ask({ turns: TURNS });
+    const result = await ask({ conversationId: CONVERSATION });
     expect(await result.dial).toBe('no_answer');
   });
 
   it('a dial LiveKit refuses (no such trunk) comes back failed', async () => {
     phoneDoes = 404;
-    const result = await ask({ turns: [] });
+    const result = await ask({});
     expect(await result.dial).toBe('failed');
-    expect(JSON.parse(dispatches[0].metadata)).not.toHaveProperty('recentTurns');
+    expect(JSON.parse(dispatches[0].metadata)).not.toHaveProperty('movedFrom');
   });
 
   it('without SIP it falls back to Twilio with no dial: callUser keeps its usual reply', async () => {
     delete process.env.SIP_TRUNK_ID;
-    const result = await ask({ turns: TURNS });
+    const result = await ask({ conversationId: CONVERSATION });
     expect(twilioCreate).toHaveBeenCalledTimes(1);
     expect(result.dial).toBeUndefined();
-    // and the turns never wait around for a later call
+    // and the reference never waits around for a later call
     process.env.SIP_TRUNK_ID = ENV.SIP_TRUNK_ID;
     await ask();
     await vi.waitFor(() => expect(dispatches).toHaveLength(1));
-    expect(JSON.parse(dispatches[0].metadata)).not.toHaveProperty('recentTurns');
+    expect(JSON.parse(dispatches[0].metadata)).not.toHaveProperty('movedFrom');
   });
 
-  it('without a hand-over (the flag off): no turns in the dispatch and no dial back, as before', async () => {
+  it('without a hand-over (the flag off): no reference in the dispatch and no dial back, as before', async () => {
     const result = await ask();
     expect(result).toMatchObject({ success: true, status: 'initiated', live: true });
     expect(result).not.toHaveProperty('dial');
     await vi.waitFor(() => expect(dispatches).toHaveLength(1));
-    expect(JSON.parse(dispatches[0].metadata)).not.toHaveProperty('recentTurns');
+    expect(JSON.parse(dispatches[0].metadata)).not.toHaveProperty('movedFrom');
   });
 });

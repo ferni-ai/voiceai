@@ -17,12 +17,7 @@ import { flagOn } from '../../config/env-flag.js';
 import { runBackground } from '../../utils/background-task.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { toE164 } from './checkin-replies.js';
-import {
-  canPlaceCalls,
-  placeSelfCall,
-  type CallOutcome,
-  type DispatchTurn,
-} from './proactive-channels/self-call.js';
+import { canPlaceCalls, placeSelfCall, type CallOutcome } from './proactive-channels/self-call.js';
 import { userReach } from './user-reach.js';
 
 const log = createLogger({ module: 'LiveAgentCall' });
@@ -92,12 +87,13 @@ export function liveCallReason(message: string, asked = true): string {
 }
 
 /**
- * CALL_ME_MOVES_TO_PHONE: a "call me" from an app call hands the phone agent
- * that call's last turns, and gets the dial back to end the app call once the
+ * CALL_ME_MOVES_TO_PHONE: a "call me" from an app call points the phone agent
+ * at that call's conversation (its id: the agent reads the turns from the
+ * caller's memory store), and gets the dial back to end the app call once the
  * phone is answered (call-user-adapter.ts, call-me-moves-to-phone.ts).
  */
 export interface PhoneMove {
-  turns: DispatchTurn[];
+  conversationId?: string;
   dial?: Promise<CallOutcome>;
 }
 
@@ -132,7 +128,7 @@ export function placeLiveAgentCall(
     kind: asked ? ('promise' as const) : ('follow_up' as const),
     reason: liveCallReason(call.message, asked),
     sourceId: call.id,
-    ...(move?.turns.length ? { recentTurns: move.turns } : {}),
+    ...(move?.conversationId ? { movedFrom: move.conversationId } : {}),
   };
   const placed = placeSelfCall(call.userId, call.phoneNumber, trigger, undefined, call.personaId);
   // e.g. the LiveKit SDK failed to load: never left in_progress

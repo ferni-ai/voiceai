@@ -13,7 +13,10 @@
  * - while it rings, Ferni says to pick up and it will hang up here;
  * - answered: a short goodbye here, then this call ends on the goodbye path
  *   (the ender call-wrap-up.ts registers), and the phone agent carries on
- *   from this call's last turns, handed over in its signed dispatch;
+ *   from this call's last turns. The signed dispatch carries only a reference
+ *   (this call's conversation id); the phone agent reads the turns from the
+ *   caller's own memory store (resume-after-drop.ts). No conversation text
+ *   goes into dispatch metadata, which LiveKit stores and logs can echo;
  * - not answered, or the dial failed: this call stays open, and Ferni says so
  *   at the next pause (voice-callbacks.ts).
  * A call with no ender (a phone caller, a call placed on someone's behalf)
@@ -25,15 +28,12 @@ import { flagOn } from '../../../../config/env-flag.js';
 import { createLogger } from '../../../../utils/safe-logger.js';
 import { triggerVoiceCallback } from '../../simple-utilities/voice-callbacks.js';
 import { CALLING_LIVE, callPlacedReply } from './call-placed-reply.js';
-import type { CallUserPort, CallUserRequest, DialOutcome, HandoverTurn } from './call-user-port.js';
+import type { CallUserPort, CallUserRequest, DialOutcome } from './call-user-port.js';
 
 const log = createLogger({ module: 'CallMeMovesToPhone' });
 
 /** A dial still pending this long was taken: no trunk, room or dispatch error came back. */
 export const DIAL_ACCEPT_MS = 3_000;
-/** How many of the app call's turns the phone agent gets, and how long each may be. */
-export const HANDOVER_TURNS = 6;
-const TURN_CHARS = 300;
 
 export function callMeMovesToPhone(): boolean {
   return flagOn('CALL_ME_MOVES_TO_PHONE');
@@ -67,30 +67,20 @@ export function setPhoneMoveEnd(session: object, end: EndForPhone): void {
   enders.set(session, end);
 }
 
-interface HistorySession {
-  history?: { items?: Array<{ type?: string; role?: string; textContent?: string }> };
+/** What a tool's RunContext gives this: the call's AgentSession and its userData. */
+export interface CallRun {
+  session?: object;
+  userData?: unknown;
 }
 
-/** The app call's last turns as plain text: no markup or control characters. */
-export function recentTurns(session: unknown): HandoverTurn[] {
-  try {
-    const items = (session as HistorySession | undefined)?.history?.items ?? [];
-    const turns: HandoverTurn[] = [];
-    for (const item of items) {
-      if (item.type !== 'message' || (item.role !== 'user' && item.role !== 'assistant')) continue;
-      const content = (item.textContent ?? '')
-        .replace(/<[^>]*>/g, ' ')
-        .replace(/\p{Cc}/gu, ' ')
-        .replace(/\s+/g, ' ')
-        .trim()
-        .slice(0, TURN_CHARS);
-      if (content) turns.push({ role: item.role, content });
-    }
-    return turns.slice(-HANDOVER_TURNS);
-  } catch (error) {
-    log.warn({ error: String(error) }, 'App call turns not read; the phone call starts fresh');
-    return [];
-  }
+/**
+ * The app call's conversation in the caller's memory store (session-manager
+ * persists each turn there). Undefined while memory is held, or before it starts.
+ */
+export function conversationOf(userData: unknown): string | undefined {
+  const id = (userData as { services?: { realtimeConversationId?: unknown } } | undefined)?.services
+    ?.realtimeConversationId;
+  return typeof id === 'string' && id ? id : undefined;
 }
 
 /** What happens once the dial ends: the hand-over, or the honest line at a pause. */
@@ -121,11 +111,12 @@ async function afterDial(
 export async function callMovingToPhone(
   port: CallUserPort,
   request: CallUserRequest,
-  session: object | undefined
+  run: CallRun | undefined
 ): Promise<string> {
+  const session = run?.session;
   const end = session ? enders.get(session) : undefined;
-  const turns = end ? recentTurns(session) : [];
-  const result = await port.call({ ...request, handover: { turns } });
+  const conversationId = end ? conversationOf(run?.userData) : undefined;
+  const result = await port.call({ ...request, handover: { conversationId } });
   if (!result.success) {
     return `I couldn't place the call, so no call is coming: ${result.error ?? 'unknown error'}`;
   }

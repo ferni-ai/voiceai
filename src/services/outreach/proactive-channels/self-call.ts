@@ -31,14 +31,9 @@ export type CallOutcome = Extract<
   'answered' | 'no_answer' | 'busy' | 'declined' | 'failed'
 >;
 
-/** A line of the app call a "call me" moved from (CALL_ME_MOVES_TO_PHONE, live-agent-call.ts). */
-export interface DispatchTurn {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
+/** `movedFrom`: the app call a "call me" moved from, by conversation id (live-agent-call.ts). */
 type DispatchTrigger = Pick<ProactiveTrigger, 'kind' | 'reason' | 'sourceId'> & {
-  recentTurns?: DispatchTurn[];
+  movedFrom?: string;
 };
 
 /** The LiveKit calls this makes; tests stub them (the SDK edge). */
@@ -71,7 +66,7 @@ export function selfCallDispatch(
     triggerReason: trigger.reason,
     triggerId: trigger.sourceId,
     openerStyle: 'warm',
-    ...(trigger.recentTurns && { recentTurns: trigger.recentTurns }),
+    ...(trigger.movedFrom && { movedFrom: trigger.movedFrom }),
   };
 }
 

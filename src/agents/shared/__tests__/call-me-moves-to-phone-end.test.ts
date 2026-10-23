@@ -87,7 +87,9 @@ const request = { userId: 'u1', phoneNumber: '+15555550123', message: 'hi', pers
 describe('an answered "call me" ends the app call', () => {
   it('says the short goodbye, then conversation_end as a planned goodbye, then closes the room', async () => {
     const c = await call();
-    expect(await callMovingToPhone(answeredPort, request, c.session)).toBe(RINGING_HAND_OVER);
+    expect(await callMovingToPhone(answeredPort, request, { session: c.session })).toBe(
+      RINGING_HAND_OVER
+    );
     await vi.waitFor(() =>
       expect(c.events).toContain('conversation_end goodbye_complete closing=true')
     );
@@ -102,7 +104,7 @@ describe('an answered "call me" ends the app call', () => {
 
   it('says nothing when the caller already left the app, and still ends it', async () => {
     const c = await call({ inRoom: false });
-    await callMovingToPhone(answeredPort, request, c.session);
+    await callMovingToPhone(answeredPort, request, { session: c.session });
     await vi.waitFor(() =>
       expect(c.events).toContain('conversation_end goodbye_complete closing=true')
     );
@@ -112,7 +114,7 @@ describe('an answered "call me" ends the app call', () => {
   it('a call with crisis risk is not ended: the caller ends that one', async () => {
     const c = await call();
     noteCrisisRisk(c.id);
-    await callMovingToPhone(answeredPort, request, c.session);
+    await callMovingToPhone(answeredPort, request, { session: c.session });
     await new Promise((r) => {
       setTimeout(r, 10);
     });
@@ -123,7 +125,9 @@ describe('an answered "call me" ends the app call', () => {
 
   it('a phone caller gets no ender: the live line, and nothing ends', async () => {
     const c = await call({ phone: true });
-    expect(await callMovingToPhone(answeredPort, request, c.session)).toBe(CALLING_LIVE);
+    expect(await callMovingToPhone(answeredPort, request, { session: c.session })).toBe(
+      CALLING_LIVE
+    );
     await new Promise((r) => {
       setTimeout(r, 10);
     });

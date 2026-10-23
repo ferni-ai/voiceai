@@ -433,7 +433,7 @@ Use for important check-ins or when a phone call is more personal than text.`,
           personaId: getCanonicalPersonaId(ctx.agentId || 'ferni'),
         };
         // CALL_ME_MOVES_TO_PHONE: an answered call ends this one (call-me-moves-to-phone.ts)
-        if (callMeMovesToPhone()) return callMovingToPhone(port, request, opts?.ctx?.session);
+        if (callMeMovesToPhone()) return callMovingToPhone(port, request, opts?.ctx);
         const result = await port.call(request);
 
         if (!result.success) {

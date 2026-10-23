@@ -37,25 +37,17 @@ const INBOUND_ACCOUNT_FIELDS = [
   'allowedPersonas',
 ] as const;
 
-interface HandoverTurn {
-  role: 'user' | 'assistant';
-  content: string;
-}
-
 /**
- * The app call's last turns a signed "call me" dispatch hands over
- * (CALL_ME_MOVES_TO_PHONE, live-agent-call.ts): only well-formed lines, capped.
+ * The app call a signed "call me" dispatch moved from (CALL_ME_MOVES_TO_PHONE,
+ * live-agent-call.ts): ids only, never its text. The turns are read from this
+ * user's own memory store (resume-after-drop.ts restoreMovedTurns).
  */
-export function handoverTurns(raw: unknown): HandoverTurn[] {
-  if (!Array.isArray(raw)) return [];
-  const turns: HandoverTurn[] = [];
-  for (const item of raw as Array<{ role?: unknown; content?: unknown } | null>) {
-    const role = item?.role;
-    const content = item?.content;
-    if ((role !== 'user' && role !== 'assistant') || typeof content !== 'string') continue;
-    turns.push({ role, content: content.slice(0, 300) });
-  }
-  return turns.slice(-6);
+export function movedFromOf(
+  metadata: Record<string, unknown>
+): { userId: string; conversationId: string } | undefined {
+  const { userId, movedFrom } = metadata;
+  if (typeof userId !== 'string' || !userId || typeof movedFrom !== 'string') return undefined;
+  return /^[\w-]{1,128}$/.test(movedFrom) ? { userId, conversationId: movedFrom } : undefined;
 }
 
 /**
@@ -324,7 +316,7 @@ export async function setupCallTypeContexts(
       const { setProactiveSessionContext } =
         await import('../../intelligence/context-builders/external/proactive-session-context.js');
 
-      const recentTurns = handoverTurns(metadata.recentTurns); // CALL_ME_MOVES_TO_PHONE
+      const movedFrom = movedFromOf(metadata); // CALL_ME_MOVES_TO_PHONE
       const proactiveContext = {
         triggerType: ((metadata.triggerType as string) ||
           'silence') as import('../../intelligence/context-builders/external/proactive-session-context.js').ProactiveTriggerType,
@@ -342,7 +334,7 @@ export async function setupCallTypeContexts(
         suggestedOpener: metadata.suggestedOpener as string | undefined,
         avoidances: metadata.avoidances as string[] | undefined,
         initiatingPersona: (metadata.persona_id as string) || 'ferni',
-        ...(recentTurns.length ? { recentTurns } : {}),
+        ...(movedFrom && { movedFrom }),
       };
 
       setProactiveSessionContext(sessionId, proactiveContext);

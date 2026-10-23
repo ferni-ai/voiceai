@@ -6,7 +6,9 @@
  * announced as "calling you now".
  *
  * On: nothing is said until LiveKit has taken the dial; answered ends the app
- * call (its ender) after the app call's last turns went to the phone agent;
+ * call (its ender), and the phone agent gets a reference to the app call's
+ * conversation (an id; never its text, which would sit in LiveKit's dispatch
+ * metadata);
  * unanswered or failed keeps it open and says so. Off: unchanged.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -18,7 +20,6 @@ import type { VoiceCallback } from '../../../simple-utilities/voice-callbacks.js
 import {
   DIAL_ACCEPT_MS,
   DIAL_FAILED,
-  HANDOVER_TURNS,
   MOVED_GOODBYE,
   RINGING_HAND_OVER,
   setPhoneMoveEnd,
@@ -36,21 +37,19 @@ type Executable = { execute: (args: Record<string, unknown>, o: unknown) => Prom
 const USER = 'owner-uid';
 const PHONE = '+15555550123';
 
-/** The app call's history, as AgentSession.history holds it (oldest first). */
-function appSession(lines: number) {
-  const items: Array<{ type: string; role: string; textContent?: string }> = [
-    { type: 'message', role: 'system', textContent: 'You are Ferni.' },
-  ];
-  for (let i = 0; i < lines; i++) {
-    items.push({
-      type: 'message',
-      role: i % 2 === 0 ? 'user' : 'assistant',
-      textContent: i % 2 === 0 ? `user line ${i}` : `<expr/>ferni line ${i}`,
-    });
-  }
-  items.push({ type: 'function_call', role: 'assistant' });
-  return { history: { items } };
+const CONVERSATION = 'conv_1761234567890_abc123';
+const SAID = 'my sister is moving to Denver next month';
+
+/** The app call's AgentSession: its history holds what was said. */
+function appSession() {
+  return { history: { items: [{ type: 'message', role: 'user', textContent: SAID }] } };
 }
+
+/** The call's userData: session-manager's services, with the conversation it persists to. */
+const userDataFor = (conversationId = CONVERSATION) => ({
+  userId: USER,
+  services: { realtimeConversationId: conversationId },
+});
 
 /** A dial the test settles by hand. */
 function pendingDial() {
@@ -78,10 +77,10 @@ function callUser(): Executable {
   return def.create(ctx) as Executable;
 }
 
-const ask = (session: object) =>
+const ask = (session: object, userData: object = userDataFor()) =>
   callUser().execute(
     { reason: 'can you give me a call', message: 'Calling like you asked.' },
-    { toolCallId: 't', ctx: { session, userData: { userId: USER } } }
+    { toolCallId: 't', ctx: { session, userData } }
   );
 
 const spoken: VoiceCallback[] = [];
@@ -102,8 +101,8 @@ afterEach(() => {
 });
 
 /** An app call with its ender and its voice-callback speaker registered, as a live call has. */
-function appCall(lines = 10) {
-  const session = appSession(lines);
+function appCall() {
+  const session = appSession();
   const end = vi.fn(async (_line: string) => true);
   setPhoneMoveEnd(session, end);
   unregister = registerVoiceCallbackHandler(USER, async (cb) => void spoken.push(cb), session);
@@ -111,7 +110,7 @@ function appCall(lines = 10) {
 }
 
 describe('CALL_ME_MOVES_TO_PHONE=on', () => {
-  it('answered: says "pick up" only once the dial is taken, hands over the last turns, then ends the app call', async () => {
+  it('answered: says "pick up" only once the dial is taken, hands over a reference, then ends the app call', async () => {
     const { session, end } = appCall();
     const { dial, settle } = pendingDial();
     portReturning({ success: true, status: 'initiated', live: true, dial });
@@ -123,11 +122,9 @@ describe('CALL_ME_MOVES_TO_PHONE=on', () => {
     await vi.advanceTimersByTimeAsync(1);
     expect(reply).toBe(RINGING_HAND_OVER);
 
-    const turns = requests[0].handover?.turns ?? [];
-    expect(turns).toHaveLength(HANDOVER_TURNS);
-    expect(turns.at(-1)).toEqual({ role: 'assistant', content: 'ferni line 9' });
-    expect(turns[0]).toEqual({ role: 'user', content: 'user line 4' });
-    expect(turns.map((t) => t.role)).not.toContain('system');
+    expect(requests[0].handover).toEqual({ conversationId: CONVERSATION });
+    // The reference only: nothing the caller said leaves this call
+    expect(JSON.stringify(requests[0])).not.toContain(SAID);
 
     expect(end).not.toHaveBeenCalled(); // still ringing: the app call stays
     settle('answered');
@@ -182,14 +179,23 @@ describe('CALL_ME_MOVES_TO_PHONE=on', () => {
     expect(end).not.toHaveBeenCalled();
   });
 
-  it('a call with no ender (a phone caller): the honest live line, no turns, nothing ends', async () => {
-    const session = appSession(4);
+  it('memory held for this call (no conversation persisted): the call still moves, with no reference', async () => {
+    const { session } = appCall();
+    portReturning({ success: true, status: 'initiated', live: true, dial: pendingDial().dial });
+    const reply = ask(session, { userId: USER, services: {} });
+    await vi.advanceTimersByTimeAsync(DIAL_ACCEPT_MS);
+    expect(await reply).toBe(RINGING_HAND_OVER);
+    expect(requests[0].handover).toEqual({ conversationId: undefined });
+  });
+
+  it('a call with no ender (a phone caller): the honest live line, no reference, nothing ends', async () => {
+    const session = appSession();
     const { dial, settle } = pendingDial();
     portReturning({ success: true, status: 'initiated', live: true, dial });
     const reply = ask(session);
     await vi.advanceTimersByTimeAsync(DIAL_ACCEPT_MS);
     expect(await reply).toBe(CALLING_LIVE);
-    expect(requests[0].handover).toEqual({ turns: [] });
+    expect(requests[0].handover).toEqual({ conversationId: undefined });
     settle('answered');
     await vi.advanceTimersByTimeAsync(0);
   });

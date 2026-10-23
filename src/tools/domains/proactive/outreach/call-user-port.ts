@@ -14,16 +14,11 @@ export interface CallUserRequest {
   message: string;
   personaId: string;
   /**
-   * CALL_ME_MOVES_TO_PHONE: report the live dial back (CallUserResult.dial), and hand
-   * the phone agent this app call's last turns (empty when there is no call to move).
+   * CALL_ME_MOVES_TO_PHONE: report the live dial back (CallUserResult.dial), and point
+   * the phone agent at the app call's conversation (an id, never its text; none when
+   * there is no call to move).
    */
-  handover?: { turns: HandoverTurn[] };
-}
-
-/** One line of the app call, for the phone agent's history. */
-export interface HandoverTurn {
-  role: 'user' | 'assistant';
-  content: string;
+  handover?: { conversationId?: string };
 }
 
 /** How a live dial ended (self-call.ts CallOutcome). */
