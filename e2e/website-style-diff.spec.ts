@@ -193,6 +193,15 @@ async function open(browser: Browser, site: string, path: string, mode: Mode): P
   });
   const response = await page.goto(`${site}${path}`, { waitUntil: 'load' });
   expect(response?.ok(), `${site}${path}`).toBe(true);
+  // Settle the paused clock. Playwright's page-side clock starts in real time
+  // with a 100ms native timer armed, and replaying the pause above in the new
+  // document doesn't cancel it, so about 100ms of real time after the page
+  // starts it fires the fake timers already due, once. Whether that happens
+  // before the read is a race: the memory demo's first moment gets
+  // `is-visible` from a setTimeout(..., 0) (js/landing-animations.js
+  // revealMoment) only in the loads where it won. Pausing again in the page
+  // cancels that timer and fires every due timer now, in every load.
+  await page.clock.pauseAt(time);
   await page.addStyleTag({ content: STILL_CSS });
   if (mode === 'night') {
     await page.evaluate(() => document.body.classList.add('theme--dark', 'time-mode--night'));

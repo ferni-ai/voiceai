@@ -101,7 +101,9 @@ async function queryOldPendingTriggers() {
   }
 
   const cutoffMs = Date.now() - PENDING_MAX_AGE_MS;
-  const snapshot = await getFirestore()
+  // The process's database, as the app's getFirestoreDatabase() picks it; a bare
+  // getFirestore() is always '(default)'.
+  const snapshot = await getFirestore(process.env.FIRESTORE_DATABASE || '(default)')
     .collection('outreach_triggers')
     .where('status', '==', 'pending')
     .limit(PENDING_SCAN_LIMIT)

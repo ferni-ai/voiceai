@@ -20,6 +20,7 @@
  */
 
 import { llm } from '@livekit/agents';
+import { isPrivacyTool } from '../../config/privacy-tools.js';
 import { isFindableTool } from '../dynamic-loader/findable-domains.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { DenseToolIndex, Embedder } from './dense-index.js';
@@ -50,8 +51,7 @@ export function toolRetrievalMode(
 /** Never left to retrieval: handoffs and every safety tool. */
 export const CORE_DOMAINS = ['handoff', 'crisis', 'trauma-support', 'human-transfer'] as const;
 export const CORE_TOOLS = [
-  // Date, time and location: the model reaches for it before many requests
-  // (e.g. "weather tomorrow?"), whatever the topic (dev shadow run, 2026-09-29).
+  // Date, time, location: reached for before many requests, any topic (dev shadow 2026-09-29).
   'getCurrentContext',
   'recallFromMemory',
   'rememberAboutUser',
@@ -67,8 +67,7 @@ export const CORE_TOOLS = [
   'gameState',
   'findCoachingResources', // Coaching resources (COACH_MEDIA=on): not in the intent index.
   'coachingPick',
-  // Hanging up an on-behalf phone call (agents/outbound-call/call-control.ts); a
-  // goodbye's words never point retrieval at it.
+  // Hangs up an on-behalf call (outbound-call/call-control.ts); goodbyes never point at it.
   'endCall',
 ] as const;
 
@@ -324,6 +323,7 @@ export class TurnToolRetrieval {
 
   isCore(tool: string): boolean {
     return (
+      isPrivacyTool(tool) || // forget and correct a memory: never left to retrieval
       (CORE_TOOLS as readonly string[]).includes(tool) ||
       (CORE_DOMAINS as readonly string[]).includes(this.opts.domainOf(tool) ?? '')
     );

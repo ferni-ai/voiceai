@@ -8,7 +8,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { checkWarnings } from '../early-warning.js';
 import { getWellbeingProfile } from '../index.js';
-import { mentions, resolveEarlyWarningWordBoundary } from '../phrase-match.js';
+import { mentions, resolveEarlyWarningWordBoundary } from '../../../utils/phrase-match.js';
 
 let users = 0;
 /** The warning types checkWarnings raises for one message, on a fresh profile. */

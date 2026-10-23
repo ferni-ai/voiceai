@@ -1,11 +1,13 @@
 # Seed for facts-recall.txt: the caller tells Ferni about their own week.
-# Facts to recall later: a job interview at Stripe on Monday (nervous about the
-# system design round), sister Priya's wedding in Lisbon next month, a first
-# pottery class on Thursday, and a neighbour's cat named Mochi that keeps
-# sneaking in.
-Hey Ferni! Big week coming up.
-I've got a job interview at Stripe on Monday. I'm kind of nervous about the system design round.
+# Facts to recall later: a job interview at Stripe today (nervous about how the
+# system design round went), sister Priya's wedding in Lisbon next month, a
+# first pottery class on Thursday, and a neighbour's cat named Mochi that keeps
+# sneaking in. The interview is already over: facts-recall plays minutes later
+# and asks how it turned out, which only makes sense once it has happened (the
+# 1cf4bd64b A/B had it "on Monday", and Ferni rightly said it hadn't happened yet).
+Hey Ferni! Big day today.
+I had a job interview at Stripe today. I'm kind of nervous about how the system design round went.
 And my sister Priya is getting married next month, in Lisbon. I still need to book flights.
 Oh, and I signed up for a pottery class. First one is Thursday.
 Also my neighbour's cat, Mochi, keeps sneaking into my kitchen. I think she likes me.
-Okay, I should go prep. Talk soon.
+Okay, I should go decompress. Talk soon.
