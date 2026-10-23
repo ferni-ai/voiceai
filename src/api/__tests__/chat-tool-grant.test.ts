@@ -162,6 +162,27 @@ describe('admin calls need an explicit, logged grant', () => {
   });
 });
 
+describe('the admin grant has limits', () => {
+  it('no grant covers the executeTool meta-tool, which hides the tool that runs', async () => {
+    const body = { grant: 'admin', args: { toolName: 'paybill', args: {} } };
+    expect(await runTool('admin-uid', 'executeTool', body)).toBe(403);
+    expect(executeTool).not.toHaveBeenCalled();
+  });
+
+  it('a non-string tool name is refused even under the grant', async () => {
+    expect(await runTool('admin-uid', { name: 'paybill' } as never, { grant: 'admin' })).toBe(403);
+    expect(executeTool).not.toHaveBeenCalled();
+  });
+
+  it('an admin running an offered tool for someone else is logged at warn', async () => {
+    expect(await runTool('admin-uid', 'sendEmail', { userId: 'bob' })).toBe(200);
+    expect(accessLog.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ actingUserId: 'bob', tool: 'sendEmail', grant: 'offered' }),
+      expect.any(String)
+    );
+  });
+});
+
 describe('POST /api/chat/message runs only offered tools', () => {
   it('a model call to a tool it was not offered does not run, even for an admin', async () => {
     llm.calls = [{ name: 'paybill', args: {} }];

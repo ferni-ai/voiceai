@@ -57,7 +57,8 @@ export function offeredChatTools<T extends { name: string }>(tools: T[], isAdmin
 
 /**
  * True, after logging, when this tool may not run: it wasn't offered to this
- * caller and no explicit admin grant covers it. Logs every admin call it allows.
+ * caller and no explicit admin grant covers it. Logs every admin call it allows,
+ * at warn when it passes the offered list or acts for someone else.
  */
 export function refuseChatTool(
   fn: unknown,
@@ -65,15 +66,19 @@ export function refuseChatTool(
   offered: ReadonlyArray<{ name: string }>,
   requestedGrant?: unknown
 ): boolean {
-  const isOffered = typeof fn === 'string' && offered.some((t) => t.name === fn);
-  const adminGrant = caller.isAdmin && requestedGrant === 'admin';
+  // The executeTool meta-tool hides which tool runs, so no grant covers it.
+  const named = typeof fn === 'string' && fn !== 'executeTool';
+  const isOffered = named && offered.some((t) => t.name === fn);
+  const adminGrant = named && caller.isAdmin && requestedGrant === 'admin';
   const who = { callerId: caller.userId, actingUserId: caller.actingUserId, tool: fn };
   if (!isOffered && !adminGrant) {
     log.warn({ ...who, isAdmin: caller.isAdmin }, 'Refused a chat tool call: not offered');
     return true;
   }
-  if (!isOffered)
-    log.warn({ ...who, grant: 'admin' }, 'Admin chat tool call past the offered list');
-  else if (caller.isAdmin) log.info({ ...who, grant: 'offered' }, 'Admin chat tool call');
+  if (!caller.isAdmin) return false;
+  const grant = isOffered ? 'offered' : 'admin';
+  const forSomeoneElse = (caller.actingUserId ?? caller.userId) !== caller.userId;
+  if (grant === 'admin' || forSomeoneElse) log.warn({ ...who, grant }, 'Admin chat tool call');
+  else log.info({ ...who, grant }, 'Admin chat tool call');
   return false;
 }
