@@ -24,6 +24,7 @@ import type {
   ToolMatch,
 } from './types.js';
 import { getKeywordWeight, getKeywordWord } from './types.js';
+import * as additiveContext from './context-additive.js'; // ROUTER_CONTEXT_ADDITIVE
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import { batchCosineSimilarityOptimized, cosineSimilarity } from '../../memory/rust-accelerator.js';
 // Re-export for backwards compatibility with existing consumers
@@ -670,9 +671,11 @@ function runContextLayer(
 
 function combineAndSortMatches(scoreMap: ScoreMap, config: SemanticRouterConfig): ToolMatch[] {
   const matches: ToolMatch[] = [];
+  const additive = additiveContext.contextAdditive(); // ROUTER_CONTEXT_ADDITIVE: base without context, then add it
 
   scoreMap.forEach((scores, toolId) => {
-    const { weightedScore, totalWeight } = calculateWeightedScore(scores, config);
+    const base = additiveContext.scoreWithoutContext(scores, additive);
+    const { weightedScore, totalWeight } = calculateWeightedScore(base, config);
     let confidence = totalWeight > 0 ? weightedScore / totalWeight : 0;
 
     // CRITICAL: Perfect pattern match (1.0) should override combined confidence
@@ -684,12 +687,9 @@ function combineAndSortMatches(scoreMap: ScoreMap, config: SemanticRouterConfig)
       // Regex pattern match (0.95) should also be very high confidence
       confidence = Math.max(confidence, 0.95);
     } else {
-      // IMPROVED CONFIDENCE SCORING (January 2026)
-      // Apply penalties for ambiguous matches to reduce misfires on conversational text
+      // IMPROVED CONFIDENCE SCORING (January 2026): penalize ambiguous, conversational matches
 
-      // Penalty 1: Mixed signals penalty
-      // If we have keyword matches but no pattern match, reduce confidence
-      // This catches "I want to play" (conversational) vs "play jazz music" (clear intent)
+      // Penalty 1: mixed signals (keywords, no pattern): "I want to play" vs "play jazz music"
       if (scores.keyword > 0 && scores.pattern < 0.5) {
         const mixedSignalPenalty = 0.15;
         confidence = Math.max(0, confidence - mixedSignalPenalty);
@@ -702,9 +702,8 @@ function combineAndSortMatches(scoreMap: ScoreMap, config: SemanticRouterConfig)
         confidence = Math.max(0, confidence - lowEmbeddingPenalty);
       }
 
-      // Penalty 3: Single weak signal
-      // If only one layer matched and it's not pattern, reduce confidence
-      const matchingLayers = scores.matchedBy.length;
+      // Penalty 3: Single weak signal (only one layer matched and it's not pattern)
+      const matchingLayers = base.matchedBy.length;
       if (matchingLayers === 1 && !scores.matchedBy.includes('pattern')) {
         const singleLayerPenalty = 0.1;
         confidence = Math.max(0, confidence - singleLayerPenalty);
@@ -717,6 +716,7 @@ function combineAndSortMatches(scoreMap: ScoreMap, config: SemanticRouterConfig)
         confidence = Math.min(0.99, confidence + multiLayerBonus); // Cap below 1.0 for non-perfect matches
       }
     }
+    confidence = additiveContext.addContextBonus(confidence, scores, additive);
 
     if (confidence >= config.thresholds.minimum) {
       matches.push({
@@ -841,14 +841,10 @@ export function runCombinedMatching(
   runPatternLayer(config, normalizedText, allTools, scoreMap, timings);
   runKeywordLayer(config, tokens, allTools, scoreMap, timings);
   runEmbeddingLayer(config, context?.queryEmbedding, allTools, scoreMap, timings);
-  runContextLayer(
-    config,
-    context?.conversationHistory,
-    context?.recentTools,
-    allTools,
-    scoreMap,
-    timings
-  );
+  const earlier = additiveContext.contextAdditive()
+    ? additiveContext.historyBeforeTurn(context?.conversationHistory, inputText)
+    : context?.conversationHistory;
+  runContextLayer(config, earlier, context?.recentTools, allTools, scoreMap, timings);
 
   // Run holistic NLU layer (relationship, emotion, multi-intent detection)
   const holisticResult = runHolisticLayer(
