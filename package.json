@@ -273,6 +273,7 @@
     "debt:json": "npx tsx apps/cli/src/commands/quality/tech-debt.ts --json",
     "debt:markdown": "npx tsx apps/cli/src/commands/quality/tech-debt.ts --markdown",
     "quality:arch": "npx tsx apps/cli/src/commands/quality/architecture-gate.ts",
+    "quality:decisions": "npx tsx apps/cli/src/commands/quality/decision-gate.ts",
     "quality:lint-coverage": "npx tsx apps/cli/src/commands/quality/lint-coverage-ratchet.ts",
     "quality:full": "npm run quality && npm run quality:check && npm run quality:arch && npm run brand:check && npm run tokens:check && npm run i18n:check && npm run lint:design",
     "quality:deploy": "npx tsx apps/cli/src/commands/quality/check-deploy-safety.ts --all",
