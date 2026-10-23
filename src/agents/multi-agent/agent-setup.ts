@@ -84,6 +84,7 @@ import {
   initializeToolOrchestrator,
   isOrchestratorInitialized,
 } from '../../tools/orchestrator/voice-agent-integration.js';
+import * as toolPolicy from '../../tools/orchestrator/persona-tool-policy.js'; // PERSONA_TOOL_POLICY
 // Tool Gateway (2026 architecture) - tiered loading, predictive prefetch
 import { getToolGateway } from '../../tools/gateway/index.js';
 import {
@@ -985,12 +986,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const toolsCtx = { userId: userId || 'anonymous', sessionId, agentId: persona.id };
   const named = { ...toolsCtx, agentDisplayName: persona.name || persona.id };
   const withJournal = await withCallJournalTools(loadedTools, named); // CALL_JOURNAL=on
-  const orchestratorTools = await withAlwaysOnTools(withJournal, named, isHandoff === true);
+  const withAlwaysOn = await withAlwaysOnTools(withJournal, named, isHandoff === true);
+  const orchestratorTools = await toolPolicy.applyPersonaToolPolicy(withAlwaysOn, persona.id);
 
-  // =========================================================================
-  // 🔍 CRITICAL VISIBILITY: Log exactly what tools are available to LLM
-  // This helps debug "tools not working" issues
-  // =========================================================================
+  // 🔍 Log exactly what tools the LLM gets: this helps debug "tools not working" issues
   const toolCount = Object.keys(orchestratorTools).length;
   const toolNames = Object.keys(orchestratorTools);
   const sampleTools = toolNames.slice(0, 10).join(', ');
@@ -1590,8 +1589,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   log.info({ personaId: persona.id }, '🔍 Enhanced error logging attached to LLM and session');
 
-  // Create agent wrapper WITH TOOLS using FerniAgent (has ttsNode override for JSON sanitizer)
-  // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
+  // FerniAgent (below): its ttsNode filters {"fn":"startGame","args":{}} JSON before TTS speaks it.
   // Per-turn intelligence (context builders, memory retrieval, emotional
   // guidance). On unless TURN_INTELLIGENCE=off; see turn-intelligence.ts.
   const turnContextHook =
@@ -1612,6 +1610,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     skipGreeting: true,
     ...(callSession && { voice: { llm: llmModel, tts } }),
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
+  toolPolicy.rememberAgentPersona(agent, persona.id); // the policy follows the agent, not userData
 
   // Memory recall, added as the user's words are transcribed (interims too), before the
   // SDK's preemptive generation; memory-recall-hook.ts says why. The name lift rides along.
@@ -1629,7 +1628,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       nameLift?.(evt.transcript);
       const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
       // CONTEXT_PACKET=on: what it picked rides the turn's packet, labelled (turn-packet.ts).
-      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note);
+      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note, evt.transcript);
     };
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();
@@ -1810,8 +1809,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
         // =====================================================================
         // 🎙️ WAVE 2: Live backchanneling (mid-speech presence during breath pauses)
-        // Initializes session-scoped breath/backchannel state so soft verbal
-        // feedback ("mm-hmm") can be considered during user speech. The
+        // Session-scoped breath/backchannel state for soft "mm-hmm"s during user speech. The
         // subscribed audio track below feeds the same frames into breath-pause
         // detection and the prosody/audio processor.
         // =====================================================================
@@ -1824,6 +1822,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           agent: agentNow,
           dynamicToolLoader,
           cleanupFunctions,
+          phone: config.phoneCaller,
         });
         if (staticCoreToolsEnabled()) {
           // findTools appends what it finds to the agent on the call now.

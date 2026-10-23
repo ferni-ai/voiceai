@@ -81,12 +81,22 @@ describe('pronunciationDictItems', () => {
     }
   });
 
-  it('lets the IPA tables win over the sounds-like names', () => {
-    expect(entryFor('Nayan', items)?.pronunciation).toBe(TEAM_NAME_PRONUNCIATIONS.Nayan);
-    expect(COMMON_DIFFICULT_NAMES.nayan).not.toBe(TEAM_NAME_PRONUNCIATIONS.Nayan);
+  it("leaves callers' names to Sonic: no untested sounds-like spelling of a common name", () => {
+    // 2026-10-22: the owner heard Ferni say names "way off". These were among
+    // 107 forced on every caller with that name, however they say it.
+    for (const word of ['Chloe', 'Zoe', 'Liam', 'Bjorn', 'Leila', 'Joao', 'Niamh', 'Sean']) {
+      expect(COMMON_DIFFICULT_NAMES[word.toLowerCase()], word).toBeDefined();
+      expect(entryFor(word, items), word).toBeUndefined();
+    }
+    const tested = new Set([
+      ...Object.keys(NAME_IPA),
+      ...Object.keys(SPOKEN_WORD_PRONUNCIATIONS),
+      ...Object.keys(TEAM_NAME_PRONUNCIATIONS),
+    ]);
+    expect(items.filter((i) => !tested.has(i.text)).map((i) => i.text)).toEqual([]);
+    // The tested IPA still covers names Sonic misread with no entry.
     expect(entryFor('Siobhan', items)?.pronunciation).toBe(NAME_IPA.Siobhan);
-    expect(COMMON_DIFFICULT_NAMES.siobhan).toBe('Shi-vawn');
-    expect(entryFor('Niamh', items)?.pronunciation).toBe('Neev');
+    expect(entryFor('Nayan', items)?.pronunciation).toBe(TEAM_NAME_PRONUNCIATIONS.Nayan);
   });
 
   it('covers every teammate, legend and story place, and their possessives through the base word', () => {

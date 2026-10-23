@@ -198,10 +198,11 @@ describe('TURN_MEMORY_RERANK', () => {
 describe('readVerdict', () => {
   it('keeps listed candidates, drops old ones, out-of-range numbers and low confidence', () => {
     const v = readVerdict(`{"keep":[[1,0.9],[2,0.8],[3,${MIN_JUDGE_CONFIDENCE - 0.1}],[9,1]],"old":[2]}`, 3); // prettier-ignore
-    expect([...(v ?? [])]).toEqual([0]);
+    expect([...(v?.keep ?? [])]).toEqual([0]);
+    expect([...(v?.old ?? [])]).toEqual([1]);
   });
   it('reads fenced JSON and bare numbers; null for prose or a missing keep list', () => {
-    expect([...(readVerdict('```json\n{"keep":[2]}\n```', 2) ?? [])]).toEqual([1]);
+    expect([...(readVerdict('```json\n{"keep":[2]}\n```', 2)?.keep ?? [])]).toEqual([1]);
     expect(readVerdict('the first one', 2)).toBeNull();
     expect(readVerdict('{"old":[1]}', 2)).toBeNull();
   });
@@ -211,7 +212,9 @@ describe('readVerdict', () => {
     ];
     const env = { TURN_MEMORY_RERANK: 'on', TURN_MEMORY_RERANK_TIMEOUT_MS: '2000' };
     const metrics = { rerankMs: 0, rerankingApplied: false };
-    expect(await gateTurnMemories(fused, 'some turn text', false, metrics, env)).toBe(fused);
+    expect(
+      await gateTurnMemories(fused, { transcript: 'some turn text' }, false, metrics, env)
+    ).toBe(fused);
     expect(fake.prompts).toEqual([]);
   });
   it('TURN_MEMORY_RERANK is on only with TURN_MEMORY_RRF_SCALE', () => {

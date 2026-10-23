@@ -42,17 +42,21 @@ export function canPlaceCalls(env: Record<string, string | undefined> = process.
   return Boolean(env.SIP_TRUNK_ID && env.LIVEKIT_URL && env.LIVEKIT_API_SECRET);
 }
 
-/** What the agent job gets: the user on the line is the user, and why Ferni called. */
+/**
+ * What the agent job gets: the user on the line is the user, why we called,
+ * and who calls (the agent speaks as persona_id, in that persona's voice).
+ */
 export function selfCallDispatch(
   userId: string,
   callId: string,
-  trigger: Pick<ProactiveTrigger, 'kind' | 'reason' | 'sourceId'>
+  trigger: Pick<ProactiveTrigger, 'kind' | 'reason' | 'sourceId'>,
+  personaId = 'ferni'
 ): Record<string, unknown> {
   return {
     type: 'proactive_outreach',
     callId,
     userId,
-    persona_id: 'ferni',
+    persona_id: personaId,
     triggerType: trigger.kind,
     triggerReason: trigger.reason,
     triggerId: trigger.sourceId,
@@ -106,7 +110,8 @@ export async function placeSelfCall(
   userId: string,
   phone: string,
   trigger: Pick<ProactiveTrigger, 'kind' | 'reason' | 'sourceId'>,
-  sip?: SipApi
+  sip?: SipApi,
+  personaId = 'ferni'
 ): Promise<CallOutcome> {
   const trunkId = process.env.SIP_TRUNK_ID;
   const secret = dispatchSigningSecret();
@@ -119,7 +124,7 @@ export async function placeSelfCall(
   const api = sip ?? (await livekitSip());
   try {
     await api.createRoom(room);
-    const signed = signDispatch(selfCallDispatch(userId, callId, trigger), secret);
+    const signed = signDispatch(selfCallDispatch(userId, callId, trigger, personaId), secret);
     await api.dispatchAgent(room, JSON.stringify(signed));
     await api.dial(trunkId, phone, room, callId);
     log.info(

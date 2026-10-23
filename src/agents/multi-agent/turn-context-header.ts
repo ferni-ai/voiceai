@@ -15,6 +15,9 @@ export const TURN_CONTEXT_HEADER =
  */
 export const NO_NEW_WORDS_NOTE = "(They haven't said anything since your last words.)";
 
+/** The key, in a pushed note's `extra`, of the caller's words it was built for. */
+export const TURN_CONTEXT_FOR = 'turnContextFor';
+
 /** What a pushed note is cut to, so it can't grow the session's context unboundedly. */
 export const MAX_PUSHED_CONTEXT_CHARS = 2000;
 

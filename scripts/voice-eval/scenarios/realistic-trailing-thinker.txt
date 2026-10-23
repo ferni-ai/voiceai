@@ -1,0 +1,8 @@
+# Low cooperation: thinks out loud; pauses sit where the sentence is plainly unfinished (#2289: cut
+# off, then a reminder at a time never given). Watch: takeoverRate, falseEndRate, asking when.
+#@caller trailing-thinker
+Hey Ferni. So I was gonna, [[slnc 1200]] I was gonna ask you something.
+Can you remind me, [[slnc 1400]] um, next time I book the dentist, to [[slnc 1000]] to ask about the night guard thing?
+I don't know when that is yet. Maybe, like, [[slnc 1300]] sometime after the holidays.
+And my brother's birthday is the, [[slnc 1100]] the twelfth? Or the fourteenth. I always forget which...
+Okay, um, [[slnc 900]] I think that's it. Thanks.

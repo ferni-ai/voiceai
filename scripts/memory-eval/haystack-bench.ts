@@ -29,7 +29,12 @@ import { join } from 'node:path';
 import { getExtractionModel } from '../../src/config/gemini-config.js';
 import { getGenerativeModel } from '../../src/config/generative-model.js';
 import { getEmbeddingProvider } from '../../src/memory/vectors/embeddings.js';
-import { buildHaystack, haystackTurns, type HaystackCases } from './haystack-lib.js';
+import {
+  buildHaystack,
+  haystackTurns,
+  type FollowUps,
+  type HaystackCases,
+} from './haystack-lib.js';
 import type { BenchCaller } from './recall-bench-lib.js';
 
 const MAX_SIZE = 1000;
@@ -48,6 +53,9 @@ async function main(): Promise<void> {
     for (const m of buildHaystack(caller, cases, MAX_SIZE)) texts.add(m.text);
     for (const t of haystackTurns(caller, cases)) texts.add(t.text);
   }
+  const followUps = readJson<FollowUps>('fixtures/haystack-followups.json');
+  for (const pairs of Object.values(followUps.callers))
+    for (const [, next] of pairs) texts.add(next);
 
   const provider = getEmbeddingProvider();
   const model = (provider as { model?: string }).model ?? provider.constructor.name;

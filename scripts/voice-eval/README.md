@@ -20,3 +20,46 @@ caught bugs it missed. So gate on deterministic predicates (`predicates/`), and 
    SD, the A/B correlation, and MDE80 (the smallest true change a sweep of `--scenarios N` finds
    80% of the time). A CI spanning 0 is not a change; an MDE above the change you care about means
    add scenarios or repeats, not read the judge's means harder.
+
+## Checking a release
+
+`release-check.mjs` runs steps 2 and 3 against an env that already runs the candidate, and decides.
+It deploys nothing and calls nobody: it reads the sweep run files and the agent's Cloud Logging
+lines (`cloud-agents`, project `johnb-2025`; `lk agent logs` misses other replicas).
+
+```bash
+node scripts/voice-eval/release-check.mjs dev <candidate-sha> <baseline-sha> \
+  --candidate <candidate-sweep-dir> --baseline <baseline-sweep-dir> --out release-check.txt
+```
+
+Use `--out`, not `| tee`: the file ends with the result and the exit code, and a pipe would hide
+the exit code and drop errors.
+
+**Not a release gate yet.** Without the liveness and missed-crisis checks (#2475), a sweep of
+captionless or empty calls can PASS, so don't promote on this output until those land.
+
+- **Self-test:** each gating predicate must fail a known-bad call, loaded through `loadSweep`.
+- **Provenance:** each call's room maps to its workers and the commit on each worker's last boot
+  `EFFECTIVE_SETTINGS` before the call. Every candidate call must be on the candidate commit, and
+  the baseline needs log lines too. A baseline from before `.build-sha` (2026-10-22) logs
+  `"commit":"unknown"`: that is INCONCLUSIVE unless you pass `--allow-unstamped-baseline` (a NOTE).
+- **Coverage:** the candidate must run every baseline scenario. Unreadable run files are listed.
+  Either one is INCONCLUSIVE.
+- **Gates:** a gating predicate's hit on any candidate call is a FAIL, shared scenario or not.
+- **Primary metrics**, fixed before the sweep: `gate` (share of calls passing every gate, margin
+  0.10) and `replyGapMedMs` (median REPLY gap per call, margin 300 ms), paired with a 95% CI from
+  scenario resamples. PASS when the CI stays inside the margin (a NOTE if it is worse but inside),
+  FAIL when the CI shows it worse, INCONCLUSIVE otherwise or under 10 shared scenarios.
+- **Exit:** 0 PASS, 1 FAIL, 3 INCONCLUSIVE (add scenarios or repeats), 2 harness
+  error, 4 `--dry-run` (prints the log queries; nothing checked). `--offline` skips the logs, so it
+  can't PASS. `--logs DIR` caches the logs, keyed by query.
+
+## Realistic callers
+
+Cooperative scripted callers in clean TTS made every number so far. `run.sh --realistic` (options in
+its header) adds ums, restarts, a varied rate and 400–1500 ms mid-thought pauses (`caller-realism.mjs`,
+`caller-personas.json`); `realistic-*` scenarios are low-cooperation callers (#2333, #2289, #2422).
+Each run writes `<run>.realism.json`: takeover and false-end rates, gap and barge-in stop p50/p90
+(see `realism-metrics.mjs`). An unanswered turn counts as 15 s, so a short call's gap p90 mostly says
+whether any turn went unanswered: read `rt:unanswered-rate` beside it. `values` (`rt:*`) are
+`pairedCompare` input: `realism-metrics.mjs paired <A> <B>`, or add `realismValues(dir)` to `sweepValues(dir)`.
