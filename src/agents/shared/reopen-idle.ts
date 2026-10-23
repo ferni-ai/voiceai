@@ -7,12 +7,15 @@
  * After a reopen: REOPEN_CHECK_IN_MS of quiet, and Ferni checks in once with a
  * short, warm line; IDLE_TIMEOUT's DISCONNECT_THRESHOLD_SECONDS of quiet, and
  * the call ends (`end`: wrapUpCall, which never ends a call with crisis risk).
- * The caller speaking, or Ferni replying before the check-in, starts the quiet
- * over. Ferni's own check-in does not.
+ * The caller speaking (voice activity, a transcript or a turn), or Ferni
+ * replying before the check-in, starts the quiet over; Ferni's own check-in
+ * does not. One watcher per call: a second reopen, or a persona swap's own
+ * wrap-up on the same session, replaces it.
  *
  * @module agents/shared/reopen-idle
  */
 import { voice } from '@livekit/agents';
+import type { CallerWatch } from './caller-activity.js';
 import { IDLE_TIMEOUT } from './constants.js';
 
 /** Quiet after a reopen before Ferni checks in, once. */
@@ -26,6 +29,8 @@ interface SessionEvents {
 }
 
 const EV = voice.AgentSessionEventTypes;
+/** The running watcher's stop, per AgentSession. */
+const watchers = new WeakMap<object, () => void>();
 
 /** Watch a reopened call for quiet; returns the stop (also run when the session closes). */
 export function watchReopenIdle(
@@ -33,16 +38,18 @@ export function watchReopenIdle(
   opts: {
     checkIn: () => void;
     end: () => void;
+    /** The caller's transcripts and turns, and whether they are mid-utterance (caller-activity.ts). */
+    caller: CallerWatch;
     setTimer: (fn: () => void, ms: number) => unknown;
     clearTimer: (handle: unknown) => void;
   }
 ): () => void {
   const session = agentSession as SessionEvents;
+  watchers.get(agentSession)?.();
   const timers: unknown[] = [];
   let checkedIn = false;
   let agent = 'listening';
-  let user = 'listening';
-  const quiet = (): boolean => agent === 'listening' && user !== 'speaking';
+  const quiet = (): boolean => agent === 'listening' && !opts.caller.busy();
   const cancel = (): void => timers.splice(0).forEach((t) => opts.clearTimer(t));
   const restart = (): void => {
     cancel();
@@ -66,28 +73,26 @@ export function watchReopenIdle(
     checkedIn = false;
     restart();
   };
-  const onItem = ({ item }: { item?: { role?: string } }): void => {
-    if (item?.role === 'user') callerActive();
-  };
   const onUser = (ev: { newState?: string }): void => {
-    user = ev.newState ?? user;
-    if (user === 'speaking') callerActive();
+    if (ev.newState === 'speaking') callerActive();
   };
   const onAgent = (ev: { newState?: string }): void => {
     agent = ev.newState ?? agent;
     if (!checkedIn) restart(); // Ferni's reply; never his check-in
   };
+  const unhear = opts.caller.onWords(callerActive);
   const stop = (): void => {
     cancel();
-    session.off(EV.ConversationItemAdded, onItem);
+    unhear();
+    if (watchers.get(agentSession) === stop) watchers.delete(agentSession);
     session.off(EV.UserStateChanged, onUser);
     session.off(EV.AgentStateChanged, onAgent);
     session.off(EV.Close, stop);
   };
-  session.on(EV.ConversationItemAdded, onItem);
   session.on(EV.UserStateChanged, onUser);
   session.on(EV.AgentStateChanged, onAgent);
   session.on(EV.Close, stop);
+  watchers.set(agentSession, stop);
   restart();
   return stop;
 }

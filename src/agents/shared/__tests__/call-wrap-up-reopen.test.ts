@@ -13,17 +13,32 @@ import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
+/** What Ferni says at a check-in (coordinatedSay), and the director's line for it. */
 const checkIns = vi.hoisted(() => [] as string[]);
+const director = vi.hoisted(() => ({
+  line: "I'm still here, no rush.",
+  cues: [] as Array<{ moment: string; rejectIf?: (line: string) => boolean }>,
+  gate: Promise.resolve(),
+}));
 vi.mock('../../../speech/direction/index.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../speech/direction/index.js')>()),
-  cueSay: (_id: string, cue: { moment: string }) => void checkIns.push(cue.moment),
+  directedText: async (_id: string, cue: { moment: string }) => {
+    director.cues.push(cue);
+    await director.gate;
+    return { text: director.line, source: 'actor', ms: 0 };
+  },
+}));
+vi.mock('../../../speech/coordination/session-integration.js', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../speech/coordination/session-integration.js')>()),
+  coordinatedSay: (_id: string, text: string) =>
+    void checkIns.push(text === director.line ? 'reopen_checkin' : text),
 }));
 
 import { PersonaVoiceAgent } from '../../personas/ferni-agent.js';
 import { attachCallWrapUp, DISCONNECT_DELAY_MS } from '../call-wrap-up.js';
-import { clearFarewell, IDLE_AFTER_GOODBYE_MS } from '../call-farewell.js';
+import { clearFarewell, IDLE_AFTER_GOODBYE_MS, REOPEN_ITEM_MS } from '../call-farewell.js';
 import { TURN_READ_WAIT_MS } from '../caller-activity.js';
-import { REOPEN_CHECK_IN_MS, REOPEN_IDLE_END_MS } from '../reopen-idle.js';
+import { REOPEN_CHECK_IN_MS, REOPEN_IDLE_END_MS, watchReopenIdle } from '../reopen-idle.js';
 import { clearSessionClosing, isSessionClosing } from '../session-closing-tracker.js';
 import {
   initFrontendSignal,
@@ -44,6 +59,8 @@ afterEach(() => {
   resetFrontendSignal();
   resetCrisisCallRisk();
   checkIns.splice(0);
+  director.cues.splice(0);
+  director.gate = Promise.resolve();
 });
 
 let n = 0;
@@ -383,6 +400,7 @@ describe('a reopened call that goes quiet (#2532)', () => {
   it('waits about a minute to check in and two to end (the existing 120 s idle)', () => {
     expect(REOPEN_CHECK_IN_MS).toBe(60_000);
     expect(REOPEN_IDLE_END_MS).toBe(120_000);
+    expect(REOPEN_ITEM_MS).toBe(3_000); // the reopening line's item follows within the turn's end
   });
 
   it('never ends while Ferni is still speaking', async () => {
@@ -446,6 +464,7 @@ describe('a reopened call that goes quiet (#2532)', () => {
     c.say('user', 'okay, bye');
     await ferniSays(c, 'Okay. Bye, take care.');
     await c.advance(REOPEN_IDLE_END_MS * 2);
+    expect(director.cues).toEqual([]); // not even a line written
     expect(checkIns).toEqual([]);
     expect(ends(c)).toHaveLength(1);
     expect(c.appConnected).toBe(true);
@@ -502,7 +521,7 @@ describe('the reopening line is matched by whole words (#2532)', () => {
     await c.advance(1_000);
     c.say('user', 'no'); // the item first, then the STT final that reopens
     c.finalWords('no');
-    await c.advance(TURN_READ_WAIT_MS);
+    await c.advance(1_000);
     expect(c.reopens()).toHaveLength(1);
     await ferniSays(c, 'No worries. Anything else?');
     c.say('user', 'know what, okay, bye');
@@ -510,5 +529,96 @@ describe('the reopening line is matched by whole words (#2532)', () => {
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
     expect(c.appConnected).toBe(false);
+  });
+});
+
+describe('the reopening line expires (#2532)', () => {
+  it('after REOPEN_ITEM_MS a turn that repeats it is a fresh goodbye', async () => {
+    const c = await call();
+    await c.toEnd();
+    await c.advance(1_000);
+    c.say('user', 'hold on'); // the item first (already seen), then the final that reopens
+    c.finalWords('hold on');
+    expect(c.reopens()).toHaveLength(1);
+    await ferniSays(c, 'Sure, take your time.');
+    await c.advance(REOPEN_ITEM_MS);
+    c.say('user', 'hold on, never mind. okay, bye');
+    await ferniSays(c, 'Bye, take care.');
+    await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
+    expect(ends(c)).toHaveLength(2);
+    expect(c.appConnected).toBe(false);
+  });
+});
+
+describe('the check-in (#2532 security review)', () => {
+  it('is never a goodbye: a director line that says one falls back to the understudy', async () => {
+    const c = await call();
+    await lineAfterEnd(c, 'oh wait, one more thing', 'no read');
+    await c.advance(REOPEN_CHECK_IN_MS);
+    const cue = director.cues[0];
+    expect(cue?.moment).toBe('reopen_checkin');
+    expect(cue?.rejectIf?.('Okay, take care.')).toBe(true);
+    expect(cue?.rejectIf?.("I'm still here, no rush.")).toBe(false);
+  });
+
+  it('is not spoken if the call went quiet while the line was being written', async () => {
+    const c = await call();
+    await lineAfterEnd(c, 'oh wait, one more thing', 'no read');
+    let release: () => void = () => {};
+    director.gate = new Promise<void>((r) => {
+      release = r;
+    });
+    await c.advance(REOPEN_CHECK_IN_MS);
+    expect(director.cues).toHaveLength(1);
+    c.say('user', 'okay, bye'); // both goodbyes again: the call is ending
+    await ferniSays(c, 'Bye, take care.');
+    release();
+    await flush();
+    expect(checkIns).toEqual([]);
+  });
+
+  it('waits while the caller is mid-utterance, and a transcript starts the quiet over', async () => {
+    const c = await call();
+    await lineAfterEnd(c, 'oh wait, one more thing', 'no read');
+    await c.advance(50_000);
+    c.interim('so what I was'); // and no final yet
+    await c.advance(REOPEN_CHECK_IN_MS + 5_000);
+    expect(checkIns).toEqual([]);
+    c.finalWords('hmm'); // a final transcript alone, no turn or voice activity
+    await c.advance(REOPEN_CHECK_IN_MS - 1_000);
+    expect(checkIns).toEqual([]);
+    await c.advance(1_000);
+    expect(checkIns).toEqual(['reopen_checkin']);
+  });
+
+  it('one watcher per session: a second wrap-up on the same session replaces the first', async () => {
+    const session = new EventEmitter();
+    const timers: Array<{ fn: () => void; at: number }> = [];
+    let now = 0;
+    const said: string[] = [];
+    const caller = {
+      busy: () => false,
+      talking: () => false,
+      onWords: () => () => {},
+      stop: () => {},
+    };
+    const watch = () =>
+      watchReopenIdle(session, {
+        caller,
+        checkIn: () => void said.push('check-in'),
+        end: () => void said.push('end'),
+        setTimer: (fn, ms) => {
+          const t = { fn, at: now + ms };
+          timers.push(t);
+          return t;
+        },
+        clearTimer: (t) =>
+          void timers.splice(timers.indexOf(t as (typeof timers)[number]) >>> 0, 1),
+      });
+    watch();
+    watch(); // e.g. a persona swap's own wrap-up reopening the same call
+    now = REOPEN_IDLE_END_MS;
+    timers.filter((t) => t.at <= now).forEach((t) => t.fn());
+    expect(said).toEqual(['check-in', 'end']);
   });
 });

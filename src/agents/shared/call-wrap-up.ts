@@ -58,6 +58,7 @@ import {
 } from './phone-goodbye.js';
 import {
   clearFarewell,
+  ferniSaysGoodbye,
   markFarewell,
   reopenFarewell,
   stayQuiet,
@@ -65,7 +66,8 @@ import {
 } from './call-farewell.js';
 import { holdWhileBusy, waitForQuiet, watchCaller, type CallerWatch } from './caller-activity.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
-import { cueSay } from '../../speech/direction/index.js';
+import { coordinatedSay } from '../../speech/coordination/session-integration.js';
+import { directedText, type Cue } from '../../speech/direction/index.js';
 import { watchReopenIdle } from './reopen-idle.js';
 import {
   clearSessionClosing,
@@ -329,7 +331,7 @@ export async function attachCallWrapUp(
   // After the farewell watcher, so a reopening line reaches it while the call is still closing
   if (call.session) {
     wrap.caller = watchCaller(call.session);
-    wrap.onReopen = idleAfterReopen(wrap, call.session, call);
+    wrap.onReopen = idleAfterReopen(wrap, call.session, wrap.caller, call);
   }
   if (phone) {
     // PHONE_GOODBYE's endCall hangs up only after a short quiet with no crisis read due
@@ -346,34 +348,38 @@ export async function attachCallWrapUp(
   return addEndCallTool(agent, () => createWrapUpTool(wrap));
 }
 
+/** Ferni's check-in after a reopen: never a goodbye, which would pair with the caller's next one. */
+const REOPEN_CHECK_IN: Cue = {
+  moment: 'reopen_checkin',
+  direction:
+    "The call nearly ended, then carried on, and they've gone quiet. Gently let them know you're still here and in no hurry. One short sentence; don't say goodbye.",
+  fallback: "I'm still here, no rush at all.",
+  urgency: 'soon',
+  maxChars: 120,
+  rejectIf: ferniSaysGoodbye,
+};
+
 /** A reopened call ends after the usual idle, with one warm check-in first (reopen-idle.ts). */
 function idleAfterReopen(
   wrap: WrapUpCall,
   session: object,
+  caller: CallerWatch,
   { clearTimer, env }: { clearTimer?: (handle: unknown) => void; env?: Env }
 ): () => void {
   const { sessionId } = wrap;
-  let stop = (): void => {};
-  return () => {
-    stop(); // a second reopen starts the quiet over
-    stop = watchReopenIdle(session, {
+  // Goodbyes said again with the end held for crisis, or the call closing: say nothing
+  const quiet = (): boolean => stayQuiet(sessionId, env);
+  return () =>
+    watchReopenIdle(session, {
+      caller,
       setTimer: wrap.setTimer ?? ((fn, ms) => setTimeout(fn, ms)),
       clearTimer: clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>)),
       checkIn: () => {
-        if (stayQuiet(sessionId, env)) return; // goodbyes said again, the end held for crisis
+        if (quiet()) return;
         log.info({ sessionId }, 'CALL_WRAP_UP quiet after reopen; checking in');
-        cueSay(
-          sessionId,
-          {
-            moment: 'reopen_checkin',
-            direction:
-              "The call nearly ended, then carried on, and they've gone quiet. Gently let them know you're still here and in no hurry. One short sentence; don't say goodbye.",
-            fallback: "I'm still here, no rush at all.",
-            urgency: 'soon',
-            maxChars: 120,
-          },
-          { allowInterruptions: true }
-        );
+        void directedText(sessionId, REOPEN_CHECK_IN).then((line) => {
+          if (!quiet()) coordinatedSay(sessionId, line.text, { allowInterruptions: true });
+        });
       },
       end: () => {
         log.info({ sessionId }, 'CALL_WRAP_UP quiet after reopen; ending the call');
@@ -382,5 +388,4 @@ function idleAfterReopen(
         );
       },
     });
-  };
 }

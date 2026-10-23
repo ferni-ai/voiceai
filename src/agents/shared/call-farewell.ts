@@ -44,6 +44,12 @@ const log = createLogger({ module: 'call-farewell' });
  * time to say "wait", short enough that the caller isn't left on the line.
  */
 export const IDLE_AFTER_GOODBYE_MS = 4_000;
+/**
+ * How long after a reopen the caller's next item may still be the reopening
+ * line's own: LiveKit adds it after the end-of-turn wait (TURN_READ_WAIT_MS
+ * bounds that wait plus the turn's crisis read).
+ */
+export const REOPEN_ITEM_MS = 3_000;
 
 const farewells = new Set<string>();
 /** Each watched call's reset, run when it reopens (reopenFarewell). */
@@ -375,7 +381,7 @@ export function watchFarewell(
   let callerSaidBye = false;
   let ferniSaidBye = false;
   let hangUpAsked = false;
-  /** The line that reopened the call, until the caller's next transcribed turn. */
+  /** The line that reopened the call, until the caller's next turn or REOPEN_ITEM_MS. */
   let reopenedBy: string | null = null;
   let agent = 'initializing';
   let user = 'listening';
@@ -462,7 +468,13 @@ export function watchFarewell(
   };
   resets.set(sessionId, (line) => {
     callerSaidBye = ferniSaidBye = hangUpAsked = false;
-    reopenedBy = line ? plainWords(line) || null : null;
+    const heard = line ? plainWords(line) || null : null;
+    reopenedBy = heard;
+    if (heard) {
+      setT(() => {
+        if (reopenedBy === heard) reopenedBy = null;
+      }, REOPEN_ITEM_MS);
+    }
   });
   session.on(EV.ConversationItemAdded, onItem);
   session.on(EV.AgentStateChanged, onAgent);

@@ -52,14 +52,14 @@ export interface WrapUpWindow {
   /** A sign-off was heard and its crisis read hasn't settled (bounded). */
   readPending: () => boolean;
   /** Reopen the call, once, unless teardown has begun or the caller has left. */
-  reopen: (reason: ContinueReason) => void;
+  reopen: (reason: ContinueReason, line?: string) => void;
   /** The room is being closed (or the caller left): stop listening; log late crisis risk. */
   tearDown: () => void;
 }
 
 export function openWrapUpWindow(opts: {
   sessionId: string;
-  /** `line`: the caller's latest final line in the window, if any (its transcript may follow). */
+  /** `line`: the caller's final line that reopened it, if one did (its conversation item follows). */
   onContinue: (reason: ContinueReason, line?: string) => void;
   /** Hold the app's hang-up (only an app call has one). */
   onHold?: (reason: HoldReason) => void;
@@ -75,7 +75,6 @@ export function openWrapUpWindow(opts: {
   let continued = false;
   let tornDown = false;
   let lastLook = -Infinity;
-  let lastLine: string | undefined;
   const stop = (): void => stops.splice(0).forEach((fn) => fn());
   const afterEnd = (): void =>
     log.error({ sessionId }, 'CRISIS_AFTER_END crisis risk noted after the call ended');
@@ -97,14 +96,14 @@ export function openWrapUpWindow(opts: {
       return continued;
     },
     readPending: reads.pending,
-    reopen: (reason) => {
+    reopen: (reason, line) => {
       if (continued || ended()) {
         if (!continued && reason === 'crisis_hold') afterEnd();
         return;
       }
       continued = true;
       stop();
-      opts.onContinue(reason, lastLine);
+      opts.onContinue(reason, line);
     },
     tearDown: () => {
       if (tornDown || continued) return;
@@ -144,12 +143,11 @@ export function openWrapUpWindow(opts: {
     stops.push(
       opts.caller.onWords(({ text, final }) => {
         if (final) {
-          lastLine = text;
           if (callerSignsOff(text)) return; // the turn's read still holds the end (reads)
           if (!farewellRisk(text)) {
             // A goodbye that said more ("thanks so much, that helped. bye") is no clean
             // sign-off: the turn's read decides. Anything else: the caller carried on.
-            return hasGoodbyeClause(text) ? awaitRead() : win.reopen('caller_spoke');
+            return hasGoodbyeClause(text) ? awaitRead() : win.reopen('caller_spoke', text);
           }
           // Record it, so no later goodbye can end this call (crisisRiskThisCall, for its TTL);
           // noting it reopens the call as a crisis hold (the listener above)
