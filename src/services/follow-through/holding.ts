@@ -79,7 +79,7 @@ const EMAIL_LIKE = /[^\s@]+@[^\s@]+\.[^\s@]+/g;
  * when all of it is a date or a date-time, so a date-shaped run inside a longer
  * number can never split that number and leave part of it showing.
  */
-function withoutContactDetails(text: string): string {
+export function withoutContactDetails(text: string): string {
   return text
     .replace(EMAIL_LIKE, 'an email address')
     .replace(PHONE_LIKE, (m: string, offset: number, whole: string) => {
