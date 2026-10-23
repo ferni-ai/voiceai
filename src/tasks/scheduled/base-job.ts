@@ -288,29 +288,9 @@ export abstract class ScheduledJob<
 }
 
 // ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
-
-/**
- * Create a simple job runner function.
- */
-export function createJobRunner<
-  TConfig extends BaseJobConfig,
-  TResult extends Record<string, unknown>,
->(
-  JobClass: new () => ScheduledJob<TConfig, TResult>
-): (config?: Partial<TConfig>) => Promise<BaseJobResult & TResult> {
-  return async (config) => {
-    const job = new JobClass();
-    return job.run(config);
-  };
-}
-
-// ============================================================================
 // EXPORTS
 // ============================================================================
 
 export default {
   ScheduledJob,
-  createJobRunner,
 };
