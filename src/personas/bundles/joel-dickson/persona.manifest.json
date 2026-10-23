@@ -347,14 +347,7 @@
       "musicControl",
       "musicInfo"
     ],
-    "forbidden": [
-      "meetTheTeam",
-      "handoffToFerni",
-      "handoffToMaya",
-      "handoffToAlex",
-      "handoffToJordan",
-      "dayTrade"
-    ]
+    "forbidden": ["dayTrade"]
   },
 
   "capabilities": {

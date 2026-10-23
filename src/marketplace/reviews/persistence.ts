@@ -72,6 +72,7 @@ class FirestoreReviewsStore implements ReviewsStore {
 
     try {
       const admin = (await import('firebase-admin')).default;
+      const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
 
       if (admin.apps.length === 0) {
         admin.initializeApp({
@@ -79,7 +80,7 @@ class FirestoreReviewsStore implements ReviewsStore {
         });
       }
 
-      this.db = admin.firestore();
+      this.db = getAdminFirestore();
       this.initialized = true;
       log.info('Firestore reviews store initialized');
     } catch (error) {

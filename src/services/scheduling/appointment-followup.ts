@@ -14,7 +14,7 @@
 
 import { EventEmitter } from 'events';
 
-import admin from 'firebase-admin';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 import { removeUndefined } from '../../utils/firestore-utils.js';
 import { clearNamedInterval, registerInterval } from '../../utils/interval-manager.js';
@@ -27,9 +27,9 @@ import { getAgentBus } from '../agent-bus.js';
 
 const APPOINTMENTS_COLLECTION = 'tracked_appointments';
 
-function getFirestore(): admin.firestore.Firestore | null {
+function getFirestore(): FirebaseFirestore.Firestore | null {
   try {
-    return admin.firestore();
+    return getAdminFirestore();
   } catch {
     return null;
   }

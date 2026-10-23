@@ -652,6 +652,136 @@ index 3ba771633fd96a8611ac12968ec0a9c7ec5a3bf6..53ae54c6b6e98ad6a4bdb878ec971ac2
        this.logger.trace({ event: ev.type }, "holding STT event during agent speech");
        this.transcriptBuffer.push(ev);
        return;
+diff --git a/dist/voice/room_io/_output.cjs b/dist/voice/room_io/_output.cjs
+index 660ca7bdf237af285774bb13ba552d94e08e7848..914547464e7863302a7918d9381be885858019a1 100644
+--- a/dist/voice/room_io/_output.cjs
++++ b/dist/voice/room_io/_output.cjs
+@@ -379,6 +379,11 @@ class ParalellTextOutput extends import_io.TextOutput {
+     }
+   }
+ }
++// PATCHED(ferni): BARGE_IN_FAST_STOP, read as flagOn reads a flag (src/config/env-flag.ts).
++function __ferniFastStopOn() {
++  const v = String(process.env.BARGE_IN_FAST_STOP ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
+ class ParticipantAudioOutput extends import_io.AudioOutput {
+   room;
+   options;
+@@ -420,13 +425,36 @@ class ParticipantAudioOutput extends import_io.AudioOutput {
+   pause() {
+     if (this.playbackEnabledFuture.done) {
+       this.playbackEnabledFuture = new import_utils.Future();
++      // PATCHED(ferni): BARGE_IN_FAST_STOP. 1.6 cleared the queued audio here; 1.8 moved the
++      // clear to the next captureFrame. Ferni's resume buffer holds every frame while paused, so
++      // no next frame comes: the queue (up to queueSizeMs) played on after a barge-in paused the
++      // reply (dev 2026-10-22: ~0.8 s more of Ferni after the pause), then was replayed on resume.
++      // Only with that resume buffer in front (it marks this output): without it nothing would
++      // replay what the clear takes from a pause that resumes.
++      if (this.__ferniResumeBuffered === true && __ferniFastStopOn()) this.__ferniClearOnPause();
+     }
+     super.pause();
+   }
++  // PATCHED(ferni): BARGE_IN_FAST_STOP. The captureFrame pause loop's clear, done at the pause.
++  __ferniClearOnPause() {
++    const queuedDuration = this.audioSource.queuedDuration;
++    if (!(queuedDuration > 0)) return;
++    this.__ferniClearedWhilePaused = true;
++    this.logger.info({ queuedMs: Math.round(queuedDuration) }, "BARGE_IN_FAST_STOP_CLEAR");
++    this.sourceDiscardedDuration += queuedDuration / 1e3;
++    this.reportRun({
++      offset: this.sourcePushedDuration * 1e3 - queuedDuration,
++      endedAt: Date.now(),
++      resumesAt: this.sourcePushedDuration * 1e3
++    });
++    // rtc's clearQueue also zeroes queuedDuration, so that loop won't count this audio again.
++    this.audioSource.clearQueue();
++  }
+   resume() {
+     if (!this.playbackEnabledFuture.done) {
+       this.playbackEnabledFuture.resolve();
+     }
++    this.__ferniClearedWhilePaused = false;
+     super.resume();
+   }
+   get subscribed() {
+@@ -525,7 +553,10 @@ class ParticipantAudioOutput extends import_io.AudioOutput {
+       await this.audioSource.waitForPlayout();
+     };
+     await Promise.race([waitForForwardingAndPlayout(), interruptionFuture.await]);
+-    const interrupted = interruptionFuture.done;
++    // PATCHED(ferni): BARGE_IN_FAST_STOP. Playout that ended because the pause cleared the queue
++    // was cut short: say so, with the position really played, so the transcript is what was heard.
++    const interrupted = interruptionFuture.done || this.__ferniClearedWhilePaused === true && !this.playbackEnabledFuture.done;
++    this.__ferniClearedWhilePaused = false;
+     let pushedDuration = Math.max(this.sourcePushedDuration - this.sourceDiscardedDuration, 0);
+     if (interrupted) {
+       const queuedDuration = this.audioSource.queuedDuration;
+diff --git a/dist/voice/room_io/_output.js b/dist/voice/room_io/_output.js
+index 8d2ee3646c1638f50eaf273777649b5e46c8c373..9ae02e4ccb735b078eed500268bd532bbe3d6627 100644
+--- a/dist/voice/room_io/_output.js
++++ b/dist/voice/room_io/_output.js
+@@ -372,6 +372,11 @@ class ParalellTextOutput extends TextOutput {
+     }
+   }
+ }
++// PATCHED(ferni): BARGE_IN_FAST_STOP, read as flagOn reads a flag (src/config/env-flag.ts).
++function __ferniFastStopOn() {
++  const v = String(process.env.BARGE_IN_FAST_STOP ?? "").trim().toLowerCase();
++  return v === "on" || v === "true" || v === "1" || v === "live";
++}
+ class ParticipantAudioOutput extends AudioOutput {
+   room;
+   options;
+@@ -413,13 +418,36 @@ class ParticipantAudioOutput extends AudioOutput {
+   pause() {
+     if (this.playbackEnabledFuture.done) {
+       this.playbackEnabledFuture = new Future();
++      // PATCHED(ferni): BARGE_IN_FAST_STOP. 1.6 cleared the queued audio here; 1.8 moved the
++      // clear to the next captureFrame. Ferni's resume buffer holds every frame while paused, so
++      // no next frame comes: the queue (up to queueSizeMs) played on after a barge-in paused the
++      // reply (dev 2026-10-22: ~0.8 s more of Ferni after the pause), then was replayed on resume.
++      // Only with that resume buffer in front (it marks this output): without it nothing would
++      // replay what the clear takes from a pause that resumes.
++      if (this.__ferniResumeBuffered === true && __ferniFastStopOn()) this.__ferniClearOnPause();
+     }
+     super.pause();
+   }
++  // PATCHED(ferni): BARGE_IN_FAST_STOP. The captureFrame pause loop's clear, done at the pause.
++  __ferniClearOnPause() {
++    const queuedDuration = this.audioSource.queuedDuration;
++    if (!(queuedDuration > 0)) return;
++    this.__ferniClearedWhilePaused = true;
++    this.logger.info({ queuedMs: Math.round(queuedDuration) }, "BARGE_IN_FAST_STOP_CLEAR");
++    this.sourceDiscardedDuration += queuedDuration / 1e3;
++    this.reportRun({
++      offset: this.sourcePushedDuration * 1e3 - queuedDuration,
++      endedAt: Date.now(),
++      resumesAt: this.sourcePushedDuration * 1e3
++    });
++    // rtc's clearQueue also zeroes queuedDuration, so that loop won't count this audio again.
++    this.audioSource.clearQueue();
++  }
+   resume() {
+     if (!this.playbackEnabledFuture.done) {
+       this.playbackEnabledFuture.resolve();
+     }
++    this.__ferniClearedWhilePaused = false;
+     super.resume();
+   }
+   get subscribed() {
+@@ -518,7 +546,10 @@ class ParticipantAudioOutput extends AudioOutput {
+       await this.audioSource.waitForPlayout();
+     };
+     await Promise.race([waitForForwardingAndPlayout(), interruptionFuture.await]);
+-    const interrupted = interruptionFuture.done;
++    // PATCHED(ferni): BARGE_IN_FAST_STOP. Playout that ended because the pause cleared the queue
++    // was cut short: say so, with the position really played, so the transcript is what was heard.
++    const interrupted = interruptionFuture.done || this.__ferniClearedWhilePaused === true && !this.playbackEnabledFuture.done;
++    this.__ferniClearedWhilePaused = false;
+     let pushedDuration = Math.max(this.sourcePushedDuration - this.sourceDiscardedDuration, 0);
+     if (interrupted) {
+       const queuedDuration = this.audioSource.queuedDuration;
 diff --git a/dist/voice/transcription/synchronizer.cjs b/dist/voice/transcription/synchronizer.cjs
 index e7351b5e4d0db18cf9554448da10c3c982d37dcb..4ae8293504515fd7762acaedca52cd4f20578f82 100644
 --- a/dist/voice/transcription/synchronizer.cjs

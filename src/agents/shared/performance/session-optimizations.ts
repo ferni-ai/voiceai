@@ -1,12 +1,15 @@
 /**
  * Session Performance Optimizations
  *
- * Implements four key optimizations for the voice agent critical path:
+ * Optimizations for the voice agent critical path (numbering kept from when
+ * there were four):
  *
- * 1. PRE-WARM USER MEMORY EMBEDDINGS - Generate embeddings at session start
  * 2. TOOL EXECUTION PARALLELIZATION - Execute independent tools concurrently
  * 3. MEMORY DEDUPLICATION CACHE - Prevent redundant memory lookups
  * 4. SPECULATIVE CONTEXT PREFETCH - Start context building during user speech
+ *
+ * (1, the session-start embedding prewarm, read extracted_facts on every call:
+ * 0 docs in prod, 2026-10-22 audit gap 10. Removed; recall embeds dynamic_facts.)
  *
  * @module agents/shared/performance/session-optimizations
  */
@@ -15,94 +18,6 @@ import { createLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'session-optimizations' });
-
-// ============================================================================
-// 1. PRE-WARM USER MEMORY EMBEDDINGS
-// ============================================================================
-
-interface PrewarmConfig {
-  maxTopics?: number;
-  maxPhrases?: number;
-  timeoutMs?: number;
-}
-
-const DEFAULT_PREWARM_CONFIG: PrewarmConfig = {
-  maxTopics: 10,
-  maxPhrases: 20,
-  timeoutMs: 5000,
-};
-
-/**
- * Pre-warm embeddings for a user's common topics and phrases
- * Run at session start to eliminate cold-start latency
- */
-export async function prewarmUserEmbeddings(
-  userId: string,
-  config: PrewarmConfig = {}
-): Promise<{ warmedCount: number; durationMs: number }> {
-  const startTime = Date.now();
-  const { maxTopics, maxPhrases, timeoutMs } = { ...DEFAULT_PREWARM_CONFIG, ...config };
-
-  try {
-    // Import dynamically to avoid circular deps
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const { embedBatchCached } = await import('../../../memory/embedding-cache.js');
-
-    const db = getFirestore();
-    const textsToWarm: string[] = [];
-
-    // 1. Get recent topics from extracted facts
-    const factsSnapshot = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection('extracted_facts')
-      .orderBy('extractedAt', 'desc')
-      .limit(maxTopics!)
-      .get();
-
-    for (const doc of factsSnapshot.docs) {
-      const data = doc.data();
-      const fact = (data.fact || data.content) as string;
-      if (fact && fact.length > 10) {
-        textsToWarm.push(fact);
-      }
-    }
-
-    // No conversation_summaries read: nothing on the live path writes that
-    // store (call-summaries.ts) and prod had 0 docs in it on 2026-10-18, so the
-    // read cost every returning caller a query for no text.
-
-    // 2. Warm embeddings in batch (with timeout)
-    if (textsToWarm.length > 0) {
-      const uniqueTexts = [...new Set(textsToWarm)].slice(0, maxPhrases!);
-
-      const warmPromise = embedBatchCached(uniqueTexts);
-      const timeoutPromise = new Promise<null>((resolve) => {
-        setTimeout(() => resolve(null), timeoutMs);
-      });
-
-      const result = await Promise.race([warmPromise, timeoutPromise]);
-
-      if (result === null) {
-        log.warn({ userId, attempted: uniqueTexts.length }, '⏱️ Embedding prewarm timed out');
-        return { warmedCount: 0, durationMs: Date.now() - startTime };
-      }
-
-      const durationMs = Date.now() - startTime;
-      log.info(
-        { userId, warmedCount: uniqueTexts.length, durationMs },
-        '🔥 Pre-warmed user embeddings'
-      );
-
-      return { warmedCount: uniqueTexts.length, durationMs };
-    }
-
-    return { warmedCount: 0, durationMs: Date.now() - startTime };
-  } catch (error) {
-    log.debug({ error: String(error), userId }, 'Embedding prewarm failed (non-blocking)');
-    return { warmedCount: 0, durationMs: Date.now() - startTime };
-  }
-}
 
 // ============================================================================
 // 2. TOOL EXECUTION PARALLELIZATION
@@ -481,40 +396,6 @@ export function clearSpeculativePrefetch(sessionId: string): void {
 // ============================================================================
 // COMBINED SESSION OPTIMIZATION
 // ============================================================================
-
-/**
- * Run all session start optimizations
- * Call this when a session begins
- */
-export async function optimizeSessionStart(
-  sessionId: string,
-  userId: string
-): Promise<{
-  embeddingsWarmed: number;
-  durationMs: number;
-}> {
-  const startTime = Date.now();
-
-  // Run embedding prewarm (non-blocking if it times out)
-  const prewarmResult = await prewarmUserEmbeddings(userId, {
-    timeoutMs: 3000, // Aggressive timeout for session start
-  });
-
-  log.info(
-    {
-      sessionId,
-      userId,
-      embeddingsWarmed: prewarmResult.warmedCount,
-      durationMs: Date.now() - startTime,
-    },
-    '🚀 Session optimizations complete'
-  );
-
-  return {
-    embeddingsWarmed: prewarmResult.warmedCount,
-    durationMs: Date.now() - startTime,
-  };
-}
 
 /**
  * Clean up all optimizations for a session

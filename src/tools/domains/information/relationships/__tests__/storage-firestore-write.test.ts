@@ -29,6 +29,12 @@ vi.mock('firebase-admin', () => ({
   },
 }));
 
+// The module reaches Firestore through getAdminFirestore(); it serves the same fake.
+vi.mock('../../../../../utils/firebase-admin-app.js', async () => {
+  const admin = (await import('firebase-admin')).default;
+  return { getAdminFirestore: () => admin.firestore() };
+});
+
 vi.mock('../../../../../utils/safe-logger.js', () => ({
   getLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));

@@ -6,8 +6,9 @@
  * say what "on" does and where it is read.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { FLAG_KINDS, FLAG_OWNERS } from '../../src/config/flag-spec.js';
 
@@ -54,15 +55,23 @@ export function flagFileSource(flag: NewFlag): string {
     .split('\n')
     .map((line) => line.trim())
     .filter(Boolean)
-    .map((line) => `// ${line}\n`)
-    .join('');
+    .map((line) => `// ${line}`);
+  return flagFileText(flag.name, flag, note);
+}
+
+/** A flag file: the comment lines verbatim above the export (flags:move uses this too). */
+export function flagFileText(
+  name: string,
+  spec: Omit<NewFlag, 'name'>,
+  comments: string[]
+): string {
   return (
     "import type { FlagSpec } from '../flag-spec.js';\n\n" +
-    note +
-    `export const ${flag.name} = {\n` +
-    `  default: '${flag.default}',\n` +
-    `  owner: '${flag.owner}',\n` +
-    `  kind: '${flag.kind}',\n` +
+    comments.map((line) => `${line}\n`).join('') +
+    `export const ${name} = {\n` +
+    `  default: '${spec.default}',\n` +
+    `  owner: '${spec.owner}',\n` +
+    `  kind: '${spec.kind}',\n` +
     '} as const satisfies FlagSpec;\n'
   );
 }
@@ -83,7 +92,11 @@ export function writeNewFlag(root: string, flag: NewFlag): string {
   return file;
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+/** True when the module at url is the script node was started with, through any symlink. */
+export const isMain = (url: string): boolean =>
+  !!process.argv[1] && realpathSync(fileURLToPath(url)) === realpathSync(process.argv[1]);
+
+if (isMain(import.meta.url)) {
   try {
     const file = writeNewFlag(process.cwd(), parseNewFlag(process.argv.slice(2)));
     console.log(`Wrote ${file}`);

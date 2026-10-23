@@ -204,6 +204,8 @@ const MATRIX: ReadonlyArray<[string, Body, Partial<Record<CallState, Outcome>>]>
     { type: 'conversation_end', reason: 'goodbye_complete', planned: true },
     each(IN_CALL, 'ending'),
   ],
+  // PATHS.ending is a hang-up, which conversation_continue never takes back.
+  ['conversation_continue', { type: 'conversation_continue', reason: 'caller_spoke' }, {}],
   ['hang_up', { type: 'hang_up' }, each([...CONNECTING, ...IN_CALL], 'ending')],
   ['agent_disconnected', { type: 'agent_disconnected' }, { ending: 'ended' }],
   [
@@ -451,6 +453,59 @@ describe('call machine: ending', () => {
       type: 'announce_disconnected',
     });
     expect(run(PATHS.error).flatMap((r) => r.effects)).toEqual([]);
+  });
+});
+
+describe('call machine: the agent takes back its goodbye (#2291)', () => {
+  const GOODBYE: Body = { type: 'conversation_end', reason: 'goodbye_complete', planned: true };
+
+  it.each(['crisis_hold', 'caller_spoke'])('%s returns a goodbye ending to listening', (reason) => {
+    const ending = run([...IN_CALL_PATH, agent('speaking'), GOODBYE]);
+    expect(last(ending).state).toBe('ending');
+    const result = step(last(ending), { type: 'conversation_continue', reason }, T0 + 99);
+    expect(result.dropped).toBeUndefined();
+    expect(result.ctx.state).toBe('listening');
+    expect(result.ctx.lastTurn).toBe('listening');
+    expect(result.transition).toMatchObject({
+      from: 'ending',
+      to: 'listening',
+      event: 'conversation_continue',
+    });
+    expect(result.effects).toEqual([]); // no announce: the call never ended
+  });
+
+  it('turns follow again afterwards, and a later goodbye ends the call', () => {
+    const results = run([
+      ...IN_CALL_PATH,
+      GOODBYE,
+      { type: 'conversation_continue', reason: 'caller_spoke' },
+      vad(true),
+      GOODBYE,
+      link('disconnected'),
+    ]);
+    expect(results.map((r) => r.ctx.state).slice(-4)).toEqual([
+      'listening',
+      'user_speaking',
+      'ending',
+      'ended',
+    ]);
+  });
+
+  it("never takes back the caller's own hang-up, and is dropped outside ending", () => {
+    const hungUp = step(
+      reach('ending'),
+      { type: 'conversation_continue', reason: 'crisis_hold' },
+      T0 + 99
+    );
+    expect(hungUp.dropped).toBe('late:conversation_continue');
+    expect(hungUp.ctx.state).toBe('ending');
+
+    const live = step(
+      reach('listening'),
+      { type: 'conversation_continue', reason: 'crisis_hold' },
+      T0 + 99
+    );
+    expect(live.dropped).toBe('listening:conversation_continue');
   });
 });
 

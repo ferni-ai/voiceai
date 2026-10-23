@@ -15,7 +15,7 @@
  * @module scripts/validate-memory-e2e
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 
 // Initialize Firebase Admin
@@ -25,7 +25,7 @@ if (getApps().length === 0) {
   });
 }
 
-const db = getFirestore();
+const db = getAdminFirestore();
 
 interface ValidationResult {
   check: string;

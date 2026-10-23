@@ -23,12 +23,13 @@ import {
 } from 'node:stream/web';
 
 import { GEMINI_MODEL } from '../../config/gemini-config.js';
-import { getVoiceIdForPersona } from '../../config/voice-ids.js';
+import { asSessionVoice, spokenVoiceId, type SessionVoice } from './spoken-voice.js';
 import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
 import { finops } from '../../services/observability/finops.js';
 import { crisisLineSpeechTransform } from '../../services/safety/crisis-line-speech.js';
 import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
+import { spokenPunctuation } from '../../speech/output-control/spoken-punctuation.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
@@ -45,7 +46,7 @@ import {
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 import { logToolMarkup, toolMarkupTransform } from './tool-markup-strip.js';
-import { replyCallerTurnFields } from './reply-caller-turn.js';
+import { replyCallerTurnFields, type ReplyCallerFields } from './reply-caller-turn.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
 import { isFtisEnabled } from '../../config/tool-config.js';
 
@@ -296,10 +297,12 @@ async function recordJsonLeakTelemetry(
 /**
  * Session data needed for TTS processing
  */
-export interface TtsSessionContext {
+export interface TtsSessionContext extends ReplyCallerFields {
   userId?: string;
   sessionId?: string;
   personaId?: string;
+  /** The voice resolved when the call started (custom agent or localized), see spoken-voice.ts */
+  sessionVoice?: SessionVoice;
   wasInterrupted?: boolean;
   interruptType?: 'hard' | 'soft';
   /** Current emotional context (for cache-aware TTS) */
@@ -319,9 +322,6 @@ export interface TtsSessionContext {
 
   /** User's name for personalized responses */
   userName?: string;
-  /** The caller's words this reply answers (reply-caller-turn.ts) */
-  userRequest?: string;
-  callerTurnFresh?: boolean; // userRequest was read from this reply's own chat context
   /** User's detected emotional state */
   userEmotion?: {
     primary?: string;
@@ -1010,12 +1010,11 @@ export async function wrappedTtsNode(
     );
   });
 
-  // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → cost tracking)
+  // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → punctuation → cost)
   const spokenText = linguisticallyMirroredText.pipeThrough(crisisLineSpeechTransform());
-  const trackedText = spokenText.pipeThrough(costTrackingStream);
+  const trackedText = spokenText.pipeThrough(spokenPunctuation()).pipeThrough(costTrackingStream);
 
-  // 6. Apply streaming TTS optimization for lower latency
-  // This chunks the text more aggressively for faster first-audio
+  // 6. Streaming TTS optimization: chunks more aggressively for faster first audio
   let optimizedText: NodeReadableStream<string>;
   if (enableStreamingOptimization) {
     const streamingConfig = getOptimizedStreamingConfig({
@@ -1099,7 +1098,7 @@ export async function wrappedTtsNode(
   // 🚀 TTS GATEWAY: Use FULL gateway when enabled (highest priority)
   // This completely replaces LiveKit's internal Cartesia with our gateway
   if (isTTSGatewayEnabled()) {
-    const actualVoiceId = getVoiceIdForPersona(personaId);
+    const actualVoiceId = spokenVoiceId(personaId, sessionContext?.sessionVoice);
 
     log.info(
       { personaId, voiceId: actualVoiceId, emotion, sessionId },
@@ -1129,7 +1128,7 @@ export async function wrappedTtsNode(
     // Use cache-aware TTS that checks speculative cache before Cartesia
     // BUG FIX: Convert personaId to actual Cartesia voice UUID
     // Previously passed personaId directly, causing cache misses and wrong voice lookups
-    const actualVoiceId = getVoiceIdForPersona(personaId);
+    const actualVoiceId = spokenVoiceId(personaId, sessionContext?.sessionVoice);
     const cacheAwareTTS = createCacheAwareTTSNode({
       voiceId: actualVoiceId,
       emotion,
@@ -1298,6 +1297,7 @@ export function extractTtsSessionContext(
     userId: userData?.userId as string | undefined,
     sessionId: extractedSessionId,
     personaId,
+    sessionVoice: asSessionVoice(userData?.sessionVoice),
     wasInterrupted: userData?.wasInterrupted as boolean | undefined,
     interruptType: userData?.interruptType as 'hard' | 'soft' | undefined,
     emotion: userData?.currentEmotion as string | undefined,
@@ -1314,7 +1314,7 @@ export function extractTtsSessionContext(
     // User's name for personalized responses
     userName: (userData?.userName as string | undefined) || (userData?.name as string | undefined),
 
-    ...replyCallerTurnFields(agent, userData?.lastUserMessage),
+    ...replyCallerTurnFields(agent, userData?.lastUserMessage, extractedSessionId),
     // User's detected emotional state (prefer voice emotion, fallback to last analysis)
     userEmotion:
       voiceEmotion || lastEmotionAnalysis

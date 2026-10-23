@@ -33,6 +33,7 @@ vi.mock('firebase-admin/firestore', () => ({
             docs: [],
             size: 0,
           }),
+          count: () => ({ get: async () => ({ data: () => ({ count: 7 }) }) }),
         })),
         get: vi.fn().mockResolvedValue({
           exists: true,
@@ -285,10 +286,11 @@ describe('MemoryExecutor', () => {
       const ctx = createContext();
       const result = await memoryExecutor.execute('getRelationshipSummary', {}, ctx);
 
-      expect(result).toMatchObject({
-        sessionsToDate: expect.any(Number),
-        memoriesStored: expect.any(Number),
-        relationshipStage: expect.any(String),
+      // memoriesStored comes from the count aggregation (7), not a full read (size 0).
+      expect(result).toEqual({
+        sessionsToDate: 5,
+        memoriesStored: 7,
+        relationshipStage: 'Building trust',
       });
     });
 
