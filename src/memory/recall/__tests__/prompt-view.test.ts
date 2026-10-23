@@ -188,3 +188,50 @@ describe('promptViews', () => {
     expect((await promptViews({ userId: user }, {})).check).toBeNull();
   });
 });
+
+describe('structural fields and frozen objects (#2662)', () => {
+  it('a forgotten place never hides the time zone, locale or ids', async () => {
+    stored.topics = ['New York'];
+    const check = await forgottenCheck(user, 'test');
+    const userData = {
+      callerTimezone: 'America/New_York',
+      locale: 'en-US-new-york',
+      contactId: 'new-york-office',
+      profile: { time_zone: 'America/New_York', lastTrip: 'New York in May' },
+      note: 'moving to New York',
+    };
+    const seen = promptUserData(userData, check) as Record<string, unknown>;
+    expect(seen.callerTimezone).toBe('America/New_York');
+    expect(seen.locale).toBe('en-US-new-york');
+    expect(seen.contactId).toBe('new-york-office');
+    expect(seen.note).toBeUndefined();
+    const profile = seen.profile as Record<string, unknown>;
+    expect(profile.time_zone).toBe('America/New_York');
+    expect(profile.lastTrip).toBeUndefined();
+  });
+
+  it('a frozen userData reads filtered and is never written', async () => {
+    const userData = Object.freeze({
+      name: 'Sam',
+      note: 'Biscuit chewed the couch',
+      mood: 'tired',
+    });
+    const check = await forgottenCheck(user, 'test');
+    const seen = promptUserData(userData, check) as Record<string, unknown>;
+    expect(() => seen.note).not.toThrow();
+    expect(seen.note).toBeUndefined();
+    expect(seen.name).toBe('Sam');
+    expect(userData.note).toBe('Biscuit chewed the couch');
+    expect(Object.isFrozen(userData)).toBe(true);
+  });
+
+  it('frozen services read filtered too', async () => {
+    const raw = Object.freeze({
+      userId: user,
+      userProfile: Object.freeze(profileAbout()) as unknown,
+    });
+    const view = await promptServices(raw);
+    expect(() => view.userProfile).not.toThrow();
+    expect((view.userProfile as Record<string, unknown>).lastConversationSummary).toBeUndefined();
+  });
+});

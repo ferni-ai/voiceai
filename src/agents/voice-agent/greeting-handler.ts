@@ -16,7 +16,7 @@
 
 import { log, type voice } from '@livekit/agents';
 import { isMusicEnabled } from '../../config/environment.js';
-import { promptServices, type PromptView } from '../../memory/index.js';
+import { forgottenCheck, promptServices, type PromptView } from '../../memory/index.js';
 import {
   getPersonaMemories,
   normalizePersonaId,
@@ -762,15 +762,13 @@ async function getProactiveContext(
   emotionalCheckIn?: string;
   openQuestions: string[];
 }> {
-  // Get open thread conversation starter for proactive greeting
-  let threadStarter: string | undefined;
+  // FORGET_EVERY_READER: a thread, question, insight or check-in about a forgotten topic is never spoken.
+  const forgotten = await forgottenCheck(services.userId, 'greeting');
+  const said = (text?: string | null) => (text && !forgotten?.(text) ? text : undefined);
   const openThreads = services.getOpenThreads();
-  if (openThreads.length > 0 && isReturningUser) {
-    threadStarter = services.getThreadConversationStarter() || undefined;
-  }
-
-  // Get open questions from threads
-  const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).slice(0, 3);
+  const threadStarter =
+    openThreads.length > 0 && isReturningUser ? said(services.getThreadConversationStarter()) : undefined;
+  const openQuestions = openThreads.flatMap((t) => t.questionsToAnswer || []).filter(said).slice(0, 3);
 
   // Get high-priority proactive insights for check-ins
   let proactiveInsight: string | undefined;
@@ -778,7 +776,7 @@ async function getProactiveContext(
   if (isReturningUser) {
     try {
       const insightResult = await services.getProactiveInsights();
-      if (insightResult.highPriorityCount > 0 && insightResult.suggestedConversationStarter) {
+      if (insightResult.highPriorityCount > 0 && said(insightResult.suggestedConversationStarter)) {
         // Only use proactive insight if no thread starter (avoid double-starter)
         if (!threadStarter) {
           proactiveInsight = insightResult.suggestedConversationStarter;
@@ -795,8 +793,8 @@ async function getProactiveContext(
   if (isReturningUser && !threadStarter && !proactiveInsight) {
     try {
       const checkIns = services.emotionalMemory.getCheckInSuggestions();
-      if (checkIns.length > 0) {
-        const topCheckIn = checkIns[0];
+      const topCheckIn = checkIns.find((c) => said(`${c.suggestedOpener} ${c.reference ?? ''}`));
+      if (topCheckIn) {
         // Mark as followed up so we don't repeat
         services.emotionalMemory.markFollowedUp(topCheckIn.moment.id);
         emotionalCheckIn = topCheckIn.suggestedOpener;

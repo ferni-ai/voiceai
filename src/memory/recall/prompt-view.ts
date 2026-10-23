@@ -23,7 +23,7 @@
  * @module memory/recall/prompt-view
  */
 import { forgottenCheck, type ForgottenCheck } from './forget-every-reader.js';
-import { PROFILE_PASS_THROUGH, scrub, scrubProfile } from './forget-profile.js';
+import { isStructuralKey, PROFILE_PASS_THROUGH, scrub, scrubProfile } from './forget-profile.js';
 
 declare const PROMPT_VIEW: unique symbol;
 /** An object prompt readers may read: built by promptServices / promptUserData only. */
@@ -54,7 +54,21 @@ function filtered(value: unknown, check: ForgottenCheck, of: (v: object) => unkn
   return out;
 }
 
+/** A property a Proxy must return unchanged (non-configurable, non-writable): a frozen object's. */
+const pinned = (o: object): boolean =>
+  Object.values(Object.getOwnPropertyDescriptors(o)).some(
+    (d) => !d.configurable && 'value' in d && !d.writable
+  );
+
 function view<T extends object>(target: T, read: (key: string, value: unknown) => unknown): T {
+  // A frozen object can't be proxied with other values: a filtered copy, never a write to it.
+  if (pinned(target)) {
+    const copy = Object.create(Object.getPrototypeOf(target) as object | null) as Record<string, unknown>;
+    for (const [key, value] of Object.entries(target)) {
+      copy[key] = typeof value === 'function' ? value : read(key, value);
+    }
+    return copy as T;
+  }
   return new Proxy(target, {
     get(t, key, receiver) {
       const value: unknown = Reflect.get(t, key, receiver);
@@ -82,7 +96,7 @@ export function servicesView<S extends object>(services: S, check: ForgottenChec
 export function promptUserData<U extends object>(userData: U, check: ForgottenCheck | null): U {
   if (!check) return userData;
   return view(userData, (key, value) => {
-    if (USER_DATA_PASS_THROUGH.has(key)) return value;
+    if (USER_DATA_PASS_THROUGH.has(key) || isStructuralKey(key)) return value;
     // userData carries the session's services too: same view as promptServices.
     if (key === 'services' && value && typeof value === 'object') return servicesView(value, check);
     return filtered(value, check, (v) => scrub(v, check));
