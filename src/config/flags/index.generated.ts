@@ -12,6 +12,7 @@
  * @module config/flags/index.generated
  */
 export { ATTUNE_LEDGER } from './ATTUNE_LEDGER.js';
+export { BARGE_IN_FAST_STOP } from './BARGE_IN_FAST_STOP.js';
 export { BARGE_IN_SOFT_PAUSE } from './BARGE_IN_SOFT_PAUSE.js';
 export { BARGE_IN_SOFT_PAUSE_CONFIRM_MS } from './BARGE_IN_SOFT_PAUSE_CONFIRM_MS.js';
 export { BARGE_IN_SOFT_PAUSE_STT_GRACE_MS } from './BARGE_IN_SOFT_PAUSE_STT_GRACE_MS.js';
