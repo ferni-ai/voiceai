@@ -10,24 +10,19 @@
  *
  * TOOL_HUM=on turns it on (off until it has been listened to on dev).
  *
- * "A tool is running" comes from the SDK itself (@livekit/agents 1.5.1): every
- * reply's SpeechHandle is announced by SpeechCreated, and the SDK hands each
- * FunctionCall to that handle's item callbacks the moment it starts executing
- * it (performToolExecutions → onToolExecutionStarted, dist/voice/generation.js
- * :797 → speechHandle._itemAdded, dist/voice/agent_activity.js:2208), then its
- * FunctionCallOutput when it completes. FunctionToolsExecuted and the handle
- * finishing are the backstops for "done".
+ * "A tool is running" comes from the SDK itself, via tool-call-events.ts.
  *
  * @module agents/integrations/tool-hum
  */
 
-import { voice, type llm } from '@livekit/agents';
+import { voice } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
 import { synthHum } from './presence-sounds.js';
 import { stayQuietOn } from '../shared/call-farewell.js';
 import { presenceSilenceIsHeavy } from './presence-heavy.js';
 import { isHeavyMood } from './presence-watcher.js';
 import { voicedHumFor, voicedPresenceEnabled, type VoicedHum } from './voiced-presence.js';
+import { watchToolCalls } from './tool-call-events.js';
 
 const log = createLogger({ module: 'ToolHum' });
 
@@ -172,37 +167,18 @@ export function startToolHum(
     quiet: () => stayQuietOn(session),
   });
 
-  const onSpeech = (ev: voice.SpeechCreatedEvent) => {
-    const handle = ev.speechHandle;
-    const mine = new Set<string>();
-    const onItem = (item: llm.ChatItem) => {
-      if (item.type === 'function_call') {
-        mine.add(item.callId);
-        watcher.toolStarted(item.callId);
-      } else if (item.type === 'function_call_output') {
-        mine.delete(item.callId);
-        watcher.toolFinished(item.callId);
-      }
-    };
-    handle._addItemAddedCallback(onItem);
-    handle.addDoneCallback(() => {
-      handle._removeItemAddedCallback(onItem);
-      mine.forEach((id) => watcher.toolFinished(id));
-    });
-  };
-  const onToolsDone = (ev: voice.FunctionToolsExecutedEvent) =>
-    ev.functionCalls.forEach((c) => watcher.toolFinished(c.callId));
+  const stopWatching = watchToolCalls(session, {
+    started: (callId) => watcher.toolStarted(callId),
+    ended: (callId) => watcher.toolFinished(callId),
+  });
   const onAgent = (ev: { newState?: string }) => watcher.onAgentState(ev.newState ?? '');
   const onUser = (ev: { newState?: string }) => watcher.onUserState(ev.newState ?? '');
 
-  session.on(voice.AgentSessionEventTypes.SpeechCreated, onSpeech);
-  session.on(voice.AgentSessionEventTypes.FunctionToolsExecuted, onToolsDone);
   session.on(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
   session.on(voice.AgentSessionEventTypes.UserStateChanged, onUser);
   return () => {
     watcher.close();
-    session.off(voice.AgentSessionEventTypes.SpeechCreated, onSpeech);
-    session.off(voice.AgentSessionEventTypes.FunctionToolsExecuted, onToolsDone);
+    stopWatching();
     session.off(voice.AgentSessionEventTypes.AgentStateChanged, onAgent);
     session.off(voice.AgentSessionEventTypes.UserStateChanged, onUser);
   };
