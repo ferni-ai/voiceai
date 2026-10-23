@@ -10,8 +10,9 @@
  *   call result) goes.
  * - Release (held-texts.ts): the hold is read again before a held text goes;
  *   still held, it waits.
- * - Push: the caller says what started it (PushOrigin). A push nobody marks
- *   is never held, so nothing the person asked for is lost.
+ * - Push: only callers that go through pushUnlessFocusHeld can be held, and
+ *   they say what started it (PushOrigin; anything not marked a reminder
+ *   counts as Ferni's). Every other push path is never held.
  *
  * The hold is read from the bogle_users doc the sender already has where it
  * can. Without a saved hold, or without the flag, nothing new is read.
