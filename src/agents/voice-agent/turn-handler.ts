@@ -168,6 +168,7 @@ import {
 import { getRedisCache } from '../../memory/redis-cache.js';
 import { buildProactiveOutreachPayload } from './proactive-outreach-message.js';
 import * as followUpGate from './commitment-follow-up-gate.js';
+import { crisisOverrideNote } from '../multi-agent/safety-notes.js';
 
 // Phase 11: Voice-Memory Integration - record prosody signals with memories
 import {
@@ -1348,15 +1349,7 @@ Voice signals detected: ${allSignals.join(', ') || 'subtle vocal cues'}`,
         indicators: result.crisis.indicators,
       });
 
-      turnCtx.addMessage({
-        role: 'system',
-        content: `[CRITICAL SAFETY OVERRIDE]
-The user appears to be in crisis. You MUST respond with the following crisis response.
-Do NOT deviate from this response. User safety is the absolute priority.
-
-REQUIRED RESPONSE:
-${result.crisis.suggestedResponse}`,
-      });
+      turnCtx.addMessage(crisisOverrideNote(result.crisis.suggestedResponse)); // kept whole (#2618)
 
       try {
         await sendDataMessage('crisis_detected', {

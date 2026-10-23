@@ -7,6 +7,8 @@
 
 import type { llm } from '@livekit/agents';
 import { withRevivedIntelligence } from '../../../intelligence/revived/revived-intelligence.js';
+import { DEDUP_PROTECTED_CATEGORIES } from '../../../intelligence/utils/injection-filter.js';
+import { safetyNoteId } from '../../multi-agent/safety-notes.js';
 import { MAX_PUSHED_CONTEXT_CHARS } from '../../multi-agent/turn-context-header.js';
 import type { TurnProcessorResult } from '../types.js';
 
@@ -50,13 +52,17 @@ export function injectTurnContext(
     process.stderr.write(`${'='.repeat(80)}\n\n`);
   }
 
-  // Combine all injection content
-  const combinedContent = injections.map((inj) => inj.content).join('\n\n');
-
-  turnCtx.addMessage({
-    role: 'user',
-    content: combinedContent,
-  });
+  // On a crisis or soft-check turn the protected guidance is its own note, ahead
+  // of the rest, so the pushed-note cut keeps it whole (#2618, safety-notes.ts).
+  const safetyTurn = Boolean(result.crisis?.isCrisis || result.crisis?.softCheck);
+  const isSafety = (inj: { category: string }): boolean =>
+    safetyTurn && DEDUP_PROTECTED_CATEGORIES.has(inj.category);
+  const join = (list: typeof injections): string => list.map((inj) => inj.content).join('\n\n');
+  const safety = injections.filter(isSafety);
+  const rest = injections.filter((inj) => !isSafety(inj));
+  if (safety.length > 0)
+    turnCtx.addMessage({ role: 'user', content: join(safety), id: safetyNoteId() });
+  if (rest.length > 0) turnCtx.addMessage({ role: 'user', content: join(rest) });
 }
 
 /**
