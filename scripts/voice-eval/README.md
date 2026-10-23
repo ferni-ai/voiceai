@@ -53,3 +53,13 @@ captionless or empty calls can PASS, so don't promote on this output until those
 - **Exit:** 0 PASS, 1 FAIL, 3 INCONCLUSIVE (add scenarios or repeats), 2 harness
   error, 4 `--dry-run` (prints the log queries; nothing checked). `--offline` skips the logs, so it
   can't PASS. `--logs DIR` caches the logs, keyed by query.
+
+## Realistic callers
+
+Cooperative scripted callers in clean TTS made every number so far. `run.sh --realistic` (options in
+its header) adds ums, restarts, a varied rate and 400–1500 ms mid-thought pauses (`caller-realism.mjs`,
+`caller-personas.json`); `realistic-*` scenarios are low-cooperation callers (#2333, #2289, #2422).
+Each run writes `<run>.realism.json`: takeover and false-end rates, gap and barge-in stop p50/p90
+(see `realism-metrics.mjs`). An unanswered turn counts as 15 s, so a short call's gap p90 mostly says
+whether any turn went unanswered: read `rt:unanswered-rate` beside it. `values` (`rt:*`) are
+`pairedCompare` input: `realism-metrics.mjs paired <A> <B>`, or add `realismValues(dir)` to `sweepValues(dir)`.

@@ -14,6 +14,7 @@
 import 'dotenv/config';
 import admin from 'firebase-admin';
 import { getLogger } from '../src/utils/safe-logger.js';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 const log = getLogger();
 
@@ -36,7 +37,7 @@ async function analyzeProfiles(): Promise<void> {
     log.info({ projectId }, 'Firebase Admin initialized');
   }
 
-  const db = admin.firestore();
+  const db = getAdminFirestore();
   const profilesRef = db.collection('bogle_users');
   const snapshot = await profilesRef.limit(500).get();
 

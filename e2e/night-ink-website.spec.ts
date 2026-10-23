@@ -6,6 +6,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
 import { keepOffProdApi, serveBuiltSite, type BuiltSite } from './built-site-server';
+import { installColourReader, type Rgba } from './computed-colour';
 
 const PORT = 8766;
 const SITE = `http://127.0.0.1:${PORT}`;
@@ -32,15 +33,16 @@ interface PageColors {
 }
 
 async function readPage(page: Page): Promise<PageColors> {
+  await installColourReader(page);
   return page.evaluate(() => {
+    const reader = window.ferniColour;
+    if (!reader) throw new Error('colour reader not installed');
     const channel = (value: number): number => {
       const s = value / 255;
       return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
     };
     const lum = (color: string): number => {
-      const parts = color.match(/[\d.]+/g);
-      if (!parts || parts.length < 3) return 0;
-      const [r, g, b] = parts.slice(0, 3).map(Number);
+      const { r, g, b }: Rgba = reader.read(color);
       return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b);
     };
     const ratio = (foreground: string, background: string): number => {
@@ -52,9 +54,7 @@ async function readPage(page: Page): Promise<PageColors> {
       let node: Element | null = el;
       while (node) {
         const bg = getComputedStyle(node).backgroundColor;
-        const parts = bg.match(/[\d.]+/g);
-        const alpha = parts && parts.length >= 4 ? Number(parts[3]) : 1;
-        if (bg !== 'transparent' && alpha !== 0) return bg;
+        if (reader.read(bg).a !== 0) return bg;
         node = node.parentElement;
       }
       return getComputedStyle(document.body).backgroundColor;
@@ -132,9 +132,9 @@ test.describe('Night Ink website', () => {
 
       expect(colors.bodyBg).not.toBe('rgb(20, 17, 14)');
       const bodyLum = await page.evaluate(() => {
-        const parts = getComputedStyle(document.body).backgroundColor.match(/[\d.]+/g);
-        if (!parts) return 0;
-        const [r, g, b] = parts.slice(0, 3).map(Number);
+        const reader = window.ferniColour;
+        if (!reader) throw new Error('colour reader not installed');
+        const { r, g, b } = reader.read(getComputedStyle(document.body).backgroundColor);
         return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
       });
       expect(bodyLum).toBeGreaterThan(0.8);

@@ -471,14 +471,11 @@ async function execute(
         const userDoc = await db.collection('bogle_users').doc(ctx.userId).get();
         const userData = userDoc.data();
 
-        const factsSnapshot = await db
-          .collection('bogle_users')
-          .doc(ctx.userId)
-          .collection('extracted_facts')
-          .get();
+        const facts = db.collection('bogle_users').doc(ctx.userId).collection('extracted_facts');
+        const factsCounted = await facts.count().get(); // not a read of every fact
 
         const sessionCount = (userData?.sessionCount as number) || 0;
-        const factCount = factsSnapshot.size;
+        const factCount = factsCounted.data().count;
 
         return {
           sessionsToDate: sessionCount,

@@ -10338,6 +10338,7 @@
       "other": "התקבלו {count} זרעים!"
     },
     "couldNotLoadMemories": "לא הצלחתי לטעון את מה שאני זוכר. לנסות שוב?",
+    "credentialNotKept": "Ferni לא שומר קודים או סיסמאות, אז הפריט הזה נמחק.",
     "memoryCorrected": "הבנתי. אזכור את זה כך."
   },
   "trustSignals": {

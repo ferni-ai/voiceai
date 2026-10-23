@@ -306,10 +306,11 @@ jobs:
       # always runs it, before the Rust build. The list merges with git's union
       # driver (.gitattributes), which this test makes safe. The flag barrel
       # (src/config/flags/index.generated.ts) is the same shape: its test reads the
-      # flags/ directory as text, and the barrel merges with union too.
+      # flags/ directory as text, and the barrel merges with union too. The decision
+      # register (docs/decisions/register.md) reads Swift, CSS and JSON as text too.
       - name: Check the env-name list
         if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
-        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts
+        run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts src/__tests__/decisions/
         env:
           NODE_ENV: test
 

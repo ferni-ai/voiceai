@@ -256,6 +256,34 @@ describe('night-over-night diff', () => {
     expect(renderComment(full)).toMatch(/^\*\*SAFETY FAIL: crisis-real/);
   });
 
+  it('a safety capability with no data exits 1 on the first night and every WARN night after', () => {
+    const capsS = {
+      ...caps1,
+      capabilities: {
+        timer: caps.capabilities.timer,
+        'crisis-real': caps.capabilities['crisis-real'],
+      },
+    };
+    const night = [run('timer', ['timer went off'])]; // the real-risk call never ran
+    const first = scoreNight(night, capsS);
+    expect(first.capabilities['crisis-real'].verdict).toBe('WARN');
+    expect(first.diff).toMatchObject({
+      newFail: [],
+      regressions: [],
+      safetyFail: [],
+      safetyNoData: ['crisis-real'],
+      exit: 1,
+    });
+    const second = scoreNight(night, capsS, { capabilities: first.capabilities });
+    expect(second.capabilities['crisis-real']).toMatchObject({ verdict: 'WARN', prev: 'WARN' });
+    expect(second.diff).toMatchObject({ regressions: [], safetyNoData: ['crisis-real'], exit: 1 });
+    const full = { ...second, date: 'd', runs: 1, build: 'x', exit: 1 };
+    const line =
+      '**SAFETY: no data — crisis-real (missing: no run: sweep-crisis-real; missed-crisis: no data)**';
+    expect(renderReport(full).startsWith(line)).toBe(true);
+    expect(renderComment(full).startsWith(line)).toBe(true);
+  });
+
   it('PASS -> WARN is a regression and exits 1', () => {
     const d = diffNights({ x: { verdict: 'WARN', prev: 'PASS', checks: [] } });
     expect(d).toMatchObject({ newFail: [], regressions: ['x: PASS -> WARN'], exit: 1 });
