@@ -266,6 +266,18 @@ function read(id: string, words: string) {
 }
 
 /**
+ * The caller's goodbye turn, read clean as prod reads it: the turn's crisis
+ * read starts (onUserTurnCompleted), then LiveKit adds its item. After a
+ * reopen, with the classifier on, a goodbye ends the call only on that read
+ * (goodbye-read.ts).
+ */
+async function cleanGoodbye(c: Call, words: string) {
+  const settle = read(c.id, words);
+  c.say('user', words);
+  await settle('none');
+}
+
+/**
  * The lead's verify of #2532 round 1: each line's STT final reopened the call,
  * then its conversation item (300 ms later, after `closing` had cleared) was
  * taken for a fresh caller goodbye, and Ferni's goodbye from before the reopen
@@ -336,7 +348,7 @@ describe('the reopening line is never the fresh goodbye (#2532)', () => {
     await ferniSays(c, 'Hey, before you go, are you okay?');
     await c.advance(3_000);
     c.finalWords("yeah, I'm fine. okay, bye!");
-    c.say('user', "yeah, I'm fine. okay, bye!");
+    await cleanGoodbye(c, "yeah, I'm fine. okay, bye!");
     await ferniSays(c, 'Okay. Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -349,7 +361,7 @@ describe("Ferni's goodbye from before a reopen no longer counts (#2532)", () => 
     const c = await call();
     await lineAfterEnd(c, 'oh wait, one more thing', 'no read');
     c.finalWords('actually never mind. okay, bye!');
-    c.say('user', 'actually never mind. okay, bye!');
+    await cleanGoodbye(c, 'actually never mind. okay, bye!');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(1);
     expect(c.appConnected).toBe(true);
@@ -504,7 +516,7 @@ describe('a reopened call that goes quiet (#2532)', () => {
   it('a second reopen starts the quiet over, with one watcher', async () => {
     const c = await quietAfterReopen();
     await c.advance(20_000);
-    c.say('user', 'okay, bye');
+    await cleanGoodbye(c, 'okay, bye');
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS);
     expect(ends(c)).toHaveLength(2);
@@ -607,7 +619,7 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     const c = await call();
     await lineAfterEnd(c, 'wait', 'no read');
     await ferniSays(c, 'Sure, what is it?');
-    c.say('user', 'wait, never mind. okay, bye'); // the next turn
+    await cleanGoodbye(c, 'wait, never mind. okay, bye'); // the next turn
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -621,7 +633,7 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     c.finalWords('no'); // reopens; its item never comes
     expect(c.reopens()).toHaveLength(1);
     await ferniSays(c, 'No worries. Anything else?');
-    c.say('user', 'know what, okay, bye'); // "no" only inside a word: a fresh goodbye
+    await cleanGoodbye(c, 'know what, okay, bye'); // "no" only inside a word: a fresh goodbye
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -636,7 +648,7 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     expect(c.reopens()).toHaveLength(1);
     c.say('user', 'sorry, my dog'); // the next turn: the carry ends
     await ferniSays(c, "Ha, no problem. What's up?");
-    c.say('user', 'wait, never mind. okay, bye');
+    await cleanGoodbye(c, 'wait, never mind. okay, bye');
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -654,7 +666,7 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     await c.advance(3_000); // no read: the window reopens it
     expect(c.reopens()).toHaveLength(1);
     await ferniSays(c, 'Of course. Anything else on your mind?');
-    c.say('user', line); // said again, a new turn: a fresh goodbye
+    await cleanGoodbye(c, line); // said again, a new turn: a fresh goodbye
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -669,7 +681,7 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     c.finalWords('hold on');
     expect(c.reopens()).toHaveLength(1);
     await ferniSays(c, 'Sure, take your time.');
-    c.say('user', 'hold on, never mind. okay, bye');
+    await cleanGoodbye(c, 'hold on, never mind. okay, bye');
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -760,7 +772,7 @@ describe('items out of turn order, and reads of other turns (security review of 
     await c.advance(300);
     c.say('user', 'oh wait');
     await ferniSays(c, 'Sure, what is it?');
-    c.say('user', "sorry, Adi's calling me. okay, bye"); // the next turn: a fresh goodbye
+    await cleanGoodbye(c, "sorry, Adi's calling me. okay, bye"); // the next turn: a fresh goodbye
     await ferniSays(c, 'Bye, take care.');
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
@@ -883,5 +895,73 @@ describe('the check-in (#2532 security review)', () => {
     now = REOPEN_IDLE_END_MS;
     timers.filter((t) => t.at <= now).forEach((t) => t.fn());
     expect(said).toEqual(['check-in', 'end']);
+  });
+});
+
+/**
+ * The lead's ruling B on #2605 item 3: after a reopen, with the classifier on,
+ * a goodbye pair ends the call only on a clean read of the goodbye turn. With
+ * it off (no read ever comes), a fresh pair ends it as before.
+ */
+describe('after a reopen, a goodbye needs its clean read (#2605 ruling B)', () => {
+  /** "goodbye cruel world." reopens; "I gotta go" follows as its own turn; Ferni says goodbye. */
+  async function splitP1(
+    c: Call,
+    opts: { asks?: boolean; goodbye?: (c: Call) => Promise<void> } = {}
+  ) {
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords('goodbye cruel world.');
+    await c.advance(300);
+    c.say('user', 'goodbye cruel world.');
+    expect(c.reopens()).toHaveLength(1);
+    if (opts.asks) await ferniSays(c, 'Hey, are you okay?');
+    await c.advance(2_000);
+    c.finalWords('I gotta go');
+    await c.advance(300);
+    await (opts.goodbye ?? (async (cc: Call) => void cc.say('user', 'I gotta go')))(c);
+    await ferniSays(c, 'Okay, take care of yourself.');
+  }
+
+  it.each([false, true])(
+    'no read of either line: the call stays open (Ferni asks first: %s)',
+    async (asks) => {
+      const c = await call();
+      await splitP1(c, { asks });
+      await c.advance(30_000);
+      expect(ends(c)).toHaveLength(1);
+      expect(c.appConnected).toBe(true);
+    }
+  );
+
+  it('a clean read of the goodbye turn ends it', async () => {
+    const c = await call();
+    await splitP1(c, { goodbye: (cc) => cleanGoodbye(cc, 'I gotta go') });
+    await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
+    expect(ends(c)).toHaveLength(2);
+    expect(c.appConnected).toBe(false);
+  });
+
+  it('a read of another line does not count for the goodbye', async () => {
+    const c = await call();
+    await splitP1(c, {
+      goodbye: async (cc) => {
+        await read(cc.id, 'goodbye cruel world.')('none');
+        cc.say('user', 'I gotta go');
+      },
+    });
+    await c.advance(30_000);
+    expect(ends(c)).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
+  it('classifier off: no read ever comes, and a fresh pair still ends the call', async () => {
+    const c = await call({
+      env: { CALL_WRAP_UP: 'on', PHONE_GOODBYE: 'on', CRISIS_CLASSIFIER_MODE: 'off' },
+    });
+    await splitP1(c);
+    await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
+    expect(ends(c)).toHaveLength(2);
+    expect(c.appConnected).toBe(false);
   });
 });
