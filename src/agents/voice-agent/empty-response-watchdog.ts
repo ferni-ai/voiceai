@@ -89,11 +89,10 @@ export function createEmptyResponseWatchdog(options: {
 // (which sees the LLM stream) and the session-state handler (which owns the
 // watchdog) both hold the session, not each other.
 
-type ToolCallListener = (names: readonly string[]) => void;
-const toolCallListeners = new WeakMap<object, Set<ToolCallListener>>();
+const toolCallListeners = new WeakMap<object, Set<() => void>>();
 
 /** Subscribe to tool calls the LLM requests in this session. Returns an unsubscribe. */
-export function onToolCallRequested(session: object, listener: ToolCallListener): () => void {
+export function onToolCallRequested(session: object, listener: () => void): () => void {
   let listeners = toolCallListeners.get(session);
   if (!listeners) {
     listeners = new Set();
@@ -110,9 +109,45 @@ export function onToolCallRequested(session: object, listener: ToolCallListener)
 export function signalToolCallRequested(session: object, names: readonly string[] = []): void {
   toolCallListeners.get(session)?.forEach((listener) => {
     try {
-      listener(names);
+      listener();
     } catch (error) {
       log.error({ error: String(error) }, 'Tool-call listener failed');
+    }
+  });
+  notifyToolNames(session, names); // even unnamed: a tool was asked for
+}
+
+const toolNameListeners = new WeakMap<object, Set<(names: readonly string[]) => void>>();
+
+/**
+ * Subscribe to the names of the tools a reply asks for: the first tool chunk's
+ * and any new ones later in the same reply (an endCall after a look-up), which
+ * onToolCallRequested, once per reply, does not repeat. Returns an unsubscribe.
+ */
+export function onToolNamesRequested(
+  session: object,
+  listener: (names: readonly string[]) => void
+): () => void {
+  let listeners = toolNameListeners.get(session);
+  if (!listeners) {
+    listeners = new Set();
+    toolNameListeners.set(session, listeners);
+  }
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+}
+
+/** Report new tool names later in a reply (signalToolCallRequested reports the first). */
+export function signalToolNames(session: object, names: readonly string[]): void {
+  if (names.length) notifyToolNames(session, names);
+}
+
+function notifyToolNames(session: object, names: readonly string[]): void {
+  toolNameListeners.get(session)?.forEach((listener) => {
+    try {
+      listener(names);
+    } catch (error) {
+      log.error({ error: String(error) }, 'Tool-name listener failed');
     }
   });
 }

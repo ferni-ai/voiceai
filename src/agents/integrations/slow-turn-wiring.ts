@@ -13,7 +13,7 @@ import { noteTurnOpened } from '../personas/laugh-ledger.js';
 import { crisisDecidedOn, crisisVerdictPending } from '../safety/crisis-gate-signal.js';
 import { callerAsksToHangUp, callerSaysGoodbye, stayQuiet } from '../shared/call-farewell.js';
 import { getCachedAudioForPersona } from '../shared/conversational-audio-cache.js';
-import { onToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
+import { onToolNamesRequested } from '../voice-agent/empty-response-watchdog.js';
 import {
   holdReplyAudio,
   replyAudioSince,
@@ -69,7 +69,7 @@ export function attachSlowTurnSoundToCall(
     soundAllowed: () => openingSoundAllowed(session),
     turnStartedAt: () => callerTurnStartedAt(session),
     mayNeedTool,
-    onToolRequested: (listener) => onToolCallRequested(session, listener),
+    onToolRequested: (listener) => onToolNamesRequested(session, listener),
     // The reply waits until the clip has played on the wire (24 kHz mono s16le: 48 bytes a ms).
     holdReply: (text) =>
       holdReplyAudio(

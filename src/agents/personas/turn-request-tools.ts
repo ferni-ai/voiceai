@@ -14,7 +14,10 @@ import {
   latestUserText,
   toolRetrievalMode,
 } from '../../tools/retrieval/turn-tool-retrieval.js';
-import { signalToolCallRequested } from '../voice-agent/empty-response-watchdog.js';
+import {
+  signalToolCallRequested,
+  signalToolNames,
+} from '../voice-agent/empty-response-watchdog.js';
 import { filterCaptionStream, type Caption } from './caption-filter.js';
 import { tapSpokenBursts } from './vocal-bursts.js';
 
@@ -92,13 +95,18 @@ export function tapToolCalls<T>(
 ): ReadableStream<T> | null {
   if (!reply) return reply;
   let signalled = false;
+  const seen = new Set<string>();
   return reply.pipeThrough(
     new TransformStream<T, T>({
       transform(chunk, controller) {
-        const names = signalled ? [] : toolCallNames(chunk);
-        if (names.length) {
-          signalled = true;
+        const names = toolCallNames(chunk);
+        const fresh = names.filter((name) => !seen.has(name));
+        fresh.forEach((name) => seen.add(name));
+        if (names.length && !signalled) {
+          signalled = true; // once per reply: the watchdogs hold their clocks on it
           signalToolCallRequested(session, names);
+        } else if (fresh.length) {
+          signalToolNames(session, fresh); // a later tool, e.g. endCall after a look-up
         }
         controller.enqueue(chunk);
       },

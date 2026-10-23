@@ -5,8 +5,10 @@
  * early opening sound it shares one sound per turn with (turn-opening-sound.ts).
  */
 import { EventEmitter } from 'node:events';
+import { ReadableStream, WritableStream } from 'node:stream/web';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { noteCrisisVerdictPending, signalCrisisDecision } from '../../safety/crisis-gate-signal.js';
+import { tapToolCalls } from '../../personas/turn-request.js';
 import { signalToolCallRequested } from '../../voice-agent/empty-response-watchdog.js';
 import {
   clearReplyActivity,
@@ -136,6 +138,25 @@ describe('slow-turn sound on the real call signals', () => {
     const c = call();
     c.turn('can you call my sister for me');
     signalToolCallRequested(c.session, ['endCall']);
+    vi.advanceTimersByTime(SLOW_TURN.waitMs);
+    expect(c.played).toEqual([]);
+    c.detach();
+  });
+
+  it('an endCall arriving in a later chunk of the reply still counts as a hang-up', async () => {
+    const c = call();
+    c.turn('can you call my sister for me');
+    const chunks = [
+      { id: 'a', delta: { toolCalls: [{ type: 'function_call', name: 'getContactInfo' }] } },
+      { id: 'b', delta: { toolCalls: [{ type: 'function_call', name: 'endCall' }] } },
+    ];
+    const reply = new ReadableStream<object>({
+      start(controller) {
+        chunks.forEach((chunk) => controller.enqueue(chunk));
+        controller.close();
+      },
+    });
+    await tapToolCalls(reply, c.session)?.pipeTo(new WritableStream());
     vi.advanceTimersByTime(SLOW_TURN.waitMs);
     expect(c.played).toEqual([]);
     c.detach();
