@@ -196,7 +196,7 @@ describe('outreach intelligence after a failed load', () => {
   });
 });
 
-describe('outreach intelligence after a failed delete', () => {
+describe('outreach intelligence across sessions', () => {
   const USER = 'u-reach-del';
   const PATH = `bogle_users/${USER}/outreach_data/data`;
   const stored = {
@@ -207,19 +207,18 @@ describe('outreach intelligence after a failed delete', () => {
     status: 'done',
   };
 
-  it('a delete that fails leaves the user unread, so the next save keeps what survived', async () => {
+  it("session end leaves the user unread, so the next session's first save keeps the stored doc", async () => {
     await outreach.initializeOutreachPersistence();
     state.docs.set(PATH, { commitments: [stored], opportunities: [], sentLog: [] });
     await outreach.detectOutreachOpportunities(USER); // read: the user is loaded
-    state.failWrites.add(PATH);
-    await outreach.clearUserOutreachData(USER); // the doc delete fails; memory is cleared
-    state.failWrites.clear();
+    await outreach.clearUserOutreachData(USER); // session end: memory dropped, the doc stays
     expect(state.docs.has(PATH)).toBe(true);
 
-    await outreach.detectOutreachOpportunities(USER); // must read the surviving doc again
-    outreach.setPreferences(USER, { maxPerDay: 2 });
+    await outreach.detectOutreachOpportunities(USER); // must read the stored doc again
+    outreach.extractCommitments(USER, "I'll call my sister tomorrow");
     await outreach.shutdownOutreachPersistence();
     expect(idsAt(PATH, 'commitments')).toContain('kept-c');
+    expect(idsAt(PATH, 'commitments').length).toBe(2);
   });
 });
 
