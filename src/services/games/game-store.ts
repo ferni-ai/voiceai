@@ -21,6 +21,7 @@ const log = getLogger();
 // In-memory cache for quick access
 const gameMemoryCache = new Map<string, GameMemory>();
 const musicMemoryCache = new Map<string, MusicMemory>();
+const fromStorage = new Set<string>(); // profile read in this process: only those are written
 
 // Track dirty state for debounced saves
 const dirtyUsers = new Set<string>();
@@ -46,7 +47,7 @@ export async function loadGameMemory(userId: string): Promise<GameMemory> {
     const { getEngagementStore } = await import('../engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = await store.getProfile(userId);
-
+    fromStorage.add(userId);
     if (profile.gameMemory) {
       gameMemoryCache.set(userId, profile.gameMemory);
       log.info(
@@ -79,7 +80,7 @@ export async function loadMusicMemory(userId: string): Promise<MusicMemory | nul
     const { getEngagementStore } = await import('../engagement/engagement-store.js');
     const store = await getEngagementStore();
     const profile = await store.getProfile(userId);
-
+    fromStorage.add(userId);
     if (profile.musicMemory) {
       musicMemoryCache.set(userId, profile.musicMemory);
       return profile.musicMemory;
@@ -100,6 +101,7 @@ export async function loadMusicMemory(userId: string): Promise<MusicMemory | nul
  * Debounced to avoid too many writes
  */
 export async function saveGameMemory(userId: string, gameMemory: GameMemory): Promise<void> {
+  if (userHeld(userId)) return purgeGameMemory(userId); // MINOR_CARE: not even cached
   // Update cache immediately
   gameMemoryCache.set(userId, gameMemory);
 
@@ -120,6 +122,7 @@ export async function saveGameMemory(userId: string, gameMemory: GameMemory): Pr
  * Save music memory for a user
  */
 export async function saveMusicMemory(userId: string, musicMemory: MusicMemory): Promise<void> {
+  if (userHeld(userId)) return purgeGameMemory(userId); // MINOR_CARE: not even cached
   // Update cache
   musicMemoryCache.set(userId, musicMemory);
 
@@ -132,6 +135,14 @@ export async function saveMusicMemory(userId: string, musicMemory: MusicMemory):
       void flushDirtyUsers();
     }, 3000);
   }
+}
+
+/** MINOR_CARE: drop a held caller under 18's game and music memory, so nothing is written later. */
+export function purgeGameMemory(userId: string): void {
+  dirtyUsers.delete(userId);
+  gameMemoryCache.delete(userId);
+  musicMemoryCache.delete(userId);
+  fromStorage.delete(userId); // the next session reloads before it writes
 }
 
 /**
@@ -152,7 +163,11 @@ async function flushDirtyUsers(): Promise<void> {
     const store = await getEngagementStore();
 
     for (const userId of usersToSave) {
-      if (userHeld(userId)) continue; // MINOR_CARE: a held caller under 18's game and music memory
+      if (userHeld(userId)) {
+        purgeGameMemory(userId); // MINOR_CARE: a held caller under 18's game and music memory
+        continue;
+      }
+      if (!fromStorage.has(userId)) continue; // never loaded here: it would replace stored state
       try {
         const profile = await store.getProfile(userId);
 
@@ -187,8 +202,8 @@ async function flushDirtyUsers(): Promise<void> {
 export async function forceSaveGameMemory(userId: string): Promise<void> {
   // Clear from pending; never written for a held caller under 18 (MINOR_CARE)
   dirtyUsers.delete(userId);
-  if (userHeld(userId)) return;
-
+  if (userHeld(userId)) return purgeGameMemory(userId);
+  if (!fromStorage.has(userId)) return; // never loaded here: it would replace stored state
   const gameMemory = gameMemoryCache.get(userId);
   const musicMemory = musicMemoryCache.get(userId);
 

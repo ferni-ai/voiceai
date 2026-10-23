@@ -160,6 +160,98 @@ export function policesDelivery(note: string): boolean {
   return CORRECTIVE.test(note) || SOUNDS_LIKE.test(note);
 }
 
+/** Feelings a note can name on the caller. */
+const FELT =
+  '(?:worried|anxious|nervous|scared|afraid|terrified|overwhelmed|exhausted|stressed|lonely|isolated|insecure|guilty|relieved|defensive|vulnerable|exposed|helpless|ashamed|embarrassed|resentful|unsettled|restless|overshadowed|pressured|judged|self-conscious)';
+/**
+ * What a guess can pin on the caller: "might be feeling", "might mean", "might feel a
+ * bit overshadowed", "must be exhausted". Not "a long answer might feel like a lecture".
+ */
+const GUESSED = `(?:feeling|needing|wanting|hiding|using|looking|trying|carrying|waiting|thinking|dealing|dreading|bursting|panicking|processing|need|needs|want|wants|mean|means|feel (?:a bit |a little |so |more |very )?${FELT}|${FELT})`;
+/** Emotions a note can give as the reason for what the caller said or did. */
+const EMOTION =
+  '(?:afraid|scared|terrified|fear|fears|insecure|anxious|anxiety|nervous|nerves|worried|vulnerable|ashamed|embarrassed|guilty|guilt|dread|dreading|stress|stressful|stressed|overwhelmed|lonely|exposed|uncomfortable|pressure|panic|wired)';
+/** Not inside a question: "ask how they are actually feeling", "name the thing they are dreading". */
+const NOT_ASKED = String.raw`(?<!\b(?:how|what|if|whether|why|ask|asking|name)\b[^.;:]{0,25})`;
+/** Not something the actor would cause: "without making her feel guilty". */
+const NOT_MADE = String.raw`(?<!\b(?:make|makes|making|made|let|letting) (?:\w+ )?)`;
+/**
+ * The ways a note pins a feeling or motive on the caller that they haven't
+ * said, each a family of phrasing, on word boundaries. Built from the labelled
+ * notes in __tests__/director-mind-reading.fixture.json.
+ */
+const READS_MIND: readonly RegExp[] = [
+  // A guess at their inner state: "Riley is likely hiding some anxiety", "is probably
+  // feeling", "might be feeling self-conscious", "her silence might mean", "how exhausted
+  // they must be". Not the adjective ("Priya's likely reaction"), not a thing that
+  // "might feel too heavy".
+  /(?<!\b(?:the|a|their|her|his) )\b(?:likely|probably|presumably)\b(?! (?:reaction|response|outcome|answer|reply)\b)/i,
+  new RegExp(
+    String.raw`(?<!["”] )\b(?:might|may|must|could)(?: just| also| still| really| secretly)?(?: be)? ${GUESSED}\b`,
+    'i'
+  ),
+  /\bhow \w+ (?:they|she|he) (?:must|might) (?:be|feel)\b/i,
+  // Reading it off what they did: "a 'weird' week usually means they're feeling", "asking
+  // for a second opinion means they are stuck".
+  /\b(?<!(?:doesn'?t|does not|don'?t) )means? (?:that )?(?:they|she|he)(?:'re| are| is|'s|’re|’s| feels?)\b/i,
+  // A hidden state, or the real one under the shown one.
+  /\b(?:secretly|deep down|underneath|beneath|underlying|unexpressed|unspoken|hiding|masking|bottl(?:ed|ing) (?:it )?up|under the (?:excitement|surface|jokes?)|a deeper \w+)\b/i,
+  new RegExp(
+    String.raw`${NOT_ASKED}\b(?:(?:is|are|'s|'re|’s|’re) (?:actually|really|secretly) (?:feeling|hiding|worried|anxious|nervous|scared|afraid|terrified|overwhelmed|insecure|guilty|relieved|proud|thrilled|dreading|lonely)|(?:they|she|he) (?:actually|really|secretly) (?:value|values|care|cares|love|loves|hate|hates|fear|fears|feel|feels|doubt|doubts))\b`,
+    'i'
+  ),
+  /\bthe real reason\b/i,
+  // A motive for what they said: "using the car trouble to escape", "deflecting because",
+  // "changed the subject because", "a distraction from her anxiety".
+  /\busing\b[^.;:]{0,50}?\b(?:to (?:avoid|escape|dodge|distract|deflect|hide|cope|numb|stall|put off|pre-?emptively|feel)|as (?:a|an) (?:way|excuse|distraction|shield|cover))\b/i,
+  /\b(?:deflect(?:s|ed|ing)?|dodg(?:e|es|ed|ing)|escap(?:e|es|ed|ing)) (?:to|into|from|the|by|because|it)\b/i,
+  /\b(?:to avoid|avoid(?:s|ing)?) (?:winding|facing|sitting|talking|thinking|admitting|feeling|dealing|the (?:anxiety|stress|pressure|vulnerability|scary|reality|quiet|fear))\b/i,
+  new RegExp(
+    String.raw`\b(?:pivot|turn|run|hid|escap)\w* away from (?:the |her |his |their )?(?:\w+ )?${EMOTION}\b`,
+    'i'
+  ),
+  /\b(?:is|are|'s|'re|’s|’re) trying to (?:punish|outrun|escape|distract|hide|numb|prove)\b/i,
+  // Saying they changed the subject is an observation; giving the hidden reason is not.
+  /\b(?:changed|changing|changes) the subject\b[^.;]{0,40}\bbecause\b|\b(?:shifted|shifting) the topic\b[^.;]{0,40}\bbecause\b|\bbrought up\b[^.;]{0,30}\bto (?:feel|avoid|deflect)\b|\bbringing up \w+ because\b/i,
+  /\bdistract(?:ion|ing (?:themselves|herself|himself)) from\b|\bwants? (?:a )?distraction\b|\bgiving (?:them|him|her) (?:a reason|an excuse) to\b/i,
+  new RegExp(
+    String.raw`\bbecause (?:they|she|he|talking|asking|the)\b[^.;]{0,50}\b(?:are|is|'re|'s|’re|’s|feels?|makes?|making) (?:\w+ ){0,3}${EMOTION}\b`,
+    'i'
+  ),
+  /\bbecause (?:they|she|he) (?:feel|feels|felt|trust|trusts)\b|\b(?:called|calling|coming to) you because\b/i,
+  new RegExp(String.raw`\bout of ${EMOTION}\b`, 'i'),
+  /\blooking for (?:permission|validation|approval|an excuse|a script|a distraction|a way out|an out)\b|\b(?:wants?|needs?) you to (?:justify|validate|approve)\b|\bhelp (?:them|her|him) justify\b/i,
+  // A feeling nothing they said points to, as fact: "Riley is feeling guilty", "feels
+  // lonely in this decision", "already anxious about the review", "the guilt", "their
+  // fear of the meeting", "self-conscious about how much they'll miss her".
+  new RegExp(
+    String.raw`${NOT_MADE}\b(?:is|are|'s|'re|’s|’re|feels?|feeling|been) (?:\w+ ){0,2}(?:guilty|lonely|isolated|defensive|insecure|helpless|ashamed|caught(?! up)|overshadowed|resentful|jealous|unsettled|restless|alone and|misunderstood)\b`,
+    'i'
+  ),
+  /(?<!["“])\b(?:guilt|lonely|nervous (?:tension|energy))\b/i,
+  new RegExp(
+    String.raw`${NOT_ASKED}\b(?:'s|is|are|'re|’s|’re|been) (?:already |still )?(?:anxious|nervous|worried|scared|afraid) about\b|\b(?:has|had|have) (?:had )?(?:doubts|second thoughts|reservations)\b`,
+    'i'
+  ),
+  /\b(?:their|her|his) (?:fear|anxiety|worry|insecurity|shame) (?:of|about)\b/i,
+  /\b(?:self-conscious|insecure|embarrassed|ashamed) about (?:how much|how deeply|showing)\b/i,
+  new RegExp(String.raw`${NOT_ASKED}\b(?:is|are|'s|'re|’s|’re) dreading\b`, 'i'),
+];
+
+/**
+ * A note that pins a hidden feeling or motive on the caller: "Riley is using the
+ * car trouble to escape the pressure of the upcoming raise conversation", "Riley
+ * is likely hiding some anxiety about the big move". The prompt already says not
+ * to, and MIND_READING in parseNotes doesn't catch these: with DIRECTOR_DIRECTS on
+ * they went from 2/193 notes to 45/276 (regex count, bar run M2c, 2026-10-18);
+ * hand-labelled, 217 of the 1063 notes of four flag-on arms. Subtext grounded in
+ * what they said ("she keeps hearing it: the goodbye is the scene") stays.
+ * Labelled set: __tests__/director-mind-reading.fixture.json.
+ */
+export function readsMind(note: string): boolean {
+  return READS_MIND.some((re) => re.test(note));
+}
+
 /**
  * A note written as a line of the call ("Riley: yes! They called me..."): the
  * model continuing the transcript, inventing what someone says. Smoke run
@@ -180,13 +272,15 @@ export interface DirectsFilter {
 }
 
 /**
- * With `directs` on, a note the guard drops: it polices delivery, scripts a
- * line or reads as a line of the call by one of `names`. Off, nothing is.
+ * With `directs` on, a note the guard drops: it polices delivery, pins an
+ * unsaid feeling or motive on the caller, scripts a line or reads as a line of
+ * the call by one of `names`. Off, nothing is.
  */
 export function misdirects(note: string, callerSaid: string, opts: DirectsFilter = {}): boolean {
   if (!opts.directs) return false;
   return (
     policesDelivery(note) ||
+    readsMind(note) ||
     scriptedNote(note, callerSaid) ||
     transcriptNote(note, opts.names ?? [])
   );

@@ -10243,6 +10243,7 @@
       "one": "{count}개의 씨앗을 얻었어요!"
     },
     "couldNotLoadMemories": "기억하는 내용을 불러오지 못했어요. 다시 시도할까요?",
+    "credentialNotKept": "Ferni는 코드나 비밀번호를 저장하지 않아서 이건 지웠어요.",
     "memoryCorrected": "알겠어요. 그렇게 기억할게요."
   },
   "trustSignals": {

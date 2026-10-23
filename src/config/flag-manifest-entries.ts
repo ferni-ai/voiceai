@@ -112,6 +112,8 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   NEVER_SILENT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // getNews topic search with no NewsData/GNews key says so and gives RSS headlines (news.ts)
   NEWS_HEADLINES_FALLBACK: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  // on: Ferni says he doesn't know how he's built, and isn't pushed to describe it (no-invented-internals.ts, #2223)
+  NO_INVENTED_INTERNALS: { default: 'off', owner: 'voice', kind: 'experiment' },
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // First on-behalf dial checks the do-not-call list (first-dial-opt-out.ts)
   ON_BEHALF_DNC_CHECK: { default: 'off', owner: 'outreach', kind: 'experiment' },

@@ -343,7 +343,7 @@ export class Director {
           directs,
           names,
         });
-        // DIRECTOR_DIRECTS: how many notes its guard dropped as style policing or a scripted line.
+        // DIRECTOR_DIRECTS: how many notes its guard dropped (policing, mind-reading, a scripted line).
         this.critiqued = directs
           ? parseNotes(reply, lines.slice(-12), asked.speaking, guard).length - this.notes.length
           : 0;

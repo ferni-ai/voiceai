@@ -1,16 +1,12 @@
 /**
  * Music User Learning System
- *
  * > "We believe in making AI human, and the decisions we make will reflect that."
- *
  * Learns what works for each individual user:
  * - Some users prefer silence after emotional moments
  * - Some users want acknowledgment to know Ferni is still there
  * - Some users respond better to topic callbacks
- *
  * This system tracks engagement patterns and adjusts transition preferences
  * on a per-user basis using Thompson Sampling (explore/exploit).
- *
  * Inspired by `src/services/trust-systems/outreach-timing-ml.ts`
  */
 
@@ -137,6 +133,10 @@ export interface EngagementFeedback {
  * In-memory user profiles (would be backed by Firestore in production)
  */
 const userProfiles = new Map<string, UserTransitionProfile>();
+/** MINOR_CARE: drop a held caller under 18's state, so it is never written later. */
+export function clearHeldMusicProfile(userId: string): void {
+  userProfiles.delete(userId);
+}
 
 // Default Thompson Sampling prior (slightly optimistic)
 const DEFAULT_PRIOR = { alpha: 2, beta: 2 };
