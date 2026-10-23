@@ -38,6 +38,13 @@
  *   SyntheticWriteRefusedError (PERMISSION_DENIED, never retried) only when
  *   EVERY write in it is synthetic; a commit mixing in any other write is sent.
  *
+ * Shared buckets: a write under bogle_users/<id> or users/<id> where <id> is a
+ * placeholder every id-less caller falls back to ('anonymous', 'unknown',
+ * 'default', 'shared', 'anon', 'session', 'gateway', 'gateway-recovery'; any
+ * case) is refused the same way. One such doc is everyone's: ~925 direct
+ * `collection('bogle_users')` writers bypass the persistence layer's own check,
+ * and prod held real profiles under bogle_users/anonymous and /unknown.
+ *
  * Evals in production: run.sh calls an agent that writes to (default), and
  * returning-caller runs (EVAL_SEED) need the seed call's memories, so
  * PROD_EVAL_WRITES=voice-eval on an agent lets `voice-eval-` owners (and no
@@ -57,6 +64,7 @@ import {
 } from '@google-cloud/firestore';
 import { createLogger } from './safe-logger.js';
 import {
+  PLACEHOLDER_IDS,
   isProdFirestore,
   isSyntheticPhone,
   syntheticOwnerPrefix,
@@ -72,6 +80,14 @@ export const PROD_EVAL_WRITES_VALUE = 'voice-eval';
 const ALLOWABLE: SyntheticOwnerPrefix = 'voice-eval-';
 
 const USER_RECORD_ROOTS = new Set(['bogle_users', 'users']);
+/** Owner ids that are one bucket for every caller without an id (lower case). */
+const SHARED_OWNERS: ReadonlySet<string> = new Set([
+  ...PLACEHOLDER_IDS,
+  'anon',
+  'session',
+  'gateway',
+  'gateway-recovery',
+]);
 const OWNER_FIELDS = ['userId', 'user_id', 'ownerId', 'uid'] as const;
 const WRITE_METHODS = new Set(['commit', 'batchWrite']);
 const GUARDED = Symbol.for('ferni.syntheticWriteGuard');
@@ -119,7 +135,10 @@ export function refusedOwner(write: WriteProto, env: Env = process.env): string 
   const [, , segs] = parsed;
 
   const candidates: unknown[] = [];
-  if (USER_RECORD_ROOTS.has(segs[0] as string)) candidates.push(segs[1]);
+  if (USER_RECORD_ROOTS.has(segs[0] as string)) {
+    if (SHARED_OWNERS.has(String(segs[1]).toLowerCase())) return segs[1] as string;
+    candidates.push(segs[1]);
+  }
   const fields = write.update?.fields;
   for (const f of OWNER_FIELDS) candidates.push(fields?.[f]?.stringValue);
   // The vector store keeps its owner in metadata.userId.
