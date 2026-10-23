@@ -274,22 +274,22 @@ export async function shutdownOutreachPersistence(): Promise<void> {
 // ============================================================================
 
 /**
- * Clear all outreach data for a specific user.
- * Call this when a user session ends or user is deleted.
+ * Drop a user's in-memory outreach data (SessionDataManager runs this at every session end).
+ * What is stored stays: it used to be deleted here, wiping commitments and preferences after
+ * each call. Account erasure deletes it. `save: false` (a held caller) drops unsaved changes.
  */
-export async function clearUserOutreachData(userId: string): Promise<void> {
+export async function clearUserOutreachData(
+  userId: string,
+  options?: { save?: boolean }
+): Promise<void> {
+  if (options?.save === false) persistenceStore?.clearCache(userId);
+  else await persistenceStore?.flushUser(userId);
   commitmentStore.delete(userId);
   opportunityStore.delete(userId);
   preferencesStore.delete(userId);
   engagementStore.delete(userId);
   sentOutreachLog.delete(userId);
-
-  // Also clear from persistence
-  if (persistenceStore) {
-    await persistenceStore.delete(userId);
-  }
-
-  getLogger().debug({ userId }, 'Cleared outreach data for user');
+  getLogger().debug({ userId }, 'Cleared in-memory outreach data for user');
 }
 
 /**
