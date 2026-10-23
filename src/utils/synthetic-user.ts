@@ -78,6 +78,10 @@ export const PLACEHOLDER_IDS: ReadonlySet<string> = new Set([
   'shared',
   'default',
   'unknown',
+  'anon', // `ctx.userId || 'anon'`: a bare prefix-less fallback, not a minted anon:<id>
+  'session',
+  'gateway', // the Tier-0 tool gateway's build ctx
+  'gateway-recovery',
 ]);
 
 /**

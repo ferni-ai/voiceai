@@ -28,7 +28,8 @@ vi.mock('@google-cloud/firestore', () => {
         batch: () => {
           const ops: Array<() => Promise<void>> = [];
           return {
-            set: (r: { set: (d: unknown) => Promise<void> }, d: unknown) => ops.push(() => r.set(d)),
+            set: (r: { set: (d: unknown) => Promise<void> }, d: unknown) =>
+              ops.push(() => r.set(d)),
             commit: async () => void (await Promise.all(ops.map((op) => op()))),
           };
         },
@@ -70,11 +71,33 @@ describe('per-user store and the shared placeholder buckets', () => {
     docs.set('bogle_users/unknown/notes_test/data', { notes: ['someone else'] });
     docs.set('bogle_users/anonymous/notes_test/data', { notes: ['someone else'] });
 
-    for (const id of ['unknown', ' Anonymous ', 'default', 'shared', '']) {
+    docs.set('bogle_users/anon/notes_test/data', { notes: ['someone else'] });
+    for (const id of [
+      'unknown',
+      ' Anonymous ',
+      'default',
+      'shared',
+      '',
+      'anon',
+      'session',
+      'gateway',
+      'gateway-recovery',
+    ]) {
       expect(await store.load(id)).toBeNull();
       expect(await store.get(id)).toBeNull();
     }
     expect(reads).toEqual([]);
+  });
+
+  it('never deletes a shared doc: removing one is a human decision', async () => {
+    docs.set('bogle_users/anonymous/notes_test/data', { notes: ['kept'] });
+    await store.delete('anonymous');
+    await store.delete('anon');
+    expect(docs.has('bogle_users/anonymous/notes_test/data')).toBe(true);
+
+    await store.setImmediate('uid-member', { notes: ['mine'] });
+    await store.delete('uid-member');
+    expect(docs.has('bogle_users/uid-member/notes_test/data')).toBe(false);
   });
 
   it("keeps a member's data and a per-call anon: id's data as before", async () => {
