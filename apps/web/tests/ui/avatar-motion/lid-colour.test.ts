@@ -1,7 +1,8 @@
 /**
- * Lid colour: the lids are solid white in every theme, the "cap" that carries the
- * expression (Seth, 2026-10-23; the page colour vanished on midnight). The CSS rule
- * in inline-styles.css wins over the SVG's fill attribute, and both say white. A second
+ * Lid colour: the lids are a white "cap" that carries the expression (Seth, 2026-10-23;
+ * the page colour vanished on midnight). Zen is pure white; midnight softens it to warm
+ * ivory, because pure white glared on the dark page (Seth, same day). The CSS rules in
+ * inline-styles.css win over the SVG's fill attribute, which stays white. A second
  * fill injected by ferni-expressions read as the live rule and the iOS avatar
  * copied it (dark lids, 2026-10-20), so nothing else may set a lid fill.
  */
@@ -19,6 +20,17 @@ describe('lid colour', () => {
     );
     expect(rule?.[1]).toMatch(/fill:\s*#ffffff\s*;/i);
     expect(rule?.[1]).not.toMatch(/fill:\s*var\(/);
+  });
+
+  it('midnight softens the cap to a light ivory: lighter than the page, not pure white', () => {
+    const css = read('src/styles/inline-styles.css');
+    const rule = /\[data-theme='midnight'\] \.avatar-lid-overlay :is\(\.lid-top, \.lid-bottom\) \{\s*fill:\s*(#[0-9a-f]{6})/i.exec(css);
+    expect(rule).not.toBeNull();
+    const hex = (rule?.[1] ?? '#000000').slice(1);
+    const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    expect(luminance).toBeGreaterThan(0.6); // still reads as a light cap on #14110e
+    expect(luminance).toBeLessThan(0.95); // not the pure white that glared
   });
 
   it('the lid paths themselves are white, so a missing stylesheet still shows white caps', () => {
