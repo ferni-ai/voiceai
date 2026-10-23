@@ -6,6 +6,8 @@ enum Screen: String, CaseIterable {
     case home, consent, settings, call, waitlist
     /// The call's other states (design audit P2 #20).
     case connecting, reconnecting, onHold, failed
+    /// A tool starts, then the agent's crisis level (crisis mode, R16).
+    case crisisDuringTool
 
     /// Something that's only there once the screen is ready.
     func ready(in app: XCUIApplication) -> XCUIElement {
@@ -13,7 +15,7 @@ enum Screen: String, CaseIterable {
         case .home: app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Talk'")).firstMatch
         case .consent: app.buttons["Not now"]
         case .settings: app.navigationBars["Settings"]
-        case .call: app.buttons["End call"]
+        case .call, .crisisDuringTool: app.buttons["End call"]
         case .waitlist: app.staticTexts["You’re on the list"]
         case .connecting: app.buttons["Cancel"]
         case .reconnecting: app.staticTexts.matching(NSPredicate(format: "label == 'Reconnecting…'")).firstMatch

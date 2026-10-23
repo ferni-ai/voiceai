@@ -47,6 +47,13 @@ public final class CallSession {
     public private(set) var waitlist: WaitlistStatus?
     /// Whether this phone has ever had a call go live (Home's first-visit hello).
     public private(set) var hasTalked: Bool
+    /// Crisis mode (trust panel R16): how worried the agent is about the
+    /// caller in the latest call. Only rises within a call, lasts through its
+    /// post-call screen, and is none while `crisisModeKey` is off.
+    public private(set) var concern = AgentSignals.Concern.none
+    /// Off by default. Read when a call starts, so it never changes mid-call.
+    public static let crisisModeKey = "ferni.call.crisisMode"
+    private var crisisModeOn = false
     private let defaults: UserDefaults
     private static let hasTalkedKey = "ferni.call.hasTalked"
 
@@ -105,6 +112,14 @@ public final class CallSession {
         }
     }
 
+    /// At the crisis level, the call screen and the post-call screen show
+    /// one-tap 988 help, without opening More.
+    public var showsHelpNow: Bool { concern == .crisis }
+
+    /// The activity line (a tool at work, trust panel R9) may show only while
+    /// nothing worries the agent: never "checking your calendar" over a crisis.
+    public var showsActivity: Bool { concern == .none }
+
     public var isActive: Bool {
         switch phase {
         case .connecting, .waitingForFerni, .live, .reconnecting: true
@@ -127,6 +142,8 @@ public final class CallSession {
         callBegan = .now
         startedAt = .now
         firstAgentAudio = nil
+        concern = .none
+        crisisModeOn = defaults.bool(forKey: Self.crisisModeKey)
         // Tap to first word, measured on the phone: the first audible buffer
         // of Ferni's voice, timed from Talk (timing only; never the audio).
         let began = callBegan
@@ -202,6 +219,7 @@ public final class CallSession {
         guard !isActive else { return }
         startedAt = nil
         phase = .idle
+        concern = .none
         captions.clear()
     }
 
@@ -520,11 +538,16 @@ public final class CallSession {
             }
             if CrisisMarker.isCrisisSignal(json) { CrisisMarker.mark() }
             handle(AgentSignals.handoff(from: json))
+            if let level = AgentSignals.concern(from: json) { raise(level) }
             if let result = ExpressionEventMapper.shared.processMessage(json) {
                 let hold = RemoteDuration.seconds(result.hold ?? result.duration)
-                avatar.send(.expression(result.expression, hold: hold))
-                if let micro = result.microExpression { avatar.send(.micro(micro.design)) }
-                if let moment = result.moment { avatar.send(.moment(moment)) }
+                // Worried about the caller: the face stays gentle. No big win,
+                // no sparkle, no celebration over someone who's struggling.
+                let gentle = concern != .none
+                let face = gentle && Self.playful.contains(result.expression) ? .comforting : result.expression
+                avatar.send(.expression(face, hold: hold))
+                if let micro = result.microExpression, !(gentle && micro == .delight) { avatar.send(.micro(micro.design)) }
+                if let moment = result.moment, !gentle { avatar.send(.moment(moment)) }
             }
         case .caption(let chunk):
             captions.apply(chunk, room: roomName, persona: personaID)
@@ -544,6 +567,19 @@ public final class CallSession {
                 await run(rejoining: true)
             }
         }
+    }
+
+    /// The faces that don't belong over someone who's struggling: the big
+    /// wins (a spin) and the playful family.
+    static let playful = AvatarView.wins.union([.playful, .mischievous, .cheeky, .silly, .winking, .teasing])
+
+    /// Crisis mode: the agent is worried about the caller. Nothing changes
+    /// while the flag is off; the level never drops back within a call.
+    private func raise(_ level: AgentSignals.Concern) {
+        guard crisisModeOn, level > concern else { return }
+        concern = level
+        avatar.send(.calm)
+        log.info("Crisis mode: concern \(level == .crisis ? "crisis" : "elevated", privacy: .public)")
     }
 
     private func apply(_ attributes: [String: String]) {

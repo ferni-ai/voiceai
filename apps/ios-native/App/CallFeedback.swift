@@ -40,6 +40,9 @@ final class CallFeedback {
     func newCall() { director.newCall() }
 
     func play(_ effect: AvatarEffect) {
+        #if DEBUG
+        if effect == .earcon(.goodbye) { UITestScenario.Counters.shared.goodbyes += 1 }
+        #endif
         switch effect {
         case .haptic(let cue):
             haptics.play(cue)
@@ -85,6 +88,7 @@ final class CallFeedback {
         if cue == .touch { UITestScenario.Counters.shared.touches += 1 }
         if cue == .notice { UITestScenario.Counters.shared.notices += 1 }
         if cue == .startle { UITestScenario.Counters.shared.startles += 1 }
+        if cue == .heart { UITestScenario.Counters.shared.hearts += 1 }
         #endif
     }
 

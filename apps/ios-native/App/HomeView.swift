@@ -44,6 +44,7 @@ struct HomeView: View {
                             VStack(spacing: FerniSpace.rest) {
                                 NameChip(personaID: call.avatar.personaID)
                                 avatar(call: call, size: 320)
+                                if call.showsHelpNow { HelpNowRow() }
                             }
                             .frame(maxWidth: 600)
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
@@ -56,6 +57,7 @@ struct HomeView: View {
                         avatar(call: call, size: typeSize.isAccessibilitySize ? (inCall ? 120 : restSizeLarge) : (inCall ? 240 : restSize))
                             .padding(.top, inCall || typeSize.isAccessibilitySize ? FerniSpace.breath : FerniSpace.silence)
                         if inCall {
+                            if call.showsHelpNow { HelpNowRow() }
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
                         } else {
                             TimelineView(.everyMinute) { minute in
@@ -63,11 +65,16 @@ struct HomeView: View {
                                             knownHere: model.account.needsSignIn)
                             }
                             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { restingHeight = $0 }
-                            if call.phase == .ended {
+                            if call.phase == .ended, call.showsHelpNow { HelpNowRow() }
+                            // After a call that worried Ferni, nothing from it is
+                            // shown back as "I'll remember" (trust panel R16).
+                            if call.phase == .ended, call.concern == .none {
                                 RememberCard(call: call, remembered: model.callRemembered, forgotten: model.memory.forgotten)
                                     .id(Self.rememberID)
                                     // Over the team row while it rises past it (award upgrade 8).
                                     .zIndex(1)
+                            }
+                            if call.phase == .ended {
                                 // One slot with the ask: hidden, its zero-height anchor
                                 // adds no gap to Home (it pushed the team row under
                                 // the floor when push came on, 2026-10-22).

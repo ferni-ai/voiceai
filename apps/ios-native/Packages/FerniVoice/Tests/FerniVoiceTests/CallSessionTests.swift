@@ -431,6 +431,123 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(session.avatar.moment?.id, "celebration_small", "a vulnerable moment plays none")
     }
 
+    // MARK: - Crisis mode (trust panel R16)
+
+    private static let crisisLevel = #"{"type":"humanization_signal","signalType":"concern_detected","concernLevel":"crisis","intensity":1}"#
+    private static let guardTookOver = #"{"type":"crisis_detected","severity":0.95,"indicators":["x"]}"#
+
+    private func crisisMode(_ on: Bool) -> UserDefaults {
+        let defaults = UserDefaults(suiteName: "crisis-tests-\(UUID().uuidString)")!
+        defaults.set(on, forKey: CallSession.crisisModeKey)
+        return defaults
+    }
+
+    private func send(_ json: String, to session: CallSession) {
+        rooms.made[0].send(.data(Data(json.utf8)))
+    }
+
+    /// The agent's crisis level turns the call serious: 988 up front, no
+    /// activity line, a calm goodbye. It stays for the screen after the call,
+    /// and the next call starts without it.
+    func testTheCrisisLevelTurnsTheCallSerious() async {
+        let session = makeSession(defaults: crisisMode(true))
+        session.start()
+        await until(session.phase == .live)
+        XCTAssertEqual(session.concern, .none)
+        XCTAssertFalse(session.showsHelpNow)
+        XCTAssertTrue(session.showsActivity)
+        XCTAssertFalse(session.avatar.calm)
+
+        send(Self.crisisLevel, to: session)
+        await until(session.concern == .crisis)
+        XCTAssertTrue(session.showsHelpNow)
+        XCTAssertFalse(session.showsActivity, "never a tool line over a crisis")
+        XCTAssertTrue(session.avatar.calm)
+
+        await session.end()
+        XCTAssertTrue(session.showsHelpNow, "988 stays on the screen after the call")
+        XCTAssertTrue(session.avatar.calm)
+
+        session.start()
+        XCTAssertEqual(session.concern, .none)
+        XCTAssertFalse(session.showsHelpNow)
+        XCTAssertFalse(session.avatar.calm)
+        await session.end()
+    }
+
+    /// The crisis guard taking over the reply (crisis_detected) is the crisis level.
+    func testTheCrisisGuardTakingOverIsTheCrisisLevel() async {
+        let session = makeSession(defaults: crisisMode(true))
+        session.start()
+        await until(session.phase == .live)
+        send(Self.guardTookOver, to: session)
+        await until(session.concern == .crisis)
+        XCTAssertTrue(session.showsHelpNow)
+        await session.end()
+    }
+
+    /// Elevated hides the activity line and calms the goodbye, but shows no
+    /// 988 row. Within a call the level only rises.
+    func testElevatedIsGentleWithoutHelpAndTheLevelNeverDrops() async {
+        let session = makeSession(defaults: crisisMode(true))
+        session.start()
+        await until(session.phase == .live)
+        send(#"{"type":"humanization_signal","signalType":"concern_detected","concernLevel":"moderate"}"#, to: session)
+        send(#"{"type":"humanization_signal","signalType":"concern_detected","concernLevel":"elevated"}"#, to: session)
+        await until(session.concern == .elevated)
+        XCTAssertFalse(session.showsHelpNow)
+        XCTAssertFalse(session.showsActivity)
+        XCTAssertTrue(session.avatar.calm)
+        send(Self.crisisLevel, to: session)
+        await until(session.concern == .crisis)
+        send(#"{"type":"humanization_signal","signalType":"concern_detected","concernLevel":"elevated"}"#, to: session)
+        send(#"{"type":"humanization_signal","signalType":"vulnerability"}"#, to: session)
+        await until(session.avatar.micro?.expression == .warmth) // everything before it was read
+        XCTAssertEqual(session.concern, .crisis, "it never drops back within a call")
+        await session.end()
+    }
+
+    /// With the flag off (the default), the same messages change nothing but
+    /// the face, as before.
+    func testWithCrisisModeOffNothingChanges() async {
+        let session = makeSession() // a fresh suite: the flag was never set
+        session.start()
+        await until(session.phase == .live)
+        send(Self.crisisLevel, to: session)
+        send(Self.guardTookOver, to: session)
+        send(#"{"type":"humanization_signal","signalType":"breakthrough"}"#, to: session)
+        await until(session.avatar.moment?.id == "deep_moment")
+        XCTAssertEqual(session.concern, .none)
+        XCTAssertFalse(session.showsHelpNow)
+        XCTAssertTrue(session.showsActivity)
+        XCTAssertFalse(session.avatar.calm)
+        await session.end()
+    }
+
+    /// Worried about the caller, the face stays gentle: no big win, no
+    /// sparkle and no celebration moment.
+    func testInACrisisTheFaceStaysGentle() async {
+        let session = makeSession(defaults: crisisMode(true))
+        session.start()
+        await until(session.phase == .live)
+        send(Self.crisisLevel, to: session)
+        await until(session.concern == .crisis)
+        send(#"{"type":"expression_update","expression":"curious"}"#, to: session)
+        await until(session.avatar.expression == .curious)
+        send(#"{"type":"expression_update","expression":"excited"}"#, to: session)
+        await until(session.avatar.expression == .comforting)
+        send(#"{"type":"expression_update","expression":"curious"}"#, to: session)
+        await until(session.avatar.expression == .curious)
+        send(#"{"type":"expression_update","expression":"silly"}"#, to: session)
+        await until(session.avatar.expression == .comforting)
+        send(#"{"type":"humanization_signal","signalType":"breakthrough"}"#, to: session)
+        send(#"{"type":"humanization_signal","signalType":"high_engagement"}"#, to: session)
+        send(#"{"type":"humanization_signal","signalType":"vulnerability"}"#, to: session)
+        await until(session.avatar.micro?.expression == .warmth)
+        XCTAssertNil(session.avatar.moment, "no deep_moment, no celebration")
+        await session.end()
+    }
+
     /// Untrusted numbers in a packet never crash the app (security review).
     func testHugeOrNegativeExpressionTimesAreClampedNotFatal() async {
         let session = makeSession()
