@@ -9,11 +9,11 @@
  * @module ANTTracker
  */
 
-import admin from 'firebase-admin';
-import { getGCPProjectId } from '../../config/environment.js';
+import type admin from 'firebase-admin';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import type { CognitiveDistortion, DistortionDetection } from './distortion-detector.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = getLogger().child({ module: 'ant-tracker' });
 
@@ -39,17 +39,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   initAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
-      const projectId = getGCPProjectId();
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     log.info('✅ Firestore initialized for ANT tracker');
     return firestoreInstance;
   } catch (error) {

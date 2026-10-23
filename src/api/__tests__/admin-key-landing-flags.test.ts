@@ -28,6 +28,10 @@ vi.mock('firebase-admin/firestore', () => ({
 }));
 vi.mock('firebase-admin/app', () => ({ initializeApp: vi.fn(), getApps: () => [{}] }));
 
+/** Collections read, leaving out security_events: a refused request is logged there. */
+const dataReads = (): unknown[] =>
+  firestore.collection.mock.calls.filter((call: unknown[]) => call[0] !== 'security_events');
+
 import { handleAdminRoutes } from '../admin-routes.js';
 import { handleLandingIntelligenceRoutes } from '../landing-intelligence.routes.js';
 import { getLandingIntelligenceFlags } from '../../services/landing-intelligence/lifecycle.js';
@@ -90,14 +94,14 @@ describe('admin routes no longer accept the hardcoded key', () => {
     );
     expect(handled).toBe(true);
     expect([401, 403]).toContain(res.status);
-    expect(firestore.collection).not.toHaveBeenCalled();
+    expect(dataReads()).toEqual([]);
   });
 
   it('refuses an anonymous request for visitors', async () => {
     const res = response();
     await handleAdminRoutes(request('GET', '/api/admin/visitors', {}), res, '/api/admin/visitors');
     expect([401, 403]).toContain(res.status);
-    expect(firestore.collection).not.toHaveBeenCalled();
+    expect(dataReads()).toEqual([]);
   });
 
   it('serves a real admin key from ADMIN_API_KEYS', async () => {

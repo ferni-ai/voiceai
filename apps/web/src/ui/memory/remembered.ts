@@ -88,6 +88,13 @@ async function load(): Promise<RememberedFact[] | null> {
   return res.data?.facts ?? [];
 }
 
+/** What a done change says; a code or password typed as the fix was forgotten, not kept. */
+export function doneToast(method: 'DELETE' | 'PATCH', data?: unknown): string {
+  const status = typeof data === 'object' && data !== null && 'status' in data ? data.status : null;
+  if (status === 'not-kept') return 'app.credentialNotKept';
+  return method === 'DELETE' ? 'app.memoryRemoved' : 'app.memoryCorrected';
+}
+
 /** Open the panel with what Ferni remembers; the correct button opens the correction modal. */
 export async function showRemembered(): Promise<void> {
   if (memoryViewEnabled()) {
@@ -120,8 +127,7 @@ export async function showRemembered(): Promise<void> {
           req.method === 'DELETE'
             ? await apiDelete(url)
             : await apiPatch(url, { value: req.value });
-        if (res.ok)
-          toast.success(t(req.method === 'DELETE' ? 'app.memoryRemoved' : 'app.memoryCorrected'));
+        if (res.ok) toast.success(t(doneToast(req.method, res.data)));
         else toast.error(t(res.status === 404 ? 'app.memoryNotFound' : 'app.couldNotRemoveMemory'));
         // Re-read either way, so the list shows what the server actually has.
         closeFerniKnowsPanel();

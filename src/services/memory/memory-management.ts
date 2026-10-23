@@ -13,7 +13,7 @@
  */
 
 import { getProfileStore, type MemoryStore } from '../../memory/profile-store.js';
-import { getGCPProjectId } from '../../config/environment.js';
+import { getGCPProjectId, getFirestoreDatabase } from '../../config/environment.js';
 import { cosineSimilarity } from '../../memory/embeddings.js';
 import type { ConversationSummary, UserProfile, VoiceSketch } from '../../types/user-profile.js';
 import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -43,9 +43,7 @@ export async function loadPhoneCache(): Promise<number> {
 
   try {
     const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: getGCPProjectId(),
-    });
+    const db = new Firestore({ projectId: getGCPProjectId(), databaseId: getFirestoreDatabase() });
 
     const snapshot = await db.collection(PHONE_MAPPINGS_COLLECTION).get();
 
@@ -75,9 +73,7 @@ export async function savePhoneMapping(phone: string, userId: string): Promise<v
 
   try {
     const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: getGCPProjectId(),
-    });
+    const db = new Firestore({ projectId: getGCPProjectId(), databaseId: getFirestoreDatabase() });
 
     await db
       .collection(PHONE_MAPPINGS_COLLECTION)
@@ -112,9 +108,7 @@ export async function deletePhoneMapping(phone: string): Promise<void> {
 
   try {
     const { Firestore } = await import('@google-cloud/firestore');
-    const db = new Firestore({
-      projectId: getGCPProjectId(),
-    });
+    const db = new Firestore({ projectId: getGCPProjectId(), databaseId: getFirestoreDatabase() });
 
     await db.collection(PHONE_MAPPINGS_COLLECTION).doc(phone).delete();
   } catch (error) {

@@ -15,6 +15,7 @@
 
 import { pathToFileURL } from 'node:url';
 import { destructiveMode, refusalMessage } from '../destructive-gate.js';
+import { getFirestoreDatabase } from '../../src/config/environment.js';
 
 const PAGE = 400;
 /** A query that keeps returning deleted documents must not loop forever (400K docs). */
@@ -73,7 +74,7 @@ export async function main(argv: readonly string[] = process.argv, db?: QueueDb)
   }
   if (!db) {
     const { Firestore } = await import('@google-cloud/firestore');
-    db = new Firestore({ projectId }) as unknown as QueueDb;
+    db = new Firestore({ projectId, databaseId: getFirestoreDatabase() }) as unknown as QueueDb;
   }
   const counts = await purgePending(db, mode === 'execute');
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
