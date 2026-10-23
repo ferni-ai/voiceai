@@ -246,13 +246,8 @@ vi.mock('../utils/safe-logger.js', () => {
   };
 });
 
-// Mock Firebase Admin SDK. Under the emulator, the modular entry points stay real,
-// as @google-cloud/firestore and firebase-admin below do: getAdminFirestore() reads
-// them, so with this fake an emulator test of a module on that helper silently ran
-// against an in-memory stub (#2338 moved ttl-cleanup onto it; its dry-run .count()
-// then failed in the Data Layer E2E nightly). A test's own vi.mock still wins.
-vi.mock('firebase-admin/firestore', async (importOriginal) => {
-  if (process.env.FIRESTORE_EMULATOR_HOST) return importOriginal();
+// Mock Firebase Admin SDK
+vi.mock('firebase-admin/firestore', () => {
   const mockTimestamp = {
     toDate: () => new Date(),
     toMillis: () => Date.now(),
@@ -322,24 +317,19 @@ vi.mock('firebase-admin', async (importOriginal) => {
   return { ...actual, default: mocked };
 });
 
-// Real under the emulator for the same reason: a faked app beside a real
-// getFirestore() would hand the real SDK an object that is not an App.
-vi.mock('firebase-admin/app', async (importOriginal) => {
-  if (process.env.FIRESTORE_EMULATOR_HOST) return importOriginal();
-  return {
-    initializeApp: vi.fn(),
-    getApp: vi.fn(() => ({
+vi.mock('firebase-admin/app', () => ({
+  initializeApp: vi.fn(),
+  getApp: vi.fn(() => ({
+    name: '[DEFAULT]',
+  })),
+  getApps: vi.fn(() => [
+    {
       name: '[DEFAULT]',
-    })),
-    getApps: vi.fn(() => [
-      {
-        name: '[DEFAULT]',
-      },
-    ]),
-    cert: vi.fn(),
-    applicationDefault: vi.fn(),
-  };
-});
+    },
+  ]),
+  cert: vi.fn(),
+  applicationDefault: vi.fn(),
+}));
 
 // Mock the superhuman re-export location
 vi.mock('../services/superhuman/firestore-utils.js', () => ({
