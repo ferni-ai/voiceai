@@ -26,7 +26,6 @@ import { wireDeferredHandlers } from './greeting-wiring.js';
 import { diag } from '../../services/diagnostic-logger.js';
 import type { UserData } from '../shared/types.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
-import { isProactiveCall } from './greeting-direction.js';
 import { greetingOrResume } from './resume-after-drop.js';
 import { isSwappable, singleSessionHandoffs, swapPersona } from './persona-swap.js';
 import { talkThroughFor, type TalkThrough } from './handoff-talk-through.js';
@@ -249,8 +248,7 @@ export class AgentOrchestrator {
     try {
       // A call Ferni placed waits for the phone to be picked up. One for someone opens
       // with who it is and who it's for, never the app's "hey <user>" hello.
-      const { outboundOpener, outboundPartiesFor, waitForCallAnswered } =
-        await import('../shared/outbound-opener.js');
+      const { outboundOpener, outboundPartiesFor } = await import('../shared/outbound-opener.js');
       const parties = outboundPartiesFor(this.sessionId);
       let greeting: string;
       if (parties) {
@@ -262,13 +260,12 @@ export class AgentOrchestrator {
         if (!(await personAnswered(room, phone, agent, parties, sessionId))) return;
         greeting = outboundOpener(parties);
       } else {
-        // A proactive call to Ferni's own user waits for the pickup too.
-        if (await isProactiveCall(this.sessionId)) {
-          const answered = await waitForCallAnswered(this.room, this.userParticipant);
-          if (!answered) {
-            log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
-            return;
-          }
+        // A proactive call to Ferni's own user waits for the pickup too (a moved one is screened).
+        const { proactivePickedUp } = await import('../shared/line-screen.js');
+        const { room, userParticipant: phone, sessionId } = this;
+        if ((await proactivePickedUp(room, phone, agent, sessionId)) === false) {
+          log.info({ sessionId: this.sessionId }, '📞 Outbound call not answered, no opener');
+          return;
         }
         const userData = agent.userData as UserData | undefined;
         greeting = await greetingOrResume(this.sessionId, agent, userData); // RESUME_AFTER_DROP

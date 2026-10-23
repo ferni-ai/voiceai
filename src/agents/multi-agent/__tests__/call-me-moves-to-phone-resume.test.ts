@@ -90,7 +90,10 @@ const { signDispatch } = await import('../../../services/outreach/on-behalf-disp
 const moments = () =>
   directedText.mock.calls.map((c) => (c[1] as unknown as { moment: string }).moment);
 
-const APP_CALL = { userId: 'user-1', conversationId: 'conv_dropped' };
+const APP_CALL: { userId: string; conversationId?: string } = {
+  userId: 'user-1',
+  conversationId: 'conv_dropped',
+};
 
 function phoneCall(sessionId: string, movedFrom?: typeof APP_CALL): void {
   setProactiveSessionContext(sessionId, {
@@ -143,6 +146,16 @@ describe('a phone call a "call me" moved from the app', () => {
     expect(line).not.toMatch(/dropped/i);
   });
 
+  it('a moved call with no reference (memory held) reads nothing, and still is no drop', async () => {
+    seedDroppedCall(5_000);
+    const sessionId = movedPhoneCall({ userId: 'user-1' });
+    const { agent, committed } = fakeAgent();
+    const line = await greetingOrResume(sessionId, { personaId: 'ferni', agent }, undefined);
+    expect(committed).toEqual([]);
+    expect(moments()).not.toContain('resume_after_drop');
+    expect(line).not.toMatch(/dropped/i);
+  });
+
   it('a stale reference reads nothing back (it is short-lived), and still is no drop', async () => {
     seedDroppedCall(MOVED_WINDOW_MS + 60_000);
     const sessionId = movedPhoneCall(APP_CALL);
@@ -176,21 +189,26 @@ describe('a phone call a "call me" moved from the app', () => {
 describe('the dispatch reference (metadata-parser movedFromOf)', () => {
   const raw = (o: object) => JSON.stringify(o);
   it('takes the signed user and a plain conversation id, nothing else', () => {
-    expect(movedFromOf(raw({ userId: 'u1', movedFrom: 'conv_176_abc' }))).toEqual({
+    const move = { callMove: true, userId: 'u1' };
+    expect(movedFromOf(raw({ ...move, movedFrom: 'conv_176_abc' }))).toEqual({
       userId: 'u1',
       conversationId: 'conv_176_abc',
     });
+    // A bad id is no reference, but still a moved call (screened, never read as a drop)
     for (const movedFrom of ['../u2/conversations/x', 'a/b', '', 'x'.repeat(200), 42]) {
-      expect(movedFromOf(raw({ userId: 'u1', movedFrom }))).toBeUndefined();
+      expect(movedFromOf(raw({ ...move, movedFrom }))).toEqual({ userId: 'u1' });
     }
-    expect(movedFromOf(raw({ movedFrom: 'conv_176_abc' }))).toBeUndefined();
+    expect(movedFromOf(raw({ ...move }))).toEqual({ userId: 'u1' }); // memory held: no id
+    expect(movedFromOf(raw({ userId: 'u1', movedFrom: 'conv_176_abc' }))).toBeUndefined();
+    expect(movedFromOf(raw({ callMove: true, movedFrom: 'conv_176_abc' }))).toBeUndefined();
     expect(movedFromOf('{not json')).toBeUndefined();
     expect(movedFromOf(undefined)).toBeUndefined();
   });
 
   it('flag off: no reference is read at all', () => {
     delete process.env.CALL_ME_MOVES_TO_PHONE;
-    expect(movedFromOf(raw({ userId: 'u1', movedFrom: 'conv_176_abc' }))).toBeUndefined();
+    const signed = { callMove: true, userId: 'u1', movedFrom: 'conv_176_abc' };
+    expect(movedFromOf(raw(signed))).toBeUndefined();
   });
 });
 
@@ -251,7 +269,9 @@ describe('the reference comes only from the signed job metadata', () => {
   it('signed movedFrom: the phone call is pointed at that conversation', async () => {
     const sessionId = nextSession();
     sessions.push(sessionId);
-    const raw = JSON.stringify(signDispatch({ ...job, movedFrom: 'conv_app' }, SECRET));
+    const raw = JSON.stringify(
+      signDispatch({ ...job, callMove: true, movedFrom: 'conv_app' }, SECRET)
+    );
     await setupCallTypeContexts(JSON.parse(raw), 'proactive_outreach', sessionId, undefined, raw);
     expect(getProactiveSessionContext(sessionId)?.movedFrom).toEqual({
       userId: 'user-1',
@@ -264,7 +284,12 @@ describe('the reference comes only from the signed job metadata', () => {
     sessions.push(sessionId);
     const raw = JSON.stringify(signDispatch(job, SECRET)); // signed, no movedFrom
     // parseJobMetadata merges room metadata over the job's: what setupCallTypeContexts gets
-    const merged = { ...JSON.parse(raw), userId: 'someone-else', movedFrom: 'conv_theirs' };
+    const merged = {
+      ...JSON.parse(raw),
+      callMove: true,
+      userId: 'someone-else',
+      movedFrom: 'conv_theirs',
+    };
     await setupCallTypeContexts(merged, 'proactive_outreach', sessionId, undefined, raw);
     expect(getProactiveSessionContext(sessionId)).toBeDefined(); // the signed call itself is set up
     expect(getProactiveSessionContext(sessionId)?.movedFrom).toBeUndefined();

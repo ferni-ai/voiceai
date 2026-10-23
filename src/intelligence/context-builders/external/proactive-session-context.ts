@@ -90,7 +90,7 @@ export interface ProactiveSessionContext {
   initiatingPersona: string;
 
   /** The app call a "call me" moved from (CALL_ME_MOVES_TO_PHONE): read from this user's store */
-  movedFrom?: { userId: string; conversationId: string };
+  movedFrom?: { userId: string; conversationId?: string };
 }
 
 // In-memory store for proactive session contexts (set by outreach engine)

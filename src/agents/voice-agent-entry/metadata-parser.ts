@@ -39,15 +39,16 @@ const INBOUND_ACCOUNT_FIELDS = [
 ] as const;
 
 /**
- * The app call a signed "call me" dispatch moved from (CALL_ME_MOVES_TO_PHONE,
- * live-agent-call.ts): ids only, never its text. The turns are read from this
+ * A signed "call me" dispatch moving an app call to the phone (`callMove`,
+ * CALL_ME_MOVES_TO_PHONE, live-agent-call.ts), and the app call it moved from
+ * when it has one (`movedFrom`, absent while memory is held): ids only, never its text. The turns are read from this
  * user's own memory store (resume-after-drop.ts restoreMovedTurns). Read from
  * the raw job metadata the signature covers, never the object parseJobMetadata
  * merged room metadata into: room metadata is not signed.
  */
 export function movedFromOf(
   rawJobMetadata: string | undefined
-): { userId: string; conversationId: string } | undefined {
+): { userId: string; conversationId?: string } | undefined {
   if (!flagOn('CALL_ME_MOVES_TO_PHONE') || !rawJobMetadata) return undefined;
   let signed: Record<string, unknown>;
   try {
@@ -55,9 +56,10 @@ export function movedFromOf(
   } catch {
     return undefined;
   }
-  const { userId, movedFrom } = signed;
-  if (typeof userId !== 'string' || !userId || typeof movedFrom !== 'string') return undefined;
-  return /^[\w-]{1,128}$/.test(movedFrom) ? { userId, conversationId: movedFrom } : undefined;
+  const { userId, movedFrom, callMove } = signed;
+  if (callMove !== true || typeof userId !== 'string' || !userId) return undefined;
+  const plainId = typeof movedFrom === 'string' && /^[\w-]{1,128}$/.test(movedFrom);
+  return plainId ? { userId, conversationId: movedFrom } : { userId };
 }
 
 /**

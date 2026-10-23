@@ -55,9 +55,22 @@ const dispatches: Array<{ room: string; agent: string; metadata: string }> = [];
 const dials: Array<{ trunk: string; phone: string; room: string }> = [];
 /** What the phone does: answer, or a SIP status that ends the call. */
 let phoneDoes: 'answer' | number = 'answer';
+/** The phone agent's line-screen verdict (ANSWERED_BY on its participant), or none yet. */
+let screenSays: 'human' | 'voicemail' | undefined = 'human';
+const listed: string[] = [];
+const deleted: string[] = [];
 vi.mock('livekit-server-sdk', () => ({
   RoomServiceClient: class {
     async createRoom() {}
+    async listParticipants(room: string) {
+      listed.push(room);
+      const agent = { identity: 'agent-1', attributes: {} as Record<string, string> };
+      if (screenSays) agent.attributes['ferni.answeredBy'] = screenSays;
+      return [{ identity: 'phone_x', attributes: {} }, agent];
+    }
+    async deleteRoom(room: string) {
+      deleted.push(room);
+    }
   },
   AgentDispatchClient: class {
     async createDispatch(room: string, agent: string, opts: { metadata: string }) {
@@ -90,6 +103,7 @@ const ENV: Record<string, string> = {
 
 const { callUserAdapter } = await import('../call-user-adapter.js');
 const { verifyOnBehalfDispatch } = await import('../on-behalf-dispatch.js');
+const { SCREEN_WAIT_MS } = await import('../proactive-channels/self-call.js');
 
 const PHONE = '+15555550123';
 const CONVERSATION = 'conv_1761234567890_abc123';
@@ -107,6 +121,9 @@ beforeEach(() => {
   dispatches.length = 0;
   dials.length = 0;
   phoneDoes = 'answer';
+  screenSays = 'human';
+  listed.length = 0;
+  deleted.length = 0;
   verifiedPhone = PHONE;
   twilioCreate.mockClear();
   Object.assign(process.env, ENV, { CALL_USER_LIVE_AGENT: 'on' });
@@ -125,8 +142,12 @@ describe('a "call me" that moves to the phone', () => {
     expect(JSON.parse(raw)).toMatchObject({
       type: 'proactive_outreach',
       userId: 'seth-uid',
+      callMove: true,
       movedFrom: CONVERSATION,
     });
+    // answered only once the phone agent's screen said a person: never a SIP pickup alone
+    expect(listed).toEqual([dispatches[0].room]);
+    expect(deleted).toEqual([]);
     expect(verifyOnBehalfDispatch(raw, SECRET)).toBe(true);
     // The reference is signed: a dispatch pointing at another conversation is refused.
     expect(verifyOnBehalfDispatch(raw.replace(CONVERSATION, 'conv_other'), SECRET)).toBe(false);
@@ -150,6 +171,30 @@ describe('a "call me" that moves to the phone', () => {
       (d) => (JSON.parse(d.metadata) as { movedFrom?: string }).movedFrom
     );
     expect(movedFrom.sort()).toEqual(['conv_one', 'conv_two']);
+  });
+
+  it('a voicemail greeting picked up: no hand-over; the dial is hung up (no message) and is no_answer', async () => {
+    screenSays = 'voicemail';
+    const result = await ask({ conversationId: CONVERSATION });
+    expect(await result.dial).toBe('no_answer');
+    expect(deleted).toEqual([dispatches[0].room]);
+  });
+
+  it('no verdict from the phone agent in time: hung up, no_answer, never a hand-over', async () => {
+    vi.useFakeTimers();
+    try {
+      screenSays = undefined;
+      const result = await ask({ conversationId: CONVERSATION });
+      let outcome: string | undefined;
+      void result.dial?.then((o) => (outcome = o));
+      await vi.advanceTimersByTimeAsync(SCREEN_WAIT_MS - 500);
+      expect(outcome).toBeUndefined(); // still waiting for the screen
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(outcome).toBe('no_answer');
+      expect(deleted).toEqual([dispatches[0].room]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('a dial nobody answers comes back as no_answer, not as a call that happened', async () => {
@@ -181,7 +226,14 @@ describe('a "call me" that moves to the phone', () => {
     const result = await ask();
     expect(result).toMatchObject({ success: true, status: 'initiated', live: true });
     expect(result).not.toHaveProperty('dial');
-    await vi.waitFor(() => expect(dispatches).toHaveLength(1));
-    expect(JSON.parse(dispatches[0].metadata)).not.toHaveProperty('movedFrom');
+    await vi.waitFor(() => expect(dials).toHaveLength(1));
+    const metadata = JSON.parse(dispatches[0].metadata) as Record<string, unknown>;
+    expect(metadata).not.toHaveProperty('movedFrom');
+    expect(metadata).not.toHaveProperty('callMove');
+    await new Promise((r) => {
+      setTimeout(r, 10);
+    });
+    expect(listed).toEqual([]); // no screen wait: answered as before
+    expect(deleted).toEqual([]);
   });
 });

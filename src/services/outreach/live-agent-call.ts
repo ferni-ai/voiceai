@@ -126,6 +126,7 @@ export function placeLiveAgentCall(
     kind: asked ? ('promise' as const) : ('follow_up' as const),
     reason: liveCallReason(call.message, asked),
     sourceId: call.id,
+    ...(move && { callMove: true }),
     ...(move?.conversationId ? { movedFrom: move.conversationId } : {}),
   };
   const placed = placeSelfCall(call.userId, call.phoneNumber, trigger, undefined, call.personaId);

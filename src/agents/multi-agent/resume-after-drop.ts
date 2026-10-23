@@ -183,6 +183,7 @@ export async function restoreMovedTurns(
     await import('../../intelligence/context-builders/external/proactive-session-context.js');
   const from = getProactiveSessionContext(sessionId)?.movedFrom;
   if (!from) return { moved: false, turns: 0 };
+  if (!from.conversationId) return { moved: true, turns: 0 }; // memory held: start fresh
   const read = getConversationTurns(from.userId, from.conversationId, MAX_TURNS_READ);
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<ConversationTurn[]>((resolve) => {
