@@ -98,4 +98,57 @@ final class HelpLinksUITests: XCTestCase {
         }
         XCTAssertLessThanOrEqual(worst, 6, "the call shows through the sheet (off paper by \(worst))")
     }
+
+    // MARK: - Crisis mode (trust panel R16)
+
+    private func crisisCall(modeOn: Bool) -> XCUIApplication {
+        let app = XCUIApplication.ferni(.crisisDuringTool, extra: (modeOn ? ["-ferni.call.crisisMode", "YES"] : []) + ["-FerniStoreData", "YES"])
+        XCTAssertTrue(Screen.crisisDuringTool.ready(in: app).waitForExistence(timeout: 20))
+        return app
+    }
+
+    private func goodbye(_ app: XCUIApplication) -> String {
+        app.descendants(matching: .any)["uitest.goodbye"].firstMatch.value as? String ?? "missing"
+    }
+
+    /// On: a tool starts, then the agent's crisis level. One tap to call or
+    /// text 988 on the call screen itself, More never opened, no activity
+    /// line; after End the row stays, with no "I'll remember" and no playful
+    /// goodbye (its chime and heart).
+    func testInACrisis988IsUpFrontWithoutOpeningMore() {
+        let app = crisisCall(modeOn: true)
+        let help = app.descendants(matching: .any)["call.helpNow"].firstMatch
+        XCTAssertTrue(help.waitForExistence(timeout: 10), "no 988 row on the call screen")
+        for name in ["Get help now (988)", "Text 988"] {
+            let link = help.descendants(matching: .any)[name].firstMatch
+            XCTAssertTrue(link.exists, name)
+            XCTAssertTrue(link.isHittable, "\(name) is covered or off screen")
+        }
+        XCTAssertFalse(app.navigationBars["More"].exists, "More was never opened")
+        // The activity line (R9) isn't built yet; when it is, it carries this id.
+        XCTAssertFalse(app.descendants(matching: .any)["call.activity"].exists)
+        attachScreenshot("crisis-call")
+
+        app.buttons["End call"].tap()
+        XCTAssertTrue(Screen.home.ready(in: app).waitForExistence(timeout: 10))
+        XCTAssertTrue(help.waitForExistence(timeout: 5), "988 left with the call")
+        sleep(5) // the goodbye would be over, and the remember card loaded
+        XCTAssertTrue(help.exists, "988 stays on the screen after the call")
+        XCTAssertFalse(app.staticTexts["I'll remember"].exists, "nothing from this call shown back")
+        XCTAssertEqual(goodbye(app), "chime=0 heart=0")
+        attachScreenshot("crisis-after")
+    }
+
+    /// Off (the default): the same call looks as every call does. No 988
+    /// row, and after End the remember card and the usual goodbye.
+    func testWithCrisisModeOffTheSameCallIsUnchanged() {
+        let app = crisisCall(modeOn: false)
+        sleep(4) // the crisis level arrives 2 s after Ferni joins
+        XCTAssertFalse(app.descendants(matching: .any)["call.helpNow"].exists)
+        app.buttons["End call"].tap()
+        XCTAssertTrue(app.staticTexts["I'll remember"].waitForExistence(timeout: 30), "the remember card")
+        XCTAssertFalse(app.descendants(matching: .any)["call.helpNow"].exists)
+        for _ in 0..<10 where goodbye(app) != "chime=1 heart=1" { sleep(1) }
+        XCTAssertEqual(goodbye(app), "chime=1 heart=1", "the usual goodbye")
+    }
 }

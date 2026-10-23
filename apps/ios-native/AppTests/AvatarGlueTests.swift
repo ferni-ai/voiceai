@@ -79,6 +79,43 @@ final class AvatarGlueTests: XCTestCase {
         await expect(rig, hears: .keyed(.goodbye)) { avatar.send(.ended) }
     }
 
+    /// A crisisDuringTool call through the real views, then End: how many
+    /// goodbyes reached Ferni's rig once he's back at rest.
+    private func goodbyesAfterACrisisCall(crisisMode: Bool) async -> (goodbyes: Int, call: CallSession) {
+        UserDefaults.standard.set(crisisMode, forKey: CallSession.crisisModeKey)
+        defer { UserDefaults.standard.removeObject(forKey: CallSession.crisisModeKey) }
+        let avatar = AvatarModel()
+        let call = UITestScenario.callSession(avatar: avatar, level: AudioLevelMeter(), scenario: .crisisDuringTool)
+        let rig = AliveRig(seed: 1)
+        let window = UIWindow(frame: CGRect(x: 0, y: 0, width: 390, height: 844))
+        window.rootViewController = UIHostingController(rootView: Host(call: call, inputs: Inputs(), rig: rig))
+        window.makeKeyAndVisible()
+        self.window = window
+        call.start()
+        // The scripted room's crisis level, read (its face flashes either way).
+        for _ in 0..<100 where avatar.micro?.expression != .concern { await settle(0.1) }
+        XCTAssertEqual(avatar.micro?.expression, .concern, "the crisis level never arrived")
+        await call.end()
+        await settle(2.5) // departing lasts 1.5 s, then he's at rest
+        XCTAssertEqual(avatar.pose, .idle)
+        return (count(rig, .keyed(.goodbye)), call)
+    }
+
+    /// Crisis mode (trust panel R16): after a call where the agent said the
+    /// caller is in crisis, no playful goodbye (its bounce, blush and heart).
+    func testACrisisCallEndsWithoutThePlayfulGoodbye() async {
+        let (goodbyes, call) = await goodbyesAfterACrisisCall(crisisMode: true)
+        XCTAssertEqual(call.concern, .crisis)
+        XCTAssertEqual(goodbyes, 0)
+    }
+
+    /// The flag off: the same call ends as every call does, goodbye and all.
+    func testWithCrisisModeOffTheSameCallSaysGoodbye() async {
+        let (goodbyes, call) = await goodbyesAfterACrisisCall(crisisMode: false)
+        XCTAssertEqual(call.concern, .none)
+        XCTAssertEqual(goodbyes, 1)
+    }
+
     /// Award upgrade 9, through the real views (critic L: the test checked
     /// CallAvatar's rule, not what reached Ferni): mute a live call while he
     /// listens, and his rig looks away; unmute, and it looks back.

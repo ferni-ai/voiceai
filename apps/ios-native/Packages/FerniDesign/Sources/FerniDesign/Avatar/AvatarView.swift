@@ -28,6 +28,8 @@ public struct AvatarView: View {
     let personSpeaking: Bool
     let micro: MicroBeat?
     let moment: MomentBeat?
+    /// The caller is struggling (the app's crisis mode): no playful goodbye.
+    let calm: Bool
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
@@ -47,6 +49,10 @@ public struct AvatarView: View {
     /// Canvas size and Ferni's place in it, in slot widths.
     static let canvas = CGSize(width: 1.7, height: 1.5)
     static let radius = 0.30, lift = 0.1
+    /// The hand-keyed goodbye (a bounce, a blush and a heart): not under
+    /// Reduce Motion, and not after a call where the caller was struggling.
+    static func playsGoodbye(reduceMotion: Bool, calm: Bool) -> Bool { !reduceMotion && !calm }
+
     /// Expressions that earn the hand-keyed "big win" (a spin) when the face changes to one.
     public static let wins: Set<AvatarExpression> = [.cheering, .proud, .excited]
     /// The part of the slot a finger can touch: Ferni himself (radius 0.30 of
@@ -61,8 +67,10 @@ public struct AvatarView: View {
         name: String = "Ferni", covered: Bool = false, wake: Int = 0, doubleTake: Int = 0, personSpeaking: Bool = false,
         micro: MicroBeat? = nil, moment: MomentBeat? = nil, rig: AliveRig? = nil,
         level: @escaping @Sendable () -> Float = { 0 },
-        reading: Bool = false, lookingAway: Bool = false, roomHour: Int? = nil, onCue: ((KeyedCue) -> Void)? = nil
+        reading: Bool = false, lookingAway: Bool = false, roomHour: Int? = nil, calm: Bool = false,
+        onCue: ((KeyedCue) -> Void)? = nil
     ) {
+        self.calm = calm
         self.lookingAway = lookingAway
         self.roomHour = roomHour
         self.persona = persona
@@ -164,7 +172,7 @@ public struct AvatarView: View {
                     rig.play(sequence: sequence)
                 }
                 if next == .idle, previous != .idle, previous != .arriving {
-                    if !reduceMotion { rig.play(.goodbye) }
+                    if Self.playsGoodbye(reduceMotion: reduceMotion, calm: calm) { rig.play(.goodbye) }
                     // Back home: whoever answers next at the family table, once the
                     // goodbye is over (the rig holds it till then).
                     rig.rest(with: persona)
