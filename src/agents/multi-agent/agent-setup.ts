@@ -1161,7 +1161,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   mark('session_create_start');
   // A persona swapped into a running call joins its session (persona-swap.ts)
-  const parts = { persona, sessionId, services, userData, userId, llmModel, tts };
+  const parts = { persona, sessionId, services, userData, userId, llmModel, tts, room };
   const session = callSession ?? (await createCallSession({ ...parts, phone: config.phoneCaller }));
 
   mark('session_created');
