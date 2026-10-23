@@ -420,7 +420,7 @@ function getOrCreateProfile(userId: string): UserPatternProfile {
     userProfiles.set(userId, profile);
 
     // Async load from Firestore (don't block)
-    if (!isUserLoaded(userId)) {
+    if (!isUserLoaded(userId, 'markov')) {
       void loadUserProfileFromFirestore(userId);
     }
   }
@@ -467,10 +467,10 @@ async function loadUserProfileFromFirestore(userId: string): Promise<void> {
         );
       }
     }
-    markUserLoaded(userId);
+    markUserLoaded(userId, 'markov');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to load Markov profile');
-    markUserLoaded(userId); // Don't retry
+    markUserLoaded(userId, 'markov'); // Don't retry
   }
 }
 

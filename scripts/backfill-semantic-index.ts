@@ -25,7 +25,7 @@
  */
 
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore, DocumentData, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { DocumentData, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { createLogger } from '../src/utils/safe-logger.js';
 import { getFirestoreVectorStore } from '../src/memory/firestore-vector-store.js';
 import { shouldIndex, buildIndexContent, getEntityPolicy } from '../src/services/data-layer/indexing-policy.js';
@@ -367,7 +367,7 @@ async function backfillCollection(
   options: BackfillOptions,
   stats: BackfillStats
 ): Promise<void> {
-  const db = getFirestore();
+  const db = (await import('../src/utils/firebase-admin-app.js')).getAdminFirestore();
 
   log.info(
     { collection: mapping.collection, subcollection: mapping.subcollection, entityType: mapping.entityType },

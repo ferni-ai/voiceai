@@ -28,8 +28,9 @@
 
 import { pathToFileURL } from 'node:url';
 import { initializeApp, cert, getApps } from 'firebase-admin/app';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import { destructiveMode, refusalMessage } from './destructive-gate.js';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -132,7 +133,7 @@ interface MismatchedDoc {
 }
 
 async function findMismatchedDocuments(): Promise<MismatchedDoc[]> {
-  const db = getFirestore();
+  const db = getAdminFirestore();
   const mismatched: MismatchedDoc[] = [];
 
   console.log(`\n🔍 Scanning ${COLLECTION_NAME} collection for dimension mismatches...`);
@@ -228,7 +229,7 @@ export async function main(argv: readonly string[] = process.argv): Promise<void
 
   // Initialize Firebase
   initFirebase();
-  const db = getFirestore();
+  const db = getAdminFirestore();
 
   // Find mismatched documents
   const mismatched = await findMismatchedDocuments();
