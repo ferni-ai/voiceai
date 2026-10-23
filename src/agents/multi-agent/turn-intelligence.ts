@@ -15,6 +15,7 @@
  * @module agents/multi-agent/turn-intelligence
  */
 
+import { setImmediate as yieldToLoop } from 'node:timers/promises';
 import type { llm } from '@livekit/agents';
 import type { PersonaConfig } from '../../personas/types.js';
 import type { SessionServices } from '../../services/index.js';
@@ -104,9 +105,13 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
       const { startVoicePatterns } =
         await import('../../conversation/humanization/voice-pattern-session.js');
       await startVoicePatterns(deps.services.sessionId, deps.services.userId);
+      // Yield between steps: on a cold turn each is a block of its own, and
+      // back to back they starved the reply's audio pump (LOOP_STALL).
+      await yieldToLoop();
       const handle = deps.handle ?? (await import('../voice-agent/turn-handler.js')).handleUserTurn;
       const { getStateManager } = await import('../session/user-data-proxy.js');
       const { getAverageSpeechRate } = await import('../voice-agent/human-turn-intelligence.js');
+      await yieldToLoop();
       const userData = deps.userData as UserData & {
         turnCount?: number;
         userSpeakingStartTime?: number;

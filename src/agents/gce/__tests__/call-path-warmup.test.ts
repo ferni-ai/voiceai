@@ -101,6 +101,9 @@ describe('warmCallPath and the first turn', () => {
   it('loads every lazy import of processTurn and its context builders', async () => {
     const loaded = await warmedTargets();
     const files = [
+      // turn-intelligence.ts's own steps before the build, then the turn handler's
+      'agents/multi-agent/turn-intelligence.ts',
+      'agents/voice-agent/turn-handler.ts',
       'agents/processors/turn-processor/process-turn.ts',
       'agents/processors/turn-processor/context-injections.ts',
       'agents/processors/cached-modules.ts',
@@ -134,6 +137,20 @@ describe('warmCallPath', () => {
     expect(registry.getVoiceId('jordan-taylor')).not.toBe(BUNDLE_VOICE); // fallbacks registered
     await warmCallPath(() => undefined, []);
     expect(registry.getVoiceId('jordan-taylor')).toBe(BUNDLE_VOICE);
+  });
+
+  it('builds the Vertex client, which the first turn otherwise builds mid-reply', async () => {
+    vi.resetModules();
+    const warmVertexClient = vi.fn(async () => true);
+    vi.doMock('../../../services/llm-utils.js', () => ({ warmVertexClient }));
+    try {
+      const { warmCallPath } = await import('../call-path-warmup.js');
+      await warmCallPath(() => undefined, []);
+      expect(warmVertexClient).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.doUnmock('../../../services/llm-utils.js');
+      vi.resetModules();
+    }
   });
 
   it('never throws when the voice registry fails to load', async () => {

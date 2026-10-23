@@ -26,7 +26,8 @@
  * handler's 2.5 s hard timeout and lost their memory and intelligence notes).
  * Locally, a warmed child's first turn still loaded 209 modules (Vertex SDK,
  * trust-and-identity, the behavioral context builder, knowledge graph,
- * coaching services); with TURN_PATH it loads 10.
+ * coaching services); with TURN_PATH it loads 10. It then builds the Vertex
+ * client the build's first LLM call would otherwise construct mid-reply.
  *
  * @module agents/gce/call-path-warmup
  */
@@ -118,6 +119,12 @@ export async function warmCallPath(
       failed++;
     }
     await setImmediate();
+  }
+  try {
+    const { warmVertexClient } = await import('../../services/llm-utils.js');
+    if (!(await warmVertexClient())) failed++;
+  } catch {
+    failed++;
   }
   try {
     const { isNativeAudioAvailable } =

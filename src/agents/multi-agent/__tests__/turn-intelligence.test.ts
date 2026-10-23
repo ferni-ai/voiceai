@@ -1,3 +1,4 @@
+import { setImmediate } from 'node:timers';
 import { llm } from '@livekit/agents';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -29,6 +30,20 @@ describe('resolveTurnIntelligenceMode', () => {
 });
 
 describe('createTurnIntelligenceHook', () => {
+  it('lets the event loop run before the build, so its cold steps are not one block', async () => {
+    const order: string[] = [];
+    const handle = vi.fn(async () => {
+      order.push('build');
+    });
+    const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
+    await hook(llm.ChatContext.empty(), userMessage('warm the imports')); // later imports: no I/O
+    order.length = 0;
+
+    setImmediate(() => order.push('loop ran'));
+    await hook(llm.ChatContext.empty(), userMessage('long day'));
+    expect(order).toEqual(['loop ran', 'build']);
+  });
+
   it('hands the turn to the turn handler with the session context', async () => {
     const handle = vi.fn().mockResolvedValue(undefined);
     const hook = createTurnIntelligenceHook({ persona, services, userData, handle });
@@ -185,7 +200,9 @@ describe('turn context pusher', () => {
     const { createTurnContextPusher } = await import('../turn-intelligence.js');
     const agent = makeAgent();
     let releaseFirst: () => void = () => {};
-    const firstDone = new Promise<void>((resolve) => (releaseFirst = resolve));
+    const firstDone = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
     let call = 0;
     const hook = vi.fn(async (turnCtx: llm.ChatContext, message: llm.ChatMessage) => {
       if (++call === 1) await firstDone; // the first run (partial turn) is slow
