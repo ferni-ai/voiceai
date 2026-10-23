@@ -20,7 +20,7 @@
  * Until the room closes, crisis risk on the call or the caller saying more
  * than a goodbye reopens it (wrap-up-window.ts, #2291): the app is sent
  * `conversation_continue`, which cancels its disconnect, and the call is no
- * longer closing, so Ferni may speak and the farewell watcher arms again. So
+ * longer closing, so Ferni may speak; only a fresh caller goodbye ends it again. So
  * does a crisis hold just before the room would be deleted. While the caller
  * is still talking, the app holds its hang-up (`conversation_hold`), and the
  * room is not deleted while they are mid-utterance or a crisis read is in
@@ -56,9 +56,19 @@ import {
   holdEndCallForCrisis,
   type HangUp,
 } from './phone-goodbye.js';
-import { clearFarewell, markFarewell, reopenFarewell, watchFarewell } from './call-farewell.js';
+import {
+  clearFarewell,
+  ferniSaysGoodbye,
+  markFarewell,
+  reopenFarewell,
+  stayQuiet,
+  watchFarewell,
+} from './call-farewell.js';
 import { holdWhileBusy, waitForQuiet, watchCaller, type CallerWatch } from './caller-activity.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
+import { coordinatedSay } from '../../speech/coordination/session-integration.js';
+import { directedText, type Cue } from '../../speech/direction/index.js';
+import { watchReopenIdle } from './reopen-idle.js';
 import {
   clearSessionClosing,
   isSessionClosing,
@@ -113,6 +123,8 @@ export interface WrapUpCall {
   caller?: CallerWatch;
   /** The clock for spacing `conversation_hold`s (tests). */
   now?: () => number;
+  /** Watch the call for quiet after it reopened (reopen-idle.ts). */
+  onReopen?: () => void;
 }
 
 /** Calls whose wrap-up has started and not yet closed the room. */
@@ -158,7 +170,7 @@ export async function wrapUpCall(
     callerInRoom: call.callerInRoom,
     setTimer,
     now: call.now,
-    onContinue: (why) => carryOn(call, app ? signal : undefined, why),
+    onContinue: (why, lines) => carryOn(call, app ? signal : undefined, why, lines),
     ...(app && { onHold: (why: HoldReason) => holdAppEnd(sessionId, signal, why) }),
   });
   const sent = await signal(
@@ -177,17 +189,19 @@ export async function wrapUpCall(
 
 /**
  * Reopen a call whose wrap-up began: the app cancels its disconnect, Ferni may
- * speak again, and the farewell watcher (and a later wrap-up) can arm again.
+ * speak again, and a fresh caller goodbye (never Ferni's own) can end it again.
  */
 function carryOn(
   call: WrapUpCall,
   signal: typeof sendFrontendSignal | undefined,
-  reason: ContinueReason
+  reason: ContinueReason,
+  lines: string[]
 ): void {
   const { sessionId } = call;
   clearSessionClosing(sessionId);
-  reopenFarewell(sessionId);
+  reopenFarewell(sessionId, lines);
   wrapping.delete(sessionId);
+  call.onReopen?.();
   log.warn({ sessionId, reason }, 'CALL_WRAP_UP continued');
   void signal?.('conversation_continue', { reason, timestamp: Date.now() }, sessionId).catch(
     (error: unknown) =>
@@ -315,7 +329,10 @@ export async function attachCallWrapUp(
     });
   }
   // After the farewell watcher, so a reopening line reaches it while the call is still closing
-  if (call.session) wrap.caller = watchCaller(call.session);
+  if (call.session) {
+    wrap.caller = watchCaller(call.session);
+    wrap.onReopen = idleAfterReopen(wrap, call.session, wrap.caller, call);
+  }
   if (phone) {
     // PHONE_GOODBYE's endCall hangs up only after a short quiet with no crisis read due
     const holdFirst = async (): Promise<'quiet' | 'talking' | 'risk'> =>
@@ -329,4 +346,52 @@ export async function attachCallWrapUp(
   }
   if (!wrapUp) return false;
   return addEndCallTool(agent, () => createWrapUpTool(wrap));
+}
+
+/**
+ * Ferni's check-in after a reopen: never a goodbye, which would pair with the
+ * caller's next one, even one asked as a question ("Bye for now?").
+ */
+const REOPEN_CHECK_IN: Cue = {
+  moment: 'reopen_checkin',
+  direction:
+    "The call nearly ended, then carried on, and they've gone quiet. Gently let them know you're still here and in no hurry. One short sentence; don't say goodbye.",
+  fallback: "I'm still here, no rush at all.",
+  urgency: 'soon',
+  maxChars: 120,
+  rejectIf: (line) => ferniSaysGoodbye(line.trimEnd().replace(/\?+$/, '')),
+};
+
+/** A reopened call ends after the usual idle, with one warm check-in first (reopen-idle.ts). */
+function idleAfterReopen(
+  wrap: WrapUpCall,
+  session: object,
+  caller: CallerWatch,
+  { clearTimer, env }: { clearTimer?: (handle: unknown) => void; env?: Env }
+): () => void {
+  const { sessionId } = wrap;
+  // Goodbyes said again with the end held for crisis, or the call closing: say nothing
+  const quiet = (): boolean => stayQuiet(sessionId, env);
+  return () =>
+    watchReopenIdle(session, {
+      caller,
+      setTimer: wrap.setTimer ?? ((fn, ms) => setTimeout(fn, ms)),
+      clearTimer: clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>)),
+      checkIn: () => {
+        if (quiet()) return;
+        log.info({ sessionId }, 'CALL_WRAP_UP quiet after reopen; checking in');
+        void directedText(sessionId, REOPEN_CHECK_IN).then((line) => {
+          // The call may have ended, or the caller started talking, while the line was written
+          if (!quiet() && !caller.busy()) {
+            coordinatedSay(sessionId, line.text, { allowInterruptions: true });
+          }
+        });
+      },
+      end: () => {
+        log.info({ sessionId }, 'CALL_WRAP_UP quiet after reopen; ending the call');
+        void wrapUpCall(wrap, 'idle_after_goodbye').catch((error: unknown) =>
+          log.error({ sessionId, error: String(error) }, 'CALL_WRAP_UP idle end failed')
+        );
+      },
+    });
 }

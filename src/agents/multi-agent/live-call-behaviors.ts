@@ -330,6 +330,9 @@ export async function startTurnSounds(input: TurnSoundsInput) {
   );
   if (clips) {
     cleanupFunctions.push(() => void clips.close());
+    // The spoken backchannel path stays quiet while clips play (clip-mode.ts).
+    const { noteUsesClips } = await import('../../speech/live-backchanneling/clip-mode.js');
+    cleanupFunctions.push(noteUsesClips(sessionId));
     const { attachTurnOpeningSound, earlyOpeningWaitMs, turnOpeningSoundEnabled } =
       await import('../integrations/turn-opening-sound.js');
     const { replyAudioSince, replyTextSince, holdReplyAudio, clearReplyActivity } =
