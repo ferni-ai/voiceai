@@ -159,25 +159,6 @@ describe('eraseUserRecord', () => {
     ]);
   });
 
-  it("erases the texts held for them (feature_held_texts, by text.userId), not anyone else's", async () => {
-    const stores = ERASED_STORES.filter((s) => s.collection === 'feature_held_texts');
-    expect(stores).toEqual([{ collection: 'feature_held_texts', field: 'text.userId' }]);
-    const held = (userId: string) => ({
-      text: { userId, body: 'call my lawyer' },
-      reason: 'focus',
-    });
-    const { db, docs } = fakeFirestore({
-      'feature_held_texts/focus-a': held('u-1'),
-      'feature_held_texts/auto-b': held('u-1'),
-      'feature_held_texts/focus-c': held('u-2'),
-    });
-    expect(await findUserRecordRemnants(db, 'u-1', stores)).toEqual([
-      'feature_held_texts[text.userId]',
-    ]);
-    await eraseUserRecord('u-1', db, stores, []);
-    expect([...docs.keys()]).toEqual(['feature_held_texts/focus-c']);
-  });
-
   it('throws when anything survives, so no caller reports an erasure that did not happen', async () => {
     const { db } = fakeFirestore(
       { 'users/u-1/journal/j1': {}, 'contact_relationships/r1': { userId: 'u-1' } },
@@ -213,5 +194,26 @@ describe('eraseUserRecord', () => {
 
   it('fails loudly when Firebase Admin is unavailable instead of skipping the erase', async () => {
     await expect(eraseUserRecord('u-1')).rejects.toThrow('Firebase Admin is not initialized');
+  });
+});
+
+describe('eraseUserRecord, held texts', () => {
+  it("erases the texts held for them (feature_held_texts, by text.userId), not anyone else's", async () => {
+    const stores = ERASED_STORES.filter((s) => s.collection === 'feature_held_texts');
+    expect(stores).toEqual([{ collection: 'feature_held_texts', field: 'text.userId' }]);
+    const held = (userId: string) => ({
+      text: { userId, body: 'call my lawyer' },
+      reason: 'focus',
+    });
+    const { db, docs } = fakeFirestore({
+      'feature_held_texts/focus-a': held('u-1'),
+      'feature_held_texts/auto-b': held('u-1'),
+      'feature_held_texts/focus-c': held('u-2'),
+    });
+    expect(await findUserRecordRemnants(db, 'u-1', stores)).toEqual([
+      'feature_held_texts[text.userId]',
+    ]);
+    await eraseUserRecord('u-1', db, stores, []);
+    expect([...docs.keys()]).toEqual(['feature_held_texts/focus-c']);
   });
 });
