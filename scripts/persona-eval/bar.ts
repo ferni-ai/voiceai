@@ -40,6 +40,7 @@
  * the background notes. So this measures WORDS, one turn deep; compare arms,
  * don't read the absolute numbers as live.
  *
+ * --bq writes each run's rates to ferni_events.eval_results (env dev); a failed insert exits 1.
  * Safety: FIRESTORE_EMULATOR_HOST points at a dead port, so a repo module that
  * opens Firestore fails instead of reaching GOOGLE_CLOUD_PROJECT's data. One
  * arm per process: repo modules can read flags at import time.
@@ -97,6 +98,7 @@ import {
 } from './bar-lib.js';
 import { bible } from './canon-judge.js';
 import { callsByModel } from '../first-call-eval/vertex.js';
+import { barReports, reportIfBq } from '../lib/eval-results-bq.js';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MODEL = process.env.CASCADE_LLM_MODEL ?? 'gemini-3.5-flash';
@@ -104,12 +106,8 @@ const JUDGE_MODEL = process.env.JUDGE_MODEL ?? 'gemini-3.5-flash';
 // Another family than the generator's, so the bar can't rest on one model grading its own habits.
 const SECOND_JUDGE = process.env.SECOND_JUDGE_MODEL ?? 'openai/gpt-oss-120b-maas';
 const PERSONAS = [
-  'ferni',
-  'alex-chen',
-  'peter-john',
-  'maya-santos',
-  'jordan-taylor',
-  'nayan-patel',
+  ...['ferni', 'alex-chen', 'peter-john'],
+  ...['maya-santos', 'jordan-taylor', 'nayan-patel'],
 ];
 const NAMES = PERSONAS.map((p) => p.split('-')[0]);
 
@@ -374,6 +372,7 @@ async function main(
       out: { type: 'string' },
       baseline: { type: 'string' },
       aa: { type: 'boolean', default: false },
+      bq: { type: 'boolean', default: false },
       rounds: { type: 'string', default: '1' },
       // Re-score <out>/<arm>/result.json: same replies, judged again (humanness) and the copy
       // check redone. Nothing is regenerated, and distinctness and insight are kept as saved.
@@ -1047,6 +1046,7 @@ async function main(
   writeFileSync(join(dir, 'result.md'), md.join('\n'));
   if (!values.baseline) console.log(md.join('\n'));
   console.log(`-> ${dir}/result.json`);
+  await reportIfBq(values.bq, () => barReports(result));
   return { root, runs: nRuns, judges: JUDGES, baseline: values.baseline };
 }
 

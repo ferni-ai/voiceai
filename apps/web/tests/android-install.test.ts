@@ -115,6 +115,9 @@ describe('asset links', () => {
     expect(step).toMatch(/BUNDLETOOL_SHA256: [0-9a-f]{64}\n/);
     expect(step).toMatch(/sha256sum -c -/);
     expect(step).toMatch(/grep -qx "\$signed"/);
+    // The 64 hex digits, whatever newer apksigner puts before them on the line.
+    expect(step).toContain('SHA-256 digest: *\\([0-9a-fA-F]\\{64\\}\\)');
+    expect(step).not.toContain("awk -F': '");
     expect(step).toMatch(/exit 1/);
     expect(workflow).toMatch(/bundle\/ferni-universal\.apk\n\s+if-no-files-found: error/);
   });

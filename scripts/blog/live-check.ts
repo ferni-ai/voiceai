@@ -13,9 +13,9 @@
  *
  * Not behind a flag. A PR is left out when its title or body says the change
  * is behind a flag, off by default, not wired or dev-only, when it names a
- * flag that src/config/flag-manifest*.ts has off (or shadow) by default, or
- * when its diff adds an off-by-default manifest entry or touches a web
- * `*-flag.ts` file.
+ * flag the manifest (src/config/flags/*.ts and src/config/flag-manifest*.ts)
+ * has off (or shadow) by default, or when its diff adds an off-by-default
+ * manifest entry or touches a web `*-flag.ts` file.
  */
 
 import * as fs from 'node:fs';
@@ -31,8 +31,12 @@ const DAY = 86_400_000;
  */
 export const DEPLOYED_ON_MERGE = /^apps\/(?:web|website\/(?:ferni-website|developers-portal))\//;
 
-const MANIFEST_FILE = /^src\/config\/flag-manifest[\w-]*\.ts$/;
+const CONFIG_DIR = 'src/config';
+const LEGACY_MANIFEST = /^flag-manifest[\w-]*\.ts$/;
+const FLAG_FILE = /^([A-Z][A-Z0-9_]*)\.ts$/;
+const MANIFEST_FILE = /^src\/config\/(?:flag-manifest[\w-]*|flags\/[A-Z][A-Z0-9_]*)\.ts$/;
 const OFF_ENTRY = /^\s*([A-Z][A-Z0-9_]*): \{ default: '(?:off|shadow)'/gm;
+const OFF_DEFAULT = /^\s*default: '(?:off|shadow)'/m;
 const WEB_FLAG_FILE = /(?:^|\/)[\w.-]+-flag\.ts$/;
 
 /** What a PR's title or body says when its change ships switched off. */
@@ -69,35 +73,52 @@ export interface LiveContext {
   today: string;
 }
 
-/** Every part of the flag manifest: flag-manifest.ts and the files it spreads in. */
-function manifestTexts(root: string): string[] {
-  const dir = path.join(root, 'src/config');
-  if (!fs.existsSync(dir)) return [];
-  return fs
-    .readdirSync(dir)
-    .filter((f) => MANIFEST_FILE.test(`src/config/${f}`))
-    .map((f) => fs.readFileSync(path.join(dir, f), 'utf-8'));
-}
+const listDir = (dir: string): string[] => (fs.existsSync(dir) ? fs.readdirSync(dir) : []);
 
-/** Flags the manifest has off (or shadow) by default. */
+/**
+ * Flags the manifest has off (or shadow) by default: every flags/<NAME>.ts file and
+ * every entry line in the legacy flag-manifest*.ts files.
+ */
 export function offFlags(root: string): Set<string> {
   const names = new Set<string>();
-  for (const text of manifestTexts(root)) for (const m of text.matchAll(OFF_ENTRY)) names.add(m[1]);
+  const config = path.join(root, CONFIG_DIR);
+  for (const file of listDir(config).filter((f) => LEGACY_MANIFEST.test(f))) {
+    for (const m of fs.readFileSync(path.join(config, file), 'utf-8').matchAll(OFF_ENTRY)) {
+      names.add(m[1]);
+    }
+  }
+  const flags = path.join(config, 'flags');
+  for (const file of listDir(flags)) {
+    const name = FLAG_FILE.exec(file)?.[1];
+    if (name && OFF_DEFAULT.test(fs.readFileSync(path.join(flags, file), 'utf-8'))) names.add(name);
+  }
   return names;
 }
 
-/** Each off-by-default flag, with the comment right above it when there is one. */
+/** The legacy flag-manifest*.ts files, as text. */
+function manifestTexts(root: string): string[] {
+  const config = path.join(root, CONFIG_DIR);
+  return listDir(config)
+    .filter((f) => LEGACY_MANIFEST.test(f))
+    .map((f) => fs.readFileSync(path.join(config, f), 'utf-8'));
+}
+
+/**
+ * Each off-by-default flag, with the comment right above it when there is one
+ * (legacy manifest entries); a flags/<NAME>.ts flag by its name.
+ */
 export function offFlagNotes(root: string): string[] {
-  const notes: string[] = [];
+  const notes = new Map<string, string>();
   for (const text of manifestTexts(root)) {
     const lines = text.split('\n');
     lines.forEach((line, i) => {
       const name = new RegExp(OFF_ENTRY.source).exec(line)?.[1];
       const note = /^\s*\/\/ ?(.*)$/.exec(lines[i - 1] ?? '')?.[1];
-      if (name) notes.push(note ? `${name}: ${note.trim()}` : name);
+      if (name) notes.set(name, note ? `${name}: ${note.trim()}` : name);
     });
   }
-  return notes.sort();
+  for (const name of offFlags(root)) if (!notes.has(name)) notes.set(name, name);
+  return [...notes.values()].sort();
 }
 
 const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

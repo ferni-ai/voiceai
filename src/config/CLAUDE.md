@@ -84,7 +84,13 @@ Read an on/off env flag with `flagOn('NAME')` from `env-flag.ts`. It accepts
 `on|true|1|live` and `off|false|0` in any case and falls back to the default in
 `flag-manifest.ts`. Every env flag read in `src/` must be listed in
 `FLAG_MANIFEST` (name, default, owner, kind); `__tests__/flag-manifest.test.ts`
-fails otherwise.
+fails otherwise. New flag: `pnpm flags:new NAME --default off --owner voice --kind experiment --note "on: ..."`
+writes `flags/NAME.ts` and regenerates the barrel; don't add entries to `flag-manifest*.ts`.
+
+Moving legacy entries to flag files is `pnpm flags:move --file flag-manifest-blocks.ts
+[--range A-F | --names X,Y]` (AST splice, comments kept verbatim). It freezes the moved
+specs in `__tests__/fixtures/flag-move-<batch>.json`, which the contract test holds
+`FLAG_MANIFEST` to. Show `pnpm flags:dump` from base and head in the PR: they must match.
 
 ### Using Flags
 

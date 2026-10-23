@@ -25,11 +25,21 @@
  * emits no flush sentinel, so one TTS segment per reply). session.say() goes
  * straight to ttsNode with no llmNode, so a greeting, goodbye or timer line
  * finds no note and reads lastUserMessage, not fresh, as before.
+ * A fresh reply also carries the call's LAUGH_CAP ledger (laugh-ledger.ts).
  *
  * @module agents/shared/reply-caller-turn
  */
 
+import type { LaughGate } from '../../speech/tts-gateway/director/types.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
+import { laughGateFor } from '../personas/laugh-ledger.js';
+
+/** The caller fields of the TTS context (tts-wrapper.ts TtsSessionContext). */
+export interface ReplyCallerFields {
+  userRequest?: string;
+  callerTurnFresh?: boolean; // userRequest was read from this reply's own chat context
+  laughGate?: LaughGate;
+}
 
 interface ChatItemView {
   type: string;
@@ -89,11 +99,14 @@ export function noteReplyCallerTurn<T extends { items: readonly ChatItemView[] }
  */
 export function replyCallerTurnFields(
   agent: object,
-  fallback: unknown
-): { userRequest?: string; callerTurnFresh: boolean } {
+  fallback: unknown,
+  sessionId?: string
+): ReplyCallerFields & { callerTurnFresh: boolean } {
   const noted = byAgent.get(agent);
   byAgent.delete(agent); // single-use: a say() line after this reply is not fresh
-  if (noted !== undefined) return { userRequest: noted || undefined, callerTurnFresh: true };
+  const laughGate = laughGateFor(sessionId);
+  if (noted !== undefined)
+    return { userRequest: noted || undefined, callerTurnFresh: true, laughGate };
   return {
     userRequest: typeof fallback === 'string' ? fallback : undefined,
     callerTurnFresh: false,

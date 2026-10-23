@@ -27,6 +27,7 @@ export interface FlagSpec {
 /** ACTION_CLAIM_GUARD .. BYPASS_TEAM_UNLOCKS */
 export const FLAGS_ACTION_TO_BYPASS = {
   ACTION_CLAIM_GUARD: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  ACTION_CLAIM_PAST: { default: 'off', owner: 'tools', kind: 'experiment' },
   ACTION_CLAIM_STREAM: { default: 'off', owner: 'voice', kind: 'experiment' },
   AFTER_CALL_EXTRACTION: { default: 'off', owner: 'intelligence', kind: 'experiment' },
   // set by the job runner for its child processes
@@ -77,6 +78,8 @@ export const FLAGS_ACTION_TO_BYPASS = {
 /** HONEST_FRIEND .. IDENTITY_MERGE_ANON */
 export const FLAGS_HONEST_TO_IDENTITY = {
   HONEST_FRIEND: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: once the hour or part of day has come up, the turn's "Right now" line drops the clock (hour-once.ts)
+  HOUR_ONCE: { default: 'off', owner: 'voice', kind: 'experiment' },
   HUMAN_TEXTURE: { default: 'off', owner: 'voice', kind: 'experiment' },
   // on: POST /api/identity/merge-anonymous moves an anonymous account's data into the signed-in one
   IDENTITY_MERGE_ANON: { default: 'off', owner: 'platform', kind: 'experiment' },
@@ -109,6 +112,8 @@ export const FLAGS_MOVE_TO_PHONE_AUDIO = {
   NEVER_SILENT: { default: 'off', owner: 'voice', kind: 'experiment' },
   // getNews topic search with no NewsData/GNews key says so and gives RSS headlines (news.ts)
   NEWS_HEADLINES_FALLBACK: { default: 'on', owner: 'tools', kind: 'kill-switch' },
+  // on: Ferni says he doesn't know how he's built, and isn't pushed to describe it (no-invented-internals.ts, #2223)
+  NO_INVENTED_INTERNALS: { default: 'off', owner: 'voice', kind: 'experiment' },
   ONNX_USE_COREML: { default: 'on', owner: 'platform', kind: 'kill-switch' },
   // First on-behalf dial checks the do-not-call list (first-dial-opt-out.ts)
   ON_BEHALF_DNC_CHECK: { default: 'off', owner: 'outreach', kind: 'experiment' },
@@ -158,4 +163,12 @@ export const FLAGS_SHORT_GOODBYE_TO_SMS = {
   SKIP_TWILIO_VALIDATION: { default: 'off', owner: 'platform', kind: 'config' },
   // on: a text confirming opt-in when texts go on in settings, and the reminder job releases held texts (opt-in-text.ts)
   SMS_OPT_IN_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
+} as const satisfies Record<string, FlagSpec>;
+
+/** SPECIALIST_TOOLS .. SPECULATIVE_TTS */
+export const FLAGS_SPECIALIST_TO_SPECULATIVE = {
+  // a specialist gets its own specialty tools within the 64 cap (multi-agent/specialist-tool-sets.ts)
+  SPECIALIST_TOOLS: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // speculative TTS warmup + per-turn pre-render: Cartesia calls the gateway reply path never reads
+  SPECULATIVE_TTS: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;

@@ -1286,8 +1286,10 @@ async function processFinalTranscript(
     autoOptimizer,
     agent,
   } = ctx;
-  // MINOR_CARE=on: a caller under 18 who isn't a verified owner: nothing below stores their words.
-  const memoryUserId = heldAfter(sessionId, event.transcript) ? undefined : userId;
+  // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
+  const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
+  const held = heldAfter(sessionId, event.transcript, { userId, asked });
+  const memoryUserId = held ? undefined : userId;
 
   // ===============================================
   // 🧠 WS1: VALIDATE SPECULATIVE CONTEXT
@@ -1343,9 +1345,10 @@ async function processFinalTranscript(
         await import('../processors/tool-routing-integration.js');
       const { isFtisEnabled } = await import('../../config/tool-config.js');
 
-      if (isFtisEnabled() && userId) {
+      // FTIS runs tools straight from the transcript: never for a held caller (MINOR_CARE)
+      if (isFtisEnabled() && memoryUserId) {
         const ftisResult = await runFTISRouting(event.transcript, {
-          userId,
+          userId: memoryUserId,
           sessionId,
           personaId: sessionPersona?.id || 'ferni',
           userLocation: userData.userLocation as
@@ -1554,12 +1557,13 @@ async function processFinalTranscript(
   // Process trial status for trial users
   processTrialStatus(userId, userData, services, session, conversationManager, sessionId);
 
-  // Run human listening pipeline
+  // Human listening: runs for a held caller too (session-only distress cues, nothing stored)
   processHumanListeningPipeline(event.transcript, userData, sessionId);
 
-  // 🌟 Better Than Human transcript processing
-  // Detects: first-time vulnerability, emotional contradictions, patterns, linguistic style
-  processBetterThanHumanTranscript(event.transcript, userData, sessionId, sessionPersona.id);
+  // 🌟 Better Than Human (vulnerability, contradictions, patterns): per user, never held (MINOR_CARE)
+  if (!held) {
+    processBetterThanHumanTranscript(event.transcript, userData, sessionId, sessionPersona.id);
+  }
 
   // 🎵 Music Preference Extraction
   // Detects: "I love jazz", "I don't like country", "Taylor Swift is my favorite"
@@ -1705,27 +1709,23 @@ async function processFinalTranscript(
         toolUpdaterLog.warn({ error }, 'Failed to process message for dynamic tool loading');
       });
   } else if (dynamicToolLoader && !isMidSessionToolUpdateSafe()) {
-    // 🔍 DIAGNOSTIC: Log when we skip mid-session updates for Gemini
-    // We still process the message for analytics, just don't update the agent
+    // 🔍 Gemini skips mid-session updates: still process the message for analytics, no agent update
     dynamicToolLoader.processMessage(event.transcript).catch(() => {});
-    // Note: Tools were registered at session start - they don't need mid-session updates
-    // Gemini should have all the tools it needs from registerInitialTools()
+    // Tools were registered at session start (registerInitialTools): no mid-session updates needed
   }
 
-  // Process voice identity
-  processVoiceIdentity(sessionId, event.transcript, userData);
+  processVoiceIdentity(sessionId, event.transcript, userData); // identity and verification
+  processDJSessionFlow(event.transcript, userData); // DJ session flow tracking
 
-  // Process DJ session flow tracking
-  processDJSessionFlow(event.transcript, userData);
-
-  // Collect feedback for tool optimization
-  processFeedbackCollection(event.transcript, userData, sessionId, sessionPersona, autoOptimizer);
+  // Collect feedback for tool optimization: it keeps their words, so never when held (MINOR_CARE)
+  if (!held) {
+    processFeedbackCollection(event.transcript, userData, sessionId, sessionPersona, autoOptimizer);
+  }
 
   // Process daily check-in (extracts weather and records to engagement system)
   processDailyCheckInTranscript(event.transcript, userData, sessionId, ctx.sendDataMessage);
 
-  // Detect team huddle requests
-  processTeamHuddleDetection(event.transcript, sessionPersona.id, ctx.sendDataMessage);
+  processTeamHuddleDetection(event.transcript, sessionPersona.id, ctx.sendDataMessage); // huddle asks
 
   // ===============================================
   // RESPONSE GENERATION - Clean Architecture (Jan 2026)

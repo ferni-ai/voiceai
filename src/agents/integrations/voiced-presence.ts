@@ -22,6 +22,8 @@ import { presenceClipName, presenceClipPickers, type ClipPicker } from './presen
 import type { HumPlayer } from './tool-hum.js';
 import { recordedWhistleId, takeTuneId, tuneAudio, tuneKind } from './presence-tune.js';
 import { namedTuneFor, presenceSoundsHeld, tunePlayed } from '../../services/session/tune-state.js';
+import { stayQuietOn } from '../shared/call-farewell.js';
+import { presenceSilenceIsHeavy } from './presence-heavy.js';
 
 export { voicedPresenceEnabled };
 
@@ -217,6 +219,9 @@ function startIdle(v: Voiced, now: () => Date, whistles: ClipPicker | null): () 
       endsAt = 0;
     },
     mood: v.mood,
+    // Hard news, venting or crisis risk lately, or the goodbyes said: no sound (presence-heavy.ts).
+    serious: () => presenceSilenceIsHeavy(v.session),
+    quiet: () => stayQuietOn(v.session),
     rng: v.rng,
   });
   const onAgent = (ev: { newState?: string }): void => watcher.onAgentState(ev.newState ?? '');

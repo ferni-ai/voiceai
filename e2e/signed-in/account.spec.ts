@@ -21,8 +21,16 @@ test('Sign Out ends the session and leaves this browser clean', async ({ page })
   await page.locator('.settings-menu [data-action="sign-out"]').click();
 
   await expect(page.locator(signInButtons).first()).toBeVisible({ timeout: 30_000 });
-  const leftovers = await page.evaluate((keys) => keys.filter((k) => localStorage.getItem(k) !== null), personal);
-  expect(leftovers, 'data left behind for the next person on this browser').toEqual([]);
+  // The sign-in screen appears as soon as Firebase reports the sign-out, which is
+  // before signOutOfThisBrowser() reaches clearAllUserData() and reloads. Reading
+  // storage once here raced that (menu-e2e flake, CI run 39626931749), so wait for
+  // the clean-up to land. It still fails if anything stays behind.
+  await expect
+    .poll(() => page.evaluate((keys) => keys.filter((k) => localStorage.getItem(k) !== null), personal), {
+      message: 'data left behind for the next person on this browser',
+      timeout: 15_000,
+    })
+    .toEqual([]);
 
   await page.reload();
   await expect(page.locator(signInButtons).first(), 'still signed out after a reload').toBeVisible({

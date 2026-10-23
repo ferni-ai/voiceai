@@ -24,7 +24,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { SELF_VOICED_NOTE, adaptSpeechMarkup, sparseMarkupNote } from './speech-markup-notes.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { characterSheet } from './character-spark.js';
-import { withStoryHonesty } from './ai-honesty.js';
+import { withHonesty } from './ai-honesty.js';
 import { isFtisEnabled } from '../../config/tool-config.js'; // centralized FTIS mode check
 import { withReflection } from './troubles-talk.js';
 
@@ -831,8 +831,8 @@ export async function loadModelBaseInstructions(): Promise<string> {
       );
     }
 
-    // The sincere-ask rule (ai-honesty.ts) and the true answer to "what happens to what I tell you", on every base.
-    const aiHonesty = withStoryHonesty(await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8'));
+    // The sincere-ask and internals rules (ai-honesty.ts) and the true answer to "what happens to what I tell you".
+    const aiHonesty = withHonesty(await fs.readFile(join(sharedDir, 'ai-honesty.md'), 'utf-8'));
     const privacyAnswer = await fs.readFile(join(sharedDir, 'privacy-answer.md'), 'utf-8');
 
     // Combine: base content + voice output rules (always appended)

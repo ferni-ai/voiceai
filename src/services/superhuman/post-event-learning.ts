@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { dataOf, loadDoc, type LoadResult } from './load-state.js';
 
 const log = createLogger({ module: 'superhuman:post-event-learning' });
 
@@ -193,25 +194,10 @@ const FOLLOW_UP_SCHEDULE: FollowUpPrompt[] = [
 
 const COLLECTION = 'post_event_learning';
 
-async function loadLearningProfile(userId: string): Promise<PostEventLearningProfile | null> {
+async function loadLearningProfile(userId: string): Promise<LoadResult<PostEventLearningProfile>> {
   const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
-    if (doc.exists) {
-      return doc.data() as PostEventLearningProfile;
-    }
-    return null;
-  } catch (error) {
-    log.debug({ error, userId }, 'Failed to load post-event learning profile');
-    return null;
-  }
+  const ref = db?.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile');
+  return loadDoc<PostEventLearningProfile>(ref, log);
 }
 
 async function saveLearningProfile(
@@ -250,7 +236,9 @@ export async function scheduleEventFollowUps(
   eventDate: string,
   eventType: string
 ): Promise<void> {
-  const profile = (await loadLearningProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadLearningProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   // Check if already scheduled
   if (profile.pendingFollowUps.some((f) => f.eventId === eventId)) {
@@ -288,7 +276,7 @@ export async function getDueFollowUps(userId: string): Promise<
     questions: string[];
   }>
 > {
-  const profile = await loadLearningProfile(userId);
+  const profile = dataOf(await loadLearningProfile(userId));
   if (!profile) return [];
 
   const now = new Date();
@@ -328,7 +316,9 @@ export async function recordLearning(
   stage: 'immediate' | 'one_week' | 'one_month',
   learning: Partial<EventLearning>
 ): Promise<void> {
-  const profile = (await loadLearningProfile(userId)) || createDefaultProfile(userId);
+  const loaded = await loadLearningProfile(userId);
+  if (loaded.status === 'error') return; // a default saved now would wipe the stored doc
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   // Find or create learning record
   let existingIdx = profile.learnings.findIndex((l) => l.id === eventId);
@@ -447,7 +437,7 @@ export async function getApplicableLearnings(
   userId: string,
   eventType: string
 ): Promise<AppliedWisdom[]> {
-  const profile = await loadLearningProfile(userId);
+  const profile = dataOf(await loadLearningProfile(userId));
   if (!profile) return [];
 
   const applicable: AppliedWisdom[] = [];
@@ -509,7 +499,7 @@ export async function getLearningSummary(
   commonMistakes: string[];
   budgetTrends: string;
 }> {
-  const profile = await loadLearningProfile(userId);
+  const profile = dataOf(await loadLearningProfile(userId));
   if (!profile) {
     return {
       totalEventsOfType: 0,
