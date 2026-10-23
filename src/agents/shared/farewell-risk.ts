@@ -31,6 +31,14 @@ const FAREWELL_SHAPE = new RegExp(
     String.raw`\blast (?:time|call|goodbye|thing)\b`,
     // Accent folding stopped "adiós para siempre" (goodbye forever) reading as risk by its accent
     String.raw`\bpara siempre\b`,
+    // Finality after a goodbye (#2523): "talk soon. never", "bye bye. no more", "talk soon, or not"
+    String.raw`(?:^|[.,;!?:]\s*)(?:(?:and|or|maybe|probably|just)\s+)*(?:never(?:\s+again)?|or not|no more)\s*(?:[.,;!?:]|$)`,
+    String.raw`\bfor (?:good|life)\b(?!\s+\w)|\bforever\b`,
+    String.raw`\bit'?s (?:all )?over\b|\bit'?s time\b(?!\s+(?:for|to)\b)`,
+    String.raw`\b(?:won'?t|will not|never|not going to|don'?t want to) wake(?: up)?\b`,
+    String.raw`\b(?:nothing|none of (?:this|it)) matters?\b|\bdoes(?:n'?t| not) matter anymore\b`,
+    String.raw`\b(?:go|gonna|going to|about to|finally) do it\b`,
+    String.raw`\btake care of (?:\w+ ){1,3}for me\b`,
   ].join('|'),
   'i'
 );
@@ -121,18 +129,32 @@ export function stripWarmSymbols(text: string): string {
  * clause in another script never looks like a pleasantry; an empty clause is
  * not one either.
  */
+function goodbyeClause(clause: string): boolean {
+  const plain = fold(clause)
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return !!plain && (HANG_UP_CLAUSE.test(plain) || pleasantryClause(plain));
+}
+
+const clausesOf = (line: string): string[] => line.split(/[.!?,;:、，。！？]+/);
+
 function withoutGoodbyeClauses(line: string): string {
-  return line
-    .split(/[.!?,;:、，。！？]+/)
-    .filter((clause) => {
-      const plain = fold(clause)
-        .toLowerCase()
-        .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
-        .replace(/\s+/g, ' ')
-        .trim();
-      return !(plain && (HANG_UP_CLAUSE.test(plain) || pleasantryClause(plain)));
-    })
+  return clausesOf(line)
+    .filter((clause) => !goodbyeClause(clause))
     .join(' ');
+}
+
+/**
+ * The line has a whole goodbye clause ("thanks so much, that helped. bye"). When
+ * it also says more, it is not a clean sign-off: the call waits for the turn's
+ * crisis read (wrap-up-window.ts) instead of ending on the goodbye.
+ */
+export function hasGoodbyeClause(text: string): boolean {
+  return clausesOf(stripWarmSymbols(text.normalize('NFC').replace(/[’‘]/g, "'"))).some(
+    goodbyeClause
+  );
 }
 
 export function farewellRisk(text: string): boolean {

@@ -3,11 +3,14 @@
  * closing its room (call-wrap-up.ts). The call must never end on crisis risk,
  * and a caller who keeps talking hasn't left, so inside this window:
  * - crisis risk noted on this call (crisis-call-risk.ts) reopens it;
- * - a final caller line reopens it unless it is a sign-off (callerSignsOff:
- *   only goodbyes and "thanks", "you too", "love you", with no risk in it).
- *   A line with risk beyond its goodbye (farewell-risk.ts: "I won't be here
- *   tomorrow. Bye.") is recorded as crisis risk on the call and reopens it as a
- *   crisis hold, so no later goodbye ends it;
+ * - a final caller line that is a clean sign-off (callerSignsOff: EVERY
+ *   clause a goodbye or "thanks", "you too", "love you", no risk in it) leaves
+ *   the call ending. A line with risk beyond its goodbye (farewell-risk.ts:
+ *   "I won't be here tomorrow. Bye.", "talk soon. never") is recorded as crisis
+ *   risk and reopens it as a crisis hold, so no later goodbye ends it. A goodbye
+ *   that says more ("thanks so much, that helped. bye") waits for the turn's
+ *   crisis read: it ends on a clean read, reopens on risk, and stays open when
+ *   no read settles (#2523). Any other line reopens it (the caller carried on);
  * - interim transcripts HOLD the app's hang-up (`conversation_hold`,
  *   `caller_speaking`), looked at no more than every HOLD_RESEND_MS; a look
  *   that reads a sign-off sends nothing. A hold never reopens the call;
@@ -29,7 +32,7 @@ import {
 import { createLogger } from '../../utils/safe-logger.js';
 import { callerSignsOff } from './call-farewell.js';
 import { awaitTurnReads, type CallerWatch } from './caller-activity.js';
-import { farewellRisk } from './farewell-risk.js';
+import { farewellRisk, hasGoodbyeClause } from './farewell-risk.js';
 
 const log = createLogger({ module: 'wrap-up-window' });
 
@@ -38,6 +41,8 @@ export type HoldReason = 'caller_speaking' | 'checking';
 
 /** Interim transcripts are looked at for a hold no more than once per this. */
 export const HOLD_RESEND_MS = 500;
+/** While a goodbye that said more waits on its crisis read, the app is held this often. */
+export const CHECK_STEP_MS = 1_000;
 /** How long after the end crisis risk is still logged CRISIS_AFTER_END. */
 export const AFTER_END_WATCH_MS = 30_000;
 
@@ -110,6 +115,24 @@ export function openWrapUpWindow(opts: {
     },
   };
 
+  /**
+   * Rule 1 (#2523): hold the app and the room until the turn's crisis read. It
+   * ends normally on a clean read; risk the read finds reopens the call (the
+   * listener below); a read that never settles keeps it open. Nothing is
+   * recorded from the words alone.
+   */
+  const awaitRead = (): void => {
+    const step = (): void => {
+      if (continued || ended()) return;
+      const outcome = reads.outcome();
+      if (outcome === 'settled') return; // a clean read: the goodbye stands
+      if (outcome !== 'waiting') return win.reopen('caller_spoke'); // fails closed: no clean read
+      hold('checking');
+      opts.setTimer(step, CHECK_STEP_MS);
+    };
+    step();
+  };
+
   stops.push(
     onCrisisRiskNoted((id) => {
       if (id === sessionId) win.reopen('crisis_hold');
@@ -120,7 +143,11 @@ export function openWrapUpWindow(opts: {
       opts.caller.onWords(({ text, final }) => {
         if (final) {
           if (callerSignsOff(text)) return; // the turn's read still holds the end (reads)
-          if (!farewellRisk(text)) return win.reopen('caller_spoke');
+          if (!farewellRisk(text)) {
+            // A goodbye that said more ("thanks so much, that helped. bye") is no clean
+            // sign-off: the turn's read decides. Anything else: the caller carried on.
+            return hasGoodbyeClause(text) ? awaitRead() : win.reopen('caller_spoke');
+          }
           // Record it, so no later goodbye can end this call (crisisRiskThisCall, for its TTL);
           // noting it reopens the call as a crisis hold (the listener above)
           noteCrisisRisk(sessionId, Date.now(), crisisTurnOf(text));

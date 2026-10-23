@@ -478,10 +478,10 @@ describe('a goodbye that carries risk (#2291)', () => {
     expect(isSessionClosing(c.id)).toBe(false);
   });
 
-  it("after a reopen, it cancels the reopen's standing goodbye", async () => {
+  it('after a reopen, a risky goodbye is never the fresh goodbye that ends it', async () => {
     const c = await call();
     await c.toEnd();
-    c.finalWords('oh wait, one more thing'); // reopens; the caller's goodbye stands
+    c.finalWords('oh wait, one more thing'); // reopens
     await flush();
     c.say('user', "I won't be here tomorrow. Bye."); // the window is closed: nothing noted
     c.agentState('speaking');
@@ -589,9 +589,12 @@ describe('plain goodbyes are never taken for risk (#2291)', () => {
       expect(callerSignsOff(line), line).toBe(false);
       const c = await call();
       await c.toEnd();
-      c.finalWords(line);
-      await flush();
-      expect(c.reopens(), line).toEqual(['0 conversation_continue caller_spoke']);
+      c.finalWords(line); // holds for a read (#2523); none comes, so it fails closed
+      await c.advance(TURN_READ_WAIT_MS);
+      expect(c.reopens(), line).toEqual([
+        `${TURN_READ_WAIT_MS} conversation_continue caller_spoke`,
+      ]);
+      expect(c.appConnected, line).toBe(true);
       expect(isSessionClosing(c.id), line).toBe(false);
     }
   });
@@ -676,8 +679,137 @@ describe('plain goodbyes are never taken for risk (#2291)', () => {
   });
 });
 
+describe('a clean sign-off only when every clause is a goodbye (#2523)', () => {
+  /** A line 1 s after conversation_end, its read settling as `risk`, then Ferni's own goodbye. */
+  async function lineThenFerniBye(line: string, risk: string | null) {
+    const c = await call();
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords(line);
+    await c.advance(300);
+    c.say('user', line);
+    const settle = read(c.id, line);
+    await c.advance(800);
+    if (risk) await settle(risk);
+    c.agentState('speaking');
+    c.say('assistant', 'Okay. Bye, take care.');
+    c.agentState('listening');
+    await c.advance(30_000);
+    return c;
+  }
+
+  it.each([
+    "talk soon. or not. doesn't matter anymore",
+    "I'm done for today. and for good",
+    'talk soon. never',
+    'talk soon, or not',
+    'talk soon. maybe never',
+    "sleep tight. won't wake",
+    "sleep well. it's over",
+    "I'm done for the day. and for life",
+    "I'm done for tonight. for good",
+    'bye bye. no more',
+  ])('"%s" stays open as a crisis hold, even on a clean read', async (line) => {
+    const c = await lineThenFerniBye(line, 'none');
+    expect(c.reopens()).toEqual(['1000 conversation_continue crisis_hold']);
+    expect(crisisRiskThisCall(c.id)).toBe(true);
+    expect(c.appConnected).toBe(true);
+  });
+
+  it.each([
+    'I just wanted to say bye to someone',
+    'you can hang up. I need to go do it',
+    'goodbye cruel world',
+    'nothing matters. bye',
+    'take care of mom for me. bye',
+    "hang up now. it's time",
+  ])('"%s" read as none: Ferni\'s own goodbye never ends the call', async (line) => {
+    const c = await lineThenFerniBye(line, 'none');
+    expect(c.reopens().length).toBeGreaterThan(0);
+    expect(c.events.filter((e) => e.includes('conversation_end'))).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
+  it('"thanks so much, that helped. bye": a clean read ends it, with no risk recorded', async () => {
+    const c = await call();
+    await c.toEnd();
+    await c.advance(400);
+    c.finalWords('thanks so much, that helped. bye');
+    expect(c.events.at(-1)).toBe('400 conversation_hold checking'); // held for the read
+    await c.advance(300);
+    const settle = read(c.id, 'thanks so much, that helped. bye');
+    await c.advance(500);
+    await settle('none');
+    await c.advance(15_000);
+    expect(c.reopens()).toEqual([]);
+    expect(crisisRiskThisCall(c.id)).toBe(false);
+    expect(c.appConnected).toBe(false);
+  });
+
+  it('the same line: risk the read finds keeps it open; no read, or a failed one, too', async () => {
+    const risky = await call();
+    await risky.toEnd();
+    risky.finalWords('thanks so much, that helped. bye');
+    await risky.advance(300);
+    const settle = read(risky.id, 'thanks so much, that helped. bye');
+    await risky.advance(500);
+    await settle('high');
+    expect(risky.reopens()).toEqual(['800 conversation_continue crisis_hold']);
+
+    const silent = await call(); // the read never starts: fails closed
+    await silent.toEnd();
+    silent.finalWords('thanks so much, that helped. bye');
+    await silent.advance(TURN_READ_WAIT_MS + 1_000);
+    expect(silent.reopens()).toEqual([`${TURN_READ_WAIT_MS} conversation_continue caller_spoke`]);
+    expect(crisisRiskThisCall(silent.id)).toBe(false);
+    expect(silent.appConnected).toBe(true);
+    // its goodbye no longer counts: Ferni's own goodbye doesn't end the reopened call (Rule 2)
+    silent.agentState('speaking');
+    silent.say('assistant', 'Okay. Bye, take care.');
+    silent.agentState('listening');
+    await silent.advance(30_000);
+    expect(silent.events.filter((e) => e.includes('conversation_end'))).toHaveLength(1);
+    expect(silent.appConnected).toBe(true);
+
+    const failed = await call(); // the read errors: counted as risk (crisis-call-risk.ts)
+    await failed.toEnd();
+    failed.finalWords('thanks so much, that helped. bye');
+    await failed.advance(300);
+    const broken = trackCrisisRead(failed.id, 'x', Promise.reject(new Error('timeout')));
+    await broken.catch(() => undefined);
+    await flush();
+    expect(failed.reopens()).toEqual(['300 conversation_continue crisis_hold']);
+  });
+
+  it.each([
+    'talk soon',
+    'alright, talk soon',
+    'good night, sleep well',
+    "bye, I'm done for today",
+    'adiós',
+    'gracias, adiós',
+    'sweet dreams',
+    'bye 🙂',
+    'thanks, bye!',
+    'love you, night',
+  ])('"%s" still ends on a clean read', async (line) => {
+    const c = await call();
+    await c.toEnd();
+    await c.advance(400);
+    c.finalWords(line);
+    await c.advance(300);
+    const settle = read(c.id, line);
+    await c.advance(500);
+    await settle('none');
+    await c.advance(15_000);
+    expect(c.reopens()).toEqual([]);
+    expect(crisisRiskThisCall(c.id)).toBe(false);
+    expect(c.appConnected).toBe(false);
+  });
+});
+
 describe('after a reopen (#2291)', () => {
-  it('Ferni answering with a goodbye re-arms the watcher and the call ends on its own', async () => {
+  it("Ferni's own goodbye never ends it; a fresh caller goodbye does (#2523)", async () => {
     const c = await call();
     await c.toEnd();
     c.say('user', "you're the best");
@@ -686,9 +818,13 @@ describe('after a reopen (#2291)', () => {
     c.agentState('speaking');
     c.say('assistant', 'Aw, you too. Bye, take care!');
     c.agentState('listening');
-    await c.advance(IDLE_AFTER_GOODBYE_MS);
+    await c.advance(60_000);
+    expect(c.events.filter((e) => e.includes('conversation_end'))).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+
+    c.say('user', 'okay, bye!'); // fresh, after Ferni's goodbye: both said, it ends
+    await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(c.events.filter((e) => e.includes('conversation_end'))).toHaveLength(2);
-    await c.advance(DISCONNECT_DELAY_MS);
     expect(c.appConnected).toBe(false);
   });
 

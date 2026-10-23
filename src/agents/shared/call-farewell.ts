@@ -46,7 +46,7 @@ const log = createLogger({ module: 'call-farewell' });
 export const IDLE_AFTER_GOODBYE_MS = 4_000;
 
 const farewells = new Set<string>();
-/** Calls reopened after both goodbyes (call-wrap-up.ts): Ferni's next goodbye ends them again. */
+/** Calls reopened after both goodbyes (call-wrap-up.ts): only a fresh caller goodbye ends them. */
 const reopened = new Set<string>();
 const sessionIds = new WeakMap<object, string>();
 
@@ -68,11 +68,11 @@ export function clearFarewell(sessionId: string): void {
 }
 
 /**
- * The call reopened after both goodbyes (wrap-up-window.ts). The farewell is
- * cleared, but the caller's goodbye stands: if Ferni's next reply is a goodbye
- * the watcher arms again and the call ends on its own (the line that reopened
- * it, "you're the best", may be answered with one); if Ferni's next reply
- * carries on, a fresh pair of goodbyes is needed.
+ * The call reopened after both goodbyes (wrap-up-window.ts): the farewell is
+ * cleared, and the caller's earlier goodbye no longer counts. Only a FRESH
+ * caller goodbye, with Ferni's, ends the call again; Ferni saying goodbye on
+ * his own never does (#2523: a risky line the word check missed, read as
+ * none, was then ended by Ferni's "Okay. Bye, take care.").
  */
 export function reopenFarewell(sessionId: string): void {
   farewells.delete(sessionId);
@@ -397,9 +397,9 @@ export function watchFarewell(
     // A goodbye carrying risk ("I won't be here tomorrow. Bye.") is never one: it carries on
     const risky = farewellRisk(text);
     callerSaidBye = !risky && callerSaysGoodbye(text);
-    if (risky) reopened.delete(sessionId); // nor does an earlier reopen's goodbye stand
     if (isSessionClosing(sessionId)) return;
     if (callerSaidBye) {
+      reopened.delete(sessionId); // a fresh goodbye from the caller
       hangUpAsked = hangUpAsked || callerAsksToHangUp(text);
       if (hangUpAsked) markFarewell(sessionId, 'hang_up_asked');
       else if (ferniSaidBye) markFarewell(sessionId, 'goodbyes'); // his came first
@@ -413,8 +413,8 @@ export function watchFarewell(
   };
   const onFerni = (text: string): void => {
     ferniSaidBye = ferniSaysGoodbye(text);
-    // After a reopen the caller's goodbye stands until Ferni's next reply
-    const callerBye = callerSaidBye || reopened.delete(sessionId);
+    // After a reopen only a fresh caller goodbye counts, never the one before it
+    const callerBye = callerSaidBye && !reopened.has(sessionId);
     if (callerBye && ferniSaidBye) {
       markFarewell(sessionId, 'goodbyes');
       arm();

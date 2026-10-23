@@ -20,7 +20,7 @@
  * Until the room closes, crisis risk on the call or the caller saying more
  * than a goodbye reopens it (wrap-up-window.ts, #2291): the app is sent
  * `conversation_continue`, which cancels its disconnect, and the call is no
- * longer closing, so Ferni may speak and the farewell watcher arms again. So
+ * longer closing, so Ferni may speak; only a fresh caller goodbye ends it again. So
  * does a crisis hold just before the room would be deleted. While the caller
  * is still talking, the app holds its hang-up (`conversation_hold`), and the
  * room is not deleted while they are mid-utterance or a crisis read is in
@@ -177,7 +177,7 @@ export async function wrapUpCall(
 
 /**
  * Reopen a call whose wrap-up began: the app cancels its disconnect, Ferni may
- * speak again, and the farewell watcher (and a later wrap-up) can arm again.
+ * speak again, and a fresh caller goodbye (never Ferni's own) can end it again.
  */
 function carryOn(
   call: WrapUpCall,
