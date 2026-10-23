@@ -138,4 +138,81 @@ describe('the second read through the reply gate', () => {
       expect((await turn.resolve()).subject, JSON.stringify(env)).toBe('third_party');
     }
   });
+
+  // #2587 round 1: two caller lines before Ferni replies. The gate reads them joined, the
+  // pipeline only the last; the second read must decide the same way on both.
+  const BURSTS: Array<[first: string, last: string]> = [
+    ['everything is too much right now.', 'my friend keeps saying she wants to kill herself'],
+    ['my friend keeps saying she wants to kill herself.', 'what do i even do'],
+  ];
+
+  function burstRequest(first: string, last: string): llm.ChatContext {
+    const ctx = request(PUNS_CALL, first);
+    ctx.addMessage({ role: 'user', content: last });
+    return ctx;
+  }
+
+  /** Every line reads `base` with the base prompt and `v3` with prompt v3. */
+  function everyLine(base: string, v3: string): CrisisGenerateFn {
+    return async (prompt) => (V3.test(prompt) ? v3 : base);
+  }
+
+  async function burstHeard(
+    env: Record<string, string>,
+    [first, last]: [string, string],
+    generate: CrisisGenerateFn,
+    gateFirst: boolean
+  ) {
+    resetCrisisClassifierCache();
+    resetCrisisCallRisk();
+    resetCallRiskSnapshots();
+    const sessionId = `burst-${++calls}`;
+    const runGate = async () => {
+      const gate = startCrisisGate(
+        burstRequest(first, last),
+        { services: { sessionId } },
+        {
+          env,
+          generate,
+        }
+      );
+      return (await gate?.escalation) ?? gate?.decision ?? { action: 'pass' };
+    };
+    const runTurn = async () => {
+      const turn = startTurnCrisis(
+        last,
+        {
+          recentTranscripts: [...PUNS_CALL.map(([caller]) => caller), first],
+          lastAgentResponse: PUNS_CALL.at(-1)?.[1],
+        },
+        { sessionId, env, generate }
+      );
+      const crisis = await turn.resolve();
+      return {
+        subject: crisis.subject,
+        severity: crisis.severity,
+        guidance: crisis.suggestedResponse,
+      };
+    };
+    if (gateFirst) {
+      const gate = await runGate();
+      return { gate, turn: await runTurn() };
+    }
+    const turn = await runTurn();
+    return { gate: await runGate(), turn };
+  }
+
+  for (const burst of BURSTS) {
+    for (const gateFirst of [true, false]) {
+      it(`a burst decides the same on both paths: "${burst[1]}", ${gateFirst ? 'gate' : 'pipeline'} first`, async () => {
+        for (const v3 of [j('imminent'), j('imminent', 'third_party'), j('crisis')]) {
+          for (const base of [j('none'), 'not json']) {
+            const off = await burstHeard(GATE, burst, everyLine(base, v3), gateFirst);
+            const on = await burstHeard(ON, burst, everyLine(base, v3), gateFirst);
+            expect(on, `${base} + ${v3}`).toEqual(off);
+          }
+        }
+      });
+    }
+  }
 });

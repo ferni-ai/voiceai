@@ -15,6 +15,7 @@ import {
   V3_ANCHORS,
   escalateOnly,
   resolveCrisisSecondRead,
+  mayFill,
   withPromptV3,
   withSecondRead,
 } from '../crisis-classifier-v3.js';
@@ -177,6 +178,25 @@ describe('a run shared between the gate and the pipeline', () => {
   });
 });
 
+const NONE_TURN = { pattern: 'none' as const, lines: [] };
+
+describe('mayFill: one turn-level decision', () => {
+  it('fills only where the patterns found nothing and no caller line carries any signal', () => {
+    const clean = ['my neighbor is taking the dog from now on', 'we went hiking'];
+    expect(mayFill({ pattern: 'none', lines: clean })).toBe(true);
+    expect(mayFill({ pattern: 'crisis', lines: clean })).toBe(false);
+    expect(mayFill({ pattern: 'block', lines: clean })).toBe(false);
+    // A worry about someone else, in any line, and the caller's own distress, in any line.
+    for (const line of [
+      'my friend keeps saying she wants to kill herself',
+      'everything is too much right now.',
+    ]) {
+      expect(mayFill({ pattern: 'none', lines: [...clean, line] }), line).toBe(false);
+      expect(mayFill({ pattern: 'none', lines: [line, ...clean] }), line).toBe(false);
+    }
+  });
+});
+
 describe('withSecondRead, directly', () => {
   const ON = { CRISIS_CLASSIFIER_SECOND_READ: 'on' };
   const v = (risk: CrisisVerdict['risk'], subject: CrisisVerdict['subject'] = 'self') => ({
@@ -189,16 +209,16 @@ describe('withSecondRead, directly', () => {
     for (const pattern of ['crisis', 'block'] as const) {
       const read = vi.fn(async () => second);
       expect(
-        await withSecondRead(Promise.resolve(v('none')), read, 'p', pattern, ON),
+        await withSecondRead(Promise.resolve(v('none')), read, 'p', { pattern, lines: [] }, ON),
         pattern
       ).toEqual(v('none'));
       expect(
-        await withSecondRead(Promise.resolve(null), read, 'p', pattern, ON),
+        await withSecondRead(Promise.resolve(null), read, 'p', { pattern, lines: [] }, ON),
         pattern
       ).toBeNull();
     }
     expect(
-      await withSecondRead(Promise.resolve(v('none')), async () => second, 'p', 'none', ON)
+      await withSecondRead(Promise.resolve(v('none')), async () => second, 'p', NONE_TURN, ON)
     ).toBe(second);
   });
 
@@ -208,7 +228,7 @@ describe('withSecondRead, directly', () => {
       Promise.resolve(v('none')),
       async () => second,
       'p',
-      'none',
+      NONE_TURN,
       ON
     );
     expect(kept).toBe(second);
@@ -222,7 +242,7 @@ describe('withSecondRead, directly', () => {
       throw new Error('boom');
     };
     for (const read of [thrown, rejected]) {
-      expect(await withSecondRead(Promise.resolve(v('none')), read, 'p', 'none', ON)).toEqual(
+      expect(await withSecondRead(Promise.resolve(v('none')), read, 'p', NONE_TURN, ON)).toEqual(
         v('none')
       );
     }
@@ -234,7 +254,7 @@ describe('withSecondRead, directly', () => {
     process.on('unhandledRejection', onUnhandled);
     try {
       const base = Promise.reject(new Error('base failed'));
-      const out = withSecondRead(base, async () => v('crisis'), 'p', 'none', {
+      const out = withSecondRead(base, async () => v('crisis'), 'p', NONE_TURN, {
         CRISIS_CLASSIFIER_SECOND_READ: 'shadow',
       });
       await expect(out).rejects.toThrow('base failed');

@@ -456,7 +456,8 @@ export function startCrisisClassifier(
       ]).then(([ruled, unruled]) => moreSevereRead(ruled, unruled))
     : read(prompt);
   // CRISIS_CLASSIFIER_SECOND_READ (crisis-classifier-v3.ts): prompt v3 can only raise the read.
-  const reads = withSecondRead(base, read, prompt, options.pattern, env);
+  const lines = [normalized.latest, ...normalized.earlier];
+  const reads = withSecondRead(base, read, prompt, { pattern: options.pattern, lines }, env);
   const verdict = reads.then((v) => {
     const classifier = v ? verdictOutcome(v) : null;
     log.info(

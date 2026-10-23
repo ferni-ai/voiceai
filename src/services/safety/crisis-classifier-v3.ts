@@ -22,6 +22,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
+import { detectCrisis } from './crisis-guard.js';
 
 const log = createLogger({ module: 'CrisisClassifierV3' });
 
@@ -29,14 +30,14 @@ const PREP = `
 Quiet preparation is often said as plain logistics, in a calm or cheerful voice. Judge it by what it settles, not by the tone. It is risk "crisis" when it hands things over for good with no ordinary reason in LATEST, EARLIER or COMPANION (no move, trip, new job, new baby, allergy, landlord, upgrade or other everyday cause):
 - rehoming a pet for good ("my neighbor's taking the dog", "my aunt is keeping him from now on", "he deserves someone who'll stick with him"), or giving away several prized things at once
 - settling money or accounts for someone else to take over: naming a beneficiary, giving someone access "to everything", asking how someone else closes their accounts or social media
-- asking what weight a beam, rafter, hook, rail, door or tree branch can hold, or other load questions that fit hanging, especially after shopping for something sturdy. Asking the companion for a reminder, a lookup or an errand does not make a handover everyday: "remind me to drop the bird at my aunt's Friday, she's keeping him from now on" is rehoming a pet for good.
+- asking what weight a beam, joist, rafter, hook, rail, door or tree branch can hold, or other load questions that fit hanging, especially after shopping for something sturdy. Asking the companion for a reminder, a lookup or an errand does not make a handover everyday: "remind me to drop the bird at my aunt's Friday, she's keeping him from now on" is rehoming a pet for good.
 - a parent or friend suddenly telling the caller where their money, papers or passwords are, out of nowhere (subject "third_party")
-A reason in the caller's own words makes these everyday: "we're moving and the new place won't take dogs", "making my brother beneficiary since the baby came", "how much weight can the beam take for the porch swing".`;
+A reason in the caller's own words, in LATEST or EARLIER, makes these everyday: "we're moving and the new place won't take dogs", "making my brother beneficiary since the baby came", "how much weight can the beam take for the porch swing". A load question that names the everyday thing to be hung (a punching bag, swing, hammock, pull-up bar, TV, shelf, plant, light) or the project (a home gym, a porch, a garage) has its reason.`;
 
 const FRAGMENTS = `
 LATEST must carry the risk itself. A fragment, filler or bare answer with no risk words of its own ("this one", "in fact", "probably both", "not right") continues the caller's own previous line: it is risk only when that previous line itself was risk as above, never because the wider conversation touched a heavy topic. Quiet preparation above counts only when LATEST itself states the handover or the load question.`;
 
-const LOOKALIKES = ` Also "none": letters or calls to living people as part of ordinary life (a pen pal, a thank-you card), a love-you with a plan to talk again ("tell my mom I love her, I'll call her Sunday"), hyperbole about not wanting to go somewhere ("I'd rather die than go to that wedding lol"), and one ordinary gift to a relative or friend ("le regalé mi bici a mi sobrino") with nothing about not needing things anymore. Also "none": everyday activities with risky-sounding verbs ("gonna jump in the pool", "hang the laundry", "shoot some hoops"), and relief once an everyday task is done ("so calm now the taxes are sorted", "finally done with exams").`;
+const LOOKALIKES = ` Also "none": letters or calls to living people as part of ordinary life (a pen pal, a thank-you card), a love-you with a plan to talk again ("tell my mom I love her, I'll call her Sunday"), hyperbole about not wanting to go somewhere ("I'd rather die than go to that wedding lol"), and one ordinary gift to a relative or friend ("le regalé mi bici a mi sobrino") with nothing about not needing things anymore. Also "none": everyday activities with risky-sounding verbs ("gonna jump in the pool", "hang the laundry", "shoot some hoops"), and relief once an everyday task is done ("so calm now the taxes are sorted", "finally done with exams"). Also "none": LATEST picking up the companion's own joke or phrase from COMPANION ("going to grow roots" after the companion joked its plant would grow roots) is about that joke, unless LATEST adds risk words of its own.`;
 
 /** Where the additions go: before the JSON instruction, and after the prompt's "none" list. */
 export const V3_ANCHORS = {
@@ -69,6 +70,29 @@ export function escalateOnly(
   return second && second.risk !== 'none' ? second : base;
 }
 
+/** The turn the second read may fill: the patterns' outcome and every caller line it read. */
+export interface SecondReadTurn {
+  pattern: PatternOutcome;
+  /** The caller's words: the latest message and the earlier ones the classifier sees. */
+  lines: readonly string[];
+}
+
+/**
+ * Whether the second read may fill this turn: the patterns found nothing, and no caller line
+ * in it carries any pattern signal, a worry about someone else included (#2587 round 1). The
+ * gate reads lines said before Ferni replies joined and the turn pipeline reads only the last,
+ * so each path's own pattern outcome can differ; every line, scored alone, decides the same way
+ * on both ("everything is too much right now." then "my friend keeps saying she wants to kill
+ * herself": joined, a 0.6 self read; alone, a worry about someone else).
+ */
+export function mayFill(turn: SecondReadTurn): boolean {
+  if (turn.pattern !== 'none') return false;
+  return !turn.lines.some((line) => {
+    const found = detectCrisis(line);
+    return found.severity > 0 || found.indicators.length > 0;
+  });
+}
+
 /** A read that throws or rejects counts as no read; it starts at once. */
 function safely(read: () => Promise<CrisisVerdict | null>): Promise<CrisisVerdict | null> {
   try {
@@ -79,10 +103,10 @@ function safely(read: () => Promise<CrisisVerdict | null>): Promise<CrisisVerdic
 }
 
 /**
- * The turn's read with the second read applied. On: the base read, or the second where both the
- * patterns and the base read found nothing; a turn with a pattern or base risk never waits for it.
- * The patterns' outcome gates it (#2548 round 2): where the patterns read a worry about someone
- * else, a filled read about the caller would override their third-party guidance. Shadow: the base
+ * The turn's read with the second read applied. On: the base read, or the second where the base
+ * read found nothing and the turn may be filled (mayFill); a turn with a pattern signal or base
+ * risk never waits for it. Where the patterns read a worry about someone else, a filled read about
+ * the caller would override their third-party guidance (#2548 round 2). Shadow: the base
  * alone. Either way one CRISIS_CLASSIFIER_SECOND_READ record logs both risks once both settle. No
  * caller words are logged. A second read that throws counts as no read.
  */
@@ -90,13 +114,14 @@ export function withSecondRead(
   base: Promise<CrisisVerdict | null>,
   read: (prompt: string) => Promise<CrisisVerdict | null>,
   prompt: string,
-  pattern: PatternOutcome,
+  turn: SecondReadTurn,
   env: Record<string, string | undefined> = process.env
 ): Promise<CrisisVerdict | null> {
   const mode = resolveCrisisSecondRead(env);
   if (mode === 'off') return base;
   const startedAt = Date.now();
-  const fill = pattern === 'none';
+  const fill = mayFill(turn);
+  const { pattern } = turn;
   const second = safely(() => read(withPromptV3(prompt)));
   void Promise.all([base, second])
     .then(([first, extra]) => {
