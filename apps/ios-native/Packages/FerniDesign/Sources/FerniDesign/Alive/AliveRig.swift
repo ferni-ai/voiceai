@@ -787,10 +787,13 @@ public final class AliveRig {
         if let hold = squashHold {
             if time < hold.until { self[.squash].t = hold.value } else { squashHold = nil }
         }
-        self[.posY].t = face.posY + (still || blinksOnly ? 0 : sin(now * 1.05) * 0.03 * m) + env * 0.02 * m
+        // The slow drift at rest (`Drift`): a bob, or Maya's sway. posX shows at
+        // 0.35 of its value on screen (`uniforms`), so the sway is scaled up to match.
+        let drift = still || blinksOnly ? .zero : acting.drift.offset(at: now) * m
+        self[.posY].t = face.posY + drift.y + env * 0.02 * m
         // Connecting: he leans in, his light rising, eyes up for whoever is coming.
         self[.glow].t = face.glow + env * 0.45 + (activity == .arriving ? 0.3 * m : 0)
-        self[.posX].t = 0
+        self[.posX].t = drift.x / 0.35
         self[.ringY].t = self[.posY].x
         self[.ringS].t = 1
         applyLayer(m: m)
@@ -1281,7 +1284,7 @@ public final class AliveRig {
 
     static let stateFace: [AvatarActivity: String] = [.listening: "attentive", .thinking: "pondering", .speaking: "warm"]
     /// motion.json personaModifiers.timingMultiplier
-    static let tempo: [WindowPersona: Double] = [.ferni: 1, .maya: 0.95, .peter: 0.85, .alex: 1, .jordan: 0.8, .nayan: 1.1]
+    nonisolated static let tempo: [WindowPersona: Double] = [.ferni: 1, .maya: 0.95, .peter: 0.85, .alex: 1, .jordan: 0.8, .nayan: 1.1]
 
     nonisolated static func colours(_ p: WindowPersona) -> (body: SIMD3<Float>, glow: SIMD3<Float>) {
         let hex: (String, String) = switch p {

@@ -24,6 +24,8 @@ public struct PersonaActing: Equatable, Sendable {
     var nod: Double
     /// The breath at rest: its period against the shared one, and its depth.
     var breathPeriod: Double, breathDepth: Double
+    /// The body's slow drift at rest (`Drift`): everyone bobs, Maya sways.
+    var drift: Drift
     /// Eye spacing (body radii from the middle), eye size (x, y), body height
     /// (1 round, more taller), and how much lower the top lids rest.
     var eyeSpacing: Double, eyeSize: SIMD2<Double>, bodyHeight: Double, lidDrop: Double
@@ -32,7 +34,7 @@ public struct PersonaActing: Equatable, Sendable {
     static let shared = PersonaActing(
         blinkFloor: BlinkTiming.floor, blinkLength: 1, doubleBlinks: 0.16,
         saccadeEvery: 1.1...3.4, saccadeRange: SIMD2(0.2, 0.14), bigJumps: 0, eyeStiffness: 650, eyeDamping: 46,
-        nod: 1, breathPeriod: 1, breathDepth: 1,
+        nod: 1, breathPeriod: 1, breathDepth: 1, drift: .bob,
         eyeSpacing: 0.36, eyeSize: SIMD2(1, 1), bodyHeight: 1, lidDrop: 0
     )
 
@@ -45,7 +47,11 @@ public struct PersonaActing: Equatable, Sendable {
             a.breathPeriod = 4.2 / 4
         case .maya:    // upbeat big sister, efficient: bright, quick, lifted
             a.blinkFloor = 3...5; a.saccadeEvery = 0.9...2.2; a.saccadeRange = SIMD2(0.22, 0.12)
-            a.nod = 1.2; a.breathPeriod = 3.2 / 4
+            // Her own signature (the caretaker's grey-clip classifier had her 0 of 3,
+            // taken for Ferni, Peter and Jordan): a breath of 3.3 s with her tempo,
+            // between Peter's 2.9 and Ferni's 4.2, and a side-to-side sway where
+            // everyone else bobs.
+            a.nod = 1.2; a.breathPeriod = 3.5 / 4; a.drift = .sway
             a.eyeSpacing = 0.33; a.eyeSize = SIMD2(1.08, 1.08); a.bodyHeight = 1.04
         case .peter:   // the Quant, "wait wait wait!": scanning, sharp, solid
             a.blinkFloor = 3.5...6; a.doubleBlinks = 0.25; a.saccadeEvery = 0.7...1.8; a.saccadeRange = SIMD2(0.12, 0.08)
@@ -68,11 +74,44 @@ public struct PersonaActing: Equatable, Sendable {
         return a
     }
 
+    /// The breath's period at rest, in seconds, for a face whose own breath is
+    /// `base` seconds (4 for the neutral faces), at the persona's tempo.
+    static func restBreath(_ persona: WindowPersona, on: Bool, base: Double = 4) -> Double {
+        base * resolved(persona, on: on).breathPeriod * (AliveRig.tempo[persona] ?? 1)
+    }
+
     /// The flag (UserDefaults; `-ferni.avatar.personaActing YES` at launch turns it on).
     public static let flagKey = "ferni.avatar.personaActing"
 
     /// How a persona acts with the flag `on` or off.
     static func resolved(_ persona: WindowPersona, on: Bool) -> PersonaActing { on ? of(persona) : shared }
+}
+
+/// The body's slow drift at rest, one unhurried cycle about every 6 s
+/// (1.05 rad/s). `bob` and `sway` are on-screen amplitudes (orb positions,
+/// as `posY` is); `lift` raises the body at each end of a sway, as a
+/// pendulum rises, so it never reads as a slide.
+public struct Drift: Equatable, Sendable {
+    var bob: Double, sway: Double, lift: Double
+
+    /// Up and down: everyone, before the spec.
+    static let bob = Drift(bob: 0.03, sway: 0, lift: 0)
+    /// Side to side, with a little lift: Maya. Gentle: its fastest is under
+    /// the rig's settled speed (`AliveRig.settledSpeed`), so the frame rate
+    /// still counts her as at rest.
+    static let sway = Drift(bob: 0, sway: 0.024, lift: 0.008)
+
+    enum Axis: Equatable { case vertical, sideways }
+    var axis: Axis { sway > bob ? .sideways : .vertical }
+
+    /// The drift's offset at time `t` (seconds): x and y, on screen.
+    func offset(at t: Double) -> SIMD2<Double> {
+        let w = t * Self.rate
+        return SIMD2(sway * sin(w), bob * sin(w) + lift * (1 - cos(2 * w)) / 2)
+    }
+
+    /// Radians a second: one cycle about every 6 s.
+    static let rate = 1.05
 }
 
 /// A persona's shape within the round family (persona acting SPEC): eye
