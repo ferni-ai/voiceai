@@ -263,12 +263,17 @@ jobs:
       fail-fast: false
       matrix:
         # [1, 2, 3, 4] on a full run, [1] on a pull request that runs only the
-        # affected tests. The condition is FULL_SUITE's below; keep them the same.
+        # affected tests. The condition is FULL_SUITE's below and must stay the same
+        # (merge-queue-jobs.test.ts pins it, and the Unit Tests gate checks the count).
         shard: ${{ fromJSON((github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests')) && '[1, 2, 3, 4]' || '[1]') }}
     env:
       # 'true' when this run tests the whole suite: every event but a pull request,
       # and a pull request labelled ci:full-tests.
       FULL_SUITE: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') }}
+    # Every leg reports the same two values, so it doesn't matter which one wins.
+    outputs:
+      full-suite: ${{ env.FULL_SUITE }}
+      shards: ${{ strategy.job-total }}
     steps:
       # Two commits on a pull request: GitHub's merge commit and its first parent, the
       # base, which the affected-tests step below diffs against.
@@ -447,10 +452,24 @@ jobs:
         env:
           SETUP: ${{ needs.setup.result }}
           SHARDS: ${{ needs.test-unit-shard.result }}
+          FULL: ${{ needs.test-unit-shard.outputs.full-suite }}
+          TOTAL: ${{ needs.test-unit-shard.outputs.shards }}
         run: |
-          echo "setup: $SETUP, unit test shards: $SHARDS"
+          echo "setup: $SETUP, unit test shards: $SHARDS ($TOTAL created, full suite: $FULL)"
           if [ "$SETUP" != success ] || [ "$SHARDS" != success ]; then
             echo "::error::Unit Tests failed: setup $SETUP, shards $SHARDS (see the Unit Tests (n/4) jobs)"
+            exit 1
+          fi
+          # The shard matrix and FULL_SUITE are two copies of one condition. If they
+          # drifted, a full run could create one shard that runs --shard=1/4 and
+          # passes having run a quarter of the suite. Fail closed instead.
+          case "$FULL" in
+            true) want=4 ;;
+            false) want=1 ;;
+            *) echo "::error::Unit Tests: the shards did not report whether this was a full run"; exit 1 ;;
+          esac
+          if [ "$TOTAL" != "$want" ]; then
+            echo "::error::Unit Tests: $TOTAL shard(s) ran, expected $want (full suite: $FULL)"
             exit 1
           fi
 

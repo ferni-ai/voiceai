@@ -134,3 +134,28 @@ describe('the merge queue runs the required checks and only those', () => {
     expect(health).toMatch(/report-main:[\s\S]*workflow_run\.event == 'push'/);
   });
 });
+
+// The unit shard matrix and FULL_SUITE are two copies of one condition. If they
+// drift, a full run can create one shard that runs --shard=1/4 and the Unit Tests
+// gate passes on a quarter of the suite (the gate also checks the count at run time).
+describe('the unit shards cover the whole suite on a full run', () => {
+  const ci = readFileSync(join(__dirname, '..', '..', '..', '.github/workflows/ci.yml'), 'utf8');
+  const matrix =
+    /^ {8}shard: \$\{\{ fromJSON\(\((.+)\) && '\[([^\]]*)\]' \|\| '\[1\]'\) \}\}$/m.exec(ci);
+  const full = /^ {6}FULL_SUITE: \$\{\{ (.+) \}\}$/m.exec(ci);
+
+  it('builds the matrix from exactly the FULL_SUITE condition', () => {
+    expect(matrix?.[1]).toBeTruthy();
+    expect(full?.[1]).toBeTruthy();
+    expect(matrix?.[1]).toBe(full?.[1]);
+  });
+
+  it('creates as many shards as each one divides the suite into, and the gate expects that many', () => {
+    const shards = matrix?.[2].split(/,\s*/) ?? [];
+    const runs = /--shard=\$\{\{ matrix\.shard \}\}\/(\d+)/.exec(ci)?.[1];
+    const gate = /^ +true\) want=(\d+) ;;$/m.exec(ci)?.[1];
+    expect(shards).toEqual(['1', '2', '3', '4']);
+    expect(Number(runs)).toBe(shards.length);
+    expect(Number(gate)).toBe(shards.length);
+  });
+});
