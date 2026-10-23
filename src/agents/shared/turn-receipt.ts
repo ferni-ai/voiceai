@@ -36,6 +36,7 @@ import { callerTurn, fastLaneEnabled, laneReason } from '../model-provider/fast-
 import { toolRetrievalMode } from '../../tools/retrieval/turn-tool-retrieval.js';
 import { llmReady, type EouMetric, type LlmMetric } from './turn-metrics.js';
 import { eotReceiptField, PendingEot, type EotCall } from './turn-receipt-eot.js';
+import { replyMetric, replyTools, tokensField } from './turn-receipt-llm.js';
 import {
   promptSections,
   type ItemView,
@@ -74,6 +75,8 @@ interface OpenTurn {
   personaAtStart: string | null;
   eou?: EouMetric;
   llm?: LlmMetric;
+  /** The tools of the request `llm` measures (turn-receipt-llm.ts). */
+  llmTools?: { offered: number | null; schemaChars?: number };
   ttsTtfbMs?: number;
   ttsPushMs?: number;
   ttsCancelled: boolean;
@@ -219,7 +222,10 @@ export class TurnReceiptRecorder {
       this.open().eou = metric as unknown as EouMetric;
     } else if (metric.type === 'llm_metrics') {
       const turn = this.open();
-      turn.llm ??= metric as unknown as LlmMetric;
+      const next = metric as unknown as LlmMetric;
+      if (replyMetric(turn.llm, next) !== next) return;
+      turn.llm = next;
+      turn.llmTools = { offered: turn.toolsOffered, schemaChars: turn.toolSchemaChars };
     } else if (metric.type === 'tts_metrics' && this.turn) {
       this.turn.ttsTtfbMs ??= metric.ttfbMs as number;
       if (metric.cancelled) this.turn.ttsCancelled = true;
@@ -230,7 +236,7 @@ export class TurnReceiptRecorder {
     this.reminder = note;
   }
 
-  /** A request about to go to the model (preemptive, final or after tools): the last one counts. */
+  /** A request to the model (preemptive, final or after tools): the last one's prompt counts. */
   onRequest(items: readonly ItemView[], toolsOffered: number, schemaChars?: number): void {
     const turn = this.open();
     const note = this.reminder;
@@ -443,6 +449,7 @@ export class TurnReceiptRecorder {
     const personaId = this.opts.persona() ?? null;
     const handoffTool = turn.called.find(isHandoffTool) ?? null;
     const sections = turn.sections ?? [];
+    const offered = replyTools(turn); // the tools of the request the tokens are from
     return {
       event: 'TURN_RECEIPT' as const,
       v: TURN_RECEIPT_VERSION,
@@ -452,14 +459,7 @@ export class TurnReceiptRecorder {
       userKind: this.userKind,
       endedBy,
       timing: this.timing(turn, endedBy),
-      tokens: llm
-        ? {
-            prompt: llm.promptTokens,
-            promptCached: llm.promptCachedTokens ?? 0,
-            completion: llm.completionTokens,
-            model: llm.metadata?.modelName ?? null,
-          }
-        : null,
+      tokens: tokensField(llm),
       prompt: {
         requests: turn.requests,
         estimate: 'chars/4' as const,
@@ -469,8 +469,8 @@ export class TurnReceiptRecorder {
       },
       director: turn.director,
       tools: {
-        offered: turn.toolsOffered,
-        schemaChars: turn.toolSchemaChars ?? null, // TURN_TOKEN_RECEIPT=on (turn-input-tokens.ts)
+        offered: offered.offered,
+        schemaChars: offered.schemaChars, // TURN_TOKEN_RECEIPT=on (turn-input-tokens.ts)
         retrieval: toolRetrievalMode(),
         called: turn.called,
         errors: turn.toolErrors,
