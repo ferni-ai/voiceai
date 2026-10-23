@@ -8,6 +8,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { PersonaVoiceAgent } from '../../personas/ferni-agent.js';
 import { toolsForTurn } from '../../personas/turn-request.js';
+import { injectTurnContext } from '../../processors/turn-processor/inject-context.js';
+import { createTurnContextPusher } from '../turn-intelligence.js';
 import {
   afterPreemptive,
   heldForPreemptive,
@@ -15,7 +17,9 @@ import {
   preemptStableMode,
 } from '../preempt-stable-context.js';
 
-const inFlight = () => ({ _agentActivity: { _preemptiveGeneration: { info: {} } } });
+const inFlight = () => ({
+  _agentActivity: { _preemptiveGeneration: { info: {} } as unknown, _preemptiveGenerationCount: 1 },
+});
 const settle = (agent: { _agentActivity: { _preemptiveGeneration?: unknown } }) => {
   agent._agentActivity._preemptiveGeneration = undefined;
 };
@@ -89,7 +93,11 @@ describe('the tool closure for a caller who is not a verified owner', () => {
       ) as unknown as llm.ToolContext,
       skipGreeting: true,
     });
-    const activity = { _preemptiveGeneration: { info: {} } as unknown, updateTools: vi.fn() };
+    const activity = {
+      _preemptiveGeneration: { info: {} } as unknown,
+      _preemptiveGenerationCount: 1,
+      updateTools: vi.fn(),
+    };
     (agent as unknown as { _agentActivity: unknown })._agentActivity = activity;
     const chat = llm.ChatContext.empty();
     chat.addMessage({ role: 'user', content: 'Can you call my buddy?' });
@@ -102,19 +110,66 @@ describe('the tool closure for a caller who is not a verified owner', () => {
     return { offered: Object.keys(offered.functionTools), activity };
   }
 
-  it('off: the agent tools change inside the preemptive reply (it is dropped at the commit)', async () => {
-    const r = await underPreemptive('off');
-    expect(r.offered).toEqual(['getWeather']);
-    expect(r.activity.updateTools).toHaveBeenCalledTimes(1);
+  for (const mode of ['off', 'on', 'defer']) {
+    it(`${mode}: closed on the agent at once, even under a preemptive reply`, async () => {
+      // LiveKit copies the tools when a generation starts and runs calls against that copy,
+      // so a kept preemptive reply must never start from tools a held closure left open.
+      const r = await underPreemptive(mode);
+      expect(r.offered).toEqual(['getWeather']);
+      expect(r.activity.updateTools).toHaveBeenCalledTimes(1);
+      const closed = r.activity.updateTools.mock.calls[0]![0] as Array<{ name?: string }>;
+      expect(closed.map((t) => t.name)).toEqual(['getWeather']);
+    });
+  }
+});
+
+describe('a safety note waiting for Ferni to listen', () => {
+  afterEach(() => {
+    delete process.env.PREEMPT_STABLE_CONTEXT;
   });
 
-  it('on: the request still leaves them out; the agent closes them once the reply is decided', async () => {
-    const r = await underPreemptive('on');
-    expect(r.offered).toEqual(['getWeather']);
-    expect(r.activity.updateTools).not.toHaveBeenCalled();
-    r.activity._preemptiveGeneration = undefined;
-    await vi.waitFor(() => expect(r.activity.updateTools).toHaveBeenCalledTimes(1));
-    const closed = r.activity.updateTools.mock.calls[0]![0] as Array<{ name?: string }>;
-    expect(closed.map((t) => t.name)).not.toContain('callOnBehalf');
+  /** The pusher with a plain agent; the second final transcript's note is ordinary context. */
+  async function overwrite(mode: string): Promise<string> {
+    process.env.PREEMPT_STABLE_CONTEXT = mode;
+    let ctx = llm.ChatContext.empty();
+    const agent = {
+      get chatCtx() {
+        return ctx;
+      },
+      updateChatCtx: async (next: llm.ChatContext) => {
+        ctx = next;
+      },
+    };
+    let calls = 0;
+    const hook = async (turnCtx: llm.ChatContext) => {
+      calls += 1;
+      const injections =
+        calls === 1
+          ? [
+              {
+                category: 'crisis_response',
+                content: '[CRISIS SUPPORT]\nValidate first.',
+                priority: 98,
+              },
+            ]
+          : [{ category: 'memory', content: 'They love hiking.', priority: 50 }];
+      injectTurnContext(turnCtx, { context: { injections } } as never);
+    };
+    const pusher = createTurnContextPusher(hook, agent as never);
+    await pusher.onAgentState('speaking'); // not listening: the note waits
+    await pusher.onFinalTranscript('I can’t do this anymore.');
+    await pusher.onFinalTranscript('Anyway, I went hiking.');
+    await pusher.onAgentState('listening');
+    return ctx.items.map((i) => (i as { textContent?: string }).textContent ?? '').join('\n');
+  }
+
+  it('off (as before): the later note replaces it', async () => {
+    expect(await overwrite('off')).not.toContain('[CRISIS SUPPORT]');
+  });
+
+  it('on: kept ahead of the later note, so it still lands', async () => {
+    const pushed = await overwrite('on');
+    expect(pushed).toContain('[CRISIS SUPPORT]');
+    expect(pushed).toContain('They love hiking.');
   });
 });

@@ -12,6 +12,7 @@
 import { DEFAULT_API_CONNECT_OPTIONS, initializeLogger, llm, voice } from '@livekit/agents';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { addRecallNote, type RecallAgent } from '../recall-note.js';
+import { injectTurnContext } from '../../processors/turn-processor/inject-context.js';
 import { createTurnContextPusher } from '../turn-intelligence.js';
 import { PacedTTS } from './fake-room-audio.js';
 
@@ -49,13 +50,38 @@ class OkStream extends llm.LLMStream {
 interface Activity {
   onPreemptiveGeneration(info: Record<string, unknown>): void;
   onEndOfTurn(info: Record<string, unknown>): Promise<boolean>;
+  generateReply(options: { continueTurnFrom?: unknown }): unknown;
+  _preemptiveGeneration?: { speechHandle: unknown };
+  _preemptiveGenerationCount: number;
+  _currentSpeech?: unknown;
 }
 
 const sessions: voice.AgentSession[] = [];
 const saved = process.env.PREEMPT_STABLE_CONTEXT;
 
+interface TurnOptions {
+  /** When the caller started speaking, relative to the preflight. */
+  spokeMsAgo?: number;
+  /** Runs on the live activity just before `between`. */
+  before?: (act: Activity) => void;
+  /** The agent answers the turn with StopResponse (screening, roundtable). */
+  stopResponse?: boolean;
+  /** Runs right after the commit; its result is returned as `after`. */
+  after?: (agent: voice.Agent) => Promise<unknown>;
+}
+
+class StopAgent extends voice.Agent {
+  async onUserTurnCompleted(): Promise<void> {
+    throw new voice.StopResponse();
+  }
+}
+
 /** One turn: preflight starts the reply, `between` writes into the window, then the commit. */
-async function turn(mode: string, between: (agent: voice.Agent) => Promise<void> | void) {
+async function turn(
+  mode: string,
+  between: (agent: voice.Agent) => Promise<void> | void,
+  opts: TurnOptions = {}
+) {
   process.env.PREEMPT_STABLE_CONTEXT = mode;
   const lm = new RecordingLLM();
   const session = new voice.AgentSession({ llm: lm, tts: new PacedTTS() } as never);
@@ -66,15 +92,25 @@ async function turn(mode: string, between: (agent: voice.Agent) => Promise<void>
     'ferni_preemptive_decision' as never,
     ((ev: { used: boolean }) => decisions.push(ev.used)) as never
   );
-  const agent = new voice.Agent({ instructions: 'test' });
+  const agent = opts.stopResponse
+    ? new StopAgent({ instructions: 'test' })
+    : new voice.Agent({ instructions: 'test' });
   await session.start({ agent });
   const act = (session as unknown as { _activity: Activity })._activity;
+  const continued: unknown[] = [];
+  const generate = act.generateReply.bind(act);
+  act.generateReply = (o: { continueTurnFrom?: unknown }) => {
+    continued.push(o.continueTurnFrom);
+    return generate(o);
+  };
   act.onPreemptiveGeneration({
     newTranscript: SAID,
     transcriptConfidence: 1,
-    startedSpeakingAt: Date.now(),
+    startedSpeakingAt: Date.now() - (opts.spokeMsAgo ?? 0),
   });
+  const first = act._preemptiveGeneration?.speechHandle;
   await sleep(40);
+  opts.before?.(act);
   await between(agent);
   await sleep(40);
   await act.onEndOfTurn({
@@ -86,11 +122,12 @@ async function turn(mode: string, between: (agent: voice.Agent) => Promise<void>
     startedSpeakingAt: undefined,
     stoppedSpeakingAt: undefined,
   });
+  const after = await opts.after?.(agent);
   await sleep(600);
   const context = agent.chatCtx.items
     .map((i) => (i as { textContent?: string }).textContent ?? '')
     .join('\n');
-  return { decisions, requests: lm.requests, context };
+  return { decisions, requests: lm.requests, context, continued, first, after };
 }
 
 const recallNote = (said: string) => (agent: voice.Agent) =>
@@ -116,6 +153,46 @@ describe('PREEMPT_STABLE_CONTEXT: a recall note after the preflight', () => {
     expect(r.decisions).toEqual([true]);
     expect(r.requests).toHaveLength(2);
     expect(r.requests[1]).toContain(NOTE);
+  }, 10_000);
+
+  it('on: the restart continues the first attempt’s turn (continueTurnFrom)', async () => {
+    const r = await turn('on', recallNote(SAID));
+    expect(r.continued).toHaveLength(2);
+    expect(r.continued[1]).toBe(r.first);
+  }, 10_000);
+
+  it('on, retries used up: no restart, the reply LiveKit has is left alone', async () => {
+    const r = await turn('on', recallNote(SAID), {
+      before: (act) => {
+        act._preemptiveGenerationCount = 3;
+      },
+    });
+    expect(r.decisions).toEqual([false]);
+    expect(r.requests).toHaveLength(2); // preflight + the commit, no wasted restart
+  }, 10_000);
+
+  it('on, the caller has spoken over 10 s: no restart, the reply is not cancelled', async () => {
+    const r = await turn('on', recallNote(SAID), { spokeMsAgo: 9_970 });
+    expect(r.decisions).toEqual([false]); // LiveKit still decides at the commit
+  }, 10_000);
+
+  it('on, a speech still playing: no restart, the reply is not cancelled', async () => {
+    let playing: unknown;
+    const r = await turn(
+      'on',
+      (agent) => {
+        recallNote(SAID)(agent);
+        const act = (agent as unknown as { _agentActivity: Activity })._agentActivity;
+        act._currentSpeech = playing;
+      },
+      {
+        before: (act) => {
+          playing = act._currentSpeech;
+          act._currentSpeech = { interrupted: false, done: () => false };
+        },
+      }
+    );
+    expect(r.decisions).toEqual([false]);
   }, 10_000);
 
   it('on, the note built for other words: no restart, LiveKit decides as before', async () => {
@@ -157,9 +234,47 @@ describe('PREEMPT_STABLE_CONTEXT: a turn-context note pushed in the window', () 
     expect(r.context).toContain('Coaching: ask how the visit went.');
   }, 10_000);
 
-  it('on, safety guidance: pushed at once, and the reply restarts with it', async () => {
-    const r = await turn('on', pushed('[CRITICAL - USER SAFETY]\nCrisis indicators detected.'));
-    expect(r.decisions).toEqual([false]);
-    expect(r.requests.at(-1)).toContain('[CRITICAL - USER SAFETY]');
+  /** The turn's note as the turn handler writes it (inject-context.ts), from categorised injections. */
+  const injected = (category: string, content: string) => async (agent: voice.Agent) => {
+    const hook = async (ctx: llm.ChatContext) =>
+      injectTurnContext(ctx, {
+        context: { injections: [{ category, content, priority: 98 }] },
+      } as never);
+    await createTurnContextPusher(hook, agent as never).onFinalTranscript(SAID);
+  };
+
+  for (const [category, content] of [
+    ['crisis_response', '[CRISIS SUPPORT]\nValidate first: "that sounds so heavy"'],
+    ['safety', '[ESCALATION AWARENESS]\n- Provide crisis resources immediately'],
+    ['scientific_early_warning', '[⚠️ EARLY WARNING ACTIVE]\nType: isolation'],
+  ]) {
+    it(`on, ${category}: pushed at once, and the reply restarts with it`, async () => {
+      const r = await turn('on', injected(category!, content!));
+      expect(r.decisions).toEqual([false]);
+      expect(r.requests.at(-1)).toContain(content!.split('\n')[0]);
+    }, 10_000);
+  }
+
+  it('on, ordinary context by category: held, the reply is kept', async () => {
+    const r = await turn('on', injected('memory', '[CRITICAL] they hate mornings'));
+    expect(r.decisions).toEqual([true]);
+  }, 10_000);
+
+  it('on, the turn answered with StopResponse: the stale preemptive reply holds nothing', async () => {
+    const r = await turn('on', () => undefined, {
+      stopResponse: true,
+      after: async (agent) => {
+        const hook = async (ctx: llm.ChatContext) => {
+          ctx.addMessage({ role: 'system', content: 'Coaching: after the stop.' });
+        };
+        await createTurnContextPusher(hook, agent as never).onFinalTranscript(SAID);
+        await sleep(150);
+        return agent.chatCtx.items.some((i) =>
+          (i as { textContent?: string }).textContent?.includes('Coaching: after the stop.')
+        );
+      },
+    });
+    expect(r.decisions).toEqual([]); // no decision: the reply was left in place
+    expect(r.after).toBe(true); // in within 150 ms, not after the 5 s cap
   }, 10_000);
 });
