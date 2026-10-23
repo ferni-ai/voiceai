@@ -236,7 +236,9 @@ export function screenAnswer(
     // escalate, else watchScreen's read. Backchannels keep the window open, up to WATCH_MS.
     if (last && last.outcome !== 'reask') {
       if (now > screen.watchUntil) return 'none';
-      if (!BACKCHANNEL.test(turn)) screen.watchUntil = 0;
+      // A backchannel, or the answer's own words again (a repeated "No.", or the answer turn's
+      // other path under a different line), is read but never uses the window up.
+      if (!BACKCHANNEL.test(turn) && turn !== loose(screen.answer ?? '')) screen.watchUntil = 0;
       const outcome = judge(false, true);
       screen.last = { turn, companion, outcome, reads: new Map() };
       log.info({ outcome, asked, watch: true }, 'CRISIS_GROUNDED_SCREEN');

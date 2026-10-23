@@ -375,6 +375,15 @@ describe('the watch window', () => {
     expect(reads.map((r) => [r.LATEST, r.FERNI_SINCE])).toEqual([['No.', [asked]]]);
   });
 
+  it("the answer's own words never use the window up, whichever path sees them", async () => {
+    script = { 'It crosses my mind.': TAKES_BACK };
+    const session = await answeredNo();
+    // The answer turn's other path under a different key line: read, but the window stays open.
+    expect(screenAnswer(session, { latest: 'No.', companion: 'Done, moved it.' })).toBe('watch');
+    const next = after(['No.', GOOD]);
+    expect(crisisGuidance(await gate(session, next, 'It crosses my mind.'))).toBe(true);
+  });
+
   it("a path whose words drifted adds its own read; the stronger is the turn's", async () => {
     script = { 'Okay. It crosses my mind.': TAKES_BACK };
     const session = await answeredNo();
