@@ -28,6 +28,8 @@ public final class CallSession {
     public private(set) var isUserSpeaking = false
     /// Ferni's face for this call: pose, expression and the feedback they ask for.
     public let avatar: AvatarModel
+    /// Ferni's voice level, fed by the room on the audio thread, read per frame.
+    public let agentLevel: AudioLevelMeter
     public private(set) var isMuted = false
     public private(set) var captions = CaptionBook()
     public private(set) var personaID = "ferni"
@@ -49,9 +51,11 @@ public final class CallSession {
         makeRoom: @escaping @Sendable () -> any VoiceRoom,
         audio: any CallAudio,
         avatar: AvatarModel = AvatarModel(),
+        agentLevel: AudioLevelMeter = AudioLevelMeter(),
         agentTimeout: Duration = .seconds(10)
     ) {
         self.avatar = avatar
+        self.agentLevel = agentLevel
         self.fetchToken = fetchToken
         self.makeRoom = makeRoom
         self.audio = audio
@@ -168,6 +172,7 @@ public final class CallSession {
         audio.deactivate()
         agentActivity = nil
         isUserSpeaking = false
+        agentLevel.reset()
     }
 
     private func fail(_ problem: CallProblem) {
