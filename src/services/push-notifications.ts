@@ -235,13 +235,11 @@ class PushNotificationsBackendService {
   async removeSubscription(userId: string, endpoint: string): Promise<void> {
     await this.initialize();
     const filtered = (await this.loadSubscriptions(userId)).filter((s) => s.endpoint !== endpoint);
-    if (filtered.length > 0) {
-      this.subscriptions.set(userId, filtered);
-      await this.subscriptionStore?.setImmediate(userId, { subscriptions: filtered });
-    } else {
-      this.subscriptions.delete(userId);
-      await this.subscriptionStore?.delete(userId);
-    }
+    // Never a whole-doc delete: after a failed read `filtered` is [] and that dropped every
+    // device. The store holds this write until a read succeeds (persistence readFailed).
+    if (filtered.length > 0) this.subscriptions.set(userId, filtered);
+    else this.subscriptions.delete(userId);
+    await this.subscriptionStore?.setImmediate(userId, { subscriptions: filtered });
     await releaseEndpoint(endpoint, userId);
 
     getLogger().info({ userId }, 'Push subscription removed');

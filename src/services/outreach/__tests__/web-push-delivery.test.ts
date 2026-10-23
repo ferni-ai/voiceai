@@ -142,7 +142,7 @@ describe('outreach web push (WEB_PUSH_DELIVERY)', () => {
 
     expect(await sendOutreachWebPush('ana', NOTE, deps(service, on))).toBe(false);
 
-    expect(stored('ana')).toBeUndefined();
+    expect(stored('ana')?.subscriptions).toEqual([]); // emptied, never a whole-doc delete
     expect(await sendOutreachWebPush('ana', NOTE, deps(service, on))).toBe(false);
     expect(webPushSend).toHaveBeenCalledTimes(1);
   });

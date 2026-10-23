@@ -166,6 +166,15 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     (tainted.add(userId), cache.delete(userId), true);
   const heldParts = heldFields<T>(whenHeld, syncIntervalMs);
   let isShutdown = false;
+  const refFor = (firestore: FirestoreType, userId: string) =>
+    useRootCollection
+      ? firestore.collection(collection).doc(userId)
+      : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
+  // A load that failed: until a load succeeds, no write may replace what was never read (the
+  // caller holds defaults, and a merge write puts its [] and 0 over the stored values).
+  const readFailed = new Set<string>();
+  const unread = (userId: string): boolean =>
+    readFailed.has(userId) && (log.warn({ collection, userId }, 'Write held: read failed'), true);
 
   // Start sync interval using managed interval
   const startSyncInterval = () => {
@@ -202,10 +211,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     const toFlush = Array.from(dirty).filter((userId) => !held(userId));
     dirty.clear();
 
-    const docRefFor = (userId: string) =>
-      useRootCollection
-        ? firestore.collection(collection).doc(userId)
-        : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
+    const docRefFor = (userId: string) => refFor(firestore, userId);
 
     // Deep-clean before every write: Firestore rejects `undefined` anywhere in the tree, even
     // inside arrays (`events[].estimatedValueCents`). `ignoreUndefinedProperties` on the client
@@ -285,11 +291,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     }
 
     try {
-      const docRef = useRootCollection
-        ? firestore.collection(collection).doc(userId)
-        : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
-
-      await docRef.set(
+      await refFor(firestore, userId).set(
         cleanForFirestore({
           ...data,
           _updatedAt: new Date().toISOString(),
@@ -317,11 +319,8 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     if (!firestore) return cache.get(userId) ?? null;
 
     try {
-      const docRef = useRootCollection
-        ? firestore.collection(collection).doc(userId)
-        : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
-
-      const doc = await docRef.get();
+      const doc = await refFor(firestore, userId).get();
+      readFailed.delete(userId);
 
       if (!doc.exists) {
         cache.delete(userId);
@@ -333,6 +332,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       return data;
     } catch (error) {
       log.error({ error, collection, userId }, 'Failed to load user data');
+      readFailed.add(userId);
       if (options?.strict) throw error;
       return null;
     }
@@ -354,6 +354,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         log.warn({ collection, userId }, 'Attempted to set data after shutdown');
         return;
       }
+      if (unread(userId)) return; // not cached either: the next get() retries the read
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);
@@ -365,6 +366,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     },
 
     setImmediate: async (userId: string, data: T) => {
+      if (unread(userId)) return;
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);
@@ -381,11 +383,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       if (!firestore) return;
 
       try {
-        const docRef = useRootCollection
-          ? firestore.collection(collection).doc(userId)
-          : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
-
-        await docRef.delete();
+        await refFor(firestore, userId).delete();
         heldParts.documentDeleted(userId); // only now is a pending compensating delete moot
         log.debug({ collection, userId }, 'User data deleted');
       } catch (error) {
