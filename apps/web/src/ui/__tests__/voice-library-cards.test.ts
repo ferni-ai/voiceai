@@ -66,6 +66,17 @@ describe('the voice cards', () => {
     );
   });
 
+  it('escapes the name and tags too', () => {
+    const root = document.createElement('div');
+    root.innerHTML = renderVoiceLibrary(
+      [{ ...voices[0], name: '<img src=x>Jan', tags: ['<i>odd</i>'] }],
+      undefined
+    );
+    expect(root.querySelector('img')).toBeNull();
+    expect(root.querySelector('.voice-tags i')).toBeNull();
+    expect(root.querySelector('.voice-name')!.textContent).toBe('<img src=x>Jan');
+  });
+
   it('marks the current pick, and a new pick selects only that card', () => {
     const root = mount(JANICE);
     const onPick = vi.fn();

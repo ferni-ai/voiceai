@@ -39,6 +39,17 @@ describe('the voice library', () => {
   });
   afterEach(() => vi.unstubAllGlobals());
 
+  it('reports loading while the request is in flight', async () => {
+    let answer: (r: Response) => void = () => {};
+    fetchMock.mockReturnValue(new Promise<Response>((res) => (answer = res)));
+    const s = await fresh();
+    const pending = s.loadVoiceLibrary();
+    expect(s.getVoiceLibraryState()).toBe('loading');
+    answer(new Response(JSON.stringify(catalog), { status: 200 }));
+    await pending;
+    expect(s.getVoiceLibraryState()).toBe('ready');
+  });
+
   it('is empty until loaded, then holds the server voices with their Cartesia ids', async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify(catalog), { status: 200 }));
     const s = await fresh();
