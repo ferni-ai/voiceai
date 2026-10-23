@@ -185,6 +185,8 @@ describe('what is copied', () => {
         "context_injection_outcomes[injection.userId]",
         "reply_reports[uid]",
         "reply_report_quota/{uid}",
+        "call_felt_off[uid]",
+        "call_felt_off_quota/{uid}",
       ]
     `);
   });

@@ -131,6 +131,8 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
   ...byField('injection.userId', 'context_injection_outcomes'),
   { collection: 'reply_reports', field: 'uid' }, // replies they reported, with their own words
   { collection: 'reply_report_quota', doc: 'uid' },
+  { collection: 'call_felt_off', field: 'uid' }, // "That felt off" reports, with their note
+  { collection: 'call_felt_off_quota', doc: 'uid' },
 ];
 
 /**
