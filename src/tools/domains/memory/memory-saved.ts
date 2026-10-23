@@ -21,7 +21,7 @@
 
 import { randomUUID } from 'node:crypto';
 import { flagOn } from '../../../config/env-flag.js';
-import { isSensitiveThread } from '../../../memory/recall/sensitive.js';
+import { isSensitiveThread } from '../../../memory/index.js';
 import { memoryHeld, userHeld } from '../../../utils/minor-care.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 
