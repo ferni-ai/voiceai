@@ -16,8 +16,11 @@
  *
  * gh calls retry a GitHub 5xx or a network error (3 tries, 2 s then 6 s): one
  * 502 on one run's jobs crashed the 2026-10-23 report. A run whose jobs still
- * can't be read is left out and named in the report; auth errors, 404s and bad
- * JSON still fail the job.
+ * can't be read is left out and named in the report; after 3 such runs in a row
+ * the rest aren't tried (GitHub is down, and retrying each would outlast the
+ * job's 15 minutes). The report still prints, but the script exits 1 when more
+ * than half the runs it meant to measure are missing: n/a rows must not pass as
+ * a healthy day. Auth errors, 404s and bad JSON fail at once.
  */
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
@@ -82,11 +85,37 @@ export function report(s) {
       `${s.merged ? (s.mgRuns / s.merged).toFixed(1) : 'n/a'} queue runs per merge.`,
     '',
     `Target: merge-queue wait for a runner under 15 min at p50; above it, larger runners are the next step (#2053).`,
-    ...(s.skipped?.length
-      ? ['', `> **Warning:** ${s.skipped.length} run(s) left out of the runner waits: GitHub's API ` +
-          `kept failing after ${DELAYS_MS.length + 1} tries (${s.skipped.join(', ')}).`]
-      : []),
+    ...skipWarnings(s.skips),
   ].join('\n');
+}
+
+/** Consecutive runs whose jobs couldn't be read before the rest aren't tried. */
+export const MAX_SKIP_STREAK = 3;
+
+/** Tracks the runs `waits` left out, across every list it measures. */
+export function newSkips() {
+  return { attempted: 0, skipped: [], streak: 0, notAttempted: 0 };
+}
+
+/** More than half the runs meant to be measured are missing (skipped or not tried). */
+export function tooManySkipped(k) {
+  const missing = k.skipped.length + k.notAttempted;
+  return missing > 0 && missing * 2 > k.attempted + k.notAttempted;
+}
+
+function skipWarnings(k) {
+  if (!k || (k.skipped.length === 0 && k.notAttempted === 0)) return [];
+  const lines = [''];
+  if (k.skipped.length) {
+    lines.push(`> **Warning:** ${k.skipped.length} run(s) left out of the runner waits: GitHub's API ` +
+      `kept failing after ${DELAYS_MS.length + 1} tries (${k.skipped.join(', ')}).`);
+  }
+  if (k.notAttempted) {
+    lines.push(`> **Warning:** stopped after ${MAX_SKIP_STREAK} runs in a row failed; ` +
+      `${k.notAttempted} more run(s) not measured.`);
+  }
+  if (tooManySkipped(k)) lines.push('> **These runner waits are incomplete: more than half the runs could not be read.**');
+  return lines;
 }
 
 /** Waits between tries of a gh call that failed transiently: 3 tries in all. */
@@ -149,16 +178,25 @@ function runs(repo, event, since) {
 
 /**
  * Waits for up to `limit` runs (newest first), one jobs call each. A run whose
- * jobs GitHub won't serve is null (left out) and its id goes in `skipped`.
+ * jobs GitHub won't serve is null (left out) and recorded in `skips`; after
+ * MAX_SKIP_STREAK of those in a row, later runs aren't tried.
  */
-export function waits(repo, list, limit, skipped = [], call = gh) {
+export function waits(repo, list, limit, skips = newSkips(), call = gh) {
   return list.slice(0, limit).map((run) => {
+    if (skips.streak >= MAX_SKIP_STREAK) {
+      skips.notAttempted++;
+      return null;
+    }
+    skips.attempted++;
     try {
-      return runnerWait(run, call(['api', `repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`]).jobs);
+      const wait = runnerWait(run, call(['api', `repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`]).jobs);
+      skips.streak = 0;
+      return wait;
     } catch (err) {
       if (!(err instanceof GhUnavailable)) throw err;
       console.error(`::warning::CI speed: left out run ${run.id}: ${err.message}`);
-      skipped.push(run.id);
+      skips.skipped.push(run.id);
+      skips.streak++;
       return null;
     }
   });
@@ -178,19 +216,23 @@ function main() {
   const mg = runs(repo, 'merge_group', since);
   const merged = gh(['pr', 'list', '-R', repo, '--state', 'merged', '--limit', '1000',
     '--search', `merged:>=${since}`, '--json', 'createdAt,mergedAt']);
-  const skipped = [];
+  const skips = newSkips();
   const s = {
     hours,
-    prWait: stats(waits(repo, pr, 60, skipped)),
-    mgWait: stats(waits(repo, mg, 60, skipped)),
+    prWait: stats(waits(repo, pr, 60, skips)),
+    mgWait: stats(waits(repo, mg, 60, skips)),
     mgPass: stats(mg.filter((r) => r.conclusion === 'success').map(wallMinutes)),
     merge: stats(merged.map((p) => (Date.parse(p.mergedAt) - Date.parse(p.createdAt)) / MIN)),
     mg: outcomes(mg),
     mgRuns: mg.length,
     merged: merged.length,
-    skipped,
+    skips,
   };
   console.log(argv.includes('--json') ? JSON.stringify(s) : report(s));
+  if (tooManySkipped(skips)) {
+    console.error('::error::CI speed: more than half the runs could not be read; the report is incomplete.');
+    process.exitCode = 1;
+  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();

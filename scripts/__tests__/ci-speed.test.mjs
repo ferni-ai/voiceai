@@ -3,10 +3,13 @@ import {
   DELAYS_MS,
   gh,
   GhUnavailable,
+  MAX_SKIP_STREAK,
+  newSkips,
   outcomes,
   quantile,
   report,
   runnerWait,
+  tooManySkipped,
   waits,
   wallMinutes,
 } from '../ci/ci-speed.mjs';
@@ -129,16 +132,16 @@ describe('ci-speed', () => {
         if (args[1].includes('/runs/8/')) throw new GhUnavailable(args, ghFailure('HTTP 502'));
         return { jobs };
       });
-      const skipped = [];
-      expect(waits('o/r', [run, { ...run, id: 8 }], 60, skipped, call)).toEqual([8, null]);
-      expect(skipped).toEqual([8]);
+      const skips = newSkips();
+      expect(waits('o/r', [run, { ...run, id: 8 }], 60, skips, call)).toEqual([8, null]);
+      expect(skips.skipped).toEqual([8]);
       expect(stderr.mock.calls[0][0]).toMatch(/^::warning::CI speed: left out run 8: /);
       stderr.mockRestore();
 
       const text = report({
         hours: 24, prWait: { p50: 8, p90: 8, n: 1 }, mgWait: { p50: null, p90: null, n: 0 },
         mgPass: { p50: null, p90: null, n: 0 }, merge: { p50: null, p90: null, n: 0 },
-        mg: outcomes([]), mgRuns: 0, merged: 0, skipped,
+        mg: outcomes([]), mgRuns: 0, merged: 0, skips,
       });
       expect(text).toContain('**Warning:** 1 run(s) left out');
       expect(text).toContain('(8)');
@@ -146,7 +149,63 @@ describe('ci-speed', () => {
       const broken = () => {
         throw new SyntaxError('Unexpected token');
       };
-      expect(() => waits('o/r', [run], 60, [], broken)).toThrow(SyntaxError);
+      expect(() => waits('o/r', [run], 60, newSkips(), broken)).toThrow(SyntaxError);
+    });
+
+    // GitHub's jobs API down for the whole run: the lists load, every jobs call 5xxs.
+    const runs = (n) => Array.from({ length: n }, (_, i) => ({ id: i + 1, created_at: '2026-10-18T18:00:00Z' }));
+    const unavailable = (args) => {
+      throw new GhUnavailable(args, ghFailure('HTTP 502'));
+    };
+    const jobsOk = () => ({
+      jobs: [
+        { name: 'Setup', started_at: '2026-10-18T18:05:00Z', completed_at: '2026-10-18T18:07:00Z' },
+        { name: 'Unit Tests', started_at: '2026-10-18T18:10:00Z' },
+      ],
+    });
+
+    it("stops trying after 3 runs in a row fail, so it can't outlast the job", () => {
+      const stderr = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const call = vi.fn(unavailable);
+      const skips = newSkips();
+      // Shared across both lists, as main() measures PR runs then queue runs.
+      waits('o/r', runs(2), 60, skips, call);
+      waits('o/r', runs(4), 60, skips, call);
+      expect(MAX_SKIP_STREAK).toBe(3);
+      expect(call).toHaveBeenCalledTimes(3);
+      expect(skips).toMatchObject({ attempted: 3, notAttempted: 3 });
+
+      // A run that loads resets the streak.
+      const flaky = vi.fn((args) => (args[1].includes('/runs/3/') ? jobsOk() : unavailable(args)));
+      const k = newSkips();
+      waits('o/r', runs(7), 60, k, flaky);
+      expect(flaky).toHaveBeenCalledTimes(6); // 1, 2 fail; 3 loads; 4, 5, 6 fail; 7 not tried
+      expect(k).toMatchObject({ attempted: 6, notAttempted: 1, skipped: [1, 2, 4, 5, 6] });
+      stderr.mockRestore();
+    });
+
+    it('calls the report incomplete, and the job failed, when more than half the runs are missing', () => {
+      const stderr = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const all = newSkips();
+      waits('o/r', runs(5), 60, all, unavailable);
+      expect(tooManySkipped(all)).toBe(true); // every attempted run skipped
+
+      const some = newSkips();
+      waits('o/r', runs(3), 60, some, (args) => (args[1].includes('/runs/2/') ? unavailable(args) : jobsOk()));
+      expect(tooManySkipped(some)).toBe(false); // 1 of 3
+      const most = newSkips();
+      waits('o/r', runs(3), 60, most, (args) => (args[1].includes('/runs/1/') ? jobsOk() : unavailable(args)));
+      expect(tooManySkipped(most)).toBe(true); // 2 of 3
+      expect(tooManySkipped(newSkips())).toBe(false);
+      stderr.mockRestore();
+
+      const none = { p50: null, p90: null, n: 0 };
+      const text = report({
+        hours: 24, prWait: none, mgWait: none, mgPass: none, merge: none,
+        mg: outcomes([]), mgRuns: 0, merged: 0, skips: all,
+      });
+      expect(text).toContain('stopped after 3 runs in a row failed; 2 more run(s) not measured');
+      expect(text).toContain('more than half the runs could not be read');
     });
   });
 });
