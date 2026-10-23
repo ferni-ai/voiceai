@@ -100,8 +100,17 @@ describe('PersonaAwareTTS aligned transcript capability', () => {
     expect(captions.map((c) => [c.text, c.startTime, c.endTime])).toEqual(words);
   });
 
-  it('flag on but the TTS gateway speaks the replies: not declared', () => {
-    expect(aligned('on', '').capabilities.alignedTranscript).toBeUndefined();
+  it('flag on and the gateway voices replies on its Cartesia reply stream: declared', () => {
+    expect(aligned('on', '').capabilities.alignedTranscript).toBe(true);
+    expect(aligned('on', 'true').capabilities.alignedTranscript).toBe(true);
+    expect(aligned('off', 'true').capabilities.alignedTranscript).toBeUndefined();
+  });
+
+  it('flag on, gateway on, but a gateway path with no timings: not declared', () => {
+    vi.stubEnv('TTS_REPLY_CONTINUATIONS', 'false');
+    expect(aligned('on', 'true').capabilities.alignedTranscript).toBeUndefined();
+    vi.stubEnv('TTS_REPLY_CONTINUATIONS', '');
+    vi.stubEnv('STREAMING_TTS_OVERLAP', 'false');
     expect(aligned('on', 'true').capabilities.alignedTranscript).toBeUndefined();
   });
 
