@@ -92,8 +92,24 @@ const HANG_UP_CLAUSE =
 /** Accents folded ("adiós" is "adios"): only to MATCH goodbye and pleasantry clauses. */
 const fold = (text: string): string => text.normalize('NFKD').replace(/\p{M}+/gu, '');
 
-/** A letter outside a-z, in any script ("ó", "д", "さ"). */
-const NON_ENGLISH_LETTER = /[^\P{L}a-zA-Z]/u;
+/** A letter outside a-z, in any script ("ó", "д", "さ"), or a combining mark left over. */
+const NON_ENGLISH_LETTER = /[^\P{L}a-zA-Z]|\p{M}/u;
+
+/**
+ * The only symbols a plain goodbye may carry: warm or neutral ones ("bye 🙂",
+ * "love you ❤️", "bye :)"), with skin tones, variation selectors and joiners.
+ */
+const WARM_SYMBOLS =
+  /🙂|😊|😀|😄|👋|❤|♥|💕|😘|🥰|🤗|👍|✌|🙏|\p{Emoji_Modifier}|\uFE0E|\uFE0F|\u200D|(?<![\p{L}\p{N}])(?::-?\)|:-?D|<3)(?![\p{L}\p{N}])/gu;
+
+/** Any other emoji, or a sad emoticon (":(", ":'(", "D:", "</3"), is never part of a plain goodbye. */
+const OTHER_SYMBOL =
+  /\p{Extended_Pictographic}|[:;=]'?-?[([\/\\|{<@]|(?<![\p{L}\p{N}])D-?:|<\/3|;_;/u;
+
+/** The text with its warm symbols taken out (call-farewell.ts matches goodbyes on this). */
+export function stripWarmSymbols(text: string): string {
+  return text.replace(WARM_SYMBOLS, ' ');
+}
 
 /**
  * The ORIGINAL line without its whole hang-up-ask and goodbye clauses. A
@@ -116,17 +132,20 @@ function withoutGoodbyeClauses(line: string): string {
 }
 
 export function farewellRisk(text: string): boolean {
-  const line = text.replace(/[’‘]/g, "'");
+  // Composed first: "adiós" typed as "o" + a combining accent reads as "adiós"
+  const line = text.normalize('NFC').replace(/[’‘]/g, "'");
+  const warm = stripWarmSymbols(line);
+  if (OTHER_SYMBOL.test(warm)) return true; // "bye 😢", "bye 🪢", "bye :("
   const crisis = detectCrisis(line);
   if (crisis.isCrisis || crisis.severity > 0.3) return true;
   if (FAREWELL_SHAPE.test(fold(line))) return true;
-  const rest = withoutGoodbyeClauses(line)
+  const rest = withoutGoodbyeClauses(warm)
     .replace(GOODBYE_WORDS, ' ')
     .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
     .trim();
   if (!rest) return false;
   // Fails closed on what it can't read: a line with letters outside English is plain
   // only when every clause is a goodbye ("gracias, adiós"), never "adiós, ya no quiero vivir"
-  if (NON_ENGLISH_LETTER.test(line)) return true;
+  if (NON_ENGLISH_LETTER.test(warm)) return true;
   return hasRiskContent(rest);
 }

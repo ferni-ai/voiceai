@@ -35,7 +35,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { isSessionClosing } from './session-closing-tracker.js';
-import { farewellRisk } from './farewell-risk.js';
+import { farewellRisk, stripWarmSymbols } from './farewell-risk.js';
 
 const log = createLogger({ module: 'call-farewell' });
 
@@ -222,14 +222,14 @@ function closingClause(words: readonly string[], closers: ReadonlySet<string>): 
 }
 
 function clauseWords(text: string): string[][] {
-  // Accents folded ("adiós" is "adios"); emoji and symbols dropped ("bye 🙂"). Letters
-  // of any script stay, so a line in another script never matches a goodbye here.
-  let t = text
+  // Accents folded ("adiós" is "adios"); only warm symbols dropped ("bye 🙂", "bye :)").
+  // Any other emoji stays a word no goodbye matches ("bye 😢"); letters of any script
+  // stay, so a line in another script never matches a goodbye here.
+  let t = stripWarmSymbols(text)
     .normalize('NFKD')
     .replace(/\p{M}+/gu, '')
     .toLowerCase()
-    .replace(/[’]/g, "'")
-    .replace(/[^\p{L}\p{N}'\s.!?,;:-]+/gu, ' ');
+    .replace(/[’]/g, "'");
   if (t.length > MAX_CALLER_CHARS) {
     // Keep the end, where a goodbye is, and drop the word the cut landed in.
     t = t.slice(-MAX_CALLER_CHARS);

@@ -573,6 +573,56 @@ describe('plain goodbyes are never taken for risk (#2291)', () => {
     }
   });
 
+  it('only warm symbols ride along with a goodbye; any other emoji or a sad face is risk', () => {
+    for (const line of ['bye 🙂', 'bye 👋', 'bye 👋🏽', 'love you ❤️', 'bye :)', 'thanks <3']) {
+      expect(farewellRisk(line), line).toBe(false);
+      expect(callerSignsOff(line), line).toBe(true);
+    }
+    for (const line of ['bye 😢', 'bye 🪢', 'bye 🔫', 'bye :(', "bye :'(", 'D: bye']) {
+      expect(farewellRisk(line), line).toBe(true);
+      expect(callerSignsOff(line), line).toBe(false);
+    }
+  });
+
+  it('decomposed accents read as composed; a leftover combining mark fails closed', () => {
+    const nfd = (s: string) => s.normalize('NFD');
+    expect(nfd('adiós')).not.toBe('adiós');
+    for (const line of [nfd('adiós'), nfd('gracias, adiós')]) {
+      expect(farewellRisk(line), line).toBe(false);
+      expect(callerSignsOff(line), line).toBe(true);
+    }
+    // "más" decomposed: its accent must not vanish and leave a plain-English-looking rest
+    expect(farewellRisk(nfd('adiós, ya no aguanto más'))).toBe(true);
+    // a mark with no composed form ("q" + acute) is never English
+    expect(farewellRisk('bye, ya no q\u0301uiero estar')).toBe(true);
+  });
+
+  it('"bye 👋" in the window: no reopen, the app leaves; "bye 😢" is a crisis hold', async () => {
+    const wave = await call();
+    await wave.toEnd();
+    await wave.advance(400);
+    wave.finalWords('bye 👋');
+    await wave.advance(10_000);
+    expect(wave.reopens()).toEqual([]);
+
+    const sad = await call();
+    await sad.toEnd();
+    sad.finalWords('bye 😢');
+    await flush();
+    expect(sad.reopens()).toEqual(['0 conversation_continue crisis_hold']);
+    expect(crisisRiskThisCall(sad.id)).toBe(true);
+  });
+
+  it('a decomposed "adiós" in the window: no reopen, the app leaves', async () => {
+    const c = await call();
+    await c.toEnd();
+    await c.advance(400);
+    c.finalWords('adiós'.normalize('NFD'));
+    await c.advance(10_000);
+    expect(c.reopens()).toEqual([]);
+    expect(c.events).toContain(`${DISCONNECT_DELAY_MS} app left`);
+  });
+
   it('"bye 🙂" in the window: no reopen, the app leaves', async () => {
     const c = await call();
     await c.toEnd();
