@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest';
 import { detectCrisis as detectSignals } from '../crisis-detection.js';
 import { detectCrisis, guardFromDetection } from '../crisis-guard.js';
+import { CRISIS_FLOOR_FALSE_ALARMS } from './fixtures/crisis-floor-false-alarms.js';
 
 const level = (text: string): 'script' | 'guide' | 'none' => {
   const found = detectCrisis(text);
@@ -133,7 +134,6 @@ describe('the first-person ending floor', () => {
       'lets end it all with pills tonight',
       "I'm killing myself over this exam tonight with pills",
       'I almost killed myself on the stairs, next time I will finish it',
-      'ending my life as a student tomorrow',
     ]) {
       expect(level(line), line).toBe('script');
     }
@@ -252,5 +252,60 @@ describe('the first-person ending floor', () => {
     }
     // Another subject with a time beyond the clause list stays an idiom.
     expect(level('the show will end it all later')).toBe('none');
+  });
+
+  it('stops the labelled false alarms: a time beside a named idiom or everyday thing (#2540 Z)', () => {
+    for (const { text, expect: want, label } of CRISIS_FLOOR_FALSE_ALARMS) {
+      expect(level(text), `${label}: ${text}`).toBe(want);
+      if (want === 'guide') expect(detectCrisis(text).subject, text).toBe('third_party');
+    }
+  });
+
+  it("never excuses ending words beside the caller's own distress, in the words, the voice or earlier turns", () => {
+    for (const line of [
+      'nobody would miss me. the show will end it all soon',
+      'im so tired. the show will end it all today',
+      'nobody would miss me. I killed myself laughing',
+      "I'm exhausted. the finale will end it all tonight",
+      // Passive ideation alone, and a past-tense tier hit alone.
+      "I don't want to be here anymore. the show will end it all tonight",
+      'I used to want to kill myself. the show will end it all tonight',
+    ]) {
+      expect(level(line), line).toBe('script');
+    }
+    const voice = { primary: 'distressed', intensity: 0.9, confidence: 0.9 };
+    const voiced = detectCrisis('the show will end it all tonight', voice);
+    expect(guardFromDetection(voiced).shouldBlock).toBe(true);
+    const earlier = detectCrisis('the show will end it all tonight', undefined, {
+      recentMessages: ["I'm so tired of everything", 'nobody would miss me'],
+    });
+    expect(guardFromDetection(earlier).shouldBlock).toBe(true);
+    // The same line with no distress anywhere is the false alarm it was.
+    expect(level('the show will end it all tonight')).toBe('none');
+  });
+
+  it('a person never makes "end it all" an idiom: he, she or they is someone else\'s, "you" the caller\'s', () => {
+    for (const line of [
+      'he will end it all',
+      'they are going to end it all',
+      'she will just end it all',
+    ]) {
+      const found = detectCrisis(line);
+      expect(level(line), line).toBe('guide');
+      expect(found.subject, line).toBe('third_party');
+    }
+    // With a time, as on main.
+    expect(level('he will end it all tonight')).toBe('script');
+    for (const line of [
+      'you just want to end it all sometimes',
+      'you get to a point where you wanna end it all',
+      'you will end it all',
+    ]) {
+      expect(detectCrisis(line).subject, line).toBe('self');
+      expect(level(line), line).not.toBe('none');
+    }
+    // A time near an accident still refuses the excuse, and with "let's" any time does.
+    expect(level('I nearly killed myself on the ice tonight')).toBe('script');
+    expect(level('lets end it all tonight')).toBe('script');
   });
 });

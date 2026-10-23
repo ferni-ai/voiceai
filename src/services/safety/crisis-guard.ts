@@ -113,8 +113,8 @@ interface TextScore {
   sessionSeverity: number;
 }
 
-/** Score one message from its words alone. */
-function scoreText(text: string): TextScore {
+/** Score one message from its words; distressed: the caller's voice or earlier turns are. */
+function scoreText(text: string, distressed = false): TextScore {
   const indicators: string[] = [];
   let severity = 0;
   let implicitHits = 0;
@@ -163,7 +163,8 @@ function scoreText(text: string): TextScore {
   // The floor (#2525), escalate-only: first-person ending words whatever comes before them
   // ("I might", "before I", "until I"), softened exactly as the patterns above are. Words a
   // pattern above already softened keep that softening.
-  const floor = severity < SEVERITY.explicit ? endingFloor(text, softened) : null;
+  const floor =
+    severity < SEVERITY.explicit ? endingFloor(text, softened, distressed || severity > 0) : null;
   if (floor) {
     const { modifier } = floor;
     if (floor.thirdParty) thirdPartyHit = true;
@@ -237,10 +238,6 @@ export function detectCrisis(
   options?: CrisisDetectionOptions
 ): CrisisDetectionResult {
   const text = normalize(userMessage);
-  const score = scoreText(text);
-  const indicators = [...score.indicators];
-  let { severity, subject } = score;
-
   // Session trajectory: earlier distress turns a weak or contextual signal now
   // into a crisis ("Soon none of this will matter" after "I'm a burden").
   const prior = (options?.recentMessages ?? [])
@@ -248,6 +245,13 @@ export function detectCrisis(
     .filter((m) => m.length > 0 && m !== text)
     .slice(-5)
     .map((m) => scoreText(m).sessionSeverity);
+  const voiced = voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5;
+  const distressed = [...HIGH_DISTRESS_VOICE_EMOTIONS, ...MODERATE_DISTRESS_VOICE_EMOTIONS];
+  const distressedVoice = voiced && distressed.includes(voiceEmotion.primary);
+  // A distressed voice or earlier distress: no idiom excuses ending words now (#2540 Z).
+  const score = scoreText(text, distressedVoice || prior.some((v) => v >= SEVERITY.implicit));
+  const indicators = [...score.indicators];
+  let { severity, subject } = score;
   const priorPeak = Math.max(0, ...prior);
   const priorDistressTurns = prior.filter((v) => v >= SEVERITY.implicit).length;
   const signalNow = (subject === 'self' && severity >= SEVERITY.implicit) || score.contextHit;
@@ -263,12 +267,7 @@ export function detectCrisis(
   const textSeverity = severity;
   // A worry about someone else, with the caller's own softened ending words and a distressed
   // voice: the voice makes it about the caller again, as before #2528.
-  const voiced = voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5;
-  if (subject === 'third_party' && score.softSelf && voiced) {
-    const { primary } = voiceEmotion;
-    const distressed = [...HIGH_DISTRESS_VOICE_EMOTIONS, ...MODERATE_DISTRESS_VOICE_EMOTIONS];
-    if (distressed.includes(primary)) subject = 'self';
-  }
+  if (subject === 'third_party' && score.softSelf && distressedVoice) subject = 'self';
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
   if (voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5) {
     const high = HIGH_DISTRESS_VOICE_EMOTIONS.includes(voiceEmotion.primary);

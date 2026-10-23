@@ -11,6 +11,10 @@ import {
   ENDING_IDIOMS,
   ENDING_IDIOM_BEFORE,
   FIRST_PERSON_ENDING,
+  IMPLICIT_DISTRESS_PATTERNS,
+  PASSIVE_IDEATION_PATTERNS,
+  PLAN_OR_MEANS_PATTERNS,
+  SESSION_CONTEXT_PATTERNS,
 } from './crisis-patterns.js';
 
 const lastBreak = (text: string, at: number): number =>
@@ -44,9 +48,16 @@ const PURPOSE_NOT =
 
 /** First person anywhere in the clause: "lets end it all, me and you, tonight" is the caller. */
 const FIRST_PERSON = /\b(i|i'm|im|i'll|i'd|i've|me|my|myself|us|our)\b/;
-/** A named other subject right before the verb: "lets end it all", "this season finale ended it all". */
-const OTHER_SUBJECT =
-  /\b(let'?s|lets|we|we'll|they|they'll|he|she|you|(this|that|the) (\w+ )?(finale|episode|season|show|series|movie|film|game|match|band|team|party|concert|book|story|war|storm|meeting)) ((just|gonna|going to|will|'ll|can|finally|really|totally) )*$/;
+const FILLERS = "((just|gonna|going to|will|'ll|is|was|can|finally|really|totally) )*$";
+/** A named everyday thing right before the verb: "this season finale ended it all". */
+const EVERYDAY_SUBJECT = new RegExp(
+  `\\b(this|that|the) (\\w+ )?(finale|episode|season|show|series|movie|film|game|match|band|team|party|concert|book|story|war|storm|meeting) ${FILLERS}`
+);
+/**
+ * A person never makes "end it all" an idiom (#2540 Z). He, she or they is a worry about
+ * someone else; a generic "you" ("you just want to end it all sometimes") is the caller's own.
+ */
+const THIRD_PERSON = new RegExp(`\\b(he|she|they|they'll|he'll|she'll) ${FILLERS}`);
 
 /**
  * A means, a place or plain intent: in the clause, the sentence before or the next one, no idiom
@@ -72,18 +83,41 @@ const ANY_TIME =
 const WITH_CALLER =
   /\b(let'?s|lets|we|we'll) ((just|going to|will|'ll|can|finally|really|totally) )*$/;
 
-/** The floor's words in an everyday idiom, or "end it all" said with another subject. */
+/**
+ * The caller's own distress elsewhere in the turn: being worn out, passive ideation, distress, a
+ * plan or means, or talk of earlier risk. Beside it an ending phrase is never an idiom (#2540 Z): "nobody would
+ * miss me. the show will end it all soon" is risk.
+ */
+const WORN_OUT = /\b(i'm|i am) (so |really |just |completely )?(tired|exhausted|worn out|done)\b/;
+function distressIn(text: string): boolean {
+  return (
+    WORN_OUT.test(text) ||
+    PASSIVE_IDEATION_PATTERNS.some(({ re }) => re.test(text)) ||
+    [...IMPLICIT_DISTRESS_PATTERNS, ...PLAN_OR_MEANS_PATTERNS, ...SESSION_CONTEXT_PATTERNS].some(
+      (re) => re.test(text)
+    )
+  );
+}
+
+/**
+ * The floor's words in an everyday idiom, or "end it all" said of an everyday thing or with
+ * "let's"/"we". A time alone never makes a named idiom or an everyday thing risk ("I killed
+ * myself laughing today", "the finale will end it all tonight"); it still does for a near
+ * accident and, with "let's"/"we", for the caller.
+ */
 function endingIdiom(text: string, from: number, to: number, words: string): boolean {
   const { prev, before, after, next } = clauseOf(text, from, to);
   const clause = `${before} ${after}`;
-  if (TIME_IN_CLAUSE.test(clause) || FUTURE_IN_CLAUSE.test(clause)) return false;
+  if (FUTURE_IN_CLAUSE.test(clause)) return false;
   if (MEANS_OR_INTENT.test(`${prev} ${clause} ${next}`)) return false;
   if (WITH_CALLER.test(before) && ANY_TIME.test(clause)) return false;
   const span = `${words}${after}`;
   if (ENDING_IDIOMS.some((re) => re.test(span))) return true;
+  const itAll = /it all$/.test(words) && !FIRST_PERSON.test(clause);
+  if (itAll && EVERYDAY_SUBJECT.test(before)) return true;
+  if (TIME_IN_CLAUSE.test(clause)) return false;
   if (ENDING_IDIOM_BEFORE.test(before) && ENDING_ACCIDENT.test(span)) return true;
-  if (!/it all$/.test(words) || FIRST_PERSON.test(`${before} ${after}`)) return false;
-  return OTHER_SUBJECT.test(before);
+  return itAll && WITH_CALLER.test(before);
 }
 
 /** Where the floor's words start once modals and fillers before them are skipped ("I could "). */
@@ -106,16 +140,27 @@ function withoutModal(text: string, from: number): number {
  */
 export function endingFloor(
   text: string,
-  softened: readonly (readonly [number, number])[]
+  softened: readonly (readonly [number, number])[],
+  distressed = false
 ): { modifier: ExplicitModifier; thirdParty: boolean } | null {
   // Every match counts: an idiom or softened first one never hides a later one (#2528).
   let best: ExplicitModifier | undefined;
   let thirdParty = false;
+  // An idiom cancels only its own words, and none beside the caller's own distress.
+  const idioms = !distressed && !distressIn(text);
   for (const ending of text.matchAll(new RegExp(FIRST_PERSON_ENDING.source, 'g'))) {
     const from = ending.index;
     const to = from + ending[0].length;
-    if (softened.some(([s, e]) => from < e && to > s) || endingIdiom(text, from, to, ending[0])) {
-      continue;
+    if (softened.some(([s, e]) => from < e && to > s)) continue;
+    if (idioms && endingIdiom(text, from, to, ending[0])) continue;
+    const { before, after } = clauseOf(text, from, to);
+    // "he will end it all": someone else's risk where main read nothing; with a time, as on main.
+    const clause = `${before} ${after}`;
+    if (/it all$/.test(ending[0]) && THIRD_PERSON.test(before) && !FIRST_PERSON.test(clause)) {
+      if (!TIME_IN_CLAUSE.test(clause)) {
+        thirdParty = true;
+        continue;
+      }
     }
     let modifier = explicitModifier(text, withoutModal(text, from), to, false);
     if (modifier === 'negated' && PURPOSE_NOT.test(clauseOf(text, from, to).before))
