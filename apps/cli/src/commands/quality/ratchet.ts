@@ -9,6 +9,9 @@
  * ratchet fails only when a change makes things worse:
  *
  * - a file over 500 lines grows, or a new file starts over 500 lines;
+ * - a file added since the baseline commit (renames don't count) is over 300 lines;
+ * - a function over 150 lines grows, or a new one starts over 150 lines;
+ * - more `as unknown as` type escapes than the baseline;
  * - any critical brand-copy violation (BRAND-VOICE-GUIDE.md's banned phrases);
  * - more brand-copy warnings, or more errors for any brand-lint rule
  *   (console.* in app code, hardcoded colors), than the baseline.
@@ -23,8 +26,10 @@
  *
  * @module quality/ratchet
  */
+import { spawnSync } from 'child_process';
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { dirname, join, relative } from 'path';
+import ts from 'typescript';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { checkWebsiteThemeDebt } from './website-theme-debt.js';
 
@@ -41,6 +46,12 @@ export interface Measurement {
   brandWarnings: number;
   /** brand-lint rule → error count */
   lint: Record<string, number>;
+  /** `as unknown as` casts in SIZE_ROOTS (code-health 2026-10-23: 549 and rising) */
+  asUnknownAs?: number;
+  /** `file#qualified.name` → lines, for functions over MAX_FUNCTION_LINES */
+  longFunctions?: Record<string, number>;
+  /** Files added after this commit are held to NEW_FILE_MAX_LINES. */
+  newFileSince?: string;
 }
 
 /** The built web app (apps/web/dist/assets), in KB. */
@@ -186,6 +197,83 @@ export function lineCount(text: string): number {
   return text.split('\n').length - (text.endsWith('\n') ? 1 : 0);
 }
 
+/** New files (added since the baseline commit; renames don't count) are capped lower. */
+export const NEW_FILE_MAX_LINES = 300;
+/** Functions longer than this may not grow; a new one may not start over it. */
+export const MAX_FUNCTION_LINES = 150;
+
+/** `x as unknown as T` escapes the type checker. */
+export function countAsUnknownAs(text: string): number {
+  return text.match(/\bas\s+unknown\s+as\b/g)?.length ?? 0;
+}
+
+function sourceFiles(roots: string[], root: string): string[] {
+  const files: string[] = [];
+  for (const r of roots) walk(join(root, r), files);
+  return files.sort();
+}
+
+export function measureAsUnknownAs(roots = SIZE_ROOTS, root = ROOT): number {
+  return sourceFiles(roots, root).reduce((n, f) => n + countAsUnknownAs(readFileSync(f, 'utf8')), 0);
+}
+
+/**
+ * Source files added since `since`, with their line counts: `git diff --diff-filter=A -M`
+ * (a moved file is a rename, not new) plus untracked files. Null when `since` is not in
+ * the history (a shallow checkout).
+ */
+export function filesAddedSince(since: string, roots = SIZE_ROOTS, root = ROOT): Record<string, number> | null {
+  const git = (args: string[]): string | null => {
+    const r = spawnSync('git', args, { cwd: root, encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+    return r.status === 0 ? r.stdout : null;
+  };
+  if (git(['cat-file', '-e', `${since}^{commit}`]) === null) return null;
+  const added = git(['diff', '--name-only', '--diff-filter=A', '-M', since, '--', ...roots]);
+  const untracked = git(['ls-files', '--others', '--exclude-standard', '--', ...roots]);
+  if (added === null || untracked === null) return null;
+  const files = [...new Set(`${added}\n${untracked}`.split('\n'))].filter((f) => f && isSource(f) && existsSync(join(root, f)));
+  return Object.fromEntries(files.sort().map((f) => [f, lineCount(readFileSync(join(root, f), 'utf8'))]));
+}
+
+/** `Class.method`, `outer.inner`, the variable or property a function is assigned to, or `<anonymous>`. */
+function functionName(node: ts.Node): string {
+  const own = (node as ts.Node & { name?: ts.Node }).name;
+  if (own && (ts.isIdentifier(own) || ts.isStringLiteral(own) || ts.isPrivateIdentifier(own))) return own.text;
+  if (ts.isConstructorDeclaration(node)) return 'constructor';
+  const p = node.parent;
+  const holder = p && (ts.isVariableDeclaration(p) || ts.isPropertyAssignment(p) || ts.isPropertyDeclaration(p)) ? p.name : undefined;
+  return holder && (ts.isIdentifier(holder) || ts.isStringLiteral(holder)) ? holder.text : '<anonymous>';
+}
+
+/** Functions over MAX_FUNCTION_LINES, keyed `file#qualified.name` (a repeated key gets `~2`, `~3`). */
+export function measureLongFunctions(roots = SIZE_ROOTS, root = ROOT): Record<string, number> {
+  const out: Record<string, number> = {};
+  for (const file of sourceFiles(roots, root)) {
+    const text = readFileSync(file, 'utf8');
+    if (lineCount(text) <= MAX_FUNCTION_LINES) continue; // no function is longer than its file
+    const rel = relative(root, file);
+    const sf = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true);
+    const lineOf = (pos: number): number => sf.getLineAndCharacterOfPosition(pos).line;
+    const visit = (node: ts.Node, scope: string[]): void => {
+      let inner = scope;
+      if (ts.isClassLike(node)) inner = [...scope, node.name?.text ?? '<class>'];
+      if (ts.isFunctionLike(node) && 'body' in node && node.body) {
+        inner = [...scope, functionName(node)];
+        const lines = lineOf(node.getEnd()) - lineOf(node.getStart(sf)) + 1;
+        if (lines > MAX_FUNCTION_LINES) {
+          const key = `${rel}#${inner.join('.')}`;
+          let unique = key;
+          for (let n = 2; unique in out; n++) unique = `${key}~${n}`;
+          out[unique] = lines;
+        }
+      }
+      ts.forEachChild(node, (child) => visit(child, inner));
+    };
+    visit(sf, []);
+  }
+  return out;
+}
+
 export function measureOversized(roots = SIZE_ROOTS, root = ROOT): Record<string, number> {
   const files: string[] = [];
   for (const r of roots) walk(join(root, r), files);
@@ -209,7 +297,19 @@ async function measure(): Promise<Measurement> {
     brandCritical: copy.filter((v) => v.severity === 'critical').length,
     brandWarnings: copy.filter((v) => v.severity === 'warning').length,
     lint,
+    asUnknownAs: measureAsUnknownAs(),
+    longFunctions: measureLongFunctions(),
   };
+}
+
+/** New files over NEW_FILE_MAX_LINES; one problem line when the baseline commit is missing. */
+export function newFileRegressions(added: Record<string, number> | null, since: string): string[] {
+  if (added === null) {
+    return [`Can't check the ${NEW_FILE_MAX_LINES}-line cap on new files: baseline commit ${since} is not in this checkout (fetch-depth: 0).`];
+  }
+  return Object.entries(added)
+    .filter(([, lines]) => lines > NEW_FILE_MAX_LINES)
+    .map(([file, lines]) => `${file}: ${lines} lines in a new file, over the ${NEW_FILE_MAX_LINES}-line cap for new files. Split it.`);
 }
 
 /** What got worse than the baseline. Empty when the change may land. */
@@ -233,6 +333,19 @@ export function regressions(base: Measurement, now: Measurement): string[] {
     const before = base.lint[rule] ?? 0;
     if (count > before) out.push(`Brand lint "${rule}" rose ${before} → ${count}: run lint-brand.ts.`);
   }
+  if (base.asUnknownAs !== undefined && (now.asUnknownAs ?? 0) > base.asUnknownAs) {
+    out.push(`\`as unknown as\` casts rose ${base.asUnknownAs} → ${now.asUnknownAs}. Type it, or narrow with a guard.`);
+  }
+  if (base.longFunctions) {
+    for (const [fn, lines] of Object.entries(now.longFunctions ?? {})) {
+      const before = base.longFunctions[fn];
+      if (before === undefined) {
+        out.push(`${fn}: ${lines} lines, over the ${MAX_FUNCTION_LINES}-line function limit (new or newly over). Extract steps.`);
+      } else if (lines > before) {
+        out.push(`${fn}: grew ${before} → ${lines} lines. Functions over ${MAX_FUNCTION_LINES} lines may not grow.`);
+      }
+    }
+  }
   return out;
 }
 
@@ -245,17 +358,28 @@ export function lowered(base: Measurement, now: Measurement): Measurement {
   }
   const lint: Record<string, number> = {};
   for (const [rule, before] of Object.entries(base.lint)) lint[rule] = Math.min(before, now.lint[rule] ?? 0);
-  return {
+  const out: Measurement = {
     oversized,
     brandCritical: 0,
     brandWarnings: Math.min(base.brandWarnings, now.brandWarnings),
     lint,
   };
+  if (base.asUnknownAs !== undefined) out.asUnknownAs = Math.min(base.asUnknownAs, now.asUnknownAs ?? 0);
+  if (base.longFunctions) {
+    out.longFunctions = Object.fromEntries(
+      Object.entries(base.longFunctions)
+        .filter(([fn]) => now.longFunctions?.[fn] !== undefined)
+        .map(([fn, before]) => [fn, Math.min(before, now.longFunctions![fn]!)])
+    );
+  }
+  if (base.newFileSince) out.newFileSince = base.newFileSince;
+  return out;
 }
 
 function summary(m: Measurement): string {
   const lintTotal = Object.values(m.lint).reduce((a, b) => a + b, 0);
-  return `${Object.keys(m.oversized).length} files over ${MAX_LINES} lines, ${m.brandCritical} critical / ${m.brandWarnings} warning brand-copy issues, ${lintTotal} brand-lint errors`;
+  const fns = Object.keys(m.longFunctions ?? {}).length;
+  return `${Object.keys(m.oversized).length} files over ${MAX_LINES} lines, ${fns} functions over ${MAX_FUNCTION_LINES} lines, ${m.asUnknownAs ?? '?'} \`as unknown as\`, ${m.brandCritical} critical / ${m.brandWarnings} warning brand-copy issues, ${lintTotal} brand-lint errors`;
 }
 
 async function bundleMain(args: string[]): Promise<void> {
@@ -314,7 +438,9 @@ async function main(): Promise<void> {
   if (args.includes('--init')) {
     const old = JSON.parse(readFileSync(BASELINE, 'utf8')) as { bundle?: BundleSize; webEslint?: unknown };
     const keep = { bundle: old.bundle, webEslint: old.webEslint };
-    writeFileSync(BASELINE, JSON.stringify({ ...now, brandCritical: 0, ...keep }, null, 1) + '\n');
+    const base = spawnSync('git', ['merge-base', 'HEAD', 'origin/main'], { encoding: 'utf8' }).stdout.trim();
+    const since = base || spawnSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
+    writeFileSync(BASELINE, JSON.stringify({ ...now, brandCritical: 0, newFileSince: since, ...keep }, null, 1) + '\n');
     console.log(`Baseline written: ${summary(now)}`);
     return;
   }
@@ -326,7 +452,8 @@ async function main(): Promise<void> {
     console.log(`Baseline lowered: ${summary(base)}  →  ${summary(next)}`);
     return;
   }
-  const worse = [...regressions(base, now), ...checkWebsiteThemeDebt()];
+  const added = base.newFileSince ? newFileRegressions(filesAddedSince(base.newFileSince), base.newFileSince) : [];
+  const worse = [...regressions(base, now), ...added, ...checkWebsiteThemeDebt()];
   console.log(`Quality ratchet. Baseline: ${summary(base)}\n                 Now:      ${summary(now)}`);
   if (worse.length > 0) {
     console.log(`\n❌ ${worse.length} regression(s):\n${worse.map((w) => `  - ${w}`).join('\n')}`);
