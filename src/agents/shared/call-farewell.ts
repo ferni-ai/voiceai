@@ -45,6 +45,8 @@ const log = createLogger({ module: 'call-farewell' });
 export const IDLE_AFTER_GOODBYE_MS = 4_000;
 
 const farewells = new Set<string>();
+/** Calls reopened after both goodbyes (call-wrap-up.ts): Ferni's next goodbye ends them again. */
+const reopened = new Set<string>();
 const sessionIds = new WeakMap<object, string>();
 
 export function markFarewell(
@@ -62,6 +64,18 @@ export function farewellSaid(sessionId: string): boolean {
 
 export function clearFarewell(sessionId: string): void {
   farewells.delete(sessionId);
+}
+
+/**
+ * The call reopened after both goodbyes (wrap-up-window.ts). The farewell is
+ * cleared, but the caller's goodbye stands: if Ferni's next reply is a goodbye
+ * the watcher arms again and the call ends on its own (the line that reopened
+ * it, "you're the best", may be answered with one); if Ferni's next reply
+ * carries on, a fresh pair of goodbyes is needed.
+ */
+export function reopenFarewell(sessionId: string): void {
+  farewells.delete(sessionId);
+  reopened.add(sessionId);
 }
 
 /** With CALL_WRAP_UP on, both sides have said goodbye on this call. */
@@ -236,6 +250,21 @@ export function callerSaysGoodbye(text: string): boolean {
   return endsWith(text, CLOSERS);
 }
 
+/** Pleasantries that fit a goodbye on their own: "thanks", "you too", "love you", "night". */
+const SIGN_OFFS = new Set([...AFTERWORDS, 'same to you', 'you as well', 'night', 'bye']);
+
+/**
+ * The caller is signing off: a goodbye, or only pleasantries that fit one
+ * ("thanks", "thank you", "you too", "love you", "same to you", "night").
+ * After `conversation_end` these never reopen the call (wrap-up-window.ts).
+ */
+export function callerSignsOff(text: string): boolean {
+  if (callerSaysGoodbye(text)) return true;
+  if (text.trim().endsWith('?')) return false;
+  const parts = clauseWords(text);
+  return parts.length > 0 && parts.every((words) => onlyPhrases(words, 0, SIGN_OFFS));
+}
+
 /** The caller asks Ferni to end the call: "hang up now", "you can end the call". */
 export function callerAsksToHangUp(text: string): boolean {
   return endsWith(text, HANG_UPS);
@@ -350,7 +379,9 @@ export function watchFarewell(
   };
   const onFerni = (text: string): void => {
     ferniSaidBye = ferniSaysGoodbye(text);
-    if (callerSaidBye && ferniSaidBye) {
+    // After a reopen the caller's goodbye stands until Ferni's next reply
+    const callerBye = callerSaidBye || reopened.delete(sessionId);
+    if (callerBye && ferniSaidBye) {
       markFarewell(sessionId, 'goodbyes');
       arm();
     } else if (!ferniSaidBye && !hangUpAsked && farewellSaid(sessionId)) {
@@ -376,6 +407,7 @@ export function watchFarewell(
   const stop = (): void => {
     cancel();
     clearFarewell(sessionId);
+    reopened.delete(sessionId);
     sessionIds.delete(agentSession);
     session.off(EV.ConversationItemAdded, onItem);
     session.off(EV.AgentStateChanged, onAgent);

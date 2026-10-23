@@ -79,7 +79,9 @@ export async function deleteRoom(roomName: string): Promise<void> {
 export function createEndCallTool(
   roomName: string,
   hangUp: HangUp = deleteRoom,
-  sessionId?: string
+  sessionId?: string,
+  /** Waits while the caller is mid-utterance or a crisis read is in flight (call-wrap-up.ts). */
+  holdFirst?: () => Promise<void>
 ) {
   return llm.tool({
     name: END_CALL,
@@ -93,6 +95,10 @@ export function createEndCallTool(
         // Hang up anyway: a cut-off goodbye beats a line left open
       }
       if (holdEndCallForCrisis(sessionId, 'phone', 'after_playout')) return CRISIS_HOLD;
+      await holdFirst?.();
+      if (holdFirst && holdEndCallForCrisis(sessionId, 'phone', 'before_delete')) {
+        return CRISIS_HOLD;
+      }
       try {
         await hangUp(roomName);
         log.info({ roomName }, 'Ferni hung up after the goodbye');
@@ -124,12 +130,13 @@ export async function attachPhoneHangUp(
     onBehalf: boolean;
     env?: Env;
     hangUp?: HangUp;
+    holdFirst?: () => Promise<void>;
   }
 ): Promise<boolean> {
   if (!phoneGoodbyeEnabled(call.env) || call.onBehalf) return false;
   if (call.participant?.kind !== ParticipantKind.SIP) return false;
   const added = await addEndCallTool(agent, () =>
-    createEndCallTool(call.roomName, call.hangUp, call.sessionId)
+    createEndCallTool(call.roomName, call.hangUp, call.sessionId, call.holdFirst)
   );
   if (added) log.info({ sessionId: call.sessionId }, 'PHONE_GOODBYE_ATTACHED');
   return added;
