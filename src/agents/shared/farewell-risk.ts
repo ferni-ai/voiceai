@@ -31,10 +31,7 @@ const FAREWELL_SHAPE = new RegExp(
     String.raw`\blast (?:time|call|goodbye|thing)\b`,
     // Accent folding stopped "adiós para siempre" (goodbye forever) reading as risk by its accent
     String.raw`\bpara siempre\b`,
-    // Finality after a goodbye (#2523): "talk soon. never", "bye bye. no more", "talk soon, or not"
-    String.raw`(?:^|[.,;!?:]\s*)(?:(?:and|or|maybe|probably|just)\s+)*(?:never(?:\s+again)?|or not|no more)\s*(?:[.,;!?:]|$)`,
-    String.raw`\bfor (?:good|life)\b(?!\s+\w)|\bforever\b`,
-    String.raw`\bit'?s (?:all )?over\b|\bit'?s time\b(?!\s+(?:for|to)\b)`,
+    // Unambiguous finality after a goodbye (#2523): these escalate even over a clean read
     String.raw`\b(?:won'?t|will not|never|not going to|don'?t want to) wake(?: up)?\b`,
     String.raw`\b(?:nothing|none of (?:this|it)) matters?\b|\bdoes(?:n'?t| not) matter anymore\b`,
     String.raw`\b(?:go|gonna|going to|about to|finally) do it\b`,
@@ -42,6 +39,16 @@ const FAREWELL_SHAPE = new RegExp(
   ].join('|'),
   'i'
 );
+
+/**
+ * Words that also turn up in ordinary goodbyes ("love you forever, bye", "friends
+ * for life! bye", "okay, it's time. bye", "bye! never."). They are no evidence
+ * of risk, so they never escalate: taken out before hasRiskContent runs. A line
+ * that has them besides its goodbye is still no clean sign-off, so it waits for
+ * the turn's crisis read (Rule 1, wrap-up-window.ts), and a clean read ends it.
+ */
+const HOLD_ONLY_WORDS =
+  /\b(?:never(?: again)?|or not|no more|forever|for good|for life|it'?s (?:all )?over|it'?s time)\b/gi;
 
 /** The goodbye words themselves, which hasRiskContent counts as risk on their own ("bye"). */
 const GOODBYE_WORDS =
@@ -167,6 +174,7 @@ export function farewellRisk(text: string): boolean {
   if (FAREWELL_SHAPE.test(fold(line))) return true;
   const rest = withoutGoodbyeClauses(warm)
     .replace(GOODBYE_WORDS, ' ')
+    .replace(HOLD_ONLY_WORDS, ' ')
     .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
     .trim();
   if (!rest) return false;

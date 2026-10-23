@@ -698,22 +698,53 @@ describe('a clean sign-off only when every clause is a goodbye (#2523)', () => {
     return c;
   }
 
+  // Unambiguous finality escalates: recorded, a crisis hold even over a clean read
   it.each([
     "talk soon. or not. doesn't matter anymore",
-    "I'm done for today. and for good",
-    'talk soon. never',
-    'talk soon, or not',
-    'talk soon. maybe never',
     "sleep tight. won't wake",
-    "sleep well. it's over",
-    "I'm done for the day. and for life",
-    "I'm done for tonight. for good",
-    'bye bye. no more',
+    'nothing matters. bye',
+    'you can hang up. I need to go do it',
+    'take care of mom for me. bye',
+    'this is my last call. bye',
+    "last time we'll talk, bye",
   ])('"%s" stays open as a crisis hold, even on a clean read', async (line) => {
     const c = await lineThenFerniBye(line, 'none');
     expect(c.reopens()).toEqual(['1000 conversation_continue crisis_hold']);
     expect(crisisRiskThisCall(c.id)).toBe(true);
     expect(c.appConnected).toBe(true);
+  });
+
+  // Words that also turn up in ordinary goodbyes only hold for the read: never recorded
+  it.each([
+    'love you forever, bye',
+    'friends for life! bye',
+    "okay, it's time. bye",
+    'bye! never.',
+    "the game's over, bye",
+    "I'm done for today. and for good",
+    'talk soon. never',
+    'talk soon, or not',
+    "sleep well. it's over",
+    'bye bye. no more',
+    "hang up now. it's time",
+  ])('"%s" is held for the read: a clean read ends it, risk keeps it', async (line) => {
+    const clean = await call();
+    await clean.toEnd();
+    await clean.advance(400);
+    clean.finalWords(line);
+    expect(clean.events.at(-1)).toBe('400 conversation_hold checking');
+    await clean.advance(300);
+    const settle = read(clean.id, line);
+    await clean.advance(500);
+    await settle('none');
+    await clean.advance(15_000);
+    expect(clean.reopens()).toEqual([]);
+    expect(crisisRiskThisCall(clean.id)).toBe(false);
+    expect(clean.appConnected).toBe(false);
+
+    const risky = await lineThenFerniBye(line, 'high');
+    expect(risky.reopens()).toEqual(['2100 conversation_continue crisis_hold']);
+    expect(risky.appConnected).toBe(true);
   });
 
   it.each([
@@ -722,7 +753,6 @@ describe('a clean sign-off only when every clause is a goodbye (#2523)', () => {
     'goodbye cruel world',
     'nothing matters. bye',
     'take care of mom for me. bye',
-    "hang up now. it's time",
   ])('"%s" read as none: Ferni\'s own goodbye never ends the call', async (line) => {
     const c = await lineThenFerniBye(line, 'none');
     expect(c.reopens().length).toBeGreaterThan(0);
