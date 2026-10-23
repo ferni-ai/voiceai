@@ -2,6 +2,7 @@
 import FerniKit
 import FerniVoice
 import Foundation
+import os
 import SwiftUI
 
 /// Debug builds only: FerniUITests launch the app with `-FerniUITest <scenario>`
@@ -256,23 +257,30 @@ private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
     func disconnect() async { continuation.finish() }
 }
 
-/// No audio session, no permission prompt. `interrupted`: 1.5 s in, the
-/// system takes the audio (a phone call), and gives it back when asked.
+/// No audio session, no permission prompt. `interrupted`: 1.5 s after the
+/// call's room takes the audio, the system takes it (a phone call), and
+/// gives it back when asked. Timed from the room, not from launch: on a slow
+/// launch the room came after 1.5 s, the interruption found no call, and the
+/// call never went on hold (iPad lane, 2026-10-22).
 private final class SilentAudio: CallAudio, @unchecked Sendable {
     let interruptions: AsyncStream<AudioInterruption>
+    private let continuation: AsyncStream<AudioInterruption>.Continuation
+    private let interrupted: Bool
+    private let fired = OSAllocatedUnfairLock(initialState: false)
 
     init(interrupted: Bool = false) {
-        interruptions = AsyncStream { continuation in
-            guard interrupted else { return }
-            Task {
-                try? await Task.sleep(for: .seconds(1.5))
-                continuation.yield(.began)
-            }
-        }
+        (interruptions, continuation) = AsyncStream.makeStream(of: AudioInterruption.self)
+        self.interrupted = interrupted
     }
 
     func requestMicrophone() async -> Bool { true }
-    func activate(systemOwned: Bool) throws {}
+    func activate(systemOwned: Bool) throws {
+        guard interrupted, !fired.withLock({ let was = $0; $0 = true; return was }) else { return }
+        Task { [continuation] in
+            try? await Task.sleep(for: .seconds(1.5))
+            continuation.yield(.began)
+        }
+    }
     func deactivate(systemOwned: Bool) {}
     func systemAudio(active: Bool) {}
 }
