@@ -149,23 +149,10 @@ describe('flag on: each persona loses its forbidden tools', () => {
 });
 
 describe('crisis, privacy, handoff and endCall tools are always present', () => {
-  it('a manifest that forbids handoffs (joel-dickson) is not applied for them, with a warning', async () => {
+  // A manifest that forbids a protected tool: persona-tool-policy-midcall.test.ts
+  it('joel-dickson keeps every protected tool and loses only dayTrade', async () => {
     const { personaToolPolicy, applyPersonaToolPolicy } = await load('on');
-    const policy = await personaToolPolicy('joel-dickson');
-    expect(policy?.forbidden).toEqual(['dayTrade']);
-    expect(policyLog.warn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        personaId: 'joel-dickson',
-        refused: [
-          'meetTheTeam',
-          'handoffToFerni',
-          'handoffToMaya',
-          'handoffToAlex',
-          'handoffToJordan',
-        ],
-      }),
-      expect.any(String)
-    );
+    expect((await personaToolPolicy('joel-dickson'))?.forbidden).toEqual(['dayTrade']);
 
     const kept = Object.keys(await applyPersonaToolPolicy(record(PROTECTED), 'joel-dickson'));
     expect(kept).toEqual(PROTECTED);

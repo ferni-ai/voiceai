@@ -49,6 +49,36 @@ describe('size diff: functions', () => {
   });
 });
 
+describe('size diff: functions moved between files', () => {
+  it('judges a function moved to another touched file against its old size there', () => {
+    // run() leaves a.ts for b.ts unchanged: not new, not grown
+    const moved = [change('src/a.ts', lines(10), fn('run', 400)), change('src/b.ts', fn('run', 400), lines(10))];
+    expect(sizeRegressions(moved)).toEqual([]);
+    // moved and grown within max(5, 2%): fine; past it: fails, naming where it came from
+    expect(sizeRegressions([change('src/a.ts', lines(10), fn('run', 400)), change('src/b.ts', fn('run', 408), lines(10))])).toEqual([]);
+    expect(sizeRegressions([change('src/a.ts', lines(10), fn('run', 400)), change('src/b.ts', fn('run', 409), lines(10))])).toEqual([
+      'src/b.ts#run: grew 400 → 409 lines (moved from src/a.ts); a function over 150 lines may grow by 8 per change. Extract steps.',
+    ]);
+  });
+
+  it('finds a function or a cast moved out of a deleted file, and a function that changed scope (Class.run → run)', () => {
+    expect(sizeRegressions([change('src/b.ts', fn('run', 250), null)], [{ path: 'src/gone.ts', base: fn('run', 250) }])).toEqual([]);
+    const cast = 'export const x = y as unknown as string;\n';
+    expect(sizeRegressions([change('src/b.ts', cast, null)], [{ path: 'src/gone.ts', base: cast }])).toEqual([]);
+    const method = `export class Turn {\n  run(): void {\n${'    void 0;\n'.repeat(200)}  }\n}\n`;
+    expect(sizeRegressions([change('src/a.ts', lines(10), method), change('src/b.ts', fn('run', 202), lines(10))])).toEqual([]);
+  });
+
+  it('lends each old function once, and not while it is still in its own file', () => {
+    // copied, not moved: the original stays in a.ts, so the copy in b.ts is new
+    const copied = sizeRegressions([change('src/a.ts', fn('run', 400), fn('run', 400)), change('src/b.ts', fn('run', 400), lines(10))]);
+    expect(copied).toEqual(['src/b.ts#run: 400 lines, over the 150-line function limit (new or newly over). Extract steps.']);
+    // one old run() cannot cover two new ones
+    const twice = sizeRegressions([change('src/a.ts', lines(10), fn('run', 200)), change('src/b.ts', fn('run', 200), lines(10)), change('src/c.ts', fn('run', 200), null)]);
+    expect(twice).toEqual(['src/c.ts#run: 200 lines, over the 150-line function limit (new or newly over). Extract steps.']);
+  });
+});
+
 describe('size diff: as unknown as', () => {
   it('counts each cast, across lines too, but not one in a comment or string', () => {
     expect(countAsUnknownAs('const a = b as unknown as C;\nconst d = (e as\n  unknown as F);\nconst g = h as unknown;')).toBe(2);

@@ -22,6 +22,7 @@ import {
   type SpeakerChangeEvent,
 } from '../../services/voice/voice-speaker-change.js';
 import { diag } from '../../services/diagnostic-logger.js';
+import { errorClass } from '../../utils/error-class.js';
 import { outboundPartiesFor } from '../shared/outbound-opener.js';
 import { prefetchUserCommitments } from '../../services/superhuman/commitment-prefetch.js';
 import { createSpeakerChangePrompter, listenForSpeakerCheckReplies } from './speaker-check.js';
@@ -143,9 +144,9 @@ export async function identifyUser(
 
       diag.user('User identified', {
         userId,
-        userName: userName || '(unknown - will ask)',
+        hasName: Boolean(userName), // never the name: on a call placed for them, the contact's
         source: identificationSource,
-        metadataNameFiltered: metadataName && !isRealName(metadataName),
+        metadataNameFiltered: Boolean(metadataName) && !isRealName(metadataName),
       });
 
       // Not awaited. Turn 1's live-superhuman step reads these commitments under
@@ -166,7 +167,7 @@ export async function identifyUser(
       setupSpeakerChangeDetection(sessionId, userId, room);
     }
   } catch (e) {
-    diag.warn('User identification failed', { error: String(e) });
+    diag.warn('User identification failed', { error: errorClass(e), chars: jobMetadata?.length });
   }
 
   // A phone caller is who their verified number says, or nobody (caller-recognition.ts).
@@ -271,7 +272,7 @@ async function startIdentitySession(
 
       if (ipLocation?.city) {
         diag.session('📍 IP location detected', {
-          city: ipLocation.city,
+          hasCity: true, // never the city
           region: ipLocation.regionCode,
         });
       }
@@ -413,7 +414,7 @@ async function detectUserAccent(
     }
   } catch (accentErr) {
     diag.debug('Accent detection failed (using default American)', {
-      error: String(accentErr),
+      error: errorClass(accentErr),
     });
   }
 

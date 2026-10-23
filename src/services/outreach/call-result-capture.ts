@@ -277,7 +277,7 @@ async function injectToActiveSession(
     await roomService.sendData(sessionId, dataBytes, DataPacket_Kind.RELIABLE, {});
 
     log.info(
-      { sessionId, callId: outcome.callId, contactName },
+      { sessionId, callId: outcome.callId, hasContactName: Boolean(contactName) },
       'Injected call result into active session'
     );
     return true;
@@ -398,7 +398,7 @@ export async function captureCallResult(
 ): Promise<void> {
   const { status, objectiveAchieved } = outcome;
   log.info(
-    { callId, status, objectiveAchieved, contactName: request.resolvedContact?.name },
+    { callId, status, objectiveAchieved, hasContactName: Boolean(request.resolvedContact?.name) },
     'Capturing call result'
   );
   logCallResultOutcome(callId, status, request.userId);
@@ -723,7 +723,7 @@ async function createCallbackCalendarEvent(
     });
 
     log.info(
-      { callId, userId: request.userId, contactName, scheduledFor: callbackDate.toISOString() },
+      { callId, userId: request.userId, scheduledFor: callbackDate.toISOString() },
       'Created calendar event for callback'
     );
   } catch (error) {

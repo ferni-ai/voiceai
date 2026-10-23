@@ -29,7 +29,11 @@ final class CallSessionTests: XCTestCase {
             connectedTo = (url, token)
             if let agentOnConnect { continuation.yield(.agentJoined(attributes: agentOnConnect)) }
         }
-        func setMicrophone(enabled: Bool) async throws { micStates.append(enabled) }
+        var order: Order?
+        func setMicrophone(enabled: Bool) async throws {
+            micStates.append(enabled)
+            order?.steps.append("mic \(enabled)")
+        }
         func disconnect() async {
             disconnects += 1
             continuation.finish()
@@ -45,9 +49,15 @@ final class CallSessionTests: XCTestCase {
         private(set) var deactivations = 0
         init() { (interruptions, interrupt) = AsyncStream.makeStream(of: AudioInterruption.self) }
         func requestMicrophone() async -> Bool { micAllowed }
-        func activate() throws { activations += 1 }
+        var order: Order?
+        func activate() throws {
+            activations += 1
+            order?.steps.append("activate")
+        }
         func deactivate() { deactivations += 1 }
     }
+
+    final class Order: @unchecked Sendable { var steps: [String] = [] }
 
     final class Rooms: @unchecked Sendable {
         var made: [FakeRoom] = []
@@ -86,7 +96,8 @@ final class CallSessionTests: XCTestCase {
                 return room
             },
             audio: audio,
-            agentTimeout: timeout
+            agentTimeout: timeout,
+            defaults: UserDefaults(suiteName: "call-tests-\(UUID().uuidString)")!
         )
     }
 
@@ -110,6 +121,22 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(rooms.made.first?.micStates, [true])
         XCTAssertEqual(audio.activations, 1)
         XCTAssertEqual(session.agentActivity, .listening)
+        XCTAssertTrue(session.hasTalked)
+    }
+
+    /// Haptics-while-recording is set up (in activate) before the mic goes on.
+    func testTheAudioSessionIsReadyBeforeTheMicOpens() async {
+        let order = Order()
+        audio.order = order
+        rooms.next = {
+            let room = FakeRoom()
+            room.order = order
+            return room
+        }
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        XCTAssertEqual(order.steps, ["activate", "mic true"])
     }
 
     func testWaitsForFerniWhoArrivesLate() async {
