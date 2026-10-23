@@ -34,6 +34,7 @@ import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
 import * as notYet from './greeting-not-yet.js';
 import * as stranger from './first-call-stranger.js';
+import { launchDirection, takeCallLaunch } from '../shared/call-launch-hint.js';
 
 // Low-key on purpose: "warm" produced "Hey Sam! Good morning! So good
 // to hear your voice!" every call, and the exclamations made the voice
@@ -409,12 +410,14 @@ export async function directedGreeting(
   // Nothing still ahead, and nothing from before on a same-day return (greeting-not-yet.ts).
   const hold = notYet.openingRestraint(history, userData?.callerTimezone);
   const dueCheckIn = hold.allows(openCheckIn) ? openCheckIn : undefined;
-  const { win, checkIn } = unknown || hold.sameDay ? {} : openingThread(openWin, dueCheckIn);
-  // One thread per call: a win or what they said they'd do comes before a pondered ask.
-  const ask = win || checkIn || !hold.allows(pondered?.text) ? undefined : pondered;
+  const launched = launchDirection(takeCallLaunch(sessionId)); // CALL_LAUNCH_CONTEXT: their reason
+  const { win, checkIn } =
+    unknown || hold.sameDay || launched ? {} : openingThread(openWin, dueCheckIn);
+  // One thread per call: why they called, a win or what they said they'd do, then a pondered ask.
+  const ask = win || checkIn || launched || !hold.allows(pondered?.text) ? undefined : pondered;
   // Back after a gap (WELCOME_BACK_BOTH_SIDES): one thread, one thing from his life, never the gap.
   const back =
-    welcome && !unknown
+    welcome && !unknown && !launched
       ? planWelcomeBack(welcome, { checkIn: checkIn ?? win?.text, pondered: ask?.text })
       : undefined;
   if (win && userData?.userId) void markWinSurfaced(userData.userId, win.id);
@@ -431,7 +434,8 @@ export async function directedGreeting(
     (back?.direction ?? '') +
     (anniversary && !unknown ? anniversaryDirection(anniversary) : '') +
     (hold.sameDay ? notYet.SAME_DAY_DIRECTION : '') +
-    (unknown ? ` ${unknown}` : '');
+    (unknown ? ` ${unknown}` : '') +
+    launched;
   const directed = await directedText(sessionId, {
     moment: 'greeting',
     direction,

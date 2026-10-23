@@ -11,6 +11,7 @@ import type { JobContext } from '@livekit/agents';
 import type { ParsedMetadata } from './types.js';
 import { parseOnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
 import { maskPhoneNumber } from '../../services/identity/phone-attestation.js';
+import { rememberCallLaunch } from '../shared/call-launch-hint.js';
 
 /** What an inbound dispatch says about the caller's account; honoured only when signed. */
 const INBOUND_ACCOUNT_FIELDS = [
@@ -87,6 +88,9 @@ export async function setupCallTypeContexts(
   roomName: string | undefined,
   rawJobMetadata?: string
 ): Promise<void> {
+  // Where /token says the call was started from (CALL_LAUNCH_CONTEXT); the hello reads it.
+  rememberCallLaunch(sessionId, metadata.launch);
+
   // =========================================================================
   // INBOUND CALL DETECTION
   // =========================================================================
