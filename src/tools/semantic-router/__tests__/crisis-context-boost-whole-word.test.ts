@@ -4,8 +4,11 @@
  * matched as substrings, so "diet", "deadline", "pharmacy" and "send it"
  * boosted it. The boost never lifts it over the minimum on an everyday turn,
  * but it is averaged into a real crisis turn's confidence: after everyday
- * history, "I cant go on" dropped crisis_support from first to fifth.
- * SAFETY_WHOLE_WORD_SITES=on matches crisis keywords as whole words.
+ * history, "I cant go on" dropped crisis_support from first to fifth (a scoring
+ * flaw, fixed separately). SAFETY_WHOLE_WORD_SITES=on reads crisis keywords
+ * through saysPhrase: a keyword found only inside a listed everyday word is
+ * 'soft', and a boost has no softer tier, so it still boosts exactly as main
+ * does; STT spellings boost too. The boost never reads less than main.
  */
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { calculateContextBoosts, runCombinedMatching } from '../matcher.js';
@@ -47,9 +50,11 @@ describe('crisis_support context boost', () => {
     expect(boosts(line).crisis_support).toBeGreaterThan(0);
   });
 
-  it.each(EVERYDAY)('on: %j does not', (line) => {
+  it.each(EVERYDAY)('on: %j still boosts crisis_support, exactly as off', (line) => {
+    vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'off');
+    const off = boosts(line).crisis_support;
     vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'on');
-    expect(boosts(line).crisis_support).toBeUndefined();
+    expect(boosts(line).crisis_support).toBe(off);
   });
 
   it.each(['I want to end it', 'i cant go on', 'I want to die', 'I feel suicidal', 'self-harm'])(
@@ -89,8 +94,10 @@ describe('a real crisis turn after everyday history', () => {
     expect(rank().rank).toBeGreaterThan(1);
   });
 
-  it('on: crisis_support is the top match', () => {
+  it('on: ranks crisis_support exactly as off (soft keeps its boost)', () => {
+    vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'off');
+    const off = rank();
     vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'on');
-    expect(rank()).toEqual({ rank: 1, confidence: expect.closeTo(0.9, 2) });
+    expect(rank()).toEqual(off);
   });
 });

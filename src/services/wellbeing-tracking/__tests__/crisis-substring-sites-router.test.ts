@@ -1,10 +1,11 @@
 /**
  * semantic-router detectEmotionalState (shared-vocabulary.ts) matched crisis
- * terms as bare substrings. SAFETY_WHOLE_WORD_SITES=on moves it onto whole
- * words in STT spelling. Through the real function: off keeps today's result,
- * on drops the in-word false positive and keeps (or gains) the real phrase,
- * inflected forms included ("self-harming", "suicidally"). The router's
- * context boost (matcher.ts) is tested in crisis-context-boost-whole-word.test.ts.
+ * terms as bare substrings. With SAFETY_WHOLE_WORD_SITES=on it reads them
+ * through phraseHit (#2645): a hit is crisis, as before, and STT spellings and
+ * suffixed forms now count too; a term found only inside a listed everyday
+ * word ("send it", "diet", "online") is 'soft' and steps down to sad
+ * (negative, medium urgency). It is never dropped. The router's context boost
+ * (matcher.ts) is tested in crisis-context-boost-whole-word.test.ts.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,69 +16,73 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 const flag = (v: 'on' | 'off' | 'shadow') => vi.stubEnv('SAFETY_WHOLE_WORD_SITES', v);
+const read = (m: string) => {
+  const s = detectEmotionalState(m);
+  return s ? `${s.type}|${s.urgency}` : null;
+};
 
-// [everyday line that held a phrase inside a word, real line]
-type Case = [string, string];
+// Lines whose only crisis-term match lies inside a listed everyday word.
+const SOFT = [
+  'I actually did send it Wednesday',
+  'I want to diet before summer',
+  'I cant go online right now',
+  "i'll send it all to my sister before i go",
+];
 
-describe('semantic-router detectEmotionalState (crisis valence, critical)', () => {
-  const type = (m: string) => detectEmotionalState(m)?.type;
-  const CASES: Case[] = [
-    ['I actually did send it Wednesday', 'I just want to end it'],
-  ];
-  // Crisis terms read recall-first: a phrase that starts at a word edge counts
-  // however the word ends, so these stay crisis (accepted false positives).
-  const REOPENED = ['I want to diet before summer', 'I cant go online right now'];
-  it.each(REOPENED)('on: %j stays crisis, as with the flag off', (line) => {
-    flag('on');
-    expect(type(line)).toBe('crisis');
-  });
-  it.each(CASES)('off: %j is crisis, as today', (everyday) => {
+describe('detectEmotionalState: a soft crisis term steps down to sad, never dropped', () => {
+  it.each(SOFT)('off: %j is crisis, as today', (line) => {
     flag('off');
-    expect(type(everyday)).toBe('crisis');
+    expect(read(line)).toBe('crisis|critical');
   });
-  it.each(CASES)('on: %j is not crisis; %j still is', (everyday, real) => {
+  it.each(SOFT)('on: %j is sad (negative, medium)', (line) => {
     flag('on');
-    expect(type(everyday)).not.toBe('crisis');
-    expect(type(real)).toBe('crisis');
+    expect(read(line)).toBe('sad|medium');
+    expect(detectEmotionalState(line)?.valence).toBe('negative');
+  });
+  it('on: a hit anywhere in the line wins over a soft match', () => {
+    flag('on');
+    expect(read('i spend it all and i want to end it all')).toBe('crisis|critical');
+  });
+  it('shadow: decides as off', () => {
+    flag('shadow');
+    for (const line of SOFT) expect(read(line)).toBe('crisis|critical');
   });
 });
 
-describe('inflected real-risk forms stay matched (whole-word mode is a superset on them)', () => {
-  it.each(["I've been self-harming", 'I self-harmed last night', 'I feel suicidally low'])(
-    'detectEmotionalState: %j stays crisis',
-    (line) => {
-      flag('on');
-      expect(detectEmotionalState(line)?.type).toBe('crisis');
-    }
-  );
-});
-
-describe('shadow and the flag split', () => {
-  it('the STT forms flag alone leaves every site as it is', () => {
-    vi.stubEnv('EARLY_WARNING_STT_FORMS', 'on');
-    expect(detectEmotionalState('I actually did send it')?.type).toBe('crisis');
-  });
-});
-
-describe('recall: crisis terms never read less risk than the substring check', () => {
+describe('detectEmotionalState: real crisis lines stay crisis', () => {
   it.each([
+    'I just want to end it',
+    "I've been self-harming",
+    'I self-harmed last night',
+    'I feel suicidally low',
     'my suicidality is back',
     'I am a self-harmer',
     'it was self-harmful',
-    'I have been thinking about selfharm',
     "I'm not suicidal or anything, but I did write out my final wishes and passwords",
+    'i cant go on',
+    'I have been thinking about selfharm',
   ])('on: %j is crisis', (line) => {
     flag('on');
-    expect(detectEmotionalState(line)?.type).toBe('crisis');
+    expect(read(line)).toBe('crisis|critical');
   });
-  it('corpus: no real-risk fixture line that is crisis off drops below crisis on', () => {
-    const drops: string[] = [];
+  it('the STT forms flag alone leaves this site as it is', () => {
+    vi.stubEnv('EARLY_WARNING_STT_FORMS', 'on');
+    expect(read('I actually did send it')).toBe('crisis|critical');
+  });
+});
+
+describe('corpus: every real-risk line', () => {
+  it('on: a line that is crisis off is crisis or (soft) sad on, never lower', () => {
+    const lowered: string[] = [];
     for (const line of riskCorpus()) {
       flag('off');
-      const off = detectEmotionalState(line)?.type === 'crisis';
+      const off = read(line);
       flag('on');
-      if (off && detectEmotionalState(line)?.type !== 'crisis') drops.push(line);
+      const on = read(line);
+      if (off === 'crisis|critical' && on !== 'crisis|critical' && on !== 'sad|medium') {
+        lowered.push(`${line}: ${on}`);
+      }
     }
-    expect(drops).toEqual([]);
+    expect(lowered).toEqual([]);
   });
 });
