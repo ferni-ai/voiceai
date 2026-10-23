@@ -28,11 +28,7 @@ vi.mock('../../../../memory/firestore-vector-store.js', () => ({
 }));
 
 import { memoryExecutor } from '../../../../agents/shared/tool-executors/memory-executor.js';
-import {
-  bindSessionUser,
-  noteCallerWords,
-  resetMinorCare,
-} from '../../../../utils/minor-care.js';
+import { bindSessionUser, noteCallerWords, resetMinorCare } from '../../../../utils/minor-care.js';
 import {
   announceMemorySaved,
   MEMORY_SAVED,
