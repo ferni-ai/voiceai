@@ -64,6 +64,26 @@ describe('withTurnReminder with CALL_ME_VOCATIVE', () => {
     );
   });
 
+  it.each(['Did you call me, Ferni?', 'did you call me Ferni?'])(
+    '%j never asks for a call, and offers one only if none was placed',
+    (said) => {
+      process.env.CALL_ME_VOCATIVE = 'on';
+      const before = reminder(said);
+      expect(before).not.toContain('Call callUser in this reply');
+      expect(before).toContain('offer to ring their phone now');
+      const after = reminder(said, call(), { called: true });
+      expect(after).not.toContain('Call callUser in this reply');
+      expect(after).not.toContain('offer to ring');
+    }
+  );
+
+  it('"call me, Ferni" after a placed call says it already rang, never a second call', () => {
+    process.env.CALL_ME_VOCATIVE = 'on';
+    const text = reminder('Can you call me, Ferni?', call(), { called: true });
+    expect(text).not.toContain('Call callUser in this reply');
+    expect(text).toContain('You already called their phone on this call');
+  });
+
   it('a nickname cue gets one short question, not a guess', () => {
     process.env.CALL_ME_VOCATIVE = 'on';
     expect(reminder('you can call me Fern')).toContain('On your phone?');

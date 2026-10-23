@@ -34,8 +34,9 @@ describe('callMeIntent: ring', () => {
     expect(callMeIntent('call me Maya', { persona: 'Ferni' })).toBeNull();
   });
 
-  it('rings even when a call was already placed', () => {
-    expect(ferni('call me Ferni', { called: true })).toBe('ring');
+  it('never asks for a second call once one was placed', () => {
+    expect(ferni('call me Ferni', { called: true })).toBe('already-called');
+    expect(ferni('you can call me Fern', { called: true })).toBe('already-called');
   });
 });
 
@@ -59,13 +60,20 @@ describe('callMeIntent: did you call me', () => {
     'Did you call me yet?',
     'did you just ring me',
     'Did you try calling me, Ferni?',
+    'Did you call me, Ferni?', // holds "call me, Ferni" too: the question wins
+    'did you call me Ferni?',
+    'Have you called me yet?',
+    'were you calling me?',
   ])('reads %j as wanting a call when none was placed', (words) => {
     expect(ferni(words)).toBe('did-you-call');
   });
 
-  it('is a plain question once a call was placed this session', () => {
-    expect(ferni('Did you give me a call?', { called: true })).toBeNull();
-  });
+  it.each(['Did you give me a call?', 'Did you call me, Ferni?', 'did you call me Ferni?'])(
+    '%j is a plain question once a call was placed this session',
+    (words) => {
+      expect(ferni(words, { called: true })).toBeNull();
+    }
+  );
 });
 
 describe('callMeIntent: none', () => {

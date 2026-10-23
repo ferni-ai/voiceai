@@ -55,6 +55,9 @@ export function callMeNote(
     called: calledUserThisCall(chatCtx.items),
   });
   if (intent === 'ring') return RING(name);
+  if (intent === 'already-called') {
+    return `You already called their phone on this call. Say so; don't call callUser again in this reply.`;
+  }
   if (intent === 'clarify') {
     return (
       `"Call me" with your name could be a phone call or a name for them. Don't guess: ` +
