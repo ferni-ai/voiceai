@@ -6,6 +6,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import { saysPhrase, saysRiskPhrase } from '../../../utils/safety-whole-word.js';
 import type { SafetyAssessment, CrisisResource, EmotionalState } from './types.js';
 
 const log = getLogger();
@@ -146,13 +147,10 @@ export function assessSafety(text: string): SafetyAssessment {
   const flags: string[] = [];
   const resources: CrisisResource[] = [];
 
-  // Check for crisis indicators
   for (const [category, indicators] of Object.entries(CRISIS_INDICATORS)) {
     for (const indicator of indicators) {
-      if (lower.includes(indicator)) {
+      if (saysRiskPhrase(lower, indicator)) {
         flags.push(`${category}: "${indicator}"`);
-
-        // Add appropriate resources
         switch (category) {
           case 'suicidal':
           case 'selfHarm':
@@ -172,15 +170,13 @@ export function assessSafety(text: string): SafetyAssessment {
     }
   }
 
-  // Check for concerning indicators
   let concernCount = 0;
   for (const indicator of CONCERNING_INDICATORS) {
-    if (lower.includes(indicator)) {
+    if (saysPhrase(lower, indicator)) {
       concernCount++;
     }
   }
 
-  // Determine level
   let level: SafetyAssessment['level'];
   let recommendedAction: SafetyAssessment['recommendedAction'];
 
@@ -190,13 +186,17 @@ export function assessSafety(text: string): SafetyAssessment {
   } else if (concernCount >= 3) {
     level = 'urgent';
     recommendedAction = 'resources';
-    resources.push(CRISIS_RESOURCES.general);
   } else if (concernCount >= 1) {
     level = 'concerning';
     recommendedAction = 'check_in';
   } else {
     level = 'safe';
     recommendedAction = 'continue';
+  }
+  // 988 at crisis or urgent, whatever the category: violence, abuse, eating carried none.
+  const needs988 = level === 'crisis' || level === 'urgent';
+  if (needs988 && !resources.includes(CRISIS_RESOURCES.general)) {
+    resources.push(CRISIS_RESOURCES.general);
   }
 
   if (flags.length > 0 || concernCount > 0) {

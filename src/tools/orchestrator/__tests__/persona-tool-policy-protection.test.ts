@@ -48,11 +48,14 @@ const DOMAIN_TOOLS = [
   'triggerAwareness',
   'windowOfTolerance',
 ];
-/** Wellbeing support outside those domains (round-1 coverage gap). */
+/** Wellbeing support outside those domains: grief, betrayal and anxiety support among them. */
 const WELLBEING_TOOLS = [
+  'anniversarySupport',
+  'betrayalTrauma',
   'createSafeSpace',
   'emotionalSupport',
   'medicationCheckIn',
+  'navigateSocialAnxiety',
   'postpartumCheckin',
   'wellnessCheckin',
 ];
@@ -279,5 +282,61 @@ describe('flag off: the manifest changes nothing', () => {
       // eslint-disable-next-line no-await-in-loop -- one orchestrator, one path at a time
       expect(await names('fixture-all', path)).toEqual(await names('fixture-none', path));
     }
+  }, 120_000);
+});
+
+describe("the orchestrator's selection cache (5 min) never serves a selection made under other rules", () => {
+  it('flag off: the key is as on main', async () => {
+    await fresh('off');
+    const { buildCacheKey } = await import('../orchestrator-helpers.js');
+    const request = {
+      transcript: 'Hi, Ferni!',
+      userId: 'u1',
+      agentId: 'ferni',
+      forceExclude: ['x'],
+    };
+    expect(buildCacheKey(request as never)).toBe('ferni:u1:hi ferni');
+  });
+
+  it('a flag flip within the cache lifetime gives the fresh selection, both ways', async () => {
+    await fresh('on');
+    const id = writeFixture('fixture-cache-flip', ['getWeather']);
+    const { initializeToolOrchestrator, getToolsForAgent } =
+      await import('../voice-agent-integration.js');
+    await initializeToolOrchestrator();
+    // One agent, user and transcript throughout: the same cache entry on main
+    const names = async (flag: string) => {
+      vi.stubEnv('PERSONA_TOOL_POLICY', flag);
+      const request = {
+        persona: { id, displayName: id },
+        userId: 'u-flip',
+        initialTranscript: TRAUMA,
+      };
+      return Object.keys((await getToolsForAgent(request)).tools);
+    };
+
+    expect(await names('on')).not.toContain('getWeather');
+    expect(await names('off')).toContain('getWeather'); // not the policy's selection
+    expect(await names('on')).not.toContain('getWeather');
+  }, 120_000);
+
+  it('flag on: a different forceExclude within the cache lifetime gives the fresh selection', async () => {
+    await fresh('on');
+    const { initializeToolOrchestrator, getToolsForAgent } =
+      await import('../voice-agent-integration.js');
+    await initializeToolOrchestrator();
+    const names = async (forceExclude: string[]) => {
+      const request = {
+        persona: { id: 'fixture-none', displayName: 'x' },
+        userId: 'u-exclude',
+        initialTranscript: TRAUMA,
+        forceExclude,
+      };
+      return Object.keys((await getToolsForAgent(request)).tools);
+    };
+
+    expect(await names(['getWeather'])).not.toContain('getWeather');
+    expect(await names([])).toContain('getWeather');
+    expect(await names(['getWeather'])).not.toContain('getWeather');
   }, 120_000);
 });

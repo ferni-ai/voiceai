@@ -9,7 +9,8 @@
  * a correction typed in the app is, memory-control.ts), so recall's confidence
  * term ranks it at least as high as any extracted fact. It is embedded on
  * write (fact-embeddings.ts, RECALL_VECTOR_INDEX). A fact holding a credential is
- * never written, whatever SPOKEN_CREDENTIAL_FILTER says (spoken-credential.ts).
+ * never written, whatever SPOKEN_CREDENTIAL_FILTER says (spoken-credential.ts, and
+ * credential-shapes.ts for a whole sentence), and only a member's fact is written.
  *
  * One document per fact text (factDocId), created and never overwritten: the
  * same thing remembered twice is one fact, and a fact the caller forgot
@@ -29,6 +30,8 @@
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { credentialInText } from '../credential-shapes.js';
 import { forgottenCheck } from '../recall/forget-every-reader.js';
 import { credentialCategory, logCredentialDrops } from '../spoken-credential.js';
 import { factDocId } from './extraction-firestore-docs.js';
@@ -64,7 +67,7 @@ export function rememberedFactDoc(r: RememberedFact, at: string): FactDocWrite |
   if (!value) return null;
   // Always, flag or not: a PIN or password they asked Ferni to remember never becomes an
   // embedded, recallable fact (the memories write is the tool's own, unchanged)
-  const credential = credentialCategory(REMEMBERED_KEY, value);
+  const credential = credentialCategory(REMEMBERED_KEY, value) ?? credentialInText(value);
   if (credential) {
     logCredentialDrops('remember', { [credential]: 1 });
     return null;
@@ -115,7 +118,8 @@ export async function rememberToRecall(
   r: RememberedFact,
   deps: RememberToRecallDeps = {}
 ): Promise<boolean> {
-  if (!rememberToRecallOn(deps.env)) return false;
+  // Only a member's own: a placeholder or anon:/onbehalf: id is one bucket for many callers
+  if (!rememberToRecallOn(deps.env) || !isMemberIdentity(userId)) return false;
   try {
     const doc = rememberedFactDoc(r, (deps.now?.() ?? new Date()).toISOString());
     if (!doc) return false;
