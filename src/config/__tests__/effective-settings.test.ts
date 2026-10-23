@@ -91,6 +91,18 @@ describe('effectiveSettings: no secret value leaks', () => {
     expect(line).not.toContain(MARK);
   });
 
+  it('prints a persona voice id, so dev and prod voices can be compared', () => {
+    const id = '3f2b9c1e-7a4d-4e8b-9c0a-1d2e3f4a5b6c';
+    expect(effectiveSettings({ MAYA_SANTOS_VOICE_ID: id }).env.MAYA_SANTOS_VOICE_ID).toBe(id);
+  });
+
+  it.each([`https://u:${MARK}@h`, `${MARK} spaced`, `sk_${MARK}`, 'short'])(
+    'hides a voice id that is not shaped like one (%s)',
+    (value) => {
+      expect(effectiveSettings({ MAYA_SANTOS_VOICE_ID: value }).env.MAYA_SANTOS_VOICE_ID).toBe(SET);
+    }
+  );
+
   it('keeps a printable name with an ordinary value', () => {
     const settings = effectiveSettings({ GEMINI_MODEL: 'gemini-3.5-flash' });
     expect(settings.env.GEMINI_MODEL).toBe('gemini-3.5-flash');
