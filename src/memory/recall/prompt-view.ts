@@ -23,7 +23,7 @@
  * @module memory/recall/prompt-view
  */
 import { forgottenCheck, type ForgottenCheck } from './forget-every-reader.js';
-import { PROFILE_PASS_THROUGH, scrub, scrubProfile } from './forget-profile.js';
+import { isStructuralKey, PROFILE_PASS_THROUGH, scrub, scrubProfile } from './forget-profile.js';
 
 declare const PROMPT_VIEW: unique symbol;
 /** An object prompt readers may read: built by promptServices / promptUserData only. */
@@ -54,12 +54,39 @@ function filtered(value: unknown, check: ForgottenCheck, of: (v: object) => unkn
   return out;
 }
 
+/** A property a Proxy must return unchanged (non-configurable, non-writable): a frozen object's. */
+const pinned = (o: object): boolean =>
+  Object.isFrozen(o) ||
+  Object.values(Object.getOwnPropertyDescriptors(o)).some(
+    (d) => !d.configurable && 'value' in d && !d.writable
+  );
+
 function view<T extends object>(target: T, read: (key: string, value: unknown) => unknown): T {
-  return new Proxy(target, {
-    get(t, key, receiver) {
-      const value: unknown = Reflect.get(t, key, receiver);
-      return typeof key === 'string' && typeof value !== 'function' ? read(key, value) : value;
+  const seen = (key: string | symbol, value: unknown): unknown =>
+    typeof key === 'string' && typeof value !== 'function' ? read(key, value) : value;
+  if (!pinned(target)) {
+    return new Proxy(target, {
+      get: (t, key, receiver) => seen(key, Reflect.get(t, key, receiver)),
+    });
+  }
+  // A frozen object's values can't be changed by a Proxy over it, so the Proxy is over an
+  // extensible shadow and every read goes to the real object, filtered: own, inherited,
+  // getters and non-enumerable alike. Nothing is written to it.
+  const shadow = Object.create(Object.getPrototypeOf(target) as object | null) as T;
+  const own = (key: string | symbol) => seen(key, Reflect.get(target, key, target));
+  return new Proxy(shadow, {
+    get: (_s, key) => own(key),
+    has: (_s, key) => Reflect.has(target, key),
+    ownKeys: () => Reflect.ownKeys(target),
+    getOwnPropertyDescriptor: (_s, key) => {
+      const d = Reflect.getOwnPropertyDescriptor(target, key);
+      return (
+        d && { configurable: true, enumerable: d.enumerable, writable: false, value: own(key) }
+      );
     },
+    set: (_s, key, value) => Reflect.set(target, key, value),
+    defineProperty: () => false,
+    deleteProperty: () => false,
   });
 }
 
@@ -82,7 +109,7 @@ export function servicesView<S extends object>(services: S, check: ForgottenChec
 export function promptUserData<U extends object>(userData: U, check: ForgottenCheck | null): U {
   if (!check) return userData;
   return view(userData, (key, value) => {
-    if (USER_DATA_PASS_THROUGH.has(key)) return value;
+    if (USER_DATA_PASS_THROUGH.has(key) || isStructuralKey(key)) return value;
     // userData carries the session's services too: same view as promptServices.
     if (key === 'services' && value && typeof value === 'object') return servicesView(value, check);
     return filtered(value, check, (v) => scrub(v, check));

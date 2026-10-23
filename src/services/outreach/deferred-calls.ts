@@ -10,6 +10,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { forgetUnreadable, forgottenCheck } from '../../memory/recall/forget-every-reader.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import type { OnBehalfCallRequest } from '../../tools/domains/telephony/types.js';
 import type { ProactiveCallRequest } from './conversational-calls.js';
@@ -30,6 +31,8 @@ const log = createLogger({ module: 'DeferredCalls' });
 const COLLECTION = 'deferred_calls';
 /** A call more than this late is dropped rather than placed out of the blue. */
 const LATE_AFTER_MS = 12 * 60 * 60 * 1000;
+/** Not dialed on purpose (forgetVerdict): no failure to count or log. */
+const SKIP = Symbol('skip');
 
 export type DeferredCall =
   | { kind: 'on_behalf'; request: OnBehalfCallRequest }
@@ -270,6 +273,32 @@ async function place(userId: string, call: DeferredCall): Promise<string | undef
   return undefined;
 }
 
+/**
+ * FORGET_EVERY_READER, checked again when a held call is placed: 'forgotten'
+ * when what it would say (purpose, context, script) names a topic the caller
+ * has since asked Ferni to forget; 'pending', so the next run tries again
+ * inside the late window, while their forget list can't be read.
+ */
+async function forgetVerdict(
+  userId: string,
+  call: DeferredCall
+): Promise<'ok' | 'forgotten' | 'pending'> {
+  const forgotten = await forgottenCheck(userId, 'deferred-call');
+  if (!forgotten) return 'ok';
+  if (forgetUnreadable(forgotten)) return 'pending';
+  const r = call.request as Partial<OnBehalfCallRequest & ProactiveCallRequest>;
+  const prefs = r.userPreferences;
+  const says = [
+    r.purpose,
+    prefs?.additionalContext,
+    prefs?.constraints,
+    r.message,
+    r.ssml,
+    r.reason,
+  ];
+  return forgotten(says.flat().filter(Boolean).join(' ')) ? 'forgotten' : 'ok';
+}
+
 /** Place the deferred calls that are due. Run by the execute-scheduled-outreach job. */
 export async function executeDueDeferredCalls(
   opts: { now?: Date; limit?: number } = {}
@@ -294,18 +323,26 @@ export async function executeDueDeferredCalls(
   }
   for (const item of claim.claimed) {
     const call = item.data as unknown as DeferredCall;
-    let status: 'placed' | 'rescheduled' | 'failed' = 'placed';
+    let status: 'placed' | 'rescheduled' | 'failed' | 'forgotten' | 'pending' = 'placed';
     let heldAs: string | undefined;
     try {
+      const verdict = await forgetVerdict(item.userId, call);
+      if (verdict !== 'ok') {
+        status = verdict;
+        if (verdict === 'pending') result.rescheduled++;
+        throw SKIP;
+      }
       // Owner from the document's path, not the stored request.
       heldAs = await place(item.userId, call);
       // Still outside their hours (prod 2026-10-18 02:39Z, 8:39pm in Denver): held, not placed.
       if (heldAs) status = 'rescheduled';
       result[heldAs ? 'rescheduled' : 'placed']++;
     } catch (error) {
-      status = 'failed';
-      result.failed++;
-      log.warn({ userId: item.userId, error: String(error) }, 'Deferred call failed');
+      if (error !== SKIP) {
+        status = 'failed';
+        result.failed++;
+        log.warn({ userId: item.userId, error: String(error) }, 'Deferred call failed');
+      }
     }
     logPromiseOutcome('deferred-call', deferredCallOutcome(status), { userId: item.userId });
     await db

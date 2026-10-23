@@ -188,3 +188,87 @@ describe('promptViews', () => {
     expect((await promptViews({ userId: user }, {})).check).toBeNull();
   });
 });
+
+describe('structural fields and frozen objects (#2662)', () => {
+  it('a forgotten place never hides the time zone, locale or ids', async () => {
+    stored.topics = ['New York'];
+    const check = await forgottenCheck(user, 'test');
+    const userData = {
+      callerTimezone: 'America/New_York',
+      locale: 'en-US-new-york',
+      contactId: 'new-york-office',
+      places: [{ label: 'office', timezone: 'America/New_York' }, { label: 'New York trip' }],
+      profile: { id: 'new-york-1', time_zone: 'America/New_York', lastTrip: 'New York in May' },
+      note: 'moving to New York',
+    };
+    const seen = promptUserData(userData, check) as Record<string, unknown>;
+    expect(seen.callerTimezone).toBe('America/New_York');
+    expect(seen.locale).toBe('en-US-new-york');
+    expect(seen.contactId).toBe('new-york-office');
+    // A list item is read whole, but not its time zone: the office stays, the trip goes.
+    expect(seen.places).toEqual([{ label: 'office', timezone: 'America/New_York' }]);
+    expect(seen.note).toBeUndefined();
+    const profile = seen.profile as Record<string, unknown>;
+    expect(profile.time_zone).toBe('America/New_York');
+    expect(profile.id).toBe('new-york-1'); // nested: not in the top-level pass-through
+    expect(profile.lastTrip).toBeUndefined();
+  });
+
+  it('a frozen userData reads filtered and is never written', async () => {
+    const userData = Object.freeze({
+      name: 'Sam',
+      note: 'Biscuit chewed the couch',
+      mood: 'tired',
+    });
+    const check = await forgottenCheck(user, 'test');
+    const seen = promptUserData(userData, check) as Record<string, unknown>;
+    expect(() => seen.note).not.toThrow();
+    expect(seen.note).toBeUndefined();
+    expect(seen.name).toBe('Sam');
+    expect(userData.note).toBe('Biscuit chewed the couch');
+    expect(Object.isFrozen(userData)).toBe(true);
+  });
+
+  it('a frozen object: no getter, non-enumerable or prototype field brings a forgotten topic', async () => {
+    class Profile {
+      readonly name = 'Sam';
+      get story(): string {
+        return 'Biscuit chewed the couch';
+      }
+    }
+    const fromClass = Object.freeze(new Profile());
+    const hidden = { name: 'Sam' };
+    Object.defineProperty(hidden, 'secret', { value: 'Biscuit at the vet', enumerable: false });
+    Object.defineProperty(hidden, 'hobby', { value: 'gardening', enumerable: false });
+    Object.freeze(hidden);
+    const inherited = Object.freeze(
+      Object.assign(Object.create({ note: 'Biscuit ran off', kept: 'cello practice' }), {
+        name: 'Sam',
+      })
+    );
+    const check = await forgottenCheck(user, 'test');
+    const views = [fromClass, hidden, inherited].map(
+      (o) => promptUserData(o, check) as Record<string, unknown>
+    );
+    expect(views[0].story).toBeUndefined();
+    expect(views[1].secret).toBeUndefined();
+    expect(Object.getOwnPropertyDescriptor(views[1], 'secret')?.value).toBeUndefined();
+    expect(views[2].note).toBeUndefined();
+    expect(views.map((v) => v.name)).toEqual(['Sam', 'Sam', 'Sam']);
+    expect(views[1].hobby).toBe('gardening'); // filtered, not dropped
+    expect(Object.keys(views[1])).toEqual(['name']); // keys enumerate as the real object's
+    expect(views[2].kept).toBe('cello practice');
+    expect(views[0]).toBeInstanceOf(Profile);
+    expect(JSON.stringify(views)).not.toContain('Biscuit');
+  });
+
+  it('frozen services read filtered too', async () => {
+    const raw = Object.freeze({
+      userId: user,
+      userProfile: Object.freeze(profileAbout()) as unknown,
+    });
+    const view = await promptServices(raw);
+    expect(() => view.userProfile).not.toThrow();
+    expect((view.userProfile as Record<string, unknown>).lastConversationSummary).toBeUndefined();
+  });
+});

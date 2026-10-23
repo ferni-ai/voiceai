@@ -41,13 +41,31 @@ export const PROFILE_PASS_THROUGH: ReadonlySet<string> = new Set([
   'currentEnergyLevel',
 ]);
 
+/**
+ * Structural fields, at any depth, never filtered: ids, time zones, locales
+ * and languages. They say how to reach or address the caller, not what they
+ * said: "America/New_York" is not about a forgotten "New York".
+ */
+export function isStructuralKey(key: string): boolean {
+  return (
+    /^ids?$/i.test(key) ||
+    /[a-z0-9](?:Id|Ids|ID)$/.test(key) ||
+    /_ids?$/i.test(key) ||
+    /time_?zone|^tz$|locale|^lang(?:uage)?s?$/i.test(key)
+  );
+}
+
 const MAX_DEPTH = 6;
 
 /** Every string in a value, joined: what a list item is about, read whole. */
 function allText(value: unknown, depth = 0): string {
   if (typeof value === 'string') return value;
   if (depth >= MAX_DEPTH || !value || typeof value !== 'object') return '';
-  const parts = Array.isArray(value) ? value : Object.values(value);
+  const parts = Array.isArray(value)
+    ? value
+    : Object.entries(value)
+        .filter(([k]) => !isStructuralKey(k))
+        .map(([, v]) => v);
   return parts
     .map((v) => allText(v, depth + 1))
     .filter(Boolean)
@@ -87,7 +105,7 @@ export function scrubFields<T extends object>(
   const out: Record<string, unknown> = {};
   let changed = false;
   for (const [k, v] of Object.entries(obj)) {
-    const kept = pass.has(k) ? v : scrub(v, forgotten, depth);
+    const kept = pass.has(k) || isStructuralKey(k) ? v : scrub(v, forgotten, depth);
     if (kept !== v) changed = true;
     if (kept !== undefined) out[k] = kept;
   }

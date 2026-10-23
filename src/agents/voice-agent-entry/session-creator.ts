@@ -27,6 +27,7 @@ import { SonataSTT } from '../../speech/providers/sonata-stt-adapter.js';
 import { modelConfig } from '../../services/model-config.js';
 import { endpointingDelays } from '../shared/turn-patience.js';
 import { limitSessionListeners } from '../shared/session-listener-limit.js';
+import { prefetchForgotten } from '../../memory/recall/forget-every-reader.js';
 
 
 // ============================================================================
@@ -96,7 +97,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     userId, userAccent, userData, services, voiceDeps,
     metadata, subscriptionTier, cleanupHandlers,
   } = input;
-
+  prefetchForgotten(userId, (end) => cleanupHandlers.push(end)); // FORGET_EVERY_READER: this call's mark
   const modelProvider = getModelProvider();
   const { voice, google: _google, genai: _genai } = voiceDeps;
 

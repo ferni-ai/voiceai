@@ -30,6 +30,8 @@ import { createLogger } from '../utils/safe-logger.js';
 import { getPubSubClient } from '../services/pubsub/pubsub-client.js';
 import { registerMessagingConsent } from '../services/messaging/consent.js';
 import type { OutreachTriggerPayload } from '../services/outreach/trigger-publisher.js';
+import { forgetUnreadable, forgottenCheck } from '../memory/recall/forget-every-reader.js';
+import { PLAIN_CHECK_IN } from '../services/automation/insight-messages.js';
 // cleanForFirestore removed - not used in this worker
 
 const log = createLogger({ module: 'OutreachWorker' });
@@ -132,12 +134,17 @@ async function evaluateTrigger(trigger: OutreachTriggerPayload): Promise<WorkerD
       };
     }
 
+    // FORGET_EVERY_READER: a reason naming a forgotten topic goes as the plain
+    // check-in; while their forget list can't be read, nothing goes.
+    const forgotten = await forgottenCheck(trigger.userId, 'outreach-worker');
+    if (forgetUnreadable(forgotten)) return { shouldSend: false, reason: 'Forget list unreadable' };
+
     // Default to sending
     return {
       shouldSend: true,
       channel: state.preferences.preferredChannel || 'sms',
       optimalTime: trigger.scheduledFor ? new Date(trigger.scheduledFor) : now,
-      message: trigger.reason,
+      message: forgotten?.(trigger.reason) ? PLAIN_CHECK_IN : trigger.reason,
     };
   } catch (error) {
     log.warn({ triggerId: trigger.id, error: String(error) }, 'Decision evaluation failed');

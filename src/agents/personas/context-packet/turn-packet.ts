@@ -167,8 +167,11 @@ export function turnPacket(session: object, p: TurnParts): ContextPacket {
   const persona = getDisplayName(p.personaId ?? 'ferni');
   // Topics they asked us to forget (forget.ts) are never said back, even from a pick made earlier.
   const userId = (session as { userData?: { userId?: string } }).userData?.userId;
-  const forgotten = userId ? forgottenInProcess(userId) : [];
-  const memories = (call?.facts ?? []).filter((f) => !isForgotten(f.text, forgotten));
+  // FORGET_EVERY_READER: stored topics too (an earlier call's forget), failing closed.
+  const check = forgottenCheckNow(userId, 'packet');
+  const inProcess = userId ? forgottenInProcess(userId) : [];
+  const out = check ?? ((text: string) => isForgotten(text, inProcess));
+  const memories = (call?.facts ?? []).filter((f) => !out(f.text));
   // The honesty note leads the turn's own notes, which keep the plain order.
   const honesty = ASKS_SOURCE.test(p.words) ? [SOURCE_NOTE] : [];
   return assembleContextPacket({

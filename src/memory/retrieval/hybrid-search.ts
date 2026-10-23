@@ -33,7 +33,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { searchEntitiesBM25, type BM25SearchResult } from './bm25-search.js';
 import { searchMemories, type SemanticSearchResult } from './semantic-memory-search.js';
-import { forgottenCheck, remembered } from '../recall/forget-every-reader.js';
+import { forgottenCheck, forgottenCheckNow, remembered } from '../recall/forget-every-reader.js';
 import {
   fuseSearchResults,
   reciprocalRankFusion,
@@ -344,7 +344,7 @@ export async function hybridSearch(
   // another they took ~280 ms against a 245 ms limit, so retrieval timed out
   // on 103 of 103 dev turns. Merge in a fixed order for stable fusion.
   const legs = { bm25: bm25ListsRun, vector: vectorListsRun, entity: entityListsRun };
-  const forgottenRun = forgottenCheck(userId); // FORGET_EVERY_READER: the keyword legs too
+  const forgottenRun = checkWithin(userId, legDeadlineMs); // FORGET_EVERY_READER: the keyword legs too
   const late = new Set(Object.keys(legs));
   for (const [name, leg] of Object.entries(legs)) {
     const finished = (): boolean => late.delete(name);
@@ -475,6 +475,16 @@ export async function vectorOnlySearch(
 // ============================================================================
 // EXPORTS (types are exported inline above)
 // ============================================================================
+
+/**
+ * FORGET_EVERY_READER's check, never waited on past the leg deadline: then the
+ * last topics read for the caller apply, and with none, nothing is kept.
+ */
+async function checkWithin(userId: string, ms: number | undefined) {
+  const run = forgottenCheck(userId);
+  if (ms === undefined || (await settlesWithin(run, ms))) return run;
+  return forgottenCheckNow(userId);
+}
 
 /** Whether `promise` settles within `ms`; it keeps running either way. */
 async function settlesWithin(promise: Promise<unknown>, ms: number): Promise<boolean> {
