@@ -12,6 +12,7 @@
  * @module config/flags/index.generated
  */
 export { ATTUNE_LEDGER } from './ATTUNE_LEDGER.js';
+export { BARGE_IN_FAST_STOP } from './BARGE_IN_FAST_STOP.js';
 export { BARGE_IN_SOFT_PAUSE } from './BARGE_IN_SOFT_PAUSE.js';
 export { BARGE_IN_SOFT_PAUSE_CONFIRM_MS } from './BARGE_IN_SOFT_PAUSE_CONFIRM_MS.js';
 export { BARGE_IN_SOFT_PAUSE_STT_GRACE_MS } from './BARGE_IN_SOFT_PAUSE_STT_GRACE_MS.js';
@@ -25,4 +26,5 @@ export { PROMPT_HONEST_ACTIONS } from './PROMPT_HONEST_ACTIONS.js';
 export { SAFETY_WHOLE_WORD_SITES } from './SAFETY_WHOLE_WORD_SITES.js';
 export { SLOW_TURN_SOUND } from './SLOW_TURN_SOUND.js';
 export { SPOKEN_PUNCTUATION_NORMALIZE } from './SPOKEN_PUNCTUATION_NORMALIZE.js';
+export { TOOL_ACK_WIDE } from './TOOL_ACK_WIDE.js';
 export {};
