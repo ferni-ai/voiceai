@@ -372,8 +372,8 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     },
 
     setImmediate: async (userId: string, data: T) => {
-      if (shared(userId)) return;
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
+      if (shared(userId)) return; // a shared id is never held (minor-care sharedId)
       cache.set(userId, data);
       dirty.add(userId);
       await flushUser(userId);
