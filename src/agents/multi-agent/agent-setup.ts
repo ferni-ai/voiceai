@@ -84,6 +84,7 @@ import {
   initializeToolOrchestrator,
   isOrchestratorInitialized,
 } from '../../tools/orchestrator/voice-agent-integration.js';
+import { applyPersonaToolPolicy } from '../../tools/orchestrator/persona-tool-policy.js';
 // Tool Gateway (2026 architecture) - tiered loading, predictive prefetch
 import { getToolGateway } from '../../tools/gateway/index.js';
 import {
@@ -986,12 +987,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const toolsCtx = { userId: userId || 'anonymous', sessionId, agentId: persona.id };
   const named = { ...toolsCtx, agentDisplayName: persona.name || persona.id };
   const withJournal = await withCallJournalTools(loadedTools, named); // CALL_JOURNAL=on
-  const orchestratorTools = await withAlwaysOnTools(withJournal, named, isHandoff === true);
+  const withAlwaysOn = await withAlwaysOnTools(withJournal, named, isHandoff === true);
+  const orchestratorTools = await applyPersonaToolPolicy(withAlwaysOn, persona.id); // PERSONA_TOOL_POLICY
 
-  // =========================================================================
-  // 🔍 CRITICAL VISIBILITY: Log exactly what tools are available to LLM
-  // This helps debug "tools not working" issues
-  // =========================================================================
+  // 🔍 Log exactly what tools the LLM gets: this helps debug "tools not working" issues
   const toolCount = Object.keys(orchestratorTools).length;
   const toolNames = Object.keys(orchestratorTools);
   const sampleTools = toolNames.slice(0, 10).join(', ');
