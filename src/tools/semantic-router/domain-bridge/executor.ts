@@ -13,21 +13,9 @@ import type { ServiceRegistry } from '../../registry/types.js';
 import type { ToolExecutionContext, ToolExecutionResult } from '../types.js';
 import type { ToolMapping } from './types.js';
 import { generateFallbackResponse } from './fallbacks.js';
-import { isMemberIdentity } from '../../../services/identity/member-identity.js';
-import { newAnonymousId } from '../../../services/identity/anonymous-session-id.js';
-import { nonAccountPrefixOf } from '../../../utils/synthetic-user.js';
+import { callerIdFor } from '../../../services/identity/call-caller-id.js';
 
 const log = createLogger({ module: 'domain-bridge' });
-
-/**
- * The caller a routed tool runs as. A member, or a per-call anon:/onbehalf: id, is kept. A
- * missing id or a placeholder (`unknown`, `anonymous`, ...) gets a fresh anon: id for this call:
- * the tools key data by it, and a placeholder is one bucket every id-less caller shares.
- */
-function routedCaller(userId: string | undefined): string {
-  const id = userId?.trim();
-  return id && (isMemberIdentity(id) || nonAccountPrefixOf(id)) ? id : newAnonymousId();
-}
 
 /**
  * Execute a domain tool via the semantic router bridge.
@@ -118,7 +106,7 @@ export async function executeDomainTool(
       getOptional: () => undefined,
     };
 
-    const userId = routedCaller(context.userId);
+    const userId = callerIdFor(context.userId, context.sessionId);
     const toolInstance = domainTool.create({
       userId,
       agentId: context.personaId || 'ferni',

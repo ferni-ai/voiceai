@@ -31,10 +31,15 @@ import { executeDomainTool } from '../executor.js';
 
 const MAPPINGS = { note_add: { domainToolId: 'addNote' }, note_list: { domainToolId: 'getNotes' } };
 
-function run(tool: keyof typeof MAPPINGS, userId: string | undefined, note?: string) {
+function run(
+  tool: keyof typeof MAPPINGS,
+  userId: string | undefined,
+  note?: string,
+  sessionId = 's1'
+) {
   const context = {
     userId: userId as string,
-    sessionId: 's1',
+    sessionId,
     personaId: 'ferni',
     conversationHistory: [],
     services: null,
@@ -56,9 +61,9 @@ describe('domain bridge passes the caller to routed tools', () => {
     expect([...notes.keys()]).toEqual(['uid-member']);
   });
 
-  it('two callers without an id never see each other', async () => {
-    await run('note_add', undefined, 'my diagnosis');
-    const other = await run('note_list', 'unknown');
+  it('two callers without an id, in two sessions, never see each other', async () => {
+    await run('note_add', undefined, 'my diagnosis', 'sess-a');
+    const other = await run('note_list', 'unknown', undefined, 'sess-b');
 
     expect(other.naturalResponse).toBe('nothing yet');
     expect(notes.has('default')).toBe(false);
@@ -67,6 +72,11 @@ describe('domain bridge passes the caller to routed tools', () => {
     );
     expect(ids.every((id) => id.startsWith('anon:'))).toBe(true);
     expect(new Set(ids).size).toBe(2);
+  });
+
+  it('an id-less caller hears their own note back later in the same session', async () => {
+    await run('note_add', undefined, 'buy milk', 'sess-c');
+    expect((await run('note_list', 'anon', undefined, 'sess-c')).naturalResponse).toBe('buy milk');
   });
 
   it("keeps a per-call anon: caller's own id", async () => {
