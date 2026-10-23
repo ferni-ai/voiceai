@@ -268,6 +268,7 @@ public struct AvatarView: View {
         rig.reduceMotion = look.reduceMotion
         rig.reading = reading
         rig.lookingAway = lookingAway
+        rig.personSpeaking = personSpeaking
         let dark = look.dark
         rig.dark = dark
         var u = rig.frame(at: seconds)

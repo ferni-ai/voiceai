@@ -26,6 +26,9 @@ public final class AliveRig {
     public var dark = false
     /// Reading along (the consent sheet): eyes down, slow blinks.
     public var reading = false
+    /// The caller is speaking (the agent's voice activity, CallSession.isUserSpeaking):
+    /// listening, he nods in their pauses (`NodTiming`), never over a word.
+    public var personSpeaking = false
     /// Quiet: at rest and blinking, nothing else (no wandering eyes, no
     /// breath or bob). The small Ferni beside a screen's intro line.
     public var blinksOnly = false
@@ -49,7 +52,11 @@ public final class AliveRig {
     private var rng: SplitMix
     private var env = 0.0, lastOnset = -1.0
     private var blink = 0.0, blinkFrom = 0.0, blinkPlan: [(at: Double, dur: Double, to: Double)] = [], blinkSeg: (at: Double, dur: Double, to: Double)?
-    private var nextBlink = 2.5, nextSaccade = 0.0, nextNod = 0.0
+    private var nextBlink = 2.5, nextSaccade = 0.0
+    /// The caller's current pause (nil while they speak), its nod's delay, whether it has had its nod.
+    private var pauseStart: Double?, nodDelay = 0.4, nodded = false, wasPersonSpeaking = false
+    /// When he last nodded along.
+    private(set) var lastNod = -Double.infinity
     private var gazeTarget = SIMD2<Double>(0, 0)
     private var overlay: (id: String, until: Double)?
     private var lastActivity = AvatarActivity.idle
@@ -717,6 +724,7 @@ public final class AliveRig {
         }
         cues = pending
         pending.removeAll()
+        stepPauses()
         let m = motion
         stepMicros()
         stepExpressionAnimation()
@@ -775,6 +783,19 @@ public final class AliveRig {
         return u
     }
 
+    /// The caller's pauses: one begins when they stop speaking, each with its
+    /// own nod delay; speaking again ends it (never a nod mid-word).
+    private func stepPauses() {
+        if personSpeaking {
+            pauseStart = nil
+        } else if wasPersonSpeaking {
+            pauseStart = time
+            nodDelay = rng.range(NodTiming.delay.lowerBound, NodTiming.delay.upperBound)
+            nodded = false
+        }
+        wasPersonSpeaking = personSpeaking
+    }
+
     // MARK: Pace (how fast the view draws him)
 
     /// How far ahead a blink, saccade or nod counts as in flight: a frame at
@@ -803,7 +824,8 @@ public final class AliveRig {
         if blinking || nextBlink <= soon { return true }
         if listeningMicros.contains(where: { $0.at <= soon }) { return true }
         if !blinksOnly, nextSaccade <= soon { return true }
-        if activity == .listening, !lookingAway, nextNod <= soon { return true }
+        if activity == .listening, !lookingAway, !personSpeaking, !nodded, let start = pauseStart,
+           start + nodDelay <= soon, time - start <= NodTiming.latest { return true }
         if guestPersona != nil, g.nextBlink <= soon || time - g.blinkAt < 0.15 { return true }
         return false
     }
@@ -924,7 +946,12 @@ public final class AliveRig {
         // doesn't, the look is giving you the moment (critic L: he nodded on).
         if activity == .listening, !lookingAway {
             self[.pitch].t -= 0.06
-            if !still, time > nextNod { self[.pitch].v -= 1.3 * m; nextNod = time + rng.range(1.6, 3.0) }
+            if !still, NodTiming.due(now: time, personSpeaking: personSpeaking, pauseStart: pauseStart, delay: nodDelay,
+                                     nodded: nodded, lastNod: lastNod) {
+                self[.pitch].v -= 1.3 * m
+                nodded = true
+                lastNod = time
+            }
         }
     }
 
