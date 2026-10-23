@@ -21,7 +21,6 @@ import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { ReadableStream, type ReadableStream as NodeReadableStream } from 'node:stream/web';
 
-import { flagOn } from '../../config/env-flag.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import {
   stripInstructionBlocks,
@@ -389,7 +388,6 @@ async function createStreamingOverlapTTS(
       toFrames: (pcm) => splitIntoFrames(pcm, sampleRate, frameDurationMs),
       onFirstAudio: markFirstAudio,
       onStage: markFirstAudio.stage,
-      wordTimings: flagOn('TTS_ALIGNED_TRANSCRIPT'),
       onError: (err, phase) =>
         log.warn({ err: String(err), phase, sessionId, personaId }, 'Continuous reply TTS failed'),
     });

@@ -24,6 +24,7 @@ import { sendReplyTone } from './reply-tone-signal.js';
 import type { ReplyStream } from './providers/cartesia-reply-stream.js';
 import type { SSMLProsodyConfig } from './types.js';
 import { ReplyWordTimings } from './word-timings.js';
+import { flagOn } from '../../config/env-flag.js';
 
 // Big emotions widened the voice's pitch range (8.7 to 10.9 st) and swung it
 // between turns; only the measured-stable set reaches Cartesia (#180).
@@ -131,7 +132,7 @@ export interface ContinuationOptions {
   /** Timing marks for the first-audio log: first LLM text in, first text sent. */
   onStage?(stage: 'text' | 'push'): void;
   onError(error: unknown, phase: 'text' | 'audio'): void;
-  /** Put the reply stream's word timings on the frames (TTS_ALIGNED_TRANSCRIPT). */
+  /** Put the reply stream's word timings on the frames (default: TTS_ALIGNED_TRANSCRIPT). */
   wordTimings?: boolean;
 }
 
@@ -291,7 +292,8 @@ export function createContinuationTTS(opts: ContinuationOptions): NodeReadableSt
     async start(controller) {
       const feeding = feed();
       let heardAudio = false;
-      const timings = opts.wordTimings ? new ReplyWordTimings() : null;
+      const timings =
+        (opts.wordTimings ?? flagOn('TTS_ALIGNED_TRANSCRIPT')) ? new ReplyWordTimings() : null;
       const onTrimmed = timings
         ? (ms: number) => {
             timings.trimmed(ms);

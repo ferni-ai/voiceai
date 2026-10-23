@@ -41,7 +41,7 @@ class FakeWs extends EventEmitter {
 }
 
 /** One gateway reply: real socket routing, reply stream and continuation, fake wire. */
-function gatewayReply(wordTimings: boolean, text = ['Oh that is great.']) {
+function gatewayReply(wordTimings: boolean | undefined, text = ['Oh that is great.']) {
   const ws = new FakeWs();
   const socket = new CartesiaSocket(
     () => 'wss://test',
@@ -159,7 +159,8 @@ describe('gateway Cartesia request', () => {
 
 describe('gateway word timings on frames', () => {
   it('puts Cartesia word timings on the frames, with start and end, in order', async () => {
-    const r = gatewayReply(true);
+    vi.stubEnv('TTS_ALIGNED_TRANSCRIPT', 'on'); // the gateway leaves wordTimings to the flag
+    const r = gatewayReply(undefined);
     const out = drain(r.stream as never);
     await sent(r.ws);
     await r.chunk(100);
@@ -196,7 +197,8 @@ describe('gateway word timings on frames', () => {
   });
 
   it('flag off: byte-identical frames to main, no timings, even if Cartesia sent some', async () => {
-    const r = gatewayReply(false);
+    vi.stubEnv('TTS_ALIGNED_TRANSCRIPT', 'off');
+    const r = gatewayReply(undefined);
     const out = drain(r.stream as never);
     await sent(r.ws);
     await r.chunk(100, 7);
