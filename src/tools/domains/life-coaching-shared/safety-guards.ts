@@ -6,7 +6,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import { saysPhrase } from '../../../utils/safety-whole-word.js';
+import { saysPhrase, saysRiskPhrase } from '../../../utils/safety-whole-word.js';
 import type { SafetyAssessment, CrisisResource, EmotionalState } from './types.js';
 
 const log = getLogger();
@@ -149,7 +149,7 @@ export function assessSafety(text: string): SafetyAssessment {
 
   for (const [category, indicators] of Object.entries(CRISIS_INDICATORS)) {
     for (const indicator of indicators) {
-      if (saysPhrase(lower, indicator)) {
+      if (saysRiskPhrase(lower, indicator)) {
         flags.push(`${category}: "${indicator}"`);
 
         // Add appropriate resources

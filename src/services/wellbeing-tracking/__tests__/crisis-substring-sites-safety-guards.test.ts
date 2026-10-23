@@ -20,6 +20,7 @@ vi.mock('../../../utils/safe-logger.js', async (actual) => {
 });
 
 import { assessSafety } from '../../../tools/domains/life-coaching-shared/safety-guards.js';
+import { riskCorpus } from './crisis-corpus.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -33,10 +34,15 @@ type Case = [string, string];
 describe('life-coaching assessSafety (crisis = immediate referral + 988)', () => {
   const CASES: Case[] = [
     ['just spend it all on yourself', 'I want to end it all'],
-    ["I can't go online at work", "I can't go on"],
     ['I want to skill them up', 'I want to kill them'],
-    ['the self-harmony workshop', 'I keep thinking about self-harm'],
   ];
+  // Crisis indicators read recall-first: a phrase that starts at a word edge
+  // counts however the word ends, so these stay crisis (accepted false positives).
+  const REOPENED = ["I can't go online at work", 'the self-harmony workshop'];
+  it.each(REOPENED)('on: %j stays crisis, as with the flag off', (line) => {
+    flag('on');
+    expect(assessSafety(line).level).toBe('crisis');
+  });
   it.each(CASES)('off: %j is crisis, as today', (everyday) => {
     flag('off');
     expect(assessSafety(everyday).level).toBe('crisis');
@@ -90,15 +96,16 @@ describe('inflected real-risk forms stay matched (whole-word mode is a superset 
   );
 });
 
-describe('negation guard on "suicidal"', () => {
+describe('no negation guard on crisis indicators (on never reads less than off)', () => {
   it.each([
     "I'm not suicidal",
     'I was never suicidal',
     "I'm not really suicidal",
     'it isn’t suicidal',
-  ])('on: %j is not crisis', (line) => {
+    "I'm not suicidal or anything, but I did write out my final wishes and passwords",
+  ])('on: %j stays crisis, as with the flag off', (line) => {
     flag('on');
-    expect(assessSafety(line).level).not.toBe('crisis');
+    expect(assessSafety(line).level).toBe('crisis');
   });
   it.each(["I'm suicidal", "I'm not okay, I'm suicidal", 'I feel suicidal'])(
     'on: %j is crisis',
@@ -121,5 +128,32 @@ describe('shadow and the flag split', () => {
   it('the STT forms flag alone leaves every site as it is', () => {
     vi.stubEnv('EARLY_WARNING_STT_FORMS', 'on');
     expect(assessSafety('just spend it all on yourself').level).toBe('crisis');
+  });
+});
+
+describe('recall: crisis indicators never read less risk than the substring check', () => {
+  it.each([
+    'they want to kill themselves',
+    'I could hurt themselves',
+    'my suicidality is back',
+    'I am a self-harmer',
+    'it was self-harmful',
+    'I have been thinking about selfharm',
+    'self harm again',
+    'self-harm again',
+    "I'm suicidal",
+  ])('on: %j is crisis', (line) => {
+    flag('on');
+    expect(assessSafety(line).level).toBe('crisis');
+  });
+  it('corpus: no real-risk fixture line that is crisis off drops below crisis on', () => {
+    const drops: string[] = [];
+    for (const line of riskCorpus()) {
+      flag('off');
+      const off = assessSafety(line).level === 'crisis';
+      flag('on');
+      if (off && assessSafety(line).level !== 'crisis') drops.push(line);
+    }
+    expect(drops).toEqual([]);
   });
 });
