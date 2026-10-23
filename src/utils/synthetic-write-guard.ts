@@ -66,12 +66,13 @@ import {
 } from '@google-cloud/firestore';
 import { createLogger } from './safe-logger.js';
 import {
-  PLACEHOLDER_IDS,
   isProdFirestore,
+  isSharedPlaceholderId,
   isSyntheticPhone,
   syntheticOwnerPrefix,
   type SyntheticOwnerPrefix,
 } from './synthetic-user.js';
+import { ERASED_STORES } from '../services/platform/user-stores.js';
 
 const log = createLogger({ module: 'synthetic-write-guard' });
 
@@ -82,26 +83,14 @@ export const PROD_EVAL_WRITES_VALUE = 'voice-eval';
 const ALLOWABLE: SyntheticOwnerPrefix = 'voice-eval-';
 
 const USER_RECORD_ROOTS = new Set(['bogle_users', 'users']);
-/** Root collections whose doc id is a user id (a placeholder doc there is everyone's). */
-const USER_KEYED_ROOTS = new Set([
-  ...USER_RECORD_ROOTS,
-  'spotify_tokens',
-  'engagement_profiles',
-  'user_seeds',
-  'user_tool_profiles',
-  'user_preferences',
-  'user_contacts',
-  'profiles',
-  'user_profiles',
-]);
-/** Owner ids that are one bucket for every caller without an id (lower case). */
-const SHARED_OWNERS: ReadonlySet<string> = new Set([
-  ...PLACEHOLDER_IDS,
-  'anon',
-  'session',
-  'gateway',
-  'gateway-recovery',
-]);
+/**
+ * Collection paths whose document id is the person's uid: the stores account deletion walks
+ * (user-stores.ts ERASED_STORES, `doc: 'uid'`), never a list kept here. A field-keyed store
+ * (own doc ids, the person in a field) and anything else (tool_usage_stats/<toolId>) pass.
+ */
+const UID_STORE_PATHS: readonly string[][] = ERASED_STORES.flatMap((s) =>
+  'doc' in s ? [s.collection.split('/')] : []
+);
 const OWNER_FIELDS = ['userId', 'user_id', 'ownerId', 'uid'] as const;
 const WRITE_METHODS = new Set(['commit', 'batchWrite']);
 const GUARDED = Symbol.for('ferni.syntheticWriteGuard');
@@ -132,7 +121,7 @@ interface WriteProto {
 
 /** `projects/<p>/databases/<d>/documents/<path>` → [project, database, path segments] */
 function parseName(name: string): [string, string, string[]] | null {
-  const m = /^projects\/([^/]+)\/databases\/([^/]+)\/documents\/(.+)$/.exec(name);
+  const m = /^projects\/([^/]+)\/databases\/([^/]+)\/documents\/([\s\S]+)$/.exec(name);
   return m ? [m[1] as string, m[2] as string, (m[3] as string).split('/')] : null;
 }
 
@@ -158,8 +147,12 @@ function prodSegments(write: WriteProto, env: Env): string[] | null {
  */
 export function sharedBucketOwner(write: WriteProto, env: Env = process.env): string | null {
   const segs = prodSegments(write, env);
-  const owner = segs && USER_KEYED_ROOTS.has(segs[0] as string) ? (segs[1] as string) : null;
-  return owner !== null && SHARED_OWNERS.has(owner.toLowerCase()) ? owner : null;
+  if (!segs) return null;
+  const store = UID_STORE_PATHS.find(
+    (p) => segs.length > p.length && p.every((x, i) => segs[i] === x)
+  );
+  const owner = store ? (segs[store.length] as string) : null;
+  return owner !== null && isSharedPlaceholderId(owner) ? owner : null; // trimmed, any case
 }
 
 /** The test or eval harness owner a write is for, or null. */
@@ -234,6 +227,16 @@ export function realFirestoreClasses(): FirestoreClass[] {
 }
 
 const warned = new Set<string>();
+const warnedShared = new Set<string>();
+
+function warnShared(owner: string, method: string): void {
+  if (warnedShared.size >= 1000 || warnedShared.has(owner)) return;
+  warnedShared.add(owner);
+  log.warn({ owner, method }, 'Dropped a production write under a shared placeholder owner');
+}
+
+/** A commit time for a commit that sent nothing (the SDK reads it as each write's time). */
+const nowProto = () => ({ seconds: Math.floor(Date.now() / 1000), nanos: 0 });
 
 function warnOnce(owner: string, method: string): void {
   if (warned.size >= 1000 || warned.has(owner)) return;
@@ -245,11 +248,18 @@ type Send = (request: unknown) => Promise<unknown>;
 interface BatchWriteResponse {
   writeResults?: unknown[];
   status?: unknown[];
+  commitTime?: unknown;
 }
 
 /**
  * One RPC through the guard: `send` forwards a request to the real client.
  * Exported for tests.
+ *
+ * A write under a shared placeholder owner is dropped and the call RESOLVES, a logged
+ * no-op, with an answer for every write in its place (fail closed by not writing). It
+ * never rejects: the API server and the pubsub worker have no unhandledRejection
+ * handler, and a fire-and-forget write must not take a process down. The rest of the
+ * request, if any, is sent as usual (a member's write in the same batch still lands).
  */
 export async function guardedRequest(
   method: string,
@@ -259,17 +269,42 @@ export async function guardedRequest(
 ): Promise<unknown> {
   const writes = (request as { writes?: WriteProto[] } | undefined)?.writes;
   if (!WRITE_METHODS.has(method) || !writes?.length) return send(request);
+  const shared = writes.map((w) => sharedBucketOwner(w, env));
+  if (shared.every((o) => o === null)) return harnessGuarded(method, request, writes, send, env);
+  for (const owner of new Set(shared)) if (owner !== null) warnShared(owner, method);
+
+  const kept = writes.filter((_, i) => shared[i] === null);
+  const sent = (
+    kept.length
+      ? await harnessGuarded(method, { ...(request as object), writes: kept }, kept, send, env)
+      : {}
+  ) as BatchWriteResponse;
+  let w = 0;
+  const writeResults = shared.map((o) => (o === null ? (sent.writeResults?.[w++] ?? {}) : {}));
+  if (method === 'commit')
+    return { ...sent, writeResults, commitTime: sent.commitTime ?? nowProto() };
+  let st = 0;
+  const status = shared.map((o) =>
+    o === null ? (sent.status?.[st++] ?? { code: 0 }) : { code: 0 }
+  );
+  return { ...sent, writeResults, status };
+}
+
+/** The harness rule (test and eval owners) for a request with no shared-bucket writes. */
+async function harnessGuarded(
+  method: string,
+  request: unknown,
+  writes: WriteProto[],
+  send: Send,
+  env: Env
+): Promise<unknown> {
   const owners = writes.map((w) => refusedOwner(w, env));
   const refused = owners.filter((o): o is string => o !== null);
   if (refused.length === 0) return send(request);
   for (const owner of new Set(refused)) warnOnce(owner, method);
 
   if (method === 'commit') {
-    // Atomic. Any shared-bucket write refuses the whole commit: the persistence store retries
-    // each document alone when a batch fails, so members' writes still land. A commit of only
-    // harness writes is refused; one mixing in other writes is sent whole, as before.
-    const shared = writes.map((w) => sharedBucketOwner(w, env)).find((o) => o !== null);
-    if (shared) throw new SyntheticWriteRefusedError(shared);
+    // Atomic: all or nothing. Refuse only a commit that is all harness writes.
     if (refused.length < writes.length) return send(request);
     throw new SyntheticWriteRefusedError(refused[0] as string);
   }
@@ -283,7 +318,7 @@ export async function guardedRequest(
   const sent = kept.length
     ? ((await send({ ...(request as object), writes: kept })) as BatchWriteResponse)
     : {};
-  const out: Required<BatchWriteResponse> = { writeResults: [], status: [] };
+  const out: Required<Omit<BatchWriteResponse, 'commitTime'>> = { writeResults: [], status: [] };
   let k = 0;
   owners.forEach((owner) => {
     if (owner === null) {
