@@ -47,13 +47,47 @@ function endsWell(text: string, end: number, matched: string): boolean {
   return tail.test(text.slice(end));
 }
 
-/** Whether some match of pattern starts at a word edge and ends well, and is not negated. */
+/**
+ * Everyday words that hold a risk phrase starting inside them, keyed by the
+ * phrase's first word: "spend it all" is not 'end it all', "skill them" is not
+ * 'kill them'. Only these block a match that starts inside a word. Any other
+ * mid-word start still counts, as the substring check did, so typed text with
+ * a missing space keeps its risk: "imsuicidal", "iwant to die", "I want toend
+ * it all" (205 such lines in the eval verify of the #2491 split all dropped
+ * when every match needed a word edge).
+ */
+const EVERYDAY_WORDS: Readonly<Record<string, readonly string[]>> = {
+  end: ['send', 'spend', 'recommend', 'pretend', 'lend', 'bend', 'mend', 'tend', 'vend', 'attend'],
+  kill: ['skill', 'skills'],
+  no: ['casino', 'domino', 'rhino', 'volcano', 'piano', 'techno'],
+  he: ['the', 'she'],
+  die: ['studied', 'indie', 'soldier', 'goodies', 'birdie', 'ladies', 'audience', 'bodies'],
+  harm: ['pharmacy', 'pharma', 'charm', 'charming'],
+  urgent: ['insurgent', 'resurgent'],
+  irs: ['stairs', 'upstairs', 'downstairs', 'chairs', 'pairs', 'repairs', 'affairs', 'theirs'],
+  tax: ['syntax', 'surtax'],
+  audit: ['plaudit'],
+};
+
+/** Whether a match at index may start there: at a word edge, or inside a word that is not listed. */
+function startsWell(text: string, index: number, matched: string): boolean {
+  if (!isWordChar(text[index - 1])) return true;
+  const everyday = EVERYDAY_WORDS[/[\p{L}\p{N}]+/u.exec(matched)?.[0]?.toLowerCase() ?? ''];
+  if (!everyday) return true;
+  let a = index;
+  while (a > 0 && isWordChar(text[a - 1])) a--;
+  let b = index;
+  while (b < text.length && isWordChar(text[b])) b++;
+  return !everyday.includes(text.slice(a, b).toLowerCase());
+}
+
+/** Whether some match of pattern starts well and ends well, and is not negated. */
 function edgeMatch(pattern: RegExp, text: string): boolean {
   const re = new RegExp(pattern.source, `${pattern.flags.replace(/[gy]/g, '')}g`);
   for (let m = re.exec(text); m; m = re.exec(text)) {
     const end = m.index + m[0].length;
     const negated = NOT_BEFORE[m[0]]?.test(sttSpelling(text.slice(0, m.index))) ?? false;
-    if (!isWordChar(text[m.index - 1]) && endsWell(text, end, m[0]) && !negated) return true;
+    if (startsWell(text, m.index, m[0]) && endsWell(text, end, m[0]) && !negated) return true;
     re.lastIndex = m.index + 1;
   }
   return false;
@@ -99,21 +133,22 @@ export function saysPhrase(text: string, phrase: string, env: Env = process.env)
 }
 
 /**
- * Crisis-severity checks with the flag on read recall-first: a match need only
- * start at a word edge and may end in any letters, with no negation guard. So on
- * never reads less risk than the substring check, except where the phrase starts
- * inside a word ("skill them", "spend it all", "send it"). The whole-word ending
+ * Crisis-severity checks with the flag on read recall-first: a match may start
+ * anywhere except inside a listed everyday word (EVERYDAY_WORDS) and may end in
+ * any letters, with no negation guard. So on never reads less risk than the
+ * substring check, except inside those words ("skill them", "spend it all",
+ * "send it"). The whole-word ending
  * and the negation guard dropped real risk: "kill themselves" ('kill them'),
  * "suicidality" ('suicidal'), "self-harmer", "self-harmful", and the labelled
  * risk line "I'm not suicidal or anything, but I did write out my final wishes".
- * Tried on the plain lowercased text, so every substring match that starts at a
- * word edge still counts, and on its STT spelling with the phrase's words allowed
+ * Tried on the plain lowercased text, so every substring match outside those
+ * words still counts, and on its STT spelling with the phrase's words allowed
  * to run together ("self harm", "selfharm"). Low-severity checks keep saysPhrase.
  */
 function startEdgeMatch(pattern: RegExp, text: string): boolean {
   const re = new RegExp(pattern.source, `${pattern.flags.replace(/[gy]/g, '')}g`);
   for (let m = re.exec(text); m; m = re.exec(text)) {
-    if (!isWordChar(text[m.index - 1])) return true;
+    if (startsWell(text, m.index, m[0])) return true;
     re.lastIndex = m.index + 1;
   }
   return false;
@@ -138,7 +173,9 @@ export function saysRiskPhrase(text: string, phrase: string, env: Env = process.
     () => text.toLowerCase().includes(phrase),
     () => {
       const [plain, spelled] = riskPatterns(phrase);
-      return startEdgeMatch(plain, text.toLowerCase()) || startEdgeMatch(spelled, sttSpelling(text));
+      return (
+        startEdgeMatch(plain, text.toLowerCase()) || startEdgeMatch(spelled, sttSpelling(text))
+      );
     },
     env
   );
