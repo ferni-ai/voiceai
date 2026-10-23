@@ -20,11 +20,9 @@ function setup(over: Partial<SlowTurnDeps> = {}) {
   const held: string[] = [];
   let lastPlayed = 0;
   let replyAt = Number.NEGATIVE_INFINITY;
-  let decidedAt = Number.NEGATIVE_INFINITY;
   let grave = false;
   let quiet = false;
   let allowed = true;
-  let turnStartedAt = 0;
   let pending: Promise<unknown> | null = null;
   const toolListeners = new Set<(names: readonly string[]) => void>();
   const deps: SlowTurnDeps = {
@@ -35,12 +33,10 @@ function setup(over: Partial<SlowTurnDeps> = {}) {
     },
     lastPlayedAt: () => lastPlayed,
     replyStartedSince: (since) => replyAt >= since,
-    openingDecidedSince: (since) => decidedAt >= since,
     grave: () => grave,
     crisisPending: () => pending,
     stayQuiet: () => quiet,
     soundAllowed: () => allowed,
-    turnStartedAt: () => turnStartedAt,
     mayNeedTool: (text) => /\bcall\b/i.test(text),
     onToolRequested: (l) => {
       toolListeners.add(l);
@@ -56,7 +52,6 @@ function setup(over: Partial<SlowTurnDeps> = {}) {
     opts: { preemptive?: boolean | null; beforeCommit?: () => void } = {}
   ) => {
     session.emit('user_state_changed', { newState: 'speaking' });
-    turnStartedAt = Date.now();
     vi.advanceTimersByTime(800);
     if (opts.preemptive !== null)
       session.emit('ferni_preemptive_decision', { used: opts.preemptive ?? false });
@@ -72,7 +67,6 @@ function setup(over: Partial<SlowTurnDeps> = {}) {
     detach,
     turn,
     replyNow: () => (replyAt = Date.now()),
-    decideNow: () => (decidedAt = Date.now()),
     clipNow: () => (lastPlayed = Date.now()),
     tool: (...names: string[]) => toolListeners.forEach((l) => l(names)),
     setGrave: (g: boolean) => (grave = g),
@@ -161,15 +155,6 @@ describe('attachSlowTurnSound', () => {
         vi.advanceTimersByTime(100);
       },
     });
-    afterWait();
-    expect(h.played).toEqual([]);
-  });
-
-  it('no sound once the opener gate has the reply opening (its "Mm," would double)', () => {
-    const h = setup();
-    h.turn('can you call my sister for me');
-    vi.advanceTimersByTime(300);
-    h.decideNow();
     afterWait();
     expect(h.played).toEqual([]);
   });

@@ -1,8 +1,6 @@
 /**
- * Wires the slow-turn sound (slow-turn-sound.ts) into a live call: the clip
- * player, the reply's progress at TTS, the shared one-sound-per-turn ledger,
- * the crisis gate, the call's closing signals and the tool signal. Attached
- * only with SLOW_TURN_SOUND on (live-call-behaviors.ts).
+ * The slow-turn sound (slow-turn-sound.ts) on a live call's real signals.
+ * Attached only with SLOW_TURN_SOUND on (live-call-behaviors.ts).
  *
  * @module agents/integrations/slow-turn-wiring
  */
@@ -19,28 +17,17 @@ import {
   replyAudioSince,
   replyTextSince,
 } from '../../speech/output-control/reply-activity.js';
-import {
-  callerTurnStartedAt,
-  noteOpeningSound,
-  openingDecidedSince,
-  openingSoundAllowed,
-  trackTurnSounds,
-} from './opening-sound-ledger.js';
+import { noteOpeningSound, openingSoundAllowed, trackTurnSounds } from './opening-sound-ledger.js';
 import { sessionIsGrave } from './presence-heavy.js';
-import { attachSlowTurnSound } from './slow-turn-sound.js';
-import { noteTurnOpenedBySound } from './turn-opening-sound.js';
+import { attachSlowTurnSound, type SlowTurnDeps } from './slow-turn-sound.js';
 
-interface Clips {
-  playClip: (text: string) => boolean;
-  lastPlayedAt: () => number;
-  wireDelayMs?: () => number;
-}
+type Clips = Pick<SlowTurnDeps, 'playClip' | 'lastPlayedAt'> & { wireDelayMs?: () => number };
 
 function musicPlaying(): boolean {
   try {
     return getDJController().isMusicActive();
   } catch {
-    return false; // DJ controller not initialized: no music
+    return false; // no DJ controller: no music
   }
 }
 
@@ -50,24 +37,21 @@ export function attachSlowTurnSoundToCall(
   clips: Clips,
   personaId: () => string
 ): () => void {
-  const events = session as Parameters<typeof attachSlowTurnSound>[0];
+  const events = session as NodeJS.EventEmitter;
   trackTurnSounds(events);
   return attachSlowTurnSound(events, {
     playClip: clips.playClip,
     lastPlayedAt: clips.lastPlayedAt,
     replyStartedSince: (since) =>
       replyTextSince(sessionId, since) || replyAudioSince(sessionId, since),
-    openingDecidedSince: (since) => openingDecidedSince(session, since),
     grave: () => crisisDecidedOn(session) || sessionIsGrave(session),
     crisisPending: () => crisisVerdictPending(session),
-    // Never-silent's stayQuiet plus the caller's own goodbye or hang-up words.
     stayQuiet: (words) =>
       stayQuiet(sessionId) ||
       musicPlaying() ||
       callerSaysGoodbye(words) ||
       callerAsksToHangUp(words),
     soundAllowed: () => openingSoundAllowed(session),
-    turnStartedAt: () => callerTurnStartedAt(session),
     mayNeedTool,
     onToolRequested: (listener) => onToolNamesRequested(session, listener),
     // The reply waits until the clip has played on the wire (24 kHz mono s16le: 48 bytes a ms).
@@ -79,7 +63,6 @@ export function attachSlowTurnSoundToCall(
       ),
     noteOpened: () => {
       noteOpeningSound(session, 'slow');
-      noteTurnOpenedBySound(session);
       noteTurnOpened(sessionId); // LAUGH_CAP: no laugh opening this reply too (laugh-ledger.ts)
     },
   });

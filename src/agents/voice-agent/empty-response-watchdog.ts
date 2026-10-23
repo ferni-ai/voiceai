@@ -114,35 +114,23 @@ export function signalToolCallRequested(session: object, names: readonly string[
       log.error({ error: String(error) }, 'Tool-call listener failed');
     }
   });
-  notifyToolNames(session, names); // even unnamed: a tool was asked for
+  signalToolNames(session, names); // even unnamed: a tool was asked for
 }
 
 const toolNameListeners = new WeakMap<object, Set<(names: readonly string[]) => void>>();
 
-/**
- * Subscribe to the names of the tools a reply asks for: the first tool chunk's
- * and any new ones later in the same reply (an endCall after a look-up), which
- * onToolCallRequested, once per reply, does not repeat. Returns an unsubscribe.
- */
+/** The names of the tools a reply asks for: the first chunk's and any later new one. */
 export function onToolNamesRequested(
   session: object,
   listener: (names: readonly string[]) => void
 ): () => void {
-  let listeners = toolNameListeners.get(session);
-  if (!listeners) {
-    listeners = new Set();
-    toolNameListeners.set(session, listeners);
-  }
-  listeners.add(listener);
+  const listeners = toolNameListeners.get(session) ?? new Set();
+  toolNameListeners.set(session, listeners.add(listener));
   return () => listeners.delete(listener);
 }
 
-/** Report new tool names later in a reply (signalToolCallRequested reports the first). */
+/** Tool names a reply asked for (an endCall after a look-up comes in a later chunk). */
 export function signalToolNames(session: object, names: readonly string[]): void {
-  if (names.length) notifyToolNames(session, names);
-}
-
-function notifyToolNames(session: object, names: readonly string[]): void {
   toolNameListeners.get(session)?.forEach((listener) => {
     try {
       listener(names);

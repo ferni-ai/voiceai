@@ -24,25 +24,16 @@ export function signalCrisisDecision(session: unknown, action: string | undefine
   emitter.emit?.(CRISIS_GATE_SIGNAL, { action });
 }
 
-const pendingVerdicts = new WeakMap<object, Promise<void>>();
+const pendingVerdicts = new WeakMap<object, Promise<unknown>>();
 
-/**
- * The classifier holds this session's reply until `verdict` settles (crisis-gate.ts
- * holdUntilCleared): no casual sound meanwhile (slow-turn-sound.ts).
- */
-export function noteCrisisVerdictPending(session: unknown, verdict: Promise<unknown>): void {
-  if (typeof session !== 'object' || session === null) return;
-  const settled: Promise<void> = verdict
-    .then(() => undefined)
-    .catch(() => undefined)
-    .finally(() => {
-      if (pendingVerdicts.get(session) === settled) pendingVerdicts.delete(session);
-    });
-  pendingVerdicts.set(session, settled);
+/** The classifier holds this reply until `verdict` settles: no casual sound meanwhile. */
+export function noteCrisisVerdictPending(session: object, verdict: Promise<unknown>): void {
+  pendingVerdicts.set(session, verdict);
+  const clear = (): void => {
+    if (pendingVerdicts.get(session) === verdict) pendingVerdicts.delete(session);
+  };
+  verdict.then(clear, clear);
 }
 
-/** The session's pending crisis verdict, or null when nothing holds its reply. */
-export function crisisVerdictPending(session: unknown): Promise<void> | null {
-  if (typeof session !== 'object' || session === null) return null;
-  return pendingVerdicts.get(session) ?? null;
-}
+export const crisisVerdictPending = (session: object): Promise<unknown> | null =>
+  pendingVerdicts.get(session) ?? null;

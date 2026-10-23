@@ -116,13 +116,9 @@ export function tapToolCalls<T>(
 
 /** LiveKit runs only `function_call` entries (generation.js), so only those count. */
 function toolCallNames(chunk: unknown): string[] {
-  if (typeof chunk !== 'object') return [];
-  const delta = (
-    chunk as { delta?: { toolCalls?: Array<{ type?: string; name?: string }> } } | null
-  )?.delta;
-  return (delta?.toolCalls ?? [])
-    .filter((call) => call.type === 'function_call')
-    .map((call) => call.name ?? '');
+  const calls = (chunk as { delta?: { toolCalls?: Array<{ type?: string; name?: string }> } })
+    ?.delta?.toolCalls;
+  return (calls ?? []).filter((c) => c.type === 'function_call').map((c) => c.name ?? '');
 }
 
 /**

@@ -16,7 +16,7 @@ import {
 } from '../../../speech/output-control/reply-activity.js';
 import { SLOW_TURN } from '../slow-turn-sound.js';
 import { attachSlowTurnSoundToCall } from '../slow-turn-wiring.js';
-import { attachTurnOpeningSound, turnOpenedSince } from '../turn-opening-sound.js';
+import { attachTurnOpeningSound, replyOpenedBySound } from '../turn-opening-sound.js';
 
 let n = 0;
 function call(opts: { early?: boolean } = {}) {
@@ -88,10 +88,19 @@ describe('slow-turn sound on the real call signals', () => {
     const c = call();
     c.turn('tell me about it', true);
     signalToolCallRequested(c.session);
-    const since = Date.now();
     vi.advanceTimersByTime(SLOW_TURN.waitMs);
     expect(c.played.map((p) => p.text)).toEqual(['Mm']);
-    expect(turnOpenedSince(c.session, since)).toBe(true);
+    expect(replyOpenedBySound(c.session, Date.now() + 1)).toBe(true); // a reply asked after it too
+    c.detach();
+  });
+
+  it('once the opener gate has decided the reply opening, no sound (its "Mm," would double)', () => {
+    const c = call();
+    c.turn('can you call my sister for me');
+    vi.advanceTimersByTime(300);
+    replyOpenedBySound(c.session, Date.now()); // the opener gate decides the reply's opening
+    vi.advanceTimersByTime(SLOW_TURN.waitMs);
+    expect(c.played).toEqual([]);
     c.detach();
   });
 
