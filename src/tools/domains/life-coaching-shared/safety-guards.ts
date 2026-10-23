@@ -6,6 +6,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import { saysPhrase } from '../../../utils/safety-whole-word.js';
 import type { SafetyAssessment, CrisisResource, EmotionalState } from './types.js';
 
 const log = getLogger();
@@ -146,10 +147,9 @@ export function assessSafety(text: string): SafetyAssessment {
   const flags: string[] = [];
   const resources: CrisisResource[] = [];
 
-  // Check for crisis indicators
   for (const [category, indicators] of Object.entries(CRISIS_INDICATORS)) {
     for (const indicator of indicators) {
-      if (lower.includes(indicator)) {
+      if (saysPhrase(lower, indicator)) {
         flags.push(`${category}: "${indicator}"`);
 
         // Add appropriate resources
@@ -175,7 +175,7 @@ export function assessSafety(text: string): SafetyAssessment {
   // Check for concerning indicators
   let concernCount = 0;
   for (const indicator of CONCERNING_INDICATORS) {
-    if (lower.includes(indicator)) {
+    if (saysPhrase(lower, indicator)) {
       concernCount++;
     }
   }
