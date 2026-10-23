@@ -45,6 +45,21 @@ describe('TOOL_ACK_WIDE tool coverage', () => {
     expect(await spokenBefore('getContactInfo', 'What is Dana’s number?', {})).toBe('');
   });
 
+  it('flag off: the grave check never runs (the session is not even read)', async () => {
+    let reads = 0;
+    const session = {
+      get history() {
+        reads += 1;
+        return { items: [] };
+      },
+    };
+    expect(await spokenBefore('callOnBehalf', 'Can you call my sister?', {}, session)).toBe('');
+    expect(await spokenBefore('getContactInfo', 'Look up Dana’s number.', {}, session)).toBe('');
+    expect(reads).toBe(0);
+    await spokenBefore('callOnBehalf', 'Can you call my sister?', ON, session);
+    expect(reads).toBeGreaterThan(0); // the probe works: flag on reads it
+  });
+
   it('flag on: a call or contact change the caller asked for gets "On it." and nothing that sounds done', async () => {
     const session = {};
     for (let round = 0; round < 3; round++) {
