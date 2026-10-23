@@ -8,7 +8,9 @@
  * linter's thousands of old errors failed every PR), so nobody looked. A
  * ratchet fails only when a change makes things worse:
  *
- * - a file over 500 lines grows, or a new file starts over 500 lines;
+ * - in the files a change touches, compared with its merge base (size-diff.ts): a new
+ *   file over 300 lines, a file over 500 that grows or crosses 500, a function over 150
+ *   lines that is new or grows by more than max(5, 2%), more `as unknown as` casts;
  * - any critical brand-copy violation (BRAND-VOICE-GUIDE.md's banned phrases);
  * - more brand-copy warnings, or more errors for any brand-lint rule
  *   (console.* in app code, hardcoded colors), than the baseline.
@@ -26,6 +28,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { dirname, join, relative } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { changedSources, sizeRegressions } from './size-diff.js';
 import { checkWebsiteThemeDebt } from './website-theme-debt.js';
 
 export const MAX_LINES = 500;
@@ -35,7 +38,7 @@ const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'ratchet-baseline
 const SIZE_ROOTS = ['src', 'apps/web/src', 'apps/cli/src'];
 
 export interface Measurement {
-  /** path → lines, for files over MAX_LINES */
+  /** path → lines, for files over MAX_LINES (a scoreboard: size-diff.ts gates growth against the merge base) */
   oversized: Record<string, number>;
   brandCritical: number;
   brandWarnings: number;
@@ -215,14 +218,6 @@ async function measure(): Promise<Measurement> {
 /** What got worse than the baseline. Empty when the change may land. */
 export function regressions(base: Measurement, now: Measurement): string[] {
   const out: string[] = [];
-  for (const [file, lines] of Object.entries(now.oversized)) {
-    const before = base.oversized[file];
-    if (before === undefined) {
-      out.push(`${file}: ${lines} lines, over the ${MAX_LINES}-line limit (new or newly over). Split it.`);
-    } else if (lines > before) {
-      out.push(`${file}: grew ${before} → ${lines} lines. Files over ${MAX_LINES} lines may not grow; split or shrink it.`);
-    }
-  }
   if (now.brandCritical > 0) {
     out.push(`${now.brandCritical} critical brand-copy violation(s): run check-brand-compliance.ts --all.`);
   }
@@ -326,7 +321,10 @@ async function main(): Promise<void> {
     console.log(`Baseline lowered: ${summary(base)}  →  ${summary(next)}`);
     return;
   }
-  const worse = [...regressions(base, now), ...checkWebsiteThemeDebt()];
+  const started = Date.now();
+  const size = changedSources(SIZE_ROOTS, isSource);
+  console.log(`Size, against base ${size.base.slice(0, 9)}: ${size.changes.length} touched source files (${Date.now() - started} ms).`);
+  const worse = [...regressions(base, now), ...sizeRegressions(size.changes), ...checkWebsiteThemeDebt()];
   console.log(`Quality ratchet. Baseline: ${summary(base)}\n                 Now:      ${summary(now)}`);
   if (worse.length > 0) {
     console.log(`\n❌ ${worse.length} regression(s):\n${worse.map((w) => `  - ${w}`).join('\n')}`);
