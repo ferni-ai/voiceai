@@ -56,7 +56,7 @@ export interface LoadOptions {
 export interface PersistenceStore<T> {
   /** Get data for a user */
   get: (userId: string) => Promise<T | null>;
-  /** Set data for a user (queued for batch write). The read guard doesn't apply here yet */
+  /** Set data for a user (queued for batch write); dropped while the user's last load failed */
   set: (userId: string, data: T, options?: WriteOptions) => void;
   /** Set data and write immediately; rejects (ReadFailedWriteError) while the last load failed */
   setImmediate: (userId: string, data: T, options?: WriteOptions) => Promise<void>;
@@ -348,11 +348,12 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       return load(userId);
     },
 
-    set: (userId: string, data: T) => {
+    set: (userId: string, data: T, options?: WriteOptions) => {
       if (isShutdown) {
         log.warn({ collection, userId }, 'Attempted to set data after shutdown');
         return;
       }
+      if (guard.refuses(userId, options)) return; // not cached: the next get() reads again
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);

@@ -406,7 +406,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
   try {
-    const data = await getPersistence().load(userId);
+    const data = await getPersistence().load(userId, { strict: 'read' });
     if (data?.history) {
       changeTalkHistory.set(userId, data.history.map(deserializeInstance));
     }
@@ -414,7 +414,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
     log.debug({ userId }, 'Loaded change talk history from persistence');
   } catch (error) {
     log.warn({ error, userId }, 'Failed to load change talk history');
-    loadedUsers.add(userId);
+    // not marked loaded: the next call reads again; nothing is saved over unread data
   }
 }
 

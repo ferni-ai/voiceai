@@ -173,7 +173,7 @@ function getPersistence(): PersistenceStore<PersistedUserUnsaidProfile> {
 async function ensureUserLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
   try {
-    const data = await getPersistence().load(userId);
+    const data = await getPersistence().load(userId, { strict: 'read' });
     if (data) {
       userProfiles.set(userId, deserializeProfile(data));
     }
@@ -181,7 +181,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
     log.debug({ userId }, 'Loaded unsaid profile from persistence');
   } catch (error) {
     log.warn({ error, userId }, 'Failed to load unsaid profile');
-    loadedUsers.add(userId);
+    // not marked loaded: the next call reads again; nothing is saved over unread data
   }
 }
 

@@ -151,6 +151,20 @@ describe('PersistenceStore after a failed load', () => {
     expect(state.docs.get(PATH)).toEqual({ samples: ['a', 'b', 'c'] });
   });
 
+  it('set() drops the write while the last load failed, and writes again after a good load', async () => {
+    failed.add(PATH);
+    await store.load('u1');
+    store.set('u1', { samples: ['defaults'] });
+    await store.flush();
+    expect(writesTo(PATH)).toEqual([]);
+
+    failed.clear();
+    expect(await store.get('u1')).toEqual({ samples: ['a', 'b', 'c'] }); // nothing cached: reads
+    store.set('u1', { samples: ['a', 'b', 'c', 'd'] });
+    await store.flush();
+    expect(state.docs.get(PATH)).toMatchObject({ samples: ['a', 'b', 'c', 'd'] });
+  });
+
   it('a doc that reads but fails to convert counts as a failed read, not a good one', async () => {
     state.docs.set(PATH, { samples: ['a'], broken: () => 'not cloneable' }); // data() throws
     expect(await store.load('u1')).toBeNull();

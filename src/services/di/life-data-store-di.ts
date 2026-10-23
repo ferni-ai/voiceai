@@ -235,7 +235,7 @@ export class LifeDataStoreService {
     if (this.loadedUsers.has(userId)) return;
 
     try {
-      const data = await this.getPersistence().load(userId);
+      const data = await this.getPersistence().load(userId, { strict: 'read' });
       if (data) {
         if (data.milestones) {
           this.milestones.set(userId, data.milestones.map(deserializeMilestone));
@@ -251,7 +251,7 @@ export class LifeDataStoreService {
       this.getLogger().debug({ userId }, 'Loaded life data from persistence');
     } catch (error) {
       this.getLogger().warn({ error, userId }, 'Failed to load life data');
-      this.loadedUsers.add(userId);
+      // not marked loaded: the next call reads again; nothing is saved over unread data
     }
   }
 
