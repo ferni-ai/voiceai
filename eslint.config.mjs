@@ -2,6 +2,7 @@ import eslint from '@eslint/js';
 import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import prettier from 'eslint-plugin-prettier';
+import { builtinRules } from 'eslint/use-at-your-own-risk';
 
 // NOTE: To enable import ordering rules, install eslint-plugin-import:
 // npm install -D eslint-plugin-import eslint-import-resolver-typescript
@@ -21,6 +22,21 @@ import prettier from 'eslint-plugin-prettier';
  * 3. Maintainability - Readable, self-documenting code
  * 4. Consistency - Uniform style across codebase
  */
+
+/**
+ * `process.env.X === 'on'` (or `'true'`, either side, `!==` too): a flag read that skips flagOn,
+ * so it misses the other vocabulary and the manifest default. Exported for its test
+ * (src/config/__tests__/env-flag-compare-lint.test.ts).
+ */
+const ENV = (side) => `[${side}.object.object.name='process'][${side}.object.property.name='env']`;
+export const ENV_FLAG_COMPARE = [
+  `BinaryExpression[operator=/^[!=]==?$/]${ENV('left')}[right.value=/^(on|true)$/]`,
+  `BinaryExpression[operator=/^[!=]==?$/]${ENV('right')}[left.value=/^(on|true)$/]`,
+].map((selector) => ({
+  selector,
+  message:
+    "Read env flags with flagOn/flagModeOf (src/config/env-flag.ts), not a raw === 'on'|'true' check.",
+}));
 
 export default [
   // ============================================================================
@@ -563,6 +579,22 @@ export default [
     rules: {
       '@typescript-eslint/no-misused-promises': ['error', { checksConditionals: true }],
       '@typescript-eslint/no-floating-promises': 'error',
+    },
+  },
+
+  // ============================================================================
+  // ENV FLAGS ARE READ IN ONE PLACE (code-health 2026-10-23, G7)
+  // no-restricted-syntax under its own id, so it can be an error while the logger
+  // selectors above stay warnings. Only env-flag.ts (flagOn itself) is exempt. The 112 existing
+  // sites are in eslint-suppressions.json (ESLint bulk suppressions): a new one fails, and the
+  // lint-coverage ratchet fails until a fixed one is pruned (`npx eslint --prune-suppressions <file>`).
+  // ============================================================================
+  {
+    files: ['src/**/*.ts'],
+    ignores: ['src/config/env-flag.ts', '**/*.test.ts', '**/*.spec.ts', '**/__tests__/**', 'src/tests/**'],
+    plugins: { ferni: { rules: { 'no-env-flag-compare': builtinRules.get('no-restricted-syntax') } } },
+    rules: {
+      'ferni/no-env-flag-compare': ['error', ...ENV_FLAG_COMPARE],
     },
   },
 
