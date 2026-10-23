@@ -1,9 +1,7 @@
 /**
- * The real reads behind GET /api/on-it: the follow-through store (live and
- * changed lately), the errand store's open errands while ERRANDS is on, and
- * the topics the person asked Ferni to forget, matched the way the follow-up
- * job does (via firestoreHoldingDeps). Kept apart from the route so tests can
- * swap the stores and still run the real route.
+ * The real reads behind GET /api/on-it (follow-ups, open errands while ERRANDS
+ * is on, forgotten topics via firestoreHoldingDeps), apart from the route so
+ * tests can swap the stores and still run the real route.
  *
  * @module api/on-it-deps
  */
@@ -12,14 +10,11 @@ import type { Errand } from '../services/errands/index.js';
 import type { FollowUp } from '../services/follow-through/index.js';
 import { firestoreHoldingDeps } from './follow-through-upcoming-deps.js';
 
+/** Each read throws when its store can't be read; openErrands is null while errands are off. */
 export interface OnItDeps {
-  /** Open or surfaced follow-ups. Throws when the store can't be read. */
   live: (userId: string) => Promise<FollowUp[]>;
-  /** Follow-ups updated in [from, to). Throws when the store can't be read. */
   changed: (userId: string, from: Date, to: Date) => Promise<FollowUp[]>;
-  /** Open errands, or null while errands are off. Throws when the store can't be read. */
   openErrands: (userId: string) => Promise<Errand[] | null>;
-  /** True for text about a forgotten topic. Throws when the list can't be read. */
   forgottenMatcher: (userId: string) => Promise<(text: string) => boolean>;
 }
 

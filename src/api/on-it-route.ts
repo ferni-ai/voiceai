@@ -1,14 +1,9 @@
 /**
- * GET /api/on-it: "Ferni's on it", what Ferni is holding and doing for the
- * signed-in person (services/on-it/on-it.ts), for the app's screen and its
- * Home row. Read only: nothing here sends or approves.
- *
- * - Off unless FERNI_ON_IT is on; off, the engagement router doesn't claim
- *   the path, so it 404s like any unknown one.
- * - The person is the verified caller (requireAuth), never a uid from the
- *   query or body, not even an admin's named target.
- * - Any failed read (follow-ups, errands, or the forgotten topics) answers
- *   503: an empty view only ever means nothing is held or doing.
+ * GET /api/on-it: "Ferni's on it" for the signed-in person (services/on-it).
+ * Read only. Off unless FERNI_ON_IT: the router then doesn't claim the path,
+ * so it 404s like any unknown one. The person is the verified caller, never a
+ * uid from the query or body. Any failed read (follow-ups, errands, forgotten
+ * topics) answers 503: an empty view only ever means nothing is there.
  *
  * @module api/on-it-route
  */
@@ -22,11 +17,9 @@ import { firestoreOnItDeps, type OnItDeps } from './on-it-deps.js';
 
 const log = createLogger({ module: 'on-it-route' });
 
-export const ON_IT_PATH = '/api/on-it';
-
 /** True when this path is the route and the flag is on; otherwise it's an unknown path. */
 export function isOnItRoute(pathname: string, env: Env = process.env): boolean {
-  return pathname === ON_IT_PATH && flagOn('FERNI_ON_IT', env);
+  return pathname === '/api/on-it' && flagOn('FERNI_ON_IT', env);
 }
 
 /** Handles the route; false (nothing written) when it isn't this route or the flag is off. */
