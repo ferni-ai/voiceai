@@ -132,6 +132,13 @@ describe('the turn after a clear no', () => {
       'To be honest, kind of.',
       'I lied. I have.',
       "Wait, I wasn't being honest.",
+      // Take-backs with no yes (the lead's review of #2516).
+      "Actually... I don't know.",
+      "I didn't want to say it.",
+      "It's been really bad, honestly.",
+      'Can we not talk about that.',
+      'I said no but…',
+      'not really no… I mean…',
     ]) {
       const session = await released();
       expect(screenAnswer(session, { latest: 'No.', companion: ASKED })).toBe('none');
@@ -144,6 +151,8 @@ describe('the turn after a clear no', () => {
       ['Yeah.', GOOD, 'positive'],
       ['I have.', GOOD, 'positive'],
       ['Sometimes.', GOOD, 'positive'],
+      ['Well. Sometimes, maybe.', GOOD, 'positive'],
+      ['Well. Sometimes, maybe.', ASKS_TOO, 'none'],
       ['Yeah.', ASKS_TOO, 'none'],
       ['Yes please.', ASKS_TOO, 'none'],
       ['Kind of, yeah.', 'Are you hungry yet?', 'none'],
@@ -162,6 +171,9 @@ describe('the turn after a clear no', () => {
       'Seven works.',
       'Okay, thanks!',
       "Sounds good, I'll text him.",
+      "Actually, let's do seven.",
+      'Honestly, pie is the best.',
+      'No, but thanks for asking!',
     ]) {
       const session = await released();
       await gate(session, after(), 'No.');
@@ -231,7 +243,9 @@ describe('an SSML acknowledgement after the question', () => {
     expect((await pipeline(session, after(), 'No.')).indicators).not.toContain(
       'grounded_screen_positive'
     );
-    // The gate sees the acknowledgement and the caller's merged words: the same turn, re-judged.
+    // The gate sees the acknowledgement and the caller's merged words: the same turn, re-judged
+    // against the question ("No. Hmm." is not a clear no). Keyed on the acknowledgement, it
+    // would read as the next turn, where "No. Hmm." is no take-back.
     const ctx = request(
       [
         [OPENER, REMINDER],
@@ -240,7 +254,7 @@ describe('an SSML acknowledgement after the question', () => {
       []
     );
     ctx.addMessage({ role: 'assistant', content: '<break time="300ms"/>Mm-hm.' });
-    for (const line of ['No.', 'Kind of.']) ctx.addMessage({ role: 'user', content: line });
+    for (const line of ['No.', 'Hmm.']) ctx.addMessage({ role: 'user', content: line });
     expect(crisisGuidance(await decide(session, ctx))).toBe(true);
   });
 });

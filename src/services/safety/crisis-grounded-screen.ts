@@ -95,20 +95,35 @@ function clearNo(answer: string): boolean {
 }
 
 /**
- * The caller's turn after the answer, judged once (#2511): a no taken back ("Actually, yes, I
- * have.", "Honestly... sometimes.") or a yes after the gentle offer ("Yeah, I have been.").
- * Not "anything but a clear no": a release follows an ordinary turn, so the next turn is
- * usually ordinary ("Pie, obviously.") and would get 988. A bare yes counts only when Ferni
- * asked nothing since, so it can't be answering Ferni's own question ("Want me to text him?").
+ * The caller's turn after the answer, judged once (#2511): a no taken back or a yes after the
+ * gentle offer. Not "anything but a clear no": a release follows an ordinary turn, so the next
+ * turn is usually ordinary ("Pie, obviously.") and would get 988. Positive, whatever Ferni
+ * said between, on a take-back anywhere in the turn (the caller's later words merge into one
+ * turn: "Okay. Actually, yes, I have."):
+ * - "actually" with a yes or not knowing ("Actually... I don't know.");
+ * - an honesty marker with a yes, not knowing or a bad stretch ("It's been really bad, honestly.");
+ * - owning the no ("I lied", "I said no but…", "I didn't want to say it");
+ * - steering away from the question ("Can we not talk about that.");
+ * - a no that trails off ("not really no… I mean…").
+ * A bare yes ("Yeah.", "Sometimes, maybe.") counts only when Ferni asked nothing since, so it
+ * can't be answering Ferni's own question ("Want me to text him?").
  */
-// A take-back marker anywhere in the turn: the caller's later words merge into one turn
-// ("Okay. Actually, yes, I have.").
-const TAKE_BACK =
-  "(?:actually|honestly|truthfully|to be honest|tbh|ngl|not gonna lie|if i'?m honest)";
 const AFFIRM =
   "(?:yes|yeah|yep|yup|ya|mhm|uh huh|mm hmm|mm hm|i have|i do|i am|i'?ve been|i did|sometimes|kind of|kinda|sort of|a little|a bit|maybe|i guess|i think so|i mean yeah|more than)";
+const UNSURE = "(?:i don'?t know|i do not know|idk|dunno|not sure|i'?m not sure|hard to say)";
+const BAD =
+  "(?:it'?s been|it has been|things have been|i'?ve been|been) (?:really |pretty |so |kind of |kinda )?(?:bad|hard|rough|awful|terrible|dark|heavy|not good|not great|struggling)";
+const HONEST =
+  "(?:honestly|truthfully|to be honest|tbh|ngl|not gonna lie|if i'?m honest|in all honesty)";
 const TAKES_BACK = new RegExp(
-  `(?:^| )(?:${TAKE_BACK} ${AFFIRM}|i lied|i was lying|i wasn'?t (?:being )?honest|i take (?:that|it) back)\\b`
+  [
+    `(?:^| )actually (?:${AFFIRM}|${UNSURE})\\b`,
+    `(?:^| )${HONEST}\\b.*(?:^| )(?:${AFFIRM}|${UNSURE}|${BAD})\\b`,
+    `(?:^| )(?:${AFFIRM}|${UNSURE}|${BAD})\\b.*(?:^| )${HONEST}\\b`,
+    "(?:^| )(?:i lied|i was lying|i wasn'?t (?:being )?(?:honest|truthful)|i take (?:that|it) back|i said no (?:but|because)|i shouldn'?t have said no|that'?s not (?:totally |entirely |really )?true|i didn'?t want to (?:say|tell|admit|worry|scare|upset))\\b",
+    "(?:^| )(?:can we not (?:talk|get into)|i don'?t want to (?:talk|get into)|i'?d rather not (?:talk|say|get into)|let'?s not (?:talk|go there|get into)|change the subject|drop it|talk about something else)\\b",
+    `^(?:${NO_FILLER}|um |uh |well )*(?:no|nope|nah|not really)(?: no| nope| really)*(?: (?:i mean|but|although|except|well|kind of|sort of|maybe|${UNSURE}))+$`,
+  ].join('|')
 );
 const AFFIRMS = new RegExp(`^(?:${NO_FILLER}|um |uh |well |so |i mean )*${AFFIRM}\\b`);
 
