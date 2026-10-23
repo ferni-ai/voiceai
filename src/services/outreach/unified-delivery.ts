@@ -15,6 +15,7 @@
 import { getDisplayName } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { resolveFirebaseProjectId } from '../../utils/firebase-admin-app.js';
 import type { GeneratedContent, OutreachType } from './llm-content-generator.js';
 
 const log = createLogger({ module: 'UnifiedDelivery' });
@@ -114,9 +115,8 @@ async function loadCredentials(): Promise<Credentials> {
     };
     log.info('FCM credentials loaded from env vars');
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GCP_PROJECT_ID) {
-    // Use application default credentials
     credentials.fcm = {
-      projectId: process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'ferni-prod',
+      projectId: resolveFirebaseProjectId() ?? '',
       privateKey: '', // Will use applicationDefault() instead
       clientEmail: '',
     };
