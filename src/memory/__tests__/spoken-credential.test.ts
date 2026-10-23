@@ -287,6 +287,36 @@ describe('credentialCategory: review probe, ordinary facts are kept', () => {
   });
 });
 
+describe('credentialCategory: a credential named in a longer value (#2514)', () => {
+  // The model's own phrasing of a fact ("User's PIN is 4321"), with a lead-in or an owner.
+  const named: Array<[string, CredentialCategory]> = [
+    ['remember my PIN is 4321', 'pin'],
+    ["User's PIN is 4321", 'pin'],
+    ["Seth's debit card PIN is 4321", 'pin'],
+    ['remember the wifi password is sunshine42', 'password'],
+    ['the gate code is four eight two one', 'access-code'],
+    ['my SSN is 123-45-6789', 'id-number'],
+    ['routing number 021000021', 'id-number'],
+  ];
+  it.each(named)('note = %s is a credential (%s)', (value, category) => {
+    expect(credentialCategory('note', value)).toBe(category);
+    expect(credentialCategory('asked_to_remember', value)).toBe(category);
+  });
+
+  const ordinary = [
+    'my locker is number 12 on the third floor',
+    'I ran 5k in 31 minutes',
+    "my mom's birthday is 4/21",
+    'my PIN pad at work is broken',
+    'my password is 12 characters long',
+    'the door code is 4 digits',
+    'I moved into unit 1204 last spring',
+  ];
+  it.each(ordinary)('note = %s is kept', (value) => {
+    expect(credentialCategory('note', value)).toBeNull();
+  });
+});
+
 describe('dropSpokenCredentials', () => {
   it('keeps ordinary facts in order and counts the rest by category, never by value', () => {
     const facts = [

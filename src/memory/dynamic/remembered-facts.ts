@@ -8,7 +8,8 @@
  * dynamic_facts as the caller's own: source caller_asserted, confidence 1 (as
  * a correction typed in the app is, memory-control.ts), so recall's confidence
  * term ranks it at least as high as any extracted fact. It is embedded on
- * write (fact-embeddings.ts, RECALL_VECTOR_INDEX).
+ * write (fact-embeddings.ts, RECALL_VECTOR_INDEX). A fact holding a credential is
+ * never written, whatever SPOKEN_CREDENTIAL_FILTER says (spoken-credential.ts).
  *
  * One document per fact text (factDocId), created and never overwritten: the
  * same thing remembered twice is one fact, and a fact the caller forgot
@@ -24,7 +25,7 @@
 
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { withoutSpokenCredentials } from '../spoken-credential.js';
+import { credentialCategory, logCredentialDrops } from '../spoken-credential.js';
 import { factDocId } from './extraction-firestore-docs.js';
 import { withFactEmbeddings, type FactEmbeddingDeps } from './fact-embeddings.js';
 
@@ -56,8 +57,11 @@ export interface FactDocWrite {
 export function rememberedFactDoc(r: RememberedFact, at: string): FactDocWrite | null {
   const value = r.fact.replace(/\s+/g, ' ').trim();
   if (!value) return null;
-  // SPOKEN_CREDENTIAL_FILTER: a door code they asked to remember is no fact for recall either
-  if (withoutSpokenCredentials([{ key: REMEMBERED_KEY, value }], 'remember').length === 0) {
+  // Always, flag or not: a PIN or password they asked Ferni to remember never becomes an
+  // embedded, recallable fact (the memories write is the tool's own, unchanged)
+  const credential = credentialCategory(REMEMBERED_KEY, value);
+  if (credential) {
+    logCredentialDrops('remember', { [credential]: 1 });
     return null;
   }
   return {
