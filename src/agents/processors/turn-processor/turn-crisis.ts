@@ -25,6 +25,7 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
+import { secondReadOf } from '../../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
@@ -84,7 +85,13 @@ export interface TurnCrisis {
 export function startTurnCrisis(
   userText: string,
   userData:
-    | { voiceEmotion?: unknown; recentTranscripts?: string[]; lastAgentResponse?: string }
+    | {
+        voiceEmotion?: unknown;
+        recentTranscripts?: string[];
+        lastAgentResponse?: string;
+        /** The call's turn count: the second read's turn (crisis-second-read-turn.ts). */
+        turnCount?: number;
+      }
     | undefined,
   options: {
     sessionId?: string;
@@ -132,7 +139,10 @@ export function startTurnCrisis(
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);
-  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
+  // CRISIS_CLASSIFIER_SECOND_READ: the gate's decision for the turn (crisis-second-read-turn.ts).
+  const secondRead = secondReadOf('pipeline', userData, patterns.subject);
+  const run = { pattern, env, generate, scope, call, secondRead } as const;
+  const classifier = startCrisisClassifier(input, run);
   type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
   let settled: Promise<Settled> | null = null;
   const settleTurn = (): Promise<Settled> =>

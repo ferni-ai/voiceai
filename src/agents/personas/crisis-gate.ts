@@ -40,6 +40,7 @@ import {
   type CrisisGenerateFn,
 } from '../../services/safety/crisis-classifier.js';
 import { crisisRiskThisCall, noteCrisisRisk } from '../../services/safety/crisis-call-risk.js';
+import { secondReadOf } from '../../services/safety/crisis-second-read-turn.js';
 import {
   GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
@@ -239,9 +240,11 @@ export function startCrisisGate(
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, { latest, earlier, companion });
   const groundedPrior = groundedPriorRisk(call, latest);
+  // CRISIS_CLASSIFIER_SECOND_READ: the gate decides for the turn (crisis-second-read-turn.ts).
+  const secondRead = secondReadOf('gate', userData, detection.subject);
   const run = startCrisisClassifier(
     { latest, earlier, companion },
-    { pattern, env, generate, scope, call }
+    { pattern, env, generate, scope, call, secondRead }
   );
   if (run?.mode !== 'live' || decision.action === 'replace') {
     return { decision, escalation: null, reask };
