@@ -41,8 +41,7 @@ import {
   type ReminderDeliveryMethod,
 } from '../../../services/scheduling/reminder-scheduler.js';
 import { getLogger } from '../../../utils/safe-logger.js';
-import { isMemberIdentity } from '../../../services/identity/member-identity.js';
-import { nonAccountPrefixOf } from '../../../utils/synthetic-user.js';
+import { callerIdFor } from '../../../services/identity/call-caller-id.js';
 import { runContextTimeZone, userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
   sanitizeEmailForLog,
@@ -66,9 +65,7 @@ import { getCallUserPort } from '../proactive/outreach/call-user-port.js';
 // Get Alex's voice ID from the registry (single source of truth)
 const getAlexVoiceId = () => getVoiceId('alex-chen');
 
-// ============================================================================
-// TYPES
-// ============================================================================
+// ===== TYPES =====
 
 interface DraftedEmail {
   id: string;
@@ -96,19 +93,29 @@ interface ScheduledCall {
 const emailDrafts = new Map<string, Map<string, DraftedEmail>>();
 const scheduledCalls = new Map<string, Map<string, ScheduledCall>>();
 
-/** The caller's own items (LiveKit's ctx.userData.userId); an id-less caller keeps none. */
-function own<T>(store: Map<string, Map<string, T>>, ctx: unknown): Map<string, T> {
+/** The caller (LiveKit's ctx.userData.userId); an id-less caller gets one anon: id per session. */
+function callerOf(ctx: unknown): string {
+  const run = ctx as { userData?: { userId?: unknown }; session?: unknown } | undefined;
+  const session = [run?.session, run?.userData].find((v) => v && typeof v === 'object') ?? null;
+  return callerIdFor(run?.userData?.userId, session);
+}
+
+/** A reminder is kept: only the caller's own id (member or minted anon:), never a stand-in. */
+function reminderOwner(ctx: unknown): string | undefined {
   const raw = (ctx as { userData?: { userId?: unknown } } | undefined)?.userData?.userId;
   const id = typeof raw === 'string' ? raw.trim() : '';
-  if (!id || !(isMemberIdentity(id) || nonAccountPrefixOf(id))) return new Map();
+  return id && callerIdFor(id) === id ? id : undefined;
+}
+
+/** The caller's own items; a read leaves no entry behind, a write creates one. */
+function own<T>(store: Map<string, Map<string, T>>, ctx: unknown, write = false): Map<string, T> {
+  const id = callerOf(ctx);
   const items = store.get(id) ?? new Map<string, T>();
-  store.set(id, items);
+  if (write) store.set(id, items);
   return items;
 }
 
-// ============================================================================
-// EMAIL FUNCTIONS (Real SendGrid Integration)
-// ============================================================================
+// ===== EMAIL FUNCTIONS (Real SendGrid Integration) =====
 
 /** Draft an email with a specific tone - creates a draft for user review */
 function draftEmail(
@@ -182,9 +189,7 @@ async function sendApprovedEmailReal(
   return result;
 }
 
-// ============================================================================
-// SMS FUNCTIONS (Real Twilio Integration)
-// ============================================================================
+// ===== SMS FUNCTIONS (Real Twilio Integration) =====
 
 /** Send a text message via Twilio */
 async function sendTextReal(to: string, message: string, userId: string): Promise<string> {
@@ -196,9 +201,7 @@ async function sendTextReal(to: string, message: string, userId: string): Promis
   return guardedThirdPartySend(phone, message, userId, () => sendSMS(phone, message));
 }
 
-// ============================================================================
-// PHONE CALL FUNCTIONS (Twilio Programmable Voice)
-// ============================================================================
+// ===== PHONE CALL FUNCTIONS (Twilio Programmable Voice) =====
 
 /** Initiate an outbound phone call via Twilio */
 async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Promise<string> {
@@ -259,9 +262,7 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
   }
 }
 
-// ============================================================================
-// VOICE MESSAGE FUNCTIONS (Cartesia TTS + Twilio MMS)
-// ============================================================================
+// ===== VOICE MESSAGE FUNCTIONS (Cartesia TTS + Twilio MMS) =====
 
 /** Generate and send a voice message using Alex's voice */
 async function sendVoiceMessageReal(to: string, message: string): Promise<string> {
@@ -309,9 +310,7 @@ async function sendVoiceMessageRealWithUserId(
   }
 }
 
-// ============================================================================
-// REMINDER FUNCTIONS (Persistent + Scheduled)
-// ============================================================================
+// ===== REMINDER FUNCTIONS (Persistent + Scheduled) =====
 
 /** Schedule a reminder with automatic delivery, and record Ferni's promise to send it. */
 async function scheduleReminderReal(params: {
@@ -423,9 +422,7 @@ function getRemindersForUser(userId: string): string {
   return `📋 **Your Reminders:**\n\n${reminderList}`;
 }
 
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
+// ===== UTILITY FUNCTIONS =====
 
 /** Parse natural language into a scheduled time */
 export function parseScheduleTime(naturalTime: string): Date | null {
@@ -476,9 +473,7 @@ export function parseScheduleTime(naturalTime: string): Date | null {
   return null;
 }
 
-// ============================================================================
-// TOOL DEFINITIONS
-// ============================================================================
+// ===== TOOL DEFINITIONS =====
 
 export function createCommunicationTools() {
   return {
@@ -496,7 +491,7 @@ export function createCommunicationTools() {
           .describe('Email tone'),
       }),
       execute: async ({ to, subject, context, tone }, { ctx }) => {
-        const draft = draftEmail(to, subject, context, tone, own(emailDrafts, ctx));
+        const draft = draftEmail(to, subject, context, tone, own(emailDrafts, ctx, true));
 
         return `📧 Here's the draft:\n\n**To:** ${draft.to}\n**Subject:** ${draft.subject}\n\n${draft.body}\n\n---\nShould I send this, adjust the tone, or edit anything?`;
       },
@@ -573,7 +568,8 @@ export function createCommunicationTools() {
           ),
       }),
       execute: async ({ message, when, deliveryMethod }, { ctx }) => {
-        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId || 'unknown';
+        const userId = reminderOwner(ctx);
+        if (!userId) return "I can't set that reminder right now. Want me to try again?";
         // Only the account's verified phone or email (call-user port): never a number the
         // model passes, never the model-written profile.contactInfo.
         const port = getCallUserPort();
@@ -597,9 +593,8 @@ export function createCommunicationTools() {
       description: getToolDescription('listReminders'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'unknown';
-        return getRemindersForUser(userId);
+        const userId = reminderOwner(ctx);
+        return userId ? getRemindersForUser(userId) : `You don't have any pending reminders.`;
       },
     }),
 
@@ -608,9 +603,12 @@ export function createCommunicationTools() {
       parameters: z.object({
         reminderId: z.string().describe('The reminder ID (last 6 characters shown when created)'),
       }),
-      execute: async ({ reminderId }) => {
-        // Try to find by partial ID
-        const success = await cancelReminder(reminderId);
+      execute: async ({ reminderId }, { ctx }) => {
+        // Only the caller's own reminder, by its full id or the short id we read out.
+        const id = reminderId.trim();
+        const owner = reminderOwner(ctx);
+        const mine = owner ? getPendingReminders(owner).find((r) => id && r.id.endsWith(id)) : undefined;
+        const success = mine ? await cancelReminder(mine.id) : false;
 
         if (success) {
           return `Got it, I've cancelled that reminder.`;
@@ -631,7 +629,7 @@ export function createCommunicationTools() {
         contact: z.string().optional().describe('Phone or email for the reminder'),
       }),
       execute: async ({ reminderText, when, contactMethod, contact }, { ctx }) => {
-        const userId = (ctx?.userData as { userId?: string } | undefined)?.userId;
+        const userId = reminderOwner(ctx);
         if (!userId) return "I can't set that reminder right now. Want me to try again?";
         return scheduleReminderReal({
           userId,
@@ -792,7 +790,7 @@ export function createCommunicationTools() {
           status: 'scheduled',
         };
 
-        own(scheduledCalls, ctx).set(id, call);
+        own(scheduledCalls, ctx, true).set(id, call);
 
         const timeStr = scheduledTime.toLocaleString('en-US', {
           weekday: 'long',
@@ -837,14 +835,12 @@ export function createCommunicationTools() {
       description: getToolDescription('getCommunicationSummary'),
       parameters: z.object({}),
       execute: async (_, { ctx }) => {
-        const userData = ctx?.userData as { userId?: string } | undefined;
-        const userId = userData?.userId || 'unknown';
-
+        const userId = reminderOwner(ctx);
         const pendingEmails = [...own(emailDrafts, ctx).values()].filter((e) => e.status === 'draft');
         const upcomingCalls = [...own(scheduledCalls, ctx).values()].filter(
           (c) => c.status === 'scheduled' && c.scheduledTime > new Date()
         );
-        const pendingReminders = getPendingReminders(userId);
+        const pendingReminders = userId ? getPendingReminders(userId) : [];
 
         let summary = '📋 **Communication Summary**\n\n';
 
