@@ -8,6 +8,7 @@
  */
 
 import { getLogger } from '../utils/safe-logger.js';
+import { consentBlocks } from './messaging/consent.js';
 import {
   validateEmail,
   validatePhone,
@@ -230,6 +231,10 @@ export async function sendSMS(to: string, message: string): Promise<string> {
       'SMS service is not available: Twilio credentials are not configured. Contact support to enable SMS delivery.'
     );
   }
+
+  // MESSAGING_PIPELINE: every text through here stops at an opt-out (consent/{phoneHash}).
+  const refused = await consentBlocks(to, 'sms', true);
+  if (refused) throw new Error(`SMS not sent: ${refused}`);
 
   const sanitizedMessage = sanitizePlainText(message);
 

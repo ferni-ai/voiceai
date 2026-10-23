@@ -45,6 +45,7 @@ import {
   SOLE_STANDS_DOWN,
 } from '../shared/turn-detector-sole.js';
 import { noteBargeIn } from '../shared/turn-receipt-session.js';
+import { addRecallNote, type RecallAgent } from './recall-note.js';
 
 const log = getLogger();
 
@@ -238,7 +239,8 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
 
   // Texts, calls and emails wait for the caller's own yes (outreach-confirm.ts).
   if (isOutreachConfirmOn()) {
-    const confirm = outreachConfirmListeners(session, () => speakerIsAccountOwner(sessionId));
+    const owner = () => speakerIsAccountOwner(sessionId);
+    const confirm = outreachConfirmListeners(session, owner, confirmNote(session, sessionId));
     const handlers = [
       { event: 'user_input_transcribed', handler: confirm.onTranscript },
       { event: 'function_tools_executed', handler: confirm.onToolsExecuted },
@@ -260,6 +262,17 @@ export function installLiveCallBehaviors(input: LiveCallBehaviorsInput): void {
     for (const { event, handler } of handlers) sessionWithEvents.on(event, handler);
     sessionEventHandlers.push(...handlers);
   }
+}
+
+/** OUTREACH_SERVER_CONFIRM: what the caller's yes sent reaches the model as a mid-call note. */
+function confirmNote(session: { currentAgent: unknown }, sessionId: string) {
+  return (text: string): void => {
+    try {
+      addRecallNote(session.currentAgent as RecallAgent, text);
+    } catch (error) {
+      log.warn({ sessionId, error: String(error) }, 'OUTREACH_SERVER_CONFIRM: note not added');
+    }
+  };
 }
 
 /** Whether the person on the line is the account owner, whose yes may confirm a send. */
@@ -320,13 +333,23 @@ export async function startTurnSounds(input: TurnSoundsInput) {
       await import('../integrations/turn-opening-sound.js');
     const { replyAudioSince, replyTextSince, holdReplyAudio, clearReplyActivity } =
       await import('../../speech/output-control/reply-activity.js');
+    const { forgetLaughs, noteTurnOpened } = await import('../personas/laugh-ledger.js');
     cleanupFunctions.push(() => clearReplyActivity(sessionId));
+    cleanupFunctions.push(() => forgetLaughs(sessionId));
     const earlyWaitMs = earlyOpeningWaitMs();
     if (turnOpeningSoundEnabled()) {
       cleanupFunctions.push(
         attachTurnOpeningSound(
           session as unknown as Parameters<typeof attachTurnOpeningSound>[0],
-          clips,
+          {
+            ...clips,
+            // LAUGH_CAP: the reply a clip opens must not open with a laugh too (laugh-ledger.ts).
+            playClip: (text) => {
+              const played = clips.playClip(text);
+              if (played) noteTurnOpened(sessionId);
+              return played;
+            },
+          },
           input.lastUserFinalTranscript,
           (since) => replyAudioSince(sessionId, since),
           earlyWaitMs === null

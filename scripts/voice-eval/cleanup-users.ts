@@ -109,10 +109,10 @@ if (confirm !== String(targets.length)) {
 // the users were listed from: erasing in another database deletes the wrong records.
 const { getFirestoreDb } = await import('../../src/utils/firestore-utils.js');
 const { ensureFirebaseAdmin } = await import('../../src/services/identity/firebase-auth.js');
-const { getFirestore } = await import('firebase-admin/firestore');
+const { getAdminFirestore } = await import('../../src/utils/firebase-admin-app.js');
 const erasureDbs = [
   getFirestoreDb()?.databaseId ?? '(default)',
-  ensureFirebaseAdmin() ? getFirestore().databaseId : '(default)',
+  ensureFirebaseAdmin() ? getAdminFirestore().databaseId : '(default)',
 ];
 if (erasureDbs.some((d) => d !== database)) {
   console.error(`the erasure clients are on ${erasureDbs.join(', ')}, not ${database}; refusing`);

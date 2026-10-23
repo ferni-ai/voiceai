@@ -289,6 +289,7 @@ import { clearCallNotice, showCallNotice } from './ui/call-status.ui.js';
 import { cancelConnectAttempt, connectWithTimeout } from './app/call-connect.js';
 import { onCallEnded, onCallStarted } from './app/call-end.js';
 import { wrapUpOwnsAgentLeaving, afterConversationEnd, playEndSound } from './app/call-end-paths.js';
+import { watchGoodbyeCeremony } from './app/conversation-continue.js';
 import { connectFailure } from './services/connect-failure.js';
 import { showAgentLostPrompt } from './app/agent-lost-prompt.js';
 import { buildConversationUsageBody } from './services/call-payloads.js';
@@ -787,7 +788,7 @@ class VoiceAIApp {
   private async performGoodbyeCeremony(): Promise<void> {
     log.info('🌅 Beginning goodbye ceremony');
 
-    // Step 1: Update button to show ceremony is happening
+    const ceremony = watchGoodbyeCeremony(); // Step 1: closing button (a continue stops it)
     controlsUI.showClosingState();
 
     // Step 2: Warm goodbye sound (~2s resolving chord), unless the agent's goodbye already played it
@@ -802,8 +803,7 @@ class VoiceAIApp {
     // Step 5: Wait for the ~1.5s settling (the ~2s sound overlaps), then add a pause
     await settlingPromise;
 
-    // Step 6: Brief pause to appreciate the moment (the goodbye "hangs")
-    await new Promise((resolve) => setTimeout(resolve, 400));
+    if (await ceremony.pause(400)) return; // Step 6: the goodbye "hangs"; Ferni may take it back
 
     // Step 7: Phone "click" at the moment of disconnect, like placing down a receiver (one end sound)
     playEndSound('hangup');

@@ -18,6 +18,8 @@ export interface GenerateOptions {
   maxOutputTokens?: number;
   thinkingLevel?: 'MINIMAL' | 'LOW' | 'MEDIUM' | 'HIGH';
   json?: boolean;
+  /** Extra request fields for Gemini (tools, toolConfig), e.g. scripts/persona-eval/internals-probe.ts. */
+  extra?: Record<string, unknown>;
 }
 
 let token = '';
@@ -50,6 +52,7 @@ export async function generate(opts: GenerateOptions): Promise<string> {
       ...(opts.thinkingLevel ? { thinkingConfig: { thinkingLevel: opts.thinkingLevel } } : {}),
       ...(opts.json ? { responseMimeType: 'application/json' } : {}),
     },
+    ...opts.extra,
   });
   for (let attempt = 0; attempt < 5; attempt++) {
     const res = await fetch(url, {

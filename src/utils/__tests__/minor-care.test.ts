@@ -55,6 +55,8 @@ describe('statesUnder18: their own stated age or grade, nothing else', () => {
     'yeah, junior in high school',
     "I'm in high school",
     "I'm in high school, so",
+    "I'm in high school and my kids keep texting me", // a parent exclusion only right after
+    "she said I'm in 10th grade", // reported speech excludes ages, never their grade
     "I'm still in middle school",
     'I go to middle school over on Pine',
     "I'm a high schooler",
@@ -156,7 +158,7 @@ describe('statesUnder18: their own stated age or grade, nothing else', () => {
     '16 years old when I had her',
     'Sixteen years old is when I started working',
     "I'm 12 years old at heart",
-    "I feel 16 years old again",
+    'I feel 16 years old again',
     // a parent at a school
     "I'm in high school right now picking up my kid",
     "I'm in high school now, waiting for my son",
