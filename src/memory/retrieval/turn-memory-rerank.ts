@@ -40,6 +40,9 @@
  * 50 ms race it cannot win. Its heuristic provider drops on word overlap. Its
  * order is discarded anyway, because the cap re-sorts by cosine.
  *
+ * TURN_MEMORY_JUDGE_ASYNC runs the judge in the background instead, and
+ * carries its picks into the next turn (turn-memory-pending.ts).
+ *
  * @module memory/retrieval/turn-memory-rerank
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
@@ -47,6 +50,11 @@ import { getExtractionModel } from '../../config/gemini-config.js';
 import { getGenerativeModel } from '../../config/generative-model.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { HybridSearchResult } from './hybrid-search.js';
+import {
+  gateWithPendingRecall,
+  turnMemoryJudgeAsyncOn,
+  type JudgeVerdict,
+} from './turn-memory-pending.js';
 import {
   MIN_TURN_MEMORY_COSINE,
   scaleTurnMemories,
@@ -125,9 +133,9 @@ Reply with JSON only: {"keep":[[number, confidence 0-1]],"old":[number]}`;
 
 /**
  * The 0-based indexes of the candidates the judge kept, minus any it called
- * old, or null when the reply is not the asked-for JSON.
+ * old, and of those it called old; null when the reply is not the asked-for JSON.
  */
-export function readVerdict(reply: string, count: number): Set<number> | null {
+export function readVerdict(reply: string, count: number): JudgeVerdict | null {
   let parsed: unknown;
   try {
     parsed = JSON.parse(reply.trim().replace(/^```(?:json)?\s*|\s*```$/g, ''));
@@ -137,14 +145,14 @@ export function readVerdict(reply: string, count: number): Set<number> | null {
   const { keep, old } = (parsed ?? {}) as { keep?: unknown; old?: unknown };
   if (!Array.isArray(keep)) return null;
   const index = (n: unknown) => (Number.isInteger(n) && (n as number) >= 1 && (n as number) <= count ? (n as number) - 1 : -1); // prettier-ignore
-  const stale = new Set((Array.isArray(old) ? old : []).map(index));
+  const stale = new Set((Array.isArray(old) ? old : []).map(index).filter((i) => i >= 0));
   const kept = new Set<number>();
   for (const entry of keep) {
     const [n, confidence] = Array.isArray(entry) ? entry : [entry, 1];
     const i = index(n);
     if (i >= 0 && !stale.has(i) && Number(confidence) >= MIN_JUDGE_CONFIDENCE) kept.add(i);
   }
-  return kept;
+  return { keep: kept, old: stale };
 }
 
 /** The extraction model (LLM_EXTRACTION_MODEL), through the shared Gemini client. */
@@ -161,14 +169,22 @@ const askExtractionModel: TurnMemoryJudge = async (prompt) => {
   return (await model.generateContent(prompt)).response.text();
 };
 
+/** The turn being retrieved for: its text, and the session and turn number pending recall needs. */
+interface GatedTurn {
+  transcript: string;
+  sessionId?: string;
+  turnNumber?: number;
+}
+
 /**
  * The per-turn memories that go on to the cap, scored by cosine and best
  * first. With TURN_MEMORY_RRF_SCALE off: `results` unchanged. On without
- * TURN_MEMORY_RERANK: scaleTurnMemories. On with it: the two stages above.
+ * TURN_MEMORY_RERANK: scaleTurnMemories. On with it: the two stages above,
+ * or with TURN_MEMORY_JUDGE_ASYNC, the gate plus pending recall.
  */
 export async function gateTurnMemories(
   results: HybridSearchResult[],
-  transcript: string,
+  turn: GatedTurn,
   rrfScale: boolean,
   metrics: RerankMetrics,
   env: Env = process.env,
@@ -182,6 +198,11 @@ export async function gateTurnMemories(
   const candidates = ranked
     .filter((r) => r.score >= MIN_JUDGE_COSINE)
     .slice(0, MAX_JUDGE_CANDIDATES);
+  const { transcript, sessionId, turnNumber } = turn;
+  if (turnMemoryJudgeAsyncOn(env) && sessionId !== undefined && turnNumber !== undefined) {
+    const ask = async (c: HybridSearchResult[]) => readVerdict(await judge(judgePrompt(transcript, c)), c.length); // prettier-ignore
+    return gateWithPendingRecall(gated, candidates, ranked, { transcript, sessionId, turnNumber }, ask); // prettier-ignore
+  }
   if (timeoutMs === 0 || candidates.length === 0) return gated;
 
   const startedAt = Date.now();
@@ -193,10 +214,10 @@ export async function gateTurnMemories(
         timer = setTimeout(() => reject(new Error(`judge over ${timeoutMs} ms`)), timeoutMs);
       }),
     ]);
-    const kept = readVerdict(reply, candidates.length);
-    if (!kept) throw new Error(`unreadable verdict: ${reply.slice(0, 80)}`);
+    const verdict = readVerdict(reply, candidates.length);
+    if (!verdict) throw new Error(`unreadable verdict: ${reply.slice(0, 80)}`);
     metrics.rerankingApplied = true;
-    return candidates.filter((_, i) => kept.has(i));
+    return candidates.filter((_, i) => verdict.keep.has(i));
   } catch (error) {
     log.debug({ error: String(error), candidates: candidates.length }, 'Judge skipped, runner-up gate used'); // prettier-ignore
     return gated;

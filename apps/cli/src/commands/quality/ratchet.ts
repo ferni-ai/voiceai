@@ -26,6 +26,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'fs';
 import { dirname, join, relative } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { checkWebsiteThemeDebt } from './website-theme-debt.js';
 
 export const MAX_LINES = 500;
 const ROOT = process.cwd();
@@ -325,7 +326,7 @@ async function main(): Promise<void> {
     console.log(`Baseline lowered: ${summary(base)}  →  ${summary(next)}`);
     return;
   }
-  const worse = regressions(base, now);
+  const worse = [...regressions(base, now), ...checkWebsiteThemeDebt()];
   console.log(`Quality ratchet. Baseline: ${summary(base)}\n                 Now:      ${summary(now)}`);
   if (worse.length > 0) {
     console.log(`\n❌ ${worse.length} regression(s):\n${worse.map((w) => `  - ${w}`).join('\n')}`);
