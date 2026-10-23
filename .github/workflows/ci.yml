@@ -950,8 +950,8 @@ jobs:
       - name: Firestore database ratchet
         run: pnpm tsx scripts/ci/firestore-database-ratchet.ts
 
-      # Blocking ratchet: a new file nothing imports, or a file with more unused exports,
-      # fails (knip.json; baseline knip-baseline.generated.json). ~10 s.
+      # Blocking: a file this PR leaves unimported, or more unused exports in a file than at
+      # the merge base, fails (knip.json; knip runs here and on the base). ~10 s.
       - name: Dead code (knip ratchet)
         run: pnpm quality:knip
 
