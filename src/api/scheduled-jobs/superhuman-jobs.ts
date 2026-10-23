@@ -161,10 +161,7 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
         try {
           const milestones = await getMilestonesToCelebrate(userDoc.id);
 
-          const { forgottenCheck } = await import('../../memory/index.js');
-          const forgotten = await forgottenCheck(userDoc.id, 'celebration');
-          for (const milestone of milestones.slice(0, 1)) {
-            if (forgotten?.(`${milestone.label} ${milestone.celebrationSuggestion}`)) continue;
+          for (const milestone of await celebratable(userDoc.id, milestones.slice(0, 1))) {
             const { getOutreachOrchestrator } =
               await import('../../services/outreach/outreach-orchestrator.js');
             const orchestrator = getOutreachOrchestrator();
@@ -211,6 +208,16 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
       timestamp: new Date().toISOString(),
     });
   }
+}
+
+/** FORGET_EVERY_READER: the milestones not about a forgotten topic (none when unreadable). */
+async function celebratable<M extends { label: string; celebrationSuggestion: string }>(
+  userId: string,
+  milestones: M[]
+): Promise<M[]> {
+  const { forgottenCheck } = await import('../../memory/index.js');
+  const forgotten = await forgottenCheck(userId, 'celebration');
+  return milestones.filter((m) => !forgotten?.(`${m.label} ${m.celebrationSuggestion}`));
 }
 
 /**
