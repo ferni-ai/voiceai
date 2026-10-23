@@ -116,3 +116,5 @@ export {
 } from './realtime-memory.js';
 export * from './voice-conversation-memory.js';
 export * from './voice-memory.js';
+// What a caller asks Ferni to remember, written where recall reads it (REMEMBER_TO_RECALL).
+export { rememberToRecall } from '../../memory/dynamic/remembered-facts.js';

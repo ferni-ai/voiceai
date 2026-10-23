@@ -42,7 +42,7 @@ export function rememberToRecallOn(env: Env = process.env): boolean {
 export interface RememberedFact {
   fact: string;
   /** The memories document it copies, so either can be traced to the other. */
-  memoryId: string;
+  memoryId?: string;
   category?: string;
   sessionId?: string;
 }
@@ -73,7 +73,7 @@ export function rememberedFactDoc(r: RememberedFact, at: string): FactDocWrite |
       value,
       confidence: 1,
       ...(r.category && { category: r.category }),
-      memoryId: r.memoryId,
+      ...(r.memoryId && { memoryId: r.memoryId }),
     },
   };
 }
