@@ -5,10 +5,12 @@
  * the model say it connected, and only the live path (CALL_USER_LIVE_AGENT,
  * services/outreach/live-agent-call.ts) is the persona's own voice. Prod
  * 2026-10-22: after "Calling you now." Ferni said the call "connected" and
- * called Twilio's stock voice his own.
+ * called Twilio's stock voice his own. Behind CALL_PLACED_HONEST_REPLY (off:
+ * the old "Calling you now.").
  *
  * @module tools/domains/proactive/outreach/call-placed-reply
  */
+import { flagOn } from '../../../../config/env-flag.js';
 import type { CallUserResult } from './call-user-port.js';
 
 export const CALLING_LIVE =
@@ -23,5 +25,6 @@ export const CALLING_LATER =
 /** The reply for a call that was placed or held; failures are worded by the caller. */
 export function callPlacedReply(result: Pick<CallUserResult, 'status' | 'live'>): string {
   if (result.status === 'scheduled') return CALLING_LATER;
+  if (!flagOn('CALL_PLACED_HONEST_REPLY')) return 'Calling you now.';
   return result.live ? CALLING_LIVE : CALLING_VOICE_MESSAGE;
 }

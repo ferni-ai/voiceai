@@ -3,7 +3,7 @@
  * message in an automated voice. Neither lets the model say the call connected
  * (prod 2026-10-22: "Calling you now." and then "it connected", in Twilio's voice).
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   CALLING_LATER,
@@ -12,7 +12,10 @@ import {
   callPlacedReply,
 } from '../call-placed-reply.js';
 
-describe('callPlacedReply', () => {
+describe('CALL_PLACED_HONEST_REPLY=on', () => {
+  beforeEach(() => vi.stubEnv('CALL_PLACED_HONEST_REPLY', 'on'));
+  afterEach(() => vi.unstubAllEnvs());
+
   it('the live agent ringing: the persona is on that call, but not in this one', () => {
     expect(callPlacedReply({ status: 'initiated', live: true })).toBe(CALLING_LIVE);
     expect(CALLING_LIVE).toMatch(/I'll be on that call myself/);
@@ -33,6 +36,14 @@ describe('callPlacedReply', () => {
 
   it('held for calling hours, live or not', () => {
     expect(callPlacedReply({ status: 'scheduled', live: true })).toBe(CALLING_LATER);
+    expect(callPlacedReply({ status: 'scheduled' })).toBe(CALLING_LATER);
+  });
+});
+
+describe('CALL_PLACED_HONEST_REPLY off (the default)', () => {
+  it('keeps the old reply', () => {
+    expect(callPlacedReply({ status: 'initiated', live: true })).toBe('Calling you now.');
+    expect(callPlacedReply({ status: 'initiated' })).toBe('Calling you now.');
     expect(callPlacedReply({ status: 'scheduled' })).toBe(CALLING_LATER);
   });
 });
