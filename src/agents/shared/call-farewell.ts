@@ -35,6 +35,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
 import { isSessionClosing } from './session-closing-tracker.js';
+import { farewellRisk, stripWarmSymbols } from './farewell-risk.js';
 
 const log = createLogger({ module: 'call-farewell' });
 
@@ -45,6 +46,8 @@ const log = createLogger({ module: 'call-farewell' });
 export const IDLE_AFTER_GOODBYE_MS = 4_000;
 
 const farewells = new Set<string>();
+/** Each watched call's reset, run when it reopens (reopenFarewell). */
+const resets = new Map<string, (lines: readonly string[]) => void>();
 const sessionIds = new WeakMap<object, string>();
 
 export function markFarewell(
@@ -62,6 +65,32 @@ export function farewellSaid(sessionId: string): boolean {
 
 export function clearFarewell(sessionId: string): void {
   farewells.delete(sessionId);
+}
+
+/**
+ * The call reopened after both goodbyes (wrap-up-window.ts): the farewell is
+ * cleared and both earlier goodbyes no longer count. Only a FRESH caller
+ * goodbye and a NEW one from Ferni end the call again (#2523: a risky line the
+ * word check missed, read as none, was then ended by Ferni's "Okay. Bye, take
+ * care."). `lines` are the caller's STT finals whose turns' conversation items
+ * hadn't arrived: those items follow, and are never that fresh goodbye.
+ */
+export function reopenFarewell(sessionId: string, lines: readonly string[] = []): void {
+  farewells.delete(sessionId);
+  resets.get(sessionId)?.(lines);
+}
+
+/** Words only, for telling one transcript of a line from another. */
+const plainWords = (text: string): string =>
+  text
+    .normalize('NFKC')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
+    .trim();
+
+/** `text` contains `line`, as whole words: a turn's item contains each of its STT finals. */
+export function containsLine(text: string, line: string): boolean {
+  return ` ${plainWords(text)} `.includes(` ${plainWords(line)} `);
 }
 
 /** With CALL_WRAP_UP on, both sides have said goodbye on this call. */
@@ -207,7 +236,14 @@ function closingClause(words: readonly string[], closers: ReadonlySet<string>): 
 }
 
 function clauseWords(text: string): string[][] {
-  let t = text.toLowerCase().replace(/[’]/g, "'");
+  // Accents folded ("adiós" is "adios"); only warm symbols dropped ("bye 🙂", "bye :)").
+  // Any other emoji stays a word no goodbye matches ("bye 😢"); letters of any script
+  // stay, so a line in another script never matches a goodbye here.
+  let t = stripWarmSymbols(text)
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .replace(/[’]/g, "'");
   if (t.length > MAX_CALLER_CHARS) {
     // Keep the end, where a goodbye is, and drop the word the cut landed in.
     t = t.slice(-MAX_CALLER_CHARS);
@@ -234,6 +270,44 @@ function endsWith(text: string, closers: ReadonlySet<string>): boolean {
 /** The caller is ending the call: their turn ends on a goodbye or a "hang up". */
 export function callerSaysGoodbye(text: string): boolean {
   return endsWith(text, CLOSERS);
+}
+
+/** Pleasantries that fit a goodbye on their own: "thanks", "you too", "love you", "night". */
+const SIGN_OFFS = new Set([
+  ...AFTERWORDS,
+  ...[
+    'same to you',
+    'you as well',
+    'night',
+    'all right',
+    'yeah',
+    'yep',
+    'cool',
+    'great',
+    'perfect',
+    // Goodnights, a day done, and Spanish ("adiós" is accent-folded, clauseWords)
+    ...expand(['sleep'], ['well', 'tight']),
+    'sweet dreams',
+    ...expand(["i'm", 'im', 'i am'], ['done for'], ['today', 'tonight', 'the day', 'now']),
+    ...['gracias', 'muchas gracias', 'adios', 'ciao', 'cheers'],
+  ],
+]);
+
+/**
+ * The caller is signing off: EVERY clause is a goodbye or a pleasantry that
+ * fits one ("thanks", "thank you", "you too", "love you", "same to you",
+ * "night"), and nothing in the line carries risk (farewell-risk.ts). "I won't
+ * be here tomorrow. Bye." ends on a goodbye, but it is not a sign-off. After
+ * `conversation_end` only a sign-off leaves the call ending (wrap-up-window.ts).
+ */
+export function callerSignsOff(text: string): boolean {
+  if (text.length > MAX_CALLER_CHARS || text.trim().endsWith('?')) return false;
+  const parts = clauseWords(text);
+  return (
+    parts.length > 0 &&
+    parts.every((words) => closingClause(words, CLOSERS) || onlyPhrases(words, 0, SIGN_OFFS)) &&
+    !farewellRisk(text)
+  );
 }
 
 /** The caller asks Ferni to end the call: "hang up now", "you can end the call". */
@@ -306,6 +380,15 @@ export function watchFarewell(
   let callerSaidBye = false;
   let ferniSaidBye = false;
   let hangUpAsked = false;
+  /**
+   * STT finals carried over a reopen whose turns' conversation items haven't
+   * arrived. An item containing one is that turn's own, however late LiveKit
+   * adds it (after the turn's processing and the reply's scheduling, seconds
+   * later; one turn's item may even follow the next turn's finals): it is
+   * skipped. An item containing none is the caller's next turn and ends the
+   * carry. No clock: a timer let a late item through (#2532 verify).
+   */
+  let carried: readonly string[] = [];
   let agent = 'initializing';
   let user = 'listening';
   let timer: unknown = null;
@@ -334,7 +417,16 @@ export function watchFarewell(
   };
 
   const onCaller = (text: string): void => {
-    callerSaidBye = callerSaysGoodbye(text);
+    // A carried turn's own item is not a fresh goodbye
+    if (carried.length > 0) {
+      const left = carried.filter((line) => !containsLine(text, line));
+      const own = left.length < carried.length;
+      carried = own ? left : [];
+      if (own) return;
+    }
+    // A goodbye carrying risk ("I won't be here tomorrow. Bye.") is never one: it carries on
+    const risky = farewellRisk(text);
+    callerSaidBye = !risky && callerSaysGoodbye(text);
     if (isSessionClosing(sessionId)) return;
     if (callerSaidBye) {
       hangUpAsked = hangUpAsked || callerAsksToHangUp(text);
@@ -376,12 +468,17 @@ export function watchFarewell(
   const stop = (): void => {
     cancel();
     clearFarewell(sessionId);
+    resets.delete(sessionId);
     sessionIds.delete(agentSession);
     session.off(EV.ConversationItemAdded, onItem);
     session.off(EV.AgentStateChanged, onAgent);
     session.off(EV.UserStateChanged, onUser);
     session.off(EV.Close, stop);
   };
+  resets.set(sessionId, (lines) => {
+    callerSaidBye = ferniSaidBye = hangUpAsked = false;
+    carried = lines;
+  });
   session.on(EV.ConversationItemAdded, onItem);
   session.on(EV.AgentStateChanged, onAgent);
   session.on(EV.UserStateChanged, onUser);

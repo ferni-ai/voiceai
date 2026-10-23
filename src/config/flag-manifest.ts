@@ -284,6 +284,9 @@ const LEGACY_FLAG_MANIFEST = {
   MORNING_BRIEF_COMMITMENTS: { default: 'off', owner: 'outreach', kind: 'experiment' },
   // on: the caller can name the tune Ferni whistles, or ask him to stop (personas/named-tune-note.ts)
   NAMED_TUNE: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the caller's yes sends the read-back from the server, and sibling call or text tools
+  // share one read-back (tools/domains/communication/outreach/outreach-confirm-family.ts)
+  OUTREACH_SERVER_CONFIRM: { default: 'off', owner: 'outreach', kind: 'experiment' },
   ...FLAGS_MOVE_TO_PHONE_AUDIO,
   // on: a caller who says they're under 18 (and isn't a verified owner): nothing personal stored, a care note (minor-care.ts)
   MINOR_CARE: { default: 'off', owner: 'memory', kind: 'experiment' },
@@ -405,6 +408,8 @@ const LEGACY_FLAG_MANIFEST = {
   // on: per-turn memory search gates on the vector leg's cosine (0.55), not the RRF score no memory reaches, and sends at most TURN_MEMORY_MAX_INJECT (default 3) memories a turn (turn-memory-scale.ts)
   // on (with TURN_MEMORY_RRF_SCALE): per-turn memories pass a runner-up margin, and a model judge when TURN_MEMORY_RERANK_TIMEOUT_MS > 0 (turn-memory-rerank.ts)
   TURN_MEMORY_RERANK: { default: 'off', owner: 'memory', kind: 'experiment' },
+  // on (with TURN_MEMORY_RERANK): the judge runs in the background and its picks join the next caller turn's memories (turn-memory-pending.ts)
+  TURN_MEMORY_JUDGE_ASYNC: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_MEMORY_RRF_SCALE: { default: 'off', owner: 'memory', kind: 'experiment' },
   TURN_SHAPE: { default: 'on', owner: 'voice', kind: 'kill-switch' },
   TURN_STYLE_REMINDER: { default: 'on', owner: 'voice', kind: 'kill-switch' },

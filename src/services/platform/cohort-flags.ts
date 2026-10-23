@@ -122,11 +122,14 @@ export const COHORT_FLAGS = [
   'BOOKENDS', // after the call, through envForCaller (follow-through-import.ts): timed dates
   'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
   'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
+  // Read on each caller final and each gated outbound tool call (outreach-confirm.ts), never cached.
+  'OUTREACH_SERVER_CONFIRM',
   // The UI server's deliver-reminders job reads both per person, through flagForUser
   // (outreach/reminder-reach.ts); setReminder reads REMINDER_SMS_DEFAULT after applyCallerFlags.
   'REMINDER_SMS_DEFAULT',
   'REMINDER_IN_APP_PUSH',
   'WEB_PUSH_DELIVERY', // web server, per person (flagForUser): pushes, after-call ask
+  'FOCUS_HOLD', // web server, per person (personFlagOn): POST /api/me/focus (api/routes/focus.ts)
 ] as const;
 export type CohortFlag = (typeof COHORT_FLAGS)[number];
 const ALLOWED: ReadonlySet<string> = new Set(COHORT_FLAGS);
