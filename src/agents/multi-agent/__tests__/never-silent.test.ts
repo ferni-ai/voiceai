@@ -214,8 +214,12 @@ describe('createNeverSilentGuard', () => {
   });
 
   it('plays the lines pre-rendered after the first reply', async () => {
+    // One second of a loud 220 Hz tone: voiced all through.
+    const data = Int16Array.from({ length: 24_000 }, (_, i) =>
+      Math.round(8000 * Math.sin((2 * Math.PI * 220 * i) / 24_000))
+    );
     const synthesize = vi.fn(async function* () {
-      yield { frame: { samplesPerChannel: 2400 } };
+      yield { frame: { samplesPerChannel: data.length, sampleRate: 24_000, data } };
     });
     const h = setup('on', { tts: { synthesize } });
     h.state('speaking');
