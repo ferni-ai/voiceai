@@ -148,8 +148,8 @@ struct NotificationAsk: View {
     }
 }
 
-/// Whether this build carries notes from Ferni (push). Off until the
-/// server's device route ships (#1991); a build setting, never a server flag
+/// Whether this build carries notes from Ferni (push): on since IB1, with
+/// FERNI_PUSH in every configuration; a build setting, never a server flag
 /// (guideline 2.5.19).
 enum FerniBuild {
     #if FERNI_PUSH

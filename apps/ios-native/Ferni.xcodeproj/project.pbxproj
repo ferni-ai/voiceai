@@ -112,6 +112,7 @@
 		DF31D65CAE25E9D2BDE1B308 /* DeleteAccountUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67FFF0730357D938F61676E9 /* DeleteAccountUITests.swift */; };
 		E094C588E3F4D4ECCDC656EC /* NextStepTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3751457DBC4CF962D924D247 /* NextStepTests.swift */; };
 		E1ABFBCDC6B88A70EC864834 /* CallControlsAtLargeTextTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8DBF14CF40ADDB7A8768FBE /* CallControlsAtLargeTextTests.swift */; };
+		E1D03035F83C6E23859D3C34 /* PushNotesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8159B3B43277DCFCB79D721 /* PushNotesTests.swift */; };
 		E264DB68385FB7094C895AAE /* FerniDesign in Frameworks */ = {isa = PBXBuildFile; productRef = 129CF5787F87ED1DCDD384F0 /* FerniDesign */; };
 		E391C436C8BCB997D029137B /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */; };
 		E67FBA51E487A86BF76A408A /* ReportSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0BB2FE484F27D7679C79CD7 /* ReportSheet.swift */; };
@@ -316,6 +317,7 @@
 		E1A0BAF754F74FF65D6ADCFC /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		E3003E9888FF685BDEA0DD95 /* CaptionSpeakerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaptionSpeakerTests.swift; sourceTree = "<group>"; };
 		E38AE2D3636CD0597F71BC9B /* BackgroundModeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundModeTests.swift; sourceTree = "<group>"; };
+		E8159B3B43277DCFCB79D721 /* PushNotesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushNotesTests.swift; sourceTree = "<group>"; };
 		E92328610DDCDCDEFA3438D6 /* handoff-to-maya.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = "handoff-to-maya.mp3"; sourceTree = "<group>"; };
 		EDC1F42CEAB8576041D1E034 /* PaperScreensUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaperScreensUITests.swift; sourceTree = "<group>"; };
 		F0356DF8A0D911077889805D /* Ferni.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Ferni.entitlements; sourceTree = "<group>"; };
@@ -422,6 +424,7 @@
 				3CC0928CF00671D4E0E8D998 /* NoteTests.swift */,
 				CA97A1BA4C871BBC78CCE319 /* PhoneSignInForwardingTests.swift */,
 				1C18C72F54E1677C5FD4C82C /* PhoneSignInTests.swift */,
+				E8159B3B43277DCFCB79D721 /* PushNotesTests.swift */,
 				C39F5D1C1DE13481A55A4387 /* SharedScreensTests.swift */,
 				49166809F7360686AEAE615A /* SignInPromptTests.swift */,
 				27693C03A0148090C7187B34 /* TeamAtRestTests.swift */,
@@ -933,6 +936,7 @@
 				F8C4CC6E41EE7F5F394E4D21 /* NoteTests.swift in Sources */,
 				7AEB4E80F7300B0C87AEB9C2 /* PhoneSignInForwardingTests.swift in Sources */,
 				B758CBD54564BFB892A51A92 /* PhoneSignInTests.swift in Sources */,
+				E1D03035F83C6E23859D3C34 /* PushNotesTests.swift in Sources */,
 				43BF427F9C73A159BA48B00B /* SharedScreensTests.swift in Sources */,
 				BEF8E5051FBEB918F15A9BF9 /* SignInPromptTests.swift in Sources */,
 				4DAE4DACF6CCF7CB16324945 /* TeamAtRestTests.swift in Sources */,
@@ -999,6 +1003,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.sethdford.ferni;
 				PRODUCT_NAME = Ferni;
 				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) FERNI_PUSH";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -1292,6 +1297,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.sethdford.ferni;
 				PRODUCT_NAME = Ferni;
 				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) FERNI_PUSH";
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};

@@ -134,9 +134,12 @@ targets:
       path: App/Ferni.entitlements
       properties:
         com.apple.developer.applesignin: [Default]
-        # Notes from Ferni (APNs) wait for the server route (#1991, critic C3).
-        # To ship them: add `aps-environment: development` here and FERNI_PUSH to
-        # SWIFT_ACTIVE_COMPILATION_CONDITIONS below, in one commit.
+        # Notes from Ferni (APNs), on with FERNI_PUSH below (IB1). Xcode's
+        # distribution export sets this to production from the App Store
+        # profile; development is what a debug build signs with.
+        aps-environment: development
+        # A note that can break through Focus when the person allowed it.
+        com.apple.developer.usernotifications.time-sensitive: true
     settings:
       base:
         PRODUCT_NAME: Ferni
@@ -147,6 +150,9 @@ targets:
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SWIFT_EMIT_LOC_STRINGS: YES
         ENABLE_PREVIEWS: YES
+        # Notes from Ferni are compiled in (FerniBuild.pushNotes; a build
+        # setting, never a server flag: guideline 2.5.19). Every configuration.
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) FERNI_PUSH"
 
   # App-level logic (AppModel), hosted in the app.
   FerniAppTests:
