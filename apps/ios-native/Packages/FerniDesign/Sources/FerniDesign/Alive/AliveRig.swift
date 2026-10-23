@@ -63,6 +63,9 @@ public final class AliveRig {
     /// When he last nodded along.
     private(set) var lastNod = -Double.infinity
     private var gazeTarget = SIMD2<Double>(0, 0)
+    /// The think in progress (when it began); `thoughtDone`: his eyes came back
+    /// on his first word while still marked thinking.
+    private var thinkingSince: Double?, thoughtDone = false
     private var overlay: (id: String, until: Double)?
     private var lastActivity = AvatarActivity.idle
     private struct Track {
@@ -888,6 +891,7 @@ public final class AliveRig {
     static let lookAway = SIMD2(-0.55, -0.3)
 
     private func stepGaze(_ f: Face, m: Double) {
+        stepThinking(f)
         var focus: SIMD2<Double>?
         if let handoff, handoff.done < 4, guestPersona != nil {
             focus = SIMD2(g.x.x - self[.stageX].x, g.y.x - self[.stageY].x)
@@ -930,11 +934,17 @@ public final class AliveRig {
         } else if time > nextSaccade {
             let prev = gazeTarget
             gazeTarget = SIMD2(f.gx + rng.range(-0.2, 0.2) * (activity == .listening ? 0.5 : 1), f.gy + rng.range(-0.14, 0.14))
-            // Thinking looks up and aside, unless the expression has a look of its
-            // own (it overrode every face's gaze: expression audit P2 #8).
-            if activity == .thinking, abs(f.gx) + abs(f.gy) < 0.01 { gazeTarget = SIMD2(0.5 + rng.range(-0.1, 0.1), 0.42) }
+            var hold = 1.1...3.4
+            // Thinking looks away, each persona its own way (`ThinkingGaze`): the
+            // thinking state face's own look gives way to it, an expression with a
+            // look of its own keeps it (expression audit P2 #8); a long think holds it.
+            if activity == .thinking, expression == "neutral" || abs(f.gx) + abs(f.gy) < 0.01, let since = thinkingSince {
+                let spot = ThinkingGaze.spot(persona)
+                gazeTarget = SIMD2(spot.x + rng.range(-0.1, 0.1), spot.y + rng.range(-0.06, 0.06))
+                hold = ThinkingGaze.hold(thinkingFor: time - since)
+            }
             if simd_distance(gazeTarget, prev) > 0.25, rng.unit() < 0.35 { scheduleBlink(at: time + 0.01) }
-            nextSaccade = time + rng.range(1.1, 3.4)
+            nextSaccade = time + rng.range(hold.lowerBound, hold.upperBound)
         }
         if lookingAway, focus == nil, held == nil {
             gazeTarget = Self.lookAway
@@ -958,6 +968,25 @@ public final class AliveRig {
                 nodded = true
                 lastNod = time
             }
+        }
+    }
+
+    /// A think: he looks away soon after it starts, and back at the caller as
+    /// his first word comes, holding their eyes a moment before glancing again.
+    private func stepThinking(_ f: Face) {
+        if ThinkingGaze.backToCaller(thinking: thinkingSince != nil, activity: activity, voiceLevel: voiceLevel) {
+            thinkingSince = nil
+            thoughtDone = activity == .thinking
+            gazeTarget = .zero      // on the caller
+            nextSaccade = time + ThinkingGaze.contactHold
+        } else if activity == .thinking {
+            if thinkingSince == nil, !thoughtDone {
+                thinkingSince = time
+                nextSaccade = min(nextSaccade, time + ThinkingGaze.onset)
+            }
+        } else {
+            thinkingSince = nil
+            thoughtDone = false
         }
     }
 

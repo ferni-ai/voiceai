@@ -59,3 +59,44 @@ enum BlinkTiming {
         return (false, voicedSince)
     }
 }
+
+/// Where each persona looks while thinking, for how long, and when the eyes
+/// come back (avatar red team 2026-10-22). Every persona looked up and to the
+/// right for every think, held no longer for a long one, and came back
+/// whenever the next random saccade fell.
+enum ThinkingGaze {
+    /// The spot each one looks to while thinking (gaze units: x right, y up).
+    /// Ferni keeps his up-and-aside; the rest turn away their own way.
+    static func spot(_ persona: WindowPersona) -> SIMD2<Double> {
+        switch persona {
+        case .ferni: SIMD2(0.5, 0.42)      // up and aside, curious
+        case .maya: SIMD2(-0.45, 0.38)     // up the other way, a quick plan
+        case .peter: SIMD2(-0.3, -0.32)    // down at the numbers
+        case .jordan: SIMD2(0.05, 0.62)    // straight up and high, picturing it
+        case .alex: SIMD2(-0.55, 0.05)     // level and aside, composing
+        case .nayan: SIMD2(0.25, -0.4)     // down and inward, the long view
+        }
+    }
+
+    /// He looks away this soon after he starts thinking.
+    static let onset = 0.15
+    /// A think this long is a tool call or a long search (no tool signal
+    /// reaches the app): the look holds instead of wandering.
+    static let longThink = 1.5
+
+    /// How long each look holds while thinking.
+    static func hold(thinkingFor: Double) -> ClosedRange<Double> {
+        thinkingFor >= longThink ? 3.0...5.0 : 1.1...3.4
+    }
+
+    /// His voice counts as started over this level (0...1).
+    static let voiceStarted: Float = 0.02
+    /// After coming back he holds the caller's eyes this long.
+    static let contactHold = 0.9
+
+    /// The eyes come back to the caller as his first word comes: the turn
+    /// turns to speaking, or his voice starts while still marked thinking.
+    static func backToCaller(thinking: Bool, activity: AvatarActivity, voiceLevel: Float) -> Bool {
+        thinking && (activity == .speaking || voiceLevel > voiceStarted)
+    }
+}
