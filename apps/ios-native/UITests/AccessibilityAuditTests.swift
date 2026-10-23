@@ -9,6 +9,11 @@ final class AccessibilityAuditTests: XCTestCase {
     private func audit(_ screen: Screen, size: TextSize, hour: Int? = nil, extra: [String] = []) throws {
         let app = XCUIApplication.ferni(screen, size: size, hour: hour, extra: extra)
         XCTAssertTrue(screen.ready(in: app).waitForExistence(timeout: 20), "\(screen) never appeared")
+        // A second to settle, as auditPlace does: audited the instant its
+        // button existed, the failed call's AX5 text was once flagged "partially
+        // unsupported" (Pro Max lane, 2026-10-22; 3 reruns passed, screenshot
+        // shows it full size).
+        sleep(1)
         // " ipad" last, so an allowance can name a finding seen only there.
         let name = "\(screen) \(size)" + (hour.map { " \($0)h" } ?? "") + (extra.isEmpty ? "" : " " + extra.joined(separator: " "))
             + (UIDevice.current.userInterfaceIdiom == .pad ? " ipad" : "")
