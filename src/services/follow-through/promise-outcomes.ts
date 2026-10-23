@@ -104,6 +104,10 @@ const DEFERRED = {
   rescheduled: held('call-hours'),
   failed: failed('provider-error'),
   missed: failed('missed-window'),
+  // FORGET_EVERY_READER: about a topic they asked Ferni to forget (their own stop), or
+  // waiting for the next run while the forget list can't be read.
+  forgotten: { outcome: 'cancelled', reason: 'forgotten' },
+  pending: held('store-error'),
 } satisfies Record<string, PromiseOutcome>;
 export const deferredCallOutcome = (s: keyof typeof DEFERRED): PromiseOutcome => DEFERRED[s];
 

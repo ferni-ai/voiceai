@@ -87,8 +87,16 @@ export function aboutForgotten(
   });
 }
 
+/** The check while there is no source at all: everything counts as forgotten (fail closed). */
+const UNREADABLE: ForgottenCheck = () => true;
+
+/** True for the fail-closed check: a sender that would say a plainer thing says nothing. */
+export function forgetUnreadable(check: ForgottenCheck | null): boolean {
+  return check === UNREADABLE;
+}
+
 function checkFor(userId: string, stored: string[] | null): ForgottenCheck {
-  if (stored === null) return () => true; // no source at all: fail closed
+  if (stored === null) return UNREADABLE;
   const topics = [...new Set([...stored, ...forgottenInProcess(userId)])];
   const names = knownNames(userId);
   return (text) => aboutForgotten(text, topics, names);

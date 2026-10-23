@@ -3,7 +3,8 @@
  * the rule's template and what the insight found. FORGET_EVERY_READER: a
  * message about a topic the caller asked Ferni to forget (a dream, a
  * commitment, a person they mentioned) becomes the plain check-in instead,
- * and so does every message while their forget list can't be read.
+ * and so does every message while their forget list can't be read. Flag
+ * off, the stored list still applies (no flag, as the commitment quote).
  *
  * @module services/automation/insight-messages
  */
@@ -40,5 +41,8 @@ export async function insightMessage(
 ): Promise<string> {
   const text = fromTemplate(template, insight);
   const forgotten = await forgottenCheck(insight.userId, 'insight-action');
-  return forgotten?.(text) ? PLAIN_CHECK_IN : text;
+  if (forgotten) return forgotten(text) ? PLAIN_CHECK_IN : text;
+  // Flag off too, like the commitment quote (superhuman-jobs.ts): the stored list, failing closed.
+  const shown = await (await import('../superhuman/index.js')).commitmentsShown(insight.userId);
+  return shown({ text }) ? text : PLAIN_CHECK_IN;
 }

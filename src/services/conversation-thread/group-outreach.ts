@@ -18,6 +18,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { PersonaId } from '../../personas/types.js';
 import type { EngagementChannel, ConversationThread } from './types.js';
 import { getOrCreateThread, addMessage } from './thread-manager.js';
+import { rememberedGroupMessage } from './group-outreach-forget.js';
 import {
   storeOutreachContext,
   type OutreachType,
@@ -294,8 +295,7 @@ export async function initiateGroupOutreach(
       }
     );
 
-    // Generate the group message
-    const message = generateGroupMessage(options);
+    const message = await rememberedGroupMessage(options, generateGroupMessage);
 
     // Store outreach context for conversation bridge
     await storeOutreachContext({

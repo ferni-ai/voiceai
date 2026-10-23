@@ -7,9 +7,14 @@ import type { FlagSpec } from '../flag-spec.js';
 // handoff summary, the relationship and recall tools, hybrid search's keyword and entity legs,
 // UnifiedStore.recall, entity surfacing, the proactive call's opener, proactive check-ins
 // (proactive-tick.ts), the pre-meeting push (calendar-trigger-worker.ts), insight-action messages
-// (insight-messages.ts) and the better-than-human celebration push check it too. Recall notes:
-// one about a forgotten topic is never sent, a held one is checked again as it lands, and a
-// forget takes them out of the chat at once.
+// (insight-messages.ts), the better-than-human celebration push, the greeting's thread starter,
+// insight and check-in opener, queued outreach triggers (outreach-worker.ts: Maya's habit loop
+// among them; a reason about it goes as the plain check-in), held calls when placed
+// (deferred-calls.ts) and group outreach, the team celebration among them, check it too. Time
+// zones, locales and ids are never filtered. Without the flag, insight messages and the commitment
+// quote still never name a forgotten topic (when the list can't be read, insight messages say the
+// plain check-in and the quote is skipped). Recall notes: one about a forgotten topic is never
+// sent, a held one is checked again as it lands, and a forget takes them out of the chat at once.
 // Not covered: session priming's Firestore reads of call summaries, and stored transcripts.
 // Proactive senders not covered: thinking-of-you moments (trust-systems/outreach-integration.ts),
 // the daily job's decision-engine pushes and calls (recent topics, struggles), growth

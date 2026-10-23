@@ -197,16 +197,20 @@ describe('structural fields and frozen objects (#2662)', () => {
       callerTimezone: 'America/New_York',
       locale: 'en-US-new-york',
       contactId: 'new-york-office',
-      profile: { time_zone: 'America/New_York', lastTrip: 'New York in May' },
+      places: [{ label: 'office', timezone: 'America/New_York' }, { label: 'New York trip' }],
+      profile: { id: 'new-york-1', time_zone: 'America/New_York', lastTrip: 'New York in May' },
       note: 'moving to New York',
     };
     const seen = promptUserData(userData, check) as Record<string, unknown>;
     expect(seen.callerTimezone).toBe('America/New_York');
     expect(seen.locale).toBe('en-US-new-york');
     expect(seen.contactId).toBe('new-york-office');
+    // A list item is read whole, but not its time zone: the office stays, the trip goes.
+    expect(seen.places).toEqual([{ label: 'office', timezone: 'America/New_York' }]);
     expect(seen.note).toBeUndefined();
     const profile = seen.profile as Record<string, unknown>;
     expect(profile.time_zone).toBe('America/New_York');
+    expect(profile.id).toBe('new-york-1'); // nested: not in the top-level pass-through
     expect(profile.lastTrip).toBeUndefined();
   });
 
@@ -248,9 +252,11 @@ describe('structural fields and frozen objects (#2662)', () => {
     );
     expect(views[0].story).toBeUndefined();
     expect(views[1].secret).toBeUndefined();
+    expect(Object.getOwnPropertyDescriptor(views[1], 'secret')?.value).toBeUndefined();
     expect(views[2].note).toBeUndefined();
     expect(views.map((v) => v.name)).toEqual(['Sam', 'Sam', 'Sam']);
     expect(views[1].hobby).toBe('gardening'); // filtered, not dropped
+    expect(Object.keys(views[1])).toEqual(['name']); // keys enumerate as the real object's
     expect(views[2].kept).toBe('cello practice');
     expect(views[0]).toBeInstanceOf(Profile);
     expect(JSON.stringify(views)).not.toContain('Biscuit');

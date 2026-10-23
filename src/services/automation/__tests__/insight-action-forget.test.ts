@@ -7,7 +7,10 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const sent = vi.hoisted(() => ({ messages: [] as string[] }));
+const sent = vi.hoisted(() => ({
+  messages: [] as string[],
+  topics: ['bakery'] as string[] | null,
+}));
 vi.mock('../../outreach/outreach-orchestrator.js', () => ({
   getOutreachOrchestrator: () => ({
     sendPushNotification: async (_u: string, message: string) => {
@@ -22,7 +25,7 @@ vi.mock('../../outreach/outreach-orchestrator.js', () => ({
 }));
 vi.mock('../../../memory/recall/forget.js', async (original) => ({
   ...(await original<typeof import('../../../memory/recall/forget.js')>()),
-  forgottenTopicsOrNull: async () => ['bakery'],
+  forgottenTopicsOrNull: async () => sent.topics,
 }));
 
 const { executeAction } = await import('../insight-action-bridge.js');
@@ -51,6 +54,7 @@ const insight = (dream: string) =>
 
 beforeEach(() => {
   sent.messages = [];
+  sent.topics = ['bakery'];
   resetForgetTopicsSource();
 });
 afterEach(() => vi.unstubAllEnvs());
@@ -79,9 +83,18 @@ describe('insight-driven check-ins and a forgotten topic', () => {
     expect(sent.messages[0]).toContain('learning the cello');
   });
 
-  it('off: as before', async () => {
+  it('off too: never quotes it, as the commitment quote (no flag)', async () => {
     vi.stubEnv('FORGET_EVERY_READER', 'off');
     await executeAction('member-insight-forget', rule('push'), insight('opening a bakery'));
-    expect(sent.messages[0]).toContain('opening a bakery');
+    await executeAction('member-insight-forget', rule('push'), insight('learning the cello'));
+    expect(sent.messages[0]).toBe(PLAIN_CHECK_IN);
+    expect(sent.messages[1]).toContain('learning the cello');
+  });
+
+  it('off: a forget list that cannot be read quotes nothing (fails closed)', async () => {
+    vi.stubEnv('FORGET_EVERY_READER', 'off');
+    sent.topics = null;
+    await executeAction('member-insight-forget', rule('push'), insight('learning the cello'));
+    expect(sent.messages).toEqual([PLAIN_CHECK_IN]);
   });
 });
