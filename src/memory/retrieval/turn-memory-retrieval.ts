@@ -42,7 +42,8 @@ import {
   recordHybridSearchOutcome,
   runHybridSearchWithTimeout,
 } from './hybrid-search-timeout-stats.js';
-import { scaleTurnMemories, turnMemoryRrfScaleOn } from './turn-memory-scale.js';
+import { gateTurnMemories, turnMemoryRerankOn } from './turn-memory-rerank.js';
+import { capTurnMemories, turnMemoryRrfScaleOn } from './turn-memory-scale.js';
 
 const log = createLogger({ module: 'TurnMemoryRetrieval' });
 
@@ -312,10 +313,9 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
       config.totalTimeoutMs,
       rrfScale
     );
-    const hybridResults = rrfScale ? scaleTurnMemories(searched.results) : searched.results;
-
     metrics.hybridSearchMs = Date.now() - hybridStart;
     metrics.rawResultCount = searched.results.length;
+    const hybridResults = await gateTurnMemories(searched.results, transcript, rrfScale, metrics);
 
     if (hybridResults.length === 0) {
       return {
@@ -327,7 +327,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
 
     // 2. CROSS-ENCODER RERANKING (optional, for quality)
     let rankedResults = hybridResults;
-    if (config.enableReranking && hybridResults.length > 1) {
+    if (config.enableReranking && !turnMemoryRerankOn() && hybridResults.length > 1) {
       const rerankStart = Date.now();
       try {
         const reranked = await Promise.race([
@@ -406,7 +406,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     metrics.dedupedResultCount = dedupedResults.length;
 
     // 5. CONVERT TO TURN FORMAT
-    const memories: RetrievedMemoryForTurn[] = dedupedResults
+    const memories: RetrievedMemoryForTurn[] = capTurnMemories(dedupedResults, rrfScale)
       .slice(0, config.maxMemories)
       .map((result) => {
         const memory: RetrievedMemoryForTurn = {

@@ -1,0 +1,13 @@
+{
+  "replyDelayMs": { "p50": 3367, "p90": 12712, "n": 6 },
+  "talkOver": {
+    "backchannels": 0,
+    "backchannelStoppedAgent": 0,
+    "interruptYieldedFast": 0,
+    "interrupts": 0,
+    "interruptYielded": 0,
+    "interruptStopMs": { "p50": null },
+    "notTalkingWhenOverlapped": 0
+  },
+  "replyTexts": ["", "", "", "", "988 ... Suicide and Crisis", ""]
+}

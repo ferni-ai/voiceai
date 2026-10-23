@@ -23,15 +23,16 @@ import {
   presenceSoundsEnabled,
 } from './presence-watcher.js';
 import { startToolHum } from './tool-hum.js';
+import { presenceSilenceIsHeavy } from './presence-heavy.js';
 import { startVoicedPresence, voicedPresenceEnabled } from './voiced-presence.js';
 import { presenceClipPickers } from './presence-clips.js';
 import { reactionSidetrackDirect, startDirectClips } from './direct-clip-track.js';
 import { LAUGH_CLIP } from './backchannel-policy.js';
-import { callerVenting } from '../personas/turn-extras.js';
-import { quirkAwarenessEnabled, recordQuirk } from '../../services/session/quirk-log.js';
+import { recordQuirk } from '../../services/session/quirk-log.js';
 import { withBackchannelSignal } from './backchannel-signal.js';
 import { createDataMessageSender } from '../shared/data-message-envelope.js';
 import { avatarListenSignalsEnabled } from '../realtime/listen-turn-signals.js';
+import { backchannelTimingEnabled, timedLivePlay } from './backchannel-timing.js';
 
 const log = createLogger({ module: 'ClipPlayer' });
 
@@ -212,12 +213,12 @@ export async function startBackchannelClips(
     getClip,
     personaId,
   });
-  const playClip = (text: string, opts?: { pauseStartedAt?: number }): boolean => {
+  const playAt = (volume: () => number) => (text: string, opts?: { pauseStartedAt?: number }) => {
     const pcm = getClip(text, personaId());
     if (pcm === null) return false;
     const played = direct
-      ? !player.playing && direct.play(pcm, BACKCHANNEL_VOLUME, text, opts?.pauseStartedAt)
-      : player.play(pcm, BACKCHANNEL_VOLUME);
+      ? !player.playing && direct.play(pcm, volume(), text, opts?.pauseStartedAt)
+      : player.play(pcm, volume());
     if (!played) return false;
     lastPlayedAt = Date.now();
     recordQuirk(sessionIdOf(session), {
@@ -227,13 +228,16 @@ export async function startBackchannelClips(
     });
     return true;
   };
+  const playClip = playAt(() => BACKCHANNEL_VOLUME);
   const cancelFresh = (): boolean => direct?.cancelIfFresh() ?? false;
   const wireDelayMs = (): number =>
     direct ? (direct.lastWireMs ?? 60) : process.env.CLIP_TRACK_PACED === 'on' ? 220 : 650;
   // Live backchannels and laughs (not the turn-opening "Mm") tell the avatar they played.
   // VOICED_PRESENCE varies the live picks; the signal wraps the variation so
   // its kind follows the requested clip (a laugh take still signals 'laugh').
-  const variedPlayClip = voiced?.vary(playClip) ?? playClip;
+  const variedPlayClip = backchannelTimingEnabled()
+    ? timedLivePlay(playAt, BACKCHANNEL_VOLUME, (p) => voiced?.vary(p) ?? p)
+    : (voiced?.vary(playClip) ?? playClip);
   const livePlayClip = avatarListenSignalsEnabled()
     ? withBackchannelSignal(variedPlayClip, createDataMessageSender(room), wireDelayMs)
     : variedPlayClip;
@@ -273,8 +277,9 @@ function startPresenceSounds(
   const mood = () =>
     (session.userData as { voiceEmotion?: { primary?: string } } | undefined)?.voiceEmotion
       ?.primary;
-  // QUIRK_AWARENESS: what they last said counts too, not only how their voice read.
-  const serious = (): boolean => quirkAwarenessEnabled() && callerVenting(lastCallerWords(session));
+  // What they said lately counts too, not only how their voice read (presence-heavy.ts).
+  const serious = (): boolean => presenceSilenceIsHeavy(session);
+  let endsAt = 0;
   const playing = (
     kind: 'hum' | 'whistle' | 'snore',
     pcm: ArrayBuffer,
@@ -282,6 +287,7 @@ function startPresenceSounds(
   ): boolean => {
     const ok = !otherTrackBusy() && player.play(pcm, WHISTLE_VOLUME);
     if (ok) {
+      endsAt = Date.now() + pcm.byteLength / 48; // 24 kHz s16le
       log.info({ kind }, `PRESENCE_SOUND ${kind}`);
       const secs = Math.round(quietMs / 1000);
       const voice = mood() ? `, their voice sounding ${mood()}` : '';
@@ -294,7 +300,11 @@ function startPresenceSounds(
     }
     return ok;
   };
-  const stop = () => player.stop();
+  // Only our own sound, never a backchannel or opening "Mm" that started after it ended.
+  const stop = () => {
+    if (Date.now() < endsAt) player.stop();
+    endsAt = 0;
+  };
   // PRESENCE_SOUND_ASSETS: a recorded whistle or snore when one loaded, else the synthesized one
   const recorded = presenceClipPickers();
   const quiet = () => stayQuietOn(session);
@@ -336,14 +346,4 @@ function startPresenceSounds(
 function sessionIdOf(session: voice.AgentSession): string | undefined {
   return (session.userData as { services?: { sessionId?: string } } | undefined)?.services
     ?.sessionId;
-}
-
-/** The caller's latest words in the session history, or ''. */
-function lastCallerWords(session: voice.AgentSession): string {
-  const items = (session as { history?: { items?: unknown[] } }).history?.items ?? [];
-  for (let i = items.length - 1; i >= 0; i--) {
-    const item = items[i] as { type?: string; role?: string; textContent?: string };
-    if (item.type === 'message' && item.role === 'user') return item.textContent ?? '';
-  }
-  return '';
 }

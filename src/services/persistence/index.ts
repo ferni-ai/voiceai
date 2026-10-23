@@ -15,6 +15,7 @@ import { heldFields } from './held-fields.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
+import { getFirestoreDatabase } from '../../config/environment.js';
 
 const log = createLogger({ module: 'PersistenceLayer' });
 
@@ -108,7 +109,7 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
     const { Firestore } = await import('@google-cloud/firestore');
     db = new Firestore({
       projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-      databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+      databaseId: getFirestoreDatabase(),
       // Safe here (this client is private to the layer): a nested `undefined` that slips past
       // cleanForFirestore (e.g. inside an array of records) must not fail the whole batch.
       ignoreUndefinedProperties: true,
@@ -128,7 +129,6 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 
 const activeStores: Array<{ name: string; store: PersistenceStore<unknown> }> = [];
 
-/** Create a persistence store for a specific data type */
 /**
  * Firestore stores a Date as a Timestamp and gives back the Timestamp, so a
  * value saved as a Date comes back as something `new Date(x)` turns into an

@@ -8,7 +8,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { checkPost, type GateIssue, type GateOptions } from './brand-gate.js';
 import { forbiddenTerms } from './brand-terms.js';
-import { existingPosts, slugify } from './existing-posts.js';
+import { existingPosts, slugify, type ExistingPost } from './existing-posts.js';
 import { renderPack, sourceList, type GhRunner, type Source } from './grounding.js';
 import type { DraftModel } from './model.js';
 import { getPostType, type PostType } from './post-types.js';
@@ -25,6 +25,8 @@ export interface DraftDeps {
   today: string;
   model?: DraftModel;
   writeFile?: (file: string, content: string) => void;
+  /** The posts already in a type's folder, newest first. Defaults to reading the folder. */
+  listPosts?: (folder: string) => ExistingPost[];
   /** Whether a post file already exists; defaults to the real folder. */
   fileExists?: (file: string) => boolean;
 }
@@ -144,7 +146,7 @@ function freePath(
 export async function draftPost(opts: DraftOptions, deps: DraftDeps): Promise<DraftResult> {
   const type = getPostType(opts.type);
   const folder = path.join(deps.root, type.folder);
-  const existing = existingPosts(folder);
+  const existing = (deps.listPosts ?? existingPosts)(folder);
   const since = opts.since ?? defaultSince(type, existing[0]?.date, deps.today);
   const persona = pickPersona(isoWeek(deps.today), opts.persona);
   const ctx = { root: deps.root, repo: deps.repo, gh: deps.gh, since, today: deps.today, persona };

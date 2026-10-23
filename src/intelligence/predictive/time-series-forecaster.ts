@@ -426,7 +426,7 @@ function getOrCreateProfile(userId: string): TimeSeriesProfile {
     userProfiles.set(userId, profile);
   }
   // Load from Firestore (async): a failed load is retried on a later access, with backoff
-  if (startLoad(userId, 'timeseries')) void loadTimeSeriesProfileFromFirestore(userId);
+  if (startLoad(userId, 'time_series')) void loadTimeSeriesProfileFromFirestore(userId);
 
   return profile;
 }
@@ -491,10 +491,10 @@ async function loadTimeSeriesProfileFromFirestore(userId: string): Promise<void>
         log.debug({ userId, totalPoints }, 'Loaded time series profile from Firestore');
       }
     }
-    markUserLoaded(userId, 'timeseries');
+    markUserLoaded(userId, 'time_series');
   } catch (error) {
     log.debug({ error: String(error), userId }, 'Failed to load time series profile');
-    loadFailed(userId, 'timeseries'); // not loaded: nothing is written until a load succeeds
+    loadFailed(userId, 'time_series'); // not loaded: nothing is written until a load succeeds
   }
 }
 

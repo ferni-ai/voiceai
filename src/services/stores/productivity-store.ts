@@ -415,6 +415,8 @@ class ProductivityStore {
   private cache = new Map<string, ProductivityData>();
   private dirtyUsers = new Set<string>();
   private saveDebounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  /** Users whose stored data failed to read: never saved over until a later read succeeds. */
+  private readFailed = new Set<string>();
 
   // In-memory stores for tools (bridge to persistence)
   private taskMemory = new Map<string, TaskData>();
@@ -456,46 +458,42 @@ class ProductivityStore {
   // LOAD / SAVE USER DATA
   // ============================================================================
 
+  /**
+   * A read error is not a new user: nothing is cached and the user is marked in readFailed, so
+   * saves hold back until a later load reads the stored data. A missing profile loads as empty.
+   */
   async loadUserData(userId: string): Promise<ProductivityData> {
-    // Check cache first
     const cached = this.cache.get(userId);
-    if (cached) {
-      return cached;
-    }
-
-    // Try to load from profile
+    if (cached) return cached;
     if (this.store) {
       try {
-        const profile = await this.store.getProfile(userId);
-        if (profile) {
-          const { productivityData } = profile as UserProfile & {
-            productivityData?: ProductivityData;
-          };
-
-          if (productivityData) {
-            // Hydrate into memory maps
-            this.hydrateMemoryMaps(userId, productivityData);
-            this.cache.set(userId, productivityData);
-            getLogger().debug(
-              { userId, tasks: productivityData.tasks?.length || 0 },
-              'Loaded productivity data'
-            );
-            return productivityData;
-          }
+        const profile = await this.store.getProfileStrict(userId);
+        this.readFailed.delete(userId);
+        const { productivityData } = (profile ?? {}) as { productivityData?: ProductivityData };
+        if (productivityData) {
+          this.hydrateMemoryMaps(userId, productivityData);
+          this.cache.set(userId, productivityData);
+          const tasks = productivityData.tasks?.length || 0;
+          getLogger().debug({ userId, tasks }, 'Loaded productivity data');
+          return productivityData;
         }
       } catch (error) {
-        getLogger().warn({ error, userId }, 'Failed to load productivity data');
+        this.readFailed.add(userId);
+        getLogger().warn({ error, userId }, 'Failed to load productivity data; not saving over it');
+        return this.createEmptyData(userId);
       }
     }
-
-    // Return empty data
     const emptyData = this.createEmptyData(userId);
     this.cache.set(userId, emptyData);
     return emptyData;
   }
 
   async saveUserData(userId: string): Promise<void> {
-    // Collect all data from memory maps
+    if (this.readFailed.has(userId)) await this.loadUserData(userId); // retry the failed read
+    if (this.readFailed.has(userId)) {
+      getLogger().warn({ userId }, 'Productivity data read failed; not saving over it');
+      return; // still dirty, so a later save or flush tries again
+    }
     const data = this.collectUserData(userId);
 
     // Update cache
@@ -892,8 +890,8 @@ class ProductivityStore {
       }
     }
 
-    // Clear from cache
     this.cache.delete(userId);
+    this.readFailed.delete(userId);
 
     // Clear from persistence
     if (this.store) {

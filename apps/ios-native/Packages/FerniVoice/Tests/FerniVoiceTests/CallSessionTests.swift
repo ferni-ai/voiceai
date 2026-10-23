@@ -64,7 +64,14 @@ final class CallSessionTests: XCTestCase {
     private var tokens = Tokens()
     private var audio = FakeAudio()
 
-    private func makeSession(timeout: Duration = .milliseconds(200)) -> CallSession {
+    /// Timeouts: 5 s by default, so a Ferni who's there is never raced by the
+    /// watchdog (his join reaches the session through the room's AsyncStream
+    /// and a task hop, which on a loaded CI runner took longer than the old
+    /// 200 ms; testFerniMissingTwiceEndsWithRetryNotSilence and
+    /// testAFailedRejoinEndsTheCallAfterOneFreshRoom flaked on main). A test
+    /// where Ferni is missing makes him missing without the clock (the token
+    /// says not dispatched) or passes a short timeout and never sends him.
+    private func makeSession(timeout: Duration = .seconds(5)) -> CallSession {
         let rooms = rooms, tokens = tokens
         return CallSession(
             fetchToken: { persona in
@@ -83,9 +90,10 @@ final class CallSessionTests: XCTestCase {
         )
     }
 
-    /// Lets the session's tasks run until `condition` holds (or fails after 2 s).
+    /// Lets the session's tasks run until `condition` holds (or fails after
+    /// 10 s; a pass returns as soon as it holds, so only failures wait).
     private func until(_ condition: @autoclosure () -> Bool, file: StaticString = #filePath, line: UInt = #line) async {
-        let deadline = ContinuousClock.now + .seconds(2)
+        let deadline = ContinuousClock.now + .seconds(10)
         while !condition(), ContinuousClock.now < deadline { try? await Task.sleep(for: .milliseconds(10)) }
         XCTAssertTrue(condition(), "timed out", file: file, line: line)
     }
@@ -117,9 +125,13 @@ final class CallSessionTests: XCTestCase {
     }
 
     func testFerniMissingIsRetriedOnceInAFreshRoom() async {
+        // The first token says nobody was dispatched (missing at once, no
+        // clock); the second, fetched after the first room, says he was.
+        tokens.dispatched = false
         var first = true
+        let tokens = tokens
         rooms.next = {
-            defer { first = false }
+            defer { first = false; tokens.dispatched = true }
             return FakeRoom(agentOnConnect: first ? nil : [:])
         }
         let session = makeSession()
@@ -132,6 +144,9 @@ final class CallSessionTests: XCTestCase {
     }
 
     func testFerniMissingTwiceEndsWithRetryNotSilence() async {
+        // Missing without the clock: neither token was dispatched. The
+        // watchdog's own deadline is testTheWatchdogRetriesOnceThenGivesUp's.
+        tokens.dispatched = false
         rooms.next = { FakeRoom(agentOnConnect: nil) }
         let session = makeSession()
         session.start()
@@ -141,6 +156,7 @@ final class CallSessionTests: XCTestCase {
         XCTAssertTrue(rooms.made.allSatisfy { $0.disconnects == 1 })
         XCTAssertEqual(audio.deactivations, 2)
 
+        tokens.dispatched = true
         rooms.next = { FakeRoom() }
         session.start()
         await until(session.phase == .live)
@@ -154,7 +170,23 @@ final class CallSessionTests: XCTestCase {
         session.start()
 
         await until(session.phase == .failed(.ferniDidNotJoin))
-        XCTAssertLessThan(ContinuousClock.now - started, .seconds(2))
+        // Far under the 30 s timeout, with room for a stalled runner (2 s
+        // failed when the test process froze for 2.5 s).
+        XCTAssertLessThan(ContinuousClock.now - started, .seconds(10))
+    }
+
+    /// The watchdog itself: dispatched, but Ferni never joins either room.
+    /// Nobody is ever sent, so a stalled runner can only make it later.
+    func testTheWatchdogRetriesOnceThenGivesUp() async {
+        rooms.next = { FakeRoom(agentOnConnect: nil) }
+        let session = makeSession(timeout: .milliseconds(150))
+        session.start()
+
+        await until(session.phase == .failed(.ferniDidNotJoin))
+        try? await Task.sleep(for: .milliseconds(600)) // four more deadlines' worth
+        XCTAssertEqual(rooms.made.count, 2)
+        XCTAssertEqual(tokens.requests.count, 2)
+        XCTAssertEqual(session.phase, .failed(.ferniDidNotJoin))
     }
 
     func testRefusedTokenSaysSoAndJoinsNothing() async {
@@ -183,14 +215,14 @@ final class CallSessionTests: XCTestCase {
         session.start()
         await until(session.phase == .live)
 
+        XCTAssertEqual(session.avatar.pose, .listening, "the first turn shows at once")
         rooms.made[0].send(.agentAttributes(["lk.agent.state": "speaking"]))
-        await until(session.isFerniSpeaking)
-        XCTAssertEqual(session.expression, .speaking)
+        await until(session.avatar.pose == .speaking) // after the 150 ms settle
+        XCTAssertEqual(session.avatar.expression, .speaking)
 
         rooms.made[0].send(.agentAttributes(["lk.agent.state": "thinking"]))
-        await until(session.agentActivity == .thinking)
-        XCTAssertFalse(session.isFerniSpeaking)
-        XCTAssertEqual(session.expression, .thinking)
+        await until(session.avatar.pose == .thinking)
+        XCTAssertEqual(session.avatar.expression, .thinking)
     }
 
     func testSpeechStateAndExpressionMessagesAreRead() async {
@@ -201,9 +233,22 @@ final class CallSessionTests: XCTestCase {
         rooms.made[0].send(.data(Data(#"{"type":"speech_state","innerType":"speech_start"}"#.utf8)))
         await until(session.isUserSpeaking)
         rooms.made[0].send(.data(Data(#"{"type":"expression_update","expression":"warm"}"#.utf8)))
-        await until(session.expression == .warm)
+        await until(session.avatar.expression == .warm)
         rooms.made[0].send(.data(Data(#"{"type":"speech_state","innerType":"speech_end"}"#.utf8)))
         await until(!session.isUserSpeaking)
+    }
+
+    /// Untrusted numbers in a packet never crash the app (security review).
+    func testHugeOrNegativeExpressionTimesAreClampedNotFatal() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+
+        rooms.made[0].send(.data(Data(#"{"type":"expression_update","expression":"warm","duration":9223372036854775807}"#.utf8)))
+        await until(session.avatar.expression == .warm)
+        rooms.made[0].send(.data(Data(#"{"type":"expression_update","expression":"curious","hold":-5,"duration":1e308}"#.utf8)))
+        await until(session.avatar.expression == .curious || session.avatar.expression == .listening)
+        XCTAssertEqual(session.phase, .live)
     }
 
     func testCaptionsAssembleFromTheTranscriptStream() async {
@@ -259,9 +304,12 @@ final class CallSessionTests: XCTestCase {
     /// no rejoining again after the rejoin fails (the train's verifier: no
     /// test covered a failed rejoin, so either loop shipped green).
     func testAFailedRejoinEndsTheCallAfterOneFreshRoom() async {
-        let session = makeSession(timeout: .milliseconds(150))
+        let session = makeSession()
         session.start()
         await until(session.phase == .live)
+        // The rejoin's Ferni is missing without the clock: its token says
+        // nobody was dispatched, so the first join is never raced.
+        tokens.dispatched = false
         rooms.next = { FakeRoom(agentOnConnect: nil) }
 
         rooms.made[0].send(.disconnected(byUs: false))
@@ -282,6 +330,7 @@ final class CallSessionTests: XCTestCase {
 
         await until(session.phase == .ended)
         XCTAssertEqual(rooms.made[0].disconnects, 1)
+        XCTAssertEqual(session.avatar.pose, .departing)
     }
 
     func testEndingWhileConnectingLeavesAndStaysEnded() async {
@@ -368,5 +417,18 @@ final class CallTokenTests: XCTestCase {
         XCTAssertTrue(query["room"]?.hasPrefix("ios-") == true)
         XCTAssertEqual(query["username"], "User", "a placeholder Ferni won't greet you by")
         XCTAssertEqual(query["timezone"], TimeZone.current.identifier)
+    }
+}
+
+final class RemoteDurationTests: XCTestCase {
+    func testAnythingAPacketSendsBecomesASafeDuration() {
+        XCTAssertNil(RemoteDuration.seconds(nil))
+        XCTAssertNil(RemoteDuration.seconds(.nan))
+        XCTAssertEqual(RemoteDuration.seconds(.infinity), .seconds(60))
+        XCTAssertEqual(RemoteDuration.seconds(-.infinity), .zero)
+        XCTAssertEqual(RemoteDuration.seconds(1e308), .seconds(60))
+        XCTAssertEqual(RemoteDuration.seconds(Double(Int.max)), .seconds(60))
+        XCTAssertEqual(RemoteDuration.seconds(-5), .zero)
+        XCTAssertEqual(RemoteDuration.seconds(1.5), .milliseconds(1500))
     }
 }
