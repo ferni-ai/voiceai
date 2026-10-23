@@ -75,16 +75,21 @@ export function readGuard(collection: string, now: () => number = () => Date.now
   };
 }
 
-/** load(), but a failed read throws instead of answering null: for callers that write it back */
+/**
+ * load(), but this call's own failed read throws ReadFailedWriteError instead of answering null:
+ * for callers that write back what they read. Decided per call, never from the shared mark,
+ * which a concurrent newer load can clear between this read and the check.
+ */
 export async function loadOrThrow<T>(
   store: {
-    load: (key: string, o?: { fresh?: boolean }) => Promise<T | null>;
-    readFailed: (key: string) => boolean;
+    load: (key: string, o?: { fresh?: boolean; strict?: boolean | 'read' }) => Promise<T | null>;
   } | null,
   key: string,
   collection: string
 ): Promise<T | null> {
-  const data = (await store?.load(key, { fresh: true })) ?? null;
-  if (store?.readFailed(key)) throw new ReadFailedWriteError(collection, key);
-  return data;
+  try {
+    return (await store?.load(key, { fresh: true, strict: 'read' })) ?? null;
+  } catch {
+    throw new ReadFailedWriteError(collection, key);
+  }
 }

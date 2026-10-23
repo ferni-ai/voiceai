@@ -50,7 +50,7 @@ export interface PersistenceConfig {
 
 export interface LoadOptions {
   fresh?: boolean;
-  strict?: boolean;
+  strict?: boolean | 'read'; // 'read': throws on a failed read only, not when Firestore is absent
 }
 
 export interface PersistenceStore<T> {
@@ -315,7 +315,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     }
 
     const firestore = await getFirestore();
-    if (!firestore && options?.strict) throw new Error(`Firestore unavailable (${collection})`);
+    if (!firestore && options?.strict === true) throw new Error(`No Firestore (${collection})`);
     if (!firestore) return cache.get(userId) ?? null;
 
     const gen = guard.begin(userId);

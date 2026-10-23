@@ -20,7 +20,11 @@ import {
   type MergeFakeState,
 } from '../../../tests/helpers/merge-fake-firestore.js';
 
-const fake = vi.hoisted(() => ({ db: null as unknown, claims: [] as string[] }));
+const fake = vi.hoisted(() => ({
+  db: null as unknown,
+  claims: [] as string[],
+  profiles: new Map<string, Record<string, unknown>>(),
+}));
 vi.mock('@google-cloud/firestore', async (importOriginal) => ({
   ...(await importOriginal<object>()),
   Firestore: class {
@@ -35,18 +39,19 @@ vi.mock('../../push-endpoint-owners.js', () => ({
   releaseEndpoint: async () => undefined,
   getEndpointOwner: async () => 'u1',
 }));
-// recordPayment's profile write (MemoryStore) is not under test here.
+// recordPayment's profile (MemoryStore): a map, so the webhook's totals can be read back.
 vi.mock('../../../memory/store-factory.js', () => ({
   getStore: async () => ({
-    getOrCreateProfile: async (id: string) => ({ id }),
-    saveProfile: async () => undefined,
+    getOrCreateProfile: async (id: string) => structuredClone(fake.profiles.get(id) ?? { id }),
+    saveProfile: async (p: { id: string }) => void fake.profiles.set(p.id, structuredClone(p)),
   }),
 }));
 
 const { createPersistenceStore, flushAllStores } = await import('../index.js');
-const { ReadFailedWriteError } = await import('../read-guard.js');
+const { ReadFailedWriteError, loadOrThrow } = await import('../read-guard.js');
 const { getUserTips, saveTip } = await import('../../monetization/persistence.js');
 const { tipJar } = await import('../../monetization/tip-jar.js');
+const { valueCapture } = await import('../../monetization/value-capture.js');
 const calendarTokens = await import('../../identity/google-calendar-token-store.js');
 const { handleMonetizationWebhook } = await import('../../../api/monetization-webhook.js');
 const pushModule = await import('../../push-notifications.js');
@@ -111,6 +116,7 @@ async function reachedGate(): Promise<void> {
 }
 
 beforeEach(() => {
+  fake.profiles.clear();
   state.docs.clear();
   state.writes.length = 0;
   failed.clear();
@@ -207,6 +213,17 @@ describe('PersistenceStore after a failed load', () => {
     expect(store.readFailed('u1')).toBe(true);
   });
 
+  it('loadOrThrow reports its own failed read, even if a newer load succeeds in between', async () => {
+    const release = hold(PATH);
+    const older = loadOrThrow(store, 'u1', 'style_test'); // held; fails when released
+    await reachedGate();
+    expect(await store.load('u1', { fresh: true })).toEqual({ samples: ['a', 'b', 'c'] });
+    failed.add(PATH);
+    release();
+
+    await expect(older).rejects.toBeInstanceOf(ReadFailedWriteError);
+  });
+
   it('while marked, the cache is not authoritative: get() reloads after the backoff', async () => {
     expect(await store.get('u1')).toEqual({ samples: ['a', 'b', 'c'] }); // cached
     failed.add(PATH);
@@ -275,7 +292,7 @@ describe('Stripe webhook for a tip while the ledger read fails', () => {
   const PATH = `bogle_users/${USER}/monetization_tips/data`;
   const SECRET = 'whsec_failread_test';
 
-  async function webhook(tipId: string) {
+  async function webhook(tipId: string, user = USER, paymentType = 'tip') {
     const body = JSON.stringify({
       id: 'evt_failread',
       object: 'event',
@@ -285,7 +302,12 @@ describe('Stripe webhook for a tip while the ledger read fails', () => {
           id: 'pi_failread',
           object: 'payment_intent',
           amount: 500,
-          metadata: { ferni_user_id: USER, payment_type: 'tip', tip_id: tipId },
+          metadata: {
+            ferni_user_id: user,
+            payment_type: paymentType,
+            tip_id: tipId,
+            event_id: tipId,
+          },
         },
       },
     });
@@ -324,6 +346,54 @@ describe('Stripe webhook for a tip while the ledger read fails', () => {
     expect(retried.status).toBe(200);
     const ids = (state.docs.get(PATH)?.tips as Array<{ id: string }>).map((t) => t.id);
     expect(ids).toEqual(['old', tipId]);
+  });
+
+  it('the retry counts the payment exactly once (profile totals and tip-jar stats)', async () => {
+    const user = 'tipper-2'; // its own ledger doc: nothing cached by the test above
+    const ledger = `bogle_users/${user}/monetization_tips/data`;
+    const statsBefore = tipJar.getStats();
+    failed.add(ledger);
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_001);
+    vi.spyOn(Math, 'random').mockReturnValue(0.25);
+    const tipId = `tip_1700000000001_${(0.25).toString(36).slice(2, 9)}`;
+    await expect(tipJar.create({ userId: user, amountCents: 500 })).rejects.toBeInstanceOf(
+      ReadFailedWriteError
+    );
+    vi.restoreAllMocks();
+
+    expect((await webhook(tipId, user)).status).toBe(500); // first attempt: ledger read fails
+    failed.clear();
+    expect((await webhook(tipId, user)).status).toBe(200); // Stripe's retry of the same event
+
+    const monetization = fake.profiles.get(user)?.monetization as Record<string, unknown>;
+    expect(monetization).toMatchObject({ totalTipsCents: 500, tipCount: 1 });
+    expect(tipJar.getStats().tipCount - statsBefore.tipCount).toBe(1);
+    expect(tipJar.getStats().totalTipsCents - statsBefore.totalTipsCents).toBe(500);
+  });
+  it('a value-capture retry is counted exactly once too', async () => {
+    const user = 'contributor-1';
+    vi.stubEnv('PAYWALL', 'on');
+    const statsBefore = valueCapture.getStats();
+    failed.add(`bogle_users/${user}/monetization_value_capture/data`);
+    // The detected event lives in memory; its first save is refused by the same failed read.
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_002);
+    vi.spyOn(Math, 'random').mockReturnValue(0.75);
+    const eventId = `val_1700000000002_${(0.75).toString(36).slice(2, 9)}`;
+    const detecting = valueCapture.detect({
+      userId: user,
+      message: 'I got a raise!',
+      conversationId: 'c1',
+    });
+    await expect(detecting).rejects.toBeInstanceOf(ReadFailedWriteError);
+    vi.restoreAllMocks();
+
+    expect((await webhook(eventId, user, 'value_capture')).status).toBe(500);
+    failed.clear();
+    expect((await webhook(eventId, user, 'value_capture')).status).toBe(200);
+
+    const monetization = fake.profiles.get(user)?.monetization as Record<string, unknown>;
+    expect(monetization).toMatchObject({ totalValueContributionsCents: 500, valueEventCount: 1 });
+    expect(valueCapture.getStats().contributionCount - statsBefore.contributionCount).toBe(1);
   });
 });
 
