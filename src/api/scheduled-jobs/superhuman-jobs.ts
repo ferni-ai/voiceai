@@ -80,11 +80,16 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
             .limit(100)
             .get();
 
+      // Never quote a commitment about a topic they asked Ferni to forget (commitment-forget.ts).
+      const { commitmentsShown } = await import('../../services/superhuman/commitment-forget.js');
+      const shownFor = new Map<string, Awaited<ReturnType<typeof commitmentsShown>>>();
       for (const doc of commitmentsSnap.docs) {
         try {
           const commitment = doc.data();
           const userId = doc.ref.parent.parent?.id;
           if (!userId) continue;
+          if (!shownFor.has(userId)) shownFor.set(userId, await commitmentsShown(userId));
+          if (!shownFor.get(userId)?.(commitment)) continue;
 
           const { getOutreachOrchestrator } =
             await import('../../services/outreach/outreach-orchestrator.js');
@@ -156,7 +161,10 @@ export async function handleBetterThanHumanOutreach(res: ServerResponse): Promis
         try {
           const milestones = await getMilestonesToCelebrate(userDoc.id);
 
+          const { forgottenCheck } = await import('../../memory/index.js');
+          const forgotten = await forgottenCheck(userDoc.id, 'celebration');
           for (const milestone of milestones.slice(0, 1)) {
+            if (forgotten?.(`${milestone.label} ${milestone.celebrationSuggestion}`)) continue;
             const { getOutreachOrchestrator } =
               await import('../../services/outreach/outreach-orchestrator.js');
             const orchestrator = getOutreachOrchestrator();

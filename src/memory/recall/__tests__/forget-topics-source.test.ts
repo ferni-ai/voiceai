@@ -40,6 +40,7 @@ vi.mock('../forget.js', async (original) => ({
 import {
   BACKOFF_MIN_MS,
   CALL_MARK_MAX_MS,
+  READ_HANG_MS,
   forgetReadStats,
   READ_TIMEOUT_MS,
   readTopics,
@@ -55,6 +56,7 @@ import {
   rememberCallerNames,
   snapshotTopics,
 } from '../forget-every-reader.js';
+import { storedTopic } from '../session-recall.js';
 
 const U = 'member-topics-source';
 
@@ -150,6 +152,33 @@ describe('a reader that cannot wait', () => {
     expect((await forgottenCheck(U))?.('training for Boston')).toBe(true); // no source: closed
   });
 
+  it("an older call's teardown leaves a newer call's mark alone", async () => {
+    vi.useFakeTimers({ now: 7_000_000 });
+    read.fn.mockResolvedValueOnce(['Biscuit']);
+    const older: Array<() => void> = [];
+    prefetchForgotten(U, (fn) => older.push(fn)); // a call starts
+    vi.setSystemTime(7_000_000 + 60_000);
+    prefetchForgotten(U, () => undefined); // the next call starts before the first tears down
+    await readTopics(U);
+    for (const fn of older) fn(); // the first call's teardown runs late
+    vi.setSystemTime(7_000_000 + 10 * 60_000); // past the 60 s bound, the newer call still on
+    read.fn.mockResolvedValue(null);
+    expect((await forgottenCheck(U))?.('training for Boston')).toBe(false); // newer mark held
+  });
+
+  it('a read that hangs is given up on: that tick fails closed, a later one reads again', async () => {
+    vi.useFakeTimers({ now: 8_000_000 });
+    read.fn.mockImplementationOnce(() => new Promise(() => undefined)); // never settles
+    const first = forgottenCheck(U);
+    await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS);
+    expect((await first)?.('training for Boston')).toBe(true); // nothing read: closed
+    await vi.advanceTimersByTimeAsync(READ_HANG_MS + BACKOFF_MIN_MS); // the hung read is dropped
+    read.fn.mockResolvedValueOnce(['Biscuit']);
+    const later = await forgottenCheck(U);
+    expect(later?.('training for Boston')).toBe(false); // read again, and it answers
+    expect(later?.('Biscuit chewed it')).toBe(true);
+  });
+
   it('trusts last-known topics read during this call, however long ago', async () => {
     vi.useFakeTimers({ now: 4_000_000 });
     read.fn.mockResolvedValueOnce(['Biscuit']);
@@ -232,6 +261,13 @@ describe('aboutForgotten: known names whole, everything else stems', () => {
     vi.stubEnv('FORGET_EVERY_READER', 'off');
     rememberCallerNames(U, ['Mark']);
     expect(knownNames(U).size).toBe(0);
+  });
+
+  it('a topic in a non-Latin script is stored and applies', () => {
+    expect(storedTopic('развод')).toBe('развод');
+    expect(aboutForgotten('документы на развод пришли', ['развод'])).toBe(true);
+    expect(aboutForgotten('сегодня хорошая погода', ['развод'])).toBe(false);
+    expect(aboutForgotten('Η Μαρία τηλεφώνησε', ['Μαρία'])).toBe(true);
   });
 
   it('a topic that is not a name still matches other forms', () => {

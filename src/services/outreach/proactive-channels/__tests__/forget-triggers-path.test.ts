@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pathFirestore } from './path-firestore.js';
 
 const docs = new Map<string, Record<string, unknown>>();
-const topicsRead = vi.hoisted(() => ({ fails: false }));
+const topicsRead = vi.hoisted(() => ({ fails: false, hangs: false }));
 const pondered = vi.hoisted(() => ({
   notes: [] as Array<{ id: string; text: string; reason: string }>,
 }));
@@ -35,7 +35,11 @@ vi.mock('../../../../memory/recall/forget.js', async (importOriginal) => {
   return {
     ...real,
     forgottenTopicsOrNull: async (...a: Parameters<typeof real.forgottenTopicsOrNull>) =>
-      topicsRead.fails ? null : real.forgottenTopicsOrNull(...a),
+      topicsRead.hangs
+        ? new Promise<null>(() => undefined)
+        : topicsRead.fails
+          ? null
+          : real.forgottenTopicsOrNull(...a),
   };
 });
 const texts: string[] = [];
@@ -77,6 +81,7 @@ vi.mock('../../../llm/llm-utils.js', () => ({ callLLM: vi.fn(async () => null) }
 const { handleDeliverScheduledActions } =
   await import('../../../../api/scheduled-jobs/background-delivery-jobs.js');
 const { forgetFlagCache } = await import('../../../platform/cohort-flags.js');
+const { SHOWN_TIMEOUT_MS } = await import('../../../superhuman/commitment-forget.js');
 const { resetForgetTopicsSource } =
   await import('../../../../memory/recall/forget-topics-source.js');
 
@@ -96,6 +101,7 @@ async function runHandler(): Promise<void> {
 
 /** What they asked Ferni to forget, where forget.ts records it; null: the read fails. */
 function forgot(topics: string[] | null): void {
+  topicsRead.hangs = false;
   topicsRead.fails = topics === null;
   if (topics) docs.set(`bogle_users/${SETH}/memory_state/forgotten`, { topics });
 }
@@ -210,6 +216,18 @@ describe('proactive check-ins and a forgotten topic (FORGET_EVERY_READER)', () =
     await runHandler();
     expect(texts).toEqual([]);
   });
+
+  it('on: when every forgotten-topics read hangs, the run still ends in time and sends nothing', async () => {
+    vi.stubEnv('FORGET_EVERY_READER', 'on');
+    forgot([]);
+    topicsRead.hangs = true;
+    seedCommitment('c1', 'I will send the resume to Dana by Thursday');
+    seedReminder('call the pharmacy');
+    const started = performance.now();
+    await runHandler();
+    expect(performance.now() - started).toBeLessThan(SHOWN_TIMEOUT_MS + 1500);
+    expect(texts).toEqual([]);
+  }, 15_000);
 
   it('a commitment about it stays out, flag or not (the store filters it, #2031)', async () => {
     forgot(['divorce papers']);

@@ -11,6 +11,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { forgottenCheck } from '../../memory/index.js';
 import { listTokenUsers } from '../identity/google-calendar-token-store.js';
 import { getWorkflowEngine } from './workflow-engine.js';
 import { getActiveWorkflows, type Workflow } from '../stores/workflow-store.js';
@@ -48,9 +49,28 @@ let isRunning = false;
 // ============================================================================
 
 /**
+ * The briefing a push may carry (FORGET_EVERY_READER): past topics, open
+ * commitments and agenda items about a forgotten topic left out, so a push
+ * never says "Last time: <the thing they asked Ferni to forget>". Flag off,
+ * or nothing forgotten: the briefing as it is.
+ */
+export function forgetFiltered<
+  B extends { pastTopics?: string[]; openCommitments?: string[]; suggestedAgendaItems?: string[] },
+>(briefing: B, forgotten: ((text: string) => boolean) | null): B {
+  if (!forgotten || !briefing) return briefing;
+  const keep = (list?: string[]) => list?.filter((item) => !forgotten(item));
+  return {
+    ...briefing,
+    pastTopics: keep(briefing.pastTopics),
+    openCommitments: keep(briefing.openCommitments),
+    suggestedAgendaItems: keep(briefing.suggestedAgendaItems),
+  };
+}
+
+/**
  * Send a pre-meeting push notification with enriched briefing
  */
-async function sendPreMeetingPushNotification(
+export async function sendPreMeetingPushNotification(
   userId: string,
   event: CalendarEvent,
   minutesBefore: number
@@ -69,7 +89,10 @@ async function sendPreMeetingPushNotification(
 
     try {
       const { enrichPreMeetingBriefing } = await import('../calendar/meeting-memory-service.js');
-      const briefing = await enrichPreMeetingBriefing(userId, event);
+      const briefing = forgetFiltered(
+        await enrichPreMeetingBriefing(userId, event),
+        await forgottenCheck(userId, 'pre-meeting-push')
+      );
 
       if (briefing) {
         // Add relationship context if available

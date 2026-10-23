@@ -22,10 +22,12 @@
  * filtered views (prompt-view.ts), and the system prompt, greeting history,
  * single-agent awareness, handoff summary, the relationship and recall tools,
  * hybrid search, UnifiedStore.recall, entity surfacing, recall notes (taken
- * out at once on a forget: onForget), the proactive call's opener and
- * proactive check-ins check it (forget-every-reader.ts). Not covered:
- * session priming's Firestore reads of call summaries, and stored transcripts
- * read by anything but episode quotes; the flag's text lists the accepted gaps.
+ * out at once on a forget: onForget), the proactive call's opener,
+ * proactive check-ins, the pre-meeting push, insight-action messages and the
+ * celebration push check it (forget-every-reader.ts). Not covered: session
+ * priming's Firestore reads of call summaries, stored transcripts read by
+ * anything but episode quotes, and the proactive senders the flag's text
+ * lists with its accepted gaps.
  *
  * @module memory/recall/forget
  */

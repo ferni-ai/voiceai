@@ -25,6 +25,7 @@ describe('a forgotten topic matches its other forms', () => {
     ['ex-wife', 'His ex wife called'],
     ['ex wife', 'His ex-wife called'],
     ['exwife', 'His ex wife called'],
+    ['Жан-Поль', 'Жанполь звонил'], // any script: a hyphen inside a word is joined
     ['my sister’s wedding', "my sister's wedding plans"],
     ['RUNNING', 'he runs every day and ran a race'.replace('runs', 'running')],
   ])('forgetting "%s" covers "%s"', (topic, memory) => {
@@ -49,6 +50,11 @@ describe('a forgotten topic matches its other forms', () => {
     expect(isForgotten('James called', ['James'])).toBe(true);
     // A memory's capitalized first word still matches a topic's stem.
     expect(isForgotten('Divorce papers came', ['divorcing'])).toBe(true);
+  });
+
+  it('treats a hyphenated word the same in every script', () => {
+    expect(isForgotten('Jean-Paul called', ['Paul'])).toBe(true);
+    expect(isForgotten('Жан-Поль звонил', ['Поль'])).toBe(true);
   });
 
   it('never over-matches part of another word', () => {
@@ -112,7 +118,9 @@ describe('recall fails closed when the topics are unreadable', () => {
         summaries: async () => [
           {
             followUpItems: ['Ask about the move'],
-            insideJokes: [{ bit: 'the fungus incident', quote: 'the fungus incident', speaker: 'user' }],
+            insideJokes: [
+              { bit: 'the fungus incident', quote: 'the fungus incident', speaker: 'user' },
+            ],
           },
         ],
         forgotten: async () => null,
