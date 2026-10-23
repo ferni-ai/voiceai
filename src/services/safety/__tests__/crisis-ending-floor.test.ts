@@ -108,6 +108,30 @@ describe('the first-person ending floor', () => {
     }
   });
 
+  it('scores every match, anchors idioms to the words, and names subjects exactly', () => {
+    for (const line of [
+      // An idiom or a softened first match never hides a later one.
+      'I almost killed myself on my bike. I might kill myself tonight',
+      'I killed myself laughing at that, but honestly I might kill myself tonight',
+      "I'd never kill myself. but honestly I might kill myself tonight",
+      // An accident's shape without "almost" or "nearly" is no accident.
+      'I might kill myself on the stairs',
+      // A place, a time or a means is never an idiom.
+      "I'm killing myself at the bridge tonight",
+      'I might kill myself at school tomorrow',
+      'I almost killed myself last night',
+      'I nearly killed myself on purpose',
+      "I've been killing myself slowly with pills",
+      'ending my life as a burden to everyone',
+      'end it all at the train station',
+      // "end it all" with no subject right before it, or with the caller in the clause.
+      'the pain, end it all',
+      'lets end it all, me and you, tonight',
+    ]) {
+      expect(level(line), line).toBe('script');
+    }
+  });
+
   it('reads a purpose or a condition as risk, not as a negation', () => {
     for (const line of [
       "I'm taking the knives out so I don't kill myself",
@@ -146,17 +170,25 @@ describe('the first-person ending floor', () => {
       detectCrisis('lol I want to die. I would never kill myself').severity
     ).toBeGreaterThanOrEqual(0.75);
     // A worry about someone else keeps its third-party read when the caller's own words are
-    // only softened, for the floor's words and the tiers' alike.
+    // negated, recovered or hyperbole, for the floor's words and the tiers' alike.
     for (const line of [
       'my brother keeps talking about killing himself. I would never kill myself',
       'my brother keeps talking about killing himself. I would never want to kill myself',
-      'my friend wants to end her life, lol I might kill myself',
-      'he texted me that he is going to kill himself. I used to want to commit suicide',
+      'my friend wants to end her life. I used to want to die but I am in recovery now',
     ]) {
       const found = detectCrisis(line);
       expect(found.subject, line).toBe('third_party');
       expect(found.severity, line).toBeGreaterThanOrEqual(0.75);
       expect(found.isCrisis, line).toBe(true);
+    }
+    // Joking, conditional or past words are the caller's own risk: they stay the caller's.
+    for (const line of [
+      'lol I might kill myself. my brother keeps talking about killing himself',
+      'my friend wants to end her life, if this fails I might kill myself',
+    ]) {
+      const found = detectCrisis(line);
+      expect(found.subject, line).toBe('self');
+      expect(found.severity, line).toBe(0.75);
     }
     // The caller's own unsoftened risk stays theirs, whoever else is mentioned.
     const own = detectCrisis("I don't want to be here anymore. my brother wants to kill himself.");

@@ -388,19 +388,26 @@ export const FIRST_PERSON_ENDING =
   /\b(kill(ed|ing)? my ?self|end(ed|ing)? (my (own )?life|it all)|tak(e|ing) my (own )?life\b(?! (back|savings|story|insurance|admin|seriously|more seriously|for granted|into my own hands|in (a|my|another) (new |different )?direction|to the next level|forward)\b)|unaliv(e|ing) my ?self|commit(ting)? suicide)\b/;
 
 /**
- * Everyday idioms around the floor's words, judged on the clause: laughing, an accident
- * someone nearly had, effort at work, school, the gym or a task, a game, and ending a life
- * "as a" role. Only named idioms: never a bare preposition, which swallowed "I'm killing
- * myself in the garage tonight" (#2528 round 1).
+ * Everyday idioms around the floor's words, anchored to the match itself: each is tested on the
+ * match and what follows it in the clause, and an accident also needs "almost" or "nearly" just
+ * before it (ENDING_IDIOM_BEFORE). Closed forms only: laughing, a named near accident, effort
+ * (studying, at the gym "lately"), a named task, a game, and ending a life "as a" named role.
+ * A place, a time or a means never exempts the words ("killing myself at the bridge tonight").
  */
 export const ENDING_IDIOMS = [
-  /\bkill(ed|ing)? my ?self laughing\b/,
-  /\b(almost|nearly|practically|could have|could'?ve) kill(ed)? my ?self (on|off|falling|tripping|slipping|riding|crashing)\b/,
-  /\bkill(ed|ing)? my ?self (every (day|night) )?(at (work|the gym|school|practice|the office)|studying|working|training|cramming|trying to (make|get|keep|please|finish))\b/,
-  /\bkill(ed|ing)? my ?self over (this|that|these|those|my|the) (homework|spreadsheet|project|essay|paper|assignment|report|deadline|exam|job|class|code)\b/,
-  /\bkill(ed|ing)? my ?self in (minecraft|fortnite|roblox|gta|elden ring|the sims|skyrim|zelda|((the|a|this|that|my) )?(video )?games?)\b/,
-  /\bend(ed|ing)? my life (as an?|of) \w+/,
+  /^kill(ed|ing)? my ?self laughing\b/,
+  /^kill(ed|ing)? my ?self (studying|working (two|three|double|extra|overtime)|training|cramming|trying to (make|please|keep up with) (her|him|them|everyone|my boss))\b/,
+  /^kill(ed|ing)? my ?self (at (the gym|work)|in the gym) (lately|these days|every (day|night|week))\b/,
+  /^kill(ed|ing)? my ?self every (day|night) at (the gym|work)\b/,
+  /^kill(ed|ing)? my ?self over (this|that|these|those|my|the) (homework|spreadsheet|project|essay|paper|assignment|report|deadline|exam|code)\b/,
+  /^kill(ed|ing)? my ?self in (minecraft|fortnite|roblox|gta|elden ring|the sims|skyrim|zelda|((the|a|this|that|my) )?(video )?games?)\b/,
+  /^end(ed|ing)? my life as an? (bachelor|bachelorette|single (man|woman|guy|girl|person)|smoker|drinker|student|renter|teenager)\b/,
 ];
+
+/** A near accident: "almost" or "nearly" right before the words, a named fall or ride after. */
+export const ENDING_IDIOM_BEFORE = /\b(almost|nearly|practically|could have|could'?ve) $/;
+export const ENDING_ACCIDENT =
+  /^kill(ed)? my ?self ((falling|tripping|slipping|crashing|riding) (on|off|down|over|into) |(on|off) )(the|my|a|that|this) (stairs|steps|step|bike|ice|ladder|skateboard|scooter|curb|treadmill|trampoline|horse)\b/;
 
 /** Someone the caller knows is at risk. */
 export const THIRD_PARTY_PATTERNS = [

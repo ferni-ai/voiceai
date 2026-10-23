@@ -6,7 +6,12 @@
  */
 
 import { explicitModifier, type ExplicitModifier } from './crisis-modifiers.js';
-import { ENDING_IDIOMS, FIRST_PERSON_ENDING } from './crisis-patterns.js';
+import {
+  ENDING_ACCIDENT,
+  ENDING_IDIOMS,
+  ENDING_IDIOM_BEFORE,
+  FIRST_PERSON_ENDING,
+} from './crisis-patterns.js';
 
 /** The clause around a match: its words before and after, up to the nearest sentence break. */
 function clauseOf(text: string, from: number, to: number): { before: string; after: string } {
@@ -22,13 +27,20 @@ function clauseOf(text: string, from: number, to: number): { before: string; aft
 const PURPOSE_NOT =
   /\b(so( that)?|if|unless|or( else)?|in case|before) i (don'?t|do not|won'?t|will not|can'?t|wouldn'?t) $/;
 
-/** The floor's words in an everyday idiom, or "end it all" said of someone else ("lets end it all"). */
+/** First person anywhere in the clause: "lets end it all, me and you, tonight" is the caller. */
+const FIRST_PERSON = /\b(i|i'm|im|i'll|i'd|i've|me|my|myself|us|our)\b/;
+/** Another subject right before the verb: "lets end it all", "this season finale ended it all". */
+const OTHER_SUBJECT =
+  /\b(let'?s|lets|we|we'll|they|they'll|he|she|you|it|(this|that|the) \w+( \w+)?) ((just|gonna|going to|will|'ll|can|finally|really|totally) )*$/;
+
+/** The floor's words in an everyday idiom, or "end it all" said with another subject. */
 function endingIdiom(text: string, from: number, to: number, words: string): boolean {
   const { before, after } = clauseOf(text, from, to);
-  if (ENDING_IDIOMS.some((re) => re.test(`${before}${words}${after}`))) return true;
-  if (!/it all$/.test(words) || /\b(i|i'm|im|i'll|i'd|i've|me|my)\b/.test(before)) return false;
-  // A spoken fragment has no subject ("ending it all tonight"); another subject is not the caller.
-  return /\b(let'?s|lets|we|we'll|we're|you|he|she|they|it|this|that|the|which)\b/.test(before);
+  const span = `${words}${after}`;
+  if (ENDING_IDIOMS.some((re) => re.test(span))) return true;
+  if (ENDING_IDIOM_BEFORE.test(before) && ENDING_ACCIDENT.test(span)) return true;
+  if (!/it all$/.test(words) || FIRST_PERSON.test(`${before} ${after}`)) return false;
+  return OTHER_SUBJECT.test(before);
 }
 
 /** Where the floor's words start once modals and fillers before them are skipped ("I could "). */
@@ -52,16 +64,28 @@ function withoutModal(text: string, from: number): number {
 export function endingFloor(
   text: string,
   softened: readonly (readonly [number, number])[]
-): { modifier: ExplicitModifier } | null {
-  const ending = FIRST_PERSON_ENDING.exec(text);
-  if (!ending) return null;
-  const [from, to] = [ending.index, ending.index + ending[0].length];
-  if (softened.some(([s, e]) => from < e && to > s) || endingIdiom(text, from, to, ending[0])) {
-    return null;
+): { modifier: ExplicitModifier; thirdParty: boolean } | null {
+  // Every match counts: an idiom or softened first one never hides a later one (#2528).
+  let best: ExplicitModifier | undefined;
+  let thirdParty = false;
+  for (const ending of text.matchAll(new RegExp(FIRST_PERSON_ENDING.source, 'g'))) {
+    const from = ending.index;
+    const to = from + ending[0].length;
+    if (softened.some(([s, e]) => from < e && to > s) || endingIdiom(text, from, to, ending[0])) {
+      continue;
+    }
+    let modifier = explicitModifier(text, withoutModal(text, from), to, false);
+    if (modifier === 'negated' && PURPOSE_NOT.test(clauseOf(text, from, to).before))
+      modifier = null;
+    if (modifier === 'third_party') thirdParty = true;
+    else if (best === undefined || rank(modifier) > rank(best)) best = modifier;
   }
-  const modifier = explicitModifier(text, withoutModal(text, from), to, false);
-  if (modifier === 'negated' && PURPOSE_NOT.test(clauseOf(text, from, to).before)) {
-    return { modifier: null };
-  }
-  return { modifier };
+  if (best === undefined) return thirdParty ? { modifier: 'third_party', thirdParty } : null;
+  return { modifier: best, thirdParty };
+}
+
+/** Unsoftened beats a frame, which beats a negation, hyperbole or recovery. */
+function rank(modifier: ExplicitModifier): number {
+  if (!modifier) return 2;
+  return modifier === 'negated' || modifier === 'hyperbole' || modifier === 'recovered' ? 0 : 1;
 }

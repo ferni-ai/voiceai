@@ -107,7 +107,7 @@ interface TextScore {
   language?: 'en' | 'es';
   implicitHits: number;
   contextHit: boolean;
-  /** The caller's own ending words, softened only ("I would never kill myself", "lol"). */
+  /** The caller's own ending words, negated, recovered or hyperbole only ("I would never …"). */
   softSelf: boolean;
 }
 
@@ -148,7 +148,7 @@ function scoreText(text: string): TextScore {
       softSelf = true;
     } else if (modifier) {
       add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
-      softSelf = true;
+      hardSelf = true;
     } else {
       hardSelf = true;
       add('explicit_crisis_language', SEVERITY.explicit);
@@ -163,6 +163,7 @@ function scoreText(text: string): TextScore {
   const floor = severity < SEVERITY.explicit ? endingFloor(text, softened) : null;
   if (floor) {
     const { modifier } = floor;
+    if (floor.thirdParty) thirdPartyHit = true;
     if (modifier === 'third_party') thirdPartyHit = true;
     else if (modifier === 'negated' || modifier === 'hyperbole' || modifier === 'recovered') {
       add(`${modifier}_crisis_language`, 0);
@@ -170,7 +171,7 @@ function scoreText(text: string): TextScore {
       softSelf = true;
     } else if (modifier) {
       add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
-      softSelf = true;
+      hardSelf = true;
     } else {
       hardSelf = true;
       add('explicit_crisis_language', SEVERITY.explicit);
@@ -203,9 +204,10 @@ function scoreText(text: string): TextScore {
     add('plan_or_means', SEVERITY.explicit);
   }
 
-  // A worry about someone else outranks a self signal that is only softened ("my brother keeps
-  // talking about killing himself. I would never kill myself", "lol I might kill myself"): the
-  // third-party read is never lowered (#2528).
+  // A worry about someone else outranks the caller's own words only when those are negated,
+  // recovered or hyperbole ("my brother keeps talking about killing himself. I would never kill
+  // myself"): the third-party read is never lowered. Joking, conditional, hedged or past words
+  // stay the caller's (#2528).
   if (implicitHits > softenedHits) hardSelf = true;
   let subject: CrisisSubject | undefined = severity > 0 ? 'self' : undefined;
   const thirdParty = thirdPartyHit || THIRD_PARTY_PATTERNS.some((p) => p.test(text));
