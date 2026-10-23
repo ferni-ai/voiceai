@@ -59,7 +59,8 @@ starts with no rules: every read and write allowed).
 4. **Prove it before you claim it.** Run the tests that cover the change and
    `pnpm typecheck`. For voice behaviour, run the eval harness on dev and paste
    the numbers in the PR (skill: `voice-eval`). "Done" means merged, deployed
-   to dev from `main`, and checked there.
+   to dev from `main`, and checked there. Every new test or gate must be seen
+   to fail: break the code it covers (or run it on main) and say so in the PR.
 5. **Merge through the queue**: `gh pr merge <n> --auto`, with no
    `--squash` (the queue squashes; passing it errors and leaves auto-merge
    off). Never `gh pr update-branch` a PR that is already queued.

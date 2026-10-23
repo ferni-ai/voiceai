@@ -40,7 +40,11 @@ import {
   noteUserTurn,
   turnPipelineWarm,
 } from './first-turn-defer.js';
-import { MAX_PUSHED_CONTEXT_CHARS, TURN_CONTEXT_HEADER } from './turn-context-header.js';
+import {
+  MAX_PUSHED_CONTEXT_CHARS,
+  TURN_CONTEXT_FOR,
+  TURN_CONTEXT_HEADER,
+} from './turn-context-header.js';
 import { carriesSafety } from '../processors/turn-processor/safety-note.js';
 import { heldForPreemptive, preemptStableMode } from './preempt-stable-context.js';
 
@@ -183,8 +187,8 @@ export function createTurnIntelligenceHook(deps: TurnIntelligenceDeps): UserTurn
  */
 export { TURN_CONTEXT_HEADER };
 
-/** The key, in a pushed note's `extra`, of the caller's words it was built for. */
-export const TURN_CONTEXT_FOR = 'turnContextFor';
+// The key, in a pushed note's `extra`, of the caller's words it was built for (turn-context-header.ts).
+export { TURN_CONTEXT_FOR };
 
 interface ChatItemView {
   id: string;

@@ -23,6 +23,7 @@
 
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { callerSetsDepthOn, labelsDeflection } from './caller-sets-depth.js';
 import {
   directorAddress,
   directorEscalates,
@@ -236,6 +237,8 @@ export function parseNotes(
     // Never against a boundary, honesty or tool truth, whatever the flags (director-guard.ts).
     .filter((l) => !erodesGuard(l, opts.sessionId))
     .filter((l) => !GENERIC.test(l) && !PUSHY.test(l) && !MIND_READING.test(l))
+    // CALLER_SETS_DEPTH=on: no note that labels their deflection or says "hold space".
+    .filter((l) => !(callerSetsDepthOn() && labelsDeflection(l)))
     .filter((l) => directorLooksBack() || !backToEarlier(l))
     .filter((l) => !directorSeesTools() || !CAPABILITY_DENIAL.test(l))
     .filter((l) => speaking === undefined || !claimsIdentity(l))
@@ -343,7 +346,7 @@ export class Director {
           directs,
           names,
         });
-        // DIRECTOR_DIRECTS: how many notes its guard dropped as style policing or a scripted line.
+        // DIRECTOR_DIRECTS: how many notes its guard dropped (policing, mind-reading, a scripted line).
         this.critiqued = directs
           ? parseNotes(reply, lines.slice(-12), asked.speaking, guard).length - this.notes.length
           : 0;

@@ -246,8 +246,8 @@ async function collectRealMemoryMetrics(): Promise<MemoryMetricsResponse> {
     try {
       const vectorStats = await vectorStore.getStats();
       metrics.surfacingMetrics.totalSurfaced = vectorStats.documentCount;
-      // Category breakdown can inform timing
-      const categories = vectorStats.byCategory;
+      // Category breakdown can inform timing; null when Firestore was counted.
+      const categories = vectorStats.byCategory ?? {};
       metrics.surfacingMetrics.timingBreakdown.immediate = categories['immediate'] || 0;
       metrics.surfacingMetrics.timingBreakdown.nextPause = categories['deferred'] || 0;
       metrics.surfacingMetrics.timingBreakdown.sessionEnd = categories['background'] || 0;
