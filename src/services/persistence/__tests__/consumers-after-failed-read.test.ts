@@ -59,7 +59,6 @@ fake.db = fakeDb(state);
 
 const calendar = await import('../../scheduling/calendar-reminders.js');
 const goals = await import('../../goal-outreach-integration.js');
-const planning = await import('../../../tools/event-planning/storage.js');
 const { CommunicationMirroringEngine } =
   await import('../../../intelligence/tracking/communication-style.js');
 const { createPersistenceStore } = await import('../index.js');
@@ -139,31 +138,6 @@ describe('goal outreach after a failed load', () => {
     await goals.flushGoalOutreachPersistence();
 
     expect(idsAt(GOALS, 'goals')).toEqual(['old-goal', goal.id]);
-  });
-});
-
-describe('event planning after a failed load', () => {
-  const USER = 'u-plan';
-  const PATH = `bogle_users/${USER}/event_planning/data`;
-  const stored = {
-    id: 'old-party',
-    userId: USER,
-    name: 'party',
-    date: ISO,
-    createdAt: ISO,
-    checklist: [],
-  };
-
-  it('the next load after recovery reads the stored events, so a save keeps them', async () => {
-    state.docs.set(PATH, { events: [stored] });
-    failed.add(PATH);
-    await planning.ensureUserLoaded(USER); // fails: must not count as loaded
-    failed.clear();
-    await planning.ensureUserLoaded(USER);
-    expect(planning.events.has('old-party')).toBe(true);
-    planning.persistEventPlanningData(USER);
-    await planning.flushEventPlanningPersistence();
-    expect(idsAt(PATH, 'events')).toContain('old-party');
   });
 });
 

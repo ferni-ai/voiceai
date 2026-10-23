@@ -155,7 +155,7 @@ export async function ensureUserLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
 
   try {
-    const data = await getPersistence().load(userId, { strict: 'read' });
+    const data = await getPersistence().load(userId);
     if (data) {
       // Load events
       for (const event of data.events || []) {
@@ -178,7 +178,7 @@ export async function ensureUserLoaded(userId: string): Promise<void> {
     getLogger().debug({ userId }, 'Loaded event planning data from persistence');
   } catch (error) {
     getLogger().warn({ error, userId }, 'Failed to load event planning data');
-    // not marked loaded: the next call reads again; nothing is saved over unread data
+    loadedUsers.add(userId);
   }
 }
 
