@@ -6,7 +6,9 @@
  * - a new file over 300 lines (a moved file is not new);
  * - a file over 500 lines that grew, or one that crossed 500;
  * - a function over 150 lines that is new, crossed 150, or grew by more than
- *   max(5 lines, 2%) in this change (the god functions can take a small fix, not a feature);
+ *   max(5 lines, 2%) in this change (the god functions can take a small fix, not a feature).
+ *   A function that left one touched (or deleted) file for another is judged against its
+ *   old size there, so moving or splitting out a god function is free;
  * - more `as unknown as` casts across the touched files than at the base (moving one is free).
  *
  * The size ratchet had measured files against a committed list, which went stale within
@@ -83,9 +85,39 @@ export interface FileChange {
   base: string | null;
 }
 
+/** A file the change deletes, with its base text. */
+export interface Removed {
+  path: string;
+  base: string;
+}
+
+/** `Turn.run~2` → `run`: the name a function keeps when it moves out of a class or outer function. */
+const leaf = (key: string): string => key.replace(/~\d+$/, '').split('.').pop() ?? key;
+
+/**
+ * Long functions that left their base file in this change (gone from it, or the file deleted),
+ * to be matched once each by a long function that appears in another file.
+ */
+function movedOutPool(changes: FileChange[], removed: Removed[]): Array<{ key: string; lines: number; from: string }> {
+  const pool: Array<{ key: string; lines: number; from: string }> = [];
+  const add = (from: string, base: string, head: Record<string, number>): void => {
+    for (const [key, lines] of Object.entries(longFunctions(from, base))) if (!(key in head)) pool.push({ key, lines, from });
+  };
+  for (const c of changes) if (c.base !== null) add(c.path, c.base, longFunctions(c.path, c.head));
+  for (const r of removed) add(r.path, r.base, {});
+  return pool;
+}
+
 /** What the change adds, as messages; empty when it may land. */
-export function sizeRegressions(changes: FileChange[]): string[] {
+export function sizeRegressions(changes: FileChange[], removed: Removed[] = []): string[] {
   const out: string[] = [];
+  const pool = movedOutPool(changes, removed);
+  /** Take the old size of a function moved here: same qualified name first, then same leaf name. */
+  const takeMoved = (path: string, key: string): { lines: number; from: string } | undefined => {
+    let i = pool.findIndex((p) => p.key === key && p.from !== path);
+    if (i < 0) i = pool.findIndex((p) => leaf(p.key) === leaf(key) && p.from !== path);
+    return i < 0 ? undefined : pool.splice(i, 1)[0];
+  };
   let castsNow = 0;
   let castsBefore = 0;
   for (const c of changes) {
@@ -102,16 +134,19 @@ export function sizeRegressions(changes: FileChange[]): string[] {
     }
     const fnsBefore = c.base === null ? {} : longFunctions(c.path, c.base);
     for (const [fn, n] of Object.entries(longFunctions(c.path, c.head))) {
-      const was = fnsBefore[fn];
+      const moved = fn in fnsBefore ? undefined : takeMoved(c.path, fn);
+      const was = fnsBefore[fn] ?? moved?.lines;
+      const from = moved ? ` (moved from ${moved.from})` : '';
       if (was === undefined) {
         out.push(`${c.path}#${fn}: ${n} lines, over the ${MAX_FUNCTION_LINES}-line function limit (new or newly over). Extract steps.`);
       } else if (n - was > allowedGrowth(was)) {
-        out.push(`${c.path}#${fn}: grew ${was} → ${n} lines; a function over ${MAX_FUNCTION_LINES} lines may grow by ${allowedGrowth(was)} per change. Extract steps.`);
+        out.push(`${c.path}#${fn}: grew ${was} → ${n} lines${from}; a function over ${MAX_FUNCTION_LINES} lines may grow by ${allowedGrowth(was)} per change. Extract steps.`);
       }
     }
     castsNow += countAsUnknownAs(c.head, c.path);
     castsBefore += c.base === null ? 0 : countAsUnknownAs(c.base, c.path);
   }
+  for (const r of removed) castsBefore += countAsUnknownAs(r.base, r.path); // a cast moved out of a deleted file
   if (castsNow > castsBefore) {
     out.push(`\`as unknown as\` casts in the touched files rose ${castsBefore} → ${castsNow}. Type it, or narrow with a guard.`);
   }
@@ -119,14 +154,19 @@ export function sizeRegressions(changes: FileChange[]): string[] {
 }
 
 /** The touched source files under `roots`, with their base versions. */
-export function changedSources(roots: string[], isSource: (path: string) => boolean, root = process.cwd()): { base: string; changes: FileChange[] } {
+export function changedSources(roots: string[], isSource: (path: string) => boolean, root = process.cwd()): { base: string; changes: FileChange[]; removed: Removed[] } {
   const base = resolveBase(root);
   const diff = diffAgainstBase(base, roots, root);
   const files = diff.changed.filter(isSource);
-  const texts = readAtBase(base, files.map((f) => basePathOf(diff, f)).filter((p): p is string => p !== null), root);
+  const deleted = diff.deleted.filter(isSource);
+  const texts = readAtBase(base, [...files.map((f) => basePathOf(diff, f)).filter((p): p is string => p !== null), ...deleted], root);
   const changes = files.map((path) => {
     const old = basePathOf(diff, path);
     return { path, head: readFileSync(join(root, path), 'utf8'), base: old === null ? null : (texts.get(old) ?? null) };
   });
-  return { base, changes };
+  const removed = deleted.flatMap((path) => {
+    const text = texts.get(path);
+    return text === undefined ? [] : [{ path, base: text }];
+  });
+  return { base, changes, removed };
 }

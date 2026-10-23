@@ -45,6 +45,8 @@ public final class SystemCallAudio: CallAudio, @unchecked Sendable {
             .playAndRecord, mode: .voiceChat,
             options: [.defaultToSpeaker, .allowBluetoothHFP, .allowBluetoothA2DP, .allowAirPlay]
         )
+        // Otherwise iOS silences every haptic while the mic records (B9).
+        try session.setAllowHapticsAndSystemSoundsDuringRecording(true)
         try session.setActive(true)
     }
 
