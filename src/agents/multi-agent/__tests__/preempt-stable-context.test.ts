@@ -15,6 +15,7 @@ import {
   heldForPreemptive,
   MAX_WAIT_MS,
   preemptStableMode,
+  restartPreemptive,
 } from '../preempt-stable-context.js';
 
 const inFlight = () => ({
@@ -74,6 +75,22 @@ describe('preempt-stable-context', () => {
     expect(write).not.toHaveBeenCalled();
     vi.advanceTimersByTime(200);
     expect(write).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('restartPreemptive when LiveKit does not start a new reply', () => {
+  it('puts the running reply’s transcript back, so the commit can still keep it', () => {
+    const info = { newTranscript: 'I went to see my sister.', startedSpeakingAt: Date.now() };
+    const running = { info };
+    const activity = {
+      _preemptiveGeneration: running,
+      _preemptiveGenerationCount: 1,
+      onPreemptiveGeneration: vi.fn(), // returns early, as on a guard LiveKit checks and we don't
+    };
+    expect(restartPreemptive({ _agentActivity: activity }, 'I went to see my sister.')).toBe(false);
+    expect(activity.onPreemptiveGeneration).toHaveBeenCalledWith(info);
+    expect(activity._preemptiveGeneration).toBe(running);
+    expect(running.info).toBe(info); // not left answering ''
   });
 });
 
