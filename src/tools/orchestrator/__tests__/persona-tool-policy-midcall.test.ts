@@ -321,8 +321,8 @@ describe('same-turn topic tools and the static core follow the policy', () => {
       const { personaToolPolicy, rememberAgentPersona } = await import('../persona-tool-policy.js');
       const { wireCallToolLoader } =
         await import('../../../agents/voice-agent/deferred-tool-update.js');
-      const { preloadTopicDomains, withSameTurnTools } =
-        await import('../../../agents/personas/same-turn-tools.js');
+      const { preloadTopicDomains } = await import('../../../agents/personas/same-turn-tools.js');
+      const { toolsForTurn } = await import('../../../agents/personas/turn-request.js');
       const [sessionPersona, agentPersona] =
         forbids === 'agent' ? ['ferni', FIXTURE] : [FIXTURE, 'ferni'];
       const call = await startCall(sessionPersona, `same-turn-key-${forbids}`);
@@ -337,10 +337,13 @@ describe('same-turn topic tools and the static core follow the policy', () => {
       const chatCtx = llm.ChatContext.empty();
       chatCtx.addMessage({ role: 'user', content: 'Find me a coffee shop nearby.' });
       const replyTools = new llm.ToolContext(call.agent.toolCtx.tools as never);
-      const added = withSameTurnTools(session, chatCtx, replyTools, call.agent);
+      // As the agent's llmNode builds the request: toolsForTurn passes its agent along
+      const state = { loggedLockedHandoffs: true, agent: call.agent };
+      const request = await toolsForTurn(session as never, chatCtx, replyTools, state as never);
+      const sent = Object.keys(request.functionTools);
 
-      expect(added).toContain('findRestaurants'); // the topic was picked
-      expect(added.includes('searchLocalBusinesses')).toBe(expected);
+      expect(sent).toContain('findRestaurants'); // the topic was picked
+      expect(sent.includes('searchLocalBusinesses')).toBe(expected);
       call.loader.shutdown();
     },
     120_000
