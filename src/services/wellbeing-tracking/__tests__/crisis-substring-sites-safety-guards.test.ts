@@ -1,9 +1,11 @@
 /**
  * life-coaching assessSafety (safety-guards.ts) matched risk phrases as bare
- * substrings. SAFETY_WHOLE_WORD_SITES=on moves it onto whole words in STT
- * spelling. Through the real function: off keeps today's result, on drops the
- * in-word false positive and keeps (or gains) the real phrase, inflected forms
- * included ("self-harming", "hopelessness", "dieee").
+ * substrings. With SAFETY_WHOLE_WORD_SITES=on it reads crisis indicators
+ * through phraseHit (#2645): a hit is crisis (988, immediate referral), as
+ * before, and STT spellings and suffixed forms now count too. A crisis
+ * indicator found only inside a listed everyday word ('soft': "send it all",
+ * "skill myself") is urgent: it keeps the 988 offer, never drops to check_in.
+ * Concerning indicators count a soft match as a match.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,7 +21,10 @@ vi.mock('../../../utils/safe-logger.js', async (actual) => {
   };
 });
 
-import { assessSafety } from '../../../tools/domains/life-coaching-shared/safety-guards.js';
+import {
+  assessSafety,
+  CRISIS_RESOURCES,
+} from '../../../tools/domains/life-coaching-shared/safety-guards.js';
 import { riskCorpus } from './crisis-corpus.js';
 
 afterEach(() => {
@@ -36,12 +41,28 @@ describe('life-coaching assessSafety (crisis = immediate referral + 988)', () =>
     ['just spend it all on yourself', 'I want to end it all'],
     ['I want to skill them up', 'I want to kill them'],
   ];
-  // Crisis indicators read recall-first: a phrase that starts at a word edge
-  // counts however the word ends, so these stay crisis (accepted false positives).
-  const REOPENED = ["I can't go online at work", 'the self-harmony workshop'];
-  it.each(REOPENED)('on: %j stays crisis, as with the flag off', (line) => {
-    flag('on');
+  // Warning signs whose only crisis indicator lies inside a listed everyday word.
+  const SOFT = [
+    "i'll send it all to my sister before i go",
+    "i'm going to spend it all tonight, i won't need it after",
+    "i'll skill myself",
+    "I can't go online at work",
+    'the self-harmony workshop',
+  ];
+  it.each(SOFT)('off: %j is crisis, as today', (line) => {
+    flag('off');
     expect(assessSafety(line).level).toBe('crisis');
+  });
+  it.each(SOFT)('on: %j is urgent and keeps the 988 offer', (line) => {
+    flag('on');
+    const a = assessSafety(line);
+    expect(a.level).toBe('urgent');
+    expect(a.recommendedAction).toBe('resources');
+    expect(a.resources).toContainEqual(CRISIS_RESOURCES.general);
+  });
+  it('on: a hit anywhere in the line still wins: crisis', () => {
+    flag('on');
+    expect(assessSafety('i spend it all and i want to end it all').level).toBe('crisis');
   });
   it.each(CASES)('off: %j is crisis, as today', (everyday) => {
     flag('off');
@@ -58,11 +79,11 @@ describe('life-coaching assessSafety (crisis = immediate referral + 988)', () =>
     flag('on');
     expect(assessSafety('i cant go on').level).toBe('crisis');
   });
-  it('on: "number" no longer counts as "numb"', () => {
+  it('on: a soft concerning match still counts ("number" holds \'numb\')', () => {
     flag('off');
     expect(assessSafety('my phone number changed').level).toBe('concerning');
     flag('on');
-    expect(assessSafety('my phone number changed').level).toBe('safe');
+    expect(assessSafety('my phone number changed').level).toBe('concerning');
     expect(assessSafety('I feel numb').level).toBe('concerning');
   });
 });
@@ -146,13 +167,16 @@ describe('recall: crisis indicators never read less risk than the substring chec
     flag('on');
     expect(assessSafety(line).level).toBe('crisis');
   });
-  it('corpus: no real-risk fixture line that is crisis off drops below crisis on', () => {
+  it('corpus: crisis off is crisis or (soft) urgent on; nothing else reads lower', () => {
+    const rank = { safe: 0, concerning: 1, urgent: 2, crisis: 3 } as const;
     const drops: string[] = [];
     for (const line of riskCorpus()) {
       flag('off');
-      const off = assessSafety(line).level === 'crisis';
+      const off = assessSafety(line).level;
       flag('on');
-      if (off && assessSafety(line).level !== 'crisis') drops.push(line);
+      const on = assessSafety(line).level;
+      const floor = off === 'crisis' ? 'urgent' : off;
+      if (rank[on] < rank[floor]) drops.push(`${line}: ${off} -> ${on}`);
     }
     expect(drops).toEqual([]);
   });

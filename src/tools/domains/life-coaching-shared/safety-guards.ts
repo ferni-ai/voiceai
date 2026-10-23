@@ -6,7 +6,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
-import { saysPhrase, saysRiskPhrase } from '../../../utils/safety-whole-word.js';
+import { phraseHit, saysPhrase } from '../../../utils/safety-whole-word.js';
 import type { SafetyAssessment, CrisisResource, EmotionalState } from './types.js';
 
 const log = getLogger();
@@ -146,13 +146,14 @@ export function assessSafety(text: string): SafetyAssessment {
   const lower = text.toLowerCase();
   const flags: string[] = [];
   const resources: CrisisResource[] = [];
+  let softCrisis = false; // crisis indicator only inside an everyday word: urgent (988)
 
   for (const [category, indicators] of Object.entries(CRISIS_INDICATORS)) {
     for (const indicator of indicators) {
-      if (saysRiskPhrase(lower, indicator)) {
+      const hit = phraseHit(lower, indicator);
+      softCrisis ||= hit === 'soft';
+      if (hit === 'hit') {
         flags.push(`${category}: "${indicator}"`);
-
-        // Add appropriate resources
         switch (category) {
           case 'suicidal':
           case 'selfHarm':
@@ -180,14 +181,13 @@ export function assessSafety(text: string): SafetyAssessment {
     }
   }
 
-  // Determine level
   let level: SafetyAssessment['level'];
   let recommendedAction: SafetyAssessment['recommendedAction'];
 
   if (flags.length > 0) {
     level = 'crisis';
     recommendedAction = 'immediate_referral';
-  } else if (concernCount >= 3) {
+  } else if (concernCount >= 3 || softCrisis) {
     level = 'urgent';
     recommendedAction = 'resources';
     resources.push(CRISIS_RESOURCES.general);
@@ -199,8 +199,8 @@ export function assessSafety(text: string): SafetyAssessment {
     recommendedAction = 'continue';
   }
 
-  if (flags.length > 0 || concernCount > 0) {
-    log.warn({ level, flags, concernCount }, 'Safety assessment detected concerns');
+  if (level !== 'safe') {
+    log.warn({ level, flags, concernCount, softCrisis }, 'Safety assessment detected concerns');
   }
 
   return { level, flags, recommendedAction, resources };
