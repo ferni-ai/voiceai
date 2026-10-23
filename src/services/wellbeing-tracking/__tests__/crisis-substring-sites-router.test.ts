@@ -61,6 +61,16 @@ describe('detectEmotionalState: a soft crisis term stays crisis, as with the fla
     flag('shadow');
     for (const line of SOFT) expect(read(line)).toBe('crisis|critical');
   });
+  it('shadow: decides as off where on differs ("selfharm" is crisis only on)', () => {
+    const line = 'I have been thinking about selfharm';
+    flag('off');
+    const off = read(line);
+    flag('on');
+    expect(read(line)).toBe('crisis|critical');
+    expect(off).not.toBe('crisis|critical');
+    flag('shadow');
+    expect(read(line)).toBe(off);
+  });
 });
 
 describe('detectEmotionalState: real crisis lines stay crisis', () => {
