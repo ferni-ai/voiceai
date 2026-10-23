@@ -29,6 +29,7 @@ import {
 import { recordReminderPromise } from '../../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { sendEmail } from '../../../../services/communication-service.js';
 import { callPlacedReply } from './call-placed-reply.js';
+import { callMeMovesToPhone, callMovingToPhone } from './call-me-moves-to-phone.js';
 import { getCallUserPort } from './call-user-port.js';
 import { SAVED_NOT_VERIFIED } from './service.js';
 import {
@@ -411,7 +412,7 @@ Use for important check-ins or when a phone call is more personal than text.`,
       parameters: z.object({
         message: z.string().describe('What to say when they answer'),
       }),
-      execute: async ({ message }) => {
+      execute: async ({ message }, opts) => {
         if (!ctx.userId) {
           return "I'd need to know who you are to call you.";
         }
@@ -425,12 +426,15 @@ Use for important check-ins or when a phone call is more personal than text.`,
           return "I can't call you yet: there's no verified phone number on your account, so no call is coming.";
         }
 
-        const result = await port.call({
+        const request = {
           userId: ctx.userId,
           phoneNumber: phone,
           message,
           personaId: getCanonicalPersonaId(ctx.agentId || 'ferni'),
-        });
+        };
+        // CALL_ME_MOVES_TO_PHONE: an answered call ends this one (call-me-moves-to-phone.ts)
+        if (callMeMovesToPhone()) return callMovingToPhone(port, request, opts?.ctx?.session);
+        const result = await port.call(request);
 
         if (!result.success) {
           return `I couldn't place the call, so no call is coming: ${result.error ?? 'unknown error'}`;

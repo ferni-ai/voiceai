@@ -140,12 +140,42 @@ export interface HistoryAgent {
 
 /** Put the dropped call's turns, then the resume note, into the agent's history. */
 export async function restoreDroppedTurns(agent: HistoryAgent, call: DroppedCall): Promise<void> {
+  await restoreTurns(agent, call.turns, resumeNote(call));
+}
+
+async function restoreTurns(
+  agent: HistoryAgent,
+  turns: Array<Pick<ConversationTurn, 'role' | 'content'>>,
+  note: string
+): Promise<void> {
   const ctx = agent.chatCtx.copy();
-  for (const turn of call.turns) {
+  for (const turn of turns) {
     ctx.addMessage({ role: turn.role, content: turn.content.replace(/<[^>]+>/g, '').trim() });
   }
-  ctx.addMessage({ role: 'system', content: resumeNote(call) });
+  ctx.addMessage({ role: 'system', content: note });
   await agent.updateChatCtx(ctx);
+}
+
+export const MOVED_NOTE =
+  '[CALL MOVED TO PHONE] The messages above are from the app call you were just on with them. ' +
+  'They asked you to ring their phone and picked up, and that app call has ended. Carry on the ' +
+  'same conversation here; never act as if you are starting cold.';
+
+/**
+ * A "call me" from the app (CALL_ME_MOVES_TO_PHONE): that call's last turns,
+ * from the signed dispatch, go into this phone call's history. True if any did.
+ */
+export async function restoreMovedTurns(
+  sessionId: string,
+  agent: HistoryAgent | undefined
+): Promise<boolean> {
+  const { getProactiveSessionContext } =
+    await import('../../intelligence/context-builders/external/proactive-session-context.js');
+  const turns = getProactiveSessionContext(sessionId)?.recentTurns;
+  if (!agent || !turns?.length) return false;
+  await restoreTurns(agent, turns, MOVED_NOTE);
+  log.info({ sessionId, turns: turns.length }, 'CALL_ME_MOVES_TO_PHONE turns restored');
+  return true;
 }
 
 const lastBy = (call: DroppedCall, role: ConversationTurn['role']): string | undefined =>
@@ -181,7 +211,13 @@ export async function greetingOrResume(
   agent: { personaId: string; agent?: HistoryAgent },
   userData: GreetingUserData
 ): Promise<string> {
-  const call = await takeDroppedCall(sessionId);
+  // The app call it moved from isn't a drop: no "sorry, I dropped"
+  const moved = await restoreMovedTurns(sessionId, agent.agent).catch((error: unknown) => {
+    log.warn({ error: String(error), sessionId }, 'Moved-call turns not restored');
+    return false;
+  });
+  if (moved) lookups.delete(sessionId);
+  const call = moved ? undefined : await takeDroppedCall(sessionId);
   if (!call || !agent.agent) return directedGreeting(sessionId, agent.personaId, userData);
   try {
     await restoreDroppedTurns(agent.agent, call);

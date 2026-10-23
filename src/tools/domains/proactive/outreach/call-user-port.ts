@@ -13,7 +13,21 @@ export interface CallUserRequest {
   phoneNumber: string;
   message: string;
   personaId: string;
+  /**
+   * CALL_ME_MOVES_TO_PHONE: report the live dial back (CallUserResult.dial), and hand
+   * the phone agent this app call's last turns (empty when there is no call to move).
+   */
+  handover?: { turns: HandoverTurn[] };
 }
+
+/** One line of the app call, for the phone agent's history. */
+export interface HandoverTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+/** How a live dial ended (self-call.ts CallOutcome). */
+export type DialOutcome = 'answered' | 'no_answer' | 'busy' | 'declined' | 'failed';
 
 export interface CallUserResult {
   success: boolean;
@@ -21,6 +35,8 @@ export interface CallUserResult {
   status?: string;
   /** The persona's live agent is ringing them; otherwise a recorded voice message */
   live?: boolean;
+  /** With `handover`, a live dial: settles when the phone is answered or the dial ends */
+  dial?: Promise<DialOutcome>;
   error?: string;
 }
 

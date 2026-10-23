@@ -59,6 +59,7 @@ import {
 import { clearFarewell, markFarewell, reopenFarewell, watchFarewell } from './call-farewell.js';
 import { holdWhileBusy, waitForQuiet, watchCaller, type CallerWatch } from './caller-activity.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
+import { setPhoneMoveEnd } from '../../tools/domains/proactive/outreach/call-me-moves-to-phone.js';
 import {
   clearSessionClosing,
   isSessionClosing,
@@ -261,6 +262,31 @@ interface CallRoom {
   remoteParticipants?: { size: number };
 }
 
+interface SaySession {
+  say: (text: string) => { waitForPlayout: () => Promise<void> };
+}
+
+/**
+ * CALL_ME_MOVES_TO_PHONE: once the phone this app caller asked Ferni to ring is
+ * answered, the app call says a short goodbye (nothing if they already left)
+ * and ends on the goodbye path (call-me-moves-to-phone.ts). No caller watch:
+ * the app's mic can still hear them talking on the phone, which must not
+ * reopen it. Crisis risk on the call still holds it open.
+ */
+export function attachPhoneMoveEnd(
+  session: object,
+  call: Pick<WrapUpCall, 'sessionId' | 'roomName' | 'callerInRoom' | 'hangUp' | 'setTimer'>
+): void {
+  const wrap: WrapUpCall = { ...call };
+  setPhoneMoveEnd(session, async (line) => {
+    if (crisisRiskThisCall(call.sessionId)) return false; // no goodbye it won't keep
+    const playout = wrap.callerInRoom()
+      ? () => (session as SaySession).say(line).waitForPlayout()
+      : undefined;
+    return wrapUpCall(wrap, 'goodbye_complete', playout);
+  });
+}
+
 /**
  * Gives the agent its endCall: PHONE_GOODBYE's for a phone caller, this one
  * for an app caller with CALL_WRAP_UP on. With GOODBYE_ENDS_CALL or
@@ -286,13 +312,18 @@ export async function attachCallWrapUp(
 ): Promise<boolean> {
   const roomName = call.room.name ?? '';
   const phone = call.participant?.kind === ParticipantKind.SIP;
+  const callerInRoom = (): boolean => (call.room.remoteParticipants?.size ?? 0) > 0;
+  if (!phone && !call.onBehalf && call.session) {
+    const { sessionId, hangUp, setTimer } = call;
+    attachPhoneMoveEnd(call.session, { sessionId, roomName, callerInRoom, hangUp, setTimer });
+  }
   const wrapUp = callWrapUpEnabled(call.env) && !call.onBehalf;
   const endOnGoodbye = goodbyeEndsCallEnabled(call.env) && !call.onBehalf;
   if (!phone && !wrapUp && !endOnGoodbye) return false;
   const wrap: WrapUpCall = {
     sessionId: call.sessionId,
     roomName,
-    callerInRoom: () => (call.room.remoteParticipants?.size ?? 0) > 0,
+    callerInRoom,
     hangUp: call.hangUp,
     setTimer: call.setTimer,
     now: call.now,

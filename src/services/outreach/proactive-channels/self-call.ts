@@ -31,6 +31,16 @@ export type CallOutcome = Extract<
   'answered' | 'no_answer' | 'busy' | 'declined' | 'failed'
 >;
 
+/** A line of the app call a "call me" moved from (CALL_ME_MOVES_TO_PHONE, live-agent-call.ts). */
+export interface DispatchTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+type DispatchTrigger = Pick<ProactiveTrigger, 'kind' | 'reason' | 'sourceId'> & {
+  recentTurns?: DispatchTurn[];
+};
+
 /** The LiveKit calls this makes; tests stub them (the SDK edge). */
 export interface SipApi {
   createRoom: (name: string) => Promise<void>;
@@ -49,7 +59,7 @@ export function canPlaceCalls(env: Record<string, string | undefined> = process.
 export function selfCallDispatch(
   userId: string,
   callId: string,
-  trigger: Pick<ProactiveTrigger, 'kind' | 'reason' | 'sourceId'>,
+  trigger: DispatchTrigger,
   personaId = 'ferni'
 ): Record<string, unknown> {
   return {
@@ -61,6 +71,7 @@ export function selfCallDispatch(
     triggerReason: trigger.reason,
     triggerId: trigger.sourceId,
     openerStyle: 'warm',
+    ...(trigger.recentTurns && { recentTurns: trigger.recentTurns }),
   };
 }
 
@@ -109,7 +120,7 @@ async function livekitSip(): Promise<SipApi> {
 export async function placeSelfCall(
   userId: string,
   phone: string,
-  trigger: Pick<ProactiveTrigger, 'kind' | 'reason' | 'sourceId'>,
+  trigger: DispatchTrigger,
   sip?: SipApi,
   personaId = 'ferni'
 ): Promise<CallOutcome> {

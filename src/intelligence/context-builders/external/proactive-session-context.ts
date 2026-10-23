@@ -88,6 +88,9 @@ export interface ProactiveSessionContext {
 
   /** Persona initiating (usually Ferni) */
   initiatingPersona: string;
+
+  /** The app call's last turns when a "call me" moved it to the phone (CALL_ME_MOVES_TO_PHONE) */
+  recentTurns?: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
 // In-memory store for proactive session contexts (set by outreach engine)
