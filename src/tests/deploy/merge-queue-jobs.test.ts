@@ -170,7 +170,8 @@ describe('the unit shards cover the whole suite on a full run', () => {
 
   it('the Unit Tests gate fails unless setup and every shard succeeded', () => {
     expect(gateJob).toMatch(
-      /if \[ "\$SETUP" != success \] \|\| \[ "\$SHARDS" != success \]; then\n(?:.*\n)*? +exit 1/
+      // `exit 1` inside this branch: no line between `then` and it may be the branch's `fi`.
+      /if \[ "\$SETUP" != success \] \|\| \[ "\$SHARDS" != success \]; then\n(?:(?! *fi\n).*\n)*? +exit 1\n +fi\n/
     );
   });
 });
