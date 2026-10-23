@@ -436,17 +436,46 @@ describe("the caller's answer", () => {
     expect(await gate(session, later, 'Pie, obviously.', RELEASE, [])).toEqual({ action: 'pass' });
   });
 
-  it('a gate that closes on a clear no cannot reopen what the pipeline asked again', async () => {
+  it('paths that disagree on one turn ask again; a repeated "No." after a re-ask is a new turn', async () => {
     const session = await released();
-    // The pipeline saw a line that did not ask: it asks again (open), then the gate sees "No.".
+    // The pipeline saw only an acknowledgement (not asked): ask again.
     expect(screenAnswer(session, { latest: 'No.', companion: 'Mm-hm.' })).toBe('reask');
-    expect(screenAnswer(session, { latest: 'No.', companion: ASKED })).toBe('reask');
-    // So the next answer is still screened, and it is not a clear no.
-    const out = screenAnswer(session, {
-      latest: 'Kind of.',
-      companion: `Okay. ${SCREEN_QUESTION}`,
-    });
-    expect(out).toBe('positive');
+    // The gate, same turn (same Ferni line), saw the question and a clear no: the stronger
+    // verdict stands, so the question is asked again rather than the screen closing.
+    const gateView = { latest: 'No.', companion: 'Mm-hm.', ferni: [ASKED, 'Mm-hm.'] };
+    expect(screenAnswer(session, gateView)).toBe('reask');
+    expect(screenAnswer(session, { latest: 'Kind of.', companion: 'Okay.' })).toBe('positive');
+    // After a real re-ask, the caller repeating the same words is judged as the answer.
+    const again = await released();
+    expect(screenAnswer(again, { latest: 'Yes.', companion: NOT_ASKED })).toBe('reask');
+    expect(screenAnswer(again, { latest: 'Yes.', companion: `Okay. ${SCREEN_QUESTION}` })).toBe(
+      'positive'
+    );
+  });
+
+  it('a repeated "No." after a real re-ask closes the screen instead of asking again', async () => {
+    const session = await released();
+    expect(screenAnswer(session, { latest: 'No.', companion: NOT_ASKED })).toBe('reask');
+    expect(screenAnswer(session, { latest: 'No.', companion: `Okay. ${SCREEN_QUESTION}` })).toBe(
+      'none'
+    );
+  });
+
+  it('a question Ferni asks after the screening question means it was not the one answered', async () => {
+    const session = await released();
+    const ferni = [ASKED, 'Done, I moved it. Should I nudge you at three?'];
+    expect(screenAnswer(session, { latest: 'No.', companion: ferni[1], ferni })).toBe('reask');
+  });
+
+  it('the appended question is skipped only for an exact copy at the end', async () => {
+    const s1 = `screen-${++calls}`;
+    const near = await spoken(
+      s1,
+      [[OPENER, REMINDER]],
+      DINNER,
+      `Fun! ${SCREEN_QUESTION.toLowerCase()}`
+    );
+    expect(near.endsWith(` ${SCREEN_QUESTION}`)).toBe(true);
   });
 
   it('a re-ask with no reply from the model speaks just the question', async () => {

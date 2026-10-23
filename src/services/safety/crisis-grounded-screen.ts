@@ -139,9 +139,11 @@ export function screenAnswer(
     if (!screen || now - screen.at > SCREEN_TTL_MS) return 'none';
     const turn = loose(String(input.latest ?? ''));
     const companion = loose(stripSSML(String(input.companion ?? '')));
-    // Asked if any line of Ferni's reply ended with the question in full: a tool's follow-up may
-    // be the last line (the SDK speaks it after the reply that asked).
-    const asked = [input.companion, ...(input.ferni ?? [])].some(askedScreen);
+    // Asked if a line of Ferni's reply ended with the question in full and nothing Ferni said
+    // after it asked anything else: a tool's follow-up may come last (the SDK speaks it after).
+    const lines = input.ferni?.length ? input.ferni : [input.companion ?? ''];
+    const at = lines.map((line) => askedScreen(line)).lastIndexOf(true);
+    const asked = at >= 0 && lines.slice(at + 1).every((line) => !line.includes('?'));
     // The released turn itself, on its other path, even with drifted words: never an answer.
     // A line that answers the question is screened, even one repeating the released words.
     const releasedTurn = turn === screen.asked || (companion !== '' && companion === screen.before);
@@ -151,9 +153,10 @@ export function screenAnswer(
       return reasked ? 'positive' : 'reask';
     };
     const last = screen.last;
-    // The same turn's other path (same words, or the same Ferni line before them): one shared
-    // record, never weaker than the first path's verdict, and a stronger one replaces it.
-    if (last && (last.turn === turn || (companion !== '' && companion === last.companion))) {
+    // The same turn's other path shares Ferni's line before it: one shared record, never weaker
+    // than the first path's verdict, and a stronger one replaces it. Words alone never make a
+    // turn the same one: a caller may repeat "No." after a re-ask.
+    if (last && companion !== '' && companion === last.companion) {
       const again = judge(screen.reasked && last.outcome !== 'reask');
       if (RANK[again] <= RANK[last.outcome]) return last.outcome;
       if (again === 'reask') screen.reasked = true;
@@ -234,7 +237,8 @@ export function withScreenQuestion<T>(reply: ReadableStream<T>): ReadableStream<
         controller.enqueue(chunk);
       },
       flush(controller) {
-        if (!askedScreen(said)) controller.enqueue(` ${SCREEN_QUESTION}`);
+        // Skipped only when the model's own text ends with the exact canonical question.
+        if (!said.trimEnd().endsWith(SCREEN_QUESTION)) controller.enqueue(` ${SCREEN_QUESTION}`);
       },
     })
   );
