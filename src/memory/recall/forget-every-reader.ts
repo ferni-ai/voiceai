@@ -127,6 +127,29 @@ export function prefetchForgotten(userId: string | null | undefined, env: Env = 
   void readTopics(userId);
 }
 
+/** A caller-names read still pending after this gives no names: every word then stems, hiding more. */
+export const CALLER_NAMES_HANG_MS = 5_000;
+
+/**
+ * Learn the caller's names from `read` (FORGET_EVERY_READER only: off, it is
+ * never called, so the recall snapshot makes main's reads), never waiting past
+ * CALLER_NAMES_HANG_MS.
+ */
+export async function learnCallerNames(
+  userId: string,
+  read: (userId: string) => Promise<string[]>,
+  env: Env = process.env
+): Promise<void> {
+  if (!forgetEveryReaderEnabled(env)) return;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const late = new Promise<string[]>((resolve) => {
+    timer = setTimeout(() => resolve([]), CALLER_NAMES_HANG_MS);
+  });
+  const people = await Promise.race([read(userId).catch((): string[] => []), late]);
+  clearTimeout(timer);
+  rememberCallerNames(userId, people, env);
+}
+
 /**
  * The names of the people and pets in the caller's memory (their
  * dynamic_entities, read beside recall's facts in recall-firestore-store.ts),

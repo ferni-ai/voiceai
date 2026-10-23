@@ -20,6 +20,7 @@ import {
   resetForgetTopicsSource,
 } from '../../../memory/recall/forget-topics-source.js';
 import { sendRecall } from '../../personas/context-packet/turn-packet.js';
+import { MAX_WATCHED_CALLERS } from '../recall-note.js';
 
 const SAID = 'tell me about it';
 const NOTE = '[WHAT YOU REMEMBER] their dog Biscuit chews things';
@@ -112,5 +113,27 @@ describe('a forget during the call', () => {
     sendRecall(agent as never, {}, NO_PICK, null, 'hi', user);
     await forgetTopic(user, 'Biscuit', processOnly);
     expect(texts()).toEqual([NOTE]);
+  });
+});
+
+describe('the callers whose chats a forget reaches', () => {
+  it('are at most MAX_WATCHED_CALLERS: the oldest goes first, one seen again counts as new', async () => {
+    const callers: Array<{ id: string; texts: () => string[] }> = [];
+    const watch = async (id: string) => {
+      const { agent, texts } = chat([{ id: 'recall_1', textContent: NOTE }]);
+      await readTopics(id);
+      sendRecall(agent as never, {}, NO_PICK, null, 'hi', id); // watches this chat for forgets
+      return { id, texts };
+    };
+    // A full set of fresh callers pushes out every older one.
+    for (let i = 0; i < MAX_WATCHED_CALLERS; i++) callers.push(await watch(`${user}-c${i}`));
+    const first = await watch(callers[0].id); // seen again: now the newest
+    const newest = await watch(`${user}-over`); // one too many: the oldest (c1) goes
+    await forgetTopic(callers[1].id, 'Biscuit', processOnly);
+    expect(callers[1].texts()).toEqual([NOTE]); // no longer watched: left for the next turn's check
+    await forgetTopic(first.id, 'Biscuit', processOnly);
+    expect(first.texts()).toEqual([]);
+    await forgetTopic(newest.id, 'Biscuit', processOnly);
+    expect(newest.texts()).toEqual([]);
   });
 });
