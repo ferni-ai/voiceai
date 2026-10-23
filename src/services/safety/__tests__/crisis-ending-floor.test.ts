@@ -133,7 +133,6 @@ describe('the first-person ending floor', () => {
       'lets end it all with pills tonight',
       "I'm killing myself over this exam tonight with pills",
       'I almost killed myself on the stairs, next time I will finish it',
-      'ending my life as a student tomorrow',
     ]) {
       expect(level(line), line).toBe('script');
     }
@@ -207,5 +206,72 @@ describe('the first-person ending floor', () => {
     );
     expect(voiced.subject).toBe('self');
     expect(guardFromDetection(voiced).shouldBlock).toBe(true);
+  });
+
+  it('pins each rule #2538 found unpinned', () => {
+    // The strongest match wins, not the last.
+    expect(
+      detectCrisis('I might kill myself tonight. lol I would never kill myself').severity
+    ).toBeGreaterThanOrEqual(0.75);
+    for (const line of [
+      // The other subject must sit right before the verb.
+      'the show is over, end it all',
+      // First person anywhere in the clause keeps it the caller's.
+      'lets end it all, me and you',
+      'he will end it all, and me too',
+      // An idiom is judged at its own words, not anywhere in the clause.
+      'I might end it all, I killed myself laughing earlier',
+      // Means or intent before the words cancels an idiom too.
+      'on purpose I almost killed myself on my bike',
+      'with pills I am killing myself studying',
+    ]) {
+      expect(level(line), line).toBe('script');
+    }
+  });
+
+  it('reads intent wording, in the clause or the next sentence, as risk', () => {
+    for (const line of [
+      'I almost killed myself on the stairs intentionally',
+      'I nearly killed myself on the ice deliberately',
+      'I almost killed myself on the stairs, I wanted to',
+      'I almost killed myself on the bike, I wish I had',
+      'I almost killed myself on the stairs. next time I will finish it',
+      'I almost killed myself on the ladder. I might do it for good',
+    ]) {
+      expect(level(line), line).toBe('script');
+    }
+  });
+
+  it('a time alone cancels no idiom; with "let\'s" it keeps "end it all" the caller\'s', () => {
+    for (const line of [
+      'I killed myself laughing today',
+      'I nearly killed myself on the ice today',
+      'I killed myself in minecraft today',
+      'the show will end it all soon',
+      'the party will end it all with fireworks tonight',
+      'ending my life as a student tomorrow',
+    ]) {
+      expect(level(line), line).toBe('none');
+    }
+    expect(level('lets end it all tonight')).toBe('script');
+    // "gonna kill myself …" is a tier above the floor, as on main: the floor never lowers it.
+    expect(level('gonna kill myself laughing at this show tonight')).toBe('script');
+  });
+
+  it('costs time in proportion to the message, not its square', () => {
+    // 160 KB of each shape: linear code takes milliseconds, a whole-text re-scan seconds.
+    const units = [
+      'kill myself ',
+      'could ',
+      'really ',
+      'I killed myself laughing ',
+      'the cat end it all ',
+    ];
+    for (const unit of units) {
+      const text = unit.repeat(Math.ceil(160_000 / unit.length)) + 'kill myself';
+      const started = performance.now();
+      detectCrisis(text);
+      expect(performance.now() - started, unit).toBeLessThan(1000);
+    }
   });
 });

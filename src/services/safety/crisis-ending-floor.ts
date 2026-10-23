@@ -13,14 +13,30 @@ import {
   FIRST_PERSON_ENDING,
 } from './crisis-patterns.js';
 
-/** The clause around a match: its words before and after, up to the nearest sentence break. */
-function clauseOf(text: string, from: number, to: number): { before: string; after: string } {
-  const start = Math.max(...['.', '!', '?', ';'].map((c) => text.lastIndexOf(c, from - 1))) + 1;
-  const tail = text.slice(to).search(/[.!?;]/);
-  return {
-    before: text.slice(start, from),
-    after: text.slice(to, tail < 0 ? text.length : to + tail),
-  };
+/**
+ * How far around a match the floor looks. Every look is bounded, so a long message costs time
+ * in proportion to its length (#2538: an 80 KB message took 3.8 s when each match re-scanned
+ * the whole text). Messages shorter than this are judged exactly as before.
+ */
+const REACH = 1000;
+
+/**
+ * The clause around a match (its words before and after, up to the nearest sentence break) and
+ * the next sentence after it, each within REACH.
+ */
+function clauseOf(
+  text: string,
+  from: number,
+  to: number
+): { before: string; after: string; next: string } {
+  const back = text.slice(Math.max(0, from - REACH), from);
+  const start = Math.max(...['.', '!', '?', ';'].map((c) => back.lastIndexOf(c))) + 1;
+  const ahead = text.slice(to, to + 2 * REACH);
+  const end = ahead.search(/[.!?;]/);
+  const after = end < 0 ? ahead : ahead.slice(0, end);
+  const rest = end < 0 ? '' : ahead.slice(end + 1);
+  const nextEnd = rest.search(/[.!?;]/);
+  return { before: back.slice(start), after, next: nextEnd < 0 ? rest : rest.slice(0, nextEnd) };
 }
 
 /** "so I don't", "so that I won't", "if I don't": a purpose or condition, not a negation. */
@@ -34,20 +50,26 @@ const OTHER_SUBJECT =
   /\b(let'?s|lets|we|we'll|they|they'll|he|she|you|(this|that|the) (\w+ )?(finale|episode|season|show|series|movie|film|game|match|band|team|party|concert|book|story|war|storm|meeting)) ((just|gonna|going to|will|'ll|can|finally|really|totally) )*$/;
 
 /**
- * A time, a means, a place or intent anywhere in the clause: then no idiom exempts the words
- * ("killing myself over this exam tonight with pills", "lets end it all with pills tonight").
+ * A means, a place or intent in the clause or the next sentence: then no idiom exempts the
+ * words ("killing myself over this exam with pills", "…on the stairs. next time I'll finish
+ * it", "I almost killed myself on purpose"). A time alone ("I killed myself laughing today")
+ * cancels nothing, except for "end it all" said with "let's" or "we", which include the caller.
  */
-const RISK_IN_CLAUSE =
-  /\b(tonight|tomorrow|today|right now|soon|this (week|weekend)|next time|on purpose|for real|pills?|gun|rope|blade|knife|razor|bridge|roof|ledge|train|tracks|overdose|i will|i'll|i'm going to|i'm gonna|gonna)\b/;
+const MEANS_OR_INTENT =
+  /\b(on purpose|intentionally|deliberately|for real|for good|next time|wanted to|want(ed)? to stop|wish i (had|could)|wanted it (to be )?over|(might|will|gonna|going to) do it|finish (it|the job)|do it again|pills?|gun|rope|blade|knife|razor|bridge|roof|ledge|train|tracks|overdose)\b/;
+const TIME = /\b(tonight|tomorrow|right now|this (week|weekend))\b/;
+const WITH_CALLER =
+  /\b(let'?s|lets|we|we'll) ((just|gonna|going to|will|'ll|can|finally|really|totally) )*$/;
 
 /** The floor's words in an everyday idiom, or "end it all" said with another subject. */
 function endingIdiom(text: string, from: number, to: number, words: string): boolean {
-  const { before, after } = clauseOf(text, from, to);
-  if (RISK_IN_CLAUSE.test(`${before} ${after}`)) return false;
+  const { before, after, next } = clauseOf(text, from, to);
+  if (MEANS_OR_INTENT.test(`${before} ${after} ${next}`)) return false;
   const span = `${words}${after}`;
   if (ENDING_IDIOMS.some((re) => re.test(span))) return true;
   if (ENDING_IDIOM_BEFORE.test(before) && ENDING_ACCIDENT.test(span)) return true;
   if (!/it all$/.test(words) || FIRST_PERSON.test(`${before} ${after}`)) return false;
+  if (WITH_CALLER.test(before) && TIME.test(`${before} ${after}`)) return false;
   return OTHER_SUBJECT.test(before);
 }
 
@@ -55,11 +77,14 @@ function endingIdiom(text: string, from: number, to: number, words: string): boo
 const MODAL_BEFORE =
   /\b(could|might|may|would|will|should|must|can|just|really|probably|definitely|literally|totally|gonna|wanna|gotta)\s+$/;
 function withoutModal(text: string, from: number): number {
-  let at = from;
-  for (let m = MODAL_BEFORE.exec(text.slice(0, at)); m; m = MODAL_BEFORE.exec(text.slice(0, at))) {
+  // Within REACH: a run of fillers longer than that is no longer one phrase.
+  const base = Math.max(0, from - REACH);
+  const back = text.slice(base, from);
+  let at = back.length;
+  for (let m = MODAL_BEFORE.exec(back.slice(0, at)); m; m = MODAL_BEFORE.exec(back.slice(0, at))) {
     at = m.index;
   }
-  return at;
+  return base + at;
 }
 
 /**
@@ -82,7 +107,10 @@ export function endingFloor(
     if (softened.some(([s, e]) => from < e && to > s) || endingIdiom(text, from, to, ending[0])) {
       continue;
     }
-    let modifier = explicitModifier(text, withoutModal(text, from), to, false);
+    // The modifier reads a window around the words, so each match costs at most 2 * REACH.
+    const base = Math.max(0, from - REACH);
+    const window = text.slice(base, to + REACH);
+    let modifier = explicitModifier(window, withoutModal(text, from) - base, to - base, false);
     if (modifier === 'negated' && PURPOSE_NOT.test(clauseOf(text, from, to).before))
       modifier = null;
     if (modifier === 'third_party') thirdParty = true;
