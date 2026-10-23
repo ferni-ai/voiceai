@@ -251,7 +251,7 @@ describe('CALL_PROACTIVE_LIVE_AGENT=on', () => {
     expect(metadata).toMatchObject({
       persona_id: 'ferni',
       triggerType: 'follow_up',
-      triggerReason: 'You called to check in. Your words: "Checking in on the launch."',
+      triggerReason: `You're calling to check in. Your words: "Checking in on the launch."`,
     });
   });
 
@@ -268,6 +268,6 @@ describe('CALL_PROACTIVE_LIVE_AGENT=on', () => {
   });
 
   it('with nothing quoted, the frame still says why', () => {
-    expect(liveCallReason('', false)).toBe('You called to check in.');
+    expect(liveCallReason('', false)).toBe("You're calling to check in.");
   });
 });

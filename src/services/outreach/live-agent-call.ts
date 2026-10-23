@@ -82,7 +82,7 @@ export function liveCallReason(message: string, asked = true): string {
     .trim()
     .slice(0, QUOTE_MAX)
     .trim();
-  const frame = asked ? 'They asked you to call' : 'You called to check in';
+  const frame = asked ? 'They asked you to call' : "You're calling to check in";
   return quote ? `${frame}. Your words: "${quote}"` : `${frame}${asked ? ' them' : ''}.`;
 }
 
