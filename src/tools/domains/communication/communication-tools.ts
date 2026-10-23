@@ -92,6 +92,9 @@ interface ScheduledCall {
 // listed every caller's drafts and calls, and sending marked another caller's matching draft sent.
 const emailDrafts = new Map<string, Map<string, DraftedEmail>>();
 const scheduledCalls = new Map<string, Map<string, ScheduledCall>>();
+/** Test hook: how many callers hold drafts or calls (a read must never add one). */
+export const communicationCallersHeld = (): number =>
+  new Set([...emailDrafts.keys(), ...scheduledCalls.keys()]).size;
 
 /** The caller (LiveKit's ctx.userData.userId); an id-less caller gets one anon: id per session. */
 function callerOf(ctx: unknown): string {

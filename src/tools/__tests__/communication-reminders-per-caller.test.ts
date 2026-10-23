@@ -3,8 +3,8 @@
  * listReminders and getCommunicationSummary used `userId || 'unknown'`, so
  * every id-less caller shared one reminder list; cancelReminder cancelled any
  * reminder by id. Runs the REAL reminder scheduler (getPendingReminders and
- * cancelReminder are not mocked); only Firestore, calendar sync and the
- * promise ledger are stubbed out.
+ * cancelReminder are not mocked); only Firestore, calendar sync, the promise
+ * ledger and outbound email/SMS are stubbed out.
  */
 import { describe, expect, it, vi } from 'vitest';
 
@@ -12,6 +12,11 @@ vi.mock('@livekit/agents', () => ({
   llm: { tool: vi.fn((config: { execute: unknown }) => config) },
 }));
 vi.mock('../../services/superhuman/firestore-utils.js', () => ({ getFirestoreDb: () => null }));
+vi.mock('../../services/communication-service.js', async (orig) => ({
+  ...(await orig<typeof import('../../services/communication-service.js')>()),
+  sendEmail: vi.fn(async () => 'sent'),
+  sendSMS: vi.fn(async () => 'sent'),
+}));
 vi.mock('../../services/calendar/calendar-bridge.js', () => ({
   syncReminderToCalendar: vi.fn(async () => undefined),
   removeCalendarSyncedItem: vi.fn(async () => undefined),
@@ -20,8 +25,14 @@ vi.mock('../../services/superhuman/semantic-intelligence/promise-keeper.js', () 
   recordReminderPromise: vi.fn(async () => undefined),
 }));
 
-import { createCommunicationTools } from '../domains/communication/communication-tools.js';
-import { getPendingReminders } from '../../services/scheduling/reminder-scheduler.js';
+import {
+  communicationCallersHeld,
+  createCommunicationTools,
+} from '../domains/communication/communication-tools.js';
+import {
+  createReminder,
+  getPendingReminders,
+} from '../../services/scheduling/reminder-scheduler.js';
 
 type Execute = (args: Record<string, unknown>, opts: unknown) => Promise<string>;
 const tools = createCommunicationTools() as unknown as Record<string, { execute: Execute }>;
@@ -77,5 +88,39 @@ describe('reminders per caller', () => {
       await tools.cancelReminder.execute({ reminderId: shortId }, as('uid-rem-carol'))
     ).toMatch(/cancelled/);
     expect(getPendingReminders('uid-rem-carol')).toEqual([]);
+  });
+
+  it('a summary for a caller with no own id lists no reminders, not even ones filed under ""', async () => {
+    await createReminder({
+      userId: '',
+      message: 'filed under nobody',
+      subject: 'x',
+      scheduledFor: new Date(Date.now() + 3_600_000),
+      timezone: 'Etc/UTC',
+      deliveryMethod: 'in_app',
+      deliveryAddress: '',
+      createdBy: 'alex',
+    });
+    expect(getPendingReminders('').map((r) => r.message)).toContain('filed under nobody');
+    expect(await summary(as(undefined))).not.toContain('filed under nobody');
+    expect(await summary(as('anonymous'))).not.toContain('filed under nobody');
+  });
+
+  it('reading drafts or calls never leaves an entry behind; writing adds one', async () => {
+    const before = communicationCallersHeld();
+    for (const id of ['uid-reader-1', 'uid-reader-2', undefined, 'anon:reader-3']) {
+      await summary(as(id));
+      await tools.sendApprovedEmail.execute(
+        { to: 'someone@example.test', subject: 's', body: 'b' },
+        as(id)
+      );
+    }
+    expect(communicationCallersHeld()).toBe(before);
+
+    await tools.draftEmail.execute(
+      { to: 'someone@example.test', subject: 's', context: 'c', tone: 'friendly' },
+      as('uid-writer')
+    );
+    expect(communicationCallersHeld()).toBe(before + 1);
   });
 });
