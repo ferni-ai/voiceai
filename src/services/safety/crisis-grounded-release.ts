@@ -171,7 +171,7 @@ export function resolveGroundedReleaseMode(
   const raw = env.CRISIS_GROUNDED_RELEASE?.trim().toLowerCase();
   // Live only where the reply gate is explicitly live: it appends the direct question
   // (crisis-gate.ts). Unset or anything else: a release would carry no question, so shadow.
-  const guard = env.CRISIS_GUARD_MODE?.trim().toLowerCase();
+  const guard = env.CRISIS_GUARD_MODE?.trim();
   if (raw === 'live') return guard === 'live' ? 'live' : 'shadow';
   return raw === 'shadow' ? raw : 'off';
 }

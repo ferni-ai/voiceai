@@ -176,7 +176,7 @@ describe('every release ends with the direct question, said by code', () => {
     expect(GROUNDED_LIGHT_TOUCH).toMatch(/added right after your reply/);
     expect(GROUNDED_LIGHT_TOUCH).toMatch(/End without a question of your own/);
     expect(GROUNDED_LIGHT_TOUCH).not.toMatch(/most likely everyday|in your own words/);
-    expect(SCREEN_QUESTION).toMatch(/hurting yourself, or about ending your life\?$/);
+    expect(SCREEN_QUESTION).toMatch(/hurting yourself, or of ending your life\?$/);
   });
 
   it('the released reply ends with SCREEN_QUESTION verbatim, whatever the model said', async () => {
@@ -459,6 +459,43 @@ describe("the caller's answer", () => {
     expect(screenAnswer(session, { latest: 'No.', companion: `Okay. ${SCREEN_QUESTION}` })).toBe(
       'none'
     );
+  });
+
+  it('a turn already judged keeps its verdict on the other path, whatever line it saw', async () => {
+    const session = await released();
+    // The pipeline judged "Yes." first against the tool follow-up, which the gate sees differently.
+    expect(
+      screenAnswer(session, {
+        latest: 'Yes.',
+        companion: 'Done, moved it.',
+        ferni: [ASKED, 'Done, moved it.'],
+      })
+    ).toBe('positive');
+    expect(
+      screenAnswer(session, { latest: 'Yes.', companion: 'Done!', ferni: [ASKED, 'Done!'] })
+    ).toBe('positive');
+  });
+
+  it('the gate keys on the last line the recorder keeps, so an "Mm-hm." does not split the turn', async () => {
+    const session = await released();
+    const follow = 'Done, I moved the reminder.';
+    // The pipeline only saw the follow-up (not asked): ask again.
+    expect(screenAnswer(session, { latest: 'No.', companion: follow })).toBe('reask');
+    // The gate saw the question, the follow-up and an acknowledgement: the same turn, so the
+    // stronger verdict (ask again) stands instead of the gate closing the screen on its own.
+    const run = startCrisisGate(
+      (() => {
+        const ctx = request([[OPENER, REMINDER]], DINNER);
+        ctx.addMessage({ role: 'assistant', content: ASKED });
+        ctx.addMessage({ role: 'assistant', content: follow });
+        ctx.addMessage({ role: 'assistant', content: 'Mm-hm.' });
+        ctx.addMessage({ role: 'user', content: 'No.' });
+        return ctx;
+      })(),
+      { services: { sessionId: session } },
+      options(RELEASE, [])
+    );
+    expect(run?.reask).toBe(true);
   });
 
   it('a question Ferni asks after the screening question means it was not the one answered', async () => {

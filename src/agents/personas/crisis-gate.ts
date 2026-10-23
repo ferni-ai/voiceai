@@ -47,11 +47,10 @@ import {
 } from '../../services/safety/crisis-grounded-release.js';
 import {
   SCREEN_GENTLE_OFFER,
-  SCREEN_QUESTION,
   screenAnswer,
   screenIdeation,
   withScreenPositive,
-  withScreenQuestion,
+  screenReply,
 } from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import {
@@ -86,6 +85,7 @@ import { withLookupBridge } from './lookup-bridge.js';
 import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
 import { burstAllowed } from './vocal-bursts.js';
+import { isAcknowledgementOnly } from '../voice-agent/agent-reply-recorder.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -135,7 +135,7 @@ function callerWords(chatCtx: llm.ChatContext): {
     if (item.role === 'assistant') {
       const line = item.textContent?.trim() || undefined;
       if (answering) companion = line;
-      if (line && said.length === 0) ferni.unshift(line);
+      if (line && said.length === 0 && !isAcknowledgementOnly(line)) ferni.unshift(line);
       answering = false;
       continue;
     }
@@ -478,14 +478,11 @@ export async function gatedReply(
     return call && crisisRiskThisCall(call) ? led : withLookupBridge(led, chatCtx, session, env);
   };
   // A grounded release, or a re-ask after it: code says the direct question, last (crisis-grounded-screen.ts).
-  const asking = (
-    s: ReadableStream<Chunk> | null,
-    on = gate?.reask
-  ): ReadableStream<Chunk> | null =>
-    on ? (s ? withScreenQuestion(s) : textReply(SCREEN_QUESTION)) : s;
+  const asking = (s: ReadableStream<Chunk> | null, on = gate?.reask) => (on ? screenReply(s) : s);
   const reply = asking(await ask(ctx));
-  if (!reply || !gate?.escalation) return reply;
-  return holdUntilCleared(reply, gate.escalation, async (decision) => {
+  if (!gate?.escalation) return reply;
+  // No first reply: an empty one, so a release still speaks its question.
+  return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;

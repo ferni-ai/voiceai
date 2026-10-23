@@ -17,7 +17,7 @@
  * @module CrisisGroundedScreen
  */
 
-import { TransformStream, type ReadableStream } from 'node:stream/web';
+import { ReadableStream, TransformStream } from 'node:stream/web';
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
 import {
@@ -44,7 +44,7 @@ const loose = (text: string): string =>
  * risk; a false alarm costs one caring question.
  */
 export const SCREEN_QUESTION =
-  "Can I ask you something, and it's okay either way: when you said that, were you thinking about hurting yourself, or about ending your life?";
+  "Can I ask you something, and it's okay either way: have you been having thoughts of hurting yourself, or of ending your life?";
 
 /** What the screen makes of a caller turn. */
 export type ScreenOutcome = 'none' | 'reask' | 'positive';
@@ -81,6 +81,7 @@ const NO_TAIL = `(?:no|nope|not at all|i'?m (?:good|fine|okay|ok)|all good|total
 const CLEAR_NO = new RegExp(`^(?:${NO_FILLER})*${NO_CORE}(?: ${NO_TAIL})*$`);
 
 function clearNo(answer: string): boolean {
+  if (/^\W*oh,? no\W*$/i.test(answer)) return false; // dismay, not an answer
   if (/[?¿]|\.\.|…/.test(answer)) return false;
   const words = wordsOf(answer);
   if (!words || words.length === 0 || alwaysHold(answer)) return false;
@@ -138,7 +139,10 @@ export function screenAnswer(
     const screen = call ? screens.get(call) : undefined;
     if (!screen || now - screen.at > SCREEN_TTL_MS) return 'none';
     const turn = loose(String(input.latest ?? ''));
-    const companion = loose(stripSSML(String(input.companion ?? '')));
+    // Keyed on Ferni's last recorded line: the gate passes its lines without acknowledgements,
+    // as the reply recorder (the pipeline's lastAgentResponse) keeps them.
+    const keyLine = input.ferni?.length ? input.ferni[input.ferni.length - 1] : input.companion;
+    const companion = loose(stripSSML(String(keyLine ?? '')));
     // Asked if a line of Ferni's reply ended with the question in full and nothing Ferni said
     // after it asked anything else: a tool's follow-up may come last (the SDK speaks it after).
     const lines = input.ferni?.length ? input.ferni : [input.companion ?? ''];
@@ -153,6 +157,8 @@ export function screenAnswer(
       return reasked ? 'positive' : 'reask';
     };
     const last = screen.last;
+    // The same words after the screen closed: the turn already judged, on whichever path.
+    if (last && last.turn === turn && last.outcome !== 'reask') return last.outcome;
     // The same turn's other path shares Ferni's line before it: one shared record, never weaker
     // than the first path's verdict, and a stronger one replaces it. Words alone never make a
     // turn the same one: a caller may repeat "No." after a re-ask.
@@ -195,8 +201,13 @@ You asked whether they were thinking about hurting themselves, and they didn't g
  * else that is not a clear no ("yeah", "kind of", "maybe", "No, I meant it")
  * is a yes, or a no taken back.
  */
+const UNCLEAR_FILLER = '(?:(?:oh|um|uh|hmm|ha|haha|lol|well) )*';
 const UNCLEAR = new RegExp(
-  "^(?:(?:oh|um|uh|hmm|ha|haha|lol|well) )*(?:i (?:don'?t|do not) know|idk|dunno|not sure|i'?m not sure|hard to say|haha|ha|lol|hmm+|um+|uh+|what|huh|sorry|wait what|no|nope|nah|not really)(?: (?:i'?m (?:fine|good|okay|ok)|i guess|really|why|what do you mean))*$"
+  // "uh huh" and "mm hmm" are yeses; "I guess" is unclear only after a no.
+  `^(?!.*\\b(?:uh huh|mm hmm|mm hm|mhm)\\b)${UNCLEAR_FILLER}(?:` +
+    "(?:i (?:don'?t|do not) know|idk|dunno|not sure|i'?m not sure|hard to say|haha|ha|lol|hmm+|um+|uh+|what|huh|sorry|wait what)(?: (?:really|why|what do you mean))*" +
+    "|(?:no|nope|nah|not really)(?: (?:i'?m (?:fine|good|okay|ok)|i guess|really))*" +
+    ')$'
 );
 
 /**
@@ -242,6 +253,17 @@ export function withScreenQuestion<T>(reply: ReadableStream<T>): ReadableStream<
       },
     })
   );
+}
+
+/** The reply with the question last, or the question alone when the model gave nothing. */
+export function screenReply<T>(reply: ReadableStream<T> | null): ReadableStream<T | string> {
+  if (reply) return withScreenQuestion(reply);
+  return new ReadableStream<T | string>({
+    start(controller) {
+      controller.enqueue(SCREEN_QUESTION);
+      controller.close();
+    },
+  });
 }
 
 /** For tests. */
