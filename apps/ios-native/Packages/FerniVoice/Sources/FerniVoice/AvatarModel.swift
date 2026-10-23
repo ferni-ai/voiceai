@@ -22,6 +22,8 @@ public final class AvatarModel {
     public var personaID: String { director.personaID }
     public var micro: MicroBeat? { director.micro }
     public var moment: MomentBeat? { director.moment }
+    /// The caller is struggling: the body skips its playful goodbye.
+    public var calm: Bool { director.calm }
 
     /// Reduce Motion lengthens the turn settle (the view drops scale and gaze).
     public var reduceMotion: Bool {

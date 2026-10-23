@@ -26,6 +26,9 @@ public enum CallEvent: Equatable, Sendable {
     case reconnecting, reconnected
     /// The person muted (true) or unmuted their microphone.
     case muted(Bool)
+    /// The caller is struggling (crisis mode): the rest of this call, and its
+    /// goodbye, stay gentle. Lasts until the next call starts.
+    case calm
     case failed
     case ended
 }
@@ -67,6 +70,8 @@ public struct AvatarDirector: Equatable, Sendable {
     public private(set) var micro: MicroBeat?
     /// The latest choreographed moment, for the body to play once.
     public private(set) var moment: MomentBeat?
+    /// The caller is struggling: no playful goodbye (the hearts, the chime).
+    public private(set) var calm = false
 
     public init() {}
 
@@ -166,6 +171,8 @@ public struct AvatarDirector: Equatable, Sendable {
             muted = on
             // Going: a warm "take your time". Back: his eyes widen, he's with you.
             micro = MicroBeat(on ? .warmth : .recognition, count: (micro?.count ?? 0) + 1)
+        case .calm:
+            calm = true
         case .failed:
             connection = .error
             pendingTurn = nil
@@ -177,7 +184,8 @@ public struct AvatarDirector: Equatable, Sendable {
             turn = .idle
             pendingTurn = nil
             handoffTo = nil
-            if wasInCall { effects += [.haptic(.goodbye), .earcon(.goodbye)] }
+            // Calm: the soft goodbye taps only, no chime (trust panel R16).
+            if wasInCall { effects += calm ? [.haptic(.goodbye)] : [.haptic(.goodbye), .earcon(.goodbye)] }
         }
         return effects
     }

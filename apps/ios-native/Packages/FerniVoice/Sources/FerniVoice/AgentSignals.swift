@@ -71,6 +71,36 @@ public enum AgentSignals {
         }
     }
 
+    /// How worried the agent is about the caller, lowest first. Two senders:
+    /// - `humanization_signal` with `signalType: "concern_detected"` and a
+    ///   `concernLevel` (src/config/emotion-thresholds.ts:15 lists
+    ///   none/mild/moderate/elevated/crisis), sent by
+    ///   src/agents/realtime/emotion-event-dispatcher.ts (from the distress
+    ///   score, and `crisis` when the turn's holistic read says crisis).
+    /// - `crisis_detected` (`severity`, `indicators`), sent by
+    ///   src/agents/voice-agent/turn-handler.ts when the crisis guard takes
+    ///   over the reply. Always the crisis level.
+    /// Mild and moderate don't change the call screen, so they read as nil.
+    public enum Concern: Int, Comparable, Sendable {
+        case none, elevated, crisis
+        public static func < (a: Concern, b: Concern) -> Bool { a.rawValue < b.rawValue }
+    }
+
+    public static func concern(from json: [String: Any]) -> Concern? {
+        switch json["type"] as? String {
+        case "crisis_detected":
+            return .crisis
+        case "humanization_signal" where json["signalType"] as? String == "concern_detected":
+            switch json["concernLevel"] as? String {
+            case "crisis": return .crisis
+            case "elevated": return .elevated
+            default: return nil
+            }
+        default:
+            return nil
+        }
+    }
+
     /// Reads Ferni's turn state from a participant's attributes (or an
     /// attribute diff). Nil when the attribute is absent or unknown.
     public static func agentActivity(from attributes: [String: String]) -> AgentActivity? {

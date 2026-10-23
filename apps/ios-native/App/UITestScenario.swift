@@ -34,6 +34,10 @@ enum UITestScenario: String {
     case onHold
     /// Talk can't reach Ferni: the problem in words, and Try again.
     case failed
+    /// Crisis mode (trust panel R16): a tool starts (the calendar), then the
+    /// agent says the caller is in crisis. Hang up with End. The screen turns
+    /// serious only with `-ferni.call.crisisMode YES`.
+    case crisisDuringTool
 
     static let current: UITestScenario? = value(after: "-FerniUITest").flatMap(UITestScenario.init(rawValue:))
 
@@ -134,14 +138,17 @@ enum UITestScenario: String {
         return (Data(body.utf8), HTTPURLResponse(url: request.url!, statusCode: status, httpVersion: nil, headerFields: nil)!)
     })
 
-    @MainActor static func callSession(avatar: AvatarModel, level: AudioLevelMeter) -> CallSession {
-        let script: ScriptedRoom.Script = switch current {
+    /// - Parameter scenario: the launch's, or one a hosted test picks.
+    @MainActor static func callSession(avatar: AvatarModel, level: AudioLevelMeter,
+                                       scenario: UITestScenario? = current) -> CallSession {
+        let script: ScriptedRoom.Script = switch scenario {
         case .handoff: .handoff
         case .connecting: .neverAnswers
         case .reconnecting: .drops
+        case .crisisDuringTool: .crisisDuringTool
         default: .garden
         }
-        let fetchToken: CallSession.FetchToken = switch current {
+        let fetchToken: CallSession.FetchToken = switch scenario {
         case .waitlist: CallTokens.fetcher(api: waitlistAPI)
         case .failed: { @Sendable _ in throw FerniAPIError.unreachable }
         default: { @Sendable _ in CallToken(token: "t", url: "wss://127.0.0.1:9", room: "ios-uitest", agentDispatched: true) }
@@ -149,7 +156,7 @@ enum UITestScenario: String {
         return CallSession(
             fetchToken: fetchToken,
             makeRoom: { ScriptedRoom(script: script) },
-            audio: SilentAudio(interrupted: current == .onHold),
+            audio: SilentAudio(interrupted: scenario == .onHold),
             avatar: avatar,
             agentLevel: level
         )
@@ -196,7 +203,7 @@ private final class UITestAuthBackend: AuthBackend, @unchecked Sendable {
 
 /// Ferni arrives speaking and the call stays up until it's ended.
 private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
-    enum Script { case garden, handoff, neverAnswers, drops }
+    enum Script { case garden, handoff, neverAnswers, drops, crisisDuringTool }
     let events: AsyncStream<RoomEvent>
     private let continuation: AsyncStream<RoomEvent>.Continuation
     private let script: Script
@@ -224,6 +231,19 @@ private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
         case .garden:
             say([(.you, "Long week. I finally finished the garden."),
                  (.ferni, "That's huge! What did you plant first?")])
+        case .crisisDuringTool:
+            say([(.you, "Can you check my calendar for tomorrow?"),
+                 (.ferni, "Sure, one second.")])
+            let continuation = continuation
+            Task {
+                // The tool's start (a closed kind, no words), as the planned
+                // tool_start signal sends it (trust panel R9); then the agent's
+                // crisis level, as emotion-event-dispatcher.ts sends it.
+                try? await Task.sleep(for: .seconds(1))
+                continuation.yield(.data(Data(#"{"type":"tool_start","callId":"c1","kind":"calendar"}"#.utf8)))
+                try? await Task.sleep(for: .seconds(1))
+                continuation.yield(.data(Data(#"{"type":"humanization_signal","signalType":"concern_detected","concernLevel":"crisis","intensity":1}"#.utf8)))
+            }
         case .handoff:
             say([(.you, "I keep saying I'll walk before work."),
                  (.ferni, "Maya's brilliant at this. Let me bring her in.")])
@@ -302,6 +322,9 @@ extension UITestScenario {
         var notices = 0
         var startles = 0
         var foley = 0
+        /// The goodbye's chime asked for, and its heart drawn (crisis mode).
+        var goodbyes = 0
+        var hearts = 0
     }
 }
 
@@ -385,6 +408,12 @@ struct UITestEnvironmentProbe: View {
             .accessibilityIdentifier("uitest.foley")
             .accessibilityLabel(Text(verbatim: "Test foley"))
             .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.foley)"))
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityElement()
+            .accessibilityIdentifier("uitest.goodbye")
+            .accessibilityLabel(Text(verbatim: "Test goodbye"))
+            .accessibilityValue(Text(verbatim: "chime=\(UITestScenario.Counters.shared.goodbyes) heart=\(UITestScenario.Counters.shared.hearts)"))
     }
 }
 

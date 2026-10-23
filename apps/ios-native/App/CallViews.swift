@@ -43,6 +43,7 @@ struct CallAvatar: View {
             // Muted and waiting for you: he looks away until you're back (award upgrade 9).
             lookingAway: Self.looksAway(muted: call.isMuted, pose: avatar.pose),
             roomHour: roomHour,
+            calm: avatar.calm,
             onCue: onCue
         )
         // AvatarView's own shape (Ferni, not his whole square) is the hit area
@@ -420,6 +421,38 @@ struct CallControls: View {
         case .failed(.connectionLost): String(localized: "Call back")
         case .failed: String(localized: "Try again")
         default: String(localized: "Talk to \(PersonaRegistry.get(team.chosen).name)")
+        }
+    }
+}
+
+/// Crisis mode (trust panel R16): 988 up front, one tap to call or text,
+/// on the call screen and the screen after it. The same rows as More's.
+struct HelpNowRow: View {
+    var body: some View {
+        VStack(spacing: FerniSpace.breath) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: FerniSpace.rest) { links }
+                VStack(alignment: .leading, spacing: FerniSpace.breath) { links }
+            }
+            Text("988 is the Suicide & Crisis Lifeline in the US, free and open all day and night.")
+                .font(FerniType.footnote)
+                .foregroundStyle(FerniColor.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(FerniSpace.rest)
+        .frame(maxWidth: .infinity)
+        .background(FerniColor.surface, in: .rect(cornerRadius: FerniRadius.medium))
+        .tint(FerniColor.accent)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("call.helpNow")
+    }
+
+    @ViewBuilder private var links: some View {
+        Link(destination: URL(string: "tel:988")!) {
+            IconRow("Get help now (988)", systemImage: "phone.arrow.up.right").frame(minHeight: 44)
+        }
+        Link(destination: URL(string: "sms:988")!) {
+            IconRow("Text 988", systemImage: "message").frame(minHeight: 44)
         }
     }
 }

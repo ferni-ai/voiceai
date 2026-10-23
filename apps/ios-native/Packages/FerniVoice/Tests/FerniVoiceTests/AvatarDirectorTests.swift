@@ -207,6 +207,19 @@ final class AvatarDirectorTests: XCTestCase {
         XCTAssertEqual(d.expression, .neutral)
     }
 
+    /// Crisis mode (trust panel R16): after a call where the caller was
+    /// struggling, the goodbye is the soft taps only, no chime; the next call
+    /// starts with the usual goodbye again.
+    func testACalmCallSaysGoodbyeWithoutTheChime() {
+        var d = live()
+        XCTAssertFalse(d.calm)
+        XCTAssertEqual(d.send(.calm, now: ms(4000)), [])
+        XCTAssertTrue(d.calm)
+        XCTAssertEqual(d.send(.ended, now: ms(5000)), [.haptic(.goodbye)])
+        _ = d.send(.connectTapped(personaID: "ferni"), now: ms(9000))
+        XCTAssertFalse(d.calm, "a new call starts without it")
+    }
+
     func testCancellingBeforeFerniArrivesHasNoGoodbye() {
         var d = AvatarDirector()
         _ = d.send(.connectTapped(personaID: "ferni"), now: .zero)
