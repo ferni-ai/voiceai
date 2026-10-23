@@ -43,6 +43,7 @@ import { handleMemoriesRoutes } from './routes/memories.js';
 import { handleRememberedRoutes } from './routes/remembered.js';
 import { handleCallRememberedRoute } from './routes/call-remembered.js';
 import { handleKnownRoutes } from './routes/known.js';
+import { handleFocusRoute } from './routes/focus.js';
 import { handlePromisesRoutes } from './routes/promises.js';
 import { handlePredictionsRoutes } from './routes/predictions.js';
 import { handleRelationshipRoutes } from './routes/relationship.js';
@@ -85,6 +86,7 @@ const ENGAGEMENT_ROUTE_PREFIXES = [
   '/api/life-context',
   '/api/semantic-intelligence',
   '/api/promises', // What Ferni is following through on (PROMISES_PANEL)
+  '/api/me/focus', // Quiet while you focus (FOCUS_HOLD, per person)
 ];
 
 /**
@@ -203,6 +205,11 @@ export async function handleEngagementRoutes(
 
   // What Ferni knows, every store in one view (MEMORY_VIEW=on)
   if (await handleKnownRoutes(req, res, pathname, parsedUrl)) {
+    return true;
+  }
+
+  // The person's iOS Focus: hold what Ferni starts until it ends (FOCUS_HOLD)
+  if (await handleFocusRoute(req, res, pathname)) {
     return true;
   }
 
