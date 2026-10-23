@@ -86,7 +86,7 @@ export async function fastSessionStart(
     const { getStore } = await import('../../memory/store-factory.js');
     const store = await getStore();
 
-    profile = await store.getProfile(userId);
+    profile = await store.getProfileForWrite(userId); // a failed read throws, never resets
 
     if (!profile && options.userName) {
       // Create new profile for new users

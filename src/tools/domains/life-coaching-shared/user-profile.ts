@@ -17,31 +17,12 @@ import type {
   EmotionalState,
   BoundaryAttempt,
 } from './types.js';
+import { getFirestore } from './user-profile-firestore.js';
 
 // Re-export the type for consumers who import from user-profile
 export type { LifeCoachingProfile };
 
 const log = createLogger({ module: 'LifeCoachingProfile' });
-
-// Minimal Firestore types (to avoid hard dependency)
-interface Firestore {
-  collection: (path: string) => CollectionReference;
-}
-
-interface CollectionReference {
-  doc: (id: string) => DocumentReference;
-}
-
-interface DocumentReference {
-  collection: (path: string) => CollectionReference;
-  get: () => Promise<DocumentSnapshot>;
-  set: (data: unknown, options?: { merge?: boolean }) => Promise<void>;
-}
-
-interface DocumentSnapshot {
-  exists: boolean;
-  data: () => Record<string, unknown> | undefined;
-}
 
 // Serialized version for Firestore (dates as ISO strings)
 interface SerializedProfile extends Omit<LifeCoachingProfile, 'lastUpdated' | 'boundaryHistory'> {
@@ -55,40 +36,9 @@ interface SerializedProfile extends Omit<LifeCoachingProfile, 'lastUpdated' | 'b
   }>;
 }
 
-// ============================================================================
-// FIRESTORE CONNECTION
-// ============================================================================
-
-let db: Firestore | null = null;
-// FIX: Promise-based singleton to prevent race condition
-let dbInitPromise: Promise<Firestore | null> | null = null;
 const USERS_COLLECTION = 'bogle_users';
 const LIFE_COACHING_SUBCOLLECTION = 'life_coaching';
 const PROFILE_DOC = 'profile';
-
-async function getFirestore(): Promise<Firestore | null> {
-  if (db) return db;
-  if (dbInitPromise) return dbInitPromise;
-
-  dbInitPromise = initializeFirestore();
-  return dbInitPromise;
-}
-
-async function initializeFirestore(): Promise<Firestore | null> {
-  try {
-    const { Firestore: FirestoreClass } = await import('@google-cloud/firestore');
-    // Cast to our minimal interface - the actual implementation is compatible
-    db = new FirestoreClass({
-      projectId: process.env.GOOGLE_PROJECT_ID || 'bogle-voiceai',
-    }) as unknown as Firestore;
-    log.info('Firestore initialized for life coaching profiles');
-    return db;
-  } catch (error) {
-    log.warn({ error: String(error) }, 'Firestore not available - using memory-only mode');
-    dbInitPromise = null; // Allow retry
-    return null;
-  }
-}
 
 // In-memory cache (Firestore is primary storage)
 const profileCache = new Map<string, LifeCoachingProfile>();

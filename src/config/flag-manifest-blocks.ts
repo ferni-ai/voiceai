@@ -99,6 +99,8 @@ export const FLAGS_STYLE_TO_TOOL = {
   TOOLS_REAL_CALL_USER: { default: 'off', owner: 'tools', kind: 'experiment' },
   // that call rings with the persona's live agent (LiveKit SIP), not Twilio <Say>
   CALL_USER_LIVE_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
+  // every other call to the user's own verified phone rings live too (live-agent-call.ts)
+  CALL_PROACTIVE_LIVE_AGENT: { default: 'off', owner: 'tools', kind: 'experiment' },
   // callUser's reply says whether the persona or a recorded message rang (call-placed-reply.ts)
   CALL_PLACED_HONEST_REPLY: { default: 'off', owner: 'tools', kind: 'experiment' },
   TOOL_ACK: { default: 'on', owner: 'voice', kind: 'kill-switch' },
