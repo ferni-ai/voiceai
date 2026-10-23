@@ -1809,8 +1809,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
         // =====================================================================
         // 🎙️ WAVE 2: Live backchanneling (mid-speech presence during breath pauses)
-        // Initializes session-scoped breath/backchannel state so soft verbal
-        // feedback ("mm-hmm") can be considered during user speech. The
+        // Session-scoped breath/backchannel state for soft "mm-hmm"s during user speech. The
         // subscribed audio track below feeds the same frames into breath-pause
         // detection and the prosody/audio processor.
         // =====================================================================
@@ -1823,6 +1822,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           agent: agentNow,
           dynamicToolLoader,
           cleanupFunctions,
+          phone: config.phoneCaller,
         });
         if (staticCoreToolsEnabled()) {
           // findTools appends what it finds to the agent on the call now.
