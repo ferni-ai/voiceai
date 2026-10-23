@@ -283,6 +283,7 @@ export async function clearUserOutreachData(userId: string): Promise<void> {
   preferencesStore.delete(userId);
   engagementStore.delete(userId);
   sentOutreachLog.delete(userId);
+  loadedUsers.delete(userId); // if the delete below fails, the next use reads what survived
 
   // Also clear from persistence
   if (persistenceStore) {

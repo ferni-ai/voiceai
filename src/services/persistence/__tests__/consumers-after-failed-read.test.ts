@@ -196,6 +196,33 @@ describe('outreach intelligence after a failed load', () => {
   });
 });
 
+describe('outreach intelligence after a failed delete', () => {
+  const USER = 'u-reach-del';
+  const PATH = `bogle_users/${USER}/outreach_data/data`;
+  const stored = {
+    id: 'kept-c',
+    what: 'call the bank',
+    when: ISO,
+    checkInTime: ISO,
+    status: 'done',
+  };
+
+  it('a delete that fails leaves the user unread, so the next save keeps what survived', async () => {
+    await outreach.initializeOutreachPersistence();
+    state.docs.set(PATH, { commitments: [stored], opportunities: [], sentLog: [] });
+    await outreach.detectOutreachOpportunities(USER); // read: the user is loaded
+    state.failWrites.add(PATH);
+    await outreach.clearUserOutreachData(USER); // the doc delete fails; memory is cleared
+    state.failWrites.clear();
+    expect(state.docs.has(PATH)).toBe(true);
+
+    await outreach.detectOutreachOpportunities(USER); // must read the surviving doc again
+    outreach.setPreferences(USER, { maxPerDay: 2 });
+    await outreach.shutdownOutreachPersistence();
+    expect(idsAt(PATH, 'commitments')).toContain('kept-c');
+  });
+});
+
 describe('spontaneous sharing after a failed load', () => {
   const USER = 'u-share';
   const PATH = `bogle_users/${USER}/spontaneous_sharing/data`;
@@ -235,6 +262,33 @@ describe('team engagement after a failed load', () => {
     team.markEvolutionShared(USER, 'evt-2');
     await team.shutdown();
     expect(state.docs.get(PATH)?.sharedEvolutions).toEqual(['old-evt', 'evt-2']);
+  });
+});
+
+describe('team huddles after a failed load', () => {
+  const USER = 'u-huddle';
+  const PATH = `bogle_users/${USER}/team_engagement/data`;
+  const oldHuddle = {
+    id: 'old-huddle',
+    userId: USER,
+    scheduledAt: ISO,
+    type: 'weekly',
+    participants: ['ferni'],
+    completed: true,
+  };
+
+  it('a huddle generated during the outage does not stop the next load', async () => {
+    const team = new TeamEngagementService();
+    await team.initialize();
+    state.docs.set(PATH, { huddles: [oldHuddle], sharedEvolutions: [], anniversaries: [] });
+    failed.add(PATH);
+    await team.generateTeamHuddle(USER, null); // read fails; its huddle is not saved
+    failed.clear();
+
+    await team.generateTeamHuddle(USER, null); // reads the stored huddles now
+    await team.shutdown();
+    expect(idsAt(PATH, 'huddles')[0]).toBe('old-huddle');
+    expect(idsAt(PATH, 'huddles').length).toBeGreaterThan(1);
   });
 });
 
