@@ -14,6 +14,7 @@ import { maskPhoneNumber } from '../../services/identity/phone-attestation.js';
 import { rememberCallLaunch } from '../shared/call-launch-hint.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { errorClass } from '../../utils/error-class.js';
+import { errorText } from '../../utils/error-text.js';
 import { jobMetadataLine } from './startup-log.js';
 
 // What a dispatch carries is the caller's (why Ferni calls, what to ask a
@@ -168,7 +169,7 @@ export async function setupCallTypeContexts(
         metadata.user_id = metadata.userId;
       }
     } catch (error) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set inbound context: ${error}\n`);
+      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set inbound context: ${errorText(error)}\n`);
     }
   }
 
@@ -239,7 +240,7 @@ export async function setupCallTypeContexts(
         `[voice-agent-entry] 📞 Outbound call context set for room: ${roomNameForContext}, sessionId: ${sessionId}\n`
       );
     } catch (error) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set outbound context: ${error}\n`);
+      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set outbound context: ${errorText(error)}\n`);
     }
   }
 
@@ -335,7 +336,7 @@ export async function setupCallTypeContexts(
         `[voice-agent-entry] 📞 Proactive session context set for sessionId: ${sessionId}\n`
       );
     } catch (error) {
-      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${error}\n`);
+      process.stderr.write(`[voice-agent-entry] ⚠️ Failed to set proactive context: ${errorText(error)}\n`);
     }
   }
 }
