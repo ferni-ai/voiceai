@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Post the `lead-verify` commit status on the exact SHA a verifier checked:
+# Post the `lead-verify` commit status on the exact SHA a verifier checked, and a PR
+# comment with the bound marker `RESULT_verifier=PASS|FAIL sha=<40 hex>`:
 #   scripts/ci/post-lead-verify.sh <pr> <sha> pass|fail "<summary>"
 # Refuses unless <sha> (full, or 9+ hex prefix) is the PR's current head. Lead Verified
 # (scripts/ci/lead-verified.ts) counts it only from an allowed author. Repo: $GH_REPO.
@@ -10,7 +11,7 @@ usage() { echo "usage: $0 <pr> <sha> pass|fail \"<summary>\"${1:+ ($1)}" >&2; ex
 pr=$1 sha=$(printf '%s' "$2" | tr 'A-F' 'a-f') summary=$4 repo=${GH_REPO:-ferni-ai/voiceai}
 [[ $pr =~ ^[0-9]+$ ]] || usage "pr must be a number"
 [[ $sha =~ ^[0-9a-f]{9,40}$ ]] || usage "sha must be 9-40 hex characters"
-case $3 in pass) state=success ;; fail) state=failure ;; *) usage "verdict must be pass or fail" ;; esac
+case $3 in pass) state=success V=PASS ;; fail) state=failure V=FAIL ;; *) usage "verdict must be pass or fail" ;; esac
 [ -n "$summary" ] || usage "summary must not be empty"
 
 head=$(gh api "repos/$repo/pulls/$pr" --jq .head.sha)
@@ -22,3 +23,4 @@ fi
 by=$(gh api -X POST "repos/$repo/statuses/$head" -f state="$state" -f context=lead-verify \
   -f description="${summary:0:140}" --jq .creator.login)
 echo "posted lead-verify=$state on ${head:0:9} (PR #$pr) as $by"
+gh pr comment "$pr" -R "$repo" --body "RESULT_verifier=$V sha=$head ($summary)"

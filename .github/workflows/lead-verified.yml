@@ -1,9 +1,8 @@
 name: Lead Verified
 
-# REPORT-ONLY: was the exact code this PR merges independently verified? Rules in
-# scripts/ci/lead-verified.ts, how to mark a PR verified in docs/ci/ci-inventory.md.
-# Always succeeds; the enforcement switch below (and making the check required)
-# needs Seth's OK.
+# REPORT-ONLY: was the exact code this PR merges independently verified? Rules:
+# scripts/ci/lead-verified.ts; docs: docs/ci/ci-inventory.md. Always succeeds; the
+# enforcement switch below (and making the check required) needs Seth's OK.
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -24,12 +23,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      # Full history: carry-forward runs git merge-tree against origin/main.
+      # Evaluator from the BASE (main in the queue), never the PR: a PR can't rewrite
+      # its own judge. The head is fetched as data; full history for git merge-tree.
       - uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.pull_request.base.sha || 'main' }}
           fetch-depth: 0
           sparse-checkout: scripts/ci
-      # Node builtins only, so no pnpm install.
       - uses: actions/setup-node@v7
         with:
           node-version: '22'
@@ -38,7 +38,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
           QUEUE_REF: ${{ github.event.merge_group.head_ref }} # gh-readonly-queue/main/pr-<N>-<sha>
           # ENFORCEMENT SWITCH (needs Seth's OK): uncomment to fail on NOT_VERIFIED.
           # LEAD_VERIFIED_ENFORCE: '1'
-        run: node --experimental-strip-types scripts/ci/lead-verified.ts
+        run: |
+          [ -f scripts/ci/lead-verified.ts ] || { echo "::notice::evaluator not on the base yet"; exit 0; }
+          node --experimental-strip-types scripts/ci/lead-verified.ts
