@@ -15,7 +15,8 @@
  */
 
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
-import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { FieldValue, Timestamp } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 // ============================================================================
 // CONFIGURATION
@@ -61,7 +62,7 @@ function initFirebase() {
   if (!getApps().length) {
     initializeApp({ projectId: 'johnb-2025' });
   }
-  return getFirestore();
+  return getAdminFirestore();
 }
 
 // ============================================================================

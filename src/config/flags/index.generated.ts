@@ -11,11 +11,13 @@
  *
  * @module config/flags/index.generated
  */
+export { ATTUNE_LEDGER } from './ATTUNE_LEDGER.js';
 export { BARGE_IN_SOFT_PAUSE } from './BARGE_IN_SOFT_PAUSE.js';
 export { BARGE_IN_SOFT_PAUSE_CONFIRM_MS } from './BARGE_IN_SOFT_PAUSE_CONFIRM_MS.js';
 export { BARGE_IN_SOFT_PAUSE_STT_GRACE_MS } from './BARGE_IN_SOFT_PAUSE_STT_GRACE_MS.js';
 export { EARLY_WARNING_STT_FORMS } from './EARLY_WARNING_STT_FORMS.js';
 export { EARLY_WARNING_WORD_BOUNDARY } from './EARLY_WARNING_WORD_BOUNDARY.js';
 export { LAUGH_CAP } from './LAUGH_CAP.js';
+export { PROMPT_HONEST_ACTIONS } from './PROMPT_HONEST_ACTIONS.js';
 export { SAFETY_WHOLE_WORD_SITES } from './SAFETY_WHOLE_WORD_SITES.js';
 export {};

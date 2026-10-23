@@ -1286,8 +1286,9 @@ async function processFinalTranscript(
     autoOptimizer,
     agent,
   } = ctx;
-  // MINOR_CARE=on: a caller under 18 who isn't a verified owner: nothing below stores their words.
-  const held = heldAfter(sessionId, event.transcript, { userId }); // userId: the per-user flushes
+  // MINOR_CARE=on: a caller under 18 (not a verified owner): nothing below stores their words.
+  const asked = userData.lastAgentResponse; // userId binds userHeld; asked: the bare-number rule
+  const held = heldAfter(sessionId, event.transcript, { userId, asked });
   const memoryUserId = held ? undefined : userId;
 
   // ===============================================
@@ -1559,8 +1560,7 @@ async function processFinalTranscript(
   // Human listening: runs for a held caller too (session-only distress cues, nothing stored)
   processHumanListeningPipeline(event.transcript, userData, sessionId);
 
-  // 🌟 Better Than Human: first-time vulnerability, contradictions, patterns, linguistic style.
-  // It records each per user, so never for a held caller (MINOR_CARE).
+  // 🌟 Better Than Human (vulnerability, contradictions, patterns): per user, never held (MINOR_CARE)
   if (!held) {
     processBetterThanHumanTranscript(event.transcript, userData, sessionId, sessionPersona.id);
   }

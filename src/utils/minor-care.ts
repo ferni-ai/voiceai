@@ -211,8 +211,10 @@ const MAX_SESSIONS = 500;
 /** Longer than any call plus its after-call work: a session this idle can't still be writing. */
 const IDLE_MS = 6 * 60 * 60 * 1000;
 let ownerCheck: (sessionId: string) => boolean = () => false;
-/** userId -> the held session it was heard on, for the writers keyed by user (per-user flush timers). */
-const heldUsers = new Map<string, string>();
+/** sessionId -> its userId (session start, and every detector call that knows it), for userHeld. */
+const sessionUsers = new Map<string, string>();
+/** Past this many, sessions that never sounded under 18 go first, oldest first. */
+const MAX_SESSION_USERS = 5000;
 
 function touch(sessionId: string): void {
   likely.delete(sessionId);
@@ -237,7 +239,7 @@ interface HeardOptions {
   /** Ferni's previous line, so a bare "16." can answer "how old are you?". */
   asked?: string;
   env?: Env;
-  /** The caller's userId: once the session is held, userHeld(userId) is true too. */
+  /** The caller's userId: binds this session to it, so userHeld(userId) follows memoryHeld. */
   userId?: string;
 }
 
@@ -278,25 +280,34 @@ export function heldAfter(
 ): boolean {
   if (!minorCareOn(options.env)) return false;
   noteCallerWords(sessionId, said, options);
-  const held = memoryHeld(sessionId, options.env);
-  if (held && sessionId && !sharedId(options.userId)) heldUsers.set(options.userId!, sessionId);
-  return held;
+  bindSessionUser(sessionId, options.userId);
+  return memoryHeld(sessionId, options.env);
+}
+
+/** This session is this user's (session start, and any detector call that knows the userId). */
+export function bindSessionUser(sessionId: string | undefined, userId: string | undefined): void {
+  if (!sessionId || !userId || sharedId(userId)) return; // never a placeholder or shared id
+  sessionUsers.delete(sessionId);
+  sessionUsers.set(sessionId, userId);
+  for (const s of sessionUsers.keys()) {
+    if (sessionUsers.size <= MAX_SESSION_USERS) break;
+    if (!likely.has(s)) sessionUsers.delete(s);
+  }
 }
 
 /**
- * The per-user writers' check, at write time (a flush timer's tick): this user's held session is
- * still in use (within IDLE_MS), the flag is on and it isn't a verified owner's. Never refreshes
- * the session, so a timer can't keep a hold alive.
+ * The per-user writers' check, at write time (a flush timer's tick): true whenever memoryHeld is
+ * true for any of this user's sessions, from either detector. Never refreshes a session, so a
+ * timer can't keep a hold alive past IDLE_MS.
  */
 export function userHeld(userId: string | undefined, env: Env = process.env): boolean {
-  const sessionId = userId && !sharedId(userId) ? heldUsers.get(userId) : undefined;
-  if (!userId || !sessionId || !minorCareOn(env)) return false;
-  const used = likely.get(sessionId);
-  if (used === undefined || Date.now() - used > IDLE_MS) {
-    heldUsers.delete(userId);
-    return false;
+  if (!userId || sharedId(userId) || !minorCareOn(env)) return false;
+  for (const [sessionId, owner] of sessionUsers) {
+    const used = likely.get(sessionId);
+    const live = used !== undefined && Date.now() - used <= IDLE_MS;
+    if (owner === userId && live && !ownerCheck(sessionId)) return true;
   }
-  return !ownerCheck(sessionId);
+  return false;
 }
 
 export const MINOR_CARE_NOTE =
@@ -319,6 +330,13 @@ export function minorCareNote(
   if (options.careful || !minorCareOn(options.env)) return '';
   if (sessionId && ownerCheck(sessionId)) return '';
   return noteCallerWords(sessionId, said, options) ? MINOR_CARE_NOTE : '';
+}
+
+/** A verified owner's session bound to this user, if any: purgeHeldUser leaves their state. */
+export function ownerSessionFor(userId: string): string | undefined {
+  for (const [sessionId, owner] of sessionUsers)
+    if (owner === userId && ownerCheck(sessionId)) return sessionId;
+  return undefined;
 }
 
 /**
@@ -344,6 +362,6 @@ function shadowNote(sessionId: string | undefined, said: string, asked: string |
 export function resetMinorCare(): void {
   shadowLogged.clear();
   likely.clear();
-  heldUsers.clear();
+  sessionUsers.clear();
   ownerCheck = () => false;
 }

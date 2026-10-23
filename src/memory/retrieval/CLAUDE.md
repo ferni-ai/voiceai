@@ -47,6 +47,7 @@ The unified `retrieveContext()` function queries 5 sources in parallel:
 |------|---------|
 | `index.ts` | Unified retrieval entry point, write-through cache, LRU result cache |
 | `turn-memory-retrieval.ts` | Per-turn retrieval orchestrator (< 350ms budget) |
+| `turn-memory-rerank.ts` | TURN_MEMORY_RERANK: runner-up margin + optional model judge between the per-turn search and the cap |
 | `hybrid-search.ts` | BM25 + vector + entity store with RRF fusion |
 | `bm25-search.ts` | BM25 keyword search index (exact name/keyword matching) |
 | `semantic-memory-search.ts` | Vector search for memories, anchors, session summaries, facts |

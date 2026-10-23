@@ -17,13 +17,18 @@
 import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { isCallOptedOut } from './call-retry.js';
+import { consentBlocks } from '../messaging/consent.js';
 
 const log = createLogger({ module: 'FirstDialOptOut' });
 
-/** The recipient is on the do-not-call list, so no call was placed. */
+/** The recipient is on the do-not-call list, or hasn't agreed to calls, so no call was placed. */
 export class RecipientOptedOutError extends Error {
-  constructor() {
-    super('The recipient asked not to be called');
+  constructor(needsConsent = false) {
+    super(
+      needsConsent
+        ? 'The recipient has not agreed to calls from Ferni'
+        : 'The recipient asked not to be called'
+    );
     this.name = 'RecipientOptedOutError';
   }
 }
@@ -31,8 +36,16 @@ export class RecipientOptedOutError extends Error {
 /** Throws RecipientOptedOutError when the check is on and this number must not be rung. */
 export async function assertNotOptedOut(
   phone: string,
-  isOptedOut: (phone: string) => Promise<boolean> = isCallOptedOut
+  isOptedOut: (phone: string) => Promise<boolean> = isCallOptedOut,
+  ownerUserId?: string
 ): Promise<void> {
+  // MESSAGING_PIPELINE: the one consent record (call_opt_outs as its fallback). Someone
+  // other than the owner must have agreed to calls; unknown is not enough.
+  const own = async (): Promise<boolean> =>
+    ownerUserId !== undefined &&
+    (await import('./guarded-text.js')).isOwnVerifiedPhone(ownerUserId, phone);
+  const refused = await consentBlocks(phone, 'call', own);
+  if (refused) throw new RecipientOptedOutError(refused === 'needs-consent');
   if (!flagOn('ON_BEHALF_DNC_CHECK')) return;
   if (!(await isOptedOut(phone))) return;
   log.info('On-behalf call not placed: the number is on the do-not-call list');
