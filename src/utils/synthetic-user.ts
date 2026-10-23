@@ -80,6 +80,17 @@ export const PLACEHOLDER_IDS: ReadonlySet<string> = new Set([
   'unknown',
 ]);
 
+/**
+ * Whether this id is one of the buckets everyone without an id falls into:
+ * missing, blank, or a placeholder. Narrower than namesNoAccount: an anon: or
+ * onbehalf: id is minted per call, so it is nobody's account but never shared.
+ */
+export function isSharedPlaceholderId(userId: string | undefined | null): boolean {
+  if (typeof userId !== 'string') return true;
+  const id = userId.trim().toLowerCase();
+  return !id || PLACEHOLDER_IDS.has(id);
+}
+
 /** Whether this user id belongs to a test harness rather than a real person. */
 export function isSyntheticUserId(userId: string | undefined | null): boolean {
   if (typeof userId !== 'string') return false;

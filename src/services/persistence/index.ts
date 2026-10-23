@@ -11,6 +11,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { userHeld } from '../../utils/minor-care.js';
+import { isSharedPlaceholderId } from '../../utils/synthetic-user.js';
 import { heldFields } from './held-fields.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
@@ -165,6 +166,9 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     (tainted.has(userId) || holdWrites(userId)) &&
     (tainted.add(userId), cache.delete(userId), true);
   const heldParts = heldFields<T>(whenHeld, syncIntervalMs);
+  // PRIVACY: a placeholder id (anonymous, unknown, default, shared, blank) is one bucket every caller
+  // without an id shares, so under bogle_users it is never cached, read or written.
+  const shared = (userId: string): boolean => !useRootCollection && isSharedPlaceholderId(userId);
   let isShutdown = false;
 
   // Start sync interval using managed interval
@@ -307,6 +311,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 
   // Load from Firestore
   const load = async (userId: string, options?: LoadOptions): Promise<T | null> => {
+    if (shared(userId)) return null;
     // Check cache first
     if (cache.has(userId) && (!options?.fresh || dirty.has(userId))) {
       return cache.get(userId)!;
@@ -343,6 +348,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 
   const store: PersistenceStore<T> = {
     get: async (userId: string) => {
+      if (shared(userId)) return null;
       if (cache.has(userId)) {
         return cache.get(userId)!;
       }
@@ -354,6 +360,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
         log.warn({ collection, userId }, 'Attempted to set data after shutdown');
         return;
       }
+      if (shared(userId)) return;
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);
@@ -365,6 +372,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     },
 
     setImmediate: async (userId: string, data: T) => {
+      if (shared(userId)) return;
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);
@@ -372,6 +380,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     },
 
     delete: async (userId: string) => {
+      if (shared(userId)) return; // never touches the shared doc; removing it is a human decision
       cache.delete(userId);
       dirty.delete(userId);
       heldParts.forget(userId, true); // a pending held part, even one in flight, never outlives this
@@ -443,19 +452,13 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 // GLOBAL LIFECYCLE
 // ============================================================================
 
-/**
- * Initialize all persistence stores
- * Call this at application startup
- */
+/** Initialize all persistence stores; call at application startup */
 export async function initializePersistence(): Promise<void> {
   await getFirestore();
   log.info('Persistence layer initialized');
 }
 
-/**
- * Shutdown all persistence stores
- * Call this at application shutdown
- */
+/** Shutdown all persistence stores; call at application shutdown */
 export async function shutdownPersistence(): Promise<void> {
   log.info({ storeCount: activeStores.length }, 'Shutting down persistence layer...');
 
@@ -486,10 +489,6 @@ export function getAllStats(): Record<string, { cached: number; dirty: number }>
   }
   return stats;
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
 
 export default {
   createPersistenceStore,
