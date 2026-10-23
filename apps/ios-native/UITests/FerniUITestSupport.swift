@@ -8,11 +8,13 @@ enum Screen: String, CaseIterable {
     case connecting, reconnecting, onHold, failed
     /// A tool starts, then the agent's crisis level (crisis mode, R16).
     case crisisDuringTool
+    /// A call that ends after 2 s: the "I'll remember" card.
+    case remember
 
     /// Something that's only there once the screen is ready.
     func ready(in app: XCUIApplication) -> XCUIElement {
         switch self {
-        case .home: app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Talk'")).firstMatch
+        case .home, .remember: app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'Talk'")).firstMatch
         case .consent: app.buttons["Not now"]
         case .settings: app.navigationBars["Settings"]
         case .call, .crisisDuringTool: app.buttons["End call"]

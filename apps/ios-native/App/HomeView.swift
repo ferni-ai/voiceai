@@ -31,6 +31,8 @@ struct HomeView: View {
         let inCall = call.isActive
         // iPad in landscape: the captions sit beside Ferni, not under (UX spec §9).
         let beside = inCall && widthClass == .regular && landscape
+        // What Ferni remembers stays behind the lock here too (trust panel R11).
+        let shield = MemoryShield.home(model.homeLine.current, locked: model.memoryLock.isLocked)
         NavigationStack {
             ScrollViewReader { scroller in
             ScrollView {
@@ -61,7 +63,7 @@ struct HomeView: View {
                             CallCaptions(call: call, showWords: model.showCaptions) { model.reporting = $0 }
                         } else {
                             TimelineView(.everyMinute) { minute in
-                                RestingLine(call: call, home: model.homeLine.current, now: minute.date, chosen: model.team.chosen,
+                                RestingLine(call: call, home: shield.shown, now: minute.date, chosen: model.team.chosen,
                                             knownHere: model.account.needsSignIn)
                             }
                             .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { restingHeight = $0 }
@@ -69,7 +71,8 @@ struct HomeView: View {
                             // After a call that worried Ferni, nothing from it is
                             // shown back as "I'll remember" (trust panel R16).
                             if call.phase == .ended, call.concern == .none {
-                                RememberCard(call: call, remembered: model.callRemembered, forgotten: model.memory.forgotten)
+                                RememberCard(call: call, remembered: model.callRemembered, lock: model.memoryLock,
+                                             forgotten: model.memory.forgotten) { model.memory.forgotElsewhere() }
                                     .id(Self.rememberID)
                                     // Over the team row while it rises past it (award upgrade 8).
                                     .zIndex(1)
@@ -85,8 +88,11 @@ struct HomeView: View {
                                     #endif
                                 }
                             }
-                            if call.phase == .idle, let note = model.homeLine.current?.note {
+                            if call.phase == .idle, let note = shield.shown?.note {
                                 NoteCard(note: note) { model.talk(aboutNote: note) }
+                            }
+                            if call.phase == .idle, let placeholder = shield.placeholder {
+                                LockedMemoryCard(placeholder: placeholder, lock: model.memoryLock)
                             }
                             if let prompt = SignInPrompt.shown(model.account.state) {
                                 SignInPromptView(prompt: prompt) { model.isSigningIn = true }
@@ -145,6 +151,7 @@ struct HomeView: View {
                 RoomBackground(persona: WindowPersona(personaId: shownPersona(call)), date: HomeClock.time(minute.date))
             })
             .task(id: reduceMotion) { call.avatar.reduceMotion = reduceMotion }
+            .privacySnapshot(showsMemory: MemoryShield.homeShowsMemory(model.homeLine.current, phase: call.phase))
             // Trouble is announced wherever you are, including after the call view goes.
             .onChange(of: CallAnnouncement.text(phase: call.phase, onHold: call.isOnHold)) { _, line in
                 if let line { AccessibilityNotification.Announcement(line).post() }
