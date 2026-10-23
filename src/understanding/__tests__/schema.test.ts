@@ -1,0 +1,66 @@
+import { describe, expect, it } from 'vitest';
+import {
+  fieldValue,
+  parseTurnReading,
+  READING_FIELDS,
+  TURN_READING_JSON_SCHEMA,
+  withField,
+} from '../schema.js';
+import { carReading } from './fixtures.js';
+
+describe('turn reading schema v0.1', () => {
+  it('accepts a full reading, as an object or as model text around JSON', () => {
+    expect(parseTurnReading(carReading())).toEqual(carReading());
+    expect(parseTurnReading(`Here you go:\n${JSON.stringify(carReading())}\n`)).toEqual(
+      carReading()
+    );
+  });
+
+  it.each([
+    ['not JSON', 'sure! the caller sounds happy'],
+    ['truncated JSON', JSON.stringify(carReading()).slice(0, 80)],
+    ['empty', ''],
+    ['null', null],
+    ['a number', 42],
+    ['an unknown speech act', { ...carReading(), speech_act: 'rant' }],
+    ['a missing field', (({ sarcasm: _s, ...rest }) => rest)(carReading())],
+    ['an extra field', { ...carReading(), mood: 'happy' }],
+    ['valence out of range', { ...carReading(), affect_text: 3 }],
+    ['a fractional valence', { ...carReading(), affect_situation: -1.5 }],
+    ['a v0 crisis value', { ...carReading(), crisis_signal: 'ideation' }],
+    [
+      'a bad claim kind',
+      { ...carReading(), action_claim: { kind: 'text', tense: 'past', own_life: true } },
+    ],
+    [
+      'a time phrase with no relation',
+      {
+        ...carReading(),
+        time_expressions: [{ text: 'monday', kind: 'point', start_iso: null, end_iso: null }],
+      },
+    ],
+  ])('returns null without throwing for %s', (_name, raw) => {
+    expect(() => parseTurnReading(raw)).not.toThrow();
+    expect(parseTurnReading(raw)).toBeNull();
+  });
+
+  it('gives the model a JSON schema Vertex accepts: no $schema, every field required, closed', () => {
+    expect(TURN_READING_JSON_SCHEMA.$schema).toBeUndefined();
+    expect(TURN_READING_JSON_SCHEMA.additionalProperties).toBe(false);
+    expect([...(TURN_READING_JSON_SCHEMA.required as string[])].sort()).toEqual(
+      Object.keys(carReading()).sort()
+    );
+  });
+
+  it('reads and writes nested fields by path', () => {
+    const r = carReading();
+    expect(fieldValue(r, 'affect.label')).toBe('distress');
+    expect(fieldValue(r, 'action_claim.kind')).toBe('none');
+    const next = withField(r, 'action_claim.kind', 'send');
+    expect(next.action_claim).toEqual({ kind: 'send', tense: 'present', own_life: false });
+    expect(r.action_claim.kind).toBe('none'); // the original is not mutated
+    expect(READING_FIELDS).toHaveLength(18);
+    expect(READING_FIELDS).toContain('action_claim.own_life');
+    expect(READING_FIELDS.every((f) => fieldValue(r, f) !== undefined)).toBe(true);
+  });
+});

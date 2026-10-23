@@ -10,6 +10,7 @@ import { getLogger } from '../../utils/safe-logger.js';
 import type { TurnToolRetrieval } from '../../tools/retrieval/turn-tool-retrieval.js';
 import type { PersonaId } from '../../personas/types.js';
 import type { SpeakerLog } from '../personas/director-persona.js';
+import { installTurnReading } from '../personas/turn-reading-shadow.js';
 import { assistantTranscriptHandler } from './assistant-transcript.js';
 import { TURN_CONTEXT_HEADER } from './turn-context-header.js';
 
@@ -152,10 +153,9 @@ export async function installToolRetrieval(
 }
 
 /**
- * Turn understanding (TURN_UNDERSTANDING=shadow): a small model reads the
- * caller's turn while they talk; when Ferni starts replying, one
- * TURN_UNDERSTANDING record logs its answer next to what the regexes decided.
- * No transcript text is logged. Null when off.
+ * Turn understanding (TURN_UNDERSTANDING=shadow): a small model reads the caller's turn while
+ * they talk; when Ferni starts replying, one TURN_UNDERSTANDING record logs its answer next to
+ * what the regexes decided. No transcript text is logged. Null when off.
  */
 export async function installTurnUnderstanding(
   session: Session,
@@ -182,6 +182,7 @@ export async function installTurnUnderstanding(
     await promptOnCall(session)
   );
   setTurnUnderstander(session, understander);
+  const reading = installTurnReading(session, cleanupFunctions); // schema v0.1 in the record
   const finals: string[] = [];
   const onState = (ev: unknown): void => {
     if ((ev as { newState?: string }).newState !== 'speaking') return;
@@ -197,7 +198,7 @@ export async function installTurnUnderstanding(
       laughed: callerLaughed(turn),
       context: classifyBackchannelContext(turn),
     };
-    log.info(
+    reading.emit(
       {
         ready: Boolean(u),
         covered: seen ? Math.round(seen.covered * 100) / 100 : null,
@@ -217,7 +218,7 @@ export async function installTurnUnderstanding(
             }
           : null,
       },
-      'TURN_UNDERSTANDING'
+      (record) => log.info(record, 'TURN_UNDERSTANDING')
     );
     understander.newTurn(turn);
   };
@@ -232,6 +233,7 @@ export async function installTurnUnderstanding(
       const turn = [...finals, transcript].join(' ');
       if (isFinal) {
         finals.push(transcript);
+        reading.onFinal(turn);
         void understander.settle(turn);
       } else understander.onTurnText(turn);
     },
