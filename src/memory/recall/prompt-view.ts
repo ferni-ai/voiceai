@@ -56,24 +56,37 @@ function filtered(value: unknown, check: ForgottenCheck, of: (v: object) => unkn
 
 /** A property a Proxy must return unchanged (non-configurable, non-writable): a frozen object's. */
 const pinned = (o: object): boolean =>
+  Object.isFrozen(o) ||
   Object.values(Object.getOwnPropertyDescriptors(o)).some(
     (d) => !d.configurable && 'value' in d && !d.writable
   );
 
 function view<T extends object>(target: T, read: (key: string, value: unknown) => unknown): T {
-  // A frozen object can't be proxied with other values: a filtered copy, never a write to it.
-  if (pinned(target)) {
-    const copy = Object.create(Object.getPrototypeOf(target) as object | null) as Record<string, unknown>;
-    for (const [key, value] of Object.entries(target)) {
-      copy[key] = typeof value === 'function' ? value : read(key, value);
-    }
-    return copy as T;
+  const seen = (key: string | symbol, value: unknown): unknown =>
+    typeof key === 'string' && typeof value !== 'function' ? read(key, value) : value;
+  if (!pinned(target)) {
+    return new Proxy(target, {
+      get: (t, key, receiver) => seen(key, Reflect.get(t, key, receiver)),
+    });
   }
-  return new Proxy(target, {
-    get(t, key, receiver) {
-      const value: unknown = Reflect.get(t, key, receiver);
-      return typeof key === 'string' && typeof value !== 'function' ? read(key, value) : value;
+  // A frozen object's values can't be changed by a Proxy over it, so the Proxy is over an
+  // extensible shadow and every read goes to the real object, filtered: own, inherited,
+  // getters and non-enumerable alike. Nothing is written to it.
+  const shadow = Object.create(Object.getPrototypeOf(target) as object | null) as T;
+  const own = (key: string | symbol) => seen(key, Reflect.get(target, key, target));
+  return new Proxy(shadow, {
+    get: (_s, key) => own(key),
+    has: (_s, key) => Reflect.has(target, key),
+    ownKeys: () => Reflect.ownKeys(target),
+    getOwnPropertyDescriptor: (_s, key) => {
+      const d = Reflect.getOwnPropertyDescriptor(target, key);
+      return (
+        d && { configurable: true, enumerable: d.enumerable, writable: false, value: own(key) }
+      );
     },
+    set: (_s, key, value) => Reflect.set(target, key, value),
+    defineProperty: () => false,
+    deleteProperty: () => false,
   });
 }
 

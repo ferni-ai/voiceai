@@ -225,6 +225,37 @@ describe('structural fields and frozen objects (#2662)', () => {
     expect(Object.isFrozen(userData)).toBe(true);
   });
 
+  it('a frozen object: no getter, non-enumerable or prototype field brings a forgotten topic', async () => {
+    class Profile {
+      readonly name = 'Sam';
+      get story(): string {
+        return 'Biscuit chewed the couch';
+      }
+    }
+    const fromClass = Object.freeze(new Profile());
+    const hidden = { name: 'Sam' };
+    Object.defineProperty(hidden, 'secret', { value: 'Biscuit at the vet', enumerable: false });
+    Object.defineProperty(hidden, 'hobby', { value: 'gardening', enumerable: false });
+    Object.freeze(hidden);
+    const inherited = Object.freeze(
+      Object.assign(Object.create({ note: 'Biscuit ran off', kept: 'cello practice' }), {
+        name: 'Sam',
+      })
+    );
+    const check = await forgottenCheck(user, 'test');
+    const views = [fromClass, hidden, inherited].map(
+      (o) => promptUserData(o, check) as Record<string, unknown>
+    );
+    expect(views[0].story).toBeUndefined();
+    expect(views[1].secret).toBeUndefined();
+    expect(views[2].note).toBeUndefined();
+    expect(views.map((v) => v.name)).toEqual(['Sam', 'Sam', 'Sam']);
+    expect(views[1].hobby).toBe('gardening'); // filtered, not dropped
+    expect(views[2].kept).toBe('cello practice');
+    expect(views[0]).toBeInstanceOf(Profile);
+    expect(JSON.stringify(views)).not.toContain('Biscuit');
+  });
+
   it('frozen services read filtered too', async () => {
     const raw = Object.freeze({
       userId: user,
