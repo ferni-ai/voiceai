@@ -196,13 +196,13 @@ async function ensureUserLoaded(userId: string): Promise<void> {
 
   try {
     // Load goals
-    const goalsData = await getGoalPersistence().load(userId);
+    const goalsData = await getGoalPersistence().load(userId, { strict: 'read' });
     if (goalsData?.goals) {
       goalStore.set(userId, goalsData.goals.map(deserializeGoal));
     }
 
     // Load streaks
-    const streaksData = await getStreakPersistence().load(userId);
+    const streaksData = await getStreakPersistence().load(userId, { strict: 'read' });
     if (streaksData?.streaks) {
       streakStore.set(userId, streaksData.streaks.map(deserializeStreak));
     }
@@ -211,7 +211,7 @@ async function ensureUserLoaded(userId: string): Promise<void> {
     getLogger().debug({ userId }, 'Loaded goals and streaks from persistence');
   } catch (error) {
     getLogger().warn({ error, userId }, 'Failed to load goals/streaks from persistence');
-    loadedUsers.add(userId); // Mark as loaded to avoid repeated failures
+    // not marked loaded: the next call reads again; nothing is saved over unread data
   }
 }
 

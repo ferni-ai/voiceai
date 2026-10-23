@@ -22,6 +22,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { indexSmallWin } from '../data-layer/integrations/trust-integration.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { loadBeforeSave } from '../../utils/load-before-save.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'CelebrationMomentum' });
@@ -178,7 +179,6 @@ function deserializeProfile(data: PersistedMomentumProfile): MomentumProfile {
 // ============================================================================
 
 const momentumProfiles = new Map<string, MomentumProfile>();
-const loadedUsers = new Set<string>();
 
 let persistence: PersistenceStore<PersistedMomentumProfile> | null = null;
 
@@ -193,27 +193,24 @@ function getPersistence(): PersistenceStore<PersistedMomentumProfile> {
   return persistence;
 }
 
-async function ensureUserLoaded(userId: string): Promise<void> {
-  if (loadedUsers.has(userId)) return;
-
-  try {
-    const data = await getPersistence().load(userId);
-    if (data) {
-      momentumProfiles.set(userId, deserializeProfile(data));
-    }
-    loadedUsers.add(userId);
-    log.debug({ userId }, 'Loaded momentum profile from persistence');
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to load momentum profile');
-    loadedUsers.add(userId);
+// The stored profile is read before the first save, keeping wins recorded meanwhile
+const loader = loadBeforeSave<PersistedMomentumProfile>(
+  'celebration_momentum',
+  (userId) => getPersistence().load(userId, { strict: 'read' }),
+  (userId, stored) => {
+    if (!stored) return;
+    const saved = deserializeProfile(stored);
+    const { wins = [], totalWins = 0 } = momentumProfiles.get(userId) ?? {};
+    saved.wins.push(...wins);
+    momentumProfiles.set(userId, { ...saved, totalWins: saved.totalWins + totalWins });
   }
-}
+);
 
 function persistProfile(userId: string): void {
-  const profile = momentumProfiles.get(userId);
-  if (profile) {
-    getPersistence().set(userId, serializeProfile(profile));
-  }
+  loader.save(userId, () => {
+    const profile = momentumProfiles.get(userId);
+    if (profile) getPersistence().set(userId, serializeProfile(profile));
+  });
 }
 
 /**
@@ -230,7 +227,7 @@ export async function flushCelebrationMomentumPersistence(): Promise<void> {
 export async function shutdownCelebrationMomentum(): Promise<void> {
   await flushCelebrationMomentumPersistence();
   // Clear state for clean restart
-  loadedUsers.clear();
+  loader.clear();
   momentumProfiles.clear();
   log.info('Celebration momentum service shutdown complete');
 }

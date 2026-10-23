@@ -22,6 +22,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
+import { loadBeforeSave } from '../../utils/load-before-save.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'VoiceProsodyLearning' });
@@ -166,7 +167,6 @@ function deserializeSample(s: PersistedSample): VoiceSample {
 
 const userBaselines = new Map<string, PersonalBaseline>();
 const voiceSamples = new Map<string, VoiceSample[]>();
-const loadedUsers = new Set<string>();
 
 let persistence: PersistenceStore<UserVoiceProsodyData> | null = null;
 
@@ -181,34 +181,26 @@ function getPersistence(): PersistenceStore<UserVoiceProsodyData> {
   return persistence;
 }
 
-async function ensureUserLoaded(userId: string): Promise<void> {
-  if (loadedUsers.has(userId)) return;
-
-  try {
-    const data = await getPersistence().load(userId);
-    if (data) {
-      if (data.baseline) {
-        userBaselines.set(userId, deserializeBaseline(data.baseline));
-      }
-      if (data.samples) {
-        voiceSamples.set(userId, data.samples.map(deserializeSample));
-      }
-    }
-    loadedUsers.add(userId);
-    log.debug({ userId }, 'Loaded voice prosody data from persistence');
-  } catch (error) {
-    log.warn({ error, userId }, 'Failed to load voice prosody data');
-    loadedUsers.add(userId);
+// The stored baseline and samples are read before the first save, keeping new samples
+const loader = loadBeforeSave<UserVoiceProsodyData>(
+  'voice_prosody',
+  (userId) => getPersistence().load(userId, { strict: 'read' }),
+  (userId, stored) => {
+    const recorded = voiceSamples.get(userId) ?? [];
+    const samples = [...(stored?.samples ?? []).map(deserializeSample), ...recorded].slice(-500);
+    voiceSamples.set(userId, samples);
+    if (stored?.baseline) userBaselines.set(userId, deserializeBaseline(stored.baseline));
+    if (recorded.length > 0) updateBaseline(userId, samples);
   }
-}
+);
 
 function persistUserData(userId: string): void {
-  const baseline = userBaselines.get(userId);
-  const samples = voiceSamples.get(userId) || [];
-
-  getPersistence().set(cleanForFirestore(userId), {
-    baseline: baseline ? serializeBaseline(baseline) : undefined,
-    samples: samples.map(serializeSample),
+  loader.save(userId, () => {
+    const baseline = userBaselines.get(userId);
+    getPersistence().set(cleanForFirestore(userId), {
+      baseline: baseline ? serializeBaseline(baseline) : undefined,
+      samples: (voiceSamples.get(userId) || []).map(serializeSample),
+    });
   });
 }
 
@@ -226,7 +218,7 @@ export async function flushVoiceProsodyPersistence(): Promise<void> {
 export async function shutdownVoiceProsody(): Promise<void> {
   await flushVoiceProsodyPersistence();
   // Clear state for clean restart
-  loadedUsers.clear();
+  loader.clear();
   userBaselines.clear();
   voiceSamples.clear();
   log.info('Voice prosody service shutdown complete');
@@ -799,6 +791,7 @@ export function detectVoiceMention(text: string): {
  * a friend who really knows them.
  */
 export function generateVoiceContext(userId: string): string | null {
+  void loader.ensure(userId); // the first touch reads the stored baseline
   const familiarity = getFamiliarityScore(userId);
 
   if (familiarity.level === 'stranger') {
