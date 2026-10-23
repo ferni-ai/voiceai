@@ -62,6 +62,9 @@ const SOFT: Array<[string, string, () => Hit]> = [
     () => phraseHit('I won all the casino points', 'no point'),
   ],
   ['pointers', 'no pointers on this one', () => phraseHit('no pointers on this one', 'no point')],
+  ['points', 'no points scored', () => phraseHit('no points scored', 'no point')],
+  ['numbers', 'the numbers are in', () => phraseHit('the numbers are in', 'numb')],
+  ['emptyhanded', 'i came home emptyhanded', () => phraseHit('i came home emptyhanded', 'empty')],
   [
     'pharmacy',
     'i went to the pharmacy for pills to overdose',
@@ -140,11 +143,30 @@ describe('on never reads less than the substring check', () => {
     ['suicidalll', 'suicidal'],
     ["I'm not suicidal or anything, but I did write out my final wishes", 'suicidal'],
     ['the hits me', 'he hits me'],
+    // A missing space after the phrase (#2641).
+    ['i feel hopelessand alone', 'hopeless'],
+    ['im trappedhere', 'trapped'],
+    ["i'm numbinside", 'numb'],
+    ["I don't want to be hereanymore", "don't want to be here"],
+    ["there's no pointin living", 'no point'],
+    ['i give upon life', 'give up'],
   ];
   it.each(KEPT)('on: %j holds %j as a hit', (line, phrase) => {
     flag('on');
     expect(phraseHit(line, phrase)).toBe('hit');
     expect(saysPhrase(line, phrase)).toBe(true);
+  });
+  it.each<[string, RegExp]>([
+    [
+      'i was sexually assaultedlast year',
+      /(?:sexually|physically|emotionally) (?:assaulted|abused|attacked)/i,
+    ],
+    ['i relapsedagain', /(?:relapsed|using again|started using)/i],
+    ['my dad just diedyesterday', /(?:just|recently) (?:lost|died|passed away)/i],
+  ])('on: %j still matches its trigger (a missing space after it)', (line, re) => {
+    flag('on');
+    expect(patternHit(re, line)).toBe('hit');
+    expect(testWholeWords(re, line)).toBe(true);
   });
   it('on: a match STT spelling would erase still counts ("can not" becomes "cant")', () => {
     flag('on');

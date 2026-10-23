@@ -1,6 +1,7 @@
 /**
  * Every reader, over every line: the fixture risk corpus (crisis-corpus.ts),
- * all 205 joined-word lines, and the round-2 verify's 28,781 adversarial lines,
+ * the 420 joined-word lines (before and after a phrase), every risk line with one
+ * space removed, and the round-2 verify's 28,781 adversarial lines,
  * against every site phrase (103) and every human-referral trigger. With
  * SAFETY_WHOLE_WORD_SITES off or shadow each reader equals the substring (or
  * regex) check; on, no reader reads less than it. A 'soft' tier still counts.
@@ -25,7 +26,13 @@ afterEach(() => {
 const joined = JSON.parse(
   readFileSync('src/services/wellbeing-tracking/__tests__/crisis-joined-words.json', 'utf8')
 ) as string[];
-const LINES = [...new Set([...riskCorpus(), ...joined, ...adversarialCorpus()])];
+// Every risk line with one space removed: a missing space before and after each phrase.
+const oneSpaceMissing = riskCorpus().flatMap((line) =>
+  [...line.matchAll(/ /g)].map((m) => line.slice(0, m.index) + line.slice((m.index ?? 0) + 1))
+);
+const LINES = [
+  ...new Set([...riskCorpus(), ...joined, ...adversarialCorpus(), ...oneSpaceMissing]),
+];
 const PHRASES = crisisPhrases();
 // Every trigger in human-referral.ts, read from the source so the list cannot drift.
 const PATTERNS = [
@@ -71,7 +78,8 @@ function differences(mode: Mode): string[] {
 
 describe(`every reader over ${LINES.length} lines`, () => {
   it('has the corpora it claims', () => {
-    expect(joined).toHaveLength(205);
+    expect(joined).toHaveLength(420);
+    expect(oneSpaceMissing.length).toBeGreaterThan(5000);
     expect(adversarialCorpus()).toHaveLength(28781);
     expect(PHRASES).toHaveLength(103);
     expect(PATTERNS.length).toBeGreaterThanOrEqual(20);
