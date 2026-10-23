@@ -68,6 +68,7 @@ export interface ToolRetrievalInput {
     getCurrentTools(): Record<string, unknown>;
   };
   cleanupFunctions: Cleanup;
+  phone?: boolean; // a phone (SIP) caller: PAUSE_HOLD_PHONE_CAP (pause-hold.ts)
 }
 
 /**
@@ -267,7 +268,7 @@ export async function installTurnListeners(
   const { holdsStandDown } = await import('../shared/turn-detector-sole.js');
   const detachPauseHold = holdsStandDown(input.session)
     ? null
-    : attachPauseHold(input.session as never, input.sessionId);
+    : attachPauseHold(input.session as never, input.sessionId, process.env, input.phone);
   if (detachPauseHold) input.cleanupFunctions.push(detachPauseHold);
   const retrieval = await installToolRetrieval(input);
   const understanding = await installTurnUnderstanding(input.session, input.cleanupFunctions);

@@ -24,9 +24,23 @@
  * reply for the new turn, unheard. A clear end, or a reply that is slower than
  * the window anyway, is not delayed. The wait never exceeds PAUSE_HOLD_MAX_MS.
  *
+ * Phone callers, prod 2026-10-15..22: 41 of the 46 holds that hit the 2.5 s
+ * cap were on the phone, none on synthetic calls. At 31 of 38 phone caps the
+ * caller had been quiet 1.3 s or more by their last stop: the hold was waiting
+ * on a "speaking" state that never ended, and at 7 of the 19 caps whose reply
+ * played no caller words came during the hold or 2.5 s after it. Phone audio
+ * reaches VAD raw apart from AGC + high-pass (pre-stt-frame-processor.ts),
+ * with the room behind the caller in it; web and iOS audio has been cleaned
+ * by the browser or the OS. PAUSE_HOLD_PHONE_CAP=on, phone only: "speaking"
+ * that brings no new words within PHONE_HOLD.graceMs no longer counts as the
+ * caller going on, and a hold with no new words ends by PHONE_HOLD.maxMs.
+ * New words during the hold keep the full hold, so a caller who goes on
+ * ("so I was thinking... um... maybe Thursday") is still waited for.
+ *
  * @module speech/output-control/pause-hold
  */
 
+import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'PauseHold' });
@@ -51,7 +65,39 @@ const VAD_SILENCE_MS = 350;
 /** How often a held reply rechecks the caller. */
 const POLL_MS = 25;
 
+/**
+ * PAUSE_HOLD_PHONE_CAP: `graceMs` of wordless "speaking" still counts (ink's
+ * first words for a real restart come within it); a hold that has heard no
+ * new words ends by `maxMs`.
+ */
+export const PHONE_HOLD = { graceMs: 700, maxMs: 1300 } as const;
+
 type Env = Record<string, string | undefined>;
+
+/** Whether a phone caller's hold reads speech by its words (PAUSE_HOLD_PHONE_CAP=on). */
+export function phoneHoldOn(phone: boolean | undefined, env: Env = process.env): boolean {
+  return phone === true && flagOn('PAUSE_HOLD_PHONE_CAP', env);
+}
+
+/**
+ * Whether a phone caller's "speaking" state means they went on: it brought new
+ * words, or it is still young enough that its words may be on the way.
+ */
+export function phoneCallerSpeaking(
+  speaking: boolean,
+  speakingSince: number | undefined,
+  wordsAt: number,
+  now: number
+): boolean {
+  if (!speaking) return false;
+  const since = speakingSince ?? now;
+  return wordsAt >= since || now - since < PHONE_HOLD.graceMs;
+}
+
+/** A phone hold's settings: the short cap until the caller says something new. */
+export function phoneHoldConfig(cfg: PauseHoldConfig, newWords: boolean): PauseHoldConfig {
+  return newWords ? cfg : { ...cfg, maxMs: Math.min(cfg.maxMs, PHONE_HOLD.maxMs) };
+}
 
 function num(raw: string | undefined, fallback: number, min: number): number {
   const n = Number(raw);
@@ -143,9 +189,20 @@ interface HoldState {
   turnOpen: boolean;
   stoppedAt: number | undefined;
   callerSpeaking: boolean;
+  /** When the caller's current "speaking" state began. */
+  speakingSince: number | undefined;
   agentSpeaking: boolean;
-  /** The turn whose reply is waiting for its first audio; null when none is held. */
-  armed: { stoppedAt: number } | null;
+  /** The turn whose reply is waiting for its first audio (committed at `at`); null when none is held. */
+  armed: { stoppedAt: number; at: number } | null;
+  /** PAUSE_HOLD_PHONE_CAP is on for this phone caller. */
+  phone: boolean;
+}
+
+/** The caller and cap this poll goes by: a phone hold reads speech by its words. */
+function holdView(st: HoldState, cfg: PauseHoldConfig, now: number): [boolean, PauseHoldConfig] {
+  if (!st.phone || !st.armed) return [st.callerSpeaking, cfg];
+  const speaking = phoneCallerSpeaking(st.callerSpeaking, st.speakingSince, st.wordsAt, now);
+  return [speaking, phoneHoldConfig(cfg, st.wordsAt > st.armed.at)];
 }
 
 /** Hold one reply's first audio as the session's state says. */
@@ -160,15 +217,21 @@ async function holdFirstAudio(
   const turn = st.armed;
   if (!turn) return;
   const held: HeldReply = { stoppedAt: turn.stoppedAt, heldSince: start };
-  let ms = pauseHoldWaitMs(held, st.callerSpeaking, Date.now(), cfg);
+  const waitMs = (): number => {
+    const now = Date.now();
+    const [speaking, c] = holdView(st, cfg, now);
+    return pauseHoldWaitMs(held, speaking, now, c);
+  };
+  let ms = waitMs();
   while (ms > 0) {
     // eslint-disable-next-line no-await-in-loop -- polling the live session state
     await sleep(Math.min(ms, POLL_MS));
     held.stoppedAt = turn.stoppedAt;
-    ms = pauseHoldWaitMs(held, st.callerSpeaking, Date.now(), cfg);
+    ms = waitMs();
   }
   const heldMs = Date.now() - start;
-  log.info({ sessionId, heldMs, quietMs: Date.now() - turn.stoppedAt }, 'PAUSE_HOLD_RELEASED');
+  const quietMs = Date.now() - turn.stoppedAt;
+  log.info({ sessionId, heldMs, quietMs, ...(st.phone && { phone: true }) }, 'PAUSE_HOLD_RELEASED');
   for (const listener of releaseListeners) {
     try {
       listener(sessionId, heldMs);
@@ -185,7 +248,7 @@ function onCommit(st: HoldState, cfg: PauseHoldConfig, sessionId: string): void 
   const stop = st.stoppedAt;
   st.stoppedAt = undefined;
   const hold = stop !== undefined && hesitantCommit(st.words, leadMs, cfg);
-  st.armed = hold ? { stoppedAt: stop } : null;
+  st.armed = hold ? { stoppedAt: stop, at: Date.now() } : null;
   const stopToCommitMs = stop === undefined ? null : Date.now() - stop;
   log.info({ sessionId, leadMs, hold, stopToCommitMs }, 'PAUSE_HOLD');
 }
@@ -194,7 +257,8 @@ function onCommit(st: HoldState, cfg: PauseHoldConfig, sessionId: string): void 
 export function attachPauseHold(
   session: SessionEvents,
   sessionId: string,
-  env: Env = process.env
+  env: Env = process.env,
+  phone?: boolean
 ): (() => void) | null {
   const cfg = pauseHoldConfig(env);
   if (!cfg) return null;
@@ -204,8 +268,10 @@ export function attachPauseHold(
     turnOpen: false,
     stoppedAt: undefined,
     callerSpeaking: false,
+    speakingSince: undefined,
     agentSpeaking: false,
     armed: null,
+    phone: phoneHoldOn(phone, env),
   };
   const onTranscript = (ev: unknown): void => {
     const text = ((ev as { transcript?: string } | undefined)?.transcript ?? '').trim();
@@ -222,7 +288,9 @@ export function attachPauseHold(
   };
   const onUserState = (ev: unknown): void => {
     const { newState, createdAt } = (ev ?? {}) as { newState?: string; createdAt?: number };
-    st.callerSpeaking = newState === 'speaking';
+    const speaking = newState === 'speaking';
+    if (speaking && !st.callerSpeaking) st.speakingSince = Date.now();
+    st.callerSpeaking = speaking;
     // They went on and stopped again: the quiet counts from the new stop.
     if (newState === 'listening' && st.armed) {
       const stop = (createdAt ?? Date.now()) - VAD_SILENCE_MS;
