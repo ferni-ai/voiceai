@@ -8,7 +8,12 @@
 import { readFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { saysPhrase, testWholeWords } from '../../../utils/safety-whole-word.js';
+import {
+  saysPhrase,
+  saysRiskPhrase,
+  testRiskWords,
+  testWholeWords,
+} from '../../../utils/safety-whole-word.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -51,5 +56,26 @@ describe('shadow and the flag split', () => {
     ]) {
       expect(sites).toContain(site);
     }
+  });
+});
+
+describe('shadow decides as off', () => {
+  // Each line reads differently off and on, so a shadow that decided as on would flip it.
+  const CASES: Array<[string, () => boolean]> = [
+    ['saysPhrase "spend it all" / end it all', () => saysPhrase('just spend it all', 'end it all')],
+    ['saysPhrase "self harm" / self-harm', () => saysPhrase('self harm', 'self-harm')],
+    ['saysRiskPhrase "skill them" / kill them', () => saysRiskPhrase('skill them up', 'kill them')],
+    ['saysRiskPhrase "selfharm" / self-harm', () => saysRiskPhrase('selfharm', 'self-harm')],
+    ['testWholeWords "casino points"', () => testWholeWords(/no point/i, 'casino points')],
+    ['testRiskWords "casino points"', () => testRiskWords(/no point/i, 'casino points')],
+  ];
+  it.each(CASES)('%s: shadow equals off, and on differs', (_name, read) => {
+    flag('off');
+    const off = read();
+    flag('on');
+    const on = read();
+    flag('shadow');
+    expect(on).not.toBe(off);
+    expect(read()).toBe(off);
   });
 });
