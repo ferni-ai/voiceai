@@ -12,7 +12,8 @@
  * @module services/platform/bounded-reader
  */
 
-import { FieldPath, getFirestore } from 'firebase-admin/firestore';
+import { FieldPath } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 export type ExportLimitReason =
   'docs' | 'bytes' | 'reads' | 'time' | 'busy' | 'rate' | 'unavailable';
@@ -145,7 +146,7 @@ export async function openExportDb(
   if (firestore) return firestore;
   const { ensureFirebaseAdmin } = await import('../identity/firebase-auth.js');
   if (!ensureFirebaseAdmin()) throw new Error('Firebase Admin is not initialized');
-  return getFirestore();
+  return getAdminFirestore();
 }
 
 export class BoundedReader {

@@ -52,6 +52,9 @@ export const EXPORTED_STORES: Readonly<Record<string, readonly string[]>> = {
     'dynamic_relationships',
     'emotional_arcs',
     'energy_readings',
+    // facts the person told, written by the memory tools (memory-executor.ts,
+    // legacy-fallback-executor.ts) and erased by forget.ts; not in the 2026-10 listings (#2366)
+    'extracted_facts',
     'ferni_commitments',
     'follow_through',
     'follow_up_actions',
@@ -253,6 +256,38 @@ export const KNOWN_USER_STORES: readonly string[] = [
   'contact_relationships',
 ];
 
+/**
+ * Top-level fields a store keeps although the secret filter drops their name, because
+ * there they are the person's data, not a credential (#2336). Only at a document's top
+ * level, only where listed, and only under the exact name (Key or KEY is still dropped):
+ * the same name nested in a value, or a `key` in any other store, is still dropped, and a
+ * kept field holding a credential-looking value is too.
+ *
+ * - key, in dynamic_facts: the fact's attribute ("Biscuit | breed = golden retriever").
+ *
+ * Session references (sessionId, sessionIds, firstSessionId, ...) need no entry: the
+ * secret filter no longer drops them anywhere (#2366).
+ */
+const KEPT_FIELDS: Readonly<Record<string, readonly string[]>> = {
+  'bogle_users/{uid}/dynamic_facts': ['key'],
+};
+
+/**
+ * Top-level fields that are maps keyed by the person's or the model's own words, so a short
+ * key like "pin", "code" or "access" there is data (#2366). A credential's name (bankToken,
+ * apiKey) is still dropped there, and the values still go through the value filter.
+ *
+ * The profile docs (bogle_users/{uid}, users/{uid}) are exported whole, filtered by name and
+ * value, not projected to a field allowlist: UserProfile has ~600 fields and hundreds of
+ * writers, too many to list here (#2366).
+ *
+ * - attributes, in dynamic_entities: whatever the model heard about the person or thing
+ *   ({role: 'manager', pin: 'the blue one'}), written by deep-extraction-worker.ts.
+ */
+const DATA_MAPS: Readonly<Record<string, readonly string[]>> = {
+  'bogle_users/{uid}/dynamic_entities': ['attributes'],
+};
+
 function pick(data: Record<string, unknown>, fields: readonly string[]): Record<string, unknown> {
   return Object.fromEntries(fields.filter((f) => f in data).map((f) => [f, data[f]]));
 }
@@ -312,13 +347,16 @@ export async function exportUserRecords(
   onPage?: (label: string, docs: number) => void
 ): Promise<Record<string, Plain>> {
   const reader = new BoundedReader(budget, await openExportDb(userId, firestore));
-  const plain = (doc: ReadDoc, fields?: readonly string[]): Plain =>
-    toPlain(fields ? pick(doc.data, fields) : doc.data, budget);
+  const plain = (store: Store, doc: ReadDoc): Plain => {
+    const fields = store.kind === 'collection' ? store.fields : undefined;
+    const data = fields ? pick(doc.data, fields) : doc.data;
+    return toPlain(data, budget, KEPT_FIELDS[store.label], DATA_MAPS[store.label]);
+  };
   const out: Record<string, Plain> = {};
   for (const store of storesFor(userId)) {
     if (store.kind === 'doc') {
       const doc = await reader.readDoc(store.path);
-      if (doc) out[store.label] = plain(doc);
+      if (doc) out[store.label] = plain(store, doc);
       continue;
     }
     const docs = await reader.readCollection(store.path, {
@@ -327,7 +365,7 @@ export async function exportUserRecords(
     });
     const rows = docs.map((d) => ({
       id: d.id,
-      ...(plain(d, store.fields) as Record<string, Plain>),
+      ...(plain(store, d) as Record<string, Plain>),
     }));
     if (rows.length > 0) out[store.label] = rows;
   }

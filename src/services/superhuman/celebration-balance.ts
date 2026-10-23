@@ -17,6 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from './firestore-utils.js';
+import { dataOf, loadDoc, type LoadResult } from './load-state.js';
 
 const log = createLogger({ module: 'superhuman:celebration-balance' });
 
@@ -125,25 +126,12 @@ const CELEBRATION_FATIGUE_THRESHOLD = 4; // Warning if 4+ celebrations in 30 day
 
 const COLLECTION = 'celebration_balance';
 
-async function loadCelebrationProfile(userId: string): Promise<CelebrationBalanceProfile | null> {
+async function loadCelebrationProfile(
+  userId: string
+): Promise<LoadResult<CelebrationBalanceProfile>> {
   const db = getFirestoreDb();
-  if (!db) return null;
-
-  try {
-    const doc = await db
-      .collection('bogle_users')
-      .doc(userId)
-      .collection(COLLECTION)
-      .doc('profile')
-      .get();
-    if (doc.exists) {
-      return doc.data() as CelebrationBalanceProfile;
-    }
-    return null;
-  } catch (error) {
-    log.debug({ error, userId }, 'Failed to load celebration balance profile');
-    return null;
-  }
+  const ref = db?.collection('bogle_users').doc(userId).collection(COLLECTION).doc('profile');
+  return loadDoc<CelebrationBalanceProfile>(ref, log);
 }
 
 async function saveCelebrationProfile(
@@ -189,7 +177,9 @@ export async function recordCelebration(
     notes?: string;
   }
 ): Promise<RecordedCelebration> {
-  const profile = (await loadCelebrationProfile(userId)) || createDefaultProfile(userId);
+  // A failed read still returns the result, but saving a default would wipe the stored doc.
+  const loaded = await loadCelebrationProfile(userId);
+  const profile = loaded.status === 'found' ? loaded.data : createDefaultProfile(userId);
 
   const id = `cel_${Date.now()}`;
   const date = options?.date || new Date().toISOString().split('T')[0];
@@ -217,7 +207,7 @@ export async function recordCelebration(
   // Update patterns based on this celebration
   updatePatterns(profile, celebration);
 
-  await saveCelebrationProfile(userId, profile);
+  if (loaded.status !== 'error') await saveCelebrationProfile(userId, profile);
   log.info({ userId, type, size, honoree }, 'Recorded celebration');
 
   return celebration;
@@ -227,7 +217,7 @@ export async function recordCelebration(
  * Get celebration balance assessment
  */
 export async function getCelebrationBalance(userId: string): Promise<CelebrationBalance> {
-  const profile = await loadCelebrationProfile(userId);
+  const profile = dataOf(await loadCelebrationProfile(userId));
 
   if (!profile || profile.celebrations.length === 0) {
     return {

@@ -21,8 +21,8 @@ export async function handleRunDeepAnalysis(res: ServerResponse): Promise<void> 
     const { runDeepAnalysis, getLatestDeepAnalysis } =
       await import('../../intelligence/predictive/llm-deep-analysis.js');
 
-    const admin = await import('firebase-admin');
-    const db = admin.default.firestore();
+    const { getAdminFirestore } = await import('../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);

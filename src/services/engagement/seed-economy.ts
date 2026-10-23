@@ -8,16 +8,17 @@
  * @module services/seed-economy
  */
 
-import { getFirestore as getDefaultFirestore, type Firestore } from 'firebase-admin/firestore';
+import { type Firestore } from 'firebase-admin/firestore';
 import { getLogger } from '../../utils/safe-logger.js';
 import { awardDailyConversation } from '../seeds/earn.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 /**
  * Get Firestore instance, returns null if not initialized.
  */
 function getFirestore(): Firestore | null {
   try {
-    return getDefaultFirestore();
+    return getAdminFirestore();
   } catch {
     return null;
   }

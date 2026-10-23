@@ -14,6 +14,7 @@ import { configureAsyncEvents } from '../../memory/dynamic/async-events-config.j
 import { configureSyncService, startDeepExtractionWorker } from '../../memory/dynamic/index.js';
 import { initializeKnowledgeCapture } from '../../memory/knowledge-graph/index.js';
 import { memoryAsyncEvents } from '../../services/async-events/index.js';
+import { registerMessagingConsent } from '../../services/messaging/consent.js';
 import { startRegistryOrphanCleanup, stopRegistryOrphanCleanup } from '../session/index.js';
 import { initCrashAnalytics } from '../shared/crash-analytics.js';
 import { startOrphanCleanup, stopOrphanCleanup } from '../shared/openai-health-monitor.js';
@@ -28,6 +29,9 @@ type LogFn = (msg: string, data?: Record<string, unknown>) => void;
 export function startProcessRuntime(log: LogFn): { stop(): void } {
   initCrashAnalytics();
   log('✅ Crash analytics initialized');
+
+  // The consent check the tools and the Twilio adapter ask (utils/consent-port.ts).
+  registerMessagingConsent();
 
   // Configure AsyncEvents before starting the workers that listen on it.
   try {

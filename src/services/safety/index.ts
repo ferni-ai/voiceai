@@ -72,7 +72,7 @@ export type {
 // UNIFIED API
 // ============================================================================
 
-import { getFirestore, type Firestore } from 'firebase-admin/firestore';
+import { type Firestore } from 'firebase-admin/firestore';
 import { removeUndefined } from '../../utils/firestore-utils.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { detectCrisis, type CrisisDetectionResult, type CrisisSignal } from './crisis-detection.js';
@@ -82,6 +82,7 @@ import {
   determineEscalation,
   type EscalationDecision,
 } from './escalation-pathways.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'Safety' });
 
@@ -98,7 +99,7 @@ function getFirestoreInstance(): Firestore | null {
 
   firestoreInitAttempted = true;
   try {
-    firestoreInstance = getFirestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch (error) {
     log.warn({ error }, 'Firestore not available - crisis events will only be logged');

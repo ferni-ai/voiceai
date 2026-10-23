@@ -13,8 +13,17 @@
  *
  * Runner wait is Setup's wait plus the slowest wait behind it (runnerWait).
  * CI runs only (ci.yml): it holds every required check but Menu E2E and Build & Test.
+ *
+ * gh calls retry a GitHub 5xx or a network error (3 tries, 2 s then 6 s): one
+ * 502 on one run's jobs crashed the 2026-10-23 report. A run whose jobs still
+ * can't be read is left out and named in the report; after 3 such runs in a row
+ * the rest aren't tried (GitHub is down, and retrying each would outlast the
+ * job's 15 minutes). The report still prints, but the script exits 1 when more
+ * than half the runs it meant to measure are missing: n/a rows must not pass as
+ * a healthy day. Auth errors, 404s and bad JSON fail at once.
  */
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 
 const MIN = 60_000;
@@ -27,16 +36,53 @@ export function quantile(values, q) {
 }
 
 /**
- * Minutes a CI run spent waiting for runners: Setup's wait, plus how long the
- * last job behind Setup waited after Setup finished (every job but Build needs
- * only Setup). Null until those jobs have started.
+ * Name patterns of the workflow's jobs that need more than Setup (Build, the
+ * "Unit Tests" gate behind its shards). They start when the jobs they need end,
+ * so their start says nothing about runners. A matrix name matches every leg.
  */
-export function runnerWait(run, jobs) {
+export function notBehindSetupOnly(workflow) {
+  const body = workflow.slice(workflow.indexOf('\njobs:\n') + 7);
+  const parts = body.split(/^ {2}([A-Za-z0-9_-]+):\n/m);
+  const out = [];
+  for (let i = 1; i < parts.length; i += 2) {
+    const t = parts[i + 1];
+    const name = /^ {4}name: (.*)$/m.exec(t)?.[1].replace(/^'(.*)'$/, '$1') ?? parts[i];
+    const inline = /^ {4}needs: \[?([^\]\n]*)\]?$/m.exec(t)?.[1];
+    const listed = /^ {4}needs:\n((?: {6}- .*\n)+)/m.exec(t)?.[1];
+    const needs = (inline ?? listed ?? '').split(/[\s,]+/).filter((n) => /^[A-Za-z0-9_]/.test(n));
+    if (!needs.some((n) => n !== 'setup')) continue;
+    const literal = name
+      .split(/\$\{\{.*?\}\}/)
+      .map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    out.push(new RegExp(`^${literal.join('.+')}$`));
+  }
+  return out;
+}
+
+let ciJobsNotBehindSetup;
+function ciDefault() {
+  if (!ciJobsNotBehindSetup) {
+    try {
+      const file = new URL('../../.github/workflows/ci.yml', import.meta.url);
+      ciJobsNotBehindSetup = notBehindSetupOnly(readFileSync(file, 'utf8'));
+    } catch {
+      ciJobsNotBehindSetup = [/^Build$/, /^Unit Tests$/];
+    }
+  }
+  return ciJobsNotBehindSetup;
+}
+
+/**
+ * Minutes a CI run spent waiting for runners: Setup's wait, plus how long the
+ * last job behind Setup waited after Setup finished. Jobs that need more than
+ * Setup (`exclude`, read from ci.yml) don't count. Null until those jobs have started.
+ */
+export function runnerWait(run, jobs, exclude = ciDefault()) {
   const setup = jobs.find((j) => /^Setup\b/.test(j.name ?? ''));
   const t = (x) => Date.parse(x ?? '');
   if (!setup || !Number.isFinite(t(setup.started_at)) || !Number.isFinite(t(setup.completed_at))) return null;
   const behind = jobs
-    .filter((j) => j !== setup && j.name !== 'Build' && j.conclusion !== 'skipped')
+    .filter((j) => j !== setup && j.conclusion !== 'skipped' && !exclude.some((re) => re.test(j.name ?? '')))
     .map((j) => t(j.started_at))
     .filter(Number.isFinite);
   if (behind.length === 0) return null;
@@ -77,11 +123,85 @@ export function report(s) {
       `${s.merged ? (s.mgRuns / s.merged).toFixed(1) : 'n/a'} queue runs per merge.`,
     '',
     `Target: merge-queue wait for a runner under 15 min at p50; above it, larger runners are the next step (#2053).`,
+    ...skipWarnings(s.skips),
   ].join('\n');
 }
 
-function gh(args) {
-  return JSON.parse(execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
+/** Consecutive runs whose jobs couldn't be read before the rest aren't tried. */
+export const MAX_SKIP_STREAK = 3;
+
+/** Tracks the runs `waits` left out, across every list it measures. */
+export function newSkips() {
+  return { attempted: 0, skipped: [], streak: 0, notAttempted: 0 };
+}
+
+/** More than half the runs meant to be measured are missing (skipped or not tried). */
+export function tooManySkipped(k) {
+  const missing = k.skipped.length + k.notAttempted;
+  return missing > 0 && missing * 2 > k.attempted + k.notAttempted;
+}
+
+function skipWarnings(k) {
+  if (!k || (k.skipped.length === 0 && k.notAttempted === 0)) return [];
+  const lines = [''];
+  if (k.skipped.length) {
+    lines.push(`> **Warning:** ${k.skipped.length} run(s) left out of the runner waits: GitHub's API ` +
+      `kept failing after ${DELAYS_MS.length + 1} tries (${k.skipped.join(', ')}).`);
+  }
+  if (k.notAttempted) {
+    lines.push(`> **Warning:** stopped after ${MAX_SKIP_STREAK} runs in a row failed; ` +
+      `${k.notAttempted} more run(s) not measured.`);
+  }
+  if (tooManySkipped(k)) lines.push('> **These runner waits are incomplete: more than half the runs could not be read.**');
+  return lines;
+}
+
+/** Waits between tries of a gh call that failed transiently: 3 tries in all. */
+export const DELAYS_MS = [2000, 6000];
+
+/**
+ * True for a failure worth retrying: an HTTP 5xx from GitHub, or the network.
+ * Not 401/403 (auth), 404, or a gh that can't run.
+ */
+export function isTransient(err) {
+  const text = `${err?.stderr ?? ''}\n${err?.message ?? ''}`;
+  return (
+    /\bHTTP 5\d\d\b/.test(text) ||
+    /error connecting to|dial tcp|i\/o timeout|connection reset|TLS handshake timeout|unexpected EOF|no such host|ECONNRESET|ETIMEDOUT|EAI_AGAIN/i.test(text)
+  );
+}
+
+/** A gh call that kept failing transiently after every retry. */
+export class GhUnavailable extends Error {
+  constructor(args, cause) {
+    const why = String(cause?.stderr || cause?.message || cause).trim().split('\n').pop();
+    super(`gh ${args.join(' ')}: ${why}`);
+    this.name = 'GhUnavailable';
+    this.cause = cause;
+  }
+}
+
+const exec = (args) => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/**
+ * `gh <args>` parsed as JSON, retrying transient failures DELAYS_MS apart. Throws
+ * GhUnavailable when they run out; any other failure, and bad JSON, at once.
+ */
+export function gh(args, { run = exec, wait = sleep, warn = console.error } = {}) {
+  for (let attempt = 0; ; attempt++) {
+    let out;
+    try {
+      out = run(args);
+    } catch (err) {
+      if (!isTransient(err)) throw err;
+      if (attempt >= DELAYS_MS.length) throw new GhUnavailable(args, err);
+      warn(`${new GhUnavailable(args, err).message}; try ${attempt + 2} in ${DELAYS_MS[attempt] / 1000} s`);
+      wait(DELAYS_MS[attempt]);
+      continue;
+    }
+    return JSON.parse(out);
+  }
 }
 
 function runs(repo, event, since) {
@@ -94,11 +214,29 @@ function runs(repo, event, since) {
   return out;
 }
 
-/** Waits for up to `limit` runs (newest first), one jobs call each. */
-function waits(repo, list, limit) {
+/**
+ * Waits for up to `limit` runs (newest first), one jobs call each. A run whose
+ * jobs GitHub won't serve is null (left out) and recorded in `skips`; after
+ * MAX_SKIP_STREAK of those in a row, later runs aren't tried.
+ */
+export function waits(repo, list, limit, skips = newSkips(), call = gh) {
   return list.slice(0, limit).map((run) => {
-    const jobs = gh(['api', `repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`]).jobs;
-    return runnerWait(run, jobs);
+    if (skips.streak >= MAX_SKIP_STREAK) {
+      skips.notAttempted++;
+      return null;
+    }
+    skips.attempted++;
+    try {
+      const wait = runnerWait(run, call(['api', `repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`]).jobs);
+      skips.streak = 0;
+      return wait;
+    } catch (err) {
+      if (!(err instanceof GhUnavailable)) throw err;
+      console.error(`::warning::CI speed: left out run ${run.id}: ${err.message}`);
+      skips.skipped.push(run.id);
+      skips.streak++;
+      return null;
+    }
   });
 }
 
@@ -116,17 +254,23 @@ function main() {
   const mg = runs(repo, 'merge_group', since);
   const merged = gh(['pr', 'list', '-R', repo, '--state', 'merged', '--limit', '1000',
     '--search', `merged:>=${since}`, '--json', 'createdAt,mergedAt']);
+  const skips = newSkips();
   const s = {
     hours,
-    prWait: stats(waits(repo, pr, 60)),
-    mgWait: stats(waits(repo, mg, 60)),
+    prWait: stats(waits(repo, pr, 60, skips)),
+    mgWait: stats(waits(repo, mg, 60, skips)),
     mgPass: stats(mg.filter((r) => r.conclusion === 'success').map(wallMinutes)),
     merge: stats(merged.map((p) => (Date.parse(p.mergedAt) - Date.parse(p.createdAt)) / MIN)),
     mg: outcomes(mg),
     mgRuns: mg.length,
     merged: merged.length,
+    skips,
   };
   console.log(argv.includes('--json') ? JSON.stringify(s) : report(s));
+  if (tooManySkipped(skips)) {
+    console.error('::error::CI speed: more than half the runs could not be read; the report is incomplete.');
+    process.exitCode = 1;
+  }
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) main();

@@ -11,6 +11,7 @@ import type { IncomingMessage, ServerResponse } from 'http';
 import { getLogger } from '../../../../utils/safe-logger.js';
 import { sendError } from '../../../helpers.js';
 import { accountProblem, linkProblem } from './publisher-link-rules.js';
+import { getFirestoreDatabase } from '../../../../config/environment.js';
 
 const log = getLogger().child({ module: 'developer-auth' });
 
@@ -139,7 +140,7 @@ export async function getFirestore(): Promise<Firestore> {
   const { Firestore } = await import('@google-cloud/firestore');
   db = new Firestore({
     projectId: process.env.GOOGLE_CLOUD_PROJECT || process.env.GCLOUD_PROJECT,
-    databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    databaseId: getFirestoreDatabase(),
   }) as unknown as Firestore;
 
   return db;

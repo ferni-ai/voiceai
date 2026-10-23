@@ -20,6 +20,11 @@
  * @module memory/recall/memory-control
  */
 import { createHash } from 'node:crypto';
+import {
+  credentialCategory,
+  logCredentialDrops,
+  spokenCredentialFilterOn,
+} from '../spoken-credential.js';
 import { confidenceOf, isForgotten } from './session-recall.js';
 
 export interface RememberedFact {
@@ -175,6 +180,8 @@ export async function forgetRemembered(
 
 export type CorrectResult =
   | { kind: 'corrected'; fact: RememberedFact }
+  /** SPOKEN_CREDENTIAL_FILTER: the fix was a code or password; the wrong fact is forgotten, nothing kept. */
+  | { kind: 'not-kept'; reason: 'credential' }
   | { kind: 'not-found' }
   | { kind: 'invalid'; reason: string };
 
@@ -202,6 +209,14 @@ export async function correctRemembered(
   // A fact the list hides (forgotten, unsure, empty, about a forgotten topic) can't be corrected
   if (!old || !recalled(old) || forgotten === null || aboutForgotten(old, forgotten)) {
     return { kind: 'not-found' };
+  }
+  // SPOKEN_CREDENTIAL_FILTER: a code or password typed in as the fix is not kept, and the
+  // fact it fixes (often the old code) is forgotten the way the forget button forgets it
+  const credential = spokenCredentialFilterOn() ? credentialCategory(text(old.key), clean) : null;
+  if (credential) {
+    await forgetRemembered(userId, id, store, now);
+    logCredentialDrops('correction', { [credential]: 1 });
+    return { kind: 'not-kept', reason: 'credential' };
   }
   const at = now.toISOString();
   const newId = `f_${createHash('sha1').update(`${id}|${clean}|${at}`).digest('hex').slice(0, 24)}`;

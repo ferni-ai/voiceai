@@ -159,8 +159,8 @@ export async function initializeIntelligentRouter(
  */
 async function createBanditFirestorePersistence() {
   try {
-    const { getFirestore } = await import('firebase-admin/firestore');
-    const db = getFirestore();
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    const db = getAdminFirestore();
 
     return {
       save: async (arms: Map<string, unknown>) => {

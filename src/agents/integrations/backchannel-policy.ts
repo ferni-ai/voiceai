@@ -30,6 +30,8 @@ export interface BackchannelMoment {
   partialTranscript: string;
   /** Distressed or intense moment: fewer, softer backchannels. */
   emotional: boolean;
+  /** Hard news or venting lately, or crisis risk on the call (presence-heavy.ts). */
+  heavy?: boolean;
 }
 
 export const BACKCHANNEL_POLICY = {
@@ -40,6 +42,8 @@ export const BACKCHANNEL_POLICY = {
   agentGraceMs: 1500,
   probability: 0.6,
   emotionalProbability: 0.4,
+  /** On a heavy moment: at least this far apart, unjittered. */
+  heavyMinIntervalMs: 7000,
 } as const;
 
 export type BackchannelDecision = { play: true } | { play: false; reason: string };
@@ -56,9 +60,11 @@ export function decideBackchannel(
   // Jittered so the rhythm is not metronomic.
   const interval = policy.minIntervalMs * (0.8 + random() * 0.4);
   if (m.sinceLastBackchannelMs < interval) return { play: false, reason: 'too_soon' };
+  if (m.heavy && m.sinceLastBackchannelMs < policy.heavyMinIntervalMs)
+    return { play: false, reason: 'too_soon' };
   // A question wants an answer, not "mm-hm".
   if (/\?\s*$/.test(m.partialTranscript)) return { play: false, reason: 'question' };
-  const p = m.emotional ? policy.emotionalProbability : policy.probability;
+  const p = m.emotional || m.heavy ? policy.emotionalProbability : policy.probability;
   if (random() >= p) return { play: false, reason: 'chance' };
   return { play: true };
 }
@@ -76,6 +82,8 @@ export function pickBackchannel(
   const pool = (emotional ? SOFT : NEUTRAL).filter((p) => p !== last);
   return pool[Math.floor(random() * pool.length)] ?? pool[0];
 }
+
+export { NEUTRAL as NEUTRAL_BACKCHANNELS, SOFT as SOFT_BACKCHANNELS };
 
 /** The pre-rendered laugh, in the persona's voice (conversational-audio-cache.ts). */
 export const LAUGH_CLIP = '[laughter]';

@@ -10626,6 +10626,7 @@
       "other": "لقد كسبت {count} بذرة!"
     },
     "couldNotLoadMemories": "لم أتمكن من تحميل ما أتذكره. هل نحاول مرة أخرى؟",
+    "credentialNotKept": "لا يحتفظ Ferni بالرموز أو كلمات المرور، لذا حُذف هذا العنصر.",
     "memoryCorrected": "فهمت. سأتذكره هكذا."
   },
   "trustSignals": {

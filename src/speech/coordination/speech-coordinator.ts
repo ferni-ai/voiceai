@@ -15,8 +15,7 @@
 
 import type { voice } from '@livekit/agents';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
-
-// TTS Gateway integration
+import { arrivalCooldownMs } from './arrival-cooldown.js';
 import {
   isTTSGatewayEnabled,
   speakToSession as gatewaySpeak,
@@ -648,8 +647,8 @@ export class SpeechCoordinator {
     this.currentRequest = null;
     this.transitionTo(CoordinatorState.COOLDOWN);
 
-    // Cooldown then process next
-    const cooldown = this.timing.getTiming().postSpeechCooldownMs;
+    // Cooldown then process next; a handoff's arrival waits less (arrival-cooldown.ts)
+    const cooldown = arrivalCooldownMs() ?? this.timing.getTiming().postSpeechCooldownMs;
     setTimeout(() => {
       if (this.state === CoordinatorState.COOLDOWN) {
         this.transitionTo(CoordinatorState.IDLE);

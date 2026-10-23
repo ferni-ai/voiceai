@@ -36,7 +36,6 @@ export * from './decision-timing.js';
 export * from './energy-prediction.js';
 export * from './goal-trajectory.js';
 export * from './habit-decay.js';
-export * from './outreach-integration.js';
 export * from './relationship-health.js';
 export * from './seasonal-mood.js';
 export * from './social-connection.js';

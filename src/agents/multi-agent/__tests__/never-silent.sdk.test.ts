@@ -75,21 +75,23 @@ class ScriptedStream extends llm.LLMStream {
 }
 
 /**
- * Synthesizes 200 ms of silence per request; while `down` it returns no audio,
- * as the TTS gateway does when a request fails. (A thrown error here would be
- * re-emitted by LiveKit's StreamAdapter, which nothing listens to: prod's
- * Cartesia TTS streams and has no adapter.)
+ * Synthesizes 1 s of a voiced tone per request; while `down` it returns no
+ * audio, as the TTS gateway does when a request fails. (A thrown error here
+ * would be re-emitted by LiveKit's StreamAdapter, which nothing listens to:
+ * prod's Cartesia TTS streams and has no adapter.) While `garbled` it returns
+ * 23 ms of noise, what the Cartesia plugin makes of a failed REST request.
  */
 class FakeTTS extends tts.TTS {
   label = 'fake-tts';
   down = false;
+  garbled = false;
   requests = 0;
   constructor() {
     super(SAMPLE_RATE, 1, { streaming: false });
   }
   synthesize(text: string): tts.ChunkedStream {
     this.requests += 1;
-    return new FakeChunked(text, this, this.down);
+    return new FakeChunked(text, this, this.down, this.garbled);
   }
   stream(): tts.SynthesizeStream {
     throw new Error('not streaming');
@@ -101,14 +103,18 @@ class FakeChunked extends tts.ChunkedStream {
   constructor(
     text: string,
     ttsModel: tts.TTS,
-    private readonly down: boolean
+    private readonly down: boolean,
+    private readonly garbled: boolean
   ) {
     super(text, ttsModel, { ...DEFAULT_API_CONNECT_OPTIONS, maxRetry: 0 });
   }
   protected async run(): Promise<void> {
     if (this.down) return;
-    const samples = SAMPLE_RATE / 5;
-    const frame = new AudioFrame(new Int16Array(samples), SAMPLE_RATE, 1, samples);
+    const samples = this.garbled ? 552 : SAMPLE_RATE;
+    const data = Int16Array.from({ length: samples }, (_, i) =>
+      this.garbled ? 0x7b22 : Math.round(8000 * Math.sin((2 * Math.PI * 220 * i) / SAMPLE_RATE))
+    );
+    const frame = new AudioFrame(data, SAMPLE_RATE, 1, samples);
     this.queue.put({ requestId: 'r', segmentId: 's', frame, final: true });
   }
 }
@@ -116,6 +122,7 @@ class FakeChunked extends tts.ChunkedStream {
 /** An audio sink that "plays" each segment instantly and records what it played. */
 class FakeAudioOutput extends voice.AudioOutput {
   frames = 0;
+  samples = 0;
   private playing = false;
   constructor() {
     super(SAMPLE_RATE);
@@ -123,6 +130,7 @@ class FakeAudioOutput extends voice.AudioOutput {
   async captureFrame(frame: AudioFrame): Promise<void> {
     await super.captureFrame(frame);
     this.frames += 1;
+    this.samples += frame.samplesPerChannel;
     if (!this.playing) {
       this.playing = true;
       this.onPlaybackStarted(Date.now());
@@ -260,6 +268,18 @@ describe('never silent: fault injection on a real AgentSession', () => {
     expect(ms).not.toBeNull();
     expect(ms!).toBeLessThan(BUDGET_MS);
     expect(h.out.frames).toBeGreaterThan(framesBefore); // audio reached the caller with TTS down
+  });
+
+  it('a near-empty rendering (action-claim-b, 23 ms) is not played: live TTS speaks the line', async () => {
+    const h = await harness(['ok', 'hang'], { hangMs: '1000' });
+    h.ttsModel.garbled = true; // the renders after the first reply come back as noise
+    await h.ask('warm up', 1000);
+    h.ttsModel.garbled = false;
+    const samplesBefore = h.out.samples;
+    const ms = await h.ask('are you still there', 3000);
+    expect(ms).not.toBeNull();
+    // Pre-fix the 552-sample rendering played: 23 ms. Now the line is a real second of voice.
+    expect(((h.out.samples - samplesBefore) / SAMPLE_RATE) * 1000).toBeGreaterThanOrEqual(1000);
   });
 
   it('hung model: interrupts it and speaks a fallback at the hang deadline', async () => {

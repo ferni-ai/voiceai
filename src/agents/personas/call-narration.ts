@@ -34,6 +34,7 @@ import {
   type FerniCall,
 } from '../../services/outreach/call-status.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 /** What Ferni says in place of a story about a call no result has come back from. */
 export const UNHEARD_LINE = "I don't actually know how that call went yet, I haven't heard back.";
@@ -112,7 +113,7 @@ export function askedCallLookup(
   records: CallRecords
 ): Promise<AskedCallStatus> | undefined {
   const person = callAskedAbout(callerWords)?.person;
-  if (!person || !userId || userId === 'anonymous') return undefined;
+  if (!person || !isMemberIdentity(userId)) return undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const late = new Promise<AskedCallStatus>((resolve) => {
     timer = setTimeout(() => resolve('none'), ASKED_LOOKUP_MS);
