@@ -63,6 +63,7 @@ import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { quirkTurnNote } from './quirk-note.js';
 import { friendNotes } from './friend-tease.js';
 import { tuneTurnNote } from './named-tune-note.js';
+import { internalsIntentFor } from './internals-intent.js';
 import {
   internalsNote,
   internalsTurn,
@@ -131,7 +132,9 @@ export function withTurnReminder(
   const plain = !crisis && scriptFreeOn();
   const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
   // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
-  const internals = crisis ? '' : internalsTurn(chatCtx.items, words);
+  const internals = crisis
+    ? ''
+    : internalsTurn(chatCtx.items, words, process.env, internalsIntentFor(session, words));
   // Nothing steers back to a locked teammate the caller didn't just name, or into his internals.
   const keep = (text: string): boolean =>
     withoutLockedTeammateNotes([text], view, words).length > 0 && !pushesInternals(internals, text);

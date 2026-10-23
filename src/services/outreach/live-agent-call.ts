@@ -93,7 +93,7 @@ export function liveCallReason(message: string, asked = true): string {
 export function placeLiveAgentCall(
   call: LiveAgentCall,
   record: RecordOutcome
-): { success: true; callId: string; status: 'initiated' } {
+): { success: true; callId: string; status: 'initiated'; live: true } {
   const asked = call.reason === USER_REQUESTED_CALL;
   const trigger = {
     kind: asked ? ('promise' as const) : ('follow_up' as const),
@@ -114,5 +114,5 @@ export function placeLiveAgentCall(
     { task: 'placeLiveAgentCall', userId: call.userId }
   );
   log.info({ userId: call.userId, callId: call.id, personaId: call.personaId }, 'Live agent call');
-  return { success: true, callId: call.id, status: 'initiated' };
+  return { success: true, callId: call.id, status: 'initiated', live: true };
 }

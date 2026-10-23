@@ -121,7 +121,7 @@ describe('CALL_USER_LIVE_AGENT=on', () => {
   it('rings with Alex live on the line: a signed dispatch as alex, then a SIP dial; no Twilio', async () => {
     const result = await askAlex();
 
-    expect(result).toMatchObject({ success: true, status: 'initiated' });
+    expect(result).toMatchObject({ success: true, status: 'initiated', live: true });
     expect(twilioCreate).not.toHaveBeenCalled();
     await vi.waitFor(() => expect(dials).toHaveLength(1));
     expect(dispatches).toHaveLength(1);
@@ -220,6 +220,7 @@ describe('CALL_USER_LIVE_AGENT off (the default)', () => {
     delete process.env.CALL_USER_LIVE_AGENT;
     const result = await askAlex();
     expect(result).toMatchObject({ success: true, status: 'initiated' });
+    expect(result.live).toBeUndefined();
     expect(twilioCreate).toHaveBeenCalledTimes(1);
     expect(dispatches).toEqual([]);
     expect(dials).toEqual([]);

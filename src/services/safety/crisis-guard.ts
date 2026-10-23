@@ -24,6 +24,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { endingFloor } from './crisis-ending-floor.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
@@ -106,6 +107,8 @@ interface TextScore {
   language?: 'en' | 'es';
   implicitHits: number;
   contextHit: boolean;
+  /** The caller's own ending words, negated, recovered or hyperbole only ("I would never …"). */
+  softSelf: boolean;
 }
 
 /** Score one message from its words alone. */
@@ -123,6 +126,8 @@ function scoreText(text: string): TextScore {
   // ("want to unalive myself" / "unalive myself") inherits the softening.
   const softened: [number, number][] = [];
   let thirdPartyHit = false;
+  let softSelf = false;
+  let hardSelf = false;
   for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS) {
     const match = re.exec(text);
     if (!match) continue;
@@ -140,17 +145,42 @@ function scoreText(text: string): TextScore {
     if (modifier === 'negated' || modifier === 'hyperbole' || modifier === 'recovered') {
       add(`${modifier}_crisis_language`, 0);
       implicitHits++;
+      softSelf = true;
     } else if (modifier) {
       add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
+      hardSelf = true;
     } else {
+      hardSelf = true;
       add('explicit_crisis_language', SEVERITY.explicit);
       if (imminent) add('imminent_danger', SEVERITY.explicit);
       break;
     }
   }
 
+  // The floor (#2525), escalate-only: first-person ending words whatever comes before them
+  // ("I might", "before I", "until I"), softened exactly as the patterns above are. Words a
+  // pattern above already softened keep that softening.
+  const floor = severity < SEVERITY.explicit ? endingFloor(text, softened) : null;
+  if (floor) {
+    const { modifier } = floor;
+    if (floor.thirdParty) thirdPartyHit = true;
+    if (modifier === 'third_party') thirdPartyHit = true;
+    else if (modifier === 'negated' || modifier === 'hyperbole' || modifier === 'recovered') {
+      add(`${modifier}_crisis_language`, 0);
+      implicitHits++;
+      softSelf = true;
+    } else if (modifier) {
+      add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
+      hardSelf = true;
+    } else {
+      hardSelf = true;
+      add('explicit_crisis_language', SEVERITY.explicit);
+    }
+  }
+
   for (const { re, tag } of PASSIVE_IDEATION_PATTERNS) {
     if (re.test(text)) {
+      hardSelf = true;
       add('passive_ideation', SEVERITY.passive);
       if (tag === 'self_harm') add('self_harm', 0);
       break;
@@ -170,17 +200,24 @@ function scoreText(text: string): TextScore {
     severity < SEVERITY.explicit &&
     PLAN_OR_MEANS_PATTERNS.some((p) => p.test(text))
   ) {
+    hardSelf = true;
     add('plan_or_means', SEVERITY.explicit);
   }
 
+  // A worry about someone else outranks the caller's own words only when those are negated,
+  // recovered or hyperbole ("my brother keeps talking about killing himself. I would never kill
+  // myself"): the third-party read is never lowered. Joking, conditional, hedged or past words
+  // stay the caller's (#2528).
+  if (implicitHits > softenedHits) hardSelf = true;
   let subject: CrisisSubject | undefined = severity > 0 ? 'self' : undefined;
-  if (!subject && (thirdPartyHit || THIRD_PARTY_PATTERNS.some((p) => p.test(text)))) {
+  const thirdParty = thirdPartyHit || THIRD_PARTY_PATTERNS.some((p) => p.test(text));
+  if (thirdParty && (!subject || !hardSelf)) {
     add('third_party_risk', SEVERITY.passive);
     subject = 'third_party';
   }
 
   const contextHit = SESSION_CONTEXT_PATTERNS.some((p) => p.test(text));
-  return { severity, indicators, subject, language, implicitHits, contextHit };
+  return { severity, indicators, subject, language, implicitHits, contextHit, softSelf };
 }
 
 /**
@@ -217,6 +254,14 @@ export function detectCrisis(
   // not a crisis. The 988 script is for the caller, so a worry about someone
   // else never escalates into it.
   const textSeverity = severity;
+  // A worry about someone else, with the caller's own softened ending words and a distressed
+  // voice: the voice makes it about the caller again, as before #2528.
+  const voiced = voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5;
+  if (subject === 'third_party' && score.softSelf && voiced) {
+    const { primary } = voiceEmotion;
+    const distressed = [...HIGH_DISTRESS_VOICE_EMOTIONS, ...MODERATE_DISTRESS_VOICE_EMOTIONS];
+    if (distressed.includes(primary)) subject = 'self';
+  }
   const ceiling = subject === 'third_party' ? SEVERITY.block - 0.05 : 1.0;
   if (voiceEmotion?.confidence !== undefined && voiceEmotion.confidence > 0.5) {
     const high = HIGH_DISTRESS_VOICE_EMOTIONS.includes(voiceEmotion.primary);
