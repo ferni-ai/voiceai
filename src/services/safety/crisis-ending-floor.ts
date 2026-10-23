@@ -106,8 +106,8 @@ function distressIn(text: string): boolean {
  */
 const JOIN_IN =
   /\b(me too|me as well|me next|and (then )?me|so (will|would|could|might) i|i (will|would|could|might|want to|wanna|want that) too|i('ll|'d) too|(its|it's|it is) my turn|count me in)\b/;
-/** "same" joins in only where its sentence or phrase starts: "lol same", ", same here". */
-const SAME = /^[\s,]*((lol|haha|ok|honestly|tbh) )?same\b/;
+/** "same" joins in where a sentence or a comma phrase starts: "lol same", ", same here". */
+const SAME = /(^|,)\s*((lol|haha|ok|honestly|tbh) )?same\b/;
 
 /**
  * The floor's words in an everyday idiom, or "end it all" said of an everyday thing or with
