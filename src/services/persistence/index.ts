@@ -12,6 +12,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { userHeld } from '../../utils/minor-care.js';
 import { heldFields } from './held-fields.js';
+import { readGuard, ReadFailedWriteError, type WriteOptions } from './read-guard.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { registerInterval, clearNamedInterval } from '../../utils/interval-manager.js';
 import type { Firestore as FirestoreType } from '@google-cloud/firestore';
@@ -55,10 +56,12 @@ export interface LoadOptions {
 export interface PersistenceStore<T> {
   /** Get data for a user */
   get: (userId: string) => Promise<T | null>;
-  /** Set data for a user (queued for batch write) */
-  set: (userId: string, data: T) => void;
-  /** Set data and write immediately */
-  setImmediate: (userId: string, data: T) => Promise<void>;
+  /** Set data for a user (queued for batch write); dropped while the user's last load failed */
+  set: (userId: string, data: T, options?: WriteOptions) => void;
+  /** Set data and write immediately; rejects (ReadFailedWriteError) while the last load failed */
+  setImmediate: (userId: string, data: T, options?: WriteOptions) => Promise<void>;
+  /** The latest load for this user failed (read-guard.ts) */
+  readFailed: (userId: string) => boolean;
   /** Delete data for a user */
   delete: (userId: string) => Promise<void>;
   /** Mark data as dirty (needs sync) */
@@ -170,11 +173,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     useRootCollection
       ? firestore.collection(collection).doc(userId)
       : firestore.collection('bogle_users').doc(userId).collection(collection).doc(documentId);
-  // A load that failed: until a load succeeds, no write may replace what was never read (the
-  // caller holds defaults, and a merge write puts its [] and 0 over the stored values).
-  const readFailed = new Set<string>();
-  const unread = (userId: string): boolean =>
-    readFailed.has(userId) && (log.warn({ collection, userId }, 'Write held: read failed'), true);
+  const guard = readGuard(collection); // a failed load: no write may replace what wasn't read
 
   // Start sync interval using managed interval
   const startSyncInterval = () => {
@@ -310,7 +309,8 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
   // Load from Firestore
   const load = async (userId: string, options?: LoadOptions): Promise<T | null> => {
     // Check cache first
-    if (cache.has(userId) && (!options?.fresh || dirty.has(userId))) {
+    const cached = cache.has(userId) && (!options?.fresh || dirty.has(userId));
+    if (cached && !guard.reloadDue(userId)) {
       return cache.get(userId)!;
     }
 
@@ -318,9 +318,10 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
     if (!firestore && options?.strict) throw new Error(`Firestore unavailable (${collection})`);
     if (!firestore) return cache.get(userId) ?? null;
 
+    const gen = guard.begin(userId);
     try {
       const doc = await refFor(firestore, userId).get();
-      readFailed.delete(userId);
+      guard.settle(userId, gen, true);
 
       if (!doc.exists) {
         cache.delete(userId);
@@ -332,7 +333,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       return data;
     } catch (error) {
       log.error({ error, collection, userId }, 'Failed to load user data');
-      readFailed.add(userId);
+      guard.settle(userId, gen, false);
       if (options?.strict) throw error;
       return null;
     }
@@ -343,18 +344,18 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
 
   const store: PersistenceStore<T> = {
     get: async (userId: string) => {
-      if (cache.has(userId)) {
+      if (cache.has(userId) && !guard.reloadDue(userId)) {
         return cache.get(userId)!;
       }
       return load(userId);
     },
 
-    set: (userId: string, data: T) => {
+    set: (userId: string, data: T, options?: WriteOptions) => {
       if (isShutdown) {
         log.warn({ collection, userId }, 'Attempted to set data after shutdown');
         return;
       }
-      if (unread(userId)) return; // not cached either: the next get() retries the read
+      if (guard.refuses(userId, options)) return; // not cached: the next get() reads again
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);
@@ -365,8 +366,8 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       }
     },
 
-    setImmediate: async (userId: string, data: T) => {
-      if (unread(userId)) return;
+    setImmediate: async (userId: string, data: T, options?: WriteOptions) => {
+      if (guard.refuses(userId, options)) throw new ReadFailedWriteError(collection, userId);
       if (held(userId)) return void (heldParts.keep(userId, data) && dirty.add(userId));
       cache.set(userId, data);
       dirty.add(userId);
@@ -391,6 +392,7 @@ export function createPersistenceStore<T>(config: PersistenceConfig): Persistenc
       }
     },
 
+    readFailed: (userId: string) => guard.failed(userId),
     markDirty: (userId: string) => {
       if (cache.has(userId)) {
         dirty.add(userId);

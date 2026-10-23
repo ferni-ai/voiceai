@@ -1,0 +1,90 @@
+/**
+ * A failed load must never let a write replace what wasn't read.
+ *
+ * A non-strict PersistenceStore.load answers null on a read error, the same as "no doc", so a
+ * consumer holds defaults ([], 0) and its next write merge-puts them over the stored values.
+ * The guard marks a key whose latest load failed; until a load succeeds, writes built on a read
+ * are refused (setImmediate rejects with ReadFailedWriteError; set() drops with a warning).
+ *
+ * - Only the most recently started load sets or clears the mark, so a slow failing load can't
+ *   mark a key after a newer one succeeded, and a slow success can't clear a newer failure.
+ * - While marked, a cached copy isn't authoritative: get()/load() reload it, with backoff.
+ * - A write that doesn't depend on a read (a new OAuth grant replacing tokens, keys merged into
+ *   a map) passes `{ safeWithoutRead: true }` and is never refused.
+ *
+ * @module services/persistence/read-guard
+ */
+
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'PersistenceReadGuard' });
+
+/** setImmediate for a key whose latest load failed: nothing was written. */
+export class ReadFailedWriteError extends Error {
+  override readonly name = 'ReadFailedWriteError';
+  constructor(
+    readonly collection: string,
+    readonly key: string
+  ) {
+    super(`not written: the last read of ${collection}/${key} failed`);
+  }
+}
+
+export interface WriteOptions {
+  /** The data doesn't come from a read (a new grant, keys merged into a map): always written. */
+  safeWithoutRead?: boolean;
+}
+
+const RETRY_BASE_MS = 1_000;
+const RETRY_MAX_MS = 60_000;
+
+export function readGuard(collection: string, now: () => number = () => Date.now()) {
+  let generation = 0;
+  const latest = new Map<string, number>(); // key -> generation of the latest load started
+  const marks = new Map<string, { failures: number; at: number }>();
+
+  return {
+    /** A load is starting; pass the result to settle(). */
+    begin(key: string): number {
+      latest.set(key, ++generation);
+      return generation;
+    },
+    /** A load finished; only the latest one started for the key decides the mark. */
+    settle(key: string, gen: number, ok: boolean): void {
+      if (latest.get(key) !== gen) return;
+      latest.delete(key);
+      if (ok) marks.delete(key);
+      else marks.set(key, { failures: (marks.get(key)?.failures ?? 0) + 1, at: now() });
+    },
+    failed(key: string): boolean {
+      return marks.has(key);
+    },
+    /** Marked, and the backoff since the last failed load has passed: read again, not the cache. */
+    reloadDue(key: string): boolean {
+      const mark = marks.get(key);
+      if (!mark) return false;
+      const wait = Math.min(RETRY_MAX_MS, RETRY_BASE_MS * 2 ** (mark.failures - 1));
+      return now() - mark.at >= wait;
+    },
+    /** True when this write must not happen (logged). */
+    refuses(key: string, options?: WriteOptions): boolean {
+      if (options?.safeWithoutRead || !marks.has(key)) return false;
+      log.warn({ collection, key }, 'Write refused: the last read failed');
+      return true;
+    },
+  };
+}
+
+/** load(), but a failed read throws instead of answering null: for callers that write it back */
+export async function loadOrThrow<T>(
+  store: {
+    load: (key: string, o?: { fresh?: boolean }) => Promise<T | null>;
+    readFailed: (key: string) => boolean;
+  } | null,
+  key: string,
+  collection: string
+): Promise<T | null> {
+  const data = (await store?.load(key, { fresh: true })) ?? null;
+  if (store?.readFailed(key)) throw new ReadFailedWriteError(collection, key);
+  return data;
+}
