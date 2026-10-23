@@ -22,6 +22,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { PLACEHOLDER_IDS } from '../../utils/synthetic-user.js';
+import { callerIdFor } from '../../services/identity/call-caller-id.js';
 import type { Tool, ToolContext, ToolDefinition } from './types.js';
 
 const log = createLogger({ module: 'tool-registry' });
@@ -31,13 +32,14 @@ const log = createLogger({ module: 'tool-registry' });
 // ============================================================================
 
 /**
- * ctx.userId values that are NOT a real, individual user identity.
+ * ctx.userId values that are NOT a real, individual user identity: a tool built
+ * for a shared or system context ('shared', 'gateway', 'anonymous', ...).
  *
- * These show up for shared/system contexts (the shared essential-tools cache
- * runs with the 'shared' placeholder). When ctx.userId is one of these, we
- * leave whatever the model sent untouched so today's behavior holds. An anon:
- * or onbehalf: id is NOT here: it is the session's own id, so it still
- * overrides a model-supplied one (it names no member, but it names this call).
+ * SECURITY: the guard FAILS CLOSED on these. It used to leave the model's userId
+ * untouched, so a prompt-injected or hallucinated id read or wrote that member's
+ * data. Now the session's own id from the call (LiveKit's opts.ctx.userData) wins,
+ * or one anon: id per session when the call names nobody (trustedUserId). An anon:
+ * or onbehalf: id is NOT here: it is the session's own id (it names this call).
  */
 export const PLACEHOLDER_USER_IDS: ReadonlySet<string> = new Set(['', ...PLACEHOLDER_IDS]);
 
@@ -46,7 +48,19 @@ export const PLACEHOLDER_USER_IDS: ReadonlySet<string> = new Set(['', ...PLACEHO
  * string that isn't one of the known placeholder values.
  */
 export function isRealUserId(userId: unknown): userId is string {
-  return typeof userId === 'string' && !PLACEHOLDER_USER_IDS.has(userId);
+  return typeof userId === 'string' && !PLACEHOLDER_USER_IDS.has(userId.trim().toLowerCase());
+}
+
+/**
+ * The id a guarded tool call runs as, never the model's: the build ctx's real user,
+ * else the call's own session user (opts.ctx.userData.userId), else one anon: id per
+ * session (callerIdFor). A placeholder build ctx is common: the shared tool gateway.
+ */
+function trustedUserId(ctx: ToolContext, opts: unknown): string {
+  const run = (opts as { ctx?: { userData?: { userId?: unknown }; session?: unknown } } | undefined)
+    ?.ctx;
+  const session = [run?.session, run?.userData].find((v) => v && typeof v === 'object') ?? null;
+  return callerIdFor(isRealUserId(ctx.userId) ? ctx.userId : run?.userData?.userId, session);
 }
 
 // ============================================================================
@@ -126,18 +140,19 @@ function applyUserIdGuardToTool(toolValue: Tool, toolId: string, ctx: ToolContex
 
     let finalArgs: unknown = args;
 
-    if (appliesToThisTool && isRealUserId(ctx.userId)) {
+    if (appliesToThisTool) {
       const base: Record<string, unknown> = argsIsObject ? args : {};
       const modelSuppliedUserId = base.userId;
+      const sessionUserId = trustedUserId(ctx, rest[0]);
 
-      if (modelSuppliedUserId !== ctx.userId) {
+      if (modelSuppliedUserId !== sessionUserId) {
         if (modelSuppliedUserId !== undefined) {
           log.warn(
             { toolId, userIdOverridden: true },
             'Tool-supplied userId did not match session identity; overriding with session userId'
           );
         }
-        finalArgs = { ...base, userId: ctx.userId };
+        finalArgs = { ...base, userId: sessionUserId };
       }
     }
 
