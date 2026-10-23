@@ -1,3 +1,8 @@
+import { spawnSync } from 'node:child_process';
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it, vi } from 'vitest';
 import {
   DELAYS_MS,
@@ -207,5 +212,93 @@ describe('ci-speed', () => {
       expect(text).toContain('stopped after 3 runs in a row failed; 2 more run(s) not measured');
       expect(text).toContain('more than half the runs could not be read');
     });
+  });
+
+  describe('more than half missing, at the edges', () => {
+    const runs = (n, from = 1) =>
+      Array.from({ length: n }, (_, i) => ({ id: from + i, created_at: '2026-10-18T18:00:00Z' }));
+    const ok = () => ({
+      jobs: [
+        { name: 'Setup', started_at: '2026-10-18T18:05:00Z', completed_at: '2026-10-18T18:07:00Z' },
+        { name: 'Unit Tests', started_at: '2026-10-18T18:10:00Z' },
+      ],
+    });
+    /** Jobs calls for these run ids are unavailable; every other run loads. */
+    const failing = (ids) => (args) => {
+      if (ids.some((id) => args[1].includes(`/runs/${id}/`))) {
+        throw new GhUnavailable(args, ghFailure('HTTP 502'));
+      }
+      return ok();
+    };
+    const measure = (list, ids) => {
+      const k = newSkips();
+      const stderr = vi.spyOn(console, 'error').mockImplementation(() => {});
+      waits('o/r', list, 1000, k, failing(ids));
+      stderr.mockRestore();
+      return k;
+    };
+
+    it('counts runs it stopped trying as missing: 20 read, 3 failed, 100 untried', () => {
+      const k = measure(runs(123), [21, 22, 23]);
+      expect(k).toMatchObject({ attempted: 23, notAttempted: 100 });
+      expect(k.skipped).toEqual([21, 22, 23]);
+      // 103 of 123 missing; counting only tried runs it would be 3 of 23.
+      expect(tooManySkipped(k)).toBe(true);
+    });
+
+    it('exactly half missing is not more than half', () => {
+      const k = measure(runs(4), [1, 3]); // not in a row, so all 4 are tried
+      expect(k).toMatchObject({ attempted: 4, notAttempted: 0, skipped: [1, 3] });
+      expect(tooManySkipped(k)).toBe(false);
+    });
+
+    it('between a third and a half missing passes', () => {
+      const k = measure(runs(5), [1, 3]); // 2 of 5 = 40%
+      expect(k).toMatchObject({ attempted: 5, skipped: [1, 3] });
+      expect(tooManySkipped(k)).toBe(false);
+      expect(tooManySkipped(measure(runs(5), [1, 3, 5]))).toBe(true); // 3 of 5
+    });
+  });
+
+  describe('the script, run as the workflow runs it', () => {
+    // A stub gh on PATH: one PR run, no merge-queue runs, and the run's jobs call
+    // answers per GH_STUB. One run keeps the outage case to one retry cycle (8 s).
+    const script = fileURLToPath(new URL('../ci/ci-speed.mjs', import.meta.url));
+    const stub = `#!/usr/bin/env bash
+case "$*" in
+  *"/jobs?"*)
+    if [ "$GH_STUB" = down ]; then echo 'gh: Server Error (HTTP 502)' >&2; exit 1; fi
+    echo '{"jobs":[{"name":"Setup","started_at":"2026-10-23T00:05:00Z","completed_at":"2026-10-23T00:07:00Z"},{"name":"Unit Tests","started_at":"2026-10-23T00:10:00Z"}]}';;
+  *"event=pull_request"*) echo '{"workflow_runs":[{"id":1,"created_at":"2026-10-23T00:00:00Z","updated_at":"2026-10-23T00:30:00Z","conclusion":"success"}]}';;
+  *"workflows/ci.yml/runs"*) echo '{"workflow_runs":[]}';;
+  "pr list"*) echo '[]';;
+  *) echo "unexpected gh $*" >&2; exit 2;;
+esac
+`;
+    function run(mode) {
+      const dir = mkdtempSync(join(tmpdir(), 'ci-speed-gh-'));
+      try {
+        writeFileSync(join(dir, 'gh'), stub);
+        chmodSync(join(dir, 'gh'), 0o755);
+        return spawnSync(process.execPath, [script, '--hours', '24'], {
+          encoding: 'utf8',
+          env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, GITHUB_REPOSITORY: 'o/r', GH_STUB: mode },
+        });
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    }
+
+    it('exits 1 after printing the report when GitHub serves no jobs at all', () => {
+      const down = run('down');
+      expect(down.stdout).toContain('## CI speed, last 24 h');
+      expect(down.stdout).toContain('more than half the runs could not be read');
+      expect(down.stderr).toContain('::error::CI speed');
+      expect(down.status).toBe(1);
+
+      const up = run('up');
+      expect(up.stdout).toContain('| PR CI: wait for a runner | 8 min | 8 min | 1 |');
+      expect(up.status).toBe(0);
+    }, 30_000);
   });
 });
