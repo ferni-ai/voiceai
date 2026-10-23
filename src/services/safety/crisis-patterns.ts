@@ -377,6 +377,17 @@ export const SESSION_CONTEXT_PATTERNS = [
 ];
 
 /** Someone the caller knows is at risk. */
+/**
+ * The floor (#2525): first-person ending words, whatever comes before them. The tiered
+ * patterns above name the modal or connective ("want to", "going to"); "I might kill myself",
+ * "before I kill myself", "until I end it all" matched none of them and scored 0 in both
+ * detectors. detectCrisis scores this floor on its own, softened exactly as the tiers are
+ * (crisis-modifiers.ts). "killing myself" over work is an idiom ("killing myself at the gym"), and
+ * "take my life" only ends a clause or meets a time or connective ("take my life savings" is none).
+ */
+export const FIRST_PERSON_ENDING =
+  /\b(kill(ed)? my ?self|killing my ?self\b(?! (at|over|with|for|on|in|to|trying|working|laughing)\b)|end(ed|ing)? (my (own )?life|it all)|tak(e|ing) my (own )?life(?=\s*($|[.!?,;]|(tonight|today|now|soon|tomorrow|this|after|before|when|if|and|but|so)\b))|unaliv(e|ing) my ?self|commit(ting)? suicide)\b/;
+
 export const THIRD_PARTY_PATTERNS = [
   /\b(wants?|going|gonna|threaten(s|ed|ing)?|talk(s|ed|ing)? about|tr(y|ies|ied|ying)|plan(s|ning)?|thinking about) (to )?(kill|killing|hurt|hurting|end|ending) (himself|herself|themselves|themself|(his|her|their) (own )?life)\b/,
   /\b(is|'s|been|keeps?|started) (cutting|harming) (himself|herself|themselves|themself)\b|\bhurting (himself|herself|themselves) on purpose\b/,

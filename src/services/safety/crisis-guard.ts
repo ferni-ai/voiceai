@@ -27,6 +27,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import { explicitModifier, normalize } from './crisis-modifiers.js';
 import {
   EXPLICIT_CRISIS_PATTERNS,
+  FIRST_PERSON_ENDING,
   IMPLICIT_DISTRESS_PATTERNS,
   PASSIVE_IDEATION_PATTERNS,
   PLAN_OR_MEANS_PATTERNS,
@@ -147,6 +148,22 @@ function scoreText(text: string): TextScore {
       if (imminent) add('imminent_danger', SEVERITY.explicit);
       break;
     }
+  }
+
+  // The floor (#2525), escalate-only: first-person ending words whatever comes before them
+  // ("I might", "before I", "until I"), softened exactly as the patterns above are. Words a
+  // pattern above already softened keep that softening.
+  const ending = FIRST_PERSON_ENDING.exec(text);
+  const [from, to] = ending ? [ending.index, ending.index + ending[0].length] : [0, 0];
+  if (ending && severity < SEVERITY.explicit && !softened.some(([s, e]) => from < e && to > s)) {
+    const modifier = explicitModifier(text, from, to, false);
+    if (modifier === 'third_party') thirdPartyHit = true;
+    else if (modifier === 'negated' || modifier === 'hyperbole' || modifier === 'recovered') {
+      add(`${modifier}_crisis_language`, 0);
+      implicitHits++;
+    } else if (modifier) {
+      add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
+    } else add('explicit_crisis_language', SEVERITY.explicit);
   }
 
   for (const { re, tag } of PASSIVE_IDEATION_PATTERNS) {
