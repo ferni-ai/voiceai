@@ -21,3 +21,41 @@ enum NodTiming {
         return into >= delay && into <= latest && now - lastNod >= minGap
     }
 }
+
+/// When he blinks: at changes of thought, the way people do (avatar red team
+/// 2026-10-22). A blink comes as a turn changes hands and as one of Ferni's
+/// phrases ends; a slow random floor keeps a long turn from staring. They
+/// came every 3-7 s at random, unrelated to anything he said or heard.
+enum BlinkTiming {
+    /// The longest he goes without a blink: a random floor within this.
+    static let floor = 4.0...8.0
+    /// At least this long between blinks, however many cues come at once.
+    static let minGap = 0.8
+    /// A cued blink lands this soon after its change of thought.
+    static let cueDelay = 0.05...0.2
+    /// Share of phrase ends that bring a blink (every one reads as a tic).
+    static let phraseShare = 0.7
+    /// His voice envelope (0...1) counts as voiced over this, silent under
+    /// that; a phrase is at least `phraseMin` seconds voiced.
+    static let voiced = 0.35, silent = 0.1, phraseMin = 0.5
+
+    /// Whether a blink starts now: a cue that has come due, or the floor.
+    static func due(now: Double, lastBlink: Double, cue: Double?, floorAt: Double) -> Bool {
+        guard now - lastBlink >= minGap else { return false }
+        return (cue.map { now >= $0 } ?? false) || now >= floorAt
+    }
+
+    /// The turn changed hands: between listening, thinking and speaking.
+    static func isTurnChange(from: AvatarActivity, to: AvatarActivity) -> Bool {
+        let turns: Set<AvatarActivity> = [.listening, .thinking, .speaking]
+        return from != to && turns.contains(from) && turns.contains(to)
+    }
+
+    /// Follows his voice envelope through a phrase: whether one just ended,
+    /// and when the voicing in progress began (nil when silent).
+    static func phrase(env: Double, voicedSince: Double?, now: Double) -> (ended: Bool, voicedSince: Double?) {
+        if env > voiced { return (false, voicedSince ?? now) }
+        if env < silent, let since = voicedSince { return (now - since >= phraseMin, nil) }
+        return (false, voicedSince)
+    }
+}

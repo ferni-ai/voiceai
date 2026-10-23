@@ -53,6 +53,11 @@ public final class AliveRig {
     private var env = 0.0, lastOnset = -1.0
     private var blink = 0.0, blinkFrom = 0.0, blinkPlan: [(at: Double, dur: Double, to: Double)] = [], blinkSeg: (at: Double, dur: Double, to: Double)?
     private var nextBlink = 2.5, nextSaccade = 0.0
+    /// A blink cued by a change of thought (`BlinkTiming`), and when the last began.
+    private var blinkCue: Double?
+    private(set) var lastBlinkAt = -Double.infinity
+    /// The activity the blink cues last saw, and the voiced stretch of Ferni's phrase in progress.
+    private var thoughtActivity = AvatarActivity.idle, voicedSince: Double?
     /// The caller's current pause (nil while they speak), its nod's delay, whether it has had its nod.
     private var pauseStart: Double?, nodDelay = 0.4, nodded = false, wasPersonSpeaking = false
     /// When he last nodded along.
@@ -753,6 +758,7 @@ public final class AliveRig {
         } else {
             env *= pow(0.85, dt * 60)
         }
+        stepThoughtBlinks()
 
         let breathing = still || blinksOnly ? 0 : breath(face) * m
         self[.squash].t = face.squash + breathing + env * 0.04 * m
@@ -821,7 +827,7 @@ public final class AliveRig {
             return true
         }
         if !tracks.isEmpty || sequenceBeats.contains(where: { $0.at <= soon }) { return true }
-        if blinking || nextBlink <= soon { return true }
+        if blinking || nextBlink <= soon || (blinkCue ?? .infinity) <= soon { return true }
         if listeningMicros.contains(where: { $0.at <= soon }) { return true }
         if !blinksOnly, nextSaccade <= soon { return true }
         if activity == .listening, !lookingAway, !personSpeaking, !nodded, let start = pauseStart,
@@ -1026,11 +1032,28 @@ public final class AliveRig {
         let k = slow ? 2.0 : 1.0
         blinkPlan = [(t, 0.055 * k, 1), (t + 0.075 * k, 0.075 * k, 0)]
         if !slow, rng.unit() < 0.16 { blinkPlan += [(t + 0.26, 0.05, 1), (t + 0.33, 0.08, 0)] }
-        nextBlink = time + rng.range(3, 7) * (activity == .listening ? 1.25 : 1)
+        lastBlinkAt = t
+        blinkCue = nil
+        nextBlink = time + rng.range(BlinkTiming.floor.lowerBound, BlinkTiming.floor.upperBound) * (activity == .listening ? 1.25 : 1)
     }
 
     /// Seconds until the next blink starts, as of the last frame.
-    var secondsToNextBlink: Double { max(0, nextBlink - time) }
+    var secondsToNextBlink: Double { max(0, min(nextBlink, blinkCue ?? .infinity) - time) }
+
+    /// Changes of thought cue a blink: the turn changing hands, and the end of
+    /// one of Ferni's phrases (his voice going quiet after half a second of it).
+    private func stepThoughtBlinks() {
+        func cue() { if blinkCue == nil { blinkCue = time + rng.range(BlinkTiming.cueDelay.lowerBound, BlinkTiming.cueDelay.upperBound) } }
+        if BlinkTiming.isTurnChange(from: thoughtActivity, to: activity) { cue() }
+        thoughtActivity = activity
+        if activity == .speaking {
+            let p = BlinkTiming.phrase(env: env, voicedSince: voicedSince, now: time)
+            voicedSince = p.voicedSince
+            if p.ended, rng.unit() < BlinkTiming.phraseShare { cue() }
+        } else {
+            voicedSince = nil
+        }
+    }
 
     func halfBlink() { blinkPlan = [(time, 0.045, 0.5), (time + 0.055, 0.055, 0)] }
 
@@ -1044,7 +1067,7 @@ public final class AliveRig {
             let eased = seg.to > blinkFrom ? u * u : 1 - (1 - u) * (1 - u)
             blink = blinkFrom + (seg.to - blinkFrom) * eased
             if u >= 1 { blinkSeg = nil }
-        } else if !still, time >= nextBlink {
+        } else if !still, BlinkTiming.due(now: time, lastBlink: lastBlinkAt, cue: blinkCue, floorAt: nextBlink) {
             scheduleBlink(at: time, slow: reading || expression == "sleepy" || expression == "drowsy")
         }
     }
