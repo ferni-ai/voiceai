@@ -29,6 +29,7 @@ import {
   handleVoiceUpload,
   handleVoiceClone,
   handleSelectPremadeVoice,
+  handleListVoices,
   handleGetVoiceStatus,
   handleVoicePreview,
 } from './voice-routes.js';
@@ -48,6 +49,7 @@ const log = createLogger({ module: 'CustomAgentAPI' });
  * Routes:
  * - POST   /api/custom-agents                      - Create agent
  * - GET    /api/custom-agents                      - List agents
+ * - GET    /api/custom-agents/voices               - Voices an agent can use
  * - GET    /api/custom-agents/:id                  - Get agent
  * - PUT    /api/custom-agents/:id                  - Update agent
  * - DELETE /api/custom-agents/:id                  - Delete agent
@@ -92,6 +94,11 @@ export async function handleCustomAgentRoutes(
     // GET /api/custom-agents - List agents
     if (method === 'GET' && segments.length === 0) {
       return handleListAgents(req, res, userId);
+    }
+
+    // GET /api/custom-agents/voices - Voice library (before :agentId, which would match it)
+    if (method === 'GET' && segments.length === 1 && segments[0] === 'voices') {
+      return handleListVoices(res);
     }
 
     // GET /api/custom-agents/:agentId - Get specific agent
