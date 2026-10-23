@@ -23,39 +23,9 @@ import type {
   KnowledgeGap,
   PeterUserProfile,
 } from './types.js';
+import { getFirestore } from './user-data-firestore.js';
 
 const log = getLogger();
-
-// ============================================================================
-// FIRESTORE INITIALIZATION
-// ============================================================================
-
-let db: FirebaseFirestore.Firestore | null = null;
-// FIX: Promise-based singleton to prevent race condition
-let dbInitPromise: Promise<FirebaseFirestore.Firestore> | null = null;
-
-async function getFirestore(): Promise<FirebaseFirestore.Firestore> {
-  if (db) return db;
-  if (dbInitPromise) return dbInitPromise;
-
-  dbInitPromise = initializeFirestore();
-  return dbInitPromise;
-}
-
-async function initializeFirestore(): Promise<FirebaseFirestore.Firestore> {
-  try {
-    const { Firestore } = await import('@google-cloud/firestore');
-    db = new Firestore({
-      projectId: process.env.GOOGLE_CLOUD_PROJECT || 'johnb-2025',
-    });
-    log.info('User data Firestore initialized');
-    return db;
-  } catch (error) {
-    log.error({ error: String(error) }, 'Failed to initialize Firestore');
-    dbInitPromise = null; // Allow retry
-    throw error;
-  }
-}
 
 const USERS_COLLECTION = 'bogle_users';
 
