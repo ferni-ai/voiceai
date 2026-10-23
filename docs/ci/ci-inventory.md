@@ -97,6 +97,25 @@ This document provides a complete inventory of all GitHub Actions workflows in t
 
 ## Quality Workflows
 
+### lead-verified.yml (report-only)
+
+**Purpose:** Report whether the exact code a PR merges was independently verified
+(rules: `scripts/ci/lead-verified.ts`). Runs on PRs and merge_group, always passes.
+Enforcing it (the commented `LEAD_VERIFIED_ENFORCE` switch plus a required check)
+needs Seth's OK.
+
+**How a verifier marks a PR verified.** Verify the PR's current head, then either:
+
+- `scripts/ci/post-lead-verify.sh <pr> <head-sha> pass|fail "<what you ran>"`, which
+  refuses any SHA that is not the head; or
+- comment with a marker and the head SHA (9+ hex), e.g. `RESULT_verifier=PASS on 1a2b3c4d5`.
+  PASS markers: `RESULT_verifier=PASS`, `Verifier: PASS`, `Verdict: PASS`,
+  `independent verify ... PASS`. FAIL: `RESULT_verifier=FAIL`, `Verdict: FAIL`, `FAILED verify`.
+
+Only `sethdford` and `ferni-agent[bot]` count (`LEAD_VERIFIED_AUTHORS`). A later FAIL
+on the same or a later SHA overrides a PASS. A new push needs a new verdict, except a
+pure "merge main in": no conflict and no extra edit carries the verdict forward.
+
 ### design-system.yml
 
 **Purpose:** Validate design tokens, build packages
