@@ -13,7 +13,7 @@ vi.hoisted(() => {
 });
 
 import { handleCrashReportRoutes, CRASH_REPORT_POSTS_PER_MINUTE } from '../crash-report-routes.js';
-import { CRASH_REPORT_MAX_BODY_BYTES } from '../crash-report-input.js';
+import { CRASH_REPORT_MAX_BODY_BYTES, crashReportBodySchema } from '../crash-report-input.js';
 
 const CRASH = '/api/crash-report';
 const DIAGNOSTIC = '/api/disconnect-diagnostic';
@@ -168,16 +168,16 @@ describe.each([
     expect(status).toBe(400);
   });
 
-  it('refuses an oversized field with 400', async () => {
+  it('keeps a report whose text runs long, and one sent before sign-in (userId: null)', async () => {
     const { status } = await call('POST', path, {
-      body: { ...validBody, userAgent: 'x'.repeat(5000) },
+      body: { ...validBody, userAgent: 'x'.repeat(5000), userId: null },
     });
-    expect(status).toBe(400);
+    expect(status).toBe(200);
   });
 
   it('refuses a body over the byte cap with 413', async () => {
     const { status } = await call('POST', path, {
-      headers: { 'content-length': String(CRASH_REPORT_MAX_BODY_BYTES + 1) },
+      headers: { 'content-length': '65537' }, // a literal: the cap is 64 KB, not whatever the constant says
       body: validBody,
     });
     expect(status).toBe(413);
@@ -191,6 +191,19 @@ describe.each([
     }
     expect(statuses.slice(0, CRASH_REPORT_POSTS_PER_MINUTE).every((s) => s === 200)).toBe(true);
     expect(statuses[CRASH_REPORT_POSTS_PER_MINUTE]).toBe(429);
+  });
+});
+
+describe('crash report input caps', () => {
+  it('reads at most 64 KB', () => expect(CRASH_REPORT_MAX_BODY_BYTES).toBe(65_536));
+  it('cuts long text to its cap and reads null as absent', () => {
+    const r = crashReportBodySchema.parse({
+      errorName: 'E',
+      errorMessage: 'x'.repeat(3000),
+      userId: null,
+    });
+    expect(r.errorMessage).toHaveLength(2000);
+    expect(r.userId).toBeUndefined();
   });
 });
 

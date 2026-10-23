@@ -2,8 +2,9 @@
  * What a client may post to /api/crash-report and /api/disconnect-diagnostic.
  *
  * A crash can happen before sign-in, so posts carry no auth: every field is
- * typed and capped here, unknown fields are dropped, and the whole body is
- * capped while it streams. Reading what was stored is admin-only
+ * typed here, text is cut to its cap (a long error message keeps the report),
+ * null reads as absent (the web client sends userId: null before sign-in),
+ * unknown fields are dropped, and the whole body is capped while it streams. Reading what was stored is admin-only
  * (crash-report-routes.ts).
  *
  * @module api/crash-report-input
@@ -18,8 +19,12 @@ export const CRASH_REPORT_MAX_BODY_BYTES = 64 * 1024;
 /** Largest `customData`, measured as JSON. */
 export const CRASH_CUSTOM_DATA_MAX_CHARS = 4000;
 
-const text = (max: number): z.ZodString => z.string().max(max);
-const optText = (max: number): z.ZodOptional<z.ZodString> => text(max).optional();
+const text = (max: number) => z.string().transform((s) => s.slice(0, max));
+const optText = (max: number) =>
+  text(max)
+    .nullable()
+    .transform((s) => s ?? undefined)
+    .optional();
 // JSON turns NaN into null, so a browser measurement may arrive as null.
 const optNum = z.number().finite().nullish();
 const count = z.number().int().min(0).max(1_000_000);
