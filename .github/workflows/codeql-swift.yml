@@ -1,0 +1,73 @@
+name: CodeQL (Swift)
+
+# Swift code scanning off the PR path: on merges to main that touch the iOS
+# app, and nightly. On PRs it held all five free macOS runners and starved
+# "iOS build and test" for hours. Lead approved the trade 2026-10-23: a Swift
+# finding now surfaces after merge (or by the next morning) instead of on the PR.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/ios-native/**'
+      - '.github/workflows/codeql-swift.yml'
+  schedule:
+    - cron: '41 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+# One at a time: a newer main push waits rather than taking a second runner.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  analyze:
+    name: Analyze (swift)
+    runs-on: macos-latest
+    timeout-minutes: 90
+    env:
+      SPM_DIR: ${{ github.workspace }}/.spm
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Xcode
+        uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: latest-stable
+
+      - name: Cache Swift packages
+        uses: actions/cache@v6
+        with:
+          path: ${{ env.SPM_DIR }}
+          key: ${{ runner.os }}-spm-${{ hashFiles('apps/ios-native/Ferni.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            ${{ runner.os }}-spm-
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: swift
+          build-mode: manual
+
+      - name: Build (simulator, unsigned)
+        working-directory: apps/ios-native
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Ferni.xcodeproj \
+            -scheme Ferni \
+            -destination 'generic/platform=iOS Simulator' \
+            -clonedSourcePackagesDirPath "$SPM_DIR" \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: "/language:swift"

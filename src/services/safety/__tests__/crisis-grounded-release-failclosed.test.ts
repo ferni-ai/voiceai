@@ -32,7 +32,7 @@ describe('grounded release fails closed', () => {
       },
       priorRisk: false,
       call: 'fail-closed-call',
-      env: { CRISIS_GROUNDED_RELEASE: 'live', CRISIS_GROUNDED_RELEASE_UNSCREENED: 'test' },
+      env: { CRISIS_GROUNDED_RELEASE: 'live', CRISIS_GUARD_MODE: 'live' },
       generates: [read, read],
       source: 'gate',
     });
