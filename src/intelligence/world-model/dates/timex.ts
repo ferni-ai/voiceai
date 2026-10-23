@@ -245,7 +245,8 @@ const hhmm = (h: number, m: number): string | null =>
 /**
  * The time of day in `when`, and the words without it. "3pm" and "3:30 pm";
  * "15:00" and "3:30"; "three o'clock"; "noon"; a bare hour only after "at"
- * ("at 3"), since "on the 3rd" is a day.
+ * ("at 3") or before a part of the day ("3 in the morning", "8 tonight"),
+ * since "on the 3rd" is a day.
  */
 export function timeOfDay(when: string): { at: string; rest: string } | null {
   const words = when
@@ -263,6 +264,10 @@ export function timeOfDay(when: string): { at: string; rest: string } | null {
       return hhmm(h >= 1 && h <= 12 ? bookableHour(h, words) : h, Number(m[2]));
     }],
     [new RegExp(`\\b${HOUR} o'?clock\\b`), (m) => hhmm(bookableHour(hourOf(m[1]), words), 0)],
+    [new RegExp(`\\b${HOUR} (?:in the (?:morning|afternoon|evening)|at night|tonight)\\b`), (m) => {
+      const h = hourOf(m[1]);
+      return h >= 1 && h <= 12 ? hhmm(bookableHour(h, words), 0) : null;
+    }],
     [new RegExp(`\\bat ${HOUR}\\b(?![/:\\d])`), (m) => {
       const h = hourOf(m[1]);
       return h >= 1 && h <= 12 ? hhmm(bookableHour(h, words), 0) : null;

@@ -79,6 +79,9 @@ describe('resolveWhen: the time of day, kept beside the day', () => {
     ['at 3 in the morning', '03:00'],
     ['tonight at 8', '20:00'],
     ['at 10 in the evening', '22:00'],
+    ['3 in the morning', '03:00'],
+    ['8 tonight', '20:00'],
+    ['5 in the afternoon', '17:00'],
   ])('%s is %s', (when, at) => {
     expect(resolveWhen(when, SUN)?.at).toBe(at);
   });
@@ -86,6 +89,12 @@ describe('resolveWhen: the time of day, kept beside the day', () => {
   it('gives no time when none was said, and never reads a day as an hour', () => {
     expect(resolveWhen('the 14th', SUN)).toEqual({ date: '2026-10-14', ambiguous: false });
     expect(resolveWhen('on the 3rd', SUN)).not.toHaveProperty('at');
+    // An hour before a part of the day is that day's hour, never "the 3rd".
+    expect(resolveWhen('3 in the morning', SUN)).toEqual({
+      date: SUN,
+      ambiguous: false,
+      at: '03:00',
+    });
     expect(resolveWhen('Friday morning', SUN)).toEqual({ date: '2026-10-16', ambiguous: false });
   });
 });

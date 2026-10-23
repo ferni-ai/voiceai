@@ -69,6 +69,12 @@ describe('bookendSourceItems', () => {
     });
   });
 
+  it('a medical date stays sensitive even when its words read light', () => {
+    const facts = factsFrom(mention({ what: 'checkup', when: 'Friday at 9am' }));
+    const [item] = bookendSourceItems(facts, { zone: ET, now: TUE_10_ET, heavy: () => false });
+    expect(item.salience).toMatchObject({ heavy: false, sensitive: true });
+  });
+
   it('"the 14th" has no time, so it is no source', () => {
     const facts = factsFrom(mention({ what: 'dentist', when: 'the 14th' }));
     expect(facts[0]).not.toHaveProperty('at');
