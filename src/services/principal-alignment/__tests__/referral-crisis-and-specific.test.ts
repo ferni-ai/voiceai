@@ -31,10 +31,32 @@ describe('an immediate match keeps 988 AND the specific hotline', () => {
     expect(has988(line)).toBe(true);
     expect(types(line)).toContain('eating_disorder_specialist');
   });
+  it("with two other triggers, the top-confidence one is kept (main's line)", () => {
+    const line = 'better off dead, he hits me, and i have a court date';
+    expect(types(line)).toContain('domestic_violence_hotline');
+    expect(types(line)).not.toContain('lawyer');
+    expect(has988(line)).toBe(true);
+  });
   it('the crisis line is listed once, first', () => {
     const t = types('better off dead and he hits me');
     expect(t[0]).toBe('crisis_line');
     expect(new Set(refer('better off dead and he hits me').resources).size).toBe(t.length);
+  });
+});
+
+describe('a crisis trigger that wins the best match still carries the other line', () => {
+  it.each([
+    // crisis 0.85 ties addiction 0.85; the crisis trigger is listed first and wins
+    ['addicted to pills, better off dead', 'addiction_counselor'],
+    // crisis 0.9 outranks addiction 0.85 and self-harm 0.85
+    ["i don't want to live and i'm addicted to pills", 'addiction_counselor'],
+    ["i'm suicidal and i harm myself", 'therapist'],
+  ])('%j: 988 and %s', (line, target) => {
+    const r = refer(line);
+    expect(r.urgency).toBe('immediate');
+    expect(r.suggestedTarget).toBe('crisis_line');
+    expect(has988(line)).toBe(true);
+    expect(types(line)).toContain(target);
   });
 });
 

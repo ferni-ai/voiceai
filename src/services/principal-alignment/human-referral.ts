@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { referralResources } from './referral-resources.js';
 import type {
   HumanReferralResult,
   ReferralReason,
@@ -460,6 +461,7 @@ export function analyzeReferralNeed(
     relationshipStage?: string;
   } = { userId: '' }
 ): HumanReferralResult {
+  const others: (typeof REFERRAL_TRIGGERS)[0][] = []; // matched triggers below the crisis line
   let highestUrgency: 'low' | 'medium' | 'high' | 'immediate' = 'low';
   let bestMatch: (typeof REFERRAL_TRIGGERS)[0] | null = null;
   let maxConfidence = 0;
@@ -472,7 +474,7 @@ export function analyzeReferralNeed(
         highestUrgency = trigger.urgency;
       }
 
-      // Track best match
+      if (trigger.urgency !== 'immediate') others.push(trigger);
       if (trigger.confidence > maxConfidence) {
         maxConfidence = trigger.confidence;
         bestMatch = trigger;
@@ -500,9 +502,7 @@ export function analyzeReferralNeed(
 
   const shouldRefer = maxConfidence >= 0.5;
 
-  // An immediate match carries the crisis line (988) first, then the best match's resources.
-  const crisis = highestUrgency === 'immediate' ? REFERRAL_RESOURCES.crisis_line : [];
-  const resources = [...new Set([...crisis, ...(REFERRAL_RESOURCES[bestMatch.target] || [])])];
+  const resources = referralResources(REFERRAL_RESOURCES, highestUrgency, bestMatch, others);
   const framings = REFERRAL_FRAMINGS[bestMatch.reason] || [];
   const suggestedFraming = framings[Math.floor(Math.random() * framings.length)] || null;
 
