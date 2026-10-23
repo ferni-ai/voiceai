@@ -265,6 +265,16 @@ describe("each agent gets its own persona's policy", () => {
     expect(namesOf(agent)).toContain('createHabit');
     expect(reads).toBe(0);
   });
+
+  it('flag off: the update reaches the agent before its first await, as on main', async () => {
+    await setFlags({ PERSONA_TOOL_POLICY: 'off' });
+    const { updateAgentTools } = await import('../../../agents/shared/tool-updater.js');
+    const agent = bareAgent({ userData: { personaId: 'ferni' } });
+    const tool = llm.tool({ description: 'x', execute: async () => 'ok' });
+    const pending = updateAgentTools(agent as never, { createHabit: tool }, {});
+    expect(namesOf(agent)).toContain('createHabit'); // read synchronously, not awaited
+    await pending;
+  });
 });
 
 describe('same-turn topic tools and the static core follow the policy', () => {

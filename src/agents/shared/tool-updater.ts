@@ -38,6 +38,7 @@ import {
   forbiddenToolsFor,
   withoutForbiddenTools,
 } from '../../tools/orchestrator/persona-tool-policy.js';
+import { flagOn } from '../../config/env-flag.js';
 import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
@@ -118,7 +119,9 @@ export async function updateAgentTools(
   const target = asToolCapable(agent);
   const staticCore = staticCoreToolsEnabled();
   // PERSONA_TOOL_POLICY: no mid-call update gives the persona on the call a tool it forbids
-  const forbidden = await forbiddenToolsFor(agent); // the agent's own persona (agent setup)
+  // (the agent's own persona, from agent setup). Off: no await, so the tools still
+  // reach the agent synchronously, as before the policy.
+  const forbidden = flagOn('PERSONA_TOOL_POLICY') ? await forbiddenToolsFor(agent) : [];
   const offered = withoutForbiddenTools(withoutSharedHandoffs(offeredTools), forbidden);
   const newTools =
     staticCore && !pin
