@@ -138,9 +138,9 @@ export function metric(check, runs, caps, extra = {}) {
       // anything; INVALID, a raw row array or a malformed file is no data (WARN), never a PASS.
       // The value is the worse of the scored-rows rate and the errors-counted-wrong worst case.
       const t = extra.toolChoice;
-      const ok =
-        t && !Array.isArray(t) && Number.isFinite(t.rate) && ['PASS', 'FAIL'].includes(t.verdict);
-      const value = ok ? Math.min(t.rate, Number.isFinite(t.worst) ? t.worst : t.rate) : null;
+      const share = (x) => Number.isFinite(x) && x >= 0 && x <= 1;
+      const ok = t && !Array.isArray(t) && share(t.rate) && ['PASS', 'FAIL'].includes(t.verdict);
+      const value = ok ? Math.min(t.rate, share(t.worst) ? t.worst : t.rate) : null;
       return { value: round(value), n: ok && Number.isFinite(t.n) ? t.n : 0 };
     }
     default:
@@ -197,8 +197,12 @@ export function scoreNight(runs, caps, prev = null, extra = {}) {
           ? runs.filter((r) => !(c.exceptScenarios ?? []).includes(r.scenario))
           : mine;
       const { value, n } = metric(c, scope, caps, extra);
-      const prevValue = prev?.capabilities?.[id]?.checks?.find((p) => p.id === c.id)?.value;
-      checks.push({ id: c.id, metric: c.metric, value, n, ...judgeCheck(c, value, prevValue) });
+      const was = prev?.capabilities?.[id]?.checks?.find((p) => p.id === c.id);
+      const k = { id: c.id, metric: c.metric, value, n, ...judgeCheck(c, value, was?.value) };
+      // A check that FAILed last night and measures nothing now hasn't been fixed.
+      checks.push(
+        was?.verdict === 'FAIL' && k.reason === 'no data' ? { ...k, failToNoData: true } : k
+      );
     }
     capabilities[id] = {
       label: cap.label,
@@ -221,7 +225,8 @@ export function diffNights(capabilities) {
     else if (c.prev && RANK[c.verdict] > RANK[c.prev])
       regressions.push(`${id}: ${c.prev} -> ${c.verdict}`);
     // A FAIL that now measures nothing hasn't been fixed: a broken harness must not read as better.
-    else if (c.prev === 'FAIL' && c.checks.some((k) => k.reason === 'no data'))
+    // Only when a check that FAILed last night is the one with no data, and the capability left FAIL.
+    else if (c.verdict !== 'FAIL' && c.checks.some((k) => k.failToNoData))
       regressions.push(`${id}: FAIL -> no data`);
     for (const k of c.checks.filter((k) => k.regressed))
       regressions.push(`${id}.${k.id}: ${k.reason}`);

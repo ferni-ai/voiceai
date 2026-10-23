@@ -388,4 +388,34 @@ describe('a FAIL that turns into no data', () => {
     expect(card.diff.regressions).toContain('tool-choice: FAIL -> no data');
     expect(card.diff.exit).toBe(1);
   });
+
+  it('is not claimed for a capability that still FAILs and has another check with no data', () => {
+    // Review of #2454: this fired every night and reached the public COMMENT.md.
+    const caps2 = {
+      capabilities: {
+        multi: {
+          label: 'm',
+          scenarios: [],
+          checks: [
+            { id: 'a', metric: 'toolChoiceRate', better: 'higher', warn: 0.8, fail: 0.78 },
+            { id: 'b', metric: 'callsMatching', pattern: 'zzz', better: 'lower', warn: 0, fail: 0 },
+          ],
+        },
+      },
+    };
+    const tc = { toolChoice: { rate: 0.7, worst: 0.7, verdict: 'FAIL', n: 600 } };
+    const prev = { capabilities: scoreNight([], caps2, null, tc).capabilities };
+    const card = scoreNight([], caps2, prev, tc);
+    expect(card.capabilities.multi.verdict).toBe('FAIL');
+    expect(card.diff.regressions).toEqual([]);
+    expect(card.diff.exit).toBe(0);
+  });
+
+  it('reads a rate outside [0, 1] as no data', () => {
+    const caps1 = { capabilities: { 'tool-choice': caps.capabilities['tool-choice'] } };
+    for (const rate of [82, -1, 1.2]) {
+      const c = scoreNight([], caps1, null, { toolChoice: { rate, verdict: 'PASS', n: 600 } });
+      expect(check(c, 'tool-choice', 'right-or-equivalent')).toMatchObject({ reason: 'no data' });
+    }
+  });
 });

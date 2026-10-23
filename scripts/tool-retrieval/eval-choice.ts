@@ -329,6 +329,8 @@ console.log(
       model: MODEL,
       n: ok.length,
       errors: rows.length - ok.length,
+      // Misses the judge couldn't rule on, scored as misses: a broken judge shows here.
+      judgeErrors: ok.filter((r) => r.judgeError).length,
       labelSent: pct(ok.filter((r) => r.labelSent).length),
       calledLabel: pct(ok.filter((r) => r.final === r.label).length),
       calledLabelOrEquivalent: pct(ok.filter((r) => r.final === r.label || r.sufficient).length),

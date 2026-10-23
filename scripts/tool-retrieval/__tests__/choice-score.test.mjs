@@ -39,6 +39,12 @@ describe('scoreChoice', () => {
     expect(FLOOR).toBe(0.78);
   });
 
+  it('counts judge errors, so an always-failing judge is visible', () => {
+    const r = rows(600, 480).map((x, i) => (i >= 590 ? { ...x, judgeError: true } : x));
+    expect(scoreChoice(r).judgeErrors).toBe(10);
+    expect(scoreChoice(rows(600, 480)).judgeErrors).toBe(0);
+  });
+
   it('reports the right-tool-sent rate', () => {
     expect(scoreChoice(rows(600, 480, { sent: 450 })).labelSent).toBeCloseTo(0.75);
   });
@@ -140,7 +146,12 @@ describe('CLI', () => {
     expect(spawnSync('node', [CLI, ...files(rows(560, 540, { errors: 40 }), 'err')]).status).toBe(
       2
     );
-    expect(spawnSync('node', [CLI, files(rows(600, 600), 'one')[0]]).status).toBe(2); // one seed file
+    // 600 rows in one file with no seedFile field: only MIN_FILES makes this INVALID.
+    const one = join(dir, 'one.json');
+    writeFileSync(one, JSON.stringify(rows(600, 600).map(({ seedFile, ...r }) => r)));
+    const single = spawnSync('node', [CLI, one], { encoding: 'utf8' });
+    expect(single.status).toBe(2);
+    expect(single.stdout).toMatch(/600 rows .*1 seed files.*INVALID/);
   });
 
   it('marks an INVALID baseline and shows its errors', () => {

@@ -58,6 +58,7 @@ export function scoreChoice(all, floor = FLOOR) {
     ci: ci(rows.map(right), q),
     labelSent: mean(rows.map((r) => +r.labelSent)),
     errors,
+    judgeErrors: rows.filter((r) => r.judgeError).length,
     seedFiles: files,
     floor,
     verdict: invalid ? 'INVALID' : rate < floor || worst < floor ? 'FAIL' : 'PASS',
@@ -95,7 +96,7 @@ function main(argv) {
   const p = baseRows ? pairedChoice(rows, baseRows) : null;
   console.log(
     `tool choice right-or-equivalent ${pct(s.rate)} [${pct(s.ci[0])}, ${pct(s.ci[1])}] over ${s.n} rows ` +
-      `(${s.requests} requests, ${s.seedFiles} seed files, ${s.errors} errored, worst case ${pct(s.worst)}); right tool sent ${pct(s.labelSent)}; floor ${pct(floor)}: ${s.verdict}`
+      `(${s.requests} requests, ${s.seedFiles} seed files, ${s.errors} errored, ${s.judgeErrors} judge errors, worst case ${pct(s.worst)}); right tool sent ${pct(s.labelSent)}; floor ${pct(floor)}: ${s.verdict}`
   );
   if (baseRows) {
     const b = scoreChoice(baseRows, floor);
