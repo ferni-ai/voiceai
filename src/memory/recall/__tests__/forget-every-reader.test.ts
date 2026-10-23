@@ -234,6 +234,19 @@ describe('dropForgottenNotes and PREEMPT_STABLE_CONTEXT', () => {
     expect(restart).not.toHaveBeenCalled();
   });
 
+  it("sendRecall hands the turn's words on, so the re-check can restart the reply", async () => {
+    vi.stubEnv('PREEMPT_STABLE_CONTEXT', 'on');
+    vi.stubEnv('FORGET_EVERY_READER', 'on');
+    resetForgetTopicsSource();
+    stored.topics = ['Biscuit'];
+    user = `member-preempt-drop-${++userSeq}`;
+    await primeStore(user);
+    const { agent, ids, restart } = inFlight();
+    sendRecall(agent as never, {}, { lastPick: () => null } as never, null, SAID, user);
+    expect(ids()).toEqual(['user_1']);
+    expect(restart).toHaveBeenCalledTimes(1);
+  });
+
   it('nothing forgotten in the chat: no write and no restart', () => {
     vi.stubEnv('PREEMPT_STABLE_CONTEXT', 'on');
     const { agent, ids, restart } = inFlight();
