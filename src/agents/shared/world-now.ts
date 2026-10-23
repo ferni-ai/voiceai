@@ -20,6 +20,7 @@
  */
 
 import { cachedHomeWeather } from '../../services/world-awareness/index.js';
+import { honestActionsEnabled } from './honest-actions.js';
 import { HOUR_SAID, leaveTheHourOut, type CallTalk } from './hour-once.js';
 import { FERNI_HOME_TIME_ZONE, localClockEnabled } from './local-clock.js';
 import { callerHour, isValidTimeZone, partOfDay } from './time-context.js';
@@ -92,19 +93,36 @@ export interface RightNowInputs {
   hourSaid?: boolean;
 }
 
+/**
+ * PROMPT_HONEST_ACTIONS=on, caller's zone unknown: no clock time. A UTC time
+ * labelled "Right now" was read out to an owner as his time (bth-calls-broken
+ * C4). The weekday only when it is the same from Puerto Rico to Hawaii, else
+ * no day either.
+ */
+export function unknownZoneLine(now: Date): string {
+  const east = fmt(now, 'America/Puerto_Rico', { weekday: 'long' });
+  const west = fmt(now, 'Pacific/Honolulu', { weekday: 'long' });
+  return east === west
+    ? `Right now: ${east}. The caller's local time is unknown, so ask before saying a time or part of the day.`
+    : "Right now: the caller's local time is unknown, and so is their day, so ask before saying a day, time or part of the day.";
+}
+
 /** The line itself: ~25-40 tokens. Pure: the clock and zone are inputs. */
 export function rightNowLine(p: RightNowInputs): string {
   const zone = isValidTimeZone(p.callerZone) ? p.callerZone : undefined;
   const tz = zone ?? 'UTC';
   const day = fmt(p.now, tz, { weekday: 'long', month: 'short', day: 'numeric' });
   const time = fmt(p.now, tz, { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' });
-  const parts = p.hourSaid
-    ? [`Right now${zone ? ' for the caller' : ''}: ${day}. ${HOUR_SAID}`]
-    : [
-        zone
-          ? `Right now for the caller: ${day}, ${time}, ${partOfDay(callerHour(p.now, zone) ?? 12)}.`
-          : `Right now: ${day}, ${time}; the caller's local time is unknown, so ask before assuming it.`,
-      ];
+  const parts =
+    !zone && honestActionsEnabled()
+      ? [unknownZoneLine(p.now)]
+      : p.hourSaid
+        ? [`Right now${zone ? ' for the caller' : ''}: ${day}. ${HOUR_SAID}`]
+        : [
+            zone
+              ? `Right now for the caller: ${day}, ${time}, ${partOfDay(callerHour(p.now, zone) ?? 12)}.`
+              : `Right now: ${day}, ${time}; the caller's local time is unknown, so ask before assuming it.`,
+          ];
   if (p.ferniClock && !p.hourSaid) {
     const mine = fmt(p.now, FERNI_HOME_TIME_ZONE, { hour: 'numeric', minute: '2-digit' });
     parts.push(`For you: ${mine} mountain.`);

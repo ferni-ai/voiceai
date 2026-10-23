@@ -144,11 +144,12 @@ export function parseUnderstanding(reply: string): Understanding | null {
 export type UnderstandFn = (system: string, input: string, signal: AbortSignal) => Promise<string>;
 
 export const DEFAULT_UNDERSTANDING_MODEL = 'gemini-3.5-flash-lite';
-const TIMEOUT_MS = 1500;
+export const TIMEOUT_MS = 1500;
 
-/** Gemini-backed call; '' when Gemini is not configured. */
+/** Gemini-backed call; '' when Gemini is not configured. `out.schema`: structured output. */
 export function geminiUnderstand(
-  model: string = process.env.TURN_UNDERSTANDING_MODEL || DEFAULT_UNDERSTANDING_MODEL
+  model: string = process.env.TURN_UNDERSTANDING_MODEL || DEFAULT_UNDERSTANDING_MODEL,
+  out: { schema?: Record<string, unknown>; maxOutputTokens?: number } = {}
 ): UnderstandFn {
   return async (system, input, signal) => {
     const { getGeminiClient } = await import('../../config/gemini-config.js');
@@ -162,8 +163,9 @@ export function geminiUnderstand(
       config: {
         systemInstruction: system,
         temperature: 0,
-        maxOutputTokens: 120,
+        maxOutputTokens: out.maxOutputTokens ?? 120,
         responseMimeType: 'application/json',
+        ...(out.schema ? { responseJsonSchema: out.schema } : {}),
         thinkingConfig: { thinkingBudget: 0 },
         abortSignal: signal,
       },

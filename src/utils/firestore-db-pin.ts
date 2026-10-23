@@ -32,11 +32,16 @@
  * the RPC check reads. BulkWriter (no callers in src/) is still checked and
  * refused, but its lines can say site "unknown".
  *
+ * Rejected RPCs also go to firestore-error-log.ts and are re-thrown unchanged.
+ * Their call site comes from initializeIfNeeded(tag), which queries, reads and
+ * writes call synchronously from the app; the stack is formatted only on error.
+ *
  * @module utils/firestore-db-pin
  */
 
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { getFirestoreDatabase } from '../config/environment.js';
+import * as errorLog from './firestore-error-log.js';
 import { createLogger } from './safe-logger.js';
 import { realFirestoreModules, type FirestoreModule } from './synthetic-write-guard.js';
 
@@ -54,6 +59,7 @@ const PERMISSION_DENIED = 7;
 const MAX_SITES = 500;
 const WINDOW_MS = 60_000;
 const MAX_LINES_PER_WINDOW = 20;
+const MAX_TAGS = 256; // request tags whose call site is kept, oldest dropped first
 
 /** FIRESTORE_DB_PIN: 'refuse' or 'off', anything else (unset included) is 'report'. */
 export function firestoreDbPinMode(env: Env = process.env): FirestoreDbPinMode {
@@ -99,15 +105,28 @@ const logMismatch: FirestoreDbMismatchSink = (m) => {
 };
 
 const LIBRARY_FRAME =
-  /node_modules|\(node:|^at node:|synthetic-write-guard|gcp-test-guard|firestore-db-pin\.(ts|js):/;
+  /node_modules|\(node:|^at node:|\(<anonymous>\)$|synthetic-write-guard|gcp-test-guard|firestore-db-pin\.(ts|js):/;
 
-/** The first frame below `wrapper` that is app code. */
-export function callerSite(wrapper: (...a: never[]) => unknown): string {
-  const holder: { stack?: string } = {};
+interface StackHolder {
+  stack?: string;
+}
+
+/** The stack below `wrapper`, unformatted until `.stack` is read. */
+function captureStack(wrapper: (...a: never[]) => unknown): StackHolder {
+  const holder: StackHolder = {};
   const limit = Error.stackTraceLimit;
   Error.stackTraceLimit = 50;
   Error.captureStackTrace(holder, wrapper);
   Error.stackTraceLimit = limit;
+  return holder;
+}
+
+/** The first frame below `wrapper` that is app code. */
+export function callerSite(wrapper: (...a: never[]) => unknown): string {
+  return siteOf(captureStack(wrapper));
+}
+
+function siteOf(holder: StackHolder): string {
   const frame = (holder.stack ?? '')
     .split('\n')
     .map((line) => line.trim())
@@ -198,12 +217,24 @@ function noteWriteSite(
 export function installFirestoreDbPin(
   env: Env = process.env,
   modules: FirestoreModule[] = realFirestoreModules(),
-  sink: FirestoreDbMismatchSink = logMismatch
+  sink: FirestoreDbMismatchSink = logMismatch,
+  errorSink: errorLog.FirestoreErrorSink = errorLog.logFirestoreError
 ): void {
   const check = createCheck(env, sink);
+  const reportError = errorLog.createFirestoreErrorReporter(errorSink);
+  const stacks = new Map<unknown, StackHolder>();
   for (const { Firestore, WriteBatch } of modules) {
     const proto = Firestore.prototype;
     if (Object.prototype.hasOwnProperty.call(proto, PINNED)) continue;
+    const init = proto.initializeIfNeeded;
+    if (typeof init === 'function') {
+      const noted = function (this: unknown, tag: unknown, ...rest: unknown[]): unknown {
+        if (stacks.size >= MAX_TAGS) stacks.delete(stacks.keys().next().value);
+        stacks.set(tag, captureStack(noted));
+        return (init as Method).call(this, tag, ...rest);
+      };
+      proto.initializeIfNeeded = noted;
+    }
     for (const name of RPC_METHODS) {
       const original = proto[name];
       if (typeof original !== 'function') continue;
@@ -213,9 +244,22 @@ export function installFirestoreDbPin(
         ...rest: unknown[]
       ): unknown {
         // The SDK's getter: the bound databaseId, or '(default)'.
-        const refusal = check(this.databaseId ?? '(default)', method, pinned);
+        const database = this.databaseId ?? '(default)';
+        const refusal = check(database, method, pinned);
         if (refusal) return Promise.reject(refusal);
-        return (original as Method).call(this, method, ...rest);
+        // request(method, request, tag, …); requestStream(method, bidi, request, tag)
+        const [request, tag] = name === 'request' ? rest : rest.slice(1);
+        const stack = stacks.get(tag) ?? captureStack(pinned);
+        const result = (original as Method).call(this, method, ...rest);
+        if (!(result instanceof Promise)) return result;
+        return result.catch((error: unknown) => {
+          try {
+            reportError(error, method, request, database, siteOf(stack));
+          } catch {
+            // Telemetry must never change what the caller sees.
+          }
+          throw error;
+        });
       };
       proto[name] = pinned;
     }

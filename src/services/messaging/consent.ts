@@ -10,8 +10,8 @@
  * stored here.
  *
  * Each channel (sms, call) is opted-in, opted-out or unknown, with the source
- * and time of the last change. Unknown means yes for the owner's own verified
- * number and no for anyone else, who must opt in themselves (consentBlocks).
+ * and time of the last change. For texts, unknown means yes for the owner's own
+ * verified number and no for anyone else, who must opt in themselves (consentBlocks).
  *
  * During the migration the old phone-keyed stores still count: an opt-out in
  * feature_checkin_optouts (sms) or call_opt_outs (call) blocks, and inbound
@@ -30,6 +30,11 @@ import { flagOn } from '../../config/env-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 import {
+  registerConsentCheck,
+  type ConsentBlock,
+  type ConsentChannel,
+} from '../../utils/consent-port.js';
+import {
   firestoreReplyStore,
   last4,
   phoneHash,
@@ -45,7 +50,7 @@ export const CONSENT = 'consent';
 const CALL_OPT_OUTS = 'call_opt_outs';
 const HISTORY_MAX = 20;
 
-export type ConsentChannel = 'sms' | 'call';
+export type { ConsentBlock, ConsentChannel };
 export type ConsentState = 'opted-in' | 'opted-out' | 'unknown';
 /** Where a change came from; short codes only, never message text. */
 export type ConsentSource = 'inbound-sms' | 'voice-call' | 'legacy-store';
@@ -273,20 +278,19 @@ export async function recordInboundSmsConsent(
   return saved ? keyword : null;
 }
 
-/** Why a text or call was refused: a recorded opt-out, no opt-in from a third party (needs-consent, as in M1 decide()), or no way to check. */
-export type ConsentBlock = 'opted-out' | 'needs-consent' | 'unverifiable';
-
 /**
  * Null when `channel` to `phone` is allowed, else why not. With the flag off,
  * always null (each sender keeps its own checks). Fails closed: a number that
- * can't be hashed, or a store that can't be read, refuses. `isOwner` is asked
- * only when the phone's consent is unknown: the owner's own verified number
- * may be reached, anyone else must have opted in.
+ * can't be hashed, or a store that can't be read, refuses. `allowUnknown` is
+ * asked only when the phone's consent is unknown. For texts it is "is this the
+ * owner's own verified number?" (a function, asked only then): a third party
+ * must have opted in. Calls pass true: a call to someone else already needs the owner's confirmation
+ * (OUTBOUND_CONFIRM), so only an opt-out stops it.
  */
 export async function consentBlocks(
   phone: string,
   channel: ConsentChannel,
-  isOwner: () => Promise<boolean>,
+  allowUnknown: boolean | (() => Promise<boolean>),
   deps: ConsentDeps = defaultConsentDeps()
 ): Promise<ConsentBlock | null> {
   if (!messagingPipelineOn(deps.env)) return null;
@@ -297,7 +301,8 @@ export async function consentBlocks(
     const { state } = (await readConsent(hash, deps))[channel];
     if (state === 'opted-out') return 'opted-out';
     if (channel === 'call' && (await deps.store.legacyCallOptOut(e164))) return 'opted-out';
-    if (state === 'opted-in' || (await isOwner())) return null;
+    if (state === 'opted-in') return null;
+    if (typeof allowUnknown === 'boolean' ? allowUnknown : await allowUnknown()) return null;
     return 'needs-consent';
   } catch (error) {
     log.warn({ error: String(error), channel }, 'Consent not readable; not sending');
@@ -343,4 +348,11 @@ export const firestoreConsentStore: ConsentStore = {
 
 export function defaultConsentDeps(): ConsentDeps {
   return { env: process.env, store: firestoreConsentStore, now: () => new Date() };
+}
+
+/** Puts consentBlocks behind utils/consent-port.ts for the senders below L4; each process entry calls it. */
+export function registerMessagingConsent(): void {
+  registerConsentCheck((phone, channel, allowUnknown, env) =>
+    consentBlocks(phone, channel, allowUnknown, { ...defaultConsentDeps(), env })
+  );
 }

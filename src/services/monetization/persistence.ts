@@ -14,6 +14,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { userHeld } from '../../utils/minor-care.js';
 
 const log = createLogger({ module: 'MonetizationPersistence' });
 
@@ -36,6 +37,7 @@ export interface TipRecord {
   stripePaymentId?: string;
   createdAt: string;
   completedAt?: string;
+  held?: boolean; // MINOR_CARE: created while held: never stored with its note
 }
 
 export interface UserValueCaptureData {
@@ -53,6 +55,7 @@ export interface ValueCaptureRecord {
   status: 'detected' | 'contributed' | 'declined';
   createdAt: string;
   contributedAt?: string;
+  held?: boolean; // MINOR_CARE: detected while held: never stored with its type or estimate
 }
 
 export interface UserFundData {
@@ -134,13 +137,13 @@ export function initMonetizationPersistence(): void {
   // User-specific stores
   tipStore = createPersistenceStore<UserTipData>({
     collection: 'monetization_tips',
-    holdWrites: () => false, // MINOR_CARE opt-out: financial records, not the caller's memory
+    holdWrites: () => false, // MINOR_CARE opt-out: payments; a held user's note is dropped (saveTip)
     syncIntervalMs: 3000,
   });
 
   valueCaptureStore = createPersistenceStore<UserValueCaptureData>({
     collection: 'monetization_value_capture',
-    // MINOR_CARE opt-out: for a held user only payment records reach it (value-capture.ts)
+    // MINOR_CARE opt-out: for a held user only contributions are saved (saveValueEvent)
     holdWrites: () => false,
     syncIntervalMs: 3000,
   });
@@ -183,8 +186,11 @@ export async function getUserTips(userId: string): Promise<UserTipData> {
   return data ?? { tips: [], totalTipsCents: 0, tipCount: 0 };
 }
 
-export async function saveTip(userId: string, tip: TipRecord): Promise<void> {
+export async function saveTip(userId: string, given: TipRecord): Promise<void> {
   if (!tipStore) initMonetizationPersistence();
+  // MINOR_CARE, held: the payment record is kept, never the note they typed with it
+  const { message: _note, ...payment } = given;
+  const tip: TipRecord = given.held || userHeld(userId) ? { ...payment, held: true } : given;
   const data = await getUserTips(userId);
 
   // Check if tip already exists (update) or new (add)
@@ -217,8 +223,14 @@ export async function getUserValueCapture(userId: string): Promise<UserValueCapt
   return data ?? { events: [], totalContributedCents: 0, eventCount: 0 };
 }
 
-export async function saveValueEvent(userId: string, event: ValueCaptureRecord): Promise<void> {
+export async function saveValueEvent(userId: string, given: ValueCaptureRecord): Promise<void> {
   if (!valueCaptureStore) initMonetizationPersistence();
+  // MINOR_CARE, held, checked here at write time: only a contribution (a payment) is stored, and
+  // not what it was for: the type and estimate come from what the caller said
+  const held = given.held || userHeld(userId); // the flag set at capture outlives the hold
+  if (held && given.status !== 'contributed') return;
+  const { type: _type, estimatedValueCents: _estimate, ...payment } = given;
+  const event = held ? { ...payment, type: 'contribution', held: true } : given;
   const data = await getUserValueCapture(userId);
 
   const existingIndex = data.events.findIndex((e) => e.id === event.id);

@@ -96,7 +96,7 @@ describe('asset links', () => {
 
   it('is wired into the production build and the hosting deploy', () => {
     expect(readFileSync(resolve(WEB, 'vite.config.ts'), 'utf8')).toMatch(
-      /plugins:\s*\[assetLinksPlugin\(\)\]/
+      /plugins:\s*\[assetLinksPlugin\(\)[,\]]/
     );
     const deploy = readFileSync(
       resolve(WEB, '../../.github/workflows/deploy-firebase.yml'),

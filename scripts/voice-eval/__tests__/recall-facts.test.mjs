@@ -1,4 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { checkRun, parseChecks, poolRuns } from '../recall-facts.mjs';
 
@@ -74,5 +78,20 @@ describe('recall-facts', () => {
   it('every #@fact line in the shipped scenarios compiles', () => {
     const text = readFileSync(new URL('../scenarios/facts-recall.txt', import.meta.url), 'utf8');
     expect(parseChecks(text).filter((c) => c.kind === 'fact')).toHaveLength(4);
+  });
+});
+
+describe('recall-facts.mjs --json over a glob', () => {
+  it('skips the .realism.json sidecar run.sh --realistic writes next to each run', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'recall-'));
+    const call = { meta: { scenario: 'facts-recall' }, events: [{ who: 'agent', text: 'hi', t: 0 }] };
+    const files = ['facts-recall-base-1.json', 'facts-recall-base-1.realism.json', 'facts-recall-a1.realism.json'];
+    writeFileSync(join(dir, files[0]), JSON.stringify(call));
+    for (const f of files.slice(1)) writeFileSync(join(dir, f), JSON.stringify({ schema: 'voice-eval-realism/1', values: {} }));
+    const out = execFileSync('node', [fileURLToPath(new URL('../recall-facts.mjs', import.meta.url)), '--json', ...files.map((f) => join(dir, f))], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    });
+    expect(JSON.parse(out).n).toBe(1);
   });
 });
