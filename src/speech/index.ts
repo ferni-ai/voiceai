@@ -166,19 +166,7 @@ export {
 // ADAPTIVE SSML
 // ============================================================================
 
-export {
-  clearCognitiveSpeechState,
-  getCognitiveSpeechStats,
-  tagAdvice,
-  tagGreeting,
-  tagStory,
-  tagSupportResponse,
-  // Cognitive-aware SSML
-  tagTextWithCognitiveSsml,
-  tagTextWithSsmlAdaptive,
-  tagWrapUp,
-  type CognitiveSsmlOptions,
-} from './adaptive-ssml.js';
+export { type CognitiveSsmlOptions } from './adaptive-ssml.js';
 
 // Re-export SSML functions from canonical source (src/ssml/)
 // The ssml module now has an alias: tagTextWithSsml → tagTextWithSsmlPersonaAware
@@ -280,14 +268,6 @@ export {
   type CognitiveSpeechContext,
   type SpeechAdjustments,
 } from './cognitive-speech.js';
-
-export {
-  applyCognitiveSpeechAdjustments,
-  buildCognitiveSSML,
-  getReasoningStyleSpeechPreset,
-  type CognitiveSpeechInput,
-  type CognitiveSpeechResult,
-} from './cognitive-speech-integration.js';
 
 // ============================================================================
 // AUTHENTIC THINKING (Cognitive load → natural pauses)
