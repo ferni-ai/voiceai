@@ -29,6 +29,7 @@ import { finops } from '../../services/observability/finops.js';
 import { crisisLineSpeechTransform } from '../../services/safety/crisis-line-speech.js';
 import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
+import { spokenPunctuation } from '../../speech/output-control/spoken-punctuation.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
@@ -1007,12 +1008,11 @@ export async function wrappedTtsNode(
     );
   });
 
-  // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → cost tracking)
+  // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → punctuation → cost)
   const spokenText = linguisticallyMirroredText.pipeThrough(crisisLineSpeechTransform());
-  const trackedText = spokenText.pipeThrough(costTrackingStream);
+  const trackedText = spokenText.pipeThrough(spokenPunctuation()).pipeThrough(costTrackingStream);
 
-  // 6. Apply streaming TTS optimization for lower latency
-  // This chunks the text more aggressively for faster first-audio
+  // 6. Streaming TTS optimization: chunks more aggressively for faster first audio
   let optimizedText: NodeReadableStream<string>;
   if (enableStreamingOptimization) {
     const streamingConfig = getOptimizedStreamingConfig({

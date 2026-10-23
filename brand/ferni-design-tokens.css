@@ -4,7 +4,7 @@
  *
  * 🎨 AUTO-GENERATED FROM design-system/tokens/
  * Do not edit directly - run: pnpm tokens:sync
- * Generated: 2026-10-17T14:06:58.630Z
+ * Generated: 2026-10-23T07:28:45.240Z
  */
 
 :root {
@@ -557,6 +557,20 @@
   --blur-2xl: 40px;
   --blur-glass: 12px;
 
+  /* ============================================
+     THEME ROLES (design-system/tokens/semantic-colors.json)
+     ============================================ */
+  /* Surfaces */
+  --color-surface-base: #faf8f5;
+  --color-surface-sunken: #f5f2ed;
+  --color-surface-raised: #ffffff;
+  --color-surface-overlay: #fffdfb;
+  --color-on-accent: #faf8f5;
+  --color-brand-text: #4a6741;
+
+  /* Shadows */
+  --shadow-raised: 0 4px 8px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+  --shadow-overlay: 0 16px 32px rgba(0, 0, 0, 0.1), 0 8px 16px rgba(0, 0, 0, 0.05);
 }
 
 /* ============================================================================
@@ -613,6 +627,18 @@
     --color-warning: #e0b860;
     --color-warning-bg: rgba(224, 184, 96, 0.22);
 
+    /* Surfaces */
+    --color-surface-base: #14110e;
+    --color-surface-sunken: #1e1a16;
+    --color-surface-raised: #2a241f;
+    --color-surface-overlay: #352e28;
+    --color-on-accent: #14110e;
+    --color-brand-text: #a5c99a;
+
+    /* Shadows */
+    --shadow-raised: 0 4px 8px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.3);
+    --shadow-overlay: 0 16px 32px rgba(0, 0, 0, 0.25), 0 8px 16px rgba(0, 0, 0, 0.2);
+
     /* Persona Text Colors - WCAG AA on dark backgrounds */
     --color-ferni-text: #a5c99a;
     --color-jack-text: #d4c4a8;
@@ -634,7 +660,7 @@
   }
 }
 
-[data-theme="dark"] {
+:root[data-theme="dark"] {
   /* Background */
   --color-bg-primary: #14110e;
   --color-bg-secondary: #1e1a16;
@@ -681,6 +707,18 @@
   --color-warning: #e0b860;
   --color-warning-bg: rgba(224, 184, 96, 0.22);
 
+  /* Surfaces */
+  --color-surface-base: #14110e;
+  --color-surface-sunken: #1e1a16;
+  --color-surface-raised: #2a241f;
+  --color-surface-overlay: #352e28;
+  --color-on-accent: #14110e;
+  --color-brand-text: #a5c99a;
+
+  /* Shadows */
+  --shadow-raised: 0 4px 8px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-overlay: 0 16px 32px rgba(0, 0, 0, 0.25), 0 8px 16px rgba(0, 0, 0, 0.2);
+
   /* Persona Text Colors - WCAG AA on dark backgrounds */
   --color-ferni-text: #a5c99a;
   --color-jack-text: #d4c4a8;
@@ -699,4 +737,33 @@
   --color-amara-text: #c0b0d8;
   --color-sasha-text: #f8b898;
   --color-ray-text: #a0b0c0;
+}
+
+/* Inverse context: always-dark sections set data-surface="inverse" */
+[data-surface="inverse"] {
+  /* Text */
+  --color-text-primary: #faf8f5;
+  --color-text-secondary: rgba(255, 255, 255, 0.7);
+  --color-text-muted: #a89b8c;
+
+  /* Accent */
+  --color-accent: #8eae7a;
+  --color-accent-hover: #a4c48f;
+  --color-accent-pressed: #6f8f5c;
+
+  /* Borders */
+  --color-border-subtle: rgba(244, 239, 230, 0.10);
+  --color-border-strong: rgba(244, 239, 230, 0.24);
+
+  /* Surfaces */
+  --color-surface-base: #2c2520;
+  --color-surface-sunken: #1a1613;
+  --color-surface-raised: rgba(255, 255, 255, 0.08);
+  --color-surface-overlay: #352e28;
+  --color-on-accent: #14110e;
+  --color-brand-text: #a5c99a;
+
+  /* Shadows */
+  --shadow-raised: 0 4px 8px rgba(0, 0, 0, 0.35), 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-overlay: 0 16px 32px rgba(0, 0, 0, 0.25), 0 8px 16px rgba(0, 0, 0, 0.2);
 }
