@@ -29,6 +29,7 @@ import { finops } from '../../services/observability/finops.js';
 import { crisisLineSpeechTransform } from '../../services/safety/crisis-line-speech.js';
 import { markTurnCheckpoint } from '../../services/performance/turn-profiler.js';
 import { createInterruptAwareTransform } from '../../speech/graceful-interrupt/speech-wrapper.js';
+import { spokenPunctuation } from '../../speech/output-control/spoken-punctuation.js';
 import { createLogger, truncateForLog } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
 import { createCacheAwareTTSNode } from './performance/cache-aware-tts.js';
@@ -45,7 +46,7 @@ import {
 } from './performance/streaming-tts-transform.js';
 import { createSanitizerWithMusicFallback } from './sanitizer/index.js';
 import { logToolMarkup, toolMarkupTransform } from './tool-markup-strip.js';
-import { replyCallerTurnFields } from './reply-caller-turn.js';
+import { replyCallerTurnFields, type ReplyCallerFields } from './reply-caller-turn.js';
 // FTIS V2 mode check - when enabled, skip JSON workaround entirely
 import { isFtisEnabled } from '../../config/tool-config.js';
 
@@ -296,7 +297,7 @@ async function recordJsonLeakTelemetry(
 /**
  * Session data needed for TTS processing
  */
-export interface TtsSessionContext {
+export interface TtsSessionContext extends ReplyCallerFields {
   userId?: string;
   sessionId?: string;
   personaId?: string;
@@ -319,9 +320,6 @@ export interface TtsSessionContext {
 
   /** User's name for personalized responses */
   userName?: string;
-  /** The caller's words this reply answers (reply-caller-turn.ts) */
-  userRequest?: string;
-  callerTurnFresh?: boolean; // userRequest was read from this reply's own chat context
   /** User's detected emotional state */
   userEmotion?: {
     primary?: string;
@@ -1010,12 +1008,11 @@ export async function wrappedTtsNode(
     );
   });
 
-  // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → cost tracking)
+  // 5. Chain (sanitizer → interrupt-aware → mirroring → crisis line → punctuation → cost)
   const spokenText = linguisticallyMirroredText.pipeThrough(crisisLineSpeechTransform());
-  const trackedText = spokenText.pipeThrough(costTrackingStream);
+  const trackedText = spokenText.pipeThrough(spokenPunctuation()).pipeThrough(costTrackingStream);
 
-  // 6. Apply streaming TTS optimization for lower latency
-  // This chunks the text more aggressively for faster first-audio
+  // 6. Streaming TTS optimization: chunks more aggressively for faster first audio
   let optimizedText: NodeReadableStream<string>;
   if (enableStreamingOptimization) {
     const streamingConfig = getOptimizedStreamingConfig({
@@ -1314,7 +1311,7 @@ export function extractTtsSessionContext(
     // User's name for personalized responses
     userName: (userData?.userName as string | undefined) || (userData?.name as string | undefined),
 
-    ...replyCallerTurnFields(agent, userData?.lastUserMessage),
+    ...replyCallerTurnFields(agent, userData?.lastUserMessage, extractedSessionId),
     // User's detected emotional state (prefer voice emotion, fallback to last analysis)
     userEmotion:
       voiceEmotion || lastEmotionAnalysis

@@ -16,6 +16,12 @@ const PHATIC = /^(hey|hi|hello|yo|oh|um+|uh+|hm+)\b|\bit's me\b/i;
 /** Replies shaped like the caller's answer ("Yeah, I sent it over.", "She's managing"). */
 const ANSWER = /^(yeah|yes|yep|yup|nope|nah|no|not yet|well|actually|she's|he's|they're|i|i'm|i've|my)\b/i;
 const ASKS_CALLER = /\byour?\b|\bhow('s| is| are| did|'d)\b/i;
+/** A how's-your-day ask, which a state report answers ("How's your evening going?"). */
+const STATE_ASK =
+  /\bhow(?:'s| is| are| has| was)\b[^?]*\b(?:going|been|doing|holding up|treating|day|evening|night|morning|afternoon|week|weekend)\b/i;
+/** A first-person state report that needs no "I"/"my": "Pretty good, just winding down.", "Not bad." */
+const STATE_REPLY =
+  /^(?:(?:pretty|really|fairly|quite|kind of|kinda)\s+(?:good|great|quiet|busy|chill|calm|slow|mellow|decent|okay|nice)|not (?:too |so |that )?bad|can't complain|(?:good|great|fine|okay|alright|quiet|calm|chill)\s*[,;—-]+\s*just|just (?:winding|unwinding|chilling|relaxing|hanging|kicking back|taking it easy))\b/i;
 
 // dev follow-through-s2: "did you end up sending that resume?" / "it's me" / "Yeah, I sent it over."
 function selfAnswer({ turns: t }) {
@@ -27,7 +33,9 @@ function selfAnswer({ turns: t }) {
     const said = norm(caller.text).trim();
     if (!q.length || words(said).length > 6 || said.includes('?') || !PHATIC.test(said)) continue;
     const first = sentences(reply.text)[0];
-    if (ANSWER.test(first) && !/\byour?s?\b/i.test(first) && !first.endsWith('?'))
+    // dev 1cf4bd64b facts-recall-m1: "How's your evening going?" / "it's me again" / "Pretty good, just winding down."
+    const stateReport = q.some((s) => STATE_ASK.test(s)) && STATE_REPLY.test(first);
+    if ((ANSWER.test(first) || stateReport) && !/\byour?s?\b/i.test(first) && !first.endsWith('?'))
       hits.push({ quote: `${q.at(-1)} / ${said} / ${first}`, why: 'answered its own question' });
   }
   return hits;

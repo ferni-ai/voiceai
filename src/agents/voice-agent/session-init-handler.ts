@@ -37,6 +37,7 @@ import { resetHandoffState, resetMetPersonas, setCurrentAgent } from '../../tool
 import { autoOptimizer } from '../../tools/optimization/auto-optimizer.js';
 import { patternAnalyzer } from '../../tools/optimization/pattern-analyzer.js';
 import { startPeriodicSync } from './periodic-sync-handler.js';
+import { bindSessionUser } from '../../utils/minor-care.js';
 
 // Capability learning - load patterns on startup
 import { loadPatterns as loadCapabilityPatterns } from '../../intelligence/capability-learning.js';
@@ -1206,12 +1207,10 @@ export async function initializeSession(ctx: SessionInitContext): Promise<Sessio
   autoOptimizer.startSession(sessionId, userId || 'anonymous', sessionPersona.id);
   diag.entry('Optimization session started', { sessionId, personaId: sessionPersona.id });
 
-  // ================================================================
-  // START PERIODIC SYNC FOR DEEP UNDERSTANDING
-  // Ensures insights are saved during long sessions (every 5 minutes)
-  // ================================================================
+  // ====== PERIODIC SYNC: deep understanding saved during long sessions (every 5 minutes) ======
   let stopSync: (() => void) | null = null;
   if (userId) {
+    bindSessionUser(sessionId, userId); // MINOR_CARE: userHeld(userId) follows this session's hold
     stopSync = startPeriodicSync(sessionId, userId);
     diag.session('🔄 Periodic deep understanding sync started', { sessionId, userId });
   }

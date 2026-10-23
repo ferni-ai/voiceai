@@ -304,7 +304,7 @@ describe('field-level hold (whenHeld): only consent fields persist, as a merge w
     failing.set('/minor_care_deleted/', {
       left: 1,
       failed: 0,
-      during: () => s.delete(held.userId),
+      during: () => void s.delete(held.userId), // not awaited: the delete waits for this write
     });
     await tick(1_000);
     expect(failing.get('/minor_care_deleted/')?.failed).toBe(1);
