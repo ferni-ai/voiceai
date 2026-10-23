@@ -73,6 +73,17 @@ interface Boot {
   done: number | null; // log position where its last part arrived
 }
 
+/**
+ * Lines of `b` and of the finished boot `chosen` mix in the log. An unfinished `b` counts only
+ * when it began while `chosen` was logging: a crashed boot from before, or one whose start the
+ * backlog cut off, must not block every later boot.
+ */
+function interleaved(b: Boot, chosen: Boot): boolean {
+  const end = chosen.done ?? 0;
+  if (b.done === null) return b.first > chosen.first && b.first < end;
+  return b.first < end && chosen.first < b.done;
+}
+
 export interface BootResult {
   readonly commit: string | null;
   readonly values: Map<string, Sealed>;
@@ -155,7 +166,7 @@ export class BootCollector {
       (b) =>
         chosen !== undefined &&
         b.id !== chosen.id &&
-        ((b.first < (chosen.done ?? 0) && chosen.first < (b.done ?? Infinity)) ||
+        (interleaved(b, chosen) ||
           (b.at !== null && chosen.at !== null && Math.abs(b.at - chosen.at) < ROLLING_MS))
     );
     return {
@@ -191,7 +202,8 @@ export function snapshotOf(label: string, secrets: Secrets, boot: BootResult): S
   if (boot.partialNewer) problems.push('a newer boot is only partly logged; read the log again');
   if (boot.concurrent) {
     problems.push(
-      'two boots with different settings logged at once (rolling restart?); read again once it settles'
+      'two boots with different settings are too close together to tell which one is live; ' +
+        'restart the agent (or wait for a later boot) before reading again'
     );
   }
   if (secrets.names.length > 0 && secrets.newest === null) {
@@ -231,6 +243,13 @@ function matches(pattern: string, name: string): boolean {
 }
 
 const DAY = 86_400_000;
+
+/** Midnight UTC of a strict `YYYY-MM-DD` that names a real day, else null (`2026-02-30` too). */
+function dayOf(text: string): number | null {
+  if (!/^\d{4}-\d\d-\d\d$/.test(text)) return null;
+  const ms = Date.parse(`${text}T00:00:00Z`);
+  return !Number.isNaN(ms) && new Date(ms).toISOString().slice(0, 10) === text ? ms : null;
+}
 const MAX_UNTIL_DAYS = 30;
 
 /**
@@ -261,10 +280,8 @@ export function parseAllowlist(
       >;
       const reason = typeof raw.reason === 'string' ? raw.reason.trim() : '';
       if (!reason) throw new Error(`allowlist: ${pattern} has no reason`);
-      const until =
-        raw.until === undefined ? undefined : Date.parse(`${String(raw.until)}T00:00:00Z`);
-      if (until !== undefined && Number.isNaN(until))
-        throw new Error(`allowlist: ${pattern} until must be YYYY-MM-DD`);
+      const until = raw.until === undefined ? undefined : dayOf(String(raw.until));
+      if (until === null) throw new Error(`allowlist: ${pattern} until must be YYYY-MM-DD`);
       const hit = (test: (n: string) => boolean) =>
         probes.find((n) => matches(pattern, n) && test(n));
       const voice = hit((n) => VOICE_ID.test(n));
@@ -307,6 +324,8 @@ export interface Row {
   readonly guarded: boolean;
   /** Both flag words, only for a flag whose two values are on/off/shadow/live. */
   readonly states?: { readonly dev: string; readonly prod: string };
+  /** A dev-first flag's `until` (ms, midnight UTC). */
+  readonly until?: number;
 }
 
 function statusOf(name: string, dev: Snapshot, prod: Snapshot): Status | undefined {
@@ -342,16 +361,16 @@ export function compare(dev: Snapshot, prod: Snapshot, allow: Allowlist, isFlag:
             : [];
     // A flag passes only as a dated onlyOn.dev entry; a voice id never does.
     const dated = status === 'only-dev' && isFlag(name) && !VOICE_ID.test(name);
-    const allowlisted = dated
-      ? pool.some((e) => matches(e.pattern, name) && e.until !== undefined)
-      : !guarded && listed(pool, name);
+    const datedEntry = pool.find((e) => matches(e.pattern, name) && e.until !== undefined);
+    const allowlisted = dated ? datedEntry !== undefined : !guarded && listed(pool, name);
+    const until = dated && datedEntry?.until !== undefined ? { until: datedEntry.until } : {};
     const d = dev.values.get(name);
     const p = prod.values.get(name);
     const states =
       isFlag(name) && typeof d === 'object' && typeof p === 'object' && d.state && p.state
         ? { dev: d.state, prod: p.state }
         : null;
-    rows.push({ name, status, allowlisted, guarded, ...(states ? { states } : {}) });
+    rows.push({ name, status, allowlisted, guarded, ...until, ...(states ? { states } : {}) });
   }
   for (const name of allow.expired)
     rows.push({ name, status: 'expired', allowlisted: false, guarded: false });
@@ -397,6 +416,12 @@ export function render(rows: readonly Row[], dev: Snapshot, prod: Snapshot): str
     out.push(`${TITLE[status]} (${names.length})${names.length ? `: ${names.join(', ')}` : ''}`);
   }
   const code = exitCode(rows, dev, prod);
+  const devFirst = rows
+    .filter((r) => r.until !== undefined)
+    .map((r) => `${r.name} until ${new Date(r.until ?? 0).toISOString().slice(0, 10)}`);
+  out.push(
+    `Dev-first flags (${devFirst.length})${devFirst.length ? `: ${devFirst.join(', ')}` : ''}`
+  );
   out.push(`Allowlisted: ${rows.filter((r) => r.allowlisted).length} keys`, '');
   out.push(`Result: ${['CLEAN', 'DRIFT', 'CANNOT VERIFY'][code]} (exit ${code})`);
   return out.join('\n');
