@@ -11,7 +11,7 @@ vi.mock('firebase-admin', () => ({
 }));
 vi.mock('../../../memory/profile-store.js', () => ({ getProfileStore: async () => ({}) }));
 
-const { publishIntelligenceEvent, QUEUE_RETENTION_MS } =
+const { publishIntelligenceEvent, publishIntelligenceEventsBatch, QUEUE_RETENTION_MS } =
   await import('../intelligence-publisher.js');
 
 const event = { type: 'key_moment' as const, userId: 'u1', sessionId: 's1', payload: {} };
@@ -27,6 +27,17 @@ describe('intelligence publisher', () => {
     vi.stubEnv('INTELLIGENCE_QUEUE', 'off');
     await publishIntelligenceEvent(event);
     expect(add).not.toHaveBeenCalled();
+  });
+
+  it('a batch publishes nothing by default, and queues with the flag on', async () => {
+    await publishIntelligenceEventsBatch([event, event]);
+    vi.stubEnv('INTELLIGENCE_QUEUE', 'off');
+    await publishIntelligenceEventsBatch([event, event]);
+    expect(add).not.toHaveBeenCalled();
+
+    vi.stubEnv('INTELLIGENCE_QUEUE', 'on');
+    await publishIntelligenceEventsBatch([event]);
+    expect(add).toHaveBeenCalledTimes(1);
   });
 
   it('with INTELLIGENCE_QUEUE=on, queues a pending doc that expires after the retention', async () => {
