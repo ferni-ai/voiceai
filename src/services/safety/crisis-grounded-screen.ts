@@ -56,8 +56,11 @@ export const SCREEN_QUESTION =
 export type ScreenOutcome = 'none' | 'reask' | 'watch' | 'positive';
 const RANK: Record<ScreenOutcome, number> = { none: 0, reask: 1, watch: 1, positive: 2 };
 
-/** Caller turns watched after the answer: a backchannel ("Okay.") doesn't use one up alone. */
-const WATCH_TURNS = 2;
+/**
+ * How long after the answer the next substantive caller turn is watched. Backchannels ("Okay.",
+ * "mm") are read but never use the window up; only this bound does (#2516 round 2).
+ */
+const WATCH_MS = 90_000;
 
 /**
  * Per call, after a live release: the released turn, Ferni's line before it,
@@ -80,9 +83,9 @@ const screens = new Map<
     asked: string;
     before: string;
     reasked: boolean;
-    /** The caller's answer, and the watched turns left after it. */
+    /** The caller's answer, and until when the next substantive turn is watched (0: closed). */
     answer?: string;
-    window: number;
+    watchUntil: number;
     last?: Judged;
   }
 >();
@@ -113,13 +116,16 @@ function clearNo(answer: string): boolean {
 /**
  * Words that force guidance on a watched turn (#2511), escalate-only: a miss defers to
  * watchScreen's read, never passes alone. Risk words; owning the no ("I kind of lied before",
- * "I said no but…"); "actually, yes"; a no that trails off ("not really no… I mean…").
+ * "I said no but…"); "actually, yes", or a bare yes after a pause word ("Okay, yes."); a no
+ * that trails off ("not really no… I mean…").
  */
 const UNSURE = "(?:i don'?t know|i do not know|idk|dunno|not sure|i'?m not sure|hard to say)";
 const ESCALATES = new RegExp(
   [
     "(?:^| )(?:i (?:\\w+ ){0,2}lied|that (?:was|is) a lie|i wasn'?t (?:\\w+ )?(?:honest|truthful)|i take (?:that|it) back|i said no (?:but|because)|i shouldn'?t have said no|(?:that|what i said)(?: before)? (?:wasn'?t|isn'?t|was not|is not) (?:\\w+ )?true|change my answer|i didn'?t want to (?:say|tell|admit))\\b",
     '(?:^| )actually (?:yes|yeah|yep|yup)\\b',
+    // A bare yes after a pause word, nothing else: "Okay, yes.", "Fine, yes.", "Wait. Yes."
+    '^(?:(?:ok|okay|fine|alright|all right|wait|hold on|well|um|uh) )+(?:yes|yeah|yep|yup)$',
     `^(?:${NO_FILLER}|um |uh |well )*(?:no|nope|nah|not really)(?: no| nope| really)*(?: (?:i mean|but|although|except|well|kind of|sort of|maybe|${UNSURE}))+$`,
   ].join('|')
 );
@@ -160,7 +166,7 @@ export function noteScreenAsked(
     asked: loose(released.latest),
     before,
     reasked: false,
-    window: 0,
+    watchUntil: 0,
   });
 }
 
@@ -210,7 +216,10 @@ export function screenAnswer(
     };
     const last = screen.last;
     // The same words after the screen closed: the turn already judged, on whichever path.
-    if (last && last.turn === turn && last.outcome !== 'reask') return last.outcome;
+    // The same words keep a verdict never weaker on the other path, whatever line it saw. A
+    // repeated "No." to Ferni's next question is a new turn, though: it gets the read (#2516).
+    const sameTurn = last?.companion === companion || last?.outcome !== 'none';
+    if (last && last.turn === turn && last.outcome !== 'reask' && sameTurn) return last.outcome;
     // The same turn's other path shares Ferni's line before it: one shared record, never weaker
     // than the first path's verdict, and a stronger one replaces it. Words alone never make a
     // turn the same one: a caller may repeat "No." after a re-ask.
@@ -224,10 +233,10 @@ export function screenAnswer(
       return again;
     }
     // The caller's next substantive turn after the answer is watched (#2511): words that
-    // escalate, else watchScreen's read. Backchannels keep the window open, up to WATCH_TURNS.
+    // escalate, else watchScreen's read. Backchannels keep the window open, up to WATCH_MS.
     if (last && last.outcome !== 'reask') {
-      if (screen.window <= 0) return 'none';
-      screen.window = BACKCHANNEL.test(turn) ? screen.window - 1 : 0;
+      if (now > screen.watchUntil) return 'none';
+      if (!BACKCHANNEL.test(turn)) screen.watchUntil = 0;
       const outcome = judge(false, true);
       screen.last = { turn, companion, outcome, reads: new Map() };
       log.info({ outcome, asked, watch: true }, 'CRISIS_GROUNDED_SCREEN');
@@ -236,7 +245,7 @@ export function screenAnswer(
     // A turn while the screen is open: nothing judged yet, or a re-ask.
     const outcome = judge(screen.reasked);
     if (outcome === 'reask') screen.reasked = true;
-    else [screen.answer, screen.window] = [input.latest, WATCH_TURNS];
+    else [screen.answer, screen.watchUntil] = [input.latest, now + WATCH_MS];
     screen.last = { turn, companion, outcome };
     log.info({ outcome, asked }, 'CRISIS_GROUNDED_SCREEN');
     return outcome;
@@ -273,9 +282,15 @@ export function watchScreen(
     );
     reads.set(key, read);
   }
-  return Promise.all([...reads.values()]).then((all) =>
-    all.reduce((a, b) => (WATCH_RANK[b] > WATCH_RANK[a] ? b : a), 'pass' as WatchResult)
-  );
+  // The strongest of the turn's reads, including any the other path adds while these settle,
+  // so the order the two paths run in never weakens the verdict.
+  const strongest = (seen: number): Promise<WatchResult> =>
+    Promise.all([...reads.values()]).then((all) =>
+      reads.size > seen
+        ? strongest(reads.size)
+        : all.reduce((a, b) => (WATCH_RANK[b] > WATCH_RANK[a] ? b : a), 'pass' as WatchResult)
+    );
+  return strongest(reads.size);
 }
 
 /** watchScreen's read for a 'watch' turn, null for any other. */
