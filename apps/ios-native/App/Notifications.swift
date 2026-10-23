@@ -122,6 +122,7 @@ struct NotificationAsk: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(FerniColor.surfaceRaised, in: RoundedRectangle(cornerRadius: FerniRadius.large))
                 .overlay(RoundedRectangle(cornerRadius: FerniRadius.large).stroke(FerniColor.border))
+                .padding(.top, FerniSpace.rest) // Home's gap, only when it shows
             }
         }
         .task(id: uid) {
