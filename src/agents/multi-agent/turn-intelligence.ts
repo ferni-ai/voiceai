@@ -36,6 +36,7 @@ import { CRISIS_GATE_SIGNAL } from '../safety/crisis-gate-signal.js';
 import {
   deferFirstTurn,
   firstTurnDeferEnabled,
+  firstTurnDeferRelease,
   hadUserTurn,
   noteUserTurn,
   turnPipelineWarm,
@@ -418,6 +419,7 @@ export function attachTurnContextPusher(
   const deferral =
     firstTurnDeferEnabled(env) && !hadUserTurn(session) && !turnPipelineWarm()
       ? deferFirstTurn(hook, {
+          releaseOn: firstTurnDeferRelease(env),
           voiceEmotion: () => (userData as { voiceEmotion?: unknown } | undefined)?.voiceEmotion,
         })
       : undefined;
