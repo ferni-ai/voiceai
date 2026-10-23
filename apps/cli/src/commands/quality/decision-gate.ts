@@ -31,28 +31,58 @@ const TEST = /(__tests__|__mocks__|\.(test|spec)\.tsx?$|^src\/(tests|e2e)\/)/;
 export const isProductionSource = (f: string): boolean =>
   f.startsWith('src/') && /\.tsx?$/.test(f) && !f.endsWith('.d.ts') && !TEST.test(f);
 
-/** `line` without a trailing `//` comment (quotes and template strings respected). */
-export function stripTrailingComment(line: string): string {
-  let quote: string | null = null;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i]!;
-    if (quote) {
-      if (c === '\\') i++;
-      else if (c === quote) quote = null;
-    } else if (c === "'" || c === '"' || c === '`') quote = c;
-    else if (c === '/' && line[i + 1] === '/') return line.slice(0, i);
+/**
+ * The text with comments blanked (line numbers kept). Strings, template literals and regex
+ * literals are recognised first, so `'uploads/*'` or `/https?:\/\//` can't open a comment.
+ */
+export function stripComments(text: string): string {
+  const out = text.split('');
+  const blank = (from: number, to: number): void => {
+    for (let k = from; k < to; k++) if (out[k] !== '\n') out[k] = ' ';
+  };
+  let prev = ''; // last significant character outside strings and comments
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i]!;
+    const next = text[i + 1];
+    if (c === '/' && next === '/') {
+      const end = text.indexOf('\n', i);
+      const stop = end === -1 ? text.length : end;
+      blank(i, stop);
+      i = stop - 1;
+    } else if (c === '/' && next === '*') {
+      const end = text.indexOf('*/', i + 2);
+      const stop = end === -1 ? text.length : end + 2;
+      blank(i, stop);
+      i = stop - 1;
+    } else if (c === "'" || c === '"' || c === '`' || (c === '/' && (prev === '' || '(,=:[!&|?{};+-*%<>~^'.includes(prev)))) {
+      // a string, template or regex literal: skip to its unescaped closing character
+      let j = i + 1;
+      let inClass = false;
+      for (; j < text.length; j++) {
+        const d = text[j]!;
+        if (d === '\\') j++;
+        else if (c === '/' && d === '[') inClass = true;
+        else if (c === '/' && d === ']') inClass = false;
+        else if (d === c && !inClass) break;
+        else if (d === '\n' && c !== '`') break; // unterminated: stop at the line end
+      }
+      i = j;
+      prev = c;
+    } else if (!/\s/.test(c)) prev = c;
   }
-  return line;
+  return out.join('');
 }
 
-/** The text with block comments, whole-line and trailing `//` comments blanked; line numbers kept. */
-export function stripComments(text: string): string {
-  const blank = (s: string): string => s.replace(/[^\n]/g, ' ');
-  return text
-    .replace(/\/\*[\s\S]*?\*\//g, blank)
-    .split('\n')
-    .map((l) => stripTrailingComment(l))
-    .join('\n');
+/** Methods whose string argument is a match against the text: a word list in all but name. */
+const MATCHERS = new Set(['includes', 'startsWith', 'endsWith', 'match', 'test']);
+
+/** True when `node` is a string argument of RegExp(...), new RegExp(...) or a MATCHERS call. */
+function isMatcherArgument(node: ts.Node): boolean {
+  const call = node.parent;
+  if (!call || !(ts.isCallExpression(call) || ts.isNewExpression(call)) || !call.arguments?.includes(node as ts.Expression)) return false;
+  const callee = call.expression;
+  if (ts.isIdentifier(callee)) return callee.text === 'RegExp';
+  return ts.isPropertyAccessExpression(callee) && MATCHERS.has(callee.name.text);
 }
 
 /** Lines (1-based) holding a regex literal, or a string that is an element of an array literal, that matches. */
@@ -61,7 +91,11 @@ function wordListLines(file: string, text: string, pattern: RegExp): Set<number>
   const lines = new Set<number>();
   const visit = (node: ts.Node): void => {
     const isRegex = node.kind === ts.SyntaxKind.RegularExpressionLiteral;
-    const isListWord = ts.isStringLiteralLike(node) && ts.isArrayLiteralExpression(node.parent);
+    // A string counts when it is a word in a list, a matcher's argument, or a regex source (an
+    // alternation such as 'ambulance|911|suicid\\w*', later handed to new RegExp).
+    const isListWord =
+      ts.isStringLiteralLike(node) &&
+      (ts.isArrayLiteralExpression(node.parent) || isMatcherArgument(node) || /[\w)\]*?+]\|[\w(\\[]/.test(node.text));
     if ((isRegex || isListWord) && pattern.test(node.getText(sf))) {
       lines.add(sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1);
     }
@@ -155,7 +189,7 @@ function main(): void {
       for (const h of w.lines.slice(0, 3)) say(`      ${h.line}: ${h.text.slice(0, 110)}`);
       say(`      fix: ask ${d.owner.module}#${d.owner.fn} instead of deciding here`);
     }
-    say('\nA deliberate new owner? Change it in apps/cli/src/commands/quality/decisions.ts (code owners review it).');
+    say('\nA deliberate new owner? Change it in apps/cli/src/commands/quality/decisions.ts (CODEOWNERS asks its owner to review).');
     process.exit(1);
   }
   say('\n✅ No new deciders outside their owners.');

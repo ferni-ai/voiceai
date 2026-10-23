@@ -8,7 +8,7 @@
  * splits are free: git rename detection (renameLimit=0, so it is never skipped) maps a
  * moved file to its old path.
  *
- * The base, in order: QUALITY_BASE; in GitHub Actions the event's merge-group base, the
+ * The base, in order: QUALITY_BASE (local runs only, ignored in GitHub Actions); in GitHub Actions the event's merge-group base, the
  * pull request's merge commit's first parent (pull_request.base.sha goes stale when main
  * moves after the push, and would count main's new commits as the PR's), or the pre-push
  * commit; otherwise `git merge-base HEAD origin/main`. A base missing from a shallow
@@ -52,7 +52,8 @@ const parentsOf = (root: string, rev: string): string[] =>
 
 /** The base commit a change is measured against (see the module comment). Throws when there is none. */
 export function resolveBase(root = process.cwd(), env: NodeJS.ProcessEnv = process.env): string {
-  let sha = env.QUALITY_BASE?.trim();
+  // A local override only: in CI one variable must not be able to point every gate at HEAD.
+  let sha = env.GITHUB_ACTIONS ? undefined : env.QUALITY_BASE?.trim();
   if (!sha && env.GITHUB_EVENT_PATH && existsSync(env.GITHUB_EVENT_PATH)) {
     const event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, 'utf8')) as {
       merge_group?: { base_sha?: string };

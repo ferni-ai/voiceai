@@ -7,8 +7,9 @@
  * and vocabularies: 12 crisis deciders, 4 voice resolvers, 14 quiet-hours predicates,
  * 7 forget checkers, 3 tool caps. The decision gate (decision-gate.ts, beside this file)
  * counts fingerprint lines outside each owner in the files a change touches, at the change
- * and at its merge base, and fails when a file gains one. Code owners review this file:
- * moving an owner or widening a fingerprint changes the rule for every PR.
+ * and at its merge base, and fails when a file gains one. CODEOWNERS asks for a review on
+ * this file (it requests, it does not enforce): moving an owner or widening a fingerprint
+ * changes the rule for every PR.
  *
  * Every owner is PROVISIONAL: today's best existing module, not the target. When the
  * target owner lands (ddd.md §5: `judgment/risk`, `identity.voiceFor`, `agency.tooling`,
@@ -63,7 +64,11 @@ export const DECISIONS: readonly DomainDecision[] = [
     fingerprints: [
       // A word list or regex that recognises crisis language: a second detector. Copy that
       // mentions 988 or suicide (prompts, replies) is not a decider and doesn't count.
-      { name: 'crisis word list', pattern: /suicid|self[- ]?harm|kill(?:ing)? (?:my|him|her)self/i, in: 'word-lists' },
+      {
+        name: 'crisis word list',
+        pattern: /suicid|self[- ]?harm|kill(?:ing)? (?:my|him|her)self|want(?:s|ed)? to die|end(?:ing)? (?:my|his|her) life|end it all/i,
+        in: 'word-lists',
+      },
     ],
   },
   {
@@ -139,6 +144,10 @@ export const DECISIONS: readonly DomainDecision[] = [
     owner: { module: 'src/services/external-apis/twilio-sms.ts', fn: 'sendSMS', provisional: true },
     ownerPaths: ['src/services/external-apis/twilio-sms.ts'],
     target: 'platform/telephony, the only Twilio caller; senders submit an Intent (ddd.md 2.7)',
-    fingerprints: [{ name: 'twilio messages.create', pattern: /\.messages\.create\(/, onlyIn: /twilio/i }],
+    fingerprints: [
+      { name: 'twilio messages.create', pattern: /\.messages\.create\(/, onlyIn: /twilio/i },
+      // a direct REST send, as tools/domains/finance/plaid.ts does (a Calls.json call is not a text)
+      { name: 'twilio REST send', pattern: /api\.twilio\.com\/[^'"`\s]*\/Messages\.json/ },
+    ],
   },
 ];

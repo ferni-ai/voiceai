@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { describe, expect, it } from 'vitest';
-import { gained, hits, stripComments, stripTrailingComment } from '../decision-gate.js';
+import { gained, hits, stripComments } from '../decision-gate.js';
 import { DECISIONS, type DomainDecision } from '../decisions.js';
 
 const REPO = join(dirname(fileURLToPath(import.meta.url)), '../../../../../..');
@@ -18,6 +18,31 @@ describe('decision gate: what counts as a decider (the real registry)', () => {
       "return runs.some((run) => /911|988/.test(run));", // 4: a 988 regex is not crisis vocabulary
     ].join('\n');
     expect(ids('src/tools/coach.ts', code)).toEqual(['crisis-risk:1', 'crisis-risk:2']);
+  });
+
+  it('counts a crisis string passed to RegExp or a string-matching call', () => {
+    const code = [
+      "const a = new RegExp('suicidal', 'i');", // 1
+      "const b = RegExp('self-harm');", // 2
+      "if (text.includes('kill myself')) {}", // 3
+      "if (t.startsWith('suicid') || t.endsWith('self harm')) {}", // 4
+      "if (/x/.test(t) || t.match('suicide')) {}", // 5
+      "log('suicide prevention resources');", // 6: an ordinary call is copy, not a decider
+    ].join('\n');
+    expect(ids('src/tools/coach.ts', code)).toEqual(['crisis-risk:1', 'crisis-risk:2', 'crisis-risk:3', 'crisis-risk:4', 'crisis-risk:5']);
+  });
+
+  it('counts a string that is a regex source (an alternation), as emergency-claim.ts builds one', () => {
+    expect(ids('src/agents/personas/x.ts', "export const TALK = 'ambulance|911|suicid\\\\w*|end it all';")).toEqual(['crisis-risk:1']);
+    expect(ids('src/agents/personas/x.ts', "const note = 'If you are thinking about suicide, call 988.';")).toEqual([]);
+  });
+
+  it('knows the wider crisis phrases: want to die, end my life, end it all', () => {
+    const code = "const W = ['want to die', 'wants to die', 'end my life', 'ending my life', 'end it all'];";
+    expect(ids('src/tools/coach.ts', code)).toEqual(['crisis-risk:1']);
+    for (const phrase of ['want to die', 'wanted to die', 'end my life', 'ending my life', 'end it all']) {
+      expect(ids('src/tools/coach.ts', `const W = ['${phrase}'];`), phrase).toEqual(['crisis-risk:1']);
+    }
   });
 
   it('lets every crisis owner path keep its vocabulary', () => {
@@ -54,8 +79,24 @@ describe('decision gate: what counts as a decider (the real registry)', () => {
 
   it('ignores comments, trailing ones included, but not // inside a string', () => {
     expect(ids('src/a.ts', "const x = 1; // VOICE: MAYA_SANTOS_VOICE_ID\n/* SPEND_SAVE_VOICE_ID */")).toEqual([]);
-    expect(stripTrailingComment("const u = 'https://x.y'; // note")).toBe("const u = 'https://x.y'; ");
+    expect(stripComments("const u = 'https://x.y'; // note")).toBe("const u = 'https://x.y'; " + ' '.repeat(7));
+    expect(stripComments('const re = /https?:\\/\\//; // c')).toBe('const re = /https?:\\/\\//; ' + ' '.repeat(4));
     expect(stripComments('a\n/* x\ny */\nb').split('\n')).toEqual(['a', '    ', '    ', 'b']);
+  });
+
+  it('counts a direct Twilio REST send (Messages.json), not a call (Calls.json)', () => {
+    const send = "const r = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${SID}/Messages.json`, { method: 'POST' });";
+    expect(ids('src/tools/domains/finance/plaid.ts', send)).toEqual(['sms-send:1']);
+    expect(ids('src/x.ts', "await fetch(`https://api.twilio.com/2010-04-01/Accounts/${SID}/Calls.json`);")).toEqual([]);
+  });
+
+  it("recognises strings before comments: a '/*' inside a string blanks nothing", () => {
+    const code = ["const glob = 'uploads/*';", "const WORDS = ['suicidal'];", "const tail = 'x*/';"].join('\n');
+    expect(ids('src/tools/coach.ts', code)).toEqual(['crisis-risk:2']);
+    expect(stripComments("const a = 'uploads/*'; // c\nconst b = 1; /* z */").split('\n')).toEqual([
+      "const a = 'uploads/*'; " + ' '.repeat(4),
+      'const b = 1; ' + ' '.repeat(7),
+    ]);
   });
 
   it('applies onlyIn: a Twilio messages.create counts, an Anthropic one does not', () => {
