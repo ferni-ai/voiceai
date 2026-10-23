@@ -46,7 +46,7 @@ import { registerAgentReplyRecorder, type AgentReplyContext } from './agent-repl
 import { createEmptyResponseWatchdog, onToolCallRequested } from './empty-response-watchdog.js';
 import { getStateMetrics } from '../../speech/coordination/sanitizer-integration.js';
 import { wrapSpeechWithInterruptAwareness } from '../../speech/graceful-interrupt/speech-wrapper.js';
-import { getLiveBackchannelingService } from '../../speech/live-backchanneling/index.js';
+import { getLiveBackchannelingService, usesClips } from '../../speech/live-backchanneling/index.js';
 import { generateBackchannelInstructions } from '../../speech/llm-backchannel.js';
 import {
   trackBackchannelEvent,
@@ -607,8 +607,8 @@ export function setupSessionStateHandlers(ctx: SessionStateContext): SessionStat
   // "Better than Human" - soft "mm-hmm" while user is still talking
   // ============================================================
   const attemptLiveBackchannel = async () => {
-    // Skip if live backchanneling is disabled
-    if (!liveBackchannelService) return;
+    // Skip if disabled, or the session's backchannels play as clips (clip-mode.ts)
+    if (!liveBackchannelService || usesClips(sessionId)) return;
 
     // Don't live-backchannel if agent is speaking
     if (conversationManager.isAgentSpeaking()) return;
