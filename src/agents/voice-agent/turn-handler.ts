@@ -889,7 +889,7 @@ export async function handleUserTurn(ctx: TurnHandlerContext): Promise<void> {
     // Memory injections are added with high priority so LLM can use them
     // ================================================================
     if (memoryRetrievalResult && memoryRetrievalResult.injections.length > 0) {
-      // RETRIEVAL_FILTERED=on: they join before the dedup and crisis filter (retrieval-join.ts)
+      // RETRIEVAL_FILTERED=on: memories join after processTurn's kept list, leftover budget only
       const turn = { userText, emotionalIntensity: result.emotional?.intensity };
       joinRetrieved(result.context, memoryRetrievalResult.injections, turn, result.crisis);
 
