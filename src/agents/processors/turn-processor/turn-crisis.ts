@@ -37,6 +37,7 @@ import {
   withScreenPositive,
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
+import { shadowThirdPartySelfHarm } from '../../../services/safety/crisis-third-party.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
@@ -96,11 +97,11 @@ export function startTurnCrisis(
     groundedReads?: readonly CrisisGenerateFn[];
   } = {}
 ): TurnCrisis {
-  const found = detectCrisis(
-    userText,
-    toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined),
-    { recentMessages: userData?.recentTranscripts }
-  );
+  const voice = toGuardVoiceEmotion(userData?.voiceEmotion as ProsodyEmotionLike | undefined);
+  const recent = { recentMessages: userData?.recentTranscripts };
+  const found = detectCrisis(userText, voice, recent);
+  // THIRD_PARTY_SELF_HARM=shadow: log when the live read would differ (crisis-third-party.ts).
+  shadowThirdPartySelfHarm(found, () => detectCrisis(userText, voice, recent));
   // The answer to a grounded release's direct question: anything but a clear no counts as a match.
   const screened = screenAnswer(options.sessionId || undefined, {
     latest: userText,

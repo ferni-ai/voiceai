@@ -419,3 +419,46 @@ export const THIRD_PARTY_PATTERNS = [
   /\b(his|her|their) search history\b[^.!?]{0,50}\b(die|dying|suicide|kill)\b|\bposted (a|her|his|their) goodbye\b/,
   /\b(he|she)('s| is) (ready to (die|go\b(?! (to|for|out|home|shopping|back|on|in|get|see|now|with)\b))|done with life)/,
 ];
+
+/** Someone else, as the object of the act ("hurt himself"). */
+const OTHER_SELF = '(himself|herself|themselves|themself)';
+/** Someone the caller names ("my wife", "our oldest son"). */
+const NAMED_OTHER =
+  '((my|our|his|her|their) (\\w+ )?(friend|sister|brother|mom|mother|dad|father|son|daughter|kid|child|wife|husband|partner|boyfriend|girlfriend|fianc[eé]e?|cousin|roommate|coworker|classmate|student|grandma|grandpa|aunt|uncle|niece|nephew|teen|teenager|patient|client|neighbor))';
+/** Everyday accidents and effort right after the act ("kill himself laughing", "hurt herself on those stairs"). */
+const OTHER_IDIOM =
+  "(?! (laughing|studying|cramming|training|showing off|doing (that|this|stunts)|working (two|three|double|extra|overtime|so hard|like that)|trying to (make|please|keep up with)|at (work|the gym|practice)|in (the gym|minecraft|fortnite|roblox|(the|a|that) game)|(falling|tripping|slipping|crashing|riding) |on (that|the|this|those|these|his|her|their|a|an) (bike|skateboard|scooter|trampoline|stairs|steps|ice|ladder|horse|treadmill|motorcycle|ramp|curb|thing)|if (he|she|they) keeps? (lifting|running|training|working out|playing|climbing|riding|skating|jumping|showing off|doing that))\\b)";
+/** Recovery and money senses of "take/end a life" ("taking his life back", "his life savings"). */
+const LIFE_IDIOM =
+  '(?! (back|savings|story|insurance|seriously|for granted|forward|to the next level|into (his|her|their) own hands|in (a|another) (new |different )?direction|as an?)\\b)';
+const otherAct = (harm: string, life: string, whose = '(his|her|their)'): string =>
+  `((${harm}) ${OTHER_SELF}\\b${OTHER_IDIOM}|(${life}) ${whose} (own )?life\\b${LIFE_IDIOM})`;
+/**
+ * Who, then how, then the act on themselves: the life is the subject's own, so "he said he will
+ * end her life" (a threat to her) is not this.
+ */
+const otherSubjectAct = (how: string, harm: string, life: string): string =>
+  `(he${how} ${otherAct(harm, life, '(his|their)')}|she${how} ${otherAct(harm, life, '(her|their)')}|they${how} ${otherAct(harm, life, 'their')}|${NAMED_OTHER}${how} ${otherAct(harm, life)})`;
+
+/**
+ * THIRD_PARTY_SELF_HARM (#2635, crisis-third-party.ts): someone else's self-harm said with a
+ * modal, as a report, or bare. "he keeps saying he'll hurt himself", "kill himself" and "end their
+ * life" scored 0 at every crisis site. Read beside THIRD_PARTY_PATTERNS and only ever as
+ * third-party risk; "would" counts only when someone reported it ("he said he'd kill himself", not
+ * "he'd kill himself if he saw this mess"), and the past ("he hurt himself playing soccer") never.
+ */
+export const THIRD_PARTY_SELF_HARM_PATTERNS = [
+  new RegExp(
+    `\\b${otherSubjectAct("('ll| will| might| may| could|'s going to| is going to|'re going to| are going to|'s about to| is about to|'re about to| are about to)( really| actually| seriously)?", 'kill|hurt|harm', 'end|take')}`
+  ),
+  new RegExp(
+    `\\b(said|says|saying|told (me|us|him|her|them|everyone)|tells (me|us|everyone)|threaten(s|ed|ing)|texted( me)?|wrote|posted|swore|warned( me| us)?)( that)? ${otherSubjectAct("('d| would)", 'kill|hurt|harm', 'end|take')}`
+  ),
+  new RegExp(`\\b(what if|in case|before) ${otherSubjectAct('', 'kills|hurts|harms', 'ends|takes')}`),
+  new RegExp(
+    `\\b(saying|says|said|mention(s|ed|ing)?|jok(es|ed|ing)|post(s|ed|ing)|writ(es|ing)|wrote|text(s|ed|ing)) (\\w+ ){0,2}about ${otherAct('killing|hurting|harming', 'ending|taking')}`
+  ),
+  new RegExp(
+    `^(to )?${otherAct('kill|hurt|harm|kills|hurts|harms|killing|hurting|harming', 'end|take|ending|taking')}\\s*[.!?]*$`
+  ),
+];

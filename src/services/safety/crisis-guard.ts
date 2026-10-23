@@ -32,8 +32,8 @@ import {
   PASSIVE_IDEATION_PATTERNS,
   PLAN_OR_MEANS_PATTERNS,
   SESSION_CONTEXT_PATTERNS,
-  THIRD_PARTY_PATTERNS,
 } from './crisis-patterns.js';
+import { thirdPartyRisk } from './crisis-third-party.js';
 
 const log = createLogger({ module: 'CrisisGuard' });
 
@@ -214,7 +214,7 @@ function scoreText(text: string): TextScore {
   if (implicitHits > softenedHits) hardSelf = true;
   const selfSeverity = severity;
   let subject: CrisisSubject | undefined = severity > 0 ? 'self' : undefined;
-  const thirdParty = thirdPartyHit || THIRD_PARTY_PATTERNS.some((p) => p.test(text));
+  const thirdParty = thirdPartyHit || thirdPartyRisk(text);
   if (thirdParty && (!subject || !hardSelf)) {
     add('third_party_risk', SEVERITY.passive);
     subject = 'third_party';
