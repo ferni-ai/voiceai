@@ -358,7 +358,7 @@ export async function toolsForTurn(
   state: TurnToolsState
 ): Promise<llm.ToolContext> {
   if (staticCoreToolsEnabled()) withPinnedTools(toolCtx, state.agent);
-  else withSameTurnTools(session, chatCtx, toolCtx); // TOOLS_SAME_TURN: this turn's topic tools
+  else withSameTurnTools(session, chatCtx, toolCtx, state.agent); // TOOLS_SAME_TURN: topic tools
   const view = unlockViewFor(session.userData);
   const sessionId = sessionIdOf(session.userData);
   // Not a verified owner (an anon: caller included): nothing that reaches other people.
