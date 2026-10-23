@@ -19,6 +19,7 @@ import { SOFT_CRISIS_CHECK } from '../../../services/safety/crisis-agreement.js'
 import { resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
   resetCrisisClassifierCache,
+  startCrisisClassifier,
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
@@ -333,6 +334,63 @@ describe('turns with independent support keep exactly what they had (live === of
       gate: 'pass',
       pipeline: 'pass',
     });
+  });
+});
+
+describe('reads of the turn that arrive while the second read is out', () => {
+  it('a read still in flight when the reads are collected again keeps the 988 guidance', async () => {
+    // Gate read at once; the second read checks in at 100 ms; a pipeline read (crisis, 300 ms)
+    // starts at 20 ms; a late duplicate read starts at 150 ms, after the second collection
+    // began, and is still out when it ends.
+    const env = {
+      ...PROD,
+      CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live',
+      CRISIS_CLASSIFIER_TIMEOUT_MS: '3000',
+    };
+    const session = `inflight-${++calls}`;
+    const wait = (ms: number) =>
+      new Promise<void>((r) => {
+        setTimeout(r, ms);
+      });
+    const slow =
+      (ms: number): CrisisGenerateFn =>
+      async () => {
+        await wait(ms);
+        return CRISIS;
+      };
+    const gate = startCrisisGate(
+      request(PROD_FT),
+      { services: { sessionId: session } },
+      {
+        env,
+        generate: async () => CRISIS,
+        adjudicate: async () => {
+          await wait(100);
+          return CHECKIN;
+        },
+      }
+    );
+    await wait(20);
+    startTurnCrisis(
+      PROD_FT.latest,
+      {
+        recentTranscripts: [...PIPELINE_ONLY, ...PROD_FT.earlier, PROD_FT.latest],
+        lastAgentResponse: PROD_FT.companion,
+      },
+      { sessionId: session, env, generate: slow(300) }
+    );
+    await wait(130);
+    startCrisisClassifier(
+      {
+        latest: PROD_FT.latest,
+        earlier: ['Late.', ...PROD_FT.earlier],
+        companion: PROD_FT.companion,
+      },
+      { pattern: 'none', env, generate: slow(1500), scope: session, call: session }
+    );
+    const decision = await gate?.escalation;
+    expect(decision?.action).toBe('guide');
+    expect(decision?.action === 'guide' && decision.guidance).not.toBe(SOFT_CRISIS_CHECK);
   });
 });
 

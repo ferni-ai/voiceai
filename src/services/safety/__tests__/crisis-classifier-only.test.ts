@@ -15,6 +15,7 @@ vi.mock('../../../utils/safe-logger.js', () => {
 });
 
 import { allowCrisisAdjudicatorLiveForTests } from '../crisis-adjudicator.js';
+import { SOFT_CRISIS_CHECK } from '../crisis-agreement.js';
 import {
   classifierOnlyCheckin,
   classifierOnlyWhy,
@@ -701,36 +702,56 @@ describe('quiet preparation and indirect method (crisis-eligible-v1): never ease
 });
 
 describe('withClassifierOnly (the reply gate wrapper)', () => {
-  const turn = {
-    detection: detectCrisis(LATEST),
-    latest: LATEST,
-    earlier: EARLIER,
-    companion: COMPANION,
-    priorRisk: false,
-    scope: 'wrap-call',
-    call: 'wrap-call',
-  };
   const run = { verdict: Promise.resolve(CRISIS) };
-  const transcript = () => [{ speaker: 'caller' as const, text: LATEST }];
+  const transcript = () => [
+    ...EARLIER.map((text) => ({ speaker: 'caller' as const, text })),
+    { speaker: 'ferni' as const, text: COMPANION },
+    { speaker: 'caller' as const, text: LATEST },
+  ];
+  let wraps = 0;
+  /** A call whose turn already has two crisis reads gathered, so the path could ease it. */
+  async function turnWithReads() {
+    const call = `wrap-${++wraps}`;
+    resetCrisisClassifierCache();
+    const env = { CRISIS_CLASSIFIER_MODE: 'live' };
+    const input = { latest: LATEST, earlier: EARLIER, companion: COMPANION };
+    const runs = [0, 1].map((i) =>
+      startCrisisClassifier(
+        { ...input, earlier: EARLIER.slice(i) },
+        { pattern: 'none', env, generate: async () => JSON.stringify(CRISIS), scope: call, call }
+      )
+    );
+    await Promise.all(runs.map((r) => r?.verdict));
+    return { detection: detectCrisis(LATEST), ...input, priorRisk: false, scope: call, call };
+  }
+  const opts = {
+    env: { CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live' },
+    adjudicate: adjudicator(SAYS.checkin),
+  };
 
-  it('off: hands back the very same promise', () => {
+  it('off: hands back the very same promise', async () => {
     const escalation = Promise.resolve(null);
+    const turn = await turnWithReads();
     expect(withClassifierOnly(escalation, run, turn, transcript, { env: {} })).toBe(escalation);
   });
 
+  it("live: the classifier's crisis guidance on an eligible turn becomes the soft check", async () => {
+    const turn = await turnWithReads();
+    const crisis = { action: 'guide', guidance: '[CRITICAL - USER SAFETY]\nCrisis indicators' };
+    const out = await withClassifierOnly(Promise.resolve(crisis), run, turn, transcript, opts);
+    expect(out).toEqual({ action: 'guide', guidance: SOFT_CRISIS_CHECK });
+  });
+
   it.each([
-    ['a soft check', { action: 'guide', guidance: 'SOFT' }],
+    ['a soft check', { action: 'guide', guidance: SOFT_CRISIS_CHECK }],
     [
       'a grounded light touch',
       { action: 'guide', guidance: '[SAFETY - LIGHT TOUCH] stay with them' },
     ],
     ['the script', { action: 'replace', script: '988' }],
-  ])('live: %s is handed back untouched', async (_n, decision) => {
-    const adjudicate = adjudicator(SAYS.checkin);
-    const out = await withClassifierOnly(Promise.resolve(decision), run, turn, transcript, {
-      env: { CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live' },
-      adjudicate,
-    });
+  ])('live: %s on the same eligible turn is handed back untouched', async (_n, decision) => {
+    const turn = await turnWithReads();
+    const out = await withClassifierOnly(Promise.resolve(decision), run, turn, transcript, opts);
     expect(out).toBe(decision);
   });
 });
