@@ -19,7 +19,8 @@
  *
  * With FORGET_EVERY_READER=on the readers outside recall check it too
  * (forget-every-reader.ts): the profile's last call summary in the system
- * prompt and greeting, the recap, the keyword search legs, UnifiedStore.recall
+ * prompt, greeting and single-agent awareness, the handoff summary, the
+ * relationship tool, the keyword search legs, UnifiedStore.recall
  * and recall notes already in the chat. Not yet covered: session priming's
  * reads of call summaries, and stored transcripts read by anything but
  * episode quotes.

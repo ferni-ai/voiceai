@@ -6,21 +6,25 @@
  * episode quotes, summaries, the mind note and the memory tool each check it.
  * These readers never did (code-health 2026-10-23, ddd.md 2.6): the caller
  * profile in the system prompt and the greeting (last call summary, life
- * events, goals, concerns), the conversation recap's last summary, the BM25
- * and entity legs of hybrid search, UnifiedStore.recall (memory
- * intelligence), entity proactive surfacing, and recall notes already in the
- * chat, which a forget mid-call left in place. Each now asks one check, by
- * the shared matcher (isForgotten), with the topics recorded in the store
- * (cached briefly, like the vector filter's) and those forgotten in this
- * process. If the stored topics can't be read in
- * time, every text counts as forgotten: readers of raw words fail closed.
+ * events, goals, concerns), the single-agent awareness block, the handoff
+ * summary, the relationship-summary tool, the BM25 and entity legs of hybrid
+ * search, UnifiedStore.recall (memory intelligence), entity proactive
+ * surfacing, and recall notes already in the chat, which a forget mid-call
+ * left in place. Each now asks one check over the topics recorded in the
+ * store (forget-topics-source.ts: one shared read, a last-known fallback,
+ * fail closed only with no source) and those forgotten in this process.
+ *
+ * The match is the shared one (isForgotten), with one tightening: a name in
+ * a topic ("Mark") must appear in the memory as that whole word, so
+ * forgetting Mark no longer hides "marked" (isForgotten stems memory words).
  *
  * @module memory/recall/forget-every-reader
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
-import type { UserProfile } from '../../types/user-profile.js';
-import { forgetGeneration, forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
+import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
+import { foldedWords } from './forget-tokens.js';
+import { readTopics, topicsNow, topicsWithin } from './forget-topics-source.js';
 import { isForgotten } from './session-recall.js';
 
 export function forgetEveryReaderEnabled(env: Env = process.env): boolean {
@@ -30,69 +34,78 @@ export function forgetEveryReaderEnabled(env: Env = process.env): boolean {
 /** True when a text is about something the caller asked to forget. */
 export type ForgottenCheck = (text: string) => boolean;
 
-/** Topics change rarely; a short cache keeps each turn from paying a read. */
-const TOPICS_TTL_MS = 15_000;
-/** A read slower than this counts as unreadable, so a reader fails closed instead of waiting. */
-export const READ_TIMEOUT_MS = 300;
-const lastRead = new Map<string, { at: number; gen: number; topics: string[] }>();
+/** The names (capitalized words) of a stored topic, folded as memory words are. */
+function namesOf(topic: string): string[] {
+  return (topic.match(/\S+/g) ?? [])
+    .filter((w) => /^\p{Lu}/u.test(w))
+    .flatMap((w) => foldedWords(w).map((f) => f.word));
+}
 
-/** The stored topics, cached until a forget in this process or the TTL; null when unreadable. */
-async function storedTopics(userId: string): Promise<string[] | null> {
-  const gen = forgetGeneration(userId);
-  const hit = lastRead.get(userId);
-  if (hit && hit.gen === gen && Date.now() - hit.at < TOPICS_TTL_MS) return hit.topics;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const late = new Promise<null>((resolve) => {
-    timer = setTimeout(() => resolve(null), READ_TIMEOUT_MS);
+/** isForgotten, with every name in the topic required as a whole word of the text. */
+export function aboutForgotten(text: string, topics: readonly string[]): boolean {
+  let whole: Set<string> | undefined;
+  return topics.some((t) => {
+    if (!isForgotten(text, [t])) return false;
+    const names = namesOf(t);
+    if (names.length === 0) return true;
+    whole ??= new Set(foldedWords(text).map((f) => f.word));
+    return names.every((n) => whole!.has(n));
   });
-  const topics = await Promise.race([forgottenTopicsOrNull(userId), late]);
-  clearTimeout(timer);
-  if (topics) lastRead.set(userId, { at: Date.now(), gen, topics });
-  return topics;
+}
+
+function checkFor(userId: string, stored: string[] | null): ForgottenCheck {
+  if (stored === null) return () => true; // no source at all: fail closed
+  const topics = [...new Set([...stored, ...forgottenInProcess(userId)])];
+  return (text) => aboutForgotten(text, topics);
 }
 
 /**
  * The caller's forgotten topics as a check, or null when the flag is off or
  * there is no member (nothing is stored for anonymous or on-behalf callers).
+ * `reader` names the caller in logs.
  */
 export async function forgottenCheck(
   userId: string | null | undefined,
+  reader = 'reader',
   env: Env = process.env
 ): Promise<ForgottenCheck | null> {
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
-  const stored = await storedTopics(userId);
-  if (stored === null) return () => true;
-  const topics = [...new Set([...stored, ...forgottenInProcess(userId)])];
-  return (text) => isForgotten(text, topics);
+  return checkFor(userId, await topicsWithin(userId, reader));
 }
 
 /**
- * The same check without waiting, for a reader on the transcript tick:
- * topics forgotten in this process plus the last ones read (refreshed in the
- * background for the next turn). Null when the flag is off or no member.
+ * The same check without waiting, for a reader on the transcript tick: the
+ * same topics (fresh or last known, plus this process's), the same fail
+ * closed when there is no source, and the same shared read started if due.
  */
 export function forgottenCheckNow(
   userId: string | null | undefined,
+  reader = 'reader-now',
   env: Env = process.env
 ): ForgottenCheck | null {
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
-  void forgottenCheck(userId, env);
-  const topics = [
-    ...new Set([...(lastRead.get(userId)?.topics ?? []), ...forgottenInProcess(userId)]),
-  ];
-  return (text) => isForgotten(text, topics);
+  return checkFor(userId, topicsNow(userId, reader));
 }
 
-/** For tests. */
-export function clearLastRead(): void {
-  lastRead.clear();
+/** Start the shared read early (agent setup, beside the prompt loads); never throws. */
+export function prefetchForgotten(userId: string | null | undefined, env: Env = process.env): void {
+  if (forgetEveryReaderEnabled(env) && isMemberIdentity(userId)) void readTopics(userId);
+}
+
+/**
+ * The recall snapshot's read of the topics (recall-firestore-store.ts). With
+ * the flag on it is the shared read (forced past a backoff: the snapshot
+ * tries once per call), so its result is every other reader's fallback.
+ */
+export function snapshotTopics(userId: string, env: Env = process.env): Promise<string[] | null> {
+  return forgetEveryReaderEnabled(env) ? readTopics(userId, true) : forgottenTopicsOrNull(userId);
 }
 
 const TEXT_FIELDS = ['text', 'content', 'naturalPhrasing', 'title', 'description', 'name'];
 const NAME_FIELDS = ['canonicalName', 'aliases', 'peopleMentioned', 'topics', 'relationship'];
 const NESTED = ['data', 'memory', 'entity', 'metadata'];
 
-/** The words a stored record is about: its text, names and topics, one level down too. */
+/** The words a stored record is about: its text, names and topics, two levels down too. */
 export function recordText(record: unknown, depth = 0): string {
   if (typeof record === 'string') return record;
   if (!record || typeof record !== 'object') return '';
@@ -102,7 +115,8 @@ export function recordText(record: unknown, depth = 0): string {
     if (typeof v === 'string') return [v];
     return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
   });
-  if (depth === 0) for (const k of NESTED) words.push(recordText(r[k], 1));
+  // Two levels: a search result's data.metadata.aliases (hybrid-search.ts).
+  if (depth < 2) for (const k of NESTED) words.push(recordText(r[k], depth + 1));
   return words.filter(Boolean).join(' ');
 }
 
@@ -122,7 +136,7 @@ export async function keepRemembered<T>(
   textOf: (item: T) => string = recordText
 ): Promise<T[]> {
   if (items.length === 0) return items;
-  return remembered(items, await forgottenCheck(userId), textOf);
+  return remembered(items, await forgottenCheck(userId, 'search'), textOf);
 }
 
 /** The text, or undefined when it is about a forgotten topic. */
@@ -131,29 +145,50 @@ export async function rememberedText(
   text: string | undefined
 ): Promise<string | undefined> {
   if (!text) return text;
-  const forgotten = await forgottenCheck(userId);
+  const forgotten = await forgottenCheck(userId, 'text');
   return forgotten?.(text) ? undefined : text;
 }
 
+/** The profile fields read into prompts that may hold what the caller asked to forget. */
+interface PromptProfile {
+  lastCallerSummary?: string;
+  lastConversationSummary?: string;
+  lifeEvents?: unknown[];
+  goals?: unknown[];
+  primaryConcerns?: unknown[];
+}
+
 /**
- * The caller's profile as the system prompt and the greeting read it
- * (agent-setup.ts "Who you're talking to", greeting-direction.ts
- * callerHistory): the last call summary, life events, goals and concerns
- * about a forgotten topic left out. The stored profile is not changed.
+ * The caller's profile as a prompt reads it: the last call summaries, life
+ * events, goals and concerns about a forgotten topic left out. The stored
+ * profile is not changed. Unchanged when the flag is off.
  */
-export async function profileForPrompt(services: {
-  userId?: string | null;
-  userProfile: UserProfile | null;
-}): Promise<UserProfile | null> {
-  const profile = services.userProfile;
-  const forgotten = profile && (await forgottenCheck(services.userId));
-  if (!profile || !forgotten) return profile;
-  const summary = profile.lastCallerSummary;
-  return {
+export async function profileForCaller<P extends PromptProfile>(
+  userId: string | null | undefined,
+  profile: P,
+  reader = 'profile'
+): Promise<P> {
+  const forgotten = await forgottenCheck(userId, reader);
+  if (!forgotten) return profile;
+  const kept = (s: string | undefined) => (s && !forgotten(s) ? s : undefined);
+  const out: P = {
     ...profile,
-    lastCallerSummary: summary && !forgotten(summary) ? summary : undefined,
-    lifeEvents: profile.lifeEvents && remembered(profile.lifeEvents, forgotten),
-    goals: remembered(profile.goals ?? [], forgotten),
-    primaryConcerns: remembered(profile.primaryConcerns ?? [], forgotten, String),
+    lastCallerSummary: kept(profile.lastCallerSummary),
+    lastConversationSummary: kept(profile.lastConversationSummary),
   };
+  if (profile.lifeEvents) out.lifeEvents = remembered(profile.lifeEvents, forgotten);
+  if (profile.goals) out.goals = remembered(profile.goals, forgotten);
+  if (profile.primaryConcerns) {
+    out.primaryConcerns = remembered(profile.primaryConcerns, forgotten, String);
+  }
+  return out;
+}
+
+/** profileForCaller for a session's services (agent-setup.ts, voice-agent-entry). */
+export async function profileForPrompt<P extends PromptProfile>(services: {
+  userId?: string | null;
+  userProfile?: P | null;
+}): Promise<P | null> {
+  const profile = services.userProfile ?? null;
+  return profile && profileForCaller(services.userId, profile);
 }

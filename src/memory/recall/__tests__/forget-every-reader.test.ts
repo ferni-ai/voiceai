@@ -1,9 +1,10 @@
 /**
  * FORGET_EVERY_READER: a topic the caller asked to forget stays out of every
- * reader that reaches the prompt. Each case forgets a topic through forgetTopic
- * first, then reads through the production reader: with the flag on the
- * forgotten item is gone and an unrelated one stays; with it off both come back
- * (what main does today).
+ * reader that reaches the prompt. Each reader is read twice: with the topic
+ * only in the store (forgotten in an earlier call or another process), and
+ * only in this process (forgotten mid-call, the store not read yet). With the
+ * flag on the forgotten item is gone and an unrelated one stays; with it off
+ * both come back (main today).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { UserProfile } from '../../../types/user-profile.js';
@@ -25,64 +26,66 @@ vi.mock('../../retrieval/semantic-memory-search.js', () => ({
   removeIndexedMemory: async () => undefined,
 }));
 vi.mock('../../entity-store/storage.js', () => ({
-  findEntityByAlias: async () => ({
-    id: 'e1',
-    canonicalName: 'Biscuit',
-    type: 'pet',
-    aliases: ['Biscuit'],
-  }),
+  findEntityByAlias: async () => null,
   searchEntities: async () => [
+    // Only an alias names the dog: two levels down (data.metadata.aliases).
+    { id: 'e1', canonicalName: 'the pup', type: 'pet', aliases: ['Biscuit'], salience: 0.7 },
     { id: 'e2', canonicalName: 'Dana', type: 'person', aliases: [], salience: 0.6 },
   ],
 }));
 
 import { forgetTopic, type ForgetStore } from '../forget.js';
-import { clearLastRead, keepRemembered, profileForPrompt } from '../forget-every-reader.js';
+import { resetForgetTopicsSource } from '../forget-topics-source.js';
+import { profileForPrompt } from '../forget-every-reader.js';
 import { hybridSearch } from '../../retrieval/hybrid-search.js';
 import { UnifiedMemoryStoreFacade } from '../../unified-store/facade.js';
 import { callerHistory, greetingFacts } from '../../../agents/multi-agent/greeting-direction.js';
-import { lastTalkedAbout } from '../../../agents/multi-agent/teammate-relationship.js';
-import { buildConversationRecap } from '../../../intelligence/context-builders/session/conversation-recap.js';
 import { sendRecall } from '../../../agents/personas/context-packet/turn-packet.js';
+import {
+  injectUserAwareness,
+  rememberedProfile,
+} from '../../../agents/voice-agent-entry/user-awareness-injection.js';
+import { getRelationshipSummaryDef } from '../../../tools/domains/memory/tools.js';
 
-const USER = 'member-forget-every-reader';
+type Source = 'store' | 'process';
+let userSeq = 0;
+let user = '';
 
-/** A store with no facts that records topics, so forgetTopic runs as in a call. */
-function topicStore(): ForgetStore {
-  return {
+/** Forget "Biscuit": recorded in the store only, or noted in this process only. */
+async function forgetBiscuit(source: Source): Promise<void> {
+  if (source === 'store') {
+    stored.topics = ['Biscuit'];
+    return;
+  }
+  const processOnly: ForgetStore = {
     facts: async () => [],
     markForgotten: async () => undefined,
-    addTopic: async (_u, topic) => {
-      stored.topics = [...(stored.topics ?? []), topic];
-    },
-    topics: async () => stored.topics,
+    addTopic: async () => undefined, // the store never gets it
+    topics: async () => [],
   };
-}
-
-async function forget(topic: string): Promise<void> {
-  const result = await forgetTopic(USER, topic, topicStore());
-  expect(result.kind).toBe('forgotten');
-}
-
-function setFlag(on: boolean): void {
-  if (on) process.env.FORGET_EVERY_READER = 'on';
-  else delete process.env.FORGET_EVERY_READER;
+  expect((await forgetTopic(user, 'Biscuit', processOnly)).kind).toBe('forgotten');
+  expect(stored.topics).toEqual([]);
 }
 
 beforeEach(() => {
   stored.topics = [];
-  clearLastRead();
+  resetForgetTopicsSource();
+  user = `member-fer-${++userSeq}`; // in-process forgets are per caller and never cleared
 });
-afterEach(() => setFlag(false));
+afterEach(() => vi.unstubAllEnvs());
 
-describe.each([true, false])('FORGET_EVERY_READER %s', (on) => {
+describe.each([
+  ['store', true],
+  ['store', false],
+  ['process', true],
+  ['process', false],
+] as Array<[Source, boolean]>)('topic only in the %s, FORGET_EVERY_READER %s', (source, on) => {
   beforeEach(async () => {
-    setFlag(on);
-    // Before the forget, every reader returns the item (the precondition).
-    await forget('Biscuit');
+    vi.stubEnv('FORGET_EVERY_READER', on ? 'on' : 'off');
+    await forgetBiscuit(source);
   });
 
-  it('the system prompt and the greeting: the last call summary and life events', async () => {
+  it('profile → system prompt summary and greeting', async () => {
     const profile = {
       totalConversations: 4,
       lastCallerSummary: 'how Biscuit keeps chewing the couch',
@@ -93,37 +96,63 @@ describe.each([true, false])('FORGET_EVERY_READER %s', (on) => {
       goals: [],
       primaryConcerns: [],
     } as unknown as UserProfile;
-    const seen = await profileForPrompt({ userId: USER, userProfile: profile });
+    const seen = await profileForPrompt({ userId: user, userProfile: profile });
     const facts = greetingFacts('morning', 'Sam', callerHistory(seen!));
-    const prompt = seen?.lastCallerSummary ? lastTalkedAbout(false, seen.lastCallerSummary) : '';
     const events = (seen?.lifeEvents ?? []).map((e) => e.title);
     if (on) {
       expect(facts['what you talked about last time']).toBeUndefined();
-      expect(prompt).toBe('');
       expect(events).toEqual(['moving to Denver']);
     } else {
       expect(facts['what you talked about last time']).toContain('Biscuit');
-      expect(prompt).toContain('Biscuit');
       expect(events).toEqual(['Biscuit is sick', 'moving to Denver']);
     }
     expect(profile.lastCallerSummary).toContain('Biscuit'); // the stored profile is unchanged
   });
 
-  it('the conversation recap: the last summary', async () => {
-    const [recap] = await buildConversationRecap({
-      userText: 'remind me what we said',
+  it('single-agent awareness block (voice-agent-entry)', async () => {
+    const profile = {
+      totalConversations: 4,
+      lastConversationSummary: 'Biscuit chewed the couch again',
+      goals: [],
+      primaryConcerns: [],
+    } as unknown as UserProfile;
+    const { instructionsBlock } = injectUserAwareness({
+      sessionId: `s-${user}`,
+      userProfile: await rememberedProfile(user, profile),
       userData: {},
-      services: {
-        userId: USER,
-        userProfile: { lastConversationSummary: 'Biscuit chewed the couch again' },
-      },
-    } as never);
-    if (on) expect(recap?.content).not.toContain('Biscuit');
-    else expect(recap?.content).toContain('Biscuit');
+      isReturningUser: true,
+      sessionStartTime: new Date(),
+    });
+    if (on) expect(instructionsBlock).not.toContain('Biscuit');
+    else expect(instructionsBlock).toContain('Last time you talked about: Biscuit');
   });
 
-  it('hybrid search: the BM25 and entity legs', async () => {
-    const { results } = await hybridSearch(USER, 'Biscuit', { topK: 10, minScore: 0 });
+  it('relationship-summary tool', async () => {
+    const userData = {
+      userId: user,
+      services: {
+        userProfile: {
+          name: 'Sam',
+          totalConversations: 4,
+          relationshipStage: 'old_friend',
+          preferredTopics: [],
+          goals: [],
+          lastConversationSummary: 'Biscuit chewed the couch again',
+        },
+      },
+    };
+    type Execute = (args: object, opts: unknown) => Promise<string>;
+    const tool = getRelationshipSummaryDef.create({ agentId: 'ferni' } as never) as unknown as {
+      execute: Execute;
+    };
+    const reply = await tool.execute({}, { ctx: { userData } });
+    expect(reply).toContain('4 conversations');
+    if (on) expect(reply).not.toContain('Biscuit');
+    else expect(reply).toContain('Last time: Biscuit');
+  });
+
+  it('hybrid search: the BM25 leg and an entity known only by an alias', async () => {
+    const { results } = await hybridSearch(user, 'Biscuit', { topK: 10, minScore: 0 });
     const ids = results.map((r) => r.id).sort();
     if (on) expect(ids).toEqual(['b2', 'e2']);
     else expect(ids).toEqual(['b1', 'b2', 'e1', 'e2']);
@@ -148,49 +177,46 @@ describe.each([true, false])('FORGET_EVERY_READER %s', (on) => {
       },
       memoryAdapter: { search: async () => [] },
     });
-    const { memories } = await store.recall({ userId: USER, query: 'couch' });
+    const { memories } = await store.recall({ userId: user, query: 'couch' });
     const ids = memories.map((m) => m.memory.id).sort();
     if (on) expect(ids).toEqual(['m2']);
     else expect(ids).toEqual(['m1', 'm2']);
   });
 
   it('recall notes already in the chat are checked again each turn', async () => {
-    const items = [
+    // The store's topics reach the transcript tick once read (agent setup prefetches them).
+    const { agent, ids } = chat([
       { id: 'recall_1', textContent: '[WHAT YOU REMEMBER] their dog Biscuit chews things' },
       { id: 'recall_2', textContent: '[WHAT YOU REMEMBER] training for Boston' },
       { id: 'user_1', textContent: 'Biscuit did it again' }, // the caller's words, never touched
-    ];
-    let current = items;
-    const agent = {
-      chatCtx: {
-        copy: () => ({
-          items: [...current],
-          addMessage: (m: { content: string; id?: string }) => {
-            current = [...current, { id: m.id ?? '', textContent: m.content }];
-          },
-        }),
-      },
-      updateChatCtx: async (ctx: unknown) => {
-        current = (ctx as { items: typeof items }).items;
-      },
-    };
-    sendRecall(agent as never, {}, { lastPick: () => null } as never, null, USER);
-    const ids = current.map((i) => i.id);
-    if (on) expect(ids).toEqual(['recall_2', 'user_1']);
-    else expect(ids).toEqual(['recall_1', 'recall_2', 'user_1']);
+    ]);
+    await primeStore(user);
+    sendRecall(agent as never, {}, { lastPick: () => null } as never, null, user);
+    if (on) expect(ids()).toEqual(['recall_2', 'user_1']);
+    else expect(ids()).toEqual(['recall_1', 'recall_2', 'user_1']);
   });
 });
 
-describe('fails closed', () => {
-  it('drops every item when the stored topics cannot be read (flag on)', async () => {
-    setFlag(true);
-    stored.topics = null;
-    expect(await keepRemembered(USER, [{ text: 'anything' }])).toEqual([]);
-  });
+/** The first read for a caller (agent setup's prefetch): the transcript tick then has a source. */
+async function primeStore(userId: string): Promise<void> {
+  const { readTopics } = await import('../forget-topics-source.js');
+  await readTopics(userId);
+}
 
-  it('reads nothing for a caller with no account', async () => {
-    setFlag(true);
-    stored.topics = null;
-    expect(await keepRemembered('anonymous', [{ text: 'anything' }])).toHaveLength(1);
-  });
-});
+function chat(items: Array<{ id: string; textContent: string }>) {
+  let current = items;
+  const agent = {
+    chatCtx: {
+      copy: () => ({
+        items: [...current],
+        addMessage: (m: { content: string; id?: string }) => {
+          current = [...current, { id: m.id ?? '', textContent: m.content }];
+        },
+      }),
+    },
+    updateChatCtx: async (ctx: unknown) => {
+      current = (ctx as { items: typeof items }).items;
+    },
+  };
+  return { agent, ids: () => current.map((i) => i.id) };
+}

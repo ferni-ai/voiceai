@@ -13,6 +13,7 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import { memoryHeld } from '../../../utils/minor-care.js';
 import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
+import { profileForCaller } from '../../../memory/index.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -151,7 +152,6 @@ export const recallFromMemoryDef: ToolDefinition = {
         if (services?.userProfile) {
           const profile = services.userProfile;
 
-          // Check various memory stores
           if (profile.lastConversationSummary) {
             return `From our last conversation, I remember: ${profile.lastConversationSummary}`;
           }
@@ -356,7 +356,7 @@ export const getRelationshipSummaryDef: ToolDefinition = {
         const { services } = userData;
 
         if (services?.userProfile) {
-          const profile = services.userProfile;
+          const profile = await profileForCaller(userData.userId, services.userProfile);
           const sections: string[] = [];
 
           if (profile.name) {

@@ -52,7 +52,7 @@ import {
   startHealthMonitoring,
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
-import { profileForPrompt } from '../../memory/recall/forget-every-reader.js';
+import * as forgotten from '../../memory/recall/forget-every-reader.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -325,8 +325,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
   //   - These are active from the VERY FIRST MOMENT of connection
   //   - Concise, critical rules that must never be forgotten
   // Agent-level: Full persona prompt (identity, detailed tools, personality)
-  //   - Sent via LiveKit's updateInstructions() after session starts
-  //   - Contains full persona identity and detailed tool catalog
+  //   - Sent via updateInstructions() after session starts: full identity and tool catalog
 
   let systemPrompt: string;
   let modelBaseInstructions: string;
@@ -338,6 +337,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
     const [baseInstructions, loadedSystemPrompt] = await Promise.all([
       loadModelBaseInstructions(),
       loadSystemPrompt(persona.id).then((prompt) => withChiefOfStaffRole(persona.id, prompt)),
+      forgotten.prefetchForgotten(services.userId), // FORGET_EVERY_READER: read it alongside
     ]);
     mark('load_prompts_done');
 
@@ -366,7 +366,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       baseInstructions + dateTimeContext + worldNowRule + cityContext + outboundAwareness;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
-    const userProfile = outboundAwareness ? undefined : await profileForPrompt(services);
+    const userProfile = outboundAwareness ? undefined : await forgotten.profileForPrompt(services);
     if (userProfile) {
       // Days since the last call count in the zone this call settled (phone-parity.ts)
       const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
@@ -2312,7 +2312,7 @@ export async function buildHandoffContext(config: AgentSetupConfig): Promise<str
   parts.push('[HANDOFF CONTEXT]');
   parts.push(...handoffIntro(previousPersonaId)); // teammate-relationship.ts
 
-  if (conversationSummary) {
+  if (await forgotten.rememberedText(userData?.userId, conversationSummary)) {
     parts.push(`\nConversation summary: ${conversationSummary}`);
   }
 
