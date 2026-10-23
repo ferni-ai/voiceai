@@ -14,7 +14,8 @@
  *
  * FIRESTORE_DB_PIN chooses what a mismatch does:
  * - report (default): log FIRESTORE_DB_MISMATCH with the expected and actual
- *   database, the RPC and the first app stack frame, then send the RPC.
+ *   database, the RPC and the first app stack frame (for an RPC the SDK sends
+ *   after an await, the frame initializeIfNeeded(tag) noted), then send the RPC.
  *   Deduped per call site and capped per minute, so a hot path cannot flood
  *   the logs; every mismatch not logged is counted in the next line's
  *   `suppressed`. Prod runs this with '(default)' expected, so any stray
@@ -137,7 +138,8 @@ function siteOf(holder: StackHolder): string {
 type Check = (
   actual: string,
   method: string,
-  wrapper: (...a: never[]) => unknown
+  wrapper: (...a: never[]) => unknown,
+  initStack?: StackHolder
 ) => FirestoreDatabaseMismatchError | null;
 
 function createCheck(env: Env, sink: FirestoreDbMismatchSink): Check {
@@ -145,7 +147,7 @@ function createCheck(env: Env, sink: FirestoreDbMismatchSink): Check {
   let windowStart = 0;
   let lines = 0;
   let suppressed = 0;
-  return (actual, method, wrapper) => {
+  return (actual, method, wrapper, initStack) => {
     const mode = firestoreDbPinMode(env);
     if (mode === 'off') return null;
     const expected = getFirestoreDatabase(env);
@@ -162,7 +164,10 @@ function createCheck(env: Env, sink: FirestoreDbMismatchSink): Check {
       suppressed++;
       return refusal;
     }
-    const site = writeSites().getStore() ?? callerSite(wrapper);
+    let site = writeSites().getStore() ?? callerSite(wrapper);
+    // runQuery is sent from initializeIfNeeded(tag).then(...), past every app
+    // frame; the stack initializeIfNeeded noted for that tag still has them.
+    if (site === 'unknown' && initStack) site = siteOf(initStack);
     const key = `${method}|${actual}|${site}`;
     if (seen.has(key)) {
       suppressed++;
@@ -245,10 +250,10 @@ export function installFirestoreDbPin(
       ): unknown {
         // The SDK's getter: the bound databaseId, or '(default)'.
         const database = this.databaseId ?? '(default)';
-        const refusal = check(database, method, pinned);
-        if (refusal) return Promise.reject(refusal);
         // request(method, request, tag, …); requestStream(method, bidi, request, tag)
         const [request, tag] = name === 'request' ? rest : rest.slice(1);
+        const refusal = check(database, method, pinned, stacks.get(tag));
+        if (refusal) return Promise.reject(refusal);
         const stack = stacks.get(tag) ?? captureStack(pinned);
         const result = (original as Method).call(this, method, ...rest);
         if (!(result instanceof Promise)) return result;

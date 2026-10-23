@@ -146,10 +146,8 @@ export async function saveTokens(
   missUntil.delete(userId);
 
   try {
-    await tokenStore.setImmediate(userId, {
-      encrypted: encryptData(withTimestamp),
-      updated_at: Date.now(),
-    });
+    const grant = { encrypted: encryptData(withTimestamp), updated_at: Date.now() };
+    await tokenStore.setImmediate(userId, grant, { safeWithoutRead: true }); // a new grant saves
     log.info({ userId: userId.substring(0, 8) }, 'Saved Google Calendar tokens');
   } catch (err) {
     log.error(
