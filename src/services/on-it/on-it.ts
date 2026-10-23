@@ -111,7 +111,11 @@ function errandRow(e: Errand): OnItRow {
   const personaId = ERRAND_PERSONA[e.kind];
   const base = { id: `errand:${e.id}`, personaId, line: asLine(withoutContactDetails(e.goal)) };
   if (e.pending) {
-    return { ...base, section: 'waitingOnYou', detail: askDetail(e.pending.action.verb, personaId) };
+    return {
+      ...base,
+      section: 'waitingOnYou',
+      detail: askDetail(e.pending.action.verb, personaId),
+    };
   }
   const state = e.state as DoingState; // closed errands were filtered out before
   const left = e.candidates.filter((c) => UNTRIED.has(c.status)).length;
@@ -155,16 +159,19 @@ export function buildOnIt(input: OnItInput): OnItView {
       ...errandRows.filter((r) => r.section === 'waitingOnYou'),
     ],
     doing: errandRows.filter((r) => r.section === 'doing'),
-    holding: whatFerniHolds(userId, live.filter((f) => !waitsOnYou(f)), forgotten, now).items.map(
-      (h): OnItRow => ({
-        id: `follow-up:${h.id}`,
-        section: 'holding',
-        personaId: FOLLOW_UP_PERSONA[h.kind],
-        line: h.slipped ? slipped(h.text) : asLine(h.text),
-        ...(h.slipped ? {} : { detail: holdingDetail(h.kind) }),
-        ...(h.dueAt ? { at: h.dueAt } : {}),
-      })
-    ),
+    holding: whatFerniHolds(
+      userId,
+      live.filter((f) => !waitsOnYou(f)),
+      forgotten,
+      now
+    ).items.map((h): OnItRow => ({
+      id: `follow-up:${h.id}`,
+      section: 'holding',
+      personaId: FOLLOW_UP_PERSONA[h.kind],
+      line: h.slipped ? slipped(h.text) : asLine(h.text),
+      ...(h.slipped ? {} : { detail: holdingDetail(h.kind) }),
+      ...(h.dueAt ? { at: h.dueAt } : {}),
+    })),
     done: input.changed
       .filter((f) => isClosedStatus(f.status) && Date.parse(closedAt(f)) >= since && keep(f))
       .sort((a, b) => closedAt(b).localeCompare(closedAt(a)))

@@ -59,7 +59,13 @@ export function liveFollowUps(userId = 'uid-A'): FollowUp[] {
   return [
     followUp({ id: 'held-soon', userId, dueAt: at(2), text: 'call the pharmacy' }),
     followUp({ id: 'held-late', userId, dueAt: at(-3), text: 'renew the registration' }),
-    followUp({ id: 'held-thread', userId, kind: 'thread', dueAt: null, text: "sister's interview" }),
+    followUp({
+      id: 'held-thread',
+      userId,
+      kind: 'thread',
+      dueAt: null,
+      text: "sister's interview",
+    }),
     followUp({
       id: 'held-number',
       userId,
@@ -119,6 +125,12 @@ export function openErrands(userId = 'uid-A'): Errand[] {
       goal: 'find a dentist who takes my insurance',
       candidates: [place('p1', 'declined'), place('p2', 'new'), place('p3', 'retry')],
     }),
-    errand({ id: 'e-money', userId, kind: 'purchase-research', state: 'acting', goal: 'a new fridge' }),
+    errand({
+      id: 'e-money',
+      userId,
+      kind: 'purchase-research',
+      state: 'acting',
+      goal: 'a new fridge',
+    }),
   ];
 }

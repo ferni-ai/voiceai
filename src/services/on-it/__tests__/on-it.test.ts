@@ -25,7 +25,8 @@ const rowsOf = (view: ReturnType<typeof buildOnIt>, id: string): OnItRow[] =>
   view.sections.find((s) => s.id === id)?.rows.slice() ?? [];
 
 /** Words that are the system talking, never a friend (engagement spec 5.1 "Never"). */
-const SYSTEM_WORDS = /\baction\b|executing|\brequest|\bconfirmed\b|\bAI\b|[a-z][A-Z]\w*\(|\b[a-z]+[A-Z]\w*\b/;
+const SYSTEM_WORDS =
+  /\baction\b|executing|\brequest|\bconfirmed\b|\bAI\b|[a-z][A-Z]\w*\(|\b[a-z]+[A-Z]\w*\b/;
 
 describe('buildOnIt', () => {
   it('a held item, a closed follow-up and errands give all four sections, in screen order', () => {
@@ -133,7 +134,10 @@ describe('buildOnIt', () => {
     const view = buildOnIt(
       input({
         errands: null,
-        live: [...liveFollowUps(), ...liveFollowUps('uid-B').map((f) => ({ ...f, id: `b-${f.id}` }))],
+        live: [
+          ...liveFollowUps(),
+          ...liveFollowUps('uid-B').map((f) => ({ ...f, id: `b-${f.id}` })),
+        ],
       })
     );
 
