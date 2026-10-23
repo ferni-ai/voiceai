@@ -138,11 +138,6 @@ final class AppModelTests: XCTestCase {
         XCTAssertTrue(model.isAskingConsent, "the notification's Talk now reached the model")
     }
 
-    /// Critic C3: notes from Ferni stay out of the binary until the server can
-    /// deliver them; no ask, no device registration, no APNs entitlement.
-    func testNotesFromFerniWaitForTheServerRoute() {
-        XCTAssertFalse(FerniBuild.pushNotes, "the entitlement is checked on the signed build (codesign)")
-    }
 
     /// The watch is a remote: its Talk goes through consent like the phone's,
     /// and Mute or End with no call do nothing.

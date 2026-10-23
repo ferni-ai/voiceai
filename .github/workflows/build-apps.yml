@@ -95,6 +95,11 @@ jobs:
         working-directory: apps/ios-native
         run: ./scripts/check-motion-rules.sh
 
+      # Notes from Ferni ship in Release: FERNI_PUSH and the APNs entitlements (IB1).
+      - name: Push build
+        working-directory: apps/ios-native
+        run: ./scripts/check-push-build.sh
+
       - name: Cache Swift packages
         uses: actions/cache@v6
         with:
