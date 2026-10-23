@@ -12,7 +12,7 @@
 
 import { createHash } from 'crypto';
 import { getLogger } from '../../utils/safe-logger.js';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getFirestoreDb, removeUndefined } from '../../utils/firestore-utils.js';
 import type { FirestoreVectorStore } from '../firestore-vector-store.js';
 import type { VectorStore } from '../vector-store.js';
 
@@ -90,17 +90,32 @@ async function getBundleContentHash(bundlePath: string): Promise<string> {
 // ============================================================================
 
 /**
+ * Whether a bundle directory name can be a vector_index_status document id.
+ *
+ * Firestore rejects the commit with INVALID_ARGUMENT for an id matching
+ * __.*__ (reserved), one containing "/", "." or "..", or one over 1500 bytes
+ * (all checked on the emulator). The image copies src/personas/bundles whole,
+ * test fixtures included, so the loop below met `__tests__` and every pod start
+ * logged `Resource id "__tests__" is invalid because it is reserved.`
+ */
+export function isStorableBundleId(id: string): boolean {
+  return (
+    id.length > 0 &&
+    id !== '.' &&
+    id !== '..' &&
+    !id.includes('/') &&
+    !/^__.*__$/.test(id) &&
+    Buffer.byteLength(id, 'utf8') <= 1500
+  );
+}
+
+/**
  * Load indexing status from Firestore
  */
 async function loadIndexStatus(): Promise<void> {
   try {
-    const { getGCPProjectId, getFirestoreDatabase } = await import('../../config/environment.js');
-    const { Firestore } = await import('@google-cloud/firestore');
-
-    const db = new Firestore({
-      projectId: getGCPProjectId(),
-      databaseId: getFirestoreDatabase(),
-    });
+    const db = getFirestoreDb();
+    if (!db) return;
 
     const snapshot = await db.collection('vector_index_status').get();
 
@@ -126,14 +141,13 @@ async function loadIndexStatus(): Promise<void> {
  * Save indexing status to Firestore
  */
 async function saveIndexStatus(bundleId: string, status: IndexingStatus): Promise<void> {
+  if (!isStorableBundleId(bundleId)) {
+    log.debug({ bundleId }, 'Not a valid Firestore document id, index status not saved');
+    return;
+  }
   try {
-    const { getGCPProjectId, getFirestoreDatabase } = await import('../../config/environment.js');
-    const { Firestore } = await import('@google-cloud/firestore');
-
-    const db = new Firestore({
-      projectId: getGCPProjectId(),
-      databaseId: getFirestoreDatabase(),
-    });
+    const db = getFirestoreDb();
+    if (!db) return;
 
     await db
       .collection('vector_index_status')
@@ -278,7 +292,8 @@ export async function startBackgroundIndexing(
       let bundlesProcessed = 0;
 
       for (const bundle of bundles) {
-        if (!bundle.isDirectory()) continue;
+        // `__tests__` and the like are not persona bundles and cannot be stored.
+        if (!bundle.isDirectory() || !isStorableBundleId(bundle.name)) continue;
 
         const bundlePath = join(bundlesPath, bundle.name);
 
