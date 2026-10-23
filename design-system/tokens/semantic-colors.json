@@ -1,5 +1,7 @@
 {
-  "description": "Website theme sets. Each role names one --color-* property and its value in every theme, as a path into colors.json (or a literal colour). design-system/lib/website-theme.js turns it into the dark blocks of the website _tokens.css. colors.json stays hex/rgba because native apps read it; new theme structure goes here.",
+  "description": "Website theme sets. Each role names one --color-* property (or the group's prefix) and its value in every theme, as a path into colors.json (spacing.json for a group with source spacing) or a literal. design-system/lib/website-theme.js turns it into the theme blocks of the website _tokens.css. colors.json stays hex/rgba because native apps read it; new theme structure goes here.",
+  "_ownsLight": "A group with ownsLight has its light values emitted by website-theme.js at the end of the light :root; the older groups' light values still come from sync-promo-tokens.js.",
+  "_inverse": "A role's inverse context is its value inside [data-surface=\"inverse\"] (always-dark sections). Light values are today's literals on those sections; dark defaults to the light value until it is tuned.",
 
   "groups": [
     {
@@ -20,9 +22,9 @@
     {
       "label": "Text",
       "roles": {
-        "text-primary": { "light": "themes.zen.text.primary", "dark": "themes.midnight.text.primary" },
-        "text-secondary": { "light": "themes.zen.text.secondary", "dark": "themes.midnight.text.secondary" },
-        "text-muted": { "light": "themes.zen.text.muted", "dark": "themes.midnight.text.muted" },
+        "text-primary": { "light": "themes.zen.text.primary", "dark": "themes.midnight.text.primary", "inverse": { "light": "themes.zen.text.inverse" } },
+        "text-secondary": { "light": "themes.zen.text.secondary", "dark": "themes.midnight.text.secondary", "inverse": { "light": "rgba(255, 255, 255, 0.7)" } },
+        "text-muted": { "light": "themes.zen.text.muted", "dark": "themes.midnight.text.muted", "inverse": { "light": "themes.midnight.text.muted" } },
         "text-dimmed": { "light": "themes.zen.text.dimmed", "dark": "themes.midnight.text.dimmed" },
         "text-inverse": { "light": "themes.zen.text.inverse", "dark": "themes.midnight.text.inverse" },
         "text": { "light": "themes.zen.text.primary", "dark": "themes.midnight.text.primary" },
@@ -37,9 +39,9 @@
     {
       "label": "Accent",
       "roles": {
-        "accent": { "light": "themes.zen.accent.primary", "dark": "themes.midnight.accent.primary" },
-        "accent-hover": { "light": "themes.zen.accent.hover", "dark": "themes.midnight.accent.hover" },
-        "accent-pressed": { "light": "themes.zen.accent.pressed", "dark": "themes.midnight.accent.pressed" },
+        "accent": { "light": "themes.zen.accent.primary", "dark": "themes.midnight.accent.primary", "inverse": { "light": "themes.midnight.accent.primary" } },
+        "accent-hover": { "light": "themes.zen.accent.hover", "dark": "themes.midnight.accent.hover", "inverse": { "light": "themes.midnight.accent.hover" } },
+        "accent-pressed": { "light": "themes.zen.accent.pressed", "dark": "themes.midnight.accent.pressed", "inverse": { "light": "themes.midnight.accent.pressed" } },
         "accent-glow": { "light": "themes.zen.accent.glow", "dark": "themes.midnight.accent.glow" },
         "accent-subtle": { "light": "themes.zen.accent.subtle", "dark": "themes.midnight.accent.subtle" }
       }
@@ -47,9 +49,9 @@
     {
       "label": "Borders",
       "roles": {
-        "border-subtle": { "light": "themes.zen.border.subtle", "dark": "themes.midnight.border.subtle" },
+        "border-subtle": { "light": "themes.zen.border.subtle", "dark": "themes.midnight.border.subtle", "inverse": { "light": "themes.midnight.border.subtle" } },
         "border-medium": { "light": "themes.zen.border.medium", "dark": "themes.midnight.border.medium" },
-        "border-strong": { "light": "themes.zen.border.strong", "dark": "themes.midnight.border.strong" }
+        "border-strong": { "light": "themes.zen.border.strong", "dark": "themes.midnight.border.strong", "inverse": { "light": "themes.midnight.border.strong" } }
       }
     },
     {
@@ -61,6 +63,28 @@
         "error-bg": { "light": "themes.zen.semantic.errorGlow", "dark": "themes.midnight.semantic.errorGlow" },
         "warning": { "light": "themes.zen.semantic.warning", "dark": "themes.midnight.semantic.warning" },
         "warning-bg": { "light": "themes.zen.semantic.warningGlow", "dark": "themes.midnight.semantic.warningGlow" }
+      }
+    },
+    {
+      "label": "Surfaces",
+      "ownsLight": true,
+      "roles": {
+        "surface-base": { "light": "themes.zen.background.primary", "dark": "themes.midnight.background.primary", "inverse": { "light": "themes.zen.text.primary" } },
+        "surface-sunken": { "light": "themes.zen.background.secondary", "dark": "themes.midnight.background.secondary", "inverse": { "light": "cinematic.black.rich" } },
+        "surface-raised": { "light": "#ffffff", "dark": "themes.midnight.background.tertiary", "inverse": { "light": "rgba(255, 255, 255, 0.08)" } },
+        "surface-overlay": { "light": "themes.zen.background.elevated", "dark": "themes.midnight.background.elevated", "inverse": { "light": "themes.midnight.background.elevated" } },
+        "on-accent": { "light": "themes.zen.text.onAccent", "dark": "themes.midnight.text.onAccent", "inverse": { "light": "themes.midnight.text.onAccent" } },
+        "brand-text": { "light": "personas.ferni.primary", "dark": "personas.ferni.textOnDark", "inverse": { "light": "personas.ferni.textOnDark" } }
+      }
+    },
+    {
+      "label": "Shadows",
+      "ownsLight": true,
+      "prefix": "--shadow-",
+      "source": "spacing",
+      "roles": {
+        "raised": { "light": "shadows.zen.md", "dark": "shadows.midnight.md", "inverse": { "light": "shadows.midnight.md" } },
+        "overlay": { "light": "shadows.zen.xl", "dark": "shadows.midnight.xl", "inverse": { "light": "shadows.midnight.xl" } }
       }
     }
   ],

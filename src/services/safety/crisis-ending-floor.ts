@@ -13,13 +13,28 @@ import {
   FIRST_PERSON_ENDING,
 } from './crisis-patterns.js';
 
-/** The clause around a match: its words before and after, up to the nearest sentence break. */
-function clauseOf(text: string, from: number, to: number): { before: string; after: string } {
-  const start = Math.max(...['.', '!', '?', ';'].map((c) => text.lastIndexOf(c, from - 1))) + 1;
+const lastBreak = (text: string, at: number): number =>
+  Math.max(...['.', '!', '?', ';'].map((c) => text.lastIndexOf(c, at)));
+
+/**
+ * The clause around a match (its words before and after, up to the nearest sentence break), and
+ * the sentence before it and the one after it.
+ */
+function clauseOf(
+  text: string,
+  from: number,
+  to: number
+): { prev: string; before: string; after: string; next: string } {
+  const start = lastBreak(text, from - 1) + 1;
   const tail = text.slice(to).search(/[.!?;]/);
+  const end = tail < 0 ? text.length : to + tail;
+  const nextEnd = text.slice(end + 1).search(/[.!?;]/);
   return {
+    prev: start > 0 ? text.slice(lastBreak(text, start - 2) + 1, start - 1) : '',
     before: text.slice(start, from),
-    after: text.slice(to, tail < 0 ? text.length : to + tail),
+    after: text.slice(to, end),
+    next:
+      end < text.length ? text.slice(end + 1, nextEnd < 0 ? text.length : end + 1 + nextEnd) : '',
   };
 }
 
@@ -34,16 +49,36 @@ const OTHER_SUBJECT =
   /\b(let'?s|lets|we|we'll|they|they'll|he|she|you|(this|that|the) (\w+ )?(finale|episode|season|show|series|movie|film|game|match|band|team|party|concert|book|story|war|storm|meeting)) ((just|gonna|going to|will|'ll|can|finally|really|totally) )*$/;
 
 /**
- * A time, a means, a place or intent anywhere in the clause: then no idiom exempts the words
- * ("killing myself over this exam tonight with pills", "lets end it all with pills tonight").
+ * A means, a place or plain intent: in the clause, the sentence before or the next one, no idiom
+ * exempts the words ("killing myself over this exam with pills", "I have pills. I almost killed
+ * myself on the stairs", "…on the stairs. next time I'll finish it").
  */
-const RISK_IN_CLAUSE =
-  /\b(tonight|tomorrow|today|right now|soon|this (week|weekend)|next time|on purpose|for real|pills?|gun|rope|blade|knife|razor|bridge|roof|ledge|train|tracks|overdose|i will|i'll|i'm going to|i'm gonna|gonna)\b/;
+const MEANS_OR_INTENT =
+  /\b(next time|on purpose|intentionally|deliberately|for real|for good|wanted to|wish i (had|could)|wanted it (to be )?over|finish (it|the job)|try again|do it again|pills?|gun|rope|blade|knife|razor|bridge|roof|ledge|train|tracks|overdose)\b/;
+/**
+ * The caller's own future in the clause ("…on the stairs, I'll try again"). Only in the clause:
+ * "I killed myself laughing. I'll send you the clip" is no risk. "ill" and "gunna" are how
+ * speech-to-text often writes "I'll" and "gonna", so they count before a verb of doing.
+ */
+const FUTURE_IN_CLAUSE =
+  /\b(i will|i'll|i'm going to|(ill|gunna) (do|try|make|be|go|finish|end))\b/;
+/**
+ * A time in the clause: no idiom exempts the words ("killing myself over this exam tonight").
+ * With "let's" or "we", which include the caller, any time keeps "end it all" theirs.
+ */
+const TIME_IN_CLAUSE = /\b(tonight|tomorrow|today|right now|soon|this (week|weekend))\b/;
+const ANY_TIME =
+  /\b(tonight|tonite|tomorrow|today|now|soon|later|this (morning|afternoon|evening|week|weekend)|at (midnight|noon|dawn|\d{1,2}(:\d\d)? ?([ap]m)?)|next (week|month)|in (a|an|\d+|a few) (minute|hour|day)s?)\b/;
+const WITH_CALLER =
+  /\b(let'?s|lets|we|we'll) ((just|going to|will|'ll|can|finally|really|totally) )*$/;
 
 /** The floor's words in an everyday idiom, or "end it all" said with another subject. */
 function endingIdiom(text: string, from: number, to: number, words: string): boolean {
-  const { before, after } = clauseOf(text, from, to);
-  if (RISK_IN_CLAUSE.test(`${before} ${after}`)) return false;
+  const { prev, before, after, next } = clauseOf(text, from, to);
+  const clause = `${before} ${after}`;
+  if (TIME_IN_CLAUSE.test(clause) || FUTURE_IN_CLAUSE.test(clause)) return false;
+  if (MEANS_OR_INTENT.test(`${prev} ${clause} ${next}`)) return false;
+  if (WITH_CALLER.test(before) && ANY_TIME.test(clause)) return false;
   const span = `${words}${after}`;
   if (ENDING_IDIOMS.some((re) => re.test(span))) return true;
   if (ENDING_IDIOM_BEFORE.test(before) && ENDING_ACCIDENT.test(span)) return true;

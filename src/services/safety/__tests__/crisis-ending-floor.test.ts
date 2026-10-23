@@ -208,4 +208,49 @@ describe('the first-person ending floor', () => {
     expect(voiced.subject).toBe('self');
     expect(guardFromDetection(voiced).shouldBlock).toBe(true);
   });
+
+  it('reads intent wording, in the clause or the sentence before or after, as risk (#2540 Y)', () => {
+    for (const line of [
+      "I almost killed myself on the stairs, I'll try again",
+      "I almost killed myself on my bike and I'm going to try again tonight",
+      'I nearly killed myself on the ice, I will again',
+      'I almost killed myself on the stairs intentionally',
+      'I almost killed myself on the bike, I wish I had',
+      'I almost killed myself on the stairs. next time I will finish it',
+      'I have pills. I almost killed myself on the stairs',
+      'I did it on purpose. I nearly killed myself on the ice',
+      'i almost killed myself on the stairs ill try again',
+      'i killed myself in minecraft today and ill do it irl',
+      'almost killed myself on the ladder gunna do it right this time',
+      'I almost killed myself on the ladder. might try again',
+    ]) {
+      expect(level(line), line).toBe('script');
+    }
+    // Neighbouring sentences with no means or intent leave the idiom alone.
+    expect(level('It was icy. I nearly killed myself on the ice')).toBe('none');
+    expect(level('I almost killed myself laughing. that was so funny')).toBe('none');
+    // The caller's future in the next sentence is no risk on its own.
+    expect(level("I killed myself laughing at that. I'll send you the clip")).toBe('none');
+  });
+
+  it('keeps "end it all" with "let\'s" or "we" the caller\'s with any time word', () => {
+    for (const time of [
+      'today',
+      'soon',
+      'now',
+      'later',
+      'this morning',
+      'at midnight',
+      'at 3am',
+      'next week',
+      'in 10 minutes',
+      'in an hour',
+      'in a few days',
+    ]) {
+      expect(level(`lets end it all ${time}`), time).toBe('script');
+      expect(level(`we will end it all ${time}`), time).toBe('script');
+    }
+    // Another subject with a time beyond the clause list stays an idiom.
+    expect(level('the show will end it all later')).toBe('none');
+  });
 });

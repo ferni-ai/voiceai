@@ -23,6 +23,7 @@ import { dirname, join, relative, resolve } from 'path';
 import ts from 'typescript';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { CONTEXTS, LAYER_MAP, type Context, type Layer } from './architecture-layers.js';
+import { kernelDuplicateGate } from './kernel-duplicates.js';
 import { diffAgainstBase, listAtBase, readAtBase, resolveBase, type BaseDiff } from './merge-base.js';
 
 export const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'architecture-baseline.generated.json');
@@ -376,6 +377,8 @@ function main(args: string[]): void {
   const now = check(graph);
   const board = scoreboard(graph.files, graph.edges, now);
   say(`${board}\n\nScanned ${graph.files.length} files, ${graph.edges.length} imports in ${Date.now() - started} ms.`);
+  const isKernel = (f: string): boolean => placementOf(f)?.layer === 'L2';
+  const kernelFailed = kernelDuplicateGate(root, graph.files, isKernel, args, say);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Architecture gate\n\n${board}\n`);
 
   const base = resolveBase(root);
@@ -398,6 +401,7 @@ function main(args: string[]): void {
     say('\nLayer map: apps/cli/src/commands/quality/architecture-layers.ts (owners review changes to it).');
     process.exit(1);
   }
+  if (kernelFailed) process.exit(1);
   const fixed = scored?.fixed ?? 0;
   const msg = args.includes('--update') ? `${fixed} fixed edge(s) removed from the scoreboard.` : `${fixed} scoreboard edge(s) fixed: \`pnpm quality:arch --update\` records it.`;
   say(`\n✅ No architecture violations added.${fixed > 0 ? ` ${msg}` : ''}`);
