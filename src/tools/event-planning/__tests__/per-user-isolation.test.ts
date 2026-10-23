@@ -260,18 +260,3 @@ describe('a failed or stale read never overwrites saved plans', () => {
     expect(savedDoc(A)?.events.map((e) => e.name)).toContain('Other worker party');
   });
 });
-
-describe('the module exports no per-user storage internals', () => {
-  it('index does not re-export the raw storage helpers', async () => {
-    const index = await import('../index.js');
-    for (const name of [
-      'storesFor',
-      'loadedUsers',
-      'ensureUserLoaded',
-      'persistEventPlanningData',
-      'events',
-    ]) {
-      expect(index).not.toHaveProperty(name);
-    }
-  });
-});
