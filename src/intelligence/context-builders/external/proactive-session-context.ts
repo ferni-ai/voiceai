@@ -110,7 +110,7 @@ export function setProactiveSessionContext(
     {
       sessionId,
       triggerType: context.triggerType,
-      triggerReason: context.triggerReason,
+      triggerReasonChars: context.triggerReason.length, // never the reason: it is the caller's
       daysSince: context.daysSinceLastSession,
     },
     'Stored proactive session context'
