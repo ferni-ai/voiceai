@@ -20,7 +20,7 @@
  */
 import { isMemberIdentity } from './member-identity.js';
 import { newAnonymousId } from './anonymous-session-id.js';
-import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
+import { nonAccountPrefixOf, PLACEHOLDER_IDS } from '../../utils/synthetic-user.js';
 
 /** `session-${ctx.job.id}-${Date.now()}` (voice-agent-entry/index.ts): server-minted only. */
 const SERVER_SESSION_ID = /^session-([A-Za-z0-9_]+)-(\d{13})$/;
@@ -28,11 +28,24 @@ const SERVER_SESSION_ID = /^session-([A-Za-z0-9_]+)-(\d{13})$/;
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const MAX_SESSIONS = 5000;
 
+/**
+ * Never a caller's own id. Listed here as well as in PLACEHOLDER_IDS so this
+ * holds wherever that set stands (user-id-guard trusts it; widen it with care).
+ */
+const SHARED_IDS: ReadonlySet<string> = new Set([
+  ...PLACEHOLDER_IDS,
+  'anon',
+  'session',
+  'gateway',
+  'gateway-recovery',
+]);
+
 const bySessionId = new Map<string, string>();
 const bySessionObject = new WeakMap<object, string>();
 
 /** Whether `id` is usable as given: a member, or a minted anon:/onbehalf: id with a body. */
 function usable(id: string): boolean {
+  if (SHARED_IDS.has(id.toLowerCase())) return false;
   const prefix = nonAccountPrefixOf(id.toLowerCase());
   if (prefix !== undefined) return id.length > prefix.length;
   return isMemberIdentity(id);
