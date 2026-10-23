@@ -9,7 +9,10 @@
  *   reminders wait too. Anything else (a text they asked for, a code, a
  *   call result) goes.
  * - Release (held-texts.ts): the hold is read again before a held text goes;
- *   still held, it waits.
+ *   still held, it waits. What they asked Ferni to forget is read again too:
+ *   a text about a forgotten topic is dropped, and one whose topics can't be
+ *   read waits (forgottenAtRelease).
+ * - Only a member's text is held: a placeholder or anon: owner never gets a doc.
  * - Push: only callers that go through pushUnlessFocusHeld can be held, and
  *   they say what started it (PushOrigin; anything not marked a reminder
  *   counts as Ferni's). Every other push path is never held.
@@ -21,7 +24,9 @@
  */
 import { createHash } from 'node:crypto';
 import { personFlagOn } from '../../config/person-flag.js';
+import { forgottenInProcess, forgottenTopicsOrNull, isForgotten } from '../../memory/index.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { isMemberIdentity } from '../identity/member-identity.js';
 import { focusFromDoc, focusHold } from '../messaging/focus.js';
 import { DEFAULT_QUIET } from '../messaging/policy.js';
 import { prefsFromDoc } from '../messaging/prefs.js';
@@ -90,6 +95,8 @@ export const focusHeldId = (t: GuardedText): string =>
 export interface FocusTextDeps {
   held?: HeldTextStore;
   flagOn?: FocusFlag;
+  /** Topics they asked Ferni to forget (forget.ts), null when unreadable. */
+  forgotten?: (userId: string) => Promise<string[] | null>;
 }
 
 /**
@@ -105,8 +112,8 @@ export async function holdTextForFocus(
   deps: FocusTextDeps = {}
 ): Promise<boolean> {
   const hold = focusInDoc(doc, now);
-  if (!holds(hold, textOrigin(t.kind)) || !(await (deps.flagOn ?? focusFlag)(t.userId)))
-    return false;
+  if (!isMemberIdentity(t.userId) || !holds(hold, textOrigin(t.kind))) return false;
+  if (!(await (deps.flagOn ?? focusFlag)(t.userId))) return false;
   const { holdText, firestoreHeldTexts } = await import('./held-texts.js');
   const releaseAt = afterQuietHours(doc, hold.capUntil);
   await holdText(t, releaseAt, 'focus', deps.held ?? firestoreHeldTexts, focusHeldId(t));
@@ -138,6 +145,26 @@ export async function waitsAtRelease(
   });
   if (flag && holds(focusInDoc(doc, now), origin)) return 'focus';
   return focusHeld && afterQuietHours(doc, now) > now ? 'quiet-hours' : null;
+}
+
+const storedForgotten = async (userId: string): Promise<string[] | null> => {
+  const stored = await forgottenTopicsOrNull(userId);
+  return stored && [...stored, ...forgottenInProcess(userId)];
+};
+
+/**
+ * Before a text a Focus held goes: 'forgotten' when it is about a topic they
+ * asked Ferni to forget since (drop it), 'unreadable' when those topics can't
+ * be read (it waits, fails closed). Texts held for anything else: null, no read.
+ */
+export async function forgottenAtRelease(
+  held: Pick<HeldText, 'text' | 'reason'>,
+  deps: FocusTextDeps = {}
+): Promise<'forgotten' | 'unreadable' | null> {
+  if (held.reason !== 'focus') return null;
+  const topics = await (deps.forgotten ?? storedForgotten)(held.text.userId).catch(() => null);
+  if (topics === null) return 'unreadable';
+  return isForgotten(held.text.body, topics) ? 'forgotten' : null;
 }
 
 /** A push about a reminder (data.kind 'reminder') follows the reminder rule; any other note is Ferni's. */

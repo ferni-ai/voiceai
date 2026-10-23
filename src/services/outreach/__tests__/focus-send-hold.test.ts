@@ -9,6 +9,7 @@ import { atomicLocks } from './atomic-locks.js';
 import type { CheckinRecord, TextKind } from '../checkin-replies.js';
 import {
   focusHeldId,
+  holdTextForFocus,
   pushUnlessFocusHeld,
   type FocusPushDeps,
   type FocusTextDeps,
@@ -65,7 +66,10 @@ function heldStore(): HeldTextStore & { docs: Map<string, Omit<HeldText, 'id'>> 
   };
 }
 
-function deps(opts: { doc?: Record<string, unknown>; flag?: boolean; at?: Date } = {}) {
+type Topics = string[] | null;
+function deps(
+  opts: { doc?: Record<string, unknown>; flag?: boolean; at?: Date; forgotten?: Topics } = {}
+) {
   const added: CheckinRecord[] = [];
   const held = heldStore();
   const flagOn = vi.fn(async () => opts.flag !== false);
@@ -83,7 +87,10 @@ function deps(opts: { doc?: Record<string, unknown>; flag?: boolean; at?: Date }
     userDoc: vi.fn(async () => opts.doc),
     legacySmsChannels: async () => undefined,
   } as unknown as TextStore;
-  const focus: FocusTextDeps = { held, flagOn };
+  const forgotten = vi.fn(async (): Promise<Topics> =>
+    opts.forgotten === undefined ? [] : opts.forgotten
+  );
+  const focus: FocusTextDeps = { held, flagOn, forgotten };
   const d: TextDeps = {
     env: ENV,
     store,
@@ -92,7 +99,7 @@ function deps(opts: { doc?: Record<string, unknown>; flag?: boolean; at?: Date }
     now: () => opts.at ?? NOW,
     focus,
   };
-  return { d, added, held, flagOn };
+  return { d, added, held, flagOn, forgotten };
 }
 
 const text = (kind: TextKind, over: Partial<GuardedText> = {}): GuardedText => ({
@@ -218,6 +225,60 @@ describe('releaseHeldTexts after a Focus hold', () => {
   });
 });
 
+describe('a held text is checked against what they forgot, at release', () => {
+  const LAWYER = text('follow-up', {
+    body: 'Hey, you asked me to remind you: call my divorce lawyer',
+  });
+  const after = new Date(CAP.getTime() + MIN);
+
+  it('held, then the topic forgotten: at release it is dropped, never sent', async () => {
+    const { d, held } = deps({ doc: heldDoc() });
+    await sendGuardedText(LAWYER, d);
+    const run = deps({ doc: heldDoc(), at: after, forgotten: ['divorce lawyer'] });
+    const send = vi.fn(sendGuardedText);
+    expect(await releaseHeldTexts(held, run.d, send)).toEqual({ sent: 0, dropped: 1, waiting: 0 });
+    expect(send).not.toHaveBeenCalled();
+    expect(held.docs.size).toBe(0);
+  });
+
+  it('forgotten topics unreadable: it keeps waiting (fails closed), then goes once they read', async () => {
+    const { d, held } = deps({ doc: heldDoc() });
+    await sendGuardedText(LAWYER, d);
+    const unreadable = deps({ doc: heldDoc(), at: after, forgotten: null });
+    expect(await releaseHeldTexts(held, unreadable.d)).toEqual({ sent: 0, dropped: 0, waiting: 1 });
+    expect(unreadable.d.send).not.toHaveBeenCalled();
+    expect(held.docs.size).toBe(1);
+    const readable = deps({ doc: heldDoc(), at: after, forgotten: ['the dentist'] });
+    expect(await releaseHeldTexts(held, readable.d)).toEqual({ sent: 1, dropped: 0, waiting: 0 });
+  });
+
+  it('a text held for something else (quiet hours) is released as before: no forget read', async () => {
+    const held = heldStore();
+    await held.add({ text: text('opt-in'), releaseAt: NOW.toISOString(), reason: 'quiet-hours' });
+    const run = deps({ doc: heldDoc(), flag: false, forgotten: null });
+    expect(await releaseHeldTexts(held, run.d)).toEqual({ sent: 1, dropped: 0, waiting: 0 });
+    expect(run.forgotten).not.toHaveBeenCalled();
+  });
+});
+
+describe('a placeholder owner never gets a held-text doc', () => {
+  it.each(['', '  ', 'anonymous', 'Unknown', 'default', 'anon:abc', 'onbehalf:xyz'])(
+    'owner %j: nothing held, nothing written',
+    async (userId) => {
+      const { held } = deps({ doc: heldDoc() });
+      const flagOn = vi.fn(async () => true);
+      expect(await holdTextForFocus(text('checkin', { userId }), heldDoc(), NOW, { held, flagOn })).toBe(false); // prettier-ignore
+      expect(held.add).not.toHaveBeenCalled();
+    }
+  );
+
+  it('a member is held (the guard is not just refusing everyone)', async () => {
+    const { held } = deps({ doc: heldDoc() });
+    expect(await holdTextForFocus(text('checkin'), heldDoc(), NOW, { held, flagOn: async () => true })).toBe(true); // prettier-ignore
+    expect(held.docs.has(focusHeldId(text('checkin')))).toBe(true);
+  });
+});
+
 function focusOf(doc: Record<string, unknown>): Record<string, unknown> {
   return (doc.messagingPrefs as { focus: Record<string, unknown> }).focus;
 }
@@ -321,5 +382,9 @@ describe('pushUnlessFocusHeld', () => {
 it('focusHeldId is per person, kind and thing it is about', () => {
   expect(focusHeldId(text('checkin'))).toBe(focusHeldId(text('checkin')));
   expect(focusHeldId(text('checkin'))).not.toBe(focusHeldId(text('checkin', { refId: 'ref-2' })));
+  // Two people's held copies of the same text never share a doc
+  expect(focusHeldId(text('checkin'))).not.toBe(focusHeldId(text('checkin', { userId: 'u2' })));
+  const brief = (day: string) => text('morning-brief', { refId: `brief-${day}` });
+  expect(focusHeldId(brief('2026-10-22'))).not.toBe(focusHeldId(brief('2026-10-23')));
   expect(focusHeldId(text('checkin'))).not.toContain('u1');
 });

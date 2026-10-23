@@ -8,6 +8,8 @@ vi.mock('../../../services/scheduling/reminder-delivery-job.js', () => ({
   deliverDueReminders: async () => ({ delivered: 0 }),
 }));
 vi.mock('../../../services/outreach/reminder-texts.js', () => ({ installReminderTexts: vi.fn() }));
+const usersWithFlag = vi.hoisted(() => vi.fn(async (): Promise<string[]> => []));
+vi.mock('../../../services/platform/cohort-flags.js', () => ({ usersWithFlag }));
 
 const { handleDeliverReminders } = await import('../reminder-jobs.js');
 
@@ -46,6 +48,41 @@ describe('deliver-reminders job, SMS_OPT_IN_CONFIRM on', () => {
   });
 
   it('a dry run sends nothing', async () => {
+    await run('/api/jobs/deliver-reminders?dryRun=true');
+    expect(releaseHeldTexts).not.toHaveBeenCalled();
+  });
+});
+
+describe('deliver-reminders job, FOCUS_HOLD (independent of SMS_OPT_IN_CONFIRM)', () => {
+  beforeEach(() => {
+    releaseHeldTexts.mockClear();
+    usersWithFlag.mockClear();
+    vi.stubEnv('SMS_OPT_IN_CONFIRM', 'off');
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('FOCUS_HOLD on, SMS_OPT_IN_CONFIRM off: held texts are released', async () => {
+    vi.stubEnv('FOCUS_HOLD', 'on');
+    expect(await run('/api/jobs/deliver-reminders')).toContain('"heldTexts":{"sent":1');
+    expect(releaseHeldTexts).toHaveBeenCalledTimes(1);
+  });
+
+  it('FOCUS_HOLD on for a cohort only (env off): held texts are released', async () => {
+    vi.stubEnv('FOCUS_HOLD', 'off');
+    usersWithFlag.mockResolvedValueOnce(['u-1']);
+    await run('/api/jobs/deliver-reminders');
+    expect(usersWithFlag).toHaveBeenCalledWith('FOCUS_HOLD');
+    expect(releaseHeldTexts).toHaveBeenCalledTimes(1);
+  });
+
+  it('FOCUS_HOLD off everywhere: nothing released, as before', async () => {
+    vi.stubEnv('FOCUS_HOLD', 'off');
+    await run('/api/jobs/deliver-reminders');
+    expect(releaseHeldTexts).not.toHaveBeenCalled();
+  });
+
+  it('a dry run still sends nothing', async () => {
+    vi.stubEnv('FOCUS_HOLD', 'on');
     await run('/api/jobs/deliver-reminders?dryRun=true');
     expect(releaseHeldTexts).not.toHaveBeenCalled();
   });

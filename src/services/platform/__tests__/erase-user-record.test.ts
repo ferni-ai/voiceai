@@ -20,7 +20,14 @@ const STORES: OwnedStore[] = [
  * their fields: enough for doc reads, subcollection listing, equality queries and
  * recursive deletes.
  */
-function fakeFirestore(seed: Record<string, Record<string, string>>, opts = { deleteWorks: true }) {
+/** A field by path ("text.userId" reads the nested field, as Firestore's where does). */
+const fieldAt = (d: Record<string, unknown>, path: string): unknown =>
+  path.split('.').reduce<unknown>((v, k) => (v as Record<string, unknown> | undefined)?.[k], d);
+
+function fakeFirestore(
+  seed: Record<string, Record<string, unknown>>,
+  opts = { deleteWorks: true }
+) {
   const docs = new Map(Object.entries(seed));
   const under = (path: string) => [...docs.keys()].filter((p) => p.startsWith(`${path}/`));
   const docRef = (path: string) => ({
@@ -41,7 +48,7 @@ function fakeFirestore(seed: Record<string, Record<string, string>>, opts = { de
           get: async () => {
             const hits = [...docs.entries()].filter(
               ([p, d]) =>
-                p.split('/').length === 2 && p.startsWith(`${name}/`) && d[field] === value
+                p.split('/').length === 2 && p.startsWith(`${name}/`) && fieldAt(d, field) === value
             );
             return { empty: hits.length === 0, docs: hits.map(([p]) => ({ ref: docRef(p) })) };
           },
@@ -150,6 +157,25 @@ describe('eraseUserRecord', () => {
       'feature_flag_overrides/u-2',
       'relationship_memories/u-2_ferni',
     ]);
+  });
+
+  it("erases the texts held for them (feature_held_texts, by text.userId), not anyone else's", async () => {
+    const stores = ERASED_STORES.filter((s) => s.collection === 'feature_held_texts');
+    expect(stores).toEqual([{ collection: 'feature_held_texts', field: 'text.userId' }]);
+    const held = (userId: string) => ({
+      text: { userId, body: 'call my lawyer' },
+      reason: 'focus',
+    });
+    const { db, docs } = fakeFirestore({
+      'feature_held_texts/focus-a': held('u-1'),
+      'feature_held_texts/auto-b': held('u-1'),
+      'feature_held_texts/focus-c': held('u-2'),
+    });
+    expect(await findUserRecordRemnants(db, 'u-1', stores)).toEqual([
+      'feature_held_texts[text.userId]',
+    ]);
+    await eraseUserRecord('u-1', db, stores, []);
+    expect([...docs.keys()]).toEqual(['feature_held_texts/focus-c']);
   });
 
   it('throws when anything survives, so no caller reports an erasure that did not happen', async () => {
