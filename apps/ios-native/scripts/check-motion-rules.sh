@@ -13,8 +13,9 @@ if hits=$(grep -rnE "$banned" "${paths[@]}" --include='*.swift'); then
   exit 1
 fi
 # Call moments are felt once, from the avatar state machine (HapticCue); a view
-# haptic on call state doubles them. UI selection feedback is fine.
-if hits=$(grep -rnE '\.sensoryFeedback\(.*trigger: *call\.' App --include='*.swift'); then
+# haptic on call state doubles them. UI selection feedback is fine. One line
+# only: a modifier split across lines is not caught.
+if hits=$(grep -rnE '\.sensoryFeedback\(.*trigger: *([[:alnum:]_]+\.)*call\.' "${paths[@]}" --include='*.swift'); then
   echo "Motion rules: call haptics come from HapticCue, not a view:"
   echo "$hits"
   exit 1
