@@ -4,7 +4,7 @@ import XCTest
 /// Seth, on build .57 (2026-10-20): "the eyebrow eyelid problem is still
 /// there": thin pale arcs under each eye (the smile-crease stroke) and light
 /// lines along the lid edges read as brows or floating lower lids. The web has
-/// no strokes there; its lids are caps in the page's colour whose curved edge
+/// no strokes there; its lids are solid white caps whose curved edge
 /// carries the expression (apps/web ferni-expressions.ui.ts, .avatar-lid-overlay;
 /// Seth, 2026-10-11). So: nothing drawn on the body outside the eyes, and the
 /// caps visible where the web's lids close, on a round orb.
@@ -40,9 +40,9 @@ final class LidCapTests: XCTestCase {
     static func opaque(_ r: Render, _ x: Int, _ y: Int) -> Bool { r.bytes[(y * r.w + x) * 4 + 3] == 255 }
 
     /// How many levels (of 255, the largest channel) an opaque pixel sits from
-    /// the page behind Ferni (cream #faf8f5, dark #14110e).
-    static func levelsFromPage(_ r: Render, _ x: Int, _ y: Int) -> Double {
-        let page = [r.u.page.z, r.u.page.y, r.u.page.x].map { Double($0) * 255 }   // BGR, as stored
+    /// pure white (the lid caps' colour, Seth 2026-10-23).
+    static func levelsFromWhite(_ r: Render, _ x: Int, _ y: Int) -> Double {
+        let page = [255.0, 255, 255]
         let i = (y * r.w + x) * 4
         return (0..<3).map { abs(Double(r.bytes[i + $0]) - page[$0]) }.max() ?? 0
     }
@@ -74,7 +74,7 @@ final class LidCapTests: XCTestCase {
     /// keeping each patch at least a quarter the size of the biggest (a thin
     /// stroke never is), grown by `reach` pixels (a square dilation).
     /// With `bare` (the same face without caps), a pixel the caps changed
-    /// isn't a white: the caps are the page's cream.
+    /// isn't a white: the caps are white too.
     static func whites(_ r: Render, reach: Int, bare: Render? = nil) -> [Bool] {
         var label = [Int](repeating: -1, count: r.w * r.h)
         func white(_ i: Int) -> Bool {
@@ -146,7 +146,7 @@ final class LidCapTests: XCTestCase {
         guard AliveRenderer.shared != nil else { throw XCTSkip("no Metal device") }
         for id in ["winking", "yawning"] {
             let r = try Self.render(id)
-            // The caps are the page's colour, as light as a white: a pixel they changed isn't one.
+            // The caps are white too: a pixel they changed isn't an eye white.
             let bare = try Self.render(id, caps: false)
             func white(_ i: Int) -> Bool {
                 Self.isWhite(r, i) && (0..<3).allSatisfy { abs(Int(r.bytes[i * 4 + $0]) - Int(bare.bytes[i * 4 + $0])) <= 8 }
@@ -185,7 +185,7 @@ final class LidCapTests: XCTestCase {
     static let strokeLimit = 0.04
 
     /// The lid caps are the web's: as deep as its overlay's edges, in the
-    /// page's colour (light and dark), on a round orb. The orb keeps its
+    /// solid white (light and dark), on a round orb. The orb keeps its
     /// outline (the cap replaces the face's colour, never its alpha), and the
     /// lid's edge is a visible step.
     func testTheCapsAreAsDeepAsTheWebsOnARoundOrb() throws {
@@ -210,18 +210,17 @@ final class LidCapTests: XCTestCase {
                 let scale = Double(r.u.bg0.w), px = Double(r.u.fill.w) * scale * Double(r.u.body.w) * 5 / (25 - scale * scale).squareRoot()
                 let box = AliveShader.lidBox, web = (1 - (box - box * face.capTop)) * px
                 XCTAssertEqual(Double(lidEnd - first), web, accuracy: 4, "\(id) \(mode): the lid comes \(lidEnd - first) px down; the web's \(Int(web))")
-                // The lid is the page (with the room's glow over it, tested in
-                // AliveRenderTests); the face beside its edge is not.
-                let off = Self.levelsFromPage(r, x, max(first, lidEnd - 5)), faceOff = Self.levelsFromPage(r, x, lidEnd + 5)
-                XCTAssertLessThan(off, faceOff * 0.5, "\(id) \(mode): the lid is \(off) levels from the page, the face \(faceOff)")
+                // The lid is white; the face beside its edge is not.
+                let off = Self.levelsFromWhite(r, x, max(first, lidEnd - 5))
+                XCTAssertLessThanOrEqual(off, 3, "\(id) \(mode): the lid is \(off) levels from white")
                 let lid = Self.luma(r, x, lidEnd - 5), body = Self.luma(r, x, lidEnd + 5)
                 XCTAssertGreaterThan(abs(body - lid), Self.lidStep, "\(id) \(mode): lid \(lid) against body \(body) at its edge")
                 if bottom {
                     let lidStart = try XCTUnwrap((first...last).reversed().first { !lidded($0) }, id)
                     let webBottom = (1 - (box - box * face.capBottom)) * px
                     XCTAssertEqual(Double(last - lidStart), webBottom, accuracy: 4, "\(id) \(mode): the bottom lid comes \(last - lidStart) px up")
-                    let offBottom = Self.levelsFromPage(r, x, min(last, lidStart + 5)), faceBottom = Self.levelsFromPage(r, x, lidStart - 5)
-                    XCTAssertLessThan(offBottom, faceBottom * 0.5, "\(id) \(mode): the bottom lid is \(offBottom) levels from the page, the face \(faceBottom)")
+                    let offBottom = Self.levelsFromWhite(r, x, min(last, lidStart + 5))
+                    XCTAssertLessThanOrEqual(offBottom, 3, "\(id) \(mode): the bottom lid is \(offBottom) levels from white")
                 }
             }
         }

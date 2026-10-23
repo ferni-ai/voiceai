@@ -77,16 +77,12 @@ public final class AliveRenderer: @unchecked Sendable {
 }
 
 public extension AliveUniforms {
-    /// The page behind Ferni for each theme, on screen (FerniColor.background):
-    /// the lid caps' colour.
-    static let pageHex = (light: "#faf8f5", dark: "#14110e")
-
     /// The room's light for the light or dark theme (the prototype's key, rim
-    /// and fill), with the room colours used for bounce light, and the page
-    /// (sRGB; the theme's background unless given) the lid caps take.
-    mutating func light(dark: Bool, roomTop: SIMD3<Float>, roomBottom: SIMD3<Float>, page: SIMD3<Float>? = nil) {
+    /// and fill), with the room colours used for bounce light. The lid caps
+    /// are white in both themes (Seth, 2026-10-23).
+    mutating func light(dark: Bool, roomTop: SIMD3<Float>, roomBottom: SIMD3<Float>) {
         res.w = dark ? 1 : 0
-        self.page = SIMD4(page ?? srgb(hex: dark ? Self.pageHex.dark : Self.pageHex.light), 0)
+        cap = SIMD4(1, 1, 1, 0)
         key = SIMD4(dark ? SIMD3(1.05, 0.93, 0.78) : SIMD3(1.0, 0.96, 0.9), key.w)
         rim = SIMD4(dark ? SIMD3(0.62, 0.50, 0.36) : SIMD3(0.42, 0.40, 0.38), rim.w)
         fill = SIMD4(dark ? SIMD3(0.22, 0.20, 0.18) : SIMD3(0.46, 0.45, 0.43), fill.w)
@@ -109,11 +105,12 @@ public extension AliveUniforms {
         }
         key = lean(key, k)
         fill = lean(fill, k)
-        // The page takes the room's own tint (RoomBackground: the tint over the
-        // background, in sRGB), so the caps stay the page's colour all day.
+        // The white caps take the room's tint as the page does (RoomBackground:
+        // the tint over the background, in sRGB): warmer in the evening, still
+        // white (luminance 0.94 or more at the strongest, late night in light mode).
         let op = Float(light.tintOpacity(dark: res.w > 0.5))
-        let p = SIMD3(page.x, page.y, page.z)
-        page = SIMD4(p * (1 - op) + tint * op, page.w)
+        let c = SIMD3(cap.x, cap.y, cap.z)
+        cap = SIMD4(c * (1 - op) + tint * op, cap.w)
         bg0 = lean(bg0, k * 0.5)
         bg1 = lean(bg1, k * 0.5)
     }

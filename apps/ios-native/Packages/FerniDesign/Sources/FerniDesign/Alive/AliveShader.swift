@@ -26,7 +26,7 @@ public struct AliveUniforms: Equatable, Sendable {
     public var poke = SIMD4<Float>(0, 0.3, 0.95, 0)    // where Ferni was touched (dir), amount
     public var tear = SIMD4<Float>(0, 0, 0, 0)         // tear progress left/right, alpha left/right
     public var caps = SIMD4<Float>(0, 0, 0, 0)         // lid cap top, lid cap bottom (web control point / 100), the pitch the face rests at, eye spacing (0: 0.36)
-    public var page = SIMD4<Float>(0.98, 0.973, 0.961, 0) // the page behind Ferni ON SCREEN (sRGB, not linear): the lid caps' colour, -
+    public var cap = SIMD4<Float>(1, 1, 1, 0)          // the lid caps' colour ON SCREEN (sRGB, not linear): white, warmed by the evening tint, -
 
     public init() {}
 
@@ -35,7 +35,7 @@ public struct AliveUniforms: Equatable, Sendable {
 
 /// The ray-marched Ferni from the owner's alive prototype (WebGL), in Metal:
 /// a soft body, Luxo eyes on its surface with curved lids, the happy arch,
-/// the web's lid caps (the page's colour), per-eye scale, a teammate for the family
+/// the web's lid caps (solid white), per-eye scale, a teammate for the family
 /// table, a firefly's light and tears. Output is premultiplied alpha so the
 /// room behind stays SwiftUI's: glow and the presence ring add light, the floor
 /// shadow darkens, the body sits on top.
@@ -53,7 +53,7 @@ public enum AliveShader {
 using namespace metal;
 
 struct U {
-  float4 res, body, bg0, bg1, glowCol, key, rim, fill, pos, lean, gaze, eyes, arch, ring, fly, guest, guestEye, guestCol, lids, poke, tear, caps, page;
+  float4 res, body, bg0, bg1, glowCol, key, rim, fill, pos, lean, gaze, eyes, arch, ring, fly, guest, guestEye, guestCol, lids, poke, tear, caps, cap;
 };
 
 struct Ctx {
@@ -191,8 +191,8 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
   eyeFrame(1.0, spacing, u.eyes.zw, u.gaze.zw, c, c.ER, c.RX, c.RY, c.RZ, c.SR);
   float3 ro = float3(0.0, 0.0, 5.0); float3 rd = normalize(float3(uv, -zoom));
   float2 cuv = float2(uv.x - u.pos.x / 5.0 * zoom, uv.y - u.pos.y / 5.0 * zoom) / (radiusPx / res.y);
-  // The web's lid caps (the live overlay, .avatar-lid-overlay over the orb): shapes in the
-  // page's colour, over the body and eyes, whose curved edge carries the expression. Its box is
+  // The web's lid caps (the live overlay, .avatar-lid-overlay over the orb): solid white
+  // shapes over the body and eyes, whose curved edge carries the expression. Its box is
   // 2·B body radii wide; its quadratic edge is y = B - B·cap·(1 - (x/B)²). Flat on the
   // screen like the web's, turning with the head's roll (measured on the body's surface,
   // perspective made every cap about half as deep). Worked out here, before any
@@ -345,16 +345,14 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
       }
       col = mix(col, float3(dot(col, float3(0.2126, 0.7152, 0.0722))), 0.08);
       col = gamma(aces(col));
-      // The lid caps, worked out above: the page as it shows at this pixel (cream in light
-      // mode, the dark page in dark), as on the web (Seth, 2026-10-11: the light lid dropping
-      // over the eyes is the cap that carries the expression; inline-styles.css
-      // .avatar-lid-overlay fills with --color-background-primary). The page is given on
-      // screen (sRGB) and the room's own glow, ring and shadow here (`under`) go over it as
-      // they do beside him, so a cap is the room seen through him, never a darker hole. Mixed
-      // past the tone curve. It replaces the face's colour inside the silhouette only: alpha
-      // is untouched, the outline stays round, and the edge blends over two pixels each
-      // side (fwT, fwB).
-      if (mat < 3.5) col = mix(col, u.page.xyz * (1.0 - under.w) + under.xyz, capped);
+      // The lid caps, worked out above: solid white in light and dark mode alike, never the
+      // room's or the page's colour (Seth, 2026-10-23: "use white rather than transparent";
+      // a page-colour cap vanished on the dark page and read as see-through). Given on screen
+      // (sRGB, white warmed only by the evening tint) and mixed past the tone curve, so it is
+      // white exactly. It replaces the face's colour inside the silhouette only: alpha is
+      // untouched, the outline stays round, and the edge blends over two pixels each side
+      // (fwT, fwB).
+      if (mat < 3.5) col = mix(col, u.cap.xyz, capped);
       col += (hash21(frag + fract(u.res.z)) - 0.5) / 255.0;
       outc = float4(col * alpha, alpha) + under * (1.0 - alpha);
     }

@@ -99,48 +99,27 @@ final class AliveRenderTests: XCTestCase {
         XCTAssertGreaterThan(j, 40, "but the eyes are still there")
     }
 
-    /// A lid cap is the page as it shows there (Seth, 2026-10-11; the web's
-    /// .avatar-lid-overlay fills with --color-background-primary): cream in
-    /// light mode, the dark page in dark, for every persona, with the room's
-    /// glow over it as beside him (so never a darker hole). It regressed to an
-    /// 18% darker shade of the face on 10-20 (40d4177f46). The room at a
-    /// pixel is the same frame with Ferni shrunk to a point (the glow is
-    /// measured from his centre, not his size); the ring is left out of both.
-    /// On the orb, not cut out of it: the cap is opaque where the face was.
-    func testALidIsTheRoomAtThatPixel() throws {
-        let renderer = try XCTUnwrap(AliveRenderer.shared)
+    /// A lid cap is solid white, in light and dark mode, for every persona
+    /// (Seth, 2026-10-23: "use white rather than transparent, similar to the
+    /// web app"). It was the page's colour (51f3fe702), which on the dark page
+    /// (#14110e) vanished and read as see-through; before that, a darker shade
+    /// of the face (40d4177f46). On the orb, not cut out of it: opaque where
+    /// the face was.
+    func testALidIsWhite() throws {
         for dark in [false, true] {
-            // The page as measured on the web's themes (Chromium): cream #faf8f5, dark #14110e.
-            let token = srgb(hex: dark ? "#14110e" : "#faf8f5")
-            let page = [Double(token.x), Double(token.y), Double(token.z)].map { $0 * 255 }
             for (name, body, light) in [("ferni", ferni, ferniLight), ("maya", maya, mayaLight)] {
                 let mode = dark ? "dark" : "light"
-                var lidded = AliveUniforms.settled(Face.of("sleepy"), body: body, glow: light)
-                lidded.arch.z = 0
+                let lidded = AliveUniforms.settled(Face.of("sleepy"), body: body, glow: light)
                 var open = lidded
                 open.caps = .zero
                 let a = try render(lidded, name: "lid-\(name)-\(mode)", dark: dark)
                 let b = try render(open, name: "lid-\(name)-\(mode)-open", dark: dark)
-                // The room alone: the same frame, Ferni a point.
-                var roomU = lidded
-                let room = dark ? Self.room.dark : Self.room.light
-                roomU.light(dark: dark, roomTop: linear(hex: room.top), roomBottom: linear(hex: room.bottom))
-                roomU.frame(size: SIMD2(Float(Self.size), Float(Self.size)), radius: Self.radius)
-                roomU.bg0.w = 0.001
-                let roomBytes = try XCTUnwrap(renderer.image(roomU, width: Self.size, height: Self.size))
                 let x = Self.size / 2, y0 = try XCTUnwrap((0..<Self.size).first { a.px(x, $0).a > 0.99 })
                 for y in [y0 + 4, y0 + 8] {
                     let lid = a.px(x, y), face = b.px(x, y)
                     let got = [lid.r, lid.g, lid.b].map { $0 * 255 }
-                    // The room on screen: premultiplied over the page.
-                    let i = (y * Self.size + x) * 4, alpha = Double(roomBytes[i + 3]) / 255
-                    let seen = [2, 1, 0].enumerated().map { Double(roomBytes[i + $0.element]) + page[$0.offset] * (1 - alpha) }
-                    let off = zip(got, seen).map { abs($0 - $1) }.max() ?? 0
-                    XCTAssertLessThanOrEqual(off, Self.pageLevels, "\(name) \(mode) row \(y): lid \(got) against the room \(seen)")
-                    // Page-coloured, not face-coloured: far nearer the page than the face is.
-                    let fromPage = zip(got, page).map { abs($0 - $1) }.max() ?? 0
-                    let faceFromPage = zip([face.r, face.g, face.b].map { $0 * 255 }, page).map { abs($0 - $1) }.max() ?? 0
-                    XCTAssertLessThan(fromPage, faceFromPage * 0.5, "\(name) \(mode) row \(y): lid \(got), page \(page), face \(faceFromPage) off")
+                    XCTAssertLessThanOrEqual(got.map { 255 - $0 }.max() ?? 255, Self.whiteLevels,
+                                             "\(name) \(mode) row \(y): lid \(got) isn't white")
                     let fromFace = abs(lid.r - face.r) + abs(lid.g - face.g) + abs(lid.b - face.b)
                     XCTAssertGreaterThan(fromFace, 0.15, "\(name) \(mode): the lid isn't the face's colour")
                     XCTAssertEqual(lid.a, 1, accuracy: 0.01, "\(name) \(mode): on the orb, not cut out of it")
@@ -149,38 +128,28 @@ final class AliveRenderTests: XCTestCase {
         }
     }
 
-    /// Levels (of 255) a lid may sit from the page: the dither (half a level)
-    /// and rounding.
-    static let pageLevels = 3.0
+    /// Levels (of 255) a lid may sit from pure white: the dither and rounding.
+    static let whiteLevels = 3.0
 
-    /// The caps' page is the app's own page behind Ferni (FerniColor.background),
-    /// in each theme.
-    func testThePageIsTheAppsBackground() {
-        for (style, hex) in [(UIUserInterfaceStyle.light, AliveUniforms.pageHex.light), (.dark, AliveUniforms.pageHex.dark)] {
-            let c = UIColor(FerniColor.background).resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
-            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-            c.getRed(&r, green: &g, blue: &b, alpha: &a)
-            let want = srgb(hex: hex)
-            XCTAssertEqual(Float(r), want.x, accuracy: 1.0 / 255, "\(style.rawValue)")
-            XCTAssertEqual(Float(g), want.y, accuracy: 1.0 / 255)
-            XCTAssertEqual(Float(b), want.z, accuracy: 1.0 / 255)
-        }
-    }
-
-    /// In the evening the room's tint lies over the whole page; the caps take it too.
-    func testThePageTakesTheRoomsTint() {
+    /// The caps are white in both themes; the evening tint warms them as it
+    /// does the page, and at every hour they still read as white (luminance
+    /// 0.92 or more).
+    func testTheCapsStayWhiteAllDay() {
         for dark in [false, true] {
             var u = AliveUniforms()
             u.light(dark: dark, roomTop: .zero, roomBottom: .zero)
-            let base = srgb(hex: dark ? AliveUniforms.pageHex.dark : AliveUniforms.pageHex.light)
-            XCTAssertEqual(SIMD3(u.page.x, u.page.y, u.page.z), base)
-            let evening = RoomLight(hour: 22)
-            u.roomLight(evening)
-            let op = Float(evening.tintOpacity(dark: dark))
-            let tint = SIMD3<Float>(Float(evening.tintRGB.x), Float(evening.tintRGB.y), Float(evening.tintRGB.z))
-            let want = base * (1 - op) + tint * op
-            XCTAssertGreaterThan(op, 0, "the evening has a tint")
-            for (got, w) in zip([u.page.x, u.page.y, u.page.z], [want.x, want.y, want.z]) { XCTAssertEqual(got, w, accuracy: 1e-5) }
+            XCTAssertEqual(SIMD3(u.cap.x, u.cap.y, u.cap.z), SIMD3<Float>(1, 1, 1), "white before any tint")
+            for hour in 0..<24 {
+                var t = u
+                let light = RoomLight(hour: hour)
+                t.roomLight(light)
+                let luma = 0.2126 * t.cap.x + 0.7152 * t.cap.y + 0.0722 * t.cap.z
+                XCTAssertGreaterThanOrEqual(luma, 0.92, "\(dark ? "dark" : "light") \(hour):00: \(t.cap)")
+                let op = Float(light.tintOpacity(dark: dark))
+                let tint = SIMD3<Float>(Float(light.tintRGB.x), Float(light.tintRGB.y), Float(light.tintRGB.z))
+                let want = SIMD3<Float>(1, 1, 1) * (1 - op) + tint * op
+                for (got, w) in zip([t.cap.x, t.cap.y, t.cap.z], [want.x, want.y, want.z]) { XCTAssertEqual(got, w, accuracy: 1e-5) }
+            }
         }
     }
 

@@ -94,7 +94,7 @@ public struct Face: Equatable, Sendable {
     public var tilt = 0.0, crease = 0.0, halo = 0.2
     public var posY = 0.0, roll = 0.0, squash = 1.0, scale = 1.0
     public var blush = 0.0, glow = 0.36
-    /// The web's page-colour lid caps over the body: the control point of the
+    /// The web's white lid caps over the body: the control point of the
     /// live overlay's quadratic top edge, and 100 minus its bottom one, /100
     /// (`webLids`). Its box is the orb, so sleepy's 0.55 covers the top 55%.
     public var capTop = 0.0, capBottom = 0.0

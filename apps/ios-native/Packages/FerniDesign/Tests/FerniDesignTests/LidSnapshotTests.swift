@@ -6,7 +6,7 @@ import XCTest
 
 /// For review, not a check: the faces with lid caps, Ferni and Maya, on the
 /// page as the app shows it, light and dark (Seth, 2026-10-22: "where are the
-/// white caps?"). Writes avatar-lids-light.png and avatar-lids-dark.png to
+/// white caps?"). Writes avatar-lids-white-light.png and avatar-lids-white-dark.png to
 /// FERNI_SNAPSHOT_DIR; skipped without it.
 final class LidSnapshotTests: XCTestCase {
     static let faces = ["neutral", "happy", "sleepy", "drowsy", "exhausted", "joyful", "winking"]
@@ -24,7 +24,7 @@ final class LidSnapshotTests: XCTestCase {
                 for (column, id) in Self.faces.enumerated() {
                     var u = AliveUniforms.settled(Face.of(id), body: colours.0, glow: colours.1)
                     u.light(dark: dark, roomTop: linear(hex: dark ? "#1e1a16" : "#faf8f5"), roomBottom: linear(hex: dark ? "#14110e" : "#efe9e0"))
-                    page = SIMD3(u.page.x, u.page.y, u.page.z)
+                    page = srgb(hex: dark ? "#14110e" : "#faf8f5")   // FerniColor.background
                     u.frame(size: SIMD2(Float(Self.cell), Float(Self.cell)), radius: Self.radius)
                     let bytes = try XCTUnwrap(renderer.image(u, width: Self.cell, height: Self.cell))
                     // Over the page, as the app composites the premultiplied canvas.
@@ -42,7 +42,7 @@ final class LidSnapshotTests: XCTestCase {
             let image = try XCTUnwrap(CGImage(width: w, height: h, bitsPerComponent: 8, bitsPerPixel: 32, bytesPerRow: w * 4,
                                               space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: info, provider: provider,
                                               decode: nil, shouldInterpolate: false, intent: .defaultIntent))
-            let url = URL(fileURLWithPath: dir).appending(path: "avatar-lids-\(dark ? "dark" : "light").png")
+            let url = URL(fileURLWithPath: dir).appending(path: "avatar-lids-white-\(dark ? "dark" : "light").png")
             let dest = try XCTUnwrap(CGImageDestinationCreateWithURL(url as CFURL, UTType.png.identifier as CFString, 1, nil))
             CGImageDestinationAddImage(dest, image, nil)
             XCTAssertTrue(CGImageDestinationFinalize(dest), "\(url.path)")
