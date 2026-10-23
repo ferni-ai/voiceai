@@ -16,7 +16,10 @@ import { CaptionBackfill } from '../../../agents/shared/aligned-caption-backfill
 
 const KEY = USERDATA_TIMED_TRANSCRIPT;
 const RATE = 24000;
-const tick = () => new Promise((r) => setTimeout(r, 0));
+const tick = () =>
+  new Promise<void>((r) => {
+    setTimeout(r, 0);
+  });
 /** Let the reply's audio loop take what the wire delivered. */
 const settle = async () => {
   for (let i = 0; i < 5; i++) await tick();
@@ -44,7 +47,7 @@ function gatewayReply(wordTimings: boolean, text = ['Oh that is great.']) {
     () => 'wss://test',
     1000,
     () => {
-      queueMicrotask(() => {
+      process.nextTick(() => {
         ws.readyState = 1;
         ws.emit('open');
       });
