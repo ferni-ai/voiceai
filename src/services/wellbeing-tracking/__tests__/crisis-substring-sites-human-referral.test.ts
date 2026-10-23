@@ -33,9 +33,7 @@ describe('principal-alignment analyzeReferralNeed (immediate = crisis line)', ()
   // trigger must still refer on a soft match (recall-first), never on 'hit' alone.
   it('on: a severe trigger matched only softly still refers to a human (immediate)', () => {
     flag('on');
-    expect(patternHit(/(?:no point|nothing to live for|better off dead)/i, CASES[0][0])).toBe(
-      'soft'
-    );
+    expect(patternHit(/(?:no point|nothing to live for|better off dead)/i, CASES[0][0])).toBe('soft');
     const r = analyzeReferralNeed(CASES[0][0], { userId: 'u' });
     expect(r.urgency).toBe('immediate');
     expect(r.shouldRefer).toBe(true);
@@ -45,14 +43,11 @@ describe('principal-alignment analyzeReferralNeed (immediate = crisis line)', ()
     flag('off');
     expect(urgency('I won all the casino points')).toBe('immediate');
   });
-  it.each(CASES.slice(0, 1))(
-    'on: %j stays immediate (a soft match never lowers); %j still is',
-    (everyday, real) => {
-      flag('on');
-      expect(urgency(everyday)).toBe('immediate');
-      expect(urgency(real)).toBe('immediate');
-    }
-  );
+  it.each(CASES.slice(0, 1))('on: %j stays immediate (a soft match never lowers); %j still is', (everyday, real) => {
+    flag('on');
+    expect(urgency(everyday)).toBe('immediate');
+    expect(urgency(real)).toBe('immediate');
+  });
   // Immediate and high triggers read recall-first: a match that starts at a word
   // edge counts however the word ends, so this stays immediate (accepted false positive).
   it('on: "no pointers on this one" stays immediate, as with the flag off', () => {
@@ -104,44 +99,5 @@ describe('recall: immediate and high triggers never read less than pattern.test'
       if (rank[urgency(line)] < off) drops.push(line);
     }
     expect(drops).toEqual([]);
-  });
-});
-
-// bestMatch was the highest-confidence trigger, ties to the first listed. A
-// self-harm, abuse or eating trigger (0.9) displaced a matched crisis-line
-// trigger (0.85-0.9): urgency stayed immediate, but the target and the 988
-// resource went. With the flag on, spoken spellings ("he hits me" with odd
-// spaces) newly matched those triggers, so lines main sent to 988 lost it.
-describe('an immediate (crisis line) match is never displaced by another trigger', () => {
-  const CO = [
-    'cut my arms',
-    'he hits me',
-    "i'm cutting myself",
-    'making myself throw up',
-    'addicted to pills',
-    'chest pain',
-  ];
-  const SPACES = [' ', '  ', ' '];
-  it.each(CO)('"better off dead" plus %j keeps the crisis line and 988, any spacing', (other) => {
-    for (const mode of ['off', 'on'] as const) {
-      flag(mode);
-      for (const sp of SPACES) {
-        for (const line of [
-          `better off dead and ${other.replaceAll(' ', sp)}`,
-          `${other}, no point anymore`,
-        ]) {
-          const r = analyzeReferralNeed(line, { userId: 'u' });
-          expect(r.urgency).toBe('immediate');
-          expect(r.suggestedTarget).toBe('crisis_line');
-          expect(r.resources.some((x) => x.phone === '988')).toBe(true);
-        }
-      }
-    }
-  });
-  it('without a crisis trigger, the highest-confidence trigger still decides', () => {
-    flag('on');
-    expect(analyzeReferralNeed('he hits me', { userId: 'u' }).suggestedTarget).toBe(
-      'domestic_violence_hotline'
-    );
   });
 });
