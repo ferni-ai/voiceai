@@ -40,7 +40,7 @@ function inject(s: ReturnType<typeof fastPathSession>) {
 }
 
 describe('injectUserAwareness after the deferred profile load', () => {
-  it('a 654-conversation profile that arrives late is a returning user', () => {
+  it('a 654-conversation profile that arrives late is a returning user', async () => {
     const s = fastPathSession();
     expect(s.isReturningUser).toBe(false);
     expect(s.userData.isReturningUser).toBe(false);
@@ -52,7 +52,7 @@ describe('injectUserAwareness after the deferred profile load', () => {
     profile.lastContact = new Date('2026-10-11T18:00:00Z');
     s.services.userProfile = profile;
 
-    const result = inject(s);
+    const result = await inject(s);
 
     expect(result.isReturningUser).toBe(true);
     expect(s.userData.isReturningUser).toBe(true);
@@ -64,21 +64,21 @@ describe('injectUserAwareness after the deferred profile load', () => {
     expect(result.facts).toContain('Last time you talked about: the boat trip and the new job');
   });
 
-  it('a genuinely new user (0 conversations) still gets the first-conversation line', () => {
+  it('a genuinely new user (0 conversations) still gets the first-conversation line', async () => {
     const s = fastPathSession();
     s.services.userProfile = createUserProfile('u-new', 'sam');
 
-    const result = inject(s);
+    const result = await inject(s);
 
     expect(result.isReturningUser).toBe(false);
     expect(s.userData.isReturningUser).toBe(false);
     expect(result.facts.some((f) => FIRST.test(f))).toBe(true);
   });
 
-  it('no profile yet: no facts, flag stays false', () => {
+  it('no profile yet: no facts, flag stays false', async () => {
     const s = fastPathSession();
 
-    const result = inject(s);
+    const result = await inject(s);
 
     expect(result.isReturningUser).toBe(false);
     expect(result.facts).toEqual([]);

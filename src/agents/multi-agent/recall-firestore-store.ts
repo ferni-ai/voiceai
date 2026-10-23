@@ -6,7 +6,7 @@
  */
 
 import type { VectorRecallStore } from '../../memory/recall/stored-fact-vectors.js';
-import { snapshotTopics } from '../../memory/recall/forget-every-reader.js';
+import { rememberFactNames, snapshotTopics } from '../../memory/recall/forget-every-reader.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
 /** Reads the collections the live pipeline writes. Plain queries, but for nearest (a vector index). */
@@ -22,7 +22,9 @@ export const firestoreRecallStore: VectorRecallStore = {
     // facts (2,024 for one test user). Facts without a date fall back to it.
     const newest = await facts.orderBy('extractedAt', 'desc').limit(300).get();
     const snap = newest.docs.length > 0 ? newest : await facts.limit(300).get();
-    return snap.docs.map((d) => d.data());
+    const rows = snap.docs.map((d) => d.data());
+    rememberFactNames(userId, rows); // FORGET_EVERY_READER: names the forget matcher keeps whole
+    return rows;
   },
   // RECALL_VECTOR_INDEX: the stored facts nearest a turn's meaning, however old.
   async nearest(userId, queryVector, k) {

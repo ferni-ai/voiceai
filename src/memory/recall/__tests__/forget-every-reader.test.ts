@@ -41,10 +41,7 @@ import { hybridSearch } from '../../retrieval/hybrid-search.js';
 import { UnifiedMemoryStoreFacade } from '../../unified-store/facade.js';
 import { callerHistory, greetingFacts } from '../../../agents/multi-agent/greeting-direction.js';
 import { sendRecall } from '../../../agents/personas/context-packet/turn-packet.js';
-import {
-  injectUserAwareness,
-  rememberedProfile,
-} from '../../../agents/voice-agent-entry/user-awareness-injection.js';
+import { injectUserAwareness } from '../../../agents/voice-agent-entry/user-awareness-injection.js';
 import { getRelationshipSummaryDef } from '../../../tools/domains/memory/tools.js';
 
 type Source = 'store' | 'process';
@@ -116,10 +113,10 @@ describe.each([
       goals: [],
       primaryConcerns: [],
     } as unknown as UserProfile;
-    const { instructionsBlock } = injectUserAwareness({
+    const { instructionsBlock } = await injectUserAwareness({
       sessionId: `s-${user}`,
-      userProfile: await rememberedProfile(user, profile),
-      userData: {},
+      userProfile: profile,
+      userData: { userId: user }, // the caller the injection filters for
       isReturningUser: true,
       sessionStartTime: new Date(),
     });

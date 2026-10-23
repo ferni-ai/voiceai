@@ -14,7 +14,7 @@ vi.mock('../forget.js', async (original) => ({
 }));
 
 import { createUserProfile } from '../../../types/user-profile.js';
-import { resetForgetTopicsSource } from '../forget-topics-source.js';
+import { rememberNames, resetForgetTopicsSource } from '../forget-topics-source.js';
 import { PROFILE_PASS_THROUGH, profileForCaller } from '../forget-every-reader.js';
 import { recallFromMemoryDef } from '../../../tools/domains/memory/tools.js';
 
@@ -143,8 +143,9 @@ describe("a topic's first word is not a name", () => {
     }
   });
 
-  it('a one-word name still needs the whole word: forgetting Mark keeps "marked"', async () => {
+  it('a one-word known name still needs the whole word: forgetting Mark keeps "marked"', async () => {
     stored.topics = ['Mark'];
+    rememberNames(user, ['Mark']);
     const out = await profileForCaller(user, {
       lastConversationSummary: 'the report was marked late',
       lastCallerSummary: 'Mark called',

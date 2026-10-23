@@ -9,6 +9,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const read = vi.hoisted(() => ({ fn: vi.fn(async (_u: string): Promise<string[] | null> => []) }));
+vi.mock('../../../utils/firestore-utils.js', async (original) => ({
+  ...(await original<typeof import('../../../utils/firestore-utils.js')>()),
+  getFirestoreDb: () => {
+    const docs = [{ data: () => ({ entityName: 'Mark', key: 'relation', value: 'brother' }) }];
+    const query = { orderBy: () => query, limit: () => query, get: async () => ({ docs }) };
+    return { collection: () => ({ doc: () => ({ collection: () => query }) }) };
+  },
+}));
 vi.mock('../forget.js', async (original) => ({
   ...(await original<typeof import('../forget.js')>()),
   forgottenTopicsOrNull: (userId: string) => read.fn(userId),
@@ -21,11 +29,14 @@ import {
   readTopics,
   resetForgetTopicsSource,
   topicsWithin,
+  knownNames,
 } from '../forget-topics-source.js';
 import {
   aboutForgotten,
   forgottenCheck,
   forgottenCheckNow,
+  prefetchForgotten,
+  rememberFactNames,
   snapshotTopics,
 } from '../forget-every-reader.js';
 
@@ -79,12 +90,36 @@ describe('a reader that cannot wait', () => {
     vi.useFakeTimers({ now: 2_000_000 });
     read.fn.mockResolvedValueOnce(['Biscuit']);
     await readTopics(U);
-    vi.setSystemTime(2_000_000 + 60_000); // the cached read is stale now
+    vi.setSystemTime(2_000_000 + 20_000); // the cached read is stale, still recent
     read.fn.mockImplementationOnce(() => new Promise<never>(() => {})); // never answers
     const got = topicsWithin(U, 'test');
     await vi.advanceTimersByTimeAsync(READ_TIMEOUT_MS + 1);
     expect(await got).toEqual(['Biscuit']);
     expect(forgetReadStats()).toMatchObject({ timeouts: 1, fallbacks: 1, failClosed: 0 });
+  });
+
+  it('does not trust last-known topics days old: the read fails, so it fails closed', async () => {
+    vi.useFakeTimers({ now: 3_000_000 });
+    read.fn.mockResolvedValueOnce([]); // read three days ago: nothing forgotten yet
+    await readTopics(U);
+    vi.setSystemTime(3_000_000 + 3 * 24 * 3600_000); // "divorce" forgotten since, elsewhere
+    read.fn.mockResolvedValue(null); // and the read now fails
+    const check = await forgottenCheck(U);
+    expect(check?.('the divorce papers')).toBe(true); // fail closed: nothing reaches the prompt
+    expect(forgetReadStats()).toMatchObject({ fallbacks: 0, failClosed: 1 });
+  });
+
+  it('trusts last-known topics read during this call, however long ago', async () => {
+    vi.useFakeTimers({ now: 4_000_000 });
+    read.fn.mockResolvedValueOnce(['Biscuit']);
+    prefetchForgotten(U); // agent setup: the call starts, the read runs
+    await readTopics(U); // joins it
+    vi.setSystemTime(4_000_000 + 20 * 60_000); // twenty minutes into the call
+    read.fn.mockResolvedValue(null);
+    const check = await forgottenCheck(U);
+    expect(check?.('Biscuit chewed it')).toBe(true);
+    expect(check?.('training for Boston')).toBe(false);
+    expect(forgetReadStats()).toMatchObject({ fallbacks: 1, failClosed: 0 });
   });
 
   it('fails closed only with no source at all', async () => {
@@ -110,11 +145,42 @@ describe('a reader that cannot wait', () => {
   });
 });
 
-describe('aboutForgotten: names match whole words', () => {
-  it('forgetting Mark does not hide "marked"', () => {
-    expect(aboutForgotten('the report was marked late', ['Mark'])).toBe(false);
-    expect(aboutForgotten('Mark called about dinner', ['Mark'])).toBe(true);
-    expect(aboutForgotten("Mark's birthday is Friday", ['Mark'])).toBe(true);
+describe('aboutForgotten: known names whole, everything else stems', () => {
+  const known = new Set(['mark', 'biscuit']);
+
+  it('forgetting Mark (a known name) does not hide "marked"', () => {
+    expect(aboutForgotten('the report was marked late', ['Mark'], known)).toBe(false);
+    expect(aboutForgotten('Mark called about dinner', ['Mark'], known)).toBe(true);
+    expect(aboutForgotten("Mark's birthday is Friday", ['Mark'], known)).toBe(true);
+  });
+
+  it('a known name still matches its plural: "Biscuit" catches "the Biscuits"', () => {
+    expect(aboutForgotten('we walked the Biscuits today', ['Biscuit'], known)).toBe(true);
+  });
+
+  it('title case that is not a name stems: "Divorce Papers" catches "divorce paper arrived"', () => {
+    expect(aboutForgotten('the divorce paper arrived', ['Divorce Papers'], known)).toBe(true);
+  });
+
+  it('a one-word capitalized common noun matches its inflections', () => {
+    expect(aboutForgotten('they divorced last spring', ['Divorce'], known)).toBe(true);
+    expect(aboutForgotten('still divorcing, slowly', ['Divorce'], known)).toBe(true);
+  });
+
+  it('with no known names every word stems, erring toward leaving it out', () => {
+    expect(aboutForgotten('the report was marked late', ['Mark'])).toBe(true);
+  });
+
+  it("recall's facts load teaches the names to the matcher", async () => {
+    const { firestoreRecallStore } =
+      await import('../../../agents/multi-agent/recall-firestore-store.js');
+    await firestoreRecallStore.facts('member-facts-names');
+    expect(knownNames('member-facts-names').has('mark')).toBe(true);
+  });
+
+  it("the caller's facts teach the names (rememberFactNames)", () => {
+    rememberFactNames(U, [{ entityName: 'Mark', key: 'relation', value: 'brother' }]);
+    expect(knownNames(U).has('mark')).toBe(true);
   });
 
   it('a topic that is not a name still matches other forms', () => {
