@@ -14,6 +14,7 @@ const docs = vi.hoisted(() => new Map<string, unknown>());
 vi.mock('../persistence/index.js', () => ({
   createPersistenceStore: ({ collection }: { collection: string }) => ({
     load: async (id: string) => docs.get(`${collection}/${id}`) ?? null,
+    readFailed: () => false,
     set: (id: string, d: unknown) => void docs.set(`${collection}/${id}`, d),
     setImmediate: async (id: string, d: unknown) => void docs.set(`${collection}/${id}`, d),
     delete: async (id: string) => void docs.delete(`${collection}/${id}`),

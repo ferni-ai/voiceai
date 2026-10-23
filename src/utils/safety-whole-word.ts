@@ -1,26 +1,22 @@
 /**
- * Whole-word matching for safety checks that matched risk phrases as bare
- * substrings (SAFETY_WHOLE_WORD_SITES = off | shadow | on, default off).
- * "spend it all" fired 'end it all' (crisis, 988) in safety-guards.ts, "casino
- * points" fired 'no point' (crisis line) in human-referral.ts, "send it" fired
- * 'end it' (crisis valence) in shared-vocabulary.ts, "give updates" fired
- * 'give up' (URGENT check-in) in predictive-context.ts, and "diet" boosted
- * crisis_support in the semantic router (matcher.ts).
+ * Safety phrase readers behind SAFETY_WHOLE_WORD_SITES (off | shadow | on,
+ * default off). Several crisis checks matched risk phrases as bare substrings,
+ * so everyday words fired them: "spend it all" ('end it all', crisis, 988),
+ * "casino points" ('no point', crisis line), "pharmacy" ('harm').
  *
- * on: the phrase must start at a word edge, in STT spelling (phrase-match.ts:
- * apostrophes dropped, hyphens as spaces), and may end in an inflection or a
- * stretched last letter, so every real-risk form the substring check caught
- * still counts: "self-harming", "self-harmed", "suicides", "suicidally",
- * "hopelessness", "hopelessly", "numbness", "worthlessness", "cuttings",
- * "dieee", "die2". A short last word ("it", "me") takes no inflection, so "end
- * its" is not 'end it'. "not suicidal" and the like do not count (NOT_BEFORE).
- * shadow: logs each check where on would decide differently; decides as off.
+ * off: the substring (or regex) check, exactly as before.
+ * on: never reads less than off. Every match off finds still counts, however
+ * the word around it starts or ends ("can't go onnn", "self-harmer",
+ * "imsuicidal"), and on adds STT spellings ("i cant go on", "self harm",
+ * "selfharm", curly apostrophes). A match that lies inside a listed everyday
+ * word (EVERYDAY_WORDS) is not dropped: phraseHit / patternHit call it 'soft',
+ * and the consumer steps it down to its softer tier (check-in, classifier).
+ * shadow: decides as off, logging each check where on would differ.
  *
  * @module utils/safety-whole-word
  */
 
 import {
-  NOT_BEFORE,
   escape,
   logWouldDiffer,
   normalized,
@@ -32,46 +28,153 @@ import {
 type Env = Record<string, string | undefined>;
 const FLAG = 'SAFETY_WHOLE_WORD_SITES';
 
+/** 'hit': a match outside listed everyday words. 'soft': only inside them. null: no match. */
+export type Hit = 'hit' | 'soft' | null;
+
 export function resolveSafetyWholeWordSites(env: Env = process.env): ShadowMode {
   return resolveShadowMode(env.SAFETY_WHOLE_WORD_SITES);
 }
 
+/**
+ * Everyday words that hold a risk word, keyed by that risk word as the first
+ * or last word of a match: "spend it all" holds 'end it all' ('end' inside
+ * "spend"), "give updates" holds 'give up' ('up' inside "updates"). A match is
+ * 'soft' when the word around its first or last word is listed here. Never
+ * key a word that is itself a risk subject (no "she" under 'he').
+ */
+export const EVERYDAY_WORDS: Readonly<Record<string, readonly string[]>> = {
+  end: ['send', 'spend', 'lend', 'pretend', 'recommend'],
+  kill: ['skill'],
+  no: ['casino'],
+  point: ['pointers', 'points'],
+  harm: ['pharmacy', 'harmony'],
+  die: ['studied', 'audience', 'diet'],
+  dead: ['deadline'],
+  urgent: ['insurgent'],
+  numb: ['number', 'numbers'],
+  empty: ['emptyhanded'],
+  up: ['updates'],
+  on: ['online'],
+  use: ['username'],
+  irs: ['stairs', 'first'],
+  tax: ['syntax', 'taxi'],
+};
+
 const isWordChar = (ch: string | undefined): boolean => !!ch && /[\p{L}\p{N}]/u.test(ch);
-const SUFFIX = '(?:s|es|ed|d|ing|ly|ness)?(?!\\p{L})';
+const words = (s: string): string[] => s.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];
 
-/** What may follow a match: an inflection after a last word of 3+ letters, else no letter. */
-function endsWell(text: string, end: number, matched: string): boolean {
-  const last = /\p{L}+$/u.exec(matched)?.[0] ?? '';
-  if (last.length < 3) return !/\p{L}/u.test(text[end] ?? '');
-  const tail = new RegExp(`^${escape(last.slice(-1))}*${SUFFIX}`, 'u');
-  return tail.test(text.slice(end));
+/** The whole word (lowercased) around index i of text. */
+function wordAt(text: string, i: number): string {
+  let a = i;
+  while (a > 0 && isWordChar(text[a - 1])) a--;
+  let b = i;
+  while (b < text.length && isWordChar(text[b])) b++;
+  return text.slice(a, b).toLowerCase();
 }
 
-/** Whether some match of pattern starts at a word edge and ends well, and is not negated. */
-function edgeMatch(pattern: RegExp, text: string): boolean {
-  const re = new RegExp(pattern.source, `${pattern.flags.replace(/[gy]/g, '')}g`);
-  for (let m = re.exec(text); m; m = re.exec(text)) {
-    const end = m.index + m[0].length;
-    const negated = NOT_BEFORE[m[0]]?.test(sttSpelling(text.slice(0, m.index))) ?? false;
-    if (!isWordChar(text[m.index - 1]) && endsWell(text, end, m[0]) && !negated) return true;
-    re.lastIndex = m.index + 1;
-  }
-  return false;
+/** Whether a match lies inside a listed everyday word at its first or last word. */
+function insideEveryday(text: string, index: number, matched: string): boolean {
+  const w = words(matched);
+  if (w.length === 0) return false;
+  const [first, last] = [w[0], w[w.length - 1]];
+  const start = wordAt(text, index);
+  if (start !== first && EVERYDAY_WORDS[first]?.includes(start)) return true;
+  const end = wordAt(text, index + matched.length - 1);
+  return end !== last && (EVERYDAY_WORDS[last]?.includes(end) ?? false);
 }
 
-const phrases = new Map<string, RegExp>();
-function phrasePattern(phrase: string): RegExp {
-  let re = phrases.get(phrase);
-  if (!re) {
-    re = new RegExp(sttSpelling(phrase).trim().split(/\s+/).map(escape).join('\\s+'), 'u');
-    phrases.set(phrase, re);
+/** 'hit' if any match of re in text lies outside listed everyday words; every match is tried. */
+function tierIn(re: RegExp, text: string): Hit {
+  const g = new RegExp(re.source, `${re.flags.replace(/[gy]/g, '')}g`);
+  let tier: Hit = null;
+  for (let m = g.exec(text); m; m = g.exec(text)) {
+    if (m[0] !== '' && !insideEveryday(text, m.index, m[0])) return 'hit';
+    if (m[0] !== '') tier = 'soft';
+    g.lastIndex = m.index + 1;
   }
-  return re;
+  return tier;
+}
+
+const best = (a: Hit, b: Hit): Hit => (a === 'hit' || b === 'hit' ? 'hit' : (a ?? b));
+
+const phrases = new Map<string, [RegExp, RegExp]>();
+/** The phrase as written, and in STT spelling with its words allowed to run together. */
+function phrasePatterns(phrase: string): [RegExp, RegExp] {
+  let res = phrases.get(phrase);
+  if (!res) {
+    const spelled = sttSpelling(phrase).trim().split(/\s+/).map(escape).join('\\s*');
+    res = [new RegExp(escape(phrase), 'u'), new RegExp(spelled, 'u')];
+    phrases.set(phrase, res);
+  }
+  return res;
 }
 
 /**
- * off: today's reading. on: the whole-word one. shadow: today's, logging
- * where the whole-word reading differs. A site's readings never throw.
+ * off: the check as it was. on: onTier. shadow: as off, logging where on
+ * differs. If onTier throws, shadow and on log it and return the off reading:
+ * the new reading never throws where the old one did not, and never reads less.
+ */
+function decide(site: string, today: () => boolean, onTier: () => Hit, env: Env): Hit {
+  const mode = resolveSafetyWholeWordSites(env);
+  const off: Hit = today() ? 'hit' : null;
+  if (mode === 'off') return off;
+  let on: Hit;
+  try {
+    on = onTier();
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    logWouldDiffer({ flag: FLAG, phrase: site, site, error });
+    return off;
+  }
+  if (mode === 'on') return on;
+  if (on !== off) logWouldDiffer({ flag: FLAG, phrase: site, site, would: on });
+  return off;
+}
+
+/** text.toLowerCase().includes(phrase) as 'hit' | null; with the flag on, also 'soft'. */
+export function phraseHit(text: string, phrase: string, env: Env = process.env): Hit {
+  const lower = text.toLowerCase();
+  return decide(
+    phrase,
+    () => lower.includes(phrase),
+    () => {
+      const [plain, spelled] = phrasePatterns(phrase);
+      return best(tierIn(plain, lower), tierIn(spelled, sttSpelling(text)));
+    },
+    env
+  );
+}
+
+/** pattern.test(text) as 'hit' | null; with the flag on, also 'soft'. Coerces as pattern.test does. */
+export function patternHit(pattern: RegExp, text: string, env: Env = process.env): Hit {
+  return decide(
+    pattern.source.slice(0, 60),
+    () => pattern.test(text),
+    () => {
+      const s = String(text);
+      return best(tierIn(pattern, s), tierIn(pattern, normalized(s)));
+    },
+    env
+  );
+}
+
+/** Whether the phrase counts at all (hit or soft). Never false where the substring check is true. */
+export function saysPhrase(text: string, phrase: string, env: Env = process.env): boolean {
+  return phraseHit(text, phrase, env) !== null;
+}
+
+/** Whether the pattern counts at all (hit or soft). Never false where pattern.test is true. */
+export function testWholeWords(pattern: RegExp, text: string, env: Env = process.env): boolean {
+  return patternHit(pattern, text, env) !== null;
+}
+
+/** The same readers under the names the consumer PRs use. */
+export const saysRiskPhrase = saysPhrase;
+export const testRiskWords = testWholeWords;
+
+/**
+ * off: today's reading. on: the new one. shadow: today's, logging where the
+ * new one differs. For a site with its own pattern (crisis-agreement.ts).
  */
 export function wholeWordSite(
   site: string,
@@ -79,87 +182,5 @@ export function wholeWordSite(
   wholeWord: () => boolean,
   env: Env = process.env
 ): boolean {
-  const mode = resolveSafetyWholeWordSites(env);
-  if (mode === 'off') return today();
-  if (mode === 'on') return wholeWord();
-  const was = today();
-  const now = wholeWord();
-  if (now !== was) logWouldDiffer({ flag: FLAG, phrase: site, site, would: now });
-  return was;
-}
-
-/** text.toLowerCase().includes(phrase), or the whole-word reading with the flag on. */
-export function saysPhrase(text: string, phrase: string, env: Env = process.env): boolean {
-  return wholeWordSite(
-    phrase,
-    () => text.toLowerCase().includes(phrase),
-    () => edgeMatch(phrasePattern(phrase), sttSpelling(text)),
-    env
-  );
-}
-
-/**
- * Crisis-severity checks with the flag on read recall-first: a match need only
- * start at a word edge and may end in any letters, with no negation guard. So on
- * never reads less risk than the substring check, except where the phrase starts
- * inside a word ("skill them", "spend it all", "send it"). The whole-word ending
- * and the negation guard dropped real risk: "kill themselves" ('kill them'),
- * "suicidality" ('suicidal'), "self-harmer", "self-harmful", and the labelled
- * risk line "I'm not suicidal or anything, but I did write out my final wishes".
- * Tried on the plain lowercased text, so every substring match that starts at a
- * word edge still counts, and on its STT spelling with the phrase's words allowed
- * to run together ("self harm", "selfharm"). Low-severity checks keep saysPhrase.
- */
-function startEdgeMatch(pattern: RegExp, text: string): boolean {
-  const re = new RegExp(pattern.source, `${pattern.flags.replace(/[gy]/g, '')}g`);
-  for (let m = re.exec(text); m; m = re.exec(text)) {
-    if (!isWordChar(text[m.index - 1])) return true;
-    re.lastIndex = m.index + 1;
-  }
-  return false;
-}
-
-const riskPhrases = new Map<string, [RegExp, RegExp]>();
-function riskPatterns(phrase: string): [RegExp, RegExp] {
-  let res = riskPhrases.get(phrase);
-  if (!res) {
-    const plain = new RegExp(escape(phrase), 'u');
-    const spelled = sttSpelling(phrase).trim().split(/\s+/).map(escape).join('\\s*');
-    res = [plain, new RegExp(spelled, 'u')];
-    riskPhrases.set(phrase, res);
-  }
-  return res;
-}
-
-/** text.toLowerCase().includes(phrase), or the recall-first reading with the flag on. */
-export function saysRiskPhrase(text: string, phrase: string, env: Env = process.env): boolean {
-  return wholeWordSite(
-    phrase,
-    () => text.toLowerCase().includes(phrase),
-    () => {
-      const [plain, spelled] = riskPatterns(phrase);
-      return startEdgeMatch(plain, text.toLowerCase()) || startEdgeMatch(spelled, sttSpelling(text));
-    },
-    env
-  );
-}
-
-/** pattern.test(text) for a crisis-severity regex, or the recall-first reading. */
-export function testRiskWords(pattern: RegExp, text: string, env: Env = process.env): boolean {
-  return wholeWordSite(
-    pattern.source.slice(0, 60),
-    () => pattern.test(text),
-    () => startEdgeMatch(pattern, text) || startEdgeMatch(pattern, normalized(text)),
-    env
-  );
-}
-
-/** pattern.test(text) for a safety regex written without \b, or the whole-word reading. */
-export function testWholeWords(pattern: RegExp, text: string, env: Env = process.env): boolean {
-  return wholeWordSite(
-    pattern.source.slice(0, 60),
-    () => pattern.test(text),
-    () => edgeMatch(pattern, normalized(text)),
-    env
-  );
+  return decide(site, today, () => (wholeWord() ? 'hit' : null), env) !== null;
 }

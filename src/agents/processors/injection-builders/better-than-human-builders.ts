@@ -404,11 +404,8 @@ export async function buildHumanTransferInjections(
       reason: decision.reason.slice(0, 100),
     });
 
-    return {
-      category: 'better_than_human',
-      content,
-      priority,
-    };
+    const crisis = decision.type === 'crisis_immediate' || decision.type === 'crisis_support';
+    return { category: crisis ? 'crisis_transfer' : 'better_than_human', content, priority };
   } catch (error) {
     diag.debug('Human transfer injection skipped', { error: String(error) });
     return null;
@@ -482,11 +479,7 @@ export async function buildCrisisHistoryInjection(
       escalationType: lastCrisis.escalationType,
     });
 
-    return {
-      category: 'better_than_human',
-      content: sections.join('\n'),
-      priority: 85,
-    };
+    return { category: 'crisis_follow_up', content: sections.join('\n'), priority: 85 };
   } catch (error) {
     diag.debug('Crisis history injection skipped', { error: String(error) });
     return null;
