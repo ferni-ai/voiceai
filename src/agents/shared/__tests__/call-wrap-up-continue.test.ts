@@ -36,6 +36,7 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
 import { PersonaVoiceAgent } from '../../personas/ferni-agent.js';
 import { attachCallWrapUp, DISCONNECT_DELAY_MS, REMOVAL_GRACE_MS } from '../call-wrap-up.js';
 import {
+  callerSaysGoodbye,
   callerSignsOff,
   clearFarewell,
   farewellSaid,
@@ -491,6 +492,24 @@ describe('a goodbye that carries risk (#2291)', () => {
     expect(farewellSaid(c.id)).toBe(false);
   });
 
+  it('an ask to hang up still ends the call; "hang up on life. bye" never does', async () => {
+    const ask = await call();
+    ask.say('user', 'okay you can hang up, bye');
+    ask.agentState('speaking');
+    ask.say('assistant', 'Okay, talk soon.');
+    ask.agentState('listening');
+    await ask.advance(IDLE_AFTER_GOODBYE_MS);
+    expect(ask.events).toEqual(['0 conversation_end idle_after_goodbye']);
+
+    const risky = await call();
+    risky.say('user', "I'm going to hang up on life. bye");
+    risky.agentState('speaking');
+    risky.say('assistant', 'Bye, take care.');
+    risky.agentState('listening');
+    await risky.advance(60_000);
+    expect(risky.events).toEqual([]);
+  });
+
   it('never counts as the caller saying goodbye, even before any read notes risk', async () => {
     const c = await call();
     c.say('user', "I won't be here tomorrow. Bye.");
@@ -723,11 +742,26 @@ describe('callerSignsOff', () => {
     for (const s of ['okay, bye!', 'thanks, you too', 'love you, bye', 'good night']) {
       expect(farewellRisk(s), s).toBe(false);
     }
-    // An ask to hang up is not risk; hanging oneself is
-    for (const s of ['I said hang up now. You need to hang up.', 'please hang up']) {
+    // A whole-clause ask to hang up is not risk; any other "hang" is
+    for (const s of [
+      'I said hang up now. You need to hang up.',
+      'please hang up',
+      'okay you can hang up, bye',
+      'just hang up the phone. bye',
+    ]) {
       expect(farewellRisk(s), s).toBe(false);
+      expect(callerSaysGoodbye(s), s).toBe(true);
     }
-    expect(farewellRisk("I'm going to hang myself. bye")).toBe(true);
+    for (const s of [
+      "I'm going to hang myself. bye",
+      "I'm going to hang up on life. bye",
+      'hang up by my neck. bye',
+      'hang up myself. bye',
+      'hang up from the ceiling, bye',
+    ]) {
+      expect(farewellRisk(s), s).toBe(true);
+      expect(callerSignsOff(s), s).toBe(false);
+    }
     // Every clause must be a goodbye or a pleasantry, not just the last one
     for (const s of ['talk to you tomorrow about the dentist, bye', 'I need my keys. bye']) {
       expect(farewellRisk(s), s).toBe(false);

@@ -30,19 +30,35 @@ const FAREWELL_SHAPE = new RegExp(
   'i'
 );
 
-/**
- * The goodbye words themselves, and an ask to hang up, which hasRiskContent
- * counts as risk on their own ("bye", "hang"). "hang myself" stays risk.
- */
+/** The goodbye words themselves, which hasRiskContent counts as risk on their own ("bye"). */
 const GOODBYE_WORDS =
-  /\b(?:good ?bye|bye(?: bye)?|farewell|take care|love you|good ?night|night|see (?:you|ya)(?: later| soon)?|hang up)\b/gi;
+  /\b(?:good ?bye|bye(?: bye)?|farewell|take care|love you|good ?night|night|see (?:you|ya)(?: later| soon)?)\b/gi;
+
+/**
+ * A whole clause that only asks Ferni to end the call, in the HANG_UPS forms
+ * call-farewell.ts recognises ("you can hang up", "I said hang up now"),
+ * followed by nothing but now / please / the phone / the call. hasRiskContent
+ * counts "hang" as risk, so only these clauses are taken out before it runs:
+ * "hang up on life", "hang up myself", "hang up from the ceiling" and
+ * "hang up by my neck" stay risk.
+ */
+const HANG_UP_CLAUSE =
+  /^(?:(?:ok|okay|alright|all right|so|well|yeah|just|please|i said|go ahead and)\s+)*(?:you\s+(?:can\s+|need to\s+|have to\s+)?)?(?:hang up|end the call)(?:\s+(?:now|right now|please|the phone|the call))*$/;
+
+/** The line without its hang-up asks, clause by clause. */
+function withoutHangUpAsks(line: string): string {
+  return line
+    .split(/[.!?,;:]+/)
+    .filter((clause) => !HANG_UP_CLAUSE.test(clause.trim().toLowerCase().replace(/\s+/g, ' ')))
+    .join(' ');
+}
 
 export function farewellRisk(text: string): boolean {
   const line = text.replace(/[’‘]/g, "'");
   const crisis = detectCrisis(line);
   if (crisis.isCrisis || crisis.severity > 0.3) return true;
   if (FAREWELL_SHAPE.test(line)) return true;
-  const rest = line
+  const rest = withoutHangUpAsks(line)
     .replace(GOODBYE_WORDS, ' ')
     .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
     .trim();
