@@ -23,7 +23,7 @@ import {
 } from 'node:stream/web';
 
 import { GEMINI_MODEL } from '../../config/gemini-config.js';
-import { getVoiceIdForPersona } from '../../config/voice-ids.js';
+import { asSessionVoice, spokenVoiceId, type SessionVoice } from './spoken-voice.js';
 import { getLinguisticMirroring } from '../../conversation/superhuman/linguistic-mirroring.js';
 import { finops } from '../../services/observability/finops.js';
 import { crisisLineSpeechTransform } from '../../services/safety/crisis-line-speech.js';
@@ -301,6 +301,8 @@ export interface TtsSessionContext extends ReplyCallerFields {
   userId?: string;
   sessionId?: string;
   personaId?: string;
+  /** The voice resolved when the call started (custom agent or localized), see spoken-voice.ts */
+  sessionVoice?: SessionVoice;
   wasInterrupted?: boolean;
   interruptType?: 'hard' | 'soft';
   /** Current emotional context (for cache-aware TTS) */
@@ -1096,7 +1098,7 @@ export async function wrappedTtsNode(
   // 🚀 TTS GATEWAY: Use FULL gateway when enabled (highest priority)
   // This completely replaces LiveKit's internal Cartesia with our gateway
   if (isTTSGatewayEnabled()) {
-    const actualVoiceId = getVoiceIdForPersona(personaId);
+    const actualVoiceId = spokenVoiceId(personaId, sessionContext?.sessionVoice);
 
     log.info(
       { personaId, voiceId: actualVoiceId, emotion, sessionId },
@@ -1126,7 +1128,7 @@ export async function wrappedTtsNode(
     // Use cache-aware TTS that checks speculative cache before Cartesia
     // BUG FIX: Convert personaId to actual Cartesia voice UUID
     // Previously passed personaId directly, causing cache misses and wrong voice lookups
-    const actualVoiceId = getVoiceIdForPersona(personaId);
+    const actualVoiceId = spokenVoiceId(personaId, sessionContext?.sessionVoice);
     const cacheAwareTTS = createCacheAwareTTSNode({
       voiceId: actualVoiceId,
       emotion,
@@ -1295,6 +1297,7 @@ export function extractTtsSessionContext(
     userId: userData?.userId as string | undefined,
     sessionId: extractedSessionId,
     personaId,
+    sessionVoice: asSessionVoice(userData?.sessionVoice),
     wasInterrupted: userData?.wasInterrupted as boolean | undefined,
     interruptType: userData?.interruptType as 'hard' | 'soft' | undefined,
     emotion: userData?.currentEmotion as string | undefined,

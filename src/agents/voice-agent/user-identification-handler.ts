@@ -33,6 +33,7 @@ import {
   startReturningCaller,
 } from '../voice-agent-entry/caller-recognition.js';
 import { flagOn } from '../../config/env-flag.js';
+import { newAnonymousId } from '../../services/identity/anonymous-session-id.js';
 import { isVerifiedIdentification } from '../../services/identity/verified-caller.js';
 import { deviceNameGuardEnabled, isDeviceOrHandleName } from './device-name-guard.js';
 
@@ -209,7 +210,12 @@ export async function identifyUser(
   });
 
   return {
-    userId,
+    // PRIVACY: a caller nobody named (no dispatch metadata, a failed lookup, or a number that
+    // names no account) gets their own per-call anon: id, like every other stranger. Left
+    // undefined, every later `userId || 'anonymous'` put them in one profile shared by all of
+    // them, read back into the next such call. Minted after the returning-caller lookup, which
+    // still sees what it saw before.
+    userId: userId || newAnonymousId(),
     userName,
     identificationSource,
     userAccent,
