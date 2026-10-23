@@ -14,6 +14,7 @@ import type { ReferralResource, ReferralTarget } from './types.js';
 
 interface Match {
   target: ReferralTarget;
+  urgency: 'low' | 'medium' | 'high' | 'immediate';
   confidence: number;
 }
 
@@ -21,13 +22,14 @@ export function referralResources(
   table: Record<ReferralTarget, ReferralResource[]>,
   urgency: 'low' | 'medium' | 'high' | 'immediate',
   best: Match,
-  others: readonly Match[]
+  matched: readonly Match[]
 ): ReferralResource[] {
-  if (urgency !== 'immediate') return table[best.target] || [];
+  if (urgency !== 'immediate') return table[best.target];
   // The best match is then a crisis trigger or this top non-crisis match (same tie-break).
+  const others = matched.filter((m) => m.urgency !== 'immediate');
   const top = others.reduce<Match | null>(
     (a, m) => (!a || m.confidence > a.confidence ? m : a),
     null
   );
-  return [...table.crisis_line, ...(top ? table[top.target] || [] : [])];
+  return [...table.crisis_line, ...(top ? table[top.target] : [])];
 }
