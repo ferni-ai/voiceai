@@ -13,7 +13,7 @@ vi.mock('../../services/unified-memory-service.js', () => ({
   getUnifiedMemoryService: () => ({ write }),
 }));
 const store = vi.hoisted(() => ({
-  getProfile: vi.fn(async (userId: string): Promise<unknown> => ({ userId, name: 'Sam' })),
+  getProfileForWrite: vi.fn(async (userId: string): Promise<unknown> => ({ userId, name: 'Sam' })),
   saveProfile: vi.fn(async () => undefined),
   saveSummary: vi.fn(async () => undefined),
 }));
