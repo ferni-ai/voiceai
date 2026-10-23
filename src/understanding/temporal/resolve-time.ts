@@ -10,6 +10,7 @@ import { createLogger } from '../../utils/safe-logger.js';
 import * as C from './civil.js';
 import type { Certainty, CivilTime, Precision, RuleContext, Tense } from './civil.js';
 import { customRules, narrowToTimeOfDay } from './rules.js';
+import { hasPastVerb } from './tense.js';
 
 const log = createLogger({ module: 'Understanding.Temporal' });
 
@@ -50,7 +51,8 @@ export async function warmTemporalParser(): Promise<boolean> {
 }
 
 const COUNT = '\\d{1,2}|an?|one|two|three|four|five|six|seven|eight|nine|ten|a couple of|a few';
-const DURATION = new RegExp(`\\bfor (${COUNT}) (day|week)s?\\b`);
+/** "for two weeks", and the "from" of "for two weeks from Monday", which says when it starts. */
+const DURATION = new RegExp(`\\bfor (${COUNT}) (day|week)s?(?: from)?\\b`);
 const NUMBER_WORDS = COUNT.split('|');
 const WEEK_OF = /\bthe week of\b(.+)$/;
 const VAGUE = /\b(about|around|couple|few|or so|roughly)\b/;
@@ -130,14 +132,24 @@ export function resolveTime(
   return { start: C.toInstant(start, zone), endExclusive: C.toInstant(end, zone), ...rest };
 }
 
-/** Every time a longer text names, one per clause ("first round 10-19, final 10-26"). */
+/**
+ * Every time a longer text names, one per clause ("first round 10-19, final
+ * 10-26"), in the tense the caller gives (tense.ts). Without one each clause
+ * is read forward, and a clause with a past-tense verb ("I saw her on the
+ * 9th") that lands ahead of when it was said is ambiguous, never exact.
+ */
 export function resolveTimes(
   text: string,
   saidAt: number,
-  callerTimeZone?: string
+  callerTimeZone?: string,
+  { tense }: { tense?: Tense } = {}
 ): ResolvedTime[] {
   return text
     .split(/[,;!?]|\.(?=\s|$)|\b(?:and|but|then)\b/)
-    .map((clause) => resolveTime(clause, saidAt, callerTimeZone))
+    .map((clause) => {
+      const t = resolveTime(clause, saidAt, callerTimeZone, { tense });
+      const unsure = !tense && t?.certainty === 'exact' && t.endExclusive > saidAt;
+      return unsure && hasPastVerb(clause) ? { ...t, certainty: 'ambiguous' as const } : t;
+    })
     .filter((r): r is ResolvedTime => r !== null);
 }

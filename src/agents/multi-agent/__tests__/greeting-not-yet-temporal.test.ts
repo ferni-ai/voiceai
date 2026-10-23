@@ -285,3 +285,30 @@ describe('TEMPORAL_RESOLVER on: #2335 adversarial cases', () => {
     expect(openingRestraint(h, NY, WED_NY_9AM, RESTRAINT_ON).history?.lastTopic).toBeUndefined();
   });
 });
+
+describe('TEMPORAL_RESOLVER on: #2482 round 1 (modifiers and tense)', () => {
+  const ahead = (statement: string, createdAt: number, now: number): boolean =>
+    commitmentAhead({ statement, createdAt }, now, NY, ON);
+  it('"a week from Thursday" said Mon 10-19 is still ahead on Sun 10-25', () => {
+    expect(ahead('dentist a week from Thursday', ny('2026-10-19', 10), ny('2026-10-25', 9))).toBe(
+      true
+    );
+    expect(ahead('dentist a week from Thursday', ny('2026-10-19', 10), ny('2026-10-30', 9))).toBe(
+      false
+    );
+  });
+  it('"after the weekend" said Thu 10-22 is still ahead on Mon 10-26 11:00', () => {
+    expect(
+      ahead('call the bank after the weekend', ny('2026-10-22', 10), ny('2026-10-26', 11))
+    ).toBe(true);
+  });
+  it('"I saw her on the 9th" is behind them: the commitment and the topic are not ahead', () => {
+    const said = ny('2026-10-22', 10);
+    const fri = ny('2026-10-23', 9);
+    expect(ahead('I saw her on the 9th', said, fri)).toBe(false);
+    const h = { calls: 3, daysSince: 1, lastTopic: 'I saw her on the 9th' };
+    expect(openingRestraint(h, NY, fri, RESTRAINT_ON).history?.lastTopic).toBe(h.lastTopic);
+    // A plan for the 9th, in the same words otherwise, is still ahead.
+    expect(ahead("I'm seeing her on the 9th", said, fri)).toBe(true);
+  });
+});

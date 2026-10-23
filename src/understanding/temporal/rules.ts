@@ -3,7 +3,9 @@
  * (local test 2026-10-22): bare ordinals ("the 30th") return nothing; "last
  * Monday" said on a Thursday is the Monday before; a weekday said on that
  * weekday is today (#2335 A8: next week's); "this weekend" said on a Sunday is
- * next weekend; "tonight" is the whole day.
+ * next weekend; "tonight" is the whole day. A modifier moves the day it names
+ * ("a week from Thursday", "after the weekend", "the Friday after next"); one
+ * no rule here reads leaves the day unsure, never exact (#2482 round 1).
  *
  * @module understanding/temporal/rules
  */
@@ -22,6 +24,22 @@ const WEEKEND = /\b(?:(this|next|last) )?weekend\b/;
 const CLOCK = /\b(\d{1,2})(?::(\d{2}))?\s*([ap])\.?m\b/;
 const PART = /\b(morning|afternoon|evening|tonight|night)\b/;
 const PARTS: Record<string, number[]> = { morning: [6, 12], afternoon: [12, 17] };
+const COUNTS = ['a', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+const ANCHOR_DAY = `(?:the |this |next )?weekend|(?:this |next )?(?:${WEEKDAYS.join('|')})`;
+/** "a week from Thursday", "two weeks from Friday", "3 days from tomorrow". */
+const OFFSET_FROM = new RegExp(
+  `\\b(\\d{1,2}|an?|${COUNTS.slice(1).join('|')}) (day|week)s? from (.+)$`
+);
+/** "the Thursday after next", "weekend after next". */
+const AFTER_NEXT = new RegExp(`\\b(?:the )?(${WEEKDAYS.join('|')}|weekend) after next\\b`);
+/** "after the weekend", "after Monday", "after the 30th"; not "the day after tomorrow". */
+const AFTER = new RegExp(
+  `(?<!\\bday )\\bafter (${ANCHOR_DAY}|today|tonight|tomorrow|the \\d{1,2}(?:st|nd|rd|th))\\b`
+);
+/** Words that move a day this file's other rules would read as exact. */
+const MODIFIER = /\b(from|after|before|following|weeks?)\b/;
+/** Modifiers the relative-day rule reads itself. */
+const READ_BY_RELATIVE_DAY = /\bday (?:after|before) (?:tomorrow|yesterday)\b/g;
 
 function isoDate(text: string): CivilTime | null {
   const m = ISO_DATE.exec(text);
@@ -96,10 +114,58 @@ function weekend(text: string, ctx: RuleContext): CivilTime | null {
   return C.interval(start, start + 2 * C.DAY_MS, 'span', certainty, `weekend=${mod}`);
 }
 
-/** The first custom rule that matches, in priority order. */
+const shift = (t: CivilTime, days: number, canonical: string): CivilTime =>
+  C.interval(
+    t.start + days * C.DAY_MS,
+    t.end + days * C.DAY_MS,
+    t.precision,
+    t.certainty,
+    canonical
+  );
+
+/** "a week from Thursday": the anchor day moved on by N days or weeks; "now" is today. */
+function offsetFrom(text: string, ctx: RuleContext): CivilTime | null {
+  const m = OFFSET_FROM.exec(text);
+  if (!m) return null;
+  const n = /\d/.test(m[1]) ? Number(m[1]) : Math.max(1, COUNTS.indexOf(m[1]));
+  const anchor = /^now\b/.test(m[3]) ? C.day(ctx.today, 'exact', 'now') : customRules(m[3], ctx);
+  const days = n * (m[2] === 'week' ? 7 : 1);
+  return anchor && shift(anchor, days, `${anchor.canonical};plus=P${days}D`);
+}
+
+/** "the Friday after next": the coming one, then a week on. */
+function afterNext(text: string, ctx: RuleContext): CivilTime | null {
+  const name = AFTER_NEXT.exec(text)?.[1];
+  if (name === undefined) return null;
+  const ahead = { ...ctx, tense: 'future' as const };
+  const anchor = name === 'weekend' ? weekend(name, ahead) : weekday(name, ahead);
+  return anchor ? shift(anchor, 7, `${anchor.canonical};after_next=+7d`) : null;
+}
+
+/** "after the weekend": open-ended from the day after it ends, so the start is assumed. */
+function afterDay(text: string, ctx: RuleContext): CivilTime | null {
+  const said = AFTER.exec(text)?.[1];
+  const anchor = said ? customRules(said, ctx) : null;
+  if (!anchor) return null;
+  return C.day(C.midnight(anchor.end - 1) + C.DAY_MS, 'assumed', `after(${anchor.canonical})`);
+}
+
+/**
+ * The first custom rule that matches, in priority order: modifiers first, then
+ * the day they would move. A day matched inside a modifier none of them reads
+ * ("the day before Thursday", "Friday next week") is assumed, never exact.
+ */
 export function customRules(text: string, ctx: RuleContext): CivilTime | null {
+  const modified = [offsetFrom, afterNext, afterDay].reduce<CivilTime | null>(
+    (hit, rule) => hit ?? rule(text, ctx),
+    null
+  );
+  if (modified) return modified;
   const rules = [ordinal, relativeDay, weekday, weekend];
-  return rules.reduce<CivilTime | null>((hit, rule) => hit ?? rule(text, ctx), isoDate(text));
+  const hit = rules.reduce<CivilTime | null>((h, rule) => h ?? rule(text, ctx), isoDate(text));
+  const partial = MODIFIER.test(text.replace(READ_BY_RELATIVE_DAY, ' '));
+  if (!hit || !partial || hit.certainty !== 'exact') return hit;
+  return { ...hit, certainty: 'assumed', canonical: `${hit.canonical};partial` };
 }
 
 /** A whole day narrowed by a clock time ("at 3pm", "noon") or a part of the day ("morning"). */

@@ -22,6 +22,7 @@
 import { flagOn } from '../../config/env-flag.js';
 import { eventState } from '../../understanding/temporal/event-state.js';
 import { resolveTimes, warmTemporalParser } from '../../understanding/temporal/resolve-time.js';
+import { sentenceTense } from '../../understanding/temporal/tense.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import type { CallerHistory } from './greeting-direction.js';
 import { recentCallRestraintEnabled } from './welcome-back.js';
@@ -115,9 +116,15 @@ export function namesDayAhead(text: string, today: string, saidOn?: string): boo
   );
 }
 
-/** TEMPORAL_RESOLVER: any time the text names, read from when it was said, is not over yet. */
+/**
+ * TEMPORAL_RESOLVER: any time the text names, read from when it was said in
+ * the tense its verbs give ("I saw her on the 9th" is the 9th gone), is not over yet.
+ */
 function resolvedAhead(text: string, saidAt: number, now: number, timeZone?: string): boolean {
-  return resolveTimes(text, saidAt, timeZone).some((t) => eventState(t, now, timeZone) !== 'past');
+  const tense = sentenceTense(text);
+  return resolveTimes(text, saidAt, timeZone, { tense }).some(
+    (t) => eventState(t, now, timeZone) !== 'past'
+  );
 }
 
 /** A commitment not yet due: its target date, or the day it names, is still ahead. */
