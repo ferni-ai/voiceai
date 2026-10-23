@@ -15,7 +15,7 @@ let releaseLoad: () => void = () => {};
 let loadGate: Promise<void> = Promise.resolve();
 
 const store = {
-  getProfile: vi.fn(async (uid: string) => {
+  getProfileForWrite: vi.fn(async (uid: string) => {
     await loadGate;
     return profiles.get(uid) ?? null;
   }),
