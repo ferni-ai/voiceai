@@ -15,7 +15,7 @@ final class TearTests: XCTestCase {
             (0..<3).map { abs(Int(bytes[i * 4 + $0]) - Int(dry.bytes[i * 4 + $0])) }.reduce(0, +) > 30
         }
         XCTAssertGreaterThan(tear.count, 20, "the tears are drawn")
-        let nearEye = LidCapTests.whites(dry, reach: 4)
+        let nearEye = LidCapTests.whites(dry, reach: 4, bare: try LidCapTests.render("crying", tears: false, caps: false))
         let touching = tear.filter { nearEye[$0] }.count
         XCTAssertGreaterThan(Double(touching), Double(tear.count) * 0.3, "\(touching) of \(tear.count) tear pixels touch an eye")
     }

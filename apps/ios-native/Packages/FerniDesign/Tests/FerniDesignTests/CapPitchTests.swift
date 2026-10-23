@@ -34,21 +34,24 @@ final class CapPitchTests: XCTestCase {
     /// to the bottom cap's edge, down the eye's middle column.
     func gaps(_ id: String, pitch: Float) throws -> (top: Int?, bottom: Int?) {
         let (l, w, h) = try render(id, pitch: pitch)
+        // The caps are what changes when they're taken away. They're the page's
+        // colour (cream here, lighter than the eye whites), so a white is a light
+        // pixel the caps didn't change.
+        let bare = try render(id, pitch: pitch, caps: false).luma
+        func cap(_ i: Int) -> Bool { abs(l[i] - bare[i]) > 0.02 }
         // The left eye: the white pixels left of the middle.
         var xs: [Int] = []
-        for y in 0..<h { for x in 0..<(w / 2) where l[y * w + x] > 0.8 { xs.append(x) } }
+        for y in 0..<h { for x in 0..<(w / 2) where l[y * w + x] > 0.8 && !cap(y * w + x) { xs.append(x) } }
         let xs0 = try XCTUnwrap(xs.min(), "\(id) has a white"), x = (xs0 + (xs.max() ?? xs0)) / 2
         let col = (0..<h).map { l[$0 * w + x] }
         // The white's edges are its steepest steps (where a threshold crosses moves
         // with the light as the head turns under it).
-        let whites = col.indices.filter { col[$0] > 0.7 }
+        let whites = col.indices.filter { col[$0] > 0.7 && !cap($0 * w + x) }
         let top0 = try XCTUnwrap(whites.first), bottom0 = try XCTUnwrap(whites.last)
         let eyeTop = (top0 - 6...top0 + 6).max { col[$0 + 1] - col[$0 - 1] < col[$1 + 1] - col[$1 - 1] } ?? top0
         let eyeBottom = (bottom0 - 6...bottom0 + 6).max { col[$0 - 1] - col[$0 + 1] < col[$1 - 1] - col[$1 + 1] } ?? bottom0
-        // The caps are what changes when they're taken away: their edges are the
-        // last changed rows above the eye and the first below it.
-        let bare = try render(id, pitch: pitch, caps: false).luma
-        let capped = (0..<h).map { abs(l[$0 * w + x] - bare[$0 * w + x]) > 0.02 }
+        // The caps' edges are the last changed rows above the eye and the first below it.
+        let capped = (0..<h).map { cap($0 * w + x) }
         let topEdge = (0..<eyeTop).last { capped[$0] }, bottomEdge = (eyeBottom + 1..<h).first { capped[$0] }
         return (topEdge.map { eyeTop - $0 }, bottomEdge.map { $0 - eyeBottom })
     }

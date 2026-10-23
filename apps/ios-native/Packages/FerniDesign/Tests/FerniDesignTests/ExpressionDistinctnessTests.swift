@@ -26,13 +26,13 @@ final class ExpressionDistinctnessTests: XCTestCase {
     static let knownTwins: Set<Pair> = []
 
     /// Twins by design, each with why: a still frame can't tell them apart.
-    /// Measured 2026-10-20 (FERNI_AUDIT_PRINT=1 on testPrintNearest).
+    /// Measured 2026-10-20 (FERNI_AUDIT_PRINT=1 on testPrintNearest). With the
+    /// page-colour lid caps back (2026-10-22), absorbing/listening (0.031),
+    /// confident/encouraging (0.019) and processing/receptive (0.029) grew
+    /// apart past the line and left the list.
     static let allowedTwins: [Pair: String] = [
         Pair("neutral", "speaking"): "0.0047: speaking is neutral plus the voice's motion, which a still frame can't see",
-        Pair("absorbing", "listening"): "0.0092: absorbing is the tokens' listening family, a deeper listening by design",
         Pair("content", "serene"): "0.0093: two settled faces a step apart (lids 0.162 vs 0.225 on the rig); serene is the goodbye's settle face",
-        Pair("confident", "encouraging"): "0.0097: steady and upbeat, cool vs coaching family; no motion tells them apart yet, the first to change if an audit flags it",
-        Pair("processing", "receptive"): "0.0097: processing is a thinking face; in a call it comes with the thinking dots and line",
     ]
 
     struct Pair: Hashable, CustomStringConvertible {
@@ -47,7 +47,7 @@ final class ExpressionDistinctnessTests: XCTestCase {
 
     /// The settled face (springs at target; no breath, saccade or blink), as
     /// Home shows it at rest in the light theme.
-    static func render(_ id: String, reduceMotion: Bool = false, untilted: Bool = false) -> [UInt8]? {
+    static func render(_ id: String, reduceMotion: Bool = false, untilted: Bool = false, caps: Bool = true) -> [UInt8]? {
         let rig = AliveRig(persona: .ferni, seed: 11)
         rig.still = true
         rig.reduceMotion = reduceMotion
@@ -55,6 +55,7 @@ final class ExpressionDistinctnessTests: XCTestCase {
         _ = rig.frame(at: 0.016)
         var u = rig.frame(at: 0.032)
         if untilted { u.lean.x = 0 }
+        if !caps { u.caps = .zero }
         u.light(dark: false, roomTop: linear(hex: "#faf8f5"), roomBottom: linear(hex: "#efe9e0"))
         let w = width, h = height
         u.frame(size: SIMD2(Float(w), Float(h)), radius: Float(AvatarView.radius / AvatarView.canvas.width) * Float(w),
@@ -136,11 +137,10 @@ final class ExpressionDistinctnessTests: XCTestCase {
     /// than neutral's. Their lids now come down (the lifted inner corners and
     /// tensed lower lids), so less eye white shows than on neutral.
     func testWorryIsNotANeutralFace() throws {
-        let faces = try Self.faceCrops()
-        let neutral = Self.white(try XCTUnwrap(faces["neutral"]))
+        let neutral = try Self.eyeWhite("neutral")
         // Anxious keeps its wide (1.05 × 1.06) eyes: FaceTests pins its furrow.
         for id in ["concerned", "worried"] {
-            let white = Self.white(try XCTUnwrap(faces[id]))
+            let white = try Self.eyeWhite(id)
             XCTAssertLessThan(Double(white), Double(neutral) * 0.9, "\(id): \(white) eye-white samples vs neutral's \(neutral)")
         }
     }
@@ -229,6 +229,13 @@ final class ExpressionDistinctnessTests: XCTestCase {
 
     /// Eye-white samples in a face crop (near-white grey).
     static func white(_ crop: [Float]) -> Int { crop.filter { $0 > 0.8 }.count }
+
+    /// The eye white a face shows: light samples its lid caps didn't change
+    /// (the caps are the page's cream, as light as a white).
+    static func eyeWhite(_ id: String) throws -> Int {
+        let capped = crop(try XCTUnwrap(render(id), id)), bare = crop(try XCTUnwrap(render(id, caps: false), id))
+        return zip(capped, bare).filter { $0.0 > 0.8 && abs($0.0 - $0.1) < 0.02 }.count
+    }
 
     /// Writes face crops for before/after evidence; skipped without FERNI_AUDIT_DIR.
     func testWriteEvidenceCrops() throws {

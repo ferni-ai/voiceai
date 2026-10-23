@@ -1,5 +1,7 @@
 import CoreGraphics
 import ImageIO
+import SwiftUI
+import UIKit
 import UniformTypeIdentifiers
 import XCTest
 @testable import FerniDesign
@@ -22,24 +24,36 @@ final class AliveRenderTests: XCTestCase {
         }
         /// Opaque columns in a row (alpha > 0.5).
         func width(row y: Int) -> Int { (0..<w).filter { px($0, y).a > 0.5 }.count }
-        /// Near-white pixels (the eye whites) in a region.
-        func whites(x: Range<Int>, y: Range<Int>) -> Int {
-            x.reduce(0) { n, i in n + y.filter { j in let p = px(i, j); return p.a > 0.9 && min(p.r, p.g, p.b) > 0.75 }.count }
+        /// Near-white pixels (the eye whites) in a region. The lid caps are the
+        /// page's colour, as light as a white in light mode: with `bare` (the
+        /// same face without caps), a pixel the caps changed isn't a white.
+        func whites(x: Range<Int>, y: Range<Int>, bare: Image? = nil) -> Int {
+            x.reduce(0) { n, i in n + y.filter { j in
+                let p = px(i, j)
+                if let b = bare?.px(i, j), abs(b.r - p.r) + abs(b.g - p.g) + abs(b.b - p.b) > 0.06 { return false }
+                return p.a > 0.9 && min(p.r, p.g, p.b) > 0.75
+            }.count }
         }
     }
 
-    private func render(_ u: AliveUniforms, name: String) throws -> Image {
+    /// The app's room, top and bottom, light and dark (AvatarView.frame).
+    static let room = (light: (top: "#faf8f5", bottom: "#efe9e0"), dark: (top: "#1e1a16", bottom: "#14110e"))
+
+    private func render(_ u: AliveUniforms, name: String, dark: Bool = false) throws -> Image {
         let renderer = try XCTUnwrap(AliveRenderer.shared, "the shader compiles on this device")
         var u = u
-        u.light(dark: false, roomTop: linear(hex: "#faf8f5"), roomBottom: linear(hex: "#efe9e0"))
+        let room = dark ? Self.room.dark : Self.room.light
+        u.light(dark: dark, roomTop: linear(hex: room.top), roomBottom: linear(hex: room.bottom))
         u.frame(size: SIMD2(Float(Self.size), Float(Self.size)), radius: Self.radius)
         let bytes = try XCTUnwrap(renderer.image(u, width: Self.size, height: Self.size))
         Self.save(bytes, name: name)
         return Image(bytes: bytes, w: Self.size, h: Self.size)
     }
 
-    private func face(_ id: String) throws -> Image {
-        try render(.settled(Face.of(id), body: ferni, glow: ferniLight), name: id)
+    private func face(_ id: String, caps: Bool = true) throws -> Image {
+        var u = AliveUniforms.settled(Face.of(id), body: ferni, glow: ferniLight)
+        if !caps { u.caps = .zero }
+        return try render(u, name: caps ? id : "\(id)-bare")
     }
 
     func testTheUniformsAreWholeFloat4Slots() {
@@ -85,25 +99,94 @@ final class AliveRenderTests: XCTestCase {
         XCTAssertGreaterThan(j, 40, "but the eyes are still there")
     }
 
-    /// A lid cap is a darker shade of the persona's own colour (the web's
-    /// color-mix with ink): Maya's lids are a Maya shade, Ferni's a Ferni one.
-    func testALidIsAShadeOfThePersona() throws {
-        for (name, body, light) in [("ferni", ferni, ferniLight), ("maya", maya, mayaLight)] {
-            let lidded = AliveUniforms.settled(Face.of("sleepy"), body: body, glow: light)
-            var open = lidded
-            open.caps = .zero
-            let a = try render(lidded, name: "lid-\(name)"), b = try render(open, name: "lid-\(name)-open")
-            let x = Self.size / 2, top = try XCTUnwrap((0..<Self.size).first { a.px(x, $0).a > 0.99 })
-            let lid = a.px(x, top + 8), face = b.px(x, top + 8)
-            XCTAssertLessThan(lid.r + lid.g + lid.b, (face.r + face.g + face.b) * 0.92, "\(name): the lid is darker")
-            XCTAssertEqual(lid.r / lid.g, face.r / face.g, accuracy: 0.15, "\(name): in the persona's own hue")
-            XCTAssertEqual(lid.a, 1, accuracy: 0.01, "\(name): on the orb, not cut out of it")
+    /// A lid cap is the page as it shows there (Seth, 2026-10-11; the web's
+    /// .avatar-lid-overlay fills with --color-background-primary): cream in
+    /// light mode, the dark page in dark, for every persona, with the room's
+    /// glow over it as beside him (so never a darker hole). It regressed to an
+    /// 18% darker shade of the face on 10-20 (40d4177f46). The room at a
+    /// pixel is the same frame with Ferni shrunk to a point (the glow is
+    /// measured from his centre, not his size); the ring is left out of both.
+    /// On the orb, not cut out of it: the cap is opaque where the face was.
+    func testALidIsTheRoomAtThatPixel() throws {
+        let renderer = try XCTUnwrap(AliveRenderer.shared)
+        for dark in [false, true] {
+            // The page as measured on the web's themes (Chromium): cream #faf8f5, dark #14110e.
+            let token = srgb(hex: dark ? "#14110e" : "#faf8f5")
+            let page = [Double(token.x), Double(token.y), Double(token.z)].map { $0 * 255 }
+            for (name, body, light) in [("ferni", ferni, ferniLight), ("maya", maya, mayaLight)] {
+                let mode = dark ? "dark" : "light"
+                var lidded = AliveUniforms.settled(Face.of("sleepy"), body: body, glow: light)
+                lidded.arch.z = 0
+                var open = lidded
+                open.caps = .zero
+                let a = try render(lidded, name: "lid-\(name)-\(mode)", dark: dark)
+                let b = try render(open, name: "lid-\(name)-\(mode)-open", dark: dark)
+                // The room alone: the same frame, Ferni a point.
+                var roomU = lidded
+                let room = dark ? Self.room.dark : Self.room.light
+                roomU.light(dark: dark, roomTop: linear(hex: room.top), roomBottom: linear(hex: room.bottom))
+                roomU.frame(size: SIMD2(Float(Self.size), Float(Self.size)), radius: Self.radius)
+                roomU.bg0.w = 0.001
+                let roomBytes = try XCTUnwrap(renderer.image(roomU, width: Self.size, height: Self.size))
+                let x = Self.size / 2, y0 = try XCTUnwrap((0..<Self.size).first { a.px(x, $0).a > 0.99 })
+                for y in [y0 + 4, y0 + 8] {
+                    let lid = a.px(x, y), face = b.px(x, y)
+                    let got = [lid.r, lid.g, lid.b].map { $0 * 255 }
+                    // The room on screen: premultiplied over the page.
+                    let i = (y * Self.size + x) * 4, alpha = Double(roomBytes[i + 3]) / 255
+                    let seen = [2, 1, 0].enumerated().map { Double(roomBytes[i + $0.element]) + page[$0.offset] * (1 - alpha) }
+                    let off = zip(got, seen).map { abs($0 - $1) }.max() ?? 0
+                    XCTAssertLessThanOrEqual(off, Self.pageLevels, "\(name) \(mode) row \(y): lid \(got) against the room \(seen)")
+                    // Page-coloured, not face-coloured: far nearer the page than the face is.
+                    let fromPage = zip(got, page).map { abs($0 - $1) }.max() ?? 0
+                    let faceFromPage = zip([face.r, face.g, face.b].map { $0 * 255 }, page).map { abs($0 - $1) }.max() ?? 0
+                    XCTAssertLessThan(fromPage, faceFromPage * 0.5, "\(name) \(mode) row \(y): lid \(got), page \(page), face \(faceFromPage) off")
+                    let fromFace = abs(lid.r - face.r) + abs(lid.g - face.g) + abs(lid.b - face.b)
+                    XCTAssertGreaterThan(fromFace, 0.15, "\(name) \(mode): the lid isn't the face's colour")
+                    XCTAssertEqual(lid.a, 1, accuracy: 0.01, "\(name) \(mode): on the orb, not cut out of it")
+                }
+            }
+        }
+    }
+
+    /// Levels (of 255) a lid may sit from the page: the dither (half a level)
+    /// and rounding.
+    static let pageLevels = 3.0
+
+    /// The caps' page is the app's own page behind Ferni (FerniColor.background),
+    /// in each theme.
+    func testThePageIsTheAppsBackground() {
+        for (style, hex) in [(UIUserInterfaceStyle.light, AliveUniforms.pageHex.light), (.dark, AliveUniforms.pageHex.dark)] {
+            let c = UIColor(FerniColor.background).resolvedColor(with: UITraitCollection(userInterfaceStyle: style))
+            var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+            c.getRed(&r, green: &g, blue: &b, alpha: &a)
+            let want = srgb(hex: hex)
+            XCTAssertEqual(Float(r), want.x, accuracy: 1.0 / 255, "\(style.rawValue)")
+            XCTAssertEqual(Float(g), want.y, accuracy: 1.0 / 255)
+            XCTAssertEqual(Float(b), want.z, accuracy: 1.0 / 255)
+        }
+    }
+
+    /// In the evening the room's tint lies over the whole page; the caps take it too.
+    func testThePageTakesTheRoomsTint() {
+        for dark in [false, true] {
+            var u = AliveUniforms()
+            u.light(dark: dark, roomTop: .zero, roomBottom: .zero)
+            let base = srgb(hex: dark ? AliveUniforms.pageHex.dark : AliveUniforms.pageHex.light)
+            XCTAssertEqual(SIMD3(u.page.x, u.page.y, u.page.z), base)
+            let evening = RoomLight(hour: 22)
+            u.roomLight(evening)
+            let op = Float(evening.tintOpacity(dark: dark))
+            let tint = SIMD3<Float>(Float(evening.tintRGB.x), Float(evening.tintRGB.y), Float(evening.tintRGB.z))
+            let want = base * (1 - op) + tint * op
+            XCTAssertGreaterThan(op, 0, "the evening has a tint")
+            for (got, w) in zip([u.page.x, u.page.y, u.page.z], [want.x, want.y, want.z]) { XCTAssertEqual(got, w, accuracy: 1e-5) }
         }
     }
 
     func testAWinkClosesOnlyOneEye() throws {
-        let img = try face("winking")
-        let left = img.whites(x: 70..<120, y: 80..<130), right = img.whites(x: 120..<170, y: 80..<130)
+        let img = try face("winking"), bare = try face("winking", caps: false)
+        let left = img.whites(x: 70..<120, y: 80..<130, bare: bare), right = img.whites(x: 120..<170, y: 80..<130, bare: bare)
         XCTAssertGreaterThan(right, 120, "the open eye")
         // A gentle closed arc: a thin band of white, well under the open eye's.
         XCTAssertLessThan(Double(left), Double(right) * 0.6, "the winking eye is a closed arc")
@@ -115,9 +198,10 @@ final class AliveRenderTests: XCTestCase {
     /// face with two tiny brackets (expression audit P1 #6).
     func testAYawnScrunchesBothEyes() throws {
         let yawn = try face("yawning"), wink = try face("winking")
-        let winked = wink.whites(x: 70..<120, y: 80..<130)
+        let yawnBare = try face("yawning", caps: false), winkBare = try face("winking", caps: false)
+        let winked = wink.whites(x: 70..<120, y: 80..<130, bare: winkBare)
         for (side, x) in [("left", 70..<120), ("right", 120..<170)] {
-            let white = yawn.whites(x: x, y: 80..<130)
+            let white = yawn.whites(x: x, y: 80..<130, bare: yawnBare)
             XCTAssertGreaterThan(white, 8, "\(side): an arc of white, not a blank")
             XCTAssertLessThan(white, winked, "\(side): tighter than a wink's closed eye (\(white) against \(winked))")
         }
