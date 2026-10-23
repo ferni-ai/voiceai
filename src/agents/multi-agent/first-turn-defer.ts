@@ -224,7 +224,7 @@ export function deferFirstTurn(
       if (releaseOn === 'reply_end') {
         // Hold while Ferni speaks; leaving 'speaking' (the reply's end, or an
         // interruption) releases. The bound restarts with the reply, so it
-        // never fires into a long first reply's audio.
+        // fires into the reply's audio only when the reply runs past it.
         if (newState !== 'speaking') {
           if (replying) open('reply_end');
         } else if (!replying) {
