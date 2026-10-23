@@ -81,6 +81,9 @@ export const FLAGS_STYLE_TO_TOOL = {
   // off: teammates unlock with conversations and streaks; on: every teammate is on every team (team-by-need-flag.ts)
   TEAM_BY_NEED: { default: 'off', owner: 'tools', kind: 'experiment' },
   TEAM_VOICES: { default: 'off', owner: 'voice', kind: 'experiment' },
+  // on: the hello reads a commitment's or topic's day with the deterministic resolver
+  // ("on the 30th", "in two weeks") instead of word lists (understanding/temporal, #2452)
+  TEMPORAL_RESOLVER: { default: 'off', owner: 'voice', kind: 'experiment' },
   THEORY_OF_MIND: { default: 'off', owner: 'memory', kind: 'experiment' },
   THINK_ALOUD: { default: 'off', owner: 'voice', kind: 'experiment' },
   // a call or text read back and waiting for the owner's yes is kept as a follow-up (outreach/confirm-thread.ts)
