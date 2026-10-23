@@ -37,8 +37,8 @@
 # callers keys on it (src/services/outreach/automated-scheduler.ts).
 # Both agents write to Firestore in johnb-2025, which refuses every harness
 # user's writes (src/utils/synthetic-write-guard.ts). Prod uses the '(default)'
-# database; dev moves to 'ferni-dev' at cutover. eval-database.mjs decides which
-# one this run's env uses (EVAL_DEV_DATABASE switches dev until cutover); EVAL_TIER
+# database; dev uses 'ferni-dev' (cut over 2026-10-23). eval-database.mjs decides which
+# one this run's env uses (EVAL_DEV_DATABASE overrides dev for one run); EVAL_TIER
 # writes there, and the dry-run plan prints it as "database". An agent started
 # with PROD_EVAL_WRITES=voice-eval lets voice-eval- users through; without it
 # the call still runs but nothing is remembered, so EVAL_SEED proves nothing.
