@@ -79,6 +79,7 @@ import { turnStyleReminderEnabled, withTurnStyleReminder } from './turn-style.js
 import { clearBurstOffer } from './vocal-bursts.js';
 import { callSeed, signalsFor, styleFor } from './turn-request-style.js';
 import { scriptFreeOn } from './script-free.js';
+import { heldForPreemptive } from '../multi-agent/preempt-stable-context.js';
 
 // Moved to turn-request-tools.ts; re-exported for existing importers.
 export { spokenCaptions, tapSpokenText, tapToolCalls } from './turn-request-tools.js';
@@ -369,6 +370,8 @@ export async function toolsForTurn(
   return others ? picked : withoutThirdPartyTools(picked); // retrieval may pick from the catalog
 }
 
+const closeFailed = (error: unknown) => log.warn({ error: String(error) }, 'tool closure failed');
+
 /**
  * Third-party tools leave the request and the agent itself (third-party-tools.ts),
  * unless changing the agent's tools would restart a realtime session: then the
@@ -381,9 +384,15 @@ async function withoutReachingOthers(
   const agent = state.agent as ToolHolder | undefined;
   if (agent && hasThirdPartyTools(agent.toolCtx)) {
     const { isMidSessionToolUpdateSafe } = await import('../shared/tool-updater.js');
-    if (isMidSessionToolUpdateSafe()) {
+    const close = async () => {
       await agent.updateTools(Object.values(withoutThirdPartyTools(agent.toolCtx).functionTools));
       log.info({}, 'Tools that reach other people closed for a caller who is not a verified owner');
+    };
+    // PREEMPT_STABLE_CONTEXT: not under a preemptive reply, which would then be dropped. Its own
+    // request already leaves them out, and each asks for a spoken yes (outbound-gate.ts).
+    const later = () => void close().catch(closeFailed);
+    if (isMidSessionToolUpdateSafe() && !heldForPreemptive(agent, 'tool-closure', later)) {
+      await close();
     }
   }
   return withoutThirdPartyTools(toolCtx);

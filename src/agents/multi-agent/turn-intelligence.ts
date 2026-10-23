@@ -41,6 +41,7 @@ import {
   turnPipelineWarm,
 } from './first-turn-defer.js';
 import { MAX_PUSHED_CONTEXT_CHARS, TURN_CONTEXT_HEADER } from './turn-context-header.js';
+import { hasSafetyGuidance, heldForPreemptive } from './preempt-stable-context.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
 
@@ -336,6 +337,9 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
 
   const tryPush = async (): Promise<void> => {
     if (!pending || !agentListening || userSpeaking) return;
+    // PREEMPT_STABLE_CONTEXT: wait out a preemptive reply, unless it is safety guidance.
+    const retry = () => void tryPush();
+    if (!hasSafetyGuidance(pending) && heldForPreemptive(agent, 'turn-context', retry)) return;
     const content = `${TURN_CONTEXT_HEADER}\n${pending}`;
     const extra = { [TURN_CONTEXT_FOR]: pendingFor };
     pending = null;

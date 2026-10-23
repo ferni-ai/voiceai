@@ -1629,7 +1629,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       nameLift?.(evt.transcript);
       const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
       // CONTEXT_PACKET=on: what it picked rides the turn's packet, labelled (turn-packet.ts).
-      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note);
+      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note, evt.transcript);
     };
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();
