@@ -33,24 +33,6 @@ function files(dir: string, keep: (path: string) => boolean, out: string[] = [])
 }
 
 // ---------------------------------------------------------------------------
-// D1. Eyelid caps take the page colour (iOS window avatar).
-
-const WINDOW_AVATAR =
-  'apps/ios-native/Packages/FerniDesign/Sources/FerniDesign/Avatar/FerniWindowAvatar.swift';
-const PAGE_COLOUR = 'FerniColor.background';
-
-/** What the WindowMask lid fill resolves to, following one computed property. */
-function windowMaskLidFill(swift: string): string | null {
-  const body = /\nstruct WindowMask\b[^{]*\{([\s\S]*?)\n\}/.exec(swift)?.[1];
-  const fill = body && /\.fill\(\s*([\w.]+)\s*\)/.exec(body)?.[1];
-  if (!body || !fill) return null;
-  const computed = new RegExp(String.raw`\bvar ${fill}\s*:\s*Color\s*\{\s*([\w.]+)\s*\}`).exec(
-    body
-  );
-  return computed ? computed[1] : fill;
-}
-
-// ---------------------------------------------------------------------------
 // D2. No "AI" in user-facing strings.
 
 /**
@@ -126,7 +108,6 @@ const experimentsOnByDefault = (manifest: Record<string, Spec>): string[] =>
 // ---------------------------------------------------------------------------
 
 const RULES = [
-  'lid-caps-ios-window',
   'no-ai-web-locales',
   'no-ai-ios-strings',
   'earcon-cap-web',
@@ -149,23 +130,12 @@ describe('decision register', () => {
   });
 });
 
-describe('D1. eyelid caps take the page colour', () => {
-  it('lid-caps-ios-window: the window avatar fills its lids with the page background', () => {
-    expect(windowMaskLidFill(read(WINDOW_AVATAR))).toBe(PAGE_COLOUR);
-  });
-
-  it('lid-caps-ios-window: catches a face-shade lid', () => {
-    const bad = read(WINDOW_AVATAR).replace(
-      `private var backgroundColor: Color { ${PAGE_COLOUR} }`,
-      'private var backgroundColor: Color { FerniColor.accent }'
-    );
-    expect(windowMaskLidFill(bad)).toBe('FerniColor.accent');
-  });
-
-  // AliveShader.swift is on the iOS landing train and still draws the caps in a
-  // darker shade of the face. Its fix rides the train; make this a rule then:
-  // the cap colour uniform must be the page background (bg0/bg1), not body.
-  it.todo('lid-caps-ios-alive: the Alive shader draws the lid caps in the page colour');
+describe('D1. eyelid caps are white (ivory in dark mode)', () => {
+  // The web side is lid-colour.test.ts. On iOS the canvas avatar clips its lids
+  // and draws no caps; the white/ivory domes ride the landing train in the Alive
+  // renderer. Make this a rule then: light caps #FFFFFF, dark caps #E6DFD4,
+  // never derived from the page, room or face colour.
+  it.todo('lid-caps-ios-alive: the Alive shader draws white caps (ivory in dark mode)');
 });
 
 describe('D2. no "AI" in user-facing strings', () => {

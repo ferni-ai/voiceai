@@ -21,6 +21,7 @@ import {
 } from '../../services/custom-agent/voice-clone-service.js';
 import type { CustomAgentVoice } from '../../types/custom-agent-api.js';
 import { isStockCustomAgentVoiceId } from '../../services/custom-agent/custom-agent-voice-policy.js';
+import { CUSTOM_AGENT_VOICE_CATALOG } from '../../services/custom-agent/custom-agent-voice-catalog.js';
 import type { VoiceUploadBody, VoiceCloneBody } from './types.js';
 import { sendJson, getQualityFeedback } from './helpers.js';
 
@@ -179,6 +180,16 @@ export async function handleVoiceClone(
     log.error({ error: String(error), userId, agentId }, 'Voice clone creation failed');
     sendJson(res, 500, { error: 'Failed to create voice clone' });
   }
+  return true;
+}
+
+/**
+ * GET /api/custom-agents/voices - the voices a person can pick for their agent.
+ * The picker reads this list, so the ids it sends to select-premade are the ids
+ * select-premade accepts.
+ */
+export function handleListVoices(res: ServerResponse): boolean {
+  sendJson(res, 200, { voices: CUSTOM_AGENT_VOICE_CATALOG });
   return true;
 }
 
