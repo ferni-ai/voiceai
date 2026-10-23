@@ -10,14 +10,19 @@
  * turns whose preemptive reply was thrown away. A person in that gap says "mm".
  *
  * With SLOW_TURN_SOUND on, SLOW_TURN.waitMs after the caller's turn is
- * committed, if no reply words have reached TTS, no clip has played since the
- * caller stopped, and the turn looks slow (a tool asked for or likely, the
- * preemptive reply not used, or a long turn), the cached "Mm" (or "Hmm" for a
- * question) plays once and the reply waits for it to finish. Never on two
- * turns running, and never on a grave call: not with crisis risk or hard news
- * (sessionIsGrave), not after the crisis gate acted on the call, and not while
- * its classifier still holds this turn's reply (the sound waits for the verdict
- * and plays only if the turn cleared and is still silent).
+ * committed, the cached "Mm" (or "Hmm" for a question) plays once and the
+ * reply waits for it to finish, when all of these hold:
+ * - the turn looks slow: a tool asked for or likely, the preemptive reply
+ *   thrown away (LiveKit decides just before the commit, often while VAD still
+ *   says the caller is speaking), or a long turn. No decision at all is not slow;
+ * - no reply words have reached TTS since the caller started this turn (with
+ *   preemptive TTS they can arrive before the commit), and the opener gate has
+ *   not yet decided the reply's opening (its own "Mm," would double);
+ * - no clip has played since the caller stopped, and no opening sound of
+ *   either kind opened this turn or the one before (opening-sound-ledger.ts);
+ * - the call is not grave (crisis risk or hard news, or the crisis gate acted),
+ *   the crisis classifier is not holding this turn's reply (then it is skipped,
+ *   not delayed), and the call is not closing: no music, no goodbye, no endCall.
  *
  * @module agents/integrations/slow-turn-sound
  */
@@ -32,9 +37,10 @@ export const SLOW_TURN = {
   waitMs: 900,
   /** A caller turn this long is a long request: its reply is slow too. */
   longTurnWords: 25,
-  /** Longest wait for the crisis classifier's verdict before giving up on the sound. */
-  crisisWaitMs: 1500,
 } as const;
+
+/** Tools that close the call: no "Mm" right before a hang-up. */
+const CLOSING_TOOLS = new Set(['endCall']);
 
 interface SessionEvents {
   on(event: string, handler: (ev: unknown) => void): unknown;
@@ -47,17 +53,25 @@ export interface SlowTurnDeps {
   lastPlayedAt: () => number;
   /** Whether reply words reached TTS, or reply audio exists, at or after this time. */
   replyStartedSince: (since: number) => boolean;
+  /** Whether the opener gate decided a reply's opening at or after this time. */
+  openingDecidedSince: (since: number) => boolean;
   /** Crisis risk or hard news on the call, or the crisis gate acted on it. */
   grave: () => boolean;
-  /** This turn's crisis verdict while it still holds the reply; null when none is pending. */
+  /** The crisis verdict holding this turn's reply; null when none is pending. */
   crisisPending: () => Promise<unknown> | null;
+  /** Music, the call closing, goodbyes said, or these words are a goodbye. */
+  stayQuiet: (words: string) => boolean;
+  /** No opening sound this turn or the one before (opening-sound-ledger.ts). */
+  soundAllowed: () => boolean;
+  /** When the caller started this turn (0 when unknown). */
+  turnStartedAt: () => number;
   /** Whether these words may ask for a tool (fast-lane.ts mayNeedTool). */
   mayNeedTool: (text: string) => boolean;
-  /** Subscribe to the reply asking for a tool; returns the unsubscribe. */
-  onToolRequested: (listener: () => void) => () => void;
+  /** Subscribe to the reply asking for tools (their names); returns the unsubscribe. */
+  onToolRequested: (listener: (names: readonly string[]) => void) => () => void;
   /** Hold the reply's first audio for the clip (ms); the reply follows it. */
   holdReply: (text: string) => void;
-  /** The opener gate trims the reply's own "Mm" after this one (turn-opening-sound.ts). */
+  /** Record the sound: the ledger, and the opener gate trims the reply's own "Mm". */
   noteOpened: () => void;
 }
 
@@ -75,68 +89,70 @@ export function slowTurnReason(turn: {
 }): string | null {
   if (turn.toolRequested) return 'tool';
   if (turn.mayNeedTool) return 'tool_likely';
-  if (turn.preemptiveUsed !== true)
-    return turn.preemptiveUsed === false ? 'preemptive_dropped' : 'no_preemptive';
+  if (turn.preemptiveUsed === false) return 'preemptive_dropped';
   const words = turn.words.trim().split(/\s+/).filter(Boolean).length;
   return words >= SLOW_TURN.longTurnWords ? 'long_turn' : null;
+}
+
+interface Turn {
+  committedAt: number;
+  /** Reply progress counts from here: the caller's start of speech. */
+  since: number;
+  words: string;
+  preemptiveUsed: boolean | null;
+  tool: boolean;
+  closing: boolean;
 }
 
 /** Watch the session and play the slow-turn sound; returns a detach function. */
 export function attachSlowTurnSound(session: SessionEvents, deps: SlowTurnDeps): () => void {
   let timer: NodeJS.Timeout | null = null;
   let userSpeaking = false;
+  let userStartedAt = 0;
   let userStoppedAt = 0;
   let agentSpeaking = false;
-  let playedLastTurn = false;
-  let turn: { committedAt: number; words: string; tool: boolean } | null = null;
-  let preemptive: { used: boolean; at: number } | null = null;
+  let turn: Turn | null = null;
+  /** LiveKit's latest preemptive decision, taken by the commit that follows it. */
+  let preemptive: boolean | null = null;
   let detached = false;
   const cancel = (): void => {
     if (timer) clearTimeout(timer);
     timer = null;
   };
 
-  const stillSilent = (t: NonNullable<typeof turn>): boolean =>
-    !detached &&
-    turn === t &&
-    !userSpeaking &&
-    !agentSpeaking &&
-    !deps.replyStartedSince(t.committedAt) &&
-    deps.lastPlayedAt() < (userStoppedAt || t.committedAt) &&
-    !deps.grave();
+  /** Why the sound must not play now, or null. */
+  const blocked = (t: Turn): string | null => {
+    if (detached || turn !== t || userSpeaking || agentSpeaking) return 'moved_on';
+    if (deps.replyStartedSince(t.since) || deps.openingDecidedSince(t.since)) return 'reply';
+    // The caller's stop for this turn; with ink it can come after the commit.
+    const clipSince = userStoppedAt >= t.since ? userStoppedAt : t.committedAt;
+    if (deps.lastPlayedAt() >= clipSince || !deps.soundAllowed()) return 'sound';
+    if (deps.grave()) return 'grave';
+    if (t.closing || deps.stayQuiet(t.words)) return 'closing';
+    if (deps.crisisPending()) return 'crisis_pending';
+    return null;
+  };
 
-  const fire = async (t: NonNullable<typeof turn>): Promise<void> => {
-    if (!stillSilent(t)) return;
+  const fire = (t: Turn): void => {
     const reason = slowTurnReason({
       words: t.words,
       toolRequested: t.tool,
-      // This turn's decision: made after the caller stopped, around the commit.
-      preemptiveUsed: preemptive && preemptive.at >= userStoppedAt ? preemptive.used : null,
+      preemptiveUsed: t.preemptiveUsed,
       mayNeedTool: deps.mayNeedTool(t.words),
     });
     if (!reason) return;
-    const pending = deps.crisisPending();
-    if (pending) {
-      // No casual sound while the crisis gate holds the reply: wait for its verdict.
-      let giveUp: NodeJS.Timeout | undefined;
-      await Promise.race([
-        pending.catch(() => undefined),
-        new Promise((resolve) => {
-          giveUp = setTimeout(resolve, SLOW_TURN.crisisWaitMs);
-        }),
-      ]);
-      clearTimeout(giveUp);
-      if (deps.crisisPending() || !stillSilent(t)) return;
+    const skipped = blocked(t);
+    if (skipped) {
+      if (skipped === 'crisis_pending' || skipped === 'closing') {
+        log.info({ reason, skipped }, 'SLOW_TURN_SOUND_SKIPPED');
+      }
+      return;
     }
     const text = slowTurnClip(t.words);
     if (!deps.playClip(text)) return;
-    playedLastTurn = true;
     deps.noteOpened();
     deps.holdReply(text);
-    log.info(
-      { text, reason, afterCommitMs: Date.now() - t.committedAt, crisisWaited: Boolean(pending) },
-      'SLOW_TURN_SOUND'
-    );
+    log.info({ text, reason, afterCommitMs: Date.now() - t.committedAt }, 'SLOW_TURN_SOUND');
   };
 
   const onItem = (ev: unknown): void => {
@@ -145,16 +161,20 @@ export function attachSlowTurnSound(session: SessionEvents, deps: SlowTurnDeps):
     const words = item.textContent ?? '';
     if (words.startsWith(TURN_CONTEXT_HEADER)) return;
     cancel();
-    const skip = playedLastTurn; // never on two turns running
-    playedLastTurn = false;
-    const t = { committedAt: Date.now(), words, tool: false };
+    const committedAt = Date.now();
+    const t: Turn = {
+      committedAt,
+      since: deps.turnStartedAt() || userStartedAt || committedAt,
+      words,
+      preemptiveUsed: preemptive,
+      tool: false,
+      closing: false,
+    };
+    preemptive = null; // each decision belongs to the one commit after it
     turn = t;
-    if (skip) return;
     timer = setTimeout(() => {
       timer = null;
-      void fire(t).catch((error: unknown) =>
-        log.warn({ error: String(error) }, 'SLOW_TURN_SOUND failed')
-      );
+      fire(t);
     }, SLOW_TURN.waitMs);
   };
   const onUserState = (ev: unknown): void => {
@@ -162,6 +182,7 @@ export function attachSlowTurnSound(session: SessionEvents, deps: SlowTurnDeps):
     if (speaking) {
       cancel();
       turn = null;
+      if (!userSpeaking) userStartedAt = Date.now();
     } else if (userSpeaking) {
       userStoppedAt = Date.now();
     }
@@ -173,10 +194,12 @@ export function attachSlowTurnSound(session: SessionEvents, deps: SlowTurnDeps):
   };
   // LiveKit decides about its preemptive reply just before it commits the turn.
   const onPreemptive = (ev: unknown): void => {
-    preemptive = { used: Boolean((ev as { used?: boolean })?.used), at: Date.now() };
+    preemptive = Boolean((ev as { used?: boolean })?.used);
   };
-  const offTool = deps.onToolRequested(() => {
-    if (turn) turn.tool = true;
+  const offTool = deps.onToolRequested((names) => {
+    if (!turn) return;
+    turn.tool = true;
+    if (names.some((name) => CLOSING_TOOLS.has(name))) turn.closing = true;
   });
 
   session.on('conversation_item_added', onItem);
@@ -184,7 +207,7 @@ export function attachSlowTurnSound(session: SessionEvents, deps: SlowTurnDeps):
   session.on('agent_state_changed', onAgentState);
   session.on('ferni_preemptive_decision', onPreemptive);
   return () => {
-    detached = true; // a fire() waiting on a crisis verdict must not play after the call ends
+    detached = true;
     turn = null;
     cancel();
     offTool();

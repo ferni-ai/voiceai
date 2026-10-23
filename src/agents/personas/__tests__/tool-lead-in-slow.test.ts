@@ -54,14 +54,30 @@ describe('SLOW_TURN_SOUND tool coverage', () => {
     }
   });
 
-  it('flag on: marketData and the contact look-ups get a look-up line', async () => {
+  it('flag on: marketData and the contact look-ups the caller asked for get a look-up line', async () => {
     for (const [tool, words] of [
       ['marketData', 'How is the stock market doing?'],
-      ['getContactInfo', 'What is Dana’s number?'],
-      ['searchContacts', 'Who do I know in Denver?'],
+      ['getContactInfo', 'Can you look up Dana’s number?'],
+      ['searchContacts', 'Find who I know in Denver.'],
     ] as const) {
       expect(LEAD_INS as readonly string[], tool).toContain(await spokenBefore(tool, words, ON));
     }
+  });
+
+  it('flag on: a look-up the model makes unasked gets nothing', async () => {
+    expect(await spokenBefore('getContactInfo', 'My brother and I used to be close.', ON)).toBe('');
+  });
+
+  it('flag on: never "Let me pull that up." after hard news', async () => {
+    const words = 'My brother passed away last week. Can you look up his old number?';
+    expect(await spokenBefore('getContactInfo', words, ON)).toBe('');
+    expect(
+      await spokenBefore(
+        'searchContacts',
+        'Find my contacts. I just got diagnosed with cancer.',
+        ON
+      )
+    ).toBe('');
   });
 
   it('flag on: a call the model makes unasked (no request in the words) gets nothing', async () => {

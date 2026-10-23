@@ -95,9 +95,10 @@ export function tapToolCalls<T>(
   return reply.pipeThrough(
     new TransformStream<T, T>({
       transform(chunk, controller) {
-        if (!signalled && hasToolCalls(chunk)) {
+        const names = signalled ? [] : toolCallNames(chunk);
+        if (names.length) {
           signalled = true;
-          signalToolCallRequested(session);
+          signalToolCallRequested(session, names);
         }
         controller.enqueue(chunk);
       },
@@ -106,10 +107,14 @@ export function tapToolCalls<T>(
 }
 
 /** LiveKit runs only `function_call` entries (generation.js), so only those count. */
-function hasToolCalls(chunk: unknown): boolean {
-  if (typeof chunk !== 'object') return false;
-  const delta = (chunk as { delta?: { toolCalls?: Array<{ type?: string }> } } | null)?.delta;
-  return delta?.toolCalls?.some((call) => call.type === 'function_call') ?? false;
+function toolCallNames(chunk: unknown): string[] {
+  if (typeof chunk !== 'object') return [];
+  const delta = (
+    chunk as { delta?: { toolCalls?: Array<{ type?: string; name?: string }> } } | null
+  )?.delta;
+  return (delta?.toolCalls ?? [])
+    .filter((call) => call.type === 'function_call')
+    .map((call) => call.name ?? '');
 }
 
 /**

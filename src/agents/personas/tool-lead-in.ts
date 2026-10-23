@@ -24,7 +24,9 @@
  * SLOW_TURN_SOUND=on covers the tools the dead-air audit found uncovered (real
  * prod, 2026-10-15 to 10-22: covered tool turns had a 1.5 s median gap,
  * uncovered ones ~3.1 s; callOnBehalf alone was 16 of 110 gaps over 2.5 s).
- * marketData and the contact look-ups get a lead-in. Calls and contact changes
+ * marketData and the contact look-ups get a lead-in, only when the caller asked
+ * and never on a grave call ("Let me pull that up." after "my brother passed
+ * away" is the worst sound Ferni can make). Calls and contact changes
  * get "On it." only, when the caller asked: callOnBehalf first reads the number back
  * for a yes, so no word that sounds done ("Okay." / "Yep.") goes ahead of it.
  *
@@ -34,6 +36,7 @@
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
 import { flagOn } from '../../config/env-flag.js';
+import { callIsGrave, sessionIsGrave } from '../integrations/presence-heavy.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { afterBridge, EXTRA_LOOKUP_TOOLS, lookupBridgeOn } from './lookup-bridge.js';
@@ -186,7 +189,7 @@ function leadInBefore(
   chunk: Chunk,
   asked: boolean,
   extra: boolean,
-  slow: boolean
+  slow: { lookups: boolean; actions: boolean }
 ): LeadIn | undefined {
   if (typeof chunk === 'string') return chunk.trim() ? 'none' : undefined;
   const delta = (chunk as llm.ChatChunk | undefined)?.delta;
@@ -196,12 +199,12 @@ function leadInBefore(
   if (
     LOOKUP_TOOLS.has(first.name) ||
     (extra && EXTRA_LOOKUP_TOOLS.has(first.name)) ||
-    (slow && SLOW_LOOKUP_TOOLS.has(first.name))
+    (slow.lookups && SLOW_LOOKUP_TOOLS.has(first.name))
   ) {
     return 'lookup';
   }
   if (asked && ACTION_TOOLS.has(first.name)) return 'action';
-  return asked && slow && SLOW_ACTION_TOOLS.has(first.name) ? 'underway' : 'none';
+  return asked && slow.actions && SLOW_ACTION_TOOLS.has(first.name) ? 'underway' : 'none';
 }
 
 /** The words left once one of `lines` opening `text` is cut, or undefined if none opens it. */
@@ -282,7 +285,11 @@ export function withToolLeadIn(
   if (env.TOOL_LEAD_IN === 'off' || !isFirstReplyOfTurn(request)) return input;
   const asked = env.TOOL_ACK !== 'off' && mayNeedTool(callerWords(request));
   const extra = lookupBridgeOn(env);
-  const slow = flagOn('SLOW_TURN_SOUND', env);
+  const slowOn = flagOn('SLOW_TURN_SOUND', env);
+  // The caller's words now and the call's last few turns (this turn may not be in history yet).
+  const grave = (): boolean =>
+    sessionIsGrave(session) || callIsGrave(undefined, [callerWords(request)]);
+  const slow = { lookups: slowOn && asked && !grave(), actions: slowOn };
   let decided = false;
   return new ReadableStream<Chunk>({
     async start(controller) {

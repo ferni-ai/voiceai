@@ -64,7 +64,8 @@ import {
   toGuardVoiceEmotion,
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
-import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
+import { replyOpenedBySound } from '../integrations/turn-opening-sound.js';
+import { noteOpeningDecided } from '../integrations/opening-sound-ledger.js';
 import { noteCrisisVerdictPending, signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
@@ -403,7 +404,10 @@ export async function gatedReply(
   const chatCtx = withoutPastLeadIns(request, env);
   const askedAt = Date.now();
   // A turn-opening clip played after this request began: the reply follows it.
-  const openedBySound = (): boolean => turnOpenedSince(session, askedAt);
+  const openedBySound = (): boolean => {
+    noteOpeningDecided(session); // the slow-turn sound stays out from here (opening-sound-ledger.ts)
+    return replyOpenedBySound(session, askedAt);
+  };
   const gate = startCrisisGate(chatCtx, session.userData, options);
   signalCrisisDecision(session, gate?.decision.action);
   gate?.escalation

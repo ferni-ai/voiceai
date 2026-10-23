@@ -31,6 +31,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  noteOpeningSound,
+  slowSoundBlocksEarly,
+  slowSoundOpenedThisTurn,
+} from './opening-sound-ledger.js';
 import { callIsGrave, sessionIsGrave } from './presence-heavy.js';
 
 const log = createLogger({ module: 'TurnOpeningSound' });
@@ -101,6 +106,15 @@ const openedAt = new WeakMap<object, number>();
 /** Another opening sound (slow-turn-sound.ts) opened this turn: the reply's own opener is trimmed. */
 export function noteTurnOpenedBySound(session: object): void {
   openedAt.set(session, Date.now());
+}
+
+/**
+ * Whether a sound opened the reply asked at `askedAt`: a clip played after the
+ * request began, or (SLOW_TURN_SOUND) a slow-turn sound opened this caller turn,
+ * which also covers the answer after a tool, asked after the sound.
+ */
+export function replyOpenedBySound(session: object, askedAt: number): boolean {
+  return turnOpenedSince(session, askedAt) || slowSoundOpenedThisTurn(session);
 }
 
 /** Whether a turn-opening clip played for this session at or after `since`. */
@@ -190,6 +204,8 @@ export function attachTurnOpeningSound(
   const playEarly = (thinkingAt: number, skipTurn: boolean): void => {
     // Words already at TTS mean audio in ~120 ms: a clip would only delay it.
     if (!early || skipTurn || early.replyTextSince(userStartedAt)) return;
+    // SLOW_TURN_SOUND: one sound a turn between the two, never two turns running.
+    if (slowSoundBlocksEarly(session)) return;
     // Not right after a backchannel either: "mm-hm ... Mm".
     if (Date.now() - clips.lastPlayedAt() < TURN_OPENING.afterBackchannelMs) return;
     const text = earlyOpeningClip(lastUserTranscript(), lastClip, heavy());
@@ -197,6 +213,7 @@ export function attachTurnOpeningSound(
     if (!playedLastTurn || text === null) return;
     lastClip = text;
     openedAt.set(session, Date.now());
+    noteOpeningSound(session, 'early');
     const clipMs = early.clipMs(text);
     // The clip is heard only once it reaches the wire: hold the reply until it
     // has finished there, not just until play() has fed it.

@@ -89,10 +89,11 @@ export function createEmptyResponseWatchdog(options: {
 // (which sees the LLM stream) and the session-state handler (which owns the
 // watchdog) both hold the session, not each other.
 
-const toolCallListeners = new WeakMap<object, Set<() => void>>();
+type ToolCallListener = (names: readonly string[]) => void;
+const toolCallListeners = new WeakMap<object, Set<ToolCallListener>>();
 
 /** Subscribe to tool calls the LLM requests in this session. Returns an unsubscribe. */
-export function onToolCallRequested(session: object, listener: () => void): () => void {
+export function onToolCallRequested(session: object, listener: ToolCallListener): () => void {
   let listeners = toolCallListeners.get(session);
   if (!listeners) {
     listeners = new Set();
@@ -106,10 +107,10 @@ export function onToolCallRequested(session: object, listener: () => void): () =
  * Report that the LLM's reply in this session contains a tool call. Runs inside
  * the reply stream, so a failing listener is logged, never thrown into the reply.
  */
-export function signalToolCallRequested(session: object): void {
+export function signalToolCallRequested(session: object, names: readonly string[] = []): void {
   toolCallListeners.get(session)?.forEach((listener) => {
     try {
-      listener();
+      listener(names);
     } catch (error) {
       log.error({ error: String(error) }, 'Tool-call listener failed');
     }
