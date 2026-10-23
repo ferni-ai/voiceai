@@ -175,6 +175,13 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     `[voice-agent-entry] ⚡ Parallel module loads complete in ${Date.now() - parallelLoadStart}ms\n`
   );
 
+  // The gateway TTS speaks in this voice while the call is still this persona (spoken-voice.ts)
+  userData.sessionVoice = {
+    personaId: sessionPersona.id,
+    voiceId: effectiveVoiceId,
+    localized: isLocalizedVoice,
+  };
+
   // Create TTS
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tts: any = voiceManager.createPersonaAwareTTS(sessionPersona.name, {
@@ -268,7 +275,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
       : undefined;
 
   process.stderr.write(
-    `[voice-agent-entry] 📍 Geo metadata received: city=${metadata.city || 'none'}, region=${metadata.regionCode || 'none'}, country=${metadata.countryCode || 'none'}\n`
+    `[voice-agent-entry] 📍 Geo metadata received: city=${metadata.city ? 'yes' : 'none'}, region=${metadata.regionCode || 'none'}, country=${metadata.countryCode || 'none'}\n`
   );
 
   userData.userLocation = userLocation;
@@ -444,7 +451,7 @@ export async function createAgentSession(input: CreateSessionInput): Promise<Cre
     llmWithEvents.on('input_audio_transcription_completed', (event: unknown) => {
       const transcriptionEvent = event as { transcript?: string };
       process.stderr.write(
-        `\n🎤 [GEMINI STT] Input transcribed: "${transcriptionEvent.transcript || '(empty)'}"\n`
+        `\n🎤 [GEMINI STT] Input transcribed: ${transcriptionEvent.transcript?.length ?? 0} chars\n`
       );
     });
   }

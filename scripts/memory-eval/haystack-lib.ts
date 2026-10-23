@@ -197,3 +197,13 @@ export function savedAt(callerName: string, memory: HaystackMemory): Date {
   const daysAgo = memory.kind === 'stale' ? 300 + u * 400 : memory.kind === 'fresh' ? u * 120 : u * 700; // prettier-ignore
   return new Date(Date.UTC(2026, 9, 1) - Math.round(daysAgo) * 86_400_000);
 }
+
+/** Which half a turn is in: "dev" to choose settings on, "held-out" to report. Seeded by the turn text (FNV-1a). */
+export function turnHalf(text: string): 'dev' | 'held-out' {
+  let h = 2166136261;
+  for (const ch of text) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  return h % 2 === 0 ? 'dev' : 'held-out';
+}
+
+/** fixtures/haystack-followups.json: per caller, [first turn, the next thing said on the same subject]. */
+export type FollowUps = { callers: Record<string, Array<[string, string]>> };
