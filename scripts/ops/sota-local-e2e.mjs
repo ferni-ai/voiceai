@@ -148,7 +148,11 @@ async function getFirestore() {
   if (!admin.apps.length) {
     admin.initializeApp({ projectId: PROJECT_ID });
   }
-  return admin.firestore();
+  // Plain .mjs can't import the TypeScript helpers (getAdminFirestore /
+  // getFirestoreDatabase), so this repeats their rule inline: the database is
+  // FIRESTORE_DATABASE, or '(default)' when unset. admin.firestore() can't take one.
+  const { getFirestore } = require('firebase-admin/firestore');
+  return getFirestore(admin.app(), process.env.FIRESTORE_DATABASE || '(default)');
 }
 
 async function proveAsyncOutreach() {

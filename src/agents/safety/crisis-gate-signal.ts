@@ -23,3 +23,17 @@ export function signalCrisisDecision(session: unknown, action: string | undefine
   const emitter = session as { emit?: (event: string, ...args: unknown[]) => unknown };
   emitter.emit?.(CRISIS_GATE_SIGNAL, { action });
 }
+
+const pendingVerdicts = new WeakMap<object, Promise<unknown>>();
+
+/** The classifier holds this reply until `verdict` settles: no casual sound meanwhile. */
+export function noteCrisisVerdictPending(session: object, verdict: Promise<unknown>): void {
+  pendingVerdicts.set(session, verdict);
+  const clear = (): void => {
+    if (pendingVerdicts.get(session) === verdict) pendingVerdicts.delete(session);
+  };
+  verdict.then(clear, clear);
+}
+
+export const crisisVerdictPending = (session: object): Promise<unknown> | null =>
+  pendingVerdicts.get(session) ?? null;

@@ -10,6 +10,7 @@ import { PREDICATES } from './predicates/index.mjs';
 
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
 const ss = (xs, m = mean(xs)) => xs.reduce((a, x) => a + (x - m) ** 2, 0);
+const median = (xs) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) / 2)] : null);
 const sd = (xs) => (xs.length < 2 ? null : Math.sqrt(ss(xs) / (xs.length - 1)));
 
 export function pearson(x, y) {
@@ -56,10 +57,10 @@ export function pairedCompare(callsA, callsB, { B = 10000, seed = 20261022, scen
   });
 }
 
-/** A sweep dir as pairedCompare input: gate pass, each predicate's pass, each judge dimension. */
+/** A sweep dir as pairedCompare input: gate pass, median REPLY gap (ms), each predicate's pass, each judge dimension. */
 export function sweepValues(dir) {
   return gateSweep(loadSweep(dir)).rows.map(({ call, hits, gated }) => {
-    const values = { gate: +gated };
+    const values = { gate: +gated, replyGapMedMs: median(call.replyGaps.filter((g) => typeof g === 'number')) };
     for (const p of PREDICATES) values[`pred:${p.id}`] = +!hits[p.id].length;
     const judge = call.file.replace(/\.json$/, '.judge.json');
     const scores = existsSync(judge) ? (JSON.parse(readFileSync(judge, 'utf8')).scores ?? {}) : {};
