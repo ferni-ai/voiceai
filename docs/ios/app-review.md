@@ -7,10 +7,16 @@ Store metadata (`apps/ios-native/AppStore/METADATA.md`) is maintained separately
 ## No server flags (guideline 2.5.19)
 
 Everything below is in the binary and reachable by the reviewer. Nothing is
-switched on or off by a server flag. The only build-time exclusion is
-**notes from Ferni** (push notifications). That code is compiled out
-(`FERNI_PUSH` is unset), and the APNs entitlement is not in the build, so
-the feature is absent, not dormant.
+switched on or off by a server flag. **Notes from Ferni** (push
+notifications) are in the build since IB1 (2026-10-22): `FERNI_PUSH` is set
+in every configuration and the app signs with `aps-environment` and
+time-sensitive notifications (`scripts/check-push-build.sh` checks Release).
+The app asks once, after a good call, whether Ferni may check in, and
+registers the device only for someone who said yes.
+
+Open item for the lead: the server sends notes per person only where
+`IOS_PUSH` is on (with the `APNS_*` secrets). Turn it on for the review
+account, or the reviewer sees the ask but never a note.
 
 Open item for the lead (critic H4): interrupting Ferni (a half-second hold
 on him while he talks, or VoiceOver's "Interrupt Ferni"; a tap is only a
