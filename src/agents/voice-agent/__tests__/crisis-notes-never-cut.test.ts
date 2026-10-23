@@ -269,6 +269,43 @@ describe('crisis guidance survives the pushed-context cut (#2618)', () => {
     expect(body).toBe([guidance, SAFETY.content, warning].join('\n\n'));
   });
 
+  it('only the waiting safety text is carried, never the rest of the held note (PREEMPT_STABLE_CONTEXT)', async () => {
+    vi.stubEnv('PREEMPT_STABLE_CONTEXT', 'on');
+    const correlations = pad(CORRELATIONS_HEADER, 800);
+    let call = 0;
+    const hook = async (scratch: llm.ChatContext) => {
+      if (++call === 1) {
+        addSafetyNote(scratch, SAFETY.content);
+        scratch.addMessage({ role: 'system', content: correlations });
+      } else {
+        scratch.addMessage({ role: 'system', content: MEMORIES });
+      }
+    };
+    let pushed = '';
+    const agentCtx = llm.ChatContext.empty();
+    const agent = {
+      get chatCtx() {
+        return agentCtx;
+      },
+      updateChatCtx: async (c: { items: Array<{ textContent?: string }> }) => {
+        pushed =
+          c.items.map((i) => i.textContent ?? '').find((t) => t.startsWith(TURN_CONTEXT_HEADER)) ??
+          '';
+      },
+    };
+    const pusher = createTurnContextPusher(hook as never, agent as never);
+    await pusher.onAgentState('thinking'); // not listening: turn 1's note waits
+    await pusher.onFinalTranscript('I cannot do this anymore');
+    await pusher.onFinalTranscript('anyway how was your day');
+    await pusher.onAgentState('listening');
+    vi.unstubAllEnvs();
+    const body = pushed.slice(TURN_CONTEXT_HEADER.length + 1);
+    expect(body).not.toContain(CORRELATIONS_HEADER);
+    // The later note gets all the budget the carried safety text leaves: 2000 - 600 - 2.
+    const room = MAX_PUSHED_CONTEXT_CHARS - SAFETY.content.length - 2;
+    expect(body).toBe(`${SAFETY.content}\n\n${MEMORIES.slice(0, room)}`);
+  });
+
   it('safety notes over the cap are all kept whole and the rest is dropped', () => {
     const big = 'g'.repeat(MAX_PUSHED_CONTEXT_CHARS + 100);
     const notes = [
