@@ -92,7 +92,13 @@ const flush = async (): Promise<void> => {
  * simulated clock. Events land in `events` as "<ms after the end> <what>".
  */
 async function call(
-  opts: { phone?: boolean; env?: Record<string, string>; appStays?: boolean } = {}
+  opts: {
+    phone?: boolean;
+    env?: Record<string, string>;
+    appStays?: boolean;
+    /** Wrap-ups attached to the one AgentSession (a persona swap attaches its own). */
+    wrapUps?: number;
+  } = {}
 ) {
   // A phone caller never leaves because of a data message; an old app may not either
   const appStays = opts.appStays ?? !!opts.phone;
@@ -127,35 +133,38 @@ async function call(
   const session = new EventEmitter();
   const roomName = `room-${id}`;
   const a = agent();
-  await attachCallWrapUp(a, {
-    sessionId: id,
-    room: {
-      name: roomName,
-      get remoteParticipants() {
-        return { size: appConnected ? 1 : 0 };
+  for (let i = 0; i < (opts.wrapUps ?? 1); i++) {
+    // eslint-disable-next-line no-await-in-loop -- attached in order, as a persona swap does
+    await attachCallWrapUp(i === 0 ? a : agent(), {
+      sessionId: id,
+      room: {
+        name: roomName,
+        get remoteParticipants() {
+          return { size: appConnected ? 1 : 0 };
+        },
       },
-    },
-    participant: { kind: opts.phone ? ParticipantKind.SIP : ParticipantKind.STANDARD },
-    onBehalf: false,
-    env: opts.env ?? { CALL_WRAP_UP: 'on', PHONE_GOODBYE: 'on' },
-    session,
-    hangUp: async (room) => {
-      stamp('delete started');
-      await deleteGate;
-      stamp(`deleted ${room}`);
-      appConnected = false;
-    },
-    setTimer: (fn, ms) => {
-      const timer = { fn, at: now + ms, ms };
-      timers.push(timer);
-      return timer;
-    },
-    clearTimer: (timer) => {
-      const at = timers.indexOf(timer as (typeof timers)[number]);
-      if (at >= 0) timers.splice(at, 1);
-    },
-    now: () => now,
-  });
+      participant: { kind: opts.phone ? ParticipantKind.SIP : ParticipantKind.STANDARD },
+      onBehalf: false,
+      env: opts.env ?? { CALL_WRAP_UP: 'on', PHONE_GOODBYE: 'on' },
+      session,
+      hangUp: async (room) => {
+        stamp('delete started');
+        await deleteGate;
+        stamp(`deleted ${room}`);
+        appConnected = false;
+      },
+      setTimer: (fn, ms) => {
+        const timer = { fn, at: now + ms, ms };
+        timers.push(timer);
+        return timer;
+      },
+      clearTimer: (timer) => {
+        const at = timers.indexOf(timer as (typeof timers)[number]);
+        if (at >= 0) timers.splice(at, 1);
+      },
+      now: () => now,
+    });
+  }
   /** Run the clock to `t` ms after the end (or absolute, before it). */
   const advance = async (by: number) => {
     const to = now + by;
@@ -580,6 +589,20 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     expect(c.appConnected).toBe(true);
   });
 
+  it('two wrap-ups on one session (a persona swap): one farewell watcher, so the carry holds', async () => {
+    const c = await call({ wrapUps: 2 });
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords('never. I gotta go');
+    expect(c.reopens()).toHaveLength(1);
+    await c.advance(3_100);
+    c.say('user', 'never. I gotta go'); // the turn's own item, late
+    await ferniSays(c, 'Okay, take care of yourself.');
+    await c.advance(30_000);
+    expect(ends(c)).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
   it('the next turn ends the carry: a goodbye that repeats the line then counts', async () => {
     const c = await call();
     await lineAfterEnd(c, 'wait', 'no read');
@@ -726,6 +749,24 @@ describe('items out of turn order, and reads of other turns (security review of 
     expect(c.appConnected).toBe(true);
   });
 
+  it('a carried line with an accent is matched by its letters, not ASCII: "Adi\'s" is not "adiós"', async () => {
+    const c = await call();
+    await c.toEnd();
+    await c.advance(500);
+    c.finalWords('adiós'); // turn A: a sign-off, its item never comes
+    await c.advance(500);
+    c.finalWords('oh wait'); // turn B reopens, carrying both
+    expect(c.reopens()).toHaveLength(1);
+    await c.advance(300);
+    c.say('user', 'oh wait');
+    await ferniSays(c, 'Sure, what is it?');
+    c.say('user', "sorry, Adi's calling me. okay, bye"); // the next turn: a fresh goodbye
+    await ferniSays(c, 'Bye, take care.');
+    await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
+    expect(ends(c)).toHaveLength(2);
+    expect(c.appConnected).toBe(false);
+  });
+
   it("a late read of an earlier turn does not settle a Rule 1 line's wait", async () => {
     const line = 'thanks so much, that helped. bye';
     const c = await call();
@@ -745,6 +786,14 @@ describe('containsLine', () => {
   it('matches whole words after folding case and punctuation', () => {
     expect(containsLine('Never. I gotta go!', 'never')).toBe(true);
     expect(containsLine('know what, okay, bye', 'no')).toBe(false);
+  });
+
+  it('keeps letters outside ASCII as letters, after NFKC and case folding', () => {
+    expect(containsLine('ADIÓS. Gotta go', 'adiós')).toBe(true);
+    expect(containsLine('adiós, gotta go', 'adiós')).toBe(true); // decomposed accent
+    expect(containsLine('ｎｅｖｅｒ. I gotta go', 'never')).toBe(true); // full-width
+    expect(containsLine("sorry, Adi's calling me", 'adiós')).toBe(false);
+    expect(containsLine('it’s okay, bye', 'sí')).toBe(false);
   });
 });
 
