@@ -169,10 +169,10 @@ export function resolveGroundedReleaseMode(
   env: Record<string, string | undefined> = process.env
 ): GroundedReleaseMode {
   const raw = env.CRISIS_GROUNDED_RELEASE?.trim().toLowerCase();
-  // Live only where the reply gate is live: it appends the direct question (crisis-gate.ts).
-  // Anywhere else a release would carry no question, so it is shadow.
+  // Live only where the reply gate is explicitly live: it appends the direct question
+  // (crisis-gate.ts). Unset or anything else: a release would carry no question, so shadow.
   const guard = env.CRISIS_GUARD_MODE?.trim().toLowerCase();
-  if (raw === 'live') return guard === 'off' || guard === 'shadow' ? 'shadow' : 'live';
+  if (raw === 'live') return guard === 'live' ? 'live' : 'shadow';
   return raw === 'shadow' ? raw : 'off';
 }
 

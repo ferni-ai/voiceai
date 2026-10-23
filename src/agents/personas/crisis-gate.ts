@@ -47,6 +47,7 @@ import {
 } from '../../services/safety/crisis-grounded-release.js';
 import {
   SCREEN_GENTLE_OFFER,
+  SCREEN_QUESTION,
   screenAnswer,
   screenIdeation,
   withScreenPositive,
@@ -120,16 +121,21 @@ function callerWords(chatCtx: llm.ChatContext): {
   latest: string;
   earlier: string[];
   companion?: string;
+  /** All of Ferni's lines since the caller's earlier words (a tool follow-up comes last). */
+  ferni: string[];
 } {
   const said: string[] = [];
   const latest: string[] = [];
+  const ferni: string[] = [];
   let companion: string | undefined;
   let answering = true;
   for (let i = chatCtx.items.length - 1; i >= 0; i--) {
     const item = chatCtx.items[i] as MessageView;
     if (item.type !== 'message') continue;
     if (item.role === 'assistant') {
-      if (answering) companion = item.textContent?.trim() || undefined;
+      const line = item.textContent?.trim() || undefined;
+      if (answering) companion = line;
+      if (line && said.length === 0) ferni.unshift(line);
       answering = false;
       continue;
     }
@@ -137,7 +143,7 @@ function callerWords(chatCtx: llm.ChatContext): {
     if (item.role !== 'user' || !text || text.startsWith(TURN_CONTEXT_HEADER)) continue;
     (answering ? latest : said).unshift(text);
   }
-  return { latest: latest.join(' '), earlier: said, companion };
+  return { latest: latest.join(' '), earlier: said, companion, ferni };
 }
 
 /** The call's recent lines, oldest first, marked by speaker (crisis-adjudicator.ts trims them). */
@@ -193,7 +199,7 @@ export function startCrisisGate(
 ): CrisisGateTurn | null {
   const { env = process.env, generate } = options;
   if (resolveCrisisGuardMode(env) !== 'live') return null;
-  const { latest, earlier, companion } = callerWords(chatCtx);
+  const { latest, earlier, companion, ferni } = callerWords(chatCtx);
   if (!latest) return null;
 
   const voiceEmotion = (userData as { voiceEmotion?: ProsodyEmotionLike } | undefined)
@@ -203,7 +209,7 @@ export function startCrisisGate(
   });
   // The answer to a grounded release's direct question: not a clear no is a gentle 988 offer,
   // or crisis guidance when the answer carries risk content (crisis-grounded-screen.ts).
-  const screen = screenAnswer(sessionScope(userData), { latest, companion });
+  const screen = screenAnswer(sessionScope(userData), { latest, companion, ferni });
   const gentle = screen === 'positive' && !screenIdeation(found, latest);
   const detection = screen === 'positive' && !gentle ? withScreenPositive(found) : found;
   const reask = screen === 'reask';
@@ -475,7 +481,8 @@ export async function gatedReply(
   const asking = (
     s: ReadableStream<Chunk> | null,
     on = gate?.reask
-  ): ReadableStream<Chunk> | null => (s && on ? withScreenQuestion(s) : s);
+  ): ReadableStream<Chunk> | null =>
+    on ? (s ? withScreenQuestion(s) : textReply(SCREEN_QUESTION)) : s;
   const reply = asking(await ask(ctx));
   if (!reply || !gate?.escalation) return reply;
   return holdUntilCleared(reply, gate.escalation, async (decision) => {

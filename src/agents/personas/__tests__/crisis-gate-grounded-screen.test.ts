@@ -130,22 +130,24 @@ function pipeline(
 /** What the reply gate actually speaks, with a model that says `text`. */
 async function spoken(
   session: string,
-  turns: Array<[string, string]>,
+  turns: Array<[string, string]> | llm.ChatContext,
   latest: string,
-  text: string
+  text: string | null
 ): Promise<string> {
   const model = async () =>
-    new ReadableStream<unknown>({
-      start(controller) {
-        controller.enqueue(text);
-        controller.close();
-      },
-    });
+    text === null
+      ? null
+      : new ReadableStream<unknown>({
+          start(controller) {
+            controller.enqueue(text);
+            controller.close();
+          },
+        });
   const callSession = Object.assign(new EventEmitter(), {
     userData: { services: { sessionId: session } },
   });
   const reply = await gatedReply(
-    request(turns, latest),
+    Array.isArray(turns) ? request(turns, latest) : turns,
     callSession,
     model as never,
     { wrap: (stream: ReadableStream<unknown>) => stream } as never,
@@ -183,6 +185,13 @@ describe('every release ends with the direct question, said by code', () => {
     expect(text.startsWith('Oh, tonight! Have fun.')).toBe(true);
     expect(text.endsWith(SCREEN_QUESTION)).toBe(true);
     expect(askedScreen(text)).toBe(true);
+  });
+
+  it('the question is said once when the model already ended on it', async () => {
+    const session = `screen-${++calls}`;
+    const text = await spoken(session, [[OPENER, REMINDER]], DINNER, `Oh, fun! ${SCREEN_QUESTION}`);
+    expect(text.split(SCREEN_QUESTION)).toHaveLength(2);
+    expect(text.endsWith(SCREEN_QUESTION)).toBe(true);
   });
 
   it('a reply on a call with no release gets no question', async () => {
@@ -349,6 +358,74 @@ describe("the caller's answer", () => {
     const out = await gate(session, still, 'Pie, obviously.');
     expect(out.action).toBe('guide');
     expect(out.action === 'guide' && out.guidance).toMatch(/988/);
+  });
+
+  it('a tool follow-up after the question: the answer is still judged against the question', async () => {
+    for (const [answer, expected] of [
+      ['Yes.', { action: 'guide', guidance: SCREEN_GENTLE_OFFER }],
+      ['No.', { action: 'pass' }],
+    ] as const) {
+      const session = await released();
+      // The released reply asked, called a tool, and the SDK spoke the tool's follow-up last.
+      const ctx = request([[OPENER, REMINDER]], DINNER);
+      ctx.addMessage({ role: 'assistant', content: ASKED });
+      ctx.items.push(llm.FunctionCall.create({ callId: 'c1', name: 'set_reminder', args: '{}' }));
+      ctx.items.push(
+        llm.FunctionCallOutput.create({
+          callId: 'c1',
+          name: 'set_reminder',
+          output: 'ok',
+          isError: false,
+        })
+      );
+      ctx.addMessage({ role: 'assistant', content: 'Done, I moved the reminder to three.' });
+      ctx.addMessage({ role: 'user', content: answer });
+      const run = startCrisisGate(ctx, { services: { sessionId: session } }, options(RELEASE, []));
+      expect((await run?.escalation) ?? run?.decision, answer).toEqual(expected);
+      expect(run?.reask, answer).toBe(false);
+    }
+  });
+
+  it('when the paths see different Ferni lines, the stronger verdict is the shared one', async () => {
+    const follow = 'Done, I moved the reminder to three.';
+    // The pipeline sees only the tool follow-up (not asked), the gate sees the question too.
+    const session = await released();
+    const fromPipeline = await pipeline(session, after(follow), 'Yes.', []);
+    expect(fromPipeline.softGuidance).toBeUndefined(); // its own view: ask again, nothing to do
+    const ctx = request([[OPENER, REMINDER]], DINNER);
+    ctx.addMessage({ role: 'assistant', content: ASKED });
+    ctx.addMessage({ role: 'assistant', content: follow });
+    ctx.addMessage({ role: 'user', content: 'Yes.' });
+    const run = startCrisisGate(ctx, { services: { sessionId: session } }, options(RELEASE, []));
+    expect((await run?.escalation) ?? run?.decision).toEqual({
+      action: 'guide',
+      guidance: SCREEN_GENTLE_OFFER,
+    });
+    // The upgraded verdict closed the screen: a later turn is judged as usual.
+    const later: Array<[string, string]> = [...after(follow), ['Yes.', 'I hear you.']];
+    expect(screenAnswer(session, { latest: 'Pie, obviously.', companion: 'I hear you.' })).toBe(
+      'none'
+    );
+    expect(await gate(session, later, 'Pie, obviously.', RELEASE, [])).toEqual({ action: 'pass' });
+  });
+
+  it('a gate that closes on a clear no cannot reopen what the pipeline asked again', async () => {
+    const session = await released();
+    // The pipeline saw a line that did not ask: it asks again (open), then the gate sees "No.".
+    expect(screenAnswer(session, { latest: 'No.', companion: 'Mm-hm.' })).toBe('reask');
+    expect(screenAnswer(session, { latest: 'No.', companion: ASKED })).toBe('reask');
+    // So the next answer is still screened, and it is not a clear no.
+    const out = screenAnswer(session, {
+      latest: 'Kind of.',
+      companion: `Okay. ${SCREEN_QUESTION}`,
+    });
+    expect(out).toBe('positive');
+  });
+
+  it('a re-ask with no reply from the model speaks just the question', async () => {
+    const session = await released();
+    const text = await spoken(session, after(NOT_ASKED), 'Sorry, got distracted.', null);
+    expect(text.trim()).toBe(SCREEN_QUESTION);
   });
 
   it('only the first answer is screened; later turns are judged as usual', async () => {

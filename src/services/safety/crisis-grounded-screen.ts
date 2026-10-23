@@ -126,7 +126,12 @@ export function noteScreenAsked(
  */
 export function screenAnswer(
   call: string | undefined,
-  input: { latest: string; companion?: string },
+  input: {
+    latest: string;
+    companion?: string;
+    /** All of Ferni's lines since the caller last spoke, when known (a tool follow-up comes last). */
+    ferni?: readonly string[];
+  },
   now = Date.now()
 ): ScreenOutcome {
   try {
@@ -134,7 +139,9 @@ export function screenAnswer(
     if (!screen || now - screen.at > SCREEN_TTL_MS) return 'none';
     const turn = loose(String(input.latest ?? ''));
     const companion = loose(stripSSML(String(input.companion ?? '')));
-    const asked = askedScreen(input.companion);
+    // Asked if any line of Ferni's reply ended with the question in full: a tool's follow-up may
+    // be the last line (the SDK speaks it after the reply that asked).
+    const asked = [input.companion, ...(input.ferni ?? [])].some(askedScreen);
     // The released turn itself, on its other path, even with drifted words: never an answer.
     // A line that answers the question is screened, even one repeating the released words.
     const releasedTurn = turn === screen.asked || (companion !== '' && companion === screen.before);
@@ -144,11 +151,15 @@ export function screenAnswer(
       return reasked ? 'positive' : 'reask';
     };
     const last = screen.last;
-    if (last && companion === last.companion) {
-      // The same turn's other path: never weaker than the first.
-      if (last.turn === turn) return last.outcome;
+    // The same turn's other path (same words, or the same Ferni line before them): one shared
+    // record, never weaker than the first path's verdict, and a stronger one replaces it.
+    if (last && (last.turn === turn || (companion !== '' && companion === last.companion))) {
       const again = judge(screen.reasked && last.outcome !== 'reask');
-      return RANK[again] > RANK[last.outcome] ? again : last.outcome;
+      if (RANK[again] <= RANK[last.outcome]) return last.outcome;
+      if (again === 'reask') screen.reasked = true;
+      screen.last = { ...last, outcome: again };
+      log.info({ outcome: again, asked, path: 'second' }, 'CRISIS_GROUNDED_SCREEN');
+      return again;
     }
     // A later turn: judged only while the screen is open (nothing judged yet, or a re-ask).
     if (last && last.outcome !== 'reask') return 'none';
@@ -188,12 +199,27 @@ export function withScreenPositive(detection: CrisisDetectionResult): CrisisDete
     : { ...merged, indicators: [...merged.indicators, 'grounded_screen_positive'] };
 }
 
-/** A reply stream with SCREEN_QUESTION as its last sentence, whatever the model wrote. */
+/** A stream chunk's text: a string, or a chat chunk's delta content. */
+const chunkText = (chunk: unknown): string => {
+  if (typeof chunk === 'string') return chunk;
+  const content = (chunk as { delta?: { content?: unknown } } | null)?.delta?.content;
+  return typeof content === 'string' ? content : '';
+};
+
+/**
+ * A reply stream with SCREEN_QUESTION as its last sentence, whatever the model
+ * wrote; not added twice when the model already ended on it.
+ */
 export function withScreenQuestion<T>(reply: ReadableStream<T>): ReadableStream<T | string> {
+  let said = '';
   return reply.pipeThrough(
     new TransformStream<T, T | string>({
+      transform(chunk, controller) {
+        said += chunkText(chunk);
+        controller.enqueue(chunk);
+      },
       flush(controller) {
-        controller.enqueue(` ${SCREEN_QUESTION}`);
+        if (!askedScreen(said)) controller.enqueue(` ${SCREEN_QUESTION}`);
       },
     })
   );
