@@ -315,7 +315,7 @@ export async function retrieveForTurn(input: TurnRetrievalInput): Promise<Memory
     );
     metrics.hybridSearchMs = Date.now() - hybridStart;
     metrics.rawResultCount = searched.results.length;
-    const hybridResults = await gateTurnMemories(searched.results, transcript, rrfScale, metrics);
+    const hybridResults = await gateTurnMemories(searched.results, input, rrfScale, metrics);
 
     if (hybridResults.length === 0) {
       return {
