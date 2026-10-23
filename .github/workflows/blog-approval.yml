@@ -21,7 +21,9 @@ permissions: {}
 
 concurrency:
   group: blog-approval-${{ github.event.pull_request.number }}
-  cancel-in-progress: false
+  # The repo-wide PR-only cancel expression. This runs on pull_request_target, so it is
+  # always false here: an approval run is never cancelled (workflow-concurrency check).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   arm:
