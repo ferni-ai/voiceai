@@ -73,6 +73,8 @@ export interface DateObservation extends WorldObservation {
   monthDay?: string;
   /** The caller's words for when. */
   when: string;
+  /** HH:MM in the caller's zone, when the words named a time ("biopsy at 3"). */
+  at?: string;
   /** Ambiguous, unsure or resolved by the model: ask before relying on it. */
   needsConfirmation: boolean;
 }
@@ -85,7 +87,7 @@ Return JSON only: {"dates": [ ... ]}. Each item:
 - relation: how they relate to the caller ("mother", "coworker"), if said
 - what: a short plain phrase ("birthday", "knee surgery", "interview at Stripe")
 - kind: one of ${DATE_KINDS.join(', ')}
-- when: the CALLER's exact words for the day, copied, not computed ("the 14th", "next Thursday", "October 3rd", "tomorrow"); if they named the month anywhere in the call, include it ("December 19th", not "the 19th")
+- when: the CALLER's exact words for the day, copied, not computed ("the 14th", "next Thursday", "October 3rd", "tomorrow"); if they named the month anywhere in the call, include it ("December 19th", not "the 19th"); if they named a time, include it ("Tuesday at 3", "the 14th at 10am")
 - guess: your own YYYY-MM-DD for that day
 - recurring: true for a date that comes back every year (a birthday, an anniversary, the day someone died); false for a one-time thing (a birthday party this Saturday is one-time)
 - past: true if it already happened
@@ -198,6 +200,7 @@ export function toDateObservations(
       recurrence: yearly ? 'yearly' : 'once',
       ...(yearly ? { monthDay: day.slice(5) } : {}),
       when: m.when,
+      ...(resolved?.at ? { at: resolved.at } : {}),
       needsConfirmation: doubtful || confidence < 0.7,
       ...(m.correction ? { replaces: { attribute: 'event', priorValue: m.what } } : {}),
     });

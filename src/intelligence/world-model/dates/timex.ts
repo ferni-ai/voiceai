@@ -11,6 +11,10 @@
  * instead of stating it. A phrase with no single day ("next month", "in the
  * spring") resolves to null: a wrong date is worse than none.
  *
+ * A time of day ("at 3", "3pm", "15:00", "three o'clock", "noon") is kept
+ * beside the day as `at`, never folded into it, so the day logic is the same
+ * with or without one (Bookends, ENGAGEMENT-SPEC §2.3).
+ *
  * @module intelligence/world-model/dates/timex
  */
 
@@ -18,6 +22,8 @@ export interface Resolved {
   /** YYYY-MM-DD */
   date: string;
   ambiguous: boolean;
+  /** HH:MM, 24-hour, in the caller's zone: only when the words named a time. */
+  at?: string;
 }
 
 const DAY_MS = 86_400_000;
@@ -216,13 +222,78 @@ export function normaliseWhen(when: string): string {
     .trim();
 }
 
+const HOUR_WORDS = 'one two three four five six seven eight nine ten eleven twelve'.split(' ');
+const HOUR = `(\\d{1,2}|${HOUR_WORDS.join('|')})`;
+const hourOf = (w: string): number => (/^\d/.test(w) ? Number(w) : HOUR_WORDS.indexOf(w) + 1);
+
+/**
+ * An hour said with no am or pm, read the way people book things: 7 to 11 are
+ * the morning, 12 is noon, and 1 to 6 are the afternoon, so "biopsy at 3" is
+ * 15:00, not 03:00. Words for part of the day win: "3 in the morning" is
+ * 03:00, "8 tonight" is 20:00.
+ */
+function bookableHour(h: number, words: string): number {
+  if (h === 12) return 12;
+  if (/\b(?:afternoon|evening|night|tonight)\b/.test(words)) return h + 12;
+  if (/\bmorning\b/.test(words)) return h;
+  return h <= 6 ? h + 12 : h;
+}
+
+const hhmm = (h: number, m: number): string | null =>
+  h >= 0 && h <= 23 && m >= 0 && m <= 59 ? `${pad(h)}:${pad(m)}` : null;
+
+/**
+ * The time of day in `when`, and the words without it. "3pm" and "3:30 pm";
+ * "15:00" and "3:30"; "three o'clock"; "noon"; a bare hour only after "at"
+ * ("at 3"), since "on the 3rd" is a day.
+ */
+export function timeOfDay(when: string): { at: string; rest: string } | null {
+  const words = when
+    .toLowerCase()
+    .replace(/[’`]/g, "'")
+    .replace(/\b([ap])\.m\.?/g, '$1m');
+  const rules: Array<[RegExp, (m: RegExpExecArray) => string | null]> = [
+    [/\b(\d{1,2})(?::(\d{2}))? ?(am|pm)\b/, (m) => {
+      const h = Number(m[1]);
+      if (h < 1 || h > 12) return null;
+      return hhmm((h % 12) + (m[3] === 'pm' ? 12 : 0), Number(m[2] ?? 0));
+    }],
+    [/\b(\d{1,2}):(\d{2})\b/, (m) => {
+      const h = Number(m[1]);
+      return hhmm(h >= 1 && h <= 12 ? bookableHour(h, words) : h, Number(m[2]));
+    }],
+    [new RegExp(`\\b${HOUR} o'?clock\\b`), (m) => hhmm(bookableHour(hourOf(m[1]), words), 0)],
+    [new RegExp(`\\bat ${HOUR}\\b(?![/:\\d])`), (m) => {
+      const h = hourOf(m[1]);
+      return h >= 1 && h <= 12 ? hhmm(bookableHour(h, words), 0) : null;
+    }],
+    [/\b(?:noon|midday)\b/, () => '12:00'],
+  ]; // prettier-ignore
+  for (const [pattern, read] of rules) {
+    const m = pattern.exec(words);
+    const at = m && read(m);
+    if (m && at)
+      return { at, rest: `${words.slice(0, m.index)} ${words.slice(m.index + m[0].length)}` };
+  }
+  return null;
+}
+
 /**
  * The day `when` names, said on `anchor` (YYYY-MM-DD, the call's date where
- * the caller is). `past`: they were talking about something that already
- * happened ("her surgery was Tuesday"). Null when it names no single day.
+ * the caller is), with the time of day when the words gave one. `past`: they
+ * were talking about something that already happened ("her surgery was
+ * Tuesday"). Null when it names no single day. A time with no day ("biopsy at
+ * 3") is on the call's own day.
  */
 export function resolveWhen(when: string, anchor: string, past = false): Resolved | null {
-  const said = normaliseWhen(when);
+  const time = timeOfDay(when);
+  const said = normaliseWhen(time ? time.rest : when);
+  const dayless = !said || /^(?:in )?(?:morning|afternoon|evening|night)$/.test(said);
+  const day = time && dayless ? { date: anchor, ambiguous: false } : resolveDay(said, anchor, past);
+  return day && time ? { ...day, at: time.at } : day;
+}
+
+function resolveDay(said: string, anchor: string, past: boolean): Resolved | null {
   if (said in RELATIVE) return { date: addDays(anchor, RELATIVE[said]), ambiguous: false };
   // The time of day doesn't change the day: "Friday morning", "the 14th 3pm".
   const text = said
@@ -230,6 +301,7 @@ export function resolveWhen(when: string, anchor: string, past = false): Resolve
     .replace(/(?: in)? (?:morning|afternoon|evening|night|noon)$/, '')
     .trim();
   if (!text) return null;
+  if (text in RELATIVE) return { date: addDays(anchor, RELATIVE[text]), ambiguous: false };
   const lead = /^(next week|this week|sunday|monday|tuesday|wednesday|thursday|friday|saturday) (.+)$/.exec(text); // prettier-ignore
   if (lead && !/^(?:after next|next week|this week)$/.test(lead[2])) {
     const [, head, rest] = lead;

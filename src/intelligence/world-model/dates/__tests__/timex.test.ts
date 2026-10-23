@@ -31,7 +31,6 @@ describe('resolveWhen: relative to the call', () => {
     ['tomorrow', '2026-10-12'],
     ['the day after tomorrow', '2026-10-13'],
     ['Friday morning', '2026-10-16'],
-    ['thursday at 3pm', '2026-10-15'],
     ['in two weeks', '2026-10-25'],
     ['in a couple of weeks', '2026-10-25'],
     ['a week from Tuesday', '2026-10-20'],
@@ -52,6 +51,42 @@ describe('resolveWhen: relative to the call', () => {
     expect(resolveWhen('next month', SUN)).toBeNull();
     expect(resolveWhen('sometime in June', SUN)).toBeNull();
     expect(resolveWhen('soon', SUN)).toBeNull();
+  });
+});
+
+describe('resolveWhen: the time of day, kept beside the day', () => {
+  it.each([
+    ['thursday at 3pm', '2026-10-15', '15:00'],
+    ['Thursday at 3', '2026-10-15', '15:00'],
+    ['the 14th at 15:00', '2026-10-14', '15:00'],
+    ["October 14th at three o'clock", '2026-10-14', '15:00'],
+    ['Friday at noon', '2026-10-16', '12:00'],
+    ['tomorrow at 9:30 a.m.', '2026-10-12', '09:30'],
+    // No day said: the call's own day ("biopsy at 3").
+    ['at 3', SUN, '15:00'],
+  ])('%s said on Sun Oct 11 is %s at %s', (when, day, at) => {
+    expect(resolveWhen(when, SUN)).toEqual({ date: day, ambiguous: false, at });
+  });
+
+  // The rule for an hour with no am or pm: 7 to 11 morning, 12 noon, 1 to 6 afternoon,
+  // unless the words say which part of the day.
+  it.each([
+    ['at 3', '15:00'],
+    ['at 6', '18:00'],
+    ['at 7', '07:00'],
+    ['at 11', '11:00'],
+    ['at 12', '12:00'],
+    ['at 3 in the morning', '03:00'],
+    ['tonight at 8', '20:00'],
+    ['at 10 in the evening', '22:00'],
+  ])('%s is %s', (when, at) => {
+    expect(resolveWhen(when, SUN)?.at).toBe(at);
+  });
+
+  it('gives no time when none was said, and never reads a day as an hour', () => {
+    expect(resolveWhen('the 14th', SUN)).toEqual({ date: '2026-10-14', ambiguous: false });
+    expect(resolveWhen('on the 3rd', SUN)).not.toHaveProperty('at');
+    expect(resolveWhen('Friday morning', SUN)).toEqual({ date: '2026-10-16', ambiguous: false });
   });
 });
 
