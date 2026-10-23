@@ -555,6 +555,43 @@ describe('plain goodbyes are never taken for risk (#2291)', () => {
     expect(callerSaysGoodbye('alright, talk soon')).toBe(true);
   });
 
+  it('fails closed on other scripts: only whole goodbye clauses are plain', () => {
+    for (const line of [
+      'до свидания, я больше не хочу жить',
+      'adiós, ya no quiero vivir',
+      'さようなら、もう生きたくない',
+      'до свидания',
+      'adiós, me voy', // ASCII rest, but other-script letters in the line
+      'bye я больше не хочу жить', // one clause: its other-script letters keep it from reading "bye"
+    ]) {
+      expect(farewellRisk(line), line).toBe(true);
+      expect(callerSignsOff(line), line).toBe(false);
+    }
+    for (const line of ['adiós', 'gracias, adiós', 'bye 🙂', 'bye, 🙂']) {
+      expect(farewellRisk(line), line).toBe(false);
+      expect(callerSignsOff(line), line).toBe(true);
+    }
+  });
+
+  it('"bye 🙂" in the window: no reopen, the app leaves', async () => {
+    const c = await call();
+    await c.toEnd();
+    await c.advance(400);
+    c.finalWords('bye 🙂');
+    await c.advance(10_000);
+    expect(c.reopens()).toEqual([]);
+    expect(c.events).toContain(`${DISCONNECT_DELAY_MS} app left`);
+  });
+
+  it('"до свидания, я больше не хочу жить" in the window: a crisis hold, recorded', async () => {
+    const c = await call();
+    await c.toEnd();
+    c.finalWords('до свидания, я больше не хочу жить');
+    await flush();
+    expect(c.reopens()).toEqual(['0 conversation_continue crisis_hold']);
+    expect(crisisRiskThisCall(c.id)).toBe(true);
+  });
+
   it('the risk check inside callerSignsOff is reachable: a sign-off with risk is not one', () => {
     // "I'm done for now" fits the sign-off grammar, but "done" outside the plain goodbye
     // clauses ("done for today") is risk, so only the risk check keeps it from ending the call

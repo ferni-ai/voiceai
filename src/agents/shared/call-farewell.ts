@@ -222,12 +222,14 @@ function closingClause(words: readonly string[], closers: ReadonlySet<string>): 
 }
 
 function clauseWords(text: string): string[][] {
-  // Accents folded: "adiós" is "adios"
+  // Accents folded ("adiós" is "adios"); emoji and symbols dropped ("bye 🙂"). Letters
+  // of any script stay, so a line in another script never matches a goodbye here.
   let t = text
     .normalize('NFKD')
     .replace(/\p{M}+/gu, '')
     .toLowerCase()
-    .replace(/[’]/g, "'");
+    .replace(/[’]/g, "'")
+    .replace(/[^\p{L}\p{N}'\s.!?,;:-]+/gu, ' ');
   if (t.length > MAX_CALLER_CHARS) {
     // Keep the end, where a goodbye is, and drop the word the cut landed in.
     t = t.slice(-MAX_CALLER_CHARS);

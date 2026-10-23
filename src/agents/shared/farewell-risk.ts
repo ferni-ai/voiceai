@@ -5,10 +5,12 @@
  * goodbye". None of those may end a call as a sign-off, and each reopens it
  * as a crisis hold (wrap-up-window.ts), whatever the crisis read later says.
  *
- * Checked, on the accent-folded line: the crisis patterns (crisis-guard.ts
- * detectCrisis), farewell and last-request shapes, and the risk content of
- * the line with its goodbye clauses and words taken out (crisis-agreement.ts
+ * Checked: the crisis patterns (crisis-guard.ts detectCrisis), farewell and
+ * last-request shapes, and the risk content of the line with its whole
+ * goodbye clauses and goodbye words taken out (crisis-agreement.ts
  * hasRiskContent flags "bye", "soon", "sleep" and "done" on their own).
+ * Accents are folded only to recognise goodbye clauses ("adiós"); anything
+ * left in another script is risk, as hasRiskContent fails closed on it.
  *
  * @module agents/shared/farewell-risk
  */
@@ -87,36 +89,44 @@ function pleasantryClause(clause: string): boolean {
 const HANG_UP_CLAUSE =
   /^(?:(?:ok|okay|alright|all right|so|well|yeah|just|please|i said|go ahead and)\s+)*(?:you\s+(?:can\s+|need to\s+|have to\s+)?)?(?:hang up|end the call)(?:\s+(?:now|right now|please|the phone|the call))*$/;
 
-/** The line without its hang-up asks and its goodbye clauses, clause by clause. */
+/** Accents folded ("adiós" is "adios"): only to MATCH goodbye and pleasantry clauses. */
+const fold = (text: string): string => text.normalize('NFKD').replace(/\p{M}+/gu, '');
+
+/** A letter outside a-z, in any script ("ó", "д", "さ"). */
+const NON_ENGLISH_LETTER = /[^\P{L}a-zA-Z]/u;
+
+/**
+ * The ORIGINAL line without its whole hang-up-ask and goodbye clauses. A
+ * clause is matched accent-folded, with every letter kept (any script), so a
+ * clause in another script never looks like a pleasantry; an empty clause is
+ * not one either.
+ */
 function withoutGoodbyeClauses(line: string): string {
   return line
-    .split(/[.!?,;:]+/)
+    .split(/[.!?,;:、，。！？]+/)
     .filter((clause) => {
-      const plain = clause
+      const plain = fold(clause)
         .toLowerCase()
-        .replace(/[^a-z0-9' ]+/g, ' ')
+        .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
         .replace(/\s+/g, ' ')
         .trim();
-      return !HANG_UP_CLAUSE.test(plain) && !pleasantryClause(plain);
+      return !(plain && (HANG_UP_CLAUSE.test(plain) || pleasantryClause(plain)));
     })
     .join(' ');
 }
 
-/** Accents folded ("adiós" is "adios"), so hasRiskContent never flags a letter for its accent. */
-const fold = (text: string): string =>
-  text
-    .normalize('NFKD')
-    .replace(/\p{M}+/gu, '')
-    .replace(/[’‘]/g, "'");
-
 export function farewellRisk(text: string): boolean {
-  const line = fold(text);
+  const line = text.replace(/[’‘]/g, "'");
   const crisis = detectCrisis(line);
   if (crisis.isCrisis || crisis.severity > 0.3) return true;
-  if (FAREWELL_SHAPE.test(line)) return true;
+  if (FAREWELL_SHAPE.test(fold(line))) return true;
   const rest = withoutGoodbyeClauses(line)
     .replace(GOODBYE_WORDS, ' ')
     .replace(/[^\p{L}\p{N}' ]+/gu, ' ')
     .trim();
-  return rest.length > 0 && hasRiskContent(rest);
+  if (!rest) return false;
+  // Fails closed on what it can't read: a line with letters outside English is plain
+  // only when every clause is a goodbye ("gracias, adiós"), never "adiós, ya no quiero vivir"
+  if (NON_ENGLISH_LETTER.test(line)) return true;
+  return hasRiskContent(rest);
 }
