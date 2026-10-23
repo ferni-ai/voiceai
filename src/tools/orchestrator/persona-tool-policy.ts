@@ -12,7 +12,7 @@
  * Some tools are never removed, whatever a manifest says: handoffs and team
  * tools (a persona must always be able to pass the caller on), every tool in
  * the crisis, trauma-support, human-transfer, presence and sobriety domains,
- * five wellbeing-support tools outside them, the privacy controls (forget and
+ * eight wellbeing-support tools outside them, the privacy controls (forget and
  * correct a memory), softTeamIntro and endCall. A manifest that forbids one
  * gets a warning (once per persona per process) and that entry is not applied.
  *
@@ -101,6 +101,10 @@ export const PROTECTED_TOOL_NAMES: ReadonlySet<string> = new Set([
   'medicationCheckIn',
   'postpartumCheckin',
   'wellnessCheckin',
+  // grief (an anniversary of a loss), betrayal trauma and social anxiety
+  'anniversarySupport',
+  'betrayalTrauma',
+  'navigateSocialAnxiety',
 ]);
 
 /** Whether no persona policy may remove this tool. Names match exactly. */
