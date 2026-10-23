@@ -32,7 +32,11 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
       bindings.module === 'PersonaToolPolicy' ? policyLog : actual.createLogger(bindings),
   };
 });
-const bundleReads = vi.hoisted(() => ({ ids: [] as string[], failNext: new Set<string>() }));
+const bundleReads = vi.hoisted(() => ({
+  ids: [] as string[],
+  failNext: new Set<string>(),
+  hangNext: new Set<string>(),
+}));
 vi.mock('../../../personas/index.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../personas/index.js')>();
   return {
@@ -40,6 +44,10 @@ vi.mock('../../../personas/index.js', async (importOriginal) => {
     loadBundleById: (id: string, ...rest: unknown[]) => {
       bundleReads.ids.push(id);
       if (bundleReads.failNext.delete(id)) throw new Error('disk hiccup');
+      if (bundleReads.hangNext.delete(id))
+        return new Promise<never>(() => {
+          /* never settles: a hung read */
+        });
       return (actual.loadBundleById as (...a: unknown[]) => unknown)(id, ...rest);
     },
   };
@@ -302,6 +310,42 @@ describe('same-turn topic tools and the static core follow the policy', () => {
     call.loader.shutdown();
   }, 120_000);
 
+  it.each([
+    ['the agent forbids it, userData names Ferni', 'agent', false],
+    ['userData names the persona that forbids it, the agent is Ferni', 'userData', true],
+  ])(
+    'TOOLS_SAME_TURN keys the policy by the reply agent: %s',
+    async (_, forbids, expected) => {
+      const FIXTURE = writeFixture('fixture-same-turn-key', ['searchLocalBusinesses', 'dayTrade']);
+      await setFlags({ PERSONA_TOOL_POLICY: 'on', TOOLS_SAME_TURN: 'on' });
+      const { personaToolPolicy, rememberAgentPersona } = await import('../persona-tool-policy.js');
+      const { wireCallToolLoader } =
+        await import('../../../agents/voice-agent/deferred-tool-update.js');
+      const { preloadTopicDomains, withSameTurnTools } =
+        await import('../../../agents/personas/same-turn-tools.js');
+      const [sessionPersona, agentPersona] =
+        forbids === 'agent' ? ['ferni', FIXTURE] : [FIXTURE, 'ferni'];
+      const call = await startCall(sessionPersona, `same-turn-key-${forbids}`);
+      rememberAgentPersona(call.agent, agentPersona);
+      await personaToolPolicy(FIXTURE);
+      await personaToolPolicy('ferni');
+      const log = { info: vi.fn(), warn: vi.fn(), debug: vi.fn(), error: vi.fn() };
+      const session = { ...call.session, on: vi.fn(), off: vi.fn() };
+      wireCallToolLoader(session as never, call.agent as never, call.loader, log as never);
+      await preloadTopicDomains();
+
+      const chatCtx = llm.ChatContext.empty();
+      chatCtx.addMessage({ role: 'user', content: 'Find me a coffee shop nearby.' });
+      const replyTools = new llm.ToolContext(call.agent.toolCtx.tools as never);
+      const added = withSameTurnTools(session, chatCtx, replyTools, call.agent);
+
+      expect(added).toContain('findRestaurants'); // the topic was picked
+      expect(added.includes('searchLocalBusinesses')).toBe(expected);
+      call.loader.shutdown();
+    },
+    120_000
+  );
+
   it('TOOL_CORE_STATIC: the static core leaves out a core tool the persona forbids', async () => {
     const FIXTURE = writeFixture('fixture-static-core', ['tellJoke', 'dayTrade']);
     await setFlags({ PERSONA_TOOL_POLICY: 'on' });
@@ -369,6 +413,48 @@ describe('protected tools are never removed', () => {
     expect(warned).toHaveLength(1);
     expect(warned[0]?.[0]).toMatchObject({ refused: ['handoffToFerni', 'meetTheTeam'] });
   });
+
+  it('forgetMemory and updateMemory are never stripped, even when a manifest forbids them', async () => {
+    const FIXTURE = writeFixture('fixture-privacy', ['forgetMemory', 'updateMemory', 'dayTrade']);
+    await setFlags({ PERSONA_TOOL_POLICY: 'on' });
+    const { applyPersonaToolPolicy, personaToolPolicy, withoutForbiddenTools } =
+      await import('../persona-tool-policy.js');
+    const tools = { forgetMemory: {}, updateMemory: {}, dayTrade: {}, playMusic: {} };
+
+    expect((await personaToolPolicy(FIXTURE))?.forbidden).toEqual(['dayTrade']);
+    expect(Object.keys(await applyPersonaToolPolicy(tools, FIXTURE))).toEqual([
+      'forgetMemory',
+      'updateMemory',
+      'playMusic',
+    ]);
+    // Even a caller's own explicit list can't remove them
+    const explicit = withoutForbiddenTools(tools, ['forgetMemory', 'updateMemory']);
+    expect(Object.keys(explicit)).toEqual(Object.keys(tools));
+  });
+
+  it('a hung manifest read times out: no forbids, not cached, and the update still runs', async () => {
+    const FIXTURE = writeFixture('fixture-hung', ['tellJoke']);
+    await setFlags({ PERSONA_TOOL_POLICY: 'on' });
+    const policy = await import('../persona-tool-policy.js');
+    const { updateAgentTools } = await import('../../../agents/shared/tool-updater.js');
+    const agent = bareAgent();
+    const tellJoke = llm.tool({ description: 'joke', execute: async () => 'ok' });
+    bundleReads.hangNext.add(FIXTURE);
+    vi.useFakeTimers();
+    try {
+      policy.rememberAgentPersona(agent, FIXTURE); // agent setup starts the read; it hangs
+      const update = updateAgentTools(agent as never, { tellJoke }, {});
+      await vi.advanceTimersByTimeAsync(policy.MANIFEST_READ_TIMEOUT_MS);
+      expect(await update).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(namesOf(agent)).toEqual(['tellJoke']); // failed open: no forbids
+    expect(policy.forbiddenToolsNow(FIXTURE)).toEqual([]); // and nothing remembered
+
+    expect((await policy.personaToolPolicy(FIXTURE))?.forbidden).toEqual(['tellJoke']);
+    expect(bundleReads.ids.filter((id) => id === FIXTURE)).toHaveLength(2);
+  }, 20_000);
 
   it('a failed manifest read is not cached: the next call reads it again', async () => {
     const FIXTURE = writeFixture('fixture-retry', ['tellJoke']);
