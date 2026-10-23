@@ -79,6 +79,13 @@ export const MAX_TOTAL_CHARS = 1500;
 const FAST_MODE_MAX_INJECTIONS = 3;
 const FAST_MODE_MAX_CHARS = 600;
 
+/** The count and character budget filterInjections gives a mode (casual is fast mode). */
+export function filterBudget(mode: ConversationMode): { maxInjections: number; maxChars: number } {
+  return mode === 'casual'
+    ? { maxInjections: FAST_MODE_MAX_INJECTIONS, maxChars: FAST_MODE_MAX_CHARS }
+    : { maxInjections: MAX_INJECTIONS, maxChars: MAX_TOTAL_CHARS };
+}
+
 // ============================================================================
 // CONVERSATION MODES
 // ============================================================================
@@ -256,9 +263,9 @@ export function filterInjections(
 
   // LATENCY OPTIMIZATION: Use aggressive limits for casual/simple exchanges
   const isFastMode = mode === 'casual';
-  const maxInjections =
-    options.maxInjections ?? (isFastMode ? FAST_MODE_MAX_INJECTIONS : MAX_INJECTIONS);
-  const maxChars = options.maxChars ?? (isFastMode ? FAST_MODE_MAX_CHARS : MAX_TOTAL_CHARS);
+  const budget = filterBudget(mode);
+  const maxInjections = options.maxInjections ?? budget.maxInjections;
+  const maxChars = options.maxChars ?? budget.maxChars;
 
   const priorityCategories = getPriorityCategories(mode);
   const filtered: ContextInjection[] = [];
