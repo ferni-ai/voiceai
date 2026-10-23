@@ -83,7 +83,10 @@ type PatternCrisisType = Exclude<CrisisType, 'suicidal_ideation' | 'self_harm'>;
  * Pattern definitions for crisis detection.
  * Organized by crisis type with severity gradients.
  */
-const CRISIS_PATTERNS: Record<PatternCrisisType, { patterns: RegExp[]; severity: CrisisSeverity }[]> = {
+const CRISIS_PATTERNS: Record<
+  PatternCrisisType,
+  { patterns: RegExp[]; severity: CrisisSeverity }[]
+> = {
   domestic_abuse: [
     {
       patterns: [
@@ -279,7 +282,8 @@ const DEESCALATING_CONTEXT = [
  */
 function detectSuicideAndSelfHarm(text: string): CrisisSignal | null {
   const guard = detectGuardCrisis(text);
-  if (guard.subject !== 'self') return null;
+  // A worry about someone else over the caller's own softened tier words keeps main's signal.
+  if (guard.subject !== 'self' && !guard.ownSoftWords) return null;
   const isSelfHarm =
     guard.indicators.includes('self_harm') && !guard.indicators.includes('imminent_danger');
   const explicit = guard.indicators.includes('explicit_crisis_language');

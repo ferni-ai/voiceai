@@ -69,6 +69,8 @@ export interface CrisisDetectionResult {
   indicators: string[];
   /** Set when any text signal matched. */
   subject?: CrisisSubject;
+  /** Third party over the caller's own tier words, softened: main read those as self. */
+  ownSoftWords?: boolean;
   /** 'es' when the crisis language matched was Spanish. */
   language?: 'en' | 'es';
   suggestedResponse?: string;
@@ -109,6 +111,8 @@ interface TextScore {
   contextHit: boolean;
   /** The caller's own ending words, negated, recovered or hyperbole only ("I would never …"). */
   softSelf: boolean;
+  /** softSelf from a tier pattern, not the floor (#2540: crisis-detection.ts keeps main's read). */
+  tierSoft: boolean;
 }
 
 /** Score one message from its words alone. */
@@ -127,6 +131,7 @@ function scoreText(text: string): TextScore {
   const softened: [number, number][] = [];
   let thirdPartyHit = false;
   let softSelf = false;
+  let tierSoft = false;
   let hardSelf = false;
   for (const { re, tag, imminent } of EXPLICIT_CRISIS_PATTERNS) {
     const match = re.exec(text);
@@ -145,7 +150,7 @@ function scoreText(text: string): TextScore {
     if (modifier === 'negated' || modifier === 'hyperbole' || modifier === 'recovered') {
       add(`${modifier}_crisis_language`, 0);
       implicitHits++;
-      softSelf = true;
+      softSelf = tierSoft = true;
     } else if (modifier) {
       add(modifier === 'history' ? 'crisis_history' : `${modifier}_frame`, SEVERITY.passive);
       hardSelf = true;
@@ -217,7 +222,7 @@ function scoreText(text: string): TextScore {
   }
 
   const contextHit = SESSION_CONTEXT_PATTERNS.some((p) => p.test(text));
-  return { severity, indicators, subject, language, implicitHits, contextHit, softSelf };
+  return { severity, indicators, subject, language, implicitHits, contextHit, softSelf, tierSoft };
 }
 
 /**
@@ -287,6 +292,7 @@ export function detectCrisis(
     severity,
     indicators,
     subject,
+    ...(subject === 'third_party' && score.tierSoft ? { ownSoftWords: true } : {}),
     language: subject ? (score.language ?? 'en') : undefined,
     suggestedResponse: isCrisis
       ? getCrisisResponse(severity, subject, score.language, indicators.includes('imminent_danger'))

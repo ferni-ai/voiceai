@@ -6,6 +6,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { detectCrisis as detectSignals } from '../crisis-detection.js';
+import { snapEnd, snapStart } from '../crisis-ending-floor.js';
 import { detectCrisis, guardFromDetection } from '../crisis-guard.js';
 
 const level = (text: string): 'script' | 'guide' | 'none' => {
@@ -271,7 +272,8 @@ describe('the first-person ending floor', () => {
   });
 
   it('costs time in proportion to the message, not its square', () => {
-    // 160 KB of each shape: linear code takes milliseconds, a whole-text re-scan seconds.
+    // 160 KB of each shape: linear code takes milliseconds of CPU, a whole-text re-scan seconds.
+    // CPU time, not wall time: a loaded machine must not fail it (#2540 round 1: load avg 128+).
     const units = [
       'kill myself ',
       'could ',
@@ -281,9 +283,90 @@ describe('the first-person ending floor', () => {
     ];
     for (const unit of units) {
       const text = unit.repeat(Math.ceil(160_000 / unit.length)) + 'kill myself';
-      const started = performance.now();
+      const started = process.cpuUsage();
       detectCrisis(text);
-      expect(performance.now() - started, unit).toBeLessThan(1000);
+      const { user, system } = process.cpuUsage(started);
+      expect((user + system) / 1000, unit).toBeLessThan(1000);
     }
+  });
+
+  it('reads future and repeat intent as risk (#2540: these had gone from the list)', () => {
+    for (const line of [
+      "I almost killed myself on the stairs, I'll try again",
+      "I almost killed myself on my bike and I'm going to try again tonight",
+      'I nearly killed myself on the ice, I will again',
+      "I killed myself laughing, I'll do worse tomorrow",
+      "I almost killed myself on the stairs, I'm gonna",
+      'I almost killed myself on the ladder, gonna try it again',
+      'I nearly killed myself on the ice, and I will',
+      "I almost killed myself on the stairs and I'll do it properly",
+    ]) {
+      expect(level(line), line).toBe('script');
+    }
+  });
+
+  it('reads means or intent in the sentence before, too', () => {
+    for (const line of [
+      'I have pills. I almost killed myself on the stairs',
+      'I did it on purpose. I nearly killed myself on the ice',
+    ]) {
+      expect(level(line), line).toBe('script');
+    }
+    expect(level('It was icy. I nearly killed myself on the ice')).toBe('none');
+  });
+
+  it('never exempts a clause or sentence the window cut, before or after the words', () => {
+    const filler = 'and the weather was nice and we walked the dog '.repeat(30); // ~1,440 chars
+    // The clause starts before the window: the means or intent there is unread.
+    expect(level(`I have pills and ${filler} I killed myself laughing`)).toBe('script');
+    expect(level(`on purpose ${filler} I almost killed myself on the stairs`)).toBe('script');
+    // The sentence before starts before the window.
+    expect(level(`I have pills and ${filler}. I killed myself laughing`)).toBe('script');
+    // The next sentence runs past the window after the words.
+    const long = 'and the weather was nice '.repeat(100); // ~2,500 chars
+    expect(level(`I killed myself laughing. ${long} with pills`)).toBe('script');
+    // Read whole, the same idioms are exempt.
+    expect(level('it was icy. I killed myself laughing. that was fun')).toBe('none');
+  });
+
+  it('keeps "end it all" with "let\'s" or "we" the caller\'s with any time word', () => {
+    for (const time of ['today', 'soon', 'now', 'this morning', 'at midnight', 'at 3am', 'later']) {
+      expect(level(`lets end it all ${time}`), time).toBe('script');
+      expect(level(`we will end it all ${time}`), time).toBe('script');
+    }
+    expect(level('the show will end it all soon')).toBe('none');
+  });
+
+  it('never starts or ends a window inside a word', () => {
+    const text = 'i cannot sleep';
+    expect(snapStart(text, 0)).toBe(0);
+    expect(snapStart(text, 4)).toBe(8); // inside "cannot": moved past it, never "not"
+    expect(snapStart(text, 2)).toBe(2); // already at a word start
+    expect(snapEnd(text, 6)).toBe(2); // inside "cannot": moved back before it
+    expect(snapEnd(text, 8)).toBe(8);
+    expect(snapEnd(text, 99)).toBe(text.length);
+    // A run with no word break is left as is, so the look stays bounded.
+    expect(snapStart('x'.repeat(200), 50)).toBe(50);
+  });
+
+  it("keeps main's crisis-detection signal when a worry about someone else outranks the caller's own words", () => {
+    const suicidal = (line: string) =>
+      detectSignals(line).signals.find((s) => s.type === 'suicidal_ideation');
+    // The caller's own tier words, negated: the guard reads third party, and the signal is never
+    // below main's (main: high, then medium).
+    const RANK = ['low', 'medium', 'high', 'critical'];
+    for (const [line, main] of [
+      ["my mom said she wants to die. I'm not going to end my life, tonight.", 'high'],
+      ["my friend wants to kill herself. I don't want to kill myself though", 'medium'],
+    ]) {
+      expect(detectCrisis(line).subject, line).toBe('third_party');
+      expect(RANK.indexOf(suicidal(line)?.severity ?? ''), line).toBeGreaterThanOrEqual(
+        RANK.indexOf(main)
+      );
+    }
+    // Words only the floor finds (main had no floor): no signal main never gave.
+    expect(
+      suicidal('my brother keeps talking about killing himself. I would never kill myself')
+    ).toBeUndefined();
   });
 });
