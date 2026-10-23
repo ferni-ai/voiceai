@@ -217,7 +217,7 @@ export async function greetingOrResume(
     return false;
   });
   if (moved) lookups.delete(sessionId);
-  const call = moved ? undefined : await takeDroppedCall(sessionId);
+  const call = await takeDroppedCall(sessionId);
   if (!call || !agent.agent) return directedGreeting(sessionId, agent.personaId, userData);
   try {
     await restoreDroppedTurns(agent.agent, call);
