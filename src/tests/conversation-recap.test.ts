@@ -10,14 +10,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock dependencies before imports
-vi.mock('../utils/safe-logger.js', () => ({
-  getLogger: vi.fn(() => ({
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-  })),
-}));
+vi.mock('../utils/safe-logger.js', () => {
+  const logger = () => ({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() });
+  // createLogger: the builder reads the forget check (memory/recall/forget-every-reader.ts).
+  return { getLogger: vi.fn(logger), createLogger: vi.fn(logger) };
+});
 
 vi.mock('../intelligence/context-builders/index.js', () => ({
   registerContextBuilder: vi.fn(),
