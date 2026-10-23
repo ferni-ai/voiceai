@@ -41,7 +41,9 @@
  * Shared buckets: a write under bogle_users/<id> or users/<id> where <id> is a
  * placeholder every id-less caller falls back to ('anonymous', 'unknown',
  * 'default', 'shared', 'anon', 'session', 'gateway', 'gateway-recovery'; any
- * case) is refused the same way. One such doc is everyone's: ~925 direct
+ * case) is refused, as is that doc id under a user-keyed root collection
+ * (spotify_tokens/<id>, ...), with no exemption for updates of existing docs;
+ * a commit holding any such write is refused whole. One such doc is everyone's: ~925 direct
  * `collection('bogle_users')` writers bypass the persistence layer's own check,
  * and prod held real profiles under bogle_users/anonymous and /unknown.
  *
@@ -80,6 +82,18 @@ export const PROD_EVAL_WRITES_VALUE = 'voice-eval';
 const ALLOWABLE: SyntheticOwnerPrefix = 'voice-eval-';
 
 const USER_RECORD_ROOTS = new Set(['bogle_users', 'users']);
+/** Root collections whose doc id is a user id (a placeholder doc there is everyone's). */
+const USER_KEYED_ROOTS = new Set([
+  ...USER_RECORD_ROOTS,
+  'spotify_tokens',
+  'engagement_profiles',
+  'user_seeds',
+  'user_tool_profiles',
+  'user_preferences',
+  'user_contacts',
+  'profiles',
+  'user_profiles',
+]);
 /** Owner ids that are one bucket for every caller without an id (lower case). */
 const SHARED_OWNERS: ReadonlySet<string> = new Set([
   ...PLACEHOLDER_IDS,
@@ -127,18 +141,35 @@ function parseName(name: string): [string, string, string[]] | null {
  * for tests; the guard calls it for every write of a commit.
  */
 export function refusedOwner(write: WriteProto, env: Env = process.env): string | null {
-  if (write.delete !== undefined || write.currentDocument?.exists === true) return null;
-  if (env.FIRESTORE_EMULATOR_HOST) return null;
+  return sharedBucketOwner(write, env) ?? harnessOwner(write, env);
+}
+
+/** `[segments]` of a write to prod's own database, or null (deletes, emulator, elsewhere). */
+function prodSegments(write: WriteProto, env: Env): string[] | null {
+  if (write.delete !== undefined || env.FIRESTORE_EMULATOR_HOST) return null;
   const name = write.update?.name ?? write.transform?.document;
   const parsed = name ? parseName(name) : null;
-  if (!parsed || !isProdFirestore(parsed[0], parsed[1])) return null;
-  const [, , segs] = parsed;
+  return parsed && isProdFirestore(parsed[0], parsed[1]) ? parsed[2] : null;
+}
+
+/**
+ * The shared placeholder a write is filed under, or null. No update-of-an-existing-doc
+ * exemption: prod still holds docs under these ids, and an update() would land in them.
+ */
+export function sharedBucketOwner(write: WriteProto, env: Env = process.env): string | null {
+  const segs = prodSegments(write, env);
+  const owner = segs && USER_KEYED_ROOTS.has(segs[0] as string) ? (segs[1] as string) : null;
+  return owner !== null && SHARED_OWNERS.has(owner.toLowerCase()) ? owner : null;
+}
+
+/** The test or eval harness owner a write is for, or null. */
+function harnessOwner(write: WriteProto, env: Env): string | null {
+  if (write.currentDocument?.exists === true) return null;
+  const segs = prodSegments(write, env);
+  if (!segs) return null;
 
   const candidates: unknown[] = [];
-  if (USER_RECORD_ROOTS.has(segs[0] as string)) {
-    if (SHARED_OWNERS.has(String(segs[1]).toLowerCase())) return segs[1] as string;
-    candidates.push(segs[1]);
-  }
+  if (USER_RECORD_ROOTS.has(segs[0] as string)) candidates.push(segs[1]);
   const fields = write.update?.fields;
   for (const f of OWNER_FIELDS) candidates.push(fields?.[f]?.stringValue);
   // The vector store keeps its owner in metadata.userId.
@@ -234,7 +265,11 @@ export async function guardedRequest(
   for (const owner of new Set(refused)) warnOnce(owner, method);
 
   if (method === 'commit') {
-    // Atomic: all or nothing. Refuse only a commit that is all harness writes.
+    // Atomic. Any shared-bucket write refuses the whole commit: the persistence store retries
+    // each document alone when a batch fails, so members' writes still land. A commit of only
+    // harness writes is refused; one mixing in other writes is sent whole, as before.
+    const shared = writes.map((w) => sharedBucketOwner(w, env)).find((o) => o !== null);
+    if (shared) throw new SyntheticWriteRefusedError(shared);
     if (refused.length < writes.length) return send(request);
     throw new SyntheticWriteRefusedError(refused[0] as string);
   }

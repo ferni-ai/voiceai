@@ -20,7 +20,11 @@ vi.mock('../../memory/firestore-store.js', () => ({
   getFirestoreStore: () => ({ getDatabase: async () => realDb.current }),
 }));
 
-import { installSyntheticWriteGuard, refusedOwner } from '../synthetic-write-guard.js';
+import {
+  guardedRequest,
+  installSyntheticWriteGuard,
+  refusedOwner,
+} from '../synthetic-write-guard.js';
 import { advancedReminderDefinitions } from '../../tools/domains/simple-utilities/advanced-reminders.js';
 
 const PROD = 'projects/johnb-2025/databases/(default)/documents';
@@ -62,20 +66,85 @@ describe('refusedOwner: shared buckets', () => {
     }
   });
 
-  it('lets deletes, updates of existing docs, the dev database and the emulator through', () => {
+  it('lets deletes, the dev database and the emulator through', () => {
     expect(
       refusedOwner({ delete: `${PROD}/bogle_users/anonymous/conversations/c1` }, {})
-    ).toBeNull();
-    expect(
-      refusedOwner(
-        { ...update('bogle_users/unknown/reminders/r'), currentDocument: { exists: true } },
-        {}
-      )
     ).toBeNull();
     expect(refusedOwner(update('bogle_users/anonymous/x/y', DEV_DB), {})).toBeNull();
     expect(
       refusedOwner(update('bogle_users/anonymous/x/y'), { FIRESTORE_EMULATOR_HOST: 'x' })
     ).toBeNull();
+  });
+});
+
+describe('shared buckets: no exemptions that let a write land', () => {
+  it('refuses an update that requires the doc to exist (prod still holds anonymous/unknown docs)', () => {
+    const claim = {
+      ...update('bogle_users/anonymous/summaries/s1'),
+      currentDocument: { exists: true },
+    };
+    expect(refusedOwner(claim, {})).toBe('anonymous');
+    const harnessClaim = {
+      ...update('bogle_users/test-user-1/x/y'),
+      currentDocument: { exists: true },
+    };
+    expect(refusedOwner(harnessClaim, {})).toBeNull(); // sweeps still claim harness docs
+  });
+
+  it.each([
+    'spotify_tokens',
+    'engagement_profiles',
+    'user_seeds',
+    'user_tool_profiles',
+    'user_preferences',
+  ])('refuses a placeholder doc id under the user-keyed root collection %s', (root) => {
+    expect(refusedOwner(update(`${root}/anonymous`), {})).toBe('anonymous');
+    expect(refusedOwner(update(`${root}/uid-member`), {})).toBeNull();
+  });
+
+  it('leaves system root collections whose doc ids are not users alone', () => {
+    expect(refusedOwner(update('vector_index_status/shared'), {})).toBeNull();
+    expect(refusedOwner(update('experiments/default'), {})).toBeNull();
+  });
+});
+
+describe('guardedRequest: a commit with any shared-bucket write is refused whole', () => {
+  it('refuses a mixed batch (placeholder plus member) without sending it', async () => {
+    const send = vi.fn(async () => ({}));
+    const writes = [
+      update('bogle_users/uid-member/notes/data'),
+      update('bogle_users/anonymous/notes/data'),
+    ];
+    await expect(guardedRequest('commit', { writes }, send, {})).rejects.toMatchObject({
+      owner: 'anonymous',
+    });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("still sends a commit that mixes a member's write with a harness write (atomic, as before)", async () => {
+    const send = vi.fn(async () => ({}));
+    const writes = [
+      update('bogle_users/uid-member/notes/data'),
+      update('bogle_users/test-user-1/notes/data'),
+    ];
+    await guardedRequest('commit', { writes }, send, {});
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+
+  it('batchWrite drops only the shared-bucket write and sends the member one', async () => {
+    const send = vi.fn(async (req: { writes: unknown[] }) => ({
+      writeResults: req.writes.map(() => ({})),
+      status: req.writes.map(() => ({ code: 0 })),
+    }));
+    const writes = [
+      update('bogle_users/uid-member/notes/data'),
+      update('bogle_users/unknown/notes/data'),
+    ];
+    const out = (await guardedRequest('batchWrite', { writes }, send as never, {})) as {
+      status: Array<{ code: number }>;
+    };
+    expect(send.mock.calls[0]?.[0].writes).toHaveLength(1);
+    expect(out.status.map((x) => x.code)).toEqual([0, 7]);
   });
 });
 
