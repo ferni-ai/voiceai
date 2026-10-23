@@ -63,6 +63,7 @@ export const EXCLUDED_STORES: Readonly<Record<string, string>> = {
   'message_drafts[userId]': `${QUEUE}; drafts name their recipients`,
   'delivery_orders[userId]': QUEUE,
   'tracked_appointments[userId]': `${QUEUE} (appointment follow-ups)`,
+  'intelligence_queue[userId]': QUEUE,
   'outreach_profiles/{uid}': SCHEDULING,
   'outreach_context/{uid}': SCHEDULING,
   'outreach_history/{uid}': SCHEDULING,

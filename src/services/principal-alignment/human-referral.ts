@@ -480,7 +480,6 @@ export function analyzeReferralNeed(
     }
   }
 
-  // If no match found
   if (!bestMatch) {
     return {
       shouldRefer: false,
@@ -501,8 +500,9 @@ export function analyzeReferralNeed(
 
   const shouldRefer = maxConfidence >= 0.5;
 
-  // Get resources and framing
-  const resources = REFERRAL_RESOURCES[bestMatch.target] || [];
+  // An immediate match carries the crisis line (988) first, then the best match's resources.
+  const crisis = highestUrgency === 'immediate' ? REFERRAL_RESOURCES.crisis_line : [];
+  const resources = [...new Set([...crisis, ...(REFERRAL_RESOURCES[bestMatch.target] || [])])];
   const framings = REFERRAL_FRAMINGS[bestMatch.reason] || [];
   const suggestedFraming = framings[Math.floor(Math.random() * framings.length)] || null;
 
