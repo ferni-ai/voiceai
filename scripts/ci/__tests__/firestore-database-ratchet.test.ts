@@ -58,7 +58,65 @@ export const b = getFirestore(getFirestoreDatabase());
 export const c = getFirestoreLocal();
 `;
 
+// The admin namespace reached through a dynamic import that is held, awaited
+// or returned before `.firestore()` is called on it. The first shape is
+// src/intelligence/user-knowledge/firestore.ts, which the ratchet missed while
+// it read every aggregator from '(default)' on a ferni-dev process.
+const DYNAMIC_ADMIN = `
+let adminImport: Promise<typeof import('firebase-admin')> | null = null;
+export async function held() {
+  adminImport ??= import('firebase-admin').then((m) => m.default);
+  const admin = await adminImport;
+  return admin.firestore();
+}
+export async function awaitedLater() {
+  const pending = import('firebase-admin');
+  const fb = (await pending).default;
+  return fb.firestore();
+}
+async function loadAdmin() {
+  return (await import('firebase-admin')).default;
+}
+export async function returned() {
+  const a = await loadAdmin();
+  return a.firestore();
+}
+export async function returnedInline() {
+  return (await loadAdmin()).firestore();
+}
+export async function direct() {
+  const ns = await import('firebase-admin');
+  return (await import('firebase-admin')).default.firestore() ?? ns.firestore();
+}
+async function loadCache() {
+  return { firestore: () => null };
+}
+export async function notAdmin() {
+  return (await loadCache()).firestore();
+}
+export async function parallel() {
+  const [{ getApps }, { getFirestore }] = await Promise.all([
+    import('firebase-admin/app'),
+    import('firebase-admin/firestore'),
+  ]);
+  return getApps().length ? getFirestore() : null;
+}
+`;
+
 describe('firestore database ratchet', () => {
+  it('follows firebase-admin through a held, awaited, returned or Promise.all dynamic import', () => {
+    const found = measure(tree({ 'src/intelligence/k/firestore.ts': DYNAMIC_ADMIN }));
+    expect(found.map((v) => `${v.site.kind}:${v.site.line}`)).toEqual([
+      'admin-namespace:6', // held: x ??= import().then(m => m.default); await x
+      'admin-namespace:11', // awaitedLater: (await pending).default
+      'admin-namespace:18', // returned: const a = await loadAdmin()
+      'admin-namespace:21', // returnedInline: (await loadAdmin()).firestore()
+      'admin-namespace:25', // direct: (await import()).default.firestore()
+      'admin-namespace:25', // direct: const ns = await import()
+      'admin-get-firestore:38', // parallel: [, { getFirestore }] = await Promise.all([import()])
+    ]);
+  });
+
   it('fails a new violation in a file that is not allowlisted', () => {
     const r = tree({ 'src/services/new-store.ts': VIOLATIONS, 'src/services/ok-store.ts': CLEAN });
     const found = measure(r);

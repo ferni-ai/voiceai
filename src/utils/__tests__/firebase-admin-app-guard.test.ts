@@ -26,7 +26,6 @@ const NOT_YET_MIGRATED = new Set([
   'src/conversation/humanization/persistence.ts',
   'src/conversation/humanization/voice-pattern-learning.ts',
   'src/intelligence/semantic-intelligence/persistence.ts',
-  'src/intelligence/user-knowledge/firestore.ts',
   'src/marketplace/billing/persistence.ts',
   'src/marketplace/persistence/firestore.ts',
   'src/marketplace/reviews/persistence.ts',
