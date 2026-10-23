@@ -216,13 +216,11 @@ private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
         switch script {
         case .neverAnswers: break
         case .drops:
+            // The drop comes 1.5 s after the call turns its mic on (below):
+            // timed from connect, a slow join was still before "live" and the
+            // session rightly ignored it (iPad lane, 2026-10-22).
             say([(.you, "Long week. I finally finished the garden."),
                  (.ferni, "That's huge! What did you plant first?")])
-            let continuation = continuation
-            Task {
-                try? await Task.sleep(for: .seconds(1.5))
-                continuation.yield(.reconnecting)
-            }
         case .garden:
             say([(.you, "Long week. I finally finished the garden."),
                  (.ferni, "That's huge! What did you plant first?")])
@@ -248,7 +246,17 @@ private final class ScriptedRoom: VoiceRoom, @unchecked Sendable {
         }
     }
 
-    func setMicrophone(enabled: Bool) async throws {}
+    private let dropped = OSAllocatedUnfairLock(initialState: false)
+
+    func setMicrophone(enabled: Bool) async throws {
+        guard script == .drops, !dropped.withLock({ let was = $0; $0 = true; return was }) else { return }
+        let continuation = continuation
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            continuation.yield(.reconnecting)
+        }
+    }
+
     func send(_ data: Data) async throws {
         if String(decoding: data, as: UTF8.self).contains(#""type":"user_interrupt""#) {
             await MainActor.run { UITestScenario.Counters.shared.interrupts += 1 }
