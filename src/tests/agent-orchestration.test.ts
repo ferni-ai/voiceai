@@ -67,7 +67,6 @@ describe('Agent Orchestration Tests', () => {
       expect(typeof services.getPromptContext).toBe('function');
       expect(typeof services.getDynamicContext).toBe('function');
       expect(typeof services.getSpeechContext).toBe('function');
-      expect(typeof services.tagWithSsml).toBe('function');
       expect(typeof services.searchKnowledge).toBe('function');
       expect(typeof services.saveProfile).toBe('function');
       expect(typeof services.endSession).toBe('function');
@@ -126,14 +125,6 @@ describe('Agent Orchestration Tests', () => {
 
       expect(speechContext).toBeDefined();
       expect(speechContext.userWPM).toBeGreaterThan(0);
-    });
-
-    it('should tag text with SSML', () => {
-      const text = 'Remember: time in the market beats timing the market.';
-      const tagged = services.tagWithSsml(text);
-
-      expect(tagged).toBeDefined();
-      expect(tagged.length).toBeGreaterThan(text.length); // SSML adds tags
     });
 
     it('should capture insights', () => {

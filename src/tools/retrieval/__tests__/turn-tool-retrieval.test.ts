@@ -335,6 +335,17 @@ describe('helpers', () => {
     expect(embedder.calls).toBe(before);
   });
 
+  it('always sends the privacy tools (forget and correct a memory), whatever the pick', async () => {
+    const { r } = await setup();
+    const toolCtx = new llm.ToolContext(
+      [...Object.keys(manual.tools), 'forgetMemory', 'updateMemory'].map(fn)
+    );
+    const pick = (await r.pick('will it rain today'))!;
+    const sent = Object.keys(r.select(toolCtx, pick).functionTools);
+    expect(sent).toContain('forgetMemory');
+    expect(sent).toContain('updateMemory');
+  });
+
   it('always keeps the date/time/location context tool', async () => {
     const { r } = await setup();
     expect(r.isCore('getCurrentContext')).toBe(true);

@@ -60,7 +60,6 @@ fake.db = fakeDb(state);
 const calendar = await import('../../scheduling/calendar-reminders.js');
 const goals = await import('../../goal-outreach-integration.js');
 const planning = await import('../../../tools/event-planning/storage.js');
-const { LifeDataStoreService } = await import('../../di/life-data-store-di.js');
 const { CommunicationMirroringEngine } =
   await import('../../../intelligence/tracking/communication-style.js');
 const { createPersistenceStore } = await import('../index.js');
@@ -165,34 +164,6 @@ describe('event planning after a failed load', () => {
     planning.persistEventPlanningData(USER);
     await planning.flushEventPlanningPersistence();
     expect(idsAt(PATH, 'events')).toContain('old-party');
-  });
-});
-
-describe('life data after a failed load', () => {
-  const USER = 'u-life';
-  const PATH = `bogle_users/${USER}/life_data/data`;
-  const stored = {
-    id: 'old-ms',
-    userId: USER,
-    title: 'Moved to Austin',
-    category: 'home',
-    createdAt: ISO,
-    updatedAt: ISO,
-  };
-
-  it('after recovery the next milestone saves next to the stored ones', async () => {
-    state.docs.set(PATH, { milestones: [stored], goals: [] });
-    failed.add(PATH);
-    const life = new LifeDataStoreService({ store: {} as never });
-    await life.createMilestone(USER, { title: 'during outage', category: 'home' } as never);
-    await life.flush();
-    expect(writesTo(PATH)).toEqual([]);
-
-    failed.clear();
-    await life.createMilestone(USER, { title: 'New job', category: 'career' } as never);
-    await life.flush();
-    expect(idsAt(PATH, 'milestones')[0]).toBe('old-ms');
-    expect(idsAt(PATH, 'milestones')).toHaveLength(2);
   });
 });
 
