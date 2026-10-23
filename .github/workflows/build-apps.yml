@@ -98,6 +98,11 @@ jobs:
       - name: Xcode version
         run: xcodebuild -version
 
+      # No timers or delayed dispatch in the avatar and call (one clock, one state machine).
+      - name: Motion rules
+        working-directory: apps/ios-native
+        run: ./scripts/check-motion-rules.sh
+
       - name: Cache Swift packages
         uses: actions/cache@v6
         with:

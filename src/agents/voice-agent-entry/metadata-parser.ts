@@ -11,6 +11,14 @@ import type { JobContext } from '@livekit/agents';
 import type { ParsedMetadata } from './types.js';
 import { parseOnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
 import { maskPhoneNumber } from '../../services/identity/phone-attestation.js';
+import { createLogger } from '../../utils/safe-logger.js';
+import { errorClass } from '../../utils/error-class.js';
+import { jobMetadataLine } from './startup-log.js';
+
+// What a dispatch carries is the caller's (why Ferni calls, what to ask a
+// doctor, the last talk): logged as kinds and lengths only, through the safe
+// logger, never to stderr, which reaches Cloud Logging unredacted.
+const log = createLogger({ module: 'metadata-parser' });
 
 /** What an inbound dispatch says about the caller's account; honoured only when signed. */
 const INBOUND_ACCOUNT_FIELDS = [
@@ -35,14 +43,6 @@ const INBOUND_ACCOUNT_FIELDS = [
 export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
   let metadata: Record<string, unknown> = {};
 
-  // DEBUG: Log raw job metadata to trace persona_id flow
-  process.stderr.write(
-    `[voice-agent-entry] 🔍 DEBUG: Raw job.metadata = ${ctx.job.metadata || '(empty)'}\n`
-  );
-  process.stderr.write(
-    `[voice-agent-entry] 🔍 DEBUG: Raw room.metadata = ${ctx.job.room?.metadata || '(empty)'}\n`
-  );
-
   if (ctx.job.metadata) {
     try {
       metadata = JSON.parse(ctx.job.metadata);
@@ -50,9 +50,15 @@ export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
         `[voice-agent-entry] 🔍 DEBUG: Parsed job metadata keys: ${Object.keys(metadata).join(', ')}\n`
       );
     } catch (e) {
-      process.stderr.write(`[voice-agent-entry] Failed to parse job.metadata: ${e}\n`);
+      process.stderr.write(
+        `[voice-agent-entry] Failed to parse job.metadata: ${errorClass(e)} (${ctx.job.metadata.length} chars)\n`
+      );
     }
   }
+  // The call reviewer reads persona and eval calls from this line: allowlisted keys only.
+  process.stderr.write(
+    `[voice-agent-entry] 🔍 DEBUG: ${jobMetadataLine(ctx.job.metadata ? metadata : undefined)}\n`
+  );
   if (!metadata.persona_id && ctx.job.room?.metadata) {
     try {
       const roomMeta = JSON.parse(ctx.job.room.metadata);
@@ -60,7 +66,9 @@ export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
         metadata = { ...metadata, ...roomMeta };
       }
     } catch (e) {
-      process.stderr.write(`[voice-agent-entry] Failed to parse room.metadata: ${e}\n`);
+      process.stderr.write(
+        `[voice-agent-entry] Failed to parse room.metadata: ${errorClass(e)} (${ctx.job.room.metadata.length} chars)\n`
+      );
     }
   }
 
@@ -167,13 +175,14 @@ export async function setupCallTypeContexts(
     process.stderr.write(
       `[voice-agent-entry] 📞 ON-BEHALF CALL DETECTED - using standard agent with outbound context\n`
     );
-    process.stderr.write(
-      `[voice-agent-entry] 📞 Call context: ${JSON.stringify({
+    log.info(
+      {
         callId: metadata.callId,
-        contactName: (metadata.contact as Record<string, unknown>)?.name,
-        purpose: metadata.purpose,
         callType: metadata.callType,
-      })}\n`
+        hasContactName: Boolean((metadata.contact as Record<string, unknown>)?.name),
+        purposeChars: typeof metadata.purpose === 'string' ? metadata.purpose.length : 0,
+      },
+      'On-behalf call context'
     );
 
     try {
@@ -280,12 +289,14 @@ export async function setupCallTypeContexts(
     process.stderr.write(
       `[voice-agent-entry] 📞 PROACTIVE OUTREACH DETECTED - setting up check-in context\n`
     );
-    process.stderr.write(
-      `[voice-agent-entry] 📞 Outreach context: ${JSON.stringify({
+    log.info(
+      {
         triggerType: metadata.triggerType,
-        triggerReason: metadata.triggerReason,
+        triggerReasonChars:
+          typeof metadata.triggerReason === 'string' ? metadata.triggerReason.length : 0,
         daysSinceLastSession: metadata.daysSinceLastSession,
-      })}\n`
+      },
+      'Proactive outreach context'
     );
 
     try {
