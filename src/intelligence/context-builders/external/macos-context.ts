@@ -220,7 +220,7 @@ export function parseMacOSContextMessage(data: Buffer | string): MacOSContextPay
     const message = typeof data === 'string' ? JSON.parse(data) : JSON.parse(data.toString());
 
     if (message.type === 'macos_context' && message.payload) {
-      log.debug({ payload: message.payload }, 'Received macOS context');
+      log.debug({ payloadKeys: Object.keys(message.payload) }, 'Received macOS context');
       return message.payload as MacOSContextPayload;
     }
 
