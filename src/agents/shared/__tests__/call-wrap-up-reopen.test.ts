@@ -710,6 +710,22 @@ describe('items out of turn order, and reads of other turns (security review of 
     expect(c.appConnected).toBe(false);
   });
 
+  it('an item with no STT final of its own gets its own read wait, by content not order', async () => {
+    const line = 'thanks so much, that helped. bye';
+    const c = await call();
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords('okay, talk soon'); // a sign-off whose item never comes
+    await c.advance(300);
+    c.say('user', line); // a turn with no STT final (typed, say)
+    const other = read(c.id, 'okay, talk soon'); // the sign-off's read, clean
+    await c.advance(500);
+    await other('none');
+    await c.advance(3_000); // the item's own read never comes: fails closed
+    expect(c.reopens()).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
   it("a late read of an earlier turn does not settle a Rule 1 line's wait", async () => {
     const line = 'thanks so much, that helped. bye';
     const c = await call();
