@@ -19,7 +19,13 @@ vi.mock('../../identity/google-calendar-disconnect.js', () => ({
 }));
 vi.mock('../outreach-intelligence.js', async (importOriginal) => ({
   ...(await importOriginal<object>()),
-  eraseUserOutreachData: (uid: string) => void order.push(`drop outreach ${uid}`),
+  eraseUserOutreachData: async (uid: string) => {
+    order.push(`drop outreach ${uid}`);
+    await new Promise((r) => {
+      setTimeout(r, 5);
+    }); // a held write in flight, waited out
+    order.push('dropped');
+  },
 }));
 
 const { getDataExportService } = await import('../../platform/data-export.js');
@@ -29,12 +35,14 @@ beforeEach(() => {
 });
 
 describe('account erasure and outreach data held in memory', () => {
-  it('drops it before and after the record sweep', async () => {
+  it('drops it before and after the record sweep, waiting for each drop', async () => {
     await getDataExportService().deleteAllData('user-erased');
     expect(order).toEqual([
       'drop outreach user-erased',
+      'dropped',
       'sweep user-erased',
       'drop outreach user-erased',
+      'dropped',
     ]);
   });
 });

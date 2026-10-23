@@ -783,10 +783,10 @@ class DataExportService {
       // Outreach held in memory goes before and after, refused from then on (a live session)
       const dropOutreach = (await import('../outreach/outreach-intelligence.js'))
         .eraseUserOutreachData;
-      dropOutreach(userId);
+      await dropOutreach(userId);
       const { eraseUserRecord } = await import('./erase-user-record.js');
       await eraseUserRecord(userId);
-      dropOutreach(userId);
+      await dropOutreach(userId);
       try {
         const { getDefaultStore } = await import('../../memory/index.js');
         await getDefaultStore().deleteProfile(userId);

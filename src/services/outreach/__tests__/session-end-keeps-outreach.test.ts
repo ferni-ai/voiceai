@@ -36,7 +36,25 @@ const batch = () => {
     commit: async () => void (await Promise.all(queued.map((w) => w()))),
   };
 };
-fake.db = { ...base, batch };
+/** A write to `gate.path` waits for `gate.open` (a write still in flight) once it has started. */
+const gate = { path: '', open: Promise.resolve(), started: () => {} };
+type Node = Record<string, unknown> & { path?: string; set?: Ref['set'] };
+const gated = (node: Node): Node =>
+  new Proxy(node, {
+    get(t, k) {
+      if (k === 'set' && t.path === gate.path)
+        return async (d: object, o?: object) => (gate.started(), await gate.open, t.set!(d, o));
+      const v = t[k as string];
+      if (k === 'collection' || k === 'doc')
+        return (...a: unknown[]) => gated((v as (...x: unknown[]) => Node)(...a));
+      return typeof v === 'function' ? (v as () => unknown).bind(t) : v;
+    },
+  });
+fake.db = {
+  ...base,
+  batch,
+  collection: (name: string) => gated(base.collection(name) as unknown as Node),
+};
 
 const outreach = await import('../outreach-intelligence.js');
 const { getSessionDataManager } = await import('../../session/session-data-manager.js');
@@ -60,6 +78,7 @@ beforeEach(async () => {
   state.docs.set(PATH, structuredClone(stored));
 });
 afterEach(() => {
+  gate.path = '';
   vi.unstubAllEnvs();
   resetMinorCare();
 });
@@ -168,7 +187,7 @@ describe('session end and stored outreach data', () => {
     const user = 'u-erased';
     const path = await inSession(user);
     outreach.setPreferences(user, { maxPerDay: 2 }); // pending at erasure
-    outreach.eraseUserOutreachData(user);
+    await outreach.eraseUserOutreachData(user);
     state.docs.delete(path); // the record sweep (erase-user-record.ts)
     outreach.setPreferences(user, { enabled: false });
     outreach.extractCommitments(user, "I'll call my sister tomorrow");
@@ -176,5 +195,51 @@ describe('session end and stored outreach data', () => {
     await outreach.shutdownOutreachPersistence();
     expect(state.docs.has(path)).toBe(false);
     expect(state.writes.filter((w) => w.path === path && w.op !== 'delete')).toEqual([]);
+  });
+
+  // Account erasure waits out a write already in flight, so it can't land after the sweep
+  it.each([
+    ['a held opt-out (the sync writes the held part)', true, 'sync'],
+    ['the periodic sync (flushAll)', false, 'sync'],
+    ["the session end's save (flushUser)", false, 'session end'],
+  ])('account erasure waits out %s in flight', async (_name, held, writer) => {
+    const user = `u-erased-${held ? 'held' : 'owner'}-${writer.replace(' ', '-')}`;
+    if (held) {
+      vi.stubEnv('MINOR_CARE', 'on');
+      heldAfter(`session-${user}`, "I'm 16 years old and kind of bored", { userId: user });
+    }
+    const path = await inSession(user);
+    outreach.setPreferences(user, { enabled: false }); // pending (a held part when held)
+    let release = () => {};
+    gate.path = path;
+    gate.open = new Promise<void>((r) => {
+      release = r;
+    });
+    const started = new Promise<void>((r) => {
+      gate.started = r;
+    });
+    const writing =
+      writer === 'sync'
+        ? outreach.shutdownOutreachPersistence() // the store's flush
+        : getSessionDataManager().sessionEnded(user);
+    await started; // the write is in flight
+
+    let swept = -1;
+    const erasure = Promise.resolve(outreach.eraseUserOutreachData(user)).then(() => {
+      state.docs.delete(path); // the record sweep runs once the drop has finished
+      swept = state.writes.length;
+    });
+    await new Promise((r) => {
+      setTimeout(r, 20);
+    });
+    release(); // the in-flight write resolves now: after the sweep, unless the drop waited for it
+    await Promise.all([erasure, writing]);
+    expect(state.docs.has(path)).toBe(false);
+
+    outreach.setPreferences(user, { quietHoursStart: '21:00' });
+    await getSessionDataManager().sessionEnded(user, { save: !held });
+    await outreach.shutdownOutreachPersistence();
+    expect(state.docs.has(path)).toBe(false);
+    expect(state.writes.slice(swept).filter((w) => w.path === path)).toEqual([]);
   });
 });

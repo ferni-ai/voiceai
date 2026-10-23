@@ -289,7 +289,11 @@ export async function clearUserOutreachData(
   if (options?.save === false) {
     if (!userHeld(userId)) store?.clearCache(userId);
   } else if (store) {
-    await store.flushUser(userId);
+    const saving: Promise<void> = store.flushUser(userId).finally(() => {
+      if (sessionEndSaves.get(userId) === saving) sessionEndSaves.delete(userId);
+    });
+    sessionEndSaves.set(userId, saving);
+    await saving;
     if (!stillOwed(store, userId)) store.clearCache(userId); // failed: the next sync retries
   }
   dropFromMemory(userId);
@@ -304,15 +308,23 @@ function stillOwed(store: PersistenceStore<OutreachUserData>, userId: string): b
 
 const erasedUsers = new Set<string>(); // for the rest of this process, never written again
 
+const sessionEndSaves = new Map<string, Promise<void>>(); // flushUser in flight, by user
+
 /**
- * Account erasure (deleteAllData, before and after the record sweep): drop the user's data from
- * memory with their pending writes, and refuse their writes from now on, so a live session can't
- * write the erased doc back.
+ * Account erasure (deleteAllData, before and after the record sweep): refuse the user's writes from
+ * now on and drop them from memory, wait out every write already in flight (a session end's save,
+ * the sync with its held parts), then delete through the store (which waits for held writes too),
+ * so nothing a live session started can land after the sweep.
  */
-export function eraseUserOutreachData(userId: string): void {
+export async function eraseUserOutreachData(userId: string): Promise<void> {
   erasedUsers.add(userId);
-  persistenceStore?.clearCache(userId);
   dropFromMemory(userId);
+  const store = persistenceStore;
+  if (!store) return;
+  store.clearCache(userId); // no later sync or save includes them
+  await sessionEndSaves.get(userId);
+  await store.flush(); // waits for a sync in flight, then one with nothing of theirs
+  await store.delete(userId);
 }
 
 function dropFromMemory(userId: string): void {
