@@ -243,33 +243,51 @@ jobs:
         run: pnpm tools:schemas:check
 
   # ============================================================================
-  # UNIT TESTS (Fast - ~30-60 seconds)
+  # UNIT TESTS
   # ============================================================================
-  test-unit:
-    name: Unit Tests
+  # The full run (2,209 files) took ~31 of the job's ~34 min, so every merge-queue
+  # group took ~35 min and sat a minute under the old 35 min timeout (2026-10-23).
+  # It runs as four vitest shards in parallel; `test-unit` below is the one
+  # "Unit Tests" check that branch protection, queue-tested and required-checks.sh
+  # read. vitest shards by a hash of each file's path, so every file runs in
+  # exactly one shard. A pull request runs only the affected tests, in shard 1;
+  # shards 2-4 skip every step there, the way Integration Tests does.
+  test-unit-shard:
+    name: Unit Tests (${{ matrix.shard }}/4)
     runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
-    # 20 -> 35: the first run compiles the rust-perf binding from scratch on top of
-    # an ~8 min test run. Cached cargo brings later runs back near the old budget.
-    timeout-minutes: 35
+    # A shard runs ~8 min of tests; a cold cargo cache adds the native build.
+    timeout-minutes: 25
     needs: setup
     if: needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    env:
+      # 'true' when this run tests the whole suite: every event but a pull request,
+      # and a pull request labelled ci:full-tests.
+      FULL_SUITE: ${{ github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests') }}
     steps:
       # Two commits on a pull request: GitHub's merge commit and its first parent, the
       # base, which the affected-tests step below diffs against.
       - name: Checkout
+        if: env.FULL_SUITE == 'true' || matrix.shard == 1
         uses: actions/checkout@v7
         with:
           fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 1 }}
 
       - name: Setup pnpm
+        if: env.FULL_SUITE == 'true' || matrix.shard == 1
         uses: pnpm/action-setup@v6
 
       - name: Setup Node.js
+        if: env.FULL_SUITE == 'true' || matrix.shard == 1
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Restore node_modules cache
+        if: env.FULL_SUITE == 'true' || matrix.shard == 1
         id: nm-cache
         uses: actions/cache/restore@v6
         with:
@@ -284,13 +302,15 @@ jobs:
       # and cache eviction (10 GB repo limit) both leave it missing; install
       # instead of failing a job that has nothing wrong with it.
       - name: Install dependencies (node_modules cache miss)
-        if: steps.nm-cache.outputs.cache-hit != 'true'
+        if: (env.FULL_SUITE == 'true' || matrix.shard == 1) && steps.nm-cache.outputs.cache-hit != 'true'
         run: pnpm install --no-frozen-lockfile
 
       # The root vitest.config.ts excludes apps/**, so the step below never sees the
       # CLI's tests; they run under apps/cli/vitest.config.ts instead. They need no
       # native bindings and finish in seconds, so they run before the Rust build.
+      # Shard 1 runs them and the ratchet below; they don't depend on the shard.
       - name: Run CLI unit tests
+        if: matrix.shard == 1
         run: pnpm test:cli:unit
         env:
           NODE_ENV: test
@@ -298,6 +318,7 @@ jobs:
       # The root typecheck covers src/** only, so apps/cli was never typechecked.
       # Its error count may only go down (baseline: apps/cli/tsc-error-baseline.json).
       - name: CLI typecheck ratchet
+        if: matrix.shard == 1
         run: node scripts/ci/cli-typecheck-ratchet.mjs
 
       # The env-name list test scans src/ as text, so no import edge reaches it and
@@ -309,7 +330,7 @@ jobs:
       # flags/ directory as text, and the barrel merges with union too. The decision
       # register (docs/decisions/register.md) reads Swift, CSS and JSON as text too.
       - name: Check the env-name list
-        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        if: env.FULL_SUITE != 'true' && matrix.shard == 1
         run: pnpm exec vitest run --config vitest.config.unit.ts src/config/__tests__/env-read-names.test.ts src/config/__tests__/flag-index.test.ts src/__tests__/decisions/
         env:
           NODE_ENV: test
@@ -329,9 +350,11 @@ jobs:
       # Pinned to a commit SHA, not @stable: that is a moving branch, so the
       # toolchain action could change under this workflow without review.
       - name: Setup Rust (for the @ferni/perf native binding)
+        if: env.FULL_SUITE == 'true' || matrix.shard == 1
         uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable @ 2026-09-25
 
       - name: Cache cargo + native targets
+        if: env.FULL_SUITE == 'true' || matrix.shard == 1
         uses: actions/cache@v6
         with:
           path: |
@@ -359,6 +382,7 @@ jobs:
       # production, so this builds exactly what ships. The check below turns any
       # future mismatch into one clear failure with the real dlopen error.
       - name: Build @ferni/perf native binding
+        if: env.FULL_SUITE == 'true' || matrix.shard == 1
         working-directory: apps/rust-perf
         run: |
           pnpm install
@@ -366,9 +390,11 @@ jobs:
 
       # Fail here with the real dlopen error instead of 65 tests failing in 1 ms.
       - name: Check @ferni/perf loads
+        if: env.FULL_SUITE == 'true' || matrix.shard == 1
         run: node -e "require('./apps/rust-perf')"
 
       - name: Build @ferni/audio native binding
+        if: env.FULL_SUITE == 'true' || matrix.shard == 1
         working-directory: apps/rust-audio
         run: |
           pnpm install
@@ -382,19 +408,24 @@ jobs:
       # so this changes how early a PR hears, never what reaches main. The
       # `ci:full-tests` label runs the whole suite on a PR.
       - name: Run unit tests affected by this pull request
-        if: github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
+        if: env.FULL_SUITE != 'true' && matrix.shard == 1
         run: pnpm exec vitest run --config vitest.config.unit.ts --changed HEAD^1 --passWithNoTests
         env:
           NODE_ENV: test
           NODE_OPTIONS: '--max-old-space-size=8192'
 
+      # No `--`: pnpm passes it through and vitest ignores every flag after it, so the
+      # old `-- --reporter=verbose` here never took effect (the default reporter ran).
       - name: Run unit tests with coverage
         id: full-unit
-        if: github.event_name != 'pull_request' || contains(github.event.pull_request.labels.*.name, 'ci:full-tests')
-        run: pnpm test:unit:coverage -- --reporter=verbose
+        if: env.FULL_SUITE == 'true'
+        run: pnpm test:unit:coverage --shard=${{ matrix.shard }}/4
         env:
           NODE_ENV: test
 
+      # Each shard uploads its part under the one `unit` flag and Codecov merges the
+      # uploads for a commit. vitest.config.unit.ts sets no coverage thresholds, so
+      # there is no merged total to enforce here.
       - name: Upload unit coverage
         uses: codecov/codecov-action@v7
         if: always() && steps.full-unit.outcome != 'skipped'
@@ -403,6 +434,29 @@ jobs:
           files: ./coverage/lcov.info
           flags: unit
           fail_ci_if_error: false
+
+  # The "Unit Tests" check: green only when setup and all four shards passed. It
+  # runs whenever the shards should have (always(), so a failed, cancelled or
+  # timed-out shard turns it red instead of skipping it: a skipped required check
+  # counts as passed), and skips exactly when the shards skip by design (setup
+  # scoped the Node suite out), as the single job did before it was sharded.
+  test-unit:
+    name: Unit Tests
+    runs-on: ${{ fromJSON((vars.CI_RUNNER && github.event_name == 'pull_request' && vars.CI_PR_RUNNER) || vars.CI_RUNNER || '"ubuntu-latest"') }}
+    timeout-minutes: 5
+    needs: [setup, test-unit-shard]
+    if: always() && (needs.setup.outputs.node != 'false' || needs.setup.outputs.voice-eval == 'true')
+    steps:
+      - name: Every unit test shard passed
+        env:
+          SETUP: ${{ needs.setup.result }}
+          SHARDS: ${{ needs.test-unit-shard.result }}
+        run: |
+          echo "setup: $SETUP, unit test shards: $SHARDS"
+          if [ "$SETUP" != success ] || [ "$SHARDS" != success ]; then
+            echo "::error::Unit Tests failed: setup $SETUP, shards $SHARDS (see the Unit Tests (n/4) jobs)"
+            exit 1
+          fi
 
   # ============================================================================
   # INTEGRATION TESTS (Slower - ~2-5 minutes)
