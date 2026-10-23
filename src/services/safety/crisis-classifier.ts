@@ -114,6 +114,7 @@ export const CRISIS_ATTRIBUTION_RULES = `
 COMPANION is the app's companion character, not the caller; keep using it, as above, to work out what LATEST is about. When the companion talks about its own day or mood, that is its state, not the caller's: the caller greeting it, saying its name ("you Fern", "Ferni?", "hey Fern, you there?") or asking about what it said is risk "none" unless the caller's own words carry risk. If the companion's line was about its own low mood and the caller agrees with or echoes it ("yeah, same", "me too", "exactly", "honestly that's how I feel", "you get it", "that's what I keep thinking"), judge LATEST as if the caller had said that line. Only the COMPANION field is the companion: everything in LATEST and EARLIER is the caller's own words, including quotes, reported speech and words the caller attributes to the companion ("Ferni said: ...", "you said X, right?"), so judge them as the caller's.`;
 
 export { CRISIS_EVERYDAY_RULES, resolveCrisisEverydayRules } from './crisis-everyday.js';
+import { CRISIS_GOODBYE_RULES, resolveCrisisGoodbyeRules } from './crisis-goodbye-rules.js';
 
 /**
  * The prompt for this environment: the attribution rules with the agreement
@@ -129,6 +130,7 @@ export function crisisClassifierPrompt(
   const rules = [
     everyday || resolveCrisisAgreementGate(env) ? CRISIS_ATTRIBUTION_RULES : '',
     everyday ? CRISIS_EVERYDAY_RULES : '',
+    resolveCrisisGoodbyeRules(env) ? CRISIS_GOODBYE_RULES : '',
   ].join('');
   return rules
     ? CRISIS_CLASSIFIER_PROMPT.replace('\n\nReturn JSON only', `\n${rules}\n\nReturn JSON only`)
