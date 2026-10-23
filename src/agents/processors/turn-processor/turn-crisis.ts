@@ -34,6 +34,7 @@ import {
   SCREEN_GENTLE_OFFER,
   screenAnswer,
   screenIdeation,
+  watchFor,
   withScreenPositive,
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
@@ -102,6 +103,14 @@ export function startTurnCrisis(
     latest: userText,
     companion: userData?.lastAgentResponse,
   });
+  // The turn watched after the answer: one model read, shared with the reply gate.
+  const ferni = [userData?.lastAgentResponse ?? ''];
+  const watched = watchFor(
+    screened,
+    options.sessionId || undefined,
+    { latest: userText, ferni },
+    options
+  );
   const gentle = screened === 'positive' && !screenIdeation(found, userText);
   const patterns = screened === 'positive' && !gentle ? withScreenPositive(found) : found;
   const shouldBlock = guardFromDetection(patterns).shouldBlock;
@@ -131,7 +140,7 @@ export function startTurnCrisis(
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
   type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
   let settled: Promise<Settled> | null = null;
-  const settle = (): Promise<Settled> =>
+  const settleReads = (): Promise<Settled> =>
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
@@ -221,6 +230,22 @@ export function startTurnCrisis(
             soft: gentle,
             ...(gentle ? { guidance: SCREEN_GENTLE_OFFER } : {}),
           }));
+  // The watched turn's read on top: 'crisis' is crisis guidance unless the reads already block
+  // or escalated; 'gentle' is the gentle offer unless they escalated or eased.
+  let withRead: Promise<Settled> | null = null;
+  const settle = (): Promise<Settled> =>
+    !watched
+      ? settleReads()
+      : (withRead ??= Promise.all([settleReads(), watched]).then(([own, read]): Settled => {
+          if (read !== 'pass') noteCrisisRisk(call);
+          if (read === 'crisis' && !guardFromDetection(own.crisis).shouldBlock) {
+            return { crisis: withScreenPositive(own.crisis), soft: false };
+          }
+          if (read === 'gentle' && own.crisis === patterns && !own.soft) {
+            return { crisis: patterns, soft: true, guidance: SCREEN_GENTLE_OFFER };
+          }
+          return own;
+        }));
   return {
     patterns,
     shouldBlock,

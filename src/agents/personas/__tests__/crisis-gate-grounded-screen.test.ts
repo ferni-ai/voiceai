@@ -30,6 +30,7 @@ import {
   screenAnswer,
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
+import { SCREEN_FOLLOWUP_PROMPT } from '../../../services/safety/crisis-screen-followup.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { gatedReply, startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
 
@@ -50,11 +51,15 @@ const DINNER = "Tomorrow's a little bit late. Dinner is tonight.";
 const ASKED = `Oh, tonight, got it, I'll nudge you this afternoon. ${SCREEN_QUESTION}`;
 const NOT_ASKED = "Oh, tonight, got it, I'll nudge you this afternoon.";
 
-/** Both reads fooled: everyday on every prompt. */
+/** Both reads fooled: everyday on every prompt; the watched turn's read finds it ordinary. */
 const fooled = (): CrisisGenerateFn[] =>
   [0, 1].map(() =>
     vi.fn<CrisisGenerateFn>(async (prompt) =>
-      prompt === GROUNDED_RELEASE_CSSRS_PROMPT ? CSSRS_EVERYDAY : EVERYDAY
+      prompt === GROUNDED_RELEASE_CSSRS_PROMPT
+        ? CSSRS_EVERYDAY
+        : prompt === SCREEN_FOLLOWUP_PROMPT
+          ? '{"answer":"unrelated_ordinary"}'
+          : EVERYDAY
     )
   );
 
