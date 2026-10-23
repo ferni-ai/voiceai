@@ -35,6 +35,7 @@ export { SAFETY_WHOLE_WORD_SITES } from './SAFETY_WHOLE_WORD_SITES.js';
 export { SESSION_OWN_VOICE } from './SESSION_OWN_VOICE.js';
 export { SLOW_TURN_SOUND } from './SLOW_TURN_SOUND.js';
 export { SPOKEN_PUNCTUATION_NORMALIZE } from './SPOKEN_PUNCTUATION_NORMALIZE.js';
+export { THIRD_PARTY_SELF_HARM } from './THIRD_PARTY_SELF_HARM.js';
 export { TOOL_ACK_WIDE } from './TOOL_ACK_WIDE.js';
 export { TURN_METRICS_BQ } from './TURN_METRICS_BQ.js';
 export {};

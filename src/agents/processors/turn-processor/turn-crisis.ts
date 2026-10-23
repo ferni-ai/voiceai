@@ -37,6 +37,7 @@ import {
   withScreenPositive,
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
+import { startWhoRead } from '../../../services/safety/crisis-who.js';
 import {
   resolveClassifierOnlyCheckin,
   shadowClassifierOnly,
@@ -133,6 +134,8 @@ export function startTurnCrisis(
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
+  // THIRD_PARTY_SELF_HARM: who is at risk on a third-party read (crisis-who.ts); null when off.
+  const who = classifier?.mode === 'live' ? startWhoRead(input, patterns, { env, generate }) : null;
   type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
   let settled: Promise<Settled> | null = null;
   const settleTurn = (): Promise<Settled> =>
@@ -164,7 +167,9 @@ export function startTurnCrisis(
               // The same light touch the reply gate gives (crisis-gate.ts): one text, one voice.
               return { crisis: patterns, soft: true, guidance: GROUNDED_LIGHT_TOUCH };
             }
-            const crisis = applyClassifierVerdict(patterns, verdict);
+            const merged = applyClassifierVerdict(patterns, verdict);
+            // Live: may reroute a third-party read (never lower it). Shadow: logs only.
+            const crisis = who?.live ? await who.resolve(merged) : (who?.shadow(merged) ?? merged);
             if (crisis !== patterns) noteCrisisRisk(call); // CRISIS_TRANSFER_EVERYDAY
             // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an
             // imminent one whoever it is about, gets the soft check-in after every other check.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { roleTable, themeRoles, tokenize } from '../tokenize-colours.js';
+import { pageAliases, roleTable, themeRoles, tokenize } from '../tokenize-colours.js';
 
 const roles = themeRoles();
 const table = roleTable(roles);
@@ -73,6 +73,44 @@ describe('website colour codemod', () => {
       '<style>\n.a { color: var(--color-text-secondary); }\n</style>\n<p style="background: var(--color-surface-sunken)">{{ title }}</p>'
     );
     expect(out.changes.map((c) => c.line)).toEqual([2, 4]);
+  });
+
+  describe('page aliases', () => {
+    const aliases = pageAliases(
+      '@media (prefers-color-scheme: dark) { :root:root { --page-ink: #f4efe6; --page-card: #2a241f; --page-peter: #8bc4cf; } }'
+    );
+    const page = (text: string) => tokenize(text, table, false, aliases);
+
+    it('reads the aliases a stylesheet declares', () => {
+      expect([...aliases]).toEqual([
+        ['--page-ink', '#f4efe6'],
+        ['--page-card', '#2a241f'],
+        ['--page-peter', '#8bc4cf'],
+      ]);
+    });
+
+    it('swaps the whole var() when the role matches the literal in light and the alias in dark', () => {
+      const out = page(
+        '.a { color: var(--page-ink, #2C2520); background: var(--page-card, white) }'
+      );
+      expect(out.text).toBe(
+        '.a { color: var(--color-text-primary); background: var(--color-surface-raised) }'
+      );
+      expect(out.unmatched).toEqual([]);
+    });
+
+    it('keeps the var() when no role matches both themes', () => {
+      // --color-text-primary matches #2c2520 in light, but its dark value is not #8bc4cf.
+      const out = page('.a { color: var(--page-peter, #2c2520) }');
+      expect(out.text).toBe('.a { color: var(--page-peter, #2c2520) }');
+      expect(out.unmatched[0]?.reason).toBe('var() fallback');
+    });
+
+    it('keeps an alias nobody declares, and one in a dark-context rule', () => {
+      const input =
+        '.a { color: var(--page-sand, #2c2520) }\n.theme--dark .b { color: var(--page-ink, #2c2520) }';
+      expect(page(input).text).toBe(input);
+    });
   });
 
   it('fails when a candidate role is missing from semantic-colors.json', () => {
