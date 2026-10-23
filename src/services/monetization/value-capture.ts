@@ -227,13 +227,14 @@ export async function recordContribution(params: {
     throw new Error('Value event not found');
   }
 
+  // A webhook retry records the same contribution again: count it once
+  if (!event.contributed) {
+    totalValueCapturedCents += amountCents;
+    contributionCount++;
+  }
   event.contributionCents = amountCents;
   event.contributed = true;
-  event.contributedAt = new Date();
-
-  // Update totals
-  totalValueCapturedCents += amountCents;
-  contributionCount++;
+  event.contributedAt ??= new Date();
 
   // Persist the update. Omit optional fields entirely rather than setting
   // them to `undefined` — Firestore rejects `undefined` anywhere in the
