@@ -111,6 +111,23 @@ describe('buildOnIt', () => {
     expect(json).toContain('Book a dental cleaning, my number is a number');
   });
 
+  it("the person's own words show, names and all; their numbers and emails don't", () => {
+    const live = [
+      ...liveFollowUps(),
+      ...liveFollowUps()
+        .slice(0, 1)
+        .map((f) => ({
+          ...f,
+          id: 'own-words',
+          text: 'call Maria at +1 813 555 0100 or maria.g@example.com about Sunday',
+        })),
+    ];
+    const json = JSON.stringify(buildOnIt(input({ live })));
+    expect(json).toContain('Maria');
+    expect(json).not.toContain('813 555 0100');
+    expect(json).not.toContain('maria.g@example.com');
+  });
+
   it('forgotten topics are left out of every section', () => {
     const view = buildOnIt(
       input({

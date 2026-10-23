@@ -1,8 +1,12 @@
 /**
  * "Ferni's on it" (engagement spec 5.3, O1): what Ferni is holding and doing
  * for one person, as the app's sections, empty ones left out. Read only, over
- * the existing readers. Until approval cards (O3, ActionGate) nothing names a
- * recipient or quotes words Ferni would send; numbers and emails are blanked.
+ * the existing readers. In-app only, behind sign-in and Memory Lock (spec 5.5):
+ * the person's own words show as they said them, names included, because a
+ * list that says "call someone" helps no one. Numbers and emails are blanked,
+ * and calls or texts Ferni makes for them use fixed copy: until approval cards
+ * (O3, ActionGate) nothing names a recipient or quotes words Ferni would send.
+ * Never feed this view to a push, widget, Live Activity or Spotlight as is.
  * Forgotten topics are left out, and a forgotten check that throws makes the
  * read throw. Errand outcomes wait on a read of closed errands (none yet).
  *
