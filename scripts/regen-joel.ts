@@ -1,13 +1,14 @@
 import admin from 'firebase-admin';
 import { generateAgentPage } from '../src/services/page-generator/index.js';
 import type { AgentPageConfig } from '../src/services/page-generator/types.js';
+import { getAdminFirestore } from '../src/utils/firebase-admin-app.js';
 
 const projectId = 'johnb-2025';
 if (admin.apps.length === 0) {
   admin.initializeApp({ projectId });
 }
 
-const db = admin.firestore();
+const db = getAdminFirestore();
 
 async function regen() {
   const config: AgentPageConfig = {

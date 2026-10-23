@@ -9,7 +9,7 @@
  * Data is persisted to Firestore for cross-session learning.
  */
 
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { CameoPersonaId, CameoTriggerType } from './types.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
@@ -123,7 +123,7 @@ let firestoreInstance: FirebaseFirestore.Firestore | null = null;
 function getDb(): FirebaseFirestore.Firestore | null {
   if (!firestoreInstance) {
     try {
-      firestoreInstance = getFirestore();
+      firestoreInstance = getAdminFirestore();
     } catch (e) {
       log.warn({ error: String(e) }, 'Firestore not available for cameo analytics');
       return null;

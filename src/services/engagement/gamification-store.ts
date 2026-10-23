@@ -196,7 +196,7 @@ class MayaGamificationStore {
     if (this.initialized) return;
 
     try {
-      this.db = new Firestore();
+      this.db = new Firestore({ databaseId: process.env.FIRESTORE_DATABASE || '(default)' });
       this.initialized = true;
       getLogger().info('🎮 Maya Gamification Store initialized');
     } catch (error) {

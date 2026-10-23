@@ -15,6 +15,7 @@
 import { getDisplayName } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { resolveFirebaseProjectId } from '../../utils/firebase-admin-app.js';
 import type { GeneratedContent, OutreachType } from './llm-content-generator.js';
 
 const log = createLogger({ module: 'UnifiedDelivery' });
@@ -30,7 +31,6 @@ export interface DeliveryRequest {
   channel: DeliveryChannel;
   content: GeneratedContent;
 
-  // Contact info (for external channels)
   phone?: string;
   email?: string;
 
@@ -115,9 +115,8 @@ async function loadCredentials(): Promise<Credentials> {
     };
     log.info('FCM credentials loaded from env vars');
   } else if (process.env.GOOGLE_APPLICATION_CREDENTIALS || process.env.GCP_PROJECT_ID) {
-    // Use application default credentials
     credentials.fcm = {
-      projectId: process.env.GCP_PROJECT_ID || process.env.FIREBASE_PROJECT_ID || 'ferni-prod',
+      projectId: resolveFirebaseProjectId() ?? '',
       privateKey: '', // Will use applicationDefault() instead
       clientEmail: '',
     };
@@ -193,7 +192,6 @@ export async function deliver(request: DeliveryRequest): Promise<DeliveryResult>
   } catch (error) {
     log.error({ error: String(error), userId, channel }, 'Delivery failed');
 
-    // Try fallback to in-app
     if (channel !== 'in_app') {
       log.info({ userId }, 'Falling back to in-app delivery');
       const fallbackResult = await deliverInApp(userId, content, outreachType, triggerId);
@@ -225,6 +223,9 @@ async function deliverSMS(
   if (!phone) {
     return { success: false, channel: 'sms', error: 'No phone number provided' };
   }
+  // MESSAGING_PIPELINE: stops at an opt-out (consent/{phoneHash}).
+  const refused = await (await import('../messaging/consent.js')).consentBlocks(phone, 'sms', true);
+  if (refused) return { success: false, channel: 'sms', error: `Not sent: ${refused}` };
 
   const creds = await loadCredentials();
   if (!creds.twilio) {
@@ -241,7 +242,6 @@ async function deliverSMS(
       to: phone,
     });
 
-    // Record delivery
     await recordDelivery(userId, 'sms', message.sid, outreachType, triggerId);
 
     log.info({ userId, messageSid: message.sid }, 'SMS delivered');

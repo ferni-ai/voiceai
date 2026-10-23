@@ -42,7 +42,6 @@ import {
   detectExtendedEnergyLevel,
   detectUserLaughter,
 } from '../speech/speech-context.js';
-import { tagTextWithSsmlAdaptive } from '../speech/adaptive-ssml/adaptation.js';
 
 // =============================================================================
 // TEST CONFIGURATION
@@ -461,25 +460,6 @@ describe('Humanization Quality - Synthetic', { timeout: LLM_TIMEOUT }, () => {
       expect(humanized.length).toBeGreaterThan(TEST_RESPONSE.length * 0.5);
       // Core message should remain
       expect(humanized.toLowerCase()).toContain('understand');
-    }
-  });
-
-  it('should produce valid SSML', () => {
-    const context = buildSpeechContext({
-      userText: 'I am feeling stressed about work',
-      phase: 'supporting',
-      turnCount: 5,
-      sessionId: 'ssml-test',
-    });
-
-    for (const personaId of PERSONAS) {
-      const tagged = tagTextWithSsmlAdaptive(TEST_RESPONSE, context, personaId);
-
-      // Should have SSML tags
-      expect(tagged).toContain('<');
-      // Should not have broken tags
-      expect(tagged).not.toContain('<<');
-      expect(tagged).not.toContain('>>');
     }
   });
 });

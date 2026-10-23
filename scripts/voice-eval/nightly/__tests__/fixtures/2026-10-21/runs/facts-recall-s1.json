@@ -1,0 +1,8 @@
+{
+  "meta": { "scenario": "facts-recall", "label": "s1", "role": "test" },
+  "events": [
+    { "t": 8061, "who": "agent", "text": "Stripe" },
+    { "t": 21913, "who": "agent", "text": "interview" },
+    { "t": 79366, "who": "agent", "text": "pottery" }
+  ]
+}

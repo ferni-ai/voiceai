@@ -11,7 +11,7 @@
  *
  * @module services/outreach/outreach-history-read
  */
-import { getFirestore } from 'firebase-admin/firestore';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 import type { OutreachAttemptEntity } from '../data-layer/types.js';
 
 /** One sent outreach, in the words the history tab shows. */
@@ -66,7 +66,7 @@ export async function listOutreachHistory(
   userId: string,
   limit = DEFAULT_HISTORY_LIMIT
 ): Promise<OutreachHistoryEntry[]> {
-  const snapshot = await getFirestore()
+  const snapshot = await getAdminFirestore()
     .collection(`bogle_users/${userId}/outreach_attempts`)
     .orderBy('sentAt', 'desc')
     .limit(Math.min(Math.max(limit, 1), MAX_HISTORY_LIMIT))

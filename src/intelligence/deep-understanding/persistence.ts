@@ -89,6 +89,8 @@ interface FirestoreDoc {
 
 const COLLECTION_NAME = 'deep_understanding';
 const CURRENT_VERSION = 1;
+/** `${userId}/${systemName}` whose last read errored; cleared by a later read that succeeds. */
+const failedReads = new Set<string>();
 
 // System names for subcollections
 const SYSTEM_NAMES = {
@@ -142,6 +144,10 @@ async function saveSystemProfile<T>(
   profile: T | null | undefined
 ): Promise<boolean> {
   if (!profile) return false;
+  if (failedReads.has(`${userId}/${systemName}`)) {
+    log.warn({ userId, systemName }, 'Deep understanding read failed; not saving over it');
+    return false;
+  }
 
   try {
     const doc: FirestoreDoc = {
@@ -169,7 +175,6 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
   const saved: string[] = [];
   const failed: string[] = [];
 
-  // 1. Silence Pattern
   const silencePattern = getSilencePattern(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.silencePattern, silencePattern)) {
     saved.push('silencePattern');
@@ -177,7 +182,6 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
     failed.push('silencePattern');
   }
 
-  // 2. Life Rhythm
   const lifeRhythm = getLifeRhythmProfile(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.lifeRhythm, lifeRhythm)) {
     saved.push('lifeRhythm');
@@ -185,7 +189,6 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
     failed.push('lifeRhythm');
   }
 
-  // 3. Relational Network
   const relationalNetwork = getRelationalNetwork(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.relationalNetwork, relationalNetwork)) {
     saved.push('relationalNetwork');
@@ -193,7 +196,6 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
     failed.push('relationalNetwork');
   }
 
-  // 4. Resistance
   const resistance = getResistanceProfile(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.resistance, resistance)) {
     saved.push('resistance');
@@ -201,7 +203,6 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
     failed.push('resistance');
   }
 
-  // 5. Energy
   const energy = getEnergyPattern(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.energy, energy)) {
     saved.push('energy');
@@ -209,7 +210,6 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
     failed.push('energy');
   }
 
-  // 6. Subconscious
   const subconscious = getSubconsciousProfile(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.subconscious, subconscious)) {
     saved.push('subconscious');
@@ -217,7 +217,6 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
     failed.push('subconscious');
   }
 
-  // 7. Conversational Flow
   const conversationalFlow = getFlowProfile(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.conversationalFlow, conversationalFlow)) {
     saved.push('conversationalFlow');
@@ -225,7 +224,6 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
     failed.push('conversationalFlow');
   }
 
-  // 8. Repair
   const repair = getRepairProfile(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.repair, repair)) {
     saved.push('repair');
@@ -233,7 +231,6 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
     failed.push('repair');
   }
 
-  // 9. Hope
   const hope = getHopeProfile(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.hope, hope)) {
     saved.push('hope');
@@ -241,7 +238,6 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
     failed.push('hope');
   }
 
-  // 10. Life Chapter
   const lifeChapter = getChapterProfile(userId);
   if (await saveSystemProfile(userId, SYSTEM_NAMES.lifeChapter, lifeChapter)) {
     saved.push('lifeChapter');
@@ -265,16 +261,17 @@ export async function saveDeepUnderstandingProfiles(userId: string): Promise<{
  * Load a single system profile
  */
 async function loadSystemProfile<T>(userId: string, systemName: string): Promise<T | null> {
+  const key = `${userId}/${systemName}`;
   try {
     const doc = await getDoc(userId, systemName).get();
-
-    if (!doc.exists) {
-      return null;
-    }
+    failedReads.delete(key);
+    if (!doc.exists) return null;
 
     const data = doc.data() as FirestoreDoc;
     return JSON.parse(data.data) as T;
   } catch (error) {
+    // Not a new user: the stored profile is unread, so saveSystemProfile must not write over it.
+    failedReads.add(key);
     log.warn({ error, userId, systemName }, 'Failed to load deep understanding profile');
     return null;
   }

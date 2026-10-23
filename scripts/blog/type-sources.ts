@@ -21,7 +21,7 @@ const KINDS = { any: /./, noticeable: /^(?:feat|fix|perf)\b/, feature: /^feat\b/
 const BRAND_OVERVIEW = { fromHeading: '# 1. Brand Overview', maxChars: 3000 };
 const LESS_ALONE = 'apps/website/ferni-website/src/blog/ai-should-make-you-feel-less-alone.md';
 
-/** Merged PRs of a kind that are live (live-check.ts): posts publish with no review. */
+/** Merged PRs of a kind that are live (live-check.ts): developer posts publish with no person reviewing them. */
 function prs(ctx: SourceContext, limit: number, kind: keyof typeof KINDS): Source[] {
   const candidates = fetchMergedPrs(ctx.since, ctx.repo, ctx.gh).filter((pr) =>
     KINDS[kind].test(pr.title)

@@ -36,6 +36,7 @@ import { capToolsToLimit, getMaxTools, staticCoreToolsEnabled } from '../../conf
 
 // Model provider abstraction - centralizes all model-specific behavior
 import { getModelProvider, isUsingOpenAI } from '../model-provider/index.js';
+import { isMemberIdentity } from '../../services/identity/member-identity.js';
 
 // Get the model provider (singleton)
 const modelProvider = getModelProvider();
@@ -83,6 +84,7 @@ import {
   initializeToolOrchestrator,
   isOrchestratorInitialized,
 } from '../../tools/orchestrator/voice-agent-integration.js';
+import * as toolPolicy from '../../tools/orchestrator/persona-tool-policy.js'; // PERSONA_TOOL_POLICY
 // Tool Gateway (2026 architecture) - tiered loading, predictive prefetch
 import { getToolGateway } from '../../tools/gateway/index.js';
 import {
@@ -141,7 +143,7 @@ import {
   type VoiceHumanizationIntegration,
 } from '../integrations/index.js';
 import { initConversationSession } from '../integrations/conversation-session-integration.js';
-import { callerHistory, rememberCallerHistory } from './greeting-direction.js';
+import { callerHistory, firstTalkNote, rememberCallerHistory } from './greeting-direction.js';
 import { lastMoodNote } from '../../services/session/last-mood-note.js';
 import { lastTalkedAwareness } from './welcome-back.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
@@ -402,9 +404,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
           userAwareness.push(...lastTalkedAwareness(daysSince)); // welcome-back.ts
         }
       } else if (!isReturningUser) {
-        userAwareness.push(
-          'This is your first conversation with them - be welcoming but not overwhelming.'
-        );
+        userAwareness.push(firstTalkNote(sessionId)); // or a returning caller's note
       }
 
       // Key relationship facts (if available)
@@ -986,12 +986,10 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const toolsCtx = { userId: userId || 'anonymous', sessionId, agentId: persona.id };
   const named = { ...toolsCtx, agentDisplayName: persona.name || persona.id };
   const withJournal = await withCallJournalTools(loadedTools, named); // CALL_JOURNAL=on
-  const orchestratorTools = await withAlwaysOnTools(withJournal, named, isHandoff === true);
+  const withAlwaysOn = await withAlwaysOnTools(withJournal, named, isHandoff === true);
+  const orchestratorTools = await toolPolicy.applyPersonaToolPolicy(withAlwaysOn, persona.id);
 
-  // =========================================================================
-  // 🔍 CRITICAL VISIBILITY: Log exactly what tools are available to LLM
-  // This helps debug "tools not working" issues
-  // =========================================================================
+  // 🔍 Log exactly what tools the LLM gets: this helps debug "tools not working" issues
   const toolCount = Object.keys(orchestratorTools).length;
   const toolNames = Object.keys(orchestratorTools);
   const sampleTools = toolNames.slice(0, 10).join(', ');
@@ -1162,7 +1160,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   mark('session_create_start');
   // A persona swapped into a running call joins its session (persona-swap.ts)
-  const parts = { persona, sessionId, services, userData, userId, llmModel, tts };
+  const parts = { persona, sessionId, services, userData, userId, llmModel, tts, room };
   const session = callSession ?? (await createCallSession({ ...parts, phone: config.phoneCaller }));
 
   mark('session_created');
@@ -1591,8 +1589,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   log.info({ personaId: persona.id }, '🔍 Enhanced error logging attached to LLM and session');
 
-  // Create agent wrapper WITH TOOLS using FerniAgent (has ttsNode override for JSON sanitizer)
-  // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
+  // FerniAgent (below): its ttsNode filters {"fn":"startGame","args":{}} JSON before TTS speaks it.
   // Per-turn intelligence (context builders, memory retrieval, emotional
   // guidance). On unless TURN_INTELLIGENCE=off; see turn-intelligence.ts.
   const turnContextHook =
@@ -1608,16 +1605,16 @@ Reference past context when relevant, but don't force it. Let the conversation f
   );
   const agent = new FerniAgent(agentInstructions, {
     tools: finalTools as unknown as llm.ToolContext<UserData>,
-    // CRITICAL: Skip FerniAgent's built-in greeting which uses generateReply() without
-    // function-calling instructions. This can confuse the model and break tool calls.
-    // The model will greet naturally based on its system prompt.
+    // CRITICAL: skip FerniAgent's built-in greeting. Its generateReply() has no function-calling
+    // instructions, which can break tool calls; the model greets from its system prompt instead.
     skipGreeting: true,
     ...(callSession && { voice: { llm: llmModel, tts } }),
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
+  toolPolicy.rememberAgentPersona(agent, persona.id); // the policy follows the agent, not userData
 
   // Memory recall, added as the user's words are transcribed (interims too), before the
   // SDK's preemptive generation; memory-recall-hook.ts says why. The name lift rides along.
-  if (userId && userId !== 'anonymous' && memoryRecallMode() && sessionWithEvents.on) {
+  if (isMemberIdentity(userId) && memoryRecallMode() && sessionWithEvents.on) {
     const recall = createMemoryRecall({
       userId,
       userName: userData.userName,
@@ -1631,7 +1628,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       nameLift?.(evt.transcript);
       const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
       // CONTEXT_PACKET=on: what it picked rides the turn's packet, labelled (turn-packet.ts).
-      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note);
+      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note, evt.transcript);
     };
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();
@@ -1646,7 +1643,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   // What Ferni understands about the caller from earlier calls (THEORY_OF_MIND=on):
   // added like recall, in the transcript's tick, never waited on (mind-note-hook.ts).
-  if (userId && userId !== 'anonymous' && theoryOfMindMode() && sessionWithEvents.on) {
+  if (isMemberIdentity(userId) && theoryOfMindMode() && sessionWithEvents.on) {
     const mind = attachMindNote(
       sessionWithEvents as Parameters<typeof attachMindNote>[0],
       agent as unknown as RecallAgent,
@@ -1812,8 +1809,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
         // =====================================================================
         // 🎙️ WAVE 2: Live backchanneling (mid-speech presence during breath pauses)
-        // Initializes session-scoped breath/backchannel state so soft verbal
-        // feedback ("mm-hmm") can be considered during user speech. The
+        // Session-scoped breath/backchannel state for soft "mm-hmm"s during user speech. The
         // subscribed audio track below feeds the same frames into breath-pause
         // detection and the prosody/audio processor.
         // =====================================================================
@@ -1826,6 +1822,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
           agent: agentNow,
           dynamicToolLoader,
           cleanupFunctions,
+          phone: config.phoneCaller,
         });
         if (staticCoreToolsEnabled()) {
           // findTools appends what it finds to the agent on the call now.

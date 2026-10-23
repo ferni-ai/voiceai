@@ -10341,6 +10341,7 @@
       "other": "¡Has ganado {count} semillas!"
     },
     "couldNotLoadMemories": "No pude cargar lo que recuerdo. ¿Lo intentamos de nuevo?",
+    "credentialNotKept": "Ferni no guarda códigos ni contraseñas, así que ese ya no está.",
     "memoryCorrected": "Entendido. Lo recordaré así."
   },
   "trustSignals": {
