@@ -17,7 +17,7 @@
 
 import { createLogger } from '../../utils/safe-logger.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
-import { loadBeforeSave } from '../persistence/load-before-save.js';
+import { loadBeforeSave } from '../../utils/load-before-save.js';
 import type { ChangeTalk, ChangeTalkInstance } from './types.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 

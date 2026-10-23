@@ -22,7 +22,7 @@
 import { createLogger } from '../../utils/safe-logger.js';
 import { indexSmallWin } from '../data-layer/integrations/trust-integration.js';
 import { createPersistenceStore, type PersistenceStore } from '../persistence/index.js';
-import { loadBeforeSave } from '../persistence/load-before-save.js';
+import { loadBeforeSave } from '../../utils/load-before-save.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 
 const log = createLogger({ module: 'CelebrationMomentum' });

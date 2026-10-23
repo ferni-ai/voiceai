@@ -9,10 +9,10 @@
  * first (one read per user at a time), lets the caller merge what was stored with what it recorded
  * meanwhile, and then writes. A failed read writes nothing: the next save tries the read again.
  *
- * @module services/persistence/load-before-save
+ * @module utils/load-before-save
  */
 
-import { createLogger } from '../../utils/safe-logger.js';
+import { createLogger } from './safe-logger.js';
 
 const log = createLogger({ module: 'LoadBeforeSave' });
 
