@@ -25,9 +25,12 @@ import { CartesiaSocket } from '../../providers/cartesia-socket.js';
 import {
   ferniRestingEmotion,
   ferniRestingSpeed,
+  personaLayer,
   resetFerniRestingVoiceWarnings,
+  restingEmotion,
+  restingSpeed,
 } from '../ferni-resting-voice.js';
-import { resetPersonaDeliveryCache } from '../persona-delivery.js';
+import { personaDelivery, resetPersonaDeliveryCache } from '../persona-delivery.js';
 import { directSpeech } from '../reply-director.js';
 import { DirectorSessions } from '../session-state.js';
 
@@ -183,5 +186,106 @@ describe('Ferni resting voice: bad values fall back with a warning', () => {
     expect(ferniRestingEmotion({ FERNI_VOICE_EMOTION: ' Excited ' })).toBe('excited');
     expect(ferniRestingEmotion({ FERNI_VOICE_EMOTION: 'grateful' })).toBe('grateful');
     expect(ferniRestingEmotion({})).toBeUndefined();
+  });
+});
+
+/**
+ * MAYA_SANTOS_VOICE_EMOTION / MAYA_SANTOS_VOICE_SPEED (2026-10-22, Seth: Maya is "way
+ * too chill"). Her manifest's upbeat names all reach Cartesia as the Director's
+ * content; these move her rest without touching heavy moments.
+ */
+describe('Maya resting voice: MAYA_SANTOS_VOICE_EMOTION / MAYA_SANTOS_VOICE_SPEED', () => {
+  const TEAM = { ...LIVE, TEAM_VOICES: 'on' };
+  const UPBEAT = { ...TEAM, MAYA_SANTOS_VOICE_EMOTION: 'happy', MAYA_SANTOS_VOICE_SPEED: '1.08' };
+  const maya = { personaId: 'maya-santos' };
+
+  it('her manifest loads: rest 1, band 0.93-1.06, upbeat names folded to content', () => {
+    const delivery = personaDelivery('maya-santos');
+    expect(delivery?.base).toBe(1);
+    expect(delivery?.band).toEqual([0.93, 1.06]);
+    expect(delivery?.defaultEmotion).toBe('content');
+    expect(delivery?.dropped).toEqual([]);
+  });
+
+  it('unset: a plain reply goes out as today, content at her manifest rest', async () => {
+    const push = opening(await speak('I checked the calendar for Thursday.', TEAM, maya));
+    expect(push).toBe('<emotion value="content"/>I checked the calendar for Thursday. ');
+  });
+
+  it('set: a plain reply is sent happy at 1.08', async () => {
+    const push = opening(await speak('I checked the calendar for Thursday.', UPBEAT, maya));
+    expect(push).toBe(
+      '<speed ratio="1.08"/><emotion value="happy"/>I checked the calendar for Thursday. '
+    );
+  });
+
+  it('her pace band moves with her rest, and a bright reply stays inside it', async () => {
+    const layer = personaLayer('maya-santos', UPBEAT);
+    expect(layer?.base).toBe(1.08);
+    expect(layer?.band).toEqual([1, 1.14]);
+    const push = opening(await speak('That is wonderful news about the job.', UPBEAT, maya));
+    expect(tagOf(push, 'emotion')).toBe('happy');
+    const speed = Number(tagOf(push, 'speed'));
+    expect(speed).toBeGreaterThanOrEqual(1);
+    expect(speed).toBeLessThanOrEqual(1.14);
+  });
+
+  it('a heavy reply still goes soft: sympathetic, slower than her new rest', async () => {
+    const push = opening(await speak("I'm so sorry about your dad.", UPBEAT, maya));
+    expect(tagOf(push, 'emotion')).toBe('sympathetic');
+    expect(Number(tagOf(push, 'speed') ?? 1)).toBeLessThan(1.08);
+  });
+
+  it('after a heavy reply, a plain one keeps the care, not happy', async () => {
+    const sessions = new DirectorSessions();
+    await speak("I'm so sorry about your dad.", UPBEAT, { ...maya, sessions });
+    const push = opening(await speak('Tell me about him.', UPBEAT, { ...maya, sessions }));
+    expect(tagOf(push, 'emotion')).toBe('sympathetic');
+  });
+
+  it("a question keeps the Director's curious", async () => {
+    const push = opening(await speak('What did the doctor say about it?', UPBEAT, maya));
+    expect(tagOf(push, 'emotion')).toBe('curious');
+  });
+
+  it("each persona reads only its own names: Ferni's never reach Maya, Maya's never reach Ferni", async () => {
+    const both = { ...TEAM, FERNI_VOICE_EMOTION: 'excited', MAYA_SANTOS_VOICE_EMOTION: 'happy' };
+    expect(opening(await speak('I checked the calendar for Thursday.', both, maya))).toBe(
+      '<emotion value="happy"/>I checked the calendar for Thursday. '
+    );
+    const ferni = opening(
+      await speak('I checked the calendar for Thursday.', {
+        ...LIVE,
+        MAYA_SANTOS_VOICE_EMOTION: 'happy',
+        MAYA_SANTOS_VOICE_SPEED: '1.08',
+      })
+    );
+    expect(ferni).toBe('I checked the calendar for Thursday. ');
+  });
+
+  it('without TEAM_VOICES the speed still sets her rest (default band)', () => {
+    const layer = personaLayer('maya-santos', { MAYA_SANTOS_VOICE_SPEED: '1.08' });
+    expect(layer?.base).toBe(1.08);
+    expect(layer?.band).toEqual([0.98, 1.16]);
+  });
+
+  it('bad values are ignored with a warning naming the variable', () => {
+    expect(restingEmotion('maya-santos', { MAYA_SANTOS_VOICE_EMOTION: 'sultry' })).toBeUndefined();
+    expect(restingSpeed('maya-santos', { MAYA_SANTOS_VOICE_SPEED: 'brisk' })).toBeUndefined();
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'MAYA_SANTOS_VOICE_EMOTION', value: 'sultry' }),
+      expect.any(String)
+    );
+    expect(warn).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'MAYA_SANTOS_VOICE_SPEED', value: 'brisk' }),
+      expect.any(String)
+    );
+  });
+
+  it('a persona with no override line reads nothing', () => {
+    expect(
+      restingEmotion('jordan-taylor', { JORDAN_TAYLOR_VOICE_EMOTION: 'happy' })
+    ).toBeUndefined();
+    expect(personaLayer('jordan-taylor', { JORDAN_TAYLOR_VOICE_SPEED: '1.1' })).toBeUndefined();
   });
 });
