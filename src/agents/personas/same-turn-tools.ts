@@ -21,6 +21,11 @@
  */
 import { llm } from '@livekit/agents';
 import { SAME_TURN_MAX_TOOLS, sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
+import {
+  forbiddenToolsNow,
+  personaIdOnCall,
+  withoutForbiddenTools,
+} from '../../tools/orchestrator/persona-tool-policy.js';
 import { TOPIC_TO_DOMAINS } from '../../tools/dynamic-loader/topic-mappings.js';
 import { SAME_TURN_TOPIC_PATTERNS } from '../../tools/dynamic-loader/same-turn-topics.js';
 import { loadToolDomainsLazy } from '../../tools/registry/loader.js';
@@ -100,7 +105,9 @@ export function withSameTurnTools(
   if (!loader || !text) return [];
   try {
     const have = toolCtx.functionTools;
-    const missing = Object.entries(pickFor(session, loader, text.toLowerCase()))
+    const forbidden = forbiddenToolsNow(personaIdOnCall(session)); // PERSONA_TOOL_POLICY
+    const picked = withoutForbiddenTools(pickFor(session, loader, text.toLowerCase()), forbidden);
+    const missing = Object.entries(picked)
       .filter(([name]) => !(name in have))
       .slice(0, SAME_TURN_MAX_TOOLS);
     if (missing.length === 0) return [];

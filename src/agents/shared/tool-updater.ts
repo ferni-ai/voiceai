@@ -34,6 +34,11 @@ import {
   staticCoreToolsEnabled,
 } from '../../config/tool-config.js';
 import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
+import {
+  forbiddenToolsNow,
+  personaIdOnCall,
+  withoutForbiddenTools,
+} from '../../tools/orchestrator/persona-tool-policy.js';
 import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { getModelProvider } from '../model-provider/index.js';
@@ -113,7 +118,9 @@ export async function updateAgentTools(
   const { domains = [], silentMerge = false, forceSync = false, pin = false } = options;
   const target = asToolCapable(agent);
   const staticCore = staticCoreToolsEnabled();
-  const offered = withoutSharedHandoffs(offeredTools);
+  // PERSONA_TOOL_POLICY: no mid-call update gives the persona on the call a tool it forbids
+  const forbidden = forbiddenToolsNow(personaIdOnCall(agent));
+  const offered = withoutForbiddenTools(withoutSharedHandoffs(offeredTools), forbidden);
   const newTools =
     staticCore && !pin
       ? Object.fromEntries(Object.entries(offered).filter(([name]) => isStaticCoreTool(name)))
@@ -123,7 +130,8 @@ export async function updateAgentTools(
     const existing = currentToolRecord(target);
     const actuallyNew = Object.keys(newTools).filter((name) => !(name in existing));
 
-    if (!forceSync && actuallyNew.length === 0) {
+    const holdsForbidden = forbidden.some((name) => name in existing); // e.g. a persona swap
+    if (!forceSync && actuallyNew.length === 0 && !holdsForbidden) {
       log.debug({ attemptedTools: Object.keys(newTools) }, 'All tools already registered');
       return true;
     }
@@ -157,7 +165,7 @@ export async function updateAgentTools(
         ? appendOnly(existing, capped, appendCap)
         : capped;
 
-    await target.updateTools(merged);
+    await target.updateTools(withoutForbiddenTools(merged, forbidden));
 
     log.info(
       {
