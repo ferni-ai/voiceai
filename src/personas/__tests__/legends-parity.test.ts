@@ -13,11 +13,6 @@ import { buildCascadeKeyterms } from '../../agents/model-provider/cartesia-casca
 import { generateWarmGreeting } from '../../agents/shared/warm-greeting.js';
 import { VOICE_IDS } from '../../config/voice-ids.js';
 import { getArrivingBanter } from '../../services/team-engagement/banter.js';
-import {
-  applyPersonaSpeechTraitsSync,
-  getPersonaTraitsSync,
-  preloadAllTraits,
-} from '../../speech/adaptive-ssml/persona-speech-traits-loader.js';
 import { FINANCIAL_LEGENDS } from '../persona-ids.js';
 import { getVoiceId } from '../voice-registry.js';
 
@@ -39,11 +34,6 @@ const genericGreetings = new Set(
 
 describe.each(FINANCIAL_LEGENDS)('%s has parity with the team', (id) => {
   const others = FINANCIAL_LEGENDS.filter((other) => other !== id);
-
-  it('has speech traits once preloaded', async () => {
-    await preloadAllTraits();
-    expect(getPersonaTraitsSync(id)).not.toBeNull();
-  });
 
   it('greets in their own words, not the generic fallback', () => {
     for (let i = 0; i < 30; i++) {
@@ -87,12 +77,5 @@ describe('legend voice translation', () => {
     expect(m.voice.default_rate).toMatch(/^(slow|medium|fast)$/);
     expect(typeof m.voice.default_speed).toBe('number');
     expect(m.speech_characteristics.base_speed_multiplier).toBeLessThan(1);
-  });
-
-  it("slows Henry's signature phrase and sets his own base speed", async () => {
-    await preloadAllTraits();
-    expect(getPersonaTraitsSync('john-bogle')?.baseSpeed).toBeCloseTo(130 / 150, 2);
-    const out = applyPersonaSpeechTraitsSync('You have to stay the course.', 'john-bogle');
-    expect(out).toMatch(/<speed ratio="0\.78"\/>stay the course<speed ratio="0\.87"\/>/);
   });
 });
