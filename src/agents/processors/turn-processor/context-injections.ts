@@ -19,7 +19,7 @@ import type {
   TurnContext,
 } from '../types.js';
 import type { ContextInjectionsResult } from './types.js';
-import { promptViews } from '../../../memory/index.js';
+import { promptText, promptViews } from '../../../memory/index.js';
 import { responseStyleHints } from './response-style-hints.js';
 
 import { diag } from '../../../services/diagnostic-logger.js';
@@ -105,7 +105,7 @@ export async function buildContextInjections(
   conversationDynamics: ConversationDynamicsResult
 ): Promise<ContextInjectionsResult> {
   const { services: rawServices, userData: rawUserData, persona, bundleRuntime, userText } = ctx;
-  const { services, userData } = await promptViews(rawServices, rawUserData); // filtered views
+  const { services, userData, check } = await promptViews(rawServices, rawUserData); // filtered views
   const { analysis, currentTopic } = analysisResult;
 
   const injections: ContextInjection[] = [];
@@ -1126,7 +1126,7 @@ Placement: ${action.placement || 'natural'} - weave this in naturally.`,
 
   // 14. Conversation state summary
   if (userData.conversationState) {
-    const convSummary = userData.conversationState.getSummaryForLLM();
+    const convSummary = promptText(userData.conversationState.getSummaryForLLM(), check);
     if (convSummary) {
       injections.push({
         category: 'conversation_state',

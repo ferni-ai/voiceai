@@ -2,8 +2,8 @@
  * The filtered views prompt readers get (prompt-view.ts): reads through them
  * leave out what the caller asked to forget; writes go to the real objects;
  * a value with nothing forgotten in it is the real one, by reference; what
- * a view filtered is cached until the topics change; flag off, the objects
- * themselves.
+ * a view filtered is cached for one check (one turn); class instances pass
+ * through with their methods; flag off, the objects themselves.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,9 +19,12 @@ import {
   promptProfile,
   promptServices,
   promptUserData,
+  promptText,
   promptViews,
   USER_DATA_PASS_THROUGH,
 } from '../prompt-view.js';
+import { ConversationStateManager } from '../../../services/social/conversation-state.js';
+import { createSessionId, createUserId } from '../../../types/branded.js';
 
 let seq = 0;
 let user = '';
@@ -98,17 +101,75 @@ describe('promptUserData', () => {
 });
 
 describe('the cache', () => {
-  it('filters once per profile and topics, again after a forget changes them', async () => {
+  it('filters once per check (one per turn); the next check filters again', async () => {
     const profile = profileAbout();
-    const first = (await forgottenCheck(user))!;
-    const a = promptProfile(profile, first);
-    const b = promptProfile(profile, (await forgottenCheck(user))!);
-    expect(b).toBe(a); // same topics: the cached filtered profile
+    const check = (await forgottenCheck(user))!;
+    const a = promptProfile(profile, check);
+    expect(promptProfile(profile, check)).toBe(a); // same turn: filtered once
     stored.topics = ['Biscuit', 'gardening'];
     resetForgetTopicsSource(); // the next read sees the new topic
     const c = promptProfile(profile, (await forgottenCheck(user))!) as Record<string, unknown>;
     expect(c).not.toBe(a);
     expect(c.preferredTopics).toEqual([]);
+  });
+
+  it('an in-place push after the first view is filtered on the next turn', async () => {
+    const moments = ['went hiking'];
+    const raw = { keyMoments: moments };
+    expect(promptUserData(raw, (await forgottenCheck(user))!).keyMoments).toBe(moments);
+    moments.push('Biscuit learned sit'); // tools.ts writes key moments in place
+    expect(promptUserData(raw, (await forgottenCheck(user))!).keyMoments).toEqual(['went hiking']);
+  });
+
+  it('the same for a profile list pushed in place', async () => {
+    const profile = { name: 'Sam', preferredTopics: ['gardening'] };
+    const services = { userId: user, userProfile: profile };
+    expect((await promptServices(services)).userProfile).toBe(profile);
+    profile.preferredTopics.push('Biscuit walks');
+    const seen = (await promptServices(services)).userProfile as typeof profile;
+    expect(seen.preferredTopics).toEqual(['gardening']);
+  });
+});
+
+describe('class instances', () => {
+  const state = () =>
+    new ConversationStateManager(createSessionId('s'), createUserId(user), 'ferni');
+
+  it('pass through with their methods, topic present at the first view', async () => {
+    const manager = state();
+    manager.addKeyMoment('Biscuit learned sit');
+    const view = promptUserData({ conversationState: manager }, (await forgottenCheck(user))!);
+    expect(view.conversationState).toBe(manager);
+    expect(view.conversationState.getSummaryForLLM()).toContain('Turn: ');
+  });
+
+  it('pass through when clean at the first view, and stay live after', async () => {
+    const manager = state();
+    const raw = { conversationState: manager };
+    expect(promptUserData(raw, (await forgottenCheck(user))!).conversationState).toBe(manager);
+    manager.addKeyMoment('Biscuit learned sit');
+    const check = (await forgottenCheck(user))!;
+    const summary = promptUserData(raw, check).conversationState.getSummaryForLLM();
+    expect(promptText(summary, check)).not.toMatch(/biscuit/i); // its readers filter its text
+  });
+
+  it('dates and maps pass as they are', async () => {
+    const when = new Date(0);
+    const seen = new Map([['Biscuit', 1]]);
+    const view = promptUserData({ when, seen }, (await forgottenCheck(user))!);
+    expect(view.when).toBe(when);
+    expect(view.seen).toBe(seen);
+  });
+});
+
+describe('promptText', () => {
+  it('leaves out the lines about a forgotten topic', async () => {
+    const check = (await forgottenCheck(user))!;
+    expect(promptText('User: Sam\nKey moments: Biscuit learned sit\nTurn: 3', check)).toBe(
+      'User: Sam\nTurn: 3'
+    );
+    expect(promptText('Biscuit', check)).toBe('');
+    expect(promptText('Turn: 3', null)).toBe('Turn: 3');
   });
 });
 
@@ -118,5 +179,12 @@ describe('promptViews', () => {
     const { services: s, userData: u } = await promptViews(services, { lastTopic: 'Biscuit' });
     expect((s.userProfile as Record<string, unknown>).lastConversationSummary).toBeUndefined();
     expect(u.lastTopic).toBeUndefined();
+  });
+
+  it("returns the turn's check for text its readers filter", async () => {
+    const { check } = await promptViews({ userId: user }, {});
+    expect(check?.('Biscuit')).toBe(true);
+    vi.stubEnv('FORGET_EVERY_READER', 'off');
+    expect((await promptViews({ userId: user }, {})).check).toBeNull();
   });
 });

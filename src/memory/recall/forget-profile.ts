@@ -54,12 +54,13 @@ function allText(value: unknown, depth = 0): string {
     .join(' ');
 }
 
+/** A literal object; class instances (a state manager, a Date, a Firestore Timestamp) pass whole. */
 function isPlainObject(v: unknown): v is Record<string, unknown> {
-  if (!v || typeof v !== 'object' || Array.isArray(v) || v instanceof Date) return false;
-  return typeof (v as { toDate?: unknown }).toDate !== 'function'; // a Firestore Timestamp passes
+  if (!v || typeof v !== 'object') return false;
+  const proto: unknown = Object.getPrototypeOf(v);
+  return proto === Object.prototype || proto === null;
 }
 
-/** The value with what is about a forgotten topic left out; undefined when all of it is. */
 /**
  * The value with what is about a forgotten topic left out; undefined when all
  * of it is. Unchanged values come back as the same reference, so a reader

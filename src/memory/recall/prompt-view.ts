@@ -13,9 +13,12 @@
  * through a view goes to the real object. Writers keep the raw objects.
  *
  * A view filters with the caller's topics as they stand when it is made (one
- * per turn, one per greeting), and caches what it filtered per raw value and
- * per set of topics: computed once for the session's profile, again after a
- * forget changes the topics. Flag off: the objects themselves.
+ * check per turn, one per greeting) and caches what it filtered for that
+ * check only, so the next turn filters again: a key moment pushed into the
+ * session in place is filtered on the next turn, never served from a cache
+ * that holds the raw value. Class instances (the conversation state manager)
+ * pass through whole, methods intact; readers of their text filter it with
+ * promptText. Flag off: the objects themselves.
  *
  * @module memory/recall/prompt-view
  */
@@ -38,15 +41,16 @@ export const USER_DATA_PASS_THROUGH: ReadonlySet<string> = new Set([
   'personaId',
 ]);
 
-const cache = new WeakMap<object, { signature: string; value: unknown }>();
+/** What each check (one turn) filtered, per raw value: gone with the check. */
+const perCheck = new WeakMap<ForgottenCheck, WeakMap<object, unknown>>();
 
 function filtered(value: unknown, check: ForgottenCheck, of: (v: object) => unknown): unknown {
   if (!value || typeof value !== 'object') return scrub(value, check);
-  const signature = check.signature ?? '';
-  const hit = cache.get(value);
-  if (hit && signature && hit.signature === signature) return hit.value;
+  let cache = perCheck.get(check);
+  if (!cache) perCheck.set(check, (cache = new WeakMap()));
+  if (cache.has(value)) return cache.get(value);
   const out = of(value);
-  if (signature) cache.set(value, { signature, value: out });
+  cache.set(value, out);
   return out;
 }
 
@@ -85,17 +89,30 @@ export function promptUserData<U extends object>(userData: U, check: ForgottenCh
   });
 }
 
-/** Both session views for one prompt build, with one check (turn-processor/context-injections.ts). */
+/**
+ * Both session views for one prompt build, with one check, and the check for
+ * the text the build reads off class instances (turn-processor/context-injections.ts).
+ */
 export async function promptViews<S extends { userId?: string | null }, U extends object>(
   services: S,
   userData: U
-): Promise<{ services: PromptView<S>; userData: U }> {
+): Promise<{ services: PromptView<S>; userData: U; check: ForgottenCheck | null }> {
   const check = await forgottenCheck(services.userId, 'prompt-view');
-  if (!check) return { services: services as PromptView<S>, userData };
+  if (!check) return { services: services as PromptView<S>, userData, check };
   return {
     services: servicesView(services, check) as PromptView<S>,
     userData: promptUserData(userData, check),
+    check,
   };
+}
+
+/** A prompt text with its lines about a forgotten topic left out (a summary a class builds). */
+export function promptText(text: string, check: ForgottenCheck | null): string {
+  if (!check) return text;
+  return text
+    .split('\n')
+    .filter((line) => !check(line))
+    .join('\n');
 }
 
 /** A profile read once for a prompt (the builders' input.userProfile). */
