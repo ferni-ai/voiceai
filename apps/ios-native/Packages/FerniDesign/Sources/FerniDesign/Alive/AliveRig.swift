@@ -68,6 +68,9 @@ public final class AliveRig {
     private var pauseStart: Double?, nodDelay = 0.4, nodded = false, wasPersonSpeaking = false
     /// When he last nodded along.
     private(set) var lastNod = -Double.infinity
+    /// Nods given, and Maya's double "yes!" nod's beats still to come (with when the last began).
+    private(set) var nodsGiven = 0
+    private var nodBeats: [Double] = [], lastDoubleNod = -Double.infinity
     private var gazeTarget = SIMD2<Double>(0, 0)
     /// The think in progress (when it began); `thoughtDone`: his eyes came back
     /// on his first word while still marked thinking.
@@ -265,6 +268,7 @@ public final class AliveRig {
     @discardableResult
     public func play(sequence id: String) -> Bool {
         record(.sequence(id))
+        if id == NodTiming.smallWinMoment { heard(.smallWin) }
         guard !still, let sequence = SequenceTokens.sequence(id) else { return false }
         if let playing, time < playing.until, SequenceTokens.priority(id) < SequenceTokens.priority(playing.id) { return false }
         let removed = reduceMotion ? SequenceTokens.removedUnderReduceMotion(id) : []
@@ -336,6 +340,7 @@ public final class AliveRig {
     /// frames don't play it.
     public func micro(_ m: MicroExpression) {
         record(.micro(m))
+        if m == .delight { heard(.delight) }
         guard !still, let flash = m.flash else { return }
         stir()
         // Recognition and interest are the eyes widening for an instant, as on
@@ -750,6 +755,7 @@ public final class AliveRig {
         stepDoubleTake(m: m)
         stepFirefly(dt: dt, m: m)
         stepGaze(face, m: m)
+        stepNodBeats(face, m: m)
         stepSpin()
 
         // Ferni's real voice moves the body: loudness as an envelope, syllable onsets as nods.
@@ -811,6 +817,30 @@ public final class AliveRig {
         wasPersonSpeaking = personSpeaking
     }
 
+    /// One nod: his own size, hushed under a caring face (`NodTiming.gain`).
+    private func nod(m: Double, face: Face) {
+        self[.pitch].v -= 1.3 * m * NodTiming.gain(persona, family: face.family, acting: personaActing)
+        nodsGiven += 1
+    }
+
+    /// Good news: Maya nods "yes, yes!" (one double nod for the small win's
+    /// pair of signals, however they arrive).
+    private func heard(_ news: NodTiming.GoodNews) {
+        guard !still, NodTiming.doubleNod(persona, acting: personaActing, news: news),
+              nodBeats.isEmpty, time - lastDoubleNod >= NodTiming.doubleNodRest else { return }
+        lastDoubleNod = time
+        nodBeats = [time, time + NodTiming.doubleNodGap]
+        stir()
+    }
+
+    /// Maya's double nod's beats as they come due.
+    private func stepNodBeats(_ face: Face, m: Double) {
+        while let beat = nodBeats.first, time >= beat {
+            nodBeats.removeFirst()
+            nod(m: m, face: face)
+        }
+    }
+
     // MARK: Pace (how fast the view draws him)
 
     /// How far ahead a blink, saccade or nod counts as in flight: a frame at
@@ -832,7 +862,8 @@ public final class AliveRig {
     public var fastMotion: Bool {
         guard !still else { return false }
         let soon = time + Self.paceLookahead
-        if keyed != nil || handoff != nil || farewell != nil || doubleTakeStart != nil || spinStart != nil || sneezeStart != nil {
+        if keyed != nil || handoff != nil || farewell != nil || doubleTakeStart != nil || spinStart != nil || sneezeStart != nil
+            || !nodBeats.isEmpty {
             return true
         }
         if !tracks.isEmpty || sequenceBeats.contains(where: { $0.at <= soon }) { return true }
@@ -984,7 +1015,7 @@ public final class AliveRig {
             self[.pitch].t -= 0.06
             if !still, NodTiming.due(now: time, personSpeaking: personSpeaking, pauseStart: pauseStart, delay: nodDelay,
                                      nodded: nodded, lastNod: lastNod) {
-                self[.pitch].v -= 1.3 * m
+                nod(m: m, face: f)
                 nodded = true
                 lastNod = time
             }

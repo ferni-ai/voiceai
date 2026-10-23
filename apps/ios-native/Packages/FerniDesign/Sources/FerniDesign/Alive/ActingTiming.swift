@@ -20,6 +20,30 @@ enum NodTiming {
         let into = now - start
         return into >= delay && into <= latest && now - lastNod >= minGap
     }
+
+    /// A friend nods smaller when you're telling them something hard: the
+    /// families of a quiet, caring face (persona acting SPEC, decision 2).
+    static let hushedFamilies: Set<String> = ["presence", "concern"]
+    static let hushed = 0.5
+
+    /// How big a nod is: the persona's own size, hushed under a caring face.
+    /// With persona acting off, every nod is the shared one.
+    static func gain(_ persona: WindowPersona, family: String, acting on: Bool) -> Double {
+        guard on else { return 1 }
+        return PersonaActing.of(persona).nod * (hushedFamilies.contains(family) ? hushed : 1)
+    }
+
+    /// The good news Maya nods "yes, yes!" to: the small win's own signals
+    /// (high_engagement brings both; decision 3, no new signal).
+    enum GoodNews { case delight, smallWin }
+    static let smallWinMoment = "celebration_small"
+    /// Her double nod's two beats, seconds apart, and how soon another may come.
+    static let doubleNodGap = 0.22, doubleNodRest = 1.0
+
+    /// Whether good news brings Maya's double nod.
+    static func doubleNod(_ persona: WindowPersona, acting on: Bool, news: GoodNews?) -> Bool {
+        on && persona == .maya && news != nil
+    }
 }
 
 /// When he blinks: at changes of thought, the way people do (avatar red team
