@@ -10,6 +10,9 @@
  *   items the assistant raised or the caller disputed: the same rule the
  *   recall threads use (memory/recall/session-recall.ts).
  *
+ * - with BOOKENDS on (SourceOptions.bookends), the caller's timed one-time
+ *   dates from the world facts store (follow-through/bookend-source.ts).
+ *
  * Anything about a topic the caller asked Ferni to forget is left out. When
  * that list can't be read, the commitments and call threads (raw words) are
  * left out too: erring toward silence is the right side of a privacy request.
@@ -19,7 +22,16 @@
  */
 
 import type { Firestore } from '@google-cloud/firestore';
-import type { FollowUpSources, SourceItem } from '../follow-through/index.js';
+import {
+  bookendSourceItems,
+  type BookendDateFact,
+  type FollowUpSources,
+  type SourceItem,
+} from '../follow-through/index.js';
+import {
+  createFirestoreWorldFactStore,
+  type WorldFactStore,
+} from '../../intelligence/world-model/temporal/store.js';
 import { firestoreCommitmentStore, toOpenCommitment } from '../superhuman/commitment-follow-up.js';
 import { readCallSummaries } from '../../memory/storage/call-summaries.js';
 import { forgottenTopicsOrNull } from '../../memory/recall/forget.js';
@@ -116,14 +128,40 @@ async function lastCallThreads(
   });
 }
 
-export function createFollowUpSources(db: Firestore): FollowUpSources {
+async function timedDates(
+  facts: WorldFactStore,
+  userId: string,
+  forgotten: readonly string[],
+  opts: { zone: string; now: Date; heavy: (text: string) => boolean }
+): Promise<SourceItem[]> {
+  const open = (await facts.listOpen(userId)) as BookendDateFact[];
+  const kept = open.filter((f) => !isForgotten(`${f.subject} ${f.value}`, forgotten));
+  return bookendSourceItems(kept, opts);
+}
+
+export interface FollowUpSourceDeps {
+  /** The world facts store (dates that matter live there); Firestore by default. */
+  facts?: WorldFactStore;
+  /** True when the words are heavy (!isLightTopic). Unknown reads heavy: the private side. */
+  heavy?: (text: string) => boolean;
+}
+
+export function createFollowUpSources(
+  db: Firestore,
+  deps: FollowUpSourceDeps = {}
+): FollowUpSources {
   return {
-    async itemsFor(userId) {
+    async itemsFor(userId, now, opts) {
       const forgotten = await forgottenTopicsOrNull(userId);
       const reads: Array<Promise<SourceItem[]>> = [pendingReminders(db, userId)];
       if (forgotten !== null)
         reads.push(openCommitments(userId, forgotten), lastCallThreads(db, userId, forgotten));
       else log.warn({ userId }, 'Forgotten topics unreadable: importing reminders only');
+      if (forgotten !== null && opts?.bookends) {
+        const facts = deps.facts ?? createFirestoreWorldFactStore(() => db);
+        const heavy = deps.heavy ?? (() => true);
+        reads.push(timedDates(facts, userId, forgotten, { ...opts.bookends, now, heavy }));
+      }
       const settled = await Promise.allSettled(reads);
       return settled.flatMap((r) => {
         if (r.status === 'fulfilled') return r.value;

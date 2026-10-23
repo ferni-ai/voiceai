@@ -1,0 +1,95 @@
+/**
+ * Dates that matter as a follow-up source for Bookends (ENGAGEMENT-SPEC §2.3,
+ * PR B1): a one-time medical visit or event the caller gave a time for
+ * ("biopsy Tuesday at 3") becomes a follow-up that knows when the thing
+ * happens (eventAt, to the minute), what to ask after it, and how heavy it is.
+ *
+ * Only what a bookend can be built around comes through: once, medical or
+ * event, a time of day, a day nobody needs to confirm, and still ahead. A
+ * birthday recurs and an "on the 14th" has no time, so neither is a source.
+ *
+ * dueAt stays null. When to ask is the bookend plan's (B2) and the after-ask's
+ * (B6): a dated follow-up would be texted by follow-up-texts.ts with reminder
+ * words ("You asked me to remind you: biopsy") the moment it fell due.
+ *
+ * Pure: the reader in stores/follow-through-sources.ts hands in the facts, the
+ * zone, the clock and the heavy-topic test.
+ *
+ * @module services/follow-through/bookend-source
+ */
+
+import { zonedWallTimeToUtc } from '../../utils/time-zone.js';
+import type { Salience } from './follow-up.js';
+import type { SourceItem } from './ports.js';
+
+/** The fields of a stored date fact (world-model/dates/store.ts DateFact) this reads. */
+export interface BookendDateFact {
+  readonly id: string;
+  readonly subject: string;
+  readonly value: string;
+  readonly validTo: string | null;
+  readonly origin?: string;
+  readonly kind?: string;
+  readonly recurrence?: string;
+  readonly eventDate?: string;
+  readonly at?: string;
+  readonly needsConfirmation?: boolean;
+}
+
+export interface BookendSourceOptions {
+  /** The caller's IANA zone: the time they said is a time where they are. */
+  readonly zone: string;
+  readonly now: Date;
+  /** True when the words are heavy (health, grief, money, legal): !isLightTopic. */
+  readonly heavy: (text: string) => boolean;
+}
+
+const BOOKEND_KINDS: ReadonlySet<string> = new Set(['medical', 'event']);
+/** How much a friend would remember to ask: a medical visit more than an event. */
+const WEIGHT: Record<string, number> = { medical: 0.9, event: 0.7 };
+
+/** The instant `day` at `at` happens in `zone`, or null when either is malformed. */
+function eventInstant(day: string, at: string, zone: string): Date | null {
+  const d = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day);
+  const t = /^(\d{2}):(\d{2})$/.exec(at);
+  if (!d || !t) return null;
+  const [year, month, dayOfMonth, hour, minute] = [d[1], d[2], d[3], t[1], t[2]].map(Number);
+  return zonedWallTimeToUtc({ year, month, day: dayOfMonth, hour, minute }, zone);
+}
+
+/** One follow-up source item per date fact a bookend can be built around. */
+export function bookendSourceItems(
+  facts: readonly BookendDateFact[],
+  opts: BookendSourceOptions
+): SourceItem[] {
+  return facts.flatMap((f) => {
+    const kind = f.kind ?? '';
+    if (f.validTo !== null || f.origin !== 'dates' || f.recurrence !== 'once') return [];
+    if (!BOOKEND_KINDS.has(kind) || f.needsConfirmation || !f.eventDate || !f.at) return [];
+    const eventAt = eventInstant(f.eventDate, f.at, opts.zone);
+    if (!eventAt || eventAt.getTime() <= opts.now.getTime()) return [];
+    const text = f.subject === 'self' ? f.value : `${f.subject}'s ${f.value}`;
+    const heavy = opts.heavy(text);
+    const salience: Salience = {
+      weight: WEIGHT[kind],
+      heavy,
+      // Health is sensitive even when the words read light ("checkup").
+      sensitive: heavy || kind === 'medical',
+      by: 'rule',
+      v: 1,
+    };
+    return [
+      {
+        kind: 'date' as const,
+        text,
+        dueAt: null,
+        repeat: null,
+        source: { store: 'world_facts', ref: f.id },
+        eventAt: eventAt.toISOString(),
+        eventPrecision: 'time' as const,
+        askType: 'how-did-it-go' as const,
+        salience,
+      },
+    ];
+  });
+}

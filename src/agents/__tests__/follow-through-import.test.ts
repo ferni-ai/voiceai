@@ -214,3 +214,61 @@ describe('FOLLOW_THROUGH_IMPORT from the caller’s cohort, the agent’s own fl
     expect(followUps('sponsor-1')).toHaveLength(0);
   });
 });
+
+describe('BOOKENDS: timed one-time dates come in with eventAt, per person', () => {
+  // A biopsy the caller said was Monday at 3, stored by dates that matter (dates/store.ts).
+  const biopsy = {
+    subject: 'self',
+    attribute: 'event',
+    value: 'biopsy',
+    origin: 'dates',
+    kind: 'medical',
+    recurrence: 'once',
+    eventDate: '2026-10-19',
+    at: '15:00',
+    when: 'Monday at 3',
+    needsConfirmation: false,
+    validTo: null,
+  };
+  const cohortWith = (flags: Record<string, string>) => ({
+    cohortsFor: async () => [{ id: 'seth', enabled: true, flags }],
+    overridesFor: async () => ({}),
+  });
+  const run = (flags: Record<string, string>) =>
+    importFollowUpsAfterCall(call('owner-1', 's-bookends'), {
+      env: { COHORT_FLAGS: 'on' },
+      cohorts: cohortWith(flags),
+      verifiedOwner: () => true,
+      now: () => new Date(NOW),
+    });
+  const BRAIN = ['eventAt', 'eventPrecision', 'askType', 'salience'];
+
+  beforeEach(() => {
+    delete process.env.FOLLOW_THROUGH_IMPORT;
+    h.docs.set('bogle_users/owner-1/world_facts/wd_1', biopsy);
+  });
+
+  it('flag off: the same two follow-ups as before, and no brain field on any', async () => {
+    await run({ FOLLOW_THROUGH_IMPORT: 'on' });
+    const made = followUps('owner-1');
+    expect(made.map((f) => f.kind).sort()).toEqual(['commitment', 'reminder']);
+    expect(made.flatMap((f) => BRAIN.filter((k) => k in f))).toEqual([]);
+  });
+
+  it('flag on for this caller: the biopsy is a follow-up that knows when it happens', async () => {
+    await run({ FOLLOW_THROUGH_IMPORT: 'on', BOOKENDS: 'on' });
+    const date = followUps('owner-1').find((f) => f.kind === 'date');
+    expect(date).toMatchObject({
+      text: 'biopsy',
+      dueAt: null,
+      zone: 'America/Denver',
+      source: { store: 'world_facts', ref: 'wd_1' },
+      // 15:00 in Denver (MDT, UTC-6)
+      eventAt: '2026-10-19T21:00:00.000Z',
+      eventPrecision: 'time',
+      askType: 'how-did-it-go',
+      salience: { weight: 0.9, heavy: true, sensitive: true, by: 'rule', v: 1 },
+    });
+    expect(followUps('owner-1')).toHaveLength(3);
+  });
+});

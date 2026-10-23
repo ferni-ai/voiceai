@@ -227,4 +227,41 @@ describe('follow-through sources', () => {
     const items = await createFollowUpSources(remindersDb([])).itemsFor('u1', NOW);
     expect(items.map((i) => i.source.ref)).toEqual(['c1']);
   });
+
+  describe('timed dates (BOOKENDS)', () => {
+    const fact = (id: string, value: string) => ({
+      id,
+      subject: 'self',
+      value,
+      origin: 'dates',
+      kind: 'medical',
+      recurrence: 'once',
+      eventDate: '2026-10-14',
+      at: '15:00',
+      validTo: null,
+    });
+    const facts = { listOpen: vi.fn(async () => [fact('wd_1', 'biopsy'), fact('wd_2', 'therapy')]) }; // prettier-ignore
+    const sources = () =>
+      createFollowUpSources(remindersDb([]), { facts: facts as never, heavy: () => false });
+    const BOOKENDS = { bookends: { zone: 'America/New_York' } };
+    beforeEach(() => facts.listOpen.mockClear());
+
+    it('without the option the facts are never read, and the items are as before', async () => {
+      h.commitments = [commitment('c1', 'I am going to apply for that job by Friday')];
+      const before = await createFollowUpSources(remindersDb([])).itemsFor('u1', NOW);
+      expect(await sources().itemsFor('u1', NOW)).toEqual(before);
+      expect(facts.listOpen).not.toHaveBeenCalled();
+    });
+
+    it('with it, brings them in minus a forgotten topic, and reads none when topics are unreadable', async () => {
+      h.forgotten = ['therapy'];
+      const items = await sources().itemsFor('u1', NOW, BOOKENDS);
+      expect(items.map((i) => [i.source.ref, i.eventAt])).toEqual([
+        ['wd_1', '2026-10-14T19:00:00.000Z'],
+      ]);
+      h.forgotten = null;
+      expect(await sources().itemsFor('u1', NOW, BOOKENDS)).toEqual([]);
+      expect(facts.listOpen).toHaveBeenCalledTimes(1);
+    });
+  });
 });

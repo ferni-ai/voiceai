@@ -1,6 +1,7 @@
 /**
  * Bring what the existing stores hold into follow-ups: pending reminders,
- * open commitments and threads from the last call, one follow-up each.
+ * open commitments and threads from the last call, one follow-up each, and
+ * with BOOKENDS on, timed one-time dates (bookend-source.ts).
  *
  * Runs after a call. A follow-up's id comes from its source, so running it
  * again finds the ones it made instead of making more, and a source item
@@ -26,9 +27,13 @@ export async function importFollowUps(
   callerZone: string,
   sources: FollowUpSources,
   store: FollowUpStore,
-  now: Date
+  now: Date,
+  opts: { bookends?: boolean } = {}
 ): Promise<ImportResult> {
-  const items = await sources.itemsFor(userId, now);
+  // BOOKENDS off: the sources are asked exactly as before.
+  const items = await (opts.bookends
+    ? sources.itemsFor(userId, now, { bookends: { zone: callerZone } })
+    : sources.itemsFor(userId, now));
   const results = await Promise.allSettled(
     items.map(async (item) => store.open({ ...item, userId, zone: item.zone ?? callerZone }, now))
   );

@@ -8,11 +8,17 @@
 
 import type { AskInput, FollowUp } from './follow-up.js';
 
+/** The brain fields a source may set on a new follow-up (Bookends: bookend-source.ts). */
+export type SourceBrainFields = Partial<
+  Pick<FollowUp, 'eventAt' | 'eventPrecision' | 'askType' | 'salience'>
+>;
+
 /** A new follow-up, before the store gives it an id and timestamps. */
 export type NewFollowUp = Pick<
   FollowUp,
   'userId' | 'kind' | 'text' | 'dueAt' | 'zone' | 'repeat' | 'source' | 'action'
->;
+> &
+  SourceBrainFields;
 
 export interface FollowUpStore {
   /** Saves a new open follow-up, or returns the one already made from the same source. */
@@ -45,7 +51,7 @@ export interface FollowUpAsker {
  * reminder, an open commitment, a thread from the last call. `zone` is the
  * source's own zone when it has one (a reminder's), else the caller's applies.
  */
-export interface SourceItem {
+export interface SourceItem extends SourceBrainFields {
   readonly kind: NewFollowUp['kind'];
   readonly text: string;
   readonly dueAt: string | null;
@@ -54,7 +60,12 @@ export interface SourceItem {
   readonly zone?: string;
 }
 
+export interface SourceOptions {
+  /** BOOKENDS on for this person: timed one-time dates come in too, read in this zone. */
+  readonly bookends?: { readonly zone: string };
+}
+
 export interface FollowUpSources {
   /** What the existing stores hold for one person, minus anything they asked Ferni to forget. */
-  itemsFor: (userId: string, now: Date) => Promise<SourceItem[]>;
+  itemsFor: (userId: string, now: Date, opts?: SourceOptions) => Promise<SourceItem[]>;
 }

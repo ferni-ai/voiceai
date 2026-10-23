@@ -119,6 +119,7 @@ export const COHORT_FLAGS = [
   'REVIVED_INTELLIGENCE', // turn hook built at setup, then each turn (revived-intelligence.ts)
   'CALL_JOURNAL', // tool build + per turn (call-journal.ts); needs the agent's JOURNAL_ONE_STORE=on
   'FOLLOW_THROUGH_IMPORT', // after the call, through envForCaller (follow-through-import.ts)
+  'BOOKENDS', // after the call, through envForCaller (follow-through-import.ts): timed dates
   'PONDERING', // greeting (ponderFor); the hourly ponder-job.ts ponders usersWithFlag too
   'MORNING_BRIEF', // UI server's briefing job only, never a call: usersWithFlag (brief-job.ts)
   // The UI server's deliver-reminders job reads both per person, through flagForUser
@@ -152,6 +153,7 @@ export const COHORT_FLAG_NEEDS: Partial<Record<CohortFlag, CohortFlag[]>> = {
   WORLD_FACTS_IN_CALL: ['WORLD_MODEL_TEMPORAL'],
   FOLLOW_THROUGH_TEXTS: ['FOLLOW_THROUGH_IMPORT'], // texts send follow-ups the import wrote
   OUTREACH_PONDERED_NOTES: ['PONDERING'], // notes send what pondering wrote
+  BOOKENDS: ['FOLLOW_THROUGH_IMPORT', 'IOS_PUSH'], // bookends are follow-ups, shown by push
 };
 
 /** Flags set on whose prerequisites are not: "RECALL_EPISODES needs SEMANTIC_RECALL". */
