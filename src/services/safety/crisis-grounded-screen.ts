@@ -12,7 +12,9 @@
  * interrupted reply keeps only what played). If Ferni's line before the
  * answer was something else (the caller went quiet and Ferni filled the
  * silence), the question is asked once more; after that, anything but a
- * clear no takes the crisis path.
+ * clear no takes the crisis path. The caller's turn after the answer is
+ * watched once (#2511): a no taken back or a yes after the gentle offer takes
+ * the crisis path too.
  *
  * @module CrisisGroundedScreen
  */
@@ -61,10 +63,12 @@ interface Judged {
   turn: string;
   companion: string;
   outcome: ScreenOutcome;
+  /** Judged as the one caller turn after the answer (#2511). */
+  watch?: boolean;
 }
 const screens = new Map<
   string,
-  { at: number; asked: string; before: string; reasked: boolean; last?: Judged }
+  { at: number; asked: string; before: string; reasked: boolean; watched: boolean; last?: Judged }
 >();
 
 /**
@@ -91,6 +95,32 @@ function clearNo(answer: string): boolean {
 }
 
 /**
+ * The caller's turn after the answer, judged once (#2511): a no taken back ("Actually, yes, I
+ * have.", "Honestly... sometimes.") or a yes after the gentle offer ("Yeah, I have been.").
+ * Not "anything but a clear no": a release follows an ordinary turn, so the next turn is
+ * usually ordinary ("Pie, obviously.") and would get 988. A bare yes counts only when Ferni
+ * asked nothing since, so it can't be answering Ferni's own question ("Want me to text him?").
+ */
+// A take-back marker anywhere in the turn: the caller's later words merge into one turn
+// ("Okay. Actually, yes, I have.").
+const TAKE_BACK =
+  "(?:actually|honestly|truthfully|to be honest|tbh|ngl|not gonna lie|if i'?m honest)";
+const AFFIRM =
+  "(?:yes|yeah|yep|yup|ya|mhm|uh huh|mm hmm|mm hm|i have|i do|i am|i'?ve been|i did|sometimes|kind of|kinda|sort of|a little|a bit|maybe|i guess|i think so|i mean yeah|more than)";
+const TAKES_BACK = new RegExp(
+  `(?:^| )(?:${TAKE_BACK} ${AFFIRM}|i lied|i was lying|i wasn'?t (?:being )?honest|i take (?:that|it) back)\\b`
+);
+const AFFIRMS = new RegExp(`^(?:${NO_FILLER}|um |uh |well |so |i mean )*${AFFIRM}\\b`);
+
+function takesBack(answer: string, ferni: readonly string[]): boolean {
+  const found = detectCrisis(answer);
+  if (found.severity > 0 || found.indicators.length > 0 || alwaysHold(answer)) return true;
+  const words = loose(answer);
+  if (TAKES_BACK.test(words)) return true;
+  return AFFIRMS.test(words) && ferni.every((line) => !/[?¿]/.test(line));
+}
+
+/**
  * Ferni's line ends with SCREEN_QUESTION, in full: not a paraphrase, not "you
  * okay?" (where a bare no means not okay), nothing asked after it, and not
  * cut off by an interruption.
@@ -110,7 +140,13 @@ export function noteScreenAsked(
     if (oldest !== undefined) screens.delete(oldest);
   }
   const before = loose(stripSSML(String(released.companion ?? '')));
-  screens.set(call, { at: now, asked: loose(released.latest), before, reasked: false });
+  screens.set(call, {
+    at: now,
+    asked: loose(released.latest),
+    before,
+    reasked: false,
+    watched: false,
+  });
 }
 
 /**
@@ -152,7 +188,8 @@ export function screenAnswer(
     // A line that answers the question is screened, even one repeating the released words.
     const releasedTurn = turn === screen.asked || (companion !== '' && companion === screen.before);
     if (!turn || (releasedTurn && !asked)) return 'none';
-    const judge = (reasked: boolean): ScreenOutcome => {
+    const judge = (reasked: boolean, watch = false): ScreenOutcome => {
+      if (watch) return takesBack(input.latest, lines) ? 'positive' : 'none';
       if (asked) return clearNo(input.latest) ? 'none' : 'positive';
       return reasked ? 'positive' : 'reask';
     };
@@ -163,15 +200,23 @@ export function screenAnswer(
     // than the first path's verdict, and a stronger one replaces it. Words alone never make a
     // turn the same one: a caller may repeat "No." after a re-ask.
     if (last && companion !== '' && companion === last.companion) {
-      const again = judge(screen.reasked && last.outcome !== 'reask');
+      const again = judge(screen.reasked && last.outcome !== 'reask', last.watch);
       if (RANK[again] <= RANK[last.outcome]) return last.outcome;
       if (again === 'reask') screen.reasked = true;
       screen.last = { ...last, outcome: again };
       log.info({ outcome: again, asked, path: 'second' }, 'CRISIS_GROUNDED_SCREEN');
       return again;
     }
-    // A later turn: judged only while the screen is open (nothing judged yet, or a re-ask).
-    if (last && last.outcome !== 'reask') return 'none';
+    // The caller's next turn after the answer is watched once (#2511), then the screen closes.
+    if (last && last.outcome !== 'reask') {
+      if (screen.watched) return 'none';
+      screen.watched = true;
+      const outcome = judge(false, true);
+      screen.last = { turn, companion, outcome, watch: true };
+      log.info({ outcome, asked, watch: true }, 'CRISIS_GROUNDED_SCREEN');
+      return outcome;
+    }
+    // A turn while the screen is open: nothing judged yet, or a re-ask.
     const outcome = judge(screen.reasked);
     if (outcome === 'reask') screen.reasked = true;
     screen.last = { turn, companion, outcome };

@@ -86,6 +86,7 @@ import { tapToolCalls, withTurnReminder } from './turn-request.js';
 import { withTurnStyleReminder } from './turn-style.js';
 import { burstAllowed } from './vocal-bursts.js';
 import { isAcknowledgementOnly } from '../voice-agent/agent-reply-recorder.js';
+import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisGate' });
 
@@ -135,7 +136,9 @@ function callerWords(chatCtx: llm.ChatContext): {
     if (item.role === 'assistant') {
       const line = item.textContent?.trim() || undefined;
       if (answering) companion = line;
-      if (line && said.length === 0 && !isAcknowledgementOnly(line)) ferni.unshift(line);
+      // As the reply recorder judges it: SSML stripped first (a "<break/>Mm-hm." is an ack).
+      const plain = stripSSML(line ?? '').trim();
+      if (plain && said.length === 0 && !isAcknowledgementOnly(plain)) ferni.unshift(line ?? plain);
       answering = false;
       continue;
     }
