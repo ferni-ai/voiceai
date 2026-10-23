@@ -15,6 +15,7 @@ import { writeIfChanged } from './lib/write-if-changed.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { cssDurations } from './lib/duration-scale.js';
+import { websiteThemeLines } from './lib/website-theme.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.dirname(__dirname);
@@ -30,6 +31,7 @@ const CONFIG = {
   sourceTypography: path.join(__dirname, 'tokens/typography.json'),
   sourceAnimation: path.join(__dirname, 'tokens/animation.json'),
   sourceEffects: path.join(__dirname, 'tokens/effects.json'),
+  sourceSemanticColors: path.join(__dirname, 'tokens/semantic-colors.json'),
 
   // Output files (multiple destinations for consistency)
   // Light theme (Zen Garden) - for consumer-facing sites
@@ -374,102 +376,6 @@ function generateColorVars(colors) {
   return lines;
 }
 
-/**
- * Dark theme (midnight) variable overrides, one per line at the given indent.
- * Shared by the prefers-color-scheme block and the [data-theme="dark"] block so
- * the two can't drift. Every background alias the light :root sets must be
- * overridden here, or a page painted with that alias stays cream in dark mode.
- */
-function darkOverrideLines(colors, indent) {
-  const m = colors.themes.midnight;
-  const groups = [
-    ['Background', [
-      ['bg-primary', m.background.primary],
-      ['bg-secondary', m.background.secondary],
-      ['bg-tertiary', m.background.tertiary],
-      ['bg-elevated', m.background.elevated],
-      ['bg-glass', m.background.glass],
-      ['bg-overlay', m.background.overlay],
-      ['bg', m.background.primary],
-      ['bg-surface', m.background.secondary],
-      ['bg-warm', m.background.tertiary],
-      ['elevated', m.background.elevated],
-    ]],
-    ['Text', [
-      ['text-primary', m.text.primary],
-      ['text-secondary', m.text.secondary],
-      ['text-muted', m.text.muted],
-      ['text-dimmed', m.text.dimmed],
-      ['text-inverse', m.text.inverse],
-      ['text', m.text.primary],
-      ['background', m.background.primary],
-      ['background-subtle', m.background.secondary],
-      ['background-muted', m.background.tertiary],
-      ['background-surface', m.background.secondary],
-      ['background-elevated', m.background.elevated],
-      ['paper-cream', m.background.primary],
-    ]],
-    ['Accent', [
-      ['accent', m.accent.primary],
-      ['accent-hover', m.accent.hover],
-      ['accent-pressed', m.accent.pressed],
-      ['accent-glow', m.accent.glow],
-      ['accent-subtle', m.accent.subtle],
-    ]],
-    ['Borders', [
-      ['border-subtle', m.border.subtle],
-      ['border-medium', m.border.medium],
-      ['border-strong', m.border.strong],
-    ]],
-    ['Semantic', [
-      ['success', m.semantic.success],
-      ['success-bg', m.semantic.successGlow],
-      ['error', m.semantic.error],
-      ['error-bg', m.semantic.errorGlow],
-      ['warning', m.semantic.warning],
-      ['warning-bg', m.semantic.warningGlow],
-    ]],
-  ];
-  const lines = [];
-  for (const [label, vars] of groups) {
-    lines.push(`${indent}/* ${label} */`);
-    for (const [name, value] of vars) lines.push(`${indent}--color-${name}: ${value};`);
-    lines.push('');
-  }
-  lines.push(`${indent}/* Persona Text Colors - WCAG AA on dark backgrounds */`);
-  for (const [personaId, persona] of Object.entries(colors.personas)) {
-    if (personaId.startsWith('_') || !persona.textOnDark) continue;
-    lines.push(`${indent}--color-${personaId.split('-')[0]}-text: ${persona.textOnDark};`);
-  }
-  return lines;
-}
-
-/**
- * Generate dark theme color overrides
- * Uses midnight theme values + textOnDark persona variants for WCAG AA contrast
- */
-function generateDarkThemeVars(colors) {
-  return [
-    '',
-    '/* ============================================================================',
-    '   DARK THEME OVERRIDES',
-    '   Midnight theme (Night Ink) - warm near-black field, paper type, sage actions',
-    '   All persona text colors are WCAG AA compliant (4.5:1+ contrast)',
-    '   ============================================================================ */',
-    '',
-    '@media (prefers-color-scheme: dark) {',
-    '  :root {',
-    ...darkOverrideLines(colors, '    '),
-    '  }',
-    '}',
-    '',
-    // Also add [data-theme="dark"] selector for manual toggle
-    '[data-theme="dark"] {',
-    ...darkOverrideLines(colors, '  '),
-    '}',
-  ];
-}
-
 function generateSpacingVars(spacing) {
   const lines = [];
 
@@ -707,6 +613,7 @@ function build() {
   const typography = loadJson(CONFIG.sourceTypography);
   const animation = loadJson(CONFIG.sourceAnimation);
   const effects = loadJson(CONFIG.sourceEffects);
+  const semanticColors = loadJson(CONFIG.sourceSemanticColors);
 
   // Generate light theme CSS (Zen Garden) for consumer sites
   const lightThemeOutput = [
@@ -725,8 +632,7 @@ function build() {
     ...generateTypographyVars(typography),
     ...generateAnimationVars(animation),
     ...generateEffectsVars(effects),
-    '}',
-    ...generateDarkThemeVars(colors),
+    ...websiteThemeLines(semanticColors, colors, spacing),
   ];
 
   // Generate dark theme CSS (Night Ink) for developer sites

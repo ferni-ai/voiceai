@@ -75,11 +75,17 @@ export async function deleteRoom(roomName: string): Promise<void> {
   await new RoomServiceClient(url, key, secret).deleteRoom(roomName);
 }
 
+/** endCall's output when the caller kept talking after the goodbye: the call stays open. */
+export const STILL_TALKING =
+  'The caller is still talking, so the call stays open. Listen and answer them; do not end it.';
+
 /** The endCall tool for a phone call in `roomName`, session `sessionId`. */
 export function createEndCallTool(
   roomName: string,
   hangUp: HangUp = deleteRoom,
-  sessionId?: string
+  sessionId?: string,
+  /** Waits for a short quiet with no crisis read due (call-wrap-up.ts, caller-activity.ts). */
+  holdFirst?: () => Promise<'quiet' | 'talking' | 'risk'>
 ) {
   return llm.tool({
     name: END_CALL,
@@ -93,6 +99,11 @@ export function createEndCallTool(
         // Hang up anyway: a cut-off goodbye beats a line left open
       }
       if (holdEndCallForCrisis(sessionId, 'phone', 'after_playout')) return CRISIS_HOLD;
+      const heard = await holdFirst?.();
+      if (holdFirst && holdEndCallForCrisis(sessionId, 'phone', 'before_delete')) {
+        return CRISIS_HOLD;
+      }
+      if (heard === 'talking') return STILL_TALKING;
       try {
         await hangUp(roomName);
         log.info({ roomName }, 'Ferni hung up after the goodbye');
@@ -124,12 +135,13 @@ export async function attachPhoneHangUp(
     onBehalf: boolean;
     env?: Env;
     hangUp?: HangUp;
+    holdFirst?: () => Promise<'quiet' | 'talking' | 'risk'>;
   }
 ): Promise<boolean> {
   if (!phoneGoodbyeEnabled(call.env) || call.onBehalf) return false;
   if (call.participant?.kind !== ParticipantKind.SIP) return false;
   const added = await addEndCallTool(agent, () =>
-    createEndCallTool(call.roomName, call.hangUp, call.sessionId)
+    createEndCallTool(call.roomName, call.hangUp, call.sessionId, call.holdFirst)
   );
   if (added) log.info({ sessionId: call.sessionId }, 'PHONE_GOODBYE_ATTACHED');
   return added;
