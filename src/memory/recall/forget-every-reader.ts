@@ -26,7 +26,7 @@
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
-import { foldedWords } from './forget-tokens.js';
+import { alsoReadAs, foldedWords } from './forget-tokens.js';
 import { scrubProfile } from './forget-profile.js';
 import {
   knownNames,
@@ -81,7 +81,8 @@ export function aboutForgotten(
     const { topic, kept } = asMatched(t, names);
     if (!isForgotten(text, [topic])) return false;
     if (kept.length === 0) return true;
-    whole ??= new Set(foldedWords(text).map((f) => f.word));
+    const read = forgetEveryReaderEnabled() ? `${text} ${alsoReadAs(text)}` : text;
+    whole ??= new Set(foldedWords(read).map((f) => f.word));
     return kept.every((n) => whole!.has(n) || whole!.has(`${n}s`) || whole!.has(`${n}es`));
   });
 }
@@ -167,22 +168,34 @@ export function snapshotTopics(userId: string, env: Env = process.env): Promise<
   return forgetEveryReaderEnabled(env) ? readTopics(userId, true) : forgottenTopicsOrNull(userId);
 }
 
-const TEXT_FIELDS = ['text', 'content', 'naturalPhrasing', 'title', 'description', 'name'];
+const TEXT_FIELDS = [
+  'text',
+  'content',
+  'naturalPhrasing',
+  'title',
+  'description',
+  'name',
+  'summary',
+];
 const NAME_FIELDS = ['canonicalName', 'aliases', 'peopleMentioned', 'topics', 'relationship'];
-const NESTED = ['data', 'memory', 'entity', 'metadata'];
+const NESTED = ['data', 'memory', 'entity', 'metadata', 'relatedInfo'];
+const strings = (v: unknown): string[] =>
+  typeof v === 'string' ? [v] : Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
 
 /** The words a stored record is about: its text, names and topics, two levels down too. */
 export function recordText(record: unknown, depth = 0): string {
   if (typeof record === 'string') return record;
   if (!record || typeof record !== 'object') return '';
   const r = record as Record<string, unknown>;
-  const words = [...TEXT_FIELDS, ...NAME_FIELDS].flatMap((k) => {
-    const v = r[k];
-    if (typeof v === 'string') return [v];
-    return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
-  });
-  // Two levels: a search result's data.metadata.aliases (hybrid-search.ts).
-  if (depth < 2) for (const k of NESTED) words.push(recordText(r[k], depth + 1));
+  const words = [...TEXT_FIELDS, ...NAME_FIELDS].flatMap((k) => strings(r[k]));
+  // Free-form metadata: every string in it, whatever the key.
+  const meta = r.metadata;
+  if (meta && typeof meta === 'object') words.push(...Object.values(meta).flatMap(strings));
+  // Two levels: a search result's data.metadata.aliases (hybrid-search.ts), a
+  // surfacing opportunity's related entities (relatedInfo).
+  if (depth < 2) {
+    for (const k of NESTED) for (const v of [r[k]].flat()) words.push(recordText(v, depth + 1));
+  }
   return words.filter(Boolean).join(' ');
 }
 

@@ -27,7 +27,11 @@ import type { FlagSpec } from '../flag-spec.js';
 // - a topic matches only text that has all of its words (stemmed; names whole): a paraphrase
 //   that shares none of them gets through. Stemming is English only, so another language's
 //   inflected form (развода for развод) gets through, and in scripts written without spaces
-//   (Chinese, Japanese, Thai) a topic matches only the same unbroken run.
+//   (Chinese, Japanese, Thai) a topic matches only the same unbroken run;
+// - a hyphenated compound hides on either part (well-known hides a "known" topic): intended
+//   over-hiding, so "divorce-papers" and "a Biscuit-shaped cake" are caught;
+// - hybrid search never waits past its leg deadline for the topics: then the last read apply,
+//   else it returns nothing that turn.
 export const FORGET_EVERY_READER = {
   default: 'off',
   owner: 'memory',

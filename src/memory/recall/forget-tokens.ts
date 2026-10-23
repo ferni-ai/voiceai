@@ -24,6 +24,15 @@ export function foldCase(text: string): string {
     .replace(/([A-Za-z])[-\u2010\u2011\u2013](?=[A-Za-z])/g, '$1');
 }
 
+/**
+ * The text again as FORGET_EVERY_READER also reads it: a hyphenated compound
+ * as its parts ("divorce-papers" is "divorce papers") and the Turkish dotless
+ * ı as i (so "IŞIK" and "ışık" fold alike, whatever the locale).
+ */
+export function alsoReadAs(text: string): string {
+  return text.replace(/(\p{L})[-\u2010\u2011\u2013](?=\p{L})/gu, '$1 ').replace(/ı/g, 'i');
+}
+
 /** foldCase, lower case. */
 export function foldText(text: string): string {
   return foldCase(text).toLowerCase();
