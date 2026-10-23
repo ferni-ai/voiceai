@@ -7298,6 +7298,19 @@
       "calm": "Calm",
       "balanced": "Balanced",
       "neutral": "Neutral"
+    },
+    "loading": "Loading voices...",
+    "loadFailed": "Couldn't load the voices. Close this and try again.",
+    "playSample": "Play a sample of {name}",
+    "gender": {
+      "female": "Woman",
+      "male": "Man"
+    },
+    "accent": {
+      "american": "American",
+      "british": "British",
+      "australian": "Australian",
+      "indian": "Indian English"
     }
   },
   "agentTypes": {
