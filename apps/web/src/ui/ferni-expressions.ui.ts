@@ -1263,18 +1263,8 @@ function injectStyles(): void {
       display: block;
     }
     
-    /* Lid paths - use theme-aware background color */
-    .lid-top, .lid-bottom {
-      transition: d 0.3s ease;
-      /* A shade of the face: a page-colored lid cut a crescent out of the avatar */
-      fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
-    }
-    
-    /* Light theme support */
-    [data-theme="light"] .lid-top,
-    [data-theme="light"] .lid-bottom {
-      fill: color-mix(in srgb, var(--persona-primary, #4a6741) 82%, var(--color-natural-ink, #2c2520));
-    }
+    /* Lid colour lives in inline-styles.css only: the page colour, the light "cap" that carries
+       the expression (Seth, 2026-10-11). A fill here outranked it in light mode. */
     
     /* Dimples - subtle shadow indents for warm expressions */
     .dimple {

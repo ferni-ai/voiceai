@@ -83,6 +83,37 @@ describe.skipIf(process.platform !== 'darwin')('run-nightly.sh (stubbed)', () =>
     expect(sb.out('REPORT.md')).toMatch(/HARNESS ERROR: interrupted by a signal/);
   }, 30_000);
 
+  it('kills a call that runs past NIGHTLY_CALL_MAX_S and moves on to the next line', async () => {
+    const line = 'EVAL_TZ=Asia/Tokyo | timer | s1 | | timer\n';
+    const sb = sandbox([line.repeat(2), ''], { runSh: 'sleep 30' });
+    const t0 = Date.now();
+    await exited(run(sb, { NIGHTLY_CALL_MAX_S: '2' }));
+    expect(Date.now() - t0).toBeLessThan(20_000); // two hung calls cost ~4 s, not 60
+    expect(sb.events().filter((e) => e.startsWith('run.sh start'))).toHaveLength(2);
+    expect(sb.events().filter((e) => e.startsWith('run.sh end'))).toEqual([]);
+    expect(sb.out('laneA.log').match(/TIMEOUT timer s1 after 2s/g)).toHaveLength(2);
+  }, 30_000);
+
+  it('a timed-out call whose child ignores TERM is still killed', async () => {
+    const line = 'EVAL_TZ=Asia/Tokyo | timer | s1 | | timer\n';
+    // the child ignores TERM; run.sh itself dies on TERM, so only the KILL step stops the child
+    const sb = sandbox([line, ''], { runSh: "(trap '' TERM; exec sleep 47) & wait" });
+    await exited(run(sb, { NIGHTLY_CALL_MAX_S: '2' }));
+    await sleep(500);
+    const left = spawnSync('pgrep', ['-f', 'sleep 47']).stdout.toString().trim();
+    if (left) spawnSync('pkill', ['-f', 'sleep 47']);
+    expect(left).toBe('');
+  }, 30_000);
+
+  it('a call that finishes in time is not touched by its watchdog', async () => {
+    const line = 'EVAL_TZ=Asia/Tokyo | timer | s1 | | timer\n';
+    const sb = sandbox([line, ''], { runSh: 'sleep 1' });
+    await exited(run(sb, { NIGHTLY_CALL_MAX_S: '3' }));
+    await sleep(3000); // past the cap: a leaked watchdog would log TIMEOUT now
+    expect(sb.events().filter((e) => e.startsWith('run.sh end'))).toHaveLength(1);
+    expect(sb.out('laneA.log')).not.toMatch(/TIMEOUT/);
+  }, 30_000);
+
   it('reads logs up to a real window end, scores, and leads the board with SAFETY FAIL', async () => {
     // run.sh leaves a scored crisis-relay call in which Ferni said 988
     const write = `o=$(dirname "$0")/out; mkdir -p "$o"; b="$o/$2-$3"
@@ -98,7 +129,7 @@ echo '{"replyTexts":["you can call 988"],"talkOver":{}}' > "$b.score.json"`;
     const [, t0, t1] = read.match(/timestamp>="([^"]+)" AND timestamp<="([^"]+)"/);
     expect(Date.parse(t1) - Date.parse(t0)).toBeGreaterThan(120_000); // T0 1 min back, T1 2 min ahead
     const board = readFileSync(join(sb.env.HOME, '.claude/coordination/board.md'), 'utf8');
-    expect(board).toMatch(/nightly 2026-10-22: SAFETY FAIL: crisis-false-alarm; .*exit 1/);
+    expect(board).toMatch(/nightly \d{4}-\d{2}-\d{2}: SAFETY FAIL: crisis-false-alarm; .*exit 1/);
     expect(sb.out('COMMENT.md')).toMatch(/^\*\*SAFETY FAIL: crisis-false-alarm/);
     expect(sb.events().some((e) => e.startsWith('gh issue comment 7'))).toBe(true);
   }, 30_000);

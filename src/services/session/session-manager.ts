@@ -354,13 +354,6 @@ export async function createSessionServices(
       onSessionStartUnified(validatedUserId, sessionId).catch(() => {
         /* Non-critical */
       });
-
-      // Pre-warm embeddings (background)
-      import('../../agents/shared/performance/session-optimizations.js')
-        .then(async ({ optimizeSessionStart }) => optimizeSessionStart(sessionId, validatedUserId))
-        .catch(() => {
-          /* Non-critical */
-        });
     }
   } else if (validatedUserId && deferProfileLoad) {
     isReturningUser = false;
@@ -2369,13 +2362,6 @@ export async function createSessionServices(
           void onSessionStartUnified(validatedUserId, sessionId).catch(() => {
             /* Non-critical */
           });
-          void import('../../agents/shared/performance/session-optimizations.js')
-            .then(async ({ optimizeSessionStart }) =>
-              optimizeSessionStart(sessionId, validatedUserId)
-            )
-            .catch(() => {
-              /* Non-critical */
-            });
         }
 
         getLogger().info(
