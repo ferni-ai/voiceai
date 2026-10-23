@@ -35,7 +35,7 @@ const { getCustomAgent } =
 const RETIRED = '3ebcd114-d280-4eed-a238-b9323a6b8e52'; // RETIRED_CLONE_VOICE_IDS
 const FERNI = '2e7f8a26-1627-4d66-88dc-293c297c1619'; // VOICE_IDS.FERNI
 const STOCK = '694f9389-aac1-45b6-b726-9d9369183238';
-const DEFAULT = 'a0e99841-438c-4a64-b679-ae501e7d6091';
+const DEFAULT = '69092565-1c93-4a88-9f2c-ac8cddaf9f65'; // Janice, DEFAULT_CUSTOM_AGENT_VOICE_ID
 
 function put(body: unknown) {
   const req = new EventEmitter() as IncomingMessage;

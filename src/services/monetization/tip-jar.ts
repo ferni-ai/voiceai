@@ -98,13 +98,14 @@ export async function complete(tipId: string, stripePaymentId: string): Promise<
     throw new Error('Tip not found');
   }
 
+  // A webhook retry completes the same tip again: count it once
+  if (tip.status !== 'completed') {
+    totalTipsCents += tip.amountCents;
+    tipCount++;
+  }
   tip.status = 'completed';
   tip.stripePaymentId = stripePaymentId;
-  tip.completedAt = new Date();
-
-  // Update totals
-  totalTipsCents += tip.amountCents;
-  tipCount++;
+  tip.completedAt ??= new Date();
 
   // Persist the update
   const tipRecord: TipRecord = {
