@@ -31,6 +31,7 @@ import {
   resolveCrisisEverydayRules,
 } from './crisis-everyday.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
+import { resolveCrisisSecondRead, withSecondRead } from './crisis-classifier-v3.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -431,6 +432,7 @@ export function startCrisisClassifier(
     normalized.earlier,
     normalized.companion ?? '',
     prompt.length,
+    resolveCrisisSecondRead(env),
   ]);
   // What each call's reads found, and which are in flight (crisis-call-risk.ts).
   const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
@@ -446,12 +448,14 @@ export function startCrisisClassifier(
     classifyCrisis(input, generate, resolveCrisisClassifierTimeoutMs(env), p);
   // Everyday rules on and risk words in the caller's words: the rules may not lower the read.
   const plain = needsPlainRead(normalized.latest, env);
-  const reads = plain
+  const base = plain
     ? Promise.all([
         read(prompt),
         read(crisisClassifierPrompt({ ...env, CRISIS_CLASSIFIER_EVERYDAY_RULES: 'off' })),
       ]).then(([ruled, unruled]) => moreSevereRead(ruled, unruled))
     : read(prompt);
+  // CRISIS_CLASSIFIER_SECOND_READ (crisis-classifier-v3.ts): prompt v3 can only raise the read.
+  const reads = withSecondRead(base, read, prompt, env);
   const verdict = reads.then((v) => {
     const classifier = v ? verdictOutcome(v) : null;
     log.info(
