@@ -76,6 +76,7 @@ import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
+import { untilLate, withEasing } from './crisis-gate-easing.js';
 import { getDeliberator } from './deliberation.js';
 import { brightOpenerInvited } from './ferni-playful.js';
 import { noteTurn } from './move-log.js';
@@ -319,7 +320,8 @@ export function startCrisisGate(
     );
     return stronger;
   });
-  return { decision, escalation, reask };
+  const turn = { detection, latest, earlier, companion, priorRisk, scope, call, chatCtx };
+  return withEasing({ decision, escalation, reask }, run, turn, callTranscript, options);
 }
 
 /** A reply stream that speaks one fixed text. */
@@ -482,7 +484,7 @@ export async function gatedReply(
   const reply = asking(await ask(ctx));
   if (!gate?.escalation) return reply;
   // No first reply: an empty one, so a release still speaks its question.
-  return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
+  const held = holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(decision.script);
     if (decision.action === 'pass') return null;
@@ -493,4 +495,5 @@ export async function gatedReply(
     );
     return asking(guided, decision.guidance === GROUNDED_LIGHT_TOUCH);
   });
+  return untilLate(held, gate, session);
 }
