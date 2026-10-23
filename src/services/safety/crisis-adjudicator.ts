@@ -220,7 +220,8 @@ export async function adjudicateCrisis(
 
 /** Gemini-backed, tool-free JSON reads. '' (escalate) when Gemini is not configured. */
 export function createGeminiAdjudicatorGenerate(
-  model: string = process.env.CRISIS_ADJUDICATOR_MODEL || DEFAULT_CRISIS_ADJUDICATOR_MODEL
+  model: string = process.env.CRISIS_ADJUDICATOR_MODEL || DEFAULT_CRISIS_ADJUDICATOR_MODEL,
+  maxOutputTokens = 120
 ): CrisisGenerateFn {
   return async (systemPrompt, userContent, signal) => {
     const { getGeminiClient } = await import('../../config/gemini-config.js');
@@ -234,7 +235,7 @@ export function createGeminiAdjudicatorGenerate(
       config: {
         systemInstruction: systemPrompt,
         temperature: 0,
-        maxOutputTokens: 120,
+        maxOutputTokens,
         responseMimeType: 'application/json',
         thinkingConfig: { thinkingBudget: 0 },
         abortSignal: signal,
