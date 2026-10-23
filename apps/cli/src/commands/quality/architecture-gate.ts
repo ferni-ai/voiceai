@@ -6,8 +6,9 @@
  * `import()`, 15 unmapped dirs and same-layer cycles.
  *
  * Rules: `upward` (toward an outer layer), `core-to-platform` (L2/L3 → L1),
- * `context-internal` (past another context's index.ts), `cycle` (inside any static
- * import cycle). Type-only imports follow the same rules under `type-*` keys.
+ * `context-internal` (past another context's index.ts), `orchestration-internal` (L4/L5
+ * past a context's index.ts), `cycle` (inside any static import cycle). Type-only imports
+ * follow the same rules under `type-*` keys.
  * A ratchet: the baseline lists today's edges; a new edge fails, a fixed one passes.
  *   pnpm quality:arch            check (CI)
  *   pnpm quality:arch --update   drop fixed edges from the baseline (never adds)
@@ -23,7 +24,18 @@ import { CONTEXTS, LAYER_MAP, type Context, type Layer } from './architecture-la
 
 export const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'architecture-baseline.generated.json');
 const RUNTIME_RULES = ['upward', 'core-to-platform', 'context-internal'] as const;
-export const RULES = [...RUNTIME_RULES, 'type-upward', 'type-core-to-platform', 'type-context-internal', 'cycle', 'vendor'] as const;
+export const RULES = [
+  ...RUNTIME_RULES,
+  'type-upward',
+  'type-core-to-platform',
+  'type-context-internal',
+  'cycle',
+  'vendor',
+  // Agents, session and API code reaching past a context's index.ts (1,767 runtime edges
+  // on 2026-10-23, 90% of their imports into contexts): grandfathered, new ones fail.
+  'orchestration-internal',
+  'type-orchestration-internal',
+] as const;
 export type Rule = (typeof RULES)[number];
 export type Baseline = Record<Rule, string[]>;
 
@@ -130,7 +142,9 @@ export function ruleFor(a: Placement, b: Placement, to: string): Rule | null {
   if (a.layer === 'L1') return b.layer === 'L4' || b.layer === 'L5' ? 'upward' : null; // L1 may implement L2/L3 ports
   if (RANK[b.layer] > RANK[a.layer]) return 'upward';
   const isPublic = [b.prefix, `${b.prefix}/index.ts`, `${b.prefix}/index.tsx`].includes(to);
-  return a.layer === 'L3' && b.layer === 'L3' && a.context !== b.context && !isPublic ? 'context-internal' : null;
+  if (b.layer !== 'L3' || isPublic) return null;
+  if (a.layer === 'L4' || a.layer === 'L5') return 'orchestration-internal';
+  return a.layer === 'L3' && a.context !== b.context ? 'context-internal' : null;
 }
 
 /** Strongly connected components of 2+ files (iterative Tarjan: the graph is too deep to recurse). */
@@ -230,6 +244,7 @@ const HINT: Record<string, string> = {
   upward: 'move the code down a layer, or have the caller pass it in',
   'core-to-platform': 'depend on a port (interface) in L2/L3 and let L4 hand in the adapter',
   'context-internal': "import the other context's index.ts, or publish a domain event",
+  'orchestration-internal': "import the context's index.ts (export what you need there), or ask it through a published query",
   cycle: 'import siblings directly instead of the barrel, or invert one edge',
   vendor: 'depend on a port (interface) in L2/L3 and have an L1 adapter implement it (#1673)',
 };
@@ -238,19 +253,24 @@ const HINT: Record<string, string> = {
 export function scoreboard(files: string[], edges: Edge[], violations: Violation[], map = LAYER_MAP): string {
   const place = (f: string): Placement | null => placementOf(f, map);
   const pairs = new Map<string, [number, number]>();
-  const ctx = new Map<string, number[]>(CONTEXTS.map((c) => [c, [0, 0, 0, 0, 0]]));
+  const ctx = new Map<string, number[]>(CONTEXTS.map((c) => [c, [0, 0, 0, 0, 0, 0]]));
   for (const c of files.map((f) => place(f)?.context)) if (c) ctx.get(c)![0]++;
   const edgeViolations = violations.filter((x) => x.rule !== 'cycle' && x.rule !== 'vendor');
   for (const v of edgeViolations) {
     const type = v.rule.startsWith('type-');
     const pair = `${place(v.from)!.layer} → ${place(v.to)!.layer}`;
     pairs.set(pair, pairs.get(pair) ?? [0, 0]).get(pair)![type ? 1 : 0]++;
+    if (v.rule === 'orchestration-internal') ctx.get(place(v.to)!.context!)![5]++;
     const c = place(v.from)!.context;
     if (c) ctx.get(c)![type ? 4 : 1 + RUNTIME_RULES.indexOf(v.rule as (typeof RUNTIME_RULES)[number])]++;
   }
   const out = ['| Layer pair | runtime | type-only |', '|---|---:|---:|'];
   for (const [pair, [r, t]] of [...pairs].sort()) out.push(`| ${pair} | ${r} | ${t} |`);
-  out.push('', '| L3 context | files | upward | → L1 | other context internals | type-only |', '|---|---:|---:|---:|---:|---:|');
+  out.push(
+    '',
+    '| L3 context | files | upward | → L1 | other context internals | type-only | L4/L5 past its index |',
+    '|---|---:|---:|---:|---:|---:|---:|'
+  );
   for (const [c, n] of ctx) out.push(`| ${c} | ${n.join(' | ')} |`);
   const { components } = cycles(edges);
   const largest = (cs: string[][]): number => Math.max(0, ...cs.map((c) => c.length));

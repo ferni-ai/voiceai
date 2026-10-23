@@ -144,6 +144,66 @@ describe('architecture gate: what the graph sees', () => {
   });
 });
 
+describe('architecture gate: orchestration reaches contexts through their index.ts', () => {
+  it('catches L4 and L5 importing a context file other than its index.ts', () => {
+    const vs = violations({
+      'src/pipeline/turn.ts': "import { recall } from '../memory/recall/engine.js';\n",
+      'src/app/route.ts': "export async function h() { return import('../affect/deep/arc.js'); }\n",
+      'src/memory/recall/engine.ts': 'export const recall = 1;\n',
+      'src/affect/deep/arc.ts': 'export {};\n',
+    });
+    expect(rules(vs)).toEqual([
+      'orchestration-internal src/app/route.ts -> src/affect/deep/arc.ts',
+      'orchestration-internal src/pipeline/turn.ts -> src/memory/recall/engine.ts',
+    ]);
+  });
+
+  it("allows the context's index.ts, the kernel and adapters", () => {
+    expect(
+      violations({
+        'src/pipeline/turn.ts': [
+          "import { recall } from '../memory/index.js';",
+          "import { arc } from '../affect';",
+          "import { K } from '../kernel/user.js';",
+          "import { db } from '../adapters/db.js';",
+        ].join('\n'),
+        'src/memory/index.ts': 'export const recall = 1;\n',
+        'src/affect/index.ts': 'export const arc = 1;\n',
+        'src/kernel/user.ts': 'export const K = 1;\n',
+        'src/adapters/db.ts': 'export const db = 1;\n',
+      })
+    ).toEqual([]);
+  });
+
+  it('files a type-only reach-through under type-orchestration-internal', () => {
+    const vs = violations({
+      'src/pipeline/turn.ts': "import type { Fact } from '../memory/recall/types.js';\n",
+      'src/memory/recall/types.ts': 'export type Fact = 1;\n',
+    });
+    expect(rules(vs)).toEqual(['type-orchestration-internal src/pipeline/turn.ts -> src/memory/recall/types.ts']);
+  });
+
+  it('fails a new reach-through against a baseline that grandfathers an old one', () => {
+    const files = {
+      'src/pipeline/old.ts': "import { recall } from '../memory/recall/engine.js';\n",
+      'src/memory/recall/engine.ts': 'export const recall = 1;\n',
+    };
+    const base = toBaseline(violations(files));
+    expect(base['orchestration-internal']).toEqual(['src/pipeline/old.ts -> src/memory/recall/engine.ts']);
+    const now = violations({ ...files, 'src/pipeline/new.ts': "import { recall } from '../memory/recall/engine.js';\n" });
+    expect(compare(base, now).added.map((v) => `${v.rule} ${v.from}`)).toEqual(['orchestration-internal src/pipeline/new.ts']);
+  });
+
+  it('counts reach-throughs per target context on the scoreboard', () => {
+    const graph = buildGraph(
+      repo({ 'src/pipeline/a.ts': "import '../memory/deep/b.js';\n", 'src/memory/deep/b.ts': 'export {};\n' })
+    );
+    const board = scoreboard(graph.files, graph.edges, check(graph, MAP), MAP);
+    expect(board).toMatch(/\| L4 → L3 \| 1 \| 0 \|/);
+    expect(board).toMatch(/\| memory \| 1 \| 0 \| 0 \| 0 \| 0 \| 1 \|/);
+  });
+});
+
 describe('architecture gate: vendor SDKs stay out of core', () => {
   it('catches L2 and L3 importing a vendor SDK directly, under the package name', () => {
     const vs = violations({
