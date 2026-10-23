@@ -38,6 +38,9 @@ public final class AliveRig {
     /// His shape as drawn (eye spacing, eye size x and y, body height; lid drop),
     /// easing toward his persona's over about half a second (a handoff doesn't snap).
     private(set) var shape = PersonaShape(PersonaActing.shared)
+    /// The idle quirk playing (`IdleQuirk`), when the next is due, and how many have played.
+    private var quirk: (kind: IdleQuirk.Kind, start: Double)?, nextQuirk: Double?
+    private(set) var quirksPlayed = 0
     /// Quiet: at rest and blinking, nothing else (no wandering eyes, no
     /// breath or bob). The small Ferni beside a screen's intro line.
     public var blinksOnly = false
@@ -791,6 +794,7 @@ public final class AliveRig {
         self[.ringY].t = self[.posY].x
         self[.ringS].t = 1
         applyLayer(m: m)
+        stepQuirk(m: m)
         self[.shear].t = clamp(-self[.posX].v * 0.05 - self[.yaw].v * 0.012, -0.16, 0.16) * m
         self[.poke].t = 0
 
@@ -819,6 +823,48 @@ public final class AliveRig {
             nodded = false
         }
         wasPersonSpeaking = personSpeaking
+    }
+
+    /// His idle quirk, at home only, over nothing else (`IdleQuirk`).
+    private func stepQuirk(m: Double) {
+        guard personaActing, activity == .idle else { quirk = nil; nextQuirk = nil; return }
+        let busy = keyed != nil || handoff != nil || farewell != nil || playingSequence != nil || doubleTakeStart != nil
+            || spinStart != nil || sneezeStart != nil || fly != nil || fingerDown || reduceMotion || still || blinksOnly
+        let next = nextQuirk ?? (time + rng.range(IdleQuirk.every.lowerBound, IdleQuirk.every.upperBound))
+        nextQuirk = next
+        if quirk == nil, IdleQuirk.due(now: time, nextAt: next, activity: activity, acting: personaActing, busy: busy) {
+            quirk = (IdleQuirk.kind(persona), time)
+            quirksPlayed += 1
+            nextQuirk = time + rng.range(IdleQuirk.every.lowerBound, IdleQuirk.every.upperBound)
+            stir()
+        }
+        guard let q = quirk else { return }
+        let e = time - q.start
+        guard e <= IdleQuirk.length(q.kind), !busy else { quirk = nil; return }
+        switch q.kind {
+        case .humTilt:
+            self[.roll].t += (e < 0.45 ? 0.07 : -0.05) * m
+        case .lift:
+            self[.posY].t += 0.06 * m * sin(.pi * e / 0.6)
+            self[.squash].t += 0.02 * m * sin(.pi * e / 0.6)
+        case .eureka:
+            for c in [Ch.syL, .syR] { self[c].t *= 1.08 }
+            for c in [Ch.sxL, .sxR] { self[c].t *= 1.04 }
+        case .sway:
+            self[.posX].t += 0.12 * m * sin(2 * .pi * e / 1.4)
+        case .checkList:
+            self[.gx].t = -0.4 * max(m, 0.5)
+            self[.gy].t = -0.35 * max(m, 0.5)
+            nextSaccade = max(nextSaccade, time + 0.3)
+        case .sinkLids:
+            if e < 1.0 {
+                let k = min(1, e / 0.3)
+                self[.topL].t += 0.45 * k
+                self[.topR].t += 0.45 * k
+            } else {
+                self[.crease].t += 0.3
+            }
+        }
     }
 
     /// One nod: his own size, hushed under a caring face (`NodTiming.gain`).
@@ -867,7 +913,7 @@ public final class AliveRig {
         guard !still else { return false }
         let soon = time + Self.paceLookahead
         if keyed != nil || handoff != nil || farewell != nil || doubleTakeStart != nil || spinStart != nil || sneezeStart != nil
-            || !nodBeats.isEmpty {
+            || !nodBeats.isEmpty || quirk != nil {
             return true
         }
         if !tracks.isEmpty || sequenceBeats.contains(where: { $0.at <= soon }) { return true }

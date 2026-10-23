@@ -124,3 +124,49 @@ enum ThinkingGaze {
         thinking && (activity == .speaking || voiceLevel > voiceStarted)
     }
 }
+
+/// Each persona's idle quirk (persona acting SPEC): a small, characteristic
+/// move at rest, every 10-20 s. At-rest charm only: never in a call (the
+/// lead's decision 1; nods and blinks carry listening), never over anything
+/// else he's doing, and not under Reduce Motion.
+enum IdleQuirk {
+    enum Kind: Equatable, Sendable {
+        case humTilt      // Ferni: a two-step head tilt, like humming while he thinks
+        case lift         // Maya: a little lift and settle, ready to go
+        case eureka       // Peter: eyes widen for an instant
+        case sway         // Jordan: a gentle side-to-side sway
+        case checkList    // Alex: a glance down at the list, and back
+        case sinkLids     // Nayan: lids sink halfway, then a tiny amused crease
+    }
+
+    static func kind(_ persona: WindowPersona) -> Kind {
+        switch persona {
+        case .ferni: .humTilt
+        case .maya: .lift
+        case .peter: .eureka
+        case .jordan: .sway
+        case .alex: .checkList
+        case .nayan: .sinkLids
+        }
+    }
+
+    /// Seconds between quirks.
+    static let every = 10.0...20.0
+
+    /// How long each plays.
+    static func length(_ kind: Kind) -> Double {
+        switch kind {
+        case .humTilt: 0.9
+        case .lift: 0.6
+        case .eureka: 0.15
+        case .sway: 1.4
+        case .checkList: 0.7
+        case .sinkLids: 1.6
+        }
+    }
+
+    /// Whether a quirk starts now: persona acting on, at home, nothing else going on, and its time.
+    static func due(now: Double, nextAt: Double, activity: AvatarActivity, acting on: Bool, busy: Bool) -> Bool {
+        on && activity == .idle && !busy && now >= nextAt
+    }
+}
