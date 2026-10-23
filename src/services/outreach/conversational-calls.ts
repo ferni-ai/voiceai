@@ -59,7 +59,7 @@ export interface CallResult {
     | 'no_answer'
     | 'failed';
   error?: string;
-  // Extended result properties for active calls
+  live?: boolean; // the persona's live agent rang (live-agent-call.ts), not a Twilio <Say>
   context?: OutboundCallContext;
   initiatedAt?: string;
   answeredAt?: string;
