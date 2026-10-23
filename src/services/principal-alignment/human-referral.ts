@@ -471,10 +471,10 @@ export function analyzeReferralNeed(
       if (urgencyValue(trigger.urgency) > urgencyValue(highestUrgency)) {
         highestUrgency = trigger.urgency;
       }
-
-      // Track best match
-      if (trigger.confidence > maxConfidence) {
-        maxConfidence = trigger.confidence;
+      // Best match: an immediate (crisis line) trigger is never displaced; then confidence.
+      const rank = (t: typeof trigger) => (t.urgency === 'immediate' ? 1 : 0) + t.confidence;
+      maxConfidence = Math.max(maxConfidence, trigger.confidence);
+      if (!bestMatch || rank(trigger) > rank(bestMatch)) {
         bestMatch = trigger;
       }
     }
