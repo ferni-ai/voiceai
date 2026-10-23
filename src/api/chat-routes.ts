@@ -15,7 +15,6 @@ import type { FunctionDeclaration } from '@google/generative-ai';
 
 import { claimedUserFor } from './acting-user.js';
 import { rateLimit, requireAuth } from './auth-middleware.js';
-import { CHAT_EMAIL_READ_TOOLS } from './chat-email-read-tools.js';
 import { type ChatCaller, offeredChatTools, refuseChatTool } from './chat-tool-access.js';
 import { refuseUnadmittedCaller } from './admission.js';
 import { handleCorsPreflightIfNeeded, parseBody, sendError, sendJSON } from './helpers.js';
@@ -131,7 +130,6 @@ async function offeredFor(caller: ChatCaller): Promise<ChatToolDefinition[]> {
 /** The chat catalog: the same for every user and persona today. */
 async function getToolDefinitionsForChat(_userId: string): Promise<ChatToolDefinition[]> {
   return [
-    ...CHAT_EMAIL_READ_TOOLS,
     {
       name: 'playMusic',
       description: 'Play music by query, genre, mood, or artist',

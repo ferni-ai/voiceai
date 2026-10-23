@@ -117,11 +117,22 @@ describe('POST /api/chat/tool runs only offered tools', () => {
     expect(ranTools()).toEqual(offered);
   });
 
-  it("offers members the CLI's own-data email reads, so `ferni email` keeps working", async () => {
+  // No server tool has these names: offered, the model could pick one over the real
+  // getUnreadEmails and get the dispatcher's "Unknown tool" reply.
+  it('never offers or runs email tools that do not exist server-side', async () => {
     const offered = await offeredTo('alice');
     for (const fn of ['getEmailFollowups', 'getImportantEmails', 'searchEmails']) {
-      expect(offered).toContain(fn);
+      expect(offered).not.toContain(fn);
+      expect(await runTool('alice', fn)).toBe(403);
     }
+    expect(offered).toContain('getUnreadEmails');
+    expect(executeTool).not.toHaveBeenCalled();
+  });
+
+  it('a case variant of an offered tool (PlayMusic) is refused', async () => {
+    expect(await offeredTo('alice')).toContain('playMusic');
+    expect(await runTool('alice', 'PlayMusic')).toBe(403);
+    expect(executeTool).not.toHaveBeenCalled();
   });
 
   it("a member's grant: 'admin' changes nothing", async () => {
