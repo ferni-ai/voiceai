@@ -317,6 +317,19 @@ export function orchestrationHint(to: string, root: string, map: Record<string, 
   return `no index.ts between ${dirname(to)}/ and ${prefix}/: add ${dirname(to)}/index.ts exporting what you need`;
 }
 
+/**
+ * orchestration-internal warns (a CI annotation, no failure) before this day and fails from
+ * it (UTC). The week gives the ~30 open PRs that add such imports time to add or import an
+ * index.ts. Hard-coded on purpose: the switch needs no follow-up PR.
+ */
+export const ORCHESTRATION_ENFORCED_FROM = '2026-10-30';
+
+/** Splits added violations into failures and warnings on `today` (YYYY-MM-DD, UTC). */
+export function enforcement(added: Violation[], today: string): { errors: Violation[]; warnings: Violation[] } {
+  const warnOnly = (v: Violation): boolean => v.rule.endsWith('orchestration-internal') && today < ORCHESTRATION_ENFORCED_FROM;
+  return { errors: added.filter((v) => !warnOnly(v)), warnings: added.filter(warnOnly) };
+}
+
 const HINT: Record<string, string> = {
   upward: 'move the code down a layer, or have the caller pass it in',
   'core-to-platform': 'depend on a port (interface) in L2/L3 and let L4 hand in the adapter',
@@ -391,20 +404,30 @@ function main(args: string[]): void {
   // The committed baseline is a scoreboard: --update lowers it; it never blocks.
   const scored = existsSync(BASELINE) ? compare(JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline, now) : null;
   if (scored && args.includes('--update')) writeFileSync(BASELINE, JSON.stringify(scored.lowered, null, 1) + '\n');
-  if (added.length > 0) {
-    say(`\n❌ ${added.length} architecture violation(s) added by this change:`);
-    for (const v of added.slice(0, 60)) {
-      const fix = v.rule.endsWith('orchestration-internal') ? orchestrationHint(v.to, root) : HINT[v.rule.replace('type-', '')];
-      say(`  ${v.rule}  ${v.from}:${v.line} -> ${v.to}\n      fix: ${fix}`);
+  const fixFor = (v: Violation): string =>
+    v.rule.endsWith('orchestration-internal') ? orchestrationHint(v.to, root) : (HINT[v.rule.replace('type-', '')] ?? '');
+  const today = process.env.ARCH_GATE_TODAY ?? new Date().toISOString().slice(0, 10);
+  const { errors, warnings } = enforcement(added, today);
+  if (warnings.length > 0) {
+    say(`\n⚠️  ${warnings.length} orchestration import(s) past a context's index.ts, a warning until ${ORCHESTRATION_ENFORCED_FROM}, an error from then:`);
+    for (const v of warnings.slice(0, 60)) {
+      say(`  ${v.rule}  ${v.from}:${v.line} -> ${v.to}\n      fix: ${fixFor(v)}`);
+      if (process.env.GITHUB_ACTIONS) {
+        say(`::warning file=${v.from},line=${v.line},title=Architecture (error from ${ORCHESTRATION_ENFORCED_FROM})::${v.to}: ${fixFor(v)}`);
+      }
     }
-    if (added.length > 60) say(`  … and ${added.length - 60} more`);
+  }
+  if (errors.length > 0) {
+    say(`\n❌ ${errors.length} architecture violation(s) added by this change:`);
+    for (const v of errors.slice(0, 60)) say(`  ${v.rule}  ${v.from}:${v.line} -> ${v.to}\n      fix: ${fixFor(v)}`);
+    if (errors.length > 60) say(`  … and ${errors.length - 60} more`);
     say('\nLayer map: apps/cli/src/commands/quality/architecture-layers.ts (owners review changes to it).');
     process.exit(1);
   }
   if (kernelFailed) process.exit(1);
   const fixed = scored?.fixed ?? 0;
   const msg = args.includes('--update') ? `${fixed} fixed edge(s) removed from the scoreboard.` : `${fixed} scoreboard edge(s) fixed: \`pnpm quality:arch --update\` records it.`;
-  say(`\n✅ No architecture violations added.${fixed > 0 ? ` ${msg}` : ''}`);
+  say(`\n✅ No architecture violations added${warnings.length > 0 ? ' (warnings above)' : ''}.${fixed > 0 ? ` ${msg}` : ''}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main(process.argv.slice(2));

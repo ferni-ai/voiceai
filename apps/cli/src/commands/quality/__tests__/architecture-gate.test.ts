@@ -7,7 +7,9 @@ import {
   buildGraph,
   check,
   compare,
+  enforcement,
   newViolations,
+  ORCHESTRATION_ENFORCED_FROM,
   orchestrationHint,
   placementOf,
   scoreboard,
@@ -235,6 +237,29 @@ describe('architecture gate: only what the change adds fails (merge-base compari
 
   it('fails every violation of a new file that no removed edge accounts for', () => {
     expect(newViolations([v('src/new.ts', 'src/m/x.ts', 'upward')], [], (p) => (p === 'src/new.ts' ? null : p))).toHaveLength(1);
+  });
+});
+
+describe('architecture gate: orchestration-internal warns until its enforcement date', () => {
+  const v = (rule: Violation['rule']): Violation => ({ rule, from: 'src/pipeline/a.ts', to: 'src/memory/x.ts', line: 1 });
+  const added = [v('orchestration-internal'), v('type-orchestration-internal'), v('upward')];
+
+  it('is pinned to 2026-10-30', () => {
+    expect(ORCHESTRATION_ENFORCED_FROM).toBe('2026-10-30');
+  });
+
+  it('warns the day before: orchestration imports are warnings, every other rule still fails', () => {
+    const r = enforcement(added, '2026-10-29');
+    expect(r.warnings.map((x) => x.rule)).toEqual(['orchestration-internal', 'type-orchestration-internal']);
+    expect(r.errors.map((x) => x.rule)).toEqual(['upward']);
+  });
+
+  it('fails from the date itself, and after', () => {
+    for (const day of ['2026-10-30', '2026-11-15']) {
+      const r = enforcement(added, day);
+      expect(r.warnings, day).toEqual([]);
+      expect(r.errors.map((x) => x.rule), day).toEqual(['orchestration-internal', 'type-orchestration-internal', 'upward']);
+    }
   });
 });
 
