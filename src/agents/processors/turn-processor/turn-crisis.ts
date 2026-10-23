@@ -132,7 +132,10 @@ export function startTurnCrisis(
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);
-  const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
+  // CRISIS_CLASSIFIER_SECOND_READ: the gate's decision for the turn (crisis-second-read-turn.ts).
+  const secondRead = { path: 'pipeline' as const, thirdParty: patterns.subject === 'third_party' };
+  const run = { pattern, env, generate, scope, call, secondRead } as const;
+  const classifier = startCrisisClassifier(input, run);
   type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
   let settled: Promise<Settled> | null = null;
   const settleTurn = (): Promise<Settled> =>

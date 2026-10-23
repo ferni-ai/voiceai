@@ -239,9 +239,11 @@ export function startCrisisGate(
   // Taken before this turn's own read starts (crisis-lone-imminent.ts).
   const priorRisk = callRiskBeforeTurn(call, { latest, earlier, companion });
   const groundedPrior = groundedPriorRisk(call, latest);
+  // CRISIS_CLASSIFIER_SECOND_READ: the gate decides for the turn (crisis-second-read-turn.ts).
+  const secondRead = { path: 'gate' as const, thirdParty: detection.subject === 'third_party' };
   const run = startCrisisClassifier(
     { latest, earlier, companion },
-    { pattern, env, generate, scope, call }
+    { pattern, env, generate, scope, call, secondRead }
   );
   if (run?.mode !== 'live' || decision.action === 'replace') {
     return { decision, escalation: null, reask };
