@@ -185,7 +185,7 @@ interface Rule {
   words: RegExp;
   /** The fewest digits a run needs to be the secret. */
   minDigits: number;
-  /** "password is purple monkey dishwasher": plain words after "is" count. */
+  /** "password is correct horse battery": plain words after "is" count. */
   allowWords?: boolean;
   /** A word just before that makes it another thing ("zip code", "area code"). */
   notAfter?: ReadonlySet<string>;
