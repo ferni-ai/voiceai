@@ -117,6 +117,27 @@ describe('classifierOnlyWhy', () => {
   });
 });
 
+describe('missing, empty or garbage input never makes a turn eligible (fails closed)', () => {
+  it.each<[string, unknown]>([
+    ['undefined', undefined],
+    ['null', null],
+    ['an empty object', {}],
+    ['a string', 'eligible'],
+    ['a number', 42],
+    ['verdicts not an array', { ...args(), verdicts: 'crisis' }],
+    ['verdicts empty', { ...args(), verdicts: [] }],
+    ['verdicts of garbage', { ...args(), verdicts: [{}, 'x'] }],
+    ['no detection', { ...args(), detection: undefined }],
+    ['detection of garbage', { ...args(), detection: 'none' }],
+    ['latest missing', { ...args(), latest: undefined }],
+    ['earlier of garbage', { ...args(), earlier: [null, 3] }],
+    ['priorRisk missing', { ...args(), priorRisk: undefined }],
+  ])('%s', (_name, input) => {
+    expect(classifierOnlyWhy(input as ClassifierOnlyArgs)).not.toBe('eligible');
+    expect(classifierOnlyDecision(input as ClassifierOnlyArgs).why).not.toBe('eligible');
+  });
+});
+
 describe('resolveClassifierOnlyCheckin', () => {
   it('is shadow or off: there is no live mode', () => {
     expect(resolveClassifierOnlyCheckin({})).toBe('off');
