@@ -58,7 +58,12 @@ export const OWNED_ELSEWHERE: readonly OwnedStore[] = [
     'user_gifts',
     'user_contacts',
     'profiles', // conversation and insight feedback, subcollections only
-    'feature_flag_overrides' // flags turned on for this person alone (cohort-flags.ts)
+    'feature_flag_overrides', // flags turned on for this person alone (cohort-flags.ts)
+    'team_awareness', // what each persona noticed about them (cross-agent-awareness.ts)
+    'team_notes', // the personas' notes about them, one doc each (cross-agent-awareness.ts)
+    'ritual_onboarding', // their ritual onboarding state (ritual-onboarding.ts)
+    'semantic_routing_vocabulary', // their own words for tools (semantic-router feedback-store.ts)
+    'outreach_user_analytics' // per-person outreach response stats (outreach-analytics.ts)
   ),
   // The app's per-person documents
   ...byId(
@@ -148,6 +153,23 @@ export const CREDENTIAL_STORES: readonly OwnedStore[] = [
     'verification_codes'
   ),
   ...byField('userId', 'developer_oauth_tokens'),
+];
+
+/**
+ * Collections keyed by the uid that account deletion handles on its own, so they are not in
+ * ERASED_STORES: processing_consent (eraseConsentFor, account-routes LINKED_RECORDS),
+ * apple_signin_tokens (revokeAppleSignIn revokes it with Apple, then deletes it) and
+ * user_profiles (keyed by email for waitlist grants, by the uid for app profiles;
+ * erase-other-keys.ts). export_rate_limits (export attempt times, export-rate-limit.ts)
+ * is not erased today: a follow-up, not decided here. The write guard
+ * (synthetic-write-guard.ts) reads these with ERASED_STORES: a placeholder doc id in any of
+ * them is one bucket for every caller without an id.
+ */
+export const UID_KEYED_ELSEWHERE: readonly string[] = [
+  'processing_consent',
+  'apple_signin_tokens',
+  'export_rate_limits',
+  'user_profiles',
 ];
 
 /** Every store account deletion must leave empty for the person */
