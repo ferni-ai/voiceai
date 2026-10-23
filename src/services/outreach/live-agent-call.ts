@@ -60,22 +60,24 @@ export async function ringsWithLiveAgent(
   return true;
 }
 
-const QUOTE_MAX = 200;
+/** The opener reads the first 160 chars of the reason (greeting-direction.ts). */
+const QUOTE_MAX = 120;
 
 /**
  * Why the agent called, for its opener. The signed dispatch makes this trusted
- * context, so the reason is ours; the persona's own message (model-written,
+ * context, so the frame is ours; the persona's own message (model-written,
  * possibly shaped by content it read) rides along only as a short, labelled
- * quote with markup, brackets and control characters removed.
+ * quote with markup, brackets, quotes and control characters removed. The
+ * quote comes early and stays short so the opener's window holds all of it.
  */
 export function liveCallReason(message: string): string {
   const quote = message
-    .replace(/[\p{Cc}<>[\]{}`]/gu, ' ')
+    .replace(/[\p{Cc}<>[\]{}`"]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, QUOTE_MAX);
-  const base = 'They asked you to call them, and you said you would.';
-  return quote ? `${base} What you told them you'd call about (your words): "${quote}"` : base;
+    .slice(0, QUOTE_MAX)
+    .trim();
+  return quote ? `They asked you to call. Your words: "${quote}"` : 'They asked you to call them.';
 }
 
 /**
@@ -93,13 +95,15 @@ export function placeLiveAgentCall(
   };
   const placed = placeSelfCall(call.userId, call.phoneNumber, trigger, undefined, call.personaId);
   runBackground(
-    placed.then(async (outcome) =>
-      // 'failed', not 'pending', on no answer: the per-minute job must not ring them again.
-      record(call.id, outcome === 'answered' ? 'completed' : 'failed', {
-        completedAt: new Date().toISOString(),
-        outcome: `live_agent_${outcome}`,
-      })
-    ),
+    placed
+      .catch(() => 'failed' as const) // e.g. the LiveKit SDK failed to load: never left in_progress
+      .then(async (outcome) =>
+        // 'failed', not 'pending', on no answer: the per-minute job must not ring them again.
+        record(call.id, outcome === 'answered' ? 'completed' : 'failed', {
+          completedAt: new Date().toISOString(),
+          outcome: `live_agent_${outcome}`,
+        })
+      ),
     { task: 'placeLiveAgentCall', userId: call.userId }
   );
   log.info({ userId: call.userId, callId: call.id, personaId: call.personaId }, 'Live agent call');
