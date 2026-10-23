@@ -12,6 +12,7 @@ import { getCustomAgent, getActiveCustomAgents } from './custom-agent-persistenc
 import type { CustomAgent as ApiCustomAgent } from '../../types/custom-agent-api.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
 import { runtimeVoiceId } from './custom-agent-voice-policy.js';
+import { CUSTOM_AGENT_PREFIXES } from './custom-agent-ids.js';
 import type {
   PersonaConfig,
   VoiceConfig,
@@ -28,8 +29,6 @@ const log = getLogger().child({ module: 'CustomAgentRuntime' });
 // CONSTANTS
 // ============================================================================
 
-// Custom agent ID prefixes for detection
-const CUSTOM_AGENT_PREFIXES = ['agent_', 'custom_', 'ca_'];
 
 // Default voice settings for cloned voices
 const DEFAULT_VOICE_SETTINGS = {
@@ -80,12 +79,7 @@ const DEFAULT_KNOWLEDGE: KnowledgeConfig = {
 // DETECTION
 // ============================================================================
 
-/**
- * Check if a persona ID is a custom agent
- */
-export function isCustomAgentId(personaId: string): boolean {
-  return CUSTOM_AGENT_PREFIXES.some((prefix) => personaId.startsWith(prefix));
-}
+export { isCustomAgentId } from './custom-agent-ids.js';
 
 /**
  * Extract user ID from room metadata for custom agent lookup
