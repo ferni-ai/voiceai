@@ -29,13 +29,21 @@ const PURPOSE_NOT =
 
 /** First person anywhere in the clause: "lets end it all, me and you, tonight" is the caller. */
 const FIRST_PERSON = /\b(i|i'm|im|i'll|i'd|i've|me|my|myself|us|our)\b/;
-/** Another subject right before the verb: "lets end it all", "this season finale ended it all". */
+/** A named other subject right before the verb: "lets end it all", "this season finale ended it all". */
 const OTHER_SUBJECT =
-  /\b(let'?s|lets|we|we'll|they|they'll|he|she|you|it|(this|that|the) \w+( \w+)?) ((just|gonna|going to|will|'ll|can|finally|really|totally) )*$/;
+  /\b(let'?s|lets|we|we'll|they|they'll|he|she|you|(this|that|the) (\w+ )?(finale|episode|season|show|series|movie|film|game|match|band|team|party|concert|book|story|war|storm|meeting)) ((just|gonna|going to|will|'ll|can|finally|really|totally) )*$/;
+
+/**
+ * A time, a means, a place or intent anywhere in the clause: then no idiom exempts the words
+ * ("killing myself over this exam tonight with pills", "lets end it all with pills tonight").
+ */
+const RISK_IN_CLAUSE =
+  /\b(tonight|tomorrow|today|right now|soon|this (week|weekend)|next time|on purpose|for real|pills?|gun|rope|blade|knife|razor|bridge|roof|ledge|train|tracks|overdose|i will|i'll|i'm going to|i'm gonna|gonna)\b/;
 
 /** The floor's words in an everyday idiom, or "end it all" said with another subject. */
 function endingIdiom(text: string, from: number, to: number, words: string): boolean {
   const { before, after } = clauseOf(text, from, to);
+  if (RISK_IN_CLAUSE.test(`${before} ${after}`)) return false;
   const span = `${words}${after}`;
   if (ENDING_IDIOMS.some((re) => re.test(span))) return true;
   if (ENDING_IDIOM_BEFORE.test(before) && ENDING_ACCIDENT.test(span)) return true;

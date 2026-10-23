@@ -127,6 +127,13 @@ describe('the first-person ending floor', () => {
       // "end it all" with no subject right before it, or with the caller in the clause.
       'the pain, end it all',
       'lets end it all, me and you, tonight',
+      // A named subject only, and never with a time, a means, a place or intent in the clause.
+      'it would end it all',
+      'the meds would end it all',
+      'lets end it all with pills tonight',
+      "I'm killing myself over this exam tonight with pills",
+      'I almost killed myself on the stairs, next time I will finish it',
+      'ending my life as a student tomorrow',
     ]) {
       expect(level(line), line).toBe('script');
     }
