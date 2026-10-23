@@ -100,12 +100,21 @@ function attributedToOther(prefix: string, matched: string): boolean {
   return lastEnd >= 0 && !FIRST_PERSON.test(prefix.slice(lastEnd));
 }
 
-/** How the clause around an explicit match softens it, if at all. */
+/** The whole message tells a recovery, with nothing saying it has come back. */
+export function recoveredMessage(text: string): boolean {
+  return RECOVERY_MARKERS.test(text) && !RECURRENCE_MARKERS.test(text);
+}
+
+/**
+ * How the clause around an explicit match softens it, if at all. `recovered` is judged on the
+ * whole message; a caller reading a window of it passes the whole message's (crisis-ending-floor.ts).
+ */
 export function explicitModifier(
   text: string,
   start: number,
   end: number,
-  imminent: boolean
+  imminent: boolean,
+  recovered = recoveredMessage(text)
 ): ExplicitModifier {
   const clauseStart = text.slice(0, start).split(CLAUSE_BREAK).pop() ?? '';
   const prefix = clauseStart.trim().length > 0 ? `${clauseStart.trim()} ` : '';
@@ -114,7 +123,7 @@ export function explicitModifier(
   if (NEGATION_PREFIX.test(prefix)) return 'negated';
   if (HYPERBOLE_PREFIX.test(` ${text.slice(0, start).replace(/\s+$/, '')} `)) return 'hyperbole';
   if (HISTORY_MARKERS.test(`${prefix}${text.slice(start, end)}${suffix}`)) {
-    return RECOVERY_MARKERS.test(text) && !RECURRENCE_MARKERS.test(text) ? 'recovered' : 'history';
+    return recovered ? 'recovered' : 'history';
   }
   if (JOKE_MARKERS.test(text)) return 'joking';
   // A conditional before the words ("if one more thing goes wrong I'll kms")

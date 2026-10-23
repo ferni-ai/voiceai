@@ -258,6 +258,18 @@ describe('the first-person ending floor', () => {
     expect(level('gonna kill myself laughing at this show tonight')).toBe('script');
   });
 
+  it('judges a long message as a short one would: whole-message recovery, unread clauses', () => {
+    const filler = 'and the weather was nice and we walked the dog '.repeat(60); // ~2,900 chars
+    // A recovery told early and "it's coming back" told far later: past, not recovered.
+    const recurring = `years ago I might have killed myself but I'm in recovery now ${filler} and it's coming back`;
+    expect(level(recurring)).toBe('guide');
+    expect(detectCrisis(recurring).indicators).toContain('crisis_history');
+    // An idiom whose clause runs past the window is not exempt: the unread part could carry risk.
+    expect(level(`I killed myself laughing ${filler} with pills`)).toBe('script');
+    expect(level(`I killed myself laughing ${filler}`)).toBe('script');
+    expect(level('I killed myself laughing at that')).toBe('none');
+  });
+
   it('costs time in proportion to the message, not its square', () => {
     // 160 KB of each shape: linear code takes milliseconds, a whole-text re-scan seconds.
     const units = [

@@ -5,7 +5,7 @@
  * @module CrisisEndingFloor
  */
 
-import { explicitModifier, type ExplicitModifier } from './crisis-modifiers.js';
+import { explicitModifier, recoveredMessage, type ExplicitModifier } from './crisis-modifiers.js';
 import {
   ENDING_ACCIDENT,
   ENDING_IDIOMS,
@@ -28,7 +28,7 @@ function clauseOf(
   text: string,
   from: number,
   to: number
-): { before: string; after: string; next: string } {
+): { before: string; after: string; next: string; cut: boolean } {
   const back = text.slice(Math.max(0, from - REACH), from);
   const start = Math.max(...['.', '!', '?', ';'].map((c) => back.lastIndexOf(c))) + 1;
   const ahead = text.slice(to, to + 2 * REACH);
@@ -36,7 +36,10 @@ function clauseOf(
   const after = end < 0 ? ahead : ahead.slice(0, end);
   const rest = end < 0 ? '' : ahead.slice(end + 1);
   const nextEnd = rest.search(/[.!?;]/);
-  return { before: back.slice(start), after, next: nextEnd < 0 ? rest : rest.slice(0, nextEnd) };
+  // The window cut the clause short: what lies beyond it is unread.
+  const cut = (start === 0 && from > REACH) || (end < 0 && to + 2 * REACH < text.length);
+  const next = nextEnd < 0 ? rest : rest.slice(0, nextEnd);
+  return { before: back.slice(start), after, next, cut };
 }
 
 /** "so I don't", "so that I won't", "if I don't": a purpose or condition, not a negation. */
@@ -63,8 +66,9 @@ const WITH_CALLER =
 
 /** The floor's words in an everyday idiom, or "end it all" said with another subject. */
 function endingIdiom(text: string, from: number, to: number, words: string): boolean {
-  const { before, after, next } = clauseOf(text, from, to);
-  if (MEANS_OR_INTENT.test(`${before} ${after} ${next}`)) return false;
+  const { before, after, next, cut } = clauseOf(text, from, to);
+  // A clause longer than the window is never exempt: the unread part could carry the risk.
+  if (cut || MEANS_OR_INTENT.test(`${before} ${after} ${next}`)) return false;
   const span = `${words}${after}`;
   if (ENDING_IDIOMS.some((re) => re.test(span))) return true;
   if (ENDING_IDIOM_BEFORE.test(before) && ENDING_ACCIDENT.test(span)) return true;
@@ -101,6 +105,8 @@ export function endingFloor(
   // Every match counts: an idiom or softened first one never hides a later one (#2528).
   let best: ExplicitModifier | undefined;
   let thirdParty = false;
+  // Judged once on the whole message, as the tiers judge it, though each match reads a window.
+  const recovered = recoveredMessage(text);
   for (const ending of text.matchAll(new RegExp(FIRST_PERSON_ENDING.source, 'g'))) {
     const from = ending.index;
     const to = from + ending[0].length;
@@ -110,7 +116,8 @@ export function endingFloor(
     // The modifier reads a window around the words, so each match costs at most 2 * REACH.
     const base = Math.max(0, from - REACH);
     const window = text.slice(base, to + REACH);
-    let modifier = explicitModifier(window, withoutModal(text, from) - base, to - base, false);
+    const at = withoutModal(text, from) - base;
+    let modifier = explicitModifier(window, at, to - base, false, recovered);
     if (modifier === 'negated' && PURPOSE_NOT.test(clauseOf(text, from, to).before))
       modifier = null;
     if (modifier === 'third_party') thirdParty = true;
