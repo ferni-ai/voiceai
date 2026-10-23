@@ -102,7 +102,11 @@ const NON_ENGLISH_LETTER = /[^\P{L}a-zA-Z]|\p{M}/u;
 const WARM_SYMBOLS =
   /🙂|😊|😀|😄|👋|❤|♥|💕|😘|🥰|🤗|👍|✌|🙏|\p{Emoji_Modifier}|\uFE0E|\uFE0F|\u200D|(?<![\p{L}\p{N}])(?::-?\)|:-?D|<3)(?![\p{L}\p{N}])/gu;
 
-/** Any other emoji, or a sad emoticon (":(", ":'(", "D:", "</3"), is never part of a plain goodbye. */
+/**
+ * Any other emoji, or a sad emoticon (":(", ":'(", "D:", "</3"), is never part of a plain goodbye.
+ * The emoticon part also reads the "://" of a URL as a sad face; a URL in a spoken goodbye
+ * is rare, and the error is on the safe side (the call stays open), so that is accepted.
+ */
 const OTHER_SYMBOL =
   /\p{Extended_Pictographic}|[:;=]'?-?[([\/\\|{<@]|(?<![\p{L}\p{N}])D-?:|<\/3|;_;/u;
 

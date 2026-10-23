@@ -584,6 +584,18 @@ describe('plain goodbyes are never taken for risk (#2291)', () => {
     }
   });
 
+  it('a goodbye in quotes or brackets is not a sign-off: the call stays open (the safe side)', async () => {
+    for (const line of ['(bye)', '“bye”', '[bye]']) {
+      expect(callerSignsOff(line), line).toBe(false);
+      const c = await call();
+      await c.toEnd();
+      c.finalWords(line);
+      await flush();
+      expect(c.reopens(), line).toEqual(['0 conversation_continue caller_spoke']);
+      expect(isSessionClosing(c.id), line).toBe(false);
+    }
+  });
+
   it('decomposed accents read as composed; a leftover combining mark fails closed', () => {
     const nfd = (s: string) => s.normalize('NFD');
     expect(nfd('adiós')).not.toBe('adiós');
