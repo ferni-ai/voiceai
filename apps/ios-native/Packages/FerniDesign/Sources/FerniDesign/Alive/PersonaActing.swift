@@ -1,4 +1,5 @@
 import Foundation
+import simd
 
 /// How each teammate acts, so that with the colour taken away you can still
 /// tell Maya from Alex (persona acting SPEC, voiceai-evidence/
@@ -72,4 +73,29 @@ public struct PersonaActing: Equatable, Sendable {
 
     /// How a persona acts with the flag `on` or off.
     static func resolved(_ persona: WindowPersona, on: Bool) -> PersonaActing { on ? of(persona) : shared }
+}
+
+/// A persona's shape within the round family (persona acting SPEC): eye
+/// spacing, eye size, body height and how much lower the top lids rest.
+struct PersonaShape: Equatable, Sendable {
+    var eyeSpacing: Double, eyeSize: SIMD2<Double>, bodyHeight: Double, lidDrop: Double
+
+    init(_ a: PersonaActing) {
+        (eyeSpacing, eyeSize, bodyHeight, lidDrop) = (a.eyeSpacing, a.eyeSize, a.bodyHeight, a.lidDrop)
+    }
+
+    /// Moves toward `target`, most of the way in about half a second; there
+    /// once under a tenth of a pixel away (so the shared shape is exactly the
+    /// shared shape again).
+    mutating func ease(toward target: PersonaShape, dt: Double) {
+        guard self != target else { return }
+        let k = dt.isFinite ? min(1, dt * 6) : 1
+        eyeSpacing += (target.eyeSpacing - eyeSpacing) * k
+        eyeSize += (target.eyeSize - eyeSize) * k
+        bodyHeight += (target.bodyHeight - bodyHeight) * k
+        lidDrop += (target.lidDrop - lidDrop) * k
+        let far = abs(target.eyeSpacing - eyeSpacing) + simd_reduce_add(abs(target.eyeSize - eyeSize))
+            + abs(target.bodyHeight - bodyHeight) + abs(target.lidDrop - lidDrop)
+        if far < 2e-3 { self = target }
+    }
 }

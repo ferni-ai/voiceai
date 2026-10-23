@@ -25,7 +25,7 @@ public struct AliveUniforms: Equatable, Sendable {
     public var lids = SIMD4<Float>(0.1, 0.1, 0.06, 0.06) // top left, top right, bottom left, bottom right
     public var poke = SIMD4<Float>(0, 0.3, 0.95, 0)    // where Ferni was touched (dir), amount
     public var tear = SIMD4<Float>(0, 0, 0, 0)         // tear progress left/right, alpha left/right
-    public var caps = SIMD4<Float>(0, 0, 0, 0)         // lid cap top, lid cap bottom (web control point / 100), the pitch the face rests at, -
+    public var caps = SIMD4<Float>(0, 0, 0, 0)         // lid cap top, lid cap bottom (web control point / 100), the pitch the face rests at, eye spacing (0: 0.36)
     public var page = SIMD4<Float>(0.98, 0.973, 0.961, 0) // the page behind Ferni ON SCREEN (sRGB, not linear): the lid caps' colour, -
 
     public init() {}
@@ -78,8 +78,8 @@ float3 onBody(float x, float y, thread const Ctx& c) {
   return float3(x, y, c.RB.z * sqrt(max(0.0, 1.0 - (x * x) / (c.RB.x * c.RB.x) - (y * y) / (c.RB.y * c.RB.y))));
 }
 // Eyes sit on the surface, oriented along its normal, so they never sink as Ferni looks around.
-void eyeFrame(float side, float2 sc, float2 gz, thread const Ctx& cx, thread float3& c, thread float3& ex, thread float3& ey, thread float3& ez, thread float3& es) {
-  float3 s = onBody(side * 0.36 + gz.x * 0.15, 0.05 + gz.y * 0.13, cx);
+void eyeFrame(float side, float spacing, float2 sc, float2 gz, thread const Ctx& cx, thread float3& c, thread float3& ex, thread float3& ey, thread float3& ez, thread float3& es) {
+  float3 s = onBody(side * spacing + gz.x * 0.15, 0.05 + gz.y * 0.13, cx);
   ez = normalize(s / (cx.RB * cx.RB)); ex = normalize(cross(float3(0.0, 1.0, 0.0), ez)); ey = cross(ez, ex);
   es = float3(0.2 * sc.x, 0.255 * sc.y, 0.085);
   c = s - ez * 0.032;
@@ -185,8 +185,10 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
   float zoom = u.key.w, radiusPx = u.fill.w, uScale = u.bg0.w, dark = u.res.w;
   Ctx c;
   float k = u.body.w; c.RB = float3(1.0 / sqrt(k), k, 1.0 / sqrt(k));
-  eyeFrame(-1.0, u.eyes.xy, u.gaze.xy, c, c.EL, c.LX, c.LY, c.LZ, c.SL);
-  eyeFrame(1.0, u.eyes.zw, u.gaze.zw, c, c.ER, c.RX, c.RY, c.RZ, c.SR);
+  // Eye spacing: each persona's own (persona acting), 0.36 body radii unless given.
+  float spacing = u.caps.w > 0.0 ? u.caps.w : 0.36;
+  eyeFrame(-1.0, spacing, u.eyes.xy, u.gaze.xy, c, c.EL, c.LX, c.LY, c.LZ, c.SL);
+  eyeFrame(1.0, spacing, u.eyes.zw, u.gaze.zw, c, c.ER, c.RX, c.RY, c.RZ, c.SR);
   float3 ro = float3(0.0, 0.0, 5.0); float3 rd = normalize(float3(uv, -zoom));
   float2 cuv = float2(uv.x - u.pos.x / 5.0 * zoom, uv.y - u.pos.y / 5.0 * zoom) / (radiusPx / res.y);
   // The web's lid caps (the live overlay, .avatar-lid-overlay over the orb): shapes in the

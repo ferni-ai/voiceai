@@ -35,6 +35,9 @@ public final class AliveRig {
 
     /// How this persona acts now (the shared values with `personaActing` off).
     var acting: PersonaActing { PersonaActing.resolved(persona, on: personaActing) }
+    /// His shape as drawn (eye spacing, eye size x and y, body height; lid drop),
+    /// easing toward his persona's over about half a second (a handoff doesn't snap).
+    private(set) var shape = PersonaShape(PersonaActing.shared)
     /// Quiet: at rest and blinking, nothing else (no wandering eyes, no
     /// breath or bob). The small Ferni beside a screen's intro line.
     public var blinksOnly = false
@@ -745,6 +748,7 @@ public final class AliveRig {
         pending.removeAll()
         stepPauses()
         let m = motion
+        shape.ease(toward: PersonaShape(acting), dt: still ? .infinity : dt)
         stepMicros()
         stepExpressionAnimation()
         stepSequence()
@@ -903,7 +907,7 @@ public final class AliveRig {
     }
 
     private func apply(_ f: Face, m: Double) {
-        self[.topL].t = f.left.top; self[.topR].t = f.right.top
+        self[.topL].t = f.left.top + shape.lidDrop; self[.topR].t = f.right.top + shape.lidDrop
         self[.botL].t = f.left.bot; self[.botR].t = f.right.bot
         self[.archL].t = f.left.arch; self[.archR].t = f.right.arch
         self[.sxL].t = f.left.sx; self[.syL].t = f.left.sy; self[.sxR].t = f.right.sx; self[.syR].t = f.right.sy
@@ -1180,14 +1184,15 @@ public final class AliveRig {
         u.res.w = dark ? 1 : 0
         let lidGaze = clamp(-self[.gy].x * 0.16, -0.08, 0.14)
         func lid(_ v: Double) -> Float { Float(clamp(v, 0, 1)) }
-        u.body = SIMD4(currentBody, Float(clamp(self[.squash].x, 0.6, 1.5)))
+        u.body = SIMD4(currentBody, Float(clamp(self[.squash].x * shape.bodyHeight, 0.6, 1.5)))
         u.bg0.w = Float(clamp(self[.scale].x, 0.85, 1.2) * clamp(self[.stageS].x, 0.3, 1.2))
         u.bg1.w = Float(clamp(self[.glow].x, 0, 1.5))
         u.glowCol = SIMD4(currentGlow, Float(clamp(self[.blush].x, 0, 1)))
         u.pos = SIMD4(Float(self[.stageX].x + self[.posX].x * 0.35), Float(self[.stageY].x + self[.posY].x), 0, Float(self[.tilt].x))
         u.lean = SIMD4(Float(self[.roll].x), Float(self[.pitch].x), Float(self[.yaw].x), Float(clamp(self[.crease].x, 0, 1)))
         u.gaze = SIMD4(Float(self[.gx].x + self[.conv].x), Float(self[.gy].x), Float(self[.gx].x - self[.conv].x), Float(self[.gy].x))
-        u.eyes = SIMD4(Float(self[.sxL].x), Float(self[.syL].x), Float(self[.sxR].x), Float(self[.syR].x))
+        u.eyes = SIMD4(Float(self[.sxL].x * shape.eyeSize.x), Float(self[.syL].x * shape.eyeSize.y),
+                       Float(self[.sxR].x * shape.eyeSize.x), Float(self[.syR].x * shape.eyeSize.y))
         u.arch = SIMD4(Float(clamp(self[.archL].x, 0, 1)), Float(clamp(self[.archR].x, 0, 1)),
                        Float(clamp(self[.halo].x, 0, 1.2)), Float(self[.shear].x))
         u.ring = SIMD4(Float(self[.ringY].x - self[.posY].x), Float(self[.ringS].x), Float(clamp(g.arch.x, 0, 1)), 0)
@@ -1195,7 +1200,8 @@ public final class AliveRig {
                        lid(self[.topR].x + lidGaze + (1 - self[.topR].x) * blink),
                        lid(self[.botL].x + blink * 0.15 + env * 0.2), lid(self[.botR].x + blink * 0.15 + env * 0.2))
         u.poke = SIMD4(SIMD3<Float>(pokeDir), Float(clamp(self[.poke].x, -0.6, 0.6)))
-        u.caps = SIMD4(Float(clamp(self[.capT].x, 0, 0.9)), Float(clamp(self[.capB].x, 0, 0.7)), Float(self[.capPitch].x), 0)
+        u.caps = SIMD4(Float(clamp(self[.capT].x, 0, 0.9)), Float(clamp(self[.capB].x, 0, 0.7)), Float(self[.capPitch].x),
+                       shape == PersonaShape(.shared) ? 0 : Float(shape.eyeSpacing))
         if let guest = guestPersona {
             u.guest = SIMD4(Float(g.x.x), Float(g.y.x), Float(g.s.x), 1)
             u.guestEye = SIMD4(Float(g.gx.x), Float(g.gy.x), Float(clamp(1 - abs(time - g.blinkAt - 0.075) / 0.075, 0, 1)),
