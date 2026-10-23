@@ -9,8 +9,9 @@
  * flood Firestore. A reader that can't wait for the read (READ_TIMEOUT_MS)
  * uses the last topics read for the caller, by any reader in this process,
  * but only if they were read in the last LAST_KNOWN_MAX_AGE_MS or during
- * this call (markCallStart): older ones may miss a forget made since in
- * another process, so without a recent source it fails closed. Timeouts, fallbacks and
+ * this call (markCallStart, trusted for CALL_MARK_MAX_MS): older ones may
+ * miss a forget made since in another process, so without a recent source it
+ * fails closed. Timeouts, fallbacks and
  * fail-closed answers are logged and counted (forgetReadStats).
  *
  * @module memory/recall/forget-topics-source
@@ -28,6 +29,8 @@ export const BACKOFF_MIN_MS = 1_000;
 export const BACKOFF_MAX_MS = 60_000;
 /** Last-known topics older than this, and not read during this call, are not a source. */
 export const LAST_KNOWN_MAX_AGE_MS = 60_000;
+/** A call mark older than this is an old call's, not this one's (no call runs this long). */
+export const CALL_MARK_MAX_MS = 2 * 3600_000;
 
 interface Entry {
   inflight?: Promise<string[] | null>;
@@ -40,7 +43,7 @@ interface Entry {
 }
 const entries = new Map<string, Entry>();
 const callStarts = new Map<string, number>();
-/** Names the caller's own memory knows (recall's facts), kept whole by the matcher. */
+/** Names of the people and pets in the caller's memory, kept whole by the matcher. */
 const names = new Map<string, ReadonlySet<string>>();
 const stats = { reads: 0, failures: 0, timeouts: 0, fallbacks: 0, failClosed: 0 };
 
@@ -109,7 +112,7 @@ export function markCallStart(userId: string, now = Date.now()): void {
   callStarts.set(userId, now);
 }
 
-/** The caller's known names (lower case), from recall's facts; replaces the last set. */
+/** The caller's known names (lower case): people and pets in their memory; replaces the last set. */
 export function rememberNames(userId: string, known: Iterable<string>): void {
   names.set(userId, new Set([...known].map((n) => n.toLowerCase())));
 }
@@ -125,7 +128,8 @@ export function knownNames(userId: string): ReadonlySet<string> {
 export function lastKnownTopics(userId: string, now = Date.now()): string[] | undefined {
   const e = entries.get(userId);
   if (!e?.topics || e.at === undefined) return undefined;
-  const thisCall = e.at >= (callStarts.get(userId) ?? Infinity);
+  const start = callStarts.get(userId) ?? Infinity;
+  const thisCall = e.at >= start && now - start < CALL_MARK_MAX_MS;
   return thisCall || now - e.at < LAST_KNOWN_MAX_AGE_MS ? e.topics : undefined;
 }
 

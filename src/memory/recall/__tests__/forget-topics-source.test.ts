@@ -12,9 +12,24 @@ const read = vi.hoisted(() => ({ fn: vi.fn(async (_u: string): Promise<string[] 
 vi.mock('../../../utils/firestore-utils.js', async (original) => ({
   ...(await original<typeof import('../../../utils/firestore-utils.js')>()),
   getFirestoreDb: () => {
-    const docs = [{ data: () => ({ entityName: 'Mark', key: 'relation', value: 'brother' }) }];
-    const query = { orderBy: () => query, limit: () => query, get: async () => ({ docs }) };
-    return { collection: () => ({ doc: () => ({ collection: () => query }) }) };
+    const rows: Record<string, object[]> = {
+      // A fact names an entity of any kind; only people and pets are names.
+      dynamic_facts: [
+        { entityName: 'Mark', key: 'relation', value: 'brother' },
+        { entityName: 'Divorce', key: 'status', value: 'final in March' },
+      ],
+      dynamic_entities: [
+        { name: 'Mark', type: 'person' },
+        { name: 'Biscuit', type: 'pet' },
+        { name: 'Divorce', type: 'event' },
+      ],
+    };
+    const query = (name: string) => {
+      const docs = (rows[name] ?? []).map((r) => ({ data: () => r }));
+      const q = { orderBy: () => q, limit: () => q, where: () => q, get: async () => ({ docs }) };
+      return q;
+    };
+    return { collection: () => ({ doc: () => ({ collection: query }) }) };
   },
 }));
 vi.mock('../forget.js', async (original) => ({
@@ -24,6 +39,7 @@ vi.mock('../forget.js', async (original) => ({
 
 import {
   BACKOFF_MIN_MS,
+  CALL_MARK_MAX_MS,
   forgetReadStats,
   READ_TIMEOUT_MS,
   readTopics,
@@ -36,7 +52,7 @@ import {
   forgottenCheck,
   forgottenCheckNow,
   prefetchForgotten,
-  rememberFactNames,
+  rememberCallerNames,
   snapshotTopics,
 } from '../forget-every-reader.js';
 
@@ -109,6 +125,18 @@ describe('a reader that cannot wait', () => {
     expect(forgetReadStats()).toMatchObject({ fallbacks: 0, failClosed: 1 });
   });
 
+  it('stops trusting the call mark after CALL_MARK_MAX_MS: an old call is not this call', async () => {
+    vi.useFakeTimers({ now: 5_000_000 });
+    read.fn.mockResolvedValueOnce(['Biscuit']);
+    prefetchForgotten(U); // a call starts and reads the topics
+    await readTopics(U);
+    vi.setSystemTime(5_000_000 + CALL_MARK_MAX_MS + 1); // that call is long over
+    read.fn.mockResolvedValue(null);
+    const check = await forgottenCheck(U);
+    expect(check?.('training for Boston')).toBe(true); // no source: fail closed
+    expect(forgetReadStats()).toMatchObject({ fallbacks: 0, failClosed: 1 });
+  });
+
   it('trusts last-known topics read during this call, however long ago', async () => {
     vi.useFakeTimers({ now: 4_000_000 });
     read.fn.mockResolvedValueOnce(['Biscuit']);
@@ -171,16 +199,26 @@ describe('aboutForgotten: known names whole, everything else stems', () => {
     expect(aboutForgotten('the report was marked late', ['Mark'])).toBe(true);
   });
 
-  it("recall's facts load teaches the names to the matcher", async () => {
+  it("recall's facts load teaches the names of people and pets, never an event", async () => {
     const { firestoreRecallStore } =
       await import('../../../agents/multi-agent/recall-firestore-store.js');
     await firestoreRecallStore.facts('member-facts-names');
-    expect(knownNames('member-facts-names').has('mark')).toBe(true);
+    const names = knownNames('member-facts-names');
+    expect([...names].sort()).toEqual(['biscuit', 'mark']);
   });
 
-  it("the caller's facts teach the names (rememberFactNames)", () => {
-    rememberFactNames(U, [{ entityName: 'Mark', key: 'relation', value: 'brother' }]);
-    expect(knownNames(U).has('mark')).toBe(true);
+  it('an event is not a name: forgetting Divorce still hides "divorced"', async () => {
+    const { firestoreRecallStore } =
+      await import('../../../agents/multi-agent/recall-firestore-store.js');
+    await firestoreRecallStore.facts(U);
+    expect(aboutForgotten('they divorced last spring', ['Divorce'], knownNames(U))).toBe(true);
+    expect(aboutForgotten('the report was marked late', ['Mark'], knownNames(U))).toBe(false);
+  });
+
+  it('flag off: no names are learned', () => {
+    vi.stubEnv('FORGET_EVERY_READER', 'off');
+    rememberCallerNames(U, ['Mark']);
+    expect(knownNames(U).size).toBe(0);
   });
 
   it('a topic that is not a name still matches other forms', () => {

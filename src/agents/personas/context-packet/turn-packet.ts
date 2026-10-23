@@ -18,7 +18,7 @@ import {
   type MemoryRecall,
   type RecallAgent,
 } from '../../multi-agent/memory-recall-hook.js';
-import { dropForgottenNotes } from '../../multi-agent/recall-note.js';
+import { dropForgottenNotes, watchForgets } from '../../multi-agent/recall-note.js';
 import { forgottenCheckNow } from '../../../memory/recall/forget-every-reader.js';
 
 import { forgottenInProcess } from '../../../memory/recall/forget.js';
@@ -107,8 +107,9 @@ export function rememberForPacket(
  * chat note. Off: the note as before (memory-recall-hook.ts addRecallNote).
  * `said` is the transcript the note was built for (PREEMPT_STABLE_CONTEXT).
  * FORGET_EVERY_READER=on: every turn, recall notes already in the chat are
- * checked again (a topic forgotten mid-call takes them out), and a new note
- * about a forgotten topic is not sent.
+ * checked again (a topic forgotten mid-call takes them out), a new note
+ * about a forgotten topic is not sent, a held one is checked again as it
+ * lands, and a forget takes this chat's notes out at once (watchForgets).
  */
 export function sendRecall(
   agent: RecallAgent,
@@ -119,12 +120,14 @@ export function sendRecall(
   userId?: string
 ): void {
   const forgotten = forgottenCheckNow(userId);
+  if (forgotten && userId) watchForgets(agent, userId);
   dropForgottenNotes(agent, forgotten, said);
   if (!note || forgotten?.(note)) return;
+  const again = () => forgottenCheckNow(userId); // a held note is checked again as it lands
   const pick = contextPacketEnabled() ? recall.lastPick() : null;
-  if (!pick) return addRecallNote(agent, note, said);
+  if (!pick) return addRecallNote(agent, note, said, again);
   rememberForPacket(session, pick);
-  if (pick.rest) addRecallNote(agent, pick.rest, said);
+  if (pick.rest) addRecallNote(agent, pick.rest, said, again);
 }
 
 /** "How do you know", "who told you", "where did you hear that". */
