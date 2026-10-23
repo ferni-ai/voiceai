@@ -6,7 +6,8 @@
  */
 
 import type { VectorRecallStore } from '../../memory/recall/stored-fact-vectors.js';
-import { rememberFactNames, snapshotTopics } from '../../memory/recall/forget-every-reader.js';
+import { rememberCallerNames, snapshotTopics } from '../../memory/recall/forget-every-reader.js';
+import { firestoreCallerNames } from '../personas/life-ledger.js';
 import { getFirestoreDb } from '../../utils/firestore-utils.js';
 
 /** Reads the collections the live pipeline writes. Plain queries, but for nearest (a vector index). */
@@ -20,11 +21,12 @@ export const firestoreRecallStore: VectorRecallStore = {
     const facts = db.collection('bogle_users').doc(userId).collection('dynamic_facts');
     // Newest first: an unordered limit loaded an arbitrary 300 of a user's
     // facts (2,024 for one test user). Facts without a date fall back to it.
+    // FORGET_EVERY_READER: the people and pets, whose names the forget matcher keeps whole.
+    const people = firestoreCallerNames(userId).catch(() => [] as string[]);
     const newest = await facts.orderBy('extractedAt', 'desc').limit(300).get();
     const snap = newest.docs.length > 0 ? newest : await facts.limit(300).get();
-    const rows = snap.docs.map((d) => d.data());
-    rememberFactNames(userId, rows); // FORGET_EVERY_READER: names the forget matcher keeps whole
-    return rows;
+    rememberCallerNames(userId, await people);
+    return snap.docs.map((d) => d.data());
   },
   // RECALL_VECTOR_INDEX: the stored facts nearest a turn's meaning, however old.
   async nearest(userId, queryVector, k) {

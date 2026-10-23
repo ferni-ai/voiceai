@@ -151,6 +151,24 @@ function noteForgotten(userId: string, tokens: string): void {
   const set = forgottenHere.get(userId) ?? new Set<string>();
   set.add(tokens);
   forgottenHere.set(userId, set);
+  for (const listener of forgetListeners) {
+    try {
+      listener(userId);
+    } catch (error) {
+      log.warn({ error: String(error) }, 'Forget listener failed');
+    }
+  }
+}
+
+const forgetListeners = new Set<(userId: string) => void>();
+/**
+ * Called in this process the moment a caller forgets a topic, before the
+ * stored facts are marked: a live call takes what it already holds about it
+ * out at once (recall-note.ts). Returns the unsubscribe.
+ */
+export function onForget(listener: (userId: string) => void): () => void {
+  forgetListeners.add(listener);
+  return () => forgetListeners.delete(listener);
 }
 export function forgottenInProcess(userId: string): string[] {
   return [...(forgottenHere.get(userId) ?? [])];

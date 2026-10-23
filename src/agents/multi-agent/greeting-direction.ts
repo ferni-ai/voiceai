@@ -32,6 +32,7 @@ import {
 import { isHeavyMoment } from '../../speech/adaptive-ssml/heavy-moment.js';
 import { loadWelcomeBack, planWelcomeBack, welcomeBackFacts } from './welcome-back.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
+import { promptCheck } from '../../memory/index.js';
 import { calendarDaysSince } from '../../utils/calendar-days.js';
 import * as notYet from './greeting-not-yet.js';
 import * as stranger from './first-call-stranger.js';
@@ -316,15 +317,16 @@ export function proactiveReasonOpenerEnabled(env: Env = process.env): boolean {
   return flagOn('PROACTIVE_REASON_OPENER', env);
 }
 
-/** The reasons the opener may give, as director facts. Empty when the job gave none. */
-export function proactiveReasonFacts(reason: ProactiveReason): Record<string, string> {
+/** The reasons the opener may give, as director facts; `keep` false drops one (a forgotten topic). */
+export function proactiveReasonFacts(reason: ProactiveReason, keep = (_text: string) => true) {
   const facts: Record<string, string> = {};
-  const why = reason.triggerReason?.trim();
+  const said = (text?: string) => (text?.trim() && keep(text) ? text.trim() : undefined);
+  const why = said(reason.triggerReason);
   if (why && !PLACEHOLDER_REASONS.has(why.toLowerCase()))
     facts['why you called them'] = why.slice(0, MAX_TOPIC_CHARS);
-  const commitment = reason.relatedCommitment?.summary?.trim();
+  const commitment = said(reason.relatedCommitment?.summary);
   if (commitment) facts['something they said they would do'] = commitment.slice(0, MAX_TOPIC_CHARS);
-  const last = reason.lastSessionSummary?.trim();
+  const last = said(reason.lastSessionSummary);
   if (last) facts['what you talked about last time'] = last.slice(0, MAX_TOPIC_CHARS);
   return facts;
 }
@@ -376,12 +378,13 @@ export async function directedGreeting(
       ).getProactiveSessionContext(sessionId)
     : undefined;
   if (proactive) {
+    const forgotten = await promptCheck(userData?.userId, 'proactive-greeting'); // FORGET_EVERY_READER
     const directed = await directedText(sessionId, {
       moment: 'proactive_greeting',
       direction: PROACTIVE_GREETING_DIRECTION,
       facts: {
         ...greetingFacts(partOfDay, userData?.userName, history),
-        ...proactiveReasonFacts(proactive),
+        ...proactiveReasonFacts(proactive, (text) => !forgotten?.(text)),
       },
       fallback: proactiveFallback(userData?.userName, personaId),
       urgency: 'now',

@@ -16,8 +16,8 @@
  *
  * The match is the shared one (isForgotten), with a topic's capitalized
  * words read in lower case (so they stem: "Divorce" catches "divorced")
- * unless they are names the caller's memory knows (rememberFactNames, from
- * recall's facts). A known name must appear whole, or as its plural or
+ * unless they are names of people or pets in the caller's memory
+ * (rememberCallerNames). A known name must appear whole, or as its plural or
  * possessive: forgetting Mark keeps "marked". With no known names, every
  * word stems: erring toward leaving a memory out.
  *
@@ -128,18 +128,18 @@ export function prefetchForgotten(userId: string | null | undefined, env: Env = 
 }
 
 /**
- * The names in the caller's facts (recall-firestore-store.ts), for the
- * matcher: the capitalized words of each fact's entity. Flag off: nothing.
+ * The names of the people and pets in the caller's memory (their
+ * dynamic_entities, read beside recall's facts in recall-firestore-store.ts),
+ * for the matcher: a concept or an event is never a name, so a forgotten
+ * "Running" still hides "runs". Flag off: nothing.
  */
-export function rememberFactNames(
+export function rememberCallerNames(
   userId: string,
-  facts: ReadonlyArray<Record<string, unknown>>,
+  people: readonly string[],
   env: Env = process.env
 ): void {
   if (!forgetEveryReaderEnabled(env)) return;
-  const words = facts.flatMap((f) =>
-    [f.entityName, f.entity].flatMap((v) => (typeof v === 'string' ? (v.match(/\S+/g) ?? []) : []))
-  );
+  const words = people.flatMap((name) => name.match(/\S+/g) ?? []);
   rememberNames(
     userId,
     words.filter((w) => /^\p{Lu}/u.test(w)).flatMap((w) => foldedWords(w).map((f) => f.word))

@@ -4,7 +4,8 @@
  * @module agents/multi-agent/recall-note
  */
 import { createLogger } from '../../utils/safe-logger.js';
-import type { ForgottenCheck } from '../../memory/recall/forget-every-reader.js';
+import { forgottenCheckNow, type ForgottenCheck } from '../../memory/recall/forget-every-reader.js';
+import { onForget } from '../../memory/recall/forget.js';
 import { afterPreemptive, preemptStableMode, restartPreemptive } from './preempt-stable-context.js';
 import { RECALL_NOTE_ID_PREFIX } from './turn-context-header.js';
 
@@ -45,9 +46,17 @@ function update(agent: RecallAgent, ctx: unknown): void {
  * reply) changes the context under that reply. PREEMPT_STABLE_CONTEXT=on starts
  * the reply again from it at once; =defer holds it for the next reply
  * (preempt-stable-context.ts). `said` is the transcript the note was built for.
+ * `forgotten` is asked again when the note lands (FORGET_EVERY_READER): a held
+ * note about a topic forgotten while it waited never goes in.
  */
-export function addRecallNote(agent: RecallAgent, note: string, said?: string): void {
+export function addRecallNote(
+  agent: RecallAgent,
+  note: string,
+  said?: string,
+  forgotten?: () => ForgottenCheck | null
+): void {
   const write = () => {
+    if (forgotten?.()?.(note)) return void log.info('Held recall note forgotten before it landed');
     const ctx = agent.chatCtx.copy();
     ctx.addMessage({
       role: 'system',
@@ -93,4 +102,32 @@ export function dropForgottenNotes(
   if (preemptStableMode() === 'on') restartPreemptive(agent, said);
   log.info({ dropped }, 'Forgotten recall notes taken out');
   return dropped;
+}
+
+/** Agents recall has written to, per caller (FORGET_EVERY_READER): a forget clears each at once. */
+const written = new Map<string, Set<WeakRef<RecallAgent>>>();
+const MAX_CALLERS = 1000;
+let watching = false;
+
+/**
+ * Take this agent's recall notes about a topic out the moment its caller
+ * forgets it (forget.ts onForget), not on the next transcript: a reply the
+ * agent starts on its own, or a handoff copying its chat, would see them.
+ */
+export function watchForgets(agent: RecallAgent, userId: string): void {
+  if (!watching) {
+    watching = true;
+    onForget((id) => {
+      for (const ref of written.get(id) ?? []) {
+        const live = ref.deref();
+        if (live) dropForgottenNotes(live, forgottenCheckNow(id, 'recall-forget'));
+      }
+    });
+  }
+  const refs = written.get(userId) ?? new Set<WeakRef<RecallAgent>>();
+  for (const ref of refs) if (!ref.deref() || ref.deref() === agent) refs.delete(ref);
+  refs.add(new WeakRef(agent));
+  written.delete(userId); // newest last, so the oldest caller goes first
+  written.set(userId, refs);
+  if (written.size > MAX_CALLERS) written.delete(written.keys().next().value as string);
 }
