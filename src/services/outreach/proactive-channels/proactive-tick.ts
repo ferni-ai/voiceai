@@ -31,6 +31,7 @@ import { lastTalkedAt } from '../outreach-cadence.js';
 import { isValidTimezone, localMinutes } from '../call-hours-guard.js';
 import type { WorldDueItem } from './more-triggers.js';
 import { collectTriggers } from './triggers.js';
+import { forgottenCheck } from '../../../memory/recall/forget-every-reader.js';
 import { PONDERED_NOTES_FLAG, ponderedTriggers } from './pondered-triggers.js';
 import { chooseChannel, type ChannelChoice, type PolicyInput } from './channel-policy.js';
 import {
@@ -164,7 +165,11 @@ async function nextTrigger(
       return [];
     })),
   ];
+  // FORGET_EVERY_READER: nothing about a topic they asked Ferni to forget, from any
+  // source; topics that can't be read send nothing this run (the check fails closed).
+  const forgotten = await forgottenCheck(userId, 'proactive-tick');
   for (const t of triggers) {
+    if (forgotten && (forgotten(t.text) || forgotten(t.reason))) continue;
     // Sequential on purpose: usually the first one is new.
     // eslint-disable-next-line no-await-in-loop
     if (!(await alreadySent(userId, t.sourceId))) return t;

@@ -137,6 +137,19 @@ describe('a reader that cannot wait', () => {
     expect(forgetReadStats()).toMatchObject({ fallbacks: 0, failClosed: 1 });
   });
 
+  it("ends the call mark at the persona's teardown: after the call, it fails closed", async () => {
+    vi.useFakeTimers({ now: 6_000_000 });
+    read.fn.mockResolvedValueOnce(['Biscuit']);
+    const teardown: Array<() => void> = [];
+    prefetchForgotten(U, (fn) => teardown.push(fn)); // agent setup hands its teardown
+    await readTopics(U);
+    vi.setSystemTime(6_000_000 + 5 * 60_000); // past the 60 s bound, still in the call
+    read.fn.mockResolvedValue(null);
+    expect((await forgottenCheck(U))?.('training for Boston')).toBe(false); // this call's read
+    for (const fn of teardown) fn(); // the call ends
+    expect((await forgottenCheck(U))?.('training for Boston')).toBe(true); // no source: closed
+  });
+
   it('trusts last-known topics read during this call, however long ago', async () => {
     vi.useFakeTimers({ now: 4_000_000 });
     read.fn.mockResolvedValueOnce(['Biscuit']);

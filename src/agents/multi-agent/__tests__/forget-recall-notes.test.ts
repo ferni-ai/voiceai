@@ -14,7 +14,7 @@ vi.mock('../../../memory/recall/forget.js', async (original) => ({
   forgottenTopicsOrNull: async () => stored.topics,
 }));
 
-import { forgetTopic, type ForgetStore } from '../../../memory/recall/forget.js';
+import { forgetTopic, onForget, type ForgetStore } from '../../../memory/recall/forget.js';
 import {
   readTopics,
   resetForgetTopicsSource,
@@ -83,6 +83,21 @@ describe('a recall note held for a preemptive reply', () => {
     expect(texts()).toEqual([SAID]);
   });
 
+  it("CONTEXT_PACKET=on: the pick's rest is checked again as it lands, too", async () => {
+    vi.stubEnv('PREEMPT_STABLE_CONTEXT', 'defer');
+    vi.stubEnv('CONTEXT_PACKET', 'on');
+    const { agent, texts, activity } = chat([{ id: 'user_1', textContent: SAID }]);
+    activity._preemptiveGenerationCount = 1;
+    const recall = { lastPick: () => ({ facts: [], rest: NOTE }) } as never;
+    sendRecall(agent as never, {}, recall, NOTE, SAID, user);
+    await forgetTopic(user, 'Biscuit', processOnly);
+    activity._preemptiveGenerationCount = 0;
+    await new Promise((r) => {
+      setTimeout(r, 150);
+    });
+    expect(texts()).toEqual([SAID]);
+  });
+
   it('lands when nothing was forgotten while it waited', async () => {
     vi.stubEnv('PREEMPT_STABLE_CONTEXT', 'defer');
     const { agent, texts, activity } = chat([{ id: 'user_1', textContent: SAID }]);
@@ -104,6 +119,32 @@ describe('a forget during the call', () => {
     expect(texts()).toHaveLength(3);
     await forgetTopic(user, 'Biscuit', processOnly);
     expect(texts()).toEqual(['[WHAT YOU REMEMBER] training for Boston', 'Biscuit did it again']);
+  });
+
+  it("one caller's forget leaves another caller's chat alone", async () => {
+    const other = `member-recall-notes-other-${seq}`;
+    await readTopics(other);
+    const mine = chat([{ id: 'recall_1', textContent: NOTE }]);
+    const theirs = chat([{ id: 'recall_1', textContent: NOTE }]);
+    sendRecall(mine.agent as never, {}, NO_PICK, null, 'hi', user);
+    sendRecall(theirs.agent as never, {}, NO_PICK, null, 'hi', other);
+    await forgetTopic(user, 'Biscuit', processOnly);
+    expect(mine.texts()).toEqual([]);
+    expect(theirs.texts()).toEqual([NOTE]);
+  });
+
+  it('a listener that throws neither fails the forget nor stops the others', async () => {
+    const stop = onForget(() => {
+      throw new Error('listener down');
+    });
+    try {
+      const { agent, texts } = chat([{ id: 'recall_1', textContent: NOTE }]);
+      sendRecall(agent as never, {}, NO_PICK, null, 'hi', user);
+      expect((await forgetTopic(user, 'Biscuit', processOnly)).kind).toBe('forgotten');
+      expect(texts()).toEqual([]);
+    } finally {
+      stop();
+    }
   });
 
   it('flag off: the chat is left as it is', async () => {

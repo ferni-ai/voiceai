@@ -30,6 +30,7 @@ import { foldedWords } from './forget-tokens.js';
 import { scrubProfile } from './forget-profile.js';
 import {
   knownNames,
+  endCallMark,
   markCallStart,
   readTopics,
   rememberNames,
@@ -120,10 +121,21 @@ export function forgottenCheckNow(
   return checkFor(userId, topicsNow(userId, reader));
 }
 
-/** Start the shared read early (agent setup, beside the prompt loads); never throws. */
-export function prefetchForgotten(userId: string | null | undefined, env: Env = process.env): void {
+/**
+ * Start the shared read early (agent setup, beside the prompt loads) and mark
+ * the call; `teardown` registers the mark's end with the persona's cleanup,
+ * so after the call a reader fails closed rather than trusting its reads.
+ * Never throws.
+ */
+export function prefetchForgotten(
+  userId: string | null | undefined,
+  teardown?: (end: () => void) => void,
+  env: Env = process.env
+): void {
   if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return;
-  markCallStart(userId);
+  const started = Date.now();
+  markCallStart(userId, started);
+  teardown?.(() => endCallMark(userId, started)); // a newer call's mark stays
   void readTopics(userId);
 }
 

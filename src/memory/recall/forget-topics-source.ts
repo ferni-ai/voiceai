@@ -112,6 +112,11 @@ export function markCallStart(userId: string, now = Date.now()): void {
   callStarts.set(userId, now);
 }
 
+/** The call is over (its persona's teardown): its reads are no longer this call's. */
+export function endCallMark(userId: string, started?: number): void {
+  if (started === undefined || callStarts.get(userId) === started) callStarts.delete(userId);
+}
+
 /** The caller's known names (lower case): people and pets in their memory; replaces the last set. */
 export function rememberNames(userId: string, known: Iterable<string>): void {
   names.set(userId, new Set([...known].map((n) => n.toLowerCase())));
