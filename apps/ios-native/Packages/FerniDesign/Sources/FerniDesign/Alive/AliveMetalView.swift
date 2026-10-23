@@ -40,7 +40,7 @@ struct AliveMetalView: UIViewRepresentable {
         view.isOpaque = false
         view.backgroundColor = .clear
         view.isUserInteractionEnabled = false
-        view.onWindow = { [weak coordinator = context.coordinator] in coordinator?.updatePause() }
+        view.onPlaced = { [weak coordinator = context.coordinator] in coordinator?.updatePause() }
         context.coordinator.attach(to: view)
         return view
     }
@@ -58,6 +58,8 @@ struct AliveMetalView: UIViewRepresentable {
         c.paused = paused
         c.updatePause()
         c.apply(pace(.now))
+        // After the view update, never during it: a frame writes the particle feed.
+        Task { @MainActor [weak c] in c?.refresh() }
     }
 
     static func dismantleUIView(_ view: Canvas, coordinator: Coordinator) { coordinator.stop() }
@@ -67,17 +69,19 @@ struct AliveMetalView: UIViewRepresentable {
         override class var layerClass: AnyClass { CAMetalLayer.self }
         /// Always a CAMetalLayer (`layerClass`).
         var metalLayer: CAMetalLayer { layer as! CAMetalLayer }
-        var onWindow: (() -> Void)?
+        /// Moved to or from a window, or resized: whether there's anything to draw into changed.
+        var onPlaced: (() -> Void)?
 
         override func layoutSubviews() {
             super.layoutSubviews()
             let s = contentScaleFactor
             metalLayer.drawableSize = CGSize(width: bounds.width * s, height: bounds.height * s)
+            onPlaced?()
         }
 
         override func didMoveToWindow() {
             super.didMoveToWindow()
-            onWindow?()
+            onPlaced?()
         }
     }
 
@@ -120,10 +124,33 @@ struct AliveMetalView: UIViewRepresentable {
             link = nil
         }
 
-        /// Frames only while wanted and on screen.
+        /// A still frame is due: the link runs for one frame while paused.
+        private var owesStill = false
+
+        /// Something to draw into: in a window, with a size.
+        private var placed: Bool {
+            guard let view, view.window != nil else { return false }
+            return view.bounds.width > 0 && view.bounds.height > 0
+        }
+
+        /// Frames only while wanted (or one still frame is owed) and placed.
         func updatePause() {
-            let off = paused || view?.window == nil
+            let off = (paused && !owesStill) || !placed
             if link?.isPaused != off { link?.isPaused = off }
+        }
+
+        /// After a view update. While the link runs, its next frame sees the
+        /// new inputs. While it's paused (covered, inactive) it draws one still
+        /// frame with them, as a paused clock redraws on an update; with nothing
+        /// to draw into, the rig still hears them (and its requests are kept).
+        func refresh() {
+            guard link?.isPaused ?? true else { return }
+            if placed {
+                owesStill = true
+                updatePause()
+            } else if let frame {
+                _ = frame(clock.seconds(presentingAt: CACurrentMediaTime()), .now)
+            }
         }
 
         /// The rate, straight to the link (only when it changes).
@@ -140,6 +167,10 @@ struct AliveMetalView: UIViewRepresentable {
             var u = frame(clock.seconds(presentingAt: target), date)
             draw(&u, into: update.drawable)
             if let pace { apply(pace(date)) }
+            if owesStill {
+                owesStill = false
+                updatePause()
+            }
         }
 
         private func draw(_ uniforms: inout AliveUniforms, into drawable: CAMetalDrawable) {
