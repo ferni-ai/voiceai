@@ -29,6 +29,7 @@ on:
       - 'e2e/night-ink-website.spec.ts'
       - 'e2e/built-site-server.ts'
       - 'e2e/website-style-diff-report.ts'
+      - 'e2e/website-night.ts'
       - 'e2e/__screenshots__/website-visual/**'
       - '.github/workflows/website-checks.yml'
   workflow_dispatch:

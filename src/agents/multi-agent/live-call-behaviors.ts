@@ -320,13 +320,23 @@ export async function startTurnSounds(input: TurnSoundsInput) {
       await import('../integrations/turn-opening-sound.js');
     const { replyAudioSince, replyTextSince, holdReplyAudio, clearReplyActivity } =
       await import('../../speech/output-control/reply-activity.js');
+    const { forgetLaughs, noteTurnOpened } = await import('../personas/laugh-ledger.js');
     cleanupFunctions.push(() => clearReplyActivity(sessionId));
+    cleanupFunctions.push(() => forgetLaughs(sessionId));
     const earlyWaitMs = earlyOpeningWaitMs();
     if (turnOpeningSoundEnabled()) {
       cleanupFunctions.push(
         attachTurnOpeningSound(
           session as unknown as Parameters<typeof attachTurnOpeningSound>[0],
-          clips,
+          {
+            ...clips,
+            // LAUGH_CAP: the reply a clip opens must not open with a laugh too (laugh-ledger.ts).
+            playClip: (text) => {
+              const played = clips.playClip(text);
+              if (played) noteTurnOpened(sessionId);
+              return played;
+            },
+          },
           input.lastUserFinalTranscript,
           (since) => replyAudioSince(sessionId, since),
           earlyWaitMs === null
