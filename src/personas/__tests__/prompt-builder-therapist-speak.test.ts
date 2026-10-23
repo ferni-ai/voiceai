@@ -101,13 +101,6 @@ const ALLOWED: Record<string, Array<[Bucket, string]>> = {
     ['avoid', "'how does that make you feel',"],
     ['avoid', "'thank you for sharing',"],
   ],
-  'src/personas/bundles/ferni/speech-traits.ts': [
-    ['detector', "/\\b(i hear you|i see you|i['']m here)\\b/gi,"],
-    [
-      'detector',
-      'const acknowledgmentPatterns = [/\\b(i understand|that makes sense|i hear you|i get it)\\b/gi];',
-    ],
-  ],
   'src/personas/bundles/shared/model-base-instructions-ftis.md': [
     [
       'avoid',

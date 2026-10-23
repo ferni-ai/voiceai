@@ -180,7 +180,6 @@ export interface SessionContextMethods {
  */
 export interface SessionSpeechMethods {
   getSpeechContext: (text?: string, userEmotion?: string) => SpeechContext;
-  tagWithSsml: (text: string) => string;
 }
 
 /**

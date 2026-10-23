@@ -1049,6 +1049,7 @@ describe('decide: the gates', () => {
       'consent',
       'texts-off',
       'crisis',
+      'focus',
       'quiet-hours',
       'dedupe',
       'gap',
