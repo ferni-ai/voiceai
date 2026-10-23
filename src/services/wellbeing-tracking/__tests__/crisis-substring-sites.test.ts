@@ -10,7 +10,7 @@ import { detectPatternSignals } from '../../../intelligence/context-builders/int
 import { analyzeReferralNeed } from '../../principal-alignment/human-referral.js';
 import { assessSafety } from '../../../tools/domains/life-coaching-shared/safety-guards.js';
 import { detectEmotionalState } from '../../../tools/semantic-router/shared-vocabulary.js';
-import { testWholeWords } from '../phrase-match.js';
+import { testWholeWords } from '../../../utils/phrase-match.js';
 
 afterEach(() => vi.unstubAllEnvs());
 const flag = (v: 'on' | 'off') => vi.stubEnv('EARLY_WARNING_STT_FORMS', v);

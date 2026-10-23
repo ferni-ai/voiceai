@@ -12,7 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import { testWholeWords } from '../wellbeing-tracking/phrase-match.js';
+import { testWholeWords } from '../../utils/phrase-match.js';
 import type {
   HumanReferralResult,
   ReferralReason,

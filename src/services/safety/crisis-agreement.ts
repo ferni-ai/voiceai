@@ -28,7 +28,7 @@
  * @module CrisisAgreement
  */
 
-import { resolveEarlyWarningSttForms } from '../wellbeing-tracking/phrase-match.js';
+import { resolveEarlyWarningSttForms } from '../../utils/phrase-match.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 
 export function resolveCrisisAgreementGate(

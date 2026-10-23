@@ -9,7 +9,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { checkWarnings } from '../early-warning.js';
 import { getWellbeingProfile } from '../index.js';
-import { mentions, resolveEarlyWarningSttForms } from '../phrase-match.js';
+import { mentions, resolveEarlyWarningSttForms } from '../../../utils/phrase-match.js';
 
 let users = 0;
 /** The warning types checkWarnings raises for one message; hope sets hopefulness. */

@@ -18,7 +18,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
-import { saysPhrase } from '../../../services/wellbeing-tracking/phrase-match.js';
+import { saysPhrase } from '../../../utils/phrase-match.js';
 import {
   loadPredictiveIntelligence,
   type PredictiveIntelligence,

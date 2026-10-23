@@ -1,5 +1,5 @@
 /**
- * How the early-warning detectors (early-warning.ts) find a phrase in the
+ * How the early-warning detectors (wellbeing-tracking/early-warning.ts) find a phrase in the
  * caller's words. EARLY_WARNING_WORD_BOUNDARY=on matches whole words only.
  *
  * Prod, 2026-10-22: a canary caller said "I actually did send it Wednesday
@@ -28,7 +28,7 @@
  * matched bare substrings onto whole words: saysPhrase, testWholeWords and
  * the semantic router's crisis context boost (routerContextMentions).
  *
- * @module services/wellbeing-tracking/phrase-match
+ * @module utils/phrase-match
  */
 
 type Env = Record<string, string | undefined>;

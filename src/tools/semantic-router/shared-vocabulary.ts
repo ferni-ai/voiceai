@@ -11,7 +11,7 @@
  *
  * @module tools/semantic-router/shared-vocabulary
  */
-import { saysPhrase } from '../../services/wellbeing-tracking/phrase-match.js';
+import { saysPhrase } from '../../utils/phrase-match.js';
 
 // ============================================================================
 // RELATIONSHIP VOCABULARY
