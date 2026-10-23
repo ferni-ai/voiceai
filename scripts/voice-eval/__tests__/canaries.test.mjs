@@ -4,9 +4,10 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../predicates/call.mjs', async (orig) => ({ ...(await orig()), loadSweep: () => [] }));
 const { deadGates } = await import('../predicates/canaries.mjs');
+const { PREDICATES } = await import('../predicates/index.mjs');
 
 describe('deadGates through loadSweep', () => {
   it('reports every gate dead when loading returns no calls', () => {
-    expect(deadGates()).toHaveLength(6);
+    expect(deadGates()).toHaveLength(PREDICATES.filter((p) => p.gating).length);
   });
 });

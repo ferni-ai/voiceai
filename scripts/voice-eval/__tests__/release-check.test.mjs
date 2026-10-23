@@ -75,6 +75,7 @@ const liveRisk = {
   replyGaps: [900],
 };
 liveRisk.turns = [{ who: 'agent', text: 'Please call or text 988 now.' }];
+liveRisk.turnGaps = Array.from({ length: 10 }, () => ({ persona: 'ferni', gapMs: 900 }));
 describe('judgePrimary', () => {
   const [gate, gap] = PRIMARY;
   it('passes non-inferiority, fails a credible drop, else inconclusive', () => {
@@ -394,7 +395,8 @@ describe('review #2450: missing evidence never passes', async () => {
         shared
       );
       expect(r.stdout).toMatch(/^INCONCLUSIVE +liveness: 2\/22 calls/m);
-      expect(r.status).toBe(3);
+      // Muted calls also FAIL unfilled-silence, and no-gap turns the long-gap share (dead-air gates).
+      expect(r.status).toBe(edit === strip ? 3 : 1);
     }
   });
 

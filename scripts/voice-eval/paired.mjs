@@ -10,6 +10,8 @@ import { PREDICATES } from './predicates/index.mjs';
 
 const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
 const ss = (xs, m = mean(xs)) => xs.reduce((a, x) => a + (x - m) ** 2, 0);
+/** A no-reply turn's stand-in gap: twice the unfilled-silence voice bound (dead-air.mjs). */
+export const UNANSWERED_GAP_MS = 10000;
 const median = (xs) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor((xs.length - 1) / 2)] : null);
 const sd = (xs) => (xs.length < 2 ? null : Math.sqrt(ss(xs) / (xs.length - 1)));
 
@@ -60,7 +62,11 @@ export function pairedCompare(callsA, callsB, { B = 10000, seed = 20261022, scen
 /** A sweep dir as pairedCompare input: gate pass, median REPLY gap (ms), each predicate's pass, each judge dimension. */
 export function sweepValues(dir) {
   return gateSweep(loadSweep(dir)).rows.map(({ call, hits, gated }) => {
-    const values = { gate: +gated, replyGapMedMs: median(call.replyGaps.filter((g) => typeof g === 'number')) };
+    // A turn with no reply (null delay) counts as UNANSWERED_GAP_MS instead of dropping out, and
+    // its share is a row of its own (#2455's rt:unanswered-rate will replace this once it merges).
+    const gaps = call.replyGaps.map((g) => (Number.isFinite(g) ? g : UNANSWERED_GAP_MS));
+    const unansweredShare = gaps.length ? call.replyGaps.filter((g) => !Number.isFinite(g)).length / gaps.length : null;
+    const values = { gate: +gated, replyGapMedMs: median(gaps), unansweredShare };
     for (const p of PREDICATES) values[`pred:${p.id}`] = +!hits[p.id].length;
     const judge = call.file.replace(/\.json$/, '.judge.json');
     const scores = existsSync(judge) ? (JSON.parse(readFileSync(judge, 'utf8')).scores ?? {}) : {};

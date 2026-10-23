@@ -174,6 +174,37 @@ export function judgePrimary(spec, row) {
   return { name, verdict: 'INCONCLUSIVE', why: `${at}: too wide to show ${rule}` };
 }
 
+/** Sweep-level silence over every candidate turn (a no-reply turn counts as over every bound):
+ *  reply gap p90 per persona with 10+ turns (fewer is INCONCLUSIVE), and the share over 2.5 s. */
+export function silenceItems(
+  gateRows,
+  { p90Ms = 3000, longMs = 2500, maxLongShare = 0.05, minTurns = 10 } = {}
+) {
+  const turns = gateRows.flatMap((r) => r.call.turnGaps ?? []);
+  const gap = (t) => (t.gapMs === null ? Infinity : t.gapMs);
+  const items = [...new Set(turns.map((t) => t.persona))].sort().map((persona) => {
+    const g = turns
+      .filter((t) => t.persona === persona)
+      .map(gap)
+      .sort((a, b) => a - b);
+    const name = `silence p90 ${persona}`;
+    if (g.length < minTurns)
+      return { name, verdict: 'INCONCLUSIVE', why: `${g.length} turns, under ${minTurns}` };
+    const p90 = g[Math.ceil(0.9 * g.length) - 1];
+    const why = `${Number.isFinite(p90) ? `${p90} ms` : 'no reply'} over ${g.length} turns (bound ${p90Ms} ms)`;
+    return { name, verdict: p90 <= p90Ms ? 'PASS' : 'FAIL', why };
+  });
+  const long = turns.filter((t) => gap(t) > longMs).length;
+  const share = turns.length ? long / turns.length : 0;
+  const why = `${long}/${turns.length} turns over ${longMs / 1000} s (bound ${maxLongShare * 100}%)`;
+  items.push({
+    name: 'silence long-gap share',
+    verdict: !turns.length ? 'INCONCLUSIVE' : share <= maxLongShare ? 'PASS' : 'FAIL',
+    why,
+  });
+  return items;
+}
+
 /** Every item and the overall verdict: any FAIL fails, then any INCONCLUSIVE; NOTE never counts.
  *  Gating predicates are absolute over every candidate call (predicates/index.mjs, gate.mjs). */
 export function checkRelease(ev) {
@@ -229,6 +260,7 @@ export function checkRelease(ev) {
     };
     items.push(n && ev.waiver?.id === p.id ? waive(item, p.id, n, ev) : item);
   }
+  items.push(...silenceItems(gateRows, ev.silence));
   for (const spec of PRIMARY) {
     const j = judgePrimary(
       spec,
@@ -261,7 +293,7 @@ function readLogs(dir, side, agent, calls, dry, say) {
 }
 
 const USAGE =
-  'usage: release-check.mjs <dev|prod> <candidate-sha> <baseline-sha> --candidate DIR[,DIR] --baseline DIR[,DIR] [--out FILE] [--logs DIR] [--allow-unstamped-baseline] [--accept-known crisis-line-non-crisis:#N] [--offline] [--dry-run] [--seed S]';
+  'usage: release-check.mjs <dev|prod> <candidate-sha> <baseline-sha> --candidate DIR[,DIR] --baseline DIR[,DIR] [--out FILE] [--logs DIR] [--allow-unstamped-baseline] [--accept-known crisis-line-non-crisis:#N] [--gap-p90-ms 3000] [--offline] [--dry-run] [--seed S]';
 const BOOL = ['--offline', '--dry-run', '--allow-unstamped-baseline'];
 
 function main(argv, say) {
@@ -356,6 +388,7 @@ function main(argv, say) {
     gateRows: gates.flatMap(([, g]) => g.rows),
     baselineGateRows: bSweeps.flatMap((sw) => gateSweep(sw).rows),
     waiver,
+    silence: flags['--gap-p90-ms'] ? { p90Ms: Number(flags['--gap-p90-ms']) } : undefined,
     rows,
     provCandidate: prov[0],
     provBaseline: prov[1],
