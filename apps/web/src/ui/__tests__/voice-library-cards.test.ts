@@ -69,7 +69,7 @@ describe('the voice cards', () => {
   it('escapes the name and tags too', () => {
     const root = document.createElement('div');
     root.innerHTML = renderVoiceLibrary(
-      [{ ...voices[0], name: '<img src=x>Jan', tags: ['<i>odd</i>'] }],
+      [{ ...voices[0]!, name: '<img src=x>Jan', tags: ['<i>odd</i>'] }],
       undefined
     );
     expect(root.querySelector('img')).toBeNull();
