@@ -16,4 +16,5 @@ export { BARGE_IN_SOFT_PAUSE } from './BARGE_IN_SOFT_PAUSE.js';
 export { BARGE_IN_SOFT_PAUSE_CONFIRM_MS } from './BARGE_IN_SOFT_PAUSE_CONFIRM_MS.js';
 export { BARGE_IN_SOFT_PAUSE_STT_GRACE_MS } from './BARGE_IN_SOFT_PAUSE_STT_GRACE_MS.js';
 export { LAUGH_CAP } from './LAUGH_CAP.js';
+export { SLOW_TURN_SOUND } from './SLOW_TURN_SOUND.js';
 export {};

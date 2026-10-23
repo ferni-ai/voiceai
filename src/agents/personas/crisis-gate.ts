@@ -65,7 +65,7 @@ import {
   type ProsodyEmotionLike,
 } from '../safety/crisis-shadow.js';
 import { turnOpenedSince } from '../integrations/turn-opening-sound.js';
-import { signalCrisisDecision } from '../safety/crisis-gate-signal.js';
+import { noteCrisisVerdictPending, signalCrisisDecision } from '../safety/crisis-gate-signal.js';
 import { holdCommitmentInvite } from './commitment-invite.js';
 import { withoutListenOffer } from './listen-offer.js';
 import { withInviteReplyCheck } from './commitment-invite-reply.js';
@@ -409,6 +409,7 @@ export async function gatedReply(
   gate?.escalation
     ?.then((decision) => signalCrisisDecision(session, decision?.action))
     .catch(() => undefined);
+  if (gate?.escalation) noteCrisisVerdictPending(session, gate.escalation);
   if (gate && gate.decision.action !== 'pass') holdAfterCrisis(session);
   if (gate?.decision.action === 'replace') {
     // A turn with no moves, so the script isn't counted as the last reply's (move-log.ts).

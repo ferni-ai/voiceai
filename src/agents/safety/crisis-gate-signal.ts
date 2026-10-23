@@ -23,3 +23,26 @@ export function signalCrisisDecision(session: unknown, action: string | undefine
   const emitter = session as { emit?: (event: string, ...args: unknown[]) => unknown };
   emitter.emit?.(CRISIS_GATE_SIGNAL, { action });
 }
+
+const pendingVerdicts = new WeakMap<object, Promise<void>>();
+
+/**
+ * The classifier holds this session's reply until `verdict` settles (crisis-gate.ts
+ * holdUntilCleared): no casual sound meanwhile (slow-turn-sound.ts).
+ */
+export function noteCrisisVerdictPending(session: unknown, verdict: Promise<unknown>): void {
+  if (typeof session !== 'object' || session === null) return;
+  const settled: Promise<void> = verdict
+    .then(() => undefined)
+    .catch(() => undefined)
+    .finally(() => {
+      if (pendingVerdicts.get(session) === settled) pendingVerdicts.delete(session);
+    });
+  pendingVerdicts.set(session, settled);
+}
+
+/** The session's pending crisis verdict, or null when nothing holds its reply. */
+export function crisisVerdictPending(session: unknown): Promise<void> | null {
+  if (typeof session !== 'object' || session === null) return null;
+  return pendingVerdicts.get(session) ?? null;
+}

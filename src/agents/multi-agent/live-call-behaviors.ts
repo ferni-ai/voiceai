@@ -11,6 +11,7 @@ import { registerVoiceCallbackHandler } from '../../tools/domains/simple-utiliti
 import { installCallUserPort } from '../../services/outreach/call-user-adapter.js';
 import { installConfirmThreadPort } from '../../services/outreach/confirm-thread-adapter.js';
 import { installForgetFollowUpsPort } from '../../services/outreach/forget-follow-ups-adapter.js';
+import { flagOn } from '../../config/env-flag.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import {
   createBargeInJudge,
@@ -351,6 +352,11 @@ export async function startTurnSounds(input: TurnSoundsInput) {
               }
         )
       );
+    }
+    // SLOW_TURN_SOUND: one "Mm" on a slow turn nothing else filled (slow-turn-sound.ts).
+    if (flagOn('SLOW_TURN_SOUND')) {
+      const { attachSlowTurnSoundToCall } = await import('../integrations/slow-turn-wiring.js');
+      cleanupFunctions.push(attachSlowTurnSoundToCall(session, sessionId, clips, input.personaId));
     }
     // A backchannel is a move too, on the reply whose answer it is heard in.
     const play = clips.playClip;

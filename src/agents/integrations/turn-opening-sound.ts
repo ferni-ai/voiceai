@@ -98,6 +98,11 @@ export function earlyOpeningClip(
 /** When each session's current turn was opened by a clip (early mode). */
 const openedAt = new WeakMap<object, number>();
 
+/** Another opening sound (slow-turn-sound.ts) opened this turn: the reply's own opener is trimmed. */
+export function noteTurnOpenedBySound(session: object): void {
+  openedAt.set(session, Date.now());
+}
+
 /** Whether a turn-opening clip played for this session at or after `since`. */
 export function turnOpenedSince(session: object, since: number): boolean {
   return (openedAt.get(session) ?? -1) >= since;

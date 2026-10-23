@@ -21,11 +21,19 @@
  * Only when the caller's words ask for something (mayNeedTool), so a tool the
  * model calls on its own mid-chat never gets one. TOOL_ACK=off turns it off.
  *
+ * SLOW_TURN_SOUND=on covers the tools the dead-air audit found uncovered (real
+ * prod, 2026-10-15 to 10-22: covered tool turns had a 1.5 s median gap,
+ * uncovered ones ~3.1 s; callOnBehalf alone was 16 of 110 gaps over 2.5 s).
+ * marketData and the contact look-ups get a lead-in. Calls and contact changes
+ * get "On it." only, when the caller asked: callOnBehalf first reads the number back
+ * for a yes, so no word that sounds done ("Okay." / "Yep.") goes ahead of it.
+ *
  * @module agents/personas/tool-lead-in
  */
 
 import { llm } from '@livekit/agents';
 import { ReadableStream } from 'node:stream/web';
+import { flagOn } from '../../config/env-flag.js';
 import { mayNeedTool } from '../model-provider/fast-lane.js';
 import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { afterBridge, EXTRA_LOOKUP_TOOLS, lookupBridgeOn } from './lookup-bridge.js';
@@ -97,6 +105,32 @@ const ACTION_TOOLS = new Set([
   'scheduleCall',
 ]);
 
+/** SLOW_TURN_SOUND: look-ups the audit found silent. */
+const SLOW_LOOKUP_TOOLS = new Set([
+  'marketData',
+  'getContactInfo',
+  'searchContacts',
+  'getContactInsights',
+  'getContactsNeedingAttention',
+  'getContactInteractionHistory',
+  'getContactStats',
+]);
+
+/** SLOW_TURN_SOUND: actions with side effects; "On it." only, never a word that sounds done. */
+const SLOW_ACTION_TOOLS = new Set([
+  'callOnBehalf',
+  'callAndConverse',
+  'callUser',
+  'manageContact',
+  'saveContact',
+  'saveContactInfo',
+  'recordContactInteraction',
+  'setContactFollowUp',
+  'completeContactFollowUp',
+]);
+
+export const ON_IT = 'On it.';
+
 type Chunk = llm.ChatChunk | string | object;
 
 interface ItemView {
@@ -142,22 +176,32 @@ function pickLine(
   return lines[n % lines.length] ?? lines[0];
 }
 
-type LeadIn = 'lookup' | 'action' | 'none';
+type LeadIn = 'lookup' | 'action' | 'underway' | 'none';
 
 /**
  * What one chunk decides: undefined while nothing has been said or called yet,
  * otherwise which line, if any, goes ahead of it.
  */
-function leadInBefore(chunk: Chunk, asked: boolean, extra: boolean): LeadIn | undefined {
+function leadInBefore(
+  chunk: Chunk,
+  asked: boolean,
+  extra: boolean,
+  slow: boolean
+): LeadIn | undefined {
   if (typeof chunk === 'string') return chunk.trim() ? 'none' : undefined;
   const delta = (chunk as llm.ChatChunk | undefined)?.delta;
   if (delta?.content?.trim()) return 'none';
   const first = delta?.toolCalls?.[0];
   if (!first) return undefined;
-  if (LOOKUP_TOOLS.has(first.name) || (extra && EXTRA_LOOKUP_TOOLS.has(first.name))) {
+  if (
+    LOOKUP_TOOLS.has(first.name) ||
+    (extra && EXTRA_LOOKUP_TOOLS.has(first.name)) ||
+    (slow && SLOW_LOOKUP_TOOLS.has(first.name))
+  ) {
     return 'lookup';
   }
-  return asked && ACTION_TOOLS.has(first.name) ? 'action' : 'none';
+  if (asked && ACTION_TOOLS.has(first.name)) return 'action';
+  return asked && slow && SLOW_ACTION_TOOLS.has(first.name) ? 'underway' : 'none';
 }
 
 /** The words left once one of `lines` opening `text` is cut, or undefined if none opens it. */
@@ -238,19 +282,22 @@ export function withToolLeadIn(
   if (env.TOOL_LEAD_IN === 'off' || !isFirstReplyOfTurn(request)) return input;
   const asked = env.TOOL_ACK !== 'off' && mayNeedTool(callerWords(request));
   const extra = lookupBridgeOn(env);
+  const slow = flagOn('SLOW_TURN_SOUND', env);
   let decided = false;
   return new ReadableStream<Chunk>({
     async start(controller) {
       try {
         for await (const chunk of input as unknown as AsyncIterable<Chunk>) {
-          const leadIn = decided ? undefined : leadInBefore(chunk, asked, extra);
+          const leadIn = decided ? undefined : leadInBefore(chunk, asked, extra, slow);
           if (leadIn !== undefined) decided = true;
-          if (leadIn === 'lookup' || leadIn === 'action') {
+          if (leadIn !== undefined && leadIn !== 'none') {
             const { id } = chunk as llm.ChatChunk;
             const line =
               leadIn === 'lookup'
                 ? pickLine(session, LEAD_INS, nextLine)
-                : pickLine(session, ACKS, nextAck);
+                : leadIn === 'action'
+                  ? pickLine(session, ACKS, nextAck)
+                  : ON_IT;
             controller.enqueue({ id, delta: { role: 'assistant', content: `${line} ` } });
           }
           controller.enqueue(chunk);
