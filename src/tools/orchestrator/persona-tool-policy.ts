@@ -129,9 +129,34 @@ const manifestReads = new Map<string, Promise<string[] | undefined>>();
 const knownPolicies = new Map<string, readonly string[]>();
 const warnedPersonas = new Set<string>();
 
+/** A manifest read that takes longer gives up: no forbids, not cached (agent setup can't wait). */
+export const MANIFEST_READ_TIMEOUT_MS = 2000;
+
+/**
+ * The bundle load, or undefined (a failed read) once MANIFEST_READ_TIMEOUT_MS
+ * passes. Only the load is timed: the personas module import before it can take
+ * longer than that on a cold start (CI), and a slow import isn't a hung read.
+ */
+async function withReadTimeout<T>(load: Promise<T>, personaId: string): Promise<T | undefined> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timedOut = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => {
+      log.warn({ personaId }, 'Persona manifest read timed out: no forbids, retried next call');
+      resolve(undefined);
+    }, MANIFEST_READ_TIMEOUT_MS);
+    timer.unref?.();
+  });
+  try {
+    return await Promise.race([load, timedOut]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 /**
  * The manifest's forbidden list, as written: [] when the persona has no
- * manifest, undefined when the read failed (not cached, so the next call retries).
+ * manifest, undefined when the read failed or timed out (not cached, so the
+ * next call retries).
  */
 async function manifestForbidden(personaId: string): Promise<string[] | undefined> {
   const cached = manifestReads.get(personaId);
@@ -148,7 +173,9 @@ async function readManifestForbidden(personaId: string): Promise<string[] | unde
     const personas = await import('../../personas/index.js');
     const known = personas.isKnownPersona(personaId);
     const bundleId = known ? personas.getCanonicalPersonaId(personaId) : personaId;
-    return (await personas.loadBundleById(bundleId))?.manifest.tools?.forbidden ?? [];
+    const bundle = await withReadTimeout(personas.loadBundleById(bundleId), personaId);
+    if (bundle === undefined) return undefined; // timed out: not cached, read again next call
+    return bundle?.manifest.tools?.forbidden ?? [];
   } catch (error) {
     log.warn(
       { personaId, error: String(error) },
