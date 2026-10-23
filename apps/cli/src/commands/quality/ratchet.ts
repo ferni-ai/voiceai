@@ -324,7 +324,7 @@ async function main(): Promise<void> {
   const started = Date.now();
   const size = changedSources(SIZE_ROOTS, isSource);
   console.log(`Size, against base ${size.base.slice(0, 9)}: ${size.changes.length} touched source files (${Date.now() - started} ms).`);
-  const worse = [...regressions(base, now), ...sizeRegressions(size.changes), ...checkWebsiteThemeDebt()];
+  const worse = [...regressions(base, now), ...sizeRegressions(size.changes, size.removed), ...checkWebsiteThemeDebt()];
   console.log(`Quality ratchet. Baseline: ${summary(base)}\n                 Now:      ${summary(now)}`);
   if (worse.length > 0) {
     console.log(`\n❌ ${worse.length} regression(s):\n${worse.map((w) => `  - ${w}`).join('\n')}`);

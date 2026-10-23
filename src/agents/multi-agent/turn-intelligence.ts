@@ -42,8 +42,13 @@ import {
 } from './first-turn-defer.js';
 import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from './turn-context-header.js';
 import { carriesSafety } from '../processors/turn-processor/safety-note.js';
-import { heldForPreemptive, preemptStableMode } from './preempt-stable-context.js';
-import { pushedNotesText, safetyText } from './pushed-notes.js';
+import { heldForPreemptive } from './preempt-stable-context.js';
+import {
+  pushedNotesText,
+  safetyOnlyNote,
+  TURN_CONTEXT_SAFETY,
+  withHeldSafety,
+} from './pushed-notes.js';
 
 const log = createLogger({ module: 'TurnIntelligence' });
 
@@ -253,7 +258,11 @@ export function withoutStaleTurnContext<T extends { items: ChatItemView[]; copy(
     'STALE_TURN_CONTEXT_DROPPED'
   );
   const ctx = chatCtx.copy();
-  ctx.items = ctx.items.filter((item) => !stale.has(item.id));
+  // A stale note's safety guidance still goes (#2642): only the rest of it is dropped.
+  ctx.items = ctx.items.flatMap((item) => {
+    if (!stale.has(item.id)) return [item];
+    return safetyOnlyNote(item, TURN_CONTEXT_HEADER) ?? [];
+  });
   return ctx;
 }
 
@@ -336,17 +345,21 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
   let userSpeaking = false;
 
   let pendingFor = '';
-  let pendingSafety = ''; // its crisis or safety guidance (safety-note.ts), whole
+  let pendingSafety: string[] = []; // its crisis or safety notes (safety-note.ts), whole
 
   const tryPush = async (): Promise<void> => {
     if (!pending || !agentListening || userSpeaking) return;
     // PREEMPT_STABLE_CONTEXT: wait out a preemptive reply, unless it carries safety guidance.
     const retry = () => void tryPush();
-    if (pendingSafety === '' && heldForPreemptive(agent, 'turn-context', retry)) return;
+    if (pendingSafety.length === 0 && heldForPreemptive(agent, 'turn-context', retry)) return;
     const content = `${TURN_CONTEXT_HEADER}\n${pending}`;
-    const extra = { [TURN_CONTEXT_FOR]: pendingFor };
+    const safety = pendingSafety.join('\n\n');
+    const extra = {
+      [TURN_CONTEXT_FOR]: pendingFor,
+      ...(safety && { [TURN_CONTEXT_SAFETY]: safety }),
+    };
     pending = null;
-    pendingSafety = '';
+    pendingSafety = [];
     try {
       const chatCtx = agent.chatCtx.copy();
       if (pushedId) chatCtx.items = chatCtx.items.filter((item) => item.id !== pushedId);
@@ -391,12 +404,10 @@ export function createTurnContextPusher(hook: UserTurnHook, agent: ContextAgent)
         }))
         .filter((note) => note.text !== '');
       if (notes.length === 0) return;
-      // PREEMPT_STABLE_CONTEXT: safety guidance still waiting goes ahead of a later note.
-      const carry =
-        pendingSafety !== '' && !notes.some((note) => note.safety) && preemptStableMode() !== 'off';
-      const all = carry ? [{ safety: true, text: pendingSafety }, ...notes] : notes;
+      // Safety guidance still waiting goes ahead of a later note, never replaced by it (#2642).
+      const all = withHeldSafety(pendingSafety, notes);
       pending = pushedNotesText(all); // safety guidance first and never cut (#2618)
-      pendingSafety = safetyText(all);
+      pendingSafety = all.filter((note) => note.safety).map((note) => note.text);
       pendingFor = forText;
       await tryPush();
     },
