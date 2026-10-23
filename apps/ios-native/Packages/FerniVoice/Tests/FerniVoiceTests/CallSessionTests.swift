@@ -345,6 +345,23 @@ final class CallSessionTests: XCTestCase {
         XCTAssertEqual(session.avatar.expression, .thinking)
     }
 
+    /// Tap to first word: the first audible buffer of Ferni's voice is timed
+    /// from Talk (and logged), once per call.
+    func testTheFirstAgentAudioIsTimedFromTalk() async {
+        let session = makeSession()
+        session.start()
+        await until(session.phase == .live)
+        XCTAssertNil(session.firstAgentAudio)
+        let quiet = [Float](repeating: 0, count: 480)
+        quiet.withUnsafeBufferPointer { session.agentLevel.feed($0) }
+        try? await Task.sleep(for: .milliseconds(50))
+        XCTAssertNil(session.firstAgentAudio, "silence isn't his voice")
+        let voice = (0..<480).map { 0.5 * sin(2 * Float.pi * 440 * Float($0) / 48_000) }
+        voice.withUnsafeBufferPointer { session.agentLevel.feed($0) }
+        await until(session.firstAgentAudio != nil)
+        XCTAssertGreaterThan(session.firstAgentAudio ?? .zero, .zero)
+    }
+
     func testSpeechStateAndExpressionMessagesAreRead() async {
         let session = makeSession()
         session.start()

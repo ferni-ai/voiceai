@@ -36,6 +36,8 @@ public final class CallSession {
     public private(set) var isOnHold = false
     /// When the latest call began (what it taught Ferni is learned after this).
     public private(set) var startedAt: Date?
+    /// From Talk to the first audible buffer of Ferni's voice in this call.
+    public private(set) var firstAgentAudio: Duration?
     /// The room of the latest call (a report's session id).
     public private(set) var roomName: String?
     public private(set) var captions = CaptionBook()
@@ -124,6 +126,16 @@ public final class CallSession {
         callID = id
         callBegan = .now
         startedAt = .now
+        firstAgentAudio = nil
+        // Tap to first word, measured on the phone: the first audible buffer
+        // of Ferni's voice, timed from Talk (timing only; never the audio).
+        let began = callBegan
+        agentLevel.onFirstSound { [weak self, log] in
+            let elapsed = ContinuousClock.now - began
+            let seconds = Double(elapsed.components.seconds) + Double(elapsed.components.attoseconds) / 1e18
+            log.info("First agent audio played at \(String(format: "%.2f", seconds), privacy: .public) s since Talk")
+            Task { @MainActor in if self?.callID == id { self?.firstAgentAudio = elapsed } }
+        }
         systemOwnsCall = false
         phase = .connecting
         callTask = Task {

@@ -9,8 +9,18 @@ import Synchronization
 /// gated RMS (apps/web audio-rms.ts): `min(1, max(0, (rms - 0.02) * 4))`.
 public final class AudioLevelMeter: Sendable {
     private let bits = Atomic<UInt32>(0)
+    /// Armed: the next audible buffer runs `firstSound`, once.
+    private let armed = Atomic<Bool>(false)
+    private let firstSound = Mutex<(@Sendable () -> Void)?>(nil)
 
     public init() {}
+
+    /// Runs `action` once, on the audio thread, at the first audible buffer
+    /// after this (a level above the gate): when Ferni is first heard.
+    public func onFirstSound(_ action: @escaping @Sendable () -> Void) {
+        firstSound.withLock { $0 = action }
+        armed.store(true, ordering: .releasing)
+    }
 
     public var level: Float { Float(bitPattern: bits.load(ordering: .relaxed)) }
 
@@ -18,7 +28,13 @@ public final class AudioLevelMeter: Sendable {
         guard let base = samples.baseAddress, !samples.isEmpty else { return }
         var rms: Float = 0
         vDSP_rmsqv(base, 1, &rms, vDSP_Length(samples.count))
-        bits.store(Self.gated(rms).bitPattern, ordering: .relaxed)
+        let level = Self.gated(rms)
+        bits.store(level.bitPattern, ordering: .relaxed)
+        // One atomic load per buffer; the lock is taken once, on the first sound.
+        if level > 0, armed.load(ordering: .acquiring), armed.exchange(false, ordering: .acquiringAndReleasing),
+           let action = firstSound.withLock({ action in defer { action = nil }; return action }) {
+            action()
+        }
     }
 
     public func reset() { bits.store(0, ordering: .relaxed) }
