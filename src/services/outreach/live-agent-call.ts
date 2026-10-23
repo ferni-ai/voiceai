@@ -12,7 +12,9 @@
 import { flagOn } from '../../config/env-flag.js';
 import { runBackground } from '../../utils/background-task.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { toE164 } from './checkin-replies.js';
 import { canPlaceCalls, placeSelfCall } from './proactive-channels/self-call.js';
+import { userReach } from './user-reach.js';
 
 const log = createLogger({ module: 'LiveAgentCall' });
 
@@ -35,9 +37,45 @@ export type RecordOutcome = (
   updates: Record<string, unknown>
 ) => Promise<void>;
 
-/** This call rings with the persona's live agent instead of Twilio <Say>. */
-export function ringsWithLiveAgent(call: Pick<LiveAgentCall, 'reason'>): boolean {
-  return call.reason === USER_REQUESTED_CALL && flagOn('CALL_USER_LIVE_AGENT') && canPlaceCalls();
+/**
+ * This call rings with the persona's live agent instead of Twilio <Say>.
+ *
+ * The dispatch tells the agent the person on the line IS the account holder,
+ * with their memory. `reason` is free text that other paths copy from their
+ * own context (makeConversationalCall), so it is not trusted on its own: the
+ * number must be the account's verified phone, re-read here (the same
+ * userReach the adapter uses). Any other number keeps the Twilio path.
+ */
+export async function ringsWithLiveAgent(
+  call: Pick<LiveAgentCall, 'reason' | 'userId' | 'phoneNumber'>
+): Promise<boolean> {
+  if (call.reason !== USER_REQUESTED_CALL || !flagOn('CALL_USER_LIVE_AGENT')) return false;
+  if (!canPlaceCalls()) return false;
+  const { phone } = await userReach(call.userId, 'voice_call', { standingOptIn: false });
+  const dialed = toE164(call.phoneNumber);
+  if (!phone || !dialed || dialed !== phone) {
+    log.warn({ userId: call.userId, tail: dialed?.slice(-2) }, 'Not the verified phone; no agent');
+    return false;
+  }
+  return true;
+}
+
+const QUOTE_MAX = 200;
+
+/**
+ * Why the agent called, for its opener. The signed dispatch makes this trusted
+ * context, so the reason is ours; the persona's own message (model-written,
+ * possibly shaped by content it read) rides along only as a short, labelled
+ * quote with markup, brackets and control characters removed.
+ */
+export function liveCallReason(message: string): string {
+  const quote = message
+    .replace(/[\p{Cc}<>[\]{}`]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, QUOTE_MAX);
+  const base = 'They asked you to call them, and you said you would.';
+  return quote ? `${base} What you told them you'd call about (your words): "${quote}"` : base;
 }
 
 /**
@@ -48,7 +86,11 @@ export function placeLiveAgentCall(
   call: LiveAgentCall,
   record: RecordOutcome
 ): { success: true; callId: string; status: 'initiated' } {
-  const trigger = { kind: 'promise' as const, reason: call.message, sourceId: call.id };
+  const trigger = {
+    kind: 'promise' as const,
+    reason: liveCallReason(call.message),
+    sourceId: call.id,
+  };
   const placed = placeSelfCall(call.userId, call.phoneNumber, trigger, undefined, call.personaId);
   runBackground(
     placed.then(async (outcome) =>

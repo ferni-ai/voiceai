@@ -244,7 +244,7 @@ async function initiateCall(
 ): Promise<CallResult> {
   try {
     await updateCallStatus(call.id, 'in_progress', { lastAttemptAt: new Date().toISOString() });
-    if (ringsWithLiveAgent(call)) return placeLiveAgentCall(call, updateCallStatus);
+    if (await ringsWithLiveAgent(call)) return placeLiveAgentCall(call, updateCallStatus);
 
     const twilioSid = process.env.TWILIO_ACCOUNT_SID;
     const twilioToken = process.env.TWILIO_AUTH_TOKEN;
