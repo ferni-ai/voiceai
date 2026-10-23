@@ -3,7 +3,8 @@
  * Dev vs prod parity of the voice agent's LiveKit secrets. Read-only: runs only
  * `lk agent secrets` (names; LiveKit never returns values) and `lk agent logs`, where each
  * agent's `EFFECTIVE_SETTINGS` boot lines (src/config/effective-settings.ts) show flags as
- * words, persona voice ids as set, and `<set>` for anything secret-shaped. Values are sealed
+ * words, persona voice ids as set (once #2590 is deployed; until then they show as `<set>` and
+ * the check exits 2), and `<set>` for anything secret-shaped. Values are sealed
  * as read (secrets-parity-lib.ts); the report holds names, counts and flag words only.
  *
  *   pnpm ops:secrets-parity --dev-project ferni-dev --dev-config "$PWD/livekit.toml" \
