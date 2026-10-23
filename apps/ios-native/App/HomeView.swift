@@ -278,7 +278,6 @@ private struct CallControls: View {
                 .buttonBorderShape(.capsule)
             }
         }
-        .sensoryFeedback(.impact(weight: .medium), trigger: call.isActive)
         .padding(.horizontal, FerniSpace.rest)
         .padding(.bottom, FerniSpace.pause)
     }
