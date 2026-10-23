@@ -20,6 +20,7 @@ import {
   searchEarlierConversations,
   thisCallOf,
 } from '../../../services/memory/index.js';
+import { rememberToRecall } from '../../../memory/index.js';
 import { memoryHeld } from '../../../utils/minor-care.js';
 import { getLogger } from '../../../utils/safe-logger.js';
 import type { Tool, ToolContext, ToolDefinition } from '../../registry/types.js';
@@ -220,6 +221,10 @@ export const rememberAboutUserUnifiedDef: ToolDefinition = {
           // "I'll remember: …" in the app (REMEMBER_MOMENT=on); only after a store that succeeded.
           const sessionId = getSessionId({ ctx: toolCtx });
           void announceRemembered({ userId, sessionId, fact, category });
+          // REMEMBER_TO_RECALL=on: also a caller_asserted fact where recall looks (remembered-facts.ts)
+          if (result.memoryId) {
+            void rememberToRecall(userId, { fact, memoryId: result.memoryId, category, sessionId });
+          }
           return REMEMBERED;
         }
         // Never an empty result (tool-output-guard.ts): say whether it was kept
