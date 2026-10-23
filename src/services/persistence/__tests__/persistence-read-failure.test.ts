@@ -233,21 +233,23 @@ describe('PersistenceStore after a failed load', () => {
     await expect(older).rejects.toBeInstanceOf(ReadFailedWriteError);
   });
 
-  it('while marked, the cache is not authoritative: get() reloads after the backoff', async () => {
-    expect(await store.get('u1')).toEqual({ samples: ['a', 'b', 'c'] }); // cached
+  it('a write set() after a failed read is still served by get(), seconds later (as on main)', async () => {
     failed.add(PATH);
-    await store.load('u1', { fresh: true }); // fails: marked, the old copy still cached
-    failed.clear();
-    const readsBefore = reads.length;
-
-    await store.get('u1'); // inside the 1 s backoff: served from cache, no read
-    expect(reads.length).toBe(readsBefore);
-
+    expect(await store.load('u1')).toBeNull();
+    store.set('u1', { samples: ['item1'] });
     const now = Date.now();
-    vi.spyOn(Date, 'now').mockReturnValue(now + 1_500);
-    await store.get('u1'); // backoff passed: reads again, and the success clears the mark
-    expect(reads.length).toBe(readsBefore + 1);
-    expect(store.readFailed('u1')).toBe(false);
+    vi.spyOn(Date, 'now').mockReturnValue(now + 5_000);
+    expect(await store.get('u1')).toEqual({ samples: ['item1'] });
+  });
+
+  it('a write set() after a failed read survives the reads recovering (as on main)', async () => {
+    failed.add(PATH);
+    await store.load('u1');
+    store.set('u1', { samples: ['new'] });
+    failed.clear();
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 5_000);
+    expect(await store.get('u1')).toEqual({ samples: ['new'] });
+    expect(await store.load('u1')).toEqual({ samples: ['new'] });
   });
 });
 
