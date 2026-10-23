@@ -22,6 +22,9 @@ DRY=${NIGHTLY_DRY_RUN:-0}
 P=ferni-dev CONF=$ROOT/livekit.toml DEV_AGENT=CA_siTDMHEba4Fg GCP=johnb-2025
 CLAIM=$HOME/.claude/coordination/claim.py BOARD=$HOME/.claude/coordination/board.md
 ISSUE=${NIGHTLY_ISSUE-2407} LANES_DIR=${NIGHTLY_LANES:-$HERE/lanes}
+# A call that runs longer than this is killed so the rest of its lane still runs
+# (2026-10-23: one hung converse.mjs held lane B for 47 min).
+CALL_MAX_S=${NIGHTLY_CALL_MAX_S:-900}
 # claim.py names its owner by session id: the sweep always claims as itself, never as the caller
 export CLAUDE_CODE_SESSION_ID=nightly-sweep CLAUDE_SESSION_NAME=nightly-sweep
 RC=2 CLAIMED=0 LANES=0 STATUS=harness-error REASON="harness error" LANE_PIDS="" RENEW_PID="" RUNNER=$$
@@ -125,7 +128,7 @@ do_deploy() {
 }
 # One lane file: "ENV | scenario | label | uid | capability" per line.
 lane() {
-  local file=$1 llog=$2 envs sc label uid cap rc name
+  local file=$1 llog=$2 envs sc label uid cap rc name cpid wpid
   name=$(basename "$file" .txt)
   while IFS='|' read -r envs sc label uid cap; do
     envs=$(trim "$envs"); sc=$(trim "${sc:-}"); label=$(trim "${label:-}"); uid=$(trim "${uid:-}")
@@ -143,8 +146,14 @@ lane() {
       # shellcheck disable=SC2086,SC2163 # ENV is a list of VAR=val words, split on purpose
       [ "$envs" = - ] || export $envs
       exec "$EVAL/run.sh" dev "$sc" "$TAG$label" ${uid:+"$uid"}
-    ) > "$OUT/runlogs/$sc-$TAG$label.out" 2>&1 < /dev/null
+    ) > "$OUT/runlogs/$sc-$TAG$label.out" 2>&1 < /dev/null &
+    cpid=$!
+    { sleep "$CALL_MAX_S" && say "TIMEOUT $sc $label after ${CALL_MAX_S}s" >> "$llog" \
+      && stop_jobs "$cpid"; } 2> /dev/null &
+    wpid=$!
+    wait "$cpid"
     rc=$?
+    pkill -P "$wpid" 2> /dev/null; kill "$wpid" 2> /dev/null; wait "$wpid" 2> /dev/null
     say "END $sc $label rc=$rc" >> "$llog"
   done < "$file"
   say "LANE DONE" >> "$llog"
