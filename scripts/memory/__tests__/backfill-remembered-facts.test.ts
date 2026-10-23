@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   backfill,
   databaseRefusal,
@@ -11,7 +11,7 @@ import type { FactDocWrite } from '../../../src/memory/dynamic/remembered-facts.
  * memories in memory, in path order, and the dynamic_facts the run creates.
  * Seeds: 2 users x 3 remembered facts, plus one of each kind that is left out.
  */
-function fakeStore() {
+function fakeStore(topics: Record<string, string[] | null> = {}) {
   const memories = new Map<string, Record<string, unknown>>();
   for (let i = 0; i < 6; i++) {
     const path = `bogle_users/test-user-${i % 2}/memories/mem_${i}`;
@@ -33,12 +33,16 @@ function fakeStore() {
       return paths.slice(0, size).map((path) => ({ path, data: { ...memories.get(path) } }));
     },
     create,
+    forgottenTopics: async (userId) => (userId in topics ? topics[userId]! : []),
   };
-  return { facts, create, source };
+  return { facts, create, source, memories };
 }
 
-function harness(opts: Partial<BackfillOptions> = {}) {
-  const store = fakeStore();
+function harness(
+  opts: Partial<BackfillOptions> = {},
+  topics: Record<string, string[] | null> = {}
+) {
+  const store = fakeStore(topics);
   let saved: string | undefined;
   const embed = vi.fn(async (texts: string[]) => texts.map(() => new Array(768).fill(0.01)));
   const cursor = { read: vi.fn(() => saved), write: vi.fn((a: string) => void (saved = a)) };
@@ -59,6 +63,7 @@ describe('backfill-remembered-facts', () => {
       scanned: 10,
       skipped: 3,
       notKept: 1,
+      forgotten: 0,
       toWrite: 6,
       created: 0,
       existing: 0,
@@ -107,5 +112,50 @@ describe('backfill-remembered-facts', () => {
     expect(databaseRefusal('(default)', [], {})).toMatch(/confirm-prod/);
     expect(databaseRefusal('(default)', ['--confirm-prod'], { FIRESTORE_DATABASE: 'x' })).toMatch(/FIRESTORE_DATABASE/); // prettier-ignore
     expect(databaseRefusal('ferni-dev', [], {})).toBeUndefined();
+  });
+});
+
+describe('backfill-remembered-facts: forgotten', () => {
+  const DANA = 'my sister Dana is moving to Denver';
+  const withDana = (h: ReturnType<typeof harness>) => {
+    h.memories.set('bogle_users/test-user-0/memories/mem_dana', { content: DANA, type: 'summary' });
+    return h;
+  };
+  const written = (h: ReturnType<typeof harness>) => [...h.facts.values()].map((d) => d.value);
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('FORGET_EVERY_READER: a memory about a forgotten topic is never embedded or written', async () => {
+    vi.stubEnv('FORGET_EVERY_READER', 'on');
+    const h = withDana(harness({}, { 'test-user-0': ['dana'] }));
+    expect(await h.run()).toMatchObject({ forgotten: 1, toWrite: 6, created: 6, failed: 0 });
+    expect(written(h)).not.toContain(DANA);
+    expect(h.embed.mock.calls.flatMap(([texts]) => texts).join(' ')).not.toMatch(/Dana/);
+  });
+
+  it('FORGET_EVERY_READER: a dry run counts it too, still reading nothing but topics', async () => {
+    vi.stubEnv('FORGET_EVERY_READER', 'on');
+    const h = withDana(harness({ dryRun: true }, { 'test-user-0': ['dana'] }));
+    expect(await h.run()).toMatchObject({ forgotten: 1, toWrite: 6, created: 0 });
+    expect(h.embed).not.toHaveBeenCalled();
+  });
+
+  it('FORGET_EVERY_READER: a user whose topics cannot be read is skipped (fails closed)', async () => {
+    vi.stubEnv('FORGET_EVERY_READER', 'on');
+    const h = harness({}, { 'test-user-1': null });
+    expect(await h.run()).toMatchObject({ forgotten: 3, created: 3 });
+    expect([...h.facts.keys()].every((p) => p.startsWith('bogle_users/test-user-0/'))).toBe(true);
+  });
+
+  it('flag off: topics are not consulted and the run is unchanged', async () => {
+    const h = withDana(harness({}, { 'test-user-0': ['dana'], 'test-user-1': null }));
+    expect(await h.run()).toMatchObject({ forgotten: 0, toWrite: 7, created: 7 });
+    expect(written(h)).toContain(DANA);
+  });
+
+  it('a memory marked forgottenAt is never copied, flag or not', async () => {
+    const h = harness();
+    h.memories.set('bogle_users/test-user-0/memories/mem_gone', { content: DANA, type: 'summary', forgottenAt: '2026-10-01' }); // prettier-ignore
+    expect(await h.run()).toMatchObject({ forgotten: 1, created: 6 });
+    expect(written(h)).not.toContain(DANA);
   });
 });

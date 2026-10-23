@@ -15,6 +15,9 @@
  * created only: a fact already there, including one the caller forgot, is
  * never written over, so a rerun changes nothing.
  *
+ * Never copied: a memory marked forgottenAt, and with FORGET_EVERY_READER one about
+ * a forgotten topic (forgottenCheckFor, read fresh per batch, fails closed).
+ *
  * Dry run by default: reads and counts, no embedding calls, no writes, no cursor.
  * Logs counts only, never memory text or user ids.
  *
@@ -36,12 +39,19 @@ import { FieldPath, Firestore } from '@google-cloud/firestore';
 import { withFactEmbeddings } from '../../src/memory/dynamic/fact-embeddings.js';
 import { rememberedFactDoc, type FactDocWrite } from '../../src/memory/dynamic/remembered-facts.js';
 import {
+  aboutForgotten,
+  forgetEveryReaderEnabled,
+  type ForgottenCheck,
+} from '../../src/memory/recall/forget-every-reader.js';
+import { parseTopics } from '../../src/memory/recall/forget.js';
+import {
   defaultEmbedder,
   defaultEmbeddingModel,
   type RetrievalEmbedder,
 } from '../../src/memory/recall/semantic-recall.js';
+import { isMemberIdentity } from '../../src/services/identity/member-identity.js';
 
-const READ_FIELDS = ['content', 'type', 'archived'];
+const READ_FIELDS = ['content', 'type', 'archived', 'forgottenAt'];
 const ALREADY_EXISTS = 6;
 
 export interface MemoryDoc {
@@ -56,6 +66,8 @@ export interface MemorySource {
   page(after: string | undefined, size: number): Promise<MemoryDoc[]>;
   /** Creates the fact in the user's dynamic_facts; rejects (code 6) when it is already there. */
   create(userId: string, doc: FactDocWrite): Promise<void>;
+  /** The user's forgotten topics (memory_state/forgotten); null when they can't be read. */
+  forgottenTopics(userId: string): Promise<string[] | null>;
 }
 
 export interface BackfillOptions {
@@ -86,6 +98,8 @@ export interface BackfillCounts {
   skipped: number;
   /** Empty, or a spoken credential. */
   notKept: number;
+  /** Marked forgottenAt, or about a forgotten topic (FORGET_EVERY_READER), or topics unreadable. */
+  forgotten: number;
   toWrite: number;
   created: number;
   /** Already in dynamic_facts (the live write, an earlier run, or forgotten). */
@@ -120,6 +134,17 @@ export function isRemembered(doc: MemoryDoc): boolean {
   );
 }
 
+/** forgottenCheck (forget-every-reader.ts) over --database, not the agent's client; null when off. */
+export async function forgottenCheckFor(
+  userId: string,
+  source: MemorySource,
+  env: Record<string, string | undefined> = process.env
+): Promise<ForgottenCheck | null> {
+  if (!forgetEveryReaderEnabled(env) || !isMemberIdentity(userId)) return null;
+  const topics = await source.forgottenTopics(userId).catch((): null => null);
+  return topics === null ? () => true : (text) => aboutForgotten(text, topics); // null: fail closed
+}
+
 export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promise<BackfillCounts> {
   const now = deps.now ?? Date.now;
   const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
@@ -127,6 +152,7 @@ export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promi
     scanned: 0,
     skipped: 0,
     notKept: 0,
+    forgotten: 0,
     toWrite: 0,
     created: 0,
     existing: 0,
@@ -148,6 +174,8 @@ export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promi
     for (let i = 0; i < seen.length; i += opts.batch) {
       const group = seen.slice(i, i + opts.batch);
       const todo: Array<{ userId: string; doc: FactDocWrite }> = [];
+      const checks = new Map<string, Promise<ForgottenCheck | null>>(); // read fresh each batch
+      const forgottenOf = (u: string) => checks.get(u) ?? checks.set(u, forgottenCheckFor(u, deps.source)).get(u); // prettier-ignore
       for (const doc of group) {
         c.scanned++;
         const [, userId = '', , memoryId = ''] = doc.path.split('/');
@@ -156,8 +184,10 @@ export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promi
           continue;
         }
         const fact = rememberedFactDoc({ fact: String(doc.data.content ?? ''), memoryId }, at);
-        if (fact) todo.push({ userId, doc: fact });
-        else c.notKept++;
+        const about = fact && (await forgottenOf(userId))?.(String(fact.data.value));
+        if (!fact) c.notKept++;
+        else if (doc.data.forgottenAt != null || about) c.forgotten++;
+        else todo.push({ userId, doc: fact });
       }
       c.toWrite += todo.length;
       if (!opts.dryRun && todo.length > 0) {
@@ -211,6 +241,10 @@ export function firestoreMemorySource(db: Firestore, uid?: string): MemorySource
         .collection('dynamic_facts')
         .doc(doc.id)
         .create(doc.data);
+    },
+    async forgottenTopics(userId) {
+      const doc = await db.doc(`bogle_users/${userId}/memory_state/forgotten`).get();
+      return parseTopics(doc.exists ? doc.data()?.topics : undefined);
     },
   };
 }
