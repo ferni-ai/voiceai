@@ -13,6 +13,9 @@
 import { createHash } from 'node:crypto';
 import { ENV_READ_NAMES } from './env-read-names.generated.js';
 import { FLAG_MANIFEST, type FlagName } from './flag-manifest.js';
+import { assertGeneratedList, MIN_ENV_READ_NAMES } from './generated-guard.js';
+
+assertGeneratedList('env-read-names.generated.ts', ENV_READ_NAMES.length, MIN_ENV_READ_NAMES);
 
 export type Env = Readonly<Record<string, string | undefined>>;
 

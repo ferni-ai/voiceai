@@ -8,7 +8,8 @@
     "ferni": "./bin/ferni.js"
   },
   "scripts": {
-    "build": "NODE_OPTIONS='--max-old-space-size=8192' tsc -p tsconfig.build.json",
+    "gen:lists": "tsx src/config/generated-lists.ts",
+    "build": "tsx src/config/generated-lists.ts && NODE_OPTIONS='--max-old-space-size=8192' tsc -p tsconfig.build.json",
     "build:tool-tiers": "node scripts/generate-tool-tiers.js",
     "build:fast": "npm run build:tool-tiers && npx tsx apps/cli/src/commands/build/build-fast.ts",
     "build:fast:types": "npx tsx apps/cli/src/commands/build/build-fast.ts --types",
@@ -25,7 +26,7 @@
     "bundle:analyze": "cd apps/web && pnpm build && npx vite-bundle-visualizer",
     "build:bundle": "npx tsx apps/cli/src/commands/build/build-bundle.ts",
     "build:prod": "npm run build:fast && npm run build:bundle",
-    "dev": "tsx scripts/build-tool-manifest.ts && tsx scripts/build-tool-embeddings.ts && node --max-old-space-size=3072 --import tsx src/agent.ts dev",
+    "dev": "tsx src/config/generated-lists.ts && tsx scripts/build-tool-manifest.ts && tsx scripts/build-tool-embeddings.ts && node --max-old-space-size=3072 --import tsx src/agent.ts dev",
     "dev:jack": "PERSONA_ID=jack-bogle node --max-old-space-size=3072 --import tsx src/agent.ts dev",
     "dev:jack-b": "PERSONA_ID=jack-b node --max-old-space-size=3072 --import tsx src/agent.ts dev",
     "dev:peter": "PERSONA_ID=peter-john node --max-old-space-size=3072 --import tsx src/agent.ts dev",
@@ -62,8 +63,8 @@
     "test:quick": "npx tsx apps/cli/src/commands/test/test.ts quick",
     "test:smoke": "npx tsx apps/cli/src/commands/test/test.ts smoke",
     "test:all": "npx tsx apps/cli/src/commands/test/test.ts all",
-    "typecheck": "NODE_OPTIONS='--max-old-space-size=8192' tsc --noEmit",
-    "typecheck:memory-eval": "NODE_OPTIONS='--max-old-space-size=8192' tsc -p tsconfig.scripts.json",
+    "typecheck": "tsx src/config/generated-lists.ts && NODE_OPTIONS='--max-old-space-size=8192' tsc --noEmit",
+    "typecheck:memory-eval": "tsx src/config/generated-lists.ts && NODE_OPTIONS='--max-old-space-size=8192' tsc -p tsconfig.scripts.json",
     "validate": "npx tsx apps/cli/src/commands/validate/validate.ts",
     "validate:voices": "npx tsx apps/cli/src/commands/validate/validate.ts voices",
     "validate:humanization": "npx tsx apps/cli/src/commands/validate/validate.ts humanization",
@@ -380,7 +381,7 @@
     "rollout:rollback": "npx tsx apps/cli/src/commands/deploy/rollout.ts rollback",
     "rollout:list": "npx tsx apps/cli/src/commands/deploy/rollout.ts list",
     "rollout:presets": "npx tsx apps/cli/src/commands/deploy/rollout.ts presets",
-    "flags:gen": "UPDATE_FLAG_INDEX=1 vitest run --config vitest.config.unit.ts src/config/__tests__/flag-index.test.ts",
+    "flags:gen": "pnpm gen:lists",
     "flags:new": "npx tsx scripts/flags/new-flag.ts",
     "flags:dump": "npx tsx scripts/flags/dump.ts",
     "flags:move": "npx tsx scripts/flags/move-to-files.ts",
@@ -407,7 +408,7 @@
     "ci:cost-forecast": "npx tsx apps/cli/src/index.ts costs-ai forecast",
     "ci:all": "npm run ci:review && npm run ci:api-diff && npm run ci:bundle && npm run ci:security",
     "prepare": "git config core.hooksPath .husky || true",
-    "postinstall": "[ ! -f apps/cli/src/commands/patch/livekit-timeout.ts ] || tsx apps/cli/src/commands/patch/livekit-timeout.ts"
+    "postinstall": "([ ! -f apps/cli/src/commands/patch/livekit-timeout.ts ] || tsx apps/cli/src/commands/patch/livekit-timeout.ts) && ([ ! -f src/config/generated-lists.ts ] || tsx src/config/generated-lists.ts)"
   },
   "keywords": [
     "livekit",

@@ -33,6 +33,7 @@ import {
 } from './flag-manifest-blocks.js';
 import { assembleManifest } from './flag-assembly.js';
 import * as FLAG_FILES from './flags/index.generated.js';
+import { assertGeneratedList } from './generated-guard.js';
 export { FLAG_KINDS, FLAG_OWNERS, type FlagSpec };
 
 const LEGACY_FLAG_MANIFEST = {
@@ -454,5 +455,7 @@ const LEGACY_FLAG_MANIFEST = {
   WRAP_UP: { default: 'off', owner: 'voice', kind: 'experiment' },
 } as const satisfies Record<string, FlagSpec>;
 // New flags go in src/config/flags/<NAME>.ts: pnpm flags:new (flag-assembly.ts sorts the keys).
+// An empty barrel would drop every flags/<NAME>.ts flag to unknown without a sound.
+assertGeneratedList('flags/index.generated.ts', Object.keys(FLAG_FILES).length, 1);
 export const FLAG_MANIFEST = assembleManifest(LEGACY_FLAG_MANIFEST, FLAG_FILES);
 export type FlagName = keyof typeof FLAG_MANIFEST;
