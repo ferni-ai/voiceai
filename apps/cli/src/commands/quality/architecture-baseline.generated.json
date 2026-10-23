@@ -167,6 +167,7 @@
   "src/intelligence/triggers/user-trigger-profile-service.ts -> src/utils/firestore-utils.ts",
   "src/intelligence/triggers/voice-agent-integration.ts -> src/utils/firestore-utils.ts",
   "src/intelligence/unified-user-model.ts -> src/utils/firestore-utils.ts",
+  "src/intelligence/user-knowledge/firestore.ts -> src/utils/firebase-admin-app.ts",
   "src/intelligence/world-model/temporal/store.ts -> src/utils/firestore-utils.ts",
   "src/marketplace/auth/index.ts -> src/utils/firebase-admin-app.ts",
   "src/marketplace/billing/index.ts -> src/utils/firebase-admin-app.ts",

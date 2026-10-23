@@ -11,7 +11,7 @@ const log = createLogger({ module: 'UserKnowledgeFirestore' });
 // One shared import for all aggregators. getUserKnowledge runs them in
 // parallel, and Vitest hands the real module (not the vi.mock factory) to every
 // concurrent import() after the first, so tests could hit live Firestore.
-let adminAppImport: Promise<typeof import('../../utils/firebase-admin-app.js')> | null = null;
+let adminAppImport: Promise<{ getAdminFirestore(): FirebaseFirestore.Firestore }> | null = null;
 
 /**
  * The Firestore client on the process's database (FIRESTORE_DATABASE), or null
