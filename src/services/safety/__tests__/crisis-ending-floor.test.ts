@@ -308,4 +308,45 @@ describe('the first-person ending floor', () => {
     expect(level('I nearly killed myself on the ice tonight')).toBe('script');
     expect(level('lets end it all tonight')).toBe('script');
   });
+
+  it('never excuses ending words when the caller joins in (#2540 Z round 1: 75 probes)', () => {
+    const heads = [
+      'I killed myself laughing today',
+      'ending my life as a student tomorrow',
+      'the finale will end it all soon',
+      'the show will end it all tonight',
+      'the storm will end it all tonight',
+    ];
+    const tails = [
+      'me too',
+      'same',
+      'same here',
+      'and me',
+      'so will i',
+      'i will too',
+      'wish i could too',
+      'i might too',
+      'then its my turn',
+      'i want that too',
+      'me next',
+      'lol same',
+      'and then me',
+      'count me in',
+      'same tbh',
+    ];
+    for (const head of heads) {
+      // The head alone is a labelled false alarm; the caller joining in is their own risk.
+      expect(level(head), head).toBe('none');
+      for (const tail of tails) {
+        const line = `${head}. ${tail}`;
+        expect(level(line), line).not.toBe('none');
+        expect(detectCrisis(line).subject, line).toBe('self');
+      }
+      // In the same sentence, too.
+      expect(level(`${head}, me too`), head).not.toBe('none');
+      expect(level(`${head}, same here`), head).not.toBe('none');
+    }
+    // "same" elsewhere in a sentence is no join-in.
+    expect(level('I killed myself laughing at the same joke today')).toBe('none');
+  });
 });

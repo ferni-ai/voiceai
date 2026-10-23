@@ -100,6 +100,16 @@ function distressIn(text: string): boolean {
 }
 
 /**
+ * The caller joining in, after the words or in the next sentence ("the storm will end it all
+ * tonight. me too", "…then its my turn"): their own risk, so never an idiom (#2540 Z). "same"
+ * after a laughing idiom is likely benign; that false alarm is accepted.
+ */
+const JOIN_IN =
+  /\b(me too|me as well|me next|and (then )?me|so (will|would|could|might) i|i (will|would|could|might|want to|wanna|want that) too|i('ll|'d) too|(its|it's|it is) my turn|count me in)\b/;
+/** "same" joins in only where its sentence or phrase starts: "lol same", ", same here". */
+const SAME = /^[\s,]*((lol|haha|ok|honestly|tbh) )?same\b/;
+
+/**
  * The floor's words in an everyday idiom, or "end it all" said of an everyday thing or with
  * "let's"/"we". A time alone never makes a named idiom or an everyday thing risk ("I killed
  * myself laughing today", "the finale will end it all tonight"); it still does for a near
@@ -108,7 +118,8 @@ function distressIn(text: string): boolean {
 function endingIdiom(text: string, from: number, to: number, words: string): boolean {
   const { prev, before, after, next } = clauseOf(text, from, to);
   const clause = `${before} ${after}`;
-  if (FUTURE_IN_CLAUSE.test(clause)) return false;
+  if (FUTURE_IN_CLAUSE.test(clause) || JOIN_IN.test(`${after} ${next}`)) return false;
+  if (SAME.test(after) || SAME.test(next)) return false;
   if (MEANS_OR_INTENT.test(`${prev} ${clause} ${next}`)) return false;
   if (WITH_CALLER.test(before) && ANY_TIME.test(clause)) return false;
   const span = `${words}${after}`;
