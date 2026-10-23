@@ -166,7 +166,10 @@ export async function initWorldAwareness(
     interests.location = ipLocation.regionCode
       ? `${ipLocation.city}, ${ipLocation.regionCode}`
       : ipLocation.city;
-    log.info({ location: interests.location }, '📍 Using IP-detected location for world awareness');
+    log.info(
+      { hasLocation: Boolean(interests.location) },
+      '📍 Using IP-detected location for world awareness'
+    );
   }
 
   // Get timezone if available (from contactInfo or customData)

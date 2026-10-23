@@ -505,10 +505,10 @@ async function fetchWeatherData(
       conversationHook: generateWeatherHook(current),
     };
 
-    log.debug({ location }, 'Weather data fetched');
+    log.debug({ hasLocation: Boolean(location) }, 'Weather data fetched');
     return weatherContext;
   } catch (error) {
-    log.warn({ error: String(error), location }, 'Weather fetch failed');
+    log.warn({ error: String(error), hasLocation: Boolean(location) }, 'Weather fetch failed');
     return undefined;
   }
 }
@@ -818,7 +818,7 @@ export function updateUserInterests(userId: string, interests: Partial<UserInter
       })
       .catch((err) => {
         log.warn(
-          { error: String(err), location: interests.location },
+          { error: String(err), hasLocation: Boolean(interests.location) },
           'Failed to fetch weather for new location'
         );
       });

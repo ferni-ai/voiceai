@@ -350,7 +350,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         if (interruptDecision.shouldYield) {
           diag.state('🧠 Human intelligence: Yielding floor gracefully', {
             style: interruptDecision.yieldStyle,
-            trigger: event.transcript.slice(0, 30),
+            triggerChars: event.transcript.length,
           });
           // The micro-interrupt handler above will stop the agent
         }
@@ -591,7 +591,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
               diag.session('🔮 Anticipatory trigger fired', {
                 anticipatedOutcome: result.anticipatedOutcome,
                 confidence: result.confidence.toFixed(2),
-                partialTranscript: event.transcript.slice(0, 50),
+                partialChars: event.transcript.length,
               });
             }
           }
@@ -707,7 +707,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         diag.state('🚫 Transcript rejected by intelligent filter', {
           reason: validation.reason,
           confidence: validation.confidence.toFixed(2),
-          transcript: event.transcript.slice(0, 30),
+          transcriptChars: event.transcript.length,
           timeSinceAgentSpoke,
         });
 
@@ -766,7 +766,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
         diag.state('🚫 Transcript rejected by speech duration filter (likely noise)', {
           speechDurationMs: userData.lastSpeechDurationMs,
           thresholdMs: MIN_SPEECH_DURATION_MS,
-          transcript: event.transcript.slice(0, 30),
+          transcriptChars: event.transcript.length,
         });
         // Clear the flag and reject
         userData.lastSpeechDurationMs = undefined;
@@ -852,7 +852,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
       // Log human intelligence insights
       if (finalTurnSignals.isUrgent) {
         diag.state('🧠 Human intelligence: URGENT message detected', {
-          transcript: cleanedTranscript.slice(0, 50),
+          transcriptChars: cleanedTranscript.length,
         });
       }
 
@@ -878,7 +878,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
             if (triggered) {
               diag.state('🔄 Routine triggered by phrase', {
                 routineName: triggered.name,
-                transcript: cleanedTranscript.slice(0, 30),
+                transcriptChars: cleanedTranscript.length,
               });
             }
           } catch {
@@ -1001,7 +1001,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
 
           if (feedbackRecorded) {
             diag.state('📊 Music feedback recorded from user response', {
-              transcript: cleanedTranscript.slice(0, 50),
+              transcriptChars: cleanedTranscript.length,
               wasPositive: detectedFeedback.wasPositive,
               voiceTone,
             });
@@ -1049,7 +1049,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
           timeSinceAgentSpokeMs: timeSinceAgentSpoke,
           adaptiveCooldownMs: adaptiveEchoCooldown,
           lastUtteranceDurationMs: userData.lastAgentUtteranceDurationMs,
-          transcript: event.transcript.slice(0, 30),
+          transcriptChars: event.transcript.length,
         });
 
         // =========================================================================
@@ -1080,7 +1080,7 @@ export function createTranscriptHandler(ctx: TranscriptHandlerContext): Transcri
 
           if (isShort && !looksLikeRealInterruption && (isGenericAck || words.length <= 3)) {
             diag.state('🚫 [ECHO] Dropping likely phantom transcript after interruption', {
-              transcript: cleanedTranscript,
+              transcriptChars: cleanedTranscript.length,
               timeSinceAgentSpokeMs: timeSinceAgentSpoke,
               isShort,
               isGenericAck,
@@ -1524,7 +1524,7 @@ async function processFinalTranscript(
         }
       });
     diag.debug('📝 User turn recorded for memory', {
-      preview: event.transcript.slice(0, 50),
+      transcriptChars: event.transcript.length,
       sessionId,
     });
   }
@@ -1663,7 +1663,7 @@ async function processFinalTranscript(
   }
 
   diag.state('Silence context synced', {
-    topicsDiscussed: silenceContext.topicsDiscussed.slice(0, 3),
+    topicsDiscussed: silenceContext.topicsDiscussed.length,
     emotionalTone: silenceContext.recentEmotionalTone,
     wasDiscussingTopic: silenceContext.wasDiscussingTopic,
   });
@@ -1687,7 +1687,7 @@ async function processFinalTranscript(
       .then(async (loadedDomains) => {
         if (loadedDomains.length > 0) {
           diag.tool('Dynamic domains loaded based on user message', {
-            transcript: event.transcript.slice(0, 50),
+            transcriptChars: event.transcript.length,
             loadedDomains,
             totalLoadedDomains: dynamicToolLoader.getLoadedDomains().length,
           });
@@ -1855,7 +1855,7 @@ function processHumanListeningPipeline(
         });
       } else if (listeningResult.shouldSlowDown) {
         diag.state('Human listening: User needs slower pace', {
-          assessment: listeningResult.overallAssessment.slice(0, 100),
+          assessmentChars: listeningResult.overallAssessment.length,
         });
       }
     },
@@ -2013,7 +2013,7 @@ function processDJSessionFlow(transcript: string, userData: UserData): void {
       // Music memories are now stored via music-memory-integration.ts
       diag.state('User speech during music', {
         hasEmotion: !!voiceEmotion,
-        transcript: transcript.slice(0, 50),
+        transcriptChars: transcript.length,
         emotion: voiceEmotion,
       });
     }
@@ -2192,12 +2192,12 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
 
       case 'home_location':
         await saveLocation(userId, { name: 'Home', address: pref.value });
-        diag.info('🏠 Learned home location from conversation', { location: pref.value });
+        diag.info('🏠 Learned home location from conversation', { hasLocation: Boolean(pref.value) });
         break;
 
       case 'work_location':
         await saveLocation(userId, { name: 'Work', address: pref.value });
-        diag.info('💼 Learned work location from conversation', { location: pref.value });
+        diag.info('💼 Learned work location from conversation', { hasLocation: Boolean(pref.value) });
         break;
 
       case 'allergy':

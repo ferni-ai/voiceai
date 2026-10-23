@@ -313,7 +313,7 @@ export class AgentOrchestrator {
     log.info(
       {
         targetPersonaId: request.targetPersonaId,
-        reason: request.reason,
+        reasonChars: request.reason?.length ?? 0,
         currentState: {
           activeAgentId: this.activeAgentId,
           agentsMapSize: this.agents.size,

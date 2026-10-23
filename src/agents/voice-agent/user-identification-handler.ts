@@ -383,15 +383,15 @@ async function detectUserAccent(
       // Priority 1: Explicit accent preference from user settings
       if (metadata.preferredAccent && isValidAccent(metadata.preferredAccent)) {
         userAccent = metadata.preferredAccent;
-        diag.session('🌍 Using user-selected accent', { accent: userAccent });
+        diag.session('🌍 Using user-selected accent', { hasAccent: Boolean(userAccent) });
       }
       // Priority 2: Detect from user's locale
       else if (metadata.locale) {
         const detection = detectAccentFromLocale(metadata.locale);
         userAccent = detection.accent;
         diag.session('🌍 Accent detected from locale', {
-          locale: metadata.locale,
-          accent: userAccent,
+          hasLocale: Boolean(metadata.locale),
+          hasAccent: Boolean(userAccent),
           confidence: detection.confidence,
         });
       }
@@ -400,8 +400,8 @@ async function detectUserAccent(
         const detection = detectAccentFromLocales(metadata.locales);
         userAccent = detection.accent;
         diag.session('🌍 Accent detected from locales', {
-          locales: metadata.locales,
-          accent: userAccent,
+          locales: metadata.locales?.length ?? 0,
+          hasAccent: Boolean(userAccent),
           confidence: detection.confidence,
         });
       }
