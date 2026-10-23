@@ -29,6 +29,12 @@ public final class AliveRig {
     /// The caller is speaking (the agent's voice activity, CallSession.isUserSpeaking):
     /// listening, he nods in their pauses (`NodTiming`), never over a word.
     public var personSpeaking = false
+    /// Each teammate acts its own way (`PersonaActing`, the persona acting
+    /// SPEC). Off by default (the flag): everyone acts as before.
+    public var personaActing = false
+
+    /// How this persona acts now (the shared values with `personaActing` off).
+    var acting: PersonaActing { PersonaActing.resolved(persona, on: personaActing) }
     /// Quiet: at rest and blinking, nothing else (no wandering eyes, no
     /// breath or bob). The small Ferni beside a screen's intro line.
     public var blinksOnly = false
@@ -884,7 +890,9 @@ public final class AliveRig {
             : ["happy", "playful", "coaching", "surprised"].contains(f.family) ? (2.5, 1.025, 0.985)
             : ["presence", "tired", "warmth"].contains(f.family) ? (5, 1.02, 0.99) : (4, 1.018, 0.994)
         let amp = (pow(sy / sx, 2.0 / 3) - 1) * 0.5
-        return sin(time * 2 * .pi / (period * tempo)) * amp
+        // His own breath at rest (`PersonaActing`); speaking keeps the voice's.
+        let a = acting, own = activity == .speaking ? 1.0 : a.breathPeriod
+        return sin(time * 2 * .pi / (period * own * tempo)) * amp * (activity == .speaking ? 1 : a.breathDepth)
     }
 
     /// Where he looks while you're muted: down and to his left, off you.
@@ -892,6 +900,15 @@ public final class AliveRig {
 
     private func stepGaze(_ f: Face, m: Double) {
         stepThinking(f)
+        // His own eyes' spring (`PersonaActing`): Alex's quick and decisive, Nayan's slow.
+        let a = acting
+        for c in [Ch.gx, .gy] where self[c].k != a.eyeStiffness || self[c].d != a.eyeDamping {
+            let old = self[c]
+            var eye = RigSpring(old.x, k: a.eyeStiffness, d: a.eyeDamping)
+            eye.v = old.v
+            eye.t = old.t
+            self[c] = eye
+        }
         var focus: SIMD2<Double>?
         if let handoff, handoff.done < 4, guestPersona != nil {
             focus = SIMD2(g.x.x - self[.stageX].x, g.y.x - self[.stageY].x)
@@ -933,8 +950,11 @@ public final class AliveRig {
             gazeTarget = SIMD2(f.gx, f.gy)
         } else if time > nextSaccade {
             let prev = gazeTarget
-            gazeTarget = SIMD2(f.gx + rng.range(-0.2, 0.2) * (activity == .listening ? 0.5 : 1), f.gy + rng.range(-0.14, 0.14))
-            var hold = 1.1...3.4
+            let a = acting
+            var reach = a.saccadeRange
+            if a.bigJumps > 0, rng.unit() < a.bigJumps { reach *= 2.5 }
+            gazeTarget = SIMD2(f.gx + rng.range(-reach.x, reach.x) * (activity == .listening ? 0.5 : 1), f.gy + rng.range(-reach.y, reach.y))
+            var hold = a.saccadeEvery
             // Thinking looks away, each persona its own way (`ThinkingGaze`): the
             // thinking state face's own look gives way to it, an expression with a
             // look of its own keeps it (expression audit P2 #8); a long think holds it.
@@ -1058,12 +1078,12 @@ public final class AliveRig {
     // MARK: Blinks and keyed moments
 
     private func scheduleBlink(at t: Double, slow: Bool = false) {
-        let k = slow ? 2.0 : 1.0
+        let a = acting, k = (slow ? 2.0 : 1.0) * a.blinkLength
         blinkPlan = [(t, 0.055 * k, 1), (t + 0.075 * k, 0.075 * k, 0)]
-        if !slow, rng.unit() < 0.16 { blinkPlan += [(t + 0.26, 0.05, 1), (t + 0.33, 0.08, 0)] }
+        if !slow, rng.unit() < a.doubleBlinks { blinkPlan += [(t + 0.26 * k, 0.05 * k, 1), (t + 0.33 * k, 0.08 * k, 0)] }
         lastBlinkAt = t
         blinkCue = nil
-        nextBlink = time + rng.range(BlinkTiming.floor.lowerBound, BlinkTiming.floor.upperBound) * (activity == .listening ? 1.25 : 1)
+        nextBlink = time + rng.range(a.blinkFloor.lowerBound, a.blinkFloor.upperBound) * (activity == .listening ? 1.25 : 1)
     }
 
     /// Seconds until the next blink starts, as of the last frame.

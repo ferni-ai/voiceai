@@ -36,6 +36,8 @@ public struct AvatarView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
+    /// Each teammate acts its own way (persona acting SPEC); off by default.
+    @AppStorage(PersonaActing.flagKey) private var personaActing = false
     @State private var rig: AliveRig
     /// Host time (CACurrentMediaTime) Ferni woke at: the rig's time counts from here.
     @State private var woke = CACurrentMediaTime()
@@ -101,7 +103,7 @@ public struct AvatarView: View {
                     if let renderer = AliveRenderer.shared {
                         let throttled = lowPower || hot
                         // Read here, in the view update, and carried into the frames.
-                        let look = FrameLook(dark: colorScheme == .dark, reduceMotion: reduceMotion)
+                        let look = FrameLook(dark: colorScheme == .dark, reduceMotion: reduceMotion, personaActing: personaActing)
                         ZStack {
                             AliveMetalView(
                                 renderer: renderer,
@@ -266,6 +268,7 @@ public struct AvatarView: View {
         rig.expression = expression.rawValue
         rig.voiceLevel = level()
         rig.reduceMotion = look.reduceMotion
+        rig.personaActing = look.personaActing
         rig.reading = reading
         rig.lookingAway = lookingAway
         rig.personSpeaking = personSpeaking
@@ -350,7 +353,7 @@ public enum AvatarActivity: Equatable, Sendable {
 
 /// The environment a frame needs, read in the view update.
 struct FrameLook: Equatable {
-    let dark: Bool, reduceMotion: Bool
+    let dark: Bool, reduceMotion: Bool, personaActing: Bool
 }
 
 /// The particles (and where Ferni is) after the last frame, for the overlay.
