@@ -154,6 +154,36 @@
       "count": 1
     }
   },
+  "src/config/assistant-actions-flag.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/config/coach-local-flag.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/config/feature-flags.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/config/gmail-send-flag.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/config/linkedin-flag.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/config/voice-humanization-flags.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
   "src/diagnostics/memory-pipeline-diagnostics.ts": {
     "ferni/no-env-flag-compare": {
       "count": 1

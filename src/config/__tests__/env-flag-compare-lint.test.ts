@@ -3,7 +3,7 @@
  * raw env flag comparison in each shape and leave other comparisons alone. The 106 sites that
  * existed when the rule landed are baselined in eslint-suppressions.json.
  */
-import { Linter } from 'eslint';
+import { ESLint, Linter } from 'eslint';
 import { builtinRules } from 'eslint/use-at-your-own-risk';
 import { describe, expect, it } from 'vitest';
 
@@ -45,5 +45,18 @@ describe('ferni/no-env-flag-compare', () => {
     "env.MY_FLAG === 'on'",
   ])('leaves %s alone', async (expr) => {
     expect(await lint(`export const x = ${expr};`)).toBe(0);
+  });
+
+  it.each([
+    ['src/config/gmail-send-flag.ts', 'error'],
+    ['src/agents/x.ts', 'error'],
+    ['src/config/env-flag.ts', undefined],
+    ['src/agents/__tests__/x.test.ts', undefined],
+  ])('applies to %s: %s', async (file, level) => {
+    const config = (await new ESLint().calculateConfigForFile(file)) as {
+      rules?: Record<string, unknown[]>;
+    };
+    const rule = config.rules?.['ferni/no-env-flag-compare'];
+    expect(rule?.[0] === 2 ? 'error' : rule?.[0]).toBe(level);
   });
 });

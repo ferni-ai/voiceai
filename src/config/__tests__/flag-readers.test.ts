@@ -18,10 +18,18 @@ import { FLAG_MANIFEST } from '../flag-manifest.js';
 const SRC = join(__dirname, '..', '..');
 const PATCHES = join(SRC, '..', 'patches');
 
-/** Flags read where the scan can't see, and where. */
-const OUTSIDE_READERS: Readonly<Record<string, string>> = {
-  GOOGLE_GENAI_USE_VERTEXAI: '@google/genai reads it from the environment',
-  SPEECH_DIRECTOR_LAUGHTER: 'speech/tts-gateway/director/gate.ts builds SPEECH_DIRECTOR_<LEVER>',
+/** Flags read where the scan can't see: the file (from the repo root) and the text that reads it. */
+const OUTSIDE_READERS: Readonly<Record<string, { file: string; needle: string }>> = {
+  // @google/genai reads it from the environment.
+  GOOGLE_GENAI_USE_VERTEXAI: {
+    file: 'node_modules/@google/genai/dist/index.mjs',
+    needle: 'GOOGLE_GENAI_USE_VERTEXAI',
+  },
+  // gate.ts builds SPEECH_DIRECTOR_<LEVER> for each lever, laughter among them.
+  SPEECH_DIRECTOR_LAUGHTER: {
+    file: 'src/speech/tts-gateway/director/gate.ts',
+    needle: 'env[`SPEECH_DIRECTOR_${lever.toUpperCase()}`]',
+  },
 };
 const BASELINE = join(__dirname, 'flag-readers.baseline.json');
 
@@ -59,7 +67,14 @@ function flagsWithoutReader(names: readonly string[], files: readonly SourceFile
   const tokens = new Set<string>();
   for (const file of files) {
     if (NOT_A_READER.some((re) => re.test(file.path))) continue;
-    for (const m of stripComments(file.text).matchAll(/\b[A-Z][A-Z0-9_]+\b/g)) tokens.add(m[0]);
+    // In a patch only the lines we add are ours; context lines are the SDK's own code.
+    const text = file.path.startsWith('patches/')
+      ? file.text
+          .split('\n')
+          .filter((l) => l.startsWith('+') && !l.startsWith('+++'))
+          .join('\n')
+      : file.text;
+    for (const m of stripComments(text).matchAll(/\b[A-Z][A-Z0-9_]+\b/g)) tokens.add(m[0]);
   }
   return names.filter((name) => !tokens.has(name) && !(name in OUTSIDE_READERS)).sort();
 }
@@ -82,6 +97,11 @@ describe('flagsWithoutReader', () => {
     ['a generated file', 'config/env-read-names.generated.ts', NAME],
     ['its flag file', `config/flags/${NAME}.ts`, `export const ${NAME} = {}`],
     ['the manifest', 'config/flag-manifest.ts', `${NAME}: { default: 'off' }`],
+    [
+      'an SDK patch context line (SDK code we did not add)',
+      'patches/sdk.patch',
+      `   if (process.env.${NAME}) {`,
+    ],
   ])('finds no reader when the flag is named only in %s', (_, path, text) => {
     expect(flagsWithoutReader([NAME], [{ path, text }])).toEqual([NAME]);
   });
@@ -96,6 +116,12 @@ describe('flagsWithoutReader', () => {
       { path: 'agents/x.ts', text: `const url = 'https://x'; if (flagOn('${NAME}')) {}` },
     ];
     expect(flagsWithoutReader([NAME], files)).toEqual([]);
+  });
+});
+
+describe('OUTSIDE_READERS', () => {
+  it.each(Object.entries(OUTSIDE_READERS))('%s is still read where it says', (_, where) => {
+    expect(readFileSync(join(SRC, '..', where.file), 'utf8')).toContain(where.needle);
   });
 });
 

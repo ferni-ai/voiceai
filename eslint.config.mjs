@@ -585,13 +585,13 @@ export default [
   // ============================================================================
   // ENV FLAGS ARE READ IN ONE PLACE (code-health 2026-10-23, G7)
   // no-restricted-syntax under its own id, so it can be an error while the logger
-  // selectors above stay warnings. The 106 existing sites (the audit grep counted 97 lines) are in
-  // eslint-suppressions.json (ESLint bulk suppressions); a new one fails. Fixed one?
-  // `npx eslint --prune-suppressions <file>`.
+  // selectors above stay warnings. Only env-flag.ts (flagOn itself) is exempt. The 112 existing
+  // sites are in eslint-suppressions.json (ESLint bulk suppressions): a new one fails, and the
+  // lint-coverage ratchet fails until a fixed one is pruned (`npx eslint --prune-suppressions <file>`).
   // ============================================================================
   {
     files: ['src/**/*.ts'],
-    ignores: ['src/config/**', '**/*.test.ts', '**/*.spec.ts', '**/__tests__/**', 'src/tests/**'],
+    ignores: ['src/config/env-flag.ts', '**/*.test.ts', '**/*.spec.ts', '**/__tests__/**', 'src/tests/**'],
     plugins: { ferni: { rules: { 'no-env-flag-compare': builtinRules.get('no-restricted-syntax') } } },
     rules: {
       'ferni/no-env-flag-compare': ['error', ...ENV_FLAG_COMPARE],
