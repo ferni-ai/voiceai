@@ -87,7 +87,7 @@ export function liveCallReason(message: string): string {
 export function placeLiveAgentCall(
   call: LiveAgentCall,
   record: RecordOutcome
-): { success: true; callId: string; status: 'initiated' } {
+): { success: true; callId: string; status: 'initiated'; live: true } {
   const trigger = {
     kind: 'promise' as const,
     reason: liveCallReason(call.message),
@@ -107,5 +107,5 @@ export function placeLiveAgentCall(
     { task: 'placeLiveAgentCall', userId: call.userId }
   );
   log.info({ userId: call.userId, callId: call.id, personaId: call.personaId }, 'Live agent call');
-  return { success: true, callId: call.id, status: 'initiated' };
+  return { success: true, callId: call.id, status: 'initiated', live: true };
 }
