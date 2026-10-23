@@ -19,9 +19,15 @@
  * @module agents/multi-agent/greeting-not-yet
  */
 
+import { flagOn } from '../../config/env-flag.js';
+import { eventState } from '../../understanding/temporal/event-state.js';
+import { resolveTimes, warmTemporalParser } from '../../understanding/temporal/resolve-time.js';
 import { isValidTimeZone } from '../../utils/time-zone.js';
 import type { CallerHistory } from './greeting-direction.js';
 import { recentCallRestraintEnabled } from './welcome-back.js';
+
+// compromise takes ~0.5-1 s to load: start it at boot, not in a call's hello.
+if (flagOn('TEMPORAL_RESOLVER')) void warmTemporalParser();
 
 /** Added to the hello's direction on a same-day return (RECENT_CALL_RESTRAINT). */
 export const SAME_DAY_DIRECTION =
@@ -109,11 +115,17 @@ export function namesDayAhead(text: string, today: string, saidOn?: string): boo
   );
 }
 
+/** TEMPORAL_RESOLVER: any time the text names, read from when it was said, is not over yet. */
+function resolvedAhead(text: string, saidAt: number, now: number, timeZone?: string): boolean {
+  return resolveTimes(text, saidAt, timeZone).some((t) => eventState(t, now, timeZone) !== 'past');
+}
+
 /** A commitment not yet due: its target date, or the day it names, is still ahead. */
 export function commitmentAhead(
   c: { statement: string; createdAt: number; targetDate?: number },
   now: number,
-  timeZone?: string
+  timeZone?: string,
+  env: Record<string, string | undefined> = process.env
 ): boolean {
   const today = localYmd(now, timeZone);
   // Day-granular: a date stored as midnight UTC is that calendar day; due today is not past yet.
@@ -123,6 +135,9 @@ export function commitmentAhead(
     if (target > now || due >= today) return true;
   }
   const saidOn = Number.isFinite(c.createdAt) ? localYmd(c.createdAt, timeZone) : undefined;
+  if (saidOn && flagOn('TEMPORAL_RESOLVER', env)) {
+    return resolvedAhead(c.statement, c.createdAt, now, timeZone);
+  }
   return namesDayAhead(c.statement, today, saidOn);
 }
 
@@ -149,7 +164,11 @@ export function openingRestraint(
   const topic = history?.lastTopic;
   if (!history || topic === undefined) return { sameDay, history, allows };
   const saidOn = history.daysSince === undefined ? undefined : addDays(today, -history.daysSince);
-  const keep = !sameDay && !namesDayAhead(topic, today, saidOn);
+  const ahead =
+    saidOn && flagOn('TEMPORAL_RESOLVER', env)
+      ? resolvedAhead(topic, now - (history.daysSince ?? 0) * DAY, now, timeZone)
+      : namesDayAhead(topic, today, saidOn);
+  const keep = !sameDay && !ahead;
   if (keep) return { sameDay, history, allows };
   const { lastTopic: _dropped, ...rest } = history;
   return { sameDay, history: rest, allows };
