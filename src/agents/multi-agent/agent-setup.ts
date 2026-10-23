@@ -115,6 +115,7 @@ import { setupMusicHandler } from '../voice-agent/music-handler.js';
 import { setupSessionStateHandlers } from '../voice-agent/session-state-handler.js';
 import { setupToolTrackingHandler } from '../voice-agent/tool-tracking-handler.js';
 import { awarenessKind } from '../voice-agent/phases/user-awareness.js';
+import { errorText } from '../../utils/error-text.js';
 import { createTranscriptHandler } from '../voice-agent/transcript-handler.js';
 import { wireCallToolLoader } from '../voice-agent/deferred-tool-update.js';
 import { createPersonaTTS } from './persona-tts.js';
@@ -788,7 +789,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
         { personaId: persona.id, error: String(err) },
         '🚨 CRITICAL: Essential tool loading failed - using EMERGENCY hardcoded tools'
       );
-      process.stderr.write(`\n🚨 CRITICAL TOOL FAILURE: ${err}\n`);
+      process.stderr.write(`\n🚨 CRITICAL TOOL FAILURE: ${errorText(err)}\n`);
       process.stderr.write(
         '🚨 Using emergency hardcoded tools - agent capabilities severely limited!\n\n'
       );
@@ -1284,7 +1285,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     // Store handler references for cleanup
     const llmErrorHandler = (error: unknown) => {
       log.error(
-        { personaId: persona.id, error: String(error), errorObj: error },
+        { personaId: persona.id, error },
         '🚨 [LLM MODEL ERROR] Gemini RealtimeModel emitted error'
       );
       process.stderr.write(

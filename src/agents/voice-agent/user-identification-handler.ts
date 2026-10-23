@@ -273,7 +273,7 @@ async function startIdentitySession(
       if (ipLocation?.city) {
         diag.session('📍 IP location detected', {
           hasCity: true, // never the city
-          region: ipLocation.regionCode,
+          hasRegion: Boolean(ipLocation.regionCode),
         });
       }
 

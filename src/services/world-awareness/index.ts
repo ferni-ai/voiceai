@@ -834,7 +834,7 @@ export function updateUserInterests(userId: string, interests: Partial<UserInter
     cache.interests.topics = [...new Set([...cache.interests.topics, ...interests.topics])];
   }
 
-  log.debug({ userId, interests }, 'User interests updated');
+  log.debug({ userId, interestKeys: Object.keys(interests) }, 'User interests updated');
 }
 
 /**

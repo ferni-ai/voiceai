@@ -2170,24 +2170,23 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
           priority: 'secondary', // Auto-extracted = secondary, explicit = primary
         });
         diag.info('🏈 Learned favorite team from conversation', {
-          team: pref.value,
-          league: pref.context,
+          hasValue: Boolean(pref.value),
         });
         break;
 
       case 'stock_watchlist':
         await addToWatchlist(userId, pref.value);
-        diag.info('📈 Learned stock interest from conversation', { ticker: pref.value });
+        diag.info('📈 Learned stock interest from conversation', { hasValue: Boolean(pref.value) });
         break;
 
       case 'news_interest':
         await addNewsInterest(userId, pref.value);
-        diag.info('📰 Learned news interest from conversation', { topic: pref.value });
+        diag.info('📰 Learned news interest from conversation', { hasValue: Boolean(pref.value) });
         break;
 
       case 'avoid_topic':
         await addAvoidTopic(userId, pref.value);
-        diag.info('🚫 Learned topic to avoid from conversation', { topic: pref.value });
+        diag.info('🚫 Learned topic to avoid from conversation', { hasValue: Boolean(pref.value) });
         break;
 
       case 'home_location':
@@ -2202,13 +2201,13 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
 
       case 'allergy':
         await setAllergies(userId, [pref.value], 'add');
-        diag.info('🤧 Learned allergy from conversation', { allergy: pref.value });
+        diag.info('🤧 Learned allergy from conversation', { hasValue: Boolean(pref.value) });
         break;
 
       case 'health_condition':
         // Health conditions are sensitive - log but don't auto-store without confirmation
         diag.info('🏥 Detected health condition mention (not auto-stored)', {
-          condition: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
@@ -2221,7 +2220,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         await saveLifestylePreference(userId, 'music', pref.category, pref.value, pref.isNegative);
         diag.info(`🎵 Learned music preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
           isNegative: pref.isNegative,
         });
         break;
@@ -2237,7 +2236,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         );
         diag.info(`🎬 Learned entertainment preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
           isNegative: pref.isNegative,
         });
         break;
@@ -2249,7 +2248,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         await saveLifestylePreference(userId, 'food', pref.category, pref.value, pref.isNegative);
         diag.info(`🍽️ Learned food preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
           isNegative: pref.isNegative,
         });
         break;
@@ -2266,7 +2265,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         );
         diag.info(`🏋️ Learned wellness preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
@@ -2276,7 +2275,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         await saveLifestylePreference(userId, 'travel', pref.category, pref.value, pref.isNegative);
         diag.info(`✈️ Learned travel preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
@@ -2291,7 +2290,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         );
         diag.info(`📚 Learned learning goal from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
@@ -2301,7 +2300,7 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         await saveLifestylePreference(userId, 'social', pref.category, pref.value, pref.isNegative);
         diag.info(`👥 Learned social preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
@@ -2317,17 +2316,17 @@ async function saveExtractedPreference(userId: string, pref: ExtractedPreference
         );
         diag.info(`🛠️ Learned daily life preference from conversation`, {
           type: pref.category,
-          value: pref.value,
+          hasValue: Boolean(pref.value),
         });
         break;
 
       default:
-        diag.debug('Unknown preference category', { category: pref.category, value: pref.value });
+        diag.debug('Unknown preference category', { category: pref.category, hasValue: Boolean(pref.value) });
     }
   } catch (error) {
     diag.warn('Failed to save extracted preference', {
       category: pref.category,
-      value: pref.value,
+      hasValue: Boolean(pref.value),
       error: String(error),
     });
   }
@@ -2402,14 +2401,14 @@ async function saveLifestylePreference(
       { merge: true }
     );
 
-    diag.debug('Saved lifestyle preference to Firestore', { userId, domain, category, value });
+    diag.debug('Saved lifestyle preference to Firestore', { userId, domain, category, hasValue: Boolean(value) });
   } catch (error) {
     // Non-fatal - preference saving shouldn't break the session
     diag.debug('Could not save lifestyle preference to Firestore', {
       userId,
       domain,
       category,
-      value,
+      hasValue: Boolean(value),
       error: String(error),
     });
   }

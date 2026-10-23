@@ -500,7 +500,7 @@ export async function getSunriseSunset(location: string): Promise<string> {
 
     return `In ${locationName} today: Sunrise at ${sunriseTime}, sunset at ${sunsetTime}. That's ${daylightHours} hours and ${daylightMinutes} minutes of daylight.`;
   } catch (error) {
-    log.warn(`Sunrise/sunset API error: ${error}`);
+    log.warn({ error }, 'Sunrise/sunset API error');
     return `I had trouble getting sunrise/sunset times.`;
   }
 }
@@ -557,7 +557,7 @@ export async function getWeatherForecast(location: string, days = 5): Promise<st
 
     return `${days}-day forecast for ${locationName}: ${forecasts.join(' | ')}`;
   } catch (error) {
-    getLogger().warn(`Forecast API error: ${error}`);
+    getLogger().warn({ error }, 'Forecast API error');
     return `I had trouble getting the forecast.`;
   }
 }

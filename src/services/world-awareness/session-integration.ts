@@ -203,7 +203,7 @@ export async function initWorldAwareness(
     const localTeams = getLocalTeams(ipLocation.city, ipLocation.regionCode);
     if (localTeams.length > 0) {
       interests.favoriteTeams = localTeams.slice(0, 3); // Top 3 local teams
-      log.info({ teams: interests.favoriteTeams }, '🏈 Suggested local teams from IP location');
+      log.info({ teams: interests.favoriteTeams?.length ?? 0 }, '🏈 Suggested local teams from IP location');
     }
   }
 
