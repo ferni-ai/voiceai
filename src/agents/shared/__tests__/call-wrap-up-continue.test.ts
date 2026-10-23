@@ -555,6 +555,13 @@ describe('plain goodbyes are never taken for risk (#2291)', () => {
     expect(callerSaysGoodbye('alright, talk soon')).toBe(true);
   });
 
+  it('the risk check inside callerSignsOff is reachable: a sign-off with risk is not one', () => {
+    // "I'm done for now" fits the sign-off grammar, but "done" outside the plain goodbye
+    // clauses ("done for today") is risk, so only the risk check keeps it from ending the call
+    expect(farewellRisk("bye, I'm done for now")).toBe(true);
+    expect(callerSignsOff("bye, I'm done for now")).toBe(false);
+  });
+
   it('"done" outside a whole goodbye clause, and "para siempre", stay risk', () => {
     for (const line of [
       "I'm done. bye",
