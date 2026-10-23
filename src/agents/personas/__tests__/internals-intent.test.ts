@@ -280,3 +280,98 @@ describe('installInternalsIntent', () => {
     expect(ask).toHaveBeenCalledTimes(1);
   });
 });
+
+// #2446 verify round 2 (probe2): the turn-context pusher moves its note around the failed result.
+describe('the failure window survives moving context notes', () => {
+  it('one failed search, three caller turns, Ferni speaking twice a turn: at most 12 calls', async () => {
+    const { TURN_CONTEXT_HEADER, TURN_CONTEXT_FOR } =
+      await import('../../multi-agent/turn-context-header.js');
+    process.env[FLAG] = 'on';
+    let calls = 0;
+    const user = (t: string) => ({ type: 'message', role: 'user', textContent: t });
+    const note = {
+      type: 'message',
+      role: 'user',
+      textContent: `${TURN_CONTEXT_HEADER}\nn`,
+      extra: { [TURN_CONTEXT_FOR]: 'q' },
+    };
+    const fail = [
+      { type: 'function_call', callId: 'c1' },
+      { type: 'function_call_output', callId: 'c1', output: 'No results' },
+    ];
+    const handlers: Array<(e: unknown) => void> = [];
+    const speak = () => handlers.forEach((h) => h({ newState: 'speaking' }));
+    const after: string[] = [];
+    let noteBefore = false;
+    const items = () => [
+      user('q0'),
+      ...(noteBefore ? [note] : []),
+      ...fail,
+      { type: 'message', role: 'assistant', textContent: 'empty' },
+      ...after.flatMap((l, i) => [
+        user(l),
+        ...(!noteBefore && i === after.length - 1 ? [note] : []),
+        { type: 'message', role: 'assistant', textContent: 'r' },
+      ]),
+    ];
+    const observer = installInternalsIntent(
+      {
+        session: {
+          on: (_: string, h: (e: unknown) => void) => handlers.push(h),
+          off: vi.fn(),
+        } as never,
+        agent: () => ({ chatCtx: { items: items() } }),
+        cleanupFunctions: [],
+      },
+      async () => {
+        calls++;
+        return '{"internals": false}';
+      }
+    );
+    const talk = async (start: string, final: boolean) => {
+      let t = start;
+      for (let k = 0; k < 6; k++) {
+        t += ` a${k} b${k}`;
+        observer?.onTranscript(t, false);
+        await new Promise((r) => setTimeout(r, 5));
+      }
+      if (final) observer?.onTranscript(`${t} end`, true);
+      await new Promise((r) => setTimeout(r, 5));
+    };
+    for (let turn = 0; turn < 3; turn++) {
+      speak();
+      noteBefore = turn % 2 === 0;
+      await talk(`turn${turn} so`, false);
+      speak(); // a filler: the per-turn count resets, the window's does not
+      await talk(`turn${turn} and also`, true);
+      after.push(`turn${turn} line`);
+    }
+    expect(calls).toBeGreaterThan(4);
+    expect(calls).toBeLessThanOrEqual(12);
+  });
+
+  it('intentInput keeps to 600 characters on quote- and backslash-heavy words', async () => {
+    const { intentInput } = await import('../internals-intent.js');
+    const heavy = '"\\'.repeat(300);
+    const input = intentInput([heavy, heavy, heavy], heavy);
+    expect(input.length).toBeLessThanOrEqual(600);
+    expect(() => JSON.parse(input)).not.toThrow();
+  });
+
+  it('context notes are known by their marker, or by a header with leading space', async () => {
+    const { TURN_CONTEXT_HEADER, TURN_CONTEXT_FOR } =
+      await import('../../multi-agent/turn-context-header.js');
+    const { callerLines } = await import('../no-invented-internals.js');
+    const lines = callerLines([
+      { type: 'message', role: 'user', textContent: 'mine' },
+      {
+        type: 'message',
+        role: 'user',
+        textContent: 'Reworded note',
+        extra: { [TURN_CONTEXT_FOR]: 'x' },
+      },
+      { type: 'message', role: 'user', textContent: `  ${TURN_CONTEXT_HEADER} spaced` },
+    ]);
+    expect(lines).toEqual(['mine']);
+  });
+});

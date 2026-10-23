@@ -11,7 +11,7 @@
  */
 
 import { flagOn, type Env } from '../../config/env-flag.js';
-import { TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
+import { TURN_CONTEXT_FOR, TURN_CONTEXT_HEADER } from '../multi-agent/turn-context-header.js';
 import { lastFerniLine } from './answer-turn.js';
 
 export function noInventedInternalsEnabled(env: Env = process.env): boolean {
@@ -53,14 +53,16 @@ const MY_TECH = new RegExp(String.raw`\bmy (?:[\w-]+ ){0,2}${TECH.source}`, 'i')
 const PUSHES_ANSWER =
   /\b(?:answer|explain|tell|describe|specific|walk)\b[^.]*\b(?:question|url|service|error|system)\b/i;
 
-type Item = Partial<Record<'type' | 'role' | 'textContent' | 'output', string>> & {
+type Item = Partial<Record<'type' | 'role' | 'textContent' | 'output' | 'callId', string>> & {
   isError?: boolean;
+  extra?: Record<string, unknown>;
 };
+/** A per-turn context note: by its marker, or by its header text when the marker is missing. */
+const isNote = (i: Item): boolean =>
+  i.extra?.[TURN_CONTEXT_FOR] !== undefined ||
+  (i.textContent ?? '').trimStart().startsWith(TURN_CONTEXT_HEADER);
 /** A caller line: a user message that isn't a per-turn context note (turn-request.ts callerWords). */
-const isUser = (i: Item): boolean =>
-  i.type === 'message' &&
-  i.role === 'user' &&
-  !(i.textContent ?? '').startsWith(TURN_CONTEXT_HEADER);
+const isUser = (i: Item): boolean => i.type === 'message' && i.role === 'user' && !isNote(i);
 export const callerLines = (items: readonly Item[]): string[] =>
   items.filter(isUser).map((i) => i.textContent ?? '');
 const isFailure = (i: Item): boolean =>
@@ -69,6 +71,16 @@ const isFailure = (i: Item): boolean =>
 /** Caller turns since the last failed tool result (Infinity: none failed). */
 export const lastFailureAt = (items: readonly Item[]): number =>
   items.map(isFailure).lastIndexOf(true);
+
+/**
+ * The failed tool call's id: the key of its failure window. Its position moves
+ * as context notes are pushed around it and removed, so a position key reset
+ * the window cap (21 calls for one failure in #2446's verify).
+ */
+export function lastFailureId(items: readonly Item[]): string | undefined {
+  const at = lastFailureAt(items);
+  return at < 0 ? undefined : items[at].callId || `at${at}`;
+}
 
 export function turnsSinceFailure(items: readonly Item[]): number {
   const at = lastFailureAt(items);

@@ -21,7 +21,7 @@ import { voice } from '@livekit/agents';
 import { createLogger } from '../../utils/safe-logger.js';
 import {
   callerLines,
-  lastFailureAt,
+  lastFailureId,
   noInventedInternalsEnabled,
   turnsSinceFailure,
 } from './no-invented-internals.js';
@@ -61,11 +61,16 @@ function changed(a: string[], b: string[]): number {
 
 /** The model input: caller lines only, NOW last, under MAX_INPUT_CHARS (the oldest lines go first). */
 export function intentInput(earlier: string[], now: string): string {
-  const n = now.slice(-400);
+  let n = now.slice(-400);
   let e = earlier.slice(-3).map((l) => l.slice(-150));
   let input = JSON.stringify({ EARLIER: e, NOW: n });
   while (input.length > MAX_INPUT_CHARS && e.length) {
     e = e.slice(1);
+    input = JSON.stringify({ EARLIER: e, NOW: n });
+  }
+  // Quotes and backslashes grow in JSON: cut NOW from the front until it fits.
+  while (input.length > MAX_INPUT_CHARS && n) {
+    n = n.slice(Math.max(1, Math.ceil((input.length - MAX_INPUT_CHARS) / 2)));
     input = JSON.stringify({ EARLIER: e, NOW: n });
   }
   return input;
@@ -240,7 +245,7 @@ export function installInternalsIntent(
       const turn = [...finals, transcript].join(' ');
       if (isFinal) finals.push(transcript);
       // Caller lines only: never the per-turn context notes.
-      const window = lastFailureAt(items);
+      const window = lastFailureId(items);
       void intent.observe(turn, callerLines(items), { final: isFinal, window });
     },
   };
