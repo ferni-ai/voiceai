@@ -1,23 +1,47 @@
 /**
- * Life-coaching profiles must use the process's own Firestore (getAdminFirestore():
- * the default app's project and FIRESTORE_DATABASE). The client used to fall back to
- * project 'bogle-voiceai' when GOOGLE_PROJECT_ID was unset.
+ * Life-coaching profiles bind the process's database (FIRESTORE_DATABASE) and keep
+ * main's project: GOOGLE_PROJECT_ID, else 'bogle-voiceai'. Moving them into the main
+ * project would start persisting them in prod, a separate decision, so binding the
+ * database must not change the project.
+ *
+ * Uses the real @google-cloud/firestore client (the test setup's mock ignores its
+ * options). Building a client sends nothing; no RPC is made here.
  */
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-const adminDb = vi.hoisted(() => ({ collection: vi.fn() }));
-const getAdminFirestore = vi.hoisted(() => vi.fn(() => adminDb));
-vi.mock('../../../../utils/firebase-admin-app.js', () => ({ getAdminFirestore }));
+vi.unmock('@google-cloud/firestore');
 
-const { getFirestore } = await import('../user-profile-firestore.js');
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.resetModules();
+});
+
+async function client(): Promise<{ projectId: string; databaseId: string }> {
+  const { getFirestore } = await import('../user-profile-firestore.js');
+  const db = await getFirestore();
+  expect(db).not.toBeNull();
+  return db as unknown as { projectId: string; databaseId: string };
+}
 
 describe('life-coaching profile Firestore', () => {
-  it('is the default app client, created once on first use', async () => {
+  it("keeps main's project fallback and binds FIRESTORE_DATABASE", async () => {
     vi.stubEnv('GOOGLE_PROJECT_ID', '');
-    expect(getAdminFirestore).not.toHaveBeenCalled();
-    await expect(getFirestore()).resolves.toBe(adminDb);
-    await expect(getFirestore()).resolves.toBe(adminDb);
-    expect(getAdminFirestore).toHaveBeenCalledTimes(1);
-    vi.unstubAllEnvs();
+    vi.stubEnv('FIRESTORE_DATABASE', 'ferni-dev');
+    const db = await client();
+    expect(db.projectId).toBe('bogle-voiceai');
+    expect(db.databaseId).toBe('ferni-dev');
+  });
+
+  it('uses GOOGLE_PROJECT_ID when set, and (default) when FIRESTORE_DATABASE is unset', async () => {
+    vi.stubEnv('GOOGLE_PROJECT_ID', 'demo-life-coaching');
+    vi.stubEnv('FIRESTORE_DATABASE', '');
+    const db = await client();
+    expect(db.projectId).toBe('demo-life-coaching');
+    expect(db.databaseId).toBe('(default)');
+  });
+
+  it('creates the client once', async () => {
+    const { getFirestore } = await import('../user-profile-firestore.js');
+    expect(await getFirestore()).toBe(await getFirestore());
   });
 });

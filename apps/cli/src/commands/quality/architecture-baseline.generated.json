@@ -526,7 +526,6 @@
   "src/tools/domains/information/preferences/storage.ts -> src/utils/firestore-utils.ts",
   "src/tools/domains/information/relationships/storage.ts -> src/utils/firebase-admin-app.ts",
   "src/tools/domains/information/relationships/storage.ts -> src/utils/firestore-utils.ts",
-  "src/tools/domains/life-coaching-shared/user-profile-firestore.ts -> src/utils/firebase-admin-app.ts",
   "src/tools/domains/life-coaching-shared/user-profile.ts -> src/utils/firestore-utils.ts",
   "src/tools/domains/life-planning/event-planning.ts -> src/utils/firestore-utils.ts",
   "src/tools/domains/life-planning/gift-registry.ts -> src/utils/firestore-utils.ts",

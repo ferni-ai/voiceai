@@ -1,13 +1,15 @@
 /**
- * The Firestore connection behind life-coaching profiles (user-profile.ts): created on
- * first use through getAdminFirestore(), so it binds the default app's project and the
- * process's database. It used to fall back to project 'bogle-voiceai' when
- * GOOGLE_PROJECT_ID was unset, quietly sending profiles to another project. Split out
- * of user-profile.ts, which is over the 500-line ratchet.
+ * The Firestore connection behind life-coaching profiles (user-profile.ts), created on
+ * first use and bound to the process's database (FIRESTORE_DATABASE). The project is
+ * unchanged on purpose: GOOGLE_PROJECT_ID, else 'bogle-voiceai'. Moving these profiles
+ * into the main project would start persisting them in prod for the first time, which
+ * is a product and data decision, not part of binding the database. Split out of
+ * user-profile.ts, which is over the 500-line ratchet.
  *
  * @module tools/domains/life-coaching-shared/user-profile-firestore
  */
 
+import { getFirestoreDatabase } from '../../../config/environment.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
 const log = createLogger({ module: 'LifeCoachingProfile' });
@@ -50,10 +52,12 @@ export async function getFirestore(): Promise<Firestore | null> {
 
 async function initializeFirestore(): Promise<Firestore | null> {
   try {
-    // The default app's project (getAdminApp) and the process's database, never a
-    // hardcoded fallback project. Cast to our minimal interface - it is compatible.
-    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
-    db = getAdminFirestore() as unknown as Firestore;
+    const { Firestore: FirestoreClass } = await import('@google-cloud/firestore');
+    // Cast to our minimal interface - the actual implementation is compatible
+    db = new FirestoreClass({
+      projectId: process.env.GOOGLE_PROJECT_ID || 'bogle-voiceai',
+      databaseId: getFirestoreDatabase(),
+    }) as unknown as Firestore;
     log.info('Firestore initialized for life coaching profiles');
     return db;
   } catch (error) {
