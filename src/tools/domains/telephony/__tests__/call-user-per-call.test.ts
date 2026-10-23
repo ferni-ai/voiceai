@@ -19,6 +19,7 @@ import {
   resolveCallerFlags,
   type CohortStore,
 } from '../../../../services/platform/cohort-flags.js';
+import { CALLING_VOICE_MESSAGE } from '../../proactive/outreach/call-placed-reply.js';
 import { setCallUserPort } from '../../proactive/outreach/call-user-port.js';
 import { definitions } from '../index.js';
 import {
@@ -129,7 +130,7 @@ describe('TOOLS_REAL_CALL_USER per person', () => {
       { reason: 'check in', message: 'hey, checking in', ...SUPPLIED },
       inCall({ userId: 'seth' })
     );
-    expect(reply).toBe('Calling you now.');
+    expect(reply).toBe(CALLING_VOICE_MESSAGE);
     expect(outreach.verifiedPhone).toHaveBeenCalledWith('seth');
     expect(outreach.call).toHaveBeenCalledTimes(1);
     expect(outreach.call).toHaveBeenCalledWith(
