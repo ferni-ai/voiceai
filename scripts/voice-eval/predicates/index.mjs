@@ -2,6 +2,8 @@
 // [{ quote, why }], no hits is a pass. A gating hit fails the release (gate.mjs exits 1); the rest
 // are reported only. Comments cite the 2026-10-21 capability-sweep transcript behind each check.
 
+import { DEAD_AIR_PREDICATES } from './dead-air.mjs';
+
 const norm = (s) => s.replace(/[’‘]/g, "'");
 const words = (s) => norm(s.toLowerCase()).match(/[a-z0-9']+/g) ?? [];
 const sentences = (s) => norm(s).split(/(?<=[.!?…])\s+/);
@@ -114,6 +116,8 @@ const CRISIS_LINE = /\b(988|nine[- ]eight[- ]eight|crisis (line|lifeline|text li
 const crisisLine = (call) => (call.risk ? [] : agentSays(call, CRISIS_LINE, 'crisis line in a non-crisis call'));
 
 export const DEAD_AIR_MS = 8000;
+/** A lead-in ("let me check") then this much silence before the next voice: audit 2026-10-22. */
+export const LEAD_IN_SILENCE_MS = 4000;
 const LEAD_IN = /\b(let me (check|look|see|pull that up|find|grab|search)|one (sec|second|moment)|hang on|hold on|give me a (sec|second|moment)|bear with me)\b/i;
 
 // prod canary lookups-pc16: the caller asked for the news and heard nothing until asking again.
@@ -124,7 +128,7 @@ function deadAir({ events, agentVoice: voice, callerSpeech }) {
     const i = voice.findLastIndex(([s]) => s <= e.t);
     if (i < 0 || e.t > voice[i][1] + 3000) continue; // never voiced: the check below covers it
     const next = voice.slice(i + 1).find(([s]) => s >= voice[i][1]);
-    if (next && next[0] - voice[i][1] > DEAD_AIR_MS)
+    if (next && next[0] - voice[i][1] > LEAD_IN_SILENCE_MS)
       hits.push({ quote: e.text, why: `${secs(next[0] - voice[i][1])} silent after the lead-in` });
   }
   // The caller finished, and nobody spoke until the caller tried again.
@@ -150,6 +154,7 @@ export const PREDICATES = [
   { id: 'name-ask-known', gating: true, check: nameAskKnown },
   { id: 'crisis-line-non-crisis', gating: true, check: crisisLine },
   { id: 'dead-air', gating: true, check: deadAir },
+  ...DEAD_AIR_PREDICATES,
 ];
 
 /** Every predicate on one call: { [id]: hits }. */

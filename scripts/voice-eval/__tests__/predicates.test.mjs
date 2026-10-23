@@ -335,17 +335,15 @@ describe('dead-air', () => {
       expect.objectContaining({ why: expect.stringMatching(/unanswered/) }),
     ]);
   });
-  it('passes a lead-in answered within 8 s', () => {
-    const c = call(
-      [
-        'a: Hi.',
-        'u: Any news today?',
-        'a: One sec, let me check.',
-        'a: Looks like the vote passed.',
-      ],
-      { gaps: { 2: 3000 } }
-    );
-    expect(hits('dead-air', c)).toEqual([]);
+  it('passes a lead-in answered within 4 s, and fails one at 5 s (tightened from 8 s, audit 10-22)', () => {
+    const lines = [
+      'a: Hi.',
+      'u: Any news today?',
+      'a: One sec, let me check.',
+      'a: Looks like the vote passed.',
+    ];
+    expect(hits('dead-air', call(lines, { gaps: { 2: 1500 } }))).toEqual([]); // 3.5 s
+    expect(hits('dead-air', call(lines, { gaps: { 2: 3000 } }))).toHaveLength(1); // 5.0 s
   });
 });
 

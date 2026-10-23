@@ -24,7 +24,34 @@ export function callOf(run, file = '') {
     agentVoice: voiced.flatMap((t) => t.voice).sort((a, b) => a[0] - b[0]),
     callerSpeech: run.userSpeech ?? [],
     replyGaps: (run.results ?? []).map((r) => r.replyDelayMs ?? null),
+    ...timeline(run, meta),
   };
+}
+
+/** The audio timeline the dead-air predicates read: every agent sound (voice, opening clips,
+ *  presence and backchannels), the call's end, each caller turn's reply gap with the persona
+ *  that was on, and the handoffs (data messages state_reset / handoff_complete). */
+function timeline(run, meta) {
+  const tracks = (run.tracks ?? []).filter((t) => Array.isArray(t?.voice));
+  const agentSound = tracks.flatMap((t) => t.voice).sort((a, b) => a[0] - b[0]);
+  const ends = [...agentSound, ...(run.userSpeech ?? [])].map(([, e]) => e);
+  const callEnd = Math.max(0, ...ends, ...(run.events ?? []).map((e) => e.t ?? 0));
+  const marks = []; // [t, persona]
+  const handoffs = [];
+  for (const { t, payload: p } of run.data ?? []) {
+    if (p?.type === 'state_reset' && p.activePersona) marks.push([t, p.activePersona]);
+    if (p?.type === 'handoff_complete' && p.target) {
+      marks.push([t, p.target]);
+      handoffs.push({ t, from: p.from ?? '?', to: p.target });
+    }
+  }
+  const personaAt = (t) => marks.filter(([m]) => m <= t).at(-1)?.[1] ?? (meta.persona || 'ferni');
+  const turnGaps = (run.results ?? []).map((r) => ({
+    persona: personaAt(r.userEndedAt ?? 0),
+    gapMs: Number.isFinite(r.replyDelayMs) ? r.replyDelayMs : null,
+    end: r.userEndedAt ?? null,
+  }));
+  return { agentSound, callEnd, turnGaps, handoffs };
 }
 
 const readRun = (f) => {
