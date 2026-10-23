@@ -33,6 +33,8 @@ export interface CollectionReference {
   where: (field: string, op: string, value: unknown) => Query;
   limit: (n: number) => Query;
   get: () => Promise<QuerySnapshot>;
+  /** Aggregation: the server counts, no documents come back. */
+  count: () => { get: () => Promise<{ data: () => { count: number } }> };
   findNearest?: (options: FindNearestOptions) => Query;
 }
 

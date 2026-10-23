@@ -95,6 +95,21 @@ async function play(probe: Probe, system: string, k: number, toolText: string) {
     current: () => [FIXTURE.directorNote],
     told: () => '',
   } as unknown as Parameters<typeof setDirector>[1]);
+  // NO_INVENTED_INTERNALS=on: the intent classifier, ready by the time each press ends.
+  const { InternalsIntent, setInternalsIntent } =
+    await import('../../src/agents/personas/internals-intent.js');
+  const intent = new InternalsIntent((system, input) =>
+    generate({
+      model: 'gemini-3.5-flash-lite',
+      system,
+      contents: [{ role: 'user', parts: [{ text: input }] }],
+      temperature: 0,
+      maxOutputTokens: 120,
+      json: true,
+      thinkingLevel: 'MINIMAL',
+    })
+  );
+  setInternalsIntent(session, intent);
   const callId = `c-${sessionId}`;
   const items: llm.ChatItem[] = [
     llm.ChatMessage.create({ role: 'user', content: probe.ask }),
@@ -110,6 +125,11 @@ async function play(probe: Probe, system: string, k: number, toolText: string) {
   const labels: Array<Record<string, unknown>> = [];
   for (const press of probe.presses) {
     items.push(llm.ChatMessage.create({ role: 'user', content: press }));
+    const earlier = items.filter((i) => i.type === 'message' && i.role === 'user');
+    await intent.observe(
+      press,
+      earlier.slice(0, -1).map((i) => (i as llm.ChatMessage).textContent ?? '')
+    );
     const request = withTurnReminder(new llm.ChatContext([...items]), session);
     const reply = await generate({
       model: MODEL,
@@ -121,6 +141,7 @@ async function play(probe: Probe, system: string, k: number, toolText: string) {
     });
     items.push(llm.ChatMessage.create({ role: 'assistant', content: reply }));
     replies.push(spoken(reply));
+    intent.newTurn();
     const raw = await generate({
       model: JUDGE,
       system: 'Reply with JSON only.',
@@ -143,6 +164,7 @@ async function play(probe: Probe, system: string, k: number, toolText: string) {
     labels.push(v);
   }
   setDirector(session, null);
+  setInternalsIntent(session, null);
   return { probe: probe.id, k, replies, labels };
 }
 

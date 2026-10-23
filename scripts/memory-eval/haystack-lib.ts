@@ -184,3 +184,26 @@ export function withCi(k: number, n: number): string {
   const [lo, hi] = wilson(k, n);
   return `${pct(k / n)} [${Math.round(lo * 100)}-${Math.round(hi * 100)}]`;
 }
+
+/**
+ * When a memory was saved, seeded per caller and memory: the stale side of an
+ * update 300-700 days before 2026-10-01, the fresh side 0-120 days, the rest
+ * anywhere in 0-700 days. The per-turn judge reads these dates.
+ */
+export function savedAt(callerName: string, memory: HaystackMemory): Date {
+  let h = 2166136261;
+  for (const ch of `${callerName}|${memory.id}`) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; // prettier-ignore
+  const u = h / 4294967296;
+  const daysAgo = memory.kind === 'stale' ? 300 + u * 400 : memory.kind === 'fresh' ? u * 120 : u * 700; // prettier-ignore
+  return new Date(Date.UTC(2026, 9, 1) - Math.round(daysAgo) * 86_400_000);
+}
+
+/** Which half a turn is in: "dev" to choose settings on, "held-out" to report. Seeded by the turn text (FNV-1a). */
+export function turnHalf(text: string): 'dev' | 'held-out' {
+  let h = 2166136261;
+  for (const ch of text) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0;
+  return h % 2 === 0 ? 'dev' : 'held-out';
+}
+
+/** fixtures/haystack-followups.json: per caller, [first turn, the next thing said on the same subject]. */
+export type FollowUps = { callers: Record<string, Array<[string, string]>> };
