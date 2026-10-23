@@ -7,6 +7,10 @@
  * then a LiveKit SIP dial, so the persona is live on the line in its own voice.
  * Without SIP (no trunk or LiveKit keys) the caller keeps the Twilio path.
  *
+ * CALL_PROACTIVE_LIVE_AGENT=on does the same for every other call that goes
+ * through scheduleProactiveCall to the account's own verified phone (check-ins,
+ * follow-ups, reminders): Ferni rings live instead of a robot reading a script.
+ *
  * @module services/outreach/live-agent-call
  */
 import { flagOn } from '../../config/env-flag.js';
@@ -49,7 +53,8 @@ export type RecordOutcome = (
 export async function ringsWithLiveAgent(
   call: Pick<LiveAgentCall, 'reason' | 'userId' | 'phoneNumber'>
 ): Promise<boolean> {
-  if (call.reason !== USER_REQUESTED_CALL || !flagOn('CALL_USER_LIVE_AGENT')) return false;
+  const asked = call.reason === USER_REQUESTED_CALL;
+  if (!(asked ? flagOn('CALL_USER_LIVE_AGENT') : flagOn('CALL_PROACTIVE_LIVE_AGENT'))) return false;
   if (!canPlaceCalls()) return false;
   const { phone } = await userReach(call.userId, 'voice_call', { standingOptIn: false });
   const dialed = toE164(call.phoneNumber);
@@ -70,14 +75,15 @@ const QUOTE_MAX = 120;
  * quote with markup, brackets, quotes and control characters removed. The
  * quote comes early and stays short so the opener's window holds all of it.
  */
-export function liveCallReason(message: string): string {
+export function liveCallReason(message: string, asked = true): string {
   const quote = message
     .replace(/[\p{Cc}<>[\]{}`"]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, QUOTE_MAX)
     .trim();
-  return quote ? `They asked you to call. Your words: "${quote}"` : 'They asked you to call them.';
+  const frame = asked ? 'They asked you to call' : "You're calling to check in";
+  return quote ? `${frame}. Your words: "${quote}"` : `${frame}${asked ? ' them' : ''}.`;
 }
 
 /**
@@ -88,9 +94,10 @@ export function placeLiveAgentCall(
   call: LiveAgentCall,
   record: RecordOutcome
 ): { success: true; callId: string; status: 'initiated'; live: true } {
+  const asked = call.reason === USER_REQUESTED_CALL;
   const trigger = {
-    kind: 'promise' as const,
-    reason: liveCallReason(call.message),
+    kind: asked ? ('promise' as const) : ('follow_up' as const),
+    reason: liveCallReason(call.message, asked),
     sourceId: call.id,
   };
   const placed = placeSelfCall(call.userId, call.phoneNumber, trigger, undefined, call.personaId);

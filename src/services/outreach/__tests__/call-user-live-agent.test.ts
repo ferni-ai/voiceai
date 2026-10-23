@@ -112,7 +112,9 @@ beforeEach(() => {
   Object.assign(process.env, ENV, { CALL_USER_LIVE_AGENT: 'on' });
 });
 afterEach(() => {
-  for (const k of [...Object.keys(ENV), 'CALL_USER_LIVE_AGENT']) delete process.env[k];
+  for (const k of [...Object.keys(ENV), 'CALL_USER_LIVE_AGENT', 'CALL_PROACTIVE_LIVE_AGENT']) {
+    delete process.env[k];
+  }
 });
 
 describe('CALL_USER_LIVE_AGENT=on', () => {
@@ -222,5 +224,51 @@ describe('CALL_USER_LIVE_AGENT off (the default)', () => {
     expect(twilioCreate).toHaveBeenCalledTimes(1);
     expect(dispatches).toEqual([]);
     expect(dials).toEqual([]);
+  });
+});
+
+describe('CALL_PROACTIVE_LIVE_AGENT=on', () => {
+  const checkIn = (phoneNumber = PHONE) =>
+    scheduleProactiveCall({
+      userId: 'seth-uid',
+      phoneNumber,
+      message: 'Checking in on the launch.',
+      ssml: '<speak>Checking in on the launch.</speak>',
+      personaId: 'ferni',
+      reason: 'ceo_coaching',
+    });
+
+  beforeEach(() => {
+    delete process.env.CALL_USER_LIVE_AGENT;
+    process.env.CALL_PROACTIVE_LIVE_AGENT = 'on';
+  });
+
+  it("a check-in to the user's own phone rings with Ferni live, framed as her call, not theirs", async () => {
+    const result = await checkIn();
+    expect(result).toMatchObject({ success: true, status: 'initiated' });
+    expect(twilioCreate).not.toHaveBeenCalled();
+    await vi.waitFor(() => expect(dials).toHaveLength(1));
+    const metadata = JSON.parse(dispatches[0].metadata) as Record<string, unknown>;
+    expect(metadata).toMatchObject({
+      persona_id: 'ferni',
+      triggerType: 'follow_up',
+      triggerReason: `You're calling to check in. Your words: "Checking in on the launch."`,
+    });
+  });
+
+  it('another number stays on Twilio: the agent would be told it is the owner', async () => {
+    await checkIn('+15555550199');
+    expect(dispatches).toEqual([]);
+    expect(twilioCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not turn on the asked-for path: that one stays behind CALL_USER_LIVE_AGENT', async () => {
+    await askAlex();
+    expect(dispatches).toEqual([]);
+    expect(twilioCreate).toHaveBeenCalledTimes(1);
+  });
+
+  it('with nothing quoted, the frame still says why', () => {
+    expect(liveCallReason('', false)).toBe("You're calling to check in.");
   });
 });
