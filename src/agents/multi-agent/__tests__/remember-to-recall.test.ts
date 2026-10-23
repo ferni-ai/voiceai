@@ -130,6 +130,13 @@ describe('REMEMBER_TO_RECALL: remembered on call 1, recalled by meaning on call 
     expect(byWordsOnly).not.toContain('moving to Denver');
   });
 
+  it('on: a PIN the caller asked to remember never becomes a recallable fact', async () => {
+    vi.stubEnv('REMEMBER_TO_RECALL', 'on'); // SPOKEN_CREDENTIAL_FILTER left off
+    await remember("User's PIN is 4321");
+    await settle();
+    expect(factDocs()).toEqual([]);
+  });
+
   it('off (the default): the remember tool writes no fact, and the next call recalls nothing', async () => {
     await remember('my sister Dana is moving to Denver in June');
     await settle();

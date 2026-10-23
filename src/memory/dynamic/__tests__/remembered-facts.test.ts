@@ -121,11 +121,35 @@ describe('rememberToRecall', () => {
     expect([...facts.values()][0]).toMatchObject({ embeddingModel: 'test-model', embeddingTask: 'RETRIEVAL_DOCUMENT' }); // prettier-ignore
   });
 
-  it('keeps no spoken credential (SPOKEN_CREDENTIAL_FILTER)', async () => {
-    vi.stubEnv('SPOKEN_CREDENTIAL_FILTER', 'on');
+  // SPOKEN_CREDENTIAL_FILTER left at its default (off): this write checks regardless
+  const SECRETS = [
+    'remember my PIN is 4321',
+    "User's PIN is 4321",
+    "Seth's debit card PIN is 4321",
+    'my PIN is 4321',
+    'remember the wifi password is sunshine42',
+    'the door code is 4821',
+  ];
+  const ORDINARY = [
+    'my locker is number 12 on the third floor',
+    'I ran 5k in 31 minutes',
+    "my mom's birthday is 4/21",
+    'my PIN pad at work is broken',
+  ];
+
+  it.each(SECRETS)('never writes or embeds a remembered credential: %s', async (fact) => {
     const { facts, store } = memoryStore();
-    await rememberToRecall('u1', { fact: 'the door code is 4821', memoryId: 'm' }, { store, env: ON }); // prettier-ignore
+    const embed = vi.fn(async (texts: string[]) => texts.map(() => [0.1]));
+    const embedding = { enabled: true, embed, model: async () => 'm' };
+    expect(await rememberToRecall('u1', { fact, memoryId: 'm' }, { store, env: ON, embedding })).toBe(false); // prettier-ignore
     expect(facts.size).toBe(0);
+    expect(embed).not.toHaveBeenCalled();
+  });
+
+  it.each(ORDINARY)('still writes an ordinary fact with a number in it: %s', async (fact) => {
+    const { facts, store } = memoryStore();
+    await rememberToRecall('u1', { fact, memoryId: 'm' }, { store, env: ON });
+    expect([...facts.values()]).toEqual([expect.objectContaining({ value: fact })]);
   });
 
   it('a store failure is logged, never thrown', async () => {
