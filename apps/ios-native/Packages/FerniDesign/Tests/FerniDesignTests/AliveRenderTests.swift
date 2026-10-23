@@ -105,30 +105,19 @@ final class AliveRenderTests: XCTestCase {
     /// light mode, warm ivory #E6DFD4 in dark mode, as the web (#2550). It was
     /// the page's colour (51f3fe702), which on the dark page (#14110e)
     /// vanished and read as see-through; before that, a darker shade of the
-    /// face (40d4177f46). It paints only inside the eye (CrescentCapTests), so
-    /// it's sampled there, with a cap deeper than any face's.
+    /// face (40d4177f46). On the orb, not cut out of it: opaque where the face was.
     func testALidIsTheThemesCapColour() throws {
         for dark in [false, true] {
             for (name, body, light) in [("ferni", ferni, ferniLight), ("maya", maya, mayaLight)] {
                 let mode = dark ? "dark" : "light"
-                var lidded = AliveUniforms.settled(Face.of("neutral"), body: body, glow: light)
-                lidded.caps.x = 1.2   // past the rig's clamp (0.9): over half the eye, to sample
+                let lidded = AliveUniforms.settled(Face.of("sleepy"), body: body, glow: light)
                 var open = lidded
                 open.caps = .zero
                 let a = try render(lidded, name: "lid-\(name)-\(mode)", dark: dark)
                 let b = try render(open, name: "lid-\(name)-\(mode)-open", dark: dark)
-                // Down the left eye's middle: the rows the cap changed, from the eye's top.
-                func white(_ x: Int, _ y: Int) -> Bool { let p = b.px(x, y); return min(p.r, p.g, p.b) > 0.8 && p.a > 0.99 }
-                let xs = (0..<(Self.size / 2)).filter { x in (0..<Self.size).contains { white(x, $0) } }
-                let x = (try XCTUnwrap(xs.first, "\(name) \(mode): the left eye") + xs.last!) / 2
-                let rows = (0..<Self.size).filter { y in
-                    let p = a.px(x, y), q = b.px(x, y)
-                    return max(abs(p.r - q.r), abs(p.g - q.g), abs(p.b - q.b)) > 2.0 / 255
-                }
-                XCTAssertGreaterThanOrEqual(rows.count, 12, "\(name) \(mode): the cap reaches into the eye")
-                // Its middle rows: past the cap's blended edge and the eye's outline (a few px each).
-                for y in rows.dropFirst(5).dropLast(5) {
-                    let lid = a.px(x, y)
+                let x = Self.size / 2, y0 = try XCTUnwrap((0..<Self.size).first { a.px(x, $0).a > 0.99 })
+                for y in [y0 + 4, y0 + 8] {
+                    let lid = a.px(x, y), face = b.px(x, y)
                     let got = [lid.r, lid.g, lid.b].map { $0 * 255 }
                     if dark {
                         let off = zip(got, Self.ivory).map { abs($0 - $1) }.max() ?? 255
@@ -139,6 +128,8 @@ final class AliveRenderTests: XCTestCase {
                         XCTAssertLessThanOrEqual(got.map { 255 - $0 }.max() ?? 255, Self.whiteLevels,
                                                  "\(name) light row \(y): lid \(got) isn't white")
                     }
+                    let fromFace = abs(lid.r - face.r) + abs(lid.g - face.g) + abs(lid.b - face.b)
+                    XCTAssertGreaterThan(fromFace, 0.15, "\(name) \(mode): the lid isn't the face's colour")
                     XCTAssertEqual(lid.a, 1, accuracy: 0.01, "\(name) \(mode): on the orb, not cut out of it")
                 }
             }

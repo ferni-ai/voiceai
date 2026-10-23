@@ -48,6 +48,15 @@ public enum AliveShader {
     /// orb's diameter. (The design-system playground's box is 2.5 radii.)
     public static let lidBox = 1.0
 
+    /// The domes never reach the eyes (Seth, 2026-10-23: "just those white caps
+    /// on the top and bottom of the head like on the web app"). The eye line
+    /// sits 47/100 down the orb, as on the web; a dome cap·B deep at the middle
+    /// (cap/2 of the diameter) stops `capClearance` of the diameter short of it.
+    /// The web's deepest top cap, sleepy's, is 27.5/100.
+    public static let eyeLine = 0.47, capClearance = 0.07
+    /// The deepest top and bottom caps the shader draws: 0.8 (40/100) and 0.92 (46/100).
+    public static let capTopMax = 2 * (eyeLine - capClearance), capBottomMax = 2 * (1 - eyeLine - capClearance)
+
     public static let source = #"""
 #include <metal_stdlib>
 using namespace metal;
@@ -207,11 +216,13 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
   float2 capT = capPoint(mid + 0.6 * up + 0.8 * out, cuv, u, c, zoom, radiusPx / res.y);
   float2 capB = capPoint(mid - 0.6 * up + 0.8 * out, cuv, u, c, zoom, radiusPx / res.y);
   float fallT = 1.0 - (capT.x / B) * (capT.x / B), fallB = 1.0 - (capB.x / B) * (capB.x / B);
-  float overTop = capT.y - (B - B * u.caps.x * fallT), underBot = (-B + B * u.caps.y * fallB) - capB.y;
+  // Never past the eye line (capTopMax, capBottomMax): the domes stay on the top and bottom of the head.
+  float capTop = min(u.caps.x, \#(Float(capTopMax))), capBot = min(u.caps.y, \#(Float(capBottomMax)));
+  float overTop = capT.y - (B - B * capTop * fallT), underBot = (-B + B * capBot * fallB) - capB.y;
   // Blended over two pixels each side: one left a single grey step (a stair on a curve).
   float fwT = 2.0 * max(fwidth(overTop), 1e-5), fwB = 2.0 * max(fwidth(underBot), 1e-5);
   // A closed-off cap (the web's lids above the orb, Y < 0) draws nothing, not a shaved top.
-  float capped = max(step(0.001, u.caps.x) * smoothstep(-fwT, fwT, overTop), step(0.001, u.caps.y) * smoothstep(-fwB, fwB, underBot));
+  float capped = max(step(0.001, capTop) * smoothstep(-fwT, fwT, overTop), step(0.001, capBot) * smoothstep(-fwB, fwB, underBot));
 
   // The room's light, premultiplied: glow and the presence ring add light (alpha 0), the floor shadow darkens.
   float d0 = length(cuv);
@@ -266,8 +277,6 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
       float ao = calcAO(p, n, u, c);
       float3 key = u.key.xyz, rim = u.rim.xyz, fill = u.fill.xyz, bg1 = u.bg1.xyz;
       float3 col;
-      // Where a lid cap may paint: the open eye only (below). Nowhere else on the body.
-      float capIn = 0.0;
       if (mat > 3.5) {
         float wrapG = clamp((ndl + 0.6) / 1.6, 0.0, 1.0);
         if (mat < 4.5) {
@@ -329,11 +338,6 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
         float slopeT = (tY2 - tY) / 0.002, slopeB = (bY2 - bY) / 0.002;
         float lidEdge = min(min((tY - l.y) * rsqrt(1.0 + slopeT * slopeT), (l.y - bY) * rsqrt(1.0 + slopeB * slopeB)), 0.5 * (tY - bY) - 0.01);
         eyeMix = ball * smoothstep(-px, px, lidEdge);
-        // The caps stay inside the eyes (design panel, 2026-10-23): reaching past them they
-        // painted an ivory skullcap and chin strap on the deep faces. The eye as drawn, from
-        // its own ellipsoid and lid lines, is the bound, so a cap never covers the eye's own
-        // lid either: squint and sleepy are carried by the lids, as goodbye's happy eyes are.
-        capIn = eyeMix;
         float lidShade = mix(0.74, 1.0, smoothstep(0.0, 0.06, tY - l.y)) * mix(0.88, 1.0, smoothstep(0.0, 0.05, l.y - bY));
         float3 white = float3(0.92, 0.91, 0.88);
         float3 ce = white * (key * (0.55 + 0.45 * max(ndl, 0.0)) * 0.8 + fill * 0.5) * lidShade;
@@ -356,10 +360,10 @@ fragment float4 aliveFragment(VOut in [[stage_in]], constant U& u [[buffer(0)]])
       // the page's colour (Seth, 2026-10-23: "use white rather than transparent"; a page-colour
       // cap vanished on the dark page and read as see-through). White in light mode, warm ivory
       // #E6DFD4 in dark mode (as the web, #2550). Given on screen (sRGB, warmed only by the
-      // evening tint) and mixed past the tone curve, so it lands exactly. Only inside the open eye
-      // (`capIn`): alpha is untouched, the outline stays round, and the edge blends over two
-      // pixels each side (fwT, fwB).
-      if (mat < 3.5) col = mix(col, u.cap.xyz, capped * capIn);
+      // evening tint) and mixed past the tone curve, so it lands exactly. It replaces the face's colour inside the silhouette only: alpha is
+      // untouched, the outline stays round, and the edge blends over two pixels each side
+      // (fwT, fwB).
+      if (mat < 3.5) col = mix(col, u.cap.xyz, capped);
       col += (hash21(frag + fract(u.res.z)) - 0.5) / 255.0;
       outc = float4(col * alpha, alpha) + under * (1.0 - alpha);
     }
