@@ -10,6 +10,11 @@
  * (dark-context rules, custom properties, var() fallbacks, gradients, shadows,
  * colours no role has) is left alone and listed in the report.
  *
+ * Page aliases: a page style that reads var(--page-ink, #2c2520) shows the
+ * literal in light mode and the alias, which dark-mode-surfaces.css sets only in
+ * dark mode, in dark. The whole var() becomes a role only when the role matches
+ * both: its light value is the literal and its dark value is the alias.
+ *
  * Usage: pnpm tsx scripts/website/tokenize-colours.ts <file...> [--write]
  *   Without --write it only prints the report.
  */
@@ -24,6 +29,8 @@ import {
 } from '../../apps/cli/src/commands/quality/website-theme-debt.js';
 
 type Kind = 'text' | 'surface' | 'border';
+
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
 /** Roles a literal may become, per kind, in order of preference. */
 export const CANDIDATES: Record<Kind, string[]> = {
@@ -69,6 +76,8 @@ const KIND_OF: Array<[RegExp, Kind]> = [
 
 const LITERAL =
   /(?<![\w&#-])#(?:[0-9a-f]{8}|[0-9a-f]{6}|[0-9a-f]{3,4})(?![\w-])|\brgba?\([^()]*\)|(?<![\w-])(?:white|black)(?![\w-])/gi;
+/** var(--page-x, <literal>) */
+const ALIAS = new RegExp(`var\\(\\s*(--page-[\\w-]+)\\s*,\\s*(${LITERAL.source})\\s*\\)`, 'gi');
 
 export interface Change {
   line: number;
@@ -85,9 +94,8 @@ export interface Unmatched {
 
 /** Every theme role, resolved from the design-system token files. */
 export function themeRoles(): ThemeRole[] {
-  const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
   const read = (f: string): unknown =>
-    JSON.parse(fs.readFileSync(path.join(root, 'design-system/tokens', f), 'utf8'));
+    JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'design-system/tokens', f), 'utf8'));
   return themeRoleGroups(
     read('semantic-colors.json'),
     read('colors.json'),
@@ -95,20 +103,30 @@ export function themeRoles(): ThemeRole[] {
   ).flatMap((g) => g.roles);
 }
 
-/** Normalised colour → role name, per kind. */
-export function roleTable(roles: ThemeRole[]): Record<Kind, Map<string, string>> {
-  const light = new Map(roles.map((r) => [r.name, r.light]));
-  const table = {} as Record<Kind, Map<string, string>>;
+/** Per kind: role by normalised light value, and by "light|dark" pair. */
+export type RoleTable = Record<Kind, { byLight: Map<string, string>; byPair: Map<string, string> }>;
+
+export function roleTable(roles: ThemeRole[]): RoleTable {
+  const byName = new Map(roles.map((r) => [r.name, r]));
+  const table = {} as RoleTable;
   for (const kind of Object.keys(CANDIDATES) as Kind[]) {
-    table[kind] = new Map();
+    table[kind] = { byLight: new Map(), byPair: new Map() };
     for (const name of CANDIDATES[kind]) {
-      const value = light.get(`--color-${name}`);
-      if (value === undefined) throw new Error(`semantic-colors.json has no --color-${name} role`);
-      const key = normalise(value);
-      if (!table[kind].has(key)) table[kind].set(key, `--color-${name}`);
+      const role = byName.get(`--color-${name}`);
+      if (role === undefined) throw new Error(`semantic-colors.json has no --color-${name} role`);
+      const light = normalise(role.light);
+      const pair = `${light}|${normalise(role.dark ?? role.light)}`;
+      if (!table[kind].byLight.has(light)) table[kind].byLight.set(light, role.name);
+      if (!table[kind].byPair.has(pair)) table[kind].byPair.set(pair, role.name);
     }
   }
   return table;
+}
+
+/** The --page-* aliases a stylesheet declares, with their (dark-mode) values. */
+export function pageAliases(css: string): Map<string, string> {
+  const found = mask(css).matchAll(/(--page-[\w-]+)\s*:\s*([^;{}]+);/g);
+  return new Map([...found].map((m) => [m[1]!, m[2]!.trim()]));
 }
 
 function normalise(literal: string): string {
@@ -137,8 +155,9 @@ function guardedReason(value: string, at: number): string | undefined {
 /** Replaces matching literals in one text; returns the new text and what it did. */
 export function tokenize(
   text: string,
-  table: Record<Kind, Map<string, string>>,
-  isTemplate: boolean
+  table: RoleTable,
+  isTemplate: boolean,
+  aliases: Map<string, string> = new Map()
 ): { text: string; changes: Change[]; unmatched: Unmatched[] } {
   const masked = mask(text);
   const changes: Change[] = [];
@@ -151,16 +170,28 @@ export function tokenize(
     for (const m of body.matchAll(/(?:^|[;{\s"'])([-\w]+)\s*:([^;{}"']*)/g)) {
       const property = m[1]!.toLowerCase();
       const valueStart = start + m.index! + m[0].length - m[2]!.length;
+      const kind = KIND_OF.find(([re]) => re.test(property))?.[1];
+      const swapped: Array<[number, number]> = [];
+      for (const a of kind && !dark && !property.startsWith('--') ? m[2]!.matchAll(ALIAS) : []) {
+        const alias = aliases.get(a[1]!);
+        const pair = alias && `${normalise(a[2]!)}|${normalise(alias)}`;
+        const role = pair && !guardedReason(m[2]!, a.index!) && table[kind!].byPair.get(pair);
+        if (!role) continue;
+        const at = valueStart + a.index!;
+        edits.push([at, at + a[0].length, `var(${role})`]);
+        changes.push({ line: lineAt(at), property, literal: a[0], role });
+        swapped.push([a.index!, a.index! + a[0].length]);
+      }
       for (const lit of m[2]!.matchAll(LITERAL)) {
+        if (swapped.some(([from, to]) => lit.index! >= from && lit.index! < to)) continue;
         const at = valueStart + lit.index!;
         const where = { line: lineAt(at), property, literal: lit[0] };
-        const kind = KIND_OF.find(([re]) => re.test(property))?.[1];
         const reason = property.startsWith('--')
           ? 'custom property'
           : dark
             ? 'dark context'
             : (guardedReason(m[2]!, lit.index!) ?? (kind ? undefined : 'property has no role'));
-        const role = kind && !reason ? table[kind].get(normalise(lit[0])) : undefined;
+        const role = kind && !reason ? table[kind].byLight.get(normalise(lit[0])) : undefined;
         if (role) {
           edits.push([at, at + lit[0].length, `var(${role})`]);
           changes.push({ ...where, role });
@@ -216,11 +247,14 @@ function main(argv: string[]): void {
     process.exit(2);
   }
   const table = roleTable(themeRoles());
+  const surfaces = 'apps/website/ferni-website/src/css/dark-mode-surfaces.css';
+  const aliases = pageAliases(fs.readFileSync(path.join(REPO_ROOT, surfaces), 'utf8'));
   for (const file of files) {
     const result = tokenize(
       fs.readFileSync(file, 'utf8'),
       table,
-      file.endsWith('.njk') || file.endsWith('.html')
+      file.endsWith('.njk') || file.endsWith('.html'),
+      aliases
     );
     if (write && result.changes.length > 0) fs.writeFileSync(file, result.text);
     console.log(`\n${file}: ${result.changes.length} replaced, ${result.unmatched.length} left`);
