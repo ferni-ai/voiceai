@@ -5,7 +5,9 @@
  * Writes src/config/flags/NAME.ts and regenerates the flag barrel, so a new flag
  * touches no shared hand-edited file. --note becomes the comment above the entry:
  * say what "on" does and where it is read. An experiment gets expires (default:
- * 90 days out) and issue (default 'TBD'); the manifest test fails once it expires.
+ * 90 days out, at most 180) and issue (default 'TBD', refused from ISSUE_TBD_UNTIL).
+ * Past its expiry it is a CI warning and a line in its owner's nightly issue
+ * (src/config/flag-lifecycle.ts), never a failure on main.
  */
 import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';

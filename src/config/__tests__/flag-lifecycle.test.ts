@@ -5,13 +5,17 @@
  * test changes verdict at midnight.
  */
 import { describe, expect, it } from 'vitest';
-import { FLAG_EXPIRY_BACKFILL } from '../flag-lifecycle-backfill.generated.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { FLAG_EXPIRY_BACKFILL, parseBackfill } from '../flag-lifecycle-backfill.js';
 import {
   flagLifecycle,
   ISSUE_TBD_UNTIL,
   lifecycleWarnings,
+  MAX_EXPIRY_DAYS,
   MISSING_EXPIRES_GRACE,
   specProblems,
+  touchedProblems,
 } from '../flag-lifecycle.js';
 import { FLAG_MANIFEST } from '../flag-manifest.js';
 import type { FlagSpec } from '../flag-spec.js';
@@ -30,7 +34,7 @@ describe('flag lifecycle: the manifest', () => {
     const stale = Object.keys(FLAG_EXPIRY_BACKFILL).filter(
       (n) => manifest[n]?.kind !== 'experiment'
     );
-    expect(stale, 'delete these lines from flag-lifecycle-backfill.generated.ts').toEqual([]);
+    expect(stale, 'delete these names from flag-lifecycle-backfill.ts').toEqual([]);
   });
 
   it('had no warnings on the day the backfill landed', () => {
@@ -111,5 +115,49 @@ describe('flag lifecycle: the hard rule for a spec a PR adds or edits', () => {
 
   it('does not apply to kill-switches and config flags', () => {
     expect(specProblems('X', KILL_SWITCH, '2026-10-23')).toEqual([]);
+  });
+});
+
+describe('flag lifecycle: the dates are pinned', () => {
+  it('pins the grace date and the TBD cut-off to 2026-12-01, and the longest expiry to 180 days', () => {
+    expect(MISSING_EXPIRES_GRACE).toBe('2026-12-01');
+    expect(ISSUE_TBD_UNTIL).toBe('2026-12-01');
+    expect(MAX_EXPIRY_DAYS).toBe(180);
+  });
+});
+
+describe('flag lifecycle: the backfill file', () => {
+  it('reads back from its own text exactly (the Flag expiry check parses the base version this way)', () => {
+    const text = readFileSync(join(__dirname, '..', 'flag-lifecycle-backfill.ts'), 'utf8');
+    const parsed = parseBackfill(text);
+    expect(Object.fromEntries(parsed)).toEqual(
+      Object.fromEntries(Object.entries(FLAG_EXPIRY_BACKFILL).map(([n, b]) => [n, b.expires]))
+    );
+    expect(parsed.size).toBeGreaterThan(200);
+  });
+});
+
+describe('flag lifecycle: after the grace date, touching a flag means fixing it', () => {
+  it('fails a touched experiment with no expiry anywhere, or still TBD, only from 2026-12-01', () => {
+    const name = Object.keys(FLAG_EXPIRY_BACKFILL)[0]!; // backfilled: has an expiry, issue TBD
+    expect(touchedProblems('NOT_BACKFILLED_X', exp({ issue: '#1' }), '2026-11-30')).toEqual([]);
+    expect(touchedProblems('NOT_BACKFILLED_X', exp({ issue: '#1' }), '2026-12-01')[0]).toMatch(
+      /still has no expires/
+    );
+    expect(touchedProblems(name, exp(), '2026-11-30')).toEqual([]);
+    expect(touchedProblems(name, exp(), '2026-12-01')[0]).toMatch(/still 'TBD'/);
+    expect(touchedProblems(name, exp({ issue: '#12' }), '2026-12-01')).toEqual([]);
+  });
+
+  it('caps a new or edited expires at 180 days, and refuses TBD after the cut-off', () => {
+    expect(specProblems('X', exp({ expires: '2027-04-21', issue: '#1' }), '2026-10-23')).toEqual(
+      []
+    ); // day 180
+    expect(specProblems('X', exp({ expires: '2027-04-22', issue: '#1' }), '2026-10-23')[0]).toMatch(
+      /more than 180 days/
+    );
+    expect(
+      specProblems('X', exp({ expires: '2027-01-01', issue: 'TBD' }), '2026-12-01')[0]
+    ).toMatch(/'TBD' after 2026-12-01/);
   });
 });

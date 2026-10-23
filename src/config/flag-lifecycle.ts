@@ -4,26 +4,33 @@
  * On 2026-10-23 the manifest held 294 experiments with no date or issue: flags never died
  * (code-health ddd.md §0.7, G6). An experiment's spec may now carry `expires` (YYYY-MM-DD),
  * `issue` and `context`; experiments listed before that get their expiry from
- * flag-lifecycle-backfill.generated.ts.
+ * flag-lifecycle-backfill.ts.
  *
  * Warn first. An expired experiment, a 'TBD' issue past ISSUE_TBD_UNTIL, or a missing
  * expiry past MISSING_EXPIRES_GRACE is a warning: an annotation on CI runs and a nightly
  * issue per owner (scripts/flags/expiry.ts), never a failure on main or in the merge queue.
- * The one hard rule is for the PR that adds or edits an experiment's spec: it must carry a
- * valid `expires` in the future (specProblems, checked against the merge base).
+ * Hard failures are only for what a PR does, checked against its merge base:
+ * - a spec it adds or edits needs its own valid `expires`, in the future and at most
+ *   MAX_EXPIRY_DAYS out, and an issue ('TBD' only before ISSUE_TBD_UNTIL) (specProblems);
+ * - from the grace date, a flag whose registry entry it touches must already have an expiry
+ *   and, from ISSUE_TBD_UNTIL, a real issue (touchedProblems), so the warnings can't just pile up;
+ * - the backfill may only shrink or move dates earlier (scripts/flags/expiry.ts).
+ * A unit test also fails while the backfill names a flag that is no longer an experiment.
  *
  * At expiry: delete the flag, make it permanent (kind kill-switch or config), or move the
  * date with a reason in `context`.
  *
  * @module config/flag-lifecycle
  */
-import { FLAG_EXPIRY_BACKFILL } from './flag-lifecycle-backfill.generated.js';
+import { FLAG_EXPIRY_BACKFILL } from './flag-lifecycle-backfill.js';
 
 /** A tracking issue not filed yet. Warned about from ISSUE_TBD_UNTIL; who files them is the lead's call. */
 export const ISSUE_TBD = 'TBD';
 export const ISSUE_TBD_UNTIL = '2026-12-01';
 /** An existing experiment with no expiry anywhere is warned about from this date. */
 export const MISSING_EXPIRES_GRACE = '2026-12-01';
+/** The furthest a new or edited expires may be: a flag gets reviewed at least twice a year. */
+export const MAX_EXPIRY_DAYS = 180;
 /** pnpm flags:new gives a new experiment this long. */
 export const DEFAULT_EXPERIMENT_DAYS = 90;
 
@@ -105,7 +112,36 @@ export function specProblems(
   else if (!isDay(spec.expires))
     out.push(`${name}: expires '${spec.expires}' is not a YYYY-MM-DD date`);
   else if (spec.expires <= today) out.push(`${name}: expires ${spec.expires} is not in the future`);
+  else if (spec.expires > isoDay(new Date(Date.parse(today) + MAX_EXPIRY_DAYS * 86_400_000))) {
+    out.push(
+      `${name}: expires ${spec.expires} is more than ${MAX_EXPIRY_DAYS} days out; pick a nearer review date`
+    );
+  }
   if (!spec.issue)
     out.push(`${name}: a new or edited experiment needs issue ('#123', a URL, or '${ISSUE_TBD}')`);
+  else if (spec.issue === ISSUE_TBD && today >= ISSUE_TBD_UNTIL) {
+    out.push(`${name}: issue 'TBD' after ${ISSUE_TBD_UNTIL}; file one and put its number here`);
+  }
+  return out;
+}
+
+/**
+ * From the grace dates, a PR that touches an experiment's registry entry (spec or comments) has
+ * to bring it up to date: an expiry somewhere (its spec or the backfill), and a real issue.
+ */
+export function touchedProblems(name: string, spec: LifecycleFields, today: string): string[] {
+  if (spec.kind !== 'experiment') return [];
+  const life = flagLifecycle(name, spec);
+  const out: string[] = [];
+  if (!life.expires && today >= MISSING_EXPIRES_GRACE) {
+    out.push(
+      `${name}: touched after ${MISSING_EXPIRES_GRACE} and still has no expires; add expires, issue and context to its spec`
+    );
+  }
+  if (life.issue === ISSUE_TBD && today >= ISSUE_TBD_UNTIL) {
+    out.push(
+      `${name}: touched after ${ISSUE_TBD_UNTIL} and its issue is still 'TBD'; file one and put its number in the spec`
+    );
+  }
   return out;
 }
