@@ -7,6 +7,8 @@ import {
   buildGraph,
   check,
   compare,
+  newViolations,
+  orchestrationHint,
   placementOf,
   scoreboard,
   toBaseline,
@@ -201,6 +203,70 @@ describe('architecture gate: orchestration reaches contexts through their index.
     const board = scoreboard(graph.files, graph.edges, check(graph, MAP), MAP);
     expect(board).toMatch(/\| L4 → L3 \| 1 \| 0 \|/);
     expect(board).toMatch(/\| memory \| 1 \| 0 \| 0 \| 0 \| 0 \| 1 \|/);
+  });
+});
+
+describe('architecture gate: only what the change adds fails (merge-base comparison)', () => {
+  const v = (from: string, to: string, rule: Violation['rule'] = 'orchestration-internal'): Violation => ({ rule, from, to, line: 1 });
+  const same = (p: string): string => p;
+
+  it('passes edges the base already had, and fails a new one', () => {
+    const base = [v('src/a.ts', 'src/m/x.ts')];
+    expect(newViolations([v('src/a.ts', 'src/m/x.ts')], base, same)).toEqual([]);
+    expect(newViolations([v('src/a.ts', 'src/m/x.ts'), v('src/a.ts', 'src/m/y.ts')], base, same)).toEqual([
+      v('src/a.ts', 'src/m/y.ts'),
+    ]);
+  });
+
+  it('keeps the edges of a moved file, and of an import of a moved file', () => {
+    const base = [v('src/a.ts', 'src/m/x.ts')];
+    const renamed = (p: string): string => ({ 'src/moved/a.ts': 'src/a.ts', 'src/m/z.ts': 'src/m/x.ts' })[p] ?? p;
+    expect(newViolations([v('src/moved/a.ts', 'src/m/z.ts')], base, renamed)).toEqual([]);
+  });
+
+  it('treats an import moved from one file to another as moved, once', () => {
+    const base = [v('src/big.ts', 'src/m/x.ts')];
+    const isNew = (p: string): string | null => (p === 'src/part.ts' ? null : p);
+    expect(newViolations([v('src/part.ts', 'src/m/x.ts')], base, isNew)).toEqual([]); // split out of big.ts
+    expect(newViolations([v('src/part.ts', 'src/m/x.ts'), v('src/other.ts', 'src/m/x.ts')], base, isNew)).toEqual([
+      v('src/other.ts', 'src/m/x.ts'),
+    ]);
+  });
+
+  it('fails every violation of a new file that no removed edge accounts for', () => {
+    expect(newViolations([v('src/new.ts', 'src/m/x.ts', 'upward')], [], (p) => (p === 'src/new.ts' ? null : p))).toHaveLength(1);
+  });
+});
+
+describe('architecture gate: orchestration entry points', () => {
+  it('accepts a sub-folder index.ts as an entry into the context', () => {
+    expect(
+      violations({
+        'src/pipeline/turn.ts': "import { recall } from '../memory/recall/index.js';\n",
+        'src/memory/recall/index.ts': 'export const recall = 1;\n',
+      })
+    ).toEqual([]);
+  });
+
+  it('suggests the narrowest existing entry, or says there is none', () => {
+    const r = repo({
+      'src/memory/index.ts': 'export {};\n'.repeat(40),
+      'src/memory/recall/index.ts': 'export {};\n',
+      'src/memory/recall/engine.ts': 'export {};\n',
+      'src/memory/recall/deep/leaf.ts': 'export {};\n',
+      'src/memory/store/file.ts': 'export {};\n',
+      'src/affect/arc/inner.ts': 'export {};\n',
+    });
+    expect(orchestrationHint('src/memory/recall/engine.ts', r, MAP)).toBe(
+      'import src/memory/recall/index.ts instead (export what you need there)'
+    );
+    expect(orchestrationHint('src/memory/recall/deep/leaf.ts', r, MAP)).toMatch(
+      /^src\/memory\/recall\/deep\/ has no index\.ts; import the nearest entry, src\/memory\/recall\/index\.ts/
+    );
+    expect(orchestrationHint('src/memory/store/file.ts', r, MAP)).toMatch(
+      /the nearest entry is the 41-line src\/memory\/index\.ts: add src\/memory\/store\/index\.ts/
+    );
+    expect(orchestrationHint('src/affect/arc/inner.ts', r, MAP)).toMatch(/^no index\.ts between src\/affect\/arc\/ and src\/affect\//);
   });
 });
 

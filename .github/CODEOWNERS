@@ -4,3 +4,15 @@
 /.github/CODEOWNERS   @sethdford
 /.github/workflows/   @sethdford
 /scripts/ci/          @sethdford
+
+# Quality gates. They fail only on what a PR adds, measured against its merge base
+# (merge-base.ts below); these files decide what counts as a violation, so a change to
+# one changes the rule for every PR.
+/apps/cli/src/commands/quality/architecture-layers.ts @sethdford
+/apps/cli/src/commands/quality/merge-base.ts @sethdford
+/apps/cli/src/commands/quality/decisions.ts @sethdford
+/apps/cli/src/commands/quality/architecture-baseline.generated.json @sethdford
+/apps/cli/src/commands/quality/kernel-duplicates-baseline.json @sethdford
+/apps/cli/src/commands/quality/ratchet-baseline.json @sethdford
+/knip.json @sethdford
+/src/config/flag-lifecycle-backfill.generated.ts @sethdford

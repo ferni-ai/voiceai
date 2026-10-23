@@ -9,10 +9,12 @@
  * `context-internal` (past another context's index.ts), `orchestration-internal` (L4/L5
  * past a context's index.ts), `cycle` (inside any static import cycle). Type-only imports
  * follow the same rules under `type-*` keys.
- * A ratchet: the baseline lists today's edges; a new edge fails, a fixed one passes.
+ * It compares the change with its merge base (merge-base.ts): the graph is built for the
+ * working tree AND the base commit, and only violations the diff adds fail. A moved file
+ * keeps its edges (git rename detection), and an import moved from one changed file to
+ * another is not new. The committed baseline is a scoreboard that never blocks.
  *   pnpm quality:arch            check (CI)
- *   pnpm quality:arch --update   drop fixed edges from the baseline (never adds)
- *   pnpm quality:arch --init     record every current edge (review sees the diff)
+ *   pnpm quality:arch --update   drop fixed edges from the scoreboard (never adds)
  *
  * @module quality/architecture-gate
  */
@@ -21,6 +23,7 @@ import { dirname, join, relative, resolve } from 'path';
 import ts from 'typescript';
 import { fileURLToPath, pathToFileURL } from 'url';
 import { CONTEXTS, LAYER_MAP, type Context, type Layer } from './architecture-layers.js';
+import { diffAgainstBase, listAtBase, readAtBase, resolveBase, type BaseDiff } from './merge-base.js';
 
 export const BASELINE = join(dirname(fileURLToPath(import.meta.url)), 'architecture-baseline.generated.json');
 const RUNTIME_RULES = ['upward', 'core-to-platform', 'context-internal'] as const;
@@ -69,13 +72,34 @@ function walk(dir: string, out: string[]): string[] {
   return out;
 }
 
-function resolveSpec(root: string, from: string, spec: string): string | null {
+/** A tree to build the graph from: the working tree, or a commit read through git. */
+export interface SourceTree {
+  files: string[];
+  read: (file: string) => string;
+  isFile: (file: string) => boolean;
+}
+
+function fsTree(root: string): SourceTree {
+  return {
+    files: walk(join(root, 'src'), []).map((f) => relative(root, f)),
+    read: (f) => readFileSync(join(root, f), 'utf8'),
+    isFile: (f) => existsSync(join(root, f)) && statSync(join(root, f)).isFile(),
+  };
+}
+
+/** src/ as it was at `base`. */
+export function gitTree(base: string, root: string): SourceTree {
+  const all = listAtBase(base, ['src'], root);
+  const files = all.filter((f) => /\.tsx?$/.test(f) && !f.endsWith('.d.ts') && !/(^|\/)(node_modules|dist)\//.test(f));
+  const texts = readAtBase(base, files.filter((f) => !TEST.test(f)), root);
+  const present = new Set(all);
+  return { files, read: (f) => texts.get(f) ?? '', isFile: (f) => present.has(f) };
+}
+
+function resolveSpec(root: string, from: string, spec: string, isFile: (file: string) => boolean): string | null {
   if (!spec.startsWith('.')) return null;
-  const base = resolve(root, dirname(from), spec).replace(/\.(js|ts|mjs|cjs)$/, '');
-  const hit = [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base].find(
-    (c) => existsSync(c) && statSync(c).isFile()
-  );
-  return hit ? relative(root, hit) : null;
+  const base = relative(root, resolve(root, dirname(from), spec)).replace(/\.(js|ts|mjs|cjs)$/, '');
+  return [`${base}.ts`, `${base}.tsx`, `${base}/index.ts`, `${base}/index.tsx`, base].find(isFile) ?? null;
 }
 
 /** True when every name an import/export clause brings in is type-only. */
@@ -92,14 +116,14 @@ function typeOnly(node: ts.ImportDeclaration | ts.ExportDeclaration): boolean {
 }
 
 /** Every relative import between production files under src/, from the AST. */
-export function buildGraph(root: string): { files: string[]; edges: Edge[]; vendor: VendorImport[] } {
-  const files = walk(join(root, 'src'), []).map((f) => relative(root, f)).filter((f) => !TEST.test(f));
+export function buildGraph(root: string, tree: SourceTree = fsTree(root)): { files: string[]; edges: Edge[]; vendor: VendorImport[] } {
+  const files = tree.files.filter((f) => !TEST.test(f));
   const edges: Edge[] = [];
   const vendor: VendorImport[] = [];
   for (const from of files) {
-    const sf = ts.createSourceFile(from, readFileSync(join(root, from), 'utf8'), ts.ScriptTarget.Latest, true);
+    const sf = ts.createSourceFile(from, tree.read(from), ts.ScriptTarget.Latest, true);
     const add = (spec: string, kind: Edge['kind'], node: ts.Node, lazy: boolean): void => {
-      const to = resolveSpec(root, from, spec);
+      const to = resolveSpec(root, from, spec, tree.isFile);
       const line = sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
       const pkg = vendorOf(spec);
       if (pkg) vendor.push({ from, to: pkg, line });
@@ -141,10 +165,11 @@ export function ruleFor(a: Placement, b: Placement, to: string): Rule | null {
   if (b.layer === 'L1') return a.layer === 'L2' || a.layer === 'L3' ? 'core-to-platform' : null;
   if (a.layer === 'L1') return b.layer === 'L4' || b.layer === 'L5' ? 'upward' : null; // L1 may implement L2/L3 ports
   if (RANK[b.layer] > RANK[a.layer]) return 'upward';
+  if (b.layer !== 'L3') return null;
+  // Orchestration may enter a context through any index.ts in it, a sub-folder's included.
+  if (a.layer === 'L4' || a.layer === 'L5') return /(^|\/)index\.tsx?$/.test(to) ? null : 'orchestration-internal';
   const isPublic = [b.prefix, `${b.prefix}/index.ts`, `${b.prefix}/index.tsx`].includes(to);
-  if (b.layer !== 'L3' || isPublic) return null;
-  if (a.layer === 'L4' || a.layer === 'L5') return 'orchestration-internal';
-  return a.layer === 'L3' && a.context !== b.context ? 'context-internal' : null;
+  return a.layer === 'L3' && a.context !== b.context && !isPublic ? 'context-internal' : null;
 }
 
 /** Strongly connected components of 2+ files (iterative Tarjan: the graph is too deep to recurse). */
@@ -240,6 +265,57 @@ export function compare(base: Baseline, now: Violation[]): { added: Violation[];
   return { added, fixed: known.size - RULES.reduce((n, r) => n + lowered[r].length, 0), lowered };
 }
 
+/**
+ * Violations in `head` the change added. A head violation is old when the base had the same
+ * rule and edge under the files' base paths (`toBase` maps renames, null for a new file). An
+ * edge the change removed from one file and added to another (a split, an extracted helper)
+ * is moved, not new: removed (rule, target) pairs are consumed by added ones first.
+ */
+export function newViolations(head: Violation[], base: Violation[], toBase: (headPath: string) => string | null): Violation[] {
+  const key = (rule: string, from: string, to: string): string => `${rule}|${from} -> ${to}`;
+  const known = new Set(base.map((v) => key(v.rule, v.from, v.to)));
+  const mapped = (v: Violation): { from: string | null; to: string | null } => ({
+    from: toBase(v.from),
+    to: v.rule === 'vendor' ? v.to : toBase(v.to),
+  });
+  const stillThere = new Set(
+    head.map((v) => mapped(v)).flatMap((m, i) => (m.from && m.to ? [key(head[i]!.rule, m.from, m.to)] : []))
+  );
+  const removed = new Map<string, number>(); // `${rule}|${target}` → edges the change dropped
+  for (const v of base) {
+    if (stillThere.has(key(v.rule, v.from, v.to))) continue;
+    const target = `${v.rule}|${v.to}`;
+    removed.set(target, (removed.get(target) ?? 0) + 1);
+  }
+  return head.filter((v) => {
+    const m = mapped(v);
+    if (m.from && m.to && known.has(key(v.rule, m.from, m.to))) return false;
+    const target = `${v.rule}|${m.to ?? v.to}`;
+    const left = removed.get(target) ?? 0;
+    if (left > 0) {
+      removed.set(target, left - 1);
+      return false;
+    }
+    return true;
+  });
+}
+
+/** Where orchestration should enter instead: the nearest index.ts above the file, or a note that none exists. */
+export function orchestrationHint(to: string, root: string, map: Record<string, string> = LAYER_MAP): string {
+  const prefix = placementOf(to, map)?.prefix ?? dirname(to);
+  const lines = (f: string): number => readFileSync(join(root, f), 'utf8').split('\n').length;
+  for (let dir = dirname(to); dir.length >= prefix.length; dir = dirname(dir)) {
+    const entry = [`${dir}/index.ts`, `${dir}/index.tsx`].find((f) => existsSync(join(root, f)));
+    if (!entry) continue;
+    if (dir === dirname(to)) return `import ${entry} instead (export what you need there)`;
+    const own = `${dirname(to)}/index.ts`;
+    return dir === prefix
+      ? `${dirname(to)}/ has no index.ts and the nearest entry is the ${lines(entry)}-line ${entry}: add ${own} exporting what you need, and import that`
+      : `${dirname(to)}/ has no index.ts; import the nearest entry, ${entry}, or add ${own}`;
+  }
+  return `no index.ts between ${dirname(to)}/ and ${prefix}/: add ${dirname(to)}/index.ts exporting what you need`;
+}
+
 const HINT: Record<string, string> = {
   upward: 'move the code down a layer, or have the caller pass it in',
   'core-to-platform': 'depend on a port (interface) in L2/L3 and let L4 hand in the adapter',
@@ -294,29 +370,37 @@ export function scoreboard(files: string[], edges: Edge[], violations: Violation
 
 function main(args: string[]): void {
   const say = (text: string): boolean => process.stdout.write(`${text}\n`); // ci-quality-gates counts console calls
+  const root = process.cwd();
   const started = Date.now();
-  const graph = buildGraph(process.cwd());
+  const graph = buildGraph(root);
   const now = check(graph);
   const board = scoreboard(graph.files, graph.edges, now);
-  const write = (b: Baseline): void => writeFileSync(BASELINE, JSON.stringify(b, null, 1) + '\n');
   say(`${board}\n\nScanned ${graph.files.length} files, ${graph.edges.length} imports in ${Date.now() - started} ms.`);
-  if (args.includes('--init')) return write(toBaseline(now));
-  if (!existsSync(BASELINE)) throw new Error(`No baseline at ${BASELINE}: run with --init`);
   if (process.env.GITHUB_STEP_SUMMARY) appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Architecture gate\n\n${board}\n`);
-  const { added, fixed, lowered } = compare(JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline, now);
-  if (args.includes('--update')) write(lowered);
+
+  const base = resolveBase(root);
+  const atBase = Date.now();
+  const diff: BaseDiff = diffAgainstBase(base, ['src'], root);
+  const before = check(buildGraph(root, gitTree(base, root)));
+  const added = newViolations(now, before, (p) => (diff.added.has(p) ? null : (diff.renamedFrom.get(p) ?? p)));
+  say(`Base ${base.slice(0, 9)}: ${before.length} violations there, ${now.length} here; ${diff.changed.length} changed files (${Date.now() - atBase} ms).`);
+
+  // The committed baseline is a scoreboard: --update lowers it; it never blocks.
+  const scored = existsSync(BASELINE) ? compare(JSON.parse(readFileSync(BASELINE, 'utf8')) as Baseline, now) : null;
+  if (scored && args.includes('--update')) writeFileSync(BASELINE, JSON.stringify(scored.lowered, null, 1) + '\n');
   if (added.length > 0) {
-    say(`\n❌ ${added.length} new architecture violation(s), not in the baseline:`);
+    say(`\n❌ ${added.length} architecture violation(s) added by this change:`);
     for (const v of added.slice(0, 60)) {
-      say(`  ${v.rule}  ${v.from}:${v.line} -> ${v.to}\n      fix: ${HINT[v.rule.replace('type-', '')]}`);
+      const fix = v.rule.endsWith('orchestration-internal') ? orchestrationHint(v.to, root) : HINT[v.rule.replace('type-', '')];
+      say(`  ${v.rule}  ${v.from}:${v.line} -> ${v.to}\n      fix: ${fix}`);
     }
     if (added.length > 60) say(`  … and ${added.length - 60} more`);
-    say('\nLayer map: apps/cli/src/commands/quality/architecture-layers.ts. Moved files on purpose? Run with --init; review sees the baseline diff.');
+    say('\nLayer map: apps/cli/src/commands/quality/architecture-layers.ts (owners review changes to it).');
     process.exit(1);
   }
-  const msg = args.includes('--update') ? `${fixed} fixed edge(s) removed from the baseline.` : `${fixed} baseline edge(s) fixed: run \`pnpm quality:arch --update\` to lock that in.`;
-  say(`\n✅ No new architecture violations.${fixed > 0 ? ` ${msg}` : ''}`);
-  if (fixed > 0 && process.env.GITHUB_ACTIONS) say(`::notice title=Architecture gate::${msg}`);
+  const fixed = scored?.fixed ?? 0;
+  const msg = args.includes('--update') ? `${fixed} fixed edge(s) removed from the scoreboard.` : `${fixed} scoreboard edge(s) fixed: \`pnpm quality:arch --update\` records it.`;
+  say(`\n✅ No architecture violations added.${fixed > 0 ? ` ${msg}` : ''}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main(process.argv.slice(2));
