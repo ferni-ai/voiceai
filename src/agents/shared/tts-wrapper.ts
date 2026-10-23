@@ -359,6 +359,8 @@ export interface TtsWrapperOptions {
   enablePostTTSEnhancement?: boolean;
   /** Post-TTS enhancement config (uses betterThanHuman preset by default) */
   postTTSConfig?: Partial<PostTTSConfig>;
+  /** Captions come from frame timings (TTS_ALIGNED_TRANSCRIPT): skip cached audio, which has none */
+  alignedTranscript?: boolean;
 }
 
 // =============================================================================
@@ -414,6 +416,7 @@ export async function wrappedTtsNode(
     isFirstTurn = false,
     enablePostTTSEnhancement = true,
     postTTSConfig,
+    alignedTranscript = false,
   } = options;
 
   // Extract session context
@@ -1131,7 +1134,7 @@ export async function wrappedTtsNode(
       voiceId: actualVoiceId,
       emotion,
       sessionId,
-      enableCache: true,
+      enableCache: !alignedTranscript,
     });
 
     log.debug(
