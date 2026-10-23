@@ -8,6 +8,7 @@
 import { createPersistenceStore, type PersistenceStore } from '../../services/persistence/index.js';
 import { getLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { isRealUserId } from '../registry/user-id-guard.js';
 import type {
   Event,
   MajorPurchase,
@@ -122,14 +123,80 @@ export function deserializeAnnualPlan(data: PersistedAnnualPlan): AnnualPlan {
 }
 
 // ============================================================================
-// IN-MEMORY STORAGE
+// IN-MEMORY STORAGE (one set of maps per user)
 // ============================================================================
 
-export const events = new Map<string, Event>();
-export const majorPurchases = new Map<string, MajorPurchase>();
-export const vacations = new Map<string, Vacation>();
-export const annualPlans = new Map<string, AnnualPlan>();
+/**
+ * One user's events, purchases, vacations and annual plans.
+ *
+ * PRIVACY: these are kept per user. The worker process is long-lived and
+ * serves call after call, so maps shared at module level would hand one
+ * caller's plans to the next caller and save them into the next caller's doc.
+ */
+export interface EventPlanningStores {
+  events: Map<string, Event>;
+  majorPurchases: Map<string, MajorPurchase>;
+  vacations: Map<string, Vacation>;
+  annualPlans: Map<string, AnnualPlan>;
+}
+
+function emptyStores(): EventPlanningStores {
+  return {
+    events: new Map(),
+    majorPurchases: new Map(),
+    vacations: new Map(),
+    annualPlans: new Map(),
+  };
+}
+
+const storesByUser = new Map<string, EventPlanningStores>();
 export const loadedUsers = new Set<string>();
+
+/** This user's maps, created empty the first time. */
+export function storesFor(userId: string): EventPlanningStores {
+  let stores = storesByUser.get(userId);
+  if (!stores) {
+    stores = emptyStores();
+    storesByUser.set(userId, stores);
+  }
+  return stores;
+}
+
+/** Test-only: forget every user's maps. */
+export function resetEventPlanningStoresForTests(): void {
+  storesByUser.clear();
+  loadedUsers.clear();
+}
+
+/**
+ * The caller on this tool call: LiveKit's `opts.ctx.userData.userId`, or a
+ * `userId` passed directly by an older caller. A missing or placeholder id
+ * ('default', 'anonymous', ...) names nobody, so it gets no saved plans.
+ */
+export function eventPlanningCaller(opts: unknown): string | undefined {
+  const o = opts as { ctx?: { userData?: { userId?: unknown } }; userId?: unknown } | undefined;
+  const id = o?.ctx?.userData?.userId ?? o?.userId;
+  return isRealUserId(id) ? id : undefined;
+}
+
+/**
+ * The caller's id and maps, loaded from Firestore. A caller with no identity
+ * gets fresh empty maps that nothing keeps or saves, so no two such callers
+ * share a bucket.
+ */
+export async function loadCaller(
+  opts: unknown
+): Promise<{ userId: string | undefined; stores: EventPlanningStores }> {
+  const userId = eventPlanningCaller(opts);
+  if (!userId) return { userId, stores: emptyStores() };
+  await ensureUserLoaded(userId);
+  return { userId, stores: storesFor(userId) };
+}
+
+/** Save the caller's plans; a caller with no identity has nothing saved. */
+export function saveCaller(userId: string | undefined): void {
+  if (userId) persistEventPlanningData(userId);
+}
 
 // ============================================================================
 // PERSISTENCE
@@ -149,7 +216,7 @@ export function getPersistence(): PersistenceStore<UserEventPlanningData> {
 }
 
 /**
- * Load user's event planning data from persistence
+ * Load user's event planning data from persistence into that user's maps
  */
 export async function ensureUserLoaded(userId: string): Promise<void> {
   if (loadedUsers.has(userId)) return;
@@ -157,21 +224,18 @@ export async function ensureUserLoaded(userId: string): Promise<void> {
   try {
     const data = await getPersistence().load(userId);
     if (data) {
-      // Load events
+      const stores = storesFor(userId);
       for (const event of data.events || []) {
-        events.set(event.id, deserializeEvent(event));
+        stores.events.set(event.id, deserializeEvent(event));
       }
-      // Load purchases
       for (const purchase of data.majorPurchases || []) {
-        majorPurchases.set(purchase.id, deserializePurchase(purchase));
+        stores.majorPurchases.set(purchase.id, deserializePurchase(purchase));
       }
-      // Load vacations
       for (const vacation of data.vacations || []) {
-        vacations.set(vacation.id, deserializeVacation(vacation));
+        stores.vacations.set(vacation.id, deserializeVacation(vacation));
       }
-      // Load annual plans
       for (const plan of data.annualPlans || []) {
-        annualPlans.set(plan.id, deserializeAnnualPlan(plan));
+        stores.annualPlans.set(plan.id, deserializeAnnualPlan(plan));
       }
     }
     loadedUsers.add(userId);
@@ -183,14 +247,15 @@ export async function ensureUserLoaded(userId: string): Promise<void> {
 }
 
 /**
- * Persist all event planning data for a user
+ * Persist this user's event planning data, and only this user's
  */
 export function persistEventPlanningData(userId: string): void {
+  const stores = storesFor(userId);
   const data: UserEventPlanningData = {
-    events: Array.from(events.values()).map(serializeEvent),
-    majorPurchases: Array.from(majorPurchases.values()).map(serializePurchase),
-    vacations: Array.from(vacations.values()).map(serializeVacation),
-    annualPlans: Array.from(annualPlans.values()).map(serializeAnnualPlan),
+    events: Array.from(stores.events.values()).map(serializeEvent),
+    majorPurchases: Array.from(stores.majorPurchases.values()).map(serializePurchase),
+    vacations: Array.from(stores.vacations.values()).map(serializeVacation),
+    annualPlans: Array.from(stores.annualPlans.values()).map(serializeAnnualPlan),
   };
   getPersistence().set(userId, data);
 }

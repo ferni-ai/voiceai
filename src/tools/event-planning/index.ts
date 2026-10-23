@@ -8,11 +8,12 @@
 export type * from './types.js';
 
 // Export storage and helpers
+export type { EventPlanningStores } from './storage.js';
 export {
-  events,
-  majorPurchases,
-  vacations,
-  annualPlans,
+  storesFor,
+  eventPlanningCaller,
+  loadCaller,
+  saveCaller,
   loadedUsers,
   getPersistence,
   ensureUserLoaded,
