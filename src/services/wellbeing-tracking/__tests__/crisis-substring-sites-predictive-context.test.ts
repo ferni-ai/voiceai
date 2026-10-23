@@ -43,6 +43,13 @@ describe('predictive-context detectPatternSignals (URGENT check-in)', () => {
     flag('on');
     expect(signal('i dont want to be here')).toBe('concern');
   });
+  it('shadow: decides as off where on differs', () => {
+    flag('off');
+    const off = signal('i dont want to be here');
+    flag('shadow');
+    expect(signal('i dont want to be here')).toBe(off);
+    expect(off).not.toBe('concern');
+  });
 });
 
 describe('inflected real-risk forms stay matched (whole-word mode is a superset on them)', () => {
