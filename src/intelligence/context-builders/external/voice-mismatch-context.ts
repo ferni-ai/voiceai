@@ -87,7 +87,7 @@ export function setVoiceMismatchContext(sessionId: string, context: VoiceMismatc
   log.info(
     {
       sessionId,
-      expectedName: context.expectedName,
+      hasExpectedName: Boolean(context.expectedName),
       similarity: context.comparison.similarity.toFixed(2),
       divergentFeatures: context.comparison.divergentFeatures,
     },
@@ -128,7 +128,7 @@ export function confirmDifferentPerson(sessionId: string, name: string): void {
   if (context) {
     context.confirmedDifferentPerson = name;
     log.info(
-      { sessionId, confirmedName: name, expectedName: context.expectedName },
+      { sessionId, hasConfirmedName: Boolean(name) },
       '✅ Different person confirmed on borrowed phone'
     );
   }
@@ -172,7 +172,7 @@ export const voiceMismatchContextBuilder: ContextBuilder = {
     log.debug(
       {
         sessionId,
-        expectedName: mismatchContext.expectedName,
+        hasExpectedName: Boolean(mismatchContext.expectedName),
         similarity: mismatchContext.comparison.similarity.toFixed(2),
       },
       'Building voice mismatch context'

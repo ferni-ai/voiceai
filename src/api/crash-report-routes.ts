@@ -4,127 +4,29 @@
  * Receives crash reports from frontend clients and logs them for analysis.
  * This enables tracking client-side errors and connection issues.
  *
+ * Posts need no sign-in (a crash can come first); they are rate limited per
+ * caller and validated (crash-report-input.ts). Reads are admin-only.
+ *
  * @module api/crash-report-routes
  */
 
 import type { IncomingMessage, ServerResponse } from 'http';
 import { createLogger } from '../utils/safe-logger.js';
 import { setCorsHeaders } from '../servers/shared/cors.js';
+import { rateLimit, requireAdmin } from './auth-middleware.js';
+import { sendError } from './helpers.js';
+import {
+  crashReportBodySchema,
+  disconnectDiagnosticBodySchema,
+  readValidatedBody,
+  type DisconnectDiagnostic,
+  type FrontendCrashReport,
+} from './crash-report-input.js';
 
 const log = createLogger({ module: 'CrashReportAPI' });
 
-// ============================================================================
-// TYPES
-// ============================================================================
-
-interface FrontendCrashReport {
-  // Error details
-  errorName: string;
-  errorMessage: string;
-  errorStack?: string;
-
-  // Context
-  sessionId?: string;
-  roomName?: string;
-  userId?: string;
-  personaId?: string;
-
-  // Client state
-  connectionState?: 'connecting' | 'connected' | 'reconnecting' | 'disconnected';
-  lastActivity?: string;
-  turnCount?: number;
-  lastUserMessage?: string;
-
-  // Browser info
-  userAgent?: string;
-  url?: string;
-  timestamp?: string;
-
-  // Network info
-  connectionType?: string;
-  effectiveType?: string;
-  downlink?: number;
-  rtt?: number;
-
-  // Custom data
-  customData?: Record<string, unknown>;
-}
-
-interface CrashReportResponse {
-  received: boolean;
-  crashId: string;
-  timestamp: string;
-}
-
-/**
- * Disconnect Diagnostic from frontend
- * Comprehensive context captured when a disconnect happens
- */
-interface DisconnectDiagnostic {
-  // Timing
-  timestamp: string;
-  sessionDurationMs: number;
-  timeSinceLastActivityMs: number;
-
-  // LiveKit State
-  livekitReason?: string;
-  livekitRoomState?: string;
-  livekitConnectionState?: string;
-  wasGraceful: boolean;
-
-  // WebRTC State
-  iceConnectionState?: string;
-  iceGatheringState?: string;
-  signalingState?: string;
-  rtcStats?: {
-    packetsLost?: number;
-    packetsReceived?: number;
-    bytesReceived?: number;
-    jitter?: number;
-    roundTripTime?: number;
-    fractionLost?: number;
-  };
-
-  // Audio State
-  micEnabled?: boolean;
-  micTrackState?: string;
-  audioOutputState?: string;
-  audioContextState?: string;
-
-  // Network State
-  networkType?: string;
-  effectiveType?: string;
-  downlinkMbps?: number;
-  rttMs?: number;
-  isOnline: boolean;
-  wasOfflineRecently: boolean;
-
-  // App State
-  visibilityState: string;
-  wasBackgroundedRecently: boolean;
-  backgroundDurationMs?: number;
-  isMuted: boolean;
-  personaId?: string;
-  turnCount: number;
-
-  // Device Info
-  userAgent: string;
-  platform: string;
-  deviceMemory?: number;
-  hardwareConcurrency?: number;
-
-  // Error Context
-  lastError?: string;
-  errorStack?: string;
-
-  // Session IDs
-  sessionId?: string;
-  roomName?: string;
-  userId?: string;
-
-  // From storage flag
-  fromStorage?: boolean;
-}
+/** Posts allowed per caller (signed-in person, else IP) per minute, per route. */
+export const CRASH_REPORT_POSTS_PER_MINUTE = 20;
 
 // ============================================================================
 // STORAGE (In-memory for now, could be persisted)
@@ -154,15 +56,10 @@ async function handleCrashReport(req: IncomingMessage, res: ServerResponse): Pro
     return;
   }
 
-  try {
-    // Parse body
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(chunk as Buffer);
-    }
-    const body = Buffer.concat(chunks).toString('utf8');
-    const report: FrontendCrashReport = JSON.parse(body);
+  const report = await readValidatedBody(req, res, crashReportBodySchema);
+  if (!report) return;
 
+  try {
     // Generate crash ID
     const crashId = `client_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const receivedAt = new Date().toISOString();
@@ -202,19 +99,12 @@ async function handleCrashReport(req: IncomingMessage, res: ServerResponse): Pro
       log.error({ crashId, severity }, '🔴 CRITICAL CLIENT CRASH - Requires immediate attention!');
     }
 
-    // Send response
-    const response: CrashReportResponse = {
-      received: true,
-      crashId,
-      timestamp: receivedAt,
-    };
-
+    // The reply carries only the new id, never stored data
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(response));
+    res.end(JSON.stringify({ received: true, crashId, timestamp: receivedAt }));
   } catch (err) {
     log.error({ error: String(err) }, 'Failed to process crash report');
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Invalid crash report format' }));
+    sendError(res, 'Could not process the crash report', 500);
   }
 }
 
@@ -231,15 +121,10 @@ async function handleDisconnectDiagnostic(
     return;
   }
 
-  try {
-    // Parse body
-    const chunks: Buffer[] = [];
-    for await (const chunk of req) {
-      chunks.push(chunk as Buffer);
-    }
-    const body = Buffer.concat(chunks).toString('utf8');
-    const diagnostic: DisconnectDiagnostic = JSON.parse(body);
+  const diagnostic = await readValidatedBody(req, res, disconnectDiagnosticBodySchema);
+  if (!diagnostic) return;
 
+  try {
     // Generate ID
     const id = `disconnect_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const receivedAt = new Date().toISOString();
@@ -325,8 +210,7 @@ async function handleDisconnectDiagnostic(
     res.end(JSON.stringify({ received: true, id, timestamp: receivedAt }));
   } catch (err) {
     log.error({ error: String(err) }, 'Failed to process disconnect diagnostic');
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ error: 'Invalid diagnostic format' }));
+    sendError(res, 'Could not process the diagnostic', 500);
   }
 }
 
@@ -476,32 +360,8 @@ export async function handleCrashReportRoutes(
   res: ServerResponse
 ): Promise<boolean> {
   const url = req.url || '';
-
-  // Handle disconnect diagnostics
-  if (url.startsWith('/api/disconnect-diagnostic')) {
-    // CORS headers (uses validated origin, not wildcard)
-    setCorsHeaders(req, res, { methods: ['GET', 'POST', 'OPTIONS'] });
-
-    if (req.method === 'OPTIONS') {
-      res.writeHead(204);
-      res.end();
-      return true;
-    }
-
-    if (req.method === 'POST') {
-      await handleDisconnectDiagnostic(req, res);
-      return true;
-    }
-
-    if (req.method === 'GET') {
-      await handleGetDiagnostics(req, res);
-      return true;
-    }
-
-    return true;
-  }
-
-  if (!url.startsWith('/api/crash-report')) {
+  const isDiagnostic = url.startsWith('/api/disconnect-diagnostic');
+  if (!isDiagnostic && !url.startsWith('/api/crash-report')) {
     return false;
   }
 
@@ -515,14 +375,19 @@ export async function handleCrashReportRoutes(
   }
 
   if (req.method === 'POST') {
-    await handleCrashReport(req, res);
+    const keyPrefix = isDiagnostic ? 'disconnect-diagnostic' : 'crash-report';
+    const perMinute = { maxRequests: CRASH_REPORT_POSTS_PER_MINUTE, windowMs: 60_000 };
+    if (rateLimit(req, res, { ...perMinute, keyPrefix })) return true;
+    await (isDiagnostic ? handleDisconnectDiagnostic : handleCrashReport)(req, res);
     return true;
   }
 
   if (req.method === 'GET') {
-    await handleGetCrashes(req, res);
+    if (!(await requireAdmin(req, res))) return true;
+    await (isDiagnostic ? handleGetDiagnostics : handleGetCrashes)(req, res);
     return true;
   }
 
-  return false;
+  sendError(res, 'Method not allowed', 405);
+  return true;
 }

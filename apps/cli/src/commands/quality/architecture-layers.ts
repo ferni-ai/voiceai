@@ -60,6 +60,7 @@ export const LAYER_MAP: Record<string, string> = {
   ...under('src', 'L3:memory', ['intelligence/memory-intelligence', 'intelligence/superhuman-memory', 'conversation/conversational-memory']),
   ...under('src', 'L3:memory', ['conversation/proactive-memory', 'services/memory', 'services/memory-lane', 'services/visual-memory', 'services/voice-memory']),
   ...under('src', 'L3:understanding', ['intelligence', 'conversation']),
+  'src/understanding': 'L3:understanding', // the turn reading (schema, readers, teacher)
   ...under('src/services', 'L3:understanding', ['context-awareness', 'semantic', 'cognitive-intelligence', 'intelligence', 'conversation-thread']),
   ...under('src/services', 'L3:understanding', ['world-awareness', 'language']),
   ...under('src/conversation', 'L3:affect', ['emotional-arc', 'concern-detection']),

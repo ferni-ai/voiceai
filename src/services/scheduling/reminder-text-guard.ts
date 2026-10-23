@@ -16,9 +16,16 @@
  * route, and startup when REMINDER_SCHEDULER_IN_PROCESS is on. A process
  * without it delivers the reminder in the app (fail closed).
  *
+ * MESSAGING_PIPELINE: a reminder call dials deliveryAddress, which the model can
+ * set, and checked no STOP at all. It reads consent/{phoneHash} first; a refused
+ * one is delivered in the app instead. A call to anyone but the owner's verified
+ * number needs their own consent: nothing confirms a reminder call. (Texts get
+ * the same checks in the guarded sender.)
+ *
  * @module services/scheduling/reminder-text-guard
  */
 
+import { consentBlocks } from '../../utils/consent-port.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { ReminderDeliveryMethod, ScheduledReminder } from './reminder-scheduler.js';
 
@@ -36,16 +43,27 @@ export function installReminderTextGuard(next: ReminderTextGuard | undefined): v
   guard = next;
 }
 
+/** Is this the owner's own verified number? Installed with the guard; without it, never. */
+export type OwnNumberCheck = (userId: string, phone: string) => Promise<boolean>;
+let ownNumber: OwnNumberCheck | undefined;
+
+export function installReminderOwnNumber(next: OwnNumberCheck | undefined): void {
+  ownNumber = next;
+}
+
 /**
- * null: not a text, so deliver it on its channel. `textOn` is the owner's
- * REMINDER_SMS_DEFAULT, decided per person by the caller; unknown means off,
- * so an app reminder stays in the app.
+ * null: not a text, so deliver it on its channel (unless consent refuses a
+ * call: then 'in-app'). `textOn` is the owner's REMINDER_SMS_DEFAULT, decided
+ * per person by the caller; unknown means off, so an app reminder stays in the app.
  */
 export async function textThroughGuard(
   reminder: ScheduledReminder,
-  textOn = false
+  textOn = false,
+  env: Record<string, string | undefined> = process.env
 ): Promise<GuardedTextOutcome | null> {
-  if (!TEXT_METHODS.includes(reminder.deliveryMethod)) return null;
+  if (!TEXT_METHODS.includes(reminder.deliveryMethod)) {
+    return (await consentRefusal(reminder, env)) ? 'in-app' : null;
+  }
   if (!textOn && reminder.deliveryAddress.startsWith('voice:')) return 'in-app';
   if (!guard) {
     log.warn(
@@ -60,6 +78,23 @@ export async function textThroughGuard(
     log.error({ error: String(error), reminderId: reminder.id }, 'Guarded reminder text failed');
     return 'in-app';
   }
+}
+
+/** Why a reminder call may not reach deliveryAddress, or null (MESSAGING_PIPELINE). */
+async function consentRefusal(
+  reminder: ScheduledReminder,
+  env: Record<string, string | undefined>
+): Promise<string | null> {
+  if (reminder.deliveryMethod !== 'call') return null;
+  const to = reminder.deliveryAddress;
+  const refused = await consentBlocks(
+    to,
+    'call',
+    async (): Promise<boolean> => (await ownNumber?.(reminder.userId, to)) === true,
+    env
+  );
+  if (refused) log.info({ reminderId: reminder.id, refused }, 'Reminder call held for the app');
+  return refused;
 }
 
 /**

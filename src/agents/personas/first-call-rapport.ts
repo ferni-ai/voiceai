@@ -22,6 +22,7 @@
 
 import type { llm } from '@livekit/agents';
 
+import { accountName, nameSaidOnCall } from './caller-name-known.js';
 import { flagOn, type Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { getPersonaDisplayName } from '../../personas/voice-registry.js';
@@ -73,18 +74,12 @@ export function isFirstCall(userData: unknown): boolean {
   return u?.isReturningUser === false && isMemberIdentity(u.userId as string | undefined);
 }
 
-/** The account already has a name for them: no need to ask for one. */
-function nameKnown(userData: unknown): boolean {
-  const u = userData as
-    | {
-        userName?: unknown;
-        services?: { userProfile?: { name?: unknown; preferredName?: unknown } | null };
-      }
-    | undefined;
-  const profile = u?.services?.userProfile;
-  return [u?.userName, profile?.preferredName, profile?.name].some(
-    (n) => typeof n === 'string' && n.trim() !== ''
-  );
+/**
+ * The call already has their name: the account's (no placeholder such as "the
+ * user" or "Visitor"), or one they said on this call (caller-name-known.ts).
+ */
+function nameKnown(chatCtx: llm.ChatContext, userData: unknown, callerWords: string): boolean {
+  return accountName(userData) !== undefined || nameSaidOnCall(chatCtx, callerWords);
 }
 
 /** What Ferni has said so far on this call. */
@@ -117,7 +112,7 @@ export function firstCallNote(
   const nameAsked = said.some((line) => NAME_ASKED.test(line));
   const early = said.length <= NAME_SWAP_REPLIES;
   let swap = '';
-  if (!nameAsked && early && !nameKnown(userData)) {
+  if (!nameAsked && early && !nameKnown(chatCtx, userData, callerWords)) {
     const speaker = typeof userData?.personaId === 'string' ? userData.personaId : 'ferni';
     const name = getPersonaDisplayName(speaker).split(/\s+/)[0];
     swap = scriptFree ? nameSwapPlain(name) : NAME_SWAP_NOTE;
