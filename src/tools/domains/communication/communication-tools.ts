@@ -41,6 +41,8 @@ import {
   type ReminderDeliveryMethod,
 } from '../../../services/scheduling/reminder-scheduler.js';
 import { getLogger } from '../../../utils/safe-logger.js';
+import { isMemberIdentity } from '../../../services/identity/member-identity.js';
+import { nonAccountPrefixOf } from '../../../utils/synthetic-user.js';
 import { runContextTimeZone, userTimeZone } from '../../../utils/caller-time-zone.js';
 import {
   sanitizeEmailForLog,
@@ -89,22 +91,32 @@ interface ScheduledCall {
   status: 'scheduled' | 'in_progress' | 'completed' | 'cancelled';
 }
 
-// In-memory storage for drafts (these don't persist - they're session-specific)
-const emailDrafts = new Map<string, DraftedEmail>();
-const scheduledCalls = new Map<string, ScheduledCall>();
+// PRIVACY: in memory only, keyed by caller then item id. Keyed by item id alone, the summary
+// listed every caller's drafts and calls, and sending marked another caller's matching draft sent.
+const emailDrafts = new Map<string, Map<string, DraftedEmail>>();
+const scheduledCalls = new Map<string, Map<string, ScheduledCall>>();
+
+/** The caller's own items (LiveKit's ctx.userData.userId); an id-less caller keeps none. */
+function own<T>(store: Map<string, Map<string, T>>, ctx: unknown): Map<string, T> {
+  const raw = (ctx as { userData?: { userId?: unknown } } | undefined)?.userData?.userId;
+  const id = typeof raw === 'string' ? raw.trim() : '';
+  if (!id || !(isMemberIdentity(id) || nonAccountPrefixOf(id))) return new Map();
+  const items = store.get(id) ?? new Map<string, T>();
+  store.set(id, items);
+  return items;
+}
 
 // ============================================================================
 // EMAIL FUNCTIONS (Real SendGrid Integration)
 // ============================================================================
 
-/**
- * Draft an email with a specific tone - creates a draft for user review
- */
+/** Draft an email with a specific tone - creates a draft for user review */
 function draftEmail(
   to: string,
   subject: string,
   context: string,
-  tone: 'formal' | 'casual' | 'friendly' | 'urgent' = 'friendly'
+  tone: 'formal' | 'casual' | 'friendly' | 'urgent',
+  drafts: Map<string, DraftedEmail>
 ): DraftedEmail {
   const id = `draft_${Date.now()}`;
 
@@ -142,14 +154,17 @@ function draftEmail(
     createdAt: new Date(),
   };
 
-  emailDrafts.set(id, draft);
+  drafts.set(id, draft);
   return draft;
 }
 
-/**
- * Send an email via SendGrid (called after user approves)
- */
-async function sendApprovedEmailReal(to: string, subject: string, body: string): Promise<string> {
+/** Send an email via SendGrid (called after user approves) */
+async function sendApprovedEmailReal(
+  to: string,
+  subject: string,
+  body: string,
+  drafts: Map<string, DraftedEmail>
+): Promise<string> {
   const validation = validateEmail(to);
   if (!validation.valid) {
     return `That email address doesn't look right: ${to}. Can you double-check it?`;
@@ -157,10 +172,9 @@ async function sendApprovedEmailReal(to: string, subject: string, body: string):
 
   const result = await sendEmail(validation.sanitized as string, subject, body);
 
-  for (const [id, draft] of emailDrafts.entries()) {
+  for (const draft of drafts.values()) {
     if (draft.to === to && draft.subject === subject) {
       draft.status = 'sent';
-      emailDrafts.set(id, draft);
       break;
     }
   }
@@ -172,9 +186,7 @@ async function sendApprovedEmailReal(to: string, subject: string, body: string):
 // SMS FUNCTIONS (Real Twilio Integration)
 // ============================================================================
 
-/**
- * Send a text message via Twilio
- */
+/** Send a text message via Twilio */
 async function sendTextReal(to: string, message: string, userId: string): Promise<string> {
   const validation = validatePhone(to);
   if (!validation.valid) {
@@ -188,9 +200,7 @@ async function sendTextReal(to: string, message: string, userId: string): Promis
 // PHONE CALL FUNCTIONS (Twilio Programmable Voice)
 // ============================================================================
 
-/**
- * Initiate an outbound phone call via Twilio
- */
+/** Initiate an outbound phone call via Twilio */
 async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Promise<string> {
   const validation = validatePhone(to);
   if (!validation.valid) {
@@ -253,9 +263,7 @@ async function makePhoneCall(to: string, purpose: string, twimlUrl?: string): Pr
 // VOICE MESSAGE FUNCTIONS (Cartesia TTS + Twilio MMS)
 // ============================================================================
 
-/**
- * Generate and send a voice message using Alex's voice
- */
+/** Generate and send a voice message using Alex's voice */
 async function sendVoiceMessageReal(to: string, message: string): Promise<string> {
   // Backward compatible overload will pass 'unknown'
   return sendVoiceMessageRealWithUserId(to, message, 'unknown');
@@ -391,9 +399,7 @@ async function scheduleReminderReal(params: {
   }
 }
 
-/**
- * Get list of pending reminders for user
- */
+/** Get list of pending reminders for user */
 function getRemindersForUser(userId: string): string {
   const reminders = getPendingReminders(userId);
 
@@ -421,9 +427,7 @@ function getRemindersForUser(userId: string): string {
 // UTILITY FUNCTIONS
 // ============================================================================
 
-/**
- * Parse natural language into a scheduled time
- */
+/** Parse natural language into a scheduled time */
 export function parseScheduleTime(naturalTime: string): Date | null {
   const now = new Date();
   const lower = naturalTime.toLowerCase();
@@ -491,8 +495,8 @@ export function createCommunicationTools() {
           .default('friendly')
           .describe('Email tone'),
       }),
-      execute: async ({ to, subject, context, tone }) => {
-        const draft = draftEmail(to, subject, context, tone);
+      execute: async ({ to, subject, context, tone }, { ctx }) => {
+        const draft = draftEmail(to, subject, context, tone, own(emailDrafts, ctx));
 
         return `📧 Here's the draft:\n\n**To:** ${draft.to}\n**Subject:** ${draft.subject}\n\n${draft.body}\n\n---\nShould I send this, adjust the tone, or edit anything?`;
       },
@@ -505,8 +509,8 @@ export function createCommunicationTools() {
         subject: z.string().describe('Email subject'),
         body: z.string().describe('Email body'),
       }),
-      execute: async ({ to, subject, body }) => {
-        return sendApprovedEmailReal(to, subject, body);
+      execute: async ({ to, subject, body }, { ctx }) => {
+        return sendApprovedEmailReal(to, subject, body, own(emailDrafts, ctx));
       },
     }),
 
@@ -788,7 +792,7 @@ export function createCommunicationTools() {
           status: 'scheduled',
         };
 
-        scheduledCalls.set(id, call);
+        own(scheduledCalls, ctx).set(id, call);
 
         const timeStr = scheduledTime.toLocaleString('en-US', {
           weekday: 'long',
@@ -836,8 +840,8 @@ export function createCommunicationTools() {
         const userData = ctx?.userData as { userId?: string } | undefined;
         const userId = userData?.userId || 'unknown';
 
-        const pendingEmails = Array.from(emailDrafts.values()).filter((e) => e.status === 'draft');
-        const upcomingCalls = Array.from(scheduledCalls.values()).filter(
+        const pendingEmails = [...own(emailDrafts, ctx).values()].filter((e) => e.status === 'draft');
+        const upcomingCalls = [...own(scheduledCalls, ctx).values()].filter(
           (c) => c.status === 'scheduled' && c.scheduledTime > new Date()
         );
         const pendingReminders = getPendingReminders(userId);
@@ -903,9 +907,7 @@ export function createCommunicationTools() {
 // Re-export coaching tools for unified toolset
 export { createCommunicationCoachingTools } from './communication-coaching.js';
 
-/**
- * Create all communication tools - base + coaching combined
- */
+/** Create all communication tools - base + coaching combined */
 export async function createAllCommunicationTools() {
   const { createCommunicationCoachingTools: getCoachingTools } =
     await import('./communication-coaching.js');
@@ -914,9 +916,5 @@ export async function createAllCommunicationTools() {
     ...getCoachingTools(),
   };
 }
-
-// ============================================================================
-// EXPORTS
-// ============================================================================
 
 export default createCommunicationTools;
