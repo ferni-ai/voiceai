@@ -18,12 +18,7 @@ import { definitions } from '../../../telephony/index.js';
 import type { ToolContext } from '../../../../registry/types.js';
 import { registerVoiceCallbackHandler } from '../../../simple-utilities/voice-callbacks.js';
 import type { VoiceCallback } from '../../../simple-utilities/voice-callbacks.js';
-import {
-  MOVED_GOODBYE,
-  RINGING_HAND_OVER,
-  setPhoneMoveEnd,
-  TRYING_PHONE,
-} from '../call-me-moves-to-phone.js';
+import { RINGING_HAND_OVER, setPhoneMoveEnd, TRYING_PHONE } from '../call-me-moves-to-phone.js';
 import {
   setCallUserPort,
   type CallUserRequest,
@@ -102,7 +97,7 @@ afterEach(() => {
 /** An app call with its ender and its voice-callback speaker registered, as a live call has. */
 function appCall() {
   const session = appSession();
-  const end = vi.fn(async (_line: string) => true);
+  const end = vi.fn(async () => true);
   setPhoneMoveEnd(session, end);
   unregister = registerVoiceCallbackHandler(USER, async (cb) => void spoken.push(cb), session);
   return { session, end };
@@ -144,7 +139,7 @@ describe('CALL_ME_MOVES_TO_PHONE=on', () => {
 
     expect(end).not.toHaveBeenCalled(); // still ringing: the app call stays
     settle('answered');
-    await vi.waitFor(() => expect(end).toHaveBeenCalledWith(MOVED_GOODBYE));
+    await vi.waitFor(() => expect(end).toHaveBeenCalled());
     expect(end).toHaveBeenCalledTimes(1);
     expect(spoken).toEqual([]);
   });

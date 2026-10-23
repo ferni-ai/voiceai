@@ -276,28 +276,30 @@ interface CallRoom {
   remoteParticipants?: { size: number };
 }
 
-interface SaySession {
-  say: (text: string) => { waitForPlayout: () => Promise<void> };
-}
+/** How soon the app call's room closes once the phone it rang is answered. */
+export const MOVED_END_MS = 300;
 
 /**
  * CALL_ME_MOVES_TO_PHONE: once the phone this app caller asked Ferni to ring is
- * answered, the app call says a short goodbye (nothing if they already left)
- * and ends on the goodbye path (call-me-moves-to-phone.ts). No caller watch:
- * the app's mic can still hear them talking on the phone, which must not
- * reopen it. Crisis risk on the call still holds it open.
+ * answered, the app call stops speaking at once (the phone is at their ear:
+ * nothing may play over it) and ends on the goodbye path within MOVED_END_MS
+ * (call-me-moves-to-phone.ts). No caller watch: the app's mic can still hear
+ * them talking on the phone, which must not reopen it. Crisis risk on the call
+ * still holds it open.
  */
 export function attachPhoneMoveEnd(
   session: object,
   call: Pick<WrapUpCall, 'sessionId' | 'roomName' | 'callerInRoom' | 'hangUp' | 'setTimer'>
 ): void {
-  const wrap: WrapUpCall = { ...call };
-  setPhoneMoveEnd(session, async (line) => {
-    if (crisisRiskThisCall(call.sessionId)) return false; // no goodbye it won't keep
-    const playout = wrap.callerInRoom()
-      ? () => (session as SaySession).say(line).waitForPlayout()
-      : undefined;
-    return wrapUpCall(wrap, 'goodbye_complete', playout);
+  const wrap: WrapUpCall = { ...call, graceMs: MOVED_END_MS };
+  setPhoneMoveEnd(session, async () => {
+    if (crisisRiskThisCall(call.sessionId)) return false;
+    try {
+      (session as { interrupt?: () => unknown }).interrupt?.();
+    } catch (error) {
+      log.warn({ sessionId: call.sessionId, error: String(error) }, 'Moved call not interrupted');
+    }
+    return wrapUpCall(wrap, 'goodbye_complete');
   });
 }
 

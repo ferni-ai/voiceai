@@ -12,8 +12,9 @@
  * - callUser replies at once, without waiting on the dial (no dead air): Ferni
  *   says it is trying their phone and will hang up here once they pick up,
  *   and never that the call connected or is ringing;
- * - answered: a short goodbye here, then this call ends on the goodbye path
- *   (the ender call-wrap-up.ts registers), and the phone agent carries on
+ * - answered: the phone is at their ear, so this call says nothing more and
+ *   ends at once on the goodbye path (the ender call-wrap-up.ts registers),
+ *   and the phone agent carries on
  *   from this call's last turns. The signed dispatch carries only a reference
  *   (this call's conversation id); the phone agent reads the turns from the
  *   caller's own memory store (resume-after-drop.ts). No conversation text
@@ -46,9 +47,6 @@ export const RINGING_HAND_OVER = `You're trying their phone now, and you'll be o
 /** No app call to hand over (a phone caller): the same honest line, nothing ends here. */
 export const TRYING_PHONE = `You're trying their phone now, as a separate call with you on it, live. Tell them in a few words you're trying their phone. ${NOT_YET}`;
 
-/** Said in the app call once they answer the phone, just before it ends. */
-export const MOVED_GOODBYE = "There you are. I'll hang up here.";
-
 /** Said at the next pause in the app call when the phone wasn't answered. */
 export function notAnsweredLine(outcome: DialOutcome): string {
   const what =
@@ -58,8 +56,8 @@ export function notAnsweredLine(outcome: DialOutcome): string {
   return `${what}, so no phone call is happening and you're still here with them.`;
 }
 
-/** Ends an app call on its goodbye path once `line` is said; false when it can't end now. */
-export type EndForPhone = (line: string) => Promise<boolean>;
+/** Ends an app call on its goodbye path, silently; false when it can't end now. */
+export type EndForPhone = () => Promise<boolean>;
 
 const enders = new WeakMap<object, EndForPhone>();
 
@@ -91,7 +89,7 @@ async function afterDial(
 ): Promise<void> {
   if (outcome === 'answered') {
     if (!call.end) return;
-    const ended = await call.end(MOVED_GOODBYE);
+    const ended = await call.end();
     log.info({ userId: call.userId, ended }, 'CALL_ME_MOVES_TO_PHONE answered');
     return;
   }

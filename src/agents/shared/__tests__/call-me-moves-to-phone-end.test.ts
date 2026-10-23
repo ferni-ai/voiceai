@@ -1,13 +1,14 @@
 /**
  * CALL_ME_MOVES_TO_PHONE, the app call's side: every app call gets an ender
- * (attachCallWrapUp), and once the phone it rang is answered the app call says
- * a short goodbye and ends on the goodbye path: conversation_end with a reason
+ * (attachCallWrapUp), and once the phone it rang is answered the app call
+ * stops speaking at once (nothing plays over the phone at their ear) and ends
+ * on the goodbye path within 300 ms: conversation_end with a reason
  * the app treats as a planned goodbye (planned-goodbye.ts), then the room.
  * Crisis risk on the call holds it open; a phone caller gets no ender.
  */
 import { ParticipantKind } from '@livekit/rtc-node';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { attachCallWrapUp } from '../call-wrap-up.js';
+import { attachCallWrapUp, MOVED_END_MS } from '../call-wrap-up.js';
 import { clearFarewell } from '../call-farewell.js';
 import { clearSessionClosing, isSessionClosing } from '../session-closing-tracker.js';
 import {
@@ -17,7 +18,6 @@ import {
 import { noteCrisisRisk, resetCrisisCallRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
   callMovingToPhone,
-  MOVED_GOODBYE,
   RINGING_HAND_OVER,
   TRYING_PHONE,
 } from '../../../tools/domains/proactive/outreach/call-me-moves-to-phone.js';
@@ -38,7 +38,7 @@ async function call(opts: { inRoom?: boolean; phone?: boolean } = {}) {
   const id = `move-${++n}`;
   used.push(id);
   const events: string[] = [];
-  const timers: Array<() => void> = [];
+  const timers: Array<{ fn: () => void; ms: number }> = [];
   initFrontendSignal(id, async (type, data) => {
     events.push(`${type} ${String(data?.reason)} closing=${isSessionClosing(id)}`);
   });
@@ -49,6 +49,7 @@ async function call(opts: { inRoom?: boolean; phone?: boolean } = {}) {
       events.push(`said ${text}`);
       return { waitForPlayout: async () => void events.push('played') };
     }),
+    interrupt: vi.fn(() => void events.push('interrupted')),
   };
   await attachCallWrapUp(
     {},
@@ -60,16 +61,16 @@ async function call(opts: { inRoom?: boolean; phone?: boolean } = {}) {
       env: { GOODBYE_ENDS_CALL: 'off' },
       session,
       hangUp: async (room) => void events.push(`deleted ${room}`),
-      setTimer: (fn) => void timers.push(fn),
+      setTimer: (fn, ms) => void timers.push({ fn, ms }),
     }
   );
   const runTimers = async () => {
-    timers.splice(0).forEach((fn) => fn());
+    timers.splice(0).forEach((t) => t.fn());
     await new Promise((r) => {
       setTimeout(r, 0);
     });
   };
-  return { id, session, events, runTimers };
+  return { id, session, events, timers, runTimers };
 }
 
 /** The phone picks up: the dial settles 'answered'. */
@@ -85,7 +86,7 @@ const answeredPort: CallUserPort = {
 const request = { userId: 'u1', phoneNumber: '+15555550123', message: 'hi', personaId: 'ferni' };
 
 describe('an answered "call me" ends the app call', () => {
-  it('says the short goodbye, then conversation_end as a planned goodbye, then closes the room', async () => {
+  it('goes silent at once (the phone is at their ear), sends conversation_end as a planned goodbye, and closes the room within 300 ms', async () => {
     const c = await call();
     expect(await callMovingToPhone(answeredPort, request, { session: c.session })).toBe(
       RINGING_HAND_OVER
@@ -93,16 +94,18 @@ describe('an answered "call me" ends the app call', () => {
     await vi.waitFor(() =>
       expect(c.events).toContain('conversation_end goodbye_complete closing=true')
     );
-    expect(c.events.slice(0, 3)).toEqual([
-      `said ${MOVED_GOODBYE}`,
-      'played',
+    expect(c.events.slice(0, 2)).toEqual([
+      'interrupted',
       'conversation_end goodbye_complete closing=true',
     ]);
+    expect(c.session.say).not.toHaveBeenCalled(); // no goodbye over the phone call
+    expect(c.timers.map((t) => t.ms)).toEqual([MOVED_END_MS]);
+    expect(MOVED_END_MS).toBeLessThanOrEqual(300);
     await c.runTimers();
     expect(c.events.at(-1)).toBe(`deleted room-${c.id}`);
   });
 
-  it('says nothing when the caller already left the app, and still ends it', async () => {
+  it('ends it when the caller already left the app, too', async () => {
     const c = await call({ inRoom: false });
     await callMovingToPhone(answeredPort, request, { session: c.session });
     await vi.waitFor(() =>
@@ -118,8 +121,8 @@ describe('an answered "call me" ends the app call', () => {
     await new Promise((r) => {
       setTimeout(r, 10);
     });
-    expect(c.session.say).not.toHaveBeenCalled(); // no "I'll hang up here" it won't keep
-    expect(c.events).toEqual([]);
+    expect(c.events).toEqual([]); // not even interrupted: the call carries on
+    expect(c.session.interrupt).not.toHaveBeenCalled();
     expect(isSessionClosing(c.id)).toBe(false);
   });
 
