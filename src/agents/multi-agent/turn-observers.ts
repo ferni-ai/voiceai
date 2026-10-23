@@ -68,6 +68,7 @@ export interface ToolRetrievalInput {
     getCurrentTools(): Record<string, unknown>;
   };
   cleanupFunctions: Cleanup;
+  phone?: boolean; // a phone (SIP) caller: PAUSE_HOLD_PHONE_CAP (pause-hold.ts)
 }
 
 /**
@@ -261,14 +262,9 @@ export async function installTurnListeners(
       getAgentToolCount(now(input.agent) as never)
     )
   );
-  // PAUSE_HOLD: a reply to a turn ink ended hesitantly waits out the pause (pause-hold.ts).
-  // It stands down when LiveKit's end-of-turn model decides alone (turn-detector-sole.ts).
-  const { attachPauseHold } = await import('../../speech/output-control/pause-hold.js');
-  const { holdsStandDown } = await import('../shared/turn-detector-sole.js');
-  const detachPauseHold = holdsStandDown(input.session)
-    ? null
-    : attachPauseHold(input.session as never, input.sessionId);
-  if (detachPauseHold) input.cleanupFunctions.push(detachPauseHold);
+  // PAUSE_HOLD: a hesitant turn's reply waits out the pause (pause-hold-wiring.ts).
+  const { installPauseHold } = await import('./pause-hold-wiring.js');
+  await installPauseHold(input);
   const retrieval = await installToolRetrieval(input);
   const understanding = await installTurnUnderstanding(input.session, input.cleanupFunctions);
   const intent = (await import('../personas/internals-intent.js')).installInternalsIntent(input);
