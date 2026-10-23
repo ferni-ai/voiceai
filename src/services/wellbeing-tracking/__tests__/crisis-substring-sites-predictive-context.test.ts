@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ContextBuilderInput } from '../../../intelligence/context-builders/index.js';
 import { detectPatternSignals } from '../../../intelligence/context-builders/intelligence/predictive-context.js';
+import { riskCorpus } from './crisis-corpus.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -51,4 +52,19 @@ describe('inflected real-risk forms stay matched (whole-word mode is a superset 
       expect(detectPatternSignals(input)).toBe('concern');
     }
   );
+});
+
+describe('corpus: no real-risk line that is concern off drops on', () => {
+  it('every real-risk fixture line and every joined-word line', () => {
+    const signal = (userText: string) =>
+      detectPatternSignals({ userText } as unknown as ContextBuilderInput);
+    const drops: string[] = [];
+    for (const line of riskCorpus()) {
+      flag('off');
+      const off = signal(line) === 'concern';
+      flag('on');
+      if (off && signal(line) !== 'concern') drops.push(line);
+    }
+    expect(drops).toEqual([]);
+  });
 });
