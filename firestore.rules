@@ -129,6 +129,17 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // "That felt off" call reports (api/call-telemetry): numbers, raw room names
+    // and the person's optional note. Admins read, nobody else; the server writes.
+    match /call_felt_off/{reportId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    match /call_felt_off_quota/{uid} {
+      allow read, write: if false;
+    }
+
     // ============================================================================
     // PHONE LOOKUP INDEX (for cross-device identification)
     // Stores hashed phone -> userId mappings

@@ -121,6 +121,7 @@ import { handleRelationshipArcRoutes } from '../../api/relationship-arc-routes.j
 import { handleFeatureFlagsRoutes } from '../../api/feature-flags-routes.js';
 import { handleFeedbackRoutes, isFeedbackRoute } from '../../api/feedback-routes.js';
 import { handleReplyReportRoutes } from '../../api/reply-reports/reply-report-routes.js';
+import { handleCallTelemetryRoutes } from '../../api/call-telemetry/call-telemetry-routes.js';
 import { handleBrandRoutes } from '../../api/brand-routes.js';
 import { handleCommandsRoutes } from '../../api/commands-routes.js';
 import { handleWidgetRoutes } from '../../api/widget-routes.js';
@@ -323,7 +324,8 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
   // LOCAL ROUTES (TypeScript modules)
   // ============================================================================
 
-  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname))) return;
+  if (handleAppConfigIos(req, res, pathname) || (await handleHealthRoutes(req, res, pathname)))
+    return;
 
   // Token routes (LiveKit tokens, demo sessions)
   if (await handleTokenRoutes(req, res, pathname, parsedUrl)) return;
@@ -862,17 +864,16 @@ async function handleRequest(req: http.IncomingMessage, res: http.ServerResponse
     // Answer cards (the /a/:id page; APPROVALS_PAGE)
     if (await handleAnswerCardRoutes(req, res, pathname)) return;
 
-    // Feature flags routes
     if (pathname.startsWith('/api/flags')) {
       const handled = await handleFeatureFlagsRoutes(req, res, pathname, parsedUrl);
       if (handled) return;
     }
 
-    // Feedback routes (contextual feedback system), then reported replies (POST /api/reports)
+    // Feedback, reported replies (POST /api/reports), call telemetry (POST /api/call-telemetry)
     if (isFeedbackRoute(pathname) && (await handleFeedbackRoutes(req, res))) return;
     if (await handleReplyReportRoutes(req, res, pathname)) return;
+    if (await handleCallTelemetryRoutes(req, res, pathname)) return;
 
-    // Brand routes
     if (pathname.startsWith('/api/brand')) {
       const handled = await handleBrandRoutes(req, res, pathname);
       if (handled) return;

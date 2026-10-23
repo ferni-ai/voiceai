@@ -15,6 +15,7 @@
  *
  * @module servers/api/routes/token-room-claim
  */
+import type { Firestore } from '@google-cloud/firestore';
 import { getFirestoreDb } from '../../../utils/firestore-utils.js';
 import { createLogger } from '../../../utils/safe-logger.js';
 
@@ -75,4 +76,17 @@ export async function claimRoom(
     log.error({ error: String(error), room: roomName }, 'Could not read or renew room claim');
     return 'unavailable';
   }
+}
+
+/** Read-only: does `uid` hold `roomName`? 'unclaimed' when nobody does, or the claim expired. */
+export async function roomClaimHolder(
+  db: Firestore,
+  roomName: string,
+  uid: string,
+  now = Date.now()
+): Promise<'mine' | 'theirs' | 'unclaimed'> {
+  const ref = db.collection(ROOM_CLAIMS).doc(Buffer.from(roomName).toString('base64url'));
+  const claim = (await ref.get()).data() as RoomClaim | undefined;
+  if (claim?.uid === uid) return 'mine';
+  return claim && claim.expiresAtMs > now ? 'theirs' : 'unclaimed';
 }
