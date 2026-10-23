@@ -775,18 +775,18 @@ class DataExportService {
       deletionResults['gmail_send_grant'] = deletionResults['google_calendar_grant'] = true;
 
       // 1. Delete engagement data
-      try {
-        const store = await getEngagementStore();
-        await store.deleteUserData(userId);
-        deletionResults['engagement'] = true;
-      } catch (e) {
-        log.warn({ error: String(e), userId }, 'Failed to delete engagement data');
-        deletionResults['engagement'] = false;
-      }
+      await step('engagement', 'Failed to delete engagement data', async () => {
+        await (await getEngagementStore()).deleteUserData(userId);
+      });
 
-      // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed
+      // 2. Erase bogle_users/{uid} + subcollections. Not caught: if it fails, the erasure failed.
+      // Outreach held in memory goes before and after, refused from then on (a live session)
+      const dropOutreach = (await import('../outreach/outreach-intelligence.js'))
+        .eraseUserOutreachData;
+      dropOutreach(userId);
       const { eraseUserRecord } = await import('./erase-user-record.js');
       await eraseUserRecord(userId);
+      dropOutreach(userId);
       try {
         const { getDefaultStore } = await import('../../memory/index.js');
         await getDefaultStore().deleteProfile(userId);
