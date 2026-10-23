@@ -24,6 +24,16 @@
  * reply, so they still play when TTS is what failed; without them the line
  * goes through TTS like any say(). Nothing here uses the LLM.
  *
+ * A rendered line is kept only with MIN_VOICED_MS of voice in it. Dev call
+ * action-claim-b (2026-10-22): the fallback fired at 5 s and its rendered line
+ * played for 23 ms, with no voice on the recording, and the caller heard
+ * nothing for 12 s. The rendering goes through the LiveKit Cartesia plugin's
+ * REST path (the only thing in the app that does; replies use the TTS
+ * gateway), which reads any HTTP body as PCM without checking the status, so a
+ * failed request became a few ms of noise counted as the line.
+ * A line under the bar is dropped and logged (prerenderRejected), and the
+ * fallback speaks it through live TTS instead.
+ *
  * NEVER_SILENT=shadow logs NEVER_SILENT_FALLBACK without speaking.
  *
  * @module agents/multi-agent/never-silent
@@ -46,6 +56,11 @@ export const NEVER_SILENT_HANG_MS = 5000;
 export const NEVER_SILENT_TOOL_HOLD_MS = 15_000;
 /** Longest pre-rendered line kept (about 6 s of 24 kHz audio). */
 const MAX_PRERENDER_SAMPLES = 24_000 * 6;
+/** Least voice a pre-rendered line must carry to be played instead of live TTS. */
+export const MIN_VOICED_MS = 300;
+/** A 10 ms window at this RMS (s16) or louder is voiced: about -40 dBFS. */
+const VOICED_RMS = 328;
+const WINDOW_MS = 10;
 
 export function hangMs(env: Record<string, string | undefined> = process.env): number {
   const ms = Number(env.NEVER_SILENT_HANG_MS);
@@ -64,6 +79,31 @@ interface SpeechLike {
 }
 interface FrameLike {
   readonly samplesPerChannel: number;
+  readonly sampleRate?: number;
+  readonly channels?: number;
+  readonly data?: Int16Array;
+}
+
+/** A clip's length and how much of it is voiced, in ms. */
+export function measureClip(frames: readonly FrameLike[]): { ms: number; voicedMs: number } {
+  let ms = 0;
+  let voicedMs = 0;
+  for (const frame of frames) {
+    const rate = frame.sampleRate ?? 24_000;
+    const channels = frame.channels ?? 1;
+    ms += (frame.samplesPerChannel / rate) * 1000;
+    const data = frame.data ?? new Int16Array(0);
+    const window = Math.max(1, Math.round((rate * WINDOW_MS) / 1000)) * channels;
+    for (let start = 0; start < data.length; start += window) {
+      const end = Math.min(start + window, data.length);
+      let sum = 0;
+      for (let i = start; i < end; i++) sum += data[i] * data[i];
+      if (Math.sqrt(sum / (end - start)) >= VOICED_RMS) {
+        voicedMs += ((end - start) / channels / rate) * 1000;
+      }
+    }
+  }
+  return { ms: Math.round(ms), voicedMs: Math.round(voicedMs) };
 }
 
 export interface NeverSilentSession {
@@ -205,7 +245,9 @@ export function createNeverSilentGuard(deps: {
           samples += frame.samplesPerChannel;
           if (samples > MAX_PRERENDER_SAMPLES) break;
         }
-        if (frames.length) rendered.set(text, frames);
+        const clip = measureClip(frames);
+        if (clip.voicedMs >= MIN_VOICED_MS) rendered.set(text, frames);
+        else deps.log({ prerenderRejected: text, ...clip });
       } catch (error) {
         deps.log({ prerenderFailed: String(error) });
         return;
