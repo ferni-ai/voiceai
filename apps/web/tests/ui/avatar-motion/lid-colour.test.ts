@@ -1,6 +1,7 @@
 /**
- * Lid colour: the lids take the page colour, the light "cap" that carries the
- * expression (Seth, 2026-10-11). One place sets it, inline-styles.css. A second
+ * Lid colour: the lids are solid white in every theme, the "cap" that carries the
+ * expression (Seth, 2026-10-23; the page colour vanished on midnight). The CSS rule
+ * in inline-styles.css wins over the SVG's fill attribute, and both say white. A second
  * fill injected by ferni-expressions read as the live rule and the iOS avatar
  * copied it (dark lids, 2026-10-20), so nothing else may set a lid fill.
  */
@@ -12,11 +13,18 @@ import { describe, expect, it } from 'vitest';
 const read = (path: string): string => readFileSync(resolve(__dirname, '../../../', path), 'utf8');
 
 describe('lid colour', () => {
-  it('inline-styles.css fills the lids with the page colour', () => {
+  it('inline-styles.css fills the lids solid white, never a theme colour', () => {
     const rule = /\.avatar-lid-overlay \.lid-top,\s*\.avatar-lid-overlay \.lid-bottom \{([^}]*)\}/.exec(
       read('src/styles/inline-styles.css')
     );
-    expect(rule?.[1]).toMatch(/fill:\s*var\(--color-background-primary/);
+    expect(rule?.[1]).toMatch(/fill:\s*#ffffff\s*;/i);
+    expect(rule?.[1]).not.toMatch(/fill:\s*var\(/);
+  });
+
+  it('the lid paths themselves are white, so a missing stylesheet still shows white caps', () => {
+    const src = read('src/ui/ferni-expressions.ui.ts');
+    const fills = [...src.matchAll(/<path class="lid-(?:top|bottom)"[^>]*\sfill="([^"]*)"/g)].map((m) => m[1]);
+    expect(fills).toEqual(['#ffffff', '#ffffff']);
   });
 
   it('the injected expression styles set no lid fill of their own', () => {
