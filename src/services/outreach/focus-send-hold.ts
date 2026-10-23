@@ -22,11 +22,15 @@ import { createHash } from 'node:crypto';
 import { personFlagOn } from '../../config/person-flag.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { focusFromDoc, focusHold } from '../messaging/focus.js';
+import { DEFAULT_QUIET } from '../messaging/policy.js';
+import { prefsFromDoc } from '../messaging/prefs.js';
 import type { PolicyCtx } from '../messaging/types.js';
 import type { PushNotificationPayload } from '../push-notifications.js';
 import type { TextKind } from './checkin-replies.js';
 import type { GuardedText } from './guarded-text.js';
-import type { HeldTextStore } from './held-texts.js';
+import { parseQuietWindow } from './call-hours-guard.js';
+import type { HeldText, HeldTextStore } from './held-texts.js';
+import { quietEndsAt, quietZones } from './quiet-hours.js';
 
 const log = createLogger({ module: 'focus-send-hold' });
 
@@ -65,6 +69,18 @@ export function focusInDoc(doc: UserDoc, now: Date): Hold | undefined {
   return focusHold(focusFromDoc(raw), now);
 }
 
+/**
+ * `at`, or the end of their quiet hours when `at` falls inside them: the window
+ * and zone the policy's quiet-hours gate reads (prefs.ts; a window under 4 h or
+ * over 16 h, the default 21:00 to 08:00), in both US coasts when the zone is unknown.
+ */
+export function afterQuietHours(doc: UserDoc, at: Date): Date {
+  const prefs = prefsFromDoc(doc);
+  const w = parseQuietWindow(prefs.quietStart, prefs.quietEnd);
+  const span = w ? (w.endMin - w.startMin + 1440) % 1440 : 0;
+  return quietEndsAt(at, span >= 240 && span <= 960 ? w : DEFAULT_QUIET, quietZones(prefs.zone));
+}
+
 /** One held copy per text: a sender that runs again while it's held rewrites the same doc. */
 export const focusHeldId = (t: GuardedText): string =>
   `focus-${createHash('sha256').update(`${t.userId}|${t.kind}|${t.refId}`).digest('hex').slice(0, 32)}`;
@@ -76,7 +92,8 @@ export interface FocusTextDeps {
 }
 
 /**
- * Holds `t` until the hold's cap when a Focus hold holds its kind. Read from
+ * Holds `t` until the hold's cap (or, if the cap lands in their quiet hours,
+ * until those end) when a Focus hold holds its kind. Read from
  * `doc`, the one the sender already has, so a person with no saved hold costs
  * nothing; the flag is read only when there is one. True when held.
  */
@@ -90,29 +107,36 @@ export async function holdTextForFocus(
   if (!holds(hold, textOrigin(t.kind)) || !(await (deps.flagOn ?? focusFlag)(t.userId)))
     return false;
   const { holdText, firestoreHeldTexts } = await import('./held-texts.js');
-  await holdText(t, hold.capUntil, 'focus', deps.held ?? firestoreHeldTexts, focusHeldId(t));
+  const releaseAt = afterQuietHours(doc, hold.capUntil);
+  await holdText(t, releaseAt, 'focus', deps.held ?? firestoreHeldTexts, focusHeldId(t));
   return true;
 }
 
 /**
- * Before a held text goes: is it still held? No read for a kind a hold can't
- * hold, nor (beyond the cached flag) for a person without FOCUS_HOLD. An
- * unreadable doc counts as no hold: the send re-reads it anyway.
+ * Before a held text goes: why it still waits, if it does. A Focus still
+ * holding it (FOCUS_HOLD on), or, for one a Focus held, their quiet hours.
+ * No read for a text neither can hold, nor for a person without the flag
+ * (beyond the cached flag) unless a Focus held it. An unreadable doc: no
+ * Focus hold (the send re-reads it), and quiet hours read at their default.
  */
-export async function stillFocusHeld(
-  t: GuardedText,
+export async function waitsAtRelease(
+  held: Pick<HeldText, 'text' | 'reason'>,
   reader: { userDoc: (userId: string) => Promise<UserDoc> },
   now: Date,
   deps: FocusTextDeps = {}
-): Promise<boolean> {
+): Promise<'focus' | 'quiet-hours' | null> {
+  const { text: t } = held;
   const origin = textOrigin(t.kind);
-  if (!origin || t.userId.startsWith('sponsored_')) return false;
-  if (!(await (deps.flagOn ?? focusFlag)(t.userId))) return false;
+  const focusHeld = held.reason === 'focus';
+  if ((!origin && !focusHeld) || t.userId.startsWith('sponsored_')) return null;
+  const flag = origin !== undefined && (await (deps.flagOn ?? focusFlag)(t.userId));
+  if (!flag && !focusHeld) return null;
   const doc = await reader.userDoc(t.userId).catch((error: unknown) => {
     log.warn({ kind: t.kind, refId: t.refId, error: String(error) }, 'Focus unreadable at release');
     return undefined;
   });
-  return holds(focusInDoc(doc, now), origin);
+  if (flag && holds(focusInDoc(doc, now), origin)) return 'focus';
+  return focusHeld && afterQuietHours(doc, now) > now ? 'quiet-hours' : null;
 }
 
 /** A push about a reminder (data.kind 'reminder') follows the reminder rule; any other note is Ferni's. */

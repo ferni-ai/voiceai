@@ -8,7 +8,7 @@
  */
 import { createLogger } from '../../utils/safe-logger.js';
 import { checkinDb } from './checkin-replies.js';
-import { stillFocusHeld } from './focus-send-hold.js';
+import { waitsAtRelease } from './focus-send-hold.js';
 import {
   defaultTextDeps,
   sendGuardedText,
@@ -75,8 +75,8 @@ const RETRY: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * Sends the held texts that are due. A gap, consent-unknown, pause or Focus still holding it
- * waits; any other skip ends it. A Focus-held text whose kind went out since (a gap) ends too:
+ * Sends the held texts that are due. A gap, consent-unknown, pause, a Focus still holding it or
+ * (for one a Focus held) quiet hours: it waits. Any other skip ends it. A Focus-held text whose kind went out since (a gap) ends too:
  * it reached them another way.
  */
 export async function releaseHeldTexts(
@@ -95,7 +95,7 @@ export async function releaseHeldTexts(
       continue;
     }
     // eslint-disable-next-line no-await-in-loop
-    if (await stillFocusHeld(held.text, deps.store, now, deps.focus)) {
+    if (await waitsAtRelease(held, deps.store, now, deps.focus)) {
       out.waiting++;
       continue;
     }
