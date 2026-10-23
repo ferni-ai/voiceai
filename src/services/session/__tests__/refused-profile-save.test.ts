@@ -8,7 +8,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const store = {
-  getProfile: vi.fn(async () => null),
+  getProfileForWrite: vi.fn(async () => null),
   saveProfile: vi.fn(async () => {
     throw Object.assign(new Error('Refused a production Firestore write'), { code: 7 });
   }),

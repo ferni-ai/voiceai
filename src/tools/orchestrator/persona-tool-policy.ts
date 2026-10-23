@@ -1,0 +1,105 @@
+/**
+ * A persona's own tool policy: the `tools.forbidden` list in its manifest
+ * (src/personas/bundles/<id>/persona.manifest.json). Before this, nothing
+ * applied it: getToolsForAgent read `persona.tools.forbidden`, but every caller
+ * passed only `{id, displayName}`, and its fast path never filtered at all.
+ *
+ * PERSONA_TOOL_POLICY=on: getToolsForAgent and the multi-agent tool set
+ * (agent-setup.ts) drop the persona's forbidden tools. Off: unchanged.
+ *
+ * Some tools are never removed, whatever a manifest says: handoffs and team
+ * tools (a persona must always be able to pass the caller on), crisis and
+ * safety tools, the privacy controls (forget and correct a memory) and endCall.
+ * A manifest that forbids one gets a warning and that entry is not applied.
+ *
+ * No manifest has an allow-list today (`domains`, `required` and `optional`
+ * add tools, they don't restrict), so there is none to apply.
+ *
+ * @module tools/orchestrator/persona-tool-policy
+ */
+import { flagOn } from '../../config/env-flag.js';
+import { LEAN_ALWAYS_ON_TOOLS } from '../../config/same-turn-tools-config.js';
+import { isTeammateTool } from '../../config/tool-config.js';
+import { createLogger } from '../../utils/safe-logger.js';
+
+const log = createLogger({ module: 'PersonaToolPolicy' });
+
+/** The always-on set's safety domains: crisis, a human, grounding. */
+const SAFETY_DOMAINS = new Set(['crisis', 'human-transfer', 'presence', 'trauma-support']);
+const SAFETY_TOOLS = Object.keys(LEAN_ALWAYS_ON_TOOLS).filter((name) =>
+  SAFETY_DOMAINS.has(LEAN_ALWAYS_ON_TOOLS[name] ?? '')
+);
+const NEVER_FORBIDDEN = new Set([...SAFETY_TOOLS, 'forgetMemory', 'updateMemory', 'endCall']);
+
+/** Whether no persona policy may remove this tool. */
+export function isProtectedTool(name: string): boolean {
+  return NEVER_FORBIDDEN.has(name) || isTeammateTool(name);
+}
+
+interface PersonaTools {
+  forbidden?: string[];
+}
+const isAllowedToForbid = (name: string): boolean => !isProtectedTool(name);
+
+export interface PersonaToolPolicy {
+  /** Tools this persona never gets; protected tools are already left out. */
+  forbidden: string[];
+}
+
+/** The manifest's forbidden list, as written, or [] when there is no manifest. */
+async function manifestForbidden(personaId: string): Promise<string[]> {
+  try {
+    const personas = await import('../../personas/index.js');
+    const known = personas.isKnownPersona(personaId);
+    const bundleId = known ? personas.getCanonicalPersonaId(personaId) : personaId;
+    return (await personas.loadBundleById(bundleId))?.manifest.tools?.forbidden ?? [];
+  } catch (error) {
+    log.warn({ personaId, error: String(error) }, 'No persona manifest: no tool policy applied');
+    return [];
+  }
+}
+
+/** This persona's tool policy, or undefined while PERSONA_TOOL_POLICY is off. */
+export async function personaToolPolicy(personaId: string): Promise<PersonaToolPolicy | undefined> {
+  if (!flagOn('PERSONA_TOOL_POLICY')) return undefined;
+  const listed = await manifestForbidden(personaId);
+  const refused = listed.filter(isProtectedTool);
+  if (refused.length > 0) {
+    log.warn({ personaId, refused }, 'Persona manifest forbids protected tools: not applied');
+  }
+  return { forbidden: listed.filter(isAllowedToForbid) };
+}
+
+/**
+ * The persona with its tool policy, for getToolsForAgent: the caller's own if it
+ * passed one, else its manifest's (PERSONA_TOOL_POLICY=on). Never forbids a
+ * protected tool either way.
+ */
+export async function withPersonaToolPolicy<P extends { id: string; tools?: PersonaTools }>(
+  persona: P
+): Promise<P> {
+  const tools = persona.tools ?? (await personaToolPolicy(persona.id));
+  if (!tools) return persona;
+  return { ...persona, tools: { ...tools, forbidden: tools.forbidden?.filter(isAllowedToForbid) } };
+}
+
+/** The tools without the forbidden ones. A new record when any go; protected tools never do. */
+export function withoutForbiddenTools<T>(
+  tools: Record<string, T>,
+  forbidden: readonly string[] | undefined
+): Record<string, T> {
+  const drop = (forbidden ?? []).filter((name) => name in tools && isAllowedToForbid(name));
+  if (drop.length === 0) return tools;
+  const kept = { ...tools };
+  for (const name of drop) delete kept[name];
+  return kept;
+}
+
+/** The persona's tools with its policy applied (PERSONA_TOOL_POLICY=on), else as given. */
+export async function applyPersonaToolPolicy<T>(
+  tools: Record<string, T>,
+  personaId: string
+): Promise<Record<string, T>> {
+  const policy = await personaToolPolicy(personaId);
+  return policy ? withoutForbiddenTools(tools, policy.forbidden) : tools;
+}
