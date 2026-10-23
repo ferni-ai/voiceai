@@ -299,7 +299,12 @@ final class AppModel {
 
     func signOut() async {
         if call.isActive { await call.end() } // the call belongs to the person leaving
-        if let uid = account.user?.uid { await push.unbindBeforeSignOut(uid: uid) } // while still them
+        // The phone's push token leaves with them, while it's still them (the
+        // DELETE needs their sign-in), retried once: otherwise their notes
+        // could reach the next person on this phone. If it never got through,
+        // the binding remembers them, and the next account takes the token
+        // over before anything else is sent to it (PushStore.reconcile).
+        if let uid = account.user?.uid { await push.unbindBeforeSignOut(uid: uid) }
         if let uid = account.user?.uid { consent.forget(uid: uid) }
         forgetPerson()
         await account.signOut()
@@ -324,12 +329,17 @@ final class AppModel {
     }
 
     /// - Parameter scenario: debug builds only; a UI-test launch (`UITestScenario`).
-    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool, scenario: String? = nil) {
+    /// - Parameters:
+    ///   - account, makePush: tests pass their own account and push store
+    ///     (built from the account and the app's API); the app makes them here.
+    init(config: FerniConfig = .fromBundle(), firebaseReady: Bool, scenario: String? = nil,
+         account injected: AccountStore? = nil,
+         makePush: ((AccountStore, FerniAPI) -> PushStore)? = nil) {
         self.config = config
         #if DEBUG
-        account = UITestScenario.account() ?? AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
+        account = injected ?? UITestScenario.account() ?? AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
         #else
-        account = AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
+        account = injected ?? AccountStore(backend: firebaseReady ? FirebaseAuthBackend() : nil)
         #endif
         #if DEBUG
         api = UITestScenario.storeData ? UITestScenario.api(baseURL: config.apiBaseURL) : account.api(baseURL: config.apiBaseURL)
@@ -347,7 +357,7 @@ final class AppModel {
         #else
         let apnsEnvironment = "production"
         #endif
-        push = PushStore(
+        push = makePush?(account, api) ?? PushStore(
             api: api, vault: KeychainPushVault(), bundleID: Bundle.main.bundleIdentifier ?? "com.sethdford.ferni",
             environment: apnsEnvironment, appVersion: SettingsView.version(),
             currentUID: { [account] in account.user?.uid }
