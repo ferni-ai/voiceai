@@ -271,6 +271,11 @@ const gh = (args: string[]): any =>
   JSON.parse(execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
 const pages = (path: string): any[] => gh(['api', '--paginate', '--slurp', path]).flat();
 
+/** Escapes text for one markdown table cell: backslashes first, then pipes. */
+export function tableCell(text: string): string {
+  return text.replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+}
+
 function loadPull(repo: string, n: number): PullRequest {
   const api = `repos/${repo}`;
   const pull = gh(['api', `${api}/pulls/${n}`]);
@@ -325,7 +330,7 @@ function main(): void {
     }
     if (verdict !== 'VERIFIED') failed = true;
     say(verdict === 'VERIFIED' ? 'notice' : 'warning', `PR #${n} ${head}: ${verdict}: ${reason}`);
-    rows.push(`| #${n} | \`${head}\` | ${verdict} | ${reason.replace(/\|/g, '\\|')} |`);
+    rows.push(`| #${n} | \`${head}\` | ${verdict} | ${tableCell(reason)} |`);
   }
 
   const summary = [`### ${title}`, '', '| PR | head | verdict | reason |', '| - | - | - | - |']

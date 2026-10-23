@@ -13,6 +13,7 @@ import {
   gitOps,
   markers,
   parseQueueRef,
+  tableCell,
   toPullRequest,
   type Comment,
   type Git,
@@ -222,6 +223,15 @@ describe('workflow runs trusted code', () => {
     expect(wf).toContain('PR_HEAD: ${{ github.event.pull_request.head.sha }}');
     expect(wf).toContain('node --experimental-strip-types scripts/ci/lead-verified.ts');
     expect(wf).not.toMatch(/refs\/pull\/|head_ref\s*}}\s*$|git (checkout|switch)/m);
+  });
+});
+
+describe('tableCell', () => {
+  it('escapes a backslash before a pipe so the pipe stays inside the cell', () => {
+    expect(tableCell('a\\|b')).toBe('a\\\\\\|b');
+  });
+  it('escapes a lone pipe', () => {
+    expect(tableCell('x | y')).toBe('x \\| y');
   });
 });
 
