@@ -33,8 +33,6 @@
  * | handoff_cancelled   | `handoffService.onHandoffCancelled` (handoff.service.ts:261)            |
  * | handoff_timeout     | caller's 20 s timer, mirroring app.ts:2946                              |
  * | conversation_end    | data-message-handlers.ts:2466 `noteConversationEnd` (planned-goodbye)  |
- * | conversation_continue | conversation-continue.ts `handleConversationContinue`                 |
- * |                     | (`ferni:conversation-continue`): the agent took back its goodbye      |
  * | hang_up             | app.ts:760 `disconnect()`                                               |
  * | agent_disconnected  | `onAgentDisconnected`: connection.service.ts:696; app.ts:2766 dispatches |
  * |                     | `ferni:disconnected` :2775                                              |
@@ -88,8 +86,6 @@ export interface CallContext {
   readonly arrived: boolean;
   /** Ferni's side ended and the reconnect prompt owns the moment; a new tap may start over. */
   readonly agentLost: boolean;
-  /** `ending` is the agent's goodbye, which conversation_continue may take back; a hang-up never. */
-  readonly agentEnding: boolean;
   readonly slowStage: 0 | 1 | 2;
   /** The latest turn, kept while arrival, a handoff or a reconnect holds the screen. */
   readonly lastTurn: TurnState;
@@ -127,7 +123,6 @@ export type CallEvent = Stamp &
     | { readonly type: 'handoff_cancelled' }
     | { readonly type: 'handoff_timeout' }
     | { readonly type: 'conversation_end'; readonly reason: string; readonly planned: boolean }
-    | { readonly type: 'conversation_continue'; readonly reason: string }
     | { readonly type: 'hang_up' }
     | { readonly type: 'agent_disconnected' }
     | { readonly type: 'agent_lost'; readonly reason: string }
@@ -193,7 +188,6 @@ export function initialContext(): CallContext {
     attempt: 0,
     arrived: false,
     agentLost: false,
-    agentEnding: false,
     slowStage: 0,
     lastTurn: 'listening',
     agentState: 'unknown',
@@ -364,13 +358,7 @@ export function reduce(
       return endHandoff(ctx, ev, ctx.persona);
     case 'conversation_end':
       if (!ev.planned) return drop(ctx, 'unplanned:conversation_end');
-      return IN_CALL.has(ctx.state)
-        ? go(ctx, ev, 'ending', { agentEnding: true })
-        : illegal(ctx, ev);
-    case 'conversation_continue':
-      // Crisis risk, or the caller kept talking: the call carries on, Ferni listening.
-      if (ctx.state !== 'ending' || !ctx.agentEnding) return illegal(ctx, ev);
-      return go(ctx, ev, 'listening', { agentEnding: false, lastTurn: 'listening' });
+      return IN_CALL.has(ctx.state) ? go(ctx, ev, 'ending') : illegal(ctx, ev);
     case 'hang_up':
       return IN_CALL.has(ctx.state) || CONNECTING.has(ctx.state)
         ? go(ctx, ev, 'ending')

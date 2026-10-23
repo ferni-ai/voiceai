@@ -289,7 +289,6 @@ function updateWrapUpState(isWrappingUp: boolean): void {
     }
     elements.disconnectBtn.removeAttribute('data-wrap-up-text');
     elements.disconnectBtn.setAttribute('aria-label', t('session.endConversation'));
-    elements.disconnectBtn.disabled = false; // a goodbye taken back re-enables End (#2291)
   }
 }
 

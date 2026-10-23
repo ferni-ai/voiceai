@@ -69,7 +69,6 @@ import {
 } from './live-signal-handlers.js';
 import { WRAP_UP_EXPRESSION_HOLD_MS } from './call-end.js';
 import { noteConversationEnd, playGoodbyeSound } from './call-end-paths.js';
-import { routeConversationContinue, scheduleEndDisconnect } from './conversation-continue.js';
 import { conversationEndEndsCall } from '../services/planned-goodbye.js';
 import { ferniExpressions, type EmotionalExpression } from '../ui/ferni-expressions.ui.js';
 // 🎭 Luxo Expressions - 100+ expression system from design tokens
@@ -267,7 +266,6 @@ export function handleDataMessage(message: DataMessage): void {
     handleConversationEnd(message);
     return;
   }
-  if (routeConversationContinue(message)) return; // goodbye held or taken back (#2291)
 
   // Handle other message types
   switch (message.type) {
@@ -2486,7 +2484,8 @@ export function handleConversationEnd(event: ConversationEndEvent): void {
   // Wrap-up: not a planned goodbye (silence, failures), so the reconnect prompt takes the call
   if (!conversationEndEndsCall(event.reason)) return;
 
-  // 📞 AGENT EXIT - Ferni chooses to hang up: tactile, quick, a receiver put down firmly
+  // 📞 AGENT EXIT - When Ferni chooses to hang up
+  // More tactile, quicker, like placing a phone receiver down firmly
   if (event.reason === 'agent_exit') {
     log.info('🛑 Agent-initiated exit:', event.exitType);
 
@@ -2501,7 +2500,7 @@ export function handleConversationEnd(event: ConversationEndEvent): void {
 
     // Dispatch with agent_exit flag for different UI treatment
     const delay = event.disconnectDelay ?? 1500;
-    scheduleEndDisconnect(() => {
+    setTimeout(() => {
       log.info('Agent-initiated disconnect');
       window.dispatchEvent(
         new CustomEvent('ferni:conversation-end-disconnect', {
@@ -2521,10 +2520,11 @@ export function handleConversationEnd(event: ConversationEndEvent): void {
   // 🌟 Superhuman: Warm farewell expression - gentle smile with sparkle
   ferniExpressions.setExpression('farewell', 600, 2500);
 
-  // Disconnect after delay (sound and animation play); conversation_continue cancels it
+  // Disconnect after delay (allows sound and animation to play)
   const delay = event.disconnectDelay ?? 2000;
-  scheduleEndDisconnect(() => {
+  setTimeout(() => {
     log.info('Auto-disconnecting after conversation end');
+
     // Dispatch disconnect event - the app.ts will handle the actual disconnect
     window.dispatchEvent(new CustomEvent('ferni:conversation-end-disconnect'));
   }, delay);

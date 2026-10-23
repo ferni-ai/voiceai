@@ -52,17 +52,6 @@ describe('disconnect button label', () => {
     expect(label.textContent).toBe(t('session.ending'));
   });
 
-  it('a goodbye taken back mid-ceremony re-enables End (#2291)', () => {
-    mount();
-    appState.set('isWrappingUp', true);
-    showClosingState();
-    const button = document.querySelector('#disconnectBtn') as HTMLButtonElement;
-    expect(button.disabled).toBe(true);
-    appState.set('isWrappingUp', false); // conversation_continue (conversation-continue.ts)
-    expect(button.disabled).toBe(false);
-    expect(button.classList.contains('btn-closing')).toBe(false);
-  });
-
   it('goes back to its own label after the call', () => {
     const label = mount();
     appState.set('isWrappingUp', true);
