@@ -21,7 +21,6 @@
  *
  * @module agents/follow-through-import
  */
-import { isLightTopic } from '../api/home/light-topic.js';
 import { flagOn, type Env } from '../config/env-flag.js';
 import {
   importFollowUps,
@@ -50,6 +49,8 @@ export interface ImportTaskDeps {
   verifiedOwner?: (sessionId: string) => boolean;
   /** Null where there is no Firestore (local dev without credentials). */
   stores?: () => { store: FollowUpStore; sources: FollowUpSources } | null;
+  /** BOOKENDS: true when a date's words are heavy (!isLightTopic). Unset: every one is. */
+  heavy?: (text: string) => boolean;
   now?: () => Date;
 }
 
@@ -57,10 +58,11 @@ export type ImportTaskOutcome =
   | { imported: true; result: ImportResult }
   | { imported: false; reason: 'flag-off' | 'not-owner' | 'no-zone' | 'no-store' };
 
-function firestoreStores(): { store: FollowUpStore; sources: FollowUpSources } | null {
+function firestoreStores(
+  heavy?: (text: string) => boolean
+): { store: FollowUpStore; sources: FollowUpSources } | null {
   const db = getFirestoreDb();
   if (!db) return null;
-  const heavy = (text: string): boolean => !isLightTopic(text);
   return { store: createFollowUpStore(db), sources: createFollowUpSources(db, { heavy }) };
 }
 
@@ -87,7 +89,7 @@ export async function importFollowUpsAfterCall(
     log.info({ sessionId: ctx.sessionId }, 'Follow-up import skipped: caller zone unknown');
     return { imported: false, reason: 'no-zone' };
   }
-  const stores = (deps.stores ?? firestoreStores)();
+  const stores = deps.stores ? deps.stores() : firestoreStores(deps.heavy);
   if (!stores) return { imported: false, reason: 'no-store' };
   const now = (deps.now ?? (() => new Date()))();
   // BOOKENDS, as this caller's call had it: timed one-time dates come in with eventAt.

@@ -271,4 +271,18 @@ describe('BOOKENDS: timed one-time dates come in with eventAt, per person', () =
     });
     expect(followUps('owner-1')).toHaveLength(3);
   });
+
+  it("the registered task reads heaviness with the Home Screen's test (a recital is light)", async () => {
+    process.env.FOLLOW_THROUGH_IMPORT = 'on';
+    process.env.BOOKENDS = 'on';
+    const recital = { ...biopsy, kind: 'event', value: 'recital', eventDate: '2099-01-05' };
+    h.docs.set('bogle_users/owner-1/world_facts/wd_1', recital);
+    try {
+      await runCall('owner-1', ownerSession('s-registered'));
+    } finally {
+      delete process.env.BOOKENDS;
+    }
+    const date = followUps('owner-1').find((f) => f.kind === 'date');
+    expect(date?.salience).toMatchObject({ heavy: false, sensitive: false });
+  });
 });
