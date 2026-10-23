@@ -28,6 +28,7 @@
  * @module CrisisAgreement
  */
 
+import { resolveEarlyWarningSttForms } from '../wellbeing-tracking/phrase-match.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 
 export function resolveCrisisAgreementGate(
@@ -101,22 +102,32 @@ export function isVocative(latest: string): boolean {
  * the escalation there was before. Text outside plain ASCII (accents, other
  * scripts) counts as risk content, since these words cannot read it.
  */
-const RISK_CONTENT = new RegExp(
-  `\\b(?:${[
-    'di(?:e|es|ed|ing)|dead|death|deadly|lethal|fatal|kill\\w*|suicid\\w*|murder\\w*|kms|ctb|unaliv\\w*|sewer ?slide',
-    'end(?:s|ed|ing)? (?:it|things|my|me|this|everything)|over (?:for good|with)|be over',
-    '(?:hurt|harm|cut|burn|hit|starv)\\w* (?:my|me|your)|self ?harm|cutting|razor|blade|knife|bleed\\w*|blood|scars?',
-    'pills?|overdos\\w*|bleach|poison\\w*|insulin|antifreeze|swallow\\w*|drank|tylenol|meds|medication|dose|bottle|sleeping|gun|pistol|rifle|bullet|loaded|rope|noose|hang\\w*|knot',
-    'bridge|ledge|edge|roof|jump\\w*|fall\\w*|tracks|train|drown\\w*|river|garage|engine|exhaust|carbon',
-    'wak(?:e|ing) up|(?:be|being|stay|staying) (?:here|around|alive)|alive|living|live|exist\\w*|disappear\\w*|vanish\\w*|gone|forever|sleep',
-    'good ?bye|bye|farewell|last|final|note|letters?|passwords?|my will|give (?:away|up)|giving (?:away|up)|gave (?:away|up)|after i',
-    "better off|burden|point|pointless|hope\\w*|worthless|useless|trapped|no way|escape|can't (?:go|do|take|keep|cope)|cant",
-    'tired of|done with (?:it|everything|life|this)|want (?:out|it to stop|to stop)|miss me|without me|nobody|no one|alone|lonely',
-    'hate (?:myself|my life)|depress\\w*|numb|empty|hopeless|scared|afraid|panic\\w*|crying|cry|hurts?|pain|suffer\\w*|struggl\\w*|not (?:ok|okay|fine|good)|feel off',
-    'tonight|plan\\w*|decided|ready|soon|done|enough|over it|give in',
-    'morir|muer\\w*|matar\\w*|vivir|pastillas|morrer|viver|mourir|tuer|vivre|sterben|umbringen|leben|morire|uccid\\w*|vivere|ammazz\\w*',
-  ].join('|')})(?:s|es|ed|ing)?\\b`
-);
+const RISK_WORDS = [
+  'di(?:e|es|ed|ing)|dead|death|deadly|lethal|fatal|kill\\w*|suicid\\w*|murder\\w*|kms|ctb|unaliv\\w*|sewer ?slide',
+  'end(?:s|ed|ing)? (?:it|things|my|me|this|everything)|over (?:for good|with)|be over',
+  '(?:hurt|harm|cut|burn|hit|starv)\\w* (?:my|me|your)|self ?harm|cutting|razor|blade|knife|bleed\\w*|blood|scars?',
+  'pills?|overdos\\w*|bleach|poison\\w*|insulin|antifreeze|swallow\\w*|drank|tylenol|meds|medication|dose|bottle|sleeping|gun|pistol|rifle|bullet|loaded|rope|noose|hang\\w*|knot',
+  'bridge|ledge|edge|roof|jump\\w*|fall\\w*|tracks|train|drown\\w*|river|garage|engine|exhaust|carbon',
+  'wak(?:e|ing) up|(?:be|being|stay|staying) (?:here|around|alive)|alive|living|live|exist\\w*|disappear\\w*|vanish\\w*|gone|forever|sleep',
+  'good ?bye|bye|farewell|last|final|note|letters?|passwords?|my will|give (?:away|up)|giving (?:away|up)|gave (?:away|up)|after i',
+  "better off|burden|point|pointless|hope\\w*|worthless|useless|trapped|no way|escape|can't (?:go|do|take|keep|cope)|cant",
+  'tired of|done with (?:it|everything|life|this)|want (?:out|it to stop|to stop)|miss me|without me|nobody|no one|alone|lonely',
+  'hate (?:myself|my life)|depress\\w*|numb|empty|hopeless|scared|afraid|panic\\w*|crying|cry|hurts?|pain|suffer\\w*|struggl\\w*|not (?:ok|okay|fine|good)|feel off',
+  'tonight|plan\\w*|decided|ready|soon|done|enough|over it|give in',
+  'morir|muer\\w*|matar\\w*|vivir|pastillas|morrer|viver|mourir|tuer|vivre|sterben|umbringen|leben|morire|uccid\\w*|vivere|ammazz\\w*',
+];
+const riskPattern = (list: readonly string[]): RegExp =>
+  new RegExp(`\\b(?:${list.join('|')})(?:s|es|ed|ing)?\\b`);
+const RISK_CONTENT = riskPattern(RISK_WORDS);
+/**
+ * EARLY_WARNING_STT_FORMS=on: 'plan' no longer matches inside "plane",
+ * "planet" or "plants" (plan, plans, planned, planning still do), and "dying"
+ * counts; 'di(e|es|ed|ing)' never spelled it.
+ */
+const RISK_CONTENT_STT = riskPattern([
+  ...RISK_WORDS.map((w) => w.replace('plan\\w*', 'plan(?!e)(?:ned|ning|ners?)?')),
+  'dying',
+]);
 
 /**
  * The caller agreeing with, or echoing, what Ferni said ("yeah, same", "me
@@ -146,11 +157,12 @@ const EMOTICON = /[:;=8][-'^o]?[([/\\|{<@]|[)\]/\\|}>][-'^o]?[:;=8]|<\/3|;_;|\bt
 export function hasRiskContent(text: string | undefined | null): boolean {
   if (typeof text !== 'string') return true;
   try {
+    const risk = resolveEarlyWarningSttForms() ? RISK_CONTENT_STT : RISK_CONTENT;
     return (
       /[^\t\n\r\x20-\x7E’‘“”—–…]/.test(text) ||
       EMOTICON.test(text) ||
-      RISK_CONTENT.test(words(text)) ||
-      RISK_CONTENT.test(normalized(text))
+      risk.test(words(text)) ||
+      risk.test(normalized(text))
     );
   } catch {
     return true;
