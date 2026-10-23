@@ -209,16 +209,16 @@ do_scorecard() {
   [ $RC = 2 ] && STATUS=harness-error REASON="scorecard exit 2 (see scorecard.log)"
 }
 
-# Erases the generated voice-eval users older than the min age in dev's database. While
-# dev still writes to '(default)' (the prod database, until the ferni-dev cutover) it only
-# does the dry run and reports the count.
+# Erases the generated voice-eval users older than the min age in dev's database (ferni-dev
+# since the 2026-10-23 cutover). If dev resolves to '(default)', the prod database (e.g.
+# EVAL_DEV_DATABASE='(default)' as a rollback), it only does the dry run and reports the count.
 do_cleanup() {
   local db out n age=${NIGHTLY_CLEANUP_MIN_AGE_H:-1}
   db=$(node "$EVAL/eval-database.mjs" dev) || return 1
   out=$(npx tsx "$EVAL/cleanup-users.ts" --project $GCP --env dev --min-age-hours "$age" 2>&1)
   printf '%s\n' "$out" >> "$OUT/cleanup.log"
   n=$(printf '%s\n' "$out" | sed -n 's/^Dry run\. To delete these \([0-9][0-9]*\):$/\1/p')
-  if [ "$db" = '(default)' ]; then log "cleanup: dev writes to (default) until cutover; dry run only, ${n:-?} would go"; return 0; fi
+  if [ -z "$db" ] || [ "$db" = '(default)' ]; then log "cleanup: dev resolves to '${db}', not a dev database; dry run only, ${n:-?} would go"; return 0; fi
   [ "${n:-0}" -gt 0 ] || return 0
   npx tsx "$EVAL/cleanup-users.ts" --project $GCP --env dev --min-age-hours "$age" --execute --confirm "$n" \
     >> "$OUT/cleanup.log" 2>&1
@@ -238,7 +238,7 @@ finish() {
   trap '' INT TERM
   # shellcheck disable=SC2086 # pid list
   [ "$DRY" = 1 ] || stop_jobs $LANE_PIDS
-  [ "$LANES" = 1 ] && step cleanup "cleanup-users.ts --env dev --min-age-hours ${NIGHTLY_CLEANUP_MIN_AGE_H:-1} (dry run only while dev uses (default))" do_cleanup
+  [ "$LANES" = 1 ] && step cleanup "cleanup-users.ts --env dev --min-age-hours ${NIGHTLY_CLEANUP_MIN_AGE_H:-1} (dry run only if dev resolves to (default))" do_cleanup
   [ "$STATUS" = ok ] || [ "$DRY" = 1 ] || write_status "$STATUS" "$REASON"
   step report "board.md line + gh issue comment ${ISSUE:-<unset: skipped>} --body-file $OUT/COMMENT.md" do_report
   [ "$DRY" = 1 ] || stop_jobs $RENEW_PID

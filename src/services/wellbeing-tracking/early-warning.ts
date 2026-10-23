@@ -8,7 +8,7 @@
  */
 
 import { getLogger } from '../../utils/safe-logger.js';
-import { mentionsAny } from './phrase-match.js';
+import { mentionsAny } from '../../utils/phrase-match.js';
 import type { WellbeingDimensions, WellbeingProfile } from './index.js';
 
 const log = getLogger().child({ module: 'early-warning' });
