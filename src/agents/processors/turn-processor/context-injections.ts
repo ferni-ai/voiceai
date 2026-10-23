@@ -342,7 +342,7 @@ export async function buildContextInjections(
         'buildIntegratedContext'
       ),
       buildHumanTransferInjections(userText, services.userId, services.sessionId),
-      buildCrisisHistoryInjection(services.userId),
+      buildCrisisHistoryInjection(services.userId, services.sessionId),
       buildToolHistoryInjection(builderInput),
     ]);
 

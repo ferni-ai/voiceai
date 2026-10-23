@@ -53,7 +53,7 @@ const fake = vi.hoisted(() => {
       doc: (uid: string) => ({ collection: (name: string) => query(uid, docsOf(uid, name)) }),
     }),
   };
-  return { db, reads };
+  return { db, reads, stores };
 });
 const safetyUsers = vi.hoisted(() => [] as string[]);
 
@@ -71,10 +71,10 @@ vi.mock('../../../../services/safety/index.js', async (orig) => {
   };
 });
 
-const { detectCrisisSignals, logCrisisSignal } = await import(
-  '../../../../services/human-transfer/index.js'
-);
-const { buildCrisisHistoryInjection } = await import('../better-than-human-builders.js');
+const { detectCrisisSignals, logCrisisSignal } =
+  await import('../../../../services/human-transfer/index.js');
+const { buildCrisisHistoryInjection, buildHumanTransferInjections } =
+  await import('../better-than-human-builders.js');
 const { buildSafetyInjections } = await import('../safety-coaching-builders.js');
 
 const CRISIS_LINE = "I want to kill myself. I've got the pills right here.";
@@ -100,10 +100,21 @@ describe('crisis history: no id, no history; everyone else only their own', () =
       await hadCrisisYesterday(shared);
     }
     fake.reads.length = 0;
-    for (const id of [undefined, '', '  ', 'unknown', ' Unknown ', 'anonymous', 'anon', 'gateway']) {
+    for (const id of [
+      undefined,
+      '',
+      '  ',
+      'unknown',
+      ' Unknown ',
+      'anonymous',
+      'anon',
+      'gateway',
+    ]) {
       expect(await buildCrisisHistoryInjection(id)).toBeNull();
     }
-    expect(fake.reads).toEqual([]);
+    // Each runs as a fresh anon: id of its own (no server session): never a shared bucket.
+    expect(fake.reads).toHaveLength(8);
+    expect(fake.reads.every((owner) => /^anon:./.test(owner))).toBe(true);
   });
 
   it("a member's own crisis still follows up, and only theirs", async () => {
@@ -115,10 +126,35 @@ describe('crisis history: no id, no history; everyone else only their own', () =
     expect(await buildCrisisHistoryInjection('uid-other-member')).toBeNull();
   });
 
-  it('an anon: caller gets their own history, never another anon: caller\'s', async () => {
+  it("an anon: caller gets their own history, never another anon: caller's", async () => {
     await hadCrisisYesterday('anon:caller-a');
     expect((await buildCrisisHistoryInjection('anon:caller-a'))?.category).toBe('crisis_follow_up');
     expect(await buildCrisisHistoryInjection('anon:caller-b')).toBeNull();
+  });
+});
+
+describe("an id-less caller's crisis signal is their own (anon: id of the session)", () => {
+  const session = (job: string) => `session-${job}-${Date.now()}`;
+  const owners = () =>
+    [...fake.stores.keys()]
+      .filter((k) => k.endsWith('/crisis_signals'))
+      .map((k) => k.split('/')[0]);
+
+  it("the write lands under the caller's anon: id, and their own later turn reads it", async () => {
+    const mine = session('AJ_crisis_mine');
+    const before = new Set(owners());
+    for (const userId of [undefined, 'unknown', '\u200banonymous']) {
+      await buildHumanTransferInjections(CRISIS_LINE, userId, mine);
+    }
+    await vi.waitFor(() => expect(owners().length).toBeGreaterThan(before.size));
+    const written = owners().filter((o) => !before.has(o));
+    expect(written).toHaveLength(1); // one bucket for the caller, whatever placeholder they came with
+    expect(written[0]).toMatch(/^anon:./);
+    expect(fake.stores.get(`${written[0]}/crisis_signals`)).toHaveLength(3);
+
+    const followUp = await buildCrisisHistoryInjection(undefined, mine);
+    expect(followUp?.category).toBe('crisis_follow_up');
+    expect(await buildCrisisHistoryInjection(undefined, session('AJ_crisis_other'))).toBeNull();
   });
 });
 
