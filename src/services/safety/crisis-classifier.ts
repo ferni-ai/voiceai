@@ -31,6 +31,7 @@ import {
   resolveCrisisEverydayRules,
 } from './crisis-everyday.js';
 import { trackCrisisRead } from './crisis-call-risk.js';
+import { resolveCrisisClassifierPromptVariant, withPromptV3 } from './crisis-classifier-v3.js';
 import { stripSSML } from '../../utils/text-utils.js';
 
 const log = createLogger({ module: 'CrisisClassifier' });
@@ -130,9 +131,11 @@ export function crisisClassifierPrompt(
     everyday || resolveCrisisAgreementGate(env) ? CRISIS_ATTRIBUTION_RULES : '',
     everyday ? CRISIS_EVERYDAY_RULES : '',
   ].join('');
-  return rules
+  const prompt = rules
     ? CRISIS_CLASSIFIER_PROMPT.replace('\n\nReturn JSON only', `\n${rules}\n\nReturn JSON only`)
     : CRISIS_CLASSIFIER_PROMPT;
+  // CRISIS_CLASSIFIER_PROMPT_VARIANT=v3 (crisis-classifier-v3.ts): on both of prod's reads.
+  return resolveCrisisClassifierPromptVariant(env) === 'v3' ? withPromptV3(prompt) : prompt;
 }
 
 export function resolveCrisisClassifierMode(
