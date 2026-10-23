@@ -35,6 +35,9 @@ node scripts/voice-eval/release-check.mjs dev <candidate-sha> <baseline-sha> \
 Use `--out`, not `| tee`: the file ends with the result and the exit code, and a pipe would hide
 the exit code and drop errors.
 
+**Not a release gate yet.** Without the liveness and missed-crisis checks (#2475), a sweep of
+captionless or empty calls can PASS, so don't promote on this output until those land.
+
 - **Self-test:** each gating predicate must fail a known-bad call, loaded through `loadSweep`.
 - **Provenance:** each call's room maps to its workers and the commit on each worker's last boot
   `EFFECTIVE_SETTINGS` before the call. Every candidate call must be on the candidate commit, and
@@ -47,6 +50,6 @@ the exit code and drop errors.
   0.10) and `replyGapMedMs` (median REPLY gap per call, margin 300 ms), paired with a 95% CI from
   scenario resamples. PASS when the CI stays inside the margin (a NOTE if it is worse but inside),
   FAIL when the CI shows it worse, INCONCLUSIVE otherwise or under 10 shared scenarios.
-- **Exit:** 0 PASS (may promote), 1 FAIL, 3 INCONCLUSIVE (add scenarios or repeats), 2 harness
+- **Exit:** 0 PASS, 1 FAIL, 3 INCONCLUSIVE (add scenarios or repeats), 2 harness
   error, 4 `--dry-run` (prints the log queries; nothing checked). `--offline` skips the logs, so it
   can't PASS. `--logs DIR` caches the logs, keyed by query.

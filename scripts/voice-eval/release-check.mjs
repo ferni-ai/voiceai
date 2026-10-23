@@ -5,7 +5,7 @@
 // usage: release-check.mjs <dev|prod> <candidate-sha> <baseline-sha> --candidate DIR[,DIR]
 //          --baseline DIR[,DIR] [--out FILE] [--logs DIR] [--allow-unstamped-baseline]
 //          [--offline] [--dry-run] [--seed S]
-// Exit: 0 PASS (may promote), 1 FAIL, 3 INCONCLUSIVE (don't promote on this evidence), 2 harness
+// Exit: 0 PASS (not yet a release gate: see README), 1 FAIL, 3 INCONCLUSIVE (don't promote on this evidence), 2 harness
 // error, 4 dry run (nothing was checked).
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
