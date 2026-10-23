@@ -63,6 +63,25 @@ enum UITestScenario: String {
 
     static let config = FerniConfig(apiBaseURL: URL(string: "http://127.0.0.1:9")!)
 
+    /// `-FerniOwnerCheck pass|fail`: a stand-in for Face ID, so the memory
+    /// lock can be tested (turn the lock on with `-ferni.memories.locked YES`).
+    @MainActor static func memoryLock() -> MemoryLock? {
+        guard current != nil, let answer = value(after: "-FerniOwnerCheck") else { return nil }
+        return MemoryLock(check: UITestOwnerCheck(passes: answer == "pass"))
+    }
+
+    /// What the fake API has forgotten, by note id. The fake stands in for
+    /// the server's own cascade: a call's fact and the note it came from go
+    /// together, and Home's follow-up and note go with the note they're from.
+    private static let forgotten = OSAllocatedUnfairLock(initialState: Set<String>())
+    /// Fake ids that are one memory: a call's fact (f…) and its note (m…).
+    private static let sameMemory: [String: String] = ["f1": "m7", "f2": "m6", "f3": "m1"]
+
+    private static func isForgotten(_ id: String) -> Bool {
+        let gone = forgotten.withLock { $0 }
+        return gone.contains(id) || gone.contains { sameMemory[$0] == id || sameMemory[id] == $0 }
+    }
+
     /// Every launch starts from nothing the last one left, with sounds off
     /// unless `-FerniSounds YES` (a test of Ferni's foley).
     @MainActor static func resetDefaults() {
@@ -86,7 +105,7 @@ enum UITestScenario: String {
             ("m8", "Sunday evenings feel heavy before the week", "pattern", 60),
         ]
         let iso = ISO8601DateFormatter()
-        let items = notes.map { n in
+        let items = notes.filter { !isForgotten($0.id) }.map { n in
             #"{"id":"\#(n.id)","content":"\#(n.content)","type":"\#(n.kind)","sourceType":"persona_memory","learnedAt":"\#(iso.string(from: Date().addingTimeInterval(-n.daysAgo * 86_400)))"}"#
         }
         return #"{"memories":["# + items.joined(separator: ",") + "]}"
@@ -101,14 +120,26 @@ enum UITestScenario: String {
             if path.hasSuffix("/api/relationship/team-unlocks") {
                 body = #"{"unlockedMembers":["ferni","maya-santos","peter-john","alex-chen","jordan-taylor"],"members":[{"id":"nayan-patel","unlocked":false}]}"#
             } else if path.hasSuffix("/api/memories/from-call") {
-                body = #"{"items":[{"id":"f1","subject":"you","detail":"Finished the garden. Tomatoes went in first"},{"id":"f2","subject":"Ana","detail":"her birthday is Friday"},{"id":"f3","subject":"you","detail":"Want to walk before work, three mornings a week"}]}"#
+                let facts = [#"{"id":"f1","subject":"you","detail":"Finished the garden. Tomatoes went in first"}"#: "f1",
+                             #"{"id":"f2","subject":"Ana","detail":"her birthday is Friday"}"#: "f2",
+                             #"{"id":"f3","subject":"you","detail":"Want to walk before work, three mornings a week"}"#: "f3"]
+                let kept = facts.filter { !isForgotten($0.value) }.sorted { $0.value < $1.value }.map(\.key)
+                body = #"{"items":["# + kept.joined(separator: ",") + "]}"
             } else if path.hasSuffix("/api/home") {
                 // Home with a thread to pick up (award upgrade 2): a follow-up in the
                 // person's words and one note of Ferni's, as GET /api/home sends them.
-                body = #"{"greeting":{"kind":"followUp","text":"the garden","topicId":"t-garden"},"note":{"id":"5f2c9a1e7b3d4c80","text":"how Sunday evenings feel heavy before the week","createdAt":"2026-10-19T21:00:00.000Z"}}"#
+                // The follow-up comes from the garden note (m7), the note from m8.
+                let followUp = isForgotten("m7") ? #""greeting":{"kind":"timeOfDay"}"#
+                    : #""greeting":{"kind":"followUp","text":"the garden","topicId":"t-garden"}"#
+                let note = isForgotten("m8") ? ""
+                    : #","note":{"id":"5f2c9a1e7b3d4c80","text":"how Sunday evenings feel heavy before the week","createdAt":"2026-10-19T21:00:00.000Z"}"#
+                body = "{" + followUp + note + "}"
             } else if path.hasSuffix("/api/cognitive/memories") {
                 body = memories
-            } else if path.contains("/api/cognitive/memories/"), request.httpMethod == "DELETE" {
+            } else if request.httpMethod == "DELETE",
+                      let id = ["/api/cognitive/memories/", "/api/memories/remembered/"].lazy
+                        .compactMap({ path.range(of: $0).map { String(path[$0.upperBound...]) } }).first {
+                forgotten.withLock { _ = $0.insert(id) }
                 body = "{}"
             } else {
                 body = nil
@@ -178,6 +209,13 @@ enum UITestScenario: String {
     }
 
     private static func flag(_ name: String) -> Bool { value(after: name) == "YES" }
+}
+
+/// Face ID's stand-in for UI tests: always yes, or always no.
+private struct UITestOwnerCheck: DeviceOwnerCheck {
+    let passes: Bool
+    func method() -> String? { "Face ID" }
+    func confirm(reason: String) async -> Bool { passes }
 }
 
 /// Firebase's stand-in for UI tests: signs in to "uitest-real" with code 123456.
@@ -325,6 +363,8 @@ extension UITestScenario {
         /// The goodbye's chime asked for, and its heart drawn (crisis mode).
         var goodbyes = 0
         var hearts = 0
+        /// Home's line asked for again after a forget.
+        var forgetRefreshes = 0
     }
 }
 
@@ -414,6 +454,12 @@ struct UITestEnvironmentProbe: View {
             .accessibilityIdentifier("uitest.goodbye")
             .accessibilityLabel(Text(verbatim: "Test goodbye"))
             .accessibilityValue(Text(verbatim: "chime=\(UITestScenario.Counters.shared.goodbyes) heart=\(UITestScenario.Counters.shared.hearts)"))
+        Color.clear
+            .frame(width: 1, height: 1)
+            .accessibilityElement()
+            .accessibilityIdentifier("uitest.forgetRefreshes")
+            .accessibilityLabel(Text(verbatim: "Test forget refreshes"))
+            .accessibilityValue(Text(verbatim: "\(UITestScenario.Counters.shared.forgetRefreshes)"))
     }
 }
 

@@ -3,15 +3,88 @@ import FerniKit
 import FerniVoice
 import SwiftUI
 
+/// What Ferni remembers, behind the lock wherever it shows (trust panel R11):
+/// the Home follow-up in your own words, the note, the "I'll remember" card
+/// and What Ferni remembers itself. Locked, each says only that there's
+/// something, with no words of yours.
+enum MemoryShield {
+    /// What a locked surface says instead of its words.
+    enum Placeholder: Equatable {
+        case note, followUp, call
+
+        var text: LocalizedStringKey {
+            switch self {
+            case .note: "Ferni left you a note."
+            case .followUp: "Ferni has a follow-up for you."
+            case .call: "Ferni kept a few things from this call."
+            }
+        }
+    }
+
+    /// Home's line and note with the lock as it is: locked, the follow-up
+    /// becomes the time of day's words and the note goes, and a placeholder
+    /// says there's something waiting.
+    static func home(_ home: HomeLineStore.Home?, locked: Bool) -> (shown: HomeLineStore.Home?, placeholder: Placeholder?) {
+        guard locked, let home else { return (home, nil) }
+        var followUp = false
+        if case .followUp? = home.greeting { followUp = true }
+        let placeholder: Placeholder? = home.note != nil ? .note : followUp ? .followUp : nil
+        return (HomeLineStore.Home(greeting: followUp ? .timeOfDay : home.greeting, note: nil), placeholder)
+    }
+
+    /// Whether Home shows anything from memory now (the app-switcher blur).
+    static func homeShowsMemory(_ home: HomeLineStore.Home?, phase: CallSession.Phase) -> Bool {
+        switch phase {
+        case .ended: return true // the "I'll remember" card
+        case .idle:
+            if home?.note != nil { return true }
+            if case .followUp? = home?.greeting { return true }
+            return false
+        default: return false
+        }
+    }
+
+    /// The app switcher's snapshot is blurred whenever memory is on screen.
+    static func coversSnapshot(active: Bool, memoryOnScreen: Bool) -> Bool { !active && memoryOnScreen }
+}
+
+/// A locked memory surface: that there's something, and the way in.
+struct LockedMemoryCard: View {
+    let placeholder: MemoryShield.Placeholder
+    let lock: MemoryLock
+
+    var body: some View {
+        VStack(spacing: FerniSpace.breath) {
+            Label { Text(placeholder.text) } icon: { Image(systemName: "lock").accessibilityHidden(true) }
+                .font(FerniType.body)
+                .foregroundStyle(FerniColor.textSecondary)
+                .multilineTextAlignment(.center)
+            Button("Unlock with \(lock.method ?? String(localized: "passcode"))") { Task { await lock.unlock() } }
+                .font(FerniType.button)
+                .frame(minHeight: 44)
+                .tint(FerniColor.accent)
+        }
+        .padding(FerniSpace.rest)
+        .frame(maxWidth: .infinity)
+        .background(FerniColor.surface, in: .rect(cornerRadius: FerniRadius.medium))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("memory.locked")
+    }
+}
+
 /// After a call: what Ferni kept from it, each one fixable ("Not quite") or
 /// forgettable (design north star §3.4). Nothing shows when the call taught
-/// nothing new, or when the server has nothing to show.
+/// nothing new, or when the server has nothing to show. With the lock on and
+/// locked, it says only that Ferni kept something.
 struct RememberCard: View {
     let call: CallSession
     let remembered: CallRemembered
+    let lock: MemoryLock
     /// MemoryStore.forgotten: a note forgotten in What Ferni remembers leaves
     /// this card too (it was loaded once per call; critic L).
     var forgotten = 0
+    /// A forget here: the other places that show memories look again.
+    var onForget: () -> Void = {}
     @State private var items: [CallRemembered.Item] = []
     @State private var editing: String?
     @State private var draft = ""
@@ -23,7 +96,9 @@ struct RememberCard: View {
         // A permanent zero-height anchor: .task on a view that renders nothing never runs.
         VStack(spacing: 0) {
             Color.clear.frame(height: 0)
-            if !items.isEmpty {
+            if lock.isLocked, !items.isEmpty {
+                LockedMemoryCard(placeholder: .call, lock: lock)
+            } else if !items.isEmpty {
                 VStack(alignment: .leading, spacing: FerniSpace.breath) {
                     Text("I'll remember")
                         .font(FerniType.headline)
@@ -165,7 +240,9 @@ struct RememberCard: View {
     private func forget(_ item: CallRemembered.Item) async {
         let before = items
         items.removeAll { $0 == item }
-        if !(await remembered.forget(item)) {
+        if await remembered.forget(item) {
+            onForget()
+        } else {
             items = before
             problem = String(localized: "Couldn't forget that. Try again?")
         }
@@ -220,7 +297,6 @@ private struct SearchRow: View {
 struct MemoryScreen: View {
     let memory: MemoryStore
     let lock: MemoryLock
-    @Environment(\.scenePhase) private var scenePhase
     @State private var query = ""
     @State private var search = NoteSearch(ranker: OnDeviceNoteRanker())
     /// The note whose Forget was tapped, until you say so or don't.
@@ -242,13 +318,12 @@ struct MemoryScreen: View {
                 notes
             }
         }
-        // The app switcher's snapshot never shows the notes when the lock is on.
         .ferniPaper()
         // Hard edges, as in Settings (design audit P2 #10): with soft ones, at
         // AX5 (no intro) the rows under the bar showed through as faint words
         // the audit failed (critic H-B).
         .scrollEdgeEffectStyle(.hard, for: .all)
-        .overlay { if lock.isEnabled && scenePhase != .active { Rectangle().fill(.regularMaterial).ignoresSafeArea() } }
+        .privacySnapshot(showsMemory: true)
         .navigationTitle("What Ferni remembers")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -380,6 +455,25 @@ private struct NoteRow: View {
                 }
                 .buttonStyle(.plain)
                     .accessibilityLabel(Text("Forget: \(MemoryJournal.toYou(note.content))"))
+            }
+        }
+    }
+}
+
+extension View {
+    /// Blurs the app switcher's snapshot while memory is on screen (trust
+    /// panel R11): leaving the app, the screen goes behind frosted glass.
+    func privacySnapshot(showsMemory: Bool) -> some View { modifier(PrivacySnapshot(showsMemory: showsMemory)) }
+}
+
+private struct PrivacySnapshot: ViewModifier {
+    let showsMemory: Bool
+    @Environment(\.scenePhase) private var scenePhase
+
+    func body(content: Content) -> some View {
+        content.overlay {
+            if MemoryShield.coversSnapshot(active: scenePhase == .active, memoryOnScreen: showsMemory) {
+                Rectangle().fill(.regularMaterial).ignoresSafeArea().accessibilityIdentifier("memory.snapshotCover")
             }
         }
     }
