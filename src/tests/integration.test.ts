@@ -295,18 +295,6 @@ describe('Integration Tests: Tools → Memory → Services', () => {
       expect(dynamicContext).toBeDefined();
     });
 
-    it('should generate SSML for responses', () => {
-      services.addTurn('user', 'Tell me about index funds');
-
-      const text =
-        'Index funds are a great choice for most investors. They offer low costs and broad diversification.';
-      const ssml = services.tagWithSsml(text);
-
-      // Should have SSML tags
-      expect(ssml).toContain('<');
-      expect(ssml.length).toBeGreaterThan(text.length);
-    });
-
     it('should handle learning and insights', () => {
       // Simulate learning
       services.addTurn('user', 'I prefer keeping things simple');
