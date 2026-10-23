@@ -191,25 +191,20 @@ export async function safeQueryAll<T>(
 }
 
 /**
- * Count documents in a collection (with limit for safety)
+ * Count documents in a collection, at most `maxToCount` (an aggregate count is
+ * billed by the index entries it reads, so the limit bounds the cost).
+ *
+ * Errors propagate. This used to catch everything and fall back to reading up to
+ * `maxToCount` documents, so a count RPC that failed, or a stub client with no
+ * Query.count() (the test setup's fake has none), became a quiet full read.
  */
 export async function safeCount(
   collectionRef: FirebaseFirestore.CollectionReference,
   maxToCount = 10000
 ): Promise<{ count: number; isTruncated: boolean }> {
-  try {
-    // Try native count if available
-    const countSnapshot = await collectionRef.count().get();
-    const count = countSnapshot.data().count;
-    return { count, isTruncated: false };
-  } catch {
-    // Fallback to manual counting with limit
-    const snapshot = await collectionRef.limit(maxToCount).select().get();
-    return {
-      count: snapshot.size,
-      isTruncated: snapshot.size === maxToCount,
-    };
-  }
+  const countSnapshot = await collectionRef.limit(maxToCount).count().get();
+  const count = countSnapshot.data().count;
+  return { count, isTruncated: count >= maxToCount };
 }
 
 // ============================================================================
