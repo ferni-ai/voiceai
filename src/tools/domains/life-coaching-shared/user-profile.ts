@@ -76,11 +76,10 @@ async function getFirestore(): Promise<Firestore | null> {
 
 async function initializeFirestore(): Promise<Firestore | null> {
   try {
-    const { Firestore: FirestoreClass } = await import('@google-cloud/firestore');
-    // Cast to our minimal interface - the actual implementation is compatible
-    db = new FirestoreClass({
-      projectId: process.env.GOOGLE_PROJECT_ID || 'bogle-voiceai',
-    }) as unknown as Firestore;
+    // The main project (the default app's) and the process's database. The old
+    // fallback project, unreachable from prod, meant profiles never persisted.
+    const { getAdminFirestore } = await import('../../../utils/firebase-admin-app.js');
+    db = getAdminFirestore() as unknown as Firestore;
     log.info('Firestore initialized for life coaching profiles');
     return db;
   } catch (error) {
