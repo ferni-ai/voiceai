@@ -129,7 +129,6 @@ async function initializeFirestore(): Promise<FirestoreType | null> {
 
 const activeStores: Array<{ name: string; store: PersistenceStore<unknown> }> = [];
 
-/** Create a persistence store for a specific data type */
 /**
  * Firestore stores a Date as a Timestamp and gives back the Timestamp, so a
  * value saved as a Date comes back as something `new Date(x)` turns into an
