@@ -109,12 +109,23 @@ function phrasePatterns(phrase: string): [RegExp, RegExp] {
   return res;
 }
 
-/** off: the check as it was. on: onTier. shadow: as off, logging where on differs. */
+/**
+ * off: the check as it was. on: onTier. shadow: as off, logging where on
+ * differs. If onTier throws, shadow and on log it and return the off reading:
+ * the new reading never throws where the old one did not, and never reads less.
+ */
 function decide(site: string, today: () => boolean, onTier: () => Hit, env: Env): Hit {
   const mode = resolveSafetyWholeWordSites(env);
   const off: Hit = today() ? 'hit' : null;
   if (mode === 'off') return off;
-  const on = onTier();
+  let on: Hit;
+  try {
+    on = onTier();
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err);
+    logWouldDiffer({ flag: FLAG, phrase: site, site, error });
+    return off;
+  }
   if (mode === 'on') return on;
   if (on !== off) logWouldDiffer({ flag: FLAG, phrase: site, site, would: on });
   return off;
@@ -134,12 +145,15 @@ export function phraseHit(text: string, phrase: string, env: Env = process.env):
   );
 }
 
-/** pattern.test(text) as 'hit' | null; with the flag on, also 'soft'. */
+/** pattern.test(text) as 'hit' | null; with the flag on, also 'soft'. Coerces as pattern.test does. */
 export function patternHit(pattern: RegExp, text: string, env: Env = process.env): Hit {
   return decide(
     pattern.source.slice(0, 60),
     () => pattern.test(text),
-    () => best(tierIn(pattern, text), tierIn(pattern, normalized(text))),
+    () => {
+      const s = String(text);
+      return best(tierIn(pattern, s), tierIn(pattern, normalized(s)));
+    },
     env
   );
 }

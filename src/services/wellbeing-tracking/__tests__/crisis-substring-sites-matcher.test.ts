@@ -213,6 +213,12 @@ describe('the everyday list', () => {
     expect(phraseHit('i spend it all and i want to end it all', 'end it all')).toBe('hit');
     expect(patternHit(/no point/i, 'casino points, honestly no point anymore')).toBe('hit');
   });
+  it('a listed word counts only as the whole word: a longer word around it is a hit', () => {
+    flag('on');
+    expect(phraseHit('sendit all', 'end it all')).toBe('hit');
+    expect(phraseHit('pharmacyto overdose', 'harm')).toBe('hit');
+    expect(patternHit(/no point/i, 'casinono point')).toBe('hit');
+  });
   it('no risk subject is keyed as everyday: "she hits me" is a hit', () => {
     flag('on');
     expect(phraseHit('she hits me', 'he hits me')).toBe('hit');
@@ -225,5 +231,27 @@ describe('the everyday list', () => {
     expect(phraseHit("lend it all out, i won't be here", 'end it all')).toBe('soft');
     expect(phraseHit("i'll pretend it all is fine until i end it", 'end it')).toBe('hit');
     expect(phraseHit('i went to the pharmacy for pills to overdose', 'harm')).toBe('soft');
+  });
+});
+
+describe('non-string input reads as pattern.test reads it', () => {
+  const CASES: Array<[RegExp, unknown]> = [
+    [/undefined/, undefined],
+    [/null/, null],
+    [/42/, 42],
+    [/no point/i, undefined],
+  ];
+  it.each(['off', 'shadow', 'on'] as const)('%s: patternHit coerces like pattern.test', (mode) => {
+    flag(mode);
+    for (const [re, value] of CASES) {
+      const main = re.test(value as string);
+      expect(patternHit(re, value as string), String(value)).toBe(main ? 'hit' : null);
+      expect(testWholeWords(re, value as string)).toBe(main);
+    }
+    // Read by coercion, not by falling back after an error.
+    expect(shadow).not.toHaveBeenCalledWith(
+      expect.objectContaining({ error: expect.anything() }),
+      expect.anything()
+    );
   });
 });

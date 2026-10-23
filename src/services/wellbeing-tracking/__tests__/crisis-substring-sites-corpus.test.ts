@@ -6,7 +6,7 @@
  * SAFETY_WHOLE_WORD_SITES off or shadow each reader equals the substring (or
  * regex) check; on, no reader reads less than it. A 'soft' tier still counts.
  */
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -76,6 +76,20 @@ function differences(mode: Mode): string[] {
   return out;
 }
 
+const SOFT_PAIRS = 'src/services/wellbeing-tracking/__tests__/crisis-soft-pairs.json';
+
+/** Every [phrase or pattern | line] the flag on reads as 'soft'. All other matches are 'hit'. */
+function softPairs(): string[] {
+  vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'on');
+  const out: string[] = [];
+  for (const line of LINES) {
+    for (const p of PHRASES) if (phraseHit(line, p) === 'soft') out.push(`${p} | ${line}`);
+    for (const re of PATTERNS)
+      if (patternHit(re, line) === 'soft') out.push(`/${re.source}/ | ${line}`);
+  }
+  return out.sort();
+}
+
 describe(`every reader over ${LINES.length} lines`, () => {
   it('has the corpora it claims', () => {
     expect(joined).toHaveLength(420);
@@ -91,6 +105,12 @@ describe(`every reader over ${LINES.length} lines`, () => {
     },
     600_000
   );
+  it('on: the hit/soft tier of every match is pinned (crisis-soft-pairs.json)', () => {
+    const now = softPairs();
+    if (process.env.UPDATE_CRISIS_SOFT_PAIRS === '1')
+      writeFileSync(SOFT_PAIRS, `${JSON.stringify(now, null, 2)}\n`);
+    expect(now).toEqual(JSON.parse(readFileSync(SOFT_PAIRS, 'utf8')));
+  }, 600_000);
   it('on: no reader reads less than the substring check', () => {
     expect(differences('on')).toEqual([]);
   }, 600_000);
