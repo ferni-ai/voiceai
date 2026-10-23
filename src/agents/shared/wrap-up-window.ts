@@ -59,7 +59,8 @@ export interface WrapUpWindow {
 
 export function openWrapUpWindow(opts: {
   sessionId: string;
-  onContinue: (reason: ContinueReason) => void;
+  /** `line`: the caller's latest final line in the window, if any (its transcript may follow). */
+  onContinue: (reason: ContinueReason, line?: string) => void;
   /** Hold the app's hang-up (only an app call has one). */
   onHold?: (reason: HoldReason) => void;
   caller?: CallerWatch;
@@ -74,6 +75,7 @@ export function openWrapUpWindow(opts: {
   let continued = false;
   let tornDown = false;
   let lastLook = -Infinity;
+  let lastLine: string | undefined;
   const stop = (): void => stops.splice(0).forEach((fn) => fn());
   const afterEnd = (): void =>
     log.error({ sessionId }, 'CRISIS_AFTER_END crisis risk noted after the call ended');
@@ -102,7 +104,7 @@ export function openWrapUpWindow(opts: {
       }
       continued = true;
       stop();
-      opts.onContinue(reason);
+      opts.onContinue(reason, lastLine);
     },
     tearDown: () => {
       if (tornDown || continued) return;
@@ -142,6 +144,7 @@ export function openWrapUpWindow(opts: {
     stops.push(
       opts.caller.onWords(({ text, final }) => {
         if (final) {
+          lastLine = text;
           if (callerSignsOff(text)) return; // the turn's read still holds the end (reads)
           if (!farewellRisk(text)) {
             // A goodbye that said more ("thanks so much, that helped. bye") is no clean

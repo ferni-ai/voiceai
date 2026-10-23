@@ -56,9 +56,17 @@ import {
   holdEndCallForCrisis,
   type HangUp,
 } from './phone-goodbye.js';
-import { clearFarewell, markFarewell, reopenFarewell, watchFarewell } from './call-farewell.js';
+import {
+  clearFarewell,
+  markFarewell,
+  reopenFarewell,
+  stayQuiet,
+  watchFarewell,
+} from './call-farewell.js';
 import { holdWhileBusy, waitForQuiet, watchCaller, type CallerWatch } from './caller-activity.js';
 import { crisisRiskThisCall } from '../../services/safety/crisis-call-risk.js';
+import { cueSay } from '../../speech/direction/index.js';
+import { watchReopenIdle } from './reopen-idle.js';
 import {
   clearSessionClosing,
   isSessionClosing,
@@ -113,6 +121,8 @@ export interface WrapUpCall {
   caller?: CallerWatch;
   /** The clock for spacing `conversation_hold`s (tests). */
   now?: () => number;
+  /** Watch the call for quiet after it reopened (reopen-idle.ts). */
+  onReopen?: () => void;
 }
 
 /** Calls whose wrap-up has started and not yet closed the room. */
@@ -158,7 +168,7 @@ export async function wrapUpCall(
     callerInRoom: call.callerInRoom,
     setTimer,
     now: call.now,
-    onContinue: (why) => carryOn(call, app ? signal : undefined, why),
+    onContinue: (why, line) => carryOn(call, app ? signal : undefined, why, line),
     ...(app && { onHold: (why: HoldReason) => holdAppEnd(sessionId, signal, why) }),
   });
   const sent = await signal(
@@ -182,12 +192,14 @@ export async function wrapUpCall(
 function carryOn(
   call: WrapUpCall,
   signal: typeof sendFrontendSignal | undefined,
-  reason: ContinueReason
+  reason: ContinueReason,
+  line?: string
 ): void {
   const { sessionId } = call;
   clearSessionClosing(sessionId);
-  reopenFarewell(sessionId);
+  reopenFarewell(sessionId, line);
   wrapping.delete(sessionId);
+  call.onReopen?.();
   log.warn({ sessionId, reason }, 'CALL_WRAP_UP continued');
   void signal?.('conversation_continue', { reason, timestamp: Date.now() }, sessionId).catch(
     (error: unknown) =>
@@ -315,7 +327,10 @@ export async function attachCallWrapUp(
     });
   }
   // After the farewell watcher, so a reopening line reaches it while the call is still closing
-  if (call.session) wrap.caller = watchCaller(call.session);
+  if (call.session) {
+    wrap.caller = watchCaller(call.session);
+    wrap.onReopen = idleAfterReopen(wrap, call.session, call);
+  }
   if (phone) {
     // PHONE_GOODBYE's endCall hangs up only after a short quiet with no crisis read due
     const holdFirst = async (): Promise<'quiet' | 'talking' | 'risk'> =>
@@ -329,4 +344,43 @@ export async function attachCallWrapUp(
   }
   if (!wrapUp) return false;
   return addEndCallTool(agent, () => createWrapUpTool(wrap));
+}
+
+/** A reopened call ends after the usual idle, with one warm check-in first (reopen-idle.ts). */
+function idleAfterReopen(
+  wrap: WrapUpCall,
+  session: object,
+  { clearTimer, env }: { clearTimer?: (handle: unknown) => void; env?: Env }
+): () => void {
+  const { sessionId } = wrap;
+  let stop = (): void => {};
+  return () => {
+    stop(); // a second reopen starts the quiet over
+    stop = watchReopenIdle(session, {
+      setTimer: wrap.setTimer ?? ((fn, ms) => setTimeout(fn, ms)),
+      clearTimer: clearTimer ?? ((h) => clearTimeout(h as ReturnType<typeof setTimeout>)),
+      checkIn: () => {
+        if (stayQuiet(sessionId, env)) return; // goodbyes said again, the end held for crisis
+        log.info({ sessionId }, 'CALL_WRAP_UP quiet after reopen; checking in');
+        cueSay(
+          sessionId,
+          {
+            moment: 'reopen_checkin',
+            direction:
+              "The call nearly ended, then carried on, and they've gone quiet. Gently let them know you're still here and in no hurry. One short sentence; don't say goodbye.",
+            fallback: "I'm still here, no rush at all.",
+            urgency: 'soon',
+            maxChars: 120,
+          },
+          { allowInterruptions: true }
+        );
+      },
+      end: () => {
+        log.info({ sessionId }, 'CALL_WRAP_UP quiet after reopen; ending the call');
+        void wrapUpCall(wrap, 'idle_after_goodbye').catch((error: unknown) =>
+          log.error({ sessionId, error: String(error) }, 'CALL_WRAP_UP idle end failed')
+        );
+      },
+    });
+  };
 }
