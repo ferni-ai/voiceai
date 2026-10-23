@@ -31,6 +31,11 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import {
+  noteOpeningSound,
+  slowSoundBlocksEarly,
+  slowSoundOpenedReply,
+} from './opening-sound-ledger.js';
 import { callIsGrave, sessionIsGrave } from './presence-heavy.js';
 
 const log = createLogger({ module: 'TurnOpeningSound' });
@@ -97,6 +102,11 @@ export function earlyOpeningClip(
 
 /** When each session's current turn was opened by a clip (early mode). */
 const openedAt = new WeakMap<object, number>();
+
+/** A clip played after the request began, or a slow-turn sound opened this turn. */
+export function replyOpenedBySound(session: object, askedAt: number): boolean {
+  return slowSoundOpenedReply(session) || turnOpenedSince(session, askedAt);
+}
 
 /** Whether a turn-opening clip played for this session at or after `since`. */
 export function turnOpenedSince(session: object, since: number): boolean {
@@ -185,6 +195,7 @@ export function attachTurnOpeningSound(
   const playEarly = (thinkingAt: number, skipTurn: boolean): void => {
     // Words already at TTS mean audio in ~120 ms: a clip would only delay it.
     if (!early || skipTurn || early.replyTextSince(userStartedAt)) return;
+    if (slowSoundBlocksEarly(session)) return; // one sound a turn (opening-sound-ledger.ts)
     // Not right after a backchannel either: "mm-hm ... Mm".
     if (Date.now() - clips.lastPlayedAt() < TURN_OPENING.afterBackchannelMs) return;
     const text = earlyOpeningClip(lastUserTranscript(), lastClip, heavy());
@@ -192,6 +203,7 @@ export function attachTurnOpeningSound(
     if (!playedLastTurn || text === null) return;
     lastClip = text;
     openedAt.set(session, Date.now());
+    noteOpeningSound(session, 'early');
     const clipMs = early.clipMs(text);
     // The clip is heard only once it reaches the wire: hold the reply until it
     // has finished there, not just until play() has fed it.
