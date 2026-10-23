@@ -11,6 +11,7 @@
  *
  * @module tools/semantic-router/shared-vocabulary
  */
+import { saysPhrase } from '../../services/wellbeing-tracking/phrase-match.js';
 
 // ============================================================================
 // RELATIONSHIP VOCABULARY
@@ -600,10 +601,9 @@ export function detectEmotionalState(text: string): {
   const normalized = text.toLowerCase();
 
   // Check crisis first (highest priority)
-  // Crisis terms use substring match since they're multi-word phrases
-  // and we want to catch partial matches like "want to die" in context
+  // Crisis terms: substring, or whole words with EARLY_WARNING_STT_FORMS=on
   for (const term of EMOTIONAL_VOCABULARY.crisis.terms) {
-    if (normalized.includes(term.toLowerCase())) {
+    if (saysPhrase(normalized, term.toLowerCase())) {
       return {
         found: true,
         type: 'crisis',

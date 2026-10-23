@@ -12,6 +12,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
+import { testWholeWords } from '../wellbeing-tracking/phrase-match.js';
 import type {
   HumanReferralResult,
   ReferralReason,
@@ -464,9 +465,8 @@ export function analyzeReferralNeed(
   let bestMatch: (typeof REFERRAL_TRIGGERS)[0] | null = null;
   let maxConfidence = 0;
 
-  // Check all triggers
   for (const trigger of REFERRAL_TRIGGERS) {
-    if (trigger.pattern.test(userMessage)) {
+    if (testWholeWords(trigger.pattern, userMessage)) {
       // Update urgency if higher
       if (urgencyValue(trigger.urgency) > urgencyValue(highestUrgency)) {
         highestUrgency = trigger.urgency;

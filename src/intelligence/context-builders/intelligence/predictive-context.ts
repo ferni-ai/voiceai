@@ -18,6 +18,7 @@
  */
 
 import { createLogger } from '../../../utils/safe-logger.js';
+import { saysPhrase } from '../../../services/wellbeing-tracking/phrase-match.js';
 import {
   loadPredictiveIntelligence,
   type PredictiveIntelligence,
@@ -84,20 +85,15 @@ async function loadContent(personaId: string): Promise<PredictiveIntelligence | 
 
 type PatternType = 'temporal' | 'emotional' | 'behavioral' | 'concern' | 'none';
 
-function detectPatternSignals(input: ContextBuilderInput): PatternType {
+export function detectPatternSignals(input: ContextBuilderInput): PatternType {
   const text = input.userText.toLowerCase();
   const emotion = input.analysis?.emotion;
   const hour = new Date().getHours();
   const day = new Date().getDay(); // 0 = Sunday
 
   // Concern detection (highest priority)
-  if (
-    text.includes('no point') ||
-    text.includes("what's the use") ||
-    text.includes('give up') ||
-    text.includes('hopeless') ||
-    text.includes("don't want to be here")
-  ) {
+  const concerns = ['no point', "what's the use", 'give up', 'hopeless', "don't want to be here"];
+  if (concerns.some((phrase) => saysPhrase(text, phrase))) {
     return 'concern';
   }
 
