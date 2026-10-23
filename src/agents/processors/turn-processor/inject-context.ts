@@ -9,6 +9,7 @@ import type { llm } from '@livekit/agents';
 import { withRevivedIntelligence } from '../../../intelligence/revived/revived-intelligence.js';
 import { MAX_PUSHED_CONTEXT_CHARS } from '../../multi-agent/turn-context-header.js';
 import type { TurnProcessorResult } from '../types.js';
+import { safetyExtra } from './safety-note.js';
 
 /**
  * Inject turn processing results into the LLM context
@@ -56,6 +57,8 @@ export function injectTurnContext(
   turnCtx.addMessage({
     role: 'user',
     content: combinedContent,
+    // Crisis or safety guidance among them: marked so it is never held for a later reply.
+    extra: safetyExtra(injections.map((inj) => inj.category)),
   });
 }
 

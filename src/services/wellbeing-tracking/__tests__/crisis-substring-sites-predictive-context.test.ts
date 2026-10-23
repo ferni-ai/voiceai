@@ -1,9 +1,11 @@
 /**
  * predictive-context detectPatternSignals matched concern phrases as bare
- * substrings. SAFETY_WHOLE_WORD_SITES=on moves it onto whole words in STT
- * spelling. Through the real function: off keeps today's result, on drops the
- * in-word false positive ("give updates") and keeps (or gains) the real
- * phrase, inflected forms included ("hopelessness").
+ * substrings. SAFETY_WHOLE_WORD_SITES=on reads them through saysPhrase (#2645),
+ * in STT spelling. 'concern' drives the URGENT check-in and a follow-up
+ * probability of 1.0, so with the flag on a phrase found only inside an
+ * everyday word ("give updates") is 'soft' and still counts as concern, as
+ * today. On may gain the real phrase (STT spellings, "hopelessness"), never
+ * lose it.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -30,9 +32,9 @@ describe('predictive-context detectPatternSignals (URGENT check-in)', () => {
     flag('off');
     expect(signal(everyday)).toBe('concern');
   });
-  it.each(CASES)('on: %j is not concern; %j still is', (everyday, real) => {
+  it.each(CASES)('on: %j stays concern (a soft match never lowers); %j still is', (everyday, real) => {
     flag('on');
-    expect(signal(everyday)).not.toBe('concern');
+    expect(signal(everyday)).toBe('concern');
     expect(signal(real)).toBe('concern');
   });
   it('on: the STT spelling "i dont want to be here" becomes concern', () => {

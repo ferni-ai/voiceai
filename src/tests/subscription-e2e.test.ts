@@ -20,6 +20,7 @@ import { handleSubscriptionRequest, isSubscriptionRoute } from '../api/subscript
 vi.mock('../memory/store-factory.js', () => ({
   getStore: vi.fn(() => ({
     getProfile: vi.fn(),
+    getProfileForWrite: vi.fn(),
     saveProfile: vi.fn(),
   })),
 }));
@@ -337,7 +338,7 @@ describe('Subscription E2E Integration', () => {
 
       const mockSaveProfile = vi.fn();
       mockStore.mockResolvedValue({
-        getProfile: vi.fn().mockResolvedValue({
+        getProfileForWrite: vi.fn().mockResolvedValue({
           id: 'user-123',
           subscription: {
             tier: 'free',
@@ -372,7 +373,7 @@ describe('Subscription E2E Integration', () => {
 
       const mockSaveProfile = vi.fn();
       mockStore.mockResolvedValue({
-        getProfile: vi.fn().mockResolvedValue(null), // No existing profile
+        getProfileForWrite: vi.fn().mockResolvedValue(null), // No existing profile
         saveProfile: mockSaveProfile,
       } as unknown as ReturnType<typeof getStore>);
 
