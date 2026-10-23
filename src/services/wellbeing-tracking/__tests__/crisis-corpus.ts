@@ -1,7 +1,9 @@
 /**
  * Every real-risk line in the repo's crisis fixtures (label block or crisis,
  * or shouldDetect), plus STT spellings and inflected forms of the listed
- * phrases. The SAFETY_WHOLE_WORD_SITES corpus checks run each site off and on
+ * phrases, plus 205 typed lines with a missing space before or inside a risk
+ * phrase ("imsuicidal", "I want toend it all"; crisis-joined-words.json, from
+ * the eval verify of the #2491 split). The SAFETY_WHOLE_WORD_SITES corpus checks run each site off and on
  * over these lines: a line a site reads as risk with the flag off must still
  * read as risk with it on.
  */
@@ -60,6 +62,24 @@ export const RISK_FORMS = [
   'end their life',
 ];
 
+/**
+ * Three lines of the joined set are everyday speech, not risk: the false
+ * positives the flag removes ('kill them' in "skill", 'die' in "diet", 'harm'
+ * in "self-harmony"). They stay in the fixture and are pinned by a test.
+ */
+export const JOINED_EVERYDAY = [
+  'iwant to skill them up',
+  'iwant to diet',
+  'i need aself-harmony routine',
+];
+
+/** Real-risk lines typed with a missing space ("Icut myself", "aboutsuicide"). */
+export function joinedWordCorpus(): string[] {
+  const path = 'src/services/wellbeing-tracking/__tests__/crisis-joined-words.json';
+  const lines = JSON.parse(readFileSync(path, 'utf8')) as string[];
+  return lines.filter((line) => !JOINED_EVERYDAY.includes(line));
+}
+
 const isRisk = (label: string): boolean => label === 'block' || label === 'crisis';
 
 /** Every real-risk line, de-duplicated. */
@@ -75,6 +95,7 @@ export function riskCorpus(): string[] {
         .map((c) => c.text)
     ),
     ...RISK_FORMS,
+    ...joinedWordCorpus(),
   ];
   return [...new Set(lines.filter((l) => typeof l === 'string' && l.length > 0))];
 }

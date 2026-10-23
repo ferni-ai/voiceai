@@ -9,8 +9,13 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { saysPhrase, saysRiskPhrase, testRiskWords } from '../../../utils/safety-whole-word.js';
-import { riskCorpus } from './crisis-corpus.js';
+import {
+  saysPhrase,
+  saysRiskPhrase,
+  testRiskWords,
+  testWholeWords,
+} from '../../../utils/safety-whole-word.js';
+import { JOINED_EVERYDAY, joinedWordCorpus, riskCorpus } from './crisis-corpus.js';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -38,6 +43,46 @@ const CRISIS_PHRASES = [
   'hurt them',
   'want to hurt',
   'end it',
+];
+
+// Concern phrases and crisis keywords read strictly (saysPhrase): predictive-context.ts
+// concern signals, safety-guards.ts CONCERNING_INDICATORS, the router's crisis_support keywords.
+const CONCERN_PHRASES = [
+  'no point',
+  "what's the use",
+  'give up',
+  'hopeless',
+  "don't want to be here",
+  "can't see a way out",
+  'trapped',
+  'exhausted with life',
+  "don't care anymore",
+  'empty',
+  'worthless',
+  "can't cope",
+  'breaking down',
+  'crisis',
+  'die',
+  'dead',
+  'emergency',
+  'urgent',
+  'harm',
+];
+
+const SUICIDAL = /(?:suicide|suicidal|don't want to (?:live|be alive|exist))/i;
+const CUT = /(?:cutting|cut) (?:myself|my arms|my legs)/i;
+const HITS =
+  /(?:he|she|they|partner|spouse) (?:hit|hits|beat|beats|hurt|hurts|chokes?|choked?) me/i;
+// human-referral.ts immediate and high triggers (read by testRiskWords).
+const SEVERE_TRIGGERS = [
+  /(?:want to|going to|thinking about|considered?) (?:kill|end) (?:myself|my life|it all)/i,
+  SUICIDAL,
+  /(?:no point|nothing to live for|better off dead)/i,
+  CUT,
+  /(?:hurt|harm|injure) myself/i,
+  /(?:burning|starving|punishing) myself/i,
+  HITS,
+  /(?:afraid of|scared of) (?:my|going home|him|her|them)/i,
 ];
 
 describe('saysRiskPhrase: on reads at least what the substring check reads', () => {
@@ -92,7 +137,6 @@ describe('saysRiskPhrase: on reads at least what the substring check reads', () 
 });
 
 describe('testRiskWords: on reads at least what pattern.test reads', () => {
-  const SUICIDAL = /(?:suicide|suicidal|don't want to (?:live|be alive|exist))/i;
   it.each(['suicidality', 'my suicidality is back', "I'm not suicidal, but my final wishes"])(
     'on: %j matches',
     (line) => {
@@ -108,5 +152,71 @@ describe('testRiskWords: on reads at least what pattern.test reads', () => {
   it('on: curly apostrophes count', () => {
     flag('on');
     expect(testRiskWords(SUICIDAL, 'I don’t want to live')).toBe(true);
+  });
+});
+
+describe('a missing space keeps the risk (only listed everyday words block a mid-word start)', () => {
+  const RISK: Array<[string, () => boolean]> = [
+    ['imsuicidal', () => saysRiskPhrase('imsuicidal', 'suicidal')],
+    ['my friend issuicidal', () => saysRiskPhrase('my friend issuicidal', 'suicidal')],
+    ['iwant to die', () => saysRiskPhrase('iwant to die', 'want to die')],
+    ['i want tokill myself', () => saysRiskPhrase('i want tokill myself', 'kill myself')],
+    ['I want toend it all', () => saysRiskPhrase('I want toend it all', 'end it all')],
+    [
+      'Everyone would bebetter off without me',
+      () => saysRiskPhrase('Everyone would bebetter off without me', 'better off without me'),
+    ],
+    ['everything ishopeless (strict)', () => saysPhrase('everything ishopeless', 'hopeless')],
+    [
+      "Idon't want to be here anymore (strict)",
+      () => saysPhrase("Idon't want to be here anymore.", "don't want to be here"),
+    ],
+    ['aboutsuicide (regex)', () => testRiskWords(SUICIDAL, "I've been thinking aboutsuicide")],
+    ['Icut myself (regex)', () => testRiskWords(CUT, 'Fern... Icut myself again tonight')],
+  ];
+  it.each(RISK)('on: %s counts', (_name, read) => {
+    flag('on');
+    expect(read()).toBe(true);
+  });
+  const EVERYDAY: Array<[string, () => boolean]> = [
+    ['spend it all', () => saysRiskPhrase('just spend it all', 'end it all')],
+    ['send it', () => saysPhrase('I actually did send it', 'end it')],
+    ['recommend it', () => saysRiskPhrase("I'd recommend it", 'end it')],
+    ['skill them', () => saysRiskPhrase('I want to skill them up', 'kill them')],
+    ['casino points', () => testRiskWords(/no point/i, 'I won all the casino points')],
+    ['the hits me', () => testRiskWords(HITS, 'the hits me')],
+    ['pharmacy', () => saysPhrase('deadline at the pharmacy', 'harm')],
+    ['the audience', () => saysPhrase('the audience loved it', 'die')],
+    ['on the stairs', () => testWholeWords(/(?:tax|irs|audit)/i, 'I fell on the stairs')],
+  ];
+  it.each(EVERYDAY)('on: %s does not count', (_name, read) => {
+    flag('on');
+    expect(read()).toBe(false);
+  });
+  it('the joined set holds 202 risk lines and the 3 pinned everyday ones', () => {
+    expect(joinedWordCorpus()).toHaveLength(202);
+    flag('on');
+    expect(saysRiskPhrase(JOINED_EVERYDAY[0], 'kill them')).toBe(false);
+    expect(saysPhrase(JOINED_EVERYDAY[1], 'die')).toBe(false);
+    expect(saysPhrase(JOINED_EVERYDAY[2], 'harm')).toBe(false);
+  });
+  it('corpus: no joined-word line the substring check catches is dropped, at any phrase', () => {
+    const drops: string[] = [];
+    for (const line of joinedWordCorpus()) {
+      for (const phrase of [...CRISIS_PHRASES, ...CONCERN_PHRASES]) {
+        const reads = CRISIS_PHRASES.includes(phrase) ? saysRiskPhrase : saysPhrase;
+        flag('off');
+        const off = reads(line, phrase);
+        flag('on');
+        if (off && !reads(line, phrase)) drops.push(`${phrase}: ${line}`);
+      }
+      for (const pattern of SEVERE_TRIGGERS) {
+        flag('off');
+        const off = testRiskWords(pattern, line);
+        flag('on');
+        if (off && !testRiskWords(pattern, line)) drops.push(`${pattern.source}: ${line}`);
+      }
+    }
+    expect(drops).toEqual([]);
   });
 });
