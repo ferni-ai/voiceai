@@ -29,6 +29,7 @@ vi.mock('../../../services/first-taste-trial.js', () => trial);
 vi.mock('../../../services/outreach/intelligent-onboarding-arc.js', () => arc);
 
 const { runTrialCheck, runOnboardingArc } = await import('../new-user-arc.js');
+const { unsavedStandIn } = await import('../../../memory/storage/profile-read-failure.js');
 
 /** Services as createSessionServices returns them on the fast path, plus the late load. */
 function fastPath(profile: UserProfile | null) {
@@ -93,6 +94,22 @@ describe('trial and onboarding wait for the deferred profile', () => {
     expect(state.isTrialUser).toBe(true);
     expect(state.isFirstConversation).toBe(true);
     expect(arc.initializeOnboarding).toHaveBeenCalledWith('user-new', { name: 'sam' });
+  });
+
+  it('a stand-in after a failed profile read: no trial, no welcome, no fresh arc', async () => {
+    const standIn = await unsavedStandIn('user-seth', 'seth', new Error('14 UNAVAILABLE'));
+    const { services, initFlag, land } = fastPath(standIn);
+
+    const trialDone = runTrialCheck('user-seth', services, initFlag, freshTrialState());
+    const arcDone = runOnboardingArc('user-seth', 'seth', services, initFlag);
+    land();
+    const state = await trialDone;
+    await arcDone;
+
+    expect(trial.isEligibleForTrial).not.toHaveBeenCalled();
+    expect(trial.startTrial).not.toHaveBeenCalled();
+    expect(state).toEqual(freshTrialState()); // isTrialUser false: no trial welcome prompt
+    expect(arc.initializeOnboarding).not.toHaveBeenCalled();
   });
 
   it('does not decide before the profile lands', async () => {
