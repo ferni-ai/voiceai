@@ -63,6 +63,7 @@ describe('backfill-remembered-facts', () => {
       scanned: 10,
       skipped: 3,
       notKept: 1,
+      notMember: 0,
       forgotten: 0,
       toWrite: 6,
       created: 0,
@@ -158,4 +159,32 @@ describe('backfill-remembered-facts: forgotten', () => {
     expect(await h.run()).toMatchObject({ forgotten: 1, created: 6 });
     expect(written(h)).not.toContain(DANA);
   });
+});
+
+describe('backfill-remembered-facts: only members, never a credential', () => {
+  it.each(['anonymous', 'unknown', 'default', 'anon:abc123', 'onbehalf:xyz'])(
+    'owner %j: never written (one bucket for many callers)',
+    async (owner) => {
+      const h = harness();
+      h.memories.set(`bogle_users/${owner}/memories/mem_x`, { content: 'I ran 5k today', type: 'summary' }); // prettier-ignore
+      expect(await h.run()).toMatchObject({ notMember: 1, created: 6 });
+      expect([...h.facts.keys()].some((p) => p.includes(owner))).toBe(false);
+    }
+  );
+
+  it.each([
+    'my Gmail password is hunter2!',
+    'card 5105-1051-0510-5100',
+    'the code is 4 8 1 5',
+    'it is ghp_1234567890abcdefABCD',
+  ])(
+    // prettier-ignore
+    'a remembered credential is never embedded or written: %s',
+    async (content) => {
+      const h = harness();
+      h.memories.set('bogle_users/test-user-0/memories/mem_secret', { content, type: 'summary' });
+      expect(await h.run()).toMatchObject({ notKept: 2, created: 6 });
+      expect(h.embed.mock.calls.flatMap(([texts]) => texts).join(' ')).not.toContain(content);
+    }
+  );
 });

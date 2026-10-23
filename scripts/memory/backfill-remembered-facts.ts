@@ -5,30 +5,25 @@
  * memory/dynamic/remembered-facts.ts). rememberAboutUser wrote only
  * bogle_users/{uid}/memories, which recall never reads.
  *
- * Which memories: written by rememberAboutUser through the memory service (id
- * mem_..., type 'summary', not archived). Its 'goal' category is stored as
- * 'commitment', the same type the after-call signal extractor writes, so goals
- * are left out rather than copying call lines as things the caller asserted.
+ * Which memories: rememberAboutUser's (id mem_..., type 'summary', not archived). Its
+ * 'goal' category is stored as 'commitment', the type the after-call signal extractor
+ * writes, so goals are left out rather than copying call lines as caller assertions.
  *
- * The same document the live write makes (rememberedFactDoc: caller_asserted,
- * factDocId id, the spoken-credential filter), embedded the same way, and
- * created only: a fact already there, including one the caller forgot, is
- * never written over, so a rerun changes nothing.
+ * The live write's document (rememberedFactDoc: caller_asserted, factDocId id, the
+ * credential filters), embedded the same way, created only: a fact already there, even
+ * one the caller forgot, is never written over, so a rerun changes nothing.
  *
- * Never copied: a memory marked forgottenAt, and with FORGET_EVERY_READER one about
- * a forgotten topic (forgottenCheckFor, read fresh per batch, fails closed).
+ * Never copied: a credential, a non-member's memory, one marked forgottenAt, and with
+ * FORGET_EVERY_READER one about a forgotten topic (read fresh per batch, fails closed).
  *
- * Dry run by default: reads and counts, no embedding calls, no writes, no cursor.
- * Logs counts only, never memory text or user ids.
+ * Dry run by default (reads and counts; no embedding, writes or cursor). Logs counts only.
  *
  * USAGE:
  *   GOOGLE_CLOUD_PROJECT=johnb-2025 npx tsx scripts/memory/backfill-remembered-facts.ts \
  *     --database=ferni-dev [--dry-run=false] [--rate=5] [--batch=20] [--limit=N] \
  *     [--uid=<user id>] [--cursor=<file>] [--restart]
- *   (default) also needs --confirm-prod, with FIRESTORE_DATABASE unset.
- *
- * Resumable: after each batch the last memory path goes to the cursor file
- * (real runs only); --restart ignores it.
+ *   (default) also needs --confirm-prod, with FIRESTORE_DATABASE unset. Resumable: each
+ *   batch's last memory path goes to the cursor file (real runs only); --restart ignores it.
  *
  * @module scripts/memory/backfill-remembered-facts
  */
@@ -96,8 +91,9 @@ export interface BackfillCounts {
   scanned: number;
   /** Not written by rememberAboutUser, or archived. */
   skipped: number;
-  /** Empty, or a spoken credential. */
+  /** Empty, or a credential (rememberedFactDoc). */
   notKept: number;
+  notMember: number; // a placeholder, anon: or onbehalf: id is one bucket for many callers
   /** Marked forgottenAt, or about a forgotten topic (FORGET_EVERY_READER), or topics unreadable. */
   forgotten: number;
   toWrite: number;
@@ -152,6 +148,7 @@ export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promi
     scanned: 0,
     skipped: 0,
     notKept: 0,
+    notMember: 0,
     forgotten: 0,
     toWrite: 0,
     created: 0,
@@ -181,6 +178,10 @@ export async function backfill(opts: BackfillOptions, deps: BackfillDeps): Promi
         const [, userId = '', , memoryId = ''] = doc.path.split('/');
         if ((opts.uid && userId !== opts.uid) || !isRemembered(doc)) {
           c.skipped++;
+          continue;
+        }
+        if (!isMemberIdentity(userId)) {
+          c.notMember++;
           continue;
         }
         const fact = rememberedFactDoc({ fact: String(doc.data.content ?? ''), memoryId }, at);
