@@ -28,7 +28,7 @@
  * @module CrisisAgreement
  */
 
-import { resolveEarlyWarningSttForms } from '../../utils/phrase-match.js';
+import { wholeWordSite } from '../../utils/safety-whole-word.js';
 import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 
 export function resolveCrisisAgreementGate(
@@ -120,13 +120,16 @@ const riskPattern = (list: readonly string[]): RegExp =>
   new RegExp(`\\b(?:${list.join('|')})(?:s|es|ed|ing)?\\b`);
 const RISK_CONTENT = riskPattern(RISK_WORDS);
 /**
- * EARLY_WARNING_STT_FORMS=on: 'plan' no longer matches inside "plane",
- * "planet" or "plants" (plan, plans, planned, planning still do), and "dying"
- * counts; 'di(e|es|ed|ing)' never spelled it.
+ * SAFETY_WHOLE_WORD_SITES=on: 'plan' no longer matches "plane" or "plants";
+ * plan, plans, planned, planning, plannin', planner, "planet" ("I don't want
+ * to be on this planet anymore") and plane methods ("crashing my plane", "fly
+ * the plane into") still do. "dying" counts: 'di(e|es|ed|ing)' never spelled it.
  */
-const RISK_CONTENT_STT = riskPattern([
-  ...RISK_WORDS.map((w) => w.replace('plan\\w*', 'plan(?!e)(?:ned|ning|ners?)?')),
-  'dying',
+const PLAN_SITES =
+  'plan(?!es?\\b)(?:ned|ning|nin|ners?)?|planet|crash\\w* (?:my|the|a) plane|fl(?:y|ying|ew|own) (?:my|the|a) plane';
+const RISK_CONTENT_SITES = riskPattern([
+  ...RISK_WORDS.map((w) => w.replace('plan\\w*', PLAN_SITES)),
+  'dying|dyin',
 ]);
 
 /**
@@ -157,12 +160,15 @@ const EMOTICON = /[:;=8][-'^o]?[([/\\|{<@]|[)\]/\\|}>][-'^o]?[:;=8]|<\/3|;_;|\bt
 export function hasRiskContent(text: string | undefined | null): boolean {
   if (typeof text !== 'string') return true;
   try {
-    const risk = resolveEarlyWarningSttForms() ? RISK_CONTENT_STT : RISK_CONTENT;
-    return (
+    const has = (risk: RegExp): boolean =>
       /[^\t\n\r\x20-\x7E’‘“”—–…]/.test(text) ||
       EMOTICON.test(text) ||
       risk.test(words(text)) ||
-      risk.test(normalized(text))
+      risk.test(normalized(text));
+    return wholeWordSite(
+      'crisis-agreement',
+      () => has(RISK_CONTENT),
+      () => has(RISK_CONTENT_SITES)
     );
   } catch {
     return true;

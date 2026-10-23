@@ -20,34 +20,62 @@
  * it match any run of whitespace, and curly apostrophes count as straight
  * ones, so "can’t sleep" now matches "can't sleep" too.
  *
- * EARLY_WARNING_STT_FORMS=on (default off), in either mode: a message that
- * matched nothing gets a second, whole-word look that reads speech-to-text
- * spellings ("dont", "cant", "im", "wanna", "cannot", "any more") as the
- * written ones and tries the extra forms in STT_FORMS. It can only add
- * matches, never remove one. The same flag moves other crisis checks that
- * matched bare substrings onto whole words: saysPhrase, testWholeWords and
- * the semantic router's crisis context boost (routerContextMentions).
+ * EARLY_WARNING_STT_FORMS (off | shadow | on, default off), in either mode:
+ * a message that matched nothing gets a second, whole-word look that reads
+ * speech-to-text spellings ("dont", "cant", "im", "wanna", "cannot", "any
+ * more", hyphens as spaces) as the written ones and tries the extra forms in
+ * STT_FORMS, minus the idioms and negations in NOT_BEFORE / NOT_AFTER. on can
+ * only add matches; shadow logs each match on would add and decides as off.
+ * The whole-word conversions of other safety checks are a separate flag
+ * (SAFETY_WHOLE_WORD_SITES, safety-whole-word.ts).
  *
  * @module utils/phrase-match
  */
 
+import { createLogger } from './safe-logger.js';
+
 type Env = Record<string, string | undefined>;
+export type ShadowMode = 'off' | 'shadow' | 'on';
 
 export function resolveEarlyWarningWordBoundary(env: Env = process.env): boolean {
   return env.EARLY_WARNING_WORD_BOUNDARY?.trim().toLowerCase() === 'on';
 }
 
-export function resolveEarlyWarningSttForms(env: Env = process.env): boolean {
-  return env.EARLY_WARNING_STT_FORMS?.trim().toLowerCase() === 'on';
+/** off | shadow | on from one env var; anything else is off. */
+export function resolveShadowMode(raw: string | undefined): ShadowMode {
+  const v = raw?.trim().toLowerCase();
+  return v === 'on' || v === 'shadow' ? v : 'off';
+}
+
+export function resolveEarlyWarningSttForms(env: Env = process.env): ShadowMode {
+  return resolveShadowMode(env.EARLY_WARNING_STT_FORMS);
+}
+
+const shadowLog = createLogger({ module: 'SafetyPhraseShadow' });
+
+/**
+ * One shadow line: which flag, which phrase, what on would decide. Never the
+ * caller's words; join on the call's log context to review a line.
+ */
+export function logWouldDiffer(fields: {
+  flag: string;
+  phrase: string;
+  [k: string]: unknown;
+}): void {
+  try {
+    shadowLog.info(fields, 'safety phrase shadow: on would differ');
+  } catch {
+    // Logging never changes the decision.
+  }
 }
 
 /**
  * Extra forms of a listed phrase. A form is tried only when its phrase is in
  * the list being checked, so it lands at that list's severity. Forms that are
- * common in everyday speech ("I'm done with dinner", "I gave up sugar",
- * "ending it early") sit under the hopelessness phrases, which fire only with
- * low hopefulness as well; crisis_risk fires on its phrase alone, so only
- * self-harm forms sit under its phrases.
+ * common in everyday speech ("I'm done", "I gave up", "ending it") sit under
+ * the hopelessness phrases, which fire only with low hopefulness as well, and
+ * still skip their everyday continuations (NOT_AFTER); crisis_risk fires on
+ * its phrase alone, so only self-harm forms sit under its phrases.
  */
 const STT_FORMS: Readonly<Record<string, readonly string[]>> = {
   // crisis_risk
@@ -68,13 +96,37 @@ const STT_FORMS: Readonly<Record<string, readonly string[]>> = {
   "can't go on": ["i'm done", 'ending it'],
 };
 
-const normalized = (text: string): string =>
+/** "not suicidal", "never been suicidal", "isn't really suicidal". */
+const NEGATED =
+  /\b(?:not|never|isnt|wasnt|arent|werent|aint)\s+(?:(?:really|actually|been|feeling|being)\s+)?$/;
+/** "killing myself laughing / at the gym / to make rent". Not "at night" or "to end the pain". */
+const SELF_IDIOM =
+  /^\s+(?:laughing|working|trying|skiing|lifting|at\s+(?:the\s+)?(?:gym|work|office)|to\s+(?:make|get|finish|pay|meet|keep)\b|over\s+(?:a|this|that|the)\s+(?:project|deadline|exam|test|job|paper))/;
+/** "gave up smoking / my seat"; not "gave up on life", "gave up hope", "gave up." */
+const UP_EVERYDAY =
+  /^\s+(?!(?:on|hope|trying|everything|anything|anymore|already|completely|long|now|too|again|and|but|so|i|its|it|at|all|living|life)\b)[a-z]/;
+
+/** A match of the form is not risk when the text before it ends like this. Keys in STT spelling. */
+export const NOT_BEFORE: Readonly<Record<string, RegExp>> = { suicidal: NEGATED };
+/** A match of the form is not risk when the text after it starts like this. Keys in STT spelling. */
+const NOT_AFTER: Readonly<Record<string, RegExp>> = {
+  'killing myself': SELF_IDIOM,
+  'hurting myself': SELF_IDIOM,
+  'im done':
+    /^\s+(?:with|for)\s+(?!(?:it|this|everything|life|living|all|myself|trying|people|you)\b)[a-z]/,
+  'gave up': UP_EVERYDAY,
+  'giving up': UP_EVERYDAY,
+  'given up': UP_EVERYDAY,
+  'ending it': /^\s+(?:early|on\s+a|with\s+(?:him|her|them|my|the|a)\b)/,
+};
+
+export const normalized = (text: string): string =>
   text
     .normalize('NFKC')
     .toLowerCase()
     .replace(/[‘’‛′´`ʼʹ＇]/g, "'");
 
-const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+export const escape = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const compiled = new Map<string, RegExp>();
 
@@ -92,6 +144,7 @@ function wholeWord(phrase: string): RegExp {
 /** STT drops apostrophes, so they are dropped on both sides: can't = cant. */
 const STT_SPELLINGS: ReadonlyArray<[RegExp, string]> = [
   [/'/g, ''],
+  [/-/g, ' '],
   [/\bcan\s*not\b/g, 'cant'],
   [/\bdo\s+not\b/g, 'dont'],
   [/\bi\s+am\b/g, 'im'],
@@ -100,19 +153,45 @@ const STT_SPELLINGS: ReadonlyArray<[RegExp, string]> = [
   [/\bmy\s+self\b/g, 'myself'],
 ];
 
-const sttSpelling = (text: string): string =>
+export const sttSpelling = (text: string): string =>
   STT_SPELLINGS.reduce((t, [re, to]) => t.replace(re, to), normalized(text));
+
+/** Whether some match of re (global) in text survives its guards. */
+function guardedMatch(re: RegExp, text: string, key: string): boolean {
+  const before = NOT_BEFORE[key];
+  const after = NOT_AFTER[key];
+  re.lastIndex = 0;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    const end = m.index + m[0].length;
+    const blocked = before?.test(text.slice(0, m.index)) || after?.test(text.slice(end)) || false;
+    if (!blocked) return true;
+    re.lastIndex = m.index + 1;
+  }
+  return false;
+}
 
 const sttCompiled = new Map<string, RegExp>();
 
-/** The whole-word pattern for one phrase in STT spelling, cached. */
-function sttWholeWord(phrase: string): RegExp {
-  let re = sttCompiled.get(phrase);
+/** The whole-word pattern (global) for one phrase in STT spelling, cached. */
+function sttWholeWord(spelled: string): RegExp {
+  let re = sttCompiled.get(spelled);
   if (!re) {
-    re = wholeWord(sttSpelling(phrase));
-    sttCompiled.set(phrase, re);
+    re = new RegExp(wholeWord(spelled).source, 'gu');
+    sttCompiled.set(spelled, re);
   }
   return re;
+}
+
+/** The first STT form (or listed phrase in STT spelling) the message holds, or null. */
+function sttForm(message: string, phrases: readonly string[]): string | null {
+  const text = sttSpelling(message);
+  for (const p of phrases) {
+    for (const f of [p, ...(STT_FORMS[p] ?? [])]) {
+      const spelled = sttSpelling(f);
+      if (guardedMatch(sttWholeWord(spelled), text, spelled)) return f;
+    }
+  }
+  return null;
 }
 
 /** Whether one message holds one of the phrases. */
@@ -122,9 +201,11 @@ export function mentions(
   env: Env = process.env
 ): boolean {
   const listed = listedMention(message, phrases, env);
-  if (listed || !resolveEarlyWarningSttForms(env) || typeof message !== 'string') return listed;
-  const text = sttSpelling(message);
-  return phrases.some((p) => [p, ...(STT_FORMS[p] ?? [])].some((f) => sttWholeWord(f).test(text)));
+  const mode = resolveEarlyWarningSttForms(env);
+  if (listed || mode === 'off' || typeof message !== 'string') return listed;
+  const form = sttForm(message, phrases);
+  if (form && mode === 'shadow') logWouldDiffer({ flag: 'EARLY_WARNING_STT_FORMS', phrase: form });
+  return mode === 'on' && form !== null;
 }
 
 function listedMention(message: string, phrases: readonly string[], env: Env): boolean {
@@ -135,52 +216,6 @@ function listedMention(message: string, phrases: readonly string[], env: Env): b
   if (typeof message !== 'string') return false;
   const text = normalized(message);
   return phrases.some((p) => wholeWord(p).test(text));
-}
-
-/**
- * Whether text holds one phrase, for safety checks outside early-warning.ts
- * that used a bare substring check. Flag on: whole words in STT spelling, so
- * 'end it all' stops firing on "spend it all" and "cant go on" now counts.
- * Flag off: text.toLowerCase().includes(phrase), as those call sites did.
- * No STT_FORMS: a form belongs to the list it was audited for.
- */
-export function saysPhrase(text: string, phrase: string, env: Env = process.env): boolean {
-  if (!resolveEarlyWarningSttForms(env)) return text.toLowerCase().includes(phrase);
-  return sttWholeWord(phrase).test(sttSpelling(text));
-}
-
-/**
- * The semantic router's context boost (tools/semantic-router/matcher.ts) on
- * one keyword: crisis tools' keywords go through saysPhrase, so 'die' stops
- * boosting crisis_support on "diet". Other tools keep the substring check.
- */
-export function routerContextMentions(
-  text: string,
-  keyword: string,
-  category: string,
-  env: Env = process.env
-): boolean {
-  return category === 'crisis' ? saysPhrase(text, keyword, env) : text.includes(keyword);
-}
-
-const isWordChar = (ch: string | undefined): boolean => !!ch && /[\p{L}\p{N}]/u.test(ch);
-
-/**
- * pattern.test(text) for a safety regex written without \b. Flag on: a match
- * counts only when it starts and ends at a word edge, so /no point/ stops
- * firing on "casino points". Flag off: pattern.test(text).
- */
-export function testWholeWords(pattern: RegExp, text: string, env: Env = process.env): boolean {
-  if (!resolveEarlyWarningSttForms(env)) return pattern.test(text);
-  const flags = pattern.flags.replace(/[gy]/g, '');
-  const re = new RegExp(pattern.source, `${flags}g`);
-  const str = normalized(text);
-  for (let m = re.exec(str); m; m = re.exec(str)) {
-    const end = m.index + m[0].length;
-    if (!isWordChar(str[m.index - 1]) && !isWordChar(str[end])) return true;
-    re.lastIndex = m.index + 1;
-  }
-  return false;
 }
 
 /** Whether any of the messages holds one of the phrases. False for no messages. */

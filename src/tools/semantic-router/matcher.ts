@@ -24,7 +24,7 @@ import type {
   ToolMatch,
 } from './types.js';
 import { getKeywordWeight, getKeywordWord } from './types.js';
-import { routerContextMentions } from '../../utils/phrase-match.js';
+import { routerContextMentions } from '../../utils/safety-whole-word.js';
 // Centralized similarity operations - uses SIMD-ready implementation from rust-accelerator
 import { batchCosineSimilarityOptimized, cosineSimilarity } from '../../memory/rust-accelerator.js';
 // Re-export for backwards compatibility with existing consumers

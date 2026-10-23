@@ -7,6 +7,19 @@
  * still don't; off, nothing changes.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const shadow = vi.hoisted(() => vi.fn());
+vi.mock('../../../utils/safe-logger.js', async (actual) => {
+  const real = await actual<typeof import('../../../utils/safe-logger.js')>();
+  return {
+    ...real,
+    createLogger: (b: Record<string, unknown>) =>
+      b.module === 'SafetyPhraseShadow'
+        ? { info: shadow, warn: shadow, debug: shadow, error: shadow }
+        : real.createLogger(b),
+  };
+});
+
 import { checkWarnings } from '../early-warning.js';
 import { getWellbeingProfile } from '../index.js';
 import { mentions, resolveEarlyWarningSttForms } from '../../../utils/phrase-match.js';
@@ -22,12 +35,15 @@ function warned(message: string, hope?: number): string[] {
 }
 
 const MODES = ['off', 'on'] as const;
-function stub(stt: 'on' | 'off', wordBoundary: 'on' | 'off'): void {
+function stub(stt: 'on' | 'off' | 'shadow', wordBoundary: 'on' | 'off'): void {
   vi.stubEnv('EARLY_WARNING_STT_FORMS', stt);
   vi.stubEnv('EARLY_WARNING_WORD_BOUNDARY', wordBoundary);
 }
 
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  shadow.mockClear();
+});
 
 // Real-risk lines that no listed phrase catches today.
 const CRISIS_LINES = [
@@ -72,6 +88,25 @@ const EVERYDAY = [
   'my phone is dying',
   'I hurt my back lifting',
   'that deadline is killing me',
+  "I'm killing myself laughing",
+  'been killing myself at the gym',
+  'I keep hurting myself skiing',
+  'killing myself to make rent',
+  "I'm not suicidal, just tired",
+  'I was never suicidal',
+  'im done for today',
+  'I gave up smoking',
+  "we're ending it on a high note",
+];
+
+// Real-risk lines the idiom and negation guards must leave firing.
+const STILL_CRISIS = [
+  "I'm killing myself",
+  'i keep thinking about killing myself at night',
+  'thinking about killing myself to end the pain',
+  'I keep hurting myself',
+  "I'm suicidal",
+  'not okay, im suicidal',
 ];
 
 describe('flag off: byte-identical to today', () => {
@@ -83,10 +118,17 @@ describe('flag off: byte-identical to today', () => {
     }
   });
 
-  it('is off unless on', () => {
-    expect(resolveEarlyWarningSttForms({})).toBe(false);
-    expect(resolveEarlyWarningSttForms({ EARLY_WARNING_STT_FORMS: 'true' })).toBe(false);
-    expect(resolveEarlyWarningSttForms({ EARLY_WARNING_STT_FORMS: ' On ' })).toBe(true);
+  it('is off unless on or shadow', () => {
+    expect(resolveEarlyWarningSttForms({})).toBe('off');
+    expect(resolveEarlyWarningSttForms({ EARLY_WARNING_STT_FORMS: 'true' })).toBe('off');
+    expect(resolveEarlyWarningSttForms({ EARLY_WARNING_STT_FORMS: ' On ' })).toBe('on');
+    expect(resolveEarlyWarningSttForms({ EARLY_WARNING_STT_FORMS: 'shadow' })).toBe('shadow');
+  });
+
+  it('only this flag: the whole-word sites flag does not change early-warning', () => {
+    stub('off', 'off');
+    vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'on');
+    for (const line of CRISIS_LINES) expect(warned(line), line).not.toContain('crisis_risk');
   });
 });
 
@@ -103,12 +145,32 @@ describe.each(MODES)('flag on, word boundary %s', (wb) => {
     expect(warned(line)).not.toContain('hopelessness_pattern');
   });
 
-  it.each(EVERYDAY)('%j raises no warning the flag-off check does not', (line) => {
-    stub('off', wb);
-    const before = warned(line);
+  it.each(EVERYDAY)(
+    '%j raises no warning the flag-off check does not, even with low hope',
+    (line) => {
+      stub('off', wb);
+      const before = warned(line, 0.15);
+      stub('on', wb);
+      expect(warned(line, 0.15)).toEqual(before);
+      expect(warned(line)).not.toContain('crisis_risk');
+    }
+  );
+
+  it.each(STILL_CRISIS)('%j still fires crisis_risk past the guards', (line) => {
     stub('on', wb);
-    expect(warned(line)).toEqual(before);
-    expect(warned(line)).not.toContain('crisis_risk');
+    expect(warned(line)).toContain('crisis_risk');
+  });
+
+  it('shadow: logs what on would add, decides as off', () => {
+    stub('shadow', wb);
+    expect(warned('i wanna die')).not.toContain('crisis_risk');
+    expect(shadow).toHaveBeenCalledWith(
+      expect.objectContaining({ flag: 'EARLY_WARNING_STT_FORMS', phrase: 'want to die' }),
+      expect.any(String)
+    );
+    shadow.mockClear();
+    expect(warned('im done with dinner')).toEqual([]);
+    expect(shadow).not.toHaveBeenCalled();
   });
 });
 

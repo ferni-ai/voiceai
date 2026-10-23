@@ -1,6 +1,9 @@
 import type { FlagSpec } from '../flag-spec.js';
 
-// on: early-warning phrases also match speech-to-text spellings and forms ("cant go on", "wanna die", "killing myself"); crisis router context boost matches whole words (utils/phrase-match.ts)
+// off | shadow | on. One site: services/wellbeing-tracking/early-warning.ts, through
+// utils/phrase-match.ts mentions(). on: a message no listed phrase matched also matches
+// speech-to-text spellings and forms ("cant go on", "wanna die", "killing myself"), minus
+// idioms and negations; it only adds matches. shadow: logs what on would add, decides as off.
 export const EARLY_WARNING_STT_FORMS = {
   default: 'off',
   owner: 'intelligence',

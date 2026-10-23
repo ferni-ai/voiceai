@@ -5,7 +5,7 @@
  * boosted it. The boost never lifts it over the minimum on an everyday turn,
  * but it is averaged into a real crisis turn's confidence: after everyday
  * history, "I cant go on" dropped crisis_support from first to fifth.
- * EARLY_WARNING_STT_FORMS=on matches crisis keywords as whole words.
+ * SAFETY_WHOLE_WORD_SITES=on matches crisis keywords as whole words.
  */
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { calculateContextBoosts, runCombinedMatching } from '../matcher.js';
@@ -43,25 +43,25 @@ const EVERYDAY = [
 
 describe('crisis_support context boost', () => {
   it.each(EVERYDAY)('off: %j boosts crisis_support, as today', (line) => {
-    vi.stubEnv('EARLY_WARNING_STT_FORMS', 'off');
+    vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'off');
     expect(boosts(line).crisis_support).toBeGreaterThan(0);
   });
 
   it.each(EVERYDAY)('on: %j does not', (line) => {
-    vi.stubEnv('EARLY_WARNING_STT_FORMS', 'on');
+    vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'on');
     expect(boosts(line).crisis_support).toBeUndefined();
   });
 
   it.each(['I want to end it', 'i cant go on', 'I want to die', 'I feel suicidal', 'self-harm'])(
     'on: %j still boosts crisis_support',
     (line) => {
-      vi.stubEnv('EARLY_WARNING_STT_FORMS', 'on');
+      vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'on');
       expect(boosts(line).crisis_support).toBeGreaterThan(0);
     }
   );
 
   it('on: other tools keep the substring check', () => {
-    vi.stubEnv('EARLY_WARNING_STT_FORMS', 'on');
+    vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'on');
     expect(boosts('I was sending photos').fake_send).toBe(0.05);
   });
 });
@@ -85,12 +85,12 @@ describe('a real crisis turn after everyday history', () => {
   }
 
   it('off: the boost drags crisis_support below the top', () => {
-    vi.stubEnv('EARLY_WARNING_STT_FORMS', 'off');
+    vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'off');
     expect(rank().rank).toBeGreaterThan(1);
   });
 
   it('on: crisis_support is the top match', () => {
-    vi.stubEnv('EARLY_WARNING_STT_FORMS', 'on');
+    vi.stubEnv('SAFETY_WHOLE_WORD_SITES', 'on');
     expect(rank()).toEqual({ rank: 1, confidence: expect.closeTo(0.9, 2) });
   });
 });
