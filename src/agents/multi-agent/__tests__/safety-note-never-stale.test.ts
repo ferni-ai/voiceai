@@ -142,6 +142,37 @@ describe('safety guidance in the pushed note is never lost (#2642)', () => {
     expect(call.sent()).toEqual([`${TURN_CONTEXT_HEADER}\n${GUIDANCE}\n\n${MEMORY}`]);
   });
 
+  it('carried safety guidance is released once pushed: a later note without safety carries none', async () => {
+    const call = liveCall();
+    call.say('assistant', 'How has the week been?');
+    await finalThenThinking(call, CRISIS); // held
+    await call.pusher.onUserState('speaking');
+    await call.pusher.onAgentState('listening');
+    await call.pusher.onFinalTranscript('wait no'); // carries the crisis guidance
+    await call.pusher.onUserState('listening'); // pushed
+    expect(call.pushed()[0]).toContain(GUIDANCE);
+    // A later turn with no safety guidance: its note must not carry the old guidance.
+    call.say('user', 'wait no');
+    call.say('assistant', 'Okay, take your time.');
+    await call.pusher.onAgentState('thinking');
+    await call.pusher.onAgentState('listening');
+    await call.pusher.onFinalTranscript('pretty good actually');
+    call.say('user', 'pretty good actually');
+    expect(call.pushed()).toEqual([`${TURN_CONTEXT_HEADER}\n${MEMORY}`]);
+    expect(call.sent().some((note) => note.includes(GUIDANCE))).toBe(false);
+  });
+
+  it("the stale cut leaves the agent's own note untouched", async () => {
+    const call = liveCall();
+    call.say('assistant', 'How has the week been?');
+    await call.pusher.onFinalTranscript(CRISIS); // pushed at once
+    call.say('user', `${CRISIS} sorry I mean like everything`); // the note is now stale
+    const before = call.pushed();
+    expect(before).toEqual([`${TURN_CONTEXT_HEADER}\n${GUIDANCE}\n\n${MEMORY}`]);
+    expect(call.sent()).toEqual([`${TURN_CONTEXT_HEADER}\n${GUIDANCE}`]); // cut for the request
+    expect(call.pushed()).toEqual(before); // and the agent's context still holds the whole note
+  });
+
   it('a stale note with no safety guidance is still dropped whole (control)', async () => {
     const call = liveCall();
     call.say('assistant', 'How has the week been?');
