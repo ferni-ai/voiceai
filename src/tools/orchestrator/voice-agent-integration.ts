@@ -28,7 +28,7 @@ import { buildAgentTools, buildEssentialTools } from '../builder.js';
 import { buildHandoffTools } from '../handoff/handoff-factory.js';
 import { autoRegisterAllDomains } from '../registry/loader.js';
 import type { Tool } from '../registry/types.js';
-import { ownOrEphemeralId } from '../registry/per-caller-tool.js';
+import { callerIdFor } from '../../services/identity/call-caller-id.js';
 import type { UserProfile } from '../../types/user-profile.js';
 
 const log = getLogger();
@@ -495,14 +495,17 @@ let essentialDomainsLoaded: Promise<void> | null = null;
  * PRIVACY: built per caller. One process-wide set built with `userId: 'shared'` put every caller in
  * one bucket for tools keyed by their factory ctx (Spotify rooms, favourite teams, watchlist).
  */
-async function getEssentialTools(userId: string | undefined): Promise<Record<string, Tool>> {
+async function getEssentialTools(
+  userId: string | undefined,
+  sessionId: string | undefined
+): Promise<Record<string, Tool>> {
   try {
     essentialDomainsLoaded ??= (async () => {
       const { loadToolDomainsLazy } = await import('../registry/loader.js');
       await loadToolDomainsLazy(['memory', 'entertainment', 'information']);
     })();
     await essentialDomainsLoaded;
-    return await buildEssentialTools({ userId: ownOrEphemeralId(userId) });
+    return await buildEssentialTools({ userId: callerIdFor(userId, sessionId) });
   } catch (error) {
     essentialDomainsLoaded = null;
     log.warn({ error }, 'Failed to build essential tools');
@@ -557,7 +560,7 @@ async function getToolsFastPath(options: GetToolsForAgentOptions): Promise<GetTo
     }
 
     // 3. ADD ESSENTIAL TOOLS (music, weather, etc.)
-    const essentialTools = await getEssentialTools(options.userId);
+    const essentialTools = await getEssentialTools(options.userId, options.sessionId);
     Object.assign(allTools, essentialTools);
 
     const elapsed = Date.now() - startTime;

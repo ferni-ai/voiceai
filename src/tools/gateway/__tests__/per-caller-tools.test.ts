@@ -47,7 +47,10 @@ import { getToolsForAgent } from '../../orchestrator/voice-agent-integration.js'
 type Run = (args: { room?: string }, opts: unknown) => Promise<string>;
 
 /** LiveKit's tool options: the caller is the call's own userData.userId. */
-const as = (userId?: string) => ({ ctx: { userData: userId ? { userId } : {} }, toolCallId: 't' });
+const as = (userId?: string, session: object = {}) => ({
+  ctx: { userData: userId ? { userId } : {}, session },
+  toolCallId: 't',
+});
 
 beforeEach(() => {
   rooms.clear();
@@ -80,13 +83,23 @@ describe('Tier-0 gateway tools', () => {
     expect(rooms.has('gateway')).toBe(false);
     expect([...rooms.keys()].every((id) => id.startsWith('anon:'))).toBe(true);
   });
+
+  it('an id-less caller hears their own room back later in the same session', async () => {
+    const run = await gatewayTool();
+    const session = {};
+    await run({ room: 'Porch' }, as(undefined, session));
+
+    expect(await run({}, as('anon', session))).toBe('Porch');
+    expect(await run({}, as(undefined))).toBe('no rooms yet');
+  });
 });
 
 describe('fast-path essential tools', () => {
-  async function essentialTool(userId: string): Promise<Run> {
+  async function essentialTool(userId: string, sessionId?: string): Promise<Run> {
     const { tools } = await getToolsForAgent({
       persona: { id: 'ferni', name: 'Ferni' },
       userId,
+      sessionId,
       fastPath: true,
     } as Parameters<typeof getToolsForAgent>[0]);
     const tool = tools.setMusicRoom as { execute: Run };
@@ -94,16 +107,33 @@ describe('fast-path essential tools', () => {
   }
 
   it("are built for the caller, so one member's rooms stay theirs", async () => {
-    await (await essentialTool('uid-alice'))({ room: 'Kitchen' }, as('uid-alice'));
+    await (
+      await essentialTool('uid-alice')
+    )({ room: 'Kitchen' }, as('uid-alice'));
 
     expect(await (await essentialTool('uid-bob'))({}, as('uid-bob'))).toBe('no rooms yet');
     expect([...rooms.keys()]).toEqual(['uid-alice']);
   });
 
   it('never build for a placeholder id', async () => {
-    await (await essentialTool('anonymous'))({ room: 'Den' }, as('anonymous'));
+    await (
+      await essentialTool('anonymous')
+    )({ room: 'Den' }, as('anonymous'));
 
     expect(rooms.has('shared')).toBe(false);
     expect(rooms.has('anonymous')).toBe(false);
+  });
+
+  it('give an id-less caller one id per server session', async () => {
+    const session = `session-AJ_fast-${Date.now()}`;
+    await (
+      await essentialTool('anonymous', session)
+    )({ room: 'Attic' }, as('anonymous'));
+
+    expect(await (await essentialTool('unknown', session))({}, as('unknown'))).toBe('Attic');
+    const other = `session-AJ_other-${Date.now()}`;
+    expect(await (await essentialTool('anonymous', other))({}, as('anonymous'))).toBe(
+      'no rooms yet'
+    );
   });
 });
