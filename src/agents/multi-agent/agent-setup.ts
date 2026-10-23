@@ -52,7 +52,7 @@ import {
   startHealthMonitoring,
   stopHealthMonitoring,
 } from '../shared/openai-health-monitor.js';
-// External STT: Sonata (USE_SONATA_STT=true)
+import { profileForPrompt } from '../../memory/recall/forget-every-reader.js';
 
 // ============================================================================
 // CRITICAL PATH IMPORTS - Hoisted to module level for faster startup
@@ -366,7 +366,7 @@ export async function setupPersonaAgent(config: AgentSetupConfig): Promise<Agent
       baseInstructions + dateTimeContext + worldNowRule + cityContext + outboundAwareness;
 
     // USER AWARENESS: who's on the line (on a call placed for the user, not the sponsor)
-    const userProfile = outboundAwareness ? undefined : services.userProfile;
+    const userProfile = outboundAwareness ? undefined : await profileForPrompt(services);
     if (userProfile) {
       // Days since the last call count in the zone this call settled (phone-parity.ts)
       const callZone = userData?.callerTimezone ?? callerTimeZoneFor(sessionId);
@@ -1629,7 +1629,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
       nameLift?.(evt.transcript);
       const note = recall.noteFor(evt.transcript, { final: evt.isFinal });
       // CONTEXT_PACKET=on: what it picked rides the turn's packet, labelled (turn-packet.ts).
-      if (note) sendRecall(agent as unknown as RecallAgent, session, recall, note);
+      sendRecall(agent as unknown as RecallAgent, session, recall, note, userId);
     };
     const onRecallAgentState = (event: unknown) => {
       if ((event as { newState?: string }).newState === 'speaking') recall.newTurn();

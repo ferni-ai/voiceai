@@ -11,6 +11,7 @@
  */
 
 import { getLogger } from '../../../utils/safe-logger.js';
+import { rememberedText } from '../../../memory/recall/forget-every-reader.js';
 import {
   registerContextBuilder,
   createStandardInjection,
@@ -60,7 +61,10 @@ async function buildConversationRecap(input: ContextBuilderInput): Promise<Conte
   const recentTopics = userData?.recentTopics || [];
   const keyMoments = userData?.keyMoments || [];
   const turnCount = userData?.turnCount || 0;
-  const lastConversationSummary = services?.userProfile?.lastConversationSummary;
+  const lastConversationSummary = await rememberedText(
+    services?.userId,
+    services?.userProfile?.lastConversationSummary
+  ); // FORGET_EVERY_READER
 
   // If user explicitly asks for recap
   if (isRecapRequest) {
