@@ -1,5 +1,5 @@
 /**
- * Texts to a member that a guard holds for later (quiet hours today), kept in
+ * Texts to a member that a guard holds for later (quiet hours, a Focus), kept in
  * feature_held_texts and released by the reminder job (every minute). A held
  * text is sent once it's due, or dropped with a logged reason (stale, STOP,
  * texts off); never lost silently.
@@ -8,6 +8,7 @@
  */
 import { createLogger } from '../../utils/safe-logger.js';
 import { checkinDb } from './checkin-replies.js';
+import { stillFocusHeld } from './focus-send-hold.js';
 import {
   defaultTextDeps,
   sendGuardedText,
@@ -29,14 +30,16 @@ export interface HeldText {
 }
 
 export interface HeldTextStore {
-  add: (held: Omit<HeldText, 'id'>) => Promise<void>;
+  /** With `id`, that doc is written (a second hold of the same text rewrites it). */
+  add: (held: Omit<HeldText, 'id'>, id?: string) => Promise<void>;
   due: (now: Date, limit: number) => Promise<HeldText[]>;
   remove: (id: string) => Promise<void>;
 }
 
 export const firestoreHeldTexts: HeldTextStore = {
-  async add(held) {
-    await checkinDb().collection(HELD_TEXTS).add(held);
+  async add(held, id) {
+    const texts = checkinDb().collection(HELD_TEXTS);
+    await (id === undefined ? texts.add(held) : texts.doc(id).set(held));
   },
   async due(now, limit) {
     const snap = await checkinDb()
@@ -51,20 +54,31 @@ export const firestoreHeldTexts: HeldTextStore = {
   },
 };
 
-/** Holds `t` until `releaseAt` (hold-until-window), logging why. */
+/** Holds `t` until `releaseAt` (hold-until-window), logging why; `id` keeps one copy per text. */
 export async function holdText(
   t: GuardedText,
   releaseAt: Date,
   reason: string,
-  store: HeldTextStore = firestoreHeldTexts
+  store: HeldTextStore = firestoreHeldTexts,
+  id?: string
 ): Promise<void> {
-  await store.add({ text: t, releaseAt: releaseAt.toISOString(), reason });
+  const held = { text: t, releaseAt: releaseAt.toISOString(), reason };
+  await (id === undefined ? store.add(held) : store.add(held, id));
   log.info({ kind: t.kind, refId: t.refId, reason, releaseAt }, 'Text held');
 }
 
-const RETRY: ReadonlySet<string> = new Set(['recently-sent', 'consent-unknown', 'paused']);
+const RETRY: ReadonlySet<string> = new Set([
+  'recently-sent',
+  'consent-unknown',
+  'paused',
+  'focus-held',
+]);
 
-/** Sends the held texts that are due. A gap, consent-unknown or pause waits; any other skip ends it. */
+/**
+ * Sends the held texts that are due. A gap, consent-unknown, pause or Focus still holding it
+ * waits; any other skip ends it. A Focus-held text whose kind went out since (a gap) ends too:
+ * it reached them another way.
+ */
 export async function releaseHeldTexts(
   store: HeldTextStore = firestoreHeldTexts,
   deps: TextDeps = defaultTextDeps(),
@@ -80,9 +94,16 @@ export async function releaseHeldTexts(
       out.dropped++;
       continue;
     }
+    // eslint-disable-next-line no-await-in-loop
+    if (await stillFocusHeld(held.text, deps.store, now, deps.focus)) {
+      out.waiting++;
+      continue;
+    }
     const outcome = await send(held.text, deps); // eslint-disable-line no-await-in-loop
-    // A gap, an unreadable consent record or a pause: try again on a later run.
-    if (!outcome.sent && RETRY.has(outcome.reason)) {
+    const sentSince =
+      held.reason === 'focus' && !outcome.sent && outcome.reason === 'recently-sent';
+    // A gap, an unreadable consent record, a pause or a Focus: try again on a later run.
+    if (!outcome.sent && RETRY.has(outcome.reason) && !sentSince) {
       out.waiting++;
       continue;
     }

@@ -24,8 +24,8 @@ import {
 import { forgottenTopicsOrNull } from '../../../memory/recall/forget.js';
 import { isForgotten } from '../../../memory/recall/session-recall.js';
 import { usersWithFlag } from '../../platform/cohort-flags.js';
-import { getPushNotificationsService } from '../../push-notifications.js';
 import { resolveClaimStore } from '../../../tasks/scheduled/calendar-briefing-job.js';
+import { pushUnlessFocusHeld } from '../focus-send-hold.js';
 import { firestoreTextStore, sendGuardedText } from '../guarded-text.js';
 import type { BriefEvent } from './compose.js';
 import type { DayItems, MorningBriefDeps } from './brief-job.js';
@@ -146,7 +146,7 @@ export async function defaultMorningBriefDeps(): Promise<MorningBriefDeps> {
     readDay,
     claims: await resolveClaimStore(),
     sendText: (t) => sendGuardedText(t),
-    sendPush: (userId, push) =>
-      getPushNotificationsService().sendNotification(userId, { ...push, type: 'general' }),
+    // Ferni's own: waits out a Focus hold (focus-send-hold.ts), as the text does.
+    sendPush: (userId, push) => pushUnlessFocusHeld(userId, { ...push, type: 'general' }, 'ferni'),
   };
 }

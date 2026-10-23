@@ -13,6 +13,7 @@
 import { getDisplayName } from '../../personas/persona-ids.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import type { PushNotificationPayload } from '../push-notifications.js';
+import { pushOriginOf, pushUnlessFocusHeld } from './focus-send-hold.js';
 import { webPushDeliveryOn } from './web-push-flag.js';
 
 const log = createLogger({ module: 'web-push-delivery' });
@@ -37,10 +38,8 @@ export interface WebPushDeps {
 
 const defaultDeps: WebPushDeps = {
   isOn: async (userId) => webPushDeliveryOn(userId),
-  send: async (userId, payload) =>
-    (await import('../push-notifications.js'))
-      .getPushNotificationsService()
-      .sendNotification(userId, payload),
+  // A note from Ferni waits out a Focus hold (focus-send-hold.ts).
+  send: async (userId, payload) => pushUnlessFocusHeld(userId, payload, pushOriginOf(payload)),
 };
 
 export function pushBody(text: string): string {
