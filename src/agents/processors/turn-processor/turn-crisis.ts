@@ -31,7 +31,6 @@ import {
 } from '../../../services/safety/crisis-grounded-release.js';
 import { transferRequestIsEveryday } from '../../../services/safety/crisis-transfer-request.js';
 import {
-  CLASSIFIER_ONLY_CHECK,
   classifierOnlyCheckin,
   resolveClassifierOnlyCheckin,
 } from '../../../services/safety/crisis-classifier-only.js';
@@ -65,8 +64,6 @@ export interface TurnCrisis {
    * returns the patterns' reading.
    */
   softCheck(): Promise<boolean>;
-  /** The guidance a soft check-in carries when it is not SOFT_CRISIS_CHECK (crisis-classifier-only.ts). */
-  softGuidance(): Promise<string | undefined>;
   /**
    * Whether a router may answer this turn without the reply model (FTIS direct
    * execution, the semantic short-circuit): never with a crisis signal or a
@@ -121,7 +118,7 @@ export function startTurnCrisis(
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
-  type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
+  type Settled = { crisis: CrisisDetectionResult; soft: boolean };
   let settled: Promise<Settled> | null = null;
   const settle = (): Promise<Settled> =>
     (settled ??=
@@ -181,7 +178,7 @@ export function startTurnCrisis(
                 }));
               if (!only) return { crisis, soft: false };
               log.info({ outcome: 'soft', source: 'classifier_only' }, 'CRISIS_AGREEMENT');
-              return { crisis: patterns, soft: true, guidance: CLASSIFIER_ONLY_CHECK };
+              return { crisis: patterns, soft: true };
             };
             if (!scope || crisis === patterns) return escalated();
             if (!holdForReads) {
@@ -228,7 +225,6 @@ export function startTurnCrisis(
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
-    softGuidance: () => settle().then((s) => (s.soft ? s.guidance : undefined)),
     bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
   };
 }
@@ -239,13 +235,9 @@ export function hasCrisisSignal(crisis: CrisisDetectionResult): boolean {
 }
 
 /** The turn result's crisis field. */
-export function crisisSummary(
-  crisis: CrisisDetectionResult,
-  softCheck = false,
-  softGuidance?: string
-): CrisisDetection {
+export function crisisSummary(crisis: CrisisDetectionResult, softCheck = false): CrisisDetection {
   return {
-    ...(softCheck ? { softCheck, ...(softGuidance ? { softGuidance } : {}) } : {}),
+    ...(softCheck ? { softCheck } : {}),
     isCrisis: crisis.isCrisis,
     severity: crisis.severity,
     indicators: crisis.indicators,

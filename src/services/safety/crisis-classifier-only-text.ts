@@ -1,7 +1,6 @@
 /**
- * Text for CRISIS_CLASSIFIER_ONLY_CHECKIN (crisis-classifier-only.ts): the
- * escalate-only words that keep a turn off the eased path, and the check-in
- * guidance an eased turn gets.
+ * The escalate-only words for CRISIS_CLASSIFIER_ONLY_CHECKIN
+ * (crisis-classifier-only.ts): words that keep a turn off the eased path.
  *
  * The words only ever ADD escalations: a match keeps the 988 guidance, and no
  * match changes nothing (the turn still needs every other condition and the
@@ -60,14 +59,3 @@ export function hasEscalateOnlyWords(text: unknown): boolean {
     return true;
   }
 }
-
-/**
- * The guidance for a turn this path eases. Unlike SOFT_CRISIS_CHECK ("check in
- * once if it fits"), the check-in here is not optional: one gentle, direct
- * question in Ferni's own words about what the caller said.
- */
-export const CLASSIFIER_ONLY_CHECK = `[SAFETY - CHECK IN]
-A safety read of the caller's last words was unsure whether something heavier is going on; a second read judged it more likely everyday. Do not switch to crisis talk or list hotlines on this alone, but do check in:
-1. In your own words, ask one gentle, direct question about what they just said ("hey, can I check, when you said that, are you doing okay?"), then follow their lead
-2. Keep it warm and brief: no lecture, no list of resources
-3. If they say anything about hurting themselves, not wanting to be here or not being around, take it seriously and offer the 988 Suicide & Crisis Lifeline (call or text 988)`;

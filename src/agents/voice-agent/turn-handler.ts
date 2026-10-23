@@ -1380,7 +1380,7 @@ ${result.crisis.suggestedResponse}`,
     } else if (result.crisis?.softCheck) {
       result.context.injections.unshift({
         category: 'safety_soft_check',
-        content: result.crisis.softGuidance ?? SOFT_CRISIS_CHECK,
+        content: SOFT_CRISIS_CHECK,
         priority: 100,
       });
     }

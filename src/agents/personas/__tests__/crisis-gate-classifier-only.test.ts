@@ -22,10 +22,7 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
-import {
-  CLASSIFIER_ONLY_CHECK,
-  resetClassifierOnlyReads,
-} from '../../../services/safety/crisis-classifier-only.js';
+import { resetClassifierOnlyReads } from '../../../services/safety/crisis-classifier-only.js';
 import { crisisSummary, startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { startCrisisGate } from '../crisis-gate.js';
 
@@ -110,7 +107,7 @@ function request(call: Call): llm.ChatContext {
   return ctx;
 }
 
-type Heard = 'replace' | 'guide-988' | 'soft' | 'soft-other' | 'pass';
+type Heard = 'replace' | 'guide-988' | 'soft' | 'pass';
 
 /**
  * One caller turn through both paths on one call, as prod runs them: the reply
@@ -170,19 +167,18 @@ async function turn(
     },
     { sessionId: session, env, generate: generate(reads[1]), adjudicate }
   );
-  const [decision, crisis, soft, guidance] = await Promise.all([
+  const [decision, crisis, soft] = await Promise.all([
     gate?.escalation ? gate.escalation.then((d) => d ?? gate.decision) : gate?.decision,
     pipeline.resolve(),
     pipeline.softCheck(),
-    pipeline.softGuidance(),
   ]);
-  const summary = crisisSummary(crisis, soft, guidance);
+  const summary = crisisSummary(crisis, soft);
   const gateHeard: Heard =
     !decision || decision.action === 'pass'
       ? 'pass'
       : decision.action === 'replace'
         ? 'replace'
-        : decision.guidance === CLASSIFIER_ONLY_CHECK || decision.guidance === SOFT_CRISIS_CHECK
+        : decision.guidance === SOFT_CRISIS_CHECK
           ? 'soft'
           : decision.guidance.includes('988')
             ? 'guide-988'
@@ -191,11 +187,9 @@ async function turn(
     ? 'replace'
     : summary.isCrisis
       ? 'guide-988'
-      : summary.softCheck && summary.softGuidance === CLASSIFIER_ONLY_CHECK
+      : summary.softCheck
         ? 'soft'
-        : summary.softCheck
-          ? 'soft-other'
-          : 'pass';
+        : 'pass';
   return { gate: gateHeard, pipeline: pipelineHeard, modelCalls };
 }
 
@@ -485,22 +479,7 @@ describe('the 2026-10-22 safety review probes', () => {
         generate: SLOW(CRISIS, 600),
       }
     );
-    expect(await gate?.escalation).toEqual({ action: 'guide', guidance: CLASSIFIER_ONLY_CHECK });
+    expect(await gate?.escalation).toEqual({ action: 'guide', guidance: SOFT_CRISIS_CHECK });
     expect(Date.now() - t0).toBeLessThan(900);
-  });
-
-  it('other soft paths keep SOFT_CRISIS_CHECK; this path brings the direct check-in', async () => {
-    expect(CLASSIFIER_ONLY_CHECK).not.toBe(SOFT_CRISIS_CHECK);
-    const session = `guidance-${++calls}`;
-    const gate = startCrisisGate(
-      request(CALL),
-      { services: { sessionId: session } },
-      {
-        env: { ...PROD, CRISIS_CLASSIFIER_ONLY_CHECKIN: 'live' },
-        generate: async () => CRISIS,
-        adjudicate: async () => CHECKIN,
-      }
-    );
-    expect(await gate?.escalation).toEqual({ action: 'guide', guidance: CLASSIFIER_ONLY_CHECK });
   });
 });

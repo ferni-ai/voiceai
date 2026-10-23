@@ -46,7 +46,6 @@ import {
 } from '../../services/safety/crisis-grounded-release.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
 import {
-  CLASSIFIER_ONLY_CHECK,
   classifierOnlyCheckin,
   prestartClassifierOnly,
   resolveClassifierOnlyCheckin,
@@ -309,7 +308,7 @@ export function startCrisisGate(
       (await classifierOnlyCheckin(only()))
     ) {
       log.info({ action: 'guide', source: 'classifier_only' }, 'CRISIS_GATE');
-      return { action: 'guide', guidance: CLASSIFIER_ONLY_CHECK };
+      return { action: 'guide', guidance: SOFT_CRISIS_CHECK };
     }
     log.info(
       { action: stronger.action, source: 'classifier', indicators: merged.indicators },

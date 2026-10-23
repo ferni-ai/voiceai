@@ -16,7 +16,6 @@ vi.mock('../../../utils/safe-logger.js', () => {
 
 import { allowCrisisAdjudicatorLiveForTests } from '../crisis-adjudicator.js';
 import {
-  CLASSIFIER_ONLY_CHECK,
   classifierOnlyCheckin,
   classifierOnlyWhy,
   resetClassifierOnlyReads,
@@ -322,12 +321,6 @@ describe('classifierOnlyCheckin', () => {
     expect(await run('live', { source: 'pipeline', adjudicate, env })).toBe(false);
     expect(adjudicate).not.toHaveBeenCalled();
     expect(logged().at(-1)).toMatchObject({ why: 'no_shared_read' });
-  });
-
-  it('the eased guidance asks one direct check-in question and keeps 988', () => {
-    expect(CLASSIFIER_ONLY_CHECK).toMatch(/ask one gentle, direct question/);
-    expect(CLASSIFIER_ONLY_CHECK).toMatch(/988/);
-    expect(CLASSIFIER_ONLY_CHECK).not.toMatch(/if it fits/);
   });
 });
 

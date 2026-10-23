@@ -23,9 +23,8 @@
  * recent lines by speaker), even with CRISIS_ADJUDICATOR off. One read per
  * turn, started by the reply gate from its fuller transcript and shared with
  * the turn pipeline, keyed by call and caller words; the pipeline never reads
- * on its own. Only its confident "checkin" with no caller risk quoted eases
- * the turn, and then to CLASSIFIER_ONLY_CHECK: Ferni asks one gentle, direct
- * check-in question. Escalate, low confidence, a timeout
+ * on its own. Only its confident "checkin" with no caller risk quoted gives
+ * the soft check (SOFT_CRISIS_CHECK). Escalate, low confidence, a timeout
  * (CRISIS_CLASSIFIER_ONLY_TIMEOUT_MS, 1200 ms by default), an error, too
  * little context, or no shared read keep the guidance.
  *
@@ -82,8 +81,6 @@ import {
 import { hasEscalateOnlyWords } from './crisis-classifier-only-text.js';
 import { detectCrisis, type CrisisDetectionResult } from './crisis-guard.js';
 import { SAFETY_TALK } from './crisis-lone-imminent.js';
-
-export { CLASSIFIER_ONLY_CHECK } from './crisis-classifier-only-text.js';
 
 const log = createLogger({ module: 'CrisisClassifierOnly' });
 
@@ -420,7 +417,7 @@ async function decideTurn(
  * For a turn whose classifier read is about to bring crisis guidance: true
  * when CRISIS_CLASSIFIER_ONLY_CHECKIN is live (and not held), only the
  * classifier agrees with itself, and the turn's shared second read says
- * "checkin", so the turn gets CLASSIFIER_ONLY_CHECK instead. Shadow returns
+ * "checkin", so the turn gets the soft check instead. Shadow returns
  * false at once and decides off the reply path. Logs one CRISIS_CLASSIFIER_ONLY
  * line in shadow and live; does nothing when off. Never throws.
  */
