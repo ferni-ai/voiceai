@@ -366,8 +366,6 @@ export async function directedGreeting(
   const { generateWarmGreeting } = await import('../shared/warm-greeting.js');
   // A returning caller's greeting can pick up from last time (agent-setup hands it over).
   const history = takeCallerHistory(sessionId);
-  // CALL_KNOWS_RECENT_TEXTS: what agent setup found it texted them lately (never a new read).
-  const texted = takeRecentTextFacts(sessionId);
   const hour = callerHour(new Date(), userData?.callerTimezone);
   const ctx = { hour: hour ?? 12, isReturningUser: history !== undefined };
   const { directedText } = await import('../../speech/direction/index.js');
@@ -385,7 +383,7 @@ export async function directedGreeting(
       facts: {
         ...greetingFacts(partOfDay, userData?.userName, history),
         ...proactiveReasonFacts(proactive),
-        ...texted,
+        ...takeRecentTextFacts(sessionId), // CALL_KNOWS_RECENT_TEXTS: setup's read, never a new one
       },
       fallback: proactiveFallback(userData?.userName, personaId),
       urgency: 'now',
@@ -454,7 +452,7 @@ export async function directedGreeting(
         ),
         back
       ),
-      ...(unknown ? {} : texted), // never told to a caller Ferni hasn't recognised
+      ...(unknown ? {} : takeRecentTextFacts(sessionId)), // not for a caller not recognised
       ...(firstCall ? stranger.FIRST_CALL_FACTS : {}),
     },
     fallback: introAs ? firstCallFallback(userData?.userName, introAs) : scripted,
