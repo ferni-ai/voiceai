@@ -170,7 +170,7 @@ export async function wrapUpCall(
     callerInRoom: call.callerInRoom,
     setTimer,
     now: call.now,
-    onContinue: (why, line) => carryOn(call, app ? signal : undefined, why, line),
+    onContinue: (why, lines) => carryOn(call, app ? signal : undefined, why, lines),
     ...(app && { onHold: (why: HoldReason) => holdAppEnd(sessionId, signal, why) }),
   });
   const sent = await signal(
@@ -195,11 +195,11 @@ function carryOn(
   call: WrapUpCall,
   signal: typeof sendFrontendSignal | undefined,
   reason: ContinueReason,
-  line?: string
+  lines: string[]
 ): void {
   const { sessionId } = call;
   clearSessionClosing(sessionId);
-  reopenFarewell(sessionId, line);
+  reopenFarewell(sessionId, lines);
   wrapping.delete(sessionId);
   call.onReopen?.();
   log.warn({ sessionId, reason }, 'CALL_WRAP_UP continued');

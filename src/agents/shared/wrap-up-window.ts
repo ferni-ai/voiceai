@@ -30,7 +30,7 @@ import {
   onCrisisRiskNoted,
 } from '../../services/safety/crisis-call-risk.js';
 import { createLogger } from '../../utils/safe-logger.js';
-import { callerSignsOff } from './call-farewell.js';
+import { callerSignsOff, containsLine } from './call-farewell.js';
 import { awaitTurnReads, type CallerWatch } from './caller-activity.js';
 import { farewellRisk, hasGoodbyeClause } from './farewell-risk.js';
 
@@ -60,10 +60,10 @@ export interface WrapUpWindow {
 export function openWrapUpWindow(opts: {
   sessionId: string;
   /**
-   * `line`: the caller's latest STT final when its turn's conversation item
-   * hasn't arrived yet. That item still follows, and is never a fresh goodbye.
+   * `lines`: the caller's STT finals whose turns' conversation items haven't
+   * arrived. Those items still follow, and are never a fresh goodbye.
    */
-  onContinue: (reason: ContinueReason, line?: string) => void;
+  onContinue: (reason: ContinueReason, lines: string[]) => void;
   /** Hold the app's hang-up (only an app call has one). */
   onHold?: (reason: HoldReason) => void;
   caller?: CallerWatch;
@@ -78,8 +78,8 @@ export function openWrapUpWindow(opts: {
   let continued = false;
   let tornDown = false;
   let lastLook = -Infinity;
-  /** The latest STT final whose turn's conversation item hasn't arrived. */
-  let awaitingItem: string | undefined;
+  /** STT finals whose turns' conversation items haven't arrived (an item contains its finals). */
+  let awaitingItems: string[] = [];
   const stop = (): void => stops.splice(0).forEach((fn) => fn());
   const afterEnd = (): void =>
     log.error({ sessionId }, 'CRISIS_AFTER_END crisis risk noted after the call ended');
@@ -108,7 +108,7 @@ export function openWrapUpWindow(opts: {
       }
       continued = true;
       stop();
-      opts.onContinue(reason, awaitingItem);
+      opts.onContinue(reason, awaitingItems);
     },
     tearDown: () => {
       if (tornDown || continued) return;
@@ -148,7 +148,9 @@ export function openWrapUpWindow(opts: {
     stops.push(
       opts.caller.onWords(({ text, final, item }) => {
         if (final) {
-          awaitingItem = item ? undefined : text;
+          awaitingItems = item
+            ? awaitingItems.filter((line) => !containsLine(text, line))
+            : [...awaitingItems, text];
           if (callerSignsOff(text)) return; // the turn's read still holds the end (reads)
           if (!farewellRisk(text)) {
             // A goodbye that said more ("thanks so much, that helped. bye") is no clean

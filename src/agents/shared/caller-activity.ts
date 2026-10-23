@@ -19,6 +19,7 @@ import { voice } from '@livekit/agents';
 import {
   crisisReadInFlight,
   crisisRiskThisCall,
+  crisisTurnOf,
   onCrisisReadStarted,
 } from '../../services/safety/crisis-call-risk.js';
 import { createLogger } from '../../utils/safe-logger.js';
@@ -126,6 +127,11 @@ export interface TurnReads {
  * From now on, after each final caller line, wait for that turn's crisis read
  * to start and settle, at most TURN_READ_WAIT_MS. `onReadStart` runs when it
  * starts (the app is told to hold its hang-up, wrap-up-window.ts).
+ *
+ * Only a read of the words waited on counts (its text contains the line): a
+ * late read of an earlier turn is not this one's. A turn's conversation item
+ * after its STT finals is the same turn, not a new wait: LiveKit adds it once
+ * the turn's read has already started (crisis-gate.ts, onUserTurnCompleted).
  */
 export function awaitTurnReads(opts: {
   sessionId: string;
@@ -137,11 +143,17 @@ export function awaitTurnReads(opts: {
   let state: ReturnType<TurnReads['outcome']> = 'idle';
   let readSeen = false;
   let turn = 0;
+  let line = '';
+  let finalsBeforeItem = false;
   const check = (): void => {
     if (state === 'waiting' && readSeen && !crisisReadInFlight(sessionId)) state = 'settled';
   };
-  const offWords = opts.caller?.onWords(({ final }) => {
+  const offWords = opts.caller?.onWords(({ text, final, item }) => {
     if (!final) return;
+    const sameTurn = item && finalsBeforeItem;
+    finalsBeforeItem = !item;
+    if (sameTurn) return;
+    line = crisisTurnOf(text);
     state = 'waiting';
     readSeen = false;
     const mine = ++turn;
@@ -150,8 +162,9 @@ export function awaitTurnReads(opts: {
       if (mine === turn && state === 'waiting') state = 'timed_out';
     }, TURN_READ_WAIT_MS);
   });
-  const offRead = onCrisisReadStarted((id) => {
+  const offRead = onCrisisReadStarted((id, read) => {
     if (id !== sessionId || state !== 'waiting') return;
+    if (line && !` ${read} `.includes(` ${line} `)) return; // another turn's read
     readSeen = true;
     opts.onReadStart?.();
   });

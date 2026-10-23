@@ -36,7 +36,7 @@ vi.mock('../../../speech/coordination/session-integration.js', async (importOrig
 
 import { PersonaVoiceAgent } from '../../personas/ferni-agent.js';
 import { attachCallWrapUp, DISCONNECT_DELAY_MS } from '../call-wrap-up.js';
-import { clearFarewell, IDLE_AFTER_GOODBYE_MS } from '../call-farewell.js';
+import { clearFarewell, containsLine, IDLE_AFTER_GOODBYE_MS } from '../call-farewell.js';
 import { TURN_READ_WAIT_MS } from '../caller-activity.js';
 import { REOPEN_CHECK_IN_MS, REOPEN_IDLE_END_MS, watchReopenIdle } from '../reopen-idle.js';
 import { clearSessionClosing, isSessionClosing } from '../session-closing-tracker.js';
@@ -605,6 +605,21 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     expect(c.appConnected).toBe(false);
   });
 
+  it('a next turn without the line ends the carry for good', async () => {
+    const c = await call();
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords('wait'); // reopens; its item never comes
+    expect(c.reopens()).toHaveLength(1);
+    c.say('user', 'sorry, my dog'); // the next turn: the carry ends
+    await ferniSays(c, "Ha, no problem. What's up?");
+    c.say('user', 'wait, never mind. okay, bye');
+    await ferniSays(c, 'Bye, take care.');
+    await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
+    expect(ends(c)).toHaveLength(2);
+    expect(c.appConnected).toBe(false);
+  });
+
   it('a line whose item already came carries nothing: a later reopen does not swallow the next turn', async () => {
     const line = 'thanks so much, that helped. bye';
     const c = await call();
@@ -636,6 +651,84 @@ describe("the reopening turn's own item, however late, is never the fresh goodby
     await c.advance(IDLE_AFTER_GOODBYE_MS + DISCONNECT_DELAY_MS);
     expect(ends(c)).toHaveLength(2);
     expect(c.appConnected).toBe(false);
+  });
+});
+
+describe('items out of turn order, and reads of other turns (security review of the redesign)', () => {
+  it("an earlier turn's late item does not use up the carry", async () => {
+    const c = await call();
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords('bye'); // turn A: a sign-off, its item still to come
+    await c.advance(500);
+    c.finalWords("I don't know"); // turn B reopens
+    expect(c.reopens()).toHaveLength(1);
+    c.finalWords('anyway, bye');
+    await c.advance(2_000);
+    c.say('user', 'bye'); // turn A's item, late
+    await c.advance(2_000);
+    c.say('user', "I don't know, anyway, bye"); // turn B's item
+    await ferniSays(c, 'Okay. Bye, take care.');
+    await c.advance(30_000);
+    expect(ends(c)).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
+  it("an earlier turn's item inside the window clears only its own final", async () => {
+    const line = 'thanks so much, that helped. bye';
+    const c = await call();
+    await c.toEnd();
+    await c.advance(500);
+    c.finalWords('bye'); // turn A
+    await c.advance(500);
+    c.finalWords(line); // turn B: waits for its read
+    await c.advance(300);
+    c.say('user', 'bye'); // turn A's item, while the call is still closing
+    await c.advance(3_000); // no read for B: the window reopens it
+    expect(c.reopens()).toHaveLength(1);
+    await c.advance(3_000);
+    c.say('user', line); // turn B's item, late
+    await ferniSays(c, 'Okay. Bye, take care.');
+    await c.advance(30_000);
+    expect(ends(c)).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+
+  it("Rule 1, LiveKit's order: the read starts before the turn's item, and a clean read ends the call", async () => {
+    const line = 'thanks so much, that helped. bye';
+    const c = await call();
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords(line);
+    const settle = read(c.id, line); // onUserTurnCompleted: the read starts
+    await c.advance(300);
+    c.say('user', line); // then LiveKit adds the item
+    await c.advance(500);
+    await settle('none');
+    await c.advance(10_000);
+    expect(c.reopens()).toEqual([]);
+    expect(c.appConnected).toBe(false);
+  });
+
+  it("a late read of an earlier turn does not settle a Rule 1 line's wait", async () => {
+    const line = 'thanks so much, that helped. bye';
+    const c = await call();
+    await c.toEnd();
+    await c.advance(1_000);
+    c.finalWords(line);
+    const other = read(c.id, 'okay, bye!'); // the goodbye turn before the end, read late
+    await c.advance(200);
+    await other('none');
+    await c.advance(3_000); // the line's own read never comes: fails closed
+    expect(c.reopens()).toHaveLength(1);
+    expect(c.appConnected).toBe(true);
+  });
+});
+
+describe('containsLine', () => {
+  it('matches whole words after folding case and punctuation', () => {
+    expect(containsLine('Never. I gotta go!', 'never')).toBe(true);
+    expect(containsLine('know what, okay, bye', 'no')).toBe(false);
   });
 });
 
