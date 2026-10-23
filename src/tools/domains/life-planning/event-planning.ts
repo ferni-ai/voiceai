@@ -48,12 +48,9 @@ import type {
 // Import storage and helpers from extracted module
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
 import {
-  events,
-  majorPurchases,
-  vacations,
-  annualPlans,
-  ensureUserLoaded,
-  persistEventPlanningData,
+  loadCaller,
+  saveCaller,
+  type EventPlanningStores,
   BEST_TIMES_TO_BUY,
   DESTINATION_DATABASE,
   venueDatabase,
@@ -85,7 +82,8 @@ export { flushEventPlanningPersistence } from '../../event-planning/storage.js';
 // ============================================================================
 
 async function createEventWithPersistence(
-  userId: string,
+  userId: string | undefined,
+  stores: EventPlanningStores,
   name: string,
   type: EventType,
   date: Date,
@@ -93,8 +91,6 @@ async function createEventWithPersistence(
   budget: number,
   theme?: string
 ): Promise<Event> {
-  await ensureUserLoaded(userId);
-
   const id = `event_${Date.now()}`;
 
   const event: Event = {
@@ -114,8 +110,8 @@ async function createEventWithPersistence(
     createdAt: new Date(),
   };
 
-  events.set(id, event);
-  persistEventPlanningData(userId);
+  stores.events.set(id, event);
+  saveCaller(userId, stores);
   getLogger().info({ eventId: id, name, type, date }, '🎉 Event created');
 
   return event;
@@ -214,10 +210,10 @@ export function createEventPlanningTools() {
           return `I couldn't understand that date. Can you try something like "March 15, 2025"?`;
         }
 
-        // Get userId from context or use default
-        const userId = (context as { userId?: string })?.userId || 'default';
+        const { userId, stores } = await loadCaller(context);
         const event = await createEventWithPersistence(
           userId,
+          stores,
           name,
           type,
           eventDate,
@@ -315,15 +311,14 @@ export function createEventPlanningTools() {
           .describe('List of guests to add'),
       }),
       execute: async ({ eventId, guests }, context) => {
-        const userId = (context as { userId?: string })?.userId || 'default';
-        await ensureUserLoaded(userId);
+        const { userId, stores } = await loadCaller(context);
 
         // Get event (use most recent if not specified)
         let event: Event | undefined;
         if (eventId) {
-          event = events.get(eventId);
+          event = stores.events.get(eventId);
         } else {
-          const allEvents = Array.from(events.values());
+          const allEvents = Array.from(stores.events.values());
           event = allEvents[allEvents.length - 1];
         }
 
@@ -345,8 +340,8 @@ export function createEventPlanningTools() {
         }
 
         event.guestCount = event.guests.length + event.guests.filter((g) => g.plusOne).length;
-        events.set(event.id, event);
-        persistEventPlanningData(userId);
+        stores.events.set(event.id, event);
+        saveCaller(userId, stores);
 
         const plusOnes = guests.filter((g) => g.plusOne).length;
         let response = `✅ Added ${added} guest${added > 1 ? 's' : ''} to "${event.name}"`;
@@ -365,12 +360,13 @@ export function createEventPlanningTools() {
       parameters: z.object({
         eventId: z.string().optional().describe('Event ID'),
       }),
-      execute: async ({ eventId }) => {
+      execute: async ({ eventId }, context) => {
+        const { stores } = await loadCaller(context);
         let event: Event | undefined;
         if (eventId) {
-          event = events.get(eventId);
+          event = stores.events.get(eventId);
         } else {
-          const allEvents = Array.from(events.values());
+          const allEvents = Array.from(stores.events.values());
           event = allEvents[allEvents.length - 1];
         }
 
@@ -428,12 +424,13 @@ export function createEventPlanningTools() {
       parameters: z.object({
         eventId: z.string().optional().describe('Event ID'),
       }),
-      execute: async ({ eventId }) => {
+      execute: async ({ eventId }, context) => {
+        const { stores } = await loadCaller(context);
         let event: Event | undefined;
         if (eventId) {
-          event = events.get(eventId);
+          event = stores.events.get(eventId);
         } else {
-          const allEvents = Array.from(events.values());
+          const allEvents = Array.from(stores.events.values());
           event = allEvents[allEvents.length - 1];
         }
 
@@ -483,14 +480,13 @@ export function createEventPlanningTools() {
         notes: z.string().optional().describe('Any notes about completion'),
       }),
       execute: async ({ taskName, eventId, notes }, context) => {
-        const userId = (context as { userId?: string })?.userId || 'default';
-        await ensureUserLoaded(userId);
+        const { userId, stores } = await loadCaller(context);
 
         let event: Event | undefined;
         if (eventId) {
-          event = events.get(eventId);
+          event = stores.events.get(eventId);
         } else {
-          const allEvents = Array.from(events.values());
+          const allEvents = Array.from(stores.events.values());
           event = allEvents[allEvents.length - 1];
         }
 
@@ -511,8 +507,8 @@ export function createEventPlanningTools() {
 
         task.completed = true;
         if (notes) task.notes = notes;
-        events.set(event.id, event);
-        persistEventPlanningData(userId);
+        stores.events.set(event.id, event);
+        saveCaller(userId, stores);
 
         const remaining = event.checklist.filter((c) => !c.completed).length;
 
@@ -533,14 +529,13 @@ export function createEventPlanningTools() {
         eventId: z.string().optional().describe('Event ID'),
       }),
       execute: async ({ description, amount, category, eventId }, context) => {
-        const userId = (context as { userId?: string })?.userId || 'default';
-        await ensureUserLoaded(userId);
+        const { userId, stores } = await loadCaller(context);
 
         let event: Event | undefined;
         if (eventId) {
-          event = events.get(eventId);
+          event = stores.events.get(eventId);
         } else {
-          const allEvents = Array.from(events.values());
+          const allEvents = Array.from(stores.events.values());
           event = allEvents[allEvents.length - 1];
         }
 
@@ -549,8 +544,8 @@ export function createEventPlanningTools() {
         }
 
         event.spent += amount;
-        events.set(event.id, event);
-        persistEventPlanningData(userId);
+        stores.events.set(event.id, event);
+        saveCaller(userId, stores);
 
         const remaining = event.budget - event.spent;
         const percentUsed = Math.round((event.spent / event.budget) * 100);
@@ -579,12 +574,13 @@ export function createEventPlanningTools() {
       parameters: z.object({
         eventId: z.string().optional().describe('Event ID'),
       }),
-      execute: async ({ eventId }) => {
+      execute: async ({ eventId }, context) => {
+        const { stores } = await loadCaller(context);
         let event: Event | undefined;
         if (eventId) {
-          event = events.get(eventId);
+          event = stores.events.get(eventId);
         } else {
-          const allEvents = Array.from(events.values());
+          const allEvents = Array.from(stores.events.values());
           event = allEvents[allEvents.length - 1];
         }
 
@@ -645,8 +641,7 @@ export function createEventPlanningTools() {
         priorities: z.array(z.string()).optional().describe('Key priorities'),
       }),
       execute: async ({ type, name, budget, priorities }, context) => {
-        const userId = (context as { userId?: string })?.userId || 'default';
-        await ensureUserLoaded(userId);
+        const { userId, stores } = await loadCaller(context);
 
         const id = `purchase_${Date.now()}`;
 
@@ -662,8 +657,8 @@ export function createEventPlanningTools() {
           createdAt: new Date(),
         };
 
-        majorPurchases.set(id, purchase);
-        persistEventPlanningData(userId);
+        stores.majorPurchases.set(id, purchase);
+        saveCaller(userId, stores);
         getLogger().info({ purchaseId: id, type, name, budget }, '🛒 Major purchase plan created');
 
         const bestTimes = BEST_TIMES_TO_BUY[type] || BEST_TIMES_TO_BUY.appliances;
@@ -737,8 +732,7 @@ export function createEventPlanningTools() {
         tripType: z.enum(['relaxation', 'adventure', 'cultural', 'family', 'romantic', 'other']),
       }),
       execute: async ({ name, destination, travelers, budget, tripType }, context) => {
-        const userId = (context as { userId?: string })?.userId || 'default';
-        await ensureUserLoaded(userId);
+        const { userId, stores } = await loadCaller(context);
 
         const id = `vacation_${Date.now()}`;
 
@@ -756,8 +750,8 @@ export function createEventPlanningTools() {
           createdAt: new Date(),
         };
 
-        vacations.set(id, vacation);
-        persistEventPlanningData(userId);
+        stores.vacations.set(id, vacation);
+        saveCaller(userId, stores);
         getLogger().info({ vacationId: id, name, destination, budget }, '✈️ Vacation plan created');
 
         let response = `✈️ **Vacation Plan: ${name}**\n\n`;
@@ -832,8 +826,7 @@ export function createEventPlanningTools() {
         experiences: z.array(z.string()).optional().describe('Experiences to have'),
       }),
       execute: async ({ year, goals, experiences }, context) => {
-        const userId = (context as { userId?: string })?.userId || 'default';
-        await ensureUserLoaded(userId);
+        const { userId, stores } = await loadCaller(context);
 
         const id = `plan_${year}`;
 
@@ -862,8 +855,8 @@ export function createEventPlanningTools() {
           createdAt: new Date(),
         };
 
-        annualPlans.set(id, plan);
-        persistEventPlanningData(userId);
+        stores.annualPlans.set(id, plan);
+        saveCaller(userId, stores);
         getLogger().info({ year, goalsCount: plan.goals.length }, '📆 Annual plan created');
 
         let response = `📆 **${year} Annual Plan**\n\n`;
@@ -902,9 +895,10 @@ export function createEventPlanningTools() {
       parameters: z.object({
         year: z.number().optional(),
       }),
-      execute: async ({ year }) => {
+      execute: async ({ year }, context) => {
+        const { stores } = await loadCaller(context);
         const targetYear = year || new Date().getFullYear();
-        const plan = annualPlans.get(`plan_${targetYear}`);
+        const plan = stores.annualPlans.get(`plan_${targetYear}`);
 
         if (!plan) {
           return `No plan found for ${targetYear}. Want to create one?`;

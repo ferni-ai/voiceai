@@ -19,6 +19,8 @@ export interface CallUserResult {
   success: boolean;
   /** 'scheduled': outside the user's calling hours, it rings once they open */
   status?: string;
+  /** The persona's live agent is ringing them; otherwise a recorded voice message */
+  live?: boolean;
   error?: string;
 }
 

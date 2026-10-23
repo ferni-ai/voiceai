@@ -90,22 +90,18 @@ export function createDefaultTrialState(): TrialState {
 // TRIAL MANAGEMENT
 // ============================================================================
 
+/** The profile's trial state, or a new user's default. */
+function trialStateOf(profile: unknown): TrialState {
+  return (profile as { trialState?: TrialState } | null)?.trialState ?? createDefaultTrialState();
+}
+
 /**
  * Get trial state for a user.
  */
 export async function getTrialState(userId: string): Promise<TrialState> {
   try {
     const store = await getStore();
-    const profile = await store.getProfile(userId);
-
-    // Check if trialState exists on profile
-    const trialState = (profile as { trialState?: TrialState })?.trialState;
-    if (trialState) {
-      return trialState;
-    }
-
-    // New user - return default trial state
-    return createDefaultTrialState();
+    return trialStateOf(await store.getProfile(userId));
   } catch (error) {
     log.warn({ error: String(error), userId }, 'Failed to get trial state, using default');
     return createDefaultTrialState();
@@ -148,7 +144,10 @@ export async function startTrial(userId: string): Promise<TrialState> {
 export async function recordTrialTime(userId: string, sessionTimeMs: number): Promise<TrialState> {
   try {
     const store = await getStore();
-    const currentState = await getTrialState(userId);
+    // One read for both: a failed read must not pair a default state (0 ms used) with a good
+    // profile and reset the trial. After a failed read the save below refuses the stand-in.
+    const profile = await store.getOrCreateProfile(userId);
+    const currentState = trialStateOf(profile);
 
     // If trial already completed, don't update
     if (currentState.trialCompleted) {
@@ -167,7 +166,6 @@ export async function recordTrialTime(userId: string, sessionTimeMs: number): Pr
       log.info({ userId, totalTimeMs: newTimeUsed }, 'Trial completed');
     }
 
-    const profile = await store.getOrCreateProfile(userId);
     const updatedTrialState = { ...currentState, ...updates };
     const updatedProfile = { ...profile, trialState: updatedTrialState } as typeof profile & {
       trialState: TrialState;
@@ -187,8 +185,8 @@ export async function recordTrialTime(userId: string, sessionTimeMs: number): Pr
 export async function markTrialConverted(userId: string): Promise<void> {
   try {
     const store = await getStore();
-    const currentState = await getTrialState(userId);
-    const profile = await store.getOrCreateProfile(userId);
+    const profile = await store.getOrCreateProfile(userId); // one read, as in recordTrialTime
+    const currentState = trialStateOf(profile);
 
     const updatedTrialState = { ...currentState, convertedDuringTrial: true };
     const updatedProfile = { ...profile, trialState: updatedTrialState } as typeof profile & {

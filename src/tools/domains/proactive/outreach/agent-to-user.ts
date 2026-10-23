@@ -28,6 +28,7 @@ import {
 } from '../../../../services/scheduling/reminder-scheduler.js';
 import { recordReminderPromise } from '../../../../services/superhuman/semantic-intelligence/promise-keeper.js';
 import { sendEmail } from '../../../../services/communication-service.js';
+import { callPlacedReply } from './call-placed-reply.js';
 import { getCallUserPort } from './call-user-port.js';
 import { SAVED_NOT_VERIFIED } from './service.js';
 import {
@@ -369,9 +370,7 @@ Use when you need to reach them right now outside of the conversation.`,
             if (!result.success) {
               return `I couldn't place the call, so no call is coming: ${result.error ?? 'unknown error'}`;
             }
-            return result.status === 'scheduled'
-              ? "It's outside your calling hours right now, so I'll call you once they open."
-              : 'Calling you now.';
+            return callPlacedReply(result);
           }
 
           // Ferni reaching out unasked: STOP, texts off and quiet hours all hold it.
@@ -436,10 +435,7 @@ Use for important check-ins or when a phone call is more personal than text.`,
         if (!result.success) {
           return `I couldn't place the call, so no call is coming: ${result.error ?? 'unknown error'}`;
         }
-        if (result.status === 'scheduled') {
-          return "It's outside your calling hours right now, so I'll call you once they open.";
-        }
-        return 'Calling you now.';
+        return callPlacedReply(result);
       },
     });
   },

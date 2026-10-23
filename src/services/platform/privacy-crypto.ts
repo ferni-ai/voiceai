@@ -23,27 +23,16 @@ import {
   scrypt,
   timingSafeEqual,
 } from 'crypto';
-import admin from 'firebase-admin';
 import { promisify } from 'util';
-import { removeUndefined, cleanForFirestore } from '../../utils/firestore-utils.js';
 import { getLogger } from '../../utils/safe-logger.js';
+import {
+  findExistingToken,
+  loadTokenFromFirestore,
+  saveTokenToFirestore,
+} from './token-vault-store.js';
 
 const log = getLogger();
 const scryptAsync = promisify(scrypt);
-
-// ============================================================================
-// FIRESTORE SETUP FOR TOKEN VAULT
-// ============================================================================
-
-const TOKEN_VAULT_COLLECTION = 'token_vault';
-
-function getFirestore(): admin.firestore.Firestore | null {
-  try {
-    return admin.firestore();
-  } catch {
-    return null;
-  }
-}
 
 // ============================================================================
 // CONFIGURATION
@@ -342,76 +331,10 @@ export async function decryptVoiceSketch(encryptedSketch: string): Promise<{
 
 /**
  * Token vault for mapping tokens to values
- * Uses Firestore for persistence with in-memory cache
+ * Uses Firestore for persistence (token-vault-store.ts) with in-memory cache
  */
 const tokenVaultCache = new Map<string, string>();
 const reverseTokenCache = new Map<string, string>(); // value -> token for dedup
-
-/**
- * Save token to Firestore
- */
-async function saveTokenToFirestore(token: string, value: string, category: string): Promise<void> {
-  const db = getFirestore();
-  if (!db) return;
-
-  try {
-    await db
-      .collection(TOKEN_VAULT_COLLECTION)
-      .doc(token)
-      .set(
-        removeUndefined({
-          value,
-          category,
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        })
-      );
-  } catch (error) {
-    log.error({ error, token }, 'Failed to save token to Firestore');
-  }
-}
-
-/**
- * Load token from Firestore
- */
-async function loadTokenFromFirestore(token: string): Promise<string | null> {
-  const db = getFirestore();
-  if (!db) return null;
-
-  try {
-    const doc = await db.collection(TOKEN_VAULT_COLLECTION).doc(token).get();
-    if (doc.exists) {
-      const data = doc.data();
-      return data?.value || null;
-    }
-  } catch (error) {
-    log.error({ error, token }, 'Failed to load token from Firestore');
-  }
-  return null;
-}
-
-/**
- * Check if value already has a token in Firestore
- */
-async function findExistingToken(value: string, category: string): Promise<string | null> {
-  const db = getFirestore();
-  if (!db) return null;
-
-  try {
-    const snapshot = await db
-      .collection(TOKEN_VAULT_COLLECTION)
-      .where('value', '==', value)
-      .where('category', '==', category)
-      .limit(1)
-      .get();
-
-    if (!snapshot.empty) {
-      return snapshot.docs[0].id;
-    }
-  } catch (error) {
-    log.error({ error }, 'Failed to find existing token');
-  }
-  return null;
-}
 
 /**
  * Tokenize a sensitive value

@@ -291,11 +291,12 @@ export async function callWithPersonaVoice(
     return { success: false, message: 'Twilio not configured' };
   }
 
-  // Clean phone number
   const cleanPhone = toPhone.replace(/\D/g, '');
   const e164Phone = cleanPhone.startsWith('1') ? `+${cleanPhone}` : `+1${cleanPhone}`;
+  const { consentBlocks } = await import('../messaging/consent.js'); // MESSAGING_PIPELINE
+  const refused = await consentBlocks(e164Phone, 'call', true); // opt-outs, every caller
+  if (refused) return { success: false, message: `Not calling: ${refused}` };
 
-  // Get persona display name for fallback greeting
   const displayName = getPersonaDisplayName(personaId);
   const firstName = displayName.split(' ')[0]; // "Maya Santos" -> "Maya"
 
@@ -305,7 +306,6 @@ export async function callWithPersonaVoice(
   let twiml: string;
   let usedCartesiaVoice = false;
 
-  // Get fallback Twilio voice for this persona
   const twilioVoice = TWILIO_FALLBACK_VOICES[personaId] || 'Polly.Matthew';
   const greeting = options?.customGreeting || `Hey, this is ${firstName} calling.`;
 

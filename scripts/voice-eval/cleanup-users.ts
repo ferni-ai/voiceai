@@ -15,14 +15,14 @@
  * --include-legacy    also fixed ids from older runs (voice-eval-v12-story-1, …)
  * --keep a,b          extra ids to keep; voice-eval-sam is always kept
  * --env prod|dev      the database that env's runs wrote to (eval-database.mjs:
- *                     prod '(default)', dev EVAL_DEV_DATABASE, 'ferni-dev' after cutover)
- * --database ID       a database by name instead (default '(default)')
+ *                     prod '(default)', dev 'ferni-dev' unless EVAL_DEV_DATABASE says otherwise)
+ * --database ID       a database by name instead; with neither flag, prod's '(default)'
  *
  * --confirm must equal the number selected, so a changed selection (a new run,
  * a different project) cannot be deleted by an old command.
  */
 
-import { evalDatabase } from './eval-database.mjs';
+import { databaseFromArgs, PROD_DATABASE } from './eval-database.mjs';
 import { ALWAYS_KEEP, EVAL_PREFIX, selectEvalUsers } from './eval-users.js';
 
 function arg(name: string): string | undefined {
@@ -36,10 +36,7 @@ const confirm = arg('--confirm');
 const includeLegacy = process.argv.includes('--include-legacy');
 const minAgeHours = Number(arg('--min-age-hours') ?? 24);
 const keep = (arg('--keep') ?? '').split(',').filter(Boolean);
-const envName = arg('--env');
-const database = envName
-  ? evalDatabase(envName, { override: arg('--database') })
-  : (arg('--database') ?? '(default)');
+const database = databaseFromArgs(process.argv, { fallback: PROD_DATABASE });
 
 if (!project) {
   console.error('--project is required (the Firestore project holding bogle_users)');

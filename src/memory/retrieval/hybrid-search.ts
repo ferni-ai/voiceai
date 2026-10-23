@@ -76,6 +76,8 @@ export interface HybridSearchOptions {
    * no memories at all. Unset: wait for every leg.
    */
   legDeadlineMs?: number;
+  /** Put each vector result's saved date in metadata.timestamp (ISO), for the per-turn judge */
+  withTimestamps?: boolean;
 }
 
 /**
@@ -159,6 +161,7 @@ export async function hybridSearch(
     skipBM25 = false,
     skipVector = false,
     legDeadlineMs,
+    withTimestamps = false,
   } = options;
 
   const metrics: HybridSearchMetrics = {
@@ -228,6 +231,7 @@ export async function hybridSearch(
         const { results: vectorResults } = await searchMemories(query, userId, {
           topK: topK * 2,
           minScore: 0.3,
+          ...(withTimestamps && { includeTimestamp: true }),
         });
 
         metrics.vectorLatencyMs = Date.now() - vectorStart;
@@ -247,7 +251,7 @@ export async function hybridSearch(
                 type: 'memory' as const,
                 sources: ['vector'],
                 scoreBreakdown: { vector: r.score },
-                metadata: { source: r.source, sourceId: r.sourceId },
+                metadata: { source: r.source, sourceId: r.sourceId, ...(r.timestamp && { timestamp: r.timestamp }) }, // prettier-ignore
               },
               source: 'vector',
             }))
