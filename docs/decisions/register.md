@@ -37,8 +37,9 @@ one hears about it in the queue rather than at PR time.
 - **Enforcement:**
   - web: existing test `apps/web/tests/ui/avatar-motion/lid-colour.test.ts`:
     `inline-styles.css` fills `.lid-top`/`.lid-bottom` with `#ffffff`, the
-    midnight theme with an ivory in a set luminance band, the lid paths are
-    white without a stylesheet, and no other stylesheet sets a lid fill.
+    midnight theme with an ivory in a set luminance band (0.6 to 0.95), the
+    lid paths are white without a stylesheet, and the injected expression
+    styles set no lid fill.
   - iOS: pending `lid-caps-ios-alive`. On main the canvas avatar clips its
     lids and draws no caps. The white and ivory domes ride the iOS landing
     train in the Alive renderer (`AliveShader.swift`); turn the to-do into a
