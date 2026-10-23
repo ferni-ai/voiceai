@@ -26,6 +26,7 @@ import {
 } from '../../../services/safety/crisis-classifier.js';
 import { noteCrisisRisk } from '../../../services/safety/crisis-call-risk.js';
 import {
+  GROUNDED_LIGHT_TOUCH,
   groundedPriorRisk,
   groundedRelease,
 } from '../../../services/safety/crisis-grounded-release.js';
@@ -60,6 +61,8 @@ export interface TurnCrisis {
    * returns the patterns' reading.
    */
   softCheck(): Promise<boolean>;
+  /** The turn result's crisis field, with a grounded release's light touch as its guidance. */
+  summary(): Promise<CrisisDetection>;
   /**
    * Whether a router may answer this turn without the reply model (FTIS direct
    * execution, the semantic short-circuit): never with a crisis signal or a
@@ -112,8 +115,9 @@ export function startTurnCrisis(
   const priorRisk = callRiskBeforeTurn(call, input);
   const groundedPrior = groundedPriorRisk(call, userText);
   const classifier = startCrisisClassifier(input, { pattern, env, generate, scope, call });
-  let settled: Promise<{ crisis: CrisisDetectionResult; soft: boolean }> | null = null;
-  const settle = (): Promise<{ crisis: CrisisDetectionResult; soft: boolean }> =>
+  type Settled = { crisis: CrisisDetectionResult; soft: boolean; guidance?: string };
+  let settled: Promise<Settled> | null = null;
+  const settle = (): Promise<Settled> =>
     (settled ??=
       classifier?.mode === 'live'
         ? classifier.verdict.then(async (verdict) => {
@@ -135,7 +139,8 @@ export function startTurnCrisis(
             });
             if (released) {
               log.info({ outcome: 'soft', source: 'grounded_release' }, 'CRISIS_AGREEMENT');
-              return { crisis: patterns, soft: true };
+              // The same light touch the reply gate gives (crisis-gate.ts): one text, one voice.
+              return { crisis: patterns, soft: true, guidance: GROUNDED_LIGHT_TOUCH };
             }
             const crisis = applyClassifierVerdict(patterns, verdict);
             if (crisis !== patterns) noteCrisisRisk(call); // CRISIS_TRANSFER_EVERYDAY
@@ -146,7 +151,7 @@ export function startTurnCrisis(
               crisis !== patterns &&
               verdict?.risk === 'crisis' &&
               !guardFromDetection(crisis).shouldBlock;
-            const eased = (): { crisis: CrisisDetectionResult; soft: boolean } => {
+            const eased = (): Settled => {
               log.info({ outcome: 'soft', source: 'transfer-request' }, 'CRISIS_AGREEMENT');
               return { crisis: patterns, soft: true };
             };
@@ -199,6 +204,7 @@ export function startTurnCrisis(
     shouldBlock,
     resolve: () => settle().then((s) => s.crisis),
     softCheck: () => settle().then((s) => s.soft),
+    summary: () => settle().then((s) => crisisSummary(s.crisis, s.soft, s.guidance)),
     bypassAllowed: () => settle().then((s) => !s.soft && !hasCrisisSignal(s.crisis)),
   };
 }
@@ -209,9 +215,14 @@ export function hasCrisisSignal(crisis: CrisisDetectionResult): boolean {
 }
 
 /** The turn result's crisis field. */
-export function crisisSummary(crisis: CrisisDetectionResult, softCheck = false): CrisisDetection {
+export function crisisSummary(
+  crisis: CrisisDetectionResult,
+  softCheck = false,
+  softGuidance?: string
+): CrisisDetection {
   return {
     ...(softCheck ? { softCheck } : {}),
+    ...(softCheck && softGuidance ? { softGuidance } : {}),
     isCrisis: crisis.isCrisis,
     severity: crisis.severity,
     indicators: crisis.indicators,

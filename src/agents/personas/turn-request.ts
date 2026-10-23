@@ -63,12 +63,19 @@ import { gameTurnNote } from '../../services/games/call-game-state.js';
 import { quirkTurnNote } from './quirk-note.js';
 import { friendNotes } from './friend-tease.js';
 import { tuneTurnNote } from './named-tune-note.js';
+import {
+  internalsNote,
+  internalsTurn,
+  pushesInternals,
+  type InternalsTurn,
+} from './no-invented-internals.js';
 import { attunementNote } from './turn-attunement.js';
 import { getDeliberator } from './deliberation.js';
 import { commitmentInviteNote } from './commitment-invite.js';
 import { journalAskFor } from './journal-ask.js';
 import { callerTurnsOf, goodbyeNoteOn, happyExitNote, questionPaceNote } from './happy-exits.js';
 import { noteTurn } from './move-log.js';
+import { callerSetsDepthNote } from './caller-sets-depth.js';
 import { goodNewsNote } from './good-news-bigger.js';
 import { supportHeld } from './turn-candor.js';
 import { regexSignals } from './turn-extras.js';
@@ -123,9 +130,11 @@ export function withTurnReminder(
   const crisis = options.shape === false;
   const plain = !crisis && scriptFreeOn();
   const sessionId = sessionIdOf((session as { userData?: unknown }).userData);
-  // Nothing steers back to a locked teammate the caller didn't just name.
+  // NO_INVENTED_INTERNALS=on: asked how he's built after a tool failed, or he just made it up.
+  const internals = crisis ? '' : internalsTurn(chatCtx.items, words);
+  // Nothing steers back to a locked teammate the caller didn't just name, or into his internals.
   const keep = (text: string): boolean =>
-    withoutLockedTeammateNotes([text], view, words).length > 0;
+    withoutLockedTeammateNotes([text], view, words).length > 0 && !pushesInternals(internals, text);
   const offered = director?.current() ?? [];
   // DIRECTOR_ANSWER_TURN_GUARD=on: notes written before they answered Ferni's question are stale.
   const answering = isAnswerTurn(chatCtx.items, words);
@@ -197,6 +206,8 @@ export function withTurnReminder(
     chiefOfStaffNote(view.currentAgentId ?? 'ferni', words, lastAgentWordsIn(chatCtx.items), plain),
     // HONEST_FRIEND=on (no caving or flattery), FRIEND_TEASE=on (teasing earned); not in crisis.
     ...friendNotes(chatCtx, session, words, options.shape === false),
+    // NO_INVENTED_INTERNALS=on: "I don't know how that part works" is the whole answer.
+    internalsNote(internals),
     // With it, if they asked for live data a turn ago ("which city?"): still no made-up answer.
     ...withLiveData(style?.text ?? '', callerTurnsOf(chatCtx)),
     // PERSONA_VOICE=on: how this persona sounds, after the shared style so it wins (persona-voice.ts).
@@ -212,8 +223,10 @@ export function withTurnReminder(
     inviteFor(chatCtx, session, words, options.shape === false),
     // GOOD_NEWS_BIGGER=on: react, name it, one question about the moment; after the pace note.
     goodNewsNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
+    // CALLER_SETS_DEPTH=on: they played heavy news down; take their lead (caller-sets-depth.ts).
+    callerSetsDepthNote(words, callerTurnsOf(chatCtx), { crisis: options.shape === false }),
     // DIRECTOR_ESCALATE=on: a note given twice becomes a rule, last but repair; never in crisis.
-    options.shape !== false ? (director?.hardRule?.() ?? '') : '',
+    options.shape !== false ? hardRuleFor(director?.hardRule?.() ?? '', internals) : '',
     // REPAIR_MODE=on: a light check on words that look misheard, last so no "no question"
     // note above cancels it; none with crisis guidance or when they answered Ferni's question.
     !crisis && !answering ? repairNoteFor(chatCtx, session, process.env, plain) : '',
@@ -238,6 +251,10 @@ export function withTurnReminder(
   });
   return reminder ? withTurnStyleReminder(chatCtx, reminder) : chatCtx;
 }
+
+/** A note given twice, unless it pushes him into his internals (no-invented-internals.ts). */
+const hardRuleFor = (rule: string, internals: InternalsTurn): string =>
+  pushesInternals(internals, rule) ? '' : rule;
 
 /**
  * WRAP_UP=on: the caller is signing off after something was settled, so the
@@ -345,7 +362,10 @@ export async function toolsForTurn(
   // MINOR_CARE=on: a caller under 18 who isn't a verified owner gets no tool that stores
   // anything. The phone-safe set holds no tool that reaches others, so it covers both.
   const others = mayReachOthers(userIdOf(session.userData), sessionId, sessionIsVerifiedOwner);
-  const held = heldAfter(sessionId, callerWords(chatCtx), { asked: lastFerniLine(chatCtx.items) });
+  const held = heldAfter(sessionId, callerWords(chatCtx), {
+    asked: lastFerniLine(chatCtx.items),
+    userId: userIdOf(session.userData), // userHeld follows
+  });
   const allowed =
     phoneOnlyIdentity(sessionId) || held
       ? await withoutAccountTools(toolCtx, state)

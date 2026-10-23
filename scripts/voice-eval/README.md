@@ -20,3 +20,13 @@ caught bugs it missed. So gate on deterministic predicates (`predicates/`), and 
    SD, the A/B correlation, and MDE80 (the smallest true change a sweep of `--scenarios N` finds
    80% of the time). A CI spanning 0 is not a change; an MDE above the change you care about means
    add scenarios or repeats, not read the judge's means harder.
+
+## Realistic callers
+
+Cooperative scripted callers in clean TTS made every number so far. `run.sh --realistic` (options in
+its header) adds ums, restarts, a varied rate and 400–1500 ms mid-thought pauses (`caller-realism.mjs`,
+`caller-personas.json`); `realistic-*` scenarios are low-cooperation callers (#2333, #2289, #2422).
+Each run writes `<run>.realism.json`: takeover and false-end rates, gap and barge-in stop p50/p90
+(see `realism-metrics.mjs`). An unanswered turn counts as 15 s, so a short call's gap p90 mostly says
+whether any turn went unanswered: read `rt:unanswered-rate` beside it. `values` (`rt:*`) are
+`pairedCompare` input: `realism-metrics.mjs paired <A> <B>`, or add `realismValues(dir)` to `sweepValues(dir)`.
