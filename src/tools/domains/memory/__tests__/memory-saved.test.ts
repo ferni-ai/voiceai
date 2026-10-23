@@ -28,8 +28,13 @@ vi.mock('../../../../memory/firestore-vector-store.js', () => ({
 }));
 
 import { memoryExecutor } from '../../../../agents/shared/tool-executors/memory-executor.js';
-import { noteCallerWords, resetMinorCare } from '../../../../utils/minor-care.js';
 import {
+  bindSessionUser,
+  noteCallerWords,
+  resetMinorCare,
+} from '../../../../utils/minor-care.js';
+import {
+  announceMemorySaved,
   MEMORY_SAVED,
   memoryIsSensitive,
   opaqueMemoryId,
@@ -162,6 +167,32 @@ describe('memory_saved from the other writers', () => {
     await run();
     await settle();
     expect(firestoreAdd).toHaveBeenCalledTimes(2);
+    expect(sent).toHaveLength(1);
+  });
+});
+
+describe('announceMemorySaved holds minors itself (backstop if a caller forgets)', () => {
+  const saved = (sessionId: string, userId: string) => ({
+    sessionId,
+    userId,
+    id: 'mem_123456',
+    fact: 'likes trains',
+  });
+
+  it('sends nothing for a held session, and sends for one that is not held', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    noteCallerWords('kid-call', "I'm 13 and in seventh grade");
+    expect(await announceMemorySaved(saved('adult-call', 'u-adult'))).toBe(true);
+    expect(await announceMemorySaved(saved('kid-call', 'u-adult'))).toBe(false);
+    expect(sent.map((m) => m.sessionId)).toEqual(['adult-call']);
+  });
+
+  it('sends nothing for a held user, even from another session', async () => {
+    vi.stubEnv('MINOR_CARE', 'on');
+    bindSessionUser('kid-call', 'u-kid');
+    noteCallerWords('kid-call', "I'm 13 and in seventh grade");
+    expect(await announceMemorySaved(saved('text-thread', 'u-adult'))).toBe(true);
+    expect(await announceMemorySaved(saved('text-thread', 'u-kid'))).toBe(false);
     expect(sent).toHaveLength(1);
   });
 });
