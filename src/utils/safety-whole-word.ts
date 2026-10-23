@@ -107,3 +107,17 @@ export function testWholeWords(pattern: RegExp, text: string, env: Env = process
     env
   );
 }
+
+/**
+ * The semantic router's context boost (tools/semantic-router/matcher.ts) on
+ * one keyword: crisis tools' keywords go through saysPhrase, so 'die' stops
+ * boosting crisis_support on "diet". Other tools keep the substring check.
+ */
+export function routerContextMentions(
+  text: string,
+  keyword: string,
+  category: string,
+  env: Env = process.env
+): boolean {
+  return category === 'crisis' ? saysPhrase(text, keyword, env) : text.includes(keyword);
+}
