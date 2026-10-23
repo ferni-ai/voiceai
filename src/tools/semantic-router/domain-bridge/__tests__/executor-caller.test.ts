@@ -29,13 +29,17 @@ vi.mock('../../../registry/index.js', () => ({
 
 import { executeDomainTool } from '../executor.js';
 
+/** A session id the way voice-agent-entry mints it (server-side; see call-caller-id.ts). */
+const serverSession = (job: string) => `session-${job}-${Date.now()}`;
+const SESS_C = serverSession('AJ_c');
+
 const MAPPINGS = { note_add: { domainToolId: 'addNote' }, note_list: { domainToolId: 'getNotes' } };
 
 function run(
   tool: keyof typeof MAPPINGS,
   userId: string | undefined,
   note?: string,
-  sessionId = 's1'
+  sessionId = serverSession('AJ_s1')
 ) {
   const context = {
     userId: userId as string,
@@ -62,8 +66,8 @@ describe('domain bridge passes the caller to routed tools', () => {
   });
 
   it('two callers without an id, in two sessions, never see each other', async () => {
-    await run('note_add', undefined, 'my diagnosis', 'sess-a');
-    const other = await run('note_list', 'unknown', undefined, 'sess-b');
+    await run('note_add', undefined, 'my diagnosis', serverSession('AJ_a'));
+    const other = await run('note_list', 'unknown', undefined, serverSession('AJ_b'));
 
     expect(other.naturalResponse).toBe('nothing yet');
     expect(notes.has('default')).toBe(false);
@@ -75,8 +79,8 @@ describe('domain bridge passes the caller to routed tools', () => {
   });
 
   it('an id-less caller hears their own note back later in the same session', async () => {
-    await run('note_add', undefined, 'buy milk', 'sess-c');
-    expect((await run('note_list', 'anon', undefined, 'sess-c')).naturalResponse).toBe('buy milk');
+    await run('note_add', undefined, 'buy milk', SESS_C);
+    expect((await run('note_list', 'anon', undefined, SESS_C)).naturalResponse).toBe('buy milk');
   });
 
   it("keeps a per-call anon: caller's own id", async () => {

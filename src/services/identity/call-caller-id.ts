@@ -4,32 +4,66 @@
  * PRIVACY: tools key a caller's data by this id. A member, or a minted per-call
  * `anon:<id>` / `onbehalf:<id>`, is used as given. A missing id, a placeholder
  * (`anonymous`, `unknown`, `anon`, `gateway`, ...; PLACEHOLDER_IDS) or a bare
- * `anon:` is one bucket every id-less caller shares, so it is replaced by ONE
- * anon: id per session: the caller's note is there when they ask for it later
- * in the call, and no other session ever sees it.
+ * `anon:` is one bucket every id-less caller shares, so it is replaced by an
+ * anon: id of this session's own: the caller's note is there when they ask for
+ * it later in the call, and no other session ever sees it.
+ *
+ * The session key must be server-minted, or two callers share one id again:
+ * - an object the server creates per session (a RunContext's AgentSession or
+ *   its userData), held in a WeakMap so it goes when the session does; or
+ * - a voice session id in the form voice-agent-entry mints,
+ *   `session-<LiveKit job id>-<epoch ms>`. Anything else (empty, a placeholder,
+ *   a fallback like `session-<ms>`, anything a client could pick) gets a fresh
+ *   anon: id on every call.
  *
  * @module services/identity/call-caller-id
  */
 import { isMemberIdentity } from './member-identity.js';
 import { newAnonymousId } from './anonymous-session-id.js';
-import { nonAccountPrefixOf } from '../../utils/synthetic-user.js';
+import { nonAccountPrefixOf, PLACEHOLDER_IDS } from '../../utils/synthetic-user.js';
 
-/** Most string-keyed sessions remembered at once; the oldest is dropped first. */
+/** `session-${ctx.job.id}-${Date.now()}` (voice-agent-entry/index.ts): server-minted only. */
+const SERVER_SESSION_ID = /^session-([A-Za-z0-9_]+)-(\d{13})$/;
+/** A voice session is over long before this; its entry is dropped on the next mint. */
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
 const MAX_SESSIONS = 5000;
+
+/**
+ * Never a caller's own id. Listed here as well as in PLACEHOLDER_IDS so this
+ * holds wherever that set stands (user-id-guard trusts it; widen it with care).
+ */
+const SHARED_IDS: ReadonlySet<string> = new Set([
+  ...PLACEHOLDER_IDS,
+  'anon',
+  'session',
+  'gateway',
+  'gateway-recovery',
+]);
+
 const bySessionId = new Map<string, string>();
 const bySessionObject = new WeakMap<object, string>();
 
 /** Whether `id` is usable as given: a member, or a minted anon:/onbehalf: id with a body. */
 function usable(id: string): boolean {
+  if (SHARED_IDS.has(id.toLowerCase())) return false;
   const prefix = nonAccountPrefixOf(id.toLowerCase());
   if (prefix !== undefined) return id.length > prefix.length;
   return isMemberIdentity(id);
 }
 
+/** Drop sessions older than the TTL, then the oldest beyond the cap. */
+function prune(now: number): void {
+  for (const key of bySessionId.keys()) {
+    const started = Number(SERVER_SESSION_ID.exec(key)?.[2]);
+    if (now - started > SESSION_TTL_MS || bySessionId.size > MAX_SESSIONS) bySessionId.delete(key);
+    else break; // insertion order is start order, so the rest are newer
+  }
+}
+
 /**
  * `userId` when usable; otherwise this session's anon: id, minted on first use.
- * `session` is the session id or a per-session object (a RunContext's session or
- * userData). With neither, every call gets a fresh anon: id.
+ * `session` is a server-created per-session object or a server-minted voice
+ * session id (see the module doc). Anything else: a fresh anon: id per call.
  */
 export function callerIdFor(userId: unknown, session?: string | object | null): string {
   const id = typeof userId === 'string' ? userId.trim() : '';
@@ -39,11 +73,11 @@ export function callerIdFor(userId: unknown, session?: string | object | null): 
     bySessionObject.set(session, existing);
     return existing;
   }
-  if (typeof session !== 'string' || !session) return newAnonymousId();
+  if (typeof session !== 'string' || !SERVER_SESSION_ID.test(session)) return newAnonymousId();
   const existing = bySessionId.get(session);
   if (existing) return existing;
   const minted = newAnonymousId();
   bySessionId.set(session, minted);
-  if (bySessionId.size > MAX_SESSIONS) bySessionId.delete(bySessionId.keys().next().value!);
+  prune(Date.now());
   return minted;
 }
