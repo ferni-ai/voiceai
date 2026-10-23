@@ -12,6 +12,8 @@ import type { ParsedMetadata } from './types.js';
 import { parseOnBehalfDispatch } from '../../services/outreach/on-behalf-dispatch.js';
 import { maskPhoneNumber } from '../../services/identity/phone-attestation.js';
 import { createLogger } from '../../utils/safe-logger.js';
+import { errorClass } from '../../utils/error-class.js';
+import { jobMetadataLine } from './startup-log.js';
 
 // What a dispatch carries is the caller's (why Ferni calls, what to ask a
 // doctor, the last talk): logged as kinds and lengths only, through the safe
@@ -41,14 +43,6 @@ const INBOUND_ACCOUNT_FIELDS = [
 export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
   let metadata: Record<string, unknown> = {};
 
-  log.debug(
-    {
-      jobMetadataChars: ctx.job.metadata?.length ?? 0,
-      roomMetadataChars: ctx.job.room?.metadata?.length ?? 0,
-    },
-    'Job metadata received'
-  );
-
   if (ctx.job.metadata) {
     try {
       metadata = JSON.parse(ctx.job.metadata);
@@ -56,9 +50,15 @@ export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
         `[voice-agent-entry] 🔍 DEBUG: Parsed job metadata keys: ${Object.keys(metadata).join(', ')}\n`
       );
     } catch (e) {
-      process.stderr.write(`[voice-agent-entry] Failed to parse job.metadata: ${e}\n`);
+      process.stderr.write(
+        `[voice-agent-entry] Failed to parse job.metadata: ${errorClass(e)} (${ctx.job.metadata.length} chars)\n`
+      );
     }
   }
+  // The call reviewer reads persona and eval calls from this line: allowlisted keys only.
+  process.stderr.write(
+    `[voice-agent-entry] 🔍 DEBUG: ${jobMetadataLine(ctx.job.metadata ? metadata : undefined)}\n`
+  );
   if (!metadata.persona_id && ctx.job.room?.metadata) {
     try {
       const roomMeta = JSON.parse(ctx.job.room.metadata);
@@ -66,7 +66,9 @@ export function parseJobMetadata(ctx: JobContext): ParsedMetadata {
         metadata = { ...metadata, ...roomMeta };
       }
     } catch (e) {
-      process.stderr.write(`[voice-agent-entry] Failed to parse room.metadata: ${e}\n`);
+      process.stderr.write(
+        `[voice-agent-entry] Failed to parse room.metadata: ${errorClass(e)} (${ctx.job.room.metadata.length} chars)\n`
+      );
     }
   }
 

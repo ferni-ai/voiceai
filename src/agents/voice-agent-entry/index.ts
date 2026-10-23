@@ -17,7 +17,7 @@
 import type { JobContext } from '@livekit/agents';
 import { roomClosedBeforeParticipant, waitForParticipantWithTimeout } from './participant-wait.js';
 import { noteCallerJoined } from './sip-caller.js';
-import { identityDiagnosticsText, participantKind } from './startup-log.js';
+import { writeIdentityDiagnostics, writeParticipantReady } from './startup-log.js';
 import { callerChecks } from './caller-recognition.js';
 import { settleCallerZone } from './phone-parity.js';
 import { injectUserAwareness } from './user-awareness-injection.js';
@@ -418,7 +418,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
         process.stderr.write(
           `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
         );
-        process.stderr.write(identityDiagnosticsText(userId, services.userProfile, diagnostics));
+        writeIdentityDiagnostics(userId, services.userProfile, diagnostics);
       } catch {
         process.stderr.write(
           `[voice-agent-entry] 📦 Services initialized (userId: ${userId || 'anonymous'}, returning: ${isReturningUser})\n`
@@ -596,9 +596,7 @@ export async function runFullVoiceAgentEntry(ctx: JobContext): Promise<void> {
 
       if (participant && ctx.room) {
         await markCallStageSafe(sessionId, 'participant_ready', participantWaitResult.endedAt);
-        process.stderr.write(
-          `[voice-agent-entry] 👤 Participant ready (${participantWaitResult.source}): ${participantKind(participant.identity)}\n`
-        );
+        writeParticipantReady(participantWaitResult.source, participant.identity);
         void noteCallerJoined({ participant, room: ctx.room, sessionId });
         await markCallStageSafe(sessionId, 'orchestrator_start');
         const { runMultiAgentMode } = await import('../voice-agent/phases/index.js');

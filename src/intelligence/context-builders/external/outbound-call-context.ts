@@ -87,7 +87,7 @@ export function setOutboundCallContext(
     {
       roomOrSessionId,
       callId: context.callId,
-      hasRecipientName: context.recipientName !== 'Unknown', // never the name: the caller's contact
+      hasRecipientName: Boolean(context.recipientName) && context.recipientName !== 'Unknown', // never the name
       callType: context.callType,
     },
     'Stored outbound call context'

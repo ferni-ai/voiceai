@@ -307,7 +307,7 @@ export const proactiveSessionContextBuilder: ContextBuilder = {
       {
         sessionId,
         triggerType: context.triggerType,
-        triggerReason: context.triggerReason,
+        triggerReasonChars: context.triggerReason.length,
       },
       'Building proactive session context'
     );
