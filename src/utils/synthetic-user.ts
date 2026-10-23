@@ -92,7 +92,7 @@ const FORMAT_CHARS = /\p{Cf}/gu;
  * NBSP), format characters dropped, trimmed, lower case. Comparison only; never
  * store or key by it.
  */
-function comparable(userId: string): string {
+export function comparableId(userId: string): string {
   return userId.normalize('NFKC').replace(FORMAT_CHARS, '').trim().toLowerCase();
 }
 
@@ -104,7 +104,7 @@ function comparable(userId: string): string {
  */
 export function isSharedPlaceholderId(userId: string | undefined | null): boolean {
   if (typeof userId !== 'string') return true;
-  const id = comparable(userId);
+  const id = comparableId(userId);
   return !id || PLACEHOLDER_IDS.has(id) || (NON_ACCOUNT_PREFIXES as readonly string[]).includes(id);
 }
 
@@ -121,12 +121,12 @@ export function nonAccountPrefixOf(userId: string): string | undefined {
 
 /**
  * Whether this id names no account: missing or blank, a placeholder, or an
- * anon:/onbehalf: session id. Compared as `comparable` gives it, so 'Anonymous',
+ * anon:/onbehalf: session id. Compared as `comparableId` gives it, so 'Anonymous',
  * ' ANON:x' or a zero-width/full-width disguise can't slip past. services/identity/member-identity.ts builds on it.
  */
 export function namesNoAccount(userId: string | undefined | null): boolean {
   if (typeof userId !== 'string') return true;
-  const id = comparable(userId);
+  const id = comparableId(userId);
   if (!id || PLACEHOLDER_IDS.has(id)) return true;
   return nonAccountPrefixOf(id) !== undefined;
 }
