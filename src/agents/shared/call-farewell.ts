@@ -222,7 +222,12 @@ function closingClause(words: readonly string[], closers: ReadonlySet<string>): 
 }
 
 function clauseWords(text: string): string[][] {
-  let t = text.toLowerCase().replace(/[’]/g, "'");
+  // Accents folded: "adiós" is "adios"
+  let t = text
+    .normalize('NFKD')
+    .replace(/\p{M}+/gu, '')
+    .toLowerCase()
+    .replace(/[’]/g, "'");
   if (t.length > MAX_CALLER_CHARS) {
     // Keep the end, where a goodbye is, and drop the word the cut landed in.
     t = t.slice(-MAX_CALLER_CHARS);
@@ -264,6 +269,11 @@ const SIGN_OFFS = new Set([
     'cool',
     'great',
     'perfect',
+    // Goodnights, a day done, and Spanish ("adiós" is accent-folded, clauseWords)
+    ...expand(['sleep'], ['well', 'tight']),
+    'sweet dreams',
+    ...expand(["i'm", 'im', 'i am'], ['done for'], ['today', 'tonight', 'the day', 'now']),
+    ...['gracias', 'muchas gracias', 'adios', 'ciao', 'cheers'],
   ],
 ]);
 

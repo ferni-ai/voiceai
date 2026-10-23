@@ -523,6 +523,53 @@ describe('a goodbye that carries risk (#2291)', () => {
   });
 });
 
+describe('plain goodbyes are never taken for risk (#2291)', () => {
+  const PLAIN = [
+    'talk soon',
+    'good night, sleep well',
+    "bye, I'm done for today",
+    'adiós',
+    'gracias, adiós',
+  ];
+
+  it.each(PLAIN)(
+    '"%s" in the window: no reopen, no risk recorded, the app leaves',
+    async (line) => {
+      const c = await call();
+      await c.toEnd();
+      await c.advance(400);
+      c.finalWords(line);
+      c.say('user', line);
+      await c.advance(10_000);
+      expect(c.reopens()).toEqual([]);
+      expect(crisisRiskThisCall(c.id)).toBe(false);
+      expect(c.events).toContain(`${DISCONNECT_DELAY_MS} app left`);
+    }
+  );
+
+  it('they are sign-offs with no risk; "alright, talk soon" is still the caller saying goodbye', () => {
+    for (const line of [...PLAIN, 'alright, talk soon', 'goodnight, sweet dreams']) {
+      expect(farewellRisk(line), line).toBe(false);
+      expect(callerSignsOff(line), line).toBe(true);
+    }
+    expect(callerSaysGoodbye('alright, talk soon')).toBe(true);
+  });
+
+  it('"done" outside a whole goodbye clause, and "para siempre", stay risk', () => {
+    for (const line of [
+      "I'm done. bye",
+      "I'm done with all of it, goodbye",
+      "bye, I'm done",
+      'adiós para siempre',
+      'hang up on life. bye',
+      'hang up by my neck. bye',
+    ]) {
+      expect(farewellRisk(line), line).toBe(true);
+      expect(callerSignsOff(line), line).toBe(false);
+    }
+  });
+});
+
 describe('after a reopen (#2291)', () => {
   it('Ferni answering with a goodbye re-arms the watcher and the call ends on its own', async () => {
     const c = await call();
