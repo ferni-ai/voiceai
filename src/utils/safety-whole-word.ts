@@ -98,6 +98,62 @@ export function saysPhrase(text: string, phrase: string, env: Env = process.env)
   );
 }
 
+/**
+ * Crisis-severity checks with the flag on read recall-first: a match need only
+ * start at a word edge and may end in any letters, with no negation guard. So on
+ * never reads less risk than the substring check, except where the phrase starts
+ * inside a word ("skill them", "spend it all", "send it"). The whole-word ending
+ * and the negation guard dropped real risk: "kill themselves" ('kill them'),
+ * "suicidality" ('suicidal'), "self-harmer", "self-harmful", and the labelled
+ * risk line "I'm not suicidal or anything, but I did write out my final wishes".
+ * Tried on the plain lowercased text, so every substring match that starts at a
+ * word edge still counts, and on its STT spelling with the phrase's words allowed
+ * to run together ("self harm", "selfharm"). Low-severity checks keep saysPhrase.
+ */
+function startEdgeMatch(pattern: RegExp, text: string): boolean {
+  const re = new RegExp(pattern.source, `${pattern.flags.replace(/[gy]/g, '')}g`);
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    if (!isWordChar(text[m.index - 1])) return true;
+    re.lastIndex = m.index + 1;
+  }
+  return false;
+}
+
+const riskPhrases = new Map<string, [RegExp, RegExp]>();
+function riskPatterns(phrase: string): [RegExp, RegExp] {
+  let res = riskPhrases.get(phrase);
+  if (!res) {
+    const plain = new RegExp(escape(phrase), 'u');
+    const spelled = sttSpelling(phrase).trim().split(/\s+/).map(escape).join('\\s*');
+    res = [plain, new RegExp(spelled, 'u')];
+    riskPhrases.set(phrase, res);
+  }
+  return res;
+}
+
+/** text.toLowerCase().includes(phrase), or the recall-first reading with the flag on. */
+export function saysRiskPhrase(text: string, phrase: string, env: Env = process.env): boolean {
+  return wholeWordSite(
+    phrase,
+    () => text.toLowerCase().includes(phrase),
+    () => {
+      const [plain, spelled] = riskPatterns(phrase);
+      return startEdgeMatch(plain, text.toLowerCase()) || startEdgeMatch(spelled, sttSpelling(text));
+    },
+    env
+  );
+}
+
+/** pattern.test(text) for a crisis-severity regex, or the recall-first reading. */
+export function testRiskWords(pattern: RegExp, text: string, env: Env = process.env): boolean {
+  return wholeWordSite(
+    pattern.source.slice(0, 60),
+    () => pattern.test(text),
+    () => startEdgeMatch(pattern, text) || startEdgeMatch(pattern, normalized(text)),
+    env
+  );
+}
+
 /** pattern.test(text) for a safety regex written without \b, or the whole-word reading. */
 export function testWholeWords(pattern: RegExp, text: string, env: Env = process.env): boolean {
   return wholeWordSite(
