@@ -1,0 +1,367 @@
+{
+  "src/agents/gce/warmup.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/integrations/clip-player.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/integrations/predictive-intelligence-integration.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/model-provider/gemini-live.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/agents/multi-agent/agent-setup.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 5
+    }
+  },
+  "src/agents/multi-agent/call-session.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/agents/multi-agent/live-call-behaviors.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/multi-agent/persona-agent-factory.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/multi-agent/persona-tts.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/agents/personas/opener-gate.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/personas/prompt-loader.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/processors/turn-processor/inject-context.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/processors/turn-processor/process-turn.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 6
+    }
+  },
+  "src/agents/shared/conversational-audio-cache.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/shared/dev-telemetry.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/agents/shared/function-call-telemetry.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/shared/health-server.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/agents/shared/line-screen.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/shared/performance/integration.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/agents/shared/performance/latency-feature-flags.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/agents/shared/tts-wrapper.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/agents/voice-agent-entry/constants.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/voice-agent-entry/index.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/voice-agent-entry/session-creator.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/agents/voice-agent/cleanup-handler.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/voice-agent/phases/performance-init.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/voice-agent/session-init-handler.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/voice-agent/session-state-handler.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/agents/voice-agent/transcript-handler.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/api/seeds-import.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/api/twilio-routes.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/diagnostics/memory-pipeline-diagnostics.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/intelligence/context-builders/behavioral/awareness.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/intelligence/context-builders/builder-prioritization.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/intelligence/context-builders/index.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/intelligence/scripted-hint-lines.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/intelligence/utils/injection-filter.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/memory/profile-store.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/memory/vectors/rust-accelerator/core.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/servers/api/routes/twilio-call-status.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/servers/token/demo-rate-limit-shared.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/communication/intelligence-publisher.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/context-awareness/context-inspection.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/context-inspection.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/engagement/engagement-notification-service.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/evalops/evaluation-persistence.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/gtm/gtm-config.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/services/llm-utils.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/outreach/call-hours-guard.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/outreach/call-retry.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/outreach/engagement/personalization-engine.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/services/outreach/pre-call-heads-up.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/outreach/proactive-channels/proactive-tick.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/outreach/quiet-hours.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/outreach/webhooks/twilio-webhooks.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 3
+    }
+  },
+  "src/services/pubsub/pubsub-client.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/session/session-continuity.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/services/world-awareness/session-integration.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/speech/coordination/persona-acknowledgments.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/speech/coordination/speech-coordinator.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/speech/tts-gateway/gateway-tts-node.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/speech/tts-gateway/index.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/startup.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 3
+    }
+  },
+  "src/tasks/task-entry-transition.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/tasks/task-manager.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/tools/domains/telephony/index.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/tools/registry/loader.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  },
+  "src/tools/semantic-router/advanced/intelligent/hierarchical-classifier.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/tools/semantic-router/config.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/tools/semantic-router/integration/init.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 3
+    }
+  },
+  "src/utils/safe-logger.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/workers/base-worker.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 1
+    }
+  },
+  "src/workers/outreach-worker.ts": {
+    "ferni/no-env-flag-compare": {
+      "count": 2
+    }
+  }
+}
