@@ -376,18 +376,33 @@ export const SESSION_CONTEXT_PATTERNS = [
   /\bthank you for everything\b/,
 ];
 
-/** Someone the caller knows is at risk. */
 /**
  * The floor (#2525): first-person ending words, whatever comes before them. The tiered
  * patterns above name the modal or connective ("want to", "going to"); "I might kill myself",
  * "before I kill myself", "until I end it all" matched none of them and scored 0 in both
  * detectors. detectCrisis scores this floor on its own, softened exactly as the tiers are
- * (crisis-modifiers.ts). "killing myself" over work is an idiom ("killing myself at the gym"), and
- * "take my life" only ends a clause or meets a time or connective ("take my life savings" is none).
+ * (crisis-modifiers.ts), unless the clause is one of ENDING_IDIOMS. Places and means never
+ * exempt it ("killing myself in the garage tonight", "take my life in the garage").
  */
 export const FIRST_PERSON_ENDING =
-  /\b(kill(ed)? my ?self|killing my ?self\b(?! (at|over|with|for|on|in|to|trying|working|laughing)\b)|end(ed|ing)? (my (own )?life|it all)|tak(e|ing) my (own )?life(?=\s*($|[.!?,;]|(tonight|today|now|soon|tomorrow|this|after|before|when|if|and|but|so)\b))|unaliv(e|ing) my ?self|commit(ting)? suicide)\b/;
+  /\b(kill(ed|ing)? my ?self|end(ed|ing)? (my (own )?life|it all)|tak(e|ing) my (own )?life\b(?! (back|savings|story|insurance|admin|seriously|more seriously|for granted|into my own hands|in (a|my|another) (new |different )?direction|to the next level|forward)\b)|unaliv(e|ing) my ?self|commit(ting)? suicide)\b/;
 
+/**
+ * Everyday idioms around the floor's words, judged on the clause: laughing, an accident
+ * someone nearly had, effort at work, school, the gym or a task, a game, and ending a life
+ * "as a" role. Only named idioms: never a bare preposition, which swallowed "I'm killing
+ * myself in the garage tonight" (#2528 round 1).
+ */
+export const ENDING_IDIOMS = [
+  /\bkill(ed|ing)? my ?self laughing\b/,
+  /\b(almost|nearly|practically|could have|could'?ve) kill(ed)? my ?self (on|off|falling|tripping|slipping|riding|crashing)\b/,
+  /\bkill(ed|ing)? my ?self (every (day|night) )?(at (work|the gym|school|practice|the office)|studying|working|training|cramming|trying to (make|get|keep|please|finish))\b/,
+  /\bkill(ed|ing)? my ?self over (this|that|these|those|my|the) (homework|spreadsheet|project|essay|paper|assignment|report|deadline|exam|job|class|code)\b/,
+  /\bkill(ed|ing)? my ?self in (minecraft|fortnite|roblox|gta|elden ring|the sims|skyrim|zelda|((the|a|this|that|my) )?(video )?games?)\b/,
+  /\bend(ed|ing)? my life (as an?|of) \w+/,
+];
+
+/** Someone the caller knows is at risk. */
 export const THIRD_PARTY_PATTERNS = [
   /\b(wants?|going|gonna|threaten(s|ed|ing)?|talk(s|ed|ing)? about|tr(y|ies|ied|ying)|plan(s|ning)?|thinking about) (to )?(kill|killing|hurt|hurting|end|ending) (himself|herself|themselves|themself|(his|her|their) (own )?life)\b/,
   /\b(is|'s|been|keeps?|started) (cutting|harming) (himself|herself|themselves|themself)\b|\bhurting (himself|herself|themselves) on purpose\b/,
