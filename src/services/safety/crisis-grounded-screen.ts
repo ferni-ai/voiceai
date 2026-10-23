@@ -12,9 +12,9 @@
  * interrupted reply keeps only what played). If Ferni's line before the
  * answer was something else (the caller went quiet and Ferni filled the
  * silence), the question is asked once more; after that, anything but a
- * clear no takes the crisis path. The caller's turn after the answer is
- * watched once (#2511): a no taken back or a yes after the gentle offer takes
- * the crisis path too.
+ * clear no takes the crisis path. The caller's next substantive turn after
+ * the answer is watched (#2511): a no taken back or a yes after the gentle
+ * offer takes the crisis path too, judged by one model read (watchScreen).
  *
  * @module CrisisGroundedScreen
  */
@@ -22,12 +22,16 @@
 import { ReadableStream, TransformStream } from 'node:stream/web';
 import { createLogger } from '../../utils/safe-logger.js';
 import { stripSSML } from '../../utils/text-utils.js';
+import { noteCrisisRisk } from './crisis-call-risk.js';
 import {
   applyClassifierVerdict,
+  buildCrisisGuidance,
   detectCrisis,
   type CrisisDetectionResult,
 } from './crisis-guard.js';
+import type { CrisisGenerateFn } from './crisis-classifier.js';
 import { EVENTS, alwaysHold, wordsOf } from './crisis-release-words.js';
+import { WATCH_RANK, readScreenFollowup, type WatchResult } from './crisis-screen-followup.js';
 
 const log = createLogger({ module: 'CrisisGroundedScreen' });
 
@@ -48,9 +52,12 @@ const loose = (text: string): string =>
 export const SCREEN_QUESTION =
   "Can I ask you something, and it's okay either way: have you been having thoughts of hurting yourself, or of ending your life?";
 
-/** What the screen makes of a caller turn. */
-export type ScreenOutcome = 'none' | 'reask' | 'positive';
-const RANK: Record<ScreenOutcome, number> = { none: 0, reask: 1, positive: 2 };
+/** What the screen makes of a caller turn; 'watch' waits for watchScreen's read. */
+export type ScreenOutcome = 'none' | 'reask' | 'watch' | 'positive';
+const RANK: Record<ScreenOutcome, number> = { none: 0, reask: 1, watch: 1, positive: 2 };
+
+/** Caller turns watched after the answer: a backchannel ("Okay.") doesn't use one up alone. */
+const WATCH_TURNS = 2;
 
 /**
  * Per call, after a live release: the released turn, Ferni's line before it,
@@ -63,12 +70,21 @@ interface Judged {
   turn: string;
   companion: string;
   outcome: ScreenOutcome;
-  /** Judged as the one caller turn after the answer (#2511). */
-  watch?: boolean;
+  /** A watched turn after the answer (#2511): its reads, by the words each path saw. */
+  reads?: Map<string, Promise<WatchResult>>;
 }
 const screens = new Map<
   string,
-  { at: number; asked: string; before: string; reasked: boolean; watched: boolean; last?: Judged }
+  {
+    at: number;
+    asked: string;
+    before: string;
+    reasked: boolean;
+    /** The caller's answer, and the watched turns left after it. */
+    answer?: string;
+    window: number;
+    last?: Judged;
+  }
 >();
 
 /**
@@ -95,45 +111,29 @@ function clearNo(answer: string): boolean {
 }
 
 /**
- * The caller's turn after the answer, judged once (#2511): a no taken back or a yes after the
- * gentle offer. Not "anything but a clear no": a release follows an ordinary turn, so the next
- * turn is usually ordinary ("Pie, obviously.") and would get 988. Positive, whatever Ferni
- * said between, on a take-back anywhere in the turn (the caller's later words merge into one
- * turn: "Okay. Actually, yes, I have."):
- * - "actually" with a yes or not knowing ("Actually... I don't know.");
- * - an honesty marker with a yes, not knowing or a bad stretch ("It's been really bad, honestly.");
- * - owning the no ("I lied", "I said no but…", "I didn't want to say it");
- * - steering away from the question ("Can we not talk about that.");
- * - a no that trails off ("not really no… I mean…").
- * A bare yes ("Yeah.", "Sometimes, maybe.") counts only when Ferni asked nothing since, so it
- * can't be answering Ferni's own question ("Want me to text him?").
+ * Words that force guidance on a watched turn (#2511), escalate-only: a miss defers to
+ * watchScreen's read, never passes alone. Risk words; owning the no ("I kind of lied before",
+ * "I said no but…"); "actually, yes"; a no that trails off ("not really no… I mean…").
  */
-const AFFIRM =
-  "(?:yes|yeah|yep|yup|ya|mhm|uh huh|mm hmm|mm hm|i have|i do|i am|i'?ve been|i did|sometimes|kind of|kinda|sort of|a little|a bit|maybe|i guess|i think so|i mean yeah|more than)";
 const UNSURE = "(?:i don'?t know|i do not know|idk|dunno|not sure|i'?m not sure|hard to say)";
-const BAD =
-  "(?:it'?s been|it has been|things have been|i'?ve been|been) (?:really |pretty |so |kind of |kinda )?(?:bad|hard|rough|awful|terrible|dark|heavy|not good|not great|struggling)";
-const HONEST =
-  "(?:honestly|truthfully|to be honest|tbh|ngl|not gonna lie|if i'?m honest|in all honesty)";
-const TAKES_BACK = new RegExp(
+const ESCALATES = new RegExp(
   [
-    `(?:^| )actually (?:${AFFIRM}|${UNSURE})\\b`,
-    `(?:^| )${HONEST}\\b.*(?:^| )(?:${AFFIRM}|${UNSURE}|${BAD})\\b`,
-    `(?:^| )(?:${AFFIRM}|${UNSURE}|${BAD})\\b.*(?:^| )${HONEST}\\b`,
-    "(?:^| )(?:i lied|i was lying|i wasn'?t (?:being )?(?:honest|truthful)|i take (?:that|it) back|i said no (?:but|because)|i shouldn'?t have said no|that'?s not (?:totally |entirely |really )?true|i didn'?t want to (?:say|tell|admit|worry|scare|upset))\\b",
-    "(?:^| )(?:can we not (?:talk|get into)|i don'?t want to (?:talk|get into)|i'?d rather not (?:talk|say|get into)|let'?s not (?:talk|go there|get into)|change the subject|drop it|talk about something else)\\b",
+    "(?:^| )(?:i (?:\\w+ ){0,2}lied|that (?:was|is) a lie|i wasn'?t (?:\\w+ )?(?:honest|truthful)|i take (?:that|it) back|i said no (?:but|because)|i shouldn'?t have said no|(?:that|what i said)(?: before)? (?:wasn'?t|isn'?t|was not|is not) (?:\\w+ )?true|change my answer|i didn'?t want to (?:say|tell|admit))\\b",
+    '(?:^| )actually (?:yes|yeah|yep|yup)\\b',
     `^(?:${NO_FILLER}|um |uh |well )*(?:no|nope|nah|not really)(?: no| nope| really)*(?: (?:i mean|but|although|except|well|kind of|sort of|maybe|${UNSURE}))+$`,
   ].join('|')
 );
-const AFFIRMS = new RegExp(`^(?:${NO_FILLER}|um |uh |well |so |i mean )*${AFFIRM}\\b`);
 
-function takesBack(answer: string, ferni: readonly string[]): boolean {
-  const found = detectCrisis(answer);
-  if (found.severity > 0 || found.indicators.length > 0 || alwaysHold(answer)) return true;
-  const words = loose(answer);
-  if (TAKES_BACK.test(words)) return true;
-  return AFFIRMS.test(words) && ferni.every((line) => !/[?¿]/.test(line));
+function escalates(latest: string): boolean {
+  // The crisis patterns, not the release's hold list: "I'll text him myself" is no risk here.
+  const found = detectCrisis(latest);
+  if (found.severity > 0 || found.indicators.length > 0) return true;
+  return ESCALATES.test(loose(latest));
 }
+
+/** Acknowledgement only: watched, but the window stays open for the next turn. */
+const BACKCHANNEL =
+  /^(?:(?:ok|okay|alright|all right|mm+|mhm|mm hmm|mm hm|uh huh|hmm+|right|sure|got it|cool|yeah|yep|yes|yup|ah|oh|i see|thanks|thank you|sounds good|nice|great)(?: |$))+$/;
 
 /**
  * Ferni's line ends with SCREEN_QUESTION, in full: not a paraphrase, not "you
@@ -160,7 +160,7 @@ export function noteScreenAsked(
     asked: loose(released.latest),
     before,
     reasked: false,
-    watched: false,
+    window: 0,
   });
 }
 
@@ -204,7 +204,7 @@ export function screenAnswer(
     const releasedTurn = turn === screen.asked || (companion !== '' && companion === screen.before);
     if (!turn || (releasedTurn && !asked)) return 'none';
     const judge = (reasked: boolean, watch = false): ScreenOutcome => {
-      if (watch) return takesBack(input.latest, lines) ? 'positive' : 'none';
+      if (watch) return escalates(input.latest) ? 'positive' : 'watch';
       if (asked) return clearNo(input.latest) ? 'none' : 'positive';
       return reasked ? 'positive' : 'reask';
     };
@@ -215,31 +215,101 @@ export function screenAnswer(
     // than the first path's verdict, and a stronger one replaces it. Words alone never make a
     // turn the same one: a caller may repeat "No." after a re-ask.
     if (last && companion !== '' && companion === last.companion) {
-      const again = judge(screen.reasked && last.outcome !== 'reask', last.watch);
+      const again = judge(screen.reasked && last.outcome !== 'reask', Boolean(last.reads));
       if (RANK[again] <= RANK[last.outcome]) return last.outcome;
       if (again === 'reask') screen.reasked = true;
+      if (!last.reads) screen.answer = input.latest;
       screen.last = { ...last, outcome: again };
       log.info({ outcome: again, asked, path: 'second' }, 'CRISIS_GROUNDED_SCREEN');
       return again;
     }
-    // The caller's next turn after the answer is watched once (#2511), then the screen closes.
+    // The caller's next substantive turn after the answer is watched (#2511): words that
+    // escalate, else watchScreen's read. Backchannels keep the window open, up to WATCH_TURNS.
     if (last && last.outcome !== 'reask') {
-      if (screen.watched) return 'none';
-      screen.watched = true;
+      if (screen.window <= 0) return 'none';
+      screen.window = BACKCHANNEL.test(turn) ? screen.window - 1 : 0;
       const outcome = judge(false, true);
-      screen.last = { turn, companion, outcome, watch: true };
+      screen.last = { turn, companion, outcome, reads: new Map() };
       log.info({ outcome, asked, watch: true }, 'CRISIS_GROUNDED_SCREEN');
       return outcome;
     }
     // A turn while the screen is open: nothing judged yet, or a re-ask.
     const outcome = judge(screen.reasked);
     if (outcome === 'reask') screen.reasked = true;
+    else [screen.answer, screen.window] = [input.latest, WATCH_TURNS];
     screen.last = { turn, companion, outcome };
     log.info({ outcome, asked }, 'CRISIS_GROUNDED_SCREEN');
     return outcome;
   } catch {
     return 'positive';
   }
+}
+
+/**
+ * A 'watch' turn's verdict (crisis-screen-followup.ts): one model read of the question, the
+ * answer, Ferni's lines since and this turn. Both paths of the turn share it: each gets the
+ * strongest of the reads started so far, a path whose words drifted adding its own.
+ */
+export function watchScreen(
+  call: string | undefined,
+  input: { latest: string; ferni: readonly string[] },
+  generate?: CrisisGenerateFn,
+  env: Record<string, string | undefined> = process.env
+): Promise<WatchResult> {
+  const screen = call ? screens.get(call) : undefined;
+  const reads = screen?.last?.reads;
+  if (!screen || !reads) return Promise.resolve('crisis'); // never expected: fail closed
+  const key = loose(String(input.latest ?? ''));
+  if (!reads.has(key)) {
+    const read = readScreenFollowup(
+      {
+        question: SCREEN_QUESTION,
+        answer: screen.answer ?? '',
+        ferni: input.ferni.map((line) => stripSSML(String(line ?? '')).trim()),
+        latest: input.latest,
+      },
+      generate,
+      env
+    );
+    reads.set(key, read);
+  }
+  return Promise.all([...reads.values()]).then((all) =>
+    all.reduce((a, b) => (WATCH_RANK[b] > WATCH_RANK[a] ? b : a), 'pass' as WatchResult)
+  );
+}
+
+/** watchScreen's read for a 'watch' turn, null for any other. */
+export function watchFor(
+  screen: ScreenOutcome,
+  call: string | undefined,
+  input: { latest: string; ferni: readonly string[] },
+  options: { groundedReads?: readonly CrisisGenerateFn[]; env?: Record<string, string | undefined> }
+): Promise<WatchResult> | null {
+  if (screen !== 'watch') return null;
+  return watchScreen(call, input, options.groundedReads?.[0], options.env ?? process.env);
+}
+
+/**
+ * The reply gate's escalation with a watched turn's read folded in, held like the classifier's:
+ * 'crisis' is crisis guidance with 988 unless the classifier replaces the reply; 'gentle' is
+ * the gentle offer unless the classifier escalated. Risk on the call either way. Never rejects.
+ */
+export function withWatched<D extends { action: string }>(
+  escalation: Promise<D | null> | null,
+  watched: Promise<WatchResult> | null,
+  found: CrisisDetectionResult,
+  call: string | undefined
+): Promise<D | { action: 'guide'; guidance: string } | null> | null {
+  if (!watched) return escalation;
+  const classifier = (escalation ?? Promise.resolve(null)).catch(() => null);
+  return Promise.all([classifier, watched]).then(([stronger, read]) => {
+    if (read !== 'pass') noteCrisisRisk(call);
+    if (read === 'crisis' && stronger?.action !== 'replace') {
+      return { action: 'guide', guidance: buildCrisisGuidance(withScreenPositive(found)) };
+    }
+    if (read === 'gentle') return stronger ?? { action: 'guide', guidance: SCREEN_GENTLE_OFFER };
+    return stronger;
+  });
 }
 
 /**

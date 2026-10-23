@@ -1,8 +1,11 @@
 /**
- * #2511: the caller's turn after the screen's answer is watched once. A no taken back
- * ("No." … "Actually, yes, I have.") or a yes after the gentle offer gets crisis guidance
- * with 988; an ordinary next turn does not. Through the real reply gate and turn pipeline,
- * with both grounded reads fooled and the classifier reading only the released line.
+ * #2511: the caller's next substantive turn after the screen's answer is watched. One model
+ * read (crisis-screen-followup.ts) decides it, shared by both paths and failing closed; words
+ * can only escalate. A no taken back ("No." … "Actually, yes, I have.") or a yes after the
+ * gentle offer gets crisis guidance with 988; an ordinary next turn does not. Through the real
+ * reply gate and turn pipeline, with both grounded reads fooled and the classifier reading only
+ * the released line. The read is scripted here; the model's own labels are measured by the eval
+ * (PR body).
  */
 import { llm } from '@livekit/agents';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -20,8 +23,13 @@ import {
   SCREEN_GENTLE_OFFER,
   SCREEN_QUESTION,
   screenAnswer,
+  watchScreen,
 } from '../../../services/safety/crisis-grounded-screen.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
+import {
+  SCREEN_FOLLOWUP_PROMPT,
+  parseScreenFollowup,
+} from '../../../services/safety/crisis-screen-followup.js';
 import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
 
@@ -42,21 +50,36 @@ const ASKS_TOO = 'Okay, good. Want me to text him now?';
 const OFFERED =
   "I'm really glad you're talking with me. If things ever get heavy, you can call or text 988.";
 
-const options = () => ({
-  env: RELEASE,
+const TAKES_BACK = '{"answer":"takes_back_or_risk"}';
+const ORDINARY = '{"answer":"unrelated_ordinary"}';
+const UNCLEAR = '{"answer":"unclear"}';
+
+/** The watched turn's read, scripted by LATEST (ordinary by default); records each read. */
+type Seen = { QUESTION: string; ANSWER: string; FERNI_SINCE: string[]; LATEST: string };
+let reads: Seen[];
+let script: Record<string, string | (() => Promise<string>)>;
+const followup: CrisisGenerateFn = async (prompt, content) => {
+  if (prompt === GROUNDED_RELEASE_CSSRS_PROMPT) return CSSRS_EVERYDAY;
+  if (prompt !== SCREEN_FOLLOWUP_PROMPT) return EVERYDAY;
+  const seen = JSON.parse(content) as Seen;
+  reads.push(seen);
+  const answer = script[seen.LATEST] ?? ORDINARY;
+  return typeof answer === 'string' ? answer : answer();
+};
+
+const options = (env: Record<string, string> = RELEASE) => ({
+  env,
   generate: (async (_prompt, content) =>
     (JSON.parse(content) as { latest: string }).latest === DINNER
       ? '{"risk":"imminent","subject":"self"}'
       : '{"risk":"none","subject":"self"}') as CrisisGenerateFn,
-  groundedReads: [0, 1].map(() =>
-    vi.fn<CrisisGenerateFn>(async (prompt) =>
-      prompt === GROUNDED_RELEASE_CSSRS_PROMPT ? CSSRS_EVERYDAY : EVERYDAY
-    )
-  ),
+  groundedReads: [vi.fn(followup), vi.fn(followup)],
 });
 
 let calls = 0;
 beforeEach(() => {
+  reads = [];
+  script = {};
   resetCrisisClassifierCache();
   resetCrisisCallRisk();
   resetCallRiskSnapshots();
@@ -74,8 +97,12 @@ function request(turns: Array<[string, string]>, latest: string[]): llm.ChatCont
   return ctx;
 }
 
+function startGate(session: string, ctx: llm.ChatContext, env?: Record<string, string>) {
+  return startCrisisGate(ctx, { services: { sessionId: session } }, options(env));
+}
+
 async function decide(session: string, ctx: llm.ChatContext): Promise<CrisisGateDecision> {
-  const run = startCrisisGate(ctx, { services: { sessionId: session } }, options());
+  const run = startGate(session, ctx);
   return (await run?.escalation) ?? run?.decision ?? { action: 'pass' };
 }
 
@@ -106,133 +133,188 @@ async function released(): Promise<string> {
   return session;
 }
 
+/** Released and answered "No." on both paths; returns the id. */
+async function answeredNo(): Promise<string> {
+  const session = await released();
+  await pipeline(session, after(), 'No.');
+  expect(await gate(session, after(), 'No.')).toEqual({ action: 'pass' });
+  return session;
+}
+
 /** Crisis guidance with 988: not the gentle offer, not a pass. */
-const crisisGuidance = (out: CrisisGateDecision): boolean =>
-  out.action === 'guide' && /988/.test(out.guidance) && out.guidance !== SCREEN_GENTLE_OFFER;
+const crisisGuidance = (out: CrisisGateDecision | null | undefined): boolean =>
+  out?.action === 'guide' && /988/.test(out.guidance) && out.guidance !== SCREEN_GENTLE_OFFER;
 
-describe('the turn after a clear no', () => {
-  it('a no taken back gets crisis guidance with 988 on both paths', async () => {
-    const session = await released();
-    expect(await gate(session, after(), 'No.')).toEqual({ action: 'pass' });
-    expect(
-      crisisGuidance(await gate(session, after(['No.', GOOD]), 'Actually, yes, I have.'))
-    ).toBe(true);
-
-    const other = await released();
-    await pipeline(other, after(), 'No.');
-    const out = await pipeline(other, after(['No.', GOOD]), 'Actually, yes, I have.');
-    expect(out.indicators).toContain('grounded_screen_positive');
+describe('the watched turn: one model read decides', () => {
+  it('a take-back gets crisis guidance with 988 on both paths, from one shared read', async () => {
+    script = { 'It crosses my mind.': TAKES_BACK };
+    const session = await answeredNo();
+    const pipe = await pipeline(session, after(['No.', GOOD]), 'It crosses my mind.');
+    expect(pipe.indicators).toContain('grounded_screen_positive');
+    const out = await gate(session, after(['No.', GOOD]), 'It crosses my mind.');
+    expect(crisisGuidance(out)).toBe(true);
+    // One read for the turn: the question, the answer, Ferni's line since, and the turn.
+    expect(reads).toEqual([
+      {
+        QUESTION: SCREEN_QUESTION,
+        ANSWER: 'No.',
+        FERNI_SINCE: [GOOD],
+        LATEST: 'It crosses my mind.',
+      },
+    ]);
   });
 
-  it('a take-back counts even when Ferni asked something of its own', async () => {
-    for (const latest of [
-      'Actually, yes, I have.',
-      'Honestly... sometimes.',
-      'No, actually, yeah.',
-      'To be honest, kind of.',
-      'I lied. I have.',
-      "Wait, I wasn't being honest.",
-      // Take-backs with no yes (the lead's review of #2516).
-      "Actually... I don't know.",
-      "I didn't want to say it.",
-      "It's been really bad, honestly.",
-      'Can we not talk about that.',
-      'I said no but…',
-      'not really no… I mean…',
-    ]) {
-      const session = await released();
-      expect(screenAnswer(session, { latest: 'No.', companion: ASKED })).toBe('none');
-      expect(screenAnswer(session, { latest, companion: ASKS_TOO }), latest).toBe('positive');
-    }
+  it('an ordinary turn passes on both paths', async () => {
+    const session = await answeredNo();
+    const pipe = await pipeline(session, after(['No.', ASKS_TOO]), 'Sure, text him.');
+    expect(pipe.isCrisis || pipe.softCheck).toBeFalsy();
+    expect(await gate(session, after(['No.', ASKS_TOO]), 'Sure, text him.')).toEqual({
+      action: 'pass',
+    });
+    expect(reads).toHaveLength(1);
   });
 
-  it('a bare yes counts only when Ferni asked nothing since the answer', async () => {
-    for (const [latest, companion, expected] of [
-      ['Yeah.', GOOD, 'positive'],
-      ['I have.', GOOD, 'positive'],
-      ['Sometimes.', GOOD, 'positive'],
-      ['Well. Sometimes, maybe.', GOOD, 'positive'],
-      ['Well. Sometimes, maybe.', ASKS_TOO, 'none'],
-      ['Yeah.', ASKS_TOO, 'none'],
-      ['Yes please.', ASKS_TOO, 'none'],
-      ['Kind of, yeah.', 'Are you hungry yet?', 'none'],
-    ] as const) {
-      const session = await released();
-      expect(screenAnswer(session, { latest: 'No.', companion: ASKED })).toBe('none');
-      expect(screenAnswer(session, { latest, companion }), `${latest} / ${companion}`).toBe(
-        expected
-      );
-    }
+  it('an unclear turn gets the gentle offer on both paths', async () => {
+    script = { 'Haha.': UNCLEAR };
+    const session = await answeredNo();
+    const pipe = await pipeline(session, after(['No.', GOOD]), 'Haha.');
+    expect(pipe.softGuidance).toBe(SCREEN_GENTLE_OFFER);
+    expect(await gate(session, after(['No.', GOOD]), 'Haha.')).toEqual({
+      action: 'guide',
+      guidance: SCREEN_GENTLE_OFFER,
+    });
   });
 
-  it('an ordinary next turn passes', async () => {
-    for (const latest of [
-      'Pie, obviously.',
-      'Seven works.',
-      'Okay, thanks!',
-      "Sounds good, I'll text him.",
-      "Actually, let's do seven.",
-      'Honestly, pie is the best.',
-      'No, but thanks for asking!',
-    ]) {
-      const session = await released();
-      await gate(session, after(), 'No.');
-      expect(await gate(session, after(['No.', GOOD]), latest), latest).toEqual({ action: 'pass' });
-    }
-  });
-
-  it('risk words on the watched turn are positive, whatever Ferni asked', async () => {
-    const session = await released();
-    expect(screenAnswer(session, { latest: 'No.', companion: ASKED })).toBe('none');
-    const latest = "Sure, I just don't want to be here anymore.";
-    expect(screenAnswer(session, { latest, companion: ASKS_TOO })).toBe('positive');
-  });
-
-  it('only one turn is watched; the screen then closes', async () => {
-    const session = await released();
-    expect(screenAnswer(session, { latest: 'No.', companion: ASKED })).toBe('none');
-    expect(screenAnswer(session, { latest: 'Pie, obviously.', companion: GOOD })).toBe('none');
-    expect(screenAnswer(session, { latest: 'Actually, yes.', companion: 'Pie it is.' })).toBe(
-      'none'
-    );
-  });
-
-  it("the watched turn's two paths: the stronger verdict is the shared one", async () => {
-    const session = await released();
-    expect(screenAnswer(session, { latest: 'No.', companion: ASKED })).toBe('none');
-    expect(screenAnswer(session, { latest: 'Okay.', companion: GOOD })).toBe('none');
-    // The gate sees the same turn (same Ferni line) with the caller's later words merged in.
-    expect(screenAnswer(session, { latest: 'Okay. Actually, yes, I have.', companion: GOOD })).toBe(
-      'positive'
-    );
-    // A positive first path is never weakened by the second.
-    const other = await released();
-    expect(screenAnswer(other, { latest: 'No.', companion: ASKED })).toBe('none');
-    expect(screenAnswer(other, { latest: 'Yeah, I have.', companion: GOOD })).toBe('positive');
-    // Same Ferni line, but this path also saw a question of Ferni's: a bare yes alone is none.
-    const view = { latest: 'Yeah.', companion: GOOD, ferni: ['Want me to text him?', GOOD] };
-    expect(screenAnswer(other, view)).toBe('positive');
-  });
-});
-
-describe('the turn after the gentle offer', () => {
-  it('a yes gets crisis guidance with 988', async () => {
+  it('after the gentle offer, a yes gets crisis guidance', async () => {
+    script = { 'Yeah, I have been.': TAKES_BACK };
     const session = await released();
     expect(await gate(session, after(), 'Hmm.')).toEqual({
       action: 'guide',
       guidance: SCREEN_GENTLE_OFFER,
     });
-    expect(
-      crisisGuidance(await gate(session, after(['Hmm.', OFFERED]), 'Yeah, I have been.'))
-    ).toBe(true);
+    const out = await gate(session, after(['Hmm.', OFFERED]), 'Yeah, I have been.');
+    expect(crisisGuidance(out)).toBe(true);
+    expect(reads.map((r) => [r.ANSWER, r.FERNI_SINCE])).toEqual([['Hmm.', [OFFERED]]]);
   });
 
-  it('a thank-you and moving on passes', async () => {
-    const session = await released();
-    await gate(session, after(), 'Hmm.');
-    expect(await gate(session, after(['Hmm.', OFFERED]), 'Thanks. So, dinner at seven?')).toEqual({
+  it('the gate holds the reply for the read, as for the classifier', async () => {
+    let answer: (reply: string) => void = () => undefined;
+    script = {
+      'It crosses my mind.': () =>
+        new Promise<string>((r) => {
+          answer = r;
+        }),
+    };
+    const session = await answeredNo();
+    const run = startGate(session, request(after(['No.', GOOD]), ['It crosses my mind.']));
+    expect(run?.decision).toEqual({ action: 'pass' });
+    expect(run?.escalation).not.toBeNull();
+    await new Promise((r) => {
+      setTimeout(r, 10);
+    });
+    answer(TAKES_BACK);
+    expect(crisisGuidance(await run?.escalation)).toBe(true);
+  });
+});
+
+describe('the read fails closed', () => {
+  const failures: Array<[string, () => Promise<string>]> = [
+    ['an error', () => Promise.reject(new Error('vertex down'))],
+    ['an unusable reply', () => Promise.resolve('{"answer":"maybe"}')],
+    ['no reply in time', () => new Promise<string>(() => {})],
+  ];
+  for (const [name, answer] of failures) {
+    it(`${name} is crisis guidance`, async () => {
+      script = { 'Pie, obviously.': answer };
+      const session = await answeredNo();
+      const ctx = request(after(['No.', GOOD]), ['Pie, obviously.']);
+      const run = startGate(session, ctx, { ...RELEASE, CRISIS_SCREEN_FOLLOWUP_TIMEOUT_MS: '50' });
+      expect(crisisGuidance(await run?.escalation)).toBe(true);
+    });
+  }
+
+  it('parses only the closed set', () => {
+    expect(parseScreenFollowup('{"answer":"takes_back_or_risk"}')).toBe('crisis');
+    const fenced = '```json\n{"answer":"answers_ferni_question_ordinary"}\n```';
+    expect(parseScreenFollowup(fenced)).toBe('pass');
+    expect(parseScreenFollowup('{"answer":"unrelated_ordinary"}')).toBe('pass');
+    expect(parseScreenFollowup('{"answer":"unclear"}')).toBe('gentle');
+    for (const bad of ['', 'yes', '{"answer":"none"}', '{"answer":"toString"}', '{oops}']) {
+      expect(parseScreenFollowup(bad), bad).toBeNull();
+    }
+  });
+});
+
+describe('words only escalate', () => {
+  it('a word hit is crisis guidance even when the read would say ordinary', async () => {
+    for (const latest of [
+      'I kind of lied before.',
+      'Actually, yes, I have.',
+      'I said no but…',
+      'not really no… I mean…',
+      'Yeah, I want to kill myself.',
+    ]) {
+      const session = await answeredNo();
+      expect(screenAnswer(session, { latest, companion: ASKS_TOO }), latest).toBe('positive');
+      const out = await gate(session, after(['No.', ASKS_TOO]), latest);
+      // Crisis guidance, or the replacement script for explicit risk words.
+      expect(crisisGuidance(out) || out.action === 'replace', latest).toBe(true);
+    }
+    expect(reads).toEqual([]);
+  });
+
+  it('a word miss defers to the read, never passes alone', async () => {
+    script = { 'Actually, let me think.': TAKES_BACK };
+    const session = await answeredNo();
+    const watched = { latest: 'Actually, let me think.', companion: GOOD };
+    expect(screenAnswer(session, watched)).toBe('watch');
+    const out = await gate(session, after(['No.', GOOD]), 'Actually, let me think.');
+    expect(crisisGuidance(out)).toBe(true);
+  });
+});
+
+describe('the watch window', () => {
+  it('a backchannel is read but leaves the window open for the next turn', async () => {
+    script = { 'Okay.': ORDINARY, 'It crosses my mind.': TAKES_BACK };
+    const session = await answeredNo();
+    expect(await gate(session, after(['No.', GOOD]), 'Okay.')).toEqual({ action: 'pass' });
+    const later = after(['No.', GOOD], ['Okay.', "Great, I'll nudge you at five."]);
+    expect(crisisGuidance(await gate(session, later, 'It crosses my mind.'))).toBe(true);
+    expect(reads.map((r) => r.LATEST)).toEqual(['Okay.', 'It crosses my mind.']);
+  });
+
+  it('a substantive ordinary turn closes it', async () => {
+    script = { 'It crosses my mind.': TAKES_BACK };
+    const session = await answeredNo();
+    expect(await gate(session, after(['No.', GOOD]), 'Pie, obviously.')).toEqual({
       action: 'pass',
     });
+    const later = after(['No.', GOOD], ['Pie, obviously.', 'Pie it is.']);
+    const closed = { latest: 'It crosses my mind.', companion: 'Pie it is.' };
+    expect(screenAnswer(session, closed)).toBe('none');
+    expect(await gate(session, later, 'It crosses my mind.')).toEqual({ action: 'pass' });
+    expect(reads).toHaveLength(1);
+  });
+
+  it('is bounded: two backchannels close it', async () => {
+    const session = await answeredNo();
+    expect(screenAnswer(session, { latest: 'Okay.', companion: GOOD })).toBe('watch');
+    expect(screenAnswer(session, { latest: 'Mm-hm.', companion: 'Five it is.' })).toBe('watch');
+    const third = { latest: 'It crosses my mind.', companion: 'Cool.' };
+    expect(screenAnswer(session, third)).toBe('none');
+  });
+
+  it("a path whose words drifted adds its own read; the stronger is the turn's", async () => {
+    script = { 'Okay. It crosses my mind.': TAKES_BACK };
+    const session = await answeredNo();
+    const pipe = await pipeline(session, after(['No.', GOOD]), 'Okay.');
+    expect(pipe.isCrisis).toBe(false);
+    // The gate sees the same turn (same Ferni line) with the caller's later words merged in.
+    const merged = request(after(['No.', GOOD]), ['Okay.', 'It crosses my mind.']);
+    expect(crisisGuidance(await decide(session, merged))).toBe(true);
+    // Both paths now share the stronger verdict.
+    const shared = watchScreen(session, { latest: 'Okay.', ferni: [GOOD] }, followup, RELEASE);
+    await expect(shared).resolves.toBe('crisis');
   });
 });
 
@@ -240,21 +322,16 @@ describe('an SSML acknowledgement after the question', () => {
   it('the gate skips it as the reply recorder does, so both paths judge one turn', async () => {
     const session = await released();
     // The pipeline's lastAgentResponse skipped the acknowledgement: Ferni's line is the question.
-    expect((await pipeline(session, after(), 'No.')).indicators).not.toContain(
-      'grounded_screen_positive'
-    );
+    const pipe = await pipeline(session, after(), 'No.');
+    expect(pipe.indicators).not.toContain('grounded_screen_positive');
     // The gate sees the acknowledgement and the caller's merged words: the same turn, re-judged
     // against the question ("No. Hmm." is not a clear no). Keyed on the acknowledgement, it
-    // would read as the next turn, where "No. Hmm." is no take-back.
-    const ctx = request(
-      [
-        [OPENER, REMINDER],
-        [DINNER, ASKED],
-      ],
-      []
-    );
+    // would be the watched turn instead, where the scripted read finds it ordinary.
+    const ctx = request([[OPENER, REMINDER]], [DINNER]);
+    ctx.addMessage({ role: 'assistant', content: ASKED });
     ctx.addMessage({ role: 'assistant', content: '<break time="300ms"/>Mm-hm.' });
     for (const line of ['No.', 'Hmm.']) ctx.addMessage({ role: 'user', content: line });
-    expect(crisisGuidance(await decide(session, ctx))).toBe(true);
+    expect((await decide(session, ctx)).action).toBe('guide');
+    expect(reads).toEqual([]);
   });
 });

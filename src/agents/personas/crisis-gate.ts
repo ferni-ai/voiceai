@@ -49,7 +49,9 @@ import {
   SCREEN_GENTLE_OFFER,
   screenAnswer,
   screenIdeation,
+  watchFor,
   withScreenPositive,
+  withWatched,
   screenReply,
 } from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
@@ -136,8 +138,7 @@ function callerWords(chatCtx: llm.ChatContext): {
     if (item.role === 'assistant') {
       const line = item.textContent?.trim() || undefined;
       if (answering) companion = line;
-      // As the reply recorder judges it: SSML stripped first (a "<break/>Mm-hm." is an ack).
-      const plain = stripSSML(line ?? '').trim();
+      const plain = stripSSML(line ?? '').trim(); // as the reply recorder judges it
       if (plain && said.length === 0 && !isAcknowledgementOnly(plain)) ferni.unshift(line ?? plain);
       answering = false;
       continue;
@@ -210,9 +211,9 @@ export function startCrisisGate(
   const found = detectCrisis(latest, toGuardVoiceEmotion(voiceEmotion), {
     recentMessages: earlier,
   });
-  // The answer to a grounded release's direct question: not a clear no is a gentle 988 offer,
-  // or crisis guidance when the answer carries risk content (crisis-grounded-screen.ts).
+  // The direct question's answer, and the turn watched after it (crisis-grounded-screen.ts).
   const screen = screenAnswer(sessionScope(userData), { latest, companion, ferni });
+  const watched = watchFor(screen, sessionScope(userData), { latest, ferni }, options);
   const gentle = screen === 'positive' && !screenIdeation(found, latest);
   const detection = screen === 'positive' && !gentle ? withScreenPositive(found) : found;
   const reask = screen === 'reask';
@@ -247,7 +248,7 @@ export function startCrisisGate(
     { pattern, env, generate, scope, call }
   );
   if (run?.mode !== 'live' || decision.action === 'replace') {
-    return { decision, escalation: null, reask };
+    return { decision, escalation: withWatched(null, watched, found, call), reask };
   }
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
@@ -322,7 +323,7 @@ export function startCrisisGate(
     );
     return stronger;
   });
-  return { decision, escalation, reask };
+  return { decision, escalation: withWatched(escalation, watched, found, call), reask };
 }
 
 /** A reply stream that speaks one fixed text. */
@@ -480,11 +481,10 @@ export async function gatedReply(
     const call = sessionScope(session.userData);
     return call && crisisRiskThisCall(call) ? led : withLookupBridge(led, chatCtx, session, env);
   };
-  // A grounded release, or a re-ask after it: code says the direct question, last (crisis-grounded-screen.ts).
+  // A release or a re-ask: code says the direct question last, even after an empty first reply.
   const asking = (s: ReadableStream<Chunk> | null, on = gate?.reask) => (on ? screenReply(s) : s);
   const reply = asking(await ask(ctx));
   if (!gate?.escalation) return reply;
-  // No first reply: an empty one, so a release still speaks its question.
   return holdUntilCleared(reply ?? textReply(''), gate.escalation, async (decision) => {
     if (decision.action !== 'pass') holdAfterCrisis(session);
     if (decision.action === 'replace') return textReply(decision.script);
