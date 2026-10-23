@@ -120,17 +120,12 @@ const riskPattern = (list: readonly string[]): RegExp =>
   new RegExp(`\\b(?:${list.join('|')})(?:s|es|ed|ing)?\\b`);
 const RISK_CONTENT = riskPattern(RISK_WORDS);
 /**
- * SAFETY_WHOLE_WORD_SITES=on: 'plan' no longer matches "plane" or "plants";
- * plan, plans, planned, planning, plannin', planner, "planet" ("I don't want
- * to be on this planet anymore") and plane methods ("crashing my plane", "fly
- * the plane into") still do. "dying" counts: 'di(e|es|ed|ing)' never spelled it.
+ * SAFETY_WHOLE_WORD_SITES=on adds "dying" and "dyin" ('di(e|es|ed|ing)' never
+ * spelled them) and changes nothing else, so on only adds risk. 'plan\w*' stays
+ * as it is: narrowing it to skip "plane" and "plants" lost real risk ("I'm going
+ * to crash this plane", "boarding a plane, never coming back").
  */
-const PLAN_SITES =
-  'plan(?!es?\\b)(?:ned|ning|nin|ners?)?|planet|crash\\w* (?:my|the|a) plane|fl(?:y|ying|ew|own) (?:my|the|a) plane';
-const RISK_CONTENT_SITES = riskPattern([
-  ...RISK_WORDS.map((w) => w.replace('plan\\w*', PLAN_SITES)),
-  'dying|dyin',
-]);
+const RISK_CONTENT_SITES = riskPattern([...RISK_WORDS, 'dying|dyin']);
 
 /**
  * The caller agreeing with, or echoing, what Ferni said ("yeah, same", "me
