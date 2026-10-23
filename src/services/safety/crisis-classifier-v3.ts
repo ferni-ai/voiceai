@@ -21,7 +21,7 @@
  */
 
 import { createLogger } from '../../utils/safe-logger.js';
-import type { CrisisVerdict } from './crisis-classifier.js';
+import type { CrisisVerdict, PatternOutcome } from './crisis-classifier.js';
 
 const log = createLogger({ module: 'CrisisClassifierV3' });
 
@@ -69,37 +69,51 @@ export function escalateOnly(
   return second && second.risk !== 'none' ? second : base;
 }
 
+/** A read that throws or rejects counts as no read; it starts at once. */
+function safely(read: () => Promise<CrisisVerdict | null>): Promise<CrisisVerdict | null> {
+  try {
+    return read().catch(() => null);
+  } catch {
+    return Promise.resolve(null);
+  }
+}
+
 /**
- * The turn's read with the second read applied: on, the base read, or the second where the base
- * found nothing (a base that found risk never waits for it); shadow, the base alone (the turn never
- * waits). Either way one CRISIS_CLASSIFIER_SECOND_READ record logs both risks once both settle, so
- * the lift and its cost can be measured. No caller words are logged.
+ * The turn's read with the second read applied. On: the base read, or the second where both the
+ * patterns and the base read found nothing; a turn with a pattern or base risk never waits for it.
+ * The patterns' outcome gates it (#2548 round 2): where the patterns read a worry about someone
+ * else, a filled read about the caller would override their third-party guidance. Shadow: the base
+ * alone. Either way one CRISIS_CLASSIFIER_SECOND_READ record logs both risks once both settle. No
+ * caller words are logged. A second read that throws counts as no read.
  */
 export function withSecondRead(
   base: Promise<CrisisVerdict | null>,
   read: (prompt: string) => Promise<CrisisVerdict | null>,
   prompt: string,
+  pattern: PatternOutcome,
   env: Record<string, string | undefined> = process.env
 ): Promise<CrisisVerdict | null> {
   const mode = resolveCrisisSecondRead(env);
   if (mode === 'off') return base;
   const startedAt = Date.now();
-  const second = read(withPromptV3(prompt));
+  const fill = pattern === 'none';
+  const second = safely(() => read(withPromptV3(prompt)));
   void Promise.all([base, second])
     .then(([first, extra]) => {
       log.info(
         {
           mode,
+          pattern,
           base: first?.risk ?? null,
           second: extra?.risk ?? null,
-          lifted: escalateOnly(first, extra) !== first,
+          lifted: fill && escalateOnly(first, extra) !== first,
           latencyMs: Date.now() - startedAt,
         },
         'CRISIS_CLASSIFIER_SECOND_READ'
       );
     })
     .catch(() => {}); // logging only: never an unhandled rejection
-  if (mode === 'shadow') return base;
+  if (mode === 'shadow' || !fill) return base;
   return base.then((first) =>
     first && first.risk !== 'none' ? first : second.then((extra) => escalateOnly(first, extra))
   );

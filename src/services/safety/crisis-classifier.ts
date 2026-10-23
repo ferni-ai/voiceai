@@ -432,7 +432,8 @@ export function startCrisisClassifier(
     normalized.earlier,
     normalized.companion ?? '',
     prompt.length,
-    resolveCrisisSecondRead(env),
+    // The second read depends on the patterns' outcome, so a run is shared only within one.
+    resolveCrisisSecondRead(env) === 'off' ? 'off' : `second:${options.pattern}`,
   ]);
   // What each call's reads found, and which are in flight (crisis-call-risk.ts).
   const own = (v: Promise<CrisisVerdict | null>) => trackCrisisRead(options.call, input.latest, v);
@@ -455,7 +456,7 @@ export function startCrisisClassifier(
       ]).then(([ruled, unruled]) => moreSevereRead(ruled, unruled))
     : read(prompt);
   // CRISIS_CLASSIFIER_SECOND_READ (crisis-classifier-v3.ts): prompt v3 can only raise the read.
-  const reads = withSecondRead(base, read, prompt, env);
+  const reads = withSecondRead(base, read, prompt, options.pattern, env);
   const verdict = reads.then((v) => {
     const classifier = v ? verdictOutcome(v) : null;
     log.info(

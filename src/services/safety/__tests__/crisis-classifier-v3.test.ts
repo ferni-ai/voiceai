@@ -16,6 +16,7 @@ import {
   escalateOnly,
   resolveCrisisSecondRead,
   withPromptV3,
+  withSecondRead,
 } from '../crisis-classifier-v3.js';
 
 const PROD = {
@@ -34,7 +35,11 @@ function twoPrompts(base: string | null, v3: string | null) {
   });
 }
 
-const turn = { latest: 'my neighbor is taking the dog from now on', earlier: [] };
+const turn = {
+  latest: 'my neighbor is taking the dog from now on',
+  earlier: [],
+  companion: 'At this rate mine is going to grow roots.',
+};
 
 async function run(env: Record<string, string>, generate: CrisisGenerateFn) {
   return startCrisisClassifier(turn, { pattern: 'none', generate, env: { ...PROD, ...env } })
@@ -156,6 +161,98 @@ describe('CRISIS_CLASSIFIER_SECOND_READ', () => {
       risk: 'crisis',
       subject: 'self',
     });
+  });
+});
+
+describe('a run shared between the gate and the pipeline', () => {
+  it("never carries a fill across the patterns' outcomes", async () => {
+    resetCrisisClassifierCache();
+    const env = { ...PROD, CRISIS_CLASSIFIER_SECOND_READ: 'on' };
+    const generate = twoPrompts(reply('none'), reply('imminent'));
+    const filled = startCrisisClassifier(turn, { pattern: 'none', generate, env });
+    expect(await filled?.verdict).toEqual({ risk: 'imminent', subject: 'self' });
+    // The same words, read where the patterns found risk (a worry about someone else).
+    const held = startCrisisClassifier(turn, { pattern: 'crisis', generate, env });
+    expect(await held?.verdict).toEqual({ risk: 'none', subject: 'self' });
+  });
+});
+
+describe('withSecondRead, directly', () => {
+  const ON = { CRISIS_CLASSIFIER_SECOND_READ: 'on' };
+  const v = (risk: CrisisVerdict['risk'], subject: CrisisVerdict['subject'] = 'self') => ({
+    risk,
+    subject,
+  });
+
+  it('fills only where the patterns found nothing too (#2548 round 2)', async () => {
+    const second = v('imminent');
+    for (const pattern of ['crisis', 'block'] as const) {
+      const read = vi.fn(async () => second);
+      expect(
+        await withSecondRead(Promise.resolve(v('none')), read, 'p', pattern, ON),
+        pattern
+      ).toEqual(v('none'));
+      expect(
+        await withSecondRead(Promise.resolve(null), read, 'p', pattern, ON),
+        pattern
+      ).toBeNull();
+    }
+    expect(
+      await withSecondRead(Promise.resolve(v('none')), async () => second, 'p', 'none', ON)
+    ).toBe(second);
+  });
+
+  it('takes the second read whole, never a mix', async () => {
+    const second = v('imminent', 'third_party');
+    const kept = await withSecondRead(
+      Promise.resolve(v('none')),
+      async () => second,
+      'p',
+      'none',
+      ON
+    );
+    expect(kept).toBe(second);
+  });
+
+  it('a second read that throws or rejects is no read', async () => {
+    const thrown = () => {
+      throw new Error('boom');
+    };
+    const rejected = async () => {
+      throw new Error('boom');
+    };
+    for (const read of [thrown, rejected]) {
+      expect(await withSecondRead(Promise.resolve(v('none')), read, 'p', 'none', ON)).toEqual(
+        v('none')
+      );
+    }
+  });
+
+  it('shadow: the log never leaves an unhandled rejection', async () => {
+    const seen: unknown[] = [];
+    const onUnhandled = (reason: unknown) => seen.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    try {
+      const base = Promise.reject(new Error('base failed'));
+      const out = withSecondRead(base, async () => v('crisis'), 'p', 'none', {
+        CRISIS_CLASSIFIER_SECOND_READ: 'shadow',
+      });
+      await expect(out).rejects.toThrow('base failed');
+      await new Promise((r) => setTimeout(r, 20));
+      expect(seen).toEqual([]);
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+  });
+
+  it("v3 sees exactly what the base read sees, Ferni's line included", async () => {
+    resetCrisisClassifierCache();
+    const generate = twoPrompts(reply('none'), reply('none'));
+    await run({ CRISIS_CLASSIFIER_SECOND_READ: 'on' }, generate);
+    const contents = generate.mock.calls.map(([, content]) => JSON.parse(content));
+    expect(contents).toHaveLength(2);
+    expect(contents[1]).toEqual(contents[0]);
+    expect(contents[1].companion).toBe(turn.companion);
   });
 });
 

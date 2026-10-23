@@ -14,6 +14,7 @@ import {
   type CrisisGenerateFn,
 } from '../../../services/safety/crisis-classifier.js';
 import { resetCallRiskSnapshots } from '../../../services/safety/crisis-lone-imminent.js';
+import { startTurnCrisis } from '../../processors/turn-processor/turn-crisis.js';
 import { startCrisisGate, type CrisisGateDecision } from '../crisis-gate.js';
 
 const GATE = {
@@ -108,5 +109,33 @@ describe('the second read through the reply gate', () => {
     const { off, on } = await offAndOn(line, j('none'), j('crisis'));
     expect(off.action).toBe('pass');
     expect(on.action).toBe('guide');
+  });
+
+  it("keeps the patterns' third-party guidance where the base read found nothing and v3 reads the caller", async () => {
+    const line = 'my friend keeps saying she wants to kill herself';
+    for (const v3 of [j('imminent'), j('crisis')]) {
+      for (const base of [j('none'), 'not json']) {
+        const { off, on } = await offAndOn(line, base, v3);
+        expect(on, `${base} + ${v3}`).toEqual(off);
+        expect(off.action).toBe('guide');
+      }
+    }
+  });
+
+  it('keeps the third-party subject in the turn pipeline too', async () => {
+    const line = 'my friend keeps saying she wants to kill herself';
+    for (const env of [GATE, ON]) {
+      resetCrisisClassifierCache();
+      const turn = startTurnCrisis(
+        line,
+        { recentTranscripts: [] },
+        {
+          sessionId: `second-read-${++calls}`,
+          env,
+          generate: reads(line, j('none'), j('imminent')),
+        }
+      );
+      expect((await turn.resolve()).subject, JSON.stringify(env)).toBe('third_party');
+    }
   });
 });
