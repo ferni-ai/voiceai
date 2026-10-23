@@ -24,6 +24,7 @@ import { flagOn, type Env } from '../../config/env-flag.js';
 import { isMemberIdentity } from '../../services/identity/member-identity.js';
 import { forgottenInProcess, forgottenTopicsOrNull } from './forget.js';
 import { foldedWords } from './forget-tokens.js';
+import { scrubProfile } from './forget-profile.js';
 import { readTopics, topicsNow, topicsWithin } from './forget-topics-source.js';
 import { isForgotten } from './session-recall.js';
 
@@ -34,18 +35,35 @@ export function forgetEveryReaderEnabled(env: Env = process.env): boolean {
 /** True when a text is about something the caller asked to forget. */
 export type ForgottenCheck = (text: string) => boolean;
 
-/** The names (capitalized words) of a stored topic, folded as memory words are. */
+/**
+ * The likely names in a stored topic, folded as memory words are: its
+ * capitalized words but the first ("Divorce papers": the capital is the
+ * sentence's), unless the topic is that one word ("Mark").
+ */
 function namesOf(topic: string): string[] {
-  return (topic.match(/\S+/g) ?? [])
-    .filter((w) => /^\p{Lu}/u.test(w))
+  const words = topic.match(/\S+/g) ?? [];
+  return words
+    .filter((w, i) => /^\p{Lu}/u.test(w) && (i > 0 || words.length === 1))
     .flatMap((w) => foldedWords(w).map((f) => f.word));
 }
 
-/** isForgotten, with every name in the topic required as a whole word of the text. */
+/**
+ * A topic of several words whose first is capitalized, with that word in
+ * lower case: the shared matcher reads a capital as a name and won't stem it,
+ * so "Divorce papers" missed "divorcing ... papers".
+ */
+function sentenceCase(topic: string): string | undefined {
+  const words = topic.match(/\S+/g) ?? [];
+  if (words.length < 2 || !/^\p{Lu}/u.test(words[0]!)) return undefined;
+  return [words[0]!.toLowerCase(), ...words.slice(1)].join(' ');
+}
+
+/** isForgotten, with every likely name in the topic required as a whole word of the text. */
 export function aboutForgotten(text: string, topics: readonly string[]): boolean {
   let whole: Set<string> | undefined;
   return topics.some((t) => {
-    if (!isForgotten(text, [t])) return false;
+    const lower = sentenceCase(t);
+    if (!isForgotten(text, [t]) && !(lower && isForgotten(text, [lower]))) return false;
     const names = namesOf(t);
     if (names.length === 0) return true;
     whole ??= new Set(foldedWords(text).map((f) => f.word));
@@ -149,43 +167,24 @@ export async function rememberedText(
   return forgotten?.(text) ? undefined : text;
 }
 
-/** The profile fields read into prompts that may hold what the caller asked to forget. */
-interface PromptProfile {
-  lastCallerSummary?: string;
-  lastConversationSummary?: string;
-  lifeEvents?: unknown[];
-  goals?: unknown[];
-  primaryConcerns?: unknown[];
-}
+export { PROFILE_PASS_THROUGH } from './forget-profile.js';
 
 /**
- * The caller's profile as a prompt reads it: the last call summaries, life
- * events, goals and concerns about a forgotten topic left out. The stored
- * profile is not changed. Unchanged when the flag is off.
+ * The caller's profile as a prompt reads it, every field but an allowlist
+ * filtered (forget-profile.ts). The stored profile is not changed; unchanged
+ * when the flag is off.
  */
-export async function profileForCaller<P extends PromptProfile>(
+export async function profileForCaller<P extends object>(
   userId: string | null | undefined,
   profile: P,
   reader = 'profile'
 ): Promise<P> {
   const forgotten = await forgottenCheck(userId, reader);
-  if (!forgotten) return profile;
-  const kept = (s: string | undefined) => (s && !forgotten(s) ? s : undefined);
-  const out: P = {
-    ...profile,
-    lastCallerSummary: kept(profile.lastCallerSummary),
-    lastConversationSummary: kept(profile.lastConversationSummary),
-  };
-  if (profile.lifeEvents) out.lifeEvents = remembered(profile.lifeEvents, forgotten);
-  if (profile.goals) out.goals = remembered(profile.goals, forgotten);
-  if (profile.primaryConcerns) {
-    out.primaryConcerns = remembered(profile.primaryConcerns, forgotten, String);
-  }
-  return out;
+  return forgotten ? scrubProfile(profile, forgotten) : profile;
 }
 
 /** profileForCaller for a session's services (agent-setup.ts, voice-agent-entry). */
-export async function profileForPrompt<P extends PromptProfile>(services: {
+export async function profileForPrompt<P extends object>(services: {
   userId?: string | null;
   userProfile?: P | null;
 }): Promise<P | null> {

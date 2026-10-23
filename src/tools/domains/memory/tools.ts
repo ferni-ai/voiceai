@@ -13,7 +13,7 @@ import { getToolDescription } from '../../utils/tool-descriptions.js';
 import { REMEMBERED, REMEMBERED_THIS_CALL } from './remember-results.js';
 import { memoryHeld } from '../../../utils/minor-care.js';
 import { forgetForCaller, forgetProblem } from '../../../memory/recall/forget.js';
-import { profileForCaller } from '../../../memory/index.js';
+import { keepRemembered, profileForCaller } from '../../../memory/index.js';
 // ============================================================================
 // SERVICE TYPES
 // ============================================================================
@@ -150,7 +150,7 @@ export const recallFromMemoryDef: ToolDefinition = {
         const { services } = userData;
 
         if (services?.userProfile) {
-          const profile = services.userProfile;
+          const profile = await profileForCaller(userData.userId, services.userProfile);
 
           if (profile.lastConversationSummary) {
             return `From our last conversation, I remember: ${profile.lastConversationSummary}`;
@@ -168,9 +168,9 @@ export const recallFromMemoryDef: ToolDefinition = {
           }
         }
 
-        // Check session memory
-        if (userData.keyMoments && userData.keyMoments.length > 0) {
-          return `From our conversation today: ${userData.keyMoments.join('; ')}`;
+        const moments = await keepRemembered(userData.userId, userData.keyMoments ?? []);
+        if (moments.length > 0) {
+          return `From our conversation today: ${moments.join('; ')}`;
         }
 
         return `I don't have specific memories about that yet. What's on your mind?`;
