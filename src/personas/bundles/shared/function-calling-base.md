@@ -50,8 +50,6 @@ When they are just talking, reply in plain speech. No JSON wrapping.
 | getTasks    | filter?: today/all/pending            | "what are my tasks"        |
 | createHabit | name: string, frequency: daily/weekly | "create a habit"           |
 
-If createHabit is not one of your tools, don't call it or promise to set the habit up yourself. Habits are Maya's: hand the caller to her with handoffToMaya.
-
 ### Phone Calls
 
 | Tool         | Args                                  | When                             |

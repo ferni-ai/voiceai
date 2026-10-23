@@ -41,7 +41,11 @@ const NEVER_FORBIDDEN = new Set([
   'endCall',
   'softTeamIntro',
 ]);
-/** Whole registry domains no persona may lose a tool from. */
+/**
+ * Whole registry domains no persona may lose a tool from. A tool's domain here
+ * is its primary one (ToolDefinition.domain); a tool that is only listed under
+ * one of these as a secondary domain is not protected by it.
+ */
 const PROTECTED_DOMAINS = new Set([...SAFETY_DOMAINS, 'sobriety']);
 
 /** Whether no persona policy may remove this tool. */
@@ -63,30 +67,38 @@ export interface PersonaToolPolicy {
   forbidden: string[];
 }
 
-/** Each persona's manifest read, once per process. */
-const manifestReads = new Map<string, Promise<string[]>>();
+/** Each persona's manifest read, once per process (a failed read is retried). */
+const manifestReads = new Map<string, Promise<string[] | undefined>>();
 /** Each persona's policy once read, for the mid-call paths that can't await. */
 const knownPolicies = new Map<string, readonly string[]>();
 const warnedPersonas = new Set<string>();
 
-/** The manifest's forbidden list, as written, or [] when there is no manifest. */
-async function manifestForbidden(personaId: string): Promise<string[]> {
+/**
+ * The manifest's forbidden list, as written: [] when the persona has no
+ * manifest, undefined when the read failed (not cached, so the next call retries).
+ */
+async function manifestForbidden(personaId: string): Promise<string[] | undefined> {
   const cached = manifestReads.get(personaId);
   if (cached) return cached;
   const read = readManifestForbidden(personaId);
   manifestReads.set(personaId, read);
-  return read;
+  const listed = await read;
+  if (listed === undefined) manifestReads.delete(personaId);
+  return listed;
 }
 
-async function readManifestForbidden(personaId: string): Promise<string[]> {
+async function readManifestForbidden(personaId: string): Promise<string[] | undefined> {
   try {
     const personas = await import('../../personas/index.js');
     const known = personas.isKnownPersona(personaId);
     const bundleId = known ? personas.getCanonicalPersonaId(personaId) : personaId;
     return (await personas.loadBundleById(bundleId))?.manifest.tools?.forbidden ?? [];
   } catch (error) {
-    log.warn({ personaId, error: String(error) }, 'No persona manifest: no tool policy applied');
-    return [];
+    log.warn(
+      { personaId, error: String(error) },
+      'Persona manifest read failed: retried next call'
+    );
+    return undefined;
   }
 }
 
@@ -94,6 +106,7 @@ async function readManifestForbidden(personaId: string): Promise<string[]> {
 export async function personaToolPolicy(personaId: string): Promise<PersonaToolPolicy | undefined> {
   if (!flagOn('PERSONA_TOOL_POLICY')) return undefined;
   const listed = await manifestForbidden(personaId);
+  if (listed === undefined) return { forbidden: [] }; // nothing known yet; not remembered
   const refused = listed.filter(isProtectedTool);
   if (refused.length > 0 && !warnedPersonas.has(personaId)) {
     warnedPersonas.add(personaId);
@@ -104,20 +117,18 @@ export async function personaToolPolicy(personaId: string): Promise<PersonaToolP
   return { forbidden };
 }
 
+/** Each SDK agent's own persona, set where agent setup builds it. */
+const agentPersonas = new WeakMap<object, string>();
+
 /**
- * The persona's forbidden tools for a path that can't await (mid-call tool
- * updates). Call setup reads the policy first (applyPersonaToolPolicy), so it
- * is known by then; if not, this starts the read and returns none for now.
+ * Agent setup: this agent speaks as `personaId`. Its policy follows the agent,
+ * not `userData.personaId`, which a handoff only updates after the swap while
+ * the SDK already runs the new agent. Reads the policy now, so the first
+ * mid-call update has it.
  */
-export function forbiddenToolsNow(personaId: string | undefined): readonly string[] {
-  if (!personaId || !flagOn('PERSONA_TOOL_POLICY')) return [];
-  const known = knownPolicies.get(personaId);
-  if (!known) {
-    personaToolPolicy(personaId).catch((error: unknown) =>
-      log.warn({ personaId, error: String(error) }, 'Could not read the persona tool policy')
-    );
-  }
-  return known ?? [];
+export function rememberAgentPersona(agent: object, personaId: string): void {
+  agentPersonas.set(agent, personaId);
+  if (flagOn('PERSONA_TOOL_POLICY')) void forbiddenToolsFor(personaId);
 }
 
 interface UserDataHolder {
@@ -133,6 +144,35 @@ export function personaIdOnCall(agentOrSession: object): string | undefined {
   } catch {
     return undefined; // the SDK throws until the agent runs, or when userData is unset
   }
+}
+
+/** A persona id as given, or an agent's own persona, else its session's userData. */
+function personaOf(of: string | object | undefined): string | undefined {
+  if (of === undefined || typeof of === 'string') return of;
+  return agentPersonas.get(of) ?? personaIdOnCall(of);
+}
+
+/** The forbidden tools of a persona, or of an agent's persona (none while the flag is off). */
+export async function forbiddenToolsFor(
+  of: string | object | undefined
+): Promise<readonly string[]> {
+  if (!flagOn('PERSONA_TOOL_POLICY')) return [];
+  const personaId = personaOf(of);
+  return personaId ? ((await personaToolPolicy(personaId))?.forbidden ?? []) : [];
+}
+
+/**
+ * The same, for a path that can't await (same-turn topic tools). Agent setup
+ * reads the policy first (rememberAgentPersona, applyPersonaToolPolicy), so it
+ * is known by then; if not, this starts the read and returns none for now.
+ */
+export function forbiddenToolsNow(of: string | object | undefined): readonly string[] {
+  if (!flagOn('PERSONA_TOOL_POLICY')) return [];
+  const personaId = personaOf(of);
+  if (!personaId) return [];
+  const known = knownPolicies.get(personaId);
+  if (!known) void forbiddenToolsFor(personaId);
+  return known ?? [];
 }
 
 /**

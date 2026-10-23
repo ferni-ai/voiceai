@@ -84,7 +84,7 @@ import {
   initializeToolOrchestrator,
   isOrchestratorInitialized,
 } from '../../tools/orchestrator/voice-agent-integration.js';
-import { applyPersonaToolPolicy } from '../../tools/orchestrator/persona-tool-policy.js';
+import * as toolPolicy from '../../tools/orchestrator/persona-tool-policy.js'; // PERSONA_TOOL_POLICY
 // Tool Gateway (2026 architecture) - tiered loading, predictive prefetch
 import { getToolGateway } from '../../tools/gateway/index.js';
 import {
@@ -987,7 +987,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
   const named = { ...toolsCtx, agentDisplayName: persona.name || persona.id };
   const withJournal = await withCallJournalTools(loadedTools, named); // CALL_JOURNAL=on
   const withAlwaysOn = await withAlwaysOnTools(withJournal, named, isHandoff === true);
-  const orchestratorTools = await applyPersonaToolPolicy(withAlwaysOn, persona.id); // PERSONA_TOOL_POLICY
+  const orchestratorTools = await toolPolicy.applyPersonaToolPolicy(withAlwaysOn, persona.id);
 
   // 🔍 Log exactly what tools the LLM gets: this helps debug "tools not working" issues
   const toolCount = Object.keys(orchestratorTools).length;
@@ -1589,8 +1589,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
 
   log.info({ personaId: persona.id }, '🔍 Enhanced error logging attached to LLM and session');
 
-  // Create agent wrapper WITH TOOLS using FerniAgent (has ttsNode override for JSON sanitizer)
-  // FerniAgent's ttsNode override filters {"fn":"startGame","args":{}} before TTS speaks it.
+  // FerniAgent (below): its ttsNode filters {"fn":"startGame","args":{}} JSON before TTS speaks it.
   // Per-turn intelligence (context builders, memory retrieval, emotional
   // guidance). On unless TURN_INTELLIGENCE=off; see turn-intelligence.ts.
   const turnContextHook =
@@ -1611,6 +1610,7 @@ Reference past context when relevant, but don't force it. Let the conversation f
     skipGreeting: true,
     ...(callSession && { voice: { llm: llmModel, tts } }),
   }) as unknown as voice.Agent<UserData>; // Type cast needed - FerniAgent uses compatible session data
+  toolPolicy.rememberAgentPersona(agent, persona.id); // the policy follows the agent, not userData
 
   // Memory recall, added as the user's words are transcribed (interims too), before the
   // SDK's preemptive generation; memory-recall-hook.ts says why. The name lift rides along.

@@ -23,7 +23,6 @@ import { llm } from '@livekit/agents';
 import { SAME_TURN_MAX_TOOLS, sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
 import {
   forbiddenToolsNow,
-  personaIdOnCall,
   withoutForbiddenTools,
 } from '../../tools/orchestrator/persona-tool-policy.js';
 import { TOPIC_TO_DOMAINS } from '../../tools/dynamic-loader/topic-mappings.js';
@@ -97,7 +96,9 @@ function pickFor(session: object, loader: SameTurnLoader, text: string): Record<
 export function withSameTurnTools(
   session: object,
   chatCtx: llm.ChatContext,
-  toolCtx: llm.ToolContext
+  toolCtx: llm.ToolContext,
+  /** The agent whose reply this is: its persona's policy applies (else the session's userData) */
+  agent?: object
 ): string[] {
   if (!sameTurnToolsEnabled()) return [];
   const loader = loaders.get(session);
@@ -105,7 +106,7 @@ export function withSameTurnTools(
   if (!loader || !text) return [];
   try {
     const have = toolCtx.functionTools;
-    const forbidden = forbiddenToolsNow(personaIdOnCall(session)); // PERSONA_TOOL_POLICY
+    const forbidden = forbiddenToolsNow(agent ?? session); // PERSONA_TOOL_POLICY
     const picked = withoutForbiddenTools(pickFor(session, loader, text.toLowerCase()), forbidden);
     const missing = Object.entries(picked)
       .filter(([name]) => !(name in have))

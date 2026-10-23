@@ -32,13 +32,14 @@ vi.mock('../../../utils/safe-logger.js', async (importOriginal) => {
       bindings.module === 'PersonaToolPolicy' ? policyLog : actual.createLogger(bindings),
   };
 });
-const bundleReads = vi.hoisted(() => ({ ids: [] as string[] }));
+const bundleReads = vi.hoisted(() => ({ ids: [] as string[], failNext: new Set<string>() }));
 vi.mock('../../../personas/index.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../../personas/index.js')>();
   return {
     ...actual,
     loadBundleById: (id: string, ...rest: unknown[]) => {
       bundleReads.ids.push(id);
+      if (bundleReads.failNext.delete(id)) throw new Error('disk hiccup');
       return (actual.loadBundleById as (...a: unknown[]) => unknown)(id, ...rest);
     },
   };
@@ -106,6 +107,25 @@ async function startCall(personaId: string, userId: string) {
   return { agent, session, loader, names: () => Object.keys(agent.toolCtx.functionTools) };
 }
 
+/** An SDK-like agent with no tools yet; `session` absent means not attached (the SDK throws). */
+function bareAgent(session?: object) {
+  const agent = {
+    toolCtx: new llm.ToolContext({} as never),
+    async updateTools(next: Record<string, unknown>) {
+      this.toolCtx = new llm.ToolContext(next as never);
+    },
+  };
+  Object.defineProperty(agent, 'session', {
+    configurable: true,
+    get: () => {
+      if (!session) throw new Error('Agent activity not found');
+      return session;
+    },
+  });
+  return agent;
+}
+const namesOf = (agent: { toolCtx: llm.ToolContext }) => Object.keys(agent.toolCtx.functionTools);
+
 /** A topic loaded mid-call reaching the agent, as the deferred update applies it. */
 async function topicMidCall(call: Awaited<ReturnType<typeof startCall>>, said: string) {
   const { updateAgentTools } = await import('../../../agents/shared/tool-updater.js');
@@ -152,10 +172,99 @@ describe('a habit topic mid-call does not bring createHabit back to Ferni', () =
     await call.agent.updateTools({ ...current, createHabit: stale.createHabit });
     expect(call.names()).toContain('createHabit');
 
-    await updateAgentTools(call.agent as never, { playMusic: stale.createHabit }, {});
+    // An update that offers nothing new still runs, because the agent holds a forbidden tool
+    const [held] = Object.keys(current);
+    await updateAgentTools(call.agent as never, { [held!]: current[held!] }, {});
+    expect(call.names()).toContain(held);
     expect(call.names()).not.toContain('createHabit');
     call.loader.shutdown();
   }, 120_000);
+});
+
+describe("each agent gets its own persona's policy", () => {
+  it('Ferni to Maya: the handed-to agent keeps her habit tools while userData still names Ferni', async () => {
+    await setFlags({ PERSONA_TOOL_POLICY: 'on' });
+    const { rememberAgentPersona } = await import('../persona-tool-policy.js');
+    const { updateAgentTools } = await import('../../../agents/shared/tool-updater.js');
+    const ferni = await startCall('ferni', 'handoff-habits');
+    rememberAgentPersona(ferni.agent, 'ferni');
+    const habits = ferni.loader.getToolsForDomains(['habits']);
+    expect(Object.keys(habits)).toEqual(
+      expect.arrayContaining(['createHabit', 'logHabitCompletion'])
+    );
+    // The SDK points the session at Maya now; persona-swap sets userData.personaId later
+    expect(ferni.session.userData.personaId).toBe('ferni');
+    const maya = bareAgent(ferni.session);
+    rememberAgentPersona(maya, 'maya-santos');
+
+    await updateAgentTools(maya as never, habits, { domains: ['habits'] });
+    await updateAgentTools(ferni.agent as never, habits, { domains: ['habits'] });
+
+    expect(namesOf(maya)).toEqual(expect.arrayContaining(['createHabit', 'logHabitCompletion']));
+    expect(ferni.names()).not.toContain('createHabit');
+    expect(ferni.names()).not.toContain('logHabitCompletion');
+    ferni.loader.shutdown();
+  }, 120_000);
+
+  it('an agent not attached to its session yet still gets its own policy', async () => {
+    await setFlags({ PERSONA_TOOL_POLICY: 'on' });
+    const { rememberAgentPersona } = await import('../persona-tool-policy.js');
+    const { updateAgentTools } = await import('../../../agents/shared/tool-updater.js');
+    const call = await startCall('ferni', 'unattached');
+    const agent = bareAgent();
+    rememberAgentPersona(agent, 'ferni');
+
+    await updateAgentTools(agent as never, call.loader.getToolsForDomains(['habits']), {});
+
+    expect(namesOf(agent).length).toBeGreaterThan(0);
+    expect(namesOf(agent)).not.toContain('createHabit');
+    call.loader.shutdown();
+  }, 120_000);
+
+  it('the first update for a persona whose policy was never read still applies it', async () => {
+    await setFlags({ PERSONA_TOOL_POLICY: 'on' });
+    const { autoRegisterAllDomains, loadToolDomainsLazy } =
+      await import('../../registry/loader.js');
+    const { createSessionToolLoader } = await import('../../dynamic-loader/index.js');
+    const { updateAgentTools } = await import('../../../agents/shared/tool-updater.js');
+    await autoRegisterAllDomains();
+    await loadToolDomainsLazy(['habits'] as never);
+    const loader = createSessionToolLoader({ enableAutoUnload: false });
+    const ctx = {
+      userId: 'cold',
+      sessionId: 's-cold',
+      agentId: 'ferni',
+      agentDisplayName: 'Ferni',
+    };
+    await loader.initialize({ ...ctx, services: undefined } as never);
+    const all = loader.getToolsForDomains(['habits']);
+    const habits = { createHabit: all.createHabit, getHabits: all.getHabits };
+    loader.shutdown();
+    expect(habits.createHabit).toBeDefined();
+    const agent = bareAgent({ userData: { personaId: 'ferni' } }); // fallback: userData
+
+    await updateAgentTools(agent as never, habits, {});
+
+    expect(namesOf(agent)).toEqual(['getHabits']);
+  }, 120_000);
+
+  it('flag off: no persona lookup at all (the agent session is never read)', async () => {
+    await setFlags({ PERSONA_TOOL_POLICY: 'off' });
+    const { updateAgentTools } = await import('../../../agents/shared/tool-updater.js');
+    let reads = 0;
+    const agent = bareAgent({ userData: { personaId: 'ferni' } });
+    const inner = Object.getOwnPropertyDescriptor(agent, 'session')!.get!;
+    Object.defineProperty(agent, 'session', {
+      get: () => {
+        reads++;
+        return inner();
+      },
+    });
+    const tool = llm.tool({ description: 'x', execute: async () => 'ok' });
+    await updateAgentTools(agent as never, { createHabit: tool }, {});
+    expect(namesOf(agent)).toContain('createHabit');
+    expect(reads).toBe(0);
+  });
 });
 
 describe('same-turn topic tools and the static core follow the policy', () => {
@@ -207,8 +316,12 @@ describe('protected tools are never removed', () => {
     const { toolRegistry } = await import('../../registry/index.js');
     await autoRegisterAllDomains();
     await loadToolDomainsLazy(PROTECTED_DOMAINS as never);
+    // Protection follows a tool's primary domain (ToolDefinition.domain)
     const domainTools = PROTECTED_DOMAINS.flatMap((d) =>
-      toolRegistry.getByDomain(d as never).map((t) => t.id)
+      toolRegistry
+        .getByDomain(d as never)
+        .filter((t) => t.domain === d)
+        .map((t) => t.id)
     );
     for (const d of PROTECTED_DOMAINS) {
       expect(domainTools.some((id) => toolRegistry.get(id)?.domain === d)).toBe(true);
@@ -245,6 +358,19 @@ describe('protected tools are never removed', () => {
     );
     expect(warned).toHaveLength(1);
     expect(warned[0]?.[0]).toMatchObject({ refused: ['handoffToFerni', 'meetTheTeam'] });
+  });
+
+  it('a failed manifest read is not cached: the next call reads it again', async () => {
+    const FIXTURE = writeFixture('fixture-retry', ['tellJoke']);
+    await setFlags({ PERSONA_TOOL_POLICY: 'on' });
+    bundleReads.failNext.add(FIXTURE);
+    const { personaToolPolicy, forbiddenToolsNow } = await import('../persona-tool-policy.js');
+
+    expect((await personaToolPolicy(FIXTURE))?.forbidden).toEqual([]);
+    expect(forbiddenToolsNow(FIXTURE)).toEqual([]);
+    expect((await personaToolPolicy(FIXTURE))?.forbidden).toEqual(['tellJoke']);
+    expect(forbiddenToolsNow(FIXTURE)).toEqual(['tellJoke']);
+    expect(bundleReads.ids.filter((id) => id === FIXTURE)).toHaveLength(2);
   });
 
   it('joel-dickson no longer forbids a teammate, so nothing is refused', async () => {

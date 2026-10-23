@@ -35,8 +35,7 @@ import {
 } from '../../config/tool-config.js';
 import { withoutSharedHandoffs } from '../../tools/handoff/handoff-availability.js';
 import {
-  forbiddenToolsNow,
-  personaIdOnCall,
+  forbiddenToolsFor,
   withoutForbiddenTools,
 } from '../../tools/orchestrator/persona-tool-policy.js';
 import { sameTurnToolsEnabled } from '../../config/same-turn-tools-config.js';
@@ -119,7 +118,7 @@ export async function updateAgentTools(
   const target = asToolCapable(agent);
   const staticCore = staticCoreToolsEnabled();
   // PERSONA_TOOL_POLICY: no mid-call update gives the persona on the call a tool it forbids
-  const forbidden = forbiddenToolsNow(personaIdOnCall(agent));
+  const forbidden = await forbiddenToolsFor(agent); // the agent's own persona (agent setup)
   const offered = withoutForbiddenTools(withoutSharedHandoffs(offeredTools), forbidden);
   const newTools =
     staticCore && !pin
