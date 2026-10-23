@@ -180,12 +180,9 @@ describe('a safety note waiting for Ferni to listen', () => {
     return ctx.items.map((i) => (i as { textContent?: string }).textContent ?? '').join('\n');
   }
 
-  it('off (as before): the later note replaces it', async () => {
-    expect(await overwrite('off')).not.toContain('[CRISIS SUPPORT]');
-  });
-
-  it('on: kept ahead of the later note, so it still lands', async () => {
-    const pushed = await overwrite('on');
+  // Safety guidance is never replaced while it waits, whatever the flag (#2642).
+  it.each(['off', 'on'])('%s: kept ahead of the later note, so it still lands', async (mode) => {
+    const pushed = await overwrite(mode);
     expect(pushed).toContain('[CRISIS SUPPORT]');
     expect(pushed).toContain('They love hiking.');
   });
