@@ -13,6 +13,11 @@
  *
  * Runner wait is Setup's wait plus the slowest wait behind it (runnerWait).
  * CI runs only (ci.yml): it holds every required check but Menu E2E and Build & Test.
+ *
+ * gh calls retry a GitHub 5xx or a network error (3 tries, 2 s then 6 s): one
+ * 502 on one run's jobs crashed the 2026-10-23 report. A run whose jobs still
+ * can't be read is left out and named in the report; auth errors, 404s and bad
+ * JSON still fail the job.
  */
 import { execFileSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
@@ -77,11 +82,59 @@ export function report(s) {
       `${s.merged ? (s.mgRuns / s.merged).toFixed(1) : 'n/a'} queue runs per merge.`,
     '',
     `Target: merge-queue wait for a runner under 15 min at p50; above it, larger runners are the next step (#2053).`,
+    ...(s.skipped?.length
+      ? ['', `> **Warning:** ${s.skipped.length} run(s) left out of the runner waits: GitHub's API ` +
+          `kept failing after ${DELAYS_MS.length + 1} tries (${s.skipped.join(', ')}).`]
+      : []),
   ].join('\n');
 }
 
-function gh(args) {
-  return JSON.parse(execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 }));
+/** Waits between tries of a gh call that failed transiently: 3 tries in all. */
+export const DELAYS_MS = [2000, 6000];
+
+/**
+ * True for a failure worth retrying: an HTTP 5xx from GitHub, or the network.
+ * Not 401/403 (auth), 404, or a gh that can't run.
+ */
+export function isTransient(err) {
+  const text = `${err?.stderr ?? ''}\n${err?.message ?? ''}`;
+  return (
+    /\bHTTP 5\d\d\b/.test(text) ||
+    /error connecting to|dial tcp|i\/o timeout|connection reset|TLS handshake timeout|unexpected EOF|no such host|ECONNRESET|ETIMEDOUT|EAI_AGAIN/i.test(text)
+  );
+}
+
+/** A gh call that kept failing transiently after every retry. */
+export class GhUnavailable extends Error {
+  constructor(args, cause) {
+    const why = String(cause?.stderr || cause?.message || cause).trim().split('\n').pop();
+    super(`gh ${args.join(' ')}: ${why}`);
+    this.name = 'GhUnavailable';
+    this.cause = cause;
+  }
+}
+
+const exec = (args) => execFileSync('gh', args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+/**
+ * `gh <args>` parsed as JSON, retrying transient failures DELAYS_MS apart. Throws
+ * GhUnavailable when they run out; any other failure, and bad JSON, at once.
+ */
+export function gh(args, { run = exec, wait = sleep, warn = console.error } = {}) {
+  for (let attempt = 0; ; attempt++) {
+    let out;
+    try {
+      out = run(args);
+    } catch (err) {
+      if (!isTransient(err)) throw err;
+      if (attempt >= DELAYS_MS.length) throw new GhUnavailable(args, err);
+      warn(`${new GhUnavailable(args, err).message}; try ${attempt + 2} in ${DELAYS_MS[attempt] / 1000} s`);
+      wait(DELAYS_MS[attempt]);
+      continue;
+    }
+    return JSON.parse(out);
+  }
 }
 
 function runs(repo, event, since) {
@@ -94,11 +147,20 @@ function runs(repo, event, since) {
   return out;
 }
 
-/** Waits for up to `limit` runs (newest first), one jobs call each. */
-function waits(repo, list, limit) {
+/**
+ * Waits for up to `limit` runs (newest first), one jobs call each. A run whose
+ * jobs GitHub won't serve is null (left out) and its id goes in `skipped`.
+ */
+export function waits(repo, list, limit, skipped = [], call = gh) {
   return list.slice(0, limit).map((run) => {
-    const jobs = gh(['api', `repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`]).jobs;
-    return runnerWait(run, jobs);
+    try {
+      return runnerWait(run, call(['api', `repos/${repo}/actions/runs/${run.id}/jobs?per_page=100`]).jobs);
+    } catch (err) {
+      if (!(err instanceof GhUnavailable)) throw err;
+      console.error(`::warning::CI speed: left out run ${run.id}: ${err.message}`);
+      skipped.push(run.id);
+      return null;
+    }
   });
 }
 
@@ -116,15 +178,17 @@ function main() {
   const mg = runs(repo, 'merge_group', since);
   const merged = gh(['pr', 'list', '-R', repo, '--state', 'merged', '--limit', '1000',
     '--search', `merged:>=${since}`, '--json', 'createdAt,mergedAt']);
+  const skipped = [];
   const s = {
     hours,
-    prWait: stats(waits(repo, pr, 60)),
-    mgWait: stats(waits(repo, mg, 60)),
+    prWait: stats(waits(repo, pr, 60, skipped)),
+    mgWait: stats(waits(repo, mg, 60, skipped)),
     mgPass: stats(mg.filter((r) => r.conclusion === 'success').map(wallMinutes)),
     merge: stats(merged.map((p) => (Date.parse(p.mergedAt) - Date.parse(p.createdAt)) / MIN)),
     mg: outcomes(mg),
     mgRuns: mg.length,
     merged: merged.length,
+    skipped,
   };
   console.log(argv.includes('--json') ? JSON.stringify(s) : report(s));
 }
