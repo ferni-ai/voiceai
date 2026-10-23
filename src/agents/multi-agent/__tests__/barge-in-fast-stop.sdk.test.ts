@@ -23,14 +23,28 @@ const sdkDist = join(dirname(createRequire(import.meta.url).resolve('@livekit/ag
 const { ParticipantAudioOutput } = (await import(join(sdkDist, 'room_io/_output.js'))) as {
   ParticipantAudioOutput: new (room: unknown, opts: Record<string, unknown>) => RoomOutput;
 };
+const { TranscriptionSynchronizer } = (await import(
+  join(sdkDist, 'transcription/synchronizer.js')
+)) as {
+  TranscriptionSynchronizer: new (
+    audio: voice.AudioOutput,
+    text: unknown
+  ) => {
+    audioOutput: voice.AudioOutput;
+    textOutput: { captureText: (t: string) => Promise<void>; flush: () => void };
+    close: () => Promise<void>;
+  };
+};
 interface RoomOutput extends voice.AudioOutput {
   audioSource: FakeRtcSource;
   startedFuture: { resolve: () => void };
   sourceDiscardedDuration: number;
 }
+/** The SDK logger the patched output logs BARGE_IN_FAST_STOP_CLEAR to (shared by every output). */
+const loggerOf = (o: RoomOutput) =>
+  (o as unknown as { logger: { info: (...args: unknown[]) => void } }).logger;
 
 const SAMPLE_RATE = 24_000;
-const FRAME_MS = 20;
 const QUEUE_MS = 500;
 const sleep = (ms: number) =>
   new Promise<void>((r) => {
@@ -71,15 +85,15 @@ class FakeRtcSource {
     this.lastCapture = now;
     const start = Math.max(now, this.audibleUntil);
     this.played.push([start, start + ms]);
-    while (this.queuedDuration > QUEUE_MS) await sleep(5);
+    while (this.queuedDuration > QUEUE_MS) await sleep(2);
   }
   async waitForPlayout(): Promise<void> {
-    while (Date.now() < this.audibleUntil) await sleep(5);
+    while (Date.now() < this.audibleUntil) await sleep(2);
   }
 }
 
-const frame = () => {
-  const n = (SAMPLE_RATE * FRAME_MS) / 1000;
+const frame = (ms: number) => {
+  const n = (SAMPLE_RATE * ms) / 1000;
   return new AudioFrame(new Int16Array(n), SAMPLE_RATE, 1, n);
 };
 
@@ -91,10 +105,10 @@ function roomOutput(): RoomOutput {
 }
 
 /** A reply of `replyMs` streamed into `out` the way LiveKit's forwarder does (one frame at a time). */
-function speak(out: voice.AudioOutput, replyMs: number) {
+function speak(out: voice.AudioOutput, replyMs: number, frameMs = 20) {
   let cut = false;
   const done = (async () => {
-    for (let ms = 0; ms < replyMs && !cut; ms += FRAME_MS) await out.captureFrame(frame());
+    for (let ms = 0; ms < replyMs && !cut; ms += frameMs) await out.captureFrame(frame(frameMs));
   })();
   /** The reply was interrupted: its forwarder stops and the output is let go. */
   const interrupt = async () => {
@@ -111,16 +125,17 @@ beforeAll(() => {
 });
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.restoreAllMocks();
 });
 
 /** Ferni speaking with a full queue, then a pause for the caller: how long is he still heard? */
-async function pauseMidReply(flag: 'on' | 'off') {
+async function pauseMidReply(flag: string, frameMs = 20) {
   vi.stubEnv('BARGE_IN_FAST_STOP', flag);
   const room = roomOutput();
   const logs: Array<Record<string, unknown>> = [];
   const out = new ResumeBufferOutput(room, {}, (f) => logs.push(f));
-  const reply = speak(out, 2000);
-  await sleep(800); // the queue is full: QUEUE_MS of audio waits to be played
+  const reply = speak(out, 2000, frameMs);
+  await sleep(830); // the queue is full: QUEUE_MS of audio waits to be played
   const queuedAtPause = room.audioSource.queuedDuration;
   const pausedAt = Date.now();
   out.pause();
@@ -140,20 +155,43 @@ describe('BARGE_IN_FAST_STOP', () => {
   it('on: Ferni stops at the pause', async () => {
     const { queuedAtPause, heardAfterPauseMs, reply } = await pauseMidReply('on');
     expect(queuedAtPause).toBeGreaterThan(QUEUE_MS - 60);
-    expect(heardAfterPauseMs).toBeLessThanOrEqual(FRAME_MS);
+    expect(heardAfterPauseMs).toBeLessThanOrEqual(20);
     await reply.interrupt();
   });
 
-  it('on: a pause that resumes (a backchannel) loses nothing and repeats nothing', async () => {
-    const { room, out, reply, logs } = await pauseMidReply('on');
+  it.each([' ON ', 'true', '1'])(
+    'reads %j as on (as flagOn does), and logs the clear',
+    async (value) => {
+      const spy = vi.spyOn(loggerOf(roomOutput()), 'info');
+      const { queuedAtPause, heardAfterPauseMs, reply } = await pauseMidReply(value);
+      expect(heardAfterPauseMs).toBeLessThanOrEqual(20);
+      const line = spy.mock.calls.find((c) => c[1] === 'BARGE_IN_FAST_STOP_CLEAR');
+      expect((line?.[0] as { queuedMs: number }).queuedMs).toBeCloseTo(queuedAtPause, -1);
+      await reply.interrupt();
+    }
+  );
+
+  it('on but no resume buffer in front: no clear (nothing would replay it)', async () => {
+    vi.stubEnv('BARGE_IN_FAST_STOP', 'on');
+    const room = roomOutput();
+    const spy = vi.spyOn(loggerOf(room), 'info');
+    const reply = speak(room, 1000);
+    await reply.done; // fully generated: the tail waits in the queue, no next frame will come
+    const pausedAt = Date.now();
+    room.pause();
+    await sleep(50);
+    expect(room.audioSource.audibleUntil - pausedAt).toBeGreaterThan(QUEUE_MS - 100);
+    expect(spy.mock.calls.some((c) => c[1] === 'BARGE_IN_FAST_STOP_CLEAR')).toBe(false);
+    await reply.interrupt();
+  });
+
+  it('on: a pause that resumes (a backchannel) loses nothing and repeats nothing, 100 ms frames', async () => {
+    const { room, out, reply } = await pauseMidReply('on', 100);
     await sleep(300); // "mm-hm": the reply resumes
     out.resume();
     await reply.done;
     await room.audioSource.waitForPlayout();
-    // the resume buffer replays exactly what the clear took
-    const paused = logs.find((l) => l.event === 'paused')?.replayMs as number;
-    expect(paused).toBeGreaterThan(QUEUE_MS - 60);
-    expect(Math.abs(room.audioSource.heardMs() - 2000)).toBeLessThanOrEqual(2 * FRAME_MS);
+    expect(Math.abs(room.audioSource.heardMs() - 2000)).toBeLessThanOrEqual(8);
   });
 
   it('off: the same resume repeats the audio that played on during the pause', async () => {
@@ -168,7 +206,8 @@ describe('BARGE_IN_FAST_STOP', () => {
   it('on: the cleared audio is counted once as unplayed, not again by the paused captureFrame', async () => {
     vi.stubEnv('BARGE_IN_FAST_STOP', 'on');
     const room = roomOutput();
-    const reply = speak(room, 1500); // no resume buffer: a frame does reach the paused output
+    void new ResumeBufferOutput(room, {}); // attached, but frames go straight to the room
+    const reply = speak(room, 1500);
     await sleep(700);
     const queued = room.audioSource.queuedDuration;
     room.pause();
@@ -176,5 +215,38 @@ describe('BARGE_IN_FAST_STOP', () => {
     await sleep(100); // the next frame waits in the paused output's clear loop
     expect(room.sourceDiscardedDuration * 1000).toBeCloseTo(queued, -1);
     await reply.interrupt();
+  });
+
+  it('on: a reply cut after its queued tail was cleared reports what was really heard', async () => {
+    vi.stubEnv('BARGE_IN_FAST_STOP', 'on');
+    const room = roomOutput();
+    const sync = new TranscriptionSynchronizer(room, {
+      captureText: async () => undefined,
+      flush: () => undefined,
+      onAttached: () => undefined,
+      onDetached: () => undefined,
+    });
+    const out = new ResumeBufferOutput(sync.audioOutput, {});
+    const text = 'one two three four five six seven eight nine ten eleven twelve.';
+    await sync.textOutput.captureText(text);
+    sync.textOutput.flush();
+    const started = Date.now();
+    for (let ms = 0; ms < 1200; ms += 100) await out.captureFrame(frame(100));
+    out.flush(); // fully generated: the last QUEUE_MS waits in the room queue
+    await sleep(Math.max(0, started + 900 - Date.now()));
+    const heardAtPause = room.audioSource.heardMs();
+    out.pause(); // the caller cuts in: the clear ends the room's playout at once
+    await sleep(150);
+    const finished = out.waitForPlayout();
+    out.clearBuffer(); // the barge-in is confirmed: the reply is cut
+    out.resume();
+    const ev = await finished;
+    expect(ev.interrupted).toBe(true);
+    expect(Math.abs(ev.playbackPosition * 1000 - heardAtPause)).toBeLessThanOrEqual(60);
+    // the LLM is told the words heard, not the whole reply
+    expect(ev.synchronizedTranscript).toBeDefined();
+    expect(ev.synchronizedTranscript!.length).toBeLessThan(text.length);
+    expect(text.startsWith(ev.synchronizedTranscript!.trim())).toBe(true);
+    await sync.close();
   });
 });
