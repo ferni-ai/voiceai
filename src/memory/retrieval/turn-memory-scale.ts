@@ -25,6 +25,12 @@
  * found; at 0.50 precision fell to 87%. A wrong memory reads as invented or
  * creepy recall, so the floor favours precision.
  *
+ * That bench had 12-18 memories per caller. A fixed floor admits more near
+ * misses as a caller's store grows into the hundreds, so with the flag on a
+ * turn also gets at most TURN_MEMORY_MAX_INJECT memories (default 3, 1-5), the
+ * highest cosine first. scripts/memory-eval/haystack-bench.ts measures floor
+ * and cap against stores padded to 1,000 memories.
+ *
  * @module memory/retrieval/turn-memory-scale
  */
 import { flagOn, type Env } from '../../config/env-flag.js';
@@ -32,6 +38,16 @@ import type { HybridSearchResult } from './hybrid-search.js';
 
 /** Lowest cosine similarity between a turn and a memory that reaches the prompt. */
 export const MIN_TURN_MEMORY_COSINE = 0.55;
+
+/** Most memories one turn gets with TURN_MEMORY_RRF_SCALE on, unless TURN_MEMORY_MAX_INJECT says. */
+export const DEFAULT_TURN_MEMORY_MAX_INJECT = 3;
+
+/** TURN_MEMORY_MAX_INJECT as a whole number from 1 to 5; unset or not a number gives the default. */
+export function turnMemoryMaxInject(env: Env = process.env): number {
+  const raw = env.TURN_MEMORY_MAX_INJECT?.trim();
+  const n = raw ? Math.floor(Number(raw)) : NaN;
+  return Number.isFinite(n) ? Math.min(5, Math.max(1, n)) : DEFAULT_TURN_MEMORY_MAX_INJECT;
+}
 
 /** TURN_MEMORY_RRF_SCALE: gate per-turn memories on cosine, not the fused rank score. */
 export function turnMemoryRrfScaleOn(env: Env = process.env): boolean {
@@ -50,4 +66,18 @@ export function scaleTurnMemories(
     .map((r) => ({ ...r, score: r.legScores?.vector ?? 0 }))
     .filter((r) => r.score >= minCosine)
     .sort((a, b) => b.score - a.score);
+}
+
+/**
+ * With the flag on, the `max` memories with the highest score (the cosine, after
+ * scaleTurnMemories), whatever order a reranker left them in. Off: `results`
+ * unchanged, so the caller's own limit applies as before.
+ */
+export function capTurnMemories<T extends { score: number }>(
+  results: T[],
+  rrfScale: boolean,
+  max: number = turnMemoryMaxInject()
+): T[] {
+  if (!rrfScale) return results;
+  return [...results].sort((a, b) => b.score - a.score).slice(0, max);
 }

@@ -21,6 +21,7 @@ import {
 } from '../../types/monetization.js';
 import { createLogger } from '../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../utils/firestore-utils.js';
+import { getAdminFirestore } from '../../utils/firebase-admin-app.js';
 
 const log = createLogger({ module: 'FerniFund' });
 
@@ -52,7 +53,7 @@ const COST_PER_CONVERSATION_CENTS = 50; // $0.50 symbolically
  */
 function getFirestore(): admin.firestore.Firestore | null {
   try {
-    return admin.firestore();
+    return getAdminFirestore();
   } catch {
     return null;
   }

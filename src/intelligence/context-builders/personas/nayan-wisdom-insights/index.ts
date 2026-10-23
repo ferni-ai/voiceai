@@ -78,6 +78,7 @@ import { computeWisdomMetrics } from './wisdom-metrics.js';
 import { detectWisdomOpportunities } from './wisdom-opportunities.js';
 
 import type { LifeSynthesis, NayanInsightBriefing, TeamSynthesis } from './types.js';
+import { isMemberIdentity } from '../../../../services/identity/member-identity.js';
 
 const log = createLogger({ module: 'context:nayan-wisdom-insights' });
 
@@ -181,7 +182,7 @@ async function buildNayanWisdomInsightsContext(
   if (!isNayan) return injections;
 
   const userId = services?.userId || 'anonymous';
-  if (userId === 'anonymous') return injections;
+  if (!isMemberIdentity(userId)) return injections;
 
   const turnCount = userData?.turnCount ?? 0;
   const sessionId = services?.sessionId || userId;

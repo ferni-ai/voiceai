@@ -34,6 +34,7 @@ import { pathToFileURL } from 'node:url';
 import type { Firestore } from '@google-cloud/firestore';
 import { createLogger } from '../../src/utils/safe-logger.js';
 import { destructiveMode, refusalMessage } from '../destructive-gate.js';
+import { getFirestoreDatabase } from '../../src/config/environment.js';
 
 const log = createLogger({ module: 'calendar-root-tokens' });
 
@@ -152,7 +153,7 @@ export async function main(
   const { Firestore } = await import('@google-cloud/firestore');
   const db = new Firestore({
     projectId: projectId || undefined,
-    databaseId: process.env.FIRESTORE_DATABASE || '(default)',
+    databaseId: getFirestoreDatabase(),
   });
   const apply = mode === 'execute';
   console.log(`Project: ${projectId || '(default)'}  mode: ${apply ? 'apply' : 'dry run'}`);

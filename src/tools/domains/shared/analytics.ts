@@ -24,6 +24,7 @@
 import admin from 'firebase-admin';
 import { getLogger } from '../../../utils/safe-logger.js';
 import { cleanForFirestore } from '../../../utils/firestore-utils.js';
+import { getAdminFirestore } from '../../../utils/firebase-admin-app.js';
 
 // ============================================================================
 // FIRESTORE SETUP
@@ -41,20 +42,7 @@ function getFirestore(): admin.firestore.Firestore | null {
   firestoreInitAttempted = true;
 
   try {
-    if (admin.apps.length === 0) {
-      const projectId =
-        process.env.GCP_PROJECT_ID ||
-        process.env.FIREBASE_PROJECT_ID ||
-        process.env.GOOGLE_CLOUD_PROJECT;
-
-      if (projectId) {
-        admin.initializeApp({ projectId });
-      } else {
-        admin.initializeApp();
-      }
-    }
-
-    firestoreInstance = admin.firestore();
+    firestoreInstance = getAdminFirestore();
     return firestoreInstance;
   } catch {
     // Firebase not available - that's okay, we'll use in-memory only

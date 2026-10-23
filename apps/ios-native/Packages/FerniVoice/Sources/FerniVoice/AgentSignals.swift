@@ -1,4 +1,3 @@
-import FerniDesign
 import Foundation
 
 /// Parses what the voice agent tells the app during a call into plain values,
@@ -53,24 +52,5 @@ public enum AgentSignals {
     /// attribute diff). Nil when the attribute is absent or unknown.
     public static func agentActivity(from attributes: [String: String]) -> AgentActivity? {
         attributes[agentStateAttribute].flatMap(AgentActivity.init(rawValue:))
-    }
-
-    /// The avatar for a turn state. Emotional expressions set by other
-    /// messages stay; only the turn-taking faces (neutral, listening,
-    /// speaking, thinking) are replaced.
-    public static func avatar(
-        for activity: AgentActivity,
-        current: AvatarExpression
-    ) -> (isSpeaking: Bool, expression: AvatarExpression) {
-        let turnFaces: Set<AvatarExpression> = [.neutral, .listening, .speaking, .thinking]
-        let keepCurrent = !turnFaces.contains(current)
-        switch activity {
-        case .speaking:
-            return (true, keepCurrent ? current : .speaking)
-        case .thinking:
-            return (false, keepCurrent ? current : .thinking)
-        case .listening, .idle, .initializing:
-            return (false, keepCurrent ? current : .listening)
-        }
     }
 }
