@@ -6,9 +6,9 @@
  * Why a second read and not a new prompt (#2512, parked): v3 closed the base prompt's real-risk
  * misses (crisis-eligible-v1, 251 synthetic real-risk turns: 7-8 -> 0 per run, all quiet
  * preparation said as logistics), but every v3 wording moved the imminent tier, which the 988
- * script hangs on (88 imminent reads -> 49-117). Kept as an escalation only, v3 can add a crisis
- * read the base missed and can never lower one: the base's imminent reads stay by construction.
- * The two reads run in parallel under the same timeout, so the turn waits no longer.
+ * script hangs on (88 imminent reads -> 49-117). So v3 only fills a base read that found nothing:
+ * every base read with risk stays exactly as it was, imminent included. The two reads run in
+ * parallel under the same timeout; only a turn whose base read found nothing waits for v3.
  *
  * v3 adds three things to whatever prompt the environment builds:
  * - quiet preparation counts as crisis unless the caller gives an ordinary reason;
@@ -53,29 +53,27 @@ export function resolveCrisisSecondRead(
   return raw === 'on' || raw === 'shadow' ? raw : 'off';
 }
 
-const SEVERITY: Record<CrisisVerdict['risk'], number> = { none: 0, crisis: 1, imminent: 2 };
-
 /**
- * The base read unless the second raises it: the higher risk, and the caller's own risk over
- * someone else's. Field by field, so neither can drop: a second read about someone else never
- * moves the caller's own risk to third party, at any level. A second read that failed or found
- * nothing never changes the base, a missing base included.
+ * The base read, unless it found nothing: then the second read, whole. A base that found risk is
+ * never changed, not even raised: the gate's imminent-only releases (crisis-lone-imminent.ts, the
+ * grounded release) turn an imminent read of a plain goodbye into a soft check with no hotline, so
+ * lifting a base crisis read to imminent could take the 988 line away (#2548 round 1). A whole
+ * verdict, never a mix: "imminent, about the caller" from two reads that each said otherwise would
+ * drop third-party guidance. A second read that failed or found nothing changes nothing.
  */
 export function escalateOnly(
   base: CrisisVerdict | null,
   second: CrisisVerdict | null
 ): CrisisVerdict | null {
-  if (!second || second.risk === 'none') return base;
-  if (!base || base.risk === 'none') return second;
-  const risk = SEVERITY[second.risk] > SEVERITY[base.risk] ? second.risk : base.risk;
-  const subject = base.subject === 'self' || second.subject === 'self' ? 'self' : 'third_party';
-  return risk === base.risk && subject === base.subject ? base : { risk, subject };
+  if (base && base.risk !== 'none') return base;
+  return second && second.risk !== 'none' ? second : base;
 }
 
 /**
- * The turn's read with the second read applied: on, the more severe of the two; shadow, the base
- * alone (the turn never waits on v3). Either way one CRISIS_CLASSIFIER_SECOND_READ record logs
- * both risks, so the lift and its cost can be measured. No caller words are logged.
+ * The turn's read with the second read applied: on, the base read, or the second where the base
+ * found nothing (a base that found risk never waits for it); shadow, the base alone (the turn never
+ * waits). Either way one CRISIS_CLASSIFIER_SECOND_READ record logs both risks once both settle, so
+ * the lift and its cost can be measured. No caller words are logged.
  */
 export function withSecondRead(
   base: Promise<CrisisVerdict | null>,
@@ -86,21 +84,25 @@ export function withSecondRead(
   const mode = resolveCrisisSecondRead(env);
   if (mode === 'off') return base;
   const startedAt = Date.now();
-  const both = Promise.all([base, read(withPromptV3(prompt))]).then(([first, second]) => {
-    const kept = escalateOnly(first, second);
-    log.info(
-      {
-        mode,
-        base: first?.risk ?? null,
-        second: second?.risk ?? null,
-        lifted: kept !== first,
-        latencyMs: Date.now() - startedAt,
-      },
-      'CRISIS_CLASSIFIER_SECOND_READ'
-    );
-    return kept;
-  });
-  return mode === 'on' ? both : base;
+  const second = read(withPromptV3(prompt));
+  void Promise.all([base, second])
+    .then(([first, extra]) => {
+      log.info(
+        {
+          mode,
+          base: first?.risk ?? null,
+          second: extra?.risk ?? null,
+          lifted: escalateOnly(first, extra) !== first,
+          latencyMs: Date.now() - startedAt,
+        },
+        'CRISIS_CLASSIFIER_SECOND_READ'
+      );
+    })
+    .catch(() => {}); // logging only: never an unhandled rejection
+  if (mode === 'shadow') return base;
+  return base.then((first) =>
+    first && first.risk !== 'none' ? first : second.then((extra) => escalateOnly(first, extra))
+  );
 }
 
 /** The prompt with v3's additions. Unchanged if an anchor is missing (a test pins both). */

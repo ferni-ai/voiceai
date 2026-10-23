@@ -1,5 +1,5 @@
 /**
- * #2534: the second read. Prompt v3 reads the same turn and can only raise the base read.
+ * #2534: the second read. Prompt v3 reads the same turn and fills only a base read that found nothing.
  * Every test uses a fake generate function; nothing touches the network.
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -52,37 +52,34 @@ describe('CRISIS_CLASSIFIER_SECOND_READ', () => {
     expect(resolveCrisisSecondRead({ CRISIS_CLASSIFIER_SECOND_READ: 'shadow' })).toBe('shadow');
   });
 
-  it('never lowers the base read and keeps the more severe one', () => {
-    const v = (risk: CrisisVerdict['risk']): CrisisVerdict => ({ risk, subject: 'self' });
-    const reads = [null, v('none'), v('crisis'), v('imminent')];
-    const rank = (r: CrisisVerdict | null) =>
-      r ? ['none', 'crisis', 'imminent'].indexOf(r.risk) : -1;
+  it('fills only a base read that found nothing, with the second read whole', () => {
+    const read = (
+      risk: CrisisVerdict['risk'],
+      subject: CrisisVerdict['subject']
+    ): CrisisVerdict => ({
+      risk,
+      subject,
+    });
+    const reads: Array<CrisisVerdict | null> = [null];
+    for (const risk of ['none', 'crisis', 'imminent'] as const) {
+      for (const subject of ['self', 'third_party'] as const) reads.push(read(risk, subject));
+    }
     for (const base of reads) {
       for (const second of reads) {
         const kept = escalateOnly(base, second);
-        expect(rank(kept)).toBe(Math.max(rank(base), second?.risk === 'none' ? -1 : rank(second)));
-        // A tie or a weaker second read with the same subject is the base itself.
-        if (rank(second) <= rank(base)) expect(kept).toEqual(base);
+        // A base that found risk is kept exactly: never raised, never mixed.
+        if (base && base.risk !== 'none') expect(kept).toBe(base);
+        // Otherwise the second read whole, if it found risk; else the base as it was.
+        else if (second && second.risk !== 'none') expect(kept).toBe(second);
+        else expect(kept).toBe(base);
       }
     }
+    // Never a verdict neither read gave (#2548 round 1: crisis/self + imminent/third party).
+    expect(escalateOnly(read('crisis', 'self'), read('imminent', 'third_party'))).toEqual(
+      read('crisis', 'self')
+    );
     // A second read that found nothing never turns a failed base read into a clear none.
-    expect(escalateOnly(null, v('none'))).toBeNull();
-  });
-
-  it("never moves the caller's own risk to someone else's, and lifts someone else's to theirs", () => {
-    const self = (risk: CrisisVerdict['risk']): CrisisVerdict => ({ risk, subject: 'self' });
-    const other = (risk: CrisisVerdict['risk']): CrisisVerdict => ({
-      risk,
-      subject: 'third_party',
-    });
-    expect(escalateOnly(self('crisis'), other('crisis'))).toEqual(self('crisis'));
-    expect(escalateOnly(self('crisis'), other('imminent'))).toEqual(self('imminent'));
-    expect(escalateOnly(other('crisis'), self('crisis'))).toEqual(self('crisis'));
-    expect(escalateOnly(other('imminent'), self('crisis'))).toEqual(self('imminent'));
-    expect(escalateOnly(other('crisis'), other('imminent'))).toEqual(other('imminent'));
-    expect(escalateOnly(other('crisis'), other('crisis'))).toEqual(other('crisis'));
-    // A base that read none takes the second read whole.
-    expect(escalateOnly(self('none'), other('crisis'))).toEqual(other('crisis'));
+    expect(escalateOnly(null, read('none', 'self'))).toBeNull();
   });
 
   it('off: one read with the base prompt, as before', async () => {
@@ -92,24 +89,31 @@ describe('CRISIS_CLASSIFIER_SECOND_READ', () => {
     expect(generate.mock.calls[0][0]).not.toMatch(V3);
   });
 
-  it('on: v3 lifts a missed read and never lowers one', async () => {
+  it('on: v3 fills a missed read and never changes one that found risk', async () => {
+    const on = { CRISIS_CLASSIFIER_SECOND_READ: 'on' };
+    expect(await run(on, twoPrompts(reply('none'), reply('crisis')))).toEqual({
+      risk: 'crisis',
+      subject: 'self',
+    });
+    for (const [base, v3] of [
+      ['imminent', 'none'],
+      ['imminent', 'crisis'],
+      ['crisis', 'imminent'],
+    ]) {
+      resetCrisisClassifierCache();
+      expect(await run(on, twoPrompts(reply(base), reply(v3))), `${base}+${v3}`).toEqual({
+        risk: base,
+        subject: 'self',
+      });
+    }
+  });
+
+  it('on: a base read that found risk never waits for v3', async () => {
+    // v3 never answers: the turn resolves on the base read alone.
+    const verdict = run({ CRISIS_CLASSIFIER_SECOND_READ: 'on' }, twoPrompts(reply('crisis'), null));
     expect(
-      await run({ CRISIS_CLASSIFIER_SECOND_READ: 'on' }, twoPrompts(reply('none'), reply('crisis')))
+      await Promise.race([verdict, new Promise((r) => setTimeout(() => r('waited'), 200))])
     ).toEqual({ risk: 'crisis', subject: 'self' });
-    resetCrisisClassifierCache();
-    expect(
-      await run(
-        { CRISIS_CLASSIFIER_SECOND_READ: 'on' },
-        twoPrompts(reply('imminent'), reply('none'))
-      )
-    ).toEqual({ risk: 'imminent', subject: 'self' });
-    resetCrisisClassifierCache();
-    expect(
-      await run(
-        { CRISIS_CLASSIFIER_SECOND_READ: 'on' },
-        twoPrompts(reply('imminent'), reply('crisis'))
-      )
-    ).toEqual({ risk: 'imminent', subject: 'self' });
   });
 
   it('on: both reads go out at once, the v3 one on the same prompt plus v3', async () => {
@@ -123,8 +127,8 @@ describe('CRISIS_CLASSIFIER_SECOND_READ', () => {
 
   it('on: a v3 read that times out leaves the base read as it was', async () => {
     const env = { CRISIS_CLASSIFIER_SECOND_READ: 'on', CRISIS_CLASSIFIER_TIMEOUT_MS: '20' };
-    expect(await run(env, twoPrompts(reply('crisis'), null))).toEqual({
-      risk: 'crisis',
+    expect(await run(env, twoPrompts(reply('none'), null))).toEqual({
+      risk: 'none',
       subject: 'self',
     });
   });
