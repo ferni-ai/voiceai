@@ -8,9 +8,11 @@
  * splits are free: git rename detection (renameLimit=0, so it is never skipped) maps a
  * moved file to its old path.
  *
- * The base, in order: QUALITY_BASE; in GitHub Actions the event's merge-group base,
- * pull-request base or pre-push commit; otherwise `git merge-base HEAD origin/main`. A base
- * missing from a shallow checkout is fetched (one commit, depth 1).
+ * The base, in order: QUALITY_BASE; in GitHub Actions the event's merge-group base, the
+ * pull request's merge commit's first parent (pull_request.base.sha goes stale when main
+ * moves after the push, and would count main's new commits as the PR's), or the pre-push
+ * commit; otherwise `git merge-base HEAD origin/main`. A base missing from a shallow
+ * checkout is fetched (one commit, depth 1).
  *
  * Keep this file identical across the gate PRs that add it.
  *
@@ -44,6 +46,9 @@ function git(root: string, args: string[], input?: string): Run {
 const out = (r: Run): string => r.stdout.toString('utf8');
 const hasCommit = (root: string, sha: string): boolean => git(root, ['cat-file', '-e', `${sha}^{commit}`]).status === 0;
 const ZERO = /^0+$/;
+/** A commit's parents, read from the object itself, so it works in a shallow clone too. */
+const parentsOf = (root: string, rev: string): string[] =>
+  [...out(git(root, ['cat-file', '-p', rev])).matchAll(/^parent ([0-9a-f]{40})$/gm)].map((m) => m[1]!);
 
 /** The base commit a change is measured against (see the module comment). Throws when there is none. */
 export function resolveBase(root = process.cwd(), env: NodeJS.ProcessEnv = process.env): string {
@@ -51,10 +56,13 @@ export function resolveBase(root = process.cwd(), env: NodeJS.ProcessEnv = proce
   if (!sha && env.GITHUB_EVENT_PATH && existsSync(env.GITHUB_EVENT_PATH)) {
     const event = JSON.parse(readFileSync(env.GITHUB_EVENT_PATH, 'utf8')) as {
       merge_group?: { base_sha?: string };
-      pull_request?: { base?: { sha?: string } };
+      pull_request?: { base?: { sha?: string }; head?: { sha?: string } };
       before?: string;
     };
-    sha = event.merge_group?.base_sha ?? event.pull_request?.base?.sha ?? event.before;
+    const pr = event.pull_request;
+    const [first, second] = pr ? parentsOf(root, 'HEAD') : [];
+    const prBase = first && second && second === pr?.head?.sha ? first : pr?.base?.sha;
+    sha = event.merge_group?.base_sha ?? prBase ?? event.before;
     if (sha && ZERO.test(sha)) sha = undefined; // a new branch's push has no "before"
   }
   if (sha) {

@@ -66,6 +66,17 @@ describe('merge-base diff', () => {
     const event = join(root, 'event.json');
     writeFileSync(event, JSON.stringify({ pull_request: { base: { sha: base } } }));
     expect(resolveBase(root, { GITHUB_EVENT_PATH: event })).toBe(base);
+    // A pull request runs on its merge commit: the first parent is the real base, even when
+    // the event's base.sha is older (main moved after the push).
+    const prHead = git('rev-parse', 'HEAD');
+    git('checkout', '-q', '-b', 'tip', base);
+    write({ 'src/main-moved.ts': 'export const m = 1;\n' });
+    git('add', '.');
+    git('commit', '-q', '-m', 'main moved');
+    const mainTip = git('rev-parse', 'HEAD');
+    git('merge', '-q', '--no-ff', '-m', 'merge', prHead);
+    writeFileSync(event, JSON.stringify({ pull_request: { base: { sha: base }, head: { sha: prHead } } }));
+    expect(resolveBase(root, { GITHUB_EVENT_PATH: event })).toBe(mainTip);
     writeFileSync(event, JSON.stringify({ before: '0000000000000000000000000000000000000000' }));
     expect(() => resolveBase(root, { GITHUB_EVENT_PATH: event })).toThrow(/No base commit/);
     git('update-ref', 'refs/remotes/origin/main', base);
