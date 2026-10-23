@@ -20,6 +20,6 @@ export { EARLY_WARNING_WORD_BOUNDARY } from './EARLY_WARNING_WORD_BOUNDARY.js';
 export { LAUGH_CAP } from './LAUGH_CAP.js';
 export { PAUSE_HOLD_PHONE_CAP } from './PAUSE_HOLD_PHONE_CAP.js';
 export { PROMPT_HONEST_ACTIONS } from './PROMPT_HONEST_ACTIONS.js';
-export { TOOL_ACK_WIDE } from './TOOL_ACK_WIDE.js';
 export { SPOKEN_PUNCTUATION_NORMALIZE } from './SPOKEN_PUNCTUATION_NORMALIZE.js';
+export { TOOL_ACK_WIDE } from './TOOL_ACK_WIDE.js';
 export {};
