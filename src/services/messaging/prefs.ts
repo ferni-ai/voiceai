@@ -4,6 +4,8 @@
  * reader and writer (DESIGN 2026-10-18, M3b). Consent (whether we may text at
  * all, STOP) is separate. The panels used to save quiet hours to an in-memory
  * profile that never reached Firestore (menu re-audit 2026-10-18).
+ * The one exception is messagingPrefs.focus, a Focus hold, which
+ * focus-store.ts owns; the merge below leaves it alone.
  *
  * Reads never fail: a missing or invalid field reads as its default (quiet
  * 21:00 to 08:00, every channel on). Until a record is saved, quiet hours come

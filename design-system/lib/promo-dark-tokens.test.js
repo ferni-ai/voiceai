@@ -143,3 +143,15 @@ test('no promo-site stylesheet defines a custom property as itself', () => {
   }
   assert.deepEqual(cycles, []);
 });
+
+test('the hand-written tokens.css declares no colours (they come from _tokens.css)', () => {
+  // tokens.css loads before story-brand.css, which imports _tokens.css, so a
+  // colour declared in tokens.css is either dead or a second source of truth.
+  const handWritten = declarationsIn(fs.readFileSync(path.join(SITE_CSS, 'tokens.css'), 'utf8'), ':root {');
+  const COLOUR = /#[0-9a-f]{3,8}\b|\b(rgba?|hsla?|oklch|color-mix)\(|var\(--color-/i;
+  const colours = [...handWritten]
+    .filter(([name, value]) => name.startsWith('--color-') || COLOUR.test(value))
+    .map(([name, value]) => `${name}: ${value}`);
+  assert.deepEqual(colours, []);
+  assert.ok(handWritten.has('--space-4'), 'tokens.css still declares spacing');
+});
