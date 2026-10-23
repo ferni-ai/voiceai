@@ -53,6 +53,7 @@ import {
   screenReply,
 } from '../../services/safety/crisis-grounded-screen.js';
 import { transferRequestIsEveryday } from '../../services/safety/crisis-transfer-request.js';
+import { startWhoRead } from '../../services/safety/crisis-who.js'; // THIRD_PARTY_SELF_HARM
 import {
   callRiskBeforeTurn,
   loneImminentGoodbye,
@@ -246,6 +247,7 @@ export function startCrisisGate(
   if (run?.mode !== 'live' || decision.action === 'replace') {
     return { decision, escalation: null, reask };
   }
+  const who = startWhoRead({ latest, earlier, companion }, detection, { env, generate });
 
   const escalation = run.verdict.then(async (verdict): Promise<CrisisGateDecision | null> => {
     // A lone imminent read of a plain goodbye on a call with no risk: the soft check.
@@ -262,10 +264,12 @@ export function startCrisisGate(
       log.info({ action: 'guide', source: 'grounded_release' }, 'CRISIS_GATE');
       return { action: 'guide', guidance: GROUNDED_LIGHT_TOUCH };
     }
-    const merged = applyClassifierVerdict(detection, verdict);
+    const base = applyClassifierVerdict(detection, verdict);
+    const merged = who?.live ? await who.resolve(base) : base;
     if (merged === detection) return null;
     const stronger = decisionFor(merged);
-    if (RANK[stronger.action] <= RANK[decision.action] && !gentle) return null;
+    const rerouted = !!who?.live && merged.subject !== detection.subject; // whom it is for changed
+    if (RANK[stronger.action] <= RANK[decision.action] && !gentle && !rerouted) return null;
     // A bare "pass me to Nayan" (CRISIS_TRANSFER_EVERYDAY): a crisis read, never an imminent
     // one whoever it is about, gets the soft check-in once every other check below has run.
     let softTransfer = transfer && verdict?.risk === 'crisis' && stronger.action === 'guide';
@@ -442,9 +446,8 @@ export async function gatedReply(
     return textReply(gate.decision.script);
   }
 
-  // A reply with crisis guidance keeps the plain style reminder: a per-turn
-  // shape ("six words at most") must never hold it back, and no goodbye
-  // closes the loop on a plan (wrap-up.ts).
+  // A reply with crisis guidance keeps the plain style reminder: a per-turn shape ("six words at
+  // most") must never hold it back, and no goodbye closes the loop on a plan (wrap-up.ts).
   const plain = (): llm.ChatContext =>
     withTurnReminder(chatCtx, session, { shape: false, closeLoop: false });
   const ctx =
