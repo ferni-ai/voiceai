@@ -83,6 +83,31 @@ describe('merge-base diff', () => {
     expect(resolveBase(root, {})).toBe(base);
   });
 
+  it('uses merge_group.base_sha in the queue, and the push event\'s before', () => {
+    const base = repo();
+    write({ 'src/c.ts': 'export const c = 1;\n' });
+    git('add', '.');
+    git('commit', '-q', '-m', 'next');
+    const head = git('rev-parse', 'HEAD');
+    const event = join(root, 'event.json');
+    writeFileSync(event, JSON.stringify({ merge_group: { base_sha: base, head_sha: head } }));
+    expect(resolveBase(root, { GITHUB_EVENT_PATH: event })).toBe(base);
+    writeFileSync(event, JSON.stringify({ before: base, after: head }));
+    expect(resolveBase(root, { GITHUB_EVENT_PATH: event })).toBe(base);
+  });
+
+  it('ignores QUALITY_BASE in GitHub Actions, so one variable cannot point every gate at HEAD', () => {
+    const base = repo();
+    write({ 'src/c.ts': 'export const c = 1;\n' });
+    git('add', '.');
+    git('commit', '-q', '-m', 'next');
+    const head = git('rev-parse', 'HEAD');
+    const event = join(root, 'event.json');
+    writeFileSync(event, JSON.stringify({ before: base }));
+    expect(resolveBase(root, { GITHUB_ACTIONS: 'true', QUALITY_BASE: head, GITHUB_EVENT_PATH: event })).toBe(base);
+    expect(resolveBase(root, { QUALITY_BASE: head })).toBe(head); // local runs may still pick a base
+  });
+
   it('fails loudly on a base it cannot find', () => {
     repo();
     expect(() => resolveBase(root, { QUALITY_BASE: '1234567890abcdef1234567890abcdef12345678' })).toThrow(/could not be fetched/);

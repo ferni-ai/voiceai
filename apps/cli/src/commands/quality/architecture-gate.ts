@@ -291,6 +291,8 @@ export function newViolations(head: Violation[], base: Violation[], toBase: (hea
   return head.filter((v) => {
     const m = mapped(v);
     if (m.from && m.to && known.has(key(v.rule, m.from, m.to))) return false;
+    // An import turned type-only is less coupling, not new: type-X is known when the base had X.
+    if (m.from && m.to && v.rule.startsWith('type-') && known.has(key(v.rule.slice(5), m.from, m.to))) return false;
     const target = `${v.rule}|${m.to ?? v.to}`;
     const left = removed.get(target) ?? 0;
     if (left > 0) {
@@ -406,7 +408,7 @@ function main(args: string[]): void {
   if (scored && args.includes('--update')) writeFileSync(BASELINE, JSON.stringify(scored.lowered, null, 1) + '\n');
   const fixFor = (v: Violation): string =>
     v.rule.endsWith('orchestration-internal') ? orchestrationHint(v.to, root) : (HINT[v.rule.replace('type-', '')] ?? '');
-  const today = process.env.ARCH_GATE_TODAY ?? new Date().toISOString().slice(0, 10);
+  const today = new Date().toISOString().slice(0, 10);
   const { errors, warnings } = enforcement(added, today);
   if (warnings.length > 0) {
     say(`\n⚠️  ${warnings.length} orchestration import(s) past a context's index.ts, a warning until ${ORCHESTRATION_ENFORCED_FROM}, an error from then:`);
@@ -425,9 +427,8 @@ function main(args: string[]): void {
     process.exit(1);
   }
   if (kernelFailed) process.exit(1);
-  const fixed = scored?.fixed ?? 0;
-  const msg = args.includes('--update') ? `${fixed} fixed edge(s) removed from the scoreboard.` : `${fixed} scoreboard edge(s) fixed: \`pnpm quality:arch --update\` records it.`;
-  say(`\n✅ No architecture violations added${warnings.length > 0 ? ' (warnings above)' : ''}.${fixed > 0 ? ` ${msg}` : ''}`);
+  const updated = args.includes('--update') && scored ? ` ${scored.fixed} fixed edge(s) removed from the scoreboard.` : '';
+  say(`\n✅ No architecture violations added${warnings.length > 0 ? ' (warnings above)' : ''}.${updated}`);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main(process.argv.slice(2));

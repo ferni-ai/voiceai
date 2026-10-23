@@ -235,6 +235,13 @@ describe('architecture gate: only what the change adds fails (merge-base compari
     ]);
   });
 
+  it('passes an import turned type-only: type-X is known when the base had X on the same edge', () => {
+    const base = [v('src/a.ts', 'src/m/x.ts', 'upward')];
+    expect(newViolations([v('src/a.ts', 'src/m/x.ts', 'type-upward')], base, same)).toEqual([]);
+    // the other way round is not free: a type-only edge turned runtime is new runtime coupling
+    expect(newViolations([v('src/a.ts', 'src/m/x.ts', 'upward')], [v('src/a.ts', 'src/m/x.ts', 'type-upward')], same)).toHaveLength(1);
+  });
+
   it('fails every violation of a new file that no removed edge accounts for', () => {
     expect(newViolations([v('src/new.ts', 'src/m/x.ts', 'upward')], [], (p) => (p === 'src/new.ts' ? null : p))).toHaveLength(1);
   });

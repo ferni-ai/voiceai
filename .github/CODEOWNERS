@@ -15,4 +15,8 @@
 /apps/cli/src/commands/quality/kernel-duplicates-baseline.json @sethdford
 /apps/cli/src/commands/quality/ratchet-baseline.json @sethdford
 /knip.json @sethdford
-/src/config/flag-lifecycle-backfill.generated.ts @sethdford
+# The gate code itself, the flag tooling and the flag lifecycle rules. These only request a
+# review; nothing is enforced until "Require review from Code Owners" is on.
+/apps/cli/src/commands/quality/ @sethdford
+/scripts/flags/ @sethdford
+/src/config/flag-lifecycle* @sethdford
