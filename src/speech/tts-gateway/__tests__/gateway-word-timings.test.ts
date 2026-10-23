@@ -9,6 +9,9 @@ import { CartesiaReplyStream } from '../providers/cartesia-reply-stream.js';
 import { CartesiaTTSProvider, prosodyTags } from '../providers/cartesia.js';
 import { parseWordTimestamps } from '../word-timings.js';
 import { gatewayWordTimings } from '../../tts/aligned-transcript.js';
+import { directSpeech } from '../director/reply-director.js';
+import { DirectorSessions } from '../director/session-state.js';
+import type { ReplyStream } from '../providers/cartesia-reply-stream.js';
 import { CaptionBackfill } from '../../../agents/shared/aligned-caption-backfill.js';
 
 const KEY = USERDATA_TIMED_TRANSCRIPT;
@@ -260,6 +263,30 @@ describe('gateway word timings on frames', () => {
       ['wow ', 1.05, 1.4],
       ['yes ', 1.4, 1.6],
     ]);
+  });
+});
+
+describe('the speech director', () => {
+  it.each(['shadow', 'live'])('passes the reply stream timings through (%s)', (mode) => {
+    const words = [{ word: 'Hi.', start: 0, end: 0.2 }];
+    const inner: ReplyStream = {
+      push: () => undefined,
+      end: () => undefined,
+      cancel: () => undefined,
+      takeWordTimings: () => words,
+      async *[Symbol.asyncIterator]() {},
+    };
+    const { reply } = directSpeech(inner, {
+      textStream: ReadableStream.from(['Hi.']) as never,
+      voiceId: 'voice-a',
+      sessionId: 'word-timings',
+      personaId: 'ferni',
+      env: { SPEECH_DIRECTOR: mode },
+      sessions: new DirectorSessions(),
+      onPlan: () => undefined,
+    } as never);
+    expect(reply).not.toBe(inner); // the director wraps it
+    expect(reply.takeWordTimings?.()).toEqual(words);
   });
 });
 
